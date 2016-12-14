@@ -2,7 +2,7 @@
 #define CNUFFTSPREAD_H
 
 struct cnufftspread_opts {
-    int kernel_radius=6;
+    int nspread=6;
     double KB_W=0;
     double KB_beta=0;
     int spread_type=1;

@@ -35,11 +35,14 @@ bool cnufftspread(
         }
     }
 
+    int spread1=-opts.nspread/2;
+    int spread2=spread1+opts.nspread-1;
+
     for (long i=0; i<N1*N2*N3; i++) {
         data_uniform[i*2]=0;
         data_uniform[i*2+1]=0;
     }
-    long R=(2*opts.kernel_radius+1);
+    long R=opts.nspread;
     for (long i=0; i<M; i++) {
         long i1=(long)((kx2[i]+0.5));
         long i2=(long)((ky2[i]+0.5));
@@ -52,16 +55,16 @@ bool cnufftspread(
         if (opts.spread_type==1) {
             double re0=data_nonuniform2[i*2];
             double im0=data_nonuniform2[i*2+1];
-            for (int dz=-opts.kernel_radius; dz<=opts.kernel_radius; dz++) {
+            for (int dz=spread1; dz<=spread2; dz++) {
                 long j3=i3+dz;
                 if ((0<=j3)&&(j3<N3)) {
-                    for (int dy=-opts.kernel_radius; dy<=opts.kernel_radius; dy++) {
+                    for (int dy=spread1; dy<=spread2; dy++) {
                         long j2=i2+dy;
                         if ((0<=j2)&&(j2<N2)) {
-                            for (int dx=-opts.kernel_radius; dx<=opts.kernel_radius; dx++) {
+                            for (int dx=spread1; dx<=spread2; dx++) {
                                 long j1=i1+dx;
                                 if ((0<=j1)&&(j1<N1)) {
-                                    double kern0=kernel_values[(dx+opts.kernel_radius)+R*(dy+opts.kernel_radius)+R*R*(dz+opts.kernel_radius)];
+                                    double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
                                     long jjj=j1+N1*j2+N1*N2*j3;
                                     data_uniform[jjj*2]+=re0*kern0;
                                     data_uniform[jjj*2+1]+=im0*kern0;
@@ -75,16 +78,16 @@ bool cnufftspread(
         else {
             double re0=0;
             double im0=0;
-            for (int dz=-opts.kernel_radius; dz<=opts.kernel_radius; dz++) {
+            for (int dz=spread1; dz<=spread2; dz++) {
                 long j3=i3+dz;
                 if ((0<=j3)&&(j3<N3)) {
-                    for (int dy=-opts.kernel_radius; dy<=opts.kernel_radius; dy++) {
+                    for (int dy=spread1; dy<=spread2; dy++) {
                         long j2=i2+dy;
                         if ((0<=j2)&&(j2<N2)) {
-                            for (int dx=-opts.kernel_radius; dx<=opts.kernel_radius; dx++) {
+                            for (int dx=spread1; dx<=spread2; dx++) {
                                 long j1=i1+dx;
                                 if ((0<=j1)&&(j1<N1)) {
-                                    double kern0=kernel_values[(dx+opts.kernel_radius)+R*(dy+opts.kernel_radius)+R*R*(dz+opts.kernel_radius)];
+                                    double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
                                     long jjj=j1+N1*j2+N1*N2*j3;
                                     re0+=data_uniform[jjj*2]*kern0;
                                     im0+=data_uniform[jjj*2+1]*kern0;
@@ -111,23 +114,24 @@ bool cnufftspread(
 }
 
 std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3,const cnufftspread_opts &opts) {
-    long R=2*opts.kernel_radius+1;
+    long R=opts.nspread;
+    int nspread1=-opts.nspread/2;
     std::vector<double> vals1(R),vals2(R),vals3(R);
     for (int i=0; i<R; i++) {
-        vals1[i]=evaluate_kernel(frac1-(i-opts.kernel_radius),opts);
-        vals2[i]=evaluate_kernel(frac2-(i-opts.kernel_radius),opts);
-        vals3[i]=evaluate_kernel(frac3-(i-opts.kernel_radius),opts);
+        vals1[i]=evaluate_kernel(frac1-(i+nspread1),opts);
+        vals2[i]=evaluate_kernel(frac2-(i+nspread1),opts);
+        vals3[i]=evaluate_kernel(frac3-(i+nspread1),opts);
     }
 
     std::vector<double> ret(R*R*R);
     long aa=0;
     for (int k=0; k<R; k++) {
-        double val=vals3[k];
+        double val3=vals3[k];
         for (int j=0; j<R; j++) {
-            val*=vals2[j];
+            double val2=val3*vals2[j];
             for (int i=0; i<R; i++) {
-                val*=vals1[i];
-                ret[aa]=val;
+                double val1=val2*vals1[i];
+                ret[aa]=val1;
                 aa++;
             }
         }
@@ -191,9 +195,9 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
     return ret;
 }
 
-void set_kb_opts(cnufftspread_opts &opts,int kernel_radius,double fac1,double fac2) {
-    opts.kernel_radius=kernel_radius;
-    opts.KB_W=kernel_radius*fac1;
+void set_kb_opts(cnufftspread_opts &opts,int nspread,double fac1,double fac2) {
+    opts.nspread=nspread;
+    opts.KB_W=opts.nspread*fac1;
     double tmp0=opts.KB_W*opts.KB_W/4-0.8;
     if (tmp0<0) tmp0=0; //fix this?
     opts.KB_beta=M_PI*sqrt(tmp0)*fac2;

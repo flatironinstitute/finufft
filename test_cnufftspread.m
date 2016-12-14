@@ -10,16 +10,16 @@ compile_mex_cnufftspread;
 % X=rand(M,1)*2-1;
 % eps=0.01;
 
-N=2;
+N=20;
 M=1;
-kx=0;
-ky=0;
-kz=0;
+kx=N/2;
+ky=N/2;
+kz=N/2;
 X=1;
-eps=0.01;
+eps=0.00001;
 
 tic;
 Y=cnufftspread_type1(N,kx,ky,kz,X,eps);
 toc
 
-Y
+figure; imagesc(Y(:,:,N/2));
