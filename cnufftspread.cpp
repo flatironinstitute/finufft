@@ -1,10 +1,10 @@
 #include "cnufftspread.h"
 #include "besseli.h"
 
-#include "qute.h"
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
+#include <sys/time.h>
 
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,long N1,long N2,long N3);
 double evaluate_kernel(double x,const cnufftspread_opts &opts);
@@ -42,8 +42,25 @@ bool cnufftspread(
         }
     }
 
-    int spread1=-opts.nspread/2;
-    int spread2=spread1+opts.nspread-1;
+    int xspread1=0,xspread2=0,yspread1=0,yspread2=0,zspread1=0,zspread2=0;
+    {
+        int spread1=-opts.nspread/2;
+        int spread2=spread1+opts.nspread-1;
+
+        xspread1=spread1;
+        xspread2=spread2;
+
+        if ((N2>1)||(N3>1)) {
+            yspread1=spread1;
+            yspread2=spread2;
+        }
+
+        if (N3>1) {
+            zspread1=spread1;
+            zspread2=spread2;
+        }
+    }
+
 
     for (long i=0; i<N1*N2*N3; i++) {
         data_uniform[i*2]=0;
@@ -59,56 +76,54 @@ bool cnufftspread(
         double frac3=kz2[i]-i3;
         std::vector<double> kernel_values=compute_kernel_values(frac1,frac2,frac3,opts);
 
-        //for (int dz=spread1; dz<=spread2; dz++) {
-            if (opts.spread_direction==1) {
-                double re0=data_nonuniform2[i*2];
-                double im0=data_nonuniform2[i*2+1];
-                for (int dz=spread1; dz<=spread2; dz++) {
-                    long j3=i3+dz;
-                    if ((0<=j3)&&(j3<N3)) {
-                        for (int dy=spread1; dy<=spread2; dy++) {
-                            long j2=i2+dy;
-                            if ((0<=j2)&&(j2<N2)) {
-                                for (int dx=spread1; dx<=spread2; dx++) {
-                                    long j1=i1+dx;
-                                    if ((0<=j1)&&(j1<N1)) {
-                                        double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
-                                        long jjj=j1+N1*j2+N1*N2*j3;
-                                        data_uniform[jjj*2]+=re0*kern0;
-                                        data_uniform[jjj*2+1]+=im0*kern0;
-                                    }
+        if (opts.spread_direction==1) {
+            double re0=data_nonuniform2[i*2];
+            double im0=data_nonuniform2[i*2+1];
+            for (int dz=zspread1; dz<=zspread2; dz++) {
+                long j3=i3+dz;
+                if ((0<=j3)&&(j3<N3)) {
+                    for (int dy=yspread1; dy<=yspread2; dy++) {
+                        long j2=i2+dy;
+                        if ((0<=j2)&&(j2<N2)) {
+                            for (int dx=xspread1; dx<=xspread2; dx++) {
+                                long j1=i1+dx;
+                                if ((0<=j1)&&(j1<N1)) {
+                                    double kern0=kernel_values[(dx-xspread1)+R*(dy-yspread1)+R*R*(dz-zspread1)];
+                                    long jjj=j1+N1*j2+N1*N2*j3;
+                                    data_uniform[jjj*2]+=re0*kern0;
+                                    data_uniform[jjj*2+1]+=im0*kern0;
                                 }
                             }
                         }
                     }
                 }
             }
-            else {
-                double re0=0;
-                double im0=0;
-                for (int dz=spread1; dz<=spread2; dz++) {
-                    long j3=i3+dz;
-                    if ((0<=j3)&&(j3<N3)) {
-                        for (int dy=spread1; dy<=spread2; dy++) {
-                            long j2=i2+dy;
-                            if ((0<=j2)&&(j2<N2)) {
-                                for (int dx=spread1; dx<=spread2; dx++) {
-                                    long j1=i1+dx;
-                                    if ((0<=j1)&&(j1<N1)) {
-                                        double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
-                                        long jjj=j1+N1*j2+N1*N2*j3;
-                                        re0+=data_uniform[jjj*2]*kern0;
-                                        im0+=data_uniform[jjj*2+1]*kern0;
-                                    }
+        }
+        else {
+            double re0=0;
+            double im0=0;
+            for (int dz=zspread1; dz<=zspread2; dz++) {
+                long j3=i3+dz;
+                if ((0<=j3)&&(j3<N3)) {
+                    for (int dy=yspread1; dy<=yspread2; dy++) {
+                        long j2=i2+dy;
+                        if ((0<=j2)&&(j2<N2)) {
+                            for (int dx=xspread1; dx<=xspread2; dx++) {
+                                long j1=i1+dx;
+                                if ((0<=j1)&&(j1<N1)) {
+                                    double kern0=kernel_values[(dx-xspread1)+R*(dy-yspread1)+R*R*(dz-zspread1)];
+                                    long jjj=j1+N1*j2+N1*N2*j3;
+                                    re0+=data_uniform[jjj*2]*kern0;
+                                    im0+=data_uniform[jjj*2+1]*kern0;
                                 }
                             }
                         }
                     }
                 }
-                data_nonuniform2[i*2]=re0;
-                data_nonuniform2[i*2+1]=im0;
             }
-        //}
+            data_nonuniform2[i*2]=re0;
+            data_nonuniform2[i*2+1]=im0;
+        }
     }
 
     if (opts.spread_direction==2) {
@@ -250,4 +265,34 @@ void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,d
     opts.spread_direction=1;
 
     cnufftspread(N,N,N,Y,M,kx,ky,kz,X,opts);
+}
+
+void evaluate_kernel(int len, double *x, double *values, cnufftspread_opts opts)
+{
+    for (int i=0; i<len; i++) {
+        values[i]=evaluate_kernel(x[i],opts);
+    }
+}
+
+using namespace std;
+
+void CNTime::start()
+{
+    gettimeofday(&initial, 0);
+}
+
+int CNTime::restart()
+{
+    int delta = this->elapsed();
+    this->start();
+    return delta;
+}
+
+int CNTime::elapsed()
+{
+    struct timeval now;
+    gettimeofday(&now, 0);
+    int delta = 1000 * (now.tv_sec - (initial.tv_sec + 1));
+    delta += (now.tv_usec + (1000000 - initial.tv_usec)) / 1000;
+    return delta;
 }

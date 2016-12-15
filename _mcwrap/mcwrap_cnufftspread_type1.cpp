@@ -11,7 +11,6 @@
 #include "mex.h"
 
 #include "../cnufftspread.h"
-#include "../qute.h"
 #include "../cnufftspread.h"
 #include "../besseli.h"
 

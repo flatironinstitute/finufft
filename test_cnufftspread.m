@@ -14,7 +14,7 @@ if 1
     %kz=linspace(0,N,M)';
     
     X=rand(M,1);
-    nspread=16;
+    nspread=6;
     kernel_params=[1;nspread;1;1];
 else
     N=20;

@@ -1,6 +1,9 @@
 #ifndef CNUFFTSPREAD_H
 #define CNUFFTSPREAD_H
 
+#include <stdlib.h>
+#include <stdio.h>
+
 struct cnufftspread_opts {
     int nspread=6;
     double KB_fac1=1;
@@ -18,7 +21,7 @@ bool cnufftspread(
             cnufftspread_opts opts
         );
 
-void evaluate_kernel_1d(x,cnuf);
+void evaluate_kernel(int len, double *x, double *values, cnufftspread_opts opts);
 
 /*
  * kernel_params is an array with the following information
@@ -37,10 +40,19 @@ void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps);
 /*
  * MCWRAP [ COMPLEX Y[N,N,N] ] = cnufftspread_type1(N,kx[M,1],ky[M,1],kz[M,1],COMPLEX X[M,1],kernel_params[4,1])
  * SET_INPUT M = size(kx,1)
- * SOURCES qute.cpp cnufftspread.cpp besseli.cpp
- * HEADERS qute.h cnufftspread.h besseli.h
+ * SOURCES cnufftspread.cpp besseli.cpp
+ * HEADERS cnufftspread.h besseli.h
  */
 
 void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,double *X,double *kernel_params);
+
+class CNTime {
+public:
+    void start();
+    int restart();
+    int elapsed();
+private:
+    struct timeval initial;
+};
 
 #endif // CNUFFTSPREAD_H

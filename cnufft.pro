@@ -10,10 +10,10 @@ TARGET = cnufft
 TEMPLATE = app
 
 SOURCES += cnufftmain.cpp \
-    cnufftspread.cpp besseli.cpp qute.cpp
+    cnufftspread.cpp besseli.cpp
 
 HEADERS += \
-    cnufftspread.h besseli.h qute.h
+    cnufftspread.h besseli.h
 
 HEADERS += cnufftspread_c.h
 SOURCES += cnufftspread_c.cpp

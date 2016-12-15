@@ -31,3 +31,9 @@ void get_kernel_params_for_eps_f_(double *kernel_params,double *eps) {
     kernel_params[2]=opts.KB_fac1;
     kernel_params[3]=opts.KB_fac2;
 }
+
+void evaluate_kernel_f_(int *len,double *x,double *values,double *kernel_params) {
+    cnufftspread_opts opts;
+    set_kb_opts_from_kernel_params(opts,kernel_params);
+    evaluate_kernel(*len,x,values,opts);
+}
