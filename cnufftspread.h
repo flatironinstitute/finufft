@@ -18,6 +18,8 @@ bool cnufftspread(
             cnufftspread_opts opts
         );
 
+void evaluate_kernel_1d(x,cnuf);
+
 /*
  * kernel_params is an array with the following information
  *  0: kernel type (1 for kaiser-bessel)
