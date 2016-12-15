@@ -9,7 +9,7 @@
 		{"prole":"input","ptype":"double*","pname":"ky","dimensions":[" $M$"," 1"],"is_complex":"0","set_value":""},
 		{"prole":"input","ptype":"double*","pname":"kz","dimensions":[" $M$"," 1"],"is_complex":"0","set_value":""},
 		{"prole":"input","ptype":"double*","pname":"X","dimensions":[" $M$"," 1"],"is_complex":"1","set_value":""},
-		{"prole":"input","ptype":"double","pname":"eps","dimensions":[],"is_complex":"0","set_value":""}
+		{"prole":"input","ptype":"double*","pname":"kernel_params","dimensions":[" 4"," 1"],"is_complex":"0","set_value":""}
 	],
 	"return_type":"void"
 	"sources":["qute.cpp","cnufftspread.cpp","besseli.cpp"]

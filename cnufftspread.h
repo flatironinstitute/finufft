@@ -32,7 +32,7 @@ void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps);
 // MATLAB interface
 
 /*
- * MCWRAP [ COMPLEX Y[N,N,N] ] = cnufftspread_type1(N,kx[M,1],ky[M,1],kz[M,1],COMPLEX X[M,1],eps)
+ * MCWRAP [ COMPLEX Y[N,N,N] ] = cnufftspread_type1(N,kx[M,1],ky[M,1],kz[M,1],COMPLEX X[M,1],kernel_params[4,1])
  * SET_INPUT M = size(kx,1)
  * SOURCES qute.cpp cnufftspread.cpp besseli.cpp
  * HEADERS qute.h cnufftspread.h besseli.h

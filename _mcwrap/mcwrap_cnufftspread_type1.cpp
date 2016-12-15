@@ -41,9 +41,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         //N
         double *p_input_N=mxGetPr(prhs[1-1]);
         int input_N=(int)p_input_N[0];
-        //eps
-        double *p_input_eps=mxGetPr(prhs[6-1]);
-        double input_eps=p_input_eps[0];
         //kx
         //Check that we have the correct dimensions!
         {
@@ -122,6 +119,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 input_X[ii*2+1]=0;    
             }
         }
+        //kernel_params
+        //Check that we have the correct dimensions!
+        {
+            int numdims=mxGetNumberOfDimensions(prhs[6-1]);
+            if (numdims!=2) {
+              mexErrMsgTxt("Incorrect number of dimensions in input: kernel_params");
+            }
+            const mwSize *dims2=mxGetDimensions(prhs[6-1]);
+            int dims[]={ 4,1 };
+            for (long ii=0; ii<numdims; ii++) {
+              if (dims[ii]!=dims2[ii]) {
+                mexErrMsgTxt("Incorrect size of input: kernel_params");
+              }
+            }
+        }
+        double *input_kernel_params=mxGetPr(prhs[6-1]);
+        
     
       //mexPrintf("test C\n");
 //    Setup the outputs
@@ -160,7 +174,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         input_ky,
         input_kz,
         input_X,
-        input_eps
+        input_kernel_params
 
         );
    
@@ -171,6 +185,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         //kz
         //X
         free(input_X);
+        //kernel_params
 
       //mexPrintf("test F\n");
 //    Set the outputs

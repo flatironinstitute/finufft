@@ -1,14 +1,14 @@
 %CNUFFTSPREAD_TYPE1 - 
 %
-% Syntax:  [Y] = cnufftspread_type1(N, kx, ky, kz, X, eps)
+% Syntax:  [Y] = cnufftspread_type1(N, kx, ky, kz, X, kernel_params)
 %
 % Inputs:
 %    N - int
-%    eps - double
 %    kx - double (M,1)
 %    ky - double (M,1)
 %    kz - double (M,1)
 %    X - complex double (M,1)
+%    kernel_params - double (4,1)
 %
 % Outputs:
 %    Y - complex double (N,N,N)
