@@ -13,13 +13,13 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
 bool cnufftspread(
         long N1, long N2, long N3, double *data_uniform,
         long M, double *kx, double *ky, double *kz, double *data_nonuniform,
-        const cnufftspread_opts &opts
+        cnufftspread_opts opts
 ) {
 
-    if ((!opts.KB_W)||(!opts.KB_beta)) {
-        printf("Error: opts.KB_W and opts.KB_beta must be set\n");
-        return false;
-    }
+    opts.private_KB_W=opts.nspread*opts.KB_fac1;
+    double tmp0=opts.private_KB_W*opts.private_KB_W/4-0.8;
+    if (tmp0<0) tmp0=0; //fix this?
+    opts.private_KB_beta=M_PI*sqrt(tmp0)*opts.KB_fac2;
 
     // Sort the data
     std::vector<long> sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3);
@@ -29,7 +29,7 @@ bool cnufftspread(
         kx2[i]=kx[jj];
         ky2[i]=ky[jj];
         kz2[i]=kz[jj];
-        if (opts.spread_type==1) {
+        if (opts.spread_direction==1) {
             data_nonuniform2[i*2]=data_nonuniform[jj*2];
             data_nonuniform2[i*2+1]=data_nonuniform[jj*2+1];
         }
@@ -52,7 +52,7 @@ bool cnufftspread(
         double frac3=kz2[i]-i3;
         std::vector<double> kernel_values=compute_kernel_values(frac1,frac2,frac3,opts);
 
-        if (opts.spread_type==1) {
+        if (opts.spread_direction==1) {
             double re0=data_nonuniform2[i*2];
             double im0=data_nonuniform2[i*2+1];
             for (int dz=spread1; dz<=spread2; dz++) {
@@ -102,7 +102,7 @@ bool cnufftspread(
         }
     }
 
-    if (opts.spread_type==2) {
+    if (opts.spread_direction==2) {
         for (long i=0; i<M; i++) {
             long jj=sort_indices[i];
             data_nonuniform[jj*2]=data_nonuniform2[i*2];
@@ -141,12 +141,12 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
 }
 
 double evaluate_kernel(double x,const cnufftspread_opts &opts) {
-    double tmp1=1-(2*x/opts.KB_W)*(2*x/opts.KB_W);
+    double tmp1=1-(2*x/opts.private_KB_W)*(2*x/opts.private_KB_W);
     if (tmp1<0) {
         return 0;
     }
     else {
-        double y=opts.KB_beta*sqrt(tmp1);
+        double y=opts.private_KB_beta*sqrt(tmp1);
         //return besseli0(y);
         return besseli0_approx(y);
     }
@@ -195,12 +195,10 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
     return ret;
 }
 
-void set_kb_opts(cnufftspread_opts &opts,int nspread,double fac1,double fac2) {
-    opts.nspread=nspread;
-    opts.KB_W=opts.nspread*fac1;
-    double tmp0=opts.KB_W*opts.KB_W/4-0.8;
-    if (tmp0<0) tmp0=0; //fix this?
-    opts.KB_beta=M_PI*sqrt(tmp0)*fac2;
+void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_params) {
+    opts.nspread=kernel_params[1];
+    opts.KB_fac1=kernel_params[2];
+    opts.KB_fac2=kernel_params[3];
 }
 
 void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
@@ -227,13 +225,15 @@ void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
         nspread=16; fac1=0.94; fac2=1.46;
     }
 
-    set_kb_opts(opts,nspread,fac1,fac2);
+    opts.nspread=nspread;
+    opts.KB_fac1=fac1;
+    opts.KB_fac2=fac2;
 }
 
-void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,double *X,double eps) {
+void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,double *X,double *kernel_params) {
     cnufftspread_opts opts;
-    set_kb_opts_from_eps(opts,eps);
-    opts.spread_type=1;
+    set_kb_opts_from_kernel_params(opts,kernel_params);
+    opts.spread_direction=1;
 
     cnufftspread(N,N,N,Y,M,kx,ky,kz,X,opts);
 }

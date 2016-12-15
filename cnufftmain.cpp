@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
     }
 
     cnufftspread_opts opts;
-    set_kb_opts(opts,6,1,1);
+    set_kb_opts_from_eps(opts,1e-6);
 
     QTime timer; timer.start();
     cnufftspread(N,N,N,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
