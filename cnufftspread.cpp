@@ -22,10 +22,17 @@ bool cnufftspread(
     opts.private_KB_beta=M_PI*sqrt(tmp0)*opts.KB_fac2;
 
     // Sort the data
-    std::vector<long> sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3);
     std::vector<double> kx2(M),ky2(M),kz2(M),data_nonuniform2(M*2);
+    std::vector<long> sort_indices(M);
+    if (opts.sort_data)
+        sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3);
+    else {
+        for (long i=0; i<M; i++)
+            sort_indices[i]=i;
+    }
     for (long i=0; i<M; i++) {
         long jj=sort_indices[i];
+
         kx2[i]=kx[jj];
         ky2[i]=ky[jj];
         kz2[i]=kz[jj];
@@ -52,54 +59,56 @@ bool cnufftspread(
         double frac3=kz2[i]-i3;
         std::vector<double> kernel_values=compute_kernel_values(frac1,frac2,frac3,opts);
 
-        if (opts.spread_direction==1) {
-            double re0=data_nonuniform2[i*2];
-            double im0=data_nonuniform2[i*2+1];
-            for (int dz=spread1; dz<=spread2; dz++) {
-                long j3=i3+dz;
-                if ((0<=j3)&&(j3<N3)) {
-                    for (int dy=spread1; dy<=spread2; dy++) {
-                        long j2=i2+dy;
-                        if ((0<=j2)&&(j2<N2)) {
-                            for (int dx=spread1; dx<=spread2; dx++) {
-                                long j1=i1+dx;
-                                if ((0<=j1)&&(j1<N1)) {
-                                    double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
-                                    long jjj=j1+N1*j2+N1*N2*j3;
-                                    data_uniform[jjj*2]+=re0*kern0;
-                                    data_uniform[jjj*2+1]+=im0*kern0;
+        //for (int dz=spread1; dz<=spread2; dz++) {
+            if (opts.spread_direction==1) {
+                double re0=data_nonuniform2[i*2];
+                double im0=data_nonuniform2[i*2+1];
+                for (int dz=spread1; dz<=spread2; dz++) {
+                    long j3=i3+dz;
+                    if ((0<=j3)&&(j3<N3)) {
+                        for (int dy=spread1; dy<=spread2; dy++) {
+                            long j2=i2+dy;
+                            if ((0<=j2)&&(j2<N2)) {
+                                for (int dx=spread1; dx<=spread2; dx++) {
+                                    long j1=i1+dx;
+                                    if ((0<=j1)&&(j1<N1)) {
+                                        double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
+                                        long jjj=j1+N1*j2+N1*N2*j3;
+                                        data_uniform[jjj*2]+=re0*kern0;
+                                        data_uniform[jjj*2+1]+=im0*kern0;
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-        else {
-            double re0=0;
-            double im0=0;
-            for (int dz=spread1; dz<=spread2; dz++) {
-                long j3=i3+dz;
-                if ((0<=j3)&&(j3<N3)) {
-                    for (int dy=spread1; dy<=spread2; dy++) {
-                        long j2=i2+dy;
-                        if ((0<=j2)&&(j2<N2)) {
-                            for (int dx=spread1; dx<=spread2; dx++) {
-                                long j1=i1+dx;
-                                if ((0<=j1)&&(j1<N1)) {
-                                    double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
-                                    long jjj=j1+N1*j2+N1*N2*j3;
-                                    re0+=data_uniform[jjj*2]*kern0;
-                                    im0+=data_uniform[jjj*2+1]*kern0;
+            else {
+                double re0=0;
+                double im0=0;
+                for (int dz=spread1; dz<=spread2; dz++) {
+                    long j3=i3+dz;
+                    if ((0<=j3)&&(j3<N3)) {
+                        for (int dy=spread1; dy<=spread2; dy++) {
+                            long j2=i2+dy;
+                            if ((0<=j2)&&(j2<N2)) {
+                                for (int dx=spread1; dx<=spread2; dx++) {
+                                    long j1=i1+dx;
+                                    if ((0<=j1)&&(j1<N1)) {
+                                        double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
+                                        long jjj=j1+N1*j2+N1*N2*j3;
+                                        re0+=data_uniform[jjj*2]*kern0;
+                                        im0+=data_uniform[jjj*2+1]*kern0;
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                data_nonuniform2[i*2]=re0;
+                data_nonuniform2[i*2+1]=im0;
             }
-            data_nonuniform2[i*2]=re0;
-            data_nonuniform2[i*2+1]=im0;
-        }
+        //}
     }
 
     if (opts.spread_direction==2) {
@@ -177,7 +186,7 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
         offset+=counts[j];
     }
 
-    std::vector<long> ret(M);
+    std::vector<long> ret_inv(M);
     for (long i=0; i<M; i++) {
         long i2=(long)(ky[i]+0.5);
         if (i2<0) i2=0;
@@ -189,7 +198,12 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
 
         long jj=inds[i2+N2*i3];
         inds[i2+N2*i3]++;
-        ret[i]=jj;
+        ret_inv[i]=jj;
+    }
+
+    std::vector<long> ret(M);
+    for (long i=0; i<M; i++) {
+        ret[ret_inv[i]]=i;
     }
 
     return ret;

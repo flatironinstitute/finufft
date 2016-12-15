@@ -5,11 +5,16 @@ compile_mex_cnufftspread;
 if 1
     N=100;
     M=1e6;
-    kx=rand(M,1)*N/2+N/4;
-    ky=rand(M,1)*N/2+N/4;
-    kz=rand(M,1)*N/2+N/4;
+    kx=rand(M,1)*N;
+    ky=rand(M,1)*N;
+    kz=rand(M,1)*N;
+    kx=(kx-N/2)*0.9+N/2;
+    ky=(ky-N/2)*0.9+N/2;
+    kz=(kz-N/2)*0.9+N/2;
+    %kz=linspace(0,N,M)';
+    
     X=rand(M,1);
-    nspread=10;
+    nspread=16;
     kernel_params=[1;nspread;1;1];
 else
     N=20;

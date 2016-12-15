@@ -6,6 +6,7 @@ struct cnufftspread_opts {
     double KB_fac1=1;
     double KB_fac2=1;
     int spread_direction=1; // --> 1 means Type I transform (nonuni->uni), 2 means Type II transform (uni->nonuni)
+    bool sort_data=true;
 
     double private_KB_W=0;
     double private_KB_beta=0;
