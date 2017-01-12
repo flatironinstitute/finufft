@@ -13,9 +13,9 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
 bool cnufftspread(
         long N1, long N2, long N3, double *data_uniform,
         long M, double *kx, double *ky, double *kz, double *data_nonuniform,
-        cnufftspread_opts opts
-) { 
-    // Sort the data
+        cnufftspread_opts opts)
+{ 
+    // Sort the data once and for all: sorted answer is k{xyz}2 and data_nonuniform2
     std::vector<double> kx2(M),ky2(M),kz2(M),data_nonuniform2(M*2);
     std::vector<long> sort_indices(M);
     if (opts.sort_data)
@@ -30,9 +30,9 @@ bool cnufftspread(
         kx2[i]=kx[jj];
         ky2[i]=ky[jj];
         kz2[i]=kz[jj];
-        if (opts.spread_direction==1) {
-            data_nonuniform2[i*2]=data_nonuniform[jj*2];
-            data_nonuniform2[i*2+1]=data_nonuniform[jj*2+1];
+        if (opts.spread_direction==1) {       // this also sorts strengths, notice.
+	  data_nonuniform2[i*2]=data_nonuniform[jj*2]; // real
+	  data_nonuniform2[i*2+1]=data_nonuniform[jj*2+1];  // imag
         }
     }
 
@@ -72,17 +72,18 @@ bool cnufftspread(
         if (opts.spread_direction==1) {
             double re0=data_nonuniform2[i*2];
             double im0=data_nonuniform2[i*2+1];
+	    // TODO: build the j1,j2,j3 lists up front before triple loop!
             for (int dz=zspread1; dz<=zspread2; dz++) {
-                long j3=i3+dz;
+	      long j3=(i3+dz+N3)%N3;                         // periodic wrap of spreading pt
                 if ((0<=j3)&&(j3<N3)) {
                     for (int dy=yspread1; dy<=yspread2; dy++) {
-                        long j2=i2+dy;
+		      long j2=(i2+dy+N2)%N2;                 // "
                         if ((0<=j2)&&(j2<N2)) {
                             for (int dx=xspread1; dx<=xspread2; dx++) {
-                                long j1=i1+dx;
+			      long j1=(i1+dx+N1)%N1;         // SLOW " (todo: unwrap inner loop for speed!!!)
                                 if ((0<=j1)&&(j1<N1)) {
                                     double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
-                                    long jjj=j1+N1*j2+N1*N2*j3;
+				    long jjj=j1+N1*j2+N1*N2*j3;
                                     data_uniform[jjj*2]+=re0*kern0;
                                     data_uniform[jjj*2+1]+=im0*kern0;
                                 }
@@ -96,13 +97,13 @@ bool cnufftspread(
             double re0=0;
             double im0=0;
             for (int dz=zspread1; dz<=zspread2; dz++) {
-                long j3=i3+dz;
+                long j3=(i3+dz+N3)%N3;                         // periodic wrap of reading pt
                 if ((0<=j3)&&(j3<N3)) {
                     for (int dy=yspread1; dy<=yspread2; dy++) {
-                        long j2=i2+dy;
-                        if ((0<=j2)&&(j2<N2)) {
+		       long j2=(i2+dy+N2)%N2;                   // "
+		       if ((0<=j2)&&(j2<N2)) {
                             for (int dx=xspread1; dx<=xspread2; dx++) {
-                                long j1=i1+dx;
+                                long j1=(i1+dx+N1)%N1;         // SLOW "    (todo: unwrap inner loop for speed)
                                 if ((0<=j1)&&(j1<N1)) {
                                     double kern0=kernel_values[(dx-xspread1)+R*(dy-yspread1)+R*R*(dz-zspread1)];
                                     long jjj=j1+N1*j2+N1*N2*j3;
@@ -119,7 +120,7 @@ bool cnufftspread(
         }
     }
 
-    if (opts.spread_direction==2) {
+    if (opts.spread_direction==2) {        // "unsort" values if dumping to NU output pts
         for (long i=0; i<M; i++) {
             long jj=sort_indices[i];
             data_nonuniform[jj*2]=data_nonuniform2[i*2];

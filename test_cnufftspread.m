@@ -1,7 +1,7 @@
 %function test_cnufftspread
 % Magland, edited Barnett
 
-%compile_mex_cnufftspread; % if needed
+compile_mex_cnufftspread; % if needed
 
 if 1
     N=100;
@@ -18,11 +18,12 @@ if 1
     nspread=6; kernel_params=[1;nspread;1;1];         % 2.3 s, 1 core
     %nspread = 16; kernel_params=[1;nspread;0.94;1.46]; % 18 s, 1 core
 else
+  wrap = 1;   % 0: center pt of box, 1: wraps to center pt of box
     N=20;
     M=1;
-    kx=N/2;
-    ky=N/2;
-    kz=N/2;
+    kx=N/2 + N*wrap;
+    ky=N/2 + N*wrap;
+    kz=N/2 + N*wrap;
     X=1;
     nspread=10;
     kernel_params=[1;nspread;1;1];
