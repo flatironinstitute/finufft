@@ -148,6 +148,7 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
         vals1[i]=evaluate_kernel(frac1-(i+nspread1),opts);
         vals2[i]=evaluate_kernel(frac2-(i+nspread1),opts);
         vals3[i]=evaluate_kernel(frac3-(i+nspread1),opts);
+        printf("Evaluated kernel:::::::::::::::::::::: i:%g,%g,%g\n",vals1[i],vals2[i],vals3[i]);
     }
 
     std::vector<double> ret(R*R*R);
