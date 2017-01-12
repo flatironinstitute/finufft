@@ -15,6 +15,10 @@ bool cnufftspread(
         long M, double *kx, double *ky, double *kz, double *data_nonuniform,
         cnufftspread_opts opts
 ) { 
+
+    printf("cnufftspread, N1=%ld, N2=%ld, N3=%ld, M=%ld ===================\n",N1,N2,N3,M);
+
+
     // Sort the data
     std::vector<double> kx2(M),ky2(M),kz2(M),data_nonuniform2(M*2);
     std::vector<long> sort_indices(M);
