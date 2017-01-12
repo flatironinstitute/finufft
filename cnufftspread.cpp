@@ -166,7 +166,7 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
 
 double evaluate_kernel(double x,const cnufftspread_opts &opts) {
     double tmp1=1-(2*x/opts.private_KB_W)*(2*x/opts.private_KB_W);
-    printf("EVALUATING KERNEL: x=%g, KB_fac1=%g, KB_fac2=%g, nspread=%d::: tmp1=%g\n",x,opts.KB_fac1,opts.KB_fac2,opts.nspread,tmp1);
+    printf("EVALUATING KERNEL: x=%g, W=%g, beta=%g, KB_fac1=%g, KB_fac2=%g, nspread=%d::: tmp1=%g\n",x,opts.private_KB_W,opts.private_KB_beta,opts.KB_fac1,opts.KB_fac2,opts.nspread,tmp1);
     if (tmp1<0) {
         return 0;
     }
