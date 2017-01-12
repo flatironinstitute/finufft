@@ -41,12 +41,12 @@ bool cnufftspread(
     }
 
     int xspread1=0,xspread2=0,yspread1=0,yspread2=0,zspread1=0,zspread2=0;
+    int spread1=-opts.nspread/2;
+    int spread2=spread1+opts.nspread-1;
+    xspread1=spread1;
+    xspread2=spread2;
     {
-        int spread1=-opts.nspread/2;
-        int spread2=spread1+opts.nspread-1;
 
-        xspread1=spread1;
-        xspread2=spread2;
 
         if ((N2>1)||(N3>1)) {
             yspread1=spread1;
@@ -90,8 +90,8 @@ bool cnufftspread(
                                 printf("dx=%d\n",dx);
                                 long j1=i1+dx;
                                 if ((0<=j1)&&(j1<N1)) {
-                                    double kern0=kernel_values[(dx-xspread1)+R*(dy-yspread1)+R*R*(dz-zspread1)];
-                                    printf("%d,%d,%d:::: kern0=%g\n",dx-xspread1,dy-yspread1,dz-zspread1,kern0);
+                                    double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
+                                    printf("%d,%d,%d:::: kern0=%g\n",dx-spread1,dy-spread1,dz-spread1,kern0);
                                     long jjj=j1+N1*j2+N1*N2*j3;
                                     data_uniform[jjj*2]+=re0*kern0;
                                     data_uniform[jjj*2+1]+=im0*kern0;
