@@ -220,10 +220,20 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
     return ret;
 }
 
+void set_private_members(cnufftspread_opts &opts) {
+    opts.private_KB_W=opts.nspread*opts.KB_fac1;
+    double tmp0=opts.private_KB_W*opts.private_KB_W/4-0.8;
+    if (tmp0<0) tmp0=0; //fix this?
+    opts.private_KB_beta=M_PI*sqrt(tmp0)*opts.KB_fac2;
+}
+
+
 void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_params) {
     opts.nspread=kernel_params[1];
     opts.KB_fac1=kernel_params[2];
     opts.KB_fac2=kernel_params[3];
+
+    set_private_members(opts);
 }
 
 void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
@@ -254,10 +264,7 @@ void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
     opts.KB_fac1=fac1;
     opts.KB_fac2=fac2;
 
-    opts.private_KB_W=opts.nspread*opts.KB_fac1;
-    double tmp0=opts.private_KB_W*opts.private_KB_W/4-0.8;
-    if (tmp0<0) tmp0=0; //fix this?
-    opts.private_KB_beta=M_PI*sqrt(tmp0)*opts.KB_fac2;
+    set_private_members(opts);
 
 }
 
