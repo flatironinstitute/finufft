@@ -15,10 +15,6 @@ bool cnufftspread(
         long M, double *kx, double *ky, double *kz, double *data_nonuniform,
         cnufftspread_opts opts
 ) { 
-
-    printf("cnufftspread, N1=%ld, N2=%ld, N3=%ld, M=%ld ===================\n",N1,N2,N3,M);
-
-
     // Sort the data
     std::vector<double> kx2(M),ky2(M),kz2(M),data_nonuniform2(M*2);
     std::vector<long> sort_indices(M);
@@ -65,7 +61,6 @@ bool cnufftspread(
         data_uniform[i*2+1]=0;
     }
     long R=opts.nspread;
-    printf("DEBUG A.1...................................\n");
     for (long i=0; i<M; i++) {
         long i1=(long)((kx2[i]+0.5));
         long i2=(long)((ky2[i]+0.5));
@@ -79,19 +74,15 @@ bool cnufftspread(
             double re0=data_nonuniform2[i*2];
             double im0=data_nonuniform2[i*2+1];
             for (int dz=zspread1; dz<=zspread2; dz++) {
-                printf("dz=%d\n",dz);
                 long j3=i3+dz;
                 if ((0<=j3)&&(j3<N3)) {
                     for (int dy=yspread1; dy<=yspread2; dy++) {
-                        printf("dy=%d\n",dy);
                         long j2=i2+dy;
                         if ((0<=j2)&&(j2<N2)) {
                             for (int dx=xspread1; dx<=xspread2; dx++) {
-                                printf("dx=%d\n",dx);
                                 long j1=i1+dx;
                                 if ((0<=j1)&&(j1<N1)) {
                                     double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
-                                    printf("%d,%d,%d:::: kern0=%g\n",dx-spread1,dy-spread1,dz-spread1,kern0);
                                     long jjj=j1+N1*j2+N1*N2*j3;
                                     data_uniform[jjj*2]+=re0*kern0;
                                     data_uniform[jjj*2+1]+=im0*kern0;
@@ -148,7 +139,6 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
         vals1[i]=evaluate_kernel(frac1-(i+nspread1),opts);
         vals2[i]=evaluate_kernel(frac2-(i+nspread1),opts);
         vals3[i]=evaluate_kernel(frac3-(i+nspread1),opts);
-        printf("Evaluated kernel:::::::::::::::::::::: i:%g,%g,%g\n",vals1[i],vals2[i],vals3[i]);
     }
 
     std::vector<double> ret(R*R*R);
@@ -170,13 +160,11 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
 
 double evaluate_kernel(double x,const cnufftspread_opts &opts) {
     double tmp1=1-(2*x/opts.private_KB_W)*(2*x/opts.private_KB_W);
-    printf("EVALUATING KERNEL: x=%g, W=%g, beta=%g, KB_fac1=%g, KB_fac2=%g, nspread=%d::: tmp1=%g\n",x,opts.private_KB_W,opts.private_KB_beta,opts.KB_fac1,opts.KB_fac2,opts.nspread,tmp1);
     if (tmp1<0) {
         return 0;
     }
     else {
         double y=opts.private_KB_beta*sqrt(tmp1);
-        printf("                  y=%g\n",y);
         //return besseli0(y);
         return besseli0_approx(y);
     }

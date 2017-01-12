@@ -33,7 +33,6 @@ void get_kernel_params_for_eps_f_(double *kernel_params,double *eps) {
 }
 
 void evaluate_kernel_f_(int *len,double *x,double *values,double *kernel_params) {
-    printf("evaluate_kernel_f_ %d\n",*len);
     cnufftspread_opts opts;
     set_kb_opts_from_kernel_params(opts,kernel_params);
     evaluate_kernel(*len,x,values,opts);
