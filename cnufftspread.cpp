@@ -14,13 +14,7 @@ bool cnufftspread(
         long N1, long N2, long N3, double *data_uniform,
         long M, double *kx, double *ky, double *kz, double *data_nonuniform,
         cnufftspread_opts opts
-) {
-
-    opts.private_KB_W=opts.nspread*opts.KB_fac1;
-    double tmp0=opts.private_KB_W*opts.private_KB_W/4-0.8;
-    if (tmp0<0) tmp0=0; //fix this?
-    opts.private_KB_beta=M_PI*sqrt(tmp0)*opts.KB_fac2;
-
+) { 
     // Sort the data
     std::vector<double> kx2(M),ky2(M),kz2(M),data_nonuniform2(M*2);
     std::vector<long> sort_indices(M);
@@ -259,6 +253,12 @@ void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
     opts.nspread=nspread;
     opts.KB_fac1=fac1;
     opts.KB_fac2=fac2;
+
+    opts.private_KB_W=opts.nspread*opts.KB_fac1;
+    double tmp0=opts.private_KB_W*opts.private_KB_W/4-0.8;
+    if (tmp0<0) tmp0=0; //fix this?
+    opts.private_KB_beta=M_PI*sqrt(tmp0)*opts.KB_fac2;
+
 }
 
 void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,double *X,double *kernel_params) {
