@@ -65,6 +65,7 @@ bool cnufftspread(
         data_uniform[i*2+1]=0;
     }
     long R=opts.nspread;
+    printf("DEBUG A.1...................................\n");
     for (long i=0; i<M; i++) {
         long i1=(long)((kx2[i]+0.5));
         long i2=(long)((ky2[i]+0.5));
@@ -78,15 +79,19 @@ bool cnufftspread(
             double re0=data_nonuniform2[i*2];
             double im0=data_nonuniform2[i*2+1];
             for (int dz=zspread1; dz<=zspread2; dz++) {
+                printf("dz=%d\n",dz);
                 long j3=i3+dz;
                 if ((0<=j3)&&(j3<N3)) {
                     for (int dy=yspread1; dy<=yspread2; dy++) {
+                        printf("dy=%d\n",dy);
                         long j2=i2+dy;
                         if ((0<=j2)&&(j2<N2)) {
                             for (int dx=xspread1; dx<=xspread2; dx++) {
+                                printf("dx=%d\n",dx);
                                 long j1=i1+dx;
                                 if ((0<=j1)&&(j1<N1)) {
                                     double kern0=kernel_values[(dx-xspread1)+R*(dy-yspread1)+R*R*(dz-zspread1)];
+                                    printf("kern0=%g\n",kern0);
                                     long jjj=j1+N1*j2+N1*N2*j3;
                                     data_uniform[jjj*2]+=re0*kern0;
                                     data_uniform[jjj*2+1]+=im0*kern0;
