@@ -20,7 +20,7 @@ bool cnufftspread(
     std::vector<long> sort_indices(M);
     if (opts.sort_data)
         sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3);
-    else {
+    else {    // decide which dimensions to sort on
         for (long i=0; i<M; i++)
             sort_indices[i]=i;
     }
@@ -42,8 +42,7 @@ bool cnufftspread(
     xspread1=spread1;
     xspread2=spread2;
     {
-
-
+   
         if ((N2>1)||(N3>1)) {
             yspread1=spread1;
             yspread2=spread2;
@@ -171,6 +170,13 @@ double evaluate_kernel(double x,const cnufftspread_opts &opts) {
 }
 
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,long N1,long N2,long N3) {
+  /* Returns permutation of the nonuniform points with optimal RAM access (eg
+   * lots of reused blocks of RAM able to stay in cache to be reused.)
+   * Currenty this is a sorting so that all the pts nearest grid line parallel
+   * to x passing through (0,0), 
+   * list of indices each in the range 0,..,M-1 which 
+   */
+
     //Q_UNUSED(N1)
     //Q_UNUSED(kx)
 
@@ -227,6 +233,14 @@ void set_private_members(cnufftspread_opts &opts) {
 
 
 void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_params) {
+/* Directly sets Kaiser-Bessel spreading options.
+ *
+ * kernel_params is a 4-element double array containing following information:
+ *  entry 0: kernel type (1 for kaiser-bessel) - ignored
+ *  entry 1: nspread
+ *  entry 2: KB_fac1 (eg 1)
+ *  entry 3: KB_fac2 (eg 1)
+ */
     opts.nspread=kernel_params[1];
     opts.KB_fac1=kernel_params[2];
     opts.KB_fac2=kernel_params[3];
@@ -235,7 +249,9 @@ void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_param
 }
 
 void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
-    int nspread=12; double fac1=1,fac2=1;
+  // Sets KB spreading opts from accuracy eps
+  int nspread=12; double fac1=1,fac2=1;  // defaults
+    // tests done sequentially to categorize eps...
     if (eps>=1e-2) {
         nspread=4; fac1=0.75; fac2=1.71;
     }
@@ -254,7 +270,7 @@ void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
     else if (eps>=1e-12) {
         nspread=14; fac1=0.94; fac2=1.48;
     }
-    else {
+    else {       // eps < 1e-12
         nspread=16; fac1=0.94; fac2=1.46;
     }
 

@@ -22,15 +22,6 @@ bool cnufftspread(
         );
 
 void evaluate_kernel(int len, double *x, double *values, cnufftspread_opts opts);
-
-/*
- * kernel_params is an array with the following information
- *  0: kernel type (1 for kaiser-bessel)
- *  1: nspread
- *  2: KB_fac1 (eg 1)
- *  2: KB_fac2 (eg 1)
- */
-
 void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_params);
 void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps);
 
