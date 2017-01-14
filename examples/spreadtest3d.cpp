@@ -71,12 +71,9 @@ int main(int argc, char* argv[])
     opts.spread_direction=2;
     printf("cnufftspread 3D, dir=%d, tol=%.3g: nspread=%d\n",opts.spread_direction,tol,opts.nspread);
 
-    double sgridre = 0.0, sgridim = 0.0;
-    for (long i=0;i<N*N*N;++i) {      // random grid data, track its sum
-      d_uniform[2*i] = rand01()*2-1;
-      d_uniform[2*i+1] = rand01()*2-1;
-      sgridre += d_uniform[2*i]; 
-      sgridim += d_uniform[2*i+1];
+    for (long i=0;i<N*N*N;++i) {      // unit grid data
+      d_uniform[2*i] = 1.0;
+      d_uniform[2*i+1] = 0.0;
     }
     for (long i=0; i<M; ++i) {       // random target pts
         kx[i]=rand01()*N;
@@ -89,18 +86,18 @@ int main(int argc, char* argv[])
     printf("\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",
 	   M,t,M/t,pow(opts.nspread,3)*M/t);
 
-    sumre = 0.0; sumim = 0.0;          // sum NU output vals
+    sumre = 0.0; sumim = 0.0;          // sum NU output vals (should be equal)
     for (long i=0;i<M;++i) {
       sumre += d_nonuniform[2*i]; 
       sumim += d_nonuniform[2*i+1];
     }
-    pre = kersumre*sgridre - kersumim*sgridim;       // pred ans, complex mult
-    pim = kersumim*sgridre + kersumre*sgridim;
-    printf("pre=%g, sumre=%g\n",pre,sumre);
+    pre = M*kersumre;                  // pred val sum
+    pim = M*kersumim;
     maxerr = std::max(sumre-pre, sumim-pim);
     ansmod = sqrt(sumre*sumre+sumim*sumim);
     printf("\trel err in total val on NU pts: %.3g\n",maxerr/ansmod);
-    // note this cannot be correct unless periodic wrapping is correct
+    // this is weaker test since could be reading from wrong grid pts (they
+    // are all unity)
 
     return 0;
 }
