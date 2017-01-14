@@ -21,8 +21,9 @@ c
 c     --------------------------------------------------
 c     create some test data
 c     --------------------------------------------------
-      ms = 64
-      nj = 64
+      call prini(6,13)
+      ms = 96
+      nj = 48
       do k1 = -nj/2, (nj-1)/2
          j = k1+nj/2+1
          xj(j) = pi * dcos(-pi*j/nj)
@@ -58,8 +59,10 @@ c
 ccc         call nufft1d1f90(nj,xj,cj,iflag,eps, ms,fk1(-ms/2),ier)
          call finufft1d1(nj,xj,cj,iflag,eps, ms,fk1(-ms/2),ier)
          t2 = second()
-         call prin2(' fk0 = * ',fk0(-ms/2),2*ms)
-         call prin2(' fk1 = * ',fk1(-ms/2),2*ms)
+ccc         call prin2(' fk0 = * ',fk0(-ms/2),2*ms)
+ccc         call prin2(' fk1 = * ',fk1(-ms/2),2*ms)
+         call prin2(' fk0 = * ',fk0(0),2)
+         call prin2(' fk1 = * ',fk1(0),2)
          call prin2(' ratio = * ',fk1(0)/fk0(0),2)
          print *,' time type 1 = ',t2-t1
          call errcomp(fk0(-ms/2),fk1(-ms/2),ms,err)
@@ -70,14 +73,14 @@ c     -----------------------
 c     call 1D Type2 method
 c     -----------------------
 c
-         call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
-         t1 = second()
-         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0(-ms/2),ier)
-         t2 = second()
-         print *,' time type 2 = ',t2-t1
-         call errcomp(cj0,cj1,nj,err)
-         print *,' ier = ',ier
-         print *,' type 2 error = ',err
+ccc         call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
+ccc         t1 = second()
+ccc         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0(-ms/2),ier)
+ccc         t2 = second()
+ccc         print *,' time type 2 = ',t2-t1
+ccc         call errcomp(cj0,cj1,nj,err)
+ccc         print *,' ier = ',ier
+ccc         print *,' type 2 error = ',err
       enddo
       stop
       end

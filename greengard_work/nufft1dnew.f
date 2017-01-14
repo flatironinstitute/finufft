@@ -3,7 +3,7 @@ c**********************************************************************
       implicit none
       integer ier,iflag,n1,itype
       integer k1,ms,next235,nf1,nj
-      real*8 eps
+      real*8 eps,rat
       real*8 xj(nj),xker
       complex*16 cj(nj),fk(-ms/2:(ms-1)/2),cker
 c ----------------------------------------------------------------------
@@ -97,13 +97,14 @@ c     ---------------------------------------------------------------
 c     Deconvolve
 c     ---------------------------------------------------------------
 c
-      fk(0) = fw(0)/fwker(0)/ms
+      rat = 1.0d0/nj
+      fk(0) = fw(0)/fwker(0)*rat
       do k1 = 1, (ms-1)/2
-         fk(k1) = fw(k1)/fwker(k1)/ms
-         fk(-k1) = fw(nf1-k1)/fwker(nf1-k1)/ms
+         fk(k1) = fw(k1)/fwker(k1)*rat
+         fk(-k1) = fw(nf1-k1)/fwker(nf1-k1)*rat
       enddo
       if (ms/2*2.eq.ms) then
-         fk(-ms/2) = fw(nf1-ms/2)/fwker(nf1-ms/2)/ms
+         fk(-ms/2) = fw(nf1-ms/2)/fwker(nf1-ms/2)*rat
       endif
 c
       return

@@ -107,7 +107,7 @@ c     Deconvolve
 c     ---------------------------------------------------------------
 c
 ccc      rfac = 2.0d0/3.0d0/ms/mt
-      rfac = 1.0d0/ms/mt
+      rfac = 1.0d0/nj
       do k1 = 0, (ms-1)/2
       do k2 = 0, (mt-1)/2
          fk(k1,k2) = rfac*fw(k1,k2)/fwker(k1,k2)

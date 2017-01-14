@@ -1,6 +1,6 @@
-g++ -c -fopenmp ../cnufft/besseli.cpp
-g++ -c -fopenmp ../cnufft/cnufftspread.cpp
-g++ -c -fopenmp ../cnufft/cnufftspread_c.cpp
+g++ -c -fopenmp ../besseli.cpp
+g++ -c -fopenmp ../cnufftspread.cpp
+g++ -c -fopenmp ../cnufftspread_c.cpp
 gfortran -c nufft3dnew.f 
 gfortran -c dfft3d.f 
 gfortran -c nufft3df90.f 
