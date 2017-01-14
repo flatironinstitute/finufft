@@ -6,6 +6,11 @@
 #include <math.h>
 #include <sys/time.h>
 
+// number of negative periods to safely handle j index modulo
+// (since user is requested to have input in [0,N1] etc range, and nspread is smaller than
+//  all box dims, could get away with 1 here. Since integer arith, can be big):
+#define SAFETYWRAP 100
+
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,long N1,long N2,long N3);
 double evaluate_kernel(double x,const cnufftspread_opts &opts);
 std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3,const cnufftspread_opts &opts);
@@ -14,35 +19,65 @@ bool cnufftspread(
         long N1, long N2, long N3, double *data_uniform,
         long M, double *kx, double *ky, double *kz, double *data_nonuniform,
         cnufftspread_opts opts)
+/* Spreader for 1, 2, or 3 dimensions.
+
+   Uniform points are centered at coords [0,1,...,N1-1] in 1D, analogously in 2D and 3D.
+   Non-uniform points should be in the range [0,N1] in 1D, analogously in 2D and 3D.
+   However, if not, these non-uniform points will be folded back periodically into [0,N1)
+   unless there a large number of periods away (don't try this).
+
+   If opts.spread_direction==1, spreads from nonuniform input to uniform output
+   If opts.spread_direction==2, interpolates ("spread transpose") from uniform input
+     to nonuniform output.
+
+   data_nonuniform - input strengths of the sources (dir=1)
+                     OR output values at targets (dir=2)
+
+   Notes:
+   1) it is assumed that opts.nspread < min(N1,N2,N2), so that the kernel only ever
+   wraps once when falls below 0 or off the top of a uniform grid dimension.
+
+   *** todo
+
+*/
 { 
-    // Sort the data once and for all: sorted answer is k{xyz}2 and data_nonuniform2
+    // todo: first fold input data into the periodic domain as doubles?
+    // (not really needed since it's done below at the j-index level)
+
+    // Sort the data once and for all: sorted answer will be k{xyz}2 and data_nonuniform2
+    // We also kill off unused coordinates (for 1D or 2D cases)
     std::vector<double> kx2(M),ky2(M),kz2(M),data_nonuniform2(M*2);
     std::vector<long> sort_indices(M);
     if (opts.sort_data)
         sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3);
     else {    // decide which dimensions to sort on
         for (long i=0; i<M; i++)
-            sort_indices[i]=i;
+	  sort_indices[i]=i;       // the identity permutation!
     }
     for (long i=0; i<M; i++) {
         long jj=sort_indices[i];
-
         kx2[i]=kx[jj];
-        ky2[i]=ky[jj];
-        kz2[i]=kz[jj];
-        if (opts.spread_direction==1) {       // this also sorts strengths, notice.
-	  data_nonuniform2[i*2]=data_nonuniform[jj*2]; // real
+	if (N2==1)            // safely kill not-needed coords
+	  ky2[i] = 0.0;
+	else
+	  ky2[i]=ky[jj];
+	if (N3==1)	
+	  kz2[i] = 0.0;
+	else
+	  kz2[i]=kz[jj];
+        if (opts.spread_direction==1) {       // note this also sorts the strengths
+	  data_nonuniform2[i*2]=data_nonuniform[jj*2];      // real
 	  data_nonuniform2[i*2+1]=data_nonuniform[jj*2+1];  // imag
         }
     }
 
+    // set up spreading kernel size either size of its center, in each dim:
     int xspread1=0,xspread2=0,yspread1=0,yspread2=0,zspread1=0,zspread2=0;
     int spread1=-opts.nspread/2;
     int spread2=spread1+opts.nspread-1;
     xspread1=spread1;
     xspread2=spread2;
     {
-   
         if ((N2>1)||(N3>1)) {
             yspread1=spread1;
             yspread2=spread2;
@@ -54,73 +89,72 @@ bool cnufftspread(
         }
     }
 
-
-    for (long i=0; i<N1*N2*N3; i++) {
+    if (opts.spread_direction==1)   // zero the output array ready to accumulate
+      for (long i=0; i<N1*N2*N3; i++) {
         data_uniform[i*2]=0;
         data_uniform[i*2+1]=0;
-    }
-    long R=opts.nspread;
+      }
+
+    long R=opts.nspread;       // shorthand
     for (long i=0; i<M; i++) {
-        long i1=(long)((kx2[i]+0.5));
-        long i2=(long)((ky2[i]+0.5));
-        long i3=(long)((kz2[i]+0.5));
-        double frac1=kx2[i]-i1;
-        double frac2=ky2[i]-i2;
-        double frac3=kz2[i]-i3;
-        std::vector<double> kernel_values=compute_kernel_values(frac1,frac2,frac3,opts);
+      long i1=(long)((kx2[i]+0.5));   // rounds to nearest grid pt (sets grid loc in real space).
+      long i2=(long)((ky2[i]+0.5));   // safely is 0 if is a coord in an unused dimension.
+      long i3=(long)((kz2[i]+0.5));   // "
+      double frac1=kx2[i]-i1;
+      double frac2=ky2[i]-i2;         // "
+      double frac3=kz2[i]-i3;         // "
+      std::vector<double> kernel_values=compute_kernel_values(frac1,frac2,frac3,opts);
 
-        if (opts.spread_direction==1) {
-            double re0=data_nonuniform2[i*2];
-            double im0=data_nonuniform2[i*2+1];
-	    // TODO: build the j1,j2,j3 lists up front before triple loop!
-            for (int dz=zspread1; dz<=zspread2; dz++) {
-	      long j3=(i3+dz+N3)%N3;                         // periodic wrap of spreading pt
-                if ((0<=j3)&&(j3<N3)) {
-                    for (int dy=yspread1; dy<=yspread2; dy++) {
-		      long j2=(i2+dy+N2)%N2;                 // "
-                        if ((0<=j2)&&(j2<N2)) {
-                            for (int dx=xspread1; dx<=xspread2; dx++) {
-			      long j1=(i1+dx+N1)%N1;         // SLOW " (todo: unwrap inner loop for speed!!!)
-                                if ((0<=j1)&&(j1<N1)) {
-                                    double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
-				    long jjj=j1+N1*j2+N1*N2*j3;
-                                    data_uniform[jjj*2]+=re0*kern0;
-                                    data_uniform[jjj*2+1]+=im0*kern0;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else {
-            double re0=0;
-            double im0=0;
-            for (int dz=zspread1; dz<=zspread2; dz++) {
-                long j3=(i3+dz+N3)%N3;                         // periodic wrap of reading pt
-                if ((0<=j3)&&(j3<N3)) {
-                    for (int dy=yspread1; dy<=yspread2; dy++) {
-		       long j2=(i2+dy+N2)%N2;                   // "
-		       if ((0<=j2)&&(j2<N2)) {
-                            for (int dx=xspread1; dx<=xspread2; dx++) {
-                                long j1=(i1+dx+N1)%N1;         // SLOW "    (todo: unwrap inner loop for speed)
-                                if ((0<=j1)&&(j1<N1)) {
-                                    double kern0=kernel_values[(dx-xspread1)+R*(dy-yspread1)+R*R*(dz-zspread1)];
-                                    long jjj=j1+N1*j2+N1*N2*j3;
-                                    re0+=data_uniform[jjj*2]*kern0;
-                                    im0+=data_uniform[jjj*2+1]*kern0;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            data_nonuniform2[i*2]=re0;
-            data_nonuniform2[i*2+1]=im0;
-        }
+      // accumulate the indexes for each dim ahead of time using the (very slow!)
+      // modulo operator to take care of periodicity/wrapping
+      int j1_array[xspread2-xspread1+1],j2_array[yspread2-yspread1+1],j3_array[zspread2-zspread1+1];
+      for (int dx=xspread1; dx<=xspread2; dx++) {
+	j1_array[dx-xspread1]=(i1+dx+SAFETYWRAP*N1)%N1;     // x-periodic wrap of spreading pt
+      }
+      for (int dy=yspread1; dy<=yspread2; dy++) {
+	j2_array[dy-yspread1]=(i2+dy+SAFETYWRAP*N2)%N2;
+      }
+      for (int dz=zspread1; dz<=zspread2; dz++) {
+	j3_array[dz-zspread1]=(i3+dz+SAFETYWRAP*N3)%N3;
+      }
+      if (opts.spread_direction==1) {          // spread NU -> U
+	double re0=data_nonuniform2[i*2];
+	double im0=data_nonuniform2[i*2+1];
+	for (int dz=zspread1; dz<=zspread2; dz++) {
+	  long j3=j3_array[dz-zspread1];                   // use precomputed index lists in each dim
+	  for (int dy=yspread1; dy<=yspread2; dy++) {
+	    long j2=j2_array[dy-yspread1];
+	    for (int dx=xspread1; dx<=xspread2; dx++) {
+	      long j1=j1_array[dx-xspread1];
+	      double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
+	      long jjj=j1+N1*j2+N1*N2*j3;
+	      data_uniform[jjj*2]   += re0*kern0;         // accumulate complex value to grid
+	      data_uniform[jjj*2+1] += im0*kern0;
+	    }
+	  }
+	}
+      } else {                               // interpolate U -> NU
+	double re0=0;
+	double im0=0;
+	for (int dz=zspread1; dz<=zspread2; dz++) {
+	  long j3=j3_array[dz-zspread1];                   // use precomputed index lists in each dim
+	  for (int dy=yspread1; dy<=yspread2; dy++) {
+	    long j2=j2_array[dy-yspread1];
+	    for (int dx=xspread1; dx<=xspread2; dx++) {
+	      long j1=j1_array[dx-xspread1];
+	      double kern0=kernel_values[(dx-spread1)+R*(dy-spread1)+R*R*(dz-spread1)];
+	      long jjj=j1+N1*j2+N1*N2*j3;
+	      re0 += data_uniform[jjj*2]*kern0;           // interpolate using kernel as weights
+	      im0 += data_uniform[jjj*2+1]*kern0;
+	    }
+	  }
+	}
+	data_nonuniform2[i*2]   = re0;           // copy out the accumulated complex value
+	data_nonuniform2[i*2+1] = im0;
+      }
     }
 
-    if (opts.spread_direction==2) {        // "unsort" values if dumping to NU output pts
+    if (opts.spread_direction==2) {        // "unsort" values if dumped to NU output pts
         for (long i=0; i<M; i++) {
             long jj=sort_indices[i];
             data_nonuniform[jj*2]=data_nonuniform2[i*2];
@@ -128,7 +162,7 @@ bool cnufftspread(
         }
     }
 
-    return true;
+    return true;  // fix this
 }
 
 std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3,const cnufftspread_opts &opts) {
@@ -171,11 +205,17 @@ double evaluate_kernel(double x,const cnufftspread_opts &opts) {
 }
 
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,long N1,long N2,long N3) {
-  /* Returns permutation of the nonuniform points with optimal RAM access (eg
-   * lots of reused blocks of RAM able to stay in cache to be reused.)
-   * Currenty this is a sorting so that all the pts nearest grid line parallel
-   * to x passing through (0,0), 
-   * list of indices each in the range 0,..,M-1 which 
+  /* Returns permutation of the 3D nonuniform points with optimal RAM access for the
+   * upcoming spreading step. (Eg,
+   * lots of reused blocks of RAM are able to stay in cache to be reused.)
+   * Currenty this is achieved by binning into 1-grid-point sized boxes in the yz-plane,
+   * with no sorting along x within each box, then reading out the indices within these
+   * boxes in the natural box order. Finally the permutation map is inverted.
+   * 
+   * Inputs: M - length of inputs
+   *         kx,ky,kz - length-M real numbers in 
+   * Output: vector list of indices, each in the range 0,..,M-1, which is a good ordering
+   *         of the points.
    */
 
     //Q_UNUSED(N1)
@@ -298,6 +338,7 @@ void evaluate_kernel(int len, double *x, double *values, cnufftspread_opts opts)
     }
 }
 
+// helpers for timing...
 using namespace std;
 
 void CNTime::start()
