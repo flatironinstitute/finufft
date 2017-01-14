@@ -5,6 +5,9 @@
 double rand01();
 
 int main(int argc, char* argv[])
+/* This is a test code for the 3D behavior of the C++ spreader
+ * It has no checking of the math, just the speed.
+ * Magland 1/12/17
 {
 
     //Q_UNUSED(argc)

@@ -1,0 +1,5 @@
+How to bring in changes from a forked project:
+http://stackoverflow.com/questions/7244321/how-do-i-update-a-github-forked-repository
+
+git mergetool --tool=meld
+git rebase --continue
