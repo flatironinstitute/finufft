@@ -1,5 +1,5 @@
 #include "cnufftspread.h"
-#include "besseli.h"
+#include "../contrib/besseli.h"
 
 #include <stdlib.h>
 #include <vector>
@@ -24,7 +24,7 @@ bool cnufftspread(
    Uniform points are centered at coords [0,1,...,N1-1] in 1D, analogously in 2D and 3D.
    Non-uniform points should be in the range [0,N1] in 1D, analogously in 2D and 3D.
    However, if not, these non-uniform points will be folded back periodically into [0,N1)
-   unless there a large number of periods away (don't try this).
+   unless they are large number of periods away (don't try the latter).
 
    If opts.spread_direction==1, spreads from nonuniform input to uniform output
    If opts.spread_direction==2, interpolates ("spread transpose") from uniform input
@@ -39,6 +39,7 @@ bool cnufftspread(
 
    *** todo
 
+   Magland and Barnett Dec 2016 - 1/13/17
 */
 { 
     // todo: first fold input data into the periodic domain as doubles?
@@ -106,7 +107,7 @@ bool cnufftspread(
       std::vector<double> kernel_values=compute_kernel_values(frac1,frac2,frac3,opts);
 
       // accumulate the indexes for each dim ahead of time using the (very slow!)
-      // modulo operator to take care of periodicity/wrapping
+      // modulo operator to take care of periodicity/wrapping (for either dir):
       int j1_array[xspread2-xspread1+1],j2_array[yspread2-yspread1+1],j3_array[zspread2-zspread1+1];
       for (int dx=xspread1; dx<=xspread2; dx++) {
 	j1_array[dx-xspread1]=(i1+dx+SAFETYWRAP*N1)%N1;     // x-periodic wrap of spreading pt
@@ -354,10 +355,17 @@ int CNTime::restart()
 }
 
 int CNTime::elapsed()
+//  returns answers as integer number of milliseconds
 {
     struct timeval now;
     gettimeofday(&now, 0);
     int delta = 1000 * (now.tv_sec - (initial.tv_sec + 1));
     delta += (now.tv_usec + (1000000 - initial.tv_usec)) / 1000;
     return delta;
+}
+
+double CNTime::elapsedsec()
+//  returns answers as double in sec
+{
+  return (double)(this->elapsed()/1e3);
 }

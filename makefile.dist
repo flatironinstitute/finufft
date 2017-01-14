@@ -1,28 +1,58 @@
-# Makefile for FINUFFT
-# Barnett 1/13/17
+# Makefile for Flatiron Institute (FI) NUFFT libraries.
+# Barnett 1/14/17
 
+# Copy this file (makefile.dist) to makefile before you edit.
+# There are no makefiles in subdirectories.
+
+# ============= system-specific settings ===============================
 CC=g++
-CFLAGS=-fPIC -O2
 FC=gfortran
+
+# choose EITHER single threaded...
+CFLAGS=-fPIC -O2
 FFLAGS=-fPIC -O2
+MFLAGS=
+# ...OR multi-threaded:
+#CFLAGS=-fPIC -O2 -fopenmp
+#FFLAGS=-fPIC -O2 --openmp
+#MFLAGS=-lgomp
 
-# needed for linking against old .o files for comparison:
-NUFFTOLD=/usr/local/NUFFT/nufft3d-1.3.2
+# override shipped FFTPACK with linking against FFTW
+# ** to do
 
-# common utilities:
-OBJS = besseli.o cnufftspread.o cnufftspread_c.o indexmap1d.o
+# set location of old CMCL NUFFT, if want to link against for comparison:
+CMCLNUFFTALL=~/numerics/nufftall-1.3.3
 
-default: spreadtest
+# MATLAB stuff..
+MEX=mex
+MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
+# Mac users should use something like this:
+#MEX = /Applications/MATLAB_R2014a.app/bin/mex
+#MEXFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
+# ======================================================================
 
-# generic libs
+
+# common utilities: spreader
+SPREADOBJS = contrib/besseli.o src/cnufftspread.o src/cnufftspread_c.o
+OBJS = contrib/next235.o contrib/dfftpack.o src/indexmap1d.o
+
+TESTOBJS = examples/spreadtest3d.o
+
+default: clean spreadtest3d
+
+# implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:
-	$(CC) -c $(CFLAGS) $<
+	$(CC) -c $(CFLAGS) $< -o $@
 
 .f.o:
-	$(FC) -c $(FFLAGS) $<
+	$(FC) -c $(FFLAGS) $< -o $@
 
-spreadtest: $(OBJS)
-	$(CC) $(CFLAGS) spreadtest.cpp $(OBJS) -o spreadtest
+spreadtest3d: examples/spreadtest3d.cpp $(SPREADOBJS)
+	$(CC) $(CFLAGS) examples/spreadtest3d.cpp $(SPREADOBJS) -o examples/spreadtest3d
+	examples/spreadtest3d
 
-finufft1d1_demo: finufft1d_demo.o $(OBJS)
-	$(FC) $(FFLAGS) finufft1d_demo.f $(OBJS) -o finufft1d_demo
+#finufft1d_demo: finufft1d_demo.o $(OBJS)
+#	$(FC) $(FFLAGS) finufft1d_demo.f90 $(OBJS) -o finufft1d_demo
+
+clean:
+	rm -f $(OBJS)

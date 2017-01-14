@@ -18,7 +18,7 @@ c     length-nf list is defined by 0 <= j < nf.
 c
 c     Barnett 1/13/17
       implicit none
-      integer ms,nf,klo(2),khi(2),jlo(2),jhi(2),err
+      integer ms,nf,klo(2),khi(2),jlo(2),jhi(2),ier
 
       ier = 0
       if (nf.le.ms) then

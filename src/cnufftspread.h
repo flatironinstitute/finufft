@@ -42,6 +42,7 @@ public:
     void start();
     int restart();
     int elapsed();
+    double elapsedsec();
 private:
     struct timeval initial;
 };
