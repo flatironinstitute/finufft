@@ -68,7 +68,7 @@ c
        t1 = second()
          call dirft3d1(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
        t2 = second()
-        call nufft3d1f90x(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
+        call finufft3d1(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
        t3 = second()
         call nufft3d1f90(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
        t4 = second()
@@ -79,6 +79,16 @@ c
          call errcomp(fk0,fk1,ms*mt*mu,err)
          print *, ' type 1 err = ',err
 c
+c     -----------------------
+c      call 3D Type 2 method
+c     -----------------------
+         call dirft3d2(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
+         call finufft3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk1,ier)
+         print *, ' ier = ',ier
+         call errcomp(cj0,cj1,nj,err)
+         print *, ' type 2 err = ',err
+c
+
       enddo 
       stop
       end

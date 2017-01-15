@@ -1,4 +1,26 @@
+c***********************************************************************
       subroutine dcfft3d(iflag,nf1,nf2,nf3,fw,fwsav1,fwsav2,fwsav3)
+c***********************************************************************
+c     3D FFT code
+c
+c     INPUT:
+c
+c     iflag  determines which FFT is used ('forward' or 'backward')
+c            .ge. zero -> dcfftb
+c            .lt. zero -> dcfftf
+c     nf1    leading dimension  of fw
+c     nf2    second dimension  of fw
+c     nf3    third dimension  of fw
+c     fw     complex 3D array
+c     fwsav1 precomputed array needed by dcfft for dimension nf1  
+c     fwsav2 precomputed array needed by dcfft for dimension nf2  
+c     fwsav3 precomputed array needed by dcfft for dimension nf3  
+c
+c     OUTPUT:
+c
+c     fw     overwritten by its transform
+c ----------------------------------------------------------------------
+c
       implicit real *8 (a-h,o-z)
       complex *16 fw(nf1,nf2,nf3)
       complex *16 fwsav1(*)

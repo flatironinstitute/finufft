@@ -1,9 +1,9 @@
 c**********************************************************************
       subroutine finufft1d1(nj,xj,cj,iflag,eps,ms,fk,ier)
       implicit none
-      integer ier,iflag,n1,itype
-      integer k1,ms,next235,nf1,nj
-      real*8 eps,rat
+      integer nj,iflag,ms,ier
+      integer k1,next235,nf1,n1,itype
+      real*8 eps
       real*8 xj(nj),xker
       complex*16 cj(nj),fk(-ms/2:(ms-1)/2),cker
 c ----------------------------------------------------------------------
@@ -57,12 +57,14 @@ c     3) deconvolve each Fourier mode independently
 c
 c ----------------------------------------------------------------------
 c
-c     get spreading parameters based on requwsted precision
-c
+c     get spreading parameters based on requested precision
       ier = 0
       allocate(params(4))
       call get_kernel_params_for_eps_f(params,eps)
+c
+c     choose DFT size. *** convergence param fix later
       nf1 = 2*ms
+c
       if (2*params(2).gt.nf1) then
          nf1 = next235(2d0*params(2)) 
       endif 
@@ -71,40 +73,53 @@ c     allocate arrays for FFTs and initalize FFTs
 c
       allocate(fw(0:nf1-1))
       allocate(fwker(0:nf1-1))
+c     workspace and init for fftpack:
       allocate(fwsav(4*nf1+15))
       call dcffti(nf1,fwsav)
 c
       itype = 1
-      call tempspread1d(nf1,fw,nj,xj,cj,itype,params)
       n1 = 1
       xker = 0.0d0
       cker = 1.0d0
+c
+c     ---------------------------------------------------------------
+c     Step 0: get FFT of spreading kernel
+c     ---------------------------------------------------------------
+c
       call tempspread1d(nf1,fwker,n1,xker,cker,itype,params)
-c
-c     ---------------------------------------------------------------
-c     Call 1D FFT 
-c     ---------------------------------------------------------------
-c
       if (iflag .ge. 0) then
-         call dcfftb(nf1,fw,fwsav)
          call dcfftb(nf1,fwker,fwsav)
       else
-         call dcfftf(nf1,fw,fwsav)
          call dcfftf(nf1,fwker,fwsav)
       endif
 c
 c     ---------------------------------------------------------------
-c     Deconvolve
+c     Step 1: spread from irregular points to regular grid
 c     ---------------------------------------------------------------
 c
-      rat = 1.0d0/nj
-      fk(0) = fw(0)/fwker(0)*rat
+      call tempspread1d(nf1,fw,nj,xj,cj,itype,params)
+c
+c     ---------------------------------------------------------------
+c     Step 2:  Call FFT 
+c     ---------------------------------------------------------------
+c
+      if (iflag .ge. 0) then
+         call dcfftb(nf1,fw,fwsav)
+      else
+         call dcfftf(nf1,fw,fwsav)
+      endif
+c
+c     ---------------------------------------------------------------
+c     Step 3: Deconvolve
+c     ---------------------------------------------------------------
+c
+      fk(0) = fw(0)/fwker(0)/nj
       do k1 = 1, (ms-1)/2
-         fk(k1) = fw(k1)/fwker(k1)*rat
-         fk(-k1) = fw(nf1-k1)/fwker(nf1-k1)*rat
+         fk(k1) = fw(k1)/fwker(k1)/nj
+         fk(-k1) = fw(nf1-k1)/fwker(nf1-k1)/nj
       enddo
       if (ms/2*2.eq.ms) then
-         fk(-ms/2) = fw(nf1-ms/2)/fwker(nf1-ms/2)*rat
+         fk(-ms/2) = fw(nf1-ms/2)/fwker(nf1-ms/2)/nj
       endif
 c
       return
@@ -122,9 +137,9 @@ c**********************************************************************
       integer j,k1,ms,next235,nf1,nj
       real*8 eps
       real*8 xj(nj),xker
-      real*8 params(4)
       complex*16 cj(nj),fk(-ms/2:(ms-1)/2),cker
 c ----------------------------------------------------------------------
+      real*8, allocatable :: params(:)
       complex*16, allocatable :: fw(:)
       complex*16, allocatable :: fwker(:)
       complex*16, allocatable :: fwsav(:)
@@ -157,26 +172,29 @@ c
 c     cj     output values (complex *16 array)
 c     ier    error return code
 c   
-c            ier = 0  => normal execution.
-c            ier = 1  => precision eps requested is out of range.
-c
 c     The type 2 algorithm proceeds in three steps (see [GL]).
 c
-c     1) deconvolve (amplify) each Fourier mode first
+c     1) deconvolve (amplify) each Fourier mode 
 c     2) compute inverse FFT on uniform fine grid
-c     3) spread data to regular mesh using Gaussian
+c     3) spread data to regular mesh 
 c ----------------------------------------------------------------------
+c
+c     get spreading parameters based on requested precision
       ier = 0
-      call prini(6,13)
+      allocate(params(4))
       call get_kernel_params_for_eps_f(params,eps)
+c
+c     choose DFT size. *** convergence param fix later
       nf1 = 2*ms
+c
       if (2*params(2).gt.nf1) then
          nf1 = next235(2d0*params(2)) 
       endif 
-      call prinf(' nf1 is *',nf1,1)
 c
+c     allocate arrays for FFTs and initalize FFTs
       allocate(fw(0:nf1-1))
       allocate(fwker(0:nf1-1))
+c     workspace and init for fftpack:
       allocate(fwsav(4*nf1+15))
       call dcffti(nf1,fwsav)
 c
@@ -184,8 +202,12 @@ c
       n1 = 1
       xker = 0.0d0
       cker = 1.0d0
-      call tempspread1d(nf1,fwker,n1,xker,cker,itype,params)
 c
+c     ---------------------------------------------------------------
+c     Step 0:  get FFT of spreading kernel
+c     ---------------------------------------------------------------
+c
+      call tempspread1d(nf1,fwker,n1,xker,cker,itype,params)
       if (iflag .ge. 0) then
          call dcfftb(nf1,fwker,fwsav)
       else
@@ -193,21 +215,21 @@ c
       endif
 c
 c     ---------------------------------------------------------------
-c     Deconvolve
+c     Step 1: Deconvolve
 c     ---------------------------------------------------------------
 c
-      fw(0) = fk(0)/fwker(0)/ms
+      fw(0) = fk(0)/fwker(0)
       do k1 = 1, (ms-1)/2
-         fw(k1) = fk(k1)/fwker(k1)/ms
-         fw(nf1-k1) = fk(-k1)/fwker(nf1-k1)/ms
+         fw(k1) = fk(k1)/fwker(k1)
+         fw(nf1-k1) = fk(-k1)/fwker(nf1-k1)
       enddo
-      fw(nf1-ms/2) = fk(-ms/2)/fwker(nf1-ms/2)/ms
+      fw(nf1-ms/2) = fk(-ms/2)/fwker(nf1-ms/2)
       do k1 = (ms+1)/2, nf1-ms/2-1
          fw(k1) = dcmplx(0d0, 0d0)
       enddo
 c
 c     ---------------------------------------------------------------
-c     Call 1D FFT 
+c     Step 2:  1D FFT 
 c     ---------------------------------------------------------------
 c
       if (iflag .ge. 0) then
@@ -215,11 +237,13 @@ c
       else
          call dcfftf(nf1,fw,fwsav)
       endif
-      call prin2(' fw is *',fw(0),2*nf1)
+c
+c     ---------------------------------------------------------------
+c     Step 3:  Spread from uniform grid to irregular points
+c     ---------------------------------------------------------------
 c
       itype = 2
       call tempspread1d(nf1,fw,nj,xj,cj,itype,params)
-
       return
       end
 c

@@ -22,8 +22,8 @@ c     --------------------------------------------------
 c
       n1 = 34
       n2 = 42
-      ms = 38
-      mt = 44
+      ms = 34
+      mt = 42
       nj = n1*n2
       do k1 = -n1/2, (n1-1)/2
          do k2 = -n2/2, (n2-1)/2
@@ -64,7 +64,7 @@ c     -----------------------
 c
          call dirft2d1(nj,xj,yj,cj,iflag,ms,mt,fk0)
 ccc         call nufft2d1f90(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
-         call nufft2d1f90x(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
+         call finufft2d1(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
          call errcomp(fk0,fk1,ms*mt,err)
          print *, ' fk0 = ',fk0(1)
          print *, ' fk1 = ',fk1(1)
@@ -72,6 +72,18 @@ ccc         call nufft2d1f90(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
          call errcomp(fk0,fk1,ms*mt,err)
          print *, ' type 1 err = ',err
 c
+c     -----------------------
+c      call 2D Type 2 method
+c     -----------------------
+         call dirft2d2(nj,xj,yj,cj0,iflag,ms,mt,fk0)
+         call finufft2d2(nj,xj,yj,cj1,iflag,eps,ms,mt,fk1,ier)
+         print *, ' cj0 = ',cj0(1)
+         print *, ' cj1 = ',cj1(1)
+         print *, ' cj1/cj0 = ',cj1(1)/cj0(1)
+         print *, ' ier = ',ier
+         call errcomp(cj0,cj1,nj,err)
+         print *, ' type 2 err = ',err
+
       enddo 
       stop
       end

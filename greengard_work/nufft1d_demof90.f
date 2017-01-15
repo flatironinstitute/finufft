@@ -73,14 +73,15 @@ c     -----------------------
 c     call 1D Type2 method
 c     -----------------------
 c
-ccc         call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
-ccc         t1 = second()
-ccc         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0(-ms/2),ier)
-ccc         t2 = second()
-ccc         print *,' time type 2 = ',t2-t1
-ccc         call errcomp(cj0,cj1,nj,err)
-ccc         print *,' ier = ',ier
-ccc         print *,' type 2 error = ',err
+         call dirft1d2(nj,xj,cj0,iflag, ms,fk0(-ms/2),ier)
+         t1 = second()
+         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0(-ms/2),ier)
+         t2 = second()
+         call prin2(' cj0 = * ',cj0(1),2)
+         call prin2(' cj1 = * ',cj1(1),2)
+         call errcomp(cj0,cj1,nj,err)
+         print *,' ier = ',ier
+         print *,' type 2 error = ',err
       enddo
       stop
       end
