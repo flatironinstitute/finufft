@@ -17,9 +17,10 @@ struct cnufftspread_opts {  // -std=c++11 is needed to avoid these giving warnin
     bool sort_data=true;
     int checkerboard=0;
     int debug=0;
+  void set_W_and_beta();   // must be called before spreading.
+  double KB_W;             // derived parameters, for experts only
+  double KB_beta;
 
-    double private_KB_W=0;
-    double private_KB_beta=0;
 };
 
 int cnufftspread(

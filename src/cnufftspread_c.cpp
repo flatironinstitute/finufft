@@ -1,8 +1,6 @@
-/******************************************************
-** See the accompanying README and LICENSE files
-** Author(s): Jeremy Magland
-** Created: 4/1/2016
-*******************************************************/
+// Wrappers for convenient calling from fortran.
+
+// to move to fortran/
 
 #include "cnufftspread_c.h"
 #include "cnufftspread.h"

@@ -295,13 +295,13 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
 }
 
 double evaluate_kernel(double x,const cnufftspread_opts &opts) {
-    double t = 2.0*x/opts.private_KB_W; 
+  double t = 2.0*x/opts.KB_W; 
     double tmp1=1.0-t*t;
     if (tmp1<0.0) {
         return 0.0;
     }
     else {
-        double y=opts.private_KB_beta*sqrt(tmp1);
+      double y = opts.KB_beta*sqrt(tmp1);
         //return besseli0(y);
         return besseli0_approx(y);       // todo: compare acc
     }
@@ -452,13 +452,12 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
     return ret;
 }
 
-void set_private_members(cnufftspread_opts &opts) {
-    opts.private_KB_W=opts.nspread*opts.KB_fac1;
-    double tmp0=opts.private_KB_W*opts.private_KB_W/4-0.8;
-    if (tmp0<0) tmp0=0; //fix this?
-    opts.private_KB_beta=M_PI*sqrt(tmp0)*opts.KB_fac2;
+void cnufftspread_opts::set_W_and_beta() {  // set derived parameters in Kaiser--Bessel
+  this->KB_W = this->nspread * this->KB_fac1;
+  double tmp0 = this->KB_W * this->KB_W / 4 - 0.8;
+  if (tmp0<0) tmp0=0;   // fix it?
+  this->KB_beta = M_PI*sqrt(tmp0) * this->KB_fac2;
 }
-
 
 void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_params) {
 /* Directly sets Kaiser-Bessel spreading options.
@@ -472,8 +471,7 @@ void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_param
     opts.nspread=kernel_params[1];
     opts.KB_fac1=kernel_params[2];
     opts.KB_fac2=kernel_params[3];
-
-    set_private_members(opts);
+    opts.set_W_and_beta();  
 }
 
 void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
@@ -502,17 +500,14 @@ void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
     else {       // eps < 1e-12
         nspread=16; fac1=0.94; fac2=1.46;
     }
-
     opts.nspread=nspread;
     opts.KB_fac1=fac1;
     opts.KB_fac2=fac2;
-
-    set_private_members(opts);
-
+    opts.set_W_and_beta();
 }
 
 void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,double *X,double *kernel_params)
-// wrapper for matlab access
+// wrapper for matlab access - move this and its .h to matlab/
 {
     cnufftspread_opts opts;
     set_kb_opts_from_kernel_params(opts,kernel_params);
