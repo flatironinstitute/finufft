@@ -14,23 +14,25 @@ int main(int argc, char* argv[])
  * Magland and Barnett 1/14/17
  */
 {
-    long M=1e5;    // choose problem size:  # NU pts
-    long N=100;    //                       Fourier grid size
-    std::vector<double> kx(M),ky(M),kz(M),d_nonuniform(2*M);    // Re & Im
-    std::vector<double> d_uniform(N*N*N*2);              // N^3 for Re and Im
+  long M=1e6;    // choose problem size:  # NU pts
+  long N=100;    //                       Fourier grid size
+  std::vector<double> kx(M),ky(M),kz(M),d_nonuniform(2*M);    // Re & Im
+  std::vector<double> d_uniform(N*N*N*2);              // N^3 for Re and Im
 
-    cnufftspread_opts opts;
-    opts.spread_direction=1;
-    double tol = 1e-6;        // choose tol
-    set_kb_opts_from_eps(opts,tol);
-    printf("cnufftspread 3D, dir=%d, tol=%.3g: nspread=%d\n",opts.spread_direction,tol,opts.nspread);
+  cnufftspread_opts opts; // set method opts...
+  opts.debug = 0;
+  opts.sort_data=true;    // 50% faster on i7
+  double tol = 1e-6;        // choose tol (1e6 has nspread=8)
+  set_kb_opts_from_eps(opts,tol);
 
     // test direction 1 (NU -> U spreading) ..............................
+    opts.spread_direction=1;
+    printf("cnufftspread 3D, dir=%d, tol=%.3g: nspread=%d\n",opts.spread_direction,tol,opts.nspread);
 
     // spread a single source for reference...
     d_nonuniform[0] = 1.0; d_nonuniform[1] = 0.0;   // unit strength
-    kx[0] = 0.0; ky[0] = 0.0; kz[0] = 0.0;          // at origin
-    cnufftspread(N,N,N,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
+    kx[0] = ky[0] = kz[0] = 0.0;                    // at center
+    int ier = cnufftspread(N,N,N,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     double kersumre = 0.0, kersumim = 0.0;  // sum kernel on uniform grid
     for (long i=0;i<N*N*N;++i) {
       kersumre += d_uniform[2*i]; 
@@ -38,6 +40,7 @@ int main(int argc, char* argv[])
     }
 
     // now do the large-scale test w/ random sources..
+    srand(0);    // fix seed for reproducibility
     double strre = 0.0, strim = 0.0;          // also sum the strengths
     for (long i=0; i<M; ++i) {
         kx[i]=rand01()*N;
@@ -49,10 +52,9 @@ int main(int argc, char* argv[])
 	strim += d_nonuniform[2*i+1];
     }
     CNTime timer; timer.start();
-    cnufftspread(N,N,N,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
+    ier = cnufftspread(N,N,N,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     double t=timer.elapsedsec();
-    printf("\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",
-	   M,t,M/t,pow(opts.nspread,3)*M/t);
+    printf("(ier=%d)\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",ier,M,t,M/t,pow(opts.nspread,3)*M/t);
 
     double sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
     for (long i=0;i<N*N*N;++i) {
@@ -71,7 +73,7 @@ int main(int argc, char* argv[])
     opts.spread_direction=2;
     printf("cnufftspread 3D, dir=%d, tol=%.3g: nspread=%d\n",opts.spread_direction,tol,opts.nspread);
 
-    for (long i=0;i<N*N*N;++i) {      // unit grid data
+    for (long i=0;i<N*N*N;++i) {     // unit grid data
       d_uniform[2*i] = 1.0;
       d_uniform[2*i+1] = 0.0;
     }
@@ -81,23 +83,21 @@ int main(int argc, char* argv[])
         kz[i]=rand01()*N;
     }
     timer.restart();
-    cnufftspread(N,N,N,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
+    ier = cnufftspread(N,N,N,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     t=timer.elapsedsec();
-    printf("\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",
-	   M,t,M/t,pow(opts.nspread,3)*M/t);
+    printf("(ier=%d)\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",ier,M,t,M/t,pow(opts.nspread,3)*M/t);
 
-    sumre = 0.0; sumim = 0.0;          // sum NU output vals (should be equal)
+    // math test is worst-case error from pred value (kersum) on interp pts:
+    maxerr = 0.0;
     for (long i=0;i<M;++i) {
-      sumre += d_nonuniform[2*i]; 
-      sumim += d_nonuniform[2*i+1];
+      double err = std::max(fabs(d_nonuniform[2*i]-kersumre),
+			    fabs(d_nonuniform[2*i+1]-kersumim));
+      if (err>maxerr) maxerr=err;
     }
-    pre = M*kersumre;                  // pred val sum
-    pim = M*kersumim;
-    maxerr = std::max(sumre-pre, sumim-pim);
-    ansmod = sqrt(sumre*sumre+sumim*sumim);
-    printf("\trel err in total val on NU pts: %.3g\n",maxerr/ansmod);
-    // this is weaker test since could be reading from wrong grid pts (they
-    // are all unity)
+    ansmod = sqrt(kersumre*kersumre+kersumim*kersumim);
+    printf("\tmax rel err in values at NU pts: %.3g\n",maxerr/ansmod);
+    // this is weaker test than for dir=1, since it cannot detect reading
+    // from wrong grid pts (they are all unity)
 
     return 0;
 }

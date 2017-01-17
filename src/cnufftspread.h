@@ -4,18 +4,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-struct cnufftspread_opts {
+// choose if handle huge I/O array sizes (>2^31)  todo: use this
+#define BIGINT long long
+// #define BIGINT long
+
+
+struct cnufftspread_opts {  // -std=c++11 is needed to avoid these giving warnings:
     int nspread=6;
     double KB_fac1=1;
     double KB_fac2=1;
-    int spread_direction=1; // --> 1 means Type I transform (nonuni->uni), 2 means Type II transform (uni->nonuni)
+    int spread_direction=1;     // 1 means spread NU->U, 2 means interpolate U->NU
     bool sort_data=true;
+    int checkerboard=0;
+    int debug=0;
 
     double private_KB_W=0;
     double private_KB_beta=0;
 };
 
-bool cnufftspread(
+int cnufftspread(
             long N1, long N2, long N3, double *data_uniform,
             long M, double *kx, double *ky, double *kz, double *data_nonuniform,
             cnufftspread_opts opts
@@ -31,11 +38,12 @@ void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps);
 /*
  * MCWRAP [ COMPLEX Y[N,N,N] ] = cnufftspread_type1(N,kx[M,1],ky[M,1],kz[M,1],COMPLEX X[M,1],kernel_params[4,1])
  * SET_INPUT M = size(kx,1)
- * SOURCES cnufftspread.cpp besseli.cpp
- * HEADERS cnufftspread.h besseli.h
+ * SOURCES cnufftspread.cpp ../contrib/besseli.cpp
+ * HEADERS cnufftspread.h ../contrib/besseli.h
  */
 
 void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,double *X,double *kernel_params);
+// todo: add ier as type or arg ptr
 
 class CNTime {
 public:

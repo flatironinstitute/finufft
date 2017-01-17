@@ -50,6 +50,10 @@ Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J.
 
 ### To do
 
+* make compiler opt allowing I/O sizes (M, N1*N2*N3) > 2^31, via compiler directives. Test if it slows down array pointers.
+* test it long indexing slows 3D spreading, as June-Yub found in nufft-1.3.x. Do code block switch on the overall size?
+* spreader: make compute_sort_indices sensible for 1d and 2d.
+* fix KB ker eval in spreader so doesn't wdo 3d fill when 1 or 2 will do
 * t-1 matlab and fortran tests checking grid total
 * t-II spreader fortran and matlab tests
 * build universal index mappers
@@ -57,6 +61,7 @@ Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J.
 * overall scale factor understand in KB
 * openMP spread in the 1 and 2 direction
 * check J's bessel10 approx is ok.
+* meas speed of K_0 for KB kernel eval
 * make ier report accuracy out of range, malloc size errors, etc
 * spread_f needs ier output
 * license file

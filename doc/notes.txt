@@ -3,3 +3,196 @@ http://stackoverflow.com/questions/7244321/how-do-i-update-a-github-forked-repos
 
 git mergetool --tool=meld
 git rebase --continue
+
+
+
+
+================ openmp compile-time switch:
+http://stackoverflow.com/questions/1357604/turn-off-openmp
+
+
+Turn off OpenMP
+up vote
+3
+down vote
+favorite
+1
+	
+
+In my C++ program, I'd like to run its executable sometimes with and sometimes without using OpenMP (i.e. multi-threading or single-threading). I am considering any of the following two cases how my code is using OpenMP:
+
+(1) Assume that my code is only having #include <omp.h> and OpenMP directives.
+
+(2) Same as (1) and my code further calls OpenMP functions like omp_get_thread_num().
+
+In order not to have different code for different running, is it the only way using some self-defined precompiler variable to guard where OpenMP appears in my code ?
+
+Thanks and regards!
+c++ parallel-processing openmp
+shareimprove this question
+	
+edited Aug 31 '09 at 16:15
+ire_and_curses
+46.6k2189119
+	
+asked Aug 31 '09 at 14:01
+Tim
+20.1k80190290
+	
+add a comment
+4 Answers
+active
+oldest
+votes
+up vote
+2
+down vote
+accepted
+	
+
+Hi the easiest way to do this is
+
+omp_set_num_threads(m_iUseableProcessors);
+
+where m_iUseableProcessors is the number of processors you want to split the calculation over. I don't know how to do it without the OpenMP functions. You could probably #ifdef them out, but that makes you turn off OpenMP at compile time.
+shareimprove this answer
+	
+answered Aug 31 '09 at 14:33
+Steve
+5,94295689
+	
+add a comment
+up vote
+9
+down vote
+	
+
+You can use the environment variable:
+
+set OMP_NUM_THREADS=1
+
+Actually, it will not turn OpenMP off. It will force OpenMP to create only one thread for an application. It works without recompilation. I use this variable to test scalability on 1, 2, 3, 4 etc threads.
+shareimprove this answer
+	
+answered Sep 2 '09 at 13:32
+Vladimir Obrizan
+1,79111125
+	
+add a comment
+up vote
+3
+down vote
+	
+
+You can put the include as follows:
+
+#ifdef _OPENMP_
+#include<omp.h> 
+#endif
+
+Now if you run your program without -fopenmp flag, it would ignore openmp directives
+shareimprove this answer
+	
+answered Mar 3 '10 at 22:04
+lava
+5561714
+	
+1 	 
+	
+In VS2010 the macro is "_OPENMP" not "_OPENMP_" – Jonathan Neufeld Apr 4 '13 at 9:50
+add a comment
+up vote
+0
+down vote
+	
+
+In addition to the suggestion of _OPENMP, you might find it useful to use C99's _Pragma (or __pragma, if you use some C++ compilers - see this StackOverflow question for details) to prevent your code from being littered with #ifdef _OPENMP and #endif, thereby reducing the lines associated with conditional compilation by 3x, and otherwise giving you O(1) control over O(n) instances of OpenMP annotations.
+
+For example, I use the following style in my C99 OpenMP codes. The changes to support C++ should be fairly modest, although possibly compiler-specific (in which case, macros like __GNUC__, __clang__, __INTEL_COMPILER, etc. may be useful).
+
+#ifndef PRAGMA_OPENMP_H
+#define PRAGMA_OPENMP_H
+
+#if defined(_OPENMP) && ( __STDC_VERSION__ >= 199901L )
+
+#define PRAGMA(x) _Pragma(#x)
+
+#define OMP_PARALLEL PRAGMA(omp parallel)
+#define OMP_PARALLEL_FOR PRAGMA(omp parallel for schedule(static))
+#define OMP_FOR PRAGMA(omp for schedule(static))
+
+#define OMP_PARALLEL_FOR_COLLAPSE(n) PRAGMA(omp parallel for collapse(n) schedule(static))
+#define OMP_PARALLEL_FOR_COLLAPSE2 OMP_PARALLEL_FOR_COLLAPSE(2)
+#define OMP_PARALLEL_FOR_COLLAPSE3 OMP_PARALLEL_FOR_COLLAPSE(3)
+#define OMP_PARALLEL_FOR_COLLAPSE4 OMP_PARALLEL_FOR_COLLAPSE(4)
+
+#define OMP_PARALLEL_FOR_REDUCE_ADD(r) PRAGMA(omp parallel for reduction (+ : r) schedule(static))
+
+#else
+
+#warning No OpenMP, either because compiler does not understand OpenMP or C99 _Pragma.
+
+#define OMP_PARALLEL
+#define OMP_PARALLEL_FOR
+#define OMP_FOR
+#define OMP_PARALLEL_FOR_COLLAPSE(n)
+#define OMP_PARALLEL_FOR_COLLAPSE2
+#define OMP_PARALLEL_FOR_COLLAPSE3
+#define OMP_PARALLEL_FOR_COLLAPSE4
+#define OMP_PARALLEL_FOR_REDUCE_ADD(r)
+
+#endif
+
+#endif // PRAGMA_OPENMP_H
+
+
+
+
+
+
+
+http://stackoverflow.com/questions/7847900/disable-openmp-in-nice-way
+
+
+If you do not compile with -fopenmp option, you won't get the parallel code. You can do it with an appropiate define and makefile that generates all codes.
+
+The OpenMP documentation says (only an example):
+
+#ifdef _OPENMP
+   #include <omp.h>
+#else
+   #define omp_get_thread_num() 0
+#endif
+
+See http://www.openmp.org/mp-documents/spec30.pdf (conditional compilation).
+shareimprove this answer
+	
+answered Dec 5 '11 at 19:03
+snatverk
+40829
+	
+   	 
+	
+This is what I was looking for! – darxsys Aug 7 '13 at 2:03
+   	 
+	
+The above conditional still works without providing the else statement. – sinner Jul 13 '16 at 18:09
+add a comment
+up vote
+2
+down vote
+	
+
+The way such things are usually handled (the general case) is with #defines and #ifdef:
+
+In your header file:
+
+#ifndef SINGLETHREADED
+#pragma omp
+#endif
+
+When you compile, add -DSINGLETHREADED to disable OpenMP:
+
+cc  -DSINGLETHREADED <other flags go here> code.c
+
+shareimprove this answer

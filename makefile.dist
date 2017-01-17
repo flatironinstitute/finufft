@@ -9,11 +9,11 @@ CC=g++
 FC=gfortran
 
 # choose EITHER single threaded...
-CFLAGS=-fPIC -O2
+CFLAGS=-fPIC -O2 -std=c++11
 FFLAGS=-fPIC -O2
 MFLAGS=
 # ...OR multi-threaded:
-#CFLAGS=-fPIC -O2 -fopenmp
+#CFLAGS=-fPIC -O2 -std=c++11 -fopenmp
 #FFLAGS=-fPIC -O2 --openmp
 #MFLAGS=-lgomp
 
@@ -34,9 +34,8 @@ MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
 
 # common utilities: spreader
 SPREADOBJS = contrib/besseli.o src/cnufftspread.o src/cnufftspread_c.o
-OBJS = contrib/next235.o contrib/dfftpack.o src/indexmap1d.o
 
-TESTOBJS = examples/spreadtest3d.o
+OBJS = contrib/next235.o contrib/dfftpack.o src/indexmap1d.o
 
 default: clean spreadtest3d
 
@@ -51,8 +50,15 @@ spreadtest3d: examples/spreadtest3d.cpp $(SPREADOBJS)
 	$(CC) $(CFLAGS) examples/spreadtest3d.cpp $(SPREADOBJS) -o examples/spreadtest3d
 	examples/spreadtest3d
 
+mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_type1.cpp $(SPREADOBJS)
+# make new interface in matlab: from src/, do mcwrap('cnufftspread.h')
+# which fails for omp.
+# mv src/cnufftspread_type1.mexa64 matlab/
+	(cd src; $(MEX) _mcwrap/mcwrap_cnufftspread_type1.cpp cnufftspread.o ../contrib/besseli.o -output cnufftspread_type1 $(MEXFLAGS))
+# todo: fix up!
+
 #finufft1d_demo: finufft1d_demo.o $(OBJS)
 #	$(FC) $(FFLAGS) finufft1d_demo.f90 $(OBJS) -o finufft1d_demo
 
 clean:
-	rm -f $(OBJS)
+	rm -f $(OBJS) $(SPREADOBJS)

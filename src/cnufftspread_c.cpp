@@ -20,7 +20,7 @@ void cnufftspread_f_(int *N1,int *N2,int *N3,double *d_uniform,int *M,double *kx
 
     opts.spread_direction=*spread_direction;
 
-    cnufftspread(*N1,*N2,*N3,d_uniform,*M,kx,ky,kz,d_nonuniform,opts);
+    int ier = cnufftspread(*N1,*N2,*N3,d_uniform,*M,kx,ky,kz,d_nonuniform,opts);
 }
 
 void get_kernel_params_for_eps_f_(double *kernel_params,double *eps) {
