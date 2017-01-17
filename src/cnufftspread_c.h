@@ -41,18 +41,18 @@ evaluate_kernel_f_:: evaluate the kernel on a 1d grid
 */
 
 extern "C" {
-    // spread direction: 1 means nonuniform->uniform, 2 means uniform->nonuniform
-    // see below for info on kernel_params
-    void cnufftspread_f_(
-            int *N1,int *N2,int *N3,double *d_uniform,
-            int *M,double *kx,double *ky,double *kz,double *d_nonuniform,
-            int *spread_direction,double *kernel_params);
+  // spread direction: 1 means nonuniform->uniform, 2 means uniform->nonuniform
+  // see below for info on kernel_params
+  void cnufftspread_f_(int *N1,int *N2,int *N3,double *d_uniform,
+		       int *M,double *kx,double *ky,double *kz,
+		       double *d_nonuniform,
+		       int *spread_direction,double *kernel_params);
 
     // Use the following to
-
-    void get_kernel_params_for_eps_f_(double *kernel_params,double *eps);
-
-    void evaluate_kernel_f_(int *len,double *x,double *values,double *kernel_params);
+  
+  void get_kernel_params_for_eps_f_(double *kernel_params,double *eps);
+  
+  void evaluate_kernel_f_(int *len,double *x,double *values,double *kernel_params);
 }
 
 #endif // BLOCKNUFFT3D_C_H

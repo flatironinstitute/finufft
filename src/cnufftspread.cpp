@@ -267,44 +267,44 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
  * Magland Dec 2016. Restrict to sub-cuboids and doc by Barnett 1/16/17.
  */
 {
-    int R=opts.nspread;       // all ints, used for indexing speed
-    int sh=-R/2;              // index shift
-    int s1=r1[1]-r1[0]+1, s2=r2[1]-r2[0]+1, s3=r3[1]-r3[0]+1; // cuboid sizes
-    std::vector<double> v1(s1),v2(s2),v3(s3);  // fill 1d lists in each dim...
-    for (int i=r1[0]; i<=r1[1]; ++i)
-      v1[i-r1[0]] = evaluate_kernel(frac1-(double)i,opts);
-    for (int i=r2[0]; i<=r2[1]; ++i)
-      v2[i-r2[0]] = evaluate_kernel(frac2-(double)i,opts);
-    for (int i=r3[0]; i<=r3[1]; ++i)
-      v3[i-r3[0]] = evaluate_kernel(frac3-(double)i,opts);
-    // now simply compute the rank-3 outer product of these 1d lists...
-    std::vector<double> ret(s1*s2*s3);
-    int aa=0;                     // output pointer
-    for (int k=0; k<s3; k++) {
-        double val3=v3[k];
-        for (int j=0; j<s2; j++) {
-            double val2=val3*v2[j];
-            for (int i=0; i<s1; i++) {
-                double val1=val2*v1[i];
-                ret[aa]=val1;
-                aa++;
-            }
-        }
+  int R=opts.nspread;       // all ints, used for indexing speed
+  int sh=-R/2;              // index shift
+  int s1=r1[1]-r1[0]+1, s2=r2[1]-r2[0]+1, s3=r3[1]-r3[0]+1; // cuboid sizes
+  std::vector<double> v1(s1),v2(s2),v3(s3);  // fill 1d lists in each dim...
+  for (int i=r1[0]; i<=r1[1]; ++i)
+    v1[i-r1[0]] = evaluate_kernel(frac1-(double)i,opts);
+  for (int i=r2[0]; i<=r2[1]; ++i)
+    v2[i-r2[0]] = evaluate_kernel(frac2-(double)i,opts);
+  for (int i=r3[0]; i<=r3[1]; ++i)
+    v3[i-r3[0]] = evaluate_kernel(frac3-(double)i,opts);
+  // now simply compute the rank-3 outer product of these 1d lists...
+  std::vector<double> ret(s1*s2*s3);
+  int aa=0;                     // output pointer
+  for (int k=0; k<s3; k++) {
+    double val3=v3[k];
+    for (int j=0; j<s2; j++) {
+      double val2=val3*v2[j];
+      for (int i=0; i<s1; i++) {
+	double val1=val2*v1[i];
+	ret[aa]=val1;
+	aa++;
+      }
     }
-    return ret;
+  }
+  return ret;
 }
 
 double evaluate_kernel(double x,const cnufftspread_opts &opts) {
   double t = 2.0*x/opts.KB_W; 
-    double tmp1=1.0-t*t;
-    if (tmp1<0.0) {
-        return 0.0;
-    }
-    else {
-      double y = opts.KB_beta*sqrt(tmp1);
-        //return besseli0(y);
-        return besseli0_approx(y);       // todo: compare acc
-    }
+  double tmp1=1.0-t*t;
+  if (tmp1<0.0) {
+    return 0.0;
+  }
+  else {
+    double y = opts.KB_beta*sqrt(tmp1);
+    //return besseli0(y);
+    return besseli0_approx(y);       // todo: compare acc
+  }
 }
 
 bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long N3,
@@ -386,7 +386,7 @@ bool wrapped_range_in_interval(long i,int *R,long *ith,long N,int *r)
   return false;
 }
 
-std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,long N1,long N2,long N3) {
+std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,long N1,long N2,long N3)
   /* Returns permutation of the 3D nonuniform points with optimal RAM access for the
    * upcoming spreading step.
    *
@@ -404,52 +404,49 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
    * Note: apparently in 2D sorts only along y, and in 1D doesn't sort at all (x).
    * todo: fix the 1d case.
    */
-
-    //Q_UNUSED(N1)
-    //Q_UNUSED(kx)
-
-    std::vector<long> counts(N2*N3);
-    for (long j=0; j<N2*N3; j++)
-        counts[j]=0;
-    for (long i=0; i<M; i++) {
-        long i2=(long)(ky[i]+0.5);
-        if (i2<0) i2=0;
-        if (i2>=N2) i2=N2-1;
-
-        long i3=(long)(kz[i]+0.5);
-        if (i3<0) i3=0;
-        if (i3>=N3) i3=N3-1;
-
-        counts[i2+N2*i3]++;
-    }
-    std::vector<long> inds(N2*N3);
-    long offset=0;
-    for (long j=0; j<N2*N3; j++) {
-        inds[j]=offset;
-        offset+=counts[j];
-    }
-
-    std::vector<long> ret_inv(M);
-    for (long i=0; i<M; i++) {
-        long i2=(long)(ky[i]+0.5);
-        if (i2<0) i2=0;
-        if (i2>=N2) i2=N2-1;
-
-        long i3=(long)(kz[i]+0.5);
-        if (i3<0) i3=0;
-        if (i3>=N3) i3=N3-1;
-
-        long jj=inds[i2+N2*i3];
-        inds[i2+N2*i3]++;
-        ret_inv[i]=jj;
-    }
-
-    std::vector<long> ret(M);
-    for (long i=0; i<M; i++) {
-        ret[ret_inv[i]]=i;
-    }
-
-    return ret;
+{
+  std::vector<long> counts(N2*N3);
+  for (long j=0; j<N2*N3; j++)
+    counts[j]=0;
+  for (long i=0; i<M; i++) {
+    long i2=(long)(ky[i]+0.5);
+    if (i2<0) i2=0;
+    if (i2>=N2) i2=N2-1;
+    
+    long i3=(long)(kz[i]+0.5);
+    if (i3<0) i3=0;
+    if (i3>=N3) i3=N3-1;
+    
+    counts[i2+N2*i3]++;
+  }
+  std::vector<long> inds(N2*N3);
+  long offset=0;
+  for (long j=0; j<N2*N3; j++) {
+    inds[j]=offset;
+    offset+=counts[j];
+  }
+  
+  std::vector<long> ret_inv(M);
+  for (long i=0; i<M; i++) {
+    long i2=(long)(ky[i]+0.5);
+    if (i2<0) i2=0;
+    if (i2>=N2) i2=N2-1;
+    
+    long i3=(long)(kz[i]+0.5);
+    if (i3<0) i3=0;
+    if (i3>=N3) i3=N3-1;
+    
+    long jj=inds[i2+N2*i3];
+    inds[i2+N2*i3]++;
+    ret_inv[i]=jj;
+  }
+  
+  std::vector<long> ret(M);
+  for (long i=0; i<M; i++) {
+    ret[ret_inv[i]]=i;
+  }
+  
+  return ret;
 }
 
 void cnufftspread_opts::set_W_and_beta() {  // set derived parameters in Kaiser--Bessel
@@ -468,61 +465,62 @@ void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_param
  *  entry 2: KB_fac1 (eg 1)
  *  entry 3: KB_fac2 (eg 1)
  */
-    opts.nspread=kernel_params[1];
-    opts.KB_fac1=kernel_params[2];
-    opts.KB_fac2=kernel_params[3];
-    opts.set_W_and_beta();  
+  opts.nspread=kernel_params[1];
+  opts.KB_fac1=kernel_params[2];
+  opts.KB_fac2=kernel_params[3];
+  opts.set_W_and_beta();  
 }
 
-void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps) {
-  // Sets KB spreading opts from accuracy eps. It seems from other uses that
-  // nspread should always be even.
+void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps)
+// Sets KB spreading opts from accuracy eps. It seems from other uses that
+// nspread should always be even.
+{
   int nspread=12; double fac1=1,fac2=1;  // defaults: todo decide for what tol
-    // tests done sequentially to categorize eps...
-    if (eps>=1e-2) {
-        nspread=4; fac1=0.75; fac2=1.71;
-    }
-    else if (eps>=1e-4) {
-        nspread=6; fac1=0.83; fac2=1.56;
-    }
-    else if (eps>=1e-6) {
-        nspread=8; fac1=0.89; fac2=1.45;
-    }
-    else if (eps>=1e-8) {
-        nspread=10; fac1=0.90; fac2=1.47;
-    }
-    else if (eps>=1e-10) {
-        nspread=12; fac1=0.92; fac2=1.51;
-    }
-    else if (eps>=1e-12) {
-        nspread=14; fac1=0.94; fac2=1.48;
-    }
-    else {       // eps < 1e-12
-        nspread=16; fac1=0.94; fac2=1.46;
-    }
-    opts.nspread=nspread;
-    opts.KB_fac1=fac1;
-    opts.KB_fac2=fac2;
-    opts.set_W_and_beta();
+  // tests done sequentially to categorize eps...
+  if (eps>=1e-2) {
+    nspread=4; fac1=0.75; fac2=1.71;
+  }
+  else if (eps>=1e-4) {
+    nspread=6; fac1=0.83; fac2=1.56;
+  }
+  else if (eps>=1e-6) {
+    nspread=8; fac1=0.89; fac2=1.45;
+  }
+  else if (eps>=1e-8) {
+    nspread=10; fac1=0.90; fac2=1.47;
+  }
+  else if (eps>=1e-10) {
+    nspread=12; fac1=0.92; fac2=1.51;
+  }
+  else if (eps>=1e-12) {
+    nspread=14; fac1=0.94; fac2=1.48;
+  }
+  else {       // eps < 1e-12
+    nspread=16; fac1=0.94; fac2=1.46;
+  }
+  opts.nspread=nspread;
+  opts.KB_fac1=fac1;
+  opts.KB_fac2=fac2;
+  opts.set_W_and_beta();
 }
 
 void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,double *X,double *kernel_params)
 // wrapper for matlab access - move this and its .h to matlab/
 {
-    cnufftspread_opts opts;
-    set_kb_opts_from_kernel_params(opts,kernel_params);
-    opts.spread_direction=1;
-    int ier;
-
-    ier = cnufftspread(N,N,N,Y,M,kx,ky,kz,X,opts);
-    //    todo: return ier; somehow
+  cnufftspread_opts opts;
+  set_kb_opts_from_kernel_params(opts,kernel_params);
+  opts.spread_direction=1;
+  int ier;
+  
+  ier = cnufftspread(N,N,N,Y,M,kx,ky,kz,X,opts);
+  //    todo: return ier; somehow
 }
 
 void evaluate_kernel(int len, double *x, double *values, cnufftspread_opts opts)
 {
-    for (int i=0; i<len; i++) {
-        values[i]=evaluate_kernel(x[i],opts);
-    }
+  for (int i=0; i<len; i++) {
+    values[i]=evaluate_kernel(x[i],opts);
+  }
 }
 
 // ----------------------- helpers for timing...
@@ -530,24 +528,24 @@ using namespace std;
 
 void CNTime::start()
 {
-    gettimeofday(&initial, 0);
+  gettimeofday(&initial, 0);
 }
 
 int CNTime::restart()
 {
-    int delta = this->elapsed();
-    this->start();
-    return delta;
+  int delta = this->elapsed();
+  this->start();
+  return delta;
 }
 
 int CNTime::elapsed()
 //  returns answers as integer number of milliseconds
 {
-    struct timeval now;
-    gettimeofday(&now, 0);
-    int delta = 1000 * (now.tv_sec - (initial.tv_sec + 1));
-    delta += (now.tv_usec + (1000000 - initial.tv_usec)) / 1000;
-    return delta;
+  struct timeval now;
+  gettimeofday(&now, 0);
+  int delta = 1000 * (now.tv_sec - (initial.tv_sec + 1));
+  delta += (now.tv_usec + (1000000 - initial.tv_usec)) / 1000;
+  return delta;
 }
 
 double CNTime::elapsedsec()
