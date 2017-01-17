@@ -1,0 +1,48 @@
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+
+multi-core...
+cnufftspread 1D, dir=1, tol=1e-06: nspread=8
+	1000000 pts in 0.279 s 	3.58e+06 NU pts/s 	2.87e+07 spread pts/s
+	rel err in total over grid:      7.89e-07
+cnufftspread 1D, dir=2, tol=1e-06: nspread=8
+	1000000 pts in 0.228 s 	4.39e+06 NU pts/s 	3.51e+07 spread pts/s
+	max rel err in values at NU pts: 2.7e-06
+cnufftspread 2D, dir=1, tol=1e-06: nspread=8
+	1000000 pts in 0.427 s 	2.34e+06 NU pts/s 	1.5e+08 spread pts/s
+	rel err in total over grid:      1.09e-06
+cnufftspread 2D, dir=2, tol=1e-06: nspread=8
+	1000000 pts in 0.354 s 	2.82e+06 NU pts/s 	1.81e+08 spread pts/s
+	max rel err in values at NU pts: 5.34e-06
+cnufftspread 3D, dir=1, tol=1e-06: nspread=8
+	1000000 pts in 0.935 s 	1.07e+06 NU pts/s 	5.48e+08 spread pts/s
+	rel err in total over grid:      -1.04e-07
+cnufftspread 3D, dir=2, tol=1e-06: nspread=8
+	1000000 pts in 0.718 s 	1.39e+06 NU pts/s 	7.13e+08 spread pts/s
+	max rel err in values at NU pts: 6.88e-06
+
+single core...
+cnufftspread 1D, dir=1, tol=1e-06: nspread=8
+	1000000 pts in 0.865 s 	1.16e+06 NU pts/s 	9.25e+06 spread pts/s
+	rel err in total over grid:      7.89e-07
+cnufftspread 1D, dir=2, tol=1e-06: nspread=8
+	1000000 pts in 0.861 s 	1.16e+06 NU pts/s 	9.29e+06 spread pts/s
+	max rel err in values at NU pts: 2.7e-06
+cnufftspread 2D, dir=1, tol=1e-06: nspread=8
+	1000000 pts in 1.6 s 	6.24e+05 NU pts/s 	4e+07 spread pts/s
+	rel err in total over grid:      1.09e-06
+cnufftspread 2D, dir=2, tol=1e-06: nspread=8
+	1000000 pts in 1.61 s 	6.22e+05 NU pts/s 	3.98e+07 spread pts/s
+	max rel err in values at NU pts: 5.34e-06
+cnufftspread 3D, dir=1, tol=1e-06: nspread=8
+	1000000 pts in 3.41 s 	2.94e+05 NU pts/s 	1.5e+08 spread pts/s
+	rel err in total over grid:      -1.04e-07
+cnufftspread 3D, dir=2, tol=1e-06: nspread=8
+	1000000 pts in 3.3 s 	3.03e+05 NU pts/s 	1.55e+08 spread pts/s
+	max rel err in values at NU pts: 6.88e-06

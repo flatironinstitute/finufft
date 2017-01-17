@@ -8,33 +8,50 @@ double rand01() {
 }
 
 int main(int argc, char* argv[])
-/* This is the test code for the 3D C++ spreader, both directions.
+/* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.
  * It checks speed and basic correctness via the grid sum of the result.
  *
- * Magland and Barnett 1/14/17
+ * Usage: ./spreadtestnd d tol
+ *
+ * runs a test in dimension d, with tolerance tol. If not given, defaults
+ * used (d=3, tol=1e6)
+ *
+ * Magland, expanded by Barnett 1/14/17
  */
 {
-  long M=1e6;    // choose problem size:  # NU pts
-  long N=100;    //                       Fourier grid size
-  std::vector<double> kx(M),ky(M),kz(M),d_nonuniform(2*M);    // Re & Im
-  std::vector<double> d_uniform(N*N*N*2);              // N^3 for Re and Im
+  int d = 3;          // default
+  double tol = 1e-6;  // default (1e6 has nspread=8)
+  if (argc>1) {
+    sscanf(argv[1],"%d",&d);
+    if (d<1 || d>3) { printf("d must be 1, 2 or 3!\n"); return 1; }
+  }
+  if (argc>2) {
+    sscanf(argv[2],"%lf",&tol);
+    if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
+  }
+  long M=1e6;                                // choose problem size:  # NU pts
+  long roughNg = 1e6;                        //                       # grid pts
+  long N=(long)(pow(roughNg,1.0/d));         // Fourier grid size per dim
+  long Ng = (long)pow(N,d);                  // actual total grid points
+  long N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes
+  std::vector<double> kx(M),ky(M),kz(M),d_nonuniform(2*M);    // NU, Re & Im
+  std::vector<double> d_uniform(2*Ng);                        // Re and Im
 
   cnufftspread_opts opts; // set method opts...
   opts.debug = 0;
   opts.sort_data=true;    // 50% faster on i7
-  double tol = 1e-6;        // choose tol (1e6 has nspread=8)
   set_kb_opts_from_eps(opts,tol);
 
     // test direction 1 (NU -> U spreading) ..............................
     opts.spread_direction=1;
-    printf("cnufftspread 3D, dir=%d, tol=%.3g: nspread=%d\n",opts.spread_direction,tol,opts.nspread);
+    printf("cnufftspread %dD, dir=%d, tol=%.3g: nspread=%d\n",d,opts.spread_direction,tol,opts.nspread);
 
     // spread a single source for reference...
     d_nonuniform[0] = 1.0; d_nonuniform[1] = 0.0;   // unit strength
-    kx[0] = ky[0] = kz[0] = 0.0;                    // at center
-    int ier = cnufftspread(N,N,N,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
+    kx[0] = ky[0] = kz[0] = N/2;                    // at center
+    int ier = cnufftspread(N,N2,N3,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     double kersumre = 0.0, kersumim = 0.0;  // sum kernel on uniform grid
-    for (long i=0;i<N*N*N;++i) {
+    for (long i=0;i<Ng;++i) {
       kersumre += d_uniform[2*i]; 
       kersumim += d_uniform[2*i+1];    // in case the kernel isn't real!
     }
@@ -52,12 +69,16 @@ int main(int argc, char* argv[])
 	strim += d_nonuniform[2*i+1];
     }
     CNTime timer; timer.start();
-    ier = cnufftspread(N,N,N,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
+    ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     double t=timer.elapsedsec();
-    printf("(ier=%d)\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",ier,M,t,M/t,pow(opts.nspread,3)*M/t);
+    if (ier!=0) {
+      printf("error (ier=%d)!\n",ier);
+      return 1;
+    } else
+      printf("\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",M,t,M/t,pow(opts.nspread,d)*M/t);
 
     double sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
-    for (long i=0;i<N*N*N;++i) {
+    for (long i=0;i<Ng;++i) {
       sumre += d_uniform[2*i]; 
       sumim += d_uniform[2*i+1];
     }
@@ -65,15 +86,15 @@ int main(int argc, char* argv[])
     double pim = kersumim*strre + kersumre*strim;
     double maxerr = std::max(sumre-pre, sumim-pim);
     double ansmod = sqrt(sumre*sumre+sumim*sumim);
-    printf("\trel err in total on grid: %.3g\n",maxerr/ansmod);
+    printf("\trel err in total over grid:      %.3g\n",maxerr/ansmod);
     // note this cannot be correct unless periodic wrapping is correct
 
 
     // test direction 2 (U -> NU interpolation) ..............................
     opts.spread_direction=2;
-    printf("cnufftspread 3D, dir=%d, tol=%.3g: nspread=%d\n",opts.spread_direction,tol,opts.nspread);
+    printf("cnufftspread %dD, dir=%d, tol=%.3g: nspread=%d\n",d,opts.spread_direction,tol,opts.nspread);
 
-    for (long i=0;i<N*N*N;++i) {     // unit grid data
+    for (long i=0;i<Ng;++i) {     // unit grid data
       d_uniform[2*i] = 1.0;
       d_uniform[2*i+1] = 0.0;
     }
@@ -83,9 +104,13 @@ int main(int argc, char* argv[])
         kz[i]=rand01()*N;
     }
     timer.restart();
-    ier = cnufftspread(N,N,N,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
+    ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     t=timer.elapsedsec();
-    printf("(ier=%d)\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",ier,M,t,M/t,pow(opts.nspread,3)*M/t);
+    if (ier!=0) {
+      printf("error (ier=%d)!\n",ier);
+      return 1;
+    } else
+    printf("\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",M,t,M/t,pow(opts.nspread,d)*M/t);
 
     // math test is worst-case error from pred value (kersum) on interp pts:
     maxerr = 0.0;

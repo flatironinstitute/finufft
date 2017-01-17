@@ -1,5 +1,5 @@
 # Makefile for Flatiron Institute (FI) NUFFT libraries.
-# Barnett 1/14/17
+# Barnett 1/16/17
 
 # Copy this file (makefile.dist) to makefile before you edit.
 # There are no makefiles in subdirectories.
@@ -9,13 +9,13 @@ CC=g++
 FC=gfortran
 
 # choose EITHER single threaded...
-CFLAGS=-fPIC -O2 -std=c++11
-FFLAGS=-fPIC -O2
-MFLAGS=
+#CFLAGS=-fPIC -O2 -std=c++11
+#FFLAGS=-fPIC -O2
+#MFLAGS=
 # ...OR multi-threaded:
-#CFLAGS=-fPIC -O2 -std=c++11 -fopenmp
-#FFLAGS=-fPIC -O2 --openmp
-#MFLAGS=-lgomp
+CFLAGS=-fPIC -O2 -std=c++11 -fopenmp
+FFLAGS=-fPIC -O2 --openmp
+MFLAGS=-lgomp
 
 # override shipped FFTPACK with linking against FFTW
 # ** to do
@@ -37,7 +37,7 @@ SPREADOBJS = contrib/besseli.o src/cnufftspread.o src/cnufftspread_c.o
 
 OBJS = contrib/next235.o contrib/dfftpack.o src/indexmap1d.o
 
-default: clean spreadtest3d
+default: clean spreadtestnd
 
 # implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:
@@ -46,9 +46,10 @@ default: clean spreadtest3d
 .f.o:
 	$(FC) -c $(FFLAGS) $< -o $@
 
-spreadtest3d: examples/spreadtest3d.cpp $(SPREADOBJS)
-	$(CC) $(CFLAGS) examples/spreadtest3d.cpp $(SPREADOBJS) -o examples/spreadtest3d
-	examples/spreadtest3d
+spreadtestnd: examples/spreadtestnd.cpp $(SPREADOBJS)
+	$(CC) $(CFLAGS) examples/spreadtestnd.cpp $(SPREADOBJS) -o examples/spreadtestnd
+# here the tee cmd copies output to screen. 2>&1 grabs stdout and stderr...
+	(cd examples; ./spreadtestnd.sh 2>&1 | tee spreadtestnd_results.txt)
 
 mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_type1.cpp $(SPREADOBJS)
 # make new interface in matlab: from src/, do mcwrap('cnufftspread.h')

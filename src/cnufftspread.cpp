@@ -114,8 +114,8 @@ int cnufftspread(
       kz2[i] = 0.0;
     else
       kz2[i]=kz[jj];
-    // while we're here, check bounds of NU pts...
-    if (kx[i]<0.0 || kx[i]>N1 || ky[i]<0.0 || ky[i]>N2 || kz[i]<0.0 || kz[i]>N3)
+    // while we're here, check bounds of NU pts (after unused coords were killed)...
+    if (kx2[i]<0.0 || kx2[i]>N1 || ky2[i]<0.0 || ky2[i]>N2 || kz2[i]<0.0 || kz2[i]>N3)
       bnderr = true;
     if (opts.spread_direction==1) {    // note this also sorts incoming strengths
       data_nonuniform2[i*2]=data_nonuniform[jj*2];      // real
@@ -125,7 +125,7 @@ int cnufftspread(
   double t=timer.elapsedsec();
   if (opts.debug) printf("sort time (sort_data=%d): %.3g s\n",(int)opts.sort_data,t);
   if (bnderr) {
-    printf("error: least one nonuniform point not in range [0,N1] x ... !\n");
+    printf("error: at least one nonuniform point not in range [0,N1] x ... !\n");
     return 2;
   }
 
@@ -320,7 +320,7 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
  * Outputs: returned value: true - this thread is given a cuboid
  *                          false - this thread is given no grid points at all
  *                                  (possible only if there's more threads than N).
- *         If returns true, the following are meaningful:
+ *         If returns true, all of the following are meaningful (even in unused dims):
  *         i1th[2] - lower and upper index bounds of cuboid in x, in range 0 to N1-1
  *         i2th[2] - lower and upper index bounds of cuboid in y, in range 0 to N2-1
  *         i3th[2] - lower and upper index bounds of cuboid in z, in range 0 to N3-1
@@ -330,10 +330,13 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
  * Barnett 1/16/17
  */
 {
-  long ith[2], Ntop = N1;
-  if (N2>1) Ntop = N2;
-  if (N3>1) Ntop = N3;
-  // Ntop is now the slowest (in grid order) nontrivial dimension, ie Nd for d = #dims.
+  i1th[0] = 0; i1th[1] = N1-1; // set defaults; for unused dims this gives 0 & 0
+  i2th[0] = 0; i2th[1] = N2-1;
+  i3th[0] = 0; i3th[1] = N3-1;
+  // set Ntop the lowest (in grid order) nontrivial dimension, ie Nd for d = #dims...
+  long ith[2], Ntop = N1, dims=1;
+  if (N2>1) { Ntop = N2; dims=2; }
+  if (N3>1) { Ntop = N3; dims=3; }
   if (N2==1 || !opts.checkerboard) {  // slice only along one dim
     if (Ntop<nth) {    // we're at a loss to occupy every thread; assign one per grid pt
       ith[0] = ith[1] = th;
@@ -343,14 +346,11 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
       ith[1] = (long)((th+1)*(double)Ntop/nth - 1);
     }
     // now slice only along the top dim (we keep lines or planes in lower dims)
-    if (N2==1) {        // 1d
+    if (dims==1) {
       i1th[0] = ith[0]; i1th[1] = ith[1];
-    } else if (N3==1) {  // 2d
-      i1th[0] = 0; i1th[1] = N1-1;
+    } else if (dims==2) {
       i2th[0] = ith[0]; i2th[1] = ith[1];
-    } else {        // 3d
-      i1th[0] = 0; i1th[1] = N1-1;
-      i2th[0] = 0; i2th[1] = N2-1;
+    } else if (dims==3) {
       i3th[0] = ith[0]; i3th[1] = ith[1];
     }
   } else {
