@@ -59,13 +59,14 @@ Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J.
 * t-I, t-II convergence params test: M/N and KB params
 * overall scale factor understand in KB
 * check J's bessel10 approx is ok.
-* meas speed of K_0 for KB kernel eval
+* meas speed of I_0 for KB kernel eval
 * spread_f and matlab wrappers need ier output
 * license file
 * makefile opts and compiler directives to link against FFTW, for non-spreading-dominated problems.
 * alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
 * doc/manual
 * boilerplate stuff as in CMCL page
+* understand origin of dfftpack (netlib fftpack is real*4)
 * [spreader: make compute_sort_indices sensible for 1d and 2d. not needed]
 
 ### Done
@@ -80,3 +81,5 @@ Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J.
 * multidim spreader test, command line args and bash driver
 * cnufft->finufft names, except spreader still called cnufft
 * make ier report accuracy out of range, malloc size errors, etc
+* moved wrappers to own directories so the basic lib is clean
+* fortran wrapper added ier argument

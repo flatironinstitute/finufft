@@ -11,6 +11,7 @@ int main(int argc, char* argv[])
 /* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.
  * It checks speed and basic correctness via the grid sum of the result.
  *
+ * Compilation: g++ spreadtestnd.cpp ../contrib/besseli.cpp -o spreadtestnd
  * Usage: ./spreadtestnd d tol
  *
  * runs a test in dimension d, with tolerance tol. If not given, defaults
@@ -37,10 +38,10 @@ int main(int argc, char* argv[])
   std::vector<double> kx(M),ky(M),kz(M),d_nonuniform(2*M);    // NU, Re & Im
   std::vector<double> d_uniform(2*Ng);                        // Re and Im
 
-  cnufftspread_opts opts; // set method opts...
+  spread_opts opts; // set method opts...
   opts.debug = 0;
   opts.sort_data=true;    // 50% faster on i7
-  set_kb_opts_from_eps(opts,tol);
+  set_KB_opts_from_eps(opts,tol);
 
     // test direction 1 (NU -> U spreading) ..............................
     opts.spread_direction=1;

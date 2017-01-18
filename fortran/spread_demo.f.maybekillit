@@ -1,0 +1,56 @@
+c     Demo f77 driver for [-pi,pi] spreading library only (not full NUFFT).
+c     This does not do the larger set of tests that ../examples/spreadtestnd
+c     does. Note the rand() library is used even though existence isn't
+c     guaranteed by f77.
+c     Barnett 1/17/17
+      program spread_demo
+      implicit none
+      integer i,d,dir,roughng,n,n2,n3,m,nspread,ng
+      real*8 eps,params(4)
+      real*8, allocatable :: x1(:),x2(:),x3(:)
+      complex*16, allocatable :: u(:),f(:)
+      real*8 pi
+      pi=4*datan(1.0)
+
+c     number of dims
+      d = 3
+c     direction
+      dir=1
+c     requested number of gridpoints
+      roughng = 1e6
+c     set up grid size, n*1*1 (1d), n*n*1 (2d), or n*n*n (3d)
+      n = int(roughng**(1.0/d))
+      n2 = 1
+      n3 = 1
+      if (d.ge.2) then
+         n2 = n
+      endif
+      if (d.eq.3) then
+         n3 = n
+      endif
+      ng=n*n2*n3
+c     number of NU pts
+      m = 1e6
+c     requested tolerance
+      eps = 1e-6
+
+c     set up NU points
+      allocate(x1(m))
+      allocate(x2(m))
+      allocate(x3(m))
+      allocate(f(m))
+      call srand(0)
+      do i=1,m
+         x1(i) = (2*rand()-1)*pi
+         x2(i) = (2*rand()-1)*pi
+         x3(i) = (2*rand()-1)*pi
+         f(i) = 2*rand()-1.0
+      enddo
+      allocate(u(ng))
+
+c      call get_kernel_params_for_eps_f(params,eps)
+      print *,'spread_demo',d,'D , dir=',dir,', eps=',eps,', nspread=',
+     c     params(2)
+
+      return
+      end

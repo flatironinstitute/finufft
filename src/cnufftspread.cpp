@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
-#include <sys/time.h>
 
 // allow compile-time switch off of openmp (_OPENMP is set by -fopenmp compile flag)
 #ifdef _OPENMP
@@ -19,12 +18,13 @@
 // declarations of later functions...
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,
 				       long N1,long N2,long N3);
-double evaluate_kernel(double x,const cnufftspread_opts &opts);
+double evaluate_kernel(double x,const spread_opts &opts);
+void evaluate_kernel(int len, double *x, double *values, spread_opts opts);
 std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3,
-					  const cnufftspread_opts &opts, int *r1,
+					  const spread_opts &opts, int *r1,
 					  int *r2, int *r3);
 bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long N3,
-			  int th,int nth, const cnufftspread_opts &opts);
+			  int th,int nth, const spread_opts &opts);
 bool ind_might_affect_interval(long i,long N,long *ith,long nspread);
 bool wrapped_range_in_interval(long i,int *R,long *ith,long N,int *r);
 
@@ -32,14 +32,15 @@ bool wrapped_range_in_interval(long i,int *R,long *ith,long N,int *r);
 int cnufftspread(
         long N1, long N2, long N3, double *data_uniform,
         long M, double *kx, double *ky, double *kz, double *data_nonuniform,
-        cnufftspread_opts opts)
+        spread_opts opts)
 /* Main code for spreader for 1, 2, or 3 dimensions. No particular normalization of the
-   spreading kernel is assumed, since this is cancelling in the NUFFT anyway.
+   spreading kernel is assumed, since this will cancel in the NUFFT anyway.
    Uniform (U) points are centered at coords [0,1,...,N1-1] in 1D, analogously in 2D and
    3D. They are stored in x fastest, y medium, z slowest ordering, up to however many
    dimensions are relevant.
    Non-uniform (NU) points are real and must be in the range [0,N1] in 1D,
    analogously in 2D and 3D, otherwise an error is returned and no calculation is done.
+   The spread_opts (eg KB parameters) must have been set up already.
 
    Inputs:
    N1,N2,N3 - grid sizes in x (fastest), y (medium), z (slowest) respectively.
@@ -47,7 +48,7 @@ int cnufftspread(
    M - number of NU pts.
    kx, ky, kz - length-M real arrays of NU point coordinates (only kz used in 1D,
                 only kx and ky used in 2D). These must lie in the box, ie 0<=kx<=N1 etc.
-   opts - struct controlling spreading method and text output, has fields including:
+   opts - object controlling spreading method and text output, has fields including:
         spread_direction=1, spreads from nonuniform input to uniform output, or
         spread_direction=2, interpolates ("spread transpose") from uniform input
                             to nonuniform output.
@@ -61,13 +62,14 @@ int cnufftspread(
                      OR output values at targets (dir=2)
    Ouputs:
    returned value - error status indicator:
-      0 : ok
-      1 : one or more non-trivial box dimensions is less than 2.nspread
+      0 : success.
+      1 : one or more non-trivial box dimensions is less than 2.nspread.
       2 : nonuniform points outside range [0,Nm] in at least one dimension m=1,2,3.
-      3 : out of memory
+      3 : out of memory with the internal sorting arrays.
+      4 : invalid opts.spread_direction
 
    Notes:
-   1) it is assumed that 2*opts.nspread < min(N1,N2,N2), so that the kernel only ever
+   1) it is assumed that 2*opts.nspread < min(N1,N2,N3), so that the kernel only ever
    wraps once when falls below 0 or off the top of a uniform grid dimension.
    2) decided not to periodically fold input data is better, since use type 3!)
 
@@ -77,8 +79,12 @@ int cnufftspread(
   // Input checking: cuboid not too small for spreading
   long minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
-    printf("error: one or more non-trivial box dimensions is less than 2.nspread!\n");
+    fprintf(stderr,"error: one or more non-trivial box dims is less than 2.nspread!\n");
     return 1;
+  }
+  if (opts.spread_direction!=1 && opts.spread_direction!=2) {
+    fprintf(stderr,"opts.spread_direction must be 1 or 2!\n");
+    return 4;
   }
 
   std::vector<double> kx2,ky2,kz2,data_nonuniform2;  // declarations can't be in try block
@@ -88,22 +94,23 @@ int cnufftspread(
     sort_indices.resize(M);
   }
   catch(std::bad_alloc &e) {
+    fprintf(stderr,"cnufftspread cannot alloc arrays!\n");
     return 3;
   }
-  // omp_set_num_threads(1); // for debug; also can set via environment var
+  // omp_set_num_threads(1); // for debug; also may set via shell environment var
   
   // Sort NU pts once and for all: sorted answer will be k{xyz}2 and data_nonuniform2
   // We also zero unused coordinates (for 1D or 2D cases) and check bounds:
   CNTime timer; timer.start();
   if (opts.sort_data)
-    sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3);  // a good perm of NU pts
+    sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3); // a good perm of NU pts
   else {
     for (long i=0; i<M; i++)        // (omp no effect here)
       sort_indices[i]=i;                                  // the identity permutation!
   }
   bool bnderr = false;
   #pragma omp parallel for schedule(dynamic)
-  for (long i=0; i<M; i++) {        // (omp has 20% effect on dir=1 case, so use it)
+  for (long i=0; i<M; i++) {  // (omp has 20% effect on dir=1 case, so use it)
     long jj=sort_indices[i];
     kx2[i]=kx[jj];
     if (N2==1)            // safely kill not-needed coords
@@ -114,10 +121,10 @@ int cnufftspread(
       kz2[i] = 0.0;
     else
       kz2[i]=kz[jj];
-    // while we're here, check bounds of NU pts (after unused coords were killed)...
+    // while we're here, check bounds of NU pts (after coords were killed)...
     if (kx2[i]<0.0 || kx2[i]>N1 || ky2[i]<0.0 || ky2[i]>N2 || kz2[i]<0.0 || kz2[i]>N3)
       bnderr = true;
-    if (opts.spread_direction==1) {    // note this also sorts incoming strengths
+    if (opts.spread_direction==1) {  // note this also sorts incoming strengths
       data_nonuniform2[i*2]=data_nonuniform[jj*2];      // real
       data_nonuniform2[i*2+1]=data_nonuniform[jj*2+1];  // imag
     }
@@ -125,7 +132,7 @@ int cnufftspread(
   double t=timer.elapsedsec();
   if (opts.debug) printf("sort time (sort_data=%d): %.3g s\n",(int)opts.sort_data,t);
   if (bnderr) {
-    printf("error: at least one nonuniform point not in range [0,N1] x ... !\n");
+    fprintf(stderr,"error: at least one nonuniform point not in range [0,N1] x ... !\n");
     return 2;
   }
 
@@ -251,13 +258,13 @@ int cnufftspread(
 }
 
 std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3,
-					  const cnufftspread_opts &opts, int *r1,
+					  const spread_opts &opts, int *r1,
 					  int *r2, int *r3)
 /* Evaluate spreading kernel values on a cuboid of grid points shifted from the origin
  * by fractional part frac1,frac2,frac2. This may be a sub-cuboid of the full
  * possible R^3 values, and is controlled by r1,r2,r3 which are two-element arrays
  * giving start and end indices offsets (in -R/2,...,R/2-1) in each dimension.
- * If a dimension m is unused, fracm should be 0.0, and both rm
+ * If a dimension "m" is unused, "fracm" should be 0.0, and both "rm"
  * elements should be set to 0. The kernel gets a factor of the 1d kernel at x=0 for
  * each such dim. For speed, the output is just the values in the
  * sub-cuboid, ordered x (dim1) fast, y (dim2) medium, z (dim3) slow.
@@ -294,21 +301,32 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
   return ret;
 }
 
-double evaluate_kernel(double x,const cnufftspread_opts &opts) {
+double evaluate_kernel(double x,const spread_opts &opts)
+// kernel evaluation at single real argument: hard-wired as Kaiser--Bessel
+{
+  // todo: insert test if opts.kernel_type==1 ?
   double t = 2.0*x/opts.KB_W; 
   double tmp1=1.0-t*t;
   if (tmp1<0.0) {
-    return 0.0;
+    return 0.0;      // you fell outside the support
   }
   else {
-    double y = opts.KB_beta*sqrt(tmp1);
+    double y = opts.KB_beta*sqrt(tmp1);  // set up arg for I_0
     //return besseli0(y);
-    return besseli0_approx(y);       // todo: compare acc
+    return besseli0_approx(y);  // the meat.    todo: compare acc
+  }
+}
+
+void evaluate_kernel(int len, double *x, double *values, spread_opts opts)
+// overloaded vectorized version of evaluation of kernel.
+{
+  for (int i=0; i<len; i++) {
+    values[i]=evaluate_kernel(x[i],opts);
   }
 }
 
 bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long N3,
-			  int th,int nth, const cnufftspread_opts &opts)
+			  int th,int nth, const spread_opts &opts)
 /* Decides how the uniform grid is to be partitioned into cuboids for each thread
  * (for spread_direction=1 only, ie, writing to the grid).
  *
@@ -449,107 +467,63 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
   return ret;
 }
 
-void cnufftspread_opts::set_W_and_beta() {  // set derived parameters in Kaiser--Bessel
+void spread_opts::set_W_and_beta() {  // set derived parameters in Kaiser--Bessel
   this->KB_W = this->nspread * this->KB_fac1;
   double tmp0 = this->KB_W * this->KB_W / 4 - 0.8;
   if (tmp0<0) tmp0=0;   // fix it?
   this->KB_beta = M_PI*sqrt(tmp0) * this->KB_fac2;
 }
 
-void set_kb_opts_from_kernel_params(cnufftspread_opts &opts,double *kernel_params) {
-/* Directly sets Kaiser-Bessel spreading options.
+int set_KB_opts_from_kernel_params(spread_opts &opts,double *kernel_params) {
+/* Specific to Kaiser-Bessel kernel. Directly sets kernel options from a param array.
+ * Returns 0 is success, or 1 error code if params[0] is not KB type.
  *
  * kernel_params is a 4-element double array containing following information:
- *  entry 0: kernel type (1 for kaiser-bessel) - ignored
+ *  entry 0: kernel type (1 for Kaiser--Bessel; others report an error)
  *  entry 1: nspread
  *  entry 2: KB_fac1 (eg 1)
  *  entry 3: KB_fac2 (eg 1)
  */
+  if (kernel_params[0]!=1) {
+    fprintf(stderr,"error: unsupported kernel type param[0]=%g\n",kernel_params[0]);
+    return 1;
+  }
   opts.nspread=kernel_params[1];
   opts.KB_fac1=kernel_params[2];
   opts.KB_fac2=kernel_params[3];
-  opts.set_W_and_beta();  
+  opts.set_W_and_beta();
+  return 0;
 }
 
-void set_kb_opts_from_eps(cnufftspread_opts &opts,double eps)
-// Sets KB spreading opts from accuracy eps. It seems from other uses that
-// nspread should always be even.
+int set_KB_opts_from_eps(spread_opts &opts,double eps)
+// Specific to KB kernel. Sets spreading opts from accuracy eps.
+// nspread should always be even, based on other uses in this file.
+// Returns 0 if success, or 1 error code if eps out of range.
 {
-  int nspread=12; double fac1=1,fac2=1;  // defaults: todo decide for what tol
-  // tests done sequentially to categorize eps...
+  int nspread=12; double fac1=1,fac2=1;  // defaults: todo decide for what tol?
+  // tests done sequentially to categorize eps...  todo: add 1e-1 ?
   if (eps>=1e-2) {
     nspread=4; fac1=0.75; fac2=1.71;
-  }
-  else if (eps>=1e-4) {
+  } else if (eps>=1e-4) {
     nspread=6; fac1=0.83; fac2=1.56;
-  }
-  else if (eps>=1e-6) {
+  } else if (eps>=1e-6) {
     nspread=8; fac1=0.89; fac2=1.45;
-  }
-  else if (eps>=1e-8) {
+  } else if (eps>=1e-8) {
     nspread=10; fac1=0.90; fac2=1.47;
-  }
-  else if (eps>=1e-10) {
+  } else if (eps>=1e-10) {
     nspread=12; fac1=0.92; fac2=1.51;
-  }
-  else if (eps>=1e-12) {
+  } else if (eps>=1e-12) {
     nspread=14; fac1=0.94; fac2=1.48;
-  }
-  else {       // eps < 1e-12
+  } else if (eps>=1e-16) {
     nspread=16; fac1=0.94; fac2=1.46;
+  } else {              // eps too small
+    fprintf(stderr,"set_kb_opts_from_eps: eps too small!\n");
+    return 1;
   }
+
   opts.nspread=nspread;
   opts.KB_fac1=fac1;
   opts.KB_fac2=fac2;
   opts.set_W_and_beta();
-}
-
-void cnufftspread_type1(int N,double *Y,int M,double *kx,double *ky,double *kz,double *X,double *kernel_params)
-// wrapper for matlab access - move this and its .h to matlab/
-{
-  cnufftspread_opts opts;
-  set_kb_opts_from_kernel_params(opts,kernel_params);
-  opts.spread_direction=1;
-  int ier;
-  
-  ier = cnufftspread(N,N,N,Y,M,kx,ky,kz,X,opts);
-  //    todo: return ier; somehow
-}
-
-void evaluate_kernel(int len, double *x, double *values, cnufftspread_opts opts)
-{
-  for (int i=0; i<len; i++) {
-    values[i]=evaluate_kernel(x[i],opts);
-  }
-}
-
-// ----------------------- helpers for timing...
-using namespace std;
-
-void CNTime::start()
-{
-  gettimeofday(&initial, 0);
-}
-
-int CNTime::restart()
-{
-  int delta = this->elapsed();
-  this->start();
-  return delta;
-}
-
-int CNTime::elapsed()
-//  returns answers as integer number of milliseconds
-{
-  struct timeval now;
-  gettimeofday(&now, 0);
-  int delta = 1000 * (now.tv_sec - (initial.tv_sec + 1));
-  delta += (now.tv_usec + (1000000 - initial.tv_usec)) / 1000;
-  return delta;
-}
-
-double CNTime::elapsedsec()
-//  returns answers as double in sec
-{
-  return (double)(this->elapsed()/1e3);
+  return 0;
 }

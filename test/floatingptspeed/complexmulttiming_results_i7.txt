@@ -1,0 +1,11 @@
+C/C++:
+100000000 C-type double mults in 0.126 s
+100000000 C++ std vector double mults in 0.128 s
+100000000 C-type doubles faking complex mults in 0.217 s
+100000000 C-type complex mults in 0.348 s
+Fortran:
+ 100000000 fortran real*8 mults in  0.128 s
+ 100000000 fortran complex*16 mults in  0.256 s
+
+# conclusion: use C and write out by hand the complex mult using doubles,
+# is fastest (even 20% faster than fortran complex).
