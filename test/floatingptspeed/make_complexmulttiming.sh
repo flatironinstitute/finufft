@@ -4,7 +4,7 @@
 
 # make
 gfortran complexmulttiming.f -o complexmulttimingf -O3
-g++ complexmulttiming.cpp ../src/utils.o -o complexmulttiming -O3
+g++ complexmulttiming.cpp ../../src/utils.o -o complexmulttiming -O3
 
 # run
 echo C/C++:

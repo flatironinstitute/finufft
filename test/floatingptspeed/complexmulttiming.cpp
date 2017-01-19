@@ -6,7 +6,7 @@
 #include <vector>   // C++
 //#include <complex>  // C++  fails w/ complex.h
 //#include <ccomplex>  // C++  fails
-#include "../src/utils.h"
+#include "../../src/utils.h"
 
 #define BIGINT long long
 
@@ -44,22 +44,41 @@ int main(int argc, char* argv[])
   printf("%lld C++ std vector double mults in %.3g s\n",M,t);
   y.clear(); y2.clear();
 
-  // C-type double complex by hand
+  // C-type double complex by hand, separated storage
   x = (double *)malloc(sizeof(double)*M); 
   x2 = (double *)malloc(sizeof(double)*M);
   double *xi = (double *)malloc(sizeof(double)*M);
   double *xi2 = (double *)malloc(sizeof(double)*M);
-  for(BIGINT i=0;i<M;++i) xi[i] = rand01();
+  for(BIGINT i=0;i<M;++i) {
+    x[i] = rand01();xi[i] = rand01(); x2[i] = rand01();xi2[i] = rand01();
+  }
   timer.restart();
   for(BIGINT i=0;i<M;++i) {
     double r = x[i]*x2[i] - xi[i]*xi2[i];
-    double j = x[i]*xi2[i] + xi[1]*x2[i];
+    double j = x[i]*xi2[i] + xi[i]*x2[i];
     x[i] = r;
     xi[i] = j;
   }
   t=timer.elapsedsec();
-  printf("%lld C-type doubles faking complex mults in %.3g s\n",M,t);
+  printf("%lld C-type doubles by hand (sep storage) mults in %.3g s\n",M,t);
   free(x); free(xi); free(x2); free(xi2);
+
+  // C-type double complex by hand
+  x = (double *)malloc(sizeof(double)*2*M); 
+  x2 = (double *)malloc(sizeof(double)*2*M);
+  for(BIGINT i=0;i<2*M;++i) {
+    x[i] = rand01(); x2[i] = rand01();
+  }
+  timer.restart();
+  for(BIGINT i=0;i<2*M;i+=2) {
+    double r = x[i]*x2[i] - x[i+1]*x2[i+1];
+    double j = x[i]*x2[i+1] + x[i+1]*x2[i];
+    x[i] = r;
+    x[i+1] = j;
+  }
+  t=timer.elapsedsec();
+  printf("%lld C-type doubles by hand complex mults in %.3g s\n",M,t);
+  free(x); free(x2);
 
   // C-type complex
   complex double *z = (complex double *)malloc(sizeof(complex double)*M);

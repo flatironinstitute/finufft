@@ -29,6 +29,8 @@ evaluate_kernel_f_:: evaluate the kernel on a 1d grid
     x -- a vector of positions (probably integers) of length len
     values -- the output of length len
     kernel_params -- same as above
+
+todo: doc the twopispread?d_f routines.
 */
 
 extern "C" {
@@ -37,9 +39,15 @@ extern "C" {
 		       double *d_nonuniform,
 		       int *spread_direction,double *kernel_params,int *ier);
 
-  void get_kernel_params_for_eps_f_(double *kernel_params,double *eps);
+  void get_kernel_params_for_eps_f_(double *kernel_params,double *eps, int *ier);
   
   void evaluate_kernel_f_(int *len,double *x,double *values,double *kernel_params);
+
+  void twopispread1d_f_(int *N1,double *d_uniform,int *M,double *kx,double *d_nonuniform,int *spread_direction,double *kernel_params, int *ier);
+
+  void twopispread2d_f_(int *N1,int *N2,double *d_uniform,int *M,double *kx,double *ky,double *d_nonuniform,int *spread_direction,double *kernel_params, int *ier);
+
+  void twopispread3d_f_(int *N1,int *N2,int *N3,double *d_uniform,int *M,double *kx,double *ky,double *kz,double *d_nonuniform,int *spread_direction,double *kernel_params, int *ier);
 }
 
-#endif // BLOCKNUFFT3D_F_H
+#endif

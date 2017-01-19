@@ -1,6 +1,6 @@
 /* TWOPISPREAD:
- * Simple wrappers to the C++ spreading library, that handle d-dim nonuniform
- * (NU) points in [-pi,pi]^d, with separate calls for each of d=1,2,3.
+ * Simple C-style wrappers to the C++ spreading library, that handle d-dim
+ * nonuniform (NU) points in [-pi,pi]^d, with separate calls for each d=1,2,3.
  * They call the spreader after rescaling these points to
  * [0,N1] x ... x [0,Nd], which is the domain the spreader wants.
  * Any unused coords of the points are also filled with zeros.

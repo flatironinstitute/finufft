@@ -1,11 +1,12 @@
+./make_complexmulttiming.sh 
 C/C++:
-100000000 C-type double mults in 0.126 s
-100000000 C++ std vector double mults in 0.128 s
-100000000 C-type doubles faking complex mults in 0.217 s
-100000000 C-type complex mults in 0.348 s
+100000000 C-type double mults in 0.127 s
+100000000 C++ std vector double mults in 0.129 s
+100000000 C-type doubles by hand (sep storage) mults in 0.295 s
+100000000 C-type doubles by hand complex mults in 0.255 s
+100000000 C-type complex mults in 0.367 s
 Fortran:
- 100000000 fortran real*8 mults in  0.128 s
+ 100000000 fortran real*8 mults in  0.124 s
  100000000 fortran complex*16 mults in  0.256 s
 
-# conclusion: use C and write out by hand the complex mult using doubles,
-# is fastest (even 20% faster than fortran complex).
+# conclusion: fortran and hand-coding C are equal for complex.

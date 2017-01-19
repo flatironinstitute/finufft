@@ -527,3 +527,15 @@ int set_KB_opts_from_eps(spread_opts &opts,double eps)
   opts.set_W_and_beta();
   return 0;
 }
+
+int get_kernel_params_for_eps(double *kernel_params,double eps)
+{
+  spread_opts opts;
+  int ier = set_KB_opts_from_eps(opts,eps);
+  kernel_params[0]=1;
+  kernel_params[1]=opts.nspread;
+  kernel_params[2]=opts.KB_fac1;
+  kernel_params[3]=opts.KB_fac2;
+  return ier;
+}
+

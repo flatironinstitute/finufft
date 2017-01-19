@@ -33,5 +33,6 @@ int cnufftspread(long N1, long N2, long N3, double *data_uniform,
 void evaluate_kernel(int len, double *x, double *values, spread_opts opts);
 int set_KB_opts_from_kernel_params(spread_opts &opts,double *kernel_params);
 int set_KB_opts_from_eps(spread_opts &opts,double eps);
+int get_kernel_params_for_eps(double *kernel_params,double eps);
 
 #endif // CNUFFTSPREAD_H
