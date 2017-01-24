@@ -7,11 +7,6 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
-using namespace std;
-
-#include <complex>          // C++ type complex
-#define dcomplex complex<double>
-#define ima complex<double>{0.0,1.0}
 
 
 int main(int argc, char* argv[])
@@ -59,7 +54,7 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(ima*((double)(isign*nt))*x[j]);
   Ft /= M;
-  //cout << Ft << endl << F[N/2+nt] << endl;
+  cout << Ft << endl << F[N/2+nt] << endl;
   printf("rel err in F[%ld]: %.3g\n",nt,abs(1.0-F[N/2+nt]/Ft));
 
   free(x); free(c); free(F);

@@ -45,9 +45,9 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
    Written in real-valued C style (for speed) & FFTW arrays. Barnett 1/22/17
  */
   
+  int debug = 1;      // should be an input opt
   spread_opts spopts;
   int ier_set = set_KB_opts_from_eps(spopts,eps);
-  int debug = 1;
   double params[4];
   ier_set = get_kernel_params_for_eps(params,eps);
   int nspread = params[1];
@@ -64,12 +64,18 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   onedim_dct_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
   double t=timer.elapsedsec();
   if (debug) printf("onedim_dct_kernel:\t %.3g s\n", t);
+  //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
 
+  int nth = omp_get_max_threads();     // set up any multithreaded fftw stuff
+  #ifdef _OPENMP
+  fftw_init_threads();
+  fftw_plan_with_nthreads(nth);
+  #endif
   timer.restart();
   fftw_complex *fw = fftw_alloc_complex(nf1);    // working upsampled array
   int fftsign = (iflag>0) ? 1 : -1;
   fftw_plan p = fftw_plan_dft_1d(nf1,fw,fw,fftsign, FFTW_ESTIMATE);
-  if (debug) printf("fft plan:\t\t %.3g s\n", timer.elapsedsec());
+  if (debug) printf("fft plan\t\t %.3g s\n", timer.elapsedsec());
 
   timer.restart();
   // Step 1: spread from irregular points to regular grid
@@ -81,7 +87,7 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   // Step 2:  Call FFT
   fftw_execute(p);
   fftw_destroy_plan(p);
-  if (debug) printf("fft:\t\t\t %.3g s\n", timer.elapsedsec());
+  if (debug) printf("fft (%d thr):\t\t %.3g s\n", nth, timer.elapsedsec());
   //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
   //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
 

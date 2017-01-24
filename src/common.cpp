@@ -1,9 +1,12 @@
 #include "common.h"
 
+#define HALF_MAX_NS 16       // upper bnd on nspread/2
+
 void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
 		       double &prefac_unused_dim, spread_opts opts)
 /*
-  Use DCT in FFTW for Fourier coeffs of cnufftspread's real, symmetric kernel.
+  Computes DCT coeffs of cnufftspread's real symmetric kernel, directly,
+  exploiting narrowness of kernel.
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
@@ -15,18 +18,30 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
   prefac_unused_dim - the prefactor that cnufftspread multiplies for each
                        unused dimension (ie two such factors in 1d, one in 2d,
 		       and none in 3d).
-  Barnett 1/23/17
+  Barnett 1/24/17
+  todo: understand how to openmp it - subtle since private aj's. Want to break
+        up fwkerhalf into contiguous pieces, one per thread.
  */
 {
-  // note: in-place, and we make plan before filling input array...
-  fftw_plan p = fftw_plan_r2r_1d(nf/2+1,fwkerhalf,fwkerhalf,FFTW_REDFT00,
-				 FFTW_ESTIMATE);  // note no fftsign
-  for (BIGINT i=0; i<=nf/2; ++i)
-    fwkerhalf[i] = 0.0;   // zero it
-  for (int i=0; i<=opts.nspread/2; ++i)    // i is dist from kernel origin
-    fwkerhalf[nf/2-i] = evaluate_kernel((double)i, opts);  // center at nf/2
-  prefac_unused_dim = fwkerhalf[nf/2];  // must match cnufftspread's behavior
-  fftw_execute(p);
-  fftw_destroy_plan(p);
+  int m=opts.nspread/2;        // how many modes in include
+  double f[HALF_MAX_NS];
+  for (int n=0;n<=m;++n)    // actual freq index will be nf/2-n, for cosines
+    f[n] = evaluate_kernel((double)n, opts);  // center at nf/2
+  prefac_unused_dim = f[0];   // ker @ 0, must match cnufftspread's behavior
+  for (int n=1;n<=m;++n)    //  convert from exp to cosine ampls
+    f[n] *= 2.0;
+  dcomplex a[HALF_MAX_NS],aj[HALF_MAX_NS];
+  for (int n=0;n<=m;++n) {    // set up our rotating phase array...
+    a[n] = exp(2*M_PI*ima*(double)(nf/2-n)/(double)nf);   // phase differences
+    aj[n] = dcomplex{1.0,0.0};       // init phase factors
+  }
+  for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
+    double x = 0.0;                 // register
+    for (int n=0;n<=m;++n) {
+      x += f[n] * real(aj[n]);         // only want cosine part
+      aj[n] *= a[n];       // wind the phases
+    }
+    fwkerhalf[j] = x;
+  }
 }
 

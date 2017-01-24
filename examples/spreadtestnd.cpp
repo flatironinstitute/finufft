@@ -1,11 +1,6 @@
 #include "../src/cnufftspread.h"
-
 #include <vector>
 #include <math.h>
-
-double rand01() {
-    return (rand()%RAND_MAX)*1.0/RAND_MAX;
-}
 
 int main(int argc, char* argv[])
 /* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.
@@ -31,7 +26,7 @@ int main(int argc, char* argv[])
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
   long M=1e6;                                // choose problem size:  # NU pts
-  long roughNg = 1e6;                        //                       # grid pts
+  long roughNg = 1e8;                        //                       # grid pts
   long N=(long)(pow(roughNg,1.0/d));         // Fourier grid size per dim
   long Ng = (long)pow(N,d);                  // actual total grid points
   long N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes
@@ -88,7 +83,8 @@ int main(int argc, char* argv[])
     double maxerr = std::max(sumre-pre, sumim-pim);
     double ansmod = sqrt(sumre*sumre+sumim*sumim);
     printf("\trel err in total over grid:      %.3g\n",maxerr/ansmod);
-    // note this cannot be correct unless periodic wrapping is correct
+    // note this is weaker than below dir=2 test, but is good indicator that
+    // periodic wrapping is correct
 
 
     // test direction 2 (U -> NU interpolation) ..............................
@@ -122,7 +118,8 @@ int main(int argc, char* argv[])
     }
     ansmod = sqrt(kersumre*kersumre+kersumim*kersumim);
     printf("\tmax rel err in values at NU pts: %.3g\n",maxerr/ansmod);
-    // this is weaker test than for dir=1, since it cannot detect reading
+    // this is stronger test than for dir=1, since it tests sum of kernel for
+    // each NU pt. However, it cannot detect reading
     // from wrong grid pts (they are all unity)
 
     return 0;

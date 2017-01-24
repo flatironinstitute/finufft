@@ -5,16 +5,6 @@
 #include <vector>
 #include <math.h>
 
-// allow compile-time switch off of openmp (_OPENMP is set by -fopenmp compile flag)
-#ifdef _OPENMP
-  #include <omp.h>
-#else
-//  hack to handle all the omp commands we use...
-  #define omp_get_num_threads() 1
-  #define omp_get_thread_num() 0
-  #define omp_set_num_threads()
-#endif
-
 // declarations of later functions...
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,
 				       long N1,long N2,long N3);
@@ -27,7 +17,6 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
 			  int th,int nth, const spread_opts &opts);
 bool ind_might_affect_interval(long i,long N,long *ith,long nspread);
 bool wrapped_range_in_interval(long i,int *R,long *ith,long N,int *r);
-
 
 int cnufftspread(
         long N1, long N2, long N3, double *data_uniform,
