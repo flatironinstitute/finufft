@@ -6,7 +6,8 @@
 #include "utils.h"
 
 // choose if handle huge I/O array sizes (>2^31)
-#define BIGINT int64_t
+// #define BIGINT int64_t
+#define BIGINT long
 // #define BIGINT int32_t
 
 // Note -std=c++11 is needed to avoid warning for static initialization here:
@@ -31,6 +32,7 @@ int cnufftspread(long N1, long N2, long N3, double *data_uniform,
 		 double *data_nonuniform, spread_opts opts);
 
 void evaluate_kernel(int len, double *x, double *values, spread_opts opts);
+double evaluate_kernel(double x,const spread_opts &opts);
 int set_KB_opts_from_kernel_params(spread_opts &opts,double *kernel_params);
 int set_KB_opts_from_eps(spread_opts &opts,double eps);
 int get_kernel_params_for_eps(double *kernel_params,double eps);

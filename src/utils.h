@@ -13,4 +13,9 @@ class CNTime {
   struct timeval initial;
 };
 
+// crappy random number generator in [0,1)
+//#define rand01() (((double)(rand()%RAND_MAX))/RAND_MAX)
+#define rand01() ((double)rand()/RAND_MAX)
+
+
 #endif

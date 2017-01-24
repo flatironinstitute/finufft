@@ -28,19 +28,27 @@
 
 #include "twopispread.h"
 
-int twopispread1d(long nf1,double *fw,BIGINT nj,double* xj,double* cj,
+int twopispread1d(BIGINT nf1,double *fw,BIGINT nj,double* xj,double* cj,
 		  int dir,double* params)
 {
   double *dummy;
   double *xjscal = (double*)malloc(sizeof(double)*nj);
+  double *yj = (double*)malloc(sizeof(double)*nj);   // hack - fix
+  double *zj = (double*)malloc(sizeof(double)*nj);
   double s = nf1/(2*M_PI);
   for (BIGINT i=0;i<nj;++i) {
     xjscal[i] = s * (xj[i]+M_PI);
+    yj[i] = zj[i] = 0.0;            // hack
   }
   spread_opts opts;
   set_KB_opts_from_kernel_params(opts,params);  // note changes opts
   opts.spread_direction = dir;
-  return cnufftspread(nf1,1,1,fw,nj,xj,dummy,dummy,cj,opts);
+  //  return cnufftspread(nf1,1,1,fw,nj,xj,dummy,dummy,cj,opts);
+  //printf("nf1=%d, xjscal = %.15g, Re cj = %.15g\n",nf1,xjscal[0],cj[0]);
+
+  int ier = cnufftspread(nf1,1,1,fw,nj,xjscal,yj,zj,cj,opts);   // hack!
+  // for (int j=0;j<nf1;++j) printf("Re, Im fw = %.15g,%.15g\n",fw[2*j],fw[2*j+1]);
+  return ier;
 }
 
 int twopispread2d(long nf1,long nf2, double *fw,BIGINT nj,double* xj,

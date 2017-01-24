@@ -155,7 +155,9 @@ int cnufftspread(
       for (long i=0; i<2*N1*N2*N3; i++) data_uniform[i]=0.0;
       
       long i1th[2],i2th[2],i3th[2];     // get this thread's (fixed) grid index box...
-      if (set_thread_index_box(i1th,i2th,i3th,N1,N2,N3,th,nth,opts)) {  // thread has task
+      bool thread_has_task = set_thread_index_box(i1th,i2th,i3th,N1,N2,N3,th,nth,opts);
+      if (opts.debug) printf("N1=%d,N2=%d,N3=%d,th=%d, has_task=%d\n",N1,N2,N3,th,(int)thread_has_task);
+      if (thread_has_task) {
 	if (opts.debug) printf("th=%d ind box: %ld %ld %ld %ld %ld %ld\n",th,i1th[0],i1th[1],i2th[0],i2th[1],i3th[0],i3th[1]);
 	long c = 0;   // debug count how many NU pts each thread does
 	
@@ -206,7 +208,7 @@ int cnufftspread(
 	    }
 	  }
 	}
-	// printf("th=%d did %ld NU pts.\n",th,c); // debug
+	if (opts.debug) printf("th=%d did %ld NU pts.\n",th,c);
       }
     } else {                      // ==================== direction 2 ===============
 #pragma omp for schedule(dynamic)   // assign threads to NU targ pts, easy
@@ -371,6 +373,7 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
     } else if (dims==3) {
       i3th[0] = ith[0]; i3th[1] = ith[1];
     }
+    return true;
   } else {
     printf("2d or 3d checkerboard not implemented!\n");
     return false;
@@ -415,7 +418,8 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
    * Finally the permutation map is inverted.
    * 
    * Inputs: M - length of inputs
-   *         kx,ky,kz - length-M real numbers in 
+   *         kx,ky,kz - length-M real numbers in [0,N1], [0,N2], [0,N3]
+   *                    respectively.
    * Output: vector list of indices, each in the range 0,..,M-1, which is a good ordering
    *         of the points.
    *

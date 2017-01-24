@@ -1,3 +1,40 @@
+Development notes.  Barnett.
+
+============ C/C++ code optimization
+
+http://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15213-f02/lectures/class10.pdf
+Etc.  A bit old (2002) and too low-level.
+
+--------- complex:
+
+Found C complex didn't work in finufft1d_test.cpp unless I did 
+double _Complex
+
+
+====== FFTW:
+
+http://www.fftw.org/faq/section3.html
+ Question 3.6. My Fortran program crashes when calling FFTW.
+As described in the manual, on 64-bit machines you must store the plans in variables large enough to hold a pointer, for example integer*8. We recommend using integer*8 on 32-bit machines as well, to simplify porting. 
+
+
+
+=======================  other FFTs
+
+C port of fftpack:
+
+https://github.com/dagss/libfftpack
+
+is GPL 2+
+
+include with ours for instant compilation?
+
+
+
+
+
+------------------  git
+
 How to bring in changes from a forked project:
 http://stackoverflow.com/questions/7244321/how-do-i-update-a-github-forked-repository
 
@@ -7,7 +44,10 @@ git rebase --continue
 
 
 
-================ openmp compile-time switch:
+
+================ OpenMP
+
+openmp compile-time switch:
 http://stackoverflow.com/questions/1357604/turn-off-openmp
 
 
@@ -194,5 +234,3 @@ In your header file:
 When you compile, add -DSINGLETHREADED to disable OpenMP:
 
 cc  -DSINGLETHREADED <other flags go here> code.c
-
-shareimprove this answer

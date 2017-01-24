@@ -9,12 +9,14 @@ CC=g++
 FC=gfortran
 
 # choose EITHER single threaded...
-#CFLAGS=-fPIC -O2 -std=c++11
-#FFLAGS=-fPIC -O2
+#CFLAGS=-fPIC -O3 -funroll-loops -std=c++11 -lfftw3
+#CFFT = -lfftw3 -lm
+#FFLAGS=-fPIC -O3 -lstdc++
 #MFLAGS=
 # ...OR multi-threaded:
-CFLAGS=-fPIC -O2 -std=c++11 -fopenmp
-FFLAGS=-fPIC -O2 --openmp
+CFLAGS=-fPIC -O3 -funroll-loops -std=c++11 -fopenmp
+CFFT = -lfftw3_omp -lfftw3 -lm
+FFLAGS=-fPIC -O3 -funroll-loops -lstdc++ -fopenmp
 MFLAGS=-lgomp
 
 # override shipped FFTPACK with linking against FFTW
@@ -32,34 +34,62 @@ MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
 # ======================================================================
 
 
-# common utilities: spreader
-SPREADOBJS = contrib/besseli.o src/cnufftspread.o src/cnufftspread_c.o
+# objects to compile: spreader...
+SOBJS = contrib/besseli.o src/cnufftspread.o src/utils.o src/twopispread.o
+# for NUFFT library...
+OBJS = $(SOBJS) src/finufft1d.o
+# for Fortran interface...
+FOBJS = $(SOBJS) fortran/cnufftspread_f.o
+# for temp hook-up to Leslie's nuffts...
+LOBJS = $(FOBJS) fortran/finufft1dtemp.o contrib/next235.o contrib/dfftpack.o fortran/prini.o fortran/dirft1d.o
 
-OBJS = contrib/next235.o contrib/dfftpack.o src/indexmap1d.o
+default: clean test1d
+#default: clean spreadtestnd
 
-default: clean spreadtestnd
+.PHONY:	spreadtestnd fortran test1d
 
 # implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:
 	$(CC) -c $(CFLAGS) $< -o $@
-
 .f.o:
 	$(FC) -c $(FFLAGS) $< -o $@
 
-spreadtestnd: examples/spreadtestnd.cpp $(SPREADOBJS)
-	$(CC) $(CFLAGS) examples/spreadtestnd.cpp $(SPREADOBJS) -o examples/spreadtestnd
+spreadtestnd: examples/spreadtestnd.cpp $(SOBJS)
+	$(CC) $(CFLAGS) examples/spreadtestnd.cpp $(SOBJS) -o examples/spreadtestnd
 # here the tee cmd copies output to screen. 2>&1 grabs stdout and stderr...
 	(cd examples; ./spreadtestnd.sh 2>&1 | tee spreadtestnd_results.txt)
 
-mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_type1.cpp $(SPREADOBJS)
+test1d: examples/finufft1d_test.cpp $(OBJS)
+	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS) $(CFFT) -o examples/finufft1d_test
+	(cd examples; ./finufft1d_test 20 20 1e-6)
+
+# the main libs...
+nufft: $(SOBJS)
+	$(CC) $(CFLAGS) src/finufft1d.cpp
+
+
+fortran: $(FOBJS)
+# other fort wrappers todo
+
+# this is temporary:  todo fix segfault
+leslie: $(LOBJS)
+	$(CC) $(FFLAGS) fortran/nufft1d_demof90.f $(LOBJS) -o fortran/nufft1d_demo -lgfortran
+	fortran/nufft1d_demo
+
+# kill this:
+unfinishedspreaddemof: fortran/spread_demo.o $(FOBJS) $(SOBJS)
+	$(CC) $(CFLAGS) fortran/spread_demo.o $(FOBJS) $(SOBJS) -o fortran/spread_demo -lgfortran
+	fortran/spread_demo
+
+#mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_dir1.cpp $(SPREADOBJS)
 # make new interface in matlab: from src/, do mcwrap('cnufftspread.h')
 # which fails for omp.
 # mv src/cnufftspread_type1.mexa64 matlab/
-	(cd src; $(MEX) _mcwrap/mcwrap_cnufftspread_type1.cpp cnufftspread.o ../contrib/besseli.o -output cnufftspread_type1 $(MEXFLAGS))
+#	(cd src; $(MEX) _mcwrap/mcwrap_cnufftspread_type1.cpp cnufftspread.o ../contrib/besseli.o -output cnufftspread_type1 $(MEXFLAGS))
 # todo: fix up!
 
 #finufft1d_demo: finufft1d_demo.o $(OBJS)
 #	$(FC) $(FFLAGS) finufft1d_demo.f90 $(OBJS) -o finufft1d_demo
 
 clean:
-	rm -f $(OBJS) $(SPREADOBJS)
+	rm -f $(OBJS) $(FOBJS) $(SOBJS) $(LOBJS)
