@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
  All complex arith done by hand for now. Barnett 1/22/17
 */
 {
-  BIGINT M = 1e6, N = 1e6;    // defaults
+  BIGINT M = 1e6, N = 1e6;    // defaults: M = # srcs, N = # modes out
   double tol = 1e-6;          // default
   int isign = +1;
   if (argc>1)
@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
   dcomplex* c = (dcomplex*)malloc(sizeof(dcomplex)*M);   // strengths 
   for (BIGINT j=0; j<M; ++j) x[j] = M_PI*(2*rand01()-1);
   for (BIGINT j=0; j<M; ++j) c[j] = 2*rand01()-1 + ima*(2*rand01()-1);
-  dcomplex* F = (dcomplex*)malloc(sizeof(dcomplex)*M);   // output
+  dcomplex* F = (dcomplex*)malloc(sizeof(dcomplex)*N);   // output
   CNTime timer; timer.start();
   int ier = finufft1d1(M,x,(double*)c,isign,tol,N,(double*)F);
   //for (int j=0;j<N;++j) cout<<F[j]<<endl;
@@ -54,14 +54,13 @@ int main(int argc, char* argv[])
   } else
     printf("\t%ld NU pts to %ld modes in %.3g s \t%.3g NU pts/s\n",M,N,t,M/t);
 
-  BIGINT nt = 7; // compare direct eval for this mode
+  BIGINT nt = N/2 - 7;   // compare direct eval of this mode
   dcomplex Ft = {0.0,0.0};
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(ima*((double)(isign*nt))*x[j]);
   Ft /= M;
-  cout << Ft << endl;
-  cout << F[N/2+nt] << endl;
-  //printf("\tmode n=%ld: %.3g %\n",nt, abs(Ft
+  //cout << Ft << endl << F[N/2+nt] << endl;
+  printf("rel err in F[%ld]: %.3g\n",nt,abs(1.0-F[N/2+nt]/Ft));
 
   free(x); free(c); free(F);
   return ier;

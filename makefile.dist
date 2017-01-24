@@ -35,7 +35,7 @@ MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
 
 
 # objects to compile: spreader...
-SOBJS = contrib/besseli.o src/cnufftspread.o src/utils.o src/twopispread.o
+SOBJS = contrib/besseli.o src/cnufftspread.o src/utils.o src/twopispread.o src/common.o
 # for NUFFT library...
 OBJS = $(SOBJS) src/finufft1d.o
 # for Fortran interface...
@@ -61,7 +61,7 @@ spreadtestnd: examples/spreadtestnd.cpp $(SOBJS)
 
 test1d: examples/finufft1d_test.cpp $(OBJS)
 	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS) $(CFFT) -o examples/finufft1d_test
-	(cd examples; ./finufft1d_test 20 20 1e-6)
+	(cd examples; ./finufft1d_test 10000000 1000000 1e-6)
 
 # the main libs...
 nufft: $(SOBJS)

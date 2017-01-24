@@ -1,11 +1,15 @@
 Development notes.  Barnett.
 
+project layout:
+
+http://hiltmon.com/blog/2013/07/03/a-simple-c-plus-plus-project-structure/
+
 ============ C/C++ code optimization
 
 http://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15213-f02/lectures/class10.pdf
 Etc.  A bit old (2002) and too low-level.
 
---------- complex:
+--------- complex math:
 
 Found C complex didn't work in finufft1d_test.cpp unless I did 
 double _Complex

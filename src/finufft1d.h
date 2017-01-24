@@ -3,6 +3,7 @@
 
 #include "cnufftspread.h"
 #include "twopispread.h"
+#include "common.h"
 #include <fftw3.h>
 
 int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
