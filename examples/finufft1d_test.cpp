@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     sscanf(argv[3],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
-  if (argc>4) {
+  if (argc==1 || argc>4) {
     fprintf(stderr,"Usage: finufft1d_test [Nmodes [Nsrc [tol]]]\n");
     return 1;
   }

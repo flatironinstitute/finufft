@@ -133,25 +133,25 @@ int cnufftspread(
   if (N3>1) { R3[0] = -R/2; R3[1] = R/2-1; }   // also spread in z
   if (opts.debug) printf("R box: %d %d %d %d %d %d\n",R1[0],R1[1],R2[0],R2[1],R3[0],R3[1]);
   
+  if (opts.spread_direction==1)   // zero complex output array ready to accumulate...
+    for (long i=0; i<2*N1*N2*N3; i++) data_uniform[i]=0.0;    // would be ruined by omp!
+  
 #pragma omp parallel
-  {  // omp block : release a cadre of threads
+  {  // omp block : release a cadre of threads.
     int nth = omp_get_num_threads(), th = omp_get_thread_num();
     if (th==0 && opts.debug) printf("spreading dir=%d, %d threads\n", opts.spread_direction,nth);
     
     if (opts.spread_direction==1) { // ==================== direction 1 ==============
-      // zero the complex output array ready to accumulate...
-#pragma omp for schedule(dynamic)
-      for (long i=0; i<2*N1*N2*N3; i++) data_uniform[i]=0.0;
       
-      long i1th[2],i2th[2],i3th[2];     // get this thread's (fixed) grid index box...
+      long i1th[2],i2th[2],i3th[2];   // get this thread's (fixed) grid index writing box...
       bool thread_has_task = set_thread_index_box(i1th,i2th,i3th,N1,N2,N3,th,nth,opts);
-      if (opts.debug) printf("N1=%d,N2=%d,N3=%d,th=%d, has_task=%d\n",N1,N2,N3,th,(int)thread_has_task);
+      if (opts.debug) printf("th=%d: N1=%d,N2=%d,N3=%d,has_task=%d\n",th,N1,N2,N3,(int)thread_has_task);
       if (thread_has_task) {
 	if (opts.debug) printf("th=%d ind box: %ld %ld %ld %ld %ld %ld\n",th,i1th[0],i1th[1],i2th[0],i2th[1],i3th[0],i3th[1]);
 	long c = 0;   // debug count how many NU pts each thread does
 	
 	for (long i=0; i<M; i++) {  // main loop over NU pts, spread each to U grid
-	  // (note every thread does this loop, but only some cases write to the grid)
+	  // (note every thread does this loop, but only sometimes write to the grid)
 	  long i1=(long)((kx2[i]+0.5)); // rounds to nearest grid pt in real space
 	  long i2=(long)((ky2[i]+0.5)); // safely is 0 if is a coord in an unused dim
 	  long i3=(long)((kz2[i]+0.5)); // "
@@ -197,7 +197,7 @@ int cnufftspread(
 	    }
 	  }
 	}
-	if (opts.debug) printf("th=%d did %ld NU pts.\n",th,c);
+	if (opts.debug) printf("th %d did %ld NU pts.\n",th,c);
       }
     } else {                      // ==================== direction 2 ===============
 #pragma omp for schedule(dynamic)   // assign threads to NU targ pts, easy

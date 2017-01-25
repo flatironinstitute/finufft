@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
   long M=1e6;                                // choose problem size:  # NU pts
-  long roughNg = 1e8;                        //                       # grid pts
+  long roughNg = 1e6;                        //                       # grid pts
   long N=(long)(pow(roughNg,1.0/d));         // Fourier grid size per dim
   long Ng = (long)pow(N,d);                  // actual total grid points
   long N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 
     // test direction 1 (NU -> U spreading) ..............................
     opts.spread_direction=1;
-    printf("cnufftspread %dD, dir=%d, tol=%.3g: nspread=%d\n",d,opts.spread_direction,tol,opts.nspread);
+    printf("cnufftspread %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",d,(double)Ng,opts.spread_direction,tol,opts.nspread);
 
     // spread a single source for reference...
     d_nonuniform[0] = 1.0; d_nonuniform[1] = 0.0;   // unit strength
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
       printf("error (ier=%d)!\n",ier);
       return 1;
     } else
-      printf("\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",M,t,M/t,pow(opts.nspread,d)*M/t);
+      printf("\t%.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
 
     double sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
     for (long i=0;i<Ng;++i) {
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
     // test direction 2 (U -> NU interpolation) ..............................
     opts.spread_direction=2;
-    printf("cnufftspread %dD, dir=%d, tol=%.3g: nspread=%d\n",d,opts.spread_direction,tol,opts.nspread);
+    printf("cnufftspread %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",d,(double)Ng,opts.spread_direction,tol,opts.nspread);
 
     for (long i=0;i<Ng;++i) {     // unit grid data
       d_uniform[2*i] = 1.0;
@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
       printf("error (ier=%d)!\n",ier);
       return 1;
     } else
-    printf("\t%ld pts in %.3g s \t%.3g NU pts/s \t%.3g spread pts/s\n",M,t,M/t,pow(opts.nspread,d)*M/t);
+      printf("\t%.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
 
     // math test is worst-case error from pred value (kersum) on interp pts:
     maxerr = 0.0;
