@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-### Magland, Greengard, Barnett
+### Barnett, Magland, Greengard
 
 Includes code by:
 
@@ -14,7 +14,7 @@ to do
 
 ### Dependencies
 
-The basic libraries need a C++ compiler, GNU make, and optionally OpenMP.
+The basic libraries need a C++ compiler, GNU make, FFTW, and optionally OpenMP (the makefile can be adjusted for single-threaded).
 The fortran wrappers need a fortran compiler.
 To run optional speed comparisons which link against the CMCL NUFFT library, this must be installed.
 See settings in the `makefile`.
@@ -29,21 +29,27 @@ See settings in the `makefile`.
 
 ### Contents of this package
 
-  `src` : source code and headers for libraries (mixture of Fortran 77 and C++).
-  `examples` : test codes (drivers) which verify libaries are working correctly, and show how to call them.
-  `contrib` : 3rd-party code.
-  `matlab` : wrappers and examples for MATLAB. (Not yet working)
-  `doc` : the manual (not yet there)
-  `README.md`
-  `LICENSE`
-  `makefile.dist` : GNU makefile (user should first copy to `makefile`)
-  
+  `src` : main library source and headers.  
+  `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them.  
+  `contrib` : 3rd-party code.  
+  `matlab` : wrappers and examples for MATLAB. (Not yet working)  
+  `fortran` : wrappers and drivers for Fortran. (Not yet working)  
+  `doc` : the manual (not yet there)  
+  `README.md`  
+  `LICENSE`  
+  `makefile.dist` : GNU makefile (user should first copy to `makefile`)  
 
-### References
+### Notes
 
-This code builds upon the CMCL NUFFT, for which the following are references:
+Throughout, C\++ is used, in a "C style", ie without object-oriented code and without std::vectors (which have been found to be slow). C\++ complex type arithmetic is not used in the main library, for speed reasons, only for convenience in the test codes. FFTW was considered universal enough to use as a dependency.
+
+We use the Kaiser-Bessel spreading functions rather than truncated Gaussians, since they allow roughly half the kernel width for high requested precisions.
+TODO: give refs.
+
+This code builds upon the CMCL NUFFT, and the Fortran wrappers duplicate its interfaces. For this the following are references:
 
 [1] Accelerating the Nonuniform Fast Fourier Transform: (L. Greengard and J.-Y. Lee) SIAM Review 46, 443 (2004).
+
 [2] The type 3 nonuniform FFT and its applications: (J.-Y. Lee and L. Greengard) J. Comput. Phys. 206, 1 (2005).
 
 For the original NUFFT paper, see:
@@ -52,7 +58,8 @@ Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J.
 
 ### To do
 
-* Checkerboard per-thread grid cuboids, compare speed against current 1d slicing.
+* 2d, 3d. type-3
+* Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
 * make compiler opt allowing I/O sizes (M, N1*N2*N3) > 2^31, via compiler directives, for big problems. Test if it slows down array pointers. Ie test if long indexing slows 3D spreading, as June-Yub found in nufft-1.3.x.
 * matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs.
 * build universal ndim Fourier coeff copiers in C and use for finufft
@@ -72,9 +79,9 @@ Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J.
 ### Done
 
 * efficient modulo in spreader
-* removed data-zeroing bug in t-II spreader
+* removed data-zeroing bug in t-II spreader, slowness of large arrays in t-I.
 * clean dir tree
-* dir=1,2 math tests in 3d, then nd.
+* spreader dir=1,2 math tests in 3d, then nd.
 * Jeremy's request re only computing kernel vals needed (actually was vital for efficiency in dir=1 openmp version), Ie fix KB ker eval in spreader so doesn't wdo 3d fill when 1 or 2 will do.
 * spreader removed modulo altogether in favor of ifs
 * OpenMP spreader, all dims

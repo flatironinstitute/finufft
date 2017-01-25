@@ -59,8 +59,8 @@ int main(int argc, char* argv[])
         kx[i]=rand01()*N;
         ky[i]=rand01()*N;
         kz[i]=rand01()*N;
-        d_nonuniform[i*2]=rand01()*2-1;
-        d_nonuniform[i*2+1]=rand01()*2-1;
+        d_nonuniform[i*2]=randm11();
+        d_nonuniform[i*2+1]=randm11();
 	strre += d_nonuniform[2*i]; 
 	strim += d_nonuniform[2*i+1];
     }

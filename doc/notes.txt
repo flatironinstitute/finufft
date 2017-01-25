@@ -14,6 +14,8 @@ Etc.  A bit old (2002) and too low-level.
 Found C complex didn't work in finufft1d_test.cpp unless I did 
 double _Complex
 
+zeroing an array w/ openmp:
+http://stackoverflow.com/questions/11576670/in-an-openmp-parallel-code-would-there-be-any-benefit-for-memset-to-be-run-in-p
 
 ====== FFTW:
 

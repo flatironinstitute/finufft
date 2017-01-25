@@ -133,9 +133,12 @@ int cnufftspread(
   if (N3>1) { R3[0] = -R/2; R3[1] = R/2-1; }   // also spread in z
   if (opts.debug) printf("R box: %d %d %d %d %d %d\n",R1[0],R1[1],R2[0],R2[1],R3[0],R3[1]);
   
-  if (opts.spread_direction==1)   // zero complex output array ready to accumulate...
+  if (opts.spread_direction==1) {  // zero complex output array ready to accumulate...
+    timer.restart();
     for (long i=0; i<2*N1*N2*N3; i++) data_uniform[i]=0.0;    // would be ruined by omp!
-  
+    if (opts.debug) printf("zeroing output array: %.3g s\n",timer.elapsedsec());
+  }
+
 #pragma omp parallel
   {  // omp block : release a cadre of threads.
     int nth = omp_get_num_threads(), th = omp_get_thread_num();

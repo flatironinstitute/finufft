@@ -1,5 +1,47 @@
 #include "utils.h"
 
+// ------------ complex array utils
+double relerrtwonorm(BIGINT n, dcomplex* a, dcomplex* b)
+// ||a-b||_2 / ||a||_2
+{
+  double err = 0.0, nrm = 0.0;
+  for (BIGINT m=0; m<n; ++m) {
+    nrm += real(conj(a[m])*a[m]);
+    dcomplex diff = a[m]-b[m];
+    err += real(conj(diff)*diff);
+  }
+  return sqrt(err/nrm);
+}
+double errtwonorm(BIGINT n, dcomplex* a, dcomplex* b)
+// ||a-b||_2
+{
+  double err = 0.0;   // compute error 2-norm
+  for (BIGINT m=0; m<n; ++m) {
+    dcomplex diff = a[m]-b[m];
+    err += real(conj(diff)*diff);
+  }
+  return sqrt(err);
+}
+double twonorm(BIGINT n, dcomplex* a)
+// ||a||_2
+{
+  double nrm = 0.0;
+  for (BIGINT m=0; m<n; ++m)
+    nrm += real(conj(a[m])*a[m]);
+  return sqrt(nrm);
+}
+double infnorm(BIGINT n, dcomplex* a)
+// ||a||_infty
+{
+  double nrm = 0.0;
+  for (BIGINT m=0; m<n; ++m) {
+    double aa = real(conj(a[m])*a[m]);
+    if (aa>nrm) nrm = aa;
+  }
+  return sqrt(nrm);
+}
+
+
 // ----------------------- helpers for timing...
 using namespace std;
 

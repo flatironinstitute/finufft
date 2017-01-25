@@ -9,6 +9,15 @@ using namespace std;
 #define dcomplex complex<double>
 #define ima complex<double>{0.0,1.0}
 
+// choose if handle huge I/O array sizes (>2^31)
+// #define BIGINT int64_t
+#define BIGINT long
+// #define BIGINT int32_t
+
+double relerrtwonorm(BIGINT n, dcomplex* a, dcomplex* b);
+double errtwonorm(BIGINT n, dcomplex* a, dcomplex* b);
+double twonorm(BIGINT n, dcomplex* a);
+double infnorm(BIGINT n, dcomplex* a);
 
 class CNTime {
  public:
@@ -20,9 +29,13 @@ class CNTime {
   struct timeval initial;
 };
 
-// crappy random number generator in [0,1)
+// crappy unif random number generator in [0,1):
 //#define rand01() (((double)(rand()%RAND_MAX))/RAND_MAX)
 #define rand01() ((double)rand()/RAND_MAX)
+// unif[-1,1]:
+#define randm11() (2*rand01() - 1.0)
+// unif[-1,1] for Re and Im:
+#define crandm11() (randm11() + ima*randm11())
 
 // allow compile-time switch off of openmp, so compilation without any openmp
 // is done (Note: _OPENMP is automatically set by -fopenmp compile flag)

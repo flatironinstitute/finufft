@@ -7,35 +7,26 @@ using namespace std;
 int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 	       double* fk)
 {
- /*  Type-1 1D NUFFT.
+ /*  Type-1 1D complex nonuniform FFT.
 
-     if (iflag>0) then
-
-               1  nj
-     fk(k1) = -- SUM cj(j) exp(+i k1 xj(j))  for -ms/2 <= k1 <= (ms-1)/2 
-              nj j=1                            
-
-     else
-               1  nj
-     fk(k1) = -- SUM cj(j) exp(-i k1 xj(j))  for -ms/2 <= k1 <= (ms-1)/2 
-              nj j=1                            
-
+               1 nj-1
+     fk(k1) = -- SUM cj[j] exp(+/-i k1 xj(j))  for -ms/2 <= k1 <= (ms-1)/2 
+              nj j=0                            
    Inputs:
-     nj     number of sources (integer of type BIGINT; see cnufftspread.h)
+     nj     number of sources (integer of type BIGINT; see utils.h)
      xj     location of sources on interval [-pi,pi].
-     cj     strengths of sources (complex *16)
-     iflag  determines sign of FFT (see above)
+     cj     complex source strengths, interleaving Re & Im parts (2*nj doubles)
+     iflag  if >0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
      ms     number of Fourier modes computed, may be even or odd;
             in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
    Outputs:
-     fk     Fourier transform values (size ms, mode numbers as above).
-            Complex stored as alternating real and imag double reals.
+     fk     complex Fourier transform values (size ms, increasing mode ordering)
+            stored as alternating Re & Im parts (2*ms doubles)
      returned value - error return code, as returned by cnufftspread:
-                      0 indicates success.
+                      0 : success.
 
-     The type 1 NUFFT proceeds in three main steps (see [GL]).
-
+     The type 1 NUFFT proceeds in three main steps (see [GL]):
      1) spread data to oversampled regular mesh using kernel.
      2) compute FFT on uniform mesh
      3) deconvolve by division of each Fourier mode independently by the
@@ -51,10 +42,11 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   double params[4];
   ier_set = get_kernel_params_for_eps(params,eps);
   int nspread = params[1];
-  BIGINT nf1 = 2*ms;  // adjust, and use a next235, ensure even
-  if (nf1<2*nspread) nf1=2*nspread;
+  double R = 2.0;              // upsampling - todo check it
+  BIGINT nf1 = 2*(BIGINT)(0.5*R*ms);  // is even.  use a next235 ?
+  if (nf1<2*nspread) nf1=2*nspread;  // otherwise spread fails
   int dir = 1;        // spread
-  cout << scientific << setprecision(15);
+  cout << scientific << setprecision(15);  // for debug
 
   if (debug) printf("d1d: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
   CNTime timer; timer.start();
@@ -94,7 +86,10 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   timer.restart();
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims*nj);
-  BIGINT k0 = ms/2;    // index shift in output freqs
+  //  deconvolveshuffle
+
+  BIGINT k0 = ms/2;    // index shift in output freqs  *** EVEN ONLY
+
   for (BIGINT k=0;k<=(ms-1)/2;++k) {               // non-neg freqs k
     //cout<< k0+k<<"\t"<<k<<endl;
     fk[2*(k0+k)] = prefac * fw[k][0] / fwkerhalf[k];          // re
@@ -112,4 +107,42 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   fftw_free(fwkerhalf);
   if (debug>1) printf("freed\n");
   return ier_spread;
+}
+
+
+int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
+	       double* fk)
+{
+ /*  Type-2 1D complex nonuniform FFT.
+
+     cj[j] = SUM   fk[k1] exp(+/-i k1 xj[j])      for j = 0,...,nj-1
+             k1 
+     where sum is over -ms/2 <= k1 <= (ms-1)/2.
+
+   Inputs:
+     nj     number of sources (integer of type BIGINT; see utils.h)
+     xj     location of sources on interval [-pi,pi].
+     fk     complex Fourier transform values (size ms, increasing mode ordering)
+            stored as alternating Re & Im parts (2*ms doubles)
+     iflag  if >0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested
+     ms     number of Fourier modes computed, may be even or odd;
+            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+   Outputs:
+     cj     complex source strengths, interleaving Re & Im parts (2*nj doubles)
+     returned value - error return code, as returned by cnufftspread:
+                      0 : success.
+
+     The type 2 algorithm proceeds in three main steps (see [GL]).
+     1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
+     2) compute inverse FFT on uniform fine grid
+     3) spread (dir=2, ie interpolate) data to regular mesh
+     The kernel coeffs are precomputed in what is called step 0 in the code.
+
+   Written in real-valued C style (for speed) & FFTW arrays. Barnett 1/25/17
+ */
+  
+
+
+  return 0;
 }

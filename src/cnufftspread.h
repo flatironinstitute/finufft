@@ -5,11 +5,6 @@
 #include <stdio.h>
 #include "utils.h"
 
-// choose if handle huge I/O array sizes (>2^31)
-// #define BIGINT int64_t
-#define BIGINT long
-// #define BIGINT int32_t
-
 // Note -std=c++11 is needed to avoid warning for static initialization here:
 struct spread_opts {
   int kernel_type=1;       // 1: Kaiser--Bessel.

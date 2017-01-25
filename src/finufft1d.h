@@ -10,7 +10,6 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 	       double* fk);
 int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 	       double* fk);
-int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT mi,
-	       double* fi);  // todo
+int finufft1d3(BIGINT nj,double* x,dcomplex* c,int iflag,BIGINT nk, double* s, dcomplex* f);
 
 #endif
