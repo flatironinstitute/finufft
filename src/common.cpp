@@ -1,6 +1,13 @@
 #include "common.h"
 
-#define HALF_MAX_NS 16       // upper bnd on nspread/2
+BIGINT set_nf(BIGINT ms, nufft_opts opts, spread_opts spopts)
+// type 1 & 2 recipe for how to set 1d size of upsampled array given opts
+{
+  BIGINT nf = 2*(BIGINT)(0.5*opts.R*ms);  // is even
+  if (nf<2*spopts.nspread) nf=2*spopts.nspread;  // otherwise spread fails
+  // now use next235?
+  return nf;
+}
 
 void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
 		       double &prefac_unused_dim, spread_opts opts)
@@ -45,4 +52,42 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
   }
 }
 
-//void deconvolveshuffle
+void deconvolveshuffle1d(int dir,double prefac,double* ker,BIGINT ms,double *fk,
+			 BIGINT nf1,fftw_complex* fw)
+/*
+  if dir==1: copies fw to fk with amplification by 1/ker
+  if dir==2: copies fk to fw (and zero pads rest of it), amplification by 1/ker
+
+  fk is complex array stored as 2*ms doubles alternating re,im parts.
+  fw is a FFTW style complex array, ie double [nf1][2], effectively doubles
+       alternating re,im parts.
+  ker is real-valued double array of length nf1/2+1.
+
+  todo: check RAM access in backwards order in 2nd loop is not a speed hit
+  todo: check 2*(k0+k)+1 index calcs not slowing us down
+*/
+{
+  BIGINT k0 = ms/2;    // index shift in fk's = magnitude of most neg freq
+  if (dir==1) {    // read fw, write out to fk
+    for (BIGINT k=0;k<=(ms-1)/2;++k) {               // non-neg freqs k
+      fk[2*(k0+k)] = prefac * fw[k][0] / ker[k];          // re
+      fk[2*(k0+k)+1] = prefac * fw[k][1] / ker[k];        // im
+    }
+    for (BIGINT k=-1;k>=-k0;--k) {                 // neg freqs k
+      fk[2*(k0+k)] = prefac * fw[nf1+k][0] / ker[-k];     // re
+      fk[2*(k0+k)+1] = prefac * fw[nf1+k][1] / ker[-k];   // im
+    }
+  } else {    // read fk, write out to fw w/ zero padding
+    for (BIGINT k=(ms-1)/2;k<nf1-k0;++k)             // zero pad
+      fw[k][0] = fw[k][1] = 0.0;
+    for (BIGINT k=0;k<=(ms-1)/2;++k) {               // non-neg freqs k
+      fw[k][0] = prefac * fk[2*(k0+k)] / ker[k];          // re
+      fw[k][1] = prefac * fk[2*(k0+k)+1] / ker[k];        // im
+    }
+    for (BIGINT k=-1;k>=-k0;--k) {                 // neg freqs k
+      fw[nf1+k][0] = prefac * fk[2*(k0+k)] / ker[-k];          // re
+      fw[nf1+k][1] = prefac * fk[2*(k0+k)+1] / ker[-k];        // im
+    }
+  }
+}
+

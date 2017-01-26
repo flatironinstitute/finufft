@@ -58,6 +58,7 @@ Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J.
 
 ### To do
 
+* fix twopispread so doesn't create dummy ky,kz, and fix sort so doesn't ever access unused ky,kz dims.
 * 2d, 3d. type-3
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
 * make compiler opt allowing I/O sizes (M, N1*N2*N3) > 2^31, via compiler directives, for big problems. Test if it slows down array pointers. Ie test if long indexing slows 3D spreading, as June-Yub found in nufft-1.3.x.

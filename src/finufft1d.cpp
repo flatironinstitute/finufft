@@ -1,12 +1,11 @@
-#include "finufft1d.h"
+#include "finufft.h"
 
 #include <iostream>
 #include <iomanip>
 using namespace std;
 
 int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
-	       double* fk)
-{
+	       double* fk, nufft_opts opts)
  /*  Type-1 1D complex nonuniform FFT.
 
                1 nj-1
@@ -20,6 +19,7 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
      eps    precision requested
      ms     number of Fourier modes computed, may be even or odd;
             in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+     opts   struct controlling options (see finufft.h)
    Outputs:
      fk     complex Fourier transform values (size ms, increasing mode ordering)
             stored as alternating Re & Im parts (2*ms doubles)
@@ -35,84 +35,65 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
    Written in real-valued C style (for speed) & FFTW arrays. Barnett 1/22/17
  */
-  
-  int debug = 1;      // should be an input opt
+{
   spread_opts spopts;
+  spopts.debug = opts.spread_debug;
   int ier_set = set_KB_opts_from_eps(spopts,eps);
   double params[4];
-  ier_set = get_kernel_params_for_eps(params,eps);
-  int nspread = params[1];
-  double R = 2.0;              // upsampling - todo check it
-  BIGINT nf1 = 2*(BIGINT)(0.5*R*ms);  // is even.  use a next235 ?
-  if (nf1<2*nspread) nf1=2*nspread;  // otherwise spread fails
-  int dir = 1;        // spread
+  get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
+  BIGINT nf1 = set_nf(ms,opts,spopts);
   cout << scientific << setprecision(15);  // for debug
 
-  if (debug) printf("d1d: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
-  CNTime timer; timer.start();
+  if (opts.debug) printf("1d1: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
+
   // STEP 0: get DCT of half of spreading kernel, since it's real symmetric
+  CNTime timer; timer.start();
   double *fwkerhalf = fftw_alloc_real(nf1/2+1);
   double prefac_unused_dims;
   onedim_dct_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
   double t=timer.elapsedsec();
-  if (debug) printf("onedim_dct_kernel:\t %.3g s\n", t);
+  if (opts.debug) printf("onedim_dct_kernel:\t %.3g s\n", t);
   //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
 
-  int nth = omp_get_max_threads();     // set up any multithreaded fftw stuff
-  #ifdef _OPENMP
+  int nth = omp_get_max_threads();     // set up multithreaded fftw stuff
+#ifdef _OPENMP
   fftw_init_threads();
   fftw_plan_with_nthreads(nth);
-  #endif
+#endif
   timer.restart();
   fftw_complex *fw = fftw_alloc_complex(nf1);    // working upsampled array
   int fftsign = (iflag>0) ? 1 : -1;
-  fftw_plan p = fftw_plan_dft_1d(nf1,fw,fw,fftsign, FFTW_ESTIMATE);
-  if (debug) printf("fft plan\t\t %.3g s\n", timer.elapsedsec());
+  fftw_plan p = fftw_plan_dft_1d(nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
+  if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
 
-  timer.restart();
   // Step 1: spread from irregular points to regular grid
-  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,dir,params);
-  if (debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
+  timer.restart();
+  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,1,params);
+  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
 
-  timer.restart();
   // Step 2:  Call FFT
+  timer.restart();
   fftw_execute(p);
   fftw_destroy_plan(p);
-  if (debug) printf("fft (%d thr):\t\t %.3g s\n", nth, timer.elapsedsec());
+  if (opts.debug) printf("fft (%d thr):\t\t %.3g s\n", nth, timer.elapsedsec());
   //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
   //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
 
-  timer.restart();
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
-  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims*nj);
-  //  deconvolveshuffle
-
-  BIGINT k0 = ms/2;    // index shift in output freqs  *** EVEN ONLY
-
-  for (BIGINT k=0;k<=(ms-1)/2;++k) {               // non-neg freqs k
-    //cout<< k0+k<<"\t"<<k<<endl;
-    fk[2*(k0+k)] = prefac * fw[k][0] / fwkerhalf[k];          // re
-    fk[2*(k0+k)+1] = prefac * fw[k][1] / fwkerhalf[k];        // im
-  }
-  for (BIGINT k=-1;k>=-ms/2;--k) {                 // neg freqs k
-    //cout<< k0+k<<"\t"<<nf1+k<<"\t"<<k<<endl;
-    fk[2*(k0+k)] = prefac * fw[nf1+k][0] / fwkerhalf[-k];     // re
-    fk[2*(k0+k)+1] = prefac * fw[nf1+k][1] / fwkerhalf[-k];   // im
-  }
-  if (debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
+  timer.restart();
+  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims*nj); // 1/nj norm
+  deconvolveshuffle1d(1,prefac,fwkerhalf,ms,fk,nf1,fw);
+  if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
   //for (int j=0;j<ms;++j) cout<<fk[2*j]<<"\t"<<fk[2*j+1]<<endl;
 
-  fftw_free(fw);
-  fftw_free(fwkerhalf);
-  if (debug>1) printf("freed\n");
+  fftw_free(fw); fftw_free(fwkerhalf); if (opts.debug) printf("freed\n");
   return ier_spread;
 }
 
 
 int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
-	       double* fk)
-{
+	       double* fk, nufft_opts opts)
  /*  Type-2 1D complex nonuniform FFT.
 
      cj[j] = SUM   fk[k1] exp(+/-i k1 xj[j])      for j = 0,...,nj-1
@@ -128,6 +109,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
      eps    precision requested
      ms     number of Fourier modes computed, may be even or odd;
             in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+     opts   struct controlling options (see finufft.h)
    Outputs:
      cj     complex source strengths, interleaving Re & Im parts (2*nj doubles)
      returned value - error return code, as returned by cnufftspread:
@@ -141,8 +123,53 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
    Written in real-valued C style (for speed) & FFTW arrays. Barnett 1/25/17
  */
-  
+{
+  spread_opts spopts;
+  spopts.debug = opts.spread_debug;
+  int ier_set = set_KB_opts_from_eps(spopts,eps);
+  double params[4];
+  get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
+  BIGINT nf1 = set_nf(ms,opts,spopts);
+  cout << scientific << setprecision(15);  // for debug
 
+  if (opts.debug) printf("1d2: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
 
-  return 0;
+  // STEP 0: get DCT of half of spreading kernel, since it's real symmetric
+  CNTime timer; timer.start();
+  double *fwkerhalf = fftw_alloc_real(nf1/2+1);
+  double prefac_unused_dims;
+  onedim_dct_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
+  double t=timer.elapsedsec();
+  if (opts.debug) printf("onedim_dct_kernel:\t %.3g s\n", t);
+
+  int nth = omp_get_max_threads();     // set up multithreaded fftw stuff
+#ifdef _OPENMP
+  fftw_init_threads();
+  fftw_plan_with_nthreads(nth);
+#endif
+  fftw_complex *fw = fftw_alloc_complex(nf1);    // working upsampled array
+  int fftsign = (iflag>0) ? 1 : -1;
+  fftw_plan p = fftw_plan_dft_1d(nf1,fw,fw,fftsign, FFTW_ESTIMATE); // in-place
+  if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
+
+  // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
+  timer.restart();
+  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims);
+  deconvolveshuffle1d(2,prefac,fwkerhalf,ms,fk,nf1,fw);
+  if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
+  //cout<<"fw:\n"; for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
+
+  // Step 2:  Call FFT
+  timer.restart();
+  fftw_execute(p);
+  fftw_destroy_plan(p);
+  if (opts.debug) printf("fft (%d thr):\t\t %.3g s\n",nth,timer.elapsedsec());
+
+  // Step 3: unspread (interpolate) from regular to irregular target pts
+  timer.restart();
+  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,2,params);
+  if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
+
+  fftw_free(fw); fftw_free(fwkerhalf); if (opts.debug) printf("freed\n");
+  return ier_spread;
 }

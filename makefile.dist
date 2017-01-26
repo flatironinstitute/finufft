@@ -9,14 +9,14 @@ CC=g++
 FC=gfortran
 
 # choose EITHER single threaded...
-CFLAGS=-fPIC -O3 -funroll-loops -march=native -std=c++11 -lfftw3
-CLIBSFFT = -lfftw3 -lm
-FFLAGS=-fPIC -O3 -lstdc++
+#CFLAGS=-fPIC -O3 -funroll-loops -march=native -std=c++11 -lfftw3
+#CLIBSFFT = -lfftw3 -lm
+#FFLAGS=-fPIC -O3 -lstdc++
 #MFLAGS=
 # ...OR multi-threaded:
 CFLAGS=-fPIC -O3 -funroll-loops -march=native -std=c++11 -fopenmp
 CLIBSFFT = -lfftw3_omp -lfftw3 -lm
-#FFLAGS=-fPIC -O3 -funroll-loops -lstdc++ -fopenmp
+FFLAGS=-fPIC -O3 -funroll-loops -lstdc++ -fopenmp
 MFLAGS=-lgomp
 
 # override shipped FFTPACK with linking against FFTW
@@ -61,7 +61,7 @@ spreadtestnd: examples/spreadtestnd.cpp $(SOBJS)
 
 test1d: examples/finufft1d_test.cpp $(OBJS)
 	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft1d_test
-	(cd examples; ./finufft1d_test 10000000 1000000 1e-6)
+	(cd examples; ./finufft1d_test 1e6 1e6 1e-6)
 
 # the main libs...
 nufft: $(SOBJS)
