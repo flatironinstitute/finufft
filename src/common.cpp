@@ -26,8 +26,8 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
                        unused dimension (ie two such factors in 1d, one in 2d,
 		       and none in 3d).
   Barnett 1/24/17
-  todo: understand how to openmp it - subtle since private aj's. Want to break
-        up fwkerhalf into contiguous pieces, one per thread.
+  todo: understand how to openmp it? - subtle since private aj's. Want to break
+        up fwkerhalf into contiguous pieces, one per thread. Low priority.
  */
 {
   int m=opts.nspread/2;        // how many modes in include
@@ -59,14 +59,14 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
   fk is complex array stored as 2*ms doubles alternating re,im parts.
-  fw is a FFTW style complex array, ie double [nf1][2], effectively doubles
+  fw is a FFTW style complex array, ie double [nf1][2], essentially doubles
        alternating re,im parts.
   ker is real-valued double array of length nf1/2+1.
 
   todo: check RAM access in backwards order in 2nd loop is not a speed hit
   todo: check 2*(k0+k)+1 index calcs not slowing us down
 
-  Barnett 
+  Barnett 1/25/17
 */
 {
   BIGINT k0 = ms/2;    // index shift in fk's = magnitude of most neg freq
@@ -104,23 +104,55 @@ void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
 
   fk is complex array stored as 2*ms*mt doubles alternating re,im parts, with
     ms looped over fast and mt slow.
-  fw is a FFTW style complex array, ie double [nf1*nf2][2], effectively doubles
+  fw is a FFTW style complex array, ie double [nf1*nf2][2], essentially doubles
        alternating re,im parts; again nf1 is fast and nf2 slow.
   ker1, ker2 are real-valued double arrays of lengths nf1/2+1, nf2/2+1
        respectively.
+
+  Barnett 2/1/17
 */
 {
-  BIGINT k01 = ms/2;    // x-index shift in fk's = magnitude of most neg x-freq
   BIGINT k02 = mt/2;    // y-index shift in fk's = magnitude of most neg y-freq
-  if (dir==2)               // zero pad needed x-lines
-    for (BIGINT k2=(mt-1)/2;k2<nf2-k02;++k2) {
-      BIGINT off = nf1*k2;           // offset for start of this x-line
-      for (BIGINT k1=(ms-1)/2;k1<nf1-k01;++k1)
-	fw[off+k1][0] = fw[off+k1][1] = 0.0;
-    }
-  for (BIGINT k2=0;k2<=(mt-1)/2;++k2)               // non-neg y-freqs k
+  if (dir==2)               // zero pad needed x-lines (contiguous in memory)
+    for (BIGINT k=nf1*(mt-1)/2;k<nf1*(nf2-k02);++k)  // k index sweeps all dims
+	fw[k][0] = fw[k][1] = 0.0;
+  for (BIGINT k2=0;k2<=(mt-1)/2;++k2)               // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
     deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + 2*ms*(k02+k2),nf1,&fw[nf1*k2]);
-  for (BIGINT k2=-1;k2>=-k02;--k2)                 // neg y-freqs k
+  for (BIGINT k2=-1;k2>=-k02;--k2)                 // neg y-freqs
     deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + 2*ms*(k02+k2),nf1,&fw[nf1*(nf2+k2)]);
+}
+
+void deconvolveshuffle3d(int dir,double prefac,double *ker1, double *ker2,
+			 double *ker3, BIGINT ms, BIGINT mt, BIGINT mu,
+			 double *fk, BIGINT nf1, BIGINT nf2, BIGINT nf3,
+			 fftw_complex* fw)
+/*
+  3D version of deconvolveshuffle2d, calls it on each xy-plane using 1/ker3 fac.
+
+  if dir==1: copies fw to fk with ampl by prefac/(ker1(k1)*ker2(k2)*ker3(k3)).
+  if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
+
+  fk is complex array stored as 2*ms*mt*mu doubles alternating re,im parts, with
+    ms looped over fastest and mu slowest.
+  fw is a FFTW style complex array, ie double [nf1*nf2*nf3][2], effectively
+       doubles alternating re,im parts; again nf1 is fastest and nf3 slowest.
+  ker1, ker2, ker3 are real-valued double arrays of lengths nf1/2+1, nf2/2+1,
+       and nf3/2+1 respectively.
+
+  Barnett 2/1/17
+*/
+{
+  BIGINT k03 = mu/2;    // z-index shift in fk's = magnitude of most neg z-freq
+  BIGINT np = nf1*nf2;  // # pts in an upsampled Fourier xy-plane
+  if (dir==2)           // zero pad needed xy-planes (contiguous in memory)
+    for (BIGINT k=np*(mu-1)/2;k<np*(nf3-k03);++k)  // sweeps all dims
+      fw[k][0] = fw[k][1] = 0.0;
+  for (BIGINT k3=0;k3<=(mu-1)/2;++k3)               // non-neg z-freqs
+    // point fk and fw to the start of this z value's plane (2* is for complex):
+    deconvolveshuffle2d(dir,prefac/ker3[k3],ker1,ker2,ms,mt,
+			fk + 2*ms*mt*(k03+k3),nf1,nf2,&fw[np*k3]);
+  for (BIGINT k3=-1;k3>=-k03;--k3)                 // neg z-freqs
+    deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
+			fk + 2*ms*mt*(k03+k3),nf1,nf2,&fw[np*(nf3+k3)]);
 }

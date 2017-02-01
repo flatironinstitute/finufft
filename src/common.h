@@ -11,5 +11,8 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker,BIGINT ms,double *fk,
 void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
 			 BIGINT ms,BIGINT mt,
 			 double *fk, BIGINT nf1, BIGINT nf2, fftw_complex* fw);
-
+void deconvolveshuffle3d(int dir,double prefac,double *ker1, double *ker2,
+			 double *ker3, BIGINT ms, BIGINT mt, BIGINT mu,
+			 double *fk, BIGINT nf1, BIGINT nf2, BIGINT nf3,
+			 fftw_complex* fw);
 #endif
