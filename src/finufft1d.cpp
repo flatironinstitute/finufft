@@ -33,7 +33,7 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
         corresponding coefficient from the kernel alone.
      The latter kernel FFT is precomputed in what is called step 0 in the code.
 
-   Written in real-valued C style (for speed) & FFTW arrays. Barnett 1/22/17
+   Written with FFTW style complex arrays. Barnett 1/22/17
  */
 {
   spread_opts spopts;
@@ -70,6 +70,7 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   timer.restart();
   int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,1,params);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
+  if (ier_spread>0) return ier_spread;
   //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
 
   // Step 2:  Call FFT
@@ -88,7 +89,7 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   //for (int j=0;j<ms;++j) cout<<fk[2*j]<<"\t"<<fk[2*j+1]<<endl;
 
   fftw_free(fw); fftw_free(fwkerhalf); if (opts.debug) printf("freed\n");
-  return ier_spread;
+  return 0;
 }
 
 
@@ -121,7 +122,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
      3) spread (dir=2, ie interpolate) data to regular mesh
      The kernel coeffs are precomputed in what is called step 0 in the code.
 
-   Written in real-valued C style (for speed) & FFTW arrays. Barnett 1/25/17
+   Written with FFTW style complex arrays. Barnett 1/25/17
  */
 {
   spread_opts spopts;

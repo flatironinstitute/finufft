@@ -20,4 +20,12 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 	       double* fk, nufft_opts opts);
 int finufft1d3(BIGINT nj,double* x,dcomplex* c,int iflag,BIGINT nk, double* s, dcomplex* f, nufft_opts opts);
 
+int finufft2d1(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
+	       BIGINT ms, BIGINT mt, double* fk, nufft_opts opts);
+int finufft2d2(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
+	       BIGINT ms, BIGINT mt, double* fk, nufft_opts opts);
+int finufft2d3(BIGINT nj,double* x,double *y,double* cj,int iflag,BIGINT nk,
+	       double* s, double* t, double* fk, nufft_opts opts);
+
+
 #endif

@@ -26,7 +26,9 @@ int cnufftspread(
    spreading kernel is assumed, since this will cancel in the NUFFT anyway.
    Uniform (U) points are centered at coords [0,1,...,N1-1] in 1D, analogously in 2D and
    3D. They are stored in x fastest, y medium, z slowest ordering, up to however many
-   dimensions are relevant.
+   dimensions are relevant; note that this is Fortran-style ordering for an
+   array f(x,y,z), but C style for f[z][y][x]. This is to match the fortran
+   interface of the original CMCL libraries.
    Non-uniform (NU) points are real and must be in the range [0,N1] in 1D,
    analogously in 2D and 3D, otherwise an error is returned and no calculation is done.
    The spread_opts (eg KB parameters) must have been set up already.
@@ -94,15 +96,15 @@ int cnufftspread(
   if (opts.sort_data)
     sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3); // a good perm of NU pts
   else {
-    for (long i=0; i<M; i++)        // (omp no effect here)
-      sort_indices[i]=i;                                  // the identity permutation!
+    for (long i=0; i<M; i++)                  // (omp no effect here)
+      sort_indices[i]=i;                      // the identity permutation!
   }
   bool bnderr = false;
   #pragma omp parallel for schedule(dynamic)
   for (long i=0; i<M; i++) {  // (omp has 20% effect on dir=1 case, so use it)
     long jj=sort_indices[i];
     kx2[i]=kx[jj];
-    if (N2==1)            // safely kill not-needed coords
+    if (N2==1)                // safely kill not-needed coords
       ky2[i] = 0.0;
     else
       ky2[i]=ky[jj];
@@ -400,10 +402,10 @@ bool wrapped_range_in_interval(long i,int *R,long *ith,long N,int *r)
 }
 
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,long N1,long N2,long N3)
-  /* Returns permutation of the 3D nonuniform points with optimal RAM access for the
+  /* Returns permutation of the 1, 2 or 3D nonuniform points with good RAM access for the
    * upcoming spreading step.
    *
-   * "Optimal" means lots of requested blocks of RAM can stay in cache to be reused.
+   * Here "good" means lots of requested blocks of RAM can stay in cache to be reused.
    * Currenty this is achieved by binning into 1-grid-point sized boxes in the yz-plane,
    * with no sorting along x within each box, then reading out the indices within these
    * boxes in the natural box order (y fast, z slow).
@@ -416,18 +418,21 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
    *         of the points.
    *
    * Note: apparently in 2D sorts only along y, and in 1D doesn't sort at all (x).
-   * todo: fix the 1d case.
+   *
+   * todo: fix the 1d case to sort along x dimension.
+   * Magland, Dec 2016; Barnett tweaked so doesn't examine ky in 1d, or kz in 1d or 2d.
    */
 {
+  bool isky=(N2>1), iskz=(N3>1);           // are ky,kz available? cannot access if not!
   std::vector<long> counts(N2*N3);
   for (long j=0; j<N2*N3; j++)
     counts[j]=0;
   for (long i=0; i<M; i++) {
-    long i2=(long)(ky[i]+0.5);
+    long i2=isky ? (long)(ky[i]+0.5) : 0;
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
-    long i3=(long)(kz[i]+0.5);
+    long i3=iskz ? (long)(kz[i]+0.5) : 0;
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     
@@ -442,11 +447,11 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
   
   std::vector<long> ret_inv(M);
   for (long i=0; i<M; i++) {
-    long i2=(long)(ky[i]+0.5);
+    long i2=isky ? (long)(ky[i]+0.5) : 0;
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
-    long i3=(long)(kz[i]+0.5);
+    long i3=iskz ? (long)(kz[i]+0.5) : 0;
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     

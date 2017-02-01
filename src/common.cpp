@@ -52,11 +52,11 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
   }
 }
 
-void deconvolveshuffle1d(int dir,double prefac,double* ker,BIGINT ms,double *fk,
-			 BIGINT nf1,fftw_complex* fw)
+void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
+			 double *fk, BIGINT nf1, fftw_complex* fw)
 /*
-  if dir==1: copies fw to fk with amplification by 1/ker
-  if dir==2: copies fk to fw (and zero pads rest of it), amplification by 1/ker
+  if dir==1: copies fw to fk with amplification by preface/ker
+  if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
   fk is complex array stored as 2*ms doubles alternating re,im parts.
   fw is a FFTW style complex array, ie double [nf1][2], effectively doubles
@@ -65,6 +65,8 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker,BIGINT ms,double *fk,
 
   todo: check RAM access in backwards order in 2nd loop is not a speed hit
   todo: check 2*(k0+k)+1 index calcs not slowing us down
+
+  Barnett 
 */
 {
   BIGINT k0 = ms/2;    // index shift in fk's = magnitude of most neg freq
@@ -91,3 +93,27 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker,BIGINT ms,double *fk,
   }
 }
 
+void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
+			 BIGINT ms, BIGINT mt,
+			 double *fk, BIGINT nf1, BIGINT nf2, fftw_complex* fw)
+/*
+  2D version of deconvolveshuffle1d, calls it on each line using 1/ker2 fac.
+
+  if dir==1: copies fw to fk with amplification by prefac/(ker1(k1)*ker2(k2)).
+  if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
+
+  fk is complex array stored as 2*ms*mt doubles alternating re,im parts, with
+    ms looped over fast and mt slow.
+  fw is a FFTW style complex array, ie double [nf1*nf2][2], effectively doubles
+       alternating re,im parts; again nf1 is fast and nf2 slow.
+  ker1, ker2 are real-valued double arrays of lengths nf1/2+1, nf2/2+1
+       respectively.
+*/
+{
+  BIGINT k0 = mt/2;    // y-index shift in fk's = magnitude of most neg y-freq
+  for (BIGINT k=0;k<=(mt-1)/2;++k)               // non-neg y-freqs k
+    // point fk and fw to the start of this y value's row (2* is for complex):
+    deconvolveshuffle1d(dir,prefac/ker2[k],ker1,ms,fk + 2*ms*(k0+k),nf1,&fw[nf1*k]);
+  for (BIGINT k=-1;k>=-k0;--k)                 // neg y-freqs k
+    deconvolveshuffle1d(dir,prefac/ker2[-k],ker1,ms,fk + 2*ms*(k0+k),nf1,&fw[nf1*(nf2+k)]);
+}

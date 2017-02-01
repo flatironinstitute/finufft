@@ -8,5 +8,8 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
 		       double &prefac_unused_dims, spread_opts opts);
 void deconvolveshuffle1d(int dir,double prefac,double* ker,BIGINT ms,double *fk,
 			 BIGINT nf1,fftw_complex* fw);
+void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
+			 BIGINT ms,BIGINT mt,
+			 double *fk, BIGINT nf1, BIGINT nf2, fftw_complex* fw);
 
 #endif

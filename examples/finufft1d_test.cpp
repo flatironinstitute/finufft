@@ -13,7 +13,7 @@
 #define BIGPROB 1e8
 
 int main(int argc, char* argv[])
-/* Test executable for nufft1d.
+/* Test executable for finufft1d.
 
    Example: finufft1d_test 1000000 1000000 1e-12
 
@@ -21,12 +21,12 @@ int main(int argc, char* argv[])
 */
 {
   BIGINT M = 1e6, N = 1e6;    // defaults: M = # srcs, N = # modes out
-  double y, tol = 1e-6;          // default
+  double w, tol = 1e-6;          // default
   nufft_opts opts;
   opts.debug = 1;            // to see some timings
   int isign = +1;             // choose which exponential sign to test
-  if (argc>1) { sscanf(argv[1],"%lf",&y); N = (BIGINT)y; }
-  if (argc>2) { sscanf(argv[2],"%lf",&y); M = (BIGINT)y; }
+  if (argc>1) { sscanf(argv[1],"%lf",&w); N = (BIGINT)w; }
+  if (argc>2) { sscanf(argv[2],"%lf",&w); M = (BIGINT)w; }
   if (argc>3) {
     sscanf(argv[3],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }

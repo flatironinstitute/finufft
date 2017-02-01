@@ -22,12 +22,13 @@ c     used, otherwise the - sign is used, in the exponential.
   for (BIGINT j=0;j<nj;++j) {            // src pts
     dcomplex a1 = (iflag>0) ? exp(ima*x[j]) : exp(-ima*x[j]);
     dcomplex a2 = (iflag>0) ? exp(ima*y[j]) : exp(-ima*y[j]);
-    dcomplex p1 = pow(a1,k1min);  // starting phase for most neg k1 freq
+    dcomplex sp1 = pow(a1,k1min);  // starting phase for most neg k1 freq  
     dcomplex p2 = pow(a2,k2min);
     dcomplex cc = c[j]/(double)nj;   // 1/nj norm
     BIGINT m=0;      // output pointer
     for (BIGINT m2=0;m2<mt;++m2) {
-      for (BIGINT m1=0;m1<ms;++m1) {
+      dcomplex p1 = sp1;               // must reset p1 for each inner loop
+      for (BIGINT m1=0;m1<ms;++m1) {   // ms is fast, mt slow
 	f[m++] += cc * p1 * p2;
 	p1 *= a1;
       }
@@ -55,11 +56,12 @@ void dirft2d2(BIGINT nj,double* x,double *y,dcomplex* c,int iflag,BIGINT ms, BIG
   for (BIGINT j=0;j<nj;++j) {
     dcomplex a1 = (iflag>0) ? exp(ima*x[j]) : exp(-ima*x[j]);
     dcomplex a2 = (iflag>0) ? exp(ima*y[j]) : exp(-ima*y[j]);
-    dcomplex p1 = pow(a1,k1min);
+    dcomplex sp1 = pow(a1,k1min);
     dcomplex p2 = pow(a2,k2min);
     dcomplex cc = {0,0};
     BIGINT m=0;      // input pointer
     for (BIGINT m2=0;m2<mt;++m2) {
+      dcomplex p1 = sp1;
       for (BIGINT m1=0;m1<ms;++m1) {
 	cc += f[m++] * p1 * p2;
 	p1 *= a1;
