@@ -6,8 +6,8 @@
 #include "twopispread.h"
 #include <fftw3.h>
 
-struct nufft_opts {
-  double R = 2.0;        // upsampling ratio
+struct nufft_opts {  // set default opts for NUFFT alg:
+  double R = 2.0;            // upsampling ratio
   int debug = 0;             // 0: silent, 1: text output
   int spread_debug = 0;      // passed to spread_opts debug
 };
@@ -27,5 +27,11 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
 int finufft2d3(BIGINT nj,double* x,double *y,double* cj,int iflag,BIGINT nk,
 	       double* s, double* t, double* fk, nufft_opts opts);
 
+int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,double eps,
+	       BIGINT ms, BIGINT mt, BIGINT mu, double* fk, nufft_opts opts);
+int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,double eps,
+	       BIGINT ms, BIGINT mt, BIGINT mu, double* fk, nufft_opts opts);
+int finufft2d3(BIGINT nj,double* x,double *y,double *z, double* cj,int iflag,BIGINT nk,
+	       double* s, double* t, double *u, double* fk, nufft_opts opts);
 
 #endif

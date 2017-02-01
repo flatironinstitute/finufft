@@ -37,7 +37,6 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
  */
 {
   spread_opts spopts;
-  spopts.debug = opts.spread_debug;
   int ier_set = set_KB_opts_from_eps(spopts,eps);
   double params[4];
   get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
@@ -68,7 +67,7 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
   // Step 1: spread from irregular points to regular grid
   timer.restart();
-  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,1,params);
+  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,1,params,opts.spread_debug);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
   //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
@@ -83,7 +82,7 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims*nj); // 1/nj norm
+  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims*nj);  // 1/nj norm
   deconvolveshuffle1d(1,prefac,fwkerhalf,ms,fk,nf1,fw);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
   //for (int j=0;j<ms;++j) cout<<fk[2*j]<<"\t"<<fk[2*j+1]<<endl;
@@ -126,7 +125,6 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
  */
 {
   spread_opts spopts;
-  spopts.debug = opts.spread_debug;
   int ier_set = set_KB_opts_from_eps(spopts,eps);
   double params[4];
   get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
@@ -148,6 +146,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   fftw_init_threads();
   fftw_plan_with_nthreads(nth);
 #endif
+  timer.restart();
   fftw_complex *fw = fftw_alloc_complex(nf1);    // working upsampled array
   int fftsign = (iflag>0) ? 1 : -1;
   fftw_plan p = fftw_plan_dft_1d(nf1,fw,fw,fftsign, FFTW_ESTIMATE); // in-place
@@ -168,7 +167,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
   // Step 3: unspread (interpolate) from regular to irregular target pts
   timer.restart();
-  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,2,params);
+  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,2,params,opts.spread_debug);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
 
   fftw_free(fw); fftw_free(fwkerhalf); if (opts.debug) printf("freed\n");

@@ -37,16 +37,16 @@ MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
 # objects to compile: spreader...
 SOBJS = contrib/besseli.o src/cnufftspread.o src/utils.o src/twopispread.o src/common.o
 # for NUFFT library and its testers...
-OBJS = $(SOBJS) src/finufft1d.o src/dirft1d.o src/dirft2d.o
+OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o
 # for Fortran interface...
 FOBJS = $(SOBJS) fortran/cnufftspread_f.o
 # for temp hook-up to Leslie's nuffts...
 LOBJS = $(FOBJS) fortran/finufft1dtemp.o contrib/next235.o contrib/dfftpack.o fortran/prini.o fortran/dirft1d.o
 
-default: clean test1d
+default: test1d test2d
 #default: clean spreadtestnd
 
-.PHONY:	spreadtestnd fortran test1d
+.PHONY:	nufft spreadtestnd fortran test1d test2d
 
 # implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:
@@ -63,13 +63,15 @@ test1d: examples/finufft1d_test.cpp $(OBJS)
 	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft1d_test
 	(cd examples; ./finufft1d_test 1e6 1e6 1e-6)
 
-# the main libs...
-nufft: $(SOBJS)
-	$(CC) $(CFLAGS) src/finufft1d.cpp
+test2d: examples/finufft2d_test.cpp $(OBJS)
+	$(CC) $(CFLAGS) examples/finufft2d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft2d_test
+	(cd examples; ./finufft2d_test 1e3 500 1e6 1e-6)
 
+# the main libs...
+nufft: $(OBJS)
 
 fortran: $(FOBJS)
-# other fort wrappers todo
+# other fort wrappers todo...
 
 # this is temporary:  todo fix segfault
 leslie: $(LOBJS)

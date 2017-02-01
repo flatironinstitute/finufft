@@ -97,7 +97,7 @@ void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
 			 BIGINT ms, BIGINT mt,
 			 double *fk, BIGINT nf1, BIGINT nf2, fftw_complex* fw)
 /*
-  2D version of deconvolveshuffle1d, calls it on each line using 1/ker2 fac.
+  2D version of deconvolveshuffle1d, calls it on each x-line using 1/ker2 fac.
 
   if dir==1: copies fw to fk with amplification by prefac/(ker1(k1)*ker2(k2)).
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
@@ -110,10 +110,17 @@ void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
        respectively.
 */
 {
-  BIGINT k0 = mt/2;    // y-index shift in fk's = magnitude of most neg y-freq
-  for (BIGINT k=0;k<=(mt-1)/2;++k)               // non-neg y-freqs k
+  BIGINT k01 = ms/2;    // x-index shift in fk's = magnitude of most neg x-freq
+  BIGINT k02 = mt/2;    // y-index shift in fk's = magnitude of most neg y-freq
+  if (dir==2)               // zero pad needed x-lines
+    for (BIGINT k2=(mt-1)/2;k2<nf2-k02;++k2) {
+      BIGINT off = nf1*k2;           // offset for start of this x-line
+      for (BIGINT k1=(ms-1)/2;k1<nf1-k01;++k1)
+	fw[off+k1][0] = fw[off+k1][1] = 0.0;
+    }
+  for (BIGINT k2=0;k2<=(mt-1)/2;++k2)               // non-neg y-freqs k
     // point fk and fw to the start of this y value's row (2* is for complex):
-    deconvolveshuffle1d(dir,prefac/ker2[k],ker1,ms,fk + 2*ms*(k0+k),nf1,&fw[nf1*k]);
-  for (BIGINT k=-1;k>=-k0;--k)                 // neg y-freqs k
-    deconvolveshuffle1d(dir,prefac/ker2[-k],ker1,ms,fk + 2*ms*(k0+k),nf1,&fw[nf1*(nf2+k)]);
+    deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + 2*ms*(k02+k2),nf1,&fw[nf1*k2]);
+  for (BIGINT k2=-1;k2>=-k02;--k2)                 // neg y-freqs k
+    deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + 2*ms*(k02+k2),nf1,&fw[nf1*(nf2+k2)]);
 }

@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <vector>
 
-// how big a problem to switch to checking one mode...
+// how big a problem to check direct DFT for...
 #define BIGPROB 1e8
 
 int main(int argc, char* argv[])
@@ -17,13 +17,14 @@ int main(int argc, char* argv[])
 
    Example: finufft1d_test 1000000 1000000 1e-12
 
- All complex arith done by hand for now. Barnett 1/22/17
+   Barnett 1/22/17
 */
 {
   BIGINT M = 1e6, N = 1e6;    // defaults: M = # srcs, N = # modes out
   double w, tol = 1e-6;          // default
   nufft_opts opts;
   opts.debug = 1;            // to see some timings
+  opts.spread_debug = 0;     // see output from spreader
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); N = (BIGINT)w; }
   if (argc>2) { sscanf(argv[2],"%lf",&w); M = (BIGINT)w; }
@@ -54,14 +55,13 @@ int main(int argc, char* argv[])
   } else
     printf("\t%ld NU pts to %ld modes in %.3g s \t%.3g NU pts/s\n",M,N,t,M/t);
 
-  if (M*N>BIGPROB) {          // too big for direct, check one mode
-    BIGINT nt = N/2 - 7;      // arbitrary choice of mode near the top
-    dcomplex Ft = {0,0};
-    for (BIGINT j=0; j<M; ++j)
-      Ft += c[j] * exp(ima*((double)(isign*nt))*x[j]); // crude direct
-    Ft /= M;
-    printf("one mode: rel err in F[%ld] is %.3g\n",nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
-  } else {                    // full direct eval
+  BIGINT nt = N/2 - 7;      // check arbitrary choice of mode near the top
+  dcomplex Ft = {0,0};
+  for (BIGINT j=0; j<M; ++j)
+    Ft += c[j] * exp(ima*((double)(isign*nt))*x[j]); // crude direct
+  Ft /= M;
+  printf("one mode: rel err in F[%ld] is %.3g\n",nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
+  if (M*N<=BIGPROB) {                  // also full direct eval
     dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
     dirft1d1(M,x,c,isign,N,Ft);
     printf("dirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
@@ -79,14 +79,13 @@ int main(int argc, char* argv[])
   } else
     printf("\t%ld modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",N,M,t,M/t);
 
-  if (M*N>BIGPROB) {          // too big for direct, check one targ
-    BIGINT jt = M/2;          // arbitrary choice of targ pt
-    dcomplex ct = {0,0};
-    BIGINT k0 = N/2;          // index shift in fk's = mag of most neg freq
-    for (BIGINT m=-k0; m<=(N-1)/2; ++m)
-      ct += F[k0+m] * exp(ima*((double)(isign*m))*x[jt]);   // crude direct
-    printf("one targ: rel err in c[%ld] is %.3g\n",jt,abs(ct-c[jt])/infnorm(M,c));
-  } else {                    // full direct eval
+  BIGINT jt = M/2;          // check arbitrary choice of one targ pt
+  dcomplex ct = {0,0};
+  BIGINT k0 = N/2;          // index shift in fk's = mag of most neg freq
+  for (BIGINT m=-k0; m<=(N-1)/2; ++m)
+    ct += F[k0+m] * exp(ima*((double)(isign*m))*x[jt]);   // crude direct
+  printf("one targ: rel err in c[%ld] is %.3g\n",jt,abs(ct-c[jt])/infnorm(M,c));
+  if (M*N<=BIGPROB) {                  // also full direct eval
     dcomplex* ct = (dcomplex*)malloc(sizeof(dcomplex)*M);
     dirft1d2(M,x,ct,isign,N,F);
     printf("dirft1d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
