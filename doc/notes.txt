@@ -9,6 +9,11 @@ http://hiltmon.com/blog/2013/07/03/a-simple-c-plus-plus-project-structure/
 http://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15213-f02/lectures/class10.pdf
 Etc.  A bit old (2002) and too low-level.
 
+-------- matlab openmp + mex: (unsupported)
+
+https://www.mathworks.com/matlabcentral/answers/237411-can-i-make-use-of-openmp-in-my-matlab-mex-files
+
+
 --------- complex math:
 
 Found C complex didn't work in finufft1d_test.cpp unless I did 
