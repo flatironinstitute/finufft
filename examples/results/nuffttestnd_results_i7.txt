@@ -1,0 +1,64 @@
+nuffttestnd output:
+what CPUs do I have?...
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                8
+On-line CPU(s) list:   0-7
+Thread(s) per core:    2
+Core(s) per socket:    4
+Socket(s):             1
+NUMA node(s):          1
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 58
+Stepping:              9
+CPU MHz:               1199.960
+BogoMIPS:              5188.41
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              6144K
+NUMA node0 CPU(s):     0-7
+
+tol = 1e-6: multi-core tests...
+test 1d type-1:
+	1000000 NU pts to 1000000 modes in 0.3 s 	3.33e+06 NU pts/s
+one mode: rel err in F[499993] is 7.69e-07
+test 1d type-2:
+	1000000 modes to 1000000 NU pts in 0.272 s 	3.68e+06 NU pts/s
+one targ: rel err in c[500000] is 2.55e-07
+test 2d type-1:
+	1000000 NU pts to (500,2000) modes in 0.387 s 	2.58e+06 NU pts/s
+one mode: rel err in F[243,995] is 9.3e-07
+test 2d type-2:
+	(500,2000) modes to 1000000 NU pts in 0.358 s 	2.79e+06 NU pts/s
+one targ: rel err in c[500000] is 9.97e-08
+test 3d type-1:
+     1000000 NU pts to (100,200,50) modes in 1.05 s 	9.5e+05 NU pts/s
+one mode: rel err in F[43,95,17] is 6.19e-07
+test 3d type-2:
+     (100,200,50) modes to 1000000 NU pts in 0.936 s 	1.07e+06 NU pts/s
+one targ: rel err in c[500000] is 3.34e-07
+
+tol = 1e-6: single core tests...
+test 1d type-1:
+	1000000 NU pts to 1000000 modes in 0.883 s 	1.13e+06 NU pts/s
+one mode: rel err in F[499993] is 7.69e-07
+test 1d type-2:
+	1000000 modes to 1000000 NU pts in 0.878 s 	1.14e+06 NU pts/s
+one targ: rel err in c[500000] is 2.55e-07
+test 2d type-1:
+	1000000 NU pts to (500,2000) modes in 1.38 s 	7.25e+05 NU pts/s
+one mode: rel err in F[243,995] is 9.3e-07
+test 2d type-2:
+	(500,2000) modes to 1000000 NU pts in 1.29 s 	7.75e+05 NU pts/s
+one targ: rel err in c[500000] is 9.97e-08
+test 3d type-1:
+     1000000 NU pts to (100,200,50) modes in 3.56 s 	2.81e+05 NU pts/s
+one mode: rel err in F[43,95,17] is 6.19e-07
+test 3d type-2:
+     (100,200,50) modes to 1000000 NU pts in 3.17 s 	3.16e+05 NU pts/s
+one targ: rel err in c[500000] is 3.34e-07

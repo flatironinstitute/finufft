@@ -75,7 +75,7 @@ void dirft3d2(BIGINT nj,double* x,double *y,double *z,dcomplex* c,int iflag,BIGI
       for (BIGINT m2=0;m2<mt;++m2) {
 	dcomplex p1 = sp1;
 	for (BIGINT m1=0;m1<ms;++m1) {
-	  cc += f[m++] * p1 * p2 + p3;
+	  cc += f[m++] * p1 * p2 * p3;
 	  p1 *= a1;
 	}
 	p2 *= a2;

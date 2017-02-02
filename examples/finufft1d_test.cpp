@@ -13,7 +13,7 @@
 #define BIGPROB 1e8
 
 int main(int argc, char* argv[])
-/* Test executable for finufft1d.
+/* Test executable for finufft1d, all 3 types.
 
    Example: finufft1d_test 1000000 1000000 1e-12
 
@@ -32,8 +32,9 @@ int main(int argc, char* argv[])
     sscanf(argv[3],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
-  if (argc==1 || argc>4) {
-    fprintf(stderr,"Usage: finufft1d_test [Nmodes [Nsrc [tol]]]\n");
+  if (argc>4) sscanf(argv[4],"%d",&opts.debug); 
+  if (argc==1 || argc>5) {
+    fprintf(stderr,"Usage: finufft1d_test [Nmodes [Nsrc [tol [debug]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);
@@ -81,9 +82,9 @@ int main(int argc, char* argv[])
 
   BIGINT jt = M/2;          // check arbitrary choice of one targ pt
   dcomplex ct = {0,0};
-  BIGINT k0 = N/2;          // index shift in fk's = mag of most neg freq
-  for (BIGINT m=-k0; m<=(N-1)/2; ++m)
-    ct += F[k0+m] * exp(ima*((double)(isign*m))*x[jt]);   // crude direct
+  BIGINT m=0, k0 = N/2;          // index shift in fk's = mag of most neg freq
+  for (BIGINT m1=-k0; m1<=(N-1)/2; ++m1)
+    ct += F[m++] * exp(ima*((double)(isign*m1))*x[jt]);   // crude direct
   printf("one targ: rel err in c[%ld] is %.3g\n",jt,abs(ct-c[jt])/infnorm(M,c));
   if (M*N<=BIGPROB) {                  // also full direct eval
     dcomplex* ct = (dcomplex*)malloc(sizeof(dcomplex)*M);
