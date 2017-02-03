@@ -14,7 +14,7 @@ FC=gfortran
 #FFLAGS=-fPIC -O3 -lstdc++
 #MFLAGS=
 # ...OR multi-threaded:
-CFLAGS=-fPIC -O3 -funroll-loops -march=native -std=c++11 -fopenmp
+CFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp
 CLIBSFFT = -lfftw3_omp -lfftw3 -lm
 FFLAGS=-fPIC -O3 -funroll-loops -lstdc++ -fopenmp
 MFLAGS=-lgomp
@@ -42,7 +42,7 @@ LOBJS = $(FOBJS) fortran/finufft1dtemp.o contrib/next235.o contrib/dfftpack.o fo
 
 default: testnd
 
-.PHONY:	nufft spreadtestnd testnd fortran
+.PHONY:	nufft spreadtestnd testnd fortran testbessel
 
 # implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:
@@ -72,6 +72,10 @@ spreadtestnd: examples/spreadtestnd
 
 testnd: examples/finufft1d_test examples/finufft2d_test examples/finufft3d_test
 	(cd examples; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
+
+testbessel: contrib/testi0.cpp contrib/besseli.o src/utils.o
+	$(CC) $(CFLAGS) contrib/testi0.cpp contrib/besseli.o src/utils.o -o contrib/testi0
+	(cd contrib; ./testi0)
 
 fortran: $(FOBJS)
 # other fort wrappers todo...

@@ -25,28 +25,30 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
   prefac_unused_dim - the prefactor that cnufftspread multiplies for each
                        unused dimension (ie two such factors in 1d, one in 2d,
 		       and none in 3d).
-  Barnett 1/24/17
+  Single thread only.
+
   todo: understand how to openmp it? - subtle since private aj's. Want to break
         up fwkerhalf into contiguous pieces, one per thread. Low priority.
+  Barnett 1/24/17
  */
 {
-  int m=opts.nspread/2;        // how many modes in include
+  int m=opts.nspread/2;                // how many "modes" to include
   double f[HALF_MAX_NS];
   for (int n=0;n<=m;++n)    // actual freq index will be nf/2-n, for cosines
     f[n] = evaluate_kernel((double)n, opts);  // center at nf/2
   prefac_unused_dim = f[0];   // ker @ 0, must match cnufftspread's behavior
-  for (int n=1;n<=m;++n)    //  convert from exp to cosine ampls
+  for (int n=1;n<=m;++n)               //  convert from exp to cosine ampls
     f[n] *= 2.0;
   dcomplex a[HALF_MAX_NS],aj[HALF_MAX_NS];
-  for (int n=0;n<=m;++n) {    // set up our rotating phase array...
+  for (int n=0;n<=m;++n) {             // set up our rotating phase array...
     a[n] = exp(2*M_PI*ima*(double)(nf/2-n)/(double)nf);   // phase differences
-    aj[n] = dcomplex{1.0,0.0};       // init phase factors
+    aj[n] = dcomplex{1.0,0.0};         // init phase factors
   }
   for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
-    double x = 0.0;                 // register
+    double x = 0.0;                    // register
     for (int n=0;n<=m;++n) {
       x += f[n] * real(aj[n]);         // only want cosine part
-      aj[n] *= a[n];       // wind the phases
+      aj[n] *= a[n];                   // wind the phases
     }
     fwkerhalf[j] = x;
   }
@@ -62,6 +64,12 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
   fw is a FFTW style complex array, ie double [nf1][2], essentially doubles
        alternating re,im parts.
   ker is real-valued double array of length nf1/2+1.
+
+  Single thread only.
+
+  It has been tested that the repeated floating division in this inner loop
+  only contributes at the <3% level in 3D relative to the fftw cost (8 threads).
+  This could be removed by passing in an inverse kernel and doing mults.
 
   todo: check RAM access in backwards order in 2nd loop is not a speed hit
   todo: check 2*(k0+k)+1 index calcs not slowing us down

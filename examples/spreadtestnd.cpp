@@ -19,12 +19,16 @@ int main(int argc, char* argv[])
   double tol = 1e-6;  // default (1e6 has nspread=8)
   if (argc>1) {
     sscanf(argv[1],"%d",&d);
-    if (d<1 || d>3) { printf("d must be 1, 2 or 3!\n"); return 1; }
+    if (d<1 || d>3) { printf("d must be 1, 2 or 3! usage: spreadtestnd d tol\n");
+      return 1; }
   }
   if (argc>2) {
     sscanf(argv[2],"%lf",&tol);
-    if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
+    if (tol<=0.0) { printf("tol must be positive! usage: spreadtestnd d tol\n");
+      return 1; }
   }
+  if (argc>3) { printf("usage: spreadtestnd d tol\n");
+    return 1; }
   long M=1e6;                                // choose problem size:  # NU pts
   long roughNg = 1e6;                        //                       # grid pts
   long N=(long)(pow(roughNg,1.0/d));         // Fourier grid size per dim

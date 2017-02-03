@@ -300,13 +300,13 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
 double evaluate_kernel(double x,const spread_opts &opts)
 // kernel evaluation at single real argument: hard-wired as Kaiser--Bessel
 {
+  //return 0.0;
   // todo: insert test if opts.kernel_type==1 ?
   double t = 2.0*x/opts.KB_W; 
   double tmp1=1.0-t*t;
   if (tmp1<0.0) {
-    return 0.0;      // you fell outside the support
-  }
-  else {
+     return 0.0;      // you fell outside the support
+  } else {
     double y = opts.KB_beta*sqrt(tmp1);  // set up arg for I_0
     //return besseli0(y);
     return besseli0_approx(y);  // the meat.    todo: compare acc
@@ -502,8 +502,10 @@ int set_KB_opts_from_eps(spread_opts &opts,double eps)
 // Returns 0 if success, or 1 error code if eps out of range.
 {
   int nspread=12; double fac1=1,fac2=1;  // defaults: todo decide for what tol?
-  // tests done sequentially to categorize eps...  todo: add 1e-1 ?
-  if (eps>=1e-2) {
+  // tests done sequentially to categorize eps...
+  if (eps>=1e-1) {
+    nspread=2; fac1=0.7; fac2=1.8;   // ahb guess
+  } else if (eps>=1e-2) {
     nspread=4; fac1=0.75; fac2=1.71;
   } else if (eps>=1e-4) {
     nspread=6; fac1=0.83; fac2=1.56;
