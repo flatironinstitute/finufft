@@ -7,6 +7,7 @@ Includes code by:
 P. Swarztrauber - FFTPACK  
 Tony Ottosson - evaluate modified Bessel function K_0  
 June-Yub Lee - some test codes co-written with Greengard  
+Nick Hale and John Burkardt - Gauss-Legendre nodes and weights  
 
 ### Purpose
 

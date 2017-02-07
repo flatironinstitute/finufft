@@ -300,7 +300,7 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
 double evaluate_kernel(double x,const spread_opts &opts)
 // kernel evaluation at single real argument: hard-wired as Kaiser--Bessel
 {
-  //return 0.0;
+  //return 0.0; //exp(x); // to test how much time spent on kernel eval
   // todo: insert test if opts.kernel_type==1 ?
   double t = 2.0*x/opts.KB_W; 
   double tmp1=1.0-t*t;
@@ -308,8 +308,8 @@ double evaluate_kernel(double x,const spread_opts &opts)
      return 0.0;      // you fell outside the support
   } else {
     double y = opts.KB_beta*sqrt(tmp1);  // set up arg for I_0
-    //return besseli0(y);
-    return besseli0_approx(y);  // the meat.    todo: compare acc
+    //return besseli0(y);  // full-acc version, does slow whole thing down
+    return besseli0_approx(y);  // the meat, lower-acc version has little effect
   }
 }
 

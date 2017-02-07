@@ -64,11 +64,11 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
   double *fwkerhalf2 = fftw_alloc_real(nf2/2+1);
   double *fwkerhalf3 = fftw_alloc_real(nf3/2+1);
   double prefac_unused_dims;
-  onedim_dct_kernel(nf1, fwkerhalf1, prefac_unused_dims, spopts);
-  onedim_dct_kernel(nf2, fwkerhalf2, prefac_unused_dims, spopts);
-  onedim_dct_kernel(nf3, fwkerhalf3, prefac_unused_dims, spopts); //prefacs same
+  onedim_fseries_kernel(nf1, fwkerhalf1, prefac_unused_dims, spopts);
+  onedim_fseries_kernel(nf2, fwkerhalf2, prefac_unused_dims, spopts);
+  onedim_fseries_kernel(nf3, fwkerhalf3, prefac_unused_dims, spopts); //prefacs same
   double t=timer.elapsedsec();
-  if (opts.debug) printf("kernel dct (ns=%d):\t %.3g s\n", spopts.nspread,t);
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
 
   int nth = omp_get_max_threads();     // set up multithreaded fftw stuff
 #ifdef _OPENMP
@@ -158,11 +158,11 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
   double *fwkerhalf2 = fftw_alloc_real(nf2/2+1);
   double *fwkerhalf3 = fftw_alloc_real(nf3/2+1);
   double prefac_unused_dims;
-  onedim_dct_kernel(nf1, fwkerhalf1, prefac_unused_dims, spopts);
-  onedim_dct_kernel(nf2, fwkerhalf2, prefac_unused_dims, spopts);
-  onedim_dct_kernel(nf3, fwkerhalf3, prefac_unused_dims, spopts); //prefacs same
+  onedim_fseries_kernel(nf1, fwkerhalf1, prefac_unused_dims, spopts);
+  onedim_fseries_kernel(nf2, fwkerhalf2, prefac_unused_dims, spopts);
+  onedim_fseries_kernel(nf3, fwkerhalf3, prefac_unused_dims, spopts); //prefacs same
   double t=timer.elapsedsec();
-  if (opts.debug) printf("kernel dct (ns=%d):\t %.3g s\n", spopts.nspread,t);
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
 
   int nth = omp_get_max_threads();     // set up multithreaded fftw stuff
 #ifdef _OPENMP

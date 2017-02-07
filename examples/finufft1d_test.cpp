@@ -24,7 +24,6 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;          // default
   nufft_opts opts;
   opts.debug = 1;            // to see some timings
-  opts.spread_debug = 0;     // see output from spreader
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); N = (BIGINT)w; }
   if (argc>2) { sscanf(argv[2],"%lf",&w); M = (BIGINT)w; }
@@ -32,7 +31,8 @@ int main(int argc, char* argv[])
     sscanf(argv[3],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
-  if (argc>4) sscanf(argv[4],"%d",&opts.debug); 
+  if (argc>4) sscanf(argv[4],"%d",&opts.debug);
+  opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
   if (argc==1 || argc>5) {
     fprintf(stderr,"Usage: finufft1d_test [Nmodes [Nsrc [tol [debug]]]]\n");
     return 1;
@@ -94,8 +94,7 @@ int main(int argc, char* argv[])
     free(ct);
   }
 
-  // --- todo: type 3
-
+  printf("test 1d type-3:\n"); // -------------- type 3
 
 
   free(x); free(c); free(F);

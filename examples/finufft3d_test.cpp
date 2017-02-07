@@ -24,7 +24,6 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;          // default
   nufft_opts opts;
   opts.debug = 1;            // to see some timings
-  opts.spread_debug = 0;     // see output from spreader
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) {
     sscanf(argv[1],"%lf",&w); N1 = (BIGINT)w;
@@ -36,7 +35,8 @@ int main(int argc, char* argv[])
     sscanf(argv[5],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
-  if (argc>6) sscanf(argv[6],"%d",&opts.debug);
+  if (argc>6) sscanf(argv[6],"%d",&opts.debug);  // can be 0,1 or 2
+  opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
   if (argc==1 || argc==2 || argc==3 || argc>7) {
     fprintf(stderr,"Usage: finufft3d_test [N1 N2 N3 [Nsrc [tol [debug]]]]\n");
     return 1;

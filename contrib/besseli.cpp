@@ -30,6 +30,8 @@
  *
  * This is slightly modified routine from the Cephes library:
  * http://www.netlib.org/cephes/
+ *
+ * NOTE: also has lower-accuracy variant by Magland/Barnett, 2016-2017.
  */
 
 /*
@@ -198,13 +200,16 @@ double i0(double x)    // the shipped original full acc version
 
 double i0_approx(double x)     // reduced acc version
 // allows variable # coeffs, Barnett based on Magland, 2/3/17
-// Note that the one exp here accounts for around half the cost!
+// Note that the one exp here accounts for around half the cost, so there's
+// no point in shrinking the cheby orders that much.
 // The if-statement is around 10% of cost.
+// The A and B terms should balance so that errors at x=8 are similar.
 {
   double y;
-  //int Aterms = 17, Bterms = 5;     // acc 7e-8
-  //int Aterms = 15, Bterms = 4;     // acc 1.5e-6
-  int Aterms = 14, Bterms = 3;   // acc 8e-6: nufft still does 14 digits (why?)
+  //int Aterms = 17, Bterms = 5;   // sup err is 7e-8, at x=8
+  int Aterms = 15, Bterms = 4;   // 1.5e-6: jfm's choice
+  //int Aterms = 14, Bterms = 3;   // 8e-6: nufft still does 14 digits (why?)
+  //int Aterms = 12, Bterms = 2;   // 2e-4: nufft loses acc, eg 1e-11
   if (x < 0)
     x = -x;
   if (x <= 8.0) {

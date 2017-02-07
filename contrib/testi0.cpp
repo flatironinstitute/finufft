@@ -3,7 +3,7 @@
 #include "../src/utils.h"
 
 int main(int argc, char* argv[])
-// speed and accuracy tests for I_0 modified Bessel of 1st kind.
+// speed and accuracy tests for I_0 modified Bessel of 1st kind in besseli.cpp.
 // Barnett 2/2/17
 {
   double R=100.0;    // upper lim

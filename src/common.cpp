@@ -1,4 +1,5 @@
 #include "common.h"
+#include "../contrib/legendre_rule_fast.h"
 
 BIGINT set_nf(BIGINT ms, nufft_opts opts, spread_opts spopts)
 // type 1 & 2 recipe for how to set 1d size of upsampled array given opts
@@ -48,6 +49,54 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
     double x = 0.0;                    // register
     for (int n=0;n<=m;++n) {
       x += f[n] * real(aj[n]);         // only want cosine part
+      aj[n] *= a[n];                   // wind the phases
+    }
+    fwkerhalf[j] = x;
+  }
+}
+
+#define MAX_NQUAD 100     // max number of positive quadr nodes
+
+void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
+		       double &prefac_unused_dim, spread_opts opts)
+/*
+  Approximates exact Fourier series coeffs of cnufftspread's real symmetric
+  kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
+  narrowness of kernel.
+
+  Inputs:
+  nf - size of 1d uniform spread grid, must be even.
+  fwkerhalf - should be allocated for at least nf/2+1 doubles.
+  opts - spreading opts object, needed to eval kernel (must be already set up)
+
+  Outputs:
+  fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive.
+  prefac_unused_dim - the prefactor that cnufftspread multiplies for each
+                       unused dimension (ie two such factors in 1d, one in 2d,
+		       and none in 3d).
+  Compare onedim_dct_kernel which has same interface, but computes DFT of
+  sampled kernel, not quite the same object.
+
+  Barnett 2/7/17
+ */
+{
+  prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
+  // # quadr nodes in z (from 0 to J/2; reflections will be added)...
+  int q=(int)(5 + 2*opts.nspread/2);    // cannot exceed MAX_NQUAD
+  double J2 = opts.nspread/2;              // half-width of support
+  double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
+  legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
+  dcomplex a[MAX_NQUAD],aj[MAX_NQUAD];  // phase rotators
+  for (int n=0;n<q;++n) {
+    z[n] *= J2;                 // rescale nodes
+    f[n] = J2*w[n] * evaluate_kernel(z[n], opts);     // include quadr weights
+    a[n] = exp(2*M_PI*ima*(double)(nf/2-z[n])/(double)nf);  // phase windings
+    aj[n] = dcomplex{1.0,0.0};         // init phase factors
+  }
+  for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
+    double x = 0.0;                    // register
+    for (int n=0;n<q;++n) {
+      x += f[n] * 2*real(aj[n]);       // include the negative freq
       aj[n] *= a[n];                   // wind the phases
     }
     fwkerhalf[j] = x;

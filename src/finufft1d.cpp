@@ -49,9 +49,9 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   CNTime timer; timer.start();
   double *fwkerhalf = fftw_alloc_real(nf1/2+1);
   double prefac_unused_dims;
-  onedim_dct_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
+  onedim_fseries_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
   double t=timer.elapsedsec();
-  if (opts.debug) printf("kernel dct (ns=%d):\t %.3g s\n", spopts.nspread,t);
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
   //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
 
   int nth = omp_get_max_threads();     // set up multithreaded fftw stuff
@@ -137,9 +137,9 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   CNTime timer; timer.start();
   double *fwkerhalf = fftw_alloc_real(nf1/2+1);
   double prefac_unused_dims;
-  onedim_dct_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
+  onedim_fseries_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
   double t=timer.elapsedsec();
-  if (opts.debug) printf("kernel dct (ns=%d):\t %.3g s\n", spopts.nspread,t);
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
 
   int nth = omp_get_max_threads();     // set up multithreaded fftw stuff
 #ifdef _OPENMP
