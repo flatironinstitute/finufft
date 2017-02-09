@@ -5,7 +5,7 @@
 Includes code by:
 
 P. Swarztrauber - FFTPACK  
-Tony Ottosson - evaluate modified Bessel function K_0  
+Tony Ottosson - evaluate modified Bessel function I_0  
 June-Yub Lee - some test codes co-written with Greengard  
 Nick Hale and John Burkardt - Gauss-Legendre nodes and weights  
 
@@ -60,22 +60,23 @@ The original NUFFT rigorous analysis using truncated Gaussians is:
 
 ### To do
 
-* type-3
+* type-3 in 2d, 3d.
 * optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
-* next235 for nf's
+* 
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
-* make compiler opt allowing I/O sizes (M, N1*N2*N3) > 2^31, via compiler directives, for big problems. Test if it slows down array pointers. Ie test if long indexing slows 3D spreading, as June-Yub found in nufft-1.3.x.
+* decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
+* test BIGINT -> long long slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
 * fortran wrappers
 * matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs.
 * spread_f and matlab wrappers need ier output
 * license file
-* alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
+* outreach, alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
 * doc/manual
 * boilerplate stuff as in CMCL page
 
 ### Done
 
-* efficient modulo in spreader
+* efficient modulo in spreader, done by conditionals
 * removed data-zeroing bug in t-II spreader, slowness of large arrays in t-I.
 * clean dir tree
 * spreader dir=1,2 math tests in 3d, then nd.
@@ -98,4 +99,6 @@ The original NUFFT rigorous analysis using truncated Gaussians is:
 * meas speed of I_0 for KB kernel eval
 * understand origin of dfftpack (netlib fftpack is real*4)
 * [spreader: make compute_sort_indices sensible for 1d and 2d. not needed]
-
+* next235even for nf's
+* switched pre/post-amp correction from DFT of kernel to F series (FT) of kernel, more accurate
+* Gauss-Legendre quadrature for direct eval of kernel FT, openmp since cexp slow

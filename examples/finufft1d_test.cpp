@@ -101,8 +101,8 @@ int main(int argc, char* argv[])
   // reuse the strengths c, interpret N as number of targs:
   for (BIGINT j=0; j<M; ++j) x[j] = 2.0 + M_PI*randm11();  // new x_j srcs
   double* s = (double*)malloc(sizeof(double)*N);    // targ freqs
-  double A = (double)N/2;                   // choose freq range sim to type 1
-  for (BIGINT k=0; k<N; ++k) s[k] = A*k/(double)N; //A*randm11();
+  double S = (double)N/2;                   // choose freq range sim to type 1
+  for (BIGINT k=0; k<N; ++k) s[k] = S*(1.7 + randm11()); //S*(1.7 + k/(double)N); // offset
   timer.restart();
   ier = finufft1d3(M,x,(double*)c,isign,tol,N,s,(double*)F,opts);
   t=timer.elapsedsec();

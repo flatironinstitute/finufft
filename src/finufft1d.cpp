@@ -33,7 +33,10 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
         corresponding coefficient from the kernel alone.
      The latter kernel FFT is precomputed in what is called step 0 in the code.
 
-   Written with FFTW style complex arrays. Barnett 1/22/17
+   Written with FFTW style complex arrays. Step 3a internally uses dcomplex,
+   and Step 3b internally uses real arithmetic and FFTW style complex.
+   Becuase of the former, compile with -Ofast in GNU.
+   Barnett 1/22/17
  */
 {
   spread_opts spopts;
@@ -45,21 +48,12 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
   if (opts.debug) printf("1d1: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
 
-  // STEP 0: get FT of real symmetric spreading kernel
   CNTime timer; timer.start();
-  double *fwkerhalf = (double*)malloc(sizeof(double)*(nf1/2+1));
-  double prefac_unused_dims;
-  onedim_fseries_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
-  double t=timer.elapsedsec();
-  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
-  //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
-
-  int nth = omp_get_max_threads();     // set up multithreaded fftw stuff
+  int nth = omp_get_max_threads();     // set up multithreaded fftw stuff...
 #ifdef _OPENMP
   fftw_init_threads();
   fftw_plan_with_nthreads(nth);
 #endif
-  timer.restart();
   fftw_complex *fw = fftw_alloc_complex(nf1);    // working upsampled array
   int fftsign = (iflag>0) ? 1 : -1;
   fftw_plan p = fftw_plan_dft_1d(nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
@@ -78,9 +72,16 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   fftw_destroy_plan(p);
   if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
   //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
+
+  // STEP 3a: get FT (series) of real symmetric spreading kernel
+  timer.restart();
+  double *fwkerhalf = (double*)malloc(sizeof(double)*(nf1/2+1));
+  double prefac_unused_dims;
+  onedim_fseries_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
   //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
 
-  // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
+  // Step 3b: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
   double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims*nj);  // 1/nj norm
   deconvolveshuffle1d(1,prefac,fwkerhalf,ms,fk,nf1,fw);
@@ -121,7 +122,10 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
      3) spread (dir=2, ie interpolate) data to regular mesh
      The kernel coeffs are precomputed in what is called step 0 in the code.
 
-   Written with FFTW style complex arrays. Barnett 1/25/17
+   Written with FFTW style complex arrays. Step 0 internally uses dcomplex,
+   and Step 1 internally uses real arithmetic and FFTW style complex.
+   Because of the former, compile with -Ofast in GNU.
+   Barnett 1/25/17
  */
 {
   spread_opts spopts;
@@ -156,6 +160,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   timer.restart();
   double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims);
   deconvolveshuffle1d(2,prefac,fwkerhalf,ms,fk,nf1,fw);
+  fftw_free(fwkerhalf);        // in 1d could help to free up
   if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
   //cout<<"fw:\n"; for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
 
@@ -170,7 +175,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   int ier_spread = twopispread1d(nf1,(double*)fw,nj,xj,cj,2,params,opts.spread_debug);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
 
-  fftw_free(fw); fftw_free(fwkerhalf); if (opts.debug) printf("freed\n");
+  fftw_free(fw); if (opts.debug) printf("freed\n");
   return ier_spread;
 }
 
@@ -193,65 +198,80 @@ int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk,
    Outputs:
      fk     complex Fourier transform values at the target frequencies sk
             stored as alternating Re & Im parts (2*nk doubles)
-     returned value - error return code, as returned by cnufftspread:
+     returned value - error return code, as returned by finufft1d2:
                       0 : success.
 
-     The type 3 algorithm is a type 2 wrapped inside a type 1, see [LG].
+     The type 3 algorithm is basically a type 2 (which is implemented precisely
+     as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].
+     Beyond this, the new twists are:
+     i) nf1, number of upsampled points for the type-1, depends on the product
+       of interval widths containing input and output points (X*S).
+     ii) The deconvolve (post-amplify) step is division by the Fourier transform
+       of the scaled kernel, evaluated on the *nonuniform* output frequency
+       grid; this is done by direct approximation of the Fourier integral
+       using quadrature of the kernel function times exponentials.
+     iii) Shifts in x (real) and s (Fourier) are done to minimize the interval
+       half-widths X and S, hence nf1.
 
-   Written with FFTW style complex arrays. Barnett 2/8/17
+   No references to FFTW are needed here. Some dcomplex arithmetic is used,
+   thus compile with -Ofast in GNU.
+   Barnett 2/7/17-2/9/17
  */
 {
   spread_opts spopts;
   int ier_set = set_KB_opts_from_eps(spopts,eps);
-  double X1,C1,S1,D1,params[4];
+  double X1,C1,S1,D1,h1,gam1,params[4];
   get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
   cout << scientific << setprecision(15);  // for debug
 
-  // decide x and s intervals and shifts and scalings...
-  arraywidcen(nj,xj,X1,C1);    // width and center of interval containing {x_j}
-  arraywidcen(nk,s,S1,D1);     // width and center of interval containing {s_k}
-  // *** group these 3 in one call...
-  BIGINT nf1 = set_nf_type3(S1*X1,opts,spopts);
-  double h1 = 2*M_PI/nf1;       // upsampled grid spacing
-  double gam1 = (X1/M_PI)*(1.0 + spopts.nspread/(double)nf1);   // x scale fac
-  double* xp = (double*)malloc(sizeof(double)*nj);
-  for (BIGINT j=0;j<nj;++j) xp[j] = (xj[j]-C1) / gam1;       // rescaled x'_j
+  // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
+  arraywidcen(nj,xj,X1,C1);  // get half-width, center, containing {x_j}
+  arraywidcen(nk,s,S1,D1);   // get half-width, center, containing {s_k}
+  // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
+  BIGINT nf1 = set_nhg_type3(S1,X1,opts,spopts,h1,gam1);   // applies twist i)
+  double* xpj = (double*)malloc(sizeof(double)*nj);
+  for (BIGINT j=0;j<nj;++j) xpj[j] = (xj[j]-C1) / gam1;          // rescale x_j
+  dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj);
+  dcomplex* cjc = (dcomplex*)cj;     // access src strengths as complex array
+#pragma omp parallel for schedule(dynamic)                // since cexp slow
+  for (BIGINT j=0;j<nj;++j) cpj[j] = cjc[j] * exp(ima*D1*xj[j]); // rephase c_j
 
-  if (opts.debug) printf("1d3: S1=%.3g X1=%.3g nf1=%ld nj=%ld nk=%ld...\n",S1,X1,nf1,nj,nk);
+  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,nf1,nj,nk);
 
   // Step 1: spread from irregular sources to regular grid as in type 1
   dcomplex* fw = (dcomplex*)malloc(sizeof(dcomplex)*nf1);
   CNTime timer; timer.start();
-  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xp,cj,1,params,opts.spread_debug);
-  free(xp);
+  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xpj,(double*)cpj,1,params,opts.spread_debug);
+  free(xpj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) return ier_spread;  // problem
+  if (ier_spread>0) return ier_spread;    // error
   //for (int j=0;j<nf1;++j) printf("fw[%d]=%.3g\n",j,real(fw[j]));
 
   // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
   timer.restart();
-  double *ss = (double*)malloc(sizeof(double)*nk);
-  // *** insert best translation of s too which rephases fw
-  for (BIGINT k=0;k<nk;++k) ss[k] = h1*gam1*s[k];    // should have |ss| < pi/R
-  int ier_t2 = finufft1d2(nk,ss,fk,iflag,eps,nf1,(double*)fw,opts);
+  double *sp = (double*)malloc(sizeof(double)*nk);     // rescaled targs s'_k
+  for (BIGINT k=0;k<nk;++k) sp[k] = h1*gam1*(s[k]-D1); // so that |s'_k| < pi/R
+  int ier_t2 = finufft1d2(nk,sp,fk,iflag,eps,nf1,(double*)fw,opts);
   free(fw);
   if (opts.debug) printf("type-2 (ier=%d):\t\t %.3g s\n",ier_t2,timer.elapsedsec());
   //for (int k=0;k<nk;++k) printf("fk[%d]=(%.3g,%.3g)\n",k,fk[2*k],fk[2*k+1]);
 
-  // Step 3: correct by dividing by Fourier transform of kernel at targets
+  // Step 3a: compute Fourier transform of scaled kernel at targets
   timer.restart();
   double *fkker = (double*)malloc(sizeof(double)*nk);
   double prefac_unused_dims;
-  onedim_nuft_kernel(nk, ss, fkker, prefac_unused_dims, spopts); // fill fkker
+  onedim_nuft_kernel(nk, sp, fkker, prefac_unused_dims, spopts);  // fill fkker
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
+  // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
   timer.restart();
   double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims); // since 2 unused
-            // *** replace by func :
-  dcomplex *fkc = (dcomplex*)fk;    // handle output as complex array
-  for (BIGINT k=0;k<nk;++k)
-    fkc[k] *= (dcomplex)(prefac/fkker[k]) * exp(ima*s[k]*C1);
+  dcomplex *fkc = (dcomplex*)fk;    // index output as complex array
+  // todo: if C1==0.0 don't do the expensive exp()... ?
+#pragma omp parallel for schedule(dynamic)              // since cexps slow
+  for (BIGINT k=0;k<nk;++k)          // also phases to account for C1 x-shift
+    fkc[k] *= (dcomplex)(prefac/fkker[k]) * exp(ima*(s[k]-D1)*C1);
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
-  free(fkker); free(ss);
+  free(fkker); free(sp); if (opts.debug) printf("freed\n");
   return ier_t2;
 }

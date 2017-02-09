@@ -5,8 +5,13 @@
 #include <fftw3.h>
 #include "finufft.h"
 
+// constants needed by common.cpp:
+#define MAX_NQUAD 100     // max number of positive quadr nodes
+
+// common.cpp provides...
 BIGINT set_nf(BIGINT ms, nufft_opts opts, spread_opts spopts);
-BIGINT set_nf_type3(double SX, nufft_opts opts, spread_opts spopts);
+BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
+		     double &h, double &gam);
 void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
 		       double &prefac_unused_dims, spread_opts opts);
 void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,

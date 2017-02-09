@@ -9,12 +9,17 @@ BIGINT set_nf(BIGINT ms, nufft_opts opts, spread_opts spopts)
   return next235even(nf);
 }
 
-BIGINT set_nf_type3(double SX, nufft_opts opts, spread_opts spopts)
-// type 3 recipe for size of 1d upsampled array given opts.
-// SX is x_j interval length times s_j interval length
+BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
+		     double &h, double &gam)
+// outputs nf the size of upsampled grid for a given single dimension.
+// also writes to h the grid spacing, and to gam the x rescale factor.
+// X and S are the xj and sk interval half-widths respectively.
 {
-  BIGINT nf = (BIGINT)(2.0*opts.R*SX/M_PI + spopts.nspread);
-  return next235even(nf);
+  BIGINT nf = (BIGINT)(2.0*opts.R*S*X/M_PI + spopts.nspread);
+  nf = next235even(nf);
+  h = 2*M_PI/nf;                            // upsampled grid spacing
+  gam = (X/M_PI)*(1.0 + spopts.nspread/(double)nf);   // x scale fac
+  return nf;
 }
 
 void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
@@ -62,8 +67,6 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
     fwkerhalf[j] = x;
   }
 }
-
-#define MAX_NQUAD 100     // max number of positive quadr nodes
 
 void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
 		       double &prefac_unused_dim, spread_opts opts)
@@ -136,7 +139,7 @@ void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat,
   prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(5 + opts.nspread);           // cannot exceed MAX_NQUAD
-  //  printf("q=%d\n",q);
+  //  printf("q (# FT quadr pts) = %d\n",q);
   double J2 = opts.nspread/2 - 0.5;        // half-width of z-support
   double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
