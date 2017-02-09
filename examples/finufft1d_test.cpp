@@ -40,8 +40,10 @@ int main(int argc, char* argv[])
   cout << scientific << setprecision(15);
 
   double *x = (double *)malloc(sizeof(double)*M);        // NU pts
-  for (BIGINT j=0; j<M; ++j) x[j] = M_PI*randm11();
+  //for (BIGINT j=0; j<M; ++j) x[j] = 0.999 * M_PI*randm11();  // no wrap debug t3
+  //for (BIGINT j=0; j<M; ++j) x[j] = M_PI*randm11();   // fills [-pi,pi)
   //for (BIGINT j=0; j<M; ++j) x[j] = M_PI*(2*j/(double)M-1);  // test a grid
+  for (BIGINT j=0; j<M; ++j) x[j] = 0.9 * M_PI*(2*j/(double)M-1);  // shrunk grid
   dcomplex* c = (dcomplex*)malloc(sizeof(dcomplex)*M);   // strengths 
   dcomplex* F = (dcomplex*)malloc(sizeof(dcomplex)*N);   // mode ampls
 
@@ -95,7 +97,29 @@ int main(int argc, char* argv[])
   }
 
   printf("test 1d type-3:\n"); // -------------- type 3
-
+  // reuse the srcs x, strengths c, and interpret N as number of targs:
+  double* s = (double*)malloc(sizeof(double)*N);    // targ freqs
+  double A = (double)N/2;                   // choose freq range sim to type 1
+  for (BIGINT k=0; k<N; ++k) s[k] = A*(double)k/N; //A*randm11();
+  timer.restart();
+  ier = finufft1d3(M,x,(double*)c,isign,tol,N,s,(double*)F,opts);
+  t=timer.elapsedsec();
+  if (ier!=0) {
+    printf("error (ier=%d)!\n",ier);
+  } else
+    printf("\t%ld NU to %ld NU in %.3g s \t%.3g srcs/s, %.3g targs/s\n",M,N,t,M/t,N/t);
+  BIGINT kt = N/2;          // check arbitrary choice of one targ pt
+  Ft = {0,0};
+  for (BIGINT j=0;j<M;++j)
+    Ft += c[j] * exp(ima*s[kt]*x[j]);
+  printf("one targ: rel err in F[%ld] is %.3g\n",kt,abs(Ft-F[kt])/infnorm(N,F));
+  if (M*N<=BIGPROB) {                  // also full direct eval
+    dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
+    dirft1d3(M,x,c,isign,N,s,Ft);       // writes to F
+    printf("dirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    //cout<<"s, F, Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<F[k]<<"\t"<<Ft[k]<<"\t"<<F[k]/Ft[k]<<endl;
+    free(Ft);
+  }
 
   free(x); free(c); free(F);
   return ier;

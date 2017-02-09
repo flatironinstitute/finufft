@@ -45,9 +45,9 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
   if (opts.debug) printf("1d1: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
 
-  // STEP 0: get DCT of half of spreading kernel, since it's real symmetric
+  // STEP 0: get FT of real symmetric spreading kernel
   CNTime timer; timer.start();
-  double *fwkerhalf = fftw_alloc_real(nf1/2+1);
+  double *fwkerhalf = (double*)malloc(sizeof(double)*(nf1/2+1));
   double prefac_unused_dims;
   onedim_fseries_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
   double t=timer.elapsedsec();
@@ -101,17 +101,17 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
-     xj     location of sources on interval [-pi,pi].
+     nj     number of target (integer of type BIGINT; see utils.h)
+     xj     location of targets on interval [-pi,pi].
      fk     complex Fourier transform values (size ms, increasing mode ordering)
             stored as alternating Re & Im parts (2*ms doubles)
      iflag  if >0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
-     ms     number of Fourier modes computed, may be even or odd;
+     ms     number of Fourier modes input, may be even or odd;
             in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
      opts   struct controlling options (see finufft.h)
    Outputs:
-     cj     complex source strengths, interleaving Re & Im parts (2*nj doubles)
+     cj     complex answers at targets interleaving Re & Im parts (2*nj doubles)
      returned value - error return code, as returned by cnufftspread:
                       0 : success.
 
@@ -133,9 +133,9 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
   if (opts.debug) printf("1d2: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
 
-  // STEP 0: get DCT of half of spreading kernel, since it's real symmetric
+  // STEP 0: get FT of real symmetric spreading kernel
   CNTime timer; timer.start();
-  double *fwkerhalf = fftw_alloc_real(nf1/2+1);
+  double *fwkerhalf = (double*)malloc(sizeof(double)*(nf1/2+1));
   double prefac_unused_dims;
   onedim_fseries_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
   double t=timer.elapsedsec();
@@ -172,4 +172,88 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
   fftw_free(fw); fftw_free(fwkerhalf); if (opts.debug) printf("freed\n");
   return ier_spread;
+}
+
+
+int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk, double* s, double* fk, nufft_opts opts)
+ /*  Type-3 1D complex nonuniform FFT.
+
+               nj-1
+     fk[k]  =  SUM   c[j] exp(+-i s[k] xj[j]),      for k = 0, ..., nk-1
+               j=0
+   Inputs:
+     nj     number of sources (integer of type BIGINT; see utils.h)
+     xj     location of sources on interval [-pi,pi].
+     cj     complex source strengths, interleaving Re & Im parts (2*nj doubles)
+     nk     number of frequency target points
+     s      frequency locations of targets on the real line in [-A,A] for now
+     iflag  if >0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested
+     opts   struct controlling options (see finufft.h)
+   Outputs:
+     fk     complex Fourier transform values at the target frequencies sk
+            stored as alternating Re & Im parts (2*nk doubles)
+     returned value - error return code, as returned by cnufftspread:
+                      0 : success.
+
+     The type 3 algorithm is a type 2 wrapped inside a type 1, see [LG].
+
+   Written with FFTW style complex arrays. Barnett 2/7/17
+ */
+{
+  spread_opts spopts;
+  int ier_set = set_KB_opts_from_eps(spopts,eps);
+  double xlo1,xhi1,slo1,shi1,params[4];
+  get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
+  cout << scientific << setprecision(15);  // for debug
+
+  // decide x and s intervals and shifts and scalings...
+  arrayrange(nj,xj,xlo1,xhi1);   // find [xlo1,xhi1] containing all x_j
+  arrayrange(nk,s,slo1,shi1);    // find [slo1,shi1] containing all s_k
+  double S = MAX(-slo1,shi1);      // S is largest freq mag *** symm
+  double X = MAX(-xlo1,xhi1);   //   *** symm for now
+  BIGINT nf1 = 2*(BIGINT)(0.5 * (2.0*opts.R*S*X/M_PI + spopts.nspread)); // even
+  double h1 = 2*M_PI/nf1;       // real-space upsampled grid
+  double gam = (X/M_PI)*(1.0 + (double)spopts.nspread/nf1);   // x scale fac
+  printf("gam=%.3g\n",gam);
+  double igam = 1.0/gam;
+  double* xp = (double*)malloc(sizeof(double)*nj);
+  for (BIGINT j=0;j<nj;++j) xp[j] = xj[j] * igam;   // *** incl translate
+
+  if (opts.debug) printf("1d3: S=%.3g nf1=%ld nj=%ld nk=%ld...\n",S,nf1,nj,nk);
+
+  // Step 1: spread from irregular sources to regular grid as in type 1
+  dcomplex* fw = (dcomplex*)malloc(sizeof(dcomplex)*nf1);
+  CNTime timer; timer.start();
+  int ier_spread = twopispread1d(nf1,(double*)fw,nj,xp,cj,1,params,opts.spread_debug);
+  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
+  if (ier_spread>0) return ier_spread;
+  //for (int j=0;j<nf1;++j) printf("fw[%d]=%.3g\n",j,real(fw[j]));
+
+  // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
+  timer.restart();
+  double *ss = (double*)malloc(sizeof(double)*nk);
+  // *** insert best translation of s too which rephases fw
+  for (BIGINT k=0;k<nk;++k) ss[k] = h1*gam*s[k];    // should have |ss| < pi/R
+  int ier_t2 = finufft1d2(nk,ss,fk,iflag,eps,nf1,(double*)fw,opts);
+  if (opts.debug) printf("type-2 (ier=%d):\t\t %.3g s\n",ier_t2,timer.elapsedsec());
+  //for (int k=0;k<nk;++k) printf("fk[%d]=(%.3g,%.3g)\n",k,fk[2*k],fk[2*k+1]);
+
+  // Step 3: correct by dividing by Fourier transform of kernel at targets
+  // ** to do
+  timer.restart();
+  double *fkker = (double*)malloc(sizeof(double)*nk);
+  double prefac_unused_dims;
+  onedim_nuft_kernel(nk, ss, fkker, prefac_unused_dims, spopts);
+  if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
+  timer.restart();
+  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims);
+  for (BIGINT k=0;k<nk;++k) {            // replace by func ?
+    double ampl = prefac/fkker[k];
+    fk[2*k] *= ampl;
+    fk[2*k+1] *= ampl;
+  }
+  if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
+
+  return ier_t2;
 }

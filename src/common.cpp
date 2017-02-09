@@ -14,15 +14,16 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
 		       double &prefac_unused_dim, spread_opts opts)
 /*
   Computes DCT coeffs of cnufftspread's real symmetric kernel, directly,
-  exploiting narrowness of kernel.
+  exploiting narrowness of kernel. Uses phase winding for cheap eval on the
+  regular freq grid. Superceded by onedim_fseries_kernel.
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
-  fwkerhalf - should be allocated for at least nf/2+1 doubles.
   opts - spreading opts object, needed to eval kernel (must be already set up)
 
   Outputs:
   fwkerhalf - real Fourier coeffs from indices 0 to nf/2 inclusive.
+              (should be allocated for at least nf/2+1 doubles)
   prefac_unused_dim - the prefactor that cnufftspread multiplies for each
                        unused dimension (ie two such factors in 1d, one in 2d,
 		       and none in 3d).
@@ -62,15 +63,16 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-  narrowness of kernel.
+  narrowness of kernel. Uses phase winding for cheap eval on the regular freq
+  grid.
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
-  fwkerhalf - should be allocated for at least nf/2+1 doubles.
   opts - spreading opts object, needed to eval kernel (must be already set up)
 
   Outputs:
-  fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive.
+  fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive
+              (should be allocated for at least nf/2+1 doubles)
   prefac_unused_dim - the prefactor that cnufftspread multiplies for each
                        unused dimension (ie two such factors in 1d, one in 2d,
 		       and none in 3d).
@@ -82,8 +84,8 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
 {
   prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q=(int)(5 + 2*opts.nspread/2);    // cannot exceed MAX_NQUAD
-  double J2 = opts.nspread/2;              // half-width of support
+  int q=(int)(5 + opts.nspread);           // cannot exceed MAX_NQUAD
+  double J2 = opts.nspread/2 - 0.5;        // half-width of z-support
   double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
   dcomplex a[MAX_NQUAD],aj[MAX_NQUAD];  // phase rotators
@@ -102,6 +104,46 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
     fwkerhalf[j] = x;
   }
 }
+
+void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat,
+		       double &prefac_unused_dim, spread_opts opts)
+/*
+  Approximates exact 1D Fourier transform of cnufftspread's real symmetric
+  kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
+  narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi,pi].
+
+  Inputs:
+  nk - number of freqs
+  k - frequencies, dual to the kernel's natural argument, ie exp(i.k.z)
+       Note, k values must be in [-pi,pi] for accuracy.
+  opts - spreading opts object, needed to eval kernel (must be already set up)
+
+  Outputs:
+  phihat - real Fourier transform evaluated at freqs (alloc for nk doubles)
+  prefac_unused_dim - the prefactor that cnufftspread multiplies for each
+                       unused dimension (ie two such factors in 1d, one in 2d,
+		       and none in 3d). Same as for onedim_dct_kernel, etc.
+  Barnett 2/8/17
+ */
+{
+  prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
+  // # quadr nodes in z (from 0 to J/2; reflections will be added)...
+  int q=(int)(5 + opts.nspread);           // cannot exceed MAX_NQUAD
+  //  printf("q=%d\n",q);
+  double J2 = opts.nspread/2 - 0.5;        // half-width of z-support
+  double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
+  legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
+  for (int n=0;n<q;++n) {
+    z[n] *= J2;                                    // quadr nodes for [0,J/2]
+    f[n] = J2*w[n] * evaluate_kernel(z[n], opts);  // include quadr weights
+    //    printf("f[%d] = %.3g\n",n,f[n]);
+  }
+  for (BIGINT j=0;j<nk;++j) {          // loop along output array
+    double x = 0.0;                    // register
+    for (int n=0;n<q;++n) x += f[n] * 2*cos(k[j]*z[n]);  // pos & neg freq pair
+    phihat[j] = x;
+  }
+}  
 
 void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
 			 double *fk, BIGINT nf1, fftw_complex* fw)

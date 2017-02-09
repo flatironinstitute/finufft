@@ -14,10 +14,14 @@ using namespace std;
 #define BIGINT long
 // #define BIGINT int32_t
 
+#define MAX(a,b) (a>b) ? a : b
+#define MIN(a,b) (a<b) ? a : b
+
 double relerrtwonorm(BIGINT n, dcomplex* a, dcomplex* b);
 double errtwonorm(BIGINT n, dcomplex* a, dcomplex* b);
 double twonorm(BIGINT n, dcomplex* a);
 double infnorm(BIGINT n, dcomplex* a);
+void arrayrange(BIGINT n, double* a, double& lo, double &hi);
 
 class CNTime {
  public:

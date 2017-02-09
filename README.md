@@ -50,31 +50,28 @@ TODO: give refs.
 
 This code builds upon the CMCL NUFFT, and the Fortran wrappers duplicate its interfaces. For this the following are references:
 
-[1] Accelerating the Nonuniform Fast Fourier Transform: (L. Greengard and J.-Y. Lee) SIAM Review 46, 443 (2004).
+[GL] Accelerating the Nonuniform Fast Fourier Transform: (L. Greengard and J.-Y. Lee) SIAM Review 46, 443 (2004).
 
-[2] The type 3 nonuniform FFT and its applications: (J.-Y. Lee and L. Greengard) J. Comput. Phys. 206, 1 (2005).
+[LG] The type 3 nonuniform FFT and its applications: (J.-Y. Lee and L. Greengard) J. Comput. Phys. 206, 1 (2005).
 
-For the original NUFFT paper, see:
+The original NUFFT rigorous analysis using truncated Gaussians is:
 
-Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J. Sci. Comput. 14, 1368 (1993). 
+[DR] Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J. Sci. Comput. 14, 1368 (1993). 
 
 ### To do
 
 * type-3
-* t-I, t-II convergence params test: M/N and KB params
+* optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
+* next235 for nf's
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
 * make compiler opt allowing I/O sizes (M, N1*N2*N3) > 2^31, via compiler directives, for big problems. Test if it slows down array pointers. Ie test if long indexing slows 3D spreading, as June-Yub found in nufft-1.3.x.
+* fortran wrappers
 * matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs.
-* overall scale factor understand in KB
-* check J's bessel10 approx is ok.
-* meas speed of I_0 for KB kernel eval
 * spread_f and matlab wrappers need ier output
 * license file
 * alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
 * doc/manual
 * boilerplate stuff as in CMCL page
-* understand origin of dfftpack (netlib fftpack is real*4)
-* [spreader: make compute_sort_indices sensible for 1d and 2d. not needed]
 
 ### Done
 
@@ -95,4 +92,10 @@ Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J.
 * cleaner spread and nufft test scripts
 * build universal ndim Fourier coeff copiers in C and use for finufft
 * makefile opts and compiler directives to link against FFTW.
+* t-I, t-II convergence params test: R=M/N and KB params
+* overall scale factor understand in KB
+* check J's bessel10 approx is ok.
+* meas speed of I_0 for KB kernel eval
+* understand origin of dfftpack (netlib fftpack is real*4)
+* [spreader: make compute_sort_indices sensible for 1d and 2d. not needed]
 

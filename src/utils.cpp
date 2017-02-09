@@ -1,6 +1,7 @@
 #include "utils.h"
 
 // ------------ complex array utils
+
 double relerrtwonorm(BIGINT n, dcomplex* a, dcomplex* b)
 // ||a-b||_2 / ||a||_2
 {
@@ -39,6 +40,16 @@ double infnorm(BIGINT n, dcomplex* a)
     if (aa>nrm) nrm = aa;
   }
   return sqrt(nrm);
+}
+
+void arrayrange(BIGINT n, double* a, double& lo, double &hi)
+// writes out bounds on values in array to lo and hi, so all a in [lo,hi]
+{
+  lo = INFINITY; hi = -INFINITY;
+  for (BIGINT m=0; m<n; ++m) {
+    if (a[m]<lo) lo = a[m];
+    if (a[m]>hi) hi = a[m];
+  }
 }
 
 

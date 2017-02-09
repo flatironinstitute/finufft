@@ -67,6 +67,6 @@ c  exponential. Uses C++ complex type. Simple brute force.  Barnett 1/25/17
     dcomplex ss = (iflag>0) ? ima*s[k] : -ima*s[k];
     f[k] = {0,0};
     for (BIGINT j=0;j<nj;++j)
-      f[k] += c[k] * exp(ss*x[j]);
+      f[k] += c[j] * exp(ss*x[j]);
   }
 }
