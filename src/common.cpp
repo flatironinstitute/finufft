@@ -4,10 +4,17 @@
 BIGINT set_nf(BIGINT ms, nufft_opts opts, spread_opts spopts)
 // type 1 & 2 recipe for how to set 1d size of upsampled array given opts
 {
-  BIGINT nf = 2*(BIGINT)(0.5*opts.R*ms);  // is even
+  BIGINT nf = (BIGINT)(opts.R*ms);
   if (nf<2*spopts.nspread) nf=2*spopts.nspread;  // otherwise spread fails
-  // now use next235?
-  return nf;
+  return next235even(nf);
+}
+
+BIGINT set_nf_type3(double SX, nufft_opts opts, spread_opts spopts)
+// type 3 recipe for size of 1d upsampled array given opts.
+// SX is x_j interval length times s_j interval length
+{
+  BIGINT nf = (BIGINT)(2.0*opts.R*SX/M_PI + spopts.nspread);
+  return next235even(nf);
 }
 
 void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
@@ -138,6 +145,7 @@ void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat,
     f[n] = J2*w[n] * evaluate_kernel(z[n], opts);  // include quadr weights
     //    printf("f[%d] = %.3g\n",n,f[n]);
   }
+  #pragma omp parallel for schedule(dynamic)
   for (BIGINT j=0;j<nk;++j) {          // loop along output array
     double x = 0.0;                    // register
     for (int n=0;n<q;++n) x += f[n] * 2*cos(k[j]*z[n]);  // pos & neg freq pair

@@ -21,7 +21,9 @@ double relerrtwonorm(BIGINT n, dcomplex* a, dcomplex* b);
 double errtwonorm(BIGINT n, dcomplex* a, dcomplex* b);
 double twonorm(BIGINT n, dcomplex* a);
 double infnorm(BIGINT n, dcomplex* a);
-void arrayrange(BIGINT n, double* a, double& lo, double &hi);
+void arrayrange(BIGINT n, double* a, double &lo, double &hi);
+void arraywidcen(BIGINT n, double* a, double &w, double &c);
+BIGINT next235even(BIGINT n);
 
 class CNTime {
  public:

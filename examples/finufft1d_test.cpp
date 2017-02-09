@@ -15,9 +15,11 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft1d, all 3 types.
 
+   Usage: finufft1d_test [Nmodes [Nsrc [tol [debug]]]]
+
    Example: finufft1d_test 1000000 1000000 1e-12
 
-   Barnett 1/22/17
+   Barnett 1/22/17 - 2/9/17
 */
 {
   BIGINT M = 1e6, N = 1e6;    // defaults: M = # srcs, N = # modes out
@@ -40,10 +42,9 @@ int main(int argc, char* argv[])
   cout << scientific << setprecision(15);
 
   double *x = (double *)malloc(sizeof(double)*M);        // NU pts
-  //for (BIGINT j=0; j<M; ++j) x[j] = 0.999 * M_PI*randm11();  // no wrap debug t3
-  //for (BIGINT j=0; j<M; ++j) x[j] = M_PI*randm11();   // fills [-pi,pi)
+  for (BIGINT j=0; j<M; ++j) x[j] = M_PI*randm11();   // fills [-pi,pi)
+  //for (BIGINT j=0; j<M; ++j) x[j] = 0.999 * M_PI*randm11();  // avoid ends
   //for (BIGINT j=0; j<M; ++j) x[j] = M_PI*(2*j/(double)M-1);  // test a grid
-  for (BIGINT j=0; j<M; ++j) x[j] = 0.9 * M_PI*(2*j/(double)M-1);  // shrunk grid
   dcomplex* c = (dcomplex*)malloc(sizeof(dcomplex)*M);   // strengths 
   dcomplex* F = (dcomplex*)malloc(sizeof(dcomplex)*N);   // mode ampls
 
@@ -71,7 +72,7 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 
-  printf("test 1d type-2:\n"); // -------------- type 2
+  printf("\ntest 1d type-2:\n"); // -------------- type 2
   for (BIGINT m=0; m<N; ++m) F[m] = crandm11();
   timer.restart();
   ier = finufft1d2(M,x,(double*)c,isign,tol,N,(double*)F,opts);
@@ -96,18 +97,20 @@ int main(int argc, char* argv[])
     free(ct);
   }
 
-  printf("test 1d type-3:\n"); // -------------- type 3
-  // reuse the srcs x, strengths c, and interpret N as number of targs:
+  printf("\ntest 1d type-3:\n"); // -------------- type 3
+  // reuse the strengths c, interpret N as number of targs:
+  for (BIGINT j=0; j<M; ++j) x[j] = 2.0 + M_PI*randm11();  // new x_j srcs
   double* s = (double*)malloc(sizeof(double)*N);    // targ freqs
   double A = (double)N/2;                   // choose freq range sim to type 1
-  for (BIGINT k=0; k<N; ++k) s[k] = A*(double)k/N; //A*randm11();
+  for (BIGINT k=0; k<N; ++k) s[k] = A*k/(double)N; //A*randm11();
   timer.restart();
   ier = finufft1d3(M,x,(double*)c,isign,tol,N,s,(double*)F,opts);
   t=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("\t%ld NU to %ld NU in %.3g s \t%.3g srcs/s, %.3g targs/s\n",M,N,t,M/t,N/t);
+    printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",M,N,t,M/t,N/t);
+
   BIGINT kt = N/2;          // check arbitrary choice of one targ pt
   Ft = {0,0};
   for (BIGINT j=0;j<M;++j)

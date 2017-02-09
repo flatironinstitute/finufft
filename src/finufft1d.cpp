@@ -198,62 +198,60 @@ int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk,
 
      The type 3 algorithm is a type 2 wrapped inside a type 1, see [LG].
 
-   Written with FFTW style complex arrays. Barnett 2/7/17
+   Written with FFTW style complex arrays. Barnett 2/8/17
  */
 {
   spread_opts spopts;
   int ier_set = set_KB_opts_from_eps(spopts,eps);
-  double xlo1,xhi1,slo1,shi1,params[4];
+  double X1,C1,S1,D1,params[4];
   get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
   cout << scientific << setprecision(15);  // for debug
 
   // decide x and s intervals and shifts and scalings...
-  arrayrange(nj,xj,xlo1,xhi1);   // find [xlo1,xhi1] containing all x_j
-  arrayrange(nk,s,slo1,shi1);    // find [slo1,shi1] containing all s_k
-  double S = MAX(-slo1,shi1);      // S is largest freq mag *** symm
-  double X = MAX(-xlo1,xhi1);   //   *** symm for now
-  BIGINT nf1 = 2*(BIGINT)(0.5 * (2.0*opts.R*S*X/M_PI + spopts.nspread)); // even
-  double h1 = 2*M_PI/nf1;       // real-space upsampled grid
-  double gam = (X/M_PI)*(1.0 + (double)spopts.nspread/nf1);   // x scale fac
-  printf("gam=%.3g\n",gam);
-  double igam = 1.0/gam;
+  arraywidcen(nj,xj,X1,C1);    // width and center of interval containing {x_j}
+  arraywidcen(nk,s,S1,D1);     // width and center of interval containing {s_k}
+  // *** group these 3 in one call...
+  BIGINT nf1 = set_nf_type3(S1*X1,opts,spopts);
+  double h1 = 2*M_PI/nf1;       // upsampled grid spacing
+  double gam1 = (X1/M_PI)*(1.0 + spopts.nspread/(double)nf1);   // x scale fac
   double* xp = (double*)malloc(sizeof(double)*nj);
-  for (BIGINT j=0;j<nj;++j) xp[j] = xj[j] * igam;   // *** incl translate
+  for (BIGINT j=0;j<nj;++j) xp[j] = (xj[j]-C1) / gam1;       // rescaled x'_j
 
-  if (opts.debug) printf("1d3: S=%.3g nf1=%ld nj=%ld nk=%ld...\n",S,nf1,nj,nk);
+  if (opts.debug) printf("1d3: S1=%.3g X1=%.3g nf1=%ld nj=%ld nk=%ld...\n",S1,X1,nf1,nj,nk);
 
   // Step 1: spread from irregular sources to regular grid as in type 1
   dcomplex* fw = (dcomplex*)malloc(sizeof(dcomplex)*nf1);
   CNTime timer; timer.start();
   int ier_spread = twopispread1d(nf1,(double*)fw,nj,xp,cj,1,params,opts.spread_debug);
+  free(xp);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) return ier_spread;
+  if (ier_spread>0) return ier_spread;  // problem
   //for (int j=0;j<nf1;++j) printf("fw[%d]=%.3g\n",j,real(fw[j]));
 
   // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
   timer.restart();
   double *ss = (double*)malloc(sizeof(double)*nk);
   // *** insert best translation of s too which rephases fw
-  for (BIGINT k=0;k<nk;++k) ss[k] = h1*gam*s[k];    // should have |ss| < pi/R
+  for (BIGINT k=0;k<nk;++k) ss[k] = h1*gam1*s[k];    // should have |ss| < pi/R
   int ier_t2 = finufft1d2(nk,ss,fk,iflag,eps,nf1,(double*)fw,opts);
+  free(fw);
   if (opts.debug) printf("type-2 (ier=%d):\t\t %.3g s\n",ier_t2,timer.elapsedsec());
   //for (int k=0;k<nk;++k) printf("fk[%d]=(%.3g,%.3g)\n",k,fk[2*k],fk[2*k+1]);
 
   // Step 3: correct by dividing by Fourier transform of kernel at targets
-  // ** to do
   timer.restart();
   double *fkker = (double*)malloc(sizeof(double)*nk);
   double prefac_unused_dims;
-  onedim_nuft_kernel(nk, ss, fkker, prefac_unused_dims, spopts);
+  onedim_nuft_kernel(nk, ss, fkker, prefac_unused_dims, spopts); // fill fkker
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
   timer.restart();
-  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims);
-  for (BIGINT k=0;k<nk;++k) {            // replace by func ?
-    double ampl = prefac/fkker[k];
-    fk[2*k] *= ampl;
-    fk[2*k+1] *= ampl;
-  }
+  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims); // since 2 unused
+            // *** replace by func :
+  dcomplex *fkc = (dcomplex*)fk;    // handle output as complex array
+  for (BIGINT k=0;k<nk;++k)
+    fkc[k] *= (dcomplex)(prefac/fkker[k]) * exp(ima*s[k]*C1);
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
+  free(fkker); free(ss);
   return ier_t2;
 }
