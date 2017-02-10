@@ -225,22 +225,23 @@ int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk,
   cout << scientific << setprecision(15);  // for debug
 
   // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
+  CNTime timer; timer.start();
   arraywidcen(nj,xj,X1,C1);  // get half-width, center, containing {x_j}
   arraywidcen(nk,s,S1,D1);   // get half-width, center, containing {s_k}
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   BIGINT nf1 = set_nhg_type3(S1,X1,opts,spopts,h1,gam1);   // applies twist i)
+  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,nf1,nj,nk);
   double* xpj = (double*)malloc(sizeof(double)*nj);
   for (BIGINT j=0;j<nj;++j) xpj[j] = (xj[j]-C1) / gam1;          // rescale x_j
   dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj);
   dcomplex* cjc = (dcomplex*)cj;     // access src strengths as complex array
 #pragma omp parallel for schedule(dynamic)                // since cexp slow
   for (BIGINT j=0;j<nj;++j) cpj[j] = cjc[j] * exp(ima*D1*xj[j]); // rephase c_j
-
-  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,nf1,nj,nk);
+  if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
 
   // Step 1: spread from irregular sources to regular grid as in type 1
   dcomplex* fw = (dcomplex*)malloc(sizeof(dcomplex)*nf1);
-  CNTime timer; timer.start();
+  timer.restart();
   int ier_spread = twopispread1d(nf1,(double*)fw,nj,xpj,(double*)cpj,1,params,opts.spread_debug);
   free(xpj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
@@ -253,7 +254,7 @@ int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk,
   for (BIGINT k=0;k<nk;++k) sp[k] = h1*gam1*(s[k]-D1); // so that |s'_k| < pi/R
   int ier_t2 = finufft1d2(nk,sp,fk,iflag,eps,nf1,(double*)fw,opts);
   free(fw);
-  if (opts.debug) printf("type-2 (ier=%d):\t\t %.3g s\n",ier_t2,timer.elapsedsec());
+  if (opts.debug) printf("type-2 total (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   //for (int k=0;k<nk;++k) printf("fk[%d]=(%.3g,%.3g)\n",k,fk[2*k],fk[2*k+1]);
 
   // Step 3a: compute Fourier transform of scaled kernel at targets

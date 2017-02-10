@@ -16,6 +16,7 @@ BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
 // X and S are the xj and sk interval half-widths respectively.
 {
   BIGINT nf = (BIGINT)(2.0*opts.R*S*X/M_PI + spopts.nspread);
+  if (nf<2*spopts.nspread) nf=2*spopts.nspread;  // otherwise spread fails
   nf = next235even(nf);
   h = 2*M_PI/nf;                            // upsampled grid spacing
   gam = (X/M_PI)*(1.0 + spopts.nspread/(double)nf);   // x scale fac
@@ -89,13 +90,15 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
 
+  todo: understand how to openmp it? - subtle since private aj's. Want to break
+        up fwkerhalf into contiguous pieces, one per thread. Low priority.
   Barnett 2/7/17
  */
 {
   prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
+  double J2 = opts.nspread/2 - 0.5;        // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q=(int)(5 + opts.nspread);           // cannot exceed MAX_NQUAD
-  double J2 = opts.nspread/2 - 0.5;        // half-width of z-support
+  int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
   double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
   dcomplex a[MAX_NQUAD],aj[MAX_NQUAD];  // phase rotators
@@ -133,14 +136,14 @@ void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat,
   prefac_unused_dim - the prefactor that cnufftspread multiplies for each
                        unused dimension (ie two such factors in 1d, one in 2d,
 		       and none in 3d). Same as for onedim_dct_kernel, etc.
-  Barnett 2/8/17
+  Barnett 2/8/17. openmp 2/9/17
  */
 {
   prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
+  double J2 = opts.nspread/2 - 0.5;        // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
-  int q=(int)(5 + opts.nspread);           // cannot exceed MAX_NQUAD
-  //  printf("q (# FT quadr pts) = %d\n",q);
-  double J2 = opts.nspread/2 - 0.5;        // half-width of z-support
+  int q=(int)(2 + 2.0*J2);     // > pi/2 ratio.  cannot exceed MAX_NQUAD
+  printf("q (# FT quadr pts) = %d\n",q);
   double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
   for (int n=0;n<q;++n) {

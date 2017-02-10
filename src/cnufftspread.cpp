@@ -314,7 +314,7 @@ double evaluate_kernel(double x,const spread_opts &opts)
 }
 
 void evaluate_kernel(int len, double *x, double *values, spread_opts opts)
-// overloaded vectorized version of evaluation of kernel.
+// overloaded vectorized version of evaluation of kernel. Unused.
 {
   for (int i=0; i<len; i++) {
     values[i]=evaluate_kernel(x[i],opts);

@@ -61,6 +61,8 @@ The original NUFFT rigorous analysis using truncated Gaussians is:
 ### To do
 
 * type-3 in 2d, 3d.
+* type 3 segfault in dumb case of nj=1 (SX product = 0).
+* figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
 * 
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
@@ -102,3 +104,4 @@ The original NUFFT rigorous analysis using truncated Gaussians is:
 * next235even for nf's
 * switched pre/post-amp correction from DFT of kernel to F series (FT) of kernel, more accurate
 * Gauss-Legendre quadrature for direct eval of kernel FT, openmp since cexp slow
+* optimize q (# G-L nodes) for kernel FT eval on reg and irreg grids (common.cpp). Needs q a bit bigger than like (2-3x the PTR, when 1.57x is expected). Why?
