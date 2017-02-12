@@ -179,20 +179,26 @@ int cnufftspread(
 	    // periodically up to +-1 period:
 	    long j1_array[r1[1]-r1[0]+1],j2_array[r2[1]-r2[0]+1],j3_array[r3[1]-r3[0]+1];
 	    for (int dx=r1[0]; dx<=r1[1]; dx++) {
-	      long j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1; j1_array[dx-r1[0]]=j; }
+	      long j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1;
+	      j1_array[dx-r1[0]]=j;
+	    }
 	    for (int dy=r2[0]; dy<=r2[1]; dy++) {
-	      long j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2; j2_array[dy-r2[0]]=j; }
+	      long j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2;
+	      j2_array[dy-r2[0]]=j;
+	    }
 	    for (int dz=r3[0]; dz<=r3[1]; dz++) {
-	      long j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3; j3_array[dz-r3[0]]=j; }
+	      long j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3;
+	      j3_array[dz-r3[0]]=j;
+	    }
 	    double re0=data_nonuniform2[i*2];
 	    double im0=data_nonuniform2[i*2+1];
   	    long aa = 0;
 	    for (int dz=r3[0]; dz<=r3[1]; dz++) {
-	      long o3=N1*N2*j3_array[dz-r3[0]];  // use precomputed index lists in each dim
+	      BIGINT o3=N1*N2*j3_array[dz-r3[0]];  // use precomputed index lists in each dim
 	      for (int dy=r2[0]; dy<=r2[1]; dy++) {
-		long o2=o3 + N1*j2_array[dy-r2[0]];
+		BIGINT o2=o3 + N1*j2_array[dy-r2[0]];
 		for (int dx=r1[0]; dx<=r1[1]; dx++) {
-		  long jjj=o2 + j1_array[dx-r1[0]];
+		  BIGINT jjj=o2 + j1_array[dx-r1[0]];
 		  double kern0=kernel_values[aa];     // kernel vals swept in proper order
 		  data_uniform[jjj*2]   += re0*kern0; // accumulate complex value to grid
 		  data_uniform[jjj*2+1] += im0*kern0;
@@ -218,11 +224,17 @@ int cnufftspread(
 	// periodically up to +-1 period:
 	long j1_array[R1[1]-R1[0]+1],j2_array[R2[1]-R2[0]+1],j3_array[R3[1]-R3[0]+1];	
 	for (int dx=R1[0]; dx<=R1[1]; dx++) {
-	  long j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1; j1_array[dx-R1[0]]=j; }
+	  long j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1;
+	  j1_array[dx-R1[0]]=j;
+	}
 	for (int dy=R2[0]; dy<=R2[1]; dy++) {
-	  long j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2; j2_array[dy-R2[0]]=j; }
+	  long j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2;
+	  j2_array[dy-R2[0]]=j;
+	}
 	for (int dz=R3[0]; dz<=R3[1]; dz++) {
-	  long j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3; j3_array[dz-R3[0]]=j; }
+	  long j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3;
+	  j3_array[dz-R3[0]]=j;
+	}
 	double re0=0.0, im0=0.0;
 	long aa = 0;
 	for (int dz=R3[0]; dz<=R3[1]; dz++) {
@@ -303,6 +315,7 @@ double evaluate_kernel(double x,const spread_opts &opts)
   //return 0.0; //exp(x); // to test how much time spent on kernel eval
   // todo: insert test if opts.kernel_type==1 ?
   double t = 2.0*x/opts.KB_W; 
+  //printf("x=%g\n",x);
   double tmp1=1.0-t*t;
   if (tmp1<0.0) {
      return 0.0;      // you fell outside the support
@@ -504,7 +517,7 @@ int set_KB_opts_from_eps(spread_opts &opts,double eps)
   int nspread=12; double fac1=1,fac2=1;  // defaults: todo decide for what tol?
   // tests done sequentially to categorize eps...
   if (eps>=1e-1) {
-    nspread=2; fac1=0.7; fac2=1.8;   // ahb guess
+    nspread=2; fac1=1.0; fac2=2.0;   // ahb guess
   } else if (eps>=1e-2) {
     nspread=4; fac1=0.75; fac2=1.71;
   } else if (eps>=1e-4) {
@@ -517,17 +530,17 @@ int set_KB_opts_from_eps(spread_opts &opts,double eps)
     nspread=12; fac1=0.92; fac2=1.51;
   } else if (eps>=1e-12) {
     nspread=14; fac1=0.94; fac2=1.48;
-  } else if (eps>=1e-16) {
+  } else {
     nspread=16; fac1=0.94; fac2=1.46;
-  } else {              // eps too small
-    fprintf(stderr,"set_kb_opts_from_eps: eps too small!\n");
-    return 1;
   }
-
   opts.nspread=nspread;
   opts.KB_fac1=fac1;
   opts.KB_fac2=fac2;
   opts.set_W_and_beta();
+  if (eps<1e-16) {      // report problem but don't exit
+    fprintf(stderr,"set_kb_opts_from_eps: eps too small!\n");
+    return 1;
+  }
   return 0;
 }
 

@@ -230,7 +230,7 @@ int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk,
   arraywidcen(nk,s,S1,D1);   // get half-width, center, containing {s_k}
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   BIGINT nf1 = set_nhg_type3(S1,X1,opts,spopts,h1,gam1);   // applies twist i)
-  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,nf1,nj,nk);
+  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,nj,nk);
   double* xpj = (double*)malloc(sizeof(double)*nj);
   for (BIGINT j=0;j<nj;++j) xpj[j] = (xj[j]-C1) / gam1;          // rescale x_j
   dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj);

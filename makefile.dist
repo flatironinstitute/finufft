@@ -32,7 +32,7 @@ MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
 
 
 # objects to compile: spreader...
-SOBJS = contrib/besseli.o src/cnufftspread.o src/utils.o src/twopispread.o src/common.o
+SOBJS = contrib/besseli.o src/cnufftspread.o src/utils.o src/twopispread.o src/common.o contrib/legendre_rule_fast.o
 # for NUFFT library and its testers...
 OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o
 # for Fortran interface... TODO
@@ -40,12 +40,16 @@ FOBJS = $(SOBJS) fortran/cnufftspread_f.o
 # for temp hook-up to Leslie's nuffts...  TODO
 LOBJS = $(FOBJS) fortran/finufft1dtemp.o contrib/next235.o contrib/dfftpack.o fortran/prini.o fortran/dirft1d.o
 
+HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/common.h src/utils.h
+
 default: testnd
 
-.PHONY:	nufft spreadtestnd testnd fortran testbessel
+.PHONY:	nufft spreadtestnd testnd fortran
 
 # implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:
+	$(CC) -c $(CFLAGS) $< -o $@
+.c.o:
 	$(CC) -c $(CFLAGS) $< -o $@
 .f.o:
 	$(FC) -c $(FFLAGS) $< -o $@
@@ -54,16 +58,16 @@ default: testnd
 nufft: $(OBJS)
 
 # test drivers and scripts...
-examples/spreadtestnd: examples/spreadtestnd.cpp $(SOBJS)
+examples/spreadtestnd: examples/spreadtestnd.cpp $(SOBJS) $(HEADERS)
 	$(CC) $(CFLAGS) examples/spreadtestnd.cpp $(SOBJS) -o examples/spreadtestnd
 
-examples/finufft1d_test: examples/finufft1d_test.cpp $(OBJS)
+examples/finufft1d_test: examples/finufft1d_test.cpp $(OBJS) $(HEADERS)
 	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft1d_test
 
-examples/finufft2d_test: examples/finufft2d_test.cpp $(OBJS)
+examples/finufft2d_test: examples/finufft2d_test.cpp $(OBJS) $(HEADERS)
 	$(CC) $(CFLAGS) examples/finufft2d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft2d_test
 
-examples/finufft3d_test: examples/finufft3d_test.cpp $(OBJS)
+examples/finufft3d_test: examples/finufft3d_test.cpp $(OBJS) $(HEADERS)
 	$(CC) $(CFLAGS) examples/finufft3d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft3d_test
 
 spreadtestnd: examples/spreadtestnd
@@ -73,9 +77,17 @@ spreadtestnd: examples/spreadtestnd
 testnd: examples/finufft1d_test examples/finufft2d_test examples/finufft3d_test
 	(cd examples; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
 
-testbessel: contrib/testi0.cpp contrib/besseli.o src/utils.o
-	$(CC) $(CFLAGS) contrib/testi0.cpp contrib/besseli.o src/utils.o -o contrib/testi0
+examples/plotkernels: $(SOBJS) $(HEADERS) examples/plotkernels.cpp
+	$(CC) $(CFLAGS) examples/plotkernels.cpp -o examples/plotkernels $(SOBJS) 
+	(cd examples; ./plotkernels > plotkernels.dat)
+
+contrib/testi0: contrib/testi0.cpp contrib/besseli.o src/utils.o
+	$(CC) $(CFLAGS) contrib/testi0.cpp $(OBJS) -o contrib/testi0
 	(cd contrib; ./testi0)
+
+examples/testutils: examples/testutils.cpp src/utils.o src/utils.h
+	$(CC) $(CFLAGS) examples/testutils.cpp src/utils.o -o examples/testutils
+	(cd examples; ./testutils)
 
 fortran: $(FOBJS)
 # other fort wrappers todo...

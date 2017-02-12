@@ -20,6 +20,7 @@ BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
   nf = next235even(nf);
   h = 2*M_PI/nf;                            // upsampled grid spacing
   gam = (X/M_PI)*(1.0 + spopts.nspread/(double)nf);   // x scale fac
+  gam = MAX(gam,1/S);                    // safely handle X=0 (zero width)
   return nf;
 }
 
@@ -136,7 +137,7 @@ void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat,
   prefac_unused_dim - the prefactor that cnufftspread multiplies for each
                        unused dimension (ie two such factors in 1d, one in 2d,
 		       and none in 3d). Same as for onedim_dct_kernel, etc.
-  Barnett 2/8/17. openmp 2/9/17
+  Barnett 2/8/17. openmp since cos slow 2/9/17
  */
 {
   prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
