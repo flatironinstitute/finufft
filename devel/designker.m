@@ -1,194 +1,82 @@
-function designker
-% Design some Cheby expansions with optimal NUFFT type-2 interp errors.
-% uses: gauss.m
-% Barnett 2/10/17
+% compare and design new NUFFT type-2 spreading kernels (windows)
+% v.2 cleaned up, no cheb. "badness" is the estimated error.
+% needs: cmaes.m, obj.m, gauss.m, badness.m, ft.m
+% Barnett 2/13/17
 
-%test_chebeval; return
-%test_chebeveneval; return   % to fix
-%test_chebrep; return
-%n=10; a = randn(1,n+1); for q=10:10:100, ft_chebser(a,2.0,9,q), end % q conv
+clear
+R = 2.0;           % upsampling ratio
+ns = 2;            % nspread
+i = 0;             % counter over windows to compare
 
-if 0  % how long a cheb needed for gaussian, or half a gaussian?
-f = @(x) exp(-20*x.^2);
-x = linspace(-1,1,1e3); figure; plot(x,f(x),'-'); title('f')
-n=50; a=chebrep(n,f);
-figure; subplot(2,1,1); semilogy(0:2:n,abs(a(1:2:n+1)),'+');
-subplot(2,1,2); plot(x, chebeval(x,a)-f(x), '-');
+%for ns=2:9, ns      % ================
 
-n=25; a=chebrep(n,@(x) f((x+1)/2));
-figure; subplot(2,1,1); semilogy(0:n,abs(a),'+');
-x = linspace(0,1,1e3);
-subplot(2,1,2); plot(x, chebeval(2*x-1,a)-f(x), '-');
-end   % concl: even parity only for Gaussian bit better than half-Gaussian.
-% (assuming a Clenshaw-type eval exists for even terms only!)
+i=i+1; % optimize a Gaussian's width (be)...
+L{i} = ns/2;      % we allow L (half-support) to vary per kernel (to allow jfm)
+[be b] = fminbnd(@(be) badness(@(x) exp(-(x/be).^2),L{i},R),0.5,4.0);
+fprintf('best Gaussian badness=%.3g @ beta=%.3g\n',b,be);
+f{i} = @(x) exp(-(x/be).^2);
+nam{i} = 'best-fit gaussian';
 
-R = 2.0;
-ns = 4; L = ns/2;  % nspread and half-support
-% optimize a Gaussian's width...
-[be b] = fminbnd(@(be) badness(@(x) exp(-(x/be).^2),L,R),0.5,4.0);
-fprintf('best Gaussian b=%.3g @ beta=%.3g\n',b,be);
-%chebrep(4,@(x) -(L*x/be).^2), (L/be)^2/2  % debug init cheb coeffs
+i=i+1; % Kaiser-Bessel as Jeremy had it but normalized to 1 at x=0....
+fac1 = ns/(ns+mod(ns+1,1));  % jfm's weird truncation
+fac2s = [2.2 1.71 1.65 1.45 1.47 1.51 1.48 1.46];   % jfm's list for even ns's
+fac2 = fac2s(ceil(ns/2));        % for odd ns, use jfn's setting for ns+1
+W = fac1*ns;             % full KB width, jfm's formulae
+beta = max(0,pi*sqrt(W^2/4-0.8)*fac2);  % now truncate to W/2...
+f{i} = @(x) (abs(x)<W/2).*besseli(0,beta*sqrt(1-(2*x/W).^2))/besseli(0,beta);
+L{i} = W/2;    % for ns even, narrower than ns/2, weirdly
+bkb = badness(f{i},L{i},R);
+fprintf('Kaiser-Bessel badness=%.3g @ fac1=%.3g,fac2=%.3g\n',bkb,fac1,fac2);
+nam{i} = 'Kaiser-Bessel jfm';
 
-if 0  % cheby version
-  % now optim over cheb coeffs via fminsearch w/ gaussian as initialiation
-  nh = 2;   % n/2. There are nh coeffs to fit, since we fix a_0=1
-  ec0 = zeros(1,nh);   % coeffs 2,4,...
-  ec0(1) = -0.5*(L/be)^2  % init even coeffs vec (x^2 term only) to best gauss
-  f = @(ec,x) exp(chebeval(x/L,[1.0 kron(ec,[0 1])]));  % coeffs 2,4,.. <- ec
-  obj = @(ec) log10(badness(@(x) f(ec,x),L,R));
-  fprintf('starting Gaussian est err %.6g (should match above)\n',obj(ec0))
-  eps = 10^-ns;  % acc
-  o = optimset('tolfun', eps,'tolx',eps,'maxiter',1e4,'maxfunevals',1e5,'display','iter');
-  [ecb bb exitflag] = fminsearch(obj,ec0,o)     % the hard part
-  fprintf('nh=%d exp(cheby) achieved est err %.6g\n',nh,10^bb)
-  for j=1:4
-    nh = nh+1; % add just one extra unknown
-    [ecb bb exitflag] = fminsearch(obj,[ecb 0],o)     % the hard part
-    fprintf('nh=%d exp(cheby) achieved est err %.6g\n',nh,10^bb)
-  end
-else   % or plain poly version
-  nh = 2;   % degree/2. There are nh coeffs to fit, since we fix a_0=0
-  ec0 = zeros(1,nh);   % coeffs 2nh,2nh-2,...,4,2
-  ec0(nh) = -(L/be)^2  % init even coeffs vec (x^2 term only) to best gaussian
-  f = @(ec,x) exp(polyval([kron(ec,[1 0]) 0],x/L)); % coeffs 2nh,..,4,2 <- ec
-  obj = @(ec) log10(badness(@(x) f(ec,x),L,R));
-  fprintf('starting Gaussian est err %.6g (should match above)\n',obj(ec0))
-  eps = 10^-ns;  % acc
-  o = optimset('tolfun', eps,'tolx',eps,'maxiter',1e4,'maxfunevals',1e5,'display','iter');
-  [ecb bb exitflag] = fminsearch(obj,ec0,o)     % the hard part
-  fprintf('nh=%d exp(poly) achieved est err %.6g\n',nh,10^bb)  
-  for j=1:4
-    nh = nh+1; % add just one extra unknown
-    [ecb bb exitflag] = fminsearch(obj,[0 ecb],o)     % the hard part
-    fprintf('nh=%d exp(poly) achieved est err %.6g\n',nh,10^bb)
-  end
-end
-ecb'
+i=i+1; % Alex exp(sqrt) approx to I0 approx to KB
+L{i} = ns/2;
+fes = @(beta,x) exp(beta*sqrt(1-(2*x/ns).^2))/exp(beta)./sqrt(sqrt(1-(2*x/ns).^2));
+[beta bes] = fminbnd(@(beta) badness(@(x) fes(beta,x),L{i},R),2.0*ns,2.4*ns);
+f{i} = @(x) (abs(x)<ns/2).*fes(beta,x);
+bkb = badness(f{i},L{i},R);
+fprintf('optim exp(beta*sqrt)/quarter badness=%.3g @ beta=%.3g (beta/ns=%.4g)\n',bkb,beta,beta/ns);
+nam{i} = 'exp(sqrt)           ';
 
+%i=i+1; % optimize Kaiser-Bessel with ns/2 width...
+%fkb = @(beta,x) besseli(0,beta*sqrt(1-(2*x/ns).^2))/besseli(0,beta);
+%L{i} = ns/2;
+%nam{i} = 'Kaiser-Bessel optim beta';
+%bkb = badness(f{i},L{i},R);
+%fprintf('Kaiser-Bessel optim badness=%.3g @ beta=%.3g\n',bkb,beta);
 
-
-%ff = @(x) exp(-(x/be).^2);  % the former Gaussian
-ff = @(x) f(ecb,x);           % best-fit new thingy
-if 1 %  plot ff in both x and k
-  x = linspace(0,L,1e3); k = linspace(0,7*pi,1e3);
-  F = ft(ff,L,k);
-  %norm(ft(ff,L,k,50)- ft(ff,L,k,30))  % test conv
-  figure; subplot(3,1,1);plot(x,ff(x),'-'); xlabel('x'); axis tight;
-  subplot(3,1,2);semilogy(x,ff(x),'-'); xlabel('x'); axis tight;
-  subplot(3,1,3);semilogy(k,abs(F),'-'); xlabel('k'); axis tight;
-  vline(pi*[1/R, 2-1/R, 2+1/R 4-1/R, 4+1/R]);
+if 0
+  i=i+1; % design our exp(poly) or exp(poly(asin())) thing...
+nh = 4;   % degree/2. There are nh coeffs to fit, since we fix a_0=0
+type =1;   % tell obj what func type
+L{i} = ns/2;
+ec0 = zeros(nh,1);   % coeffs 2nh,2nh-2,...,4,2
+ec0(nh) = -(L{i}/be)^2  % init even coeffs vec (x^2 term only) to best gaussian
+fep = @(ec,x) exp(polyval([kron(ec',[1 0]) 0],x/L{i})); %coeffs 2nh,..,4,2 <- ec
+%fep = @(ec,x) exp(polyval([kron(ec',[1 0]) 0],(2/pi)*asin(x/L{i}))); %coeffs 2nh,..,4,2 <- ec
+fprintf('starting Gaussian est err %.6g (should match above)\n',10^obj(ec0,L{i},R,type))
+oo=cmaes; oo.TolFun=1e-3;   % override default opts
+[ecb b counteval stopflag out] = cmaes('obj',ec0,0.5,oo,L{i},R,type) % see obj.m
+fprintf('nh=%d exp(poly) achieved est err %.6g\n',nh,10^b)
+f{i} = @(x) fep(ecb,x);           % best-fit new thingy
+nam{i} = sprintf('best fit exp(poly) nh=%d',nh);
 end
 
-
-
-%%%%%%%%
-
-function b = badness(f,L,R)   % inverse figure of merit for func f. small=good
-% f should be even-symm and support on [-L,L]
-nfreqs = 40;                % pretty much a guess, just dense enough
-kuse = linspace(-pi/R,pi/R,nfreqs);   % used freqs, both signs
-Fuse = abs(ft(f,L,kuse));
-Falias = 0*kuse;
-nimg = 4;                      % how far to sum over nearby aliased copies
-for m=-nimg:nimg, if m~=0
-    Falias = Falias + abs(ft(f,L,kuse+2*pi*m));  % some nearby aliased copies
-  end,end
-b = max(Falias./Fuse);      % worst case over used freq range
-  
-%nfreqs = 30;                % pretty much a guess, just dense enough
-%kuse = linspace(0,pi/R,nfreqs);   % used freqs
-%ktail = linspace(pi*(2-1/R),pi*(2+1/R),nfreqs);
-%tail = max(abs(ft(f,L,ktail)));
-%tail2 = max(abs(ft(f,L,ktail+2*pi)));
-%tail = max(tail,tail2);
-%b = tail / max(abs(ft(f,L,kuse)));
-
-%kalias1 = 2*pi-kuse;         % corresponding nearest aliased copies
-%kalias2 = 2*pi+kuse;         % corresponding nearest aliased copies
-%tail = max(abs([ft(f,L,kalias1);ft(f,L,kalias2)]),[],1); % worst at each freq
-%b = max(tail./abs(ft(f,L,kuse)));  % worst-case aliasing error
-
-%b = max(abs(ft(f,L,ktail)./ft(f,L,kuse)));  % worst-case aliasing error
-
-function F = ft(f,L,k,q)
-% compute real Fourier transform of even-symm func on [-L,L] at target freqs k.
-% q is optional override of even # quadr nodes.
-%kmax = 3*pi;            % The largest allowed k
-%if sum(abs(k)>kmax)>0, warning('|k| cannot exceed kmax!'); end
-kmax = max(abs(k));
-if nargin<4
-  q = ceil(10 + kmax*L); if mod(q,2), q=q+1; end   % q even
-end
-[z w] = gauss(q); z = L*z(1:q/2); w = 2*L*w(1:q/2); % even symm quadr on [-L,L]
-fj = f(z);      % func evals in one go
-F = 0*k;        % same size as k list
-for j=1:q/2
-  F = F + w(j)*fj(j)*cos(k*z(j));
+fprintf('\nsummary table of estimated errors...\n')
+clear b; for j=1:numel(f), b{j} = badness(f{j},L{j},R);   % check all badnesses
+  fprintf('kernel %d:   %s   \tbadness=%.3g\n',i,nam{j},b{j})
 end
 
-function test_chebrep  % test representation of a func by cheb polys
-n=16;                                  % order
-f = @(x) exp(x);                       % real-valued smooth test func
-a = chebrep(n,f);
-x = linspace(-1,1,1e3);                % evaluation test grid
-p = chebeval(x,a);
-fx = f(x);
-norm(p-fx)
-figure; plot(x,[fx;p],'-'); hold on; plot(xj,fj,'*');
+ %i=0; end    % =============== loop over ns
 
-function a = chebrep(n,f)
-% returns Cheby coeffs of n-th order Cheb poly rep of func handle f.
-xj = cos(linspace(0,pi,n+1));          % sample f at n+1 cheb pts
-fj = f(xj);
-fhat = fft([fj fj(end-1:-1:2)])/n;     % periodize, length 2n FFT
-a = real(fhat(1:n+1)); a(1)=a(1)/2;    % extract cheb coeffs (a_0 special)
-
-function test_chebeval
-x = linspace(-1,1,1e3);
-n = 9;                     % order of T_n to plot
-a = zeros(1,n+1); a(end) = 1.0;
-p = chebeval(x,a); pd = chebevald(x,a);
-norm(p-pd)
-figure; plot(x,[p;pd],'-');
-
-function test_chebeveneval    % ** Fails
-x = linspace(-1,1,1e1);
-n = 16; a = randn(1,n+1); a(2:2:end) = 0;   % even series
-p = chebeval(x,a); pe = chebeveneval(x,a(1:2:end));   % two ways
-p-pe
-norm(p-pe)
-
-function p = chebeval(x,a)
-% use Clenshaw (Horner's) method for sum_{k=0...n} a_k T_k(x).
-% x may be a vector.  Barnett 2/10/17
-n = length(a)-1;
-b1=0*x; b2=b1;  % init downwards recur, on array of zeros of size x
-for k=n:-1:1
-  b3=b2;
-  b2=b1;
-  b1=a(k+1)+2*x.*b2-b3;   % note a_k is in k+1 entry in matlab
-end
-p = a(1)-b2 + b1.*x;
-
-function p = chebevald(x,a)
-% direct slow Cheby eval, to check
-n = length(a)-1;
-p = 0*x;
-for k=0:n
-  p = p + a(k+1)*cos(k*acos(x));
-end
-
-function p = chebeveneval(x,a)
-% *** BROKEN
-% use Clenshaw (Horner's) method for sum_{k=0,2,..,n} a_k T_k(x), ie even only.
-% x may be a vector.  Barnett 2/11/17
-nh = length(a)-1;   % n/2
-b1=0*x; b2=b1;  % init downwards recur, on array of zeros of size x
-al2 = 4*x.*x;    % alpha^2 = (2x)^2
-for kh=nh:-1:1   % recur k/2 down from n/2 to 1
-  b3=b2;
-  b2=b1;
-  b1=a(kh+1) + (al2-1).*b2 - al2.*b3;
-end
-p = a(1)-b1;
+%  plot all f's in both x and k
+x = linspace(0,ns/2,1e3); k = linspace(0,7*pi,1e3);          % x and k domains
+fx = []; for i=1:numel(f), fx = [fx; f{i}(x)]; end           % stack func evals
+Fx = []; for i=1:numel(f), Fx = [Fx; ft(f{i},L{i},k)]; end   % stack FT evals
+ss = get(0,'screensize'); w=ss(3); h=ss(4);
+figure; set(gcf,'position',[.2*w 0 .2*w .9*h]);
+subplot(3,1,1); plot(x,fx,'-'); xlabel('x'); axis tight; legend(nam);
+subplot(3,1,2); semilogy(x,fx,'-'); xlabel('x'); axis tight; legend(nam,'location','southwest');
+subplot(3,1,3); semilogy(k,abs(Fx),'-'); xlabel('k'); axis tight; legend(nam);
+vline(pi*[1/R, 2-1/R, 2+1/R 4-1/R, 4+1/R]);
 

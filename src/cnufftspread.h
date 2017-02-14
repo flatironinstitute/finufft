@@ -34,4 +34,6 @@ int set_KB_opts_from_kernel_params(spread_opts &opts,double *kernel_params);
 int set_KB_opts_from_eps(spread_opts &opts,double eps);
 int get_kernel_params_for_eps(double *kernel_params,double eps);
 
+double exppolyker(double x); // temp for now
+
 #endif // CNUFFTSPREAD_H

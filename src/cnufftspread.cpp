@@ -309,9 +309,24 @@ std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3
   return ret;
 }
 
+static double a4[]={      0.000241740526327102,
+			-0.0341367675434659,
+			-0.793678269646493,
+			-0.161505319760492,
+			-0.943294668563553,
+			-4.14905311710577};
+double exppolyker(double x,double *a,int nh,double L)
+{
+  double x2=x*x/(L*L);  // scaled x^2
+  double y = a[0]*x2;
+  for (int k=1;k<nh;++k) y = (a[k] + y)*x2;
+  return exp(y);
+}
+
 double evaluate_kernel(double x,const spread_opts &opts)
 // kernel evaluation at single real argument: hard-wired as Kaiser--Bessel
 {
+  //if (abs(x)>2.0) return 0.0; else return exppolyker(x,a4,6,2);  // expt ns=4 (1e-2)***
   //return 0.0; //exp(x); // to test how much time spent on kernel eval
   // todo: insert test if opts.kernel_type==1 ?
   double t = 2.0*x/opts.KB_W; 

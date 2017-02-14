@@ -57,12 +57,22 @@ double chbevl_local(double x, double array[], int n)  // speed test
   return(0.5*(b0 - b2));
 }
 
+double polevl(double x,double array[], int n)
+{
+  double y=0.0;
+  double x2 = x*x;
+  //if (((int)(1e8*x2) % 2) > 0)       // see if conditionals slow it down
+    for (int i=0;i<n;++i) y = (y + array[i])*x2;
+  //else
+  //  for (int i=0;i<n;++i) y = (y + array[i+4])*x2;
+  return y;
+}
 
 
 int main(int argc, char* argv[])
 // Output kernels for various precisions. Each row is z, phi_1(z), phi_2(z),...
 // where phi_j are the kernels for various precisions.
-// Also times the kernel eval.
+// Also times the kernel eval and various styles of approximation for it.
 // Barnett 2/10/17
 {
   const double tols[] = {1e-1,1e-2,1e-4,1e-6,1e-8,1e-10,1e-12,1e-16};
@@ -134,9 +144,28 @@ int main(int argc, char* argv[])
     timer.restart();  y = 0.0;
   for (int n=0;n<N;++n) {
     double z = -1 + n*dz;
-    y += exp(chbevl_local(z,A,8));
+    y += exp(chbevl_local(z,A,4));
   }
-  fprintf(stderr,"%.3g ns per exp(8-term cheb) \t(dummy y=%.3g)\n",timer.elapsedsec()/N*1e9,y);
+  fprintf(stderr,"%.3g ns per exp(4-term cheb) \t(dummy y=%.3g)\n",timer.elapsedsec()/N*1e9,y);
+  
+    timer.restart();  y = 0.0;
+  for (int n=0;n<N;++n) {
+    double z = -1 + n*dz;
+    y += exp(polevl(asin(z),A,4));
+    //double q = asin(z);
+    //y += exp(0.7 + (1.2 + (2.4 + (2.5 + 3.1*q)*q)*q)*q);
+  }
+  fprintf(stderr,"%.3g ns per exp(4-term poly(asin()) \t(dummy y=%.3g)\n",timer.elapsedsec()/N*1e9,y);
+  
+    timer.restart();  y = 0.0;
+  for (int n=0;n<N;++n) {
+    double z = -1 + n*dz;
+    if (abs(z)<0.99999) {
+      double q = sqrt(1-z*z);
+      y += exp(56.1*q)/sqrt(q);
+    }
+  }
+  fprintf(stderr,"%.3g ns per exp(sqrt)/sqrt(sqrt) \t(dummy y=%.3g)\n",timer.elapsedsec()/N*1e9,y);
   
   return 0;
 }
