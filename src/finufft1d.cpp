@@ -76,15 +76,13 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   // STEP 3a: get FT (series) of real symmetric spreading kernel
   timer.restart();
   double *fwkerhalf = (double*)malloc(sizeof(double)*(nf1/2+1));
-  double prefac_unused_dims;
-  onedim_fseries_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
+  onedim_fseries_kernel(nf1, fwkerhalf, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
   //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
 
   // Step 3b: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims*nj);  // 1/nj norm
-  deconvolveshuffle1d(1,prefac,fwkerhalf,ms,fk,nf1,fw);
+  deconvolveshuffle1d(1,1.0/nj,fwkerhalf,ms,fk,nf1,fw);   // 1/nj prefac
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
   //for (int j=0;j<ms;++j) cout<<fk[2*j]<<"\t"<<fk[2*j+1]<<endl;
 
@@ -140,8 +138,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   // STEP 0: get FT of real symmetric spreading kernel
   CNTime timer; timer.start();
   double *fwkerhalf = (double*)malloc(sizeof(double)*(nf1/2+1));
-  double prefac_unused_dims;
-  onedim_fseries_kernel(nf1, fwkerhalf, prefac_unused_dims, spopts);
+  onedim_fseries_kernel(nf1, fwkerhalf, spopts);
   double t=timer.elapsedsec();
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
 
@@ -158,8 +155,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
   timer.restart();
-  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims);
-  deconvolveshuffle1d(2,prefac,fwkerhalf,ms,fk,nf1,fw);
+  deconvolveshuffle1d(2,1.0,fwkerhalf,ms,fk,nf1,fw);
   fftw_free(fwkerhalf);        // in 1d could help to free up
   if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
   //cout<<"fw:\n"; for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
@@ -260,17 +256,15 @@ int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk,
   // Step 3a: compute Fourier transform of scaled kernel at targets
   timer.restart();
   double *fkker = (double*)malloc(sizeof(double)*nk);
-  double prefac_unused_dims;
-  onedim_nuft_kernel(nk, sp, fkker, prefac_unused_dims, spopts);  // fill fkker
+  onedim_nuft_kernel(nk, sp, fkker, spopts);           // fill fkker
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
   // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
   timer.restart();
-  double prefac = 1.0/(prefac_unused_dims*prefac_unused_dims); // since 2 unused
   dcomplex *fkc = (dcomplex*)fk;    // index output as complex array
   // todo: if C1==0.0 don't do the expensive exp()... ?
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
   for (BIGINT k=0;k<nk;++k)          // also phases to account for C1 x-shift
-    fkc[k] *= (dcomplex)(prefac/fkker[k]) * exp(ima*(s[k]-D1)*C1);
+    fkc[k] *= (dcomplex)(1.0/fkker[k]) * exp(ima*(s[k]-D1)*C1);
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
   free(fkker); free(sp); if (opts.debug) printf("freed\n");

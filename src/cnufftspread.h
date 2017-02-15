@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "utils.h"
 
-#define HALF_MAX_NS 16       // upper bnd on nspread/2 needed by other codes
+#define MAX_NSPREAD 16       // upper bnd on nspread needed by other codes
 
 // Note -std=c++11 is needed to avoid warning for static initialization here:
 struct spread_opts {

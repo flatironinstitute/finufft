@@ -63,10 +63,9 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
   double *fwkerhalf1 = fftw_alloc_real(nf1/2+1);
   double *fwkerhalf2 = fftw_alloc_real(nf2/2+1);
   double *fwkerhalf3 = fftw_alloc_real(nf3/2+1);
-  double prefac_unused_dims;
-  onedim_fseries_kernel(nf1, fwkerhalf1, prefac_unused_dims, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, prefac_unused_dims, spopts);
-  onedim_fseries_kernel(nf3, fwkerhalf3, prefac_unused_dims, spopts); //prefacs same
+  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
+  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
+  onedim_fseries_kernel(nf3, fwkerhalf3, spopts);
   double t=timer.elapsedsec();
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
 
@@ -95,8 +94,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  double prefac = 1.0/nj;    // 1/nj norm
-  deconvolveshuffle3d(1,prefac,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,fk,nf1,nf2,nf3,fw);
+  deconvolveshuffle3d(1,1.0/nj,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,fk,nf1,nf2,nf3,fw);  // 1/nj prefac
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   fftw_free(fw); fftw_free(fwkerhalf1); fftw_free(fwkerhalf2); fftw_free(fwkerhalf3);
@@ -157,10 +155,9 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
   double *fwkerhalf1 = fftw_alloc_real(nf1/2+1);
   double *fwkerhalf2 = fftw_alloc_real(nf2/2+1);
   double *fwkerhalf3 = fftw_alloc_real(nf3/2+1);
-  double prefac_unused_dims;
-  onedim_fseries_kernel(nf1, fwkerhalf1, prefac_unused_dims, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, prefac_unused_dims, spopts);
-  onedim_fseries_kernel(nf3, fwkerhalf3, prefac_unused_dims, spopts); //prefacs same
+  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
+  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
+  onedim_fseries_kernel(nf3, fwkerhalf3, spopts);
   double t=timer.elapsedsec();
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
 
@@ -177,8 +174,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
   timer.restart();
-  double prefac = 1.0;
-  deconvolveshuffle3d(2,prefac,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,fk,nf1,nf2,nf3,fw);
+  deconvolveshuffle3d(2,1.0,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,fk,nf1,nf2,nf3,fw);
   if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
 
   // Step 2:  Call FFT

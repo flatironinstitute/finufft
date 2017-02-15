@@ -20,12 +20,11 @@ BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
   nf = next235even(nf);
   h = 2*M_PI/nf;                            // upsampled grid spacing
   gam = (X/M_PI)*(1.0 + spopts.nspread/(double)nf);   // x scale fac
-  gam = MAX(gam,1/S);                    // safely handle X=0 (zero width)
+  gam = MAX(gam,1.0/S);                    // safely handle X=0 (zero width)
   return nf;
 }
 
-void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
-		       double &prefac_unused_dim, spread_opts opts)
+void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
 /*
   Computes DCT coeffs of cnufftspread's real symmetric kernel, directly,
   exploiting narrowness of kernel. Uses phase winding for cheap eval on the
@@ -38,9 +37,6 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
   Outputs:
   fwkerhalf - real Fourier coeffs from indices 0 to nf/2 inclusive.
               (should be allocated for at least nf/2+1 doubles)
-  prefac_unused_dim - the prefactor that cnufftspread multiplies for each
-                       unused dimension (ie two such factors in 1d, one in 2d,
-		       and none in 3d).
   Single thread only.
 
   todo: understand how to openmp it? - subtle since private aj's. Want to break
@@ -49,13 +45,12 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
  */
 {
   int m=opts.nspread/2;                // how many "modes" to include
-  double f[HALF_MAX_NS];
+  double f[MAX_NSPREAD/2];
   for (int n=0;n<=m;++n)    // actual freq index will be nf/2-n, for cosines
     f[n] = evaluate_kernel((double)n, opts);  // center at nf/2
-  prefac_unused_dim = f[0];   // ker @ 0, must match cnufftspread's behavior
   for (int n=1;n<=m;++n)               //  convert from exp to cosine ampls
     f[n] *= 2.0;
-  dcomplex a[HALF_MAX_NS],aj[HALF_MAX_NS];
+  dcomplex a[MAX_NSPREAD/2],aj[MAX_NSPREAD/2];
   for (int n=0;n<=m;++n) {             // set up our rotating phase array...
     a[n] = exp(2*M_PI*ima*(double)(nf/2-n)/(double)nf);   // phase differences
     aj[n] = dcomplex{1.0,0.0};         // init phase factors
@@ -70,8 +65,7 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
   }
 }
 
-void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
-		       double &prefac_unused_dim, spread_opts opts)
+void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -85,9 +79,7 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
   Outputs:
   fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive
               (should be allocated for at least nf/2+1 doubles)
-  prefac_unused_dim - the prefactor that cnufftspread multiplies for each
-                       unused dimension (ie two such factors in 1d, one in 2d,
-		       and none in 3d).
+
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
 
@@ -96,8 +88,7 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
   Barnett 2/7/17
  */
 {
-  prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
-  double J2 = opts.nspread/2 - 0.5;        // J/2, half-width of ker z-support
+  double J2 = opts.nspread/2;           // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
   double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
@@ -119,8 +110,7 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
   }
 }
 
-void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat,
-		       double &prefac_unused_dim, spread_opts opts)
+void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat, spread_opts opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -134,14 +124,11 @@ void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat,
 
   Outputs:
   phihat - real Fourier transform evaluated at freqs (alloc for nk doubles)
-  prefac_unused_dim - the prefactor that cnufftspread multiplies for each
-                       unused dimension (ie two such factors in 1d, one in 2d,
-		       and none in 3d). Same as for onedim_dct_kernel, etc.
+
   Barnett 2/8/17. openmp since cos slow 2/9/17
  */
 {
-  prefac_unused_dim = evaluate_kernel(0.0, opts);  // must match cnufftspread
-  double J2 = opts.nspread/2 - 0.5;        // J/2, half-width of ker z-support
+  double J2 = opts.nspread/2;// - 0.5;        // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 2.0*J2);     // > pi/2 ratio.  cannot exceed MAX_NQUAD
   printf("q (# FT quadr pts) = %d\n",q);

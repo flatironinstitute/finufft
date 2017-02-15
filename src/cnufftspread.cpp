@@ -10,9 +10,9 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
 				       long N1,long N2,long N3);
 double evaluate_kernel(double x,const spread_opts &opts);
 void evaluate_kernel(int len, double *x, double *values, spread_opts opts);
-std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3,
-					  const spread_opts &opts, int *r1,
-					  int *r2, int *r3);
+void compute_kernel_values(double frac1,double frac2,double frac3,
+			   const spread_opts &opts, int *r1, int *r2, int *r3,
+			   double *ker, int ndims);
 bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long N3,
 			  int th,int nth, const spread_opts &opts);
 bool ind_might_affect_interval(long i,long N,long *ith,long nspread);
@@ -77,6 +77,9 @@ int cnufftspread(
     fprintf(stderr,"opts.spread_direction must be 1 or 2!\n");
     return 4;
   }
+  int ndims = 1;
+  if (N2>1) ++ndims;
+  if (N3>1) ++ndims;      // now ndims is 1,2 or 3
 
   std::vector<double> kx2,ky2,kz2,data_nonuniform2;  // declarations can't be in try block
   std::vector<long> sort_indices;
@@ -174,7 +177,8 @@ int cnufftspread(
 	    // from now on in dir=1, we use "small r" instead of "big R" bounds...
 	    // Eval only ker vals needed for overall dim and this thread's index box
 	    // (the set of relative indices always fall into a single box)
-	    std::vector<double> kernel_values=compute_kernel_values(frac1,frac2,frac3,opts,r1,r2,r3);
+	    double kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
+	    compute_kernel_values(frac1,frac2,frac3,opts,r1,r2,r3,kernel_values,ndims);
 	    // set up indices for each dim ahead of time using by-hand modulo wrapping
 	    // periodically up to +-1 period:
 	    long j1_array[r1[1]-r1[0]+1],j2_array[r2[1]-r2[0]+1],j3_array[r3[1]-r3[0]+1];
@@ -219,7 +223,8 @@ int cnufftspread(
 	double frac1=kx2[i]-i1;
 	double frac2=ky2[i]-i2;         // "
 	double frac3=kz2[i]-i3;         // "
-	std::vector<double> kernel_values=compute_kernel_values(frac1,frac2,frac3,opts,R1,R2,R3);
+	double kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
+	compute_kernel_values(frac1,frac2,frac3,opts,R1,R2,R3,kernel_values,ndims);
 	// set up indices for each dim ahead of time using by-hand modulo wrapping
 	// periodically up to +-1 period:
 	long j1_array[R1[1]-R1[0]+1],j2_array[R2[1]-R2[0]+1],j3_array[R3[1]-R3[0]+1];	
@@ -265,71 +270,67 @@ int cnufftspread(
   return 0;
 }
 
-std::vector<double> compute_kernel_values(double frac1,double frac2,double frac3,
-					  const spread_opts &opts, int *r1,
-					  int *r2, int *r3)
-/* Evaluate spreading kernel values on a cuboid of grid points shifted from the origin
- * by fractional part frac1,frac2,frac2. This may be a sub-cuboid of the full
- * possible R^3 values, and is controlled by r1,r2,r3 which are two-element arrays
- * giving start and end indices offsets (in -R/2,...,R/2-1) in each dimension.
- * If a dimension "m" is unused, "fracm" should be 0.0, and both "rm"
- * elements should be set to 0. The kernel gets a factor of the 1d kernel at x=0 for
- * each such dim. For speed, the output is just the values in the
- * sub-cuboid, ordered x (dim1) fast, y (dim2) medium, z (dim3) slow.
- * (A full R^3 vector STL would waste time initializing with R^3 zeros.)
- * R must be even.
+void compute_kernel_values(double frac1,double frac2,double frac3,
+			   const spread_opts &opts, int *r1, int *r2, int *r3,
+			   double *ker, int ndims)
+/* Evaluate spreading kernel values on integer cuboid of grid points
+ * shifted from the origin by fractional part
+ * (-frac1,-frac2,-frac2). The integer ranges are controlled by
+ * r1,r2,r3 which each are two-element arrays giving start and end
+ * indices offsets in each dimension.  ndims=1,2,3 sets the number of dimensions.
+ * The output ker is values in the cuboid,
+ * ordered x (dim1) fast, y (dim2) medium, z (dim3) slow.  ker should be
+ * allocated for MAX_NSPREAD^3 doubles.
  *
  * Magland Dec 2016. Restrict to sub-cuboids and doc by Barnett 1/16/17.
+ * C-style external alloc, and removing prefacs from unused dims - faster. 2/15/17
  */
 {
-  int R=opts.nspread;       // all ints, used for indexing speed
-  int sh=-R/2;              // index shift
   int s1=r1[1]-r1[0]+1, s2=r2[1]-r2[0]+1, s3=r3[1]-r3[0]+1; // cuboid sizes
-  std::vector<double> v1(s1),v2(s2),v3(s3);  // fill 1d lists in each dim...
+  double v1[MAX_NSPREAD],v2[MAX_NSPREAD],v3[MAX_NSPREAD];  // eval 1d lists in each dim...
   for (int i=r1[0]; i<=r1[1]; ++i)
-    v1[i-r1[0]] = evaluate_kernel(frac1-(double)i,opts);
-  for (int i=r2[0]; i<=r2[1]; ++i)
-    v2[i-r2[0]] = evaluate_kernel(frac2-(double)i,opts);
-  for (int i=r3[0]; i<=r3[1]; ++i)
-    v3[i-r3[0]] = evaluate_kernel(frac3-(double)i,opts);
+    v1[i-r1[0]] = evaluate_kernel(-frac1+(double)i,opts);  // kernel is symm anyway
+  if (ndims>1)
+    for (int i=r2[0]; i<=r2[1]; ++i)
+      v2[i-r2[0]] = evaluate_kernel(-frac2+(double)i,opts);
+  else
+    v2[0] = 1.0;
+  if (ndims>2)
+    for (int i=r3[0]; i<=r3[1]; ++i)
+      v3[i-r3[0]] = evaluate_kernel(-frac3+(double)i,opts);
+  else
+    v3[0] = 1.0;
   // now simply compute the rank-3 outer product of these 1d lists...
-  std::vector<double> ret(s1*s2*s3);
-  int aa=0;                     // output pointer
+  int aa=0;                     // pointer for writing to output ker array
   for (int k=0; k<s3; k++) {
     double val3=v3[k];
     for (int j=0; j<s2; j++) {
       double val2=val3*v2[j];
       for (int i=0; i<s1; i++) {
 	double val1=val2*v1[i];
-	ret[aa]=val1;
+	ker[aa]=val1;
 	aa++;
       }
     }
   }
-  return ret;
 }
 
-static double a4[]={      0.000241740526327102,
-			-0.0341367675434659,
-			-0.793678269646493,
-			-0.161505319760492,
-			-0.943294668563553,
-			-4.14905311710577};
-double exppolyker(double x,double *a,int nh,double L)
-{
-  double x2=x*x/(L*L);  // scaled x^2
-  double y = a[0]*x2;
-  for (int k=1;k<nh;++k) y = (a[k] + y)*x2;
-  return exp(y);
-}
-
-double evaluate_kernel(double x,const spread_opts &opts)
-// kernel evaluation at single real argument: hard-wired as Kaiser--Bessel
+double evaluate_kernel(double x, const spread_opts &opts)
+/* kernel evaluation at single real argument:
+   phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)) / (1 - (2x/n_s)^2)^{1/4}
+   which is the asymptotic approximation to the Kaiser--Bessel, itself an approximation
+   to prolate spheroidal wavefunction of order 0.
+*/
 {
   //if (abs(x)>2.0) return 0.0; else return exppolyker(x,a4,6,2);  // expt ns=4 (1e-2)***
+  /*int ns=spread_opts.nspread;
+  if (abs(x)>=(double)ns/2-0.001) return 0.0; else { // ahb func
+    double u = sqrt(1.0-4*x*x/(ns*ns)); 
+    return exp(2.32*0.95 * ns * u) / sqrt(u);   // 5% narrower in freq
+    }*/
   //return 0.0; //exp(x); // to test how much time spent on kernel eval
   // todo: insert test if opts.kernel_type==1 ?
-  double t = 2.0*x/opts.KB_W; 
+  double t = 2.0*x/opts.KB_W;
   //printf("x=%g\n",x);
   double tmp1=1.0-t*t;
   if (tmp1<0.0) {

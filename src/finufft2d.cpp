@@ -58,9 +58,8 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
   CNTime timer; timer.start();
   double *fwkerhalf1 = fftw_alloc_real(nf1/2+1);
   double *fwkerhalf2 = fftw_alloc_real(nf2/2+1);
-  double prefac_unused_dims;
-  onedim_fseries_kernel(nf1, fwkerhalf1, prefac_unused_dims, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, prefac_unused_dims, spopts);  // prefac same
+  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
+  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   double t=timer.elapsedsec();
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
 
@@ -89,8 +88,7 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  double prefac = 1.0/(prefac_unused_dims*nj);    // 1/nj norm
-  deconvolveshuffle2d(1,prefac,fwkerhalf1,fwkerhalf2,ms,mt,fk,nf1,nf2,fw);
+  deconvolveshuffle2d(1,1.0/nj,fwkerhalf1,fwkerhalf2,ms,mt,fk,nf1,nf2,fw);  // 1/nj prefac
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   fftw_free(fw); fftw_free(fwkerhalf1); fftw_free(fwkerhalf2);
@@ -146,9 +144,8 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
   CNTime timer; timer.start();
   double *fwkerhalf1 = fftw_alloc_real(nf1/2+1);
   double *fwkerhalf2 = fftw_alloc_real(nf2/2+1);
-  double prefac_unused_dims;
-  onedim_fseries_kernel(nf1, fwkerhalf1, prefac_unused_dims, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, prefac_unused_dims, spopts);  // prefac same
+  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
+  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   double t=timer.elapsedsec();
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
 
@@ -165,8 +162,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
   timer.restart();
-  double prefac = 1.0/prefac_unused_dims;
-  deconvolveshuffle2d(2,prefac,fwkerhalf1,fwkerhalf2,ms,mt,fk,nf1,nf2,fw);
+  deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,fk,nf1,nf2,fw);
   if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
   //cout<<"fw:\n"; for (int j=0;j<nf1*nf2;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
 

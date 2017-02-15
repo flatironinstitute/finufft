@@ -5,7 +5,7 @@
 
 clear
 R = 2.0;           % upsampling ratio
-ns = 2;            % nspread
+ns = 7;            % nspread
 i = 0;             % counter over windows to compare
 
 %for ns=2:9, ns      % ================
@@ -18,7 +18,7 @@ f{i} = @(x) exp(-(x/be).^2);
 nam{i} = 'best-fit gaussian';
 
 i=i+1; % Kaiser-Bessel as Jeremy had it but normalized to 1 at x=0....
-fac1 = ns/(ns+mod(ns+1,1));  % jfm's weird truncation
+fac1 = ns/(ns+mod(ns+1,2));  % jfm's weird truncation
 fac2s = [2.2 1.71 1.65 1.45 1.47 1.51 1.48 1.46];   % jfm's list for even ns's
 fac2 = fac2s(ceil(ns/2));        % for odd ns, use jfn's setting for ns+1
 W = fac1*ns;             % full KB width, jfm's formulae
@@ -33,6 +33,7 @@ i=i+1; % Alex exp(sqrt) approx to I0 approx to KB
 L{i} = ns/2;
 fes = @(beta,x) exp(beta*sqrt(1-(2*x/ns).^2))/exp(beta)./sqrt(sqrt(1-(2*x/ns).^2));
 [beta bes] = fminbnd(@(beta) badness(@(x) fes(beta,x),L{i},R),2.0*ns,2.4*ns);
+beta = beta*0.95;    % bit narrower in freq
 f{i} = @(x) (abs(x)<ns/2).*fes(beta,x);
 bkb = badness(f{i},L{i},R);
 fprintf('optim exp(beta*sqrt)/quarter badness=%.3g @ beta=%.3g (beta/ns=%.4g)\n',bkb,beta,beta/ns);
@@ -45,7 +46,7 @@ nam{i} = 'exp(sqrt)           ';
 %bkb = badness(f{i},L{i},R);
 %fprintf('Kaiser-Bessel optim badness=%.3g @ beta=%.3g\n',bkb,beta);
 
-if 0
+if 1
   i=i+1; % design our exp(poly) or exp(poly(asin())) thing...
 nh = 4;   % degree/2. There are nh coeffs to fit, since we fix a_0=0
 type =1;   % tell obj what func type

@@ -12,12 +12,9 @@
 BIGINT set_nf(BIGINT ms, nufft_opts opts, spread_opts spopts);
 BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
 		     double &h, double &gam);
-void onedim_dct_kernel(BIGINT nf, double *fwkerhalf,
-		       double &prefac_unused_dims, spread_opts opts);
-void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf,
-		       double &prefac_unused_dims, spread_opts opts);
-void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat,
-			double &prefac_unused_dim, spread_opts opts);
+void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts);
+void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts);
+void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat, spread_opts opts);
 void deconvolveshuffle1d(int dir,double prefac,double* ker,BIGINT ms,double *fk,
 			 BIGINT nf1,fftw_complex* fw);
 void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
