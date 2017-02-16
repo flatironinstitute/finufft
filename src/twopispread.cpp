@@ -6,7 +6,7 @@
  * Any unused coords of the points are also filled with zeros.
  * Either direction (dir=1,2) is handled in the same call, so that either
  * cj is input and fw output, or vice versa (see cnufftspread docs).
- * Cost is a copy to workspace of nj*d doubles.
+ * Cost of this routine is a copy to workspace of nj*d doubles.
  *
  * For each of these routines:
  *
@@ -15,7 +15,7 @@
  *  nj - number of NU points
  *  xj (and yj, zj) - length nj array of coordinates of NU points, in [-pi,pi]
  *  dir - direction (1 = spread NU->U, 2 = interpolate U->NU)
- *  params - length-4 array controlling kernel parameters.
+ *  params - spreading parameters array, length 4.
  *
  * Inputs/Outputs:  (note twice-length double type arrays not complex used)
  *  fw (size nf1, or nf1*nf2, or nf1*nf2*nf3, complex) - uniform grid array.
@@ -29,7 +29,7 @@
 #include "twopispread.h"
 
 int twopispread1d(BIGINT nf1,double *fw,BIGINT nj,double* xj,double* cj,
-		  int dir,double* params, int debug)
+		  int dir,double *params, int debug)
 {
   double *dummy;   // note this should never be read from!
   double *xjscal = (double*)malloc(sizeof(double)*nj);
@@ -37,7 +37,7 @@ int twopispread1d(BIGINT nf1,double *fw,BIGINT nj,double* xj,double* cj,
   for (BIGINT i=0;i<nj;++i)
     xjscal[i] = s * (xj[i]+M_PI);
   spread_opts opts;
-  set_KB_opts_from_kernel_params(opts,params);  // note changes opts
+  set_opts_from_params(opts,params);  // reconstruct opts
   opts.spread_direction = dir;
   opts.debug = debug;
   //printf("nf1=%d, xjscal = %.15g, Re cj = %.15g\n",nf1,xjscal[0],cj[0]);
@@ -60,7 +60,7 @@ int twopispread2d(long nf1,long nf2, double *fw,BIGINT nj,double* xj,
     yjscal[i] = s2 * (yj[i]+M_PI);
   }
   spread_opts opts;
-  set_KB_opts_from_kernel_params(opts,params);  // note changes opts
+  set_opts_from_params(opts,params);  // reconstruct opts
   opts.spread_direction = dir;
   opts.debug = debug;
   return cnufftspread(nf1,nf2,1,fw,nj,xjscal,yjscal,dummy,cj,opts);
@@ -82,7 +82,7 @@ int twopispread3d(long nf1,long nf2,long nf3,double *fw,BIGINT nj,double* xj,
     zjscal[i] = s3 * (zj[i]+M_PI);
   }
   spread_opts opts;
-  set_KB_opts_from_kernel_params(opts,params);  // note changes opts
+  set_opts_from_params(opts,params);  // reconstruct opts
   opts.spread_direction = dir;
   opts.debug = debug;
   return cnufftspread(nf1,nf2,nf3,fw,nj,xjscal,yjscal,zjscal,cj,opts);

@@ -5,7 +5,7 @@
 
 clear
 R = 2.0;           % upsampling ratio
-ns = 7;            % nspread
+ns = 15;            % nspread
 i = 0;             % counter over windows to compare
 
 %for ns=2:9, ns      % ================
@@ -33,7 +33,7 @@ i=i+1; % Alex exp(sqrt) approx to I0 approx to KB
 L{i} = ns/2;
 fes = @(beta,x) exp(beta*sqrt(1-(2*x/ns).^2))/exp(beta)./sqrt(sqrt(1-(2*x/ns).^2));
 [beta bes] = fminbnd(@(beta) badness(@(x) fes(beta,x),L{i},R),2.0*ns,2.4*ns);
-beta = beta*0.95;    % bit narrower in freq
+beta = beta*1.00;    % bit narrower in freq
 f{i} = @(x) (abs(x)<ns/2).*fes(beta,x);
 bkb = badness(f{i},L{i},R);
 fprintf('optim exp(beta*sqrt)/quarter badness=%.3g @ beta=%.3g (beta/ns=%.4g)\n',bkb,beta,beta/ns);
@@ -46,7 +46,7 @@ nam{i} = 'exp(sqrt)           ';
 %bkb = badness(f{i},L{i},R);
 %fprintf('Kaiser-Bessel optim badness=%.3g @ beta=%.3g\n',bkb,beta);
 
-if 1
+if 0
   i=i+1; % design our exp(poly) or exp(poly(asin())) thing...
 nh = 4;   % degree/2. There are nh coeffs to fit, since we fix a_0=0
 type =1;   % tell obj what func type

@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
   spread_opts opts; // set method opts...
   opts.debug = 0;
   opts.sort_data=true;    // 50% faster on i7
-  set_KB_opts_from_eps(opts,tol);
+  setup_kernel(opts,tol);
 
     // test direction 1 (NU -> U spreading) ..............................
     opts.spread_direction=1;
@@ -60,13 +60,13 @@ int main(int argc, char* argv[])
     srand(0);    // fix seed for reproducibility
     double strre = 0.0, strim = 0.0;          // also sum the strengths
     for (long i=0; i<M; ++i) {
-        kx[i]=rand01()*N;
-        ky[i]=rand01()*N;
-        kz[i]=rand01()*N;
-        d_nonuniform[i*2]=randm11();
-        d_nonuniform[i*2+1]=randm11();
-	strre += d_nonuniform[2*i]; 
-	strim += d_nonuniform[2*i+1];
+      kx[i]=rand01()*N;
+      ky[i]=rand01()*N;
+      kz[i]=rand01()*N;
+      d_nonuniform[i*2]=randm11();
+      d_nonuniform[i*2+1]=randm11();
+      strre += d_nonuniform[2*i]; 
+      strim += d_nonuniform[2*i+1];
     }
     CNTime timer; timer.start();
     ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
@@ -100,9 +100,9 @@ int main(int argc, char* argv[])
       d_uniform[2*i+1] = 0.0;
     }
     for (long i=0; i<M; ++i) {       // random target pts
-        kx[i]=rand01()*N;
-        ky[i]=rand01()*N;
-        kz[i]=rand01()*N;
+      kx[i]=rand01()*N; //***
+      ky[i]=rand01()*N;
+      kz[i]=rand01()*N;
     }
     timer.restart();
     ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);

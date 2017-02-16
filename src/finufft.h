@@ -7,7 +7,7 @@
 #include <fftw3.h>
 
 struct nufft_opts {  // set default opts for NUFFT alg:
-  double R = 2.0;            // upsampling ratio (can go down to around 1.8)
+  double R = 2.0;            // upsampling ratio - kernel dependent
   int debug = 0;             // 0: silent, 1: text output
   int spread_debug = 0;      // passed to spread_opts debug
 };

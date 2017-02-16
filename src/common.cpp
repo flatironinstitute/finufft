@@ -15,12 +15,14 @@ BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
 // also writes to h the grid spacing, and to gam the x rescale factor.
 // X and S are the xj and sk interval half-widths respectively.
 {
-  BIGINT nf = (BIGINT)(2.0*opts.R*S*X/M_PI + spopts.nspread);
+  int nss = spopts.nspread + 1;      // since ns may be odd
+  BIGINT nf = (BIGINT)(2.0*opts.R*S*X/M_PI + nss);
+  printf("initial nf=%ld, ns=%d\n",nf,spopts.nspread);
   if (nf<2*spopts.nspread) nf=2*spopts.nspread;  // otherwise spread fails
   nf = next235even(nf);
   h = 2*M_PI/nf;                            // upsampled grid spacing
-  gam = (X/M_PI)*(1.0 + spopts.nspread/(double)nf);   // x scale fac
-  gam = MAX(gam,1.0/S);                    // safely handle X=0 (zero width)
+  gam = (X/M_PI)/(1.0 - nss/(double)nf);    // x scale fac
+  gam = std::max(gam,1.0/S);                // safely handle X=0 (zero width)
   return nf;
 }
 
@@ -44,7 +46,7 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
   Barnett 1/24/17
  */
 {
-  int m=opts.nspread/2;                // how many "modes" to include
+  int m=std::ceil(opts.nspread/2.0);   // how many "modes" to include
   double f[MAX_NSPREAD/2];
   for (int n=0;n<=m;++n)    // actual freq index will be nf/2-n, for cosines
     f[n] = evaluate_kernel((double)n, opts);  // center at nf/2
@@ -88,7 +90,7 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
   Barnett 2/7/17
  */
 {
-  double J2 = opts.nspread/2;           // J/2, half-width of ker z-support
+  double J2 = opts.nspread/2.0;         // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
   double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
@@ -128,7 +130,7 @@ void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat, spread_opts opts)
   Barnett 2/8/17. openmp since cos slow 2/9/17
  */
 {
-  double J2 = opts.nspread/2;// - 0.5;        // J/2, half-width of ker z-support
+  double J2 = opts.nspread/2.0;        // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 2.0*J2);     // > pi/2 ratio.  cannot exceed MAX_NQUAD
   printf("q (# FT quadr pts) = %d\n",q);

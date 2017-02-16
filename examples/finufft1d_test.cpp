@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 
-  printf("\ntest 1d type-2:\n"); // -------------- type 2
+  printf("test 1d type-2:\n"); // -------------- type 2
   for (BIGINT m=0; m<N; ++m) F[m] = crandm11();
   timer.restart();
   ier = finufft1d2(M,x,(double*)c,isign,tol,N,(double*)F,opts);
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
     free(ct);
   }
 
-  printf("\ntest 1d type-3:\n"); // -------------- type 3
+  printf("test 1d type-3:\n"); // -------------- type 3
   // reuse the strengths c, interpret N as number of targs:
   for (BIGINT j=0; j<M; ++j) x[j] = 2.0 + M_PI*randm11();  // new x_j srcs
   double* s = (double*)malloc(sizeof(double)*N);    // targ freqs

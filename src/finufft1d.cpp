@@ -40,9 +40,8 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
  */
 {
   spread_opts spopts;
-  int ier_set = set_KB_opts_from_eps(spopts,eps);
   double params[4];
-  get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
+  int ier_set = setup_kernel(spopts,params,eps);
   BIGINT nf1 = set_nf(ms,opts,spopts);
   cout << scientific << setprecision(15);  // for debug
 
@@ -127,9 +126,8 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
  */
 {
   spread_opts spopts;
-  int ier_set = set_KB_opts_from_eps(spopts,eps);
   double params[4];
-  get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
+  int ier_set = setup_kernel(spopts,params,eps);
   BIGINT nf1 = set_nf(ms,opts,spopts);
   cout << scientific << setprecision(15);  // for debug
 
@@ -215,9 +213,9 @@ int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk,
  */
 {
   spread_opts spopts;
-  int ier_set = set_KB_opts_from_eps(spopts,eps);
-  double X1,C1,S1,D1,h1,gam1,params[4];
-  get_kernel_params_for_eps(params,eps); // todo: use either params or spopts?
+  double params[4];
+  int ier_set = setup_kernel(spopts,params,eps);
+  double X1,C1,S1,D1,h1,gam1;
   cout << scientific << setprecision(15);  // for debug
 
   // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
