@@ -5,7 +5,7 @@
 
 clear
 R = 2.0;           % upsampling ratio
-ns = 15;            % nspread
+ns = 7;            % nspread
 i = 0;             % counter over windows to compare
 
 %for ns=2:9, ns      % ================
@@ -31,9 +31,10 @@ nam{i} = 'Kaiser-Bessel jfm';
 
 i=i+1; % Alex exp(sqrt) approx to I0 approx to KB
 L{i} = ns/2;
-fes = @(beta,x) exp(beta*sqrt(1-(2*x/ns).^2))/exp(beta)./sqrt(sqrt(1-(2*x/ns).^2));
+%fes = @(beta,x) exp(beta*sqrt(1-(2*x/ns).^2))/exp(beta)./sqrt(sqrt(1-(2*x/ns).^2));
+fes = @(beta,x) exp(beta*sqrt(1-(2*x/ns).^2))/exp(beta)./(1-(2*x/ns).^2).^0;
 [beta bes] = fminbnd(@(beta) badness(@(x) fes(beta,x),L{i},R),2.0*ns,2.4*ns);
-beta = beta*1.00;    % bit narrower in freq
+beta = beta*0.99;    % bit narrower in freq
 f{i} = @(x) (abs(x)<ns/2).*fes(beta,x);
 bkb = badness(f{i},L{i},R);
 fprintf('optim exp(beta*sqrt)/quarter badness=%.3g @ beta=%.3g (beta/ns=%.4g)\n',bkb,beta,beta/ns);

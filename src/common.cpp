@@ -1,36 +1,45 @@
 #include "common.h"
 #include "../contrib/legendre_rule_fast.h"
 
-BIGINT set_nf(BIGINT ms, nufft_opts opts, spread_opts spopts)
-// type 1 & 2 recipe for how to set 1d size of upsampled array given opts
+void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
+// type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
+// and number of Fourier modes ms.
 {
-  BIGINT nf = (BIGINT)(opts.R*ms);
-  if (nf<2*spopts.nspread) nf=2*spopts.nspread;  // otherwise spread fails
-  return next235even(nf);
+  *nf = (BIGINT)(opts.R*ms);
+  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
+  *nf = next235even(*nf);
 }
 
-BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
-		     double &h, double &gam)
-// outputs nf the size of upsampled grid for a given single dimension.
-// also writes to h the grid spacing, and to gam the x rescale factor.
-// X and S are the xj and sk interval half-widths respectively.
+void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
+		     BIGINT *nf, double *h, double *gam)
+/* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
+   for type 3 only.
+   Inputs:
+   X and S are the xj and sk interval half-widths respectively.
+   opts and spopts are the NUFFT and spreader opts strucs, respectively.
+   Outputs:
+   nf is the size of upsampled grid for a given single dimension.
+   h is the grid spacing = 2pi/nf
+   gam is the x rescale factor, ie x'_j = x_j/gam  (modulo shifts).
+   Barnett 2/13/17
+*/
 {
   int nss = spopts.nspread + 1;      // since ns may be odd
-  BIGINT nf = (BIGINT)(2.0*opts.R*S*X/M_PI + nss);
-  printf("initial nf=%ld, ns=%d\n",nf,spopts.nspread);
-  if (nf<2*spopts.nspread) nf=2*spopts.nspread;  // otherwise spread fails
-  nf = next235even(nf);
-  h = 2*M_PI/nf;                            // upsampled grid spacing
-  gam = (X/M_PI)/(1.0 - nss/(double)nf);    // x scale fac
-  gam = std::max(gam,1.0/S);                // safely handle X=0 (zero width)
-  return nf;
+  *nf = (BIGINT)(2.0*opts.R*S*X/M_PI + nss);
+  //printf("initial nf=%ld, ns=%d\n",nf,spopts.nspread);
+  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
+  *nf = next235even(*nf);
+  *h = 2*M_PI / *nf;                          // upsampled grid spacing
+  *gam = (X/M_PI)/(1.0 - nss/(double)*nf);    // x scale fac
+  *gam = max(*gam,1.0/S);                     // safely handle X=0 (zero width)
 }
 
 void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
 /*
   Computes DCT coeffs of cnufftspread's real symmetric kernel, directly,
   exploiting narrowness of kernel. Uses phase winding for cheap eval on the
-  regular freq grid. Superceded by onedim_fseries_kernel.
+  regular freq grid.
+  Note: obsolete, superceded by onedim_fseries_kernel.
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
@@ -39,14 +48,11 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
   Outputs:
   fwkerhalf - real Fourier coeffs from indices 0 to nf/2 inclusive.
               (should be allocated for at least nf/2+1 doubles)
-  Single thread only.
 
-  todo: understand how to openmp it? - subtle since private aj's. Want to break
-        up fwkerhalf into contiguous pieces, one per thread. Low priority.
-  Barnett 1/24/17
+  Single thread only. Barnett 1/24/17
  */
 {
-  int m=std::ceil(opts.nspread/2.0);   // how many "modes" to include
+  int m=ceil(opts.nspread/2.0);        // how many "modes" (ker pts) to include
   double f[MAX_NSPREAD/2];
   for (int n=0;n<=m;++n)    // actual freq index will be nf/2-n, for cosines
     f[n] = evaluate_kernel((double)n, opts);  // center at nf/2
@@ -133,7 +139,7 @@ void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat, spread_opts opts)
   double J2 = opts.nspread/2.0;        // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 2.0*J2);     // > pi/2 ratio.  cannot exceed MAX_NQUAD
-  printf("q (# FT quadr pts) = %d\n",q);
+  if (opts.debug) printf("q (# ker FT quadr pts) = %d\n",q);
   double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
   for (int n=0;n<q;++n) {

@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 // Also times the kernel eval and various styles of approximation for it.
 // Barnett 2/10/17
 {
-  const double tols[] = {1e-1,1e-2,1e-4,1e-6,1e-8,1e-10,1e-12,1e-16};
+  const double tols[] = {1e-1,1e-2,1e-4,1e-6,1e-8,1e-10,1e-12,1e-14};
   const int ntols = 8;
   spread_opts spopts;
 
@@ -85,7 +85,8 @@ int main(int argc, char* argv[])
     double z = z0*(2*n/(double)N - 1.0);  // ordinate
     printf("%.15g\t",z);
     for (int t=0;t<ntols;++t) {
-      int ier_set = set_KB_opts_from_eps(spopts,tols[t]);
+      //      int ier_set = set_KB_opts_from_eps(spopts,tols[t]);
+      int ier_set = setup_kernel(spopts,tols[t],2.0);
       printf("%.15g\t",evaluate_kernel(z,spopts));
     }
     printf("\n");
@@ -95,7 +96,7 @@ int main(int argc, char* argv[])
 
   // bunch of timing expts, report to stderr...
 
-  int ier_set = set_KB_opts_from_eps(spopts,1e-4);
+  int ier_set = setup_kernel(spopts,1e-4,2.0);
   N=1e7;  // how many evals to test
   z0 = spopts.nspread/2 - 0.5;   // half-width
   double dz=2*z0/(double)N;
@@ -166,6 +167,16 @@ int main(int argc, char* argv[])
     }
   }
   fprintf(stderr,"%.3g ns per exp(sqrt)/sqrt(sqrt) \t(dummy y=%.3g)\n",timer.elapsedsec()/N*1e9,y);
-  
+
+     timer.restart();  y = 0.0;
+  for (int n=0;n<N;++n) {
+    double z = -1 + n*dz;
+    if (abs(z)<1) {
+      double q = sqrt(1-z*z);
+      y += exp(56.1*q); ///sqrt(q);
+    }
+  }
+  fprintf(stderr,"%.3g ns per exp(sqrt) \t(dummy y=%.3g)\n",timer.elapsedsec()/N*1e9,y);
+ 
   return 0;
 }

@@ -60,10 +60,10 @@ The original NUFFT rigorous analysis using truncated Gaussians is:
 
 ### To do
 
-* type-3 in 2d, 3d.
+* include nf1 etc size check before alloc
+* test non-openmp compile
+* theory work on exp(sqrt) being close to PSWF
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
-* optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
-* 
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
 * decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
 * test BIGINT -> long long slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
@@ -106,3 +106,6 @@ The original NUFFT rigorous analysis using truncated Gaussians is:
 * Gauss-Legendre quadrature for direct eval of kernel FT, openmp since cexp slow
 * optimize q (# G-L nodes) for kernel FT eval on reg and irreg grids (common.cpp). Needs q a bit bigger than like (2-3x the PTR, when 1.57x is expected). Why?
 * type 3 segfault in dumb case of nj=1 (SX product = 0). By keeping gam>1/S
+* optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
+* new simpler kernel entirely
+* test isign=-1

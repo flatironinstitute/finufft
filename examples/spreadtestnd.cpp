@@ -40,7 +40,8 @@ int main(int argc, char* argv[])
   spread_opts opts; // set method opts...
   opts.debug = 0;
   opts.sort_data=true;    // 50% faster on i7
-  setup_kernel(opts,tol);
+  double Rdummy = 2.0;    // since no nufft done, this is to please the setup
+  setup_kernel(opts,tol,Rdummy);
 
     // test direction 1 (NU -> U spreading) ..............................
     opts.spread_direction=1;

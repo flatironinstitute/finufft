@@ -22,11 +22,11 @@ int main(int argc, char* argv[])
    Barnett 1/22/17 - 2/9/17
 */
 {
-  BIGINT M = 1e6, N = 1e6;    // defaults: M = # srcs, N = # modes out
-  double w, tol = 1e-6;          // default
+  BIGINT M = 1e6, N = 1e6;   // defaults: M = # srcs, N = # modes out
+  double w, tol = 1e-6;      // default
   nufft_opts opts;
   opts.debug = 1;            // to see some timings
-  int isign = +1;             // choose which exponential sign to test
+  int isign = +1;            // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); N = (BIGINT)w; }
   if (argc>2) { sscanf(argv[2],"%lf",&w); M = (BIGINT)w; }
   if (argc>3) {
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
   BIGINT kt = N/2;          // check arbitrary choice of one targ pt
   Ft = {0,0};
   for (BIGINT j=0;j<M;++j)
-    Ft += c[j] * exp(ima*s[kt]*x[j]);
+    Ft += c[j] * exp(ima*(double)isign*s[kt]*x[j]);
   printf("one targ: rel err in F[%ld] is %.3g\n",kt,abs(Ft-F[kt])/infnorm(N,F));
   if (M*N<=BIGPROB) {                  // also full direct eval
     dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);

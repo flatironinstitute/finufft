@@ -9,9 +9,9 @@
 #define MAX_NQUAD 100     // max number of positive quadr nodes
 
 // common.cpp provides...
-BIGINT set_nf(BIGINT ms, nufft_opts opts, spread_opts spopts);
-BIGINT set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
-		     double &h, double &gam);
+void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,BIGINT *nf);
+void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
+		   BIGINT *nf, double *h, double *gam);
 void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts);
 void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts);
 void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat, spread_opts opts);
