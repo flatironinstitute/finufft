@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
   double* s = (double*)malloc(sizeof(double)*N);    // targ freqs (1-cmpt)
   double* t = (double*)malloc(sizeof(double)*N);    // targ freqs (2-cmpt)
   double S1 = (double)N1/2;                   // choose freq range sim to type 1
-  double S2 = (double)N2/2;                   // choose freq range sim to type 1
+  double S2 = (double)N2/2;
   for (BIGINT k=0; k<N; ++k) {
     s[k] = S1*(1.7 + randm11());    //S*(1.7 + k/(double)N); // offset the freqs
     t[k] = S2*(-0.5 + randm11());
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
     dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
     dirft2d3(M,x,y,c,isign,N,s,t,Ft);       // writes to F
     printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
-    //cout<<"s, t, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<" "<<F[k]<<"\t"<<Ft[k]<<"\t"<<F[k]/Ft[k]<<endl;
+    //cout<<"s t, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   }
 

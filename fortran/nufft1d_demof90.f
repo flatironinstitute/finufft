@@ -57,7 +57,7 @@ c
          call dirft1d1(nj,xj,cj,iflag, ms,fk0(-ms/2))
          t1 = second()
 ccc         call nufft1d1f90(nj,xj,cj,iflag,eps, ms,fk1(-ms/2),ier)
-         call finufft1d1temp(nj,xj,cj,iflag,eps, ms,fk1(-ms/2),ier)
+         call finufft1d1(nj,xj,cj,iflag,eps, ms,fk1(-ms/2),ier)
          t2 = second()
 ccc         call prin2(' fk0 = * ',fk0(-ms/2),2*ms)
 ccc         call prin2(' fk1 = * ',fk1(-ms/2),2*ms)
@@ -75,7 +75,7 @@ c     -----------------------
 c
          call dirft1d2(nj,xj,cj0,iflag, ms,fk0(-ms/2),ier)
          t1 = second()
-         call finufft1d2temp(nj,xj,cj1,iflag, eps, ms,fk0(-ms/2),ier)
+         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0(-ms/2),ier)
          t2 = second()
          call prin2(' cj0 = * ',cj0(1),2)
          call prin2(' cj1 = * ',cj1(1),2)

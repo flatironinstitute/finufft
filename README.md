@@ -43,29 +43,38 @@ See settings in the `makefile`.
 
 ### Notes
 
-Throughout, C\++ is used, in a "C style", ie without object-oriented code and without std::vectors (which have been found to be slow). C\++ complex type arithmetic is not used in the main library, rather FFTW complex types are used. The test codes use C\++ complex types (aliased from dcomplex). FFTW was considered universal and essential enough to be a dependency for the whole package.
+C\++ is used for all main libraries, although without much object-oriented code. C\++ complex type arithmetic is not used in the main library, rather FFTW complex types are used, since it is a glorified driver for FFTW. The test codes use C\++ complex types ("dcomplex"). FFTW was considered universal and essential enough to be a dependency for the whole package.
 
-We use the Kaiser--Bessel spreading functions rather than truncated Gaussians, since they allow roughly half the kernel width for high requested precisions.
-TODO: give refs.
+We use an unpublished simplification of the Kaiser--Bessel spreading kernel rather than truncated Gaussians, since they allow roughly half the kernel width for high requested precisions. Our kernel is of the form exp(-beta.sqrt(1-(2x/W)^2)). This, and Kaiser--Bessel, are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0), and W the full kernel width.
+
+References for this include:
+
+[ORZ] Prolate Spheroidal Wave Functions of Order Zero: Mathematical Tools for Bandlimited Approximation.  A. Osipov, V. Rokhlin, and H. Xiao. Springer (2013).
+
+[KK] Chapter 7. System Analysis By Digital Computer. F. Kuo and J. F. Kaiser. Wiley (1967).
+
+[FS] Nonuniform fast Fourier transforms using min-max interpolation.
+J. A. Fessler and B. P. Sutton. IEEE Trans. Sig. Proc., 51(2):560-74, (Feb. 2003)
 
 This code builds upon the CMCL NUFFT, and the Fortran wrappers duplicate its interfaces. For this the following are references:
 
-[GL] Accelerating the Nonuniform Fast Fourier Transform: (L. Greengard and J.-Y. Lee) SIAM Review 46, 443 (2004).
+[GL] Accelerating the Nonuniform Fast Fourier Transform. L. Greengard and J.-Y. Lee. SIAM Review 46, 443 (2004).
 
-[LG] The type 3 nonuniform FFT and its applications: (J.-Y. Lee and L. Greengard) J. Comput. Phys. 206, 1 (2005).
+[LG] The type 3 nonuniform FFT and its applications. J.-Y. Lee and L. Greengard. J. Comput. Phys. 206, 1 (2005).
 
-The original NUFFT rigorous analysis using truncated Gaussians is:
+The original NUFFT analysis using truncated Gaussians is:
 
-[DR] Fast Fourier Transforms for Nonequispaced data: (A. Dutt and V. Rokhlin) SIAM J. Sci. Comput. 14, 1368 (1993). 
+[DR] Fast Fourier Transforms for Nonequispaced data. A. Dutt and V. Rokhlin. SIAM J. Sci. Comput. 14, 1368 (1993). 
 
 ### To do
 
-* include nf1 etc size check before alloc
+* include nf1 etc size check before alloc, exit gracefully if exceeds RAM
 * test non-openmp compile
 * theory work on exp(sqrt) being close to PSWF
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
 * decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
+* single-prec compile option for RAM-intensive problems?
 * test BIGINT -> long long slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
 * rename examples as test?
 * fortran wrappers (rmdir greengard_work, merge needed into fortran)
@@ -108,4 +117,6 @@ The original NUFFT rigorous analysis using truncated Gaussians is:
 * type 3 segfault in dumb case of nj=1 (SX product = 0). By keeping gam>1/S
 * optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
 * new simpler kernel entirely
+* cleaned up set_nf calls and removed params from within core libs
 * test isign=-1
+* type 3 in 2d, 3d

@@ -230,7 +230,7 @@ int finufft1d3(BIGINT nj,double* xj,double* cj,int iflag, double eps, BIGINT nk,
   for (BIGINT j=0;j<nj;++j)
     xpj[j] = (xj[j]-C1) / gam1;                           // rescale x_j
   dcomplex imasign = (iflag>0) ? ima : -ima;
-  dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj); // c'_j adjusted src
+  dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj); // c'_j rephased src
   dcomplex* cjc = (dcomplex*)cj;     // access src strengths as complex array
 #pragma omp parallel for schedule(dynamic)                // since cexp slow
   for (BIGINT j=0;j<nj;++j)

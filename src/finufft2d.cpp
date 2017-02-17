@@ -38,8 +38,8 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
      1) spread data to oversampled regular mesh using kernel.
      2) compute FFT on uniform mesh
      3) deconvolve by division of each Fourier mode independently by the
-        corresponding coefficient from the kernel alone.
-     The latter kernel FFT is precomputed in what is called step 0 in the code.
+        Fourier series coefficient of the kernel.
+     The kernel coeffs are precomputed in what is called step 0 in the code.
 
    Written with FFTW style complex arrays. Barnett 2/1/17
  */
@@ -232,7 +232,6 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,double* cj,int iflag, double eps,
   arraywidcen(nk,s,S1,D1);   // {s_k}
   arraywidcen(nj,yj,X2,C2);  // {y_j}
   arraywidcen(nk,t,S2,D2);   // {t_k}
-  X1+=abs(C1);C1=0.0;X2+=abs(C2);C2=0.0;S1+=abs(D1);D1=0.0;S2+=abs(D2);D2=0.0;
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
@@ -244,7 +243,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,double* cj,int iflag, double eps,
     ypj[j] = (yj[j]-C2) / gam2;          // rescale y_j
   }
   dcomplex imasign = (iflag>0) ? ima : -ima;
-  dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj);  // c'_j adjusted src
+  dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj);  // c'_j rephased src
   dcomplex* cjc = (dcomplex*)cj;     // access src strengths as complex array
 #pragma omp parallel for schedule(dynamic)                // since cexp slow
   for (BIGINT j=0;j<nj;++j)

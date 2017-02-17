@@ -59,12 +59,12 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j) c[j] = crandm11();
   CNTime timer; timer.start();
   int ier = finufft3d1(M,x,y,z,(double*)c,isign,tol,N1,N2,N3,(double*)F,opts);
-  double t=timer.elapsedsec();
+  double ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
     printf("     %ld NU pts to (%ld,%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
-	   M,N1,N2,N3,t,M/t);
+	   M,N1,N2,N3,ti,M/ti);
 
   BIGINT nt1 = N1/2 - 7, nt2 = N2/2 - 5, nt3 = N3/2 - 8;  // choose mode to check
   dcomplex Ft = {0,0}, J = ima*(double)isign;
@@ -86,12 +86,12 @@ int main(int argc, char* argv[])
   for (BIGINT m=0; m<N; ++m) F[m] = crandm11();
   timer.restart();
   ier = finufft3d2(M,x,y,z,(double*)c,isign,tol,N1,N2,N3,(double*)F,opts);
-  t=timer.elapsedsec();
+  ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
     printf("     (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
-	   N1,N2,N3,M,t,M/t);
+	   N1,N2,N3,M,ti,M/ti);
 
   BIGINT jt = M/2;          // check arbitrary choice of one targ pt
   dcomplex ct = {0,0};
@@ -108,7 +108,44 @@ int main(int argc, char* argv[])
     free(ct);
   }
 
-  // --- todo: type 3
+  printf("test 3d type-3:\n"); // -------------- type 3
+  // reuse the strengths c, interpret N as number of targs:
+  for (BIGINT j=0; j<M; ++j) {
+    x[j] = 2.0 + M_PI*randm11();      // new x_j srcs, offset from origin
+    y[j] = -3.0 + M_PI*randm11();     // " y_j
+    z[j] = 1.0 + M_PI*randm11();     // " z_j
+  }
+  double* s = (double*)malloc(sizeof(double)*N);    // targ freqs (1-cmpt)
+  double* t = (double*)malloc(sizeof(double)*N);    // targ freqs (2-cmpt)
+  double* u = (double*)malloc(sizeof(double)*N);    // targ freqs (3-cmpt)
+  double S1 = (double)N1/2;                   // choose freq range sim to type 1
+  double S2 = (double)N2/2;
+  double S3 = (double)N3/2;
+  for (BIGINT k=0; k<N; ++k) {
+    s[k] = S1*(1.7 + randm11());    //S*(1.7 + k/(double)N); // offset the freqs
+    t[k] = S2*(-0.5 + randm11());
+    u[k] = S3*(0.9 + randm11());
+  }
+  timer.restart();
+  ier = finufft3d3(M,x,y,z,(double*)c,isign,tol,N,s,t,u,(double*)F,opts);
+  ti=timer.elapsedsec();
+  if (ier!=0) {
+    printf("error (ier=%d)!\n",ier);
+  } else
+    printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",M,N,ti,M/ti,N/ti);
+
+  BIGINT kt = N/2;          // check arbitrary choice of one targ pt
+  Ft = {0,0};
+  for (BIGINT j=0;j<M;++j)
+    Ft += c[j] * exp(ima*(double)isign*(s[kt]*x[j] + t[kt]*y[j] + u[kt]*z[j]));
+  printf("one targ: rel err in F[%ld] is %.3g\n",kt,abs(Ft-F[kt])/infnorm(N,F));
+  if (M*N<=BIGPROB) {                  // also full direct eval
+    dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
+    dirft3d3(M,x,y,z,c,isign,N,s,t,u,Ft);       // writes to F
+    printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    //cout<<"s t u, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<" "<<u[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
+    free(Ft);
+  }
 
   free(x); free(y); free(z); free(c); free(F);
   return ier;
