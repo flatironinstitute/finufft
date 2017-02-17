@@ -1,6 +1,7 @@
 #include "../src/cnufftspread.h"
 #include <vector>
 #include <math.h>
+#include <stdio.h>
 
 int main(int argc, char* argv[])
 /* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.

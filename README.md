@@ -4,8 +4,6 @@
 
 Includes code by:
 
-P. Swarztrauber - FFTPACK  
-Tony Ottosson - evaluate modified Bessel function I_0  
 June-Yub Lee - some test codes co-written with Greengard  
 Nick Hale and John Burkardt - Gauss-Legendre nodes and weights  
 
@@ -25,7 +23,7 @@ See settings in the `makefile`.
 1. Download using `git`, `svn`, or as a zip (see green button above).
 1. `cp makefile.dist makefile`
 1. edit `makefile` for your system
-1. `make`
+1. `make`. This will compile and run a set of multi-threaded and single-threaded speed tests  
 
 
 ### Contents of this package
@@ -120,3 +118,4 @@ The original NUFFT analysis using truncated Gaussians is:
 * cleaned up set_nf calls and removed params from within core libs
 * test isign=-1
 * type 3 in 2d, 3d
+* style: headers should only include other headers needed to compile the .h; all other headers go in .cpp, even if that involves repetition I guess.

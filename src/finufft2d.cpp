@@ -1,8 +1,10 @@
 #include "finufft.h"
-
+#include "twopispread.h"
+#include <fftw3.h>
+#include <math.h>
+#include <stdio.h>
 #include <iostream>
 #include <iomanip>
-using namespace std;
 
 int finufft2d1(BIGINT nj,double* xj,double *yj,double* cj,int iflag,double eps,
 	       BIGINT ms, BIGINT mt, double* fk, nufft_opts opts)

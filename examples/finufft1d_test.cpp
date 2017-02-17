@@ -1,13 +1,10 @@
-#include <math.h>
-#include "../src/utils.h"
 #include "../src/finufft.h"
 #include "../src/dirft.h"
+#include <math.h>
+#include <vector>
 #include <stdio.h>
-
-// C++ stuff
 #include <iostream>
 #include <iomanip>
-#include <vector>
 
 // how big a problem to check direct DFT for...
 #define BIGPROB 1e8

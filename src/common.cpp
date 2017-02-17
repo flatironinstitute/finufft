@@ -1,5 +1,11 @@
 #include "common.h"
 #include "../contrib/legendre_rule_fast.h"
+#include <fftw3.h>
+#include <math.h>
+#include <stdio.h>
+
+// constants needed within common
+#define MAX_NQUAD 100     // max number of positive quadr nodes
 
 void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts

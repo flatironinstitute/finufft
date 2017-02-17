@@ -1,8 +1,8 @@
 #ifndef TWOPISPREAD_H
 #define TWOPISPREAD_H
 
+#include "utils.h"
 #include "cnufftspread.h"
-#include <math.h>
 
 int twopispread1d(long nf1,double *fw,BIGINT nj,double* xj,double* cj,
 		  spread_opts opts);

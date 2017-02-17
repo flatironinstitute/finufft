@@ -1,8 +1,10 @@
 #include "finufft.h"
-
+#include "twopispread.h"
+#include <fftw3.h>
+#include <math.h>
+#include <stdio.h>
 #include <iostream>
 #include <iomanip>
-using namespace std;
 
 int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
 	       double eps, BIGINT ms, BIGINT mt, BIGINT mu, double* fk,
@@ -194,7 +196,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
   fftw_free(fw);
   fftw_free(fwkerhalf1); fftw_free(fwkerhalf2); fftw_free(fwkerhalf3);
   if (opts.debug) printf("freed\n");
-  return ier_spread;
+  return 0;
 }
 
 int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag, double eps, BIGINT nk, double* s, double *t, double *u, double* fk, nufft_opts opts)
@@ -296,6 +298,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag,
   int ier_t2 = finufft3d2(nk,sp,tp,up,fk,iflag,eps,nf1,nf2,nf3,(double*)fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
+  if (ier_t2>0) exit(ier_t2);
 
   // Step 3a: compute Fourier transform of scaled kernel at targets
   timer.restart();
@@ -312,12 +315,12 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag,
   dcomplex *fkc = (dcomplex*)fk;    // index output as complex array
   // todo: if C1==0.0 don't do the expensive exp()... ?
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
-  for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2 shift
+  for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2,C3 shift
     fkc[k] *= (dcomplex)(1.0/(fkker1[k]*fkker2[k]*fkker3[k])) *
       exp(imasign*((s[k]-D1)*C1 + (t[k]-D2)*C2 + (u[k]-D3)*C3));
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
   free(fkker1); free(fkker2); free(fkker3); free(sp);
   if (opts.debug) printf("freed\n");
-  return ier_t2;
+  return 0;
 }

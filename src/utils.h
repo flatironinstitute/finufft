@@ -1,10 +1,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <sys/time.h>
-
 using namespace std;        // means std:: not needed for cout, max, etc
-
 #include <complex>          // C++ type complex, and useful abbrevs...
 #define dcomplex complex<double>
 #define ima complex<double>{0.0,1.0}
@@ -25,7 +22,8 @@ void arrayrange(BIGINT n, double* a, double &lo, double &hi);
 void arraywidcen(BIGINT n, double* a, double &w, double &c);
 BIGINT next235even(BIGINT n);
 
-// jfm timer class
+// jfm timer stuff
+#include <sys/time.h>
 class CNTime {
  public:
   void start();

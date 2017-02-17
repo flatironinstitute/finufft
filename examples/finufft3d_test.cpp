@@ -1,13 +1,10 @@
-#include <math.h>
-#include "../src/utils.h"
 #include "../src/finufft.h"
 #include "../src/dirft.h"
+#include <math.h>
+#include <vector>
 #include <stdio.h>
-
-// C++ stuff
 #include <iostream>
 #include <iomanip>
-#include <vector>
 
 // how big a problem to do full direct DFT check...
 #define BIGPROB 1e8
@@ -142,7 +139,7 @@ int main(int argc, char* argv[])
   if (M*N<=BIGPROB) {                  // also full direct eval
     dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
     dirft3d3(M,x,y,z,c,isign,N,s,t,u,Ft);       // writes to F
-    printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    printf("dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     //cout<<"s t u, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<" "<<u[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   }

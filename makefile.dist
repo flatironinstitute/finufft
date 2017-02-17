@@ -32,9 +32,11 @@ MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
 
 
 # objects to compile: spreader...
-SOBJS = contrib/besseli.o src/cnufftspread.o src/utils.o src/twopispread.o src/common.o contrib/legendre_rule_fast.o
+SOBJS = src/cnufftspread.o src/utils.o
 # for NUFFT library and its testers...
-OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o
+OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
+OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
+OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 # for Fortran interface... TODO
 FOBJS = $(SOBJS) fortran/cnufftspread_f.o
 # for temp hook-up to Leslie's nuffts...  TODO
@@ -55,39 +57,50 @@ default: testnd
 	$(FC) -c $(FFLAGS) $< -o $@
 
 # the main libs...
-nufft: $(OBJS)
+nufft: $(OBJS1) $(OBJS2) $(OBJS3)
 
 # test drivers and scripts...
 examples/spreadtestnd: examples/spreadtestnd.cpp $(SOBJS) $(HEADERS)
 	$(CC) $(CFLAGS) examples/spreadtestnd.cpp $(SOBJS) -o examples/spreadtestnd
 
-examples/finufft1d_test: examples/finufft1d_test.cpp $(OBJS) $(HEADERS)
-	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft1d_test
+examples/finufft1d_test: examples/finufft1d_test.cpp $(OBJS1) $(HEADERS)
+	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS1) $(CLIBSFFT) -o examples/finufft1d_test
 
-examples/finufft2d_test: examples/finufft2d_test.cpp $(OBJS) $(HEADERS)
-	$(CC) $(CFLAGS) examples/finufft2d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft2d_test
+examples/finufft2d_test: examples/finufft2d_test.cpp $(OBJS2) $(HEADERS)
+	$(CC) $(CFLAGS) examples/finufft2d_test.cpp $(OBJS2) $(CLIBSFFT) -o examples/finufft2d_test
 
-examples/finufft3d_test: examples/finufft3d_test.cpp $(OBJS) $(HEADERS)
-	$(CC) $(CFLAGS) examples/finufft3d_test.cpp $(OBJS) $(CLIBSFFT) -o examples/finufft3d_test
+examples/finufft3d_test: examples/finufft3d_test.cpp $(OBJS3) $(HEADERS)
+	$(CC) $(CFLAGS) examples/finufft3d_test.cpp $(OBJS3) $(CLIBSFFT) -o examples/finufft3d_test
 
 spreadtestnd: examples/spreadtestnd
-# here the tee cmd copies output to screen. 2>&1 grabs stdout and stderr...
+# here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd examples; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
+
+test1d: examples/finufft1d_test
+	examples/finufft1d_test 1e4 1e3 1e-6 1         # small prob for accuracy
+
+test2d: examples/finufft2d_test
+	examples/finufft2d_test 200 50 1e3 1e-6 1      # small
+
+test3d: examples/finufft3d_test
+	examples/finufft3d_test 20 100 50 1e2 1e-6 1   # small
 
 testnd: examples/finufft1d_test examples/finufft2d_test examples/finufft3d_test
 	(cd examples; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
 
-examples/plotkernels: $(SOBJS) $(HEADERS) examples/plotkernels.cpp
-	$(CC) $(CFLAGS) examples/plotkernels.cpp -o examples/plotkernels $(SOBJS) 
-	(cd examples; ./plotkernels > plotkernels.dat)
+examples/testutils: examples/testutils.cpp src/utils.o src/utils.h
+	$(CC) $(CFLAGS) examples/testutils.cpp src/utils.o -o examples/testutils
+	(cd examples; ./testutils)
+
+# various obscure testers (experts only)...
+devel/plotkernels: $(SOBJS) $(HEADERS) devel/plotkernels.cpp
+	$(CC) $(CFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS) 
+	(cd devel; ./plotkernels > plotkernels.dat)
 
 contrib/testi0: contrib/testi0.cpp contrib/besseli.o src/utils.o
 	$(CC) $(CFLAGS) contrib/testi0.cpp $(OBJS) -o contrib/testi0
 	(cd contrib; ./testi0)
 
-examples/testutils: examples/testutils.cpp src/utils.o src/utils.h
-	$(CC) $(CFLAGS) examples/testutils.cpp src/utils.o -o examples/testutils
-	(cd examples; ./testutils)
 
 fortran: $(FOBJS)
 # other fort wrappers todo...
@@ -113,4 +126,4 @@ unfinishedspreaddemof: fortran/spread_demo.o $(FOBJS) $(SOBJS)
 #	$(FC) $(FFLAGS) finufft1d_demo.f90 $(OBJS) -o finufft1d_demo
 
 clean:
-	rm -f $(OBJS) $(FOBJS) $(SOBJS) $(LOBJS)
+	rm -f $(OBJS1) $(OBJS2) $(OBJS3) $(FOBJS) $(SOBJS) $(LOBJS)

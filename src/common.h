@@ -2,11 +2,9 @@
 #define COMMON_H
 
 #include "utils.h"
-#include <fftw3.h>
 #include "finufft.h"
-
-// constants needed by common.cpp:
-#define MAX_NQUAD 100     // max number of positive quadr nodes
+#include "cnufftspread.h"
+#include <fftw3.h>
 
 // common.cpp provides...
 void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,BIGINT *nf);

@@ -1,6 +1,7 @@
 #ifndef CNUFFTSPREAD_H
 #define CNUFFTSPREAD_H
 
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "utils.h"

@@ -1,8 +1,10 @@
 #include "finufft.h"
-
+#include "twopispread.h"
+#include <fftw3.h>
+#include <math.h>
+#include <stdio.h>
 #include <iostream>
 #include <iomanip>
-using namespace std;
 
 int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 	       double* fk, nufft_opts opts)
@@ -43,7 +45,7 @@ int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d1: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
+  if (opts.debug) printf("1d1: ms=%ld nf1=%ld nj=%ld ...\n",ms,nf1,nj); 
 
   CNTime timer; timer.start();
   int nth = MY_OMP_GET_MAX_THREADS();
@@ -130,7 +132,7 @@ int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d2: ms=%d nf1=%d nj=%d ...\n",ms,nf1,nj); 
+  if (opts.debug) printf("1d2: ms=%ld nf1=%ld nj=%ld ...\n",ms,nf1,nj); 
 
   // STEP 0: get FT of real symmetric spreading kernel
   CNTime timer; timer.start();

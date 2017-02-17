@@ -2,9 +2,6 @@
 #define FINUFFT_H
 
 #include "utils.h"
-#include "cnufftspread.h"
-#include "twopispread.h"
-#include <fftw3.h>
 
 struct nufft_opts {  // here sets default opts for NUFFT alg:
   double R = 2.0;         // kernel-dep upsampling ratio (only experts change)
