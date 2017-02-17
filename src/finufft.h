@@ -9,8 +9,7 @@ struct nufft_opts {  // here sets default opts for NUFFT alg:
   int spread_debug = 0;   // passed to spread_opts debug: 0,1 or 2
 };
 
-#include "common.h"   // here since needs nufft_opts already defined
-
+// library provides...
 int finufft1d1(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,
 	       double* fk, nufft_opts opts);
 int finufft1d2(BIGINT nj,double* xj,double* cj,int iflag,double eps,BIGINT ms,

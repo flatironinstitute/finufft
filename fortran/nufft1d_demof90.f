@@ -4,26 +4,25 @@ cc
 cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 c
+c Changed by Barnett to call FINUFFT 2/17/17
       program testfft
       implicit none
 c
 c --- local variables
 c
       integer i,ier,iflag,j,k1,mx,ms,nj
-      parameter (mx=10 000 000)
+      parameter (mx=10 000)
       real*8 xj(mx), sk(mx)
-      real*8 err,eps,pi,t1,t2
+      real*8 err,eps,pi
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16 cj(mx),cj0(mx),cj1(mx)
-      complex*16 fk0(-mx/2:(mx-1)/2)
-      complex*16 fk1(-mx/2:(mx-1)/2)
+      complex*16 fk0(mx),fk1(mx)
 c
 c     --------------------------------------------------
 c     create some test data
 c     --------------------------------------------------
-      call prini(6,13)
-      ms = 96
-      nj = 48
+      ms = 90
+      nj = 128
       do k1 = -nj/2, (nj-1)/2
          j = k1+nj/2+1
          xj(j) = pi * dcos(-pi*j/nj)
@@ -36,7 +35,7 @@ c     --------------------------------------------------
 c
       iflag = 1
       print*,' Start 1D testing: ', ' nj =',nj, ' ms =',ms
-      do i = 2,2
+      do i = 1,4
          if (i.eq.1) eps=1d-4
          if (i.eq.2) eps=1d-8
          if (i.eq.3) eps=1d-12
@@ -54,18 +53,9 @@ c     -----------------------
 c     call 1D Type1 method
 c     -----------------------
 c
-         call dirft1d1(nj,xj,cj,iflag, ms,fk0(-ms/2))
-         t1 = second()
-ccc         call nufft1d1f90(nj,xj,cj,iflag,eps, ms,fk1(-ms/2),ier)
-         call finufft1d1(nj,xj,cj,iflag,eps, ms,fk1(-ms/2),ier)
-         t2 = second()
-ccc         call prin2(' fk0 = * ',fk0(-ms/2),2*ms)
-ccc         call prin2(' fk1 = * ',fk1(-ms/2),2*ms)
-         call prin2(' fk0 = * ',fk0(0),2)
-         call prin2(' fk1 = * ',fk1(0),2)
-         call prin2(' ratio = * ',fk1(0)/fk0(0),2)
-         print *,' time type 1 = ',t2-t1
-         call errcomp(fk0(-ms/2),fk1(-ms/2),ms,err)
+         call dirft1d1(nj,xj,cj,iflag, ms,fk0)
+         call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk1,ier)
+         call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
 c
@@ -73,15 +63,23 @@ c     -----------------------
 c     call 1D Type2 method
 c     -----------------------
 c
-         call dirft1d2(nj,xj,cj0,iflag, ms,fk0(-ms/2),ier)
-         t1 = second()
-         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0(-ms/2),ier)
-         t2 = second()
-         call prin2(' cj0 = * ',cj0(1),2)
-         call prin2(' cj1 = * ',cj1(1),2)
+         call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
+         call finufft1d2_f(nj,xj,cj1,iflag, eps, ms,fk0,ier)
          call errcomp(cj0,cj1,nj,err)
          print *,' ier = ',ier
          print *,' type 2 error = ',err
+c
+c     -----------------------
+c     call 1D Type3 method
+c     -----------------------
+         do k1 = 1, ms
+            sk(k1) = 48*dcos(k1*pi/ms)
+         enddo
+         call dirft1d3(nj,xj,cj,iflag, ms,sk,fk0)
+         call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk1,ier)
+         call errcomp(cj0,cj1,nj,err)
+         print *,' ier = ',ier
+         print *,' type 3 error = ',err
       enddo
       stop
       end

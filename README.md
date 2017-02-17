@@ -1,21 +1,20 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-### Barnett, Magland, Greengard
+### Alex H. Barnett and Jeremy F. Magland
 
 Includes code by:
 
-June-Yub Lee - some test codes co-written with Greengard  
 Nick Hale and John Burkardt - Gauss-Legendre nodes and weights  
+Leslie Greengard and June-Yub Lee - some fortran test codes from CMCL  
 
 ### Purpose
 
-to do
+Compute various exponential sums involving arbitrary point distributions in optimal time. See the manual.
 
 ### Dependencies
 
 The basic libraries need a C++ compiler, GNU make, FFTW, and optionally OpenMP (the makefile can be adjusted for single-threaded).
 The fortran wrappers need a fortran compiler.
-To run optional speed comparisons which link against the CMCL NUFFT library, this must be installed.
 See settings in the `makefile`.
 
 ### Installation
@@ -23,17 +22,28 @@ See settings in the `makefile`.
 1. Download using `git`, `svn`, or as a zip (see green button above).
 1. `cp makefile.dist makefile`
 1. edit `makefile` for your system
-1. `make`. This will compile and run a set of multi-threaded and single-threaded speed tests  
+1. `make`. This will compile the library then run a set of multi-threaded and single-threaded speed tests  
 
+Other useful make modes include:
+
+  `make test1d` : small accuracy test for components in 1D. Analogously for 2D, 3D  
+  `make spreadtestnd` : benchmark the spreader routines, all dimensions  
+  `make examples/testutils` : test various low-level utilities  
+  `make nufft` : compile library only  
+  `make fortran` : compile and demo the fortran interfaces  
 
 ### Contents of this package
 
   `src` : main library source and headers.  
-  `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them.  
+  `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. In this directory are the useful scripts:
+  - `nuffttestnd.sh` : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
+  - `checkallaccs.sh dim` (where `dim` is 1, 2, or 3) : sweep over all tolerances checking the spreader and NUFFT at a single dimension  
+
   `examples/results` : accuracy and timing outputs.  
   `contrib` : 3rd-party code.  
   `matlab` : wrappers and examples for MATLAB. (Not yet working)  
   `fortran` : wrappers and drivers for Fortran. (Not yet working)  
+  `devel` : various obsolete or in-development codes (experts only)  
   `doc` : the manual (not yet there)  
   `README.md`  
   `LICENSE`  
@@ -43,7 +53,7 @@ See settings in the `makefile`.
 
 C\++ is used for all main libraries, although without much object-oriented code. C\++ complex type arithmetic is not used in the main library, rather FFTW complex types are used, since it is a glorified driver for FFTW. The test codes use C\++ complex types ("dcomplex"). FFTW was considered universal and essential enough to be a dependency for the whole package.
 
-We use an unpublished simplification of the Kaiser--Bessel spreading kernel rather than truncated Gaussians, since they allow roughly half the kernel width for high requested precisions. Our kernel is of the form exp(-beta.sqrt(1-(2x/W)^2)). This, and Kaiser--Bessel, are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0), and W the full kernel width.
+As a spreading kernel function, we use an unpublished simplification of the Kaiser--Bessel kernel, which at high requested precisions achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is of the form exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
 
 References for this include:
 
@@ -82,6 +92,7 @@ The original NUFFT analysis using truncated Gaussians is:
 * outreach, alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
 * doc/manual
 * boilerplate stuff as in CMCL page
+* clean up tree, remove devel and unused contrib
 
 ### Done
 
