@@ -29,8 +29,8 @@ Other useful make modes include:
   `make test1d` : small accuracy test for components in 1D. Analogously for 2D, 3D  
   `make spreadtestnd` : benchmark the spreader routines, all dimensions  
   `make examples/testutils` : test various low-level utilities  
-  `make nufft` : compile library only  
-  `make fortran` : compile and demo the fortran interfaces  
+  `make nufft` : compile the library without testing  
+  `make fortran` : compile and test the fortran interfaces  
 
 ### Contents of this package
 
@@ -76,6 +76,7 @@ The original NUFFT analysis using truncated Gaussians is:
 
 ### To do
 
+* MAC OSX test, put in makefile
 * nf1 (etc) size check before alloc, exit gracefully if exceeds RAM?
 * test non-openmp compile
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
@@ -85,7 +86,7 @@ The original NUFFT analysis using truncated Gaussians is:
 * decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
 * single-prec compile option for RAM-intensive problems?
 * test BIGINT -> long long slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
-* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs.
+* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux, osx, etc.
 * matlab wrappers need ier output?
 * python wrappers
 * license file

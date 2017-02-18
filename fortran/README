@@ -2,8 +2,12 @@ This directory contains Fortran wrappers to the FINUFFT C++ library,
 and older test codes unchanged from the CMCL NUFFT library apart from
 that they call the FINUFFT library.
 
-Note that to link your Fortran against the FINUFFT C++ library, you may
-want to use g++ (on a linux system) with the -lgfortran at the *end* of the
+The interfaces are identical to those of CMCL (ie drop-in replacements).
+The naming is:
+finufftndm_f(...)  where n=dimensions (1,2 or 3) and m=type (1,2 or 3).
+
+Note that, on a linux system, to link your Fortran against the FINUFFT C++
+library, you may want to use g++, with the -lgfortran at the *end* of the
 compile statement.
 
 See ../makefile

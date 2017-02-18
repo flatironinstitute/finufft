@@ -4,6 +4,7 @@ cc
 cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 cc
+c Changed by Barnett to call FINUFFT 2/17/17
       program testfft
       implicit none
 c
@@ -20,10 +21,10 @@ c     --------------------------------------------------
 c     create some test data
 c     --------------------------------------------------
 c
-      n1 = 34
-      n2 = 42
-      ms = 34
-      mt = 42
+      n1 = 36
+      n2 = 40
+      ms = 32
+      mt = 30
       nj = n1*n2
       do k1 = -n1/2, (n1-1)/2
          do k2 = -n2/2, (n2-1)/2
@@ -33,10 +34,6 @@ c
             cj(j) = dcmplx(dsin(pi*j/n1),dcos(pi*j/n2))
          enddo
       enddo
-ccc      nj = 1
-ccc      xj(1) = 0.0d0
-ccc      yj(1) = 0.0d0
-ccc      cj(1) = 1.0d0
 c
 c     -----------------------
 c     start tests
@@ -44,7 +41,7 @@ c     -----------------------
 c
       iflag = 1
       print*,'Starting 2D testing: ', ' nj =',nj, ' ms,mt =',ms,mt
-      do i = 2,2
+      do i = 1,4
          if (i.eq.1) eps=1d-4
          if (i.eq.2) eps=1d-8
          if (i.eq.3) eps=1d-12
@@ -63,11 +60,8 @@ c     call 2D Type 1 method
 c     -----------------------
 c
          call dirft2d1(nj,xj,yj,cj,iflag,ms,mt,fk0)
-ccc         call nufft2d1f90(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
-         call finufft2d1(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
+         call finufft2d1_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
          call errcomp(fk0,fk1,ms*mt,err)
-         print *, ' fk0 = ',fk0(1)
-         print *, ' fk1 = ',fk1(1)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,ms*mt,err)
          print *, ' type 1 err = ',err
@@ -76,14 +70,26 @@ c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
          call dirft2d2(nj,xj,yj,cj0,iflag,ms,mt,fk0)
-         call finufft2d2(nj,xj,yj,cj1,iflag,eps,ms,mt,fk1,ier)
-         print *, ' cj0 = ',cj0(1)
-         print *, ' cj1 = ',cj1(1)
-         print *, ' cj1/cj0 = ',cj1(1)/cj0(1)
+         call finufft2d2_f(nj,xj,yj,cj1,iflag,eps,ms,mt,fk1,ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
-         print *, ' type 2 err = ',err
+         print *, ' type 1 err = ',err
+c
+c     -----------------------
+c      call 2D Type3 method
+c     -----------------------
+         nk = ms*mt
+         do k1 = 1, nk
+            sk(k1) = 48*(dcos(k1*pi/nk))
+            tk(k1) = 32*(dsin(-pi/2+k1*pi/nk))
+         enddo
 
+         call dirft2d3(nj,xj,yj,cj,iflag,nk,sk,tk,fk0)
+         call finufft2d3_f(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk1,ier)
+c
+         print *, ' ier = ',ier
+         call errcomp(fk0,fk1,nk,err)
+         print *, ' type 1 err = ',err
       enddo 
       stop
       end

@@ -21,6 +21,8 @@ FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
 FLINK=-lgfortran
 MFLAGS=-lgomp
 
+# MAC OSX to do...
+
 # MATLAB stuff..
 MEX=mex
 MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
@@ -36,8 +38,9 @@ SOBJS = src/cnufftspread.o src/utils.o
 OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
+OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 # for Fortran interface...
-FOBJS = fortran/finufft_f.o fortran/dirft1d.o fortran/prini.o
+FOBJS = fortran/finufft_f.o fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/prini.o
 
 HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/common.h src/utils.h
 
@@ -54,7 +57,7 @@ default: testnd
 	$(FC) -c $(FFLAGS) $< -o $@
 
 # the main libs...
-nufft: $(OBJS1) $(OBJS2) $(OBJS3)
+nufft: $(OBJS)
 
 # test drivers and scripts...
 examples/spreadtestnd: examples/spreadtestnd.cpp $(SOBJS) $(HEADERS)
@@ -85,16 +88,16 @@ test3d: examples/finufft3d_test
 testnd: examples/finufft1d_test examples/finufft2d_test examples/finufft3d_test
 	(cd examples; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
 
-fortran: $(FOBJS) $(OBJS1) $(OBJS2) $(OBJS3) $(HEADERS)
+fortran: $(FOBJS) $(OBJS) $(HEADERS)
 # note that linking opts seem to need to go at the end of the compile cmd:
-	$(CC) $(FFLAGS) fortran/nufft1d_demof90.f $(FOBJS) $(OBJS1) $(LIBSFFT) -o fortran/nufft1d_demof90 $(FLINK)
+	$(CC) $(FFLAGS) fortran/nufft1d_demof90.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft1d_demof90 $(FLINK)
+	$(CC) $(FFLAGS) fortran/nufft2d_demof90.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft2d_demof90 $(FLINK)
+	$(CC) $(FFLAGS) fortran/nufft3d_demof90.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft3d_demof90 $(FLINK)
 	time fortran/nufft1d_demof90
-	$(CC) $(FFLAGS) fortran/nufft2d_demof90.f $(FOBJS) $(OBJS2) $(LIBSFFT) -o fortran/nufft2d_demof90 $(FLINK)
 	time fortran/nufft2d_demof90
-	$(CC) $(FFLAGS) fortran/nufft3d_demof90.f $(FOBJS) $(OBJS3) $(LIBSFFT) -o fortran/nufft3d_demof90 $(FLINK)
 	time fortran/nufft3d_demof90
 
-# todo: fix up mex interfaces...
+# todo: make mex interfaces...
 #mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_dir1.cpp $(SPREADOBJS)
 # make new interface in matlab: from src/, do mcwrap('cnufftspread.h')
 # which fails for omp.

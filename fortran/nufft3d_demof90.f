@@ -4,6 +4,7 @@ cc
 cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 cc
+c Changed by Barnett to call FINUFFT 2/17/17
       program testfft
       implicit none
 c
@@ -12,7 +13,6 @@ c
       real*8 xj(mx),yj(mx),zj(mx)
       real *8 sk(mx),tk(mx),uk(mx)
       real*8 err,pi,eps,salg,ealg
-      real*8 t2,t3,t4
       real*8 t0,t1,second
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16 cj(mx),cj0(mx),cj1(mx)
@@ -22,12 +22,12 @@ c     --------------------------------------------------
 c     create some test data
 c     --------------------------------------------------
 c
-      ms = 24
-      mt = 16
-      mu = 18
-      n1 = 16
-      n2 = 18
-      n3 = 24
+      ms = 24/2
+      mt = 16/2
+      mu = 18/2
+      n1 = 16/2
+      n2 = 18/2
+      n3 = 24/2
       nj = n1*n2*n3
       do k3 = -n3/2, (n3-1)/2
          do k2 = -n2/2, (n2-1)/2
@@ -47,7 +47,7 @@ c     -----------------------
 c
       iflag = 1
       print*,'Starting 3D testing: ', 'nj =',nj, 'ms,mt,mu =',ms,mt,mu
-      do i = 2,2
+      do i = 1,4
          if (i.eq.1) eps=1d-4
          if (i.eq.2) eps=1d-8
          if (i.eq.3) eps=1d-12
@@ -65,30 +65,36 @@ c     -----------------------
 c     call 3D Type 1 method
 c     -----------------------
 c
-       t1 = second()
          call dirft3d1(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
-       t2 = second()
-        call finufft3d1(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
-       t3 = second()
-        call nufft3d1f90(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
-       t4 = second()
-       write(6,*)' dir t2-t1 ',t2-t1
-       write(6,*)' new t3-t2 ',t3-t2
-       write(6,*)' old t4-t3 ',t4-t3
+         call finufft3d1_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
          print *, ' ier = ',ier
-         call errcomp(fk0,fk1,ms*mt*mu,err)
+         call errcomp(fk0,fk1,ms*mt,err)
          print *, ' type 1 err = ',err
 c
 c     -----------------------
 c      call 3D Type 2 method
 c     -----------------------
          call dirft3d2(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
-         call finufft3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk1,ier)
+         call finufft3d2_f(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk1,ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 err = ',err
 c
+c     -----------------------
+c      call 3D Type3 method
+c     -----------------------
+         nk = ms*mt*mu
+         do k1 = 1, nk
+            sk(k1) = 12*(dcos(k1*pi/nk))
+            tk(k1) = 8*(dsin(-pi/2+k1*pi/nk))
+            uk(k1) = 10*(dcos(k1*pi/nk))
+         enddo
 
+         call dirft3d3(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
+         call finufft3d3_f(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,ier)
+         print *, ' ier = ',ier
+         call errcomp(fk0,fk1,nk,err)
+         print *, ' type 3 err = ',err
       enddo 
       stop
       end

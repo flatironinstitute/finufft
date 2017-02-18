@@ -518,7 +518,8 @@ int setup_kernel(spread_opts &opts,double eps,double R)
   int ier=0;   // status
   double fudgefac = 1.0;   // how much actual errors exceed estimated errors
   int ns = std::ceil(-log10(eps/fudgefac))+1;   // 1 digit per power of ten
-  ns = min(ns,MAX_NSPREAD);                  // clip for safety
+  ns = max(2,ns);                            // we don't have ns=1 version yet
+  ns = min(ns,MAX_NSPREAD);                  // clip for safety!
   opts.nspread = ns;
   opts.ES_halfwidth=(double)ns/2;            // full support, since no 1/4 power
   opts.ES_c = 4.0/(double)(ns*ns);           // avoids recomputing
