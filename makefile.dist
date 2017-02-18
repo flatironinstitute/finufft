@@ -9,15 +9,16 @@ CC=g++
 FC=gfortran
 
 # choose EITHER single threaded...
-#CFLAGS=-fPIC -O3 -funroll-loops -march=native -std=c++11
+#CFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11
 #CLIBSFFT = -lfftw3 -lm
-#FFLAGS=-fPIC -O3 -lstdc++
+#FFLAGS=-fPIC -O3 -funroll-loops
 #MFLAGS=
 
 # ...OR multi-threaded:
 CFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp
-CLIBSFFT = -lfftw3_omp -lfftw3 -lm
-FFLAGS=-fPIC -O3 -funroll-loops -lstdc++ -fopenmp
+LIBSFFT = -lfftw3_omp -lfftw3 -lm
+FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
+FLINK=-lgfortran
 MFLAGS=-lgomp
 
 # MATLAB stuff..
@@ -36,7 +37,7 @@ OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rul
 OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 # for Fortran interface...
-FOBJS = fortran/finufft_f.o fortran/nufft1d_demof90.o fortran/dirft1d.o fortran/prini.o
+FOBJS = fortran/finufft_f.o fortran/dirft1d.o fortran/prini.o
 
 HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/common.h src/utils.h
 
@@ -60,13 +61,13 @@ examples/spreadtestnd: examples/spreadtestnd.cpp $(SOBJS) $(HEADERS)
 	$(CC) $(CFLAGS) examples/spreadtestnd.cpp $(SOBJS) -o examples/spreadtestnd
 
 examples/finufft1d_test: examples/finufft1d_test.cpp $(OBJS1) $(HEADERS)
-	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS1) $(CLIBSFFT) -o examples/finufft1d_test
+	$(CC) $(CFLAGS) examples/finufft1d_test.cpp $(OBJS1) $(LIBSFFT) -o examples/finufft1d_test
 
 examples/finufft2d_test: examples/finufft2d_test.cpp $(OBJS2) $(HEADERS)
-	$(CC) $(CFLAGS) examples/finufft2d_test.cpp $(OBJS2) $(CLIBSFFT) -o examples/finufft2d_test
+	$(CC) $(CFLAGS) examples/finufft2d_test.cpp $(OBJS2) $(LIBSFFT) -o examples/finufft2d_test
 
 examples/finufft3d_test: examples/finufft3d_test.cpp $(OBJS3) $(HEADERS)
-	$(CC) $(CFLAGS) examples/finufft3d_test.cpp $(OBJS3) $(CLIBSFFT) -o examples/finufft3d_test
+	$(CC) $(CFLAGS) examples/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o examples/finufft3d_test
 
 spreadtestnd: examples/spreadtestnd
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
@@ -84,15 +85,29 @@ test3d: examples/finufft3d_test
 testnd: examples/finufft1d_test examples/finufft2d_test examples/finufft3d_test
 	(cd examples; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
 
+fortran: $(FOBJS) $(OBJS1) $(OBJS2) $(OBJS3) $(HEADERS)
+# note that linking opts seem to need to go at the end of the compile cmd:
+	$(CC) $(FFLAGS) fortran/nufft1d_demof90.f $(FOBJS) $(OBJS1) $(LIBSFFT) -o fortran/nufft1d_demof90 $(FLINK)
+	time fortran/nufft1d_demof90
+	$(CC) $(FFLAGS) fortran/nufft2d_demof90.f $(FOBJS) $(OBJS2) $(LIBSFFT) -o fortran/nufft2d_demof90 $(FLINK)
+	time fortran/nufft2d_demof90
+	$(CC) $(FFLAGS) fortran/nufft3d_demof90.f $(FOBJS) $(OBJS3) $(LIBSFFT) -o fortran/nufft3d_demof90 $(FLINK)
+	time fortran/nufft3d_demof90
+
+# todo: fix up mex interfaces...
+#mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_dir1.cpp $(SPREADOBJS)
+# make new interface in matlab: from src/, do mcwrap('cnufftspread.h')
+# which fails for omp.
+# mv src/cnufftspread_type1.mexa64 matlab/
+#	(cd src; $(MEX) _mcwrap/mcwrap_cnufftspread_type1.cpp cnufftspread.o ../contrib/besseli.o -output cnufftspread_type1 $(MEXFLAGS))
+
+# todo: python wrapper...
+
+# various obscure testers (experts only)...
 examples/testutils: examples/testutils.cpp src/utils.o src/utils.h
 	$(CC) $(CFLAGS) examples/testutils.cpp src/utils.o -o examples/testutils
 	(cd examples; ./testutils)
 
-fortran: $(FOBJS) $(HEADERS)
-	$(FC) $(FFLAGS) fortran/nufft1d_demof90.f $(FOBJS) -o fortran/nufft1d_demof90
-	fortran/nufft1d_demof90
-
-# various obscure testers (experts only)...
 devel/plotkernels: $(SOBJS) $(HEADERS) devel/plotkernels.cpp
 	$(CC) $(CFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS) 
 	(cd devel; ./plotkernels > plotkernels.dat)
@@ -101,15 +116,6 @@ contrib/testi0: contrib/testi0.cpp contrib/besseli.o src/utils.o
 	$(CC) $(CFLAGS) contrib/testi0.cpp $(OBJS) -o contrib/testi0
 	(cd contrib; ./testi0)
 
-#mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_dir1.cpp $(SPREADOBJS)
-# make new interface in matlab: from src/, do mcwrap('cnufftspread.h')
-# which fails for omp.
-# mv src/cnufftspread_type1.mexa64 matlab/
-#	(cd src; $(MEX) _mcwrap/mcwrap_cnufftspread_type1.cpp cnufftspread.o ../contrib/besseli.o -output cnufftspread_type1 $(MEXFLAGS))
-# todo: fix up!
-
-#finufft1d_demo: finufft1d_demo.o $(OBJS)
-#	$(FC) $(FFLAGS) finufft1d_demo.f90 $(OBJS) -o finufft1d_demo
-
 clean:
 	rm -f $(OBJS1) $(OBJS2) $(OBJS3) $(FOBJS) $(SOBJS)
+	rm -f exmaples/spreadtestnd examples/finufft?d_test fortran/nufft?d_demof90

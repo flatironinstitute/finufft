@@ -41,8 +41,8 @@ Other useful make modes include:
 
   `examples/results` : accuracy and timing outputs.  
   `contrib` : 3rd-party code.  
+  `fortran` : wrappers and drivers for Fortran.
   `matlab` : wrappers and examples for MATLAB. (Not yet working)  
-  `fortran` : wrappers and drivers for Fortran. (Not yet working)  
   `devel` : various obsolete or in-development codes (experts only)  
   `doc` : the manual (not yet there)  
   `README.md`  
@@ -76,19 +76,18 @@ The original NUFFT analysis using truncated Gaussians is:
 
 ### To do
 
-* include nf1 etc size check before alloc, exit gracefully if exceeds RAM
+* nf1 (etc) size check before alloc, exit gracefully if exceeds RAM?
 * test non-openmp compile
-* make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them)
+* make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
 * theory work on exp(sqrt) being close to PSWF
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
 * decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
 * single-prec compile option for RAM-intensive problems?
 * test BIGINT -> long long slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
-* rename examples as test?
-* fortran wrappers (rmdir greengard_work, merge needed into fortran)
 * matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs.
-* spread_f and matlab wrappers need ier output
+* matlab wrappers need ier output?
+* python wrappers
 * license file
 * outreach, alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
 * doc/manual
@@ -132,3 +131,4 @@ The original NUFFT analysis using truncated Gaussians is:
 * type 3 in 2d, 3d
 * style: headers should only include other headers needed to compile the .h; all other headers go in .cpp, even if that involves repetition I guess.
 * changed library interface and twopispread to dcomplex
+* fortran wrappers (rmdir greengard_work, merge needed into fortran)

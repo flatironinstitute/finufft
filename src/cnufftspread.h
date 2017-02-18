@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "utils.h"
 
-#define MAX_NSPREAD 16       // upper bound on nspread, needed by other codes
+#define MAX_NSPREAD 16       // upper bound on nspread, needed by common too
 
 // Note -std=c++11 is needed to avoid warning for static initialization here:
 struct spread_opts {

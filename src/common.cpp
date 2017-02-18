@@ -178,6 +178,8 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
   only contributes at the <3% level in 3D relative to the fftw cost (8 threads).
   This could be removed by passing in an inverse kernel and doing mults.
 
+  todo: rewrite w/ native dcomplex I/O, check complex divide not slower than
+        real divide, or is there a way to force a real divide?
   todo: check RAM access in backwards order in 2nd loop is not a speed hit
   todo: check 2*(k0+k)+1 index calcs not slowing us down
 

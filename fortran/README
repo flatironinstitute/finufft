@@ -1,6 +1,10 @@
-This directory contains fortran wrappers to the FINUFFT C++ library,
+This directory contains Fortran wrappers to the FINUFFT C++ library,
 and older test codes unchanged from the CMCL NUFFT library apart from
 that they call the FINUFFT library.
+
+Note that to link your Fortran against the FINUFFT C++ library, you may
+want to use g++ (on a linux system) with the -lgfortran at the *end* of the
+compile statement.
 
 See ../makefile
 Eg

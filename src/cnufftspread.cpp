@@ -1,8 +1,8 @@
 #include "cnufftspread.h"
-
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
+
 
 // declarations of internal functions...
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky,
@@ -518,6 +518,7 @@ int setup_kernel(spread_opts &opts,double eps,double R)
   int ier=0;   // status
   double fudgefac = 1.0;   // how much actual errors exceed estimated errors
   int ns = std::ceil(-log10(eps/fudgefac))+1;   // 1 digit per power of ten
+  ns = min(ns,MAX_NSPREAD);                  // clip for safety
   opts.nspread = ns;
   opts.ES_halfwidth=(double)ns/2;            // full support, since no 1/4 power
   opts.ES_c = 4.0/(double)(ns*ns);           // avoids recomputing
@@ -526,8 +527,8 @@ int setup_kernel(spread_opts &opts,double eps,double R)
   if (ns==3) betaoverns = 2.26;
   if (ns==4) betaoverns = 2.38;
   opts.ES_beta = betaoverns * (double)ns;
-  if (eps<=1e-16) {
-    fprintf(stderr,"setup_kernel: requested eps is too small (<=1e-16)!\n");
+  if (eps<1e-16) {
+    fprintf(stderr,"setup_kernel: requested eps is too small (<1e-16)!\n");
     ier=1;
   }
   if (R<1.9 || R>2.1) {
