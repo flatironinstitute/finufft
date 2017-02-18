@@ -167,7 +167,7 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
   if dir==1: copies fw to fk with amplification by preface/ker
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
-  fk is complex array stored as 2*ms doubles alternating re,im parts.
+  fk is size-ms double complex array (2*ms doubles alternating re,im parts)
   fw is a FFTW style complex array, ie double [nf1][2], essentially doubles
        alternating re,im parts.
   ker is real-valued double array of length nf1/2+1.

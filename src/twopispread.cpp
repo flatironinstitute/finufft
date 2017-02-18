@@ -17,19 +17,19 @@
  *  xj (and yj, zj) - length nj array of coordinates of NU points, in [-pi,pi]
  *  opts - spreading opts struct (see cnufftspread.h), sets dir=1 or 2, etc.
  *
- * Inputs/Outputs:  (note twice-length double type arrays not complex used)
- *  fw (size nf1, or nf1*nf2, or nf1*nf2*nf3, complex) - uniform grid array.
+ * Inputs/Outputs:  (double complex array type)
+ *  fw (size nf1, or nf1*nf2, or nf1*nf2*nf3) - uniform grid array.
  *  cj - complex length-nj array of strengths of or at NU points.
  *
  * Returned value is same as cnufftspread.
  *
  * Greengard 1/13/17 fortran; rewrite in C++, doc, rename, Barnett 1/17/17
- * opts in interface 2/17/17
+ * opts in interface, dcomplex interface 2/17/17
  */
 
 #include "twopispread.h"
 
-int twopispread1d(BIGINT nf1,double *fw,BIGINT nj,double* xj,double* cj,
+int twopispread1d(BIGINT nf1,dcomplex *fw,BIGINT nj,double* xj,dcomplex* cj,
 		  spread_opts opts)
 {
   double *dummy;   // note this should never be read from!
@@ -39,12 +39,12 @@ int twopispread1d(BIGINT nf1,double *fw,BIGINT nj,double* xj,double* cj,
     xjscal[i] = s * (xj[i]+M_PI);
   //printf("nf1=%d, xjscal = %.15g, Re cj = %.15g\n",nf1,xjscal[0],cj[0]);
 
-  int ier = cnufftspread(nf1,1,1,fw,nj,xjscal,dummy,dummy,cj,opts);
+  int ier = cnufftspread(nf1,1,1,(double*)fw,nj,xjscal,dummy,dummy,(double*)cj,opts);
   return ier;
 }
 
-int twopispread2d(long nf1,long nf2, double *fw,BIGINT nj,double* xj,
-		  double *yj,double* cj,spread_opts opts)
+int twopispread2d(long nf1,long nf2, dcomplex *fw,BIGINT nj,double* xj,
+		  double *yj,dcomplex* cj,spread_opts opts)
 {
   double *dummy;
   double *xjscal = (double*)malloc(sizeof(double)*nj);
@@ -55,11 +55,11 @@ int twopispread2d(long nf1,long nf2, double *fw,BIGINT nj,double* xj,
     xjscal[i] = s1 * (xj[i]+M_PI);
     yjscal[i] = s2 * (yj[i]+M_PI);
   }
-  return cnufftspread(nf1,nf2,1,fw,nj,xjscal,yjscal,dummy,cj,opts);
+  return cnufftspread(nf1,nf2,1,(double*)fw,nj,xjscal,yjscal,dummy,(double*)cj,opts);
 }
 
-int twopispread3d(long nf1,long nf2,long nf3,double *fw,BIGINT nj,double* xj,
-		  double *yj,double* zj,double* cj,spread_opts opts)
+int twopispread3d(long nf1,long nf2,long nf3,dcomplex *fw,BIGINT nj,double* xj,
+		  double *yj,double* zj,dcomplex* cj,spread_opts opts)
 {
   double *xjscal = (double*)malloc(sizeof(double)*nj);
   double *yjscal = (double*)malloc(sizeof(double)*nj);
@@ -72,5 +72,5 @@ int twopispread3d(long nf1,long nf2,long nf3,double *fw,BIGINT nj,double* xj,
     yjscal[i] = s2 * (yj[i]+M_PI);
     zjscal[i] = s3 * (zj[i]+M_PI);
   }
-  return cnufftspread(nf1,nf2,nf3,fw,nj,xjscal,yjscal,zjscal,cj,opts);
+  return cnufftspread(nf1,nf2,nf3,(double*)fw,nj,xjscal,yjscal,zjscal,(double*)cj,opts);
 }

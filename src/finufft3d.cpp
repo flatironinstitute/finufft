@@ -7,8 +7,8 @@
 #include <iostream>
 #include <iomanip>
 
-int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
-	       double eps, BIGINT ms, BIGINT mt, BIGINT mu, double* fk,
+int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag,
+	       double eps, BIGINT ms, BIGINT mt, BIGINT mu, dcomplex* fk,
 	       nufft_opts opts)
  /*  Type-1 3D complex nonuniform FFT.
 
@@ -26,7 +26,8 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
    Inputs:
      nj     number of sources (integer of type BIGINT; see utils.h)
      xj,yj,zj   x,y,z locations of sources on 3D domain [-pi,pi]^3.
-     cj     complex source strengths, interleaving Re & Im parts (2*nj doubles)
+     cj     size-nj complex double array of source strengths, 
+            (ie, stored as 2*nj doubles interleaving Re, Im).
      iflag  if >0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
      ms,mt,mu  number of Fourier modes requested in x,y,z;
@@ -34,9 +35,8 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
             in either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   struct controlling options (see finufft.h)
    Outputs:
-     fk     complex Fourier transform values (size ms*mt*mu, increasing fast
-            in ms to slowest in mu, ie Fortran ordering),
-            stored as alternating Re & Im parts (2*ms*mt*mu doubles)
+     fk     complex double array of Fourier transform values (size ms*mt*mu,
+            increasing fast in ms to slowest in mu, ie Fortran ordering).
      returned value - error return code, as returned by cnufftspread:
                       0 : success.
 
@@ -85,7 +85,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
   timer.restart();
   spopts.debug = opts.spread_debug;
   spopts.spread_direction = 1;
-  int ier_spread = twopispread3d(nf1,nf2,nf3,(double*)fw,nj,xj,yj,zj,cj,spopts);
+  int ier_spread = twopispread3d(nf1,nf2,nf3,(dcomplex*)fw,nj,xj,yj,zj,cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
 
@@ -97,7 +97,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  deconvolveshuffle3d(1,1.0/nj,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,fk,nf1,nf2,nf3,fw);  // 1/nj prefac
+  deconvolveshuffle3d(1,1.0/nj,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(double*)fk,nf1,nf2,nf3,fw);  // 1/nj prefac
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   fftw_free(fw); fftw_free(fwkerhalf1); fftw_free(fwkerhalf2); fftw_free(fwkerhalf3);
@@ -105,9 +105,9 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,double* cj,int iflag,
   return 0;
 }
 
-int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
+int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
 	       int iflag,double eps, BIGINT ms, BIGINT mt, BIGINT mu,
-	       double* fk, nufft_opts opts)
+	       dcomplex* fk, nufft_opts opts)
 
  /*  Type-2 3D complex nonuniform FFT.
 
@@ -120,17 +120,18 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
    Inputs:
      nj     number of sources (integer of type BIGINT; see utils.h)
      xj,yj,zj     x,y,z locations of sources on 3D domain [-pi,pi]^3.
-     fk     complex Fourier transform values (size ms*mt*mu, increasing fastest
-            in ms to slowest in mu, ie Fortran ordering),
-            stored as alternating Re & Im parts (2*ms*mt*mu doubles)
+     fk     double complex array of Fourier series values (size ms*mt*mu,
+            increasing fastest in ms to slowest in mu, ie Fortran ordering).
+            (ie, stored as alternating Re & Im parts, 2*ms*mt*mu doubles)
      iflag  if >0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
      ms,mt,mu  numbers of Fourier modes given in x,y,z; each may be even or odd;
             in either case the mode range is integers lying in [-m/2, (m-1)/2].
      opts   struct controlling options (see finufft.h)
    Outputs:
-     cj     complex source strengths, interleaving Re & Im parts (2*nj doubles)
-     returned value - error return code, as returned by cnufftspread:
+      cj    size-nj complex double array of target values,
+            (ie, stored as 2*nj doubles interleaving Re, Im).
+    returned value - error return code, as returned by cnufftspread:
                       0 : success.
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
@@ -175,7 +176,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
   timer.restart();
-  deconvolveshuffle3d(2,1.0,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,fk,nf1,nf2,nf3,fw);
+  deconvolveshuffle3d(2,1.0,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(double*)fk,nf1,nf2,nf3,fw);
   if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
 
   // Step 2:  Call FFT
@@ -190,7 +191,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
   timer.restart();
   spopts.debug = opts.spread_debug;
   spopts.spread_direction = 2;
-  int ier_spread = twopispread3d(nf1,nf2,nf3,(double*)fw,nj,xj,yj,zj,cj,spopts);
+  int ier_spread = twopispread3d(nf1,nf2,nf3,(dcomplex*)fw,nj,xj,yj,zj,cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
 
@@ -200,7 +201,9 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,double* cj,
   return 0;
 }
 
-int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag, double eps, BIGINT nk, double* s, double *t, double *u, double* fk, nufft_opts opts)
+int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
+	       int iflag, double eps, BIGINT nk, double* s, double *t,
+	       double *u, dcomplex* fk, nufft_opts opts)
  /*  Type-3 3D complex nonuniform FFT.
 
                nj-1
@@ -210,15 +213,16 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag,
    Inputs:
      nj     number of sources (integer of type BIGINT; see utils.h)
      xj,yj,zj   x,y,z location of sources in R^3.
-     cj     complex source strengths, interleaving Re & Im parts (2*nj doubles)
+     cj     size-nj complex double array of source strengths
+            (ie, interleaving Re & Im parts)
      nk     number of frequency target points
      s,t,u      (k_x,k_y,k_z) frequency locations of targets in R^3.
      iflag  if >0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
      opts   struct controlling options (see finufft.h)
    Outputs:
-     fk     complex Fourier transform values at the target frequencies sk
-            stored as alternating Re & Im parts (2*nk doubles)
+     fk     size-nk complex double array of Fourier transform values at the
+            target frequencies sk
      returned value - error return code, as returned by finufft2d2:
                       0 : success.
 
@@ -270,10 +274,9 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag,
   }
   dcomplex imasign = (iflag>0) ? ima : -ima;
   dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj);  // c'_j rephased src
-  dcomplex* cjc = (dcomplex*)cj;     // access src strengths as complex array
 #pragma omp parallel for schedule(dynamic)                // since cexp slow
   for (BIGINT j=0;j<nj;++j)
-    cpj[j] = cjc[j] * exp(imasign*(D1*xj[j]+D2*yj[j]+D3*zj[j])); // rephase
+    cpj[j] = cj[j] * exp(imasign*(D1*xj[j]+D2*yj[j]+D3*zj[j])); // rephase
   if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
 
   // Step 1: spread from irregular sources to regular grid as in type 1
@@ -281,7 +284,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag,
   timer.restart();
   spopts.debug = opts.spread_debug;
   spopts.spread_direction = 1;
-  int ier_spread = twopispread3d(nf1,nf2,nf3,(double*)fw,nj,xpj,ypj,zpj,(double*)cpj,spopts);
+  int ier_spread = twopispread3d(nf1,nf2,nf3,fw,nj,xpj,ypj,zpj,cpj,spopts);
   free(xpj); free(ypj); free(zpj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
@@ -296,7 +299,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag,
     tp[k] = h2*gam2*(t[k]-D2);                         // so that |t'_k| < pi/R
     up[k] = h3*gam3*(u[k]-D3);                         // so that |u'_k| < pi/R
   }
-  int ier_t2 = finufft3d2(nk,sp,tp,up,fk,iflag,eps,nf1,nf2,nf3,(double*)fw,opts);
+  int ier_t2 = finufft3d2(nk,sp,tp,up,fk,iflag,eps,nf1,nf2,nf3,fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2>0) exit(ier_t2);
@@ -313,11 +316,10 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, double* cj,int iflag,
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
   // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
   timer.restart();
-  dcomplex *fkc = (dcomplex*)fk;    // index output as complex array
   // todo: if C1==0.0 don't do the expensive exp()... ?
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
   for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2,C3 shift
-    fkc[k] *= (dcomplex)(1.0/(fkker1[k]*fkker2[k]*fkker3[k])) *
+    fk[k] *= (dcomplex)(1.0/(fkker1[k]*fkker2[k]*fkker3[k])) *
       exp(imasign*((s[k]-D1)*C1 + (t[k]-D2)*C2 + (u[k]-D3)*C3));
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 

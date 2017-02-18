@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
   printf("test 1d type-1:\n"); // -------------- type 1
   for (BIGINT j=0; j<M; ++j) c[j] = crandm11();
   CNTime timer; timer.start();
-  int ier = finufft1d1(M,x,(double*)c,isign,tol,N,(double*)F,opts);
+  int ier = finufft1d1(M,x,c,isign,tol,N,F,opts);
   //for (int j=0;j<N;++j) cout<<F[j]<<endl;
   double t=timer.elapsedsec();
   if (ier!=0) {
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
   printf("test 1d type-2:\n"); // -------------- type 2
   for (BIGINT m=0; m<N; ++m) F[m] = crandm11();
   timer.restart();
-  ier = finufft1d2(M,x,(double*)c,isign,tol,N,(double*)F,opts);
+  ier = finufft1d2(M,x,c,isign,tol,N,F,opts);
   //cout<<"c:\n"; for (int j=0;j<M;++j) cout<<c[j]<<endl;
   t=timer.elapsedsec();
   if (ier!=0) {
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
   double S = (double)N/2;                   // choose freq range sim to type 1
   for (BIGINT k=0; k<N; ++k) s[k] = S*(1.7 + randm11()); //S*(1.7 + k/(double)N); // offset
   timer.restart();
-  ier = finufft1d3(M,x,(double*)c,isign,tol,N,s,(double*)F,opts);
+  ier = finufft1d3(M,x,c,isign,tol,N,s,F,opts);
   t=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

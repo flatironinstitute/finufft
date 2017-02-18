@@ -51,7 +51,7 @@ Other useful make modes include:
 
 ### Notes
 
-C\++ is used for all main libraries, although without much object-oriented code. C\++ complex type arithmetic is not used in the main library, rather FFTW complex types are used, since it is a glorified driver for FFTW. The test codes use C\++ complex types ("dcomplex"). FFTW was considered universal and essential enough to be a dependency for the whole package.
+C\++ is used for all main libraries, although without much object-oriented code. C\++ complex<double> ("dcomplex") and FFTW complex types are mixed within the library, since it is a glorified driver for FFTW, but has dcomplex interfaces and test codes. FFTW was considered universal and essential enough to be a dependency for the whole package.
 
 As a spreading kernel function, we use an unpublished simplification of the Kaiser--Bessel kernel, which at high requested precisions achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is of the form exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
 
@@ -78,6 +78,7 @@ The original NUFFT analysis using truncated Gaussians is:
 
 * include nf1 etc size check before alloc, exit gracefully if exceeds RAM
 * test non-openmp compile
+* make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them)
 * theory work on exp(sqrt) being close to PSWF
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
@@ -130,3 +131,4 @@ The original NUFFT analysis using truncated Gaussians is:
 * test isign=-1
 * type 3 in 2d, 3d
 * style: headers should only include other headers needed to compile the .h; all other headers go in .cpp, even if that involves repetition I guess.
+* changed library interface and twopispread to dcomplex
