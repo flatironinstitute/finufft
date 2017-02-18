@@ -17,6 +17,10 @@ The basic libraries need a C++ compiler, GNU make, FFTW, and optionally OpenMP (
 The fortran wrappers need a fortran compiler.
 See settings in the `makefile`.
 
+On a fedora linux system, the dependencies can be installed as follows:
+
+`sudo yum install git fftw3 fftw3-devel libgomp`
+
 ### Installation
 
 1. Download using `git`, `svn`, or as a zip (see green button above).
@@ -76,6 +80,7 @@ The original NUFFT analysis using truncated Gaussians is:
 
 ### To do
 
+* installation instructions on various linux flavors
 * MAC OSX test, put in makefile
 * nf1 (etc) size check before alloc, exit gracefully if exceeds RAM?
 * test non-openmp compile
@@ -94,6 +99,7 @@ The original NUFFT analysis using truncated Gaussians is:
 * doc/manual
 * boilerplate stuff as in CMCL page
 * clean up tree, remove devel and unused contrib
+* Flatiron logo
 
 ### Done
 
