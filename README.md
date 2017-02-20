@@ -13,45 +13,70 @@ Compute various exponential sums involving arbitrary point distributions in opti
 
 ### Dependencies
 
-The basic libraries need a C++ compiler, GNU make, FFTW, and optionally OpenMP (the makefile can be adjusted for single-threaded).
-The fortran wrappers need a fortran compiler.
-See settings in the `makefile`.
+For the basic libraries
+
+* C++ compiler
+* GNU make
+* FFTW
+* Optional OpenMP (the makefile can be adjusted for single-threaded)
+
+For the fotran wrappers
+
+* Fortran compiler (see settings in the makefile)
 
 On a fedora linux system, the dependencies can be installed as follows:
 
-`sudo yum install git fftw3 fftw3-devel libgomp`
+```bash
+sudo yum install git fftw3 fftw3-devel libgomp
+```
+
+On Ubuntu:
+
+```bash
+sudo apt-get install git libfftw3-dev
+```
 
 ### Installation
 
-1. Download using `git`, `svn`, or as a zip (see green button above).
-1. `cp makefile.dist makefile`
-1. edit `makefile` for your system
-1. `make`. This will compile the library then run a set of multi-threaded and single-threaded speed tests  
+* Clone using git (or checkout using svn, or download as a zip -- see green button above)
+* Copy makefile.dist to makefile and edit for your system
+* Compile using:
+
+```bash
+make
+```
+This will compile the library then run a set of multi-threaded and single-threaded speed tests  
 
 Other useful make modes include:
 
-  `make test1d` : small accuracy test for components in 1D. Analogously for 2D, 3D  
-  `make spreadtestnd` : benchmark the spreader routines, all dimensions  
-  `make examples/testutils` : test various low-level utilities  
-  `make nufft` : compile the library without testing  
-  `make fortran` : compile and test the fortran interfaces  
+```bash
+make test1d # small accuracy test for components in 1D. Analogously for 2D, 3D  
+make spreadtestnd # benchmark the spreader routines, all dimensions  
+make examples/testutils # test various low-level utilities  
+make nufft # compile the library without testing  
+make fortran # compile and test the fortran interfaces  
+```
 
 ### Contents of this package
 
-  `src` : main library source and headers.  
-  `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. In this directory are the useful scripts:
-  - `nuffttestnd.sh` : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
-  - `checkallaccs.sh dim` (where `dim` is 1, 2, or 3) : sweep over all tolerances checking the spreader and NUFFT at a single dimension  
+```
+src : main library source and headers.  
+examples : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. 
 
-  `examples/results` : accuracy and timing outputs.  
-  `contrib` : 3rd-party code.  
-  `fortran` : wrappers and drivers for Fortran.
-  `matlab` : wrappers and examples for MATLAB. (Not yet working)  
-  `devel` : various obsolete or in-development codes (experts only)  
-  `doc` : the manual (not yet there)  
-  `README.md`  
-  `LICENSE`  
-  `makefile.dist` : GNU makefile (user should first copy to `makefile`)  
+In the examples directory are the following useful scripts:
+nuffttestnd.sh : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
+checkallaccs.sh [dim] : (where [dim]] is 1, 2, or 3) sweep over all tolerances checking the spreader and NUFFT at a single dimension  
+
+examples/results` : accuracy and timing outputs.  
+contrib : 3rd-party code.  
+fortran : wrappers and drivers for Fortran.
+matlab : wrappers and examples for MATLAB. (Not yet working)  
+devel : various obsolete or in-development codes (experts only)  
+doc : the manual (not yet there)  
+README.md
+LICENSE 
+makefile.dist : GNU makefile (user should first copy to `makefile`)  
+```
 
 ### Notes
 
