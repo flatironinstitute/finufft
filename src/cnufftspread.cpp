@@ -408,6 +408,8 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
    * Magland, Dec 2016; Barnett tweaked so doesn't examine ky in 1d, or kz in 1d or 2d.
    */
 {
+  (void)kx; //tell compiler this is an unused variable
+  (void)N1; //tell compiler this is an unused variable
   bool isky=(N2>1), iskz=(N3>1);           // are ky,kz available? cannot access if not!
   std::vector<long> counts(N2*N3);
   for (long j=0; j<N2*N3; j++)

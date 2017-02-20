@@ -6,6 +6,8 @@ int main(int argc, char* argv[])
 // speed and accuracy tests for I_0 modified Bessel of 1st kind in besseli.cpp.
 // Barnett 2/2/17
 {
+  (void)argc; //tell compiler this variable is unused
+  (void)argv; //tell compiler this variable is unused
   double R=100.0;    // upper lim
   int n=1e7;
    CNTime timer; timer.start();
