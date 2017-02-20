@@ -1,5 +1,7 @@
 #include "common.h"
+extern "C" {
 #include "../contrib/legendre_rule_fast.h"
+}
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
