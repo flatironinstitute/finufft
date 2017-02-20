@@ -333,7 +333,7 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
   i2th[0] = 0; i2th[1] = N2-1;
   i3th[0] = 0; i3th[1] = N3-1;
   // set Ntop the lowest (in grid order) nontrivial dimension, ie Nd for d = #dims...
-  BIGINT ith[2], Ntop = N1, dims=1;
+  BIGINT ith[2], Ntop = N1;
   if (ndims==2) Ntop = N2;
   if (ndims==3) Ntop = N3;
   if (N2==1 || !opts.checkerboard) {  // slice only along one dim

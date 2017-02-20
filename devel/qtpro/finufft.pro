@@ -37,4 +37,10 @@ SOURCES += \
     ../../contrib/legendre_rule_fast.c
 
 #FFTW
-LIBS += -fopenmp -lfftw3 -lfftw3_threads
+LIBS += -lfftw3 -lfftw3_threads
+
+#OPENMP
+!macx {
+  QMAKE_LFLAGS += -fopenmp
+  QMAKE_CXXFLAGS += -fopenmp
+}
