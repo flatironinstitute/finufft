@@ -1,0 +1,64 @@
+spreadtestnd output:
+what CPUs do I have?...
+model name	: Intel(R) Core(TM) i7-3720QM CPU @ 2.60GHz
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                8
+On-line CPU(s) list:   0-7
+Thread(s) per core:    2
+Core(s) per socket:    4
+Socket(s):             1
+NUMA node(s):          1
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 58
+Stepping:              9
+CPU MHz:               1409.789
+BogoMIPS:              5188.41
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              6144K
+NUMA node0 CPU(s):     0-7
+
+tol = 1e-6: multi-core tests...
+cnufftspread 1D, 1e+06 U pts, dir=1, tol=1e-06: nspread=8
+	1e+06 NU pts in 0.213 s 	4.69e+06 pts/s 	3.76e+07 spread pts/s
+	rel err in total over grid:      7.89e-07
+cnufftspread 1D, 1e+06 U pts, dir=2, tol=1e-06: nspread=8
+	1e+06 NU pts in 0.227 s 	4.41e+06 pts/s 	3.52e+07 spread pts/s
+	max rel err in values at NU pts: 2.7e-06
+cnufftspread 2D, 1e+06 U pts, dir=1, tol=1e-06: nspread=8
+	1e+06 NU pts in 0.334 s 	2.99e+06 pts/s 	1.92e+08 spread pts/s
+	rel err in total over grid:      1.09e-06
+cnufftspread 2D, 1e+06 U pts, dir=2, tol=1e-06: nspread=8
+	1e+06 NU pts in 0.335 s 	2.99e+06 pts/s 	1.91e+08 spread pts/s
+	max rel err in values at NU pts: 5.34e-06
+cnufftspread 3D, 9.7e+05 U pts, dir=1, tol=1e-06: nspread=8
+	1e+06 NU pts in 0.89 s 	1.12e+06 pts/s 	5.75e+08 spread pts/s
+	rel err in total over grid:      -1.04e-07
+cnufftspread 3D, 9.7e+05 U pts, dir=2, tol=1e-06: nspread=8
+	1e+06 NU pts in 0.72 s 	1.39e+06 pts/s 	7.11e+08 spread pts/s
+	max rel err in values at NU pts: 6.88e-06
+
+tol = 1e-6: single core tests...
+cnufftspread 1D, 1e+06 U pts, dir=1, tol=1e-06: nspread=8
+	1e+06 NU pts in 0.764 s 	1.31e+06 pts/s 	1.05e+07 spread pts/s
+	rel err in total over grid:      7.89e-07
+cnufftspread 1D, 1e+06 U pts, dir=2, tol=1e-06: nspread=8
+	1e+06 NU pts in 0.78 s 	1.28e+06 pts/s 	1.03e+07 spread pts/s
+	max rel err in values at NU pts: 2.7e-06
+cnufftspread 2D, 1e+06 U pts, dir=1, tol=1e-06: nspread=8
+	1e+06 NU pts in 1.25 s 	7.97e+05 pts/s 	5.1e+07 spread pts/s
+	rel err in total over grid:      1.09e-06
+cnufftspread 2D, 1e+06 U pts, dir=2, tol=1e-06: nspread=8
+	1e+06 NU pts in 1.26 s 	7.92e+05 pts/s 	5.07e+07 spread pts/s
+	max rel err in values at NU pts: 5.34e-06
+cnufftspread 3D, 9.7e+05 U pts, dir=1, tol=1e-06: nspread=8
+	1e+06 NU pts in 2.98 s 	3.36e+05 pts/s 	1.72e+08 spread pts/s
+	rel err in total over grid:      -1.04e-07
+cnufftspread 3D, 9.7e+05 U pts, dir=2, tol=1e-06: nspread=8
+	1e+06 NU pts in 2.69 s 	3.72e+05 pts/s 	1.9e+08 spread pts/s
+	max rel err in values at NU pts: 6.88e-06

@@ -30,6 +30,8 @@
  *
  * This is slightly modified routine from the Cephes library:
  * http://www.netlib.org/cephes/
+ *
+ * NOTE: also has lower-accuracy variant by Magland/Barnett, 2016-2017.
  */
 
 /*
@@ -90,12 +92,6 @@
 */
 
 
-/* Chebyshev coefficients for exp(-x) I0(x)
- * in the interval [0,8].
- *
- * lim(x->0){ exp(-x) I0(x) } = 1.
- */
-
 double chbevl(double x, double array[], int n)
 {
   double b0, b1, b2, *p;
@@ -116,6 +112,11 @@ double chbevl(double x, double array[], int n)
   return(0.5*(b0 - b2));
 }
 
+/* Chebyshev coefficients for exp(-x) I0(x)
+ * in the interval [0,8].
+ *
+ * lim(x->0){ exp(-x) I0(x) } = 1.
+ */
 static double A[] = {
   -4.41534164647933937950E-18,
   3.33079451882223809783E-17,
@@ -149,32 +150,11 @@ static double A[] = {
   6.76795274409476084995E-1
 };
 
-static double A_approx[] = {
-  1.11738753912010371815E-6,
-  -4.41673835845875056359E-6,
-  1.64484480707288970893E-5,
-  -5.75419501008210370398E-5,
-  1.88502885095841655729E-4,
-  -5.76375574538582365885E-4,
-  1.63947561694133579842E-3,
-  -4.32430999505057594430E-3,
-  1.05464603945949983183E-2,
-  -2.37374148058994688156E-2,
-  4.93052842396707084878E-2,
-  -9.49010970480476444210E-2,
-  1.71620901522208775349E-1,
-  -3.04682672343198398683E-1,
-  6.76795274409476084995E-1
-};
-
-
-
 /* Chebyshev coefficients for exp(-x) sqrt(x) I0(x)
  * in the inverted interval [8,infinity].
  *
  * lim(x->inf){ exp(-x) sqrt(x) I0(x) } = 1/sqrt(2pi).
  */
-
 static double B[] = {
   -7.23318048787475395456E-18,
   -4.83050448594418207126E-18,
@@ -203,15 +183,7 @@ static double B[] = {
   8.04490411014108831608E-1
 };
 
-static double B_approx[] = {
-  2.89137052083475648297E-6,
-  6.88975834691682398426E-5,
-  3.36911647825569408990E-3,
-  8.04490411014108831608E-1
-};
-
-
-double i0(double x)
+double i0(double x)    // the shipped original full acc version
 {
   double y;
 
@@ -226,23 +198,29 @@ double i0(double x)
 
 }
 
-double i0_approx(double x)
+double i0_approx(double x)     // reduced acc version
+// allows variable # coeffs, Barnett based on Magland, 2/3/17
+// Note that the one exp here accounts for around half the cost, so there's
+// no point in shrinking the cheby orders that much.
+// The if-statement is around 10% of cost.
+// The A and B terms should balance so that errors at x=8 are similar.
 {
   double y;
-
+  //int Aterms = 17, Bterms = 5;   // sup err is 7e-8, at x=8
+  int Aterms = 15, Bterms = 4;   // 1.5e-6: jfm's choice
+  //int Aterms = 14, Bterms = 3;   // 8e-6: nufft still does 14 digits (why?)
+  //int Aterms = 12, Bterms = 2;   // 2e-4: nufft loses acc, eg 1e-11
   if (x < 0)
-	x = -x;
+    x = -x;
   if (x <= 8.0) {
-	y = (x / 2.0) - 2.0;
-	return(exp(x) * chbevl(y, A_approx, 15));
+    y = (x / 2.0) - 2.0;
+    return(exp(x) * chbevl(y, A+(30-Aterms), Aterms));
   }
-
-  return(exp(x) * chbevl(32.0 / x - 2.0, B_approx, 4) / sqrt(x));
-
+  return(exp(x) * chbevl(32.0 / x - 2.0, B+(25-Bterms), Bterms) / sqrt(x));
 }
 
 
-double i0e(double x)
+double i0e(double x)   // exp scaled, full acc version
 {
   double y;
 
@@ -257,12 +235,10 @@ double i0e(double x)
 
 }
 
-
-//jfm
+// jfm interfaces out
 double besseli0(double x) {
-	return i0(x);
+  return i0(x);
 }
-
 double besseli0_approx(double x) {
-	return i0_approx(x);
+  return i0_approx(x);
 }
