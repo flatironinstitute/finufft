@@ -11,6 +11,8 @@ MOC_DIR=build
 TARGET = finufft_qtpro
 TEMPLATE = app
 
+DEFINES += NEED_EXTERN_C
+
 HEADERS += \
     ../../src/cnufftspread.h \
     ../../src/common.h \

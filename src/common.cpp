@@ -1,7 +1,12 @@
 #include "common.h"
+
+#ifdef NEED_EXTERN_C
 extern "C" {
-#include "../contrib/legendre_rule_fast.h"
+    #include "../contrib/legendre_rule_fast.h"
 }
+#else
+#include "../contrib/legendre_rule_fast.h"
+#endif
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
