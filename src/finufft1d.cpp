@@ -45,6 +45,7 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) exit(ier_set);
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   cout << scientific << setprecision(15);  // for debug
 
@@ -132,6 +133,7 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) exit(ier_set);
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   cout << scientific << setprecision(15);  // for debug
 
@@ -221,6 +223,7 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) exit(ier_set);
   BIGINT nf1;
   double X1,C1,S1,D1,h1,gam1;
   cout << scientific << setprecision(15);  // for debug

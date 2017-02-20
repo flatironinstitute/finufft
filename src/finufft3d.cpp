@@ -52,6 +52,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) exit(ier_set);
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   BIGINT nf3; set_nf_type12(mu,opts,spopts,&nf3);
@@ -145,6 +146,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) exit(ier_set);
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   BIGINT nf3; set_nf_type12(mu,opts,spopts,&nf3);
@@ -246,6 +248,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) exit(ier_set);
   BIGINT nf1,nf2,nf3;
   double X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2,X3,C3,S3,D3,h3,gam3;
   cout << scientific << setprecision(15);  // for debug
