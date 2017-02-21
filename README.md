@@ -15,14 +15,14 @@ Compute various exponential sums involving arbitrary point distributions in opti
 
 For the basic libraries
 
-* C++ compiler
-* GNU make
-* FFTW
-* Optional OpenMP (the makefile can be adjusted for single-threaded)
+- C++ compiler
+- GNU make
+- FFTW
+- Optional OpenMP (the makefile can be adjusted for single-threaded)
 
 For the fotran wrappers
 
-* Fortran compiler (see settings in the makefile)
+- Fortran compiler (see settings in the makefile)
 
 On a fedora linux system, the dependencies can be installed as follows:
 
@@ -38,9 +38,9 @@ sudo apt-get install git libfftw3-dev
 
 ### Installation
 
-* Clone using git (or checkout using svn, or download as a zip -- see green button above)
-* Copy makefile.dist to makefile and edit for your system
-* Compile using:
+- Clone using git (or checkout using svn, or download as a zip -- see green button above)
+- Copy makefile.dist to makefile and edit for your system
+- Compile using:
 
 ```bash
 make
@@ -59,24 +59,19 @@ make fortran # compile and test the fortran interfaces
 
 ### Contents of this package
 
-```
-src : main library source and headers.  
-examples : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. 
-
-In the examples directory are the following useful scripts:
-nuffttestnd.sh : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
-checkallaccs.sh [dim] : (where [dim]] is 1, 2, or 3) sweep over all tolerances checking the spreader and NUFFT at a single dimension  
-
-examples/results` : accuracy and timing outputs.  
-contrib : 3rd-party code.  
-fortran : wrappers and drivers for Fortran.
-matlab : wrappers and examples for MATLAB. (Not yet working)  
-devel : various obsolete or in-development codes (experts only)  
-doc : the manual (not yet there)  
-README.md
-LICENSE 
-makefile.dist : GNU makefile (user should first copy to `makefile`)  
-```
+- `src` : main library source and headers.  
+- `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. 
+- `examples/nuffttestnd.sh` : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
+- `examples/checkallaccs.sh [dim]` : sweep over all tolerances checking the spreader and NUFFT at a single dimension;  [dim] is 1, 2, or 3
+- `examples/results` : accuracy and timing outputs.  
+- `contrib` : 3rd-party code.  
+- `fortran` : wrappers and drivers for Fortran.
+- `matlab` : wrappers and examples for MATLAB. (Not yet working)  
+- `devel` : various obsolete or in-development codes (experts only)  
+- `doc` : the manual (not yet there)  
+- `README.md`
+- `LICENSE`
+- `makefile.dist` : GNU makefile (user should first copy to `makefile`)  
 
 ### Notes
 
