@@ -32,7 +32,7 @@
 int twopispread1d(BIGINT nf1,dcomplex *fw,BIGINT nj,double* xj,dcomplex* cj,
 		  spread_opts opts)
 {
-  double *dummy;   // note this should never be read from!
+  double *dummy=0;   // note this should never be read from!
   double *xjscal = (double*)malloc(sizeof(double)*nj);
   double s = nf1/(2*M_PI);
   for (BIGINT i=0;i<nj;++i)
@@ -46,7 +46,7 @@ int twopispread1d(BIGINT nf1,dcomplex *fw,BIGINT nj,double* xj,dcomplex* cj,
 int twopispread2d(long nf1,long nf2, dcomplex *fw,BIGINT nj,double* xj,
 		  double *yj,dcomplex* cj,spread_opts opts)
 {
-  double *dummy;
+  double *dummy=0;   // note this should never be read from!
   double *xjscal = (double*)malloc(sizeof(double)*nj);
   double *yjscal = (double*)malloc(sizeof(double)*nj);
   double s1 = nf1/(2*M_PI);
