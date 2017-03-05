@@ -5,7 +5,7 @@
 
 clear
 R = 2.0;           % upsampling ratio
-ns = 7;            % nspread
+ns = 15;            % nspread
 i = 0;             % counter over windows to compare
 
 %for ns=2:9, ns      % ================

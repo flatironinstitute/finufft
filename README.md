@@ -2,14 +2,16 @@
 
 ### Alex H. Barnett and Jeremy F. Magland
 
-Includes code by:
-
-Nick Hale and John Burkardt - Gauss-Legendre nodes and weights  
-Leslie Greengard and June-Yub Lee - some fortran test codes from CMCL  
-
 ### Purpose
 
-Compute various exponential sums involving arbitrary point distributions in optimal time. See the manual.
+This library computes the nonuniform FFT to a specified precision, in 1D, 2D, or 3D,
+which means approximating various exponential sums arising in
+the Fourier series or transforms of delta distributions.
+
+corresponding to Fourier series or transforms of sums of delta distributions.
+involving arbitrary point distributions in optimal time.
+We duplicate the interfaces of the CMCL NUFFT libraries of Greengard--Lee.
+See the manual.
 
 ### Dependencies
 
@@ -20,7 +22,7 @@ For the basic libraries
 - FFTW
 - Optional OpenMP (the makefile can be adjusted for single-threaded)
 
-For the fotran wrappers
+For the fortran wrappers
 
 - Fortran compiler (see settings in the makefile)
 
@@ -97,6 +99,13 @@ This code builds upon the CMCL NUFFT, and the Fortran wrappers duplicate its int
 The original NUFFT analysis using truncated Gaussians is:
 
 [DR] Fast Fourier Transforms for Nonequispaced data. A. Dutt and V. Rokhlin. SIAM J. Sci. Comput. 14, 1368 (1993). 
+
+Our distribution includes code by:
+
+Nick Hale and John Burkardt - Gauss-Legendre nodes and weights  
+Leslie Greengard and June-Yub Lee - some fortran test codes from CMCL  
+
+
 
 ### To do
 
