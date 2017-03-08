@@ -4,19 +4,16 @@ cc
 cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 cc
-c Changed by Barnett to call FINUFFT 2/17/17
-      program testfft
+c tweaked Alex Barnett to call FINUFFT 2/17/17, dyn malloc 3/8/17
+      program nufft3d_demo
       implicit none
 c
       integer i,ier,iflag,j,k1,k2,k3,mx,ms,mt,mu,n1,n2,n3,nj,nk
-      parameter (mx=1000 000)
-      real*8 xj(mx),yj(mx),zj(mx)
-      real *8 sk(mx),tk(mx),uk(mx)
+      real*8, allocatable :: xj(:),yj(:),zj(:),sk(:),tk(:),uk(:)
       real*8 err,pi,eps,salg,ealg
       real*8 t0,t1,second
       parameter (pi=3.141592653589793238462643383279502884197d0)
-      complex*16 cj(mx),cj0(mx),cj1(mx)
-      complex*16 fk0(mx),fk1(mx)
+      complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c
 c     --------------------------------------------------
 c     create some test data
@@ -29,6 +26,19 @@ c
       n2 = 18/2
       n3 = 24/2
       nj = n1*n2*n3
+      nk = ms*mt*mu
+c     first alloc everything
+      allocate(fk0(nk))
+      allocate(fk1(nk))
+      allocate(sk(nk))
+      allocate(tk(nk))
+      allocate(uk(nk))
+      allocate(xj(nj))
+      allocate(yj(nj))
+      allocate(zj(nj))
+      allocate(cj(nj))
+      allocate(cj0(nj))
+      allocate(cj1(nj))
       do k3 = -n3/2, (n3-1)/2
          do k2 = -n2/2, (n2-1)/2
             do k1 = -n1/2, (n1-1)/2
@@ -83,7 +93,6 @@ c
 c     -----------------------
 c      call 3D Type3 method
 c     -----------------------
-         nk = ms*mt*mu
          do k1 = 1, nk
             sk(k1) = 12*(dcos(k1*pi/nk))
             tk(k1) = 8*(dsin(-pi/2+k1*pi/nk))

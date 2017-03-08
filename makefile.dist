@@ -7,6 +7,7 @@
 # ============= system-specific settings ===============================
 CC=g++
 FC=gfortran
+FLINK=-lgfortran
 
 # choose EITHER single threaded...
 #CFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11
@@ -18,7 +19,6 @@ FC=gfortran
 CFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp
 LIBSFFT = -lfftw3_omp -lfftw3 -lm
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
-FLINK=-lgfortran
 MFLAGS=-lgomp
 
 # MAC OSX to do...
@@ -39,14 +39,14 @@ OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rul
 OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
-# for Fortran interface...
+# for Fortran interface and demos...
 FOBJS = fortran/finufft_f.o fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/prini.o
 
 HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/common.h src/utils.h
 
 default: testnd
 
-.PHONY:	nufft spreadtestnd testnd fortran
+.PHONY:	nufft spreadtestnd testnd fortran lib
 
 # implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:
@@ -56,8 +56,10 @@ default: testnd
 .f.o:
 	$(FC) -c $(FFLAGS) $< -o $@
 
-# the main libs...
-nufft: $(OBJS)
+# build a static lib...
+lib: src/finufft.a
+src/finufft.a: $(OBJS)
+	ar rcs src/finufft.a $(OBJS)
 
 # test drivers and scripts...
 examples/spreadtestnd: examples/spreadtestnd.cpp $(SOBJS) $(HEADERS)
@@ -90,12 +92,12 @@ testnd: examples/finufft1d_test examples/finufft2d_test examples/finufft3d_test
 
 fortran: $(FOBJS) $(OBJS) $(HEADERS)
 # note that linking opts seem to need to go at the end of the compile cmd:
-	$(CC) $(FFLAGS) fortran/nufft1d_demof90.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft1d_demof90 $(FLINK)
-	$(CC) $(FFLAGS) fortran/nufft2d_demof90.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft2d_demof90 $(FLINK)
-	$(CC) $(FFLAGS) fortran/nufft3d_demof90.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft3d_demof90 $(FLINK)
-	time fortran/nufft1d_demof90
-	time fortran/nufft2d_demof90
-	time fortran/nufft3d_demof90
+	$(CC) $(FFLAGS) fortran/nufft1d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft1d_demo $(FLINK)
+	$(CC) $(FFLAGS) fortran/nufft2d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft2d_demo $(FLINK)
+	$(CC) $(FFLAGS) fortran/nufft3d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft3d_demo $(FLINK)
+	time -p fortran/nufft1d_demo
+	time -p fortran/nufft2d_demo
+	time -p fortran/nufft3d_demo
 
 # todo: make mex interfaces...
 #mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_dir1.cpp $(SPREADOBJS)
@@ -121,4 +123,4 @@ contrib/testi0: contrib/testi0.cpp contrib/besseli.o src/utils.o
 
 clean:
 	rm -f $(OBJS1) $(OBJS2) $(OBJS3) $(FOBJS) $(SOBJS)
-	rm -f exmaples/spreadtestnd examples/finufft?d_test fortran/nufft?d_demof90
+	rm -f examples/spreadtestnd examples/finufft?d_test fortran/nufft?d_demo

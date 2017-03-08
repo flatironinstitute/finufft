@@ -4,25 +4,31 @@ cc
 cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 c
-c Changed by Barnett to call FINUFFT 2/17/17
-      program testfft
+c tweaked Alex Barnett to call FINUFFT 2/17/17, dyn malloc 3/8/17
+      program nufft1d_demo
       implicit none
 c
 c --- local variables
 c
       integer i,ier,iflag,j,k1,mx,ms,nj
-      parameter (mx=10 000)
-      real*8 xj(mx), sk(mx)
+      real*8, allocatable :: xj(:),sk(:)
       real*8 err,eps,pi
       parameter (pi=3.141592653589793238462643383279502884197d0)
-      complex*16 cj(mx),cj0(mx),cj1(mx)
-      complex*16 fk0(mx),fk1(mx)
+      complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c
 c     --------------------------------------------------
 c     create some test data
 c     --------------------------------------------------
       ms = 90
       nj = 128
+c     first alloc everything
+      allocate(fk0(ms))
+      allocate(fk1(ms))
+      allocate(sk(ms))
+      allocate(xj(nj))
+      allocate(cj(nj))
+      allocate(cj0(nj))
+      allocate(cj1(nj))
       do k1 = -nj/2, (nj-1)/2
          j = k1+nj/2+1
          xj(j) = pi * dcos(-pi*j/nj)

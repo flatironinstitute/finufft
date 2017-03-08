@@ -4,18 +4,15 @@ cc
 cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 cc
-c Changed by Barnett to call FINUFFT 2/17/17
-      program testfft
+c tweaked Alex Barnett to call FINUFFT 2/17/17, dyn malloc 3/8/17
+      program nufft2d_demo
       implicit none
 c
       integer i,ier,iflag,j,k1,k2,mx,ms,mt,n1,n2,nj,nk
-      parameter (mx=256*256)
-      real*8 xj(mx),yj(mx)
-      real *8 sk(mx),tk(mx)
+      real*8, allocatable :: xj(:),yj(:),sk(:),tk(:)
       real*8 err,pi,eps,salg,ealg
       parameter (pi=3.141592653589793238462643383279502884197d0)
-      complex*16 cj(mx),cj0(mx),cj1(mx)
-      complex*16 fk0(mx),fk1(mx)
+      complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c
 c     --------------------------------------------------
 c     create some test data
@@ -26,6 +23,17 @@ c
       ms = 32
       mt = 30
       nj = n1*n2
+      nk = ms*mt
+c     first alloc everything
+      allocate(fk0(nk))
+      allocate(fk1(nk))
+      allocate(sk(nk))
+      allocate(tk(nk))
+      allocate(xj(nj))
+      allocate(yj(nj))
+      allocate(cj(nj))
+      allocate(cj0(nj))
+      allocate(cj1(nj))
       do k1 = -n1/2, (n1-1)/2
          do k2 = -n2/2, (n2-1)/2
             j = (k2+n2/2+1) + (k1+n1/2)*n2
@@ -78,7 +86,6 @@ c
 c     -----------------------
 c      call 2D Type3 method
 c     -----------------------
-         nk = ms*mt
          do k1 = 1, nk
             sk(k1) = 48*(dcos(k1*pi/nk))
             tk(k1) = 32*(dsin(-pi/2+k1*pi/nk))
