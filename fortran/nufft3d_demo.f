@@ -5,7 +5,7 @@ cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 cc
 c tweaked Alex Barnett to call FINUFFT 2/17/17
-c dyn malloc; type 2 uses same input data fk0, 3/8/17
+c dyn malloc; type 2 uses same input data fk0, other bugs 3/8/17
       program nufft3d_demo
       implicit none
 c
@@ -43,7 +43,7 @@ c     first alloc everything
       do k3 = -n3/2, (n3-1)/2
          do k2 = -n2/2, (n2-1)/2
             do k1 = -n1/2, (n1-1)/2
-               j =  1 + (k1+n1/2+1) + (k2+n2/2)*n1 + (k3+n3/2)*n1*n2
+               j =  (k1+n1/2+1) + (k2+n2/2)*n1 + (k3+n3/2)*n1*n2
                xj(j) = pi*dcos(-pi*k1/n1)
                yj(j) = pi*dcos(-pi*k2/n2)
                zj(j) = pi*dcos(-pi*k3/n3)
@@ -79,7 +79,7 @@ c
          call dirft3d1(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
          call finufft3d1_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
          print *, ' ier = ',ier
-         call errcomp(fk0,fk1,ms*mt,err)
+         call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 err = ',err
 c
 c     -----------------------

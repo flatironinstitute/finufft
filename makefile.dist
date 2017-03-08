@@ -2,7 +2,7 @@
 # Barnett Jan-Feb 2017
 
 # Users should copy this file (makefile.dist) to makefile before you edit.
-# There are no makefiles in subdirectories.
+# This is the only makefile; there are no makefiles in subdirectories.
 
 # ============= system-specific settings ===============================
 CC=g++
@@ -44,9 +44,9 @@ FOBJS = fortran/finufft_f.o fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.
 
 HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/common.h src/utils.h
 
-default: testnd
+default: lib
 
-.PHONY:	nufft spreadtestnd testnd fortran lib
+.PHONY: lib test1d test2d test3d testnd fortran
 
 # implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:

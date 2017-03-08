@@ -336,10 +336,11 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
   BIGINT ith[2], Ntop = N1;
   if (ndims==2) Ntop = N2;
   if (ndims==3) Ntop = N3;
-  if (N2==1 || !opts.checkerboard) {  // slice only along one dim
-    if (Ntop<nth) {    // we're at a loss to occupy every thread; assign one per grid pt
+  if (ndims==1 || !opts.checkerboard) {  // slice only along one dim
+    bool thread_gets_gridpts = true;
+    if (Ntop<=nth) {    // we're at a loss to occupy every thread; assign one per grid pt
       ith[0] = ith[1] = th;
-      return th<Ntop;
+      if (th>=Ntop) thread_gets_gridpts = false;
     } else {           // this relies on consistent rounding behavior every time called!
       ith[0] = (BIGINT)(th*(double)Ntop/nth);
       ith[1] = (BIGINT)((th+1)*(double)Ntop/nth - 1);
@@ -352,9 +353,10 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
     } else if (ndims==3) {
       i3th[0] = ith[0]; i3th[1] = ith[1];
     }
-    return true;
+    return thread_gets_gridpts;
   } else {
     printf("2d or 3d checkerboard not implemented!\n");
+    exit(1);
     return false;
   }
 }
