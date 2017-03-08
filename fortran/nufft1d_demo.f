@@ -4,7 +4,8 @@ cc
 cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 c
-c tweaked Alex Barnett to call FINUFFT 2/17/17, dyn malloc 3/8/17
+c tweaked Alex Barnett to call FINUFFT 2/17/17
+c dyn malloc; type 2 uses same input data fk0, 3/8/17
       program nufft1d_demo
       implicit none
 c

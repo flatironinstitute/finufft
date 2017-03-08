@@ -4,13 +4,10 @@
 
 ### Purpose
 
-This library computes the nonuniform FFT to a specified precision, in 1D, 2D, or 3D,
-which means approximating various exponential sums arising in
-the Fourier series or transforms of delta distributions.
-
-corresponding to Fourier series or transforms of sums of delta distributions.
-involving arbitrary point distributions in optimal time.
-We duplicate the interfaces of the CMCL NUFFT libraries of Greengard--Lee.
+This library computes the nonuniform FFT to a specified precision, in 1D, 2D, or 3D.
+The task is to approximate various exponential sums involving large numbers of terms and output indices, in close to linear time.
+The speedup over naive evaluation of the sums is similar to that achieved by the FFT.
+For convenience, we duplicate the interfaces of the CMCL NUFFT libraries of Greengard--Lee.
 See the manual.
 
 ### Dependencies
@@ -19,21 +16,18 @@ For the basic libraries
 
 - C++ compiler
 - GNU make
-- FFTW
-- Optional OpenMP (the makefile can be adjusted for single-threaded)
+- FFTW3
+- Optionally, OpenMP (the makefile can be adjusted for single-threaded)
 
 For the fortran wrappers
 
 - Fortran compiler (see settings in the makefile)
 
 On a fedora linux system, the dependencies can be installed as follows:
-
 ```bash
 sudo yum install git fftw3 fftw3-devel libgomp
 ```
-
-On Ubuntu:
-
+On Ubuntu linux:
 ```bash
 sudo apt-get install git libfftw3-dev
 ```
@@ -47,7 +41,10 @@ sudo apt-get install git libfftw3-dev
 ```bash
 make
 ```
-This will compile the library then run a set of multi-threaded and single-threaded speed tests  
+This will compile the library `src/libfinufft.a`
+
+
+then run a set of multi-threaded and single-threaded speed tests  
 
 Other useful make modes include:
 

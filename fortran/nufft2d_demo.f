@@ -4,7 +4,8 @@ cc
 cc This software is being released under a FreeBSD license
 cc (see license.txt in this directory). 
 cc
-c tweaked Alex Barnett to call FINUFFT 2/17/17, dyn malloc 3/8/17
+c tweaked Alex Barnett to call FINUFFT 2/17/17
+c dyn malloc; type 2 uses same input data fk0, 3/8/17
       program nufft2d_demo
       implicit none
 c
@@ -78,10 +79,10 @@ c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
          call dirft2d2(nj,xj,yj,cj0,iflag,ms,mt,fk0)
-         call finufft2d2_f(nj,xj,yj,cj1,iflag,eps,ms,mt,fk1,ier)
+         call finufft2d2_f(nj,xj,yj,cj1,iflag,eps,ms,mt,fk0,ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
-         print *, ' type 1 err = ',err
+         print *, ' type 2 err = ',err
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -96,7 +97,7 @@ c     -----------------------
 c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
-         print *, ' type 1 err = ',err
+         print *, ' type 3 err = ',err
       enddo 
       stop
       end
