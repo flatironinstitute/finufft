@@ -18,34 +18,34 @@ See the manual for more information.
 
 For the basic libraries
 
-- C++ compiler
+- C\++ compiler such as g++
 - GNU make
 - FFTW3
 - Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
 
-For the fortran wrappers
+For the Fortran wrappers
 
-- Fortran compiler (see settings in the makefile)
+- Fortran compiler such as gfortran (see settings in the makefile)
 
 On a fedora linux system, the dependencies can be installed as follows:
 ```bash
-sudo yum install fftw3 fftw3-devel libgomp
+sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp
 ```
 On Ubuntu linux:
 ```bash
-sudo apt-get install git libfftw3-dev
+sudo apt-get install make build-essential libfftw3-dev gfortran
 ```
 
 ### Installation
 
 - Clone using git (or checkout using svn, or download as a zip -- see green button above)
-- Copy makefile.dist to makefile and edit for your system
-- Compile using:
+- Copy makefile.dist to makefile, then possibly edit the latter for your system
+- Compile the library using:
 
 ```bash
 make
 ```
-This will compile the library `src/libfinufft.a`
+This will compile the library `src/libfinufft.a` which you may now link to from C, C++, or Fortran. For C/C++ you 
 
 
 then run a set of multi-threaded and single-threaded speed tests  
