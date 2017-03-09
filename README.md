@@ -6,19 +6,22 @@ Version 0.7  (3/8/2017)
 
 ### Purpose
 
-This library computes the nonuniform FFT to a specified precision, in one, two, or three dimensions.
+This is a lightweight library to compute the nonuniform FFT to a specified precision, in one, two, or three dimensions.
 This task is to approximate various exponential sums involving large numbers of terms and output indices, in close to linear time.
-The speedup over naive evaluation of the sums is similar to that achieved by the FFT. For instance, for _N_ terms and _N_ output indices, the computation time scales lik _O_(_N_ log _N_) as opposed to the naive _O_(_N_<sup>2</sup>).
-For convenience, we duplicate the interfaces of the
-[CMCL libraries of Greengard--Lee from 2004](http://www.cims.nyu.edu/cmcl/nufft/nufft.html).
-The main innovations in our code are: speed (enhanced by a new functional form for the spreading kernel), the efficient use of multi-core architectures, and simplicity of the codes, installation, and interface.
+The speedup over naive evaluation of the sums is similar to that achieved by the FFT. For instance, for _N_ terms and _N_ output indices, the computation time is _O_(_N_ log _N_) as opposed to the naive _O_(_N_<sup>2</sup>).
+For convenience, we conform to the simple existing interfaces of the
+[CMCL NUFFT libraries of Greengard--Lee from 2004](http://www.cims.nyu.edu/cmcl/nufft/nufft.html).
+Our main innovations are: speed (enhanced by a new functional form for the spreading kernel), computation via a single call (there is no "plan" or pre-storing of kernel matrices), the efficient use of multi-core architectures, and simplicity of the codes, installation, and interface.
+In particular, in the single-core setting we are approximately 8x faster than the (single-core) CMCL library when requesting many digits in 3D.
+Preliminary tests suggest that in the multi-core setting we are around 20% faster than the run time of the [Chemnitz NFFT](https://www-user.tu-chemnitz.de/~potts/nfft/) for the 3D type 1 transform, at comparable accuracy, except that our code does not require an additional plan or precomputation phase.
+
 See the manual for more information.
 
 ### Dependencies
 
 For the basic libraries
 
-- C\++ compiler such as g++
+- C\++ compiler such as g\++
 - GNU make
 - FFTW3
 - Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
@@ -27,7 +30,7 @@ For the Fortran wrappers
 
 - Fortran compiler such as gfortran (see settings in the makefile)
 
-On a fedora linux system, the dependencies can be installed as follows:
+On a Fedora/CentOS linux system, these dependencies can be installed as follows:
 ```bash
 sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp
 ```
@@ -45,18 +48,24 @@ sudo apt-get install make build-essential libfftw3-dev gfortran
 ```bash
 make
 ```
-This will compile the library `src/libfinufft.a` which you may now link to from C, C++, or Fortran. For C/C++ you 
+This will compile the static library `src/libfinufft.a` which you may now link to from C/C\++, or Fortran. In your C/C\++ code you will need to include the header `src/finufft.h`.
+To run a suite of tests and make sure your installation worked:
 
+```bash
+make test
+```
+To run multi-threaded and single-threaded performance tests:
 
-then run a set of multi-threaded and single-threaded speed tests  
+```bash
+make perftest
+```
 
-Other useful make modes include:
+Other useful tasks include:
 
 ```bash
 make test1d # small accuracy test for components in 1D. Analogously for 2D, 3D  
 make spreadtestnd # benchmark the spreader routines, all dimensions  
 make examples/testutils # test various low-level utilities  
-make nufft # compile the library without testing  
 make fortran # compile and test the fortran interfaces  
 ```
 

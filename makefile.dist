@@ -1,7 +1,7 @@
 # Makefile for Flatiron Institute (FI) NUFFT libraries.
 # Barnett Jan-Feb 2017
 
-# Users should copy this file (makefile.dist) to makefile before you edit.
+# Users should copy this file (makefile.dist) to makefile, and edit the latter.
 # This is the only makefile; there are no makefiles in subdirectories.
 
 # ============= system-specific settings ===============================
@@ -35,10 +35,10 @@ MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
 # objects to compile: spreader...
 SOBJS = src/cnufftspread.o src/utils.o
 # for NUFFT library and its testers...
+OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o fortran/finufft_f.o
 OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
-OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 # for Fortran interface and demos...
 FOBJS = fortran/finufft_f.o fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/prini.o
 
@@ -46,7 +46,7 @@ HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/com
 
 default: lib
 
-.PHONY: lib test1d test2d test3d testnd fortran
+.PHONY: lib test test1d test2d test3d testnd fortran
 
 # implicit rules for libs (note -o ensures writes to correct dir)
 .cpp.o:
@@ -60,6 +60,11 @@ default: lib
 lib: src/finufft.a
 src/finufft.a: $(OBJS)
 	ar rcs src/finufft.a $(OBJS)
+
+# placeholders for now... replace w/ pass-fail
+test: test1d test2d test3d
+
+perftest: testnd
 
 # test drivers and scripts...
 examples/spreadtestnd: examples/spreadtestnd.cpp $(SOBJS) $(HEADERS)
