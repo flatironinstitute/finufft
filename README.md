@@ -1,14 +1,18 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
+Version 0.7  (3/8/2017)
+
 ### Alex H. Barnett and Jeremy F. Magland
 
 ### Purpose
 
-This library computes the nonuniform FFT to a specified precision, in 1D, 2D, or 3D.
-The task is to approximate various exponential sums involving large numbers of terms and output indices, in close to linear time.
-The speedup over naive evaluation of the sums is similar to that achieved by the FFT.
-For convenience, we duplicate the interfaces of the CMCL NUFFT libraries of Greengard--Lee.
-See the manual.
+This library computes the nonuniform FFT to a specified precision, in one, two, or three dimensions.
+This task is to approximate various exponential sums involving large numbers of terms and output indices, in close to linear time.
+The speedup over naive evaluation of the sums is similar to that achieved by the FFT. For instance, for _N_ terms and _N_ output indices, the computation time scales lik _O_(_N_ log _N_) as opposed to the naive _O_(_N_<sup>2</sup>).
+For convenience, we duplicate the interfaces of the
+[CMCL libraries of Greengard--Lee from 2004](http://www.cims.nyu.edu/cmcl/nufft/nufft.html).
+The main innovations in our code are: speed (enhanced by a new functional form for the spreading kernel), the efficient use of multi-core architectures, and simplicity of the codes, installation, and interface.
+See the manual for more information.
 
 ### Dependencies
 
@@ -17,7 +21,7 @@ For the basic libraries
 - C++ compiler
 - GNU make
 - FFTW3
-- Optionally, OpenMP (the makefile can be adjusted for single-threaded)
+- Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
 
 For the fortran wrappers
 
@@ -25,7 +29,7 @@ For the fortran wrappers
 
 On a fedora linux system, the dependencies can be installed as follows:
 ```bash
-sudo yum install git fftw3 fftw3-devel libgomp
+sudo yum install fftw3 fftw3-devel libgomp
 ```
 On Ubuntu linux:
 ```bash
