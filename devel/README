@@ -1,0 +1,10 @@
+finufft development directory:
+
+This directory contains (mostly undocumented) codes used to develop
+the library. Most of them relate to optimization of various spreading
+kernel functions. It also includes the CMAES matlab codes from
+https://www.lri.fr/~hansen/cmaes_inmatlab.html
+
+Run at your own risk.
+
+Alex Barnett 3/10/17

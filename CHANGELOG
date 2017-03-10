@@ -1,0 +1,46 @@
+List of tasks accomplished / changes made, in chronological order:
+
+* efficient modulo in spreader, done by conditionals
+* removed data-zeroing bug in t-II spreader, slowness of large arrays in t-I.
+* clean dir tree
+* spreader dir=1,2 math tests in 3d, then nd.
+* Jeremy's request re only computing kernel vals needed (actually was vital for efficiency in dir=1 openmp version), Ie fix KB ker eval in spreader so doesn't wdo 3d fill when 1 or 2 will do.
+* spreader removed modulo altogether in favor of ifs
+* OpenMP spreader, all dims
+* multidim spreader test, command line args and bash driver
+* cnufft->finufft names, except spreader still called cnufft
+* make ier report accuracy out of range, malloc size errors, etc
+* moved wrappers to own directories so the basic lib is clean
+* fortran wrapper added ier argument
+* types 1,2 in all dims, using 1d kernel for all dims.
+* fix twopispread so doesn't create dummy ky,kz, and fix sort so doesn't ever access unused ky,kz dims.
+* cleaner spread and nufft test scripts
+* build universal ndim Fourier coeff copiers in C and use for finufft
+* makefile opts and compiler directives to link against FFTW.
+* t-I, t-II convergence params test: R=M/N and KB params
+* overall scale factor understand in KB
+* check J's bessel10 approx is ok. - became irrelevant
+* meas speed of I_0 for KB kernel eval - became irrelevant
+* understand origin of dfftpack (netlib fftpack is real*4) - not needed
+* [spreader: make compute_sort_indices sensible for 1d and 2d. not needed]
+* next235even for nf's
+* switched pre/post-amp correction from DFT of kernel to F series (FT) of kernel, more accurate
+* Gauss-Legendre quadrature for direct eval of kernel FT, openmp since cexp slow
+* optimize q (# G-L nodes) for kernel FT eval on reg and irreg grids (common.cpp). Needs q a bit bigger than like (2-3x the PTR, when 1.57x is expected). Why?
+* type 3 segfault in dumb case of nj=1 (SX product = 0). By keeping gam>1/S
+* optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
+* new simpler kernel entirely
+* cleaned up set_nf calls and removed params from within core libs
+* test isign=-1 works
+* type 3 in 2d, 3d
+* style: headers should only include other headers needed to compile the .h; all other headers go in .cpp, even if that involves repetition I guess.
+* changed library interface and twopispread to dcomplex
+* fortran wrappers (rmdir greengard_work, merge needed into fortran)
+
+V. 0.7:
+
+* build static lib
+* fixed bug when Nth>Ntop
+* fortran drivers use dynamic malloc
+* bugs found in fortran drivers, removed
+* split out text files

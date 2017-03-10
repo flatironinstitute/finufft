@@ -1,0 +1,29 @@
+List of items to do for FINUFFT library
+
+* installation instructions on various linux flavors
+* MAC OSX test, put in makefile
+* nf1 (etc) size check before alloc, exit gracefully if exceeds RAM?
+* test non-openmp compile. Decide if non vs omp get different lib names.
+* make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
+* theory work on exp(sqrt) being close to PSWF
+* figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
+* Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()
+* decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
+* single-prec compile option for RAM-intensive problems?
+* test BIGINT -> long long slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
+* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux, osx, etc. Link to .a
+* matlab wrappers need ier output?
+* test wrappers in octave
+* python wrappers
+* license file
+* outreach, alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
+* doc/manual
+* boilerplate stuff as in CMCL page
+* clean up tree, remove devel and unused contrib
+* Flatiron logo
+* integrate into nufft_comparison, esp vs NFFT
+* github.io webpage
+* simple examples, simpler than the test drivers
+* Currently, if a large product of x width and k width is requested in type 3 transforms, no check is done before attempting to malloc ridiculous array sizes. Fix this.
+
+

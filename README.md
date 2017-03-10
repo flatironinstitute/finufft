@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-Version 0.7  (3/8/2017)
+Version 0.7  (3/10/2017)
 
 ### Alex H. Barnett and Jeremy F. Magland
 
@@ -71,7 +71,7 @@ make fortran # compile and test the fortran interfaces
 
 ### Contents of this package
 
-- `src` : main library source and headers.  
+- `src` : main library source and headers. Compiled .o and .a also reside here.  
 - `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. 
 - `examples/nuffttestnd.sh` : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
 - `examples/checkallaccs.sh [dim]` : sweep over all tolerances checking the spreader and NUFFT at a single dimension;  [dim] is 1, 2, or 3
@@ -80,16 +80,19 @@ make fortran # compile and test the fortran interfaces
 - `fortran` : wrappers and drivers for Fortran.
 - `matlab` : wrappers and examples for MATLAB. (Not yet working)  
 - `devel` : various obsolete or in-development codes (experts only)  
-- `doc` : the manual (not yet there)  
-- `README.md`
-- `LICENSE`
 - `makefile.dist` : GNU makefile (user should first copy to `makefile`)  
+- `doc` : the manual (not yet there)  
+- `README.md` : this file  
+- `LICENSE` : licensing information  
+- `CHANGELOG` : list of changes made  
+- `TODO` : list of things needed to do  
+
 
 ### Notes
 
 C\++ is used for all main libraries, although without much object-oriented code. C\++ complex<double> ("dcomplex") and FFTW complex types are mixed within the library, since it is a glorified driver for FFTW, but has dcomplex interfaces and test codes. FFTW was considered universal and essential enough to be a dependency for the whole package.
 
-As a spreading kernel function, we use an unpublished simplification of the Kaiser--Bessel kernel, which at high requested precisions achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is of the form exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
+As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
 
 References for this include:
 
@@ -110,71 +113,35 @@ The original NUFFT analysis using truncated Gaussians is:
 
 [DR] Fast Fourier Transforms for Nonequispaced data. A. Dutt and V. Rokhlin. SIAM J. Sci. Comput. 14, 1368 (1993). 
 
-Our distribution includes code by:
 
-Nick Hale and John Burkardt - Gauss-Legendre nodes and weights  
-Leslie Greengard and June-Yub Lee - some fortran test codes from CMCL  
+### Packaged codes.
+
+The main distribution includes code by:
+
+Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)  
+Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)  
+
+There are also packaged codes in the `devel/` directory.
 
 
+### Known issues
 
-### To do
+Currently, if a large product of x width and k width is requested in type 3 transforms,
+no check is done before attempting to malloc ridiculous array sizes.
 
-* installation instructions on various linux flavors
-* MAC OSX test, put in makefile
-* nf1 (etc) size check before alloc, exit gracefully if exceeds RAM?
-* test non-openmp compile
-* make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
-* theory work on exp(sqrt) being close to PSWF
-* figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
-* Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing.
-* decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
-* single-prec compile option for RAM-intensive problems?
-* test BIGINT -> long long slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
-* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux, osx, etc.
-* matlab wrappers need ier output?
-* python wrappers
-* license file
-* outreach, alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
-* doc/manual
-* boilerplate stuff as in CMCL page
-* clean up tree, remove devel and unused contrib
-* Flatiron logo
 
-### Done
+### Bug reports
 
-* efficient modulo in spreader, done by conditionals
-* removed data-zeroing bug in t-II spreader, slowness of large arrays in t-I.
-* clean dir tree
-* spreader dir=1,2 math tests in 3d, then nd.
-* Jeremy's request re only computing kernel vals needed (actually was vital for efficiency in dir=1 openmp version), Ie fix KB ker eval in spreader so doesn't wdo 3d fill when 1 or 2 will do.
-* spreader removed modulo altogether in favor of ifs
-* OpenMP spreader, all dims
-* multidim spreader test, command line args and bash driver
-* cnufft->finufft names, except spreader still called cnufft
-* make ier report accuracy out of range, malloc size errors, etc
-* moved wrappers to own directories so the basic lib is clean
-* fortran wrapper added ier argument
-* types 1,2 in all dims, using 1d kernel for all dims.
-* fix twopispread so doesn't create dummy ky,kz, and fix sort so doesn't ever access unused ky,kz dims.
-* cleaner spread and nufft test scripts
-* build universal ndim Fourier coeff copiers in C and use for finufft
-* makefile opts and compiler directives to link against FFTW.
-* t-I, t-II convergence params test: R=M/N and KB params
-* overall scale factor understand in KB
-* check J's bessel10 approx is ok.
-* meas speed of I_0 for KB kernel eval
-* understand origin of dfftpack (netlib fftpack is real*4)
-* [spreader: make compute_sort_indices sensible for 1d and 2d. not needed]
-* next235even for nf's
-* switched pre/post-amp correction from DFT of kernel to F series (FT) of kernel, more accurate
-* Gauss-Legendre quadrature for direct eval of kernel FT, openmp since cexp slow
-* optimize q (# G-L nodes) for kernel FT eval on reg and irreg grids (common.cpp). Needs q a bit bigger than like (2-3x the PTR, when 1.57x is expected). Why?
-* type 3 segfault in dumb case of nj=1 (SX product = 0). By keeping gam>1/S
-* optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
-* new simpler kernel entirely
-* cleaned up set_nf calls and removed params from within core libs
-* test isign=-1
-* type 3 in 2d, 3d
-* style: headers should only include other headers needed to compile the .h; all other headers go in .cpp, even if that involves repetition I guess.
-* changed library interface and twopispread to dcomplex
-* fortran wrappers (rmdir greengard_work, merge needed into fortran)
+If you think you have found a bug, please contact Alex Barnett (`ahb`
+at-sign `math.dartmouth.edu`) with FINUFFT in the subject line.
+Include code with reproduces the bug, along with
+details about your machine, operating system, and version of FINUFFT.
+
+### Acknowledgments
+
+The following people have greatly helped this project either via discussions or bug reports:
+
+Leslie Greengard  
+Andras Pataki  
+Marina Spivak  
+Timo Heister  
