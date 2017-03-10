@@ -1,0 +1,20 @@
+Compile the library using:
+
+make
+
+This should compile the main libraries and print a list of further
+make options.  If you have an error then `cp makefile makefile.local`,
+edit `makefile.local` to adjust compiler and other library options,
+and use `make -f makefile.local`.
+
+Here are some other make tasks:
+
+- `make examples` : compile the demos in `examples/`
+- `make test` : mathematical validation of the library and components
+- `make perftest` : multi-threaded and single-threaded performance tests
+- `make fortran` : compile and test the fortran interfaces  
+
+Linking to the library: to link to the static library
+`lib/libfinufft.a` use the compiler flag `-Llib/libfinufft.a` (or
+replacing this by the absolute location of this library). In your
+C/C\++ code you will need to include the header `src/finufft.h`.
