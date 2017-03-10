@@ -22,8 +22,9 @@ See the manual for more information.
 For the basic libraries
 
 - C\++ compiler such as g\++
-- GNU make
 - FFTW3
+- GNU make
+- numdiff
 - Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
 
 For the Fortran wrappers
@@ -73,15 +74,18 @@ make fortran # compile and test the fortran interfaces
 
 - `src` : main library source and headers. Compiled .o will be built here.
 - `lib` : compiled library will be built here.  
-- `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. 
+- `test` : validation and performance tests.  
+- `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. ***
 - `examples/nuffttestnd.sh` : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
 - `examples/checkallaccs.sh [dim]` : sweep over all tolerances checking the spreader and NUFFT at a single dimension;  [dim] is 1, 2, or 3
-- `examples/results` : accuracy and timing outputs.  
+- `examples/results` : accuracy and timing outputs.
+***
+  
 - `contrib` : 3rd-party code.  
 - `fortran` : wrappers and drivers for Fortran.
 - `matlab` : wrappers and examples for MATLAB. (Not yet working)  
 - `devel` : various obsolete or in-development codes (experts only)  
-- `makefile.dist` : GNU makefile (user should first copy to `makefile`)  
+- `makefile.dist` : prototype GNU makefile (user should copy to `makefile` and edit the latter)  
 - `doc` : the manual (not yet there)  
 - `README.md` : this file  
 - `LICENSE` : licensing information  
@@ -143,6 +147,7 @@ details about your machine, operating system, and version of FINUFFT.
 The following people have greatly helped this project either via discussions or bug reports:
 
 Leslie Greengard  
+Charlie Epstein  
 Andras Pataki  
 Marina Spivak  
 Timo Heister  
