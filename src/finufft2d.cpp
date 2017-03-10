@@ -50,7 +50,6 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
-  if (ier_set) exit(ier_set);
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   cout << scientific << setprecision(15);  // for debug
@@ -135,7 +134,6 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
-  if (ier_set) exit(ier_set);
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   cout << scientific << setprecision(15);  // for debug
@@ -183,7 +181,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
 
   fftw_free(fw); fftw_free(fwkerhalf1); fftw_free(fwkerhalf2);
   if (opts.debug) printf("freed\n");
-  return ier_spread;
+  return 0;
 }
 
 int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double eps, BIGINT nk, double* s, double *t, dcomplex* fk, nufft_opts opts)
@@ -276,6 +274,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
   int ier_t2 = finufft2d2(nk,sp,tp,fk,iflag,eps,nf1,nf2,fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
+  if (ier_t2) exit(ier_t2);
 
   // Step 3a: compute Fourier transform of scaled kernel at targets
   timer.restart();
@@ -295,5 +294,5 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
   free(fkker1); free(fkker2); free(sp); if (opts.debug) printf("freed\n");
-  return ier_t2;
+  return 0;
 }

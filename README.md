@@ -71,7 +71,8 @@ make fortran # compile and test the fortran interfaces
 
 ### Contents of this package
 
-- `src` : main library source and headers. Compiled .o and .a also reside here.  
+- `src` : main library source and headers. Compiled .o will be built here.
+- `lib` : compiled library will be built here.  
 - `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. 
 - `examples/nuffttestnd.sh` : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
 - `examples/checkallaccs.sh [dim]` : sweep over all tolerances checking the spreader and NUFFT at a single dimension;  [dim] is 1, 2, or 3
