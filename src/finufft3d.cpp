@@ -28,7 +28,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
      xj,yj,zj   x,y,z locations of sources on 3D domain [-pi,pi]^3.
      cj     size-nj complex double array of source strengths, 
             (ie, stored as 2*nj doubles interleaving Re, Im).
-     iflag  if >0, uses + sign in exponential, otherwise - sign.
+     iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
      ms,mt,mu  number of Fourier modes requested in x,y,z;
             each may be even or odd;
@@ -77,7 +77,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
   }
   timer.restart();
   fftw_complex *fw = fftw_alloc_complex(nf1*nf2*nf3);  // working upsampled array
-  int fftsign = (iflag>0) ? 1 : -1;
+  int fftsign = (iflag>=0) ? 1 : -1;
   fftw_plan p = fftw_plan_dft_3d(nf3,nf2,nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
   if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
 
@@ -123,7 +123,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
      fk     double complex array of Fourier series values (size ms*mt*mu,
             increasing fastest in ms to slowest in mu, ie Fortran ordering).
             (ie, stored as alternating Re & Im parts, 2*ms*mt*mu doubles)
-     iflag  if >0, uses + sign in exponential, otherwise - sign.
+     iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
      ms,mt,mu  numbers of Fourier modes given in x,y,z; each may be even or odd;
             in either case the mode range is integers lying in [-m/2, (m-1)/2].
@@ -170,7 +170,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
   }
   timer.restart();
   fftw_complex *fw = fftw_alloc_complex(nf1*nf2*nf3); // working upsampled array
-  int fftsign = (iflag>0) ? 1 : -1;
+  int fftsign = (iflag>=0) ? 1 : -1;
   fftw_plan p = fftw_plan_dft_3d(nf3,nf2,nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
   if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
 
@@ -217,7 +217,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
             (ie, interleaving Re & Im parts)
      nk     number of frequency target points
      s,t,u      (k_x,k_y,k_z) frequency locations of targets in R^3.
-     iflag  if >0, uses + sign in exponential, otherwise - sign.
+     iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
      opts   struct controlling options (see finufft.h)
    Outputs:
@@ -272,7 +272,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
     ypj[j] = (yj[j]-C2) / gam2;          // rescale y_j
     zpj[j] = (zj[j]-C3) / gam3;          // rescale z_j
   }
-  dcomplex imasign = (iflag>0) ? ima : -ima;
+  dcomplex imasign = (iflag>=0) ? ima : -ima;
   dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj);  // c'_j rephased src
 #pragma omp parallel for schedule(dynamic)                // since cexp slow
   for (BIGINT j=0;j<nj;++j)
