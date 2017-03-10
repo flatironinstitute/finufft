@@ -43,38 +43,32 @@ sudo apt-get install make build-essential libfftw3-dev gfortran
 ### Installation
 
 - Clone using git (or checkout using svn, or download as a zip -- see green button above)
-- Copy makefile.dist to makefile, then possibly edit the latter for your system
 - Compile the library using:
 
 ```bash
 make
 ```
-This will compile the static library `src/libfinufft.a` which you may now link to from C/C\++, or Fortran. In your C/C\++ code you will need to include the header `src/finufft.h`.
-To run a suite of tests and make sure your installation worked:
+This should compile the main libraries and print a list of further make options.
+If you have an error then `cp makefile makefile.local`, edit `makefile.local` to adjust
+compiler and other library options, and use `make -f makefile.local`.
+Here are some other make tasks:
 
-```bash
-make test
-```
-To run multi-threaded and single-threaded performance tests:
+- `make examples` : compile the demos in `examples/`
+- `make test` : mathematical validation of the library and components
+- `make perftest` : multi-threaded and single-threaded performance tests
+- `make fortran` : compile and test the fortran interfaces  
 
-```bash
-make perftest
-```
+Linking to the library: to link to the static library `lib/libfinufft.a` use the
+compiler flag `-Llib/libfinufft.a` (or replacing this by the absolute location of this
+library). In your C/C\++ code you will need to include the header `src/finufft.h`.
 
-Other useful tasks include:
-
-```bash
-make test1d # small accuracy test for components in 1D. Analogously for 2D, 3D  
-make spreadtestnd # benchmark the spreader routines, all dimensions  
-make examples/testutils # test various low-level utilities  
-make fortran # compile and test the fortran interfaces  
-```
 
 ### Contents of this package
 
 - `src` : main library source and headers. Compiled .o will be built here.
 - `lib` : compiled library will be built here.  
 - `test` : validation and performance tests.  
+
 - `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. ***
 - `examples/nuffttestnd.sh` : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
 - `examples/checkallaccs.sh [dim]` : sweep over all tolerances checking the spreader and NUFFT at a single dimension;  [dim] is 1, 2, or 3
@@ -85,7 +79,7 @@ make fortran # compile and test the fortran interfaces
 - `fortran` : wrappers and drivers for Fortran.
 - `matlab` : wrappers and examples for MATLAB. (Not yet working)  
 - `devel` : various obsolete or in-development codes (experts only)  
-- `makefile.dist` : prototype GNU makefile (user should copy to `makefile` and edit the latter)  
+- `makefile` : GNU makefile (user may need to edit)  
 - `doc` : the manual (not yet there)  
 - `README.md` : this file  
 - `LICENSE` : licensing information  
