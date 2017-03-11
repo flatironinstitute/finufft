@@ -13,7 +13,7 @@ For convenience, we conform to the simple existing interfaces of the
 [CMCL NUFFT libraries of Greengard--Lee from 2004](http://www.cims.nyu.edu/cmcl/nufft/nufft.html).
 Our main innovations are: speed (enhanced by a new functional form for the spreading kernel), computation via a single call (there is no "plan" or pre-storing of kernel matrices), the efficient use of multi-core architectures, and simplicity of the codes, installation, and interface.
 In particular, in the single-core setting we are approximately 8x faster than the (single-core) CMCL library when requesting many digits in 3D.
-Preliminary tests suggest that in the multi-core setting we are around 20% faster than the run time of the [Chemnitz NFFT](https://www-user.tu-chemnitz.de/~potts/nfft/) for the 3D type 1 transform, at comparable accuracy, except that our code does not require an additional plan or precomputation phase.
+Preliminary tests suggest that in the multi-core setting we are no slower than the [Chemnitz NFFT](https://www-user.tu-chemnitz.de/~potts/nfft/) at comparable accuracy, except that our code does not require an additional plan or precomputation phase.
 
 See the manual for more information.
 
@@ -53,14 +53,16 @@ If you have an error then `cp makefile makefile.local`, edit `makefile.local` to
 compiler and other library options, and use `make -f makefile.local`.
 Here are some other make tasks:
 
-- `make examples` : compile the demos in `examples/`
+- `make examples` : compile some simple examples in `examples/`
 - `make test` : mathematical validation of the library and components
 - `make perftest` : multi-threaded and single-threaded performance tests
 - `make fortran` : compile and test the fortran interfaces  
 
-Linking to the library: to link to the static library `lib/libfinufft.a` use the
-compiler flag `-Llib/libfinufft.a` (or replacing this by the absolute location of this
-library). In your C/C\++ code you will need to include the header `src/finufft.h`.
+Linking to the library:
+In C\++ the simplest is to link to the static library by compiling with `-std=c++11 -fopenmp lib/libfinufft.a -lfftw3_omp -lfftw3 -lm` for the default multi-threaded version, or
+`-std=c++11 lib/libfinufft.a -lfftw3 -lm` if you edited the makefile for single-threading.
+In your C\++ code you will need to include the header `src/finufft.h`.
+See codes in `examples/` for calling from C, and `fortran/` for calling from Fortran.
 
 
 ### Contents of this package

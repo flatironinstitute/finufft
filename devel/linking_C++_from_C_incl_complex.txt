@@ -1,0 +1,9 @@
+http://stackoverflow.com/questions/10540228/c-complex-numbers-in-c
+
+http://stackoverflow.com/questions/3789340/combining-c-and-c-how-does-ifdef-cplusplus-work
+
+https://isocpp.org/wiki/faq/mixing-c-and-cpp
+
+very confusing.
+only thing working so far is _Complex and link to .so, which needs absolute path names.
+

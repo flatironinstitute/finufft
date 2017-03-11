@@ -1,0 +1,6 @@
+This directory contains simple calling examples from C++ (the .cpp files)
+and from C (the .c files).
+
+For calling from Fortran, see the demos in ../fortran/
+
+Alex Barnett 3/10/17
