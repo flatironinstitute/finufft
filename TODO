@@ -26,4 +26,5 @@ List of items to do for FINUFFT library
 * simple examples, simpler than the test drivers
 * Currently, if a large product of x width and k width is requested in type 3 transforms, no check is done before attempting to malloc ridiculous array sizes. Fix this.
 * package RPM and .deb for linux
-* check the shared library
+* figure out how to set up path to link to shared library - rpath?
+*** write check_finufft.sh

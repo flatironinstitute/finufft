@@ -12,7 +12,7 @@ FC=gfortran
 FLINK=-lgfortran
 
 # choose EITHER single threaded...
-#CPPFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11
+#CPPFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
 #FLAGS=-fPIC -Ofast -funroll-loops -march=native
 #CLIBSFFT = -lfftw3 -lm
 #FFLAGS=-fPIC -O3 -funroll-loops
@@ -76,7 +76,7 @@ examples/example1d1c: examples/example1d1c.o lib/libfinufft.a
 	$(CPP) $(CFLAGS) examples/example1d1c.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1c
 
 # validation tests...
-test: test/finufft1d_test test/finufft2d_test test/finufft3d_test
+test: test/finufft1d_test test/finufft2d_test test/finufft3d_test test/testutils
 	(cd test; ./check_finufft.sh)
 
 test/finufft1d_test: test/finufft1d_test.cpp $(OBJS1) $(HEADERS)
@@ -136,7 +136,6 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 # various obscure testers (experts only)...
 test/testutils: test/testutils.cpp src/utils.o src/utils.h
 	$(CPP) $(CPPFLAGS) test/testutils.cpp src/utils.o -o test/testutils
-	(cd test; ./testutils)
 
 devel/plotkernels: $(SOBJS) $(HEADERS) devel/plotkernels.cpp
 	$(CPP) $(CPPFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS) 
