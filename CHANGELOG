@@ -50,3 +50,7 @@ V. 0.7:
 * made finufft routines & testers return error codes rather than exit().
 * dumbinput test executable
 * found nan returned error for nj=0 in type-1, fixed so returns the zero array.
+* fixed type 2 to not segfault when ms,mt, or mu=0, doing dir=2 0-padding right
+* array utils use pointers to make which vars they write to explicit.
+* don't do final type-3 rephase if C1 nan or 0.
+* finished all dumbinputs all dims

@@ -42,23 +42,23 @@ double infnorm(BIGINT n, dcomplex* a)
   return sqrt(nrm);
 }
 
-void arrayrange(BIGINT n, double* a, double &lo, double &hi)
+void arrayrange(BIGINT n, double* a, double *lo, double *hi)
 // writes out bounds on values in array to lo and hi, so all a in [lo,hi]
 {
-  lo = INFINITY; hi = -INFINITY;
+  *lo = INFINITY; *hi = -INFINITY;
   for (BIGINT m=0; m<n; ++m) {
-    if (a[m]<lo) lo = a[m];
-    if (a[m]>hi) hi = a[m];
+    if (a[m]<*lo) *lo = a[m];
+    if (a[m]>*hi) *hi = a[m];
   }
 }
 
-void arraywidcen(BIGINT n, double* a, double &w, double &c)
+void arraywidcen(BIGINT n, double* a, double *w, double *c)
 // writes out w = half-width and c = center of interval enclosing all a[n]'s
 {
   double lo,hi;
-  arrayrange(n,a,lo,hi);
-  w = (hi-lo)/2;
-  c = (hi+lo)/2;
+  arrayrange(n,a,&lo,&hi);
+  *w = (hi-lo)/2;
+  *c = (hi+lo)/2;
 }
 
 BIGINT next235even(BIGINT n)

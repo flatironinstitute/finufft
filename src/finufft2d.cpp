@@ -56,6 +56,10 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
   if (ier_set) return ier_set;
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
+  if (nf1*nf2>opts.maxnalloc) {
+    fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
+    return ERR_MAXNALLOC;
+  }
   cout << scientific << setprecision(15);  // for debug
 
   if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",ms,mt,nf1,nf2,nj); 
@@ -144,6 +148,10 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
   if (ier_set) return ier_set;
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
+  if (nf1*nf2>opts.maxnalloc) {
+    fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
+    return ERR_MAXNALLOC;
+  }
   cout << scientific << setprecision(15);  // for debug
 
   if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",ms,mt,nf1,nf2,nj); 
@@ -242,14 +250,18 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
 
   // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
   CNTime timer; timer.start();
-  arraywidcen(nj,xj,X1,C1);  // get half-width, center, containing {x_j}
-  arraywidcen(nk,s,S1,D1);   // {s_k}
-  arraywidcen(nj,yj,X2,C2);  // {y_j}
-  arraywidcen(nk,t,S2,D2);   // {t_k}
+  arraywidcen(nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
+  arraywidcen(nk,s,&S1,&D1);   // {s_k}
+  arraywidcen(nj,yj,&X2,&C2);  // {y_j}
+  arraywidcen(nk,t,&S2,&D2);   // {t_k}
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
   if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,nj,nk);
+  if (nf1*nf2>opts.maxnalloc) {
+    fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
+    return ERR_MAXNALLOC;
+  }
   double* xpj = (double*)malloc(sizeof(double)*nj);
   double* ypj = (double*)malloc(sizeof(double)*nj);
   for (BIGINT j=0;j<nj;++j) {
@@ -296,11 +308,11 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
   // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
   timer.restart();
-  // todo: if C1==0.0 don't do the expensive exp()... ?
+  if (isfinite(C1) && isfinite(C2) && (C1!=0.0 || C2!=0.0))
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
-  for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2 shift
-    fk[k] *= (dcomplex)(1.0/(fkker1[k]*fkker2[k])) *
-                           exp(imasign*((s[k]-D1)*C1 + (t[k]-D2)*C2));
+    for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2 shift
+      fk[k] *= (dcomplex)(1.0/(fkker1[k]*fkker2[k])) *
+	        exp(imasign*((s[k]-D1)*C1 + (t[k]-D2)*C2));
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
   free(fkker1); free(fkker2); free(sp); if (opts.debug) printf("freed\n");

@@ -246,8 +246,8 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
 
   // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
   CNTime timer; timer.start();
-  arraywidcen(nj,xj,X1,C1);  // get half-width, center, containing {x_j}
-  arraywidcen(nk,s,S1,D1);   // get half-width, center, containing {s_k}
+  arraywidcen(nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
+  arraywidcen(nk,s,&S1,&D1);   // get half-width, center, containing {s_k}
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,nj,nk);
@@ -285,7 +285,7 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2) return ier_t2;
-  //for (int k=0;k<nk;++k) printf("fk[%d]=(%.3g,%.3g)\n",k,fk[2*k],fk[2*k+1]);
+  //for (int k=0;k<nk;++k) printf("fk[%d]=(%.3g,%.3g)\n",k,real(fk[k]),imag(fk[k]));
 
   // Step 3a: compute Fourier transform of scaled kernel at targets
   timer.restart();
@@ -294,10 +294,10 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
   // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
   timer.restart();
-  // todo: if C1==0.0 don't do the expensive exp()... ?
+  if (isfinite(C1) && C1!=0.0)
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
-  for (BIGINT k=0;k<nk;++k)          // also phases to account for C1 x-shift
-    fk[k] *= (dcomplex)(1.0/fkker[k]) * exp(imasign*(s[k]-D1)*C1);
+    for (BIGINT k=0;k<nk;++k)          // also phases to account for C1 x-shift
+      fk[k] *= (dcomplex)(1.0/fkker[k]) * exp(imasign*(s[k]-D1)*C1);
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
   free(fkker); free(sp); if (opts.debug) printf("freed\n");

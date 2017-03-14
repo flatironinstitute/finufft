@@ -35,13 +35,14 @@ void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
    nf is the size of upsampled grid for a given single dimension.
    h is the grid spacing = 2pi/nf
    gam is the x rescale factor, ie x'_j = x_j/gam  (modulo shifts).
-   Barnett 2/13/17
+   Barnett 2/13/17. Caught inf/nan 3/14/17
 */
 {
   int nss = spopts.nspread + 1;      // since ns may be odd
   *nf = (BIGINT)(2.0*opts.R*S*X/M_PI + nss);
   //printf("initial nf=%ld, ns=%d\n",nf,spopts.nspread);
-  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
+  // catch too small nf, and nan or +-inf, otherwise spread fails...
+  if (*nf<2*spopts.nspread || !isfinite(*nf)) *nf=2*spopts.nspread;
   if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
     *nf = next235even(*nf);                        // expensive at huge nf
   *h = 2*M_PI / *nf;                          // upsampled grid spacing
@@ -192,23 +193,25 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
   todo: check RAM access in backwards order in 2nd loop is not a speed hit
   todo: check 2*(k0+k)+1 index calcs not slowing us down
 
-  Barnett 1/25/17
+  Barnett 1/25/17. Fixed ms=0 case 3/14/17
 */
 {
-  BIGINT k0 = ms/2;    // index shift in fk's = magnitude of most neg freq
-  if (dir==1) {    // read fw, write out to fk
-    for (BIGINT k=0;k<=(ms-1)/2;++k) {               // non-neg freqs k
+  BIGINT k0 = ms/2;      // index shift in fk's = magnitude of most neg freq
+  BIGINT k1 = (ms-1)/2;  // k1 is most pos freq
+  if (ms==0) k1=-1;      // correct the rounding down for no-mode case
+  if (dir==1) {    // read fw, write out to fk...
+    for (BIGINT k=0;k<=k1;++k) {                     // non-neg freqs k
       fk[2*(k0+k)] = prefac * fw[k][0] / ker[k];          // re
       fk[2*(k0+k)+1] = prefac * fw[k][1] / ker[k];        // im
     }
-    for (BIGINT k=-1;k>=-k0;--k) {                 // neg freqs k
+    for (BIGINT k=-1;k>=-k0;--k) {                   // neg freqs k
       fk[2*(k0+k)] = prefac * fw[nf1+k][0] / ker[-k];     // re
       fk[2*(k0+k)+1] = prefac * fw[nf1+k][1] / ker[-k];   // im
     }
-  } else {    // read fk, write out to fw w/ zero padding
-    for (BIGINT k=(ms-1)/2;k<nf1-k0;++k)             // zero pad
-      fw[k][0] = fw[k][1] = 0.0;
-    for (BIGINT k=0;k<=(ms-1)/2;++k) {               // non-neg freqs k
+  } else {    // read fk, write out to fw w/ zero padding...
+    for (BIGINT k=k1+1;k<nf1-k0;++k) {  // zero pad precisely where needed
+      fw[k][0] = fw[k][1] = 0.0;}
+    for (BIGINT k=0;k<=k1;++k) {                     // non-neg freqs k
       fw[k][0] = prefac * fk[2*(k0+k)] / ker[k];          // re
       fw[k][1] = prefac * fk[2*(k0+k)+1] / ker[k];        // im
     }
@@ -235,14 +238,16 @@ void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
   ker1, ker2 are real-valued double arrays of lengths nf1/2+1, nf2/2+1
        respectively.
 
-  Barnett 2/1/17
+  Barnett 2/1/17, Fixed mt=0 case 3/14/17
 */
 {
   BIGINT k02 = mt/2;    // y-index shift in fk's = magnitude of most neg y-freq
+  BIGINT k12 = (mt-1)/2;  // most pos freq
+  if (mt==0) k12=-1;      // correct the rounding down for no-mode case
   if (dir==2)               // zero pad needed x-lines (contiguous in memory)
-    for (BIGINT k=nf1*(mt-1)/2;k<nf1*(nf2-k02);++k)  // k index sweeps all dims
+    for (BIGINT k=nf1*(k12+1);k<nf1*(nf2-k02);++k)  // k index sweeps all dims
 	fw[k][0] = fw[k][1] = 0.0;
-  for (BIGINT k2=0;k2<=(mt-1)/2;++k2)               // non-neg y-freqs
+  for (BIGINT k2=0;k2<=k12;++k2)                   // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
     deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + 2*ms*(k02+k2),nf1,&fw[nf1*k2]);
   for (BIGINT k2=-1;k2>=-k02;--k2)                 // neg y-freqs
@@ -266,19 +271,21 @@ void deconvolveshuffle3d(int dir,double prefac,double *ker1, double *ker2,
   ker1, ker2, ker3 are real-valued double arrays of lengths nf1/2+1, nf2/2+1,
        and nf3/2+1 respectively.
 
-  Barnett 2/1/17
+  Barnett 2/1/17, Fixed mu=0 case 3/14/17
 */
 {
   BIGINT k03 = mu/2;    // z-index shift in fk's = magnitude of most neg z-freq
+  BIGINT k13 = (mu-1)/2;  // most pos freq
+  if (mu==0) k13=-1;      // correct the rounding down for no-mode case
   BIGINT np = nf1*nf2;  // # pts in an upsampled Fourier xy-plane
   if (dir==2)           // zero pad needed xy-planes (contiguous in memory)
-    for (BIGINT k=np*(mu-1)/2;k<np*(nf3-k03);++k)  // sweeps all dims
+    for (BIGINT k=np*(k13+1);k<np*(nf3-k03);++k)  // sweeps all dims
       fw[k][0] = fw[k][1] = 0.0;
-  for (BIGINT k3=0;k3<=(mu-1)/2;++k3)               // non-neg z-freqs
+  for (BIGINT k3=0;k3<=k13;++k3)                  // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
     deconvolveshuffle2d(dir,prefac/ker3[k3],ker1,ker2,ms,mt,
 			fk + 2*ms*mt*(k03+k3),nf1,nf2,&fw[np*k3]);
-  for (BIGINT k3=-1;k3>=-k03;--k3)                 // neg z-freqs
+  for (BIGINT k3=-1;k3>=-k03;--k3)                // neg z-freqs
     deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
 			fk + 2*ms*mt*(k03+k3),nf1,nf2,&fw[np*(nf3+k3)]);
 }
