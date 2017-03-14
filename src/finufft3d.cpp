@@ -37,8 +37,10 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
    Outputs:
      fk     complex double array of Fourier transform values (size ms*mt*mu,
             increasing fast in ms to slowest in mu, ie Fortran ordering).
-     returned value - error return code, as returned by cnufftspread:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
      1) spread data to oversampled regular mesh using kernel.
@@ -52,6 +54,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) return ier_set;
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   BIGINT nf3; set_nf_type12(mu,opts,spopts,&nf3);
@@ -129,10 +132,12 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
             in either case the mode range is integers lying in [-m/2, (m-1)/2].
      opts   struct controlling options (see finufft.h)
    Outputs:
-      cj    size-nj complex double array of target values,
+     cj     size-nj complex double array of target values,
             (ie, stored as 2*nj doubles interleaving Re, Im).
-    returned value - error return code, as returned by cnufftspread:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
      1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
@@ -145,6 +150,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) return ier_set;
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   BIGINT nf3; set_nf_type12(mu,opts,spopts,&nf3);
@@ -223,8 +229,10 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
    Outputs:
      fk     size-nk complex double array of Fourier transform values at the
             target frequencies sk
-     returned value - error return code, as returned by finufft2d2:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread or finufft3d2.
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
      as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].
@@ -246,6 +254,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) return ier_set;
   BIGINT nf1,nf2,nf3;
   double X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2,X3,C3,S3,D3,h3,gam3;
   cout << scientific << setprecision(15);  // for debug

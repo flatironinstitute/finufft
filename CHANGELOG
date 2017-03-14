@@ -44,3 +44,5 @@ V. 0.7:
 * fortran drivers use dynamic malloc
 * bugs found in fortran drivers, removed
 * split out text files
+* made pass-fail test script counting crashes and numdiff fails.
+* finufft?d_test have a no-timings option, and exit with ier.

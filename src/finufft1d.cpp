@@ -20,7 +20,7 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
      cj     size-nj double complex array of source strengths
             (ie, stored as 2*nj doubles interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested
+     eps    precision requested (>1e-16)
      ms     number of Fourier modes computed, may be even or odd;
             in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
      opts   struct controlling options (see finufft.h)
@@ -28,8 +28,10 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
      fk     size-ms double complex array of Fourier transform values
             (increasing mode ordering)
             stored as alternating Re & Im parts (2*ms doubles)
-     returned value - error return code, as returned by cnufftspread:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
      1) spread data to oversampled regular mesh using kernel.
@@ -45,10 +47,15 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) return ier_set;
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
+  if (nf1>opts.maxnalloc) {
+    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
+    return ERR_MAXNALLOC;
+  }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d1: ms=%ld nf1=%ld nj=%ld ...\n",ms,nf1,nj); 
+  if (opts.debug) printf("1d1: ms=%ld nf1=%ld nj=%ld ...\n",ms,nf1,nj);
 
   CNTime timer; timer.start();
   int nth = MY_OMP_GET_MAX_THREADS();
@@ -67,7 +74,7 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
   spopts.spread_direction = 1;
   int ier_spread = twopispread1d(nf1,(dcomplex*)fw,nj,xj,cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread, timer.elapsedsec());
-  if (ier_spread>0) exit(ier_spread);
+  if (ier_spread>0) return ier_spread;
   //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
 
   // Step 2:  Call FFT
@@ -109,14 +116,16 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
      fk     complex Fourier transform values (size ms, increasing mode ordering)
             (ie, stored as 2*nj doubles interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested
+     eps    precision requested (>1e-16)
      ms     number of Fourier modes input, may be even or odd;
             in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
      opts   struct controlling options (see finufft.h)
    Outputs:
      cj     complex double array of nj answers at targets
-     returned value - error return code, as returned by cnufftspread:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
      1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
@@ -132,7 +141,12 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) return ier_set;
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
+  if (nf1>opts.maxnalloc) {
+    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
+    return ERR_MAXNALLOC;
+  }
   cout << scientific << setprecision(15);  // for debug
 
   if (opts.debug) printf("1d2: ms=%ld nf1=%ld nj=%ld ...\n",ms,nf1,nj); 
@@ -173,7 +187,7 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
   spopts.spread_direction = 2;
   int ier_spread = twopispread1d(nf1,(dcomplex*)fw,nj,xj,cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n", ier_spread, timer.elapsedsec());
-  if (ier_spread>0) exit(ier_spread);
+  if (ier_spread>0) return ier_spread;
 
   fftw_free(fw); if (opts.debug) printf("freed\n");
   return 0;
@@ -194,13 +208,15 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
      nk     number of frequency target points
      s      frequency locations of targets in R.
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested
+     eps    precision requested (>1e-16)
      opts   struct controlling options (see finufft.h)
    Outputs:
      fk     size-nk double complex Fourier transform values at target
             frequencies sk
-     returned value - error return code, as returned by finufft1d2:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread or finufft1d2
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
      as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].
@@ -221,6 +237,7 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) return ier_set;
   BIGINT nf1;
   double X1,C1,S1,D1,h1,gam1;
   cout << scientific << setprecision(15);  // for debug
@@ -232,6 +249,10 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,nj,nk);
+  if (nf1>opts.maxnalloc) {
+    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
+    return ERR_MAXNALLOC;
+  }
   double* xpj = (double*)malloc(sizeof(double)*nj);
   for (BIGINT j=0;j<nj;++j)
     xpj[j] = (xj[j]-C1) / gam1;                           // rescale x_j
@@ -250,7 +271,7 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
   int ier_spread = twopispread1d(nf1,fw,nj,xpj,cpj,spopts);
   free(xpj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) exit(ier_spread);
+  if (ier_spread>0) return ier_spread;
   //for (int j=0;j<nf1;++j) printf("fw[%d]=%.3g\n",j,real(fw[j]));
 
   // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
@@ -261,7 +282,7 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
   int ier_t2 = finufft1d2(nk,sp,fk,iflag,eps,nf1,fw,opts);  // the meat
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
-  if (ier_t2) exit(ier_t2);
+  if (ier_t2) return ier_t2;
   //for (int k=0;k<nk;++k) printf("fk[%d]=(%.3g,%.3g)\n",k,fk[2*k],fk[2*k+1]);
 
   // Step 3a: compute Fourier transform of scaled kernel at targets

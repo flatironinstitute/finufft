@@ -10,7 +10,12 @@
 #define BIGPROB 1e8
 
 int main(int argc, char* argv[])
-/* Test executable for finufft2d, all 3 types
+/* Test executable for finufft in 2d, all 3 types
+
+   Usage: finufft2d_test [Nmodes1 Nmodes2 [Nsrc [tol [debug]]]]
+
+   debug = 0: rel errors and overall timing, 1: timing breakdowns
+           2: also spreading output
 
    Example: finufft2d_test 1000 1000 1000000 1e-12
 
@@ -60,7 +65,7 @@ int main(int argc, char* argv[])
     printf("\t%ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
 	   M,N1,N2,ti,M/ti);
 
-  BIGINT nt1 = N1/2 - 7, nt2 = N2/2 - 5;    // choose some mode index to check
+  BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
   dcomplex Ft = {0,0}, J = ima*(double)isign;
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct

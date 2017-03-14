@@ -6,13 +6,13 @@
 # copy it to makefile.local, edit that, and use make -f makefile.local
 
 # ============= system-specific settings ===============================
-CPP=g++
+CXX=g++
 CC=gcc
 FC=gfortran
 FLINK=-lgfortran
 
 # choose EITHER single threaded...
-#CPPFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
+#CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
 #FLAGS=-fPIC -Ofast -funroll-loops -march=native
 #CLIBSFFT = -lfftw3 -lm
 #FFLAGS=-fPIC -O3 -funroll-loops
@@ -20,7 +20,7 @@ FLINK=-lgfortran
 
 # ...OR multi-threaded:
 LIBSFFT = -lfftw3_omp -lfftw3 -lm
-CPPFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp -DNEED_EXTERN_C
+CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp -DNEED_EXTERN_C
 CFLAGS=-fPIC -Ofast -funroll-loops -march=native -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
 MFLAGS=-lgomp
@@ -46,80 +46,63 @@ OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rul
 # for Fortran interface and demos...
 FOBJS = fortran/finufft_f.o fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/prini.o
 
-HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/common.h src/utils.h
+HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/common.h src/utils.h src/finufft_c.h fortran/finufft_f.h
 
 default: lib
 
 .PHONY: lib examples test perftest fortran
 
 # implicit rules for objects (note -o ensures writes to correct dir)
-.cpp.o:
-	$(CPP) -c $(CPPFLAGS) $< -o $@
-.c.o:
+%.o: %.cpp %.h
+	$(CXX) -c $(CXXFLAGS) $< -o $@
+%.o: %.c %.h
 	$(CC) -c $(CFLAGS) $< -o $@
-.f.o:
+%.o: %.f %.h
 	$(FC) -c $(FFLAGS) $< -o $@
 
-# build libraries...
+# build the library...
 lib: lib/libfinufft.a lib/libfinufft.so
-lib/libfinufft.a: $(OBJS)
+lib/libfinufft.a: $(OBJS) $(HEADERS)
 	ar rcs lib/libfinufft.a $(OBJS)
-lib/libfinufft.so: $(OBJS)
-	$(CPP) -shared $(OBJS) -o lib/libfinufft.so
+lib/libfinufft.so: $(OBJS) $(HEADERS)
+	$(CXX) -shared $(OBJS) -o lib/libfinufft.so
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 
 # examples...
 examples: examples/example1d1 examples/example1d1c
 examples/example1d1: examples/example1d1.o lib/libfinufft.a
-	$(CPP) $(CPPFLAGS) examples/example1d1.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1
+	$(CXX) $(CXXFLAGS) examples/example1d1.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1
 examples/example1d1c: examples/example1d1c.o lib/libfinufft.a
-	$(CPP) $(CFLAGS) examples/example1d1c.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1c
+	$(CXX) $(CFLAGS) examples/example1d1c.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1c
 
 # validation tests...
-test: test/finufft1d_test test/finufft2d_test test/finufft3d_test test/testutils
+test: test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test
 	(cd test; ./check_finufft.sh)
-
+test/testutils: test/testutils.cpp src/utils.o src/utils.h $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
 test/finufft1d_test: test/finufft1d_test.cpp $(OBJS1) $(HEADERS)
-	$(CPP) $(CPPFLAGS) test/finufft1d_test.cpp $(OBJS1) $(LIBSFFT) -o test/finufft1d_test
-
+	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJS1) $(LIBSFFT) -o test/finufft1d_test
 test/finufft2d_test: test/finufft2d_test.cpp $(OBJS2) $(HEADERS)
-	$(CPP) $(CPPFLAGS) test/finufft2d_test.cpp $(OBJS2) $(LIBSFFT) -o test/finufft2d_test
-
+	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJS2) $(LIBSFFT) -o test/finufft2d_test
 test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)
-	$(CPP) $(CPPFLAGS) test/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o test/finufft3d_test
-
-
+	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o test/finufft3d_test
+test/dumbinputs: test/dumbinputs.cpp $(OBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp lib/libfinufft.a $(LIBSFFT) -o test/dumbinputs
 
 # performance tests...
-perftest: testnd
-
-
-
-# test drivers and scripts...
-test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
-	$(CPP) $(CPPFLAGS) test/spreadtestnd.cpp $(SOBJS) -o test/spreadtestnd
-
-spreadtestnd: test/spreadtestnd
+perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft3d_test
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd test; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
-
-test1d: test/finufft1d_test
-	test/finufft1d_test 1e4 1e3 1e-6 1         # small prob for accuracy
-
-test2d: test/finufft2d_test
-	test/finufft2d_test 200 50 1e3 1e-6 1      # small
-
-test3d: test/finufft3d_test
-	test/finufft3d_test 20 100 50 1e2 1e-6 1   # small
-
-testnd: test/finufft1d_test test/finufft2d_test test/finufft3d_test
 	(cd test; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
+test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJS) -o test/spreadtestnd
 
+# fortran interface...
 fortran: $(FOBJS) $(OBJS) $(HEADERS)
 # note that linking opts seem to need to go at the end of the compile cmd:
-	$(CPP) $(FFLAGS) fortran/nufft1d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft1d_demo $(FLINK)
-	$(CPP) $(FFLAGS) fortran/nufft2d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft2d_demo $(FLINK)
-	$(CPP) $(FFLAGS) fortran/nufft3d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft3d_demo $(FLINK)
+	$(CXX) $(FFLAGS) fortran/nufft1d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft1d_demo $(FLINK)
+	$(CXX) $(FFLAGS) fortran/nufft2d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft2d_demo $(FLINK)
+	$(CXX) $(FFLAGS) fortran/nufft3d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft3d_demo $(FLINK)
 	time -p fortran/nufft1d_demo
 	time -p fortran/nufft2d_demo
 	time -p fortran/nufft3d_demo
@@ -134,17 +117,14 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 # todo: python wrapper...
 
 # various obscure testers (experts only)...
-test/testutils: test/testutils.cpp src/utils.o src/utils.h
-	$(CPP) $(CPPFLAGS) test/testutils.cpp src/utils.o -o test/testutils
-
 devel/plotkernels: $(SOBJS) $(HEADERS) devel/plotkernels.cpp
-	$(CPP) $(CPPFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS) 
+	$(CXX) $(CXXFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS) 
 	(cd devel; ./plotkernels > plotkernels.dat)
 
 devel/testi0: devel/testi0.cpp devel/besseli.o src/utils.o
-	$(CPP) $(CPPFLAGS) devel/testi0.cpp $(OBJS) -o devel/testi0
+	$(CXX) $(CXXFLAGS) devel/testi0.cpp $(OBJS) -o devel/testi0
 	(cd devel; ./testi0)
 
 clean:
 	rm -f $(OBJS1) $(OBJS2) $(OBJS3) $(FOBJS) $(SOBJS)
-	rm -f test/spreadtestnd test/finufft?d_test test/testutils fortran/nufft?d_demo examples/example1d1 examples/example1d1c
+	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/results/*.out fortran/nufft?d_demo examples/example1d1 examples/example1d1c

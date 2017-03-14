@@ -10,7 +10,12 @@
 #define BIGPROB 1e8
 
 int main(int argc, char* argv[])
-/* Test executable for finufft3d.
+/* Test executable for finufft in 3d, all 3 types.
+
+   Usage: finufft3d_test [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug]]]]
+
+   debug = 0: rel errors and overall timing, 1: timing breakdowns
+           2: also spreading output
 
    Example: finufft3d_test 100 200 50 1e6 1e-12
 
@@ -59,11 +64,12 @@ int main(int argc, char* argv[])
   double ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
+    exit(ier);
   } else
     printf("     %ld NU pts to (%ld,%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
 	   M,N1,N2,N3,ti,M/ti);
 
-  BIGINT nt1 = N1/2 - 7, nt2 = N2/2 - 5, nt3 = N3/2 - 8;  // choose mode to check
+  BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2), nt3 = (BIGINT)(-0.39*N3);  // choose mode to check
   dcomplex Ft = {0,0}, J = ima*(double)isign;
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
@@ -86,6 +92,7 @@ int main(int argc, char* argv[])
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
+    exit(ier);
   } else
     printf("     (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
 	   N1,N2,N3,M,ti,M/ti);
@@ -128,6 +135,7 @@ int main(int argc, char* argv[])
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
+    exit(ier);
   } else
     printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",M,N,ti,M/ti,N/ti);
 

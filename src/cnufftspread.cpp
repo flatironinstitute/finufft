@@ -79,26 +79,27 @@ int cnufftspread(
    data_nonuniform - input strengths of the sources (dir=1)
                      OR output values at targets (dir=2)
    Ouputs:
-   returned value - error status indicator:
-      0 : success.
-      1 : one or more non-trivial box dimensions is less than 2.nspread.
-      2 : nonuniform points outside range [0,Nm] in at least one dimension
+   returned value - 0 indicates success; other values as follows
+      (see utils.h for error codes)
+      3 : one or more non-trivial box dimensions is less than 2.nspread.
+      4 : nonuniform points outside range [0,Nm] in at least one dimension
           m=1,2,3.
-      3 : out of memory for the internal sorting arrays.
-      4 : invalid opts.spread_direction
+      5 : out of memory for the internal sorting arrays.
+      6 : invalid opts.spread_direction
 
    Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
+   error codes 3/13/17
 */
 { 
   // Input checking: cuboid not too small for spreading
   long minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
     fprintf(stderr,"error: one or more non-trivial box dims is less than 2.nspread!\n");
-    return 1;
+    return ERR_SPREAD_BOX_SMALL;
   }
   if (opts.spread_direction!=1 && opts.spread_direction!=2) {
     fprintf(stderr,"opts.spread_direction must be 1 or 2!\n");
-    return 4;
+    return ERR_SPREAD_DIR;
   }
   int ndims = 1;                 // decide ndims: 1,2 or 3
   if (N2>1) ++ndims;
@@ -113,7 +114,7 @@ int cnufftspread(
   }
   catch(std::bad_alloc &e) {
     fprintf(stderr,"cnufftspread cannot alloc arrays!\n");
-    return 3;
+    return ERR_SPREAD_ALLOC;
   }
   // MY_OMP_SET_NUM_THREADS(1); // for debug; also may set via shell env var OMP_NUM_THREADS
   
@@ -151,7 +152,7 @@ int cnufftspread(
   if (opts.debug) printf("sort time (sort_data=%d): %.3g s\n",(int)opts.sort_data,t);
   if (bnderr) {
     fprintf(stderr,"error: at least one nonuniform point not in range [0,N1] x ... !\n");
-    return 2;
+    return ERR_SPREAD_PTS_OUT_RANGE;
   }
 
   // set up spreading kernel index bounds in each dim, relative to bottom left corner:
@@ -517,9 +518,8 @@ void compute_kernel_values(double x1,double x2,double x3,
 
 int setup_kernel(spread_opts &opts,double eps,double R)
 // must be called before evaluate_kernel used.
-// returns error code: 0 success, >0 various problems.
+// returns: 0 success, >0 failure (see error codes in utils.h)
 {
-  int ier=0;   // status
   double fudgefac = 1.0;   // how much actual errors exceed estimated errors
   int ns = std::ceil(-log10(eps/fudgefac))+1;   // 1 digit per power of ten
   ns = max(2,ns);                            // we don't have ns=1 version yet
@@ -534,13 +534,11 @@ int setup_kernel(spread_opts &opts,double eps,double R)
   opts.ES_beta = betaoverns * (double)ns;
   if (eps<1e-16) {
     fprintf(stderr,"setup_kernel: requested eps is too small (<1e-16)!\n");
-    ier=1;
+    return ERR_EPS_TOO_SMALL;
   }
-  if (R<1.9 || R>2.1) {
-    fprintf(stderr,"setup_kernel: R is not close to 2.0; may be inaccurate!\n");
-    ier=2;
-  }
-  return ier;
+  if (R<1.9 || R>2.1)
+    fprintf(stderr,"setup_kernel: warning R is not close to 2.0; may be inaccurate!\n");
+  return 0;
 }
 
 double evaluate_kernel(double x, const spread_opts &opts)

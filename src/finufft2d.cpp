@@ -27,7 +27,7 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
      cj     size-nj complex double array of source strengths, 
             (ie, stored as 2*nj doubles interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested
+     eps    precision requested (>1e-16)
      ms,mt  number of Fourier modes requested in x and y; each may be even or odd;
             in either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   struct controlling options (see finufft.h)
@@ -35,8 +35,10 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
      fk     complex double array of Fourier transform values
             (size ms*mt, increasing fast in ms then slow in mt,
             ie Fortran ordering).
-     returned value - error return code, as returned by cnufftspread:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
      1) spread data to oversampled regular mesh using kernel.
@@ -50,6 +52,7 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) return ier_set;
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   cout << scientific << setprecision(15);  // for debug
@@ -114,14 +117,16 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
      fk     double complex array of Fourier transform values (size ms*mt,
             increasing fast in ms then slow in mt, ie Fortran ordering),
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested
+     eps    precision requested (>1e-16)
      ms,mt  numbers of Fourier modes given in x and y; each may be even or odd;
             in either case the mode range is integers lying in [-m/2, (m-1)/2].
      opts   struct controlling options (see finufft.h)
    Outputs:
      cj     size-nj complex double array of source strengths
-     returned value - error return code, as returned by cnufftspread:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
      1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
@@ -134,6 +139,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
+  if (ier_set) return ier_set;
   BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
   BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   cout << scientific << setprecision(15);  // for debug
@@ -198,12 +204,14 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
      nk     number of frequency target points
      s,t    (k_x,k_y) frequency locations of targets in R^2.
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested
+     eps    precision requested (>1e-16)
      opts   struct controlling options (see finufft.h)
    Outputs:
      fk     complex double Fourier transform values at the target frequencies sk
-     returned value - error return code, as returned by finufft2d2:
-                      0 : success.
+     returned value - 0 if success, else:
+                      1 : eps too small
+		      2 : size of arrays to malloc exceed opts.maxnalloc
+                      other codes: as returned by cnufftspread or finufft2d2
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
      as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].
@@ -225,7 +233,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
 {
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
-  if (ier_set) exit(ier_set);
+  if (ier_set) return ier_set;
   BIGINT nf1,nf2;
   double X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2;
   cout << scientific << setprecision(15);  // for debug

@@ -3,35 +3,50 @@
 #include <math.h>
 #include <stdio.h>
 
+int usage()
+{
+  printf("usage: spreadtestnd [dim [M [tol]]]\n\twhere dim=1,2 or 3\n\tM=problem size, sets both # NU and U pts\n\ttol=requested accuracy\n");
+}
+
 int main(int argc, char* argv[])
 /* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.
- * It checks speed and basic correctness via the grid sum of the result.
+ * It checks speed, and basic correctness via the grid sum of the result.
+ * Usage: spreadtestnd [dim [M [tol]]]
+ *	  where dim=1,2 or 3
+ *	  M=problem size, sets both # NU and U pts
+ *	  tol=requested accuracy
  *
- * Compilation: g++ spreadtestnd.cpp ../contrib/besseli.cpp -o spreadtestnd
- * Usage: ./spreadtestnd d tol
+ * Example: spreadtestnd 3 1e6 1e-6
  *
- * runs a test in dimension d, with tolerance tol. If not given, defaults
- * used (d=3, tol=1e6)
+ * Compilation (also check ../makefile):
+ *    g++ spreadtestnd.cpp ../src/cnufftspread.o ../src/utils.o -o spreadtestnd -fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp
  *
- * Magland, expanded by Barnett 1/14/17
+ * Magland, expanded by Barnett 1/14/17. Better cmd line args 3/13/17
  */
 {
-  int d = 3;          // default
-  double tol = 1e-6;  // default (1e6 has nspread=8)
-  if (argc>1) {
-    sscanf(argv[1],"%d",&d);
-    if (d<1 || d>3) { printf("d must be 1, 2 or 3! usage: spreadtestnd d tol\n");
-      return 1; }
+  int d = 3;            // default
+  double tol = 1e-6;    // default (1e6 has nspread=8)
+  long M = 1e6;         // default problem size (# NU pts)
+  if (argc<=1) { usage(); return 0; }
+  sscanf(argv[1],"%d",&d);
+  if (d<1 || d>3) {
+    printf("d must be 1, 2 or 3!\n"); usage(); return 1;
   }
   if (argc>2) {
-    sscanf(argv[2],"%lf",&tol);
-    if (tol<=0.0) { printf("tol must be positive! usage: spreadtestnd d tol\n");
-      return 1; }
+    double w; sscanf(argv[2],"%lf",&w); M = (long)w;  // so can read 1e6 right!
+    if (M<1) {
+      printf("M (problem size) must be positive!\n"); usage(); return 1;
+    }
   }
-  if (argc>3) { printf("usage: spreadtestnd d tol\n");
+  if (argc>3) {
+    sscanf(argv[3],"%lf",&tol);
+    if (tol<=0.0) {
+      printf("tol must be positive!\n"); usage(); return 1;
+    }
+  }
+  if (argc>4) { usage();
     return 1; }
-  long M=1e6;                                // choose problem size:  # NU pts
-  long roughNg = 1e6;                        //                       # grid pts
+  long roughNg = M;                          // # grid pts = # NU pts
   long N=(long)(pow(roughNg,1.0/d));         // Fourier grid size per dim
   long Ng = (long)pow(N,d);                  // actual total grid points
   long N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes

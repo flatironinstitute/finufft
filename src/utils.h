@@ -10,6 +10,14 @@ using namespace std;        // means std:: not needed for cout, max, etc
 //#define BIGINT int64_t
 #define BIGINT long
 
+// global error codes for the library...
+#define ERR_EPS_TOO_SMALL        1
+#define ERR_MAXNALLOC            2
+#define ERR_SPREAD_BOX_SMALL     3
+#define ERR_SPREAD_PTS_OUT_RANGE 4
+#define ERR_SPREAD_ALLOC         5
+#define ERR_SPREAD_DIR           6
+
 #define MAX(a,b) (a>b) ? a : b  // but we use std::max instead
 #define MIN(a,b) (a<b) ? a : b
 
@@ -34,7 +42,7 @@ class CNTime {
   struct timeval initial;
 };
 
-// crappy unif random number generator in [0,1):
+// Random numbers: crappy unif random number generator in [0,1):
 //#define rand01() (((double)(rand()%RAND_MAX))/RAND_MAX)
 #define rand01() ((double)rand()/RAND_MAX)
 // unif[-1,1]:

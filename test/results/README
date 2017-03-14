@@ -1,0 +1,4 @@
+Results directory for tests.  The *.refout are crucial for validation
+via numdiff and are not to be adjusted by users.
+
+Barnett 3/13/17

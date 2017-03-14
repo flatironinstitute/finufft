@@ -10,9 +10,12 @@
 #define BIGPROB 1e8
 
 int main(int argc, char* argv[])
-/* Test executable for finufft1d, all 3 types.
+/* Test executable for finufft in 1d, all 3 types.
 
    Usage: finufft1d_test [Nmodes [Nsrc [tol [debug]]]]
+
+   debug = 0: rel errors and overall timing, 1: timing breakdowns
+           2: also spreading output
 
    Example: finufft1d_test 1000000 1000000 1e-12
 
@@ -22,7 +25,7 @@ int main(int argc, char* argv[])
   BIGINT M = 1e6, N = 1e6;   // defaults: M = # srcs, N = # modes out
   double w, tol = 1e-6;      // default
   nufft_opts opts;
-  opts.debug = 1;            // to see some timings
+  opts.debug = 1;            // to see sub-timings
   int isign = +1;            // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); N = (BIGINT)w; }
   if (argc>2) { sscanf(argv[2],"%lf",&w); M = (BIGINT)w; }
@@ -53,10 +56,11 @@ int main(int argc, char* argv[])
   double t=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
+    exit(ier);
   } else
     printf("\t%ld NU pts to %ld modes in %.3g s \t%.3g NU pts/s\n",M,N,t,M/t);
 
-  BIGINT nt = N/2 - 7;      // check arbitrary choice of mode near the top
+  BIGINT nt = (BIGINT)(0.37*N);   // check arb choice of mode near the top (N/2)
   dcomplex Ft = {0,0};
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(ima*((double)(isign*nt))*x[j]); // crude direct
@@ -77,6 +81,7 @@ int main(int argc, char* argv[])
   t=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
+    exit(ier);
   } else
     printf("\t%ld modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",N,M,t,M/t);
 
@@ -105,6 +110,7 @@ int main(int argc, char* argv[])
   t=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
+    exit(ier);
   } else
     printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",M,N,t,M/t,N/t);
 
@@ -122,5 +128,5 @@ int main(int argc, char* argv[])
   }
 
   free(x); free(c); free(F);
-  return ier;
+  return 0;
 }

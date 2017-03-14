@@ -3,10 +3,11 @@
 
 #include "utils.h"
 
-struct nufft_opts {  // here sets default opts for NUFFT alg:
+struct nufft_opts {  // this sets default opts for NUFFT alg:
   double R = 2.0;         // kernel-dep upsampling ratio (only experts change)
-  int debug = 0;          // 0: silent, 1: text timing output
+  int debug = 0;          // 0: silent, 1: text timing output, 2: spread info
   int spread_debug = 0;   // passed to spread_opts debug: 0,1 or 2
+  BIGINT maxnalloc = (BIGINT)1e9;   // largest size of internal array to malloc
 };
 
 // library provides...

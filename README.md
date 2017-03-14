@@ -24,7 +24,7 @@ For the basic libraries
 - C\++ compiler such as g\++
 - FFTW3
 - GNU make
-- numdiff
+- numdiff (version 5.8.1 or later)
 - Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
 
 For the Fortran wrappers
@@ -64,34 +64,30 @@ In C\++ the simplest is to link to the static library by compiling with `-std=c+
 In your C\++ code you will need to include the header `src/finufft.h`.
 See codes in `examples/` for calling from C, and `fortran/` for calling from Fortran.
 
-
 ### Contents of this package
 
-- `src` : main library source and headers. Compiled .o will be built here.
-- `lib` : compiled library will be built here.  
-- `test` : validation and performance tests.  
-
-- `examples` : test codes (drivers) which verify libaries are working correctly, perform speed tests, and show how to call them. ***
-- `examples/nuffttestnd.sh` : benchmark and display accuracy for all types and dimensions (3x3 = 9 in total) of NUFFT at fixed requested tolerance  
-- `examples/checkallaccs.sh [dim]` : sweep over all tolerances checking the spreader and NUFFT at a single dimension;  [dim] is 1, 2, or 3
-- `examples/results` : accuracy and timing outputs.
-***
-  
-- `contrib` : 3rd-party code.  
-- `fortran` : wrappers and drivers for Fortran.
-- `matlab` : wrappers and examples for MATLAB. (Not yet working)  
-- `devel` : various obsolete or in-development codes (experts only)  
-- `makefile` : GNU makefile (user may need to edit)  
-- `doc` : the manual (not yet there)  
-- `README.md` : this file  
-- `LICENSE` : licensing information  
-- `CHANGELOG` : list of changes made  
-- `TODO` : list of things needed to do  
-
+ `src` : main library source and headers. Compiled .o will be built here.  
+ `lib` : compiled library will be built here.  
+ `test` : validation and performance tests. `test/check_finufft.sh` is the main validation script. `test/nuffttestnd.sh` is the main performance test script.  
+ `test/results` : validation comparison outputs and test, performance outputs.  
+ `examples` : simple example codes for calling the library from C++ or C.  
+ `contrib` : 3rd-party code.  
+ `fortran` : wrappers and drivers for Fortran.   
+ `matlab` : wrappers and examples for MATLAB. (Not yet working)  
+ `devel` : various obsolete or in-development codes (experts only)  
+ `makefile` : GNU makefile (user may need to edit)  
+ `doc` : the manual (not yet there)  
+ `README.md` : this file  
+ `LICENSE` : licensing information  
+ `CHANGELOG` : list of changes made  
+ `TODO` : list of things needed to do, or wishlist  
 
 ### Notes
 
 C\++ is used for all main libraries, although without much object-oriented code. C\++ complex<double> ("dcomplex") and FFTW complex types are mixed within the library, since it is a glorified driver for FFTW, but has dcomplex interfaces and test codes. FFTW was considered universal and essential enough to be a dependency for the whole package.
+
+If internal arrays to be dynamically allocated are larger than `opts.maxnalloc`, the library stops before allocating and returns an error code. Currently the default value is `opts.maxnalloc=1e9`, which would allocate at least 16 GB. If your machine has the RAM and you need it, set this larger before calling.
+(Currently changing this is only available via the C++ interface.)
 
 As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
 
@@ -119,17 +115,17 @@ The original NUFFT analysis using truncated Gaussians is:
 
 The main distribution includes code by:
 
-Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)  
+Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)   
 Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)  
 
-There are also packaged codes in the `devel/` directory.
+There are also undocumented packaged codes in the `devel/` directory.
 
 
 ### Known issues
 
-Currently, if a large product of x width and k width is requested in type 3 transforms,
-no check is done before attempting to malloc ridiculous array sizes.
-
+When requestes accuracy is 1e-14 or less, it is sometimes not possible to match
+this, especially when there are a large number of input and/or output points.
+This is believed to be unavoidable round-off error.
 
 ### Bug reports
 

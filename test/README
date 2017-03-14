@@ -1,0 +1,11 @@
+Testing directory for FINUFFT. Barnett 3/12/17
+
+check_finufft.sh : validates the NUFFT library for correctness.
+results/*.refout : reference outputs that the generated outputs *,out will be compared against.
+spreadtestnd.sh : performance test of spreader only, in dims 1,2, or 3.
+nuffttestnd.sh : performance test of NUFFT library, in dims 1,2, or 3.
+mycpuinfo.sh : prints info about the CPU
+
+There are also assorted other test scripts useful to the developers.
+
+Also see: ../fortran for the Fortran driver demo scripts.

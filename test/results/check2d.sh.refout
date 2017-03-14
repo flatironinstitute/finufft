@@ -1,0 +1,9 @@
+test 2d type-1:
+one mode: rel err in F[37,2] is 0
+dirft2d: rel l2-err of result F is 0
+test 2d type-2:
+one targ: rel err in c[500] is 0
+dirft2d: rel l2-err of result c is 0
+test 2d type-3:
+one targ: rel err in F[500] is 0
+dirft2d: rel l2-err of result F is 0
