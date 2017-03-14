@@ -1,4 +1,31 @@
-Compile the library using:
+Linux/unix installation notes for FINUFFT. 3/14/17
+
+DEPENDENCIES:
+
+For the basic libraries
+
+- C++ compiler such as g++
+- FFTW3
+- GNU make
+- numdiff
+- Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
+
+For the Fortran wrappers
+
+- Fortran compiler such as gfortran (see settings in the makefile)
+
+On a Fedora/CentOS linux system, these dependencies can be installed as follows:
+
+sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp numdiff
+
+On Ubuntu linux:
+
+sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
+
+
+COMPILATION:
+
+Compile the library using
 
 make
 

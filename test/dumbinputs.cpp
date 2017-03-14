@@ -42,14 +42,14 @@ int main(int argc, char* argv[])
   int ier = finufft1d1(M,x,c,+1,0,N,F,opts);
   printf("1d1 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft1d1(M,x,c,+1,acc,0,F,opts);
-  printf("1d1 N=0:\tier=%d\tnrm(F)=%.3g (should be >0)\n",ier,twonorm(N,F));
+  printf("1d1 N=0:\tier=%d\n",ier);
   ier = finufft1d1(0,x,c,+1,acc,N,F,opts);
   //for (int k=0;k<N;++k) printf("F[%d] = %.g + %.g i\n",k,real(F[k]),imag(F[k]));
   printf("1d1 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
   ier = finufft1d2(M,x,c,+1,0,N,F,opts);
   printf("1d2 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft1d2(M,x,c,+1,acc,0,F,opts);
-  printf("1d2 N=0:\tier=%d\nrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
+  printf("1d2 N=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
   ier = finufft1d2(0,x,c,+1,acc,N,F,opts);
   printf("1d2 M=0:\tier=%d\n",ier);
   ier = finufft1d3(M,x,c,+1,0,N,s,F,opts);

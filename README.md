@@ -24,7 +24,7 @@ For the basic libraries
 - C\++ compiler such as g\++
 - FFTW3
 - GNU make
-- numdiff (version 5.8.1 or later)
+- numdiff
 - Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
 
 For the Fortran wrappers
@@ -33,11 +33,11 @@ For the Fortran wrappers
 
 On a Fedora/CentOS linux system, these dependencies can be installed as follows:
 ```bash
-sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp
+sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp numdiff
 ```
 On Ubuntu linux:
 ```bash
-sudo apt-get install make build-essential libfftw3-dev gfortran
+sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
 ```
 
 ### Installation
