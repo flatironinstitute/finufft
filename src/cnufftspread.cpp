@@ -63,12 +63,12 @@ int cnufftspread(
                 1D, only kx and ky used in 2D). These must lie in the box,
 		ie 0<=kx<=N1 etc.
    opts - object controlling spreading method and text output, has fields
-   including:
+          including:
         spread_direction=1, spreads from nonuniform input to uniform output, or
         spread_direction=2, interpolates ("spread transpose") from uniform input
                             to nonuniform output.
 	sort_data - (boolean) whether to sort NU points using natural yz-grid
-	            ordering.
+	            ordering. Recommended true.
 	debug = 0: no text output, 1: some openmp output, 2: mega output
 	           (each NU pt)
         checkerboard = 0: for dir=1, split top dimension only,
@@ -291,7 +291,7 @@ int cnufftspread(
 	    }
 	  }
 	}
-	data_nonuniform2[i*2]   = re0;     // copy out the accumulated complex value
+	data_nonuniform2[i*2]   = re0;     // copy out accumulated complex value
 	data_nonuniform2[i*2+1] = im0;
       }
       // "unsort" values which were dumped to NU output pts

@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
     double t=timer.elapsedsec();
     if (ier!=0) {
       printf("error (ier=%d)!\n",ier);
-      return 1;
+      return ier;
     } else
       printf("\t%.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
 

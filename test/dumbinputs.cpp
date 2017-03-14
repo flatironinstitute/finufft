@@ -4,7 +4,7 @@
 using namespace std;
 
 int main(int argc, char* argv[])
-/* calling the FINUFFT library from C++ using dumb inputs that raise errors.
+/* calling the FINUFFT library from C++ using crazy inputs that raise errors.
    Barnett 3/13/17, edited from example1d1.
 
    Compile with:
@@ -36,13 +36,15 @@ int main(int argc, char* argv[])
   double *s = (double*)malloc(sizeof(double)*NN);
   for (int k=0; k<NN; ++k) s[k] = 1e10*(2*((double)rand()/RAND_MAX)-1); // huge
   // printf("%.3g %3g\n",twonorm(N,F),twonorm(M,c));
+  opts.debug = 0;   // set to 1,2, to debug
 
   // 1D dumb cases
   int ier = finufft1d1(M,x,c,+1,0,N,F,opts);
   printf("1d1 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft1d1(M,x,c,+1,acc,0,F,opts);
-  printf("1d1 N=0:\tier=%d\tnrm(F)=%.3g (untouched)\n",ier,twonorm(N,F));
+  printf("1d1 N=0:\tier=%d\tnrm(F)=%.3g (should be >0)\n",ier,twonorm(N,F));
   ier = finufft1d1(0,x,c,+1,acc,N,F,opts);
+  //for (int k=0;k<N;++k) printf("F[%d] = %.g + %.g i\n",k,real(F[k]),imag(F[k]));
   printf("1d1 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
   ier = finufft1d2(M,x,c,+1,0,N,F,opts);
   printf("1d2 tol=0:\tier=%d (should complain)\n",ier);
@@ -58,6 +60,10 @@ int main(int argc, char* argv[])
   printf("1d3 M=0:\tier=%d\n",ier);
   ier = finufft1d3(M,x,c,+1,acc,N,s,F,opts);
   printf("1d3 XK prod too big:\tier=%d (should complain)\n",ier);
+
+  // 2D dumb cases
+
+  // 3D dumb cases
 
   free(x); free(c); free(F); free(s);
   return 0;

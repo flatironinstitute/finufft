@@ -131,7 +131,7 @@ This is believed to be unavoidable round-off error.
 
 If you think you have found a bug, please contact Alex Barnett (`ahb`
 at-sign `math.dartmouth.edu`) with FINUFFT in the subject line.
-Include code with reproduces the bug, along with
+Include a minimal code which reproduces the bug, along with
 details about your machine, operating system, and version of FINUFFT.
 
 ### Acknowledgments

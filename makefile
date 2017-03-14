@@ -76,7 +76,7 @@ examples/example1d1c: examples/example1d1c.o lib/libfinufft.a
 	$(CXX) $(CFLAGS) examples/example1d1c.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1c
 
 # validation tests...
-test: test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test
+test: test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
 	(cd test; ./check_finufft.sh)
 test/testutils: test/testutils.cpp src/utils.o src/utils.h $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils

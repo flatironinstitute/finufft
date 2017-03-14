@@ -39,10 +39,14 @@ List of tasks accomplished / changes made, in chronological order:
 
 V. 0.7:
 
-* build static lib
+* build static & shared lib
 * fixed bug when Nth>Ntop
 * fortran drivers use dynamic malloc
 * bugs found in fortran drivers, removed
-* split out text files
+* split out devel text files (TODO, etc)
 * made pass-fail test script counting crashes and numdiff fails.
 * finufft?d_test have a no-timings option, and exit with ier.
+* global error codes
+* made finufft routines & testers return error codes rather than exit().
+* dumbinput test executable
+* found nan returned error for nj=0 in type-1, fixed so returns the zero array.

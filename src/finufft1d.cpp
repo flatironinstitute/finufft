@@ -12,8 +12,9 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
  /*  Type-1 1D complex nonuniform FFT.
 
                1 nj-1
-     fk(k1) = -- SUM cj[j] exp(+/-i k1 xj(j))  for -ms/2 <= k1 <= (ms-1)/2 
+     fk(k1) = -- SUM cj[j] exp(+/-i k1 xj(j))  for -ms/2 <= k1 <= (ms-1)/2
               nj j=0                            
+                        if nj>0, else fk identically zero for nj=0.
    Inputs:
      nj     number of sources (integer of type BIGINT; see utils.h)
      xj     location of sources on interval [-pi,pi].
@@ -93,9 +94,10 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 
   // Step 3b: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  deconvolveshuffle1d(1,1.0/nj,fwkerhalf,ms,(double*)fk,nf1,fw);   // 1/nj prefac
+  double prefac = (nj==0) ? 1.0 : 1.0/nj;    // 1/nj prefac, handle nj=0 case!
+  deconvolveshuffle1d(1,prefac,fwkerhalf,ms,(double*)fk,nf1,fw);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
-  //for (int j=0;j<ms;++j) cout<<fk[2*j]<<"\t"<<fk[2*j+1]<<endl;
+  //for (int j=0;j<ms;++j) cout<<fk[j]<<endl;
 
   fftw_free(fw); fftw_free(fwkerhalf); if (opts.debug) printf("freed\n");
   return 0;

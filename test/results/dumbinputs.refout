@@ -1,11 +1,11 @@
 1d1 tol=0:	ier=1 (should complain)
-1d1 N=0:	ier=0	nrm(F)=2.46 (should vanish)
-1d1 M=0:	ier=0	nrm(F)=-nan (should vanish)
+1d1 N=0:	ier=0	nrm(F)=2.46 (should be >0)
+1d1 M=0:	ier=0	nrm(F)=0 (should vanish)
 1d2 tol=0:	ier=1 (should complain)
 1d2 N=0:	ier=0
-rm(c)=-nan (should vanish)
+rm(c)=0 (should vanish)
 1d2 M=0:	ier=0
 1d3 tol=0:	ier=1 (should complain)
-1d3 nk=0:	ier=0	nrm(F)=-nan (should vanish)
+1d3 nk=0:	ier=0	nrm(F)=0 (should vanish)
 1d3 M=0:	ier=1
-1d3 XK prod too big:	ier=1 (should complain)
+1d3 XK prod too big:	ier=2 (should complain)

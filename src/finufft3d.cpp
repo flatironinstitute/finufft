@@ -17,7 +17,8 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
                     nj  j=0
 
 	for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
-            -mu/2 <= k3 <= (mu-1)/2.
+            -mu/2 <= k3 <= (mu-1)/2,  and nj>0.
+     If nj=0, f is identically zero.
 
      The output array is in increasing k orderings. k1 is fastest, k2 middle,
      and k3 slowest, ie Fortran ordering. If iflag>0 the + sign is
@@ -100,7 +101,8 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  deconvolveshuffle3d(1,1.0/nj,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(double*)fk,nf1,nf2,nf3,fw);  // 1/nj prefac
+  double prefac = (nj==0) ? 1.0 : 1.0/nj;    // 1/nj prefac, handle nj=0 case!
+  deconvolveshuffle3d(1,prefac,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(double*)fk,nf1,nf2,nf3,fw);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   fftw_free(fw); fftw_free(fwkerhalf1); fftw_free(fwkerhalf2); fftw_free(fwkerhalf3);

@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
   BIGINT M = 1e6, N = 1e6;   // defaults: M = # srcs, N = # modes out
   double w, tol = 1e-6;      // default
   nufft_opts opts;
-  opts.debug = 1;            // to see sub-timings
+  opts.debug = 0;            // 1 to see sub-timings
   int isign = +1;            // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); N = (BIGINT)w; }
   if (argc>2) { sscanf(argv[2],"%lf",&w); M = (BIGINT)w; }

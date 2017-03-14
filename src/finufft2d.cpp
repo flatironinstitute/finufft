@@ -14,8 +14,9 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
                   1  nj-1
      f[k1,k2] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
                  nj  j=0
-
-     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
+ 
+     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2, and nj>0.
+     If nj=0, f is identically zero.
 
      The output array is in increasing k1 ordering (fast), then increasing
      k2 ordering (slow). If iflag>0 the + sign is
@@ -94,7 +95,8 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  deconvolveshuffle2d(1,1.0/nj,fwkerhalf1,fwkerhalf2,ms,mt,(double*)fk,nf1,nf2,fw);  // 1/nj prefac
+  double prefac = (nj==0) ? 1.0 : 1.0/nj;    // 1/nj prefac, handle nj=0 case!
+  deconvolveshuffle2d(1,prefac,fwkerhalf1,fwkerhalf2,ms,mt,(double*)fk,nf1,nf2,fw);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   fftw_free(fw); fftw_free(fwkerhalf1); fftw_free(fwkerhalf2);
