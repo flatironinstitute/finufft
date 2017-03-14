@@ -20,7 +20,8 @@ void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
 {
   *nf = (BIGINT)(opts.R*ms);
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
-  *nf = next235even(*nf);
+  if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
+    *nf = next235even(*nf);                        // expensive at huge nf
 }
 
 void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
@@ -41,7 +42,8 @@ void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
   *nf = (BIGINT)(2.0*opts.R*S*X/M_PI + nss);
   //printf("initial nf=%ld, ns=%d\n",nf,spopts.nspread);
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
-  *nf = next235even(*nf);
+  if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
+    *nf = next235even(*nf);                        // expensive at huge nf
   *h = 2*M_PI / *nf;                          // upsampled grid spacing
   *gam = (X/M_PI)/(1.0 - nss/(double)*nf);    // x scale fac
   *gam = max(*gam,1.0/S);                     // safely handle X=0 (zero width)

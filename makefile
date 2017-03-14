@@ -62,6 +62,7 @@ default: lib
 
 # build the library...
 lib: lib/libfinufft.a lib/libfinufft.so
+	echo "lib/libfinufft.a and lib/libfinufft.so built"
 lib/libfinufft.a: $(OBJS) $(HEADERS)
 	ar rcs lib/libfinufft.a $(OBJS)
 lib/libfinufft.so: $(OBJS) $(HEADERS)
@@ -75,7 +76,7 @@ examples/example1d1: examples/example1d1.o lib/libfinufft.a
 examples/example1d1c: examples/example1d1c.o lib/libfinufft.a
 	$(CXX) $(CFLAGS) examples/example1d1c.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1c
 
-# validation tests...
+# validation tests... (most link to .o allowing testing pieces separately)
 test: test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
 	(cd test; ./check_finufft.sh)
 test/testutils: test/testutils.cpp src/utils.o src/utils.h $(HEADERS)
@@ -86,7 +87,7 @@ test/finufft2d_test: test/finufft2d_test.cpp $(OBJS2) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJS2) $(LIBSFFT) -o test/finufft2d_test
 test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o test/finufft3d_test
-test/dumbinputs: test/dumbinputs.cpp $(OBJS) $(HEADERS)
+test/dumbinputs: test/dumbinputs.cpp lib/libfinufft.a $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp lib/libfinufft.a $(LIBSFFT) -o test/dumbinputs
 
 # performance tests...
