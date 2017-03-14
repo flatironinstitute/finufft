@@ -54,3 +54,5 @@ V. 0.7:
 * array utils use pointers to make which vars they write to explicit.
 * don't do final type-3 rephase if C1 nan or 0.
 * finished all dumbinputs all dims
+* fortran compilation fixed
+* makefile self-documents

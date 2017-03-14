@@ -19,6 +19,8 @@ See the manual for more information.
 
 ### Dependencies
 
+This library is only supported for linux right now.
+
 For the basic libraries
 
 - C\++ compiler such as g\++
@@ -43,20 +45,23 @@ sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
 ### Installation
 
 - Clone using git (or checkout using svn, or download as a zip -- see green button above)
-- Compile the library using:
+- Compile and test the library using:
 
 ```bash
-make
+make test
 ```
-This should compile the main libraries and print a list of further make options.
-If you have an error then `cp makefile makefile.local`, edit `makefile.local` to adjust
-compiler and other library options, and use `make -f makefile.local`.
-Here are some other make tasks:
+This should compile the main libraries, which are found in `lib`, and run
+tests which produce text output ending with a summary that there were zero crashes and zero fails.
+If there is an error in compilation, then `cp makefile makefile.local`, edit `makefile.local` to adjust
+compiler and other library options, then use `make -f makefile.local`.
+If there is an error in testing (accuracy fails), consider filing a bug report (below).
+Here are some other make tasks (run `make` without arguments to see a full list):
 
 - `make examples` : compile some simple examples in `examples/`
 - `make test` : mathematical validation of the library and components
 - `make perftest` : multi-threaded and single-threaded performance tests
-- `make fortran` : compile and test the fortran interfaces  
+- `make fortran` : compile and test the fortran interfaces
+- `make clean` : remove all object and executable files apart from MEX
 
 Linking to the library:
 In C\++ the simplest is to link to the static library by compiling with `-std=c++11 -fopenmp lib/libfinufft.a -lfftw3_omp -lfftw3 -lm` for the default multi-threaded version, or
@@ -69,7 +74,7 @@ See codes in `examples/` for calling from C, and `fortran/` for calling from For
  `src` : main library source and headers. Compiled .o will be built here.  
  `lib` : compiled library will be built here.  
  `test` : validation and performance tests. `test/check_finufft.sh` is the main validation script. `test/nuffttestnd.sh` is the main performance test script.  
- `test/results` : validation comparison outputs and test, performance outputs.  
+ `test/results` : validation comparison outputs (*.refout; do not remove these), and local test and performance outputs (*.out; one may remove these)
  `examples` : simple example codes for calling the library from C++ or C.  
  `contrib` : 3rd-party code.  
  `fortran` : wrappers and drivers for Fortran.   

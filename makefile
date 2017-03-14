@@ -1,5 +1,5 @@
 # Makefile for Flatiron Institute (FI) NUFFT libraries.
-# Barnett 3/10/17
+# Barnett 3/14/17
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # If you need to edit this makefile, it is recommended that you first
@@ -43,14 +43,24 @@ OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o sr
 OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
 OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/twopispread.o
-# for Fortran interface and demos...
-FOBJS = fortran/finufft_f.o fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/prini.o
+# for Fortran interface demos...
+FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/prini.o
 
 HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/common.h src/utils.h src/finufft_c.h fortran/finufft_f.h
 
-default: lib
+default: usage
 
-.PHONY: lib examples test perftest fortran
+.PHONY: usage lib examples test perftest fortran
+
+usage:
+	@echo "makefile for FINUFFT library. Specify what to make:"
+	@echo " make lib - compile the main libraries (in lib/)"
+	@echo " make examples - compile and run codes in examples/"
+	@echo " make test - compile and run validation tests"
+	@echo " make perftest - compile and run performance tests"
+	@echo " make fortran - compile and test Fortran interfaces"
+	@echo " make clean - remove all object and executable files apart from MEX"
+	@echo "For faster making you may want to append, eg, the flag -j8"
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp %.h
@@ -71,13 +81,15 @@ lib/libfinufft.so: $(OBJS) $(HEADERS)
 
 # examples...
 examples: examples/example1d1 examples/example1d1c
+	examples/example1d1
+	examples/example1d1c
 examples/example1d1: examples/example1d1.o lib/libfinufft.a
 	$(CXX) $(CXXFLAGS) examples/example1d1.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1
 examples/example1d1c: examples/example1d1c.o lib/libfinufft.a
 	$(CXX) $(CFLAGS) examples/example1d1c.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1c
 
 # validation tests... (most link to .o allowing testing pieces separately)
-test: test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
+test: lib test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
 	(cd test; ./check_finufft.sh)
 test/testutils: test/testutils.cpp src/utils.o src/utils.h $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
