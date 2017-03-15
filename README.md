@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-Version 0.7  (3/10/2017)
+Version 0.7  (3/15/2017)
 
 ### Alex H. Barnett and Jeremy F. Magland
 
@@ -23,7 +23,7 @@ This library is only supported for linux right now.
 
 For the basic libraries
 
-- C\++ compiler such as g\++
+- C++ compiler such as g++
 - FFTW3
 - GNU make
 - numdiff
@@ -34,11 +34,11 @@ For the Fortran wrappers
 - Fortran compiler such as gfortran (see settings in the makefile)
 
 On a Fedora/CentOS linux system, these dependencies can be installed as follows:
-```bash
+```
 sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp numdiff
 ```
 On Ubuntu linux:
-```bash
+```
 sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
 ```
 
@@ -47,7 +47,7 @@ sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
 - Clone using git (or checkout using svn, or download as a zip -- see green button above)
 - Compile and test the library using:
 
-```bash
+```
 make test
 ```
 This should compile the main libraries, which are found in `lib`, and run
@@ -66,7 +66,7 @@ Here are some other make tasks (run `make` without arguments to see a full list)
 Linking to the library:
 In C\++ the simplest is to link to the static library by compiling with `-std=c++11 -fopenmp lib/libfinufft.a -lfftw3_omp -lfftw3 -lm` for the default multi-threaded version, or
 `-std=c++11 lib/libfinufft.a -lfftw3 -lm` if you edited the makefile for single-threading.
-In your C\++ code you will need to include the header `src/finufft.h`.
+In your C++ code you will need to include the header `src/finufft.h`.
 See codes in `examples/` for calling from C, and `fortran/` for calling from Fortran.
 
 ### Contents of this package
@@ -74,7 +74,7 @@ See codes in `examples/` for calling from C, and `fortran/` for calling from For
  `src` : main library source and headers. Compiled .o will be built here.  
  `lib` : compiled library will be built here.  
  `test` : validation and performance tests. `test/check_finufft.sh` is the main validation script. `test/nuffttestnd.sh` is the main performance test script.  
- `test/results` : validation comparison outputs (*.refout; do not remove these), and local test and performance outputs (*.out; one may remove these)
+ `test/results` : validation comparison outputs (\*.refout; do not remove these), and local test and performance outputs (\*.out; one may remove these)
  `examples` : simple example codes for calling the library from C++ or C.  
  `contrib` : 3rd-party code.  
  `fortran` : wrappers and drivers for Fortran.   
@@ -89,10 +89,10 @@ See codes in `examples/` for calling from C, and `fortran/` for calling from For
 
 ### Notes
 
-C\++ is used for all main libraries, although without much object-oriented code. C\++ complex<double> ("dcomplex") and FFTW complex types are mixed within the library, since it is a glorified driver for FFTW, but has dcomplex interfaces and test codes. FFTW was considered universal and essential enough to be a dependency for the whole package.
+C++ is used for all main libraries, avoiding object-oriented code. C++ `std::complex<double>` (aliased to `dcomplex`) and FFTW complex types are mixed within the library, since to some extent it is a glorified driver for FFTW. The interfaces are dcomplex. FFTW was considered universal and essential enough to be a dependency for the whole package.
 
 If internal arrays to be dynamically allocated are larger than `opts.maxnalloc`, the library stops before allocating and returns an error code. Currently the default value is `opts.maxnalloc=1e9`, which would allocate at least 16 GB. If your machine has the RAM and you need it, set this larger before calling.
-(Currently changing this is only available via the C++ interface.)
+(Currently changing this at runtime is only available via the C++ interface.)
 
 As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
 
