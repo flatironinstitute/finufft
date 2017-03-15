@@ -56,3 +56,6 @@ V. 0.7:
 * finished all dumbinputs all dims
 * fortran compilation fixed
 * makefile self-documents
+* nf1 (etc) size check before alloc, exit gracefully if exceeds RAM
+* integrate into nufft_comparison, esp vs NFFT - jfm did; run.
+* simple examples, simpler than the test drivers
