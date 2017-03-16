@@ -26,21 +26,23 @@ For the basic libraries
 - C++ compiler such as g++
 - FFTW3
 - GNU make
-- numdiff
+- numdiff (not essential, but enables the pass-fail validation test)
 - Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
 
 For the Fortran wrappers
 
 - Fortran compiler such as gfortran (see settings in the makefile)
 
-On a Fedora/CentOS linux system, these dependencies can be installed as follows:
-```
-sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp numdiff
-```
-On Ubuntu linux:
+On an Ubuntu linux, these dependencies can be installed as follows:
 ```
 sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
 ```
+On a Fedora/CentOS linux system:
+```
+sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp
+```
+then follow instructions to install [numdiff](http://www.nongnu.org/numdiff).
+
 
 ### Installation
 
@@ -51,10 +53,10 @@ sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
 make test
 ```
 This should compile the main libraries, which are found in `lib`, and run
-tests which produce text output ending with a summary that there were zero crashes and zero fails.
+tests which produce text output ending with a summary that there were zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
 If there is an error in compilation, then `cp makefile makefile.local`, edit `makefile.local` to adjust
 compiler and other library options, then use `make -f makefile.local`.
-If there is an error in testing (accuracy fails), consider filing a bug report (below).
+If there is an error in testing, consider filing a bug report (below).
 Here are some other make tasks (run `make` without arguments to see a full list):
 
 - `make examples` : compile some simple examples in `examples/`
