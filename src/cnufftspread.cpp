@@ -3,8 +3,6 @@
 #include <vector>
 #include <math.h>
 
-#define double float   // !!!
-
 // declarations of internal functions...
 std::vector<long> compute_sort_indices(long M,double *kx, double *ky,
 				       double *kz,long N1,long N2,long N3);
