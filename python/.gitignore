@@ -1,0 +1,8 @@
+*.o
+*.so
+.cache
+__pycache__
+*.egg-info
+dist
+build
+legendre_rule_fast.cpp
