@@ -11,7 +11,7 @@ x = np.random.uniform(-np.pi, np.pi, N)
 c = np.random.randn(N) + 1.j * np.random.randn(N)
 
 strt = time.time()
-F = finufft.nufft1d1(x, c, M, acc)
+F = finufft.nufft1d1(x, c, M, acc, 1)
 print("Finished nufft in {0:.2e} seconds. Checking..."
       .format(time.time()-strt))
 

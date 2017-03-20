@@ -17,10 +17,32 @@ def has_flag(compiler, flagname):
     """
     with tempfile.NamedTemporaryFile("w", suffix=".cpp") as f:
         f.write("int main (int argc, char **argv) { return 0; }")
+        f.flush()
         try:
-            compiler.compile([f.name], extra_postargs=[flagname])
+            obj = compiler.compile([f.name], extra_postargs=[flagname])
         except setuptools.distutils.errors.CompileError:
             return False
+        if not os.path.exists(obj[0]):
+            return False
+    return True
+
+def has_library(compiler, libname):
+    """Return a boolean indicating whether a library is found."""
+    with tempfile.NamedTemporaryFile("w", suffix=".cpp") as srcfile:
+        srcfile.write("int main (int argc, char **argv) { return 0; }")
+        srcfile.flush()
+        outfn = srcfile.name + ".so"
+        try:
+            compiler.link_executable(
+                [srcfile.name],
+                outfn,
+                libraries=[libname],
+            )
+        except setuptools.distutils.errors.LinkError:
+            return False
+        if not os.path.exists(outfn):
+            return False
+        os.remove(outfn)
     return True
 
 def cpp_flag(compiler):
@@ -53,9 +75,11 @@ class build_ext(_build_ext):
 
     def build_extensions(self):
         # Add the libraries
-        libraries = ["fftw3", "fftw3_threads"]
-        if os.name == "posix":
-            libraries += ["m", "stdc++"]
+        print("Checking libraries...")
+        libraries = ["fftw3", "fftw3_threads", "fftw3_omp", "m", "stdc++"]
+        libraries = [lib for lib in libraries
+                     if has_library(self.compiler, lib)]
+        print("Final libraries: {0}".format(libraries))
         for ext in self.extensions:
             ext.libraries += libraries
 
@@ -74,18 +98,23 @@ class build_ext(_build_ext):
         ct = self.compiler.compiler_type
         opts = self.c_opts.get(ct, [])
         if ct == "unix":
+            print("Checking compiler flags...")
+            opts = ["-funroll-loops", "-fvisibility=hidden",
+                    "-Wno-unused-function", "-Wno-uninitialized", "-O4",
+                    "-fopenmp"]
+            opts = [flag for flag in opts if has_flag(self.compiler, flag)]
+            print("Final flags: {0}".format(opts))
+
             opts.append("-DVERSION_INFO=\"{0:s}\""
                         .format(self.distribution.get_version()))
+
+            print("Checking for C++11/14 support...")
             opts.append(cpp_flag(self.compiler))
-            for flag in ["-funroll-loops", "-fvisibility=hidden",
-                         "-Wno-unused-function", "-Wno-uninitialized", "-O4"]:
-                if has_flag(self.compiler, flag):
-                    opts.append(flag)
         elif ct == "msvc":
             opts.append('/DVERSION_INFO=\\"{0:s}\\"'
                         .format(self.distribution.get_version()))
         for ext in self.extensions:
-            ext.extra_compile_args = opts
+            ext.extra_compile_args += opts
 
         # Run the standard build procedure.
         _build_ext.build_extensions(self)
