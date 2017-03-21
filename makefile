@@ -1,5 +1,5 @@
 # Makefile for Flatiron Institute (FI) NUFFT libraries.
-# Barnett 3/14/17
+# Barnett 3/21/17
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # If you need to edit this makefile, it is recommended that you first
@@ -11,23 +11,22 @@ CC=gcc
 FC=gfortran
 FLINK=-lgfortran
 
-# choose EITHER single threaded...
-#CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
-#FLAGS=-fPIC -Ofast -funroll-loops -march=native
-#CLIBSFFT = -lfftw3 -lm
-#FFLAGS=-fPIC -O3 -funroll-loops
-#MFLAGS=
-
-# ...OR multi-threaded:
+# Choose EITHER multi-threaded...
 LIBSFFT = -lfftw3_omp -lfftw3 -lm
+#LIBSFFT = -lfftw3_threads -lfftw3 -lm    # uncomment for Mac OSX
 CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp -DNEED_EXTERN_C
 CFLAGS=-fPIC -Ofast -funroll-loops -march=native -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
 MFLAGS=-lgomp
 
-# MAC OSX to do...
+# OR single threaded...
+#LIBSFFT = -lfftw3 -lm
+#CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
+#CFLAGS=-fPIC -Ofast -funroll-loops -march=native
+#FFLAGS=-fPIC -O3 -funroll-loops
+#MFLAGS=
 
-# MATLAB stuff..
+# MATLAB stuff.. (todo)
 MEX=mex
 MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
 # Mac users should use something like this:
@@ -56,7 +55,7 @@ usage:
 	@echo "makefile for FINUFFT library. Specify what to make:"
 	@echo " make lib - compile the main libraries (in lib/)"
 	@echo " make examples - compile and run codes in examples/"
-	@echo " make test - compile and run validation tests"
+	@echo " make test - compile and run math validation tests"
 	@echo " make perftest - compile and run performance tests"
 	@echo " make fortran - compile and test Fortran interfaces"
 	@echo " make clean - remove all object and executable files apart from MEX"
@@ -89,7 +88,7 @@ examples/example1d1c: examples/example1d1c.o lib/libfinufft.a
 	$(CXX) $(CFLAGS) examples/example1d1c.o lib/libfinufft.a $(LIBSFFT) -o examples/example1d1c
 
 # validation tests... (most link to .o allowing testing pieces separately)
-test: lib test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
+test: lib/libfinufft.a test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
 	(cd test; ./check_finufft.sh)
 test/testutils: test/testutils.cpp src/utils.o src/utils.h $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
