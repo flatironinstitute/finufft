@@ -30,6 +30,8 @@ sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
 
 On Mac OSX:
 
+Make sure you have `make` installed, eg via XCode.
+
 Install gcc, for instance using pre-compiled binaries from
 http://hpc.sourceforge.net/
 
@@ -37,7 +39,9 @@ Install homebrew from http://brew/sh
 
 `brew install fftw`
 
-In the makefile for FINUFFT, uncomment the line for Mac OSX.
+Download the latest `numdiff` from http://gnu.mirrors.pair.com/savannah/savannah/numdiff/ and set it up via `./configure; make; sudo make install`
+
+In the makefile for FINUFFT, uncomment the multithreaded line for Mac OSX.
 
 
 ### COMPILATION
@@ -50,17 +54,4 @@ This should compile the main libraries then run tests.
 If you have an error then `cp makefile makefile.local`,
 edit `makefile.local` to adjust compiler and other library options,
 and use `make -f makefile.local test`.
-
-Here are some other make tasks (see `make` without arguments for full list):
-
-- `make examples` : compile the demos in `examples/`
-- `make test` : mathematical validation of the library and components
-- `make perftest` : multi-threaded and single-threaded performance tests
-- `make fortran` : compile and test the fortran interfaces  
-
-Linking to the library: to link to the static library
-`lib/libfinufft.a` use the compiler flag `-Llib/libfinufft.a` (or
-replacing this by the absolute location of this library). In your
-C/C\++ code you will need to include the header `src/finufft.h`.
-You may also try linking to the shared object `lib/libfinufft.so`;
-however this is currently experimental.
+Run `make` without arguments for full list of possible make tasks.

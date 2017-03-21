@@ -6,6 +6,11 @@ cc (see license.txt in this directory).
 c
 c tweaked Alex Barnett to call FINUFFT 2/17/17
 c dyn malloc; type 2 uses same input data fk0, 3/8/17
+c
+c Compile with (multithreaded version):
+c gfortran nufft1d_demo.f dirft1d.f -o nufft1d_demo ../lib/libfinufft.a
+c          -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
+c
       program nufft1d_demo
       implicit none
 c

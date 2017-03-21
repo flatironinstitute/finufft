@@ -9,7 +9,7 @@
 CXX=g++
 CC=gcc
 FC=gfortran
-FLINK=-lgfortran
+FLINK=-lstdc++
 
 # Choose EITHER multi-threaded...
 LIBSFFT = -lfftw3_omp -lfftw3 -lm
@@ -111,10 +111,9 @@ test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
 
 # fortran interface...
 fortran: $(FOBJS) $(OBJS) $(HEADERS)
-# note that linking opts seem to need to go at the end of the compile cmd:
-	$(CXX) $(FFLAGS) fortran/nufft1d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft1d_demo $(FLINK)
-	$(CXX) $(FFLAGS) fortran/nufft2d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft2d_demo $(FLINK)
-	$(CXX) $(FFLAGS) fortran/nufft3d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) -o fortran/nufft3d_demo $(FLINK)
+	$(FC) $(FFLAGS) fortran/nufft1d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o fortran/nufft1d_demo
+	$(FC) $(FFLAGS) fortran/nufft2d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o fortran/nufft2d_demo
+	$(FC) $(FFLAGS) fortran/nufft3d_demo.f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o fortran/nufft3d_demo
 	time -p fortran/nufft1d_demo
 	time -p fortran/nufft2d_demo
 	time -p fortran/nufft3d_demo

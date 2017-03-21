@@ -19,14 +19,14 @@ See the manual for more information.
 
 ### Dependencies
 
-This library is only supported for linux right now.
+This library is only supported for unix/linux and Mac OSX right now.
 
 For the basic libraries
 
 - C++ compiler such as g++
 - FFTW3
 - GNU make
-- numdiff (not essential, but enables the pass-fail validation test)
+- numdiff (not essential, but enables the pass-fail validation tests)
 - Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
 
 For the Fortran wrappers
@@ -44,19 +44,19 @@ sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp
 then follow instructions to install [numdiff](http://www.nongnu.org/numdiff).
 
 
-### Installation
+### Installation and usage
 
-- Clone using git (or checkout using svn, or download as a zip -- see green button above)
-- Compile and test the library using:
+Clone using git (or checkout using svn, or download as a zip -- see green button above).
 
+Follow the detailed [installation instructions](INSTALL.md), then check via `make test`.
 ```
-make test
-```
+
 This should compile the main libraries, which are found in `lib`, and run
 tests which produce text output ending with a summary that there were zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
 If there is an error in compilation, then `cp makefile makefile.local`, edit `makefile.local` to adjust
 compiler and other library options, then use `make -f makefile.local`.
 If there is an error in testing, consider filing a bug report (below).
+
 Here are some other make tasks (run `make` without arguments to see a full list):
 
 - `make examples` : compile some simple examples in `examples/`
