@@ -76,7 +76,8 @@ class build_ext(_build_ext):
     def build_extensions(self):
         # Add the libraries
         print("Checking libraries...")
-        libraries = ["fftw3", "fftw3_threads", "fftw3_omp", "m", "stdc++"]
+        libraries = ["fftw3", "fftw3_threads", "fftw3_omp", "m", "stdc++",
+                     "gomp"]
         libraries = [lib for lib in libraries
                      if has_library(self.compiler, lib)]
         print("Final libraries: {0}".format(libraries))

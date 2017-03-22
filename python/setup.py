@@ -13,7 +13,7 @@ if "publish" in sys.argv[-1]:
     sys.exit()
 
 # The directory for the finufft source
-srcdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+srcdir = ".."
 contribdir = os.path.join(srcdir, "contrib")
 
 # Hack the legendre_rule_fast code to think that it's C++
