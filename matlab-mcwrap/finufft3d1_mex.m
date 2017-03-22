@@ -1,6 +1,6 @@
 %FINUFFT3D1_MEX - 
 %
-% Syntax:  [uniform_data] = finufft3d1_mex(N1, N2, N3, nonuniform_locations, nonuniform_data, isign, tol, num_threads)
+% Syntax:  [uniform_data] = finufft3d1_mex(N1, N2, N3, nonuniform_locations, nonuniform_data, isign, tol, debug, num_threads)
 %
 % Inputs:
 %    N1 - int
@@ -8,6 +8,7 @@
 %    N3 - int
 %    isign - int
 %    tol - double
+%    debug - int
 %    num_threads - int
 %    nonuniform_locations - double (M,3)
 %    nonuniform_data - complex double (M,1)

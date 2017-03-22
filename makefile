@@ -12,8 +12,7 @@ FC=gfortran
 FLINK=-lstdc++
 
 # Choose EITHER multi-threaded...
-LIBSFFT = -lfftw3_omp -lfftw3 -lm
-#LIBSFFT = -lfftw3_threads -lfftw3 -lm    # uncomment for Mac OSX
+LIBSFFT = -lfftw3_threads -lfftw3 -lm
 CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp -DNEED_EXTERN_C
 CFLAGS=-fPIC -Ofast -funroll-loops -march=native -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp

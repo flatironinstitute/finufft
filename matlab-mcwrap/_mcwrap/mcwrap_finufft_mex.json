@@ -9,12 +9,14 @@
 		{"prole":"input","ptype":"double*","pname":"nonuniform_data","dimensions":[" $M$"," 1"],"is_complex":"1","set_value":""},
 		{"prole":"input","ptype":"int","pname":"isign","dimensions":[],"is_complex":"0","set_value":""},
 		{"prole":"input","ptype":"double","pname":"tol","dimensions":[],"is_complex":"0","set_value":""},
-		{"prole":"input","ptype":"int","pname":"num_threads","dimensions":[],"is_complex":"0","set_value":""}
+		{"prole":"input","ptype":"int","pname":"debug","dimensions":[],"is_complex":"0","set_value":""},
+		{"prole":"input","ptype":"int","pname":"num_threads","dimensions":[],"is_complex":"0","set_value":""},
+		{"prole":"output","ptype":"int*","pname":"ier","dimensions":[],"is_complex":"0","set_value":""}
 	],
 	"return_type":"void"
 	"sources":["finufft_mex.cpp"]
 	"headers":["finufft_mex.h","finufft_mex.h"]
-	"mexargs":" ../src/finufft.a -lm -lgomp -lfftw3 -lfftw3_threads -lrt",
+	"mexargs":" ../lib/libfinufft.a -lm -lgomp -lfftw3 -lfftw3_threads -lrt",
 },
 {
 	"function_name":"finufft2d1_mex",
@@ -27,12 +29,13 @@
 		{"prole":"input","ptype":"double*","pname":"nonuniform_data","dimensions":[" $M$"," 1"],"is_complex":"1","set_value":""},
 		{"prole":"input","ptype":"int","pname":"isign","dimensions":[],"is_complex":"0","set_value":""},
 		{"prole":"input","ptype":"double","pname":"tol","dimensions":[],"is_complex":"0","set_value":""},
+		{"prole":"input","ptype":"int","pname":"debug","dimensions":[],"is_complex":"0","set_value":""},
 		{"prole":"input","ptype":"int","pname":"num_threads","dimensions":[],"is_complex":"0","set_value":""}
 	],
 	"return_type":"void"
 	"sources":["finufft_mex.cpp"]
 	"headers":["finufft_mex.h"]
-	"mexargs":" ../src/finufft.a -lm -lgomp -lfftw3 -lfftw3_threads -lrt",
+	"mexargs":" ../lib/libfinufft.a -lm -lgomp -lfftw3 -lfftw3_threads -lrt",
 },
 {
 	"function_name":"finufft3d1_mex",
@@ -46,11 +49,12 @@
 		{"prole":"input","ptype":"double*","pname":"nonuniform_data","dimensions":[" $M$"," 1"],"is_complex":"1","set_value":""},
 		{"prole":"input","ptype":"int","pname":"isign","dimensions":[],"is_complex":"0","set_value":""},
 		{"prole":"input","ptype":"double","pname":"tol","dimensions":[],"is_complex":"0","set_value":""},
+		{"prole":"input","ptype":"int","pname":"debug","dimensions":[],"is_complex":"0","set_value":""},
 		{"prole":"input","ptype":"int","pname":"num_threads","dimensions":[],"is_complex":"0","set_value":""}
 	],
 	"return_type":"void"
 	"sources":["finufft_mex.cpp"]
 	"headers":["finufft_mex.h"]
-	"mexargs":" ../src/finufft.a -lm -lgomp -lfftw3 -lfftw3_threads -lrt",
+	"mexargs":" ../lib/libfinufft.a -lm -lgomp -lfftw3 -lfftw3_threads -lrt",
 }
 ]

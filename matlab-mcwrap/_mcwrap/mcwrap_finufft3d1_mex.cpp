@@ -23,7 +23,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       //mexPrintf("test A\n");
 //   Check the number of inputs/outputs
       if (nlhs==0) nlhs=1;
-      if (nrhs!=8)
+      if (nrhs!=9)
          mexErrMsgTxt("Incorrect number of inputs"); 
       else if (nlhs>1)
          mexErrMsgTxt ("Too many outputs.");
@@ -50,8 +50,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         //tol
         double *p_input_tol=mxGetPr(prhs[7-1]);
         double input_tol=p_input_tol[0];
+        //debug
+        double *p_input_debug=mxGetPr(prhs[8-1]);
+        int input_debug=(int)p_input_debug[0];
         //num_threads
-        double *p_input_num_threads=mxGetPr(prhs[8-1]);
+        double *p_input_num_threads=mxGetPr(prhs[9-1]);
         int input_num_threads=(int)p_input_num_threads[0];
         //nonuniform_locations
         //Check that we have the correct dimensions!
@@ -137,6 +140,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         input_nonuniform_data,
         input_isign,
         input_tol,
+        input_debug,
         input_num_threads
 
         );

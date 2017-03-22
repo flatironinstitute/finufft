@@ -53,9 +53,11 @@ V. 0.7:
 * fixed type 2 to not segfault when ms,mt, or mu=0, doing dir=2 0-padding right
 * array utils use pointers to make which vars they write to explicit.
 * don't do final type-3 rephase if C1 nan or 0.
-* finished all dumbinputs all dims
+* finished all dumbinputs, all dims
 * fortran compilation fixed
 * makefile self-documents
 * nf1 (etc) size check before alloc, exit gracefully if exceeds RAM
 * integrate into nufft_comparison, esp vs NFFT - jfm did; run.
 * simple examples, simpler than the test drivers
+* fortran link via gfortran, better fortran docs
+* Mac OSX test

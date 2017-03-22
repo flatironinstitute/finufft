@@ -46,45 +46,42 @@ then follow instructions to install [numdiff](http://www.nongnu.org/numdiff).
 
 ### Installation and usage
 
-Clone using git (or checkout using svn, or download as a zip -- see green button above).
+Clone using git (or checkout using svn, or download as a zip -- see green button above), then follow the detailed [installation instructions](INSTALL.md).
 
-Follow the detailed [installation instructions](INSTALL.md), then check via `make test`.
-```
-
-This should compile the main libraries, which are found in `lib`, and run
-tests which produce text output ending with a summary that there were zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
-If there is an error in compilation, then `cp makefile makefile.local`, edit `makefile.local` to adjust
-compiler and other library options, then use `make -f makefile.local`.
+Compile and check via `make test`, which should report zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
+If there is an error in compilation, then `cp makefile makefile.local`, edit `makefile.local` to adjust compiler and other library options, then use `make -f makefile.local`.
 If there is an error in testing, consider filing a bug report (below).
 
-Here are some other make tasks (run `make` without arguments to see a full list):
+The main library is found in `lib`.
+In your C++ code you will need to include the header `src/finufft.h`,
+then link to the static library by compiling with `-std=c++11 -fopenmp lib/libfinufft.a -lfftw3_omp -lfftw3 -lm` for the default multi-threaded version, or
+`-std=c++11 lib/libfinufft.a -lfftw3 -lm` if you edited the makefile for single-threaded.
 
-- `make examples` : compile some simple examples in `examples/`
-- `make test` : mathematical validation of the library and components
-- `make perftest` : multi-threaded and single-threaded performance tests
-- `make fortran` : compile and test the fortran interfaces
-- `make clean` : remove all object and executable files apart from MEX
+`make examples` to compile and run the examples for calling from C++ and from C.
 
-Linking to the library:
-In C\++ the simplest is to link to the static library by compiling with `-std=c++11 -fopenmp lib/libfinufft.a -lfftw3_omp -lfftw3 -lm` for the default multi-threaded version, or
-`-std=c++11 lib/libfinufft.a -lfftw3 -lm` if you edited the makefile for single-threading.
-In your C++ code you will need to include the header `src/finufft.h`.
-See codes in `examples/` for calling from C, and `fortran/` for calling from Fortran.
+`make fortran` to compile and run the fortran wrappers and examples.
+
+`make matlab` to build the MEX interface to matlab
+
+
 
 ### Contents of this package
 
  `src` : main library source and headers. Compiled .o will be built here.  
  `lib` : compiled library will be built here.  
+ `makefile` : GNU makefile (user may need to edit)  
  `test` : validation and performance tests. `test/check_finufft.sh` is the main validation script. `test/nuffttestnd.sh` is the main performance test script.  
  `test/results` : validation comparison outputs (\*.refout; do not remove these), and local test and performance outputs (\*.out; one may remove these)
- `examples` : simple example codes for calling the library from C++ or C.  
- `contrib` : 3rd-party code.  
+ `examples` : simple example codes for calling the library from C++ and from C.  
  `fortran` : wrappers and drivers for Fortran.   
- `matlab` : wrappers and examples for MATLAB. (Not yet working)  
+ `matlab` : wrappers and examples for MATLAB/octave. (Not yet working)  
+ `matlab-mcwrap` : wrappers and examples for MATLAB.  
+ `python` : wrappers and examples for python.  
+ `contrib` : 3rd-party code.  
  `devel` : various obsolete or in-development codes (experts only)  
- `makefile` : GNU makefile (user may need to edit)  
  `doc` : the manual (not yet there)  
  `README.md` : this file  
+ `INSTALL.md` : installation instructions for various operating systems  
  `LICENSE` : licensing information  
  `CHANGELOG` : list of changes made  
  `TODO` : list of things needed to do, or wishlist  
@@ -124,6 +121,7 @@ The main distribution includes code by:
 
 Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)   
 Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)  
+Dan Foreman-Mackey - python wrappers (in `python/')  
 
 There are also undocumented packaged codes in the `devel/` directory.
 
@@ -150,3 +148,4 @@ Charlie Epstein
 Andras Pataki  
 Marina Spivak  
 Timo Heister  
+Dan Foreman-Mackey  

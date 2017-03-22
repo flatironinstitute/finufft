@@ -1,0 +1,32 @@
+% MWrap file to generate all MEX interfaces to FINUFFT library.
+% Barnett 3/21/17
+
+% To generate the MEX C++ file:
+% mwrap -list -mex gateway -mb finufft.mw
+% mwrap -mex gateway -c gateway.cpp -cppcomplex finufft.mw
+
+$ #include "../src/finufft.h"
+
+@function [fk ier] = finufft1d1(x,c,isign,tol,o)
+% FINUFFT1D1
+%
+% [F ier] = finufft1d1(x,c,isign,tol,opts)
+%
+%
+% opts.nthreads = 0 leaves the default number of threads.
+%
+%
+% doc to do...
+
+if nargin<5, o=[]; end
+if ~isfield(o,'debug'), o.debug = 0; end
+if ~isfield(o,'nthreads'), o.nthreads = 0; end
+
+debug = o.debug;
+nthreads = o.nthreads;
+nj=numel(x);
+if numel(c)~=nj, error('c must have the same number of elements as x'); end
+
+%# int ier = finufft1d1_m(int nj,double* xj,dcomplex* cj,int isign,double eps,int isign, dcomplex* fk,int debug, int nthreads);
+
+# int ier = finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int isign,double eps,int isign, dcomplex* fk,int debug, int nthreads);

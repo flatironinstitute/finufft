@@ -16,7 +16,7 @@ For the Fortran wrappers
 
 - Fortran compiler such as gfortran (see settings in the makefile)
 
-### INSTALLATION ON DIFFERENT OPERATING SYSTEMS
+### INSTALLATION ON VARIOUS OPERATING SYSTEMS
 
 On a Fedora/CentOS linux system, these dependencies can be installed as follows:
 
@@ -41,14 +41,13 @@ Install homebrew from http://brew/sh
 
 Download the latest `numdiff` from http://gnu.mirrors.pair.com/savannah/savannah/numdiff/ and set it up via `./configure; make; sudo make install`
 
-In the makefile for FINUFFT, uncomment the multithreaded line for Mac OSX.
-
+Currently for Mac OSX, `make lib` fails to make the shared object library (.so)
 
 ### COMPILATION
 
 Compile the library using
 
-make test
+`make test`
 
 This should compile the main libraries then run tests.
 If you have an error then `cp makefile makefile.local`,

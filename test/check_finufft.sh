@@ -1,6 +1,6 @@
 #!/bin/bash
 # main script to looop through all validation tests for FINUFFT library.
-# Barnett 3/14/17. no-numdiff option 3/16/17
+# Barnett 3/14/17. numdiff-free option 3/16/17
 
 # Note that bash cannot handle floating-point arithmetic, and bc cannot read
 # exponent notation. Thus the exponent notation here is purely string in nature:
@@ -47,7 +47,7 @@ else
 	echo
     done
     echo "$CRASHES crashes out of $N tests done"
-    echo "Please check by eye that the numerical output has errors at expected level1!"
-    echo "(or install numdiff and rerun)"
+    echo "Please check by eye that the numerical output has errors at expected level!"
+    echo "(or install numdiff and rerun; see ../INSTALL.md)"
     exit $((CRASHES))               # use total as exit code
 fi
