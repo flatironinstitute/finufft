@@ -16,21 +16,25 @@ LIBSFFT = -lfftw3_threads -lfftw3 -lm
 CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp -DNEED_EXTERN_C
 CFLAGS=-fPIC -Ofast -funroll-loops -march=native -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
-MFLAGS=-lgomp
+MFLAGS=-lgomp -largeArrayDims -lrt -D_OPENMP                    # matlab mex
+OFLAGS=-lgomp -std=c++11 -lrt                                   # octave mex
 
 # OR single threaded...
 #LIBSFFT = -lfftw3 -lm
 #CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
 #CFLAGS=-fPIC -Ofast -funroll-loops -march=native
 #FFLAGS=-fPIC -O3 -funroll-loops
-#MFLAGS=
+#MFLAGS=-largeArrayDims -lrt                     # matlab mex
+#OFLAGS=-std=c++11 -lrt                          # octave mex
 
 # MATLAB stuff.. (todo)
 MEX=mex
-MEXFLAGS = -largeArrayDims -lgfortran -lm $(MFLAGS)
+MWRAP=mwrap
+
 # Mac users should use something like this:
-#MEX = /Applications/MATLAB_R2014a.app/bin/mex
-#MEXFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
+#MEX = /Applications/MATLAB_R2017a.app/bin/mex
+#MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
+
 # ======================================================================
 
 
@@ -48,7 +52,7 @@ HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/com
 
 default: usage
 
-.PHONY: usage lib examples test perftest fortran
+.PHONY: usage lib examples test perftest fortran matlab
 
 usage:
 	@echo "makefile for FINUFFT library. Specify what to make:"
@@ -57,8 +61,9 @@ usage:
 	@echo " make test - compile and run math validation tests"
 	@echo " make perftest - compile and run performance tests"
 	@echo " make fortran - compile and test Fortran interfaces"
+	@echo " make matlab - compile and test Matlab interfaces"
 	@echo " make clean - remove all object and executable files apart from MEX"
-	@echo "For faster making you may want to append, eg, the flag -j8"
+	@echo "For multicore making you will want to append the flag -j"
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp %.h
@@ -74,7 +79,7 @@ lib: lib/libfinufft.a lib/libfinufft.so
 lib/libfinufft.a: $(OBJS) $(HEADERS)
 	ar rcs lib/libfinufft.a $(OBJS)
 lib/libfinufft.so: $(OBJS) $(HEADERS)
-	$(CXX) -shared $(OBJS) -o lib/libfinufft.so
+	$(CXX) -shared $(OBJS) -o lib/libfinufft.so      # fails in mac osx
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 
 # examples...
@@ -117,16 +122,25 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 	time -p fortran/nufft2d_demo
 	time -p fortran/nufft3d_demo
 
-# todo: make mex interfaces...
-#mex: src/cnufftspread.h src/_mcwrap/mcwrap_cnufftspread_dir1.cpp $(SPREADOBJS)
-# make new interface in matlab: from src/, do mcwrap('cnufftspread.h')
-# which fails for omp.
-# mv src/cnufftspread_type1.mexa64 matlab/
-#	(cd src; $(MEX) _mcwrap/mcwrap_cnufftspread_type1.cpp cnufftspread.o ../contrib/besseli.o -output cnufftspread_type1 $(MEXFLAGS))
+# matlab .mex* executable...
+matlab: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o matlab/finufft.cpp
+	$(MEX) matlab/finufft.cpp lib/libfinufft.a matlab/finufft_m.o $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
-# todo: python wrapper...
+# octave .mex executable...
+octave: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o matlab/finufft.cpp
+	mkoctfile --mex matlab/finufft.cpp lib/libfinufft.a matlab/finufft_m.o $(OFLAGS) $(LIBSFFT) -output matlab/finufft
 
-# various obscure testers (experts only)...
+# rebuilds fresh MEX (matlab/octave) gateway via mwrap... (needs mwrap)
+mex: matlab/finufft.cpp
+matlab/finufft.cpp: matlab/finufft.mw
+	(cd matlab;\
+	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
+	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
+
+# python wrapper...
+
+
+# various obscure devel tests...
 devel/plotkernels: $(SOBJS) $(HEADERS) devel/plotkernels.cpp
 	$(CXX) $(CXXFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS) 
 	(cd devel; ./plotkernels > plotkernels.dat)
@@ -137,4 +151,8 @@ devel/testi0: devel/testi0.cpp devel/besseli.o src/utils.o
 
 clean:
 	rm -f $(OBJS1) $(OBJS2) $(OBJS3) $(FOBJS) $(SOBJS)
-	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/results/*.out fortran/nufft?d_demo examples/example1d1 examples/example1d1c
+	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/results/*.out fortran/nufft?d_demo examples/example1d1 examples/example1d1c matlab/*.o
+
+# only do this if you have mwrap to rebuild the interfaces...
+mexclean:
+	rm -f matlab/finufft.cpp matlab/finufft?d?.m matlab/finufft.mex*

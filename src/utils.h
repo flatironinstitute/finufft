@@ -3,12 +3,12 @@
 
 using namespace std;        // means std:: not needed for cout, max, etc
 #include <complex>          // C++ type complex, and useful abbrevs...
-#define dcomplex complex<double>
+typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 #define ima complex<double>{0.0,1.0}
 
 // choose int64_t or long long if want handle huge I/O array sizes (>2^31)...
-//#define BIGINT int64_t
-#define BIGINT long
+//typedef int64_t BIGINT;
+typedef long BIGINT;
 
 // global error codes for the library...
 #define ERR_EPS_TOO_SMALL        1
@@ -60,7 +60,7 @@ class CNTime {
   #define MY_OMP_GET_THREAD_NUM() omp_get_thread_num()
   #define MY_OMP_SET_NUM_THREADS(x) omp_set_num_threads(x)
 #else
-  // non-omp safe versions of utils
+  // non-omp safe dummy versions of omp utils
   #define MY_OMP_GET_NUM_THREADS() 1
   #define MY_OMP_GET_MAX_THREADS() 1
   #define MY_OMP_GET_THREAD_NUM() 0

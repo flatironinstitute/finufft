@@ -25,3 +25,5 @@ List of items to do for FINUFFT library
 * figure out how to set up path to link to shared library - rpath?
 * make C interface example1d1c cleaner, ie remove _Complex, why needs g++ to compile?
 * Currently for Mac OSX, `make lib` fails to make the shared object library (.so)
+* figure out how to pass long long or BIGINT via matlab interface, a pain.
+

@@ -1,32 +1,266 @@
-% MWrap file to generate all MEX interfaces to FINUFFT library.
-% Barnett 3/21/17
+% MWrap file to generate all MEX interfaces directly to C++ to FINUFFT library.
+% Also allows control of number of openmp threads the library uses.
+% Barnett 3/22/17
 
-% To generate the MEX C++ file:
-% mwrap -list -mex gateway -mb finufft.mw
-% mwrap -mex gateway -c gateway.cpp -cppcomplex finufft.mw
+% Hints for linux OS. To generate the MEX C++ file:
+% mwrap -list -mex finufft -cppcomplex -mb finufft.mw
+% mwrap -mex finufft -c finufft.cpp -cppcomplex finufft.mw
+% To compile for matlab:
+% mex finufft.cpp ../lib/libfinufft.a -lgomp -largeArrayDims -lrt -lfftw3_threads -lfftw3 -lm
+% To compile for octave:
+% mkoctfile --mex finufft.cpp ../lib/libfinufft.a -lgomp -lrt -lfftw3_threads -lfftw3 -lm
+% Don't forget to add this directory to your matlab/octave path.
 
-$ #include "../src/finufft.h"
 
-@function [fk ier] = finufft1d1(x,c,isign,tol,o)
+$ #include "finufft_m.h"
+
+% ---------------------------------------------------------------------
+@function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 % FINUFFT1D1
 %
-% [F ier] = finufft1d1(x,c,isign,tol,opts)
+% [f ier] = finufft1d1(x,c,isign,eps,ms)
+% [f ier] = finufft1d1(x,c,isign,eps,ms,opts)
 %
+% Type-1 1D complex nonuniform FFT.
 %
-% opts.nthreads = 0 leaves the default number of threads.
-%
-%
-% doc to do...
+%              1 nj
+%     f(k1) = -- SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
+%             nj j=1                            
+%                        if nj>0, else f identically zero for nj=0.
+%   Inputs:
+%     x     location of sources on interval [-pi,pi], length nj
+%     c     size-nj complex array of source strengths
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps     precision requested (>1e-16)
+%     ms     number of Fourier modes computed, may be even or odd;
+%            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+%     opts.debug: 0 (silent), 1 (timing breakdown), 2 (debug info).
+%     opts.maxnalloc - largest number of array elements for internal alloc
+%                      (0 has no effect)
+%     opts.nthreads sets requested number of threads (else automatic)
+%   Outputs:
+%     f     size-ms double complex array of Fourier transform values
+%            (increasing mode ordering)
+%     ier - 0 if success, else:
+%                     1 : eps too small
+%		      2 : size of arrays to malloc exceed opts.maxnalloc
+%                     other codes: as returned by cnufftspread
 
-if nargin<5, o=[]; end
-if ~isfield(o,'debug'), o.debug = 0; end
-if ~isfield(o,'nthreads'), o.nthreads = 0; end
-
-debug = o.debug;
-nthreads = o.nthreads;
+if nargin<6, o=[]; end
+debug=0; if isfield(o,'debug'), debug = o.debug; end
+maxnalloc=0; if isfield(o,'maxnalloc'), maxnalloc = o.maxnalloc; end
+nthreads=2*maxNumCompThreads('automatic');
+if isfield(o,'nthreads'), nthreads = o.nthreads; end
 nj=numel(x);
 if numel(c)~=nj, error('c must have the same number of elements as x'); end
 
-%# int ier = finufft1d1_m(int nj,double* xj,dcomplex* cj,int isign,double eps,int isign, dcomplex* fk,int debug, int nthreads);
+# int ier = finufft1d1m(double nj,double[] x,dcomplex[] c,int isign,double eps,double ms, output dcomplex[ms] f,int debug, double maxnalloc, int nthreads);
 
-# int ier = finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int isign,double eps,int isign, dcomplex* fk,int debug, int nthreads);
+% ---------------------------------------------------------------------------
+@function [c ier] = finufft1d2(x,isign,eps,f,o)
+% FINUFFT1D2
+%
+% [c ier] = finufft1d2(x,isign,eps,f)
+% [c ier] = finufft1d2(x,isign,eps,f,opts)
+%
+% Type-2 1D complex nonuniform FFT.
+%
+%    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
+%            k1 
+%     where sum is over -ms/2 <= k1 <= (ms-1)/2.
+%
+%  Inputs:
+%     x     location of NU targets on interval [-pi,pi], length nj
+%     f     complex Fourier transform values (increasing mode ordering)
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps    precision requested (>1e-16)
+%     opts.debug: 0 (silent), 1 (timing breakdown), 2 (debug info).
+%     opts.maxnalloc - largest number of array elements for internal alloc
+%                      (0 has no effect)
+%     opts.nthreads sets requested number of threads (else automatic)
+%  Outputs:
+%     c     complex double array of nj answers at targets
+%     ier - 0 if success, else:
+%                     1 : eps too small
+%	       	      2 : size of arrays to malloc exceed opts.maxnalloc
+%                     other codes: as returned by cnufftspread
+
+if nargin<5, o=[]; end
+debug=0; if isfield(o,'debug'), debug = o.debug; end
+maxnalloc=0; if isfield(o,'maxnalloc'), maxnalloc = o.maxnalloc; end
+nthreads=2*maxNumCompThreads('automatic');
+if isfield(o,'nthreads'), nthreads = o.nthreads; end
+nj=numel(x);
+ms=numel(f);
+
+# int ier = finufft1d2m(double nj,double[] x,output dcomplex[nj] c,int isign,double eps,double ms, dcomplex[] f,int debug, double maxnalloc, int nthreads);
+
+% ---------------------------------------------------------------------------
+@function [f ier] = finufft1d3(x,c,isign,eps,s,o)
+% FINUFFT1D3
+%
+% [f ier] = finufft1d3(x,c,isign,eps,s)
+% [f ier] = finufft1d3(x,c,isign,eps,s,opts)
+%
+%              nj
+%     f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 1, ..., nk
+%              j=1
+%   Inputs:
+%     x      location of NU sources in R (real line).
+%     c      size-nj double complex array of source strengths
+%     s      frequency locations of NU targets in R.
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps    precision requested (>1e-16)
+%     opts.debug: 0 (silent), 1 (timing breakdown), 2 (debug info).
+%     opts.maxnalloc - largest number of array elements for internal alloc
+%                      (0 has no effect)
+%     opts.nthreads sets requested number of threads (else automatic)
+%   Outputs:
+%     f     size-nk double complex Fourier transform values at target
+%            frequencies s
+%     returned value - 0 if success, else:
+%                      1 : eps too small
+%		       2 : size of arrays to malloc exceed opts.maxnalloc
+
+if nargin<6, o=[]; end
+debug=0; if isfield(o,'debug'), debug = o.debug; end
+maxnalloc=0; if isfield(o,'maxnalloc'), maxnalloc = o.maxnalloc; end
+nthreads=2*maxNumCompThreads('automatic');
+if isfield(o,'nthreads'), nthreads = o.nthreads; end
+nj=numel(x);
+nk=numel(s);
+if numel(c)~=nj, error('c must have the same number of elements as x'); end
+
+# int ier = finufft1d3m(double nj,double[] x,dcomplex[nj] c,int isign,double eps,double nk, double[] s, output dcomplex[nk] f,int debug, double maxnalloc, int nthreads);
+
+% ------------------------------------------------------------------------
+@function [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,o)
+% FINUFFT2D1
+%
+% [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt)
+% [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,opts)
+%
+% Type-1 2D complex nonuniform FFT.
+%
+%                 1   nj
+%     f[k1,k2] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
+%                 nj  j=1
+% 
+%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2, and nj>0.
+%                        if nj=0, f identically zero.
+%   Inputs:
+%     x,y   locations of NU sources on [-pi,pi]^2, each length nj
+%     c     size-nj complex array of source strengths
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps     precision requested (>1e-16)
+%     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
+%           in either case the mode range is integers lying in [-m/2, (m-1)/2]
+%     opts.debug: 0 (silent), 1 (timing breakdown), 2 (debug info).
+%     opts.maxnalloc - largest number of array elements for internal alloc
+%                      (0 has no effect)
+%     opts.nthreads sets requested number of threads (else automatic)
+%   Outputs:
+%     f     size (ms*mt) double complex array of Fourier transform values
+%            (increasing mode ordering)
+%     ier - 0 if success, else:
+%                     1 : eps too small
+%		      2 : size of arrays to malloc exceed opts.maxnalloc
+%                     other codes: as returned by cnufftspread
+
+if nargin<8, o=[]; end
+debug=0; if isfield(o,'debug'), debug = o.debug; end
+maxnalloc=0; if isfield(o,'maxnalloc'), maxnalloc = o.maxnalloc; end
+nthreads=2*maxNumCompThreads('automatic');
+if isfield(o,'nthreads'), nthreads = o.nthreads; end
+nj=numel(x);
+if numel(y)~=nj, error('y must have the same number of elements as x'); end
+if numel(c)~=nj, error('c must have the same number of elements as x'); end
+
+# int ier = finufft2d1m(double nj,double[] x,double[] y,dcomplex[] c,int isign,double eps,double ms, double mt, output dcomplex[ms,mt] f,int debug, double maxnalloc, int nthreads);
+
+% ---------------------------------------------------------------------------
+@function [c ier] = finufft2d2(x,y,isign,eps,f,o)
+% FINUFFT2D2
+%
+% [c ier] = finufft2d2(x,y,isign,eps,f)
+% [c ier] = finufft2d2(x,y,isign,eps,f,opts)
+%
+% Type-2 2D complex nonuniform FFT.
+%
+%    c[j] =  SUM   f[k1,k2] exp(+/-i (k1 x[j] + k2 y[j]))  for j = 1,..,nj
+%           k1,k2 
+%     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
+%
+%  Inputs:
+%     x,y   location of NU targets on interval [-pi,pi]^2, each length nj
+%     f     size (ms,mt) complex Fourier transform value matrix
+%           (increasing mode ordering in each dimension)
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps    precision requested (>1e-16)
+%     opts.debug: 0 (silent), 1 (timing breakdown), 2 (debug info).
+%     opts.maxnalloc - largest number of array elements for internal alloc
+%                      (0 has no effect)
+%     opts.nthreads sets requested number of threads (else automatic)
+%  Outputs:
+%     c     complex double array of nj answers at the targets.
+%     ier - 0 if success, else:
+%                     1 : eps too small
+%	       	      2 : size of arrays to malloc exceed opts.maxnalloc
+%                     other codes: as returned by cnufftspread
+
+if nargin<6, o=[]; end
+debug=0; if isfield(o,'debug'), debug = o.debug; end
+maxnalloc=0; if isfield(o,'maxnalloc'), maxnalloc = o.maxnalloc; end
+nthreads=2*maxNumCompThreads('automatic');
+if isfield(o,'nthreads'), nthreads = o.nthreads; end
+nj=numel(x);
+if numel(y)~=nj, error('y must have the same number of elements as x'); end
+[ms,mt]=size(f);
+
+# int ier = finufft2d2m(double nj,double[] x,double[] y,output dcomplex[nj] c,int isign,double eps,double ms, double mt,dcomplex[] f,int debug, double maxnalloc, int nthreads);
+
+% ---------------------------------------------------------------------------
+@function [f ier] = finufft2d3(x,y,c,isign,eps,s,t,o)
+% FINUFFT2D3
+%
+% [f ier] = finufft2d3(x,y,c,isign,eps,s,t)
+% [f ier] = finufft2d3(x,y,c,isign,eps,s,t,opts)
+%
+%              nj
+%     f[k]  =  SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j])),  for k = 1, ..., nk
+%              j=1
+%   Inputs:
+%     x,y    location of NU sources in R^2, each length nj.
+%     c      size-nj double complex array of source strengths
+%     s,t    frequency locations of NU targets in R^2.
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps    precision requested (>1e-16)
+%     opts.debug: 0 (silent), 1 (timing breakdown), 2 (debug info).
+%     opts.maxnalloc - largest number of array elements for internal alloc
+%                      (0 has no effect)
+%     opts.nthreads sets requested number of threads (else automatic)
+%   Outputs:
+%     f     size-nk double complex Fourier transform values at target
+%            frequencies s,t
+%     returned value - 0 if success, else:
+%                      1 : eps too small
+%		       2 : size of arrays to malloc exceed opts.maxnalloc
+
+if nargin<8, o=[]; end
+debug=0; if isfield(o,'debug'), debug = o.debug; end
+maxnalloc=0; if isfield(o,'maxnalloc'), maxnalloc = o.maxnalloc; end
+nthreads=2*maxNumCompThreads('automatic');
+if isfield(o,'nthreads'), nthreads = o.nthreads; end
+nj=numel(x);
+nk=numel(s);
+if numel(y)~=nj, error('y must have the same number of elements as x'); end
+if numel(c)~=nj, error('c must have the same number of elements as x'); end
+if numel(t)~=nk, error('t must have the same number of elements as s'); end
+
+# int ier = finufft2d3m(double nj,double[] x,double[] y,dcomplex[nj] c,int isign,double eps,double nk, double[] s, double[] t, output dcomplex[nk] f,int debug, double maxnalloc, int nthreads);
+
+
+
+
+
+% ------------------------------------------------------------------------

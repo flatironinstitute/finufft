@@ -26,8 +26,7 @@ For the basic libraries
 - C++ compiler such as g++
 - FFTW3
 - GNU make
-- numdiff (not essential, but enables the pass-fail validation tests)
-- Optionally, OpenMP (however, the makefile can be adjusted for single-threaded operation)
+- numdiff (preferred but not essential; enables pass-fail math validation)
 
 For the Fortran wrappers
 
@@ -147,5 +146,6 @@ Leslie Greengard
 Charlie Epstein  
 Andras Pataki  
 Marina Spivak  
+Christina Muller  
 Timo Heister  
 Dan Foreman-Mackey  
