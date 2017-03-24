@@ -420,3 +420,20 @@ In your header file:
 When you compile, add -DSINGLETHREADED to disable OpenMP:
 
 cc  -DSINGLETHREADED <other flags go here> code.c
+
+
+
+
+======================================================
+
+OCTAVE - mkoctfile < 4.0.0 doesn't allow -std=c++11 as a flag
+
+http://octave.1599824.n4.nabble.com/how-to-compile-c-0x-file-with-mkoctfile-command-td4653616.html
+
+You have to do this via the CFLAGS variable, my makefile does:
+
+COMMON_CXX =  -Wall -Wextra -std=c++11 -O4
+OCT_CXX = `mkoctfile -p CXXFLAGS` $(COMMON_CXX)
+all:
+    CXXFLAGS="$(OCT_CXX)" \
+         mkoctfile traclus-octave.cpp -o traclus.oct

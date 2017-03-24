@@ -11,30 +11,35 @@ CC=gcc
 FC=gfortran
 FLINK=-lstdc++
 
-# Choose EITHER multi-threaded...
+# Here MFLAGS are for matlab, OFLAGS for octave.
+# Choose EITHER multi-threaded compile (default)...
 LIBSFFT = -lfftw3_threads -lfftw3 -lm
 CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp -DNEED_EXTERN_C
 CFLAGS=-fPIC -Ofast -funroll-loops -march=native -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
-MFLAGS=-lgomp -largeArrayDims -lrt -D_OPENMP                    # matlab mex
-OFLAGS=-lgomp -std=c++11 -lrt                                   # octave mex
+MFLAGS=-lgomp -largeArrayDims -lrt -D_OPENMP
+# Mac users should use something like this:
+#MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm -lgomp -D_OPENMP
+OFLAGS=-lgomp -lrt
+# for mkoctfile version >= 4.0.0 you can remove warnings by using instead:
+#OFLAGS=-lgomp -std=c++11 -lrt
 
-# OR single threaded...
+# OR uncomment the following for single threaded compile...
 #LIBSFFT = -lfftw3 -lm
 #CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
 #CFLAGS=-fPIC -Ofast -funroll-loops -march=native
 #FFLAGS=-fPIC -O3 -funroll-loops
-#MFLAGS=-largeArrayDims -lrt                     # matlab mex
-#OFLAGS=-std=c++11 -lrt                          # octave mex
+#MFLAGS=-largeArrayDims -lrt
+# Mac users should use something like this:
+#MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
+#OFLAGS=-std=c++11 -lrt
 
-# MATLAB stuff.. (todo)
+# Other MATLAB wrapper stuff...
 MEX=mex
-MWRAP=mwrap
-
 # Mac users should use something like this:
 #MEX = /Applications/MATLAB_R2017a.app/bin/mex
-#MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
-
+# location of your MWrap executable (see INSTALL.md):
+MWRAP=mwrap
 # ======================================================================
 
 
@@ -62,8 +67,9 @@ usage:
 	@echo " make perftest - compile and run performance tests"
 	@echo " make fortran - compile and test Fortran interfaces"
 	@echo " make matlab - compile and test Matlab interfaces"
+	@echo " make octave - compile and test octave interfaces"
 	@echo " make clean - remove all object and executable files apart from MEX"
-	@echo "For multicore making you will want to append the flag -j"
+	@echo "For faster (multicore) making you will want to append the flag -j"
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp %.h
@@ -129,6 +135,8 @@ matlab: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o matlab/finufft.cpp
 # octave .mex executable...
 octave: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o matlab/finufft.cpp
 	mkoctfile --mex matlab/finufft.cpp lib/libfinufft.a matlab/finufft_m.o $(OFLAGS) $(LIBSFFT) -output matlab/finufft
+	@echo "Running octave interface test; please wait a few seconds..."
+	(cd matlab; octave check_finufft.m)
 
 # rebuilds fresh MEX (matlab/octave) gateway via mwrap... (needs mwrap)
 mex: matlab/finufft.cpp

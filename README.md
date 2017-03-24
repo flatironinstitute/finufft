@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-Version 0.7  (3/15/2017)
+Version 0.8  (3/24/2017)
 
 ### Alex H. Barnett and Jeremy F. Magland
 
@@ -15,7 +15,7 @@ Our main innovations are: speed (enhanced by a new functional form for the sprea
 In particular, in the single-core setting we are approximately 8x faster than the (single-core) CMCL library when requesting many digits in 3D.
 Preliminary tests suggest that in the multi-core setting we are no slower than the [Chemnitz NFFT](https://www-user.tu-chemnitz.de/~potts/nfft/) at comparable accuracy, except that our code does not require an additional plan or precomputation phase.
 
-See the manual for more information.
+See the manual for a more detailed description and usage.
 
 ### Dependencies
 
@@ -26,29 +26,18 @@ For the basic libraries
 - C++ compiler such as g++
 - FFTW3
 - GNU make
+
+Optional:
+
 - numdiff (preferred but not essential; enables pass-fail math validation)
+- for Fortran wrappers: compiler such as gfortran
+- for matlab/octave wrappers: matlab, or octave and its development libs
+- for building new matlab/octave wrappers: mwrap
+- for python wrappers: python-pip and pybind11
 
-For the Fortran wrappers
-
-- Fortran compiler such as gfortran (see settings in the makefile)
-
-On an Ubuntu linux, these dependencies can be installed as follows:
-```
-sudo apt-get install make build-essential libfftw3-dev gfortran numdiff
-```
-On a Fedora/CentOS linux system:
-```
-sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp
-```
-then follow instructions to install [numdiff](http://www.nongnu.org/numdiff).
-
-
-### Installation and usage
+### Installation and usage overview
 
 Clone using git (or checkout using svn, or download as a zip -- see green button above), then follow the detailed [installation instructions](INSTALL.md).
-
-Compile and check via `make test`, which should report zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
-If there is an error in compilation, then `cp makefile makefile.local`, edit `makefile.local` to adjust compiler and other library options, then use `make -f makefile.local`.
 If there is an error in testing, consider filing a bug report (below).
 
 The main library is found in `lib`.
@@ -57,35 +46,31 @@ then link to the static library by compiling with `-std=c++11 -fopenmp lib/libfi
 `-std=c++11 lib/libfinufft.a -lfftw3 -lm` if you edited the makefile for single-threaded.
 
 `make examples` to compile and run the examples for calling from C++ and from C.
-
-`make fortran` to compile and run the fortran wrappers and examples.
-
-`make matlab` to build the MEX interface to matlab
-
+See [installation instructions](INSTALL.md) to build the wrappers to high-level languages (matlab/octave, python).
 
 
 ### Contents of this package
 
- `src` : main library source and headers. Compiled .o will be built here.  
- `lib` : compiled library will be built here.  
+ `src` : main library source and headers. Compiled .o will be built here  
+ `lib` : compiled library will be built here  
  `makefile` : GNU makefile (user may need to edit)  
- `test` : validation and performance tests. `test/check_finufft.sh` is the main validation script. `test/nuffttestnd.sh` is the main performance test script.  
+ `test` : validation and performance tests. `test/check_finufft.sh` is the main validation script. `test/nuffttestnd.sh` is the main performance test script  
  `test/results` : validation comparison outputs (\*.refout; do not remove these), and local test and performance outputs (\*.out; one may remove these)
- `examples` : simple example codes for calling the library from C++ and from C.  
- `fortran` : wrappers and drivers for Fortran.   
- `matlab` : wrappers and examples for MATLAB/octave. (Not yet working)  
- `matlab-mcwrap` : wrappers and examples for MATLAB.  
- `python` : wrappers and examples for python.  
- `contrib` : 3rd-party code.  
- `devel` : various obsolete or in-development codes (experts only)  
- `doc` : the manual (not yet there)  
+ `examples` : simple example codes for calling the library from C++ and from C  
+ `fortran` : wrappers and drivers for Fortran   
+ `matlab` : wrappers and examples for MATLAB/octave   
+ `matlab-mcwrap` : old mcwrap-style wrappers and examples for MATLAB  
+ `python` : wrappers and examples for python  
+ `contrib` : 3rd-party code  
+ `devel` : various in-development or obsolete codes/notes (experts only)  
+ `doc` : contains the manual  
  `README.md` : this file  
  `INSTALL.md` : installation instructions for various operating systems  
- `LICENSE` : licensing information  
- `CHANGELOG` : list of changes made  
+ `LICENSE` : how you may use this software  
+ `CHANGELOG` : list of changes, release notes  
  `TODO` : list of things needed to do, or wishlist  
 
-### Notes
+### Design notes
 
 C++ is used for all main libraries, avoiding object-oriented code. C++ `std::complex<double>` (aliased to `dcomplex`) and FFTW complex types are mixed within the library, since to some extent it is a glorified driver for FFTW. The interfaces are dcomplex. FFTW was considered universal and essential enough to be a dependency for the whole package.
 
@@ -116,7 +101,7 @@ The original NUFFT analysis using truncated Gaussians is:
 
 ### Packaged codes.
 
-The main distribution includes code by:
+The main distribution includes contributed code by:
 
 Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)   
 Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)  
@@ -131,21 +116,24 @@ When requestes accuracy is 1e-14 or less, it is sometimes not possible to match
 this, especially when there are a large number of input and/or output points.
 This is believed to be unavoidable round-off error.
 
+Currently in Mac OSX, `make lib` fails to make the shared object library (.so).
+
+
 ### Bug reports
 
 If you think you have found a bug, please contact Alex Barnett (`ahb`
 at-sign `math.dartmouth.edu`) with FINUFFT in the subject line.
 Include a minimal code which reproduces the bug, along with
-details about your machine, operating system, and version of FINUFFT.
+details about your machine, operating system, compiler, and version of FINUFFT.
 
 ### Acknowledgments
 
-The following people have greatly helped this project either via discussions or bug reports:
+The following people have helped this project through discussions, code, or bug reports:
 
-Leslie Greengard  
-Charlie Epstein  
-Andras Pataki  
-Marina Spivak  
-Christina Muller  
-Timo Heister  
-Dan Foreman-Mackey  
+Leslie Greengard - CMCL test codes, testing on Mac OSX  
+Dan Foreman-Mackey - python wrappers  
+Charlie Epstein - discussion re analysis of kernel FT  
+Andras Pataki - complex number speed in C++  
+Marina Spivak - fortran testing  
+Christian Muller - optimization (CMA-ES) for kernel design  
+Timo Heister - pass/fail numdiff testing ideas  

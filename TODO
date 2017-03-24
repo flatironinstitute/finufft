@@ -1,6 +1,6 @@
-List of items to do for FINUFFT library
+Current list of items to do for FINUFFT library
 
-* MAC OSX test, makefile, instructions.
+* run nufft_comparison
 * test non-openmp compile. Decide if non vs omp get different lib names.
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
 * theory work on exp(sqrt) being close to PSWF
@@ -9,11 +9,8 @@ List of items to do for FINUFFT library
 * decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
 * single-prec compile option for RAM-intensive problems? priority?
 * test BIGINT -> long long slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
-* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux, osx, etc. Link to .a
-* matlab wrappers need ier output? think
-* test wrappers in octave
-* python wrappers - alert Dan Foreman-Mackey re https://github.com/dfm/python-nufft
-* proper FI license
+* Licensing: proper FI license.
+* deal with Nick Hale's Gauss-Legendre nodes code is GPL
 * release, outreach, users, NA-Digest
 * doc/manual
 * boilerplate stuff as in CMCL page
@@ -26,4 +23,4 @@ List of items to do for FINUFFT library
 * make C interface example1d1c cleaner, ie remove _Complex, why needs g++ to compile?
 * Currently for Mac OSX, `make lib` fails to make the shared object library (.so)
 * figure out how to pass long long or BIGINT via matlab interface, a pain.
-
+* ship .mexmaci64

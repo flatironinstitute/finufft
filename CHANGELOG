@@ -1,5 +1,7 @@
 List of tasks accomplished / changes made, in chronological order:
 
+Started mid-January 2017
+
 * efficient modulo in spreader, done by conditionals
 * removed data-zeroing bug in t-II spreader, slowness of large arrays in t-I.
 * clean dir tree
@@ -41,7 +43,7 @@ V. 0.7:
 
 * build static & shared lib
 * fixed bug when Nth>Ntop
-* fortran drivers use dynamic malloc
+* fortran drivers use dynamic malloc to prevent stack segfaults that CMCL had
 * bugs found in fortran drivers, removed
 * split out devel text files (TODO, etc)
 * made pass-fail test script counting crashes and numdiff fails.
@@ -57,7 +59,16 @@ V. 0.7:
 * fortran compilation fixed
 * makefile self-documents
 * nf1 (etc) size check before alloc, exit gracefully if exceeds RAM
-* integrate into nufft_comparison, esp vs NFFT - jfm did; run.
+* integrate into nufft_comparison, esp vs NFFT - jfm did
 * simple examples, simpler than the test drivers
 * fortran link via gfortran, better fortran docs
-* Mac OSX test
+
+V 0.8: (3/24/17)
+
+* MAC OSX test, makefile, instructions.
+* matlab wrappers in 3D
+* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux. Link to .a
+* matlab wrappers need ier output? yes, and internal omp numthreads control (since matlab's is poor)
+* wrappers for MEX octave, instructions
+* python wrappers - Dan Foreman-Mackey starting to add something similar to https://github.com/dfm/python-nufft
+
