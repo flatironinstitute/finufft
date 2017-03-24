@@ -42,7 +42,7 @@ If there is an error in testing, consider filing a bug report (below).
 
 The main library is found in `lib`.
 In your C++ code you will need to include the header `src/finufft.h`,
-then link to the static library by compiling with `-std=c++11 -fopenmp lib/libfinufft.a -lfftw3_omp -lfftw3 -lm` for the default multi-threaded version, or
+then link to the static library by compiling with `-std=c++11 -fopenmp lib/libfinufft.a -lfftw3_threads -lfftw3 -lm` for the default multi-threaded version, or
 `-std=c++11 lib/libfinufft.a -lfftw3 -lm` if you edited the makefile for single-threaded.
 
 `make examples` to compile and run the examples for calling from C++ and from C.
