@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 
   spread_opts opts; // set method opts...
   opts.debug = 0;
-  opts.sort_data=true;    // 50% faster on i7, nothing on xeon?
+  opts.sort_data=true;    // for 3D: nearly 2x faster on i7; but 0.9x on xeon!
   double Rdummy = 2.0;    // since no nufft done, merely to please the setup
   setup_kernel(opts,tol,Rdummy);
 
