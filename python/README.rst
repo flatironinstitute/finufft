@@ -1,6 +1,14 @@
+Just scribbles for now, Barnett 3/27/17
 
 
-Linux build:
+Install prereqs:
+
+sudo apt install python python-pip
+
+sudo pip install pybind11
+
+
+Linux build: (see ../makefile)
 
 ```
 cd python
@@ -9,7 +17,7 @@ python setup.py build_ext --inplace
 ```
 
 
-Here's a couple of hints for the Mac OSX install from Dan:
+Here's a couple of hints for the Mac OSX openmp install from Dan:
 
 ```
 brew reinstall gcc --without-multilib

@@ -1,5 +1,5 @@
 # Makefile for Flatiron Institute (FI) NUFFT libraries.
-# Barnett 3/21/17
+# Barnett 3/27/17
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # If you need to edit this makefile, it is recommended that you first
@@ -57,7 +57,7 @@ HEADERS = src/cnufftspread.h src/finufft.h src/twopispread.h src/dirft.h src/com
 
 default: usage
 
-.PHONY: usage lib examples test perftest fortran matlab
+.PHONY: usage lib examples test perftest fortran matlab octave python
 
 usage:
 	@echo "makefile for FINUFFT library. Specify what to make:"
@@ -68,6 +68,7 @@ usage:
 	@echo " make fortran - compile and test Fortran interfaces"
 	@echo " make matlab - compile and test Matlab interfaces"
 	@echo " make octave - compile and test octave interfaces"
+	@echo " make python - compile and test python interfaces"
 	@echo " make clean - remove all object and executable files apart from MEX"
 	@echo "For faster (multicore) making you will want to append the flag -j"
 
@@ -145,8 +146,11 @@ matlab/finufft.cpp: matlab/finufft.mw
 	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
 
-# python wrapper...
-
+# python wrapper... (awaiting completion)
+python: python/setup.py python/demo.py python/finufft/build.py python/finufft/__init__.py python/finufft/interface.cpp
+	(cd python; rm -rf build ;\
+	python setup.py build_ext --inplace ;\
+	python demo.py )
 
 # various obscure devel tests...
 devel/plotkernels: $(SOBJS) $(HEADERS) devel/plotkernels.cpp
@@ -157,6 +161,7 @@ devel/testi0: devel/testi0.cpp devel/besseli.o src/utils.o
 	$(CXX) $(CXXFLAGS) devel/testi0.cpp $(OBJS) -o devel/testi0
 	(cd devel; ./testi0)
 
+# cleaning up...
 clean:
 	rm -f $(OBJS1) $(OBJS2) $(OBJS3) $(FOBJS) $(SOBJS)
 	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/results/*.out fortran/nufft?d_demo examples/example1d1 examples/example1d1c matlab/*.o
