@@ -1,6 +1,46 @@
-List of tasks accomplished / changes made, in chronological order:
+List of tasks accomplished / changes made / release notes, in reverse
+chronological order:
 
-Started mid-January 2017
+
+
+V 0.8: (3/27/17)
+
+* MAC OSX test, makefile, instructions.
+* matlab wrappers in 3D
+* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux. Link to .a
+* matlab wrappers need ier output? yes, and internal omp numthreads control (since matlab's is poor)
+* wrappers for MEX octave, instructions. Ship .mex for octave.
+* python wrappers - Dan Foreman-Mackey starting to add something similar to https://github.com/dfm/python-nufft
+* check is done before attempting to malloc ridiculous array sizes, eg if a large product of x width and k width is requested in type 3 transforms.
+* draft make python
+* basic manual (txt)
+
+V. 0.7:
+
+* build static & shared lib
+* fixed bug when Nth>Ntop
+* fortran drivers use dynamic malloc to prevent stack segfaults that CMCL had
+* bugs found in fortran drivers, removed
+* split out devel text files (TODO, etc)
+* made pass-fail test script counting crashes and numdiff fails.
+* finufft?d_test have a no-timings option, and exit with ier.
+* global error codes
+* made finufft routines & testers return error codes rather than exit().
+* dumbinput test executable
+* found nan returned error for nj=0 in type-1, fixed so returns the zero array.
+* fixed type 2 to not segfault when ms,mt, or mu=0, doing dir=2 0-padding right
+* array utils use pointers to make which vars they write to explicit.
+* don't do final type-3 rephase if C1 nan or 0.
+* finished all dumbinputs, all dims
+* fortran compilation fixed
+* makefile self-documents
+* nf1 (etc) size check before alloc, exit gracefully if exceeds RAM
+* integrate into nufft_comparison, esp vs NFFT - jfm did
+* simple examples, simpler than the test drivers
+* fortran link via gfortran, better fortran docs
+* boilerplate stuff as in CMCL page
+
+pre-V. 0.7: (Jan-Feb 2017)
 
 * efficient modulo in spreader, done by conditionals
 * removed data-zeroing bug in t-II spreader, slowness of large arrays in t-I.
@@ -39,36 +79,4 @@ Started mid-January 2017
 * changed library interface and twopispread to dcomplex
 * fortran wrappers (rmdir greengard_work, merge needed into fortran)
 
-V. 0.7:
-
-* build static & shared lib
-* fixed bug when Nth>Ntop
-* fortran drivers use dynamic malloc to prevent stack segfaults that CMCL had
-* bugs found in fortran drivers, removed
-* split out devel text files (TODO, etc)
-* made pass-fail test script counting crashes and numdiff fails.
-* finufft?d_test have a no-timings option, and exit with ier.
-* global error codes
-* made finufft routines & testers return error codes rather than exit().
-* dumbinput test executable
-* found nan returned error for nj=0 in type-1, fixed so returns the zero array.
-* fixed type 2 to not segfault when ms,mt, or mu=0, doing dir=2 0-padding right
-* array utils use pointers to make which vars they write to explicit.
-* don't do final type-3 rephase if C1 nan or 0.
-* finished all dumbinputs, all dims
-* fortran compilation fixed
-* makefile self-documents
-* nf1 (etc) size check before alloc, exit gracefully if exceeds RAM
-* integrate into nufft_comparison, esp vs NFFT - jfm did
-* simple examples, simpler than the test drivers
-* fortran link via gfortran, better fortran docs
-
-V 0.8: (3/24/17)
-
-* MAC OSX test, makefile, instructions.
-* matlab wrappers in 3D
-* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux. Link to .a
-* matlab wrappers need ier output? yes, and internal omp numthreads control (since matlab's is poor)
-* wrappers for MEX octave, instructions
-* python wrappers - Dan Foreman-Mackey starting to add something similar to https://github.com/dfm/python-nufft
-
+Started mid-January 2017

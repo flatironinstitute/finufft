@@ -5,28 +5,31 @@
 
 int usage()
 {
-  printf("usage: spreadtestnd [dim [M [tol]]]\n\twhere dim=1,2 or 3\n\tM=problem size, sets both # NU and U pts\n\ttol=requested accuracy\n");
+  printf("usage: spreadtestnd [dim [M [N [tol]]]]\n\twhere dim=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n");
 }
 
 int main(int argc, char* argv[])
 /* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.
  * It checks speed, and basic correctness via the grid sum of the result.
- * Usage: spreadtestnd [dim [M [tol]]]
- *	  where dim=1,2 or 3
- *	  M=problem size, sets both # NU and U pts
- *	  tol=requested accuracy
+ * Usage: spreadtestnd [dim [M [N [tol]]]]
+ *	  where dim = 1,2 or 3
+ *	  M = # nonuniform pts
+ *        N = # uniform pts
+ *	  tol = requested accuracy
  *
- * Example: spreadtestnd 3 1e6 1e-6
+ * Example: spreadtestnd 3 1e6 1e6 1e-6
  *
  * Compilation (also check ../makefile):
  *    g++ spreadtestnd.cpp ../src/cnufftspread.o ../src/utils.o -o spreadtestnd -fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp
  *
  * Magland, expanded by Barnett 1/14/17. Better cmd line args 3/13/17
+ * indep setting N 3/27/17
  */
 {
   int d = 3;            // default
-  double tol = 1e-6;    // default (1e6 has nspread=8)
-  long M = 1e6;         // default problem size (# NU pts)
+  double tol = 1e-6;    // default (eg 1e-6 has nspread=7)
+  long M = 1e6;         // default # NU pts
+  long roughNg = 1e6;   // default # U pts
   if (argc<=1) { usage(); return 0; }
   sscanf(argv[1],"%d",&d);
   if (d<1 || d>3) {
@@ -35,28 +38,35 @@ int main(int argc, char* argv[])
   if (argc>2) {
     double w; sscanf(argv[2],"%lf",&w); M = (long)w;  // so can read 1e6 right!
     if (M<1) {
-      printf("M (problem size) must be positive!\n"); usage(); return 1;
+      printf("M (# NU pts) must be positive!\n"); usage(); return 1;
     }
   }
-  if (argc>3) {
-    sscanf(argv[3],"%lf",&tol);
+  if (argc>2) {
+    double w; sscanf(argv[3],"%lf",&w); roughNg = (long)w;
+    if (roughNg<1) {
+      printf("N (# U pts) must be positive!\n"); usage(); return 1;
+    }
+  }
+  if (argc>4) {
+    sscanf(argv[4],"%lf",&tol);
     if (tol<=0.0) {
       printf("tol must be positive!\n"); usage(); return 1;
     }
   }
-  if (argc>4) { usage();
+  if (argc>5) { usage();
     return 1; }
-  long roughNg = M;                          // # grid pts = # NU pts
-  long N=(long)(pow(roughNg,1.0/d));         // Fourier grid size per dim
-  long Ng = (long)pow(N,d);                  // actual total grid points
+  long N=std::round(pow(roughNg,1.0/d));         // Fourier grid size per dim
+  long Ng = (long)pow(N,d);                      // actual total grid points
   long N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes
-  std::vector<double> kx(M),ky(M),kz(M),d_nonuniform(2*M);    // NU, Re & Im
+  std::vector<double> kx(M),ky(1),kz(1),d_nonuniform(2*M);    // NU, Re & Im
+  if (d>1) ky.resize(M);                           // only alloc needed coords
+  if (d>2) kz.resize(M);
   std::vector<double> d_uniform(2*Ng);                        // Re and Im
 
   spread_opts opts; // set method opts...
   opts.debug = 0;
-  opts.sort_data=true;    // 50% faster on i7
-  double Rdummy = 2.0;    // since no nufft done, this is to please the setup
+  opts.sort_data=true;    // 50% faster on i7, nothing on xeon?
+  double Rdummy = 2.0;    // since no nufft done, merely to please the setup
   setup_kernel(opts,tol,Rdummy);
 
     // test direction 1 (NU -> U spreading) ..............................
@@ -78,8 +88,8 @@ int main(int argc, char* argv[])
     double strre = 0.0, strim = 0.0;          // also sum the strengths
     for (long i=0; i<M; ++i) {
       kx[i]=rand01()*N;
-      ky[i]=rand01()*N;
-      kz[i]=rand01()*N;
+      if (d>1) ky[i]=rand01()*N;              // only fill needed coords
+      if (d>2) kz[i]=rand01()*N;
       d_nonuniform[i*2]=randm11();
       d_nonuniform[i*2+1]=randm11();
       strre += d_nonuniform[2*i]; 
@@ -117,9 +127,9 @@ int main(int argc, char* argv[])
       d_uniform[2*i+1] = 0.0;
     }
     for (long i=0; i<M; ++i) {       // random target pts
-      kx[i]=rand01()*N; //***
-      ky[i]=rand01()*N;
-      kz[i]=rand01()*N;
+      kx[i]=rand01()*N;
+      if (d>1) ky[i]=rand01()*N;
+      if (d>2) kz[i]=rand01()*N;
     }
     timer.restart();
     ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);

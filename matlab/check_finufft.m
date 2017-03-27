@@ -1,7 +1,7 @@
 % Matlab/octave demo of interfaces for FINUFFT libraries, also checks the math.
 % Barnett 3/24/17
 
-% Runtime is around 5-20 seconds on a modern machine
+% Runtime is around 5-15 seconds on a modern machine
 
 clear     % choose params...
 isign   = +1;     % sign of imaginary unit in exponential
