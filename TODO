@@ -4,6 +4,7 @@ HIGHER PRIORITY:
 
 * test big probs (speed, crashing) and decide if BIGINT is long long or int?
 slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
+* tidy up spreader to be BIGINT = long long compatible and test > 2^31.
 * decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
 * test non-openmp compile. Decide if non vs omp get different lib names.
 * decide if need single-prec compile option for RAM reduction, switch all math calls to macros which call either single or double versions? Will be messy for interfaces to F, M, O, P: need separate single-prec codes?

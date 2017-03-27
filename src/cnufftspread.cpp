@@ -4,8 +4,8 @@
 #include <math.h>
 
 // declarations of internal functions...
-std::vector<long> compute_sort_indices(long M,double *kx, double *ky,
-				       double *kz,long N1,long N2,long N3);
+std::vector<long> compute_sort_indices(BIGINT M,double *kx, double *ky,
+				       double *kz,BIGINT N1,BIGINT N2,BIGINT N3);
 void compute_kernel_values(double frac1,double frac2,double frac3,
 			   const spread_opts &opts, int *r1, int *r2, int *r3,
 			   double *ker, int ndims);
@@ -13,7 +13,7 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,
 			  long N3,int th,int nth, const spread_opts &opts,
 			  int ndims);
 bool ind_might_affect_interval(long i,long N,long *ith,long nspread);
-bool wrapped_range_in_interval(long i,int *R,long *ith,long N,int *r);
+bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r);
 
 int cnufftspread(
         long N1, long N2, long N3, double *data_uniform,
@@ -91,7 +91,7 @@ int cnufftspread(
 */
 { 
   // Input checking: cuboid not too small for spreading
-  long minN = 2*opts.nspread;
+  int minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
     fprintf(stderr,"error: one or more non-trivial box dims is less than 2.nspread!\n");
     return ERR_SPREAD_BOX_SMALL;
@@ -100,25 +100,21 @@ int cnufftspread(
     fprintf(stderr,"opts.spread_direction must be 1 or 2!\n");
     return ERR_SPREAD_DIR;
   }
+  bool bnderr = false;           // whether a NU pt falls out of bnds
   int ndims = 1;                 // decide ndims: 1,2 or 3
   if (N2>1) ++ndims;
   if (N3>1) ++ndims;
 
-  // declarations can't be in try block, so use resize below...
-  std::vector<double> kx2,ky2,kz2,data_nonuniform2;
-  std::vector<long> sort_indices;
-  try {    // alloc the big workspaces in a graceful way
-    kx2.resize(M); ky2.resize(M); kz2.resize(M); data_nonuniform2.resize(M*2);
-    sort_indices.resize(M);
-  }
+  // declarations can't be in try block, so use resize...
+  std::vector<BIGINT> sort_indices;
+  try {sort_indices.resize(M);}          // alloc workspace in a graceful way
   catch(std::bad_alloc &e) {
-    fprintf(stderr,"cnufftspread cannot alloc arrays!\n");
+    fprintf(stderr,"cnufftspread cannot alloc sort_indices array!\n");
     return ERR_SPREAD_ALLOC;
   }
   // MY_OMP_SET_NUM_THREADS(1); // for debug; also may set via shell env var OMP_NUM_THREADS
   
-  // Sort NU pts once and for all: sorted answer will be k{xyz}2 and data_nonuniform2
-  // We also zero unused coordinates (for 1D or 2D cases) and check bounds:
+  // store a permutation ordering of the NU pts...
   CNTime timer; timer.start();
   if (opts.sort_data)
     sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3); // a good perm of NU pts
@@ -126,33 +122,8 @@ int cnufftspread(
     for (long i=0; i<M; i++)                  // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation!
   }
-  bool bnderr = false;
-  #pragma omp parallel for schedule(dynamic)
-  for (long i=0; i<M; i++) {  // (omp has 20% effect on dir=1 case, so use it)
-    long jj=sort_indices[i];
-    kx2[i]=kx[jj];
-    if (N2==1)                // safely kill not-needed coords
-      ky2[i] = 0.0;
-    else
-      ky2[i]=ky[jj];
-    if (N3==1)	
-      kz2[i] = 0.0;
-    else
-      kz2[i]=kz[jj];
-    // while we're here, check bounds of NU pts (after coords were killed)...
-    if (kx2[i]<0.0 || kx2[i]>N1 || ky2[i]<0.0 || ky2[i]>N2 || kz2[i]<0.0 || kz2[i]>N3)
-      bnderr = true;
-    if (opts.spread_direction==1) {  // note this also sorts incoming strengths
-      data_nonuniform2[i*2]=data_nonuniform[jj*2];      // real
-      data_nonuniform2[i*2+1]=data_nonuniform[jj*2+1];  // imag
-    }
-  }
   double t=timer.elapsedsec();
   if (opts.debug) printf("sort time (sort_data=%d): %.3g s\n",(int)opts.sort_data,t);
-  if (bnderr) {
-    fprintf(stderr,"error: at least one nonuniform point not in range [0,N1] x ... !\n");
-    return ERR_SPREAD_PTS_OUT_RANGE;
-  }
 
   // set up spreading kernel index bounds in each dim, relative to bottom left corner:
   int ns=opts.nspread;
@@ -185,10 +156,18 @@ int cnufftspread(
 	
 	for (BIGINT i=0; i<M; i++) {  // main loop over NU pts, spread each to U grid
 	  // (note every thread does this loop, but only sometimes write to the grid)
-	  BIGINT i1=(BIGINT)std::ceil(kx2[i]-ns2); // leftmost x grid index
-	  BIGINT i2=(BIGINT)std::ceil(ky2[i]-ns2); // lowest y grid index
-	  BIGINT i3=(BIGINT)std::ceil(kz2[i]-ns2); // lowest z grid index
+	  BIGINT jj=sort_indices[i];
 	  int r1[2],r2[2],r3[2]; // lower & upper rel ind bnds restricted to thread's box
+	  BIGINT i1=(BIGINT)std::ceil(kx[jj]-ns2), i2=0, i3=0; // leftmost x grid index
+	  if (kx[jj]<0.0 || kx[jj]>N1) bnderr = true;
+	  if (ndims>1) {
+	    i2=(BIGINT)std::ceil(ky[jj]-ns2); // lowest y grid index
+	    if (ky[jj]<0.0 || ky[jj]>N2) bnderr = true;
+	  }
+	  if (ndims>2) {
+	    i3=(BIGINT)std::ceil(kz[jj]-ns2); // lowest z grid index
+	    if (kz[jj]<0.0 || kz[jj]>N3) bnderr = true;
+	  }
 	  // set the r1,r2,r3 bounds and decide if NU point i affects this thread's box:
 	  bool i_affects_box = wrapped_range_in_interval(i1,R1,i1th,N1,r1) &&
 	    wrapped_range_in_interval(i2,R2,i2th,N2,r2) &&
@@ -201,20 +180,20 @@ int cnufftspread(
 	    // periodically up to +-1 period:    
 	    BIGINT j1_array[MAX_NSPREAD],j2_array[MAX_NSPREAD],j3_array[MAX_NSPREAD];
 	    j2_array[0] = 0; j3_array[0] = 0;             // needed for unused dims
-	    double x1=(double)i1-kx2[i], x2, x3;          // real shifts of ker center
+	    double x1=(double)i1-kx[jj], x2, x3;          // real shifts of ker center
 	    for (int dx=r1[0]; dx<=r1[1]; dx++) {
 	      BIGINT j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1;
 	      j1_array[dx-r1[0]]=j;
 	    }
 	    if (ndims>1) {              // 2d stuff
-	      x2=(double)i2-ky2[i];
+	      x2=(double)i2-ky[jj];
 	      for (int dy=r2[0]; dy<=r2[1]; dy++) {
 		BIGINT j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2;
 		j2_array[dy-r2[0]]=j;
 	      }
 	    }
 	    if (ndims>2) {              // 2d or 3d stuff
-	      x3=(double)i3-kz2[i];
+	      x3=(double)i3-kz[jj];
 	      for (int dz=r3[0]; dz<=r3[1]; dz++) {
 		BIGINT j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3;
 		j3_array[dz-r3[0]]=j;
@@ -224,8 +203,8 @@ int cnufftspread(
 	    // Eval only ker vals needed for overall dim and this thread's index box
 	    double kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
 	    compute_kernel_values(x1,x2,x3,opts,r1,r2,r3,kernel_values,ndims);
-	    double re0=data_nonuniform2[i*2];
-	    double im0=data_nonuniform2[i*2+1];
+	    double re0=data_nonuniform[2*jj];
+	    double im0=data_nonuniform[2*jj+1];
   	    long aa = 0;
 	    for (int dz=r3[0]; dz<=r3[1]; dz++) {
 	      BIGINT o3=N1*N2*j3_array[dz-r3[0]];  // use precomp index lists in each dim
@@ -247,27 +226,31 @@ int cnufftspread(
     } else {                      // ==================== direction 2 ===============
 #pragma omp for schedule(dynamic)   // assign threads to NU targ pts, easy
       for (BIGINT i=0; i<M; i++) {  // main loop over NU pts targets, interp each from U
+	BIGINT jj=sort_indices[i];
 	// set up indices for each dim ahead of time using by-hand modulo wrapping
 	// periodically up to +-1 period:
 	BIGINT j1_array[MAX_NSPREAD],j2_array[MAX_NSPREAD],j3_array[MAX_NSPREAD];
 	j2_array[0] = 0; j3_array[0] = 0;             // needed for unused dims
-	BIGINT i1=(BIGINT)std::ceil(kx2[i]-ns2), i2=0, i3=0; // leftmost grid index
-	double x1=(double)i1-kx2[i], x2, x3;          // real-valued shifts of ker center
+	if (kx[jj]<0.0 || kx[jj]>N1) bnderr = true;
+	BIGINT i1=(BIGINT)std::ceil(kx[jj]-ns2), i2=0, i3=0; // leftmost grid index
+	double x1=(double)i1-kx[jj], x2, x3;          // real-valued shifts of ker center
 	for (int dx=R1[0]; dx<=R1[1]; dx++) {
 	  BIGINT j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1;
 	  j1_array[dx-R1[0]]=j;                       // redundant since R1[0]=0 always
 	}
 	if (ndims>1) {              // 2d stuff
-	  i2=(BIGINT)std::ceil(ky2[i]-ns2); // lowest y grid index, or 0 if unused dim
-	  x2=(double)i2-ky2[i];
+	  if (ky[jj]<0.0 || ky[jj]>N2) bnderr = true;
+	  i2=(BIGINT)std::ceil(ky[jj]-ns2); // lowest y grid index, or 0 if unused dim
+	  x2=(double)i2-ky[jj];
 	  for (int dy=R2[0]; dy<=R2[1]; dy++) {
 	    BIGINT j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2;
 	    j2_array[dy-R2[0]]=j;
 	  }
 	}
 	if (ndims>2) {              // 2d or 3d stuff
-	  i3=(BIGINT)std::ceil(kz2[i]-ns2); // lowest z grid index, or 0 if unused dim
-	  x3=(double)i3-kz2[i];
+	  if (kz[jj]<0.0 || kz[jj]>N3) bnderr = true;
+	  i3=(BIGINT)std::ceil(kz[jj]-ns2); // lowest z grid index, or 0 if unused dim
+	  x3=(double)i3-kz[jj];
 	  for (int dz=R3[0]; dz<=R3[1]; dz++) {
 	    BIGINT j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3;
 	    j3_array[dz-R3[0]]=j;
@@ -290,19 +273,23 @@ int cnufftspread(
 	    }
 	  }
 	}
-	data_nonuniform2[i*2]   = re0;     // copy out accumulated complex value
-	data_nonuniform2[i*2+1] = im0;
+	data_nonuniform[2*jj]   = re0;     // copy out accumulated complex value
+	data_nonuniform[2*jj+1] = im0;
       }
       // "unsort" values which were dumped to NU output pts
-#pragma omp for schedule(dynamic)   // assign threads to NU targ pts
-      for (BIGINT i=0; i<M; i++) {
-	BIGINT jj=sort_indices[i];
-	data_nonuniform[jj*2]=data_nonuniform2[i*2];
-	data_nonuniform[jj*2+1]=data_nonuniform2[i*2+1];
-      }
+      //#pragma omp for schedule(dynamic)   // assign threads to NU targ pts
+      //for (BIGINT i=0; i<M; i++) {
+      //	BIGINT jj=sort_indices[i];
+      //	data_nonuniform[jj*2]=data_nonuniform2[i*2];
+      //	data_nonuniform[jj*2+1]=data_nonuniform2[i*2+1];
+      //   }
     }
   } // omp block
-  return 0;
+  if (bnderr) {
+    fprintf(stderr,"error: at least one nonuniform point not in range [0,N1] x ... !\n");
+    return ERR_SPREAD_PTS_OUT_RANGE;
+  } else
+    return 0;
 }
 
 bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long N3,
@@ -361,7 +348,7 @@ bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long 
   }
 }
 
-bool wrapped_range_in_interval(long i,int *R,long *ith,long N,int *r)
+bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r)
   /* returns in r[0], r[1] the lower, upper index limits relative to 1d grid index i
    * that, after N-periodizing, will fall into box with index range ith[0] to ith[1].
    * R[0..1] are the max spreading lower and upper relative index limits.
@@ -379,16 +366,16 @@ bool wrapped_range_in_interval(long i,int *R,long *ith,long N,int *r)
     r[0] = R[0]; r[1] = R[1];
     return true;
   }
-  long lo=ith[0]-i, hi=ith[1]-i; // ith interval, expressed relative to center index i.
-  for (long d=-N;d<=N;d+=N) {   // loop over periodic copies of ith interval
-    r[0] = (int)std::max((long)R[0],lo+d);    // clip interval copy to R-spread interval
-    r[1] = (int)std::min((long)R[1],hi+d);
+  BIGINT lo=ith[0]-i, hi=ith[1]-i; // ith interval, expressed relative to center index i.
+  for (BIGINT d=-N;d<=N;d+=N) {   // loop over 3 periodic copies of ith interval
+    r[0] = std::max(R[0],(int)(lo+d));    // clip interval copy to R-spread interval
+    r[1] = std::min(R[1],(int)(hi+d));
     if (r[1]>=r[0]) return true;    // either happens never, or once in which case exit
   }
   return false;
 }
 
-std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz,long N1,long N2,long N3)
+ std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double *kz,BIGINT N1,BIGINT N2,BIGINT N3)
   /* Returns permutation of the 1, 2 or 3D nonuniform points with good RAM access for the
    * upcoming spreading step.
    *
@@ -413,44 +400,44 @@ std::vector<long> compute_sort_indices(long M,double *kx, double *ky, double *kz
   (void)kx; //tell compiler this is an unused variable
   (void)N1; //tell compiler this is an unused variable
   bool isky=(N2>1), iskz=(N3>1);           // are ky,kz available? cannot access if not!
-  std::vector<long> counts(N2*N3);
-  for (long j=0; j<N2*N3; j++)
+  std::vector<BIGINT> counts(N2*N3);
+  for (BIGINT j=0; j<N2*N3; j++)
     counts[j]=0;
-  for (long i=0; i<M; i++) {
-    long i2=isky ? (long)(ky[i]+0.5) : 0;
+  for (BIGINT i=0; i<M; i++) {
+    BIGINT i2=isky ? (BIGINT)(ky[i]+0.5) : 0;
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
-    long i3=iskz ? (long)(kz[i]+0.5) : 0;
+    BIGINT i3=iskz ? (BIGINT)(kz[i]+0.5) : 0;
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     
     counts[i2+N2*i3]++;
   }
-  std::vector<long> inds(N2*N3);
-  long offset=0;
-  for (long j=0; j<N2*N3; j++) {
+  std::vector<BIGINT> inds(N2*N3);
+  BIGINT offset=0;
+  for (BIGINT j=0; j<N2*N3; j++) {
     inds[j]=offset;
     offset+=counts[j];
   }
   
-  std::vector<long> ret_inv(M);
-  for (long i=0; i<M; i++) {
-    long i2=isky ? (long)(ky[i]+0.5) : 0;
+  std::vector<BIGINT> ret_inv(M);
+  for (BIGINT i=0; i<M; i++) {
+    BIGINT i2=isky ? (BIGINT)(ky[i]+0.5) : 0;
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
-    long i3=iskz ? (long)(kz[i]+0.5) : 0;
+    BIGINT i3=iskz ? (BIGINT)(kz[i]+0.5) : 0;
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     
-    long jj=inds[i2+N2*i3];
+    BIGINT jj=inds[i2+N2*i3];
     inds[i2+N2*i3]++;
     ret_inv[i]=jj;
   }
   
-  std::vector<long> ret(M);
-  for (long i=0; i<M; i++) {
+  std::vector<BIGINT> ret(M);
+  for (BIGINT i=0; i<M; i++) {
     ret[ret_inv[i]]=i;
   }
   

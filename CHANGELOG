@@ -5,6 +5,8 @@ chronological order:
 
 V 0.8: (3/27/17)
 
+* bnderr checking done in dir=1,2 main loops, not before.
+* all kx2, dNU2 arrays removed, just done by permutation index when needed.
 * MAC OSX test, makefile, instructions.
 * matlab wrappers in 3D
 * matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux. Link to .a
