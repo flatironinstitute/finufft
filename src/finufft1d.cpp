@@ -49,11 +49,12 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  if (nf1>opts.maxnalloc) {
-    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
+  double nf1d; set_nf_type12(ms,opts,spopts,&nf1d);
+  if (nf1d>opts.maxnalloc) {
+    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",nf1d,opts.maxnalloc);
     return ERR_MAXNALLOC;
   }
+  BIGINT nf1=(BIGINT)nf1d;
   cout << scientific << setprecision(15);  // for debug
 
   if (opts.debug) printf("1d1: ms=%ld nf1=%ld nj=%ld ...\n",ms,nf1,nj);

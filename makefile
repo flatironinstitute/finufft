@@ -17,7 +17,7 @@ FLINK=-lstdc++
 # Here MFLAGS are for matlab, OFLAGS for octave.
 # Choose EITHER multi-threaded compile (default)...
 LIBSFFT = -lfftw3_threads -lfftw3 -lm
-CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -fopenmp -DNEED_EXTERN_C
+CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -fopenmp -DNEED_EXTERN_C -DSMALLINT
 CFLAGS=-fPIC -Ofast -funroll-loops -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
 MFLAGS=-lgomp -largeArrayDims -lrt -D_OPENMP

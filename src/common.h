@@ -7,9 +7,9 @@
 #include <fftw3.h>
 
 // common.cpp provides...
-void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,BIGINT *nf);
+void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,double *nfd);
 void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
-		   BIGINT *nf, double *h, double *gam);
+		   double *nfd, double *h, double *gam);
 void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts);
 void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts);
 void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat, spread_opts opts);

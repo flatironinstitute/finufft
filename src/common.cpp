@@ -14,13 +14,13 @@ extern "C" {
 // constants needed within common
 #define MAX_NQUAD 100     // max number of positive quadr nodes
 
-void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
+void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, double *nfd)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
-// and number of Fourier modes ms.
+// and number of Fourier modes ms. Note nfd is double version of nf.
 {
-  *nf = (BIGINT)(opts.R*ms);
-  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
-  if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
+  *nfd = (double)(opts.R*ms);
+  if (*nfd<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
+  if (*nfd<opts.maxnalloc)                          // otherwise will fail anyway
     *nf = next235even(*nf);                        // expensive at huge nf
 }
 

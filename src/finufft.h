@@ -8,7 +8,7 @@ struct nufft_opts {  // this sets default opts for NUFFT alg:
   int debug = 0;          // 0: silent, 1: text timing output, 2: spread info
   int spread_debug = 0;   // passed to spread_opts debug: 0,1 or 2
   int spread_sort = 1 ;   // passed to spread_opts sort: 0 or 1
-  BIGINT maxnalloc = (BIGINT)1e9;   // largest size of internal array to malloc
+  double maxnalloc = 1e9;   // largest size of internal array to malloc, as double
 };
 
 // library provides...
