@@ -6,9 +6,19 @@ using namespace std;        // means std:: not needed for cout, max, etc
 typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 #define ima complex<double>{0.0,1.0}
 
-// choose int64_t or long long if want handle huge I/O array sizes (>2^31)...
+
+// Choose 32 or 64 bit integer indexing:
+#ifdef SMALLINT
+// It is possible that on some systems it will run faster, if you only care
+// about small arrays, to index via 32-bit integers...
+  typedef int BIGINT;
+#else
+// default: since "long" not guaranteed to exceed 32 bit signed int, ie 2^31,
+// use long long (64-bit) since want handle huge array sizes (>2^31)...
+  typedef long long BIGINT;
 //typedef int64_t BIGINT;
-typedef long BIGINT;
+#endif
+
 
 // global error codes for the library...
 #define ERR_EPS_TOO_SMALL        1
@@ -53,7 +63,7 @@ class CNTime {
 // complex unif[-1,1] for Re and Im:
 #define crandm11() (randm11() + ima*randm11())
 
-// thread-safe seed-carrying versions of random (x is ptr to seed)...
+// Thread-safe seed-carrying versions of above (x is ptr to seed)...
 #define rand01r(x) ((double)rand_r(x)/RAND_MAX)
 // unif[-1,1]:
 #define randm11r(x) (2*rand01r(x) - 1.0)

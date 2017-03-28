@@ -43,7 +43,7 @@ int twopispread1d(BIGINT nf1,dcomplex *fw,BIGINT nj,double* xj,dcomplex* cj,
   return ier;
 }
 
-int twopispread2d(long nf1,long nf2, dcomplex *fw,BIGINT nj,double* xj,
+int twopispread2d(BIGINT nf1,BIGINT nf2, dcomplex *fw,BIGINT nj,double* xj,
 		  double *yj,dcomplex* cj,spread_opts opts)
 {
   double *dummy=0;   // note this should never be read from!
@@ -58,7 +58,7 @@ int twopispread2d(long nf1,long nf2, dcomplex *fw,BIGINT nj,double* xj,
   return cnufftspread(nf1,nf2,1,(double*)fw,nj,xjscal,yjscal,dummy,(double*)cj,opts);
 }
 
-int twopispread3d(long nf1,long nf2,long nf3,dcomplex *fw,BIGINT nj,double* xj,
+int twopispread3d(BIGINT nf1,BIGINT nf2,BIGINT nf3,dcomplex *fw,BIGINT nj,double* xj,
 		  double *yj,double* zj,dcomplex* cj,spread_opts opts)
 {
   double *xjscal = (double*)malloc(sizeof(double)*nj);

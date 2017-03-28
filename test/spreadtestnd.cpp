@@ -31,8 +31,8 @@ int main(int argc, char* argv[])
 {
   int d = 3;            // default #dims
   double tol = 1e-6;    // default (eg 1e-6 has nspread=7)
-  long M = 1e6;         // default # NU pts
-  long roughNg = 1e6;   // default # U pts
+  BIGINT M = 1e6;         // default # NU pts
+  BIGINT roughNg = 1e6;   // default # U pts
   int sort = 1;         // default
   if (argc<=1) { usage(); return 0; }
   sscanf(argv[1],"%d",&d);
@@ -40,13 +40,13 @@ int main(int argc, char* argv[])
     printf("d must be 1, 2 or 3!\n"); usage(); return 1;
   }
   if (argc>2) {
-    double w; sscanf(argv[2],"%lf",&w); M = (long)w;  // so can read 1e6 right!
+    double w; sscanf(argv[2],"%lf",&w); M = (BIGINT)w;  // so can read 1e6 right!
     if (M<1) {
       printf("M (# NU pts) must be positive!\n"); usage(); return 1;
     }
   }
   if (argc>2) {
-    double w; sscanf(argv[3],"%lf",&w); roughNg = (long)w;
+    double w; sscanf(argv[3],"%lf",&w); roughNg = (BIGINT)w;
     if (roughNg<1) {
       printf("N (# U pts) must be positive!\n"); usage(); return 1;
     }
@@ -65,9 +65,9 @@ int main(int argc, char* argv[])
   }
   if (argc>6) { usage();
     return 1; }
-  long N=std::round(pow(roughNg,1.0/d));         // Fourier grid size per dim
-  long Ng = (long)pow(N,d);                      // actual total grid points
-  long N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes
+  BIGINT N=std::round(pow(roughNg,1.0/d));         // Fourier grid size per dim
+  BIGINT Ng = (BIGINT)pow(N,d);                      // actual total grid points
+  BIGINT N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes
   std::vector<double> kx(M),ky(1),kz(1),d_nonuniform(2*M);    // NU, Re & Im
   if (d>1) ky.resize(M);                           // only alloc needed coords
   if (d>2) kz.resize(M);
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
     kx[0] = ky[0] = kz[0] = N/2;                    // at center
     int ier = cnufftspread(N,N2,N3,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     double kersumre = 0.0, kersumim = 0.0;  // sum kernel on uniform grid
-    for (long i=0;i<Ng;++i) {
+    for (BIGINT i=0;i<Ng;++i) {
       kersumre += d_uniform[2*i]; 
       kersumim += d_uniform[2*i+1];    // in case the kernel isn't real!
     }
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
     {
       unsigned int s=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
 #pragma omp for reduction(+:strre,strim)
-    for (long i=0; i<M; ++i) {
+    for (BIGINT i=0; i<M; ++i) {
       kx[i]=rand01r(&s)*N;
       if (d>1) ky[i]=rand01r(&s)*N;              // only fill needed coords
       if (d>2) kz[i]=rand01r(&s)*N;
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 
     double sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
 #pragma omp parallel for reduction(+:sumre,sumim)
-    for (long i=0;i<Ng;++i) {
+    for (BIGINT i=0;i<Ng;++i) {
       sumre += d_uniform[2*i]; 
       sumim += d_uniform[2*i+1];
     }
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
     opts.spread_direction=2;
     printf("cnufftspread %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",d,(double)Ng,opts.spread_direction,tol,opts.nspread);
 
-    for (long i=0;i<Ng;++i) {     // unit grid data
+    for (BIGINT i=0;i<Ng;++i) {     // unit grid data
       d_uniform[2*i] = 1.0;
       d_uniform[2*i+1] = 0.0;
     }
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
     {
       unsigned int s=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
 #pragma omp for
-      for (long i=0; i<M; ++i) {       // random target pts
+      for (BIGINT i=0; i<M; ++i) {       // random target pts
         kx[i]=rand01r(&s)*N;
 	if (d>1) ky[i]=rand01r(&s)*N;
 	if (d>2) kz[i]=rand01r(&s)*N;
@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
 
     // math test is worst-case error from pred value (kersum) on interp pts:
     maxerr = 0.0;
-    for (long i=0;i<M;++i) {
+    for (BIGINT i=0;i<M;++i) {
       double err = std::max(fabs(d_nonuniform[2*i]-kersumre),
 			    fabs(d_nonuniform[2*i+1]-kersumim));
       if (err>maxerr) maxerr=err;

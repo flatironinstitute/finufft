@@ -1,6 +1,7 @@
 #!/bin/bash
 # main script to looop through all validation tests for FINUFFT library.
 # Barnett 3/14/17. numdiff-free option 3/16/17
+# currently uses default spread_opts.sort_data 3/28/17
 
 # Note that bash cannot handle floating-point arithmetic, and bc cannot read
 # exponent notation. Thus the exponent notation here is purely string in nature:

@@ -11,6 +11,9 @@ CC=gcc
 FC=gfortran
 FLINK=-lstdc++
 
+# If you want to restrict to array sizes <2^31 and explore if 32-bit integer
+# indexing faster than 64-bit, add flag -DSMALLINT which sets BIGINT to int.
+
 # Here MFLAGS are for matlab, OFLAGS for octave.
 # Choose EITHER multi-threaded compile (default)...
 LIBSFFT = -lfftw3_threads -lfftw3 -lm

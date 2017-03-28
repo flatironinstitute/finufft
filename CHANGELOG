@@ -1,7 +1,17 @@
 List of tasks accomplished / changes made / release notes, in reverse
 chronological order:
 
+V 0.9:
 
+
+* all array indexing is BIGINT, switchable from long long to int via SMALLINT compile flag (default off)
+* test big probs (speed, crashing) and decide if BIGINT is long long or int?
+slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
+* tidy up spreader to be BIGINT = long long compatible and test > 2^31.
+* spreadtest parallel rand()
+* sort flag passed to spreader via finufft, and test scripts check if Xeon (-> sort=0)
+* opts in the manual
+* removed all xk2, dNU2 sorted arrays, and nunneeded dims y,z; halved RAM usage.
 
 V 0.8: (3/27/17)
 

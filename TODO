@@ -2,18 +2,14 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
-* test big probs (speed, crashing) and decide if BIGINT is long long or int?
-slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
-* tidy up spreader to be BIGINT = long long compatible and test > 2^31.
-* decide to cut down intermediate copies of input data eg xj -> xp -> xjscal -> xk2 to save RAM in large problems?
+* make C interface example1d1c cleaner, ie remove _Complex, why needs g++ to compile?
+* decide to cut down intermediate copies of input data eg xj -> xp -> xjscal to save RAM in large problems? Remove twopispread altogether?
 * test non-openmp compile. Decide if non vs omp get different lib names.
 * decide if need single-prec compile option for RAM reduction, switch all math calls to macros which call either single or double versions? Will be messy for interfaces to F, M, O, P: need separate single-prec codes?
 * run nufft_comparison, use for paper. Compare vs NFFT (Chemnitz), gpuNUFFT (Knoll)
 * theory work on exp(sqrt) being close to PSWF
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()
-* more doc/manual; wait until after tech report/paper
-* make C interface example1d1c cleaner, ie remove _Complex, why needs g++ to compile?
 * Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) better install notes.
 * Flatiron logo
 * github.io webpage
@@ -23,6 +19,8 @@ slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31
 
 LOW PRIORITY:
 
+* make test - should check sort=0,1 both?
+* more doc/manual; wait until after tech report/paper
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
 * clean up tree, remove devel and unused contrib?
 * package RPM and .deb for linux

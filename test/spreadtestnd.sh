@@ -5,7 +5,12 @@
 M=1e6       # problem size (# NU pts)
 N=1e6       # num U grid pts
 TOL=1e-6    # overall requested accuracy
-SORT=1      # whether to sort (0 best for xeon, 1 for i7)
+
+SORT=1      # generally better if sort (eg i7)
+if grep -q Xeon /proc/cpuinfo; then
+    echo "Xeon detected, switching off spreader sorting..."
+    SORT=0      # xeon is faster without sorting
+fi
 
 echo "spreadtestnd output:"
 ./mycpuinfo.sh

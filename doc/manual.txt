@@ -22,6 +22,14 @@ For calling examples from matlab/octave, see ../matlab/check_finufft.m
 For calling examples from python, see ../python/demo.py
 
 
+In the below, the opts structure has the following user-settable fields:
+  debug                0: silent, 1: text timing output, 2: spread info
+  spread_debug         level of debug output from spreader: 0,1 or 2
+  spread_sort          whether spreader should sort non-uniform pts: 0 or 1
+  maxnalloc            largest size of internal array to allow allocation
+                       (default is 1e9; set this larger if you need)
+
+
 
 ==================== 1D TRANSFORMS ==================
 

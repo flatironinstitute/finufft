@@ -12,7 +12,7 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 1d, all 3 types.
 
-   Usage: finufft1d_test [Nmodes [Nsrc [tol [debug]]]]
+   Usage: finufft1d_test [Nmodes [Nsrc [tol [debug [spread_sort]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
@@ -26,6 +26,7 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;      // default
   nufft_opts opts;
   opts.debug = 0;            // 1 to see sub-timings
+  opts.spread_sort = 1;      // default
   int isign = +1;            // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); N = (BIGINT)w; }
   if (argc>2) { sscanf(argv[2],"%lf",&w); M = (BIGINT)w; }
@@ -35,8 +36,9 @@ int main(int argc, char* argv[])
   }
   if (argc>4) sscanf(argv[4],"%d",&opts.debug);
   opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
-  if (argc==1 || argc>5) {
-    fprintf(stderr,"Usage: finufft1d_test [Nmodes [Nsrc [tol [debug]]]]\n");
+  if (argc>5) sscanf(argv[5],"%d",&opts.spread_sort);  // 0 or 1
+  if (argc==1 || argc>6) {
+    fprintf(stderr,"Usage: finufft1d_test [Nmodes [Nsrc [tol [debug [spread_sort]]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);

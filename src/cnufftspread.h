@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "utils.h"
 
-#define MAX_NSPREAD 16       // upper bound on nspread, needed by common too
+#define MAX_NSPREAD 16       // upper bound on nspread, also needed by common
 
 // Note -std=c++11 is needed to avoid warning for static initialization here:
 struct spread_opts {
@@ -22,8 +22,8 @@ struct spread_opts {
   double ES_c;
 };
 
-int cnufftspread(long N1, long N2, long N3, double *data_uniform,
-		 long M, double *kx, double *ky, double *kz,
+int cnufftspread(BIGINT N1, BIGINT N2, BIGINT N3, double *data_uniform,
+		 BIGINT M, double *kx, double *ky, double *kz,
 		 double *data_nonuniform, spread_opts opts);
 double evaluate_kernel(double x,const spread_opts &opts);
 int setup_kernel(spread_opts &opts,double eps,double R);

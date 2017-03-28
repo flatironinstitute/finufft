@@ -4,20 +4,19 @@
 #include <math.h>
 
 // declarations of internal functions...
-std::vector<long> compute_sort_indices(BIGINT M,double *kx, double *ky,
+std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky,
 				       double *kz,BIGINT N1,BIGINT N2,BIGINT N3);
 void compute_kernel_values(double frac1,double frac2,double frac3,
 			   const spread_opts &opts, int *r1, int *r2, int *r3,
 			   double *ker, int ndims);
-bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,
-			  long N3,int th,int nth, const spread_opts &opts,
+bool set_thread_index_box(BIGINT *i1th,BIGINT *i2th,BIGINT *i3th,BIGINT N1,BIGINT N2,
+			  BIGINT N3,int th,int nth, const spread_opts &opts,
 			  int ndims);
-bool ind_might_affect_interval(long i,long N,long *ith,long nspread);
 bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r);
 
 int cnufftspread(
-        long N1, long N2, long N3, double *data_uniform,
-        long M, double *kx, double *ky, double *kz, double *data_nonuniform,
+        BIGINT N1, BIGINT N2, BIGINT N3, double *data_uniform,
+        BIGINT M, double *kx, double *ky, double *kz, double *data_nonuniform,
         spread_opts opts)
 /* Spreader for 1, 2, or 3 dimensions.
    If opts.spread_direction=1, evaluate, in the 1D case,
@@ -119,7 +118,7 @@ int cnufftspread(
   if (opts.sort_data)
     sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3); // a good perm of NU pts
   else {
-    for (long i=0; i<M; i++)                  // (omp no speed-up here)
+    for (BIGINT i=0; i<M; i++)                  // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation!
   }
   double t=timer.elapsedsec();
@@ -136,7 +135,7 @@ int cnufftspread(
   
   if (opts.spread_direction==1) {  // zero complex output array ready to accumulate...
     timer.restart();
-    for (long i=0; i<2*N1*N2*N3; i++) data_uniform[i]=0.0;    // would be ruined by omp!
+    for (BIGINT i=0; i<2*N1*N2*N3; i++) data_uniform[i]=0.0;    // would be ruined by omp!
     if (opts.debug) printf("zeroing output array: %.3g s\n",timer.elapsedsec());
   }
 
@@ -205,7 +204,7 @@ int cnufftspread(
 	    compute_kernel_values(x1,x2,x3,opts,r1,r2,r3,kernel_values,ndims);
 	    double re0=data_nonuniform[2*jj];
 	    double im0=data_nonuniform[2*jj+1];
-  	    long aa = 0;
+  	    int aa = 0;                            // can't get very big
 	    for (int dz=r3[0]; dz<=r3[1]; dz++) {
 	      BIGINT o3=N1*N2*j3_array[dz-r3[0]];  // use precomp index lists in each dim
 	      for (int dy=r2[0]; dy<=r2[1]; dy++) {
@@ -259,7 +258,7 @@ int cnufftspread(
 	double kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
 	compute_kernel_values(x1,x2,x3,opts,R1,R2,R3,kernel_values,ndims);
 	double re0=0.0, im0=0.0;
-	int aa = 0;
+	int aa = 0;                            // can't get very big
 	for (int dz=R3[0]; dz<=R3[1]; dz++) {
 	  BIGINT o3=N1*N2*j3_array[dz-R3[0]];  // use precomputed index lists in each dim
 	  for (int dy=R2[0]; dy<=R2[1]; dy++) {
@@ -285,7 +284,7 @@ int cnufftspread(
     return 0;
 }
 
-bool set_thread_index_box(long *i1th,long *i2th,long *i3th,long N1,long N2,long N3,
+bool set_thread_index_box(BIGINT *i1th,BIGINT *i2th,BIGINT *i3th,BIGINT N1,BIGINT N2,BIGINT N3,
 			  int th,int nth, const spread_opts &opts, int ndims)
 /* Decides how the uniform grid is to be partitioned into cuboids for each thread
  * (for spread_direction=1 only, ie, writing to the grid).

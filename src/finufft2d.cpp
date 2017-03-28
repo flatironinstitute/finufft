@@ -86,6 +86,7 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
   // Step 1: spread from irregular points to regular grid
   timer.restart();
   spopts.debug = opts.spread_debug;
+  spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 1;
   int ier_spread = twopispread2d(nf1,nf2,(dcomplex*)fw,nj,xj,yj,cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
@@ -190,6 +191,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
   // Step 3: unspread (interpolate) from regular to irregular target pts
   timer.restart();
   spopts.debug = opts.spread_debug;
+  spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 2;
   int ier_spread = twopispread2d(nf1,nf2,(dcomplex*)fw,nj,xj,yj,cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
@@ -279,6 +281,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
   dcomplex* fw = (dcomplex*)malloc(sizeof(dcomplex)*nf1*nf2);
   timer.restart();
   spopts.debug = opts.spread_debug;
+  spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 1;
   int ier_spread = twopispread2d(nf1,nf2,fw,nj,xpj,ypj,cpj,spopts);
   free(xpj); free(ypj); free(cpj);
