@@ -276,13 +276,6 @@ int cnufftspread(
 	data_nonuniform[2*jj]   = re0;     // copy out accumulated complex value
 	data_nonuniform[2*jj+1] = im0;
       }
-      // "unsort" values which were dumped to NU output pts
-      //#pragma omp for schedule(dynamic)   // assign threads to NU targ pts
-      //for (BIGINT i=0; i<M; i++) {
-      //	BIGINT jj=sort_indices[i];
-      //	data_nonuniform[jj*2]=data_nonuniform2[i*2];
-      //	data_nonuniform[jj*2+1]=data_nonuniform2[i*2+1];
-      //   }
     }
   } // omp block
   if (bnderr) {

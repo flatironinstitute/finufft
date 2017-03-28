@@ -5,31 +5,35 @@
 
 int usage()
 {
-  printf("usage: spreadtestnd [dim [M [N [tol]]]]\n\twhere dim=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n");
+  printf("usage: spreadtestnd [dim [M [N [tol [sort]]]]]\n\twhere dim=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort data) or 1 (do, default)\n");
 }
 
 int main(int argc, char* argv[])
 /* Test executable for the 1D, 2D, or 3D C++ spreader, both directions.
  * It checks speed, and basic correctness via the grid sum of the result.
- * Usage: spreadtestnd [dim [M [N [tol]]]]
+ * Usage: spreadtestnd [dim [M [N [tol [sort]]]]]
  *	  where dim = 1,2 or 3
  *	  M = # nonuniform pts
  *        N = # uniform pts
  *	  tol = requested accuracy
+ *        sort = 0 (don't sort data) or 1 (do, default)
  *
- * Example: spreadtestnd 3 1e6 1e6 1e-6
+ * Example: spreadtestnd 3 1e7 1e6 1e-6 0
+ *
+ * Note: for 2d and 3d, sort=1 is 1-2x faster on i7; but 0.5-0.9x (ie slower) on xeon!
  *
  * Compilation (also check ../makefile):
- *    g++ spreadtestnd.cpp ../src/cnufftspread.o ../src/utils.o -o spreadtestnd -fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp
+ *    g++ spreadtestnd.cpp ../src/cnufftspread.o ../src/utils.o -o spreadtestnd -fPIC -Ofast -funroll-loops -std=c++11 -fopenmp
  *
  * Magland, expanded by Barnett 1/14/17. Better cmd line args 3/13/17
- * indep setting N 3/27/17
+ * indep setting N 3/27/17. parallel rand() & sort flag 3/28/17
  */
 {
-  int d = 3;            // default
+  int d = 3;            // default #dims
   double tol = 1e-6;    // default (eg 1e-6 has nspread=7)
   long M = 1e6;         // default # NU pts
   long roughNg = 1e6;   // default # U pts
+  int sort = 1;         // default
   if (argc<=1) { usage(); return 0; }
   sscanf(argv[1],"%d",&d);
   if (d<1 || d>3) {
@@ -53,7 +57,13 @@ int main(int argc, char* argv[])
       printf("tol must be positive!\n"); usage(); return 1;
     }
   }
-  if (argc>5) { usage();
+  if (argc>5) {
+    sscanf(argv[5],"%d",&sort);
+    if (sort!=0 && sort!=1) {
+      printf("sort must be 0 or 1!\n"); usage(); return 1;
+    }
+  }
+  if (argc>6) { usage();
     return 1; }
   long N=std::round(pow(roughNg,1.0/d));         // Fourier grid size per dim
   long Ng = (long)pow(N,d);                      // actual total grid points
@@ -65,7 +75,7 @@ int main(int argc, char* argv[])
 
   spread_opts opts; // set method opts...
   opts.debug = 0;
-  opts.sort_data=true;    // for 3D: nearly 2x faster on i7; but 0.9x on xeon!
+  opts.sort_data=(bool)sort;   // for 3D: 1-2x faster on i7; but 0.5-0.9x (ie slower) on xeon!
   double Rdummy = 2.0;    // since no nufft done, merely to please the setup
   setup_kernel(opts,tol,Rdummy);
 
@@ -86,14 +96,19 @@ int main(int argc, char* argv[])
     // now do the large-scale test w/ random sources..
     srand(0);    // fix seed for reproducibility
     double strre = 0.0, strim = 0.0;          // also sum the strengths
+#pragma omp parallel
+    {
+      unsigned int s=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+#pragma omp for reduction(+:strre,strim)
     for (long i=0; i<M; ++i) {
-      kx[i]=rand01()*N;
-      if (d>1) ky[i]=rand01()*N;              // only fill needed coords
-      if (d>2) kz[i]=rand01()*N;
-      d_nonuniform[i*2]=randm11();
-      d_nonuniform[i*2+1]=randm11();
+      kx[i]=rand01r(&s)*N;
+      if (d>1) ky[i]=rand01r(&s)*N;              // only fill needed coords
+      if (d>2) kz[i]=rand01r(&s)*N;
+      d_nonuniform[i*2]=randm11r(&s);
+      d_nonuniform[i*2+1]=randm11r(&s);
       strre += d_nonuniform[2*i]; 
       strim += d_nonuniform[2*i+1];
+    }
     }
     CNTime timer; timer.start();
     ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
@@ -105,6 +120,7 @@ int main(int argc, char* argv[])
       printf("\t%.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
 
     double sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
+#pragma omp parallel for reduction(+:sumre,sumim)
     for (long i=0;i<Ng;++i) {
       sumre += d_uniform[2*i]; 
       sumim += d_uniform[2*i+1];
@@ -126,10 +142,15 @@ int main(int argc, char* argv[])
       d_uniform[2*i] = 1.0;
       d_uniform[2*i+1] = 0.0;
     }
-    for (long i=0; i<M; ++i) {       // random target pts
-      kx[i]=rand01()*N;
-      if (d>1) ky[i]=rand01()*N;
-      if (d>2) kz[i]=rand01()*N;
+#pragma omp parallel
+    {
+      unsigned int s=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+#pragma omp for
+      for (long i=0; i<M; ++i) {       // random target pts
+        kx[i]=rand01r(&s)*N;
+	if (d>1) ky[i]=rand01r(&s)*N;
+	if (d>2) kz[i]=rand01r(&s)*N;
+      }
     }
     timer.restart();
     ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);

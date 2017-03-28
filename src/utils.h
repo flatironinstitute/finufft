@@ -18,6 +18,7 @@ typedef long BIGINT;
 #define ERR_SPREAD_ALLOC         5
 #define ERR_SPREAD_DIR           6
 
+
 #define MAX(a,b) (a>b) ? a : b  // but we use std::max instead
 #define MIN(a,b) (a<b) ? a : b
 
@@ -29,6 +30,7 @@ double infnorm(BIGINT n, dcomplex* a);
 void arrayrange(BIGINT n, double* a, double *lo, double *hi);
 void arraywidcen(BIGINT n, double* a, double *w, double *c);
 BIGINT next235even(BIGINT n);
+
 
 // jfm timer stuff
 #include <sys/time.h>
@@ -42,6 +44,7 @@ class CNTime {
   struct timeval initial;
 };
 
+
 // Random numbers: crappy unif random number generator in [0,1):
 //#define rand01() (((double)(rand()%RAND_MAX))/RAND_MAX)
 #define rand01() ((double)rand()/RAND_MAX)
@@ -49,6 +52,14 @@ class CNTime {
 #define randm11() (2*rand01() - 1.0)
 // complex unif[-1,1] for Re and Im:
 #define crandm11() (randm11() + ima*randm11())
+
+// thread-safe seed-carrying versions of random (x is ptr to seed)...
+#define rand01r(x) ((double)rand_r(x)/RAND_MAX)
+// unif[-1,1]:
+#define randm11r(x) (2*rand01r(x) - 1.0)
+// complex unif[-1,1] for Re and Im:
+#define crandm11r(x) (randm11r(x) + ima*randm11r(x))
+
 
 // allow compile-time switch off of openmp, so compilation without any openmp
 // is done (Note: _OPENMP is automatically set by -fopenmp compile flag)

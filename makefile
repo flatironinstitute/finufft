@@ -14,8 +14,8 @@ FLINK=-lstdc++
 # Here MFLAGS are for matlab, OFLAGS for octave.
 # Choose EITHER multi-threaded compile (default)...
 LIBSFFT = -lfftw3_threads -lfftw3 -lm
-CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -fopenmp -DNEED_EXTERN_C
-CFLAGS=-fPIC -Ofast -funroll-loops -march=native -fopenmp
+CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -fopenmp -DNEED_EXTERN_C
+CFLAGS=-fPIC -Ofast -funroll-loops -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
 MFLAGS=-lgomp -largeArrayDims -lrt -D_OPENMP
 # Mac users should use something like this:
@@ -26,8 +26,8 @@ OFLAGS=-lgomp -lrt
 
 # OR uncomment the following for single threaded compile...
 #LIBSFFT = -lfftw3 -lm
-#CXXFLAGS=-fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
-#CFLAGS=-fPIC -Ofast -funroll-loops -march=native
+#CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -DNEED_EXTERN_C
+#CFLAGS=-fPIC -Ofast -funroll-loops
 #FFLAGS=-fPIC -O3 -funroll-loops
 #MFLAGS=-largeArrayDims -lrt
 # Mac users should use something like this:
@@ -66,7 +66,7 @@ usage:
 	@echo " make test - compile and run math validation tests"
 	@echo " make perftest - compile and run performance tests"
 	@echo " make fortran - compile and test Fortran interfaces"
-	@echo " make matlab - compile and test Matlab interfaces"
+	@echo " make matlab - compile Matlab interfaces"
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
 	@echo " make clean - remove all object and executable files apart from MEX"
