@@ -5,7 +5,7 @@
 
 // declarations of internal functions...
 std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky,
-				       double *kz,BIGINT N1,BIGINT N2,BIGINT N3);
+					 double *kz,BIGINT N1,BIGINT N2,BIGINT N3, int pirange);
 void compute_kernel_values(double frac1,double frac2,double frac3,
 			   const spread_opts &opts, int *r1, int *r2, int *r3,
 			   double *ker, int ndims);
@@ -65,6 +65,7 @@ int cnufftspread(
         spread_direction=1, spreads from nonuniform input to uniform output, or
         spread_direction=2, interpolates ("spread transpose") from uniform input
                             to nonuniform output.
+	pirange = 0: kx,ky,kz coords in [0,N]. 1: coords in [-pi,pi].
 	sort_data - (boolean) whether to sort NU points using natural yz-grid
 	            ordering. Recommended true.
 	debug = 0: no text output, 1: some openmp output, 2: mega output
@@ -80,8 +81,8 @@ int cnufftspread(
    returned value - 0 indicates success; other values as follows
       (see utils.h for error codes)
       3 : one or more non-trivial box dimensions is less than 2.nspread.
-      4 : nonuniform points outside range [0,Nm] in at least one dimension
-          m=1,2,3.
+      4 : nonuniform points outside range [0,Nm] or [-pi,pi] in at least one
+          dimension m=1,2,3.
       5 : out of memory for the internal sorting arrays.
       6 : invalid opts.spread_direction
 
@@ -115,8 +116,8 @@ int cnufftspread(
   
   // store a permutation ordering of the NU pts...
   CNTime timer; timer.start();
-  if (opts.sort_data)
-    sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3); // a good perm of NU pts
+  if (opts.sort_data)   // make good perm of NU pts
+    sort_indices=compute_sort_indices(M,kx,ky,kz,N1,N2,N3,opts.pirange);
   else {
     for (BIGINT i=0; i<M; i++)                  // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation!
@@ -367,7 +368,7 @@ bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r)
   return false;
 }
 
- std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double *kz,BIGINT N1,BIGINT N2,BIGINT N3)
+std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double *kz,BIGINT N1,BIGINT N2,BIGINT N3,pirange)
   /* Returns permutation of the 1, 2 or 3D nonuniform points with good RAM access for the
    * upcoming spreading step.
    *
@@ -379,7 +380,7 @@ bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r)
    * 
    * Inputs: M - length of inputs
    *         kx,ky,kz - length-M real numbers in [0,N1], [0,N2], [0,N3]
-   *                    respectively.
+   *                    respectively, if pirange=0, or in [-pi,pi] if pirange=1
    * Output: vector list of indices, each in the range 0,..,M-1, which is a good ordering
    *         of the points.
    *
@@ -387,20 +388,23 @@ bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r)
    *
    * todo: fix the 1d case to sort along x dimension.
    * Magland, Dec 2016; Barnett tweaked so doesn't examine ky in 1d, or kz in 1d or 2d.
+   * 3/28/17: pirange flag
    */
 {
   (void)kx; //tell compiler this is an unused variable
   (void)N1; //tell compiler this is an unused variable
-  bool isky=(N2>1), iskz=(N3>1);           // are ky,kz available? cannot access if not!
+  bool isky=(N2>1), iskz=(N3>1);   // are ky,kz available? cannot access if not!
   std::vector<BIGINT> counts(N2*N3);
   for (BIGINT j=0; j<N2*N3; j++)
     counts[j]=0;
   for (BIGINT i=0; i<M; i++) {
-    BIGINT i2=isky ? (BIGINT)(ky[i]+0.5) : 0;
+    double y = isky ? ky[i] : 0.0;
+    BIGINT i2=pirange ? (BIGINT)((y/(2*M_PI) + 0.5)*N2) : (BIGINT)(y+0.5);
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
-    BIGINT i3=iskz ? (BIGINT)(kz[i]+0.5) : 0;
+    double z = iskz ? kz[i] : 0.0;
+    BIGINT i3=pirange ? (BIGINT)((z/(2*M_PI) + 0.5)*N3) : (BIGINT)(z+0.5);
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     
@@ -415,11 +419,13 @@ bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r)
   
   std::vector<BIGINT> ret_inv(M);
   for (BIGINT i=0; i<M; i++) {
-    BIGINT i2=isky ? (BIGINT)(ky[i]+0.5) : 0;
+    double y = isky ? ky[i] : 0.0;
+    BIGINT i2=pirange ? (BIGINT)((y/(2*M_PI) + 0.5)*N2) : (BIGINT)(y+0.5);
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
-    BIGINT i3=iskz ? (BIGINT)(kz[i]+0.5) : 0;
+    double z = iskz ? kz[i] : 0.0;
+    BIGINT i3=pirange ? (BIGINT)((z/(2*M_PI) + 0.5)*N3) : (BIGINT)(z+0.5);
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     

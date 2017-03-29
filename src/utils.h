@@ -24,7 +24,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 typedef int64_t BIGINT;
 #endif
 
-// internal integers needed for figuring array sizes, regardless of BIGINT
+// internal integers needed for figuring array sizes, regardless of INT, BIGINT
 typedef int64_t INT64;
 
 

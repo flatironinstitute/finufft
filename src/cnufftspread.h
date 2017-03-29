@@ -13,6 +13,7 @@ struct spread_opts {
   int nspread=6;           // defaults are not too meaningful here
 // opts controlling spreading method (indep of kernel)...
   int spread_direction=1;  // 1 means spread NU->U, 2 means interpolate U->NU
+  int pirange=0;           // 0: coords in [0,N), 1 coords in [-pi,pi)
   bool sort_data=true;     // controls method
   int checkerboard=0;      // controls method
   int debug=0;             // text output
