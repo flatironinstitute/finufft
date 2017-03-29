@@ -43,9 +43,10 @@ int cnufftspread(
    dimensions are relevant; note that this is Fortran-style ordering for an
    array f(x,y,z), but C style for f[z][y][x]. This is to match the fortran
    interface of the original CMCL libraries.
-   Non-uniform (NU) points kx,ky,kz are real and must be in the range [0,N1]
-   in 1D, analogously in 2D and 3D, otherwise an error is returned and no
-   calculation is done.
+   Non-uniform (NU) points kx,ky,kz are real and if pirange=0, must be in the
+   range [0,N1] in 1D, analogously in 2D and 3D, otherwise an error is
+   returned and no calculation is done. If pirange=1, the range is instead
+   [-pi,pi] for each coord.
    The spread_opts struct must have been set up already by calling setup_kernel.
    It is assumed that 2*opts.nspread < min(N1,N2,N3), so that the kernel
    only ever wraps once when falls below 0 or off the top of a uniform grid
@@ -59,7 +60,7 @@ int cnufftspread(
    M - number of NU pts.
    kx, ky, kz - length-M real arrays of NU point coordinates (only kz used in
                 1D, only kx and ky used in 2D). These must lie in the box,
-		ie 0<=kx<=N1 etc.
+		ie 0<=kx<=N1 etc (if pirange=0), or -pi<=kx<=pi (if pirange=1).
    opts - object controlling spreading method and text output, has fields
           including:
         spread_direction=1, spreads from nonuniform input to uniform output, or
@@ -87,7 +88,7 @@ int cnufftspread(
       6 : invalid opts.spread_direction
 
    Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
-   error codes 3/13/17
+   error codes 3/13/17. pirange 3/28/17
 */
 { 
   // Input checking: cuboid not too small for spreading
@@ -158,15 +159,19 @@ int cnufftspread(
 	  // (note every thread does this loop, but only sometimes write to the grid)
 	  BIGINT jj=sort_indices[i];
 	  int r1[2],r2[2],r3[2]; // lower & upper rel ind bnds restricted to thread's box
-	  BIGINT i1=(BIGINT)std::ceil(kx[jj]-ns2), i2=0, i3=0; // leftmost x grid index
-	  if (kx[jj]<0.0 || kx[jj]>N1) bnderr = true;
+	  double xj = opts.pirange ? (kx[jj]/(2*M_PI)+0.5)*N1  : kx[jj];
+	  double yj, zj;         // need scope to last
+	  BIGINT i1=(BIGINT)std::ceil(xj-ns2), i2=0, i3=0; // leftmost x grid index
+	  if (xj<0.0 || xj>N1) bnderr = true;
 	  if (ndims>1) {
-	    i2=(BIGINT)std::ceil(ky[jj]-ns2); // lowest y grid index
-	    if (ky[jj]<0.0 || ky[jj]>N2) bnderr = true;
+	    yj =  opts.pirange ? (ky[jj]/(2*M_PI)+0.5)*N2  : ky[jj];
+	    i2=(BIGINT)std::ceil(yj-ns2); // lowest y grid index
+	    if (yj<0.0 || yj>N2) bnderr = true;
 	  }
 	  if (ndims>2) {
-	    i3=(BIGINT)std::ceil(kz[jj]-ns2); // lowest z grid index
-	    if (kz[jj]<0.0 || kz[jj]>N3) bnderr = true;
+	    zj =  opts.pirange ? (kz[jj]/(2*M_PI)+0.5)*N3  : kz[jj];
+	    i3=(BIGINT)std::ceil(zj-ns2); // lowest z grid index
+	    if (zj<0.0 || zj>N3) bnderr = true;
 	  }
 	  // set the r1,r2,r3 bounds and decide if NU point i affects this thread's box:
 	  bool i_affects_box = wrapped_range_in_interval(i1,R1,i1th,N1,r1) &&
@@ -180,20 +185,20 @@ int cnufftspread(
 	    // periodically up to +-1 period:    
 	    BIGINT j1_array[MAX_NSPREAD],j2_array[MAX_NSPREAD],j3_array[MAX_NSPREAD];
 	    j2_array[0] = 0; j3_array[0] = 0;             // needed for unused dims
-	    double x1=(double)i1-kx[jj], x2, x3;          // real shifts of ker center
+	    double x1=(double)i1-xj, x2, x3;          // real shifts of ker center
 	    for (int dx=r1[0]; dx<=r1[1]; dx++) {
 	      BIGINT j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1;
 	      j1_array[dx-r1[0]]=j;
 	    }
 	    if (ndims>1) {              // 2d stuff
-	      x2=(double)i2-ky[jj];
+	      x2=(double)i2-yj;
 	      for (int dy=r2[0]; dy<=r2[1]; dy++) {
 		BIGINT j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2;
 		j2_array[dy-r2[0]]=j;
 	      }
 	    }
 	    if (ndims>2) {              // 2d or 3d stuff
-	      x3=(double)i3-kz[jj];
+	      x3=(double)i3-zj;
 	      for (int dz=r3[0]; dz<=r3[1]; dz++) {
 		BIGINT j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3;
 		j3_array[dz-r3[0]]=j;
@@ -231,26 +236,30 @@ int cnufftspread(
 	// periodically up to +-1 period:
 	BIGINT j1_array[MAX_NSPREAD],j2_array[MAX_NSPREAD],j3_array[MAX_NSPREAD];
 	j2_array[0] = 0; j3_array[0] = 0;             // needed for unused dims
-	if (kx[jj]<0.0 || kx[jj]>N1) bnderr = true;
-	BIGINT i1=(BIGINT)std::ceil(kx[jj]-ns2), i2=0, i3=0; // leftmost grid index
-	double x1=(double)i1-kx[jj], x2, x3;          // real-valued shifts of ker center
+	double xj = opts.pirange ? (kx[jj]/(2*M_PI)+0.5)*N1  : kx[jj];
+	double yj, zj;
+	if (xj<0.0 || xj>N1) bnderr = true;
+	BIGINT i1=(BIGINT)std::ceil(xj-ns2), i2=0, i3=0; // leftmost grid index
+	double x1=(double)i1-xj, x2, x3;          // real-valued shifts of ker center
 	for (int dx=R1[0]; dx<=R1[1]; dx++) {
 	  BIGINT j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1;
 	  j1_array[dx-R1[0]]=j;                       // redundant since R1[0]=0 always
 	}
 	if (ndims>1) {              // 2d stuff
-	  if (ky[jj]<0.0 || ky[jj]>N2) bnderr = true;
-	  i2=(BIGINT)std::ceil(ky[jj]-ns2); // lowest y grid index, or 0 if unused dim
-	  x2=(double)i2-ky[jj];
+	  yj =  opts.pirange ? (ky[jj]/(2*M_PI)+0.5)*N2  : ky[jj];
+	  if (yj<0.0 || yj>N2) bnderr = true;
+	  i2=(BIGINT)std::ceil(yj-ns2); // lowest y grid index, or 0 if unused dim
+	  x2=(double)i2-yj;
 	  for (int dy=R2[0]; dy<=R2[1]; dy++) {
 	    BIGINT j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2;
 	    j2_array[dy-R2[0]]=j;
 	  }
 	}
 	if (ndims>2) {              // 2d or 3d stuff
-	  if (kz[jj]<0.0 || kz[jj]>N3) bnderr = true;
-	  i3=(BIGINT)std::ceil(kz[jj]-ns2); // lowest z grid index, or 0 if unused dim
-	  x3=(double)i3-kz[jj];
+	  zj =  opts.pirange ? (kz[jj]/(2*M_PI)+0.5)*N3  : kz[jj];
+	  if (zj<0.0 || zj>N3) bnderr = true;
+	  i3=(BIGINT)std::ceil(zj-ns2); // lowest z grid index, or 0 if unused dim
+	  x3=(double)i3-zj;
 	  for (int dz=R3[0]; dz<=R3[1]; dz++) {
 	    BIGINT j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3;
 	    j3_array[dz-R3[0]]=j;
@@ -368,7 +377,7 @@ bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r)
   return false;
 }
 
-std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double *kz,BIGINT N1,BIGINT N2,BIGINT N3,pirange)
+std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double *kz,BIGINT N1,BIGINT N2,BIGINT N3,int pirange)
   /* Returns permutation of the 1, 2 or 3D nonuniform points with good RAM access for the
    * upcoming spreading step.
    *
@@ -399,12 +408,12 @@ std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double
     counts[j]=0;
   for (BIGINT i=0; i<M; i++) {
     double y = isky ? ky[i] : 0.0;
-    BIGINT i2=pirange ? (BIGINT)((y/(2*M_PI) + 0.5)*N2) : (BIGINT)(y+0.5);
+    BIGINT i2=pirange ? (BIGINT)((y/(2*M_PI) + 0.5)*N2+0.5) : (BIGINT)(y+0.5);
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
     double z = iskz ? kz[i] : 0.0;
-    BIGINT i3=pirange ? (BIGINT)((z/(2*M_PI) + 0.5)*N3) : (BIGINT)(z+0.5);
+    BIGINT i3=pirange ? (BIGINT)((z/(2*M_PI) + 0.5)*N3+0.5) : (BIGINT)(z+0.5);
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     
@@ -420,12 +429,12 @@ std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double
   std::vector<BIGINT> ret_inv(M);
   for (BIGINT i=0; i<M; i++) {
     double y = isky ? ky[i] : 0.0;
-    BIGINT i2=pirange ? (BIGINT)((y/(2*M_PI) + 0.5)*N2) : (BIGINT)(y+0.5);
+    BIGINT i2=pirange ? (BIGINT)((y/(2*M_PI) + 0.5)*N2+0.5) : (BIGINT)(y+0.5);
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
     double z = iskz ? kz[i] : 0.0;
-    BIGINT i3=pirange ? (BIGINT)((z/(2*M_PI) + 0.5)*N3) : (BIGINT)(z+0.5);
+    BIGINT i3=pirange ? (BIGINT)((z/(2*M_PI) + 0.5)*N3+0.5) : (BIGINT)(z+0.5);
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     
