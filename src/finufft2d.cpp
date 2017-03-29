@@ -7,8 +7,8 @@
 #include <iostream>
 #include <iomanip>
 
-int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
-	       double eps, BIGINT ms, BIGINT mt, dcomplex* fk, nufft_opts opts)
+int finufft2d1(INT nj,double* xj,double *yj,dcomplex* cj,int iflag,
+	       double eps, INT ms, INT mt, dcomplex* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
                   1  nj-1
@@ -23,7 +23,7 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
      used, otherwise the - sign is used, in the exponential.
                            
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources
      xj,yj     x,y locations of sources on 2D domain [-pi,pi]^2.
      cj     size-nj complex double array of source strengths, 
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -54,15 +54,15 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
+  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
   if (nf1*nf2>opts.maxnalloc) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",ms,mt,nf1,nf2,nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -109,8 +109,8 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
   return 0;
 }
 
-int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps,
-	       BIGINT ms, BIGINT mt, dcomplex* fk, nufft_opts opts)
+int finufft2d2(INT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps,
+	       INT ms, INT mt, dcomplex* fk, nufft_opts opts)
 
  /*  Type-2 2D complex nonuniform FFT.
 
@@ -147,15 +147,15 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
+  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
   if (nf1*nf2>opts.maxnalloc) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",ms,mt,nf1,nf2,nj); 
+  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -202,7 +202,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
   return 0;
 }
 
-int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double eps, BIGINT nk, double* s, double *t, dcomplex* fk, nufft_opts opts)
+int finufft2d3(INT nj,double* xj,double* yj,dcomplex* cj,int iflag, double eps, INT nk, double* s, double *t, dcomplex* fk, nufft_opts opts)
  /*  Type-3 2D complex nonuniform FFT.
 
                nj-1
@@ -246,20 +246,20 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1,nf2;
+  INT64 nf1,nf2;
   double X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2;
   cout << scientific << setprecision(15);  // for debug
 
   // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
   CNTime timer; timer.start();
-  arraywidcen(nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
-  arraywidcen(nk,s,&S1,&D1);   // {s_k}
-  arraywidcen(nj,yj,&X2,&C2);  // {y_j}
-  arraywidcen(nk,t,&S2,&D2);   // {t_k}
+  arraywidcen((BIGINT)nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
+  arraywidcen((BIGINT)nk,s,&S1,&D1);   // {s_k}
+  arraywidcen((BIGINT)nj,yj,&X2,&C2);  // {y_j}
+  arraywidcen((BIGINT)nk,t,&S2,&D2);   // {t_k}
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
-  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,nj,nk);
+  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,(INT64)nj,(INT64)nk);
   if (nf1*nf2>opts.maxnalloc) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
@@ -296,7 +296,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
     sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
     tp[k] = h2*gam2*(t[k]-D2);                         // so that |t'_k| < pi/R
   }
-  int ier_t2 = finufft2d2(nk,sp,tp,fk,iflag,eps,nf1,nf2,fw,opts);
+  int ier_t2 = finufft2d2(nk,sp,tp,fk,iflag,eps,(INT)nf1,(INT)nf2,fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2) exit(ier_t2);

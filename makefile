@@ -11,13 +11,16 @@ CC=gcc
 FC=gfortran
 FLINK=-lstdc++
 
+# Notes for CXXFLAGS:
 # If you want to restrict to array sizes <2^31 and explore if 32-bit integer
 # indexing faster than 64-bit, add flag -DSMALLINT which sets BIGINT to int.
+# If you want 32 bit integers in the FINUFFT library interface instead of int64,
+# add flag -DINTERFACE32
 
 # Here MFLAGS are for matlab, OFLAGS for octave.
 # Choose EITHER multi-threaded compile (default)...
 LIBSFFT = -lfftw3_threads -lfftw3 -lm
-CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -fopenmp -DNEED_EXTERN_C -DSMALLINT
+CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -fopenmp -DNEED_EXTERN_C
 CFLAGS=-fPIC -Ofast -funroll-loops -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
 MFLAGS=-lgomp -largeArrayDims -lrt -D_OPENMP

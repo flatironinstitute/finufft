@@ -61,14 +61,15 @@ void arraywidcen(BIGINT n, double* a, double *w, double *c)
   *c = (hi+lo)/2;
 }
 
-BIGINT next235even(BIGINT n)
+INT64 next235even(INT64 n)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth"). Adapted from fortran in hellskitchen.  Barnett 2/9/17
+// changed INT64 type 3/28/17
 {
   if (n<=2) return 2;
   if (n%2 == 1) n+=1;   // even
-  BIGINT nplus = n-2;   // to cancel out the +=2 at start of loop
-  BIGINT numdiv = 2;    // a dummy that is >1
+  INT64 nplus = n-2;   // to cancel out the +=2 at start of loop
+  INT64 numdiv = 2;    // a dummy that is >1
   while (numdiv>1) {
     nplus += 2;         // stays even
     numdiv = nplus;

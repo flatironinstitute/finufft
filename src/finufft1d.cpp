@@ -7,7 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
-int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
+int finufft1d1(INT nj,double* xj,dcomplex* cj,int iflag,double eps,INT ms,
 	       dcomplex* fk, nufft_opts opts)
  /*  Type-1 1D complex nonuniform FFT.
 
@@ -16,7 +16,7 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
               nj j=0                            
                         if nj>0, else fk identically zero for nj=0.
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (type INT; see utils.h)
      xj     location of sources on interval [-pi,pi].
      cj     size-nj double complex array of source strengths
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -49,15 +49,14 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  double nf1d; set_nf_type12(ms,opts,spopts,&nf1d);
-  if (nf1d>opts.maxnalloc) {
-    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",nf1d,opts.maxnalloc);
+  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  if (nf1>opts.maxnalloc) {
+    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
   }
-  BIGINT nf1=(BIGINT)nf1d;
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d1: ms=%ld nf1=%ld nj=%ld ...\n",ms,nf1,nj);
+  if (opts.debug) printf("1d1: ms=%ld nf1=%ld nj=%ld ...\n",(INT64)ms,nf1,(INT64)nj);
 
   CNTime timer; timer.start();
   int nth = MY_OMP_GET_MAX_THREADS();
@@ -106,7 +105,7 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 }
 
 
-int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
+int finufft1d2(INT nj,double* xj,dcomplex* cj,int iflag,double eps,INT ms,
 	       dcomplex* fk, nufft_opts opts)
  /*  Type-2 1D complex nonuniform FFT.
 
@@ -115,7 +114,7 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
    Inputs:
-     nj     number of target (integer of type BIGINT; see utils.h)
+     nj     number of targets
      xj     location of targets on interval [-pi,pi].
      fk     complex Fourier transform values (size ms, increasing mode ordering)
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -146,14 +145,14 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
+  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
   if (nf1>opts.maxnalloc) {
     fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d2: ms=%ld nf1=%ld nj=%ld ...\n",ms,nf1,nj); 
+  if (opts.debug) printf("1d2: ms=%ld nf1=%ld nj=%ld ...\n",(INT64)ms,nf1,(INT64)nj); 
 
   // STEP 0: get FT of real symmetric spreading kernel
   CNTime timer; timer.start();
@@ -199,14 +198,14 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 }
 
 
-int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT nk, double* s, dcomplex* fk, nufft_opts opts)
+int finufft1d3(INT nj,double* xj,dcomplex* cj,int iflag, double eps, INT nk, double* s, dcomplex* fk, nufft_opts opts)
  /*  Type-3 1D complex nonuniform FFT.
 
                nj-1
      fk[k]  =  SUM   c[j] exp(+-i s[k] xj[j]),      for k = 0, ..., nk-1
                j=0
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources
      xj     location of sources in R (real line).
      cj     size-nj double complex array of source strengths
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -243,17 +242,17 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1;
+  INT64 nf1;
   double X1,C1,S1,D1,h1,gam1;
   cout << scientific << setprecision(15);  // for debug
 
   // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
   CNTime timer; timer.start();
-  arraywidcen(nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
-  arraywidcen(nk,s,&S1,&D1);   // get half-width, center, containing {s_k}
+  arraywidcen((BIGINT)nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
+  arraywidcen((BIGINT)nk,s,&S1,&D1);   // get half-width, center, containing {s_k}
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
-  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,nj,nk);
+  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,(INT64)nj,(INT64)nk);
   if (nf1>opts.maxnalloc) {
     fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
@@ -285,7 +284,7 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
   double *sp = (double*)malloc(sizeof(double)*nk);     // rescaled targs s'_k
   for (BIGINT k=0;k<nk;++k)
     sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
-  int ier_t2 = finufft1d2(nk,sp,fk,iflag,eps,nf1,fw,opts);  // the meat
+  int ier_t2 = finufft1d2(nk,sp,fk,iflag,eps,(INT)nf1,fw,opts);  // the meat
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2) return ier_t2;

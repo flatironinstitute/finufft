@@ -6,18 +6,26 @@ using namespace std;        // means std:: not needed for cout, max, etc
 typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 #define ima complex<double>{0.0,1.0}
 
+// Compile-flag choice of 64 (default) or 32 bit integers in interface
+#ifdef INTERFACE32
+  typedef int INT;
+#else
+  typedef int64_t INT;
+#endif
 
-// Choose 32 or 64 bit integer indexing:
+// Compile flag choice of 64 (default) or 32 bit internal integer indexing:
 #ifdef SMALLINT
 // It is possible that on some systems it will run faster, if you only care
 // about small arrays, to index via 32-bit integers...
   typedef int BIGINT;
 #else
-// default: since "long" not guaranteed to exceed 32 bit signed int, ie 2^31,
+// since "long" not guaranteed to exceed 32 bit signed int, ie 2^31,
 // use long long (64-bit) since want handle huge array sizes (>2^31)...
-  typedef long long BIGINT;
-//typedef int64_t BIGINT;
+typedef int64_t BIGINT;
 #endif
+
+// internal integers needed for figuring array sizes, regardless of BIGINT
+typedef int64_t INT64;
 
 
 // global error codes for the library...
@@ -39,7 +47,7 @@ double twonorm(BIGINT n, dcomplex* a);
 double infnorm(BIGINT n, dcomplex* a);
 void arrayrange(BIGINT n, double* a, double *lo, double *hi);
 void arraywidcen(BIGINT n, double* a, double *w, double *c);
-BIGINT next235even(BIGINT n);
+INT64 next235even(INT64 n);
 
 
 // jfm timer stuff

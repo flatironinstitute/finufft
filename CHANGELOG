@@ -3,8 +3,10 @@ chronological order:
 
 V 0.9:
 
-
-* all array indexing is BIGINT, switchable from long long to int via SMALLINT compile flag (default off)
+* testfinufft* use same integer type INT as for interfaces, typecast all %ld in printf warnings
+* INT64 for necessary size-setting arrays, removed all %lf printf warnings in finufft*
+* all internal array indexing is BIGINT, switchable from long long to int via SMALLINT compile flag (default off, see utils.h)
+* all integers in interfaces are type INT, default 64-bit, switchable to 32 bit by INTERGER32 compile flag (see utils.h)
 * test big probs (speed, crashing) and decide if BIGINT is long long or int?
 slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
 * tidy up spreader to be BIGINT = long long compatible and test > 2^31.

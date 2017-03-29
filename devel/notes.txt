@@ -437,3 +437,9 @@ OCT_CXX = `mkoctfile -p CXXFLAGS` $(COMMON_CXX)
 all:
     CXXFLAGS="$(OCT_CXX)" \
          mkoctfile traclus-octave.cpp -o traclus.oct
+
+
+============= issues of whether use int32 or int64 interface for libraries =====
+
+https://github.com/numpy/numpy/issues/5906
+

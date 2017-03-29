@@ -14,18 +14,18 @@ extern "C" {
 // constants needed within common
 #define MAX_NQUAD 100     // max number of positive quadr nodes
 
-void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, double *nfd)
+void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, INT64 *nf)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
-// and number of Fourier modes ms. Note nfd is double version of nf.
+// and requested number of Fourier modes ms.
 {
-  *nfd = (double)(opts.R*ms);
-  if (*nfd<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
-  if (*nfd<opts.maxnalloc)                          // otherwise will fail anyway
+  *nf = (INT64)(opts.R*ms);
+  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
+  if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
     *nf = next235even(*nf);                        // expensive at huge nf
 }
 
 void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
-		     BIGINT *nf, double *h, double *gam)
+		     INT64 *nf, double *h, double *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
    Inputs:
@@ -35,14 +35,16 @@ void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
    nf is the size of upsampled grid for a given single dimension.
    h is the grid spacing = 2pi/nf
    gam is the x rescale factor, ie x'_j = x_j/gam  (modulo shifts).
-   Barnett 2/13/17. Caught inf/nan 3/14/17
+   Barnett 2/13/17. Caught inf/nan 3/14/17. io int types changed 3/28/17
 */
 {
   int nss = spopts.nspread + 1;      // since ns may be odd
-  *nf = (BIGINT)(2.0*opts.R*S*X/M_PI + nss);
-  //printf("initial nf=%ld, ns=%d\n",nf,spopts.nspread);
+  double nfd = 2.0*opts.R*S*X/M_PI + nss;
+  if (!isfinite(nfd)) nfd=0.0;                // use double to catch inf
+  *nf = (INT64)nfd;
+  //printf("initial nf=%ld, ns=%d\n",*nf,spopts.nspread);
   // catch too small nf, and nan or +-inf, otherwise spread fails...
-  if (*nf<2*spopts.nspread || !isfinite(*nf)) *nf=2*spopts.nspread;
+  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;
   if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
     *nf = next235even(*nf);                        // expensive at huge nf
   *h = 2*M_PI / *nf;                          // upsampled grid spacing
