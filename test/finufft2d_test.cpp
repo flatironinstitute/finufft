@@ -9,6 +9,9 @@
 // how big a problem to do full direct DFT check in 2D...
 #define BIGPROB 1e8
 
+// for omp rand filling
+#define CHUNK 1000000
+
 int main(int argc, char* argv[])
 /* Test executable for finufft in 2d, all 3 types
 
@@ -49,15 +52,20 @@ int main(int argc, char* argv[])
 
   double *x = (double *)malloc(sizeof(double)*M);        // NU pts x coords
   double *y = (double *)malloc(sizeof(double)*M);        // NU pts y coords
-  for (INT j=0; j<M; ++j) {
-    x[j] = M_PI*randm11();
-    y[j] = M_PI*randm11();
-  }
   dcomplex* c = (dcomplex*)malloc(sizeof(dcomplex)*M);   // strengths 
   dcomplex* F = (dcomplex*)malloc(sizeof(dcomplex)*N);   // mode ampls
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+#pragma omp for schedule(dynamic,CHUNK)
+    for (INT j=0; j<M; ++j) {
+      x[j] = M_PI*randm11r(&se);
+      y[j] = M_PI*randm11r(&se);
+      c[j] = crandm11r(&se);
+    }
+  }
 
   printf("test 2d type-1:\n"); // -------------- type 1
-  for (INT j=0; j<M; ++j) c[j] = crandm11();
   CNTime timer; timer.start();
   int ier = finufft2d1(M,x,y,c,isign,tol,N1,N2,F,opts);
   double ti=timer.elapsedsec();
@@ -74,7 +82,7 @@ int main(int argc, char* argv[])
   Ft /= M;
   INT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
   printf("one mode: rel err in F[%ld,%ld] is %.3g\n",(INT64)nt1,(INT64)nt2,abs(Ft-F[it])/infnorm(N,F));
-  if (M*N<=BIGPROB) {                   // also check vs full direct eval
+  if ((INT64)M*N<=BIGPROB) {                   // also check vs full direct eval
     dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
     dirft2d1(M,x,y,c,isign,N1,N2,Ft);
     printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
@@ -82,7 +90,12 @@ int main(int argc, char* argv[])
   }
 
   printf("test 2d type-2:\n"); // -------------- type 2
-  for (INT m=0; m<N; ++m) F[m] = crandm11();
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();
+#pragma omp for schedule(dynamic,CHUNK)
+    for (INT m=0; m<N; ++m) F[m] = crandm11r(&se);
+  }
   timer.restart();
   ier = finufft2d2(M,x,y,c,isign,tol,N1,N2,F,opts);
   ti=timer.elapsedsec();
@@ -98,7 +111,7 @@ int main(int argc, char* argv[])
     for (INT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
   printf("one targ: rel err in c[%ld] is %.3g\n",(INT64)jt,abs(ct-c[jt])/infnorm(M,c));
-  if (M*N<=BIGPROB) {                  // also full direct eval
+  if ((INT64)M*N<=BIGPROB) {                  // also full direct eval
     dcomplex* ct = (dcomplex*)malloc(sizeof(dcomplex)*M);
     dirft2d2(M,x,y,ct,isign,N1,N2,F);
     printf("dirft2d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
@@ -108,17 +121,27 @@ int main(int argc, char* argv[])
 
   printf("test 2d type-3:\n"); // -------------- type 3
   // reuse the strengths c, interpret N as number of targs:
-  for (INT j=0; j<M; ++j) {
-    x[j] = 2.0 + M_PI*randm11();      // new x_j srcs, offset from origin
-    y[j] = -3.0 + M_PI*randm11();     // " y_j
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();
+#pragma omp for schedule(dynamic,CHUNK)
+    for (INT j=0; j<M; ++j) {
+      x[j] = 2.0 + M_PI*randm11r(&se);      // new x_j srcs, offset from origin
+      y[j] = -3.0 + M_PI*randm11r(&se);     // " y_j
+    }
   }
   double* s = (double*)malloc(sizeof(double)*N);    // targ freqs (1-cmpt)
   double* t = (double*)malloc(sizeof(double)*N);    // targ freqs (2-cmpt)
   double S1 = (double)N1/2;                   // choose freq range sim to type 1
   double S2 = (double)N2/2;
-  for (INT k=0; k<N; ++k) {
-    s[k] = S1*(1.7 + randm11());    //S*(1.7 + k/(double)N); // offset the freqs
-    t[k] = S2*(-0.5 + randm11());
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();
+#pragma omp for schedule(dynamic,CHUNK)
+    for (INT k=0; k<N; ++k) {
+      s[k] = S1*(1.7 + randm11r(&se));    //S*(1.7 + k/(double)N); // offset the freqs
+      t[k] = S2*(-0.5 + randm11r(&se));
+    }
   }
   timer.restart();
   ier = finufft2d3(M,x,y,c,isign,tol,N,s,t,F,opts);
@@ -133,7 +156,7 @@ int main(int argc, char* argv[])
   for (INT j=0;j<M;++j)
     Ft += c[j] * exp(ima*(double)isign*(s[kt]*x[j] + t[kt]*y[j]));
   printf("one targ: rel err in F[%ld] is %.3g\n",(INT64)kt,abs(Ft-F[kt])/infnorm(N,F));
-  if (M*N<=BIGPROB) {                  // also full direct eval
+  if ((INT64)M*N<=BIGPROB) {                  // also full direct eval
     dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
     dirft2d3(M,x,y,c,isign,N,s,t,Ft);       // writes to F
     printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));

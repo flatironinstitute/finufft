@@ -1,13 +1,13 @@
-// this is all you need to include...
+// this is all you must include...
 #include "../src/finufft.h"
 #include <complex>
-// needed for this example...
+// also needed for this example...
 #include <stdio.h>
 using namespace std;
 
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C++, using plain
-   arrays of complex numbers, with a math test. Barnett 3/10/17
+   arrays of C++ complex numbers, with a math test. Barnett 3/10/17
 
    Compile with:
    g++ -std=c++11 -fopenmp example1d1.cpp ../lib/libfinufft.a -o example1d1  -lfftw3 -lfftw3_omp -lm
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     Ftest += c[j] * exp(I*(double)n*x[j]) / (double)M;
   int nout = n+N/2;       // index in output array for freq mode n
   double err = abs((F[nout] - Ftest)/Ftest);
-  printf("1D type-1 NUFFT done. Relative error in F[%d] is %.3g\n",n,err);
+  printf("1D type-1 NUFFT done. ier=%d, relative error in F[%d] is %.3g\n",ier,n,err);
 
   free(x); free(c); free(F);
   return ier;

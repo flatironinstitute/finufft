@@ -1,5 +1,5 @@
 # Makefile for Flatiron Institute (FI) NUFFT libraries.
-# Barnett 3/27/17
+# Barnett 3/30/17
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # If you need to edit this makefile, it is recommended that you first
@@ -11,11 +11,11 @@ CC=gcc
 FC=gfortran
 FLINK=-lstdc++
 
-# Notes for CXXFLAGS:
+# Notes for small array size compilation:
 # If you want to restrict to array sizes <2^31 and explore if 32-bit integer
-# indexing faster than 64-bit, add flag -DSMALLINT which sets BIGINT to int.
-# If you want 32 bit integers in the FINUFFT library interface instead of int64,
-# add flag -DINTERFACE32
+# indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
+# to int. If you want 32 bit integers in the FINUFFT library interface instead of
+# int64, add flag -DINTERFACE32 (experimental).
 
 # Here MFLAGS are for matlab, OFLAGS for octave.
 # Choose EITHER multi-threaded compile (default)...
@@ -28,7 +28,7 @@ MFLAGS=-lgomp -largeArrayDims -lrt -D_OPENMP
 #MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm -lgomp -D_OPENMP
 OFLAGS=-lgomp -lrt
 # for mkoctfile version >= 4.0.0 you can remove warnings by using instead:
-#OFLAGS=-lgomp -std=c++11 -lrt
+#OFLAGS=-lgomp -lrt -std=c++11
 
 # OR uncomment the following for single threaded compile...
 #LIBSFFT = -lfftw3 -lm
@@ -38,7 +38,7 @@ OFLAGS=-lgomp -lrt
 #MFLAGS=-largeArrayDims -lrt
 # Mac users should use something like this:
 #MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
-#OFLAGS=-std=c++11 -lrt
+#OFLAGS=-lrt -std=c++11
 
 # Other MATLAB wrapper stuff...
 MEX=mex
@@ -61,9 +61,11 @@ FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/prini.o
 
 HEADERS = src/cnufftspread.h src/finufft.h src/dirft.h src/common.h src/utils.h src/finufft_c.h fortran/finufft_f.h
 
+.PHONY: usage lib examples test perftest fortran matlab octave python all
+
 default: usage
 
-.PHONY: usage lib examples test perftest fortran matlab octave python
+all: test perftest lib examples fortran matlab octave python
 
 usage:
 	@echo "makefile for FINUFFT library. Specify what to make:"
@@ -75,8 +77,9 @@ usage:
 	@echo " make matlab - compile Matlab interfaces"
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
+	@echo " make all - do all of the above"
 	@echo " make clean - remove all object and executable files apart from MEX"
-	@echo "For faster (multicore) making you will want to append the flag -j"
+	@echo "For faster (multicore) making you may want to append the flag -j"
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp %.h

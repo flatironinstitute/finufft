@@ -1,6 +1,6 @@
-// this is all you need to include...
+// this is all you must include...
 #include "../src/finufft_c.h"
-// needed for this example...
+// also needed for this example...
 #include <stdlib.h>
 #include <math.h>
 #include <complex.h>
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     Ftest += c[j] * cexp(I*(double)n*x[j]) / (double)M;
   nout = n+N/2;       // index in output array for freq mode n
   err = cabs((F[nout] - Ftest)/Ftest);
-  printf("1D type-1 NUFFT done. Relative error in F[%d] is %.3g\n",n,err);
+  printf("1D type-1 NUFFT done. ier=0, relative error in F[%d] is %.3g\n",ier,n,err);
 
   free(x); free(c); free(F);
   return ier;

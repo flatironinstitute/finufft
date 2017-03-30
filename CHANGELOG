@@ -6,7 +6,7 @@ V 0.9:
 * matlab interface control of opts.spread_sort.
 * matlab interface using doubles as big ints w/ correct typecasting.
 * twopispread removed, used flag in spread_opts for [-pi,pi] input instead.
-* testfinufft* use same integer type INT as for interfaces, typecast all %ld in printf warnings
+* testfinufft* use same integer type INT as for interfaces, typecast all %ld in printf warnings, use omp rand array filling
 * INT64 for necessary size-setting arrays, removed all %lf printf warnings in finufft*
 * all internal array indexing is BIGINT, switchable from long long to int via SMALLINT compile flag (default off, see utils.h)
 * all integers in interfaces are type INT, default 64-bit, switchable to 32 bit by INTERGER32 compile flag (see utils.h)

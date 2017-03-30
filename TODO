@@ -2,9 +2,10 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
+* speed and parallel scaling for uniform and surface-like NU pts dists, figures
 * make C interface example1d1c cleaner, ie remove _Complex, why needs g++ to compile?
 * test non-openmp compile. Decide if non vs omp get different lib names.
-* decide if need single-prec compile option for RAM reduction, switch all math calls to macros which call either single or double versions? Will be messy for interfaces to F, M, O, P: need separate single-prec codes?
+* decide if need single-prec compile option for RAM reduction, switch all math calls to macros which call either single or double versions? Will be messy for interfaces to F, M, O, P: need separate single-prec codes? (for M use opts flag)
 * run nufft_comparison, use for paper. Compare vs NFFT (Chemnitz), gpuNUFFT (Knoll)
 * theory work on exp(sqrt) being close to PSWF
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
@@ -19,13 +20,14 @@ HIGHER PRIORITY:
 LOWER PRIORITY:
 
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
+* test huge arrays >=2^31 2d, 3d in C++.
 * test huge arrays >=2^31 in octave/mex.
+* allow fortran interface to access >=2^31 arrays.
 * make test - should check sort=0,1 both?
 * more doc/manual; wait until after tech report/paper
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
 * clean up tree, remove devel/ and unused contrib?
 * package RPM and .deb for linux
 * figure out how to set up path to link to shared library - rpath?
-* figure out how to pass long long or BIGINT via matlab interface? - no, we're ok using doubles for now.
 * windows test
 * rewrite fftw3 plans via 64bit guru interface to allow eg 1024^3 type 1 or 2 in 3D. Not sure needed (only for huge 1d transforms). see http://www.fftw.org/fftw3_doc/Guru-Interface.html#Guru-Interface
