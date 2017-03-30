@@ -12,7 +12,7 @@ M       = 1e6;    % # of NU pts (in all dims)
 N       = 1e6;    % # of modes (approx total, used in all dims)
 
 j = ceil(0.93*M);                               % target pt index to test
-k = ceil(0.24*M);                               % freq targ pt index to test
+k = ceil(0.24*M);                               % type-3 targ pt index to test
 tt=tic;
 
 tic; % --------- 1D
@@ -29,7 +29,7 @@ f = randn(1,N)+1i*randn(1,N);
 [c ier] = finufft1d2(x,isign,eps,f,o);
 ms=numel(f); mm = ceil(-ms/2):floor((ms-1)/2);  % mode index list
 ce = sum(f.*exp(1i*isign*mm*x(j)));             % crucial f, mm same shape
-fprintf('1D type-2: rel err in c[%d] is %.3g\n',nt,abs((ce-c(j))/ce))
+fprintf('1D type-2: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 
 c = randn(1,M)+1i*randn(1,M);
 s = (N/2)*(2*rand(1,M)-1);                      % target freqs of size O(N)
@@ -55,7 +55,7 @@ f = randn(N1,N2)+1i*randn(N1,N2);
 % NB non-obvious ordering here, to make meshgrid loop over ms fast, mt slow:
 [mm2,mm1] = meshgrid(ceil(-mt/2):floor((mt-1)/2),ceil(-ms/2):floor((ms-1)/2));
 ce = sum(f(:).*exp(1i*isign*(mm1(:)*x(j)+mm2(:)*y(j))));
-fprintf('2D type-2: rel err in c[%d] is %.3g\n',nt,abs((ce-c(j))/ce))
+fprintf('2D type-2: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 
 c = randn(1,M)+1i*randn(1,M);
 s = (N1/2)*(2*rand(1,M)-1);                      % target freqs of size O(N1)
@@ -82,7 +82,7 @@ f = randn(N1,N2,N3)+1i*randn(N1,N2,N3);
 % NB tricky ordering here, to make meshgrid loop over ms fastest, mu slowest:
 [mm2,mm1,mm3] = meshgrid(ceil(-mt/2):floor((mt-1)/2),ceil(-ms/2):floor((ms-1)/2),ceil(-mu/2):floor((mu-1)/2));
 ce = sum(f(:).*exp(1i*isign*(mm1(:)*x(j)+mm2(:)*y(j)+mm3(:)*z(j))));
-fprintf('3D type-2: rel err in c[%d] is %.3g\n',nt,abs((ce-c(j))/ce))
+fprintf('3D type-2: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 
 c = randn(1,M)+1i*randn(1,M);
 s = (N1/2)*(2*rand(1,M)-1);                      % target freqs of size O(N1)

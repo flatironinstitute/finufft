@@ -94,22 +94,23 @@ int main(int argc, char* argv[])
     }
 
     // now do the large-scale test w/ random sources..
-    srand(0);    // fix seed for reproducibility
+    printf("making random data...\n");
     double strre = 0.0, strim = 0.0;          // also sum the strengths
 #pragma omp parallel
     {
-      unsigned int s=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for reduction(+:strre,strim)
+      unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+#pragma omp for schedule(dynamic,1000000) reduction(+:strre,strim)
     for (BIGINT i=0; i<M; ++i) {
-      kx[i]=rand01r(&s)*N;
-      if (d>1) ky[i]=rand01r(&s)*N;              // only fill needed coords
-      if (d>2) kz[i]=rand01r(&s)*N;
-      d_nonuniform[i*2]=randm11r(&s);
-      d_nonuniform[i*2+1]=randm11r(&s);
+      kx[i]=rand01r(&se)*N;
+      if (d>1) ky[i]=rand01r(&se)*N;              // only fill needed coords
+      if (d>2) kz[i]=rand01r(&se)*N;
+      d_nonuniform[i*2]=randm11r(&se);
+      d_nonuniform[i*2+1]=randm11r(&se);
       strre += d_nonuniform[2*i]; 
       strim += d_nonuniform[2*i+1];
     }
     }
+    printf("calling spreader...\n");
     CNTime timer; timer.start();
     ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     double t=timer.elapsedsec();
@@ -138,6 +139,7 @@ int main(int argc, char* argv[])
     opts.spread_direction=2;
     printf("cnufftspread %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",d,(double)Ng,opts.spread_direction,tol,opts.nspread);
 
+    printf("making random data...\n");
     for (BIGINT i=0;i<Ng;++i) {     // unit grid data
       d_uniform[2*i] = 1.0;
       d_uniform[2*i+1] = 0.0;
@@ -145,13 +147,14 @@ int main(int argc, char* argv[])
 #pragma omp parallel
     {
       unsigned int s=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for
+#pragma omp for schedule(dynamic,1000000)
       for (BIGINT i=0; i<M; ++i) {       // random target pts
         kx[i]=rand01r(&s)*N;
 	if (d>1) ky[i]=rand01r(&s)*N;
 	if (d>2) kz[i]=rand01r(&s)*N;
       }
     }
+    printf("calling spreader...\n");
     timer.restart();
     ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
     t=timer.elapsedsec();

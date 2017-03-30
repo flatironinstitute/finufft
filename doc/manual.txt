@@ -1,6 +1,15 @@
 FINUFFT MANUAL
 
-Alex Barnett  3/24/17
+Alex Barnett  3/29/17
+
+Contents:
+1) OVerview
+2) Interfaces to routines
+3) Large array issues
+
+-------------------
+
+1) Overview
 
 We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
@@ -11,9 +20,6 @@ For usage examples from C and C++, see ../examples/* and ../test/*.cpp
 
 nufft_opts is a C structure defined by the ../src/finufft.h header that allows
 control of a couple of parameters (do not adjust R; the others are fair game).
-
-BIGINT is typedef'ed to int, but you may change this to long long, by editing
-../src/finufft.h. This allows arrays larger than 2e9 in size.
 
 For calling examples from fortran see ../fortran/*demo.f
 
@@ -26,10 +32,13 @@ In the below, the opts structure has the following user-settable fields:
   debug                0: silent, 1: text timing output, 2: spread info
   spread_debug         level of debug output from spreader: 0,1 or 2
   spread_sort          whether spreader should sort non-uniform pts: 0 or 1
+                       (sorting requires somewhat more RAM, but on non-xeon
+                       CPUs seems to speed up the spreading).
   maxnalloc            largest size of internal array to allow allocation
                        (default is 1e9; set this larger if you need)
 
 
+2) Interfaces to routines
 
 ==================== 1D TRANSFORMS ==================
 
@@ -43,7 +52,7 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
               nj j=0                            
                         if nj>0, else fk identically zero for nj=0.
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (integer of type INT; see utils.h)
      xj     location of sources on interval [-pi,pi].
      cj     size-nj double complex array of source strengths
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -83,7 +92,7 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
    Inputs:
-     nj     number of target (integer of type BIGINT; see utils.h)
+     nj     number of target (integer of type INT; see utils.h)
      xj     location of targets on interval [-pi,pi].
      fk     complex Fourier transform values (size ms, increasing mode ordering)
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -119,7 +128,7 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
      fk[k]  =  SUM   c[j] exp(+-i s[k] xj[j]),      for k = 0, ..., nk-1
                j=0
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (integer of type INT; see utils.h)
      xj     location of sources in R (real line).
      cj     size-nj double complex array of source strengths
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -172,7 +181,7 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
      used, otherwise the - sign is used, in the exponential.
                            
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (integer of type INT; see utils.h)
      xj,yj     x,y locations of sources on 2D domain [-pi,pi]^2.
      cj     size-nj complex double array of source strengths, 
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -209,7 +218,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
 
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (integer of type INT; see utils.h)
      xj,yj     x,y locations of sources on 2D domain [-pi,pi]^2.
      fk     double complex array of Fourier transform values (size ms*mt,
             increasing fast in ms then slow in mt, ie Fortran ordering),
@@ -241,7 +250,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
      fk[k]  =  SUM   c[j] exp(+-i (s[k] xj[j] + t[k] yj[j]),    for k=0,...,nk-1
                j=0
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (integer of type INT; see utils.h)
      xj,yj  x,y location of sources in R^2.
      cj     size-nj complex double array of source strengths, 
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -296,7 +305,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
      used, otherwise the - sign is used, in the exponential.
                            
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (integer of type INT; see utils.h)
      xj,yj,zj   x,y,z locations of sources on 3D domain [-pi,pi]^3.
      cj     size-nj complex double array of source strengths, 
             (ie, stored as 2*nj doubles interleaving Re, Im).
@@ -336,7 +345,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
                        -mu/2 <= k3 <= (mu-1)/2
 
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (integer of type INT; see utils.h)
      xj,yj,zj     x,y,z locations of sources on 3D domain [-pi,pi]^3.
      fk     double complex array of Fourier series values (size ms*mt*mu,
             increasing fastest in ms to slowest in mu, ie Fortran ordering).
@@ -373,7 +382,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
                j=0
                           for k=0,...,nk-1
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources (integer of type INT; see utils.h)
      xj,yj,zj   x,y,z location of sources in R^3.
      cj     size-nj complex double array of source strengths
             (ie, interleaving Re & Im parts)
@@ -409,3 +418,30 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
 
 
 =====================================================
+
+3) Large array issues.
+
+By default FINUFFT uses internally and for interfacing 64-bit integers;
+this means arguments such as the number of sources (nj) are type int64_t,
+allowing nj to equal or exceed 2^31, or around 2e9.
+
+There is a chance the user may want to compile a custom version with
+32-bit integers internally (although we have not noticed a speed
+increase on a modern CPU). In the makefile one may add the compile
+flag -DSMALLINT for this, which changes BIGINT from int64_t to int.
+
+Similarly, the user may want to change the integer interface type to
+32-bit ints. The compile flag -DINTERFACE32 does this, and changes INT
+from int64_t to int.
+
+See ../src/utils.h for these typedefs.
+
+Sizes >=2^31 have been tested for C++ drivers (test/finufft?dtest.cpp), and
+work fine, if you have enough RAM.
+
+In fortran and C the interface is still 32-bit integers, limiting to
+array sizes <2^31.
+
+In Matlab/MEX, mwrap uses int types, so that output arrays can only be <2^31.
+Input arrays >=2^31 have been tested, and while they don't crash,
+they result in wrong answers all zeros.

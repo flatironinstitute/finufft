@@ -1,5 +1,4 @@
 #include "finufft.h"
-#include "twopispread.h"
 #include "common.h"
 #include <fftw3.h>
 #include <math.h>
@@ -88,7 +87,8 @@ int finufft2d1(INT nj,double* xj,double *yj,dcomplex* cj,int iflag,
   spopts.debug = opts.spread_debug;
   spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 1;
-  int ier_spread = twopispread2d(nf1,nf2,(dcomplex*)fw,nj,xj,yj,cj,spopts);
+  spopts.pirange = 1; double *dummy;
+  int ier_spread = cnufftspread(nf1,nf2,1,(double*)fw,nj,xj,yj,dummy,(double*)cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
 
@@ -193,7 +193,8 @@ int finufft2d2(INT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps,
   spopts.debug = opts.spread_debug;
   spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 2;
-  int ier_spread = twopispread2d(nf1,nf2,(dcomplex*)fw,nj,xj,yj,cj,spopts);
+  spopts.pirange = 1; double *dummy;
+  int ier_spread = cnufftspread(nf1,nf2,1,(double*)fw,nj,xj,yj,dummy,(double*)cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
 
@@ -283,7 +284,8 @@ int finufft2d3(INT nj,double* xj,double* yj,dcomplex* cj,int iflag, double eps, 
   spopts.debug = opts.spread_debug;
   spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 1;
-  int ier_spread = twopispread2d(nf1,nf2,fw,nj,xpj,ypj,cpj,spopts);
+  spopts.pirange = 1; double *dummy;
+  int ier_spread = cnufftspread(nf1,nf2,1,(double*)fw,nj,xpj,ypj,dummy,(double*)cpj,spopts);
   free(xpj); free(ypj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);

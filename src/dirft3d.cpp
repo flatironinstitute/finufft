@@ -3,7 +3,7 @@
 
 // This is basically a port of dirft2d.f from CMCL package.
 
-void dirft3d1(BIGINT nj,double* x,double *y,double *z, dcomplex* c,int iflag,BIGINT ms, BIGINT mt, BIGINT mu, dcomplex* f)
+void dirft3d1(INT nj,double* x,double *y,double *z, dcomplex* c,int iflag,INT ms, INT mt, INT mu, dcomplex* f)
 /* Direct computation of 3D type-1 nonuniform FFT. Interface same as finufft3d1.
 c                     1  nj-1
 c     f[k1,k2,k3] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k2 z[j]))
@@ -17,10 +17,10 @@ c     used, otherwise the - sign is used, in the exponential.
 *  Uses C++ complex type and winding trick.  Barnett 2/1/17
 */
 {
-  BIGINT k1min = -(ms/2), k2min = -(mt/2), k3min = -(mu/2);   // integer divide
-  BIGINT N = ms*mt*mu;        // total # output modes
-  for (BIGINT m=0;m<N;++m) f[m] = {0,0};    // it knows f is complex type
-  for (BIGINT j=0;j<nj;++j) {            // src pts
+  INT k1min = -(ms/2), k2min = -(mt/2), k3min = -(mu/2);   // integer divide
+  INT N = ms*mt*mu;        // total # output modes
+  for (INT m=0;m<N;++m) f[m] = {0,0};    // it knows f is complex type
+  for (INT j=0;j<nj;++j) {            // src pts
     dcomplex a1 = (iflag>0) ? exp(ima*x[j]) : exp(-ima*x[j]);
     dcomplex a2 = (iflag>0) ? exp(ima*y[j]) : exp(-ima*y[j]);
     dcomplex a3 = (iflag>0) ? exp(ima*z[j]) : exp(-ima*z[j]);
@@ -28,12 +28,12 @@ c     used, otherwise the - sign is used, in the exponential.
     dcomplex sp2 = pow(a2,k2min);
     dcomplex p3 = pow(a3,k3min);
     dcomplex cc = c[j]/(double)nj;   // 1/nj norm
-    BIGINT m=0;      // output pointer
-    for (BIGINT m3=0;m3<mu;++m3) {
+    INT m=0;      // output pointer
+    for (INT m3=0;m3<mu;++m3) {
       dcomplex p2 = sp2;
-      for (BIGINT m2=0;m2<mt;++m2) {
+      for (INT m2=0;m2<mt;++m2) {
 	dcomplex p1 = sp1;
-	for (BIGINT m1=0;m1<ms;++m1) {
+	for (INT m1=0;m1<ms;++m1) {
 	  f[m++] += cc * p1 * p2 * p3;
 	  p1 *= a1;
 	}
@@ -44,7 +44,7 @@ c     used, otherwise the - sign is used, in the exponential.
   }
 }
 
-void dirft3d2(BIGINT nj,double* x,double *y,double *z,dcomplex* c,int iflag,BIGINT ms, BIGINT mt, BIGINT mu, dcomplex* f)
+void dirft3d2(INT nj,double* x,double *y,double *z,dcomplex* c,int iflag,INT ms, INT mt, INT mu, dcomplex* f)
 /* Direct computation of 3D type-2 nonuniform FFT. Interface same as finufft3d2
 
      c[j] =   SUM    f[k1,k2,k3] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j])) 
@@ -60,8 +60,8 @@ void dirft3d2(BIGINT nj,double* x,double *y,double *z,dcomplex* c,int iflag,BIGI
     Uses C++ complex type and winding trick.  Barnett 2/1/17
 */
 {
-  BIGINT k1min = -(ms/2), k2min = -(mt/2), k3min = -(mu/2);  // integer divide
-  for (BIGINT j=0;j<nj;++j) {
+  INT k1min = -(ms/2), k2min = -(mt/2), k3min = -(mu/2);  // integer divide
+  for (INT j=0;j<nj;++j) {
     dcomplex a1 = (iflag>0) ? exp(ima*x[j]) : exp(-ima*x[j]);
     dcomplex a2 = (iflag>0) ? exp(ima*y[j]) : exp(-ima*y[j]);
     dcomplex a3 = (iflag>0) ? exp(ima*z[j]) : exp(-ima*z[j]);
@@ -69,12 +69,12 @@ void dirft3d2(BIGINT nj,double* x,double *y,double *z,dcomplex* c,int iflag,BIGI
     dcomplex sp2 = pow(a2,k2min);
     dcomplex p3 = pow(a3,k3min);
     dcomplex cc = {0,0};
-    BIGINT m=0;      // input pointer
-    for (BIGINT m3=0;m3<mu;++m3) {
+    INT m=0;      // input pointer
+    for (INT m3=0;m3<mu;++m3) {
       dcomplex p2 = sp2;
-      for (BIGINT m2=0;m2<mt;++m2) {
+      for (INT m2=0;m2<mt;++m2) {
 	dcomplex p1 = sp1;
-	for (BIGINT m1=0;m1<ms;++m1) {
+	for (INT m1=0;m1<ms;++m1) {
 	  cc += f[m++] * p1 * p2 * p3;
 	  p1 *= a1;
 	}
@@ -86,7 +86,7 @@ void dirft3d2(BIGINT nj,double* x,double *y,double *z,dcomplex* c,int iflag,BIGI
   }
 }
 
-void dirft3d3(BIGINT nj,double* x,double *y,double *z,dcomplex* c,int iflag,BIGINT nk, double* s, double* t, double *u, dcomplex* f)
+void dirft3d3(INT nj,double* x,double *y,double *z,dcomplex* c,int iflag,INT nk, double* s, double* t, double *u, dcomplex* f)
 /* Direct computation of 3D type-3 nonuniform FFT. Interface same as finufft3d3
 c               nj-1
 c     f[k]  =   SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j] + u[k] z[j]))
@@ -96,12 +96,12 @@ c  If iflag>0 the + sign is used, otherwise the - sign is used, in the
 c  exponential. Uses C++ complex type. Simple brute force.  Barnett 2/1/17
 */
 {
-  for (BIGINT k=0;k<nk;++k) {
+  for (INT k=0;k<nk;++k) {
     dcomplex ss = (iflag>0) ? ima*s[k] : -ima*s[k];
     dcomplex tt = (iflag>0) ? ima*t[k] : -ima*t[k];
     dcomplex uu = (iflag>0) ? ima*u[k] : -ima*u[k];
     f[k] = {0,0};
-    for (BIGINT j=0;j<nj;++j)
+    for (INT j=0;j<nj;++j)
       f[k] += c[j] * exp(ss*x[j] + tt*y[j] + uu*z[j]);
   }
 }

@@ -9,6 +9,9 @@
 // how big a problem to check direct DFT for in 1D...
 #define BIGPROB 1e8
 
+// for omp rand filling
+#define CHUNK 1000000
+
 int main(int argc, char* argv[])
 /* Test executable for finufft in 1d, all 3 types.
 
@@ -44,14 +47,21 @@ int main(int argc, char* argv[])
   cout << scientific << setprecision(15);
 
   double *x = (double *)malloc(sizeof(double)*M);        // NU pts
-  for (INT j=0; j<M; ++j) x[j] = M_PI*randm11();   // fills [-pi,pi)
-  //for (INT j=0; j<M; ++j) x[j] = 0.999 * M_PI*randm11();  // avoid ends
-  //for (INT j=0; j<M; ++j) x[j] = M_PI*(2*j/(double)M-1);  // test a grid
   dcomplex* c = (dcomplex*)malloc(sizeof(dcomplex)*M);   // strengths 
   dcomplex* F = (dcomplex*)malloc(sizeof(dcomplex)*N);   // mode ampls
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+#pragma omp for schedule(dynamic,CHUNK)
+    for (INT j=0; j<M; ++j) {
+      x[j] = M_PI*randm11r(&se);   // fills [-pi,pi)
+      c[j] = crandm11r(&se);
+    }
+  }
+  //for (INT j=0; j<M; ++j) x[j] = 0.999 * M_PI*randm11();  // avoid ends
+  //for (INT j=0; j<M; ++j) x[j] = M_PI*(2*j/(double)M-1);  // test a grid
 
   printf("test 1d type-1:\n"); // -------------- type 1
-  for (INT j=0; j<M; ++j) c[j] = crandm11();
   CNTime timer; timer.start();
   int ier = finufft1d1(M,x,c,isign,tol,N,F,opts);
   //for (int j=0;j<N;++j) cout<<F[j]<<endl;
@@ -64,6 +74,8 @@ int main(int argc, char* argv[])
 
   INT nt = (INT)(0.37*N);   // check arb choice of mode near the top (N/2)
   dcomplex Ft = {0,0};
+  //#pragma omp declare reduction (cmplxadd:dcomplex:omp_out=omp_out+omp_in) initializer(omp_priv={0.0,0.0})  // only for openmp v 4.0!
+  //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (INT j=0; j<M; ++j)
     Ft += c[j] * exp(ima*((double)(isign*nt))*x[j]); // crude direct
   Ft /= M;
@@ -76,7 +88,12 @@ int main(int argc, char* argv[])
   }
 
   printf("test 1d type-2:\n"); // -------------- type 2
-  for (INT m=0; m<N; ++m) F[m] = crandm11();
+ #pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+#pragma omp for schedule(dynamic,CHUNK)
+    for (INT m=0; m<N; ++m) F[m] = crandm11r(&se);
+  }
   timer.restart();
   ier = finufft1d2(M,x,c,isign,tol,N,F,opts);
   //cout<<"c:\n"; for (int j=0;j<M;++j) cout<<c[j]<<endl;
@@ -90,6 +107,7 @@ int main(int argc, char* argv[])
   INT jt = M/2;          // check arbitrary choice of one targ pt
   dcomplex ct = {0,0};
   INT m=0, k0 = N/2;          // index shift in fk's = mag of most neg freq
+  //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:ct)
   for (INT m1=-k0; m1<=(N-1)/2; ++m1)
     ct += F[m++] * exp(ima*((double)(isign*m1))*x[jt]);   // crude direct
   printf("one targ: rel err in c[%ld] is %.3g\n",(INT64)jt,abs(ct-c[jt])/infnorm(M,c));
@@ -103,10 +121,20 @@ int main(int argc, char* argv[])
 
   printf("test 1d type-3:\n"); // -------------- type 3
   // reuse the strengths c, interpret N as number of targs:
-  for (INT j=0; j<M; ++j) x[j] = 2.0 + M_PI*randm11();  // new x_j srcs
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();
+#pragma omp for schedule(dynamic,CHUNK)
+    for (INT j=0; j<M; ++j) x[j] = 2.0 + M_PI*randm11r(&se);  // new x_j srcs
+  }
   double* s = (double*)malloc(sizeof(double)*N);    // targ freqs
   double S = (double)N/2;                   // choose freq range sim to type 1
-  for (INT k=0; k<N; ++k) s[k] = S*(1.7 + randm11()); //S*(1.7 + k/(double)N); // offset
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();
+#pragma omp for schedule(dynamic,CHUNK)
+    for (INT k=0; k<N; ++k) s[k] = S*(1.7 + randm11r(&se)); //S*(1.7 + k/(double)N); // offset
+  }
   timer.restart();
   ier = finufft1d3(M,x,c,isign,tol,N,s,F,opts);
   t=timer.elapsedsec();
@@ -118,6 +146,7 @@ int main(int argc, char* argv[])
 
   INT kt = N/2;          // check arbitrary choice of one targ pt
   Ft = {0,0};
+  //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (INT j=0;j<M;++j)
     Ft += c[j] * exp(ima*(double)isign*s[kt]*x[j]);
   printf("one targ: rel err in F[%ld] is %.3g\n",(INT64)kt,abs(Ft-F[kt])/infnorm(N,F));

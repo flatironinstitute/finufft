@@ -1,6 +1,9 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+// octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
+#include <stdint.h>
+
 using namespace std;        // means std:: not needed for cout, max, etc
 #include <complex>          // C++ type complex, and useful abbrevs...
 typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
