@@ -1,5 +1,5 @@
 # Makefile for Flatiron Institute (FI) NUFFT libraries.
-# Barnett 3/30/17
+# Barnett 4/3/17
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # If you need to edit this makefile, it is recommended that you first
@@ -11,16 +11,26 @@ CC=gcc
 FC=gfortran
 FLINK=-lstdc++
 
-# Notes for small array size compilation:
+
+
+
+# Notes for single-precision and/or small array size compilation:
+# If you want to compile all in single-precision (saving half the RAM, but the
+# speed will be only 10-20% faster), add flag -DSINGLE to CXXFLAGS.
 # If you want to restrict to array sizes <2^31 and explore if 32-bit integer
 # indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
-# to int. If you want 32 bit integers in the FINUFFT library interface instead of
+# to int.
+# If you want 32 bit integers in the FINUFFT library interface instead of
 # int64, add flag -DINTERFACE32 (experimental).
 
 # Here MFLAGS are for matlab, OFLAGS for octave.
 # Choose EITHER multi-threaded compile (default)...
-LIBSFFT = -lfftw3_threads -lfftw3 -lm
-CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -fopenmp -DNEED_EXTERN_C
+# double-precision
+#LIBSFFT = -lfftw3_threads -lfftw3 -lm
+#CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -fopenmp -DNEED_EXTERN_C
+# single-precision
+LIBSFFT = -lfftw3f_threads -lfftw3f -lm
+CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -fopenmp -DNEED_EXTERN_C -DSINGLE
 CFLAGS=-fPIC -Ofast -funroll-loops -fopenmp
 FFLAGS=-fPIC -O3 -funroll-loops -fopenmp
 MFLAGS=-lgomp -largeArrayDims -lrt -D_OPENMP
@@ -31,8 +41,12 @@ OFLAGS=-lgomp -lrt
 #OFLAGS=-lgomp -lrt -std=c++11
 
 # OR uncomment the following for single threaded compile...
+# double-precision
 #LIBSFFT = -lfftw3 -lm
 #CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -DNEED_EXTERN_C
+# single-precision
+#LIBSFFT = -lfftw3f -lm
+#CXXFLAGS=-fPIC -Ofast -funroll-loops -std=c++11 -DNEED_EXTERN_C -DSINGLE
 #CFLAGS=-fPIC -Ofast -funroll-loops
 #FFLAGS=-fPIC -O3 -funroll-loops
 #MFLAGS=-largeArrayDims -lrt

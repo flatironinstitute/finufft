@@ -2,47 +2,47 @@
 
 // ------------ complex array utils
 
-double relerrtwonorm(BIGINT n, dcomplex* a, dcomplex* b)
+FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b)
 // ||a-b||_2 / ||a||_2
 {
-  double err = 0.0, nrm = 0.0;
+  FLT err = 0.0, nrm = 0.0;
   for (BIGINT m=0; m<n; ++m) {
     nrm += real(conj(a[m])*a[m]);
-    dcomplex diff = a[m]-b[m];
+    CPX diff = a[m]-b[m];
     err += real(conj(diff)*diff);
   }
   return sqrt(err/nrm);
 }
-double errtwonorm(BIGINT n, dcomplex* a, dcomplex* b)
+FLT errtwonorm(BIGINT n, CPX* a, CPX* b)
 // ||a-b||_2
 {
-  double err = 0.0;   // compute error 2-norm
+  FLT err = 0.0;   // compute error 2-norm
   for (BIGINT m=0; m<n; ++m) {
-    dcomplex diff = a[m]-b[m];
+    CPX diff = a[m]-b[m];
     err += real(conj(diff)*diff);
   }
   return sqrt(err);
 }
-double twonorm(BIGINT n, dcomplex* a)
+FLT twonorm(BIGINT n, CPX* a)
 // ||a||_2
 {
-  double nrm = 0.0;
+  FLT nrm = 0.0;
   for (BIGINT m=0; m<n; ++m)
     nrm += real(conj(a[m])*a[m]);
   return sqrt(nrm);
 }
-double infnorm(BIGINT n, dcomplex* a)
+FLT infnorm(BIGINT n, CPX* a)
 // ||a||_infty
 {
-  double nrm = 0.0;
+  FLT nrm = 0.0;
   for (BIGINT m=0; m<n; ++m) {
-    double aa = real(conj(a[m])*a[m]);
+    FLT aa = real(conj(a[m])*a[m]);
     if (aa>nrm) nrm = aa;
   }
   return sqrt(nrm);
 }
 
-void arrayrange(BIGINT n, double* a, double *lo, double *hi)
+void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi)
 // writes out bounds on values in array to lo and hi, so all a in [lo,hi]
 {
   *lo = INFINITY; *hi = -INFINITY;
@@ -52,10 +52,10 @@ void arrayrange(BIGINT n, double* a, double *lo, double *hi)
   }
 }
 
-void arraywidcen(BIGINT n, double* a, double *w, double *c)
+void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
 // writes out w = half-width and c = center of interval enclosing all a[n]'s
 {
-  double lo,hi;
+  FLT lo,hi;
   arrayrange(n,a,&lo,&hi);
   *w = (hi-lo)/2;
   *c = (hi+lo)/2;
@@ -81,7 +81,7 @@ INT64 next235even(INT64 n)
 }
 
 
-// ----------------------- helpers for timing...
+// ----------------------- helpers for timing (always stay double)...
 using namespace std;
 
 void CNTime::start()

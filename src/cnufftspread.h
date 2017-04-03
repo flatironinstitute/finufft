@@ -18,15 +18,15 @@ struct spread_opts {
   int checkerboard=0;      // controls method
   int debug=0;             // text output
 // ES kernel specific...
-  double ES_beta;
-  double ES_halfwidth;
-  double ES_c;
+  FLT ES_beta;
+  FLT ES_halfwidth;
+  FLT ES_c;
 };
 
-int cnufftspread(BIGINT N1, BIGINT N2, BIGINT N3, double *data_uniform,
-		 BIGINT M, double *kx, double *ky, double *kz,
-		 double *data_nonuniform, spread_opts opts);
-double evaluate_kernel(double x,const spread_opts &opts);
-int setup_kernel(spread_opts &opts,double eps,double R);
+int cnufftspread(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
+		 BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		 FLT *data_nonuniform, spread_opts opts);
+FLT evaluate_kernel(FLT x,const spread_opts &opts);
+int setup_kernel(spread_opts &opts,FLT eps,FLT R);
 
 #endif // CNUFFTSPREAD_H

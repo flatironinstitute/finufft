@@ -46,20 +46,20 @@ int main(int argc, char* argv[])
   }
   cout << scientific << setprecision(15);
 
-  double *x = (double *)malloc(sizeof(double)*M);        // NU pts
-  dcomplex* c = (dcomplex*)malloc(sizeof(dcomplex)*M);   // strengths 
-  dcomplex* F = (dcomplex*)malloc(sizeof(dcomplex)*N);   // mode ampls
+  FLT *x = (FLT *)malloc(sizeof(FLT)*M);        // NU pts
+  CPX* c = (CPX*)malloc(sizeof(CPX)*M);   // strengths 
+  CPX* F = (CPX*)malloc(sizeof(CPX)*N);   // mode ampls
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
 #pragma omp for schedule(dynamic,CHUNK)
     for (INT j=0; j<M; ++j) {
-      x[j] = M_PI*randm11r(&se);   // fills [-pi,pi)
+      x[j] = PI*randm11r(&se);   // fills [-pi,pi)
       c[j] = crandm11r(&se);
     }
   }
-  //for (INT j=0; j<M; ++j) x[j] = 0.999 * M_PI*randm11();  // avoid ends
-  //for (INT j=0; j<M; ++j) x[j] = M_PI*(2*j/(double)M-1);  // test a grid
+  //for (INT j=0; j<M; ++j) x[j] = 0.999 * PI*randm11();  // avoid ends
+  //for (INT j=0; j<M; ++j) x[j] = PI*(2*j/(FLT)M-1);  // test a grid
 
   printf("test 1d type-1:\n"); // -------------- type 1
   CNTime timer; timer.start();
@@ -73,15 +73,15 @@ int main(int argc, char* argv[])
     printf("\t%ld NU pts to %ld modes in %.3g s \t%.3g NU pts/s\n",(INT64)M,(INT64)N,t,M/t);
 
   INT nt = (INT)(0.37*N);   // check arb choice of mode near the top (N/2)
-  dcomplex Ft = {0,0};
-  //#pragma omp declare reduction (cmplxadd:dcomplex:omp_out=omp_out+omp_in) initializer(omp_priv={0.0,0.0})  // only for openmp v 4.0!
+  CPX Ft = {0,0};
+  //#pragma omp declare reduction (cmplxadd:CPX:omp_out=omp_out+omp_in) initializer(omp_priv={0.0,0.0})  // only for openmp v 4.0!
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (INT j=0; j<M; ++j)
-    Ft += c[j] * exp(ima*((double)(isign*nt))*x[j]);
+    Ft += c[j] * exp(ima*((FLT)(isign*nt))*x[j]);
   Ft /= M;
   printf("one mode: rel err in F[%ld] is %.3g\n",(INT64)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
   if ((INT64)M*N<=BIGPROB) {                  // also full direct eval
-    dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
+    CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d1(M,x,c,isign,N,Ft);
     printf("dirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     free(Ft);
@@ -105,14 +105,14 @@ int main(int argc, char* argv[])
     printf("\t%ld modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",(INT64)N,(INT64)M,t,M/t);
 
   INT jt = M/2;          // check arbitrary choice of one targ pt
-  dcomplex ct = {0,0};
+  CPX ct = {0,0};
   INT m=0, k0 = N/2;          // index shift in fk's = mag of most neg freq
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:ct)
   for (INT m1=-k0; m1<=(N-1)/2; ++m1)
-    ct += F[m++] * exp(ima*((double)(isign*m1))*x[jt]);   // crude direct
+    ct += F[m++] * exp(ima*((FLT)(isign*m1))*x[jt]);   // crude direct
   printf("one targ: rel err in c[%ld] is %.3g\n",(INT64)jt,abs(ct-c[jt])/infnorm(M,c));
   if ((INT64)M*N<=BIGPROB) {                  // also full direct eval
-    dcomplex* ct = (dcomplex*)malloc(sizeof(dcomplex)*M);
+    CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft1d2(M,x,ct,isign,N,F);
     printf("dirft1d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
     //cout<<"c/ct:\n"; for (int j=0;j<M;++j) cout<<c[j]/ct[j]<<endl;
@@ -125,15 +125,15 @@ int main(int argc, char* argv[])
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(dynamic,CHUNK)
-    for (INT j=0; j<M; ++j) x[j] = 2.0 + M_PI*randm11r(&se);  // new x_j srcs
+    for (INT j=0; j<M; ++j) x[j] = 2.0 + PI*randm11r(&se);  // new x_j srcs
   }
-  double* s = (double*)malloc(sizeof(double)*N);    // targ freqs
-  double S = (double)N/2;                   // choose freq range sim to type 1
+  FLT* s = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs
+  FLT S = (FLT)N/2;                   // choose freq range sim to type 1
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(dynamic,CHUNK)
-    for (INT k=0; k<N; ++k) s[k] = S*(1.7 + randm11r(&se)); //S*(1.7 + k/(double)N); // offset
+    for (INT k=0; k<N; ++k) s[k] = S*(1.7 + randm11r(&se)); //S*(1.7 + k/(FLT)N); // offset
   }
   timer.restart();
   ier = finufft1d3(M,x,c,isign,tol,N,s,F,opts);
@@ -148,10 +148,10 @@ int main(int argc, char* argv[])
   Ft = {0,0};
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (INT j=0;j<M;++j)
-    Ft += c[j] * exp(ima*(double)isign*s[kt]*x[j]);
+    Ft += c[j] * exp(ima*(FLT)isign*s[kt]*x[j]);
   printf("one targ: rel err in F[%ld] is %.3g\n",(INT64)kt,abs(Ft-F[kt])/infnorm(N,F));
   if ((INT64)M*N<=BIGPROB) {                  // also full direct eval
-    dcomplex* Ft = (dcomplex*)malloc(sizeof(dcomplex)*N);
+    CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d3(M,x,c,isign,N,s,Ft);       // writes to F
     printf("dirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     //cout<<"s, F, Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<F[k]<<"\t"<<Ft[k]<<"\t"<<F[k]/Ft[k]<<endl;

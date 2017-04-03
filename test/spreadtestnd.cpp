@@ -68,16 +68,16 @@ int main(int argc, char* argv[])
   BIGINT N=std::round(pow(roughNg,1.0/d));         // Fourier grid size per dim
   BIGINT Ng = (BIGINT)pow(N,d);                      // actual total grid points
   BIGINT N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes
-  std::vector<double> kx(M),ky(1),kz(1),d_nonuniform(2*M);    // NU, Re & Im
+  std::vector<FLT> kx(M),ky(1),kz(1),d_nonuniform(2*M);    // NU, Re & Im
   if (d>1) ky.resize(M);                           // only alloc needed coords
   if (d>2) kz.resize(M);
-  std::vector<double> d_uniform(2*Ng);                        // Re and Im
+  std::vector<FLT> d_uniform(2*Ng);                        // Re and Im
 
   spread_opts opts; // set method opts...
   opts.debug = 0;
   opts.sort_data=(bool)sort;   // for 3D: 1-2x faster on i7; but 0.5-0.9x (ie slower) on xeon!
-  double Rdummy = 2.0;    // since no nufft done, merely to please the setup
-  setup_kernel(opts,tol,Rdummy);
+  FLT Rdummy = 2.0;    // since no nufft done, merely to please the setup
+  setup_kernel(opts,(FLT)tol,Rdummy);  // note tol is always double
 
     // test direction 1 (NU -> U spreading) ..............................
     opts.spread_direction=1;
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     d_nonuniform[0] = 1.0; d_nonuniform[1] = 0.0;   // unit strength
     kx[0] = ky[0] = kz[0] = N/2;                    // at center
     int ier = cnufftspread(N,N2,N3,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
-    double kersumre = 0.0, kersumim = 0.0;  // sum kernel on uniform grid
+    FLT kersumre = 0.0, kersumim = 0.0;  // sum kernel on uniform grid
     for (BIGINT i=0;i<Ng;++i) {
       kersumre += d_uniform[2*i]; 
       kersumim += d_uniform[2*i+1];    // in case the kernel isn't real!
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
 
     // now do the large-scale test w/ random sources..
     printf("making random data...\n");
-    double strre = 0.0, strim = 0.0;          // also sum the strengths
+    FLT strre = 0.0, strim = 0.0;          // also sum the strengths
 #pragma omp parallel
     {
       unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
@@ -120,16 +120,16 @@ int main(int argc, char* argv[])
     } else
       printf("\t%.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
 
-    double sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
+    FLT sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
 #pragma omp parallel for reduction(+:sumre,sumim)
     for (BIGINT i=0;i<Ng;++i) {
       sumre += d_uniform[2*i]; 
       sumim += d_uniform[2*i+1];
     }
-    double pre = kersumre*strre - kersumim*strim;   // pred ans, complex mult
-    double pim = kersumim*strre + kersumre*strim;
-    double maxerr = std::max(sumre-pre, sumim-pim);
-    double ansmod = sqrt(sumre*sumre+sumim*sumim);
+    FLT pre = kersumre*strre - kersumim*strim;   // pred ans, complex mult
+    FLT pim = kersumim*strre + kersumre*strim;
+    FLT maxerr = std::max(sumre-pre, sumim-pim);
+    FLT ansmod = sqrt(sumre*sumre+sumim*sumim);
     printf("\trel err in total over grid:      %.3g\n",maxerr/ansmod);
     // note this is weaker than below dir=2 test, but is good indicator that
     // periodic wrapping is correct
@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
     // math test is worst-case error from pred value (kersum) on interp pts:
     maxerr = 0.0;
     for (BIGINT i=0;i<M;++i) {
-      double err = std::max(fabs(d_nonuniform[2*i]-kersumre),
+      FLT err = std::max(fabs(d_nonuniform[2*i]-kersumre),
 			    fabs(d_nonuniform[2*i+1]-kersumim));
       if (err>maxerr) maxerr=err;
     }

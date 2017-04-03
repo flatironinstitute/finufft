@@ -4,12 +4,54 @@
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <stdint.h>
 
-using namespace std;        // means std:: not needed for cout, max, etc
-#include <complex>          // C++ type complex, and useful abbrevs...
-typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
-#define ima complex<double>{0.0,1.0}
+#include <complex>          // C++ type complex
+#include <fftw3.h>          // needed so can typedef FFTW_CPX
 
-// Compile-flag choice of 64 (default) or 32 bit integers in interface
+using namespace std;        // means std:: not needed for cout, max, etc
+
+typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
+
+// Compile-flag choice of single or double (default) precision:
+// (Note in the other codes, FLT is "double" or "float", CPX same but complex)
+#ifdef SINGLE
+  // machine epsilon for rounding
+  #define EPSILON (float)6e-08
+  typedef float FLT;
+  typedef complex<float> CPX;
+  #define ima complex<float>{0.0,1.0}
+  typedef fftwf_complex FFTW_CPX;           //  single-prec has fftwf_*
+  typedef fftwf_plan FFTW_PLAN;
+  #define FFTW_INIT fftwf_init_threads
+  #define FFTW_PLAN_TH fftwf_plan_with_nthreads
+  #define FFTW_ALLOC fftwf_alloc_complex
+  #define FFTW_PLAN_1D fftwf_plan_dft_1d
+  #define FFTW_PLAN_2D fftwf_plan_dft_2d
+  #define FFTW_PLAN_3D fftwf_plan_dft_3d
+  #define FFTW_EX fftwf_execute
+  #define FFTW_DE fftwf_destroy_plan
+  #define FFTW_FR fftwf_free
+#else
+  // machine epsilon for rounding
+  #define EPSILON (double)1.1e-16
+  typedef double FLT;
+  typedef complex<double> CPX;
+  #define ima complex<double>{0.0,1.0}
+  typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
+  typedef fftw_plan FFTW_PLAN;
+  #define FFTW_INIT fftw_init_threads
+  #define FFTW_PLAN_TH fftw_plan_with_nthreads
+  #define FFTW_ALLOC fftw_alloc_complex
+  #define FFTW_PLAN_1D fftw_plan_dft_1d
+  #define FFTW_PLAN_2D fftw_plan_dft_2d
+  #define FFTW_PLAN_3D fftw_plan_dft_3d
+  #define FFTW_EX fftw_execute
+  #define FFTW_DE fftw_destroy_plan
+  #define FFTW_FR fftw_free
+#endif
+// to avoid mixed precision operators in eg i*pi...
+#define PI (FLT)M_PI
+
+// Compile-flag choice of 64 (default) or 32 bit integers in interface:
 #ifdef INTERFACE32
   typedef int INT;
 #else
@@ -44,12 +86,12 @@ typedef int64_t INT64;
 #define MIN(a,b) (a<b) ? a : b
 
 // ahb math helpers
-double relerrtwonorm(BIGINT n, dcomplex* a, dcomplex* b);
-double errtwonorm(BIGINT n, dcomplex* a, dcomplex* b);
-double twonorm(BIGINT n, dcomplex* a);
-double infnorm(BIGINT n, dcomplex* a);
-void arrayrange(BIGINT n, double* a, double *lo, double *hi);
-void arraywidcen(BIGINT n, double* a, double *w, double *c);
+FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b);
+FLT errtwonorm(BIGINT n, CPX* a, CPX* b);
+FLT twonorm(BIGINT n, CPX* a);
+FLT infnorm(BIGINT n, CPX* a);
+void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi);
+void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
 INT64 next235even(INT64 n);
 
 
@@ -67,17 +109,17 @@ class CNTime {
 
 
 // Random numbers: crappy unif random number generator in [0,1):
-//#define rand01() (((double)(rand()%RAND_MAX))/RAND_MAX)
-#define rand01() ((double)rand()/RAND_MAX)
+//#define rand01() (((FLT)(rand()%RAND_MAX))/RAND_MAX)
+#define rand01() ((FLT)rand()/RAND_MAX)
 // unif[-1,1]:
-#define randm11() (2*rand01() - 1.0)
+#define randm11() (2*rand01() - (FLT)1.0)
 // complex unif[-1,1] for Re and Im:
 #define crandm11() (randm11() + ima*randm11())
 
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
-#define rand01r(x) ((double)rand_r(x)/RAND_MAX)
+#define rand01r(x) ((FLT)rand_r(x)/RAND_MAX)
 // unif[-1,1]:
-#define randm11r(x) (2*rand01r(x) - 1.0)
+#define randm11r(x) (2*rand01r(x) - (FLT)1.0)
 // complex unif[-1,1] for Re and Im:
 #define crandm11r(x) (randm11r(x) + ima*randm11r(x))
 

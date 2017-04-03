@@ -4,19 +4,19 @@
 #include <math.h>
 
 // declarations of internal functions...
-std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky,
-					 double *kz,BIGINT N1,BIGINT N2,BIGINT N3, int pirange);
-void compute_kernel_values(double frac1,double frac2,double frac3,
+std::vector<BIGINT> compute_sort_indices(BIGINT M,FLT *kx, FLT *ky,
+					 FLT *kz,BIGINT N1,BIGINT N2,BIGINT N3, int pirange);
+void compute_kernel_values(FLT frac1,FLT frac2,FLT frac3,
 			   const spread_opts &opts, int *r1, int *r2, int *r3,
-			   double *ker, int ndims);
+			   FLT *ker, int ndims);
 bool set_thread_index_box(BIGINT *i1th,BIGINT *i2th,BIGINT *i3th,BIGINT N1,BIGINT N2,
 			  BIGINT N3,int th,int nth, const spread_opts &opts,
 			  int ndims);
 bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r);
 
 int cnufftspread(
-        BIGINT N1, BIGINT N2, BIGINT N3, double *data_uniform,
-        BIGINT M, double *kx, double *ky, double *kz, double *data_nonuniform,
+        BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
+        BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
         spread_opts opts)
 /* Spreader for 1, 2, or 3 dimensions.
    If opts.spread_direction=1, evaluate, in the 1D case,
@@ -128,7 +128,7 @@ int cnufftspread(
 
   // set up spreading kernel index bounds in each dim, relative to bottom left corner:
   int ns=opts.nspread;
-  double ns2 = (double)ns/2;          // half spread width, used later
+  FLT ns2 = (FLT)ns/2;          // half spread width, used later
   int R1[2]={0,ns-1};                 // we always spread in x
   int R2[2]={0,0}; int R3[2]={0,0};
   if (N2>1) R2[1] = ns-1;             // also spread in y
@@ -159,17 +159,17 @@ int cnufftspread(
 	  // (note every thread does this loop, but only sometimes write to the grid)
 	  BIGINT jj=sort_indices[i];
 	  int r1[2],r2[2],r3[2]; // lower & upper rel ind bnds restricted to thread's box
-	  double xj = opts.pirange ? (kx[jj]/(2*M_PI)+0.5)*N1  : kx[jj];
-	  double yj, zj;         // need scope to last
+	  FLT xj = opts.pirange ? (kx[jj]/(2*PI)+0.5)*N1  : kx[jj];
+	  FLT yj, zj;         // need scope to last
 	  BIGINT i1=(BIGINT)std::ceil(xj-ns2), i2=0, i3=0; // leftmost x grid index
 	  if (xj<0.0 || xj>N1) bnderr = true;
 	  if (ndims>1) {
-	    yj =  opts.pirange ? (ky[jj]/(2*M_PI)+0.5)*N2  : ky[jj];
+	    yj =  opts.pirange ? (ky[jj]/(2*PI)+0.5)*N2  : ky[jj];
 	    i2=(BIGINT)std::ceil(yj-ns2); // lowest y grid index
 	    if (yj<0.0 || yj>N2) bnderr = true;
 	  }
 	  if (ndims>2) {
-	    zj =  opts.pirange ? (kz[jj]/(2*M_PI)+0.5)*N3  : kz[jj];
+	    zj =  opts.pirange ? (kz[jj]/(2*PI)+0.5)*N3  : kz[jj];
 	    i3=(BIGINT)std::ceil(zj-ns2); // lowest z grid index
 	    if (zj<0.0 || zj>N3) bnderr = true;
 	  }
@@ -185,20 +185,20 @@ int cnufftspread(
 	    // periodically up to +-1 period:    
 	    BIGINT j1_array[MAX_NSPREAD],j2_array[MAX_NSPREAD],j3_array[MAX_NSPREAD];
 	    j2_array[0] = 0; j3_array[0] = 0;             // needed for unused dims
-	    double x1=(double)i1-xj, x2, x3;          // real shifts of ker center
+	    FLT x1=(FLT)i1-xj, x2, x3;          // real shifts of ker center
 	    for (int dx=r1[0]; dx<=r1[1]; dx++) {
 	      BIGINT j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1;
 	      j1_array[dx-r1[0]]=j;
 	    }
 	    if (ndims>1) {              // 2d stuff
-	      x2=(double)i2-yj;
+	      x2=(FLT)i2-yj;
 	      for (int dy=r2[0]; dy<=r2[1]; dy++) {
 		BIGINT j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2;
 		j2_array[dy-r2[0]]=j;
 	      }
 	    }
 	    if (ndims>2) {              // 2d or 3d stuff
-	      x3=(double)i3-zj;
+	      x3=(FLT)i3-zj;
 	      for (int dz=r3[0]; dz<=r3[1]; dz++) {
 		BIGINT j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3;
 		j3_array[dz-r3[0]]=j;
@@ -206,10 +206,10 @@ int cnufftspread(
 	    }
 	    // from now on in dir=1, we use "small r" instead of "big R" bounds...
 	    // Eval only ker vals needed for overall dim and this thread's index box
-	    double kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
+	    FLT kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
 	    compute_kernel_values(x1,x2,x3,opts,r1,r2,r3,kernel_values,ndims);
-	    double re0=data_nonuniform[2*jj];
-	    double im0=data_nonuniform[2*jj+1];
+	    FLT re0=data_nonuniform[2*jj];
+	    FLT im0=data_nonuniform[2*jj+1];
   	    int aa = 0;                            // can't get very big
 	    for (int dz=r3[0]; dz<=r3[1]; dz++) {
 	      BIGINT o3=N1*N2*j3_array[dz-r3[0]];  // use precomp index lists in each dim
@@ -217,7 +217,7 @@ int cnufftspread(
 		BIGINT o2=o3 + N1*j2_array[dy-r2[0]];
 		for (int dx=r1[0]; dx<=r1[1]; dx++) {
 		  BIGINT jjj=o2 + j1_array[dx-r1[0]];
-		  double kern0=kernel_values[aa];     // kernel vals swept in proper order
+		  FLT kern0=kernel_values[aa];     // kernel vals swept in proper order
 		  data_uniform[jjj*2]   += re0*kern0; // accumulate complex value to grid
 		  data_uniform[jjj*2+1] += im0*kern0;
 		  aa++;
@@ -236,38 +236,38 @@ int cnufftspread(
 	// periodically up to +-1 period:
 	BIGINT j1_array[MAX_NSPREAD],j2_array[MAX_NSPREAD],j3_array[MAX_NSPREAD];
 	j2_array[0] = 0; j3_array[0] = 0;             // needed for unused dims
-	double xj = opts.pirange ? (kx[jj]/(2*M_PI)+0.5)*N1  : kx[jj];
-	double yj, zj;
+	FLT xj = opts.pirange ? (kx[jj]/(2*PI)+0.5)*N1  : kx[jj];
+	FLT yj, zj;
 	if (xj<0.0 || xj>N1) bnderr = true;
 	BIGINT i1=(BIGINT)std::ceil(xj-ns2), i2=0, i3=0; // leftmost grid index
-	double x1=(double)i1-xj, x2, x3;          // real-valued shifts of ker center
+	FLT x1=(FLT)i1-xj, x2, x3;          // real-valued shifts of ker center
 	for (int dx=R1[0]; dx<=R1[1]; dx++) {
 	  BIGINT j=i1+dx; if (j<0) j+=N1; if (j>=N1) j-=N1;
 	  j1_array[dx-R1[0]]=j;                       // redundant since R1[0]=0 always
 	}
 	if (ndims>1) {              // 2d stuff
-	  yj =  opts.pirange ? (ky[jj]/(2*M_PI)+0.5)*N2  : ky[jj];
+	  yj =  opts.pirange ? (ky[jj]/(2*PI)+0.5)*N2  : ky[jj];
 	  if (yj<0.0 || yj>N2) bnderr = true;
 	  i2=(BIGINT)std::ceil(yj-ns2); // lowest y grid index, or 0 if unused dim
-	  x2=(double)i2-yj;
+	  x2=(FLT)i2-yj;
 	  for (int dy=R2[0]; dy<=R2[1]; dy++) {
 	    BIGINT j=i2+dy; if (j<0) j+=N2; if (j>=N2) j-=N2;
 	    j2_array[dy-R2[0]]=j;
 	  }
 	}
 	if (ndims>2) {              // 2d or 3d stuff
-	  zj =  opts.pirange ? (kz[jj]/(2*M_PI)+0.5)*N3  : kz[jj];
+	  zj =  opts.pirange ? (kz[jj]/(2*PI)+0.5)*N3  : kz[jj];
 	  if (zj<0.0 || zj>N3) bnderr = true;
 	  i3=(BIGINT)std::ceil(zj-ns2); // lowest z grid index, or 0 if unused dim
-	  x3=(double)i3-zj;
+	  x3=(FLT)i3-zj;
 	  for (int dz=R3[0]; dz<=R3[1]; dz++) {
 	    BIGINT j=i3+dz; if (j<0) j+=N3; if (j>=N3) j-=N3;
 	    j3_array[dz-R3[0]]=j;
 	  }
 	}
-	double kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
+	FLT kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
 	compute_kernel_values(x1,x2,x3,opts,R1,R2,R3,kernel_values,ndims);
-	double re0=0.0, im0=0.0;
+	FLT re0=0.0, im0=0.0;
 	int aa = 0;                            // can't get very big
 	for (int dz=R3[0]; dz<=R3[1]; dz++) {
 	  BIGINT o3=N1*N2*j3_array[dz-R3[0]];  // use precomputed index lists in each dim
@@ -275,7 +275,7 @@ int cnufftspread(
 	    BIGINT o2=o3 + N1*j2_array[dy-R2[0]];
 	    for (int dx=R1[0]; dx<=R1[1]; dx++) {
 	      BIGINT jjj=o2 + j1_array[dx-R1[0]];
-	      double kern0=kernel_values[aa];
+	      FLT kern0=kernel_values[aa];
 	      re0 += data_uniform[jjj*2]*kern0;  // interpolate using kernel as weights
 	      im0 += data_uniform[jjj*2+1]*kern0;
 	      aa++;
@@ -331,8 +331,8 @@ bool set_thread_index_box(BIGINT *i1th,BIGINT *i2th,BIGINT *i3th,BIGINT N1,BIGIN
       ith[0] = ith[1] = th;
       if (th>=Ntop) thread_gets_gridpts = false;
     } else {           // this relies on consistent rounding behavior every time called!
-      ith[0] = (BIGINT)(th*(double)Ntop/nth);
-      ith[1] = (BIGINT)((th+1)*(double)Ntop/nth - 1);
+      ith[0] = (BIGINT)(th*(FLT)Ntop/nth);
+      ith[1] = (BIGINT)((th+1)*(FLT)Ntop/nth - 1);
     }
     // now slice only along the top dim (we keep lines or planes in lower dims)
     if (ndims==1) {
@@ -377,7 +377,7 @@ bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r)
   return false;
 }
 
-std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double *kz,BIGINT N1,BIGINT N2,BIGINT N3,int pirange)
+std::vector<BIGINT> compute_sort_indices(BIGINT M,FLT *kx, FLT *ky, FLT *kz,BIGINT N1,BIGINT N2,BIGINT N3,int pirange)
   /* Returns permutation of the 1, 2 or 3D nonuniform points with good RAM access for the
    * upcoming spreading step.
    *
@@ -407,13 +407,13 @@ std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double
   for (BIGINT j=0; j<N2*N3; j++)
     counts[j]=0;
   for (BIGINT i=0; i<M; i++) {
-    double y = isky ? ky[i] : 0.0;
-    BIGINT i2=pirange ? (BIGINT)((y/(2*M_PI) + 0.5)*N2+0.5) : (BIGINT)(y+0.5);
+    FLT y = isky ? ky[i] : 0.0;
+    BIGINT i2=pirange ? (BIGINT)((y/(2*PI) + 0.5)*N2+0.5) : (BIGINT)(y+0.5);
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
-    double z = iskz ? kz[i] : 0.0;
-    BIGINT i3=pirange ? (BIGINT)((z/(2*M_PI) + 0.5)*N3+0.5) : (BIGINT)(z+0.5);
+    FLT z = iskz ? kz[i] : 0.0;
+    BIGINT i3=pirange ? (BIGINT)((z/(2*PI) + 0.5)*N3+0.5) : (BIGINT)(z+0.5);
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     
@@ -428,13 +428,13 @@ std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double
   
   std::vector<BIGINT> ret_inv(M);
   for (BIGINT i=0; i<M; i++) {
-    double y = isky ? ky[i] : 0.0;
-    BIGINT i2=pirange ? (BIGINT)((y/(2*M_PI) + 0.5)*N2+0.5) : (BIGINT)(y+0.5);
+    FLT y = isky ? ky[i] : 0.0;
+    BIGINT i2=pirange ? (BIGINT)((y/(2*PI) + 0.5)*N2+0.5) : (BIGINT)(y+0.5);
     if (i2<0) i2=0;
     if (i2>=N2) i2=N2-1;
     
-    double z = iskz ? kz[i] : 0.0;
-    BIGINT i3=pirange ? (BIGINT)((z/(2*M_PI) + 0.5)*N3+0.5) : (BIGINT)(z+0.5);
+    FLT z = iskz ? kz[i] : 0.0;
+    BIGINT i3=pirange ? (BIGINT)((z/(2*PI) + 0.5)*N3+0.5) : (BIGINT)(z+0.5);
     if (i3<0) i3=0;
     if (i3>=N3) i3=N3-1;
     
@@ -451,9 +451,9 @@ std::vector<BIGINT> compute_sort_indices(BIGINT M,double *kx, double *ky, double
   return ret;
 }
 
-void compute_kernel_values(double x1,double x2,double x3,
+void compute_kernel_values(FLT x1,FLT x2,FLT x3,
 			   const spread_opts &opts, int *r1, int *r2, int *r3,
-			   double *ker, int ndims)
+			   FLT *ker, int ndims)
 /* Evaluate spreading kernel values on integer cuboid of grid points
  * shifted from the origin by real vector
  * (x1,x2,x3). The integer ranges are controlled by
@@ -461,7 +461,7 @@ void compute_kernel_values(double x1,double x2,double x3,
  * in each dimension.  ndims=1,2,3 sets the number of used dimensions.
  * The output ker is values in the cuboid,
  * ordered x (dim1) fast, y (dim2) medium, z (dim3) slow.  ker should be
- * allocated for MAX_NSPREAD^3 doubles.
+ * allocated for MAX_NSPREAD^3 FLTs.
  *
  * Magland Dec 2016. Restrict to sub-cuboids and doc by Barnett 1/16/17.
  * C-style ext alloc, frac sign, removing prefacs from unused dims - faster.
@@ -472,33 +472,33 @@ void compute_kernel_values(double x1,double x2,double x3,
   if (ndims==1) {
     int aa=0;            // pointer for writing to output ker array
     for (int i=r1[0]; i<=r1[1]; ++i)
-      ker[aa++] = evaluate_kernel(x1+(double)i,opts);
+      ker[aa++] = evaluate_kernel(x1+(FLT)i,opts);
     return;
   }
   // now either 2d or 3d. fill kernel evalation 1d lists for each dim...
-  double v1[MAX_NSPREAD],v2[MAX_NSPREAD],v3[MAX_NSPREAD];
+  FLT v1[MAX_NSPREAD],v2[MAX_NSPREAD],v3[MAX_NSPREAD];
   for (int i=r1[0]; i<=r1[1]; ++i)
-    v1[i-r1[0]] = evaluate_kernel(x1+(double)i,opts);
+    v1[i-r1[0]] = evaluate_kernel(x1+(FLT)i,opts);
   s2=r2[1]-r2[0]+1;
   for (int i=r2[0]; i<=r2[1]; ++i)
-    v2[i-r2[0]] = evaluate_kernel(x2+(double)i,opts);
+    v2[i-r2[0]] = evaluate_kernel(x2+(FLT)i,opts);
   if (ndims>2) {
     s3=r3[1]-r3[0]+1;
     for (int i=r3[0]; i<=r3[1]; ++i)
-      v3[i-r3[0]] = evaluate_kernel(x3+(double)i,opts);
+      v3[i-r3[0]] = evaluate_kernel(x3+(FLT)i,opts);
   }
   int aa=0;            // pointer for writing to output ker array
   if (ndims==2) {      // compute the rank-2 outer product of two 1d lists...
     for (int j=0; j<s2; j++) {
-      double val2=v2[j];
+      FLT val2=v2[j];
       for (int i=0; i<s1; i++)
 	ker[aa++]=val2*v1[i];
     }
   } else {             // compute the rank-3 outer product of three 1d lists...
     for (int k=0; k<s3; k++) {
-      double val3=v3[k];
+      FLT val3=v3[k];
       for (int j=0; j<s2; j++) {
-	double val2=val3*v2[j];
+	FLT val2=val3*v2[j];
 	for (int i=0; i<s1; i++)
 	  ker[aa++]=val2*v1[i];
       }
@@ -509,24 +509,24 @@ void compute_kernel_values(double x1,double x2,double x3,
 
 // ----------------------------------- ES spreading kernel -------------------
 
-int setup_kernel(spread_opts &opts,double eps,double R)
+int setup_kernel(spread_opts &opts,FLT eps,FLT R)
 // must be called before evaluate_kernel used.
 // returns: 0 success, >0 failure (see error codes in utils.h)
 {
-  double fudgefac = 1.0;   // how much actual errors exceed estimated errors
+  FLT fudgefac = 1.0;   // how much actual errors exceed estimated errors
   int ns = std::ceil(-log10(eps/fudgefac))+1;   // 1 digit per power of ten
   ns = max(2,ns);                            // we don't have ns=1 version yet
   ns = min(ns,MAX_NSPREAD);                  // clip for safety!
   opts.nspread = ns;
-  opts.ES_halfwidth=(double)ns/2;            // full support, since no 1/4 power
-  opts.ES_c = 4.0/(double)(ns*ns);           // avoids recomputing
-  double betaoverns = 2.30;                  // approximate betas for R=2.0
+  opts.ES_halfwidth=(FLT)ns/2;            // full support, since no 1/4 power
+  opts.ES_c = 4.0/(FLT)(ns*ns);           // avoids recomputing
+  FLT betaoverns = 2.30;                  // approximate betas for R=2.0
   if (ns==2) betaoverns = 2.20;
   if (ns==3) betaoverns = 2.26;
   if (ns==4) betaoverns = 2.38;
-  opts.ES_beta = betaoverns * (double)ns;
-  if (eps<1e-16) {
-    fprintf(stderr,"setup_kernel: requested eps is too small (<1e-16)!\n");
+  opts.ES_beta = betaoverns * (FLT)ns;
+  if (eps<EPSILON) {
+    fprintf(stderr,"setup_kernel: requested eps is too small (<%.3g)!\n",EPSILON);
     return ERR_EPS_TOO_SMALL;
   }
   if (R<1.9 || R>2.1)
@@ -534,7 +534,7 @@ int setup_kernel(spread_opts &opts,double eps,double R)
   return 0;
 }
 
-double evaluate_kernel(double x, const spread_opts &opts)
+FLT evaluate_kernel(FLT x, const spread_opts &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
 
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2

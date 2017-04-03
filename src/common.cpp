@@ -24,8 +24,8 @@ void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, INT64 *nf)
     *nf = next235even(*nf);                        // expensive at huge nf
 }
 
-void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
-		     INT64 *nf, double *h, double *gam)
+void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
+		     INT64 *nf, FLT *h, FLT *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
    Inputs:
@@ -39,20 +39,20 @@ void set_nhg_type3(double S, double X, nufft_opts opts, spread_opts spopts,
 */
 {
   int nss = spopts.nspread + 1;      // since ns may be odd
-  double nfd = 2.0*opts.R*S*X/M_PI + nss;
-  if (!isfinite(nfd)) nfd=0.0;                // use double to catch inf
+  FLT nfd = 2.0*opts.R*S*X/PI + nss;
+  if (!isfinite(nfd)) nfd=0.0;                // use FLT to catch inf
   *nf = (INT64)nfd;
   //printf("initial nf=%ld, ns=%d\n",*nf,spopts.nspread);
   // catch too small nf, and nan or +-inf, otherwise spread fails...
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;
   if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
     *nf = next235even(*nf);                        // expensive at huge nf
-  *h = 2*M_PI / *nf;                          // upsampled grid spacing
-  *gam = (X/M_PI)/(1.0 - nss/(double)*nf);    // x scale fac
-  *gam = max(*gam,1.0/S);                     // safely handle X=0 (zero width)
+  *h = 2*PI / *nf;                          // upsampled grid spacing
+  *gam = (X/PI)/(1.0 - nss/(FLT)*nf);    // x scale fac
+  *gam = max(*gam,(FLT)1.0/S);                // safely handle X=0 (zero width)
 }
 
-void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
+void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
 /*
   Computes DCT coeffs of cnufftspread's real symmetric kernel, directly,
   exploiting narrowness of kernel. Uses phase winding for cheap eval on the
@@ -65,24 +65,24 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
 
   Outputs:
   fwkerhalf - real Fourier coeffs from indices 0 to nf/2 inclusive.
-              (should be allocated for at least nf/2+1 doubles)
+              (should be allocated for at least nf/2+1 FLTs)
 
   Single thread only. Barnett 1/24/17
  */
 {
   int m=ceil(opts.nspread/2.0);        // how many "modes" (ker pts) to include
-  double f[MAX_NSPREAD/2];
+  FLT f[MAX_NSPREAD/2];
   for (int n=0;n<=m;++n)    // actual freq index will be nf/2-n, for cosines
-    f[n] = evaluate_kernel((double)n, opts);  // center at nf/2
+    f[n] = evaluate_kernel((FLT)n, opts);  // center at nf/2
   for (int n=1;n<=m;++n)               //  convert from exp to cosine ampls
     f[n] *= 2.0;
   dcomplex a[MAX_NSPREAD/2],aj[MAX_NSPREAD/2];
   for (int n=0;n<=m;++n) {             // set up our rotating phase array...
-    a[n] = exp(2*M_PI*ima*(double)(nf/2-n)/(double)nf);   // phase differences
+    a[n] = exp(2*PI*ima*(FLT)(nf/2-n)/(FLT)nf);   // phase differences
     aj[n] = dcomplex{1.0,0.0};         // init phase factors
   }
   for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
-    double x = 0.0;                    // register
+    FLT x = 0.0;                    // register
     for (int n=0;n<=m;++n) {
       x += f[n] * real(aj[n]);         // only want cosine part
       aj[n] *= a[n];                   // wind the phases
@@ -91,7 +91,7 @@ void onedim_dct_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
   }
 }
 
-void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
+void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -104,7 +104,7 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
 
   Outputs:
   fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive
-              (should be allocated for at least nf/2+1 doubles)
+              (should be allocated for at least nf/2+1 FLTs)
 
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
@@ -114,20 +114,20 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
   Barnett 2/7/17
  */
 {
-  double J2 = opts.nspread/2.0;         // J/2, half-width of ker z-support
+  FLT J2 = opts.nspread/2.0;         // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
-  double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
+  FLT f[MAX_NQUAD]; double z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
   dcomplex a[MAX_NQUAD],aj[MAX_NQUAD];  // phase rotators
   for (int n=0;n<q;++n) {
     z[n] *= J2;                 // rescale nodes
-    f[n] = J2*w[n] * evaluate_kernel(z[n], opts);     // include quadr weights
-    a[n] = exp(2*M_PI*ima*(double)(nf/2-z[n])/(double)nf);  // phase windings
+    f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // w/ quadr weights
+    a[n] = exp(2*PI*ima*(FLT)(nf/2-z[n])/(FLT)nf);  // phase windings
     aj[n] = dcomplex{1.0,0.0};         // init phase factors
   }
   for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
-    double x = 0.0;                    // register
+    FLT x = 0.0;                    // register
     for (int n=0;n<q;++n) {
       x += f[n] * 2*real(aj[n]);       // include the negative freq
       aj[n] *= a[n];                   // wind the phases
@@ -136,7 +136,7 @@ void onedim_fseries_kernel(BIGINT nf, double *fwkerhalf, spread_opts opts)
   }
 }
 
-void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat, spread_opts opts)
+void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -149,40 +149,40 @@ void onedim_nuft_kernel(BIGINT nk, double *k, double *phihat, spread_opts opts)
   opts - spreading opts object, needed to eval kernel (must be already set up)
 
   Outputs:
-  phihat - real Fourier transform evaluated at freqs (alloc for nk doubles)
+  phihat - real Fourier transform evaluated at freqs (alloc for nk FLTs)
 
   Barnett 2/8/17. openmp since cos slow 2/9/17
  */
 {
-  double J2 = opts.nspread/2.0;        // J/2, half-width of ker z-support
+  FLT J2 = opts.nspread/2.0;        // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 2.0*J2);     // > pi/2 ratio.  cannot exceed MAX_NQUAD
   if (opts.debug) printf("q (# ker FT quadr pts) = %d\n",q);
-  double f[MAX_NQUAD],z[2*MAX_NQUAD],w[2*MAX_NQUAD];
+  FLT f[MAX_NQUAD]; double z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
   for (int n=0;n<q;++n) {
     z[n] *= J2;                                    // quadr nodes for [0,J/2]
-    f[n] = J2*w[n] * evaluate_kernel(z[n], opts);  // include quadr weights
+    f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // w/ quadr weights
     //    printf("f[%d] = %.3g\n",n,f[n]);
   }
   #pragma omp parallel for schedule(dynamic)
   for (BIGINT j=0;j<nk;++j) {          // loop along output array
-    double x = 0.0;                    // register
+    FLT x = 0.0;                    // register
     for (int n=0;n<q;++n) x += f[n] * 2*cos(k[j]*z[n]);  // pos & neg freq pair
     phihat[j] = x;
   }
 }  
 
-void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
-			 double *fk, BIGINT nf1, fftw_complex* fw)
+void deconvolveshuffle1d(int dir,FLT prefac,FLT* ker, BIGINT ms,
+			 FLT *fk, BIGINT nf1, FFTW_CPX* fw)
 /*
   if dir==1: copies fw to fk with amplification by preface/ker
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
-  fk is size-ms double complex array (2*ms doubles alternating re,im parts)
-  fw is a FFTW style complex array, ie double [nf1][2], essentially doubles
+  fk is size-ms FLT complex array (2*ms FLTs alternating re,im parts)
+  fw is a FFTW style complex array, ie FLT [nf1][2], essentially FLTs
        alternating re,im parts.
-  ker is real-valued double array of length nf1/2+1.
+  ker is real-valued FLT array of length nf1/2+1.
 
   Single thread only.
 
@@ -224,20 +224,20 @@ void deconvolveshuffle1d(int dir,double prefac,double* ker, BIGINT ms,
   }
 }
 
-void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
+void deconvolveshuffle2d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
 			 BIGINT ms, BIGINT mt,
-			 double *fk, BIGINT nf1, BIGINT nf2, fftw_complex* fw)
+			 FLT *fk, BIGINT nf1, BIGINT nf2, FFTW_CPX* fw)
 /*
   2D version of deconvolveshuffle1d, calls it on each x-line using 1/ker2 fac.
 
   if dir==1: copies fw to fk with amplification by prefac/(ker1(k1)*ker2(k2)).
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
-  fk is complex array stored as 2*ms*mt doubles alternating re,im parts, with
+  fk is complex array stored as 2*ms*mt FLTs alternating re,im parts, with
     ms looped over fast and mt slow.
-  fw is a FFTW style complex array, ie double [nf1*nf2][2], essentially doubles
+  fw is a FFTW style complex array, ie FLT [nf1*nf2][2], essentially FLTs
        alternating re,im parts; again nf1 is fast and nf2 slow.
-  ker1, ker2 are real-valued double arrays of lengths nf1/2+1, nf2/2+1
+  ker1, ker2 are real-valued FLT arrays of lengths nf1/2+1, nf2/2+1
        respectively.
 
   Barnett 2/1/17, Fixed mt=0 case 3/14/17
@@ -256,21 +256,21 @@ void deconvolveshuffle2d(int dir,double prefac,double *ker1, double *ker2,
     deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + 2*ms*(k02+k2),nf1,&fw[nf1*(nf2+k2)]);
 }
 
-void deconvolveshuffle3d(int dir,double prefac,double *ker1, double *ker2,
-			 double *ker3, BIGINT ms, BIGINT mt, BIGINT mu,
-			 double *fk, BIGINT nf1, BIGINT nf2, BIGINT nf3,
-			 fftw_complex* fw)
+void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
+			 FLT *ker3, BIGINT ms, BIGINT mt, BIGINT mu,
+			 FLT *fk, BIGINT nf1, BIGINT nf2, BIGINT nf3,
+			 FFTW_CPX* fw)
 /*
   3D version of deconvolveshuffle2d, calls it on each xy-plane using 1/ker3 fac.
 
   if dir==1: copies fw to fk with ampl by prefac/(ker1(k1)*ker2(k2)*ker3(k3)).
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
 
-  fk is complex array stored as 2*ms*mt*mu doubles alternating re,im parts, with
+  fk is complex array stored as 2*ms*mt*mu FLTs alternating re,im parts, with
     ms looped over fastest and mu slowest.
-  fw is a FFTW style complex array, ie double [nf1*nf2*nf3][2], effectively
-       doubles alternating re,im parts; again nf1 is fastest and nf3 slowest.
-  ker1, ker2, ker3 are real-valued double arrays of lengths nf1/2+1, nf2/2+1,
+  fw is a FFTW style complex array, ie FLT [nf1*nf2*nf3][2], effectively
+       FLTs alternating re,im parts; again nf1 is fastest and nf3 slowest.
+  ker1, ker2, ker3 are real-valued FLT arrays of lengths nf1/2+1, nf2/2+1,
        and nf3/2+1 respectively.
 
   Barnett 2/1/17, Fixed mu=0 case 3/14/17
