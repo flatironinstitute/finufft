@@ -8,9 +8,9 @@
 // integer*4 for the array size arguments for now.
 // Barnett 3/10/17
 
-int finufft1d1_c(int nj,double* xj,double _Complex* cj,int iflag, double eps,int ms, double _Complex* fk)
+int finufft1d1_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms, FLT _Complex* fk)
 //int finufft1d1_c(int nj,double* xj,dcomplex* cj,int iflag, double eps,int ms, dcomplex* fk)
 {
   nufft_opts opts;
-  return finufft1d1((INT)nj,xj,(dcomplex *)cj,iflag,eps,(INT)ms,(dcomplex *)fk,opts);
+  return finufft1d1((INT)nj,xj,(CPX *)cj,iflag,eps,(INT)ms,(CPX *)fk,opts);
 }

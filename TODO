@@ -2,10 +2,11 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
+*** for _DSINGLE case: makefile switch, check interafces in this case. make test work (selecting 1e-12 or 1e-5 resp.). Maltab include an opts.single flag to tell it to typecast io to singles in .mw. Also 1d1 C++ example, check why rel err never beats 1e-2. Switch to examples1df in makefile
+
 * speed and parallel scaling for uniform and surface-like NU pts dists, figures
 * make C interface example1d1c cleaner, ie remove _Complex, why needs g++ to compile?
 * test non-openmp compile. Decide if non vs omp get different lib names.
-* decide if need single-prec compile option for RAM reduction, switch all math calls to macros which call either single or double versions? Will be messy for interfaces to F, M, O, P: need separate single-prec codes? (for M use opts flag)
 * run nufft_comparison, use for paper. Compare vs NFFT (Chemnitz), gpuNUFFT (Knoll)
 * theory work on exp(sqrt) being close to PSWF
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.

@@ -11,6 +11,8 @@ CC=gcc
 FC=gfortran
 FLINK=-lstdc++
 
+# ** insert SINGLE variable here that controls LIBSFFT, CXXFLAGS, and check_finufft.sh tols ...
+
 
 
 

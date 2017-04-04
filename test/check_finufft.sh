@@ -1,12 +1,12 @@
 #!/bin/bash
-# main script to looop through all validation tests for FINUFFT library.
+# main script to loop through all validation tests for FINUFFT library.
 # Barnett 3/14/17. numdiff-free option 3/16/17
 # currently uses default spread_opts.sort_data 3/28/17
 
 # Note that bash cannot handle floating-point arithmetic, and bc cannot read
 # exponent notation. Thus the exponent notation here is purely string in nature:
-export FINUFFT_REQ_TOL=1e-12          # requested acc, passed to check?d.sh
-FINUFFT_CHECK_TOL=1e-11               # allow up to 1 digit worse then requested
+export FINUFFT_REQ_TOL=1e-5          # requested acc, passed to check?d.sh
+FINUFFT_CHECK_TOL=1e-3               # allow up to 1 digit worse then requested
 DIR=results
 
 TESTS="testutils check1d.sh check2d.sh check3d.sh dumbinputs"

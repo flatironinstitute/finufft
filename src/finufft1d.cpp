@@ -63,7 +63,7 @@ int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  FFTW_CPX *fw = FFTW_ALLOC(nf1);    // working upsampled array
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
   if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
@@ -166,7 +166,7 @@ int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
     FFTW_PLAN_TH(nth);
   }
   timer.restart();
-  FFTW_CPX *fw = FFTW_ALLOC(nf1);    // working upsampled array
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, FFTW_ESTIMATE); // in-place
   if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());

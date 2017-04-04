@@ -23,7 +23,8 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   typedef fftwf_plan FFTW_PLAN;
   #define FFTW_INIT fftwf_init_threads
   #define FFTW_PLAN_TH fftwf_plan_with_nthreads
-  #define FFTW_ALLOC fftwf_alloc_complex
+  #define FFTW_ALLOC_RE fftwf_alloc_real
+  #define FFTW_ALLOC_CPX fftwf_alloc_complex
   #define FFTW_PLAN_1D fftwf_plan_dft_1d
   #define FFTW_PLAN_2D fftwf_plan_dft_2d
   #define FFTW_PLAN_3D fftwf_plan_dft_3d
@@ -40,7 +41,8 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   typedef fftw_plan FFTW_PLAN;
   #define FFTW_INIT fftw_init_threads
   #define FFTW_PLAN_TH fftw_plan_with_nthreads
-  #define FFTW_ALLOC fftw_alloc_complex
+  #define FFTW_ALLOC_RE fftw_alloc_real
+  #define FFTW_ALLOC_CPX fftw_alloc_complex
   #define FFTW_PLAN_1D fftw_plan_dft_1d
   #define FFTW_PLAN_2D fftw_plan_dft_2d
   #define FFTW_PLAN_3D fftw_plan_dft_3d
