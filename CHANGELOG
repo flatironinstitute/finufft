@@ -3,6 +3,9 @@ chronological order:
 
 V 0.9:
 
+* makefile has variables customizing openmp and precision, non-omp tested
+* fortran single-prec demos (required all direct ft's in single prec too!)
+* examples changed to err rel to max F.
 * matlab interface control of opts.spread_sort.
 * matlab interface using doubles as big ints w/ correct typecasting.
 * twopispread removed, used flag in spread_opts for [-pi,pi] input instead.

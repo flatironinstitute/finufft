@@ -1,11 +1,11 @@
 FINUFFT MANUAL
 
-Alex Barnett  3/29/17
+Alex Barnett  4/5/17
 
 Contents:
-1) OVerview
+1) Overview
 2) Interfaces to routines
-3) Large array issues
+3) Custom compilation options
 
 -------------------
 
@@ -38,7 +38,11 @@ In the below, the opts structure has the following user-settable fields:
                        (default is 1e9; set this larger if you need)
 
 
+
 2) Interfaces to routines
+
+In the below, double-precision is assumed.
+See next section for single-precision compilation.
 
 ==================== 1D TRANSFORMS ==================
 
@@ -419,7 +423,20 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
 
 =====================================================
 
-3) Large array issues.
+3) Custom compilation options:
+
+a) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
+    double-precision. Single-precision saves half the RAM, and increases
+    speed slightly (<20%). Will break matlab, octave, python interfaces.
+    However, C++, C, and fortran demos all tested in single precision.
+b) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
+c) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
+    indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
+    to int.
+d) If you want 32 bit integers in the FINUFFT library interface instead of
+    int64, add flag -DINTERFACE32 (experimental, C,F,M,O interfaces will break)
+
+More information about large arrays:
 
 By default FINUFFT uses internally and for interfacing 64-bit integers;
 this means arguments such as the number of sources (nj) are type int64_t,

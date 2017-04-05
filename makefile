@@ -9,7 +9,7 @@
 #
 # 1) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
 #    double-precision. Single-precision saves half the RAM, and increases
-#    speed slightly (<20%). Will fail for matlab, octave interfaces.
+#    speed slightly (<20%). Will break matlab, octave, python interfaces.
 # 2) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
 # 3) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
 #    indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
