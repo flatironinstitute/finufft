@@ -109,5 +109,5 @@ int CNTime::elapsed()
 double CNTime::elapsedsec()
 //  returns answers as double in sec
 {
-  return (double)(this->elapsed()/1e3);
+  return (double)(this->elapsed()/1000.0);
 }

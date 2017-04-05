@@ -3,29 +3,33 @@
 
 #include "../src/utils.h"
 
+// note FLT (= float or double) and CPX (= float complex or double complex)
+// used here. Make sure you call with appropriate fortran sizes.
+// All ints are int*4 for now in fortran interface.
+
 extern "C" {
-void finufft1d1_f_(int *nj,double* xj,dcomplex* cj,int *iflag, double *eps,
-		  int *ms, dcomplex* fk, int *ier);
-void finufft1d2_f_(int *nj,double* xj,dcomplex* cj,int *iflag, double *eps,
-		  int *ms, dcomplex* fk, int *ier);
-void finufft1d3_f_(int *nj,double* xj,dcomplex* cj,int *iflag, double *eps,
-		  int *nk, double* s, dcomplex* fk, int *ier);
-void finufft2d1_f_(int *nj,double* xj,double *yj,dcomplex* cj,int *iflag,
-		   double *eps, int *ms, int *mt, dcomplex* fk, int *ier);
-void finufft2d2_f_(int *nj,double* xj,double *yj,dcomplex* cj,int *iflag,
-		   double *eps, int *ms, int *mt, dcomplex* fk, int *ier);
-void finufft2d3_f_(int *nj,double* xj,double* yj, dcomplex* cj,int *iflag,
-		   double *eps, int *nk, double* s, double* t, dcomplex* fk,
+void finufft1d1_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
+		  int *ms, CPX* fk, int *ier);
+void finufft1d2_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
+		  int *ms, CPX* fk, int *ier);
+void finufft1d3_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
+		  int *nk, FLT* s, CPX* fk, int *ier);
+void finufft2d1_f_(int *nj,FLT* xj,FLT *yj,CPX* cj,int *iflag,
+		   FLT *eps, int *ms, int *mt, CPX* fk, int *ier);
+void finufft2d2_f_(int *nj,FLT* xj,FLT *yj,CPX* cj,int *iflag,
+		   FLT *eps, int *ms, int *mt, CPX* fk, int *ier);
+void finufft2d3_f_(int *nj,FLT* xj,FLT* yj, CPX* cj,int *iflag,
+		   FLT *eps, int *nk, FLT* s, FLT* t, CPX* fk,
 		   int *ier);
-void finufft3d1_f_(int *nj,double* xj,double *yj,double* zj,dcomplex* cj,
-		   int *iflag, double *eps, int *ms, int *mt, int *mu,
-		   dcomplex* fk, int *ier);
-void finufft3d2_f_(int *nj,double* xj,double *yj,double* zj,dcomplex* cj,
-		   int *iflag, double *eps, int *ms, int *mt, int *mu,
-		   dcomplex* fk, int *ier);
-void finufft3d3_f_(int *nj,double* xj,double* yj, double*zj, dcomplex* cj,
-		   int *iflag, double *eps, int *nk, double* s, double* t,
-		   double* u, dcomplex* fk, int *ier);
+void finufft3d1_f_(int *nj,FLT* xj,FLT *yj,FLT* zj,CPX* cj,
+		   int *iflag, FLT *eps, int *ms, int *mt, int *mu,
+		   CPX* fk, int *ier);
+void finufft3d2_f_(int *nj,FLT* xj,FLT *yj,FLT* zj,CPX* cj,
+		   int *iflag, FLT *eps, int *ms, int *mt, int *mu,
+		   CPX* fk, int *ier);
+void finufft3d3_f_(int *nj,FLT* xj,FLT* yj, FLT*zj, CPX* cj,
+		   int *iflag, FLT *eps, int *nk, FLT* s, FLT* t,
+		   FLT* u, CPX* fk, int *ier);
 }
 
 #endif

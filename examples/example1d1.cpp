@@ -42,8 +42,13 @@ int main(int argc, char* argv[])
   for (int j=0; j<M; ++j)
     Ftest += c[j] * exp(I*(double)n*x[j]) / (double)M;
   int nout = n+N/2;       // index in output array for freq mode n
-  double err = abs((F[nout] - Ftest)/Ftest);
-  printf("1D type-1 NUFFT done. ier=%d, relative error in F[%d] is %.3g\n",ier,n,err);
+  double Fmax = 0.0;       // compute inf norm of F
+  for (int m=0; m<N; ++m) {
+    double aF = abs(F[m]);
+    if (aF>Fmax) Fmax=aF;
+  }
+  double err = abs(F[nout] - Ftest)/Fmax;
+  printf("1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
 
   free(x); free(c); free(F);
   return ier;

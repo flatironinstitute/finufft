@@ -1,11 +1,12 @@
 #!/bin/bash
 # test range of requested accuracies, for both spreader and nufft, for a given
 # single dimension.
-# Usage:  ./checkallaccs.sh dim
+# Usage:  ./checkallaccs.sh [dim]
 # where dim = 1, 2, or 3.
-# Barnett 2/17/17
+# Barnett 2/17/17. Default dim=1 4/5/17
 
-DIM=$1
+DEFAULTDIM=1
+DIM=${1:-$DEFAULTDIM}
 echo checkallaccs for dim=$DIM :
 
 # finufft test size params
@@ -16,10 +17,12 @@ TEST3="1e1 1e1 1e1 1e3"
 TESTD=TEST$DIM
 TEST=${!TESTD}
 
+SORT=1
+
 for acc in `seq 1 15`;
 do
     TOL=1e-$acc
     echo ----------requesting $TOL :
-    ./spreadtestnd $DIM $TOL
-    ./finufft${DIM}d_test $TEST $TOL 0
+    ./spreadtestnd $DIM 1e6 1e6 $TOL $SORT
+    ./finufft${DIM}d_test $TEST $TOL 0 $SORT
 done

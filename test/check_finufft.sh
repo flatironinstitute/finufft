@@ -1,12 +1,19 @@
 #!/bin/bash
 # main script to loop through all validation tests for FINUFFT library.
 # Barnett 3/14/17. numdiff-free option 3/16/17
-# currently uses default spread_opts.sort_data 3/28/17
+# currently uses default spread_opts.sort_data 3/28/17, default tols 4/5/17
 
+# These two can be overridden by setting shell env vars:
+# requested accuracy...
+: ${FINUFFT_REQ_TOL:="1e-6"}
+# acceptable resulting accuracy...
+: ${FINUFFT_CHECK_TOL:="2e-4"}
 # Note that bash cannot handle floating-point arithmetic, and bc cannot read
-# exponent notation. Thus the exponent notation here is purely string in nature:
-export FINUFFT_REQ_TOL=1e-5          # requested acc, passed to check?d.sh
-FINUFFT_CHECK_TOL=1e-3               # allow up to 1 digit worse then requested
+# exponent notation. Thus the exponent notation above is purely string in nature
+
+# so check?d.sh sees it...
+export FINUFFT_REQ_TOL
+
 DIR=results
 
 TESTS="testutils check1d.sh check2d.sh check3d.sh dumbinputs"

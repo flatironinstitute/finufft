@@ -8,11 +8,12 @@ using namespace std;
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C++, using plain
    arrays of C++ complex numbers, with a math test.
-   Single-precision version (see example1d1 for double-precision)
+   Single-precision version (must be linked with single-precision libfinufft.a)
+   See example1d1 for double-precision.
    Barnett 4/3/17
 
    Compile with:
-   g++ -std=c++11 -fopenmp example1d1f.cpp ../lib/libfinufft.a -o example1d1f  -lfftw3f -lfftw3f_threads -lm -DSINGLE
+   g++ -std=c++11 -fopenmp example1d1f.cpp ../lib/libfinufft.a -o example1d1f -lfftw3f -lfftw3f_threads -lm -DSINGLE
    or if you have built a single-core version:
    g++ -std=c++11 example1d1f.cpp ../lib/libfinufft.a -o example1d1f -lfftw3f -lm -DSINGLE
 
@@ -43,9 +44,14 @@ int main(int argc, char* argv[])
   for (int j=0; j<M; ++j)
     Ftest += c[j] * exp(I*(float)n*x[j]) / (float)M;
   int nout = n+N/2;       // index in output array for freq mode n
-  float err = abs((F[nout] - Ftest)/Ftest);
-  printf("1D type-1 NUFFT done. ier=%d, relative error in F[%d] is %.3g\n",ier,n,err);
-
+  float Fmax = 0.0;       // compute inf norm of F
+  for (int m=0; m<N; ++m) {
+    float aF = abs(F[m]);
+    if (aF>Fmax) Fmax=aF;
+  }
+  float err = abs(F[nout] - Ftest)/Fmax;
+  printf("1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
+    
   free(x); free(c); free(F);
   return ier;
 }
