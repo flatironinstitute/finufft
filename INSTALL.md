@@ -8,7 +8,7 @@ This library is only supported for unix/linux and Mac OSX right now.
 
 For the basic libraries
 
-- C++ compiler such as g++
+- C++ compiler such as g++ packaged with GCC
 - FFTW3
 - GNU make
 

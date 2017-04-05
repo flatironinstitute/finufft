@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-Version 0.8  (3/24/2017)
+Version 0.9  (3/30/2017)
 
 ### Alex H. Barnett and Jeremy F. Magland
 
@@ -23,7 +23,7 @@ This library is only supported for unix/linux and Mac OSX right now.
 
 For the basic libraries
 
-- C++ compiler such as g++
+- C++ compiler such as g++ packaged with GCC
 - FFTW3
 - GNU make
 
@@ -105,7 +105,7 @@ The main distribution includes contributed code by:
 
 Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)   
 Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)  
-Dan Foreman-Mackey - python wrappers (in `python/')  
+Dan Foreman-Mackey - python wrappers (in `python/`)  
 
 There are also undocumented packaged codes in the `devel/` directory.
 
