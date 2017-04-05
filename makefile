@@ -9,7 +9,7 @@
 #
 # 1) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
 #    double-precision. Single-precision saves half the RAM, and increases
-#    speed slightly (<20%).
+#    speed slightly (<20%). Will fail for matlab, octave interfaces.
 # 2) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
 # 3) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
 #    indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
@@ -46,6 +46,7 @@ MWRAP=mwrap
 # choose the precision (sets fftw library names, test precisions)...
 ifeq ($(PREC),SINGLE)
 CXXFLAGS += -DSINGLE
+CFLAGS += -DSINGLE
 SUFFIX = f
 REQ_TOL = 1e-6
 CHECK_TOL = 2e-4
@@ -203,8 +204,8 @@ devel/testi0: devel/testi0.cpp devel/besseli.o src/utils.o
 
 # cleaning up...
 clean:
-	rm -f $(OBJS) $(FOBJS) $(SOBJS)
-	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/results/*.out fortran/nufft?d_demo examples/example1d1 examples/example1d1c matlab/*.o
+	rm -f $(OBJS) $(SOBJS)
+	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/results/*.out fortran/*.o fortran/nufft?d_demo fortran/nufft?d_demof examples/*.o examples/example1d1 examples/example1d1cexamples/example1d1f examples/example1d1cf matlab/*.o
 
 # only do this if you have mwrap to rebuild the interfaces...
 mexclean:
