@@ -525,8 +525,8 @@ int setup_kernel(spread_opts &opts,FLT eps,FLT R)
   if (ns==3) betaoverns = 2.26;
   if (ns==4) betaoverns = 2.38;
   opts.ES_beta = betaoverns * (FLT)ns;
-  if (eps<EPSILON) {
-    fprintf(stderr,"setup_kernel: requested eps is too small (<%.3g)!\n",EPSILON);
+  if (eps<0.5*EPSILON) {       // arbitrary, but fortran wants 1e-16 to be ok
+    fprintf(stderr,"setup_kernel: requested eps is too small (<%.3g)!\n",0.5*EPSILON);
     return ERR_EPS_TOO_SMALL;
   }
   if (R<1.9 || R>2.1)
