@@ -1,0 +1,298 @@
+\documentclass[10pt]{article}
+\textwidth 6.5in
+\oddsidemargin=0in
+\evensidemargin=0in
+
+\usepackage{graphicx,bm,amssymb,amsmath,amsthm}
+
+% general macros...
+\newcommand{\bi}{\begin{itemize}}
+\newcommand{\ei}{\end{itemize}}
+\newcommand{\ben}{\begin{enumerate}}
+\newcommand{\een}{\end{enumerate}}
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\bea}{\begin{eqnarray}} 
+\newcommand{\eea}{\end{eqnarray}}
+\newcommand{\ba}{\begin{align}} 
+\newcommand{\ea}{\end{align}}
+\newcommand{\bse}{\begin{subequations}} 
+\newcommand{\ese}{\end{subequations}}
+\newcommand{\bc}{\begin{center}}
+\newcommand{\ec}{\end{center}}
+\newcommand{\bfi}{\begin{figure}}
+\newcommand{\efi}{\end{figure}}
+\newcommand{\ca}[2]{\caption{#1 \label{#2}}}
+\newcommand{\ig}[2]{\includegraphics[#1]{#2}}
+\newcommand{\tbox}[1]{{\mbox{\tiny #1}}}
+\newcommand{\mbf}[1]{{\mathbf #1}}
+\newcommand{\half}{\mbox{\small $\frac{1}{2}$}}
+\newcommand{\vt}[2]{\left[\begin{array}{r}#1\\#2\end{array}\right]} % 2-col-vec
+\newcommand{\mt}[4]{\left[\begin{array}{rr}#1&#2\\#3&#4\end{array}\right]} % 2x2
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\bigO}{{\mathcal O}}
+\DeclareMathOperator{\re}{Re}
+\DeclareMathOperator{\im}{Im}
+\newtheorem{thm}{Theorem}
+\newtheorem{cnj}[thm]{Conjecture}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{pro}[thm]{Proposition}
+\newtheorem{rmk}[thm]{Remark}
+% this work...
+\newcommand{\xx}{\mbf{x}}
+\newcommand{\sss}{\mbf{s}}
+\newcommand{\yy}{\mbf{y}}
+\newcommand{\kk}{\mbf{k}}
+\newcommand{\KK}{{\mathcal K}}
+\newcommand{\NU}{{non-uniform}}
+\newcommand{\U}{{uniform}}
+\newcommand{\KB}{Kaiser--Bessel}
+\newcommand{\wid}{\beta}               % exp sqrt width param
+
+
+\begin{document}
+\title{FINUFFT: A lightweight non-uniform fast Fourier transform library}
+\author{Alex Barnett and Jeremy Magland}
+\date{\today}
+\maketitle
+\begin{abstract}
+  Computation of Fourier transforms from data lying at arbitrary
+  off-grid locations has many applications ranging from medical
+  imaging to astronomy to fast algorithms for PDEs.  We present a
+  software library for computing the non-uniform FFT (NFFT or NUFFT),
+  of types 1 (\NU\ to \U), 2 (\U| to \NU), and
+  3 (\NU\ to \NU), each in dimensions 1, 2, and 3.  Its
+  main features are: a simple new kernel allowing faster on-the-fly
+  spreading and interpolation from a regular grid, the use of
+  quadrature rather than an analytic formula for the kernel Fourier
+  transform, multi-threading for efficient use of shared-memory
+  machines, simple calling interfaces matching those of the CMCL
+  NUFFT library, and bindings to MATLAB/octave and python.  We
+  compare performance of the library to existing libraries; typically
+  we match the runtime of the NFFT library of Potts et al.\ but
+  without the need for a precomputation phase.
+\end{abstract}
+
+
+
+
+\section{Introduction}
+
+The computational task addressed
+is to evaluate the following exponential sums to a requested precision,
+in optimal time.
+The type-1 NUFFT (also known as the adjoint NDFT \cite{usingnfft})
+in dimension $d=1,2$ or 3
+evaluates the Fourier series expansion for a set of
+$M$ point sources at arbitrary locations $\xx_j$ in $[-\pi,\pi)^d$ with
+strengths $f_j\in\mathbb{C}$,  $j=1,\dots,M$.
+The outputs are the Fourier modes with integer indices lying in
+the set
+\be
+\KK_{N_1,\dots,N_d} :=  \left[-\frac{N_1}{2},\frac{N_1-1}{2}\right]
+\times \dots \times \left[-\frac{N_d}{2},\frac{N_d-1}{2}\right]
+~,
+\label{KK}
+\ee
+which is an interval of $N_1$ indices in 1D, a rectangle of $N_1N_2$
+index pairs in 2D, or a cuboid of $N_1N_2N_3$ index triplets in 3D.%
+\footnote{Note that these counts apply whether each $N_i$ is even or odd.
+  For instance for $N_1=10$ in 1D, the set is $\{-5,-4,\dots,4\}$
+  whereas for $N_1=11$, the set is $\{-5,-4,\dots,5\}$.
+}
+We will let $N=N_1\dots N_d$ denote the total number of output values.
+We do not address $d>3$ here.
+Following the normalization in \cite{dutt,nufft}, then,
+\be
+F(\kk) := \frac{1}{M} \sum_{j=1}^M f_j e^{i \kk\cdot \xx_j}
+\qquad \mbox{for } \kk \in \KK_{N_1,\dots,N_d}
+\hspace{1in} \mbox{(Type-1, or \NU\ to \U\ transform)}
+~.
+\label{1}
+\ee
+The naive evaluation of $F$ at all indices $\kk$ requires $\bigO(NM)$
+exponential evaluations, which is prohibitive
+in many applications.
+However, it is well known that by resampling onto a regular
+grid and using the fast Fourier transform (FFT),
+the work can be reduced to $\bigO(M |\log\eps|^d + N \log N)$,
+where $\eps$ is the requested precision.
+Here the term $|\log\eps|^d$ is the number of points on the regular
+grid that a single source affects through the spreading kernel.
+GIVE REF.
+Our library also exploits this idea.
+
+The type-2 transform (or NDFT \cite{usingnfft})
+is (up to a normalization factor) the adjoint of the
+type-1, and evaluates a Fourier series with given coefficients
+$F(\kk)$, $\kk\in\KK$ at an arbitrary set of target points
+$\xx_j$, $j=1,\ldots,M$, which may be taken to be in $[-\pi,pi)^d$.
+  That is,
+  \be
+  f_j := \sum_{\kk\in\KK_{N_1,\dots,N_d}} F(\kk) e^{i \kk\cdot \xx_j},
+  \qquad j=1,\dots, M
+\hspace{1in} \mbox{(Type-2, or \U\ to \NU\ transform)}
+~.
+\label{2}
+\ee
+Finally, the type-3 transform
+\cite{nufft3} (or NNFFT \cite{usingnfft})
+may be interpreted as evaluating the
+Fourier transform of a set of sources at arbitrary locations $\xx_j$
+in $\RR^d$
+with strengths $f_j$, $j=1,\dots, M$, at the arbitrary target frequencies
+$\sss_k$ in $\RR^d$, $k=1,\dots, N$. Note that now $k$ is a plain integer
+index.
+That is,
+\be
+F_k := \sum_{j=1}^M f_j e^{i \sss_k \cdot \xx_j}
+  \qquad k=1,\dots, N
+\hspace{1in} \mbox{(Type-3, or \NU\ to \NU\ transform)}
+~.
+\label{3}
+\ee
+
+
+
+
+
+
+
+
+Applications.
+
+MRI.
+CT.
+Spectral interpolation from off-grid data.
+
+Quadrature approximation of Fourier transforms, e.g.\
+in image reconstruction \cite{cryo}.
+Computation of spatially-periodic solutions to elliptic
+PDEs via Ewald summation
+\cite{lindbo11}.
+Computation of history-dependent part for boundary-integral solvers
+for the heat equation.%\cite{strain}.
+
+
+
+Outline of algorithm:
+EG type 1.
+spreading to U grid using a kernel $\phi(\xx)$.
+FFT.
+Final correction of the Fourier modes by dividing by
+$\hat\phi(k)$.
+
+
+Existing implementations.
+
+The first rigorous estimates of the type-1 and type-2 transforms
+using the truncated Gaussian kernel was given in \cite{dutt}.
+
+The CMCL NUFFT package \cite{cmcl,nufft,nufft3} uses truncated Gaussians.
+
+
+
+The NFFT package \cite{nfft} from Chemnitz
+includes the Kaiser--Bessel kernel,
+which
+achieves roughly twice the number of digits of precision
+compare to the truncated Gaussian, for the same kernel width.
+
+Fessler and Sutton \cite{fessler} use optimization in the space of
+interpolation weights, enabling a slight increase
+of around 1/3 of a digit in accuracy
+over \KB in 1D. However, they conclude that
+``the Kaiser-Bessel interpolator, with suitably
+optimized parameters, represents a very reasonable com-
+promise between accuracy and simplicity.''
+
+In the below we present a kernel with performance essentially
+equal to \KB, but which is simpler and faster to evaluate numerically.
+In 1D, in rescaled spatial units, this kernel is
+\be
+\phi(z) = \phi_\beta(z) :=
+\left\{\begin{array}{ll}
+e^{\beta \sqrt{1-z^2}-1}, & |z|\le 1\\
+0, & \mbox{otherwise}
+\end{array}
+\right.
+~,
+\label{ES}
+\ee
+where $\wid>0$ is a width parameter that depends on the kernel width
+measured in uniform grid points.
+In higher dimensions we use the product of 1D kernels.
+We call this the ``exponential square-root'' (ES) kernel.
+
+
+
+The features of our implementation include:
+\bi
+\item A simpler kernel with accuracy very similar to \KB\ but faster evaluation.
+\item Use of quadrature rather than an analytic formula to evaluate the kernel Fourier transform needed for the
+  correction (deconvolution) phase.
+\item parallel operation (spreading and deconvolution) on shared-memory machines.
+  \item use of the multi-threaded FFTW3 library for FFTs.
+  \item compilation options such as single-precision (to reduce RAM footprint)
+    and/or single-threaded.
+  \item Bindings to MATLAB, octave, and python.
+\ei
+
+Unlike the authors of some other libraries,
+we take the philosophy that the user calls the library to approximate the
+exponential sums \eqref{1}--\eqref{3} to the requested precision.
+Thus, the user does not have direct control over the type and width of
+the spreading kernel; indeed, it would be confusing to have such control.
+Rather, once the requested precision is given, such decisions
+are made ``under the hood'' by the library.
+
+
+\section{Algorithms}
+
+\subsection{Type 1}
+
+\subsection{Type 2}
+
+
+\subsection{Type 3}
+
+Can break it by choosing $XK$ huge, even with 2 input and 2 output pts.
+
+
+
+
+\section{Error analysis}
+
+FT defns.
+
+\subsection{Error in the type-2 transform with general kernel}
+
+see \cite[Sec.~V.B]{fessler}.
+
+
+
+
+\subsection{Esimates on the Fourier transform of the new kernel}
+
+Discuss relation of kernel \eqref{ES} to \KB.
+
+
+
+scaled to width.
+
+$w=1,2,\ldots$
+sets the support of the kernel in units of the uniform grid point spacing, and
+
+
+
+
+
+\section{Conclusion}
+
+
+% BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+\bibliographystyle{abbrv}
+\bibliography{alex}
+\end{document}

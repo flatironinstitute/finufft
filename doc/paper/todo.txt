@@ -1,0 +1,17 @@
+* check signs of t-1,2,3 by default, and adj of 1 is 2.
+
+* run time vs # threads (strong scaling)
+
+* compare checkerboard blocking vs current z-axis.
+
+* analysis for K-B refs - emailed Potts (others bounced).
+
+* ask/find out why NFFT takes 50 sec to plan a 200^3 modes case!
+Put in the paper graphs.
+Make sure we're using right precomputation mode - try PRE_PSI vs PRE_FULL_PSI.
+
+
+
+* our analysis - sum of tail?
+
+
