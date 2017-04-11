@@ -4,14 +4,19 @@
 
 * compare checkerboard blocking vs current z-axis.
 
-* analysis for K-B refs - emailed Potts (others bounced).
+* analysis for K-B refs - emailed Potts (others bounced) - got the info.
 
 * ask/find out why NFFT takes 50 sec to plan a 200^3 modes case!
 Put in the paper graphs.
 Make sure we're using right precomputation mode - try PRE_PSI vs PRE_FULL_PSI.
-
+Could it be the FFTW_ESTIMATE?
 
 
 * our analysis - sum of tail?
+
+* Volkmer - openmp for nfft.
+Potts 2003 claims to introduce K-B to NFFT.
+But surely known in med img / MRI ? Jackson is 1991.
+
 
 
