@@ -25,10 +25,10 @@ subplot(1,3,3);
 k=0:1e-2:1.7*beta;
 L=1.0; phihat = ft(phi,L,k);   % use quadrature for FT
 semilogy(k,abs(phihat),'-'); axis tight;
-xlabel('$k$','interpreter','latex');
-ylabel('$|\hat\phi(k)|$','interpreter','latex')
+xlabel('$\xi$','interpreter','latex');
+ylabel('$|\hat\phi(\xi)|$','interpreter','latex')
 vline(beta);
-text(beta+1,1e-3,'$k=\beta$','interpreter','latex','color',[1 0 0]);
+text(beta+1,1e-3,'$\xi=\beta$','interpreter','latex','color',[1 0 0]);
 axis([0 max(k) 1e-15 1e0]);
 text(3,1e-2,'(c)');
 

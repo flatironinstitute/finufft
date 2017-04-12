@@ -30,8 +30,10 @@
 \newcommand{\vt}[2]{\left[\begin{array}{r}#1\\#2\end{array}\right]} % 2-col-vec
 \newcommand{\mt}[4]{\left[\begin{array}{rr}#1&#2\\#3&#4\end{array}\right]} % 2x2
 \newcommand{\RR}{\mathbb{R}}
+\newcommand{\ZZ}{\mathbb{Z}}
 \newcommand{\eps}{\varepsilon}
 \newcommand{\bigO}{{\mathcal O}}
+\newcommand{\intR}{\int_{-\infty}^\infty}
 \DeclareMathOperator{\re}{Re}
 \DeclareMathOperator{\im}{Im}
 \newtheorem{thm}{Theorem}
@@ -50,6 +52,7 @@
 \newcommand{\U}{{uniform}}
 \newcommand{\KB}{Kaiser--Bessel}
 \newcommand{\wid}{\beta}               % exp sqrt width param
+\newcommand{\sig}{\sigma}     % upsampling R ratio
 
 
 \begin{document}
@@ -83,15 +86,16 @@
 The computational task addressed
 is to evaluate the following exponential sums to a requested precision,
 in optimal time.
-The type-1 NUFFT (also known as the adjoint NDFT \cite{usingnfft})
-in dimension $d=1,2$ or 3
+The type-1 NUFFT (also known as the adjoint NFFT \cite{usingnfft})
+in dimension $d$ %=1,2$ or 3
 evaluates the Fourier series expansion for a set of
-$M$ point sources at arbitrary locations $\xx_j$ in $[-\pi,\pi)^d$ with
+$M$ point sources at arbitrary locations $\xx_j$, which by periodicity
+may be taken to lie in $[-\pi,\pi)^d$, and with
 strengths $f_j\in\mathbb{C}$,  $j=1,\dots,M$.
 The outputs are the Fourier modes with integer indices lying in
 the set
 \be
-\KK_{N_1,\dots,N_d} := \KK_{N_1} \dots \KK_{N_d}~,
+\KK = \KK_{N_1,\dots,N_d} := \KK_{N_1} \KK_{N_2} \dots \KK_{N_d}~,
 \qquad\mbox{ where } \quad
 \KK_{N_i} := \left\{\begin{array}{ll} \{-N_i/2,\ldots,N_i/2-1\}, & N_i \mbox{ even},\\
 \{-(N_i-1)/2,\ldots,(N_i-1)/2\}, & N_i \mbox{ odd}.
@@ -106,7 +110,8 @@ In the 1D case $\KK$ is an interval containing $N_1$ integer indices, in 2D it i
 %}
 We use $N=N_1\dots N_d$ to denote the total number of output values.
 We do not address $d>3$ here.
-Following the normalization in \cite{dutt,nufft}, then the type-1 NUFFT is
+Following the normalization in \cite{dutt,nufft}, then the type-1 NUFFT
+evaluates
 \be
 F(\kk) := \frac{1}{M} \sum_{j=1}^M f_j e^{i \kk\cdot \xx_j}
 \qquad \mbox{for } \kk \in \KK_{N_1,\dots,N_d}
@@ -123,15 +128,15 @@ the work can be reduced to $\bigO(M |\log\eps|^d + N \log N)$,
 where $\eps$ is the requested precision.
 Here the term $|\log\eps|^d$ is the number of points on the regular
 grid that a single source affects through the spreading kernel
-of width $\bigO(|\log\eps|)$.
+of width $w=\bigO(|\log\eps|)$.
 Regardless of $M$, the regular grid can be chosen a constant factor
 $\sigma$ larger in each dimension than the numbers of modes needed $N_i$.
 GIVE REF.
 Our library also exploits this idea.
 
-The type-2 transform (or NDFT \cite{usingnfft})
-is (up to a normalization factor) the adjoint of the
-type-1, and evaluates a Fourier series with given coefficients
+The type-2 transform (or NFFT \cite{usingnfft})
+is, up to a normalization factor, the adjoint of the
+type-1, and evaluates the Fourier series with given coefficients
 $F(\kk)$, $\kk\in\KK$, at an arbitrary set of target points
 $\xx_j$, $j=1,\ldots,M$, which due to periodicity may be taken to be in $[-\pi,\pi)^d$.
   That is,
@@ -158,30 +163,16 @@ F_k := \sum_{j=1}^M f_j e^{i \sss_k \cdot \xx_j}
 ~.
 \label{3}
 \ee
-
-
-
-
-\bfi[t]  % fffffffffffffffffffffffffffffffffffffff
-\ig{width=6.5in}{kernel.eps}
-\ca{The new spreading kernel $\phi(z)$ given by
-  \eqref{ES} and its Fourier transform.
-  (a) shows the kernel for $\beta=4$; the discontinuities at
-  $\pm 1$ are highlighted by dots.
-  (b) shows a logarithmic plot of the (positive half of the)
-  kernel for $\beta=30$
-  (corresponding to a spreading width of $w=13$ grid-points).
-  The graph is a quarter-circle.
-  (c) is a logarithmic plot of the magnitude of the
-  Fourier transform of the kernel,
-  showing the semicircular nature of the graph, and exponentially
-  small values uniformly for $|k|>\beta$.
-  This illustrates that ``the Fourier transform of the exponential
-  of a semicircle is exponentially close to the exponential of a semicircle.''
-}{f:kernel}
-\efi
-  
-
+Note that all three types of transform \eqref{1}, \eqref{2} and \eqref{3}
+consist simply of computing an exponential sum.
+In certain settings these may be interpretated as quadrature formulae
+applied to Fourier transforms.
+However, this is not to be confused with the ``inverse NUFFT'' which involves,
+for instance, treating \eqref{2} as a large linear system to be solved for
+$\{F(\kk)\}$ given $\{f_j\}$. The latter is common in Fourier imaging
+applications; a popular solution method is to use
+the preconditioned normal equations with
+NUFFTs implementing the matrix-vector multiplies \cite{fessler,fourmont,fastsinc,gelbrecon}.
 
 
 
@@ -191,7 +182,7 @@ F_k := \sum_{j=1}^M f_j e^{i \sss_k \cdot \xx_j}
 
 Applications.
 
-MRI.
+MRI - non-Cartesian $k$-space trajectories.
 CT.
 Spectral interpolation from off-grid data.
 
@@ -203,6 +194,7 @@ PDEs via Ewald summation
 Computation of history-dependent part for boundary-integral solvers
 for the heat equation.%\cite{strain}.
 
+Fast evaluation of random plane waves cite Beliaev.
 
 
 Outline of algorithm:
@@ -218,13 +210,18 @@ Existing implementations.
 The first rigorous estimates of the type-1 and type-2 transforms
 using the truncated Gaussian kernel was given in \cite{dutt}.
 
-The CMCL NUFFT package \cite{cmcl,nufft,nufft3} uses truncated Gaussians.
-
+The CMCL NUFFT package \cite{cmcl} uses truncated Gaussians
+and ``fast Gaussian gridding'' \cite[Sec.~3]{nufft}
+which reduces the number of exponential evaluations
+from $w^d$, where $w$ is the kernel width in grid-points,
+to $(1+d)w$, giving a claimed 5--10 times acceleration.
+On modern architectures RAM access is more of a bottleneck than
+flops - DISCUSS.
 
 Cite Nikos+Xiaobai.
 
 The NFFT package \cite{nfft} from Chemnitz
-includes the Kaiser--Bessel kernel,
+includes the \KB\ kernel,
 which
 achieves roughly twice the number of digits of precision
 compare to the truncated Gaussian, for the same kernel width.
@@ -236,13 +233,35 @@ a factor of 30 relative to NFFT in 1D and 2D \cite{cunfft}.
 
 Fessler and Sutton \cite{fessler} use optimization in the space of
 interpolation weights, enabling a slight increase of around 1/3 of a
-digit in accuracy over \KB in 1D. However, they conclude that
+digit in accuracy over \KB\ in 1D. However, they conclude that
 ``the
-Kaiser-Bessel interpolator, with suitably optimized parameters,
+Kaiser--Bessel interpolator, with suitably optimized parameters,
 represents a very reasonable compromise between accuracy and
 simplicity.''
 
-In the below we present a kernel with performance essentially
+
+
+\bfi[t]  % fffffffffffffffffffffffffffffffffffffff
+\ig{width=6.5in}{kernel.eps}
+\ca{The new spreading kernel $\phi(z)$ given by
+  \eqref{ES} and its Fourier transform.
+  (a) shows the kernel for $\beta=4$; the discontinuities at
+  $\pm 1$ are highlighted by dots.
+  (b) shows a logarithmic plot of the (positive half of the)
+  kernel for $\beta=30$
+  (corresponding to a spreading width of 13 grid-points).
+  The graph is a quarter-circle.
+  (c) is a logarithmic plot of the magnitude of the
+  Fourier transform of the kernel,
+  showing the semicircular nature of the graph, and exponentially
+  small values uniformly for $|\xi|>\beta$.
+  This illustrates that ``the Fourier transform of the exponential
+  of a semicircle is exponentially close to the exponential of a semicircle.''
+}{f:kernel}
+\efi
+  
+
+Here we present a kernel with performance essentially
 equal to \KB, but which is simpler and faster to evaluate numerically.
 In 1D, in rescaled spatial units, this kernel is
 \be
@@ -254,28 +273,31 @@ e^{\beta (\sqrt{1-z^2}-1)}, & |z|\le 1\\
 \right.
 \label{ES}
 \ee
-where $\wid>0$ is a width parameter that depends on the kernel width
-in uniform grid point units.
-In higher dimensions we use the product of 1D kernels.
-We call this the ``exponential square-root'' (ES) kernel.
+where $\wid>0$ is a width parameter that must be set
+in accordance with the kernel width measured in uniform grid point units.
+We call this the ``exponential square-root'' (ES) kernel;
+see Fig.~\ref{f:kernel}.
+In higher dimensions we use products of this 1D kernel.
 
 
 
 
 The features of our implementation include:
 \bi
-\item Use of the ES kernel with accuracy very similar to \KB\ but faster evaluation.
-\item Use of quadrature rather than an analytic formula to evaluate the kernel Fourier transform needed for the
-  roll-off correction (deconvolution) phase.
-\item parallel operation (spreading and deconvolution) on shared-memory machines via OpenMP.
-  \item use of the multi-threaded FFTW3 library for FFTs.
-  \item compilation options such as single-precision (to reduce RAM footprint)
-    and/or single-threaded.
-  \item Bindings to MATLAB, octave, and python.
+\item use of the ES kernel with accuracy very similar to \KB\ but
+  faster evaluation.
+\item use of quadrature rather than an analytic formula to evaluate
+  the kernel Fourier transform needed for the roll-off correction
+  (deconvolution) phase.
+\item parallel spreading and deconvolution on shared-memory machines via OpenMP.
+\item use of the multi-threaded FFTW3 library for FFTs.
+\item compilation options such as single-precision (to reduce RAM footprint)
+  and/or single-threaded.
+\item bindings to MATLAB, octave, and python.
 \ei
 
-Unlike the authors of some other libraries,
-we take the philosophy that the user calls the library to approximate the
+%Unlike the authors of some other libraries,
+We take the philosophy that the user calls the library to approximate the
 exponential sums \eqref{1}--\eqref{3} to the requested precision.
 Thus, the user does not have direct control over the type and width of
 the spreading kernel; indeed, it would be confusing to have such control.
@@ -283,9 +305,74 @@ Rather, once the requested precision is given, such decisions
 are made ``under the hood'' by the library.
 
 
+
+
+
+\section{Usage of the library}
+
+The interface to the library is very straightforward,
+and 
+
+
+\begin{verbatim}
+finufft1d1(M,x,c,isign,acc,N,F,opts);
+\end{verbatim}
+
+where {\tt isign} is $\pm1$ and determines the sign of the imaginary
+unit in \eqref{1}--\eqref{3}.
+
+ETC
+
+
+
 \section{Algorithms}
 
+In our implementation we follow well-known procedures 
+for evaluating the type-1, 2 and 3 NUFFTs.
+We describe them here for convenience.
+We use the Fourier transform convention
+\be
+\hat\phi(k) = \frac{1}{2\pi} \intR \phi(x) e^{-ikx} dx
+~,\qquad
+\phi(x) = \intR \hat\phi(k) e^{ikx} dx
+~.
+\label{ft}
+\ee
+We will need a
+phased version of the Poisson summation formula REF which states that
+for any function
+$\psi \in L_1(\RR)$ with Fourier transform $\hat\psi$ is then
+\be
+\sum_{l\in\ZZ} e^{il\theta} \psi(x - l\delta) \; = \;
+\frac{2\pi}{\delta} \sum_{m\in\ZZ}
+\hat\psi\biggl(\frac{2\pi m + \theta}{\delta}\biggr)
+e^{i(2\pi m + \theta)x /\delta}
+\label{pois}
+\ee
+which can be proven as usual by writing the Euler--Fourier
+formula for the Fourier series coefficients
+of the left-hand side of \eqref{pois} multiplied by $e^{-ix\theta/\delta}$,
+wrich turns it into a periodic function.
+
+
+
 \subsection{Type 1}
+
+Firstly, given a requested precision $\eps$, an integer kernel width $w$
+is chosen, such that $w=\bigO(|log \eps|$). The precise choice of
+$w$ is given later ***.
+
+An upsampling ratio $\sig>1$ is chosen,
+so that the DFT size $n = \sig N$, where $N$ is the number of modes.
+Following many researchers, we find $\sig=2$ adequate.
+In fact, for efficiency of the FFT, and convenience in the spreading
+code, we then set $n$ to be the smallest
+integer of the form $2^q3^p5^r$ greater than or equal to the
+larger of $\sig N$ and $2w$.
+
+
+
+
 
 \subsection{Type 2}
 
@@ -293,8 +380,6 @@ are made ``under the hood'' by the library.
 \subsection{Type 3}
 
 Can break it by choosing $XK$ huge, even with 2 input and 2 output pts.
-
-
 
 
 \section{Error analysis}
@@ -326,6 +411,16 @@ sets the support of the kernel in units of the uniform grid point spacing, and
 
 
 \section{Conclusion}
+
+
+
+GPU version; however tricky for spreading to \U\ grid, needed in types 1 and 3.
+
+
+Remains open to prove a relation between the zero prolate spheroidal
+wavefunction and the ES kernel \eqref{ES}.
+
+
 
 
 % BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB

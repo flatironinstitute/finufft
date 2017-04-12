@@ -18,5 +18,7 @@ Could it be the FFTW_ESTIMATE?
 Potts 2003 claims to introduce K-B to NFFT.
 But surely known in med img / MRI ? Jackson is 1991.
 
+* Ferrara nufft code cite. Has no type-3.
+
 
 
