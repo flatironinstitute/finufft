@@ -51,8 +51,8 @@
 \newcommand{\NU}{{non-uniform}}
 \newcommand{\U}{{uniform}}
 \newcommand{\KB}{Kaiser--Bessel}
-\newcommand{\wid}{\beta}               % exp sqrt width param
-\newcommand{\sig}{\sigma}     % upsampling R ratio
+\newcommand{\freq}{\beta}          % exp sqrt freq param, PSWF c Slepian.
+\newcommand{\rat}{\sigma}          % upsampling R ratio, or sigma for Germans
 
 
 \begin{document}
@@ -122,17 +122,20 @@ F(\kk) := \frac{1}{M} \sum_{j=1}^M f_j e^{i \kk\cdot \xx_j}
 The naive evaluation of $F$ at all indices $\kk$ requires $\bigO(NM)$
 exponential evaluations, which is prohibitive
 in many applications.
-However, it is well known that by resampling onto a regular
-grid and using the fast Fourier transform (FFT),
+However, it is well known that by using a kernel to resample onto a regular
+grid, performing a discrete Fourier transform via the fast Fourier transform
+(FFT), then dividing the mode amplitudes by the kernel Fourier transform,
 the work can be reduced to $\bigO(M |\log\eps|^d + N \log N)$,
 where $\eps$ is the requested precision.
 Here the term $|\log\eps|^d$ is the number of points on the regular
-grid that a single source affects through the spreading kernel
+grid that a single source affects through a spreading kernel
 of width $w=\bigO(|\log\eps|)$.
 Regardless of $M$, the regular grid can be chosen a constant factor
-$\sigma$ larger in each dimension than the numbers of modes needed $N_i$.
-GIVE REF.
-Our library also exploits this idea.
+$\rat$ larger in each dimension than the numbers of modes needed $N_i$.
+To minimize the numerical effort in spreading, the kernel should have
+numerical support of at most a small number of grid points,
+yet also be well localized in the Fourier domain.
+Our library exploits this idea, which we describe in more detail later.
 
 The type-2 transform (or NFFT \cite{usingnfft})
 is, up to a normalization factor, the adjoint of the
@@ -180,7 +183,7 @@ NUFFTs implementing the matrix-vector multiplies \cite{fessler,fourmont,fastsinc
 
 
 
-Applications.
+\subsection{Applications}
 
 MRI - non-Cartesian $k$-space trajectories.
 CT.
@@ -197,12 +200,15 @@ for the heat equation.%\cite{strain}.
 Fast evaluation of random plane waves cite Beliaev.
 
 
-Outline of algorithm:
+
+Outline of algorithm: (merge w/ intro).
 EG type 1.
 spreading to U grid using a kernel $\phi(\xx)$.
 FFT.
 Final correction of the Fourier modes by dividing by
 $\hat\phi(k)$.
+
+\subsection{Existing algorithms and implementations}
 
 
 Existing implementations.
@@ -220,11 +226,37 @@ flops - DISCUSS.
 
 Cite Nikos+Xiaobai.
 
+It has been observed that the \KB\ kernel
+\be
+\phi_{KB,\freq}(z) := I_0(\freq\sqrt{1-z^2}) / I_0(\freq)
+~,
+\label{KB}
+\ee
+where $I_0$ is the regular modified Bessel function of order zero
+\cite[(10.25.2)]{DLMF}, has better interpolation
+properties than the truncated Gaussian.
+Specifically, for the correct choice of $\freq$, it achieves
+asymptotically around twice the exponential localization rate
+(see \cite[p.19, (C.1) vs (C.4)]{nfft} which relies on
+estimates on the sums of the tails of \eqref{KBhat}
+in \cite{fourmontthesis,fourmont,pottshabil}).
+In practice this doubles the digits of precision achievable with
+a given kernel width.
+\eqref{KB} has an analytically known Fourier transform,
+\be
+\hat\phi_{KB,\freq}(\xi) = \frac{2}{I_0(\freq)}
+\frac{\sin \sqrt{\xi^2-\freq^2}}{\sqrt{\xi^2-\freq^2}}
+~.
+\label{KBhat}
+\ee
+See \eqref{ft} for our Fourier transform definition,
+and Fig.~\ref{f:kernel} for plots.
+Note that in the central region $|\xi|<\freq$,
+the square-root is imaginary so that $\sin$ is exponentially large.
+
 The NFFT package \cite{nfft} from Chemnitz
-includes the \KB\ kernel,
-which
-achieves roughly twice the number of digits of precision
-compare to the truncated Gaussian, for the same kernel width.
+includes the \KB\ kernel, although it also allows the user to
+choose inferior kernels.
 
 Shared-memory parallelization of NFFT \cite{volkmer}.
 Automatic tuning based on assumed Fourier coefficient decay \cite{nestler}.
@@ -239,41 +271,50 @@ Kaiser--Bessel interpolator, with suitably optimized parameters,
 represents a very reasonable compromise between accuracy and
 simplicity.''
 
+Recently Ruiz-Antol\'in and Townsend
+\cite{townsendnufft} presented an algorithm
+based on low rank approximation, that
+avoids upsampling by requires several FFTs (of order $w$ of them).
+
 
 
 \bfi[t]  % fffffffffffffffffffffffffffffffffffffff
 \ig{width=6.5in}{kernel.eps}
-\ca{The new spreading kernel $\phi(z)$ given by
-  \eqref{ES} and its Fourier transform.
-  (a) shows the kernel for $\beta=4$; the discontinuities at
+\ca{The proposed ES spreading kernel
+  \eqref{ES} (solid blue lines), with the \KB\ kernel \eqref{KB} for comparison
+  (dashed green lines).
+  (a) shows the kernels for $\freq=4$; the discontinuities at
   $\pm 1$ are highlighted by dots.
   (b) shows a logarithmic plot of the (positive half of the)
-  kernel for $\beta=30$
+  kernels for $\freq=30$
   (corresponding to a spreading width of 13 grid-points).
-  The graph is a quarter-circle.
+  The graph of ES is a quarter-circle.
   (c) is a logarithmic plot of the magnitude of the
-  Fourier transform of the kernel,
-  showing the semicircular nature of the graph, and exponentially
-  small values uniformly for $|\xi|>\beta$.
+  Fourier transform of the kernels,
+  showing the semicircular nature of the graph, and uniformly exponentially
+  small values in $|\xi|>\freq$.
   This illustrates that ``the Fourier transform of the exponential
   of a semicircle is exponentially close to the exponential of a semicircle.''
 }{f:kernel}
 \efi
-  
+
+
+\subsection{Contribution of this work}
+
 
 Here we present a kernel with performance essentially
-equal to \KB, but which is simpler and faster to evaluate numerically.
+equal to \eqref{KB}, but which is simpler and faster to evaluate numerically.
 In 1D, in rescaled spatial units, this kernel is
 \be
-\phi(z) = \phi_\beta(z) :=
+\phi(z) = \phi_\freq(z) :=
 \left\{\begin{array}{ll}
-e^{\beta (\sqrt{1-z^2}-1)}, & |z|\le 1\\
+e^{\freq (\sqrt{1-z^2}-1)}, & |z|\le 1\\
 0, & \mbox{otherwise}
 \end{array}
 \right.
 \label{ES}
 \ee
-where $\wid>0$ is a width parameter that must be set
+where $\freq>0$ is a width parameter that must be set
 in accordance with the kernel width measured in uniform grid point units.
 We call this the ``exponential square-root'' (ES) kernel;
 see Fig.~\ref{f:kernel}.
@@ -338,21 +379,23 @@ We use the Fourier transform convention
 ~.
 \label{ft}
 \ee
-We will need a
-phased version of the Poisson summation formula REF which states that
-for any function
-$\psi \in L_1(\RR)$ with Fourier transform $\hat\psi$ is then
+We will need the
+Poisson summation formula
+\cite{apostol} generalized to include a phase $e^{i\theta}$:
+for any continuous function
+$\psi \in L_1(\RR)$ with Fourier transform $\hat\psi$,
+and any lattice spacing $h>0$,
 \be
-\sum_{l\in\ZZ} e^{il\theta} \psi(x - l\delta) \; = \;
-\frac{2\pi}{\delta} \sum_{m\in\ZZ}
-\hat\psi\biggl(\frac{2\pi m + \theta}{\delta}\biggr)
-e^{i(2\pi m + \theta)x /\delta}
+\sum_{l\in\ZZ} e^{il\theta} \psi(x - lh) \; = \;
+\frac{2\pi}{h} \sum_{m\in\ZZ}
+\hat\psi\biggl(\frac{2\pi m + \theta}{h}\biggr)
+\exp \biggl({i\,\frac{2\pi m + \theta}{h}x}\biggr)
 \label{pois}
 \ee
 which can be proven as usual by writing the Euler--Fourier
 formula for the Fourier series coefficients
-of the left-hand side of \eqref{pois} multiplied by $e^{-ix\theta/\delta}$,
-wrich turns it into a periodic function.
+of the periodic function given by $e^{-ix\theta/h}$
+multiplied by the left-hand side of \eqref{pois}.
 
 
 
@@ -362,13 +405,13 @@ Firstly, given a requested precision $\eps$, an integer kernel width $w$
 is chosen, such that $w=\bigO(|log \eps|$). The precise choice of
 $w$ is given later ***.
 
-An upsampling ratio $\sig>1$ is chosen,
-so that the DFT size $n = \sig N$, where $N$ is the number of modes.
-Following many researchers, we find $\sig=2$ adequate.
+An upsampling ratio $\rat>1$ is chosen,
+so that the DFT size $n = \rat N$, where $N$ is the number of modes.
+Following many researchers, we find $\rat=2$ adequate.
 In fact, for efficiency of the FFT, and convenience in the spreading
 code, we then set $n$ to be the smallest
 integer of the form $2^q3^p5^r$ greater than or equal to the
-larger of $\sig N$ and $2w$.
+larger of $\rat N$ and $2w$.
 
 
 
@@ -407,6 +450,14 @@ $w=1,2,\ldots$
 sets the support of the kernel in units of the uniform grid point spacing, and
 
 
+
+\section{Discussion of optimality of the spreading kernel}
+
+???
+
+PSWF bounds on L2 tails.
+discuss optimal exp decay; lesser prefactors small.
+Fessler wasn't able to beat KB much.
 
 
 
