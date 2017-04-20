@@ -258,12 +258,14 @@ where $I_0$ is the regular modified Bessel function of order zero
 \cite[(10.25.2)]{dlmf}, has better interpolation
 properties than the truncated Gaussian
 (CITE Jackson 91 etc).
+See Fig.~\ref{f:kernel}(c) which shows the inferiority of the
+frequency localization of the optimal truncated Gaussian.
 Specifically, for an appropriate choice of $\freq$, it achieves
-asymptotically around twice the exponential localization rate
+asymptotically close to twice the exponential localization rate
 (see \cite[p.19, (C.1) vs (C.4)]{nfft} which relies on
 estimates on the sums of the tails of \eqref{KBhat}
 in \cite{fourmontthesis,fourmont,pottshabil}).
-In practice this doubles the digits of precision achievable with
+In practice this nearly doubles the digits of precision achievable with
 a given kernel width.
 \eqref{KB} has an analytically known Fourier transform,
 \be
@@ -308,10 +310,12 @@ this may have advantages in certain parallel settings.
 
 
 \bfi[t]  % fffffffffffffffffffffffffffffffffffffff
-\ig{width=6.5in}{kernel.eps}
+\hspace{-2ex}\ig{width=6.7in}{kernel.eps}
 \ca{The proposed ES spreading kernel
-  \eqref{ES} (solid blue lines), with the \KB\ kernel \eqref{KB} for comparison
-  (dashed green lines).
+  \eqref{ES} (solid blue lines), compared to the \KB\ \eqref{KB}
+  (dashed green lines) and truncated Gaussian (dotted pink lines) kernels.
+  The Gaussian kernel has the form $\phi(z) = e^{-0.46 \beta z^2}$ in $|z|\le 1$
+  which is asymptotically optimal.
   (a) shows the kernels for $\freq=4$; the discontinuities at
   $\pm 1$ are highlighted by dots.
   (b) shows a logarithmic plot of the (positive half of the)
@@ -320,10 +324,12 @@ this may have advantages in certain parallel settings.
   The graph of ES is a quarter-circle.
   (c) is a logarithmic plot of the magnitude of the
   Fourier transform of the kernels,
-  showing the semicircular nature of the graph, and uniformly exponentially
-  small values in $|\xi|>\freq$.
+  showing for ES and KB the semicircular nature of the graphs.
   This illustrates that ``the Fourier transform of the exponential
-  of a semicircle is exponentially close to the exponential of a semicircle.''
+  of a semicircle tends to the exponential of a semicircle.''
+  All three have uniformly exponentially
+  small values in $|\xi|>\freq$, but the Gaussian only achieves around
+  the square-root of the value for the other two).
 }{f:kernel}
 \efi
 
@@ -427,7 +433,7 @@ ETC
 
 Our implementations mostly follow known procedures
 for evaluating the type-1, 2 and 3 NUFFTs.
-However, since we have some novelties such as the
+However, since we introduce novelties such as the
 use of a kernel without analtyically known Fourier transform,
 here we give a complete description.
 
@@ -439,6 +445,26 @@ We use the Fourier transform convention
 ~.
 \label{ft}
 \ee
+
+
+\bfi[t]  % fffffffffffffffffffffffffffffffffffffff
+\ig{width=6.5in}{spreadalias.eps}
+\ca{(a) 1D illustration of spreading from \NU\ points to the grid
+  values $b_l$, $l=0,\dots,n-1$ needed for type 1.
+  For clarity, only two \NU\ points $x_1$ and $x_2$ are shown;
+  the former results in periodic wrapping of the kernel.
+  (b) Semi-logarithmic plot of the (positive half of the)
+  Fourier transform of the rescaled
+  kernel $\psi(x)$, showing the usable frequency domain (and the
+  dynamic range $\rmax$ over this domain), and approximate
+  but useful relations between the precision $\eps$
+  and the kernel frequency parameter $\beta$.
+  These are well approximated by assuming the shape of the curve is
+  a quarter circle or ellipse.
+}{f:spreadalias}
+\efi
+
+
 
 
 % 11111111111111111111111111111111111111111111111111111111111111111111111
@@ -499,9 +525,10 @@ the discrete convolution
 \be
 b_l = \sum_{j=1}^M c_j \ppsi(lh - x_j)
 ~, \qquad \mbox{for } l=0,\dots,n-1
-~.
+~,
 \label{bl1}
 \ee
+as shown in Fig.~\ref{f:spreadalias}(a).
 Because of periodicity, here the $l$ index is defined only up to modulo $n$.
 
 {\bf Step 2 (FFT).}
@@ -677,8 +704,9 @@ We present the general kernel case of the Gaussian version in \cite{nufft3}.
 
 Given $\eps$, we choose $w$ and $\freq$ as in the type-1 and type-2.
 The choice of upsampled array size $n_i$ in each dimension
-$i$ depends not on the number of input points $M$ nor output points $N$,
-but rather will be asymptotically proportional to the product $X_iS_i$, where
+will depend on the following bounds on
+the following maximum magnitudes of source and target coordinates,
+in each dimension $i=1,\dots,d$:
 $$
 X_i := \max_{j=1,\dots,M} |x_j^{(i)}|
 ~,\qquad
@@ -688,9 +716,8 @@ X_i := \max_{j=1,\dots,M} |x_j^{(i)}|
 S_i := \max_{k=1,\dots,N} |s_k^{(i)}|
 ~,\qquad
 \sss_k = (s_k^{(i)},\dots,s_k^{(d)})
+~.
 $$
-bound the coordinate magnitudes of sources and targets
-in each dimension $i=1,\dots,d$.
 The precise choice of $n_i$ is most easily understood after the
 steps of the algorithm are given.
 
@@ -784,19 +811,33 @@ the condition
 \ee
 is sufficient.
 Combining \eqref{cond1} and \eqref{cond2} and solving as equalities
-gives the recipe for the parameters,
+gives the recipe for the parameters (similar to \cite[Rmk.~1]{nufft3}),
 \be
 n_i = \frac{2\rat}{\pi}X_iS_i + w
 ~,\qquad
 \gamma_i = %\max\bigl[
 \frac{X_i}{\pi(1 - w/n_i)}
 %\frac{1}{S_i} \bigr]
-~,
+~.
 \qquad i=1,\dots,d
 \label{ng}
 \ee
-% compare nufft3
+\begin{rmk}
+  The grid size $n_i$ is asymptotically proportional to the space-frequency
+  product $X_iS_i$ in the corresponding dimension. The total number of grid points $n_1\dots n_d$ is thus proportional to the volume of the smallest centered $2d$-dimensional space-frequency cuboid enclosing all of the $\xx_j, \sss_k$ data.
+  
+Heisenberg.
 
+number of degrees of freedom in Wigner representation q chemistry.
+
+bound the coordinate magnitudes of sources and targets
+in each dimension $i=1,\dots,d$.
+
+Indep of $N$ and of $M$.
+
+\end{rmk}
+
+\begin{rmk}
 %The max is to stop failure when X=0
 Can break it by choosing $XK$ huge, even with 2 input and 2 output pts,
 which forces $n$ to be huge.
@@ -805,6 +846,8 @@ point distributions, a butterfly-style algorithm that
 hierarchically factors using translations of local point distributions
 would be optimal.
 We do not cover this specialized case here.
+\end{rmk}
+
 
 
 

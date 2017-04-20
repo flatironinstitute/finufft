@@ -2,6 +2,7 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
+* remove the 1/M type-1 prefactor, also in test routines. Add extra fortran interface which preserves it.
 * decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
 * related to above, fix matlab, octave, and python interfaces for single-prec.
 * speed and parallel scaling for uniform and surface-like NU pts dists, figures
