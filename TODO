@@ -21,6 +21,7 @@ HIGHER PRIORITY:
 
 LOWER PRIORITY:
 
+* t3: if C1 < X1/10 and D1 < S1/10 then don't rephase. Same for d=2,3.
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
 * test huge arrays >=2^31 2d, 3d in C++.
 * test huge arrays >=2^31 in octave/mex.

@@ -48,15 +48,17 @@
 \newcommand{\sss}{\mbf{s}}
 \newcommand{\yy}{\mbf{y}}
 \newcommand{\kk}{\mbf{k}}
-\newcommand{\KK}{{\mathcal K}}
-\newcommand{\NU}{{nonuniform}}
-\newcommand{\U}{{uniform}}
-\newcommand{\KB}{Kaiser--Bessel}
+\newcommand{\KK}{{\mathcal I}}     % Fourier index sets
 \newcommand{\freq}{\beta}          % exp sqrt freq param, PSWF c Slepian.
 \newcommand{\rat}{\sigma}          % upsampling R ratio, or sigma for Germans
 \newcommand{\ppsi}{{\tilde\psi}}   % periodized psi scaled kernel
 \newcommand{\rmax}{r_\tbox{max}}    % ampl ratio within |k|<N/2.
 \newcommand{\al}{\alpha}           % dilation
+\newcommand{\NU}{{nonuniform}}       % some words I'm fed up of typing...
+\newcommand{\U}{{uniform}}
+\newcommand{\KB}{Kaiser--Bessel}
+\newcommand{\FT}{Fourier transform}
+
 
 
 \begin{document}
@@ -98,7 +100,7 @@
 The computational task addressed
 is to evaluate the following exponential sums to a requested precision,
 in optimal time.
-The type-1 NUFFT (also known as the adjoint NFFT \cite{usingnfft})
+The type-1 NUFFT (also known as the adjoint NFFT \cite{nfftchap,usingnfft})
 in dimension $d$ %=1,2$ or 3
 evaluates the Fourier series expansion for a set of
 $M$ point sources at arbitrary locations $\xx_j$, which by periodicity
@@ -106,15 +108,15 @@ may be taken to lie in $[-\pi,\pi)^d$, and with
 strengths $c_j\in\mathbb{C}$,  $j=1,\dots,M$.
 The outputs are the Fourier modes with integer indices lying in
 the set
-\be
+$$
 \KK = \KK_{N_1,\dots,N_d} := \KK_{N_1} \KK_{N_2} \dots \KK_{N_d}~,
 \qquad\mbox{ where } \quad
 \KK_{N_i} := \left\{\begin{array}{ll} \{-N_i/2,\ldots,N_i/2-1\}, & N_i \mbox{ even},\\
 \{-(N_i-1)/2,\ldots,(N_i-1)/2\}, & N_i \mbox{ odd}.
 \end{array}\right.
 %\left[-\frac{N_1}{2},\frac{N_1-1}{2}\right] \times \dots \times \left[-\frac{N_d}{2},\frac{N_d-1}{2}\right]
-\label{KK}
-\ee
+%\label{KK}
+$$
 In the 1D case $\KK$ is an interval containing $N_1$ integer indices, in 2D it is a rectangle of $N_1N_2$ index pairs, and in 3D it is a cuboid of $N_1N_2N_3$ index triplets.
 %\footnote{Note that these counts apply whether each $N_i$ is even or odd.
 %  For instance for $N_1=10$ in 1D, the set is $\{-5,-4,\dots,4\}$
@@ -155,7 +157,7 @@ support, this makes choice of the kernel function critical.
 Our library will use this procedure, and the analogous known versions
 for the other two types of transforms.
 
-The type-2 transform (or NFFT \cite{usingnfft})
+The type-2 transform (or NFFT)
 is, up to a normalization factor, the adjoint of the
 type-1, and evaluates the Fourier series with given coefficients
 $f_\kk$, $\kk\in\KK$, at an arbitrary set of target points
@@ -191,7 +193,8 @@ applied to Fourier transforms.
 However, this is not to be confused with the ``inverse NUFFT'' which involves,
 for instance, treating \eqref{2} as a large linear system to be solved for
 $\{f_\kk\}$ given a right-hand side
-$\{c_j\}$. The inverse NUFFT common in Fourier imaging
+$\{c_j\}$ (this is called ``Problem 5'' in \cite{nufft}).
+The inverse NUFFT common in Fourier imaging
 applications; a popular solution method is to solve
 the preconditioned normal equations with
 NUFFTs implementing the matrix-vector multiplies
@@ -219,6 +222,8 @@ for the heat equation.%\cite{strain}.
 
 Fast evaluation of random plane waves cite Beliaev.
 
+extraction of frequencies from astronomy time series.
+
 
 
 
@@ -231,15 +236,20 @@ FFT.
 Final correction of the Fourier modes by dividing by
 $\hat\phi(k)$.
 
-The first rigorous estimates of the type-1 and type-2 transforms
-using the truncated Gaussian kernel was given in \cite{dutt}.
+The first rigorous estimates of the three types of transforms
+using the truncated Gaussian kernel in 1D was given by
+Dutt--Rokhlin in \cite{dutt}.
+The type-3 estimate was improved by Elbel--Steidl \cite{elbel}.
 
-Beylkin and his splines. REF.
+
+Beylkin and his B-splines. REF.
+
+in 1D, trig poly interp plus FMM for kernel, Dutt--R II.
 
 The CMCL NUFFT package \cite{cmcl} uses truncated Gaussians
 and ``fast Gaussian gridding'' \cite[Sec.~3]{nufft}
 which reduces the number of exponential evaluations
-from $w^d$, where $w$ is the kernel width in grid-points,
+from $w^d$, where $w$ is the kernel width in grid points,
 to $(1+d)w$, giving a claimed 5--10 times acceleration.
 On modern architectures RAM access is more of a bottleneck than
 flops - DISCUSS.
@@ -314,22 +324,21 @@ this may have advantages in certain parallel settings.
 \ca{The proposed ES spreading kernel
   \eqref{ES} (solid blue lines), compared to the \KB\ \eqref{KB}
   (dashed green lines) and truncated Gaussian (dotted pink lines) kernels.
-  The Gaussian kernel has the form $\phi(z) = e^{-0.46 \beta z^2}$ in $|z|\le 1$
-  which is asymptotically optimal.
+  We show the asymptotically optimal
+  Gaussian kernel $\phi(z) = e^{-0.46 \beta z^2}$ in $|z|\le 1$, zero otherwise.
   (a) shows the kernels for $\freq=4$; the discontinuities at
   $\pm 1$ are highlighted by dots.
   (b) shows a logarithmic plot of the (positive half of the)
   kernels for $\freq=30$
-  (corresponding to a spreading width of 13 grid-points).
+  (corresponding to a spreading width of 13 grid points).
   The graph of ES is a quarter-circle.
   (c) is a logarithmic plot of the magnitude of the
-  Fourier transform of the kernels,
-  showing for ES and KB the semicircular nature of the graphs.
-  This illustrates that ``the Fourier transform of the exponential
-  of a semicircle tends to the exponential of a semicircle.''
-  All three have uniformly exponentially
-  small values in $|\xi|>\freq$, but the Gaussian only achieves around
-  the square-root of the value for the other two).
+  Fourier transform of the kernels.
+  Note for ES and KB the quarter-circular shape in $|\xi|<\freq$.
+%  ``the Fourier transform of the exponential of a semicircle tends to the exponential of a semicircle.''
+  All three have exponentially small values uniformly in $|\xi|>\freq$, but
+  for the Gaussian the exponential convergence rate is only around half
+  the rate for the other two kernels.
 }{f:kernel}
 \efi
 
@@ -450,9 +459,10 @@ We use the Fourier transform convention
 \bfi[t]  % fffffffffffffffffffffffffffffffffffffff
 \ig{width=6.5in}{spreadalias.eps}
 \ca{(a) 1D illustration of spreading from \NU\ points to the grid
-  values $b_l$, $l=0,\dots,n-1$ needed for type 1.
+  values $b_l$, $l=0,\dots,n-1$ (shown as dots) needed for type 1.
   For clarity, only two \NU\ points $x_1$ and $x_2$ are shown;
-  the former results in periodic wrapping of the kernel.
+  the former results in periodic wrapping of the effect of the kernel.
+  The continuous kernel function contributions are shown in pink.
   (b) Semi-logarithmic plot of the (positive half of the)
   Fourier transform of the rescaled
   kernel $\psi(x)$, showing the usable frequency domain (and the
@@ -504,7 +514,7 @@ the dilation factor is the desired kernel half-width
 ~,
 \label{al}
 \ee
-where $w$ is the kernel full width in grid-points, $n$
+where $w$ is the kernel full width in grid points, $n$
 the upsampled grid size, and $h := 2\pi/n$ the upsampled grid spacing.
 For the rescaled kernel we write
 \be
@@ -660,26 +670,26 @@ The input coefficients $f_\kk$ are pre-corrected and zero-padded,
 0~, & \kk \in \KK_{n_1,\dots,n_d} \backslash \KK
 \end{array}\right.
 \ee
-with $p_\kk$ as in \eqref{pk} computed by phase winding.
+with amplification factors $p_\kk$ as in \eqref{pk} computed by phase winding.
 
 {\bf Step 2 (FFT).}
 This is just as in type-1. Writing the general dimension
-case of \eqref{dft}, with the index vectors $\mbf{l}$
+case of \eqref{dft1}, with the index vectors $\mbf{l}$
 and $\kk$ (and their ranges) swapped,
-$$
+\be
 b_\mbf{l} = \sum_{\kk\in\KK_{n_1,\dots,n_d}}
 e^{2\pi i (l_1k_1/n_1 + \dots + l_dk_d/n_d)}
 \,\hat b_\kk ~, \qquad \mbox{ for }
 \qquad l_i=0,\dots,n_i-1, \quad i=1,\dots,d
 ~.
 \label{dft}
-$$
+\ee
 
 {\bf Step 3 (interpolation).}
 The adjoint of spreading is interpolation, which
 outputs a weighted admixture of the
 grid values near to each target point.
-The approximant to $c_j$ is thus
+The approximant to the answer $c_j$ is thus
 \be
 \tilde c_j = \sum_{l_1=0}^{n_1-1} \cdots \sum_{l_d=0}^{n_d-1}
 b_\mbf{l} \ppsi((l_1h_1,\dots,l_dh_d) - \xx_j)
@@ -697,17 +707,20 @@ this requires $wd$ evaluations of the kernel function per target.
 
 Recall that in the type 3 transform,
 both the source and target values are generally \NU.
-Loosely speaking, the algorithm for the type 3 is
-a ``type-1 wrapped around a type-2'', specifically where
-the type-2 replaces the middle FFT step in the type-1.
-We present the general kernel case of the Gaussian version in \cite{nufft3}.
+Our algorithm is standard, being
+the general kernel version of the truncated Gaussian algorithms in
+\cite[Alg.~3]{nufft} \cite[Alg.~2]{elbel} \cite{nufft3}
+\cite[Sec.~1.3]{nfftchap}.
+Loosely speaking, the algorithm is a
+type-1 ``wrapped around'' a type-2, %specifically
+where the type-2 replaces the middle FFT step from the type-1.
 
-Given $\eps$, we choose $w$ and $\freq$ as in the type-1 and type-2.
-The choice of upsampled array size $n_i$ in each dimension
-will depend on the following bounds on
-the following maximum magnitudes of source and target coordinates,
+Given $\eps$, we choose $w$ and $\freq$ as in the type-1.
+However, the upsampled array size $n_i$ in each dimension
+will instead be proportional to the product of the following bounds on the
+source and target coordinates,
 in each dimension $i=1,\dots,d$:
-$$
+\be
 X_i := \max_{j=1,\dots,M} |x_j^{(i)}|
 ~,\qquad
 \xx_j = (x_j^{(i)},\dots,x_j^{(d)})
@@ -717,7 +730,8 @@ S_i := \max_{k=1,\dots,N} |s_k^{(i)}|
 ~,\qquad
 \sss_k = (s_k^{(i)},\dots,s_k^{(d)})
 ~.
-$$
+\label{XS}
+\ee
 The precise choice of $n_i$ is most easily understood after the
 steps of the algorithm are given.
 
@@ -727,7 +741,7 @@ a dilation factor $\gamma_i$ needs to be chosen
 for each dimension $i=1,\ldots,d$ 
 such that the rescaled sources ${x'_j}^{(i)} := x_j^{(i)}/\gamma_i$
 lie in $[-\pi,\pi]$. Furthermore these sources must be
-at least $w$ grid-points
+at least $w/2$ grid points
 from the ends $\pm\pi$ in order
 to avoid wrap-around of mode amplitudes in Step 2.
 %The latter condition is needed since the input mode indices for the type-2 are not periodic.
@@ -766,11 +780,9 @@ b_k = \sum_{\mbf{l} \in \KK_{n_1,\dots,n_d}}
 \ee
 where the rescaled frequency targets have coordinates
 ${s_k''}^{(i)} := h_i {s_k'}^{(i)} = h_i\gamma_i s_k^{(i)}$, $i=1,\dots,d$.
-Here the factor $h_i$ arises because the spatial grid of spacing $h_i$
+Here the new factor $h_i$ arises because the spatial grid of spacing $h_i$
 has to be stretched to unit spacing to be interpreted as a Fourier series.
-The type-2 NUFFT (see Sec.~\ref{s:2}) is used to evaluate \eqref{bkt3},
-with the same requested precision $\eps$.
-% *** check why don't need an extra digit in t-2 due to rmax factor.
+The type-2 NUFFT (see Sec.~\ref{s:2}) is used to evaluate \eqref{bkt3}.
 
 {\bf Step 3 (correction).}
 Similarly to the final step of the type-1,
@@ -791,15 +803,30 @@ recalling that $p$ is the the number of positive quadrature nodes.
 Despite this cost, this step consumes only a small fraction of the
 total computation time.
 
+\begin{rmk}
+  We have found that using the same overall requested precision $\eps$ to
+  choose the parameters for steps 1 and 2 of this algorithm
+  gives overall error close to $\eps$.
+  The earliest type-3 error bounds for the Gaussian kernel are only twice that
+  for the type-1 or type-2 \cite[Obs.~5.6]{nufft}.
+  However, sharper bounds \cite[p.~45]{elbel} for all three types produce
+  bounds for the type-3 where the error from step 2 is multiplied by
+  $\rmax$, defined by \eqref{rmax}.
+  In our setting $\rmax \le 10$, which may explain our empirical finding
+  that no reduction in the $\eps$ for step 2 is needed.
+\end{rmk}
+% *** check why don't need an extra digit in t-2 due to rmax factor.
+
+
 {\bf Recipe for parameter choice (Step 0).}
 Finally we are ready to give the recipe for choosing the upsampled grid
 sizes $n_i$, which of course in practice precedes the above three steps.
-We give a heuristic for the
-error induced by steps 1 and 3 (since step 2 is treated
-here as a black box).
-In Sec.~\ref{s:err}) we will see that spreading onto a uniform grid
+This relies on aliasing error estimates \cite{elbel}
+for steps 1 and 3 that we explain here only heuristically.
+%(step 2 is treated as a black box).
+In Sec.~\ref{s:err} we will see that spreading onto a uniform grid
 of size $h_i$ induces a lattice of
-aliased images separated by $n_i$ in frequency space,
+aliasing images separated by $n_i$ in frequency space,
 so that the correction step is only accurate to precision $\eps$ out to
 frequency magnitude $n_i/2\rat$.
 Thus, since $|{\sss'_k}^{(i)}| \le \gamma_i S_i$ for all $i$ and $k$,
@@ -811,7 +838,7 @@ the condition
 \ee
 is sufficient.
 Combining \eqref{cond1} and \eqref{cond2} and solving as equalities
-gives the recipe for the parameters (similar to \cite[Rmk.~1]{nufft3}),
+gives the recipe for the optimal parameters (similar to \cite[Rmk.~1]{nufft3}),
 \be
 n_i = \frac{2\rat}{\pi}X_iS_i + w
 ~,\qquad
@@ -822,45 +849,65 @@ n_i = \frac{2\rat}{\pi}X_iS_i + w
 \qquad i=1,\dots,d
 \label{ng}
 \ee
-\begin{rmk}
-  The grid size $n_i$ is asymptotically proportional to the space-frequency
-  product $X_iS_i$ in the corresponding dimension. The total number of grid points $n_1\dots n_d$ is thus proportional to the volume of the smallest centered $2d$-dimensional space-frequency cuboid enclosing all of the $\xx_j, \sss_k$ data.
-  
-Heisenberg.
-
-number of degrees of freedom in Wigner representation q chemistry.
-
-bound the coordinate magnitudes of sources and targets
-in each dimension $i=1,\dots,d$.
-
-Indep of $N$ and of $M$.
-
+\begin{rmk}[size of grid required]
+  The product of the grid sizes $n_i$ in each dimension $i=1,\dots,d$
+  sets the number of modes, hence the FFT effort required,
+  in the type-2 transform in step 2.
+Crucially,  this is independent of the numbers of sources $M$ and of
+  targets $N$.
+  Rather, $n_i$ scales like the space-frequency product $X_iS_i$.
+  This connects to the Fourier uncertainty principle:
+  $n_i$ scales as the number of ``Heisenberg boxes''
+  \cite{mallatbook} needed to fill the centered rectangle enclosing the data.
+  In fact, since the number of degrees of freedom
+(or ``semiclassical basis size'' \cite{davisheller})
+  needed to represent functions
+  living in the rectangle $[-X_i,X_i]\times[-S_i,S_i]$ is its area divided
+  by $2\pi$, namely $2X_iS_i/\pi$, we see that
+  $n_i$ is asymptotically $\rat$ times this basis size.
+  Thus the total number of grid points $n_1\dots n_d$ is $(\rat/2\pi)^d$
+  times the volume of the smallest centered $2d$-dimensional space-frequency
+  cuboid enclosing all of the data $\xx_j$, $\sss_k$.
+  \label{r:heis}
 \end{rmk}
 
-\begin{rmk}
-%The max is to stop failure when X=0
-Can break it by choosing $XK$ huge, even with 2 input and 2 output pts,
-which forces $n$ to be huge.
-Clearly in such a case where there are large gaps in the
-point distributions, a butterfly-style algorithm that
-hierarchically factors using translations of local point distributions
-would be optimal.
-We do not cover this specialized case here.
+{\bf Efficiently handling poorly-centered data.}
+When the smallest interval containing any coordinate of the input data
+$\xx_j$ or $\sss_k$
+is not well centered on the origin, the bound $X_i$ or $S_i$ given
+by \eqref{XS}, hence $n_i$ and the computational cost,
+will be unnecessarily large.
+Translations in $x$ or $s$ are cheap to apply,
+as can be seen by factoring
+\be
+\sum_{j=1}^M c_j e^{i (\sss_k+\sss_0) \cdot (\xx_j+\xx_0)}
+\;= \;
+e^{i(\sss_k+\sss_0)\cdot\xx_0} \sum_{j=1}^M (e^{i\sss_0\cdot \xx_j}c_j) e^{i \sss_k\cdot\xx_j}~.
+\label{trans}
+\ee
+This shows that type-3 transform with translated data
+can be applied by pre-phasing the strengths by $e^{i\sss_0\cdot \xx_j}$,
+doing the transform, then post-multiplying by $e^{i(\sss_k+\sss_0)\cdot\xx_0}$.
+The extra cost is $\bigO(N+M)$ complex exponentials.
+In our implementation we
+choose the optimal translations, namely the mean of the largest and
+smallest coordinate in space, and in frequency, for each dimension.
+
+\begin{rmk}[type-3 failure mode]
+  %The max is to stop failure when X=0
+%  Despite optimal translation of the input data,
+  Remark~\ref{r:heis} shows that input data can be chosen for which the
+  algorithm is arbitrarily inefficient.
+  For example, if $M=N=2$ in 1D with $x_1=-X$, $x_2=X$, $s_1=-S$, $s_2=S$,
+  then by choosing $XS$ huge, \eqref{ng} implies that the algorithm
+  will require a huge amount of memory and time.
+  Clearly in this case a direct summation of \eqref{3} should be done.
+  However, for $N$ and $M$ large but with highly clustered data,
+  a butterfly-type algorithm which hierarchically exploits \eqref{trans}
+  would be preferable. Since most applications do not involve such clustering,
+  we do not address this further.
+  %We do not cover this specialized case here.
 \end{rmk}
-
-
-
-
-
-{\bf Handling poorly-centered data.}
-
-***
-
-Corresponds to fitting the tightest cuboid about the source points,
-and the tightest cuboid about the target points in 
-frequency space.
-The widths of these cuboids set $X_i$ and $S_i$,
-and $n_i$ is then proportional to $X_iS_i$.
 
 
 
@@ -868,8 +915,9 @@ and $n_i$ is then proportional to $X_iS_i$.
 \section{Error analysis}
 
 In this section we derive a known formula
-(see \cite{fourmont,nfft}, \cite[Sec.~V.B]{fessler})
-for the error in the 1D type 1 and 2 NUFFT.
+\cite{fourmont,nfft} \cite[Sec.~V.B]{fessler}
+for the error in the 1D type 1 and 2 NUFFT, and combine it with
+estimates for the ES kernel.
 
 We will need the
 Poisson summation formula
@@ -882,9 +930,10 @@ and any lattice spacing $h>0$,
 \frac{2\pi}{h} \sum_{m\in\ZZ}
 \hat\psi\biggl(\frac{2\pi m + \theta}{h}\biggr)
 \exp \biggl({i\,\frac{2\pi m + \theta}{h}x}\biggr)
+~.
 \label{pois}
 \ee
-which can be proven as usual by writing the Euler--Fourier
+This can be proven, as usual, by writing the Euler--Fourier
 formula for the Fourier series coefficients
 of the periodic function given by $e^{-ix\theta/h}$
 multiplied by the left-hand side of \eqref{pois}.
@@ -895,7 +944,7 @@ multiplied by the left-hand side of \eqref{pois}.
 
 
 
-see 
+
 
 
 
@@ -917,6 +966,27 @@ The Fourier transform of \eqref{ES} is
 
 \end{thm} % ----------------------
 
+
+
+\begin{rmk}
+  The theorem might be summarized informally as,
+  {\em the \FT\ of the exponential
+    of a semicircle tends to the exponential of a semicircle}.
+  This is not suprising
+  if one believes that the ES kernel \eqref{ES} is close
+  to the lowest prolate spheroidal wavefunction of degree zero (PSWF),
+  since the latter is (up to scaling)
+  equal to its own \FT\ when restricted to $[-1,1]$.
+  Much more surprising is the fact that this PSWF is close to the exponential
+  of a semicircle; see Sec.~\ref{optim}.
+%  Of course the set of functions that are, up to scaling,
+%  precisely their own Fourier transforms is huge (since this transform
+%  has only four eigenvalues $\pm\sqrt{2\pi}$ and $\pm i \sqrt{2\pi}$).
+%
+%  The Gaussian is, up to scaling, its own \FT,
+%  which might be expressed as ``the \FT\ of the exponential
+%  of a parabola is the exponential of a parabola.''
+\end{rmk}  
 
 scaled to width.
 
@@ -949,12 +1019,13 @@ The extra factor is $\rmax$, the ratio between the smallest and largest
 amplification factors. Using $n\approx \rat N$ and
 the later results \eqref{EShat} and $\beta \approx \pi w( 1- 1/2\rat)$,
 this is
-$$
+\be
 \rmax := \frac{\hat\psi(0)}{\hat\psi(N/2)}
 = \frac{\hat\phi(0)}{\hat\phi(\pi w/2\rat)}
 \approx e^{\freq - \sqrt{\freq^2 - (\pi w/2\rat)^2}}
 = e^{\bigl(1 - \sqrt{1-(2\rat-1)^{-2}}\bigr)\freq}
-$$
+\label{rmax}
+\ee
 which for $\rat=2$ gives $\rmax \approx e^{0.057\,\freq}$.
 Thus, since $\beta\le40$ for any $\eps$
 up to double precision accuracy, $\rmax\le 10$.
@@ -976,13 +1047,12 @@ grid spacing $h$.
 
 
 
-\subsection{Discussion and optimality of the spreading kernel}
-
-???
+\subsection{Discussion of optimality of the spreading kernel}
+\label{s:optim}
 
 One might ask what kernel function in $[-1,1]$ has optimal Fourier localization
-to the frequency band $[\freq,\freq]$,
-ie error bound ***.
+to the frequency band $[-\freq,\freq]$,
+ie *** in sense of error bound.
 Give L2 error bnd version.
 In the $L^2$ norm this is the prolate spheroidal wave function (PSWF)
 of order and degree zero, $\psi_0$,
@@ -1011,9 +1081,41 @@ However, since the $L^2$ norm does not bound the $L^1$ norm
 nor the sum appearing in error estimate,
 it is hard to make a rigorous connection.
 
-Although there are numerical results that \KB\ is close to $\psi_0$,
-we know of no rigorous results on how close, even in the limit
-$\freq \to\infty$.
+Having motivated the PSWF $\psi_0(z)$ as a close-to-optimal
+spreading function, one is led to ask:
+how this $\psi_0$ related to either the
+ES kernel \eqref{ES} or the \KB\ kernel \eqref{KB}?
+Which is closer, and what are rigorous bounds on how close?
+We can only give incomplete answers at this stage.
+We review some known asymptotics as $\freq\to\infty$.
+Slepian \cite[(1.4)]{slepian65}
+showed that $\psi_0(z) = C e^{\freq\sqrt{1-z^2}} (1-z^2)^{-1/4}
+(1+\sqrt{1-z^2})^{-1/2}(1 + \bigO(\freq^{-1}))$
+in $\freq^{-1/2} \le |z| \le 1-\freq^{-1}$,
+and
+that $\psi_0(z) = C I_o(\freq \sqrt{1-z^2}) (1 + O(\freq^{-1}))$
+for $1-\freq^{-1} \le |z| \le 1$.
+We note that, apart from the factor $(1+\sqrt{1-z^2})^{-1/2}$
+which varies by a factor of only $\sqrt{2}$,
+this matches the KB kernel for all $|z|\ge \freq^{-1/2}$.
+Inside the central (turning point) region
+$|z| = \bigO(\freq^{-1/2})$,
+the bump tends to a Gaussian
+$\psi_0(z) = C e^{-\beta z^2 /2} + \bigO(\freq^{-1})$,
+which has a almost the same width factor ($1/2$ vs $0.46$) as the
+optimal truncated Gaussian shown in Fig.~\ref{f:kernel}.
+This comes from expansion in terms of Hermite functions
+\cite{fuchs} \cite[Sec.~8.6]{osipov}.
+%Slepian has asymptotics in terms of Weber functions.
+Recent results by Ogilvie \cite[Sec.~4.4]{ogilvie}
+and Dunster \cite{dunster}
+give asymptotic expressions over larger domains
+in terms of parabolic cylinder functions;
+the former are uniform over $|z|\le 1-\eps$.
+However, due to their complexity,
+it is not clear that they can give
+any clearer connection to the ES and KB kernels than presented above.
+
 
 Note that the bounds of Fourmont require removing the abs vals
 from the sinc function of \eqref{KBhat}, allowing subtle cancellations;
@@ -1024,10 +1126,8 @@ We have performed simliar experiments on the
 exponential of polynomials, and also are unable to beat the \KB\ or
 ES kernel.
 
-IS there are a connection between \eqref{ES} and the PSWF $\psi_0(z)$
-with parameter $c=\freq$?
 Very recently, $c\to\infty$ asymptotics of PSWF were derived
-\cite{dunster}.
+
 *** todo.
 
 

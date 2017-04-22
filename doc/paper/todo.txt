@@ -1,3 +1,16 @@
+* Get obscure refs on PSWF:
+
+H. J. W. Müller : Asymptotic expansions of prolate spheroidal wave functions and their characteristic numbers, J. reine angew. Math. 212 (1963) 26 – 48.
+
+J MEIXNER AND F  W SCHAFKE, 
+"Mathleusche FunktIonen
+und SpharoldfunktIOnen", Springer-Verlag, Berlin, 1954 
+Eg
+Fuchs cites for Hermite asymptotics in central region,
+Chap. 3, Theorem 9, p. 243,
+
+
+
 * think about changing the 1/M definition in type-1. Surely is messy,
 so t-2 and t-1 not adjoints, etc.
 Check w/ Leslie. Change in paper and code.
