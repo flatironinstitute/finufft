@@ -52,7 +52,7 @@
 \newcommand{\freq}{\beta}          % exp sqrt freq param, PSWF c Slepian.
 \newcommand{\rat}{\sigma}          % upsampling R ratio, or sigma for Germans
 \newcommand{\ppsi}{{\tilde\psi}}   % periodized psi scaled kernel
-\newcommand{\rmax}{r_\tbox{max}}    % ampl ratio within |k|<N/2.
+\newcommand{\rmax}{r_\tbox{dyn}}    % ampl ratio within |k|<N/2, dyn range.
 \newcommand{\al}{\alpha}           % dilation
 \newcommand{\NU}{{nonuniform}}       % some words I'm fed up of typing...
 \newcommand{\U}{{uniform}}
@@ -224,7 +224,7 @@ Fast evaluation of random plane waves cite Beliaev.
 
 extraction of frequencies from astronomy time series.
 
-
+refs from Fourmont, ultrasound.
 
 
 
@@ -286,13 +286,15 @@ a given kernel width.
 \ee
 plotted in Fig.~\ref{f:kernel}(c).
 (See \eqref{ft} for our Fourier transform convention.)
-Note that in the central region $|\xi|<\freq$
+Note that in the central region $|\xi|<\freq$,
 the square-root is imaginary so that the sine is exponentially large.
-The pair \eqref{KB}--\eqref{KBhat} appears to have been
-discovered by B. F. Logan,
-and its use pioneered by J. F. Kaiser, both at
+The pair \eqref{KB}--\eqref{KBhat}
+appears to have been discovered%
+\footnote{Curiously, this pair is
+  seemlingly absent from standard integral tables \cite[\S 6.677]{GS8}
+\cite[\S 2.5.25]{prudnikov1} \cite[\S 2.5.10]{prudnikov2}.}
+by B. F. Logan, and its use pioneered by J. F. Kaiser, both at
 Bell Labs, in the 1960s \cite{kaiser,kaiserinterview}.
-** say that Prudnikov has very similar, but cosh not sinh.
 
 The NFFT package \cite{nfft} from Chemnitz
 includes the \KB\ kernel, although it also allows the user to
@@ -407,6 +409,13 @@ are made ``under the hood'' by the library.
 
 We do performance tests blah.
 Summary of rest of paper.
+
+In section \ref{s:err} we review the error analysis of the type-1 and type-2
+NUFFT and show ***
+Sec.~\ref{s:optim} sheds light on the somewhat mysterious
+connection between the ES and KB kernels and prolate spheroidal wavefunctions.
+
+
 
 
 \section{Use of the library}
@@ -558,6 +567,7 @@ the approximant to $f_j$, namely
 \be
 \tilde f_k = p_k \hat{b}_k ~, \qquad \mbox{ for } k\in\KK
 ~,
+\label{pb1}
 \ee
 where an optimal choice of the correction factors $p_k$ comes from
 samples of the Fourier transform%
@@ -858,9 +868,10 @@ Crucially,  this is independent of the numbers of sources $M$ and of
   Rather, $n_i$ scales like the space-frequency product $X_iS_i$.
   This connects to the Fourier uncertainty principle:
   $n_i$ scales as the number of ``Heisenberg boxes''
-  \cite{mallatbook} needed to fill the centered rectangle enclosing the data.
-  In fact, since the number of degrees of freedom
-(or ``semiclassical basis size'' \cite{davisheller})
+  %\cite{mallatbook}
+  needed to fill the centered rectangle enclosing the data.
+  In fact, since the number of degrees of freedom \cite[p.~391]{slepianrev}
+  (or ``semiclassical basis size'' \cite{davisheller})
   needed to represent functions
   living in the rectangle $[-X_i,X_i]\times[-S_i,S_i]$ is its area divided
   by $2\pi$, namely $2X_iS_i/\pi$, we see that
@@ -898,14 +909,15 @@ smallest coordinate in space, and in frequency, for each dimension.
 %  Despite optimal translation of the input data,
   Remark~\ref{r:heis} shows that input data can be chosen for which the
   algorithm is arbitrarily inefficient.
-  For example, if $M=N=2$ in 1D with $x_1=-X$, $x_2=X$, $s_1=-S$, $s_2=S$,
+  For example, with only two points ($M=N=2$) in 1D with
+  $x_1=-X$, $x_2=X$, $s_1=-S$, $s_2=S$,
   then by choosing $XS$ huge, \eqref{ng} implies that the algorithm
   will require a huge amount of memory and time.
-  Clearly in this case a direct summation of \eqref{3} should be done.
+  Obviously in this case a direct summation of \eqref{3} is preferable.
   However, for $N$ and $M$ large but with highly clustered data,
   a butterfly-type algorithm which hierarchically exploits \eqref{trans}
-  would be preferable. Since most applications do not involve such clustering,
-  we do not address this further.
+  could be designed. Since we cannot assume such clustering in most
+  applications, we do not address this further.
   %We do not cover this specialized case here.
 \end{rmk}
 
@@ -914,12 +926,22 @@ smallest coordinate in space, and in frequency, for each dimension.
 
 \section{Error analysis}
 
-In this section we derive a known formula
-\cite{fourmont,nfft} \cite[Sec.~V.B]{fessler}
-for the error in the 1D type 1 and 2 NUFFT, and combine it with
-estimates for the ES kernel.
+For convenience we first review a known formula
+for the aliasing error in the 1D type 1 and 2 NUFFT
+in exact arithmetic.
+This error usually dominates over rounding error
+(see \cite[\S 1.4]{nfftchap} for rounding error analysis).
+In later subsections we present bounds on the \FT\ of the ES kernel,
+and use them to motivate the algorithm parameter choices from the
+previous section.
+The section concludes with a discussion of the optimality of,
+and connections between, the KB and ES kernels, and prolate spheroidal
+wavefunctions.
 
-We will need the
+\subsection{Error in the type-1 and type-2 transforms with general kernel}
+\label{s:err}
+
+We first need the
 Poisson summation formula
 \cite{apostol} generalized to include a phase $e^{i\theta}$:
 for any continuous function
@@ -933,20 +955,84 @@ and any lattice spacing $h>0$,
 ~.
 \label{pois}
 \ee
-This can be proven, as usual, by writing the Euler--Fourier
-formula for the Fourier series coefficients
-of the periodic function given by $e^{-ix\theta/h}$
-multiplied by the left-hand side of \eqref{pois}.
+This can be proven, as usual, by noticing that multiplication
+by $e^{-ix\theta/h}$ makes the left-hand side periodic,
+then writing the Euler--Fourier formula for the coefficients of its
+Fourier series.
 
+We now derive the error using a general rescaled kernel $\psi(x)$.
+For the type-1, inserting \eqref{bl1} into \eqref{dft1}
+and the result into \eqref{pb1}, and subtracting from the true answer
+\eqref{1} gives the error
+$$
+\tilde f_k - f_k  \;=\;
+\sum_{j=1}^M c_j \left[ p_k \sum_{l=0}^{n-1} e^{2\pi i l k/n}
+  \ppsi(lh-x_j) - e^{ikx_j} \right ]
+\;=:\; \sum_{j=1}^M c_j g_k(x_j)
+~, \qquad k\in\KK,
+$$
+where, using Poisson summation \eqref{pois} with $\theta=kh$,
+$$
+g_k(x) :=  p_k \sum_{l=0}^{n-1} e^{2\pi i l k/n}
+\ppsi(lh-x) - e^{ikx}
+\; =\;
+n p_k \sum_{m\in\ZZ} \hat\psi(k+mn) e^{i(k+mn)x} - e^{ikx}
+~.
+$$
+Choosing $p_k$ as in \eqref{pk1} thus kills exactly the contributions from
+$m=0$, leaving the known aliasing error formula \cite[(1.16)]{nfftchap}
+\cite[(4.1)]{fourmont} \cite[Sec.~V.B]{fessler}
+\be
+g_k(x) = \frac{1}{\hat\psi(k)}\sum_{m\neq 0} \hat\psi(k+mn) e^{i(k+mn)x}
+~.
+\label{gkx}
+\ee
+Since $|k|\le N/2$,
+error is thus controlled by the sum of the tails of $\hat\psi$
+at frequency magnitudes at least $n-N/2$. See Fig.~\ref{f:spreadalias}(b).
+%Other choices of $p_k$ leave some contribution from $m=0$, which usually
+%dominate.
+% footnote re why not choose DFT of kernel?
 
-\subsection{Error in the type-1 transform with general kernel}
-\label{s:err}
-
-
-
-
-
-
+Since type-2 is the adjoint of type-1 (or by similar manipulations to the
+above), its error is
+\be
+\tilde c_j - c_j = \sum_{k\in\KK} f_k g_k(x_j)
+~, \qquad j=1,\dots,M~.
+\ee
+A common way to summarize errors for both transforms is then
+to assume a uniform bound $\eps$ on $g_k$, so
+\be
+\max_{k\in\KK}|\tilde f_k - f_k| \le \eps \|\mbf{c}\|_1
+\quad \mbox{ (type-1)~, } \qquad
+\max_{1\le j\le M}|\tilde c_j - c_j| \le \eps \|\mbf{f}\|_1
+\quad \mbox{ (type-2)~, }
+\label{1nrm}
+\ee
+if $|g_k(x)| \le \eps$, for all $|k|\le N/2$, $x\in\RR$,
+and $\mbf{c}$ and $\mbf{f}$ are the respective vectors of input data.
+A simple way to get such uniform bounds from \eqref{gkx} is to discard phase
+information, and choose over $k$
+the worst-case numerator and denominator, giving
+\be
+\eps = \max_{|k|\le N/2}
+\|g_k\|_\infty =
+\max_{|k|\le N/2} \frac{1}{|\hat\psi(k)|}\sum_{m\neq 0} |\hat\psi(k+mn)|
+\le
+\frac{\max_{|k|\le N/2} \sum_{m\neq 0} |\hat\psi(k+mn)|}{\min_{|k|\le N/2} |\hat\psi(k)|}
+~.
+\label{epsest}
+\ee
+\begin{rmk}
+  Estimation of $\eps$ in the case of the \KB\ kernel \eqref{KB}
+  fails using \eqref{epsest}, since the tail of the sinc function in
+  \eqref{KBhat}, decaying like $k^{-1}$, is not absolutely convergent.
+  In this case, rigorous estimates,
+  which take cancellation due to changing phases into account,
+  are due to Fourmont, and are quite technical \cite[p.~30-38]{fourmontthesis}.
+  The results are summarized in \cite[Sec.~4]{fourmont} and used for the
+  estimates in \cite[App.~C]{nfft}.
+\end{rmk}
 
 
 \subsection{Esimates on the Fourier transform of the ES kernel}
@@ -978,7 +1064,7 @@ The Fourier transform of \eqref{ES} is
   since the latter is (up to scaling)
   equal to its own \FT\ when restricted to $[-1,1]$.
   Much more surprising is the fact that this PSWF is close to the exponential
-  of a semicircle; see Sec.~\ref{optim}.
+  of a semicircle; see Sec.~\ref{s:optim}.
 %  Of course the set of functions that are, up to scaling,
 %  precisely their own Fourier transforms is huge (since this transform
 %  has only four eigenvalues $\pm\sqrt{2\pi}$ and $\pm i \sqrt{2\pi}$).
@@ -1084,10 +1170,16 @@ it is hard to make a rigorous connection.
 Having motivated the PSWF $\psi_0(z)$ as a close-to-optimal
 spreading function, one is led to ask:
 how this $\psi_0$ related to either the
-ES kernel \eqref{ES} or the \KB\ kernel \eqref{KB}?
+ES kernel \eqref{ES} or the \KB\ kernel \eqref{KB},
+in the limit $\freq\to\infty$ ?
 Which is closer, and what are rigorous bounds on how close?
 We can only give incomplete answers at this stage.
-We review some known asymptotics as $\freq\to\infty$.
+One might hope that
+standard WKBJ approximation applied to the defining
+ODE $-((1-z^2)\psi')'+\freq^2z^2\psi = \chi_0\psi$
+would reveal a simple form similar to the ES or KB kernels,
+but this is not so.
+However, some other known asymptotics do:
 Slepian \cite[(1.4)]{slepian65}
 showed that $\psi_0(z) = C e^{\freq\sqrt{1-z^2}} (1-z^2)^{-1/4}
 (1+\sqrt{1-z^2})^{-1/2}(1 + \bigO(\freq^{-1}))$
@@ -1102,16 +1194,19 @@ Inside the central (turning point) region
 $|z| = \bigO(\freq^{-1/2})$,
 the bump tends to a Gaussian
 $\psi_0(z) = C e^{-\beta z^2 /2} + \bigO(\freq^{-1})$,
-which has a almost the same width factor ($1/2$ vs $0.46$) as the
+which has a width differing by only $4\%$ from that of the
 optimal truncated Gaussian shown in Fig.~\ref{f:kernel}.
 This comes from expansion in terms of Hermite functions
-\cite{fuchs} \cite[Sec.~8.6]{osipov}.
-%Slepian has asymptotics in terms of Weber functions.
+\cite[\S 3.25]{meixner} % confusing since call's them D
+%\cite{fuchs}
+\cite[Sec.~8.6]{osipov}.
+%Slepian has asymptotics in terms of Weber functions. (also called D !)
 Recent results by Ogilvie \cite[Sec.~4.4]{ogilvie}
 and Dunster \cite{dunster}
 give asymptotic expressions over larger domains
 in terms of parabolic cylinder functions;
-the former are uniform over $|z|\le 1-\eps$.
+the former are uniform over $|z|\le 1-\eps$ and the
+latter $\freq^{-1/2}\le|z|\le1$.
 However, due to their complexity,
 it is not clear that they can give
 any clearer connection to the ES and KB kernels than presented above.
