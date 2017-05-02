@@ -2,6 +2,7 @@ function F = ft(f,L,k,q)
 % compute real Fourier transform of even-symm func on [-L,L] at target freqs k,
 % using direct summation with quadrature on [-L,L].
 % q is optional override of even # quadr nodes.
+% FT convenion is fhat(k) = int e^{-ikx} f(x) dx, as in paper.
 kmax = max(abs(k));
 if nargin<4
   q = ceil(20 + 1.5*kmax*L); if mod(q,2), q=q+1; end   % estimate q, even

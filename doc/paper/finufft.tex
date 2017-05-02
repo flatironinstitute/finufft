@@ -25,6 +25,9 @@
 \newcommand{\efi}{\end{figure}}
 \newcommand{\ca}[2]{\caption{#1 \label{#2}}}
 \newcommand{\ig}[2]{\includegraphics[#1]{#2}}
+\newcommand{\bmp}[1]{\begin{minipage}{#1}}
+\newcommand{\emp}{\end{minipage}}
+\newcommand{\pig}[2]{\bmp{#1}\includegraphics[width=#1]{#2}\emp}
 \newcommand{\tbox}[1]{{\mbox{\tiny #1}}}
 \newcommand{\mbf}[1]{{\mathbf #1}}
 \newcommand{\half}{\mbox{\small $\frac{1}{2}$}}
@@ -285,7 +288,7 @@ a given kernel width.
 \label{KBhat}
 \ee
 plotted in Fig.~\ref{f:kernel}(c).
-(See \eqref{ft} for our Fourier transform convention.)
+(See \eqref{FT} for our Fourier transform convention.)
 Note that in the central region $|\xi|<\freq$,
 the square-root is imaginary so that the sine is exponentially large.
 The pair \eqref{KB}--\eqref{KBhat}
@@ -330,14 +333,13 @@ this may have advantages in certain parallel settings.
   Gaussian kernel $\phi(z) = e^{-0.46 \beta z^2}$ in $|z|\le 1$, zero otherwise.
   (a) shows the kernels for $\freq=4$; the discontinuities at
   $\pm 1$ are highlighted by dots.
-  (b) shows a logarithmic plot of the (positive half of the)
+  (b) shows a logarithmic plot (for positive $z$) of the
   kernels for $\freq=30$
   (corresponding to a spreading width of 13 grid points).
-  The graph of ES is a quarter-circle.
-  (c) is a logarithmic plot of the magnitude of the
+  The graph for ES is a quarter-circle.
+  (c) shows a logarithmic plot of the magnitude of the
   Fourier transform of the kernels.
   Note for ES and KB the quarter-circular shape in $|\xi|<\freq$.
-%  ``the Fourier transform of the exponential of a semicircle tends to the exponential of a semicircle.''
   All three have exponentially small values uniformly in $|\xi|>\freq$, but
   for the Gaussian the exponential convergence rate is only around half
   the rate for the other two kernels.
@@ -457,12 +459,14 @@ here we give a complete description.
 
 We use the Fourier transform convention
 \be
-\hat\phi(k) = \frac{1}{2\pi} \intR \phi(x) e^{-ikx} dx
+\hat\phi(k) = \intR \phi(x) e^{ikx} dx
 ~,\qquad
-\phi(x) = \intR \hat\phi(k) e^{ikx} dx
+\phi(x) = \frac{1}{2\pi} \intR \hat\phi(k) e^{-ikx} dx
 ~.
-\label{ft}
+\label{FT}
 \ee
+% means ``causal'' (in x) is analytic in UHP of k, FWIW.
+% and k>0 decays in complex x UHP.
 
 
 \bfi[t]  % fffffffffffffffffffffffffffffffffffffff
@@ -505,6 +509,7 @@ These rules of thumb, appropriate for the ES or KB kernel with
 $\rat=2$, will be justified in Sec.~\ref{s:w}.
 
 \subsubsection{1D case}
+\label{s:1d1}
 
 For simplicity we start with the 1D case, using $x_j$ to denote source
 locations and $k\in\KK$ to label the $N=N_1$ output modes.
@@ -577,7 +582,7 @@ samples of the Fourier transform%
   experience this causes around twice the error of \eqref{pk1},
   as can be justified by the discussion in Sec.~\ref{s:err}.}
 of the scaled kernel,
-\be p_k = (n \hat\psi(k))^{-1}~, \qquad k\in\KK
+\be p_k = h / \hat\psi(k)~ = 2/(w\hat\phi(\alpha k)), \qquad k\in\KK
 \label{pk1}
 ~.
 \ee
@@ -593,9 +598,9 @@ By exploiting the reality and even symmetry of the kernel,
 only the $p$ positive nodes are needed, thus,
 $$
 \hat\psi(k) \;=\; 
-\frac{1}{2\pi} \int_{-\al}^{\al} \psi(x) e^{-ikx} dx
+\int_{-\al}^{\al} \psi(x) e^{ikx} dx
 \;\approx\;
-\frac{w}{n} \sum_{j=1}^p w_j \phi(q_j) \cos (\al k q_j)
+wh \sum_{j=1}^p w_j \phi(q_j) \cos (\al k q_j)
 ~.
 $$
 In practice we find that $p\ge 2+1.5 w$ gives sufficient accuracy
@@ -607,7 +612,7 @@ We discuss this choice further in Sec.~\ref{s:p}.
 The cost of the evaluation of $p_k$ is $\bigO(pN)$,
 and naively would involve $pN$ cosines.
 By exploiting the fact that, for each quadrature point $q_j$,
-successive values of $e^{-i \al k q_j}$ over the $k$ grid are
+successive values of $e^{i \al k q_j}$ over the regular $k$ grid are
 related by a constant phase factor, these cosines
 can be replaced by $p$ complex exponentials and $pN$ adds and multiplies.
 We call this standard addition-formula trick
@@ -650,13 +655,13 @@ means that only $wd$ kernel evaluations are needed per source point:
 the $w^d$ square or cube of $\ppsi$ values is then filled as a tensor product.
 The correction factor is then also separable,
 \be
-p_\kk = (n_1\dots n_d \hat\psi(\kk))^{-1} = (\pi w)^{-d}
+p_\kk = h_1\dots h_d \hat\psi(\kk)^{-1} = (2/w)^{d}
 (\hat\phi(\al_1 k_1) \cdots \hat\phi(\al_d k_d))^{-1}
 ~, \qquad \kk \in \KK~,
 \label{pk}
 \ee
 so that only $d$ 1D Fourier transforms of $\phi$ need be evaluated.
-Each such Fourier transform is on a regular grid, so the phase winding
+Each such Fourier transform is output on a regular grid, so the phase winding
 trick is used.
 The DFT \eqref{dft1} generalizes in the standard way to
 multiple dimensions.
@@ -802,13 +807,18 @@ $$
 \tilde f_k = p_k b_k
 ~,\qquad 
 \mbox{ where }
-\quad p_k = (n_1\dots n_d \hat\psi(\sss'_k))^{-1}~, \qquad k=1,\dots,N
+\quad p_k = h_1\dots h_d \hat\psi(\sss'_k)^{-1} = (2/w)^d
+\bigl(
+\hat\phi(\alpha_1{s'_k}^{(1)}) \cdots \hat\phi(\alpha_d{s'_k}^{(d)})
+\bigr)^{-1}
+~,
+\qquad k=1,\dots,N
 ~.
 $$
 But, in contrast to the case of types 1 and 2,
-the set of frequencies at which $\hat\psi$ must be evaluated is %in general
+the set of frequencies at which $\hat\phi$ must be evaluated is %in general
 \NU, so there is no way to exploit the phase winding trick.
-Rather, $pN$ cosines must be evaluated,
+Rather, $dpN$ cosines must be evaluated,
 recalling that $p$ is the the number of positive quadrature nodes.
 Despite this cost, this step consumes only a small fraction of the
 total computation time.
@@ -926,7 +936,7 @@ smallest coordinate in space, and in frequency, for each dimension.
 
 \section{Error analysis}
 
-For convenience we first review a known formula
+For convenience we first derive a known formula
 for the aliasing error in the 1D type 1 and 2 NUFFT
 in exact arithmetic.
 This error usually dominates over rounding error
@@ -949,8 +959,8 @@ $\psi \in L_1(\RR)$ with Fourier transform $\hat\psi$,
 and any lattice spacing $h>0$,
 \be
 \sum_{l\in\ZZ} e^{il\theta} \psi(x - lh) \; = \;
-\frac{2\pi}{h} \sum_{m\in\ZZ}
-\hat\psi\biggl(\frac{2\pi m + \theta}{h}\biggr)
+\frac{1}{h} \sum_{m\in\ZZ}
+\hat\psi\biggl(-\frac{2\pi m + \theta}{h}\biggr)
 \exp \biggl({i\,\frac{2\pi m + \theta}{h}x}\biggr)
 ~.
 \label{pois}
@@ -971,15 +981,18 @@ $$
 \;=:\; \sum_{j=1}^M c_j g_k(x_j)
 ~, \qquad k\in\KK,
 $$
-where, using Poisson summation \eqref{pois} with $\theta=kh$,
+where, applying Poisson summation \eqref{pois} with $\theta=hk$,
+%and symmetry of $\hat\psi$,
 $$
 g_k(x) :=  p_k \sum_{l=0}^{n-1} e^{2\pi i l k/n}
 \ppsi(lh-x) - e^{ikx}
-\; =\;
-n p_k \sum_{m\in\ZZ} \hat\psi(k+mn) e^{i(k+mn)x} - e^{ikx}
+= p_k \sum_{l\in\ZZ} e^{ilhk} \psi(lh-x) - e^{ikx}
+=
+\frac{p_k}{h} \sum_{m\in\ZZ} \hat\psi(k+mn) e^{i(k+mn)x} - e^{ikx}
 ~.
 $$
-Choosing $p_k$ as in \eqref{pk1} thus kills exactly the contributions from
+This motivates the choice of $p_k$ in \eqref{pk1} which
+kills exactly the contributions from
 $m=0$, leaving the known aliasing error formula \cite[(1.16)]{nfftchap}
 \cite[(4.1)]{fourmont} \cite[Sec.~V.B]{fessler}
 \be
@@ -988,7 +1001,7 @@ g_k(x) = \frac{1}{\hat\psi(k)}\sum_{m\neq 0} \hat\psi(k+mn) e^{i(k+mn)x}
 \label{gkx}
 \ee
 Since $|k|\le N/2$,
-error is thus controlled by the sum of the tails of $\hat\psi$
+error is thus controlled by the phased sum of the tails of $\hat\psi$
 at frequency magnitudes at least $n-N/2$. See Fig.~\ref{f:spreadalias}(b).
 %Other choices of $p_k$ leave some contribution from $m=0$, which usually
 %dominate.
@@ -1011,59 +1024,237 @@ to assume a uniform bound $\eps$ on $g_k$, so
 \ee
 if $|g_k(x)| \le \eps$, for all $|k|\le N/2$, $x\in\RR$,
 and $\mbf{c}$ and $\mbf{f}$ are the respective vectors of input data.
-A simple way to get such uniform bounds from \eqref{gkx} is to discard phase
-information, and choose over $k$
-the worst-case numerator and denominator, giving
+We can separate the variation in the numerator and denominator
+of \eqref{gkx} to get the estimate
 \be
-\eps = \max_{|k|\le N/2}
-\|g_k\|_\infty =
-\max_{|k|\le N/2} \frac{1}{|\hat\psi(k)|}\sum_{m\neq 0} |\hat\psi(k+mn)|
-\le
-\frac{\max_{|k|\le N/2} \sum_{m\neq 0} |\hat\psi(k+mn)|}{\min_{|k|\le N/2} |\hat\psi(k)|}
+\eps := \max_{|k|\le N/2}
+\|g_k\|_\infty \le
+\frac{
+  \max_{|k|\le N/2} \left|
+    \sum_{m\neq 0} \hat\psi(k+mn) e^{i(k+mn)x}
+  \right|
+}{\min_{|k|\le N/2} |\hat\psi(k)|}
 ~.
 \label{epsest}
 \ee
-\begin{rmk}
-  Estimation of $\eps$ in the case of the \KB\ kernel \eqref{KB}
-  fails using \eqref{epsest}, since the tail of the sinc function in
-  \eqref{KBhat}, decaying like $k^{-1}$, is not absolutely convergent.
-  In this case, rigorous estimates,
-  which take cancellation due to changing phases into account,
-  are due to Fourmont, and are quite technical \cite[p.~30-38]{fourmontthesis}.
-  The results are summarized in \cite[Sec.~4]{fourmont} and used for the
-  estimates in \cite[App.~C]{nfft}.
-\end{rmk}
+Since the dynamic range of the denominator is small, and the tails
+of the sum decay slowly, we believe that this estimate is close to tight.
+
+In the next section will insert estimates on $\hat\psi$ into
+\eqref{epsest}, to get rigorous bounds for the ES kernel.
+For now, a non-rigorous but useful picture of the error size
+is sketched in Fig.~\ref{f:spreadalias}(b):
+assuming that i) $\hat\psi(k)$ decreases monotonically
+with $|k|$ for $|k|\le N/2$, and  ii) the worst-case sum (numerator in \eqref{epsest}) is dominated by the single value with smallest $|k|$,
+then we get $ \eps \approx |\hat\psi(n-N/2) / \hat\psi(N/2) |$,
+whose logarithm is shown in the figure.
+
+Note that if the kernel $\psi$ is discontinuous, for instance due to
+truncation of $\phi$ to $[-1,1]$, this implies that the tail of $\hat\psi$
+is a sinc function, dying no faster than $1/k$.
+This renders simpler estimates which discard the phase, such as
+$$
+\eps \le
+\frac{\max_{|k|\le N/2} \sum_{m\neq 0} |\hat\psi(k+mn)|}{\min_{|k|\le N/2} |\hat\psi(k)|}~,
+$$
+unbounded and thus useless.
+For such class of kernel (which includes KB and our ES),
+more subtle estimates which retain phase information in the
+conditionally-convergent sum \eqref{epsest} are needed
+(see remark~\ref{fourmont} below).
+For the truncated Gaussian kernel, error estimates handle
+the truncation in other ways \cite{nufft,elbel,nfftchap}.
 
 
-\subsection{Esimates on the Fourier transform of the ES kernel}
 
-Discuss relation of kernel \eqref{ES} to \KB.
+\subsection{Asymptotic estimates on the Fourier transform of the ES kernel}
 
-
-\begin{thm} % -----------------------------
-  
-The Fourier transform of \eqref{ES} is
+Recall the relation \eqref{psi1} stating that $\psi(x)$ is a rescaled
+version of $\phi(z)$, the kernel defined on $[-1,1]$.
+For simplicity we work with $\phi$.
+To present asymptotics in the width parameter $\freq\to\infty$,
+it is convenient to express the Fourier transform with the scaled frequency
 \be
-\hat\phi(\xi) \sim C_\freq e^{\sqrt{\freq^2-\xi^2}}
-~, \qquad |\xi| \le \freq
-\qquad  \freq\to\infty
-\label{EShat}
+\rho \;:=\; \xi/\freq ~.
+\label{rho}
+\ee
+We will fix $\rho$, and let the frequency $\xi=\rho\freq$ grow in proportion
+to $\freq$. The cutoff frequency (see vertical line
+in Fig.~\ref{f:kernel}(c)) is then at $\rho=1$.
+The following shows that, up to weak algebraic prefactors,
+(a) below the cutoff $\hat\phi$ has the same form of as $\phi$,
+and that (b) above the cutoff $\hat\phi$ is uniformly exponentially small,
+with the same exponential rate $e^\beta$ as occurs for the \KB\ kernel.
+
+\bfi[t] % fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+\pig{2.2in}{saddlea_lab}
+\pig{2.2in}{saddleb_lab}
+\pig{2.2in}{saddleft}
+\ca{
+  Real part of integrand $e^{\freq p(z)}$
+  appearing in the ES kernel \FT\
+  (see \eqref{ESFT}),
+  plotted across the complex $z$ plane, for $\freq=30$.
+  (a) $\rho=0.8$, below cutoff frequency.
+  Also shown are saddle point $z_0$ ($\ast$), example contour (line with arrow),
+  boundaries where $\re p(z) = \re p(z_0)$ (dotted lines),
+  and standard branch cuts (wiggly lines).
+  Inset shows elliptic coordinate plane $(u,v)$ for the right half of the
+  $z$-plane, and ``bad'' region where $\re p(z) > \re p(z_0)$ (shaded).
+  (b) $\rho =1.2$, above cutoff.
+  %frequency in the exponentially small aliasing error tail.
+  Note the change in color scale. The branch cuts of the square-root have
+  been rotated to point downwards, exposing the two saddle points.
+  (c) Comparison of the asymptotic formulae \eqref{EShat1}--\eqref{EShat2}
+  from Thm.~\ref{t:EShat}
+  to the true $\hat\phi$ (evaluated accurately by quadrature).
+  The weak algebraic divergence at $\rho=1$ has been highlighted by plotting
+  a vertical asymptote.
+}{f:saddle}
+\efi
+
+
+\begin{thm} % -----------------------------------------------------------------
+  Let $\hat\phi$ be the Fourier transform (as in \eqref{FT}) of the ES kernel
+  $\phi$ given by \eqref{ES}.
+  
+  (a)
+  Fix $\rho\in(-1,1)$, ie, below cutoff. Then, %the asymptotic result holds,
+\be
+\hat\phi(\rho\freq) \; =\;
+\sqrt{\frac{2\pi}{\beta}} \frac{1}{(1-\rho^2)^{3/4}} e^{\freq(\sqrt{1-\rho^2}-1)}
+\left[ 1 + \bigO(\freq^{-1}) \right]
+~, \qquad \freq\to\infty
+\label{EShat1}
 \ee
 
-\end{thm} % ----------------------
-
-
+(b)
+  Fix $\rho$, $|\rho| > 1$, ie, above cutoff. Then,
+\be
+\hat\phi(\rho\freq) \; =\;
+2\sqrt{\frac{2\pi}{\beta}}
+e^{-\freq}
+\frac{\sin\left(\freq\sqrt{\rho^2-1} - \pi/4\right)}
+{(\rho^2-1)^{3/4}}
+\left[ 1 + \bigO(\freq^{-1}) \right]
+~, \qquad \freq\to\infty
+\label{EShat2}
+\ee
+%sqrt(2*pi/beta)*exp(-beta)*2*sin(-pi/4+beta*sqrt(rt.^2-1)).*(rt.^2-1).^(-.75);
+\label{t:EShat}
+\end{thm} % -----------------------------------------------------------------
 
 \begin{rmk}
-  The theorem might be summarized informally as,
+  Fig.~\ref{f:saddle}(c) shows the high accuracy of this
+  asymptotic approximation, for all $\rho$ around unit size,
+  apart from those very close to
+  $\rho=1$, even at $\freq=30$, which is not huge.
+  Around two digits of relative
+  accuracy are achieved everywhere except $\rho\approx 1$, where $\hat\phi$
+  is already exponentially small.
+  The match includes the details of the exponentially small tail oscillations
+  in $\rho>1$.
+  (However, see Remark~\ref{r:decay} which discusses that for $\rho \ge \freq$,
+  relative error grows.)
+  \label{r:match}
+\end{rmk}
+
+\begin{proof}
+In either case, the \FT\ to be estimated is
+\be
+\hat\phi(\rho\freq) = e^{-\freq} \int_{-1}^1
+e^{\freq (\sqrt{1-z^2} + i\rho z)} dz
+= e^{-\freq} \int_{-1}^1 e^{\freq p(z)} dz
+~,\qquad\mbox{ where }\quad
+p(z):=\sqrt{1-z^2} +i\rho z
+~.
+\label{ESFT}
+\ee
+We will apply saddle point integration in the
+complex $z$ plane (see \cite[Thm.~7.1, p.~127]{olver};
+note that we choose the opposite sign convention for $p(z)$).
+Saddle points $z_0$ are found by setting $p'=0$.
+We must also show existence of a smooth contour connecting $-1$
+to $+1$, avoiding branch cuts,
+passing through the saddle point(s), and along which $\re p(z)$
+has its global maximum at $z_0$.
+The standard branch cut $(-\infty,0)$ for the square-root gives
+cuts for $p(z)$ at $(-\infty,-1)$ and $(1,+\infty)$;
+these cuts are shown in Fig.~\ref{f:saddle}(a).
+
+{\bf Case (a).}
+We take $0\le \rho<1$, since $\hat\phi$ has even symmetry.
+Since $\re i\rho z$ becomes more negative as $\im z$ grows,
+we choose the saddle $z_0 = i\rho/\sqrt{1-\rho^2}$ on the
+positive imaginary axis.
+See Fig.~\ref{f:saddle}(a).
+To show the existence of a valid contour we switch to standard elliptical
+coordinates
+\be
+z = \cosh(u+iv)~,\qquad \re z = \cosh u \cos v~,\qquad \im z = \sinh u \sin v
+~,
+\label{ellip}
+\ee
+where $\mu\ge 0$ and $0\le v < 2\pi$ covers the plane.
+Noting that $1-z^2 = -\sinh^2(u+iv)$, we get
+$$
+\re p(z) = \re p(u,v) = (\cosh u - \rho \sinh u) \sin v
+~,
+$$
+which shows, remarkably, that the magnitude of the exponential
+in \eqref{ESFT} is a product $A(u)B(v)$ in this coordinate system.
+% phase is a different product, not needed.
+By solving $p'=0$ one finds that the saddle is at
+$(u,v) = (\tanh^{-1} \rho, \pi/2)$,
+where $\re p(z_0) = \sqrt{1-\rho^2}$.
+
+For the second (right) half of the contour,
+we need to show that there is some smooth open path in $(u,v)$ between
+$(\tanh^{-1} \rho, \pi/2)$ and $(0,0)$ along which $\re p$ is
+everywhere less than $\re p(z_0)$.
+At the endpoint $p = 0$, which is indeed less than $\re p(z_0)$,
+but it is possible that a barrier region of large $\re p$
+prevents such a path existing.
+However, no such barrier exists, as we now show.
+The level curve $\re p(u,v) =\re p(z_0)$ has positive slope
+in the $(u,v)$ plane (see Fig.~\ref{f:saddle}(a) inset).
+This is clear since the level curve intersects each line $u=$ constant
+only once in $(0,\pi/2)$, because $\sin v$ is monotonic there.
+Furthermore, $\cosh u - \rho \sinh u$ is monotonically
+decreasing in $[0,\tanh^{-1} \rho)$, as is apparent from its derivative,
+so that the $v$-value of the intersection grows monotonically
+with $u$.
+This means that the ``bad'' region where $\re p(u,v) \ge \re p(z_0)$ is
+confined to the upper left corner of the $(u,v)$ rectangle
+(see inset), so there is no obstruction to crossing the diagonal
+while remaining small.
+The first half of the contour
+may be chosen as a reflection of the second about the imaginary $z$ axis.
+Thus a valid saddle contour exists.
+
+At the saddle point, $p''(z_0) = -(1-\rho^2)^{3/2}$,
+so that, taking the first term in the saddle point theorem
+\cite[Thm.~7.1, p.~127]{olver}
+gives \eqref{EShat1}.
+
+{\bf Case (b).}
+Now $\rho>1$. The 
+
+
+
+
+\end{proof}
+
+\begin{rmk}
+  The theorem might be summarized informally as:
   {\em the \FT\ of the exponential
     of a semicircle tends to the exponential of a semicircle}.
   This is not suprising
   if one believes that the ES kernel \eqref{ES} is close
   to the lowest prolate spheroidal wavefunction of degree zero (PSWF),
   since the latter is (up to scaling)
-  equal to its own \FT\ when restricted to $[-1,1]$.
-  Much more surprising is the fact that this PSWF is close to the exponential
+  equal to its own \FT\ when restricted to $[-1,1]$ \cite{osipov}.
+  More surprising is that this PSWF is close to the exponential
   of a semicircle; see Sec.~\ref{s:optim}.
 %  Of course the set of functions that are, up to scaling,
 %  precisely their own Fourier transforms is huge (since this transform
@@ -1074,13 +1265,57 @@ The Fourier transform of \eqref{ES} is
 %  of a parabola is the exponential of a parabola.''
 \end{rmk}  
 
+\begin{rmk}
+Since the algebraic decay in \eqref{EShat2} appears to be
+$\rho^{-3/2}$ (ie $\xi^{-3/2}$), one is tempted to
+directly insert this into the sum in \eqref{epsest},
+and declare victory.
+However, this is incorrect, since the implied constant in the error
+term in \eqref{EShat2} is unknown, and is in fact not uniformly bounded
+in $\rho$.
+Since the kernel has discontinuities at $z=\pm 1$ of strength $e^{-\freq}$,
+the correct asymptotic is (at fixed $\freq$),
+$\phi\hat(\xi) \sim e^{-\freq} \frac{\sin \xi}{\xi} = \bigO(\xi^{-1})$.
+
+\label{r:decay}
+\end{rmk}
+
+
+
+
+
+
+
 scaled to width.
 
 $w=1,2,\ldots$
 sets the support of the kernel in units of the uniform grid point spacing, and
 
 
-\subsection{Choice of spreading width $m$}
+
+
+
+
+
+
+
+\begin{rmk}[KB error bounds]
+  \label{fourmont}
+  In the \KB\ case, rigorous estimates of \eqref{gkx}
+  which take cancellation due to changing phases into account
+  are due to Fourmont, and are quite technical \cite[p.~30-38]{fourmontthesis}.
+  The results are summarized in \cite[Sec.~4]{fourmont}, and used in
+  \cite[p.~30-31]{pottshabil} to give the estimate in \cite[App.~C]{nfft}.
+  *** GIVE FORMULA TO COMPARE.
+\end{rmk}
+
+*** STATE ES AND KB SIMILAR BNDS.
+
+
+
+
+% wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+\subsection{Choice of spreading width $w$}
 \label{s:w}
 
 explain why base 10 (one digit per node width).
@@ -1103,7 +1338,7 @@ because \eqref{pk1} involves dividing by $\hat\psi$ to amplify
 high frequencies.
 The extra factor is $\rmax$, the ratio between the smallest and largest
 amplification factors. Using $n\approx \rat N$ and
-the later results \eqref{EShat} and $\beta \approx \pi w( 1- 1/2\rat)$,
+\eqref{EShat1} and $\beta \approx \pi w( 1- 1/2\rat)$,
 this is
 \be
 \rmax := \frac{\hat\psi(0)}{\hat\psi(N/2)}
@@ -1175,11 +1410,11 @@ in the limit $\freq\to\infty$ ?
 Which is closer, and what are rigorous bounds on how close?
 We can only give incomplete answers at this stage.
 One might hope that
-standard WKBJ approximation applied to the defining
+standard WKBJ approximation applied to the PSWF defining
 ODE $-((1-z^2)\psi')'+\freq^2z^2\psi = \chi_0\psi$
 would reveal a simple form similar to the ES or KB kernels,
 but this is not so.
-However, some other known asymptotics do:
+However, other known asymptotics offer clues:
 Slepian \cite[(1.4)]{slepian65}
 showed that $\psi_0(z) = C e^{\freq\sqrt{1-z^2}} (1-z^2)^{-1/4}
 (1+\sqrt{1-z^2})^{-1/2}(1 + \bigO(\freq^{-1}))$
@@ -1196,7 +1431,7 @@ the bump tends to a Gaussian
 $\psi_0(z) = C e^{-\beta z^2 /2} + \bigO(\freq^{-1})$,
 which has a width differing by only $4\%$ from that of the
 optimal truncated Gaussian shown in Fig.~\ref{f:kernel}.
-This comes from expansion in terms of Hermite functions
+This last form comes from expansion in terms of Hermite functions
 \cite[\S 3.25]{meixner} % confusing since call's them D
 %\cite{fuchs}
 \cite[Sec.~8.6]{osipov}.
@@ -1254,6 +1489,12 @@ from parallelization.
 
 \section{Performance tests}
 
+First demo the kernel eval speed.
+
+Focus on 3d - do rand cube, do sphere (high density around origin).
+
+
+
 relative error vs $\eps$
 
 time vs problem size.
@@ -1301,8 +1542,9 @@ wavefunction and the ES kernel \eqref{ES}.
 \section*{Acknowledgments}
 
 We are grateful for helpful discussions with Leslie Greengard,
-Charlie Epstein, Marina Spivak, Andraas Pataki, Arthur Migdal, and
-Daniel Potts.
+Charlie Epstein, Marina Spivak, Andras Pataki, Arthur Migdal,
+Mark Dunster,
+and Daniel Potts.
 
 
 % BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB

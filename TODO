@@ -2,6 +2,7 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
+* swap legendre GLR with hellskitchen BSD version.
 * remove the 1/M type-1 prefactor, also in test routines. Add extra fortran interface which preserves it.
 * decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
 * related to above, fix matlab, octave, and python interfaces for single-prec.
@@ -9,7 +10,6 @@ HIGHER PRIORITY:
 * add the other C interfaces to finufft_c, after understand if use of _Complex is good.
 * Decide if non vs omp get different lib names.
 * run nufft_comparison, use for paper. Compare vs NFFT (Chemnitz), gpuNUFFT (Knoll)
-* theory work on exp(sqrt) being close to PSWF
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()
 * Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) better install notes.

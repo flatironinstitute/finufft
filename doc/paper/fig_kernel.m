@@ -1,4 +1,5 @@
-% plots of ES kernel for paper. Barnett 4/11/17
+% plots of 3 kernels for paper, and FTs, using convention of paper.
+% Barnett 4/11/17
 % needs: vline, ft, gauss.
 
 clear

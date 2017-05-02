@@ -96,14 +96,18 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
   narrowness of kernel. Uses phase winding for cheap eval on the regular freq
-  grid.
+  grid. Note that this is also the Fourier transform of the non-periodized
+  kernel. The FT definition is f(k) = int e^{-ikx} f(x) dx. The output has an
+  overall prefactor of 1/h, which is needed anyway for the correction, and
+  arises because the quadrature weights are scaled for grid units not x units.
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
   opts - spreading opts object, needed to eval kernel (must be already set up)
 
   Outputs:
-  fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive
+  fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive,
+              divided by h = 2pi/n.
               (should be allocated for at least nf/2+1 FLTs)
 
   Compare onedim_dct_kernel which has same interface, but computes DFT of
@@ -140,12 +144,15 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-  narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi,pi].
+  narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi,pi],
+  for a kernel with x measured in grid-spacings. (See previous routine for
+  FT definition).
 
   Inputs:
   nk - number of freqs
   k - frequencies, dual to the kernel's natural argument, ie exp(i.k.z)
-       Note, k values must be in [-pi,pi] for accuracy.
+       Note, z is in grid-point units, and k values must be in [-pi,pi] for
+       accuracy.
   opts - spreading opts object, needed to eval kernel (must be already set up)
 
   Outputs:
