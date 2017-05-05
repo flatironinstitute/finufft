@@ -1049,24 +1049,28 @@ with $|k|$ for $|k|\le N/2$, and  ii) the worst-case sum (numerator in \eqref{ep
 then we get $ \eps \approx |\hat\psi(n-N/2) / \hat\psi(N/2) |$,
 whose logarithm is shown in the figure.
 
-Note that if the kernel $\psi$ is discontinuous, for instance due to
-truncation of $\phi$ to $[-1,1]$, this implies that the tail of $\hat\psi$
-is a sinc function, dying no faster than $1/k$.
-This renders simpler estimates which discard the phase, such as
-$$
-\eps \le
-\frac{\max_{|k|\le N/2} \sum_{m\neq 0} |\hat\psi(k+mn)|}{\min_{|k|\le N/2} |\hat\psi(k)|}~,
-$$
-unbounded and thus useless.
+\begin{rmk}
+  If the kernel $\psi$ is discontinuous, for instance at $\pm1$,
+  this implies that the tail of $\hat\psi$
+  is a sinc function dying no faster than $1/k$, which is conditionally
+  convergent.
+  Then estimates of \eqref{epsest}
+  which discard the phase and sum the absolute value of each term
+  are not finite. 
+%$$
+%\eps \le
+%\frac{\max_{|k|\le N/2} \sum_{m\neq 0} |\hat\psi(k+mn)|}{\min_{|k|\le N/2} |\hat\psi(k)|}~,
+%$$
 For such class of kernel (which includes KB and our ES),
 more subtle estimates which retain phase information in the
 conditionally-convergent sum \eqref{epsest} are needed
 (see remark~\ref{fourmont} below).
 For the truncated Gaussian kernel, error estimates handle
 the truncation in other ways \cite{nufft,elbel,nfftchap}.
+\end{rmk}
 
 
-
+% ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 \subsection{Asymptotic estimates on the Fourier transform of the ES kernel}
 
 Recall the relation \eqref{psi1} stating that $\psi(x)$ is a rescaled
@@ -1091,7 +1095,7 @@ with the same exponential rate $e^\beta$ as occurs for the \KB\ kernel.
 \pig{2.2in}{saddleb_lab}
 \pig{2.2in}{saddleft}
 \ca{
-  Real part of integrand $e^{\freq p(z)}$
+  Real part of the integrand $e^{\freq p(z)}$
   appearing in the ES kernel \FT\
   (see \eqref{ESFT}),
   plotted across the complex $z$ plane, for $\freq=30$.
@@ -1173,12 +1177,14 @@ p(z):=\sqrt{1-z^2} +i\rho z
 We will apply saddle point integration in the
 complex $z$ plane (see \cite[Thm.~7.1, p.~127]{olver};
 note that we choose the opposite sign convention for $p(z)$).
-Saddle points $z_0$ are found by setting $p'=0$.
-We must also show existence of a smooth contour connecting $-1$
+This states that
+$\int e^{\freq p(z)} dz = e^{\freq p(z_0)}\sqrt{\frac{2\pi}{-p''(z_0)\freq}}[1 + \bigO(\freq^{-1})]$,
+where the saddle point $z_0$ is found by setting $p'=0$.
+We must exhibit a smooth contour connecting $-1$
 to $+1$, avoiding branch cuts,
 passing through the saddle point(s), and along which $\re p(z)$
 has its global maximum at $z_0$.
-The standard branch cut $(-\infty,0)$ for the square-root gives
+Note that the standard branch cut $(-\infty,0)$ for the square-root gives
 cuts for $p(z)$ at $(-\infty,-1)$ and $(1,+\infty)$;
 these cuts are shown in Fig.~\ref{f:saddle}(a).
 
@@ -1186,8 +1192,7 @@ these cuts are shown in Fig.~\ref{f:saddle}(a).
 We take $0\le \rho<1$, since $\hat\phi$ has even symmetry.
 Since $\re i\rho z$ becomes more negative as $\im z$ grows,
 we choose the saddle $z_0 = i\rho/\sqrt{1-\rho^2}$ on the
-positive imaginary axis.
-See Fig.~\ref{f:saddle}(a).
+positive imaginary axis; see Fig.~\ref{f:saddle}(a).
 To show the existence of a valid contour we switch to standard elliptical
 coordinates
 \be
@@ -1197,12 +1202,14 @@ z = \cosh(u+iv)~,\qquad \re z = \cosh u \cos v~,\qquad \im z = \sinh u \sin v
 \ee
 where $\mu\ge 0$ and $0\le v < 2\pi$ covers the plane.
 Noting that $1-z^2 = -\sinh^2(u+iv)$, we get
-$$
+\be
 \re p(z) = \re p(u,v) = (\cosh u - \rho \sinh u) \sin v
 ~,
-$$
+\label{repz}
+\ee
 which shows, remarkably, that the magnitude of the exponential
-in \eqref{ESFT} is a product $A(u)B(v)$ in this coordinate system.
+in \eqref{ESFT} is %a product $A(u)B(v)$
+separable in this coordinate system.
 % phase is a different product, not needed.
 By solving $p'=0$ one finds that the saddle is at
 $(u,v) = (\tanh^{-1} \rho, \pi/2)$,
@@ -1238,7 +1245,58 @@ so that, taking the first term in the saddle point theorem
 gives \eqref{EShat1}.
 
 {\bf Case (b).}
-Now $\rho>1$. The 
+Now we consider $\rho>1$.
+Solving $p'=0$ gives two saddle points on the real axis,
+$z_0^{(\pm)} = \pm \rho/\sqrt{\rho^2-1}$, where $p(z_0^{(\pm)}) = 0$.
+Since these lie on the standard branch cuts of the square-root,
+to make use of saddle point integration connecting
+$z=-1$ to $1$ in the upper half plane,
+one must move the branch cuts downwards to expose more of the Riemann
+sheet on which the contour lives.
+In order to avoid regions of large integrand, the contour must
+first head into the lower half-plane, pass up through $z_0^{(-)}$,
+into the upper half plane, down through $z_0^{(+)}$,
+and finish again from the lower half-plane; see Fig.~\ref{f:saddle}(b).
+Since $p$ is the same at both saddles, they both contribute asymptotically.
+
+To show the existence of a valid contour we examine \eqref{repz}.
+The elliptical coordinates of the saddle points are $(\coth^{-1}\rho,0)$
+and $(\coth^{-1}\rho,\pi)$.
+The factor $\cosh u - \rho \sinh u$ vanishes on the ellipse
+$u=\coth^{-1}\rho$ passing though the saddles, and,
+since it is monotonically decreasing,
+is positive for all smaller $u$ and negative for all larger $u$.
+Thus $\re p<0$ everywhere in the upper half plane outside the ellipse
+($u>\coth^{-1}\rho$, $0<v<\pi$), and in the lower half plane
+inside the ellipse with the slit $[-1,1]$ omitted
+($0<u<\coth^{-1}\rho$, $\pi<v<2\pi$).
+Thus a smooth contour exists passing through these regions via the two saddles.
+
+One must apply the saddle point theorem to the left and right half of the
+contour separately, and sum the contributions.
+
+
+
+
+cannot be used directly since
+the start and end values $\re p(\pm1)=0$ are just as large
+as at the saddle points.
+However, it is easy to show that contribution of each endpoint can be 
+
+
+Thus we will split the contour at its half-way point.
+
+
+
+
+condition of the saddle point theorem
+is that $p$ is uniformly 
+
+assumption
+
+must also exclude
+the part of the contour near $z=\pm1$, since
+***
 
 
 
@@ -1275,8 +1333,9 @@ term in \eqref{EShat2} is unknown, and is in fact not uniformly bounded
 in $\rho$.
 Since the kernel has discontinuities at $z=\pm 1$ of strength $e^{-\freq}$,
 the correct asymptotic is (at fixed $\freq$),
-$\phi\hat(\xi) \sim e^{-\freq} \frac{\sin \xi}{\xi} = \bigO(\xi^{-1})$.
-
+$\phi\hat(\xi) \sim 2 e^{-\freq} \frac{\sin \xi}{\xi} = \bigO(\xi^{-1})$.
+Thus relative errors in \eqref{EShat2} diverge beyond the transition
+region of $\rho \approx \freq$.
 \label{r:decay}
 \end{rmk}
 

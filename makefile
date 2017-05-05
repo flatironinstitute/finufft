@@ -82,7 +82,7 @@ FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o
 
 HEADERS = src/cnufftspread.h src/finufft.h src/dirft.h src/common.h src/utils.h src/finufft_c.h fortran/finufft_f.h
 
-.PHONY: usage lib examples test perftest fortran matlab octave python all
+.PHONY: usage lib examples test perftest fortran matlab octave python all mex
 
 default: usage
 
@@ -171,18 +171,18 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 	time -p $(F3)
 
 # matlab .mex* executable...
-matlab: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o matlab/finufft.cpp
+matlab: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o
 	$(MEX) matlab/finufft.cpp lib/libfinufft.a matlab/finufft_m.o $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
 # octave .mex executable...
-octave: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o matlab/finufft.cpp
+octave: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o
 	mkoctfile --mex matlab/finufft.cpp lib/libfinufft.a matlab/finufft_m.o $(OFLAGS) $(LIBSFFT) -output matlab/finufft
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave check_finufft.m)
 
-# rebuilds fresh MEX (matlab/octave) gateway via mwrap... (needs mwrap)
-mex: matlab/finufft.cpp
-matlab/finufft.cpp: matlab/finufft.mw
+# for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
+# (needs mwrap)
+mex: matlab/finufft.mw
 	(cd matlab;\
 	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
