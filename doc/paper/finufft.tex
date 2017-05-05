@@ -1272,48 +1272,51 @@ inside the ellipse with the slit $[-1,1]$ omitted
 ($0<u<\coth^{-1}\rho$, $\pi<v<2\pi$).
 Thus a smooth contour exists passing through these regions via the two saddles.
 
-One must apply the saddle point theorem to the left and right half of the
-contour separately, and sum the contributions.
-
-
-
-
-cannot be used directly since
+To apply the saddle point theorem one must isolate each saddle,
+splitting the contour into left and right halves, and summing the two.
+However on each half the theorem still cannot be used directly since
 the start and end values $\re p(\pm1)=0$ are just as large
-as at the saddle points.
-However, it is easy to show that contribution of each endpoint can be 
+as at the saddles.
+Thus we remove a fixed piece of the contour around $\pm1$,
+allowing the theorem to be applied.
+Using $p(z_0^{(\pm)}) = \pm i \sqrt{\rho^2-1}$
+and $|p''(z_0^{(\pm)})| = (\rho^2-1)^{3/2}$ at the two saddles,
+the steepest descent directions $e^{\mp i 3\pi/4}$,
+and summing the two contributions gives \eqref{EShat2}.
 
-
-Thus we will split the contour at its half-way point.
-
-
-
-
-condition of the saddle point theorem
-is that $p$ is uniformly 
-
-assumption
-
-must also exclude
-the part of the contour near $z=\pm1$, since
-***
-
-
-
-
+Finally, we show that the contributions due to the fixed excluded
+pieces of the contour touching $\pm1$ are of lower order.
+Consider a contour in the lower half-plane
+from $1$ to $1+b$, where $b\in\mathbb{C}$, $\im b<0$,
+and $1+b$ is strictly inside the ellipse described above.
+We have already explained that $p<0$ on this contour, apart from at $p(1)=0$.
+Writing $z=1+t$, and using $p(1+t) = i\rho + \sqrt{-2t^2-t^2} + i\rho t$,
+The contour integral is
+$$ \int_0^b e^{\freq p(1+t)} dt = e^{i\rho}\int_0^b e^{\freq P(t)} dt
+~,\qquad P(t) \sim -i\sqrt{2t}.
+$$
+All the conditions for
+Laplace's method for contour integrals \cite[Thm.~6.1, p.125]{olver}
+with power $\mu=1/2$ are satisfied, so
+the contribution is $\sim -e^{i\rho}/\freq^2 = \bigO(\freq^{-2})$,
+which is $\freq^{3/2}$ times smaller than the contribution from the saddles.
+The same argument applies near $-1$.
+Thus the end contributions can be ignored in \eqref{EShat2}.
 \end{proof}
 
 \begin{rmk}
   The theorem might be summarized informally as:
-  {\em the \FT\ of the exponential
-    of a semicircle tends to the exponential of a semicircle}.
-  This is not suprising
-  if one believes that the ES kernel \eqref{ES} is close
-  to the lowest prolate spheroidal wavefunction of degree zero (PSWF),
-  since the latter is (up to scaling)
-  equal to its own \FT\ when restricted to $[-1,1]$ \cite{osipov}.
-  More surprising is that this PSWF is close to the exponential
-  of a semicircle; see Sec.~\ref{s:optim}.
+  ``the \FT\ of the exponential
+  of a semicircle is asymptotically the exponential of a semicircle.''
+  This becomes less mysterious when
+    in Sec.~\ref{s:optim} we discuss that
+    the ES kernel \eqref{ES} is close
+    to the lowest prolate spheroidal wavefunction of degree zero (PSWF),
+    and the latter is (up to scaling)
+    equal to its own \FT\ restricted to $[-1,1]$ \cite{osipov}.
+    Perhaps more
+    surprising is the converse, that the PSWF is close to the exponential
+    of a semicircle. %see Sec.~\ref{s:optim}.
 %  Of course the set of functions that are, up to scaling,
 %  precisely their own Fourier transforms is huge (since this transform
 %  has only four eigenvalues $\pm\sqrt{2\pi}$ and $\pm i \sqrt{2\pi}$).
@@ -1322,6 +1325,48 @@ the part of the contour near $z=\pm1$, since
 %  which might be expressed as ``the \FT\ of the exponential
 %  of a parabola is the exponential of a parabola.''
 \end{rmk}  
+
+The \FT\ decay suggested by \eqref{EShat2} is $\bigO(\rho^{-3/2})$,
+ie $\bigO(\xi^{-3/2})$. % or when rescaled, $k^{-3/2}$.
+However, we know that this cannot be true,
+because the kernel has discontinuities at $z=\pm 1$ of strength $e^{-\freq}$,
+and is otherwise smooth, so
+the correct asymptotic should be (at fixed $\freq$),
+$\phi\hat(\xi) \sim 2 e^{-\freq} \frac{\sin \xi}{\xi} = \bigO(\xi^{-1})$.
+What went wrong with \eqref{EShat2}?
+The problem is that the result cannot be applied at fixed $\freq$
+and the limit $\rho\to\infty$: the implied constant in the error
+term is unknown, and in fact cannot be uniformly bounded in $\rho$.
+These growing errors are due to the saddles $z_0^{(\pm)}$ approaching
+the endpoints $\pm 1$ where the square-root singularities are.
+
+This motivates the following rigorous statement which applies uniformly
+as $\rho\to\infty$ but has the $\beta$-dependence of the error
+explicit.
+
+\begin{thm} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+  Fix the shape parameter $\freq>0$. Then,
+  \be
+  \hat\phi{\rho\beta} = 2e^{-\beta}\frac{\sin \xi}{\xi}
+  \left[ 1 + \bigO\left(\sqrt{\frac{\freq}{\rho}}\right) \right]
+  \label{EShat3}
+  \ee
+  
+  
+\label{t:EShattail}
+\end{thm}
+
+
+
+
+
+
+
+\subsection{NUFFT error bounds for the ES kernel}
+
+The goal is now 
+
+
 
 \begin{rmk}
 Since the algebraic decay in \eqref{EShat2} appears to be
