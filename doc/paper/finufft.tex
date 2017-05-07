@@ -1347,8 +1347,9 @@ explicit.
 \begin{thm} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
   Fix the shape parameter $\freq>0$. Then,
   \be
-  \hat\phi{\rho\beta} = 2e^{-\beta}\frac{\sin \xi}{\xi}
-  \left[ 1 + \bigO\left(\sqrt{\frac{\freq}{\rho}}\right) \right]
+  \hat\phi(\rho\beta) = 2e^{-\beta}\frac{\sin \xi}{\xi}
+  \left[ 1 + \sqrt{\freq}\bigO(\rho^{-1/2}) \right]
+  ~,\qquad \rho\to\infty
   \label{EShat3}
   \ee
   
