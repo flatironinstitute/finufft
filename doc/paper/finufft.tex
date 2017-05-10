@@ -65,7 +65,8 @@
 
 
 \begin{document}
-\title{FINUFFT: A lightweight non-uniform fast Fourier transform library}
+\title{FINUFFT: A fast and lightweight %multi-threaded
+  non-uniform fast Fourier transform library}
 \author{Alex Barnett$^{\dag,\ast}$ and Jeremy Magland$^\ast$\\
   $\dag$ Department of Mathematics, Dartmouth College,
     Hanover, NH, 03755 \\
@@ -76,8 +77,10 @@
 \maketitle
 \begin{abstract}
   Computation of Fourier transforms from data lying at arbitrary
-  off-grid locations has many applications ranging from medical
-  imaging to astronomy to fast algorithms for PDEs.  We present a
+  off-grid locations has a host of applications in signal processing,
+  data analysis, and 
+%  ranging from medical imaging to astronomy to
+  scientific computing.  We present a
   software library for computing the non-uniform fast Fourier transform
   (NUFFT),
   of types 1 (\NU\ to \U), 2 (\U\ to \NU), and
@@ -88,9 +91,11 @@
   transform, multi-threading for efficient use of shared-memory
   machines, simple calling interfaces matching those of the CMCL
   NUFFT library, and bindings to MATLAB/octave and python.
-  We analyse the new kernel.
-  We
-  compare performance of the library to existing CPU-based libraries; typically
+  We analyse the Fourier localization and resulting error bound for the
+  new kernel
+  We compare performance of the library to the most commonly-used
+  existing CPU-based NUFFT libraries, demonstrating that our library is
+  typically faster.
   we match the runtime of the NFFT library of Potts et al.\ but
   without the need for a precomputation phase.
 \end{abstract}
@@ -102,10 +107,11 @@
 
 The computational task addressed
 is to evaluate the following exponential sums to a requested precision,
-in optimal time.
+as fast as possible.
+%in optimal time.
 The type-1 NUFFT (also known as the adjoint NFFT \cite{nfftchap,usingnfft})
 in dimension $d$ %=1,2$ or 3
-evaluates the Fourier series expansion for a set of
+evaluates the Fourier series coefficients for a set of
 $M$ point sources at arbitrary locations $\xx_j$, which by periodicity
 may be taken to lie in $[-\pi,\pi)^d$, and with
 strengths $c_j\in\mathbb{C}$,  $j=1,\dots,M$.
@@ -127,22 +133,23 @@ In the 1D case $\KK$ is an interval containing $N_1$ integer indices, in 2D it i
 %}
 We use $N=N_1\dots N_d$ to denote the total number of output values.
 We do not address $d>3$ here.
-Following the normalization in \cite{dutt,nufft}, then the type-1 NUFFT
-evaluates
+Then the type-1 NUFFT evaluates
 \be
 f_\kk := %\frac{1}{M}   % remove this scaling in code.
 \sum_{j=1}^M c_j e^{i \kk\cdot \xx_j}
 \qquad \mbox{for } \kk \in \KK_{N_1,\dots,N_d}
 \qquad \mbox{(Type-1, or \NU\ to \U\ transform)}
-~.
+~;
 \label{1}
 \ee
+note that our normalization differs from that of \cite{dutt,nufft}.
 The naive evaluation of $f$ at all indices $\kk$ requires $\bigO(NM)$
 exponential evaluations, which is prohibitive
 in many applications.
 However, there is a well-known three-step procedure
 which computes an approximation with precision $\eps$ with only
-$\bigO(M |\log\eps|^d + N \log N)$ work.
+$\bigO(M |\log\eps|^d + N \log N)$ work, ie, a constant
+times slower than ``FFT speed.''
 Step 1 is to use a smooth kernel of width $w=\bigO(|\log\eps|)$
 grid points to resample from $\xx_j$ onto a regular
 grid (discrete convolution), step 2 is to
@@ -157,8 +164,9 @@ $\rat$ larger than the desired number of output modes in each dimension.
 To minimize errors due to spreading, the kernel should be
 well localized in the Fourier domain; since it also must have narrow compact
 support, this makes choice of the kernel function critical.
-Our library will use this procedure, and the analogous known versions
+Our library follows this procedure, and the analogous procedures
 for the other two types of transforms.
+%which we now describe.
 
 The type-2 transform (or NFFT)
 is, up to a normalization factor, the adjoint of the
@@ -197,10 +205,11 @@ However, this is not to be confused with the ``inverse NUFFT'' which involves,
 for instance, treating \eqref{2} as a large linear system to be solved for
 $\{f_\kk\}$ given a right-hand side
 $\{c_j\}$ (this is called ``Problem 5'' in \cite{nufft}).
-The inverse NUFFT common in Fourier imaging
-applications; a popular solution method is to solve
-the preconditioned normal equations with
-NUFFTs implementing the matrix-vector multiplies
+The inverse NUFFT is common in Fourier imaging
+applications; a popular solution method is to use
+conjugate gradients to solve
+the preconditioned normal equations, exploting
+repeated NUFFTs to implement the needed matrix-vector multiplies
 \cite{fessler,fourmont,fastsinc,gelbrecon}.
 
 
@@ -366,26 +375,24 @@ e^{\freq (\sqrt{1-z^2}-1)}, & |z|\le 1\\
 \ee
 %where $\freq>0$ is a width parameter that must be set
 %in accordance with the kernel width measured in uniform grid point units.
-which we call the ``exponential square-root'' (ES) kernel.
+which we call the ES kernel (for %``exponential square-root''
+``exponential semicircle'').
 In higher dimensions we use products of this 1D kernel.
 
 Fig.~\ref{f:kernel} suggests that as $\freq\to\infty$ the ES kernel
 becomes very similar to \KB.
-Indeed, note the asymptotic form
-$I_0(x) \sim \frac{e^x}{\sqrt{2\pi x}}$ \cite[(10.30.4)]{dlmf}.
-Dropping the denominator, i.e.\ replacing $I_0(x)$ by $e^x$ in \eqref{KB},
-and normalizing so that $\phi(0)=1$, gives \eqref{ES}.
+Indeed, noting
+$I_0(x) \sim \frac{e^x}{\sqrt{2\pi x}}$ for $x\to\infty$ \cite[(10.30.4)]{dlmf},
+and dropping its denominator, i.e.\ replacing $I_0(x)$ by $e^x$ in \eqref{KB},
+then normalizing so that $\phi(0)=1$, gives \eqref{ES}.
 No analytic Fourier transform of \eqref{ES} is known,
-but in thm ** below we prove asymptotic
-bounds that are very simliar to those known
-from \eqref{KBhat}.
-GIVE EXP RATE?
-Although we cannot prove a rigorous estimate on the sum of the tail,
-we do bound the tail uniformly.
-This provides confidence in the numerical use of the kernel.
-Remarkably, the Bessel function $I_0(x)$ in \eqref{KB}
-appears not to be crucial for excellent Fourier localization.
-
+but in Theorem~\ref{t:EShat} and Lemma~\ref{l:EShattail}
+we give asymptotic bounds that are very simliar to those known
+from \eqref{KBhat}, and use this to give a similar 
+rigorous error estimate Theorem~\ref{t:ESerr}
+on its use in the type-1 and 2 NUFFT.
+Thus, remarkably, the Bessel function $I_0(x)$ in \eqref{KB}
+appears to be for excellent Fourier localization.
 
 The features of our software implementation include:
 \bi
@@ -404,14 +411,13 @@ The features of our software implementation include:
 %Unlike the authors of some other libraries,
 We take the philosophy that the user calls the library to approximate the
 exponential sums \eqref{1}--\eqref{3} to the requested precision.
-Thus, the user does not have direct control over the type and width of
-the spreading kernel; indeed, it would be confusing to have such control.
+Thus, the user does not have direct control over the width nor type of
+spreading kernel; indeed, it would be confusing to have such control.
 Rather, once the requested precision is given, such decisions
 are made ``under the hood'' by the library.
 
 We do performance tests blah.
 Summary of rest of paper.
-
 In section \ref{s:err} we review the error analysis of the type-1 and type-2
 NUFFT and show ***
 Sec.~\ref{s:optim} sheds light on the somewhat mysterious
@@ -454,7 +460,7 @@ ETC
 Our implementations mostly follow known procedures
 for evaluating the type-1, 2 and 3 NUFFTs.
 However, since we introduce novelties such as the
-use of a kernel without analtyically known Fourier transform,
+use of a kernel without analytically known Fourier transform,
 here we give a complete description.
 
 We use the Fourier transform convention
@@ -517,7 +523,7 @@ The DFT size will be $n \approx \rat N$,
 but, for convenience in the spreading code, we insure that $n$
 is not less than $2w$,
 and for efficiency of the FFT we also increase $n$ until it reaches the next
-integer of the form $2^q3^p5^r$.
+integer of the form $2^q3^p5^r$ (in number-theory parlance, 5-smooth number).
 
 {\bf Step 1 (spreading).}
 The kernel $\phi$ \eqref{ES} has support $[-1,1]$, but we wish to
@@ -727,8 +733,8 @@ the general kernel version of the truncated Gaussian algorithms in
 \cite[Alg.~3]{nufft} \cite[Alg.~2]{elbel} \cite{nufft3}
 \cite[Sec.~1.3]{nfftchap}.
 Loosely speaking, the algorithm is a
-type-1 ``wrapped around'' a type-2, %specifically
-where the type-2 replaces the middle FFT step from the type-1.
+type-1 ``wrapped around'' a type-2, where specifically
+the type-2 replaces the middle FFT step of the type-1.
 
 Given $\eps$, we choose $w$ and $\freq$ as in the type-1.
 However, the upsampled array size $n_i$ in each dimension
@@ -935,6 +941,7 @@ smallest coordinate in space, and in frequency, for each dimension.
 
 
 \section{Error analysis}
+\label{s:err}
 
 For convenience we first derive a known formula
 for the aliasing error in the 1D type 1 and 2 NUFFT
@@ -949,7 +956,7 @@ and connections between, the KB and ES kernels, and prolate spheroidal
 wavefunctions.
 
 \subsection{Error in the type-1 and type-2 transforms with general kernel}
-\label{s:err}
+\label{s:errgen}
 
 We first need the
 Poisson summation formula
@@ -1052,26 +1059,27 @@ whose logarithm is shown in the figure.
 \begin{rmk}
   If the kernel $\psi$ is discontinuous, for instance at $\pm1$,
   this implies that the tail of $\hat\psi$
-  is a sinc function dying no faster than $1/k$, which is conditionally
-  convergent.
-  Then estimates of \eqref{epsest}
+  is a sinc function dying no faster than $1/k$, which makes \eqref{epsest}
+  a conditionally convergent sum.
+  Clearly, then, estimates of \eqref{epsest}
   which discard the phase and sum the absolute value of each term
-  are not finite. 
+  are infinite.
 %$$
 %\eps \le
 %\frac{\max_{|k|\le N/2} \sum_{m\neq 0} |\hat\psi(k+mn)|}{\min_{|k|\le N/2} |\hat\psi(k)|}~,
 %$$
-For such class of kernel (which includes KB and our ES),
+For such a class of kernel (which includes KB and our ES),
 more subtle estimates which retain phase information in the
 conditionally-convergent sum \eqref{epsest} are needed
 (see remark~\ref{fourmont} below).
-For the truncated Gaussian kernel, error estimates handle
-the truncation in other ways \cite{nufft,elbel,nfftchap}.
+For the truncated Gaussian kernel, researchers have handled
+the rigorous estimate in other ways \cite{nufft,elbel,nfftchap}.
 \end{rmk}
 
 
 % ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 \subsection{Asymptotic estimates on the Fourier transform of the ES kernel}
+\label{s:asymp}
 
 Recall the relation \eqref{psi1} stating that $\psi(x)$ is a rescaled
 version of $\phi(z)$, the kernel defined on $[-1,1]$.
@@ -1086,9 +1094,9 @@ We will fix $\rho$, and let the frequency $\xi=\rho\freq$ grow in proportion
 to $\freq$. The cutoff frequency (see vertical line
 in Fig.~\ref{f:kernel}(c)) is then at $\rho=1$.
 The following shows that, up to weak algebraic prefactors,
-(a) below the cutoff $\hat\phi$ has the same form of as $\phi$,
+(a) below the cutoff $\hat\phi$ has a simliar form to $\phi$ itself,
 and that (b) above the cutoff $\hat\phi$ is uniformly exponentially small,
-with the same exponential rate $e^\beta$ as occurs for the \KB\ kernel.
+with the same exponential rate $e^{-\freq}$ as occurs for the \KB\ kernel.
 
 \bfi[t] % fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
 \pig{2.2in}{saddlea_lab}
@@ -1149,17 +1157,15 @@ e^{-\freq}
 \end{thm} % -----------------------------------------------------------------
 
 \begin{rmk}
-  Fig.~\ref{f:saddle}(c) shows the high accuracy of this
-  asymptotic approximation, for all $\rho$ around unit size,
-  apart from those very close to
-  $\rho=1$, even at $\freq=30$, which is not huge.
-  Around two digits of relative
+  Fig.~\ref{f:saddle}(c) illustrates the high accuracy of this
+  asymptotic approximation even at the modest value $\freq=30$.
+  Around two digits of {\em relative}
   accuracy are achieved everywhere except $\rho\approx 1$, where $\hat\phi$
   is already exponentially small.
-  The match includes the details of the exponentially small tail oscillations
-  in $\rho>1$.
-  (However, see Remark~\ref{r:decay} which discusses that for $\rho \ge \freq$,
-  relative error grows.)
+  The match includes details of each exponentially small tail oscillation
+  for $\rho>1$.
+  (However, see Remark~\ref{r:decay} which discusses that for high frequencies
+  $\rho \ge \freq$, not shown, relative error diverges.)
   \label{r:match}
 \end{rmk}
 
@@ -1180,7 +1186,7 @@ note that we choose the opposite sign convention for $p(z)$).
 This states that
 $\int e^{\freq p(z)} dz = e^{\freq p(z_0)}\sqrt{\frac{2\pi}{-p''(z_0)\freq}}[1 + \bigO(\freq^{-1})]$,
 where the saddle point $z_0$ is found by setting $p'=0$.
-We must exhibit a smooth contour connecting $-1$
+We must exhibit a smooth contour through an analytic region connecting $-1$
 to $+1$, avoiding branch cuts,
 passing through the saddle point(s), and along which $\re p(z)$
 has its global maximum at $z_0$.
@@ -1219,10 +1225,10 @@ For the second (right) half of the contour,
 we need to show that there is some smooth open path in $(u,v)$ between
 $(\tanh^{-1} \rho, \pi/2)$ and $(0,0)$ along which $\re p$ is
 everywhere less than $\re p(z_0)$.
-At the endpoint $p = 0$, which is indeed less than $\re p(z_0)$,
-but it is possible that a barrier region of large $\re p$
-prevents such a path existing.
-However, no such barrier exists, as we now show.
+At the endpoint, $p = 0$, which is indeed less than $\re p(z_0)$,
+yet it is possible that a barrier region of large $\re p$
+prevents such a path from existing.
+It turns out that no such barrier exists, as we now show.
 The level curve $\re p(u,v) =\re p(z_0)$ has positive slope
 in the $(u,v)$ plane (see Fig.~\ref{f:saddle}(a) inset).
 This is clear since the level curve intersects each line $u=$ constant
@@ -1240,7 +1246,7 @@ may be chosen as a reflection of the second about the imaginary $z$ axis.
 Thus a valid saddle contour exists.
 
 At the saddle point, $p''(z_0) = -(1-\rho^2)^{3/2}$,
-so that, taking the first term in the saddle point theorem
+so that, taking the first term in the theorem
 \cite[Thm.~7.1, p.~127]{olver}
 gives \eqref{EShat1}.
 
@@ -1251,8 +1257,8 @@ $z_0^{(\pm)} = \pm \rho/\sqrt{\rho^2-1}$, where $p(z_0^{(\pm)}) = 0$.
 Since these lie on the standard branch cuts of the square-root,
 to make use of saddle point integration connecting
 $z=-1$ to $1$ in the upper half plane,
-one must move the branch cuts downwards to expose more of the Riemann
-sheet on which the contour lives.
+one must {\em move the branch cuts downwards to expose more of the Riemann
+sheet on which the contour lives}.
 In order to avoid regions of large integrand, the contour must
 first head into the lower half-plane, pass up through $z_0^{(-)}$,
 into the upper half plane, down through $z_0^{(+)}$,
@@ -1273,16 +1279,16 @@ inside the ellipse with the slit $[-1,1]$ omitted
 Thus a smooth contour exists passing through these regions via the two saddles.
 
 To apply the saddle point theorem one must isolate each saddle,
-splitting the contour into left and right halves, and summing the two.
-However on each half the theorem still cannot be used directly since
+splitting the contour into left and right halves, and sum the two.
+However, on each half the theorem still cannot be used directly since
 the start and end values $\re p(\pm1)=0$ are just as large
 as at the saddles.
-Thus we remove a fixed piece of the contour around $\pm1$,
+Thus we remove fixed pieces of the contour around $\pm1$,
 allowing the theorem to be applied.
-Using $p(z_0^{(\pm)}) = \pm i \sqrt{\rho^2-1}$
-and $|p''(z_0^{(\pm)})| = (\rho^2-1)^{3/2}$ at the two saddles,
+Using $p(z_0^{(\pm)}) = \pm i \sqrt{\rho^2-1}$ at the two saddles,
+$|p''(z_0^{(\pm)})| = (\rho^2-1)^{3/2}$,
 the steepest descent directions $e^{\mp i 3\pi/4}$,
-and summing the two contributions gives \eqref{EShat2}.
+and summing the two contributions, gives \eqref{EShat2}.
 
 Finally, we show that the contributions due to the fixed excluded
 pieces of the contour touching $\pm1$ are of lower order.
@@ -1293,29 +1299,29 @@ We have already explained that $p<0$ on this contour, apart from at $p(1)=0$.
 Writing $z=1+t$, and using $p(1+t) = i\rho + \sqrt{-2t^2-t^2} + i\rho t$,
 The contour integral is
 $$ \int_0^b e^{\freq p(1+t)} dt = e^{i\rho}\int_0^b e^{\freq P(t)} dt
-~,\qquad P(t) \sim -i\sqrt{2t}.
+~,\qquad \mbox{ where} \; P(t) \sim -i\sqrt{2t} \; \mbox{ for } t\to 0~.
 $$
 All the conditions for
 Laplace's method for contour integrals \cite[Thm.~6.1, p.125]{olver}
-with power $\mu=1/2$ are satisfied, so
-the contribution is $\sim -e^{i\rho}/\freq^2 = \bigO(\freq^{-2})$,
+are satisfied, with power $\mu=1/2$,
+so its contribution is $\sim -e^{i\rho}/\freq^2 = \bigO(\freq^{-2})$,
 which is $\freq^{3/2}$ times smaller than the contribution from the saddles.
 The same argument applies near $-1$.
-Thus the end contributions can be ignored in \eqref{EShat2}.
+Thus these end contributions can be ignored in \eqref{EShat2}.
 \end{proof}
 
 \begin{rmk}
   The theorem might be summarized informally as:
   ``the \FT\ of the exponential
-  of a semicircle is asymptotically the exponential of a semicircle.''
-  This becomes less mysterious when
+  of a semicircle is nearly the exponential of a semicircle.''
+  This may become less mysterious when
     in Sec.~\ref{s:optim} we discuss that
     the ES kernel \eqref{ES} is close
     to the lowest prolate spheroidal wavefunction of degree zero (PSWF),
-    and the latter is (up to scaling)
+    which is (up to scaling)
     equal to its own \FT\ restricted to $[-1,1]$ \cite{osipov}.
     Perhaps more
-    surprising is the converse, that the PSWF is close to the exponential
+    surprising, then, is the converse, that the PSWF is close to the exponential
     of a semicircle. %see Sec.~\ref{s:optim}.
 %  Of course the set of functions that are, up to scaling,
 %  precisely their own Fourier transforms is huge (since this transform
@@ -1344,7 +1350,7 @@ This motivates the following rigorous statement which applies uniformly
 as $\rho\to\infty$ but has the $\beta$-dependence of the error
 explicit.
 
-\begin{thm} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+\begin{lem} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
   Fix the shape parameter $\freq>0$. Then,
   \be
   \hat\phi(\rho\beta) = 2e^{-\beta}\frac{\sin \xi}{\xi}
@@ -1354,8 +1360,8 @@ explicit.
   \ee
   
   
-\label{t:EShattail}
-\end{thm}
+\label{l:EShattail}
+\end{lem}
 
 
 
@@ -1368,6 +1374,10 @@ explicit.
 The goal is now 
 
 
+\begin{thm}
+err for ES kernel
+  \label{t:ESerr}
+\end{thm}
 
 \begin{rmk}
 Since the algebraic decay in \eqref{EShat2} appears to be
