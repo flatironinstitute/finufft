@@ -386,7 +386,7 @@ $I_0(x) \sim \frac{e^x}{\sqrt{2\pi x}}$ for $x\to\infty$ \cite[(10.30.4)]{dlmf},
 and dropping its denominator, i.e.\ replacing $I_0(x)$ by $e^x$ in \eqref{KB},
 then normalizing so that $\phi(0)=1$, gives \eqref{ES}.
 No analytic Fourier transform of \eqref{ES} is known,
-but in Theorem~\ref{t:EShat} and Lemma~\ref{l:EShattail}
+but in Theorem~\ref{t:EShat} and Lemma~\ref{l:EShat3}
 we give asymptotic bounds that are very simliar to those known
 from \eqref{KBhat}, and use this to give a similar 
 rigorous error estimate Theorem~\ref{t:ESerr}
@@ -960,7 +960,7 @@ wavefunctions.
 
 We first need the
 Poisson summation formula
-\cite{apostol} generalized to include a phase $e^{i\theta}$:
+\cite[\S 11.22]{apostol} generalized to include a phase $e^{i\theta}$:
 for any continuous function
 $\psi \in L_1(\RR)$ with Fourier transform $\hat\psi$,
 and any lattice spacing $h>0$,
@@ -1037,7 +1037,7 @@ of \eqref{gkx} to get the estimate
 \eps := \max_{|k|\le N/2}
 \|g_k\|_\infty \le
 \frac{
-  \max_{|k|\le N/2} \left|
+  \max_{|k|\le N/2, \,x\in\RR} \left|
     \sum_{m\neq 0} \hat\psi(k+mn) e^{i(k+mn)x}
   \right|
 }{\min_{|k|\le N/2} |\hat\psi(k)|}
@@ -1106,9 +1106,9 @@ with the same exponential rate $e^{-\freq}$ as occurs for the \KB\ kernel.
   Real part of the integrand $e^{\freq p(z)}$
   appearing in the ES kernel \FT\
   (see \eqref{ESFT}),
-  plotted across the complex $z$ plane, for $\freq=30$.
+  plotted in the complex $z$ plane, for $\freq=30$.
   (a) $\rho=0.8$, below cutoff frequency.
-  Also shown are saddle point $z_0$ ($\ast$), example contour (line with arrow),
+  Also shown are saddle point $z_0$ ($\ast$), example contour (curve with arrow),
   boundaries where $\re p(z) = \re p(z_0)$ (dotted lines),
   and standard branch cuts (wiggly lines).
   Inset shows elliptic coordinate plane $(u,v)$ for the right half of the
@@ -1121,7 +1121,8 @@ with the same exponential rate $e^{-\freq}$ as occurs for the \KB\ kernel.
   from Thm.~\ref{t:EShat}
   to the true $\hat\phi$ (evaluated accurately by quadrature).
   The weak algebraic divergence at $\rho=1$ has been highlighted by plotting
-  a vertical asymptote.
+  an %vertical
+  asymptote.
 }{f:saddle}
 \efi
 
@@ -1302,7 +1303,7 @@ $$ \int_0^b e^{\freq p(1+t)} dt = e^{i\rho}\int_0^b e^{\freq P(t)} dt
 ~,\qquad \mbox{ where} \; P(t) \sim -i\sqrt{2t} \; \mbox{ for } t\to 0~.
 $$
 All the conditions for
-Laplace's method for contour integrals \cite[Thm.~6.1, p.125]{olver}
+Laplace's method for contour integrals \cite[Thm.~6.1, p.~125]{olver}
 are satisfied, with power $\mu=1/2$,
 so its contribution is $\sim -e^{i\rho}/\freq^2 = \bigO(\freq^{-2})$,
 which is $\freq^{3/2}$ times smaller than the contribution from the saddles.
@@ -1346,38 +1347,186 @@ term is unknown, and in fact cannot be uniformly bounded in $\rho$.
 These growing errors are due to the saddles $z_0^{(\pm)}$ approaching
 the endpoints $\pm 1$ where the square-root singularities are.
 
-This motivates the following rigorous statement which applies uniformly
-as $\rho\to\infty$ but has the $\beta$-dependence of the error
+This motivates the following statement which applies uniformly
+as $\rho\to\infty$, with the $\beta$-dependence of the error term
 explicit.
 
 \begin{lem} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-  Fix the shape parameter $\freq>0$. Then,
+  Fix the shape parameter $\freq>0$. Then the \FT\ of the ES kernel
+  has the high-frequency asymptotic form
   \be
-  \hat\phi(\rho\beta) = 2e^{-\beta}\frac{\sin \xi}{\xi}
-  \left[ 1 + \sqrt{\freq}\bigO(\rho^{-1/2}) \right]
-  ~,\qquad \rho\to\infty
+  \hat\phi(\xi) \;=\; e^{-\beta}\left[ 2\frac{\sin \xi}{\xi}
+  + \freq \bigO(|\xi|^{-3/2}) \right]
+  ~,\qquad |\xi|\to\infty~.
   \label{EShat3}
   \ee
-  
-  
-\label{l:EShattail}
+\label{l:EShat3}
 \end{lem}
+\begin{proof}
+  Since $\hat\phi$ is symmetric, we take $\xi>0$.
+  Consider the integral
+  $$
+  I := \int_{-1}^1 e^{\freq \sqrt{1-z^2} + i\xi z} dz~,
+  $$
+  which is the \FT\ \eqref{ESFT} without the leading $e^{-\freq}$
+  prefactor.
+  As before, we apply contour integration,
+  but, rather than using saddle points, we use Laplace's method.
+  The contour comprises three straight segments connecting the start
+  point $-1$ to $-1+i$, from there to $1+i$, and from there to the endpoint $1$.
+  Since, at all points on the middle segment the real part of the exponent
+  cannot exceed $\sqrt{3}\freq - \xi$, its contribution is exponentially
+  small as $\xi\to\infty$, and can be ignored.
+  The first segment we parametrize by $z=-1+it$,
+  then change variable to $u^2 = \xi t$ and Taylor expand the exponential,
+  \bea
+  I_1 &:=& i e^{-i\xi} \int_{0}^1 e^{\freq \sqrt{2it + t^2} - \xi t} dt
+  =\frac{2i}{\xi} e^{-i\xi}  \int_0^{\sqrt{\xi}} u e^{-u^2} \cdot
+  e^{(\freq/\sqrt{\xi})u \sqrt{2i+u^2/\xi}} du
+  \nonumber \\
+  &=&
+  \frac{2i}{\xi} e^{-i\xi} \int_0^\infty u e^{-u^2}
+  \left[
+    1 + \freq u \bigO(\xi^{1/2})
+    \right] du
+  = \frac{i e^{-i\xi}}{\xi} \left[ 1 + \freq \bigO(\xi^{-1/2}) \right]
+  ~.
+  \eea
+  Note that the upper limit was set to infinity with exponentially small effect.
+  The integrand on the third segment is the complex conjugate of the first,
+  but traversed in the opposite direction, so $I_3 = -I_1^\ast$.
+  Summing the two and including the prefactor gives \eqref{EShat3}.
+\end{proof}
 
 
 
-
-
-
-
+% eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 \subsection{NUFFT error bounds for the ES kernel}
 
-The goal is now 
+Here we combine results from the last two sections to give a rigorous
+asymptotic error estimate when using the ES kernel in the 1D
+type-1 and 2 NUFFT.
 
+We fix the upsampling factor $\rat>1$.
+Given a kernel width $w$ in sample points, one must choose
+a kernel parameter $\freq$ such that $\hat\psi$ has decayed to its
+exponentially small region once the smallest aliased
+frequency $n-N/2 = n(1-1/2\rat)$ is reached; see \eqref{epsest} and
+Fig.~\ref{f:spreadalias}(b).
+We choose a ``safety factor'' $\gamma$ and fix
+\be
+\freq = \freq(w) := \gamma \pi w (1-1/2\rat)
+\label{gam}
+\ee
+so that for $\gamma=1$ the exponential cutoff occurs exactly at $n-N/2$,
+while for $\gamma<1$ the cutoff is safely smaller than $n-N/2$.
 
-\begin{thm}
-err for ES kernel
+Our main result is the following, showing exponential convergence
+in the kernel width $w$, modulo a weak algebraic prefactor.
+\begin{thm} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
+  For the 1D type-1 and 2 NUFFT, fixing $n=\sigma N$,
+  $\gamma<1$, and setting $\freq(w)$ for each kernel width
+  $w$ as in \eqref{gam},
+  the error $\eps$ given by \eqref{epsest} has the asymptotic bound
+  \be
+  \eps = \bigO\left( \sqrt{w} (\log w ) e^{-\pi w \sqrt{1-1/\rat}}
+  \right)
+  ~, \qquad w\to \infty ~.
+  \ee
   \label{t:ESerr}
-\end{thm}
+\end{thm}  % tttttttttttttttttttttttttttttttt
+
+\begin{rmk}[Comparison to \KB\ kernel error bounds]
+  \label{fourmont}
+  Our error estimate takes a very similar form to known bounds
+  for the \KB\ kernel case, due to Fourmont \cite[p.~30-38]{fourmontthesis},
+  summarized in \cite[Sec.~4]{fourmont}.
+  The dependence on $w$ was clarified by Potts \cite[p.~30-31]{pottshabil},
+  and summarized in \cite[App.~C]{nfft}, namely, in our notation,
+  \be
+  \eps \le 4\pi left(\sqrt{\frac{w-1}{2}}+\frac{w-1}{2}\right)
+  (1-1/\rat)^{1/4} e^{-pi(w-1)\sqrt{1-1/rat}}
+  ~.
+  \label{KBerr}
+  \ee
+  The exponential convergence rates are identical; however,
+  our bound \eqref{ESerr} has weaker algebraic growth.
+  Note that this has the constant explicit; this is possible because
+  of the kernel's analytic \FT\ \eqref{KBhat}.
+  The constant in \eqref{ESerr} is not explicit, since the ES kernel has
+  no currently known \FT, only asymptotic expressions (Sec.~\ref{s:asymp}).
+\end{rmk}
+
+
+
+
+\begin{proof}
+
+
+At each such $w$ and $\freq$, we estimate the sum over $m$ in \eqref{epsest}.
+
+
+
+  
+  We split the sum into the $\bigO(\freq)$ terms around the origin
+  which are handled by summing their magnitudes via \eqref{EShat2},
+  plus the remaining tail which has the form of a phased sinc function
+  as in \eqref{EShat3} and is thus summable.
+  
+  Let $b$ be the next integer greater than $\freq$.
+  
+ exploit Lemma~\ref{l:EShat3}
+  
+we need to bound the tail of the (conditionally convergent) sum over a phased sinc function proved in Lemma~\ref{l:Fourmont} below.
+  
+  \end{proof}
+
+
+\begin{lem}
+  Fix $|k|<n/2$, $x\in\RR$, $h=2\pi/n$ and $\al=wh/2$. Then,
+  \be
+  \left|
+  \sum_{|m|>b} \frac{\sin (\al (mn+k))}{\al (mn+k)} e^{i(mn+k)x}
+  \right|
+  \; = \; \bigO(\log b)~, \qquad b\to \infty ~.
+\ee
+\label{l:Fourmont}
+\end{lem}
+\begin{proof}
+  We apply the function form of Poisson summation \eqref{pois} to
+  the top-hat function $s(x) = 1/\al$ in $|x|\le \al$, zero otherwise,
+  noting that it applies to such functions of bounded variation
+  as long as at each
+  point $\frac{1}{2}\lim_{\delta\to0} [s(x+\delta) + s(x-\delta)]$ is taken
+  \cite[\S 11.22]{apostol}.
+  For $w$ odd this gives
+  $$
+  \sum_{|l|\le w/2} e^{ikhl} \frac{1}{\al}
+  \;=\;
+  \frac{1}{h} \sum_{m\in\ZZ} 2 \frac{\sin (\al (mn+k))}{\al (mn+k)} e^{i(mn+k)x}
+  ~,\qquad k\in\ZZ, \; x\in\RR~,
+  $$
+  and for $w$ even, only half of each extreme term is taken on the left side.
+  In either case, note that the left side is
+  trivially bounded in magnitude by $w/\al = 2/h$.
+  Then following Fourmont \cite[Lemma~2.5.4]{fourmontthesis},
+  we move the terms $|m|<b$ from right to left and use the triangle inequality
+  to get
+  $$
+  \left|
+  \frac{1}{h} \sum_{|m|> b} 2 \frac{\sin (\al (mn+k))}{\al (mn+k)} e^{i(mn+k)x}
+  \right|
+  \; \le \; \frac{2}{h} +
+  \left|
+  \frac{1}{h} \sum_{|m|\le b} 2 \frac{\sin (\al (mn+k))}{\al (mn+k)} e^{i(mn+k)x}
+  \right|
+   $$
+  The result follows by bounding the sum on the right by the
+  harmonic sum $(1/h) \sum_{|m|\le b} (\al(mn+k))^{-1} = \bigO(\log b)$.
+\end{proof}
+
+
+
 
 \begin{rmk}
 Since the algebraic decay in \eqref{EShat2} appears to be
@@ -1407,24 +1556,6 @@ $w=1,2,\ldots$
 sets the support of the kernel in units of the uniform grid point spacing, and
 
 
-
-
-
-
-
-
-
-\begin{rmk}[KB error bounds]
-  \label{fourmont}
-  In the \KB\ case, rigorous estimates of \eqref{gkx}
-  which take cancellation due to changing phases into account
-  are due to Fourmont, and are quite technical \cite[p.~30-38]{fourmontthesis}.
-  The results are summarized in \cite[Sec.~4]{fourmont}, and used in
-  \cite[p.~30-31]{pottshabil} to give the estimate in \cite[App.~C]{nfft}.
-  *** GIVE FORMULA TO COMPARE.
-\end{rmk}
-
-*** STATE ES AND KB SIMILAR BNDS.
 
 
 
@@ -1652,6 +1783,9 @@ GPU version; however tricky for spreading to \U\ grid, needed in types 1 and 3.
 
 Remains open to prove a relation between the zero prolate spheroidal
 wavefunction and the ES kernel \eqref{ES}.
+
+bounds on \FT\ to get
+explicit constant in error bound Thm.~\ref{t:ESerr} ?
 
 
 \section*{Acknowledgments}

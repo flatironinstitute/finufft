@@ -2,6 +2,10 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
+* adapt adv4 into main code, inner loops separate by dim, kill the current spreader.
+* FFTW_MEAS vs EST (default) opts flag.
+* remove opts.maxnalloc in favor of just checking if mallocs return 0.
+* swap out mallocs for std:vector in finufft?
 * swap legendre GLR with hellskitchen BSD version.
 * remove the 1/M type-1 prefactor, also in test routines. Add extra fortran interface which preserves it.
 * decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
