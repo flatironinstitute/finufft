@@ -1070,8 +1070,8 @@ whose logarithm is shown in the figure.
 %$$
 For such a class of kernel (which includes KB and our ES),
 more subtle estimates which retain phase information in the
-conditionally-convergent sum \eqref{epsest} are needed
-(see remark~\ref{fourmont} below).
+conditionally-convergent sum \eqref{epsest} will be needed
+(see Remark~\ref{fourmont} below).
 For the truncated Gaussian kernel, researchers have handled
 the rigorous estimate in other ways \cite{nufft,elbel,nfftchap}.
 \end{rmk}
@@ -1163,8 +1163,8 @@ e^{-\freq}
   Around two digits of {\em relative}
   accuracy are achieved everywhere except $\rho\approx 1$, where $\hat\phi$
   is already exponentially small.
-  The match includes details of each exponentially small tail oscillation
-  for $\rho>1$.
+  Remarkably, the details of the exponentially small tail oscillations
+  at $\rho>1$ are matched to high relative accuracy.
   (However, see Remark~\ref{r:decay} which discusses that for high frequencies
   $\rho \ge \freq$, not shown, relative error diverges.)
   \label{r:match}
@@ -1297,7 +1297,7 @@ Consider a contour in the lower half-plane
 from $1$ to $1+b$, where $b\in\mathbb{C}$, $\im b<0$,
 and $1+b$ is strictly inside the ellipse described above.
 We have already explained that $p<0$ on this contour, apart from at $p(1)=0$.
-Writing $z=1+t$, and using $p(1+t) = i\rho + \sqrt{-2t^2-t^2} + i\rho t$,
+Writing $z=1+t$, and using $p(1+t) = i\rho + \sqrt{-2t-t^2} + i\rho t$,
 The contour integral is
 $$ \int_0^b e^{\freq p(1+t)} dt = e^{i\rho}\int_0^b e^{\freq P(t)} dt
 ~,\qquad \mbox{ where} \; P(t) \sim -i\sqrt{2t} \; \mbox{ for } t\to 0~.
@@ -1312,7 +1312,7 @@ Thus these end contributions can be ignored in \eqref{EShat2}.
 \end{proof}
 
 \begin{rmk}
-  The theorem might be summarized informally as:
+  Theorem~\ref{t:EShat} might be summarized informally as:
   ``the \FT\ of the exponential
   of a semicircle is nearly the exponential of a semicircle.''
   This may become less mysterious when
@@ -1333,69 +1333,120 @@ Thus these end contributions can be ignored in \eqref{EShat2}.
 %  of a parabola is the exponential of a parabola.''
 \end{rmk}  
 
-The \FT\ decay suggested by \eqref{EShat2} is $\bigO(\rho^{-3/2})$,
-ie $\bigO(\xi^{-3/2})$. % or when rescaled, $k^{-3/2}$.
+\begin{rmk}
+The \FT\ decay suggested by \eqref{EShat2} is $\bigO(|\rho|^{-3/2})$,
+ie $\bigO(|\xi|^{-3/2})$ with fixed $\freq$,
+which would be directly summable when inserted into \eqref{epsest},
+and one would be done.
+% or when rescaled, $k^{-3/2}$.
 However, we know that this cannot be true,
 because the kernel has discontinuities at $z=\pm 1$ of strength $e^{-\freq}$,
 and is otherwise smooth, so
-the correct asymptotic should be (at fixed $\freq$),
-$\phi\hat(\xi) \sim 2 e^{-\freq} \frac{\sin \xi}{\xi} = \bigO(\xi^{-1})$.
-What went wrong with \eqref{EShat2}?
-The problem is that the result cannot be applied at fixed $\freq$
-and the limit $\rho\to\infty$: the implied constant in the error
-term is unknown, and in fact cannot be uniformly bounded in $\rho$.
-These growing errors are due to the saddles $z_0^{(\pm)}$ approaching
-the endpoints $\pm 1$ where the square-root singularities are.
+the correct asymptotic must be (at fixed $\freq$),
+\be
+\hat\phi(\xi) \;\sim\; 2 e^{-\freq} \frac{\sin \xi}{\xi} \;=\; \bigO(|\xi|^{-1})
+~, \qquad |\xi|\to\infty
+\label{sinc}
+\ee
+which would give a sum that fails to be absolutely convergent.
+What went wrong in interpreting \eqref{EShat2}?
+This is an order-of-limits problem:
+the result cannot be applied at fixed $\freq$
+in the limit $|\rho|\to\infty$, since the implied constant in the error
+term is unknown and must not be uniformly bounded in $\rho$.
+These growing saddle-point
+error terms are associated with the saddles $z_0^{(\pm)}$ approaching
+the square-root singularity endpoints $\pm1$.
+\label{r:decay}
+\end{rmk}
 
-This motivates the following statement which applies uniformly
-as $\rho\to\infty$, with the $\beta$-dependence of the error term
-explicit.
+Because of the previous remark, in order to get a rigorous error estimate
+we will need the following statement.
+This bounds the $\freq$-dependence of the {\em deviation} (denoted by $\hat D$)
+from the sinc function
+\eqref{sinc}, uniformly in $\freq$ and for sufficiently high frequencies $\xi$.
+To avoid ambiguities involving asymptotics with two parameters
+(here $\freq$ and $\xi$), we avoid ``big-$O$'' notation.
+% cite Howell ?
 
 \begin{lem} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-  Fix the shape parameter $\freq>0$. Then the \FT\ of the ES kernel
-  has the high-frequency asymptotic form
+  There exists a constant $C>0$, independent
+  of the shape parameter $\freq$ and frequency $\xi$, such that for all
+  $\freq \ge 2$ and $|\xi|\ge\freq^4$,
   \be
   \hat\phi(\xi) \;=\; e^{-\beta}\left[ 2\frac{\sin \xi}{\xi}
-  + \freq \bigO(|\xi|^{-3/2}) \right]
-  ~,\qquad |\xi|\to\infty~.
+    + \hat D(\freq,\xi) \right]
+  ~,\qquad \mbox{ where }   |\hat D(\freq,\xi)| \; \le \;
+  C \frac{\sqrt{\freq}}{|\xi|^{5/4}}
+  ~.
   \label{EShat3}
   \ee
-\label{l:EShat3}
+  \label{l:EShat3}
 \end{lem}
 \begin{proof}
   Since $\hat\phi$ is symmetric, we take $\xi>0$.
-  Consider the integral
+  Since the top-hat function with value $e^{-\freq}$ in $[-1,1]$, and zero
+  elsewhere, has the \FT\ $2e^{-\beta} \sin \xi / \xi$,
+  subtracting this top-hat from the kernel \eqref{ES} leaves the \FT\
   $$
-  I := \int_{-1}^1 e^{\freq \sqrt{1-z^2} + i\xi z} dz~,
+  \hat D(\freq,\xi) = \int_{-1}^1 (e^{\freq \sqrt{1-z^2}} - 1) e^{i\xi z} dz~.
   $$
-  which is the \FT\ \eqref{ESFT} without the leading $e^{-\freq}$
-  prefactor.
   As before, we apply contour integration,
-  but, rather than using saddle points, we use Laplace's method.
+  but, rather than using saddle points, we use Laplace-type methods.
   The contour comprises three straight segments connecting the start
   point $-1$ to $-1+i$, from there to $1+i$, and from there to the endpoint $1$.
-  Since, at all points on the middle segment the real part of the exponent
-  cannot exceed $\sqrt{3}\freq - \xi$, its contribution is exponentially
-  small as $\xi\to\infty$, and can be ignored.
-  The first segment we parametrize by $z=-1+it$,
-  then change variable to $u^2 = \xi t$ and Taylor expand the exponential,
-  \bea
-  I_1 &:=& i e^{-i\xi} \int_{0}^1 e^{\freq \sqrt{2it + t^2} - \xi t} dt
-  =\frac{2i}{\xi} e^{-i\xi}  \int_0^{\sqrt{\xi}} u e^{-u^2} \cdot
-  e^{(\freq/\sqrt{\xi})u \sqrt{2i+u^2/\xi}} du
-  \nonumber \\
-  &=&
-  \frac{2i}{\xi} e^{-i\xi} \int_0^\infty u e^{-u^2}
-  \left[
-    1 + \freq u \bigO(\xi^{1/2})
-    \right] du
-  = \frac{i e^{-i\xi}}{\xi} \left[ 1 + \freq \bigO(\xi^{-1/2}) \right]
+  We write their contributions as $\hat D(\freq,\xi) = I_1+I_2+I_3$.
+  Since at all points $z$ on the middle segment
+  $|e^{i\xi z}|\le e^{-\xi}$, and 
+  $|e^{\freq \sqrt{1-z^2} +i\xi z}| \le e^{\sqrt{3} \freq - \xi}$, 
+  but $\xi\ge \freq^4$,
+  then $I_2$ is exponentially small as $\xi\to\infty$,
+  and can be dropped.
+  
+  The first segment we parametrize by $z=-1+it$, and then split the integral
+  to give
+  $$
+  I_1 = i e^{-i\xi} \int_{0}^1 (e^{\freq \sqrt{2it + t^2}} - 1)e^{-\xi t} dt
+  = i e^{-i\xi} \left[ \int_{0}^{\xi^{-1/2}} (e^{\freq \sqrt{t} \sqrt{2i + t}} - 1)e^{-\xi t} dt
+    + \int_{\xi^{-1/2}}^1 (e^{\freq \sqrt{t} \sqrt{2i + t}} - 1)e^{-\xi t}  dt \right]
   ~.
-  \eea
-  Note that the upper limit was set to infinity with exponentially small effect.
+$$
+  Since
+  \be
+  |\sqrt{2i+t}|\le 5^{1/4} \quad  \mbox{ for } \; 0\le t\le1 ~,
+  \label{5q}
+  \ee
+  the lower integral is bounded in magnitude by
+  \be
+  \left(\max_{0\le t \le \xi^{-1/2}} e^{5^{1/4}\freq \sqrt{t}} - 1 \right) \cdot
+  \int_{0}^{\xi^{-1/2}} e^{-\xi t} dt~.
+  \label{I1a}
+  \ee
+  Here since $\sqrt{t}\le \xi^{-1/4} \le 1/\freq$ we see that the first exponent
+  is uniformly bounded by a constant, and using $e^x-1 \le e^c x$ for $x\le c$,
+  we have that the first term in \eqref{I1a} is bounded by $C\freq/\xi^{1/4}$.
+  The integral in \eqref{I1a} is bounded by $1/\xi$.
+  Thus the lower integral is bounded by $C\freq/\xi^{5/4}$.
+
+  Turning to the upper integral in $I_1$, we bound its two terms
+  separately, 
+  $$
+  \int_{\xi^{-1/2}}^1 e^{-\xi t}  dt \le \frac{e^{-\sqrt{\xi}}}{\xi}~,
+  \qquad\mbox{ and } \quad
+  \int_{\xi^{-1/2}}^1 e^{\freq \sqrt{t}\, |\sqrt{2i + t}| - \xi t} dt
+  \le
+  \int_{\xi^{-1/2}}^1 e^{-\xi t/2}  dt \le \frac{2e^{-\sqrt{\xi}/2}}{\xi}~,
+  $$
+  which are both exponentially smaller than the lower integral,
+  so can be dropped, giving $|I_1| \le C\freq/\xi^{5/4}$.
+  Here the second integrand was bounded for all $t \ge \xi^{-1/2}$ using
+  \eqref{5q} and that $2(5^{1/4}) \freq \le \xi^{3/4}$,
+  which, since $\xi\ge\freq^4$, holds as long as
+  $\freq^2 \ge 2(5^{1/4})$, which is satisfied if $\freq\ge 2$.
+  
   The integrand on the third segment is the complex conjugate of the first,
-  but traversed in the opposite direction, so $I_3 = -I_1^\ast$.
-  Summing the two and including the prefactor gives \eqref{EShat3}.
+  %   but traversed in the opposite direction,
+  so $I_3 = I_1^\ast$ and $|I_3| = |I_1|$. This proves \eqref{EShat3}.
 \end{proof}
 
 
@@ -1413,25 +1464,31 @@ a kernel parameter $\freq$ such that $\hat\psi$ has decayed to its
 exponentially small region once the smallest aliased
 frequency $n-N/2 = n(1-1/2\rat)$ is reached; see \eqref{epsest} and
 Fig.~\ref{f:spreadalias}(b).
-We choose a ``safety factor'' $\gamma$ and fix
+For this we fix a ``safety factor'' $\gamma$ then set
 \be
 \freq = \freq(w) := \gamma \pi w (1-1/2\rat)
 \label{gam}
 \ee
 so that for $\gamma=1$ the exponential cutoff occurs exactly at $n-N/2$,
 while for $\gamma<1$ the cutoff is safely smaller than $n-N/2$.
+For a rigorous statement we will not be able to set
+$\gamma=1$, since Thm.~\ref{t:EShat}
+doesn't not cover the case precisely at cutoff.
+
 
 Our main result is the following, showing exponential convergence
 in the kernel width $w$, modulo a weak algebraic prefactor.
 \begin{thm} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
   For the 1D type-1 and 2 NUFFT, fixing $n=\sigma N$,
-  $\gamma<1$, and setting $\freq(w)$ for each kernel width
+  $0<\gamma<1$, and setting $\freq(w)$ for each kernel width
   $w$ as in \eqref{gam},
-  the error $\eps$ given by \eqref{epsest} has the asymptotic bound
+  the error $\eps$ defined in \eqref{epsest} convergences with kernel width
+  as
   \be
-  \eps = \bigO\left( \sqrt{w} (\log w ) e^{-\pi w \sqrt{1-1/\rat}}
+  \eps \;=\; \bigO\left( \sqrt{w} e^{-\pi w \sqrt{1-1/\rat}}
   \right)
   ~, \qquad w\to \infty ~.
+  \label{ESerr}
   \ee
   \label{t:ESerr}
 \end{thm}  % tttttttttttttttttttttttttttttttt
@@ -1444,25 +1501,37 @@ in the kernel width $w$, modulo a weak algebraic prefactor.
   The dependence on $w$ was clarified by Potts \cite[p.~30-31]{pottshabil},
   and summarized in \cite[App.~C]{nfft}, namely, in our notation,
   \be
-  \eps \le 4\pi left(\sqrt{\frac{w-1}{2}}+\frac{w-1}{2}\right)
-  (1-1/\rat)^{1/4} e^{-pi(w-1)\sqrt{1-1/rat}}
+  \eps \;\le\; 4\pi \left(\sqrt{\frac{w-1}{2}}+\frac{w-1}{2}\right)
+  (1-1/\rat)^{1/4} e^{-\pi(w-1)\sqrt{1-1/\rat}}
   ~.
   \label{KBerr}
   \ee
-  The exponential convergence rates are identical; however,
-  our bound \eqref{ESerr} has weaker algebraic growth.
-  Note that this has the constant explicit; this is possible because
+  This has exponential convergence rate identical to the limit of
+  $\gamma\to1^{-}$ of our result \eqref{ESerr}, and the same size of prefactor.
+  Note that \eqref{KBerr} has the constant explicit; this is possible because
   of the kernel's analytic \FT\ \eqref{KBhat}.
-  The constant in \eqref{ESerr} is not explicit, since the ES kernel has
-  no currently known \FT, only asymptotic expressions (Sec.~\ref{s:asymp}).
+  The constant in \eqref{ESerr} is not explicit, since the ES kernel does not
+  have an analytically known \FT, only asymptotic expressions
+  (Sec.~\ref{s:asymp}).
 \end{rmk}
 
-
-
-
 \begin{proof}
+  We wish to estimate \eqref{epsest}, 
+  Recalling \eqref{psi1} we 
+  
+  We wish to estimate the sum in the numerator of \eqref{epsest}.
+  For terms $|m|\le \freq$ we use 
 
-
+  We split the sum at frequency $\xi \approx \freq^2$.
+  
+  by substituting \eqref{EShat2}, which applies since every term $m\neq 0$
+  falls beyond cutoff, i.e. each $\rho_m := \al(k+mn)/\beta$ has $|\rho_m|>1$.
+  This gives
+  $$
+  \sum_{m\neq 0} 
+$$
+***
+  
 At each such $w$ and $\freq$, we estimate the sum over $m$ in \eqref{epsest}.
 
 
@@ -1524,25 +1593,6 @@ we need to bound the tail of the (conditionally convergent) sum over a phased si
   The result follows by bounding the sum on the right by the
   harmonic sum $(1/h) \sum_{|m|\le b} (\al(mn+k))^{-1} = \bigO(\log b)$.
 \end{proof}
-
-
-
-
-\begin{rmk}
-Since the algebraic decay in \eqref{EShat2} appears to be
-$\rho^{-3/2}$ (ie $\xi^{-3/2}$), one is tempted to
-directly insert this into the sum in \eqref{epsest},
-and declare victory.
-However, this is incorrect, since the implied constant in the error
-term in \eqref{EShat2} is unknown, and is in fact not uniformly bounded
-in $\rho$.
-Since the kernel has discontinuities at $z=\pm 1$ of strength $e^{-\freq}$,
-the correct asymptotic is (at fixed $\freq$),
-$\phi\hat(\xi) \sim 2 e^{-\freq} \frac{\sin \xi}{\xi} = \bigO(\xi^{-1})$.
-Thus relative errors in \eqref{EShat2} diverge beyond the transition
-region of $\rho \approx \freq$.
-\label{r:decay}
-\end{rmk}
 
 
 
@@ -1778,8 +1828,10 @@ comparision vs NFFT.
 
 
 
-GPU version; however tricky for spreading to \U\ grid, needed in types 1 and 3.
 
+FUTURE:
+
+GPU version; however tricky for spreading to \U\ grid, needed in types 1 and 3.
 
 Remains open to prove a relation between the zero prolate spheroidal
 wavefunction and the ES kernel \eqref{ES}.
@@ -1787,13 +1839,15 @@ wavefunction and the ES kernel \eqref{ES}.
 bounds on \FT\ to get
 explicit constant in error bound Thm.~\ref{t:ESerr} ?
 
+Extend Thm~\ref{t:ESerr} to $\gamma=1$ via a kernel \FT\ estimate at cutoff
+$\rho=1$.
+
 
 \section*{Acknowledgments}
 
 We are grateful for helpful discussions with Leslie Greengard,
 Charlie Epstein, Marina Spivak, Andras Pataki, Arthur Migdal,
-Mark Dunster,
-and Daniel Potts.
+Mark Dunster, and Daniel Potts.
 
 
 % BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
