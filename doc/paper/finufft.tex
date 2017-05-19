@@ -1357,6 +1357,8 @@ term is unknown and must not be uniformly bounded in $\rho$.
 These growing saddle-point
 error terms are associated with the saddles $z_0^{(\pm)}$ approaching
 the square-root singularity endpoints $\pm1$.
+Empirically we find that the smooth
+transition from \eqref{EShat2} to \eqref{sinc} occurs at $\xi\approx\freq^2$.
 \label{r:decay}
 \end{rmk}
 
@@ -1373,11 +1375,12 @@ To avoid ambiguities involving asymptotics with two parameters
   There exists a constant $C>0$, independent
   of the shape parameter $\freq$ and frequency $\xi$, such that for all
   $\freq \ge 2$ and $|\xi|\ge\freq^4$,
+  the \FT\ of the ES kernel obeys
   \be
   \hat\phi(\xi) \;=\; e^{-\beta}\left[ 2\frac{\sin \xi}{\xi}
     + \hat D(\freq,\xi) \right]
   ~,\qquad \mbox{ where }   |\hat D(\freq,\xi)| \; \le \;
-  C \frac{\sqrt{\freq}}{|\xi|^{5/4}}
+  C \frac{\freq}{|\xi|^{5/4}}
   ~.
   \label{EShat3}
   \ee
@@ -1449,6 +1452,99 @@ $$
   so $I_3 = I_1^\ast$ and $|I_3| = |I_1|$. This proves \eqref{EShat3}.
 \end{proof}
 
+Finally, since the previous lemma excludes $\xi<\beta^4$,
+which encompasses a growing (in $\freq$) number of terms in the sum
+\eqref{epsest}, for the reason in Remark~\ref{r:decay}
+one cannot use the saddle asymptotic \eqref{EShat2} to cover this case.
+Thus we prove the following
+estimate which applies to smaller frequencies,
+has explicit $\xi$ and $\freq$ dependence,
+but (because of its second term) fails to be summable in $\xi$.
+
+\begin{lem}
+  There are positive constants $C_1$ and $C_2$ independent of
+  $\freq$ and $\xi$, such that, for all
+  sufficiently large $\freq$ and all $\xi\ge 3\freq$,
+  the \FT\ of the ES kernel obeys
+  \be
+  |\hat\phi(\xi)| \; \le \; e^{-\freq} \left( C_1 \frac{\freq^2}{\xi^2}
+  + C_2\frac{1}{\xi} \right)
+  ~.
+  \label{EShat4}
+  \ee
+  \label{l:EShat4}
+\end{lem}
+\begin{proof}
+  We first need the geometric statement that, for any radius $R>1$,
+  \be
+  \re \sqrt{1-z^2} \; \le \; (1-R^{-2})^{-1/2} \im z ~, \qquad
+  \mbox{ for all $z$ with $|z|=R$ and $\im z \ge 0$}~.
+  \label{circ}
+  \ee
+  This is proven by setting $z=\sqrt{R^2-b^2}+ib$ and $\sqrt{1-z^2} = p+iq$,
+  so that $\re (1-z^2) = p^2-q^2 = 1-R^2-2b^2$ and
+  $\im (1-z^2) = 2ipq = -2i\sqrt{R^2-b^2}b$.
+  Eliminating $q$ then solving the quadratic
+  equation for $p^2$ gives
+  $2p^2 = 1-R^2+2b^2 + \sqrt{(R^2-1)^2 + 4b^2}$.
+  Applying the inequality $\sqrt{A^2+B^2}\le A + B^2/2A$ gives
+  after simplification $2p^2 \le 2b^2/(1-R^{-2})$, which proves \eqref{circ}.
+
+  From \eqref{ES} and \eqref{FT} we have
+  $$
+  e^\freq \hat\phi(\xi) = \int_{-1}^1 e^{\freq\sqrt{1-z^2} + i\xi z}dz
+  ~,
+  $$
+  and we again fix $\xi>0$ and deform the contour into the upper half plane,
+  but rather than using saddle-points we break it into three pieces
+  and apply simple estimates on each.
+  Since $\xi>2\beta$, we may set
+  \be
+  \quad R = R_{\freq,\xi} = \sqrt{1+[(\xi/2\freq)^2-1]^{-1}}~,
+  \qquad \mbox{ or }\quad
+  (1-R^{-2})^{-1/2} = \xi/2\freq~.
+  \label{R}
+  \ee
+  Then let $I_1$ be the integral along the real axis from $-1$ to $-R$,
+  $I_2$ be the integral along the semicircle defined in \eqref{circ},
+  and $I_3$ be the integral along the real axis from $R$ to $1$.
+  Then $e^\freq \hat\phi(\xi) = I_1+I_2+I_3$.
+  Note that the branch cuts of the integrand are taken to lie below the
+  real axis.
+  
+  For all real $z$ the integrand has unit magnitude, giving the trivial bound
+  $|I_1+I_3| \le 2(R-1)$. From \eqref{R} we see that this is bounded
+  by a constant times $(\freq/\xi)^2$ for all $\xi/\freq \ge 3$, giving
+  the first term in \eqref{EShat4}.
+
+  On the semicircle, \eqref{circ} implies that the integrand magnitude
+  obeys
+  $|e^{\freq \sqrt{1-z^2} + i\xi z}| \le e^{[\beta(1-R^2){-1/2} - \xi] \im z} =
+  e^{-(\xi/2)\im z}$.
+  So, parametrizing the quarter-circle and using $\sin\theta \ge 2\theta/\pi$
+  in $0\le\theta\le \pi/2$, as in the proof of Jordan's lemma, 
+  $$
+  |I_2| \le 2 \int_0^{\pi/2} e^{-(\xi/2) R \sin\theta} R d\theta
+  \le 2R \int_0^{\pi/2} e^{-(R\xi/\pi) \theta} d\theta
+  \le \frac{2\pi}{\xi}
+  $$
+  which gives the second term in \eqref{EShat4}.
+\end{proof}
+
+In the above proof we note that the contour corner points $\pm R$ are not
+the saddle points $\pm z_0$ for $\rho=\xi/\freq$
+in the proof of Theorem~\ref{t:EShat}(b),
+but in fact the saddle points corresponding to $\rho/2$.
+Since these are more distant, they allow vertical exponential
+decay on the semicircle.
+
+%\begin{lem}  
+%  \label{l:}
+%\end{lem}
+%\begin{proof}
+%\end{proof}
+
+
 
 
 % eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
@@ -1460,13 +1556,14 @@ type-1 and 2 NUFFT.
 
 We fix the upsampling factor $\rat>1$.
 Given a kernel width $w$ in sample points, one must choose
-a kernel parameter $\freq$ such that $\hat\psi$ has decayed to its
+a kernel parameter $\freq$ such that $\hat\psi$ defined in \eqref{psi1}
+has decayed to its
 exponentially small region once the smallest aliased
 frequency $n-N/2 = n(1-1/2\rat)$ is reached; see \eqref{epsest} and
 Fig.~\ref{f:spreadalias}(b).
-For this we fix a ``safety factor'' $\gamma$ then set
+For this we fix a ``safety factor'' $\gamma$, then set
 \be
-\freq = \freq(w) := \gamma \pi w (1-1/2\rat)
+\freq = \freq(w) := \gamma \pi w (1-1/2\rat)~,
 \label{gam}
 \ee
 so that for $\gamma=1$ the exponential cutoff occurs exactly at $n-N/2$,
@@ -1474,7 +1571,6 @@ while for $\gamma<1$ the cutoff is safely smaller than $n-N/2$.
 For a rigorous statement we will not be able to set
 $\gamma=1$, since Thm.~\ref{t:EShat}
 doesn't not cover the case precisely at cutoff.
-
 
 Our main result is the following, showing exponential convergence
 in the kernel width $w$, modulo a weak algebraic prefactor.
@@ -1508,11 +1604,9 @@ in the kernel width $w$, modulo a weak algebraic prefactor.
   \ee
   This has exponential convergence rate identical to the limit of
   $\gamma\to1^{-}$ of our result \eqref{ESerr}, and the same size of prefactor.
-  Note that \eqref{KBerr} has the constant explicit; this is possible because
-  of the kernel's analytic \FT\ \eqref{KBhat}.
-  The constant in \eqref{ESerr} is not explicit, since the ES kernel does not
-  have an analytically known \FT, only asymptotic expressions
-  (Sec.~\ref{s:asymp}).
+  Note that \eqref{KBerr} has the constant explicit.
+  It may be possible to get an explicit constant for the case of the ES kernel,
+  but this is harder because its \FT\ is not known analytically.
 \end{rmk}
 
 \begin{proof}
