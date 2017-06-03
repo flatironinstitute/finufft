@@ -1363,8 +1363,8 @@ transition from \eqref{EShat2} to \eqref{sinc} occurs at $\xi\approx\freq^2$.
 \end{rmk}
 
 Because of the previous remark, in order to get a rigorous error estimate
-we will need the following statement.
-This bounds the $\freq$-dependence of the {\em deviation} (denoted by $\hat D$)
+we will need the following statement, which
+bounds the $\freq$-dependence of the {\em deviation} (denoted by $\hat D$)
 from the sinc function
 \eqref{sinc}, uniformly in $\freq$ and for sufficiently high frequencies $\xi$.
 To avoid ambiguities involving asymptotics with two parameters
@@ -1375,11 +1375,11 @@ To avoid ambiguities involving asymptotics with two parameters
   There exists a constant $C>0$, independent
   of the shape parameter $\freq$ and frequency $\xi$, such that for all
   $\freq \ge 2$ and $|\xi|\ge\freq^4$,
-  the \FT\ of the ES kernel obeys
+  the \FT\ of the ES kernel is
   \be
   \hat\phi(\xi) \;=\; e^{-\beta}\left[ 2\frac{\sin \xi}{\xi}
     + \hat D(\freq,\xi) \right]
-  ~,\qquad \mbox{ where }   |\hat D(\freq,\xi)| \; \le \;
+  ~,\qquad \mbox{ where } \quad  |\hat D(\freq,\xi)| \; \le \;
   C \frac{\freq}{|\xi|^{5/4}}
   ~.
   \label{EShat3}
@@ -1452,14 +1452,14 @@ $$
   so $I_3 = I_1^\ast$ and $|I_3| = |I_1|$. This proves \eqref{EShat3}.
 \end{proof}
 
-Finally, since the previous lemma excludes $\xi<\beta^4$,
+Finally, since the previous lemma excludes $|\xi|<\beta^4$,
 which encompasses a growing (in $\freq$) number of terms in the sum
 \eqref{epsest}, for the reason in Remark~\ref{r:decay}
 one cannot use the saddle asymptotic \eqref{EShat2} to cover this case.
-Thus we prove the following
-estimate which applies to smaller frequencies,
+Thus we need the following intermediate
+estimate which allows smaller frequencies,
 has explicit $\xi$ and $\freq$ dependence,
-but (because of its second term) fails to be summable in $\xi$.
+but (because of its final term) fails to be summable in $\xi$.
 
 \begin{lem}
   There are positive constants $C_1$ and $C_2$ independent of
@@ -1467,7 +1467,8 @@ but (because of its second term) fails to be summable in $\xi$.
   sufficiently large $\freq$ and all $\xi\ge 3\freq$,
   the \FT\ of the ES kernel obeys
   \be
-  |\hat\phi(\xi)| \; \le \; e^{-\freq} \left( C_1 \frac{\freq^2}{\xi^2}
+  |\hat\phi(\xi)| \;\le\; e^{-\beta}\left(
+  C_1 \frac{\freq^2}{\xi^2}
   + C_2\frac{1}{\xi} \right)
   ~.
   \label{EShat4}
@@ -1490,12 +1491,11 @@ but (because of its second term) fails to be summable in $\xi$.
   Applying the inequality $\sqrt{A^2+B^2}\le A + B^2/2A$ gives
   after simplification $2p^2 \le 2b^2/(1-R^{-2})$, which proves \eqref{circ}.
 
-  From \eqref{ES} and \eqref{FT} we have
+  Using \eqref{ES} and \eqref{FT},
   $$
-  e^\freq \hat\phi(\xi) = \int_{-1}^1 e^{\freq\sqrt{1-z^2} + i\xi z}dz
-  ~,
+  e^\freq \hat\phi(\xi) = \int_{-1}^1 e^{\freq \sqrt{1-z^2} + i\xi z} dz~.
   $$
-  and we again fix $\xi>0$ and deform the contour into the upper half plane,
+  Again we fix $\xi>0$ and deform the contour into the upper half plane,
   but rather than using saddle-points we break it into three pieces
   and apply simple estimates on each.
   Since $\xi>2\beta$, we may set
@@ -1506,10 +1506,10 @@ but (because of its second term) fails to be summable in $\xi$.
   \label{R}
   \ee
   Then let $I_1$ be the integral along the real axis from $-1$ to $-R$,
-  $I_2$ be the integral along the semicircle defined in \eqref{circ},
-  and $I_3$ be the integral along the real axis from $R$ to $1$.
+  let $I_2$ be the integral along the semicircle defined in \eqref{circ},
+  and let $I_3$ be the integral along the real axis from $R$ to $1$.
   Then $e^\freq \hat\phi(\xi) = I_1+I_2+I_3$.
-  Note that the branch cuts of the integrand are taken to lie below the
+  Here the branch cuts of the integrand are taken to lie below the
   real axis.
   
   For all real $z$ the integrand has unit magnitude, giving the trivial bound
@@ -1570,18 +1570,18 @@ so that for $\gamma=1$ the exponential cutoff occurs exactly at $n-N/2$,
 while for $\gamma<1$ the cutoff is safely smaller than $n-N/2$.
 For a rigorous statement we will not be able to set
 $\gamma=1$, since Thm.~\ref{t:EShat}
-doesn't not cover the case precisely at cutoff.
+does not cover the case precisely at cutoff.
+In practice we use a safety factor very close to $1$.
 
 Our main result is the following, showing exponential convergence
-in the kernel width $w$, modulo a weak algebraic prefactor.
+with respect to the kernel width $w$, up to a weak algebraic prefactor.
 \begin{thm} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
-  For the 1D type-1 and 2 NUFFT, fixing $n=\sigma N$,
-  $0<\gamma<1$, and setting $\freq(w)$ for each kernel width
-  $w$ as in \eqref{gam},
-  the error $\eps$ defined in \eqref{epsest} convergences with kernel width
+  For the 1D type-1 and 2 NUFFT, fix $N$ and $\rat$ (hence the upsampled grid $n=\sigma N$) and the safety factor $0<\gamma<1$.
+  Then the error $\eps$ defined by \eqref{epsest} convergences with respect to
+  kernel width $w$, when $\freq(w)$ is as in \eqref{gam},
   as
   \be
-  \eps \;=\; \bigO\left( \sqrt{w} e^{-\pi w \sqrt{1-1/\rat}}
+  \eps \;=\; \bigO\left( \sqrt{w} e^{-\pi w \sqrt{\gamma^2(1-1/\rat) - 4(1-\gamma^2)\rat^2}}
   \right)
   ~, \qquad w\to \infty ~.
   \label{ESerr}
@@ -1589,116 +1589,207 @@ in the kernel width $w$, modulo a weak algebraic prefactor.
   \label{t:ESerr}
 \end{thm}  % tttttttttttttttttttttttttttttttt
 
-\begin{rmk}[Comparison to \KB\ kernel error bounds]
+\begin{rmk}[Comparison to \KB\ bounds]
   \label{fourmont}
-  Our error estimate takes a very similar form to known bounds
+  Our estimate takes a very similar form to known estimates
   for the \KB\ kernel case, due to Fourmont \cite[p.~30-38]{fourmontthesis},
   summarized in \cite[Sec.~4]{fourmont}.
   The dependence on $w$ was clarified by Potts \cite[p.~30-31]{pottshabil},
   and summarized in \cite[App.~C]{nfft}, namely, in our notation,
   \be
-  \eps \;\le\; 4\pi \left(\sqrt{\frac{w-1}{2}}+\frac{w-1}{2}\right)
-  (1-1/\rat)^{1/4} e^{-\pi(w-1)\sqrt{1-1/\rat}}
+  \eps \;\le\; 4\pi   (1-1/\rat)^{1/4}
+  \left(\sqrt{\frac{w-1}{2}}+\frac{w-1}{2}\right)
+  e^{-\pi(w-1)\sqrt{1-1/\rat}}
   ~.
   \label{KBerr}
   \ee
-  This has exponential convergence rate identical to the limit of
-  $\gamma\to1^{-}$ of our result \eqref{ESerr}, and the same size of prefactor.
-  Note that \eqref{KBerr} has the constant explicit.
+  In the limit $\gamma\to1^{-}$, our result \eqref{ESerr}
+  shows the same exponential convergence rate as \eqref{KBerr},
+  and with an algebraic prefactor improved by a factor $\sqrt{w}$.
+  On the other hand, \eqref{KBerr} has the constant explicit.
   It may be possible to get an explicit constant for the case of the ES kernel,
-  but this is harder because its \FT\ is not known analytically.
+  but this is harder
+  because its \FT\ is not known analytically.
+  % figures suggest algebraic prefactor is merely a difference in method of proof, not real
 \end{rmk}
 
 \begin{proof}
-  We wish to estimate \eqref{epsest}, 
-  Recalling \eqref{psi1} we 
-  
-  We wish to estimate the sum in the numerator of \eqref{epsest}.
-  For terms $|m|\le \freq$ we use 
+  Since $h=2\pi/n$, $\rat$, and $\gamma$ are fixed, then both $\freq(w)$
+  and $\al=\pi w/n$ are proportional to the single asymptotic
+  parameter $w \to\infty$.
+  We wish to estimate the right hand side of
+  \eqref{epsest}, which, recalling \eqref{psi1}, is
+  \be
+\frac{
+  \max_{|k|\le N/2, \,x\in\RR} \left|
+    \sum_{m\neq 0} \hat\phi(\al k+\pi w m) e^{i(k+mn)x}
+  \right|
+}{\min_{|k|\le N/2} |\hat\phi(\al k)|}
+~,
+\label{epsest2}
+\ee
+  asymptotically in $w$, or, equivalently, in $\freq$.
+  We write $e^\freq$ times the sum in the numerator as
+  \be
+  G(k,x) := e^{\freq} \sum_{m\neq 0} \hat\phi(\xi_m) e^{i\xi_m x/\al}
+  ~, \qquad \xi_m := \al k + \pi w m
+  ~.
+  \label{G}
+  \ee
+  The main task will be to prove that
+  \be
+  |G(x,k) | \; =\; \bigO(1)
+  ~,\qquad \freq\to\infty~, \quad \mbox{ uniformly in $x$, $|k|\le n/2\rat$~,}
+  \label{Gunif}
+  \ee
+  implying that the numerator of \eqref{epsest2} is $\bigO(e^{-\freq})$.
+  We will split the sum into three ranges of $|m|$, and discard the
+  phase information in all but the tail.
 
-  We split the sum at frequency $\xi \approx \freq^2$.
-  
-  by substituting \eqref{EShat2}, which applies since every term $m\neq 0$
-  falls beyond cutoff, i.e. each $\rho_m := \al(k+mn)/\beta$ has $|\rho_m|>1$.
-  This gives
+  Starting with the closest range, let
   $$
-  \sum_{m\neq 0} 
-$$
-***
-  
-At each such $w$ and $\freq$, we estimate the sum over $m$ in \eqref{epsest}.
+  G_1(k,x) :=  e^{\freq} \sum_{m\neq 0, |\xi_m|<3\freq} \hat\phi(\xi_m) e^{i\xi_m x/\al}~,
+  $$
+  which involves the ceiling of $4\gamma(1-1/2\rat)$ terms,
+  ie at most four terms, independent of $\freq$.
+  Since $\gamma<1$, each term has $|\xi_m/\beta|>1$ so is strictly
+  above cutoff.
+  Thus, applying the leading saddle point result \eqref{EShat2}, each term
+  contributes magnitude $\bigO(1/\sqrt{\freq})$, so
+  $G_1(k,x) = \bigO(1/\sqrt{\freq})$.
 
-
-
+  For the intermediate range, let
+  $$
+  G_2(k,x)  :=  e^{\freq} \sum_{3\freq\le|\xi_m|\le\freq^4} \hat\phi(\xi_m) e^{i\xi_m x/\al}~,
+  $$
+  which involves $\bigO(\freq^3)$ terms.
+  Applying Lemma~\ref{l:EShat4}, and using $\xi_m \sim c \freq m$
+  where $c$ is a constant,
+  $$
+  |G_2(k,x)| \le C \freq^2 \sum_{m\le \freq^3} \frac{1}{\freq^2 m^2}
+  + C \sum_{m\le \freq^3} \frac{1}{\freq m}
+  = \bigO(1) + \bigO\left(\frac{\log \freq}{\freq}\right) = \bigO(1)~.
+  $$
+  Note that a large number of terms were included, but that the tail
+  cannot be handled with this estimate, due to the second term.
   
-  We split the sum into the $\bigO(\freq)$ terms around the origin
-  which are handled by summing their magnitudes via \eqref{EShat2},
-  plus the remaining tail which has the form of a phased sinc function
-  as in \eqref{EShat3} and is thus summable.
-  
-  Let $b$ be the next integer greater than $\freq$.
-  
- exploit Lemma~\ref{l:EShat3}
-  
-we need to bound the tail of the (conditionally convergent) sum over a phased sinc function proved in Lemma~\ref{l:Fourmont} below.
-  
+  Finally, let the remaining tail be
+  $$
+  G_3(k,x)  :=  e^{\freq} \sum_{|\xi_m|\ge\freq^4} \hat\phi(\xi_m) e^{i\xi_m x/\al}~.
+  $$
+  We apply Lemma~\ref{l:EShat3} to get,
+  $$
+  |G_3(x,k)| \; \le \; \left|\sum_{|\xi_m|\ge\freq^4} 2\frac{\sin \xi_m}{\xi_m}
+   e^{i\xi_m x/\al} \right|
+   + C \sum_{|\xi_m|\ge\freq^4} \frac{\freq}{\freq^{5/4}m^{5/4}}
+   ~.
+   $$
+   For the first (conditionally convergent) sinc sum, we apply
+   Lemma~\ref{l:Fourmont} below with $b = \freq^3$,
+   which bounds the term
+   by $\bigO((\log \freq) / \al) = \bigO((\log \freq) / \freq)$,
+   uniformly over $|k|<n/2\rat$ and $x$.
+   The second term is summable so is $\bigO(\freq^{-1/4})$.
+   Thus $|G_3(k,x)| = \bigO(\freq^{-1/4})$, uniformly in $k$ and $x$.
+   Since $G = G_1 + G_2+G_3$, \eqref{Gunif} is proved.
+   
+   The only remaining task is a
+   lower bound on the denominator in \eqref{epsest2}.
+   We exploit Theorem~\ref{t:EShat} below cutoff, ie \eqref{EShat1}.
+   The minimum occurs at the edge of the usable band, $|k|=N/2 = n/2\rat$,
+   ie $|\xi| := \al n/2\rat = \pi w/2\rat$,
+   ie scaled frequency $\rho_e := \pi w/2\rat\freq = (\gamma(2\rat-1))^{-1}$.
+   Then \eqref{EShat1} gives the upper bound on the inverse of the denominator,
+   $$
+   |\hat\phi(\pi w/2\rat)|^{-1} =
+   \bigO(\sqrt{\freq} e^\freq e^{-\freq\sqrt{1-\rho_e^2}})
+   =
+   \bigO(\sqrt{\freq} e^\freq e^{-\pi w \sqrt{\gamma^2(1-1/\rat) - 4(1-\gamma^2)\rat^2}})
+   ~,
+   $$
+   after simplification.
+   Cancelling $e^\freq$ from the numerator bound,
+   and recalling $\freq = \bigO(w)$,
+   proves \eqref{ESerr}.
   \end{proof}
 
 
-\begin{lem}
-  Fix $|k|<n/2$, $x\in\RR$, $h=2\pi/n$ and $\al=wh/2$. Then,
+To handle Fourier tails due to (exponentially small) discontinuities
+at the edge of the kernel support, the above proof relied on the following
+conditionally convergent sum over the tail of the sinc function. For
+its proof we use techniques similar to that of Fourmont
+\cite[Lemma~2.5.4]{fourmontthesis}.
+
+\begin{lem}[phased sinc sum]  % lllllllllllllllllllllllllllllllllllllllllll
+  Fix $n>0$ and $\rat>1$.
+  Then there is a constant $C$
+  such that for all $b\ge 1$,  $x\in\RR$, $|k|\le n/2\sigma$, and $\al>0$,
   \be
   \left|
-  \sum_{|m|>b} \frac{\sin (\al (mn+k))}{\al (mn+k)} e^{i(mn+k)x}
+  \sum_{|m|>b} \frac{\sin \al (mn+k)}{mn+k} e^{i(mn+k)x}
   \right|
-  \; = \; \bigO(\log b)~, \qquad b\to \infty ~.
-\ee
+  \; \le \; C\log b~.
+  \ee
 \label{l:Fourmont}
 \end{lem}
 \begin{proof}
-  We apply the function form of Poisson summation \eqref{pois} to
-  the top-hat function $s(x) = 1/\al$ in $|x|\le \al$, zero otherwise,
+  We apply Poisson summation \eqref{pois}
+with grid spacing $h=2\pi/n$ to
+  the top-hat function $s(x) = 1$ in $|x|\le \al$, zero otherwise,
   noting that it applies to such functions of bounded variation
   as long as at each
   point $\frac{1}{2}\lim_{\delta\to0} [s(x+\delta) + s(x-\delta)]$ is taken
   \cite[\S 11.22]{apostol}.
-  For $w$ odd this gives
+  This gives
   $$
-  \sum_{|l|\le w/2} e^{ikhl} \frac{1}{\al}
+  h \sum_{|x-lh|\le \al} \hspace{-2.5ex}{\vphantom{\sum}}'  % note sum primed
+  \;e^{ikhl}  
   \;=\;
-  \frac{1}{h} \sum_{m\in\ZZ} 2 \frac{\sin (\al (mn+k))}{\al (mn+k)} e^{i(mn+k)x}
-  ~,\qquad k\in\ZZ, \; x\in\RR~,
+  \sum_{m\in\ZZ} 2 \frac{\sin \al (mn+k)}{mn+k} e^{i(mn+k)x}
+  ~,\qquad k, x\in\RR~,
   $$
-  and for $w$ even, only half of each extreme term is taken on the left side.
-  In either case, note that the left side is
-  trivially bounded in magnitude by $w/\al = 2/h$.
-  Then following Fourmont \cite[Lemma~2.5.4]{fourmontthesis},
-  we move the terms $|m|<b$ from right to left and use the triangle inequality
-  to get
+  where the prime on the sum indicates that any extremal terms
+  where $|x-lh|=\al$ are to be given half their weight.
+  The left hand side is a Riemann approximation to the integral
+  $e^{ikx}\int_{-\al}^\al e^{-iky} dy = e^{ikx} 2 (\sin \al k) / k$,
+  which we notice is the $m=0$ term from the right hand side.
+  Since the size of the derivative of $e^{-iky}$ is bounded by a constant,
+  summing the quadrature errors from each size-$h$ subinterval in $(-\al,\al)$,
+  which each contain one quadrature point,
+  gives error bounded by a constant as $\al$ grows.
+  That is,
+  $$
+  \left | h \sum_{|x-lh|\le \al} \hspace{-2.5ex}{\vphantom{\sum}}'
+  \;e^{ikhl} - 2 \frac{\sin \al k}{k} e^{ikx} \right |
+  \; \le \; C
+  ~, \qquad \mbox{ for all } \al>0~.
+  $$
+  Combining the last two equations gives
   $$
   \left|
-  \frac{1}{h} \sum_{|m|> b} 2 \frac{\sin (\al (mn+k))}{\al (mn+k)} e^{i(mn+k)x}
+  \sum_{m\neq 0} %2
+  \frac{\sin \al (mn+k)}{mn+k} e^{i(mn+k)x}
   \right|
-  \; \le \; \frac{2}{h} +
+  \; \le \; C
+  ~, \qquad \mbox{ for all } \al>0~.
+  $$
+  Finally the triangle inequality
+  $$
   \left|
-  \frac{1}{h} \sum_{|m|\le b} 2 \frac{\sin (\al (mn+k))}{\al (mn+k)} e^{i(mn+k)x}
+  \sum_{|m|> b} \frac{\sin \al (mn+k)}{mn+k} e^{i(mn+k)x}
   \right|
-   $$
-  The result follows by bounding the sum on the right by the
-  harmonic sum $(1/h) \sum_{|m|\le b} (\al(mn+k))^{-1} = \bigO(\log b)$.
+  \; \le \; 
+  \left|
+  \sum_{m\neq 0} \frac{\sin \al (mn+k)}{mn+k} e^{i(mn+k)x}
+  \right|
++
+    \left|
+  \sum_{1\le|m|\le b} \frac{\sin \al (mn+k)}{mn+k} e^{i(mn+k)x}
+  \right|
+  $$
+  and bounding the second term via the harmonic sum
+  $|\sum_{m=1}^b (k\pm mn)^{-1}| \le C \log b$ gives \eqref{l:Fourmont}.
 \end{proof}
-
-
-
-
-
-
-
-scaled to width.
-
-$w=1,2,\ldots$
-sets the support of the kernel in units of the uniform grid point spacing, and
-
 
 
 
@@ -1932,6 +2023,8 @@ wavefunction and the ES kernel \eqref{ES}.
 
 bounds on \FT\ to get
 explicit constant in error bound Thm.~\ref{t:ESerr} ?
+*** the above proof could be adapted to give more explicit constants.
+
 
 Extend Thm~\ref{t:ESerr} to $\gamma=1$ via a kernel \FT\ estimate at cutoff
 $\rho=1$.
