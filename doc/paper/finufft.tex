@@ -498,6 +498,7 @@ We use the Fourier transform convention
 
 % 11111111111111111111111111111111111111111111111111111111111111111111111
 \subsection{Type 1: \NU\ to \U}
+\label{s:type1}
 
 We describe the algorithm to compute $\tilde f_\kk$, an approximation
 to $f_\kk$ defined by \eqref{1}.
@@ -1549,6 +1550,7 @@ decay on the semicircle.
 
 % eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 \subsection{NUFFT error bounds for the ES kernel}
+\label{s:ESerr}
 
 Here we combine results from the last two sections to give a rigorous
 asymptotic error estimate when using the ES kernel in the 1D
@@ -1571,15 +1573,15 @@ while for $\gamma<1$ the cutoff is safely smaller than $n-N/2$.
 For a rigorous statement we will not be able to set
 $\gamma=1$, since Thm.~\ref{t:EShat}
 does not cover the case precisely at cutoff.
-In practice we use a safety factor very close to $1$.
+In practice we use a safety factor smaller than, but very close to, $1$.
 
 Our main result is the following, showing exponential convergence
 with respect to the kernel width $w$, up to a weak algebraic prefactor.
 \begin{thm} % ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt
   For the 1D type-1 and 2 NUFFT, fix $N$ and $\rat$ (hence the upsampled grid $n=\sigma N$) and the safety factor $0<\gamma<1$.
-  Then the error $\eps$ defined by \eqref{epsest} convergences with respect to
-  kernel width $w$, when $\freq(w)$ is as in \eqref{gam},
-  as
+  When $\freq(w)$ is chosen as in \eqref{gam},
+  then the error $\eps$ defined by \eqref{epsest} convergences with respect to
+  kernel width $w$ as
   \be
   \eps \;=\; \bigO\left( \sqrt{w} e^{-\pi w \sqrt{\gamma^2(1-1/\rat) - 4(1-\gamma^2)\rat^2}}
   \right)
@@ -1595,7 +1597,7 @@ with respect to the kernel width $w$, up to a weak algebraic prefactor.
   for the \KB\ kernel case, due to Fourmont \cite[p.~30-38]{fourmontthesis},
   summarized in \cite[Sec.~4]{fourmont}.
   The dependence on $w$ was clarified by Potts \cite[p.~30-31]{pottshabil},
-  and summarized in \cite[App.~C]{nfft}, namely, in our notation,
+  and summarized in \cite[App.~C]{nfft}; namely, in our notation,
   \be
   \eps \;\le\; 4\pi   (1-1/\rat)^{1/4}
   \left(\sqrt{\frac{w-1}{2}}+\frac{w-1}{2}\right)
@@ -1603,18 +1605,19 @@ with respect to the kernel width $w$, up to a weak algebraic prefactor.
   ~.
   \label{KBerr}
   \ee
-  In the limit $\gamma\to1^{-}$, our result \eqref{ESerr}
+  In the limit $\gamma\to1^{-}$, our ES result \eqref{ESerr}
   shows the same exponential convergence rate as \eqref{KBerr},
   and with an algebraic prefactor improved by a factor $\sqrt{w}$.
   On the other hand, \eqref{KBerr} has the constant explicit.
   It may be possible to get an explicit constant for the case of the ES kernel,
-  but this is harder
-  because its \FT\ is not known analytically.
+  but this is harder because its \FT\ is not known analytically.
+  The case $\gamma=1$ may be able to be included via a uniform estimate for
+  the 
   % figures suggest algebraic prefactor is merely a difference in method of proof, not real
 \end{rmk}
 
 \begin{proof}
-  Since $h=2\pi/n$, $\rat$, and $\gamma$ are fixed, then both $\freq(w)$
+  Since $n$, $\rat$, and $\gamma$ are fixed, then both $\freq(w)$
   and $\al=\pi w/n$ are proportional to the single asymptotic
   parameter $w \to\infty$.
   We wish to estimate the right hand side of
@@ -1639,16 +1642,18 @@ with respect to the kernel width $w$, up to a weak algebraic prefactor.
   The main task will be to prove that
   \be
   |G(x,k) | \; =\; \bigO(1)
-  ~,\qquad \freq\to\infty~, \quad \mbox{ uniformly in $x$, $|k|\le n/2\rat$~,}
+  ~,\qquad \freq\to\infty~, \quad
+  \mbox{ uniformly in $x\in\RR$, $|k|\le n/2\rat$~,}
   \label{Gunif}
   \ee
   implying that the numerator of \eqref{epsest2} is $\bigO(e^{-\freq})$.
   We will split the sum into three ranges of $|m|$, and discard the
-  phase information in all but the tail.
+  phase information $e^{i(k+mn)x}$ in all but the tail.
 
   Starting with the closest range, let
   $$
-  G_1(k,x) :=  e^{\freq} \sum_{m\neq 0, |\xi_m|<3\freq} \hat\phi(\xi_m) e^{i\xi_m x/\al}~,
+  G_1(k,x) \;:=\;
+  e^{\freq} \sum_{m\neq 0, |\xi_m|<3\freq} \hat\phi(\xi_m) e^{i\xi_m x/\al}~,
   $$
   which involves the ceiling of $4\gamma(1-1/2\rat)$ terms,
   ie at most four terms, independent of $\freq$.
@@ -1660,22 +1665,24 @@ with respect to the kernel width $w$, up to a weak algebraic prefactor.
 
   For the intermediate range, let
   $$
-  G_2(k,x)  :=  e^{\freq} \sum_{3\freq\le|\xi_m|\le\freq^4} \hat\phi(\xi_m) e^{i\xi_m x/\al}~,
+  G_2(k,x) \; :=\;
+  e^{\freq} \sum_{3\freq\le|\xi_m|\le\freq^4} \hat\phi(\xi_m) e^{i\xi_m x/\al}~,
   $$
   which involves $\bigO(\freq^3)$ terms.
   Applying Lemma~\ref{l:EShat4}, and using $\xi_m \sim c \freq m$
   where $c$ is a constant,
   $$
-  |G_2(k,x)| \le C \freq^2 \sum_{m\le \freq^3} \frac{1}{\freq^2 m^2}
+  |G_2(k,x)| \;\le\; C \freq^2 \sum_{m\le \freq^3} \frac{1}{\freq^2 m^2}
   + C \sum_{m\le \freq^3} \frac{1}{\freq m}
   = \bigO(1) + \bigO\left(\frac{\log \freq}{\freq}\right) = \bigO(1)~.
   $$
   Note that a large number of terms were included, but that the tail
-  cannot be handled with this estimate, due to the second term.
+  cannot be handled with this estimate, due to the second sum.
   
   Finally, let the remaining tail be
   $$
-  G_3(k,x)  :=  e^{\freq} \sum_{|\xi_m|\ge\freq^4} \hat\phi(\xi_m) e^{i\xi_m x/\al}~.
+  G_3(k,x)  \;:=\;
+  e^{\freq} \sum_{|\xi_m|\ge\freq^4} \hat\phi(\xi_m) e^{i\xi_m x/\al}~.
   $$
   We apply Lemma~\ref{l:EShat3} to get,
   $$
@@ -1773,7 +1780,7 @@ with grid spacing $h=2\pi/n$ to
   \; \le \; C
   ~, \qquad \mbox{ for all } \al>0~.
   $$
-  Finally the triangle inequality
+  Finally, the triangle inequality
   $$
   \left|
   \sum_{|m|> b} \frac{\sin \al (mn+k)}{mn+k} e^{i(mn+k)x}
@@ -1785,10 +1792,10 @@ with grid spacing $h=2\pi/n$ to
 +
     \left|
   \sum_{1\le|m|\le b} \frac{\sin \al (mn+k)}{mn+k} e^{i(mn+k)x}
-  \right|
+  \right|~,
   $$
   and bounding the second term via the harmonic sum
-  $|\sum_{m=1}^b (k\pm mn)^{-1}| \le C \log b$ gives \eqref{l:Fourmont}.
+  $|\sum_{m=1}^b (k\pm mn)^{-1}| \le C \log b$, gives \eqref{l:Fourmont}.
 \end{proof}
 
 
@@ -1799,10 +1806,16 @@ with grid spacing $h=2\pi/n$ to
 \subsection{Choice of spreading width $w$}
 \label{s:w}
 
-explain why base 10 (one digit per node width).
-comes from $e^{-\gamma}$.
+Armed with the analysis of Sections~\ref{s:errgen}--\ref{s:ESerr},
+we now justify parameter choices given in Section~\ref{s:type1}.
+Fixing $\rat=2$, the choice $\freq(w) = 2.3 w$
+corresponds to a satefy factor of $\gamma \approx 0.976$
+in \eqref{gam}.
 
-and explain $\beta = 2.3 w$.
+*** explain why base 10 (one digit per node width).
+
+Check why above gamma gives only 7.83 rate per $w$ node.
+
 
 
 \subsection{Quadrature evaluation of the kernel Fourier transform}
