@@ -1,0 +1,445 @@
+Development notes.  Barnett.
+
+project layout:
+
+http://hiltmon.com/blog/2013/07/03/a-simple-c-plus-plus-project-structure/
+
+============ C/C++ code optimization
+
+http://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15213-f02/lectures/class10.pdf
+Etc.  A bit old (2002) and too low-level.
+
+-------- matlab openmp + mex: (unsupported)
+
+https://www.mathworks.com/matlabcentral/answers/237411-can-i-make-use-of-openmp-in-my-matlab-mex-files
+
+
+--------- complex math:
+
+Found C complex didn't work in finufft1d_test.cpp unless I did 
+double _Complex
+
+zeroing an array w/ openmp:
+http://stackoverflow.com/questions/11576670/in-an-openmp-parallel-code-would-there-be-any-benefit-for-memset-to-be-run-in-p
+
+====== FFTW:
+
+http://www.fftw.org/faq/section3.html
+ Question 3.6. My Fortran program crashes when calling FFTW.
+As described in the manual, on 64-bit machines you must store the plans in variables large enough to hold a pointer, for example integer*8. We recommend using integer*8 on 32-bit machines as well, to simplify porting. 
+
+
+---------- issue of v slow r2r : (happens to be via julia interface):
+
+ FFTW.REDFT00 and FFT.RODFT00 are ~10x slower than other routines?
+8 posts by 3 authors
+	Sheehan Olver 	
+9/22/15
+I get the following timings with the various FFTW routines, where I ran each line multiple times to make sure it was accurate.  Why are REDFT00 and RODFT00 almost 10x slower?
+
+
+r=rand(100000)
+@time FFTW.r2r(r,FFTW.REDFT00) #0.26s
+@time FFTW.r2r(r,FFTW.REDFT01) #0.0033s
+@time FFTW.r2r(r,FFTW.REDFT10) #0.0035s
+@time FFTW.r2r(r,FFTW.REDFT11) #0.0033s
+@time FFTW.r2r(r,FFTW.RODFT00) #0.017s
+@time FFTW.r2r(r,FFTW.RODFT01) #0.0035s
+@time FFTW.r2r(r,FFTW.RODFT10) #0.0035s
+@time FFTW.r2r(r,FFTW.RODFT11) #0.0035s
+@time fft(r)                   #0.0033s
+
+	Sheehan Olver 	
+9/22/15
+This is in 0.4rc2 on OS X.
+- show quoted text -
+	Páll Haraldsson 	
+9/22/15
+I'm just curious so I looked into it. I'm just, familiar, with what FFT, DCT, IDCT and Fourier transform is for.. but not really that much and my math is fading..
+
+I got similar numbers (I'm on 0.3.11) to you and then I tried with (as I recall power of twos are what you should be using):
+
+r=rand(2^20)
+
+Then numbers are much more closer, but still a gap.
+
+
+You can look at the code and edit! with edit(FFTW.r2r)
+
+I'm not sure the former or latter numbers, are NOT what should be expected (or at least that a slowdown is introduced by Julia).
+
+See here:
+http://www.fftw.org/doc/1d-Real_002deven-DFTs-_0028DCTs_0029.html
+
+That is the (GPL) library that does the heavy lifting (not coded in Julia), and there are the equations behind what you are doing.
+
+
+You could do something like @profile FFTW.r2r(r,FFTW.REDFT00)
+
+And look into how the profiler works (to see the results), but I doubt you'll see much interesting if it only shows the Julia side..
+
+
+By just scanning the code I code like this:
+
+execute(precision::fftwTypeDouble, plan) =
+    ccall((:fftw_execute,libfftw), Void, (Ptr{Void},), plan)
+
+That I assume does all the work (e.g. the FFTW library that it calls).
+
+-- 
+Palli.
+- show quoted text -
+	Steven G. Johnson 	
+9/22/15
+
+
+On Tuesday, September 22, 2015 at 6:51:50 AM UTC-4, Sheehan Olver wrote:
+
+    I get the following timings with the various FFTW routines, where I ran each line multiple times to make sure it was accurate.  Why are REDFT00 and RODFT00 almost 10x slower?
+
+
+This is because a REDFT00 (DCT-I) of n points is exactly equivalent to a DFT of N=2(n-1) points with real-even data.  Although FFTW uses a different algorithm, not a size-N complex FFT, the fast algorithms are essentially equivalent to pruned versions of the FFT algorithms for N, and depend on the factorization of N, not of n.  Similarly for RODFT00 (DST-I), except N=2(n+1) in that case.  In contrast, the other DCT/DST types correspond to DFTs of length N=2n or N=4n or N=8n, so their speed depends on the factorization of n.
+
+If n=100000 as in your example, then n-1 has large prime factors (41, 271), so the FFT algorithms are much slower, although they are still O(n log n).   If you try n=100001, you will notice that REDFT00 becomes much faster (but other DCT types become slower).
+
+This is mentioned in the FFTW manual:
+
+http://www.fftw.org/doc/Real-even_002fodd-DFTs-_0028cosine_002fsine-transforms_0029.html
+
+"FFTW is most efficient when N is a product of small factors; note that this differs from the factorization of the physical size n for REDFT00 and RODFT00!"
+
+	Sheehan Olver 	
+9/23/15
+Hi Steven,
+
+	OK that makes sense.  But why is Julia 2x slower than Matlab for some values of n  (see below, the timing difference is consistent when looped over)?  Shouldn’t they both be using FFTW?
+
+
+julia> r=rand(2000000);plan=plan_fft(r); @time plan*r;
+  0.080122 seconds (12 allocations: 61.035 MB, 12.91% gc time)
+
+julia> r=rand(2000001);plan=plan_fft(r); @time plan*r;
+  0.287002 seconds (12 allocations: 61.036 MB, 3.76% gc time)
+
+julia> r=rand(1999999);plan=plan_fft(r); @time plan*r;
+  0.218389 seconds (12 allocations: 61.035 MB, 4.76% gc time)
+
+
+>> r=rand(2000000,1);tic();fft(r);toc()
+Elapsed time is 0.023956 seconds.
+>> r=rand(2000001,1);tic();fft(r);toc()
+Elapsed time is 0.303320 seconds.
+>> r=rand(1999999,1);tic();fft(r);toc()
+Elapsed time is 0.131212 seconds.
+
+
+
+- show quoted text -
+	Steven G. Johnson 	
+9/23/15
+
+
+On Wednesday, September 23, 2015 at 3:47:43 AM UTC-4, Sheehan Olver wrote:
+
+    	OK that makes sense.  But why is Julia 2x slower than Matlab for some values of n  (see below, the timing difference is consistent when looped over)?  Shouldn’t they both be using FFTW?
+
+
+I think that maybe Matlab defaults to using FFTW's real-data routines when the data is real, whereas Julia only uses the real-data routines if you request them via rfft etc.   (The rfft functions have the advantage of requiring half of the storage for the output compared to a complex FFT, whereas I think Matlab pads the output back to the full length using the mirror symmetries.)
+	Sheehan Olver 	
+9/23/15
+OK that makes sense.  But then why is rfft on a vector length 2*(n-1) more than 2x faster than FFT.REDFT00?
+
+julia> r=rand(100000);@time for k=1:100 FFTW.r2r(r,FFTW.REDFT00) end;
+  2.496130 seconds (8.30 k allocations: 76.703 MB, 0.76% gc time)
+julia> r=rand(2*(100000-1));@time for k=1:100 rfft(r) end;
+  0.943706 seconds (8.30 k allocations: 152.985 MB, 1.58% gc time)
+
+
+
+PS  Why doesn't fft(::Vector{Float64}) automatically call rfft and re-interpret the output?
+- show quoted text -
+	Steven G. Johnson 	
+9/25/15
+
+
+On Wednesday, September 23, 2015 at 9:07:51 PM UTC-4, Sheehan Olver wrote:
+
+    OK that makes sense.  But then why is rfft on a vector length 2*(n-1) more than 2x faster than FFT.REDFT00?
+
+    julia> r=rand(100000);@time for k=1:100 FFTW.r2r(r,FFTW.REDFT00) end;
+      2.496130 seconds (8.30 k allocations: 76.703 MB, 0.76% gc time)
+    julia> r=rand(2*(100000-1));@time for k=1:100 rfft(r) end;
+      0.943706 seconds (8.30 k allocations: 152.985 MB, 1.58% gc time)
+
+
+The short answer is that rfft is much more optimized in FFTW than than the r2r transforms.
+
+The long answer is REDFT00 transforms of even lengths n are especially bad, because the algorithms for this problem are not very attractive.   For an even length, the options are:
+
+   1) use an algorithm from FFTPACK or Numerical Recipes that turns it into a rfft of the same length plus O(n) pre/post-processing.   We implemented this, but don't use it because it seems to suffer from severe accuracy problems: https://github.com/FFTW/fftw3/blob/master/reodft/redft00e-r2hc.c
+    2) pad symmetrically to an rfft of twice the length.  This is accurate, but sacrices a factor of 2 in speed as you noticed:  https://github.com/FFTW/fftw3/blob/master/reodft/redft00e-r2hc-pad.c
+    3) if n-1 has a small prime factor r, implement a pruned version of the analogous radix-r Cooley-Tukey algorithm.  This would work and be accurate, but is a lot of work to implement, and we didn't both except in the case where n is odd (so that we can use radix r=2, or actually split radix: https://github.com/FFTW/fftw3/blob/master/reodft/reodft00e-splitradix.c)
+  
+
+    PS  Why doesn't fft(::Vector{Float64}) automatically call rfft and re-interpret the output? 
+
+
+We could, but my feeling was that if you really care about factors of two in performance, you should be using rfft directly.  That also lets you save a factor of two in memory, and a factor of two in any post-processing computations as well, and additionally lets you save a factor of two in any subsequent inverse transform (if you need it, e.g. for convolutions or filtering).
+
+Matlab, in contrast, doesn't expose an rfft interface, so you can't get all of the savings that are possible in this case.  So they might as well get what they can from fft(x).
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=======================  other FFTs
+
+C port of fftpack:
+
+https://github.com/dagss/libfftpack
+
+is GPL 2+
+
+include with ours for instant compilation?
+
+
+
+
+
+------------------  git
+
+How to bring in changes from a forked project:
+http://stackoverflow.com/questions/7244321/how-do-i-update-a-github-forked-repository
+
+git mergetool --tool=meld
+git rebase --continue
+
+
+
+
+
+================ OpenMP
+
+openmp compile-time switch:
+http://stackoverflow.com/questions/1357604/turn-off-openmp
+
+
+Turn off OpenMP
+up vote
+3
+down vote
+favorite
+1
+	
+
+In my C++ program, I'd like to run its executable sometimes with and sometimes without using OpenMP (i.e. multi-threading or single-threading). I am considering any of the following two cases how my code is using OpenMP:
+
+(1) Assume that my code is only having #include <omp.h> and OpenMP directives.
+
+(2) Same as (1) and my code further calls OpenMP functions like omp_get_thread_num().
+
+In order not to have different code for different running, is it the only way using some self-defined precompiler variable to guard where OpenMP appears in my code ?
+
+Thanks and regards!
+c++ parallel-processing openmp
+shareimprove this question
+	
+edited Aug 31 '09 at 16:15
+ire_and_curses
+46.6k2189119
+	
+asked Aug 31 '09 at 14:01
+Tim
+20.1k80190290
+	
+add a comment
+4 Answers
+active
+oldest
+votes
+up vote
+2
+down vote
+accepted
+	
+
+Hi the easiest way to do this is
+
+omp_set_num_threads(m_iUseableProcessors);
+
+where m_iUseableProcessors is the number of processors you want to split the calculation over. I don't know how to do it without the OpenMP functions. You could probably #ifdef them out, but that makes you turn off OpenMP at compile time.
+shareimprove this answer
+	
+answered Aug 31 '09 at 14:33
+Steve
+5,94295689
+	
+add a comment
+up vote
+9
+down vote
+	
+
+You can use the environment variable:
+
+set OMP_NUM_THREADS=1
+
+Actually, it will not turn OpenMP off. It will force OpenMP to create only one thread for an application. It works without recompilation. I use this variable to test scalability on 1, 2, 3, 4 etc threads.
+shareimprove this answer
+	
+answered Sep 2 '09 at 13:32
+Vladimir Obrizan
+1,79111125
+	
+add a comment
+up vote
+3
+down vote
+	
+
+You can put the include as follows:
+
+#ifdef _OPENMP_
+#include<omp.h> 
+#endif
+
+Now if you run your program without -fopenmp flag, it would ignore openmp directives
+shareimprove this answer
+	
+answered Mar 3 '10 at 22:04
+lava
+5561714
+	
+1 	 
+	
+In VS2010 the macro is "_OPENMP" not "_OPENMP_" – Jonathan Neufeld Apr 4 '13 at 9:50
+add a comment
+up vote
+0
+down vote
+	
+
+In addition to the suggestion of _OPENMP, you might find it useful to use C99's _Pragma (or __pragma, if you use some C++ compilers - see this StackOverflow question for details) to prevent your code from being littered with #ifdef _OPENMP and #endif, thereby reducing the lines associated with conditional compilation by 3x, and otherwise giving you O(1) control over O(n) instances of OpenMP annotations.
+
+For example, I use the following style in my C99 OpenMP codes. The changes to support C++ should be fairly modest, although possibly compiler-specific (in which case, macros like __GNUC__, __clang__, __INTEL_COMPILER, etc. may be useful).
+
+#ifndef PRAGMA_OPENMP_H
+#define PRAGMA_OPENMP_H
+
+#if defined(_OPENMP) && ( __STDC_VERSION__ >= 199901L )
+
+#define PRAGMA(x) _Pragma(#x)
+
+#define OMP_PARALLEL PRAGMA(omp parallel)
+#define OMP_PARALLEL_FOR PRAGMA(omp parallel for schedule(static))
+#define OMP_FOR PRAGMA(omp for schedule(static))
+
+#define OMP_PARALLEL_FOR_COLLAPSE(n) PRAGMA(omp parallel for collapse(n) schedule(static))
+#define OMP_PARALLEL_FOR_COLLAPSE2 OMP_PARALLEL_FOR_COLLAPSE(2)
+#define OMP_PARALLEL_FOR_COLLAPSE3 OMP_PARALLEL_FOR_COLLAPSE(3)
+#define OMP_PARALLEL_FOR_COLLAPSE4 OMP_PARALLEL_FOR_COLLAPSE(4)
+
+#define OMP_PARALLEL_FOR_REDUCE_ADD(r) PRAGMA(omp parallel for reduction (+ : r) schedule(static))
+
+#else
+
+#warning No OpenMP, either because compiler does not understand OpenMP or C99 _Pragma.
+
+#define OMP_PARALLEL
+#define OMP_PARALLEL_FOR
+#define OMP_FOR
+#define OMP_PARALLEL_FOR_COLLAPSE(n)
+#define OMP_PARALLEL_FOR_COLLAPSE2
+#define OMP_PARALLEL_FOR_COLLAPSE3
+#define OMP_PARALLEL_FOR_COLLAPSE4
+#define OMP_PARALLEL_FOR_REDUCE_ADD(r)
+
+#endif
+
+#endif // PRAGMA_OPENMP_H
+
+
+
+
+
+
+
+http://stackoverflow.com/questions/7847900/disable-openmp-in-nice-way
+
+
+If you do not compile with -fopenmp option, you won't get the parallel code. You can do it with an appropiate define and makefile that generates all codes.
+
+The OpenMP documentation says (only an example):
+
+#ifdef _OPENMP
+   #include <omp.h>
+#else
+   #define omp_get_thread_num() 0
+#endif
+
+See http://www.openmp.org/mp-documents/spec30.pdf (conditional compilation).
+shareimprove this answer
+	
+answered Dec 5 '11 at 19:03
+snatverk
+40829
+	
+   	 
+	
+This is what I was looking for! – darxsys Aug 7 '13 at 2:03
+   	 
+	
+The above conditional still works without providing the else statement. – sinner Jul 13 '16 at 18:09
+add a comment
+up vote
+2
+down vote
+	
+
+The way such things are usually handled (the general case) is with #defines and #ifdef:
+
+In your header file:
+
+#ifndef SINGLETHREADED
+#pragma omp
+#endif
+
+When you compile, add -DSINGLETHREADED to disable OpenMP:
+
+cc  -DSINGLETHREADED <other flags go here> code.c
+
+
+
+
+======================================================
+
+OCTAVE - mkoctfile < 4.0.0 doesn't allow -std=c++11 as a flag
+
+http://octave.1599824.n4.nabble.com/how-to-compile-c-0x-file-with-mkoctfile-command-td4653616.html
+
+You have to do this via the CFLAGS variable, my makefile does:
+
+COMMON_CXX =  -Wall -Wextra -std=c++11 -O4
+OCT_CXX = `mkoctfile -p CXXFLAGS` $(COMMON_CXX)
+all:
+    CXXFLAGS="$(OCT_CXX)" \
+         mkoctfile traclus-octave.cpp -o traclus.oct
+
+
+============= issues of whether use int32 or int64 interface for libraries =====
+
+https://github.com/numpy/numpy/issues/5906
+

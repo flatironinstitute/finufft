@@ -1,4 +1,70 @@
-List of tasks accomplished / changes made, in chronological order:
+List of tasks accomplished / changes made / release notes, in reverse
+chronological order:
+
+V 0.9:
+
+* removed the 1/M type-1 prefactor, also in all test routines. 6/6/17
+* removed timestamp-based make decision whether to rebuild matlab/finufft.cpp, since git clone creates files with random timestamp order!
+* theory work on exp(sqrt) being close to PSWF. Analysis.
+* fix issue w/ needing mwrap when do make matlab.
+* makefile has variables customizing openmp and precision, non-omp tested
+* fortran single-prec demos (required all direct ft's in single prec too!)
+* examples changed to err rel to max F.
+* matlab interface control of opts.spread_sort.
+* matlab interface using doubles as big ints w/ correct typecasting.
+* twopispread removed, used flag in spread_opts for [-pi,pi] input instead.
+* testfinufft* use same integer type INT as for interfaces, typecast all %ld in printf warnings, use omp rand array filling
+* INT64 for necessary size-setting arrays, removed all %lf printf warnings in finufft*
+* all internal array indexing is BIGINT, switchable from long long to int via SMALLINT compile flag (default off, see utils.h)
+* all integers in interfaces are type INT, default 64-bit, switchable to 32 bit by INTERGER32 compile flag (see utils.h)
+* test big probs (speed, crashing) and decide if BIGINT is long long or int?
+slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
+* tidy up spreader to be BIGINT = long long compatible and test > 2^31.
+* spreadtest parallel rand()
+* sort flag passed to spreader via finufft, and test scripts check if Xeon (-> sort=0)
+* opts in the manual
+* removed all xk2, dNU2 sorted arrays, and not-needed dims y,z; halved RAM usage.
+
+V 0.8: (3/27/17)
+
+* bnderr checking done in dir=1,2 main loops, not before.
+* all kx2, dNU2 arrays removed, just done by permutation index when needed.
+* MAC OSX test, makefile, instructions.
+* matlab wrappers in 3D
+* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux. Link to .a
+* matlab wrappers need ier output? yes, and internal omp numthreads control (since matlab's is poor)
+* wrappers for MEX octave, instructions. Ship .mex for octave.
+* python wrappers - Dan Foreman-Mackey starting to add something similar to https://github.com/dfm/python-nufft
+* check is done before attempting to malloc ridiculous array sizes, eg if a large product of x width and k width is requested in type 3 transforms.
+* draft make python
+* basic manual (txt)
+
+V. 0.7:
+
+* build static & shared lib
+* fixed bug when Nth>Ntop
+* fortran drivers use dynamic malloc to prevent stack segfaults that CMCL had
+* bugs found in fortran drivers, removed
+* split out devel text files (TODO, etc)
+* made pass-fail test script counting crashes and numdiff fails.
+* finufft?d_test have a no-timings option, and exit with ier.
+* global error codes
+* made finufft routines & testers return error codes rather than exit().
+* dumbinput test executable
+* found nan returned error for nj=0 in type-1, fixed so returns the zero array.
+* fixed type 2 to not segfault when ms,mt, or mu=0, doing dir=2 0-padding right
+* array utils use pointers to make which vars they write to explicit.
+* don't do final type-3 rephase if C1 nan or 0.
+* finished all dumbinputs, all dims
+* fortran compilation fixed
+* makefile self-documents
+* nf1 (etc) size check before alloc, exit gracefully if exceeds RAM
+* integrate into nufft_comparison, esp vs NFFT - jfm did
+* simple examples, simpler than the test drivers
+* fortran link via gfortran, better fortran docs
+* boilerplate stuff as in CMCL page
+
+pre-V. 0.7: (Jan-Feb 2017)
 
 * efficient modulo in spreader, done by conditionals
 * removed data-zeroing bug in t-II spreader, slowness of large arrays in t-I.
@@ -37,25 +103,4 @@ List of tasks accomplished / changes made, in chronological order:
 * changed library interface and twopispread to dcomplex
 * fortran wrappers (rmdir greengard_work, merge needed into fortran)
 
-V. 0.7:
-
-* build static & shared lib
-* fixed bug when Nth>Ntop
-* fortran drivers use dynamic malloc
-* bugs found in fortran drivers, removed
-* split out devel text files (TODO, etc)
-* made pass-fail test script counting crashes and numdiff fails.
-* finufft?d_test have a no-timings option, and exit with ier.
-* global error codes
-* made finufft routines & testers return error codes rather than exit().
-* dumbinput test executable
-* found nan returned error for nj=0 in type-1, fixed so returns the zero array.
-* fixed type 2 to not segfault when ms,mt, or mu=0, doing dir=2 0-padding right
-* array utils use pointers to make which vars they write to explicit.
-* don't do final type-3 rephase if C1 nan or 0.
-* finished all dumbinputs all dims
-* fortran compilation fixed
-* makefile self-documents
-* nf1 (etc) size check before alloc, exit gracefully if exceeds RAM
-* integrate into nufft_comparison, esp vs NFFT - jfm did; run.
-* simple examples, simpler than the test drivers
+Started mid-January 2017

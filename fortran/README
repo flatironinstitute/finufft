@@ -2,16 +2,27 @@ This directory contains Fortran wrappers to the FINUFFT C++ library,
 and older test codes changed little from the CMCL NUFFT library apart from
 that they call the FINUFFT library.
 
-The interfaces are identical to those of CMCL (ie drop-in replacements).
+The interfaces are identical to those of CMCL (ie drop-in replacements),
+apart from the type-1 no longer have the 1/nj normalization.
 The naming is:
 finufftNdM_f(...)  where N=dimensions (1,2 or 3) and M=type (1,2 or 3).
 
-Note that, on a linux system, to link your Fortran against the FINUFFT C++
-library, you may want to use g++, with the -lgfortran at the *end* of the
-compile statement.
+Note that, on a linux system, to compile and
+link a Fortran program against the FINUFFT
+library, use the following:
+
+gfortran nufft1d_demo.f dirft1d.f -o nufft1d_demo ../lib/libfinufft.a -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
+
+For Mac OSX, replace fftw3_omp by fftw3_threads.
+Or, if you compiled a single-threaded version:
+
+gfortran nufft1d_demo.f dirft1d.f -o nufft1d_demo ../lib/libfinufft.a -lstdc++ -lfftw3 -lm
+
+Alternatively you may want to compile with g++ and use -lgfortran at the *end* of the compile statement.
 
 See ../makefile
 Eg
 (cd ..; make fortran)
 
-Barnett 2/17/17
+Barnett 3/21/17; normalization updatesd 6/6/17
+

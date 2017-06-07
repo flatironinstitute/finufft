@@ -1,11 +1,19 @@
 #!/bin/bash
-# main script to looop through all validation tests for FINUFFT library.
-# Barnett 3/14/17. no-numdiff option 3/16/17
+# main script to loop through all validation tests for FINUFFT library.
+# Barnett 3/14/17. numdiff-free option 3/16/17
+# currently uses default spread_opts.sort_data 3/28/17, default tols 4/5/17
 
+# These two can be overridden by setting shell env vars:
+# requested accuracy...
+: ${FINUFFT_REQ_TOL:="1e-6"}
+# acceptable resulting accuracy...
+: ${FINUFFT_CHECK_TOL:="2e-4"}
 # Note that bash cannot handle floating-point arithmetic, and bc cannot read
-# exponent notation. Thus the exponent notation here is purely string in nature:
-export FINUFFT_REQ_TOL=1e-12          # requested acc, passed to check?d.sh
-FINUFFT_CHECK_TOL=1e-11               # allow up to 1 digit worse then requested
+# exponent notation. Thus the exponent notation above is purely string in nature
+
+# so check?d.sh sees it...
+export FINUFFT_REQ_TOL
+
 DIR=results
 
 TESTS="testutils check1d.sh check2d.sh check3d.sh dumbinputs"
@@ -47,7 +55,7 @@ else
 	echo
     done
     echo "$CRASHES crashes out of $N tests done"
-    echo "Please check by eye that the numerical output has errors at expected level1!"
-    echo "(or install numdiff and rerun)"
+    echo "Please check by eye that the numerical output has errors at expected level!"
+    echo "(or install numdiff and rerun; see ../INSTALL.md)"
     exit $((CRASHES))               # use total as exit code
 fi

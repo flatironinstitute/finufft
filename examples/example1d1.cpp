@@ -1,16 +1,17 @@
-// this is all you need to include...
+// this is all you must include...
 #include "../src/finufft.h"
 #include <complex>
-// needed for this example...
+// also needed for this example...
 #include <stdio.h>
 using namespace std;
 
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C++, using plain
-   arrays of complex numbers, with a math test. Barnett 3/10/17
+   arrays of C++ complex numbers, with a math test. Barnett 3/10/17
+   Double-precision version (see example1d1f for single-precision)
 
    Compile with:
-   g++ -std=c++11 -fopenmp example1d1.cpp ../lib/libfinufft.a -o example1d1  -lfftw3 -lfftw3_omp -lm
+   g++ -std=c++11 -fopenmp example1d1.cpp ../lib/libfinufft.a -o example1d1  -lfftw3 -lfftw3_threads -lm
    or if you have built a single-core version:
    g++ -std=c++11 example1d1.cpp ../lib/libfinufft.a -o example1d1 -lfftw3 -lm
 
@@ -22,7 +23,7 @@ int main(int argc, char* argv[])
   double acc = 1e-9;      // desired accuracy
   nufft_opts opts;        // default options struct for the library
   complex<double> I = complex<double>{0.0,1.0};  // the imaginary unit
-
+  
   // generate some random nonuniform points (x) and complex strengths (c):
   double *x = (double *)malloc(sizeof(double)*M);
   complex<double>* c = (complex<double>*)malloc(sizeof(complex<double>)*M);
@@ -39,10 +40,15 @@ int main(int argc, char* argv[])
   int n = 142519;   // check the answer just for this mode...
   complex<double> Ftest = {0,0};
   for (int j=0; j<M; ++j)
-    Ftest += c[j] * exp(I*(double)n*x[j]) / (double)M;
-  int nout = n+N/2;       // index in output array for freq mode n
-  double err = abs((F[nout] - Ftest)/Ftest);
-  printf("1D type-1 NUFFT done. Relative error in F[%d] is %.3g\n",n,err);
+    Ftest += c[j] * exp(I*(double)n*x[j]);
+  int nout = n+N/2;        // index in output array for freq mode n
+  double Fmax = 0.0;       // compute inf norm of F
+  for (int m=0; m<N; ++m) {
+    double aF = abs(F[m]);
+    if (aF>Fmax) Fmax=aF;
+  }
+  double err = abs(F[nout] - Ftest)/Fmax;
+  printf("1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
 
   free(x); free(c); free(F);
   return ier;

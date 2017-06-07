@@ -1,5 +1,4 @@
 #include "finufft.h"
-#include "twopispread.h"
 #include "common.h"
 #include <fftw3.h>
 #include <math.h>
@@ -7,33 +6,32 @@
 #include <iostream>
 #include <iomanip>
 
-int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
-	       double eps, BIGINT ms, BIGINT mt, dcomplex* fk, nufft_opts opts)
+int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
+	       FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
-                  1  nj-1
-     f[k1,k2] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
-                 nj  j=0
+                  nj-1
+     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
+                  j=0
  
-     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2, and nj>0.
-     If nj=0, f is identically zero.
+     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
      The output array is in increasing k1 ordering (fast), then increasing
      k2 ordering (slow). If iflag>0 the + sign is
      used, otherwise the - sign is used, in the exponential.
                            
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
+     nj     number of sources
      xj,yj     x,y locations of sources on 2D domain [-pi,pi]^2.
-     cj     size-nj complex double array of source strengths, 
-            (ie, stored as 2*nj doubles interleaving Re, Im).
+     cj     size-nj complex FLT array of source strengths, 
+            (ie, stored as 2*nj FLTs interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
      ms,mt  number of Fourier modes requested in x and y; each may be even or odd;
             in either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   struct controlling options (see finufft.h)
    Outputs:
-     fk     complex double array of Fourier transform values
+     fk     complex FLT array of Fourier transform values
             (size ms*mt, increasing fast in ms then slow in mt,
             ie Fortran ordering).
      returned value - 0 if success, else:
@@ -54,62 +52,63 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
+  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
   if (nf1*nf2>opts.maxnalloc) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",ms,mt,nf1,nf2,nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
-  double *fwkerhalf1 = fftw_alloc_real(nf1/2+1);
-  double *fwkerhalf2 = fftw_alloc_real(nf2/2+1);
+  FLT *fwkerhalf1 = FFTW_ALLOC_RE(nf1/2+1);
+  FLT *fwkerhalf2 = FFTW_ALLOC_RE(nf2/2+1);
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
   int nth = MY_OMP_GET_MAX_THREADS();
   if (nth>1) {             // set up multithreaded fftw stuff...
-    fftw_init_threads();
-    fftw_plan_with_nthreads(nth);
+    FFTW_INIT();
+    FFTW_PLAN_TH(nth);
   }
   timer.restart();
-  fftw_complex *fw = fftw_alloc_complex(nf1*nf2);  // working upsampled array
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
-  fftw_plan p = fftw_plan_dft_2d(nf2,nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
+  FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
   if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
 
   // Step 1: spread from irregular points to regular grid
   timer.restart();
   spopts.debug = opts.spread_debug;
+  spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 1;
-  int ier_spread = twopispread2d(nf1,nf2,(dcomplex*)fw,nj,xj,yj,cj,spopts);
+  spopts.pirange = 1; FLT *dummy;
+  int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
 
   // Step 2:  Call FFT
   timer.restart();
-  fftw_execute(p);
-  fftw_destroy_plan(p);
+  FFTW_EX(p);
+  FFTW_DE(p);
   if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  double prefac = (nj==0) ? 1.0 : 1.0/nj;    // 1/nj prefac, handle nj=0 case!
-  deconvolveshuffle2d(1,prefac,fwkerhalf1,fwkerhalf2,ms,mt,(double*)fk,nf1,nf2,fw);
+  deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
-  fftw_free(fw); fftw_free(fwkerhalf1); fftw_free(fwkerhalf2);
+  FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2);
   if (opts.debug) printf("freed\n");
   return 0;
 }
 
-int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps,
-	       BIGINT ms, BIGINT mt, dcomplex* fk, nufft_opts opts)
+int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
+	       INT ms, INT mt, CPX* fk, nufft_opts opts)
 
  /*  Type-2 2D complex nonuniform FFT.
 
@@ -120,7 +119,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
    Inputs:
      nj     number of sources (integer of type BIGINT; see utils.h)
      xj,yj     x,y locations of sources on 2D domain [-pi,pi]^2.
-     fk     double complex array of Fourier transform values (size ms*mt,
+     fk     FLT complex array of Fourier transform values (size ms*mt,
             increasing fast in ms then slow in mt, ie Fortran ordering),
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
@@ -128,7 +127,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
             in either case the mode range is integers lying in [-m/2, (m-1)/2].
      opts   struct controlling options (see finufft.h)
    Outputs:
-     cj     size-nj complex double array of source strengths
+     cj     size-nj complex FLT array of source strengths
      returned value - 0 if success, else:
                       1 : eps too small
 		      2 : size of arrays to malloc exceed opts.maxnalloc
@@ -146,61 +145,63 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
+  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
   if (nf1*nf2>opts.maxnalloc) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",ms,mt,nf1,nf2,nj); 
+  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
-  double *fwkerhalf1 = fftw_alloc_real(nf1/2+1);
-  double *fwkerhalf2 = fftw_alloc_real(nf2/2+1);
+  FLT *fwkerhalf1 = FFTW_ALLOC_RE(nf1/2+1);
+  FLT *fwkerhalf2 = FFTW_ALLOC_RE(nf2/2+1);
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
   int nth = MY_OMP_GET_MAX_THREADS();
   if (nth>1) {             // set up multithreaded fftw stuff...
-    fftw_init_threads();
-    fftw_plan_with_nthreads(nth);
+    FFTW_INIT();
+    FFTW_PLAN_TH(nth);
   }
   timer.restart();
-  fftw_complex *fw = fftw_alloc_complex(nf1*nf2);  // working upsampled array
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
-  fftw_plan p = fftw_plan_dft_2d(nf2,nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
+  FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
   if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
   timer.restart();
-  deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(double*)fk,nf1,nf2,fw);
+  deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw);
   if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
   //cout<<"fw:\n"; for (int j=0;j<nf1*nf2;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
 
   // Step 2:  Call FFT
   timer.restart();
-  fftw_execute(p);
-  fftw_destroy_plan(p);
+  FFTW_EX(p);
+  FFTW_DE(p);
   if (opts.debug) printf("fft (%d threads):\t %.3g s\n",nth,timer.elapsedsec());
 
   // Step 3: unspread (interpolate) from regular to irregular target pts
   timer.restart();
   spopts.debug = opts.spread_debug;
+  spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 2;
-  int ier_spread = twopispread2d(nf1,nf2,(dcomplex*)fw,nj,xj,yj,cj,spopts);
+  spopts.pirange = 1; FLT *dummy;
+  int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
 
-  fftw_free(fw); fftw_free(fwkerhalf1); fftw_free(fwkerhalf2);
+  FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2);
   if (opts.debug) printf("freed\n");
   return 0;
 }
 
-int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double eps, BIGINT nk, double* s, double *t, dcomplex* fk, nufft_opts opts)
+int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts)
  /*  Type-3 2D complex nonuniform FFT.
 
                nj-1
@@ -209,15 +210,15 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
    Inputs:
      nj     number of sources (integer of type BIGINT; see utils.h)
      xj,yj  x,y location of sources in R^2.
-     cj     size-nj complex double array of source strengths, 
-            (ie, stored as 2*nj doubles interleaving Re, Im).
+     cj     size-nj complex FLT array of source strengths, 
+            (ie, stored as 2*nj FLTs interleaving Re, Im).
      nk     number of frequency target points
      s,t    (k_x,k_y) frequency locations of targets in R^2.
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
      opts   struct controlling options (see finufft.h)
    Outputs:
-     fk     complex double Fourier transform values at the target frequencies sk
+     fk     complex FLT Fourier transform values at the target frequencies sk
      returned value - 0 if success, else:
                       1 : eps too small
 		      2 : size of arrays to malloc exceed opts.maxnalloc
@@ -236,7 +237,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
      iii) Shifts in x (real) and s (Fourier) are done to minimize the interval
        half-widths X and S, hence nf, in each dim.
 
-   No references to FFTW are needed here. Some dcomplex arithmetic is used,
+   No references to FFTW are needed here. Some CPX arithmetic is used,
    thus compile with -Ofast in GNU.
    Barnett 2/17/17
  */
@@ -244,64 +245,66 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
   spread_opts spopts;
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
-  BIGINT nf1,nf2;
-  double X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2;
+  INT64 nf1,nf2;
+  FLT X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2;
   cout << scientific << setprecision(15);  // for debug
 
   // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
   CNTime timer; timer.start();
-  arraywidcen(nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
-  arraywidcen(nk,s,&S1,&D1);   // {s_k}
-  arraywidcen(nj,yj,&X2,&C2);  // {y_j}
-  arraywidcen(nk,t,&S2,&D2);   // {t_k}
+  arraywidcen((BIGINT)nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
+  arraywidcen((BIGINT)nk,s,&S1,&D1);   // {s_k}
+  arraywidcen((BIGINT)nj,yj,&X2,&C2);  // {y_j}
+  arraywidcen((BIGINT)nk,t,&S2,&D2);   // {t_k}
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
-  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,nj,nk);
+  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,(INT64)nj,(INT64)nk);
   if (nf1*nf2>opts.maxnalloc) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds maxnalloc of %.3g\n",(double)nf1*nf2,(double)opts.maxnalloc);
     return ERR_MAXNALLOC;
   }
-  double* xpj = (double*)malloc(sizeof(double)*nj);
-  double* ypj = (double*)malloc(sizeof(double)*nj);
+  FLT* xpj = (FLT*)malloc(sizeof(FLT)*nj);
+  FLT* ypj = (FLT*)malloc(sizeof(FLT)*nj);
   for (BIGINT j=0;j<nj;++j) {
     xpj[j] = (xj[j]-C1) / gam1;          // rescale x_j
     ypj[j] = (yj[j]-C2) / gam2;          // rescale y_j
   }
-  dcomplex imasign = (iflag>=0) ? ima : -ima;
-  dcomplex* cpj = (dcomplex*)malloc(sizeof(dcomplex)*nj);  // c'_j rephased src
+  CPX imasign = (iflag>=0) ? ima : -ima;
+  CPX* cpj = (CPX*)malloc(sizeof(CPX)*nj);  // c'_j rephased src
 #pragma omp parallel for schedule(dynamic)                // since cexp slow
   for (BIGINT j=0;j<nj;++j)
     cpj[j] = cj[j] * exp(imasign*(D1*xj[j]+D2*yj[j]));   // rephase c_j -> c'_j
   if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
 
   // Step 1: spread from irregular sources to regular grid as in type 1
-  dcomplex* fw = (dcomplex*)malloc(sizeof(dcomplex)*nf1*nf2);
+  CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2);
   timer.restart();
   spopts.debug = opts.spread_debug;
+  spopts.sort_data = opts.spread_sort;
   spopts.spread_direction = 1;
-  int ier_spread = twopispread2d(nf1,nf2,fw,nj,xpj,ypj,cpj,spopts);
+  spopts.pirange = 1; FLT *dummy;
+  int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xpj,ypj,dummy,(FLT*)cpj,spopts);
   free(xpj); free(ypj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
 
   // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
   timer.restart();
-  double *sp = (double*)malloc(sizeof(double)*nk);     // rescaled targs s'_k
-  double *tp = (double*)malloc(sizeof(double)*nk);     // t'_k
+  FLT *sp = (FLT*)malloc(sizeof(FLT)*nk);     // rescaled targs s'_k
+  FLT *tp = (FLT*)malloc(sizeof(FLT)*nk);     // t'_k
   for (BIGINT k=0;k<nk;++k) {
     sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
     tp[k] = h2*gam2*(t[k]-D2);                         // so that |t'_k| < pi/R
   }
-  int ier_t2 = finufft2d2(nk,sp,tp,fk,iflag,eps,nf1,nf2,fw,opts);
+  int ier_t2 = finufft2d2(nk,sp,tp,fk,iflag,eps,(INT)nf1,(INT)nf2,fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2) exit(ier_t2);
 
   // Step 3a: compute Fourier transform of scaled kernel at targets
   timer.restart();
-  double *fkker1 = (double*)malloc(sizeof(double)*nk);
-  double *fkker2 = (double*)malloc(sizeof(double)*nk);
+  FLT *fkker1 = (FLT*)malloc(sizeof(FLT)*nk);
+  FLT *fkker2 = (FLT*)malloc(sizeof(FLT)*nk);
   // exploit that Fourier transform separates because kernel built separable...
   onedim_nuft_kernel(nk, sp, fkker1, spopts);           // fill fkker1
   onedim_nuft_kernel(nk, tp, fkker2, spopts);           // fill fkker2
@@ -311,7 +314,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
   if (isfinite(C1) && isfinite(C2) && (C1!=0.0 || C2!=0.0))
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
     for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2 shift
-      fk[k] *= (dcomplex)(1.0/(fkker1[k]*fkker2[k])) *
+      fk[k] *= (CPX)(1.0/(fkker1[k]*fkker2[k])) *
 	        exp(imasign*((s[k]-D1)*C1 + (t[k]-D2)*C2));
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 

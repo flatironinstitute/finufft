@@ -1,0 +1,52 @@
+* Get obscure refs on PSWF:
+H. J. W. Müller : Asymptotic expansions of prolate spheroidal wave functions and their characteristic numbers, J. reine angew. Math. 212 (1963) 26 – 48.
+
+* think about changing the 1/M definition in type-1. Surely is messy,
+so t-2 and t-1 not adjoints, etc.
+Check w/ Leslie. Change in paper and code.
+
+* check signs of t-1,2,3 by default, and adj of 1 is 2.
+
+* run time vs # threads (strong scaling).
+
+* Time vs N size, error vs N size, as Townsend.
+
+* compare checkerboard blocking vs current z-axis.
+
+* ask/find out why NFFT takes 50 sec to plan a 200^3 modes case!
+Put in the paper graphs.
+Make sure we're using right precomputation mode - try PRE_PSI vs PRE_FULL_PSI.
+Could it be the FFTW_ESTIMATE?
+
+* Volkmer - openmp for nfft.
+Potts 2003 claims to introduce K-B to NFFT.
+But surely known in med img / MRI ? Jackson is 1991.
+
+* Ferrara nufft code cite. Has no type-3.
+
+
+
+THOUGHTS / IMPROVEMENTS:
+
+* note in code, kernel is on [-w/2,w/2], but in paper it's [-1,1] for
+simplicity.
+
+* could skip a rescaling step by allowing a general domain scale in
+cnufftspread, rather than [0,N] or [-pi,pi]. If allowed [-A,A],
+could avoid one round of rescaling.
+
+* switch off C1 etc shift in t-3 when <0.1 X1, etc.
+
+---------- done:
+
+* analysis for K-B refs - emailed Potts (others bounced) - got the info.
+
+* our analysis - sum of tail? too hard
+
+* got:
+J MEIXNER AND F  W SCHAFKE, 
+"Mathleusche FunktIonen
+und SpharoldfunktIOnen", Springer-Verlag, Berlin, 1954 
+Eg Fuchs cites for Hermite asymptotics in central region,
+Chap. 3, Theorem 9, p. 243,
+

@@ -21,8 +21,9 @@ lrsrc = "legendre_rule_fast.cpp"
 shutil.copyfile(os.path.join(contribdir, "legendre_rule_fast.c"), lrsrc)
 
 srcdir = os.path.join(srcdir, "src")
+# AHB removed twopispread.cpp since no longer needed...
 srcfiles = [
-    "cnufftspread.cpp", "utils.cpp", "common.cpp", "twopispread.cpp",
+    "cnufftspread.cpp", "utils.cpp", "common.cpp",
     "finufft1d.cpp", "finufft2d.cpp", "finufft3d.cpp",
 ]
 srcfiles = [os.path.join(srcdir, fn) for fn in srcfiles]
