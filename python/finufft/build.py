@@ -70,20 +70,7 @@ class build_ext(_build_ext):
         "unix": [],
     }
 
-    if sys.platform == "darwin":
-        c_opts["unix"] += ["-stdlib=libc++", "-mmacosx-version-min=10.7"]
-
     def build_extensions(self):
-        # Add the libraries
-        print("Checking libraries...")
-        libraries = ["fftw3", "fftw3_threads", "fftw3_omp", "m", "stdc++",
-                     "gomp"]
-        libraries = [lib for lib in libraries
-                     if has_library(self.compiler, lib)]
-        print("Final libraries: {0}".format(libraries))
-        for ext in self.extensions:
-            ext.libraries += libraries
-
         # Add the numpy and pybind11 include directories
         import numpy
         import pybind11
@@ -99,18 +86,45 @@ class build_ext(_build_ext):
         ct = self.compiler.compiler_type
         opts = self.c_opts.get(ct, [])
         if ct == "unix":
-            print("Checking compiler flags...")
-            opts = ["-funroll-loops", "-fvisibility=hidden",
-                    "-Wno-unused-function", "-Wno-uninitialized", "-O4",
-                    "-fopenmp"]
-            opts = [flag for flag in opts if has_flag(self.compiler, flag)]
-            print("Final flags: {0}".format(opts))
-
             opts.append("-DVERSION_INFO=\"{0:s}\""
                         .format(self.distribution.get_version()))
 
-            print("Checking for C++11/14 support...")
+            print("testing C++14/C++11 support")
             opts.append(cpp_flag(self.compiler))
+
+            libraries = ["fftw3", "m", "stdc++", "c++"]
+
+            # Check for OpenMP support first.
+            if has_flag(self.compiler, "-fopenmp"):
+                print("found omp...")
+                libraries += ["gomp", "fftw3_threads", "fftw3_omp"]
+
+            # Add the libraries
+            print("checking libraries...")
+            libraries = [lib for lib in libraries
+                         if has_library(self.compiler, lib)]
+            print("libraries: {0}".format(libraries))
+            for ext in self.extensions:
+                ext.libraries += libraries
+
+            flags = ["-O3", "-Ofast", "-stdlib=libc++", "-fvisibility=hidden",
+                     "-Wno-unused-function", "-Wno-uninitialized",
+                     "-Wno-unused-local-typedefs", "-funroll-loops",
+                     "-fopenmp"]
+
+            # Mac specific flags and libraries
+            if sys.platform == "darwin":
+                flags += ["-march=native", "-mmacosx-version-min=10.9"]
+                for ext in self.extensions:
+                    ext.extra_link_args += ["-mmacosx-version-min=10.9",
+                                            "-march=native"]
+
+            # Check the flags
+            print("testing compiler flags")
+            for flag in flags:
+                if has_flag(self.compiler, flag):
+                    opts.append(flag)
+
         elif ct == "msvc":
             opts.append('/DVERSION_INFO=\\"{0:s}\\"'
                         .format(self.distribution.get_version()))
