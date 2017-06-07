@@ -233,4 +233,4 @@ plan=init_data.plan;
 M=length(x);
 plan.f=d';
 nfft_adjoint(plan);
-X=reshape(plan.fhat,[N1,N2,N3])/M;
+X=reshape(plan.fhat,[N1,N2,N3]);  % ahb removed 1/M prefac to match finufft
