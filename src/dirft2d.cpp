@@ -1,13 +1,14 @@
 #include "dirft.h"
 #include <iostream>
 
-// This is basically a port of dirft2d.f from CMCL package.
+// This is basically a port of dirft2d.f from CMCL package, except with
+// the 1/nj prefactors for type-1 removed.
 
 void dirft2d1(INT nj,FLT* x,FLT *y,CPX* c,int iflag,INT ms, INT mt, CPX* f)
 /* Direct computation of 2D type-1 nonuniform FFT. Interface same as finufft2d1.
-c                  1  nj-1
-c     f[k1,k2] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
-c                 nj  j=0
+c                  nj-1
+c     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
+c                  j=0
 c
 c     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 c     The output array is in increasing k1 ordering (fast), then increasing
@@ -24,11 +25,11 @@ c     used, otherwise the - sign is used, in the exponential.
     CPX a2 = (iflag>0) ? exp(ima*y[j]) : exp(-ima*y[j]);
     CPX sp1 = pow(a1,(FLT)k1min);  // starting phase for most neg k1 freq  
     CPX p2 = pow(a2,(FLT)k2min);
-    CPX cc = c[j]/(FLT)nj;   // 1/nj norm
+    CPX cc = c[j];                 // no 1/nj norm
     INT m=0;      // output pointer
     for (INT m2=0;m2<mt;++m2) {
-      CPX p1 = sp1;               // must reset p1 for each inner loop
-      for (INT m1=0;m1<ms;++m1) {   // ms is fast, mt slow
+      CPX p1 = sp1;                // must reset p1 for each inner loop
+      for (INT m1=0;m1<ms;++m1) {  // ms is fast, mt slow
 	f[m++] += cc * p1 * p2;
 	p1 *= a1;
       }

@@ -78,7 +78,6 @@ int main(int argc, char* argv[])
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (INT j=0; j<M; ++j)
     Ft += c[j] * exp(ima*((FLT)(isign*nt))*x[j]);
-  Ft /= M;
   printf("one mode: rel err in F[%ld] is %.3g\n",(INT64)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
   if ((INT64)M*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);

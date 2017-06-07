@@ -14,9 +14,9 @@ cc
 c ----------------------------------------------------------------------
 c     direct computation of nonuniform FFT
 c
-c                     1  nj
-c     fk(k1,k2,k3) = -- SUM cj(j) exp(+/-i k1 xj(j)) *
-c                    nj j=1       exp(+/-i k2 yj(j)) *
+c                      nj
+c     fk(k1,k2,k3) =  SUM cj(j) exp(+/-i k1 xj(j)) *
+c                     j=1       exp(+/-i k2 yj(j)) *
 c                                 exp(+/-i k3 zj(j))
 c
 c     for -ms/2 <= k1 <= (ms-1)/2, 
@@ -81,7 +81,7 @@ c
             zf = cmplx(cos(zj(j)),-sin(zj(j)))
          endif
 c
-         cm2 = cj(j) / dble(nj)
+         cm2 = cj(j)
          do k3 = 0, (mu-1)/2
             do k2 = -mt/2, (mt-1)/2
                cm1 = cm2 * z2n(k2)
@@ -93,7 +93,7 @@ c
          enddo
 c
          zf = conjg(zf)
-         cm2 = cj(j) / dble(nj)
+         cm2 = cj(j)
          do k3 = -1, -mu/2, -1
             cm2 = zf*cm2
             do k2 = -mt/2, (mt-1)/2

@@ -6,10 +6,9 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 %
 % Type-1 1D complex nonuniform FFT.
 %
-%              1 nj
-%     f(k1) = -- SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-%             nj j=1                            
-%                        if nj>0, else f identically zero for nj=0.
+%               nj
+%     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
+%              j=1                            
 %   Inputs:
 %     x     location of sources on interval [-pi,pi], length nj
 %     c     size-nj complex array of source strengths

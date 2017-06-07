@@ -22,7 +22,7 @@ tic;
 fprintf('done in %.3g s, ier=%d\n',toc,ier)
 if ~ier
   nt = ceil(0.37*N);                              % pick a mode index
-  fe = (1/M)*sum(c.*exp(1i*isign*nt*x));          % exact
+  fe = sum(c.*exp(1i*isign*nt*x));                % exact
   of1 = floor(N/2)+1;                             % mode index offset
   fprintf('rel err in F[%d] is %.3g\n',nt,abs((fe-f(nt+of1))/fe))
 end
@@ -41,4 +41,4 @@ ce = sum(f.*exp(1i*isign*mm*x(j)));             % crucial f, mm same shape
 fprintf('1D type-2: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 end
 
-% conclusion: we get zeros out if >=2^31
+% conclusion: we get zeros output if >=2^31. Fix this issue w/ mex interface.

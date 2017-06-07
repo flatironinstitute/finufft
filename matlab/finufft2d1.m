@@ -6,12 +6,12 @@ function [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 %
 % Type-1 2D complex nonuniform FFT.
 %
-%                 1   nj
-%     f[k1,k2] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
-%                 nj  j=1
+%                   nj
+%     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
+%                  j=1
 % 
-%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2, and nj>0.
-%                        if nj=0, f identically zero.
+%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
+%
 %   Inputs:
 %     x,y   locations of NU sources on the square [-pi,pi]^2, each length nj
 %     c     size-nj complex array of source strengths

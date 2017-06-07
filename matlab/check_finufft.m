@@ -1,5 +1,5 @@
 % Matlab/octave demo of interfaces for FINUFFT libraries, also checks the math.
-% Barnett 3/24/17
+% Barnett 3/24/17; updated normalization in type-1 6/6/17.
 
 % Runtime is around 5-15 seconds on a modern machine
 
@@ -21,7 +21,7 @@ x = pi*(2*rand(1,M)-1);
 c = randn(1,M)+1i*randn(1,M);
 [f ier] = finufft1d1(x,c,isign,eps,N,o);
 nt = ceil(0.37*N);                              % pick a mode index
-fe = (1/M)*sum(c.*exp(1i*isign*nt*x));          % exact
+fe = sum(c.*exp(1i*isign*nt*x));                % exact
 of1 = floor(N/2)+1;                             % mode index offset
 fprintf('1D type-1: rel err in F[%d] is %.3g\n',nt,abs((fe-f(nt+of1))/fe))
 
@@ -45,7 +45,7 @@ x = pi*(2*rand(1,M)-1); y = pi*(2*rand(1,M)-1);
 c = randn(1,M)+1i*randn(1,M);
 [f ier] = finufft2d1(x,y,c,isign,eps,N1,N2,o);
 nt1 = ceil(0.45*N1); nt2 = ceil(-0.35*N2);                % pick mode indices
-fe = (1/M)*sum(c.*exp(1i*isign*(nt1*x+nt2*y)));           % exact
+fe = sum(c.*exp(1i*isign*(nt1*x+nt2*y)));                 % exact
 of1 = floor(N1/2)+1; of2 = floor(N2/2)+1;                 % mode index offsets
 fprintf('2D type-1: rel err in F[%d,%d] is %.3g\n',nt1,nt2,abs((fe-f(nt1+of1,nt2+of2))/fe))
 
@@ -72,7 +72,7 @@ x = pi*(2*rand(1,M)-1); y = pi*(2*rand(1,M)-1); z = pi*(2*rand(1,M)-1);
 c = randn(1,M)+1i*randn(1,M);
 [f ier] = finufft3d1(x,y,z,c,isign,eps,N1,N2,N3,o);
 nt1 = ceil(0.45*N1); nt2 = ceil(-0.35*N2); nt3 = ceil(0.17*N3);
-fe = (1/M)*sum(c.*exp(1i*isign*(nt1*x+nt2*y+nt3*z)));           % exact
+fe = sum(c.*exp(1i*isign*(nt1*x+nt2*y+nt3*z)));                 % exact
 of1 = floor(N1/2)+1; of2 = floor(N2/2)+1; of3 = floor(N3/2)+1;  % index offsets
 fprintf('3D type-1: rel err in F[%d,%d,%d] is %.3g\n',nt1,nt2,nt3,abs((fe-f(nt1+of1,nt2+of2,nt3+of3))/fe))
 

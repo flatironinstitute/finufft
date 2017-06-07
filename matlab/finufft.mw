@@ -24,10 +24,9 @@ $ #include "finufft_m.h"
 %
 % Type-1 1D complex nonuniform FFT.
 %
-%              1 nj
-%     f(k1) = -- SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-%             nj j=1                            
-%                        if nj>0, else f identically zero for nj=0.
+%               nj
+%     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
+%              j=1                            
 %   Inputs:
 %     x     location of sources on interval [-pi,pi], length nj
 %     c     size-nj complex array of source strengths
@@ -147,12 +146,12 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %
 % Type-1 2D complex nonuniform FFT.
 %
-%                 1   nj
-%     f[k1,k2] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
-%                 nj  j=1
+%                   nj
+%     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
+%                  j=1
 % 
-%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2, and nj>0.
-%                        if nj=0, f identically zero.
+%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
+%
 %   Inputs:
 %     x,y   locations of NU sources on the square [-pi,pi]^2, each length nj
 %     c     size-nj complex array of source strengths
@@ -276,13 +275,13 @@ if numel(t)~=nk, error('t must have the same number of elements as s'); end
 %
 % Type-1 3D complex nonuniform FFT.
 %
-%                     1   nj
-%     f[k1,k2,k3] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
-%                    nj  j=1
+%                       nj
+%     f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
+%                      j=1
 % 
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
-%         -mu/2 <= k3 <= (mu-1)/2,  and nj>0.
-%                        if nj=0, f identically zero.
+%         -mu/2 <= k3 <= (mu-1)/2.
+%
 %   Inputs:
 %     x,y,z locations of NU sources on [-pi,pi]^3, each length nj
 %     c     size-nj complex array of source strengths

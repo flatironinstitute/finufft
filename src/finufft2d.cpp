@@ -10,12 +10,11 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	       FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
-                  1  nj-1
-     f[k1,k2] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
-                 nj  j=0
+                  nj-1
+     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
+                  j=0
  
-     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2, and nj>0.
-     If nj=0, f is identically zero.
+     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
      The output array is in increasing k1 ordering (fast), then increasing
      k2 ordering (slow). If iflag>0 the + sign is
@@ -100,8 +99,7 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  FLT prefac = (nj==0) ? 1.0 : 1.0/nj;    // 1/nj prefac, handle nj=0 case!
-  deconvolveshuffle2d(1,prefac,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw);
+  deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2);

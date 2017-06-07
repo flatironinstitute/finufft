@@ -79,7 +79,6 @@ int main(int argc, char* argv[])
   CPX Ft = {0,0}, J = ima*(FLT)isign;
   for (INT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
-  Ft /= M;
   INT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
   printf("one mode: rel err in F[%ld,%ld] is %.3g\n",(INT64)nt1,(INT64)nt2,abs(Ft-F[it])/infnorm(N,F));
   if ((INT64)M*N<=BIGPROB) {                   // also check vs full direct eval

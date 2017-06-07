@@ -38,12 +38,12 @@ int main(int argc, char* argv[])
   // call the NUFFT C interface (with iflag=+1):
   ier = finufft1d1_c(M,x,c,+1,acc,N,F);
 
-  n = 142519;   // check the answer just for this mode...
+  n = 142519;         // check the answer just for this mode...
   Ftest = 0.0;
   for (j=0; j<M; ++j)
-    Ftest += c[j] * cexp(I*(double)n*x[j]) / (double)M;
+    Ftest += c[j] * cexp(I*(double)n*x[j]);
   nout = n+N/2;       // index in output array for freq mode n
-  Fmax = 0.0;       // compute inf norm of F
+  Fmax = 0.0;         // compute inf norm of F
   for (m=0; m<N; ++m) {
     aF = cabs(F[m]);
     if (aF>Fmax) Fmax=aF;

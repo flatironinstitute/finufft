@@ -83,7 +83,6 @@ int main(int argc, char* argv[])
   CPX Ft = {0,0}, J = ima*(FLT)isign;
   for (INT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
-  Ft /= M;
   // index in complex F as 1d array...
   INT it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);
   printf("one mode: rel err in F[%ld,%ld,%ld] is %.3g\n",(INT64)nt1,(INT64)nt2,(INT64)nt3,

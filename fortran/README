@@ -2,7 +2,8 @@ This directory contains Fortran wrappers to the FINUFFT C++ library,
 and older test codes changed little from the CMCL NUFFT library apart from
 that they call the FINUFFT library.
 
-The interfaces are identical to those of CMCL (ie drop-in replacements).
+The interfaces are identical to those of CMCL (ie drop-in replacements),
+apart from the type-1 no longer have the 1/nj normalization.
 The naming is:
 finufftNdM_f(...)  where N=dimensions (1,2 or 3) and M=type (1,2 or 3).
 
@@ -23,4 +24,5 @@ See ../makefile
 Eg
 (cd ..; make fortran)
 
-Barnett 3/21/17
+Barnett 3/21/17; normalization updatesd 6/6/17
+

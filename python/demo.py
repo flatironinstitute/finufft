@@ -18,7 +18,7 @@ print("Finished nufft in {0:.2e} seconds. Checking..."
 n = 142519
 Ftest = 0.0
 for j in range(M):
-    Ftest += c[j] * np.exp(n * x[j] * 1.j) / M
+    Ftest += c[j] * np.exp(n * x[j] * 1.j)
 Fmax = np.max(np.abs(F));
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0}".format(err))

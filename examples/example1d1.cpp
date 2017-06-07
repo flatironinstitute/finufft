@@ -40,8 +40,8 @@ int main(int argc, char* argv[])
   int n = 142519;   // check the answer just for this mode...
   complex<double> Ftest = {0,0};
   for (int j=0; j<M; ++j)
-    Ftest += c[j] * exp(I*(double)n*x[j]) / (double)M;
-  int nout = n+N/2;       // index in output array for freq mode n
+    Ftest += c[j] * exp(I*(double)n*x[j]);
+  int nout = n+N/2;        // index in output array for freq mode n
   double Fmax = 0.0;       // compute inf norm of F
   for (int m=0; m<N; ++m) {
     double aF = abs(F[m]);

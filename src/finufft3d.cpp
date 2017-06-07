@@ -11,13 +11,12 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 	       nufft_opts opts)
  /*  Type-1 3D complex nonuniform FFT.
 
-                     1  nj-1
-     f[k1,k2,k3] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
-                    nj  j=0
+                     nj-1
+     f[k1,k2,k3] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
+                     j=0
 
 	for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
-            -mu/2 <= k3 <= (mu-1)/2,  and nj>0.
-     If nj=0, f is identically zero.
+            -mu/2 <= k3 <= (mu-1)/2.
 
      The output array is in increasing k orderings. k1 is fastest, k2 middle,
      and k3 slowest, ie Fortran ordering. If iflag>0 the + sign is
@@ -106,8 +105,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  FLT prefac = (nj==0) ? 1.0 : 1.0/nj;    // 1/nj prefac, handle nj=0 case!
-  deconvolveshuffle3d(1,prefac,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(FLT*)fk,nf1,nf2,nf3,fw);
+  deconvolveshuffle3d(1,1.0,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(FLT*)fk,nf1,nf2,nf3,fw);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2); FFTW_FR(fwkerhalf3);

@@ -256,6 +256,9 @@ The type-3 estimate was improved by Elbel--Steidl \cite{elbel}.
 
 Beylkin and his B-splines. REF.
 
+CITE Boyd's book, describes type-2 via no precorrection, just upsampled FFT
+then interp.
+
 in 1D, trig poly interp plus FMM for kernel, Dutt--R II.
 
 The CMCL NUFFT package \cite{cmcl} uses truncated Gaussians
@@ -328,8 +331,9 @@ simplicity.''
 Recently Ruiz-Antol\'in and Townsend
 \cite{townsendnufft} devised an algorithm
 based on stable low rank approximation, that
-trades upsampling for the evaluation of several FFTs (of order $w^d$ of them);
-this may have advantages in certain parallel settings.
+replaces upsampling by the evaluation of several size-$N$
+FFTs (of order $w^d$ of them);
+this may have advantages in certain parallel or RAM-limited settings.
 
 
 

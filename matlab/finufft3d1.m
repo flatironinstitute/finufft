@@ -6,13 +6,13 @@ function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 %
 % Type-1 3D complex nonuniform FFT.
 %
-%                     1   nj
-%     f[k1,k2,k3] =  --  SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
-%                    nj  j=1
+%                       nj
+%     f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
+%                      j=1
 % 
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
-%         -mu/2 <= k3 <= (mu-1)/2,  and nj>0.
-%                        if nj=0, f identically zero.
+%         -mu/2 <= k3 <= (mu-1)/2.
+%
 %   Inputs:
 %     x,y,z locations of NU sources on [-pi,pi]^3, each length nj
 %     c     size-nj complex array of source strengths
