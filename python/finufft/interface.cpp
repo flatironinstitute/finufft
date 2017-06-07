@@ -6,6 +6,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include "dirft.h"
 #include "finufft.h"
 
 namespace py = pybind11;
@@ -75,25 +76,23 @@ py::array_t<CPX> nufft1d1(
   return result;
 }
 
+
 py::array_t<CPX> nufft1d2(
-  py::array_t<FLT> xj, py::array_t<CPX> cj,
-  INT ms,
+  py::array_t<FLT> xj, py::array_t<CPX> fk,
   FLT eps, int iflag, FLT R, int debug, int spread_debug, int spread_sort, INT64 maxnalloc
 ) {
   // Check the dimensions
   auto buf_x = xj.request(),
-       buf_c = cj.request();
-  if (buf_x.ndim != 1 || buf_c.ndim != 1)
-    throw finufft_error("xj and cj must be 1-dimensional");
-  if (buf_x.size != buf_c.size)
-    throw finufft_error("xj and cj must be the same length");
-  long n = buf_x.size;
+       buf_F = fk.request();
+  if (buf_x.ndim != 1 || buf_F.ndim != 1)
+    throw finufft_error("xj and fk must be 1-dimensional");
+  long n = buf_x.size, ms = buf_F.size;
 
   ASSEMBLE_OPTIONS
 
   // Allocate output
-  auto result = py::array_t<CPX>(ms);
-  auto buf_F = result.request();
+  auto result = py::array_t<CPX>(n);
+  auto buf_c = result.request();
 
   // Run the driver
   int ier = finufft1d2(
@@ -142,6 +141,87 @@ py::array_t<CPX> nufft1d3(
   return result;
 }
 
+// ----------------
+// DIRECT INTERFACE
+// ----------------
+
+py::array_t<CPX> dirft1d1_(
+  py::array_t<FLT> xj, py::array_t<CPX> cj, INT ms, int iflag
+) {
+  // Check the dimensions
+  auto buf_x = xj.request(),
+       buf_c = cj.request();
+  if (buf_x.ndim != 1 || buf_c.ndim != 1)
+    throw finufft_error("xj and cj must be 1-dimensional");
+  if (buf_x.size != buf_c.size)
+    throw finufft_error("xj and cj must be the same length");
+  long n = buf_x.size;
+
+  // Allocate output
+  auto result = py::array_t<CPX>(ms);
+  auto buf_F = result.request();
+
+  // Run the driver
+  dirft1d1(
+    n, (FLT*)buf_x.ptr, (CPX*)buf_c.ptr,
+    iflag, ms, (CPX*)buf_F.ptr
+  );
+
+  return result;
+}
+
+py::array_t<CPX> dirft1d2_(
+  py::array_t<FLT> xj, py::array_t<CPX> fk, int iflag
+) {
+  // Check the dimensions
+  auto buf_x = xj.request(),
+       buf_F = fk.request();
+  if (buf_x.ndim != 1 || buf_F.ndim != 1)
+    throw finufft_error("xj and fk must be 1-dimensional");
+  long n = buf_x.size,
+       ms = buf_F.size;
+
+  // Allocate output
+  auto result = py::array_t<CPX>(n);
+  auto buf_c = result.request();
+
+  // Run the driver
+  dirft1d2(
+    n, (FLT*)buf_x.ptr, (CPX*)buf_c.ptr,
+    iflag, ms, (CPX*)buf_F.ptr
+  );
+
+  return result;
+}
+
+py::array_t<CPX> dirft1d3_(
+  py::array_t<FLT> xj, py::array_t<CPX> cj, py::array_t<FLT> s, int iflag
+) {
+  // Check the dimensions
+  auto buf_x = xj.request(),
+       buf_c = cj.request(),
+       buf_s = s.request();
+  if (buf_x.ndim != 1 || buf_c.ndim != 1 || buf_s.ndim != 1)
+    throw finufft_error("xj, cj, and s must be 1-dimensional");
+  if (buf_x.size != buf_c.size)
+    throw finufft_error("xj and cj must be the same length");
+  long n = buf_x.size,
+       ms = buf_s.size;
+
+  // Allocate output
+  auto result = py::array_t<CPX>(ms);
+  auto buf_F = result.request();
+
+  // Run the driver
+  dirft1d3(
+    n, (FLT*)buf_x.ptr, (CPX*)buf_c.ptr,
+    iflag, ms, (FLT*)buf_s.ptr, (CPX*)buf_F.ptr
+  );
+
+  return result;
+}
+
+
 PYBIND11_PLUGIN(interface) {
   py::module m("interface", R"delim(
 Docs
@@ -165,7 +245,7 @@ Args:
     iflag (int): if >=0, uses + sign in exponential, otherwise - sign.
 
 Returns:
-     fk (complex[ms]): FLT complex array of Fourier transform values
+    fk (complex[ms]): FLT complex array of Fourier transform values
         (increasing mode ordering)
 
 )delim",
@@ -192,19 +272,16 @@ Type-2 1D complex nonuniform FFT
 
 Args:
     xj (float[n]): location of sources on interval [-pi, pi]
-    cj (complex[n]): FLT complex array of source strengths
-    ms (int): number of Fourier modes computed, may be even or odd;
-        in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+    fk (complex[ms]): complex FLT array of nj answers at targets
     eps (float): precision requested (>1e-16)
     iflag (int): if >=0, uses + sign in exponential, otherwise - sign.
 
 Returns:
-     fk (complex[ms]): complex FLT array of nj answers at targets
+    cj (complex[n]): FLT complex array of source strengths
 
 )delim",
     py::arg("xj"),
-    py::arg("cj"),
-    py::arg("ms"),
+    py::arg("fk"),
     py::arg("eps") = 1.0e-9,
     py::arg("iflag") = 1,
     py::arg("R") = 2.0,
@@ -244,6 +321,25 @@ Returns:
     py::arg("spread_debug") = 0,
     py::arg("spread_sort") = 1,
     py::arg("maxnalloc") = (int64_t)(1e9)
+  );
+
+  // DIRECT
+  m.def("dirft1d1", &dirft1d1_, "Type-1 1D direct",
+    py::arg("xj"),
+    py::arg("cj"),
+    py::arg("ms"),
+    py::arg("iflag") = 1
+  );
+  m.def("dirft1d2", &dirft1d2_, "Type-2 1D direct",
+    py::arg("xj"),
+    py::arg("fk"),
+    py::arg("iflag") = 1
+  );
+  m.def("dirft1d3", &dirft1d3_, "Type-3 1D direct",
+    py::arg("xj"),
+    py::arg("fk"),
+    py::arg("s"),
+    py::arg("iflag") = 1
   );
 
   py::register_exception<finufft_error>(m, "FINUFFTError");

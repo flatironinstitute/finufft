@@ -25,6 +25,7 @@ srcdir = os.path.join(srcdir, "src")
 srcfiles = [
     "cnufftspread.cpp", "utils.cpp", "common.cpp",
     "finufft1d.cpp", "finufft2d.cpp", "finufft3d.cpp",
+    "dirft1d.cpp", "dirft2d.cpp", "dirft3d.cpp",
 ]
 srcfiles = [os.path.join(srcdir, fn) for fn in srcfiles]
 srcfiles += [lrsrc]
