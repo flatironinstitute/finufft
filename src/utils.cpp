@@ -52,13 +52,22 @@ void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi)
   }
 }
 
+#define OKGROW 0.1
+
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
-// writes out w = half-width and c = center of interval enclosing all a[n]'s
+// Writes out w = half-width and c = center of an interval enclosing all a[n]'s
+// Only chooses a nonzero center if this increases w by less than fraction
+// OKGROW defined above. This prevents rephasings which don't grow nf by much
+// 6/8/17
 {
   FLT lo,hi;
   arrayrange(n,a,&lo,&hi);
   *w = (hi-lo)/2;
   *c = (hi+lo)/2;
+  if (FABS(*c)<OKGROW*(*w)) {
+    *w += FABS(*c);
+    *c = 0.0;
+  }
 }
 
 INT64 next235even(INT64 n)

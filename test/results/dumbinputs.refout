@@ -8,7 +8,9 @@
 1d3 tol=0:	ier=1 (should complain)
 1d3 nk=0:	ier=0
 1d3 M=0:	ier=0	nrm(F)=0 (should vanish)
-1d3 M=1:	ier=0	nrm(F)=3.16
+1d3 M=1:	ier=0	nrm(err)=0.0000
+1d3 N=1:	ier=0	err=0.0000
+1d3 M=N=1:	ier=0	err=0.0000
 1d3 XK prod too big:	ier=2 (should complain)
 2D dumb cases ----------------
 2d1 tol=0:	ier=1 (should complain)

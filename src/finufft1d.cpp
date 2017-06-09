@@ -250,7 +250,6 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
   CNTime timer; timer.start();
   arraywidcen((BIGINT)nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
   arraywidcen((BIGINT)nk,s,&S1,&D1);   // get half-width, center, containing {s_k}
-  // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,(INT64)nj,(INT64)nk);
   if (nf1>opts.maxnalloc) {
@@ -259,14 +258,18 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
   }
   FLT* xpj = (FLT*)malloc(sizeof(FLT)*nj);
   for (BIGINT j=0;j<nj;++j)
-    xpj[j] = (xj[j]-C1) / gam1;                           // rescale x_j
+    xpj[j] = (xj[j]-C1) / gam1;                          // rescale x_j
   CPX imasign = (iflag>=0) ? ima : -ima;
   CPX* cpj = (CPX*)malloc(sizeof(CPX)*nj); // c'_j rephased src
-#pragma omp parallel for schedule(dynamic)                // since cexp slow
-  for (BIGINT j=0;j<nj;++j)
-    cpj[j] = cj[j] * exp(imasign*D1*xj[j]);              // rephase c_j -> c'_j
-  if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
-
+  if (D1!=0.0) {
+#pragma omp parallel for schedule(dynamic)               // since cexp slow
+    for (BIGINT j=0;j<nj;++j)
+      cpj[j] = cj[j] * exp(imasign*D1*xj[j]);            // rephase c_j -> c'_j
+    if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
+  } else
+    for (BIGINT j=0;j<nj;++j)
+      cpj[j] = cj[j];                                    // just copy over
+  
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1);
   timer.restart();
@@ -302,6 +305,10 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
     for (BIGINT k=0;k<nk;++k)          // also phases to account for C1 x-shift
       fk[k] *= (CPX)(1.0/fkker[k]) * exp(imasign*(s[k]-D1)*C1);
+  else
+#pragma omp parallel for schedule(dynamic)
+    for (BIGINT k=0;k<nk;++k)
+      fk[k] *= (CPX)(1.0/fkker[k]);
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
   free(fkker); free(sp); if (opts.debug) printf("freed\n");

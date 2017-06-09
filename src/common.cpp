@@ -45,11 +45,12 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
   //printf("initial nf=%ld, ns=%d\n",*nf,spopts.nspread);
   // catch too small nf, and nan or +-inf, otherwise spread fails...
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;
-  if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
-    *nf = next235even(*nf);                        // expensive at huge nf
-  *h = 2*PI / *nf;                          // upsampled grid spacing
-  *gam = (X/PI)/(1.0 - nss/(FLT)*nf);    // x scale fac
-  *gam = max(*gam,(FLT)1.0/S);                // safely handle X=0 (zero width)
+  if (*nf<opts.maxnalloc)                     // otherwise will fail anyway
+    *nf = next235even(*nf);                   // expensive at huge nf
+  *h = 2*PI / *nf;                            // upsampled grid spacing
+  *gam = (X/PI)/(1.0 - nss/(FLT)*nf);         // x scale fac
+  // CHECK THIS:
+  *gam = max(*gam,(FLT)1.0/max(S,1.0));       // safely handle X=0 and/or S=0
 }
 
 void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)

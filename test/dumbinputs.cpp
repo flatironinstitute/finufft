@@ -1,4 +1,5 @@
 #include "../src/finufft.h"
+#include "../src/dirft.h"
 #include <complex>
 #include <stdio.h>
 using namespace std;
@@ -18,11 +19,11 @@ int main(int argc, char* argv[])
 {
   int M = 100;            // number of nonuniform points
   int N = 10;             // # modes, keep small, also output NU pts in type 3
-  FLT acc = 1e-6;      // desired accuracy
+  FLT acc = 1e-6;         // desired accuracy
   nufft_opts opts;        // default options struct for the library
 
   int NN = N*N*N;         // modes F alloc size since we'll go to 3d
-  // generate some random nonuniform points (x) and complex strengths (c):
+  // generate some "random" nonuniform points (x) and complex strengths (c):
   FLT *x = (FLT *)malloc(sizeof(FLT)*M);
   CPX* c = (CPX*)malloc(sizeof(CPX)*M);
   for (int j=0; j<M; ++j) {
@@ -37,6 +38,9 @@ int main(int argc, char* argv[])
   FLT huge = 1e10;          // somewhat bigger than opts.maxnalloc
   for (int k=0; k<N; ++k) shuge[k] = huge * s[k];     // huge coords
 
+  // alloc exact output array
+  CPX* Fe = (CPX*)malloc(sizeof(CPX)*NN);
+ 
   // some useful debug printing...
   //for (int k=0;k<N;++k) printf("F[%d] = %g+%gi\n",k,real(F[k]),imag(F[k]));
   //for (int j=0;j<M;++j) printf("c[%d] = %g+%gi\n",j,real(c[j]),imag(c[j]));
@@ -65,7 +69,14 @@ int main(int argc, char* argv[])
   ier = finufft1d3(0,x,c,+1,acc,N,s,F,opts);
   printf("1d3 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
   ier = finufft1d3(1,x,c,+1,acc,N,s,F,opts);   // XK prod formally 0
-  printf("1d3 M=1:\tier=%d\tnrm(F)=%.3g\n",ier,twonorm(N,F));
+  dirft1d3(1,x,c,+1,N,s,Fe); for (int k=0; k<N; ++k) F[k] -= Fe[k]; // acc chk
+  printf("1d3 M=1:\tier=%d\tnrm(err)=%.4f\n",ier,twonorm(N,F));  // to 1e-4 abs
+  ier = finufft1d3(M,x,c,+1,acc,1,s,F,opts);   // "
+  dirft1d3(M,x,c,+1,1,s,Fe);
+  printf("1d3 N=1:\tier=%d\terr=%.4f\n",ier,abs(F[0]-Fe[0]));
+  ier = finufft1d3(1,x,c,+1,acc,1,s,F,opts);   // "
+  dirft1d3(1,x,c,+1,1,s,Fe);
+  printf("1d3 M=N=1:\tier=%d\terr=%.4f\n",ier,abs(F[0]-Fe[0]));
   ier = finufft1d3(M,x,c,+1,acc,N,shuge,F,opts);
   printf("1d3 XK prod too big:\tier=%d (should complain)\n",ier);
 
