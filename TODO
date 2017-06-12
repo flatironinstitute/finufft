@@ -2,7 +2,6 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
-* fix the 1-target case in type-3, all dims, which currently gives nan!
 * adapt adv4 into main code, inner loops separate by dim, kill the current spreader.
 * add FFTW_MEAS vs EST (set as default) opts flag in nufft_opts.
 * remove opts.maxnalloc in favor of just checking if mallocs return 0.
@@ -21,7 +20,6 @@ HIGHER PRIORITY:
 * github.io webpage
 * Licensing: proper FI license; deal with Nick Hale's Gauss-Legendre nodes code is GPL - replace w/ any small-n G-L code.
 * release, outreach, users, NA-Digest
-
 
 LOWER PRIORITY:
 

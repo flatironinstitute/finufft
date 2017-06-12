@@ -271,6 +271,21 @@ flops - DISCUSS.
 
 Cite Nikos+Xiaobai.
 
+
+
+
+% NOtes on KB:  6/11/17
+% Fourmont 03, Potts, other germans, use backwards KB pair,
+% ie I_0 on the k side, so there is no aliasing error, just the spreading
+% func has exp small tails which do not die.
+% Error estimate then involves the spreading sum over these tails
+% (Fourmont).
+%  Fessler 03 uses I_0 on the x spreading side, so spreading kernel cpt
+% support, and the error is all due to aliasing.
+% (Fessler's weird sqrt() factor infront goes away for m=0 order case).
+
+
+*** FIX THIS SINCE FOURMONT, POTTS, ETC USE KB PAIR BACKWARDS. FESSLER NOT.
 It has been observed that the so-called
 \KB\ kernel, shown in Fig.~\ref{f:kernel},
 \be
@@ -519,6 +534,9 @@ and the kernel frequency parameter $\freq = 2.3 w$.
 These rules of thumb, appropriate for the ES or KB kernel with
 $\rat=2$, will be justified in Sec.~\ref{s:w}.
 
+% Fessler uses 2.35  - maybe we should try that?
+
+
 \subsubsection{1D case}
 \label{s:1d1}
 
@@ -591,7 +609,8 @@ samples of the Fourier transform%
   of the grid samples of the kernel $\{\ppsi(lh)\}_{l=0}^{n-1}$.
   However, in our
   experience this causes around twice the error of \eqref{pk1},
-  as can be justified by the discussion in Sec.~\ref{s:err}.}
+  as can be justified by the discussion in Sec.~\ref{s:err}.
+Fessler and Sutton \cite[Sec.~V.C.3]{fessler} reports a similar finding.}
 of the scaled kernel,
 \be p_k = h / \hat\psi(k)~ = 2/(w\hat\phi(\alpha k)), \qquad k\in\KK
 \label{pk1}

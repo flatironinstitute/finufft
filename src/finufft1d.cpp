@@ -236,7 +236,7 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
 
    No references to FFTW are needed here. CPX arithmetic is used,
    thus compile with -Ofast in GNU.
-   Barnett 2/7/17-2/9/17
+   Barnett 2/7/17-6/9/17. 
  */
 {
   spread_opts spopts;

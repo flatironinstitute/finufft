@@ -239,7 +239,7 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
 
    No references to FFTW are needed here. Some CPX arithmetic is used,
    thus compile with -Ofast in GNU.
-   Barnett 2/17/17
+   Barnett 2/17/17, 6/12/17
  */
 {
   spread_opts spopts;
@@ -271,10 +271,14 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
   }
   CPX imasign = (iflag>=0) ? ima : -ima;
   CPX* cpj = (CPX*)malloc(sizeof(CPX)*nj);  // c'_j rephased src
-#pragma omp parallel for schedule(dynamic)                // since cexp slow
-  for (BIGINT j=0;j<nj;++j)
-    cpj[j] = cj[j] * exp(imasign*(D1*xj[j]+D2*yj[j]));   // rephase c_j -> c'_j
-  if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
+  if (D1!=0.0 || D2!=0.0) {
+#pragma omp parallel for schedule(dynamic)               // since cexp slow
+    for (BIGINT j=0;j<nj;++j)
+      cpj[j] = cj[j] * exp(imasign*(D1*xj[j]+D2*yj[j])); // rephase c_j -> c'_j
+    if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
+  } else
+    for (BIGINT j=0;j<nj;++j)
+      cpj[j] = cj[j];                                    // just copy over
 
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2);
@@ -315,7 +319,11 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
     for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2 shift
       fk[k] *= (CPX)(1.0/(fkker1[k]*fkker2[k])) *
-	        exp(imasign*((s[k]-D1)*C1 + (t[k]-D2)*C2));
+	exp(imasign*((s[k]-D1)*C1 + (t[k]-D2)*C2));
+  else
+#pragma omp parallel for schedule(dynamic)
+    for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2 shift
+      fk[k] *= (CPX)(1.0/(fkker1[k]*fkker2[k]));
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
   free(fkker1); free(fkker2); free(sp); if (opts.debug) printf("freed\n");

@@ -260,7 +260,7 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 
    No references to FFTW are needed here. Some CPX arithmetic is used,
    thus compile with -Ofast in GNU.
-   Barnett 2/17/17
+   Barnett 2/17/17, 6/12/17
  */
 {
   spread_opts spopts;
@@ -299,11 +299,15 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   }
   CPX imasign = (iflag>=0) ? ima : -ima;
   CPX* cpj = (CPX*)malloc(sizeof(CPX)*nj);  // c'_j rephased src
+  if (D1!=0.0 || D2!=0.0 || D3!=0.0) {
 #pragma omp parallel for schedule(dynamic)                // since cexp slow
-  for (BIGINT j=0;j<nj;++j)
-    cpj[j] = cj[j] * exp(imasign*(D1*xj[j]+D2*yj[j]+D3*zj[j])); // rephase
-  if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
-
+    for (BIGINT j=0;j<nj;++j)
+      cpj[j] = cj[j] * exp(imasign*(D1*xj[j]+D2*yj[j]+D3*zj[j])); // rephase
+    if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
+  } else
+    for (BIGINT j=0;j<nj;++j)
+      cpj[j] = cj[j];                                    // just copy over
+  
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2*nf3);
   timer.restart();
@@ -343,12 +347,15 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
   // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
   timer.restart();
-  // todo: if C1==0.0 don't do the expensive exp()... ?
-  if (isfinite(C1) && isfinite(C2) && isfinite(C1) && (C1!=0.0 || C2!=0.0 || C3!=0.0))
+  if (isfinite(C1) && isfinite(C2) && isfinite(C3) && (C1!=0.0 || C2!=0.0 || C3!=0.0))
 #pragma omp parallel for schedule(dynamic)              // since cexps slow
     for (BIGINT k=0;k<nk;++k)         // also phases to account for C1,C2,C3 shift
       fk[k] *= (CPX)(1.0/(fkker1[k]*fkker2[k]*fkker3[k])) *
 	        exp(imasign*((s[k]-D1)*C1 + (t[k]-D2)*C2 + (u[k]-D3)*C3));
+  else
+#pragma omp parallel for schedule(dynamic)
+    for (BIGINT k=0;k<nk;++k)
+      fk[k] *= (CPX)(1.0/(fkker1[k]*fkker2[k]*fkker3[k]));
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
   free(fkker1); free(fkker2); free(fkker3); free(sp);
