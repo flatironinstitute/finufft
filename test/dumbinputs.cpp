@@ -33,10 +33,10 @@ int main(int argc, char* argv[])
   // allocate output array F for Fourier modes, fix some type-3 coords...
   CPX* F = (CPX*)malloc(sizeof(CPX)*NN);
   FLT *s = (FLT*)malloc(sizeof(FLT)*N);
-  for (int k=0; k<N; ++k) s[k] = 10 * cos(1.2*k);    // normal-sized coords
+  for (int k=0; k<N; ++k) s[k] = 10 * cos(1.2*k);   // normal-sized coords
   FLT *shuge = (FLT*)malloc(sizeof(FLT)*N);
-  FLT huge = 1e10;          // somewhat bigger than opts.maxnalloc
-  for (int k=0; k<N; ++k) shuge[k] = huge * s[k];     // huge coords
+  FLT huge = 1e11;                                  // no smaller than MAX_NF
+  for (int k=0; k<N; ++k) shuge[k] = huge * s[k];   // some huge coords
 
   // alloc exact output array
   CPX* Fe = (CPX*)malloc(sizeof(CPX)*NN);

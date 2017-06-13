@@ -11,17 +11,15 @@ extern "C" {
 #include <math.h>
 #include <stdio.h>
 
-// constants needed within common
-#define MAX_NQUAD 100     // max number of positive quadr nodes
 
 void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, INT64 *nf)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
 {
   *nf = (INT64)(opts.R*ms);
-  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;  // otherwise spread fails
-  if (*nf<opts.maxnalloc)                          // otherwise will fail anyway
-    *nf = next235even(*nf);                        // expensive at huge nf
+  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
+  if (*nf<MAX_NF)                                 // otherwise will fail anyway
+    *nf = next235even(*nf);                       // expensive at huge nf
 }
 
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
@@ -55,7 +53,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
   //printf("initial nf=%ld, ns=%d\n",*nf,spopts.nspread);
   // catch too small nf, and nan or +-inf, otherwise spread fails...
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;
-  if (*nf<opts.maxnalloc)                     // otherwise will fail anyway
+  if (*nf<MAX_NF)                             // otherwise will fail anyway
     *nf = next235even(*nf);                   // expensive at huge nf
   *h = 2*PI / *nf;                            // upsampled grid spacing
   *gam = (FLT)*nf / (2.0*opts.R*Ssafe);       // x scale fac to x'

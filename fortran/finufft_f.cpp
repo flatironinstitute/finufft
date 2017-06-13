@@ -6,7 +6,10 @@
 // Note the trailing underscore which is not present in the fortran name.
 // Barnett 2/17/17. Single prec 4/5/17
 
-// integer*4 for the sizes for now
+// integer*4 for the sizes for now.
+
+// All nufft_opts are default settings; this interface would need to change
+// to allow control of them.
 
 void finufft1d1_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
 		  int *ms, CPX* fk, int *ier)

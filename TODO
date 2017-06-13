@@ -2,9 +2,7 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
-* adapt adv4 into main code, inner loops separate by dim, kill the current spreader.
-* add FFTW_MEAS vs EST (set as default) opts flag in nufft_opts.
-* remove opts.maxnalloc in favor of just checking if mallocs return 0.
+* adapt adv4 into main code, inner loops separate by dim, kill the current spreader. Incorporate old ideas such as: checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()
 * swap out mallocs for std:vector in finufft?
 * swap legendre GLR with hellskitchen BSD version.
 * decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
@@ -14,7 +12,6 @@ HIGHER PRIORITY:
 * Decide if non vs omp get different lib names.
 * run nufft_comparison, use for paper. Compare vs NFFT (Chemnitz), gpuNUFFT (Knoll)
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
-* Checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()
 * Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) better install notes.
 * Flatiron logo
 * github.io webpage
@@ -23,7 +20,7 @@ HIGHER PRIORITY:
 
 LOWER PRIORITY:
 
-* t3: if C1 < X1/10 and D1 < S1/10 then don't rephase. Same for d=2,3.
+* checking if mallocs return NULL and return gracefully - not sure if any point?
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
 * test huge arrays >=2^31 2d, 3d in C++.
 * test huge arrays >=2^31 in octave/mex.
@@ -34,5 +31,5 @@ LOWER PRIORITY:
 * clean up tree, remove devel/ and unused contrib?
 * package RPM and .deb for linux
 * figure out how to set up path to link to shared library - rpath?
-* windows test
+* MS Windows test
 * rewrite fftw3 plans via 64bit guru interface to allow eg 1024^3 type 1 or 2 in 3D. Not sure needed (only for huge 1d transforms). see http://www.fftw.org/fftw3_doc/Guru-Interface.html#Guru-Interface

@@ -70,7 +70,7 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
             stored as alternating Re & Im parts (2*ms doubles)
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
@@ -108,7 +108,7 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
      cj     complex double array of nj answers at targets
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
@@ -145,7 +145,7 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
             frequencies sk
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread or finufft1d2
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
@@ -198,7 +198,7 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
             ie Fortran ordering).
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
@@ -233,7 +233,7 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
      cj     size-nj complex double array of source strengths
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
@@ -265,7 +265,7 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
      fk     complex double Fourier transform values at the target frequencies sk
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread or finufft2d2
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
@@ -321,7 +321,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
             increasing fast in ms to slowest in mu, ie Fortran ordering).
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
@@ -361,7 +361,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
             (ie, stored as 2*nj doubles interleaving Re, Im).
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
@@ -397,7 +397,7 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
             target frequencies sk
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread or finufft3d2.
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely

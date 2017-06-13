@@ -32,7 +32,7 @@ private:
   opts.debug = debug;                  \
   opts.spread_debug = spread_debug;    \
   opts.spread_sort = spread_sort;      \
-  opts.maxnalloc = maxnalloc;
+  opts.fftw = !fftw ? FFTW_ESTIMATE : FFTW_MEASURE;  // ahb; def in fftw3.h
 
 #define CHECK_FLAG                                  \
   if (ier != 0) {                                   \
@@ -48,7 +48,7 @@ private:
 py::array_t<CPX> nufft1d1(
   py::array_t<FLT> xj, py::array_t<CPX> cj,
   INT ms,
-  FLT eps, int iflag, FLT R, int debug, int spread_debug, int spread_sort, INT64 maxnalloc
+  FLT eps, int iflag, FLT R, int debug, int spread_debug, int spread_sort, int fftw
 ) {
   // Check the dimensions
   auto buf_x = xj.request(),
@@ -79,7 +79,7 @@ py::array_t<CPX> nufft1d1(
 
 py::array_t<CPX> nufft1d2(
   py::array_t<FLT> xj, py::array_t<CPX> fk,
-  FLT eps, int iflag, FLT R, int debug, int spread_debug, int spread_sort, INT64 maxnalloc
+  FLT eps, int iflag, FLT R, int debug, int spread_debug, int spread_sort, int fftw
 ) {
   // Check the dimensions
   auto buf_x = xj.request(),
@@ -108,7 +108,7 @@ py::array_t<CPX> nufft1d2(
 py::array_t<CPX> nufft1d3(
   py::array_t<FLT> xj, py::array_t<CPX> cj,
   py::array_t<FLT> s,
-  FLT eps, int iflag, FLT R, int debug, int spread_debug, int spread_sort, INT64 maxnalloc
+  FLT eps, int iflag, FLT R, int debug, int spread_debug, int spread_sort, int fftw
 ) {
   // Check the dimensions
   auto buf_x = xj.request(),
@@ -258,7 +258,7 @@ Returns:
     py::arg("debug") = 0,
     py::arg("spread_debug") = 0,
     py::arg("spread_sort") = 1,
-    py::arg("maxnalloc") = (int64_t)(1e9)
+    py::arg("fftw") = 0
   );
 
   m.def("nufft1d2", &nufft1d2, R"delim(
@@ -288,7 +288,7 @@ Returns:
     py::arg("debug") = 0,
     py::arg("spread_debug") = 0,
     py::arg("spread_sort") = 1,
-    py::arg("maxnalloc") = (int64_t)(1e9)
+    py::arg("fftw") = 0
   );
 
   m.def("nufft1d3", &nufft1d3, R"delim(
@@ -320,7 +320,7 @@ Returns:
     py::arg("debug") = 0,
     py::arg("spread_debug") = 0,
     py::arg("spread_sort") = 1,
-    py::arg("maxnalloc") = (int64_t)(1e9)
+    py::arg("fftw") = 0
   );
 
   // DIRECT

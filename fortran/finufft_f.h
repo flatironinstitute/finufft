@@ -5,7 +5,7 @@
 
 // note FLT (= float or double) and CPX (= float complex or double complex)
 // used here. Make sure you call with appropriate fortran sizes.
-// All ints are int*4 for now in fortran interface.
+// All ints are int*4 for now in fortran interface, all nufft_opts default.
 
 extern "C" {
 void finufft1d1_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,

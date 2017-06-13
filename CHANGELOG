@@ -3,8 +3,11 @@ chronological order:
 
 V 0.9:
 
+* added FFTW_MEAS vs FFTW_EST (set as default) opts flag in nufft_opts, and matlab/python interfaces
+* removed opts.maxnalloc in favor of #defined MAX_NF
 * fixed the 1-target case in type-3, all dims, to avoid nan; clarified logic for handling X=0 and/or S=0. 6/12/17
 * changed arraywidcen to snap to C=0 if relative shift is <0.1, avoids cexps in type-3.
+* t3: if C1 < X1/10 and D1 < S1/10 then don't rephase. Same for d=2,3.
 * removed the 1/M type-1 prefactor, also in all test routines. 6/6/17
 * removed timestamp-based make decision whether to rebuild matlab/finufft.cpp, since git clone creates files with random timestamp order!
 * theory work on exp(sqrt) being close to PSWF. Analysis.

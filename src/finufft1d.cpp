@@ -29,7 +29,7 @@ int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
             stored as alternating Re & Im parts (2*ms FLTs)
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
@@ -48,8 +48,8 @@ int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
   INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
-  if (nf1>opts.maxnalloc) {
-    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
+  if (nf1>MAX_NF) {
+    fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)nf1,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
@@ -64,7 +64,7 @@ int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
   }
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
-  FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, FFTW_ESTIMATE);  // in-place
+  FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
 
   // Step 1: spread from irregular points to regular grid
@@ -125,7 +125,7 @@ int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
      cj     complex FLT array of nj answers at targets
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
@@ -144,8 +144,8 @@ int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
   int ier_set = setup_kernel(spopts,eps,opts.R);
   if (ier_set) return ier_set;
   INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
-  if (nf1>opts.maxnalloc) {
-    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
+  if (nf1>MAX_NF) {
+    fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)nf1,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
@@ -166,7 +166,7 @@ int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
-  FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, FFTW_ESTIMATE); // in-place
+  FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, opts.fftw); // in-place
   if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
@@ -219,7 +219,7 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
             frequencies sk
      returned value - 0 if success, else:
                       1 : eps too small
-		      2 : size of arrays to malloc exceed opts.maxnalloc
+		      2 : size of arrays to malloc exceed MAX_NF
                       other codes: as returned by cnufftspread or finufft1d2
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
@@ -252,8 +252,8 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
   arraywidcen((BIGINT)nk,s,&S1,&D1);   // get half-width, center, containing {s_k}
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,(INT64)nj,(INT64)nk);
-  if (nf1>opts.maxnalloc) {
-    fprintf(stderr,"nf1=%.3g exceeds maxnalloc of %.3g\n",(double)nf1,(double)opts.maxnalloc);
+  if (nf1>MAX_NF) {
+    fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)nf1,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
   FLT* xpj = (FLT*)malloc(sizeof(FLT)*nj);

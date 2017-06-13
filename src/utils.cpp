@@ -52,19 +52,17 @@ void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi)
   }
 }
 
-#define OKGROW 0.1
-
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
-// OKGROW defined above. This prevents rephasings which don't grow nf by much
-// 6/8/17
+// ARRAYWIDCEN_GROWFRAC defined in utils.h.
+// This prevents rephasings which don't grow nf by much. 6/8/17
 {
   FLT lo,hi;
   arrayrange(n,a,&lo,&hi);
   *w = (hi-lo)/2;
   *c = (hi+lo)/2;
-  if (FABS(*c)<OKGROW*(*w)) {
+  if (FABS(*c)<ARRAYWIDCEN_GROWFRAC*(*w)) {
     *w += FABS(*c);
     *c = 0.0;
   }
@@ -73,7 +71,7 @@ void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
 INT64 next235even(INT64 n)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth"). Adapted from fortran in hellskitchen.  Barnett 2/9/17
-// changed INT64 type 3/28/17
+// changed INT64 type 3/28/17. Runtime is around n*1e-11 sec for big n.
 {
   if (n<=2) return 2;
   if (n%2 == 1) n+=1;   // even

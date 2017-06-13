@@ -7,6 +7,10 @@
 #include <complex>          // C++ type complex
 #include <fftw3.h>          // needed so can typedef FFTW_CPX
 
+
+// fraction growth cut-off in arraywidcen()
+#define ARRAYWIDCEN_GROWFRAC 0.1
+
 using namespace std;        // means std:: not needed for cout, max, etc
 
 typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap

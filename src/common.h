@@ -6,6 +6,11 @@
 #include "cnufftspread.h"
 #include <fftw3.h>
 
+// constants needed within common
+#define MAX_NQUAD 100              // max number of positive quadr nodes
+// increase this if you have >1TB RAM...
+#define MAX_NF    (BIGINT)1e11     // too big to ever succeed (next235 ~ 1s)
+
 // common.cpp provides...
 void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,INT64 *nf);
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
