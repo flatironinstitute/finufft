@@ -36,10 +36,20 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
    h is the grid spacing = 2pi/nf
    gam is the x rescale factor, ie x'_j = x_j/gam  (modulo shifts).
    Barnett 2/13/17. Caught inf/nan 3/14/17. io int types changed 3/28/17
+   New logic 6/12/17
 */
 {
   int nss = spopts.nspread + 1;      // since ns may be odd
-  FLT nfd = 2.0*opts.R*S*X/PI + nss;
+  FLT Xsafe=X, Ssafe=S;              // may be tweaked locally
+  if (X==0.0)                        // logic ensures XS>=1, handle X=0 a/o S=0
+    if (S==0.0) {
+      Xsafe=1.0;
+      Ssafe=1.0;
+    } else Xsafe = max(Xsafe, 1/S);
+  else
+    Ssafe = max(Ssafe, 1/X);
+  // use the safe X and S...
+  FLT nfd = 2.0*opts.R*Ssafe*Xsafe/PI + nss;
   if (!isfinite(nfd)) nfd=0.0;                // use FLT to catch inf
   *nf = (INT64)nfd;
   //printf("initial nf=%ld, ns=%d\n",*nf,spopts.nspread);
@@ -48,9 +58,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
   if (*nf<opts.maxnalloc)                     // otherwise will fail anyway
     *nf = next235even(*nf);                   // expensive at huge nf
   *h = 2*PI / *nf;                            // upsampled grid spacing
-  *gam = (X/PI)/(1.0 - nss/(FLT)*nf);         // x scale fac
-  // CHECK THIS:
-  *gam = max(*gam,(FLT)1.0/max(S,1.0));       // safely handle X=0 and/or S=0
+  *gam = (FLT)*nf / (2.0*opts.R*Ssafe);       // x scale fac to x'
 }
 
 void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)

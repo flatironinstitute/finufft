@@ -892,13 +892,15 @@ gives the recipe for the optimal parameters (similar to \cite[Rmk.~1]{nufft3}),
 \be
 n_i = \frac{2\rat}{\pi}X_iS_i + w
 ~,\qquad
-\gamma_i = %\max\bigl[
-\frac{X_i}{\pi(1 - w/n_i)}
-%\frac{1}{S_i} \bigr]
-~.
+\gamma_i = \frac{n_i}{2\rat S_i}
+%\frac{X_i}{\pi(1 - w/n_i)}
+~,
 \qquad i=1,\dots,d
+~.
 \label{ng}
 \ee
+% skip details when S or X = 0
+
 \begin{rmk}[size of grid required]
   The product of the grid sizes $n_i$ in each dimension $i=1,\dots,d$
   sets the number of modes, hence the FFT effort required,

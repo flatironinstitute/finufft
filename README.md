@@ -137,3 +137,4 @@ Andras Pataki - complex number speed in C++
 Marina Spivak - fortran testing  
 Christian Muller - optimization (CMA-ES) for kernel design  
 Timo Heister - pass/fail numdiff testing ideas  
+Hannah Lawrence - finding bugs
