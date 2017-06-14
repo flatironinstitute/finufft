@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
+#include "cnufftspread_advanced.h"
 
 // declarations of internal functions...
 std::vector<BIGINT> compute_sort_indices(BIGINT M,FLT *kx, FLT *ky,
@@ -13,6 +14,11 @@ bool set_thread_index_box(BIGINT *i1th,BIGINT *i2th,BIGINT *i3th,BIGINT N1,BIGIN
 			  BIGINT N3,int th,int nth, const spread_opts &opts,
 			  int ndims);
 bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r);
+
+void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts, FLT* ker);
+void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker);
+void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker);
+
 
 int cnufftspread(
         BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
@@ -91,6 +97,10 @@ int cnufftspread(
    error codes 3/13/17. pirange 3/28/17
 */
 { 
+    if ((opts.use_advanced)&&(opts.spread_direction==1)&&(N2>1)&&(N3>1)) {
+        return cnufftspread_advanced(N1,N2,N3,data_uniform,M,kx,ky,kz,data_nonuniform,opts,omp_get_max_threads());
+    }
+
   // Input checking: cuboid not too small for spreading
   int minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
@@ -232,6 +242,44 @@ int cnufftspread(
 #pragma omp for schedule(dynamic)   // assign threads to NU targ pts, easy
       for (BIGINT i=0; i<M; i++) {  // main loop over NU pts targets, interp each from U
 	BIGINT jj=sort_indices[i];
+
+	FLT xj = opts.pirange ? (kx[jj]/(2*PI)+0.5)*N1  : kx[jj];  // conditional not slow
+	FLT yj,zj;
+	if (N2>1)
+	  yj = opts.pirange ? (ky[jj]/(2*PI)+0.5)*N2  : ky[jj];
+	if (N3>1)
+	  zj = opts.pirange ? (kz[jj]/(2*PI)+0.5)*N3  : kz[jj];
+	// FLT xj = kx[jj], yj=ky[jj], zj=kz[jj];   // no faster
+	if (N3>1 && xj>ns && xj<N1-ns && yj>ns && yj<N2-ns && zj>ns && zj<N3-ns) {
+	  // new code for 3d only
+	BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
+	BIGINT i2=(BIGINT)std::ceil(yj-ns2); // lowest y grid index, or 0 if unused dim
+	BIGINT i3=(BIGINT)std::ceil(zj-ns2);
+	FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
+	FLT x2=(FLT)i2-yj;
+	FLT x3=(FLT)i3-zj;
+	FLT kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
+	fill_kernel_cube(x1,x2,x3,opts,kernel_values);
+	FLT re0=0.0, im0=0.0;
+	int aa = 0;                            // can't get very big
+	for (int dz=0; dz<ns; dz++) {
+	  BIGINT o3=N1*N2*(i3+dz);
+	  for (int dy=0; dy<ns; dy++) {
+	    BIGINT jjj=o3 + N1*(i2+dy) + i1;
+	    for (int dx=0; dx<ns; dx++) {
+	      FLT kern0=kernel_values[aa];
+	      re0 += data_uniform[jjj*2]*kern0;  // interpolate using kernel as weights
+	      im0 += data_uniform[jjj*2+1]*kern0;
+	      jjj++;
+	      aa++;
+	    }
+	  }
+	}
+	data_nonuniform[2*jj]   = re0;     // copy out accumulated complex value
+	data_nonuniform[2*jj+1] = im0;
+	
+	} else {  // old code, for wrapping pts
+	  
 	// set up indices for each dim ahead of time using by-hand modulo wrapping
 	// periodically up to +-1 period:
 	BIGINT j1_array[MAX_NSPREAD],j2_array[MAX_NSPREAD],j3_array[MAX_NSPREAD];
@@ -284,6 +332,7 @@ int cnufftspread(
 	}
 	data_nonuniform[2*jj]   = re0;     // copy out accumulated complex value
 	data_nonuniform[2*jj+1] = im0;
+	}  // end old code
       }
     }
   } // omp block
@@ -293,6 +342,56 @@ int cnufftspread(
   } else
     return 0;
 }
+
+void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts,FLT* ker)
+// Fill ker with tensor product of kernel values evaluated at xm+[0:ns] in dims
+// m=1,2,3.
+{
+    int ns=opts.nspread;
+    FLT v1[ns], v2[ns], v3[ns];
+    for (int i = 0; i < ns; i++) {
+        v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
+        v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
+        v3[i] = evaluate_kernel(x3 + (FLT)i, opts);
+    }
+    int aa = 0; // pointer for writing to output ker array
+    for (int k = 0; k < ns; k++) {
+        FLT val3 = v3[k];
+        for (int j = 0; j < ns; j++) {
+            FLT val2 = val3 * v2[j];
+            for (int i = 0; i < ns; i++)
+                ker[aa++] = val2 * v1[i];
+        }
+    }
+}
+
+void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
+// Fill ker with tensor product of kernel values evaluated at xm+[0:ns] in dims
+// m=1,2.
+{
+    int ns=opts.nspread;
+    FLT v1[ns], v2[ns];
+    for (int i = 0; i < ns; i++) {
+        v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
+        v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
+    }
+    int aa = 0; // pointer for writing to output ker array
+    for (int j = 0; j < ns; j++) {
+      FLT val2 = v2[j];
+      for (int i = 0; i < ns; i++)
+	ker[aa++] = val2 * v1[i];
+    }
+}
+
+void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
+// Fill ker with kernel values evaluated at x1+[0:ns] in 1D.
+{
+    int ns=opts.nspread;
+    for (int i = 0; i <= ns; i++)
+        ker[i] = evaluate_kernel(x1 + (FLT)i, opts);
+}
+
+
 
 bool set_thread_index_box(BIGINT *i1th,BIGINT *i2th,BIGINT *i3th,BIGINT N1,BIGINT N2,BIGINT N3,
 			  int th,int nth, const spread_opts &opts, int ndims)
