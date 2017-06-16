@@ -4,21 +4,28 @@
 #include <math.h>
 
 // declarations of internal functions...
-bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r);
-
-void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts, FLT* ker);
-void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker);
 void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker);
+void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker);
+void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts, FLT* ker);
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
 void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns);
+void spread_subproblem_1d(BIGINT N1,FLT *du0,BIGINT M0,FLT *kx0,FLT *dd0,
+			  const spread_opts& opts);
+void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du0,BIGINT M0,
+			  FLT *kx0,FLT *ky0,FLT *dd0,const spread_opts& opts);
+void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du0,BIGINT M0,
+			  FLT *kx0,FLT *ky0,FLT *kz0,FLT *dd0,
+			  const spread_opts& opts);
 void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		   BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-		   double bin_size_x,double bin_size_y,double bin_size_z);
-void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,FLT* kz0,int ns, int ndims);
+	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      double bin_size_x,double bin_size_y,double bin_size_z);
+void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
+		 BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,
+		 FLT* kz0,int ns, int ndims);
 
 
-// subproblem object: simply a collection of indices of nonuniform points
+// subproblem object: is simply a collection of indices of nonuniform points
 struct Subproblem {
     std::vector<BIGINT> nonuniform_indices;
 };
@@ -82,7 +89,8 @@ int cnufftspread(
 	debug = 0: no text output, 1: some openmp output, 2: mega output
 	           (each NU pt)
 	flags - integer with binary bits determining various timing options
-                (set to 0 unless expert)
+                (set to 0 unless expert; see cnufftspread.h)
+
    Inputs/Outputs:
    data_uniform - output values on grid (dir=1) OR input grid data (dir=2)
    data_nonuniform - input strengths of the sources (dir=1)
@@ -96,7 +104,7 @@ int cnufftspread(
       6 : invalid opts.spread_direction
 
    Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
-   error codes 3/13/17. pirange 3/28/17
+   error codes 3/13/17. pirange 3/28/17. Rewritten 6/15/17
 */
 {
   CNTime timer;
@@ -114,7 +122,7 @@ int cnufftspread(
   if (N2>1) ++ndims;
   if (N3>1) ++ndims;
   int ns=opts.nspread;
-  FLT ns2 = (FLT)ns/2;          // half spread width
+  FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
   int numkervals = (int)pow(ns,ndims);
   if (opts.debug)
     printf("starting spread %dD (dir=%d), %d threads\n",ndims,opts.spread_direction,MY_OMP_GET_MAX_THREADS());
@@ -147,7 +155,7 @@ int cnufftspread(
     if (opts.debug) printf("bnds check: %g s\n",timer.elapsedsec());
   }
 
-  timer.start();
+  timer.start();                 // if needed, sort all the NU pts...
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   if (opts.sort)
     // store good permutation ordering of all NU pts (dim=1,2 or 3)
@@ -159,7 +167,7 @@ int cnufftspread(
     printf("sort time (sort=%d): %.3g s\n",(int)opts.sort,timer.elapsedsec());
   
 
-  if (opts.spread_direction==1) { // ==================== direction 1 =======
+  if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
 
     BIGINT N=N1*N2*N3;           // output array size, zero it
     for (BIGINT i=0; i<2*N; i++)
@@ -192,7 +200,7 @@ int cnufftspread(
       s.at(si).nonuniform_indices.push_back(j);
     }
     
-    // next we split subproblems so none exceed opts.max_subproblem_size
+    // split subproblems by index chunks so none exceed opts.max_subproblem_size
     BIGINT num_nonempty_subproblems=0; // for information only (verbose output)
     for (BIGINT i=0; i<nb; i++) {
       std::vector<BIGINT> inds=s.at(i).nonuniform_indices;
@@ -218,7 +226,7 @@ int cnufftspread(
     nb = s.size();
     
 #pragma omp parallel for
-    for (int isub=0; isub<nb; isub++) { // Loop through the subproblems
+    for (int isub=0; isub<nb; isub++) { // Main loop through the subproblems
       std::vector<BIGINT> inds = s.at(isub).nonuniform_indices;
       BIGINT M0 = inds.size();   // # NU pts in this subproblem
       if (M0>0) {              // if some NU pts in this subproblem
@@ -229,18 +237,18 @@ int cnufftspread(
 	if (N3>1)
 	  kz0=(FLT*)malloc(sizeof(FLT)*M0);
 	FLT* dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
-	for (BIGINT j=0; j<M0; j++) {
-	  BIGINT kk=inds[j];
+	for (BIGINT j=0; j<M0; j++) {   // todo: can avoid this copying ? ***
+	  BIGINT kk=inds[j];            // get NU pt from subprob index list
 	  kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
 	  if (N2>1) ky0[j]=RESCALE(ky[kk],N2,opts.pirange);
 	  if (N3>1) kz0[j]=RESCALE(kz[kk],N3,opts.pirange);
-	  dd0[j*2]=data_nonuniform[kk*2]; // real part
+	  dd0[j*2]=data_nonuniform[kk*2];     // real part
 	  dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
 	}
-	// get the subgrid which will include padding by approximately nspread/2
-	BIGINT offset1,offset2,offset3,size1,size2,size3;
+	// get the subgrid which will include padding by roughly nspread/2
+	BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
 	get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
-	if (opts.debug)
+	if (opts.debug>1)  // verbose
 	  if (ndims==1)
 	    printf("subgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
 	  else if (ndims==2)
@@ -248,29 +256,64 @@ int cnufftspread(
 	  else
 	    printf("subgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
 	for (BIGINT j=0; j<M0; j++) {
-	  kx0[j]-=offset1; // subtract the offsets so this is really a subproblem
-	  if (N2>1) ky0[j]-=offset2;
-	  if (N3>1) kz0[j]-=offset3;
+	  kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
+	  if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
+	  if (N3>1) kz0[j]-=offset3;  // only access if 3D
 	}
+	// allocate output data for this subgrid
+	FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
 
-	//  ** fix size for each dim
+	// Spread to subgrid without need for bounds checking or wrapping
+	if (!(opts.flags & TF_OMIT_SPREADING))
+	  if (ndims==1)
+	    spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
+	  else if (ndims==2)
+	    spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
+	  else
+	    spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
 	
-	// allocate the output data for this subproblem
-	//FLT* du0=(FLT*)malloc(sizeof(FLT)*size1*size2*size3*2); // complex
-
-	/// spread
-
-	// add to output grid
-
-	
-
+	// Add the subgrid to output grid, wrapping (slower). Works in all dims.
+	BIGINT o1[size1], o2[size2], o3[size3];  // alloc 1d output ptr lists
+	BIGINT x=offset1, y=offset2, z=offset3;  // fill lists with wrapping...
+	for (int i=0; i<size1; ++i) {
+	  if (x<0) x+=N1;
+	  if (x>=N1) x-=N1;
+	  o1[i] = x++;
+	}
+	for (int i=0; i<size2; ++i) {
+	  if (y<0) y+=N2;
+	  if (y>=N2) y-=N2;
+	  o2[i] = y++;
+	}
+	for (int i=0; i<size3; ++i) {
+	  if (z<0) z+=N3;
+	  if (z>=N3) z-=N3;
+	  o3[i] = z++;
+	}
+#pragma omp critical
+	{  // do the adding of subgrid to output; only here threads cannot clash
+	  int p=0;  // pointer into subgrid; this triple loop works in all dims
+	  if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
+	    for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
+	      BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
+	      for (int dy=0; dy<size2; dy++) {
+		BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
+		for (int dx=0; dx<size1; dx++) {
+		  BIGINT j = oy + o1[dx];
+		  data_uniform[2*j] += du0[2*p];
+		  data_uniform[2*j+1] += du0[2*p+1];
+		  ++p;                    // advance input ptr through subgrid
+		}
+	      }
+	    }
+	} // end critical block
       }
-    }
+    }     // end main loop over subprobs
     
-  } else {                      // ==================== direction 2 ===========
+  } else {          // ================= direction 2 (interpolation) ===========
 
-#pragma omp parallel for schedule(dynamic)   // assign threads to NU targ pts:
-    for (BIGINT i=0; i<M; i++) {   // loop over NU targs, interp each from U
+#pragma omp parallel for           // assign threads to NU targ pts:
+    for (BIGINT i=0; i<M; i++) {   // main loop over NU targs, interp each from U
       BIGINT j=sort_indices[i];    // j current index in input NU targ list
     
       // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
@@ -278,31 +321,34 @@ int cnufftspread(
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
       FLT kernel_values[numkervals];
-      FLT re=0.0, im=0.0;
       
       // eval kernel values patch and use to interpolate from uniform data...
-      if (ndims==1) {                                          // 1D
-	fill_kernel_line(x1,opts,kernel_values);
-	interp_line(&data_nonuniform[2*j],data_uniform,kernel_values,i1,N1,ns);
-	
-      } else if (ndims==2) {                                   // 2D
-	FLT yj=RESCALE(ky[j],N2,opts.pirange);
-	BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
-	FLT x2=(FLT)i2-yj;
-	fill_kernel_square(x1,x2,opts,kernel_values);
-	interp_square(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,N1,N2,ns);
-      } else {                                                 // 3D
-	FLT yj=RESCALE(ky[j],N2,opts.pirange);
-	FLT zj=RESCALE(kz[j],N3,opts.pirange);
-	BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
-	BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
-	FLT x2=(FLT)i2-yj;
-	FLT x3=(FLT)i3-zj;
-	fill_kernel_cube(x1,x2,x3,opts,kernel_values);
-	interp_cube(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,i3,N1,N2,N3,ns);
-      }
+      if (!(opts.flags & TF_OMIT_SPREADING))
+	if (ndims==1) {                                          // 1D
+	  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
+	    fill_kernel_line(x1,opts,kernel_values);
+	  interp_line(&data_nonuniform[2*j],data_uniform,kernel_values,i1,N1,ns);
+	} else if (ndims==2) {                                   // 2D
+	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
+	  BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
+	  FLT x2=(FLT)i2-yj;
+	  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))	  
+	    fill_kernel_square(x1,x2,opts,kernel_values);
+	  interp_square(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,N1,N2,ns);
+	} else {                                                 // 3D
+	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
+	  FLT zj=RESCALE(kz[j],N3,opts.pirange);
+	  BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
+	  BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
+	  FLT x2=(FLT)i2-yj;
+	  FLT x3=(FLT)i3-zj;
+	  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
+	    fill_kernel_cube(x1,x2,x3,opts,kernel_values);
+	  interp_cube(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,i3,N1,N2,N3,ns);
+	}
     }    // end NU targ loop
   }                           // ================= end direction choice ========
+
   return 0;
 }
 
@@ -363,33 +409,16 @@ FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
     return (opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
 }
 
-void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts,FLT* ker)
-// Fill ker with tensor product of kernel values evaluated at xm+[0:ns] in dims
-// m=1,2,3.
+void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
+// Fill ker with kernel values evaluated at x1+[0:ns] in 1D.
 {
-    int ns=opts.nspread;
-    FLT v1[ns], v2[ns], v3[ns];
-    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-      for (int i = 0; i < ns; i++) {
-        v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
-        v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
-        v3[i] = evaluate_kernel(x3 + (FLT)i, opts);
-      }
-    else
-      for (int i = 0; i < ns; i++) {
-        v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-        v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
-        v3[i] = evaluate_kernel_noexp(x3 + (FLT)i, opts);
-      }
-    int aa = 0; // pointer for writing to output ker array
-    for (int k = 0; k < ns; k++) {
-        FLT val3 = v3[k];
-        for (int j = 0; j < ns; j++) {
-            FLT val2 = val3 * v2[j];
-            for (int i = 0; i < ns; i++)
-                ker[aa++] = val2 * v1[i];
-        }
-    }
+  int ns=opts.nspread;
+  if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
+    for (int i = 0; i <= ns; i++)
+      ker[i] = evaluate_kernel(x1 + (FLT)i, opts);
+  else
+    for (int i = 0; i <= ns; i++)
+      ker[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
 }
 
 void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
@@ -407,7 +436,7 @@ void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
     for (int i = 0; i < ns; i++) {
       v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
       v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
-      }
+    }
   int aa = 0; // pointer for writing to output ker array
   for (int j = 0; j < ns; j++) {
     FLT val2 = v2[j];
@@ -416,16 +445,33 @@ void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
   }
 }
 
-void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
-// Fill ker with kernel values evaluated at x1+[0:ns] in 1D.
+void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts,FLT* ker)
+// Fill ker with tensor product of kernel values evaluated at xm+[0:ns] in dims
+// m=1,2,3.
 {
-  int ns=opts.nspread;
-  if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-    for (int i = 0; i <= ns; i++)
-      ker[i] = evaluate_kernel(x1 + (FLT)i, opts);
-  else
-    for (int i = 0; i <= ns; i++)
-      ker[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
+    int ns=opts.nspread;
+    FLT v1[ns], v2[ns], v3[ns];
+    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
+      for (int i = 0; i < ns; i++) {
+	v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
+	v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
+	v3[i] = evaluate_kernel(x3 + (FLT)i, opts);
+      }
+    else
+      for (int i = 0; i < ns; i++) {
+	v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
+	v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
+	v3[i] = evaluate_kernel_noexp(x3 + (FLT)i, opts);
+      }
+    int aa = 0; // pointer for writing to output ker array
+    for (int k = 0; k < ns; k++) {
+        FLT val3 = v3[k];
+        for (int j = 0; j < ns; j++) {
+            FLT val2 = val3 * v2[j];
+            for (int i = 0; i < ns; i++)
+                ker[aa++] = val2 * v1[i];
+        }
+    }
 }
 
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
@@ -438,7 +484,7 @@ void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 {
   out[0] = 0.0; out[1] = 0.0;
   BIGINT j = i1;
-  if (i1<0) {                    // wraps at left
+  if (i1<0) {                               // wraps at left
     j+=N1;
     for (int dx=0; dx<-i1; ++dx) {
       out[0] += du[2*j]*ker[dx];
@@ -463,7 +509,7 @@ void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
       out[1] += du[2*j+1]*ker[dx];
       ++j;
     }
-  } else {                                    // doesn't wrap
+  } else {                                     // doesn't wrap
     for (int dx=0; dx<ns; ++dx) {
       out[0] += du[2*j]*ker[dx];
       out[1] += du[2*j+1]*ker[dx];
@@ -497,7 +543,7 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
   } else {                         // wraps somewhere: use ptr list (slower)
     BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD];   // 1d ptr lists
     BIGINT x=i1, y=i2;                 // initialize coords
-    for (int d=0; d<ns; d++) {          // set up ptr lists
+    for (int d=0; d<ns; d++) {         // set up ptr lists
       if (x<0) x+=N1;
       if (x>=N1) x-=N1;
       j1[d] = x++;
@@ -507,9 +553,9 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
     }
     int p=0;  // pointer into ker array
     for (int dy=0; dy<ns; dy++) {      // use the pts lists
-      BIGINT oy = N1*j2[dy];          // offset due to moving in y
+      BIGINT oy = N1*j2[dy];           // offset due to y
       for (int dx=0; dx<ns; dx++) {
-	FLT k = ker[p++];             // advance the pointer through ker
+	FLT k = ker[p++];              // advance the pointer through ker
 	BIGINT j = oy + j1[dx];
 	out[0] += du[2*j] * k;
 	out[1] += du[2*j+1] * k;
@@ -518,7 +564,8 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
   }
 }
 
-void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns)
+void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,
+		 BIGINT N1,BIGINT N2,BIGINT N3,int ns)
 // 3D interpolate complex values from du (uniform grid data) array to out value,
 // using ns*ns*ns cube of real weights
 // in ker. out must be size 2 (real,imag), and du
@@ -529,10 +576,11 @@ void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,BIGINT
 // Barnett 6/16/17
 {
   out[0] = 0.0; out[1] = 0.0;
-  if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {  // no wrapping: avoid ptrs
+  if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
+    // no wrapping: avoid ptrs
     int p=0;  // pointer into ker array
     for (int dz=0; dz<ns; dz++) {
-      BIGINT oz = N1*N2*(i3+dz);     // offset due to moving in z
+      BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; dy++) {
 	BIGINT j = oz + N1*(i2+dy) + i1;
 	for (int dx=0; dx<ns; dx++) {
@@ -559,14 +607,122 @@ void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,BIGINT
     }
     int p=0;  // pointer into ker array
     for (int dz=0; dz<ns; dz++) {             // use the pts lists
-      BIGINT oz = N1*N2*j3[dz];      // offset due to moving in z
+      BIGINT oz = N1*N2*j3[dz];               // offset due to z
       for (int dy=0; dy<ns; dy++) {
-	BIGINT oy = oz + N1*j2[dy];          // offset due to moving in y & z
+	BIGINT oy = oz + N1*j2[dy];           // offset due to y & z
 	for (int dx=0; dx<ns; dx++) {
-	  FLT k = ker[p++];             // advance the pointer through ker
+	  FLT k = ker[p++];                   // advance the pointer through ker
 	  BIGINT j = oy + j1[dx];
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
+	}
+      }
+    }
+  }
+}
+
+void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
+			  FLT *kx,FLT *dd,
+			  const spread_opts& opts)
+/* spreader from dd (NU) to du (uniform) in 1D without wrapping.
+   kx (size M) are NU locations in [0,N1]
+   dd (size M complex) are source strengths
+   du (size N1) is uniform output array
+ */
+{
+  int ns=opts.nspread;
+  FLT ns2 = (FLT)ns/2;          // half spread width
+  for (BIGINT i=0;i<2*N1;++i)
+    du[i] = 0.0;
+  FLT ker[MAX_NSPREAD];
+  for (BIGINT i=0; i<M; i++) {           // loop over NU pts
+    FLT re0 = dd[2*i];
+    FLT im0 = dd[2*i+1];
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
+    FLT x1 = (FLT)i1 - kx[i];
+    fill_kernel_line(x1,opts,ker);
+    // critical inner loop:
+    int j=i1;
+    for (int dx=0; dx<ns; ++dx) {
+      FLT k = ker[dx];
+      du[2*j] += re0*k;
+      du[2*j+1] += im0*k;
+      ++j;
+    }
+  }
+}
+
+void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
+			  FLT *kx,FLT *ky,FLT *dd,
+			  const spread_opts& opts)
+/* spreader from dd (NU) to du (uniform) in 2D without wrapping.
+   kx,ky (size M) are NU locations in [0,N1],[0,N2]
+   dd (size M complex) are source strengths
+   du (size N1*N2) is uniform output array
+ */
+{
+  int ns=opts.nspread;
+  FLT ns2 = (FLT)ns/2;          // half spread width
+  for (BIGINT i=0;i<2*N1*N2;++i)
+    du[i] = 0.0;
+  FLT ker[MAX_NSPREAD*MAX_NSPREAD];
+  for (BIGINT i=0; i<M; i++) {           // loop over NU pts
+    FLT re0 = dd[2*i];
+    FLT im0 = dd[2*i+1];
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
+    BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
+    FLT x1 = (FLT)i1 - kx[i];
+    FLT x2 = (FLT)i2 - ky[i];
+    fill_kernel_square(x1,x2,opts,ker);
+    // critical inner loop:
+    int p=0;              // ptr to ker array
+    for (int dy=0; dy<ns; ++dy) {
+      int j = N1*(i2+dy) + i1;
+      for (int dx=0; dx<ns; ++dx) {
+	FLT k = ker[p++];            // increment ker array ptr
+	du[2*j] += re0*k;
+	du[2*j+1] += im0*k;
+	++j;
+      }
+    }
+  }
+}
+
+void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
+			  FLT *kx,FLT *ky,FLT *kz,FLT *dd,
+			  const spread_opts& opts)
+/* spreader from dd (NU) to du (uniform) in 3D without wrapping.
+   kx,ky,kz (size M) are NU locations in [0,N1],[0,N2],[0,N3]
+   dd (size M complex) are source strengths
+   du (size N1*N2*N3) is uniform output array
+ */
+{
+  int ns=opts.nspread;
+  FLT ns2 = (FLT)ns/2;          // half spread width
+  for (BIGINT i=0;i<2*N1*N2*N3;++i)
+    du[i] = 0.0;
+  FLT ker[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
+  for (BIGINT i=0; i<M; i++) {           // loop over NU pts
+    FLT re0 = dd[2*i];
+    FLT im0 = dd[2*i+1];
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
+    BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
+    BIGINT i3 = (BIGINT)std::ceil(kz[i] - ns2);
+    FLT x1 = (FLT)i1 - kx[i];
+    FLT x2 = (FLT)i2 - ky[i];
+    FLT x3 = (FLT)i3 - kz[i];
+    fill_kernel_cube(x1,x2,x3,opts,ker);
+    // critical inner loop:
+    int p=0;              // ptr to ker array
+    for (int dz=0; dz<ns; ++dz) {
+      BIGINT oz = N1*N2*(i3+dz);        // offset due to z
+      for (int dy=0; dy<ns; ++dy) {
+	BIGINT j = oz + N1*(i2+dy) + i1;
+	for (int dx=0; dx<ns; ++dx) {
+	  FLT k = ker[p++];            // increment ker array ptr
+	  du[2*j] += re0*k;
+	  du[2*j+1] += im0*k;
+	  ++j;
 	}
       }
     }
@@ -639,62 +795,38 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 
 
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,BIGINT &size2,BIGINT &size3,BIGINT M,FLT* kx,FLT* ky,FLT* kz,int ns,int ndims)
-// utility function: get the offsets and sizes of the subgrid defined by the
+// utility function: writes to offsets and sizes of the subgrid defined by the
 // nonuniform points and the spreading diameter approx ns/2. All dims 1,2,3.
+// Must return offset 0 and size 1 for each unused dimension.
 {
-  int min_radius=(ns+1)/2;    // we need some padding for the spreading
+  FLT ns2 = (FLT)ns/2;
   // compute the min/max of the k-space locations of the nonuniform points
-  FLT min_kx,max_kx; arrayrange(M,kx,&min_kx,&max_kx);
-  BIGINT a1=floor(min_kx-min_radius);
-  BIGINT a2=ceil(max_kx+min_radius);
+  FLT min_kx,max_kx;
+  arrayrange(M,kx,&min_kx,&max_kx);
+  BIGINT a1=std::ceil(min_kx-ns2);
+  BIGINT a2=std::ceil(max_kx-ns2)+ns-1;
   offset1=a1;
   size1=a2-a1+1;
   if (ndims>1) {
-    FLT min_ky,max_ky; arrayrange(M,ky,&min_ky,&max_ky);
-    BIGINT b1=floor(min_ky-min_radius);
-    BIGINT b2=ceil(max_ky+min_radius);
+    FLT min_ky,max_ky;
+    arrayrange(M,ky,&min_ky,&max_ky);
+    BIGINT b1=std::ceil(min_ky-ns2);
+    BIGINT b2=std::ceil(max_ky-ns2)+ns-1;
     offset2=b1;
     size2=b2-b1+1;
+  } else {
+    offset2=0;
+    size2=1;
   }
   if (ndims>2) {
-    FLT min_kz,max_kz; arrayrange(M,kz,&min_kz,&max_kz);
-    BIGINT c1=floor(min_kz-min_radius);
-    BIGINT c2=ceil(max_kz+min_radius);
+    FLT min_kz,max_kz;
+    arrayrange(M,kz,&min_kz,&max_kz);
+    BIGINT c1=std::ceil(min_kz-ns2);
+    BIGINT c2=std::ceil(max_kz-ns2)+ns-1;
     offset3=c1;
     size3=c2-c1+1;
+  } else {
+    offset3=0;
+    size3=1;
   }
-}
-
-
-
-
-
-
-
-
-bool wrapped_range_in_interval(BIGINT i,int *R,BIGINT *ith,BIGINT N,int *r)
-  /* returns in r[0], r[1] the lower, upper index limits relative to 1d grid index i
-   * that, after N-periodizing, will fall into box with index range ith[0] to ith[1].
-   * R[0..1] are the max spreading lower and upper relative index limits.
-   * Ie, computes the limits of interval produced by intersecting the set [R[0],R[1]]
-   * with the union of all N-periodically shifted copies of [ith[0]-i,ith[1]-i].
-   * Output is true if the set of indices is non-empty, false if empty (in which case
-   * r[0..1] are undefined). Doesn't have to execute fast. Assumes N <= 2*nspread,
-   * and abs(R[0..1]) <= nspread/2, and ith interval either fills [0,N-1] or is smaller
-   * in length by at least nspread.
-   * This last assumption ensures intersection is a single interval.
-   * Barnett 1/16/17
-   */
-{
-  if (ith[1]-ith[0]+1==N) {      // box fills periodic interval: interval is unscathed
-    r[0] = R[0]; r[1] = R[1];
-    return true;
-  }
-  BIGINT lo=ith[0]-i, hi=ith[1]-i; // ith interval, expressed relative to center index i.
-  for (BIGINT d=-N;d<=N;d+=N) {   // loop over 3 periodic copies of ith interval
-    r[0] = std::max(R[0],(int)(lo+d));    // clip interval copy to R-spread interval
-    r[1] = std::min(R[1],(int)(hi+d));
-    if (r[1]>=r[0]) return true;    // either happens never, or once in which case exit
-  }
-  return false;
 }
