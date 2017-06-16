@@ -99,6 +99,7 @@ usage:
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all of the above"
+	@echo " make spreadtest - compile and run spreader tests only"
 	@echo " make clean - remove all object and executable files apart from MEX"
 	@echo "For faster (multicore) making you may want to append the flag -j"
 	@echo ""
@@ -157,6 +158,12 @@ perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft
 	(cd test; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
 test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJS) -o test/spreadtestnd
+
+# spreader only test...
+spreadtest: test/spreadtestnd
+	test/spreadtestnd 3 8e6 8e6 1e-6 1 0
+	test/spreadtestnd 2 8e6 8e6 1e-6 1 0
+	test/spreadtestnd 1 8e6 8e6 1e-6 1 0
 
 # fortran interface...
 F1=fortran/nufft1d_demo$(SUFFIX)

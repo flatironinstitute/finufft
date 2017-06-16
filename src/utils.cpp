@@ -43,12 +43,25 @@ FLT infnorm(BIGINT n, CPX* a)
 }
 
 void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi)
-// writes out bounds on values in array to lo and hi, so all a in [lo,hi]
+// With a a length-n array, writes out min(a) to lo and max(a) to hi,
+// so that all a values lie in [lo,hi].
 {
   *lo = INFINITY; *hi = -INFINITY;
   for (BIGINT m=0; m<n; ++m) {
     if (a[m]<*lo) *lo = a[m];
     if (a[m]>*hi) *hi = a[m];
+  }
+}
+
+void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi)
+// With i a list of n indices, and a an array of length max(i), writes out
+// min(a(i)) to lo and max(a(i)) to hi, so that all a(i) values lie in [lo,hi].
+{
+  *lo = INFINITY; *hi = -INFINITY;
+  for (BIGINT m=0; m<n; ++m) {
+    FLT A=a[i[m]];
+    if (A<*lo) *lo = A;
+    if (A>*hi) *hi = A;
   }
 }
 
@@ -86,7 +99,6 @@ INT64 next235even(INT64 n)
   }
   return nplus;
 }
-
 
 // ----------------------- helpers for timing (always stay double)...
 using namespace std;

@@ -90,7 +90,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   // Step 1: spread from irregular points to regular grid
   timer.restart();
   spopts.debug = opts.spread_debug;
-  spopts.sort_data = opts.spread_sort;
+  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
   spopts.pirange = 1; FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xj,yj,zj,(FLT*)cj,spopts);
@@ -205,7 +205,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   // Step 3: unspread (interpolate) from regular to irregular target pts
   timer.restart();
   spopts.debug = opts.spread_debug;
-  spopts.sort_data = opts.spread_sort;
+  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 2;
   spopts.pirange = 1; FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xj,yj,zj,(FLT*)cj,spopts);
@@ -312,7 +312,7 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2*nf3);
   timer.restart();
   spopts.debug = opts.spread_debug;
-  spopts.sort_data = opts.spread_sort;
+  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
   spopts.pirange = 1; FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xpj,ypj,zpj,(FLT*)cpj,spopts);

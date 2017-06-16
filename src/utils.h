@@ -11,6 +11,12 @@
 // fraction growth cut-off in arraywidcen()
 #define ARRAYWIDCEN_GROWFRAC 0.1
 
+// math consts not in math.h ...
+#define M_1_2PI 0.159154943091895336
+#define M_2PI   6.28318530717958648
+// to avoid mixed precision operators in eg i*pi...
+#define PI (FLT)M_PI
+
 using namespace std;        // means std:: not needed for cout, max, etc
 
 typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
@@ -56,8 +62,6 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_DE fftw_destroy_plan
   #define FFTW_FR fftw_free
 #endif
-// to avoid mixed precision operators in eg i*pi...
-#define PI (FLT)M_PI
 
 // Compile-flag choice of 64 (default) or 32 bit integers in interface:
 #ifdef INTERFACE32
@@ -99,6 +103,7 @@ FLT errtwonorm(BIGINT n, CPX* a, CPX* b);
 FLT twonorm(BIGINT n, CPX* a);
 FLT infnorm(BIGINT n, CPX* a);
 void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi);
+void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi);
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
 INT64 next235even(INT64 n);
 
