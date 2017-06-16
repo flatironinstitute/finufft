@@ -14,11 +14,11 @@ struct spread_opts {
   // opts controlling spreading method (indep of kernel)...
   int spread_direction=1;  // 1 means spread NU->U, 2 means interpolate U->NU
   int pirange=0;           // 0: coords in [0,N), 1 coords in [-pi,pi)
-  int chkbnds=1;           // 0: don't check NU pts in range; 1: do (may segfault)
-  int sort=1;              // 0: don't sort NU pts, 1: do sort
-  BIGINT max_subproblem_size=1e5; // extra RAM per thread
+  int chkbnds=1;           // 0: don't check NU pts are in range; 1: do
+  int sort=1;              // 0: don't sort NU pts, 1: do sort (better on i7)
+  BIGINT max_subproblem_size=1e5; // sets extra RAM per thread
   int flags=0;             // binary flags for timing only (may give wrong ans!)
-  int debug=0;             // 0: silent; 1: text output
+  int debug=0;             // 0: silent, 1: small text output, 2: verbose
   // ES kernel specific...
   FLT ES_beta;
   FLT ES_halfwidth;

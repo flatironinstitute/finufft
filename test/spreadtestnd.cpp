@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
   std::vector<FLT> d_uniform(2*Ng);                        // Re and Im
 
   spread_opts opts; // set method opts...
-  opts.debug = 2;
+  opts.debug = 0;
   opts.sort = sort;  // for 3D: 1-2x faster on i7; but 0.5-0.9x (ie slower) on xeon!
   opts.flags = flags;
   opts.chkbnds = 0;
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 #pragma omp for schedule(dynamic,1000000) reduction(+:strre,strim)
     for (BIGINT i=0; i<M; ++i) {
       kx[i]=rand01r(&se)*N;
-      if (d>1) ky[i]=rand01r(&se)*N;              // only fill needed coords
+      if (d>1) ky[i]=rand01r(&se)*N;      // only fill needed coords
       if (d>2) kz[i]=rand01r(&se)*N;
       d_nonuniform[i*2]=randm11r(&se);
       d_nonuniform[i*2+1]=randm11r(&se);
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
   }
   CNTime timer;
   double t;
-  if (dodir1) {   // test direction 1 (NU -> U spreading) ..............................
+  if (dodir1) {   // test direction 1 (NU -> U spreading) ......................
     printf("cnufftspread %dD, %.3g U pts, dir=%d, tol=%.3g: nspread=%d\n",d,(double)Ng,opts.spread_direction,tol,opts.nspread);
     timer.start();
     ier = cnufftspread(N,N2,N3,d_uniform.data(),M,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
@@ -137,9 +137,9 @@ int main(int argc, char* argv[])
     // note this is weaker than below dir=2 test, but is good indicator that
     // periodic wrapping is correct
   }
-    
+
   // test direction 2 (U -> NU interpolation) ..............................
-  printf("making more random data...\n");
+  printf("making more random NU pts...\n");
   for (BIGINT i=0;i<Ng;++i) {     // unit grid data
     d_uniform[2*i] = 1.0;
     d_uniform[2*i+1] = 0.0;
@@ -166,8 +166,8 @@ int main(int argc, char* argv[])
     return 1;
   } else
     printf("\t%.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
-  
-    // math test is worst-case error from pred value (kersum) on interp pts:
+
+  // math test is worst-case error from pred value (kersum) on interp pts:
   maxerr = 0.0;
   for (BIGINT i=0;i<M;++i) {
     FLT err = std::max(fabs(d_nonuniform[2*i]-kersumre),

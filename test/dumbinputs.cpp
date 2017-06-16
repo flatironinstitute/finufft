@@ -46,6 +46,7 @@ int main(int argc, char* argv[])
   //for (int j=0;j<M;++j) printf("c[%d] = %g+%gi\n",j,real(c[j]),imag(c[j]));
   //printf("%.3g %3g\n",twonorm(N,F),twonorm(M,c));
   opts.debug = 0;   // set to 1,2, to debug segfaults
+  opts.spread_debug = 0;
 
   printf("1D dumb cases ----------------\n");
   int ier = finufft1d1(M,x,c,+1,0,N,F,opts);

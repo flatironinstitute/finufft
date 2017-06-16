@@ -115,7 +115,7 @@ int cnufftspread(
     return ERR_SPREAD_BOX_SMALL;
   }
   if (opts.spread_direction!=1 && opts.spread_direction!=2) {
-    fprintf(stderr,"opts.spread_direction must be 1 or 2!\n");
+    fprintf(stderr,"error: opts.spread_direction must be 1 or 2!\n");
     return ERR_SPREAD_DIR;
   }
   int ndims = 1;                 // decide ndims: 1,2 or 3
@@ -125,7 +125,7 @@ int cnufftspread(
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
   int numkervals = (int)pow(ns,ndims);
   if (opts.debug)
-    printf("starting spread %dD (dir=%d), %d threads\n",ndims,opts.spread_direction,MY_OMP_GET_MAX_THREADS());
+    printf("starting spread %dD (dir=%d, N1=%ld,N2=%ld,N3=%ld), %d threads\n",ndims,opts.spread_direction,N1,N2,N3,MY_OMP_GET_MAX_THREADS());
   
   if (opts.chkbnds) {            // check NU pts are in bounds, exit gracefully
     timer.start();
@@ -152,7 +152,7 @@ int cnufftspread(
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
-    if (opts.debug) printf("bnds check: %g s\n",timer.elapsedsec());
+    if (opts.debug) printf("NU bnds check: %g s\n",timer.elapsedsec());
   }
 
   timer.start();                 // if needed, sort all the NU pts...
@@ -172,16 +172,18 @@ int cnufftspread(
     BIGINT N=N1*N2*N3;           // output array size, zero it
     for (BIGINT i=0; i<2*N; i++)
         data_uniform[i]=0.0;
+    if (M==0)                     // no NU pts
+      return 0;
     int nthr = MY_OMP_GET_MAX_THREADS();
     double boxesperthr = 4.0;
     int nb = ceil(boxesperthr*nthr);  // rough number of boxes
     int w1=N1,w2=N2,w3=N3;            // set up box sizes in any dim...
     if (ndims==1)
-      w1 = ceil(N1/nb);
+      w1 = MAX(1,ceil(N1/nb));                              // so up to ~nb boxes
     else if (ndims==2) {
-      w1=ceil(N1/sqrt(nb)); w2=ceil(N2/sqrt(nb));
+      w1=MAX(1,ceil(N1/sqrt(nb))); w2=MAX(1,ceil(N2/sqrt(nb)));  // "
     } else {
-      w2=ceil(N2/sqrt(nb)); w3=ceil(N3/sqrt(nb));
+      w2=MAX(1,ceil(N2/sqrt(nb))); w3=MAX(1,ceil(N3/sqrt(nb)));  // "
     }
     // # subproblem boxes along each dim
     int nb1=ceil((FLT)N1/w1), nb2=ceil((FLT)N2/w2), nb3=ceil((FLT)N3/w3);
@@ -191,10 +193,10 @@ int cnufftspread(
     std::vector<Subproblem> s(nb);  // create set of subproblems
     for (BIGINT i=0; i<M; i++) {    // build subproblem indices in sorted order
       BIGINT j = sort_indices[i];
-      int i1=floor(RESCALE(kx[j],N1,opts.pirange)/w1);
+      int i1=MIN(nb1-1,floor(RESCALE(kx[j],N1,opts.pirange)/w1)); //make sure legal
       int i2=0, i3=0;
-      if (N2>1) i2=floor(RESCALE(ky[j],N2,opts.pirange)/w2);
-      if (N3>1) i3=floor(RESCALE(kz[j],N3,opts.pirange)/w3);
+      if (N2>1) i2=MIN(nb2-1,floor(RESCALE(ky[j],N2,opts.pirange)/w2)); // "
+      if (N3>1) i3=MIN(nb3-1,floor(RESCALE(kz[j],N3,opts.pirange)/w3)); // "
       int si=i1+nb1*(i2+nb2*i3);      // subproblem index
       // append this source pt's index to the appropriate subproblem's index list
       s.at(si).nonuniform_indices.push_back(j);
@@ -225,7 +227,7 @@ int cnufftspread(
     if (opts.debug) printf("using %ld non-empty subproblems\n",num_nonempty_subproblems);
     nb = s.size();
     
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
     for (int isub=0; isub<nb; isub++) { // Main loop through the subproblems
       std::vector<BIGINT> inds = s.at(isub).nonuniform_indices;
       BIGINT M0 = inds.size();   // # NU pts in this subproblem
@@ -312,7 +314,7 @@ int cnufftspread(
     
   } else {          // ================= direction 2 (interpolation) ===========
 
-#pragma omp parallel for           // assign threads to NU targ pts:
+#pragma omp parallel for schedule(dynamic)   // assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i++) {   // main loop over NU targs, interp each from U
       BIGINT j=sort_indices[i];    // j current index in input NU targ list
     
@@ -732,7 +734,7 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
 void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
 	      double bin_size_x,double bin_size_y,double bin_size_z)
-/* Returns permutation of all nonuniform points with good RAM access
+/* Returns permutation of all nonuniform points with good RAM access,
  * ie less cache misses for spreading, in 1D, 2D, or 3D.
  *
  * This is achieved by binning into cuboids (of given bin_size)
@@ -748,10 +750,11 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  *                    (in rescaled coords where ranges are [0,Ni] )
  * Output:
  *         writes to ret a vector list of indices, each in the range 0,..,M-1.
+ *         Thus ret must have been allocated for M BIGINTs.
  *
  * Notes: compared RAM usage against declaring an internal vector and passing
  * back; the latter used more RAM and was slower.
- * Avoided the bins array.
+ * Avoided the bins array, as in JFM's spreader of 2016.
  */
 {
   BIGINT nbins1=N1/bin_size_x+1;
@@ -795,9 +798,13 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 
 
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,BIGINT &size2,BIGINT &size3,BIGINT M,FLT* kx,FLT* ky,FLT* kz,int ns,int ndims)
-// utility function: writes to offsets and sizes of the subgrid defined by the
-// nonuniform points and the spreading diameter approx ns/2. All dims 1,2,3.
-// Must return offset 0 and size 1 for each unused dimension.
+/* Writes out the offsets and sizes of the subgrid defined by the
+   nonuniform points and the spreading diameter approx ns/2.
+   Requires O(M) effort to find the k arrya bnds. Works in all dims 1,2,3.
+   Must return offset 0 and size 1 for each unused dimension.
+   Grid has been made tight to the kernel point choice using identical ceil
+   operations.  6/16/17
+*/
 {
   FLT ns2 = (FLT)ns/2;
   // compute the min/max of the k-space locations of the nonuniform points
