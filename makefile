@@ -161,9 +161,9 @@ test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
 
 # spreader only test...
 spreadtest: test/spreadtestnd
-	test/spreadtestnd 3 8e6 8e6 1e-6 1 0
-	test/spreadtestnd 2 8e6 8e6 1e-6 1 0
 	test/spreadtestnd 1 8e6 8e6 1e-6 1 0
+	test/spreadtestnd 2 8e6 8e6 1e-6 1 0
+	test/spreadtestnd 3 8e6 8e6 1e-6 1 0
 
 # fortran interface...
 F1=fortran/nufft1d_demo$(SUFFIX)

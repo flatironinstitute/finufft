@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
   std::vector<FLT> d_uniform(2*Ng);                        // Re and Im
 
   spread_opts opts; // set method opts...
-  opts.debug = 1;
+  opts.debug = 0;
   opts.sort = sort;   // for 3D: 1-2x faster on i7; but 0.5-0.9x (ie slower) on xeon!
   opts.flags = flags;
   opts.chkbnds = 0;

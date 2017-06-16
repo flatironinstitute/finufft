@@ -150,7 +150,7 @@ int cnufftspread(
   timer.start();
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   if (opts.sort)
-    // store good permutation ordering of the NU pts (dim=1,2 or 3)
+    // store good permutation ordering of all NU pts (dim=1,2 or 3)
     bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,16,4,4);
   else
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
@@ -232,8 +232,8 @@ int cnufftspread(
 	for (BIGINT j=0; j<M0; j++) {
 	  BIGINT kk=inds[j];
 	  kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
-	  if (N2>1) ky0[j]=RESCALE(ky[kk],N1,opts.pirange);
-	  if (N3>1) kz0[j]=RESCALE(kz[kk],N1,opts.pirange);
+	  if (N2>1) ky0[j]=RESCALE(ky[kk],N2,opts.pirange);
+	  if (N3>1) kz0[j]=RESCALE(kz[kk],N3,opts.pirange);
 	  dd0[j*2]=data_nonuniform[kk*2]; // real part
 	  dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
 	}
@@ -242,11 +242,11 @@ int cnufftspread(
 	get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
 	if (opts.debug)
 	  if (ndims==1)
-	    printf("subgrid: off %ld, siz %ld\n",offset1,size1);
+	    printf("subgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
 	  else if (ndims==2)
-	    printf("subgrid: off %ld,%ld, siz %ld,%ld\n",offset1,offset2,size1,size2);
+	    printf("subgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
 	  else
-	    printf("subgrid: off %ld,%ld,%ld, siz %ld,%ld,%ld\n",offset1,offset2,offset3,size1,size2,size3);
+	    printf("subgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
 	for (BIGINT j=0; j<M0; j++) {
 	  kx0[j]-=offset1; // subtract the offsets so this is really a subproblem
 	  if (N2>1) ky0[j]-=offset2;
@@ -483,10 +483,39 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
 // Barnett 6/16/17
 {
   out[0] = 0.0; out[1] = 0.0;
-  BIGINT j = i1;
-  
-
-
+  if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
+    int p=0;  // pointer into ker array
+    for (int dy=0; dy<ns; dy++) {
+      BIGINT j = N1*(i2+dy) + i1;
+      for (int dx=0; dx<ns; dx++) {
+	FLT k = ker[p++];             // advance the pointer through ker
+	out[0] += du[2*j] * k;
+	out[1] += du[2*j+1] * k;
+	++j;
+      }
+    }
+  } else {                         // wraps somewhere: use ptr list (slower)
+    BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD];   // 1d ptr lists
+    BIGINT x=i1, y=i2;                 // initialize coords
+    for (int d=0; d<ns; d++) {          // set up ptr lists
+      if (x<0) x+=N1;
+      if (x>=N1) x-=N1;
+      j1[d] = x++;
+      if (y<0) y+=N2;
+      if (y>=N2) y-=N2;
+      j2[d] = y++;
+    }
+    int p=0;  // pointer into ker array
+    for (int dy=0; dy<ns; dy++) {      // use the pts lists
+      BIGINT oy = N1*j2[dy];          // offset due to moving in y
+      for (int dx=0; dx<ns; dx++) {
+	FLT k = ker[p++];             // advance the pointer through ker
+	BIGINT j = oy + j1[dx];
+	out[0] += du[2*j] * k;
+	out[1] += du[2*j+1] * k;
+      }
+    }
+  }
 }
 
 void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns)
@@ -500,10 +529,48 @@ void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,BIGINT
 // Barnett 6/16/17
 {
   out[0] = 0.0; out[1] = 0.0;
-  BIGINT j = i1;
-
-
-
+  if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {  // no wrapping: avoid ptrs
+    int p=0;  // pointer into ker array
+    for (int dz=0; dz<ns; dz++) {
+      BIGINT oz = N1*N2*(i3+dz);     // offset due to moving in z
+      for (int dy=0; dy<ns; dy++) {
+	BIGINT j = oz + N1*(i2+dy) + i1;
+	for (int dx=0; dx<ns; dx++) {
+	  FLT k = ker[p++];             // advance the pointer through ker
+	  out[0] += du[2*j] * k;
+	  out[1] += du[2*j+1] * k;
+	  ++j;
+	}
+      }
+    }
+  } else {                         // wraps somewhere: use ptr list (slower)
+    BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD], j3[MAX_NSPREAD];   // 1d ptr lists
+    BIGINT x=i1, y=i2, z=i3;         // initialize coords
+    for (int d=0; d<ns; d++) {          // set up ptr lists
+      if (x<0) x+=N1;
+      if (x>=N1) x-=N1;
+      j1[d] = x++;
+      if (y<0) y+=N2;
+      if (y>=N2) y-=N2;
+      j2[d] = y++;
+      if (z<0) z+=N3;
+      if (z>=N3) z-=N3;
+      j3[d] = z++;
+    }
+    int p=0;  // pointer into ker array
+    for (int dz=0; dz<ns; dz++) {             // use the pts lists
+      BIGINT oz = N1*N2*j3[dz];      // offset due to moving in z
+      for (int dy=0; dy<ns; dy++) {
+	BIGINT oy = oz + N1*j2[dy];          // offset due to moving in y & z
+	for (int dx=0; dx<ns; dx++) {
+	  FLT k = ker[p++];             // advance the pointer through ker
+	  BIGINT j = oy + j1[dx];
+	  out[0] += du[2*j] * k;
+	  out[1] += du[2*j+1] * k;
+	}
+      }
+    }
+  }
 }
 
 void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
