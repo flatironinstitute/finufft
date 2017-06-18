@@ -74,10 +74,11 @@ int main(int argc, char* argv[])
   std::vector<FLT> d_uniform(2*Ng);                        // Re and Im
 
   spread_opts opts; // set method opts...
-  opts.debug = 0;
+  opts.debug = 0;   // print more diagnostics
   opts.sort = sort;  // for 3D: 1-2x faster on i7; but 0.5-0.9x (ie slower) on xeon!
   opts.flags = flags;
   opts.chkbnds = 0;
+  //opts.max_subproblem_size = 1e4; // eg 1e5
   FLT Rdummy = 2.0;    // since no nufft done, merely to please the setup
   setup_kernel(opts,(FLT)tol,Rdummy);  // note tol is always double
   FLT maxerr, ansmod;

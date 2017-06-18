@@ -169,63 +169,86 @@ int cnufftspread(
 
   if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
 
+    timer.start();
     BIGINT N=N1*N2*N3;           // output array size, zero it
     for (BIGINT i=0; i<2*N; i++)
         data_uniform[i]=0.0;
     if (M==0)                     // no NU pts
       return 0;
     int nthr = MY_OMP_GET_MAX_THREADS();
-    double boxesperthr = 4.0;
-    int nb = ceil(boxesperthr*nthr);  // rough number of boxes
-    int w1=N1,w2=N2,w3=N3;            // set up box sizes in any dim...
-    if (ndims==1)
-      w1 = MAX(1,ceil(N1/nb));                              // so up to ~nb boxes
-    else if (ndims==2) {
-      w1=MAX(1,ceil(N1/sqrt(nb))); w2=MAX(1,ceil(N2/sqrt(nb)));  // "
-    } else {
-      w2=MAX(1,ceil(N2/sqrt(nb))); w3=MAX(1,ceil(N3/sqrt(nb)));  // "
-    }
-    // # subproblem boxes along each dim
-    int nb1=ceil((FLT)N1/w1), nb2=ceil((FLT)N2/w2), nb3=ceil((FLT)N3/w3);
-    nb = nb1*nb2*nb3;               // update to actual # boxes
-    if (opts.debug) printf("%dx%dx%d subproblem boxes size %dx%dx%d\n",nb1,nb2,nb3,w1,w2,w3);
-
-    std::vector<Subproblem> s(nb);  // create set of subproblems
-    for (BIGINT i=0; i<M; i++) {    // build subproblem indices in sorted order
-      BIGINT j = sort_indices[i];
-      int i1=MIN(nb1-1,floor(RESCALE(kx[j],N1,opts.pirange)/w1)); //make sure legal
-      int i2=0, i3=0;
-      if (N2>1) i2=MIN(nb2-1,floor(RESCALE(ky[j],N2,opts.pirange)/w2)); // "
-      if (N3>1) i3=MIN(nb3-1,floor(RESCALE(kz[j],N3,opts.pirange)/w3)); // "
-      int si=i1+nb1*(i2+nb2*i3);      // subproblem index
-      // append this source pt's index to the appropriate subproblem's index list
-      s.at(si).nonuniform_indices.push_back(j);
-    }
+    std::vector<Subproblem> s;  // create set of subproblems
+    int nb;
     
-    // split subproblems by index chunks so none exceed opts.max_subproblem_size
-    BIGINT num_nonempty_subproblems=0; // for information only (verbose output)
-    for (BIGINT i=0; i<nb; i++) {
-      std::vector<BIGINT> inds=s.at(i).nonuniform_indices;
-      BIGINT num_nonuniform_points=inds.size();
-      if (num_nonuniform_points>opts.max_subproblem_size) {
-	BIGINT next=0;
-	for (BIGINT j=0; j+opts.max_subproblem_size<=num_nonuniform_points; j+=opts.max_subproblem_size) {
-	  Subproblem X;   // make new subproblem
-	  X.nonuniform_indices=std::vector<BIGINT>(inds.begin()+j,inds.begin()+j+opts.max_subproblem_size);  // extracts contiguous set from vector
-	  s.push_back(X);
-	  num_nonempty_subproblems++; // for info only
-	  next=j+opts.max_subproblem_size;
+    int nospatialsplit = 1;  // hardcoded for now
+    if (nospatialsplit) {   // split sorted inds (advanced2), could double RAM
+      nb = MIN(4*nthr,M);
+      if (nb*opts.max_subproblem_size<M)
+	nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;
+      BIGINT subprobsize=(M+nb-1)/nb;
+      s.resize(nb);
+      BIGINT offset = 0;
+      for (int p=0;p<nb;++p) {   // loop over subprobs to fill
+	BIGINT M0 = MIN(subprobsize,M-offset);  // size of this subprob
+	for (BIGINT i=0;i<M0;++i) {
+	  BIGINT j = sort_indices[i+offset];
+	  s.at(p).nonuniform_indices.push_back(j);
 	}
-	// the remainder of the indices go to the ith subproblem
-	// it is possible that this will now be an empty subproblem (that's okay)
-	s.at(i).nonuniform_indices=std::vector<BIGINT>(inds.begin()+next,inds.end());
+	offset += M0;
       }
-      if (s.at(i).nonuniform_indices.size()>0) {
-	num_nonempty_subproblems++;              // for info only
+    } else {       // split by spatial boxes then by sorted inds (advanced4)
+      // *** currently too slow (30% of total time!)
+      double boxesperthr = 4.0;
+      nb = ceil(boxesperthr*nthr);  // rough number of boxes
+      int w1=N1,w2=N2,w3=N3;            // set up box sizes in any dim...
+      if (ndims==1)
+	w1 = MAX(1,ceil(N1/nb));                       // so up to ~nb boxes
+      else if (ndims==2) {
+	w1=MAX(1,ceil(N1/sqrt(nb))); w2=MAX(1,ceil(N2/sqrt(nb)));  // "
+      } else {
+	w2=MAX(1,ceil(N2/sqrt(nb))); w3=MAX(1,ceil(N3/sqrt(nb)));  // "
+      }
+      // # subproblem boxes along each dim
+      int nb1=ceil((FLT)N1/w1), nb2=ceil((FLT)N2/w2), nb3=ceil((FLT)N3/w3);
+      nb = nb1*nb2*nb3;               // update to actual # boxes
+      if (opts.debug) printf("%dx%dx%d subproblem boxes size %dx%dx%d\n",nb1,nb2,nb3,w1,w2,w3);
+      
+      s.resize(nb);  // create nb subproblems
+      for (BIGINT i=0; i<M; i++) {    // build subproblem indices in sorted order
+	BIGINT j = sort_indices[i];
+	int i1=MIN(nb1-1,floor(RESCALE(kx[j],N1,opts.pirange)/w1)); //make sure legal
+	int i2=0, i3=0;
+	if (N2>1) i2=MIN(nb2-1,floor(RESCALE(ky[j],N2,opts.pirange)/w2)); // "
+	if (N3>1) i3=MIN(nb3-1,floor(RESCALE(kz[j],N3,opts.pirange)/w3)); // "
+	int si=i1+nb1*(i2+nb2*i3);      // subproblem index
+	// append this source pt's index to the appropriate subproblem's index list
+	s.at(si).nonuniform_indices.push_back(j);  // hard to parallelize
+      }
+      
+      // split subproblems by index chunks so none exceed opts.max_subproblem_size
+      BIGINT num_nonempty_subproblems=0; // for information only (verbose output)
+      for (BIGINT i=0; i<nb; i++) {
+	std::vector<BIGINT> inds=s.at(i).nonuniform_indices;
+	BIGINT num_nonuniform_points=inds.size();
+	if (num_nonuniform_points>opts.max_subproblem_size) {
+	  BIGINT next=0;
+	  for (BIGINT j=0; j+opts.max_subproblem_size<=num_nonuniform_points; j+=opts.max_subproblem_size) {
+	    Subproblem X;   // make new subproblem
+	    X.nonuniform_indices=std::vector<BIGINT>(inds.begin()+j,inds.begin()+j+opts.max_subproblem_size);  // extracts contiguous set from vector
+	    s.push_back(X);
+	    num_nonempty_subproblems++; // for info only
+	    next=j+opts.max_subproblem_size;
+	  }
+	  // the remainder of the indices go to the ith subproblem
+	  // it is possible that this will now be an empty subproblem (that's okay)
+	  s.at(i).nonuniform_indices=std::vector<BIGINT>(inds.begin()+next,inds.end());
+	}
+	if (s.at(i).nonuniform_indices.size()>0) {
+	  num_nonempty_subproblems++;              // for info only
+	}
       }
     }
-    if (opts.debug) printf("using %ld non-empty subproblems\n",num_nonempty_subproblems);
     nb = s.size();
+    if (opts.debug) printf("subprobs setup %.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
     
 #pragma omp parallel for //schedule(dynamic,1)
     for (int isub=0; isub<nb; isub++) { // Main loop through the subproblems
@@ -314,7 +337,7 @@ int cnufftspread(
     
   } else {          // ================= direction 2 (interpolation) ===========
 
-#pragma omp parallel for schedule(dynamic,1000) // (dynamic not needed) assign threads to NU targ pts:
+#pragma omp parallel for schedule(dynamic,10000) // (dynamic not needed) assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i++) {   // main loop over NU targs, interp each from U
       BIGINT j=sort_indices[i];    // j current index in input NU targ list
     
