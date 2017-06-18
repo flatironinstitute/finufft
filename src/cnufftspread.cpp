@@ -227,7 +227,7 @@ int cnufftspread(
     if (opts.debug) printf("using %ld non-empty subproblems\n",num_nonempty_subproblems);
     nb = s.size();
     
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for //schedule(dynamic,1)
     for (int isub=0; isub<nb; isub++) { // Main loop through the subproblems
       std::vector<BIGINT> inds = s.at(isub).nonuniform_indices;
       BIGINT M0 = inds.size();   // # NU pts in this subproblem
@@ -314,7 +314,7 @@ int cnufftspread(
     
   } else {          // ================= direction 2 (interpolation) ===========
 
-#pragma omp parallel for schedule(dynamic)   // assign threads to NU targ pts:
+#pragma omp parallel for schedule(dynamic,1000) // (dynamic not needed) assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i++) {   // main loop over NU targs, interp each from U
       BIGINT j=sort_indices[i];    // j current index in input NU targ list
     
@@ -327,15 +327,13 @@ int cnufftspread(
       // eval kernel values patch and use to interpolate from uniform data...
       if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
-	  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
-	    fill_kernel_line(x1,opts,kernel_values);
+	  fill_kernel_line(x1,opts,kernel_values);
 	  interp_line(&data_nonuniform[2*j],data_uniform,kernel_values,i1,N1,ns);
 	} else if (ndims==2) {                                   // 2D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
 	  BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
 	  FLT x2=(FLT)i2-yj;
-	  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))	  
-	    fill_kernel_square(x1,x2,opts,kernel_values);
+	  fill_kernel_square(x1,x2,opts,kernel_values);
 	  interp_square(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,N1,N2,ns);
 	} else {                                                 // 3D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
@@ -344,8 +342,7 @@ int cnufftspread(
 	  BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
 	  FLT x2=(FLT)i2-yj;
 	  FLT x3=(FLT)i3-zj;
-	  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
-	    fill_kernel_cube(x1,x2,x3,opts,kernel_values);
+	  fill_kernel_cube(x1,x2,x3,opts,kernel_values);
 	  interp_cube(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,i3,N1,N2,N3,ns);
 	}
     }    // end NU targ loop
@@ -415,12 +412,16 @@ void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
 // Fill ker with kernel values evaluated at x1+[0:ns] in 1D.
 {
   int ns=opts.nspread;
-  if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-    for (int i = 0; i <= ns; i++)
-      ker[i] = evaluate_kernel(x1 + (FLT)i, opts);
+  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
+    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
+      for (int i = 0; i <= ns; i++)
+	ker[i] = evaluate_kernel(x1 + (FLT)i, opts);
+    else
+      for (int i = 0; i <= ns; i++)
+	ker[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
   else
     for (int i = 0; i <= ns; i++)
-      ker[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
+      ker[i] = 1.0;        // dummy
 }
 
 void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
@@ -429,16 +430,19 @@ void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
 {
   int ns=opts.nspread;
   FLT v1[ns], v2[ns];
-  if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-    for (int i = 0; i < ns; i++) {
-      v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
-      v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
-    }
+  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
+    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
+      for (int i = 0; i < ns; i++) {
+	v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
+	v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
+      }
+    else
+      for (int i = 0; i < ns; i++) {
+	v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
+	v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
+      }
   else
-    for (int i = 0; i < ns; i++) {
-      v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-      v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
-    }
+    for (int i = 0; i < ns; i++) { v1[i] = 1.0; v2[i] = 1.0; }  // dummy
   int aa = 0; // pointer for writing to output ker array
   for (int j = 0; j < ns; j++) {
     FLT val2 = v2[j];
@@ -453,18 +457,21 @@ void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts,FLT* ker)
 {
     int ns=opts.nspread;
     FLT v1[ns], v2[ns], v3[ns];
-    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-      for (int i = 0; i < ns; i++) {
-	v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
-	v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
-	v3[i] = evaluate_kernel(x3 + (FLT)i, opts);
-      }
+    if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
+      if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
+	for (int i = 0; i < ns; i++) {
+	  v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
+	  v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
+	  v3[i] = evaluate_kernel(x3 + (FLT)i, opts);
+	}
+      else
+	for (int i = 0; i < ns; i++) {
+	  v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
+	  v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
+	  v3[i] = evaluate_kernel_noexp(x3 + (FLT)i, opts);
+	}
     else
-      for (int i = 0; i < ns; i++) {
-	v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-	v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
-	v3[i] = evaluate_kernel_noexp(x3 + (FLT)i, opts);
-      }
+      for (int i=0; i<ns; i++) { v1[i]=1.0; v2[i]=1.0; v3[i]=1.0; }  // dummy
     int aa = 0; // pointer for writing to output ker array
     for (int k = 0; k < ns; k++) {
         FLT val3 = v3[k];
