@@ -138,3 +138,4 @@ Marina Spivak - fortran testing
 Christian Muller - optimization (CMA-ES) for kernel design  
 Timo Heister - pass/fail numdiff testing ideas  
 Hannah Lawrence - finding bugs
+Zydrunas Gimbutas - discussion of NFFT using Kaiser-Bessel backwards
