@@ -2,15 +2,14 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
-* adapt adv4 into main code, inner loops separate by dim, kill the current spreader. Incorporate old ideas such as: checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()
 * swap out mallocs for std:vector in finufft?
-* swap legendre GLR with hellskitchen BSD version.
+* swap legendre GLR with hellskitchen BSD version?
 * decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
 * related to above, fix matlab, octave, and python interfaces for single-prec.
 * speed and parallel scaling for uniform and surface-like NU pts dists, figures
 * add the other C interfaces to finufft_c, after understand if use of _Complex is good.
 * Decide if non vs omp get different lib names.
-* run nufft_comparison, use for paper. Compare vs NFFT (Chemnitz), gpuNUFFT (Knoll)
+* run nufft_comparison, use for paper. Compare vs NFFT (Chemnitz), maybe gpuNUFFT (Knoll)
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) better install notes.
 * Flatiron logo
@@ -20,12 +19,10 @@ HIGHER PRIORITY:
 
 LOWER PRIORITY:
 
-* checking if mallocs return NULL and return gracefully - not sure if any point?
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
 * test huge arrays >=2^31 2d, 3d in C++.
 * test huge arrays >=2^31 in octave/mex.
 * allow fortran interface to access >=2^31 arrays.
-* make test - should check sort=0,1 both?
 * more doc/manual; wait until after tech report/paper
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
 * clean up tree, remove devel/ and unused contrib?

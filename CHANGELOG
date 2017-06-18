@@ -1,8 +1,9 @@
 List of tasks accomplished / changes made / release notes, in reverse
 chronological order:
 
-V 0.9:
+V 0.9: (6/17/17)
 
+* adapted adv4 into main code, inner loops separate by dim, kill the current spreader. Incorporate old ideas such as: checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()
 * added FFTW_MEAS vs FFTW_EST (set as default) opts flag in nufft_opts, and matlab/python interfaces
 * removed opts.maxnalloc in favor of #defined MAX_NF
 * fixed the 1-target case in type-3, all dims, to avoid nan; clarified logic for handling X=0 and/or S=0. 6/12/17

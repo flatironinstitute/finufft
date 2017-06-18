@@ -20,18 +20,39 @@ rng(1);
 NN=128;
 N1=NN; N2=NN; N3=NN;
 %M=8e4;
-M=1e7;
-x=rand(1,M)*2*pi-pi;
-y=rand(1,M)*2*pi-pi;
-z=rand(1,M)*2*pi-pi;
-data_in=randn(1,M);
-max_nthreads=40;
-finufft_nthreads=max_nthreads;
-%finufft_nthreads=1;
-nfft_single_thread=0;
-nfft_fftw_measure=1;
+M=1e6;
+multithreaded=1;
+max_nthreads=8;
+spread_sort=2;
+radial_sampling=1;
 
-title0=sprintf('N=%d M=%d',NN,M);
+if (radial_sampling)
+    theta=rand(1,M)*2*pi;
+    phi=rand(1,M)*2*pi;
+    rad=rand(1,M)*pi;
+    x=rad.*cos(theta).*cos(phi);
+    y=rad.*sin(theta).*cos(phi);
+    z=rad.*sin(phi);
+else
+    x=rand(1,M)*2*pi-pi;
+    y=rand(1,M)*2*pi-pi;
+    z=rand(1,M)*2*pi-pi;
+end;
+data_in=randn(1,M);
+if multithreaded
+    finufft_nthreads=max_nthreads;
+    nfft_single_thread=0;
+else
+    finufft_nthreads=1;
+    nfft_single_thread=1;
+end;
+
+nfft_algopts.fftw_measure=1;
+nfft_algopts.reshape=0;
+nfft_algopts.precompute_phi=0;
+nfft_algopts.precompute_psi=0;
+
+title0=sprintf('Type 1, %dx%dx%d, %g sources, %d threads',NN,NN,NN,M,finufft_nthreads);
 
 ALGS={};
 
@@ -41,21 +62,24 @@ ALG=struct;
 ALG.algtype=0;
 ALG.name=sprintf('truth',eps);
 ALG.algopts.eps=eps;
-ALG.algopts.opts.nthreads=max_nthreads; ALG.algopts.opts.spread_sort=1; ALG.algopts.isign=1;
+ALG.algopts.opts.nthreads=max_nthreads; ALG.algopts.opts.spread_sort=2; ALG.algopts.isign=1;
 ALG.init=@dummy_init; ALG.run=@run_finufft3d1;
 ALGS{end+1}=ALG;
 
 %finufft
 addpath('..');
-epsilons=10.^(-(2:11));
+epsilons=10.^(-(2:12));
+finufft_algopts.opts.nthreads=finufft_nthreads;
+finufft_algopts.opts.spread_sort=spread_sort;
+finufft_algopts.isign=1;
+finufft.algopts.opts.debug=1;
 for ieps=1:length(epsilons)
     eps=epsilons(ieps);
     ALG=struct;
     ALG.algtype=1;
     ALG.name=sprintf('finufft(%g)',eps);
+    ALG.algopts=finufft_algopts;
     ALG.algopts.eps=eps;
-    ALG.algopts.opts.nthreads=finufft_nthreads; ALG.algopts.opts.spread_sort=1; ALG.algopts.isign=1;
-    ALG.algopts.opts.debug=1;
     ALG.init=@dummy_init; ALG.run=@run_finufft3d1;
     ALGS{end+1}=ALG;
 end;
@@ -69,13 +93,23 @@ else
     rmpath('nfft-3.3.1-single-thread/matlab/nfft');
 end;
 m_s=1:6;
+if 1
+    % create nfft dummy run to initialize with fftw_measure
+    ALG=struct;
+    ALG.algtype=0;
+    ALG.name=sprintf('nfft(1) - dummy');
+    ALG.algopts=nfft_algopts;
+    ALG.algopts.m=1;
+    ALG.init=@init_nfft; ALG.run=@run_nfft;
+    ALGS{end+1}=ALG;
+end;
 for im=1:length(m_s)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ALG=struct;
     ALG.algtype=2;
     ALG.name=sprintf('nfft(%d)',m_s(im));
+    ALG.algopts=nfft_algopts;
     ALG.algopts.m=m_s(im);
-    ALG.algopts.fftw_measure=nfft_fftw_measure;
     ALG.init=@init_nfft; ALG.run=@run_nfft;
     ALGS{end+1}=ALG;
 end;
@@ -85,10 +119,12 @@ results=run_algs(ALGS,x,y,z,data_in,N1,N2,N3);
 %print_accuracy_comparison_and_timings(ALGS,results);
 
 errors=[];
+init_times=[];
+run_times=[];
 total_times=[];
 algtypes=[];
 X0=results{1}.data_out;
-fprintf('\n\n%15s %15s %15s\n','name','tot_time(s)','err');
+fprintf('\n\n%15s %15s %15s %15s %15s\n','name','init_time(s)','run_time(s)','tot_time(s)','err');
 for j=1:length(ALGS)
     X1=results{j}.data_out;
     %m0=(max(abs(X0(:)))+max(abs(X0(:))))/2;
@@ -97,21 +133,24 @@ for j=1:length(ALGS)
     numer0=norm(X0(:)-X1(:));
     denom0=norm(X0(:));
     errors(j)=numer0/denom0;
+    init_times(j)=results{j}.init_time;
+    run_times(j)=results{j}.run_time;
     total_times(j)=results{j}.tot_time;
     algtypes(j)=ALGS{j}.algtype;
     
-    fprintf('%15s %15g %15g\n',ALGS{j}.name,total_times(j),errors(j));
+    fprintf('%15s %15g %15g %15g %15g\n',ALGS{j}.name,init_times(j),run_times(j),total_times(j),errors(j));
 end;
 
 
 ii1=find(algtypes==1);
 ii2=find(algtypes==2);
 figure;
-loglog(errors(ii1),total_times(ii1),'b.-');
+semilogx(errors(ii1),run_times(ii1),'b.-');
 hold on;
-loglog(errors(ii2),total_times(ii2),'r.-');
+semilogx(errors(ii2),run_times(ii2),'r.-');
 xlabel('Error');
-ylabel('total time (s)');
+ylabel('Run time (s)');
+set(gca,'xlim',[1e-12,1e0]);
 legend({'finufft','nfft'});
 title(title0);
 
@@ -204,11 +243,25 @@ N=[N1;N2;N3];
 n=2^(ceil(log(max(N))/log(2))+1);
 
 ticA=tic;
-if (algopts.fftw_measure)
-    plan=nfft(3,N,M,n,n,n,algopts.m,bitor(PRE_PHI_HUT,bitor(PRE_PSI,NFFT_OMP_BLOCKWISE_ADJOINT)),FFTW_MEASURE); % use of nfft_init_guru
-else
-    plan=nfft(3,N,M,n,n,n,algopts.m,bitor(PRE_PHI_HUT,bitor(PRE_PSI,NFFT_OMP_BLOCKWISE_ADJOINT)),FFTW_ESTIMATE); % use of nfft_init_guru
+flags=NFFT_OMP_BLOCKWISE_ADJOINT;
+if (algopts.precompute_psi)
+    flags=bitor(PRE_PSI,flags);
 end;
+if (algopts.precompute_phi)
+    flags=bitor(PRE_PHI_HUT,flags);
+end;
+fftw_flag=FFTW_ESTIMATE;
+if (algopts.fftw_measure)
+    fftw_flag=FFTW_MEASURE;
+end;
+plan=nfft(3,N,M,n,n,n,algopts.m,flags,fftw_flag); % use of nfft_init_guru
+
+% if (algopts.fftw_measure)
+%     plan=nfft(3,N,M,n,n,n,algopts.m,bitor(PRE_PHI_HUT,bitor(PRE_PSI,NFFT_OMP_BLOCKWISE_ADJOINT)),FFTW_MEASURE); % use of nfft_init_guru
+% else
+%     plan=nfft(3,N,M,n,n,n,algopts.m,bitor(PRE_PHI_HUT,bitor(PRE_PSI,NFFT_OMP_BLOCKWISE_ADJOINT)),FFTW_ESTIMATE); % use of nfft_init_guru
+% end;
+
 fprintf('  Creating nfft plan: %g s\n',toc(ticA));
 
 ticA=tic;
@@ -233,4 +286,8 @@ plan=init_data.plan;
 M=length(x);
 plan.f=d';
 nfft_adjoint(plan);
-X=reshape(plan.fhat,[N1,N2,N3]);  % ahb removed 1/M prefac to match finufft
+if algopts.reshape
+    X=reshape(plan.fhat,[N1,N2,N3])/M;
+else
+    X=plan.fhat/M;
+end;

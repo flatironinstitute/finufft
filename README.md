@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-Version 0.9  (3/30/2017)
+Version 0.9  (6/17/2017)
 
 ### Alex H. Barnett and Jeremy F. Magland
 
@@ -10,16 +10,17 @@ This is a lightweight library to compute the nonuniform FFT to a specified preci
 This task is to approximate various exponential sums involving large numbers of terms and output indices, in close to linear time.
 The speedup over naive evaluation of the sums is similar to that achieved by the FFT. For instance, for _N_ terms and _N_ output indices, the computation time is _O_(_N_ log _N_) as opposed to the naive _O_(_N_<sup>2</sup>).
 For convenience, we conform to the simple existing interfaces of the
-[CMCL NUFFT libraries of Greengard--Lee from 2004](http://www.cims.nyu.edu/cmcl/nufft/nufft.html).
+[CMCL NUFFT libraries of Greengard--Lee from 2004](http://www.cims.nyu.edu/cmcl/nufft/nufft.html), apart from the normalization factor of type-1.
 Our main innovations are: speed (enhanced by a new functional form for the spreading kernel), computation via a single call (there is no "plan" or pre-storing of kernel matrices), the efficient use of multi-core architectures, and simplicity of the codes, installation, and interface.
 In particular, in the single-core setting we are approximately 8x faster than the (single-core) CMCL library when requesting many digits in 3D.
-Preliminary tests suggest that in the multi-core setting we are no slower than the [Chemnitz NFFT](https://www-user.tu-chemnitz.de/~potts/nfft/) at comparable accuracy, except that our code does not require an additional plan or precomputation phase.
+Preliminary tests suggest that in the multi-core setting we are faster than the [Chemnitz NFFT](https://www-user.tu-chemnitz.de/~potts/nfft/) at comparable accuracy, and our code does not require an additional plan or precomputation phase.
 
 See the manual for a more detailed description and usage.
 
 ### Dependencies
 
-This library is only supported for unix/linux and Mac OSX right now.
+This library is only supported for unix/linux, and partially for Mac OSX.
+It should be able to be compiled on Windows.
 
 For the basic libraries
 
@@ -31,9 +32,11 @@ Optional:
 
 - numdiff (preferred but not essential; enables pass-fail math validation)
 - for Fortran wrappers: compiler such as gfortran
-- for matlab/octave wrappers: matlab, or octave and its development libs
-- for building new matlab/octave wrappers: mwrap
+- for matlab/octave wrappers: MATLAB, or octave and its development libs
 - for python wrappers: python-pip and pybind11
+- for building new matlab/octave wrappers (experts only): mwrap
+
+See [installation instructions](INSTALL.md).
 
 ### Installation and usage overview
 
@@ -72,14 +75,17 @@ See [installation instructions](INSTALL.md) to build the wrappers to high-level 
 
 ### Design notes
 
-C++ is used for all main libraries, avoiding object-oriented code. C++ `std::complex<double>` (aliased to `dcomplex`) and FFTW complex types are mixed within the library, since to some extent it is a glorified driver for FFTW. The interfaces are dcomplex. FFTW was considered universal and essential enough to be a dependency for the whole package.
+C++ is used for all main libraries, almost entirely avoiding object-oriented code. C++ `std::complex<double>` (aliased to `dcomplex`) and FFTW complex types are mixed within the library, since to some extent it is a glorified driver for FFTW. The interfaces are dcomplex. FFTW was considered universal and essential enough to be a dependency for the whole package.
 
-If internal arrays to be dynamically allocated are larger than `opts.maxnalloc`, the library stops before allocating and returns an error code. Currently the default value is `opts.maxnalloc=1e9`, which would allocate at least 16 GB. If your machine has the RAM and you need it, set this larger before calling.
-(Currently changing this at runtime is only available via the C++ interface.)
+There is a hard-defined limit of `1e11` for internal FFT arrays, set in `common.h`;
+if your machine has RAM of order 1TB, and you need it, set this larger and recompile. The point of this is to catch ridiculous-sized mallocs and exit gracefully.
+Note that mallocs smaller than this, but which still exceed available RAM, cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc.
 
 As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
 
 References for this include:
+
+[FIN] Finufft: a fast and lightweight non-uniform fast Fourier transform library. A. H. Barnett and J. F. Magland. In preparation (2017).
 
 [ORZ] Prolate Spheroidal Wave Functions of Order Zero: Mathematical Tools for Bandlimited Approximation.  A. Osipov, V. Rokhlin, and H. Xiao. Springer (2013).
 
@@ -107,7 +113,7 @@ Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)
 Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)  
 Dan Foreman-Mackey - python wrappers (in `python/`)  
 
-There are also undocumented packaged codes in the `devel/` directory.
+There are also undocumented packaged codes in the `devel/` directory, for experts only.
 
 
 ### Known issues
@@ -135,7 +141,7 @@ Dan Foreman-Mackey - python wrappers
 Charlie Epstein - discussion re analysis of kernel FT  
 Andras Pataki - complex number speed in C++  
 Marina Spivak - fortran testing  
-Christian Muller - optimization (CMA-ES) for kernel design  
+Christian Muller - optimization (CMA-ES) for early kernel design  
 Timo Heister - pass/fail numdiff testing ideas  
-Hannah Lawrence - finding bugs
-Zydrunas Gimbutas - discussion of NFFT using Kaiser-Bessel backwards
+Hannah Lawrence - finding bugs  
+Zydrunas Gimbutas - discussion that NFFT uses Kaiser-Bessel backwards  
