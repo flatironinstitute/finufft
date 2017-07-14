@@ -33,7 +33,6 @@ Optional:
 - numdiff (preferred but not essential; enables pass-fail math validation)
 - for Fortran wrappers: compiler such as gfortran
 - for matlab/octave wrappers: MATLAB, or octave and its development libs
-- for python wrappers: python-pip and pybind11
 - for building new matlab/octave wrappers (experts only): mwrap
 
 See [installation instructions](INSTALL.md).
@@ -54,24 +53,23 @@ See [installation instructions](INSTALL.md) to build the wrappers to high-level 
 
 ### Contents of this package
 
- `src` : main library source and headers. Compiled .o will be built here  
- `lib` : compiled library will be built here  
- `makefile` : GNU makefile (user may need to edit)  
- `test` : validation and performance tests. `test/check_finufft.sh` is the main validation script. `test/nuffttestnd.sh` is the main performance test script  
+ `src` : main library source and headers. Compiled .o will be built here
+ `lib` : compiled library will be built here
+ `makefile` : GNU makefile (user may need to edit)
+ `test` : validation and performance tests. `test/check_finufft.sh` is the main validation script. `test/nuffttestnd.sh` is the main performance test script
  `test/results` : validation comparison outputs (\*.refout; do not remove these), and local test and performance outputs (\*.out; one may remove these)
- `examples` : simple example codes for calling the library from C++ and from C  
- `fortran` : wrappers and drivers for Fortran   
- `matlab` : wrappers and examples for MATLAB/octave   
- `matlab-mcwrap` : old mcwrap-style wrappers and examples for MATLAB  
- `python` : wrappers and examples for python  
- `contrib` : 3rd-party code  
- `devel` : various in-development or obsolete codes/notes (experts only)  
- `doc` : contains the manual  
- `README.md` : this file  
- `INSTALL.md` : installation instructions for various operating systems  
- `LICENSE` : how you may use this software  
- `CHANGELOG` : list of changes, release notes  
- `TODO` : list of things needed to do, or wishlist  
+ `examples` : simple example codes for calling the library from C++ and from C
+ `fortran` : wrappers and drivers for Fortran
+ `matlab` : wrappers and examples for MATLAB/octave
+ `matlab-mcwrap` : old mcwrap-style wrappers and examples for MATLAB
+ `contrib` : 3rd-party code
+ `devel` : various in-development or obsolete codes/notes (experts only)
+ `doc` : contains the manual
+ `README.md` : this file
+ `INSTALL.md` : installation instructions for various operating systems
+ `LICENSE` : how you may use this software
+ `CHANGELOG` : list of changes, release notes
+ `TODO` : list of things needed to do, or wishlist
 
 ### Design notes
 
@@ -102,16 +100,16 @@ This code builds upon the CMCL NUFFT, and the Fortran wrappers duplicate its int
 
 The original NUFFT analysis using truncated Gaussians is:
 
-[DR] Fast Fourier Transforms for Nonequispaced data. A. Dutt and V. Rokhlin. SIAM J. Sci. Comput. 14, 1368 (1993). 
+[DR] Fast Fourier Transforms for Nonequispaced data. A. Dutt and V. Rokhlin. SIAM J. Sci. Comput. 14, 1368 (1993).
 
 
 ### Packaged codes.
 
 The main distribution includes contributed code by:
 
-Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)   
-Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)  
-Dan Foreman-Mackey - python wrappers (in `python/`)  
+Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)
+Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)
+Dan Foreman-Mackey - python wrappers: [dfm/python-finufft](https://github.com/dfm/python-finufft)
 
 There are also undocumented packaged codes in the `devel/` directory, for experts only.
 
@@ -136,12 +134,12 @@ details about your machine, operating system, compiler, and version of FINUFFT.
 
 The following people have helped this project through discussions, code, or bug reports:
 
-Leslie Greengard - CMCL test codes, testing on Mac OSX  
-Dan Foreman-Mackey - python wrappers  
-Charlie Epstein - discussion re analysis of kernel FT  
-Andras Pataki - complex number speed in C++  
-Marina Spivak - fortran testing  
-Christian Muller - optimization (CMA-ES) for early kernel design  
-Timo Heister - pass/fail numdiff testing ideas  
-Hannah Lawrence - finding bugs  
-Zydrunas Gimbutas - discussion that NFFT uses Kaiser-Bessel backwards  
+Leslie Greengard - CMCL test codes, testing on Mac OSX
+Dan Foreman-Mackey - python wrappers
+Charlie Epstein - discussion re analysis of kernel FT
+Andras Pataki - complex number speed in C++
+Marina Spivak - fortran testing
+Christian Muller - optimization (CMA-ES) for early kernel design
+Timo Heister - pass/fail numdiff testing ideas
+Hannah Lawrence - finding bugs
+Zydrunas Gimbutas - discussion that NFFT uses Kaiser-Bessel backwards

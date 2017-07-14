@@ -18,7 +18,6 @@ Optional:
 - for Fortran wrappers: compiler such as gfortran
 - for matlab/octave wrappers: matlab, or octave and its development libs
 - for building new matlab/octave wrappers: mwrap
-- for python wrappers: python-pip and pybind11
 
 ### Installing dependencies on various operating systems
 
@@ -101,5 +100,3 @@ The `examples` and `test` directories are good places to see usage examples.
 `make matlab` to build the MEX interface to matlab.
 
 `make octave` to build the MEX-like interface to octave.
-
-`make python` to build the python wrappers.

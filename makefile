@@ -9,7 +9,7 @@
 #
 # 1) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
 #    double-precision. Single-precision saves half the RAM, and increases
-#    speed slightly (<20%). Will break matlab, octave, python interfaces.
+#    speed slightly (<20%). Will break matlab and octave interfaces.
 # 2) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
 # 3) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
 #    indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
@@ -51,7 +51,7 @@ SUFFIX = f
 REQ_TOL = 1e-6
 CHECK_TOL = 2e-4
 else
-SUFFIX = 
+SUFFIX =
 REQ_TOL = 1e-12
 CHECK_TOL = 1e-11
 endif
@@ -82,11 +82,11 @@ FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o
 
 HEADERS = src/cnufftspread.h src/finufft.h src/dirft.h src/common.h src/utils.h src/finufft_c.h fortran/finufft_f.h
 
-.PHONY: usage lib examples test perftest fortran matlab octave python all mex
+.PHONY: usage lib examples test perftest fortran matlab octave all mex
 
 default: usage
 
-all: test perftest lib examples fortran matlab octave python
+all: test perftest lib examples fortran matlab octave
 
 usage:
 	@echo "Makefile for FINUFFT library. Specify what to make:"
@@ -97,7 +97,6 @@ usage:
 	@echo " make fortran - compile and test Fortran interfaces"
 	@echo " make matlab - compile Matlab interfaces"
 	@echo " make octave - compile and test octave interfaces"
-	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all of the above"
 	@echo " make spreadtest - compile and run spreader tests only"
 	@echo " make clean - remove all object and executable files apart from MEX"
@@ -194,15 +193,9 @@ mex: matlab/finufft.mw
 	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
 
-# python wrapper... (awaiting completion)
-python: python/setup.py python/demo.py python/finufft/build.py python/finufft/__init__.py python/finufft/interface.cpp
-	(cd python; rm -rf build ;\
-	python setup.py build_ext --inplace ;\
-	python demo.py )
-
 # various obscure devel tests...
 devel/plotkernels: $(SOBJS) $(HEADERS) devel/plotkernels.cpp
-	$(CXX) $(CXXFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS) 
+	$(CXX) $(CXXFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS)
 	(cd devel; ./plotkernels > plotkernels.dat)
 
 devel/testi0: devel/testi0.cpp devel/besseli.o src/utils.o
