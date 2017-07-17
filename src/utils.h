@@ -48,7 +48,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   typedef double FLT;
   typedef complex<double> CPX;
   #define ima complex<double>{0.0,1.0}
-  #define FABS(x) fabsf(x)
+  #define FABS(x) std::abs(x)
   typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
   typedef fftw_plan FFTW_PLAN;
   #define FFTW_INIT fftw_init_threads

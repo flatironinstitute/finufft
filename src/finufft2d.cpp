@@ -13,17 +13,17 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
                   nj-1
      f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
                   j=0
- 
+
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
      The output array is in increasing k1 ordering (fast), then increasing
      k2 ordering (slow). If iflag>0 the + sign is
      used, otherwise the - sign is used, in the exponential.
-                           
+
    Inputs:
      nj     number of sources
      xj,yj     x,y locations of sources on 2D domain [-pi,pi]^2.
-     cj     size-nj complex FLT array of source strengths, 
+     cj     size-nj complex FLT array of source strengths,
             (ie, stored as 2*nj FLTs interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
@@ -60,7 +60,7 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -113,8 +113,8 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
  /*  Type-2 2D complex nonuniform FFT.
 
      cj[j] =  SUM   fk[k1,k2] exp(+/-i (k1 xj[j] + k2 yj[j]))      for j = 0,...,nj-1
-             k1,k2 
-     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
+             k1,k2
+     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
    Inputs:
      nj     number of sources (integer of type BIGINT; see utils.h)
@@ -153,7 +153,7 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
+  if (opts.debug) printf("2d2: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -210,7 +210,7 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
    Inputs:
      nj     number of sources (integer of type BIGINT; see utils.h)
      xj,yj  x,y location of sources in R^2.
-     cj     size-nj complex FLT array of source strengths, 
+     cj     size-nj complex FLT array of source strengths,
             (ie, stored as 2*nj FLTs interleaving Re, Im).
      nk     number of frequency target points
      s,t    (k_x,k_y) frequency locations of targets in R^2.
@@ -258,7 +258,7 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
   // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
-  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,(INT64)nj,(INT64)nk);
+  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld nj=%lld nk=%lld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,(INT64)nj,(INT64)nk);
   if (nf1*nf2>MAX_NF) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
     return ERR_MAXNALLOC;
