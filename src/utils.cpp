@@ -105,7 +105,8 @@ using namespace std;
 
 void CNTime::start()
 {
-  gettimeofday(&initial, 0);
+  initial = clock();
+  //gettimeofday(&initial, 0);
 }
 
 int CNTime::restart()
@@ -118,15 +119,16 @@ int CNTime::restart()
 int CNTime::elapsed()
 //  returns answers as integer number of milliseconds
 {
-  struct timeval now;
-  gettimeofday(&now, 0);
-  int delta = 1000 * (now.tv_sec - (initial.tv_sec + 1));
-  delta += (now.tv_usec + (1000000 - initial.tv_usec)) / 1000;
-  return delta;
+  //struct timeval now;
+  //gettimeofday(&now, 0);
+  //int delta = 1000 * (now.tv_sec - (initial.tv_sec + 1));
+  //delta += (now.tv_usec + (1000000 - initial.tv_usec)) / 1000;
+  return int(elapsedsec() * 1000.0);
 }
 
 double CNTime::elapsedsec()
 //  returns answers as double in sec
 {
-  return (double)(this->elapsed()/1000.0);
+  return double(clock() - initial) / CLOCKS_PER_SEC;
+  //return (double)(this->elapsed()/1000.0);
 }

@@ -109,7 +109,7 @@ INT64 next235even(INT64 n);
 
 
 // jfm timer stuff
-#include <sys/time.h>
+#include <time.h>
 class CNTime {
  public:
   void start();
@@ -117,7 +117,7 @@ class CNTime {
   int elapsed();
   double elapsedsec();
  private:
-  struct timeval initial;
+  clock_t initial;
 };
 
 
