@@ -12,7 +12,7 @@ int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
 
               nj-1
      fk(k1) = SUM cj[j] exp(+/-i k1 xj(j))  for -ms/2 <= k1 <= (ms-1)/2
-              j=0
+              j=0                            
    Inputs:
      nj     number of sources (type INT; see utils.h)
      xj     location of sources on interval [-pi,pi].
@@ -54,7 +54,7 @@ int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d1: ms=%lld nf1=%lld nj=%lld ...\n",(INT64)ms,nf1,(INT64)nj);
+  if (opts.debug) printf("1d1: ms=%ld nf1=%ld nj=%ld ...\n",(INT64)ms,nf1,(INT64)nj);
 
   CNTime timer; timer.start();
   int nth = MY_OMP_GET_MAX_THREADS();
@@ -108,7 +108,7 @@ int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
  /*  Type-2 1D complex nonuniform FFT.
 
      cj[j] = SUM   fk[k1] exp(+/-i k1 xj[j])      for j = 0,...,nj-1
-             k1
+             k1 
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
    Inputs:
@@ -150,7 +150,7 @@ int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d2: ms=%lld nf1=%lld nj=%lld ...\n",(INT64)ms,nf1,(INT64)nj);
+  if (opts.debug) printf("1d2: ms=%ld nf1=%ld nj=%ld ...\n",(INT64)ms,nf1,(INT64)nj); 
 
   // STEP 0: get FT of real symmetric spreading kernel
   CNTime timer; timer.start();
@@ -236,7 +236,7 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
 
    No references to FFTW are needed here. CPX arithmetic is used,
    thus compile with -Ofast in GNU.
-   Barnett 2/7/17-6/9/17.
+   Barnett 2/7/17-6/9/17. 
  */
 {
   spread_opts spopts;
@@ -251,7 +251,7 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
   arraywidcen((BIGINT)nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
   arraywidcen((BIGINT)nk,s,&S1,&D1);   // get half-width, center, containing {s_k}
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
-  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld nj=%lld nk=%lld...\n",X1,C1,S1,D1,gam1,nf1,(INT64)nj,(INT64)nk);
+  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,(INT64)nj,(INT64)nk);
   if (nf1>MAX_NF) {
     fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)nf1,(double)MAX_NF);
     return ERR_MAXNALLOC;
@@ -269,7 +269,7 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
   } else
     for (BIGINT j=0;j<nj;++j)
       cpj[j] = cj[j];                                    // just copy over
-
+  
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1);
   timer.restart();

@@ -125,14 +125,14 @@ int cnufftspread(
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
   int numkervals = (int)pow(ns,ndims);
   if (opts.debug)
-    printf("starting spread %dD (dir=%d, N1=%lld,N2=%lld,N3=%lld), %d threads\n",ndims,opts.spread_direction,N1,N2,N3,MY_OMP_GET_MAX_THREADS());
-
+    printf("starting spread %dD (dir=%d, N1=%ld,N2=%ld,N3=%ld), %d threads\n",ndims,opts.spread_direction,N1,N2,N3,MY_OMP_GET_MAX_THREADS());
+  
   if (opts.chkbnds) {            // check NU pts are in bounds, exit gracefully
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);
       if (x<0 || x>N1) {
-	fprintf(stderr,"nonuniform pt out of range: kx=%g, N1=%lld (pirange=%d)\n",x,N1,opts.pirange);
+	fprintf(stderr,"nonuniform pt out of range: kx=%g, N1=%ld (pirange=%d)\n",x,N1,opts.pirange);
 	return ERR_SPREAD_PTS_OUT_RANGE;
       }
     }
@@ -140,7 +140,7 @@ int cnufftspread(
       for (BIGINT i=0; i<M; ++i) {
 	FLT y=RESCALE(ky[i],N2,opts.pirange);
 	if (y<0 || y>N2) {
-	  fprintf(stderr,"nonuniform pt out of range: ky=%g, N2=%lld (pirange=%d)\n",y,N2,opts.pirange);
+	  fprintf(stderr,"nonuniform pt out of range: ky=%g, N2=%ld (pirange=%d)\n",y,N2,opts.pirange);
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
@@ -148,7 +148,7 @@ int cnufftspread(
       for (BIGINT i=0; i<M; ++i) {
 	FLT z=RESCALE(kz[i],N3,opts.pirange);
 	if (z<0 || z>N3) {
-	  fprintf(stderr,"nonuniform pt out of range: kz=%g, N3=%lld (pirange=%d)\n",z,N3,opts.pirange);
+	  fprintf(stderr,"nonuniform pt out of range: kz=%g, N3=%ld (pirange=%d)\n",z,N3,opts.pirange);
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
@@ -165,7 +165,7 @@ int cnufftspread(
       sort_indices[i]=i;                      // the identity permutation
   if (opts.debug)
     printf("sort time (sort=%d): %.3g s\n",(int)opts.sort,timer.elapsedsec());
-
+  
 
   if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
 
@@ -178,7 +178,7 @@ int cnufftspread(
     int nthr = MY_OMP_GET_MAX_THREADS();
     std::vector<Subproblem> s;  // create set of subproblems
     int nb;
-
+    
     int nospatialsplit = 1;  // hardcoded for now
     if (nospatialsplit) {   // split sorted inds (advanced2), could double RAM
       nb = MIN(4*nthr,M);
@@ -211,7 +211,7 @@ int cnufftspread(
       int nb1=ceil((FLT)N1/w1), nb2=ceil((FLT)N2/w2), nb3=ceil((FLT)N3/w3);
       nb = nb1*nb2*nb3;               // update to actual # boxes
       if (opts.debug) printf("%dx%dx%d subproblem boxes size %dx%dx%d\n",nb1,nb2,nb3,w1,w2,w3);
-
+      
       s.resize(nb);  // create nb subproblems
       for (BIGINT i=0; i<M; i++) {    // build subproblem indices in sorted order
 	BIGINT j = sort_indices[i];
@@ -223,7 +223,7 @@ int cnufftspread(
 	// append this source pt's index to the appropriate subproblem's index list
 	s.at(si).nonuniform_indices.push_back(j);  // hard to parallelize
       }
-
+      
       // split subproblems by index chunks so none exceed opts.max_subproblem_size
       BIGINT num_nonempty_subproblems=0; // for information only (verbose output)
       for (BIGINT i=0; i<nb; i++) {
@@ -249,7 +249,7 @@ int cnufftspread(
     }
     nb = s.size();
     if (opts.debug) printf("subprobs setup %.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
-
+    
 #pragma omp parallel for //schedule(dynamic,1)
     for (int isub=0; isub<nb; isub++) { // Main loop through the subproblems
       std::vector<BIGINT> inds = s.at(isub).nonuniform_indices;
@@ -273,14 +273,13 @@ int cnufftspread(
 	// get the subgrid which will include padding by roughly nspread/2
 	BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
 	get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
-	if (opts.debug>1) {  // verbose
+	if (opts.debug>1)  // verbose
 	  if (ndims==1)
-	    printf("subgrid: off %lld\t siz %lld\t #NU %lld\n",offset1,size1,M0);
-    else if (ndims==2)
-	    printf("subgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n",offset1,offset2,size1,size2,M0);
-    else
-	    printf("subgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",offset1,offset2,offset3,size1,size2,size3,M0);
-  }
+	    printf("subgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
+	  else if (ndims==2)
+	    printf("subgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
+	  else
+	    printf("subgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
 	for (BIGINT j=0; j<M0; j++) {
 	  kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
 	  if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
@@ -290,15 +289,14 @@ int cnufftspread(
 	FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
 
 	// Spread to subgrid without need for bounds checking or wrapping
-	if (!(opts.flags & TF_OMIT_SPREADING)) {
+	if (!(opts.flags & TF_OMIT_SPREADING))
 	  if (ndims==1)
 	    spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
 	  else if (ndims==2)
 	    spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
 	  else
 	    spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
-  }
-
+	
 	// Add the subgrid to output grid, wrapping (slower). Works in all dims.
 	BIGINT o1[size1], o2[size2], o3[size3];  // alloc 1d output ptr lists
 	BIGINT x=offset1, y=offset2, z=offset3;  // fill lists with wrapping...
@@ -336,21 +334,21 @@ int cnufftspread(
 	} // end critical block
       }
     }     // end main loop over subprobs
-
+    
   } else {          // ================= direction 2 (interpolation) ===========
 
 #pragma omp parallel for schedule(dynamic,10000) // (dynamic not needed) assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i++) {   // main loop over NU targs, interp each from U
       BIGINT j=sort_indices[i];    // j current index in input NU targ list
-
+    
       // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
       FLT xj=RESCALE(kx[j],N1,opts.pirange);
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
       FLT kernel_values[numkervals];
-
+      
       // eval kernel values patch and use to interpolate from uniform data...
-      if (!(opts.flags & TF_OMIT_SPREADING)) {
+      if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
 	  fill_kernel_line(x1,opts,kernel_values);
 	  interp_line(&data_nonuniform[2*j],data_uniform,kernel_values,i1,N1,ns);
@@ -370,7 +368,6 @@ int cnufftspread(
 	  fill_kernel_cube(x1,x2,x3,opts,kernel_values);
 	  interp_cube(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,i3,N1,N2,N3,ns);
 	}
-      }
     }    // end NU targ loop
   }                           // ================= end direction choice ========
 
@@ -774,7 +771,7 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * then reading out the indices within
  * these boxes in the natural box order (x fastest, y med, z slowest).
  * Finally the permutation is inverted.
- *
+ * 
  * Inputs: M - length of inputs
  *         kx,ky,kz - length-M real numbers in [0,N1], [0,N2], [0,N3]
  *                    respectively, if pirange=0; or in [-pi,pi] if pirange=1
@@ -795,7 +792,7 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   BIGINT nbins3=N3/bin_size_z+1;
   BIGINT nbins = nbins1*nbins2*nbins3;
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz available? must not access if not!
-
+  
   std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
   for (BIGINT i=0; i<M; i++) {
     // find the bin index

@@ -48,7 +48,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   typedef double FLT;
   typedef complex<double> CPX;
   #define ima complex<double>{0.0,1.0}
-  #define FABS(x) std::abs(x)
+  #define FABS(x) fabsf(x)
   typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
   typedef fftw_plan FFTW_PLAN;
   #define FFTW_INIT fftw_init_threads
@@ -109,7 +109,7 @@ INT64 next235even(INT64 n);
 
 
 // jfm timer stuff
-#include <time.h>
+#include <sys/time.h>
 class CNTime {
  public:
   void start();
@@ -117,7 +117,7 @@ class CNTime {
   int elapsed();
   double elapsedsec();
  private:
-  clock_t initial;
+  struct timeval initial;
 };
 
 
