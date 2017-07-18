@@ -21,11 +21,11 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
      The output array is in increasing k orderings. k1 is fastest, k2 middle,
      and k3 slowest, ie Fortran ordering. If iflag>0 the + sign is
      used, otherwise the - sign is used, in the exponential.
-
+                           
    Inputs:
      nj     number of sources (integer of type INT; see utils.h)
      xj,yj,zj   x,y,z locations of sources on 3D domain [-pi,pi]^3.
-     cj     size-nj complex FLT array of source strengths,
+     cj     size-nj complex FLT array of source strengths, 
             (ie, stored as 2*nj FLTs interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
@@ -63,7 +63,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("3d1: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) nj=%lld ...\n",(INT64)ms,(INT64)mt,(INT64)mu,nf1,nf2,nf3,(INT64)nj);
+  if (opts.debug) printf("3d1: (ms,mt,mu)=(%ld,%ld,%ld) (nf1,nf2,nf3)=(%ld,%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,(INT64)mu,nf1,nf2,nf3,(INT64)nj); 
 
   // STEP 0: get DCT of half of spread kernel in each dim, since real symm:
   CNTime timer; timer.start();
@@ -92,7 +92,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
-  spopts.pirange = 1;
+  spopts.pirange = 1; FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xj,yj,zj,(FLT*)cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
@@ -122,7 +122,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
      cj[j] =    SUM   fk[k1,k2,k3] exp(+/-i (k1 xj[j] + k2 yj[j] + k3 zj[j]))
              k1,k2,k3
       for j = 0,...,nj-1
-     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
+     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
                        -mu/2 <= k3 <= (mu-1)/2
 
    Inputs:
@@ -165,7 +165,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("3d2: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) nj=%lld ...\n",(INT64)ms,(INT64)mt,(INT64)mu,nf1,nf2,nf3,(INT64)nj);
+  if (opts.debug) printf("3d2: (ms,mt,mu)=(%ld,%ld,%ld) (nf1,nf2,nf3)=(%ld,%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,(INT64)mu,nf1,nf2,nf3,(INT64)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -207,7 +207,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 2;
-  spopts.pirange = 1;
+  spopts.pirange = 1; FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xj,yj,zj,(FLT*)cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) exit(ier_spread);
@@ -283,7 +283,7 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
   set_nhg_type3(S3,X3,opts,spopts,&nf3,&h3,&gam3);
   if (opts.debug)
-    printf("3d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld X3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld nj=%lld nk=%lld...\n",
+    printf("3d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld X3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%ld nj=%ld nk=%ld...\n",
 	   X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,X3,C3,S3,D3,gam3,nf3,(INT64)nj,(INT64)nk);
   if (nf1*nf2*nf3>MAX_NF) {
     fprintf(stderr,"nf1*nf2*nf3=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2*nf3,(double)MAX_NF);
@@ -307,14 +307,14 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   } else
     for (BIGINT j=0;j<nj;++j)
       cpj[j] = cj[j];                                    // just copy over
-
+  
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2*nf3);
   timer.restart();
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
-  spopts.pirange = 1;
+  spopts.pirange = 1; FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xpj,ypj,zpj,(FLT*)cpj,spopts);
   free(xpj); free(ypj); free(zpj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
