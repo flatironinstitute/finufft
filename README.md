@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-Version 0.9  (6/17/2017)
+Version 0.9  (8/30/2017)
 
 ### Alex H. Barnett and Jeremy F. Magland
 
@@ -34,6 +34,7 @@ Optional:
 - for Fortran wrappers: compiler such as gfortran
 - for matlab/octave wrappers: MATLAB, or octave and its development libs
 - for building new matlab/octave wrappers (experts only): mwrap
+- for python wrappers, install Dan Foreman-Mackey's separate repo [python-finufft](https://github.com/dfm/python-finufft)
 
 See [installation instructions](INSTALL.md).
 
@@ -48,7 +49,7 @@ then link to the static library by compiling with `-std=c++11 -fopenmp lib/libfi
 `-std=c++11 lib/libfinufft.a -lfftw3 -lm` if you edited the makefile for single-threaded.
 
 `make examples` to compile and run the examples for calling from C++ and from C.
-See [installation instructions](INSTALL.md) to build the wrappers to high-level languages (matlab/octave, python).
+See [installation instructions](INSTALL.md) to build the wrappers to high-level languages (MATLAB/octave).
 
 
 ### Contents of this package
@@ -74,6 +75,8 @@ See [installation instructions](INSTALL.md) to build the wrappers to high-level 
 ### Design notes
 
 C++ is used for all main libraries, almost entirely avoiding object-oriented code. C++ `std::complex<double>` (aliased to `dcomplex`) and FFTW complex types are mixed within the library, since to some extent it is a glorified driver for FFTW. The interfaces are dcomplex. FFTW was considered universal and essential enough to be a dependency for the whole package.
+
+The default FFTW plan is `FFTW_ESTIMATE`; however if you will be making multiple calls, consider using `opts` to set `fftw=FFTW_MEASURE`, which will spend many seconds planning but give the fastest speed when called again. Note that FFTW plans are saved automatically from call to call in the same executable, and the same MATLAB session.
 
 There is a hard-defined limit of `1e11` for internal FFT arrays, set in `common.h`;
 if your machine has RAM of order 1TB, and you need it, set this larger and recompile. The point of this is to catch ridiculous-sized mallocs and exit gracefully.
@@ -109,7 +112,7 @@ The main distribution includes contributed code by:
 
 Nick Hale and John Burkardt - Gauss-Legendre nodes and weights (in `contrib/`)
 Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)
-Dan Foreman-Mackey - python wrappers: [dfm/python-finufft](https://github.com/dfm/python-finufft)
+Dan Foreman-Mackey - python wrappers, moved to: [dfm/python-finufft](https://github.com/dfm/python-finufft)
 
 There are also undocumented packaged codes in the `devel/` directory, for experts only.
 
@@ -130,8 +133,8 @@ https://pythonhosted.org/poppy/fft_optimization.html
 
 ### Bug reports
 
-If you think you have found a bug, please contact Alex Barnett (`ahb`
-at-sign `math.dartmouth.edu`) with FINUFFT in the subject line.
+If you think you have found a bug, please contact Alex Barnett (`alex.h.barnett`
+at-sign `gmail.com`) with FINUFFT in the subject line.
 Include a minimal code which reproduces the bug, along with
 details about your machine, operating system, compiler, and version of FINUFFT.
 
@@ -146,5 +149,5 @@ Andras Pataki - complex number speed in C++
 Marina Spivak - fortran testing
 Christian Muller - optimization (CMA-ES) for early kernel design
 Timo Heister - pass/fail numdiff testing ideas
-Hannah Lawrence - finding bugs
+Hannah Lawrence - user testing and finding bugs
 Zydrunas Gimbutas - discussion that NFFT uses Kaiser-Bessel backwards
