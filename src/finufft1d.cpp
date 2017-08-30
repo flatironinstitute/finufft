@@ -72,7 +72,9 @@ int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
-  spopts.pirange = 1; FLT *dummy;
+  spopts.pirange = 1;
+  spopts.chkbnds = 1;
+  FLT *dummy;
   int ier_spread = cnufftspread(nf1,1,1,(FLT*)fw,nj,xj,dummy,dummy,(FLT*)cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread, timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
@@ -188,6 +190,7 @@ int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 2;
   spopts.pirange = 1; FLT *dummy;
+  spopts.chkbnds = 1;
   int ier_spread = cnufftspread(nf1,1,1,(FLT*)fw,nj,xj,dummy,dummy,(FLT*)cj,spopts);
   //int ier_spread = twopispread1d(nf1,(CPX*)fw,nj,xj,cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n", ier_spread, timer.elapsedsec());
@@ -277,6 +280,7 @@ int finufft1d3(INT nj,FLT* xj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, CPX* f
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
   spopts.pirange=1; FLT *dummy;
+  spopts.chkbnds = 1;
   int ier_spread = cnufftspread(nf1,1,1,(FLT*)fw,nj,xpj,dummy,dummy,(FLT*)cpj,spopts);
   free(xpj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());

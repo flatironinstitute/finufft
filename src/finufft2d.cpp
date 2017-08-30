@@ -87,9 +87,10 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
   spopts.pirange = 1; FLT *dummy;
+  spopts.chkbnds = 1;
   int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) exit(ier_spread);
+  if (ier_spread>0) return ier_spread;
 
   // Step 2:  Call FFT
   timer.restart();
@@ -192,9 +193,10 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 2;
   spopts.pirange = 1; FLT *dummy;
+  spopts.chkbnds = 1;
   int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) exit(ier_spread);
+  if (ier_spread>0) return ier_spread;
 
   FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2);
   if (opts.debug) printf("freed\n");
@@ -287,10 +289,11 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
   spopts.pirange = 1; FLT *dummy;
+  spopts.chkbnds = 1;
   int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xpj,ypj,dummy,(FLT*)cpj,spopts);
   free(xpj); free(ypj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) exit(ier_spread);
+  if (ier_spread>0) return ier_spread;
 
   // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
   timer.restart();
