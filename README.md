@@ -122,6 +122,11 @@ This is believed to be unavoidable round-off error.
 
 Currently in Mac OSX, `make lib` fails to make the shared object library (.so).
 
+The timing of FFTW calls is complicated, depending on the
+whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used.
+Such issues are known, and discussed in other documentation, eg
+https://pythonhosted.org/poppy/fft_optimization.html
+
 
 ### Bug reports
 

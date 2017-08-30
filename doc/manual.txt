@@ -1,6 +1,6 @@
 FINUFFT MANUAL
 
-Alex Barnett  6/6/17
+Alex Barnett  8/30/17
 
 Contents:
 1) Overview
@@ -34,9 +34,8 @@ In the below, the opts structure has the following user-settable fields:
   spread_sort          whether spreader should sort non-uniform pts: 0 or 1
                        (sorting requires somewhat more RAM, but on non-xeon
                        CPUs seems to speed up the spreading).
-  maxnalloc            largest size of internal array to allow allocation
-                       (default is 1e9; set this larger if you need)
-
+  fftw                 plan choice for FFTW, either FFTW_ESTIMATE or
+                       FFTW_MEASURE (much slower first run, then faster).
 
 
 2) Interfaces to routines
@@ -450,7 +449,7 @@ from int64_t to int.
 
 See ../src/utils.h for these typedefs.
 
-Sizes >=2^31 have been tested for C++ drivers (test/finufft?dtest.cpp), and
+Sizes >=2^31 have been tested for C++ drivers (test/finufft?d_test.cpp), and
 work fine, if you have enough RAM.
 
 In fortran and C the interface is still 32-bit integers, limiting to
