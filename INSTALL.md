@@ -18,22 +18,23 @@ Optional:
 - for Fortran wrappers: compiler such as gfortran
 - for matlab/octave wrappers: matlab, or octave and its development libs
 - for building new matlab/octave wrappers: mwrap
+- for the python wrappers: python3 and pip3
 
 ### Installing dependencies on various operating systems
 
 On a Fedora/CentOS linux system, these dependencies can be installed as follows:
 
 ```
-sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp octave octave-devel python python-pip
+sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp octave octave-devel
 ```
-then see below for `numdiff` and `mwrap`.
+then see below for `numdiff` and `mwrap`. (Note: not exactly sure how to install python3 and pip3 using yum)
 
 then download the latest `numdiff` from http://gnu.mirrors.pair.com/savannah/savannah/numdiff/ and set it up via `./configure; make; sudo make install`
 
 On Ubuntu linux:
 
 ```
-sudo apt-get install make build-essential libfftw3-dev gfortran numdiff octave liboctave-dev
+sudo apt-get install make build-essential libfftw3-dev gfortran numdiff python3 python3-pip octave liboctave-dev
 ```
 
 On Mac OSX:
@@ -49,7 +50,7 @@ Install homebrew from http://brew.sh
 
 Install `numdiff` as below.
 
-Also see Mac OSX notes in the `python` directory.
+(Note: not exactly sure how to install python3 and pip3 on mac)
 
 Currently in Mac OSX, `make lib` fails to make the shared object library (.so);
 however the static (.a) library is of reasonable size and works fine.
@@ -100,3 +101,23 @@ The `examples` and `test` directories are good places to see usage examples.
 `make matlab` to build the MEX interface to matlab.
 
 `make octave` to build the MEX-like interface to octave.
+
+### Building the python wrappers
+
+First make sure you have python3 and pip3 installed and that you have already compiled the C++ code (make lib). Then do the following
+
+```
+cd finufft
+pip3 install numpy
+pip3 install .
+```
+
+You can then run the tests as follows:
+
+```
+cd finufft/python_tests
+python3 accuracy_tests.py
+python3 run_speed_tests.py
+```
+
+See also Dan Foreman-Mackey's separate python repo that also wrapps finufft: [python-finufft](https://github.com/dfm/python-finufft)
