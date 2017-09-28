@@ -20,19 +20,19 @@ class get_pybind_include(object):
         import pybind11
         return pybind11.get_include(self.user)
 
-libraries = ["../lib-static/finufft","fftw3","fftw3_threads"]
+libraries = ["lib-static/finufft","fftw3","fftw3_threads"]
 extra_compile_args=['-fopenmp'],
 extra_link_args=['-lgomp']
 
 ext_modules = [
     Extension(
         'finufftpy_cpp',
-        ['finufftpy.cpp'],
+        ['finufftpy/finufftpy.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
             get_pybind_include(user=True),
-            '../src'
+            'src'
         ],
         libraries=libraries,
         extra_compile_args=extra_compile_args,
