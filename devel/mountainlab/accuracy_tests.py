@@ -2,11 +2,10 @@ import numpy as np
 import finufftpy
 import math
 
-def accuracy_tests():
-	nj,nk = 1000,1000
-	ms,mt,mu = 10,20,30
+def accuracy_tests(num_nonuniform_points,eps):
+	nj,nk = int(num_nonuniform_points),int(num_nonuniform_points)
+	ms,mt,mu = 20,40,60
 	iflag=1
-	eps=1e-8
 
 	###### 1-d
 

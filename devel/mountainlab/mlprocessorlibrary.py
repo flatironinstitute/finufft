@@ -36,6 +36,7 @@ class MLProcessorLibrary:
 		spec["inputs"]=P.inputs
 		spec["outputs"]=P.outputs
 		spec["parameters"]=P.parameters
+		spec["opts"]=P.opts
 		return spec
 	def findProcessor(self,processor_name):
 		for j in range(0,len(self._processors)):
