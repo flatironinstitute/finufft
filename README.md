@@ -34,7 +34,7 @@ Optional:
 - for Fortran wrappers: compiler such as gfortran
 - for matlab/octave wrappers: MATLAB, or octave and its development libs
 - for building new matlab/octave wrappers (experts only): mwrap
-- for python wrappers, install Dan Foreman-Mackey's separate repo [python-finufft](https://github.com/dfm/python-finufft)
+- for the python wrappers you will need python3 and pip3 (see installation instructions below)
 
 See [installation instructions](INSTALL.md).
 
@@ -49,7 +49,7 @@ then link to the static library by compiling with `-std=c++11 -fopenmp lib/libfi
 `-std=c++11 lib/libfinufft.a -lfftw3 -lm` if you edited the makefile for single-threaded.
 
 `make examples` to compile and run the examples for calling from C++ and from C.
-See [installation instructions](INSTALL.md) to build the wrappers to high-level languages (MATLAB/octave).
+See [installation instructions](INSTALL.md) to build the wrappers to high-level languages (python and MATLAB/octave).
 
 
 ### Contents of this package
@@ -62,7 +62,9 @@ See [installation instructions](INSTALL.md) to build the wrappers to high-level 
  `examples` : simple example codes for calling the library from C++ and from C  
  `fortran` : wrappers and drivers for Fortran  
  `matlab` : wrappers and examples for MATLAB/octave  
- `matlab-mcwrap` : old mcwrap-style wrappers and examples for MATLAB  
+ `matlab-mcwrap` : old mcwrap-style wrappers and examples for MATLAB
+ `finufftpy` : python wrappers
+ `python_tests` : accuracy and speed tests and examples using the python wrappers
  `contrib` : 3rd-party code  
  `devel` : various in-development or obsolete codes/notes (experts only)  
  `doc` : contains the manual  
@@ -114,9 +116,6 @@ The main distribution includes contributed code by:
 
 - Leslie Greengard and June-Yub Lee - fortran driver codes from CMCL (in `fortran/`)
 
-There are also undocumented packaged codes in the `devel/` directory, for experts only. The python wrappers have moved here: [dfm/python-finufft](https://github.com/dfm/python-finufft)
-
-
 ### Known issues
 
 When requestes accuracy is 1e-14 or less, it is sometimes not possible to match
@@ -125,7 +124,7 @@ This is believed to be unavoidable round-off error.
 
 Currently in Mac OSX, `make lib` fails to make the shared object library (.so).
 
-The timing of FFTW calls is complicated, depending on the
+The timing of FFTW calls is complicated, depending on
 whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used.
 Such issues are known, and discussed in other documentation, eg
 https://pythonhosted.org/poppy/fft_optimization.html
