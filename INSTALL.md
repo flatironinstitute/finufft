@@ -116,7 +116,7 @@ You can then run the tests as follows:
 
 ```
 cd finufft/python_tests
-python3 accuracy_tests.py
+python3 run_accuracy_tests.py
 python3 run_speed_tests.py
 ```
 
