@@ -1,1 +1,1 @@
-from finufftpy.interfaces import finufft1d1
+from finufftpy.interfaces import *
