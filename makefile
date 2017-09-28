@@ -90,7 +90,7 @@ all: test perftest lib examples fortran matlab octave
 
 usage:
 	@echo "Makefile for FINUFFT library. Specify what to make:"
-	@echo " make lib - compile the main libraries (in lib/)"
+	@echo " make lib - compile the main libraries (in lib/ and lib-static/)"
 	@echo " make examples - compile and run codes in examples/"
 	@echo " make test - compile and run math validation tests"
 	@echo " make perftest - compile and run performance tests"
@@ -114,10 +114,10 @@ usage:
 	$(FC) -c $(FFLAGS) $< -o $@
 
 # build the library...
-lib: lib/libfinufft.a lib/libfinufft.so
-	echo "lib/libfinufft.a and lib/libfinufft.so built"
-lib/libfinufft.a: $(OBJS) $(HEADERS)
-	ar rcs lib/libfinufft.a $(OBJS)
+lib: lib-static/libfinufft.a lib/libfinufft.so
+	echo "lib-static/libfinufft.a and lib/libfinufft.so built"
+lib-static/libfinufft.a: $(OBJS) $(HEADERS)
+	ar rcs lib-static/libfinufft.a $(OBJS)
 lib/libfinufft.so: $(OBJS) $(HEADERS)
 	$(CXX) -shared $(OBJS) -o lib/libfinufft.so      # fails in mac osx
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
@@ -128,13 +128,13 @@ EXC = examples/example1d1c$(SUFFIX)
 examples: $(EX) $(EXC)
 	$(EX)
 	$(EXC)
-$(EX): $(EX).o lib/libfinufft.a
-	$(CXX) $(CXXFLAGS) $(EX).o lib/libfinufft.a $(LIBSFFT) -o $(EX)
-$(EXC): $(EXC).o lib/libfinufft.a
-	$(CC) $(CFLAGS) $(EXC).o lib/libfinufft.a $(LIBSFFT) $(CLINK) -o $(EXC)
+$(EX): $(EX).o lib-static/libfinufft.a
+	$(CXX) $(CXXFLAGS) $(EX).o lib-static/libfinufft.a $(LIBSFFT) -o $(EX)
+$(EXC): $(EXC).o lib-static/libfinufft.a
+	$(CC) $(CFLAGS) $(EXC).o lib-static/libfinufft.a $(LIBSFFT) $(CLINK) -o $(EXC)
 
 # validation tests... (most link to .o allowing testing pieces separately)
-test: lib/libfinufft.a test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
+test: lib-static/libfinufft.a test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
@@ -147,8 +147,8 @@ test/finufft2d_test: test/finufft2d_test.cpp $(OBJS2) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJS2) $(LIBSFFT) -o test/finufft2d_test
 test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o test/finufft3d_test
-test/dumbinputs: test/dumbinputs.cpp lib/libfinufft.a $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp lib/libfinufft.a $(LIBSFFT) -o test/dumbinputs
+test/dumbinputs: test/dumbinputs.cpp lib-static/libfinufft.a $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp lib-static/libfinufft.a $(LIBSFFT) -o test/dumbinputs
 
 # performance tests...
 perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft3d_test
@@ -177,12 +177,12 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 	time -p $(F3)
 
 # matlab .mex* executable...
-matlab: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o
-	$(MEX) matlab/finufft.cpp lib/libfinufft.a matlab/finufft_m.o $(MFLAGS) $(LIBSFFT) -output matlab/finufft
+matlab: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
+	$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.o $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
 # octave .mex executable...
-octave: lib/libfinufft.a $(HEADERS) matlab/finufft_m.o
-	mkoctfile --mex matlab/finufft.cpp lib/libfinufft.a matlab/finufft_m.o $(OFLAGS) $(LIBSFFT) -output matlab/finufft
+octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
+	mkoctfile --mex matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.o $(OFLAGS) $(LIBSFFT) -output matlab/finufft
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave check_finufft.m)
 
