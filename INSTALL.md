@@ -121,3 +121,15 @@ python3 run_speed_tests.py
 ```
 
 See also Dan Foreman-Mackey's separate python repo that also wrapps finufft: [python-finufft](https://github.com/dfm/python-finufft)
+
+### A few words about python environments
+
+There can be confusion and conflicts between various versions of python and installed packages. It is therefore a very good idea to use virtual environments. Here's a simple way to do it (after installing python-virtualenv):
+
+```
+Open a terminal
+virtualenv -p /usr/bin/python3 env1
+. env1/bin/activate
+```
+
+Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the env1 directory. (You can get out of the environment by typing 'deactivate')
