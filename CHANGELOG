@@ -1,6 +1,10 @@
 List of tasks accomplished / changes made / release notes, in reverse
 chronological order:
 
+V 0.95 (10/2/17)
+
+* brought in JFM's in-package python wrapper & doc, create lib-static dir, removed devel dir.
+
 V 0.9: (6/17/17)
 
 * adapted adv4 into main code, inner loops separate by dim, kill the current spreader. Incorporate old ideas such as: checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()

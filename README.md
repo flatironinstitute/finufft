@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-Version 0.9  (8/30/2017)
+Version 0.95  (10/2/2017)
 
 ### Alex H. Barnett and Jeremy F. Magland
 

@@ -2,6 +2,8 @@ Current list of items to do for FINUFFT library
 
 HIGHER PRIORITY:
 
+* decide if to periodically wrap NU inputs pts to [-pi,pi)^d rather than raise error.
+* check transpose error for 2+d, found by David.
 * swap out mallocs for std:vector in finufft?
 * swap legendre GLR with hellskitchen BSD version?
 * decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
@@ -19,6 +21,7 @@ HIGHER PRIORITY:
 
 LOWER PRIORITY:
 
+* remove mcwrap dir
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
 * test huge arrays >=2^31 2d, 3d in C++.
 * test huge arrays >=2^31 in octave/mex.
