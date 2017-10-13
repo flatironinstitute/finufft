@@ -34,7 +34,7 @@ Optional:
 - for Fortran wrappers: compiler such as gfortran
 - for matlab/octave wrappers: MATLAB, or octave and its development libs
 - for building new matlab/octave wrappers (experts only): mwrap
-- for the python wrappers you will need python3 and pip3
+- for the python wrappers you will need python and pip, or python3 and pip3
 
 See [installation instructions](INSTALL.md).
 
@@ -67,7 +67,7 @@ See [installation instructions](INSTALL.md) to build the wrappers to high-level 
  `python_tests` : accuracy and speed tests and examples using the python wrappers  
  `contrib` : 3rd-party code  
  `doc` : contains the manual  
- `setup.py` : enables building and installing of the python wrappers using pip3  
+ `setup.py` : enables building and installing of the python wrappers using pip or pip3  
  `README.md` : this file  
  `INSTALL.md` : installation instructions for various operating systems  
  `LICENSE` : how you may use this software  

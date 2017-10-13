@@ -31,7 +31,7 @@ then see below for `numdiff` and `mwrap`. (Note: not exactly sure how to install
 
 then download the latest `numdiff` from http://gnu.mirrors.pair.com/savannah/savannah/numdiff/ and set it up via `./configure; make; sudo make install`
 
-On Ubuntu linux:
+On Ubuntu linux (assuming python3 as opposed to python):
 
 ```
 sudo apt-get install make build-essential libfftw3-dev gfortran numdiff python3 python3-pip octave liboctave-dev
@@ -50,7 +50,7 @@ Install homebrew from http://brew.sh
 
 Install `numdiff` as below.
 
-(Note: not exactly sure how to install python3 and pip3 on mac)
+(Note: we are not exactly sure how to install python3 and pip3 on mac)
 
 Currently in Mac OSX, `make lib` fails to make the shared object library (.so);
 however the static (.a) library is of reasonable size and works fine.
@@ -102,9 +102,9 @@ The `examples` and `test` directories are good places to see usage examples.
 
 `make octave` to build the MEX-like interface to octave.
 
-### Building the python wrappers
+### Building the python or python3 wrappers
 
-First make sure you have python3 and pip3 installed and that you have already compiled the C++ code (make lib). Then do the following
+First make sure you have python3 and pip3 (or python and pip) installed and that you have already compiled the C++ code (make lib). Then do the following
 
 ```
 cd finufft
@@ -120,7 +120,9 @@ python3 run_accuracy_tests.py
 python3 run_speed_tests.py
 ```
 
-See also Dan Foreman-Mackey's separate python repo that also wrapps finufft: [python-finufft](https://github.com/dfm/python-finufft)
+Here, the "3" can be omitted if you want to work with python v2.
+
+See also Dan Foreman-Mackey's separate python repo that also wraps finufft: [python-finufft](https://github.com/dfm/python-finufft)
 
 ### A few words about python environments
 

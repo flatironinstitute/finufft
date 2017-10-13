@@ -1,3 +1,7 @@
+# Jeremy Magland, Sept 2017.
+# Alex Barnett fixed integer division issue in
+# python v2 vs python3 (affected 1/2, 1/3), 10/13/17.
+
 import numpy as np
 import finufftpy
 import math
@@ -72,7 +76,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	print_report('finufft1d3',elapsed,Xest,Xtrue,nj+nk)
 
 	###### 2-d
-	ms=int(np.ceil(num_uniform_points**(1/2)))
+	ms=int(np.ceil(np.sqrt(num_uniform_points)))
 	mt=ms
 
 	xj=np.random.rand(nj)*2*math.pi-math.pi
@@ -84,6 +88,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	elapsed=time.time()-timer
 
 	Ks,Kt=np.mgrid[-np.floor(ms/2):np.floor((ms-1)/2+1),-np.floor(mt/2):np.floor((mt-1)/2+1)]
+
 	for ii in np.arange(0,num_samples):
 		Xest[ii]=np.sum(cj * np.exp(1j*(Ks.ravel()[ii]*xj+Kt.ravel()[ii]*yj)))
 		Xtrue[ii]=fk.ravel()[ii]
@@ -119,7 +124,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	print_report('finufft2d3',elapsed,Xest,Xtrue,nj+nk)
 
 	###### 3-d
-	ms=int(np.ceil(num_uniform_points**(1/3)))
+	ms=int(np.ceil(num_uniform_points**(1.0/3)))
 	mt=ms
 	mu=ms
 
