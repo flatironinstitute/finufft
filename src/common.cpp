@@ -198,7 +198,7 @@ void deconvolveshuffle1d(int dir,FLT prefac,FLT* ker, BIGINT ms,
        alternating re,im parts.
   ker is real-valued FLT array of length nf1/2+1.
 
-  Single thread only.
+  Single thread only, but shouldn't matter since mostly data movement.
 
   It has been tested that the repeated floating division in this inner loop
   only contributes at the <3% level in 3D relative to the fftw cost (8 threads).

@@ -1,6 +1,5 @@
 # Jeremy Magland, Sept 2017.
-# Alex Barnett fixed integer division issue in
-# python v2 vs python3 (affected 1/2, 1/3), 10/13/17.
+# Alex Barnett fixed integer division issue in python v2 vs v3 (affected 1/2, 1/3), 10/13/17.
 
 import numpy as np
 import finufftpy
@@ -9,7 +8,7 @@ import time
 
 def compute_error(Xest,Xtrue):
 	numer=np.sqrt(np.sum(np.abs((Xest-Xtrue))**2));
-	denom=np.sqrt(np.sum(np.abs((Xest+Xtrue)/2))**2);
+	denom=np.sqrt(np.sum(np.abs(Xtrue)**2));    # rel l2 norm
 	if (denom!=0):
 		return numer/denom
 	else:

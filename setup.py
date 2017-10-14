@@ -24,8 +24,7 @@ libraries = ["lib-static/finufft","fftw3","fftw3_threads"]
 extra_compile_args=['-fopenmp'],
 extra_link_args=['-lgomp']
 
-ext_modules = [
-    Extension(
+ext_modules = [Extension(
         'finufftpy_cpp',
         ['finufftpy/finufftpy.cpp'],
         include_dirs=[
@@ -38,9 +37,7 @@ ext_modules = [
         extra_compile_args=extra_compile_args,
         extra_link_args=extra_link_args,
         language='c++'
-    ),
-]
-
+    ) ]
 
 # As of Python 3.6, CCompiler has a `has_flag` method.
 # cf http://bugs.python.org/issue26689
@@ -99,10 +96,10 @@ class BuildExt(build_ext):
 setup(
     name='finufftpy',
     version=__version__,
-    author='',
-    author_email='',
-    url='',
-    description='',
+    author='Jeremy Magland and Alex Barnett, Oct 2017',
+    author_email='jmagland@flatironinstitute.org',
+    url='http://github.com/ahbarnett/finufft',
+    description='python interfaces to finufft',
     long_description='',
     ext_modules=ext_modules,
     packages=['finufftpy'],
