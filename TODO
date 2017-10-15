@@ -3,6 +3,9 @@ Current list of items to do for FINUFFT library
 HIGHER PRIORITY:
 
 * decide if to periodically wrap NU inputs pts to [-pi,pi)^d rather than raise error.
+* implement FFT style mode ordering flag.
+* py docstrings.
+* doc/manual webpage
 * check transpose error for 2+d, found by David.
 * swap out mallocs for std:vector in finufft?
 * swap legendre GLR with hellskitchen BSD version?
@@ -26,9 +29,8 @@ LOWER PRIORITY:
 * test huge arrays >=2^31 2d, 3d in C++.
 * test huge arrays >=2^31 in octave/mex.
 * allow fortran interface to access >=2^31 arrays.
-* more doc/manual; wait until after tech report/paper
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
-* clean up tree, remove devel/ and unused contrib?
+* clean up tree, remove unused contrib, mcwrap
 * package RPM and .deb for linux
 * figure out how to set up path to link to shared library - rpath?
 * MS Windows test

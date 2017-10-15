@@ -1,6 +1,10 @@
 List of tasks accomplished / changes made / release notes, in reverse
 chronological order:
 
+V 0.96 (10/15/17)
+
+* apache v2 license, exposed flags in python interface.
+
 V 0.95 (10/2/17)
 
 * brought in JFM's in-package python wrapper & doc, create lib-static dir, removed devel dir.

@@ -1,6 +1,6 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-Version 0.95  (10/2/2017)
+Version 0.96  (10/15/2017)
 
 ### Alex H. Barnett and Jeremy F. Magland
 
@@ -88,7 +88,7 @@ As a spreading kernel function, we use a new faster simplification of the Kaiser
 
 References for this include:
 
-[FIN] Finufft: a fast and lightweight non-uniform fast Fourier transform library. A. H. Barnett and J. F. Magland. In preparation (2017).
+[FIN] FINUFFT: a fast and lightweight non-uniform fast Fourier transform library. A. H. Barnett and J. F. Magland. In preparation (2017).
 
 [ORZ] Prolate Spheroidal Wave Functions of Order Zero: Mathematical Tools for Bandlimited Approximation.  A. Osipov, V. Rokhlin, and H. Xiao. Springer (2013).
 
