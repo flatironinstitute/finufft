@@ -332,6 +332,11 @@ int cnufftspread(
 	      }
 	    }
 	} // end critical block
+	// free up stuff from this subprob...
+	free(dd0); free(du0);
+	free(kx0);
+	if (N2>1) free(ky0);
+	if (N3>1) free(kz0); 
       }
     }     // end main loop over subprobs
     
@@ -370,7 +375,8 @@ int cnufftspread(
 	}
     }    // end NU targ loop
   }                           // ================= end direction choice ========
-
+  
+  free(sort_indices);
   return 0;
 }
 

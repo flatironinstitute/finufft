@@ -164,6 +164,6 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 
-  free(x); free(y); free(c); free(F);
+  free(x); free(y); free(c); free(F); free(s); free(t);
   return ier;
 }

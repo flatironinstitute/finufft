@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
     printf("dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     free(Ft);
   }
-
+  
   printf("test 3d type-2:\n"); // -------------- type 2
 #pragma omp parallel
   {
@@ -177,6 +177,6 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 
-  free(x); free(y); free(z); free(c); free(F);
+  free(x); free(y); free(z); free(c); free(F); free(s); free(t); free(u);
   return ier;
 }

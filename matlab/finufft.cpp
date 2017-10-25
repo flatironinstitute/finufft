@@ -1000,7 +1000,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 401 ----
+/* ---- finufft.mw: 402 ----
  * int ier = finufft3d3m(double nj, double[] x, double[] y, double[] z, dcomplex[nj] c, int isign, double eps, double nk, double[] s, double[] t, double[] u, output dcomplex[nk] f, int debug, int nthreads, int spread_sort, int fftw);
  */
 const char* stubids9_ = "o int = finufft3d3m(i double, i double[], i double[], i double[], i dcomplex[x], i int, i double, i double, i double[], i double[], i double[], o dcomplex[x], i int, i int, i int, i int)";
@@ -1160,7 +1160,7 @@ void mexFunction(int nlhs, mxArray* plhs[],
         mexPrintf("%d calls to finufft.mw:261\n", mexprofrecord_[6]);
         mexPrintf("%d calls to finufft.mw:311\n", mexprofrecord_[7]);
         mexPrintf("%d calls to finufft.mw:359\n", mexprofrecord_[8]);
-        mexPrintf("%d calls to finufft.mw:401\n", mexprofrecord_[9]);
+        mexPrintf("%d calls to finufft.mw:402\n", mexprofrecord_[9]);
     } else if (strcmp(id, "*profile log*") == 0) {
         FILE* logfp;
         if (nrhs != 2 || mxGetString(prhs[1], id, sizeof(id)) != 0)
@@ -1178,7 +1178,7 @@ void mexFunction(int nlhs, mxArray* plhs[],
         fprintf(logfp, "%d calls to finufft.mw:261\n", mexprofrecord_[6]);
         fprintf(logfp, "%d calls to finufft.mw:311\n", mexprofrecord_[7]);
         fprintf(logfp, "%d calls to finufft.mw:359\n", mexprofrecord_[8]);
-        fprintf(logfp, "%d calls to finufft.mw:401\n", mexprofrecord_[9]);
+        fprintf(logfp, "%d calls to finufft.mw:402\n", mexprofrecord_[9]);
         fclose(logfp);
     } else
         mexErrMsgTxt("Unknown identifier");

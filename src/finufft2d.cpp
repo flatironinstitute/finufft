@@ -316,6 +316,7 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
   onedim_nuft_kernel(nk, sp, fkker1, spopts);           // fill fkker1
   onedim_nuft_kernel(nk, tp, fkker2, spopts);           // fill fkker2
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
+  free(sp); free(tp);
   // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
   timer.restart();
   if (isfinite(C1) && isfinite(C2) && (C1!=0.0 || C2!=0.0))
@@ -329,6 +330,6 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
       fk[k] *= (CPX)(1.0/(fkker1[k]*fkker2[k]));
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
-  free(fkker1); free(fkker2); free(sp); if (opts.debug) printf("freed\n");
+  free(fkker1); free(fkker2); if (opts.debug) printf("freed\n");
   return 0;
 }

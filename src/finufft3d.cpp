@@ -110,6 +110,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2); FFTW_FR(fwkerhalf3);
+  //fftw_cleanup();    // useful so doesn't show in valgrind
   if (opts.debug) printf("freed\n");
   return 0;
 }
@@ -348,6 +349,7 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   onedim_nuft_kernel(nk, tp, fkker2, spopts);           // etc
   onedim_nuft_kernel(nk, up, fkker3, spopts);
   if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
+  free(sp); free(tp); free(up);
   // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
   timer.restart();
   if (isfinite(C1) && isfinite(C2) && isfinite(C3) && (C1!=0.0 || C2!=0.0 || C3!=0.0))
@@ -361,7 +363,7 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
       fk[k] *= (CPX)(1.0/(fkker1[k]*fkker2[k]*fkker3[k]));
   if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
 
-  free(fkker1); free(fkker2); free(fkker3); free(sp);
+  free(fkker1); free(fkker2); free(fkker3);
   if (opts.debug) printf("freed\n");
   return 0;
 }
