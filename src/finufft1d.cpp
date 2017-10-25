@@ -96,7 +96,7 @@ int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
 
   // Step 3b: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
-  deconvolveshuffle1d(1,1.0,fwkerhalf,ms,(FLT*)fk,nf1,fw);  // prefac now 1
+  deconvolveshuffle1d(1,1.0,fwkerhalf,ms,(FLT*)fk,nf1,fw,opts.modeord);  // prefac now 1
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
   //for (int j=0;j<ms;++j) cout<<fk[j]<<endl;
 
@@ -173,7 +173,7 @@ int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
   timer.restart();
-  deconvolveshuffle1d(2,1.0,fwkerhalf,ms,(FLT*)fk,nf1,fw);
+  deconvolveshuffle1d(2,1.0,fwkerhalf,ms,(FLT*)fk,nf1,fw,opts.modeord);
   FFTW_FR(fwkerhalf);        // in 1d could help to free up
   if (opts.debug) printf("amplify & copy in:\t %.3g s\n", timer.elapsedsec());
   //cout<<"fw:\n"; for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;

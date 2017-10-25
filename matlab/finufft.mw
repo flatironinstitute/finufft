@@ -38,6 +38,7 @@ $ #include "finufft_m.h"
 %     opts.nthreads sets requested number of threads (else automatic)
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+%     opts.modeord: 0 (CMCL increasing mode ordering), 1 (FFT mode ordering)
 %   Outputs:
 %     f     size-ms double complex array of Fourier transform values
 %            (increasing mode ordering)
@@ -51,10 +52,11 @@ debug=0; if isfield(o,'debug'), debug = o.debug; end
 nthreads=0; if isfield(o,'nthreads'), nthreads = o.nthreads; end
 spread_sort=1; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
 fftw=0; if isfield(o,'fftw'), fftw=o.fftw; end
+modeord=0; if isfield(o,'modeord'), modeord=o.modeord; end
 nj=numel(x);
 if numel(c)~=nj, error('c must have the same number of elements as x'); end
 
-# int ier = finufft1d1m(double nj,double[] x,dcomplex[] c,int isign,double eps,double ms, output dcomplex[ms] f,int debug, int nthreads, int spread_sort, int fftw);
+# int ier = finufft1d1m(double nj,double[] x,dcomplex[] c,int isign,double eps,double ms, output dcomplex[ms] f,int debug, int nthreads, int spread_sort, int fftw, int modeord);
 
 % ---------------------------------------------------------------------------
 @function [c ier] = finufft1d2(x,isign,eps,f,o)
@@ -78,6 +80,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     opts.nthreads sets requested number of threads (else automatic)
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+%     opts.modeord: 0 (CMCL increasing mode ordering), 1 (FFT mode ordering)
 %  Outputs:
 %     c     complex double array of nj answers at targets
 %     ier - 0 if success, else:
@@ -90,11 +93,12 @@ debug=0; if isfield(o,'debug'), debug = o.debug; end
 nthreads=0; if isfield(o,'nthreads'), nthreads = o.nthreads; end
 spread_sort=1; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
 fftw=0; if isfield(o,'fftw'), fftw=o.fftw; end
+modeord=0; if isfield(o,'modeord'), modeord=o.modeord; end
 nj=numel(x);
 ms=numel(f);
 % c = complex(zeros(nj,1));   % todo: change all output to inout & prealloc...
 
-# int ier = finufft1d2m(double nj,double[] x,output dcomplex[nj] c,int isign,double eps,double ms, dcomplex[] f,int debug, int nthreads, int spread_sort, int fftw);
+# int ier = finufft1d2m(double nj,double[] x,output dcomplex[nj] c,int isign,double eps,double ms, dcomplex[] f,int debug, int nthreads, int spread_sort, int fftw, int modeord);
 
 % ---------------------------------------------------------------------------
 @function [f ier] = finufft1d3(x,c,isign,eps,s,o)
@@ -160,6 +164,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     opts.nthreads sets requested number of threads (else automatic)
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+%     opts.modeord: 0 (CMCL increasing mode ordering), 1 (FFT mode ordering)
 %   Outputs:
 %     f     size (ms*mt) double complex array of Fourier transform values
 %            (increasing mode ordering)
@@ -173,11 +178,12 @@ debug=0; if isfield(o,'debug'), debug = o.debug; end
 nthreads=0; if isfield(o,'nthreads'), nthreads = o.nthreads; end
 spread_sort=1; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
 fftw=0; if isfield(o,'fftw'), fftw=o.fftw; end
+modeord=0; if isfield(o,'modeord'), modeord=o.modeord; end
 nj=numel(x);
 if numel(y)~=nj, error('y must have the same number of elements as x'); end
 if numel(c)~=nj, error('c must have the same number of elements as x'); end
 
-# int ier = finufft2d1m(double nj,double[] x,double[] y,dcomplex[] c,int isign,double eps,double ms, double mt, output dcomplex[ms,mt] f,int debug, int nthreads, int spread_sort, int fftw);
+# int ier = finufft2d1m(double nj,double[] x,double[] y,dcomplex[] c,int isign,double eps,double ms, double mt, output dcomplex[ms,mt] f,int debug, int nthreads, int spread_sort, int fftw, int modeord);
 
 % ---------------------------------------------------------------------------
 @function [c ier] = finufft2d2(x,y,isign,eps,f,o)
@@ -202,6 +208,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     opts.nthreads sets requested number of threads (else automatic)
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+%     opts.modeord: 0 (CMCL increasing mode ordering), 1 (FFT mode ordering)
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
@@ -214,11 +221,12 @@ debug=0; if isfield(o,'debug'), debug = o.debug; end
 nthreads=0; if isfield(o,'nthreads'), nthreads = o.nthreads; end
 spread_sort=1; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
 fftw=0; if isfield(o,'fftw'), fftw=o.fftw; end
+modeord=0; if isfield(o,'modeord'), modeord=o.modeord; end
 nj=numel(x);
 if numel(y)~=nj, error('y must have the same number of elements as x'); end
 [ms,mt]=size(f);
 
-# int ier = finufft2d2m(double nj,double[] x,double[] y,output dcomplex[nj] c,int isign,double eps,double ms, double mt,dcomplex[] f,int debug, int nthreads, int spread_sort, int fftw);
+# int ier = finufft2d2m(double nj,double[] x,double[] y,output dcomplex[nj] c,int isign,double eps,double ms, double mt,dcomplex[] f,int debug, int nthreads, int spread_sort, int fftw, int modeord);
 
 % ---------------------------------------------------------------------------
 @function [f ier] = finufft2d3(x,y,c,isign,eps,s,t,o)
@@ -288,6 +296,7 @@ if numel(t)~=nk, error('t must have the same number of elements as s'); end
 %     opts.nthreads sets requested number of threads (else automatic)
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+%     opts.modeord: 0 (CMCL increasing mode ordering), 1 (FFT mode ordering)
 %   Outputs:
 %     f     size (ms*mt*mu) double complex array of Fourier transform values
 %            (increasing mode ordering in each dimension, ms fastest, mu
@@ -302,13 +311,14 @@ debug=0; if isfield(o,'debug'), debug = o.debug; end
 nthreads=0; if isfield(o,'nthreads'), nthreads = o.nthreads; end
 spread_sort=1; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
 fftw=0; if isfield(o,'fftw'), fftw=o.fftw; end
+modeord=0; if isfield(o,'modeord'), modeord=o.modeord; end
 nj=numel(x);
 if numel(y)~=nj, error('y must have the same number of elements as x'); end
 if numel(z)~=nj, error('z must have the same number of elements as x'); end
 if numel(c)~=nj, error('c must have the same number of elements as x'); end
 mtot = ms*mt*mu;                        % since mwrap can't output 3D arrays :(
 
-# int ier = finufft3d1m(double nj,double[] x,double[] y,double[] z,dcomplex[] c,int isign,double eps,double ms, double mt, double mu, output dcomplex[mtot] f,int debug, int nthreads, int spread_sort, int fftw);
+# int ier = finufft3d1m(double nj,double[] x,double[] y,double[] z,dcomplex[] c,int isign,double eps,double ms, double mt, double mu, output dcomplex[mtot] f,int debug, int nthreads, int spread_sort, int fftw, int modeord);
 
 f = reshape(f,[ms mt mu]);              % make a 3D array
 
@@ -339,6 +349,7 @@ f = reshape(f,[ms mt mu]);              % make a 3D array
 %     opts.nthreads sets requested number of threads (else automatic)
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+%     opts.modeord: 0 (CMCL increasing mode ordering), 1 (FFT mode ordering)
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
@@ -351,12 +362,13 @@ debug=0; if isfield(o,'debug'), debug = o.debug; end
 nthreads=0; if isfield(o,'nthreads'), nthreads = o.nthreads; end
 spread_sort=1; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
 fftw=0; if isfield(o,'fftw'), fftw=o.fftw; end
+modeord=0; if isfield(o,'modeord'), modeord=o.modeord; end
 nj=numel(x);
 if numel(y)~=nj, error('y must have the same number of elements as x'); end
 if numel(z)~=nj, error('z must have the same number of elements as x'); end
 [ms,mt,mu]=size(f);
 
-# int ier = finufft3d2m(double nj,double[] x,double[] y,double[] z,output dcomplex[nj] c,int isign,double eps,double ms, double mt,double mu,dcomplex[] f,int debug, int nthreads, int spread_sort, int fftw);
+# int ier = finufft3d2m(double nj,double[] x,double[] y,double[] z,output dcomplex[nj] c,int isign,double eps,double ms, double mt,double mu,dcomplex[] f,int debug, int nthreads, int spread_sort, int fftw, int modeord);
 
 % ---------------------------------------------------------------------------
 @function [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u,o)

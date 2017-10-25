@@ -312,10 +312,10 @@ mxWrapCopyZDef     (mxWrapCopy_dcomplex, dcomplex,
 mxWrapReturnZDef   (mxWrapReturn_dcomplex, dcomplex,
                     real_dcomplex, imag_dcomplex)
 
-/* ---- finufft.mw: 57 ----
- * int ier = finufft1d1m(double nj, double[] x, dcomplex[] c, int isign, double eps, double ms, output dcomplex[ms] f, int debug, int nthreads, int spread_sort, int fftw);
+/* ---- finufft.mw: 59 ----
+ * int ier = finufft1d1m(double nj, double[] x, dcomplex[] c, int isign, double eps, double ms, output dcomplex[ms] f, int debug, int nthreads, int spread_sort, int fftw, int modeord);
  */
-const char* stubids1_ = "o int = finufft1d1m(i double, i double[], i dcomplex[], i int, i double, i double, o dcomplex[x], i int, i int, i int, i int)";
+const char* stubids1_ = "o int = finufft1d1m(i double, i double[], i dcomplex[], i int, i double, i double, o dcomplex[x], i int, i int, i int, i int, i int)";
 
 void mexStub1(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -331,11 +331,12 @@ void mexStub1(int nlhs, mxArray* plhs[],
     int         in7_;    /* nthreads   */
     int         in8_;    /* spread_sort */
     int         in9_;    /* fftw       */
+    int         in10_;    /* modeord    */
     int         out0_;   /* ier        */
     dcomplex*   out1_=0; /* f          */
-    int         dim10_;   /* ms         */
+    int         dim11_;   /* ms         */
 
-    dim10_ = (int) mxWrapGetScalar(prhs[10], &mw_err_txt_);
+    dim11_ = (int) mxWrapGetScalar(prhs[11], &mw_err_txt_);
 
     in0_ = (double) mxWrapGetScalar(prhs[0], &mw_err_txt_);
     if (mw_err_txt_)
@@ -371,14 +372,17 @@ void mexStub1(int nlhs, mxArray* plhs[],
     in9_ = (int) mxWrapGetScalar(prhs[9], &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
-    out1_ = (dcomplex*) mxMalloc(dim10_*sizeof(dcomplex));
+    in10_ = (int) mxWrapGetScalar(prhs[10], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+    out1_ = (dcomplex*) mxMalloc(dim11_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[1]++;
-    out0_ = finufft1d1m(in0_, in1_, in2_, in3_, in4_, in5_, out1_, in6_, in7_, in8_, in9_);
+    out0_ = finufft1d1m(in0_, in1_, in2_, in3_, in4_, in5_, out1_, in6_, in7_, in8_, in9_, in10_);
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetPr(plhs[0]) = out0_;
-    plhs[1] = mxCreateDoubleMatrix(dim10_, 1, mxCOMPLEX);
-    mxWrapCopy_dcomplex(plhs[1], out1_, dim10_);
+    plhs[1] = mxCreateDoubleMatrix(dim11_, 1, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim11_);
 
 mw_err_label:
     if (in2_)  mxFree(in2_);
@@ -387,10 +391,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 97 ----
- * int ier = finufft1d2m(double nj, double[] x, output dcomplex[nj] c, int isign, double eps, double ms, dcomplex[] f, int debug, int nthreads, int spread_sort, int fftw);
+/* ---- finufft.mw: 101 ----
+ * int ier = finufft1d2m(double nj, double[] x, output dcomplex[nj] c, int isign, double eps, double ms, dcomplex[] f, int debug, int nthreads, int spread_sort, int fftw, int modeord);
  */
-const char* stubids2_ = "o int = finufft1d2m(i double, i double[], o dcomplex[x], i int, i double, i double, i dcomplex[], i int, i int, i int, i int)";
+const char* stubids2_ = "o int = finufft1d2m(i double, i double[], o dcomplex[x], i int, i double, i double, i dcomplex[], i int, i int, i int, i int, i int)";
 
 void mexStub2(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -406,11 +410,12 @@ void mexStub2(int nlhs, mxArray* plhs[],
     int         in7_;    /* nthreads   */
     int         in8_;    /* spread_sort */
     int         in9_;    /* fftw       */
+    int         in10_;    /* modeord    */
     int         out0_;   /* ier        */
     dcomplex*   out1_=0; /* c          */
-    int         dim10_;   /* nj         */
+    int         dim11_;   /* nj         */
 
-    dim10_ = (int) mxWrapGetScalar(prhs[10], &mw_err_txt_);
+    dim11_ = (int) mxWrapGetScalar(prhs[11], &mw_err_txt_);
 
     in0_ = (double) mxWrapGetScalar(prhs[0], &mw_err_txt_);
     if (mw_err_txt_)
@@ -446,14 +451,17 @@ void mexStub2(int nlhs, mxArray* plhs[],
     in9_ = (int) mxWrapGetScalar(prhs[9], &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
-    out1_ = (dcomplex*) mxMalloc(dim10_*sizeof(dcomplex));
+    in10_ = (int) mxWrapGetScalar(prhs[10], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+    out1_ = (dcomplex*) mxMalloc(dim11_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[2]++;
-    out0_ = finufft1d2m(in0_, in1_, out1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_, in9_);
+    out0_ = finufft1d2m(in0_, in1_, out1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_, in9_, in10_);
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetPr(plhs[0]) = out0_;
-    plhs[1] = mxCreateDoubleMatrix(dim10_, 1, mxCOMPLEX);
-    mxWrapCopy_dcomplex(plhs[1], out1_, dim10_);
+    plhs[1] = mxCreateDoubleMatrix(dim11_, 1, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim11_);
 
 mw_err_label:
     if (out1_) mxFree(out1_);
@@ -462,7 +470,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 135 ----
+/* ---- finufft.mw: 139 ----
  * int ier = finufft1d3m(double nj, double[] x, dcomplex[nj] c, int isign, double eps, double nk, double[] s, output dcomplex[nk] f, int debug, int nthreads, int spread_sort, int fftw);
  */
 const char* stubids3_ = "o int = finufft1d3m(i double, i double[], i dcomplex[x], i int, i double, i double, i double[], o dcomplex[x], i int, i int, i int, i int)";
@@ -548,10 +556,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 180 ----
- * int ier = finufft2d1m(double nj, double[] x, double[] y, dcomplex[] c, int isign, double eps, double ms, double mt, output dcomplex[ms, mt] f, int debug, int nthreads, int spread_sort, int fftw);
+/* ---- finufft.mw: 186 ----
+ * int ier = finufft2d1m(double nj, double[] x, double[] y, dcomplex[] c, int isign, double eps, double ms, double mt, output dcomplex[ms, mt] f, int debug, int nthreads, int spread_sort, int fftw, int modeord);
  */
-const char* stubids4_ = "o int = finufft2d1m(i double, i double[], i double[], i dcomplex[], i int, i double, i double, i double, o dcomplex[xx], i int, i int, i int, i int)";
+const char* stubids4_ = "o int = finufft2d1m(i double, i double[], i double[], i dcomplex[], i int, i double, i double, i double, o dcomplex[xx], i int, i int, i int, i int, i int)";
 
 void mexStub4(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -569,13 +577,14 @@ void mexStub4(int nlhs, mxArray* plhs[],
     int         in9_;    /* nthreads   */
     int         in10_;    /* spread_sort */
     int         in11_;    /* fftw       */
+    int         in12_;    /* modeord    */
     int         out0_;   /* ier        */
     dcomplex*   out1_=0; /* f          */
-    int         dim12_;   /* ms         */
-    int         dim13_;   /* mt         */
+    int         dim13_;   /* ms         */
+    int         dim14_;   /* mt         */
 
-    dim12_ = (int) mxWrapGetScalar(prhs[12], &mw_err_txt_);
     dim13_ = (int) mxWrapGetScalar(prhs[13], &mw_err_txt_);
+    dim14_ = (int) mxWrapGetScalar(prhs[14], &mw_err_txt_);
 
     in0_ = (double) mxWrapGetScalar(prhs[0], &mw_err_txt_);
     if (mw_err_txt_)
@@ -618,14 +627,17 @@ void mexStub4(int nlhs, mxArray* plhs[],
     in11_ = (int) mxWrapGetScalar(prhs[11], &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
-    out1_ = (dcomplex*) mxMalloc(dim12_*dim13_*sizeof(dcomplex));
+    in12_ = (int) mxWrapGetScalar(prhs[12], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+    out1_ = (dcomplex*) mxMalloc(dim13_*dim14_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[4]++;
-    out0_ = finufft2d1m(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, out1_, in8_, in9_, in10_, in11_);
+    out0_ = finufft2d1m(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, out1_, in8_, in9_, in10_, in11_, in12_);
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetPr(plhs[0]) = out0_;
-    plhs[1] = mxCreateDoubleMatrix(dim12_, dim13_, mxCOMPLEX);
-    mxWrapCopy_dcomplex(plhs[1], out1_, dim12_*dim13_);
+    plhs[1] = mxCreateDoubleMatrix(dim13_, dim14_, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim13_*dim14_);
 
 mw_err_label:
     if (in3_)  mxFree(in3_);
@@ -634,10 +646,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 221 ----
- * int ier = finufft2d2m(double nj, double[] x, double[] y, output dcomplex[nj] c, int isign, double eps, double ms, double mt, dcomplex[] f, int debug, int nthreads, int spread_sort, int fftw);
+/* ---- finufft.mw: 229 ----
+ * int ier = finufft2d2m(double nj, double[] x, double[] y, output dcomplex[nj] c, int isign, double eps, double ms, double mt, dcomplex[] f, int debug, int nthreads, int spread_sort, int fftw, int modeord);
  */
-const char* stubids5_ = "o int = finufft2d2m(i double, i double[], i double[], o dcomplex[x], i int, i double, i double, i double, i dcomplex[], i int, i int, i int, i int)";
+const char* stubids5_ = "o int = finufft2d2m(i double, i double[], i double[], o dcomplex[x], i int, i double, i double, i double, i dcomplex[], i int, i int, i int, i int, i int)";
 
 void mexStub5(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -655,11 +667,12 @@ void mexStub5(int nlhs, mxArray* plhs[],
     int         in9_;    /* nthreads   */
     int         in10_;    /* spread_sort */
     int         in11_;    /* fftw       */
+    int         in12_;    /* modeord    */
     int         out0_;   /* ier        */
     dcomplex*   out1_=0; /* c          */
-    int         dim12_;   /* nj         */
+    int         dim13_;   /* nj         */
 
-    dim12_ = (int) mxWrapGetScalar(prhs[12], &mw_err_txt_);
+    dim13_ = (int) mxWrapGetScalar(prhs[13], &mw_err_txt_);
 
     in0_ = (double) mxWrapGetScalar(prhs[0], &mw_err_txt_);
     if (mw_err_txt_)
@@ -702,14 +715,17 @@ void mexStub5(int nlhs, mxArray* plhs[],
     in11_ = (int) mxWrapGetScalar(prhs[11], &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
-    out1_ = (dcomplex*) mxMalloc(dim12_*sizeof(dcomplex));
+    in12_ = (int) mxWrapGetScalar(prhs[12], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+    out1_ = (dcomplex*) mxMalloc(dim13_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[5]++;
-    out0_ = finufft2d2m(in0_, in1_, in2_, out1_, in3_, in4_, in5_, in6_, in7_, in8_, in9_, in10_, in11_);
+    out0_ = finufft2d2m(in0_, in1_, in2_, out1_, in3_, in4_, in5_, in6_, in7_, in8_, in9_, in10_, in11_, in12_);
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetPr(plhs[0]) = out0_;
-    plhs[1] = mxCreateDoubleMatrix(dim12_, 1, mxCOMPLEX);
-    mxWrapCopy_dcomplex(plhs[1], out1_, dim12_);
+    plhs[1] = mxCreateDoubleMatrix(dim13_, 1, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim13_);
 
 mw_err_label:
     if (out1_) mxFree(out1_);
@@ -718,7 +734,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 261 ----
+/* ---- finufft.mw: 269 ----
  * int ier = finufft2d3m(double nj, double[] x, double[] y, dcomplex[nj] c, int isign, double eps, double nk, double[] s, double[] t, output dcomplex[nk] f, int debug, int nthreads, int spread_sort, int fftw);
  */
 const char* stubids6_ = "o int = finufft2d3m(i double, i double[], i double[], i dcomplex[x], i int, i double, i double, i double[], i double[], o dcomplex[x], i int, i int, i int, i int)";
@@ -814,10 +830,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 311 ----
- * int ier = finufft3d1m(double nj, double[] x, double[] y, double[] z, dcomplex[] c, int isign, double eps, double ms, double mt, double mu, output dcomplex[mtot] f, int debug, int nthreads, int spread_sort, int fftw);
+/* ---- finufft.mw: 321 ----
+ * int ier = finufft3d1m(double nj, double[] x, double[] y, double[] z, dcomplex[] c, int isign, double eps, double ms, double mt, double mu, output dcomplex[mtot] f, int debug, int nthreads, int spread_sort, int fftw, int modeord);
  */
-const char* stubids7_ = "o int = finufft3d1m(i double, i double[], i double[], i double[], i dcomplex[], i int, i double, i double, i double, i double, o dcomplex[x], i int, i int, i int, i int)";
+const char* stubids7_ = "o int = finufft3d1m(i double, i double[], i double[], i double[], i dcomplex[], i int, i double, i double, i double, i double, o dcomplex[x], i int, i int, i int, i int, i int)";
 
 void mexStub7(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -837,11 +853,12 @@ void mexStub7(int nlhs, mxArray* plhs[],
     int         in11_;    /* nthreads   */
     int         in12_;    /* spread_sort */
     int         in13_;    /* fftw       */
+    int         in14_;    /* modeord    */
     int         out0_;   /* ier        */
     dcomplex*   out1_=0; /* f          */
-    int         dim14_;   /* mtot       */
+    int         dim15_;   /* mtot       */
 
-    dim14_ = (int) mxWrapGetScalar(prhs[14], &mw_err_txt_);
+    dim15_ = (int) mxWrapGetScalar(prhs[15], &mw_err_txt_);
 
     in0_ = (double) mxWrapGetScalar(prhs[0], &mw_err_txt_);
     if (mw_err_txt_)
@@ -891,14 +908,17 @@ void mexStub7(int nlhs, mxArray* plhs[],
     in13_ = (int) mxWrapGetScalar(prhs[13], &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
-    out1_ = (dcomplex*) mxMalloc(dim14_*sizeof(dcomplex));
+    in14_ = (int) mxWrapGetScalar(prhs[14], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+    out1_ = (dcomplex*) mxMalloc(dim15_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[7]++;
-    out0_ = finufft3d1m(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_, in9_, out1_, in10_, in11_, in12_, in13_);
+    out0_ = finufft3d1m(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_, in9_, out1_, in10_, in11_, in12_, in13_, in14_);
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetPr(plhs[0]) = out0_;
-    plhs[1] = mxCreateDoubleMatrix(dim14_, 1, mxCOMPLEX);
-    mxWrapCopy_dcomplex(plhs[1], out1_, dim14_);
+    plhs[1] = mxCreateDoubleMatrix(dim15_, 1, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim15_);
 
 mw_err_label:
     if (in4_)  mxFree(in4_);
@@ -907,10 +927,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 359 ----
- * int ier = finufft3d2m(double nj, double[] x, double[] y, double[] z, output dcomplex[nj] c, int isign, double eps, double ms, double mt, double mu, dcomplex[] f, int debug, int nthreads, int spread_sort, int fftw);
+/* ---- finufft.mw: 371 ----
+ * int ier = finufft3d2m(double nj, double[] x, double[] y, double[] z, output dcomplex[nj] c, int isign, double eps, double ms, double mt, double mu, dcomplex[] f, int debug, int nthreads, int spread_sort, int fftw, int modeord);
  */
-const char* stubids8_ = "o int = finufft3d2m(i double, i double[], i double[], i double[], o dcomplex[x], i int, i double, i double, i double, i double, i dcomplex[], i int, i int, i int, i int)";
+const char* stubids8_ = "o int = finufft3d2m(i double, i double[], i double[], i double[], o dcomplex[x], i int, i double, i double, i double, i double, i dcomplex[], i int, i int, i int, i int, i int)";
 
 void mexStub8(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -930,11 +950,12 @@ void mexStub8(int nlhs, mxArray* plhs[],
     int         in11_;    /* nthreads   */
     int         in12_;    /* spread_sort */
     int         in13_;    /* fftw       */
+    int         in14_;    /* modeord    */
     int         out0_;   /* ier        */
     dcomplex*   out1_=0; /* c          */
-    int         dim14_;   /* nj         */
+    int         dim15_;   /* nj         */
 
-    dim14_ = (int) mxWrapGetScalar(prhs[14], &mw_err_txt_);
+    dim15_ = (int) mxWrapGetScalar(prhs[15], &mw_err_txt_);
 
     in0_ = (double) mxWrapGetScalar(prhs[0], &mw_err_txt_);
     if (mw_err_txt_)
@@ -984,14 +1005,17 @@ void mexStub8(int nlhs, mxArray* plhs[],
     in13_ = (int) mxWrapGetScalar(prhs[13], &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
-    out1_ = (dcomplex*) mxMalloc(dim14_*sizeof(dcomplex));
+    in14_ = (int) mxWrapGetScalar(prhs[14], &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+    out1_ = (dcomplex*) mxMalloc(dim15_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[8]++;
-    out0_ = finufft3d2m(in0_, in1_, in2_, in3_, out1_, in4_, in5_, in6_, in7_, in8_, in9_, in10_, in11_, in12_, in13_);
+    out0_ = finufft3d2m(in0_, in1_, in2_, in3_, out1_, in4_, in5_, in6_, in7_, in8_, in9_, in10_, in11_, in12_, in13_, in14_);
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetPr(plhs[0]) = out0_;
-    plhs[1] = mxCreateDoubleMatrix(dim14_, 1, mxCOMPLEX);
-    mxWrapCopy_dcomplex(plhs[1], out1_, dim14_);
+    plhs[1] = mxCreateDoubleMatrix(dim15_, 1, mxCOMPLEX);
+    mxWrapCopy_dcomplex(plhs[1], out1_, dim15_);
 
 mw_err_label:
     if (out1_) mxFree(out1_);
@@ -1000,7 +1024,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 402 ----
+/* ---- finufft.mw: 414 ----
  * int ier = finufft3d3m(double nj, double[] x, double[] y, double[] z, dcomplex[nj] c, int isign, double eps, double nk, double[] s, double[] t, double[] u, output dcomplex[nk] f, int debug, int nthreads, int spread_sort, int fftw);
  */
 const char* stubids9_ = "o int = finufft3d3m(i double, i double[], i double[], i double[], i dcomplex[x], i int, i double, i double, i double[], i double[], i double[], o dcomplex[x], i int, i int, i int, i int)";
@@ -1152,15 +1176,15 @@ void mexFunction(int nlhs, mxArray* plhs[],
     } else if (strcmp(id, "*profile report*") == 0) {
         if (!mexprofrecord_)
             mexPrintf("Profiler inactive\n");
-        mexPrintf("%d calls to finufft.mw:57\n", mexprofrecord_[1]);
-        mexPrintf("%d calls to finufft.mw:97\n", mexprofrecord_[2]);
-        mexPrintf("%d calls to finufft.mw:135\n", mexprofrecord_[3]);
-        mexPrintf("%d calls to finufft.mw:180\n", mexprofrecord_[4]);
-        mexPrintf("%d calls to finufft.mw:221\n", mexprofrecord_[5]);
-        mexPrintf("%d calls to finufft.mw:261\n", mexprofrecord_[6]);
-        mexPrintf("%d calls to finufft.mw:311\n", mexprofrecord_[7]);
-        mexPrintf("%d calls to finufft.mw:359\n", mexprofrecord_[8]);
-        mexPrintf("%d calls to finufft.mw:402\n", mexprofrecord_[9]);
+        mexPrintf("%d calls to finufft.mw:59\n", mexprofrecord_[1]);
+        mexPrintf("%d calls to finufft.mw:101\n", mexprofrecord_[2]);
+        mexPrintf("%d calls to finufft.mw:139\n", mexprofrecord_[3]);
+        mexPrintf("%d calls to finufft.mw:186\n", mexprofrecord_[4]);
+        mexPrintf("%d calls to finufft.mw:229\n", mexprofrecord_[5]);
+        mexPrintf("%d calls to finufft.mw:269\n", mexprofrecord_[6]);
+        mexPrintf("%d calls to finufft.mw:321\n", mexprofrecord_[7]);
+        mexPrintf("%d calls to finufft.mw:371\n", mexprofrecord_[8]);
+        mexPrintf("%d calls to finufft.mw:414\n", mexprofrecord_[9]);
     } else if (strcmp(id, "*profile log*") == 0) {
         FILE* logfp;
         if (nrhs != 2 || mxGetString(prhs[1], id, sizeof(id)) != 0)
@@ -1170,15 +1194,15 @@ void mexFunction(int nlhs, mxArray* plhs[],
             mexErrMsgTxt("Cannot open log for output");
         if (!mexprofrecord_)
             fprintf(logfp, "Profiler inactive\n");
-        fprintf(logfp, "%d calls to finufft.mw:57\n", mexprofrecord_[1]);
-        fprintf(logfp, "%d calls to finufft.mw:97\n", mexprofrecord_[2]);
-        fprintf(logfp, "%d calls to finufft.mw:135\n", mexprofrecord_[3]);
-        fprintf(logfp, "%d calls to finufft.mw:180\n", mexprofrecord_[4]);
-        fprintf(logfp, "%d calls to finufft.mw:221\n", mexprofrecord_[5]);
-        fprintf(logfp, "%d calls to finufft.mw:261\n", mexprofrecord_[6]);
-        fprintf(logfp, "%d calls to finufft.mw:311\n", mexprofrecord_[7]);
-        fprintf(logfp, "%d calls to finufft.mw:359\n", mexprofrecord_[8]);
-        fprintf(logfp, "%d calls to finufft.mw:402\n", mexprofrecord_[9]);
+        fprintf(logfp, "%d calls to finufft.mw:59\n", mexprofrecord_[1]);
+        fprintf(logfp, "%d calls to finufft.mw:101\n", mexprofrecord_[2]);
+        fprintf(logfp, "%d calls to finufft.mw:139\n", mexprofrecord_[3]);
+        fprintf(logfp, "%d calls to finufft.mw:186\n", mexprofrecord_[4]);
+        fprintf(logfp, "%d calls to finufft.mw:229\n", mexprofrecord_[5]);
+        fprintf(logfp, "%d calls to finufft.mw:269\n", mexprofrecord_[6]);
+        fprintf(logfp, "%d calls to finufft.mw:321\n", mexprofrecord_[7]);
+        fprintf(logfp, "%d calls to finufft.mw:371\n", mexprofrecord_[8]);
+        fprintf(logfp, "%d calls to finufft.mw:414\n", mexprofrecord_[9]);
         fclose(logfp);
     } else
         mexErrMsgTxt("Unknown identifier");

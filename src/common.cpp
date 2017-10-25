@@ -188,10 +188,13 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
 }  
 
 void deconvolveshuffle1d(int dir,FLT prefac,FLT* ker, BIGINT ms,
-			 FLT *fk, BIGINT nf1, FFTW_CPX* fw)
+			 FLT *fk, BIGINT nf1, FFTW_CPX* fw, int modeord)
 /*
-  if dir==1: copies fw to fk with amplification by preface/ker
+  if dir==1: copies fw to fk with amplification by prefac/ker
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
+
+  modeord=0: use CMCL-compatible mode ordering in fk (from -N/2 up to N/2-1)
+          1: use FFT-style (from 0 to N/2-1, then -N/2 up to -1).
 
   fk is size-ms FLT complex array (2*ms FLTs alternating re,im parts)
   fw is a FFTW style complex array, ie FLT [nf1][2], essentially FLTs
@@ -206,46 +209,50 @@ void deconvolveshuffle1d(int dir,FLT prefac,FLT* ker, BIGINT ms,
 
   todo: rewrite w/ native dcomplex I/O, check complex divide not slower than
         real divide, or is there a way to force a real divide?
-  todo: check RAM access in backwards order in 2nd loop is not a speed hit
-  todo: check 2*(k0+k)+1 index calcs not slowing us down
 
-  Barnett 1/25/17. Fixed ms=0 case 3/14/17
+  Barnett 1/25/17. Fixed ms=0 case 3/14/17. modeord flag & clean 10/25/17
 */
 {
-  BIGINT k0 = ms/2;      // index shift in fk's = magnitude of most neg freq
-  BIGINT k1 = (ms-1)/2;  // k1 is most pos freq
-  if (ms==0) k1=-1;      // correct the rounding down for no-mode case
+  BIGINT kmin = -ms/2, kmax = (ms-1)/2;    // inclusive range of k indices
+  if (ms==0) kmax=-1;           // fixes zero-pad for trivial no-mode case
+  // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
+  BIGINT pp = -2*kmin, pn = 0;       // CMCL mode-ordering case (2* since cmplx)
+  if (modeord==1) { pp = 0; pn = 2*(kmax+1); }   // or, instead, FFT ordering
   if (dir==1) {    // read fw, write out to fk...
-    for (BIGINT k=0;k<=k1;++k) {                     // non-neg freqs k
-      fk[2*(k0+k)] = prefac * fw[k][0] / ker[k];          // re
-      fk[2*(k0+k)+1] = prefac * fw[k][1] / ker[k];        // im
+    for (BIGINT k=0;k<=kmax;++k) {                    // non-neg freqs k
+      fk[pp++] = prefac * fw[k][0] / ker[k];          // re
+      fk[pp++] = prefac * fw[k][1] / ker[k];          // im
     }
-    for (BIGINT k=-1;k>=-k0;--k) {                   // neg freqs k
-      fk[2*(k0+k)] = prefac * fw[nf1+k][0] / ker[-k];     // re
-      fk[2*(k0+k)+1] = prefac * fw[nf1+k][1] / ker[-k];   // im
+    for (BIGINT k=kmin;k<0;++k) {                     // neg freqs k
+      fk[pn++] = prefac * fw[nf1+k][0] / ker[-k];     // re
+      fk[pn++] = prefac * fw[nf1+k][1] / ker[-k];     // im
     }
   } else {    // read fk, write out to fw w/ zero padding...
-    for (BIGINT k=k1+1;k<nf1-k0;++k) {  // zero pad precisely where needed
-      fw[k][0] = fw[k][1] = 0.0;}
-    for (BIGINT k=0;k<=k1;++k) {                     // non-neg freqs k
-      fw[k][0] = prefac * fk[2*(k0+k)] / ker[k];          // re
-      fw[k][1] = prefac * fk[2*(k0+k)+1] / ker[k];        // im
+    for (BIGINT k=kmax+1; k<nf1+kmin; ++k) {  // zero pad precisely where needed
+      fw[k][0] = fw[k][1] = 0.0; }
+    for (BIGINT k=0;k<=kmax;++k) {                    // non-neg freqs k
+      fw[k][0] = prefac * fk[pp++] / ker[k];          // re
+      fw[k][1] = prefac * fk[pp++] / ker[k];          // im
     }
-    for (BIGINT k=-1;k>=-k0;--k) {                 // neg freqs k
-      fw[nf1+k][0] = prefac * fk[2*(k0+k)] / ker[-k];          // re
-      fw[nf1+k][1] = prefac * fk[2*(k0+k)+1] / ker[-k];        // im
+    for (BIGINT k=kmin;k<0;++k) {                     // neg freqs k
+      fw[nf1+k][0] = prefac * fk[pn++] / ker[-k];     // re
+      fw[nf1+k][1] = prefac * fk[pn++] / ker[-k];     // im
     }
   }
 }
 
 void deconvolveshuffle2d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
 			 BIGINT ms, BIGINT mt,
-			 FLT *fk, BIGINT nf1, BIGINT nf2, FFTW_CPX* fw)
+			 FLT *fk, BIGINT nf1, BIGINT nf2, FFTW_CPX* fw,
+			 int modeord)
 /*
   2D version of deconvolveshuffle1d, calls it on each x-line using 1/ker2 fac.
 
   if dir==1: copies fw to fk with amplification by prefac/(ker1(k1)*ker2(k2)).
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
+
+  modeord=0: use CMCL-compatible mode ordering in fk (each dim increasing)
+          1: use FFT-style (pos then negative, on each dim)
 
   fk is complex array stored as 2*ms*mt FLTs alternating re,im parts, with
     ms looped over fast and mt slow.
@@ -254,31 +261,36 @@ void deconvolveshuffle2d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
   ker1, ker2 are real-valued FLT arrays of lengths nf1/2+1, nf2/2+1
        respectively.
 
-  Barnett 2/1/17, Fixed mt=0 case 3/14/17
+  Barnett 2/1/17, Fixed mt=0 case 3/14/17. modeord 10/25/17
 */
 {
-  BIGINT k02 = mt/2;    // y-index shift in fk's = magnitude of most neg y-freq
-  BIGINT k12 = (mt-1)/2;  // most pos freq
-  if (mt==0) k12=-1;      // correct the rounding down for no-mode case
+  BIGINT k2min = -mt/2, k2max = (mt-1)/2;    // inclusive range of k2 indices
+  if (mt==0) k2max=-1;           // fixes zero-pad for trivial no-mode case
+  // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
+  BIGINT pp = -2*k2min*ms, pn = 0;   // CMCL mode-ordering case (2* since cmplx)
+  if (modeord==1) { pp = 0; pn = 2*(k2max+1)*ms; }  // or, instead, FFT ordering
   if (dir==2)               // zero pad needed x-lines (contiguous in memory)
-    for (BIGINT k=nf1*(k12+1);k<nf1*(nf2-k02);++k)  // k index sweeps all dims
-	fw[k][0] = fw[k][1] = 0.0;
-  for (BIGINT k2=0;k2<=k12;++k2)                   // non-neg y-freqs
+    for (BIGINT j=nf1*(k2max+1); j<nf1*(nf2+k2min); ++j)  // sweeps all dims
+      fw[j][0] = fw[j][1] = 0.0;
+  for (BIGINT k2=0;k2<=k2max;++k2, pp+=2*ms)          // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
-    deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + 2*ms*(k02+k2),nf1,&fw[nf1*k2]);
-  for (BIGINT k2=-1;k2>=-k02;--k2)                 // neg y-freqs
-    deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + 2*ms*(k02+k2),nf1,&fw[nf1*(nf2+k2)]);
+    deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + pp,nf1,&fw[nf1*k2],modeord);
+  for (BIGINT k2=k2min;k2<0;++k2, pn+=2*ms)           // neg y-freqs
+    deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + pn,nf1,&fw[nf1*(nf2+k2)],modeord);
 }
 
 void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
 			 FLT *ker3, BIGINT ms, BIGINT mt, BIGINT mu,
 			 FLT *fk, BIGINT nf1, BIGINT nf2, BIGINT nf3,
-			 FFTW_CPX* fw)
+			 FFTW_CPX* fw, int modeord)
 /*
   3D version of deconvolveshuffle2d, calls it on each xy-plane using 1/ker3 fac.
 
   if dir==1: copies fw to fk with ampl by prefac/(ker1(k1)*ker2(k2)*ker3(k3)).
   if dir==2: copies fk to fw (and zero pads rest of it), same amplification.
+
+  modeord=0: use CMCL-compatible mode ordering in fk (each dim increasing)
+          1: use FFT-style (pos then negative, on each dim)
 
   fk is complex array stored as 2*ms*mt*mu FLTs alternating re,im parts, with
     ms looped over fastest and mu slowest.
@@ -287,21 +299,28 @@ void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
   ker1, ker2, ker3 are real-valued FLT arrays of lengths nf1/2+1, nf2/2+1,
        and nf3/2+1 respectively.
 
-  Barnett 2/1/17, Fixed mu=0 case 3/14/17
+  Barnett 2/1/17, Fixed mu=0 case 3/14/17. modeord 10/25/17
 */
 {
+  BIGINT k3min = -mu/2, k3max = (mu-1)/2;    // inclusive range of k3 indices
+  if (mu==0) k3max=-1;           // fixes zero-pad for trivial no-mode case
+  // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
+  BIGINT pp = -2*k3min*ms*mt, pn = 0; // CMCL mode-ordering (2* since cmplx)
+  if (modeord==1) { pp = 0; pn = 2*(k3max+1)*ms*mt; }  // or FFT ordering
+  
   BIGINT k03 = mu/2;    // z-index shift in fk's = magnitude of most neg z-freq
   BIGINT k13 = (mu-1)/2;  // most pos freq
   if (mu==0) k13=-1;      // correct the rounding down for no-mode case
+
   BIGINT np = nf1*nf2;  // # pts in an upsampled Fourier xy-plane
   if (dir==2)           // zero pad needed xy-planes (contiguous in memory)
-    for (BIGINT k=np*(k13+1);k<np*(nf3-k03);++k)  // sweeps all dims
-      fw[k][0] = fw[k][1] = 0.0;
-  for (BIGINT k3=0;k3<=k13;++k3)                  // non-neg z-freqs
+    for (BIGINT j=np*(k3max+1);j<np*(nf3+k3min);++j)  // sweeps all dims
+      fw[j][0] = fw[j][1] = 0.0;
+  for (BIGINT k3=0;k3<=k3max;++k3, pp+=2*ms*mt)      // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
     deconvolveshuffle2d(dir,prefac/ker3[k3],ker1,ker2,ms,mt,
-			fk + 2*ms*mt*(k03+k3),nf1,nf2,&fw[np*k3]);
-  for (BIGINT k3=-1;k3>=-k03;--k3)                // neg z-freqs
+			fk + pp,nf1,nf2,&fw[np*k3],modeord);
+  for (BIGINT k3=k3min;k3<0;++k3, pn+=2*ms*mt)       // neg z-freqs
     deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
-			fk + 2*ms*mt*(k03+k3),nf1,nf2,&fw[np*(nf3+k3)]);
+			fk + pn,nf1,nf2,&fw[np*(nf3+k3)],modeord);
 }

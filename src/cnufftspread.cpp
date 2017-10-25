@@ -84,11 +84,11 @@ int cnufftspread(
         spread_direction=2, interpolates ("spread transpose") from uniform input
                             to nonuniform output.
 	pirange = 0: kx,ky,kz coords in [0,N]. 1: coords in [-pi,pi].
-	sort - (boolean) whether to sort NU points using natural yz-grid
+	sort = (boolean) whether to sort NU points using natural yz-grid
 	       ordering. Recommended true.
 	debug = 0: no text output, 1: some openmp output, 2: mega output
 	           (each NU pt)
-	flags - integer with binary bits determining various timing options
+	flags = integer with binary bits determining various timing options
                 (set to 0 unless expert; see cnufftspread.h)
 
    Inputs/Outputs:

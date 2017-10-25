@@ -10,7 +10,8 @@ struct nufft_opts {  // static init: this sets default opts for NUFFT alg:
   int spread_debug = 0;   // passed to spread_opts debug: 0,1 or 2
   int spread_sort = 1;    // passed to spread_opts sort: 0 or 1
   int fftw = FFTW_ESTIMATE; // use FFTW_MEASURE for slow first call, fast rerun
-  int modeord = 0;        // 0: CMCL mode ordering; 1: FFT-style ordering (not yet implemented)
+  int modeord = 0;        // 0: CMCL-style increasing mode ordering, or
+                          // 1: FFT-style mode ordering (affects type-1,2 only)
 };
 
 // library provides...
