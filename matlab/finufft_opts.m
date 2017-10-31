@@ -6,7 +6,7 @@ nthreads=0; if isfield(o,'nthreads'), nthreads = o.nthreads; end
 spread_sort=1; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
 fftw=0; if isfield(o,'fftw'), fftw=o.fftw; end
 modeord=0; if isfield(o,'modeord'), modeord=o.modeord; end
-chkbnds=0; if isfield(o,'chkbnds'), chkbnds=o.chkbnds; end
+chkbnds=1; if isfield(o,'chkbnds'), chkbnds=o.chkbnds; end
 
 % pack up: ordering of opts must match that in finufft_m.cpp:finufft_mex_opts()
 opts = double([debug,nthreads,spread_sort,fftw,modeord,chkbnds]);

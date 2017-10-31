@@ -23,7 +23,7 @@ void finufft_default_opts(nufft_opts &o)
   o.spread_sort = 1;       
   o.fftw = FFTW_ESTIMATE;  // use FFTW_MEASURE for slow first call, fast rerun
   o.modeord = 0;
-  o.chkbnds = 0;
+  o.chkbnds = 1;
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)

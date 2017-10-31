@@ -9,7 +9,7 @@ import numpy as np
 
 ## 1-d
 
-def finufft1d1(xj,cj,iflag,eps,ms,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=0):
+def finufft1d1(xj,cj,iflag,eps,ms,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	"""1D type-1 complex nonuniform fast Fourier transform
 
 	blah
@@ -19,7 +19,7 @@ def finufft1d1(xj,cj,iflag,eps,ms,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0
 	cj=cj.astype(np.complex128,copy=False) #copies only if type changes
 	return finufftpy_cpp.finufft1d1_cpp(xj,cj,iflag,eps,ms,fk,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def finufft1d2(xj,cj,iflag,eps,ms,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=0):
+def finufft1d2(xj,cj,iflag,eps,ms,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	# cj is the output and must have dtype=np.complex128
 	xj=xj.astype(np.float64,copy=False) #copies only if type changes
 	fk=fk.astype(np.complex128,copy=False) #copies only if type changes
@@ -34,14 +34,14 @@ def finufft1d3(x,c,iflag,eps,s,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
 
 ## 2-d
 
-def finufft2d1(xj,yj,cj,iflag,eps,ms,mt,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=0):
+def finufft2d1(xj,yj,cj,iflag,eps,ms,mt,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	# fk is the output and must have dtype=np.complex128
 	xj=xj.astype(np.float64,copy=False) #copies only if type changes
 	yj=yj.astype(np.float64,copy=False) #copies only if type changes
 	cj=cj.astype(np.complex128,copy=False) #copies only if type changes
 	return finufftpy_cpp.finufft2d1_cpp(xj,yj,cj,iflag,eps,ms,mt,fk,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def finufft2d2(xj,yj,cj,iflag,eps,ms,mt,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=0):
+def finufft2d2(xj,yj,cj,iflag,eps,ms,mt,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	# cj is the output and must have dtype=np.complex128
 	xj=xj.astype(np.float64,copy=False) #copies only if type changes
 	yj=yj.astype(np.float64,copy=False) #copies only if type changes
@@ -59,7 +59,7 @@ def finufft2d3(x,y,c,iflag,eps,s,t,f,debug=0,spread_debug=0,spread_sort=1,fftw=0
 
 ## 3-d
 
-def finufft3d1(xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=0):
+def finufft3d1(xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	# fk is the output and must have dtype=np.complex128
 	xj=xj.astype(np.float64,copy=False) #copies only if type changes
 	yj=yj.astype(np.float64,copy=False) #copies only if type changes
@@ -67,7 +67,7 @@ def finufft3d1(xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,debug=0,spread_debug=0,spread_s
 	cj=cj.astype(np.complex128,copy=False) #copies only if type changes
 	return finufftpy_cpp.finufft3d1_cpp(xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def finufft3d2(xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=0):
+def finufft3d2(xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	# cj is the output and must have dtype=np.complex128
 	xj=xj.astype(np.float64,copy=False) #copies only if type changes
 	yj=yj.astype(np.float64,copy=False) #copies only if type changes

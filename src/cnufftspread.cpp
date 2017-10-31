@@ -78,7 +78,9 @@ int cnufftspread(
                 1D, only kx and ky used in 2D).
 		These should lie in the box 0<=kx<=N1 etc (if pirange=0),
                 or -pi<=kx<=pi (if pirange=1). However, points up to +-1 period
-                outside this domain are also correctly handled, but no more.
+                outside this domain are also correctly folded back into this
+                domain, but pts beyond this either raise an error (if chkbnds=1)
+                or a crash (if chkbnds=0).
    opts - object controlling spreading method and text output, has fields
           including:
         spread_direction=1, spreads from nonuniform input to uniform output, or
@@ -136,7 +138,7 @@ int cnufftspread(
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
       if (x<0 || x>N1) {
-	fprintf(stderr,"nonuniform pt out of range: kx=%g, N1=%ld (pirange=%d)\n",x,N1,opts.pirange);
+	fprintf(stderr,"NU pt not in valid range (central three periods): kx=%g, N1=%ld (pirange=%d)\n",x,N1,opts.pirange);
 	return ERR_SPREAD_PTS_OUT_RANGE;
       }
     }
@@ -144,7 +146,7 @@ int cnufftspread(
       for (BIGINT i=0; i<M; ++i) {
 	FLT y=RESCALE(ky[i],N2,opts.pirange);
 	if (y<0 || y>N2) {
-	  fprintf(stderr,"nonuniform pt out of range: ky=%g, N2=%ld (pirange=%d)\n",y,N2,opts.pirange);
+	  fprintf(stderr,"NU pt not in valid range (central three periods): ky=%g, N2=%ld (pirange=%d)\n",y,N2,opts.pirange);
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
@@ -152,7 +154,7 @@ int cnufftspread(
       for (BIGINT i=0; i<M; ++i) {
 	FLT z=RESCALE(kz[i],N3,opts.pirange);
 	if (z<0 || z>N3) {
-	  fprintf(stderr,"nonuniform pt out of range: kz=%g, N3=%ld (pirange=%d)\n",z,N3,opts.pirange);
+	  fprintf(stderr,"NU pt not in valid range (central three periods): kz=%g, N3=%ld (pirange=%d)\n",z,N3,opts.pirange);
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
@@ -395,7 +397,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT R)
 {
   opts.spread_direction = 1;    // user should always set to 1 or 2 as desired
   opts.pirange = 1;             // user also should always set
-  opts.chkbnds = 0;
+  opts.chkbnds = 1;
   opts.sort = 1;
   opts.max_subproblem_size = (BIGINT)1e5;
   opts.flags = 0;
@@ -794,35 +796,35 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * these boxes in the natural box order (x fastest, y med, z slowest).
  * Finally the permutation is inverted.
  * 
- * Inputs: M - length of inputs
- *         kx,ky,kz - length-M real numbers in [0,N1], [0,N2], [0,N3]
- *                    respectively, if pirange=0; or in [-pi,pi] if pirange=1
- *         N1,N2,N3 - ranges of rescaled coordinates
+ * Inputs: M - number of input NU points.
+ *         kx,ky,kz - length-M arrays of real coords of NU pts, in the valid
+ *                    range for RESCALE, which includes [0,N1], [0,N2], [0,N3]
+ *                    respectively, if pirange=0; or [-pi,pi] if pirange=1.
+ *         N1,N2,N3 - ranges of NU coords (set N2=N3=1 for 1D, N3=1 for 2D)
  *         bin_size_x,y,z - what binning box size to use in each dimension
- *                    (in rescaled coords where ranges are [0,Ni] )
+ *                    (in rescaled coords where ranges are [0,Ni] ).
+ *                    For 1D, only bin_size_x is used; for 2D, it and bin_size_y
  * Output:
  *         writes to ret a vector list of indices, each in the range 0,..,M-1.
- *         Thus ret must have been allocated for M BIGINTs.
+ *         Thus, ret must have been allocated for M BIGINTs.
  *
- * Notes: compared RAM usage against declaring an internal vector and passing
+ * Notes: I compared RAM usage against declaring an internal vector and passing
  * back; the latter used more RAM and was slower.
  * Avoided the bins array, as in JFM's spreader of 2016.
  */
 {
-  BIGINT nbins1=N1/bin_size_x+1;
-  BIGINT nbins2=N2/bin_size_y+1;
-  BIGINT nbins3=N3/bin_size_z+1;
+  bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
+  BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;
+  nbins2 = isky ? N2/bin_size_y+1 : 1;
+  nbins3 = iskz ? N3/bin_size_z+1 : 1;
   BIGINT nbins = nbins1*nbins2*nbins3;
-  bool isky=(N2>1), iskz=(N3>1);  // ky,kz available? must not access if not!
   
   std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
   for (BIGINT i=0; i<M; i++) {
-    // find the bin index
-    BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x;
-    FLT y = isky ? ky[i] : 0.0;
-    BIGINT i2=RESCALE(y,N2,pirange)/bin_size_y;
-    FLT z = iskz ? kz[i] : 0.0;
-    BIGINT i3=RESCALE(z,N3,pirange)/bin_size_z;
+    // find the bin index in however many dims are needed
+    BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+    if (isky) i2 = RESCALE(ky[i],N2,pirange)/bin_size_y;
+    if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     counts[bin]++;
   }
@@ -832,12 +834,10 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     offsets[i]=offsets[i-1]+counts[i-1];
   std::vector<BIGINT> inv(M);           // fill inverse map
   for (BIGINT i=0; i<M; i++) {
-    // find the bin index (again)
-    BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x;
-    FLT y = isky ? ky[i] : 0.0;
-    BIGINT i2=RESCALE(y,N2,pirange)/bin_size_y;
-    FLT z = iskz ? kz[i] : 0.0;
-    BIGINT i3=RESCALE(z,N3,pirange)/bin_size_z;
+    // find the bin index (again! but better than using RAM)
+    BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+    if (isky) i2 = RESCALE(ky[i],N2,pirange)/bin_size_y;
+    if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     BIGINT offset=offsets[bin];
     offsets[bin]++;
