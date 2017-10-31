@@ -1,6 +1,7 @@
 List of tasks accomplished / changes made / release notes, in reverse
 chronological order:
 
+* python interfaces doc, up-to-date. Removed ms,.. from type-2 interfaces.
 * removed RESCALEs from lower dims in bin_sort, speeds up a few % in 1D.
 * allowed NU pts to be currectly folded from +-1 periods from central box, as per David Stein request. Adds 5% to time at 1e-2 accuracy, less at higher acc.
 * corrected dynamic C++ array allocs in spreader (some made static, 5% speedup)

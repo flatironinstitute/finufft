@@ -5,6 +5,8 @@ import time
 import finufftpy
 import numpy as np
 
+# print finufftpy.finufft1d1.__doc__
+
 np.random.seed(42)
 
 acc = 1.e-9

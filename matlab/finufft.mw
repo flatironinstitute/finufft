@@ -28,7 +28,7 @@ $ #include "finufft_m.h"
 %     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
 %              j=1                            
 %   Inputs:
-%     x     location of sources on interval [-pi,pi], length nj
+%     x     location of sources on interval [-3pi,3pi], length nj
 %     c     size-nj complex array of source strengths
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps     precision requested (>1e-16)
@@ -39,7 +39,7 @@ $ #include "finufft_m.h"
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points lie in [-pi,pi], default), 1 (do).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %   Outputs:
 %     f     size-ms double complex array of Fourier transform values
 %     ier - 0 if success, else:
@@ -68,7 +68,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2.
 %
 %  Inputs:
-%     x     location of NU targets on interval [-pi,pi], length nj
+%     x     location of NU targets on interval [-3pi,3pi], length nj
 %     f     complex Fourier transform values
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps    precision requested (>1e-16)
@@ -77,7 +77,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points lie in [-pi,pi], default), 1 (do).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %  Outputs:
 %     c     complex double array of nj answers at targets
 %     ier - 0 if success, else:
@@ -144,7 +144,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 %
 %   Inputs:
-%     x,y   locations of NU sources on the square [-pi,pi]^2, each length nj
+%     x,y   locations of NU sources on the square [-3pi,3pi]^2, each length nj
 %     c     size-nj complex array of source strengths
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps     precision requested (>1e-16)
@@ -155,7 +155,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points lie in [-pi,pi], default), 1 (do).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %   Outputs:
 %     f     size (ms*mt) double complex array of Fourier transform values
 %           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
@@ -186,7 +186,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
 %
 %  Inputs:
-%     x,y   location of NU targets on the square [-pi,pi]^2, each length nj
+%     x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
 %     f     size (ms,mt) complex Fourier transform value matrix
 %           (mode ordering given by opts.modeord in each dimension)
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
@@ -196,7 +196,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points lie in [-pi,pi], default), 1 (do).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
@@ -266,7 +266,7 @@ if numel(t)~=nk, error('t must have the same number of elements as s'); end
 %         -mu/2 <= k3 <= (mu-1)/2.
 %
 %   Inputs:
-%     x,y,z locations of NU sources on [-pi,pi]^3, each length nj
+%     x,y,z locations of NU sources on [-3pi,3pi]^3, each length nj
 %     c     size-nj complex array of source strengths
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps     precision requested (>1e-16)
@@ -278,7 +278,7 @@ if numel(t)~=nk, error('t must have the same number of elements as s'); end
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points lie in [-pi,pi], default), 1 (do).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %   Outputs:
 %     f     size (ms*mt*mu) double complex array of Fourier transform values
 %            (ordering given by opts.modeord in each dimension, ms fastest, mu
@@ -317,7 +317,7 @@ f = reshape(f,[ms mt mu]);              % make a 3D array
 %                       -mu/2 <= k3 <= (mu-1)/2.
 %
 %  Inputs:
-%     x,y,z location of NU targets on cube [-pi,pi]^3, each length nj
+%     x,y,z location of NU targets on cube [-3pi,3pi]^3, each length nj
 %     f     size (ms,mt,mu) complex Fourier transform value matrix
 %           (ordering given by opts.modeord in each dimension; ms fastest to mu
 %            slowest).
@@ -328,7 +328,7 @@ f = reshape(f,[ms mt mu]);              % make a 3D array
 %     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points lie in [-pi,pi], default), 1 (do).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:

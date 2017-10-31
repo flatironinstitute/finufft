@@ -451,8 +451,11 @@ FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
 {
   if (abs(x)>=opts.ES_halfwidth)
     return 0.0;
-  else
-    return (opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
+  else {
+    FLT s = sqrt(1.0 - opts.ES_c*x*x);
+    //  return sinh(opts.ES_beta * s)/s; // roughly, inverse K-B kernel of NFFT
+    return opts.ES_beta * s;
+  }
 }
 
 void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)

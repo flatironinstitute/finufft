@@ -1,5 +1,7 @@
 # Jeremy Magland, Sept 2017.
-# Alex Barnett fixed integer division issue in python v2 vs v3 (affected 1/2, 1/3), 10/13/17.
+# Alex Barnett fixed integer division issue in python v2 vs v3
+#              (affected 1/2, 1/3), 10/13/17.
+# Removed ms etc from ?d2 interfaces, 10/31/17.
 
 import numpy as np
 import finufftpy
@@ -17,7 +19,7 @@ def compute_error(Xest,Xtrue):
 def print_report(label,elapsed,Xest,Xtrue,npts):
 	print(label+':')
 	print('    Est rel l2 err  %.3g' % (compute_error(Xest,Xtrue)))
-	print('    Elapsed (sec)   %.3g' % (elapsed))
+	print('    CPU time (sec)  %.3g' % (elapsed))
 	print('    NU pts/sec      %.3g' % (npts/elapsed))
 	print('')
 
@@ -52,7 +54,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	cj=np.zeros([nj],dtype=np.complex128);
 	fk=np.random.rand(ms)+1j*np.random.rand(ms);
 	timer=time.time()
-	ret=finufftpy.finufft1d2(xj,cj,iflag,eps,ms,fk)
+	ret=finufftpy.finufft1d2(xj,cj,iflag,eps,fk)
 	elapsed=time.time()-timer
 
 	k=np.arange(-np.floor(ms/2),np.floor((ms-1)/2+1))
@@ -98,7 +100,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	cj=np.zeros([nj],dtype=np.complex128);
 	fk=np.random.rand(ms,mt)+1j*np.random.rand(ms,mt);
 	timer=time.time()
-	ret=finufftpy.finufft2d2(xj,yj,cj,iflag,eps,ms,mt,fk)
+	ret=finufftpy.finufft2d2(xj,yj,cj,iflag,eps,fk)
 	elapsed=time.time()-timer
 
 	Ks,Kt=np.mgrid[-np.floor(ms/2):np.floor((ms-1)/2+1),-np.floor(mt/2):np.floor((mt-1)/2+1)]
@@ -148,7 +150,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	cj=np.zeros([nj],dtype=np.complex128);
 	fk=np.random.rand(ms,mt,mu)+1j*np.random.rand(ms,mt,mu);
 	timer=time.time()
-	ret=finufftpy.finufft3d2(xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk)
+	ret=finufftpy.finufft3d2(xj,yj,zj,cj,iflag,eps,fk)
 	elapsed=time.time()-timer
 
 	Ks,Kt,Ku=np.mgrid[-np.floor(ms/2):np.floor((ms-1)/2+1),-np.floor(mt/2):np.floor((mt-1)/2+1),-np.floor(mu/2):np.floor((mu-1)/2+1)]

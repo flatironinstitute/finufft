@@ -1,5 +1,10 @@
 // python interface to C++ wrappers to FINUFFT.
 // Dan Foreman-Mackey, Jeremy Magland, and Alex Barnett.
+//
+// Warning: users should not call the below-defined routines
+// finufftpy.finufftpy_cpp.* from python.
+// Rather, they should call finufftpy.finufftpy?d?  which are documented in
+// interfaces.py
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -60,16 +65,15 @@ int finufft1d1_cpp(py::array_t<double> xj,py::array_t<CPX> cj,int iflag,double e
     CHECK_FLAG(finufft1d1)
     return ier;
 }
-int finufft1d2_cpp(py::array_t<double> xj,py::array_t<CPX> cj,int iflag,double eps,int ms,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds)
+int finufft1d2_cpp(py::array_t<double> xj,py::array_t<CPX> cj,int iflag,double eps,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds)
 {
     NDArray<double> xja(xj);
     NDArray<CPX> cja(cj);
     NDArray<CPX> fka(fk);
     if (xja.size!=cja.size)
         throw error("Inconsistent dimensions between xj and cj");
-    if (fka.size!=ms)
-        throw error("Incorrect size for fk");
     int nj=xja.size;
+    int ms=fka.size;
     ASSEMBLE_OPTIONS
     int ier=finufft1d2(nj,xja.ptr,cja.ptr,iflag,eps,ms,fka.ptr,opts);
     CHECK_FLAG(finufft1d2)
@@ -112,7 +116,7 @@ int finufft2d1_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX
     CHECK_FLAG(finufft2d1)
     return ier;
 }
-int finufft2d2_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX> cj,int iflag,double eps,int ms,int mt,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds)
+int finufft2d2_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX> cj,int iflag,double eps,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds)
 {
     NDArray<double> xja(xj);
     NDArray<double> yja(yj);
@@ -120,9 +124,9 @@ int finufft2d2_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX
     NDArray<CPX> fka(fk);
     if ((xja.size!=cja.size)||(yja.size!=cja.size))
         throw error("Inconsistent dimensions between xj or yj and cj");
-    if (fka.size!=ms*mt)
-        throw error("Incorrect size for fk");
     int nj=xja.size;
+    int ms=fka.shape[0];
+    int mt=fka.shape[1];
     ASSEMBLE_OPTIONS
     int ier=finufft2d2(nj,xja.ptr,yja.ptr,cja.ptr,iflag,eps,ms,mt,fka.ptr,opts);
     CHECK_FLAG(finufft2d2)
@@ -168,7 +172,7 @@ int finufft3d1_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<dou
     CHECK_FLAG(finufft3d1)
     return ier;
 }
-int finufft3d2_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<double> zj,py::array_t<CPX> cj,int iflag,double eps,int ms,int mt,int mu,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds)
+int finufft3d2_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<double> zj,py::array_t<CPX> cj,int iflag,double eps,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds)
 {
     NDArray<double> xja(xj);
     NDArray<double> yja(yj);
@@ -177,8 +181,9 @@ int finufft3d2_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<dou
     NDArray<CPX> fka(fk);
     if ((xja.size!=cja.size)||(yja.size!=cja.size)||(zja.size!=cja.size))
         throw error("Inconsistent dimensions between xj or yj or zj and cj");
-    if (fka.size!=ms*mt*mu)
-        throw error("Incorrect size for fk");
+    int ms=fka.shape[0];
+    int mt=fka.shape[1];
+    int mu=fka.shape[2];
     int nj=xja.size;
     ASSEMBLE_OPTIONS
     int ier=finufft3d2(nj,xja.ptr,yja.ptr,zja.ptr,cja.ptr,iflag,eps,ms,mt,mu,fka.ptr,opts);
@@ -212,7 +217,7 @@ int finufft3d3_cpp(py::array_t<double> x,py::array_t<double> y,py::array_t<doubl
 
 
 PYBIND11_MODULE(finufftpy_cpp, m) {
-  m.doc() = "Python wrapper for FINUFFT (Magland no-data-copy version)";
+  m.doc() = "intermediate wrappers by JFM (users: instead use finufftpy.*)";
 
   // 1-d
   m.def("finufft1d1_cpp", &finufft1d1_cpp, "Python wrapper for 1-d type 1 nufft",
@@ -224,7 +229,7 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
   
   m.def("finufft1d2_cpp", &finufft1d2_cpp, "Python wrapper for 1-d type 2 nufft",
         py::arg("xj").noconvert(),py::arg("cj").noconvert(),
-        py::arg("iflag"),py::arg("eps"),py::arg("ms"),
+        py::arg("iflag"),py::arg("eps"),
 	py::arg("fk").noconvert(),
 	py::arg("debug"),py::arg("spread_debug"),py::arg("spread_sort"),
 	py::arg("fftw"),py::arg("modeord"),py::arg("chkbnds"));
@@ -249,7 +254,7 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
   
   m.def("finufft2d2_cpp", &finufft2d2_cpp, "Python wrapper for 2-d type 2 nufft",
         py::arg("xj").noconvert(),py::arg("yj").noconvert(),py::arg("cj").noconvert(),
-        py::arg("iflag"),py::arg("eps"),py::arg("ms"),py::arg("mt"),
+        py::arg("iflag"),py::arg("eps"),
 	py::arg("fk").noconvert(),
 	py::arg("debug"),py::arg("spread_debug"),py::arg("spread_sort"),
 	py::arg("fftw"),py::arg("modeord"),py::arg("chkbnds"));
@@ -274,7 +279,7 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
   
   m.def("finufft3d2_cpp", &finufft3d2_cpp, "Python wrapper for 3-d type 2 nufft",
         py::arg("xj").noconvert(),py::arg("yj").noconvert(),py::arg("zj").noconvert(),py::arg("cj").noconvert(),
-        py::arg("iflag"),py::arg("eps"),py::arg("ms"),py::arg("mt"),py::arg("mu"),
+        py::arg("iflag"),py::arg("eps"),
 	py::arg("fk").noconvert(),
 	py::arg("debug"),py::arg("spread_debug"),py::arg("spread_sort"),
 	py::arg("fftw"),py::arg("modeord"),py::arg("chkbnds"));

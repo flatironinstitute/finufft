@@ -37,7 +37,7 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
     in the kernel evaluation (the last argument is the flag):
     > test/spreadtestnd 3 8e6 8e6 1e-6 1 0
     > test/spreadtestnd 3 8e6 8e6 1e-6 1 4
-    NOTE: NUMERICAL OUTPUT WILL BE INCORRECT UNLESS spread_opts.flags=0 !
+    NOTE: NUMERICAL OUTPUT MAY BE INCORRECT UNLESS spread_opts.flags=0 !
 */
 #define TF_OMIT_WRITE_TO_GRID        1 // don't add subgrids to out grid (dir=1)
 #define TF_OMIT_EVALUATE_KERNEL      2 // don't evaluate the kernel at all
