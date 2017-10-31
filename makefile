@@ -191,14 +191,10 @@ mex: matlab/finufft.mw
 	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
 
-# various obscure devel tests...
-devel/plotkernels: $(SOBJS) $(HEADERS) devel/plotkernels.cpp
-	$(CXX) $(CXXFLAGS) devel/plotkernels.cpp -o devel/plotkernels $(SOBJS)
-	(cd devel; ./plotkernels > plotkernels.dat)
-
-devel/testi0: devel/testi0.cpp devel/besseli.o src/utils.o
-	$(CXX) $(CXXFLAGS) devel/testi0.cpp $(OBJS) -o devel/testi0
-	(cd devel; ./testi0)
+# various obscure tests...
+manysmallprobs: lib-static/libfinufft.a $(HEADERS) test/manysmallprobs.cpp
+	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp lib-static/libfinufft.a -o test/manysmallprobs $(LIBSFFT)
+	time test/manysmallprobs
 
 # cleaning up...
 clean:

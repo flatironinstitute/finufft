@@ -11,9 +11,9 @@ int main(int argc, char* argv[])
    with a math test. Barnett 3/10/17
 
    Compile with:
-   gcc -fopenmp example1d1c.c ../lib/libfinufft.a -o example1d1c -lfftw3 -lfftw3_threads -lm -lstdc++
+   gcc -fopenmp example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lfftw3_threads -lm -lstdc++
    or if you have built a single-core version:
-   gcc example1d1c.c ../lib/libfinufft.a -o example1d1c -lfftw3 -lm -lstdc++
+   gcc example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lm -lstdc++
 
    Usage: ./example1d1c
 */
