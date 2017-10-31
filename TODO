@@ -5,11 +5,9 @@ HIGHER PRIORITY:
 * understand rare segfaults from matlab.
 * understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
 * real-valued spreader option - but how avoid code duplication? - C++ template the spreader and all inside it?
-* decide if to periodically wrap NU inputs pts to [-pi,pi)^d rather than raise error.
 * py docstrings.
 * doc/manual webpage -> readthedocs, w/ Flatiron logo
 * check possible transpose error for 2d,3d, found by David.
-* swap out mallocs for std:vector in finufft?
 * Decide if non vs omp get different lib names.
 * decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
 * related to above, fix matlab, octave, and python interfaces for single-prec.
@@ -24,6 +22,7 @@ HIGHER PRIORITY:
 
 LOWER PRIORITY:
 
+* swap out mallocs for std:vector in finufft?
 * recoup DFM's PyPI publishing of finufftpy
 * remove mcwrap dir
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.

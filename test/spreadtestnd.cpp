@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
 #pragma omp for schedule(dynamic,1000000) reduction(+:strre,strim)
     for (BIGINT i=0; i<M; ++i) {
       kx[i]=rand01r(&se)*N;
-      // kx[i]=kx[i]*2.0 - N/2;      //// to test folding
+      //kx[i]=2.0*kx[i] - 50.0;      //// to test folding within +-1 period
       if (d>1) ky[i]=rand01r(&se)*N;      // only fill needed coords
       if (d>2) kz[i]=rand01r(&se)*N;
       d_nonuniform[i*2]=randm11r(&se);

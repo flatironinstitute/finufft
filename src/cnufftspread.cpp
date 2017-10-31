@@ -75,20 +75,24 @@ int cnufftspread(
 	      Otherwise, 3D.
    M - number of NU pts.
    kx, ky, kz - length-M real arrays of NU point coordinates (only kz used in
-                1D, only kx and ky used in 2D). These must lie in the box,
-		ie 0<=kx<=N1 etc (if pirange=0), or -pi<=kx<=pi (if pirange=1).
+                1D, only kx and ky used in 2D).
+		These should lie in the box 0<=kx<=N1 etc (if pirange=0),
+                or -pi<=kx<=pi (if pirange=1). However, points up to +-1 period
+                outside this domain are also correctly handled, but no more.
    opts - object controlling spreading method and text output, has fields
           including:
         spread_direction=1, spreads from nonuniform input to uniform output, or
         spread_direction=2, interpolates ("spread transpose") from uniform input
                             to nonuniform output.
 	pirange = 0: kx,ky,kz coords in [0,N]. 1: coords in [-pi,pi].
+                (due to +-1 box folding these can be out to [-N,2N] and
+                [-3pi/2,3pi/2] respectively).
 	sort = (boolean) whether to sort NU points using natural yz-grid
 	       ordering. Recommended true.
 	debug = 0: no text output, 1: some openmp output, 2: mega output
 	           (each NU pt)
-	chkbnds = 0: don't check incoming NU pts for bounds
-                  1: do, and stop with error if any found outside bounds
+	chkbnds = 0: don't check incoming NU pts for bounds (but still fold +-1)
+                  1: do, and stop with error if any found outside valid bnds
 	flags = integer with binary bits determining various timing options
                 (set to 0 unless expert; see cnufftspread.h)
 
@@ -127,10 +131,10 @@ int cnufftspread(
   if (opts.debug)
     printf("starting spread %dD (dir=%d. M=%ld; N1=%ld,N2=%ld,N3=%ld), %d threads\n",ndims,opts.spread_direction,M,N1,N2,N3,MY_OMP_GET_MAX_THREADS());
   
-  if (opts.chkbnds) {            // check NU pts are in bounds, exit gracefully
+  if (opts.chkbnds) {  // check NU pts are valid (incl +-1 box), exit gracefully
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
-      FLT x=RESCALE(kx[i],N1,opts.pirange);
+      FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
       if (x<0 || x>N1) {
 	fprintf(stderr,"nonuniform pt out of range: kx=%g, N1=%ld (pirange=%d)\n",x,N1,opts.pirange);
 	return ERR_SPREAD_PTS_OUT_RANGE;
