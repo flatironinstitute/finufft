@@ -124,7 +124,6 @@ int cnufftspread(
   if (N3>1) ++ndims;
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
-  int numkervals = (int)pow(ns,ndims);
   if (opts.debug)
     printf("starting spread %dD (dir=%d. M=%ld; N1=%ld,N2=%ld,N3=%ld), %d threads\n",ndims,opts.spread_direction,M,N1,N2,N3,MY_OMP_GET_MAX_THREADS());
   
@@ -251,7 +250,7 @@ int cnufftspread(
     nb = s.size();
     if (opts.debug) printf("subprobs setup %.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
     
-#pragma omp parallel for //schedule(dynamic,1)
+#pragma omp parallel for schedule(dynamic,1)
     for (int isub=0; isub<nb; isub++) { // Main loop through the subproblems
       std::vector<BIGINT> inds = s.at(isub).nonuniform_indices;
       BIGINT M0 = inds.size();   // # NU pts in this subproblem
@@ -299,7 +298,7 @@ int cnufftspread(
 	    spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
 	
 	// Add the subgrid to output grid, wrapping (slower). Works in all dims.
-	BIGINT o1[size1], o2[size2], o3[size3];  // alloc 1d output ptr lists
+	std::vector<BIGINT> o1(size1), o2(size2), o3(size3);  // alloc 1d output ptr lists
 	BIGINT x=offset1, y=offset2, z=offset3;  // fill lists with wrapping...
 	for (int i=0; i<size1; ++i) {
 	  if (x<0) x+=N1;
@@ -333,7 +332,7 @@ int cnufftspread(
 	      }
 	    }
 	} // end critical block
-	// free up stuff from this subprob...
+	// free up stuff from this subprob... (that was malloc'ed by hand)
 	free(dd0); free(du0);
 	free(kx0);
 	if (N2>1) free(ky0);
@@ -351,7 +350,7 @@ int cnufftspread(
       FLT xj=RESCALE(kx[j],N1,opts.pirange);
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
-      FLT kernel_values[numkervals];
+      FLT kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD]; // static, up to 3D
       
       // eval kernel values patch and use to interpolate from uniform data...
       if (!(opts.flags & TF_OMIT_SPREADING))
@@ -391,7 +390,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT R)
 // Returns: 0 success, >0 failure (see error codes in utils.h)
 {
   opts.spread_direction = 1;    // user should always set to 1 or 2 as desired
-  opts.pirange = 1;
+  opts.pirange = 1;             // user also should always set
   opts.chkbnds = 0;
   opts.sort = 1;
   opts.max_subproblem_size = (BIGINT)1e5;
@@ -471,7 +470,7 @@ void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
 // m=1,2.
 {
   int ns=opts.nspread;
-  FLT v1[ns], v2[ns];
+  FLT v1[MAX_NSPREAD], v2[MAX_NSPREAD];
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
       for (int i = 0; i < ns; i++) {
@@ -498,7 +497,7 @@ void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts,FLT* ker)
 // m=1,2,3.
 {
     int ns=opts.nspread;
-    FLT v1[ns], v2[ns], v3[ns];
+    FLT v1[MAX_NSPREAD], v2[MAX_NSPREAD], v3[MAX_NSPREAD];
     if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
       if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
 	for (int i = 0; i < ns; i++) {
@@ -849,7 +848,7 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,BIGINT &size2,BIGINT &size3,BIGINT M,FLT* kx,FLT* ky,FLT* kz,int ns,int ndims)
 /* Writes out the offsets and sizes of the subgrid defined by the
    nonuniform points and the spreading diameter approx ns/2.
-   Requires O(M) effort to find the k arrya bnds. Works in all dims 1,2,3.
+   Requires O(M) effort to find the k array bnds. Works in all dims 1,2,3.
    Must return offset 0 and size 1 for each unused dimension.
    Grid has been made tight to the kernel point choice using identical ceil
    operations.  6/16/17

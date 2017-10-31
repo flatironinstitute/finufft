@@ -108,6 +108,7 @@ int main(int argc, char* argv[])
 #pragma omp for schedule(dynamic,1000000) reduction(+:strre,strim)
     for (BIGINT i=0; i<M; ++i) {
       kx[i]=rand01r(&se)*N;
+      // kx[i]=kx[i]*2.0 - N/2;      //// to test folding
       if (d>1) ky[i]=rand01r(&se)*N;      // only fill needed coords
       if (d>2) kz[i]=rand01r(&se)*N;
       d_nonuniform[i*2]=randm11r(&se);
@@ -137,7 +138,7 @@ int main(int argc, char* argv[])
     }
     FLT pre = kersumre*strre - kersumim*strim;   // pred ans, complex mult
     FLT pim = kersumim*strre + kersumre*strim;
-    FLT maxerr = std::max(sumre-pre, sumim-pim);
+    FLT maxerr = std::max(fabs(sumre-pre), fabs(sumim-pim));
     FLT ansmod = sqrt(sumre*sumre+sumim*sumim);
     printf("\trel err in total over grid:      %.3g\n",maxerr/ansmod);
     // note this is weaker than below dir=2 test, but is good indicator that
