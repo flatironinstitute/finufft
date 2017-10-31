@@ -1,6 +1,6 @@
 FINUFFT MANUAL
 
-Alex Barnett  8/30/17
+Alex Barnett  10/31/17
 
 Contents:
 1) Overview
@@ -14,28 +14,54 @@ Contents:
 We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
 2, and 3.  This gives nine routines in all.  This manual currently
-contains mostly just the calling headers for these routines.
+contains mostly just the calling headers for these routines, plus
+sketches of the algorithms used.
 
 For usage examples from C and C++, see ../examples/* and ../test/*.cpp
 
 nufft_opts is a C structure defined by the ../src/finufft.h header that allows
 control of a couple of parameters (do not adjust R; the others are fair game).
+It *must* be initialized before any finufft?d? calls are made;
+this is best done by calling finufft_default_opts();
 
 For calling examples from fortran see ../fortran/*demo.f
 
 For calling examples from matlab/octave, see ../matlab/check_finufft.m
 
-For calling examples from python, see ../python/demo.py
+For calling examples from python, see ../python_test/demo1d1.py
 
+In the below, the opts structure has the following user-changeable fields:
 
-In the below, the opts structure has the following user-settable fields:
-  debug                0: silent, 1: text timing output, 2: spread info
-  spread_debug         level of debug output from spreader: 0,1 or 2
-  spread_sort          whether spreader should sort non-uniform pts: 0 or 1
-                       (sorting requires somewhat more RAM, but on non-xeon
-                       CPUs seems to speed up the spreading).
-  fftw                 plan choice for FFTW, either FFTW_ESTIMATE or
-                       FFTW_MEASURE (much slower first run, then faster).
+  debug         0: silent, 1: text timing output
+  spread_debug  level of debug output from spreader: 0,1 or 2
+  spread_sort   whether spreader should sort non-uniform pts: 0 or 1
+                (sorting speeds up the spreading on non-Xeon CPUs)
+  fftw          plan choice for FFTW, either = FFTW_ESTIMATE or
+                = FFTW_MEASURE (much slower first run, then faster)
+Fields only relevant for type 1 and 2:
+  modeord       0 (CMCL increasing mode ordering), or 1 (FFT-style ordering)
+  chkbnds       0 (don't check NU points in valid [-3pi,3pi] range), 1 (do).
+
+Note on nonuniform points valid range (x,y, etc):
+
+For type-1 and type-2, these NU pts are 2-pi periodic (ie, the answer
+doesn't depend on adding 2pi times any integer to any of the
+points). In order to avoid slow 2pi-periodic wrapping using fmod, we
+use the convention that only points in [-3pi,3pi] are valid.  This
+allows moderate spill-over from the "central" [-pi,pi] interval.  Eg,
+you may choose an interval [0,2pi] and still have up to pi spillover.
+The branch-prediction in the RESCALE macro may be a little faster if
+you stick to [-pi,pi] though. Hence we give this interval in the
+documentation.
+
+Error codes:
+
+For each of the below codes, the returned ier value is interpreted as
+follows:
+	0 : success
+	1 : eps too small
+	2 : size of arrays to malloc exceed MAX_NF
+	4 : if chkbnds=1, at least one NU point out of range
 
 
 2) Interfaces to routines
@@ -55,7 +81,7 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
                j=0                            
    Inputs:
      nj     number of sources (integer of type INT; see utils.h)
-     xj     location of sources on interval [-pi,pi].
+     xj     nonuniform source locations, on interval [-pi,pi].
      cj     size-nj double complex array of source strengths
             (ie, stored as 2*nj doubles interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
@@ -65,12 +91,8 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
      opts   struct controlling options (see finufft.h)
    Outputs:
      fk     size-ms double complex array of Fourier transform values
-            (increasing mode ordering)
-            stored as alternating Re & Im parts (2*ms doubles)
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread
+            stored as alternating Re & Im parts (2*ms doubles), in
+ 	    order determined by opts.modeord.
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
      1) spread data to oversampled regular mesh using kernel.
@@ -96,7 +118,7 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
    Inputs:
      nj     number of target (integer of type INT; see utils.h)
      xj     location of targets on interval [-pi,pi].
-     fk     complex Fourier transform values (size ms, increasing mode ordering)
+     fk     complex Fourier transform values (size ms)
             (ie, stored as 2*nj doubles interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
@@ -105,10 +127,6 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
      opts   struct controlling options (see finufft.h)
    Outputs:
      cj     complex double array of nj answers at targets
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
      1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
@@ -142,10 +160,6 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
    Outputs:
      fk     size-nk double complex Fourier transform values at target
             frequencies sk
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread or finufft1d2
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
      as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].
@@ -177,9 +191,10 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
  
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
-     The output array is in increasing k1 ordering (fast), then increasing
-     k2 ordering (slow). If iflag>0 the + sign is
-     used, otherwise the - sign is used, in the exponential.
+     The output array is k1 (fast), then k2 (slow), with each dimension
+     determined by opts.modeord.
+     If iflag>0 the + sign is used, otherwise the - sign is used,
+     in the exponential.
                            
    Inputs:
      nj     number of sources (integer of type INT; see utils.h)
@@ -188,17 +203,13 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
             (ie, stored as 2*nj doubles interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
-     ms,mt  number of Fourier modes requested in x and y; each may be even or odd;
-            in either case the mode range is integers lying in [-m/2, (m-1)/2]
+     ms,mt  number of Fourier modes requested in x and y; each may be even or
+            odd; in either case the modes are integers in [-m/2, (m-1)/2]
      opts   struct controlling options (see finufft.h)
    Outputs:
      fk     complex double array of Fourier transform values
             (size ms*mt, increasing fast in ms then slow in mt,
             ie Fortran ordering).
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
      1) spread data to oversampled regular mesh using kernel.
@@ -230,10 +241,6 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
      opts   struct controlling options (see finufft.h)
    Outputs:
      cj     size-nj complex double array of source strengths
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
      1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
@@ -262,10 +269,6 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
      opts   struct controlling options (see finufft.h)
    Outputs:
      fk     complex double Fourier transform values at the target frequencies sk
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread or finufft2d2
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
      as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].
@@ -300,9 +303,10 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
 	for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
             -mu/2 <= k3 <= (mu-1)/2.
 
-     The output array is in increasing k orderings. k1 is fastest, k2 middle,
-     and k3 slowest, ie Fortran ordering. If iflag>0 the + sign is
-     used, otherwise the - sign is used, in the exponential.
+     In the output array, k1 is fastest, k2 middle, and k3 slowest, ie
+     Fortran ordering, with each dimension
+     determined by opts.modeord. If iflag>0 the + sign is used, otherwise the -
+     sign is used, in the exponential.
                            
    Inputs:
      nj     number of sources (integer of type INT; see utils.h)
@@ -318,10 +322,6 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
    Outputs:
      fk     complex double array of Fourier transform values (size ms*mt*mu,
             increasing fast in ms to slowest in mu, ie Fortran ordering).
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
      1) spread data to oversampled regular mesh using kernel.
@@ -348,7 +348,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
      nj     number of sources (integer of type INT; see utils.h)
      xj,yj,zj     x,y,z locations of sources on 3D domain [-pi,pi]^3.
      fk     double complex array of Fourier series values (size ms*mt*mu,
-            increasing fastest in ms to slowest in mu, ie Fortran ordering).
+            fastest in ms to slowest in mu, ie Fortran ordering).
             (ie, stored as alternating Re & Im parts, 2*ms*mt*mu doubles)
      iflag  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested
@@ -358,10 +358,6 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
    Outputs:
      cj     size-nj complex double array of target values,
             (ie, stored as 2*nj doubles interleaving Re, Im).
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
      1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
@@ -394,10 +390,6 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
    Outputs:
      fk     size-nk complex double array of Fourier transform values at the
             target frequencies sk
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread or finufft3d2.
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
      as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].
