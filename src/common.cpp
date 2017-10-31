@@ -1,4 +1,5 @@
 #include "common.h"
+#include <fftw3.h>
 
 #ifdef NEED_EXTERN_C
 extern "C" {
@@ -11,6 +12,31 @@ extern "C" {
 #include <math.h>
 #include <stdio.h>
 
+void finufft_default_opts(nufft_opts &o)
+// set default nufft opts. See finufft.h for definition of opts.
+// This was created to avoid uncertainty about C++11 style static initialization
+// when called from MEX. Barnett 10/30/17
+{
+  o.R = (FLT)2.0;
+  o.debug = 0;
+  o.spread_debug = 0;
+  o.spread_sort = 1;       
+  o.fftw = FFTW_ESTIMATE;  // use FFTW_MEASURE for slow first call, fast rerun
+  o.modeord = 0;
+  o.chkbnds = 0;
+}
+
+int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
+// Set up the spreader parameters given eps, and pass across various nufft
+// options. Report status of setup_spreader.  Barnett 10/30/17
+{
+  int ier = setup_spreader(spopts, eps, opts.R);
+  spopts.debug = opts.spread_debug;
+  spopts.sort = opts.spread_sort;
+  spopts.chkbnds = opts.chkbnds;
+  spopts.pirange = 1;             // could allow user control?
+  return ier;
+} 
 
 void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, INT64 *nf)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
@@ -86,7 +112,7 @@ void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   dcomplex a[MAX_NSPREAD/2],aj[MAX_NSPREAD/2];
   for (int n=0;n<=m;++n) {             // set up our rotating phase array...
     a[n] = exp(2*PI*ima*(FLT)(nf/2-n)/(FLT)nf);   // phase differences
-    aj[n] = dcomplex{1.0,0.0};         // init phase factors
+    aj[n] = dcomplex(1.0,0.0);         // init phase factors
   }
   for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
     FLT x = 0.0;                    // register
@@ -135,7 +161,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
     z[n] *= J2;                 // rescale nodes
     f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // w/ quadr weights
     a[n] = exp(2*PI*ima*(FLT)(nf/2-z[n])/(FLT)nf);  // phase windings
-    aj[n] = dcomplex{1.0,0.0};         // init phase factors
+    aj[n] = dcomplex(1.0,0.0);         // init phase factors
   }
   for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
     FLT x = 0.0;                    // register

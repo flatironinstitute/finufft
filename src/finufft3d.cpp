@@ -52,7 +52,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
  */
 {
   spread_opts spopts;
-  int ier_set = setup_kernel(spopts,eps,opts.R);
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
   INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
   INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
@@ -89,11 +89,8 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 
   // Step 1: spread from irregular points to regular grid
   timer.restart();
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
-  spopts.pirange = 1; FLT *dummy;
-  spopts.chkbnds = 1;
+  FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xj,yj,zj,(FLT*)cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
@@ -156,7 +153,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
  */
 {
   spread_opts spopts;
-  int ier_set = setup_kernel(spopts,eps,opts.R);
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
   INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
   INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
@@ -201,16 +198,11 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   FFTW_EX(p);
   FFTW_DE(p);
   if (opts.debug) printf("fft (%d threads):\t %.3g s\n",nth,timer.elapsedsec());
-  spopts.debug = opts.spread_debug;
-  spopts.spread_direction = 2;
 
   // Step 3: unspread (interpolate) from regular to irregular target pts
   timer.restart();
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 2;
-  spopts.pirange = 1; FLT *dummy;
-  spopts.chkbnds = 1;
+  FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xj,yj,zj,(FLT*)cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
@@ -267,7 +259,7 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
  */
 {
   spread_opts spopts;
-  int ier_set = setup_kernel(spopts,eps,opts.R);
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
   INT64 nf1,nf2,nf3;
   FLT X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2,X3,C3,S3,D3,h3,gam3;
@@ -314,11 +306,8 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2*nf3);
   timer.restart();
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
-  spopts.pirange = 1; FLT *dummy;
-  spopts.chkbnds = 1;
+  FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,nf3,(FLT*)fw,nj,xpj,ypj,zpj,(FLT*)cpj,spopts);
   free(xpj); free(ypj); free(zpj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());

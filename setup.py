@@ -5,6 +5,10 @@ import setuptools
 
 __version__ = '0.1.1g'
 
+# Publish the library to PyPI (from DFM):
+if "publish" in sys.argv[-1]:
+    os.system("python setup.py sdist upload")
+    sys.exit()
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -93,17 +97,20 @@ class BuildExt(build_ext):
             ext.extra_compile_args = opts
         build_ext.build_extensions(self)
 
+
+########## SETUP ###########
 setup(
     name='finufftpy',
     version=__version__,
-    author='Jeremy Magland and Alex Barnett, Oct 2017',
-    author_email='jmagland@flatironinstitute.org',
+    author='python interfaces by: Daniel Foreman-Mackey, Jeremy Magland, and Alex Barnett',
+    author_email='abarnett@flatironinstitute.org',
     url='http://github.com/ahbarnett/finufft',
-    description='python interfaces to finufft',
-    long_description='',
+    description='python interface to FINUFFT',
+    long_description='python interface to FINUFFT (Flatiron Institute Nonuniform Fast Fourier Transform) library.',
+    license="Apache 2",
     ext_modules=ext_modules,
     packages=['finufftpy'],
-    install_requires=['pybind11>=2.2'],
+    install_requires=['numpy','pybind11>=2.2'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )

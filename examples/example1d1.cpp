@@ -1,8 +1,10 @@
-// this is all you must include...
+// this is all you must include for the finufft lib...
 #include "../src/finufft.h"
 #include <complex>
+
 // also needed for this example...
 #include <stdio.h>
+#include <stdlib.h>
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -11,9 +13,9 @@ int main(int argc, char* argv[])
    Double-precision version (see example1d1f for single-precision)
 
    Compile with:
-   g++ -std=c++11 -fopenmp example1d1.cpp ../lib/libfinufft.a -o example1d1  -lfftw3 -lfftw3_threads -lm
+   g++ -fopenmp example1d1.cpp ../lib/libfinufft.a -o example1d1  -lfftw3 -lfftw3_threads -lm
    or if you have built a single-core version:
-   g++ -std=c++11 example1d1.cpp ../lib/libfinufft.a -o example1d1 -lfftw3 -lm
+   g++ example1d1.cpp ../lib/libfinufft.a -o example1d1 -lfftw3 -lm
 
    Usage: ./example1d1
 */
@@ -21,8 +23,8 @@ int main(int argc, char* argv[])
   int M = 1e6;            // number of nonuniform points
   int N = 1e6;            // number of modes
   double acc = 1e-9;      // desired accuracy
-  nufft_opts opts;        // default options struct for the library
-  complex<double> I = complex<double>{0.0,1.0};  // the imaginary unit
+  nufft_opts opts; finufft_default_opts(opts);
+  complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
   
   // generate some random nonuniform points (x) and complex strengths (c):
   double *x = (double *)malloc(sizeof(double)*M);
@@ -38,7 +40,7 @@ int main(int argc, char* argv[])
   int ier = finufft1d1(M,x,c,+1,acc,N,F,opts);
 
   int n = 142519;   // check the answer just for this mode...
-  complex<double> Ftest = {0,0};
+  complex<double> Ftest = (0,0);
   for (int j=0; j<M; ++j)
     Ftest += c[j] * exp(I*(double)n*x[j]);
   int nout = n+N/2;        // index in output array for freq mode n

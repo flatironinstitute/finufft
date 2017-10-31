@@ -3,6 +3,7 @@
 #include <math.h>
 #include <vector>
 #include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <iomanip>
 
@@ -27,9 +28,8 @@ int main(int argc, char* argv[])
 {
   INT M = 1e6, N = 1e6;      // defaults: M = # srcs, N = # modes out
   double w, tol = 1e-6;      // default
-  nufft_opts opts;
+  nufft_opts opts; finufft_default_opts(opts);  // put defaults in opts
   opts.debug = 0;            // 1 to see sub-timings
-  opts.spread_sort = 1;      // default
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;            // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); N = (INT)w; }
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
     printf("\t%ld NU pts to %ld modes in %.3g s \t%.3g NU pts/s\n",(INT64)M,(INT64)N,t,M/t);
 
   INT nt = (INT)(0.37*N);   // check arb choice of mode near the top (N/2)
-  CPX Ft = {0,0};
+  CPX Ft = (0,0);
   //#pragma omp declare reduction (cmplxadd:CPX:omp_out=omp_out+omp_in) initializer(omp_priv={0.0,0.0})  // only for openmp v 4.0!
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (INT j=0; j<M; ++j)
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
     printf("\t%ld modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",(INT64)N,(INT64)M,t,M/t);
 
   INT jt = M/2;          // check arbitrary choice of one targ pt
-  CPX ct = {0,0};
+  CPX ct = (0,0);
   INT m=0, k0 = N/2;          // index shift in fk's = mag of most neg freq
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:ct)
   for (INT m1=-k0; m1<=(N-1)/2; ++m1)
@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
     printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(INT64)M,(INT64)N,t,M/t,N/t);
 
   INT kt = N/2;          // check arbitrary choice of one targ pt
-  Ft = {0,0};
+  Ft = (0,0);
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (INT j=0;j<M;++j)
     Ft += c[j] * exp(ima*(FLT)isign*s[kt]*x[j]);

@@ -17,7 +17,7 @@ c     used, otherwise the - sign is used, in the exponential.
 */
 {
   INT kmin = -(ms/2);                   // integer divide
-  for (INT m=0;m<ms;++m) f[m] = {0,0};  // it knows f is complex type
+  for (INT m=0;m<ms;++m) f[m] = (0,0);  // it knows f is complex type
   for (INT j=0;j<nj;++j) {
     CPX a = (iflag>0) ? exp(ima*x[j]) : exp(-ima*x[j]);
     CPX p = pow(a,(FLT)kmin);   // starting phase for most neg freq
@@ -45,7 +45,7 @@ c     used, otherwise the - sign is used, in the exponential.
   for (INT j=0;j<nj;++j) {
     CPX a = (iflag>0) ? exp(ima*x[j]) : exp(-ima*x[j]);
     CPX p = pow(a,(FLT)kmin);   // starting phase for most neg freq
-    CPX cc = {0,0};
+    CPX cc = (0,0);
     for (INT m=0;m<ms;++m) {
       cc += f[m] * p;
       p *= a;
@@ -66,7 +66,7 @@ c  exponential. Uses C++ complex type. Simple brute force.  Barnett 1/25/17
 {
   for (INT k=0;k<nk;++k) {
     CPX ss = (iflag>0) ? ima*s[k] : -ima*s[k];
-    f[k] = {0,0};
+    f[k] = (0,0);
     for (INT j=0;j<nj;++j)
       f[k] += c[j] * exp(ss*x[j]);
   }

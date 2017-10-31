@@ -16,9 +16,9 @@ def compute_error(Xest,Xtrue):
 
 def print_report(label,elapsed,Xest,Xtrue,npts):
 	print(label+':')
-	print('    Est. error      %g' % (compute_error(Xest,Xtrue)))
-	print('    Elapsed (sec)   %g' % (elapsed))
-	print('    nu.pts/sec      %g' % (npts/elapsed))
+	print('    Est rel l2 err  %.3g' % (compute_error(Xest,Xtrue)))
+	print('    Elapsed (sec)   %.3g' % (elapsed))
+	print('    NU pts/sec      %.3g' % (npts/elapsed))
 	print('')
 
 def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):

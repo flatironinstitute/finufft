@@ -61,10 +61,9 @@ int cnufftspread(
    dimensions are relevant; note that this is Fortran-style ordering for an
    array f(x,y,z), but C style for f[z][y][x]. This is to match the fortran
    interface of the original CMCL libraries.
-   Non-uniform (NU) points kx,ky,kz are real and if pirange=0, must be in the
-   range [0,N1] in 1D, analogously in 2D and 3D, otherwise an error is
-   returned and no calculation is done. If pirange=1, the range is instead
-   [-pi,pi] for each coord.
+   Non-uniform (NU) points kx,ky,kz are real.
+   If pirange=0, should be in the range [0,N1] in 1D, analogously in 2D and 3D.
+   If pirange=1, the range is instead [-pi,pi] for each coord.
    The spread_opts struct must have been set up already by calling setup_kernel.
    It is assumed that 2*opts.nspread < min(N1,N2,N3), so that the kernel
    only ever wraps once when falls below 0 or off the top of a uniform grid
@@ -88,6 +87,8 @@ int cnufftspread(
 	       ordering. Recommended true.
 	debug = 0: no text output, 1: some openmp output, 2: mega output
 	           (each NU pt)
+	chkbnds = 0: don't check incoming NU pts for bounds
+                  1: do, and stop with error if any found outside bounds
 	flags = integer with binary bits determining various timing options
                 (set to 0 unless expert; see cnufftspread.h)
 
@@ -121,11 +122,11 @@ int cnufftspread(
   int ndims = 1;                 // decide ndims: 1,2 or 3
   if (N2>1) ++ndims;
   if (N3>1) ++ndims;
-  int ns=opts.nspread;
+  int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
   int numkervals = (int)pow(ns,ndims);
   if (opts.debug)
-    printf("starting spread %dD (dir=%d, N1=%ld,N2=%ld,N3=%ld), %d threads\n",ndims,opts.spread_direction,N1,N2,N3,MY_OMP_GET_MAX_THREADS());
+    printf("starting spread %dD (dir=%d. M=%ld; N1=%ld,N2=%ld,N3=%ld), %d threads\n",ndims,opts.spread_direction,M,N1,N2,N3,MY_OMP_GET_MAX_THREADS());
   
   if (opts.chkbnds) {            // check NU pts are in bounds, exit gracefully
     timer.start();
@@ -383,10 +384,21 @@ int cnufftspread(
 ///////////////////////////////////////////////////////////////////////////
 
 
-int setup_kernel(spread_opts &opts,FLT eps,FLT R)
-// must be called before evaluate_kernel is used.
-// returns: 0 success, >0 failure (see error codes in utils.h)
+int setup_spreader(spread_opts &opts,FLT eps,FLT R)
+// Initializes spreader kernel parameters, including all options in spread_opts.
+// See cnufftspread.h for definitions.
+// Must be called before evaluate_kernel is used.
+// Returns: 0 success, >0 failure (see error codes in utils.h)
 {
+  opts.spread_direction = 1;    // user should always set to 1 or 2 as desired
+  opts.pirange = 1;
+  opts.chkbnds = 0;
+  opts.sort = 1;
+  opts.max_subproblem_size = (BIGINT)1e5;
+  opts.flags = 0;
+  opts.debug = 0;
+  
+  // Set the kernel width w (nspread) and parameters, using eps and R...
   FLT fudgefac = 1.0;   // how much actual errors exceed estimated errors
   int ns = std::ceil(-log10(eps/fudgefac))+1;   // 1 digit per power of ten
   ns = max(2,ns);                            // we don't have ns=1 version yet
@@ -404,7 +416,8 @@ int setup_kernel(spread_opts &opts,FLT eps,FLT R)
     return ERR_EPS_TOO_SMALL;
   }
   if (R<1.9 || R>2.1)
-    fprintf(stderr,"setup_kernel: warning R is not close to 2.0; may be inaccurate!\n");
+    fprintf(stderr,"setup_kernel: warning R=%.3g is not close to 2.0; may be inaccurate!\n",(double)R);
+  
   return 0;
 }
 

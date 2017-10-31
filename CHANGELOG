@@ -1,6 +1,9 @@
 List of tasks accomplished / changes made / release notes, in reverse
 chronological order:
 
+* removed all C++11 dependencies, mainly that opts structs are all explicitly initialized.
+* fixed python interface to have chkbnds.
+* tidied MEX interface
 * removed memory leaks
 * opts.modeord implemented and exposed to matlab/python interfaces. Also removes looping backwards in RAM in deconvolveshuffle.
 

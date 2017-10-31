@@ -2,19 +2,20 @@
 #define FINUFFT_H
 
 #include "utils.h"
-#include <fftw3.h>
 
-struct nufft_opts {  // static init: this sets default opts for NUFFT alg:
-  FLT R = 2.0;            // kernel-dep upsampling ratio (for experts)
-  int debug = 0;          // 0: silent, 1: text timing output, 2: spread info
-  int spread_debug = 0;   // passed to spread_opts debug: 0,1 or 2
-  int spread_sort = 1;    // passed to spread_opts sort: 0 or 1
-  int fftw = FFTW_ESTIMATE; // use FFTW_MEASURE for slow first call, fast rerun
-  int modeord = 0;        // 0: CMCL-style increasing mode ordering, or
-                          // 1: FFT-style mode ordering (affects type-1,2 only)
+struct nufft_opts {  // see common/finufft_default_opts() for defaults
+  FLT R;              // kernel-dep upsampling ratio (for experts)
+  int debug;          // 0: silent, 1: text timing output, 2: spread info
+  int spread_debug;   // passed to spread_opts debug: 0,1 or 2
+  int spread_sort;    // passed to spread_opts sort: 0 or 1
+  int chkbnds;        // 0: don't check if input NU pts in [-pi,pi], 1: do
+  int fftw;    // FFTW_ESTIMATE, or FFTW_MEASURE for slow first call, fast rerun
+  int modeord;        // 0: CMCL-style increasing mode ordering, or
+                      // 1: FFT-style mode ordering (affects type-1,2 only)
 };
 
 // library provides...
+void finufft_default_opts(nufft_opts &o);
 int finufft1d1(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,
 	       CPX* fk, nufft_opts opts);
 int finufft1d2(INT nj,FLT* xj,CPX* cj,int iflag,FLT eps,INT ms,

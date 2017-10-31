@@ -24,6 +24,7 @@ HIGHER PRIORITY:
 
 LOWER PRIORITY:
 
+* recoup DFM's PyPI publishing of finufftpy
 * remove mcwrap dir
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
 * test huge arrays >=2^31 2d, 3d in C++.

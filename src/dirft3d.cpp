@@ -20,7 +20,7 @@ c     used, otherwise the - sign is used, in the exponential.
 {
   INT k1min = -(ms/2), k2min = -(mt/2), k3min = -(mu/2);   // integer divide
   INT N = ms*mt*mu;        // total # output modes
-  for (INT m=0;m<N;++m) f[m] = {0,0};    // it knows f is complex type
+  for (INT m=0;m<N;++m) f[m] = (0,0);    // it knows f is complex type
   for (INT j=0;j<nj;++j) {            // src pts
     CPX a1 = (iflag>0) ? exp(ima*x[j]) : exp(-ima*x[j]);
     CPX a2 = (iflag>0) ? exp(ima*y[j]) : exp(-ima*y[j]);
@@ -69,7 +69,7 @@ void dirft3d2(INT nj,FLT* x,FLT *y,FLT *z,CPX* c,int iflag,INT ms, INT mt, INT m
     CPX sp1 = pow(a1,(FLT)k1min);
     CPX sp2 = pow(a2,(FLT)k2min);
     CPX p3 = pow(a3,(FLT)k3min);
-    CPX cc = {0,0};
+    CPX cc = (0,0);
     INT m=0;      // input pointer
     for (INT m3=0;m3<mu;++m3) {
       CPX p2 = sp2;
@@ -101,7 +101,7 @@ c  exponential. Uses C++ complex type. Simple brute force.  Barnett 2/1/17
     CPX ss = (iflag>0) ? ima*s[k] : -ima*s[k];
     CPX tt = (iflag>0) ? ima*t[k] : -ima*t[k];
     CPX uu = (iflag>0) ? ima*u[k] : -ima*u[k];
-    f[k] = {0,0};
+    f[k] = (0,0);
     for (INT j=0;j<nj;++j)
       f[k] += c[j] * exp(ss*x[j] + tt*y[j] + uu*z[j]);
   }

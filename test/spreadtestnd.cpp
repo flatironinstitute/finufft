@@ -2,10 +2,11 @@
 #include <vector>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int usage()
 {
-  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort data) or 1 (do, default)\tflags : expert timing flags, see cnufftspread.h\n");
+  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort data) or 1 (do, default)\n\tflags : expert timing flags (see cnufftspread.h)\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 1\n");
 }
 
 int main(int argc, char* argv[])
@@ -16,19 +17,19 @@ int main(int argc, char* argv[])
  * Example: spreadtestnd 3 8e6 8e6 1e-6 1 0
  *
  * Compilation (also check ../makefile):
- *    g++ spreadtestnd.cpp ../src/cnufftspread.o ../src/utils.o -o spreadtestnd -fPIC -Ofast -funroll-loops -std=c++11 -fopenmp
+ *    g++ spreadtestnd.cpp ../src/cnufftspread.o ../src/utils.o -o spreadtestnd -fPIC -Ofast -funroll-loops -fopenmp
  *
- * Magland, expanded by Barnett 1/14/17. Better cmd line args 3/13/17
+ * Magland; expanded by Barnett 1/14/17. Better cmd line args 3/13/17
  * indep setting N 3/27/17. parallel rand() & sort flag 3/28/17
  * timing_flags 6/14/17
  */
 {
-  int d = 3;            // Cmd line args:  default #dims
+  int d = 3;            // Cmd line args & their defaults:  default #dims
   double tol = 1e-6;    // default (eg 1e-6 has nspread=7)
-  BIGINT M = 1e6;         // default # NU pts
-  BIGINT roughNg = 1e6;   // default # U pts
-  int sort = 1;         // default
-  int flags = 0;        //default
+  BIGINT M = 1e6;       // default # NU pts
+  BIGINT roughNg = 1e6; // default # U pts
+  int sort = 1;         // whether to sort
+  int flags = 0;        // default
   if (argc<=1) { usage(); return 0; }
   sscanf(argv[1],"%d",&d);
   if (d<1 || d>3) {
@@ -40,7 +41,7 @@ int main(int argc, char* argv[])
       printf("M (# NU pts) must be positive!\n"); usage(); return 1;
     }
   }
-  if (argc>2) {
+  if (argc>3) {
     double w; sscanf(argv[3],"%lf",&w); roughNg = (BIGINT)w;
     if (roughNg<1) {
       printf("N (# U pts) must be positive!\n"); usage(); return 1;
@@ -65,29 +66,33 @@ int main(int argc, char* argv[])
   }
 
   int dodir1 = true;                        // control if dir=1 tested at all
-  BIGINT N=std::round(pow(roughNg,1.0/d));         // Fourier grid size per dim
-  BIGINT Ng = (BIGINT)pow(N,d);                      // actual total grid points
-  BIGINT N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;    // the y and z grid sizes
+  BIGINT N = (BIGINT)round(pow(roughNg,1.0/d));     // Fourier grid size per dim
+  BIGINT Ng = (BIGINT)pow(N,d);                     // actual total grid points
+  BIGINT N2 = (d>=2) ? N : 1, N3 = (d==3) ? N : 1;  // the y and z grid sizes
   std::vector<FLT> kx(M),ky(1),kz(1),d_nonuniform(2*M);    // NU, Re & Im
   if (d>1) ky.resize(M);                           // only alloc needed coords
   if (d>2) kz.resize(M);
   std::vector<FLT> d_uniform(2*Ng);                        // Re and Im
 
-  spread_opts opts; // set method opts...
+  spread_opts opts;
+  setup_spreader(opts,(FLT)tol,(FLT)2.0);
+  opts.pirange = 0;  // crucial, since the below has NU pts on [0,Nd] in each dim
+  //opts.chkbnds = 1;  // only for debug, since below code has correct bounds
   opts.debug = 0;   // print more diagnostics
   opts.sort = sort;  // for 3D: 1-6x faster on i7; but 0.5-0.9x (ie slower) on xeon!
   opts.flags = flags;
-  opts.chkbnds = 0;
-  //opts.max_subproblem_size = 1e4; // eg 1e5
-  FLT Rdummy = 2.0;    // since no nufft done, merely to please the setup
-  setup_kernel(opts,(FLT)tol,Rdummy);  // note tol is always double
+  //opts.max_subproblem_size = 1e4; // default 1e5
   FLT maxerr, ansmod;
   
   // spread a single source, only for reference accuracy check...
   opts.spread_direction=1;
   d_nonuniform[0] = 1.0; d_nonuniform[1] = 0.0;   // unit strength
-  kx[0] = ky[0] = kz[0] = N/2;                    // at center
-  int ier = cnufftspread(N,N2,N3,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);
+  kx[0] = ky[0] = kz[0] = N/2.0;                  // at center
+  int ier = cnufftspread(N,N2,N3,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);          // vector::data officially C++11 but works
+  if (ier!=0) {
+    printf("error when spreading M=1 pt for ref acc check (ier=%d)!\n",ier);
+    return ier;
+  }
   FLT kersumre = 0.0, kersumim = 0.0;  // sum kernel on uniform grid
   for (BIGINT i=0;i<Ng;++i) {
     kersumre += d_uniform[2*i]; 

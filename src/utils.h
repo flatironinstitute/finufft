@@ -28,7 +28,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define EPSILON (float)6e-08
   typedef float FLT;
   typedef complex<float> CPX;
-  #define ima complex<float>{0.0,1.0}
+#define ima complex<float>(0.0,1.0)
   #define FABS(x) fabs(x)
   typedef fftwf_complex FFTW_CPX;           //  single-prec has fftwf_*
   typedef fftwf_plan FFTW_PLAN;
@@ -47,7 +47,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define EPSILON (double)1.1e-16
   typedef double FLT;
   typedef complex<double> CPX;
-  #define ima complex<double>{0.0,1.0}
+#define ima complex<double>(0.0,1.0)
   #define FABS(x) fabsf(x)
   typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
   typedef fftw_plan FFTW_PLAN;

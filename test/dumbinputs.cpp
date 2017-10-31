@@ -2,6 +2,7 @@
 #include "../src/dirft.h"
 #include <complex>
 #include <stdio.h>
+#include <stdlib.h>
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -10,9 +11,9 @@ int main(int argc, char* argv[])
    Barnett 3/14/17.
 
    Compile with:
-   g++ -std=c++11 -fopenmp dumbinputs.cpp ../lib/libfinufft.a -o dumbinputs  -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp dumbinputs.cpp ../lib/libfinufft.a -o dumbinputs  -lfftw3 -lfftw3_omp -lm
    or if you have built a single-core version:
-   g++ -std=c++11 dumbinputs.cpp ../lib/libfinufft.a -o dumbinputs -lfftw3 -lm
+   g++ dumbinputs.cpp ../lib/libfinufft.a -o dumbinputs -lfftw3 -lm
 
    Usage: ./dumbinputs
 */
@@ -20,7 +21,7 @@ int main(int argc, char* argv[])
   int M = 100;            // number of nonuniform points
   int N = 10;             // # modes, keep small, also output NU pts in type 3
   FLT acc = 1e-6;         // desired accuracy
-  nufft_opts opts;        // default options struct for the library
+  nufft_opts opts; finufft_default_opts(opts);   // recommended
 
   int NN = N*N*N;         // modes F alloc size since we'll go to 3d
   // generate some "random" nonuniform points (x) and complex strengths (c):

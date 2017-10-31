@@ -5,8 +5,10 @@ To install the python (or python3) wrappers for finufft, see ../finufftpy/README
 Then you may run the tests as follows
 
 ```
+python3 demo1d1.py
 python3 run_accuracy_tests.py
 python3 run_speed_tests.py
 ```
 
-The code `accuracy_speed_tests.py` illustrates how to call FINUFFT from python.
+The codes `demo1d1.py` and `accuracy_speed_tests.py` illustrate how to call
+FINUFFT from python.

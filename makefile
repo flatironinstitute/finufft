@@ -26,16 +26,14 @@ CLINK=-lstdc++
 FLINK=-lstdc++
 
 # basic compile flags for single-threaded, double precision...
-CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -std=c++11 -DNEED_EXTERN_C
+CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -DNEED_EXTERN_C
 CFLAGS = -fPIC -Ofast -funroll-loops -march=native
 FFLAGS = -fPIC -O3 -funroll-loops -march=native
-# Here MFLAGS are for MATLAB, OFLAGS for octave:
+# Here MFLAGS are for MATLAB MEX compilation, OFLAGS for octave mkoctfile:
 MFLAGS = -largeArrayDims -lrt
 # Mac users instead should use something like this:
 #MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
 OFLAGS = -lrt
-# for mkoctfile version >= 4.0.0 you can remove warnings by using:
-#OFLAGS += -std=c++11
 # location of MATLAB's mex compiler...
 MEX=mex
 # Mac users should use something like this:

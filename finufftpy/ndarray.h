@@ -1,3 +1,5 @@
+// JFM's class for passing arrays between C++ and python
+
 #ifndef ndarray_h
 #define ndarray_h
 

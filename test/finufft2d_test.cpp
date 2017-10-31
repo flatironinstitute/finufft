@@ -3,6 +3,7 @@
 #include <math.h>
 #include <vector>
 #include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <iomanip>
 
@@ -28,8 +29,8 @@ int main(int argc, char* argv[])
   INT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
   double w, tol = 1e-6;          // default
   nufft_opts opts;
+  finufft_default_opts(opts);
   opts.debug = 0;            // 1 to see some timings
-  opts.spread_sort = 1;          // default
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) {
@@ -77,7 +78,7 @@ int main(int argc, char* argv[])
 	   (INT64)M,(INT64)N1,(INT64)N2,ti,M/ti);
 
   INT nt1 = (INT)(0.37*N1), nt2 = (INT)(0.26*N2);  // choose some mode index to check
-  CPX Ft = {0,0}, J = ima*(FLT)isign;
+  CPX Ft = (0,0), J = ima*(FLT)isign;
   for (INT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   INT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
@@ -105,7 +106,7 @@ int main(int argc, char* argv[])
     printf("\t(%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",(INT64)N1,(INT64)N2,(INT64)M,ti,M/ti);
 
   INT jt = M/2;          // check arbitrary choice of one targ pt
-  CPX ct = {0,0};
+  CPX ct = (0,0);
   INT m=0;
   for (INT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (INT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
@@ -152,7 +153,7 @@ int main(int argc, char* argv[])
     printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(INT64)M,(INT64)N,ti,M/ti,N/ti);
 
   INT kt = N/2;          // check arbitrary choice of one targ pt
-  Ft = {0,0};
+  Ft = (0,0);
   for (INT j=0;j<M;++j)
     Ft += c[j] * exp(ima*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j]));
   printf("one targ: rel err in F[%ld] is %.3g\n",(INT64)kt,abs(Ft-F[kt])/infnorm(N,F));

@@ -50,7 +50,7 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
  */
 {
   spread_opts spopts;
-  int ier_set = setup_kernel(spopts,eps,opts.R);
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
   INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
   INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
@@ -144,7 +144,7 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
  */
 {
   spread_opts spopts;
-  int ier_set = setup_kernel(spopts,eps,opts.R);
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
   INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
   INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
@@ -189,11 +189,8 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 
   // Step 3: unspread (interpolate) from regular to irregular target pts
   timer.restart();
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 2;
-  spopts.pirange = 1; FLT *dummy;
-  spopts.chkbnds = 1;
+  FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
@@ -245,7 +242,7 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
  */
 {
   spread_opts spopts;
-  int ier_set = setup_kernel(spopts,eps,opts.R);
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
   INT64 nf1,nf2;
   FLT X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2;
@@ -285,11 +282,8 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2);
   timer.restart();
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
-  spopts.pirange = 1; FLT *dummy;
-  spopts.chkbnds = 1;
+  FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xpj,ypj,dummy,(FLT*)cpj,spopts);
   free(xpj); free(ypj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
