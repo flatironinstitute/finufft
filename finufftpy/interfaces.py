@@ -42,7 +42,6 @@ def finufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mo
 	              1 : eps too small
 	              2 : size of arrays to malloc exceed MAX_NF
 	              4 : if chkbnds, at least one NU point out of range
-
 	Example:
 	see python_tests/demo1d1.py
 	"""

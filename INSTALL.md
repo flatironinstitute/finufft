@@ -116,13 +116,14 @@ You can then run the tests as follows:
 
 ```
 cd finufft/python_tests
+python3 demo1d1.py
 python3 run_accuracy_tests.py
 python3 run_speed_tests.py
 ```
 
-Here, the "3" can be omitted if you want to work with python v2.
+In all of the above the "3" can be omitted if you want to work with python v2.
 
-See also Dan Foreman-Mackey's separate python repo that also wraps finufft: [python-finufft](https://github.com/dfm/python-finufft)
+See also Dan Foreman-Mackey's earlier repo that also wraps finufft, and from which we have drawn code: [python-finufft](https://github.com/dfm/python-finufft)
 
 ### A few words about python environments
 

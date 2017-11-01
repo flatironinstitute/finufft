@@ -1,21 +1,21 @@
 # Makefile for Flatiron Institute (FI) NUFFT libraries.
-# Barnett 4/5/17
+# Barnett 11/1/17
 
 # This is the only makefile; there are no makefiles in subdirectories.
-# If you need to edit this makefile, it is recommended that you first
+# If users need to edit this makefile, it is recommended that they first
 # copy it to makefile.local, edit that, and use make -f makefile.local
 
 # Compilation options:
 #
 # 1) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
 #    double-precision. Single-precision saves half the RAM, and increases
-#    speed slightly (<20%). Will break matlab and octave interfaces.
+#    speed slightly (<20%). Currently breaks matlab and octave interfaces.
 # 2) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
 # 3) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
 #    indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
 #    to int.
 # 4) If you want 32 bit integers in the FINUFFT library interface instead of
-#    int64, add flag -DINTERFACE32 (experimental, C,F,M,O interfaces will break)
+#    int64, add flag -DINTERFACE32 (experimental; C,F,M,O interfaces will break)
 
 # compilers...
 CXX=g++
@@ -29,16 +29,16 @@ FLINK=-lstdc++
 CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -DNEED_EXTERN_C
 CFLAGS = -fPIC -Ofast -funroll-loops -march=native
 FFLAGS = -fPIC -O3 -funroll-loops -march=native
-# Here MFLAGS are for MATLAB MEX compilation, OFLAGS for octave mkoctfile:
+# Now MFLAGS are for MATLAB MEX compilation, OFLAGS for octave mkoctfile:
 MFLAGS = -largeArrayDims -lrt
 # Mac users instead should use something like this:
 #MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
 OFLAGS = -lrt
 # location of MATLAB's mex compiler...
 MEX=mex
-# Mac users should use something like this:
+# Mac users instead should use something like this:
 #MEX = /Applications/MATLAB_R2017a.app/bin/mex
-# location of your MWrap executable (see INSTALL.md):
+# For experts doing make mex: location of MWrap executable (see INSTALL.md):
 MWRAP=mwrap
 
 # choose the precision (sets fftw library names, test precisions)...
@@ -102,6 +102,8 @@ usage:
 	@echo ""
 	@echo "Compile options: make [task] PREC=SINGLE for single-precision"
 	@echo " make [task] OMP=OFF for single-threaded (otherwise openmp)"
+	@echo ""
+	@echo "To make python/python3 interfaces, see INSTALL.md"
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp %.h
@@ -178,9 +180,9 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 matlab: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
 	$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.o $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
-# octave .mex executable...
+# octave .mex executable... (notice also creates matlab/finufft.o, but why?)
 octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
-	mkoctfile --mex matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.o $(OFLAGS) $(LIBSFFT) -output matlab/finufft
+	(cd matlab; mkoctfile --mex finufft.cpp ../lib-static/libfinufft.a finufft_m.o $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave check_finufft.m)
 
