@@ -42,7 +42,7 @@ Then the type-1 (nonuniform to uniform, aka "adjoint") NUFFT evaluates
 This can be viewed as evaluating a set of
 Fourier series coefficients due to sources
 with strengths $c_j$ at the arbitrary locations $\mathbf{x}_j$.	  
-Either sign of the imaginary unit in the exponential can be chosen in the interface. Note that our normalization differs from that of [DR,GL].
+Either sign of the imaginary unit in the exponential can be chosen in the interface. Note that our normalization differs from that of references [DR,GL].
 
 The type-2 (U to NU, aka "forward") NUFFT evaluates
 
@@ -63,7 +63,7 @@ In fact, as a compromise between library speed, and flexibility for the user
 (for instance, to avoid boundary points being flagged as outside of
 this box due to round-off error), our library only
 requires that the NU points lie in the three-times-bigger box
-$\mathbf{x}_j} \in [-3\pi,3\pi]^d$.
+$\mathbf{x}_j \in [-3\pi,3\pi]^d$.
 This allows the user to choose a convenient periodic domain that does not
 touch this three-times-bigger box.
 However, there may be a slight speed increase if most points fall in
@@ -71,7 +71,7 @@ $[-\pi,\pi)^d$.
 
 Finally, the type-3 (NU to NU) transform does not have restrictions on
 the NU points, and there is no periodicity.
-Let $\mathbf{x}_jin\mathbb{R}^d$, $j=1,\ldots,M$, be NU locations, with strengths $c_j \in \mathbb{C}$,
+Let $\mathbf{x}_j\in\mathbb{R}^d$, $j=1,\ldots,M$, be NU locations, with strengths $c_j \in \mathbb{C}$,
 and let $\mathbf{s}_k$, $k=1,\ldots,N$ be NU frequencies.
 Then the type-3 transform evaluates:
 
@@ -95,30 +95,6 @@ should not be confused with either the discrete Fourier transform (DFT),
 the (continuous) Fourier transform (although it may be used to approximate
 this via a quadrature rule), or the inverse NUFFT (the iterative solution of
 the linear system arising from nonuniform Fourier sampling, as in, eg, MRI).
-See the literature below for clarification.
-
-
-References
-##########
-
-References for this include:
-
-[FIN] FINUFFT: a fast and lightweight nonuniform fast Fourier transform library. A. H. Barnett and J. F. Magland. In preparation (2017).
-
-[ORZ] Prolate Spheroidal Wave Functions of Order Zero: Mathematical Tools for Bandlimited Approximation.  A. Osipov, V. Rokhlin, and H. Xiao. Springer (2013).
-
-[KK] Chapter 7. System Analysis By Digital Computer. F. Kuo and J. F. Kaiser. Wiley (1967).
-
-[FS] Nonuniform fast Fourier transforms using min-max interpolation.
-J. A. Fessler and B. P. Sutton. IEEE Trans. Sig. Proc., 51(2):560-74, (Feb. 2003)
-
-This code builds upon the CMCL NUFFT, and the Fortran wrappers are very similar to its interfaces. For that the following are references:
-
-[GL] Accelerating the Nonuniform Fast Fourier Transform. L. Greengard and J.-Y. Lee. SIAM Review 46, 443 (2004).
-
-[LG] The type 3 nonuniform FFT and its applications. J.-Y. Lee and L. Greengard. J. Comput. Phys. 206, 1 (2005).
-
-The original NUFFT analysis using truncated Gaussians is:
-
-[DR] Fast Fourier Transforms for Nonequispaced data. A. Dutt and V. Rokhlin. SIAM J. Sci. Comput. 14, 1368 (1993).
-
+It is also important to know that, for NU points, *the type-1 is not
+the inverse of the type-2*.
+See the references for clarification.

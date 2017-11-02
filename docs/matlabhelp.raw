@@ -1,0 +1,271 @@
+ ---------------------------------------------------------------------
+ FINUFFT1D1
+
+ [f ier] = finufft1d1(x,c,isign,eps,ms)
+ [f ier] = finufft1d1(x,c,isign,eps,ms,opts)
+
+ Type-1 1D complex nonuniform FFT.
+
+               nj
+     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
+              j=1                            
+   Inputs:
+     x     location of sources on interval [-3pi,3pi], length nj
+     c     size-nj complex array of source strengths
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps     precision requested (>1e-16)
+     ms     number of Fourier modes computed, may be even or odd;
+            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+   Outputs:
+     f     size-ms double complex array of Fourier transform values
+     ier - 0 if success, else:
+                     1 : eps too small
+		      2 : size of arrays to malloc exceed MAX_NF
+                     other codes: as returned by cnufftspread
+ ---------------------------------------------------------------------------
+ FINUFFT1D2
+
+ [c ier] = finufft1d2(x,isign,eps,f)
+ [c ier] = finufft1d2(x,isign,eps,f,opts)
+
+ Type-2 1D complex nonuniform FFT.
+
+    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
+            k1 
+     where sum is over -ms/2 <= k1 <= (ms-1)/2.
+
+  Inputs:
+     x     location of NU targets on interval [-3pi,3pi], length nj
+     f     complex Fourier transform values
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested (>1e-16)
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+  Outputs:
+     c     complex double array of nj answers at targets
+     ier - 0 if success, else:
+                     1 : eps too small
+	       	      2 : size of arrays to malloc exceed MAX_NF
+                     other codes: as returned by cnufftspread
+ c = complex(zeros(nj,1));   % todo: change all output to inout & prealloc...
+ ---------------------------------------------------------------------------
+ FINUFFT1D3
+
+ [f ier] = finufft1d3(x,c,isign,eps,s)
+ [f ier] = finufft1d3(x,c,isign,eps,s,opts)
+
+              nj
+     f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 1, ..., nk
+              j=1
+   Inputs:
+     x      location of NU sources in R (real line).
+     c      size-nj double complex array of source strengths
+     s      frequency locations of NU targets in R.
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested (>1e-16)
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+   Outputs:
+     f     size-nk double complex Fourier transform values at target
+            frequencies s
+     returned value - 0 if success, else:
+                      1 : eps too small
+		       2 : size of arrays to malloc exceed MAX_NF
+ ------------------------------------------------------------------------
+ FINUFFT2D1
+
+ [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt)
+ [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,opts)
+
+ Type-1 2D complex nonuniform FFT.
+
+                   nj
+     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
+                  j=1
+ 
+     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
+
+   Inputs:
+     x,y   locations of NU sources on the square [-3pi,3pi]^2, each length nj
+     c     size-nj complex array of source strengths
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps     precision requested (>1e-16)
+     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
+           in either case the mode range is integers lying in [-m/2, (m-1)/2]
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+   Outputs:
+     f     size (ms*mt) double complex array of Fourier transform values
+           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
+     ier - 0 if success, else:
+                     1 : eps too small
+		      2 : size of arrays to malloc exceed MAX_NF
+                     other codes: as returned by cnufftspread
+ ---------------------------------------------------------------------------
+ FINUFFT2D2
+
+ [c ier] = finufft2d2(x,y,isign,eps,f)
+ [c ier] = finufft2d2(x,y,isign,eps,f,opts)
+
+ Type-2 2D complex nonuniform FFT.
+
+    c[j] =  SUM   f[k1,k2] exp(+/-i (k1 x[j] + k2 y[j]))  for j = 1,..,nj
+           k1,k2 
+     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
+
+  Inputs:
+     x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
+     f     size (ms,mt) complex Fourier transform value matrix
+           (mode ordering given by opts.modeord in each dimension)
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested (>1e-16)
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+  Outputs:
+     c     complex double array of nj answers at the targets.
+     ier - 0 if success, else:
+                     1 : eps too small
+	       	      2 : size of arrays to malloc exceed MAX_NF
+                     other codes: as returned by cnufftspread
+ ---------------------------------------------------------------------------
+ FINUFFT2D3
+
+ [f ier] = finufft2d3(x,y,c,isign,eps,s,t)
+ [f ier] = finufft2d3(x,y,c,isign,eps,s,t,opts)
+
+              nj
+     f[k]  =  SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j])),  for k = 1, ..., nk
+              j=1
+   Inputs:
+     x,y    location of NU sources in R^2, each length nj.
+     c      size-nj double complex array of source strengths
+     s,t    frequency locations of NU targets in R^2.
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested (>1e-16)
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+   Outputs:
+     f     size-nk double complex Fourier transform values at target
+            frequencies s,t
+     returned value - 0 if success, else:
+                      1 : eps too small
+		       2 : size of arrays to malloc exceed MAX_NF
+ ------------------------------------------------------------------------
+ FINUFFT3D1
+
+ [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
+ [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
+
+ Type-1 3D complex nonuniform FFT.
+
+                       nj
+     f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
+                      j=1
+ 
+     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
+         -mu/2 <= k3 <= (mu-1)/2.
+
+   Inputs:
+     x,y,z locations of NU sources on [-3pi,3pi]^3, each length nj
+     c     size-nj complex array of source strengths
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps     precision requested (>1e-16)
+     ms,mt,mu number of Fourier modes requested in x,y and z; each may be
+           even or odd.
+           In either case the mode range is integers lying in [-m/2, (m-1)/2]
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+   Outputs:
+     f     size (ms*mt*mu) double complex array of Fourier transform values
+            (ordering given by opts.modeord in each dimension, ms fastest, mu
+             slowest).
+     ier - 0 if success, else:
+                     1 : eps too small
+		      2 : size of arrays to malloc exceed MAX_NF
+                     other codes: as returned by cnufftspread
+ ---------------------------------------------------------------------------
+ FINUFFT3D2
+
+ [c ier] = finufft3d2(x,y,z,isign,eps,f)
+ [c ier] = finufft3d2(x,y,z,isign,eps,f,opts)
+
+ Type-2 3D complex nonuniform FFT.
+
+    c[j] =   SUM   f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
+           k1,k2,k3       
+                            for j = 1,..,nj
+     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
+                       -mu/2 <= k3 <= (mu-1)/2.
+
+  Inputs:
+     x,y,z location of NU targets on cube [-3pi,3pi]^3, each length nj
+     f     size (ms,mt,mu) complex Fourier transform value matrix
+           (ordering given by opts.modeord in each dimension; ms fastest to mu
+            slowest).
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested (>1e-16)
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+  Outputs:
+     c     complex double array of nj answers at the targets.
+     ier - 0 if success, else:
+                     1 : eps too small
+	       	      2 : size of arrays to malloc exceed MAX_NF
+                     other codes: as returned by cnufftspread
+ ---------------------------------------------------------------------------
+ FINUFFT3D3
+
+ [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u)
+ [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u,opts)
+
+              nj
+     f[k]  =  SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j] + u[k] z[j])),
+              j=1
+                              for k = 1, ..., nk
+   Inputs:
+     x,y,z  location of NU sources in R^3, each length nj.
+     c      size-nj double complex array of source strengths
+     s,t,u   frequency locations of NU targets in R^3.
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested (>1e-16)
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+   Outputs:
+     f     size-nk double complex Fourier transform values at target
+            frequencies s,t,u
+     returned value - 0 if success, else:
+                      1 : eps too small
+		       2 : size of arrays to malloc exceed MAX_NF
+ ------------------------------------------------------------------------

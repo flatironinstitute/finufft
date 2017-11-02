@@ -4,7 +4,7 @@
 // Warning: users should not call the below-defined routines
 // finufftpy.finufftpy_cpp.* from python.
 // Rather, they should call finufftpy.finufftpy?d?  which are documented in
-// interfaces.py
+// _interfaces.py
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>

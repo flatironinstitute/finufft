@@ -1,33 +1,37 @@
-# Installation guide for FINUFFT
+Installation
+============
 
-Barnett 3/24/17
+Dependencies
+************
 
-## DEPENDENCIES
-
-This library is only supported for unix/linux and Mac OSX right now.
+This library is currently only supported for unix/linux,
+and partially for Mac OSX. We have heard that it can be compiled
+on Windows too.
 
 For the basic libraries
 
-- C++ compiler such as g++ packaged with GCC
-- FFTW3
-- GNU make
+* C++ compiler such as ``g++`` packaged with GCC
+* FFTW3
+* GNU make
 
 Optional:
 
-- numdiff (preferred but not essential; enables pass-fail math validation)
-- for Fortran wrappers: compiler such as gfortran
-- for matlab/octave wrappers: matlab, or octave and its development libs
-- for building new matlab/octave wrappers: mwrap
-- for the python wrappers: python3 and pip3
+* ``numdiff`` (preferred but not essential; enables pass-fail math validation)
+* for Fortran wrappers: compiler such as ``gfortran``
+* for matlab/octave wrappers: MATLAB, or octave and its development libraries
+* for building new matlab/octave wrappers (experts only): ``mwrap``
+* for the python wrappers you will need ``python`` and ``pip`` (if you prefer python v2), or ``python3`` and ``pip3`` (for python v3)
 
-### Installing dependencies on various operating systems
 
-On a Fedora/CentOS linux system, these dependencies can be installed as follows:
+Tips for installing dependencies on various operating systems
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-```
+On a Fedora/CentOS linux system, these dependencies can be installed as follows::
+
 sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp octave octave-devel
-```
-then see below for `numdiff` and `mwrap`. (Note: not exactly sure how to install python3 and pip3 using yum)
+
+then see below for ``numdiff`` and ``mwrap``.
+(Note: not exactly sure how to install python3 and pip3 using yum)
 
 then download the latest `numdiff` from http://gnu.mirrors.pair.com/savannah/savannah/numdiff/ and set it up via `./configure; make; sudo make install`
 
@@ -72,7 +76,8 @@ make
 sudo cp mwrap /usr/local/bin/
 ```
 
-## COMPILATION
+Compilation
+***********
 
 Compile and test FINUFFT via
 

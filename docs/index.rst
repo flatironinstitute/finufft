@@ -51,10 +51,14 @@ Our library does not require precomputation and uses minimal RAM overhead.
 
 .. toctree::
    :maxdepth: 2
-
-
-   tasks
-   pythoninterface
+	   
+   install
+   math
+   files
+   matlab
+   pythoninterface	      
    ackn
+   refs
+   
 
    
