@@ -3,23 +3,58 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-FINUFFT:  Flatiron Institute Nonuniform Fast Fourier Transform libraries
-========================================================================
+FINUFFT:  Flatiron Institute Nonuniform Fast Fourier Transform
+==============================================================
 
-This is a lightweight library to compute the nonuniform FFT to a specified precision, in one, two, or three dimensions.
-This task is to approximate various exponential sums involving large numbers of terms and output indices, in close to linear time.
-The speedup over naive evaluation of the sums is similar to that achieved by the FFT. For instance, for _N_ terms and _N_ output indices, the computation time is _O_(_N_ log _N_) as opposed to the naive _O_(_N_<sup>2</sup>).
-For convenience, we conform to the simple existing interfaces of the
-[CMCL NUFFT libraries of Greengard--Lee from 2004](http://www.cims.nyu.edu/cmcl/nufft/nufft.html), apart from the normalization factor of type-1.
-Our main innovations are: speed (enhanced by a new functional form for the spreading kernel), computation via a single call (there is no "plan" or pre-storing of kernel matrices), the efficient use of multi-core architectures, and simplicity of the codes, installation, and interface.
-In particular, in the single-core setting we are approximately 8x faster than the (single-core) CMCL library when requesting many digits in 3D.
-Preliminary tests suggest that in the multi-core setting we are faster than the [Chemnitz NFFT](https://www-user.tu-chemnitz.de/~potts/nfft/) at comparable accuracy, and our code does not require an additional plan or precomputation phase.
+This is a set of libraries to compute efficiently the nonuniform FFT
+(NUFFT) to a specified precision, in one, two, or three dimensions,
+on a multi-core shared-memory machine.
+The library has a very simple interface without any precomputation steps,
+is written in C++ (using OpenMP and FFTW),
+and has wrappers to C, fortran, MATLAB, octave, and python.
+As an example, given $M$ arbitrary real numbers $x_j$ and complex
+numbers $c_j$, with $j=1,\dots,M$, and a requested integer number of
+modes $N$, the 1D type-1 (aka "adjoint") transform evaluates the $N$ numbers
+
+.. math::
+  :label: 1d1
+	   
+  f_k = \sum_{j=1}^M c_j e^{ik x_j}~,
+  \qquad \mbox{ for } \; k\in\mathbb{Z}, \quad -N/2 \le k \le N/2-1 ~.
+
+The $x_j$ can be interpreted as nonuniform source locations, $c_j$
+as source strengths, and $f_k$ then as the $k$th Fourier series coefficient
+of the distribution $f(x) = \sum_{j=1}^M c_j \delta(x-x_j)$.
+Such exponential sums are needed in many applications in science and engineering, including signal processing, imaging, diffraction, and numerical 
+partial differential equations.
+The naive CPU effort to evaluate :eq:`1d1` is $O(NM)$.
+The library approximates :eq:`1d1` to a requested relative precision
+$\epsilon$ with nearly linear effort $O(M \log (1/\epsilon) + N \log N)$.
+Thus the speedup over the naive cost is similar to that achieved by the FFT.
+This is achieved by spreading onto a regular grid using a carefully chose kernel,
+followed by an upsampled FFT, then a division (deconvolution) step.
+For the 2D and 3D definitions, and other types of transform, see below.
+
+The FINUFFT library achieves its speed via several innovations including:
+
+#. The use of a new spreading kernel that is provably close to optimal, yet faster to evaluate than the Kaiser-Bessel kernel
+#. Quadrature approximation of the Fourier transform of the spreading kernel
+#. Blocked multithreading of the type-1 spreading operation
+
+For the same accuracy in 3D, the
+library is 2-10 times faster on a single core than the
+single-threaded fast Gaussian gridding `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_, and in the multi-core setting is
+faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_ even when the latter is allowed a full precomputation of the kernel.
+Our library does not require precomputation and uses minimal RAM overhead.
 
 
 
 .. toctree::
    :maxdepth: 2
 
+
+   tasks
    pythoninterface
+   ackn
 
    
