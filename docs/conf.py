@@ -14,16 +14,17 @@
 
 import sys
 import os
+import sphinx.ext.autodoc
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../finufftpy'))
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+needs_sphinx = '1.6'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -289,3 +290,8 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+autodoc_mock_imports = ['finufftpy_cpp', 'numpy']
+# The above is not enough for nested import -- forcibly mock them out ahead of time:
+for name in autodoc_mock_imports:
+    sys.modules[name] = sphinx.ext.autodoc._MockModule(name, None)
