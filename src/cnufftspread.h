@@ -24,10 +24,11 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
 };
 
 // macro: if p is true, rescales from [-pi,pi] to [0,N], then
-// folds *only* one period below and above into the domain [0,N]...
-#define RESCALE(x,N,p) (p ? ((x*M_1_2PI + (x<-PI ? 2.5 : (x>PI ? -1.5 : 0.5)))*N) : (x<0 ? x+N : (x>N ? x-N : x)))
+// folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
+#define RESCALE(x,N,p) (p ? \
+			((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
+			(x<0 ? x+N : (x>N ? x-N : x)))
 // yuk, but this is *so* much faster than slow std::fmod that we stick to it
-
 
 
 /* Bitwise timing flag definitions; see spread_opts.flags.

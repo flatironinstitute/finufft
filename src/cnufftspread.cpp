@@ -131,9 +131,9 @@ int cnufftspread(
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
   if (opts.debug)
-    printf("starting spread %dD (dir=%d. M=%ld; N1=%ld,N2=%ld,N3=%ld), %d threads\n",ndims,opts.spread_direction,M,N1,N2,N3,MY_OMP_GET_MAX_THREADS());
+    printf("starting spread %dD (dir=%d. M=%ld; N1=%ld,N2=%ld,N3=%ld; pir=%d), %d threads\n",ndims,opts.spread_direction,M,N1,N2,N3,opts.pirange,MY_OMP_GET_MAX_THREADS());
   
-  if (opts.chkbnds) {  // check NU pts are valid (incl +-1 box), exit gracefully
+    if (opts.chkbnds) {  // check NU pts are valid (incl +-1 box), exit gracefully
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
