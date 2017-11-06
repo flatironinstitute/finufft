@@ -49,7 +49,7 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mode
        4 at least one NU point out of range (if chkbnds true)
 
   Example:
-    see ``python/tests/demo1d1.py``
+    see ``python_tests/demo1d1.py``
   """
   # f is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False)        # copies only if type changes
@@ -63,6 +63,7 @@ def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord
 
     c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 0,...,nj-1
             k1 
+
 	where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
   Args:
@@ -90,7 +91,7 @@ def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord
        4 at least one NU point out of range (if chkbnds true)
 
   Example:
-    see ``python/tests/accuracy_speed_tests.py``
+    see ``python_tests/accuracy_speed_tests.py``
   """
   # c is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False) #copies only if type changes
@@ -128,7 +129,7 @@ def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
        2 if size of arrays to malloc exceed MAX_NF
 
   Example:
-    see ``python/tests/accuracy_speed_tests.py``
+    see ``python_tests/accuracy_speed_tests.py``
   """
   # f is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False) #copies only if type changes
@@ -223,7 +224,7 @@ def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeo
        4 at least one NU point out of range (if chkbnds true)
 
   Example:
-    see ``python/tests/accuracy_speed_tests.py``
+    see ``python_tests/accuracy_speed_tests.py``
   """
   # c is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False) #copies only if type changes
@@ -264,7 +265,7 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
        2 if size of arrays to malloc exceed MAX_NF
 
   Example:
-    see ``python/tests/accuracy_speed_tests.py``
+    see ``python_tests/accuracy_speed_tests.py``
   """
   # f is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False) #copies only if type changes
@@ -319,7 +320,7 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=1,f
        4 at least one NU point out of range (if chkbnds true)
 
   Example:
-    see ``python/tests/accuracy_speed_tests.py``
+    see ``python_tests/accuracy_speed_tests.py``
   """
   # f is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False) #copies only if type changes
@@ -367,7 +368,7 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mod
        4 at least one NU point out of range (if chkbnds true)
 
   Example:
-    see ``python/tests/accuracy_speed_tests.py``
+    see ``python_tests/accuracy_speed_tests.py``
   """
   # c is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False) #copies only if type changes
@@ -412,7 +413,7 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=1,fftw
        2 if size of arrays to malloc exceed MAX_NF
 
   Example:
-    see ``python/tests/accuracy_speed_tests.py``
+    see ``python_tests/accuracy_speed_tests.py``
   """
   # f is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False) #copies only if type changes

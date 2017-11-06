@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.6'   # dylan
+#needs_sphinx = '1.6'   # dylan, but I only have 1.3
 needs_sphinx = '1.3'
 
 # Add any Sphinx extension module names here, as strings. They can be

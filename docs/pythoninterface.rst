@@ -10,7 +10,7 @@ Notes:
 
   #. In the below, "float" and "complex" refer to double-precision for the default library. One can compile the library for single-precision, but the python interfaces are untested in this case.
 
-  #. NumPy input and output arrays are generally passed directly without copying, which helps efficiency in large low-accuracy problems. In 2D and 3D, copying is avoided when arrays are Fortran-ordered; hence choose this ordering in your python code if you are able (see ``python/tests/accuracy_speed_tests.py``).
+  #. NumPy input and output arrays are generally passed directly without copying, which helps efficiency in large low-accuracy problems. In 2D and 3D, copying is avoided when arrays are Fortran-ordered; hence choose this ordering in your python code if you are able (see ``python_tests/accuracy_speed_tests.py``).
 
   #. Fortran-style writing of the output to a preallocated NumPy input array is used. That is, such an array is treated as a pointer into which the output is written. This avoids creation of new arrays. The python call return value is merely a status indicator.
 
