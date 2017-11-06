@@ -4,18 +4,18 @@ Authors: Daniel Foreman-Mackey, Jeremy Magland, and Alex Barnett
 
 Contents:
 
-finufft1d1
-finufft1d2
-finufft1d3
-finufft2d1
-finufft2d2
-finufft2d3
-finufft3d1
-finufft3d2
-finufft3d3
+nufft1d1
+nufft1d2
+nufft1d3
+nufft2d1
+nufft2d2
+nufft2d3
+nufft3d1
+nufft3d2
+nufft3d3
 
 """
 
 # that was the docstring for the package finufftpy.
 
-from finufftpy._interfaces import finufft1d1,finufft1d2,finufft1d3,finufft2d1,finufft2d2,finufft2d3,finufft3d1,finufft3d2,finufft3d3
+from finufftpy._interfaces import nufft1d1,nufft1d2,nufft1d3,nufft2d1,nufft2d2,nufft2d3,nufft3d1,nufft3d2,nufft3d3

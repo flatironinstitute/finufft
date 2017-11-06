@@ -12,5 +12,7 @@ The following people have helped this project through discussions, code, or bug 
 * Timo Heister - pass/fail numdiff testing ideas
 * Hannah Lawrence - user testing and finding bugs
 * Zydrunas Gimbutas - explanation that NFFT uses Kaiser-Bessel backwards
-* David Stein - feature requests
+* David Stein - feature requests and python help
 * Joakim Anden - catching memory leak
+* Dylan Simon - sphinx help
+    

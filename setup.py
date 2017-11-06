@@ -3,12 +3,7 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 
-__version__ = '0.1.1g'
-
-# Publish the library to PyPI (from DFM):
-if "publish" in sys.argv[-1]:
-    os.system("python setup.py sdist upload")
-    sys.exit()
+__version__ = '0.97'
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -58,7 +53,7 @@ def has_flag(compiler, flagname):
             return False
     return True
 
-
+# Note C++11 is needed by pybind11, not by the project:
 def cpp_flag(compiler):
     """Return the -std=c++[11/14] compiler flag.
 
@@ -102,7 +97,7 @@ class BuildExt(build_ext):
 setup(
     name='finufftpy',
     version=__version__,
-    author='python interfaces by: Daniel Foreman-Mackey, Jeremy Magland, and Alex Barnett',
+    author='python interfaces by: Jeremy Magland, Daniel Foreman-Mackey, and Alex Barnett',
     author_email='abarnett@flatironinstitute.org',
     url='http://github.com/ahbarnett/finufft',
     description='python interface to FINUFFT',
