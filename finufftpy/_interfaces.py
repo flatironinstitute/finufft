@@ -15,10 +15,12 @@ import numpy as np
 def finufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	"""1D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
-	          nj
+	::
+	         nj-1
 	f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-	         j=1
-	Inputs:
+	         j=0
+
+	Args:
 	x     (float[nj]): nonuniform source points, valid only in [-3pi,3pi]
 	c     (complex[nj]): source strengths
 	isign (int): if >=0, uses + sign in exponential, otherwise - sign.
@@ -26,7 +28,7 @@ def finufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mo
 	ms    (int): number of Fourier modes requested, may be even or odd;
 	      in either case the modes are integers lying in [-ms/2, (ms-1)/2]
 	
-	Optional inputs:
+	Optional args:
 	debug (int): 0 (silent), 1 (print timing breakdown).
 	spread_debug (int): 0 (spreader silent), 1, 2... (print spreader info)
 	spread_sort (int): 0 (don't sort NU pts in spreader), 1 (sort)
@@ -35,7 +37,8 @@ def finufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mo
 	chkbnds (int): 0 (don't check NU points valid), 1 (do).
 	
 	Outputs:
-	f     (complex[ms]): Fourier mode values
+	f     (complex[ms]): Fourier mode values. Should be initialized as a
+              numpy array of the correct size.
 
 	Returns:
 	error status, 0 : success
@@ -45,7 +48,7 @@ def finufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mo
 	Example:
 	see python_tests/demo1d1.py
 	"""
-	# f is the output and must have dtype=np.complex128
+        # f is the output and must have dtype=np.complex128
 	x=x.astype(np.float64,copy=False)        # copies only if type changes
 	c=c.astype(np.complex128,copy=False)     # "
 	return finufftpy_cpp.finufft1d1_cpp(x,c,isign,eps,ms,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
@@ -53,7 +56,7 @@ def finufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mo
 def finufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	"""1D type-2 (aka forward) complex nonuniform fast Fourier transform
 
-	c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
+	c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 0,...,nj-1
 	       k1 
 	where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
@@ -91,9 +94,9 @@ def finufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeo
 def finufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
 	"""1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
-	          nj
-	f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 1, ..., nk
-	         j=1
+	         nj-1
+	f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 0, ..., nk-1
+	         j=0
 
 	Inputs:
 	x     (float[nj]): nonuniform source points, in R
@@ -130,9 +133,9 @@ def finufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
 def finufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	"""2D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
-	             nj
+	            nj-1
 	f(k1,k2) =  SUM c[j] exp(+/-i (k1 x(j) + k2 y[j])),
-	            j=1
+	            j=0
 	                  for -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2
 	Inputs:
 	x     (float[nj]): nonuniform source x-coords, valid only in [-3pi,3pi]
@@ -153,8 +156,9 @@ def finufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=1,fftw
 	chkbnds (int): 0 (don't check NU points valid), 1 (do).
 	
 	Outputs:
-	f     (complex[ms,mt]): Fourier mode values, stored ms fastest.
-	      mode ordering in each dimension given by modeord.
+	f     (complex[ms,mt]): Fourier mode values. This should be initialized
+              as a numpy Fortran-ordered array, ie stored ms fastest, mt slow.
+	      Output mode ordering in each dimension is set by modeord.
 
 	Returns:
 	error status, 0 : success
@@ -174,7 +178,7 @@ def finufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=1,fftw
 def finufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	"""2D type-2 (aka forward) complex nonuniform fast Fourier transform
 
-	c[j] =  SUM   f[k1,k2] exp(+/-i (k1 x[j] + k2 y[j])),  for j = 1,...,nj
+	c[j] =  SUM  f[k1,k2] exp(+/-i (k1 x[j] + k2 y[j])),  for j = 0,...,nj-1
 	       k1,k2 
 	where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2
 
@@ -216,9 +220,9 @@ def finufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mod
 def finufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
 	"""2D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
-	          nj
-	f[k]  =  SUM   c[j] exp(+-i s[k] x[j] + t[k] y[j]),  for k = 1,...,nk
-	         j=1
+	         nj-1
+	f[k]  =  SUM   c[j] exp(+-i s[k] x[j] + t[k] y[j]),  for k = 0,...,nk-1
+	         j=0
 
 	Inputs:
 	x     (float[nj]): nonuniform source point x-coords, in R
@@ -259,9 +263,9 @@ def finufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=1,fftw=0
 def finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
 	"""3D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
-	                nj
+	               nj-1
 	f(k1,k2,k3) =  SUM c[j] exp(+/-i (k1 x(j) + k2 y[j] + k3 z[j])),
-	               j=1
+	               j=0
 	                      for -ms/2 <= k1 <= (ms-1)/2,
 	                      -mt/2 <= k2 <= (mt-1)/2,  -mu/2 <= k3 <= (mu-1)/2
 	Inputs:
@@ -308,7 +312,7 @@ def finufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,m
 
 	c[j] =   SUM   f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j])).
 	       k1,k2,k3
-	                 for j = 1,...,nj,  where sum is over
+	                 for j = 0,...,nj-1,  where sum is over
 	-ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, -mu/2 <= k3 <= (mu-1)/2
 
 	Inputs:
@@ -351,10 +355,10 @@ def finufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,m
 def finufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
 	"""3D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
-	          nj
+	         nj-1
 	f[k]  =  SUM   c[j] exp(+-i s[k] x[j] + t[k] y[j] + u[k] z[j]),
-	         j=1
-	                                                      for k = 1,...,nk
+	         j=0
+	                                               for k = 0,...,nk-1
 	Inputs:
 	x     (float[nj]): nonuniform source point x-coords, in R
 	y     (float[nj]): nonuniform source point y-coords, in R

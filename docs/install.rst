@@ -1,6 +1,8 @@
 Installation
 ============
 
+.. todo:: convert from .md to .rst and bring in dfm's mac advice.
+
 Dependencies
 ************
 
