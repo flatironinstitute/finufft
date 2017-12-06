@@ -8,7 +8,7 @@ DEBUG=0     # whether to see timing breakdowns
 SORT=1      # i7 better if sort
 if grep -q Xeon /proc/cpuinfo; then
     echo "Xeon detected, switching off spreader sorting..."
-    SORT=0      # whether to sort (0 best for xeon)
+    SORT=1      # whether to sort (1 also for xeon)
 fi
 
 echo "nuffttestnd output:"
