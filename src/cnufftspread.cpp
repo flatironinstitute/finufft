@@ -454,7 +454,7 @@ FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
   else {
     FLT s = sqrt(1.0 - opts.ES_c*x*x);
     //  return sinh(opts.ES_beta * s)/s; // roughly, inverse K-B kernel of NFFT
-    return opts.ES_beta * s;
+        return opts.ES_beta * s;
   }
 }
 
