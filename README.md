@@ -8,7 +8,7 @@ This is a lightweight library to compute the three standard types of nonuniform 
 
 Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html), or its equivalent, the [user manual](finufft-manual.pdf).
 You will also want to see example codes in the directories
-`examples`, `test, `fortran`, `matlab`, and `python_tests`.
+`examples`, `test`, `fortran`, `matlab`, and `python_tests`.
 
 If you prefer to read text files, the source to generate the above documentation is in human-readable (mostly .rst) files as follows:
 
