@@ -8,7 +8,7 @@ FINUFFT:  Flatiron Institute Nonuniform Fast Fourier Transform
 
 .. image:: spreadpic.png
     :width: 48%
-.. image:: t2blocks.png
+.. image:: t1blocks.png
     :width: 48%
 	    
 `FINUFFT <https://github.com/ahbarnett/finufft>`_ is a set of libraries to compute efficiently three types of nonuniform fast Fourier transform
