@@ -1,6 +1,12 @@
 This directory contains simple calling examples from C++ (the .cpp files)
 and from C (the .c files).
 
+They are compiled by commands in ../makefile via "make examples".
+
+The suffix "f" which distinguishes example1d1f.cpp from example1d1.cpp
+indicates single-precision as opposed to double-precision. Which is
+compiled is controlled by ../makefile.
+
 For calling from Fortran, see the demos in ../fortran/
 
-Alex Barnett 3/10/17
+Alex Barnett 12/6/17

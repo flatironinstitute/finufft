@@ -1,11 +1,11 @@
-# Makefile for Flatiron Institute (FI) NUFFT libraries.
-# Barnett 11/1/17
+# Makefile for FINUFFT.
+# Barnett 12/6/17
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # If users need to edit this makefile, it is recommended that they first
 # copy it to makefile.local, edit that, and use make -f makefile.local
 
-# Compilation options:
+# Compilation options: (also see docs/)
 #
 # 1) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
 #    double-precision. Single-precision saves half the RAM, and increases
@@ -38,7 +38,7 @@ OFLAGS = -lrt
 MEX=mex
 # Mac users instead should use something like this:
 #MEX = /Applications/MATLAB_R2017a.app/bin/mex
-# For experts doing make mex: location of MWrap executable (see INSTALL.md):
+# For experts doing make mex: location of MWrap executable (see docs/install.rst):
 MWRAP=mwrap
 
 # choose the precision (sets fftw library names, test precisions)...
@@ -98,12 +98,12 @@ usage:
 	@echo " make all - do all of the above"
 	@echo " make spreadtest - compile and run spreader tests only"
 	@echo " make clean - remove all object and executable files apart from MEX"
-	@echo "For faster (multicore) making you may want to append the flag -j"
+	@echo "For faster (multicore) making, append the flag -j"
 	@echo ""
 	@echo "Compile options: make [task] PREC=SINGLE for single-precision"
 	@echo " make [task] OMP=OFF for single-threaded (otherwise openmp)"
 	@echo ""
-	@echo "To make python/python3 interfaces, see INSTALL.md"
+	@echo "To make python/python3 interfaces, see docs/install.rst"
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp %.h
@@ -122,7 +122,7 @@ lib/libfinufft.so: $(OBJS) $(HEADERS)
 	$(CXX) -shared $(OBJS) -o lib/libfinufft.so      # fails in mac osx
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 
-# examples in C++ and C...                *** TO FIX C CAN"T FIND C++ HEADERS
+# examples in C++ and C...                *** TO FIX C CAN'T FIND C++ HEADERS
 EX = examples/example1d1$(SUFFIX)
 EXC = examples/example1d1c$(SUFFIX)
 examples: $(EX) $(EXC)
@@ -158,7 +158,7 @@ perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft
 test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJS) -o test/spreadtestnd
 
-# spreader only test...
+# spreader only test (useful for development work on spreader)...
 spreadtest: test/spreadtestnd
 	test/spreadtestnd 1 8e6 8e6 1e-6 1 0
 	test/spreadtestnd 2 8e6 8e6 1e-6 1 0
@@ -186,7 +186,7 @@ octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave check_finufft.m)
 
-# for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
+# for experts; force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
 # (needs mwrap)
 mex: matlab/finufft.mw
 	(cd matlab;\
@@ -194,15 +194,16 @@ mex: matlab/finufft.mw
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
 
 # various obscure tests...
+# This was for a CCQ application; zgemm was faster!
 manysmallprobs: lib-static/libfinufft.a $(HEADERS) test/manysmallprobs.cpp
 	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp lib-static/libfinufft.a -o test/manysmallprobs $(LIBSFFT)
-	time test/manysmallprobs
+	(export OMP_NUM_THREADS=1; time test/manysmallprobs; unset OMP_NUM_THREADS)
 
 # cleaning up...
 clean:
 	rm -f $(OBJS) $(SOBJS)
 	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/results/*.out fortran/*.o fortran/nufft?d_demo fortran/nufft?d_demof examples/*.o examples/example1d1 examples/example1d1cexamples/example1d1f examples/example1d1cf matlab/*.o
 
-# only do this if you have mwrap to rebuild the interfaces...
+# for experts; only do this if you have mwrap to rebuild the interfaces...
 mexclean:
 	rm -f matlab/finufft.cpp matlab/finufft?d?.m matlab/finufft.mex*
