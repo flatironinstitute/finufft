@@ -60,7 +60,8 @@ Our library does not require precomputation and uses minimal RAM.
    dirs
    usage
    matlab
-   pythoninterface	      
+   pythoninterface
+   issues
    ackn
    refs
    
