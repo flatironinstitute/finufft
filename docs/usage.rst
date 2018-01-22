@@ -447,21 +447,3 @@ Note that mallocs smaller than this, but which still exceed available RAM, cause
 
 As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
 
-
-Known issues and bug reports
-****************************
-
-- When requestes accuracy is ``1e-14`` or less, it is sometimes not possible to match this, especially when there are a large number of input and/or output points. This is believed to be unavoidable round-off error.
-
-- Currently in Mac OSX, ``make lib`` fails to make the shared object library (.so).
-
-- The timing of FFTW calls is complicated, depending on whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used. Such issues are known, and discussed in other documentation, eg https://pythonhosted.org/poppy/fft_optimization.html
-
-- MATLAB, octave and python cannot exceed input or output data sizes of 2^31.
-
-Also see notes in the ``TODO`` file.
-  
-If you think you have found a bug, please contact Alex Barnett (``abarnett``
-at-sign ``flatironinstitute.org``) with FINUFFT in the subject line.
-Include a minimal code which reproduces the bug, along with
-details about your machine, operating system, compiler, and version of FINUFFT.
