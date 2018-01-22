@@ -18,6 +18,7 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/usage.rst` : C++ routine interfaces, compilation options, and notes
 - `docs/matlabhelp.raw` : MATLAB/octave interfaces
 - `finufftpy/_interfaces.py` : python interface docstrings
+- `docs/issues.rst` : known issues and bug reports
 - `docs/refs.rst` : journal article references
 - `docs/ackn.rst` : acknowledgments
 
