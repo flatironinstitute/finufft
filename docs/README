@@ -1,0 +1,28 @@
+README for FINUFFT documentation.
+
+Barnett 1/28/18
+
+
+
+The files in this directory are designed for sphinx to auto-generate
+documentation in HTML (including from the readthedocs.io site), and in PDF.
+
+To test the HTML generation locally, do:
+
+  make html
+
+Then point your browser to the local file _build/html/index.html
+
+Before pushing to git after documentation changes, one should also do:
+
+  ./genpdfmanual.sh
+
+This is a tiny bash script which builds the PDF manual then moves into
+the parent (main FINUFFT) directory for easy reading offline by
+non-browser-based humans who download the repo.  The file ../README.md
+also exists for such humans, and those reading the github front page.
+
+finufft.readthedocs.io should have been set up to be triggered by
+pushes to the git repo to regenerate HTML documentation identical to the
+local copy, hosted there for the world to see.
+
