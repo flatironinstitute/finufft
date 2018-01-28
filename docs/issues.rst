@@ -13,8 +13,9 @@ Issues with library
 
 - Currently in Mac OSX, ``make lib`` fails to make the shared object library (.so).
 
-- The timing of FFTW calls is complicated, depending on whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used. Such issues are known, and discussed in other documentation, eg https://pythonhosted.org/poppy/fft_optimization.html
-
+- The timing of the first FFTW call is complicated, depending on whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used. Such issues are known, and discussed in other documentation, eg https://pythonhosted.org/poppy/fft_optimization.html
+  We would like to find a way of pre-storing some intel FFTW plans (as MATLAB does) to avoid the large FFTW_ESTIMATE planning time.
+  
 
 Issues with interfaces
 **********************
@@ -22,15 +23,15 @@ Issues with interfaces
 - MATLAB, octave and python cannot exceed input or output data sizes of 2^31.
 
 - A segfault occurs if MATLAB's ``fft`` is called before the first ``finufft``
-call in a session.
-We believe this due to incompatibility between the versions of
-FFTW used. Please contact us if you know of a fix.
+  call in a session.
+  We believe this due to incompatibility between the versions of
+  FFTW used. Please contact us if you know of a fix.
 
-Workaround: in your ``startup.m`` file, include a dummy call as follows::
+  Workaround: in your ``startup.m`` file, include a dummy call as follows::
 
-  finufft1d1(1,1,1,1,1);
+    finufft1d1(1,1,1,1,1);
 
-This issue does not occur with octave.
+  This issue does not occur with octave.
 
  
 

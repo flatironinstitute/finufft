@@ -3,13 +3,13 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-FINUFFT:  Flatiron Institute Nonuniform Fast Fourier Transform
-==============================================================
+Flatiron Institute Nonuniform Fast Fourier Transform
+====================================================
 
+.. image:: logo.png
+    :width: 45%
 .. image:: spreadpic.png
-    :width: 48%
-.. image:: t1blocks.png
-    :width: 48%
+    :width: 54%
 	    
 `FINUFFT <https://github.com/ahbarnett/finufft>`_ is a set of libraries to compute efficiently three types of nonuniform fast Fourier transform
 (NUFFT) to a specified precision, in one, two, or three dimensions,
@@ -61,6 +61,7 @@ Our library does not require precomputation and uses minimal RAM.
    usage
    matlab
    pythoninterface
+   juliainterface
    issues
    ackn
    refs

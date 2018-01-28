@@ -2,9 +2,11 @@
 
 ### Alex H. Barnett and Jeremy F. Magland
 
-<img src="docs/spreadpic.png" width="400"/> <img src="docs/t1blocks.png" width="400"/>
+<img src="docs/logo.png" width="400"/>
+<img src="docs/spreadpic.png" width="400"/>
 
-This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, and python.
+This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, and python. A julia interface
+also exists.
 
 Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html), or its equivalent, the [user manual](finufft-manual.pdf).
 You will also want to see example codes in the directories

@@ -34,6 +34,7 @@ HIGH PRIORITY TODO:
 LOWER PRIORITY TODO:
 
 * check possible transpose convention for 2d,3d, found by David S.
+* Intel MKL FFT interface option instead of FFTW?
 * docs: format equation numbers on same line in sphinx+mathjax
 * swap out mallocs for std:vector in finufft?
 * recoup DFM's PyPI publishing of finufftpy, maybe awkward
@@ -45,3 +46,4 @@ LOWER PRIORITY TODO:
 * figure out how to set up path to link to shared library - rpath?
 * MS Windows test
 * rewrite fftw3 plans via 64bit guru interface to allow eg 1024^3 type 1 or 2 in 3D. Not sure needed (only for huge 1d transforms). see http://www.fftw.org/fftw3_doc/Guru-Interface.html#Guru-Interface
+* R interface
