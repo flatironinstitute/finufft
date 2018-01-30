@@ -66,6 +66,12 @@ OFLAGS += -lgomp
 LIBSFFT += -l$(FFTW)_threads
 endif
 
+# (experimental) explicit vectorization in spreading
+ifeq ($(VECT),ON)
+CXXFLAGS += -DVECT
+CFLAGS += -DVECT
+endif
+
 # ======================================================================
 
 # objects to compile: spreader...

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
+#include <pmmintrin.h>
 
 // declarations of internal functions...
 void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker);
@@ -762,8 +763,14 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
     du[i] = 0.0;
   FLT ker[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
+#ifndef VECT
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
+#else
+    __m128d xmm_src, xmm_ker, xmm_val; // 128-bit registers
+    xmm_src = _mm_load_pd(dd + 2*i);
+#endif
+    
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     BIGINT i3 = (BIGINT)std::ceil(kz[i] - ns2);
@@ -778,10 +785,19 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
       for (int dy=0; dy<ns; ++dy) {
 	BIGINT j = oz + N1*(i2+dy) + i1;
 	for (int dx=0; dx<ns; ++dx) {
+#ifndef VECT
 	  FLT k = ker[p++];            // increment ker array ptr
 	  du[2*j] += re0*k;
 	  du[2*j+1] += im0*k;
 	  ++j;
+#else
+	  xmm_ker = _mm_loaddup_pd(ker+p); // Load and duplicate into both halves
+	  xmm_val = _mm_load_pd(du+2*j);
+	  xmm_val = _mm_add_pd(xmm_val, _mm_mul_pd(xmm_ker, xmm_src));
+          _mm_store_pd(du+2*j, xmm_val);
+	  ++p;  
+	  ++j;
+#endif
 	}
       }
     }
