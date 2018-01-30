@@ -687,6 +687,7 @@ static inline void spread_inner_loop(FLT *du, FLT *ker, FLT re0, FLT im0, int ns
  */
 {
 #ifndef VECT
+  // Non-vectorized
   for (int dx=0; dx<ns; ++dx) {
     FLT k = ker[dx];
     du[2*j] += re0*k;
@@ -694,15 +695,29 @@ static inline void spread_inner_loop(FLT *du, FLT *ker, FLT re0, FLT im0, int ns
     ++j;
   }
 #else
-  __m128d xmm_src, xmm_ker, xmm_val; // 128-bit registers	
-  xmm_src = _mm_set_pd(im0, re0);	
+#ifdef SINGLE
+  // Vectorization for 32-bit floats
+  __m128 vec_src, vec_ker, vec_val; // 128-bit registers
+  vec_src = _mm_set_ps(0.0, 0.0, im0, re0); // Only use lower elements
   for (int dx=0; dx<ns; ++dx) {
-    xmm_ker = _mm_loaddup_pd(ker+dx); // Load and duplicate into both halves
-    xmm_val = _mm_load_pd(du+2*j);
-    xmm_val = _mm_add_pd(xmm_val, _mm_mul_pd(xmm_ker, xmm_src));
-    _mm_store_pd(du+2*j, xmm_val);
-    ++j;
+      vec_ker = _mm_load_ps1(ker+dx); // Load and duplicate into all elements
+      vec_val = _mm_load_ps(du+2*j); // Actually overloads by two
+      vec_val = _mm_add_ps(vec_val, _mm_mul_ps(vec_ker, vec_src));
+      _mm_storel_pi((__m64*) (du+2*j), vec_val); // Store two lower elements
+      ++j;
   }
+#else
+  // Vectorization for 64-bit floats
+  __m128d vec_src, vec_ker, vec_val; // 128-bit registers	
+  vec_src = _mm_set_pd(im0, re0);	
+  for (int dx=0; dx<ns; ++dx) {
+      vec_ker = _mm_loaddup_pd(ker+dx); // Load and duplicate into both halves
+      vec_val = _mm_load_pd(du+2*j);
+      vec_val = _mm_add_pd(vec_val, _mm_mul_pd(vec_ker, vec_src));
+      _mm_store_pd(du+2*j, vec_val);
+      ++j;
+  }
+#endif
 #endif
 }
 
