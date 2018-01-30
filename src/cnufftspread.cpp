@@ -681,6 +681,31 @@ void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,
   }
 }
 
+
+static inline void spread_inner_loop(FLT *du, FLT *ker, FLT re0, FLT im0, int ns, BIGINT j)
+/* Critical inner loop used in spread_subproblem_1/2/3d
+ */
+{
+#ifndef VECT
+  for (int dx=0; dx<ns; ++dx) {
+    FLT k = ker[dx];
+    du[2*j] += re0*k;
+    du[2*j+1] += im0*k;
+    ++j;
+  }
+#else
+  __m128d xmm_src, xmm_ker, xmm_val; // 128-bit registers	
+  xmm_src = _mm_set_pd(im0, re0);	
+  for (int dx=0; dx<ns; ++dx) {
+    xmm_ker = _mm_loaddup_pd(ker+dx); // Load and duplicate into both halves
+    xmm_val = _mm_load_pd(du+2*j);
+    xmm_val = _mm_add_pd(xmm_val, _mm_mul_pd(xmm_ker, xmm_src));
+    _mm_store_pd(du+2*j, xmm_val);
+    ++j;
+  }
+#endif
+}
+
 void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
 			  FLT *kx,FLT *dd,
 			  const spread_opts& opts)
@@ -688,7 +713,7 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
    kx (size M) are NU locations in [0,N1]
    dd (size M complex) are source strengths
    du (size N1) is uniform output array
- */
+*/
 {
   int ns=opts.nspread;
   FLT ns2 = (FLT)ns/2;          // half spread width
@@ -701,14 +726,9 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     fill_kernel_line(x1,opts,ker);
-    // critical inner loop:
-    int j=i1;
-    for (int dx=0; dx<ns; ++dx) {
-      FLT k = ker[dx];
-      du[2*j] += re0*k;
-      du[2*j+1] += im0*k;
-      ++j;
-    }
+    // critical inner loop: 
+    BIGINT j=i1;
+    spread_inner_loop(du, ker, re0, im0, ns, j);
   }
 }
 
@@ -737,13 +757,9 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
     // critical inner loop:
     int p=0;              // ptr to ker array
     for (int dy=0; dy<ns; ++dy) {
-      int j = N1*(i2+dy) + i1;
-      for (int dx=0; dx<ns; ++dx) {
-	FLT k = ker[p++];            // increment ker array ptr
-	du[2*j] += re0*k;
-	du[2*j+1] += im0*k;
-	++j;
-      }
+      BIGINT j = N1*(i2+dy) + i1;
+      spread_inner_loop(du, ker+p, re0, im0, ns, j);
+      p += ns;
     }
   }
 }
@@ -763,14 +779,8 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
     du[i] = 0.0;
   FLT ker[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
-#ifndef VECT
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
-#else
-    __m128d xmm_src, xmm_ker, xmm_val; // 128-bit registers
-    xmm_src = _mm_load_pd(dd + 2*i);
-#endif
-    
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     BIGINT i3 = (BIGINT)std::ceil(kz[i] - ns2);
@@ -784,21 +794,8 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; ++dy) {
 	BIGINT j = oz + N1*(i2+dy) + i1;
-	for (int dx=0; dx<ns; ++dx) {
-#ifndef VECT
-	  FLT k = ker[p++];            // increment ker array ptr
-	  du[2*j] += re0*k;
-	  du[2*j+1] += im0*k;
-	  ++j;
-#else
-	  xmm_ker = _mm_loaddup_pd(ker+p); // Load and duplicate into both halves
-	  xmm_val = _mm_load_pd(du+2*j);
-	  xmm_val = _mm_add_pd(xmm_val, _mm_mul_pd(xmm_ker, xmm_src));
-          _mm_store_pd(du+2*j, xmm_val);
-	  ++p;  
-	  ++j;
-#endif
-	}
+	spread_inner_loop(du, ker+p, re0, im0, ns, j);
+	p += ns;		
       }
     }
   }
