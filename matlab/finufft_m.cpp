@@ -19,6 +19,10 @@ void finufft_mex_opts(nufft_opts &opts, double *mexo)
 {
   finufft_default_opts(opts);
   opts.debug = IROUND(mexo[0]);
+  if (opts.debug>1) {   //  Any amount of debug>1 is pushed to spread_debug...
+    opts.spread_debug=opts.debug-1;    // allows MATLAB users to see spread info
+    opts.debug=1;
+  }
   int nthreads = IROUND(mexo[1]);
   if (nthreads>0) MY_OMP_SET_NUM_THREADS(nthreads);
   opts.spread_sort=IROUND(mexo[2]);
