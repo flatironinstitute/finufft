@@ -6,11 +6,10 @@
 
 // declarations of internal functions...
 void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker);
-void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker);
-void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts, FLT* ker);
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
-void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
-void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns);
+void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
+void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
+		 BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns);
 void spread_subproblem_1d(BIGINT N1,FLT *du0,BIGINT M0,FLT *kx0,FLT *dd0,
 			  const spread_opts& opts);
 void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du0,BIGINT M0,
@@ -357,19 +356,19 @@ int cnufftspread(
       FLT xj=RESCALE(kx[j],N1,opts.pirange);
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
-      FLT kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD]; // static, up to 3D
-      
+      FLT ker1[MAX_NSPREAD], ker2[MAX_NSPREAD], ker3[MAX_NSPREAD]; // kernel values, static, up to 3D
       // eval kernel values patch and use to interpolate from uniform data...
       if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
-	  fill_kernel_line(x1,opts,kernel_values);
-	  interp_line(&data_nonuniform[2*j],data_uniform,kernel_values,i1,N1,ns);
+	  fill_kernel_line(x1,opts,ker1);
+	  interp_line(&data_nonuniform[2*j],data_uniform,ker1,i1,N1,ns);
 	} else if (ndims==2) {                                   // 2D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
 	  BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
 	  FLT x2=(FLT)i2-yj;
-	  fill_kernel_square(x1,x2,opts,kernel_values);
-	  interp_square(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,N1,N2,ns);
+	  fill_kernel_line(x1,opts,ker1);
+	  fill_kernel_line(x2,opts,ker2);
+	  interp_square(&data_nonuniform[2*j],data_uniform,ker1,ker2,i1,i2,N1,N2,ns);
 	} else {                                                 // 3D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
 	  FLT zj=RESCALE(kz[j],N3,opts.pirange);
@@ -377,8 +376,10 @@ int cnufftspread(
 	  BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
 	  FLT x2=(FLT)i2-yj;
 	  FLT x3=(FLT)i3-zj;
-	  fill_kernel_cube(x1,x2,x3,opts,kernel_values);
-	  interp_cube(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,i3,N1,N2,N3,ns);
+	  fill_kernel_line(x1,opts,ker1);
+	  fill_kernel_line(x2,opts,ker2);
+	  fill_kernel_line(x3,opts,ker3);	  
+	  interp_cube(&data_nonuniform[2*j],data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
 	}
     }    // end NU targ loop
   }                           // ================= end direction choice ========
@@ -475,65 +476,6 @@ void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
       ker[i] = 1.0;        // dummy
 }
 
-void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
-// Fill ker with tensor product of kernel values evaluated at xm+[0:ns] in dims
-// m=1,2.
-{
-  int ns=opts.nspread;
-  FLT v1[MAX_NSPREAD], v2[MAX_NSPREAD];
-  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
-    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-      for (int i = 0; i < ns; i++) {
-	v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
-	v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
-      }
-    else
-      for (int i = 0; i < ns; i++) {
-	v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-	v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
-      }
-  else
-    for (int i = 0; i < ns; i++) { v1[i] = 1.0; v2[i] = 1.0; }  // dummy
-  int aa = 0; // pointer for writing to output ker array
-  for (int j = 0; j < ns; j++) {
-    FLT val2 = v2[j];
-    for (int i = 0; i < ns; i++)
-      ker[aa++] = val2 * v1[i];
-  }
-}
-
-void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts,FLT* ker)
-// Fill ker with tensor product of kernel values evaluated at xm+[0:ns] in dims
-// m=1,2,3.
-{
-    int ns=opts.nspread;
-    FLT v1[MAX_NSPREAD], v2[MAX_NSPREAD], v3[MAX_NSPREAD];
-    if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
-      if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-	for (int i = 0; i < ns; i++) {
-	  v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
-	  v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
-	  v3[i] = evaluate_kernel(x3 + (FLT)i, opts);
-	}
-      else
-	for (int i = 0; i < ns; i++) {
-	  v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-	  v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
-	  v3[i] = evaluate_kernel_noexp(x3 + (FLT)i, opts);
-	}
-    else
-      for (int i=0; i<ns; i++) { v1[i]=1.0; v2[i]=1.0; v3[i]=1.0; }  // dummy
-    int aa = 0; // pointer for writing to output ker array
-    for (int k = 0; k < ns; k++) {
-        FLT val3 = v3[k];
-        for (int j = 0; j < ns; j++) {
-            FLT val2 = val3 * v2[j];
-            for (int i = 0; i < ns; i++)
-                ker[aa++] = val2 * v1[i];
-        }
-    }
-}
-
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 // 1D interpolate complex values from du array to out, using real weights
 // ker[0] through ker[ns-1]. out must be size 2 (real,imag), and du
@@ -578,7 +520,7 @@ void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
   }
 }
 
-void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
+void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
 // 2D interpolate complex values from du (uniform grid data) array to out value,
 // using ns*ns square of real weights
 // in ker. out must be size 2 (real,imag), and du
@@ -590,11 +532,10 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
 {
   out[0] = 0.0; out[1] = 0.0;
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
-    int p=0;  // pointer into ker array
     for (int dy=0; dy<ns; dy++) {
       BIGINT j = N1*(i2+dy) + i1;
       for (int dx=0; dx<ns; dx++) {
-	FLT k = ker[p++];             // advance the pointer through ker
+	FLT k = ker1[dx]*ker2[dy];
 	out[0] += du[2*j] * k;
 	out[1] += du[2*j+1] * k;
 	++j;
@@ -611,11 +552,10 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
       if (y>=N2) y-=N2;
       j2[d] = y++;
     }
-    int p=0;  // pointer into ker array
     for (int dy=0; dy<ns; dy++) {      // use the pts lists
       BIGINT oy = N1*j2[dy];           // offset due to y
       for (int dx=0; dx<ns; dx++) {
-	FLT k = ker[p++];              // advance the pointer through ker
+	FLT k = ker1[dx]*ker2[dy];
 	BIGINT j = oy + j1[dx];
 	out[0] += du[2*j] * k;
 	out[1] += du[2*j+1] * k;
@@ -624,8 +564,8 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
   }
 }
 
-void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,
-		 BIGINT N1,BIGINT N2,BIGINT N3,int ns)
+void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
+		 BIGINT i1,BIGINT i2,BIGINT i3, BIGINT N1,BIGINT N2,BIGINT N3,int ns)
 // 3D interpolate complex values from du (uniform grid data) array to out value,
 // using ns*ns*ns cube of real weights
 // in ker. out must be size 2 (real,imag), and du
@@ -638,13 +578,13 @@ void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,
   out[0] = 0.0; out[1] = 0.0;
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
     // no wrapping: avoid ptrs
-    int p=0;  // pointer into ker array
     for (int dz=0; dz<ns; dz++) {
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; dy++) {
 	BIGINT j = oz + N1*(i2+dy) + i1;
+	FLT ker23 = ker2[dy]*ker3[dz];
 	for (int dx=0; dx<ns; dx++) {
-	  FLT k = ker[p++];             // advance the pointer through ker
+	  FLT k = ker1[dx]*ker23;
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
 	  ++j;
@@ -665,13 +605,13 @@ void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,
       if (z>=N3) z-=N3;
       j3[d] = z++;
     }
-    int p=0;  // pointer into ker array
     for (int dz=0; dz<ns; dz++) {             // use the pts lists
       BIGINT oz = N1*N2*j3[dz];               // offset due to z
       for (int dy=0; dy<ns; dy++) {
 	BIGINT oy = oz + N1*j2[dy];           // offset due to y & z
+	FLT ker23 = ker2[dy]*ker3[dz];	
 	for (int dx=0; dx<ns; dx++) {
-	  FLT k = ker[p++];                   // advance the pointer through ker
+	  FLT k = ker1[dx]*ker23;
 	  BIGINT j = oy + j1[dx];
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
