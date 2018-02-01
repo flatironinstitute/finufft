@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
+
+#ifdef VECT
 #include <pmmintrin.h>
+#endif
 
 // declarations of internal functions...
 void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker);
@@ -576,6 +579,9 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 // Barnett 6/16/17
 {
   out[0] = 0.0; out[1] = 0.0;
+#if defined(VECT) && !defined(SINGLE)
+  __m128d vec_out = _mm_setzero_pd();
+#endif
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
     // no wrapping: avoid ptrs
     for (int dz=0; dz<ns; dz++) {
@@ -585,8 +591,14 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 	FLT ker23 = ker2[dy]*ker3[dz];
 	for (int dx=0; dx<ns; dx++) {
 	  FLT k = ker1[dx]*ker23;
+#if defined(VECT) && !defined(SINGLE)
+	  __m128d vec_k = _mm_set1_pd(k);
+	  __m128d vec_val = _mm_load_pd(du+2*j);
+	  vec_out = _mm_add_pd(vec_out, _mm_mul_pd(vec_k, vec_val));
+#else
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
+#endif
 	  ++j;
 	}
       }
@@ -613,12 +625,21 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 	for (int dx=0; dx<ns; dx++) {
 	  FLT k = ker1[dx]*ker23;
 	  BIGINT j = oy + j1[dx];
+#if defined(VECT) && !defined(SINGLE)
+	  __m128d vec_k = _mm_set1_pd(k);
+	  __m128d vec_val = _mm_load_pd(du+2*j);
+	  vec_out = _mm_add_pd(vec_out, _mm_mul_pd(vec_k, vec_val));
+#else
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
+#endif
 	}
       }
     }
   }
+#if defined(VECT) && !defined(SINGLE)
+  _mm_store_pd(out, vec_out);
+#endif
 }
 
 
@@ -637,13 +658,14 @@ static inline void spread_line(FLT *du, FLT *ker, FLT re0, FLT im0, int ns, BIGI
 #else
 #ifdef SINGLE
   // Vectorization for 32-bit floats
-  __m128 vec_src, vec_ker, vec_val; // 128-bit registers
+  __m128 vec_src, vec_ker, vec_val, vec_dummy; // 128-bit registers
   vec_src = _mm_set_ps(0.0, 0.0, im0, re0); // Only use lower elements
+  __m64* du64 = (__m64*) du; // Pointer to 64-bit chunks
   for (int dx=0; dx<ns; ++dx) {
       vec_ker = _mm_load_ps1(ker+dx); // Load and duplicate into all elements
-      vec_val = _mm_load_ps(du+2*j); // Actually overloads by two
+      vec_val = _mm_loadl_pi(vec_dummy, du64+j); // Load 64 bits into lower two elements
       vec_val = _mm_add_ps(vec_val, _mm_mul_ps(vec_ker, vec_src));
-      _mm_storel_pi((__m64*) (du+2*j), vec_val); // Store two lower elements
+      _mm_storel_pi(du64+j, vec_val); // Store lower two elements
       ++j;
   }
 #else
