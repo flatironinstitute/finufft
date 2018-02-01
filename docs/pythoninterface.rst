@@ -1,5 +1,5 @@
-Python interfaces to FINUFFT
-============================
+Python interface
+================
 
 These python interfaces are by Daniel Foreman-Mackey, Jeremy Magland, and Alex Barnett, with help from David Stein.
 See the installation notes for how to install these interfaces. Below is the documentation for the nine routines.

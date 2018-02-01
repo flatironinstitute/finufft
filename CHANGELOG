@@ -1,7 +1,12 @@
 List of tasks accomplished / changes made / release notes, in reverse
 chronological order:
 
-* moved everything python into that directory; python docs to napoleon.
+V 0.97 (12/6/17)
+
+* tidied all docs -> readthedocs.io host. README.md now a stub. TODO tidied.
+* made sort=1 in tests for xeon (used to be 0)
+* removed mcwrap and python dirs
+* changed name of py routines to nufft* from finufft*
 * python interfaces doc, up-to-date. Removed ms,.. from type-2 interfaces.
 * removed RESCALEs from lower dims in bin_sort, speeds up a few % in 1D.
 * allowed NU pts to be currectly folded from +-1 periods from central box, as per David Stein request. Adds 5% to time at 1e-2 accuracy, less at higher acc.
@@ -9,7 +14,7 @@ chronological order:
 * removed all C++11 dependencies, mainly that opts structs are all explicitly initialized.
 * fixed python interface to have chkbnds.
 * tidied MEX interface
-* removed memory leaks
+* removed memory leaks (!)
 * opts.modeord implemented and exposed to matlab/python interfaces. Also removes looping backwards in RAM in deconvolveshuffle.
 
 V 0.96 (10/15/17)

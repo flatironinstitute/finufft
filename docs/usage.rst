@@ -1,77 +1,48 @@
-FINUFFT MANUAL
+Usage and interfaces
+====================
 
-Alex Barnett  10/31/17
+In your C++ code you will need to include the header ``src/finufft.h``.
+This is illustrated by the simple code ``example1d1.cpp``, in the ``examples``
+directory.
+From there, basic double-precision compilation with the static library is via::
 
-Contents:
-1) Overview
-2) Interfaces to routines
-3) Custom compilation options
+  g++ example1d1.cpp -o example1d1 ../lib-static/libfinufft.a -fopenmp -lfftw3_threads -lfftw3 -lm
 
--------------------
+for the default multi-threaded version, or::
+    
+  g++ example1d1.cpp -o example1d1 ../lib-static/libfinufft.a -lfftw3 -lm
 
-1) Overview
+if you compiled FINUFFT for single-threaded only.
+
+
+Interfaces from C++
+*******************
+
+You will see in  ``examples/example1d1.cpp`` the line::
+
+  nufft_opts opts; finufft_default_opts(opts);
+
+This is the recommended way to initialize the structure ``nufft_opts``
+(defined in the header ``../src/finufft.h``). Its fields allow control
+of various parameters such as the mode ordering, FFTW plan type, and
+text debug options (do not adjust ``R``; all others are fair game).
+Then using the library is a matter of initializing input arrays,
+allocating the correct output array size, and calling one of the
+transform routines below.
 
 We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
-2, and 3.  This gives nine routines in all.  This manual currently
-contains mostly just the calling headers for these routines, plus
-sketches of the algorithms used.
-
-For usage examples from C and C++, see ../examples/* and ../test/*.cpp
-
-nufft_opts is a C structure defined by the ../src/finufft.h header that allows
-control of a couple of parameters (do not adjust R; the others are fair game).
-It *must* be initialized before any finufft?d? calls are made;
-this is best done by calling finufft_default_opts();
-
-For calling examples from fortran see ../fortran/*demo.f
-
-For calling examples from matlab/octave, see ../matlab/check_finufft.m
-
-For calling examples from python, see ../python_test/demo1d1.py
-
-In the below, the opts structure has the following user-changeable fields:
-
-  debug         0: silent, 1: text timing output
-  spread_debug  level of debug output from spreader: 0,1 or 2
-  spread_sort   whether spreader should sort non-uniform pts: 0 or 1
-                (sorting speeds up the spreading on non-Xeon CPUs)
-  fftw          plan choice for FFTW, either = FFTW_ESTIMATE or
-                = FFTW_MEASURE (much slower first run, then faster)
-Fields only relevant for type 1 and 2:
-  modeord       0 (CMCL increasing mode ordering), or 1 (FFT-style ordering)
-  chkbnds       0 (don't check NU points in valid [-3pi,3pi] range), 1 (do).
-
-Note on nonuniform points valid range (x,y, etc):
-
-For type-1 and type-2, these NU pts are 2-pi periodic (ie, the answer
-doesn't depend on adding 2pi times any integer to any of the
-points). In order to avoid slow 2pi-periodic wrapping using fmod, we
-use the convention that only points in [-3pi,3pi] are valid.  This
-allows moderate spill-over from the "central" [-pi,pi] interval.  Eg,
-you may choose an interval [0,2pi] and still have up to pi spillover.
-The branch-prediction in the RESCALE macro may be a little faster if
-you stick to [-pi,pi] though. Hence we give this interval in the
-documentation.
-
-Error codes:
-
-For each of the below codes, the returned ier value is interpreted as
-follows:
-	0 : success
-	1 : eps too small
-	2 : size of arrays to malloc exceed MAX_NF
-	4 : if chkbnds=1, at least one NU point out of range
-
-
-2) Interfaces to routines
+2, and 3.  This gives nine routines in all.
 
 In the below, double-precision is assumed.
 See next section for single-precision compilation.
 
-==================== 1D TRANSFORMS ==================
+1D transforms
+~~~~~~~~~~~~~
 
-int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
+::
+
+  int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 	       dcomplex* fk, nufft_opts opts)
 
   Type-1 1D complex nonuniform FFT.
@@ -102,11 +73,11 @@ int finufft1d1(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 
    Written with FFTW style complex arrays. Step 3a internally uses dcomplex,
    and Step 3b internally uses real arithmetic and FFTW style complex.
-   Becuase of the former, compile with -Ofast in GNU.
+   Because of the former, compile with -Ofast in GNU.
 
 
 
-int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
+  int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 	       dcomplex* fk, nufft_opts opts)
 
   Type-2 1D complex nonuniform FFT.
@@ -140,7 +111,8 @@ int finufft1d2(BIGINT nj,double* xj,dcomplex* cj,int iflag,double eps,BIGINT ms,
 
 
 
-int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT nk, double* s, dcomplex* fk, nufft_opts opts)
+  int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps,
+                 BIGINT nk, double* s, dcomplex* fk, nufft_opts opts)
 
   Type-3 1D complex nonuniform FFT.
 
@@ -177,10 +149,12 @@ int finufft1d3(BIGINT nj,double* xj,dcomplex* cj,int iflag, double eps, BIGINT n
    thus compile with -Ofast in GNU.
 
 
+2D transforms
+~~~~~~~~~~~~~
 
-========================== 2D TRANSFORMS ===========================
+::
 
-int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
+  int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
 	       double eps, BIGINT ms, BIGINT mt, dcomplex* fk, nufft_opts opts)
 
   Type-1 2D complex nonuniform FFT.
@@ -220,7 +194,7 @@ int finufft2d1(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,
 
 
 
-int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps,
+  int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps,
 	       BIGINT ms, BIGINT mt, dcomplex* fk, nufft_opts opts)
 
    Type-2 2D complex nonuniform FFT.
@@ -250,7 +224,8 @@ int finufft2d2(BIGINT nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps
 
 
 
-int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double eps, BIGINT nk, double* s, double *t, dcomplex* fk, nufft_opts opts)
+  int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag,
+      double eps, BIGINT nk, double* s, double *t, dcomplex* fk, nufft_opts opts)
 
    Type-3 2D complex nonuniform FFT.
 
@@ -287,10 +262,12 @@ int finufft2d3(BIGINT nj,double* xj,double* yj,dcomplex* cj,int iflag, double ep
    thus compile with -Ofast in GNU.
 
 
-===================== 3D TRANSFORMS ================
+3D transforms
+~~~~~~~~~~~~~
 
+::
 
-int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag,
+  int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag,
 	       double eps, BIGINT ms, BIGINT mt, BIGINT mu, dcomplex* fk,
 	       nufft_opts opts)
 
@@ -332,7 +309,7 @@ int finufft3d1(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag
 
 
 
-int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
+  int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
 	       int iflag,double eps, BIGINT ms, BIGINT mt, BIGINT mu,
 	       dcomplex* fk, nufft_opts opts)
 
@@ -367,7 +344,7 @@ int finufft3d2(BIGINT nj,double* xj,double *yj,double *zj,dcomplex* cj,
 
 
 
-int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
+  int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
 	       int iflag, double eps, BIGINT nk, double* s, double *t,
 	       double *u, dcomplex* fk, nufft_opts opts)
 
@@ -409,44 +386,64 @@ int finufft3d3(BIGINT nj,double* xj,double* yj,double *zj, dcomplex* cj,
 
 
 
-=====================================================
+Custom library compilation options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-3) Custom compilation options:
+You may want to make the library for other data types. Currently
+this overwrites the same library names, so you will have to move them
+to other locations if you want to keep both versions for use together.
 
-a) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
-    double-precision. Single-precision saves half the RAM, and increases
-    speed slightly (<20%). Will break matlab, octave, python interfaces.
-    However, C++, C, and fortran demos all tested in single precision.
+a) Use ``make [task] PREC=SINGLE`` for single-precision, otherwise will be
+   double-precision. Single-precision saves half the RAM, and increases
+   speed slightly (<20%). The  C++, C, and fortran demos are all tested in
+   single precision. However, it will break matlab, octave, python interfaces.
 b) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
 c) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
-    indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
-    to int.
+   indexing beats 64-bit, add flag ``-DSMALLINT`` to ``CXXFLAGS`` which sets
+   ``BIGINT`` to ``int``.
 d) If you want 32 bit integers in the FINUFFT library interface instead of
-    int64, add flag -DINTERFACE32 (experimental, C,F,M,O interfaces will break)
+   ``int64``, add flag ``-DINTERFACE32`` (experimental; C,F,M,O interfaces
+   will break)
 
 More information about large arrays:
 
 By default FINUFFT uses 64-bit integers internally and for interfacing;
-this means arguments such as the number of sources (nj) are type int64_t,
-allowing nj to equal or exceed 2^31 (around 2e9).
+this means arguments such as the number of sources (``nj``) are type int64_t,
+allowing ``nj`` to equal or exceed 2^31 (around 2e9).
 
 There is a chance the user may want to compile a custom version with
 32-bit integers internally (although we have not noticed a speed
 increase on a modern CPU). In the makefile one may add the compile
-flag -DSMALLINT for this, which changes BIGINT from int64_t to int.
+flag ``-DSMALLINT`` for this, which changes ``BIGINT`` from ``int64_t`` to ``int``.
 
 Similarly, the user may want to change the integer interface type to
-32-bit ints. The compile flag -DINTERFACE32 does this, and changes INT
-from int64_t to int.
+32-bit ints. The compile flag ``-DINTERFACE32`` does this, and changes ``INT``
+from ``int64_t`` to ``int``.
 
-See ../src/utils.h for these typedefs.
+See ``../src/utils.h`` for these typedefs.
 
-Sizes >=2^31 have been tested for C++ drivers (test/finufft?d_test.cpp), and
+Sizes >=2^31 have been tested for C++ drivers (``test/finufft?d_test.cpp``), and
 work fine, if you have enough RAM.
 
 In fortran and C the interface is still 32-bit integers, limiting to
 array sizes <2^31.
 
-In Matlab/MEX, mwrap uses int types, so that output arrays can only be <2^31.
-Input arrays >=2^31 have been tested, and while they don't crash,
+In Matlab/MEX, mwrap uses ``int`` types, so that output arrays can *only*
+be <2^31.
+However, input arrays >=2^31 have been tested, and while they don't crash,
 they result in wrong answers (all zeros). This is yet to be fixed.
+
+
+Design notes and advanced usage
+*******************************
+
+C++ is used for all main libraries, almost entirely avoiding object-oriented code. C++ ``std::complex<double>`` (aliased to ``dcomplex``) and FFTW complex types are mixed within the library, since to some extent it is a glorified driver for FFTW. The interfaces are dcomplex. FFTW was considered universal and essential enough to be a dependency for the whole package.
+
+The default FFTW plan is ``FFTW_ESTIMATE``; however if you will be making multiple calls, consider using ``opts`` to set ``fftw=FFTW_MEASURE``, which will spend many seconds planning but give the fastest speed when called again. Note that FFTW plans are saved automatically from call to call in the same executable, and the same MATLAB session.
+
+There is a hard-defined limit of ``1e11`` for internal FFT arrays, set in ``common.h``;
+if your machine has RAM of order 1TB, and you need it, set this larger and recompile. The point of this is to catch ridiculous-sized mallocs and exit gracefully.
+Note that mallocs smaller than this, but which still exceed available RAM, cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc.
+
+As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0).
+

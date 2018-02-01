@@ -3,13 +3,18 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-FINUFFT:  Flatiron Institute Nonuniform Fast Fourier Transform
-==============================================================
+Flatiron Institute Nonuniform Fast Fourier Transform
+====================================================
 
-This is a set of libraries to compute efficiently the nonuniform FFT
+.. image:: logo.png
+    :width: 45%
+.. image:: spreadpic.png
+    :width: 54%
+	    
+`FINUFFT <https://github.com/ahbarnett/finufft>`_ is a set of libraries to compute efficiently three types of nonuniform fast Fourier transform
 (NUFFT) to a specified precision, in one, two, or three dimensions,
 on a multi-core shared-memory machine.
-The library has a very simple interface without any precomputation steps,
+The library has a very simple interface, does not need any precomputation step,
 is written in C++ (using OpenMP and FFTW),
 and has wrappers to C, fortran, MATLAB, octave, and python.
 As an example, given $M$ arbitrary real numbers $x_j$ and complex
@@ -39,10 +44,11 @@ The FINUFFT library achieves its speed via several innovations including:
 #. Blocked multithreading of the type-1 spreading operation
 
 For the same accuracy in 3D, the
-library is 2-10 times faster on a single core than the
+library is 2-12 times faster on a single core than the
 single-threaded fast Gaussian gridding `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_, and in the multi-core setting is
-faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_ even when the latter is allowed a full precomputation of the kernel.
-Our library does not require precomputation and uses minimal RAM overhead.
+usually faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_ even when the latter is allowed a RAM-intensive full precomputation of the kernel. This is especially true for highly non-uniform point
+distributions and/or high precision.
+Our library does not require precomputation and uses minimal RAM.
 
 
 
@@ -51,9 +57,12 @@ Our library does not require precomputation and uses minimal RAM overhead.
 	   
    install
    math
-   files
+   dirs
+   usage
    matlab
-   pythoninterface	      
+   pythoninterface
+   juliainterface
+   issues
    ackn
    refs
    

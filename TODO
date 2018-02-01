@@ -1,35 +1,49 @@
 Current list of items to do for FINUFFT library
+===============================================
 
-HIGH PRIORITY:
 
-* understand rare segfaults from matlab.
+TRACTABLE USER PROJECTS - PLEASE HELP:
+
+* Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? - C++ template the spreader and all inside it?
+
+* Professionalize the single-precision version:
+ - decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
+ - fix matlab, octave, and python interfaces for single-prec.
+
+* Get huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
+
+* Package as RPM and .deb for linux
+
+
+HIGH PRIORITY TODO:
+
+* understand rare segfaults one user reported calling from matlab.
 * understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
-* real-valued spreader option - but how avoid code duplication? - C++ template the spreader and all inside it?
-* doc/manual webpage -> readthedocs, w/ Flatiron logo; host at FI github.
-* check possible transpose error for 2d,3d, found by David.
-* Decide if non vs omp get different lib names.
-* decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
-* related to above, fix matlab, octave, and python interfaces for single-prec.
-* speed and parallel scaling for uniform and surface-like NU pts dists, figures
+* docs add Flatiron logo; host at FI github.
+* Decide if non vs omp get different lib names?
 * add the other C interfaces to finufft_c, after understand if use of _Complex is good.
-* run nufft_comparison, use for paper. Compare vs NFFT (Chemnitz), maybe gpuNUFFT (Knoll)
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) better install notes.
-* Licensing: deal with Nick Hale's Gauss-Legendre nodes code is GPL - replace w/ any small-n G-L code, eg legendre GLR with hellskitchen BSD version.
+* Licensing of G-L quad code: swap out Nick Hale's Gauss-Legendre nodes code, is GPL, replace w/ any small-n G-L code, eg legendre GLR with hellskitchen BSD version.
+* Writing:
+ - speed and parallel scaling for uniform and surface-like NU pts dists, figures
+ - finish nufft_comparison for paper; type 2,3. Compare vs NFFT (Chemnitz), maybe gpuNUFFT (Knoll)
 * release, outreach, users, NA-Digest
 
-LOW PRIORITY:
 
+LOWER PRIORITY TODO:
+
+* check possible transpose convention for 2d,3d, found by David S.
+* Intel MKL FFT interface option instead of FFTW?
+* docs: format equation numbers on same line in sphinx+mathjax
 * swap out mallocs for std:vector in finufft?
-* recoup DFM's PyPI publishing of finufftpy
-* remove mcwrap dir
+* recoup DFM's PyPI publishing of finufftpy, maybe awkward
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
 * test huge arrays >=2^31 2d, 3d in C++.
 * test huge arrays >=2^31 in octave/mex.
 * allow fortran interface to access >=2^31 arrays; make int*8 default in interface?
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
-* clean up tree, remove unused contrib, mcwrap
-* package RPM and .deb for linux
 * figure out how to set up path to link to shared library - rpath?
 * MS Windows test
 * rewrite fftw3 plans via 64bit guru interface to allow eg 1024^3 type 1 or 2 in 3D. Not sure needed (only for huge 1d transforms). see http://www.fftw.org/fftw3_doc/Guru-Interface.html#Guru-Interface
+* R interface

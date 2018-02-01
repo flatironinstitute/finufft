@@ -1,6 +1,13 @@
 Installation
 ============
 
+Obtaining FINUFFT
+*****************
+
+Go to the github page https://github.com/ahbarnett/finufft and
+follow instructions (eg see the green button).
+
+
 Dependencies
 ************
 
@@ -85,7 +92,7 @@ Compile and test FINUFFT via::
 
   make test
 
-or, to use all available cores::
+or, to compile using all available cores::
 
   make test -j
 
@@ -95,7 +102,8 @@ edit ``makefile.local`` to adjust compiler and other library options,
 and use ``make -f makefile.local test``.
 Run ``make`` without arguments for full list of possible make tasks.
 
-If there is an error in testing, consider filing a bug report as a New
+If there is an error in testing on a standard set-up,
+please file a bug report as a New
 Issue at https://github.com/ahbarnett/finufft/issues
 
 
