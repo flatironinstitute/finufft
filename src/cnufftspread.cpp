@@ -451,6 +451,27 @@ FLT evaluate_kernel(FLT x, const spread_opts &opts)
     return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
 }
 
+static inline void evaluate_kernel_line(FLT* ker, FLT x1, const spread_opts &opts)
+/* Same as above, but operates on a vector
+ */
+{
+  int ns = opts.nspread;
+  FLT b = opts.ES_beta;
+  FLT c = opts.ES_c;
+  for (int i = 0; i <= ns; i++) {
+    FLT x = x1 + (FLT) i;
+    ker[i] = (b * sqrt(1.0 - c*x*x));
+  }
+  // It seems compiler can optimize this best when exponentials are separated
+  for (int i = 0; i <= ns; i++)
+    ker[i] = exp(ker[i]);
+  // Separate check from arithmetic
+  for (int i = 0; i <= ns; i++)
+    if (abs(x1 + (FLT) i)>=opts.ES_halfwidth) ker[i] = 0.0;
+}
+
+    
+
 FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
 // Version of the above just for timing purposes!!! Gives wrong answer
 {
@@ -469,8 +490,12 @@ void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
   int ns=opts.nspread;
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
+#ifndef EXPVECT
       for (int i = 0; i <= ns; i++)
 	ker[i] = evaluate_kernel(x1 + (FLT)i, opts);
+#else      
+      evaluate_kernel_line(ker, x1, opts);
+#endif
     else
       for (int i = 0; i <= ns; i++)
 	ker[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);

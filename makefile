@@ -72,6 +72,12 @@ CXXFLAGS += -DVECT
 CFLAGS += -DVECT
 endif
 
+# (experimental) try to get compiler to optimize exponentials
+ifeq ($(EXPVECT),ON)
+CXXFLAGS += -DEXPVECT
+CFLAGS += -DEXPVECT
+endif
+
 # ======================================================================
 
 # objects to compile: spreader...
