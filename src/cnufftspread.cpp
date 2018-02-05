@@ -667,47 +667,6 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 #endif
 }
 
-
-static inline void spread_line(FLT *du, FLT *ker, FLT re0, FLT im0, int ns, BIGINT j)
-/* Critical inner loop used in spread_subproblem_1/2/3d
- */
-{
-#ifndef VECT
-  // Non-vectorized
-  for (int dx=0; dx<ns; ++dx) {
-    FLT k = ker[dx];
-    du[2*j] += re0*k;
-    du[2*j+1] += im0*k;
-    ++j;
-  }
-#else
-#ifdef SINGLE
-  // Vectorization for 32-bit floats
-  __m128 vec_src, vec_ker, vec_val, vec_dummy; // 128-bit registers
-  vec_src = _mm_set_ps(0.0, 0.0, im0, re0); // Only use lower elements
-  __m64* du64 = (__m64*) du; // Pointer to 64-bit chunks
-  for (int dx=0; dx<ns; ++dx) {
-      vec_ker = _mm_load_ps1(ker+dx); // Load and duplicate into all elements
-      vec_val = _mm_loadl_pi(vec_dummy, du64+j); // Load 64 bits into lower two elements
-      vec_val = _mm_add_ps(vec_val, _mm_mul_ps(vec_ker, vec_src));
-      _mm_storel_pi(du64+j, vec_val); // Store lower two elements
-      ++j;
-  }
-#else
-  // Vectorization for 64-bit floats
-  __m128d vec_src, vec_ker, vec_val; // 128-bit registers	
-  vec_src = _mm_set_pd(im0, re0);	
-  for (int dx=0; dx<ns; ++dx) {
-      vec_ker = _mm_loaddup_pd(ker+dx); // Load and duplicate into both halves
-      vec_val = _mm_load_pd(du+2*j);
-      vec_val = _mm_add_pd(vec_val, _mm_mul_pd(vec_ker, vec_src));
-      _mm_store_pd(du+2*j, vec_val);
-      ++j;
-  }
-#endif
-#endif
-}
-
 void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
 			  FLT *kx,FLT *dd,
 			  const spread_opts& opts)
@@ -730,7 +689,12 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
     fill_kernel_line(x1,opts,ker);
     // critical inner loop: 
     BIGINT j=i1;
-    spread_line(du, ker, re0, im0, ns, j);
+    for (int dx=0; dx<ns; ++dx) {
+      FLT k = ker[dx];
+      du[2*j] += re0*k;
+      du[2*j+1] += im0*k;
+      ++j;
+    }
   }
 }
 
@@ -756,14 +720,21 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
     fill_kernel_line(x1, opts, ker1);
-    fill_kernel_line(x2, opts, ker2);    
+    fill_kernel_line(x2, opts, ker2);
+    // Combine kernel with complex source value 
+    FLT ker1val[2*MAX_NSPREAD];
+    for (int i = 0; i < ns; i++) {
+      ker1val[2*i] = re0*ker1[i];
+      ker1val[2*i+1] = im0*ker1[i];	
+    }    
     // critical inner loop:
     for (int dy=0; dy<ns; ++dy) {
       BIGINT j = N1*(i2+dy) + i1;
       FLT kerval = ker2[dy];
-      FLT reval = re0*kerval;
-      FLT imval = im0*kerval;
-      spread_line(du, ker1, reval, imval, ns, j);      
+      FLT *trg = du+2*j;
+      for (int dx=0; dx<2*ns; ++dx) {
+	trg[dx] += kerval*ker1val[dx];
+      }	
     }
   }
 }
@@ -793,16 +764,23 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
     FLT x3 = (FLT)i3 - kz[i];
     fill_kernel_line(x1, opts, ker1);
     fill_kernel_line(x2, opts, ker2);
-    fill_kernel_line(x3, opts, ker3);    
+    fill_kernel_line(x3, opts, ker3);
+    // Combine kernel with complex source value 
+    FLT ker1val[2*MAX_NSPREAD];
+    for (int i = 0; i < ns; i++) {
+      ker1val[2*i] = re0*ker1[i];
+      ker1val[2*i+1] = im0*ker1[i];	
+    }    
     // critical inner loop:
     for (int dz=0; dz<ns; ++dz) {
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; ++dy) {
 	BIGINT j = oz + N1*(i2+dy) + i1;
 	FLT kerval = ker2[dy]*ker3[dz];
-	FLT reval = re0*kerval;
-	FLT imval = im0*kerval;
-	spread_line(du, ker1, reval, imval, ns, j);
+	FLT *trg = du+2*j;
+	for (int dx=0; dx<2*ns; ++dx) {
+	  trg[dx] += kerval*ker1val[dx];
+	}	
       }
     }
   }
