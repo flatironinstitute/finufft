@@ -814,6 +814,8 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * Notes: I compared RAM usage against declaring an internal vector and passing
  * back; the latter used more RAM and was slower.
  * Avoided the bins array, as in JFM's spreader of 2016.
+ *
+ * Timings: 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
@@ -823,6 +825,7 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   BIGINT nbins = nbins1*nbins2*nbins3;
   
   std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
+  //#pragma omp parallel for schedule(dynamic,10000) //collision incr counts!
   for (BIGINT i=0; i<M; i++) {
     // find the bin index in however many dims are needed
     BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
@@ -836,6 +839,7 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   for (BIGINT i=1; i<nbins; i++)
     offsets[i]=offsets[i-1]+counts[i-1];
   std::vector<BIGINT> inv(M);           // fill inverse map
+  // #pragma omp parallel for schedule(dynamic,10000)  //collision incrementing offsets!
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
     BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
@@ -847,6 +851,7 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     inv[i]=offset;
   }
   // invert the map, writing to output pointer
+#pragma omp parallel for schedule(dynamic,10000)
   for (BIGINT i=0; i<M; i++)
     ret[inv[i]]=i;
 }
