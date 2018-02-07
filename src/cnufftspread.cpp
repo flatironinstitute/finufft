@@ -158,7 +158,7 @@ int cnufftspread(
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
-    if (opts.debug) printf("NU bnds check: %g s\n",timer.elapsedsec());
+    if (opts.debug) printf("NU bnds check:\t\t%g s\n",timer.elapsedsec());
   }
 
   timer.start();                 // if needed, sort all the NU pts...
@@ -166,12 +166,12 @@ int cnufftspread(
   if (opts.sort)
     // store good permutation ordering of all NU pts (dim=1,2 or 3)
     // Note: was 16,4,4. This seems a bit faster to sort, no hit in spread:
-    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,256,8,2);
+    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,256,4,4);
   else
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation
   if (opts.debug)
-    printf("sort time (sort=%d): %.3g s\n",(int)opts.sort,timer.elapsedsec());
+    printf("sort time (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
   
 
   if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
@@ -255,8 +255,9 @@ int cnufftspread(
       }
     }
     nb = s.size();
-    if (opts.debug) printf("subprobs setup %.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
-    
+    if (opts.debug) printf("subprobs setup\t\t%.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
+
+    timer.start();
 #pragma omp parallel for schedule(dynamic,1)
     for (int isub=0; isub<nb; isub++) { // Main loop through the subproblems
       std::vector<BIGINT> inds = s.at(isub).nonuniform_indices;
@@ -349,6 +350,7 @@ int cnufftspread(
     
   } else {          // ================= direction 2 (interpolation) ===========
 
+    timer.start();
 #pragma omp parallel for schedule(dynamic,10000) // (dynamic not needed) assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i++) {   // main loop over NU targs, interp each from U
       BIGINT j=sort_indices[i];    // j current index in input NU targ list
@@ -383,6 +385,7 @@ int cnufftspread(
     }    // end NU targ loop
   }                           // ================= end direction choice ========
   
+  if (opts.debug) printf("pure spread stage: \t%.3g s\n",timer.elapsedsec());
   free(sort_indices);
   return 0;
 }
