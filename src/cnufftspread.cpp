@@ -165,7 +165,8 @@ int cnufftspread(
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   if (opts.sort)
     // store good permutation ordering of all NU pts (dim=1,2 or 3)
-    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,16,4,4);
+    // Note: was 16,4,4. This seems a bit faster to sort, no hit in spread:
+    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,256,8,2);
   else
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation
@@ -823,23 +824,38 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   nbins2 = isky ? N2/bin_size_y+1 : 1;
   nbins3 = iskz ? N3/bin_size_z+1 : 1;
   BIGINT nbins = nbins1*nbins2*nbins3;
-  
+
   std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
-  //#pragma omp parallel for schedule(dynamic,10000) //collision incr counts!
-  for (BIGINT i=0; i<M; i++) {
-    // find the bin index in however many dims are needed
-    BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-    if (isky) i2 = RESCALE(ky[i],N2,pirange)/bin_size_y;
-    if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
-    BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-    counts[bin]++;
+#pragma omp parallel
+  {
+    std::vector<BIGINT> c(nbins,0);  // each thread's local counts in each bin
+    
+#pragma omp for schedule(dynamic,10000)
+    for (BIGINT i=0; i<M; i++) {
+      // find the bin index in however many dims are needed
+      BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+      if (isky) i2 = RESCALE(ky[i],N2,pirange)/bin_size_y;
+      if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
+      BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+      c[bin]++;
+    }
+#pragma omp critical  // each thread has to take turns to add to counts output
+    for (BIGINT b=0; b<nbins; ++b)   // not multithreaded, but not v. many bins
+      counts[b] += c[b];
   }
+  
   std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
   offsets[0]=0;
+  // do: offsets = cumsum(counts).  could be multithreaded (do chunks in two
+  // passes) but not many bins, so don't bother...
   for (BIGINT i=1; i<nbins; i++)
     offsets[i]=offsets[i-1]+counts[i-1];
+  
   std::vector<BIGINT> inv(M);           // fill inverse map
-  // #pragma omp parallel for schedule(dynamic,10000)  //collision incrementing offsets!
+  // can't figure how to omp this: intrinsically sequential picking of bins
+  // omp critical on offsets[bin]++ v slow; atomic
+  // on the same is wrong.
+  //#pragma omp parallel for schedule(dynamic,10000)
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
     BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
@@ -847,10 +863,11 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     BIGINT offset=offsets[bin];
+    //#pragma omp atomic  // ...wrong since threads reading offsets out of order
     offsets[bin]++;
     inv[i]=offset;
   }
-  // invert the map, writing to output pointer
+  // invert the map, writing to output pointer (writing pattern is random)
 #pragma omp parallel for schedule(dynamic,10000)
   for (BIGINT i=0; i<M; i++)
     ret[inv[i]]=i;
