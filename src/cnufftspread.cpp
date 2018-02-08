@@ -20,6 +20,9 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du0,BIGINT M0,
 void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
 	      double bin_size_x,double bin_size_y,double bin_size_z);
+void bin_sort2(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      double bin_size_x,double bin_size_y,double bin_size_z);
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,
 		 FLT* kz0,int ns, int ndims);
@@ -166,7 +169,7 @@ int cnufftspread(
   if (opts.sort)
     // store good permutation ordering of all NU pts (dim=1,2 or 3)
     // Note: was 16,4,4. This seems a bit faster to sort, no hit in spread:
-    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,256,4,4);
+    bin_sort2(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,256,4,4);
   else
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation
@@ -820,6 +823,7 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * Avoided the bins array, as in JFM's spreader of 2016.
  *
  * Timings: 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
+ * 2/7/18: omp parallelization of some of the steps.
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
@@ -869,6 +873,109 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     //#pragma omp atomic  // ...wrong since threads reading offsets out of order
     offsets[bin]++;
     inv[i]=offset;
+  }
+  // invert the map, writing to output pointer (writing pattern is random)
+#pragma omp parallel for schedule(dynamic,10000)
+  for (BIGINT i=0; i<M; i++)
+    ret[inv[i]]=i;
+}
+
+void bin_sort2(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      double bin_size_x,double bin_size_y,double bin_size_z)
+/* Returns permutation of all nonuniform points with good RAM access,
+ * ie less cache misses for spreading, in 1D, 2D, or 3D. Better omp version2.
+ *
+ * This is achieved by binning into cuboids (of given bin_size)
+ * then reading out the indices within
+ * these boxes in the natural box order (x fastest, y med, z slowest).
+ * Finally the permutation is inverted.
+ * 
+ * Inputs: M - number of input NU points.
+ *         kx,ky,kz - length-M arrays of real coords of NU pts, in the valid
+ *                    range for RESCALE, which includes [0,N1], [0,N2], [0,N3]
+ *                    respectively, if pirange=0; or [-pi,pi] if pirange=1.
+ *         N1,N2,N3 - ranges of NU coords (set N2=N3=1 for 1D, N3=1 for 2D)
+ *         bin_size_x,y,z - what binning box size to use in each dimension
+ *                    (in rescaled coords where ranges are [0,Ni] ).
+ *                    For 1D, only bin_size_x is used; for 2D, it and bin_size_y
+ * Output:
+ *         writes to ret a vector list of indices, each in the range 0,..,M-1.
+ *         Thus, ret must have been allocated for M BIGINTs.
+ *
+ * Notes: I compared RAM usage against declaring an internal vector and passing
+ * back; the latter used more RAM and was slower.
+ * Avoided the bins array, as in JFM's spreader of 2016.
+ */
+{
+  bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
+  BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;
+  nbins2 = isky ? N2/bin_size_y+1 : 1;
+  nbins3 = iskz ? N3/bin_size_z+1 : 1;
+  BIGINT nbins = nbins1*nbins2*nbins3;
+  int nt = MIN(M,MY_OMP_GET_MAX_THREADS());
+  // printf("\tnt=%d\n",nt);
+  std::vector<BIGINT> brk(nt+1); // start NU pt indices per thread
+
+  brk[0]=0;     // divide up the M NU pts once & for all...
+  for (int t=1; t<=nt; ++t)
+    brk[t] = (BIGINT)(0.5 + M*t/(double)nt);   // start index for t'th chunk
+  std::vector<BIGINT> counts(nbins,0);  // counts of how many pts in each bin
+  std::vector< std::vector<BIGINT> > ot(nt,counts);  // offsets per thread, nt * nbins
+  {    // scope for ct
+  std::vector< std::vector<BIGINT> > ct(nt,counts);   // nt * nbins, init to 0
+
+#pragma omp parallel
+  {
+    int t = MY_OMP_GET_THREAD_NUM();
+    if (t<nt) {                      // could be nt < actual # threads
+      //printf("\tt=%d: [%d,%d]\n",t,jlo[t],jhi[t]);
+      for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+	// find the bin index in however many dims are needed
+	BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+	if (isky) i2 = RESCALE(ky[i],N2,pirange)/bin_size_y;
+	if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
+	BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+	ct[t][bin]++;               // no clash btw threads
+      }
+    }
+  }
+  for (int t=0; t<nt; ++t)
+#pragma omp parallel for schedule(dynamic,10000)     // probably useless
+    for (BIGINT b=0; b<nbins; ++b)
+      counts[b] += ct[t][b];
+  
+  std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
+  offsets[0]=0;
+  // do: offsets = [0 cumsum(counts(1:end-1))].
+  // multithread? (do chunks in 2 pass) but not many bins; don't bother...
+  for (BIGINT i=1; i<nbins; i++)
+    offsets[i]=offsets[i-1]+counts[i-1];
+
+  for (BIGINT b=0; b<nbins; ++b)  // now build offsets for each thread & bin:
+    ot[0][b] = offsets[b];                       // init
+  for (int t=1; t<nt; ++t)
+#pragma omp parallel for schedule(dynamic,10000)     // probably useless
+    for (BIGINT b=0; b<nbins; ++b)
+      ot[t][b] = ot[t-1][b]+ct[t-1][b];        // cumsum along t axis
+
+  } // frees up ct here
+  
+  std::vector<BIGINT> inv(M);           // fill inverse map
+#pragma omp parallel
+  {
+    int t = MY_OMP_GET_THREAD_NUM();
+    if (t<nt) {                      // could be nt < actual # threads
+      for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+	// find the bin index (again! but better than using RAM)
+	BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+	if (isky) i2 = RESCALE(ky[i],N2,pirange)/bin_size_y;
+	if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
+	BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+	inv[i]=ot[t][bin];   // get the offset for this NU pt and thread
+	ot[t][bin]++;               // no clash
+      }
+    }
   }
   // invert the map, writing to output pointer (writing pattern is random)
 #pragma omp parallel for schedule(dynamic,10000)
