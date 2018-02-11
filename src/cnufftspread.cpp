@@ -187,102 +187,97 @@ int cnufftspread(
     int nb = MIN(4*MY_OMP_GET_MAX_THREADS(),M);
     if (nb*opts.max_subproblem_size<M)
       nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;  // int div
-    BIGINT subprobsize=(M+nb-1)/nb;                                  // "
     std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
-    brk[0] = 0;
-    for (int p=1;p<nb;++p)
-      brk[p] = brk[p-1] + subprobsize;
-    brk[nb] = M;
+    for (int p=0;p<=nb;++p)
+      brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
     if (opts.debug) printf("zero output array\t%.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
 
     timer.start();
 #pragma omp parallel for schedule(dynamic,1)
     for (int isub=0; isub<nb; isub++) {    // Main loop through the subproblems
       BIGINT M0 = brk[isub+1]-brk[isub];   // # NU pts in this subproblem
-      if (M0>0) {              // if some NU pts in this subproblem
-	// copy the location and data vectors for the nonuniform points
-	FLT* kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
-	if (N2>1)
-	  ky0=(FLT*)malloc(sizeof(FLT)*M0);
-	if (N3>1)
-	  kz0=(FLT*)malloc(sizeof(FLT)*M0);
-	FLT* dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
-	for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
-	  BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
-	  kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
-	  if (N2>1) ky0[j]=RESCALE(ky[kk],N2,opts.pirange);
-	  if (N3>1) kz0[j]=RESCALE(kz[kk],N3,opts.pirange);
-	  dd0[j*2]=data_nonuniform[kk*2];     // real part
-	  dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
-	}
-	// get the subgrid which will include padding by roughly nspread/2
-	BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
-	get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
-	if (opts.debug>1)  // verbose
-	  if (ndims==1)
+      // copy the location and data vectors for the nonuniform points
+      FLT* kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
+      if (N2>1)
+	ky0=(FLT*)malloc(sizeof(FLT)*M0);
+      if (N3>1)
+	kz0=(FLT*)malloc(sizeof(FLT)*M0);
+      FLT* dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
+      for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
+	BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
+	kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
+	if (N2>1) ky0[j]=RESCALE(ky[kk],N2,opts.pirange);
+	if (N3>1) kz0[j]=RESCALE(kz[kk],N3,opts.pirange);
+	dd0[j*2]=data_nonuniform[kk*2];     // real part
+	dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
+      }
+      // get the subgrid which will include padding by roughly nspread/2
+      BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
+      get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
+      if (opts.debug>1)  // verbose
+	if (ndims==1)
 	    printf("subgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
-	  else if (ndims==2)
-	    printf("subgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
-	  else
-	    printf("subgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
-	for (BIGINT j=0; j<M0; j++) {
-	  kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
-	  if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
-	  if (N3>1) kz0[j]-=offset3;  // only access if 3D
-	}
-	// allocate output data for this subgrid
-	FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
-
+	else if (ndims==2)
+	  printf("subgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
+	else
+	  printf("subgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
+      for (BIGINT j=0; j<M0; j++) {
+	kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
+	if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
+	if (N3>1) kz0[j]-=offset3;  // only access if 3D
+      }
+      // allocate output data for this subgrid
+      FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
+      
 	// Spread to subgrid without need for bounds checking or wrapping
-	if (!(opts.flags & TF_OMIT_SPREADING))
-	  if (ndims==1)
-	    spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
-	  else if (ndims==2)
-	    spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
-	  else
-	    spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
-	
-	// Add the subgrid to output grid, wrapping (slower). Works in all dims.
-	std::vector<BIGINT> o1(size1), o2(size2), o3(size3);  // alloc 1d output ptr lists
-	BIGINT x=offset1, y=offset2, z=offset3;  // fill lists with wrapping...
-	for (int i=0; i<size1; ++i) {
-	  if (x<0) x+=N1;
-	  if (x>=N1) x-=N1;
-	  o1[i] = x++;
-	}
-	for (int i=0; i<size2; ++i) {
-	  if (y<0) y+=N2;
-	  if (y>=N2) y-=N2;
-	  o2[i] = y++;
-	}
-	for (int i=0; i<size3; ++i) {
-	  if (z<0) z+=N3;
+      if (!(opts.flags & TF_OMIT_SPREADING))
+	if (ndims==1)
+	  spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
+	else if (ndims==2)
+	  spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
+	else
+	  spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
+      
+      // Add the subgrid to output grid, wrapping (slower). Works in all dims.
+      std::vector<BIGINT> o1(size1), o2(size2), o3(size3);  // alloc 1d output ptr lists
+      BIGINT x=offset1, y=offset2, z=offset3;  // fill lists with wrapping...
+      for (int i=0; i<size1; ++i) {
+	if (x<0) x+=N1;
+	if (x>=N1) x-=N1;
+	o1[i] = x++;
+      }
+      for (int i=0; i<size2; ++i) {
+	if (y<0) y+=N2;
+	if (y>=N2) y-=N2;
+	o2[i] = y++;
+      }
+      for (int i=0; i<size3; ++i) {
+	if (z<0) z+=N3;
 	  if (z>=N3) z-=N3;
 	  o3[i] = z++;
-	}
+      }
 #pragma omp critical
-	{  // do the adding of subgrid to output; only here threads cannot clash
-	  int p=0;  // pointer into subgrid; this triple loop works in all dims
-	  if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
-	    for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
-	      BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
-	      for (int dy=0; dy<size2; dy++) {
-		BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
-		for (int dx=0; dx<size1; dx++) {
-		  BIGINT j = oy + o1[dx];
-		  data_uniform[2*j] += du0[2*p];
-		  data_uniform[2*j+1] += du0[2*p+1];
-		  ++p;                    // advance input ptr through subgrid
-		}
+      {  // do the adding of subgrid to output; only here threads cannot clash
+	int p=0;  // pointer into subgrid; this triple loop works in all dims
+	if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
+	  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
+	    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
+	    for (int dy=0; dy<size2; dy++) {
+	      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
+	      for (int dx=0; dx<size1; dx++) {
+		BIGINT j = oy + o1[dx];
+		data_uniform[2*j] += du0[2*p];
+		data_uniform[2*j+1] += du0[2*p+1];
+		++p;                    // advance input ptr through subgrid
 	      }
 	    }
-	} // end critical block
+	  }
+      } // end critical block
 	// free up stuff from this subprob... (that was malloc'ed by hand)
-	free(dd0); free(du0);
-	free(kx0);
+      free(dd0); free(du0);
+      free(kx0);
 	if (N2>1) free(ky0);
 	if (N3>1) free(kz0); 
-      }
     }     // end main loop over subprobs
     
   } else {          // ================= direction 2 (interpolation) ===========
@@ -845,8 +840,8 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   int nt = MIN(M,MY_OMP_GET_MAX_THREADS());      // printf("\tnt=%d\n",nt);
   std::vector<BIGINT> brk(nt+1); // start NU pt indices per thread
 
-  brk[0]=0;     // distribute the M NU pts to threads once & for all...
-  for (int t=1; t<=nt; ++t)
+  // distribute the M NU pts to threads once & for all...
+  for (int t=0; t<=nt; ++t)
     brk[t] = (BIGINT)(0.5 + M*t/(double)nt);   // start index for t'th chunk
   std::vector<BIGINT> counts(nbins,0);  // counts of how many pts in each bin
   std::vector< std::vector<BIGINT> > ot(nt,counts); // offsets per thread, nt * nbins
