@@ -193,7 +193,7 @@ int cnufftspread(
     for (int p=1;p<nb;++p)
       brk[p] = brk[p-1] + subprobsize;
     brk[nb] = M;
-    if (opts.debug) printf("subprobs setup\t\t%.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
+    if (opts.debug) printf("zero output array\t%.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
 
     timer.start();
 #pragma omp parallel for schedule(dynamic,1)
