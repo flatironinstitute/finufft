@@ -6,7 +6,7 @@
 
 int usage()
 {
-  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort data) or 1 (do, default)\n\tflags : expert timing flags (see cnufftspread.h)\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 1\n");
+  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort data) or 1 (do, default)\n\tflags : expert timing flags (see cnufftspread.h)\n\tdebug : 0 (less text out), 1 (more), 2 (lots)\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 1\n");
 }
 
 int main(int argc, char* argv[])
@@ -14,14 +14,14 @@ int main(int argc, char* argv[])
  * It checks speed, and basic correctness via the grid sum of the result.
  * See usage() for usage.
  *
- * Example: spreadtestnd 3 8e6 8e6 1e-6 1 0
+ * Example: spreadtestnd 3 8e6 8e6 1e-6 1 0 1
  *
  * Compilation (also check ../makefile):
  *    g++ spreadtestnd.cpp ../src/cnufftspread.o ../src/utils.o -o spreadtestnd -fPIC -Ofast -funroll-loops -fopenmp
  *
  * Magland; expanded by Barnett 1/14/17. Better cmd line args 3/13/17
  * indep setting N 3/27/17. parallel rand() & sort flag 3/28/17
- * timing_flags 6/14/17
+ * timing_flags 6/14/17. debug control 2/8/18
  */
 {
   int d = 3;            // Cmd line args & their defaults:  default #dims
@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
   BIGINT roughNg = 1e6; // default # U pts
   int sort = 1;         // whether to sort
   int flags = 0;        // default
+  int debug = 0;        // default
   if (argc<=1) { usage(); return 0; }
   sscanf(argv[1],"%d",&d);
   if (d<1 || d>3) {
@@ -62,6 +63,12 @@ int main(int argc, char* argv[])
   if (argc>6)
     sscanf(argv[6],"%d",&flags);
   if (argc>7) {
+    sscanf(argv[7],"%d",&debug);
+    if ((debug<0) || (debug>2)) {
+      printf("debug must be 0 or 1 o 2!\n"); usage(); return 1;
+    }
+  }
+  if (argc>8) {
     usage(); return 1;
   }
 
@@ -77,8 +84,8 @@ int main(int argc, char* argv[])
   spread_opts opts;
   setup_spreader(opts,(FLT)tol,(FLT)2.0);
   opts.pirange = 0;  // crucial, since the below has NU pts on [0,Nd] in each dim
-  //opts.chkbnds = 1;  // only for debug, since below code has correct bounds
-  opts.debug = 0;   // print more diagnostics
+  opts.chkbnds = 1;  // only for debug, since below code has correct bounds
+  opts.debug = debug;   // print more diagnostics?
   opts.sort = sort;  // for 3D: 1-6x faster on i7; but 0.5-0.9x (ie slower) on xeon!
   opts.flags = flags;
   //opts.max_subproblem_size = 1e4; // default 1e5

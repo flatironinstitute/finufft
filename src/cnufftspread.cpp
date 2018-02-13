@@ -24,15 +24,15 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du0,BIGINT M0,
 void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
 	      double bin_size_x,double bin_size_y,double bin_size_z);
+void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      double bin_size_x,double bin_size_y,double bin_size_z);
+void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      double bin_size_x,double bin_size_y,double bin_size_z);
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,
 		 FLT* kz0,int ns, int ndims);
-
-
-// subproblem object: is simply a collection of indices of nonuniform points
-struct Subproblem {
-    std::vector<BIGINT> nonuniform_indices;
-};
 
 
 int cnufftspread(
@@ -115,7 +115,8 @@ int cnufftspread(
       6 : invalid opts.spread_direction
 
    Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
-   error codes 3/13/17. pirange 3/28/17. Rewritten 6/15/17
+   error codes 3/13/17. pirange 3/28/17. Rewritten 6/15/17. parallel sort 2/9/18
+   No separate subprob indices in t-1 2/11/18.
 */
 {
   CNTime timer;
@@ -162,19 +163,20 @@ int cnufftspread(
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
-    if (opts.debug) printf("NU bnds check: %g s\n",timer.elapsedsec());
+    if (opts.debug) printf("NU bnds check:\t\t%g s\n",timer.elapsedsec());
   }
 
   timer.start();                 // if needed, sort all the NU pts...
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   if (opts.sort)
-    // store good permutation ordering of all NU pts (dim=1,2 or 3)
-    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,16,4,4);
+    // store a good permutation ordering of all NU pts (dim=1,2 or 3)
+    // Note: was 16,4,4. This seems a bit faster to sort, no hit in spread time:
+    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,256,4,4);
   else
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation
   if (opts.debug)
-    printf("sort time (sort=%d): %.3g s\n",(int)opts.sort,timer.elapsedsec());
+    printf("sort time (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
   
 
   if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
@@ -185,182 +187,117 @@ int cnufftspread(
         data_uniform[i]=0.0;
     if (M==0)                     // no NU pts
       return 0;
-    int nthr = MY_OMP_GET_MAX_THREADS();
-    std::vector<Subproblem> s;  // create set of subproblems
-    int nb;
-    
-    int nospatialsplit = 1;  // hardcoded for now
-    if (nospatialsplit) {   // split sorted inds (advanced2), could double RAM
-      nb = MIN(4*nthr,M);
-      if (nb*opts.max_subproblem_size<M)
-	nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;
-      BIGINT subprobsize=(M+nb-1)/nb;
-      s.resize(nb);
-      BIGINT offset = 0;
-      for (int p=0;p<nb;++p) {   // loop over subprobs to fill
-	BIGINT M0 = MIN(subprobsize,M-offset);  // size of this subprob
-	for (BIGINT i=0;i<M0;++i) {
-	  BIGINT j = sort_indices[i+offset];
-	  s.at(p).nonuniform_indices.push_back(j);
-	}
-	offset += M0;
-      }
-    } else {       // split by spatial boxes then by sorted inds (advanced4)
-      // *** currently too slow (30% of total time!)
-      double boxesperthr = 4.0;
-      nb = ceil(boxesperthr*nthr);  // rough number of boxes
-      int w1=N1,w2=N2,w3=N3;            // set up box sizes in any dim...
-      if (ndims==1)
-	w1 = MAX(1,ceil(N1/nb));                       // so up to ~nb boxes
-      else if (ndims==2) {
-	w1=MAX(1,ceil(N1/sqrt(nb))); w2=MAX(1,ceil(N2/sqrt(nb)));  // "
-      } else {
-	w2=MAX(1,ceil(N2/sqrt(nb))); w3=MAX(1,ceil(N3/sqrt(nb)));  // "
-      }
-      // # subproblem boxes along each dim
-      int nb1=ceil((FLT)N1/w1), nb2=ceil((FLT)N2/w2), nb3=ceil((FLT)N3/w3);
-      nb = nb1*nb2*nb3;               // update to actual # boxes
-      if (opts.debug) printf("%dx%dx%d subproblem boxes size %dx%dx%d\n",nb1,nb2,nb3,w1,w2,w3);
-      
-      s.resize(nb);  // create nb subproblems
-      for (BIGINT i=0; i<M; i++) {    // build subproblem indices in sorted order
-	BIGINT j = sort_indices[i];
-	int i1=MIN(nb1-1,floor(RESCALE(kx[j],N1,opts.pirange)/w1)); //make sure legal
-	int i2=0, i3=0;
-	if (N2>1) i2=MIN(nb2-1,floor(RESCALE(ky[j],N2,opts.pirange)/w2)); // "
-	if (N3>1) i3=MIN(nb3-1,floor(RESCALE(kz[j],N3,opts.pirange)/w3)); // "
-	int si=i1+nb1*(i2+nb2*i3);      // subproblem index
-	// append this source pt's index to the appropriate subproblem's index list
-	s.at(si).nonuniform_indices.push_back(j);  // hard to parallelize
-      }
-      
-      // split subproblems by index chunks so none exceed opts.max_subproblem_size
-      BIGINT num_nonempty_subproblems=0; // for information only (verbose output)
-      for (BIGINT i=0; i<nb; i++) {
-	std::vector<BIGINT> inds=s.at(i).nonuniform_indices;
-	BIGINT num_nonuniform_points=inds.size();
-	if (num_nonuniform_points>opts.max_subproblem_size) {
-	  BIGINT next=0;
-	  for (BIGINT j=0; j+opts.max_subproblem_size<=num_nonuniform_points; j+=opts.max_subproblem_size) {
-	    Subproblem X;   // make new subproblem
-	    X.nonuniform_indices=std::vector<BIGINT>(inds.begin()+j,inds.begin()+j+opts.max_subproblem_size);  // extracts contiguous set from vector
-	    s.push_back(X);
-	    num_nonempty_subproblems++; // for info only
-	    next=j+opts.max_subproblem_size;
-	  }
-	  // the remainder of the indices go to the ith subproblem
-	  // it is possible that this will now be an empty subproblem (that's okay)
-	  s.at(i).nonuniform_indices=std::vector<BIGINT>(inds.begin()+next,inds.end());
-	}
-	if (s.at(i).nonuniform_indices.size()>0) {
-	  num_nonempty_subproblems++;              // for info only
-	}
-      }
-    }
-    nb = s.size();
-    if (opts.debug) printf("subprobs setup %.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
-    
-#pragma omp parallel for schedule(dynamic,1)
-    for (int isub=0; isub<nb; isub++) { // Main loop through the subproblems
-      std::vector<BIGINT> inds = s.at(isub).nonuniform_indices;
-      BIGINT M0 = inds.size();   // # NU pts in this subproblem
-      if (M0>0) {              // if some NU pts in this subproblem
-	// copy the location and data vectors for the nonuniform points
-	FLT* kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
-	if (N2>1)
-	  ky0=(FLT*)malloc(sizeof(FLT)*M0);
-	if (N3>1)
-	  kz0=(FLT*)malloc(sizeof(FLT)*M0);
-	FLT* dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
-	for (BIGINT j=0; j<M0; j++) {   // todo: can avoid this copying ? ***
-	  BIGINT kk=inds[j];            // get NU pt from subprob index list
-	  kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
-	  if (N2>1) ky0[j]=RESCALE(ky[kk],N2,opts.pirange);
-	  if (N3>1) kz0[j]=RESCALE(kz[kk],N3,opts.pirange);
-	  dd0[j*2]=data_nonuniform[kk*2];     // real part
-	  dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
-	}
-	// get the subgrid which will include padding by roughly nspread/2
-	BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
-	get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
-	if (opts.debug>1)  // verbose
-	  if (ndims==1)
-	    printf("subgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
-	  else if (ndims==2)
-	    printf("subgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
-	  else
-	    printf("subgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
-	for (BIGINT j=0; j<M0; j++) {
-	  kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
-	  if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
-	  if (N3>1) kz0[j]-=offset3;  // only access if 3D
-	}
-	// allocate output data for this subgrid
-	FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
+    // Split sorted inds (jfm's advanced2), could double RAM. Choose # subprobs:
+    int nb = MIN(4*MY_OMP_GET_MAX_THREADS(),M);
+    if (nb*opts.max_subproblem_size<M)
+      nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;  // int div
+    std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
+    for (int p=0;p<=nb;++p)
+      brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
+    if (opts.debug) printf("zero output array\t%.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
 
+    timer.start();
+#pragma omp parallel for schedule(dynamic,1)
+    for (int isub=0; isub<nb; isub++) {    // Main loop through the subproblems
+      BIGINT M0 = brk[isub+1]-brk[isub];   // # NU pts in this subproblem
+      // copy the location and data vectors for the nonuniform points
+      FLT* kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
+      if (N2>1)
+	ky0=(FLT*)malloc(sizeof(FLT)*M0);
+      if (N3>1)
+	kz0=(FLT*)malloc(sizeof(FLT)*M0);
+      FLT* dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
+      for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
+	BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
+	kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
+	if (N2>1) ky0[j]=RESCALE(ky[kk],N2,opts.pirange);
+	if (N3>1) kz0[j]=RESCALE(kz[kk],N3,opts.pirange);
+	dd0[j*2]=data_nonuniform[kk*2];     // real part
+	dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
+      }
+      // get the subgrid which will include padding by roughly nspread/2
+      BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
+      get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
+      if (opts.debug>1)  // verbose
+	if (ndims==1)
+	    printf("subgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
+	else if (ndims==2)
+	  printf("subgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
+	else
+	  printf("subgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
+      for (BIGINT j=0; j<M0; j++) {
+	kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
+	if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
+	if (N3>1) kz0[j]-=offset3;  // only access if 3D
+      }
+      // allocate output data for this subgrid
+      FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
+      
 	// Spread to subgrid without need for bounds checking or wrapping
-	if (!(opts.flags & TF_OMIT_SPREADING))
-	  if (ndims==1)
-	    spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
-	  else if (ndims==2)
-	    spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
-	  else
-	    spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
-	
-	// Add the subgrid to output grid, wrapping (slower). Works in all dims.
-	std::vector<BIGINT> o1(size1), o2(size2), o3(size3);  // alloc 1d output ptr lists
-	BIGINT x=offset1, y=offset2, z=offset3;  // fill lists with wrapping...
-	for (int i=0; i<size1; ++i) {
-	  if (x<0) x+=N1;
-	  if (x>=N1) x-=N1;
-	  o1[i] = x++;
-	}
-	for (int i=0; i<size2; ++i) {
-	  if (y<0) y+=N2;
-	  if (y>=N2) y-=N2;
-	  o2[i] = y++;
-	}
-	for (int i=0; i<size3; ++i) {
-	  if (z<0) z+=N3;
+      if (!(opts.flags & TF_OMIT_SPREADING))
+	if (ndims==1)
+	  spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
+	else if (ndims==2)
+	  spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
+	else
+	  spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
+      
+      // Add the subgrid to output grid, wrapping (slower). Works in all dims.
+      std::vector<BIGINT> o1(size1), o2(size2), o3(size3);  // alloc 1d output ptr lists
+      BIGINT x=offset1, y=offset2, z=offset3;  // fill lists with wrapping...
+      for (int i=0; i<size1; ++i) {
+	if (x<0) x+=N1;
+	if (x>=N1) x-=N1;
+	o1[i] = x++;
+      }
+      for (int i=0; i<size2; ++i) {
+	if (y<0) y+=N2;
+	if (y>=N2) y-=N2;
+	o2[i] = y++;
+      }
+      for (int i=0; i<size3; ++i) {
+	if (z<0) z+=N3;
 	  if (z>=N3) z-=N3;
 	  o3[i] = z++;
-	}
+      }
 #pragma omp critical
-	{  // do the adding of subgrid to output; only here threads cannot clash
-	  int p=0;  // pointer into subgrid; this triple loop works in all dims
-	  if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
-	    for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
-	      BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
-	      for (int dy=0; dy<size2; dy++) {
-		BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
-		for (int dx=0; dx<size1; dx++) {
-		  BIGINT j = oy + o1[dx];
-		  data_uniform[2*j] += du0[2*p];
-		  data_uniform[2*j+1] += du0[2*p+1];
-		  ++p;                    // advance input ptr through subgrid
-		}
+      {  // do the adding of subgrid to output; only here threads cannot clash
+	int p=0;  // pointer into subgrid; this triple loop works in all dims
+	if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
+	  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
+	    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
+	    for (int dy=0; dy<size2; dy++) {
+	      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
+	      for (int dx=0; dx<size1; dx++) {
+		BIGINT j = oy + o1[dx];
+		data_uniform[2*j] += du0[2*p];
+		data_uniform[2*j+1] += du0[2*p+1];
+		++p;                    // advance input ptr through subgrid
 	      }
 	    }
-	} // end critical block
+	  }
+      } // end critical block
 	// free up stuff from this subprob... (that was malloc'ed by hand)
-	free(dd0); free(du0);
-	free(kx0);
+      free(dd0); free(du0);
+      free(kx0);
 	if (N2>1) free(ky0);
 	if (N3>1) free(kz0); 
-      }
     }     // end main loop over subprobs
     
   } else {          // ================= direction 2 (interpolation) ===========
 
+    timer.start();
 #pragma omp parallel for schedule(dynamic,10000) // (dynamic not needed) assign threads to NU targ pts:
-    for (BIGINT i=0; i<M; i++) {   // main loop over NU targs, interp each from U
-      BIGINT j=sort_indices[i];    // j current index in input NU targ list
+    for (BIGINT i=0; i<M; i++) {  // main loop over NU targs, interp each from U
+      BIGINT j=sort_indices[i];   // j current index in input NU targ list
     
       // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
       FLT xj=RESCALE(kx[j],N1,opts.pirange);
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
-      FLT ker1[MAX_NSPREAD], ker2[MAX_NSPREAD], ker3[MAX_NSPREAD]; // kernel values, static, up to 3D
+      // static alloc is faster, so we do it for up to 3D...
+      FLT ker1[MAX_NSPREAD], ker2[MAX_NSPREAD], ker3[MAX_NSPREAD]; // kernel values
+      
       // eval kernel values patch and use to interpolate from uniform data...
       if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
@@ -388,6 +325,7 @@ int cnufftspread(
     }    // end NU targ loop
   }                           // ================= end direction choice ========
   
+  if (opts.debug) printf("pure spread stage: \t%.3g s\n",timer.elapsedsec());
   free(sort_indices);
   return 0;
 }
@@ -811,9 +749,45 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  *         writes to ret a vector list of indices, each in the range 0,..,M-1.
  *         Thus, ret must have been allocated for M BIGINTs.
  *
+ * note: This is a wrapper which calls either single- or multi-threaded version.
+ */
+{
+  int nt = MIN(M,MY_OMP_GET_MAX_THREADS());
+  if (nt<=1)
+    bin_sort_singlethread(ret, M, kx,ky,kz, N1,N2,N3, pirange, bin_size_x,bin_size_y,bin_size_z);
+  else
+    bin_sort_multithread(ret, M, kx,ky,kz, N1,N2,N3, pirange, bin_size_x,bin_size_y,bin_size_z);
+}
+
+void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      double bin_size_x,double bin_size_y,double bin_size_z)
+/* Returns permutation of all nonuniform points with good RAM access,
+ * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-thread version.
+ *
+ * This is achieved by binning into cuboids (of given bin_size)
+ * then reading out the indices within
+ * these boxes in the natural box order (x fastest, y med, z slowest).
+ * Finally the permutation is inverted.
+ * 
+ * Inputs: M - number of input NU points.
+ *         kx,ky,kz - length-M arrays of real coords of NU pts, in the valid
+ *                    range for RESCALE, which includes [0,N1], [0,N2], [0,N3]
+ *                    respectively, if pirange=0; or [-pi,pi] if pirange=1.
+ *         N1,N2,N3 - ranges of NU coords (set N2=N3=1 for 1D, N3=1 for 2D)
+ *         bin_size_x,y,z - what binning box size to use in each dimension
+ *                    (in rescaled coords where ranges are [0,Ni] ).
+ *                    For 1D, only bin_size_x is used; for 2D, it and bin_size_y
+ * Output:
+ *         writes to ret a vector list of indices, each in the range 0,..,M-1.
+ *         Thus, ret must have been allocated for M BIGINTs.
+ *
  * Notes: I compared RAM usage against declaring an internal vector and passing
  * back; the latter used more RAM and was slower.
- * Avoided the bins array, as in JFM's spreader of 2016.
+ * Avoided the bins array, as in JFM's spreader of 2016,
+ * tidied up, early 2017, Barnett.
+ *
+ * Timings: 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
@@ -821,7 +795,7 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   nbins2 = isky ? N2/bin_size_y+1 : 1;
   nbins3 = iskz ? N3/bin_size_z+1 : 1;
   BIGINT nbins = nbins1*nbins2*nbins3;
-  
+
   std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
   for (BIGINT i=0; i<M; i++) {
     // find the bin index in however many dims are needed
@@ -832,9 +806,10 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     counts[bin]++;
   }
   std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
-  offsets[0]=0;
+  offsets[0]=0;     // do: offsets = [0 cumsum(counts(1:end-1)]
   for (BIGINT i=1; i<nbins; i++)
     offsets[i]=offsets[i-1]+counts[i-1];
+  
   std::vector<BIGINT> inv(M);           // fill inverse map
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
@@ -846,7 +821,88 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     offsets[bin]++;
     inv[i]=offset;
   }
-  // invert the map, writing to output pointer
+  // invert the map, writing to output pointer (writing pattern is random)
+  for (BIGINT i=0; i<M; i++)
+    ret[inv[i]]=i;
+}
+
+void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      double bin_size_x,double bin_size_y,double bin_size_z)
+/* Mostly-OpenMPed version of bin_sort. For documentation see: bin_sort.
+   Barnett 2/8/18
+ */
+{
+  bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
+  BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;
+  nbins2 = isky ? N2/bin_size_y+1 : 1;
+  nbins3 = iskz ? N3/bin_size_z+1 : 1;
+  BIGINT nbins = nbins1*nbins2*nbins3;
+  int nt = MIN(M,MY_OMP_GET_MAX_THREADS());      // printf("\tnt=%d\n",nt);
+  std::vector<BIGINT> brk(nt+1); // start NU pt indices per thread
+
+  // distribute the M NU pts to threads once & for all...
+  for (int t=0; t<=nt; ++t)
+    brk[t] = (BIGINT)(0.5 + M*t/(double)nt);   // start index for t'th chunk
+  std::vector<BIGINT> counts(nbins,0);  // counts of how many pts in each bin
+  std::vector< std::vector<BIGINT> > ot(nt,counts); // offsets per thread, nt * nbins
+  {    // scope for ct, the 2d array of counts in bins for each threads's NU pts
+    std::vector< std::vector<BIGINT> > ct(nt,counts);   // nt * nbins, init to 0
+
+#pragma omp parallel
+    {
+      int t = MY_OMP_GET_THREAD_NUM();
+      if (t<nt) {                      // could be nt < actual # threads
+	//printf("\tt=%d: [%d,%d]\n",t,jlo[t],jhi[t]);
+	for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+	  // find the bin index in however many dims are needed
+	  BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+	  if (isky) i2 = RESCALE(ky[i],N2,pirange)/bin_size_y;
+	  if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
+	  BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+	  ct[t][bin]++;               // no clash btw threads
+	}
+      }
+    }
+    for (int t=0; t<nt; ++t)
+#pragma omp parallel for schedule(dynamic,10000)     // probably useless
+      for (BIGINT b=0; b<nbins; ++b)
+	counts[b] += ct[t][b];
+    
+    std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
+    offsets[0]=0;
+    // do: offsets = [0 cumsum(counts(1:end-1))].
+    // multithread? (do chunks in 2 pass) but not many bins; don't bother...
+    for (BIGINT i=1; i<nbins; i++)
+      offsets[i]=offsets[i-1]+counts[i-1];
+    
+    for (BIGINT b=0; b<nbins; ++b)  // now build offsets for each thread & bin:
+      ot[0][b] = offsets[b];                       // init
+    for (int t=1; t<nt; ++t)
+#pragma omp parallel for schedule(dynamic,10000)     // probably useless
+      for (BIGINT b=0; b<nbins; ++b)
+	ot[t][b] = ot[t-1][b]+ct[t-1][b];        // cumsum along t axis
+    
+  } // scope frees up ct here
+  
+  std::vector<BIGINT> inv(M);           // fill inverse map
+#pragma omp parallel
+  {
+    int t = MY_OMP_GET_THREAD_NUM();
+    if (t<nt) {                      // could be nt < actual # threads
+      for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+	// find the bin index (again! but better than using RAM)
+	BIGINT i1=RESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+	if (isky) i2 = RESCALE(ky[i],N2,pirange)/bin_size_y;
+	if (iskz) i3 = RESCALE(kz[i],N3,pirange)/bin_size_z;
+	BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+	inv[i]=ot[t][bin];   // get the offset for this NU pt and thread
+	ot[t][bin]++;               // no clash
+      }
+    }
+  }
+  // invert the map, writing to output pointer (writing pattern is random)
+#pragma omp parallel for schedule(dynamic,10000)
   for (BIGINT i=0; i<M; i++)
     ret[inv[i]]=i;
 }

@@ -4,7 +4,7 @@
 #include "utils.h"
 
 struct nufft_opts {  // see common/finufft_default_opts() for defaults
-  int debug;          // 0: silent, 1: text timing output, 2: spread info
+  int debug;          // 0: silent, 1: text basic timing output
   int spread_debug;   // passed to spread_opts debug: 0,1 or 2
   int spread_sort;    // passed to spread_opts sort: 0 or 1
   int chkbnds;        // 0: don't check if input NU pts in [-3pi,3pi], 1: do
