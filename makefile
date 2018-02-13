@@ -66,10 +66,12 @@ OFLAGS += -lgomp
 LIBSFFT += -l$(FFTW)_threads
 endif
 
-# (experimental) explicit vectorization in spreading
+# (experimental) explicit vectorization in interpolation (only dbl prec)
 ifeq ($(VECT),ON)
+ifneq ($(PREC),SINGLE)	
 CXXFLAGS += -DVECT
 CFLAGS += -DVECT
+endif
 endif
 
 # (experimental) try to get compiler to optimize exponentials

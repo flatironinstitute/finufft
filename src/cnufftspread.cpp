@@ -8,6 +8,7 @@
 #endif
 
 // declarations of internal functions...
+static inline void evaluate_kernel_line(FLT* ker, FLT x1, const spread_opts &opts);
 void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker);
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
@@ -465,7 +466,7 @@ static inline void evaluate_kernel_line(FLT* ker, FLT x1, const spread_opts &opt
   // It seems compiler can optimize this best when exponentials are separated
   for (int i = 0; i <= ns; i++)
     ker[i] = exp(ker[i]);
-  // Separate check from arithmetic
+  // Separate check from arithmetic (Is this really needed?)
   for (int i = 0; i <= ns; i++)
     if (abs(x1 + (FLT) i)>=opts.ES_halfwidth) ker[i] = 0.0;
 }
@@ -604,7 +605,8 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 // Barnett 6/16/17
 {
   out[0] = 0.0; out[1] = 0.0;
-#if defined(VECT) && !defined(SINGLE)
+#if defined(VECT)
+  // Explicit vectorization gives a small speedup in double precision
   __m128d vec_out = _mm_setzero_pd();
 #endif
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
@@ -616,7 +618,7 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 	FLT ker23 = ker2[dy]*ker3[dz];
 	for (int dx=0; dx<ns; dx++) {
 	  FLT k = ker1[dx]*ker23;
-#if defined(VECT) && !defined(SINGLE)
+#if defined(VECT)
 	  __m128d vec_k = _mm_set1_pd(k);
 	  __m128d vec_val = _mm_load_pd(du+2*j);
 	  vec_out = _mm_add_pd(vec_out, _mm_mul_pd(vec_k, vec_val));
@@ -650,7 +652,7 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 	for (int dx=0; dx<ns; dx++) {
 	  FLT k = ker1[dx]*ker23;
 	  BIGINT j = oy + j1[dx];
-#if defined(VECT) && !defined(SINGLE)
+#if defined(VECT)
 	  __m128d vec_k = _mm_set1_pd(k);
 	  __m128d vec_val = _mm_load_pd(du+2*j);
 	  vec_out = _mm_add_pd(vec_out, _mm_mul_pd(vec_k, vec_val));
@@ -662,7 +664,7 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
       }
     }
   }
-#if defined(VECT) && !defined(SINGLE)
+#if defined(VECT)
   _mm_store_pd(out, vec_out);
 #endif
 }
