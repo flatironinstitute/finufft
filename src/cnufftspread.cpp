@@ -170,8 +170,7 @@ int cnufftspread(
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   if (opts.sort)
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
-    // Note: was 16,4,4. This seems a bit faster to sort, no hit in spread time:
-    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,256,4,4);
+    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,16,4,4);
   else
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation
