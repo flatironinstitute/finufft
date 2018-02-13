@@ -52,6 +52,8 @@ else
 SUFFIX =
 REQ_TOL = 1e-12
 CHECK_TOL = 1e-11
+CXXFLAGS += -DVECT # Interpolation has explicit vectorization only in dbl prec
+CFLAGS += -DVECT
 endif
 FFTW = fftw3$(SUFFIX)
 LIBSFFT = -l$(FFTW) -lm
@@ -64,20 +66,6 @@ FFLAGS += -fopenmp
 MFLAGS += -lgomp -D_OPENMP
 OFLAGS += -lgomp
 LIBSFFT += -l$(FFTW)_threads
-endif
-
-# (experimental) explicit vectorization in interpolation (only dbl prec)
-ifeq ($(VECT),ON)
-ifneq ($(PREC),SINGLE)	
-CXXFLAGS += -DVECT
-CFLAGS += -DVECT
-endif
-endif
-
-# (experimental) try to get compiler to optimize exponentials
-ifeq ($(EXPVECT),ON)
-CXXFLAGS += -DEXPVECT
-CFLAGS += -DEXPVECT
 endif
 
 # ======================================================================

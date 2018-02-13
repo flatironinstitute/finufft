@@ -4,7 +4,7 @@
 #include <math.h>
 
 #ifdef VECT
-#include <pmmintrin.h>
+#include <x86intrin.h>
 #endif
 
 // declarations of internal functions...
@@ -428,12 +428,7 @@ void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
   int ns=opts.nspread;
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-#ifndef EXPVECT
-      for (int i = 0; i <= ns; i++)
-	ker[i] = evaluate_kernel(x1 + (FLT)i, opts);
-#else      
       evaluate_kernel_line(ker, x1, opts);
-#endif
     else
       for (int i = 0; i <= ns; i++)
 	ker[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
