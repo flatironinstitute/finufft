@@ -27,7 +27,7 @@ Optional:
 * for Fortran wrappers: compiler such as ``gfortran``
 * for matlab/octave wrappers: MATLAB, or octave and its development libraries
 * for building new matlab/octave wrappers (experts only): ``mwrap``
-* for the python wrappers you will need ``python`` and ``pip`` (if you prefer python v2), or ``python3`` and ``pip3`` (for python v3)
+* for the python wrappers you will need ``python`` and ``pip`` (if you prefer python v2), or ``python3`` and ``pip3`` (for python v3). You will also need ``pybind11``
 
 
 Tips for installing dependencies on various operating systems

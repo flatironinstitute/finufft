@@ -22,6 +22,7 @@ Testing, bug reports:
 * Joakim Anden - catching memory leak
 * Hannah Lawrence - user testing and finding bugs
 * Marina Spivak - fortran testing
+* Hugo Strand - python bugs
   
 Helpful discussions:
 

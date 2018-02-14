@@ -408,7 +408,7 @@ FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
 }
 
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts)
-/* Fills vector args[] with kernel arguments x+[0:ns]
+/* Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
  */
 {
   int ns=opts.nspread;
