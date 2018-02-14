@@ -3,13 +3,17 @@
 #include <vector>
 #include <math.h>
 
+#ifdef VECT
+#include <x86intrin.h>
+#endif
+
 // declarations of internal functions...
-void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker);
-void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker);
-void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts, FLT* ker);
+static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);
+static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const spread_opts& opts, const int N);
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
-void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
-void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns);
+void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
+void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
+		 BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns);
 void spread_subproblem_1d(BIGINT N1,FLT *du0,BIGINT M0,FLT *kx0,FLT *dd0,
 			  const spread_opts& opts);
 void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du0,BIGINT M0,
@@ -166,8 +170,7 @@ int cnufftspread(
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   if (opts.sort)
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
-    // Note: was 16,4,4. This seems a bit faster to sort, no hit in spread time:
-    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,256,4,4);
+    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,16,4,4);
   else
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation
@@ -292,19 +295,25 @@ int cnufftspread(
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
       // static alloc is faster, so we do it for up to 3D...
-      FLT kernel_values[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
-      
+      FLT kernel_args[3*MAX_NSPREAD];    
+      FLT kernel_values[3*MAX_NSPREAD];
+      FLT *ker1 = kernel_values;
+      FLT *ker2 = kernel_values + ns;
+      FLT *ker3 = kernel_values + 2*ns;       
       // eval kernel values patch and use to interpolate from uniform data...
       if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
-	  fill_kernel_line(x1,opts,kernel_values);
-	  interp_line(&data_nonuniform[2*j],data_uniform,kernel_values,i1,N1,ns);
+	  set_kernel_args(kernel_args, x1, opts);
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, ns);	  
+	  interp_line(&data_nonuniform[2*j],data_uniform,ker1,i1,N1,ns);
 	} else if (ndims==2) {                                   // 2D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
 	  BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
 	  FLT x2=(FLT)i2-yj;
-	  fill_kernel_square(x1,x2,opts,kernel_values);
-	  interp_square(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,N1,N2,ns);
+	  set_kernel_args(kernel_args, x1, opts);
+	  set_kernel_args(kernel_args+ns, x2, opts);
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
+	  interp_square(&data_nonuniform[2*j],data_uniform,ker1,ker2,i1,i2,N1,N2,ns);
 	} else {                                                 // 3D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
 	  FLT zj=RESCALE(kz[j],N3,opts.pirange);
@@ -312,8 +321,11 @@ int cnufftspread(
 	  BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
 	  FLT x2=(FLT)i2-yj;
 	  FLT x3=(FLT)i3-zj;
-	  fill_kernel_cube(x1,x2,x3,opts,kernel_values);
-	  interp_cube(&data_nonuniform[2*j],data_uniform,kernel_values,i1,i2,i3,N1,N2,N3,ns);
+	  set_kernel_args(kernel_args, x1, opts);
+	  set_kernel_args(kernel_args+ns, x2, opts);
+	  set_kernel_args(kernel_args+2*ns, x3, opts);
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);	  
+	  interp_cube(&data_nonuniform[2*j],data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
 	}
     }    // end NU targ loop
   }                           // ================= end direction choice ========
@@ -395,79 +407,40 @@ FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
   }
 }
 
-void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
-// Fill ker with kernel values evaluated at x1+[0:ns] in 1D.
+static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts)
+/* Fills vector args[] with kernel arguments x+[0:ns]
+ */
 {
   int ns=opts.nspread;
-  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
-    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-      for (int i = 0; i <= ns; i++)
-	ker[i] = evaluate_kernel(x1 + (FLT)i, opts);
-    else
-      for (int i = 0; i <= ns; i++)
-	ker[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-  else
-    for (int i = 0; i <= ns; i++)
-      ker[i] = 1.0;        // dummy
+  for (int i=0; i<ns; i++)
+    args[i] = x + (FLT) i;
 }
 
-void fill_kernel_square(FLT x1, FLT x2, const spread_opts& opts, FLT* ker)
-// Fill ker with tensor product of kernel values evaluated at xm+[0:ns] in dims
-// m=1,2.
+static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const spread_opts& opts, const int N)
+/* Evaluate kernel for a vector of N arguments.
+ */
 {
-  int ns=opts.nspread;
-  FLT v1[MAX_NSPREAD], v2[MAX_NSPREAD];
-  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
-    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-      for (int i = 0; i < ns; i++) {
-	v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
-	v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
-      }
-    else
-      for (int i = 0; i < ns; i++) {
-	v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-	v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
-      }
-  else
-    for (int i = 0; i < ns; i++) { v1[i] = 1.0; v2[i] = 1.0; }  // dummy
-  int aa = 0; // pointer for writing to output ker array
-  for (int j = 0; j < ns; j++) {
-    FLT val2 = v2[j];
-    for (int i = 0; i < ns; i++)
-      ker[aa++] = val2 * v1[i];
-  }
-}
-
-void fill_kernel_cube(FLT x1, FLT x2, FLT x3, const spread_opts& opts,FLT* ker)
-// Fill ker with tensor product of kernel values evaluated at xm+[0:ns] in dims
-// m=1,2,3.
-{
-    int ns=opts.nspread;
-    FLT v1[MAX_NSPREAD], v2[MAX_NSPREAD], v3[MAX_NSPREAD];
-    if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
-      if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-	for (int i = 0; i < ns; i++) {
-	  v1[i] = evaluate_kernel(x1 + (FLT)i, opts);
-	  v2[i] = evaluate_kernel(x2 + (FLT)i, opts);
-	  v3[i] = evaluate_kernel(x3 + (FLT)i, opts);
-	}
-      else
-	for (int i = 0; i < ns; i++) {
-	  v1[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-	  v2[i] = evaluate_kernel_noexp(x2 + (FLT)i, opts);
-	  v3[i] = evaluate_kernel_noexp(x3 + (FLT)i, opts);
-	}
-    else
-      for (int i=0; i<ns; i++) { v1[i]=1.0; v2[i]=1.0; v3[i]=1.0; }  // dummy
-    int aa = 0; // pointer for writing to output ker array
-    for (int k = 0; k < ns; k++) {
-        FLT val3 = v3[k];
-        for (int j = 0; j < ns; j++) {
-            FLT val2 = val3 * v2[j];
-            for (int i = 0; i < ns; i++)
-                ker[aa++] = val2 * v1[i];
-        }
+  FLT b = opts.ES_beta;
+  FLT c = opts.ES_c;
+  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
+    // Note: Splitting kernel evaluation into two loops seems to benefit
+    // auto-vectorization.
+    // gcc 5.4 vectorizes first loop
+    // gcc 7.2 vectorizes both loops
+    for (int i = 0; i < N; i++) { // Loop 1: Compute exponential arguments
+      ker[i] = b * sqrt(1.0 - c*args[i]*args[i]);
     }
+    if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
+      for (int i = 0; i < N; i++) // Loop 2: Compute exponentials
+	ker[i] = exp(ker[i]);
+  } else {
+    // Dummy
+    for (int i = 0; i < N; i++)
+      ker[i] = 1.0;
+  }
+  // Separate check from arithmetic (Is this really needed?)
+  for (int i = 0; i < N; i++)
+    if (abs(args[i])>=opts.ES_halfwidth) ker[i] = 0.0;
 }
 
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
@@ -514,7 +487,7 @@ void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
   }
 }
 
-void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
+void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
 // 2D interpolate complex values from du (uniform grid data) array to out value,
 // using ns*ns square of real weights
 // in ker. out must be size 2 (real,imag), and du
@@ -526,11 +499,10 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
 {
   out[0] = 0.0; out[1] = 0.0;
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
-    int p=0;  // pointer into ker array
     for (int dy=0; dy<ns; dy++) {
       BIGINT j = N1*(i2+dy) + i1;
       for (int dx=0; dx<ns; dx++) {
-	FLT k = ker[p++];             // advance the pointer through ker
+	FLT k = ker1[dx]*ker2[dy];
 	out[0] += du[2*j] * k;
 	out[1] += du[2*j+1] * k;
 	++j;
@@ -547,11 +519,10 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
       if (y>=N2) y-=N2;
       j2[d] = y++;
     }
-    int p=0;  // pointer into ker array
     for (int dy=0; dy<ns; dy++) {      // use the pts lists
       BIGINT oy = N1*j2[dy];           // offset due to y
       for (int dx=0; dx<ns; dx++) {
-	FLT k = ker[p++];              // advance the pointer through ker
+	FLT k = ker1[dx]*ker2[dy];
 	BIGINT j = oy + j1[dx];
 	out[0] += du[2*j] * k;
 	out[1] += du[2*j+1] * k;
@@ -560,8 +531,8 @@ void interp_square(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT N1,BIGI
   }
 }
 
-void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,
-		 BIGINT N1,BIGINT N2,BIGINT N3,int ns)
+void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
+		 BIGINT i1,BIGINT i2,BIGINT i3, BIGINT N1,BIGINT N2,BIGINT N3,int ns)
 // 3D interpolate complex values from du (uniform grid data) array to out value,
 // using ns*ns*ns cube of real weights
 // in ker. out must be size 2 (real,imag), and du
@@ -572,17 +543,27 @@ void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,
 // Barnett 6/16/17
 {
   out[0] = 0.0; out[1] = 0.0;
+#if defined(VECT)
+  // Explicit vectorization gives a small speedup in double precision
+  __m128d vec_out = _mm_setzero_pd();
+#endif
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
     // no wrapping: avoid ptrs
-    int p=0;  // pointer into ker array
     for (int dz=0; dz<ns; dz++) {
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; dy++) {
 	BIGINT j = oz + N1*(i2+dy) + i1;
+	FLT ker23 = ker2[dy]*ker3[dz];
 	for (int dx=0; dx<ns; dx++) {
-	  FLT k = ker[p++];             // advance the pointer through ker
+	  FLT k = ker1[dx]*ker23;
+#if defined(VECT)
+	  __m128d vec_k = _mm_set1_pd(k);
+	  __m128d vec_val = _mm_load_pd(du+2*j);
+	  vec_out = _mm_add_pd(vec_out, _mm_mul_pd(vec_k, vec_val));
+#else
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
+#endif
 	  ++j;
 	}
       }
@@ -601,20 +582,29 @@ void interp_cube(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT i2,BIGINT i3,
       if (z>=N3) z-=N3;
       j3[d] = z++;
     }
-    int p=0;  // pointer into ker array
     for (int dz=0; dz<ns; dz++) {             // use the pts lists
       BIGINT oz = N1*N2*j3[dz];               // offset due to z
       for (int dy=0; dy<ns; dy++) {
 	BIGINT oy = oz + N1*j2[dy];           // offset due to y & z
+	FLT ker23 = ker2[dy]*ker3[dz];	
 	for (int dx=0; dx<ns; dx++) {
-	  FLT k = ker[p++];                   // advance the pointer through ker
+	  FLT k = ker1[dx]*ker23;
 	  BIGINT j = oy + j1[dx];
+#if defined(VECT)
+	  __m128d vec_k = _mm_set1_pd(k);
+	  __m128d vec_val = _mm_load_pd(du+2*j);
+	  vec_out = _mm_add_pd(vec_out, _mm_mul_pd(vec_k, vec_val));
+#else
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
+#endif
 	}
       }
     }
   }
+#if defined(VECT)
+  _mm_store_pd(out, vec_out);
+#endif
 }
 
 void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
@@ -624,21 +614,23 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
    kx (size M) are NU locations in [0,N1]
    dd (size M complex) are source strengths
    du (size N1) is uniform output array
- */
+*/
 {
   int ns=opts.nspread;
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1;++i)
     du[i] = 0.0;
+  FLT kernel_args[MAX_NSPREAD];
   FLT ker[MAX_NSPREAD];
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
-    fill_kernel_line(x1,opts,ker);
-    // critical inner loop:
-    int j=i1;
+    set_kernel_args(kernel_args, x1, opts);
+    evaluate_kernel_vector(ker, kernel_args, opts, ns);    
+    // critical inner loop: 
+    BIGINT j=i1;
     for (int dx=0; dx<ns; ++dx) {
       FLT k = ker[dx];
       du[2*j] += re0*k;
@@ -661,7 +653,10 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1*N2;++i)
     du[i] = 0.0;
-  FLT ker[MAX_NSPREAD*MAX_NSPREAD];
+  FLT kernel_args[2*MAX_NSPREAD];    
+  FLT kernel_values[2*MAX_NSPREAD];
+  FLT *ker1 = kernel_values;
+  FLT *ker2 = kernel_values + ns;  
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
@@ -669,17 +664,23 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
-    fill_kernel_square(x1,x2,opts,ker);
+    set_kernel_args(kernel_args, x1, opts);
+    set_kernel_args(kernel_args+ns, x2, opts);
+    evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);    
+    // Combine kernel with complex source value to simplify inner loop
+    FLT ker1val[2*MAX_NSPREAD];
+    for (int i = 0; i < ns; i++) {
+      ker1val[2*i] = re0*ker1[i];
+      ker1val[2*i+1] = im0*ker1[i];	
+    }    
     // critical inner loop:
-    int p=0;              // ptr to ker array
     for (int dy=0; dy<ns; ++dy) {
-      int j = N1*(i2+dy) + i1;
-      for (int dx=0; dx<ns; ++dx) {
-	FLT k = ker[p++];            // increment ker array ptr
-	du[2*j] += re0*k;
-	du[2*j+1] += im0*k;
-	++j;
-      }
+      BIGINT j = N1*(i2+dy) + i1;
+      FLT kerval = ker2[dy];
+      FLT *trg = du+2*j;
+      for (int dx=0; dx<2*ns; ++dx) {
+	trg[dx] += kerval*ker1val[dx];
+      }	
     }
   }
 }
@@ -696,8 +697,14 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
   int ns=opts.nspread;
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1*N2*N3;++i)
-    du[i] = 0.0;
-  FLT ker[MAX_NSPREAD*MAX_NSPREAD*MAX_NSPREAD];
+    du[i] = 0.0;  
+  FLT kernel_args[3*MAX_NSPREAD];
+  // Kernel values stored in consecutive memory. This allows us to compute
+  // values in all three directions in a single kernel evaluation call.
+  FLT kernel_values[3*MAX_NSPREAD];
+  FLT *ker1 = kernel_values;
+  FLT *ker2 = kernel_values + ns;
+  FLT *ker3 = kernel_values + 2*ns;  
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
@@ -707,19 +714,26 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
     FLT x3 = (FLT)i3 - kz[i];
-    fill_kernel_cube(x1,x2,x3,opts,ker);
+    set_kernel_args(kernel_args, x1, opts);
+    set_kernel_args(kernel_args+ns, x2, opts);
+    set_kernel_args(kernel_args+2*ns, x3, opts);
+    evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
+    // Combine kernel with complex source value to simplify inner loop
+    FLT ker1val[2*MAX_NSPREAD];
+    for (int i = 0; i < ns; i++) {
+      ker1val[2*i] = re0*ker1[i];
+      ker1val[2*i+1] = im0*ker1[i];	
+    }    
     // critical inner loop:
-    int p=0;              // ptr to ker array
     for (int dz=0; dz<ns; ++dz) {
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; ++dy) {
 	BIGINT j = oz + N1*(i2+dy) + i1;
-	for (int dx=0; dx<ns; ++dx) {
-	  FLT k = ker[p++];            // increment ker array ptr
-	  du[2*j] += re0*k;
-	  du[2*j+1] += im0*k;
-	  ++j;
-	}
+	FLT kerval = ker2[dy]*ker3[dz];
+	FLT *trg = du+2*j;
+	for (int dx=0; dx<2*ns; ++dx) {
+	  trg[dx] += kerval*ker1val[dx];
+	}	
       }
     }
   }

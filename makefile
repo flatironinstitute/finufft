@@ -52,6 +52,8 @@ else
 SUFFIX =
 REQ_TOL = 1e-12
 CHECK_TOL = 1e-11
+CXXFLAGS += -DVECT # Interpolation has explicit vectorization only in dbl prec
+CFLAGS += -DVECT
 endif
 FFTW = fftw3$(SUFFIX)
 LIBSFFT = -l$(FFTW) -lm
