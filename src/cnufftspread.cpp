@@ -775,25 +775,8 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
 	      double bin_size_x,double bin_size_y,double bin_size_z)
-/* Returns permutation of all nonuniform points with good RAM access,
- * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-thread version.
- *
- * This is achieved by binning into cuboids (of given bin_size)
- * then reading out the indices within
- * these boxes in the natural box order (x fastest, y med, z slowest).
- * Finally the permutation is inverted.
- * 
- * Inputs: M - number of input NU points.
- *         kx,ky,kz - length-M arrays of real coords of NU pts, in the valid
- *                    range for RESCALE, which includes [0,N1], [0,N2], [0,N3]
- *                    respectively, if pirange=0; or [-pi,pi] if pirange=1.
- *         N1,N2,N3 - ranges of NU coords (set N2=N3=1 for 1D, N3=1 for 2D)
- *         bin_size_x,y,z - what binning box size to use in each dimension
- *                    (in rescaled coords where ranges are [0,Ni] ).
- *                    For 1D, only bin_size_x is used; for 2D, it and bin_size_y
- * Output:
- *         writes to ret a vector list of indices, each in the range 0,..,M-1.
- *         Thus, ret must have been allocated for M BIGINTs.
+/* Single-threaded implementation of bin_sort. See documentation in routine
+ * bin_sort.
  *
  * Notes: I compared RAM usage against declaring an internal vector and passing
  * back; the latter used more RAM and was slower.

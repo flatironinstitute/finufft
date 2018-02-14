@@ -1,6 +1,7 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-### Alex H. Barnett and Jeremy F. Magland
+### Alex H. Barnett and Jeremy F. Magland, with accelerations by
+Ludvig af Klinteberg
 
 <img src="docs/logo.png" width="400"/>
 <img src="docs/spreadpic.png" width="400"/>

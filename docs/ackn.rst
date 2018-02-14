@@ -1,18 +1,32 @@
 Acknowledgments
 ===============
 
-The following people have helped this project through discussions, code, or bug reports:
+The main code and mathematical development is by:
+
+* Alex Barnett (Flatiron Institute)
+* Jeremy Magland (Flatiron Institute)
+    
+Significant SIMD/vectorization acceleration of the spreader is by:
+
+* Ludvig af Klinteberg (SFU)
+
+Other code contributions:
 
 * Leslie Greengard and June-Yub Lee - CMCL fortran drivers and test codes
 * Dan Foreman-Mackey - python wrappers
-* Charlie Epstein - discussion re analysis of kernel Fourier transform sums
-* Andras Pataki - complex number speed in C++
-* Marina Spivak - fortran testing
-* Christian Muller - optimization (CMA-ES) for early kernel design
-* Timo Heister - pass/fail numdiff testing ideas
-* Hannah Lawrence - user testing and finding bugs
-* Zydrunas Gimbutas - explanation that NFFT uses Kaiser-Bessel backwards
-* David Stein - feature requests and python help
-* Joakim Anden - catching memory leak
+* David Stein - python wrappers
 * Dylan Simon - sphinx help
-    
+  
+Testing, bug reports:
+
+* Joakim Anden - catching memory leak
+* Hannah Lawrence - user testing and finding bugs
+* Marina Spivak - fortran testing
+  
+Helpful discussions:
+
+* Charlie Epstein - analysis of kernel Fourier transform sums
+* Christian Muller - optimization (CMA-ES) for early kernel design
+* Andras Pataki - complex number speed in C++
+* Timo Heister - pass/fail numdiff testing ideas
+* Zydrunas Gimbutas - explanation that NFFT uses Kaiser-Bessel backwards
