@@ -67,9 +67,9 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 
   // STEP 0: get DCT of half of spread kernel in each dim, since real symm:
   CNTime timer; timer.start();
-  FLT *fwkerhalf1 = FFTW_ALLOC_RE(nf1/2+1);
-  FLT *fwkerhalf2 = FFTW_ALLOC_RE(nf2/2+1);
-  FLT *fwkerhalf3 = FFTW_ALLOC_RE(nf3/2+1);
+  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  FLT *fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   onedim_fseries_kernel(nf3, fwkerhalf3, spopts);
@@ -106,7 +106,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   deconvolveshuffle3d(1,1.0,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(FLT*)fk,nf1,nf2,nf3,fw,opts.modeord);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
-  FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2); FFTW_FR(fwkerhalf3);
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(fwkerhalf3);
   //fftw_cleanup();    // useful so doesn't show in valgrind
   if (opts.debug) printf("freed\n");
   return 0;
@@ -168,9 +168,9 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
-  FLT *fwkerhalf1 = FFTW_ALLOC_RE(nf1/2+1);
-  FLT *fwkerhalf2 = FFTW_ALLOC_RE(nf2/2+1);
-  FLT *fwkerhalf3 = FFTW_ALLOC_RE(nf3/2+1);
+  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  FLT *fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   onedim_fseries_kernel(nf3, fwkerhalf3, spopts);
@@ -207,8 +207,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
 
-  FFTW_FR(fw);
-  FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2); FFTW_FR(fwkerhalf3);
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(fwkerhalf3);
   if (opts.debug) printf("freed\n");
   return 0;
 }

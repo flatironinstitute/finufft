@@ -64,8 +64,8 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
-  FLT *fwkerhalf1 = FFTW_ALLOC_RE(nf1/2+1);
-  FLT *fwkerhalf2 = FFTW_ALLOC_RE(nf2/2+1);
+  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
@@ -103,7 +103,7 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw,opts.modeord);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
-  FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2);
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
   if (opts.debug) printf("freed\n");
   return 0;
 }
@@ -158,8 +158,8 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
-  FLT *fwkerhalf1 = FFTW_ALLOC_RE(nf1/2+1);
-  FLT *fwkerhalf2 = FFTW_ALLOC_RE(nf2/2+1);
+  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
@@ -195,7 +195,7 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
 
-  FFTW_FR(fw); FFTW_FR(fwkerhalf1); FFTW_FR(fwkerhalf2);
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
   if (opts.debug) printf("freed\n");
   return 0;
 }
