@@ -8,8 +8,8 @@
 #endif
 
 // declarations of internal functions...
-static inline void evaluate_kernel_line(FLT* ker, FLT x1, const spread_opts &opts);
-void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker);
+static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);
+static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const spread_opts& opts, const int N);
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
 void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
@@ -295,19 +295,24 @@ int cnufftspread(
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
       // static alloc is faster, so we do it for up to 3D...
-      FLT ker1[MAX_NSPREAD], ker2[MAX_NSPREAD], ker3[MAX_NSPREAD]; // kernel values
-      
+      FLT kernel_args[3*MAX_NSPREAD];    
+      FLT kernel_values[3*MAX_NSPREAD];
+      FLT *ker1 = kernel_values;
+      FLT *ker2 = kernel_values + ns;
+      FLT *ker3 = kernel_values + 2*ns;       
       // eval kernel values patch and use to interpolate from uniform data...
       if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
-	  fill_kernel_line(x1,opts,ker1);
+	  set_kernel_args(kernel_args, x1, opts);
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, ns);	  
 	  interp_line(&data_nonuniform[2*j],data_uniform,ker1,i1,N1,ns);
 	} else if (ndims==2) {                                   // 2D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
 	  BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
 	  FLT x2=(FLT)i2-yj;
-	  fill_kernel_line(x1,opts,ker1);
-	  fill_kernel_line(x2,opts,ker2);
+	  set_kernel_args(kernel_args, x1, opts);
+	  set_kernel_args(kernel_args+ns, x2, opts);
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
 	  interp_square(&data_nonuniform[2*j],data_uniform,ker1,ker2,i1,i2,N1,N2,ns);
 	} else {                                                 // 3D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
@@ -316,9 +321,10 @@ int cnufftspread(
 	  BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
 	  FLT x2=(FLT)i2-yj;
 	  FLT x3=(FLT)i3-zj;
-	  fill_kernel_line(x1,opts,ker1);
-	  fill_kernel_line(x2,opts,ker2);
-	  fill_kernel_line(x3,opts,ker3);	  
+	  set_kernel_args(kernel_args, x1, opts);
+	  set_kernel_args(kernel_args+ns, x2, opts);
+	  set_kernel_args(kernel_args+2*ns, x3, opts);
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);	  
 	  interp_cube(&data_nonuniform[2*j],data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
 	}
     }    // end NU targ loop
@@ -389,28 +395,6 @@ FLT evaluate_kernel(FLT x, const spread_opts &opts)
     return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
 }
 
-static inline void evaluate_kernel_line(FLT* ker, FLT x1, const spread_opts &opts)
-/* Same as above, but operates on a vector
- */
-{
-  int ns = opts.nspread;
-  FLT b = opts.ES_beta;
-  FLT c = opts.ES_c;
-  // Note: Splitting kernel evaluation into two loops seems to benefit
-  // auto-vectorization.
-  for (int i = 0; i < ns; i++) { // Loop 1: Compute exponential arguments
-    FLT x = x1 + (FLT) i;
-    ker[i] = (b * sqrt(1.0 - c*x*x));
-  }
-  for (int i = 0; i < ns; i++) // Loop 2: Compute exponentials
-    ker[i] = exp(ker[i]);
-  // Separate check from arithmetic (Is this really needed?)
-  for (int i = 0; i < ns; i++)
-    if (abs(x1 + (FLT) i)>=opts.ES_halfwidth) ker[i] = 0.0;
-}
-
-    
-
 FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
 // Version of the above just for timing purposes!!! Gives wrong answer
 {
@@ -423,19 +407,40 @@ FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
   }
 }
 
-void fill_kernel_line(FLT x1, const spread_opts& opts, FLT* ker)
-// Fill ker with kernel values evaluated at x1+[0:ns] in 1D.
+static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts)
+/* Fills vector args[] with kernel arguments x+[0:ns]
+ */
 {
   int ns=opts.nspread;
-  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL))
+  for (int i=0; i<ns; i++)
+    args[i] = x + (FLT) i;
+}
+
+static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const spread_opts& opts, const int N)
+/* Evaluate kernel for a vector of N arguments.
+ */
+{
+  FLT b = opts.ES_beta;
+  FLT c = opts.ES_c;
+  if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
+    // Note: Splitting kernel evaluation into two loops seems to benefit
+    // auto-vectorization.
+    // gcc 5.4 vectorizes first loop
+    // gcc 7.2 vectorizes both loops
+    for (int i = 0; i < N; i++) { // Loop 1: Compute exponential arguments
+      ker[i] = b * sqrt(1.0 - c*args[i]*args[i]);
+    }
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-      evaluate_kernel_line(ker, x1, opts);
-    else
-      for (int i = 0; i < ns; i++)
-	ker[i] = evaluate_kernel_noexp(x1 + (FLT)i, opts);
-  else
-    for (int i = 0; i < ns; i++)
-      ker[i] = 1.0;        // dummy
+      for (int i = 0; i < N; i++) // Loop 2: Compute exponentials
+	ker[i] = exp(ker[i]);
+  } else {
+    // Dummy
+    for (int i = 0; i < N; i++)
+      ker[i] = 1.0;
+  }
+  // Separate check from arithmetic (Is this really needed?)
+  for (int i = 0; i < N; i++)
+    if (abs(args[i])>=opts.ES_halfwidth) ker[i] = 0.0;
 }
 
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
@@ -615,13 +620,15 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1;++i)
     du[i] = 0.0;
+  FLT kernel_args[MAX_NSPREAD];
   FLT ker[MAX_NSPREAD];
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
-    fill_kernel_line(x1,opts,ker);
+    set_kernel_args(kernel_args, x1, opts);
+    evaluate_kernel_vector(ker, kernel_args, opts, ns);    
     // critical inner loop: 
     BIGINT j=i1;
     for (int dx=0; dx<ns; ++dx) {
@@ -646,7 +653,10 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1*N2;++i)
     du[i] = 0.0;
-  FLT ker1[MAX_NSPREAD], ker2[MAX_NSPREAD];
+  FLT kernel_args[2*MAX_NSPREAD];    
+  FLT kernel_values[2*MAX_NSPREAD];
+  FLT *ker1 = kernel_values;
+  FLT *ker2 = kernel_values + ns;  
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
@@ -654,9 +664,10 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
-    fill_kernel_line(x1, opts, ker1);
-    fill_kernel_line(x2, opts, ker2);
-    // Combine kernel with complex source value 
+    set_kernel_args(kernel_args, x1, opts);
+    set_kernel_args(kernel_args+ns, x2, opts);
+    evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);    
+    // Combine kernel with complex source value to simplify inner loop
     FLT ker1val[2*MAX_NSPREAD];
     for (int i = 0; i < ns; i++) {
       ker1val[2*i] = re0*ker1[i];
@@ -686,8 +697,14 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
   int ns=opts.nspread;
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1*N2*N3;++i)
-    du[i] = 0.0;
-  FLT ker1[MAX_NSPREAD], ker2[MAX_NSPREAD], ker3[MAX_NSPREAD];
+    du[i] = 0.0;  
+  FLT kernel_args[3*MAX_NSPREAD];
+  // Kernel values stored in consecutive memory. This allows us to compute
+  // values in all three directions in a single kernel evaluation call.
+  FLT kernel_values[3*MAX_NSPREAD];
+  FLT *ker1 = kernel_values;
+  FLT *ker2 = kernel_values + ns;
+  FLT *ker3 = kernel_values + 2*ns;  
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
@@ -697,10 +714,11 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
     FLT x3 = (FLT)i3 - kz[i];
-    fill_kernel_line(x1, opts, ker1);
-    fill_kernel_line(x2, opts, ker2);
-    fill_kernel_line(x3, opts, ker3);
-    // Combine kernel with complex source value 
+    set_kernel_args(kernel_args, x1, opts);
+    set_kernel_args(kernel_args+ns, x2, opts);
+    set_kernel_args(kernel_args+2*ns, x3, opts);
+    evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
+    // Combine kernel with complex source value to simplify inner loop
     FLT ker1val[2*MAX_NSPREAD];
     for (int i = 0; i < ns; i++) {
       ker1val[2*i] = re0*ker1[i];
