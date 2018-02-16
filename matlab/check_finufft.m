@@ -53,8 +53,8 @@ fprintf('2D type-1: rel err in F[%d,%d] is %.3g\n',nt1,nt2,abs((fe-f(nt1+of1,nt2
 f = randn(N1,N2)+1i*randn(N1,N2);
 [c ier] = finufft2d2(x,y,isign,eps,f,o);
 [ms mt]=size(f);
-% NB non-obvious ordering here, to make meshgrid loop over ms fast, mt slow:
-[mm2,mm1] = meshgrid(ceil(-mt/2):floor((mt-1)/2),ceil(-ms/2):floor((ms-1)/2));
+% ndgrid loops over ms fast, mt slow:
+[mm1,mm2] = ndgrid(ceil(-ms/2):floor((ms-1)/2),ceil(-mt/2):floor((mt-1)/2));
 ce = sum(f(:).*exp(1i*isign*(mm1(:)*x(j)+mm2(:)*y(j))));
 fprintf('2D type-2: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 
@@ -80,8 +80,8 @@ fprintf('3D type-1: rel err in F[%d,%d,%d] is %.3g\n',nt1,nt2,nt3,abs((fe-f(nt1+
 f = randn(N1,N2,N3)+1i*randn(N1,N2,N3);
 [c ier] = finufft3d2(x,y,z,isign,eps,f,o);
 [ms mt mu]=size(f);
-% NB tricky ordering here, to make meshgrid loop over ms fastest, mu slowest:
-[mm2,mm1,mm3] = meshgrid(ceil(-mt/2):floor((mt-1)/2),ceil(-ms/2):floor((ms-1)/2),ceil(-mu/2):floor((mu-1)/2));
+% ndgrid loops over ms fastest, mu slowest:
+[mm1,mm2,mm3] = ndgrid(ceil(-ms/2):floor((ms-1)/2),ceil(-mt/2):floor((mt-1)/2),ceil(-mu/2):floor((mu-1)/2));
 ce = sum(f(:).*exp(1i*isign*(mm1(:)*x(j)+mm2(:)*y(j)+mm3(:)*z(j))));
 fprintf('3D type-2: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 
