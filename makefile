@@ -179,8 +179,8 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 	time -p $(F3)
 
 # matlab .mex* executable...
-matlab: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
-	$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.o $(MFLAGS) $(LIBSFFT) -output matlab/finufft
+matlab: lib-static/libfinufft.a $(HEADERS)
+	$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.cpp $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
 # octave .mex executable... (notice also creates matlab/finufft.o, but why?)
 octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
