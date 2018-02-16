@@ -1,7 +1,7 @@
 # Jeremy Magland, Sept 2017.
 # Alex Barnett fixed integer division issue in python v2 vs v3
 #              (affected 1/2, 1/3), 10/13/17.
-# Removed ms etc from ?d2 interfaces, 10/31/17.
+# Removed ms etc from ?d2 interfaces, 10/31/17. Less reruns 2/14/18
 
 import numpy as np
 import finufftpy
@@ -26,7 +26,7 @@ def print_report(label,elapsed,Xest,Xtrue,npts):
 def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	nj,nk = int(num_nonuniform_points),int(num_nonuniform_points)
 	iflag=1
-	num_samples=int(np.minimum(20,num_uniform_points*0.5+1)) #for estimating accuracy
+	num_samples=int(np.minimum(3,num_uniform_points*0.5+1)) #for estimating accuracy
 
 	print('Accuracy and speed tests for %d nonuniform points and eps=%g (error estimates use %d samples per run)' % (num_nonuniform_points,eps,num_samples))
 

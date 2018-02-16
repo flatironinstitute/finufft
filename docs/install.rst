@@ -125,9 +125,9 @@ Building the python wrappers
 ****************************
 
 First make sure you have python3 and pip3 (or python and pip) installed and that you have already compiled the C++ library (eg via ``make lib``). Next make
-sure you have NumPy installed::
+sure you have NumPy and pybind11 installed::
   
-  pip3 install numpy
+  pip3 install numpy pybind11
 
 Then do the following from the main ``finufft`` install directory::
 

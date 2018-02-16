@@ -1,5 +1,5 @@
 # Makefile for FINUFFT.
-# Barnett 12/6/17
+# Barnett 2/16/18
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # If users need to edit this makefile, it is recommended that they first
@@ -11,10 +11,13 @@
 #    double-precision. Single-precision saves half the RAM, and increases
 #    speed slightly (<20%). Currently breaks matlab and octave interfaces.
 # 2) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
-# 3) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
+# 3) Since library names for single/double and single-/multi-threaded are
+#    currently shared, you cannot maintain more than one such option in the
+#    same directory, and you need to make clean before switching option.
+# 4) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
 #    indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
 #    to int.
-# 4) If you want 32 bit integers in the FINUFFT library interface instead of
+# 5) If you want 32 bit integers in the FINUFFT library interface instead of
 #    int64, add flag -DINTERFACE32 (experimental; C,F,M,O interfaces will break)
 
 # compilers...
@@ -104,6 +107,7 @@ usage:
 	@echo ""
 	@echo "Compile options: make [task] PREC=SINGLE for single-precision"
 	@echo " make [task] OMP=OFF for single-threaded (otherwise openmp)"
+	@echo " Don't forget to make clean before changing such options!"
 	@echo ""
 	@echo "To make python/python3 interfaces, see docs/install.rst"
 
@@ -196,7 +200,7 @@ mex: matlab/finufft.mw
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
 
 # various obscure tests...
-# This was for a CCQ application; zgemm was faster!
+# This was for a CCQ application; zgemm was 10x faster!
 manysmallprobs: lib-static/libfinufft.a $(HEADERS) test/manysmallprobs.cpp
 	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp lib-static/libfinufft.a -o test/manysmallprobs $(LIBSFFT)
 	(export OMP_NUM_THREADS=1; time test/manysmallprobs; unset OMP_NUM_THREADS)
@@ -204,7 +208,8 @@ manysmallprobs: lib-static/libfinufft.a $(HEADERS) test/manysmallprobs.cpp
 # cleaning up...
 clean:
 	rm -f $(OBJS) $(SOBJS)
-	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/results/*.out fortran/*.o fortran/nufft?d_demo fortran/nufft?d_demof examples/*.o examples/example1d1 examples/example1d1cexamples/example1d1f examples/example1d1cf matlab/*.o
+	rm -f lib/libfinufft.so lib-static/libfinufft.a
+	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/manysmallprobs test/results/*.out fortran/*.o fortran/nufft?d_demo fortran/nufft?d_demof examples/*.o examples/example1d1 examples/example1d1cexamples/example1d1f examples/example1d1cf matlab/*.o
 
 # for experts; only do this if you have mwrap to rebuild the interfaces...
 mexclean:
