@@ -183,8 +183,8 @@ matlab: lib-static/libfinufft.a $(HEADERS)
 	$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.cpp $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
 # octave .mex executable... (notice also creates matlab/finufft.o, but why?)
-octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
-	(cd matlab; mkoctfile --mex finufft.cpp ../lib-static/libfinufft.a finufft_m.o $(OFLAGS) $(LIBSFFT) -output finufft)
+octave: lib-static/libfinufft.a $(HEADERS)
+	(cd matlab; mkoctfile --mex finufft.cpp ../lib-static/libfinufft.a finufft_m.cpp $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave check_finufft.m)
 
