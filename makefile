@@ -9,7 +9,7 @@
 #
 # 1) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
 #    double-precision. Single-precision saves half the RAM, and increases
-#    speed slightly (<20%). Currently breaks matlab and octave interfaces.
+#    speed slightly (<20%). Not available for matlab and octave interfaces.
 # 2) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
 # 3) Since library names for single/double and single-/multi-threaded are
 #    currently shared, you cannot maintain more than one such option in the
@@ -55,7 +55,7 @@ else
 SUFFIX =
 REQ_TOL = 1e-12
 CHECK_TOL = 1e-11
-CXXFLAGS += -DVECT # Interpolation has explicit vectorization only in dbl prec
+CXXFLAGS += -DVECT  # Interpolation has explicit vectorization only in dbl prec
 CFLAGS += -DVECT
 endif
 FFTW = fftw3$(SUFFIX)
@@ -184,21 +184,21 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 
 # matlab .mex* executable...
 matlab: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.cpp
-	@if [[ "$(PREC)" = "SINGLE" ]]; then\
-		echo "MATLAB interface only supports double precision.";\
-	else\
-		$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.cpp $(MFLAGS) $(LIBSFFT) -output matlab/finufft;\
-	fi
+ifeq ($(PREC),SINGLE)
+	@echo "MATLAB interface only supports double precision; doing nothing"
+else
+	$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.cpp $(MFLAGS) $(LIBSFFT) -output matlab/finufft
+endif
 
 # octave .mex executable... (notice also creates matlab/finufft.o, but why?)
 octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.cpp
-	@if [[ "$(PREC)" = "SINGLE" ]]; then\
-		echo "Octave interface only supports double precision.";\
-	else\
-		(cd matlab; mkoctfile --mex finufft.cpp ../lib-static/libfinufft.a finufft_m.cpp $(OFLAGS) $(LIBSFFT) -output finufft);\
-		@echo "Running octave interface test; please wait a few seconds...";\
-		(cd matlab; octave check_finufft.m);\
-	fi
+ifeq ($(PREC),SINGLE)
+	@echo "Octave interface only supports double precision; doing nothing"
+else
+	(cd matlab; mkoctfile --mex finufft.cpp ../lib-static/libfinufft.a finufft_m.cpp $(OFLAGS) $(LIBSFFT) -output finufft)
+	@echo "Running octave interface test; please wait a few seconds..."
+	(cd matlab; octave check_finufft.m)
+endif
 
 # for experts; force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
 # (needs mwrap)
