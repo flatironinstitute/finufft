@@ -2,7 +2,7 @@
 
 ### Alex H. Barnett and Jeremy F. Magland
 
-<img src="docs/logo.png" width="400"/>
+<img src="docs/logo.png" width="350"/>
 <img src="docs/spreadpic.png" width="400"/>
 
 This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, and python. A julia interface
