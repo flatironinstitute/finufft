@@ -183,14 +183,22 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 	time -p $(F3)
 
 # matlab .mex* executable...
-matlab: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
-	$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.o $(MFLAGS) $(LIBSFFT) -output matlab/finufft
+matlab: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.cpp
+	@if [[ "$(PREC)" = "SINGLE" ]]; then\
+		echo "MATLAB interface only supports double precision.";\
+	else\
+		$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.cpp $(MFLAGS) $(LIBSFFT) -output matlab/finufft;\
+	fi
 
 # octave .mex executable... (notice also creates matlab/finufft.o, but why?)
-octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.o
-	(cd matlab; mkoctfile --mex finufft.cpp ../lib-static/libfinufft.a finufft_m.o $(OFLAGS) $(LIBSFFT) -output finufft)
-	@echo "Running octave interface test; please wait a few seconds..."
-	(cd matlab; octave check_finufft.m)
+octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.cpp
+	@if [[ "$(PREC)" = "SINGLE" ]]; then\
+		echo "Octave interface only supports double precision.";\
+	else\
+		(cd matlab; mkoctfile --mex finufft.cpp ../lib-static/libfinufft.a finufft_m.cpp $(OFLAGS) $(LIBSFFT) -output finufft);\
+		@echo "Running octave interface test; please wait a few seconds...";\
+		(cd matlab; octave check_finufft.m);\
+	fi
 
 # for experts; force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
 # (needs mwrap)
