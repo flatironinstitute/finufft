@@ -34,6 +34,9 @@ FLINK=$(CLINK)
 CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -DNEED_EXTERN_C
 CFLAGS   = -fPIC -Ofast -funroll-loops -march=native
 FFLAGS   = -fPIC -O3    -funroll-loops -march=native
+# FFTW and math linking...
+FFTWNAME = fftw3
+LIBS = -lm
 # will be appended for C++/C/Fortran omp, or MATLAB omp, or octave omp...
 OMPFLAGS = -fopenmp
 MOMPFLAGS = -lgomp -D_OPENMP
@@ -46,11 +49,8 @@ MEX=mex
 OFLAGS = -lrt
 # For experts, location of MWrap executable (see docs/install.rst):
 MWRAP=mwrap
-# FFTW and math linking...
-FFTW = fftw3$(SUFFIX)
-LIBSFFT = -l$(FFTW) -lm
 
-# override the above by placing make variables in make.inc ...
+# For your OS, override the above by placing make variables in make.inc ...
 -include make.inc
 
 # choose the precision (sets fftw library names, test precisions)...
@@ -67,6 +67,9 @@ CHECK_TOL = 1e-11
 CXXFLAGS += -DVECT  # Interpolation has explicit vectorization only in dbl prec
 CFLAGS += -DVECT
 endif
+# make the right combined libs name (fftw and math)...
+FFTW = $(FFTWNAME)$(SUFFIX)
+LIBSFFT = -l$(FFTW) $(LIBS)
 
 # multi-threaded libs & flags needed (see defns above)...
 ifneq ($(OMP),OFF)
@@ -96,27 +99,29 @@ HEADERS = src/cnufftspread.h src/finufft.h src/dirft.h src/common.h src/utils.h 
 
 default: usage
 
-all: test perftest lib examples fortran matlab octave
+all: test perftest lib examples fortran matlab octave python3
 
 usage:
 	@echo "Makefile for FINUFFT library. Specify what to make:"
-	@echo " make lib - compile the main libraries (in lib/ and lib-static/)"
+	@echo " make lib - compile the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run codes in examples/"
-	@echo " make test - compile and run math validation tests"
+	@echo " make test - compile and run quick math validation tests"
 	@echo " make perftest - compile and run performance tests"
 	@echo " make fortran - compile and test Fortran interfaces"
-	@echo " make matlab - compile Matlab interfaces"
+	@echo " make matlab - compile MATLAB interfaces"
 	@echo " make octave - compile and test octave interfaces"
-	@echo " make all - do all of the above"
+	@echo " make python3 - compile and test python3 interfaces"	
+	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
+	@echo " make python - compile and test python (v2) interfaces"
 	@echo " make spreadtest - compile and run spreader tests only"
 	@echo " make clean - remove all object and executable files apart from MEX"
 	@echo "For faster (multicore) making, append the flag -j"
 	@echo ""
 	@echo "Compile options: make [task] PREC=SINGLE for single-precision"
-	@echo " make [task] OMP=OFF for single-threaded (otherwise openmp)"
+	@echo " make [task] OMP=OFF for single-threaded (otherwise OpenMP)"
 	@echo " Don't forget to make clean before changing such options!"
 	@echo ""
-	@echo "To make python/python3 interfaces, see docs/install.rst"
+	@echo "Also see docs/install.rst"
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp %.h
@@ -135,7 +140,7 @@ lib/libfinufft.so: $(OBJS) $(HEADERS)
 	$(CXX) -shared $(OBJS) -o lib/libfinufft.so      # fails in mac osx
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 
-# examples in C++ and C...                *** TO FIX C CAN'T FIND C++ HEADERS
+# examples in C++ and C...
 EX = examples/example1d1$(SUFFIX)
 EXC = examples/example1d1c$(SUFFIX)
 examples: $(EX) $(EXC)
@@ -177,6 +182,7 @@ spreadtest: test/spreadtestnd
 	test/spreadtestnd 2 8e6 8e6 1e-6 1 0
 	test/spreadtestnd 3 8e6 8e6 1e-6 1 0
 
+# --------------- LANGUAGE INTERFACES -----------------------
 # fortran interface...
 F1=fortran/nufft1d_demo$(SUFFIX)
 F2=fortran/nufft2d_demo$(SUFFIX)
@@ -197,7 +203,7 @@ else
 	$(MEX) matlab/finufft.cpp lib-static/libfinufft.a matlab/finufft_m.cpp $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 endif
 
-# octave .mex executable... (notice also creates matlab/finufft.o, but why?)
+# octave .mex executable... (also creates matlab/finufft.o for some reason)
 octave: lib-static/libfinufft.a $(HEADERS) matlab/finufft_m.cpp
 ifeq ($(PREC),SINGLE)
 	@echo "Octave interface only supports double precision; doing nothing"
@@ -214,18 +220,31 @@ mex: matlab/finufft.mw
 	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
 
-# various obscure tests...
+# python(3) interfaces...
+python: lib-static/libfinufft.a
+	pip install .
+	python python_tests/demo1d1.py
+	python python_tests/run_accuracy_tests.py
+python3: lib-static/libfinufft.a
+	pip3 install .
+	python3 python_tests/demo1d1.py
+	python3 python_tests/run_accuracy_tests.py
+
+
+# ------------- Various obscure tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!
 manysmallprobs: lib-static/libfinufft.a $(HEADERS) test/manysmallprobs.cpp
 	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp lib-static/libfinufft.a -o test/manysmallprobs $(LIBSFFT)
 	(export OMP_NUM_THREADS=1; time test/manysmallprobs; unset OMP_NUM_THREADS)
 
-# cleaning up...
+# cleaning up (including interfaces)...
 clean:
 	rm -f $(OBJS) $(SOBJS)
 	rm -f lib/libfinufft.so lib-static/libfinufft.a
-	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/manysmallprobs test/results/*.out fortran/*.o fortran/nufft?d_demo fortran/nufft?d_demof examples/*.o examples/example1d1 examples/example1d1cexamples/example1d1f examples/example1d1cf matlab/*.o
+	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/manysmallprobs test/results/*.out fortran/*.o fortran/nufft?d_demo fortran/nufft?d_demof examples/*.o examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf
+	rm -f matlab/*.o matlab/*.mex*
+	rm -f finufftpy/*.pyc finufftpy/__pycache__/* python_tests/*.pyc python_tests/__pycache__/*
 
-# for experts; only do this if you have mwrap to rebuild the interfaces...
+# for experts; only do this if you have mwrap to rebuild the interfaces!
 mexclean:
 	rm -f matlab/finufft.cpp matlab/finufft?d?.m matlab/finufft.mex*

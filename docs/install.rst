@@ -127,28 +127,18 @@ The ``examples`` and ``test`` directories are good places to see usage examples.
 Building the python wrappers
 ****************************
 
-First make sure you have python3 and pip3 (or python and pip) installed and that you have already compiled the C++ library (eg via ``make lib``). Next make
-sure you have NumPy and pybind11 installed::
+First make sure you have python3 and pip3 (or python and pip) installed and that you have already compiled the C++ library (eg via ``make lib``).
+Python links to this compiled library.
+Next make sure you have NumPy and pybind11 installed::
   
   pip3 install numpy pybind11
 
-You may then do ``make python3`` or ``make python``, which calls
-  pip3 or pip for the install then runs some tests.
+You may then do ``make python3`` which calls
+pip3 for the install then runs some tests. An additional test you could do is::
 
-
-  
-Then do the following from the main ``finufft`` install directory::
-
-  pip3 install .
-
-You can then run the tests as follows::
-
-  cd python_tests
-  python3 demo1d1.py
-  python3 run_accuracy_tests.py
   python3 run_speed_tests.py
 
-In all of the above the "3" can be omitted if you want to work with python v2.
+In all the above the "3" can be omitted if you want to work with python v2.
 
 See also Dan Foreman-Mackey's earlier repo that also wraps finufft, and from which we have drawn code: `python-finufft <https://github.com/dfm/python-finufft>`_
 

@@ -20,13 +20,13 @@ def print_report(label,elapsed,Xest,Xtrue,npts):
 	print(label+':')
 	print('    Est rel l2 err  %.3g' % (compute_error(Xest,Xtrue)))
 	print('    CPU time (sec)  %.3g' % (elapsed))
-	print('    NU pts/sec      %.3g' % (npts/elapsed))
+	print('    tot NU pts/sec  %.3g' % (npts/elapsed))
 	print('')
 
 def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	nj,nk = int(num_nonuniform_points),int(num_nonuniform_points)
 	iflag=1
-	num_samples=int(np.minimum(3,num_uniform_points*0.5+1)) #for estimating accuracy
+	num_samples=int(np.minimum(5,num_uniform_points*0.5+1)) # number of outputs used for estimating accuracy; is small for speed
 
 	print('Accuracy and speed tests for %d nonuniform points and eps=%g (error estimates use %d samples per run)' % (num_nonuniform_points,eps,num_samples))
 

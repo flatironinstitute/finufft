@@ -16,6 +16,10 @@ TRACTABLE USER PROJECTS - PLEASE HELP:
 
 * Get huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
 
+* R interface
+
+* support for OSX and Windows.
+
 * Package as RPM and .deb for linux
 
 
