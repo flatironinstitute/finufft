@@ -6,9 +6,13 @@ TRACTABLE USER PROJECTS - PLEASE HELP:
 
 * Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? - C++ template the spreader and all inside it?
 
+* GPU spreader.
+
 * Professionalize the single-precision version:
  - decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
  - fix matlab, octave, and python interfaces for single-prec.
+
+* Add the other C interfaces to finufft_c, after understand if use of _Complex is good.
 
 * Get huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
 
@@ -17,22 +21,19 @@ TRACTABLE USER PROJECTS - PLEASE HELP:
 
 HIGH PRIORITY TODO:
 
-* understand rare segfaults one user reported calling from matlab.
+* Decide if non vs omp & single vs double get different lib names?
 * understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
-* docs add Flatiron logo; host at FI github.
-* Decide if non vs omp get different lib names?
-* add the other C interfaces to finufft_c, after understand if use of _Complex is good.
-* figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
+* host at FI github.
 * Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) better install notes.
-* Licensing of G-L quad code: swap out Nick Hale's Gauss-Legendre nodes code, is GPL, replace w/ any small-n G-L code, eg legendre GLR with hellskitchen BSD version.
-* Writing:
- - speed and parallel scaling for uniform and surface-like NU pts dists, figures
- - finish nufft_comparison for paper; type 2,3. Compare vs NFFT (Chemnitz), maybe gpuNUFFT (Knoll)
+* Paper:
+ - speed and parallel scaling for uniform and nonuniform NU pts dists, figures
 * release, outreach, users, NA-Digest
+* see item 4 above.
 
 
 LOWER PRIORITY TODO:
 
+* figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * check possible transpose convention for 2d,3d, found by David S.
 * Intel MKL FFT interface option instead of FFTW?
 * docs: format equation numbers on same line in sphinx+mathjax

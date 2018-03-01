@@ -1,9 +1,13 @@
 # Makefile for FINUFFT.
-# Barnett 2/16/18
+# Barnett 3/1/18
 
 # This is the only makefile; there are no makefiles in subdirectories.
-# If users need to edit this makefile, it is recommended that they first
-# copy it to makefile.local, edit that, and use make -f makefile.local
+# Users should not need to edit this makefile (doing so would make it hard to
+# stay up to date with the repo version).
+# Rather, in order to change OS/environment-specific settings, create the file
+# make.inc
+# These would override the defaults below, which are for ubuntu/gnu system.
+# For examples, see make.inc.*
 
 # Compilation options: (also see docs/)
 #
@@ -20,29 +24,34 @@
 # 5) If you want 32 bit integers in the FINUFFT library interface instead of
 #    int64, add flag -DINTERFACE32 (experimental; C,F,M,O interfaces will break)
 
-# compilers...
+# compilers, and linking from C, fortran...
 CXX=g++
 CC=gcc
 FC=gfortran
-# for non-C++ compilers to be able to link to library...
 CLINK=-lstdc++
-FLINK=-lstdc++
-
-# basic compile flags for single-threaded, double precision...
+FLINK=$(CLINK)
+# compile flags for baseline single-threaded, double precision case...
 CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -DNEED_EXTERN_C
-CFLAGS = -fPIC -Ofast -funroll-loops -march=native
-FFLAGS = -fPIC -O3 -funroll-loops -march=native
-# Now MFLAGS are for MATLAB MEX compilation, OFLAGS for octave mkoctfile:
+CFLAGS   = -fPIC -Ofast -funroll-loops -march=native
+FFLAGS   = -fPIC -O3    -funroll-loops -march=native
+# will be appended for C++/C/Fortran omp, or MATLAB omp, or octave omp...
+OMPFLAGS = -fopenmp
+MOMPFLAGS = -lgomp -D_OPENMP
+OOMPFLAGS = -lgomp
+# flags for MATLAB MEX compilation...
 MFLAGS = -largeArrayDims -lrt
-# Mac users instead should use something like this:
-#MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
-OFLAGS = -lrt
 # location of MATLAB's mex compiler...
 MEX=mex
-# Mac users instead should use something like this:
-#MEX = /Applications/MATLAB_R2017a.app/bin/mex
-# For experts doing make mex: location of MWrap executable (see docs/install.rst):
+# flags for octave mkoctfile...
+OFLAGS = -lrt
+# For experts, location of MWrap executable (see docs/install.rst):
 MWRAP=mwrap
+# FFTW and math linking...
+FFTW = fftw3$(SUFFIX)
+LIBSFFT = -l$(FFTW) -lm
+
+# override the above by placing make variables in make.inc ...
+-include make.inc
 
 # choose the precision (sets fftw library names, test precisions)...
 ifeq ($(PREC),SINGLE)
@@ -58,16 +67,14 @@ CHECK_TOL = 1e-11
 CXXFLAGS += -DVECT  # Interpolation has explicit vectorization only in dbl prec
 CFLAGS += -DVECT
 endif
-FFTW = fftw3$(SUFFIX)
-LIBSFFT = -l$(FFTW) -lm
 
-# multi-threaded libs & flags needed...
+# multi-threaded libs & flags needed (see defns above)...
 ifneq ($(OMP),OFF)
-CXXFLAGS += -fopenmp
-CFLAGS += -fopenmp
-FFLAGS += -fopenmp
-MFLAGS += -lgomp -D_OPENMP
-OFLAGS += -lgomp
+CXXFLAGS += $(OMPFLAGS)
+CFLAGS += $(OMPFLAGS)
+FFLAGS += $(OMPFLAGS)
+MFLAGS += $(MOMPFLAGS)
+OFLAGS += $(OOMPFLAGS)
 LIBSFFT += -l$(FFTW)_threads
 endif
 

@@ -1,6 +1,17 @@
-List of tasks accomplished / changes made / release notes, in reverse
-chronological order:
+List of tasks accomplished / changes made / release notes, in reverse chronological order:
 
+V 0.98 (3/1/18)
+	
+* makefile has make.inc for OS-specific defs.
+* decided that, since Legendre nodes code of GLR alg by Hale/Burkhardt is LGPL licensed, our use (not changing source) is not a "derived work", therefore ok under our Apache v2 license. See:
+	https://tldrlegal.com/license/gnu-lesser-general-public-license-v3-(lgpl-3)
+	https://www.apache.org/licenses/GPL-compatibility.html
+	https://softwareengineering.stackexchange.com/questions/233571/open-source-what-is-the-definition-of-derivative-work-and-how-does-it-impact
+* fixed MATLAB FFTW incompat alloc crash, by hack of Joakim, calling fft() first.
+* python tests fixed.
+* brought in af Klinteberg spreader optimizations & SSE tricks.
+* logo
+	
 V 0.97 (12/6/17)
 
 * tidied all docs -> readthedocs.io host. README.md now a stub. TODO tidied.

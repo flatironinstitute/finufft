@@ -88,18 +88,21 @@ Download version 0.33 or later from http://www.cs.cornell.edu/~bindel/sw/mwrap, 
 Compilation
 ***********
 
-Compile and test FINUFFT via::
+If you do not have a linux environment, then see ``makefile``, and place your compiler and linking options in a new file ``make.inc``.
+For example such files see ``make.inc.*``.
+
+Compile and do a rapid (less than 1-second) test of FINUFFT via::
 
   make test
 
-or, to compile using all available cores::
+or, to do the same using all available cores::
 
   make test -j
 
 This should compile the main libraries then run tests which should report zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
-If you have an error then ``cp makefile makefile.local``,
-edit ``makefile.local`` to adjust compiler and other library options,
-and use ``make -f makefile.local test``.
+
+Use ``make perftest`` for larger spreader and NUFFT tests taking around 20 seconds.
+
 Run ``make`` without arguments for full list of possible make tasks.
 
 If there is an error in testing on a standard set-up,
@@ -129,6 +132,11 @@ sure you have NumPy and pybind11 installed::
   
   pip3 install numpy pybind11
 
+You may then do ``make python3`` or ``make python``, which calls
+  pip3 or pip for the install then runs some tests.
+
+
+  
 Then do the following from the main ``finufft`` install directory::
 
   pip3 install .
