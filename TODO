@@ -12,7 +12,7 @@ TRACTABLE USER PROJECTS - PLEASE HELP:
  - decide if should compile single-prec library with new names ("f" suffix), rather than current overall compile option which keeps names the same?
  - fix matlab, octave, and python interfaces for single-prec.
 
-* Add the other C interfaces to finufft_c, after understand if use of _Complex is good.
+* Professionalize the C interface and examples. Allow opts struct to be seen from C. Add the other C interfaces to finufft_c, after understand if use of _Complex is good.
 
 * Get huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
 

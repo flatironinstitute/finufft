@@ -3,19 +3,20 @@
 #include <complex>
 // also needed for this example...
 #include <stdio.h>
+#include <stdlib.h>
 using namespace std;
 
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C++, using plain
    arrays of C++ complex numbers, with a math test.
-   Single-precision version (must be linked with single-precision libfinufft.a)
+   Single-precision version (must be linked with single-precision libfinufftf.a)
    See example1d1 for double-precision.
    Barnett 4/3/17
 
    Compile with:
-   g++ -fopenmp example1d1f.cpp ../lib-static/libfinufft.a -o example1d1f -lfftw3f -lfftw3f_threads -lm -DSINGLE
+   g++ -fopenmp example1d1f.cpp ../lib-static/libfinufftf.a -o example1d1f -lfftw3f -lfftw3f_threads -lm -DSINGLE
    or if you have built a single-core version:
-   g++ example1d1f.cpp ../lib-static/libfinufft.a -o example1d1f -lfftw3f -lm -DSINGLE
+   g++ example1d1f.cpp ../lib-static/libfinufftf.a -o example1d1f -lfftw3f -lm -DSINGLE
 
    Usage: ./example1d1f
 */

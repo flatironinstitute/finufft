@@ -3,6 +3,8 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 
+# only for doulbe-prec, multi-threaded for now. Barnett 3/1/18
+
 __version__ = '0.98'
 
 class get_pybind_include(object):
