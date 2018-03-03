@@ -11,6 +11,7 @@ extern "C" {
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
+#include <vector>
 
 void finufft_default_opts(nufft_opts &o)
 // set default nufft opts. See finufft.h for definition of opts.
@@ -90,7 +91,7 @@ void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   Computes DCT coeffs of cnufftspread's real symmetric kernel, directly,
   exploiting narrowness of kernel. Uses phase winding for cheap eval on the
   regular freq grid.
-  Note: obsolete, superceded by onedim_fseries_kernel.
+  Note: OBSOLETE, superceded by onedim_fseries_kernel.
 
   Inputs:
   nf - size of 1d uniform spread grid, must be even.
@@ -146,30 +147,41 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
 
-  todo: understand how to openmp it? - subtle since private aj's. Want to break
-        up fwkerhalf into contiguous pieces, one per thread. Low priority.
-  Barnett 2/7/17
+  Barnett 2/7/17. openmp (since slow cf fftw in 1D N<<M case) 3/3/18
  */
 {
-  FLT J2 = opts.nspread/2.0;         // J/2, half-width of ker z-support
+  FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
   FLT f[MAX_NQUAD]; double z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
-  dcomplex a[MAX_NQUAD],aj[MAX_NQUAD];  // phase rotators
-  for (int n=0;n<q;++n) {
-    z[n] *= J2;                 // rescale nodes
-    f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // w/ quadr weights
-    a[n] = exp(2*PI*ima*(FLT)(nf/2-z[n])/(FLT)nf);  // phase windings
-    aj[n] = dcomplex(1.0,0.0);         // init phase factors
+  dcomplex a[MAX_NQUAD];
+  for (int n=0;n<q;++n) {               // set up nodes z_n and vals f_n
+    z[n] *= J2;                         // rescale nodes
+    f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
+    a[n] = exp(2*PI*ima*(FLT)(nf/2-z[n])/(FLT)nf);  // phase winding rates
   }
-  for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
-    FLT x = 0.0;                    // register
-    for (int n=0;n<q;++n) {
-      x += f[n] * 2*real(aj[n]);       // include the negative freq
-      aj[n] *= a[n];                   // wind the phases
+  BIGINT nout=nf/2+1;                   // how many values we're writing to
+  int nt = MIN(nout,MY_OMP_GET_MAX_THREADS());  // how many chunks
+  std::vector<BIGINT> brk(nt+1);        // start indices for each thread
+  for (int t=0; t<=nt; ++t)             // split nout mode indices btw threads
+    brk[t] = (BIGINT)(0.5 + nout*t/(double)nt);
+#pragma omp parallel
+  {
+    int t = MY_OMP_GET_THREAD_NUM();
+    if (t<nt) {                         // could be nt < actual # threads
+      dcomplex aj[MAX_NQUAD];           // phase rotator for this thread
+      for (int n=0;n<q;++n)
+	aj[n] = pow(a[n],(FLT)brk[t]);       // init phase factors for chunk
+      for (BIGINT j=brk[t];j<brk[t+1];++j) {       // loop along output array
+	FLT x = 0.0;                       // accumulator for answer at this j
+	for (int n=0;n<q;++n) {
+	  x += f[n] * 2*real(aj[n]);       // include the negative freq
+	  aj[n] *= a[n];                   // wind the phases
+	}
+	fwkerhalf[j] = x;
+      }
     }
-    fwkerhalf[j] = x;
   }
 }
 

@@ -616,7 +616,9 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
 /* spreader from dd (NU) to du (uniform) in 1D without wrapping.
    kx (size M) are NU locations in [0,N1]
    dd (size M complex) are source strengths
-   du (size N1) is uniform output array
+   du (size N1) is uniform output array.
+
+   This a naive loop w/ Ludvig's eval_ker_vec. nspad expt by Barnett 3/2/18
 */
 {
   int ns=opts.nspread;
@@ -624,10 +626,10 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1;++i)
     du[i] = 0.0;
-  FLT kernel_args[MAX_NSPREAD];
+  FLT kernel_args[MAX_NSPREAD+4];  // 4 for safety to allow nspad above
   for (int i=ns;i<nspad;++i)    // make sure eval_ker_vec sees padded zeros!
     kernel_args[i] = 0.0;
-  FLT ker[MAX_NSPREAD];
+  FLT ker[MAX_NSPREAD+4];          // 4 for safety to allow nspad above
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
