@@ -285,6 +285,7 @@ int cnufftspread(
     
   } else {          // ================= direction 2 (interpolation) ===========
 
+    int nspad = 4*(1+(ns-1)/4); // pad ker eval to mult of 4; faster, helps w/ AVX?
     timer.start();
 #pragma omp parallel for schedule(dynamic,10000) // (dynamic not needed) assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i++) {  // main loop over NU targs, interp each from U
@@ -295,7 +296,9 @@ int cnufftspread(
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
       // static alloc is faster, so we do it for up to 3D...
-      FLT kernel_args[3*MAX_NSPREAD];    
+      FLT kernel_args[3*MAX_NSPREAD];
+      for (int i=ns;i<nspad;++i)    // make sure eval_ker_vec sees padded zeros!
+	kernel_args[i] = 0.0;
       FLT kernel_values[3*MAX_NSPREAD];
       FLT *ker1 = kernel_values;
       FLT *ker2 = kernel_values + ns;
@@ -304,7 +307,7 @@ int cnufftspread(
       if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
 	  set_kernel_args(kernel_args, x1, opts);
-	  evaluate_kernel_vector(kernel_values, kernel_args, opts, ns);	  
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, nspad); // nspad
 	  interp_line(&data_nonuniform[2*j],data_uniform,ker1,i1,N1,ns);
 	} else if (ndims==2) {                                   // 2D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
@@ -617,10 +620,13 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
 */
 {
   int ns=opts.nspread;
+  int nspad = 4*(1+(ns-1)/4);   // pad ker eval to mult of 4; faster, helps w/ AVX?
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1;++i)
     du[i] = 0.0;
   FLT kernel_args[MAX_NSPREAD];
+  for (int i=ns;i<nspad;++i)    // make sure eval_ker_vec sees padded zeros!
+    kernel_args[i] = 0.0;
   FLT ker[MAX_NSPREAD];
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
@@ -628,7 +634,7 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     set_kernel_args(kernel_args, x1, opts);
-    evaluate_kernel_vector(ker, kernel_args, opts, ns);    
+    evaluate_kernel_vector(ker, kernel_args, opts, nspad);  // nspad: see above
     // critical inner loop: 
     BIGINT j=i1;
     for (int dx=0; dx<ns; ++dx) {

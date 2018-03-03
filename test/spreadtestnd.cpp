@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
   spread_opts opts;
   setup_spreader(opts,(FLT)tol,(FLT)2.0);
   opts.pirange = 0;  // crucial, since the below has NU pts on [0,Nd] in each dim
-  opts.chkbnds = 1;  // only for debug, since below code has correct bounds
+  opts.chkbnds = 0;  // only for debug, since below code has correct bounds
   opts.debug = debug;   // print more diagnostics?
   opts.sort = sort;  // for 3D: 1-6x faster on i7; but 0.5-0.9x (ie slower) on xeon!
   opts.flags = flags;
