@@ -6,7 +6,7 @@
 
 int usage()
 {
-  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort data) or 1 (do, default)\n\tflags : expert timing flags (see cnufftspread.h)\n\tdebug : 0 (less text out), 1 (more), 2 (lots)\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 1\n");
+  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags [debug]]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n\tflags : expert timing flags (see cnufftspread.h)\n\tdebug=0 (less text out), 1 (more), 2 (lots)\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 2 0 1\n");
 }
 
 int main(int argc, char* argv[])
@@ -14,21 +14,21 @@ int main(int argc, char* argv[])
  * It checks speed, and basic correctness via the grid sum of the result.
  * See usage() for usage.
  *
- * Example: spreadtestnd 3 8e6 8e6 1e-6 1 0 1
+ * Example: spreadtestnd 3 8e6 8e6 1e-6 2 0 1
  *
  * Compilation (also check ../makefile):
  *    g++ spreadtestnd.cpp ../src/cnufftspread.o ../src/utils.o -o spreadtestnd -fPIC -Ofast -funroll-loops -fopenmp
  *
  * Magland; expanded by Barnett 1/14/17. Better cmd line args 3/13/17
  * indep setting N 3/27/17. parallel rand() & sort flag 3/28/17
- * timing_flags 6/14/17. debug control 2/8/18
+ * timing_flags 6/14/17. debug control 2/8/18. sort=2 opt 3/5/18
  */
 {
   int d = 3;            // Cmd line args & their defaults:  default #dims
   double tol = 1e-6;    // default (eg 1e-6 has nspread=7)
   BIGINT M = 1e6;       // default # NU pts
   BIGINT roughNg = 1e6; // default # U pts
-  int sort = 2;         // spread_sort, 2 is default
+  int sort = 2;         // spread_sort
   int flags = 0;        // default
   int debug = 0;        // default
   if (argc<=1) { usage(); return 0; }
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
   if (argc>7) {
     sscanf(argv[7],"%d",&debug);
     if ((debug<0) || (debug>2)) {
-      printf("debug must be 0 or 1 o 2!\n"); usage(); return 1;
+      printf("debug must be 0, 1 or 2!\n"); usage(); return 1;
     }
   }
   if (argc>8) {

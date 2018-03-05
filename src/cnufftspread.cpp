@@ -168,8 +168,8 @@ int cnufftspread(
 
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   int sort_heuristic = !(ndims==1 && (M > 10*N1)); // 1d small-N case don't sort
+  timer.start();                 // if needed, sort all the NU pts...
   if (opts.sort==1 || (opts.sort==2 && sort_heuristic)) {
-    timer.start();                 // if needed, sort all the NU pts...
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
     bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,16,4,4);
     if (opts.debug)
@@ -178,7 +178,7 @@ int cnufftspread(
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation
     if (opts.debug)
-      printf("not sorted (sort=%d)\n",(int)opts.sort);
+      printf("not sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
   }
   
   
