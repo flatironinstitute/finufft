@@ -175,7 +175,8 @@ int cnufftspread(
     if (opts.debug)
       printf("sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
   } else {
-    for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
+#pragma omp parallel for schedule(static,1000000)
+    for (BIGINT i=0; i<M; i++)                // omp helps xeon, hinders i7
       sort_indices[i]=i;                      // the identity permutation
     if (opts.debug)
       printf("not sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
