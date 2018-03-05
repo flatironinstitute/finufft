@@ -1,0 +1,8 @@
+# Makefile variable overrides for Mac OSX.
+# Copy this file to make.inc and edit for your setup.
+# Barnett 3/1/18
+
+MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
+
+# edit for your MATLAB location...
+MEX = /Applications/MATLAB_R2017a.app/bin/mex

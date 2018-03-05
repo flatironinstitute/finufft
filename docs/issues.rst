@@ -16,24 +16,22 @@ Issues with library
 - The timing of the first FFTW call is complicated, depending on whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used. Such issues are known, and discussed in other documentation, eg https://pythonhosted.org/poppy/fft_optimization.html
   We would like to find a way of pre-storing some intel FFTW plans (as MATLAB does) to avoid the large FFTW_ESTIMATE planning time.
   
+- Currently, a single library name is used for single/double precision and for single-/multi-threaded versions. Thus, i) you need to ``make clean`` before changing such make options, and ii) if you wish to maintain multiple such versions you need to duplicate the directory.
 
+  
 Issues with interfaces
 **********************
 
 - MATLAB, octave and python cannot exceed input or output data sizes of 2^31.
 
-- A segfault occurs if MATLAB's ``fft`` is called before the first ``finufft``
+- MATLAB, octave and python interfaces do not handle single precision.  
+
+- A segfault occurs a small ``fft`` is done in MATLAB before the first ``finufft``
   call in a session.
   We believe this due to incompatibility between the versions of
-  FFTW used. Please contact us if you know of a fix.
-
-  Workaround: in your ``startup.m`` file, include a dummy call as follows::
-
-    finufft1d1(1,1,1,1,1);
-
+  FFTW used. We have fixed this by building a certain ``fft`` call into the MEX interface. A similar hack has been used by NFFT for the last decade.
   This issue does not occur with octave.
 
- 
 
 Bug reports
 ***********

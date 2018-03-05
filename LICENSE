@@ -1,4 +1,6 @@
-Copyright (C) 2017  Alex Barnett and Jeremy Magland
+Copyright (C) 2017-2018 The Simons Foundation, Inc. - All Rights Reserved.
+
+Main authors: Alex Barnett and Jeremy Magland
 
 FINUFFT is licensed under the Apache License, Version 2.0 (the
 "License"); you may not use this file except in compliance with the
@@ -17,4 +19,4 @@ limitations under the License.
 Also, if you find this library useful, or it helps you in creating
 software or publications, please acknowledge that fact by citing this
 repository along with the author names, and any corresponding journal
-paper.
+article.

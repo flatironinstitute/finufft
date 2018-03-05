@@ -8,7 +8,7 @@
 
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C, using C complex type,
-   with a math test. Barnett 3/10/17
+   with a math test. Double-precision. Barnett 3/10/17
 
    Compile with:
    gcc -fopenmp example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lfftw3_threads -lm -lstdc++

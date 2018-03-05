@@ -3,7 +3,9 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 
-__version__ = '0.97'
+# only for doulbe-prec, multi-threaded for now. Barnett 3/1/18
+
+__version__ = '0.98'
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path

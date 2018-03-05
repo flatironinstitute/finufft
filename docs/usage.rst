@@ -34,6 +34,9 @@ We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
 2, and 3.  This gives nine routines in all.
 
+It is recommended for speed in 1D to override the default and set
+``spread_sort=0``.
+
 In the below, double-precision is assumed.
 See next section for single-precision compilation.
 
@@ -390,14 +393,19 @@ Custom library compilation options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may want to make the library for other data types. Currently
-this overwrites the same library names, so you will have to move them
-to other locations if you want to keep both versions for use together.
+library names are distinct for single precision (libfinufftf) vs
+double (libfinufft). However, single-threaded vs multithreaded are
+built with the same name, so you will have to move them to other
+locations, or build a 2nd copy of the repo, if you want to keep both
+versions for use together.
+
+You *must* do at least ``make objclean`` before changing PREC or OMP options.
 
 a) Use ``make [task] PREC=SINGLE`` for single-precision, otherwise will be
    double-precision. Single-precision saves half the RAM, and increases
    speed slightly (<20%). The  C++, C, and fortran demos are all tested in
    single precision. However, it will break matlab, octave, python interfaces.
-b) make with OMP=OFF for single-threaded, otherwise multi-threaded (openmp).
+b) make with ``OMP=OFF`` for single-threaded, otherwise multi-threaded (openmp).
 c) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
    indexing beats 64-bit, add flag ``-DSMALLINT`` to ``CXXFLAGS`` which sets
    ``BIGINT`` to ``int``.
@@ -432,6 +440,8 @@ In Matlab/MEX, mwrap uses ``int`` types, so that output arrays can *only*
 be <2^31.
 However, input arrays >=2^31 have been tested, and while they don't crash,
 they result in wrong answers (all zeros). This is yet to be fixed.
+
+As you can see, there are some issues to clean up with large arrays and non-standard sizes. Please contribute simple solutions.
 
 
 Design notes and advanced usage
