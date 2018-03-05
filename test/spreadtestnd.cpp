@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
   double tol = 1e-6;    // default (eg 1e-6 has nspread=7)
   BIGINT M = 1e6;       // default # NU pts
   BIGINT roughNg = 1e6; // default # U pts
-  int sort = 1;         // whether to sort
+  int sort = 2;         // spread_sort, 2 is default
   int flags = 0;        // default
   int debug = 0;        // default
   if (argc<=1) { usage(); return 0; }
@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
   }
   if (argc>5) {
     sscanf(argv[5],"%d",&sort);
-    if ((sort!=0) && (sort!=1)) {
-      printf("sort must be 0 or 1!\n"); usage(); return 1;
+    if ((sort!=0) && (sort!=1) && (sort!=2)) {
+      printf("sort must be 0, 1 or 2!\n"); usage(); return 1;
     }
   }
   if (argc>6)
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
   opts.pirange = 0;  // crucial, since the below has NU pts on [0,Nd] in each dim
   opts.chkbnds = 0;  // only for debug, since below code has correct bounds
   opts.debug = debug;   // print more diagnostics?
-  opts.sort = sort;  // for 3D: 1-6x faster on i7; but 0.5-0.9x (ie slower) on xeon!
+  opts.sort = sort;
   opts.flags = flags;
   //opts.max_subproblem_size = 1e4; // default 1e5
   FLT maxerr, ansmod;

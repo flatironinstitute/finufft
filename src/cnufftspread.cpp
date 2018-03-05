@@ -93,8 +93,8 @@ int cnufftspread(
 	pirange = 0: kx,ky,kz coords in [0,N]. 1: coords in [-pi,pi].
                 (due to +-1 box folding these can be out to [-N,2N] and
                 [-3pi/2,3pi/2] respectively).
-	sort = (boolean) whether to sort NU points using natural yz-grid
-	       ordering. Recommended true.
+	sort = 0,1,2: whether to sort NU points using natural yz-grid
+	       ordering. 0: don't, 1: do, 2: use heuristic choice (default)
 	debug = 0: no text output, 1: some openmp output, 2: mega output
 	           (each NU pt)
 	chkbnds = 0: don't check incoming NU pts for bounds (but still fold +-1)
@@ -166,18 +166,22 @@ int cnufftspread(
     if (opts.debug) printf("NU bnds check:\t\t%g s\n",timer.elapsedsec());
   }
 
-  timer.start();                 // if needed, sort all the NU pts...
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
-  if (opts.sort)
+  int sort_heuristic = !(ndims==1 && (M > 10*N1)); // 1d small-N case don't sort
+  if (opts.sort==1 || (opts.sort==2 && sort_heuristic)) {
+    timer.start();                 // if needed, sort all the NU pts...
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
     bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,16,4,4);
-  else
+    if (opts.debug)
+      printf("sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
+  } else {
     for (BIGINT i=0; i<M; i++)                // (omp no speed-up here)
       sort_indices[i]=i;                      // the identity permutation
-  if (opts.debug)
-    printf("sort time (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
+    if (opts.debug)
+      printf("not sorted (sort=%d)\n",(int)opts.sort);
+  }
   
-
+  
   if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
 
     timer.start();

@@ -21,7 +21,7 @@ void finufft_default_opts(nufft_opts &o)
   o.R = (FLT)2.0;
   o.debug = 0;
   o.spread_debug = 0;
-  o.spread_sort = 1;       
+  o.spread_sort = 2;       // use heuristic rule for whether to sort
   o.fftw = FFTW_ESTIMATE;  // use FFTW_MEASURE for slow first call, fast rerun
   o.modeord = 0;
   o.chkbnds = 1;
@@ -147,7 +147,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
 
-  Barnett 2/7/17. openmp (since slow cf fftw in 1D N<<M case) 3/3/18
+  Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18
  */
 {
   FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
