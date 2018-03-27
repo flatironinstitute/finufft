@@ -189,7 +189,7 @@ int cnufftspread(
     else
       bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
     if (opts.debug)
-      printf("\tsorted (%d threads):\t%.3g s\n",timer.elapsedsec(),sort_nthr);
+      printf("\tsorted (%d threads):\t%.3g s\n",sort_nthr,timer.elapsedsec());
   } else {
 #pragma omp parallel for schedule(static,1000000)
     for (BIGINT i=0; i<M; i++)                // omp helps xeon, hinders i7
@@ -207,10 +207,12 @@ int cnufftspread(
     if (M==0)                     // no NU pts, we're done
       return 0;
 
-    int spread_single = 0 * (M*100<N);     // low-density heuristic
+    int spread_single = (M*100<N);     // low-density heuristic
+    spread_single = 0;    // ** enforce pending single-core t1 spreader
     timer.start();
     if (spread_single) {    // ------- Basic single-core t1 spreading ------
       for (BIGINT j=0; j<M; j++) {
+	// todo
 	
       }
       if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n",timer.elapsedsec());
