@@ -21,6 +21,9 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du0,BIGINT M0,
 void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du0,BIGINT M0,
 			  FLT *kx0,FLT *ky0,FLT *kz0,FLT *dd0,
 			  const spread_opts& opts);
+void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
+			 BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
+			 BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
 void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
 	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
@@ -131,9 +134,10 @@ int cnufftspread(
     fprintf(stderr,"error: opts.spread_direction must be 1 or 2!\n");
     return ERR_SPREAD_DIR;
   }
-  int ndims = 1;                 // decide ndims: 1,2 or 3
+  int ndims = 1;                // decide ndims: 1,2 or 3
   if (N2>1) ++ndims;
   if (N3>1) ++ndims;
+  BIGINT N=N1*N2*N3;            // output array size
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
   if (opts.debug)
@@ -179,7 +183,7 @@ int cnufftspread(
     int sort_debug = (opts.debug>=2);    // show timing output?
     int sort_nthr = opts.sort_threads;   // choose # threads for sorting
     if (sort_nthr==0)   // auto choice: when N>>M, one thread is better!
-      sort_nthr = (10*M>N1*N2*N3) ? MY_OMP_GET_MAX_THREADS() : 1;  // heuristic
+      sort_nthr = (10*M>N) ? MY_OMP_GET_MAX_THREADS() : 1;      // heuristic
     if (sort_nthr==1)
       bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
     else
@@ -196,110 +200,91 @@ int cnufftspread(
     
   if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
 
-    BIGINT N=N1*N2*N3;           // output array size, zero it
     timer.start();
-    for (BIGINT i=0; i<2*N; i++)
+    for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
       data_uniform[i]=0.0;
     if (opts.debug) printf("\tzero output array\t%.3g s\n",timer.elapsedsec());
-    if (M==0)                     // no NU pts
+    if (M==0)                     // no NU pts, we're done
       return 0;
-    // Split sorted inds (jfm's advanced2), could double RAM. Choose # subprobs:
-    int nb = MIN(4*MY_OMP_GET_MAX_THREADS(),M);
-    if (nb*opts.max_subproblem_size<M)
-      nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;  // int div
-    std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
-    for (int p=0;p<=nb;++p)
-      brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
 
+    int spread_single = 0 * (M*100<N);     // low-density heuristic
     timer.start();
+    if (spread_single) {    // ------- Basic single-core t1 spreading ------
+      for (BIGINT j=0; j<M; j++) {
+	
+      }
+      if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n",timer.elapsedsec());
+
+    } else {               // ------- Fancy multi-core blocked t1 spreading ----
+      // Split sorted inds (jfm's advanced2), could double RAM
+      int nb = MIN(4*MY_OMP_GET_MAX_THREADS(),M);     // Choose # subprobs
+      if (nb*opts.max_subproblem_size<M)
+	nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;  // int div
+      std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
+      for (int p=0;p<=nb;++p)
+	brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
+      
 #pragma omp parallel for schedule(dynamic,1)
-    for (int isub=0; isub<nb; isub++) {    // Main loop through the subproblems
-      BIGINT M0 = brk[isub+1]-brk[isub];   // # NU pts in this subproblem
-      // copy the location and data vectors for the nonuniform points
-      FLT* kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
-      if (N2>1)
-	ky0=(FLT*)malloc(sizeof(FLT)*M0);
-      if (N3>1)
-	kz0=(FLT*)malloc(sizeof(FLT)*M0);
-      FLT* dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
-      for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
-	BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
-	kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
-	if (N2>1) ky0[j]=RESCALE(ky[kk],N2,opts.pirange);
-	if (N3>1) kz0[j]=RESCALE(kz[kk],N3,opts.pirange);
-	dd0[j*2]=data_nonuniform[kk*2];     // real part
-	dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
-      }
-      // get the subgrid which will include padding by roughly nspread/2
-      BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
-      get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
-      if (opts.debug>1)  // verbose
-	if (ndims==1)
+      for (int isub=0; isub<nb; isub++) {    // Main loop through the subproblems
+	BIGINT M0 = brk[isub+1]-brk[isub];   // # NU pts in this subproblem
+	// copy the location and data vectors for the nonuniform points
+	FLT* kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
+	if (N2>1)
+	  ky0=(FLT*)malloc(sizeof(FLT)*M0);
+	if (N3>1)
+	  kz0=(FLT*)malloc(sizeof(FLT)*M0);
+	FLT* dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
+	for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
+	  BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
+	  kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
+	  if (N2>1) ky0[j]=RESCALE(ky[kk],N2,opts.pirange);
+	  if (N3>1) kz0[j]=RESCALE(kz[kk],N3,opts.pirange);
+	  dd0[j*2]=data_nonuniform[kk*2];     // real part
+	  dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
+	}
+	// get the subgrid which will include padding by roughly nspread/2
+	BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
+	get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);  // sets offsets and sizes
+	if (opts.debug>1)  // verbose
+	  if (ndims==1)
 	    printf("\tsubgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
-	else if (ndims==2)
-	  printf("\tsubgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
-	else
-	  printf("\tsubgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
-      for (BIGINT j=0; j<M0; j++) {
-	kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
-	if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
-	if (N3>1) kz0[j]-=offset3;  // only access if 3D
-      }
-      // allocate output data for this subgrid
-      FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
-      
+	  else if (ndims==2)
+	    printf("\tsubgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
+	  else
+	    printf("\tsubgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
+	for (BIGINT j=0; j<M0; j++) {
+	  kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
+	  if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
+	  if (N3>1) kz0[j]-=offset3;  // only access if 3D
+	}
+	// allocate output data for this subgrid
+	FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
+	
 	// Spread to subgrid without need for bounds checking or wrapping
-      if (!(opts.flags & TF_OMIT_SPREADING))
-	if (ndims==1)
-	  spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
-	else if (ndims==2)
-	  spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
-	else
-	  spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
-      
-      // Add the subgrid to output grid, wrapping (slower). Works in all dims.
-      std::vector<BIGINT> o1(size1), o2(size2), o3(size3);  // alloc 1d output ptr lists
-      BIGINT x=offset1, y=offset2, z=offset3;  // fill lists with wrapping...
-      for (int i=0; i<size1; ++i) {
-	if (x<0) x+=N1;
-	if (x>=N1) x-=N1;
-	o1[i] = x++;
-      }
-      for (int i=0; i<size2; ++i) {
-	if (y<0) y+=N2;
-	if (y>=N2) y-=N2;
-	o2[i] = y++;
-      }
-      for (int i=0; i<size3; ++i) {
-	if (z<0) z+=N3;
-	  if (z>=N3) z-=N3;
-	  o3[i] = z++;
-      }
+	if (!(opts.flags & TF_OMIT_SPREADING))
+	  if (ndims==1)
+	    spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
+	  else if (ndims==2)
+	    spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
+	  else
+	    spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
+	
 #pragma omp critical
-      {  // do the adding of subgrid to output; only here threads cannot clash
-	int p=0;  // pointer into subgrid; this triple loop works in all dims
-	if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
-	  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
-	    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
-	    for (int dy=0; dy<size2; dy++) {
-	      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
-	      for (int dx=0; dx<size1; dx++) {
-		BIGINT j = oy + o1[dx];
-		data_uniform[2*j] += du0[2*p];
-		data_uniform[2*j+1] += du0[2*p+1];
-		++p;                    // advance input ptr through subgrid
-	      }
-	    }
-	  }
-      } // end critical block
+	{  // do the adding of subgrid to output; only here threads cannot clash
+	  if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
+	    add_wrapped_subgrid(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
+	}  // end critical block
+
 	// free up stuff from this subprob... (that was malloc'ed by hand)
-      free(dd0); free(du0);
-      free(kx0);
+	free(dd0);
+	free(du0);
+	free(kx0);
 	if (N2>1) free(ky0);
 	if (N3>1) free(kz0); 
-    }     // end main loop over subprobs
-    if (opts.debug) printf("\tt1 spreading loop: \t%.3g s (%d subprobs)\n",timer.elapsedsec(), nb);
-
+      }     // end main loop over subprobs
+      if (opts.debug) printf("\tt1 fancy spread: \t%.3g s (%d subprobs)\n",timer.elapsedsec(), nb);
+    }   // end of choice of which t1 spread type to use
+    
   } else {          // ================= direction 2 (interpolation) ===========
 
     timer.start();
@@ -459,7 +444,7 @@ static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const sprea
     for (int i = 0; i < N; i++)
       ker[i] = 1.0;
   }
-  // Separate check from arithmetic (Is this really needed?)
+  // Separate check from arithmetic (Is this really needed? doesn't slow down)
   for (int i = 0; i < N; i++)
     if (abs(args[i])>=opts.ES_halfwidth) ker[i] = 0.0;
 }
@@ -640,7 +625,7 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
 */
 {
   int ns=opts.nspread;
-  int nspad = 4*(1+(ns-1)/4);   // pad ker eval to mult of 4; faster, helps w/ AVX?
+  int nspad = 4*(1+(ns-1)/4);   // pad ker eval to mult of 4; faster, helps w/ AVX? for i7 but slows xeon
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1;++i)
     du[i] = 0.0;
@@ -761,6 +746,51 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
 	  trg[dx] += kerval*ker1val[dx];
 	}	
       }
+    }
+  }
+}
+
+void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
+			 BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
+			 BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0)
+/* Add a large subgrid (du0) to output grid (data_uniform),
+   with periodic wrapping to N1,N2,N3 box.
+   offset1,2,3 give the offset of the subgrid from the lowest corner of output.
+   size1,2,3 give the size of subgrid.
+   Works in all dims. Thread-safe since must be called inside omp critical.
+   Barnett 3/27/18 made separate routine, tried to speed up inner loop.
+*/
+{
+  std::vector<BIGINT> o2(size2), o3(size3);
+  BIGINT y=offset2, z=offset3;    // fill wrapped ptr lists in slower dims y,z...
+  for (int i=0; i<size2; ++i) {
+    if (y<0) y+=N2;
+    if (y>=N2) y-=N2;
+    o2[i] = y++;
+  }
+  for (int i=0; i<size3; ++i) {
+    if (z<0) z+=N3;
+    if (z>=N3) z-=N3;
+    o3[i] = z++;
+  }
+  BIGINT nlo = (offset1<0) ? -offset1 : 0;          // # wrapping below in x
+  BIGINT nhi = (offset1+size1>N1) ? offset1+size1-N1 : 0;    // " above in x
+  // this triple loop works in all dims
+  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
+    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
+    for (int dy=0; dy<size2; dy++) {
+      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
+      FLT *out = data_uniform + 2*oy;
+      FLT *in  = du0 + 2*size1*(dy + size2*dz);   // ptr to subgrid array
+      BIGINT o = 2*(offset1+N1);         // 1d offset for output
+      for (int j=0; j<2*nlo; j++)        // j is really dx/2 (since re,im parts)
+	out[j+o] += in[j];
+      o = 2*offset1;
+      for (int j=2*nlo; j<2*(size1-nhi); j++)
+	out[j+o] += in[j];
+      o = 2*(offset1-N1);
+      for (int j=2*(size1-nhi); j<2*size1; j++)
+      	out[j+o] += in[j];
     }
   }
 }

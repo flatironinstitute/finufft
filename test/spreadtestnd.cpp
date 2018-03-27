@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
       printf("error (ier=%d)!\n",ier);
       return ier;
     } else
-      printf("\t%.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
+      printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
   
     FLT sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
 #pragma omp parallel for reduction(+:sumre,sumim)
@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
     FLT pim = kersumim*strre + kersumre*strim;
     FLT maxerr = std::max(fabs(sumre-pre), fabs(sumim-pim));
     FLT ansmod = sqrt(sumre*sumre+sumim*sumim);
-    printf("\trel err in total over grid:      %.3g\n",maxerr/ansmod);
+    printf("    rel err in total over grid:      %.3g\n",maxerr/ansmod);
     // note this is weaker than below dir=2 test, but is good indicator that
     // periodic wrapping is correct
   }
@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     return 1;
   } else
-    printf("\t%.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
+    printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,d)*M/t);
 
   // math test is worst-case error from pred value (kersum) on interp pts:
   maxerr = 0.0;
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
     if (err>maxerr) maxerr=err;
   }
   ansmod = sqrt(kersumre*kersumre+kersumim*kersumim);
-  printf("\tmax rel err in values at NU pts: %.3g\n",maxerr/ansmod);
+  printf("    max rel err in values at NU pts: %.3g\n",maxerr/ansmod);
   // this is stronger test than for dir=1, since it tests sum of kernel for
   // each NU pt. However, it cannot detect reading
   // from wrong grid pts (they are all unity)
