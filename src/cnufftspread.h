@@ -14,6 +14,7 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
   int chkbnds;            // 0: don't check NU pts are in range; 1: do
   int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
+  int sort_threads;       // 0: auto-choice, >0: fix number of sort threads
   BIGINT max_subproblem_size; // sets extra RAM per thread
   int flags;              // binary flags for timing only (may give wrong ans!)
   int debug;              // 0: silent, 1: small text output, 2: verbose

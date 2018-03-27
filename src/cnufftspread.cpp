@@ -21,15 +21,12 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du0,BIGINT M0,
 void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du0,BIGINT M0,
 			  FLT *kx0,FLT *ky0,FLT *kz0,FLT *dd0,
 			  const spread_opts& opts);
-void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z);
 void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z);
+	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z);
+	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,
 		 FLT* kz0,int ns, int ndims);
@@ -95,6 +92,8 @@ int cnufftspread(
                 [-3pi/2,3pi/2] respectively).
 	sort = 0,1,2: whether to sort NU points using natural yz-grid
 	       ordering. 0: don't, 1: do, 2: use heuristic choice (default)
+        sort_threads = 0, 1,... : if >0, set # sorting threads; if 0
+                   allow heuristic choice (either single or all avail).
 	debug = 0: no text output, 1: some openmp output, 2: mega output
 	           (each NU pt)
 	chkbnds = 0: don't check incoming NU pts for bounds (but still fold +-1)
@@ -117,10 +116,12 @@ int cnufftspread(
    Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
    error codes 3/13/17. pirange 3/28/17. Rewritten 6/15/17. parallel sort 2/9/18
    No separate subprob indices in t-1 2/11/18.
+   sort_threads (since for M<<N, multithread sort slower than single) 3/27/18
 */
 {
   CNTime timer;
-  // Input checking: cuboid not too small for spreading
+
+  // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
   int minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
     fprintf(stderr,"error: one or more non-trivial box dims is less than 2.nspread!\n");
@@ -138,7 +139,8 @@ int cnufftspread(
   if (opts.debug)
     printf("starting spread %dD (dir=%d. M=%ld; N1=%ld,N2=%ld,N3=%ld; pir=%d), %d threads\n",ndims,opts.spread_direction,M,N1,N2,N3,opts.pirange,MY_OMP_GET_MAX_THREADS());
   
-    if (opts.chkbnds) {  // check NU pts are valid (incl +-1 box), exit gracefully
+  // BOUNDS CHECKING .... check NU pts are valid (incl +-1 box), exit gracefully
+  if (opts.chkbnds) {
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
@@ -163,32 +165,42 @@ int cnufftspread(
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
-    if (opts.debug) printf("NU bnds check:\t\t%g s\n",timer.elapsedsec());
+    if (opts.debug) printf("\tNU bnds check:\t\t%g s\n",timer.elapsedsec());
   }
-
+    
+  // NONUNIFORM POINT SORTING .....
+  // heuristic binning box size for U grid... affects performance:
+  double bin_size_x = 16, bin_size_y = 4, bin_size_z = 4;
+  int better_to_sort = !(ndims==1 && (M > 10*N1)); // 1d small-N case: don't sort
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
-  int sort_heuristic = !(ndims==1 && (M > 10*N1)); // 1d small-N case don't sort
   timer.start();                 // if needed, sort all the NU pts...
-  if (opts.sort==1 || (opts.sort==2 && sort_heuristic)) {
+  if (opts.sort==1 || (opts.sort==2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
-    bin_sort(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,16,4,4);
+    int sort_debug = (opts.debug>=2);    // show timing output?
+    int sort_nthr = opts.sort_threads;   // choose # threads for sorting
+    if (sort_nthr==0)   // auto choice: when N>>M, one thread is better!
+      sort_nthr = (10*M>N1*N2*N3) ? MY_OMP_GET_MAX_THREADS() : 1;  // heuristic
+    if (sort_nthr==1)
+      bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
+    else
+      bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
     if (opts.debug)
-      printf("sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
+      printf("\tsorted (%d threads):\t%.3g s\n",timer.elapsedsec(),sort_nthr);
   } else {
 #pragma omp parallel for schedule(static,1000000)
     for (BIGINT i=0; i<M; i++)                // omp helps xeon, hinders i7
       sort_indices[i]=i;                      // the identity permutation
     if (opts.debug)
-      printf("not sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
+      printf("\tnot sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
   }
-  
-  
+    
   if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
 
-    timer.start();
     BIGINT N=N1*N2*N3;           // output array size, zero it
+    timer.start();
     for (BIGINT i=0; i<2*N; i++)
-        data_uniform[i]=0.0;
+      data_uniform[i]=0.0;
+    if (opts.debug) printf("\tzero output array\t%.3g s\n",timer.elapsedsec());
     if (M==0)                     // no NU pts
       return 0;
     // Split sorted inds (jfm's advanced2), could double RAM. Choose # subprobs:
@@ -198,7 +210,6 @@ int cnufftspread(
     std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
     for (int p=0;p<=nb;++p)
       brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
-    if (opts.debug) printf("zero output array\t%.3g s (%d subprobs)\n",timer.elapsedsec(),nb);
 
     timer.start();
 #pragma omp parallel for schedule(dynamic,1)
@@ -224,11 +235,11 @@ int cnufftspread(
       get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);
       if (opts.debug>1)  // verbose
 	if (ndims==1)
-	    printf("subgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
+	    printf("\tsubgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
 	else if (ndims==2)
-	  printf("subgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
+	  printf("\tsubgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
 	else
-	  printf("subgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
+	  printf("\tsubgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
       for (BIGINT j=0; j<M0; j++) {
 	kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
 	if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
@@ -287,11 +298,12 @@ int cnufftspread(
 	if (N2>1) free(ky0);
 	if (N3>1) free(kz0); 
     }     // end main loop over subprobs
-    
+    if (opts.debug) printf("\tt1 spreading loop: \t%.3g s (%d subprobs)\n",timer.elapsedsec(), nb);
+
   } else {          // ================= direction 2 (interpolation) ===========
 
-    int nspad = 4*(1+(ns-1)/4); // pad ker eval to mult of 4; faster, helps w/ AVX?
     timer.start();
+    int nspad = 4*(1+(ns-1)/4); // pad ker eval to mult of 4; faster, helps w/ AVX?
 #pragma omp parallel for schedule(dynamic,10000) // (dynamic not needed) assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i++) {  // main loop over NU targs, interp each from U
       BIGINT j=sort_indices[i];   // j current index in input NU targ list
@@ -336,9 +348,9 @@ int cnufftspread(
 	  interp_cube(&data_nonuniform[2*j],data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
 	}
     }    // end NU targ loop
+    if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n",timer.elapsedsec());
   }                           // ================= end direction choice ========
   
-  if (opts.debug) printf("pure spread stage: \t%.3g s\n",timer.elapsedsec());
   free(sort_indices);
   return 0;
 }
@@ -353,10 +365,11 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT R)
 // Returns: 0 success, >0 failure (see error codes in utils.h)
 {
   opts.spread_direction = 1;    // user should always set to 1 or 2 as desired
-  opts.pirange = 1;             // user also should always set
+  opts.pirange = 1;             // user also should always set this
   opts.chkbnds = 1;
-  opts.sort = 1;
-  opts.max_subproblem_size = (BIGINT)1e4;
+  opts.sort = 2;                // auto-choice
+  opts.sort_threads = 0;        // auto-choice
+  opts.max_subproblem_size = (BIGINT)1e4;  // was larger, slightly worse
   opts.flags = 0;
   opts.debug = 0;
   
@@ -752,11 +765,11 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
   }
 }
 
-void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z)
+	      double bin_size_x,double bin_size_y,double bin_size_z, int debug)
 /* Returns permutation of all nonuniform points with good RAM access,
- * ie less cache misses for spreading, in 1D, 2D, or 3D.
+ * ie less cache misses for spreading, in 1D, 2D, or 3D. Singe-threaded version.
  *
  * This is achieved by binning into cuboids (of given bin_size)
  * then reading out the indices within
@@ -774,22 +787,6 @@ void bin_sort(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * Output:
  *         writes to ret a vector list of indices, each in the range 0,..,M-1.
  *         Thus, ret must have been allocated for M BIGINTs.
- *
- * note: This is a wrapper which calls either single- or multi-threaded version.
- */
-{
-  int nt = MIN(M,MY_OMP_GET_MAX_THREADS());
-  if (nt<=1)
-    bin_sort_singlethread(ret, M, kx,ky,kz, N1,N2,N3, pirange, bin_size_x,bin_size_y,bin_size_z);
-  else
-    bin_sort_multithread(ret, M, kx,ky,kz, N1,N2,N3, pirange, bin_size_x,bin_size_y,bin_size_z);
-}
-
-void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z)
-/* Single-threaded implementation of bin_sort. See documentation in routine
- * bin_sort.
  *
  * Notes: I compared RAM usage against declaring an internal vector and passing
  * back; the latter used more RAM and was slower.
@@ -837,9 +834,12 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z)
-/* Mostly-OpenMPed version of bin_sort. For documentation see: bin_sort.
+	      double bin_size_x,double bin_size_y,double bin_size_z, int debug)
+/* Mostly-OpenMP'ed version of bin_sort.
+   For documentation see: bin_sort_singlethread.
+   Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
    Barnett 2/8/18
+   Todo: if debug, print timing breakdowns
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
