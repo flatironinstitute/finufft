@@ -207,13 +207,12 @@ int cnufftspread(
     if (M==0)                     // no NU pts, we're done
       return 0;
 
-    int spread_single = (M*100<N);     // low-density heuristic
-    spread_single = 0;    // ** enforce pending single-core t1 spreader
+    int spread_single = (M*100<N);     // low-density heuristic?
+    spread_single = 0;                 // for now
     timer.start();
     if (spread_single) {    // ------- Basic single-core t1 spreading ------
       for (BIGINT j=0; j<M; j++) {
-	// todo
-	
+	// todo, not urgent
       }
       if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n",timer.elapsedsec());
 
@@ -222,6 +221,10 @@ int cnufftspread(
       int nb = MIN(4*MY_OMP_GET_MAX_THREADS(),M);     // Choose # subprobs
       if (nb*opts.max_subproblem_size<M)
 	nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;  // int div
+      if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
+	nb = M;
+	if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
+      }
       std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
       for (int p=0;p<=nb;++p)
 	brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
