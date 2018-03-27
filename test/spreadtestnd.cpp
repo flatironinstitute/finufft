@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
   opts.debug = debug;   // print more diagnostics?
   opts.sort = sort;
   opts.flags = flags;
-  //opts.max_subproblem_size = 1e4; // default 1e5
+  //opts.max_subproblem_size = 1e4; // default 1e5; minimal difference
   FLT maxerr, ansmod;
   
   // spread a single source, only for reference accuracy check...

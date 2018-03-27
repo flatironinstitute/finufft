@@ -356,7 +356,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT R)
   opts.pirange = 1;             // user also should always set
   opts.chkbnds = 1;
   opts.sort = 1;
-  opts.max_subproblem_size = (BIGINT)1e5;
+  opts.max_subproblem_size = (BIGINT)1e4;
   opts.flags = 0;
   opts.debug = 0;
   
