@@ -1,0 +1,6 @@
+# makefile overrides to use Intel ICC compiler.
+
+CXX=icpc
+CXXFLAGS = -xHost
+
+# CXXFLAGS = -xHost -lsvml    % fails (gives nans & no faster)

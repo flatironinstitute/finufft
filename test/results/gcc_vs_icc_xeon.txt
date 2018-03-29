@@ -1,0 +1,25 @@
+Comparing GCC 6.4.0 vs ICC 17.0.4, on xeon E5-2643 v3 @ 3.40GHz
+3/28/18
+
+spreadtestnd d 1e7 1e7 1e-6 2
+
+Timings in sec:
+
+single-thread:
+
+	t1		t2
+		
+	GCC	ICC	GCC	ICC
+
+1d	2.7	1.7	3.3	2.7
+2d	4.5	2.7	5.0	4.5
+3d	8.6	5.7	10.9	8.4
+
+24-thread:
+
+1d	.49	.38	.48	.36
+2d	.5	.34	.48	.37
+3d	.82	.62	.76	.58
+
+Note: sorting a bit slower under ICC, but spreading is faster.
+
