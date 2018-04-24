@@ -1,98 +1,124 @@
-/* test piecewise polynomial eval of kernel, for speed.
+/* test piecewise polynomial eval of kernel, for accuracy, then speed, vs
+   math exp(sqrt(..)) evals. Also writes to tmp file.
 
-g++ test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native
-time test_ker_ppval
+For dyn linked:
+g++ test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fopenmp
+For statically linked so can control glibc (avoid Matlab calling being different):
+g++ test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fopenmp -static -lmvec
 
-See also: gen_ker_horner_C_code.m and ker_ppval_coeff_mat.m
+Usage: test_ker_ppval [M [w]]
+where M is number of pts for the speed test, and w is kernel width
+(accuracy should be around 10^{1-w} )
+
+See also: gen_ker_horner_C_code.m, ker_ppval_coeff_mat.m, fig_speed_ker_ppval.m
 
 Barnett 4/23/18
 */
-
 
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 
-// Choose prec...
+// Choose prec... (w=7 enough for single)
 typedef double FLT;
 //typedef float FLT;
 
-static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const FLT beta, const FLT c, const int N)
-/* Evaluate kernel for a vector of N arguments.
-   The #pragra's need to be removed for icpc if -fopenmp not used.
+static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const FLT beta, const FLT c, const int w)
+/* Evaluate kernel for a vector of w arguments, must also be the int width par.
+   The #pragra's need to be removed for icpc if -fopenmp not used; g++ is ok.
  */
 {
-  //#pragma omp simd
-  for (int i = 0; i < N; i++)
+  #pragma omp simd
+  for (int i = 0; i < w; i++)
     ker[i] = exp(beta * sqrt(1.0 - c*args[i]*args[i]));
+  // gcc 5.4 can't simd the combined loop, hence we split the
+  // out-of-support test to subsequent loop...
+  #pragma omp simd
+  for (int i = 0; i < w; i++)
+    if (fabs(args[i]) >= (FLT)w/2)    // note fabs not abs!
+      ker[i] = 0.0;
 }
 
 static inline void kernel_vector_Horner(FLT *ker, const FLT z, const int w)
 /* Evaluate kernel for a vector of N grid-spaced arguments offset by z/w from
-   the standard kernel grid on [-1,1] the kernel support
+   the standard kernel grid on [-1,1] the kernel support.
+   See: gen_all_horner_C_code.m
 */
 {
-  if (w==1) {
-  } else if (w==2) {
-  } else if (w==3) {
-  } else if (w==4) {
-  } else if (w==5) {
-  } else if (w==6) {
-  } else if (w==7) {
-ker[0] = 3.9948351830487481E+03 + z*(1.5290160332974696E+04 + z*(2.4458227486779251E+04 + z*(2.1166189345881645E+04 + z*(1.0542795672344864E+04 + z*(2.7903491906228419E+03 + z*(1.6069721418053300E+02 + z*(-1.2289277373867256E+02 + z*(-3.2270164914249058E+01 + z*(-1.4761409685186277E-01 + z*(1.0330620799145493E+00 + z*(1.0330620799145493E+00)))))))))));
-ker[1] = 5.4715865608590771E+05 + z*(8.7628248584320408E+05 + z*(5.3904618484139396E+05 + z*(1.3382732160223130E+05 + z*(-7.0739172265098678E+03 + z*(-1.0975382873973093E+04 + z*(-1.5518707872251393E+03 + z*(2.8583630927743314E+02 + z*(9.1892112257581346E+01 + z*(-9.1862771280377487E-01 + z*(-2.6798144968400117E+00 + z*(-2.6798144968400117E+00)))))))))));
-ker[2] = 5.0196413492771760E+06 + z*(3.4421061790934438E+06 + z*(2.4315566181017534E+05 + z*(-3.3113450969689694E+05 + z*(-6.5563293056049893E+04 + z*(1.3656979541144799E+04 + z*(4.3634273936642621E+03 + z*(-2.8318194617327981E+02 + z*(-1.6710678096334209E+02 + z*(1.2845147741777752E+00 + z*(4.4142511558139139E+00 + z*(4.4142511558139139E+00)))))))))));
-ker[3] = 9.8206709220713247E+06 + z*(-2.6908159596373561E-10 + z*(-1.6133959371974322E+06 + z*(6.9013724510092140E-10 + z*(1.2429734005960064E+05 + z*(7.7346408577822045E-10 + z*(-5.9891976420595174E+03 + z*(6.9043515551118249E-10 + z*(2.0317049305432383E+02 + z*(5.6547359492808854E-10 + z*(-5.1799254920720621E+00 + z*(-5.1799254920720621E+00)))))))))));
-ker[4] = 5.0196413492771825E+06 + z*(-3.4421061790934461E+06 + z*(2.4315566181017453E+05 + z*(3.3113450969689724E+05 + z*(-6.5563293056049602E+04 + z*(-1.3656979541143772E+04 + z*(4.3634273936642730E+03 + z*(2.8318194617392436E+02 + z*(-1.6710678096383771E+02 + z*(-1.2845147728310689E+00 + z*(4.4142511545643943E+00 + z*(4.4142511545643943E+00)))))))))));
-ker[5] = 5.4715865608590783E+05 + z*(-8.7628248584320408E+05 + z*(5.3904618484139396E+05 + z*(-1.3382732160223136E+05 + z*(-7.0739172265098332E+03 + z*(1.0975382873973256E+04 + z*(-1.5518707872251064E+03 + z*(-2.8583630927760140E+02 + z*(9.1892112257416159E+01 + z*(9.1862771293147971E-01 + z*(-2.6798144967872908E+00 + z*(-2.6798144967872908E+00)))))))))));
-ker[6] = 3.9948351830642519E+03 + z*(-1.5290160332958067E+04 + z*(2.4458227486795113E+04 + z*(-2.1166189345866893E+04 + z*(1.0542795672361213E+04 + z*(-2.7903491906078298E+03 + z*(1.6069721419533221E+02 + z*(1.2289277375319763E+02 + z*(-3.2270164900224913E+01 + z*(1.4761410890866353E-01 + z*(1.0330620914446063E+00 + z*(1.0330620914446063E+00)))))))))));
-
-  } else if (w==13) {
-ker[0] = 9.8715725867495363E+04 + z*(5.4491110456935549E+05 + z*(1.3504711883426071E+06 + z*(1.9937206140846491E+06 + z*(1.9607419630386413E+06 + z*(1.3593773865640305E+06 + z*(6.8417206432039209E+05 + z*(2.5248269397037517E+05 + z*(6.7530100970876694E+04 + z*(1.2421368748961073E+04 + z*(1.2904654687550299E+03 + z*(-1.9043622268674213E+01 + z*(-3.0093984465361217E+01 + z*(-4.3050286009489040E+00 + z*(-1.0957333716725008E-01 + z*(6.4700345786605579E-02 + z*(6.4700345786605579E-02))))))))))))))));
-ker[1] = 1.9828875496808097E+08 + z*(5.4903670125539351E+08 + z*(6.9286979077463162E+08 + z*(5.2512029493765980E+08 + z*(2.6425362558103892E+08 + z*(9.1556445104158267E+07 + z*(2.1561705510027152E+07 + z*(3.0985559672616189E+06 + z*(1.2373362326658823E+05 + z*(-5.0576243647011936E+04 + z*(-1.1169946055009055E+04 + z*(-6.8296542209516542E+02 + z*(9.8972865724808671E+01 + z*(2.1108975724659501E+01 + z*(7.2949317004436565E-01 + z*(-1.9388585893355106E-01 + z*(-1.9388585893355106E-01))))))))))))))));
-ker[2] = 1.7196758809614983E+10 + z*(3.0879465445278183E+10 + z*(2.4618123595484577E+10 + z*(1.1253303793811750E+10 + z*(3.1171259341747193E+09 + z*(4.7074012944133747E+08 + z*(7.5785249893055111E+06 + z*(-1.1816517087616559E+07 + z*(-2.1245597183281910E+06 + z*(-4.8878193436902722E+04 + z*(3.3275109713863385E+04 + z*(4.2702512274202591E+03 + z*(-9.7437038666761538E+01 + z*(-6.4297198812570272E+01 + z*(-3.4300816058693728E+00 + z*(4.8498196904280277E-01 + z*(4.8498196904280277E-01))))))))))))))));
-ker[3] = 3.3083776881353577E+11 + z*(3.9588436413399969E+11 + z*(1.9493985627722607E+11 + z*(4.6205527735932152E+10 + z*(2.9839860297839913E+09 + z*(-1.1192579335657008E+09 + z*(-2.7456096030221754E+08 + z*(-8.2958498770184973E+06 + z*(5.1047323238754412E+06 + z*(6.5307896872028301E+05 + z*(-3.1765222274236821E+04 + z*(-1.2165497317825058E+04 + z*(-3.5079928405373198E+02 + z*(1.2922884632277874E+02 + z*(1.0470054474579324E+01 + z*(-8.4505831021230793E-01 + z*(-8.4505831021230793E-01))))))))))))))));
-ker[4] = 2.2668873993375439E+12 + z*(1.6860562536749778E+12 + z*(3.9422703517046350E+11 + z*(-1.1607472377983305E+10 + z*(-1.9585031917561897E+10 + z*(-2.1090780087868555E+09 + z*(3.4589095671054310E+08 + z*(8.0546642347355247E+07 + z*(-1.4139444405488928E+06 + z*(-1.5497610127060430E+06 + z*(-5.9810982085323274E+04 + z*(1.9423733298269544E+04 + z*(1.5699250566648977E+03 + z*(-1.6991812716212596E+02 + z*(-2.2292134950656113E+01 + z*(1.0096624953668054E+00 + z*(1.0096624953668054E+00))))))))))))))));
-ker[5] = 6.7734720591167568E+12 + z*(2.4256447893117891E+12 + z*(-1.8678883613919861E+11 + z*(-1.6305241755642313E+11 + z*(-5.0666917387065792E+09 + z*(5.2270306737951984E+09 + z*(4.0256106808894646E+08 + z*(-1.0594657799485898E+08 + z*(-1.1818267555096827E+07 + z*(1.5137725917321201E+06 + z*(2.2355863038592847E+05 + z*(-1.6010024066956401E+04 + z*(-3.1287439837941820E+03 + z*(1.2655005901719436E+02 + z*(3.4570827323582719E+01 + z*(-7.1176997517188334E-01 + z*(-7.1176997517188334E-01))))))))))))))));
-ker[6] = 9.6695220682534785E+12 + z*(-5.5583944938791784E-05 + z*(-8.5538079834550110E+11 + z*(3.5385440504350348E-04 + z*(3.6568794485480583E+10 + z*(5.6467240041521856E-04 + z*(-1.0074306926603404E+09 + z*(2.1816722293163801E-04 + z*(2.0121548578624789E+07 + z*(4.1615986404011299E-04 + z*(-3.1083591705219547E+05 + z*(3.4018642874429026E-04 + z*(3.8692196309709061E+03 + z*(9.2483537895948854E-05 + z*(-3.9923523442753932E+01 + z*(1.8993034357560573E-04 + z*(1.8993034357560573E-04))))))))))))))));
-ker[7] = 6.7734720591167432E+12 + z*(-2.4256447893117847E+12 + z*(-1.8678883613919730E+11 + z*(1.6305241755642365E+11 + z*(-5.0666917387057562E+09 + z*(-5.2270306737934217E+09 + z*(4.0256106809081393E+08 + z*(1.0594657799424352E+08 + z*(-1.1818267557079868E+07 + z*(-1.5137725918538549E+06 + z*(2.2355863445202672E+05 + z*(1.6010021599471667E+04 + z*(-3.1287462825615335E+03 + z*(-1.2655066232531748E+02 + z*(3.4573264959502886E+01 + z*(7.1071470529800751E-01 + z*(7.1071470529800751E-01))))))))))))))));
-ker[8] = 2.2668873993375430E+12 + z*(-1.6860562536749768E+12 + z*(3.9422703517046375E+11 + z*(1.1607472377982582E+10 + z*(-1.9585031917561817E+10 + z*(2.1090780087880819E+09 + z*(3.4589095670997137E+08 + z*(-8.0546642347497791E+07 + z*(-1.4139444401348191E+06 + z*(1.5497610130469005E+06 + z*(-5.9810982721084511E+04 + z*(-1.9423732817821805E+04 + z*(1.5699252631958864E+03 + z*(1.6991805207569072E+02 + z*(-2.2292358612963266E+01 + z*(-1.0093759853494892E+00 + z*(-1.0093759853494892E+00))))))))))))))));
-ker[9] = 3.3083776881353503E+11 + z*(-3.9588436413399890E+11 + z*(1.9493985627722589E+11 + z*(-4.6205527735932213E+10 + z*(2.9839860297838497E+09 + z*(1.1192579335658383E+09 + z*(-2.7456096030236483E+08 + z*(8.2958498771036500E+06 + z*(5.1047323236516044E+06 + z*(-6.5307896856811445E+05 + z*(-3.1765222464963932E+04 + z*(1.2165497483905752E+04 + z*(-3.5079944793112952E+02 + z*(-1.2922893667436634E+02 + z*(1.0470042004916014E+01 + z*(8.4513368663187038E-01 + z*(8.4513368663187038E-01))))))))))))))));
-ker[10] = 1.7196758809614998E+10 + z*(-3.0879465445278183E+10 + z*(2.4618123595484566E+10 + z*(-1.1253303793811750E+10 + z*(3.1171259341747184E+09 + z*(-4.7074012944133127E+08 + z*(7.5785249893030487E+06 + z*(1.1816517087615721E+07 + z*(-2.1245597183309775E+06 + z*(4.8878193438804832E+04 + z*(3.3275109714208855E+04 + z*(-4.2702512286689680E+03 + z*(-9.7437041893750632E+01 + z*(6.4297198424711908E+01 + z*(-3.4300810538570281E+00 + z*(-4.8498289797755090E-01 + z*(-4.8498289797755090E-01))))))))))))))));
-ker[11] = 1.9828875496807891E+08 + z*(-5.4903670125538898E+08 + z*(6.9286979077462614E+08 + z*(-5.2512029493765628E+08 + z*(2.6425362558103728E+08 + z*(-9.1556445104157984E+07 + z*(2.1561705510027405E+07 + z*(-3.0985559672621777E+06 + z*(1.2373362326702787E+05 + z*(5.0576243646433126E+04 + z*(-1.1169946054555618E+04 + z*(6.8296542153908558E+02 + z*(9.8972866189610414E+01 + z*(-2.1108976207523057E+01 + z*(7.2949352113279253E-01 + z*(1.9388556864144227E-01 + z*(1.9388556864144227E-01))))))))))))))));
-ker[12] = 9.8715725867496090E+04 + z*(-5.4491110456935526E+05 + z*(1.3504711883426069E+06 + z*(-1.9937206140846489E+06 + z*(1.9607419630386417E+06 + z*(-1.3593773865640305E+06 + z*(6.8417206432039209E+05 + z*(-2.5248269397037517E+05 + z*(6.7530100970876316E+04 + z*(-1.2421368748961073E+04 + z*(1.2904654687545376E+03 + z*(1.9043622268312891E+01 + z*(-3.0093984465884773E+01 + z*(4.3050286009485790E+00 + z*(-1.0957333740315604E-01 + z*(-6.4700346061994291E-02 + z*(-6.4700346061994291E-02))))))))))))))));
-
-  } else
-  printf("kernel_vector_Horner not implemented for this w!\n");
+#include "ker_horner_allw.c"
 }
 
 int main(int argc, char* argv[])
 {
-  int M = (int) 1e7;          // # of reps
+  int M = (int) 1e7;          // # of reps (<2^31)
   if (argc>1)
-    sscanf(argv[1],"%d",&M);  // weirdly makes exp vect 10x faster, even on gcc 5.4.0
-  int w=12;                   // spread width
-  FLT beta=2.3*w, c = 4.0/(w*w); // set up ker params
-  FLT iw = 1.0/(FLT)w;          // scaling between kernel support and segment
-  FLT ans = 0.0, ans2= 0.0;                 // dummy answer and horner version
+    sscanf(argv[1],"%d",&M);  // weirdly allows exp simd 10x faster, even on gcc 5.4.0
+  int w=13;                   // spread width
+  if (argc>2)
+    sscanf(argv[2],"%d",&w);
+  FLT beta=2.30*w;            // should match kernel params for acc test
+  if (w==2) beta = 2.20*w;
+  if (w==3) beta = 2.26*w;
+  if (w==4) beta = 2.38*w;
+  FLT c = 4.0/(FLT)(w*w);          // set up ker params for plain eval
+  FLT iw = 1.0/(FLT)w;        // scale factor
   std::vector<FLT> x(w);
-  std::vector<FLT> f(w,0.0);
-  std::vector<FLT> f2(w,0.0);
-  for (int i=0;i<M;++i) {       // loop over eval grid sets
-    FLT z = (2*i)/(FLT)(M-1)-1.0;    // local offset sweep through z in [-1,1]
-    //printf("z=%g:\n",z);   // useful for calling w/ eg M=3
-    //kernel_vector_Horner(&f2[0],z,w);   // eval kernel to f2, given offset z
+  std::vector<FLT> f(w), f2(w);
+
+  int Macc = 100;        // test accuracy.......
+  FLT superr = 0.0;
+  for (int i=0;i<Macc;++i) {       // loop over eval grid sets
+    FLT z = (2*i)/(FLT)(Macc-1)-1.0;  // local offset sweep through z in [-1,1]
+    //printf("z=%g:\n",z);   // useful for calling w/ eg Macc=3
+    kernel_vector_Horner(&f2[0],z,w);   // eval kernel to f2, given offset z
     for (int j=0;j<w;++j)           // vector of args in [-w/2,w/2] ker supp
-      x[j] = (-(double)w+1.0+z)/2 + j;
+      x[j] = (-(FLT)w+1.0+z)/2 + j;
     evaluate_kernel_vector(&f[0],&x[0],beta,c,w);   // eval kernel into f
     for (int j=0;j<w;++j) {
       //printf("x=%.3g\tf=%.6g\tf2=%.6g\tf2-f=%.3g\n",x[j],f[j],f2[j],f2[j]-f[j]);
-      ans += f[j];                  // do something cheap to use f,f2 outputs
-      ans2 += f2[j];
+      FLT err = abs(f[j]-f2[j]);
+      if (err>superr) superr = err;
     }
   }
-  //printf("ans=%.15g,\tans2=%.15g\n",ans,ans2);
-  printf("rel err = %.3g\n",fabs(ans-ans2)/fabs(ans));
+  superr /= exp(beta);
+  printf("acc test: sup err scaled to kernel peak of 1: %.3g\n",superr);
+  
+  // test speed...... plain eval
+  clock_t start=clock();
+  FLT ans = 0.0;                     // dummy answer
+  for (int i=0;i<M;++i) {            // loop over eval grid sets
+    FLT z = (2*i)/(FLT)(M-1)-1.0;    // local offset sweep through z in [-1,1]
+    for (int j=0;j<w;++j)            // vector of args for [-w/2,w/2] ker supp
+      x[j] = (-(FLT)w+1.0+z)/2 + j;
+    evaluate_kernel_vector(&f[0],&x[0],beta,c,w);   // eval kernel into f
+    for (int j=0;j<w;++j) {
+      // printf("x=%.16g\tf=%.16g\n",x[j],f[j]);
+      ans += f[j];                   // do something cheap to use all f outputs
+    }
+  }
+  double t=(double)(clock()-start)/CLOCKS_PER_SEC;
+  printf("exp(sqrt): M=%d w=%d in %.3g s:\t%.3g Meval/s (ans=%.15g)\n",M,w,t,M*w/(t*1.0e6),ans);
+  
+  // test speed...... Horner
+  start=clock();
+  FLT ans2 = 0.0;                    // dummy answer
+    for (int i=0;i<M;++i) {          // loop over eval grid sets
+    FLT z = (2*i)/(FLT)(M-1)-1.0;    // local offset sweep through z in [-1,1]
+    kernel_vector_Horner(&f[0],z,w); // eval kernel to f, given offset z
+    for (int j=0;j<w;++j)
+      ans2 += f[j];                  // do something cheap to use all f outputs
+    }
+  double t2=(double)(clock()-start)/CLOCKS_PER_SEC;
+  printf("Horner:    M=%d w=%d in %.3g s:\t%.3g Meval/s (ans=%.15g)\n",M,w,t2,M*w/(t2*1.0e6),ans2);
+
+  printf("rel err in sum = %.3g\n",fabs(ans-ans2)/fabs(ans));
+
+  // append timing data to tmp file...
+  FILE *p = fopen("/tmp/test_ker_ppval.dat","a");
+  fprintf(p,"%d %d %.3f %.3f %.3g\n",M,w,t,t2,superr);
+  fclose(p);
+  
   return 0;
 }
