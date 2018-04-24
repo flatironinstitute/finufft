@@ -10,6 +10,7 @@
 // declarations of internal functions...
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);
 static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts& opts, const int N);
+static inline void eval_kernel_vec_Horner(FLT *ker, const FLT z, const int w);
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
 void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
@@ -300,7 +301,7 @@ int cnufftspread(
       // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
       FLT xj=RESCALE(kx[j],N1,opts.pirange);
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
-      FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
+      FLT x1=(FLT)i1-xj;           // shift of ker center, in [-w/2,-w/2+1]
       // static alloc is faster, so we do it for up to 3D...
       FLT kernel_args[3*MAX_NSPREAD];
       FLT kernel_values[3*MAX_NSPREAD];
@@ -310,16 +311,24 @@ int cnufftspread(
       // eval kernel values patch and use to interpolate from uniform data...
       if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
-	  set_kernel_args(kernel_args, x1, opts);
-	  evaluate_kernel_vector(kernel_values, kernel_args, opts, ns);
+	  if (opts.kereval==0) {               // choose eval method
+	    set_kernel_args(kernel_args, x1, opts);
+	    evaluate_kernel_vector(kernel_values, kernel_args, opts, ns);
+	  } else
+	    eval_kernel_vec_Horner(ker1,x1,ns);
 	  interp_line(&data_nonuniform[2*j],data_uniform,ker1,i1,N1,ns);
 	} else if (ndims==2) {                                   // 2D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
 	  BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
 	  FLT x2=(FLT)i2-yj;
-	  set_kernel_args(kernel_args, x1, opts);
-	  set_kernel_args(kernel_args+ns, x2, opts);
-	  evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
+	  if (opts.kereval==0) {               // choose eval method
+	    set_kernel_args(kernel_args, x1, opts);
+	    set_kernel_args(kernel_args+ns, x2, opts);
+	    evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
+	  } else {
+	    eval_kernel_vec_Horner(ker1,x1,ns);
+	    eval_kernel_vec_Horner(ker2,x2,ns);
+	  }
 	  interp_square(&data_nonuniform[2*j],data_uniform,ker1,ker2,i1,i2,N1,N2,ns);
 	} else {                                                 // 3D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
@@ -328,10 +337,16 @@ int cnufftspread(
 	  BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
 	  FLT x2=(FLT)i2-yj;
 	  FLT x3=(FLT)i3-zj;
-	  set_kernel_args(kernel_args, x1, opts);
-	  set_kernel_args(kernel_args+ns, x2, opts);
-	  set_kernel_args(kernel_args+2*ns, x3, opts);
-	  evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
+	  if (opts.kereval==0) {               // choose eval method
+	    set_kernel_args(kernel_args, x1, opts);
+	    set_kernel_args(kernel_args+ns, x2, opts);
+	    set_kernel_args(kernel_args+2*ns, x3, opts);
+	    evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
+	  } else {
+	    eval_kernel_vec_Horner(ker1,x1,ns);
+	    eval_kernel_vec_Horner(ker2,x2,ns);
+	    eval_kernel_vec_Horner(ker3,x3,ns);
+	  }
 	  interp_cube(&data_nonuniform[2*j],data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
 	}
     }    // end NU targ loop
@@ -355,7 +370,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT R)
   opts.pirange = 1;             // user also should always set this
   opts.chkbnds = 1;
   opts.sort = 2;                // auto-choice
-  opts.kereval = 0;
+  opts.kereval = 1;             // default: horner
   opts.kerpad = 0;              // affects only evaluate_kernel_vector
   opts.sort_threads = 0;        // auto-choice
   opts.max_subproblem_size = (BIGINT)1e4;  // was larger, slightly worse
@@ -463,14 +478,14 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts
     if (abs(args[i])>=opts.ES_halfwidth) ker[i] = 0.0;
 }
 
-static inline void eval_kernel_vec_Horner(FLT *ker, FLT z, int w)
-/* Fill ker[] with Horner piecewise poly approx to kernel eval at
-   x_j = -(w-1)/2 + z + j,  for j=0,..,w-1
-   for the kernel width of w, ie support in [-w/2,w/2].  Here w = ns.
-   Experimental.
+static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w)
+/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] kernel eval at
+   x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    Barnett 4/24/18
  */
 {
+  FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
+  // printf("z=%.15g\n",z);
 #include "../devel/ker_horner_allw.c"
 }
 
@@ -647,7 +662,7 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
    dd (size M complex) are source strengths
    du (size N1) is uniform output array.
 
-   This a naive loop w/ Ludvig's eval_ker_vec. nspad expt by Barnett 3/2/18
+   This a naive loop w/ Ludvig's eval_ker_vec.
 */
 {
   int ns=opts.nspread;
@@ -660,9 +675,12 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
-    FLT x1 = (FLT)i1 - kx[i];
-    set_kernel_args(kernel_args, x1, opts);
-    evaluate_kernel_vector(ker, kernel_args, opts, ns);
+    FLT x1 = (FLT)i1 - kx[i];            // x1 in [-w/2,-w/2+1]
+    if (opts.kereval==0) {
+      set_kernel_args(kernel_args, x1, opts);
+      evaluate_kernel_vector(ker, kernel_args, opts, ns);
+    } else
+      eval_kernel_vec_Horner(ker,x1,ns);
     // critical inner loop: 
     BIGINT j=i1;
     for (int dx=0; dx<ns; ++dx) {
@@ -698,9 +716,14 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
-    set_kernel_args(kernel_args, x1, opts);
-    set_kernel_args(kernel_args+ns, x2, opts);
-    evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);    
+    if (opts.kereval==0) {
+      set_kernel_args(kernel_args, x1, opts);
+      set_kernel_args(kernel_args+ns, x2, opts);
+      evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
+    } else {
+      eval_kernel_vec_Horner(ker1,x1,ns);
+      eval_kernel_vec_Horner(ker2,x2,ns);
+    }
     // Combine kernel with complex source value to simplify inner loop
     FLT ker1val[2*MAX_NSPREAD];
     for (int i = 0; i < ns; i++) {
@@ -731,7 +754,7 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
   int ns=opts.nspread;
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1*N2*N3;++i)
-    du[i] = 0.0;  
+    du[i] = 0.0;
   FLT kernel_args[3*MAX_NSPREAD];
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
@@ -748,10 +771,16 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
     FLT x3 = (FLT)i3 - kz[i];
-    set_kernel_args(kernel_args, x1, opts);
-    set_kernel_args(kernel_args+ns, x2, opts);
-    set_kernel_args(kernel_args+2*ns, x3, opts);
-    evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
+    if (opts.kereval==0) {
+      set_kernel_args(kernel_args, x1, opts);
+      set_kernel_args(kernel_args+ns, x2, opts);
+      set_kernel_args(kernel_args+2*ns, x3, opts);
+      evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
+    } else {
+      eval_kernel_vec_Horner(ker1,x1,ns);
+      eval_kernel_vec_Horner(ker2,x2,ns);
+      eval_kernel_vec_Horner(ker3,x3,ns);
+    }
     // Combine kernel with complex source value to simplify inner loop
     FLT ker1val[2*MAX_NSPREAD];
     for (int i = 0; i < ns; i++) {

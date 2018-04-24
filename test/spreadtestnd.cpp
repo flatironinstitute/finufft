@@ -6,7 +6,7 @@
 
 int usage()
 {
-  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags [debug [kerpad]]]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n\tflags : expert timing flags (see cnufftspread.h)\n\tdebug=0 (less text out), 1 (more), 2 (lots)\n\tkerpad=0 (no pad to mult of 4), 1 (do)\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 2 0 1\n");
+  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags [debug [kerpad [kereval]]]]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n\tflags : expert timing flags (see cnufftspread.h)\n\tdebug=0 (less text out), 1 (more), 2 (lots)\n\tkerpad=0 (no pad to mult of 4), 1 (do)\n\tkereval=0 (direct), 1 (Horner ppval)\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 2 0 1\n");
 }
 
 int main(int argc, char* argv[])
@@ -32,6 +32,7 @@ int main(int argc, char* argv[])
   int flags = 0;        // default
   int debug = 0;        // default
   int kerpad = 0;       // default
+  int kereval = 0;       // default
   if (argc<=1) { usage(); return 0; }
   sscanf(argv[1],"%d",&d);
   if (d<1 || d>3) {
@@ -76,6 +77,12 @@ int main(int argc, char* argv[])
     }
   }
   if (argc>9) {
+    sscanf(argv[9],"%d",&kereval);
+    if ((kereval<0) || (kereval>1)) {
+      printf("kereval must be 0 or 1!\n"); usage(); return 1;
+    }
+  }
+  if (argc>10) {
     usage(); return 1;
   }
 
@@ -96,6 +103,7 @@ int main(int argc, char* argv[])
   opts.sort = sort;
   opts.flags = flags;
   opts.kerpad = kerpad;
+  opts.kereval = kereval;
   //opts.max_subproblem_size = 1e4; // default 1e5; minimal difference
   FLT maxerr, ansmod;
   

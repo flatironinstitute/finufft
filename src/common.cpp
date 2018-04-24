@@ -22,8 +22,8 @@ void finufft_default_opts(nufft_opts &o)
   o.debug = 0;
   o.spread_debug = 0;
   o.spread_sort = 2;       // use heuristic rule for whether to sort
-  o.spread_kereval = 0;
-  o.spread_kerpad = 1;     // could have dep on dim, etc
+  o.spread_kereval = 1;    // 0: direct exp(sqrt()), 1: Horner ppval
+  o.spread_kerpad = 1;     // (relevant iff kereval=0)
   o.fftw = FFTW_ESTIMATE;  // use FFTW_MEASURE for slow first call, fast rerun
   o.modeord = 0;
   o.chkbnds = 1;
@@ -36,7 +36,7 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
   int ier = setup_spreader(spopts, eps, opts.R);
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;
-  spopts.kereval = opts.spread_kereval;  // could have more intellidence here
+  spopts.kereval = opts.spread_kereval;  // could make dim or CPU choices here?
   spopts.kerpad = opts.spread_kerpad;
   spopts.chkbnds = opts.chkbnds;
   spopts.pirange = 1;             // could allow user control?
