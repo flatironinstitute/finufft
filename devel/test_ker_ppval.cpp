@@ -6,7 +6,7 @@ g++ test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fo
 For statically linked so can control glibc (avoid Matlab calling being different):
 g++ test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fopenmp -static -lmvec
 
-For compiler info: -fopt-info
+For GCC vectorization info: -fopt-info
 
 Usage: test_ker_ppval [M [w]]
 where M is number of pts for the speed test, and w is kernel width
