@@ -3,9 +3,16 @@
 
    compile with:
 
-g++-7 eval_ker_expts_ludvig.cpp -o eval_ker_expts_ludvig -Ofast -funroll-loops -march=native; time ./eval_ker_expts_ludvig
+g++-7 eval_ker_expts_ludvig.cpp -o eval_ker_expts_ludvig -Ofast -funroll-loops -march=native -fopt-info; time ./eval_ker_expts_ludvig
 
-Ludvig's tweak of eval_ker_expts, 3/29/18
+Ludvig's tweak of eval_ker_expts, 3/29/18.  Can get <0.2s for M=1e7, w=12.
+Note that the range of arguments is wrong [-1,1] not [-w/2,w/2].
+This might explain the v. fast 0.2 s timing possible.
+
+A result: 2.0s even if opt-info shows 13-length loops unrolled.
+It's
+eval_ker_expts_ludvig.cpp:69:17: note: loop vectorized
+that correlates w/ 0.2s magic.
 */
 
 #include <vector>
@@ -27,8 +34,6 @@ typedef double FLT;
 
 static inline void evaluate_kernel_vector(FLT * __restrict__ ker, const FLT * __restrict__ args, const FLT beta, const FLT c, const int N)
 /* Evaluate kernel for a vector of N arguments.
-   Can comment out either or both loops.
-   The #pragra's need to be removed for icpc if -fopenmp not used.
 */
 {
 #ifdef VCL 
@@ -40,7 +45,7 @@ static inline void evaluate_kernel_vector(FLT * __restrict__ ker, const FLT * __
     vec.store(ker + i);
   }  
 #else
-  for (int i = 0; i < N; i++) // Straight computation
+  for (int i = 0; i < N; i++) // Straight computation, note no pragma omp simd
     ker[i] = exp(beta * sqrt(1.0 - c*args[i]*args[i]));
 #endif
   
@@ -49,13 +54,13 @@ static inline void evaluate_kernel_vector(FLT * __restrict__ ker, const FLT * __
 int main(int argc, char* argv[])
 {
   int M = (int) 1e7;                // # of reps
-  int w=12;                         // 12, spread width (small), needn't be mult of 4, 15 takes 3.2s but 12 only 0.2s, in g++-7
+  int w=12;                         // 12, spread width (small), needn't be mult of 4, 15 takes 3.2s but 12 only 0.2s, in g++-7. But not in gcc 5.4.0
 
   if (1) {   // 0 makes 10x slower (2s) than 1, which is 0.2 s, for g++-7 - ahb
   if (argc == 3)
   {
     sscanf(argv[1],"%d",&M);
-    //sscanf(argv[2],"%d",&w);
+    //sscanf(argv[2],"%d",&w);  // slows down from 0.2s to 0.44s if use - why??
   }
   }
   
@@ -66,7 +71,7 @@ int main(int argc, char* argv[])
   std::vector<FLT> x(w);
   std::vector<FLT> f(w);
   
-  for (int i=1;i<M;++i) {
+  for (int i=1;i<=M;++i) {  // changing from i=1 to i=0 slows from 0.2s to 2.4s!!!! I don't understand - has to be a better way to control (assembly code?)
     FLT xi = i/(FLT)M;        // dummy offset to make each rep different
     for (int j=0;j<w;++j)           // fill a simple argument vector (cheap)
       x[j] = -1.0 + xi + iw*j;      // note each x in [-1,1]

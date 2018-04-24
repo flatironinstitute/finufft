@@ -27,5 +27,13 @@ r = (M.*w)./y(:,3);  % rate in evals/sec
 r2 = (M.*w)./y(:,4); % "
 e = y(:,5);          % rel err
 figure; plot(w,[r r2]/1e6,'+-'); xlabel('w'); ylabel('eval rate (Meval/s)');
-legend('exp eval','Horner'); title(sprintf('ES kernel speed test (w/SIMD), M=%d',Mwant))
+legend('exp eval','Horner'); title(sprintf('ES kernel speed test, M=%d',Mwant))
+
+% xeon gcc6.4: exp max out at 40 Meval/s; horner 170-300 Meval/s.
+
+% cf ludvig's i7 results: 0.2 sec for 1e7*(w=12) = 600 Meval/s
+% (but that's special to m=12, also w/o the domain conditional?)
+% Wouldn't it be nice if could get that for all i7 cases.
+
+% Concl: for xeon w/ gcc, horner is much better! (5-10x)
 
