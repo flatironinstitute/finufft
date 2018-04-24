@@ -9,7 +9,7 @@
 
 // declarations of internal functions...
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);
-static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const spread_opts& opts, const int N);
+static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts& opts, const int N);
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
 void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
@@ -293,7 +293,6 @@ int cnufftspread(
   } else {          // ================= direction 2 (interpolation) ===========
 
     timer.start();
-    int nspad = 4*(1+(ns-1)/4); // pad ker eval to mult of 4; faster, helps w/ AVX?
 #pragma omp parallel for schedule(dynamic,10000) // (dynamic not needed) assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i++) {  // main loop over NU targs, interp each from U
       BIGINT j=sort_indices[i];   // j current index in input NU targ list
@@ -304,8 +303,6 @@ int cnufftspread(
       FLT x1=(FLT)i1-xj;          // real-valued shifts of ker center
       // static alloc is faster, so we do it for up to 3D...
       FLT kernel_args[3*MAX_NSPREAD];
-      for (int i=ns;i<nspad;++i)    // make sure eval_ker_vec sees padded zeros!
-	kernel_args[i] = 0.0;
       FLT kernel_values[3*MAX_NSPREAD];
       FLT *ker1 = kernel_values;
       FLT *ker2 = kernel_values + ns;
@@ -314,7 +311,7 @@ int cnufftspread(
       if (!(opts.flags & TF_OMIT_SPREADING))
 	if (ndims==1) {                                          // 1D
 	  set_kernel_args(kernel_args, x1, opts);
-	  evaluate_kernel_vector(kernel_values, kernel_args, opts, nspad); // nspad
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, ns);
 	  interp_line(&data_nonuniform[2*j],data_uniform,ker1,i1,N1,ns);
 	} else if (ndims==2) {                                   // 2D
 	  FLT yj=RESCALE(ky[j],N2,opts.pirange);
@@ -334,7 +331,7 @@ int cnufftspread(
 	  set_kernel_args(kernel_args, x1, opts);
 	  set_kernel_args(kernel_args+ns, x2, opts);
 	  set_kernel_args(kernel_args+2*ns, x3, opts);
-	  evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);	  
+	  evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
 	  interp_cube(&data_nonuniform[2*j],data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
 	}
     }    // end NU targ loop
@@ -358,6 +355,8 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT R)
   opts.pirange = 1;             // user also should always set this
   opts.chkbnds = 1;
   opts.sort = 2;                // auto-choice
+  opts.kereval = 0;
+  opts.kerpad = 0;              // affects only evaluate_kernel_vector
   opts.sort_threads = 0;        // auto-choice
   opts.max_subproblem_size = (BIGINT)1e4;  // was larger, slightly worse
   opts.flags = 0;
@@ -397,6 +396,8 @@ FLT evaluate_kernel(FLT x, const spread_opts &opts)
    chosen by 1d optimization for the R used.
 
    Barnett 2/16/17. Removed the factor (1-(2x/n_s)^2)^{-1/4},  2/17/17
+
+   Obsolete, since vector versions used instead.
 */
 {
   if (abs(x)>=opts.ES_halfwidth)
@@ -419,16 +420,18 @@ FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
 }
 
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts)
-/* Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
- */
+// Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
 {
   int ns=opts.nspread;
   for (int i=0; i<ns; i++)
     args[i] = x + (FLT) i;
 }
 
-static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const spread_opts& opts, const int N)
+static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts& opts, const int N)
 /* Evaluate kernel for a vector of N arguments.
+   If opts.kerpad true, args and ker must be allocated for Npad, and args is
+   written to (to pad to length Npad), only first N outputs are correct.
+   Barnett 4/24/18 option to pad to mult of 4 for better simd vectorization.
  */
 {
   FLT b = opts.ES_beta;
@@ -438,11 +441,17 @@ static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const sprea
     // auto-vectorization.
     // gcc 5.4 vectorizes first loop
     // gcc 7.2 vectorizes both loops
-    for (int i = 0; i < N; i++) { // Loop 1: Compute exponential arguments
+    int Npad = N;
+    if (opts.kerpad) {        // since always same branch, no speed hit
+      Npad = 4*(1+(N-1)/4);   // pad N to mult of 4; help i7 GCC, not xeon
+      for (int i=N;i<Npad;++i)    // pad with 1-3 zeros for safe eval
+	args[i] = 0.0;
+    }
+    for (int i = 0; i < Npad; i++) { // Loop 1: Compute exponential arguments
       ker[i] = b * sqrt(1.0 - c*args[i]*args[i]);
     }
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
-      for (int i = 0; i < N; i++) // Loop 2: Compute exponentials
+      for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
 	ker[i] = exp(ker[i]);
   } else {
     // Dummy
@@ -453,6 +462,18 @@ static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const sprea
   for (int i = 0; i < N; i++)
     if (abs(args[i])>=opts.ES_halfwidth) ker[i] = 0.0;
 }
+
+static inline void eval_kernel_vec_Horner(FLT *ker, FLT z, int w)
+/* Fill ker[] with Horner piecewise poly approx to kernel eval at
+   x_j = -(w-1)/2 + z + j,  for j=0,..,w-1
+   for the kernel width of w, ie support in [-w/2,w/2].  Here w = ns.
+   Experimental.
+   Barnett 4/24/18
+ */
+{
+#include "../devel/ker_horner_allw.c"
+}
+
 
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 // 1D interpolate complex values from du array to out, using real weights
@@ -630,21 +651,18 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
 */
 {
   int ns=opts.nspread;
-  int nspad = 4*(1+(ns-1)/4);   // pad ker eval to mult of 4; faster, helps w/ AVX? for i7 but slows xeon
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1;++i)
     du[i] = 0.0;
-  FLT kernel_args[MAX_NSPREAD+4];  // 4 for safety to allow nspad above
-  for (int i=ns;i<nspad;++i)    // make sure eval_ker_vec sees padded zeros!
-    kernel_args[i] = 0.0;
-  FLT ker[MAX_NSPREAD+4];          // 4 for safety to allow nspad above
+  FLT kernel_args[MAX_NSPREAD];
+  FLT ker[MAX_NSPREAD];
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     set_kernel_args(kernel_args, x1, opts);
-    evaluate_kernel_vector(ker, kernel_args, opts, nspad);  // nspad: see above
+    evaluate_kernel_vector(ker, kernel_args, opts, ns);
     // critical inner loop: 
     BIGINT j=i1;
     for (int dx=0; dx<ns; ++dx) {
@@ -669,7 +687,7 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*N1*N2;++i)
     du[i] = 0.0;
-  FLT kernel_args[2*MAX_NSPREAD];    
+  FLT kernel_args[2*MAX_NSPREAD];
   FLT kernel_values[2*MAX_NSPREAD];
   FLT *ker1 = kernel_values;
   FLT *ker2 = kernel_values + ns;  
