@@ -31,3 +31,4 @@ Helpful discussions:
 * Andras Pataki - complex number speed in C++
 * Timo Heister - pass/fail numdiff testing ideas
 * Zydrunas Gimbutas - explanation that NFFT uses Kaiser-Bessel backwards
+* Vladimir Rokhlin - piecewise polynomial approximation on complex boxes

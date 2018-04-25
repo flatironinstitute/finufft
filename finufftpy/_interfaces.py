@@ -14,7 +14,7 @@ import numpy as np
 
 ## 1-d
 
-def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
+def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
   """1D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
   ::
@@ -34,7 +34,8 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mode
               numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown).
     spread_debug (int, optional): 0 (silent), 1, 2... (prints spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (do sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
@@ -56,7 +57,7 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mode
   c=c.astype(np.complex128,copy=False)     # "
   return finufftpy_cpp.finufft1d1_cpp(x,c,isign,eps,ms,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
+def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
   """1D type-2 (aka forward) complex nonuniform fast Fourier transform
 
   ::
@@ -76,7 +77,8 @@ def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord
           In either case the mode indices are integers in [-ms/2, (ms-1)/2]
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
@@ -98,7 +100,7 @@ def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord
   f=f.astype(np.complex128,copy=False) #copies only if type changes
   return finufftpy_cpp.finufft1d2_cpp(x,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
+def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
   """1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
   ::
@@ -117,7 +119,8 @@ def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
        Should be initialized as a numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
 
   .. note::
@@ -139,7 +142,7 @@ def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
 
 ## 2-d
 
-def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
+def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
   """2D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
   ::
@@ -163,7 +166,8 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=1,fftw=0
     f     (complex[ms,mt]): output Fourier mode values. Should be initialized as a Fortran-ordered (ie ms fast, mt slow) numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (prints spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
@@ -186,7 +190,7 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=1,fftw=0
   c=c.astype(np.complex128,copy=False) #copies only if type changes
   return finufftpy_cpp.finufft2d1_cpp(x,y,c,isign,eps,ms,mt,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
+def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
   """2D type-2 (aka forward) complex nonuniform fast Fourier transform
 
   ::
@@ -209,7 +213,8 @@ def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeo
 	  mode ordering in all dimensions given by modeord.  Ordering is Fortran-style, ie ms fastest.
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
@@ -232,7 +237,7 @@ def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeo
   f=f.astype(np.complex128,copy=False,order='F') #copies only if type changes: so if f is C-ordered, it will make a transposed copy
   return finufftpy_cpp.finufft2d2_cpp(x,y,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
+def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
   """2D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
   ::
@@ -253,7 +258,8 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
        Should be initialized as a numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
 
   .. note::
@@ -277,7 +283,7 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
 
 ## 3-d
 
-def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
+def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
   """3D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
   ::
@@ -305,7 +311,8 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=1,f
     f     (complex[ms,mt,mu]): output Fourier mode values. Should be initialized as a Fortran-ordered (ie ms fastest) numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (prints spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
@@ -329,7 +336,7 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=1,f
   c=c.astype(np.complex128,copy=False) #copies only if type changes
   return finufftpy_cpp.finufft3d1_cpp(x,y,z,c,isign,eps,ms,mt,mu,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,modeord=0,chkbnds=1):
+def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
   """3D type-2 (aka forward) complex nonuniform fast Fourier transform
 
   ::
@@ -353,7 +360,8 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mod
 	  mode ordering in all dimensions given by modeord. Ordering is Fortran-style, ie ms fastest.
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
@@ -377,7 +385,7 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=1,fftw=0,mod
   f=f.astype(np.complex128,copy=False,order='F') #copies only if type changes: so if f is not F-ordered, it will make a transposed copy
   return finufftpy_cpp.finufft3d2_cpp(x,y,z,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
 
-def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=1,fftw=0):
+def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
   """3D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
   ::
@@ -401,7 +409,8 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=1,fftw
        Should be initialized as a numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
-    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
 
   .. note::

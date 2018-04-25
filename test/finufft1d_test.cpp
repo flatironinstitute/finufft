@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
   }
   if (argc>4) sscanf(argv[4],"%d",&opts.debug);
   opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
-  if (argc>5) sscanf(argv[5],"%d",&opts.spread_sort);  // 0 or 1
+  if (argc>5) sscanf(argv[5],"%d",&opts.spread_sort);
   if (argc==1 || argc>6) {
     fprintf(stderr,"Usage: finufft1d_test [Nmodes [Nsrc [tol [debug [spread_sort]]]]]\n");
     return 1;

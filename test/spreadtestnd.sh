@@ -6,10 +6,10 @@ M=1e6       # problem size (# NU pts)
 N=1e6       # num U grid pts
 TOL=1e-6    # overall requested accuracy
 
-SORT=1      # generally much better if sort
+SORT=2      # default setting for sort
 if grep -q Xeon /proc/cpuinfo; then
     echo "Xeon detected"
-    SORT=1      # xeon setting, also sort
+    SORT=2      # xeon setting, also the default
 fi
 
 echo "spreadtestnd output:"

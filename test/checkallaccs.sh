@@ -17,7 +17,7 @@ TEST3="1e1 1e1 1e1 1e3"
 TESTD=TEST$DIM
 TEST=${!TESTD}
 
-SORT=1
+SORT=2
 
 for acc in `seq 1 15`;
 do

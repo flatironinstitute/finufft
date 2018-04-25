@@ -3,7 +3,7 @@ function opts = finufft_opts(o)
 
 debug=0; if isfield(o,'debug'), debug = o.debug; end
 nthreads=0; if isfield(o,'nthreads'), nthreads = o.nthreads; end
-spread_sort=1; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
+spread_sort=2; if isfield(o,'spread_sort'), spread_sort=o.spread_sort; end
 fftw=0; if isfield(o,'fftw'), fftw=o.fftw; end
 modeord=0; if isfield(o,'modeord'), modeord=o.modeord; end
 chkbnds=1; if isfield(o,'chkbnds'), chkbnds=o.chkbnds; end

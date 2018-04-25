@@ -23,10 +23,12 @@ You will see in  ``examples/example1d1.cpp`` the line::
   nufft_opts opts; finufft_default_opts(opts);
 
 This is the recommended way to initialize the structure ``nufft_opts``
-(defined in the header ``../src/finufft.h``). Its fields allow control
+(defined in the header ``../src/finufft.h``).
+You may override these default settings by changing the fields in this struct.
+This allows control
 of various parameters such as the mode ordering, FFTW plan type, and
 text debug options (do not adjust ``R``; all others are fair game).
-Then using the library is a matter of initializing input arrays,
+Then using the library is a matter of filling your input arrays,
 allocating the correct output array size, and calling one of the
 transform routines below.
 
@@ -34,8 +36,9 @@ We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
 2, and 3.  This gives nine routines in all.
 
-It is recommended for speed in 1D to override the default and set
-``spread_sort=0``.
+Note on the field ``spread_sort``: the default setting is ``spread_sort=2``
+which applies the following heuristic rule: in 2D or 3D always sort, but in 1D,
+only sort if N (number of modes) > M/10 (where M is number of nonuniform pts).
 
 In the below, double-precision is assumed.
 See next section for single-precision compilation.
