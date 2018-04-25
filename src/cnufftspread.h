@@ -40,13 +40,13 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
     different components of the algorithm by selectively leaving them out.
     For example, running the following two tests shows the effect of the exp()
     in the kernel evaluation (the last argument is the flag):
-    > test/spreadtestnd 3 8e6 8e6 1e-6 1 0
-    > test/spreadtestnd 3 8e6 8e6 1e-6 1 4
+    > test/spreadtestnd 3 8e6 8e6 1e-6 1 0 0 1 0
+    > test/spreadtestnd 3 8e6 8e6 1e-6 1 4 0 1 0
     NOTE: NUMERICAL OUTPUT MAY BE INCORRECT UNLESS spread_opts.flags=0 !
 */
 #define TF_OMIT_WRITE_TO_GRID        1 // don't add subgrids to out grid (dir=1)
 #define TF_OMIT_EVALUATE_KERNEL      2 // don't evaluate the kernel at all
-#define TF_OMIT_EVALUATE_EXPONENTIAL 4 // don't evaluate the exp() in the kernel
+#define TF_OMIT_EVALUATE_EXPONENTIAL 4 // omit exp() in kernel (kereval=0 only)
 #define TF_OMIT_SPREADING            8 // don't interp/spread (dir=1: to subgrids)
 
 

@@ -22,3 +22,5 @@ for j=1:numel(ws)
 end
 fwrite(fid,sprintf('  } else\n    printf("width not implemented!\\n");\n'));
 fclose(fid);
+
+% now copy the c snippet to ../src/
