@@ -1,5 +1,15 @@
 List of tasks accomplished / changes made / release notes, in reverse chronological order:
 
+V 0.99 (4/24/18)
+
+* piecewise polynomial kernel evaluation by Horner, for faster spreading esp at
+low accuracy and 1d or 2d.
+* various heuristic decisions re whether to sort, and if sorting is single or
+multi-threaded.
+* single-precision libs get an "f" suffix so can coexist with double-prec.
+	
+	
+	
 V 0.98 (3/1/18)
 
 * makefile includes make.inc for OS-specific defs.

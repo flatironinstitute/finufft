@@ -72,7 +72,7 @@ static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const FLT b
       ker[i] = 0.0;
 }
 
-static inline void kernel_vector_Horner(FLT *ker, const FLT z, const int w)
+static inline void kernel_vector_Horner(FLT *ker, FLT z, int w)
 /* Evaluate kernel for a vector of N grid-spaced arguments offset by z/w from
    the standard kernel grid on [-1,1] the kernel support.
    See: gen_all_horner_C_code.m
