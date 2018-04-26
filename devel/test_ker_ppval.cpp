@@ -2,7 +2,7 @@
    math exp(sqrt(..)) evals. Also writes to tmp file.
 
 For dyn linked:
-g++ test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fopenmp
+g++-7 test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fopenmp
 For statically linked so can control glibc (avoid Matlab calling being different):
 g++ test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fopenmp -static -lmvec
 
@@ -78,7 +78,8 @@ static inline void kernel_vector_Horner(FLT *ker, FLT z, int w)
    See: gen_all_horner_C_code.m
 */
 {
-#include "ker_horner_allw.c"
+  //#include "../src/ker_horner_allw.c"
+#include "../src/ker_horner_allw_loop.c"
 }
 
 int main(int argc, char* argv[])

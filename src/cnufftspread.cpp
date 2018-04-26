@@ -490,7 +490,7 @@ static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, co
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
     FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
-#include "ker_horner_allw.c"
+#include "ker_horner_allw_loop.c"
   }
 }
 
