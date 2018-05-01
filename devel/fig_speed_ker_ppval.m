@@ -27,7 +27,9 @@ r = (M.*w)./y(:,3);  % rate in evals/sec
 r2 = (M.*w)./y(:,4); % "
 e = y(:,5);          % rel err
 figure; plot(w,[r r2]/1e6,'+-'); xlabel('w'); ylabel('eval rate (Meval/s)');
-legend('exp eval','Horner'); title(sprintf('ES kernel speed test, M=%d',Mwant))
+legend('exp eval','Horner'); title(sprintf('i7 GCC7.2 1thr ES kernel speed test, M=%d',Mwant))
+print -dpng i7_1thr_ker_eval_speeds_loopversion.png
+
 
 % xeon gcc6.4: exp max out at 40 Meval/s; horner 170-300 Meval/s.
 

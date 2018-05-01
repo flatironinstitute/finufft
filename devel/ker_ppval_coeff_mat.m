@@ -28,18 +28,18 @@ l = 2*((1:m)'-0.5)/m-1;   % colloc pts on [-1,1], col vec
 z = [l-1i; 1+1i*l; l+1i; -1+1i*l];  % colloc pts on complex bdry box [-1,1]^2
 V = ones(4*m,fitd+1);
 for k=1:fitd, V(:,k+1) = V(:,k) .* z; end   % fill Vandermonde
-R = nan(4*m,w); % stack all RHS in the lin sys...
+R = nan(4*m,w);     % stack all RHS in the lin sys...
 for i=1:w
   xi = -1+h*(2*i-1);      % center of the i'th expansion, in [-1,1] supp.
   R(:,i) = f(xi+z*h);
 end
-C = V\R;          % do all solves for poly coeffs (multiple RHS)
-C = C(1:d,:);     % keep only up to requested eval degree
+C = V\R;            % do all solves for poly coeffs (multiple RHS)
+C = C(1:d+1,:);     % keep only up to requested eval degree (coeffs 0 to d)
 
 %%%%%%
 function test_ker_ppval_coeff_mat
-%w=7; d=11;
-w=13; d=16;
+w=7; d=11;
+%w=13; d=15;
 beta=2.3*w;
 f = @(z) exp(beta*sqrt(1-z.^2));  % must match the above
 

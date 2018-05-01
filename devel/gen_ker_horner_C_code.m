@@ -37,8 +37,8 @@ end
 
 %%%%%%%%
 function test_gen_ker_horner_C_code    % writes C code to file but doesn't test.
-w=13; d=16;           % pick a single kernel width and degree to write code for
-%w=7; d=11;
+w=13; d=15;           % pick a single kernel width and degree to write code for
+%w=7; d=10;
 %w=2; d=5;
 beta=2.3*w;
 str = gen_ker_horner_C_code(w,d,beta);
