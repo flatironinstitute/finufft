@@ -387,7 +387,7 @@ int cnufftspread(
 	
 	// Copy result buffer to output array
 	for (int ibuf=0; ibuf<bufsize; ibuf++) {
-	  BIGINT j = sort_indices[i+ibuf];
+	  BIGINT j = jlist[ibuf];
 	  data_nonuniform[2*j] = outbuf[2*ibuf];
 	  data_nonuniform[2*j+1] = outbuf[2*ibuf+1];	  	  
 	}	  
