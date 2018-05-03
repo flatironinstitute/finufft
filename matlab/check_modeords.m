@@ -32,8 +32,8 @@ f = randn(N1,N2,N3)+1i*randn(N1,N2,N3);
 o.modeord = 0;
 [c ier] = finufft3d2(x,y,z,isign,eps,f,o);
 [ms mt mu]=size(f);
-% NB tricky ordering here, to make meshgrid loop over ms fastest, mu slowest:
-[mm2,mm1,mm3] = meshgrid(ceil(-mt/2):floor((mt-1)/2),ceil(-ms/2):floor((ms-1)/2),ceil(-mu/2):floor((mu-1)/2));
+% ndgrid loops over ms fastest, mu slowest:
+[mm1,mm2,mm3] = ndgrid(ceil(-ms/2):floor((ms-1)/2),ceil(-mt/2):floor((mt-1)/2),ceil(-mu/2):floor((mu-1)/2));
 ce = sum(f(:).*exp(1i*isign*(mm1(:)*x(j)+mm2(:)*y(j)+mm3(:)*z(j))));
 fprintf('3D type-2 modeord=0: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 o.modeord = 1;
