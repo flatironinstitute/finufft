@@ -537,7 +537,7 @@ static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, co
 }
 
 
-void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
+void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 // 1D interpolate complex values from du array to out, using real weights
 // ker[0] through ker[ns-1]. out must be size 2 (real,imag), and du
 // of size 2*N1 (alternating real,imag). i1 is the left-most index in [0,N1)
@@ -545,7 +545,7 @@ void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 // dx is index into ker array, j index in complex du (data_uniform) array.
 // Barnett 6/15/17
 {
-  out[0] = 0.0; out[1] = 0.0;
+  FLT out[] = {0.0, 0.0};
   BIGINT j = i1;
   if (i1<0) {                               // wraps at left
     j+=N1;
@@ -579,9 +579,11 @@ void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
       ++j;
     }
   }
+  target[0] = out[0];
+  target[1] = out[1];
 }
 
-void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
+void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
 // 2D interpolate complex values from du (uniform grid data) array to out value,
 // using ns*ns square of real weights
 // in ker. out must be size 2 (real,imag), and du
@@ -591,7 +593,7 @@ void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,B
 // dx,dy indices into ker array, j index in complex du array.
 // Barnett 6/16/17
 {
-  out[0] = 0.0; out[1] = 0.0;
+  FLT out[] = {0.0, 0.0};
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
     for (int dy=0; dy<ns; dy++) {
       BIGINT j = N1*(i2+dy) + i1;
@@ -623,9 +625,11 @@ void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,B
       }
     }
   }
+  target[0] = out[0];
+  target[1] = out[1];  
 }
 
-void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
+void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 		 BIGINT i1,BIGINT i2,BIGINT i3, BIGINT N1,BIGINT N2,BIGINT N3,int ns)
 // 3D interpolate complex values from du (uniform grid data) array to out value,
 // using ns*ns*ns cube of real weights
@@ -636,11 +640,7 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 // dx,dy,dz indices into ker array, j index in complex du array.
 // Barnett 6/16/17
 {
-  out[0] = 0.0; out[1] = 0.0;
-#if defined(VECT)
-  // Explicit vectorization gives a small speedup in double precision
-  __m128d vec_out = _mm_setzero_pd();
-#endif
+  FLT out[] = {0.0, 0.0};  
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
     // no wrapping: avoid ptrs
     for (int dz=0; dz<ns; dz++) {
@@ -650,14 +650,8 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 	FLT ker23 = ker2[dy]*ker3[dz];
 	for (int dx=0; dx<ns; dx++) {
 	  FLT k = ker1[dx]*ker23;
-#if defined(VECT)
-	  __m128d vec_k = _mm_set1_pd(k);
-	  __m128d vec_val = _mm_load_pd(du+2*j);
-	  vec_out = _mm_add_pd(vec_out, _mm_mul_pd(vec_k, vec_val));
-#else
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
-#endif
 	  ++j;
 	}
       }
@@ -684,21 +678,14 @@ void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 	for (int dx=0; dx<ns; dx++) {
 	  FLT k = ker1[dx]*ker23;
 	  BIGINT j = oy + j1[dx];
-#if defined(VECT)
-	  __m128d vec_k = _mm_set1_pd(k);
-	  __m128d vec_val = _mm_load_pd(du+2*j);
-	  vec_out = _mm_add_pd(vec_out, _mm_mul_pd(vec_k, vec_val));
-#else
 	  out[0] += du[2*j] * k;
 	  out[1] += du[2*j+1] * k;
-#endif
 	}
       }
     }
   }
-#if defined(VECT)
-  _mm_store_pd(out, vec_out);
-#endif
+  target[0] = out[0];
+  target[1] = out[1];  
 }
 
 void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,

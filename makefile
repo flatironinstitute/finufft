@@ -64,8 +64,6 @@ else
 PRECSUFFIX=
 REQ_TOL = 1e-12
 CHECK_TOL = 1e-11
-CXXFLAGS += -DVECT  # Interpolation has explicit vectorization only in dbl prec
-CFLAGS += -DVECT
 endif
 # build (since fftw has many) names of libs to link against...
 FFTW = $(FFTWNAME)$(PRECSUFFIX)
