@@ -182,6 +182,7 @@ int cnufftspread(
   int better_to_sort = !(ndims==1 && (opts.spread_direction==2 || (M > 1000*N1))); // 1D small-N or dir=2 case: don't sort
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   timer.start();                 // if needed, sort all the NU pts...
+  int did_sort=0;
   if (opts.sort==1 || (opts.sort==2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
     int sort_debug = (opts.debug>=2);    // show timing output?
@@ -194,6 +195,7 @@ int cnufftspread(
       bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
     if (opts.debug)
       printf("\tsorted (%d threads):\t%.3g s\n",sort_nthr,timer.elapsedsec());
+    did_sort=1;
   } else {
 #pragma omp parallel for schedule(static,1000000)
     for (BIGINT i=0; i<M; i++)                // omp helps xeon, hinders i7
@@ -228,6 +230,10 @@ int cnufftspread(
       if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
 	nb = M;
 	if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
+      }
+      if (!did_sort && MY_OMP_GET_MAX_THREADS()==1) {
+	nb = 1;
+	if (opts.debug) printf("\tforcing single subproblem...\n");
       }
       std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
       for (int p=0;p<=nb;++p)
