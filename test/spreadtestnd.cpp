@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
   int flags = 0;        // default
   int debug = 0;        // default
   int kerpad = 0;       // default
-  int kereval = 0;       // default
+  int kereval = 1;      // default, Horner
   if (argc<=1) { usage(); return 0; }
   sscanf(argv[1],"%d",&d);
   if (d<1 || d>3) {
