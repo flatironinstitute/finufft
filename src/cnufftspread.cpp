@@ -173,7 +173,7 @@ int cnufftspread(
 	  return ERR_SPREAD_PTS_OUT_RANGE;
 	}
       }
-    if (opts.debug) printf("\tNU bnds check:\t\t%g s\n",timer.elapsedsec());
+    if (opts.debug) printf("\tNU bnds check:\t\t%.3g s\n",timer.elapsedsec());
   }
     
   // NONUNIFORM POINT SORTING .....

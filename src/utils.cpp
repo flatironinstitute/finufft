@@ -108,25 +108,20 @@ void CNTime::start()
   gettimeofday(&initial, 0);
 }
 
-int CNTime::restart()
+double CNTime::restart()
+// Barnett changed to returning in sec
 {
-  int delta = this->elapsed();
+  double delta = this->elapsedsec();
   this->start();
   return delta;
 }
 
-int CNTime::elapsed()
-//  returns answers as integer number of milliseconds
+double CNTime::elapsedsec()
+// returns answers as double, in seconds. Barnett 5/22/18
 {
   struct timeval now;
   gettimeofday(&now, 0);
-  int delta = 1000 * (now.tv_sec - (initial.tv_sec + 1));
-  delta += (now.tv_usec + (1000000 - initial.tv_usec)) / 1000;
-  return delta;
-}
-
-double CNTime::elapsedsec()
-//  returns answers as double in sec
-{
-  return (double)(this->elapsed()/1000.0);
+  double nowsec = (double)now.tv_sec + 1e-6*now.tv_usec;
+  double initialsec = (double)initial.tv_sec + 1e-6*initial.tv_usec;
+  return nowsec - initialsec;
 }

@@ -85,7 +85,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_3D(nf3,nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
-  if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   // Step 1: spread from irregular points to regular grid
   timer.restart();
@@ -175,7 +175,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   onedim_fseries_kernel(nf3, fwkerhalf3, spopts);
   double t=timer.elapsedsec();
-  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   int nth = MY_OMP_GET_MAX_THREADS();
   if (nth>1) {             // set up multithreaded fftw stuff...

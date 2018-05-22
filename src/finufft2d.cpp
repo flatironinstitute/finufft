@@ -79,7 +79,7 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
-  if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   // Step 1: spread from irregular points to regular grid
   timer.restart();
@@ -173,7 +173,7 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
-  if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
   timer.restart();

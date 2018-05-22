@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
   nufft_opts opts;
   finufft_default_opts(opts);
   opts.debug = 0;             // 1 to see some timings
+  opts.chkbnds = 0;          // added 5/15/18
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) {

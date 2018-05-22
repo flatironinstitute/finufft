@@ -36,7 +36,7 @@ $ #include "finufft_m.h"
 %            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
@@ -74,7 +74,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
@@ -111,7 +111,7 @@ ms=numel(f);
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target
@@ -152,7 +152,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %           in either case the mode range is integers lying in [-m/2, (m-1)/2]
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
@@ -193,7 +193,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
@@ -230,7 +230,7 @@ if numel(y)~=nj, error('y must have the same number of elements as x'); end
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target
@@ -275,7 +275,7 @@ if numel(t)~=nk, error('t must have the same number of elements as s'); end
 %           In either case the mode range is integers lying in [-m/2, (m-1)/2]
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
@@ -325,7 +325,7 @@ f = reshape(f,[ms mt mu]);              % make a 3D array
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
@@ -364,7 +364,7 @@ if numel(z)~=nj, error('z must have the same number of elements as x'); end
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target

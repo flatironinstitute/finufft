@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;      // default
   nufft_opts opts; finufft_default_opts(opts);  // put defaults in opts
   opts.debug = 0;            // 1 to see sub-timings
+  opts.chkbnds = 0;          // added 5/15/18
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;            // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); N = (INT)w; }

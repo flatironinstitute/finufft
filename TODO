@@ -4,7 +4,11 @@ Current list of items to do for FINUFFT library
 
 TRACTABLE USER PROJECTS - PLEASE HELP:
 
-* Make multi-source-strength version, which makes decision for small M*N to use GEMM. For cryo.
+* speed up (relative to NFFT) the FFTW call for small problems - ie diagnose and fix why the FFTW call is slower than same-sized FFTW from NFFT. This can be
+seen when N<M. This applies even in 2D, so can't be due to deconvolution (which scales w/ N).
+
+* Make multi-source-strength version, which makes decision for small M*N to use GEMM,
+and fftw_many with one spreader-per-threads for medium size. For cryo appl.
 
 * Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? - C++ template the spreader and all inside it?
 

@@ -108,13 +108,12 @@ void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
 INT64 next235even(INT64 n);
 
 
-// jfm timer stuff
+// jfm timer class
 #include <sys/time.h>
 class CNTime {
  public:
   void start();
-  int restart();
-  int elapsed();
+  double restart();
   double elapsedsec();
  private:
   struct timeval initial;
