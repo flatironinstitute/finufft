@@ -2,8 +2,11 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
+import os
 
 # only for doulbe-prec, multi-threaded for now. Barnett 3/1/18
+os.environ["CC"] = "gcc-8"
+os.environ["CXX"] = "g++-8"
 
 __version__ = '0.98'
 
@@ -21,9 +24,9 @@ class get_pybind_include(object):
         import pybind11
         return pybind11.get_include(self.user)
 
-libraries = ["lib-static/finufft","fftw3","fftw3_threads"]
+libraries = ["lib-static/finufft","fftw3","fftw3_threads","gomp"]
 extra_compile_args=['-fopenmp'],
-extra_link_args=['-lgomp']
+extra_link_args=['-static']
 
 ext_modules = [Extension(
         'finufftpy_cpp',
@@ -77,8 +80,8 @@ class BuildExt(build_ext):
         'unix': [],
     }
 
-    if sys.platform == 'darwin':
-        c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
+    # if sys.platform == 'darwin':
+    #     c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
 
     def build_extensions(self):
         ct = self.compiler.compiler_type
