@@ -45,12 +45,13 @@ The FINUFFT library achieves its speed via several innovations including:
 
 For the same accuracy in 3D, the
 library is 2-12 times faster on a single core than the
-single-threaded fast Gaussian gridding `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_, and in the multi-core setting is
-usually faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_ even when the latter is allowed a RAM-intensive full precomputation of the kernel. This is especially true for highly non-uniform point
+single-threaded fast Gaussian gridding `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_, and in the multi-core setting
+for spreading-dominated problems
+is faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_ even when the latter is allowed a RAM-intensive full precomputation of the kernel. This is especially true for highly non-uniform point
 distributions and/or high precision.
 Our library does not require precomputation and uses minimal RAM.
 
-
+Note that we have not yet optimized for repeated *small* problems (less than 10000 points), and the NFFT3 library is often faster for these. (In this case, also consider using the naive matrix GEMM). A multiple strength-vector interface will be written shortly to address this.
 
 .. toctree::
    :maxdepth: 2
@@ -61,7 +62,7 @@ Our library does not require precomputation and uses minimal RAM.
    usage
    matlab
    pythoninterface
-   juliainterface
+   related
    issues
    ackn
    refs

@@ -152,7 +152,8 @@ endif
 $(STATICLIB): $(OBJS) $(HEADERS)
 	ar rcs $(STATICLIB) $(OBJS)
 $(DYNAMICLIB): $(OBJS) $(HEADERS)
-	$(CXX) -shared $(OBJS) -o $(DYNAMICLIB)      # fails in mac osx
+	$(CXX) -shared $(OMPFLAGS) $(LIBSFFT) $(OBJS) -o $(DYNAMICLIB)
+# here $(OMPFLAGS) $(LIBSFFT) is needed for mac osx.
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 
 # examples in C++ and C... (separate codes for double vs single prec)
