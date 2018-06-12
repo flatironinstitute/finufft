@@ -1,9 +1,15 @@
 # Makefile variable overrides for Mac OSX.
 # Copy this file to make.inc and edit for your setup.
 # Also see docs/install.rst for edits to MATLAB's XML file.
-# Barnett 6/7/18
+# Barnett 6/7/18. Input from Yu-Hsuan Shih.
 
-MFLAGS = -largeArrayDims -L/usr/local/gfortran/lib -lgfortran -lm
+# If you want to control which GCC version...
+#CXX=g++-8
+#CC=gcc-8
+#FC=gfortran
 
-# edit for your MATLAB location...
+# some of these will depend on your FFTW library location...
+MFLAGS += -I/usr/local/include -L/usr/local/lib -L/usr/local/gfortran/lib -lgfortran -lm
+
+# edit for your MATLAB version location...
 MEX = /Applications/MATLAB_R2017a.app/bin/mex
