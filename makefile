@@ -1,5 +1,5 @@
 # Makefile for FINUFFT.
-# Barnett 3/1/18
+# Barnett 6/12/18
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # Users should not need to edit this makefile (doing so would make it hard to
@@ -34,18 +34,18 @@ CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -DNEED_EXTERN_C
 CFLAGS   = -fPIC -Ofast -funroll-loops -march=native
 FFLAGS   = -fPIC -O3    -funroll-loops -march=native
 # FFTW base name, and math linking...
-FFTWNAME = fftw3
+FFTWNAME=fftw3
 LIBS = -lm
 # extra flags for multithreaded: C++/C/Fortran, MATLAB, and octave...
 OMPFLAGS = -fopenmp
 MOMPFLAGS = -lgomp -D_OPENMP
 OOMPFLAGS = -lgomp
 # flags for MATLAB MEX compilation...
-MFLAGS = -largeArrayDims -lrt
+MFLAGS=-largeArrayDims
 # location of MATLAB's mex compiler...
 MEX=mex
 # flags for octave mkoctfile...
-OFLAGS = -lrt
+OFLAGS=
 # For experts, location of MWrap executable (see docs/install.rst):
 MWRAP=mwrap
 
@@ -85,7 +85,7 @@ endif
 # decide name of obj files and finufft library we're building...
 LIBNAME=libfinufft$(PRECSUFFIX)
 #LIBNAME = libfinufft$(PRECSUFFIX)$(OMPSUFFIX)
-# (we decided not to use distint OMP lib names since fixed lib name is easier for eg python)
+# (we decided not to use distinct OMP lib names since fixed lib name is easier for eg python)
 DYNAMICLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
 
