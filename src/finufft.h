@@ -38,4 +38,11 @@ int finufft3d3(INT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 	       FLT eps,INT nk,FLT* s, FLT* t, FLT *u,
 	       CPX* fk, nufft_opts opts);
 
+FFTW_PLAN finufft2d1plan(int n1, int n2, FFTW_CPX* in, int fftsign, nufft_opts opts);
+void finufft2d1execute(FFTW_PLAN p);
+void finufft2d1destroy(FFTW_PLAN p);
+
+int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts);
+
 #endif
