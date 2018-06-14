@@ -431,7 +431,8 @@ int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   // if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   // Step 1: spread from irregular points to regular grid
-  begin = clock();
+  CNTime timer_total; timer_total.start();
+  // begin = clock();
   for (int i = 0; i < ndata; ++i)
   {
     spopts.debug = opts.spread_debug;
@@ -456,10 +457,8 @@ int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
     deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,fw,opts.modeord);
     if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
   }
-  end = clock();
-  time_execute += (double) (end - begin) / CLOCKS_PER_SEC;
-  
-  printf("%ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n", nj, ms, mt, time_execute, ndata*nj/time_execute);
+  time_execute = timer_total.elapsedsec();
+  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.3g NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
 
   FFTW_DE(p);
   fftw_cleanup();
