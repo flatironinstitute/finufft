@@ -40,7 +40,8 @@ C = C(1:d+1,:);     % keep only up to requested eval degree (coeffs 0 to d)
 function test_ker_ppval_coeff_mat
 w=7; d=11;
 %w=13; d=15;
-beta=2.3*w;
+beta=2.3*w;   % sigma=2
+%beta=1.83*w; w=7; d=9;  % sigma=5/4
 f = @(z) exp(beta*sqrt(1-z.^2));  % must match the above
 
 C = ker_ppval_coeff_mat(w,d,beta);

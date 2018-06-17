@@ -142,6 +142,9 @@ usage:
 %.o: %.f %.h
 	$(FC) -c $(FFLAGS) $< -o $@
 
+# included code dependency...
+src/cnufftspread.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
+
 # build the library...
 lib: $(STATICLIB) $(DYNAMICLIB)
 ifeq ($(OMP),OFF)

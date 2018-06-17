@@ -83,11 +83,8 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 
   // Step 1: spread from irregular points to regular grid
   timer.restart();
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
-  spopts.pirange = 1; FLT *dummy;
-  spopts.chkbnds = 1;
+  FLT *dummy;
   int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
@@ -128,7 +125,8 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
             in either case the mode range is integers lying in [-m/2, (m-1)/2].
      opts   struct controlling options (see finufft.h)
    Outputs:
-     cj     size-nj complex FLT array of source strengths
+     cj     size-nj complex FLT array of target values
+            (ie, stored as 2*nj FLTs interleaving Re, Im).
      returned value - 0 if success, else:
                       1 : eps too small
 		      2 : size of arrays to malloc exceed MAX_NF
@@ -217,7 +215,8 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
      eps    precision requested (>1e-16)
      opts   struct controlling options (see finufft.h)
    Outputs:
-     fk     complex FLT Fourier transform values at the target frequencies sk
+     fk     size-nk complex FLT Fourier transform values at the
+            target frequencies sk
      returned value - 0 if success, else:
                       1 : eps too small
 		      2 : size of arrays to malloc exceed MAX_NF
@@ -254,7 +253,6 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
   arraywidcen((BIGINT)nk,s,&S1,&D1);   // {s_k}
   arraywidcen((BIGINT)nj,yj,&X2,&C2);  // {y_j}
   arraywidcen((BIGINT)nk,t,&S2,&D2);   // {t_k}
-  // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
   if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,(INT64)nj,(INT64)nk);

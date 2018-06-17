@@ -33,25 +33,25 @@ The naive CPU effort to evaluate :eq:`1d1` is $O(NM)$.
 The library approximates :eq:`1d1` to a requested relative precision
 $\epsilon$ with nearly linear effort $O(M \log (1/\epsilon) + N \log N)$.
 Thus the speedup over the naive cost is similar to that achieved by the FFT.
-This is achieved by spreading onto a regular grid using a carefully chose kernel,
+This is achieved by spreading onto a regular grid using a carefully chosen kernel,
 followed by an upsampled FFT, then a division (deconvolution) step.
 For the 2D and 3D definitions, and other types of transform, see below.
 
 The FINUFFT library achieves its speed via several innovations including:
 
 #. The use of a new spreading kernel that is provably close to optimal, yet faster to evaluate than the Kaiser-Bessel kernel
-#. Quadrature approximation of the Fourier transform of the spreading kernel
-#. Blocked multithreading of the type-1 spreading operation
+#. Quadrature approximation for the Fourier transform of the spreading kernel
+#. Load-balanced multithreading of the type-1 spreading operation
 
 For the same accuracy in 3D, the
-library is 2-12 times faster on a single core than the
+library is 3-50 times faster on a single core than the
 single-threaded fast Gaussian gridding `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_, and in the multi-core setting
 for spreading-dominated problems
 is faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_ even when the latter is allowed a RAM-intensive full precomputation of the kernel. This is especially true for highly non-uniform point
 distributions and/or high precision.
 Our library does not require precomputation and uses minimal RAM.
 
-Note that we have not yet optimized for repeated *small* problems (less than 10000 points), and the NFFT3 library is often faster for these. (In this case, also consider using the naive matrix GEMM). A multiple strength-vector interface will be written shortly to address this.
+Note that we have not yet optimized for repeated *small* problems (around 10000 points or less), and the NFFT3 library is often faster for these. (In this case, also consider using the naive matrix GEMM). A multiple strength-vector interface is in progress to address this.
 
 .. toctree::
    :maxdepth: 2

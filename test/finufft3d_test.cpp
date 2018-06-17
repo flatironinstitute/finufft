@@ -16,7 +16,7 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 3d, all 3 types.
 
-   Usage: finufft3d_test [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [spread_sort]]]]]
+   Usage: finufft3d_test [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
@@ -28,11 +28,10 @@ int main(int argc, char* argv[])
 {
   INT M = 1e6, N1 = 100, N2 = 200, N3 = 50;  // defaults: M = # srcs, N1,N2,N3 = # modes
   double w, tol = 1e-6;       // default
-  nufft_opts opts;
-  finufft_default_opts(opts);
+  double upsampfac = 2.0;    // default
+  nufft_opts opts; finufft_default_opts(opts);
   opts.debug = 0;             // 1 to see some timings
-  opts.chkbnds = 0;          // added 5/15/18
-  // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
+  //opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) {
     sscanf(argv[1],"%lf",&w); N1 = (INT)w;
@@ -47,8 +46,10 @@ int main(int argc, char* argv[])
   if (argc>6) sscanf(argv[6],"%d",&opts.debug);  // can be 0,1 or 2
   opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
   if (argc>7) sscanf(argv[7],"%d",&opts.spread_sort);
-   if (argc==1 || argc==2 || argc==3 || argc>8) {
-    fprintf(stderr,"Usage: finufft3d_test [N1 N2 N3 [Nsrc [tol [debug [spread_sort]]]]]\n");
+  if (argc>8) sscanf(argv[8],"%lf",&upsampfac);
+  opts.upsampfac=(FLT)upsampfac;
+   if (argc==1 || argc==2 || argc==3 || argc>9) {
+    fprintf(stderr,"Usage: finufft3d_test [N1 N2 N3 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);

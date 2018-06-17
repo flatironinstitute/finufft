@@ -65,7 +65,7 @@ int finufft3d1(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 
   if (opts.debug) printf("3d1: (ms,mt,mu)=(%ld,%ld,%ld) (nf1,nf2,nf3)=(%ld,%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,(INT64)mu,nf1,nf2,nf3,(INT64)nj); 
 
-  // STEP 0: get DCT of half of spread kernel in each dim, since real symm:
+  // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
   FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
   FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
@@ -174,8 +174,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   onedim_fseries_kernel(nf3, fwkerhalf3, spopts);
-  double t=timer.elapsedsec();
-  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
   int nth = MY_OMP_GET_MAX_THREADS();
   if (nth>1) {             // set up multithreaded fftw stuff...
@@ -186,7 +185,7 @@ int finufft3d2(INT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3); // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_3D(nf3,nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
-  if (opts.debug) printf("fftw plan\t\t %.3g s\n", timer.elapsedsec());
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
   timer.restart();
@@ -272,7 +271,6 @@ int finufft3d3(INT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   arraywidcen((BIGINT)nk,t,&S2,&D2);   // {t_k}
   arraywidcen((BIGINT)nj,zj,&X3,&C3);  // {z_j}
   arraywidcen((BIGINT)nk,u,&S3,&D3);   // {u_k}
-  // todo: if C1<X1/10 etc then set C1=0.0 and skip the slow-ish rephasing?
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
   set_nhg_type3(S3,X3,opts,spopts,&nf3,&h3,&gam3);

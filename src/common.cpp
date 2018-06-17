@@ -1,5 +1,8 @@
 #include "common.h"
 #include <fftw3.h>
+#include <math.h>
+#include <stdio.h>
+#include <vector>
 
 #ifdef NEED_EXTERN_C
 extern "C" {
@@ -8,38 +11,33 @@ extern "C" {
 #else
   #include "../contrib/legendre_rule_fast.h"
 #endif
-#include <fftw3.h>
-#include <math.h>
-#include <stdio.h>
-#include <vector>
 
 void finufft_default_opts(nufft_opts &o)
-// set default nufft opts. See finufft.h for definition of opts.
+// Sets default nufft opts. See finufft.h for definition of opts.
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX. Barnett 10/30/17
 {
-  o.R = (FLT)2.0;
+  o.upsampfac = (FLT)2.0;   // sigma. 2.0 or 1.25 (for smaller RAM, FFTs)
+  o.chkbnds = 0;
   o.debug = 0;
   o.spread_debug = 0;
-  o.spread_sort = 2;       // use heuristic rule for whether to sort
-  o.spread_kereval = 1;    // 0: direct exp(sqrt()), 1: Horner ppval
-  o.spread_kerpad = 1;     // (relevant iff kereval=0)
-  o.fftw = FFTW_ESTIMATE;  // use FFTW_MEASURE for slow first call, fast rerun
+  o.spread_sort = 2;        // use heuristic rule for whether to sort
+  o.spread_kerevalmeth = 1; // 0: direct exp(sqrt()), 1: Horner ppval
+  o.spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
+  o.fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
   o.modeord = 0;
-  o.chkbnds = 1;
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
-  int ier = setup_spreader(spopts, eps, opts.R);
+  int ier=setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth);
   spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
-  spopts.kereval = opts.spread_kereval;  // could make dim or CPU choices here?
-  spopts.kerpad = opts.spread_kerpad;
+  spopts.sort = opts.spread_sort;     // could make dim or CPU choices here?
+  spopts.kerpad = opts.spread_kerpad; // (only applies to kerevalmeth=0)
   spopts.chkbnds = opts.chkbnds;
-  spopts.pirange = 1;             // could allow user control?
+  spopts.pirange = 1;                 // could allow user control?
   return ier;
 } 
 
@@ -47,7 +45,7 @@ void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, INT64 *nf)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
 {
-  *nf = (INT64)(opts.R*ms);
+  *nf = (INT64)(opts.upsampfac*ms);
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
   if (*nf<MAX_NF)                                 // otherwise will fail anyway
     *nf = next235even(*nf);                       // expensive at huge nf
@@ -78,7 +76,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
   else
     Ssafe = max(Ssafe, 1/X);
   // use the safe X and S...
-  FLT nfd = 2.0*opts.R*Ssafe*Xsafe/PI + nss;
+  FLT nfd = 2.0*opts.upsampfac*Ssafe*Xsafe/PI + nss;
   if (!isfinite(nfd)) nfd=0.0;                // use FLT to catch inf
   *nf = (INT64)nfd;
   //printf("initial nf=%ld, ns=%d\n",*nf,spopts.nspread);
@@ -87,46 +85,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
   if (*nf<MAX_NF)                             // otherwise will fail anyway
     *nf = next235even(*nf);                   // expensive at huge nf
   *h = 2*PI / *nf;                            // upsampled grid spacing
-  *gam = (FLT)*nf / (2.0*opts.R*Ssafe);       // x scale fac to x'
-}
-
-void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
-/*
-  Computes DCT coeffs of cnufftspread's real symmetric kernel, directly,
-  exploiting narrowness of kernel. Uses phase winding for cheap eval on the
-  regular freq grid.
-  Note: OBSOLETE, superceded by onedim_fseries_kernel.
-
-  Inputs:
-  nf - size of 1d uniform spread grid, must be even.
-  opts - spreading opts object, needed to eval kernel (must be already set up)
-
-  Outputs:
-  fwkerhalf - real Fourier coeffs from indices 0 to nf/2 inclusive.
-              (should be allocated for at least nf/2+1 FLTs)
-
-  Single thread only. Barnett 1/24/17
- */
-{
-  int m=ceil(opts.nspread/2.0);        // how many "modes" (ker pts) to include
-  FLT f[MAX_NSPREAD/2];
-  for (int n=0;n<=m;++n)    // actual freq index will be nf/2-n, for cosines
-    f[n] = evaluate_kernel((FLT)n, opts);  // center at nf/2
-  for (int n=1;n<=m;++n)               //  convert from exp to cosine ampls
-    f[n] *= 2.0;
-  dcomplex a[MAX_NSPREAD/2],aj[MAX_NSPREAD/2];
-  for (int n=0;n<=m;++n) {             // set up our rotating phase array...
-    a[n] = exp(2*PI*ima*(FLT)(nf/2-n)/(FLT)nf);   // phase differences
-    aj[n] = dcomplex(1.0,0.0);         // init phase factors
-  }
-  for (BIGINT j=0;j<=nf/2;++j) {       // loop along output array
-    FLT x = 0.0;                    // register
-    for (int n=0;n<=m;++n) {
-      x += f[n] * real(aj[n]);         // only want cosine part
-      aj[n] *= a[n];                   // wind the phases
-    }
-    fwkerhalf[j] = x;
-  }
+  *gam = (FLT)*nf / (2.0*opts.upsampfac*Ssafe);  // x scale fac to x'
 }
 
 void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)

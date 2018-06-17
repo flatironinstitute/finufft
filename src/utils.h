@@ -7,8 +7,7 @@
 #include <complex>          // C++ type complex
 #include <fftw3.h>          // needed so can typedef FFTW_CPX
 
-
-// fraction growth cut-off in arraywidcen()
+// fraction growth cut-off in arraywidcen(), to decide if translate in type-3
 #define ARRAYWIDCEN_GROWFRAC 0.1
 
 // math consts not in math.h ...
@@ -92,6 +91,8 @@ typedef int64_t INT64;
 #define ERR_SPREAD_PTS_OUT_RANGE 4
 #define ERR_SPREAD_ALLOC         5
 #define ERR_SPREAD_DIR           6
+#define ERR_UPSAMPFAC_TOO_SMALL  7
+#define HORNER_WRONG_BETA        8
 
 
 #define MAX(a,b) (a>b) ? a : b  // but we use std::max instead

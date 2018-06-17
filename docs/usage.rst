@@ -26,8 +26,8 @@ This is the recommended way to initialize the structure ``nufft_opts``
 (defined in the header ``../src/finufft.h``).
 You may override these default settings by changing the fields in this struct.
 This allows control
-of various parameters such as the mode ordering, FFTW plan type, and
-text debug options (do not adjust ``R``; all others are fair game).
+of various parameters such as the mode ordering, FFTW plan mode,
+upsampling factor :math:`\sigma`, and debug/timing output.
 Then using the library is a matter of filling your input arrays,
 allocating the correct output array size, and calling one of the
 transform routines below.
@@ -35,6 +35,8 @@ transform routines below.
 We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
 2, and 3.  This gives nine routines in all.
+
+Note on ``upsampfac``: This is the 
 
 Note on the field ``spread_sort``: the default setting is ``spread_sort=2``
 which applies the following heuristic rule: in 2D or 3D always sort, but in 1D,
