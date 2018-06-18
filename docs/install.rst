@@ -11,8 +11,8 @@ follow instructions (eg see the green button).
 Dependencies
 ************
 
-This library is currently only supported for unix/linux,
-and partially for Mac OSX. We have heard that it can be compiled
+This library is currently supported for unix/linux
+and also tested on Mac OSX. We have heard that it can be compiled
 on Windows too.
 
 For the basic libraries
@@ -122,6 +122,19 @@ The ``examples`` and ``test`` directories are good places to see usage examples.
 ``make matlab`` to build the MEX interface to matlab.
 
 ``make octave`` to build the MEX-like interface to octave.
+
+On Mac OSX, we have found that the MATLAB MEX settings need to be
+overridden: edit the file ``mex_C++_maci64.xml`` in the MATLAB distro,
+to read::
+
+  CC="gcc-8"
+  CXX="g++-8"
+  CFLAGS="-ansi -D_GNU_SOURCE -fexceptions -fPIC -fno-omit-frame-pointer -pthread"
+  CXXFLAGS="-ansi -D_GNU_SOURCE -fPIC -fno-omit-frame-pointer -pthread"
+
+These settings are copied from the ``glnxa64`` case. Here you will want to replace the compilers by whatever version of GCC you have installed.
+For pre-2016 MATLAB Mac OSX versions you'll instead want to edit the ``maci64``
+section of ``mexopts.sh``.
 
 
 Building the python wrappers

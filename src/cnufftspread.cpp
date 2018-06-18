@@ -98,8 +98,8 @@ int cnufftspread(
 	       ordering. 0: don't, 1: do, 2: use heuristic choice (default)
         sort_threads = 0, 1,... : if >0, set # sorting threads; if 0
                    allow heuristic choice (either single or all avail).
-	kerpad = 0,1: whether to pad to next mult of 4, helps SIMD (kereval=0).
-	kereval = 0: direct exp(sqrt(..)) eval; 1: Horner piecewise poly approx.
+	kerpad = 0,1: whether pad to next mult of 4, helps SIMD (kerevalmeth=0).
+	kerevalmeth = 0: direct exp(sqrt(..)) eval; 1: Horner piecewise poly.
 	debug = 0: no text output, 1: some openmp output, 2: mega output
 	           (each NU pt)
 	chkbnds = 0: don't check incoming NU pts for bounds (but still fold +-1)
@@ -350,7 +350,7 @@ int cnufftspread(
 	  // eval kernel values patch and use to interpolate from uniform data...
 	  if (!(opts.flags & TF_OMIT_SPREADING))
 	    if (ndims==1) {                                          // 1D
-	      if (opts.kereval==0) {               // choose eval method
+	      if (opts.kerevalmeth==0) {               // choose eval method
 		set_kernel_args(kernel_args, x1, opts);
 		evaluate_kernel_vector(kernel_values, kernel_args, opts, ns);
 	      } else
@@ -361,7 +361,7 @@ int cnufftspread(
 	      FLT yj=yjlist[ibuf];
 	      BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
 	      FLT x2=(FLT)i2-yj;
-	      if (opts.kereval==0) {               // choose eval method
+	      if (opts.kerevalmeth==0) {               // choose eval method
 		set_kernel_args(kernel_args, x1, opts);
 		set_kernel_args(kernel_args+ns, x2, opts);
 		evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
@@ -377,7 +377,7 @@ int cnufftspread(
 	      BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
 	      FLT x2=(FLT)i2-yj;
 	      FLT x3=(FLT)i3-zj;
-	      if (opts.kereval==0) {               // choose eval method
+	      if (opts.kerevalmeth==0) {               // choose eval method
 		set_kernel_args(kernel_args, x1, opts);
 		set_kernel_args(kernel_args+ns, x2, opts);
 		set_kernel_args(kernel_args+2*ns, x3, opts);
@@ -404,67 +404,82 @@ int cnufftspread(
   }                           // ================= end direction choice ========
   
   free(sort_indices);
-
   return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////
 
-
-int setup_spreader(spread_opts &opts,FLT eps,FLT R)
-// Initializes spreader kernel parameters, including all options in spread_opts.
-// See cnufftspread.h for definitions.
-// Must be called before evaluate_kernel is used.
+int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
+// Initializes spreader kernel parameters given desired NUFFT tolerance eps,
+// upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
+// (etiher 0:exp(sqrt()), 1: Horner ppval).
+// Also sets all default options in spread_opts. See cnufftspread.h for opts.
+// Must call before any kernel evals done.
 // Returns: 0 success, >0 failure (see error codes in utils.h)
 {
+  if (eps<0.5*EPSILON) {        // factor is since fortran wants 1e-16 to be ok
+    fprintf(stderr,"setup_spreader: error, requested eps is too small (<%.3g)\n",0.5*EPSILON);
+    return ERR_EPS_TOO_SMALL;
+  }
+  if (upsampfac!=2.0 && upsampfac!=1.25) {   // nonstandard sigma
+    if (kerevalmeth==1) {
+      fprintf(stderr,"setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",(double)upsampfac);
+      return HORNER_WRONG_BETA;
+    }
+    if (upsampfac<=1.0) {
+      fprintf(stderr,"setup_spreader: error, upsampfac=%.3g is <=1.0\n",(double)upsampfac);
+      return ERR_UPSAMPFAC_TOO_SMALL;
+    }
+    // calling routine must abort on above errors, since opts is garbage!
+    if (upsampfac>4.0)
+      fprintf(stderr,"setup_spreader: warning, upsampfac=%.3g is too large to be beneficial!\n",(double)upsampfac);
+  }
+    
+  // defaults... (user can change after this function called)
   opts.spread_direction = 1;    // user should always set to 1 or 2 as desired
   opts.pirange = 1;             // user also should always set this
   opts.chkbnds = 1;
-  opts.sort = 2;                // auto-choice
-  opts.kereval = 1;             // default: horner
-  opts.kerpad = 0;              // affects only evaluate_kernel_vector
-  opts.sort_threads = 0;        // auto-choice
-  opts.max_subproblem_size = (BIGINT)1e4;  // was larger, slightly worse
-  opts.flags = 0;
-  opts.debug = 0;
-  
-  // Set the kernel width w (nspread) and parameters, using eps and R...
-  FLT fudgefac = 1.0;   // how much actual errors exceed estimated errors
-  int ns = std::ceil(-log10(eps/fudgefac))+1;   // 1 digit per power of ten
-  ns = max(2,ns);                            // we don't have ns=1 version yet
-  ns = min(ns,MAX_NSPREAD);                  // clip for safety!
+  opts.sort = 2;                // 2:auto-choice
+  opts.kerpad = 0;              // obsolete, affects only evaluate_kernel_vector
+  opts.kerevalmeth = kerevalmeth;
+  opts.upsampfac = upsampfac;
+  opts.sort_threads = 0;        // 0:auto-choice
+  opts.max_subproblem_size = (BIGINT)1e4;  // was larger (1e5, slightly worse)
+  opts.flags = 0;               // 0:no timing flags
+  opts.debug = 0;               // 0:no debug output
+
+  // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
+  int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten
+  if (upsampfac!=2.0)           // override ns for custom sigma
+    ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
+  ns = max(2,ns);               // we don't have ns=1 version yet
+  if (ns>MAX_NSPREAD) {         // clip to match allocated arrays
+    fprintf(stderr,"setup_spreader: warning, kernel width ns=%d was clipped to max %d; will not match tolerance!\n",ns,MAX_NSPREAD);
+    ns = MAX_NSPREAD;
+  }
   opts.nspread = ns;
-  opts.ES_halfwidth=(FLT)ns/2;            // full support, since no 1/4 power
-  opts.ES_c = 4.0/(FLT)(ns*ns);           // avoids recomputing
-  FLT betaoverns = 2.30;                  // approximate betas for R=2.0
-  if (ns==2) betaoverns = 2.20;
+  opts.ES_halfwidth=(FLT)ns/2;   // constants to help ker eval (except Horner)
+  opts.ES_c = 4.0/(FLT)(ns*ns);
+
+  FLT betaoverns = 2.30;         // gives decent betas for default sigma=2.0
+  if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
   if (ns==3) betaoverns = 2.26;
   if (ns==4) betaoverns = 2.38;
-  opts.ES_beta = betaoverns * (FLT)ns;
-  if (eps<0.5*EPSILON) {       // arbitrary, but fortran wants 1e-16 to be ok
-    fprintf(stderr,"setup_kernel: requested eps is too small (<%.3g)!\n",0.5*EPSILON);
-    return ERR_EPS_TOO_SMALL;
+  if (upsampfac!=2.0) {          // again, override beta for custom sigma
+    FLT gamma=0.97;              // must match devel/gen_all_horner_C_code.m
+    betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
   }
-  if (R<1.9 || R>2.1)
-    fprintf(stderr,"setup_kernel: warning R=%.3g is not close to 2.0; may be inaccurate!\n",(double)R);
-  
+  opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
+  //fprintf(stderr,"setup_spreader: sigma=%.6f, chose ns=%d beta=%.6f\n",(double)upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
   return 0;
 }
 
 FLT evaluate_kernel(FLT x, const spread_opts &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
-
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
-
-   which is an asymptotic approximation to the Kaiser--Bessel, itself an
+   related to an asymptotic approximation to the Kaiser--Bessel, itself an
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
-   beta ~ 2.3 nspread for upsampling factor R=2.0, and has been previously
-   chosen by 1d optimization for the R used.
-
-   Barnett 2/16/17. Removed the factor (1-(2x/n_s)^2)^{-1/4},  2/17/17
-
-   Obsolete, since vector versions used instead.
-*/
+   This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
 {
   if (abs(x)>=opts.ES_halfwidth)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
@@ -474,19 +489,20 @@ FLT evaluate_kernel(FLT x, const spread_opts &opts)
 }
 
 FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
-// Version of the above just for timing purposes!!! Gives wrong answer
+// Version of the above just for timing purposes - gives wrong answer!!!
 {
   if (abs(x)>=opts.ES_halfwidth)
     return 0.0;
   else {
     FLT s = sqrt(1.0 - opts.ES_c*x*x);
-    //  return sinh(opts.ES_beta * s)/s; // roughly, inverse K-B kernel of NFFT
+    //  return sinh(opts.ES_beta * s)/s; // roughly, backward K-B kernel of NFFT
         return opts.ES_beta * s;
   }
 }
 
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts)
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
+// needed for the vectorized kernel eval of Ludvig af K.
 {
   int ns=opts.nspread;
   for (int i=0; i<ns; i++)
@@ -494,19 +510,19 @@ static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts)
 }
 
 static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts& opts, const int N)
-/* Evaluate kernel for a vector of N arguments.
+/* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
    If opts.kerpad true, args and ker must be allocated for Npad, and args is
    written to (to pad to length Npad), only first N outputs are correct.
-   Barnett 4/24/18 option to pad to mult of 4 for better simd vectorization.
- */
+   Barnett 4/24/18 option to pad to mult of 4 for better SIMD vectorization.
+   Obsolete (replaced by Horner), but keep around for experimentation since
+   works for arbitrary beta. Formula must match reference implementation. */
 {
   FLT b = opts.ES_beta;
   FLT c = opts.ES_c;
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
-    // Note: Splitting kernel evaluation into two loops seems to benefit
-    // auto-vectorization.
-    // gcc 5.4 vectorizes first loop
-    // gcc 7.2 vectorizes both loops
+    // Note (by Ludvig af K): Splitting kernel evaluation into two loops
+    // seems to benefit auto-vectorization.
+    // gcc 5.4 vectorizes first loop; gcc 7.2 vectorizes both loops
     int Npad = N;
     if (opts.kerpad) {        // since always same branch, no speed hit
       Npad = 4*(1+(N-1)/4);   // pad N to mult of 4; help i7 GCC, not xeon
@@ -520,8 +536,7 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts
       for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
 	ker[i] = exp(ker[i]);
   } else {
-    // Dummy
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < N; i++)             // dummy for timing only
       ker[i] = 1.0;
   }
   // Separate check from arithmetic (Is this really needed? doesn't slow down)
@@ -529,19 +544,24 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts
     if (abs(args[i])>=opts.ES_halfwidth) ker[i] = 0.0;
 }
 
-static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const spread_opts &opts)
-/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] kernel eval at
+static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
+					  const spread_opts &opts)
+/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-   Barnett 4/24/18
- */
+   This is the current evaluation method, since it's faster (except i7 w=16).
+   Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
     FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
+    if (opts.upsampfac==2.0) {     // floating point equality is fine here
 #include "ker_horner_allw_loop.c"
+    } else if (opts.upsampfac==1.25) {
+#include "ker_lowupsampfac_horner_allw_loop.c"
+    } else
+      fprintf(stderr,"eval_kernel_vec_Horner: unknown upsampfac, failed!\n");
   }
 }
-
 
 void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 // 1D interpolate complex values from du array to out, using real weights
@@ -716,7 +736,7 @@ void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
     FLT im0 = dd[2*i+1];
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];            // x1 in [-w/2,-w/2+1]
-    if (opts.kereval==0) {
+    if (opts.kerevalmeth==0) {
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     } else
@@ -756,7 +776,7 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
-    if (opts.kereval==0) {
+    if (opts.kerevalmeth==0) {
       set_kernel_args(kernel_args, x1, opts);
       set_kernel_args(kernel_args+ns, x2, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
@@ -811,7 +831,7 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
     FLT x3 = (FLT)i3 - kz[i];
-    if (opts.kereval==0) {
+    if (opts.kerevalmeth==0) {
       set_kernel_args(kernel_args, x1, opts);
       set_kernel_args(kernel_args+ns, x2, opts);
       set_kernel_args(kernel_args+2*ns, x3, opts);

@@ -15,12 +15,13 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
   int chkbnds;            // 0: don't check NU pts are in range; 1: do
   int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
-  int kereval;            // 0: exp(sqrt()), 1: Horner ppval
+  int kerevalmeth;        // 0: exp(sqrt()), old, or 1: Horner ppval, fastest
   int kerpad;             // 0: no pad to mult of 4, 1: do (helps i7 kereval=0)
   int sort_threads;       // 0: auto-choice, >0: fix number of sort threads
   BIGINT max_subproblem_size; // sets extra RAM per thread
   int flags;              // binary flags for timing only (may give wrong ans!)
   int debug;              // 0: silent, 1: small text output, 2: verbose
+  FLT upsampfac;          // sigma, upsampling factor, default 2.0
   // ES kernel specific...
   FLT ES_beta;
   FLT ES_halfwidth;
@@ -56,6 +57,6 @@ int cnufftspread(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
 		 FLT *data_nonuniform, spread_opts opts);
 FLT evaluate_kernel(FLT x,const spread_opts &opts);
 FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
-int setup_spreader(spread_opts &opts,FLT eps,FLT R);
+int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac,int kerevalmeth);
 
 #endif // CNUFFTSPREAD_H
