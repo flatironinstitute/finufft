@@ -88,26 +88,71 @@ Download version 0.33 or later from http://www.cs.cornell.edu/~bindel/sw/mwrap, 
 Compilation
 ***********
 
-If you do not have a linux environment, then see ``makefile``, and place your compiler and linking options in a new file ``make.inc``.
-For example such files see ``make.inc.*``.
+We first describe compilation for default options (double precision, openmp) via GCC.
+If you have a nonstandard unix environment (eg a Mac) or want to change the compiler,
+then place your compiler and linking options in a new file ``make.inc``.
+For example such files see ``make.inc.*``. See ``makefile`` for what can be overridden.
 
 Compile and do a rapid (less than 1-second) test of FINUFFT via::
 
   make test
 
-or, to do the same using all available cores::
-
-  make test -j
-
 This should compile the main libraries then run tests which should report zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
 
-Use ``make perftest`` for larger spreader and NUFFT tests taking around 20 seconds.
+Use ``make perftest`` for larger spreader and NUFFT tests taking 15-30 seconds.
 
 Run ``make`` without arguments for full list of possible make tasks.
 
 If there is an error in testing on a standard set-up,
-please file a bug report as a New
-Issue at https://github.com/ahbarnett/finufft/issues
+please file a bug report as a New Issue at https://github.com/ahbarnett/finufft/issues
+
+Custom library compilation options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You may want to make the library for other data types. Currently
+library names are distinct for single precision (libfinufftf) vs
+double (libfinufft). However, single-threaded vs multithreaded are
+built with the same name, so you will have to move them to other
+locations, or build a 2nd copy of the repo, if you want to keep both
+versions.
+
+You *must* do at least ``make objclean`` before changing precision or openmp options.
+
+Single precision: append ``PREC=SINGLE`` to the make task.
+Single-precision saves half the RAM, and increases
+speed slightly (<20%). The  C++, C, and fortran demos are all tested in
+single precision. However, it will break matlab, octave, python interfaces.
+
+Single-threaded: append ``OMP=OFF`` to the make task.
+
+More information about large arrays and experimental builds:
+
+By default FINUFFT uses 64-bit integers internally and for interfacing;
+this means arguments such as the number of sources (``nj``) are type int64_t,
+meaning ``nj`` will not break at 2^31 (around 2e9).
+There is a chance the user may want to compile a custom version with
+32-bit integers internally (although we have not noticed a speed
+increase on a modern CPU). In the makefile one may add the compile
+flag ``-DSMALLINT`` for this, which changes ``BIGINT`` from ``int64_t`` to ``int``.
+
+Similarly, the user may want to change the integer interface type to
+32-bit ints. The compile flag ``-DINTERFACE32`` does this, and changes ``INT``
+from ``int64_t`` to ``int``.
+
+See ``../src/utils.h`` for these typedefs.
+
+Sizes >=2^31 have been tested for C++ drivers (``test/finufft?d_test.cpp``), and
+work fine, if you have enough RAM.
+
+In fortran and C the interface is still 32-bit integers, limiting to
+array sizes <2^31.
+
+In Matlab/MEX, mwrap uses ``int`` types, so that output arrays can *only*
+be <2^31.
+However, input arrays >=2^31 have been tested, and while they don't crash,
+they result in wrong answers (all zeros). This is yet to be fixed.
+
+As you can see, there are some issues to clean up with large arrays and non-standard sizes. Please contribute simple solutions.
 
 
 Building examples and wrappers
@@ -125,7 +170,7 @@ The ``examples`` and ``test`` directories are good places to see usage examples.
 
 On Mac OSX, we have found that the MATLAB MEX settings need to be
 overridden: edit the file ``mex_C++_maci64.xml`` in the MATLAB distro,
-to read::
+to read, for instance::
 
   CC="gcc-8"
   CXX="g++-8"
