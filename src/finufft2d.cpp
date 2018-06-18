@@ -6,8 +6,8 @@
 #include <iostream>
 #include <iomanip>
 
-int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
-	       FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts)
+int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
+	       FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
                   nj-1
@@ -21,13 +21,14 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
      used, otherwise the - sign is used, in the exponential.
                            
    Inputs:
-     nj     number of sources
-     xj,yj     x,y locations of sources on 2D domain [-pi,pi]^2.
+     nj     number of sources (int64)
+     xj,yj     x,y locations of sources (each a size-nj FLT array)
      cj     size-nj complex FLT array of source strengths, 
             (ie, stored as 2*nj FLTs interleaving Re, Im).
-     iflag  if >=0, uses + sign in exponential, otherwise - sign.
+     iflag  if >=0, uses + sign in exponential, otherwise - sign (int32)
      eps    precision requested (>1e-16)
-     ms,mt  number of Fourier modes requested in x and y; each may be even or odd;
+     ms,mt  number of Fourier modes requested in x and y (int64);
+            each may be even or odd;
             in either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   struct controlling options (see finufft.h)
    Outputs:
@@ -52,15 +53,15 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
-  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
-  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
+  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
+  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   if (nf1*nf2>MAX_NF) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -105,8 +106,8 @@ int finufft2d1(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   return 0;
 }
 
-int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
-	       INT ms, INT mt, CPX* fk, nufft_opts opts)
+int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
+	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 
  /*  Type-2 2D complex nonuniform FFT.
 
@@ -115,13 +116,14 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
 
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
-     xj,yj     x,y locations of sources on 2D domain [-pi,pi]^2.
+     nj     number of sources (int64)
+     xj,yj     x,y locations of sources (each a size-nj FLT array)
      fk     FLT complex array of Fourier transform values (size ms*mt,
             increasing fast in ms then slow in mt, ie Fortran ordering),
-     iflag  if >=0, uses + sign in exponential, otherwise - sign.
+     iflag  if >=0, uses + sign in exponential, otherwise - sign (int32)
      eps    precision requested (>1e-16)
-     ms,mt  numbers of Fourier modes given in x and y; each may be even or odd;
+     ms,mt  numbers of Fourier modes given in x and y (int64)
+            each may be even or odd;
             in either case the mode range is integers lying in [-m/2, (m-1)/2].
      opts   struct controlling options (see finufft.h)
    Outputs:
@@ -144,15 +146,15 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
-  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
-  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
+  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
+  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
   if (nf1*nf2>MAX_NF) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
+  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -198,20 +200,20 @@ int finufft2d2(INT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   return 0;
 }
 
-int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts)
+int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts)
  /*  Type-3 2D complex nonuniform FFT.
 
                nj-1
      fk[k]  =  SUM   c[j] exp(+-i (s[k] xj[j] + t[k] yj[j]),    for k=0,...,nk-1
                j=0
    Inputs:
-     nj     number of sources (integer of type BIGINT; see utils.h)
-     xj,yj  x,y location of sources in R^2.
+     nj     number of sources (int64)
+     xj,yj  x,y location of sources in the plane R^2 (each size-nj FLT array)
      cj     size-nj complex FLT array of source strengths, 
             (ie, stored as 2*nj FLTs interleaving Re, Im).
-     nk     number of frequency target points
+     nk     number of frequency target points (int64)
      s,t    (k_x,k_y) frequency locations of targets in R^2.
-     iflag  if >=0, uses + sign in exponential, otherwise - sign.
+     iflag  if >=0, uses + sign in exponential, otherwise - sign (int32)
      eps    precision requested (>1e-16)
      opts   struct controlling options (see finufft.h)
    Outputs:
@@ -243,20 +245,20 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
-  INT64 nf1,nf2;
+  BIGINT nf1,nf2;
   FLT X1,C1,S1,D1,h1,gam1,X2,C2,S2,D2,h2,gam2;
   cout << scientific << setprecision(15);  // for debug
 
   // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
   CNTime timer; timer.start();
-  arraywidcen((BIGINT)nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
-  arraywidcen((BIGINT)nk,s,&S1,&D1);   // {s_k}
-  arraywidcen((BIGINT)nj,yj,&X2,&C2);  // {y_j}
-  arraywidcen((BIGINT)nk,t,&S2,&D2);   // {t_k}
+  arraywidcen(nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
+  arraywidcen(nk,s,&S1,&D1);   // {s_k}
+  arraywidcen(nj,yj,&X2,&C2);  // {y_j}
+  arraywidcen(nk,t,&S2,&D2);   // {t_k}
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
-  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,nf1,X2,C2,S2,D2,gam2,nf2,(INT64)nj,(INT64)nk);
-  if (nf1*nf2>MAX_NF) {
+  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,(int64_t)nf1,X2,C2,S2,D2,gam2,(int64_t)nf2,(int64_t)nj,(int64_t)nk);
+  if ((int64_t)nf1*nf2>MAX_NF) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
@@ -266,7 +268,7 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
     xpj[j] = (xj[j]-C1) / gam1;          // rescale x_j
     ypj[j] = (yj[j]-C2) / gam2;          // rescale y_j
   }
-  CPX imasign = (iflag>=0) ? ima : -ima;
+  CPX imasign = (iflag>=0) ? IMA : -IMA;
   CPX* cpj = (CPX*)malloc(sizeof(CPX)*nj);  // c'_j rephased src
   if (D1!=0.0 || D2!=0.0) {
 #pragma omp parallel for schedule(dynamic)               // since cexp slow
@@ -295,7 +297,7 @@ int finufft2d3(INT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, INT nk, FLT* s
     sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
     tp[k] = h2*gam2*(t[k]-D2);                         // so that |t'_k| < pi/R
   }
-  int ier_t2 = finufft2d2(nk,sp,tp,fk,iflag,eps,(INT)nf1,(INT)nf2,fw,opts);
+  int ier_t2 = finufft2d2(nk,sp,tp,fk,iflag,eps,nf1,nf2,fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2) exit(ier_t2);

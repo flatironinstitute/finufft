@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   CPX* c = (CPX*)malloc(sizeof(CPX)*M);
   for (int j=0; j<M; ++j) {
     x[j] = PI*cos((FLT)j);                           // deterministic
-    c[j] = sin((FLT)1.3*j) + ima*cos((FLT)0.9*j);
+    c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j);
   }
   // allocate output array F for Fourier modes, fix some type-3 coords...
   CPX* F = (CPX*)malloc(sizeof(CPX)*NN);
@@ -56,14 +56,14 @@ int main(int argc, char* argv[])
   printf("1d1 N=0:\tier=%d\n",ier);
   ier = finufft1d1(0,x,c,+1,acc,N,F,opts);
   printf("1d1 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
-  for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + ima*cos((FLT)0.3*k);  // set F for t2
+  for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
   ier = finufft1d2(M,x,c,+1,0,N,F,opts);
   printf("1d2 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft1d2(M,x,c,+1,acc,0,F,opts);
   printf("1d2 N=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
   ier = finufft1d2(0,x,c,+1,acc,N,F,opts);
   printf("1d2 M=0:\tier=%d\n",ier);
-  for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + ima*cos((FLT)0.9*j); // reset c for t3
+  for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset c for t3
   ier = finufft1d3(M,x,c,+1,0,N,s,F,opts);
   printf("1d3 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft1d3(M,x,c,+1,acc,0,s,F,opts);
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
   printf("2d1 Ns>0,Ns=0:\tier=%d\n",ier);
   ier = finufft2d1(0,x,x,c,+1,acc,N,N,F,opts);
   printf("2d1 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
-  for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + ima*cos((FLT)0.3*k);  // set F for t2
+  for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
   ier = finufft2d2(M,x,x,c,+1,0,N,N,F,opts);
   printf("2d2 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft2d2(M,x,x,c,+1,acc,0,0,F,opts);
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
   printf("2d2 Ns>0,Nt=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
   ier = finufft2d2(0,x,x,c,+1,acc,N,N,F,opts);
   printf("2d2 M=0:\tier=%d\n",ier);
-  for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + ima*cos((FLT)0.9*j); // reset c for t3
+  for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset c for t3
   ier = finufft2d3(M,x,x,c,+1,0,N,s,s,F,opts);
   printf("2d3 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft2d3(M,x,x,c,+1,acc,0,s,s,F,opts);
@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
   printf("3d1 Ns,Nt>0,Nu=0:\tier=%d\n",ier);
   ier = finufft3d1(0,x,x,x,c,+1,acc,N,N,N,F,opts);
   printf("3d1 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
-  for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + ima*cos((FLT)0.3*k);  // set F for t2
+  for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
   ier = finufft3d2(M,x,x,x,c,+1,0,N,N,N,F,opts);
   printf("3d2 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft3d2(M,x,x,x,c,+1,acc,0,0,0,F,opts);
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
   printf("3d2 Ns,Nt>0,Nu=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
   ier = finufft3d2(0,x,x,x,c,+1,acc,N,N,N,F,opts);
   printf("3d2 M=0:\tier=%d\n",ier);
-  for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + ima*cos((FLT)0.9*j); // reset c for t3
+  for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset c for t3
   ier = finufft3d3(M,x,x,x,c,+1,0,N,s,s,s,F,opts);
   printf("3d3 tol=0:\tier=%d (should complain)\n",ier);
   ier = finufft3d3(M,x,x,x,c,+1,acc,0,s,s,s,F,opts);

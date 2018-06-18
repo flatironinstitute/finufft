@@ -20,7 +20,7 @@ int finufft1d1_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms, FLT 
 //int finufft1d1_c(int nj,double* xj,dcomplex* cj,int iflag, double eps,int ms, dcomplex* fk)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  return finufft1d1((INT)nj,xj,(CPX *)cj,iflag,eps,(INT)ms,(CPX *)fk,opts);
+  return finufft1d1((BIGINT)nj,xj,(CPX *)cj,iflag,eps,(BIGINT)ms,(CPX *)fk,opts);
 }
 
 // todo: continue, once believe this is the best complex conversion...

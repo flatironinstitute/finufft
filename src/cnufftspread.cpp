@@ -243,7 +243,7 @@ int cnufftspread(
       for (int isub=0; isub<nb; isub++) {    // Main loop through the subproblems
 	BIGINT M0 = brk[isub+1]-brk[isub];   // # NU pts in this subproblem
 	// copy the location and data vectors for the nonuniform points
-	FLT* kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
+	FLT *kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
 	if (N2>1)
 	  ky0=(FLT*)malloc(sizeof(FLT)*M0);
 	if (N3>1)
@@ -260,13 +260,14 @@ int cnufftspread(
 	// get the subgrid which will include padding by roughly nspread/2
 	BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
 	get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);  // sets offsets and sizes
-	if (opts.debug>1)  // verbose
+	if (opts.debug>1) {  // verbose
 	  if (ndims==1)
 	    printf("\tsubgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
 	  else if (ndims==2)
 	    printf("\tsubgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
 	  else
 	    printf("\tsubgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
+	}
 	for (BIGINT j=0; j<M0; j++) {
 	  kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
 	  if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
@@ -276,14 +277,15 @@ int cnufftspread(
 	FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
 	
 	// Spread to subgrid without need for bounds checking or wrapping
-	if (!(opts.flags & TF_OMIT_SPREADING))
+	if (!(opts.flags & TF_OMIT_SPREADING)) {
 	  if (ndims==1)
 	    spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
 	  else if (ndims==2)
 	    spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
 	  else
 	    spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
-	
+	}
+	  
 #pragma omp critical
 	{  // do the adding of subgrid to output; only here threads cannot clash
 	  if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
@@ -340,7 +342,6 @@ int cnufftspread(
 	}
 	// Loop over targets in chunk
 	for (int ibuf=0; ibuf<bufsize; ibuf++) {
-	  BIGINT j = jlist[ibuf];
 	  FLT xj = xjlist[ibuf];
 	  FLT* target = outbuf+2*ibuf;
 	
@@ -348,7 +349,7 @@ int cnufftspread(
 	  BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
 	  FLT x1=(FLT)i1-xj;           // shift of ker center, in [-w/2,-w/2+1]
 	  // eval kernel values patch and use to interpolate from uniform data...
-	  if (!(opts.flags & TF_OMIT_SPREADING))
+	  if (!(opts.flags & TF_OMIT_SPREADING)) {
 	    if (ndims==1) {                                          // 1D
 	      if (opts.kerevalmeth==0) {               // choose eval method
 		set_kernel_args(kernel_args, x1, opts);
@@ -389,6 +390,7 @@ int cnufftspread(
 	      }
 	      interp_cube(target,data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
 	    }
+	  }
 	} // end loop over targets in chunk
 	
 	// Copy result buffer to output array

@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
    Barnett 2/2/17
 */
 {
-  INT M = 1e6, N1 = 100, N2 = 200, N3 = 50;  // defaults: M = # srcs, N1,N2,N3 = # modes
+  BIGINT M = 1e6, N1 = 100, N2 = 200, N3 = 50;  // defaults: M = # srcs, N1,N2,N3 = # modes
   double w, tol = 1e-6;       // default
   double upsampfac = 2.0;    // default
   nufft_opts opts; finufft_default_opts(opts);
@@ -34,11 +34,11 @@ int main(int argc, char* argv[])
   //opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) {
-    sscanf(argv[1],"%lf",&w); N1 = (INT)w;
-    sscanf(argv[2],"%lf",&w); N2 = (INT)w;
-    sscanf(argv[3],"%lf",&w); N3 = (INT)w;
+    sscanf(argv[1],"%lf",&w); N1 = (BIGINT)w;
+    sscanf(argv[2],"%lf",&w); N2 = (BIGINT)w;
+    sscanf(argv[3],"%lf",&w); N3 = (BIGINT)w;
   }
-  if (argc>4) { sscanf(argv[4],"%lf",&w); M = (INT)w; }
+  if (argc>4) { sscanf(argv[4],"%lf",&w); M = (BIGINT)w; }
   if (argc>5) {
     sscanf(argv[5],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
     return 1;
   }
   cout << scientific << setprecision(15);
-  INT N = N1*N2*N3;
+  BIGINT N = N1*N2*N3;
 
   FLT *x = (FLT *)malloc(sizeof(FLT)*M);        // NU pts x coords
   FLT *y = (FLT *)malloc(sizeof(FLT)*M);        // NU pts y coords
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
 #pragma omp for schedule(dynamic,CHUNK)
-    for (INT j=0; j<M; ++j) {
+    for (BIGINT j=0; j<M; ++j) {
       x[j] = M_PI*randm11r(&se);
       y[j] = M_PI*randm11r(&se);
       z[j] = M_PI*randm11r(&se);
@@ -81,17 +81,17 @@ int main(int argc, char* argv[])
     exit(ier);
   } else
     printf("     %ld NU pts to (%ld,%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
-	   (INT64)M,(INT64)N1,(INT64)N2,(INT64)N3,ti,M/ti);
+	   (int64_t)M,(int64_t)N1,(int64_t)N2,(int64_t)N3,ti,M/ti);
 
-  INT nt1 = (INT)(0.37*N1), nt2 = (INT)(0.26*N2), nt3 = (INT)(-0.39*N3);  // choose mode to check
-  CPX Ft = (0,0), J = ima*(FLT)isign;
-  for (INT j=0; j<M; ++j)
+  BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2), nt3 = (BIGINT)(-0.39*N3);  // choose mode to check
+  CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
+  for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
   // index in complex F as 1d array...
-  INT it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);
-  printf("one mode: rel err in F[%ld,%ld,%ld] is %.3g\n",(INT64)nt1,(INT64)nt2,(INT64)nt3,
+  BIGINT it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);
+  printf("one mode: rel err in F[%ld,%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,(int64_t)nt3,
 	 abs(Ft-F[it])/infnorm(N,F));
-  if ((INT64)M*N<=BIGPROB) {                   // also check vs full direct eval
+  if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft3d1(M,x,y,z,c,isign,N1,N2,N3,Ft);
     printf("dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(dynamic,CHUNK)
-    for (INT m=0; m<N; ++m) F[m] = crandm11r(&se);
+    for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
   ier = finufft3d2(M,x,y,z,c,isign,tol,N1,N2,N3,F,opts);
@@ -113,17 +113,17 @@ int main(int argc, char* argv[])
     exit(ier);
   } else
     printf("     (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
-	   (INT64)N1,(INT64)N2,(INT64)N3,(INT64)M,ti,M/ti);
+	   (int64_t)N1,(int64_t)N2,(int64_t)N3,(int64_t)M,ti,M/ti);
 
-  INT jt = M/2;          // check arbitrary choice of one targ pt
-  CPX ct = (0,0);
-  INT m=0;
-  for (INT m3=-(N3/2); m3<=(N3-1)/2; ++m3)   // loop in F order
-    for (INT m2=-(N2/2); m2<=(N2-1)/2; ++m2)
-      for (INT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+  BIGINT jt = M/2;          // check arbitrary choice of one targ pt
+  CPX ct = CPX(0,0);
+  BIGINT m=0;
+  for (BIGINT m3=-(N3/2); m3<=(N3-1)/2; ++m3)   // loop in F order
+    for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)
+      for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 	ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt] + m3*z[jt]));   // direct
-  printf("one targ: rel err in c[%ld] is %.3g\n",(INT64)jt,abs(ct-c[jt])/infnorm(M,c));
-  if ((INT64)M*N<=BIGPROB) {                  // also full direct eval
+  printf("one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(ct-c[jt])/infnorm(M,c));
+  if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft3d2(M,x,y,z,ct,isign,N1,N2,N3,F);
     printf("dirft3d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(dynamic,CHUNK)
-    for (INT j=0; j<M; ++j) {
+    for (BIGINT j=0; j<M; ++j) {
       x[j] = 2.0 + M_PI*randm11r(&se);      // new x_j srcs, offset from origin
       y[j] = -3.0 + M_PI*randm11r(&se);     // " y_j
       z[j] = 1.0 + M_PI*randm11r(&se);      // " z_j
@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(dynamic,CHUNK)
-    for (INT k=0; k<N; ++k) {
+    for (BIGINT k=0; k<N; ++k) {
       s[k] = S1*(1.7 + randm11r(&se));  //S*(1.7 + k/(FLT)N); // offset the freqs
       t[k] = S2*(-0.5 + randm11r(&se));
       u[k] = S3*(0.9 + randm11r(&se));
@@ -165,14 +165,14 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(INT64)M,(INT64)N,ti,M/ti,N/ti);
+    printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(int64_t)M,(int64_t)N,ti,M/ti,N/ti);
 
-  INT kt = N/2;          // check arbitrary choice of one targ pt
-  Ft = (0,0);
-  for (INT j=0;j<M;++j)
-    Ft += c[j] * exp(ima*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j] + u[kt]*z[j]));
-  printf("one targ: rel err in F[%ld] is %.3g\n",(INT64)kt,abs(Ft-F[kt])/infnorm(N,F));
-  if ((INT64)M*N<=BIGPROB) {                  // also full direct eval
+  BIGINT kt = N/2;          // check arbitrary choice of one targ pt
+  Ft = CPX(0,0);
+  for (BIGINT j=0;j<M;++j)
+    Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j] + u[kt]*z[j]));
+  printf("one targ: rel err in F[%ld] is %.3g\n",(int64_t)kt,abs(Ft-F[kt])/infnorm(N,F));
+  if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft3d3(M,x,y,z,c,isign,N,s,t,u,Ft);       // writes to F
     printf("dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));

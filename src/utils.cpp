@@ -81,15 +81,15 @@ void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
   }
 }
 
-INT64 next235even(INT64 n)
+BIGINT next235even(BIGINT n)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth"). Adapted from fortran in hellskitchen.  Barnett 2/9/17
 // changed INT64 type 3/28/17. Runtime is around n*1e-11 sec for big n.
 {
   if (n<=2) return 2;
   if (n%2 == 1) n+=1;   // even
-  INT64 nplus = n-2;   // to cancel out the +=2 at start of loop
-  INT64 numdiv = 2;    // a dummy that is >1
+  BIGINT nplus = n-2;   // to cancel out the +=2 at start of loop
+  BIGINT numdiv = 2;    // a dummy that is >1
   while (numdiv>1) {
     nplus += 2;         // stays even
     numdiv = nplus;
@@ -100,7 +100,7 @@ INT64 next235even(INT64 n)
   return nplus;
 }
 
-// ----------------------- helpers for timing (always stay double)...
+// ----------------------- helpers for timing (always stay double prec)...
 using namespace std;
 
 void CNTime::start()
@@ -117,7 +117,7 @@ double CNTime::restart()
 }
 
 double CNTime::elapsedsec()
-// returns answers as double, in seconds. Barnett 5/22/18
+// returns answers as double, in seconds, to microsec accuracy. Barnett 5/22/18
 {
   struct timeval now;
   gettimeofday(&now, 0);

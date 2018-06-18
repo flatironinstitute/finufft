@@ -1,8 +1,11 @@
 // C-style interface to FINUFFT library that is used for MWRAP interface.
+// Only double-precision is implemented.
+
 // Note that no underscores can be used in the function names.
 // We use doubles to rep big integers, since "long long" failed in mwrap.
 // We tried reading MY_OMP_GET_MAX_THREADS() but since we're in MEX it always
 // seems to be 1, so we don't use it.
+
 // Barnett 3/24/17.
 // fixed typecasting doubles to BIGINTs w/ correct rounding. 3/29/17
 // double array for passing in all opts. 10/30/17
