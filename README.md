@@ -14,10 +14,10 @@ You will also want to see example codes in the directories
 
 If you prefer to read text files, the source to generate the above documentation is in human-readable (mostly .rst) files as follows:
 
-- `docs/install.rst` : installation instructions
+- `docs/install.rst` : installation and compilation instructions
 - `docs/math.rst` : mathematical definitions
 - `docs/dirs.rst` : explanation of directories and files in the package
-- `docs/usage.rst` : C++ routine interfaces, compilation options, and notes
+- `docs/usage.rst` : C++ routine interfaces, and notes on parameters
 - `docs/matlabhelp.raw` : MATLAB/octave interfaces
 - `finufftpy/_interfaces.py` : python interface docstrings
 - `docs/issues.rst` : known issues and bug reports

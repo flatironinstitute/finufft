@@ -39,7 +39,7 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 	
   .. note::
 
@@ -83,7 +83,7 @@ def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -124,7 +124,7 @@ def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsam
     spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
        2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -174,7 +174,7 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 	
   .. note::
 
@@ -222,7 +222,7 @@ def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeo
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -266,7 +266,7 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,u
     spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
        2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -322,7 +322,7 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,f
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 	
   .. note::
 
@@ -372,7 +372,7 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mod
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -420,7 +420,7 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw
     spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
        2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
-    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
