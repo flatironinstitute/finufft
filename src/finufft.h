@@ -46,5 +46,7 @@ int finufft2d1many_seq(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
                    FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts);
 int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
                    FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts);
+int finufft2d1many_mix(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts);
 
 #endif
