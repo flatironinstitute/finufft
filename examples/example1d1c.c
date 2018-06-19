@@ -1,5 +1,6 @@
-// this is all you must include...
+// this is all you must include to access finufft from C...
 #include "../src/finufft_c.h"
+
 // also needed for this example...
 #include <stdlib.h>
 #include <math.h>
@@ -8,7 +9,7 @@
 
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C, using C complex type,
-   with a math test. Double-precision. Barnett 3/10/17
+   with a math test. Double-precision. Barnett 3/10/17. Opts control 6/19/18.
 
    Compile with:
    gcc -fopenmp example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lfftw3_threads -lm -lstdc++
@@ -35,8 +36,13 @@ int main(int argc, char* argv[])
   // allocate complex output array for the Fourier modes
   F = (double complex*)malloc(sizeof(double complex)*N);
 
+  nufft_c_opts opts;
+  finufft_default_c_opts(&opts);          // set default opts (must do this)
+  opts.debug = 2;                         // show how to override a default
+  //opts.upsampfac =1.25;                 // other opts...
+  
   // call the NUFFT C interface (with iflag=+1):
-  ier = finufft1d1_c(M,x,c,+1,acc,N,F);
+  ier = finufft1d1_c(M,x,c,+1,acc,N,F,opts);
 
   n = 142519;         // check the answer just for this mode...
   Ftest = 0.0;
