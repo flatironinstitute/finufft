@@ -14,6 +14,8 @@ for the default multi-threaded version, or::
 
 if you compiled FINUFFT for single-threaded only.
 
+The ``examples`` and ``test`` directories are good places to see usage examples.
+
 
 Interfaces from C++
 *******************
@@ -87,6 +89,11 @@ However, the kernel widths :math:`w` are about 50% larger in each dimension,
 which can lead to slower spreading (it can also be faster due to the smaller
 size of the fine grid).
 Thus only 9-digit accuracy can be reached with ``upsampfac=1.25``.
+
+.. _errcodes:
+
+Error codes
+~~~~~~~~~~~
 
 In the interfaces, the returned value is 0 if successful, otherwise the error code
 has the following meanings (see ``../src/utils.h``):
@@ -471,20 +478,21 @@ Design notes and advanced usage
 
 When you include the header ``finufft.h`` you have access to the ``BIGINT`` type
 which is used for all potentially-large input integers (M, N, etc), and
-currently typedefed to ``int64_t``. In case you were to want to change this
+currently typedefed to ``int64_t`` (see ``utils.h``).
+This allows the number of sources, number of modes, etc,
+to safely exceed 2^31 (around 2e9).
+In case you were to want to change this
 type, you may want to use ``BIGINT`` in your calling codes.
 Using ``int64_t`` will be fine if you don't change this.
+To change (perhaps for speed, but we have not noticed any speed hit using
+64-bit integers throughout), one would change
+``BIGINT`` from ``int64_t`` to ``int`` in ``utils.h``.
 
 Sizes >=2^31 have been tested for C++ drivers (``test/finufft?d_test.cpp``), and
 work fine, if you have enough RAM.
 
 In fortran and C the interface is still 32-bit integers, limiting to
 array sizes <2^31.
-
-In Matlab/MEX, mwrap uses ``int`` types, so that output arrays can *only*
-be <2^31.
-However, input arrays >=2^31 have been tested, and while they don't crash,
-they result in wrong answers (all zeros). This is yet to be fixed.
 
 C++ is used for all main libraries, almost entirely avoiding object-oriented code. C++ ``std::complex<double>`` (aliased to ``dcomplex``) and FFTW complex types are mixed within the library, since to some extent it is a glorified driver for FFTW. The interfaces are dcomplex. FFTW was considered universal and essential enough to be a dependency for the whole package.
 
