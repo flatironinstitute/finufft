@@ -64,6 +64,7 @@ Note that we have not yet optimized for repeated *small* problems (around 10000 
    usage
    matlab
    pythoninterface
+   juliainterface
    related
    issues
    ackn
