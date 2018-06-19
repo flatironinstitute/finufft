@@ -14,7 +14,7 @@ import numpy as np
 
 ## 1-d
 
-def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
+def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
   """1D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
   ::
@@ -39,6 +39,7 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 	
   .. note::
 
@@ -55,9 +56,9 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
   # f is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False)        # copies only if type changes
   c=c.astype(np.complex128,copy=False)     # "
-  return finufftpy_cpp.finufft1d1_cpp(x,c,isign,eps,ms,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
+  return finufftpy_cpp.finufft1d1_cpp(x,c,isign,eps,ms,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
-def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
+def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
   """1D type-2 (aka forward) complex nonuniform fast Fourier transform
 
   ::
@@ -82,6 +83,7 @@ def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -98,9 +100,9 @@ def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord
   # c is the output and must have dtype=np.complex128
   x=x.astype(np.float64,copy=False) #copies only if type changes
   f=f.astype(np.complex128,copy=False) #copies only if type changes
-  return finufftpy_cpp.finufft1d2_cpp(x,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
+  return finufftpy_cpp.finufft1d2_cpp(x,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
-def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
+def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
   """1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
   ::
@@ -122,6 +124,7 @@ def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
     spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
        2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -138,11 +141,11 @@ def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
   x=x.astype(np.float64,copy=False) #copies only if type changes
   c=c.astype(np.complex128,copy=False) #copies only if type changes
   s=s.astype(np.float64,copy=False) #copies only if type changes
-  return finufftpy_cpp.finufft1d3_cpp(x,c,isign,eps,s,f,debug,spread_debug,spread_sort,fftw)
+  return finufftpy_cpp.finufft1d3_cpp(x,c,isign,eps,s,f,debug,spread_debug,spread_sort,fftw,upsampfac)
 
 ## 2-d
 
-def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
+def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
   """2D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
   ::
@@ -171,6 +174,7 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 	
   .. note::
 
@@ -188,9 +192,9 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0
   x=x.astype(np.float64,copy=False) #copies only if type changes
   y=y.astype(np.float64,copy=False) #copies only if type changes
   c=c.astype(np.complex128,copy=False) #copies only if type changes
-  return finufftpy_cpp.finufft2d1_cpp(x,y,c,isign,eps,ms,mt,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
+  return finufftpy_cpp.finufft2d1_cpp(x,y,c,isign,eps,ms,mt,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
-def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
+def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
   """2D type-2 (aka forward) complex nonuniform fast Fourier transform
 
   ::
@@ -218,6 +222,7 @@ def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeo
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -235,9 +240,9 @@ def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeo
   x=x.astype(np.float64,copy=False) #copies only if type changes
   y=y.astype(np.float64,copy=False) #copies only if type changes
   f=f.astype(np.complex128,copy=False,order='F') #copies only if type changes: so if f is C-ordered, it will make a transposed copy
-  return finufftpy_cpp.finufft2d2_cpp(x,y,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
+  return finufftpy_cpp.finufft2d2_cpp(x,y,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
-def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
+def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
   """2D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
   ::
@@ -261,6 +266,7 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
     spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
        2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -279,11 +285,11 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
   c=c.astype(np.complex128,copy=False) #copies only if type changes
   s=s.astype(np.float64,copy=False) #copies only if type changes
   t=t.astype(np.float64,copy=False) #copies only if type changes
-  return finufftpy_cpp.finufft2d3_cpp(x,y,c,isign,eps,s,t,f,debug,spread_debug,spread_sort,fftw)
+  return finufftpy_cpp.finufft2d3_cpp(x,y,c,isign,eps,s,t,f,debug,spread_debug,spread_sort,fftw,upsampfac)
 
 ## 3-d
 
-def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
+def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
   """3D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
   ::
@@ -316,6 +322,7 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,f
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 	
   .. note::
 
@@ -334,9 +341,9 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,f
   y=y.astype(np.float64,copy=False) #copies only if type changes
   z=z.astype(np.float64,copy=False) #copies only if type changes
   c=c.astype(np.complex128,copy=False) #copies only if type changes
-  return finufftpy_cpp.finufft3d1_cpp(x,y,z,c,isign,eps,ms,mt,mu,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
+  return finufftpy_cpp.finufft3d1_cpp(x,y,z,c,isign,eps,ms,mt,mu,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
-def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1):
+def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
   """3D type-2 (aka forward) complex nonuniform fast Fourier transform
 
   ::
@@ -365,6 +372,7 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mod
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
     modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
     chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -383,9 +391,9 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mod
   y=y.astype(np.float64,copy=False) #copies only if type changes
   z=z.astype(np.float64,copy=False) #copies only if type changes
   f=f.astype(np.complex128,copy=False,order='F') #copies only if type changes: so if f is not F-ordered, it will make a transposed copy
-  return finufftpy_cpp.finufft3d2_cpp(x,y,z,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds)
+  return finufftpy_cpp.finufft3d2_cpp(x,y,z,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
-def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw=0):
+def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
   """3D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
   ::
@@ -412,6 +420,7 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw
     spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
        2 (heuristic decision to sort)
     fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+    upsampfac: (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
 
   .. note::
 
@@ -432,4 +441,4 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw
   s=s.astype(np.float64,copy=False) #copies only if type changes
   t=t.astype(np.float64,copy=False) #copies only if type changes
   u=u.astype(np.float64,copy=False) #copies only if type changes
-  return finufftpy_cpp.finufft3d3_cpp(x,y,z,c,isign,eps,s,t,u,f,debug,spread_debug,spread_sort,fftw)
+  return finufftpy_cpp.finufft3d3_cpp(x,y,z,c,isign,eps,s,t,u,f,debug,spread_debug,spread_sort,fftw,upsampfac)

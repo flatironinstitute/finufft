@@ -1,5 +1,5 @@
 # convert DFM's simple demo to JFM interface, include modeord test.
-# Barnett 10/25/17
+# Barnett 10/25/17. Adde upsampfac, 6/18/18
 
 import time
 import finufftpy
@@ -37,4 +37,12 @@ status = finufftpy.nufft1d1(x, c, iflag, acc, N, F, modeord=1)
 print("Finished nufft in {0:.2g} seconds (modeord=1)"
       .format(time.time()-strt))
 err = np.abs((F[n] - Ftest) / Fmax)   # now zero offset in F array
+print("Error relative to max of F: {0:.2e}".format(err))
+
+# now test low-upsampfac (sigma) version...
+strt = time.time()
+status = finufftpy.nufft1d1(x, c, iflag, acc, N, F, upsampfac=1.25)
+print("Finished nufft in {0:.2g} seconds (upsampfac=1.25)"
+      .format(time.time()-strt))
+err = np.abs((F[n + N // 2] - Ftest) / Fmax)   # now zero offset in F array
 print("Error relative to max of F: {0:.2e}".format(err))

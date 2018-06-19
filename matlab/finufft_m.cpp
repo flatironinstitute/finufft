@@ -24,7 +24,7 @@ void finufft_mex_setup()
 }
 
 void finufft_mex_opts(nufft_opts &opts, double *mexo)
-// global setup of finufft opts given MEX interface opts 6-long double array.
+// global setup of finufft opts given MEX interface opts 7-long double array.
 // Also sets multithreading.
 {
   finufft_default_opts(opts);
@@ -36,9 +36,10 @@ void finufft_mex_opts(nufft_opts &opts, double *mexo)
   int nthreads = IROUND(mexo[1]);
   if (nthreads>0) MY_OMP_SET_NUM_THREADS(nthreads);
   opts.spread_sort=IROUND(mexo[2]);
-  opts.fftw = !IROUND(mexo[3]) ? FFTW_ESTIMATE : FFTW_MEASURE;
+  opts.fftw = !IROUND(mexo[3]) ? FFTW_ESTIMATE : FFTW_MEASURE;   // 0 then 1
   opts.modeord = IROUND(mexo[4]);      // unused by type-3
   opts.chkbnds = IROUND(mexo[5]);      // "
+  opts.upsampfac = mexo[6];
 }
 
 
