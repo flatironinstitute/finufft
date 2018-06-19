@@ -472,9 +472,9 @@ int finufft2d1many_seq(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
       // if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
   }
   time_execute = timer_total.elapsedsec();
-  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",0,time_spread);
-  if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, time_fft);
-  if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", time_deconv);
+  if (opts.debug) printf("TOTAL spread/data (ier=%d):\t\t %.3g s\n",0,time_spread/ndata);
+  if (opts.debug) printf("TOTAL fft/data (%d threads):\t\t %.3g s\n", nth, time_fft/ndata);
+  if (opts.debug) printf("TOTAL deconvolve & copy out/data:\t %.3g s\n", time_deconv/ndata);
 
   printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.3g NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
 
@@ -579,7 +579,7 @@ int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   spopts.chkbnds = 1;
 
   timer.restart();
-  omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
+  //omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
   #pragma omp parallel for
     for (int i = 0; i < ndata; ++i)
     {
@@ -691,11 +691,6 @@ int finufft2d1many_mix(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = finufft2d1plan(nf1, nf2, fw, fftsign, opts, nth);
 
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
-  spopts.spread_direction = 1;
-  spopts.pirange = 1; FLT *dummy;
-  spopts.chkbnds = opts.chkbnds;
 
   CNTime timer_total; timer_total.start();
   double time_fft = 0.0;
@@ -708,6 +703,12 @@ int finufft2d1many_mix(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
       CPX* cstart = c+i*nj;
       CPX* fkstart = fk+i*ms*mt;
 
+      spopts.debug = opts.spread_debug;
+      spopts.sort = opts.spread_sort;
+      spopts.spread_direction = 1;
+      spopts.pirange = 1; FLT *dummy;
+      spopts.chkbnds = opts.chkbnds;
+      
       timer.restart();
       int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cstart,spopts);
       if (ier_spread>0) return ier_spread;
@@ -731,7 +732,7 @@ int finufft2d1many_mix(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", time_deconv);
 
-  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.3g NU pts/s\n", nj, ms, mt, time_execute, ndata*nj/time_execute);
+  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.3g NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
 
   FFTW_DE(p);
   fftw_cleanup();
