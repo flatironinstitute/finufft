@@ -17,7 +17,7 @@ on Windows too.
 
 For the basic libraries
 
-* C++ compiler such as ``g++`` packaged with GCC
+* C++ compiler, such as ``g++`` packaged with GCC
 * FFTW3
 * GNU make
 
@@ -77,6 +77,7 @@ Download the latest ``numdiff`` from the above URL, un-tar the package, cd into 
 Installing MWrap
 ----------------
 
+This is not needed for most users.
 `MWrap <http://www.cs.cornell.edu/~bindel/sw/mwrap>`_
 is a very useful MEX interface generator by Dave Bindel.
 Make sure you have ``flex`` and ``bison`` installed.
@@ -103,6 +104,8 @@ Use ``make perftest`` for larger spreader and NUFFT tests taking 15-30 seconds.
 
 Run ``make`` without arguments for full list of possible make tasks.
 
+Note that the library includes the C and fortran interfaces
+defined in ``src/finufft_c.h`` and ``fortran/finufft_f.h`` respectively.
 If there is an error in testing on a standard set-up,
 please file a bug report as a New Issue at https://github.com/ahbarnett/finufft/issues
 
@@ -118,41 +121,12 @@ versions.
 
 You *must* do at least ``make objclean`` before changing precision or openmp options.
 
-Single precision: append ``PREC=SINGLE`` to the make task.
+**Single precision**: append ``PREC=SINGLE`` to the make task.
 Single-precision saves half the RAM, and increases
 speed slightly (<20%). The  C++, C, and fortran demos are all tested in
 single precision. However, it will break matlab, octave, python interfaces.
 
-Single-threaded: append ``OMP=OFF`` to the make task.
-
-More information about large arrays and experimental builds:
-
-By default FINUFFT uses 64-bit integers internally and for interfacing;
-this means arguments such as the number of sources (``nj``) are type int64_t,
-meaning ``nj`` will not break at 2^31 (around 2e9).
-There is a chance the user may want to compile a custom version with
-32-bit integers internally (although we have not noticed a speed
-increase on a modern CPU). In the makefile one may add the compile
-flag ``-DSMALLINT`` for this, which changes ``BIGINT`` from ``int64_t`` to ``int``.
-
-Similarly, the user may want to change the integer interface type to
-32-bit ints. The compile flag ``-DINTERFACE32`` does this, and changes ``INT``
-from ``int64_t`` to ``int``.
-
-See ``../src/utils.h`` for these typedefs.
-
-Sizes >=2^31 have been tested for C++ drivers (``test/finufft?d_test.cpp``), and
-work fine, if you have enough RAM.
-
-In fortran and C the interface is still 32-bit integers, limiting to
-array sizes <2^31.
-
-In Matlab/MEX, mwrap uses ``int`` types, so that output arrays can *only*
-be <2^31.
-However, input arrays >=2^31 have been tested, and while they don't crash,
-they result in wrong answers (all zeros). This is yet to be fixed.
-
-As you can see, there are some issues to clean up with large arrays and non-standard sizes. Please contribute simple solutions.
+**Single-threaded**: append ``OMP=OFF`` to the make task.
 
 
 Building examples and wrappers

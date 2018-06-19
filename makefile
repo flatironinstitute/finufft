@@ -1,27 +1,12 @@
 # Makefile for FINUFFT.
-# Barnett 6/12/18
+# Barnett 6/18/18
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # Users should not need to edit this makefile (doing so would make it hard to
 # stay up to date with the repo version). Rather, in order to change
-# OS/environment-specific compiler and flags, create the file make.inc, which
-# overrides the defaults below (which are for ubuntu/GCC system).
-# For examples, see make.inc.*
-
-# Compilation options: (also see docs/)
-#
-# 0) You *must* do 'make objclean' before changing PREC or OMP options.
-#    This leaves built libraries and .mex* intact. Currently single and double
-#    precision are given distinct library names (suffix "f" = single).
-# 1) Use "make [task] PREC=SINGLE" for single-precision, otherwise will be
-#    double-precision. Single-precision saves half the RAM, and increases
-#    speed slightly (<20%). Not available for matlab and octave interfaces.
-# 2) Make with OMP=OFF for single-threaded, otherwise multi-threaded (OpenMP).
-# 3) If you want to restrict to array sizes <2^31 and explore if 32-bit integer
-#    indexing beats 64-bit, add flag -DSMALLINT to CXXFLAGS which sets BIGINT
-#    to int.
-# 4) If you want 32 bit integers in the FINUFFT library interface instead of
-#    int64, add flag -DINTERFACE32 (experimental; C,F,M,O interfaces will break)
+# OS/environment-specific compilers and flags, create the file make.inc, which
+# overrides the defaults below (which are for ubuntu linux/GCC system).
+# See docs/install.rst, and make.inc.*
 
 # compilers, and linking from C, fortran...
 CXX=g++
@@ -56,7 +41,7 @@ MWRAP=mwrap
 ifeq ($(PREC),SINGLE)
 CXXFLAGS += -DSINGLE
 CFLAGS += -DSINGLE
-# note that PRECSUFFIX is used to choose fftw lib name, also our demo names
+# note that PRECSUFFIX is used to choose fftw lib name, and also our demo names
 PRECSUFFIX=f
 REQ_TOL = 1e-6
 CHECK_TOL = 2e-4
@@ -77,16 +62,10 @@ FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
 LIBSFFT += -l$(FFTW)_threads
-OMPSUFFIX=
-else
-OMPSUFFIX=_singlethread
-LIBSFFT += -l$(FFTW)_threads
 endif
 
 # decide name of obj files and finufft library we're building...
 LIBNAME=libfinufft$(PRECSUFFIX)
-#LIBNAME = libfinufft$(PRECSUFFIX)$(OMPSUFFIX)
-# (we decided not to use distinct OMP lib names since fixed lib name is easier for eg python)
 DYNAMICLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
 
@@ -260,13 +239,14 @@ else
 endif
 
 
-# ------------- Various obscure tests -----------------
+# ------------- Various obscure/devel tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!
 manysmallprobs: $(STATICLIB) $(HEADERS) test/manysmallprobs.cpp
 	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp $(STATICLIB) -o test/manysmallprobs $(LIBSFFT)
 	(export OMP_NUM_THREADS=1; time test/manysmallprobs; unset OMP_NUM_THREADS)
 
-# cleaning up (including all versions of lib, and interfaces)...
+
+# ------------- Cleaning up (including all versions of lib, and interfaces)...
 clean: objclean pyclean
 	rm -f lib-static/*.a lib/*.so
 	rm -f matlab/*.mex*

@@ -17,7 +17,7 @@ void finufft_default_opts(nufft_opts &o)
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX. Barnett 10/30/17
 {
-  o.upsampfac = (FLT)2.0;   // sigma. 2.0 or 1.25 (for smaller RAM, FFTs)
+  o.upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
   o.chkbnds = 0;
   o.debug = 0;
   o.spread_debug = 0;
@@ -41,18 +41,18 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
   return ier;
 } 
 
-void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, INT64 *nf)
+void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
 {
-  *nf = (INT64)(opts.upsampfac*ms);
+  *nf = (BIGINT)(opts.upsampfac*ms);
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
   if (*nf<MAX_NF)                                 // otherwise will fail anyway
     *nf = next235even(*nf);                       // expensive at huge nf
 }
 
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
-		     INT64 *nf, FLT *h, FLT *gam)
+		     BIGINT *nf, FLT *h, FLT *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
    Inputs:
@@ -78,7 +78,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
   // use the safe X and S...
   FLT nfd = 2.0*opts.upsampfac*Ssafe*Xsafe/PI + nss;
   if (!isfinite(nfd)) nfd=0.0;                // use FLT to catch inf
-  *nf = (INT64)nfd;
+  *nf = (BIGINT)nfd;
   //printf("initial nf=%ld, ns=%d\n",*nf,spopts.nspread);
   // catch too small nf, and nan or +-inf, otherwise spread fails...
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;
@@ -122,7 +122,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   for (int n=0;n<q;++n) {               // set up nodes z_n and vals f_n
     z[n] *= J2;                         // rescale nodes
     f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
-    a[n] = exp(2*PI*ima*(FLT)(nf/2-z[n])/(FLT)nf);  // phase winding rates
+    a[n] = exp(2*PI*IMA*(FLT)(nf/2-z[n])/(FLT)nf);  // phase winding rates
   }
   BIGINT nout=nf/2+1;                   // how many values we're writing to
   int nt = MIN(nout,MY_OMP_GET_MAX_THREADS());  // how many chunks
@@ -308,11 +308,6 @@ void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
   // set up pp & pn as ptrs to start of pos(ie nonneg) & neg chunks of fk array
   BIGINT pp = -2*k3min*ms*mt, pn = 0; // CMCL mode-ordering (2* since cmplx)
   if (modeord==1) { pp = 0; pn = 2*(k3max+1)*ms*mt; }  // or FFT ordering
-  
-  BIGINT k03 = mu/2;    // z-index shift in fk's = magnitude of most neg z-freq
-  BIGINT k13 = (mu-1)/2;  // most pos freq
-  if (mu==0) k13=-1;      // correct the rounding down for no-mode case
-
   BIGINT np = nf1*nf2;  // # pts in an upsampled Fourier xy-plane
   if (dir==2)           // zero pad needed xy-planes (contiguous in memory)
     for (BIGINT j=np*(k3max+1);j<np*(nf3+k3min);++j)  // sweeps all dims

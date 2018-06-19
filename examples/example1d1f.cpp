@@ -37,11 +37,11 @@ int main(int argc, char* argv[])
   // allocate output array for the Fourier modes:
   complex<float>* F = (complex<float>*)malloc(sizeof(complex<float>)*N);
 
-  // call the NUFFT (with iflag=+1):
+  // call the NUFFT (with iflag=+1): N,M will be typecast to BIGINT
   int ier = finufft1d1(M,x,c,+1,acc,N,F,opts);
 
   int n = 142519;   // check the answer just for this mode...
-  complex<float> Ftest = (0,0);
+  complex<float> Ftest = complelx<float>(0,0);
   for (int j=0; j<M; ++j)
     Ftest += c[j] * exp(I*(float)n*x[j]) / (float)M;
   int nout = n+N/2;       // index in output array for freq mode n

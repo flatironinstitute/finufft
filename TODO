@@ -30,18 +30,17 @@ and fftw_many with one spreader-per-threads for medium size. For cryo appl.
 
 HIGH PRIORITY TODO: (also see above)
 
-* variable R (upsampling). change name to sigma.
 * check the slow speed for fancy t1 spreader when doing nothing, eg
 test/spreadtestnd 1 1e8 1e7 1e-6 0 9 1
 Ie, decide to switch out fancy t1 spreader sometimes?
-* understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
 * host at FI github.
-* Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) better install notes.
+* Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64.
 * release, outreach, users, NA-Digest
 
 
 LOWER PRIORITY TODO:
 
+* understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
 * Decide if non vs omp get different lib names? not yet
 * figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * check possible transpose convention for 2d,3d, found by David S.

@@ -15,35 +15,35 @@ void finufft1d1_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
 		  int *ms, CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft1d1((INT)*nj,xj,cj,*iflag,*eps,(INT)*ms,fk,opts);
+  *ier = finufft1d1((BIGINT)*nj,xj,cj,*iflag,*eps,(BIGINT)*ms,fk,opts);
 }
 
 void finufft1d2_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
 		  int *ms, CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft1d2((INT)*nj,xj,cj,*iflag,*eps,(INT)*ms,fk,opts);
+  *ier = finufft1d2((BIGINT)*nj,xj,cj,*iflag,*eps,(BIGINT)*ms,fk,opts);
 }
 
 void finufft1d3_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
 		  int *nk, FLT* s, CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft1d3((INT)*nj,xj,cj,*iflag,*eps,(INT)*nk,s,fk,opts);
+  *ier = finufft1d3((BIGINT)*nj,xj,cj,*iflag,*eps,(BIGINT)*nk,s,fk,opts);
 }
 
 void finufft2d1_f_(int *nj,FLT* xj,FLT *yj,CPX* cj,int *iflag,
 		   FLT *eps, int *ms, int *mt, CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft2d1((INT)*nj,xj,yj,cj,*iflag,*eps,(INT)*ms,(INT)*mt,fk,opts);
+  *ier = finufft2d1((BIGINT)*nj,xj,yj,cj,*iflag,*eps,(BIGINT)*ms,(BIGINT)*mt,fk,opts);
 }
 
 void finufft2d2_f_(int *nj,FLT* xj,FLT *yj,CPX* cj,int *iflag,
 		   FLT *eps, int *ms, int *mt, CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft2d2((INT)*nj,xj,yj,cj,*iflag,*eps,(INT)*ms,(INT)*mt,fk,opts);
+  *ier = finufft2d2((BIGINT)*nj,xj,yj,cj,*iflag,*eps,(BIGINT)*ms,(BIGINT)*mt,fk,opts);
 }
 
 void finufft2d3_f_(int *nj,FLT* xj,FLT* yj, CPX* cj,int *iflag,
@@ -51,7 +51,7 @@ void finufft2d3_f_(int *nj,FLT* xj,FLT* yj, CPX* cj,int *iflag,
 		   int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft2d3((INT)*nj,xj,yj,cj,*iflag,*eps,(INT)*nk,s,t,fk,opts);
+  *ier = finufft2d3((BIGINT)*nj,xj,yj,cj,*iflag,*eps,(BIGINT)*nk,s,t,fk,opts);
 }
 
 void finufft3d1_f_(int *nj,FLT* xj,FLT *yj,FLT* zj,CPX* cj,
@@ -59,7 +59,7 @@ void finufft3d1_f_(int *nj,FLT* xj,FLT *yj,FLT* zj,CPX* cj,
 		   CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft3d1((INT)*nj,xj,yj,zj,cj,*iflag,*eps,(INT)*ms,(INT)*mt,(INT)*mu,fk,opts);
+  *ier = finufft3d1((BIGINT)*nj,xj,yj,zj,cj,*iflag,*eps,(BIGINT)*ms,(BIGINT)*mt,(BIGINT)*mu,fk,opts);
 }
 
 void finufft3d2_f_(int *nj,FLT* xj,FLT *yj,FLT* zj,CPX* cj,
@@ -67,7 +67,7 @@ void finufft3d2_f_(int *nj,FLT* xj,FLT *yj,FLT* zj,CPX* cj,
 		   CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft3d2((INT)*nj,xj,yj,zj,cj,*iflag,*eps,(INT)*ms,(INT)*mt,(INT)*mu,fk,opts);
+  *ier = finufft3d2((BIGINT)*nj,xj,yj,zj,cj,*iflag,*eps,(BIGINT)*ms,(BIGINT)*mt,(BIGINT)*mu,fk,opts);
 }
 
 void finufft3d3_f_(int *nj,FLT* xj,FLT* yj, FLT*zj, CPX* cj,
@@ -75,5 +75,5 @@ void finufft3d3_f_(int *nj,FLT* xj,FLT* yj, FLT*zj, CPX* cj,
 		   FLT* u, CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
-  *ier = finufft3d3((INT)*nj,xj,yj,zj,cj,*iflag,*eps,(INT)*nk,s,t,u,fk,opts);
+  *ier = finufft3d3((BIGINT)*nj,xj,yj,zj,cj,*iflag,*eps,(BIGINT)*nk,s,t,u,fk,opts);
 }

@@ -1,3 +1,6 @@
+// This contains some library-wide definitions & precision/OMP switches,
+// as well as the interfaces to utilities in utils.cpp. Barnett 6/18/18.
+
 #ifndef UTILS_H
 #define UTILS_H
 
@@ -27,7 +30,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define EPSILON (float)6e-08
   typedef float FLT;
   typedef complex<float> CPX;
-#define ima complex<float>(0.0,1.0)
+  #define IMA complex<float>(0.0,1.0)
   #define FABS(x) fabs(x)
   typedef fftwf_complex FFTW_CPX;           //  single-prec has fftwf_*
   typedef fftwf_plan FFTW_PLAN;
@@ -46,7 +49,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define EPSILON (double)1.1e-16
   typedef double FLT;
   typedef complex<double> CPX;
-#define ima complex<double>(0.0,1.0)
+  #define IMA complex<double>(0.0,1.0)
   #define FABS(x) fabsf(x)
   typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
   typedef fftw_plan FFTW_PLAN;
@@ -62,29 +65,11 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_FR fftw_free
 #endif
 
-// Compile-flag choice of 64 (default) or 32 bit integers in interface:
-#ifdef INTERFACE32
-  typedef int INT;
-#else
-  typedef int64_t INT;
-#endif
-
-// Compile flag choice of 64 (default) or 32 bit internal integer indexing:
-#ifdef SMALLINT
-// It is possible that on some systems it will run faster, if you only care
-// about small arrays, to index via 32-bit integers...
-  typedef int BIGINT;
-#else
-// since "long" not guaranteed to exceed 32 bit signed int, ie 2^31,
-// use long long (64-bit) since want handle huge array sizes (>2^31)...
+// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
+// This includes all calling arguments (eg M,N) that could be huge someday...
 typedef int64_t BIGINT;
-#endif
 
-// internal integers needed for figuring array sizes, regardless of INT, BIGINT
-typedef int64_t INT64;
-
-
-// global error codes for the library...
+// Global error codes for the library...
 #define ERR_EPS_TOO_SMALL        1
 #define ERR_MAXNALLOC            2
 #define ERR_SPREAD_BOX_SMALL     3
@@ -106,7 +91,7 @@ FLT infnorm(BIGINT n, CPX* a);
 void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi);
 void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi);
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
-INT64 next235even(INT64 n);
+BIGINT next235even(BIGINT n);
 
 
 // jfm timer class
@@ -127,14 +112,14 @@ class CNTime {
 // unif[-1,1]:
 #define randm11() (2*rand01() - (FLT)1.0)
 // complex unif[-1,1] for Re and Im:
-#define crandm11() (randm11() + ima*randm11())
+#define crandm11() (randm11() + IMA*randm11())
 
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
 #define rand01r(x) ((FLT)rand_r(x)/RAND_MAX)
 // unif[-1,1]:
 #define randm11r(x) (2*rand01r(x) - (FLT)1.0)
 // complex unif[-1,1] for Re and Im:
-#define crandm11r(x) (randm11r(x) + ima*randm11r(x))
+#define crandm11r(x) (randm11r(x) + IMA*randm11r(x))
 
 
 // allow compile-time switch off of openmp, so compilation without any openmp

@@ -116,8 +116,8 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #html_theme = 'alabaster'
-#html_theme = 'classic'
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'classic'
+#html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -212,6 +212,12 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'finufftdoc'
 
+# To fix location of equation numbering. Barnett tried 6/19/18
+# see https://samnicholls.net/2016/06/15/how-to-sphinx-readthedocs/
+def setup(app):
+    app.add_stylesheet('theme_overrides.css')
+# it doesn't fail if this file not found in _static  :(
+
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
@@ -295,5 +301,7 @@ texinfo_documents = [
 
 autodoc_mock_imports = ['finufftpy_cpp', 'numpy']
 # The above is not enough for nested import -- forcibly mock them out ahead of time:
-for name in autodoc_mock_imports:
-    sys.modules[name] = sphinx.ext.autodoc._MockModule(name, None)
+#for name in autodoc_mock_imports:
+#    sys.modules[name] = sphinx.ext.autodoc._MockModule(name, None)
+# (removed the above since broke in sphinx 1.6 -> 1.7.4). Thanks Dylan.
+

@@ -21,7 +21,7 @@ As an example, given $M$ arbitrary real numbers $x_j$ and complex
 numbers $c_j$, with $j=1,\dots,M$, and a requested integer number of
 modes $N$, the 1D type-1 (aka "adjoint") transform evaluates the $N$ numbers
 
-.. math::    f_k = \sum_{j=1}^M c_j e^{ik x_j}~, \qquad \mbox{ for } \; k\in\mathbb{Z}, \quad -N/2 \le k \le N/2-1 ~.
+.. math:: f_k = \sum_{j=1}^M c_j e^{ik x_j}~, \qquad \mbox{ for } \; k\in\mathbb{Z}, \quad -N/2 \le k \le N/2-1 ~.
    :label: 1d1
 
 The $x_j$ can be interpreted as nonuniform source locations, $c_j$
@@ -62,6 +62,7 @@ Note that we have not yet optimized for repeated *small* problems (around 10000 
    usage
    matlab
    pythoninterface
+   juliainterface
    related
    issues
    ackn

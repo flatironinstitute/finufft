@@ -35,10 +35,11 @@ Then the type-1 (nonuniform to uniform, aka "adjoint") NUFFT evaluates
 
 .. math::
   :label: 1
-
+   
   f_\mathbf{k} := \sum_{j=1}^M c_j e^{\pm i \mathbf{k}\cdot \mathbf{x}_j}
   \qquad \mbox{for } \mathbf{k} \in K
 
+  
 This can be viewed as evaluating a set of
 Fourier series coefficients due to sources
 with strengths $c_j$ at the arbitrary locations $\mathbf{x}_j$.	  

@@ -1,8 +1,11 @@
 // C-style interface to FINUFFT library that is used for MWRAP interface.
+// Only double-precision is implemented.
+
 // Note that no underscores can be used in the function names.
 // We use doubles to rep big integers, since "long long" failed in mwrap.
 // We tried reading MY_OMP_GET_MAX_THREADS() but since we're in MEX it always
 // seems to be 1, so we don't use it.
+
 // Barnett 3/24/17.
 // fixed typecasting doubles to BIGINTs w/ correct rounding. 3/29/17
 // double array for passing in all opts. 10/30/17
@@ -21,7 +24,7 @@ void finufft_mex_setup()
 }
 
 void finufft_mex_opts(nufft_opts &opts, double *mexo)
-// global setup of finufft opts given MEX interface opts 6-long double array.
+// global setup of finufft opts given MEX interface opts 7-long double array.
 // Also sets multithreading.
 {
   finufft_default_opts(opts);
@@ -33,9 +36,10 @@ void finufft_mex_opts(nufft_opts &opts, double *mexo)
   int nthreads = IROUND(mexo[1]);
   if (nthreads>0) MY_OMP_SET_NUM_THREADS(nthreads);
   opts.spread_sort=IROUND(mexo[2]);
-  opts.fftw = !IROUND(mexo[3]) ? FFTW_ESTIMATE : FFTW_MEASURE;
+  opts.fftw = !IROUND(mexo[3]) ? FFTW_ESTIMATE : FFTW_MEASURE;   // 0 then 1
   opts.modeord = IROUND(mexo[4]);      // unused by type-3
   opts.chkbnds = IROUND(mexo[5]);      // "
+  opts.upsampfac = mexo[6];
 }
 
 

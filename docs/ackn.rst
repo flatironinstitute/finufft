@@ -6,7 +6,7 @@ The main code and mathematical development is by:
 * Alex Barnett (Flatiron Institute)
 * Jeremy Magland (Flatiron Institute)
     
-Significant SIMD/vectorization acceleration of the spreader is by:
+Significant SIMD vectorization/acceleration of the spreader by:
 
 * Ludvig af Klinteberg (SFU)
 
@@ -19,7 +19,7 @@ Other code contributions:
   
 Testing, bug reports:
 
-* Joakim Anden - catching memory leak
+* Joakim Anden - catching memory leak, Matlab/FFTW issues
 * Hannah Lawrence - user testing and finding bugs
 * Marina Spivak - fortran testing
 * Hugo Strand - python bugs
