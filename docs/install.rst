@@ -17,7 +17,7 @@ on Windows too.
 
 For the basic libraries
 
-* C++ compiler such as ``g++`` packaged with GCC
+* C++ compiler, such as ``g++`` packaged with GCC
 * FFTW3
 * GNU make
 
@@ -77,6 +77,7 @@ Download the latest ``numdiff`` from the above URL, un-tar the package, cd into 
 Installing MWrap
 ----------------
 
+This is not needed for most users.
 `MWrap <http://www.cs.cornell.edu/~bindel/sw/mwrap>`_
 is a very useful MEX interface generator by Dave Bindel.
 Make sure you have ``flex`` and ``bison`` installed.

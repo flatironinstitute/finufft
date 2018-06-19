@@ -293,7 +293,7 @@ texinfo_documents = [
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
 
-#autodoc_mock_imports = ['finufftpy_cpp', 'numpy']
+autodoc_mock_imports = ['finufftpy_cpp', 'numpy']
 # The above is not enough for nested import -- forcibly mock them out ahead of time:
 #for name in autodoc_mock_imports:
 #    sys.modules[name] = sphinx.ext.autodoc._MockModule(name, None)
