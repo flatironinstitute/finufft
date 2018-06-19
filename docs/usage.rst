@@ -497,6 +497,30 @@ For a demo see ``examples/example1d1c.c``::
   int finufft3d3_c(int nj,FLT* x,FLT *y,FLT *z,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT *u,FLT _Complex* f, nufft_c_opts copts);
 
 
+Interfaces from fortran
+***********************
+
+We have not yet included control of the options in the fortran wrappers. Please help create these if you can.
+The meaning of arguments is as in the C++ documentation above,
+apart from that now ``ier`` is an argument which is output to.
+Examples of calling all 9 routines from fortran are in ``fortran/nufft?d_demo.f`` (for double-precision) and ``fortran/nufft?d_demof.f`` (single-precision).
+Here are the calling commands with fortran types for the default double-precision case::
+
+      integer ier,iflag,ms,mt,mu,nj
+      real*8, allocatable :: xj(:),yj(:),zj(:), sk(:),tk(:),uk(:)
+      real*8 err,eps
+      complex*16, allocatable :: cj(:), fk(:)
+  
+      call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk,ier)      
+      call finufft1d2_f(nj,xj,cj,iflag, eps, ms,fk,ier)
+      call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk,ier)
+      call finufft2d1_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
+      call finufft2d2_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
+      call finufft2d3_f(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk,ier)
+      call finufft3d1_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,ier)
+      call finufft3d2_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,ier)
+      call finufft3d3_f(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk,ier)
+
 
 
 
