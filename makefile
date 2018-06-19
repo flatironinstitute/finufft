@@ -80,6 +80,7 @@ LIBSFFT += -l$(FFTW)_threads
 OMPSUFFIX=
 else
 OMPSUFFIX=_singlethread
+LIBSFFT += -l$(FFTW)_threads
 endif
 
 # decide name of obj files and finufft library we're building...

@@ -472,11 +472,11 @@ int finufft2d1many_seq(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
       // if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
   }
   time_execute = timer_total.elapsedsec();
-  if (opts.debug) printf("TOTAL spread/data (ier=%d):\t\t %.3g s\n",0,time_spread/ndata);
-  if (opts.debug) printf("TOTAL fft/data (%d threads):\t\t %.3g s\n", nth, time_fft/ndata);
-  if (opts.debug) printf("TOTAL deconvolve & copy out/data:\t %.3g s\n", time_deconv/ndata);
+  if (opts.debug) printf("TOTAL spread/data (ier=%d):\t\t %.10f s\n",0,time_spread/ndata);
+  if (opts.debug) printf("TOTAL fft/data (%d threads):\t\t %.10f s\n", nth, time_fft/ndata);
+  if (opts.debug) printf("TOTAL deconvolve & copy out/data:\t %.10f s\n", time_deconv/ndata);
 
-  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.3g NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
+  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.10f NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
 
   FFTW_DE(p);
   fftw_cleanup();
