@@ -115,7 +115,7 @@ int cnufftspread(
    returned value - 0 indicates success; other values as follows
       (see utils.h for error codes)
       3 : one or more non-trivial box dimensions is less than 2.nspread.
-      4 : nonuniform points outside range [0,Nm] or [-pi,pi] in at least one
+      4 : nonuniform points outside range [-Nm,2*Nm] or [-3pi,3pi] in at least one
           dimension m=1,2,3.
       6 : invalid opts.spread_direction
 

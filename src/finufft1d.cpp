@@ -15,22 +15,19 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
               j=0                            
    Inputs:
      nj     number of sources (int64)
-     xj     location of sources (size-nj FLT array)
+     xj     location of sources (size-nj FLT array), in [-3pi,3pi]
      cj     size-nj FLT complex array of source strengths
             (ie, stored as 2*nj FLTs interleaving Re, Im).
-     iflag  if >=0, uses + sign in exponential, otherwise - sign (int32)
+     iflag  if >=0, uses + sign in exponential, otherwise - sign (int)
      eps    precision requested (>1e-16)
      ms     number of Fourier modes computed, may be even or odd (int64);
             in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
      opts   struct controlling options (see finufft.h)
    Outputs:
      fk     size-ms FLT complex array of Fourier transform values
-            (increasing mode ordering)
-            stored as alternating Re & Im parts (2*ms FLTs)
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread
+            stored as alternating Re & Im parts (2*ms FLTs),
+ 	    order determined by opts.modeord.
+     returned value - 0 if success, else see ../docs/usage.rst
 
      The type 1 NUFFT proceeds in three main steps (see [GL]):
      1) spread data to oversampled regular mesh using kernel.
@@ -111,20 +108,17 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 
    Inputs:
      nj     number of targets (int64)
-     xj     location of targets (size-nj FLT array)
-     fk     complex Fourier transform values (size ms, increasing mode ordering)
+     xj     location of targets (size-nj FLT array), in [-3pi,3pi]
+     fk     complex Fourier transform values (size ms, ordering set by opts.modeord)
             (ie, stored as 2*nj FLTs interleaving Re, Im).
-     iflag  if >=0, uses + sign in exponential, otherwise - sign (int32).
+     iflag  if >=0, uses + sign in exponential, otherwise - sign (int).
      eps    precision requested (>1e-16)
      ms     number of Fourier modes input, may be even or odd (int64);
             in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
      opts   struct controlling options (see finufft.h)
    Outputs:
      cj     complex FLT array of nj answers at targets
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread
+     returned value - 0 if success, else see ../docs/usage.rst
 
      The type 2 algorithm proceeds in three main steps (see [GL]).
      1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
@@ -207,16 +201,13 @@ int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, 
             (ie, stored as 2*nj FLTs interleaving Re, Im).
      nk     number of frequency target points (int64)
      s      frequency locations of targets in R.
-     iflag  if >=0, uses + sign in exponential, otherwise - sign (int32)
+     iflag  if >=0, uses + sign in exponential, otherwise - sign (int)
      eps    precision requested (>1e-16)
      opts   struct controlling options (see finufft.h)
    Outputs:
      fk     size-nk FLT complex Fourier transform values at target
             frequencies sk
-     returned value - 0 if success, else:
-                      1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                      other codes: as returned by cnufftspread or finufft1d2
+     returned value - 0 if success, else see ../docs/usage.rst
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
      as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].

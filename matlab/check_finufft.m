@@ -1,7 +1,7 @@
 % Matlab/octave demo of interfaces for FINUFFT libraries, also checks the math.
-% Barnett 3/24/17; updated normalization in type-1 6/6/17.
+% Barnett 3/24/17; updated normalization in type-1 6/6/17. upsampfac 6/18/18.
 
-% Runtime is around 5-15 seconds on a modern machine
+% Runtime is around 3-10 seconds on a modern machine
 
 clear     % choose params...
 isign   = +1;     % sign of imaginary unit in exponential
@@ -9,6 +9,7 @@ eps     = 1e-6;   % requested accuracy
 o.debug = 0;      % choose 1 for timing breakdown text output
 o.nthreads = 0;   % omit, or use 0, to use default num threads.
 o.fftw = 0;       % style of FFTW: 0 (ESTIMATE) vs 1 (MEASURE, slow but reuses)
+o.upsampfac=1.25; % 2.0 (default) or 1.25 (low-RAM, small-FFT)
 M       = 1e6;    % # of NU pts (in all dims)
 N       = 1e6;    % # of modes (approx total, used in all dims)
 
