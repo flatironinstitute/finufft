@@ -323,7 +323,7 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
 
 
 // Codes for 2d1many
-FFTW_PLAN finufft2d1plan(INT n1, INT n2, FFTW_CPX* in, int fftsign, nufft_opts opts, int nth)
+FFTW_PLAN finufft2d1plan(BIGINT n1, BIGINT n2, FFTW_CPX* in, int fftsign, nufft_opts opts, int nth)
 {
   if (nth>1) {             // set up multithreaded fftw stuff...
     FFTW_INIT();
@@ -348,8 +348,8 @@ void finufft2d1destroy(FFTW_PLAN p)
   fftw_cleanup();
 }
 
-int finufft2d1many_seq(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
-                   FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts)
+int finufft2d1many_seq(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
                   nj-1
@@ -398,15 +398,15 @@ int finufft2d1many_seq(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
-  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
-  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
+  BIGINT nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  BIGINT nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
   if (nf1*nf2>MAX_NF) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(BIGINT)ms,(BIGINT)mt,nf1,nf2,(BIGINT)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -480,8 +480,8 @@ int finufft2d1many_seq(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   return 0;
 }
 
-int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
-                   FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts)
+int finufft2d1many(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
                   nj-1
@@ -530,15 +530,15 @@ int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
-  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
-  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
+  BIGINT nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  BIGINT nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
   if (nf1*nf2>MAX_NF) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(BIGINT)ms,(BIGINT)mt,nf1,nf2,(BIGINT)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -612,8 +612,8 @@ int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   return 0;
 }
 
-int finufft2d1many_mix(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
-                   FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts)
+int finufft2d1many_mix(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
                   nj-1
@@ -662,15 +662,15 @@ int finufft2d1many_mix(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
-  INT64 nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
-  INT64 nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
+  BIGINT nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  BIGINT nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
   if (nf1*nf2>MAX_NF) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
     return ERR_MAXNALLOC;
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(INT64)ms,(INT64)mt,nf1,nf2,(INT64)nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(BIGINT)ms,(BIGINT)mt,nf1,nf2,(BIGINT)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();

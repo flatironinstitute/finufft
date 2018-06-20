@@ -38,15 +38,15 @@ int finufft3d3(BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
 	       CPX* fk, nufft_opts opts);
 
-FFTW_PLAN finufft2d1plan(INT n1, INT n2, FFTW_CPX* in, int fftsign, nufft_opts opts, int nth);
+FFTW_PLAN finufft2d1plan(BIGINT n1, BIGINT n2, FFTW_CPX* in, int fftsign, nufft_opts opts, int nth);
 void finufft2d1execute(FFTW_PLAN p);
 void finufft2d1destroy(FFTW_PLAN p);
 
-int finufft2d1many_seq(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
-                   FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts);
-int finufft2d1many(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
-                   FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts);
-int finufft2d1many_mix(INT nj, INT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
-                   FLT eps, INT ms, INT mt, CPX* fk, nufft_opts opts);
+int finufft2d1many_seq(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d1many(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d1many_mix(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
 
 #endif
