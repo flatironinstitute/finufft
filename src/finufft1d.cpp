@@ -56,7 +56,7 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   CNTime timer; timer.start();
   int nth = MY_OMP_GET_MAX_THREADS();
   if (nth>1) {             // set up multithreaded fftw stuff...
-    FFTW_INIT();
+    FFTW_INIT();           // (these do nothing anyway when OMP=OFF)
     FFTW_PLAN_TH(nth);
   }
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array

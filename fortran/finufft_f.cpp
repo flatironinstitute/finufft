@@ -29,6 +29,7 @@ void finufft1d3_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
 		  int *nk, FLT* s, CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
+  //opts.upsampfac=1.25;      // is recommended, for up to 9-digit prec
   *ier = finufft1d3((BIGINT)*nj,xj,cj,*iflag,*eps,(BIGINT)*nk,s,fk,opts);
 }
 
@@ -51,6 +52,7 @@ void finufft2d3_f_(int *nj,FLT* xj,FLT* yj, CPX* cj,int *iflag,
 		   int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
+  //opts.upsampfac=1.25;      // is recommended, for up to 9-digit prec
   *ier = finufft2d3((BIGINT)*nj,xj,yj,cj,*iflag,*eps,(BIGINT)*nk,s,t,fk,opts);
 }
 
@@ -75,5 +77,6 @@ void finufft3d3_f_(int *nj,FLT* xj,FLT* yj, FLT*zj, CPX* cj,
 		   FLT* u, CPX* fk, int *ier)
 {
   nufft_opts opts; finufft_default_opts(opts);
+  //opts.upsampfac=1.25;      // is recommended, for up to 9-digit prec
   *ier = finufft3d3((BIGINT)*nj,xj,yj,zj,cj,*iflag,*eps,(BIGINT)*nk,s,t,u,fk,opts);
 }

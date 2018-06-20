@@ -132,11 +132,15 @@ class CNTime {
   #define MY_OMP_GET_THREAD_NUM() omp_get_thread_num()
   #define MY_OMP_SET_NUM_THREADS(x) omp_set_num_threads(x)
 #else
-  // non-omp safe dummy versions of omp utils
+  // non-omp safe dummy versions of omp utils, and dummy fftw threads calls...
   #define MY_OMP_GET_NUM_THREADS() 1
   #define MY_OMP_GET_MAX_THREADS() 1
   #define MY_OMP_GET_THREAD_NUM() 0
   #define MY_OMP_SET_NUM_THREADS(x)
+  #undef FFTW_INIT
+  #define FFTW_INIT()
+  #undef FFTW_PLAN_TH
+  #define FFTW_PLAN_TH(x)
 #endif
 
 #endif  // UTILS_H
