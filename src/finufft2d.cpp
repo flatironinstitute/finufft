@@ -549,10 +549,6 @@ int finufft2d1many(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
   int nth = MY_OMP_GET_MAX_THREADS();
-  if (nth>1) {             // set up multithreaded fftw stuff...
-    FFTW_INIT();
-    FFTW_PLAN_TH(nth);
-  }
 
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*ndata);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
@@ -561,35 +557,48 @@ int finufft2d1many(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
   FFTW_PLAN p = fftw_plan_many_dft(2, n, ndata, fw, n, 1, n[0]*n[1], fw, n, 1, n[0]*n[1], fftsign, opts.fftw);
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
-  CNTime timer_total; timer_total.start();
-
-  CPX* cstart;
-  FFTW_CPX *fwstart;
-  CPX* fkstart;
-
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
   spopts.pirange = 1; FLT *dummy;
-  spopts.chkbnds = 1;
+  spopts.chkbnds = opts.chkbnds;
+
+  BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
+  int ier_spread = cnufftcheck(nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  int did_sort = cnufftsort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  if (ier_spread>0)
+  {
+    return ier_spread;
+  }
+
+  CNTime timer_total;
+  double time_fft = 0.0;
+  double time_spread = 0.0;
+  double time_deconv = 0.0;
+  
+  CPX* cstart;
+  CPX* fkstart;
+  FFTW_CPX *fwstart;
+  
+  timer_total.start();
 
   timer.restart();
-  //omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
+  omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
   #pragma omp parallel for
     for (int i = 0; i < ndata; ++i)
     {
       // Step 1: spread from irregular points to regular grid
       cstart = c+i*nj;
       fwstart = fw+i*nf1*nf2;
-      int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fwstart,nj,xj,yj,dummy,(FLT*)cstart,spopts);
+      ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+      // int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fwstart,nj,xj,yj,dummy,(FLT*)cstart,spopts);
     }
-  
-  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",0,timer.elapsedsec());
-  
+  time_spread=timer.elapsedsec();
+
   // Step 2:  Call FFT
   timer.restart();
   FFTW_EX(p);
-  if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
+  time_fft=timer.elapsedsec();      
   
   timer.restart();
   #pragma omp parallel for
@@ -600,18 +609,23 @@ int finufft2d1many(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
       // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
       deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,fwstart,opts.modeord);
     }
-  if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
+  time_deconv=timer.elapsedsec();
   
   time_execute = timer_total.elapsedsec();
-  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.3g NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
+  if (opts.debug) printf("TOTAL spread/data (ier=%d):\t\t %.10f s\n",0,time_spread/ndata);
+  if (opts.debug) printf("TOTAL fft/data (%d threads):\t\t %.10f s\n", nth, time_fft/ndata);
+  if (opts.debug) printf("TOTAL deconvolve & copy out/data:\t %.10f s\n", time_deconv/ndata);
+
+  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.10f NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
 
   FFTW_DE(p);
   fftw_cleanup();
-  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
   if (opts.debug) printf("freed\n");
   return 0;
 }
 
+#if 0
 int finufft2d1many_mix(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
                    FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
@@ -682,56 +696,74 @@ int finufft2d1many_mix(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int if
 
   int nth = MY_OMP_GET_MAX_THREADS();
 
-  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*ndata);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
-  FFTW_PLAN p = finufft2d1plan(nf1, nf2, fw, fftsign, opts, nth);
+  const int n[] = {int(nf2), int(nf1)};// http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
+  timer.restart();
+  FFTW_PLAN p = fftw_plan_many_dft(2, n, ndata, fw, n, 1, n[0]*n[1], fw, n, 1, n[0]*n[1], fftsign, opts.fftw);
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
+  spopts.debug = opts.spread_debug;
+  spopts.sort = opts.spread_sort;
+  spopts.spread_direction = 1;
+  spopts.pirange = 1; FLT *dummy;
+  spopts.chkbnds = opts.chkbnds;
 
-  CNTime timer_total; timer_total.start();
+  BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
+  int ier_spread = cnufftcheck(nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  int did_sort = cnufftsort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  if (ier_spread>0)
+  {
+    return ier_spread;
+  }
+
+  CNTime timer_total;
   double time_fft = 0.0;
   double time_spread = 0.0;
   double time_deconv = 0.0;
 
-  for (int i = 0; i < ndata; ++i)
-  {
+  timer_total.start();
+
+  timer.restart();
+  omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
+  #pragma omp parallel for
+    for (int i = 0; i < ndata; ++i)
+    {
       // Step 1: spread from irregular points to regular grid
-      CPX* cstart = c+i*nj;
-      CPX* fkstart = fk+i*ms*mt;
+      cstart = c+i*nj;
+      fwstart = fw+i*nf1*nf2;
+      ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+      // int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fwstart,nj,xj,yj,dummy,(FLT*)cstart,spopts);
+    }
+  time_spread=timer.elapsedsec();
 
-      spopts.debug = opts.spread_debug;
-      spopts.sort = opts.spread_sort;
-      spopts.spread_direction = 1;
-      spopts.pirange = 1; FLT *dummy;
-      spopts.chkbnds = opts.chkbnds;
-      
-      timer.restart();
-      int ier_spread = cnufftspread(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cstart,spopts);
-      if (ier_spread>0) return ier_spread;
-      time_spread+=timer.elapsedsec();
-      // if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-      
-      // Step 2:  Call FFT
-      timer.restart();
-      FFTW_EX(p);
-      time_fft+=timer.elapsedsec();
-      // if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
-      
+  // Step 2:  Call FFT
+  timer.restart();
+  FFTW_EX(p);
+  time_fft=timer.elapsedsec();      
+  
+  timer.restart();
+  #pragma omp parallel for
+    for (int i = 0; i < ndata; ++i)
+    {
+      fkstart = fk+i*ms*mt;
+      fwstart = fw+i*nf1*nf2;
       // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
-      timer.restart();
-      deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,fw,opts.modeord);
-      // if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
-      time_deconv+=timer.elapsedsec();
-  }
+      deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,fwstart,opts.modeord);
+    }
+    time_deconv=timer.elapsedsec();
+  
   time_execute = timer_total.elapsedsec();
-  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",0,time_spread);
-  if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, time_fft);
-  if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", time_deconv);
+  if (opts.debug) printf("TOTAL spread/data (ier=%d):\t\t %.10f s\n",0,time_spread/ndata);
+  if (opts.debug) printf("TOTAL fft/data (%d threads):\t\t %.10f s\n", nth, time_fft/ndata);
+  if (opts.debug) printf("TOTAL deconvolve & copy out/data:\t %.10f s\n", time_deconv/ndata);
 
-  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.3g NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
+  printf("%ld NU pts to (%ld,%ld) modes in %f s \t%.10f NU pts/s\n", nj, ms, mt, time_execute/ndata, ndata*nj/time_execute);
 
   FFTW_DE(p);
   fftw_cleanup();
-  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
   if (opts.debug) printf("freed\n");
   return 0;
 }
+#endif
