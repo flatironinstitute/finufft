@@ -424,7 +424,7 @@ static int finufft2d1manyseq(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, 
   if (opts.debug) printf("[manyseq] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manyseq] deconvolve & copy out:\t %.3g s\n", time_deconv);
 
-  printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n", ndata, nj, ms, mt, time_spread+time_fft+time_deconv,
+  if (opts.debug) printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n", ndata, nj, ms, mt, time_spread+time_fft+time_deconv,
                                                                       ndata*nj/(time_spread+time_fft+time_deconv));
 
   FFTW_DE(p);
@@ -494,12 +494,12 @@ static int finufft2d1manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
   omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
 #endif
 
-  for (int j = 0; j*nth < ndata; ++j) // here, assume ndata is multiple of nth
+  for (BIGINT j = 0; j*nth < ndata; ++j) // here, assume ndata is multiple of nth
   {
     timer.restart();
     // Step 1: spread from irregular points to regular grid
-    #pragma omp parallel for private(ier_spread)
-    for (int i = 0; i < nth; ++i)
+    #pragma omp parallel for private(ier_spread,cstart,fwstart)
+    for (BIGINT i = 0; i<min(ndata-j*nth,(BIGINT)nth); ++i)
     {
       cstart  = c + (i+j*nth)*nj;
       fwstart = fw + i*nf1*nf2;
@@ -528,8 +528,8 @@ static int finufft2d1manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
 
     // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
     timer.restart();
-    #pragma omp parallel for
-      for (int i = 0; i < nth; ++i)
+    #pragma omp parallel for private(fkstart, fwstart)
+      for (BIGINT i = 0; i <min(ndata-j*nth, (BIGINT)nth); ++i)
       {
         fkstart = fk + (i+j*nth)*ms*mt;
         fwstart = fw + i*nf1*nf2;
@@ -544,7 +544,7 @@ static int finufft2d1manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
   if (opts.debug) printf("[manysimul] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manysimul] deconvolve & copy out:\t %.3g s\n", time_deconv);
   
-  printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",ndata, nj, ms, mt, time_spread+time_fft+time_deconv, 
+  if (opts.debug) printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",ndata, nj, ms, mt, time_spread+time_fft+time_deconv, 
                                                                       ndata*nj/(time_spread+time_fft+time_deconv));
 
   FFTW_DE(p);
@@ -553,7 +553,7 @@ static int finufft2d1manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
   return 0;
 }
 
-int finufft2d1many(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+int finufft2d1many(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                    FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
@@ -683,7 +683,7 @@ static int finufft2d2manyseq(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, 
   if (opts.debug) printf("[manyseq] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manyseq] unspread (ier=%d):\t\t %.3g s\n", 0,time_spread);
 
-  printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
+  if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
                                                                               ndata*nj/(time_spread+time_fft+time_deconv));
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
@@ -752,13 +752,13 @@ static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
 #if _OPENMP
   omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
 #endif
-
-  for (int j = 0; j*nth < ndata; ++j)
+  printf("nth  = %d\n", nth);
+  for (BIGINT j = 0; j*nth < ndata; ++j)
   {
     // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
     timer.restart();
-    #pragma omp parallel for
-      for (int i = 0; i < nth; ++i)
+    #pragma omp parallel for private(fkstart, fwstart)
+      for (BIGINT i = 0; i <min(ndata-j*nth, (BIGINT)nth); ++i)
       {
         fkstart = fk + (i+j*nth)*ms*mt;
         fwstart = fw + i*nf1*nf2;
@@ -777,8 +777,8 @@ static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
 
     // Step 3: unspread (interpolate) from regular to irregular target pts
     timer.restart();
-    #pragma omp parallel for private(ier_spread)
-    for (int i = 0; i < nth; ++i)
+    #pragma omp parallel for private(ier_spread,cstart,fwstart)
+    for (BIGINT i = 0; i<min(ndata-j*nth,(BIGINT)nth); ++i)
     {
       cstart  = c + (i+j*nth)*nj;
       fwstart = fw + i*nf1*nf2;
@@ -798,14 +798,14 @@ static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
     }
     // if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   }
-  if (opts.debug) printf("[manysimul] deconvolve & copy out:\t %.3g s\n", time_deconv);
-  if (opts.debug) printf("[manysimul] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
-  if (opts.debug) printf("[manysimul] spread (ier=%d):\t\t %.3g s\n", 0,time_spread);
+  if (opts.debug) printf("[manyseq] amplify & copy in:\t %.3g s\n", time_deconv);
+  if (opts.debug) printf("[manyseq] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
+  if (opts.debug) printf("[manyseq] unspread (ier=%d):\t\t %.3g s\n", 0,time_spread);
 
-  printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
+  if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
                                                                               ndata*nj/(time_spread+time_fft+time_deconv));
 
-  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices); 
   if (opts.debug) printf("freed\n");
   return 0;
 }
