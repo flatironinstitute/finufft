@@ -151,7 +151,7 @@ $(EXC): $(EXC).o $(STATICLIB)
 	$(CC) $(CFLAGS) $(EXC).o $(STATICLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
 
 # validation tests... (most link to .o allowing testing pieces separately)
-test: $(STATICLIB) test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
+test: $(STATICLIB) test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
@@ -166,6 +166,8 @@ test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o test/finufft3d_test
 test/dumbinputs: test/dumbinputs.cpp $(STATICLIB) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(STATICLIB) $(LIBSFFT) -o test/dumbinputs
+test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS2) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
 
 # performance tests...
 perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft3d_test
