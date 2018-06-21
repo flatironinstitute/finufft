@@ -661,7 +661,7 @@ static int finufft2d2manyseq(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, 
 
     // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
     timer.restart();
-    deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw,opts.modeord);
+    deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,fw,opts.modeord);
     time_deconv+=timer.elapsedsec();
     // if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
     //cout<<"fw:\n"; for (int j=0;j<nf1*nf2;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
