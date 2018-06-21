@@ -45,6 +45,9 @@ void finufft2d1execute(FFTW_PLAN p);
 void finufft2d1destroy(FFTW_PLAN p);
 #endif
 
-int finufft2d1many(BIGINT nj, BIGINT ndata, FLT* xj, FLT *yj, CPX* c, int iflag,
+int finufft2d1many(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                    FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d2many(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+
 #endif
