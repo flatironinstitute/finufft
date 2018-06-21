@@ -73,7 +73,7 @@ STATICLIB = lib-static/$(LIBNAME).a
 # ======================================================================
 
 # objects to compile: spreader...
-SOBJS = src/cnufftspread.o src/cnufftspread_sep.o src/utils.o
+SOBJS = src/cnufftspread.o src/utils.o
 # for NUFFT library and its testers...
 OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o src/finufft_c.o fortran/finufft_f.o
 # just the dimensions (1,2,3) separately...
@@ -124,7 +124,6 @@ usage:
 
 # included code dependency...
 src/cnufftspread.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
-src/cnufftspread_sep.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
 
 # build the library...
 lib: $(STATICLIB) $(DYNAMICLIB)
