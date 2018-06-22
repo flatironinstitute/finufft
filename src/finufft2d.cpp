@@ -752,7 +752,6 @@ static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
 #if _OPENMP
   omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
 #endif
-  printf("nth  = %d\n", nth);
   for (BIGINT j = 0; j*nth < ndata; ++j)
   {
     // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
