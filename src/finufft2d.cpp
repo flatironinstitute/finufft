@@ -348,8 +348,9 @@ void finufft2d1destroy(FFTW_PLAN p)
 }
 #endif
 
-static int finufft2d1manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
-                             FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
+static int finufft2d1manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, 
+                             int iflag, FLT eps, BIGINT ms, BIGINT mt, CPX* fk, 
+                             nufft_opts opts)
 {
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
@@ -362,7 +363,8 @@ static int finufft2d1manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(BIGINT)ms,(BIGINT)mt,nf1,nf2,(BIGINT)nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",
+                         (BIGINT)ms,(BIGINT)mt,nf1,nf2,(BIGINT)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -403,7 +405,8 @@ static int finufft2d1manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int
 
     // Step 1: spread from irregular points to regular grid
     timer.restart();
-    ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+    ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fw,nj,xj,
+                                         yj,dummy,(FLT*)cstart,spopts,did_sort);
     if (ier_spread>0) return ier_spread;
     time_spread+=timer.elapsedsec();
     // if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
@@ -424,8 +427,9 @@ static int finufft2d1manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int
   if (opts.debug) printf("[manyseq] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manyseq] deconvolve & copy out:\t %.3g s\n", time_deconv);
 
-  if (opts.debug) printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n", ndata, nj, ms, mt, time_spread+time_fft+time_deconv,
-                                                                      ndata*nj/(time_spread+time_fft+time_deconv));
+  if (opts.debug) printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n", 
+                          ndata, nj, ms, mt, time_spread+time_fft+time_deconv,
+                          ndata*nj/(time_spread+time_fft+time_deconv));
 
   FFTW_DE(p);
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
@@ -433,8 +437,9 @@ static int finufft2d1manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int
   return 0;
 }
 
-static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
-                              FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
+static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, 
+                               int iflag, FLT eps, BIGINT ms, BIGINT mt, CPX* fk, 
+                               nufft_opts opts)
 {
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
@@ -447,7 +452,8 @@ static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(BIGINT)ms,(BIGINT)mt,nf1,nf2,(BIGINT)nj); 
+  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",
+                         (BIGINT)ms,(BIGINT)mt,nf1,nf2,(BIGINT)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -465,10 +471,12 @@ static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
 
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
-  const int n[] = {int(nf2), int(nf1)}; // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
+  const int n[] = {int(nf2), int(nf1)}; 
+  // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
 
   timer.restart();
-  FFTW_PLAN p = fftw_plan_many_dft(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1, n[0]*n[1], fftsign, opts.fftw);
+  FFTW_PLAN p = fftw_plan_many_dft(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1, 
+                                   n[0]*n[1], fftsign, opts.fftw);
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   spopts.debug = opts.spread_debug;
@@ -487,11 +495,13 @@ static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
   CPX* fkstart;
   FFTW_CPX *fwstart;
   
-  int ier_spreads[nth] = {0}; // Since we can't do return in openmp, we need to have these and check the error after exit the omp block
+  int ier_spreads[nth] = {0}; // Since we can't do return in openmp, we need to 
+                              // have these and check the error after exit the omp block
   int abort[nth] = {0};
 
 #if _OPENMP
-  omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
+  omp_set_nested(0);// to make sure only single thread are executing cnufftspread 
+                    // for each data
 #endif
 
   for (int j = 0; j*nth < ndata; ++j) // here, assume ndata is multiple of nth
@@ -503,7 +513,8 @@ static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
     {
       cstart  = c + (i+j*nth)*nj;
       fwstart = fw + i*nf1*nf2;
-      ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+      ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,
+                                          nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
       if (ier_spread>0) {
         ier_spreads[i] = ier_spread;
         abort[i] = 1;
@@ -533,7 +544,8 @@ static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
       {
         fkstart = fk + (i+j*nth)*ms*mt;
         fwstart = fw + i*nf1*nf2;
-        deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,fwstart,opts.modeord);
+        deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,
+                            nf2,fwstart,opts.modeord);
       }
     time_deconv+=timer.elapsedsec();
     // if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
@@ -544,8 +556,9 @@ static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
   if (opts.debug) printf("[manysimul] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manysimul] deconvolve & copy out:\t %.3g s\n", time_deconv);
   
-  if (opts.debug) printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",ndata, nj, ms, mt, time_spread+time_fft+time_deconv, 
-                                                                      ndata*nj/(time_spread+time_fft+time_deconv));
+  if (opts.debug) printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
+                          ndata, nj, ms, mt, time_spread+time_fft+time_deconv, 
+                          ndata*nj/(time_spread+time_fft+time_deconv));
 
   FFTW_DE(p);
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
@@ -619,7 +632,9 @@ static int finufft2d2manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj); 
+  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",
+                          (int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,
+                          (int64_t)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -674,7 +689,8 @@ static int finufft2d2manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int
 
     // Step 3: unspread (interpolate) from regular to irregular target pts
     timer.restart();
-    ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+    ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fw,nj,xj,yj,
+                                         dummy,(FLT*)cstart,spopts,did_sort);
     if (ier_spread>0) return ier_spread;
     time_spread+=timer.elapsedsec();
     // if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
@@ -683,8 +699,9 @@ static int finufft2d2manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int
   if (opts.debug) printf("[manyseq] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manyseq] unspread (ier=%d):\t\t %.3g s\n", 0,time_spread);
 
-  if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
-                                                                              ndata*nj/(time_spread+time_fft+time_deconv));
+  if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
+                         ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
+                         ndata*nj/(time_spread+time_fft+time_deconv));
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
   if (opts.debug) printf("freed\n");
@@ -705,7 +722,8 @@ static int finufft2d2manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj); 
+  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",
+                         (int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj); 
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -724,10 +742,12 @@ static int finufft2d2manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
   
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
-  const int n[] = {int(nf2), int(nf1)}; // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
+  const int n[] = {int(nf2), int(nf1)}; 
+  // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
 
   timer.restart();
-  FFTW_PLAN p = fftw_plan_many_dft(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1, n[0]*n[1], fftsign, opts.fftw);
+  FFTW_PLAN p = fftw_plan_many_dft(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1, 
+                                   n[0]*n[1], fftsign, opts.fftw);
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   spopts.debug = opts.spread_debug;
@@ -746,7 +766,8 @@ static int finufft2d2manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
   CPX* fkstart;
   FFTW_CPX *fwstart;
 
-  int ier_spreads[nth] = {0}; // Since we can't do return in openmp, we need to have these and check the error after exit the omp block
+  int ier_spreads[nth] = {0}; // Since we can't do return in openmp, we need to have 
+                              // these and check the error after exit the omp block
   int abort[nth] = {0};
 
 #if _OPENMP
@@ -761,7 +782,8 @@ static int finufft2d2manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
       {
         fkstart = fk + (i+j*nth)*ms*mt;
         fwstart = fw + i*nf1*nf2;
-        deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,fwstart,opts.modeord);
+        deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,
+                            fwstart,opts.modeord);
       }
     // deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw,opts.modeord);
     time_deconv+=timer.elapsedsec();
@@ -781,7 +803,8 @@ static int finufft2d2manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
     {
       cstart  = c + (i+j*nth)*nj;
       fwstart = fw + i*nf1*nf2;
-      ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+      ier_spread = cnufftspreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,nj,
+                                           xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
       if (ier_spread>0) {
         ier_spreads[i] = ier_spread;
         abort[i] = 1;
@@ -801,8 +824,9 @@ static int finufft2d2manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
   if (opts.debug) printf("[manysimul] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manysimul] unspread (ier=%d):\t\t %.3g s\n", 0,time_spread);
 
-  if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
-                                                                              ndata*nj/(time_spread+time_fft+time_deconv));
+  if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
+                         ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
+                         ndata*nj/(time_spread+time_fft+time_deconv));
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices); 
   if (opts.debug) printf("freed\n");
