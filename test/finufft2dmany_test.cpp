@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
     ier = finufft2d1(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
   }
   double t=timer.elapsedsec();
-  printf("\t T_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
+  printf("\tT_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
 
   // Check accuracy
   for (int k = 0; k < ndata; ++k)
@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
     ier = finufft2d2(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
   }
   t = timer.elapsedsec();
-  printf("\t T_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
+  printf("\tT_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
 
   maxerror = 0.0;
   for (int k = 0; k < ndata; ++k)
