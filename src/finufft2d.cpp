@@ -348,7 +348,7 @@ void finufft2d1destroy(FFTW_PLAN p)
 }
 #endif
 
-static int finufft2d1manyseq(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+static int finufft2d1manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                              FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
   spread_opts spopts;
@@ -433,7 +433,7 @@ static int finufft2d1manyseq(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, 
   return 0;
 }
 
-static int finufft2d1manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                               FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
   spread_opts spopts;
@@ -494,12 +494,12 @@ static int finufft2d1manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
   omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
 #endif
 
-  for (BIGINT j = 0; j*nth < ndata; ++j) // here, assume ndata is multiple of nth
+  for (int j = 0; j*nth < ndata; ++j) // here, assume ndata is multiple of nth
   {
     timer.restart();
     // Step 1: spread from irregular points to regular grid
     #pragma omp parallel for private(ier_spread,cstart,fwstart)
-    for (BIGINT i = 0; i<min(ndata-j*nth,(BIGINT)nth); ++i)
+    for (int i = 0; i<min(ndata-j*nth,nth); ++i)
     {
       cstart  = c + (i+j*nth)*nj;
       fwstart = fw + i*nf1*nf2;
@@ -529,7 +529,7 @@ static int finufft2d1manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
     // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
     timer.restart();
     #pragma omp parallel for private(fkstart, fwstart)
-      for (BIGINT i = 0; i <min(ndata-j*nth, (BIGINT)nth); ++i)
+      for (int i = 0; i <min(ndata-j*nth, nth); ++i)
       {
         fkstart = fk + (i+j*nth)*ms*mt;
         fwstart = fw + i*nf1*nf2;
@@ -553,7 +553,7 @@ static int finufft2d1manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
   return 0;
 }
 
-int finufft2d1many(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                    FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
@@ -605,7 +605,7 @@ int finufft2d1many(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   }
 }
 
-static int finufft2d2manyseq(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+static int finufft2d2manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                              FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
   spread_opts spopts;
@@ -691,7 +691,7 @@ static int finufft2d2manyseq(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, 
   return 0;
 }
 
-static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+static int finufft2d2manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                               FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
   spread_opts spopts;
@@ -752,12 +752,12 @@ static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
 #if _OPENMP
   omp_set_nested(0);// to make sure only single thread are executing cnufftspread for each data
 #endif
-  for (BIGINT j = 0; j*nth < ndata; ++j)
+  for (int j = 0; j*nth < ndata; ++j)
   {
     // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
     timer.restart();
     #pragma omp parallel for private(fkstart, fwstart)
-      for (BIGINT i = 0; i <min(ndata-j*nth, (BIGINT)nth); ++i)
+      for (int i = 0; i <min(ndata-j*nth, nth); ++i)
       {
         fkstart = fk + (i+j*nth)*ms*mt;
         fwstart = fw + i*nf1*nf2;
@@ -777,7 +777,7 @@ static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
     // Step 3: unspread (interpolate) from regular to irregular target pts
     timer.restart();
     #pragma omp parallel for private(ier_spread,cstart,fwstart)
-    for (BIGINT i = 0; i<min(ndata-j*nth,(BIGINT)nth); ++i)
+    for (int i = 0; i<min(ndata-j*nth,nth); ++i)
     {
       cstart  = c + (i+j*nth)*nj;
       fwstart = fw + i*nf1*nf2;
@@ -809,7 +809,7 @@ static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
   return 0;
 }
 
-int finufft2d2many(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                    FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 /*  Type-2 2D complex nonuniform FFT.
 
