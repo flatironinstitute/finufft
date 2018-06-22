@@ -798,9 +798,9 @@ static int finufft2d2manysimul(BIGINT ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c
     }
     // if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
   }
-  if (opts.debug) printf("[manyseq] amplify & copy in:\t %.3g s\n", time_deconv);
-  if (opts.debug) printf("[manyseq] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
-  if (opts.debug) printf("[manyseq] unspread (ier=%d):\t\t %.3g s\n", 0,time_spread);
+  if (opts.debug) printf("[manysimul] amplify & copy in:\t %.3g s\n", time_deconv);
+  if (opts.debug) printf("[manysimul] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
+  if (opts.debug) printf("[manysimul] unspread (ier=%d):\t\t %.3g s\n", 0,time_spread);
 
   if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
                                                                               ndata*nj/(time_spread+time_fft+time_deconv));
