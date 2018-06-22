@@ -3,7 +3,8 @@ List of tasks accomplished / changes made / release notes, in reverse chronologi
 * horner optimized kernel for sigma=5/4 (low upsampling), to go along with the
 default sigma=2. Cmdline arg to change sigma in finufft?d_test.
 * simplified various int types: only BIGINT remains.
-* clearer docs.	
+* clearer docs.
+* remaining C interfaces, with opts control.
 
 V 0.99 (4/24/18)
 

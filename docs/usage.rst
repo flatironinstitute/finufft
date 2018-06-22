@@ -527,6 +527,10 @@ Here are the calling commands with fortran types for the default double-precisio
 Design notes and advanced usage
 *******************************
 
+We strongly recommend you use ``upsampfac=1.25`` for type-3; it
+reduces its run-time from around 8 times the types 1 or 2, to 3-4
+times.
+
 When you include the header ``finufft.h`` you have access to the ``BIGINT`` type
 which is used for all potentially-large input integers (M, N, etc), and
 currently typedefed to ``int64_t`` (see ``utils.h``).
@@ -551,5 +555,5 @@ There is a hard-defined limit of ``1e11`` for internal FFT arrays, set in ``comm
 if your machine has RAM of order 1TB, and you need it, set this larger and recompile. The point of this is to catch ridiculous-sized mallocs and exit gracefully.
 Note that mallocs smaller than this, but which still exceed available RAM, cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc.
 
-As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2R).W where R is the upsampling parameter (currently R=2.0). See our forthcoming paper.
+As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside of a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2sigma).W where sigma is the upsampling parameter. See our forthcoming paper.
 

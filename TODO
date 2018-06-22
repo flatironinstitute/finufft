@@ -17,8 +17,6 @@ and fftw_many with one spreader-per-threads for medium size. For cryo appl.
 * Professionalize the single-precision version:
  - fix matlab, octave, and python interfaces for single-prec.
 
-* Professionalize the C interface and examples. Allow opts struct to be seen from C. Add the other C interfaces to finufft_c, after understand if use of _Complex is good. (Check FLT complex instead). Remove _Complex for mac.
-
 * Get huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
 
 * R interface?
@@ -32,9 +30,9 @@ HIGH PRIORITY TODO: (also see above)
 
 * check the slow speed for fancy t1 spreader when doing nothing, eg
 test/spreadtestnd 1 1e8 1e7 1e-6 0 9 1
-Ie, decide to switch out fancy t1 spreader sometimes?
+Ie, decide to switch out fancy t1 spreader sometimes? Yes, make basic spreader.
 * host at FI github.
-* Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64.
+* Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) understand why clang needs _Complex removed.
 * release, outreach, users, NA-Digest
 
 
@@ -42,10 +40,8 @@ LOWER PRIORITY TODO:
 
 * understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
 * Decide if non vs omp get different lib names? not yet
-* figure out why bottom out ~ 1e-10 err for big arrays in 1d. unavoidable roundoff? small arrays get to 1e-14.
 * check possible transpose convention for 2d,3d, found by David S.
 * Intel MKL FFT interface option instead of FFTW?
-* docs: format equation numbers on same line in sphinx+mathjax
 * swap out mallocs for std:vector in finufft?
 * recoup DFM's PyPI publishing of finufftpy, maybe awkward
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
