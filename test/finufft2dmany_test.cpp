@@ -63,16 +63,18 @@ int main(int argc, char* argv[])
   CPX* c = (CPX*)malloc(sizeof(CPX)*M*ndata);   // strengths 
   CPX* F = (CPX*)malloc(sizeof(CPX)*N*ndata);   // mode ampls
 
-  unsigned int se = 1;
-  for (BIGINT j=0; j<M; ++j) {
-    x[j] = M_PI*randm11r(&se);
-    y[j] = M_PI*randm11r(&se);
-  }
-
-  for (BIGINT k = 0; k<ndata; ++k)
+#pragma omp parallel
   {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();
+#pragma for schedule(dynamic,CHUNK)
     for (BIGINT j=0; j<M; ++j) {
-      c[j+k*M] = crandm11r(&se);
+      x[j] = M_PI*randm11r(&se);
+      y[j] = M_PI*randm11r(&se);
+    }
+#pragma for schedule(dynamic,CHUNK)
+    for (BIGINT j = 0; j<ndata*M; ++j)
+    {
+        c[j] = crandm11r(&se);
     }
   }
 
@@ -101,8 +103,12 @@ int main(int argc, char* argv[])
 #endif
   printf("test 2dmany type-2:\n"); // -------------- type 2
 
-  for (BIGINT m=0; m<N*ndata; ++m) 
-    F[m] = crandm11r(&se);
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();
+#pragma omp for schedule(dynamic,CHUNK)
+    for (BIGINT m=0; m<N*ndata; ++m) F[m] = crandm11r(&se);
+  }
   timer.restart();
   ier = finufft2d2many(ndata,M,x,y,c,isign,tol,N1,N2,F,opts);
   ti=timer.elapsedsec();
