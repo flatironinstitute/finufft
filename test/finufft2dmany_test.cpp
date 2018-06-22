@@ -27,12 +27,14 @@ int main(int argc, char* argv[])
 */
 {
   BIGINT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
+  int debug;
   int ndata = 400;
+  
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;    // default
   nufft_opts opts; finufft_default_opts(opts);
   opts.debug = 0;            // 1 to see some timings
-  // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
+  opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); ndata = (int)w; }
   if (argc>2) {
@@ -44,8 +46,9 @@ int main(int argc, char* argv[])
     sscanf(argv[5],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
-  if (argc>6) sscanf(argv[6],"%d",&opts.debug);
-  opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
+  if (argc>6) sscanf(argv[6],"%d",&debug);
+  opts.debug = debug;
+  opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
   if (argc>7) sscanf(argv[7],"%d",&opts.spread_sort);
   if (argc>8) sscanf(argv[8],"%d",&opts.many_seq);
   if (argc>9) sscanf(argv[9],"%lf",&upsampfac);
@@ -92,13 +95,16 @@ int main(int argc, char* argv[])
   CPX* cstart;
   CPX* F_finufft2d1 = (CPX*)malloc(sizeof(CPX)*N*ndata);
   double maxerror = 0.0;
+
+  opts.debug = 0; // don't output timing for calls of finufft2d1
+  opts.spread_debug = 0;
   for (BIGINT k= 0; k<ndata; ++k)
   {
     cstart = c+k*M;
     ier = finufft2d1(M,x,y,cstart,isign,tol,N1,N2,F_finufft2d1,opts);
     maxerror = max(maxerror, relerrtwonorm(N,F_finufft2d1,F+k*N));
   }
-  printf("max_data (  || F - F_finufft2d1 ||_2 / || F_finufft2d1 ||_2  ) =  %f\n",maxerror);
+  printf("max_data (  || F - F_finufft2d1 ||_2 / || F_finufft2d1 ||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 #endif
   printf("test 2dmany type-2:\n"); // -------------- type 2
@@ -109,6 +115,9 @@ int main(int argc, char* argv[])
 #pragma omp for schedule(dynamic,CHUNK)
     for (BIGINT m=0; m<N*ndata; ++m) F[m] = crandm11r(&se);
   }
+
+  opts.debug = debug; // set debug flags back to original setting
+  opts.spread_debug = (debug>1) ? 1 : 0;
   timer.restart();
   ier = finufft2d2many(ndata,M,x,y,c,isign,tol,N1,N2,F,opts);
   ti=timer.elapsedsec();
@@ -118,6 +127,8 @@ int main(int argc, char* argv[])
     printf("\t%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
            ndata,(BIGINT)N1,(BIGINT)N2,(BIGINT)M,ti,ndata*M/ti);
 #if 1
+  opts.debug = 0; // don't output timing for calls of finufft2d1
+  opts.spread_debug = 0;
   // compare the result with finufft2d1
   CPX* Fstart;
   CPX* c_finufft2d2 = (CPX*)malloc(sizeof(CPX)*M);
@@ -128,7 +139,7 @@ int main(int argc, char* argv[])
     ier = finufft2d2(M,x,y,c_finufft2d2,isign,tol,N1,N2,Fstart,opts);
     maxerror = max(maxerror, relerrtwonorm(M,c_finufft2d2,c+k*M));
   }
-  printf("max_data ( || c - c_finufft2d1 ||_2 / || c_finufft2d1 ||_2 ) =  %f\n",maxerror);
+  printf("max_data ( || c - c_finufft2d1 ||_2 / || c_finufft2d1 ||_2 ) =  %.3g\n",maxerror);
   free(c_finufft2d2);
 #endif
   free(x); free(y); free(c); free(F);
