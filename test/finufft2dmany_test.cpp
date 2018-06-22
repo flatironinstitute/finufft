@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   BIGINT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
   int debug;
   int ndata = 400;
-  
+
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;    // default
   nufft_opts opts; finufft_default_opts(opts);
@@ -90,23 +90,34 @@ int main(int argc, char* argv[])
   } else
     printf("\t%d data: \t%ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
 	   ndata,(BIGINT)M,(BIGINT)N1,(BIGINT)N2,ti,ndata*M/ti);
-#if 1
+
   // compare the result with finufft2d1
+  fftw_forget_wisdom(); // for fair comparison
   CPX* cstart;
+  CPX* Fstart;
   CPX* F_finufft2d1 = (CPX*)malloc(sizeof(CPX)*N*ndata);
   double maxerror = 0.0;
-
   opts.debug = 0; // don't output timing for calls of finufft2d1
   opts.spread_debug = 0;
-  for (BIGINT k= 0; k<ndata; ++k)
+  timer.restart();
+  for (int k= 0; k<ndata; ++k)
   {
     cstart = c+k*M;
-    ier = finufft2d1(M,x,y,cstart,isign,tol,N1,N2,F_finufft2d1,opts);
-    maxerror = max(maxerror, relerrtwonorm(N,F_finufft2d1,F+k*N));
+    Fstart = F_finufft2d1+k*N;
+    ier = finufft2d1(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
   }
-  printf("max_data (  || F - F_finufft2d1 ||_2 / || F_finufft2d1 ||_2  ) =  %.3g\n",maxerror);
+  double t=timer.elapsedsec();
+  printf("\t T_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
+
+  // Check accuracy
+  for (int k = 0; k < ndata; ++k)
+  {
+    maxerror = max(maxerror, relerrtwonorm(N,F_finufft2d1+k*N,F+k*N));
+  }
+  printf("\tmax_data (  || F - F_finufft2d1 ||_2 / || F_finufft2d1 ||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
-#endif
+
+  fftw_forget_wisdom();
   printf("test 2dmany type-2:\n"); // -------------- type 2
 
 #pragma omp parallel
@@ -126,22 +137,30 @@ int main(int argc, char* argv[])
   } else
     printf("\t%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
            ndata,(BIGINT)N1,(BIGINT)N2,(BIGINT)M,ti,ndata*M/ti);
-#if 1
+
+  fftw_forget_wisdom();
   opts.debug = 0; // don't output timing for calls of finufft2d1
   opts.spread_debug = 0;
   // compare the result with finufft2d1
-  CPX* Fstart;
-  CPX* c_finufft2d2 = (CPX*)malloc(sizeof(CPX)*M);
-  maxerror = 0.0;
-  for (BIGINT k= 0; k<ndata; ++k)
+  CPX* c_finufft2d2 = (CPX*)malloc(sizeof(CPX)*M*ndata);
+  timer.restart();
+  for (int k= 0; k<ndata; ++k)
   {
+    cstart = c_finufft2d2+k*M;
     Fstart = F+k*N;
-    ier = finufft2d2(M,x,y,c_finufft2d2,isign,tol,N1,N2,Fstart,opts);
-    maxerror = max(maxerror, relerrtwonorm(M,c_finufft2d2,c+k*M));
+    ier = finufft2d2(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
   }
-  printf("max_data ( || c - c_finufft2d1 ||_2 / || c_finufft2d1 ||_2 ) =  %.3g\n",maxerror);
+  t = timer.elapsedsec();
+  printf("\t T_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
+
+  maxerror = 0.0;
+  for (int k = 0; k < ndata; ++k)
+  {
+    maxerror = max(maxerror, relerrtwonorm(M,c_finufft2d2+k*M,c+k*M));
+  }
+  printf("\tmax_data ( || c - c_finufft2d1 ||_2 / || c_finufft2d1 ||_2 ) =  %.3g\n",maxerror);
   free(c_finufft2d2);
-#endif
+
   free(x); free(y); free(c); free(F);
   return ier;
 }
