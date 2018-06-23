@@ -17,4 +17,6 @@ int finufft3d1m(double nj,double* xj,double* yj, double*zj, dcomplex* cj,int ifl
 int finufft3d2m(double nj,double* xj,double* yj,double*zj, dcomplex* cj,int iflag,double eps,double ms, double mt, double mu, dcomplex* fk, double* opts);
 int finufft3d3m(double nj,double* xj,double* yj,double*zj, dcomplex* cj,int iflag,double eps,double nk, double* s, double* t, double* u, dcomplex* f, double* opts);
 
+int finufft2d1manym(double ndata,double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double* opts);
+
 #endif
