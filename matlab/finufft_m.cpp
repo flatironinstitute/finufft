@@ -12,6 +12,7 @@
 
 #include "../src/finufft.h"
 #include <stdio.h>
+#include <iostream>
 #include <math.h>
 #include <mex.h>
 
@@ -121,6 +122,16 @@ int finufft2d1manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,
   nufft_opts opts;
   finufft_mex_setup();
   finufft_mex_opts(opts, mexo);
-  return finufft2d1many((int)(ndata),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  return finufft2d1many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+}
+
+int finufft2d2manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double *mexo)
+{
+  nufft_opts opts;
+  finufft_mex_setup();
+  finufft_mex_opts(opts, mexo);
+  int ier = finufft2d2many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  
+  return ier;
 }
 
