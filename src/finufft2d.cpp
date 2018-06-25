@@ -427,9 +427,8 @@ static int finufft2d1manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   if (opts.debug) printf("[manyseq] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manyseq] deconvolve & copy out:\t %.3g s\n", time_deconv);
 
-  if (opts.debug) printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n", 
-                          ndata, nj, ms, mt, time_spread+time_fft+time_deconv,
-                          ndata*nj/(time_spread+time_fft+time_deconv));
+  if (opts.debug) printf("[manyseq] total execute time (exclude fftw_plan, etc.) %.3g s\n",
+                         time_spread+time_fft+time_deconv);
 
   FFTW_DE(p);
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
@@ -556,9 +555,8 @@ static int finufft2d1manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   if (opts.debug) printf("[manysimul] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manysimul] deconvolve & copy out:\t %.3g s\n", time_deconv);
   
-  if (opts.debug) printf("%d data: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
-                          ndata, nj, ms, mt, time_spread+time_fft+time_deconv, 
-                          ndata*nj/(time_spread+time_fft+time_deconv));
+  if (opts.debug) printf("[manysimul] total execute time (exclude fftw_plan, etc.) %.3g s\n",
+                         time_spread+time_fft+time_deconv);
 
   FFTW_DE(p);
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
@@ -699,9 +697,8 @@ static int finufft2d2manyseq(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int
   if (opts.debug) printf("[manyseq] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manyseq] unspread (ier=%d):\t\t %.3g s\n", 0,time_spread);
 
-  if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
-                         ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
-                         ndata*nj/(time_spread+time_fft+time_deconv));
+  if (opts.debug) printf("[manyseq] total execute time (exclude fftw_plan, etc.) %.3g s\n",
+                         time_spread+time_fft+time_deconv);
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
   if (opts.debug) printf("freed\n");
@@ -824,9 +821,8 @@ static int finufft2d2manysimul(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, i
   if (opts.debug) printf("[manysimul] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[manysimul] unspread (ier=%d):\t\t %.3g s\n", 0,time_spread);
 
-  if (opts.debug) printf("%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
-                         ndata, ms, mt, nj, time_spread+time_fft+time_deconv,
-                         ndata*nj/(time_spread+time_fft+time_deconv));
+  if (opts.debug) printf("[manysimul] total execute time (exclude fftw_plan, etc.) %.3g s\n",
+                         time_spread+time_fft+time_deconv);
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices); 
   if (opts.debug) printf("freed\n");
