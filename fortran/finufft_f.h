@@ -30,6 +30,10 @@ void finufft3d2_f_(int *nj,FLT* xj,FLT *yj,FLT* zj,CPX* cj,
 void finufft3d3_f_(int *nj,FLT* xj,FLT* yj, FLT*zj, CPX* cj,
 		   int *iflag, FLT *eps, int *nk, FLT* s, FLT* t,
 		   FLT* u, CPX* fk, int *ier);
+void finufft2d1many_f_(int *ndata, int *nj,FLT* xj,FLT *yj,CPX* cj,int *iflag,
+		   FLT *eps, int *ms, int *mt, CPX* fk, int *ier);
+void finufft2d2many_f_(int *ndata, int *nj,FLT* xj,FLT *yj,CPX* cj,int *iflag,
+		   FLT *eps, int *ms, int *mt, CPX* fk, int *ier);
 }
 
 #endif
