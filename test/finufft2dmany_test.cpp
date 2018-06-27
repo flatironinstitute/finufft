@@ -109,12 +109,20 @@ int main(int argc, char* argv[])
   double t=timer.elapsedsec();
   printf("\tT_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
 
+  BIGINT d = floor(ndata/2); // choose a data to check
+  BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
+  CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
+  for (BIGINT j=0; j<M; ++j)
+    Ft += c[j+d*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
+  BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
+  printf("one mode: rel err in F[%ld,%ld] of data[%d] is %.3g\n",(BIGINT)nt1,(BIGINT)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
+
   // Check accuracy
   for (int k = 0; k < ndata; ++k)
   {
     maxerror = max(maxerror, relerrtwonorm(N,F_finufft2d1+k*N,F+k*N));
   }
-  printf("\tmax_data (  || F - F_finufft2d1 ||_2 / || F_finufft2d1 ||_2  ) =  %.3g\n",maxerror);
+  printf("max_data (  || F - F_finufft2d1 ||_2 / || F_finufft2d1 ||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 
   fftw_forget_wisdom();
@@ -137,7 +145,7 @@ int main(int argc, char* argv[])
   } else
     printf("\t%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
            ndata,(BIGINT)N1,(BIGINT)N2,(BIGINT)M,ti,ndata*M/ti);
-
+  
   fftw_forget_wisdom();
   opts.debug = 0; // don't output timing for calls of finufft2d1
   opts.spread_debug = 0;
@@ -152,13 +160,22 @@ int main(int argc, char* argv[])
   }
   t = timer.elapsedsec();
   printf("\tT_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
+  
+  d = floor(ndata/2); // choose a data to check
+  BIGINT jt = M/2;    // check arbitrary choice of one targ pt
+  CPX ct = CPX(0,0);
+  BIGINT m=0;
+  for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
+    for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+      ct += F[d*N + m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
+  printf("one targ: rel err in c[%ld] of data[%d] is %.3g\n",(BIGINT)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
 
   maxerror = 0.0;
   for (int k = 0; k < ndata; ++k)
   {
     maxerror = max(maxerror, relerrtwonorm(M,c_finufft2d2+k*M,c+k*M));
   }
-  printf("\tmax_data ( || c - c_finufft2d1 ||_2 / || c_finufft2d1 ||_2 ) =  %.3g\n",maxerror);
+  printf("max_data ( || c - c_finufft2d1 ||_2 / || c_finufft2d1 ||_2 ) =  %.3g\n",maxerror);
   free(c_finufft2d2);
 
   free(x); free(y); free(c); free(F);
