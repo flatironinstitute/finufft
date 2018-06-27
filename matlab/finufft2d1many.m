@@ -1,20 +1,20 @@
-function [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,o)
-% FINUFFT2D1
+function [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,o)
+% FINUFFT2D1MANY
 %
-% [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt)
-% [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,opts)
+% [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt)
+% [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,opts)
 %
-% Type-1 2D complex nonuniform FFT.
+% Type-1 2D complex nonuniform FFT
 %
-%                   nj
-%     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
-%                  j=1
+%                     nj
+%     f[k1,k2,d] =   SUM  c[j,d] exp(+-i (k1 x[j] + k2 y[j]))
+%                    j=1
 % 
-%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
+%     for -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, d = 1, ..., ndata
 %
 %   Inputs:
 %     x,y   locations of NU sources on the square [-3pi,3pi]^2, each length nj
-%     c     size-nj complex array of source strengths
+%     c     size-(nj,ndata) complex array of source strengths
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps     precision requested (>1e-16)
 %     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
@@ -26,21 +26,27 @@ function [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+%     opts.many_seq: 0 (simultaneously do finufft on all data, default), 1 (seq)
 %   Outputs:
-%     f     size (ms*mt) double complex array of Fourier transform values
+%     f     size (ms,mt,ndata) double complex array of Fourier transform values
 %           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
 %     ier - 0 if success, else:
-%                     1 : eps too small
+%             1 : eps too small
 %		      2 : size of arrays to malloc exceed MAX_NF
 %                     other codes: as returned by cnufftspread
 
 if nargin<8, o=[]; end
 opts = finufft_opts(o);
 nj=numel(x);
-if numel(y)~=nj, error('y must have the same number of elements as x'); end
-if numel(c)~=nj, error('c must have the same number of elements as x'); end
+ndata=numel(c)/numel(x);
+mtot=ms*mt*ndata;
 
-mex_id_ = 'o int = finufft2d1m(i double, i double[], i double[], i dcomplex[], i int, i double, i double, i double, o dcomplex[xx], i double[])';
-[ier, f] = finufft(mex_id_, nj, x, y, c, isign, eps, ms, mt, opts, ms, mt);
+if numel(y)~=nj, error('y must have the same number of elements as x'); end
+if numel(c)~=nj*ndata, error('c must have the same number of elements as x times ndata'); end
+
+mex_id_ = 'o int = finufft2d1manym(i double, i double, i double[], i double[], i dcomplex[], i int, i double, i double, i double, o dcomplex[x], i double[])';
+[ier, f] = finufft(mex_id_, ndata, nj, x, y, c, isign, eps, ms, mt, opts, mtot);
+
+f = reshape(f,[ms mt ndata]);              % make a 3D array
 
 % ---------------------------------------------------------------------------

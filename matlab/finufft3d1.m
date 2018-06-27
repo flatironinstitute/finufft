@@ -14,7 +14,7 @@ function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 %         -mu/2 <= k3 <= (mu-1)/2.
 %
 %   Inputs:
-%     x,y,z locations of NU sources on [-pi,pi]^3, each length nj
+%     x,y,z locations of NU sources on [-3pi,3pi]^3, each length nj
 %     c     size-nj complex array of source strengths
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps     precision requested (>1e-16)
@@ -23,10 +23,11 @@ function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 %           In either case the mode range is integers lying in [-m/2, (m-1)/2]
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points lie in [-pi,pi], default), 1 (do).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %   Outputs:
 %     f     size (ms*mt*mu) double complex array of Fourier transform values
 %            (ordering given by opts.modeord in each dimension, ms fastest, mu

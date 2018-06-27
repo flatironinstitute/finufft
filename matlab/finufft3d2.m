@@ -13,7 +13,7 @@ function [c ier] = finufft3d2(x,y,z,isign,eps,f,o)
 %                       -mu/2 <= k3 <= (mu-1)/2.
 %
 %  Inputs:
-%     x,y,z location of NU targets on cube [-pi,pi]^3, each length nj
+%     x,y,z location of NU targets on cube [-3pi,3pi]^3, each length nj
 %     f     size (ms,mt,mu) complex Fourier transform value matrix
 %           (ordering given by opts.modeord in each dimension; ms fastest to mu
 %            slowest).
@@ -21,10 +21,11 @@ function [c ier] = finufft3d2(x,y,z,isign,eps,f,o)
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points lie in [-pi,pi], default), 1 (do).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
