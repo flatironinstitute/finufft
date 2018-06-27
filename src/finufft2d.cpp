@@ -608,6 +608,10 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
    Written with FFTW style complex arrays. Barnett 2/1/17
  */
 {
+  if (ndata<1) {        // factor is since fortran wants 1e-16 to be ok
+    fprintf(stderr,"finufft2d1many: error, ndata should be at least 1 (ndata=%d)\n",ndata);
+    return ERR_NDATA_NOTVALID;
+  }
   if (opts.many_seq){
     return finufft2d1manyseq(ndata,nj,xj,yj,c,iflag,eps,ms,mt,fk,opts);
   } 
@@ -863,6 +867,11 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
    Written with FFTW style complex arrays. Barnett 2/1/17
  */
 {
+  if (ndata<1) {        // factor is since fortran wants 1e-16 to be ok
+    fprintf(stderr,"finufft2d2many: error, ndata should be at least 1 (ndata=%d)\n",ndata);
+    return ERR_NDATA_NOTVALID;
+  }
+
   if (opts.many_seq){
     return finufft2d2manyseq(ndata,nj,xj,yj,c,iflag,eps,ms,mt,fk,opts);
   } else {
