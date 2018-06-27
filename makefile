@@ -197,6 +197,7 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 	time -p $(F1)
 	time -p $(F2)
 	time -p $(F3)
+	time -p $(F4)
 
 # matlab .mex* executable...
 matlab: $(STATICLIB) $(HEADERS) matlab/finufft_m.cpp

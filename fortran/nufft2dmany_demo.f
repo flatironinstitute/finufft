@@ -58,7 +58,7 @@ c     start tests
 c     -----------------------
 c
       iflag = 1
-      print*,'Starting 2D testing: ', ' nj =',nj, ' ms,mt =',ms,mt
+      print*,'Starting 2Dmany testing: ', ' nj =',nj, ' ms,mt =',ms,mt
       do i = 1,4
          if (i.eq.1) eps=1d-4
          if (i.eq.2) eps=1d-8
