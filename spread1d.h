@@ -13,10 +13,10 @@ void BinsStartPts(int M, int numbins, unsigned int* bin_size, unsigned int* bin_
 __global__
 void PtsRearrage(int M, int nf1, int bin_size_x, int numbins, unsigned int* bin_startpts, unsigned int* sortidx,
                  double* x, double* x_sorted,
-                 cuDoubleComplex* c, cuDoubleComplex* c_sorted);
+                 double* c, double* c_sorted);
 
 __global__
 void Spread(unsigned int numbinperblock, unsigned int* bin_startpts, double* x_sorted,
-            cuDoubleComplex* c_sorted, cuDoubleComplex* fw, int ns, int nf1, double es_c,
+            double* c_sorted, double* fw, int ns, int nf1, double es_c,
             double es_beta);
 #endif

@@ -1,6 +1,5 @@
 #include <iostream>
 #include <math.h>
-#include <cuComplex.h>
 #include <helper_cuda.h>
 
 using namespace std;
@@ -64,7 +63,7 @@ void BinsStartPts(int M, int numbins, unsigned int* bin_size, unsigned int* bin_
 __global__
 void PtsRearrage(int M, int nf1, int bin_size_x, int numbins, unsigned int* bin_startpts, unsigned int* sortidx, 
                  double* x, double* x_sorted, 
-                 cuDoubleComplex* c, cuDoubleComplex* c_sorted)
+                 double* c, double* c_sorted)
 {
   int i = blockDim.x*blockIdx.x + threadIdx.x;
   unsigned int binidx;
@@ -87,11 +86,11 @@ void PtsRearrage(int M, int nf1, int bin_size_x, int numbins, unsigned int* bin_
 
 __global__
 void Spread(unsigned int numbinperblock, unsigned int* bin_startpts, double* x_sorted, 
-            cuDoubleComplex* c_sorted, cuDoubleComplex* fw, int ns, int nf1, double es_c,
+            double* c_sorted, double* fw, int ns, int nf1, double es_c,
             double es_beta)
 {
   __shared__ double xshared[max_shared_mem/4];
-  __shared__ cuDoubleComplex cshared[max_shared_mem/4];
+  __shared__ double cshared[2*max_shared_mem/4];
 
   int i = blockDim.x*blockIdx.x + threadIdx.x;// output index, coord of the index
   int binxLo = blockIdx.x*numbinperblock;
@@ -110,7 +109,8 @@ void Spread(unsigned int numbinperblock, unsigned int* bin_startpts, double* x_s
       for(j=0; j<end-start; j++){
         double dis = abs(xshared[j]-i);
         if( dis < ns/2.0){
-           fw[i]  = cuCadd (fw[i], make_cuDoubleComplex(1.0, 1.0));
+           fw[2*i]++;
+           fw[2*i+1]++;
            //double kervalue = evaluate_kernel(dis, es_c, es_beta);
            //fw[i]  = cuCadd (fw[i], make_cuDoubleComplex(cuCreal(cshared[j])*kervalue, cuCimag(cshared[j])*kervalue));
         }
