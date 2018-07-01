@@ -2,7 +2,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include "spread1d.h"
+#include "spread.h"
 
 using namespace std;
 
@@ -14,7 +14,7 @@ using namespace std;
 #define max_shared_mem 6000
 #define crandm11() (randm11() + IMA*randm11())
 
-int cnufftspread_gpu(int nf1, double* h_fw, int M, double *h_kx, double *h_c, int bin_size_x)
+int cnufftspread1d_gpu(int nf1, double* h_fw, int M, double *h_kx, double *h_c, int bin_size_x)
 {
   // Parameter setting
   int numbins;
@@ -52,7 +52,6 @@ int cnufftspread_gpu(int nf1, double* h_fw, int M, double *h_kx, double *h_c, in
   h_binsize     = (unsigned int*)malloc(numbins*sizeof(unsigned int));
   h_binstartpts = (unsigned int*)malloc((numbins+3)*sizeof(unsigned int));
   h_sortidx     = (unsigned int*)malloc(M*sizeof(unsigned int));
-  h_kxsorted    = (double*)malloc(M*sizeof(double));
   
   
   // initialize binsize array
@@ -72,8 +71,11 @@ int cnufftspread_gpu(int nf1, double* h_fw, int M, double *h_kx, double *h_c, in
   firstbinsize = h_binsize[0];
   lastbinsize  = h_binsize[numbins-1];
 
+  cout << firstbinsize << endl;
+  cout << lastbinsize << endl;
   checkCudaErrors(cudaMalloc(&d_kxsorted,   (M+firstbinsize+lastbinsize)*sizeof(double)));
   checkCudaErrors(cudaMalloc(&d_csorted, 2*(M+firstbinsize+lastbinsize)*sizeof(double)));
+  h_kxsorted    = (double*)malloc((M+firstbinsize+lastbinsize)*sizeof(double));
   PtsRearrage<<<numblocks, blockSize>>>(M, nf1, bin_size_x, numbins, d_binstartpts, d_sortidx, d_kx, d_kxsorted, d_c, d_csorted);
   
   blockSize = 64;
@@ -82,7 +84,7 @@ int cnufftspread_gpu(int nf1, double* h_fw, int M, double *h_kx, double *h_c, in
   Spread<<<numblocks, blockSize>>>(numbinperblock, d_binstartpts, d_kxsorted,
                                    d_csorted, d_fw, ns, nf1, es_c, es_beta);
    
-  checkCudaErrors(cudaMemcpy(h_kxsorted, d_kxsorted, M*sizeof(double), cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(h_kxsorted, d_kxsorted, (M+firstbinsize+lastbinsize)*sizeof(double), cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMemcpy(h_fw, d_fw, 2*nf1*sizeof(double), cudaMemcpyDeviceToHost));
   cudaDeviceSynchronize();
 
@@ -100,7 +102,7 @@ int cnufftspread_gpu(int nf1, double* h_fw, int M, double *h_kx, double *h_c, in
       bin++;
     }
     if ( h_binstartpts[bin] == h_binstartpts[bin-1]) bin++;
-    cout <<"xsorted = "<<h_kxsorted[i] <<endl;
+    cout <<"xsorted["<<i<<"] = "<<h_kxsorted[i] <<endl;
   }
 #endif
 
@@ -138,7 +140,7 @@ int main()
     x[i] = M_PI*randm11();// x in [-pi,pi)
     c[i] = crandm11();
   }
-  int ier = cnufftspread_gpu(nf1, (double*) fw, M, x, (double*) c, bin_size_x);
+  int ier = cnufftspread1d_gpu(nf1, (double*) fw, M, x, (double*) c, bin_size_x);
   for (int i=0; i<nf1; i++){
     if( i % bin_size_x == 0)
       cout<< "---------------------------------------" <<endl;
