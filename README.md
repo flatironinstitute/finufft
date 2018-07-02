@@ -10,7 +10,6 @@ This is an implementation of nufft spreader on GPU.
   ./spread1d
 ``` 
 
-### Log
 #### 2018/06/29
  - Finish 1D dir=1
 #### 2018/07/02 
