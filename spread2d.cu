@@ -11,7 +11,7 @@ using namespace std;
              (x<0 ? x+N : (x>N ? x-N : x)))
 #define max_shared_mem 6000
 
-#if 0
+#if 1
 __device__
 double evaluate_kernel(double x, double es_c, double es_beta)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
@@ -103,7 +103,8 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
     //binidx = floor(x_rescaled/bin_size_x);
     x_sorted[bin_startpts[binidx]+sortidx[i]] = x_rescaled;
     y_sorted[bin_startpts[binidx]+sortidx[i]] = y_rescaled;
-    c_sorted[bin_startpts[binidx]+sortidx[i]] = c[i];
+    c_sorted[2*(bin_startpts[binidx]+sortidx[i])]   = c[2*i];
+    c_sorted[2*(bin_startpts[binidx]+sortidx[i])+1] = c[2*i+1];
     
     // four edges
     if( binx == 1 ){
@@ -147,7 +148,8 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled - nf1;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled - nf2;
     }
-    c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
+    c_sorted[ 2*(bin_startpts[binidx]+sortidx[i]) ] = c[2*i];
+    c_sorted[ 2*(bin_startpts[binidx]+sortidx[i])+1 ] = c[2*i+1];
   }
 }
 #if 1
@@ -179,17 +181,19 @@ void Spread_2d(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bi
         if( tid < end-start){
           xshared[tid] = x_sorted[start+tid];
           yshared[tid] = y_sorted[start+tid];
-          cshared[tid] = c_sorted[start+tid];
+          cshared[2*tid]   = c_sorted[2*(start+tid)];
+          cshared[2*tid+1] = c_sorted[2*(start+tid)+1];
         }
         __syncthreads();
         for(j=0; j<end-start; j++){
           double disx = abs(xshared[j]-ix);
           double disy = abs(yshared[j]-iy);
           if( disx < ns/2.0 && disy < ns/2.0){
-             fw[2*outidx] ++;
-             fw[2*outidx+1] ++;
-             //double kervalue = evaluate_kernel(dis, es_c, es_beta);
-             //fw[i]  = cuCadd (fw[i], make_cuDoubleComplex(cuCreal(cshared[j])*kervalue, cuCimag(cshared[j])*kervalue));
+             //fw[2*outidx] ++;
+             //fw[2*outidx+1] ++;
+             double kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
+             fw[2*outidx]   += cshared[2*j]*kervalue;
+             fw[2*outidx+1] += cshared[2*j+1]*kervalue;
           }
         }
       }

@@ -8,9 +8,10 @@
 
 using namespace std;
 
-#define INFO
+//#define INFO
 //#define DEBUG
 //#define RESULT
+#define TIME
 
 #define rand01() ((double)rand()/RAND_MAX)
 // unif[-1,1]:
@@ -26,6 +27,7 @@ using namespace std;
 int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx, 
                        double *h_ky, double *h_c, int bin_size_x, int bin_size_y)
 {
+  CNTime timer;
   // Parameter setting
   int numbins[2];
   int totalnupts;
@@ -54,9 +56,8 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   double *d_c, *d_csorted, *d_fw;
   double *d_kx,*d_ky,*d_kxsorted,*d_kysorted;
   int *h_binsize, *h_binstartpts, *h_sortidx; // For debug
-  double *h_kxsorted, *h_kysorted;
 
-  // Allocate Unified Memory – accessible from CPU or GPU
+  timer.restart();
   checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(double)));
   checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(double)));
   checkCudaErrors(cudaMalloc(&d_c,2*M*sizeof(double)));
@@ -64,19 +65,29 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
+#ifdef TIME
+  cout<<"[time  ]"<< " Allocating the GPU memory " << timer.elapsedsec() <<" s"<<endl;
+#endif
   
+  timer.restart();  
   checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(double),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(double),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_c,h_c,2*M*sizeof(double),cudaMemcpyHostToDevice));
+#ifdef TIME
+  cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
+#endif
   
   h_binsize     = (int*)malloc(numbins[0]*numbins[1]*sizeof(int));
   h_sortidx     = (int*)malloc(M*sizeof(int));
   h_binstartpts = (int*)malloc((numbins[0]*numbins[1]+1)*sizeof(int));
   checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
-
+  timer.restart();
   CalcBinSize_2d<<<64, (M+64-1)/64>>>(M,nf1,nf2,bin_size_x,bin_size_y,
                                       numbins[0],numbins[1],d_binsize,
                                       d_kx,d_ky,d_sortidx);
+#ifdef TIME
+  cout<<"[time  ]"<< " Kernel CalcBinSize_2d  takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
 #ifdef DEBUG
   checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int), 
                              cudaMemcpyDeviceToHost));
@@ -93,13 +104,16 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   }
   cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
-
+  timer.restart();
   threadsPerBlock.x = 16;
   threadsPerBlock.y = 16;
   blocks.x = (numbins[0]+threadsPerBlock.x-1)/threadsPerBlock.x;
   blocks.y = (numbins[1]+threadsPerBlock.y-1)/threadsPerBlock.y;  
   FillGhostBin_2d<<<blocks, threadsPerBlock>>>(bin_size_x, bin_size_y, numbins[0], 
                                                numbins[1], d_binsize);
+#ifdef TIME
+  cout<<"[time  ]"<< " Kernel FillGhostBin_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
 #ifdef DEBUG
   checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int), 
                              cudaMemcpyDeviceToHost));
@@ -114,7 +128,8 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   }
   cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
-#if 1 
+
+  timer.restart();
   if(numbins[0]*numbins[1] < 1024){ // 1024 is the maximum #threads per block 
     BinsStartPts_2d<<<1, numbins[0]*numbins[1]>>>(M,numbins[0]*numbins[1],
                                                   d_binsize,d_binstartpts);
@@ -122,10 +137,13 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
     cout<<"number of bins can't fit in one block"<<endl;
     return 1;
   }
+#ifdef TIME
+  cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
+
+#ifdef DEBUG
   checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int), 
                              cudaMemcpyDeviceToHost));
-#ifdef DEBUG
   cout<<"[debug ] Result of scan bin_size array:"<<endl;
   for(int j=0; j<numbins[1]; j++){
     cout<<"[debug ] ";
@@ -140,28 +158,45 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
 
-  totalnupts = h_binstartpts[numbins[0]*numbins[1]];
+  timer.restart();
+  checkCudaErrors(cudaMemcpy(&totalnupts,d_binstartpts+numbins[0]*numbins[1],sizeof(int), 
+                             cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMalloc(&d_kxsorted,totalnupts*sizeof(double)));
   checkCudaErrors(cudaMalloc(&d_kysorted,totalnupts*sizeof(double)));
-  checkCudaErrors(cudaMalloc(&d_csorted, totalnupts*sizeof(double)));
-  h_kxsorted = (double*)malloc(totalnupts*sizeof(double));
-  h_kysorted = (double*)malloc(totalnupts*sizeof(double));
+  checkCudaErrors(cudaMalloc(&d_csorted, 2*totalnupts*sizeof(double)));
+#ifdef TIME
+  cout<<"[time  ]"<< " Allocating the GPU memory (need info of totolnupts) " << timer.elapsedsec() <<" s"<<endl;
+#endif
   
+  timer.restart();
   PtsRearrage_2d<<<64, (M+64-1)/64>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0], 
                                       numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted, 
                                       d_ky, d_kysorted, d_c, d_csorted);
+#ifdef TIME
+  cout<<"[time  ]"<< " Kernel PtsRearrange_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
 #ifdef DEBUG 
+  double *h_kxsorted, *h_kysorted, *h_csorted;
+  h_kxsorted = (double*)malloc(totalnupts*sizeof(double));
+  h_kysorted = (double*)malloc(totalnupts*sizeof(double));
+  h_csorted  = (double*)malloc(2*totalnupts*sizeof(double));
   checkCudaErrors(cudaMemcpy(h_kxsorted,d_kxsorted,totalnupts*sizeof(double),
                              cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMemcpy(h_kysorted,d_kysorted,totalnupts*sizeof(double),
                              cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(h_csorted,d_csorted,2*totalnupts*sizeof(double),
+                             cudaMemcpyDeviceToHost));
   for (int i=0; i<totalnupts; i++){
     cout <<"[debug ] (x,y) = ("<<setw(10)<<h_kxsorted[i]<<","
-         <<setw(10)<<h_kysorted[i]<<"), bin# = "
+         <<setw(10)<<h_kysorted[i]<<", bin# =  "
          <<(floor(h_kxsorted[i]/bin_size_x)+1)+numbins[0]*(floor(h_kysorted[i]/bin_size_y)+1)<<endl;
   }
+  free(h_kysorted);
+  free(h_kxsorted);
+  free(h_csorted);
 #endif
   
+  timer.restart();
   threadsPerBlock.x = 32;
   threadsPerBlock.y = 32;
   blocks.x = (nf1 + threadsPerBlock.x - 1)/threadsPerBlock.x;
@@ -177,10 +212,15 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   Spread_2d<<<blocks, threadsPerBlock>>>(nbin_block_x, nbin_block_y, numbins[0], numbins[1], 
                                          d_binstartpts, d_kxsorted, d_kysorted, d_csorted, 
                                          d_fw, ns, nf1, nf2, es_c, es_beta);
-
+#ifdef TIME
+  cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
+  timer.restart();
   checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(double),
                              cudaMemcpyDeviceToHost));
-  cudaDeviceSynchronize();
+#ifdef TIME
+  cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
+#endif
   
 // Free memory
   cudaFree(d_binsize);
@@ -196,7 +236,6 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   free(h_binsize); 
   free(h_binstartpts);
   free(h_sortidx);
-  free(h_kxsorted);
   return 0;
 }
 
@@ -231,7 +270,9 @@ int main(int argc, char* argv[])
   int ier = cnufftspread2d_gpu(nf1, nf2, (double*) fw, M, x, y,
                                (double*) c, bin_size_x, bin_size_y);
   double ti=timer.elapsedsec();
+#ifdef TIME
   printf("[info  ] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",M,N1,N2,ti,M/ti);
+#endif
 #ifdef RESULT
   cout<<"[result]"<<endl;
   for(int j=0; j<nf2; j++){
