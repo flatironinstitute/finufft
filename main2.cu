@@ -4,12 +4,13 @@
 #include <helper_cuda.h>
 #include <complex>
 #include "spread.h"
+#include "utils.h"
 
 using namespace std;
 
 #define INFO
-#define DEBUG
-#define RESULT
+//#define DEBUG
+//#define RESULT
 
 #define rand01() ((double)rand()/RAND_MAX)
 // unif[-1,1]:
@@ -161,8 +162,8 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   }
 #endif
   
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 16;
+  threadsPerBlock.x = 32;
+  threadsPerBlock.y = 32;
   blocks.x = (nf1 + threadsPerBlock.x - 1)/threadsPerBlock.x;
   blocks.y = (nf2 + threadsPerBlock.y - 1)/threadsPerBlock.y;
   nbin_block_x = threadsPerBlock.x/bin_size_x<(numbins[0]-2) ? threadsPerBlock.x/bin_size_x : (numbins[0]-2); 
@@ -199,14 +200,14 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   return 0;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
   cout<<setprecision(3)<<endl;
-  int N1 = 16, N2 = 16;
-  int M = 1;
+  int N1 = 256, N2 = 256;
+  int M = N1*N2;
   double sigma = 2.0;
-  int bin_size_x = 4;
-  int bin_size_y = 4;
+  int bin_size_x = 32;
+  int bin_size_y = 32;
   int nf1 = (int) sigma*N1;
   int nf2 = (int) sigma*N2;
   
@@ -226,8 +227,11 @@ int main()
   cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
   cout<<"[info  ] Dividing the uniform grids to bin size["<<bin_size_x<<"x"<<bin_size_y<<"]"<<endl;
 #endif
+  CNTime timer; timer.start();
   int ier = cnufftspread2d_gpu(nf1, nf2, (double*) fw, M, x, y,
                                (double*) c, bin_size_x, bin_size_y);
+  double ti=timer.elapsedsec();
+  printf("[info  ] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",M,N1,N2,ti,M/ti);
 #ifdef RESULT
   cout<<"[result]"<<endl;
   for(int j=0; j<nf2; j++){
