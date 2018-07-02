@@ -66,7 +66,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
 #ifdef TIME
-  cout<<"[time  ]"<< " Allocating the GPU memory " << timer.elapsedsec() <<" s"<<endl;
+  cout<<"[time  ]"<< " --- Allocating the GPU memory " << timer.elapsedsec() <<" s"<<endl;
 #endif
   
   timer.restart();  
@@ -74,7 +74,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(double),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_c,h_c,2*M*sizeof(double),cudaMemcpyHostToDevice));
 #ifdef TIME
-  cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
+  cout<<"[time  ]"<< " --- Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
 #endif
   
   h_binsize     = (int*)malloc(numbins[0]*numbins[1]*sizeof(int));
@@ -165,7 +165,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   checkCudaErrors(cudaMalloc(&d_kysorted,totalnupts*sizeof(double)));
   checkCudaErrors(cudaMalloc(&d_csorted, 2*totalnupts*sizeof(double)));
 #ifdef TIME
-  cout<<"[time  ]"<< " Allocating the GPU memory (need info of totolnupts) " << timer.elapsedsec() <<" s"<<endl;
+  cout<<"[time  ]"<< " --- Allocating the GPU memory (need info of totolnupts) " << timer.elapsedsec() <<" s"<<endl;
 #endif
   
   timer.restart();
@@ -219,7 +219,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(double),
                              cudaMemcpyDeviceToHost));
 #ifdef TIME
-  cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
+  cout<<"[time  ]"<< " --- Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
 #endif
   
 // Free memory

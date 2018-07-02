@@ -11,7 +11,6 @@ using namespace std;
              (x<0 ? x+N : (x>N ? x-N : x)))
 #define max_shared_mem 6000
 
-#if 1
 __device__
 double evaluate_kernel(double x, double es_c, double es_beta)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
@@ -22,7 +21,6 @@ double evaluate_kernel(double x, double es_c, double es_beta)
 {
     return exp(es_beta * (sqrt(1.0 - es_c*x*x) - 1));
 }
-#endif
 
 __global__
 void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
