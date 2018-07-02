@@ -48,7 +48,7 @@ void FillGhostBin_2d(int bin_size_x, int bin_size_y, int nbinx, int nbiny, int*b
 {
   int ix = blockDim.x*blockIdx.x + threadIdx.x;
   int iy = blockDim.y*blockIdx.y + threadIdx.y;
-  if ( ix < nbinx & iy < nbiny){
+  if ( ix < nbinx && iy < nbiny){
     if( iy == 0 )
       bin_size[ix+iy*nbiny] = bin_size[ix+(nbiny-2)*nbiny];
     if(iy == nbiny-1)
@@ -65,21 +65,23 @@ void FillGhostBin_2d(int bin_size_x, int bin_size_y, int nbinx, int nbiny, int*b
 __global__
 void BinsStartPts_2d(int M, int totalnumbins, int* bin_size, int* bin_startpts)
 {
-  extern __shared__ unsigned int temp[];
+  __shared__ int temp[max_shared_mem];
   int i = threadIdx.x;
   //temp[i] = (i > 0) ? bin_size[i-1] : 0;
-  temp[i] = bin_size[i];
-  __syncthreads();
-  for(int offset = 1; offset < totalnumbins; offset*=2){
-    if( i >= offset)
-      temp[i] += temp[i - offset];
-    else
-      temp[i] = temp[i];
+  if ( i < totalnumbins){
+    temp[i] = (i<totalnumbins) ? bin_size[i]:0;
     __syncthreads();
+    for(int offset = 1; offset < totalnumbins; offset*=2){
+      if( i >= offset)
+        temp[i] += temp[i - offset];
+      else
+        temp[i] = temp[i];
+      __syncthreads();
+    }
+    bin_startpts[i+1] = temp[i];
+    if(i == 0)
+      bin_startpts[i] = 0;
   }
-  bin_startpts[i+1] = temp[i];
-  if(i == 0)
-    bin_startpts[i] = 0;
 }
 
 __global__
@@ -161,6 +163,7 @@ void Spread_2d(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bi
   int ix = blockDim.x*blockIdx.x+threadIdx.x;// output index, coord of the index
   int iy = blockDim.y*blockIdx.y+threadIdx.y;// output index, coord of the index
   int outidx = ix + iy*nf1;
+  int tid = threadIdx.x + blockDim.x*threadIdx.y;
   int binxLo = blockIdx.x*nbin_block_x;
   int binxHi = binxLo+nbin_block_x+1;
   int binyLo = blockIdx.y*nbin_block_y;
@@ -173,10 +176,10 @@ void Spread_2d(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bi
         bin = bx+by*nbinx;
         start = bin_startpts[bin];
         end   = bin_startpts[bin+1];
-        if( outidx < end-start){
-          xshared[outidx] = x_sorted[start+outidx];
-          yshared[outidx] = y_sorted[start+outidx];
-          cshared[outidx] = c_sorted[start+outidx];
+        if( tid < end-start){
+          xshared[tid] = x_sorted[start+tid];
+          yshared[tid] = y_sorted[start+tid];
+          cshared[tid] = c_sorted[start+tid];
         }
         __syncthreads();
         for(j=0; j<end-start; j++){
