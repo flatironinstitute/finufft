@@ -35,4 +35,8 @@ __global__
 void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
                     int* bin_startpts, int* sortidx, double *x, double *x_sorted,
                     double *y, double *y_sorted, double *c, double *c_sorted);
+__global__
+void Spread_2d(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
+               double *x_sorted, double *y_sorted, double *c_sorted, double *fw, int ns,
+               int nf1, int nf2, double es_c, double es_beta);
 #endif
