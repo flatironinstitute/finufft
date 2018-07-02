@@ -66,7 +66,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
 #ifdef TIME
-  cout<<"[time  ]"<< " --- Allocating the GPU memory " << timer.elapsedsec() <<" s"<<endl;
+  cout<<"[time  ]"<< " --- Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
 #endif
   
   timer.restart();  
@@ -86,6 +86,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
                                       numbins[0],numbins[1],d_binsize,
                                       d_kx,d_ky,d_sortidx);
 #ifdef TIME
+  cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel CalcBinSize_2d  takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -112,6 +113,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   FillGhostBin_2d<<<blocks, threadsPerBlock>>>(bin_size_x, bin_size_y, numbins[0], 
                                                numbins[1], d_binsize);
 #ifdef TIME
+  cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel FillGhostBin_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -138,6 +140,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
     return 1;
   }
 #ifdef TIME
+  cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 
@@ -165,7 +168,8 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
   checkCudaErrors(cudaMalloc(&d_kysorted,totalnupts*sizeof(double)));
   checkCudaErrors(cudaMalloc(&d_csorted, 2*totalnupts*sizeof(double)));
 #ifdef TIME
-  cout<<"[time  ]"<< " --- Allocating the GPU memory (need info of totolnupts) " << timer.elapsedsec() <<" s"<<endl;
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " --- Allocating GPU memory (need info of totolnupts) " << timer.elapsedsec() <<" s"<<endl;
 #endif
   
   timer.restart();
@@ -173,6 +177,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
                                       numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted, 
                                       d_ky, d_kysorted, d_c, d_csorted);
 #ifdef TIME
+  cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel PtsRearrange_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG 
@@ -213,12 +218,14 @@ int cnufftspread2d_gpu(int nf1, int nf2, double* h_fw, int M, double *h_kx,
                                          d_binstartpts, d_kxsorted, d_kysorted, d_csorted, 
                                          d_fw, ns, nf1, nf2, es_c, es_beta);
 #ifdef TIME
+  cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
   timer.restart();
   checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(double),
                              cudaMemcpyDeviceToHost));
 #ifdef TIME
+  cudaDeviceSynchronize();
   cout<<"[time  ]"<< " --- Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
 #endif
   
