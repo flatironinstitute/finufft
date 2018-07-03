@@ -92,9 +92,9 @@ but asking it to compute FFT for one data each time.
 When running with nth threads, if ``many_seq=0``, nth of data are processed
 simultaneously. Taking 2D type 1 transform as an example, the algorithm proceeds
 in following three steps:
-  1) Each thread calls a single-threaded spreader.
-  2) Apply FFT on nths of data using the many interface providing by fftw.
-  3) Each thread calls a single-threaded deconvolve function.
+1) Each thread calls a single-threaded spreader.
+2) Apply FFT on nths of data using the many interface providing by fftw.
+3) Each thread calls a single-threaded deconvolve function.
 
 If ``many_seq=1``, then all the data are processed sequentially. We simply add a
 big for loop looping through all the data around the original code and move the

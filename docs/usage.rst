@@ -9,7 +9,7 @@ From there, basic double-precision compilation with the static library is via::
   g++ example1d1.cpp -o example1d1 ../lib-static/libfinufft.a -fopenmp -lfftw3_threads -lfftw3 -lm
 
 for the default multi-threaded version, or::
-    
+
   g++ example1d1.cpp -o example1d1 ../lib-static/libfinufft.a -lfftw3 -lm
 
 if you compiled FINUFFT for single-threaded only.
@@ -93,6 +93,8 @@ which can lead to slower spreading (it can also be faster due to the smaller
 size of the fine grid).
 Thus only 9-digit accuracy can be reached with ``upsampfac=1.25``.
 
+``many_seq``: see :ref:`The "many" interface` for details.
+
 .. _errcodes:
 
 Error codes
@@ -133,7 +135,7 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
 
                nj-1
      fk(k1) =  SUM cj[j] exp(+/-i k1 xj(j))  for -ms/2 <= k1 <= (ms-1)/2
-               j=0                            
+               j=0
   Inputs:
      nj     number of sources (int64)
      xj     location of sources (size-nj FLT array), in [-3pi,3pi]
@@ -168,7 +170,7 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
   Type-2 1D complex nonuniform FFT.
 
      cj[j] = SUM   fk[k1] exp(+/-i k1 xj[j])      for j = 0,...,nj-1
-             k1 
+             k1
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
    Inputs:
@@ -246,18 +248,18 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
                    nj-1
      f[k1,k2] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
                    j=0
- 
+
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
      The output array is k1 (fast), then k2 (slow), with each dimension
      determined by opts.modeord.
      If iflag>0 the + sign is used, otherwise the - sign is used,
      in the exponential.
-                           
+
    Inputs:
      nj     number of sources (int64)
      xj,yj     x,y locations of sources (each a size-nj FLT array) in [-3pi,3pi]
-     cj     size-nj complex FLT array of source strengths, 
+     cj     size-nj complex FLT array of source strengths,
             (ie, stored as 2*nj FLTs interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign (int)
      eps    precision requested (>1e-16)
@@ -286,8 +288,8 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
    Type-2 2D complex nonuniform FFT.
 
      cj[j] =  SUM   fk[k1,k2] exp(+/-i (k1 xj[j] + k2 yj[j]))      for j = 0,...,nj-1
-             k1,k2 
-     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
+             k1,k2
+     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
     Inputs:
      nj     number of sources (int64)
@@ -325,7 +327,7 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
    Inputs:
      nj     number of sources (int64)
      xj,yj  x,y location of sources in the plane R^2 (each size-nj FLT array)
-     cj     size-nj complex FLT array of source strengths, 
+     cj     size-nj complex FLT array of source strengths,
             (ie, stored as 2*nj FLTs interleaving Re, Im).
      nk     number of frequency target points (int64)
      s,t    (k_x,k_y) frequency locations of targets in R^2.
@@ -373,11 +375,11 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
      k1 changes is fastest, k2 middle,
      and k3 slowest, ie Fortran ordering. If iflag>0 the + sign is
      used, otherwise the - sign is used, in the exponential.
-                           
+
    Inputs:
      nj     number of sources (int64)
      xj,yj,zj   x,y,z locations of sources (each size-nj FLT array) in [-3pi,3pi]
-     cj     size-nj complex FLT array of source strengths, 
+     cj     size-nj complex FLT array of source strengths,
             (ie, stored as 2*nj FLTs interleaving Re, Im).
      iflag  if >=0, uses + sign in exponential, otherwise - sign (int)
      eps    precision requested
@@ -408,7 +410,7 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
      cj[j] =    SUM   fk[k1,k2,k3] exp(+/-i (k1 xj[j] + k2 yj[j] + k3 zj[j]))
              k1,k2,k3
       for j = 0,...,nj-1
-     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
+     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
                        -mu/2 <= k3 <= (mu-1)/2
 
    Inputs:
@@ -482,7 +484,7 @@ Interfaces from C
 *****************
 
 The C user should initialize the options struct via::
-  
+
   nufft_c_opts opts; finufft_default_c_opts(opts);
 
 Options fields may then be changed in ``opts`` before passing to the following interfaces. We use the C99 complex type ``_Complex``, which is the same as
@@ -514,8 +516,8 @@ Here are the calling commands with fortran types for the default double-precisio
       real*8, allocatable :: xj(:),yj(:),zj(:), sk(:),tk(:),uk(:)
       real*8 err,eps
       complex*16, allocatable :: cj(:), fk(:)
-  
-      call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk,ier)      
+
+      call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk,ier)
       call finufft1d2_f(nj,xj,cj,iflag, eps, ms,fk,ier)
       call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk,ier)
       call finufft2d1_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
@@ -562,4 +564,3 @@ if your machine has RAM of order 1TB, and you need it, set this larger and recom
 Note that mallocs smaller than this, but which still exceed available RAM, cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc.
 
 As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel. At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside of a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2sigma).W where sigma is the upsampling parameter. See our forthcoming paper.
-
