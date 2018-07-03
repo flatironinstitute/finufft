@@ -52,6 +52,8 @@ the default double-precision, or ``single`` if single precision:
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
+  int many_seq;       // 0: simultaneously do nufft on all data
+                      // 1: sequentially run through the data
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
 
 Here are their default settings (set in ``../src/common.cpp:finufft_default_opts``):
@@ -66,6 +68,7 @@ Here are their default settings (set in ``../src/common.cpp:finufft_default_opts
   chkbnds = 0;
   fftw = FFTW_ESTIMATE;
   modeord = 0;
+  many_seq = 0;
   upsampfac = (FLT)2.0;
 
 Notes on various options:
@@ -108,6 +111,7 @@ has the following meanings (see ``../src/utils.h``):
   6  spreader: illegal direction (should be 1 or 2)
   7  upsampfac too small (should be >1)
   8  upsampfac not a value with known Horner eval: currently 2.0 or 1.25 only
+  9  ndata not valid (should be > 1)
 
 In the interfaces below, ``int64`` (typedefed as ``BIGINT`` in the code)
 means 64-bit signed integer type, ie ``int64_t``.
@@ -506,7 +510,7 @@ apart from that now ``ier`` is an argument which is output to.
 Examples of calling all 9 routines from fortran are in ``fortran/nufft?d_demo.f`` (for double-precision) and ``fortran/nufft?d_demof.f`` (single-precision).
 Here are the calling commands with fortran types for the default double-precision case::
 
-      integer ier,iflag,ms,mt,mu,nj
+      integer ier,iflag,ms,mt,mu,nj,ndata
       real*8, allocatable :: xj(:),yj(:),zj(:), sk(:),tk(:),uk(:)
       real*8 err,eps
       complex*16, allocatable :: cj(:), fk(:)
@@ -520,6 +524,8 @@ Here are the calling commands with fortran types for the default double-precisio
       call finufft3d1_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,ier)
       call finufft3d2_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,ier)
       call finufft3d3_f(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk,ier)
+      call finufft2d1many_f(ndata,nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
+      call finufft2d2many_f(ndata,nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
 
 
 
