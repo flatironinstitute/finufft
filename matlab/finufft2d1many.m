@@ -26,7 +26,7 @@ function [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,o)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
-%     opts.many_seq: 0 (simultaneously do finufft on all data, default), 1 (seq)
+%     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
 %   Outputs:
 %     f     size (ms,mt,ndata) double complex array of Fourier transform values
 %           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
