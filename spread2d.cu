@@ -1,18 +1,42 @@
 #include <iostream>
 #include <math.h>
 #include <helper_cuda.h>
+#include <cuda.h>
+#include "utils.h"
 
 using namespace std;
 
-#define PI (double)M_PI
+#define PI (FLT)M_PI
 #define M_1_2PI 0.159154943091895336
 #define RESCALE(x,N,p) (p ? \
              ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
              (x<0 ? x+N : (x>N ? x-N : x)))
 #define max_shared_mem 6000
 
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+
+#else
+static __inline__ __device__ double atomicAdd(double* address, double val)
+{
+    unsigned long long int* address_as_ull =
+                              (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val +
+                               __longlong_as_double(assumed)));
+
+    // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    } while (assumed != old);
+
+    return __longlong_as_double(old);
+}
+#endif
+
 __device__
-double evaluate_kernel(double x, double es_c, double es_beta)
+FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
@@ -24,12 +48,12 @@ double evaluate_kernel(double x, double es_c, double es_beta)
 
 __global__
 void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
-                    int nbiny, int* bin_size, double *x, double *y, int* sortidx)
+                    int nbiny, int* bin_size, FLT *x, FLT *y, int* sortidx)
 {
   int i = blockDim.x*blockIdx.x + threadIdx.x;
   int binidx, binx, biny;
   int oldidx;
-  double x_rescaled,y_rescaled;
+  FLT x_rescaled,y_rescaled;
   if (i < M){
     x_rescaled = RESCALE(x[i],nf1,1);
     y_rescaled = RESCALE(y[i],nf2,1);
@@ -83,14 +107,57 @@ void BinsStartPts_2d(int M, int totalnumbins, int* bin_size, int* bin_startpts)
 }
 
 __global__
+void prescan(int n, int* bin_size, int* bin_startpts)
+// only works for n is power of 2
+{
+  extern __shared__ int temp[];
+  int thid=threadIdx.x;
+  int offset=1;
+
+  temp[2*thid]=bin_size[2*thid];
+  temp[2*thid+1]=bin_size[2*thid+1];
+
+  for(int d = n>>1; d>0; d>>=1)
+  {
+    __syncthreads();
+    if(thid<d)
+    {
+      int ai=offset*(2*thid+1)-1;
+      int bi=offset*(2*thid+2)-1;
+      temp[bi]+=temp[ai];
+    }
+    offset*=2;
+  }
+  if(thid==0) {temp[n-1]=0;}
+  for(int d=1; d<n; d*=2)
+  {
+    offset>>=1;
+    __syncthreads();
+    if(thid<d)
+    {
+      int ai=offset*(2*thid+1)-1;
+      int bi=offset*(2*thid+2)-1;
+
+      int t=temp[ai];
+      temp[ai]=temp[bi];
+      temp[bi]+=t;
+    }
+  }
+  __syncthreads();
+  bin_startpts[2*thid]=temp[2*thid];
+  bin_startpts[2*thid+1]=temp[2*thid+1];
+
+}
+
+__global__
 void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                    int* bin_startpts, int* sortidx, double *x, double *x_sorted, 
-                    double *y, double *y_sorted, double *c, double *c_sorted)
+                    int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted, 
+                    FLT *y, FLT *y_sorted, FLT *c, FLT *c_sorted)
 {
   int i = blockDim.x*blockIdx.x + threadIdx.x;
   int binx, biny;
   int binidx;
-  double x_rescaled, y_rescaled;
+  FLT x_rescaled, y_rescaled;
   if( i < M){
     x_rescaled = RESCALE(x[i],nf1,1);
     y_rescaled = RESCALE(y[i],nf2,1);
@@ -152,13 +219,13 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
 }
 #if 1
 __global__
-void Spread_2d(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
-               double *x_sorted, double *y_sorted, double *c_sorted, double *fw, int ns, 
-               int nf1, int nf2, double es_c, double es_beta)
+void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
+                       FLT *x_sorted, FLT *y_sorted, FLT *c_sorted, FLT *fw, int ns, 
+                       int nf1, int nf2, FLT es_c, FLT es_beta)
 {
-  __shared__ double xshared[max_shared_mem/4];
-  __shared__ double yshared[max_shared_mem/4];
-  __shared__ double cshared[2*max_shared_mem/4];
+  __shared__ FLT xshared[max_shared_mem/4];
+  __shared__ FLT yshared[max_shared_mem/4];
+  __shared__ FLT cshared[2*max_shared_mem/4];
 
   int ix = blockDim.x*blockIdx.x+threadIdx.x;// output index, coord of the index
   int iy = blockDim.y*blockIdx.y+threadIdx.y;// output index, coord of the index
@@ -169,13 +236,14 @@ void Spread_2d(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bi
   int binyLo = blockIdx.y*nbin_block_y;
   int binyHi = binyLo+nbin_block_y+1;
   int start, end, j, bx, by, bin;
+  FLT tr=0.0, ti=0.0;
   // run through all bins
   if( ix < nf1 && iy < nf2){
     for(by=binyLo; by<=binyHi; by++){
-      for(bx=binxLo; bx<=binxHi; bx++){
+      //for(bx=binxLo; bx<=binxHi; bx++){
         bin = bx+by*nbinx;
-        start = bin_startpts[bin];
-        end   = bin_startpts[bin+1];
+        start = bin_startpts[binxLo+by*nbinx];
+        end   = bin_startpts[binxHi+by*nbinx+1];
         if( tid < end-start){
           xshared[tid] = x_sorted[start+tid];
           yshared[tid] = y_sorted[start+tid];
@@ -184,18 +252,52 @@ void Spread_2d(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bi
         }
         __syncthreads();
         for(j=0; j<end-start; j++){
-          double disx = abs(xshared[j]-ix);
-          double disy = abs(yshared[j]-iy);
+          FLT disx = abs(xshared[j]-ix);
+          FLT disy = abs(yshared[j]-iy);
           if( disx < ns/2.0 && disy < ns/2.0){
-             //fw[2*outidx] ++;
-             //fw[2*outidx+1] ++;
-             double kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
-             fw[2*outidx]   += cshared[2*j]*kervalue;
-             fw[2*outidx+1] += cshared[2*j+1]*kervalue;
+             tr++;
+             ti++;
+             //FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
+             //tr += cshared[2*j]*kervalue;
+             //ti += cshared[2*j+1]*kervalue;
           }
         }
-      }
+      //}
     }
+    fw[2*outidx]   = tr;
+    fw[2*outidx+1] = ti;
   }
 }
+#if 1
+__global__
+void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, int ns, 
+                       int nf1, int nf2, FLT es_c, FLT es_beta)
+{
+  int i = blockDim.x*blockIdx.x+threadIdx.x;
+  int xstart, ystart;
+  int xx, yy, ix, iy;
+  int outidx;
+  FLT x_rescaled, y_rescaled;
+  if( i<M ){
+    x_rescaled = RESCALE(x[i],nf1,1);
+    y_rescaled = RESCALE(y[i],nf2,1);
+    xstart = ceil(x_rescaled - ns/2.0);
+    ystart = ceil(y_rescaled - ns/2.0);
+    for(yy=ystart; yy<ystart+ns; yy++){
+       for(xx=xstart; xx<xstart+ns; xx++){
+          ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
+          iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
+          outidx = ix+iy*nf1;
+          //FLT disx=abs(x_sorted[i]- (xstart+dx));
+          //FLT disy=abs(y_sorted[i]- (ystart+dy));
+          //FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
+          atomicAdd((double*) &fw[2*outidx  ], 1.0);
+          atomicAdd((double*) &fw[2*outidx+1], 1.0);
+       }
+    }
+    
+  }
+
+}
+#endif
 #endif

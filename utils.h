@@ -1,3 +1,8 @@
+#ifndef __UTILS_H__
+#define __UTILS_H__
+
+typedef double FLT;
+
 // jfm timer class
 #include <sys/time.h>
 class CNTime {
@@ -8,3 +13,4 @@ class CNTime {
   private:
     struct timeval initial;
 };
+#endif
