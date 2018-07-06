@@ -14,7 +14,6 @@ using namespace std;
 #define max_shared_mem 6000
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
-
 #else
 static __inline__ __device__ double atomicAdd(double* address, double val)
 {
@@ -217,7 +216,7 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
     c_sorted[ 2*(bin_startpts[binidx]+sortidx[i])+1 ] = c[2*i+1];
   }
 }
-#if 1
+
 __global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
                        FLT *x_sorted, FLT *y_sorted, FLT *c_sorted, FLT *fw, int ns, 
@@ -268,17 +267,16 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
     fw[2*outidx+1] = ti;
   }
 }
-#if 1
+
 __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, int ns, 
                        int nf1, int nf2, FLT es_c, FLT es_beta)
 {
-  int i = blockDim.x*blockIdx.x+threadIdx.x;
   int xstart, ystart;
   int xx, yy, ix, iy;
   int outidx;
   FLT x_rescaled, y_rescaled;
-  if( i<M ){
+  for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
     x_rescaled = RESCALE(x[i],nf1,1);
     y_rescaled = RESCALE(y[i],nf2,1);
     xstart = ceil(x_rescaled - ns/2.0);
@@ -288,9 +286,13 @@ void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, int ns,
           ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
           iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
           outidx = ix+iy*nf1;
-          //FLT disx=abs(x_sorted[i]- (xstart+dx));
-          //FLT disy=abs(y_sorted[i]- (ystart+dy));
-          //FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
+/*          
+          FLT disx=abs(x_rescaled-xx);
+          FLT disy=abs(y_rescaled-yy);
+          FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
+          atomicAdd(&fw[2*outidx  ], kervalue*c[2*i]);
+          atomicAdd(&fw[2*outidx+1], kervalue*c[2*i+1]);
+*/          
           atomicAdd((double*) &fw[2*outidx  ], 1.0);
           atomicAdd((double*) &fw[2*outidx+1], 1.0);
        }
@@ -299,5 +301,3 @@ void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, int ns,
   }
 
 }
-#endif
-#endif
