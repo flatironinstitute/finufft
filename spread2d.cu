@@ -6,13 +6,6 @@
 
 using namespace std;
 
-#define PI (FLT)M_PI
-#define M_1_2PI 0.159154943091895336
-#define RESCALE(x,N,p) (p ? \
-             ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
-             (x<0 ? x+N : (x>N ? x-N : x)))
-#define max_shared_mem 6000
-
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
 static __inline__ __device__ double atomicAdd(double* address, double val)
@@ -82,7 +75,7 @@ void FillGhostBin_2d(int bin_size_x, int bin_size_y, int nbinx, int nbiny, int*b
   }
 }
 
-// An exclusive scan of bin_size, only works for 1 block (!) 
+// An exclusive scan of bin_size, only works for 1 block (!)
 __global__
 void BinsStartPts_2d(int M, int totalnumbins, int* bin_size, int* bin_startpts)
 {
@@ -150,7 +143,7 @@ void prescan(int n, int* bin_size, int* bin_startpts)
 
 __global__
 void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                    int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted, 
+                    int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
                     FLT *y, FLT *y_sorted, FLT *c, FLT *c_sorted)
 {
   int i = blockDim.x*blockIdx.x + threadIdx.x;
@@ -163,13 +156,13 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
     binx = floor(x_rescaled/bin_size_x)+1;
     biny = floor(y_rescaled/bin_size_y)+1;
     binidx = binx+biny*nbinx;
-   
+
     //binidx = floor(x_rescaled/bin_size_x);
     x_sorted[bin_startpts[binidx]+sortidx[i]] = x_rescaled;
     y_sorted[bin_startpts[binidx]+sortidx[i]] = y_rescaled;
     c_sorted[2*(bin_startpts[binidx]+sortidx[i])]   = c[2*i];
     c_sorted[2*(bin_startpts[binidx]+sortidx[i])+1] = c[2*i+1];
-    
+
     // four edges
     if( binx == 1 ){
       binidx = (nbinx-1)+biny*nbinx;
@@ -219,7 +212,7 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
 
 __global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
-                       FLT *x_sorted, FLT *y_sorted, FLT *c_sorted, FLT *fw, int ns, 
+                       FLT *x_sorted, FLT *y_sorted, FLT *c_sorted, FLT *fw, int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta)
 {
   __shared__ FLT xshared[max_shared_mem/4];
@@ -269,7 +262,7 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
 }
 
 __global__
-void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, int ns, 
+void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta)
 {
   int xstart, ystart;
@@ -286,18 +279,18 @@ void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, int ns,
           ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
           iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
           outidx = ix+iy*nf1;
-/*          
+/*
           FLT disx=abs(x_rescaled-xx);
           FLT disy=abs(y_rescaled-yy);
           FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
           atomicAdd(&fw[2*outidx  ], kervalue*c[2*i]);
           atomicAdd(&fw[2*outidx+1], kervalue*c[2*i+1]);
-*/          
+*/
           atomicAdd((double*) &fw[2*outidx  ], 1.0);
           atomicAdd((double*) &fw[2*outidx+1], 1.0);
        }
     }
-    
+
   }
 
 }

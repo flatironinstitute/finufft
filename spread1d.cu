@@ -1,15 +1,9 @@
 #include <iostream>
 #include <math.h>
 #include <helper_cuda.h>
+#include "utils.h"
 
 using namespace std;
-
-#define PI (double)M_PI
-#define M_1_2PI 0.159154943091895336
-#define RESCALE(x,N,p) (p ? \
-             ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
-             (x<0 ? x+N : (x>N ? x-N : x)))
-#define max_shared_mem 6000
 
 __device__
 double evaluate_kernel(double x, double es_c, double es_beta)
@@ -51,7 +45,7 @@ void FillGhostBin_1d(int bin_size_x, int nbinx, int*bin_size)
   }
 }
 
-// An exclusive scan of bin_size, only works for 1 block (!) 
+// An exclusive scan of bin_size, only works for 1 block (!)
 __global__
 void BinsStartPts_1d(int M, int totalnumbins, int* bin_size, int* bin_startpts)
 {
@@ -76,7 +70,7 @@ void BinsStartPts_1d(int M, int totalnumbins, int* bin_size, int* bin_startpts)
 
 __global__
 void PtsRearrage_1d(int M, int nf1, int bin_size_x, int nbinx,
-                    int* bin_startpts, int* sortidx, double *x, double *x_sorted, 
+                    int* bin_startpts, int* sortidx, double *x, double *x_sorted,
                     double *c, double *c_sorted)
 {
   int i = blockDim.x*blockIdx.x + threadIdx.x;
@@ -87,9 +81,9 @@ void PtsRearrage_1d(int M, int nf1, int bin_size_x, int nbinx,
     x_rescaled = RESCALE(x[i],nf1,1);
     binx = floor(x_rescaled/bin_size_x)+1;
     binidx = binx;
-   
+
     x_sorted[bin_startpts[binidx]+sortidx[i]]       = x_rescaled;
-    
+
     if( binx == 1 ){
       binidx = (nbinx-1);
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled + nf1;
@@ -105,7 +99,7 @@ void PtsRearrage_1d(int M, int nf1, int bin_size_x, int nbinx,
 
 __global__
 void Spread_1d(int nbin_block_x, int nbinx, int *bin_startpts,
-               double *x_sorted, double *c_sorted, double *fw, int ns, 
+               double *x_sorted, double *c_sorted, double *fw, int ns,
                int nf1, double es_c, double es_beta)
 {
   __shared__ double xshared[max_shared_mem/4];
