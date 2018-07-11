@@ -24,3 +24,15 @@ double CNTime::elapsedsec()
   double initialsec = (double)initial.tv_sec + 1e-6*initial.tv_usec;
   return nowsec - initialsec;
 }
+
+FLT relerrtwonorm(int n, CPX* a, CPX* b)
+//||a-b||_2 / ||a||_2
+{
+  FLT err = 0.0, nrm = 0.0;
+  for (int m=0; m<n; ++m) {
+      nrm += real(conj(a[m])*a[m]);
+      CPX diff = a[m]-b[m];
+      err += real(conj(diff)*diff);
+  }
+  return sqrt(err)/nrm;
+}

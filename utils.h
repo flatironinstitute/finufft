@@ -1,7 +1,12 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <complex>
+
+using namespace std;
+
 typedef double FLT;
+typedef complex<double> CPX;
 
 #define rand01() ((FLT)rand()/RAND_MAX)
 // unif[-1,1]:
@@ -26,3 +31,5 @@ class CNTime {
     struct timeval initial;
 };
 #endif
+
+FLT relerrtwonorm(int n, CPX* a, CPX* b);
