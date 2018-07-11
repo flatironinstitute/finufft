@@ -33,7 +33,9 @@ void FillGhostBin_2d(int bin_size_x, int bin_size_y, int nbinx, int nbiny, int*b
 __global__
 void BinsStartPts_2d(int M, int totalnumbins, int* bin_size, int* bin_startpts);
 __global__
-void prescan(int n, int* bin_size, int* bin_startpts);
+void prescan(int n, int* bin_size, int* bin_startpts, int* scanblock_sum);
+__global__
+void uniformUpdate(int n, int* data, int* buffer);
 
 __global__
 void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
@@ -44,7 +46,7 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
                        FLT *x_sorted, FLT *y_sorted, FLT *c_sorted, FLT *fw, int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta);
 __global__
-void Spread_2d_Idriven(FLT *x_sorted, FLT *y_sorted, FLT *c_sorted, FLT *fw, int M, int ns,
+void Spread_2d_Idriven(FLT *x_sorted, FLT *y_sorted, FLT *c_sorted, FLT *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta);
 
 int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,

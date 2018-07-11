@@ -38,6 +38,20 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
     return exp(es_beta * (sqrt(1.0 - es_c*x*x) - 1));
 }
 
+static __inline__ __device__
+void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double upsampfac)
+/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
+   x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
+   This is the current evaluation method, since it's faster (except i7 w=16).
+   Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+{
+  FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
+  // insert the auto-generated code which expects z, w args, writes to ker...
+  if (upsampfac==2.0) {     // floating point equality is fine here
+#include "ker_horner_allw_loop.c"
+  }
+}
+
 __global__
 void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
                     int nbiny, int* bin_size, FLT *x, FLT *y, int* sortidx)
@@ -99,17 +113,23 @@ void BinsStartPts_2d(int M, int totalnumbins, int* bin_size, int* bin_startpts)
 }
 
 __global__
-void prescan(int n, int* bin_size, int* bin_startpts)
+void prescan(int n, int* bin_size, int* bin_startpts, int* scanblock_sum)
 // only works for n is power of 2
 {
-  extern __shared__ int temp[];
+  __shared__ int temp[max_shared_mem];
   int thid=threadIdx.x;
   int offset=1;
+  int nelem=2*blockDim.x;
 
-  temp[2*thid]=bin_size[2*thid];
-  temp[2*thid+1]=bin_size[2*thid+1];
+  if(2*thid+1<n){
+    temp[2*thid]=bin_size[2*thid];
+    temp[2*thid+1]=bin_size[2*thid+1];
+  }else{
+    temp[2*thid]=0;
+    temp[2*thid+1]=0;
+  }
 
-  for(int d = n>>1; d>0; d>>=1)
+  for(int d = nelem>>1; d>0; d>>=1)
   {
     __syncthreads();
     if(thid<d)
@@ -120,8 +140,10 @@ void prescan(int n, int* bin_size, int* bin_startpts)
     }
     offset*=2;
   }
-  if(thid==0) {temp[n-1]=0;}
-  for(int d=1; d<n; d*=2)
+
+  if(thid==0) {temp[nelem-1]=0;}
+
+  for(int d=1; d<nelem; d*=2)
   {
     offset>>=1;
     __syncthreads();
@@ -136,9 +158,32 @@ void prescan(int n, int* bin_size, int* bin_startpts)
     }
   }
   __syncthreads();
-  bin_startpts[2*thid]=temp[2*thid];
-  bin_startpts[2*thid+1]=temp[2*thid+1];
+  
+  if(2*thid+1<n){
+    bin_startpts[2*thid]=temp[2*thid];
+    bin_startpts[2*thid+1]=temp[2*thid+1];
+  }
+  *scanblock_sum=temp[n-1]+bin_size[n-1];
+/*
+  if(thid==0){
+    bin_startpts[n]=temp[n-1]+bin_size[n-1];
+  }
+*/
+}
 
+__global__
+void uniformUpdate(int n, int* data, int* buffer)
+{
+  __shared__ int buf;
+  int pos=blockIdx.x*blockDim.x+threadIdx.x;
+  if( threadIdx.x ==0){
+    buf=buffer[blockIdx.x];
+  }
+  __syncthreads();
+  if(pos<n)
+    data[pos] += buf;
+  if(pos==0)
+    data[n] = buffer[gridDim.x];
 }
 
 __global__
@@ -233,7 +278,9 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
   if( ix < nf1 && iy < nf2){
     for(by=binyLo; by<=binyHi; by++){
       //for(bx=binxLo; bx<=binxHi; bx++){
-        bin = bx+by*nbinx;
+        //bin = bx+by*nbinx;
+        //start = bin_startpts[bin];
+        //end   = bin_startpts[bin+1];
         start = bin_startpts[binxLo+by*nbinx];
         end   = bin_startpts[binxHi+by*nbinx+1];
         if( tid < end-start){
@@ -247,11 +294,11 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
           FLT disx = abs(xshared[j]-ix);
           FLT disy = abs(yshared[j]-iy);
           if( disx < ns/2.0 && disy < ns/2.0){
-             tr++;
-             ti++;
-             //FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
-             //tr += cshared[2*j]*kervalue;
-             //ti += cshared[2*j+1]*kervalue;
+             //tr++;
+             //ti++;
+             FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
+             tr += cshared[2*j]*kervalue;
+             ti += cshared[2*j+1]*kervalue;
           }
         }
       //}
@@ -262,32 +309,46 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
 }
 
 __global__
-void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, int ns,
+void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta)
 {
   int xstart, ystart;
   int xx, yy, ix, iy;
   int outidx;
+  //FLT ker1[7];
+  //FLT ker2[7];
+  //FLT ker1val, ker2val;
+  //double sigma=2.0;
+
   FLT x_rescaled, y_rescaled;
   for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
     x_rescaled = RESCALE(x[i],nf1,1);
     y_rescaled = RESCALE(y[i],nf2,1);
     xstart = ceil(x_rescaled - ns/2.0);
     ystart = ceil(y_rescaled - ns/2.0);
+
+#if 0
+    FLT x1=(FLT)xstart-x_rescaled;
+    FLT y1=(FLT)ystart-y_rescaled;
+    eval_kernel_vec_Horner(ker1,x1,ns,sigma);
+    eval_kernel_vec_Horner(ker2,y1,ns,sigma);
+#endif
     for(yy=ystart; yy<ystart+ns; yy++){
+       //ker2val=ker2[yy-ystart];
        for(xx=xstart; xx<xstart+ns; xx++){
+          //ker1val=ker1[xx-xstart];
           ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
           iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
           outidx = ix+iy*nf1;
-/*
+          //FLT kervalue=ker1val*ker2val;
           FLT disx=abs(x_rescaled-xx);
           FLT disy=abs(y_rescaled-yy);
           FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
           atomicAdd(&fw[2*outidx  ], kervalue*c[2*i]);
           atomicAdd(&fw[2*outidx+1], kervalue*c[2*i+1]);
-*/
-          atomicAdd((double*) &fw[2*outidx  ], 1.0);
-          atomicAdd((double*) &fw[2*outidx+1], 1.0);
+
+          //atomicAdd((FLT*) &fw[2*outidx  ], 1.0);
+          //atomicAdd((FLT*) &fw[2*outidx+1], 1.0);
        }
     }
 
