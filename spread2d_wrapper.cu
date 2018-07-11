@@ -1,4 +1,15 @@
+#include <helper_cuda.h>
+#include <iostream>
+#include <iomanip>
+#include "../scan/scan_common.h"
 #include "spread.h"
+
+using namespace std;
+
+#define INFO
+//#define DEBUG
+//#define RESULT
+#define TIME
 
 int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
                                FLT *h_ky, FLT *h_c, int bin_size_x, int bin_size_y)
@@ -26,7 +37,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   numbins[1] = ceil(nf2/bin_size_y)+2;
   // assume that bin_size_x > ns/2;
 #ifdef INFO
-  cout<<"[info  ] --> numbins (including ghost bins) = ["
+  cout<<"[info  ] numbins (including ghost bins) = ["
       <<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
   FLT *d_kxsorted,*d_kysorted,*d_csorted;
@@ -57,14 +68,14 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   h_binstartpts = (int*)malloc((numbins[0]*numbins[1]+1)*sizeof(int));
   checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
   timer.restart();
-  CalcBinSize_2d<<<64, (M+64-1)/64>>>(M,nf1,nf2,bin_size_x,bin_size_y,
+  CalcBinSize_2d<<<(M+128-1)/128, 128>>>(M,nf1,nf2,bin_size_x,bin_size_y,
                                       numbins[0],numbins[1],d_binsize,
                                       d_kx,d_ky,d_sortidx);
 #ifdef TIME
   cudaDeviceSynchronize();
-  cout<<"[time  ]"<< " Kernel CalcBinSize_2d  takes " << timer.elapsedsec() <<" s"<<endl;
+  cout<<"[time  ]"<< " Kernel CalcBinSize_2d (#blocks, #threads)=("<<(M+128-1)/128<<","<<128<<") takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
-#ifdef DEBUG
+#ifdef DEBIG
   checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int),
                              cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
@@ -81,14 +92,15 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
   timer.restart();
-  threadsPerBlock.x = 16;
-  threadsPerBlock.y = 16;
+  threadsPerBlock.x = 8;
+  threadsPerBlock.y = 8;
   blocks.x = (numbins[0]+threadsPerBlock.x-1)/threadsPerBlock.x;
   blocks.y = (numbins[1]+threadsPerBlock.y-1)/threadsPerBlock.y;
   FillGhostBin_2d<<<blocks, threadsPerBlock>>>(bin_size_x, bin_size_y, numbins[0],
                                                numbins[1], d_binsize);
 #ifdef TIME
   cudaDeviceSynchronize();
+  printf("[time  ] block=(%d, %d), threads=(%d, %d)\n", blocks.x, blocks.y, threadsPerBlock.x, threadsPerBlock.y);
   cout<<"[time  ]"<< " Kernel FillGhostBin_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -107,22 +119,38 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
 #endif
 
   timer.restart();
-  int THREADBLOCK_SIZE=256;
-  int MIN_LARGE_ARRAY_SIZE=THREADBLOCK_SIZE*8;
-  int arrayLength=THREADBLOCK_SIZE*8;
-  if(numbins[0]*numbins[1] < MIN_LARGE_ARRAY_SIZE){ // 1024 is the maximum #threads per block
-    int arrayLength=THREADBLOCK_SIZE*4;
-    int szWorkgroup = scanExclusiveShort(d_binstartpts, d_binsize, numbins[0]*numbins[1]/ arrayLength, arrayLength);
-    //BinsStartPts_2d<<<1, numbins[0]*numbins[1]>>>(M,numbins[0]*numbins[1],
-    //                                              d_binsize,d_binstartpts);
-    //prescan<<<1, numbins[0]*numbins[1]/2, numbins[0]*numbins[1]>>>(numbins[0]*numbins[1],
-    //                                                               d_binsize,
-    //                                                               d_binstartpts);
-  }else{
-    int szWorkgroup = scanExclusiveLarge(d_binstartpts, d_binsize, numbins[0]*numbins[1]/ arrayLength, arrayLength);
-    cout<<"number of bins can't fit in one block"<<endl;
-    return 1;
+  int n=numbins[0]*numbins[1];
+  int scanblocksize=512;
+  int numscanblocks=ceil((double)n/scanblocksize);
+  int* d_scanblocksum, *d_scanblockstartpts;
+  int* h_scanblocksum, *h_scanblockstartpts;
+#ifdef TIME
+  printf("[debug ] n=%d, numscanblocks=%d\n",n,numscanblocks);
+#endif 
+  checkCudaErrors(cudaMalloc(&d_scanblocksum,numscanblocks*sizeof(int)));
+  checkCudaErrors(cudaMalloc(&d_scanblockstartpts,(numscanblocks+1)*sizeof(int)));
+  h_scanblocksum     =(int*) malloc(numscanblocks*sizeof(int));
+  h_scanblockstartpts=(int*) malloc((numscanblocks+1)*sizeof(int));
+ 
+  for(int i=0;i<numscanblocks;i++){
+    int nelemtoscan=(n-scanblocksize*i)>scanblocksize ? scanblocksize : n-scanblocksize*i;
+    prescan<<<1, scanblocksize/2>>>(nelemtoscan,d_binsize+i*scanblocksize,
+			            d_binstartpts+i*scanblocksize,d_scanblocksum+i);
   }
+  checkCudaErrors(cudaMemcpy(h_scanblocksum,d_scanblocksum,numscanblocks*sizeof(int),
+		             cudaMemcpyDeviceToHost));
+  h_scanblockstartpts[0] = 0;
+  for(int i=1;i<numscanblocks+1;i++){
+    h_scanblockstartpts[i] = h_scanblockstartpts[i-1]+h_scanblocksum[i-1];
+  }
+#ifdef DEBUG
+  for(int i=0;i<numscanblocks+1;i++){
+    cout<<"[debug ] scanblocksum["<<i<<"]="<<h_scanblockstartpts[i]<<endl;
+  }
+#endif
+  checkCudaErrors(cudaMemcpy(d_scanblockstartpts,h_scanblockstartpts,(numscanblocks+1)*sizeof(int),
+		             cudaMemcpyHostToDevice));
+  uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
@@ -157,11 +185,12 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
 #endif
 
   timer.restart();
-  PtsRearrage_2d<<<64, (M+64-1)/64>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
+  PtsRearrage_2d<<<(M+512-1)/512,512>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
                                       numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
                                       d_ky, d_kysorted, d_c, d_csorted);
 #ifdef TIME
   cudaDeviceSynchronize();
+  printf("[time  ] #block=%d, #threads=%d\n", (M+1024-1)/1024,1024);
   cout<<"[time  ]"<< " Kernel PtsRearrange_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -186,8 +215,8 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
 #endif
 
   timer.restart();
-  threadsPerBlock.x = 32;
-  threadsPerBlock.y = 32;
+  threadsPerBlock.x = 8;
+  threadsPerBlock.y = 8;
   blocks.x = (nf1 + threadsPerBlock.x - 1)/threadsPerBlock.x;
   blocks.y = (nf2 + threadsPerBlock.y - 1)/threadsPerBlock.y;
   nbin_block_x = threadsPerBlock.x/bin_size_x<(numbins[0]-2) ? threadsPerBlock.x/bin_size_x : (numbins[0]-2);
@@ -262,7 +291,7 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
 #endif
 
   timer.restart();
-  threadsPerBlock.x = 64;
+  threadsPerBlock.x = 1024;
   threadsPerBlock.y = 1;
   blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
   blocks.y = 1;
