@@ -206,11 +206,6 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
     biny = floor(y_rescaled/bin_size_y)+1;
     binidx = binx+biny*nbinx;
 
-    x_rescaled = x[i];
-    y_rescaled = y[i];
-    nf1 = 2;
-    nf2 = 2;
-    //binidx = floor(x_rescaled/bin_size_x);
     x_sorted[bin_startpts[binidx]+sortidx[i]] = x_rescaled;
     y_sorted[bin_startpts[binidx]+sortidx[i]] = y_rescaled;
     c_sorted[bin_startpts[binidx]+sortidx[i]] = c[i];
@@ -302,8 +297,8 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
         start = bin_startpts[binxLo+by*nbinx];
         end   = bin_startpts[binxHi+by*nbinx+1];
         if( tid < end-start){
-          xshared[tid] = RESCALE(x_sorted[start+tid],nf1,1);
-          yshared[tid] = RESCALE(y_sorted[start+tid],nf2,1);
+          xshared[tid] = x_sorted[start+tid];
+          yshared[tid] = y_sorted[start+tid];
           cshared[tid] = c_sorted[start+tid];
           //cshared[2*tid]   = c_sorted[2*(start+tid)];
           //cshared[2*tid+1] = c_sorted[2*(start+tid)+1];
