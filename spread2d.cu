@@ -275,9 +275,9 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
   int outidx = ix + iy*nf1;
   int tid = threadIdx.x+blockDim.x*threadIdx.y;
   int binxLo = blockIdx.x*nbin_block_x;
-  int binxHi = binxLo+nbin_block_x+1;
+  int binxHi = binxLo+nbin_block_x+1 < nbinx-1 ? binxLo+nbin_block_x+1 : nbinx-1;
   int binyLo = blockIdx.y*nbin_block_y;
-  int binyHi = binyLo+nbin_block_y+1;
+  int binyHi = binyLo+nbin_block_y+1 < nbiny-1 ? binyLo+nbin_block_y+1 : nbiny-1;
   int start, end, j, bx, by, bin;
 #if 0
   binyLo=0;
