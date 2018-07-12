@@ -72,20 +72,20 @@ void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, in
 }
 
 __global__
-void FillGhostBin_2d(int bin_size_x, int bin_size_y, int nbinx, int nbiny, int*bin_size)
+void FillGhostBin_2d(int nbinx, int nbiny, int*bin_size)
 {
   int ix = blockDim.x*blockIdx.x + threadIdx.x;
   int iy = blockDim.y*blockIdx.y + threadIdx.y;
   if ( ix < nbinx && iy < nbiny){
-    if( iy == 0 )
-      bin_size[ix+iy*nbiny] = bin_size[ix+(nbiny-2)*nbiny];
+    if(iy == 0)
+      bin_size[ix+iy*nbinx] = bin_size[ix+(nbiny-2)*nbinx];
     if(iy == nbiny-1)
-      bin_size[ix+iy*nbiny] = bin_size[ix+1*nbiny];
+      bin_size[ix+iy*nbinx] = bin_size[ix+1*nbinx];
     __syncthreads();
     if(ix == 0)
-      bin_size[ix+iy*nbiny] = bin_size[(nbinx-2)+iy*nbiny];
+      bin_size[ix+iy*nbinx] = bin_size[(nbinx-2)+iy*nbinx];
     if(ix == nbinx-1)
-      bin_size[ix+iy*nbiny] = bin_size[1+iy*nbiny];
+      bin_size[ix+iy*nbinx] = bin_size[1+iy*nbinx];
   }
 }
 

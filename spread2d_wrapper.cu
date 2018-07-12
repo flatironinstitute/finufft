@@ -92,12 +92,16 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
   timer.restart();
-  threadsPerBlock.x = 8;
-  threadsPerBlock.y = 8;
+  threadsPerBlock.x = 32;
+  threadsPerBlock.y = 32;// doesn't work for 64, doesn't know why
+  if(threadsPerBlock.x*threadsPerBlock.y < 1024){
+    cout<<"number of threads in a block exceeds max num 1024("
+        <<threadsPerBlock.x*threadsPerBlock.y<<")"<<endl;
+    return 1;
+  }
   blocks.x = (numbins[0]+threadsPerBlock.x-1)/threadsPerBlock.x;
   blocks.y = (numbins[1]+threadsPerBlock.y-1)/threadsPerBlock.y;
-  FillGhostBin_2d<<<blocks, threadsPerBlock>>>(bin_size_x, bin_size_y, numbins[0],
-                                               numbins[1], d_binsize);
+  FillGhostBin_2d<<<blocks,threadsPerBlock>>>(numbins[0],numbins[1],d_binsize);
 #ifdef TIME
   cudaDeviceSynchronize();
   printf("[time  ] block=(%d, %d), threads=(%d, %d)\n", blocks.x, blocks.y, threadsPerBlock.x, threadsPerBlock.y);

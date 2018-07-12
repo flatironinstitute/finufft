@@ -28,7 +28,7 @@ void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, in
                     int nbiny, int* bin_size, FLT *x, FLT *y, int* sortidx);
 
 __global__
-void FillGhostBin_2d(int bin_size_x, int bin_size_y, int nbinx, int nbiny, int*bin_size);
+void FillGhostBin_2d(int nbinx, int nbiny, int*bin_size);
 
 __global__
 void BinsStartPts_2d(int M, int totalnumbins, int* bin_size, int* bin_startpts);
