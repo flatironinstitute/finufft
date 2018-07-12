@@ -122,11 +122,14 @@ void prescan(int n, int* bin_size, int* bin_startpts, int* scanblock_sum)
   int nelem=2*blockDim.x;
 
   if(2*thid+1<n){
-    temp[2*thid]=bin_size[2*thid];
     temp[2*thid+1]=bin_size[2*thid+1];
   }else{
-    temp[2*thid]=0;
     temp[2*thid+1]=0;
+  }
+  if(2*thid<n){
+    temp[2*thid]=bin_size[2*thid];
+  }else{
+    temp[2*thid]=0;
   }
 
   for(int d = nelem>>1; d>0; d>>=1)
@@ -160,9 +163,10 @@ void prescan(int n, int* bin_size, int* bin_startpts, int* scanblock_sum)
   __syncthreads();
   
   if(2*thid+1<n){
-    bin_startpts[2*thid]=temp[2*thid];
     bin_startpts[2*thid+1]=temp[2*thid+1];
   }
+  if(2*thid<n)
+    bin_startpts[2*thid]=temp[2*thid];
   *scanblock_sum=temp[n-1]+bin_size[n-1];
 /*
   if(thid==0){

@@ -184,14 +184,14 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                              cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMalloc(&d_kxsorted,totalnupts*sizeof(FLT)));
   checkCudaErrors(cudaMalloc(&d_kysorted,totalnupts*sizeof(FLT)));
-  checkCudaErrors(cudaMalloc(&d_csorted, 2*totalnupts*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_csorted,totalnupts*sizeof(gpuComplex)));
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Allocating GPU memory (need info of totolnupts) " << timer.elapsedsec() <<" s"<<endl;
 #endif
 
   timer.restart();
-  PtsRearrage_2d<<<(M+512-1)/512,512>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
+  PtsRearrage_2d<<<(M+1024-1)/1024,1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
                                       numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
                                       d_ky, d_kysorted, d_c, d_csorted);
 #ifdef TIME
@@ -199,18 +199,21 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   printf("[time  ] #block=%d, #threads=%d\n", (M+1024-1)/1024,1024);
   cout<<"[time  ]"<< " Kernel PtsRearrange_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
-#ifdef DEBUG
-  FLT *h_kxsorted, *h_kysorted, *h_csorted;
+#if 1
+  FLT *h_kxsorted, *h_kysorted;
+  CPX *h_csorted;
   h_kxsorted = (FLT*)malloc(totalnupts*sizeof(FLT));
   h_kysorted = (FLT*)malloc(totalnupts*sizeof(FLT));
-  h_csorted  = (FLT*)malloc(2*totalnupts*sizeof(FLT));
+  h_csorted  = (CPX*)malloc(totalnupts*sizeof(CPX));
   checkCudaErrors(cudaMemcpy(h_kxsorted,d_kxsorted,totalnupts*sizeof(FLT),
                              cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMemcpy(h_kysorted,d_kysorted,totalnupts*sizeof(FLT),
                              cudaMemcpyDeviceToHost));
-  checkCudaErrors(cudaMemcpy(h_csorted,d_csorted,2*totalnupts*sizeof(FLT),
+  checkCudaErrors(cudaMemcpy(h_csorted,d_csorted,totalnupts*sizeof(CPX),
                              cudaMemcpyDeviceToHost));
   for (int i=0; i<totalnupts; i++){
+    //printf("[debug ] (x,y)=(%f, %f), bin#=%d\n", h_kxsorted[i], h_kysorted[i],
+    //                                             (floor(h_kxsorted[i]/bin_size_x)+1)+numbins[0]*(floor(h_kysorted[i]/bin_size_y)+1));
     cout <<"[debug ] (x,y) = ("<<setw(10)<<h_kxsorted[i]<<","
          <<setw(10)<<h_kysorted[i]<<"), bin# =  "
          <<(floor(h_kxsorted[i]/bin_size_x)+1)+numbins[0]*(floor(h_kysorted[i]/bin_size_y)+1)<<endl;
@@ -274,7 +277,7 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
 
   FLT tol=1e-6;
   int ns=std::ceil(-log10(tol/10.0));   // psi's support in terms of number of cells
-  int es_c=4.0/(ns*ns);
+  FLT es_c=4.0/(ns*ns);
   FLT es_beta = 2.30 * (FLT)ns;
 
   FLT *d_c,*d_kx,*d_ky,*d_fw;
