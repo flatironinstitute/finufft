@@ -187,9 +187,9 @@ void uniformUpdate(int n, int* data, int* buffer)
 }
 
 __global__
-void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                    int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
-                    FLT *y, FLT *y_sorted, FLT *c, FLT *c_sorted)
+void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
+                    int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
+                    FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted)
 {
   int i = blockDim.x*blockIdx.x + threadIdx.x;
   int binx, biny;
@@ -202,11 +202,16 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
     biny = floor(y_rescaled/bin_size_y)+1;
     binidx = binx+biny*nbinx;
 
+    x_rescaled = x[i];
+    y_rescaled = y[i];
+    nf1 = 2;
+    nf2 = 2;
     //binidx = floor(x_rescaled/bin_size_x);
     x_sorted[bin_startpts[binidx]+sortidx[i]] = x_rescaled;
     y_sorted[bin_startpts[binidx]+sortidx[i]] = y_rescaled;
-    c_sorted[2*(bin_startpts[binidx]+sortidx[i])]   = c[2*i];
-    c_sorted[2*(bin_startpts[binidx]+sortidx[i])+1] = c[2*i+1];
+    c_sorted[bin_startpts[binidx]+sortidx[i]] = c[i];
+    //c_sorted[2*(bin_startpts[binidx]+sortidx[i])]   = c[2*i];
+    //c_sorted[2*(bin_startpts[binidx]+sortidx[i])+1] = c[2*i+1];
 
     // four edges
     if( binx == 1 ){
@@ -250,61 +255,77 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled - nf1;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled - nf2;
     }
-    c_sorted[ 2*(bin_startpts[binidx]+sortidx[i]) ] = c[2*i];
-    c_sorted[ 2*(bin_startpts[binidx]+sortidx[i])+1 ] = c[2*i+1];
+    c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
+    //c_sorted[ 2*(bin_startpts[binidx]+sortidx[i]) ] = c[2*i];
+    //c_sorted[ 2*(bin_startpts[binidx]+sortidx[i])+1 ] = c[2*i+1];
   }
 }
 
 __global__
-void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
-                       FLT *x_sorted, FLT *y_sorted, FLT *c_sorted, FLT *fw, int ns,
+void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, 
+                       int *bin_startpts, FLT *x_sorted, FLT *y_sorted, 
+                       gpuComplex *c_sorted, gpuComplex *fw, int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta)
 {
   __shared__ FLT xshared[max_shared_mem/4];
   __shared__ FLT yshared[max_shared_mem/4];
-  __shared__ FLT cshared[2*max_shared_mem/4];
+  __shared__ gpuComplex cshared[max_shared_mem/4];
 
   int ix = blockDim.x*blockIdx.x+threadIdx.x;// output index, coord of the index
   int iy = blockDim.y*blockIdx.y+threadIdx.y;// output index, coord of the index
   int outidx = ix + iy*nf1;
-  int tid = threadIdx.x + blockDim.x*threadIdx.y;
+  int tid = threadIdx.x+blockDim.x*threadIdx.y;
   int binxLo = blockIdx.x*nbin_block_x;
   int binxHi = binxLo+nbin_block_x+1;
   int binyLo = blockIdx.y*nbin_block_y;
   int binyHi = binyLo+nbin_block_y+1;
   int start, end, j, bx, by, bin;
-  FLT tr=0.0, ti=0.0;
+#if 0
+  binyLo=0;
+  binxLo=0;
+  binyHi=5;
+  binxHi=9;
+#endif
+  //FLT tr=0.0, ti=0.0;
+  gpuComplex t=make_cuDoubleComplex(0,0);
   // run through all bins
   if( ix < nf1 && iy < nf2){
     for(by=binyLo; by<=binyHi; by++){
-      //for(bx=binxLo; bx<=binxHi; bx++){
-        //bin = bx+by*nbinx;
-        //start = bin_startpts[bin];
-        //end   = bin_startpts[bin+1];
+//      for(bx=binxLo; bx<=binxHi; bx++){
+//        bin = bx+by*nbinx;
+//        start = bin_startpts[bin];
+//        end   = bin_startpts[bin+1];
         start = bin_startpts[binxLo+by*nbinx];
         end   = bin_startpts[binxHi+by*nbinx+1];
         if( tid < end-start){
-          xshared[tid] = x_sorted[start+tid];
-          yshared[tid] = y_sorted[start+tid];
-          cshared[2*tid]   = c_sorted[2*(start+tid)];
-          cshared[2*tid+1] = c_sorted[2*(start+tid)+1];
+          xshared[tid] = RESCALE(x_sorted[start+tid],nf1,1);
+          yshared[tid] = RESCALE(y_sorted[start+tid],nf2,1);
+          cshared[tid] = c_sorted[start+tid];
+          //cshared[2*tid]   = c_sorted[2*(start+tid)];
+          //cshared[2*tid+1] = c_sorted[2*(start+tid)+1];
         }
         __syncthreads();
         for(j=0; j<end-start; j++){
           FLT disx = abs(xshared[j]-ix);
           FLT disy = abs(yshared[j]-iy);
-          if( disx < ns/2.0 && disy < ns/2.0){
-             //tr++;
-             //ti++;
-             FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
-             tr += cshared[2*j]*kervalue;
-             ti += cshared[2*j+1]*kervalue;
+          gpuComplex c=cshared[j];
+          if( disx <= ns/2.0 && disy <= ns/2.0){
+             FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+             FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+             //t.x+=kervalue1*kervalue2;
+             //t.y+=kervalue1*kervalue2;
+             t.x++;
+             t.y++;
+             //t = cuCadd(t, make_cuDoubleComplex(c.x*kervalue, c.y*kervalue));
+             //tr += cshared[2*j]*kervalue;
+             //ti += cshared[2*j+1]*kervalue;
           }
         }
       //}
     }
-    fw[2*outidx]   = tr;
-    fw[2*outidx+1] = ti;
+    fw[outidx]=t;
+    //fw[2*outidx]   = tr;
+    //fw[2*outidx+1] = ti;
   }
 }
 

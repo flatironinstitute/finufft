@@ -1,18 +1,19 @@
 #include <helper_cuda.h>
 #include <iostream>
 #include <iomanip>
+#include <cuComplex.h>
 #include "../scan/scan_common.h"
 #include "spread.h"
 
 using namespace std;
 
 #define INFO
-//#define DEBUG
-//#define RESULT
+#define DEBUG
+#define RESULT
 #define TIME
 
-int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
-                               FLT *h_ky, FLT *h_c, int bin_size_x, int bin_size_y)
+int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+                               FLT *h_ky, CPX *h_c, int bin_size_x, int bin_size_y)
 {
   CNTime timer;
   dim3 threadsPerBlock;
@@ -20,10 +21,11 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
 
   FLT tol=1e-6;
   int ns=std::ceil(-log10(tol/10.0));   // psi's support in terms of number of cells
-  int es_c=4.0/(ns*ns);
+  FLT es_c=4.0/(ns*ns);
   FLT es_beta = 2.30 * (FLT)ns;
 
-  FLT *d_c,*d_kx,*d_ky,*d_fw;
+  FLT *d_kx,*d_ky;
+  gpuComplex *d_c,*d_fw;
   // Parameter setting
   int numbins[2];
   int totalnupts;
@@ -40,14 +42,15 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   cout<<"[info  ] numbins (including ghost bins) = ["
       <<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
-  FLT *d_kxsorted,*d_kysorted,*d_csorted;
+  FLT *d_kxsorted,*d_kysorted;
+  gpuComplex *d_csorted;
   int *h_binsize, *h_binstartpts, *h_sortidx; // For debug
 
   timer.restart();
   checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
   checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
-  checkCudaErrors(cudaMalloc(&d_c,2*M*sizeof(FLT)));
-  checkCudaErrors(cudaMalloc(&d_fw,2*nf1*nf2*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_c,M*sizeof(gpuComplex)));
+  checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(gpuComplex)));
   checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
@@ -58,7 +61,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   timer.restart();
   checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMemcpy(d_c,h_c,2*M*sizeof(FLT),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
 #ifdef TIME
   cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
 #endif
@@ -159,7 +162,6 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
-
 #ifdef DEBUG
   checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int),
                              cudaMemcpyDeviceToHost));
@@ -239,7 +241,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
   timer.restart();
-  checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(FLT),
+  checkCudaErrors(cudaMemcpy(h_fw,d_fw,nf1*nf2*sizeof(gpuComplex),
                              cudaMemcpyDeviceToHost));
 #ifdef TIME
   cudaDeviceSynchronize();

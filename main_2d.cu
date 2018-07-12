@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
   cout<<"[info  ] Dividing the uniform grids to bin size["<<bin_size_x<<"x"<<bin_size_y<<"]"<<endl;
 #endif
   timer.restart();
-  ier = cnufftspread2d_gpu_odriven(nf1, nf2, (FLT*) fwo, M, x, y, (FLT*) c, bin_size_x, bin_size_y);
+  ier = cnufftspread2d_gpu_odriven(nf1, nf2, fwo, M, x, y, c, bin_size_x, bin_size_y);
   FLT todriven=timer.elapsedsec();
 #ifdef TIME
   printf("[odriven] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",M,N1,N2,todriven,M/todriven);

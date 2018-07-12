@@ -2,11 +2,13 @@
 #define __UTILS_H__
 
 #include <complex>
+#include <cuComplex.h>
 
 using namespace std;
 
 typedef double FLT;
 typedef complex<double> CPX;
+typedef cuDoubleComplex gpuComplex;
 
 #define rand01() ((FLT)rand()/RAND_MAX)
 // unif[-1,1]:
