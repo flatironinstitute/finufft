@@ -81,11 +81,18 @@ void FillGhostBin_2d(int nbinx, int nbiny, int*bin_size)
       bin_size[ix+iy*nbinx] = bin_size[ix+(nbiny-2)*nbinx];
     if(iy == nbiny-1)
       bin_size[ix+iy*nbinx] = bin_size[ix+1*nbinx];
-    __syncthreads();
     if(ix == 0)
       bin_size[ix+iy*nbinx] = bin_size[(nbinx-2)+iy*nbinx];
     if(ix == nbinx-1)
       bin_size[ix+iy*nbinx] = bin_size[1+iy*nbinx];
+    if(ix == 0 && iy == 0)
+      bin_size[ix+iy*nbinx] = bin_size[(nbinx-2)+(nbiny-2)*nbinx];
+    if(ix == 0 && iy == nbiny-1)
+      bin_size[ix+iy*nbinx] = bin_size[(nbinx-2)+1*nbinx];
+    if(ix == nbinx-1 && iy == 0)
+      bin_size[ix+iy*nbinx] = bin_size[1+(nbiny-2)*nbinx];
+    if(ix == nbinx-1 && iy == nbiny-1)
+      bin_size[ix+iy*nbinx] = bin_size[1+1*nbinx];
   }
 }
 

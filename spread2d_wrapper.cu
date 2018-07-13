@@ -88,7 +88,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
     cout<<"[debug ] ";
     for(int i=0; i<numbins[0]; i++){
       if(i!=0) cout<<" ";
-      cout <<"bin["<<i<<","<<j<<"] = "<<h_binsize[i+j*numbins[0]];
+      cout <<" bin["<<setw(3)<<i<<","<<setw(3)<<j<<"]="<<h_binsize[i+j*numbins[0]];
     }
     cout<<endl;
   }
@@ -118,7 +118,11 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
     cout<<"[debug ] ";
     for(int i=0; i<numbins[0]; i++){
       if(i!=0) cout<<" ";
-      cout <<"bin["<<i<<","<<j<<"] = "<<h_binsize[i+j*numbins[0]];
+      if(h_binsize[i+j*numbins[0]] > 64){
+        printf("can't handle binsize larger than 64 now, please use smaller bin\n");
+        return 1;
+      }
+      cout <<"bin["<<setw(3)<<i<<","<<setw(3)<<j<<"] = "<<h_binsize[i+j*numbins[0]];
     }
     cout<<endl;
   }
@@ -170,7 +174,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
     cout<<"[debug ] ";
     for(int i=0; i<numbins[0]; i++){
       if(i!=0) cout<<" ";
-      cout <<"bin["<<i<<","<<j<<"] = "<<setw(2)<<h_binstartpts[i+j*numbins[0]];
+      cout <<"bin["<<setw(3)<<i<<","<<setw(3)<<j<<"] = "<<setw(2)<<h_binstartpts[i+j*numbins[0]];
     }
     cout<<endl;
   }
