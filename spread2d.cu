@@ -36,7 +36,8 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
    This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
 {   
   //return exp(es_beta * (sqrt(1.0 - es_c*x*x) - 1));
-  return x;
+  //return x;
+  return 1.0;
 }
 
 static __inline__ __device__
@@ -276,7 +277,6 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
   int ix = blockDim.x*blockIdx.x+threadIdx.x;// output index, coord of the index
   int iy = blockDim.y*blockIdx.y+threadIdx.y;// output index, coord of the index
   int outidx = ix + iy*nf1;
-  int tid = threadIdx.x+blockDim.x*threadIdx.y;
   int binxLo = blockIdx.x*nbin_block_x;
   int binxHi = binxLo+nbin_block_x+1 < nbinx-1 ? binxLo+nbin_block_x+1 : nbinx-1;
   int binyLo = blockIdx.y*nbin_block_y;
@@ -287,13 +287,13 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
   gpuComplex t=make_cuDoubleComplex(0,0);
   // run through all bins
   for(by=binyLo; by<=binyHi; by++){
-    for(bx=binxLo; bx<=binxHi; bx++){
-      bin = bx+by*nbinx;
-      start = bin_startpts[bin];
-      end   = bin_startpts[bin+1];
-      //start = bin_startpts[binxLo+by*nbinx];
-      //end   = bin_startpts[binxHi+by*nbinx+1];
-      if( tid < end-start){ // (important) this assume that end-start < number of threads in the block
+    //for(bx=binxLo; bx<=binxHi; bx++){
+      //bin = bx+by*nbinx;
+      //start = bin_startpts[bin];
+      //end   = bin_startpts[bin+1];
+      start = bin_startpts[binxLo+by*nbinx];
+      end   = bin_startpts[binxHi+by*nbinx+1];
+      for(int tid=threadIdx.x+blockDim.x*threadIdx.y; tid<end-start; tid+=blockDim.x*blockDim.y){
         xshared[tid] = x_sorted[start+tid];
         yshared[tid] = y_sorted[start+tid];
         cshared[tid] = c_sorted[start+tid];
@@ -317,7 +317,7 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
           }
         }
       }
-    }
+    //}
   } 
   if( ix < nf1 && iy < nf2){
     fw[outidx]=t;
