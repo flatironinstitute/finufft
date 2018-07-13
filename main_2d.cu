@@ -98,14 +98,27 @@ int main(int argc, char* argv[])
         if( disx < ns/2.0 && disy < ns/2.0){
              //FLT kervalue1 = exp(es_beta * (sqrt(1.0 - es_c*disx*disx) - 1));
              //FLT kervalue2 = exp(es_beta * (sqrt(1.0 - es_c*disy*disy) - 1));
-             FLT kervalue1 = disx;
-             FLT kervalue2 = disy;
+             FLT kervalue1 = 1;
+             FLT kervalue2 = 1;
              fwtrue[i+j*nf1].real()+=kervalue1*kervalue2;
              fwtrue[i+j*nf1].imag()+=kervalue1*kervalue2;
         }
       }
     }
   }
+  cout<<"[result-true]"<<endl;
+  for(int j=0; j<nf2; j++){
+    if( j % bin_size_y == 0)
+        printf("\n");
+    for (int i=0; i<nf1; i++){
+      if( i % bin_size_x == 0 && i!=0)
+        printf(" |");
+      printf(" (%2.3g,%2.3g)",fwtrue[i+j*nf1].real(),fwtrue[i+j*nf1].imag() );
+      //cout<<" "<<setw(8)<<fwo[i+j*nf1];
+    }
+    cout<<endl;
+  }
+  cout<<endl;
 #endif
   cout<<endl;
   printf("[info  ] rel error between input driven, and out driven methods = %f\n", relerrtwonorm(nf1*nf2,fwi,fwo));
@@ -115,24 +128,10 @@ int main(int argc, char* argv[])
   for(int j=0; j<nf2; j++){
     for (int i=0; i<nf1; i++){
       if( norm(fwi[i+j*nf1]-fwo[i+j*nf1]) > 1e-8){
-         cout<<norm(fwtrue[i+j*nf1]-fwo[i+j*nf1])<<" ";
-         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwo[i+j*nf1] <<","<<fwi[i+j*nf1]<<endl;
+         cout<<norm(fwi[i+j*nf1]-fwo[i+j*nf1])<<" ";
+         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwo[i+j*nf1]<<endl;
       }
     }
-  }
-  cout<<endl;
-#endif
-#if 0 
-  cout<<"[result-input]"<<endl;
-  for(int j=0; j<nf2; j++){
-    if( j % bin_size_y == 0)
-        printf("\n");
-    for (int i=0; i<nf1; i++){
-      if( i % bin_size_x == 0 && i!=0)
-        printf(" |");
-      cout<<" "<<setw(3)<<(norm(fwi[i+j*nf1]-fwo[i+j*nf1]) > 1e-14? 1:0);
-    }
-    cout<<endl;
   }
   cout<<endl;
 #endif

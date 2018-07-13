@@ -269,7 +269,7 @@ __global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, 
                        int *bin_startpts, FLT *x_sorted, FLT *y_sorted, 
                        gpuComplex *c_sorted, gpuComplex *fw, int ns,
-                       int nf1, int nf2, FLT es_c, FLT es_beta)
+                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
 {
   __shared__ FLT xshared[max_shared_mem/4];
   __shared__ FLT yshared[max_shared_mem/4];
@@ -277,7 +277,7 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
 
   int ix = blockDim.x*blockIdx.x+threadIdx.x;// output index, coord of the index
   int iy = blockDim.y*blockIdx.y+threadIdx.y;// output index, coord of the index
-  int outidx = ix + iy*nf1;
+  int outidx = ix + iy*fw_width;
   int binxLo = blockIdx.x*nbin_block_x;
   int binxHi = binxLo+nbin_block_x+1 < nbinx-1 ? binxLo+nbin_block_x+1 : nbinx-1;
   int binyLo = blockIdx.y*nbin_block_y;
@@ -329,7 +329,7 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
 
 __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, const int ns,
-                       int nf1, int nf2, FLT es_c, FLT es_beta)
+                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
 {
   int xstart,ystart,xend,yend;
   int xx, yy, ix, iy;
@@ -366,7 +366,7 @@ void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, const int ns,
 #endif
           ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
           iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
-          outidx = ix+iy*nf1;
+          outidx = ix+iy*fw_width;
 #if 0
           FLT kervalue=ker1val*ker2val;
 #endif

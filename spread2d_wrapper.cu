@@ -50,7 +50,12 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
   checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
   checkCudaErrors(cudaMalloc(&d_c,M*sizeof(gpuComplex)));
-  checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(gpuComplex)));
+  //checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(gpuComplex)));
+  int fw_width;
+  size_t pitch;
+  checkCudaErrors(cudaMallocPitch((void**) &d_fw, &pitch,nf1*sizeof(gpuComplex),nf2));
+  fw_width = pitch/sizeof(gpuComplex);
+
   checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
@@ -130,14 +135,11 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   int scanblocksize=512;
   int numscanblocks=ceil((double)n/scanblocksize);
   int* d_scanblocksum, *d_scanblockstartpts;
-  int* h_scanblocksum, *h_scanblockstartpts;
 #ifdef TIME
   printf("[debug ] n=%d, numscanblocks=%d\n",n,numscanblocks);
 #endif 
   checkCudaErrors(cudaMalloc(&d_scanblocksum,numscanblocks*sizeof(int)));
   checkCudaErrors(cudaMalloc(&d_scanblockstartpts,(numscanblocks+1)*sizeof(int)));
-  h_scanblocksum     =(int*) malloc(numscanblocks*sizeof(int));
-  h_scanblockstartpts=(int*) malloc((numscanblocks+1)*sizeof(int));
  
   for(int i=0;i<numscanblocks;i++){
     int nelemtoscan=(n-scanblocksize*i)>scanblocksize ? scanblocksize : n-scanblocksize*i;
@@ -145,6 +147,8 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 			            d_binstartpts+i*scanblocksize,d_scanblocksum+i);
   }
 #ifdef DEBUG
+  int* h_scanblocksum;
+  h_scanblocksum     =(int*) malloc(numscanblocks*sizeof(int));
   checkCudaErrors(cudaMemcpy(h_scanblocksum,d_scanblocksum,numscanblocks*sizeof(int),
 		             cudaMemcpyDeviceToHost));
   for(int i=0;i<numscanblocks;i++){
@@ -166,6 +170,8 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
+  int *h_scanblockstartpts;
+  h_scanblockstartpts=(int*) malloc((numscanblocks+1)*sizeof(int));
   checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int),
                              cudaMemcpyDeviceToHost));
   cout<<"[debug ] Result of scan bin_size array:"<<endl;
@@ -241,14 +247,16 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   // blockSize must be a multiple of bin_size_x
   Spread_2d_Odriven<<<blocks, threadsPerBlock>>>(nbin_block_x, nbin_block_y, numbins[0], numbins[1],
                                                  d_binstartpts, d_kxsorted, d_kysorted, d_csorted,
-                                                 d_fw, ns, nf1, nf2, es_c, es_beta);
+                                                 d_fw, ns, nf1, nf2, es_c, es_beta, pitch/sizeof(gpuComplex));
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
   timer.restart();
-  checkCudaErrors(cudaMemcpy(h_fw,d_fw,nf1*nf2*sizeof(gpuComplex),
-                             cudaMemcpyDeviceToHost));
+  //checkCudaErrors(cudaMemcpy(h_fw,d_fw,nf1*nf2*sizeof(gpuComplex),
+  //                           cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,pitch,nf1*sizeof(gpuComplex),nf2,
+                               cudaMemcpyDeviceToHost));
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
@@ -288,7 +296,9 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
   checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
   checkCudaErrors(cudaMalloc(&d_c,2*M*sizeof(FLT)));
-  checkCudaErrors(cudaMalloc(&d_fw,2*nf1*nf2*sizeof(FLT)));
+  //checkCudaErrors(cudaMalloc(&d_fw,2*nf1*nf2*sizeof(FLT)));
+  size_t pitch;
+  checkCudaErrors(cudaMallocPitch((void**) &d_fw,&pitch,nf1*sizeof(gpuComplex),nf2));
 #ifdef TIME
   cout<<"[time  ]"<< " Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
 #endif
@@ -307,14 +317,16 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
   blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
   blocks.y = 1;
   Spread_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
-                                                 nf1, nf2, es_c, es_beta);
+                                                 nf1, nf2, es_c, es_beta, pitch/sizeof(gpuComplex));
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
   timer.restart();
-  checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(FLT),
-                             cudaMemcpyDeviceToHost));
+  //checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(FLT),
+  //                           cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,pitch,nf1*sizeof(gpuComplex),nf2,
+                               cudaMemcpyDeviceToHost));
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
