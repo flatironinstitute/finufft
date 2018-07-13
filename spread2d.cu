@@ -176,8 +176,9 @@ void prescan(int n, int* bin_size, int* bin_startpts, int* scanblock_sum)
   if(2*thid+1<n){
     bin_startpts[2*thid+1]=temp[2*thid+1];
   }
-  if(2*thid<n)
+  if(2*thid<n){
     bin_startpts[2*thid]=temp[2*thid];
+  }
   *scanblock_sum=temp[n-1]+bin_size[n-1];
 }
 

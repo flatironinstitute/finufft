@@ -144,19 +144,22 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
     prescan<<<1, scanblocksize/2>>>(nelemtoscan,d_binsize+i*scanblocksize,
 			            d_binstartpts+i*scanblocksize,d_scanblocksum+i);
   }
+#ifdef DEBUG
   checkCudaErrors(cudaMemcpy(h_scanblocksum,d_scanblocksum,numscanblocks*sizeof(int),
 		             cudaMemcpyDeviceToHost));
-  h_scanblockstartpts[0] = 0;
-  for(int i=1;i<numscanblocks+1;i++){
-    h_scanblockstartpts[i] = h_scanblockstartpts[i-1]+h_scanblocksum[i-1];
-  }
-#ifdef DEBUG
-  for(int i=0;i<numscanblocks+1;i++){
-    cout<<"[debug ] scanblocksum["<<i<<"]="<<h_scanblockstartpts[i]<<endl;
+  for(int i=0;i<numscanblocks;i++){
+    cout<<"[debug ] scanblocksum["<<i<<"]="<<h_scanblocksum[i]<<endl;
   }
 #endif
-  checkCudaErrors(cudaMemcpy(d_scanblockstartpts,h_scanblockstartpts,(numscanblocks+1)*sizeof(int),
-		             cudaMemcpyHostToDevice));
+  int next = pow(2, ceil(log(numscanblocks+1)/log(2)));
+  prescan<<<1, next/2>>>(numscanblocks,d_scanblocksum,d_scanblockstartpts,d_scanblockstartpts+numscanblocks);
+#ifdef DEBUG
+  checkCudaErrors(cudaMemcpy(h_scanblockstartpts,d_scanblockstartpts,(numscanblocks+1)*sizeof(int),
+		             cudaMemcpyDeviceToHost));
+  for(int i=0;i<numscanblocks+1;i++){
+    cout<<"[debug ] scanblockstartpts["<<i<<"]="<<h_scanblockstartpts[i]<<endl;
+  }
+#endif
   uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
 #ifdef TIME
   cudaDeviceSynchronize();
@@ -250,7 +253,6 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
 #endif
-
 // Free memory
   cudaFree(d_kx);
   cudaFree(d_ky);
