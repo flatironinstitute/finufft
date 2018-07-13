@@ -27,15 +27,16 @@ static __inline__ __device__ double atomicAdd(double* address, double val)
 }
 #endif
 
-__device__
+static __inline__ __device__
 FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
    This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
-{
-    return exp(es_beta * (sqrt(1.0 - es_c*x*x) - 1));
+{   
+  //return exp(es_beta * (sqrt(1.0 - es_c*x*x) - 1));
+  return x;
 }
 
 static __inline__ __device__
@@ -61,8 +62,10 @@ void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, in
   int oldidx;
   FLT x_rescaled,y_rescaled;
   if (i < M){
-    x_rescaled = RESCALE(x[i],nf1,1);
-    y_rescaled = RESCALE(y[i],nf2,1);
+    //x_rescaled = RESCALE(x[i],nf1,1);
+    //y_rescaled = RESCALE(y[i],nf2,1);
+    x_rescaled=x[i];
+    y_rescaled=y[i];
     binx = floor(x_rescaled/bin_size_x)+1;
     biny = floor(y_rescaled/bin_size_y)+1;
     binidx = binx+biny*nbinx;
@@ -175,11 +178,6 @@ void prescan(int n, int* bin_size, int* bin_startpts, int* scanblock_sum)
   if(2*thid<n)
     bin_startpts[2*thid]=temp[2*thid];
   *scanblock_sum=temp[n-1]+bin_size[n-1];
-/*
-  if(thid==0){
-    bin_startpts[n]=temp[n-1]+bin_size[n-1];
-  }
-*/
 }
 
 __global__
@@ -207,8 +205,10 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
   int binidx;
   FLT x_rescaled, y_rescaled;
   if( i < M){
-    x_rescaled = RESCALE(x[i],nf1,1);
-    y_rescaled = RESCALE(y[i],nf2,1);
+    //x_rescaled = RESCALE(x[i],nf1,1);
+    //y_rescaled = RESCALE(y[i],nf2,1);
+    x_rescaled=x[i];
+    y_rescaled=y[i];
     binx = floor(x_rescaled/bin_size_x)+1;
     biny = floor(y_rescaled/bin_size_y)+1;
     binidx = binx+biny*nbinx;
@@ -216,8 +216,6 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
     x_sorted[bin_startpts[binidx]+sortidx[i]] = x_rescaled;
     y_sorted[bin_startpts[binidx]+sortidx[i]] = y_rescaled;
     c_sorted[bin_startpts[binidx]+sortidx[i]] = c[i];
-    //c_sorted[2*(bin_startpts[binidx]+sortidx[i])]   = c[2*i];
-    //c_sorted[2*(bin_startpts[binidx]+sortidx[i])+1] = c[2*i+1];
 
     // four edges
     if( binx == 1 ){
@@ -262,8 +260,6 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled - nf2;
     }
     c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
-    //c_sorted[ 2*(bin_startpts[binidx]+sortidx[i]) ] = c[2*i];
-    //c_sorted[ 2*(bin_startpts[binidx]+sortidx[i])+1 ] = c[2*i+1];
   }
 }
 
@@ -286,60 +282,55 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
   int binyLo = blockIdx.y*nbin_block_y;
   int binyHi = binyLo+nbin_block_y+1 < nbiny-1 ? binyLo+nbin_block_y+1 : nbiny-1;
   int start, end, j, bx, by, bin;
-#if 0
-  binyLo=0;
-  binxLo=0;
-  binyHi=5;
-  binxHi=9;
-#endif
+  FLT disx, disy, kervalue1, kervalue2;
   //FLT tr=0.0, ti=0.0;
   gpuComplex t=make_cuDoubleComplex(0,0);
   // run through all bins
-  if( ix < nf1 && iy < nf2){
-    for(by=binyLo; by<=binyHi; by++){
-//      for(bx=binxLo; bx<=binxHi; bx++){
-//        bin = bx+by*nbinx;
-//        start = bin_startpts[bin];
-//        end   = bin_startpts[bin+1];
-        start = bin_startpts[binxLo+by*nbinx];
-        end   = bin_startpts[binxHi+by*nbinx+1];
-        if( tid < end-start){
-          xshared[tid] = x_sorted[start+tid];
-          yshared[tid] = y_sorted[start+tid];
-          cshared[tid] = c_sorted[start+tid];
-          //cshared[2*tid]   = c_sorted[2*(start+tid)];
-          //cshared[2*tid+1] = c_sorted[2*(start+tid)+1];
-        }
-        __syncthreads();
+  for(by=binyLo; by<=binyHi; by++){
+    for(bx=binxLo; bx<=binxHi; bx++){
+      bin = bx+by*nbinx;
+      start = bin_startpts[bin];
+      end   = bin_startpts[bin+1];
+      //start = bin_startpts[binxLo+by*nbinx];
+      //end   = bin_startpts[binxHi+by*nbinx+1];
+      if( tid < end-start){ // (important) this assume that end-start < number of threads in the block
+        xshared[tid] = x_sorted[start+tid];
+        yshared[tid] = y_sorted[start+tid];
+        cshared[tid] = c_sorted[start+tid];
+      }
+      __syncthreads();
+      if( ix < nf1 && iy < nf2){
         for(j=0; j<end-start; j++){
-          FLT disx = abs(xshared[j]-ix);
-          FLT disy = abs(yshared[j]-iy);
+          disx = abs(xshared[j]-ix);
+          disy = abs(yshared[j]-iy);
           gpuComplex c=cshared[j];
-          if( disx <= ns/2.0 && disy <= ns/2.0){
-             FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-             FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-             //t.x+=kervalue1*kervalue2;
-             //t.y+=kervalue1*kervalue2;
-             t.x++;
-             t.y++;
-             //t = cuCadd(t, make_cuDoubleComplex(c.x*kervalue, c.y*kervalue));
-             //tr += cshared[2*j]*kervalue;
-             //ti += cshared[2*j+1]*kervalue;
+          if( (disx < 7.0/2.0) && (disy < 7.0/2.0)){
+            kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+            kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+            t.x+=kervalue1*kervalue2;
+            t.y+=kervalue1*kervalue2;
+            //t.x++;
+            //t.y++;
+            //t = cuCadd(t, make_cuDoubleComplex(c.x*kervalue, c.y*kervalue));
+            //tr += cshared[2*j]*kervalue;
+            //ti += cshared[2*j+1]*kervalue;
           }
         }
-      //}
+      }
     }
+  } 
+  if( ix < nf1 && iy < nf2){
     fw[outidx]=t;
+  }
     //fw[2*outidx]   = tr;
     //fw[2*outidx+1] = ti;
-  }
 }
 
 __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta)
 {
-  int xstart, ystart;
+  int xstart,ystart,xend,yend;
   int xx, yy, ix, iy;
   int outidx;
   //FLT ker1[7];
@@ -349,10 +340,14 @@ void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, const int ns,
 
   FLT x_rescaled, y_rescaled;
   for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-    x_rescaled = RESCALE(x[i],nf1,1);
-    y_rescaled = RESCALE(y[i],nf2,1);
+    //x_rescaled = RESCALE(x[i],nf1,1);
+    //y_rescaled = RESCALE(y[i],nf2,1);
+    x_rescaled=x[i];
+    y_rescaled=y[i];
     xstart = ceil(x_rescaled - ns/2.0);
     ystart = ceil(y_rescaled - ns/2.0);
+    xend = floor(x_rescaled + ns/2.0);
+    yend = floor(y_rescaled + ns/2.0);
 
 #if 0
     FLT x1=(FLT)xstart-x_rescaled;
@@ -360,22 +355,28 @@ void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, const int ns,
     eval_kernel_vec_Horner(ker1,x1,ns,sigma);
     eval_kernel_vec_Horner(ker2,y1,ns,sigma);
 #endif
-    for(yy=ystart; yy<ystart+ns; yy++){
-       //ker2val=ker2[yy-ystart];
-       for(xx=xstart; xx<xstart+ns; xx++){
-          //ker1val=ker1[xx-xstart];
+    for(yy=ystart; yy<=yend; yy++){
+#if 0
+       ker2val=ker2[yy-ystart];
+#endif
+       for(xx=xstart; xx<=xend; xx++){
+#if 0
+          ker1val=ker1[xx-xstart];
+#endif
           ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
           iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
           outidx = ix+iy*nf1;
-          //FLT kervalue=ker1val*ker2val;
+#if 0
+          FLT kervalue=ker1val*ker2val;
+#endif
           FLT disx=abs(x_rescaled-xx);
           FLT disy=abs(y_rescaled-yy);
-          FLT kervalue = evaluate_kernel(sqrt(disx*disx+disy*disy), es_c, es_beta);
-          atomicAdd(&fw[2*outidx  ], kervalue*c[2*i]);
-          atomicAdd(&fw[2*outidx+1], kervalue*c[2*i+1]);
-
-          //atomicAdd((FLT*) &fw[2*outidx  ], 1.0);
-          //atomicAdd((FLT*) &fw[2*outidx+1], 1.0);
+          FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+          FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+          atomicAdd(&fw[2*outidx  ], kervalue1*kervalue2);
+          atomicAdd(&fw[2*outidx+1], kervalue1*kervalue2);
+          //atomicAdd(&fw[2*outidx  ], 1.0);
+          //atomicAdd(&fw[2*outidx+1], 1.0);
        }
     }
 

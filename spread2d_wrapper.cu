@@ -8,7 +8,7 @@
 using namespace std;
 
 #define INFO
-#define DEBUG
+//#define DEBUG
 #define RESULT
 #define TIME
 
@@ -71,14 +71,14 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   h_binstartpts = (int*)malloc((numbins[0]*numbins[1]+1)*sizeof(int));
   checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
   timer.restart();
-  CalcBinSize_2d<<<(M+128-1)/128, 128>>>(M,nf1,nf2,bin_size_x,bin_size_y,
-                                      numbins[0],numbins[1],d_binsize,
-                                      d_kx,d_ky,d_sortidx);
+  CalcBinSize_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
+                                        numbins[0],numbins[1],d_binsize,
+                                        d_kx,d_ky,d_sortidx);
 #ifdef TIME
   cudaDeviceSynchronize();
-  cout<<"[time  ]"<< " Kernel CalcBinSize_2d (#blocks, #threads)=("<<(M+128-1)/128<<","<<128<<") takes " << timer.elapsedsec() <<" s"<<endl;
+  cout<<"[time  ]"<< " Kernel CalcBinSize_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
-#ifdef DEBIG
+#ifdef DEBUG
   checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int),
                              cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
@@ -203,7 +203,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   printf("[time  ] #block=%d, #threads=%d\n", (M+1024-1)/1024,1024);
   cout<<"[time  ]"<< " Kernel PtsRearrange_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
-#if 1
+#ifdef DEBUG
   FLT *h_kxsorted, *h_kysorted;
   CPX *h_csorted;
   h_kxsorted = (FLT*)malloc(totalnupts*sizeof(FLT));
