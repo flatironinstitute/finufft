@@ -34,6 +34,11 @@ int main(int argc, char* argv[])
   int nf1 = (int) sigma*N1;
   int nf2 = (int) sigma*N2;
   int ier;
+  
+  if(nf1 % bin_size_x != 0 || nf2 % bin_size_y !=0){
+    cout << "mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
+    return 0;
+  }
 
   FLT *x, *y;
   CPX *c, *fwi, *fwo, *fwtrue;
@@ -63,7 +68,11 @@ int main(int argc, char* argv[])
   cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
   timer.restart();
-  ier = cnufftspread2d_gpu_idriven(nf1, nf2, (FLT*) fwi, M, x, y, (FLT*) c);
+  ier = cnufftspread2d_gpu_idriven(nf1, nf2, fwi, M, x, y, c);
+  if(ier != 0 ){
+    cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
+    return 0;
+  }
   //ier = cnufftspread2d_gpu_odriven(nf1, nf2, fwi, M, x, y, c, 4, 4);
   FLT tidriven=timer.elapsedsec();
 #ifdef TIME
@@ -80,6 +89,10 @@ int main(int argc, char* argv[])
 #endif
   timer.restart();
   ier = cnufftspread2d_gpu_odriven(nf1, nf2, fwo, M, x, y, c, bin_size_x, bin_size_y);
+  if(ier != 0 ){
+    cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
+    return 0;
+  }
   FLT todriven=timer.elapsedsec();
 #ifdef TIME
   printf("[odriven] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",M,N1,N2,todriven,M/todriven);

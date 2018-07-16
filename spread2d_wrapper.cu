@@ -103,7 +103,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   threadsPerBlock.x = 32;
   threadsPerBlock.y = 32;// doesn't work for 64, doesn't know why
   if(threadsPerBlock.x*threadsPerBlock.y < 1024){
-    cout<<"number of threads in a block exceeds max num 1024("
+    cout<<"error: number of threads in a block exceeds max num 1024("
         <<threadsPerBlock.x*threadsPerBlock.y<<")"<<endl;
     return 1;
   }
@@ -132,7 +132,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 
   timer.restart();
   int n=numbins[0]*numbins[1];
-  int scanblocksize=512;
+  int scanblocksize=1024;
   int numscanblocks=ceil((double)n/scanblocksize);
   int* d_scanblocksum, *d_scanblockstartpts;
 #ifdef TIME
@@ -156,6 +156,10 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   }
 #endif
   int next = pow(2, ceil(log(numscanblocks+1)/log(2)));
+  if(next > 2048){
+    cout<<"error: number of elements to sort exceed the prescan capability"<<endl;
+    return 1;
+  }
   prescan<<<1, next/2>>>(numscanblocks,d_scanblocksum,d_scanblockstartpts,d_scanblockstartpts+numscanblocks);
 #ifdef DEBUG
   checkCudaErrors(cudaMemcpy(h_scanblockstartpts,d_scanblockstartpts,(numscanblocks+1)*sizeof(int),
@@ -247,7 +251,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   // blockSize must be a multiple of bin_size_x
   Spread_2d_Odriven<<<blocks, threadsPerBlock>>>(nbin_block_x, nbin_block_y, numbins[0], numbins[1],
                                                  d_binstartpts, d_kxsorted, d_kysorted, d_csorted,
-                                                 d_fw, ns, nf1, nf2, es_c, es_beta, pitch/sizeof(gpuComplex));
+                                                 d_fw, ns, nf1, nf2, es_c, es_beta, fw_width);
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
