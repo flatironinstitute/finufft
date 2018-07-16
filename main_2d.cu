@@ -15,24 +15,27 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
+  int nf1, nf2;
+  FLT sigma = 2.0;
   int N1, N2, M;
   if (argc<3) {
     fprintf(stderr,"Usage: spread2d [N1 N2 [M]]\n");
     return 1;
   }  
   double w;
-  sscanf(argv[1],"%lf",&w); N1 = (int)w;  // so can read 1e6 right!
-  sscanf(argv[2],"%lf",&w); N2 = (int)w;  // so can read 1e6 right!
+  sscanf(argv[1],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
+  sscanf(argv[2],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
+  N1 = (int) nf1/sigma;
+  N2 = (int) nf2/sigma;
   M = N1*N2;// let density always be 1
   if(argc>3){
     sscanf(argv[3],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
   }
   cout<<setprecision(5);
-  FLT sigma = 2.0;
   int bin_size_x = 4;// for now, mod(nf1, bin_size_x) == 0
   int bin_size_y = 4;
-  int nf1 = (int) sigma*N1;
-  int nf2 = (int) sigma*N2;
+  //int nf1 = (int) sigma*N1;
+  //int nf2 = (int) sigma*N2;
   int ier;
   
   if(nf1 % bin_size_x != 0 || nf2 % bin_size_y !=0){

@@ -376,8 +376,6 @@ void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
           FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
           atomicAdd(&fw[outidx].x, kervalue1*kervalue2);
           atomicAdd(&fw[outidx].y, kervalue1*kervalue2);
-          //atomicAdd(&fw[2*outidx  ], kervalue1*kervalue2);
-          //atomicAdd(&fw[2*outidx+1], kervalue1*kervalue2);
           //atomicAdd(&fw[2*outidx  ], 1.0);
           //atomicAdd(&fw[2*outidx+1], 1.0);
        }

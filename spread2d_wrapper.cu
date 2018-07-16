@@ -162,6 +162,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   }
   prescan<<<1, next/2>>>(numscanblocks,d_scanblocksum,d_scanblockstartpts,d_scanblockstartpts+numscanblocks);
 #ifdef DEBUG
+  int* h_scanblockstartpts = (int*) malloc((numscanblocks+1)*sizeof(int));
   checkCudaErrors(cudaMemcpy(h_scanblockstartpts,d_scanblockstartpts,(numscanblocks+1)*sizeof(int),
 		             cudaMemcpyDeviceToHost));
   for(int i=0;i<numscanblocks+1;i++){
@@ -174,8 +175,6 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
-  int *h_scanblockstartpts;
-  h_scanblockstartpts=(int*) malloc((numscanblocks+1)*sizeof(int));
   checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int),
                              cudaMemcpyDeviceToHost));
   cout<<"[debug ] Result of scan bin_size array:"<<endl;
@@ -294,15 +293,18 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   FLT es_c=4.0/(ns*ns);
   FLT es_beta = 2.30 * (FLT)ns;
 
-  FLT *d_c,*d_kx,*d_ky,*d_fw;
+  FLT *d_kx,*d_ky;
+  gpuComplex *d_c, *d_fw;
 
   timer.restart();
   checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
   checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
-  checkCudaErrors(cudaMalloc(&d_c,2*M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_c,M*sizeof(gpuComplex)));
   //checkCudaErrors(cudaMalloc(&d_fw,2*nf1*nf2*sizeof(FLT)));
+  int fw_width;
   size_t pitch;
   checkCudaErrors(cudaMallocPitch((void**) &d_fw,&pitch,nf1*sizeof(gpuComplex),nf2));
+  fw_width = pitch/sizeof(gpuComplex);
 #ifdef TIME
   cout<<"[time  ]"<< " Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
 #endif
@@ -310,7 +312,7 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   timer.restart();
   checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMemcpy(d_c,h_c,2*M*sizeof(FLT),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
 #ifdef TIME
   cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
 #endif
