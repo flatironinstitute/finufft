@@ -328,7 +328,7 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
 }
 
 __global__
-void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, const int ns,
+void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
 {
   int xstart,ystart,xend,yend;
@@ -374,8 +374,10 @@ void Spread_2d_Idriven(FLT *x, FLT *y, FLT *c, FLT *fw, int M, const int ns,
           FLT disy=abs(y_rescaled-yy);
           FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
           FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-          atomicAdd(&fw[2*outidx  ], kervalue1*kervalue2);
-          atomicAdd(&fw[2*outidx+1], kervalue1*kervalue2);
+          atomicAdd(&fw[outidx].x, kervalue1*kervalue2);
+          atomicAdd(&fw[outidx].y, kervalue1*kervalue2);
+          //atomicAdd(&fw[2*outidx  ], kervalue1*kervalue2);
+          //atomicAdd(&fw[2*outidx+1], kervalue1*kervalue2);
           //atomicAdd(&fw[2*outidx  ], 1.0);
           //atomicAdd(&fw[2*outidx+1], 1.0);
        }

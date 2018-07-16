@@ -282,8 +282,8 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   return 0;
 }
 
-int cnufftspread2d_gpu_idriven(int nf1, int nf2, FLT* h_fw, int M, FLT *h_kx,
-                               FLT *h_ky, FLT *h_c)
+int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+                               FLT *h_ky, CPX *h_c)
 {
   CNTime timer;
   dim3 threadsPerBlock;
