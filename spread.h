@@ -48,10 +48,15 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
 __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
+__global__
+void CreateSortIdx (int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx);
 
 int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                                FLT *h_ky, CPX* h_c, int bin_size_x, int bin_size_y);
 
 int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                                FLT *h_ky, CPX *h_c);
+
+int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+                                      FLT *h_ky, CPX* h_c);
 #endif

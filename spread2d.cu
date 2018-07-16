@@ -27,7 +27,7 @@ static __inline__ __device__ double atomicAdd(double* address, double val)
 }
 #endif
 
-static __inline__ __device__
+static __forceinline__ __device__
 FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
@@ -383,4 +383,18 @@ void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
 
   }
 
+}
+
+__global__
+void CreateSortIdx (int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx)
+{
+  int i = blockDim.x*blockIdx.x + threadIdx.x;
+  FLT x_rescaled,y_rescaled;
+  if (i < M){
+    //x_rescaled = RESCALE(x[i],nf1,1);
+    //y_rescaled = RESCALE(y[i],nf2,1);
+    x_rescaled=x[i];
+    y_rescaled=y[i];
+    sortidx[i] = floor(x_rescaled) + floor(y_rescaled)*nf1;
+  }
 }

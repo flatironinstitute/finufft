@@ -1,6 +1,12 @@
 #include <helper_cuda.h>
 #include <iostream>
 #include <iomanip>
+// idriven coarse grained
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/device_vector.h>
+
 #include <cuComplex.h>
 #include "../scan/scan_common.h"
 #include "spread.h"
@@ -15,6 +21,7 @@ using namespace std;
 int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                                FLT *h_ky, CPX *h_c, int bin_size_x, int bin_size_y)
 {
+  checkCudaErrors(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
   CNTime timer;
   dim3 threadsPerBlock;
   dim3 blocks;
@@ -284,6 +291,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                                FLT *h_ky, CPX *h_c)
 {
+  checkCudaErrors(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
   CNTime timer;
   dim3 threadsPerBlock;
   dim3 blocks;
@@ -323,7 +331,121 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
   blocks.y = 1;
   Spread_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
-                                                 nf1, nf2, es_c, es_beta, pitch/sizeof(gpuComplex));
+                                                 nf1, nf2, es_c, es_beta, fw_width);
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
+  timer.restart();
+  //checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(FLT),
+  //                           cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,pitch,nf1*sizeof(gpuComplex),nf2,
+                               cudaMemcpyDeviceToHost));
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
+#endif
+
+// Free memory
+  cudaFree(d_kx);
+  cudaFree(d_ky);
+  cudaFree(d_c);
+  cudaFree(d_fw);
+  return 0;
+}
+
+int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+                                      FLT *h_ky, CPX *h_c)
+{
+  CNTime timer;
+  dim3 threadsPerBlock;
+  dim3 blocks;
+
+  FLT tol=1e-6;
+  int ns=std::ceil(-log10(tol/10.0));   // psi's support in terms of number of cells
+  FLT es_c=4.0/(ns*ns);
+  FLT es_beta=2.30 * (FLT)ns;
+
+  FLT *d_kx,*d_ky;
+  gpuComplex *d_c, *d_fw;
+  FLT *d_kxsorted,*d_kysorted;
+  gpuComplex *d_csorted;
+  int *d_sortidx;
+
+  timer.restart();
+  checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_c,M*sizeof(gpuComplex)));
+
+  checkCudaErrors(cudaMalloc(&d_kxsorted,M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_kysorted,M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_csorted,M*sizeof(gpuComplex)));
+
+  checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
+  int fw_width;
+  size_t pitch;
+  checkCudaErrors(cudaMallocPitch((void**) &d_fw,&pitch,nf1*sizeof(gpuComplex),nf2));
+  fw_width = pitch/sizeof(gpuComplex);
+#ifdef TIME
+  cout<<"[time  ]"<< " Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
+#endif
+
+  timer.restart();
+  checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
+#ifdef TIME
+  cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
+#endif
+  
+  timer.restart();
+  threadsPerBlock.x = 1024;
+  threadsPerBlock.y = 1;
+  blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
+  blocks.y = 1;
+  CreateSortIdx<<<blocks, threadsPerBlock>>>(M, nf1, nf2, d_kx, d_ky, d_sortidx);
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " CreateSortIdx " << timer.elapsedsec() <<" s"<<endl;
+#endif
+#ifdef DEBUG
+  int* h_sortidx = (int*) malloc(M*sizeof(int));
+  checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
+  for(int i=0; i<M; i++){
+    printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
+  }
+#endif 
+  timer.restart();
+  thrust::counting_iterator<int> iter(0);
+  thrust::device_vector<int> indices(M);
+  thrust::copy(iter, iter + indices.size(), indices.begin());
+  thrust::sort_by_key(thrust::device, d_sortidx, d_sortidx + M, indices.begin());
+  thrust::gather(thrust::device, indices.begin(), indices.end(), d_kx, d_kxsorted);
+  thrust::gather(thrust::device, indices.begin(), indices.end(), d_ky, d_kysorted);
+  thrust::gather(thrust::device, indices.begin(), indices.end(), d_c, d_csorted);
+
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " thrust::sort_by_key " << timer.elapsedsec() <<" s"<<endl;
+#endif
+#ifdef DEBUG
+  checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(h_kx,d_kxsorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(h_ky,d_kysorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(h_c,d_csorted,M*sizeof(gpuComplex),cudaMemcpyDeviceToHost));
+  for(int i=0; i<M; i++){
+    printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
+  }
+#endif 
+  
+  timer.restart();
+  threadsPerBlock.x = 1024;
+  threadsPerBlock.y = 1;
+  blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
+  blocks.y = 1;
+  Spread_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kxsorted, d_kysorted, d_csorted, d_fw, M, ns,
+                                                 nf1, nf2, es_c, es_beta, fw_width);
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;

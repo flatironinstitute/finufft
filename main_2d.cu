@@ -44,11 +44,12 @@ int main(int argc, char* argv[])
   }
 
   FLT *x, *y;
-  CPX *c, *fwi, *fwo, *fwtrue;
+  CPX *c, *fwi, *fwo, *fwtrue, *fwic;
   cudaMallocHost(&x, M*sizeof(CPX));
   cudaMallocHost(&y, M*sizeof(CPX));
   cudaMallocHost(&c, M*sizeof(CPX));
   cudaMallocHost(&fwi, nf1*nf2*sizeof(CPX));
+  cudaMallocHost(&fwic, nf1*nf2*sizeof(CPX));
   cudaMallocHost(&fwo, nf1*nf2*sizeof(CPX));
   cudaMallocHost(&fwtrue, nf1*nf2*sizeof(CPX));
   for (int i = 0; i < M; i++) {
@@ -57,6 +58,7 @@ int main(int argc, char* argv[])
     c[i] = crandm11();
     //printf("(x,y)=(%f, %f)\n",x[i], y[i]);
   }
+
   CNTime timer;
   /*warm up gpu*/
   char *a;
@@ -84,7 +86,13 @@ int main(int argc, char* argv[])
 #endif
   cout<<endl;
 
-
+  timer.restart();
+  ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fwic, M, x, y, c);
+  FLT ticdriven=timer.elapsedsec();
+#ifdef TIME
+  printf("[idriven-sorted] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",M,N1,N2,ticdriven,M/ticdriven);
+#endif
+  cout<<endl;
 /* ------------------------------------------------------------------------------------------------------*/
 #ifdef INFO
   cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
@@ -98,7 +106,7 @@ int main(int argc, char* argv[])
   }
   FLT todriven=timer.elapsedsec();
 #ifdef TIME
-  printf("[odriven] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",M,N1,N2,todriven,M/todriven);
+  printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",M,N1,N2,nf1*nf2,todriven,M/todriven);
 #endif
 #if 0
   int ns=7;
@@ -143,9 +151,9 @@ int main(int argc, char* argv[])
   cout<<"[resultdiff]"<<endl;
   for(int j=0; j<nf2; j++){
     for (int i=0; i<nf1; i++){
-      if( norm(fwi[i+j*nf1]-fwo[i+j*nf1]) > 1e-8){
-         cout<<norm(fwi[i+j*nf1]-fwo[i+j*nf1])<<" ";
-         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwo[i+j*nf1]<<endl;
+      if( norm(fwi[i+j*nf1]-fwic[i+j*nf1]) > 1e-8){
+         cout<<norm(fwi[i+j*nf1]-fwic[i+j*nf1])<<" ";
+         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwic[i+j*nf1]<<endl;
       }
     }
   }
