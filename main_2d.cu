@@ -10,7 +10,7 @@ using namespace std;
 
 #define INFO
 #define DEBUG
-//#define RESULT
+#define RESULT
 #define TIME
 
 int main(int argc, char* argv[])
