@@ -510,3 +510,22 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
     //}
   }
 }
+
+__global__ 
+void CreateIndex(int* index, int nelem)
+{
+  for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<nelem; i+=gridDim.x*blockDim.x){
+    index[i]=i;
+  }
+}
+
+__global__
+void Gather(int nelem, int* index, FLT* x, FLT* y, gpuComplex* c, 
+           FLT* xsorted, FLT* ysorted, gpuComplex* csorted)
+{
+  for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<nelem; i+=gridDim.x*blockDim.x){
+    xsorted[i] = x[index[i]];
+    ysorted[i] = y[index[i]];
+    csorted[i] = c[index[i]];
+  }
+}

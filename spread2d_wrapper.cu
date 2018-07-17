@@ -8,6 +8,9 @@
 #include <thrust/device_vector.h>
 #include <thrust/gather.h>
 
+// try another library cub
+#include <cub/device/device_radix_sort.cuh>
+
 #include <cuComplex.h>
 #include "spread.h"
 
@@ -410,19 +413,68 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
     printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
   }
 #endif 
+if(opts.use_thrust){
   timer.restart();
   thrust::counting_iterator<int> iter(0);
   thrust::device_vector<int> indices(M);
   thrust::copy(iter, iter + indices.size(), indices.begin());
   thrust::sort_by_key(thrust::device, d_sortidx, d_sortidx + M, indices.begin());
-  thrust::gather(thrust::device, indices.begin(), indices.end(), d_kx, d_kxsorted);
-  thrust::gather(thrust::device, indices.begin(), indices.end(), d_ky, d_kysorted);
-  thrust::gather(thrust::device, indices.begin(), indices.end(), d_c, d_csorted);
-
 #ifdef TIME
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " thrust::sort_by_key " << timer.elapsedsec() <<" s"<<endl;
 #endif
+  timer.restart();
+  thrust::gather(thrust::device, indices.begin(), indices.end(), d_kx, d_kxsorted);
+  thrust::gather(thrust::device, indices.begin(), indices.end(), d_ky, d_kysorted);
+  thrust::gather(thrust::device, indices.begin(), indices.end(), d_c, d_csorted);
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " thrust::gather " << timer.elapsedsec() <<" s"<<endl;
+#endif
+}else{
+  timer.restart();
+  size_t  temp_storage_bytes  = 0;
+  void    *d_temp_storage     = NULL;
+
+  int *d_sortedidx;
+  checkCudaErrors(cudaMalloc(&d_sortedidx,M*sizeof(int)));
+  int *d_index_out, *d_index_in;
+  checkCudaErrors(cudaMalloc(&d_index_in,M*sizeof(int)));
+  checkCudaErrors(cudaMalloc(&d_index_out,M*sizeof(int)));
+  
+  threadsPerBlock.x = 1024;
+  threadsPerBlock.y = 1;
+  blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
+  blocks.y = 1;
+  CreateIndex<<<blocks, threadsPerBlock>>>(d_index_in, M);
+//#ifdef TIME
+  //cudaDeviceSynchronize();
+  //cout<<"[time  ]"<< " CreateIndex " << timer.elapsedsec() <<" s"<<endl;
+//#endif
+
+  timer.restart();
+  cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_sortidx, d_sortedidx, d_index_in, d_index_out, M);
+  checkCudaErrors(cudaMalloc(&d_temp_storage,temp_storage_bytes));
+  cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_sortidx, d_sortedidx, d_index_in, d_index_out, M);
+
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " cub::SortPairs " << timer.elapsedsec() <<" s"<<endl;
+#endif
+  timer.restart();
+  threadsPerBlock.x = 1024;
+  threadsPerBlock.y = 1;
+  blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
+  blocks.y = 1;
+  Gather<<<blocks, threadsPerBlock>>>(M, d_index_out, d_kx, d_ky, d_c, d_kxsorted, d_kysorted, d_csorted);
+  //thrust::gather(thrust::device, d_index_out, d_index_out+M, d_kx, d_kxsorted);
+  //thrust::gather(thrust::device, d_index_out, d_index_out+M, d_ky, d_kysorted);
+  //thrust::gather(thrust::device, d_index_out, d_index_out+M, d_c, d_csorted);
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " Gather kernel " << timer.elapsedsec() <<" s"<<endl;
+#endif
+}
 #ifdef DEBUG
   checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
   checkCudaErrors(cudaMemcpy(h_kx,d_kxsorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
@@ -432,7 +484,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
     printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
   }
 #endif 
-  
+
   timer.restart();
   threadsPerBlock.x = 1024;
   threadsPerBlock.y = 1;
@@ -453,7 +505,6 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
   cudaDeviceSynchronize();
   cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
 #endif
-
 // Free memory
   cudaFree(d_kx);
   cudaFree(d_ky);
@@ -647,7 +698,6 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   free(h_csorted);
 #endif
 
-#if 1
   timer.restart();
   threadsPerBlock.x = 32;
   threadsPerBlock.y = 32;
@@ -691,7 +741,6 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   free(h_binsize);
   free(h_binstartpts);
   free(h_sortidx);
-#endif
   return 0;
 }
 

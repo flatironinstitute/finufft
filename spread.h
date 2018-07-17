@@ -14,6 +14,7 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   // for output driven
   int bin_size_x;
   int bin_size_y;
+  int use_thrust;
 };
 
 //Kernels for 1D codes
@@ -72,6 +73,12 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
                       int* bin_size, int bin_size_x, int bin_size_y);
 __global__
 void CreateSortIdx (int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx);
+__global__ 
+void CreateIndex(int* index, int nelem);
+__global__
+void Gather(int nelem, int* index, FLT* x, FLT* y, gpuComplex* c,
+           FLT* xsorted, FLT* ysorted, gpuComplex* csorted);
+
 
 int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                                FLT *h_ky, CPX* h_c, spread_opts opts);

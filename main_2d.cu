@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
   FLT sigma = 2.0;
   int N1, N2, M;
   if (argc<3) {
-    fprintf(stderr,"Usage: spread2d [N1 N2 [M [tol]]]\n");
+    fprintf(stderr,"Usage: spread2d [N1 N2 [M [tol[use_thrust]]]]\n");
     return 1;
   }  
   double w;
@@ -30,7 +30,12 @@ int main(int argc, char* argv[])
   
   FLT tol=1e-6;
   if(argc>4){
-    sscanf(argv[3],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+    sscanf(argv[4],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+  }
+
+  int use_thrust=0;
+  if(argc>5){
+    sscanf(argv[5],"%d",&use_thrust);
   }
 
   int ns=std::ceil(-log10(tol/10.0));
@@ -40,6 +45,8 @@ int main(int argc, char* argv[])
   opts.ES_beta= 2.30 * (FLT)ns;
   opts.ES_c=4.0/(ns*ns);
   opts.ES_halfwidth=(FLT)ns/2;
+  opts.use_thrust=use_thrust;
+  cout<<opts.use_thrust<<endl;
 
   cout<<setprecision(5);
   int ier;
@@ -71,6 +78,7 @@ int main(int argc, char* argv[])
   cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() <<" s"<<endl<<endl;
 #endif
 
+#if 0
 #ifdef INFO
   cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
@@ -85,14 +93,17 @@ int main(int argc, char* argv[])
   printf("[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
          M,N1,N2,nf1*nf2,tidriven,M/tidriven);
   cout<<endl;
-
+#endif
+/* ------------------------------------------------------------------------------------------------------*/
   timer.restart();
   ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fwic, M, x, y, c, opts);
   FLT ticdriven=timer.elapsedsec();
   printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
           M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
   cout<<endl;
+
 /* ------------------------------------------------------------------------------------------------------*/
+#if 0
   timer.restart();
   opts.bin_size_x=4;
   opts.bin_size_y=4;
@@ -113,6 +124,7 @@ int main(int argc, char* argv[])
   printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
          M,N1,N2,nf1*nf2,todriven,M/todriven);
   cout<<endl;
+
 
 /*---------------------------------------------------------------------------------------------------------*/
   timer.restart();
@@ -139,8 +151,8 @@ int main(int argc, char* argv[])
   cout<<"[resultdiff]"<<endl;
   for(int j=0; j<nf2; j++){
     for (int i=0; i<nf1; i++){
-      if( norm(fwi[i+j*nf1]-fwh[i+j*nf1]) > 1e-8){
-         cout<<norm(fwi[i+j*nf1]-fwh[i+j*nf1])<<" ";
+      if( norm(fwic[i+j*nf1]-fwh[i+j*nf1]) > 1e-8){
+         cout<<norm(fwic[i+j*nf1]-fwh[i+j*nf1])<<" ";
          cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwh[i+j*nf1]<<endl;
       }
     }
@@ -176,6 +188,7 @@ int main(int argc, char* argv[])
     cout<<endl;
   }
   cout<<endl;
+#endif
 #endif
   cudaFreeHost(x);
   cudaFreeHost(c);
