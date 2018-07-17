@@ -6,11 +6,15 @@ This is an implementation of nufft spreader on GPU.
 
 ```
   module load cuda
-  make spread1d
-  ./spread1d
+  make spread2d
+  ./spread2d [N1 N2 [M [tol]]]
 ``` 
 ### To-do List
- - Make both input/output algorithms works for large N1, N2, M
+ - Make output driven method works for mod(nf1, bin_size_x)!=0 and mod(nf2, bin_size_y)!=0
+ - Try replacing sort with thrust by cub library
+ - dir=2
+ - put the function inside finufft
+ 
 #### 2018/06/29
  - Finish 1D dir=1
 #### 2018/07/02 
@@ -18,3 +22,8 @@ This is an implementation of nufft spreader on GPU.
  - Add timing codes for comparison
 #### 2018/07/05
  - Add input driven algorithm (this is also what've been done in cunfft)
+#### 2018/07/17
+ - Make both input/output algorithms works for large N1, N2, M
+ - Add a hybrid method combining the idea of input/output driven algorithm
+ - Sorted before doing an input driven spreading
+ 
