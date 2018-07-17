@@ -355,13 +355,10 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
           if( (disx < 7.0/2.0) && (disy < 7.0/2.0)){
             kervalue1 = evaluate_kernel(disx, es_c, es_beta);
             kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-            t.x+=c.x*kervalue1*kervalue2;
-            t.y+=c.y*kervalue1*kervalue2;
-            //t.x++;
-            //t.y++;
-            //t = cuCadd(t, make_cuDoubleComplex(c.x*kervalue, c.y*kervalue));
-            //tr += cshared[2*j]*kervalue;
-            //ti += cshared[2*j+1]*kervalue;
+            //t.x+=c.x*kervalue1*kervalue2;
+            //t.y+=c.y*kervalue1*kervalue2;
+            t.x+=kervalue1*kervalue2;
+            t.y+=kervalue1*kervalue2;
           }
         }
       }
@@ -491,7 +488,7 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
           //atomicAdd(&fwshared[outidx].y, c[ptstart+i].y*kervalue1*kervalue2);
           atomicAdd(&fwshared[outidx].x, kervalue1*kervalue2);
           atomicAdd(&fwshared[outidx].y, kervalue1*kervalue2);
-       }
+      }
     }
   }
   __syncthreads();

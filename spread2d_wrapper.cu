@@ -18,17 +18,16 @@ using namespace std;
 #define TIME
 
 int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                               FLT *h_ky, CPX *h_c, int bin_size_x, int bin_size_y)
+                               FLT *h_ky, CPX *h_c, spread_opts opts)
 {
   checkCudaErrors(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
   CNTime timer;
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  FLT tol=1e-6;
-  int ns=std::ceil(-log10(tol/10.0));   // psi's support in terms of number of cells
-  FLT es_c=4.0/(ns*ns);
-  FLT es_beta = 2.30 * (FLT)ns;
+  int ns=opts.nspread;   // psi's support in terms of number of cells
+  FLT es_c=opts.ES_c;
+  FLT es_beta=opts.ES_beta;
 
   FLT *d_kx,*d_ky;
   gpuComplex *d_c,*d_fw;
@@ -36,6 +35,8 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   int numbins[2];
   int totalnupts;
   int nbin_block_x, nbin_block_y;
+  int bin_size_x=opts.bin_size_x;
+  int bin_size_y=opts.bin_size_y;
 
   int *d_binsize;
   int *d_binstartpts;
@@ -288,17 +289,16 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 }
 
 int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                               FLT *h_ky, CPX *h_c)
+                               FLT *h_ky, CPX *h_c, spread_opts opts)
 {
   checkCudaErrors(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
   CNTime timer;
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  FLT tol=1e-6;
-  int ns=std::ceil(-log10(tol/10.0));   // psi's support in terms of number of cells
-  FLT es_c=4.0/(ns*ns);
-  FLT es_beta = 2.30 * (FLT)ns;
+  int ns=opts.nspread;   // psi's support in terms of number of cells
+  FLT es_c=opts.ES_c;
+  FLT es_beta=opts.ES_beta;
 
   FLT *d_kx,*d_ky;
   gpuComplex *d_c, *d_fw;
@@ -354,16 +354,15 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 }
 
 int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                                      FLT *h_ky, CPX *h_c)
+                                      FLT *h_ky, CPX *h_c, spread_opts opts)
 {
   CNTime timer;
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  FLT tol=1e-6;
-  int ns=std::ceil(-log10(tol/10.0));   // psi's support in terms of number of cells
-  FLT es_c=4.0/(ns*ns);
-  FLT es_beta=2.30 * (FLT)ns;
+  int ns=opts.nspread;   // psi's support in terms of number of cells
+  FLT es_c=opts.ES_c;
+  FLT es_beta=opts.ES_beta;
 
   FLT *d_kx,*d_ky;
   gpuComplex *d_c, *d_fw;
@@ -468,22 +467,22 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 }
 
 int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                              FLT *h_ky, CPX *h_c, int bin_size_x, int bin_size_y)
+                              FLT *h_ky, CPX *h_c, spread_opts opts)
 {
   CNTime timer;
   dim3 threadsPerBlock;
   dim3 blocks;
 
-  FLT tol=1e-6;
-  int ns=std::ceil(-log10(tol/10.0));   // psi's support in terms of number of cells
-  FLT es_c=4.0/(ns*ns);
-  FLT es_beta = 2.30 * (FLT)ns;
+  int ns=opts.nspread;   // psi's support in terms of number of cells
+  FLT es_c=opts.ES_c;
+  FLT es_beta=opts.ES_beta;
+  int bin_size_x=opts.bin_size_x;
+  int bin_size_y=opts.bin_size_y;
 
   FLT *d_kx,*d_ky;
   gpuComplex *d_c,*d_fw;
   // Parameter setting
   int numbins[2];
-  int nbin_block_x, nbin_block_y;
 
   int *d_binsize;
   int *d_binstartpts;
