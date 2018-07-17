@@ -329,7 +329,8 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
   int binxHi = binxLo+nbin_block_x+1 < nbinx-1 ? binxLo+nbin_block_x+1 : nbinx-1;
   int binyLo = blockIdx.y*nbin_block_y;
   int binyHi = binyLo+nbin_block_y+1 < nbiny-1 ? binyLo+nbin_block_y+1 : nbiny-1;
-  int start, end, j, bx, by, bin;
+  int start, end, j, by;
+  //int bx, bin;
   FLT disx, disy, kervalue1, kervalue2;
   //FLT tr=0.0, ti=0.0;
   gpuComplex t=make_cuDoubleComplex(0,0);
@@ -351,7 +352,7 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
         for(j=0; j<end-start; j++){
           disx = abs(xshared[j]-ix);
           disy = abs(yshared[j]-iy);
-          gpuComplex c=cshared[j];
+          //gpuComplex c=cshared[j];
           if( (disx < 7.0/2.0) && (disy < 7.0/2.0)){
             kervalue1 = evaluate_kernel(disx, es_c, es_beta);
             kervalue2 = evaluate_kernel(disy, es_c, es_beta);

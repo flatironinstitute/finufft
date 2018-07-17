@@ -6,16 +6,12 @@
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/device_vector.h>
+#include <thrust/gather.h>
 
 #include <cuComplex.h>
 #include "spread.h"
 
 using namespace std;
-
-#define INFO
-//#define DEBUG
-#define RESULT
-#define TIME
 
 int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                                FLT *h_ky, CPX *h_c, spread_opts opts)

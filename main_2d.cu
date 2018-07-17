@@ -8,11 +8,6 @@
 
 using namespace std;
 
-#define INFO
-#define DEBUG
-#define RESULT
-#define TIME
-
 int main(int argc, char* argv[])
 {
   int nf1, nf2;
@@ -76,7 +71,6 @@ int main(int argc, char* argv[])
   cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() <<" s"<<endl<<endl;
 #endif
 
-#if 1
 #ifdef INFO
   cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
@@ -88,18 +82,15 @@ int main(int argc, char* argv[])
   }
   //ier = cnufftspread2d_gpu_odriven(nf1, nf2, fwi, M, x, y, c, 4, 4);
   FLT tidriven=timer.elapsedsec();
-#ifdef TIME
-  printf("[idriven] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",M,N1,N2,tidriven,M/tidriven);
-#endif
-#endif
+  printf("[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
+         M,N1,N2,nf1*nf2,tidriven,M/tidriven);
   cout<<endl;
 
   timer.restart();
   ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fwic, M, x, y, c, opts);
   FLT ticdriven=timer.elapsedsec();
-#ifdef TIME
-  printf("[idriven-sorted] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",M,N1,N2,ticdriven,M/ticdriven);
-#endif
+  printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
+          M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
   cout<<endl;
 /* ------------------------------------------------------------------------------------------------------*/
   timer.restart();
@@ -119,9 +110,8 @@ int main(int argc, char* argv[])
     return 0;
   }
   FLT todriven=timer.elapsedsec();
-#ifdef TIME
-  printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",M,N1,N2,nf1*nf2,todriven,M/todriven);
-#endif
+  printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
+         M,N1,N2,nf1*nf2,todriven,M/todriven);
   cout<<endl;
 
 /*---------------------------------------------------------------------------------------------------------*/
@@ -142,9 +132,8 @@ int main(int argc, char* argv[])
     return 0;
   }
   FLT thybrid=timer.elapsedsec();
-#ifdef TIME
-  printf("[hybrid] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",M,N1,N2,nf1*nf2,thybrid,M/thybrid);
-#endif
+  printf("[hybrid ] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
+         M,N1,N2,nf1*nf2,thybrid,M/thybrid);
 
 #ifdef RESULT
   cout<<"[resultdiff]"<<endl;
