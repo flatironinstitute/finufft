@@ -8,7 +8,6 @@
 #include <thrust/device_vector.h>
 
 #include <cuComplex.h>
-#include "../scan/scan_common.h"
 #include "spread.h"
 
 using namespace std;
@@ -467,3 +466,237 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
   cudaFree(d_fw);
   return 0;
 }
+
+int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+                              FLT *h_ky, CPX *h_c, int bin_size_x, int bin_size_y)
+{
+  CNTime timer;
+  dim3 threadsPerBlock;
+  dim3 blocks;
+
+  FLT tol=1e-6;
+  int ns=std::ceil(-log10(tol/10.0));   // psi's support in terms of number of cells
+  FLT es_c=4.0/(ns*ns);
+  FLT es_beta = 2.30 * (FLT)ns;
+
+  FLT *d_kx,*d_ky;
+  gpuComplex *d_c,*d_fw;
+  // Parameter setting
+  int numbins[2];
+  int nbin_block_x, nbin_block_y;
+
+  int *d_binsize;
+  int *d_binstartpts;
+  int *d_sortidx;
+
+  numbins[0] = ceil(nf1/bin_size_x);
+  numbins[1] = ceil(nf2/bin_size_y);
+  // assume that bin_size_x > ns/2;
+#ifdef INFO
+  cout<<"[info  ] numbins (including ghost bins) = ["
+      <<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
+#endif
+  FLT *d_kxsorted,*d_kysorted;
+  gpuComplex *d_csorted;
+  int *h_binsize, *h_binstartpts, *h_sortidx; // For debug
+
+  timer.restart();
+  checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_c ,M*sizeof(gpuComplex)));
+  //checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(gpuComplex)));
+  int fw_width;
+  size_t pitch;
+  checkCudaErrors(cudaMallocPitch((void**) &d_fw, &pitch,nf1*sizeof(gpuComplex),nf2));
+  fw_width = pitch/sizeof(gpuComplex);
+
+  checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
+  checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
+  checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
+#ifdef TIME
+  cout<<"[time  ]"<< " Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
+#endif
+
+  timer.restart();
+  checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
+  checkCudaErrors(cudaMalloc(&d_kxsorted,M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_kysorted,M*sizeof(FLT)));
+  checkCudaErrors(cudaMalloc(&d_csorted,M*sizeof(gpuComplex)));
+#ifdef TIME
+  cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
+#endif
+
+  h_binsize     = (int*)malloc(numbins[0]*numbins[1]*sizeof(int));
+  h_sortidx     = (int*)malloc(M*sizeof(int));
+  h_binstartpts = (int*)malloc((numbins[0]*numbins[1]+1)*sizeof(int));
+  checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
+  timer.restart();
+  CalcBinSize_noghost_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
+                                                    numbins[0],numbins[1],d_binsize,
+                                                    d_kx,d_ky,d_sortidx);
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " Kernel CalcBinSize_noghost_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
+#ifdef DEBUG
+  checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int),
+                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
+                             cudaMemcpyDeviceToHost));
+  cout<<"[debug ] Before fill in the ghost bin size:"<<endl;
+  for(int j=0; j<numbins[1]; j++){
+    cout<<"[debug ] ";
+    for(int i=0; i<numbins[0]; i++){
+      if(i!=0) cout<<" ";
+      cout <<" bin["<<setw(3)<<i<<","<<setw(3)<<j<<"]="<<h_binsize[i+j*numbins[0]];
+    }
+    cout<<endl;
+  }
+  cout<<"[debug ] --------------------------------------------------------------"<<endl;
+#endif
+
+  timer.restart();
+  int n=numbins[0]*numbins[1];
+  int scanblocksize=1024;
+  int numscanblocks=ceil((double)n/scanblocksize);
+  int* d_scanblocksum, *d_scanblockstartpts;
+#ifdef TIME
+  printf("[debug ] n=%d, numscanblocks=%d\n",n,numscanblocks);
+#endif 
+  checkCudaErrors(cudaMalloc(&d_scanblocksum,numscanblocks*sizeof(int)));
+  checkCudaErrors(cudaMalloc(&d_scanblockstartpts,(numscanblocks+1)*sizeof(int)));
+ 
+  for(int i=0;i<numscanblocks;i++){
+    int nelemtoscan=(n-scanblocksize*i)>scanblocksize ? scanblocksize : n-scanblocksize*i;
+    prescan<<<1, scanblocksize/2>>>(nelemtoscan,d_binsize+i*scanblocksize,
+			            d_binstartpts+i*scanblocksize,d_scanblocksum+i);
+  }
+#ifdef DEBUG
+  int* h_scanblocksum;
+  h_scanblocksum     =(int*) malloc(numscanblocks*sizeof(int));
+  checkCudaErrors(cudaMemcpy(h_scanblocksum,d_scanblocksum,numscanblocks*sizeof(int),
+		             cudaMemcpyDeviceToHost));
+  for(int i=0;i<numscanblocks;i++){
+    cout<<"[debug ] scanblocksum["<<i<<"]="<<h_scanblocksum[i]<<endl;
+  }
+#endif
+  int next = pow(2, ceil(log(numscanblocks+1)/log(2)));
+  if(next > 2048){
+    cout<<"error: number of elements to sort exceed the prescan capability"<<endl;
+    return 1;
+  }
+  prescan<<<1, next/2>>>(numscanblocks,d_scanblocksum,d_scanblockstartpts,d_scanblockstartpts+numscanblocks);
+#ifdef DEBUG
+  int* h_scanblockstartpts = (int*) malloc((numscanblocks+1)*sizeof(int));
+  checkCudaErrors(cudaMemcpy(h_scanblockstartpts,d_scanblockstartpts,(numscanblocks+1)*sizeof(int),
+		             cudaMemcpyDeviceToHost));
+  for(int i=0;i<numscanblocks+1;i++){
+    cout<<"[debug ] scanblockstartpts["<<i<<"]="<<h_scanblockstartpts[i]<<endl;
+  }
+#endif
+  uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
+
+#ifdef DEBUG
+  checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int),
+                             cudaMemcpyDeviceToHost));
+  cout<<"[debug ] Result of scan bin_size array:"<<endl;
+  for(int j=0; j<numbins[1]; j++){
+    cout<<"[debug ] ";
+    for(int i=0; i<numbins[0]; i++){
+      if(i!=0) cout<<" ";
+      cout <<"bin["<<setw(3)<<i<<","<<setw(3)<<j<<"] = "<<setw(2)<<h_binstartpts[i+j*numbins[0]];
+    }
+    cout<<endl;
+  }
+  cout<<"[debug ] Total number of nonuniform pts (include those in ghost bins) = "
+      << setw(4)<<h_binstartpts[numbins[0]*numbins[1]]<<endl;
+  cout<<"[debug ] --------------------------------------------------------------"<<endl;
+#endif
+
+  timer.restart();
+  PtsRearrage_noghost_2d<<<(M+1024-1)/1024,1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
+                                                  numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
+                                                  d_ky, d_kysorted, d_c, d_csorted);
+#ifdef TIME
+  cudaDeviceSynchronize();
+  printf("[time  ] #block=%d, #threads=%d\n", (M+1024-1)/1024,1024);
+  cout<<"[time  ]"<< " Kernel PtsRearrange_noghost_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
+#ifdef DEBUG
+  FLT *h_kxsorted, *h_kysorted;
+  CPX *h_csorted;
+  h_kxsorted = (FLT*)malloc(M*sizeof(FLT));
+  h_kysorted = (FLT*)malloc(M*sizeof(FLT));
+  h_csorted  = (CPX*)malloc(M*sizeof(CPX));
+  checkCudaErrors(cudaMemcpy(h_kxsorted,d_kxsorted,M*sizeof(FLT),
+                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(h_kysorted,d_kysorted,M*sizeof(FLT),
+                             cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy(h_csorted,d_csorted,M*sizeof(CPX),
+                             cudaMemcpyDeviceToHost));
+  for (int i=0; i<M; i++){
+    //printf("[debug ] (x,y)=(%f, %f), bin#=%d\n", h_kxsorted[i], h_kysorted[i],
+    //                                             (floor(h_kxsorted[i]/bin_size_x)+1)+numbins[0]*(floor(h_kysorted[i]/bin_size_y)+1));
+    cout <<"[debug ] (x,y) = ("<<setw(10)<<h_kxsorted[i]<<","
+         <<setw(10)<<h_kysorted[i]<<"), bin# =  "
+         <<(floor(h_kxsorted[i]/bin_size_x))+numbins[0]*(floor(h_kysorted[i]/bin_size_y))<<endl;
+  }
+  free(h_kysorted);
+  free(h_kxsorted);
+  free(h_csorted);
+#endif
+
+#if 1
+  timer.restart();
+  threadsPerBlock.x = 32;
+  threadsPerBlock.y = 32;
+  blocks.x = numbins[0];
+  blocks.y = numbins[1];
+  size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
+  if(sharedmemorysize > 49152){
+    cout<<"error: not enought shared memory"<<endl;
+    return 1;
+  }
+  // blockSize must be a multiple of bin_size_x
+  Spread_2d_Hybrid<<<blocks, threadsPerBlock, sharedmemorysize>>>(d_kxsorted, d_kysorted, d_csorted, 
+                                                                  d_fw, M, ns, nf1, nf2, 
+                                                                  es_c, es_beta, fw_width, 
+                                                                  d_binstartpts, d_binsize, 
+                                                                  bin_size_x, bin_size_y);
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#endif
+  timer.restart();
+  //checkCudaErrors(cudaMemcpy(h_fw,d_fw,nf1*nf2*sizeof(gpuComplex),
+  //                           cudaMemcpyDeviceToHost));
+  checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,pitch,nf1*sizeof(gpuComplex),nf2,
+                               cudaMemcpyDeviceToHost));
+#ifdef TIME
+  cudaDeviceSynchronize();
+  cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
+#endif
+// Free memory
+  cudaFree(d_kx);
+  cudaFree(d_ky);
+  cudaFree(d_c);
+  cudaFree(d_fw);
+  cudaFree(d_binsize);
+  cudaFree(d_binstartpts);
+  cudaFree(d_sortidx);
+  cudaFree(d_kxsorted);
+  cudaFree(d_kysorted);
+  cudaFree(d_csorted);
+  free(h_binsize);
+  free(h_binstartpts);
+  free(h_sortidx);
+#endif
+  return 0;
+}
+

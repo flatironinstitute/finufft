@@ -40,6 +40,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
   return 1.0;
 }
 
+#if 0
 static __inline__ __device__
 void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double upsampfac)
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
@@ -53,6 +54,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double ups
 #include "ker_horner_allw_loop.c"
   }
 }
+#endif
 
 __global__
 void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
@@ -69,6 +71,27 @@ void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, in
     y_rescaled=y[i];
     binx = floor(x_rescaled/bin_size_x)+1;
     biny = floor(y_rescaled/bin_size_y)+1;
+    binidx = binx+biny*nbinx;
+    oldidx = atomicAdd(&bin_size[binidx], 1);
+    sortidx[i] = oldidx;
+  }
+}
+
+__global__
+void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
+                            int nbiny, int* bin_size, FLT *x, FLT *y, int* sortidx)
+{
+  int i = blockDim.x*blockIdx.x + threadIdx.x;
+  int binidx, binx, biny;
+  int oldidx;
+  FLT x_rescaled,y_rescaled;
+  if (i < M){
+    //x_rescaled = RESCALE(x[i],nf1,1);
+    //y_rescaled = RESCALE(y[i],nf2,1);
+    x_rescaled=x[i];
+    y_rescaled=y[i];
+    binx = floor(x_rescaled/bin_size_x);
+    biny = floor(y_rescaled/bin_size_y);
     binidx = binx+biny*nbinx;
     oldidx = atomicAdd(&bin_size[binidx], 1);
     sortidx[i] = oldidx;
@@ -266,6 +289,30 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
 }
 
 __global__
+void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
+                            int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
+                            FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted)
+{
+  int i = blockDim.x*blockIdx.x + threadIdx.x;
+  int binx, biny;
+  int binidx;
+  FLT x_rescaled, y_rescaled;
+  if( i < M){
+    //x_rescaled = RESCALE(x[i],nf1,1);
+    //y_rescaled = RESCALE(y[i],nf2,1);
+    x_rescaled=x[i];
+    y_rescaled=y[i];
+    binx = floor(x_rescaled/bin_size_x);
+    biny = floor(y_rescaled/bin_size_y);
+    binidx = binx+biny*nbinx;
+
+    x_sorted[bin_startpts[binidx]+sortidx[i]] = x_rescaled;
+    y_sorted[bin_startpts[binidx]+sortidx[i]] = y_rescaled;
+    c_sorted[bin_startpts[binidx]+sortidx[i]] = c[i];
+  }
+}
+
+__global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, 
                        int *bin_startpts, FLT *x_sorted, FLT *y_sorted, 
                        gpuComplex *c_sorted, gpuComplex *fw, int ns,
@@ -396,5 +443,75 @@ void CreateSortIdx (int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx)
     x_rescaled=x[i];
     y_rescaled=y[i];
     sortidx[i] = floor(x_rescaled) + floor(y_rescaled)*nf1;
+  }
+}
+
+__global__
+void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+                      int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
+                      int* bin_size, int bin_size_x, int bin_size_y)
+{
+  extern __shared__ gpuComplex fwshared[];
+
+  int xstart,ystart,xend,yend;
+  int bidx=blockIdx.x+blockIdx.y*gridDim.x;
+  int xx, yy, ix, iy;
+  int outidx;
+  int ptstart=binstartpts[bidx];
+  
+  int xoffset=blockIdx.x*bin_size_x;
+  int yoffset=blockIdx.y*bin_size_y;
+  
+  int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0));
+  for(int i=threadIdx.x+threadIdx.y*blockDim.x; i<N; i+=blockDim.x*blockDim.y){
+     fwshared[i].x = 0.0;
+     fwshared[i].y = 0.0;
+  }
+  __syncthreads();
+
+  FLT x_rescaled, y_rescaled;
+  for(int i=threadIdx.x+threadIdx.y*blockDim.x; i<bin_size[bidx]; i+=blockDim.x*blockDim.y){
+    x_rescaled=x[ptstart+i];
+    y_rescaled=y[ptstart+i];
+    xstart = ceil(x_rescaled - ns/2.0)-xoffset;
+    ystart = ceil(y_rescaled - ns/2.0)-yoffset;
+    xend = floor(x_rescaled + ns/2.0)-xoffset;
+    yend = floor(y_rescaled + ns/2.0)-yoffset;
+
+    for(yy=ystart; yy<=yend; yy++){
+       for(xx=xstart; xx<=xend; xx++){
+          ix = xx+ceil(ns/2.0);
+          iy = yy+ceil(ns/2.0);
+          outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
+          FLT disx=abs(x_rescaled-xx);
+          FLT disy=abs(y_rescaled-yy);
+          FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+          FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+          //fwshared[outidx].x += kervalue1*kervalue2;
+          //fwshared[outidx].y += kervalue1*kervalue2;
+          atomicAdd(&fwshared[outidx].x, kervalue1*kervalue2);
+          atomicAdd(&fwshared[outidx].y, kervalue1*kervalue2);
+          //atomicAdd(&fwshared[outidx].x, 1.0);
+          //atomicAdd(&fwshared[outidx].y, 1.0);
+       }
+    }
+  }
+  __syncthreads();
+  /* write to global memory */
+  for(int j=threadIdx.y; j<(bin_size_y+2*ceil(ns/2.0)); j+=blockDim.y){
+    for(int i=threadIdx.x; i<(bin_size_x+2*ceil(ns/2.0)); i+=blockDim.x){
+ // if(threadIdx.x<(bin_size_x+2*ceil(ns/2.0)) && threadIdx.y<(bin_size_y+2*ceil(ns/2.0))){
+       ix = xoffset+i-ceil(ns/2.0);
+       iy = yoffset+j-ceil(ns/2.0);
+       ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
+       iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
+       outidx = ix+iy*fw_width;
+       int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
+       //fw[outidx].x = fwshared[sharedidx].x;
+       //fw[outidx].y = fwshared[sharedidx].y;
+       
+       atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
+       atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+    }
   }
 }

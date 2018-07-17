@@ -10,7 +10,7 @@ using namespace std;
 
 #define INFO
 #define DEBUG
-#define RESULT
+//#define RESULT
 #define TIME
 
 int main(int argc, char* argv[])
@@ -44,13 +44,14 @@ int main(int argc, char* argv[])
   }
 
   FLT *x, *y;
-  CPX *c, *fwi, *fwo, *fwtrue, *fwic;
+  CPX *c, *fwi, *fwo, *fwtrue, *fwic, *fwh;
   cudaMallocHost(&x, M*sizeof(CPX));
   cudaMallocHost(&y, M*sizeof(CPX));
   cudaMallocHost(&c, M*sizeof(CPX));
   cudaMallocHost(&fwi, nf1*nf2*sizeof(CPX));
   cudaMallocHost(&fwic, nf1*nf2*sizeof(CPX));
   cudaMallocHost(&fwo, nf1*nf2*sizeof(CPX));
+  cudaMallocHost(&fwh, nf1*nf2*sizeof(CPX));
   cudaMallocHost(&fwtrue, nf1*nf2*sizeof(CPX));
   for (int i = 0; i < M; i++) {
     x[i] = RESCALE(M_PI*randm11(),nf1,1);// x in [-pi,pi)
@@ -108,6 +109,19 @@ int main(int argc, char* argv[])
 #ifdef TIME
   printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",M,N1,N2,nf1*nf2,todriven,M/todriven);
 #endif
+  cout<<endl;
+
+/*---------------------------------------------------------------------------------------------------------*/
+  timer.restart();
+  ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fwh, M, x, y, c, 32, 32);
+  if(ier != 0 ){
+    cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
+    return 0;
+  }
+  FLT thybrid=timer.elapsedsec();
+#ifdef TIME
+  printf("[hybrid] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",M,N1,N2,nf1*nf2,thybrid,M/thybrid);
+#endif
 #if 0
   int ns=7;
   FLT es_c=4.0/(ns*ns);
@@ -151,9 +165,9 @@ int main(int argc, char* argv[])
   cout<<"[resultdiff]"<<endl;
   for(int j=0; j<nf2; j++){
     for (int i=0; i<nf1; i++){
-      if( norm(fwi[i+j*nf1]-fwic[i+j*nf1]) > 1e-8){
-         cout<<norm(fwi[i+j*nf1]-fwic[i+j*nf1])<<" ";
-         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwic[i+j*nf1]<<endl;
+      if( norm(fwi[i+j*nf1]-fwh[i+j*nf1]) > 1e-8){
+         cout<<norm(fwi[i+j*nf1]-fwh[i+j*nf1])<<" ";
+         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwh[i+j*nf1]<<endl;
       }
     }
   }
@@ -182,7 +196,7 @@ int main(int argc, char* argv[])
     for (int i=0; i<nf1; i++){
       if( i % bin_size_x == 0 && i!=0)
         printf(" |");
-      printf(" (%2.3g,%2.3g)",fwo[i+j*nf1].real(),fwo[i+j*nf1].imag() );
+      printf(" (%2.3g,%2.3g)",fwh[i+j*nf1].real(),fwh[i+j*nf1].imag() );
       //cout<<" "<<setw(8)<<fwo[i+j*nf1];
     }
     cout<<endl;

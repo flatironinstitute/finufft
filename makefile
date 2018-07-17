@@ -7,18 +7,16 @@ spread1d.o: utils.o spread1d.cu
 	$(NVCC) -c spread1d.cu -I$(INCLUDE_DIR)
 
 main_2d.o: main_2d.cu
-	$(NVCC) main_2d.cu -c main_2d.o -I$(INCLUDE_DIR) --ptxas-options=-v
+	$(NVCC) main_2d.cu -c main_2d.o -I$(INCLUDE_DIR)
 spread2d_wrapper.o: spread2d_wrapper.cu
-	$(NVCC) -c spread2d_wrapper.cu -I$(INCLUDE_DIR) --ptxas-options=-v
+	$(NVCC) -c spread2d_wrapper.cu -I$(INCLUDE_DIR)
 spread2d.o: spread2d.cu
-	$(NVCC) -c spread2d.cu -I$(INCLUDE_DIR) --ptxas-options=-v
+	$(NVCC) -c spread2d.cu -I$(INCLUDE_DIR)
 utils.o: utils.cpp
 	$(CC) -c utils.cpp 
-scan.o:scan.cu
-	$(NVCC) -I$(INCLUDE_DIR) -o $@ -c $< --ptxas-options=-v
 
-spread2d: main_2d.o spread2d_wrapper.o spread2d.o utils.o scan.o
-	$(NVCC) -o spread2d main_2d.o spread2d_wrapper.o spread2d.o utils.o scan.o --ptxas-options=-v
+spread2d: main_2d.o spread2d_wrapper.o spread2d.o utils.o
+	$(NVCC) -o spread2d main_2d.o spread2d_wrapper.o spread2d.o utils.o
 
 clean:
 	rm *.o
