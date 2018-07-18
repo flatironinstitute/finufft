@@ -1,6 +1,6 @@
 CXX=g++
 NVCC=nvcc
-CXXFLAGS=-DTIME -DRESULT
+CXXFLAGS=-DTIME -DRESULT -DINFO
 #CXXFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
 NVCCFLAGS=-arch=sm_50
 INC=-I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/samples/common/inc/ \

@@ -535,8 +535,8 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   int *d_binstartpts;
   int *d_sortidx;
 
-  numbins[0] = ceil(nf1/bin_size_x);
-  numbins[1] = ceil(nf2/bin_size_y);
+  numbins[0] = ceil((FLT) nf1/bin_size_x);
+  numbins[1] = ceil((FLT) nf2/bin_size_y);
   // assume that bin_size_x > ns/2;
 #ifdef INFO
   cout<<"[info  ] numbins (including ghost bins) = ["

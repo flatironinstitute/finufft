@@ -505,12 +505,14 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
        int j = k /( bin_size_x+2*ceil(ns/2.0) );
        ix = xoffset+i-ceil(ns/2.0);
        iy = yoffset+j-ceil(ns/2.0);
-       ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
-       iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
-       outidx = ix+iy*fw_width;
-       int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
-       atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
-       atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+       if(ix < (nf1+ceil(ns/2.0)) && iy < (nf2+ceil(ns/2.0))){
+         ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
+         iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
+         outidx = ix+iy*fw_width;
+         int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
+         atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
+         atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+       }
     //}
   }
 }

@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
   cout<<endl;
 
 /* ------------------------------------------------------------------------------------------------------*/
-#if 1
+#if 0
   timer.restart();
   opts.bin_size_x=4;
   opts.bin_size_y=4;
@@ -129,8 +129,8 @@ int main(int argc, char* argv[])
   timer.restart();
   opts.bin_size_x=32;
   opts.bin_size_y=32;
-  if(nf1 % opts.bin_size_x != 0 || nf2 % opts.bin_size_y !=0){
-    cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
+  if(nf1 < opts.bin_size_x || nf2 < opts.bin_size_y){
+    cout << "error: nf1 < block_size_x or nf2 < block_size_y" << endl;
     return 0;
   }
 #ifdef INFO
