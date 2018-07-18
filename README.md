@@ -10,10 +10,9 @@ This is an implementation of nufft spreader on GPU.
   ./spread2d [N1 N2 [M [tol]]]
 ``` 
 ### To-do List
- - Make output driven method works for mod(nf1, bin_size_x)!=0 and mod(nf2, bin_size_y)!=0
- - Try replacing sort with thrust by cub library
  - dir=2
- - put the function inside finufft
+ - generate speedup plot
+ - check why the error is large when using gpu spreader
  
 #### 2018/06/29
  - Finish 1D dir=1
@@ -26,4 +25,8 @@ This is an implementation of nufft spreader on GPU.
  - Make both input/output algorithms works for large N1, N2, M
  - Add a hybrid method combining the idea of input/output driven algorithm
  - Sorted before doing an input driven spreading
+ - Try replacing sort with thrust by cub library
+#### 2018/07/18
+ - Make output driven method works for mod(nf1, bin_size_x)!=0 and mod(nf2, bin_size_y)!=0
+ - put the function inside finufft (branch finufftwithgpuspreader)
  
