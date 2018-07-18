@@ -35,7 +35,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
    This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
 {   
-  //return exp(es_beta * (sqrt(1.0 - es_c*x*x) - 1));
+  //return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
   //return x;
   return 1.0;
 }
@@ -333,7 +333,11 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
   //int bx, bin;
   FLT disx, disy, kervalue1, kervalue2;
   //FLT tr=0.0, ti=0.0;
+#ifdef SINGLE
+  gpuComplex t=make_cuFloatComplex(0,0);
+#else
   gpuComplex t=make_cuDoubleComplex(0,0);
+#endif
   // run through all bins
   for(by=binyLo; by<=binyHi; by++){
     //for(bx=binxLo; bx<=binxHi; bx++){
@@ -352,14 +356,14 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
         for(j=0; j<end-start; j++){
           disx = abs(xshared[j]-ix);
           disy = abs(yshared[j]-iy);
-          //gpuComplex c=cshared[j];
+          gpuComplex c=cshared[j];
           if( (disx < 7.0/2.0) && (disy < 7.0/2.0)){
             kervalue1 = evaluate_kernel(disx, es_c, es_beta);
             kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-            //t.x+=c.x*kervalue1*kervalue2;
-            //t.y+=c.y*kervalue1*kervalue2;
-            t.x+=kervalue1*kervalue2;
-            t.y+=kervalue1*kervalue2;
+            t.x+=c.x*kervalue1*kervalue2;
+            t.y+=c.y*kervalue1*kervalue2;
+            //t.x+=kervalue1*kervalue2;
+            //t.y+=kervalue1*kervalue2;
           }
         }
       }
@@ -417,10 +421,10 @@ void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
           FLT disy=abs(y_rescaled-yy);
           FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
           FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-          //atomicAdd(&fw[outidx].x, c[i].x*kervalue1*kervalue2);
-          //atomicAdd(&fw[outidx].y, c[i].y*kervalue1*kervalue2);
-          atomicAdd(&fw[outidx].x, kervalue1*kervalue2);
-          atomicAdd(&fw[outidx].y, kervalue1*kervalue2);
+          atomicAdd(&fw[outidx].x, c[i].x*kervalue1*kervalue2);
+          atomicAdd(&fw[outidx].y, c[i].y*kervalue1*kervalue2);
+          //atomicAdd(&fw[outidx].x, kervalue1*kervalue2);
+          //atomicAdd(&fw[outidx].y, kervalue1*kervalue2);
        }
     }
 
@@ -485,10 +489,10 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
           FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
           //fwshared[outidx].x += kervalue1*kervalue2;
           //fwshared[outidx].y += kervalue1*kervalue2;
-          //atomicAdd(&fwshared[outidx].x, c[ptstart+i].x*kervalue1*kervalue2);
-          //atomicAdd(&fwshared[outidx].y, c[ptstart+i].y*kervalue1*kervalue2);
-          atomicAdd(&fwshared[outidx].x, kervalue1*kervalue2);
-          atomicAdd(&fwshared[outidx].y, kervalue1*kervalue2);
+          atomicAdd(&fwshared[outidx].x, c[ptstart+i].x*kervalue1*kervalue2);
+          atomicAdd(&fwshared[outidx].y, c[ptstart+i].y*kervalue1*kervalue2);
+          //atomicAdd(&fwshared[outidx].x, kervalue1*kervalue2);
+          //atomicAdd(&fwshared[outidx].y, kervalue1*kervalue2);
       }
     }
   }

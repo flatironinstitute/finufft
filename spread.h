@@ -1,10 +1,18 @@
-#ifndef __SPREAD1D_H__
-#define __SPREAD1D_H__
+#ifndef __SPREAD_H__
+#define __SPREAD_H__
 
 #include "utils.h"
 
+#define MAX_NSPREAD 16
+#define RESCALE(x,N,p) (p ? \
+                       ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
+                       (x<0 ? x+N : (x>N ? x-N : x)))
+
 struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int nspread;            // w, the kernel width in grid pts
+  int spread_direction;
+  int debug;
+  int pirange;
   FLT upsampfac;          // sigma, upsampling factor, default 2.0
   // ES kernel specific...
   FLT ES_beta;

@@ -46,7 +46,6 @@ int main(int argc, char* argv[])
   opts.ES_c=4.0/(ns*ns);
   opts.ES_halfwidth=(FLT)ns/2;
   opts.use_thrust=use_thrust;
-  cout<<opts.use_thrust<<endl;
 
   cout<<setprecision(5);
   int ier;
@@ -63,10 +62,10 @@ int main(int argc, char* argv[])
   cudaMallocHost(&fwh, nf1*nf2*sizeof(CPX));
   cudaMallocHost(&fwtrue, nf1*nf2*sizeof(CPX));
   for (int i = 0; i < M; i++) {
-    x[i] = RESCALE(M_PI*randm11(),nf1,1);// x in [-pi,pi)
-    y[i] = RESCALE(M_PI*randm11(),nf2,1);
-    c[i] = crandm11();
-    //printf("(x,y)=(%f, %f)\n",x[i], y[i]);
+    x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
+    y[i] = RESCALE(M_PI*randm11(), nf2, 1);
+    c[i].real() = randm11();
+    c[i].imag() = randm11();
   }
 
   CNTime timer;
@@ -78,7 +77,6 @@ int main(int argc, char* argv[])
   cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() <<" s"<<endl<<endl;
 #endif
 
-#if 0
 #ifdef INFO
   cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
@@ -93,7 +91,7 @@ int main(int argc, char* argv[])
   printf("[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
          M,N1,N2,nf1*nf2,tidriven,M/tidriven);
   cout<<endl;
-#endif
+
 /* ------------------------------------------------------------------------------------------------------*/
   timer.restart();
   ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fwic, M, x, y, c, opts);
@@ -103,7 +101,7 @@ int main(int argc, char* argv[])
   cout<<endl;
 
 /* ------------------------------------------------------------------------------------------------------*/
-#if 0
+#if 1
   timer.restart();
   opts.bin_size_x=4;
   opts.bin_size_y=4;
@@ -124,9 +122,10 @@ int main(int argc, char* argv[])
   printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
          M,N1,N2,nf1*nf2,todriven,M/todriven);
   cout<<endl;
-
+#endif
 
 /*---------------------------------------------------------------------------------------------------------*/
+#if 1
   timer.restart();
   opts.bin_size_x=32;
   opts.bin_size_y=32;
@@ -153,21 +152,24 @@ int main(int argc, char* argv[])
     for (int i=0; i<nf1; i++){
       if( norm(fwic[i+j*nf1]-fwh[i+j*nf1]) > 1e-8){
          cout<<norm(fwic[i+j*nf1]-fwh[i+j*nf1])<<" ";
-         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwh[i+j*nf1]<<endl;
+         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwic[i+j*nf1] <<","<<fwh[i+j*nf1]<<endl;
       }
     }
   }
   cout<<endl;
 #endif
+#endif
 #if 0
+  opts.bin_size_x=4;
+  opts.bin_size_y=4;
   cout<<"[result-input]"<<endl;
   for(int j=0; j<nf2; j++){
-    if( j % bin_size_y == 0)
+    if( j % opts.bin_size_y == 0)
         printf("\n");
     for (int i=0; i<nf1; i++){
-      if( i % bin_size_x == 0 && i!=0)
+      if( i % opts.bin_size_x == 0 && i!=0)
         printf(" |");
-      printf(" (%2.3g,%2.3g)",fwi[i+j*nf1].real(),fwi[i+j*nf1].imag() );
+      printf(" (%2.16g,%2.16g)",fwi[i+j*nf1].real(),fwi[i+j*nf1].imag() );
       //cout<<" "<<setw(8)<<fwo[i+j*nf1];
     }
     cout<<endl;
@@ -188,7 +190,6 @@ int main(int argc, char* argv[])
     cout<<endl;
   }
   cout<<endl;
-#endif
 #endif
   cudaFreeHost(x);
   cudaFreeHost(c);
