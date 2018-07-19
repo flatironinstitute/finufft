@@ -23,6 +23,14 @@ utils.o: utils.cpp
 spread2d: main_2d.o spread2d_wrapper.o spread2d.o utils.o
 	$(NVCC) $(NVCCFLAGS) -o spread2d main_2d.o spread2d_wrapper.o spread2d.o utils.o
 
+cnufftspread.o: finufft/cnufftspread.cpp
+	$(NVCC) finufft/cnufftspread.cpp -c $(CXXFLAGS) $(NVCCFLAGS) finufft/cnufftspread.o $(INC)
+accuracycheck_2d.o: accuracycheck_2d.cu
+	$(NVCC) accuracycheck_2d.cu -c $(CXXFLAGS) $(NVCCFLAGS) accuracycheck_2d.o $(INC)
+
+accuracy: accuracycheck_2d.o spread2d_wrapper.o spread2d.o utils.o finufft/cnufftspread.o
+	$(NVCC) $(NVCCFLAGS) -o accuracy accuracycheck_2d.o spread2d_wrapper.o spread2d.o utils.o finufft/cnufftspread.o
+
 clean:
 	rm *.o
 	rm -f spread1d
