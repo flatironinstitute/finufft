@@ -18,7 +18,7 @@ static __inline__ __device__ double atomicAdd(double* address, double val)
         assumed = old;
         old = atomicCAS(address_as_ull, assumed,
                         __double_as_longlong(val +
-                               __longlong_as_double(assumed)));
+                        __longlong_as_double(assumed)));
 
     // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
     } while (assumed != old);
@@ -35,9 +35,9 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
    This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
 {   
-  //return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
+  return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
   //return x;
-  return 1.0;
+  //return 1.0;
 }
 
 #if 0
@@ -247,44 +247,51 @@ void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int
       binidx = (nbinx-1)+biny*nbinx;
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled + nf1;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled;
+      c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
     }
     if( binx == nbinx-2 ){
       binidx = biny*nbinx;
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled - nf1;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled;
+      c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
     }
     if( biny == 1 ){
       binidx = binx+(nbiny-1)*nbinx;
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled + nf2;
+      c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
     }
     if( biny == nbiny-2 ){
       binidx = binx;
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled - nf2;
+      c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
     }
     // four corner
     if( binx == 1 && biny == 1){
       binidx = (nbinx-1) + (nbiny-1)*nbinx;
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled + nf1;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled + nf2;
+      c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
     }
     if( binx == 1 && biny == nbiny-2){
       binidx = nbinx-1;
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled + nf1;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled - nf2;
+      c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
     }
     if( binx == nbinx-2 && biny == 1){
       binidx = (nbiny-1)*nbinx;
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled - nf1;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled + nf2;
+      c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
     }
     if( binx == nbinx-2 && biny == nbiny-2){
       binidx = 0;
       x_sorted[ bin_startpts[binidx]+sortidx[i] ] = x_rescaled - nf1;
       y_sorted[ bin_startpts[binidx]+sortidx[i] ] = y_rescaled - nf2;
+      c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
     }
-    c_sorted[ bin_startpts[binidx]+sortidx[i] ] = c[i];
   }
 }
 
@@ -357,14 +364,17 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
           disx = abs(xshared[j]-ix);
           disy = abs(yshared[j]-iy);
           gpuComplex c=cshared[j];
-          if( (disx < 7.0/2.0) && (disy < 7.0/2.0)){
+          if( (disx < ns/2.0) && (disy < ns/2.0)){
             kervalue1 = evaluate_kernel(disx, es_c, es_beta);
             kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-            t.x+=c.x*kervalue1*kervalue2;
-            t.y+=c.y*kervalue1*kervalue2;
-            //t.x+=kervalue1*kervalue2;
-            //t.y+=kervalue1*kervalue2;
+          }else{
+            kervalue1=0.0;
+            kervalue2=0.0;
           }
+          t.x+=c.x*kervalue1*kervalue2;
+          t.y+=c.y*kervalue1*kervalue2;
+          //t.x+=kervalue1*kervalue2;
+          //t.y+=kervalue1*kervalue2;
         }
       }
     //}
@@ -483,8 +493,8 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
           ix = xx+ceil(ns/2.0);
           iy = yy+ceil(ns/2.0);
           outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
-          FLT disx=abs(x_rescaled-xx);
-          FLT disy=abs(y_rescaled-yy);
+          FLT disx=abs(x_rescaled-(xx+xoffset));
+          FLT disy=abs(y_rescaled-(yy+yoffset));
           FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
           FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
           //fwshared[outidx].x += kervalue1*kervalue2;

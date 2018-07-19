@@ -80,7 +80,9 @@ int main(int argc, char* argv[])
 #endif
 /* ------------------------------------------------------------------------------------------------------*/
   timer.restart();
-  ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fwic, M, x, y, c, opts);
+  opts.bin_size_x=32;
+  opts.bin_size_y=32;
+  ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fwic, M, x, y, c, opts);
   FLT ticdriven=timer.elapsedsec();
   printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
           M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
@@ -89,7 +91,7 @@ int main(int argc, char* argv[])
   timer.start();
   opts.pirange = 0;
   opts.spread_direction=1;
-  opts.flags=2;//ker always return 1
+  opts.flags=0;//ker always return 1
   opts.kerevalmeth=0;
   ier = cnufftspread(nf1,nf2,1,(FLT*) fwfinufft,M,x,y,NULL,(FLT*) c,opts);
   FLT t=timer.elapsedsec();
@@ -99,7 +101,7 @@ int main(int argc, char* argv[])
   } else
     printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,2)*M/t);
   
-  FLT err=errtwonorm(nf1*nf2,fwic,fwfinufft);
+  FLT err=relerrtwonorm(nf1*nf2,fwic,fwfinufft);
   printf("|| fwcuda - fwfinufft ||_2 / || fwcuda ||_2 =  %.3g\n", err);
 
   cudaFreeHost(x);

@@ -129,10 +129,6 @@ int main(int argc, char* argv[])
   timer.restart();
   opts.bin_size_x=32;
   opts.bin_size_y=32;
-  if(nf1 < opts.bin_size_x || nf2 < opts.bin_size_y){
-    cout << "error: nf1 < block_size_x or nf2 < block_size_y" << endl;
-    return 0;
-  }
 #ifdef INFO
   cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
   cout<<"[info  ] Dividing the uniform grids to bin size["<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
@@ -169,7 +165,7 @@ int main(int argc, char* argv[])
     for (int i=0; i<nf1; i++){
       if( i % opts.bin_size_x == 0 && i!=0)
         printf(" |");
-      printf(" (%2.16g,%2.16g)",fwi[i+j*nf1].real(),fwi[i+j*nf1].imag() );
+      printf(" (%2.3g,%2.3g)",fwi[i+j*nf1].real(),fwi[i+j*nf1].imag() );
       //cout<<" "<<setw(8)<<fwo[i+j*nf1];
     }
     cout<<endl;
@@ -177,12 +173,14 @@ int main(int argc, char* argv[])
   cout<<endl;
 #endif
 #if 0
+  opts.bin_size_x=32;
+  opts.bin_size_y=32;
   cout<<"[result-output]"<<endl;
   for(int j=0; j<nf2; j++){
-    if( j % bin_size_y == 0)
+    if( j % opts.bin_size_y == 0)
         printf("\n");
     for (int i=0; i<nf1; i++){
-      if( i % bin_size_x == 0 && i!=0)
+      if( i % opts.bin_size_x == 0 && i!=0)
         printf(" |");
       printf(" (%2.3g,%2.3g)",fwh[i+j*nf1].real(),fwh[i+j*nf1].imag() );
       //cout<<" "<<setw(8)<<fwo[i+j*nf1];
