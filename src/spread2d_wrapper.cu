@@ -45,6 +45,8 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   numbins[1] = ceil(nf2/bin_size_y)+2;
   // assume that bin_size_x > ns/2;
 #ifdef INFO
+  cout<<"[info  ] Dividing the uniform grids to bin size["
+      <<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
   cout<<"[info  ] numbins (including ghost bins) = ["
       <<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
@@ -118,7 +120,6 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   FillGhostBin_2d<<<blocks,threadsPerBlock>>>(numbins[0],numbins[1],d_binsize);
 #ifdef TIME
   cudaDeviceSynchronize();
-  printf("[time  ] block=(%d, %d), threads=(%d, %d)\n", blocks.x, blocks.y, threadsPerBlock.x, threadsPerBlock.y);
   cout<<"[time  ]"<< " Kernel FillGhostBin_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -141,7 +142,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   int scanblocksize=1024;
   int numscanblocks=ceil((double)n/scanblocksize);
   int* d_scanblocksum, *d_scanblockstartpts;
-#ifdef TIME
+#ifdef DEBUG
   printf("[debug ] n=%d, numscanblocks=%d\n",n,numscanblocks);
 #endif 
   checkCudaErrors(cudaMalloc(&d_scanblocksum,numscanblocks*sizeof(int)));
@@ -214,7 +215,6 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                                       d_ky, d_kysorted, d_c, d_csorted);
 #ifdef TIME
   cudaDeviceSynchronize();
-  printf("[time  ] #block=%d, #threads=%d\n", (M+1024-1)/1024,1024);
   cout<<"[time  ]"<< " Kernel PtsRearrange_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -543,6 +543,8 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   numbins[1] = ceil((FLT) nf2/bin_size_y);
   // assume that bin_size_x > ns/2;
 #ifdef INFO
+  cout<<"[info  ] Dividing the uniform grids to bin size["
+      <<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
   cout<<"[info  ] numbins (including ghost bins) = ["
       <<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
