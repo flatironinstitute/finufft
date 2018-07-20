@@ -1,7 +1,7 @@
 #ifndef __SPREAD_H__
 #define __SPREAD_H__
 
-#include "utils.h"
+#include "finufft/utils.h"
 
 #define MAX_NSPREAD 16
 #define RESCALE(x,N,p) (p ? \

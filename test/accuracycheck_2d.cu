@@ -3,9 +3,9 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include "spread.h"
-#include "utils.h"
-#include "finufft/cnufftspread.h"
+#include "../src/spread.h"
+#include "../src/finufft/utils.h"
+#include "../src/finufft/cnufftspread.h"
 
 using namespace std;
 

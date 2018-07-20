@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "../utils.h"
+#include "utils.h"
 #include "../spread.h"
 
 #if 0

@@ -2,7 +2,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <cuda.h>
-#include "utils.h"
+#include "finufft/utils.h"
 
 using namespace std;
 
@@ -523,7 +523,6 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
          atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
          atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
        }
-    //}
   }
 }
 

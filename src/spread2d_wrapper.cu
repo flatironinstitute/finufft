@@ -390,7 +390,6 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
   timer.restart();
   checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
 #ifdef TIME
   cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
@@ -412,6 +411,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
   for(int i=0; i<M; i++){
     printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
   }
+  free(h_sortidx);
 #endif 
 if(opts.use_thrust){
   timer.restart();
@@ -509,7 +509,11 @@ if(opts.use_thrust){
   cudaFree(d_kx);
   cudaFree(d_ky);
   cudaFree(d_c);
+  cudaFree(d_kxsorted);
+  cudaFree(d_kysorted);
+  cudaFree(d_csorted);
   cudaFree(d_fw);
+  cudaFree(d_sortidx);
   return 0;
 }
 
@@ -608,7 +612,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
   int scanblocksize=1024;
   int numscanblocks=ceil((double)n/scanblocksize);
   int* d_scanblocksum, *d_scanblockstartpts;
-#ifdef TIME
+#ifdef DEBUG
   printf("[debug ] n=%d, numscanblocks=%d\n",n,numscanblocks);
 #endif 
   checkCudaErrors(cudaMalloc(&d_scanblocksum,numscanblocks*sizeof(int)));

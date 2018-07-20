@@ -3,8 +3,8 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include "spread.h"
-#include "utils.h"
+#include "../src/spread.h"
+#include "../src/finufft/utils.h"
 
 using namespace std;
 
@@ -80,6 +80,7 @@ int main(int argc, char* argv[])
 #ifdef INFO
   cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
+#if 0
   timer.restart();
   ier = cnufftspread2d_gpu_idriven(nf1, nf2, fwi, M, x, y, c, opts);
   if(ier != 0 ){
@@ -91,15 +92,16 @@ int main(int argc, char* argv[])
   printf("[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
          M,N1,N2,nf1*nf2,tidriven,M/tidriven);
   cout<<endl;
-
+#endif
 /* ------------------------------------------------------------------------------------------------------*/
+#if 0
   timer.restart();
   ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fwic, M, x, y, c, opts);
   FLT ticdriven=timer.elapsedsec();
   printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
           M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
   cout<<endl;
-
+#endif
 /* ------------------------------------------------------------------------------------------------------*/
 #if 0
   timer.restart();
@@ -142,13 +144,16 @@ int main(int argc, char* argv[])
   printf("[hybrid ] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
          M,N1,N2,nf1*nf2,thybrid,M/thybrid);
 
-#ifdef RESULT
+#if 0
   cout<<"[resultdiff]"<<endl;
+  FLT fwi_infnorm=infnorm(nf1*nf2, fwi);
+  int nn=0;
   for(int j=0; j<nf2; j++){
     for (int i=0; i<nf1; i++){
-      if( norm(fwic[i+j*nf1]-fwh[i+j*nf1]) > 1e-8){
-         cout<<norm(fwic[i+j*nf1]-fwh[i+j*nf1])<<" ";
-         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwic[i+j*nf1] <<","<<fwh[i+j*nf1]<<endl;
+      if( norm(fwi[i+j*nf1]-fwh[i+j*nf1])/fwi_infnorm > 1e-5 & nn<10){
+         cout<<norm(fwi[i+j*nf1]-fwh[i+j*nf1])/fwi_infnorm<<" ";
+         cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwh[i+j*nf1]<<endl;
+         nn++;
       }
     }
   }
