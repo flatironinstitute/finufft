@@ -3,10 +3,13 @@ CXX=g++
 NVCC=nvcc
 CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native
 #CXXFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_50 -DTIME
+NVCCFLAGS=-arch=sm_50
 INC=-I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/samples/common/inc/ \
     -I/mnt/home/yshih/cub/
+LIBS_PATH=
 LIBS=-lm -lfftw3 -lcudart -lstdc++
+
+-include make.inc
 
 spread1d: spread1d.o utils.o main_1d.cu
 	$(NVCC) main_1d.cu -o spread1d spread1d.o utils.o $(INC)
@@ -24,7 +27,7 @@ spread2d.o: src/spread2d.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
 utils.o: src/finufft/utils.cpp
-	$(CXX) -c $< -o $@ $(CXXFLAGS)
+	$(CXX) -c $< -o $@ $(CXXFLAGS) $(INC)
 
 cnufftspread.o: src/finufft/cnufftspread.cpp
 	$(CXX) -c $< -o $@ $(CXXFLAGS) $(INC)
@@ -54,7 +57,7 @@ accuracy: accuracycheck_2d.o spread2d_wrapper.o spread2d.o utils.o cnufftspread.
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 finufft2d_test: finufft2d_test.o finufft2d.o utils.o cnufftspread.o dirft2d.o common.o legendre_rule_fast.o spread2d_wrapper.o spread2d.o
-	$(CXX) $^ $(LIBS) -o $@
+	$(CXX) $^ $(LIBS_PATH) $(LIBS) -o $@
 
 clean:
 	rm *.o
