@@ -96,8 +96,8 @@ int main(int argc, char* argv[])
 				return 0;
 			}
 			FLT tidriven=timer.elapsedsec();
-			printf("[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-					M,N1,N2,nf1*nf2,tidriven,M/tidriven);
+			printf("[idriven] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
+					M,nf1*nf2,tidriven,M/tidriven);
 		}
 		break;
 		case 2:
@@ -105,8 +105,8 @@ int main(int argc, char* argv[])
 			timer.restart();
 			ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw, M, x, y, c, opts);
 			FLT ticdriven=timer.elapsedsec();
-			printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-					M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
+			printf("[isorted] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
+					M,nf1*nf2,ticdriven,M/ticdriven);
 		}
 		break;
 		case 3:
@@ -124,8 +124,8 @@ int main(int argc, char* argv[])
 				return 0;
 			}
 			FLT todriven=timer.elapsedsec();
-			printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-					M,N1,N2,nf1*nf2,todriven,M/todriven);
+			printf("[odriven] %ld NU pts #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
+					M,nf1*nf2,todriven,M/todriven);
 		}
 		break;	
 		case 4:
@@ -139,8 +139,8 @@ int main(int argc, char* argv[])
 				return 0;
 			}
 			FLT thybrid=timer.elapsedsec();
-			printf("[hybrid ] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-					M,N1,N2,nf1*nf2,thybrid,M/thybrid);
+			printf("[hybrid ] %ld NU pts to %d U pts in %.3g s (\t%.3g NU pts/s)\n",
+					M,nf1*nf2,thybrid,M/thybrid);
 		}
 		break;
 		default:
