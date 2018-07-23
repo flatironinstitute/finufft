@@ -35,6 +35,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 {
 	checkCudaErrors(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
 	CNTime timer;
+	FLT k_spread_time=0.0;
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
@@ -103,6 +104,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 			d_kx,d_ky,d_sortidx);
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " Kernel CalcBinSize_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -134,6 +136,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	FillGhostBin_2d<<<blocks,threadsPerBlock>>>(numbins[0],numbins[1],d_binsize);
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " Kernel FillGhostBin_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -193,6 +196,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -220,6 +224,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	checkCudaErrors(cudaMalloc(&d_csorted,totalnupts*sizeof(gpuComplex)));
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " Allocating GPU memory (need info of totolnupts) " << timer.elapsedsec() <<" s"<<endl;
 #endif
 
@@ -229,6 +234,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 			d_ky, d_kysorted, d_c, d_csorted);
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " Kernel PtsRearrange_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -273,6 +279,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 			d_fw, ns, nf1, nf2, es_c, es_beta, fw_width);
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 	timer.restart();
@@ -283,6 +290,9 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 #ifdef TIME
 	cudaDeviceSynchronize();
 	cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
+#endif
+#ifdef TIME
+	cout<<"[time  ]"<< " TOTAL SPREAD KERNEL TIME (exclude memalloc, memcpy): " << k_spread_time <<" s"<<endl;
 #endif
 	// Free memory
 	cudaFree(d_kx);
@@ -305,6 +315,7 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 		FLT *h_ky, CPX *h_c, spread_opts opts)
 {
 	CNTime timer;
+	FLT k_spread_time=0.0;
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
@@ -345,6 +356,7 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 			nf1, nf2, es_c, es_beta, fw_width);
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 	timer.restart();
@@ -355,6 +367,9 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 #ifdef TIME
 	cudaDeviceSynchronize();
 	cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
+#endif
+#ifdef TIME
+	cout<<"[time  ]"<< " TOTAL SPREAD KERNEL TIME (exclude memalloc, memcpy): " << k_spread_time <<" s"<<endl;
 #endif
 
 	// Free memory
@@ -369,6 +384,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 		FLT *h_ky, CPX *h_c, spread_opts opts)
 {
 	CNTime timer;
+	FLT k_spread_time=0.0;
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
@@ -416,6 +432,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 	CreateSortIdx<<<blocks, threadsPerBlock>>>(M, nf1, nf2, d_kx, d_ky, d_sortidx);
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " CreateSortIdx " << timer.elapsedsec() <<" s"<<endl;
 #endif
 #ifdef DEBUG
@@ -434,6 +451,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 		thrust::sort_by_key(thrust::device, d_sortidx, d_sortidx + M, indices.begin());
 #ifdef TIME
 		cudaDeviceSynchronize();
+		k_spread_time+=timer.elapsedsec();
 		cout<<"[time  ]"<< " thrust::sort_by_key " << timer.elapsedsec() <<" s"<<endl;
 #endif
 		timer.restart();
@@ -472,6 +490,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 
 #ifdef TIME
 		cudaDeviceSynchronize();
+		k_spread_time+=timer.elapsedsec();
 		cout<<"[time  ]"<< " cub::SortPairs " << timer.elapsedsec() <<" s"<<endl;
 #endif
 		timer.restart();
@@ -485,6 +504,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 		//thrust::gather(thrust::device, d_index_out, d_index_out+M, d_c, d_csorted);
 #ifdef TIME
 		cudaDeviceSynchronize();
+		k_spread_time+=timer.elapsedsec();
 		cout<<"[time  ]"<< " Gather kernel " << timer.elapsedsec() <<" s"<<endl;
 #endif
 	}
@@ -507,6 +527,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 			nf1, nf2, es_c, es_beta, fw_width);
 #ifdef TIME
 	cudaDeviceSynchronize();
+	k_spread_time+=timer.elapsedsec();
 	cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
 #endif
 	timer.restart();
@@ -517,6 +538,9 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 #ifdef TIME
 	cudaDeviceSynchronize();
 	cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
+#endif
+#ifdef TIME
+	cout<<"[time  ]"<< " TOTAL SPREAD KERNEL TIME (exclude memalloc, memcpy): " << k_spread_time <<" s"<<endl;
 #endif
 	// Free memory
 	cudaFree(d_kx);
@@ -534,6 +558,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 		FLT *h_ky, CPX *h_c, spread_opts opts)
 {
 	CNTime timer;
+	FLT k_spread_time=0.0;
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
@@ -745,6 +770,9 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 #ifdef TIME
 	cudaDeviceSynchronize();
 	cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
+#endif
+#ifdef TIME
+	cout<<"[time  ]"<< " TOTAL SPREAD KERNEL TIME (exclude memalloc, memcpy): " << k_spread_time <<" s"<<endl;
 #endif
 	// Free memory
 	cudaFree(d_kx);
