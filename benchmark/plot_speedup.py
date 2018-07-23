@@ -13,7 +13,7 @@ def find_between( s, first, last ):
 
 def main():
 	num_lines = sum(1 for line in open('cputime.out', 'r'))
-	N = np.zeros(num_lines)
+	N = np.zeros(num_lines, dtype=int)
 	s_cpu = np.zeros(num_lines)
 	s_gpu = np.zeros([4, num_lines])
 	speedup = np.zeros([4, num_lines])
