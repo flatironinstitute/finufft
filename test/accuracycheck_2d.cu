@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 	opts.ES_halfwidth=(FLT)ns/2;
 	opts.use_thrust=use_thrust;
 
-	cout<<scientific<<setprecision(15);
+	cout<<scientific<<setprecision(3);
 	int ier;
 
 
@@ -86,7 +86,8 @@ int main(int argc, char* argv[])
 	// Method 1: Input driven without sorting //
 	/* -------------------------------------- */
 	timer.restart();
-	ier = cnufftspread2d_gpu_idriven(nf1, nf2, fwi, M, x, y, c, opts);
+	opts.method=1;
+	ier = cnufftspread2d_gpu(nf1, nf2, fwi, M, x, y, c, opts);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
 		return 0;
@@ -99,7 +100,8 @@ int main(int argc, char* argv[])
 	// Method 2: Input driven with sorting    //
 	/* -------------------------------------- */
 	timer.restart();
-	ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fwic, M, x, y, c, opts);
+	opts.method=2;
+	ier = cnufftspread2d_gpu(nf1, nf2, fwic, M, x, y, c, opts);
 	FLT ticdriven=timer.elapsedsec();
 	printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
@@ -108,13 +110,10 @@ int main(int argc, char* argv[])
 	// Method 3: Output driven                //
 	/* -------------------------------------- */
 	timer.restart();
+	opts.method=3;
 	opts.bin_size_x=4;
 	opts.bin_size_y=4;
-	if(nf1 % opts.bin_size_x != 0 || nf2 % opts.bin_size_y !=0){
-		cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
-		return 0;
-	}
-	ier = cnufftspread2d_gpu_odriven(nf1, nf2, fwo, M, x, y, c, opts);
+	ier = cnufftspread2d_gpu(nf1, nf2, fwo, M, x, y, c, opts);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
 		return 0;
@@ -127,9 +126,10 @@ int main(int argc, char* argv[])
 	// Method 4: Hybrid                       //
 	/* -------------------------------------- */
 	timer.restart();
+	opts.method=4;
 	opts.bin_size_x=32;
 	opts.bin_size_y=32;
-	ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fwh, M, x, y, c, opts);
+	ier = cnufftspread2d_gpu(nf1, nf2, fwh, M, x, y, c, opts);
 	FLT thybrid=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;

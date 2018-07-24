@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
     fprintf(stderr,"Usage: finufft2d_test [N1 N2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]\n");
     return 1;
   }
-  cout << scientific << setprecision(15);
+  cout << scientific << setprecision(3);
   BIGINT N = N1*N2;
 
   FLT *x = (FLT *)malloc(sizeof(FLT)*M);        // NU pts x coords

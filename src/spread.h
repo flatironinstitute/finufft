@@ -28,6 +28,7 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   FLT ES_c;
   
   // CUDA: for output driven
+  int method;
   int bin_size_x;
   int bin_size_y;
   int use_thrust;
@@ -98,13 +99,13 @@ void Gather(int nelem, int* index, FLT* x, FLT* y, gpuComplex* c,
 
 int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                        FLT *h_ky, CPX* h_c, spread_opts opts);
-int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                               FLT *h_ky, CPX* h_c, spread_opts opts);
-int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                               FLT *h_ky, CPX *h_c, spread_opts opts);
-int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                                      FLT *h_ky, CPX* h_c, spread_opts opts);
-int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                              FLT *h_ky, CPX *h_c, spread_opts opts);
+int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
+                               FLT *d_ky, gpuComplex* d_c, spread_opts opts);
+int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
+                               FLT *d_ky, gpuComplex *d_c, spread_opts opts);
+int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, 
+                                      FLT *d_kx,FLT *d_ky, gpuComplex* d_c, spread_opts opts);
+int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
+                              FLT *d_ky, gpuComplex *d_c, spread_opts opts);
 
 #endif

@@ -490,6 +490,11 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
   opts.flags = 0;               // 0:no timing flags
   opts.debug = 0;               // 0:no debug output
 
+  // for gpu
+  opts.method = 4;
+  opts.bin_size_x = 32;
+  opts.bin_size_y = 32;
+
   // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
   int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten
   if (upsampfac!=2.0)           // override ns for custom sigma

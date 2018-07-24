@@ -16,45 +16,181 @@
 
 using namespace std;
 
-int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts)
+int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, CPX* h_fw, gpuComplex** d_fw, 
+                          FLT *h_kx, FLT **d_kx, FLT* h_ky, FLT** d_ky, 
+                          CPX *h_c, gpuComplex **d_c)
 {
-#if 1
+	checkCudaErrors(cudaMalloc(d_kx,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(d_ky,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(d_c,M*sizeof(gpuComplex)));
+	
+	size_t pitch;
+	checkCudaErrors(cudaMallocPitch((void**) d_fw, &pitch,nf1*sizeof(gpuComplex),nf2));
+	*fw_width = pitch/sizeof(gpuComplex);
+
+	return 0;
+}
+
+int cnufft_copycpumem_to_gpumem(int nf1, int nf2, int M, int fw_width, CPX* h_fw, gpuComplex* d_fw,
+                                FLT *h_kx, FLT *d_kx, FLT* h_ky, FLT* d_ky,
+                                CPX *h_c, gpuComplex *d_c)
+{
+	checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
+	
+	return 0;
+}
+
+int cnufft_copygpumem_to_cpumem(int nf1, int nf2, int M, int fw_width, CPX* h_fw, gpuComplex* d_fw,
+                                FLT *h_kx, FLT *d_kx, FLT* h_ky, FLT* d_ky,
+                                CPX *h_c, gpuComplex *d_c)
+{
+	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,fw_width*sizeof(gpuComplex),
+                                     nf1*sizeof(gpuComplex),nf2,cudaMemcpyDeviceToHost));
+	
+	return 0;
+}
+
+void cnufft_free_gpumemory(gpuComplex* d_fw, FLT *d_kx, FLT* d_ky, gpuComplex *d_c)
+{
+	cudaFree(d_fw);
+	cudaFree(d_kx);
+	cudaFree(d_ky);
+	cudaFree(d_c);
+}
+
+int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+		       FLT *h_ky, CPX *h_c, spread_opts opts)
+{
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+  	float milliseconds = 0;
+	
+	int ier;
+	int fw_width;
+	FLT *d_kx,*d_ky;
+	gpuComplex *d_c,*d_fw;
+
 	if(opts.pirange){
 		for(int i=0; i<M; i++){
 			h_kx[i]=RESCALE(h_kx[i], nf1, opts.pirange);
 			h_ky[i]=RESCALE(h_ky[i], nf2, opts.pirange);
 		}
 	}
+	cudaEventRecord(start);
+	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, h_fw, &d_fw, h_kx, &d_kx, 
+                                    h_ky, &d_ky, h_c, &d_c);
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< " Allocating GPU memory " << milliseconds/1000 <<" s"<<endl;
 #endif
-	return cnufftspread2d_gpu_idriven(nf1, nf2, h_fw, M, h_kx, h_ky, h_c, opts);
-}
+	cudaEventRecord(start);
+	ier = cnufft_copycpumem_to_gpumem(nf1, nf2, M, fw_width, h_fw, d_fw, h_kx, d_kx,
+                                          h_ky, d_ky, h_c, d_c);
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< " Copying memory from host to device " << milliseconds/1000 <<" s"<<endl;
+#endif
 
-int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts)
+	cudaEventRecord(start);
+	switch(opts.method)
+        {
+                case 1:
+                {
+                        ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, d_fw, M, d_kx, 
+                                                         d_ky, d_c, opts);
+                        if(ier != 0 ){
+                                cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
+                                return 0;
+                        }
+                }
+                break;
+                case 2:
+                {
+                        ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, d_fw, M, 
+                                                                d_kx, d_ky, d_c, opts);
+                }
+                break;
+		case 3:
+                {
+                        if(nf1 % opts.bin_size_x != 0 || nf2 % opts.bin_size_y !=0){
+                                cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
+                                return 0;
+                        }
+                        ier = cnufftspread2d_gpu_odriven(nf1, nf2, fw_width, d_fw, M, d_kx, 
+                                                         d_ky, d_c, opts);
+                        if(ier != 0 ){
+                                cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
+                                return 0;
+                        }
+                }
+                break;
+                case 4:
+                {
+                        ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+                        if(ier != 0 ){
+                                cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
+                                return 0;
+                        }
+                }
+                break;
+                default:
+                        cout<<"error: incorrect method, should be 1,2,3 or 4"<<endl;
+                        return 0;
+        }
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< " Spread " << milliseconds/1000 <<" s"<<endl;
+#endif
+	cudaEventRecord(start);
+	ier = cnufft_copygpumem_to_cpumem(nf1, nf2, M, fw_width, h_fw, d_fw, h_kx, d_kx,
+                                          h_ky, d_ky, h_c, d_c);
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< " Copying memory from device to host " << milliseconds/1000 <<" s"<<endl;
+#endif
+	cnufft_free_gpumemory(d_fw, d_kx, d_ky, d_c);
+
+	return ier;
+}
+int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, 
+                               FLT *d_kx, FLT *d_ky, gpuComplex *d_c, spread_opts opts)
 {
-	checkCudaErrors(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
-	CNTime timer;
-	FLT k_spread_time=0.0;
+	// Timing 
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
 	int ns=opts.nspread;   // psi's support in terms of number of cells
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
+	
+	// GPU memory
+	FLT *d_kxsorted,*d_kysorted;
+	gpuComplex *d_csorted;
+	int *d_binsize;
+	int *d_binstartpts;
+	int *d_sortidx;
 
-	FLT *d_kx,*d_ky;
-	gpuComplex *d_c,*d_fw;
 	// Parameter setting
 	int numbins[2];
 	int totalnupts;
 	int nbin_block_x, nbin_block_y;
 	int bin_size_x=opts.bin_size_x;
 	int bin_size_y=opts.bin_size_y;
-
-	int *d_binsize;
-	int *d_binstartpts;
-	int *d_sortidx;
 
 	numbins[0] = ceil(nf1/bin_size_x)+2;
 	numbins[1] = ceil(nf2/bin_size_y)+2;
@@ -65,52 +201,29 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cout<<"[info  ] numbins (including ghost bins) = ["
 		<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
-	FLT *d_kxsorted,*d_kysorted;
-	gpuComplex *d_csorted;
-	int *h_binsize, *h_binstartpts, *h_sortidx; // For debug
-
-	timer.restart();
-	checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(gpuComplex)));
-	//checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(gpuComplex)));
-	int fw_width;
-	size_t pitch;
-	checkCudaErrors(cudaMallocPitch((void**) &d_fw, &pitch,nf1*sizeof(gpuComplex),nf2));
-	fw_width = pitch/sizeof(gpuComplex);
 
 	checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
 	checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
 	checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
-#ifdef TIME
-	cout<<"[time  ]"<< " Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
-#endif
 
-	timer.restart();
-	checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
-#ifdef TIME
-	cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
-#endif
 
-	h_binsize     = (int*)malloc(numbins[0]*numbins[1]*sizeof(int));
-	h_sortidx     = (int*)malloc(M*sizeof(int));
-	h_binstartpts = (int*)malloc((numbins[0]*numbins[1]+1)*sizeof(int));
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
-	timer.restart();
+	cudaEventRecord(start);
+	cudaEventRecord(start);
 	CalcBinSize_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
 			numbins[0],numbins[1],d_binsize,
 			d_kx,d_ky,d_sortidx);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " Kernel CalcBinSize_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+  	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel CalcBinSize_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << milliseconds <<" ms"<<endl;
 #endif
 #ifdef DEBUG
+	int *h_binsize; // For debug
+	h_binsize     = (int*)malloc(numbins[0]*numbins[1]*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int),
-				cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
 				cudaMemcpyDeviceToHost));
 	cout<<"[debug ] Before fill in the ghost bin size:"<<endl;
 	for(int j=0; j<numbins[1]; j++){
@@ -123,9 +236,9 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	}
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
-	timer.restart();
+	cudaEventRecord(start);
 	threadsPerBlock.x = 32;
-	threadsPerBlock.y = 32;// doesn't work for 64, doesn't know why
+	threadsPerBlock.y = 32;
 	if(threadsPerBlock.x*threadsPerBlock.y < 1024){
 		cout<<"error: number of threads in a block exceeds max num 1024("
 			<<threadsPerBlock.x*threadsPerBlock.y<<")"<<endl;
@@ -134,10 +247,11 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	blocks.x = (numbins[0]+threadsPerBlock.x-1)/threadsPerBlock.x;
 	blocks.y = (numbins[1]+threadsPerBlock.y-1)/threadsPerBlock.y;
 	FillGhostBin_2d<<<blocks,threadsPerBlock>>>(numbins[0],numbins[1],d_binsize);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " Kernel FillGhostBin_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel FillGhostBin_2d takes " << milliseconds <<" ms"<<endl;
 #endif
 #ifdef DEBUG
 	checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int),
@@ -151,10 +265,11 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 		}
 		cout<<endl;
 	}
+	free(h_binsize);
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
 
-	timer.restart();
+	cudaEventRecord(start);
 	int n=numbins[0]*numbins[1];
 	int scanblocksize=1024;
 	int numscanblocks=ceil((double)n/scanblocksize);
@@ -194,12 +309,15 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	}
 #endif
 	uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel BinsStartPts_2d takes " << milliseconds <<" ms"<<endl;
 #endif
 #ifdef DEBUG
+	int *h_binstartpts;
+	h_binstartpts = (int*)malloc((numbins[0]*numbins[1]+1)*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int),
 				cudaMemcpyDeviceToHost));
 	cout<<"[debug ] Result of scan bin_size array:"<<endl;
@@ -214,28 +332,31 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cout<<"[debug ] Total number of nonuniform pts (include those in ghost bins) = "
 		<< setw(4)<<h_binstartpts[numbins[0]*numbins[1]]<<endl;
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
+	free(h_binstartpts);
 #endif
 
-	timer.restart();
+	cudaEventRecord(start);
 	checkCudaErrors(cudaMemcpy(&totalnupts,d_binstartpts+numbins[0]*numbins[1],sizeof(int),
 				cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMalloc(&d_kxsorted,totalnupts*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_kysorted,totalnupts*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_csorted,totalnupts*sizeof(gpuComplex)));
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " Allocating GPU memory (need info of totolnupts) " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tAllocating GPU memory (need info of totolnupts) " << milliseconds <<" ms"<<endl;
 #endif
 
-	timer.restart();
+	cudaEventRecord(start);
 	PtsRearrage_2d<<<(M+1024-1)/1024,1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
 			numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
 			d_ky, d_kysorted, d_c, d_csorted);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " Kernel PtsRearrange_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel PtsRearrange_2d takes " << milliseconds <<" ms"<<endl;
 #endif
 #ifdef DEBUG
 	FLT *h_kxsorted, *h_kysorted;
@@ -261,7 +382,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	free(h_csorted);
 #endif
 
-	timer.restart();
+	cudaEventRecord(start);
 	threadsPerBlock.x = 8;
 	threadsPerBlock.y = 8;
 	blocks.x = (nf1 + threadsPerBlock.x - 1)/threadsPerBlock.x;
@@ -277,45 +398,25 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	Spread_2d_Odriven<<<blocks, threadsPerBlock>>>(nbin_block_x, nbin_block_y, numbins[0], numbins[1],
 			d_binstartpts, d_kxsorted, d_kysorted, d_csorted,
 			d_fw, ns, nf1, nf2, es_c, es_beta, fw_width);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
-#endif
-	timer.restart();
-	//checkCudaErrors(cudaMemcpy(h_fw,d_fw,nf1*nf2*sizeof(gpuComplex),
-	//                           cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,pitch,nf1*sizeof(gpuComplex),nf2,
-				cudaMemcpyDeviceToHost));
-#ifdef TIME
-	cudaDeviceSynchronize();
-	cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
-#endif
-#ifdef TIME
-	cout<<"[time  ]"<< " TOTAL SPREAD KERNEL TIME (exclude memalloc, memcpy): " << k_spread_time <<" s"<<endl;
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel Spread_2d takes " << milliseconds <<" ms"<<endl;
 #endif
 	// Free memory
-	cudaFree(d_kx);
-	cudaFree(d_ky);
-	cudaFree(d_c);
-	cudaFree(d_fw);
 	cudaFree(d_binsize);
 	cudaFree(d_binstartpts);
 	cudaFree(d_sortidx);
 	cudaFree(d_kxsorted);
 	cudaFree(d_kysorted);
 	cudaFree(d_csorted);
-	free(h_binsize);
-	free(h_binstartpts);
-	free(h_sortidx);
 	return 0;
 }
 
-int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts)
+int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
+		               FLT *d_ky, gpuComplex *d_c, spread_opts opts)
 {
-	CNTime timer;
-	FLT k_spread_time=0.0;
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
@@ -323,68 +424,23 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
 
-	FLT *d_kx,*d_ky;
-	gpuComplex *d_c, *d_fw;
-
-	timer.restart();
-	checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(gpuComplex)));
-	//checkCudaErrors(cudaMalloc(&d_fw,2*nf1*nf2*sizeof(FLT)));
-	int fw_width;
-	size_t pitch;
-	checkCudaErrors(cudaMallocPitch((void**) &d_fw,&pitch,nf1*sizeof(gpuComplex),nf2));
-	fw_width = pitch/sizeof(gpuComplex);
-#ifdef TIME
-	cout<<"[time  ]"<< " Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
-#endif
-
-	timer.restart();
-	checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
-#ifdef TIME
-	cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
-#endif
-
-	timer.restart();
 	threadsPerBlock.x = 1024;
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
 	Spread_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
-			nf1, nf2, es_c, es_beta, fw_width);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
-#endif
-	timer.restart();
-	//checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(FLT),
-	//                           cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,pitch,nf1*sizeof(gpuComplex),nf2,
-				cudaMemcpyDeviceToHost));
-#ifdef TIME
-	cudaDeviceSynchronize();
-	cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
-#endif
-#ifdef TIME
-	cout<<"[time  ]"<< " TOTAL SPREAD KERNEL TIME (exclude memalloc, memcpy): " << k_spread_time <<" s"<<endl;
-#endif
-
-	// Free memory
-	cudaFree(d_kx);
-	cudaFree(d_ky);
-	cudaFree(d_c);
-	cudaFree(d_fw);
+			                               nf1, nf2, es_c, es_beta, fw_width);
 	return 0;
 }
 
-int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts)
+int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex* d_fw, 
+                                      int M, FLT *d_kx, FLT *d_ky, gpuComplex *d_c, 
+                                      spread_opts opts)
 {
-	CNTime timer;
-	FLT k_spread_time=0.0;
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
@@ -392,50 +448,44 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
 
-	FLT *d_kx,*d_ky;
-	gpuComplex *d_c, *d_fw;
 	FLT *d_kxsorted,*d_kysorted;
 	gpuComplex *d_csorted;
 	int *d_sortidx;
 
-	timer.restart();
-	checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(gpuComplex)));
-
+	cudaEventRecord(start);
 	checkCudaErrors(cudaMalloc(&d_kxsorted,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_kysorted,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_csorted,M*sizeof(gpuComplex)));
-
 	checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
-	int fw_width;
-	size_t pitch;
-	checkCudaErrors(cudaMallocPitch((void**) &d_fw,&pitch,nf1*sizeof(gpuComplex),nf2));
-	fw_width = pitch/sizeof(gpuComplex);
-#ifdef TIME
-	cout<<"[time  ]"<< " Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+  	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tAllocating GPU memory for sorted array " << milliseconds <<" ms"<<endl;
 #endif
 
-	timer.restart();
-	checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
-#ifdef TIME
-	cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
-#endif
-
-	timer.restart();
+	cudaEventRecord(start);
 	threadsPerBlock.x = 1024;
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
 	CreateSortIdx<<<blocks, threadsPerBlock>>>(M, nf1, nf2, d_kx, d_ky, d_sortidx);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " CreateSortIdx " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPRADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tCreateSortIdx " << milliseconds <<" ms"<<endl;
 #endif
 #ifdef DEBUG
+	FLT *h_kx, *h_ky;
+	CPX *h_c;
+	h_kx = (FLT*) malloc(M*sizeof(FLT)); 
+	h_ky = (FLT*) malloc(M*sizeof(FLT));
+	h_c = (CPX*) malloc(M*sizeof(CPX));
+	checkCudaErrors(cudaMemcpy(h_kx, d_kx, M*sizeof(FLT), cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_ky, d_ky, M*sizeof(FLT), cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_c, d_c, M*sizeof(CPX), cudaMemcpyDeviceToHost));
 	int* h_sortidx = (int*) malloc(M*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
 	for(int i=0; i<M; i++){
@@ -444,26 +494,31 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 	free(h_sortidx);
 #endif 
 	if(opts.use_thrust){
-		timer.restart();
+		cudaEventRecord(start);
 		thrust::counting_iterator<int> iter(0);
 		thrust::device_vector<int> indices(M);
 		thrust::copy(iter, iter + indices.size(), indices.begin());
 		thrust::sort_by_key(thrust::device, d_sortidx, d_sortidx + M, indices.begin());
-#ifdef TIME
-		cudaDeviceSynchronize();
-		k_spread_time+=timer.elapsedsec();
-		cout<<"[time  ]"<< " thrust::sort_by_key " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+  		cudaEventElapsedTime(&milliseconds, start, stop);
+		
+		k_spread_time+=milliseconds;
+		cout<<"[time  ]"<< "\tthrust::sort_by_key " << milliseconds <<" s"<<endl;
 #endif
-		timer.restart();
+		cudaEventRecord(start);
 		thrust::gather(thrust::device, indices.begin(), indices.end(), d_kx, d_kxsorted);
 		thrust::gather(thrust::device, indices.begin(), indices.end(), d_ky, d_kysorted);
 		thrust::gather(thrust::device, indices.begin(), indices.end(), d_c, d_csorted);
-#ifdef TIME
-		cudaDeviceSynchronize();
-		cout<<"[time  ]"<< " thrust::gather " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+  		cudaEventElapsedTime(&milliseconds, start, stop);
+		cout<<"[time  ]"<< "\tthrust::gather " << milliseconds <<" ms"<<endl;
 #endif
 	}else{
-		timer.restart();
+		cudaEventRecord(start);
 		size_t  temp_storage_bytes  = 0;
 		void    *d_temp_storage     = NULL;
 
@@ -479,21 +534,22 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 		blocks.y = 1;
 		CreateIndex<<<blocks, threadsPerBlock>>>(d_index_in, M);
 		//#ifdef TIME
-		//cudaDeviceSynchronize();
-		//cout<<"[time  ]"<< " CreateIndex " << timer.elapsedsec() <<" s"<<endl;
+		//
+		//cout<<"[time  ]"<< " CreateIndex " << milliseconds <<" s"<<endl;
 		//#endif
 
-		timer.restart();
+		cudaEventRecord(start);
 		cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_sortidx, d_sortedidx, d_index_in, d_index_out, M);
 		checkCudaErrors(cudaMalloc(&d_temp_storage,temp_storage_bytes));
 		cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_sortidx, d_sortedidx, d_index_in, d_index_out, M);
 
-#ifdef TIME
-		cudaDeviceSynchronize();
-		k_spread_time+=timer.elapsedsec();
-		cout<<"[time  ]"<< " cub::SortPairs " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+  		cudaEventElapsedTime(&milliseconds, start, stop);
+		cout<<"[time  ]"<< "\tcub::SortPairs " << milliseconds <<" ms"<<endl;
 #endif
-		timer.restart();
+		cudaEventRecord(start);
 		threadsPerBlock.x = 1024;
 		threadsPerBlock.y = 1;
 		blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
@@ -502,10 +558,11 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 		//thrust::gather(thrust::device, d_index_out, d_index_out+M, d_kx, d_kxsorted);
 		//thrust::gather(thrust::device, d_index_out, d_index_out+M, d_ky, d_kysorted);
 		//thrust::gather(thrust::device, d_index_out, d_index_out+M, d_c, d_csorted);
-#ifdef TIME
-		cudaDeviceSynchronize();
-		k_spread_time+=timer.elapsedsec();
-		cout<<"[time  ]"<< " Gather kernel " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+  		cudaEventElapsedTime(&milliseconds, start, stop);
+		cout<<"[time  ]"<< "\tGather kernel " << milliseconds <<" ms"<<endl;
 #endif
 	}
 #ifdef DEBUG
@@ -518,47 +575,35 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, CPX* h_fw, int M, FLT *h
 	}
 #endif 
 
-	timer.restart();
+	cudaEventRecord(start);
 	threadsPerBlock.x = 1024;
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
 	Spread_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kxsorted, d_kysorted, d_csorted, d_fw, M, ns,
 			nf1, nf2, es_c, es_beta, fw_width);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	k_spread_time+=timer.elapsedsec();
-	cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
-#endif
-	timer.restart();
-	//checkCudaErrors(cudaMemcpy(h_fw,d_fw,2*nf1*nf2*sizeof(FLT),
-	//                           cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,pitch,nf1*sizeof(gpuComplex),nf2,
-				cudaMemcpyDeviceToHost));
-#ifdef TIME
-	cudaDeviceSynchronize();
-	cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
-#endif
-#ifdef TIME
-	cout<<"[time  ]"<< " TOTAL SPREAD KERNEL TIME (exclude memalloc, memcpy): " << k_spread_time <<" s"<<endl;
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel Spread_2d_Idriven takes " << milliseconds <<" ms"<<endl;
 #endif
 	// Free memory
-	cudaFree(d_kx);
-	cudaFree(d_ky);
-	cudaFree(d_c);
 	cudaFree(d_kxsorted);
 	cudaFree(d_kysorted);
 	cudaFree(d_csorted);
-	cudaFree(d_fw);
 	cudaFree(d_sortidx);
 	return 0;
 }
 
-int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts)
+int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw, 
+                              int M, FLT *d_kx, FLT *d_ky, gpuComplex *d_c, 
+                              spread_opts opts)
 {
-	CNTime timer;
-	FLT k_spread_time=0.0;
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
@@ -568,8 +613,6 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	int bin_size_x=opts.bin_size_x;
 	int bin_size_y=opts.bin_size_y;
 
-	FLT *d_kx,*d_ky;
-	gpuComplex *d_c,*d_fw;
 	// Parameter setting
 	int numbins[2];
 
@@ -588,54 +631,41 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 #endif
 	FLT *d_kxsorted,*d_kysorted;
 	gpuComplex *d_csorted;
-	int *h_binsize, *h_binstartpts, *h_sortidx; // For debug
 
-	timer.restart();
-	checkCudaErrors(cudaMalloc(&d_kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_c ,M*sizeof(gpuComplex)));
-	//checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(gpuComplex)));
-	int fw_width;
-	size_t pitch;
-	checkCudaErrors(cudaMallocPitch((void**) &d_fw, &pitch,nf1*sizeof(gpuComplex),nf2));
-	fw_width = pitch/sizeof(gpuComplex);
+
+	cudaEventRecord(start);
+	checkCudaErrors(cudaMalloc(&d_kxsorted,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_kysorted,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_csorted,M*sizeof(gpuComplex)));
 
 	checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
 	checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
 	checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
-#ifdef TIME
-	cout<<"[time  ]"<< " Allocating GPU memory " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+  	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tAllocating GPU memory for sorted array " << milliseconds <<" ms"<<endl;
 #endif
 
-	timer.restart();
-	checkCudaErrors(cudaMemcpy(d_kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_c,h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMalloc(&d_kxsorted,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_kysorted,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_csorted,M*sizeof(gpuComplex)));
-#ifdef TIME
-	cout<<"[time  ]"<< " Copying memory from host to device " << timer.elapsedsec() <<" s"<<endl;
-#endif
-
-	h_binsize     = (int*)malloc(numbins[0]*numbins[1]*sizeof(int));
-	h_sortidx     = (int*)malloc(M*sizeof(int));
-	h_binstartpts = (int*)malloc((numbins[0]*numbins[1]+1)*sizeof(int));
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
-	timer.restart();
+	cudaEventRecord(start);
 	CalcBinSize_noghost_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
 			numbins[0],numbins[1],d_binsize,
 			d_kx,d_ky,d_sortidx);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	cout<<"[time  ]"<< " Kernel CalcBinSize_noghost_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel CalcBinSize_noghost_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << milliseconds <<" ms"<<endl;
 #endif
 #ifdef DEBUG
+	int *h_binsize;// For debug
+	h_binsize     = (int*)malloc(numbins[0]*numbins[1]*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int),
 				cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
-				cudaMemcpyDeviceToHost));
-	cout<<"[debug ] Before fill in the ghost bin size:"<<endl;
+	cout<<"[debug ] bin size:"<<endl;
 	for(int j=0; j<numbins[1]; j++){
 		cout<<"[debug ] ";
 		for(int i=0; i<numbins[0]; i++){
@@ -644,10 +674,11 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 		}
 		cout<<endl;
 	}
+	free(h_binsize);
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
 
-	timer.restart();
+	cudaEventRecord(start);
 	int n=numbins[0]*numbins[1];
 	int scanblocksize=1024;
 	int numscanblocks=ceil((double)n/scanblocksize);
@@ -687,12 +718,16 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	}
 #endif
 	uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	cout<<"[time  ]"<< " Kernel BinsStartPts_2d takes " << timer.elapsedsec() <<" s"<<endl;
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel BinsStartPts_2d takes " << milliseconds <<" ms"<<endl;
 #endif
 
 #ifdef DEBUG
+	int *h_binstartpts;
+	h_binstartpts = (int*)malloc((numbins[0]*numbins[1]+1)*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int),
 				cudaMemcpyDeviceToHost));
 	cout<<"[debug ] Result of scan bin_size array:"<<endl;
@@ -706,17 +741,19 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	}
 	cout<<"[debug ] Total number of nonuniform pts (include those in ghost bins) = "
 		<< setw(4)<<h_binstartpts[numbins[0]*numbins[1]]<<endl;
+	free(h_binstartpts);
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
 
-	timer.restart();
+	cudaEventRecord(start);
 	PtsRearrage_noghost_2d<<<(M+1024-1)/1024,1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
-			numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
-			d_ky, d_kysorted, d_c, d_csorted);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	printf("[time  ] #block=%d, #threads=%d\n", (M+1024-1)/1024,1024);
-	cout<<"[time  ]"<< " Kernel PtsRearrange_noghost_2d takes " << timer.elapsedsec() <<" s"<<endl;
+	                                                 numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
+	                                                 d_ky, d_kysorted, d_c, d_csorted);
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel PtsRearrange_noghost_2d takes " << milliseconds <<" ms"<<endl;
 #endif
 #ifdef DEBUG
 	FLT *h_kxsorted, *h_kysorted;
@@ -742,7 +779,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	free(h_csorted);
 #endif
 
-	timer.restart();
+	cudaEventRecord(start);
 	threadsPerBlock.x = 32;
 	threadsPerBlock.y = 32;
 	blocks.x = numbins[0];
@@ -754,40 +791,23 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	}
 	// blockSize must be a multiple of bin_size_x
 	Spread_2d_Hybrid<<<blocks, threadsPerBlock, sharedmemorysize>>>(d_kxsorted, d_kysorted, d_csorted, 
-			d_fw, M, ns, nf1, nf2, 
-			es_c, es_beta, fw_width, 
-			d_binstartpts, d_binsize, 
-			bin_size_x, bin_size_y);
-#ifdef TIME
-	cudaDeviceSynchronize();
-	cout<<"[time  ]"<< " Kernel Spread_2d takes " << timer.elapsedsec() <<" s"<<endl;
-#endif
-	timer.restart();
-	//checkCudaErrors(cudaMemcpy(h_fw,d_fw,nf1*nf2*sizeof(gpuComplex),
-	//                           cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_fw,pitch,nf1*sizeof(gpuComplex),nf2,
-				cudaMemcpyDeviceToHost));
-#ifdef TIME
-	cudaDeviceSynchronize();
-	cout<<"[time  ]"<< " Copying memory from device to host " << timer.elapsedsec() <<" s"<<endl;
-#endif
-#ifdef TIME
-	cout<<"[time  ]"<< " TOTAL SPREAD KERNEL TIME (exclude memalloc, memcpy): " << k_spread_time <<" s"<<endl;
+									d_fw, M, ns, nf1, nf2, 
+									es_c, es_beta, fw_width, 
+									d_binstartpts, d_binsize, 
+									bin_size_x, bin_size_y);
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	cout<<"[time  ]"<< "\tKernel Spread_2d_Hybrid takes " << milliseconds <<" ms"<<endl;
 #endif
 	// Free memory
-	cudaFree(d_kx);
-	cudaFree(d_ky);
-	cudaFree(d_c);
-	cudaFree(d_fw);
 	cudaFree(d_binsize);
 	cudaFree(d_binstartpts);
 	cudaFree(d_sortidx);
 	cudaFree(d_kxsorted);
 	cudaFree(d_kysorted);
 	cudaFree(d_csorted);
-	free(h_binsize);
-	free(h_binstartpts);
-	free(h_sortidx);
 	return 0;
 }
 

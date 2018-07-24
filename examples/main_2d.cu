@@ -53,8 +53,10 @@ int main(int argc, char* argv[])
 	opts.ES_c=4.0/(ns*ns);
 	opts.ES_halfwidth=(FLT)ns/2;
 	opts.use_thrust=use_thrust;
+	opts.method=method;
+	opts.pirange=0;
 
-	cout<<scientific<<setprecision(16);
+	cout<<scientific<<setprecision(3);
 	int ier;
 
 
@@ -85,69 +87,27 @@ int main(int argc, char* argv[])
 #ifdef INFO
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
-	switch(method)
+	if(opts.method == 3)
 	{
-		case 1:
-		{
-			timer.restart();
-			ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw, M, x, y, c, opts);
-			if(ier != 0 ){
-				cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
-				return 0;
-			}
-			FLT tidriven=timer.elapsedsec();
-			printf("[idriven] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-					M,nf1*nf2,tidriven,M/tidriven);
-		}
-		break;
-		case 2:
-		{
-			timer.restart();
-			ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw, M, x, y, c, opts);
-			FLT ticdriven=timer.elapsedsec();
-			printf("[isorted] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-					M,nf1*nf2,ticdriven,M/ticdriven);
-		}
-		break;
-		case 3:
-		{
-			timer.restart();
-			opts.bin_size_x=4;
-			opts.bin_size_y=4;
-			if(nf1 % opts.bin_size_x != 0 || nf2 % opts.bin_size_y !=0){
-				cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
-				return 0;
-			}
-			ier = cnufftspread2d_gpu_odriven(nf1, nf2, fw, M, x, y, c, opts);
-			if(ier != 0 ){
-				cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
-				return 0;
-			}
-			FLT todriven=timer.elapsedsec();
-			printf("[odriven] %ld NU pts #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-					M,nf1*nf2,todriven,M/todriven);
-		}
-		break;	
-		case 4:
-		{
-			timer.restart();
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
-			ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw, M, x, y, c, opts);
-			if(ier != 0 ){
-				cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
-				return 0;
-			}
-			FLT thybrid=timer.elapsedsec();
-			printf("[hybrid ] %ld NU pts to %d U pts in %.3g s (\t%.3g NU pts/s)\n",
-					M,nf1*nf2,thybrid,M/thybrid);
-		}
-		break;
-		default:
-			cout<<"error: incorrect method, should be 1,2,3 or 4"<<endl;
-			return 0;
+		opts.bin_size_x=4;
+		opts.bin_size_y=4;
 	}
 
+	if(opts.method == 4)
+	{
+		opts.bin_size_x=32;
+		opts.bin_size_y=32;
+	}
+
+	timer.restart();
+	ier = cnufftspread2d_gpu(nf1, nf2, fw, M, x, y, c, opts);
+	if(ier != 0 ){
+		cout<<"error: cnufftspread2d"<<endl;
+		return 0;
+	}
+	FLT t=timer.elapsedsec();
+	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
+		opts.method,M,nf1*nf2,t,M/t);
 #ifdef RESULT
 	switch(method)
 	{
