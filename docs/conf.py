@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
     'sphinx.ext.mathjax',
+    'sphinx.ext.autosectionlabel',
     'texext',
 ]
 
@@ -304,4 +305,3 @@ autodoc_mock_imports = ['finufftpy_cpp', 'numpy']
 #for name in autodoc_mock_imports:
 #    sys.modules[name] = sphinx.ext.autodoc._MockModule(name, None)
 # (removed the above since broke in sphinx 1.6 -> 1.7.4). Thanks Dylan.
-

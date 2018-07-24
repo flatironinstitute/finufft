@@ -15,9 +15,9 @@ FC=gfortran
 CLINK=-lstdc++
 FLINK=$(CLINK)
 # compile flags for baseline single-threaded, double precision case...
-CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -DNEED_EXTERN_C
-CFLAGS   = -fPIC -Ofast -funroll-loops -march=native
-FFLAGS   = -fPIC -O3    -funroll-loops -march=native
+CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -DNEED_EXTERN_C -pg
+CFLAGS   = -fPIC -Ofast -funroll-loops -march=native -pg
+FFLAGS   = -fPIC -O3    -funroll-loops -march=native -pg
 # FFTW base name, and math linking...
 FFTWNAME=fftw3
 LIBS = -lm
@@ -151,7 +151,7 @@ $(EXC): $(EXC).o $(STATICLIB)
 	$(CC) $(CFLAGS) $(EXC).o $(STATICLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
 
 # validation tests... (most link to .o allowing testing pieces separately)
-test: $(STATICLIB) test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs
+test: $(STATICLIB) test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
@@ -166,6 +166,8 @@ test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o test/finufft3d_test
 test/dumbinputs: test/dumbinputs.cpp $(STATICLIB) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(STATICLIB) $(LIBSFFT) -o test/dumbinputs
+test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS2) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
 
 # performance tests...
 perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft3d_test
@@ -186,13 +188,16 @@ spreadtest: test/spreadtestnd
 F1=fortran/nufft1d_demo$(PRECSUFFIX)
 F2=fortran/nufft2d_demo$(PRECSUFFIX)
 F3=fortran/nufft3d_demo$(PRECSUFFIX)
+F4=fortran/nufft2dmany_demo$(PRECSUFFIX)
 fortran: $(FOBJS) $(OBJS) $(HEADERS)
 	$(FC) $(FFLAGS) $(F1).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F1)
 	$(FC) $(FFLAGS) $(F2).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F2)
 	$(FC) $(FFLAGS) $(F3).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F3)
+	$(FC) $(FFLAGS) $(F4).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F4)
 	time -p $(F1)
 	time -p $(F2)
 	time -p $(F3)
+	time -p $(F4)
 
 # matlab .mex* executable...
 matlab: $(STATICLIB) $(HEADERS) matlab/finufft_m.cpp

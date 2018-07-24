@@ -28,6 +28,18 @@
 2d3 M=0:	ier=0	nrm(F)=0 (should vanish)
 2d3 M=1:	ier=0	nrm(F)=3.16
 2d3 XK prod too big:	ier=2 (should complain)
+2d1many ndata=0:	ier=9 (should complain)
+2d1many tol=0:		ier=1 (should complain)
+2d1many Ns=Nt=0:	ier=0
+2d1many Ns=0,Nt>0:	ier=0
+2d1many Ns>0,Ns=0:	ier=0
+2d1many M=0:		ier=0	nrm(Fm)=0 (should vanish)
+2d2many ndata=0:	ier=9 (should complain)
+2d2many tol=0:		ier=1 (should complain)
+2d2many Ns=Nt=0:	ier=0	nrm(cm)=0 (should vanish)
+2d2many Ns=0,Nt>0:	ier=0	nrm(cm)=0 (should vanish)
+2d2many Ns>0,Nt=0:	ier=0	nrm(cm)=0 (should vanish)
+2d2many M=0:		ier=0
 3D dumb cases ----------------
 3d1 tol=0:	ier=1 (should complain)
 3d1 Ns=Nt=Nu=0:	ier=0

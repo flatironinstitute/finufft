@@ -13,6 +13,8 @@ struct nufft_opts {   // see common/finufft_default_opts() for defaults
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
+  int many_seq;       // 0: simultaneously do nufft on all data
+                      // 1: sequentially run through the data
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
 };
 
@@ -37,5 +39,15 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
 int finufft3d3(BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
 	       CPX* fk, nufft_opts opts);
+#if 0
+FFTW_PLAN finufft2d1plan(BIGINT n1, BIGINT n2, FFTW_CPX* in, int fftsign, nufft_opts opts, int nth);
+void finufft2d1execute(FFTW_PLAN p);
+void finufft2d1destroy(FFTW_PLAN p);
+#endif
+
+int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
 
 #endif

@@ -78,6 +78,7 @@ typedef int64_t BIGINT;
 #define ERR_SPREAD_DIR           6
 #define ERR_UPSAMPFAC_TOO_SMALL  7
 #define HORNER_WRONG_BETA        8
+#define ERR_NDATA_NOTVALID       9
 
 
 #define MAX(a,b) (a>b) ? a : b  // but we use std::max instead

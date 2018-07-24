@@ -8,7 +8,7 @@
 
                nj
      f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-              j=1                            
+              j=1
    Inputs:
      x     location of sources on interval [-3pi,3pi], length nj
      c     size-nj complex array of source strengths
@@ -26,9 +26,9 @@
    Outputs:
      f     size-ms double complex array of Fourier transform values
      ier - 0 if success, else:
-                     1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                     other codes: as returned by cnufftspread
+           1 : eps too small
+           2 : size of arrays to malloc exceed MAX_NF
+           other codes: as returned by cnufftspread
  ---------------------------------------------------------------------------
  FINUFFT1D2
 
@@ -38,7 +38,7 @@
  Type-2 1D complex nonuniform FFT.
 
     c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
-            k1 
+            k1
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
   Inputs:
@@ -56,9 +56,9 @@
   Outputs:
      c     complex double array of nj answers at targets
      ier - 0 if success, else:
-                     1 : eps too small
-	       	      2 : size of arrays to malloc exceed MAX_NF
-                     other codes: as returned by cnufftspread
+           1 : eps too small
+           2 : size of arrays to malloc exceed MAX_NF
+           other codes: as returned by cnufftspread
  c = complex(zeros(nj,1));   % todo: change all output to inout & prealloc...
  ---------------------------------------------------------------------------
  FINUFFT1D3
@@ -85,7 +85,7 @@
             frequencies s
      returned value - 0 if success, else:
                       1 : eps too small
-		       2 : size of arrays to malloc exceed MAX_NF
+                      2 : size of arrays to malloc exceed MAX_NF
  ------------------------------------------------------------------------
  FINUFFT2D1
 
@@ -97,7 +97,7 @@
                    nj
      f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
                   j=1
- 
+
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
    Inputs:
@@ -118,9 +118,45 @@
      f     size (ms*mt) double complex array of Fourier transform values
            (ordering given by opts.modeord in each dimension, ms fast, mt slow)
      ier - 0 if success, else:
-                     1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                     other codes: as returned by cnufftspread
+           1 : eps too small
+           2 : size of arrays to malloc exceed MAX_NF
+           other codes: as returned by cnufftspread
+ ------------------------------------------------------------------------
+ FINUFFT2D1MANY
+
+ [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt)
+ [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,opts)
+
+ Type-1 2D complex nonuniform FFT
+
+                     nj
+     f[k1,k2,d] =   SUM  c[j,d] exp(+-i (k1 x[j] + k2 y[j]))
+                    j=1
+
+     for -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, d = 1, ..., ndata
+
+   Inputs:
+     x,y   locations of NU sources on the square [-3pi,3pi]^2, each length nj
+     c     size-(nj,ndata) complex array of source strengths
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps     precision requested (>1e-16)
+     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
+           in either case the mode range is integers lying in [-m/2, (m-1)/2]
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
+   Outputs:
+     f     size (ms,mt,ndata) double complex array of Fourier transform values
+           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
+     ier - 0 if success, else:
+           1 : eps too small
+           2 : size of arrays to malloc exceed MAX_NF
+           other codes: as returned by cnufftspread
  ---------------------------------------------------------------------------
  FINUFFT2D2
 
@@ -130,8 +166,8 @@
  Type-2 2D complex nonuniform FFT.
 
     c[j] =  SUM   f[k1,k2] exp(+/-i (k1 x[j] + k2 y[j]))  for j = 1,..,nj
-           k1,k2 
-     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
+           k1,k2
+     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
   Inputs:
      x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
@@ -149,9 +185,42 @@
   Outputs:
      c     complex double array of nj answers at the targets.
      ier - 0 if success, else:
-                     1 : eps too small
-	       	      2 : size of arrays to malloc exceed MAX_NF
-                     other codes: as returned by cnufftspread
+           1 : eps too small
+           2 : size of arrays to malloc exceed MAX_NF
+           other codes: as returned by cnufftspread
+ ---------------------------------------------------------------------------
+ FINUFFT2D2MANY
+
+ [c ier] = finufft2d2many(x,y,isign,eps,f)
+ [c ier] = finufft2d2many(x,y,isign,eps,f,opts)
+
+ Type-2 2D complex nonuniform FFT.
+
+    c[j,d] =  SUM   f[k1,k2,d] exp(+/-i (k1 x[j] + k2 y[j]))
+             k1,k2
+	  for j = 1,..,nj, d = 1,...,ndata
+     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
+
+  Inputs:
+     x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
+     f     size (ms,mt,ndata) complex Fourier transform value matrix
+           (mode ordering given by opts.modeord in each dimension)
+     isign  if >=0, uses + sign in exponential, otherwise - sign.
+     eps    precision requested (>1e-16)
+     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.nthreads sets requested number of threads (else automatic)
+     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
+  Outputs:
+     c     complex double array of nj*ndata answers at the targets.
+     ier - 0 if success, else:
+           1 : eps too small
+           2 : size of arrays to malloc exceed MAX_NF
+           other codes: as returned by cnufftspread
  ---------------------------------------------------------------------------
  FINUFFT2D3
 
@@ -177,7 +246,7 @@
             frequencies s,t
      returned value - 0 if success, else:
                       1 : eps too small
-		       2 : size of arrays to malloc exceed MAX_NF
+                      2 : size of arrays to malloc exceed MAX_NF
  ------------------------------------------------------------------------
  FINUFFT3D1
 
@@ -189,7 +258,7 @@
                        nj
      f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
                       j=1
- 
+
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
          -mu/2 <= k3 <= (mu-1)/2.
 
@@ -213,9 +282,9 @@
             (ordering given by opts.modeord in each dimension, ms fastest, mu
              slowest).
      ier - 0 if success, else:
-                     1 : eps too small
-		      2 : size of arrays to malloc exceed MAX_NF
-                     other codes: as returned by cnufftspread
+           1 : eps too small
+           2 : size of arrays to malloc exceed MAX_NF
+           other codes: as returned by cnufftspread
  ---------------------------------------------------------------------------
  FINUFFT3D2
 
@@ -225,7 +294,7 @@
  Type-2 3D complex nonuniform FFT.
 
     c[j] =   SUM   f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
-           k1,k2,k3       
+           k1,k2,k3
                             for j = 1,..,nj
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
                        -mu/2 <= k3 <= (mu-1)/2.
@@ -247,9 +316,9 @@
   Outputs:
      c     complex double array of nj answers at the targets.
      ier - 0 if success, else:
-                     1 : eps too small
-	       	      2 : size of arrays to malloc exceed MAX_NF
-                     other codes: as returned by cnufftspread
+           1 : eps too small
+           2 : size of arrays to malloc exceed MAX_NF
+           other codes: as returned by cnufftspread
  ---------------------------------------------------------------------------
  FINUFFT3D3
 
@@ -276,5 +345,4 @@
             frequencies s,t,u
      returned value - 0 if success, else:
                       1 : eps too small
-		       2 : size of arrays to malloc exceed MAX_NF
- ------------------------------------------------------------------------
+                      2 : size of arrays to malloc exceed MAX_NF
