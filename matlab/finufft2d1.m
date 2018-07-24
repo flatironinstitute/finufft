@@ -9,7 +9,7 @@ function [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 %                   nj
 %     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
 %                  j=1
-% 
+%
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 %
 %   Inputs:
@@ -43,4 +43,4 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 mex_id_ = 'o int = finufft2d1m(i double, i double[], i double[], i dcomplex[], i int, i double, i double, i double, o dcomplex[xx], i double[])';
 [ier, f] = finufft(mex_id_, nj, x, y, c, isign, eps, ms, mt, opts, ms, mt);
 
-% ---------------------------------------------------------------------------
+% ------------------------------------------------------------------------

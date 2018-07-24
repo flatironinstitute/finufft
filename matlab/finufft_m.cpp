@@ -77,12 +77,30 @@ int finufft2d1m(double nj,double* xj,double* yj, dcomplex* cj,int iflag,double e
   return finufft2d1((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
 }
 
+int finufft2d1manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double *mexo)
+{
+  nufft_opts opts;
+  finufft_mex_setup();
+  finufft_mex_opts(opts, mexo);
+  return finufft2d1many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+}
+
 int finufft2d2m(double nj,double* xj,double* yj,dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double* mexo)
 {
   nufft_opts opts;
   finufft_mex_setup();
   finufft_mex_opts(opts, mexo);
   return finufft2d2((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+}
+
+int finufft2d2manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double *mexo)
+{
+  nufft_opts opts;
+  finufft_mex_setup();
+  finufft_mex_opts(opts, mexo);
+  int ier = finufft2d2many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+
+  return ier;
 }
 
 int finufft2d3m(double nj,double* xj,double *yj,dcomplex* cj,int iflag,double eps,double nk, double* s, double* t, dcomplex* fk, double* mexo)
@@ -116,22 +134,3 @@ int finufft3d3m(double nj,double* xj,double *yj,double *zj,dcomplex* cj,int ifla
   finufft_mex_opts(opts, mexo);
   return finufft3d3((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,u,fk,opts);
 }
-
-int finufft2d1manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double *mexo)
-{
-  nufft_opts opts;
-  finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft2d1many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
-}
-
-int finufft2d2manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double *mexo)
-{
-  nufft_opts opts;
-  finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  int ier = finufft2d2many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
-  
-  return ier;
-}
-

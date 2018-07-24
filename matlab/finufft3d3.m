@@ -38,5 +38,3 @@ if numel(u)~=nk, error('u must have the same number of elements as s'); end
 
 mex_id_ = 'o int = finufft3d3m(i double, i double[], i double[], i double[], i dcomplex[x], i int, i double, i double, i double[], i double[], i double[], o dcomplex[x], i double[])';
 [ier, f] = finufft(mex_id_, nj, x, y, z, c, isign, eps, nk, s, t, u, opts, nj, nk);
-
-% ------------------------------------------------------------------------

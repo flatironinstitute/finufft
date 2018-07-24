@@ -7,8 +7,8 @@ function [c ier] = finufft2d2(x,y,isign,eps,f,o)
 % Type-2 2D complex nonuniform FFT.
 %
 %    c[j] =  SUM   f[k1,k2] exp(+/-i (k1 x[j] + k2 y[j]))  for j = 1,..,nj
-%           k1,k2 
-%     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
+%           k1,k2
+%     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 %
 %  Inputs:
 %     x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
@@ -26,9 +26,9 @@ function [c ier] = finufft2d2(x,y,isign,eps,f,o)
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
-%                     1 : eps too small
+%               1 : eps too small
 %	       	      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%               other codes: as returned by cnufftspread
 
 if nargin<6, o=[]; end
 opts = finufft_opts(o);

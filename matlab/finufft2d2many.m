@@ -7,7 +7,7 @@ function [c ier] = finufft2d2many(x,y,isign,eps,f,o)
 % Type-2 2D complex nonuniform FFT.
 %
 %    c[j,d] =  SUM   f[k1,k2,d] exp(+/-i (k1 x[j] + k2 y[j]))
-%             k1,k2 
+%             k1,k2
 %	  for j = 1,..,nj, d = 1,...,ndata
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 %
@@ -28,9 +28,9 @@ function [c ier] = finufft2d2many(x,y,isign,eps,f,o)
 %  Outputs:
 %     c     complex double array of nj*ndata answers at the targets.
 %     ier - 0 if success, else:
-%                 1 : eps too small
-%	       	      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<6, o=[]; end
 opts = finufft_opts(o);
@@ -40,3 +40,5 @@ if numel(y)~=nj, error('y must have the same number of elements as x'); end
 
 mex_id_ = 'o int = finufft2d2manym(i double, i double, i double[], i double[], o dcomplex[xx], i int, i double, i double, i double, i dcomplex[], i double[])';
 [ier, c] = finufft(mex_id_, ndata, nj, x, y, isign, eps, ms, mt, f, opts, nj, ndata);
+
+% ---------------------------------------------------------------------------

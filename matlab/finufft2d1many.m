@@ -9,7 +9,7 @@ function [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,o)
 %                     nj
 %     f[k1,k2,d] =   SUM  c[j,d] exp(+-i (k1 x[j] + k2 y[j]))
 %                    j=1
-% 
+%
 %     for -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, d = 1, ..., ndata
 %
 %   Inputs:
@@ -31,9 +31,9 @@ function [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,o)
 %     f     size (ms,mt,ndata) double complex array of Fourier transform values
 %           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
 %     ier - 0 if success, else:
-%             1 : eps too small
-%		      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<8, o=[]; end
 opts = finufft_opts(o);

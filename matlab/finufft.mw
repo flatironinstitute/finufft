@@ -26,7 +26,7 @@ $ #include "finufft_m.h"
 %
 %               nj
 %     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-%              j=1                            
+%              j=1
 %   Inputs:
 %     x     location of sources on interval [-3pi,3pi], length nj
 %     c     size-nj complex array of source strengths
@@ -65,7 +65,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 % Type-2 1D complex nonuniform FFT.
 %
 %    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
-%            k1 
+%            k1
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2.
 %
 %  Inputs:
@@ -143,7 +143,7 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %                   nj
 %     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
 %                  j=1
-% 
+%
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 %
 %   Inputs:
@@ -176,6 +176,57 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 
 # int ier = finufft2d1m(double nj,double[] x,double[] y,dcomplex[] c,int isign,double eps,double ms, double mt, output dcomplex[ms,mt] f, double[] opts);
 
+% ------------------------------------------------------------------------
+@function [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,o)
+% FINUFFT2D1MANY
+%
+% [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt)
+% [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,opts)
+%
+% Type-1 2D complex nonuniform FFT
+%
+%                     nj
+%     f[k1,k2,d] =   SUM  c[j,d] exp(+-i (k1 x[j] + k2 y[j]))
+%                    j=1
+%
+%     for -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, d = 1, ..., ndata
+%
+%   Inputs:
+%     x,y   locations of NU sources on the square [-3pi,3pi]^2, each length nj
+%     c     size-(nj,ndata) complex array of source strengths
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps     precision requested (>1e-16)
+%     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
+%           in either case the mode range is integers lying in [-m/2, (m-1)/2]
+%     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+%     opts.nthreads sets requested number of threads (else automatic)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+%     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+%     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
+%   Outputs:
+%     f     size (ms,mt,ndata) double complex array of Fourier transform values
+%           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
+%     ier - 0 if success, else:
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
+
+if nargin<8, o=[]; end
+opts = finufft_opts(o);
+nj=numel(x);
+ndata=numel(c)/numel(x);
+mtot=ms*mt*ndata;
+
+if numel(y)~=nj, error('y must have the same number of elements as x'); end
+if numel(c)~=nj*ndata, error('c must have the same number of elements as x times ndata'); end
+
+# int ier = finufft2d1manym(double ndata,double nj,double[] x,double[] y,dcomplex[] c,int isign,double eps,double ms, double mt, output dcomplex[mtot] f, double[] opts);
+
+f = reshape(f,[ms mt ndata]);              % make a 3D array
+
 % ---------------------------------------------------------------------------
 @function [c ier] = finufft2d2(x,y,isign,eps,f,o)
 % FINUFFT2D2
@@ -186,8 +237,8 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 % Type-2 2D complex nonuniform FFT.
 %
 %    c[j] =  SUM   f[k1,k2] exp(+/-i (k1 x[j] + k2 y[j]))  for j = 1,..,nj
-%           k1,k2 
-%     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, 
+%           k1,k2
+%     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 %
 %  Inputs:
 %     x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
@@ -205,9 +256,9 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
-%                     1 : eps too small
+%               1 : eps too small
 %	       	      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%               other codes: as returned by cnufftspread
 
 if nargin<6, o=[]; end
 opts = finufft_opts(o);
@@ -216,6 +267,49 @@ if numel(y)~=nj, error('y must have the same number of elements as x'); end
 [ms,mt]=size(f);
 
 # int ier = finufft2d2m(double nj,double[] x,double[] y,output dcomplex[nj] c,int isign,double eps,double ms, double mt,dcomplex[] f, double[] opts);
+
+% ---------------------------------------------------------------------------
+@function [c ier] = finufft2d2many(x,y,isign,eps,f,o)
+% FINUFFT2D2MANY
+%
+% [c ier] = finufft2d2many(x,y,isign,eps,f)
+% [c ier] = finufft2d2many(x,y,isign,eps,f,opts)
+%
+% Type-2 2D complex nonuniform FFT.
+%
+%    c[j,d] =  SUM   f[k1,k2,d] exp(+/-i (k1 x[j] + k2 y[j]))
+%             k1,k2
+%	  for j = 1,..,nj, d = 1,...,ndata
+%     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
+%
+%  Inputs:
+%     x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
+%     f     size (ms,mt,ndata) complex Fourier transform value matrix
+%           (mode ordering given by opts.modeord in each dimension)
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps    precision requested (>1e-16)
+%     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+%     opts.nthreads sets requested number of threads (else automatic)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+%     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+%     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
+%  Outputs:
+%     c     complex double array of nj*ndata answers at the targets.
+%     ier - 0 if success, else:
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
+
+if nargin<6, o=[]; end
+opts = finufft_opts(o);
+nj=numel(x);
+if numel(y)~=nj, error('y must have the same number of elements as x'); end
+[ms,mt,ndata]=size(f);
+
+# int ier = finufft2d2manym(double ndata,double nj,double[] x,double[] y,output dcomplex[nj,ndata] c,int isign,double eps,double ms,double mt,dcomplex[] f, double[] opts);
 
 % ---------------------------------------------------------------------------
 @function [f ier] = finufft2d3(x,y,c,isign,eps,s,t,o)
@@ -267,7 +361,7 @@ if numel(t)~=nk, error('t must have the same number of elements as s'); end
 %                       nj
 %     f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
 %                      j=1
-% 
+%
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
 %         -mu/2 <= k3 <= (mu-1)/2.
 %
@@ -318,7 +412,7 @@ f = reshape(f,[ms mt mu]);              % make a 3D array
 % Type-2 3D complex nonuniform FFT.
 %
 %    c[j] =   SUM   f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
-%           k1,k2,k3       
+%           k1,k2,k3
 %                            for j = 1,..,nj
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 %                       -mu/2 <= k3 <= (mu-1)/2.
@@ -393,97 +487,3 @@ if numel(t)~=nk, error('t must have the same number of elements as s'); end
 if numel(u)~=nk, error('u must have the same number of elements as s'); end
 
 # int ier = finufft3d3m(double nj,double[] x,double[] y,double[] z,dcomplex[nj] c,int isign,double eps,double nk, double[] s, double[] t, double[] u,output dcomplex[nk] f, double[] opts);
-
-% ------------------------------------------------------------------------
-@function [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,o)
-% FINUFFT2D1MANY
-%
-% [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt)
-% [f ier] = finufft2d1many(x,y,c,isign,eps,ms,mt,opts)
-%
-% Type-1 2D complex nonuniform FFT
-%
-%                     nj
-%     f[k1,k2,d] =   SUM  c[j,d] exp(+-i (k1 x[j] + k2 y[j]))
-%                    j=1
-% 
-%     for -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, d = 1, ..., ndata
-%
-%   Inputs:
-%     x,y   locations of NU sources on the square [-3pi,3pi]^2, each length nj
-%     c     size-(nj,ndata) complex array of source strengths
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps     precision requested (>1e-16)
-%     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
-%           in either case the mode range is integers lying in [-m/2, (m-1)/2]
-%     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
-%     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
-%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
-%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
-%     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
-%   Outputs:
-%     f     size (ms,mt,ndata) double complex array of Fourier transform values
-%           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
-%     ier - 0 if success, else:
-%             1 : eps too small
-%		      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
-
-if nargin<8, o=[]; end
-opts = finufft_opts(o);
-nj=numel(x);
-ndata=numel(c)/numel(x);
-mtot=ms*mt*ndata;
-
-if numel(y)~=nj, error('y must have the same number of elements as x'); end
-if numel(c)~=nj*ndata, error('c must have the same number of elements as x times ndata'); end
-
-# int ier = finufft2d1manym(double ndata,double nj,double[] x,double[] y,dcomplex[] c,int isign,double eps,double ms, double mt, output dcomplex[mtot] f, double[] opts);
-
-f = reshape(f,[ms mt ndata]);              % make a 3D array
-
-% ---------------------------------------------------------------------------
-@function [c ier] = finufft2d2many(x,y,isign,eps,f,o)
-% FINUFFT2D2MANY
-%
-% [c ier] = finufft2d2many(x,y,isign,eps,f)
-% [c ier] = finufft2d2many(x,y,isign,eps,f,opts)
-%
-% Type-2 2D complex nonuniform FFT.
-%
-%    c[j,d] =  SUM   f[k1,k2,d] exp(+/-i (k1 x[j] + k2 y[j]))
-%             k1,k2 
-%	  for j = 1,..,nj, d = 1,...,ndata
-%     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
-%
-%  Inputs:
-%     x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
-%     f     size (ms,mt,ndata) complex Fourier transform value matrix
-%           (mode ordering given by opts.modeord in each dimension)
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps    precision requested (>1e-16)
-%     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
-%     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
-%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
-%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
-%     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
-%  Outputs:
-%     c     complex double array of nj*ndata answers at the targets.
-%     ier - 0 if success, else:
-%                 1 : eps too small
-%	       	      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
-
-if nargin<6, o=[]; end
-opts = finufft_opts(o);
-nj=numel(x);
-if numel(y)~=nj, error('y must have the same number of elements as x'); end
-[ms,mt,ndata]=size(f);
-
-# int ier = finufft2d2manym(double ndata,double nj,double[] x,double[] y,output dcomplex[nj,ndata] c,int isign,double eps,double ms,double mt,dcomplex[] f, double[] opts);

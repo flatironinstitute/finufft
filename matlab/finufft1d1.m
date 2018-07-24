@@ -8,7 +8,7 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 %
 %               nj
 %     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-%              j=1                            
+%              j=1
 %   Inputs:
 %     x     location of sources on interval [-3pi,3pi], length nj
 %     c     size-nj complex array of source strengths

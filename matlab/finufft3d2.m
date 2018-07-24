@@ -7,7 +7,7 @@ function [c ier] = finufft3d2(x,y,z,isign,eps,f,o)
 % Type-2 3D complex nonuniform FFT.
 %
 %    c[j] =   SUM   f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
-%           k1,k2,k3       
+%           k1,k2,k3
 %                            for j = 1,..,nj
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 %                       -mu/2 <= k3 <= (mu-1)/2.

@@ -7,7 +7,7 @@ function [c ier] = finufft1d2(x,isign,eps,f,o)
 % Type-2 1D complex nonuniform FFT.
 %
 %    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
-%            k1 
+%            k1
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2.
 %
 %  Inputs:

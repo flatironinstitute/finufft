@@ -9,7 +9,7 @@ function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 %                       nj
 %     f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
 %                      j=1
-% 
+%
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
 %         -mu/2 <= k3 <= (mu-1)/2.
 %
