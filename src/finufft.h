@@ -13,8 +13,8 @@ struct nufft_opts {   // see common/finufft_default_opts() for defaults
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
-  int many_seq;       // 0: singlethread spreader with fftw form multiple data, or 
-                      // 1: multithread spreader with multithread fftw for single data
+  int many_seq;       // 0: simultaneously do nufft on all data
+                      // 1: sequentially run through the data
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
 };
 
