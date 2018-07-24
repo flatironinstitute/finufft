@@ -44,9 +44,9 @@ $ #include "finufft_m.h"
 %   Outputs:
 %     f     size-ms double complex array of Fourier transform values
 %     ier - 0 if success, else:
-%                     1 : eps too small
-%		      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<6, o=[]; end
 opts = finufft_opts(o);
@@ -83,9 +83,9 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %  Outputs:
 %     c     complex double array of nj answers at targets
 %     ier - 0 if success, else:
-%                     1 : eps too small
-%	       	      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<5, o=[]; end
 opts = finufft_opts(o);
@@ -121,7 +121,7 @@ ms=numel(f);
 %            frequencies s
 %     returned value - 0 if success, else:
 %                      1 : eps too small
-%		       2 : size of arrays to malloc exceed MAX_NF
+%                      2 : size of arrays to malloc exceed MAX_NF
 
 if nargin<6, o=[]; end
 opts = finufft_opts(o);
@@ -164,9 +164,9 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     f     size (ms*mt) double complex array of Fourier transform values
 %           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
 %     ier - 0 if success, else:
-%                     1 : eps too small
-%		      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<8, o=[]; end
 opts = finufft_opts(o);
@@ -256,9 +256,9 @@ f = reshape(f,[ms mt ndata]);              % make a 3D array
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
-%               1 : eps too small
-%	       	      2 : size of arrays to malloc exceed MAX_NF
-%               other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<6, o=[]; end
 opts = finufft_opts(o);
@@ -337,7 +337,7 @@ if numel(y)~=nj, error('y must have the same number of elements as x'); end
 %            frequencies s,t
 %     returned value - 0 if success, else:
 %                      1 : eps too small
-%		       2 : size of arrays to malloc exceed MAX_NF
+%                      2 : size of arrays to malloc exceed MAX_NF
 
 if nargin<8, o=[]; end
 opts = finufft_opts(o);
@@ -385,9 +385,9 @@ if numel(t)~=nk, error('t must have the same number of elements as s'); end
 %            (ordering given by opts.modeord in each dimension, ms fastest, mu
 %             slowest).
 %     ier - 0 if success, else:
-%                     1 : eps too small
-%		      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<10, o=[]; end
 opts = finufft_opts(o);
@@ -434,9 +434,9 @@ f = reshape(f,[ms mt mu]);              % make a 3D array
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
-%                     1 : eps too small
-%	       	      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<7, o=[]; end
 opts = finufft_opts(o);
@@ -474,7 +474,7 @@ if numel(z)~=nj, error('z must have the same number of elements as x'); end
 %            frequencies s,t,u
 %     returned value - 0 if success, else:
 %                      1 : eps too small
-%		       2 : size of arrays to malloc exceed MAX_NF
+%                      2 : size of arrays to malloc exceed MAX_NF
 
 if nargin<10, o=[]; end
 opts = finufft_opts(o);

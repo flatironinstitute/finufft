@@ -33,9 +33,9 @@ function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 %            (ordering given by opts.modeord in each dimension, ms fastest, mu
 %             slowest).
 %     ier - 0 if success, else:
-%                     1 : eps too small
-%		      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<10, o=[]; end
 opts = finufft_opts(o);

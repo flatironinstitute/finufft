@@ -23,7 +23,7 @@ function [f ier] = finufft2d3(x,y,c,isign,eps,s,t,o)
 %            frequencies s,t
 %     returned value - 0 if success, else:
 %                      1 : eps too small
-%		       2 : size of arrays to malloc exceed MAX_NF
+%                      2 : size of arrays to malloc exceed MAX_NF
 
 if nargin<8, o=[]; end
 opts = finufft_opts(o);

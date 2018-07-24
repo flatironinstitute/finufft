@@ -29,9 +29,9 @@ function [c ier] = finufft3d2(x,y,z,isign,eps,f,o)
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
 %     ier - 0 if success, else:
-%                     1 : eps too small
-%	       	      2 : size of arrays to malloc exceed MAX_NF
-%                     other codes: as returned by cnufftspread
+%           1 : eps too small
+%           2 : size of arrays to malloc exceed MAX_NF
+%           other codes: as returned by cnufftspread
 
 if nargin<7, o=[]; end
 opts = finufft_opts(o);
