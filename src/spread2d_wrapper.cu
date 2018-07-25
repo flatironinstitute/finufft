@@ -424,7 +424,7 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
 
-	threadsPerBlock.x = 1024;
+	threadsPerBlock.x = 16;
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
@@ -576,7 +576,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 #endif 
 
 	cudaEventRecord(start);
-	threadsPerBlock.x = 1024;
+	threadsPerBlock.x = 16;
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
@@ -780,8 +780,8 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 #endif
 
 	cudaEventRecord(start);
-	threadsPerBlock.x = 32;
-	threadsPerBlock.y = 32;
+	threadsPerBlock.x = 16;
+	threadsPerBlock.y = 16;
 	blocks.x = numbins[0];
 	blocks.y = numbins[1];
 	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
