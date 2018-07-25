@@ -415,9 +415,12 @@ void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
     eval_kernel_vec_Horner(ker2,y1,ns,sigma);
 #endif
     for(yy=ystart; yy<=yend; yy++){
+          FLT disy=abs(y_rescaled-yy);
+          FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
 #if 0
        ker2val=ker2[yy-ystart];
 #endif
+
        for(xx=xstart; xx<=xend; xx++){
 #if 0
           ker1val=ker1[xx-xstart];
@@ -429,9 +432,7 @@ void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
           FLT kervalue=ker1val*ker2val;
 #endif
           FLT disx=abs(x_rescaled-xx);
-          FLT disy=abs(y_rescaled-yy);
           FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-          FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
           atomicAdd(&fw[outidx].x, c[i].x*kervalue1*kervalue2);
           atomicAdd(&fw[outidx].y, c[i].y*kervalue1*kervalue2);
           //atomicAdd(&fw[outidx].x, kervalue1*kervalue2);
@@ -490,14 +491,14 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
     yend = floor(y_rescaled + ns/2.0)-yoffset;
 
     for(yy=ystart; yy<=yend; yy++){
+       FLT disy=abs(y_rescaled-(yy+yoffset));
+       FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
        for(xx=xstart; xx<=xend; xx++){
           ix = xx+ceil(ns/2.0);
           iy = yy+ceil(ns/2.0);
           outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
           FLT disx=abs(x_rescaled-(xx+xoffset));
-          FLT disy=abs(y_rescaled-(yy+yoffset));
           FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-          FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
           //fwshared[outidx].x += kervalue1*kervalue2;
           //fwshared[outidx].y += kervalue1*kervalue2;
           atomicAdd(&fwshared[outidx].x, c[ptstart+i].x*kervalue1*kervalue2);
