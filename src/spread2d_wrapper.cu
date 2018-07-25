@@ -66,7 +66,6 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
-  	float milliseconds = 0;
 	
 	int ier;
 	int fw_width;
@@ -83,6 +82,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, h_fw, &d_fw, h_kx, &d_kx, 
                                     h_ky, &d_ky, h_c, &d_c);
 #ifdef TIME
+  	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);

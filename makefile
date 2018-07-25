@@ -3,7 +3,7 @@ CXX=g++
 NVCC=nvcc
 CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native
 #CXXFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_50 -DTIME
+NVCCFLAGS=-arch=sm_50
 INC=-I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/samples/common/inc/ \
     -I/mnt/home/yshih/cub/
 LIBS_PATH=
@@ -18,6 +18,9 @@ spread1d.o: utils.o spread1d.cu
 	$(NVCC) -c spread1d.cu $(INC)
 
 main_2d.o: examples/main_2d.cu
+	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
+
+compare_2d.o: examples/compare_2d.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
 spread2d_wrapper.o: src/spread2d_wrapper.cu
@@ -51,6 +54,9 @@ accuracycheck_2d.o: test/accuracycheck_2d.cu
 	$(NVCC) -c $< $(NVCCFLAGS) -o $@ $(INC)
 
 spread2d: main_2d.o spread2d_wrapper.o spread2d.o utils.o
+	$(NVCC) $(NVCCFLAGS) -o $@ $^
+
+compare: compare_2d.o spread2d_wrapper.o spread2d.o utils.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 accuracy: accuracycheck_2d.o spread2d_wrapper.o spread2d.o utils.o cnufftspread.o
