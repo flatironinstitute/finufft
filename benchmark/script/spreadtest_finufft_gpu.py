@@ -24,7 +24,7 @@ def main():
 		t = 0
 		for n in range(reps):
                         output=subprocess.check_output(["./spread2d",'1',str(N),str(N)], \
-                                            cwd="../").decode("utf-8")
+                                            cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "(", "NU"))
 		s_gpuspread_1[i] = t/reps
 		
@@ -32,7 +32,7 @@ def main():
 		t = 0
 		for n in range(reps):
                         output=subprocess.check_output(["./spread2d",'2',str(N),str(N)], \
-                                            cwd="../").decode("utf-8")
+                                            cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "(", "NU"))
 		s_gpuspread_2[i] = t/reps
 
@@ -40,7 +40,7 @@ def main():
 		t = 0
 		for n in range(reps):
                         output=subprocess.check_output(["./spread2d",'3',str(N),str(N)], \
-                                            cwd="../").decode("utf-8")
+                                            cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "(", "NU"))
 		s_gpuspread_3[i] = t/reps
 
@@ -48,7 +48,7 @@ def main():
 		t = 0
 		for n in range(reps):
                         output=subprocess.check_output(["./spread2d",'4',str(N),str(N)], \
-                                            cwd="../").decode("utf-8")
+                                            cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "(", "NU"))
 		s_gpuspread_4[i] = t/reps
 	

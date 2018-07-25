@@ -11,9 +11,9 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	reps=100
+	reps=10
 	density = 1.0
-	N_totry = 2**np.arange(4,12)
+	N_totry = 2**np.arange(8,13)
 	s_cpuspread = np.zeros(len(N_totry))
 	for i,N in enumerate(N_totry):
 		t = 0
