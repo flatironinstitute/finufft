@@ -13,7 +13,7 @@ def find_between( s, first, last ):
 def main():
 	reps=10
 	density = 1.0
-	N_totry = 2**np.arange(4,12)
+	N_totry = 2**np.arange(8,13)
 	s_gpuspread_1 = np.zeros(len(N_totry))
 	s_gpuspread_2 = np.zeros(len(N_totry))
 	s_gpuspread_3 = np.zeros(len(N_totry))
