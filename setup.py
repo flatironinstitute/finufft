@@ -11,9 +11,10 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 import os
+
 # Mac OSX: choose your compilers here: (eg gcc-8, g++-8)
-os.environ["CC"] = "gcc"
-os.environ["CXX"] = "g++"
+os.environ["CC"] = "gcc-8"
+os.environ["CXX"] = "g++-8"
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path

@@ -94,4 +94,31 @@ u = (N3/2)*(2*rand(1,M)-1);                      % target freqs of size O(N3)
 fe = sum(c.*exp(1i*isign*(s(k)*x+t(k)*y+u(k)*z)));
 fprintf('3D type-3: rel err in f[%d] is %.3g\n',k,abs((fe-f(k))/fe))
 fprintf('total 3D time: %.3f s\n',toc)
+
+o.many_seq = 0; % 0 simultaneously do nufft on all data (default) or 1 sequentially
+tic; % --------- 2Dmanys
+N1=ceil(2.0*sqrt(N)); N2=round(N/N1);           % pick Fourier mode ranges
+ndata = ceil(1e7/(N1*N2+M));
+fprintf('2Dmany: %d data, using %d*%d modes (total %d)...\n',ndata,N1,N2,N1*N2)
+x = pi*(2*rand(M,1)-1); y = pi*(2*rand(M,1)-1);
+c = randn(M,ndata)+1i*randn(M,ndata);
+[f ier] = finufft2d1many(x,y,c,isign,eps,N1,N2,o);
+nt1 = ceil(0.45*N1); nt2 = ceil(-0.35*N2);                % pick mode indices
+fe = c.'*exp(1i*isign*(nt1*x+nt2*y));                   % exact
+of1 = floor(N1/2)+1; of2 = floor(N2/2)+1;                 % mode index offsets
+d = floor(ndata/2)+1;
+fprintf('2Dmany type-1: rel err in F[%d,%d,%d] is %.3g\n',nt1,nt2,d, ...
+        abs((fe(d)-f(nt1+of1,nt2+of2,d))/fe(d)))
+
+f = randn(N1,N2,ndata)+1i*randn(N1,N2,ndata);
+[c ier] = finufft2d2many(x,y,isign,eps,f,o);
+[ms mt ndata] = size(f);
+d = floor(ndata/2)+1;
+% ndgrid loops over ms fast, mt slow:
+[mm1,mm2] = ndgrid(ceil(-ms/2):floor((ms-1)/2),ceil(-mt/2):floor((mt-1)/2));
+fd = f(:,:,d);
+ce = sum(fd(:).*exp(1i*isign*(mm1(:)*x(j)+mm2(:)*y(j))));
+fprintf('2Dmany type-2: rel err in c[%d,%d] is %.3g\n',j,d,abs((ce-c(j,d))/ce))
+fprintf('total 2Dmany time: %.3f s\n',toc)
+
 fprintf('All-dimensions total time: %.3f s\n',toc(tt))

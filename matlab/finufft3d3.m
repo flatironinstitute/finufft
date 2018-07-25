@@ -16,14 +16,15 @@ function [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u,o)
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.nthreads sets requested number of threads (else automatic)
-%     opts.spread_sort: 0 (don't sort NU pts in spreader), 1 (sort, default)
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target
 %            frequencies s,t,u
 %     returned value - 0 if success, else:
 %                      1 : eps too small
-%		       2 : size of arrays to malloc exceed MAX_NF
+%                      2 : size of arrays to malloc exceed MAX_NF
 
 if nargin<10, o=[]; end
 opts = finufft_opts(o);
@@ -37,5 +38,3 @@ if numel(u)~=nk, error('u must have the same number of elements as s'); end
 
 mex_id_ = 'o int = finufft3d3m(i double, i double[], i double[], i double[], i dcomplex[x], i int, i double, i double, i double[], i double[], i double[], o dcomplex[x], i double[])';
 [ier, f] = finufft(mex_id_, nj, x, y, z, c, isign, eps, nk, s, t, u, opts, nj, nk);
-
-% ------------------------------------------------------------------------

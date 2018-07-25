@@ -60,6 +60,7 @@ Note that we have not yet optimized for repeated *small* problems (around 10000 
    math
    dirs
    usage
+   usage_many
    matlab
    pythoninterface
    juliainterface

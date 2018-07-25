@@ -117,6 +117,40 @@ int main(int argc, char* argv[])
   ier = finufft2d3(M,x,x,c,+1,acc,N,shuge,shuge,F,opts);
   printf("2d3 XK prod too big:\tier=%d (should complain)\n",ier);
 
+  int ndata = 10;
+  CPX* cm = (CPX*)malloc(sizeof(CPX)*M*ndata);
+  CPX* Fm = (CPX*)malloc(sizeof(CPX)*NN*ndata);
+  for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // set cm for 2d1many
+  ier = finufft2d1many(0,M,x,x,cm,+1,0,N,N,Fm,opts);
+  printf("2d1many ndata=0:\tier=%d (should complain)\n",ier);
+  ier = finufft2d1many(ndata,M,x,x,cm,+1,0,N,N,Fm,opts);
+  printf("2d1many tol=0:\t\tier=%d (should complain)\n",ier);
+  ier = finufft2d1many(ndata,M,x,x,cm,+1,acc,0,0,Fm,opts);
+  printf("2d1many Ns=Nt=0:\tier=%d\n",ier);
+  ier = finufft2d1many(ndata,M,x,x,cm,+1,acc,0,N,Fm,opts);
+  printf("2d1many Ns=0,Nt>0:\tier=%d\n",ier);
+  ier = finufft2d1many(ndata,M,x,x,cm,+1,acc,N,0,Fm,opts);
+  printf("2d1many Ns>0,Ns=0:\tier=%d\n",ier);
+  ier = finufft2d1many(ndata,0,x,x,cm,+1,acc,N,N,Fm,opts);
+  printf("2d1many M=0:\t\tier=%d\tnrm(Fm)=%.3g (should vanish)\n",ier,twonorm(N*ndata,Fm));
+  for (int k=0; k<NN*ndata; ++k) Fm[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
+  ier = finufft2d2many(0,M,x,x,cm,+1,0,N,N,Fm,opts);
+  printf("2d2many ndata=0:\tier=%d (should complain)\n",ier);
+  ier = finufft2d2many(ndata,M,x,x,cm,+1,0,N,N,Fm,opts);
+  printf("2d2many tol=0:\t\tier=%d (should complain)\n",ier);
+  ier = finufft2d2many(ndata,M,x,x,cm,+1,acc,0,0,Fm,opts);
+  printf("2d2many Ns=Nt=0:\tier=%d\tnrm(cm)=%.3g (should vanish)\n",
+  	      ier,twonorm(M*ndata,cm));
+  ier = finufft2d2many(ndata,M,x,x,cm,+1,acc,0,N,Fm,opts);
+  printf("2d2many Ns=0,Nt>0:\tier=%d\tnrm(cm)=%.3g (should vanish)\n",
+  	      ier,twonorm(M*ndata,cm));
+  ier = finufft2d2many(ndata,M,x,x,cm,+1,acc,N,0,Fm,opts);
+  printf("2d2many Ns>0,Nt=0:\tier=%d\tnrm(cm)=%.3g (should vanish)\n",
+  	      ier,twonorm(M*ndata,cm));
+  ier = finufft2d2many(ndata,0,x,x,cm,+1,acc,N,N,Fm,opts);
+  printf("2d2many M=0:\t\tier=%d\n",ier);
+
+
   printf("3D dumb cases ----------------\n");    // z=y=x, and u=t=s in type 3
   ier = finufft3d1(M,x,x,x,c,+1,0,N,N,N,F,opts);
   printf("3d1 tol=0:\tier=%d (should complain)\n",ier);
@@ -156,6 +190,7 @@ int main(int argc, char* argv[])
   ier = finufft3d3(M,x,x,x,c,+1,acc,N,shuge,shuge,shuge,F,opts);
   printf("3d3 XK prod too big:\tier=%d (should complain)\n",ier);
 
-  free(x); free(c); free(F); free(s); free(shuge); printf("freed.\n");
+  free(x); free(c); free(F); free(s); free(shuge); free(cm); free(Fm);
+  printf("freed.\n");
   return 0;
 }
