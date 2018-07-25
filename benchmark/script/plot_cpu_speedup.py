@@ -12,12 +12,12 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	num_lines = sum(1 for line in open('../results/cputime_0725.out', 'r'))
+	num_lines = sum(1 for line in open('../results/cputime_12thread_0725.out', 'r'))
 	N = np.zeros(num_lines, dtype=int)
 	s_cpu = np.zeros(num_lines)
 	s_gpu = np.zeros([4, num_lines])
 	speedup = np.zeros([4, num_lines])
-	f = open('../results/cputime_0725.out', 'r')
+	f = open('../results/cputime_12thread_0725.out', 'r')
 	for i,line in enumerate(f):
         	N[i]=int(find_between(line, 'N=', ','))
 		s_cpu[i]=float(find_between(line, 's=', '\n'))
@@ -42,13 +42,14 @@ def main():
 	ax.set_xticks(x)
     	ax.set_xticklabels(N)
 	ax.set_xlim((x[0]-0.5, x[-1]+0.5))
+	ax.set_ylim((0, 10))
 	ax.set_xlabel('N')
 	ax.set_ylabel('speedup')
 	ax.set_title('T_cpuspreader/T_gpuspreader')
 	leg = ax.legend(loc=0,frameon=1)
 	leg.get_frame().set_alpha(0.5)
 	plt.grid(True)
-	plt.savefig('../speedup_cnufftspread_vs_gpuspraed_0725.pdf')
+	plt.savefig('../speedup_cnufftspread12_vs_gpuspread_0725.pdf')
 	plt.show()
 if __name__== "__main__":
   main()
