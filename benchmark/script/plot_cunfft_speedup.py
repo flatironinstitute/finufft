@@ -51,7 +51,7 @@ def main():
 	ax.set_ylim((0, 12))
 	ax.set_xlabel('N')
 	ax.set_ylabel('speedup')
-	ax.set_title('T_cunfft/T_finufft')
+	ax.set_title('T_cunfft/T_cufinufft')
 	leg = ax.legend(loc=0,frameon=1)
 	leg.get_frame().set_alpha(0.5)
 	plt.grid(True)
