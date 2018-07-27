@@ -26,7 +26,6 @@ void finufft_default_opts(nufft_opts &o)
   o.spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
   o.fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
   o.modeord = 0;
-  o.many_seq = 0;
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)

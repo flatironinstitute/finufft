@@ -67,8 +67,8 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   // Step 1: spread from irregular points to regular grid
   timer.restart();
   spopts.spread_direction = 1;
-  FLT *dummy;
-  int ier_spread = cnufftspread(nf1,1,1,(FLT*)fw,nj,xj,dummy,dummy,(FLT*)cj,spopts);
+  FLT *dummy=NULL;
+  int ier_spread = spreadinterp(nf1,1,1,(FLT*)fw,nj,xj,dummy,dummy,(FLT*)cj,spopts);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread, timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
   //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
@@ -177,8 +177,8 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   // Step 3: unspread (interpolate) from regular to irregular target pts
   timer.restart();
   spopts.spread_direction = 2;
-  FLT *dummy;
-  int ier_spread = cnufftspread(nf1,1,1,(FLT*)fw,nj,xj,dummy,dummy,(FLT*)cj,spopts);
+  FLT *dummy=NULL;
+  int ier_spread = spreadinterp(nf1,1,1,(FLT*)fw,nj,xj,dummy,dummy,(FLT*)cj,spopts);
   //int ier_spread = twopispread1d(nf1,(CPX*)fw,nj,xj,cj,spopts);
   if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n", ier_spread, timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
@@ -261,8 +261,8 @@ int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, 
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1);
   timer.restart();
   spopts.spread_direction = 1;
-  FLT *dummy;
-  int ier_spread = cnufftspread(nf1,1,1,(FLT*)fw,nj,xpj,dummy,dummy,(FLT*)cpj,spopts);
+  FLT *dummy=NULL;
+  int ier_spread = spreadinterp(nf1,1,1,(FLT*)fw,nj,xpj,dummy,dummy,(FLT*)cpj,spopts);
   free(xpj); free(cpj);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;

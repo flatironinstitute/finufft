@@ -1,5 +1,5 @@
-#ifndef CNUFFTSPREAD_H
-#define CNUFFTSPREAD_H
+#ifndef SPREADINTERP_H
+#define SPREADINTERP_H
 
 #include <math.h>
 #include <stdlib.h>
@@ -52,23 +52,23 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
 
 
 // things external interface needs...
-int cnufftspread(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
+int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
 		 BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		 FLT *data_nonuniform, spread_opts opts);
 
-int cnufftcheck(BIGINT N1, BIGINT N2, BIGINT N3,
+int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
                  BIGINT M, FLT *kx, FLT *ky, FLT *kz,
                  spread_opts opts);
 
-int cnufftsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
+int spreadsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts);
 
-int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
-                            FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
-                            spread_opts opts, int did_sort);
+int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		      FLT *data_nonuniform, spread_opts opts, int did_sort);
 
 FLT evaluate_kernel(FLT x,const spread_opts &opts);
 FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
 int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac,int kerevalmeth);
 
-#endif // CNUFFTSPREAD_H
+#endif  // SPREADINTERP_H

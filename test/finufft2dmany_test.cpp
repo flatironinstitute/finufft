@@ -14,7 +14,7 @@
 #define CHUNK 1000000
 
 int main(int argc, char* argv[])
-/* Test executable for finufft in 2d, all 3 types
+/* Test executable for finufft in 2d many interface, types 1,2.
 
    Usage: finufft2d_test [Nmodes1 Nmodes2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]
 
@@ -23,12 +23,13 @@ int main(int argc, char* argv[])
 
    Example: finufft2d_test 1000 1000 1000000 1e-12 1 2 2.0
 
-   Barnett 2/1/17
+   Melody Shih Jun 2018, based on Barnett Feb 2017.
+   Barnett removed many_seq for simplicity, 7/27/18.
 */
 {
   BIGINT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
   int debug;
-  int ndata = 400;
+  int ndata = 400;                      // # of vectors for "many" interface
 
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;    // default
@@ -50,12 +51,11 @@ int main(int argc, char* argv[])
   opts.debug = debug;
   opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
   if (argc>7) sscanf(argv[7],"%d",&opts.spread_sort);
-  if (argc>8) sscanf(argv[8],"%d",&opts.many_seq);
-  if (argc>9) sscanf(argv[9],"%lf",&upsampfac);
+  if (argc>8) sscanf(argv[8],"%lf",&upsampfac);
   opts.upsampfac=(FLT)upsampfac;
 
-  if (argc==1 || argc==2 || argc>10) {
-    fprintf(stderr,"Usage: finufft2d_test [ndata [N1 N2 [Nsrc [tol [debug [spread_sort [many_seq [upsampfac]]]]]]\n");
+  if (argc==1 || argc==2 || argc>9) {
+    fprintf(stderr,"Usage: finufft2d_test [ndata [N1 N2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);
@@ -69,12 +69,12 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,CHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = M_PI*randm11r(&se);
       y[j] = M_PI*randm11r(&se);
     }
-#pragma for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,CHUNK)
     for (BIGINT j = 0; j<ndata*M; ++j)
     {
         c[j] = crandm11r(&se);
@@ -88,8 +88,8 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("\t%d data: \t%ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
-	   ndata,(BIGINT)M,(BIGINT)N1,(BIGINT)N2,ti,ndata*M/ti);
+    printf("    %d of: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
+	   ndata,(int64_t)M,(int64_t)N1,(int64_t)N2,ti,ndata*M/ti);
 
   // compare the result with finufft2d1
   fftw_forget_wisdom(); // for fair comparison
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
   CPX* Fstart;
   CPX* F_finufft2d1 = (CPX*)malloc(sizeof(CPX)*N*ndata);
   double maxerror = 0.0;
-  opts.debug = 0; // don't output timing for calls of finufft2d1
+  opts.debug = 0;       // don't output timing for calls of finufft2d1
   opts.spread_debug = 0;
   timer.restart();
   for (int k= 0; k<ndata; ++k)
@@ -107,22 +107,20 @@ int main(int argc, char* argv[])
     ier = finufft2d1(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
   }
   double t=timer.elapsedsec();
-  printf("\tT_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
+  printf("\tspeedup (T_finufft2d1 / T_finufft2d1many) = %.3g\n", t/ti);
 
-  BIGINT d = floor(ndata/2); // choose a data to check
+  int d = floor(ndata/2);    // choose a data to check
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
   CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j+d*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("one mode: rel err in F[%ld,%ld] of data[%d] is %.3g\n",(BIGINT)nt1,(BIGINT)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
+  printf("one mode: rel err in F[%ld,%ld] of data[%d] is %.3g\n",(int64_t)nt1,(int64_t)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
 
-  // Check accuracy
+  // Check accuracy (worst over the ndata)
   for (int k = 0; k < ndata; ++k)
-  {
     maxerror = max(maxerror, relerrtwonorm(N,F_finufft2d1+k*N,F+k*N));
-  }
-  printf("max_data (  || F - F_finufft2d1 ||_2 / || F_finufft2d1 ||_2  ) =  %.3g\n",maxerror);
+  printf("err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 
   fftw_forget_wisdom();
@@ -143,23 +141,24 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("\t%d data: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
-           ndata,(BIGINT)N1,(BIGINT)N2,(BIGINT)M,ti,ndata*M/ti);
+    printf("    %d of: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
+           ndata,(int64_t)N1,(int64_t)N2,(int64_t)M,ti,ndata*M/ti);
   
   fftw_forget_wisdom();
-  opts.debug = 0; // don't output timing for calls of finufft2d1
+  opts.debug = 0;        // don't output timing for calls of finufft2d2
   opts.spread_debug = 0;
-  // compare the result with finufft2d1
+  
+  // compare the result with finufft2d2...
   CPX* c_finufft2d2 = (CPX*)malloc(sizeof(CPX)*M*ndata);
   timer.restart();
-  for (int k= 0; k<ndata; ++k)
+  for (int k=0; k<ndata; ++k)
   {
     cstart = c_finufft2d2+k*M;
     Fstart = F+k*N;
     ier = finufft2d2(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
   }
   t = timer.elapsedsec();
-  printf("\tT_finufft2d/ T_finufft2dmany = %.3g\n", t/ti);
+  printf("\tspeedup (T_finufft2d2 / T_finufft2d2many) = %.3g\n", t/ti);
   
   d = floor(ndata/2); // choose a data to check
   BIGINT jt = M/2;    // check arbitrary choice of one targ pt
@@ -168,14 +167,12 @@ int main(int argc, char* argv[])
   for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[d*N + m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-  printf("one targ: rel err in c[%ld] of data[%d] is %.3g\n",(BIGINT)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
+  printf("one targ: rel err in c[%ld] of data[%d] is %.3g\n",(int64_t)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
 
-  maxerror = 0.0;
+  maxerror = 0.0;           // worst error over the ndata
   for (int k = 0; k < ndata; ++k)
-  {
     maxerror = max(maxerror, relerrtwonorm(M,c_finufft2d2+k*M,c+k*M));
-  }
-  printf("max_data ( || c - c_finufft2d1 ||_2 / || c_finufft2d1 ||_2 ) =  %.3g\n",maxerror);
+  printf("err check vs non-many: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n",maxerror);
   free(c_finufft2d2);
 
   free(x); free(y); free(c); free(F);
