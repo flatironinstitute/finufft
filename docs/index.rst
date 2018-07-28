@@ -49,10 +49,21 @@ single-threaded fast Gaussian gridding `CMCL libraries of Greengard-Lee <http://
 for spreading-dominated problems
 is faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_ even when the latter is allowed a RAM-intensive full precomputation of the kernel. This is especially true for highly non-uniform point
 distributions and/or high precision.
-Our library does not require precomputation and uses minimal RAM.
+Our library does not require precomputation, and uses minimal RAM.
 
-Note that we have not yet optimized for repeated *small* problems (around 10000 points or less), and the NFFT3 library is often faster for these. (In this case, also consider using the naive matrix GEMM). A multiple strength-vector interface is in progress to address this.
+For the case of small problems where repeated NUFFTs are needed with a fixed set of nonuniform points, we have started to build interfaces for this case.
+These are a factor of 2 or more faster than repeated calls to the plain
+interface, since certain costs such as FFTW setup and sorted are performed
+only once; see the advanced usage.
 
+.. note::
+
+   For very small repeated problems (less than 10000 input and output points),
+   users should also consider a dense matrix-matrix multiplication against
+   the NUDFT matrix using BLAS3 (eg ZGEMM). Since we did not want BLAS to
+   be a dependency, we have not yet included this option.
+
+   
 .. toctree::
    :maxdepth: 2
 	   

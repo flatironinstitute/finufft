@@ -109,7 +109,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
 		   int iflag, FLT eps, BIGINT ms, BIGINT mt, CPX* fk,
 		   nufft_opts opts)
 /*
-  Type-1 2D complex nonuniform FFT for multiple strength arrays, same pts.
+  Type-1 2D complex nonuniform FFT for multiple strength vectors, same NU pts.
 
                     nj
     f[k1,k2,d] =   SUM  c[j,d] exp(+-i (k1 x[j] + k2 y[j]))
@@ -121,15 +121,16 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
     k2 ordering (slow), then increasing d (slowest). If iflag>0 the + sign
     is used, otherwise the - sign is used, in the exponential.
   Inputs:
-    ndata  number of data
-    nj     number of sources
-    xj,yj  x,y locations of sources on 2D domain [-pi,pi]^2.
+    ndata  number of strength vectors
+    nj     number of sources (int64)
+    xj,yj  x,y locations of sources (each a size-nj FLT array) in [-3pi,3pi]
     c      a size nj*ndata complex FLT array of source strengths,
            increasing fast in nj then slow in ndata.
     iflag  if >=0, uses + sign in exponential, otherwise - sign.
     eps    precision requested (>1e-16)
     ms,mt  number of Fourier modes requested in x and y; each may be even or odd;
-           in either case the mode range is integers lying in [-m/2, (m-1)/2]
+           in either case the mode range is integers lying in [-m/2, (m-1)/2].
+	   ms*mt must not exceed 2^31.
     opts   struct controlling options (see finufft.h)
   Outputs:
     fk     complex FLT array of Fourier transform values
@@ -137,7 +138,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
            ie Fortran ordering).
     returned value - 0 if success, else see ../docs/usage.rst
 
-  Note: ndata times the RAM is needed, so this is designed for small problems.
+  Note: nthreads times the RAM is needed, so this is good only for small problems.
   By Melody Shih, originally called "manysimul" (many_seq=0 opt). Jun 2018.
  */
 {
@@ -173,13 +174,13 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
     FFTW_PLAN_TH(nth);
   }
 
-  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // ndata upsampled arrays
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // nthreads copies of upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   const int n[] = {int(nf2), int(nf1)};
   // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
 
   timer.restart();
-  FFTW_PLAN p = fftw_plan_many_dft(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1,
+  FFTW_PLAN p = FFTW_PLAN_MANY_DFT(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1,
                                    n[0]*n[1], fftsign, opts.fftw);
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -268,8 +269,8 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
    Inputs:
-     nj     number of sources (int64)
-     xj,yj     x,y locations of sources (each a size-nj FLT array) in [-3pi,3pi]
+     nj     number of targets (int64)
+     xj,yj     x,y locations of targets (each a size-nj FLT array) in [-3pi,3pi]
      fk     FLT complex array of Fourier transform values (size ms*mt,
             increasing fast in ms then slow in mt, ie Fortran ordering).
             Along each dimension the ordering is set by opts.modeord.
@@ -362,9 +363,9 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 	     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
   Inputs:
-    ndata  number of data
-    nj     number of sources
-    xj,yj  x,y locations of sources (each a size-nj FLT array) in [-3pi,3pi]
+    ndata  number of mode coefficient vectors
+    nj     number of targets (int64)
+    xj,yj  x,y locations of targets (each a size-nj FLT array) in [-3pi,3pi]
     fk     FLT complex array of Fourier transform values (size ms*mt*ndata,
            increasing fast in ms then slow in mt then in ndata, ie Fortran
            ordering). Along each dimension the ordering is set by opts.modeord.
@@ -373,6 +374,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
     ms,mt  numbers of Fourier modes given in x and y (int64)
            each may be even or odd;
            in either case the mode range is integers lying in [-m/2, (m-1)/2].
+	   ms*mt must not exceed 2^31.
     opts   struct controlling options (see finufft.h)
   Outputs:
     cj     size-nj*ndata complex FLT array of target values, (ie, stored as
@@ -380,7 +382,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
            slow in ndata.
     returned value - 0 if success, else see ../docs/usage.rst
 
-  Note: ndata times the RAM is needed, so this is designed for small problems.
+  Note: nthreads times the RAM is needed, so this is good only for small problems.
   By Melody Shih, originally called "manysimul" (many_seq=0 opt). Jun 2018.
 */
 {
@@ -416,13 +418,13 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
     FFTW_PLAN_TH(nth);
   }
 
-  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // ndata copies of upsampled array
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // nthreads copies of upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   const int n[] = {int(nf2), int(nf1)};
   // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
 
   timer.restart();
-  FFTW_PLAN p = fftw_plan_many_dft(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1,
+  FFTW_PLAN p = FFTW_PLAN_MANY_DFT(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1,
                                    n[0]*n[1], fftsign, opts.fftw);
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 

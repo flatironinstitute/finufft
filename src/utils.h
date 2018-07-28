@@ -41,9 +41,11 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_PLAN_1D fftwf_plan_dft_1d
   #define FFTW_PLAN_2D fftwf_plan_dft_2d
   #define FFTW_PLAN_3D fftwf_plan_dft_3d
+  #define FFTW_PLAN_MANY_DFT fftwf_plan_many_dft
   #define FFTW_EX fftwf_execute
   #define FFTW_DE fftwf_destroy_plan
   #define FFTW_FR fftwf_free
+  #define FFTW_FORGET_WISDOM fftwf_forget_wisdom
 #else
   // machine epsilon for rounding
   #define EPSILON (double)1.1e-16
@@ -60,9 +62,11 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_PLAN_1D fftw_plan_dft_1d
   #define FFTW_PLAN_2D fftw_plan_dft_2d
   #define FFTW_PLAN_3D fftw_plan_dft_3d
+  #define FFTW_PLAN_MANY_DFT fftw_plan_many_dft
   #define FFTW_EX fftw_execute
   #define FFTW_DE fftw_destroy_plan
   #define FFTW_FR fftw_free
+  #define FFTW_FORGET_WISDOM fftw_forget_wisdom
 #endif
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.

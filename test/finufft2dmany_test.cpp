@@ -16,12 +16,12 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 2d many interface, types 1,2.
 
-   Usage: finufft2d_test [Nmodes1 Nmodes2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]
+   Usage: finufft2dmany_test [ndata [Nmodes1 Nmodes2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
 
-   Example: finufft2d_test 1000 1000 1000000 1e-12 1 2 2.0
+   Example: finufft2dmany_test 1000 1e2 1e2 1e6 1e-12 1 2 2.0
 
    Melody Shih Jun 2018, based on Barnett Feb 2017.
    Barnett removed many_seq for simplicity, 7/27/18.
@@ -32,10 +32,10 @@ int main(int argc, char* argv[])
   int ndata = 400;                      // # of vectors for "many" interface
 
   double w, tol = 1e-6;          // default
-  double upsampfac = 2.0;    // default
+  double upsampfac = 2.0;        // default
   nufft_opts opts; finufft_default_opts(opts);
   opts.debug = 0;            // 1 to see some timings
-  opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
+  // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); ndata = (int)w; }
   if (argc>2) {
@@ -92,11 +92,11 @@ int main(int argc, char* argv[])
 	   ndata,(int64_t)M,(int64_t)N1,(int64_t)N2,ti,ndata*M/ti);
 
   // compare the result with finufft2d1
-  fftw_forget_wisdom(); // for fair comparison
+  FFTW_FORGET_WISDOM(); // for fair comparison
   CPX* cstart;
   CPX* Fstart;
   CPX* F_finufft2d1 = (CPX*)malloc(sizeof(CPX)*N*ndata);
-  double maxerror = 0.0;
+  FLT maxerror = 0.0;
   opts.debug = 0;       // don't output timing for calls of finufft2d1
   opts.spread_debug = 0;
   timer.restart();
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
   printf("err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 
-  fftw_forget_wisdom();
+  FFTW_FORGET_WISDOM();
   printf("test 2dmany type-2:\n"); // -------------- type 2
 
 #pragma omp parallel
@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
     printf("    %d of: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
            ndata,(int64_t)N1,(int64_t)N2,(int64_t)M,ti,ndata*M/ti);
   
-  fftw_forget_wisdom();
+  FFTW_FORGET_WISDOM();
   opts.debug = 0;        // don't output timing for calls of finufft2d2
   opts.spread_debug = 0;
   

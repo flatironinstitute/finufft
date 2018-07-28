@@ -82,12 +82,27 @@ int finufft2d1_c(int nj,FLT* xj,FLT* yj,FLT _Complex* cj,int iflag, FLT eps,int 
   return finufft2d1((BIGINT)nj,xj,yj,(CPX *)cj,iflag,eps,(BIGINT)ms,(BIGINT)mt,(CPX *)fk,opts);
 }
 
+int finufft2d1many_c(int ndata,int nj,FLT* xj,FLT* yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts)
+{
+  nufft_opts opts;
+  transfer_opts(opts,copts);
+  return finufft2d1many(ndata,(BIGINT)nj,xj,yj,(CPX *)cj,iflag,eps,(BIGINT)ms,(BIGINT)mt,(CPX *)fk,opts);
+}
+
 int finufft2d2_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
   return finufft2d2(BIGINT(nj),xj,yj,(CPX*) cj,iflag,eps,(BIGINT)ms,(BIGINT)mt,
 		    (CPX* )fk, opts);
+}
+
+int finufft2d2many_c(int ndata,int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts)
+{
+  nufft_opts opts;
+  transfer_opts(opts,copts);
+  return finufft2d2many(ndata,BIGINT(nj),xj,yj,(CPX*) cj,iflag,eps,(BIGINT)ms,
+			(BIGINT)mt,(CPX* )fk, opts);
 }
 
 int finufft2d3_c(int nj,FLT* x,FLT *y,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT _Complex* f, nufft_c_opts copts)

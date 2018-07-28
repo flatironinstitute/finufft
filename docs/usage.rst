@@ -16,6 +16,8 @@ if you compiled FINUFFT for single-threaded only.
 
 The ``examples`` and ``test`` directories are good places to see usage examples.
 
+If you have an application with multiple strength or coefficient vectors with fixed nonuniform points, see :ref:`Advanced interfaces for many vectors with same nonuniform points`
+
 
 Interfaces from C++
 *******************
@@ -52,8 +54,6 @@ the default double-precision, or ``single`` if single precision:
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
-  int many_seq;       // 0: simultaneously do nufft on all data
-                      // 1: sequentially run through the data
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
 
 Here are their default settings (set in ``../src/common.cpp:finufft_default_opts``):
@@ -68,7 +68,6 @@ Here are their default settings (set in ``../src/common.cpp:finufft_default_opts
   chkbnds = 0;
   fftw = FFTW_ESTIMATE;
   modeord = 0;
-  many_seq = 0;
   upsampfac = (FLT)2.0;
 
 Notes on various options:
@@ -92,8 +91,6 @@ However, the kernel widths :math:`w` are about 50% larger in each dimension,
 which can lead to slower spreading (it can also be faster due to the smaller
 size of the fine grid).
 Thus only 9-digit accuracy can be reached with ``upsampfac=1.25``.
-
-``many_seq``: see :ref:`The "many" interface` for details.
 
 .. _errcodes:
 
@@ -292,8 +289,8 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
     Inputs:
-     nj     number of sources (int64)
-     xj,yj     x,y locations of sources (each a size-nj FLT array) in [-3pi,3pi]
+     nj     number of targets (int64)
+     xj,yj     x,y locations of targets (each a size-nj FLT array) in [-3pi,3pi]
      fk     FLT complex array of Fourier transform values (size ms*mt,
             changing fast in ms then slow in mt, as in Fortran)
             Along each dimension the ordering is set by opts.modeord.
@@ -414,8 +411,8 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
                        -mu/2 <= k3 <= (mu-1)/2
 
    Inputs:
-     nj     number of sources (int64)
-     xj,yj,zj     x,y,z locations of targets (each size-nj FLT array) in [-3pi,3pi]
+     nj     number of targets (int64)
+     xj,yj,zj  x,y,z locations of targets (each size-nj FLT array) in [-3pi,3pi]
      fk     FLT complex array of Fourier series values (size ms*mt*mu,
             changing fastest in ms to slowest in mu, ie Fortran ordering).
 	    (ie, stored as alternating Re & Im parts, 2*ms*mt*mu FLTs)
@@ -451,7 +448,7 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
 
   Inputs:
      nj     number of sources (int64)
-     xj,yj,zj   x,y,z location of sources in R^3 (each size-nj FLT array)
+     xj,yj,zj     x,y,z location of sources in R^3 (each size-nj FLT array)
      cj     size-nj complex FLT array of source strengths
             (ie, interleaving Re & Im parts)
      nk     number of frequency target points (int64)
@@ -496,7 +493,9 @@ For a demo see ``examples/example1d1c.c``::
   int finufft1d2_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms, FLT _Complex* fk, nufft_c_opts copts);
   int finufft1d3_c(int j,FLT* x,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT _Complex* f, nufft_c_opts copts);
   int finufft2d1_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt,FLT _Complex* fk, nufft_c_opts copts);
+  int finufft2d1many_c(int ndata,int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt,FLT _Complex* fk, nufft_c_opts copts);
   int finufft2d2_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts);
+  int finufft2d2many_c(int ndata,int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts);
   int finufft2d3_c(int nj,FLT* x,FLT *y,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT _Complex* f, nufft_c_opts copts);
   int finufft3d1_c(int nj,FLT* xj,FLT* yj,FLT *zj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, int mu,FLT _Complex* fk, nufft_c_opts copts);
   int finufft3d2_c(int nj,FLT* xj,FLT *yj,FLT *zj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, int mu, FLT _Complex* fk, nufft_c_opts copts);
@@ -521,23 +520,24 @@ Here are the calling commands with fortran types for the default double-precisio
       call finufft1d2_f(nj,xj,cj,iflag, eps, ms,fk,ier)
       call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk,ier)
       call finufft2d1_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
+      call finufft2d1many_f(ndata,nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
       call finufft2d2_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
+      call finufft2d2many_f(ndata,nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
       call finufft2d3_f(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk,ier)
       call finufft3d1_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,ier)
       call finufft3d2_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,ier)
       call finufft3d3_f(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk,ier)
-      call finufft2d1many_f(ndata,nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
-      call finufft2d2many_f(ndata,nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
 
 
 
 
-Design notes and advanced usage
-*******************************
+
+Design notes and data types
+***************************
 
 We strongly recommend you use ``upsampfac=1.25`` for type-3; it
-reduces its run-time from around 8 times the types 1 or 2, to 3-4
-times.
+reduces its run-time from around 8 times the types 1 or 2, to around 3-4
+times. It is often also faster for type-1 and type-2, at low precisions.
 
 When you include the header ``finufft.h`` you have access to the ``BIGINT`` type
 which is used for all potentially-large input integers (M, N, etc), and
