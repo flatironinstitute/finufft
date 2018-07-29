@@ -156,6 +156,9 @@
            1 : eps too small
            2 : size of arrays to malloc exceed MAX_NF
            other codes: as returned by cnufftspread
+
+ Note: nthreads copies of the fine grid are allocated, limiting this to smaller
+  problem sizes.
  ---------------------------------------------------------------------------
  FINUFFT2D2
 
@@ -219,6 +222,9 @@
            1 : eps too small
            2 : size of arrays to malloc exceed MAX_NF
            other codes: as returned by cnufftspread
+
+ Note: nthreads copies of the fine grid are allocated, limiting this to smaller
+  problem sizes.
  ---------------------------------------------------------------------------
  FINUFFT2D3
 

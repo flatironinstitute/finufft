@@ -194,6 +194,63 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0
   c=c.astype(np.complex128,copy=False) #copies only if type changes
   return finufftpy_cpp.finufft2d1_cpp(x,y,c,isign,eps,ms,mt,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
+def nufft2d1many(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  """2D type-1 (aka adjoint) complex nonuniform fast Fourier transform, for
+     multiple strength vectors with same nonuniform points.
+
+  ::
+
+	              nj-1
+	f(k1,k2,d) =  SUM c[j,d] exp(+/-i (k1 x(j) + k2 y[j])),
+	              j=0
+	                  for -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
+                          d = 0,...,ndata-1
+
+  Args:
+    x     (float[nj]): nonuniform source x-coords, valid only in [-3pi,3pi]
+    y     (float[nj]): nonuniform source y-coords, valid only in [-3pi,3pi]
+    c     (complex[nj,ndata]): source strengths
+    isign (int): if >=0, uses + sign in exponential, otherwise - sign
+    eps   (float): precision requested (>1e-16)
+    ms    (int): number of Fourier modes in x-direction, may be even or odd;
+        in either case the modes are integers lying in [-ms/2, (ms-1)/2]
+    mt    (int): number of Fourier modes in y-direction, may be even or odd;
+        in either case the modes are integers lying in [-mt/2, (mt-1)/2]
+
+    f     (complex[ms,mt,ndata]): output Fourier mode values. Should be initialized as a Fortran-ordered (ie ms fast, mt slow) numpy array of the correct size
+    debug (int, optional): 0 (silent), 1 (print timing breakdown)
+    spread_debug (int, optional): 0 (silent), 1, 2... (prints spreader info)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
+    fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+    modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
+    chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+	
+  .. note::
+
+    The outputs are written into the f array.
+
+    For small problems this routine will be faster than repeated calls to
+    nufft2d1.
+
+    Nthreads copies of the fine grid are allocated, limiting this to
+    smaller problem sizes than the plain 2d1 interface.
+
+  Returns:
+    int: 0 if success, 1 if eps too small,
+       2 if size of arrays to malloc exceed MAX_NF,
+       4 at least one NU point out of range (if chkbnds true)
+
+  Example:
+    see ``python/tests/accuracy_speed_tests.py``
+  """
+  # f is the output and must have dtype=np.complex128
+  x=x.astype(np.float64,copy=False) #copies only if type changes
+  y=y.astype(np.float64,copy=False) #copies only if type changes
+  c=c.astype(np.complex128,copy=False) #copies only if type changes
+  return finufftpy_cpp.finufft2d1many_cpp(x,y,c,isign,eps,ms,mt,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+
 def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
   """2D type-2 (aka forward) complex nonuniform fast Fourier transform
 
@@ -241,6 +298,62 @@ def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeo
   y=y.astype(np.float64,copy=False) #copies only if type changes
   f=f.astype(np.complex128,copy=False,order='F') #copies only if type changes: so if f is C-ordered, it will make a transposed copy
   return finufftpy_cpp.finufft2d2_cpp(x,y,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+
+def nufft2d2many(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  """2D type-2 (aka forward) complex nonuniform fast Fourier transform, for
+     multiple coefficient vectors with same nonuniform points.
+
+  ::
+
+    c[j,d] =  SUM  f[k1,k2,d] exp(+/-i (k1 x[j] + k2 y[j])),
+	     k1,k2
+
+    for j = 0,...,nj-1, and d = 0,...,ndata-1
+    where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2
+
+  Args:
+    x     (float[nj]): nonuniform target x-coords, valid only in [-3pi,3pi]
+    y     (float[nj]): nonuniform target y-coords, valid only in [-3pi,3pi]
+    c     (complex[nj,ndata]): output values at targets. Should be initialized
+        as a Fortran-ordered numpy array of the correct size
+    isign (int): if >=0, uses + sign in exponential, otherwise - sign
+    eps   (float): precision requested (>1e-16)
+    f     (complex[ms,mt,ndata]): Fourier mode coefficients, where ms and mt are
+          either even or odd; in either case
+	  their mode range is integers lying in [-m/2, (m-1)/2], with
+	  mode ordering in all dimensions given by modeord.  Ordering is Fortran-style, ie ms fastest.
+    debug (int, optional): 0 (silent), 1 (print timing breakdown)
+    spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
+    fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+    modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
+    chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+
+  .. note::
+
+    The outputs are written into the c array.
+
+    For small problems this routine will be faster than repeated calls to
+    nufft2d2.
+
+    Nthreads copies of the fine grid are allocated, limiting this to
+    smaller problem sizes than the plain 2d2 interface.
+
+  Returns:
+    int: 0 if success, 1 if eps too small,
+       2 if size of arrays to malloc exceed MAX_NF,
+       4 at least one NU point out of range (if chkbnds true)
+
+  Example:
+    see ``python_tests/accuracy_speed_tests.py``
+  """
+  # c is the output and must have dtype=np.complex128
+  x=x.astype(np.float64,copy=False) #copies only if type changes
+  y=y.astype(np.float64,copy=False) #copies only if type changes
+  f=f.astype(np.complex128,copy=False,order='F') #copies only if type changes: so if f is C-ordered, it will make a transposed copy
+  return finufftpy_cpp.finufft2d2many_cpp(x,y,c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
 def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
   """2D type-3 (NU-to-NU) complex nonuniform fast Fourier transform

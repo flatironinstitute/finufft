@@ -117,6 +117,23 @@ int finufft2d1_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX
     CHECK_FLAG(finufft2d1)
     return ier;
 }
+int finufft2d1many_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX> cj,int iflag,double eps,int ms,int mt,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds,double upsampfac)
+{
+    NDArray<double> xja(xj);
+    NDArray<double> yja(yj);
+    NDArray<CPX> cja(cj);
+    NDArray<CPX> fka(fk);
+    int ndata = cja.shape[1];
+    if ((xja.size*ndata!=cja.size)||(yja.size*ndata!=cja.size))
+        throw error("Inconsistent dimensions between xj or yj and cj");
+    if (fka.size!=ms*mt*ndata)
+        throw error("Incorrect size for fk");
+    int nj=xja.size;
+    ASSEMBLE_OPTIONS
+      int ier=finufft2d1many(ndata,nj,xja.ptr,yja.ptr,cja.ptr,iflag,eps,ms,mt,fka.ptr,opts);
+    CHECK_FLAG(finufft2d1many)
+    return ier;
+}
 int finufft2d2_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX> cj,int iflag,double eps,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds,double upsampfac)
 {
     NDArray<double> xja(xj);
@@ -131,6 +148,23 @@ int finufft2d2_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX
     ASSEMBLE_OPTIONS
     int ier=finufft2d2(nj,xja.ptr,yja.ptr,cja.ptr,iflag,eps,ms,mt,fka.ptr,opts);
     CHECK_FLAG(finufft2d2)
+    return ier;
+}
+int finufft2d2many_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX> cj,int iflag,double eps,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds,double upsampfac)
+{
+    NDArray<double> xja(xj);
+    NDArray<double> yja(yj);
+    NDArray<CPX> cja(cj);
+    NDArray<CPX> fka(fk);
+    int ndata = fka.shape[2];
+    if ((xja.size*ndata!=cja.size)||(yja.size*ndata!=cja.size))
+        throw error("Inconsistent dimensions between xj or yj and cj");
+    int nj=xja.size;
+    int ms=fka.shape[0];
+    int mt=fka.shape[1];
+    ASSEMBLE_OPTIONS
+    int ier=finufft2d2many(ndata,nj,xja.ptr,yja.ptr,cja.ptr,iflag,eps,ms,mt,fka.ptr,opts);
+    CHECK_FLAG(finufft2d2many)
     return ier;
 }
 int finufft2d3_cpp(py::array_t<double> x,py::array_t<double> y,py::array_t<CPX> c,int iflag,double eps,py::array_t<double> s,py::array_t<double> t,py::array_t<CPX> f,int debug, int spread_debug, int spread_sort, int fftw,double upsampfac)
@@ -252,6 +286,13 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
 	py::arg("debug"),py::arg("spread_debug"),py::arg("spread_sort"),
 	py::arg("fftw"),py::arg("modeord"),py::arg("chkbnds"),py::arg("upsampfac"));
   
+  m.def("finufft2d1many_cpp", &finufft2d1many_cpp, "Python wrapper for 2-d type 1 many nufft",
+        py::arg("xj").noconvert(),py::arg("yj").noconvert(),py::arg("cj").noconvert(),
+        py::arg("iflag"),py::arg("eps"),py::arg("ms"),py::arg("mt"),
+	py::arg("fk").noconvert(),
+	py::arg("debug"),py::arg("spread_debug"),py::arg("spread_sort"),
+	py::arg("fftw"),py::arg("modeord"),py::arg("chkbnds"),py::arg("upsampfac"));
+  
   
   m.def("finufft2d2_cpp", &finufft2d2_cpp, "Python wrapper for 2-d type 2 nufft",
         py::arg("xj").noconvert(),py::arg("yj").noconvert(),py::arg("cj").noconvert(),
@@ -260,7 +301,13 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
 	py::arg("debug"),py::arg("spread_debug"),py::arg("spread_sort"),
 	py::arg("fftw"),py::arg("modeord"),py::arg("chkbnds"),py::arg("upsampfac"));
   
-  
+  m.def("finufft2d2many_cpp", &finufft2d2many_cpp, "Python wrapper for 2-d type 2 many nufft",
+        py::arg("xj").noconvert(),py::arg("yj").noconvert(),py::arg("cj").noconvert(),
+        py::arg("iflag"),py::arg("eps"),
+	py::arg("fk").noconvert(),
+	py::arg("debug"),py::arg("spread_debug"),py::arg("spread_sort"),
+	py::arg("fftw"),py::arg("modeord"),py::arg("chkbnds"),py::arg("upsampfac"));
+ 
   m.def("finufft2d3_cpp", &finufft2d3_cpp, "Python wrapper for 2-d type 3 nufft",
         py::arg("x").noconvert(),py::arg("y").noconvert(),py::arg("c").noconvert(),
         py::arg("iflag"),py::arg("eps"),

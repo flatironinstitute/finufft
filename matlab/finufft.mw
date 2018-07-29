@@ -213,6 +213,9 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %           1 : eps too small
 %           2 : size of arrays to malloc exceed MAX_NF
 %           other codes: as returned by cnufftspread
+%
+% Note: nthreads copies of the fine grid are allocated, limiting this to smaller
+%  problem sizes.
 
 if nargin<8, o=[]; end
 opts = finufft_opts(o);
@@ -301,6 +304,9 @@ if numel(y)~=nj, error('y must have the same number of elements as x'); end
 %           1 : eps too small
 %           2 : size of arrays to malloc exceed MAX_NF
 %           other codes: as returned by cnufftspread
+%
+% Note: nthreads copies of the fine grid are allocated, limiting this to smaller
+%  problem sizes.
 
 if nargin<6, o=[]; end
 opts = finufft_opts(o);

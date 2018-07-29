@@ -1,7 +1,8 @@
 # Jeremy Magland, Sept 2017.
 # Alex Barnett fixed integer division issue in python v2 vs v3
 #              (affected 1/2, 1/3), 10/13/17.
-# Removed ms etc from ?d2 interfaces, 10/31/17. Less reruns 2/14/18
+# Removed ms etc from ?d2 interfaces, 10/31/17. Less reruns 2/14/18.
+# 2d1many and 2d2many added, painfully, Barnett 7/29/18
 
 import numpy as np
 import finufftpy
@@ -34,7 +35,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	Xest=np.zeros(num_samples,dtype=np.complex128)
 	Xtrue=np.zeros(num_samples,dtype=np.complex128)
 
-	###### 1-d
+	###### 1-d cases ........................................................
 	ms=int(num_uniform_points)
 
 	xj=np.random.rand(nj)*2*math.pi-math.pi
@@ -76,13 +77,13 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 		Xtrue[ii]=f[ii]
 	print_report('finufft1d3',elapsed,Xest,Xtrue,nj+nk)
 
-	###### 2-d
+	###### 2-d cases ....................................................
 	ms=int(np.ceil(np.sqrt(num_uniform_points)))
 	mt=ms
 
 	xj=np.random.rand(nj)*2*math.pi-math.pi
 	yj=np.random.rand(nj)*2*math.pi-math.pi
-	cj=np.random.rand(nj)+1j*np.random.rand(nj);
+	cj=np.random.rand(nj)+1j*np.random.rand(nj)
 	fk=np.zeros([ms,mt],dtype=np.complex128,order='F')
 	timer=time.time()
 	ret=finufftpy.nufft2d1(xj,yj,cj,iflag,eps,ms,mt,fk)
@@ -95,6 +96,21 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 		Xtrue[ii]=fk.ravel()[ii]
 	print_report('finufft2d1',elapsed,Xest,Xtrue,nj)
 
+	## 2d1many:
+	ndata = 5       # how many vectors to do
+	cj=np.array(np.random.rand(nj,ndata)+1j*np.random.rand(nj,ndata),order='F')
+	fk=np.zeros([ms,mt,ndata],dtype=np.complex128,order='F')
+	timer=time.time()
+	ret=finufftpy.nufft2d1many(xj,yj,cj,iflag,eps,ms,mt,fk)
+	elapsed=time.time()-timer
+
+	dtest = ndata-1    # which of the ndata to test (in 0,..,ndata-1)
+	for ii in np.arange(0,num_samples):
+		Xest[ii]=np.sum(cj[:,dtest] * np.exp(1j*(Ks.ravel(order='F')[ii]*xj+Kt.ravel(order='F')[ii]*yj)))   # note fortran-ravel-order needed throughout - mess.
+		Xtrue[ii]=fk.ravel(order='F')[ii + dtest*ms*mt]       # hack the offset in fk array - has to be better way
+	print_report('finufft2d1many',elapsed,Xest,Xtrue,ndata*nj)
+
+	# 2d2
 	xj=np.random.rand(nj)*2*math.pi-math.pi
 	yj=np.random.rand(nj)*2*math.pi-math.pi
 	cj=np.zeros([nj],dtype=np.complex128);
@@ -109,6 +125,19 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 		Xtrue[ii]=cj[ii]
 	print_report('finufft2d2',elapsed,Xest,Xtrue,nj)
 
+	# 2d2many (using same ndata and dtest as 2d1many; see above)
+	cj=np.zeros([nj,ndata],order='F',dtype=np.complex128);
+	fk=np.array(np.random.rand(ms,mt,ndata)+1j*np.random.rand(ms,mt,ndata),order='F')
+	timer=time.time()
+	ret=finufftpy.nufft2d2many(xj,yj,cj,iflag,eps,fk)
+	elapsed=time.time()-timer
+
+	for ii in np.arange(0,num_samples):
+		Xest[ii]=np.sum(fk[:,:,dtest] * np.exp(1j*(Ks*xj[ii]+Kt*yj[ii])))
+		Xtrue[ii]=cj[ii,dtest]
+	print_report('finufft2d2many',elapsed,Xest,Xtrue,ndata*nj)
+	
+	# 2d3
 	x=np.random.rand(nj)*2*math.pi-math.pi
 	y=np.random.rand(nj)*2*math.pi-math.pi
 	c=np.random.rand(nj)+1j*np.random.rand(nj);
@@ -124,7 +153,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 		Xtrue[ii]=f[ii]
 	print_report('finufft2d3',elapsed,Xest,Xtrue,nj+nk)
 
-	###### 3-d
+	###### 3-d cases ............................................................
 	ms=int(np.ceil(num_uniform_points**(1.0/3)))
 	mt=ms
 	mu=ms

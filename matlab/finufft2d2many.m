@@ -30,6 +30,9 @@ function [c ier] = finufft2d2many(x,y,isign,eps,f,o)
 %           1 : eps too small
 %           2 : size of arrays to malloc exceed MAX_NF
 %           other codes: as returned by cnufftspread
+%
+% Note: nthreads copies of the fine grid are allocated, limiting this to smaller
+%  problem sizes.
 
 if nargin<6, o=[]; end
 opts = finufft_opts(o);

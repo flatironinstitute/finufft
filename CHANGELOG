@@ -1,5 +1,6 @@
 List of tasks accomplished / changes made / release notes, in reverse chronological order:
 
+* 2d1many and 2d2many interfaces by Melody Shih, for multiple vectors with same nonuniform points. All tests and docs for these interfaces.
 * horner optimized kernel for sigma=5/4 (low upsampling), to go along with the
 default sigma=2. Cmdline arg to change sigma in finufft?d_test.
 * simplified various int types: only BIGINT remains.

@@ -13,8 +13,8 @@ import setuptools
 import os
 
 # Mac OSX: choose your compilers here: (eg gcc-8, g++-8)
-os.environ["CC"] = "gcc-8"
-os.environ["CXX"] = "g++-8"
+os.environ["CC"] = "gcc"
+os.environ["CXX"] = "g++"
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path

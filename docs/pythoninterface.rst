@@ -2,7 +2,8 @@ Python interface
 ================
 
 These python interfaces are by Daniel Foreman-Mackey, Jeremy Magland, and Alex Barnett, with help from David Stein.
-See the installation notes for how to install these interfaces. Below is the documentation for the nine routines.
+See the installation notes for how to install these interfaces. Below is the documentation for the nine routines. The 2d1 and 2d2
+"many vector" interfaces are now also included.
 
 Notes:
 
@@ -18,7 +19,9 @@ Notes:
 .. autofunction:: finufftpy.nufft1d2
 .. autofunction:: finufftpy.nufft1d3
 .. autofunction:: finufftpy.nufft2d1
+.. autofunction:: finufftpy.nufft2d1many
 .. autofunction:: finufftpy.nufft2d2
+.. autofunction:: finufftpy.nufft2d2many
 .. autofunction:: finufftpy.nufft2d3
 .. autofunction:: finufftpy.nufft3d1
 .. autofunction:: finufftpy.nufft3d2
