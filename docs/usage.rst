@@ -108,7 +108,7 @@ has the following meanings (see ``../src/utils.h``):
   6  spreader: illegal direction (should be 1 or 2)
   7  upsampfac too small (should be >1)
   8  upsampfac not a value with known Horner eval: currently 2.0 or 1.25 only
-  9  ndata not valid (should be > 1)
+  9  ndata not valid (should be >= 1)
 
 In the interfaces below, ``int64`` (typedefed as ``BIGINT`` in the code)
 means 64-bit signed integer type, ie ``int64_t``.
