@@ -12,6 +12,7 @@ Significant SIMD vectorization/acceleration of the spreader by:
 
 Other code contributions:
 
+* Yu-Hsuan ("Melody") Shih - 2d1many, 2d2many interface for many vectors same points
 * Leslie Greengard and June-Yub Lee - CMCL fortran drivers and test codes
 * Dan Foreman-Mackey - python wrappers
 * David Stein - python wrappers
@@ -19,7 +20,7 @@ Other code contributions:
   
 Testing, bug reports:
 
-* Joakim Anden - catching memory leak, Matlab/FFTW issues
+* Joakim Anden - catching memory leak, Matlab/FFTW issues, performance tests
 * Hannah Lawrence - user testing and finding bugs
 * Marina Spivak - fortran testing
 * Hugo Strand - python bugs

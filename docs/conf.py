@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.6'   # dylan, but I only have 1.3
+#needs_sphinx = '1.6'   # dylan, but I only have 1.3.6
 needs_sphinx = '1.3'
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -35,7 +35,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
     'sphinx.ext.mathjax',
-    'sphinx.ext.autosectionlabel',
+#    'sphinx.ext.autosectionlabel',   # needs v 1.4; can :ref: other files w/o this; removed 7/29/18
     'texext',
 ]
 

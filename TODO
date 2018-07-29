@@ -6,6 +6,8 @@ TRACTABLE USER PROJECTS - PLEASE HELP:
 
 * Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? - C++ template the spreader and all inside it?
 
+* extend the 2d1many and 2d2many interfaces to the seven other ?d? cases.
+
 * GPU spreader (in progress)
 
 * Professionalize the single-precision version:
@@ -32,6 +34,7 @@ Ie, decide to switch out fancy t1 spreader sometimes? Yes, make basic spreader.
 
 LOWER PRIORITY TODO:
 
+* for each of nine routines: a (plan, execute, destroy) advanced interface which saves the FFTW widsom. This would create a mess of interfaces, but would avoid cost of FFTW looking up saved wisdom which dominates for small problems.
 * Return FFTW's internal state to single-threaded upon exit from finufft (deals with Marina & Andras' problem where fftw was then kicked from single to multi-threaded by an intervening finufft call).
 * understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
 * Decide if non vs omp get different lib names? not yet

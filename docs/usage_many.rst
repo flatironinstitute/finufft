@@ -1,21 +1,22 @@
+.. _manyinterface:
+
 Advanced interfaces for many vectors with same nonuniform points
 ================================================================
 
 It is common to need repeated NUFFTs with a fixed set of
 nonuniform points, but different strength or mode coefficient vectors.
-For large problems, performing sequential calls is efficient
-(although there could be benefit to sorting only once),
+For large problems, performing sequential plain calls is efficient
+(although there would be a slight benefit to sorting only once),
 but when the problem size is smaller, certain start-up costs cause
-repeated calls to plain interface to be slower than necessary.
+repeated calls to the plain interface to be slower than necessary.
 In particular, we note that FFTW takes around 0.1 ms per thread to
 look up stored wisdom, which for small problems (of order 10000
-or less input and output data), can cost more than the entire NUFFT call
-itself!
-Thus we include interfaces, described below, for stacked strength
+or less input and output data) can, sadly, dominate the runtime.
+Thus we include interfaces, described here, for multiple stacked strength
 or coefficient vectors with the same nonuniform points.
 
 These have only been implemented for the 2d1 and 2d2 types so far,
-where there are applications in cryo-EM.
+for which there are applications in cryo-EM.
 
 
 2D transforms
@@ -56,8 +57,9 @@ where there are applications in cryo-EM.
     returned value - 0 if success, else see ../docs/usage.rst
 
     Note: nthreads times the RAM is needed, so this is good only for small problems.
-::
 
+
+  
   int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
                      FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 
@@ -97,10 +99,11 @@ After extensive timing tests, we settled on blocking up
 the ndata vectors into blocks of size nthreads (the available thread number).
 Each block is handled together via FFTW and OpenMP parallelism.
 For instance, for type-1:
-  1) Each thread calls a single-threaded spreader, reusing a precomputed
-     sorted index list.
-  2) Apply FFT on nthreads vectors of data using FFTW's "many" interface.
-  3) Each thread calls a single-threaded deconvolve function.
+
+#. Each thread calls a single-threaded spreader, reusing a precomputed sorted index list.
+#. Apply FFT on nthreads vectors of data using FFTW's "many dft" interface.
+#. Each thread calls a single-threaded deconvolve function.
+
 This requires ndata times the RAM overhead than the plain interface.
 
 It would also be possible to call multi-threaded spreading, sequentially

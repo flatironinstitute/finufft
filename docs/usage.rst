@@ -8,15 +8,13 @@ From there, basic double-precision compilation with the static library is via::
 
   g++ example1d1.cpp -o example1d1 ../lib-static/libfinufft.a -fopenmp -lfftw3_threads -lfftw3 -lm
 
-for the default multi-threaded version, or::
+for the default multi-threaded version, or, if you compiled FINUFFT for single-threaded::
 
   g++ example1d1.cpp -o example1d1 ../lib-static/libfinufft.a -lfftw3 -lm
 
-if you compiled FINUFFT for single-threaded only.
-
 The ``examples`` and ``test`` directories are good places to see usage examples.
 
-If you have an application with multiple strength or coefficient vectors with fixed nonuniform points, see :ref:`Advanced interfaces for many vectors with same nonuniform points`
+If you have an application with multiple strength or coefficient vectors with fixed nonuniform points, see the :ref:`advanced interfaces <manyinterface>`.
 
 
 Interfaces from C++
