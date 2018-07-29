@@ -41,7 +41,6 @@ void finufft_mex_opts(nufft_opts &opts, double *mexo)
   opts.modeord = IROUND(mexo[4]);      // unused by type-3
   opts.chkbnds = IROUND(mexo[5]);      // "
   opts.upsampfac = mexo[6];
-  opts.many_seq = IROUND(mexo[7]);
 }
 
 

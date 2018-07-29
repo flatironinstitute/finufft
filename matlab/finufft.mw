@@ -1,7 +1,8 @@
 % MWrap file to generate all MEX interfaces directly to C++ to FINUFFT library.
 % Also allows control of number of openmp threads the library uses.
 % Barnett 3/22/17.
-% Dependence of C++11 removed, opts passed as double array, 10/30/17
+% Dependence of C++11 removed, opts passed as double array, 10/30/17.
+% Many interface Jun 2018, Melody Shih.
 
 % Hints for linux OS. To generate the MEX C++ file:
 % mwrap -list -mex finufft -cppcomplex -mb finufft.mw
@@ -205,7 +206,6 @@ if numel(c)~=nj, error('c must have the same number of elements as x'); end
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
-%     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
 %   Outputs:
 %     f     size (ms,mt,ndata) double complex array of Fourier transform values
 %           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
@@ -295,7 +295,6 @@ if numel(y)~=nj, error('y must have the same number of elements as x'); end
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
-%     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
 %  Outputs:
 %     c     complex double array of nj*ndata answers at the targets.
 %     ier - 0 if success, else:

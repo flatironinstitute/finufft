@@ -24,7 +24,6 @@ function [c ier] = finufft2d2many(x,y,isign,eps,f,o)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
-%     opts.many_seq: 0 (simultaneously do nufft on all data, default), 1 (seq)
 %  Outputs:
 %     c     complex double array of nj*ndata answers at the targets.
 %     ier - 0 if success, else:
