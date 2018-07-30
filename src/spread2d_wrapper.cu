@@ -167,6 +167,10 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
 		               FLT *d_ky, gpuComplex *d_c, spread_opts opts)
 {
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
@@ -178,6 +182,7 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
+	cudaEventRecord(start);
 	if(opts.Horner){
 		Spread_2d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
 			                                              nf1, nf2, es_c, es_beta, fw_width);
@@ -185,6 +190,14 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 		Spread_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
 			                                       nf1, nf2, es_c, es_beta, fw_width);
 	}
+
+#ifdef SPREADTIME
+  	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel Spread_2d_Idriven \t%.3g ms\n", milliseconds);
+#endif
 	return 0;
 }
 
@@ -217,7 +230,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tAllocating GPU memory for sorted array " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tAllocating GPU memory for sorted array \t%.3g ms\n", milliseconds);
 #endif
 
 	cudaEventRecord(start);
@@ -230,7 +243,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tCreateSortIdx " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tCreateSortIdx \t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	FLT *h_kx, *h_ky;
@@ -258,9 +271,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
   		cudaEventElapsedTime(&milliseconds, start, stop);
-		
-		k_spread_time+=milliseconds;
-		cout<<"[time  ]"<< "\tthrust::sort_by_key " << milliseconds <<" s"<<endl;
+		printf("[time  ] \tThrust::sort_by_key \t\t\t%.3g ms\n", milliseconds);
 #endif
 		cudaEventRecord(start);
 		thrust::gather(thrust::device, indices.begin(), indices.end(), d_kx, d_kxsorted);
@@ -270,7 +281,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
   		cudaEventElapsedTime(&milliseconds, start, stop);
-		cout<<"[time  ]"<< "\tthrust::gather " << milliseconds <<" ms"<<endl;
+		printf("[time  ] \tThrust::gather \t\t\t\t%.3g ms\n", milliseconds);
 #endif
 	}else{
 		cudaEventRecord(start);
@@ -302,7 +313,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
   		cudaEventElapsedTime(&milliseconds, start, stop);
-		cout<<"[time  ]"<< "\tcub::SortPairs " << milliseconds <<" ms"<<endl;
+		printf("[time  ] \tCUB::SortPairs \t\t\t\t%.3g ms\n", milliseconds);
 #endif
 		cudaEventRecord(start);
 		threadsPerBlock.x = 1024;
@@ -317,7 +328,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
   		cudaEventElapsedTime(&milliseconds, start, stop);
-		cout<<"[time  ]"<< "\tGather kernel " << milliseconds <<" ms"<<endl;
+		printf("[time  ] \tKernel (Gather) PtsRearrage \t\t%.3g ms\n", milliseconds);
 #endif
 	}
 #ifdef DEBUG
@@ -341,7 +352,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel Spread_2d_Idriven takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel Spread_2d_Idriven \t\t%.3g ms\n", milliseconds);
 #endif
 	// Free memory
 	cudaFree(d_kxsorted);
@@ -401,11 +412,11 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tAllocating GPU memory for sorted array " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tAllocating GPU memory for sorted array \t%.3g ms\n", milliseconds);
 #endif
 
-	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
 	cudaEventRecord(start);
+	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
 	CalcBinSize_noghost_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
 			numbins[0],numbins[1],d_binsize,
 			d_kx,d_ky,d_sortidx);
@@ -413,7 +424,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel CalcBinSize_noghost_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	int *h_binsize;// For debug
@@ -477,7 +488,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel BinsStartPts_2d takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel BinStartPts_2d \t\t\t%.3g ms\n", milliseconds);
 #endif
 
 #ifdef DEBUG
@@ -508,7 +519,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel PtsRearrange_noghost_2d takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel PtsRearrange_noghost_2d \t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	FLT *h_kxsorted, *h_kysorted;
@@ -554,7 +565,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel Spread_2d_Hybrid takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel Spread_2d_Hybrid \t\t%.3g ms\n", milliseconds);
 #endif
 	// Free memory
 	cudaFree(d_binsize);
@@ -621,7 +632,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel CalcBinSize_2d (#blocks, #threads)=("<<(M+1024-1)/1024<<","<<1024<<") takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel CalcBinSize_2d \t\t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	int *h_binsize; // For debug
@@ -654,7 +665,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel FillGhostBin_2d takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel FillGhostBin_2d \t\t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int),
@@ -716,7 +727,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel BinsStartPts_2d takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel BinStartPts_2d \t\t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	int *h_binstartpts;
@@ -748,7 +759,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tAllocating GPU memory (need info of totolnupts) " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tAllocating GPU memory for sorted array \t%.3g ms\n", milliseconds);
 #endif
 
 	cudaEventRecord(start);
@@ -759,7 +770,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel PtsRearrange_2d takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel PtsRearrange_2d \t\t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	FLT *h_kxsorted, *h_kysorted;
@@ -805,7 +816,7 @@ int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< "\tKernel Spread_2d takes " << milliseconds <<" ms"<<endl;
+	printf("[time  ] \tKernel Spread_2d_Odriven \t\t%.3g ms\n", milliseconds);
 #endif
 	// Free memory
 	cudaFree(d_binsize);
