@@ -11,6 +11,7 @@ def find_between( s, first, last ):
         return ""
 
 def main():
+	nupts_distr=2;
 	reps=10
 	density = 1.0
 	N_totry = 2**np.arange(8,13)
@@ -23,7 +24,7 @@ def main():
 		# Method 1
 		t = 0
 		for n in range(reps):
-                        output=subprocess.check_output(["./spread2d",'1',str(N),str(N)], \
+                        output=subprocess.check_output(["./spread2d",'1',str(nupts_distr),str(N),str(N)], \
                                             cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "(", "NU"))
 		s_gpuspread_1[i] = t/reps
@@ -31,23 +32,23 @@ def main():
 		# Method 2
 		t = 0
 		for n in range(reps):
-                        output=subprocess.check_output(["./spread2d",'2',str(N),str(N)], \
+                        output=subprocess.check_output(["./spread2d",'2',str(nupts_distr),str(N),str(N)], \
                                             cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "(", "NU"))
 		s_gpuspread_2[i] = t/reps
 
 		# Method 3
-		t = 0
-		for n in range(reps):
-                        output=subprocess.check_output(["./spread2d",'3',str(N),str(N)], \
-                                            cwd="../../").decode("utf-8")
-                        t+= float(find_between(output, "(", "NU"))
-		s_gpuspread_3[i] = t/reps
+		#t = 0
+		#for n in range(reps):
+                #        output=subprocess.check_output(["./spread2d",'3',str(nupts_distr),str(N),str(N)], \
+                #                            cwd="../../").decode("utf-8")
+                #        t+= float(find_between(output, "(", "NU"))
+		#s_gpuspread_3[i] = t/reps
 
 		# Method 4
 		t = 0
 		for n in range(reps):
-                        output=subprocess.check_output(["./spread2d",'4',str(N),str(N)], \
+                        output=subprocess.check_output(["./spread2d",'4',str(nupts_distr),str(N),str(N)], \
                                             cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "(", "NU"))
 		s_gpuspread_4[i] = t/reps
