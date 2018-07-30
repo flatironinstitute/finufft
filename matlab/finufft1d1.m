@@ -21,7 +21,7 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 %     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %   Outputs:
 %     f     size-ms double complex array of Fourier transform values

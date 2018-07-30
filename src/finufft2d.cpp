@@ -190,8 +190,8 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   spopts.pirange = 1; FLT *dummy=NULL;
   spopts.chkbnds = opts.chkbnds;
 
-  int ier_spread = spreadcheck(nf1,nf2,1,nj,xj,yj,dummy,spopts);
-  if (ier_spread>0) return ier_spread;
+  int ier_check = spreadcheck(nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  if (ier_check>0) return ier_check;
   
   timer.restart();          // sort
   BIGINT *sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
@@ -200,11 +200,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
 			 timer.elapsedsec());
   
   double time_fft = 0.0, time_spread = 0.0, time_deconv = 0.0;
-  CPX *cstart;       // ptr to start of this input data block
-  CPX *fkstart;
-  FFTW_CPX *fwstart;
-
-  int ier_spreads[nth];    // Since we can't do return in openmp, we need to
+  int ier_spreads[nth] = {0};  // Since we can't do return in openmp, we need to
   // have this as array and check for any error after exit the omp block
 
 #if _OPENMP
@@ -212,34 +208,36 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   MY_OMP_SET_NESTED(0);       // note this doesn't change omp_get_max_nthreads()
 #endif
   
-  for (int j = 0; j*nth < ndata; ++j) {   // main loop over data blocks of size nth
+  for (int j = 0; j*nth < ndata; ++j) { // main loop over data blocks of size nth
     
     // Step 1: spread from irregular points to regular grid
     timer.restart();
-    int blksize = min(ndata-j*nth,nth);
-#pragma omp parallel for private(ier_spread,cstart,fwstart)
-    for (int i = 0; i<blksize; ++i) {
-      cstart  = c + (i+j*nth)*nj;       // ptr to strengths this thread spreads
-      fwstart = fw + i*nf1*nf2;         // ptr to output grid for this thread
-      ier_spreads[i] = spreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,
+    int blksize = min(ndata-j*nth,nth); // size of this block
+#pragma omp parallel for
+    for (int i=0; i<blksize; ++i) {
+      CPX *cstart  = c + (i+j*nth)*nj;  // ptr to strengths this thread spreads
+      FFTW_CPX *fwstart = fw + i*nf1*nf2;    // ptr to output grid for this thread
+      int ier = spreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,
 				  nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+      if (ier!=0)
+	ier_spreads[i] = ier;           // thank-you Melody for catching this
     }
     time_spread += timer.elapsedsec();
     for (int i = 0; i<blksize; ++i)         // exit if any thr had error
       if (ier_spreads[i]!=0)
-        return ier_spreads[i];
+        return ier_spreads[i];              // tell us one of these errors
 
     // Step 2:  Call FFT many
     timer.restart();
-    FFTW_EX(p);
+    FFTW_EX(p);                             // in-place, on all nth copies in fw
     time_fft += timer.elapsedsec();
 
     // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
     timer.restart();
-#pragma omp parallel for private(fkstart, fwstart)
-    for (int i = 0; i<blksize; ++i) {
-      fkstart = fk + (i+j*nth)*ms*mt;
-      fwstart = fw + i*nf1*nf2;
+#pragma omp parallel for
+    for (int i=0; i<blksize; ++i) {
+      FFTW_CPX *fwstart = fw + i*nf1*nf2;    // this thr input
+      CPX *fkstart = fk + (i+j*nth)*ms*mt;   // this thr output
       deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,
 			  nf2,fwstart,opts.modeord);
     }
@@ -249,7 +247,6 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   if (opts.debug) printf("[many] spread:\t\t\t %.3g s\n", time_spread);
   if (opts.debug) printf("[many] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
   if (opts.debug) printf("[many] deconvolve & copy out:\t %.3g s\n", time_deconv);
-
   //  if (opts.debug) printf("[many] total execute time (exclude fftw_plan, etc.) %.3g s\n", time_spread+time_fft+time_deconv);
 
   FFTW_DE(p);
@@ -434,8 +431,8 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   spopts.pirange = 1; FLT *dummy=NULL;
   spopts.chkbnds = opts.chkbnds;
 
-  int ier_spread = spreadcheck(nf1,nf2,1,nj,xj,yj,dummy,spopts);
-  if (ier_spread>0) return ier_spread;
+  int ier_check = spreadcheck(nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  if (ier_check>0) return ier_check;
 
   timer.restart();            // sort
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
@@ -444,11 +441,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 			 timer.elapsedsec());
 
   double time_fft = 0.0, time_spread = 0.0, time_deconv = 0.0;
-  CPX* cstart;
-  CPX* fkstart;
-  FFTW_CPX *fwstart;
-
-  int ier_spreads[nth];   // Since we can't do return in openmp, we need to
+  int ier_spreads[nth] = {0};  // Since we can't do return in openmp, we need to
   // have this as array and check for any error after exit the omp block
 
 #if _OPENMP
@@ -461,10 +454,10 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
     // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
     timer.restart();
     int blksize = min(ndata-j*nth,nth);
-#pragma omp parallel for private(fkstart, fwstart)
+#pragma omp parallel for
     for (int i = 0; i<blksize; ++i) {
-      fkstart = fk + (i+j*nth)*ms*mt;    // ptr to coeffs this thread copies
-      fwstart = fw + i*nf1*nf2;          // ptr to upsampled FFT array of this thread
+      CPX *fkstart = fk + (i+j*nth)*ms*mt; // ptr to coeffs this thread copies
+      FFTW_CPX* fwstart = fw + i*nf1*nf2;  // ptr to upsampled FFT array of this thread
       deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,
 			  fwstart,opts.modeord);
     }
@@ -472,22 +465,24 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 
     // Step 2:  Call FFT many
     timer.restart();
-    FFTW_EX(p);
+    FFTW_EX(p);                             // in-place, on all nth copies in fw
     time_fft += timer.elapsedsec();
 
     // Step 3: unspread (interpolate) from regular to irregular target pts
     timer.restart();
-#pragma omp parallel for private(ier_spread,cstart,fwstart)
-    for (int i = 0; i<blksize; ++i) {
-      cstart  = c + (i+j*nth)*nj;         // ptr to output vals for this thread
-      fwstart = fw + i*nf1*nf2;
-      ier_spreads[i] = spreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,nj,
-					 xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+#pragma omp parallel for
+    for (int i=0; i<blksize; ++i) {
+      FFTW_CPX *fwstart = fw + i*nf1*nf2;      // ptr to input values for thread
+      CPX *cstart  = c + (i+j*nth)*nj;         // ptr to output vals for thread
+      int ier = spreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,nj,
+				  xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
+      if (ier!=0)
+	ier_spreads[i] = ier;           // thank-you Melody for catching this
     }
     time_spread+=timer.elapsedsec();
     for (int i = 0; i<blksize; ++i)         // exit if any thr had error
       if (ier_spreads[i]!=0)
-        return ier_spreads[i];
+        return ier_spreads[i];              // tell us one of these errors
   }
   if (opts.debug) printf("[many] amplify & copy in:\t %.3g s\n", time_deconv);
   if (opts.debug) printf("[many] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
