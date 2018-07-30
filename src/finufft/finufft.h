@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include "../spread.h"
+#include "../cufinufft.h"
 
 struct nufft_opts {   // see common/finufft_default_opts() for defaults
   int debug;          // 0: silent, 1: text basic timing output

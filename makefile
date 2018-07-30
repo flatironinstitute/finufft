@@ -8,6 +8,7 @@ INC=-I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/samples/common/inc/ \
     -I/mnt/home/yshih/cub/
 LIBS_PATH=
 LIBS=-lm -lfftw3 -lcudart -lstdc++
+LIBS_CUFINUFFT=-lcufft
 
 -include make.inc
 
@@ -23,10 +24,16 @@ main_2d.o: examples/main_2d.cu
 compare_2d.o: examples/compare_2d.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
+cufinufft2d_test.o: examples/cufinufft2d_test.cu
+	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
+
 spread2d_wrapper.o: src/spread2d_wrapper.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
 spread2d.o: src/spread2d.cu
+	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
+
+cufinufft2d.o: src/cufinufft2d.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
 utils.o: src/finufft/utils.cpp
@@ -62,8 +69,11 @@ compare: compare_2d.o spread2d_wrapper.o spread2d.o utils.o
 accuracy: accuracycheck_2d.o spread2d_wrapper.o spread2d.o utils.o cnufftspread.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-finufft2d_test: finufft2d_test.o finufft2d.o utils.o cnufftspread.o dirft2d.o common.o legendre_rule_fast.o spread2d_wrapper.o spread2d.o
-	$(CXX) $^ $(LIBS_PATH) $(LIBS) -o $@
+cufinufft2d_test: cufinufft2d_test.o spread2d_wrapper.o spread2d.o utils.o cnufftspread.o cufinufft2d.o
+	$(NVCC) $(NVCCFLAGS) $(LIBS_CUFINUFFT) -o $@ $^
+
+finufft2d_test: finufft2d_test.o finufft2d.o utils.o cnufftspread.o dirft2d.o common.o legendre_rule_fast.o spread2d_wrapper.o spread2d.o cufinufft2d.o
+	$(CXX) $^ $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 clean:
 	rm *.o

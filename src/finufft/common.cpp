@@ -41,6 +41,8 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
   spopts.kerpad = opts.spread_kerpad; // (only applies to kerevalmeth=0)
   spopts.chkbnds = opts.chkbnds;
   spopts.pirange = 1;                 // could allow user control?
+  spopts.method = 1;
+  spopts.Horner = 0;
   return ier;
 } 
 

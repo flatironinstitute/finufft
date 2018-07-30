@@ -146,8 +146,12 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   timer.restart();
   spopts.spread_direction = 1;
   FLT *dummy;
+#if 1
+  int ier_gpu = cufinufft2d(nj, xj, yj, (CPX*) cj, eps,
+                            iflag, nf1, nf2, (CPX*) fw, spopts);
+#endif
+#if 0
   int ier_spread = cnufftspread2d_gpu(nf1,nf2,(CPX*)fw,nj,xj,yj,(CPX*)cj,spopts);
-
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
 
@@ -156,7 +160,7 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   FFTW_EX(p);
   FFTW_DE(p);
   if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
-
+#endif
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
   deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw,opts.modeord);
