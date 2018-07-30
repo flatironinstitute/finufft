@@ -32,6 +32,7 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int bin_size_x;
   int bin_size_y;
   int use_thrust;
+  int Horner;
 };
 
 //Kernels for 1D codes
@@ -84,6 +85,9 @@ void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
 __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
+__global__
+void Spread_2d_Idriven_Horner(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+                              int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
 __global__
 void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
