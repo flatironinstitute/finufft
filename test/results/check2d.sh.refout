@@ -8,8 +8,8 @@ test 2d type-3:
 one targ: rel err in F[500] is 0
 dirft2d: rel l2-err of result F is 0
 test 2dmany type-1:
-one mode: rel err in F[37,2] of data[50] is 0
+one mode: rel err in F[37,2] of data[5] is 0
 err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  0
 test 2dmany type-2:
-one targ: rel err in c[500] of data[50] is 0
+one targ: rel err in c[500] of data[5] is 0
 err check vs non-many: sup ( ||c_many-c||_2 / ||c||_2 ) =  0
