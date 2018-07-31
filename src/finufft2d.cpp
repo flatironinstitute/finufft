@@ -200,8 +200,8 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
 			 timer.elapsedsec());
   
   double time_fft = 0.0, time_spread = 0.0, time_deconv = 0.0;
-  int ier_spreads[nth] = {0};  // Since we can't do return in openmp, we need to
-  // have this as array and check for any error after exit the omp block
+  // since can't return within omp block, need this array to catch errors...
+  int *ier_spreads = (int*)calloc(nth,sizeof(int));
 
 #if _OPENMP
   // make sure only single threaded spreadinterp used for each data...
@@ -251,6 +251,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
 
   FFTW_DE(p);
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
+  free(ier_spreads);
   if (opts.debug) printf("freed\n");
   return 0;
 }
@@ -441,8 +442,8 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 			 timer.elapsedsec());
 
   double time_fft = 0.0, time_spread = 0.0, time_deconv = 0.0;
-  int ier_spreads[nth] = {0};  // Since we can't do return in openmp, we need to
-  // have this as array and check for any error after exit the omp block
+  // since can't return within omp block, need this array to catch errors...
+  int *ier_spreads = (int*)calloc(nth,sizeof(int));
 
 #if _OPENMP
   // make sure only single threaded spreadinterp used for each data...
@@ -490,6 +491,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   //if (opts.debug) printf("[many] total execute time (exclude fftw_plan, etc.) %.3g s\n",time_spread+time_fft+time_deconv);
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
+  free(ier_spreads);
   if (opts.debug) printf("freed\n");
   return 0;
 }

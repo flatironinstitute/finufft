@@ -1,5 +1,5 @@
 # Makefile for FINUFFT.
-# Barnett 6/18/18
+# Barnett 7/30/18
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # Users should not need to edit this makefile (doing so would make it hard to
@@ -15,9 +15,10 @@ FC=gfortran
 CLINK=-lstdc++
 FLINK=$(CLINK)
 # compile flags for baseline single-threaded, double precision case...
-CXXFLAGS = -fPIC -Ofast -funroll-loops -march=native -DNEED_EXTERN_C -pg
-CFLAGS   = -fPIC -Ofast -funroll-loops -march=native -pg
-FFLAGS   = -fPIC -O3    -funroll-loops -march=native -pg
+# (note -Ofast breaks isfinite() and isnan(), so use -O3 which now is as fast)
+CFLAGS   = -fPIC -O3 -funroll-loops -march=native
+FFLAGS   = $(CFLAGS)
+CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
 # FFTW base name, and math linking...
 FFTWNAME=fftw3
 LIBS = -lm

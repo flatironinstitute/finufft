@@ -155,7 +155,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
 /* This does just the input checking and reporting for the spreader.
    See cnufftspread() for input arguments.
    Return value is that returned by cnufftspread.
-   Split out by Melody Shih, Jun 2018.
+   Split out by Melody Shih, Jun 2018. Finiteness chk 7/30/18.
 */
 {
   CNTime timer;
@@ -178,7 +178,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
-      if (x<0 || x>N1) {
+      if (x<0 || x>N1 || !isfinite(x)) {     // note isfinite() breaks with -Ofast
         fprintf(stderr,"NU pt not in valid range (central three periods): kx=%g, N1=%ld (pirange=%d)\n",x,N1,opts.pirange);
         return ERR_SPREAD_PTS_OUT_RANGE;
       }
@@ -186,7 +186,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     if (ndims>1)
       for (BIGINT i=0; i<M; ++i) {
         FLT y=RESCALE(ky[i],N2,opts.pirange);
-        if (y<0 || y>N2) {
+        if (y<0 || y>N2 || !isfinite(y)) {
           fprintf(stderr,"NU pt not in valid range (central three periods): ky=%g, N2=%ld (pirange=%d)\n",y,N2,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
@@ -194,7 +194,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     if (ndims>2)
       for (BIGINT i=0; i<M; ++i) {
         FLT z=RESCALE(kz[i],N3,opts.pirange);
-        if (z<0 || z>N3) {
+        if (z<0 || z>N3 || !isfinite(z)) {
           fprintf(stderr,"NU pt not in valid range (central three periods): kz=%g, N3=%ld (pirange=%d)\n",z,N3,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
