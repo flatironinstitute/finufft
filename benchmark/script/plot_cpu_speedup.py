@@ -12,16 +12,16 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	num_lines = sum(1 for line in open('../results/cputime_nonuniform_nupts_0730_1.out', 'r'))
+	num_lines = sum(1 for line in open('../results/cputime_nonuniform_nupts_0730.out', 'r'))
 	N = np.zeros(num_lines, dtype=int)
 	s_cpu = np.zeros(num_lines)
 	s_gpu = np.zeros([4, num_lines])
 	speedup = np.zeros([4, num_lines])
-	f = open('../results/cputime_nonuniform_nupts_0730_1.out', 'r')
+	f = open('../results/cputime_nonuniform_nupts_0730.out', 'r')
 	for i,line in enumerate(f):
         	N[i]=int(find_between(line, 'N=', ','))
 		s_cpu[i]=float(find_between(line, 's=', '\n'))
-	f = open('../results/gputime_nonuniform_nupts_0730_1.out', 'r')
+	f = open('../results/gputime_nonuniform_nupts_0730.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 's=', '\n')

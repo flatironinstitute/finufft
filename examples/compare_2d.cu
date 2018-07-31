@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
 	int nf1, nf2;
 	FLT sigma = 2.0;
 	int N1, N2, M;
-	if (argc<4) {
+	if (argc<5) {
 		fprintf(stderr,"Usage: spread2d [method [nupts_dis [N1 N2 [M [tol [Horner [use_thrust]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
@@ -123,11 +123,11 @@ int main(int argc, char* argv[])
         cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 
-        cudaEventRecord(start);
 	switch(method)
 	{
 		case 1:
 		{
+        		cudaEventRecord(start);
 			ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
 			if(ier != 0 ){
 				cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
@@ -137,6 +137,7 @@ int main(int argc, char* argv[])
 		break;
 		case 2:
 		{
+        		cudaEventRecord(start);
 			ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
 		}
 		break;
@@ -148,6 +149,7 @@ int main(int argc, char* argv[])
 				cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
 				return 0;
 			}
+        		cudaEventRecord(start);
 			ier = cnufftspread2d_gpu_odriven(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
 			if(ier != 0 ){
 				cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
@@ -159,6 +161,7 @@ int main(int argc, char* argv[])
 		{
 			opts.bin_size_x=32;
 			opts.bin_size_y=32;
+        		cudaEventRecord(start);
 			ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
 			if(ier != 0 ){
 				cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;

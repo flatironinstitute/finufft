@@ -25,7 +25,7 @@ def main():
 		t = 0
 		for n in range(reps):
                         output=subprocess.check_output(["./compare",'1',str(nupts_distr),str(N),str(N)], \
-                                            cwd="../").decode("utf-8")
+                                            cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "Spread", "ms"))
 		t_gpuspread_1[i] = t/reps
 		
@@ -33,7 +33,7 @@ def main():
 		t = 0
 		for n in range(reps):
                         output=subprocess.check_output(["./compare",'2',str(nupts_distr),str(N),str(N)], \
-                                            cwd="../").decode("utf-8")
+                                            cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "Spread", "ms"))
 		t_gpuspread_2[i] = t/reps
 
@@ -41,7 +41,7 @@ def main():
 		#t = 0
 		#for n in range(reps):
                 #        output=subprocess.check_output(["./compare",'3',str(nupts_distr),str(N),str(N)], \
-                #                            cwd="../").decode("utf-8")
+                #                            cwd="../../").decode("utf-8")
                 #        t+= float(find_between(output, "Spread", "ms"))
 		#t_gpuspread_3[i] = t/reps
 
@@ -49,7 +49,7 @@ def main():
 		t = 0
 		for n in range(reps):
                         output=subprocess.check_output(["./compare",'4',str(nupts_distr),str(N),str(N)], \
-                                            cwd="../").decode("utf-8")
+                                            cwd="../../").decode("utf-8")
                         t+= float(find_between(output, "Spread", "ms"))
 		t_gpuspread_4[i] = t/reps
 	

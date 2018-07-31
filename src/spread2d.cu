@@ -403,11 +403,11 @@ void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_siz
 		int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
 		FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted)
 {
-	int i = blockDim.x*blockIdx.x + threadIdx.x;
+	//int i = blockDim.x*blockIdx.x + threadIdx.x;
 	int binx, biny;
 	int binidx;
 	FLT x_rescaled, y_rescaled;
-	if( i < M){
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
 		//x_rescaled = RESCALE(x[i],nf1,1);
 		//y_rescaled = RESCALE(y[i],nf2,1);
 		x_rescaled=x[i];
@@ -415,7 +415,7 @@ void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_siz
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binidx = binx+biny*nbinx;
-
+		
 		x_sorted[bin_startpts[binidx]+sortidx[i]] = x_rescaled;
 		y_sorted[bin_startpts[binidx]+sortidx[i]] = y_rescaled;
 		c_sorted[bin_startpts[binidx]+sortidx[i]] = c[i];
@@ -527,8 +527,9 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
 
 	FLT x_rescaled, y_rescaled;
 	for(int i=threadIdx.x+threadIdx.y*blockDim.x; i<bin_size[bidx]; i+=blockDim.x*blockDim.y){
-		x_rescaled=x[ptstart+i];
-		y_rescaled=y[ptstart+i];
+		int idx=ptstart+i;
+		x_rescaled=x[idx];
+		y_rescaled=y[idx];
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
 		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
 		xend = floor(x_rescaled + ns/2.0)-xoffset;
@@ -545,8 +546,8 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
 				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
 				//fwshared[outidx].x += kervalue1*kervalue2;
 				//fwshared[outidx].y += kervalue1*kervalue2;
-				atomicAdd(&fwshared[outidx].x, c[ptstart+i].x*kervalue1*kervalue2);
-				atomicAdd(&fwshared[outidx].y, c[ptstart+i].y*kervalue1*kervalue2);
+				atomicAdd(&fwshared[outidx].x, c[idx].x*kervalue1*kervalue2);
+				atomicAdd(&fwshared[outidx].y, c[idx].y*kervalue1*kervalue2);
 				//atomicAdd(&fwshared[outidx].x, kervalue1*kervalue2);
 				//atomicAdd(&fwshared[outidx].y, kervalue1*kervalue2);
 			}
