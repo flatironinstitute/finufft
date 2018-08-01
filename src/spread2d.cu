@@ -423,6 +423,27 @@ void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_siz
 }
 
 __global__
+void CalcGlobalsortidx_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
+			  int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *y, int* index)
+{
+	//int i = blockDim.x*blockIdx.x + threadIdx.x;
+	int binx, biny;
+	int binidx;
+	FLT x_rescaled, y_rescaled;
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
+		//x_rescaled = RESCALE(x[i],nf1,1);
+		//y_rescaled = RESCALE(y[i],nf2,1);
+		x_rescaled=x[i];
+		y_rescaled=y[i];
+		binx = floor(x_rescaled/bin_size_x);
+		biny = floor(y_rescaled/bin_size_y);
+		binidx = binx+biny*nbinx;
+
+		index[bin_startpts[binidx]+sortidx[i]] = i;
+	}
+}
+
+__global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, 
 		int *bin_startpts, FLT *x_sorted, FLT *y_sorted, 
 		gpuComplex *c_sorted, gpuComplex *fw, int ns,

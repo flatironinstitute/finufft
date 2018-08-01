@@ -79,6 +79,9 @@ void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_siz
                             int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
                             FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted);
 __global__
+void CalcGlobalsortidx_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
+                          int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *y, int* index);
+__global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
                        FLT *x_sorted, FLT *y_sorted, gpuComplex *c_sorted, gpuComplex *fw, int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
