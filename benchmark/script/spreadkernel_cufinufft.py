@@ -11,10 +11,10 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	nupts_distr=2
-	reps=10
+	nupts_distr=1
+	reps=1
 	density = 1.0
-	N_totry = 2**np.arange(8,13)
+	N_totry = 2**np.arange(7,13)
 	t_gpuspread_1 = np.zeros(len(N_totry))
 	t_gpuspread_2 = np.zeros(len(N_totry))
 	t_gpuspread_3 = np.zeros(len(N_totry))
@@ -56,22 +56,22 @@ def main():
 	# Output result
 	print("Method 1: input driven without sort")
 	for i,N in enumerate(N_totry):
-		print('N={:5d}, s= {:5.3e}'.format(N,t_gpuspread_1[i]))
+		print('N={:5d}, t= {:5.3e}'.format(N,t_gpuspread_1[i]))
 	print("\n")
 
 	print("Method 2: input driven with sort")
 	for i,N in enumerate(N_totry):
-		print('N={:5d}, s= {:5.3e}'.format(N,t_gpuspread_2[i]))
+		print('N={:5d}, t= {:5.3e}'.format(N,t_gpuspread_2[i]))
 	print("\n")
 
-	print("Method 3: output driven")
-	for i,N in enumerate(N_totry):
-		print('N={:5d}, s= {:5.3e}'.format(N,t_gpuspread_3[i]))
-	print("\n")
+	#print("Method 3: output driven")
+	#for i,N in enumerate(N_totry):
+	#	print('N={:5d}, s= {:5.3e}'.format(N,t_gpuspread_3[i]))
+	#print("\n")
 
 	print("Method 4: hybrid")
 	for i,N in enumerate(N_totry):
-		print('N={:5d}, s= {:5.3e}'.format(N,t_gpuspread_4[i]))
+		print('N={:5d}, t= {:5.3e}'.format(N,t_gpuspread_4[i]))
   
 if __name__== "__main__":
   main()

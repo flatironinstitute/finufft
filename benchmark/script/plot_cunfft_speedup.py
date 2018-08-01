@@ -27,10 +27,10 @@ def main():
         		N[i]= int(temp)
 			t_cunfft[i]=float(find_between(line, 't=', '\n'))
 			i=i+1
-	f = open('../results/compare_finufft_0725.out', 'r')
+	f = open('../results/compare_cufinufft_0725.out', 'r')
 	i=0
 	for line in f:
-		temp=find_between(line, 's=', '\n')
+		temp=find_between(line, 't=', '\n')
 		if(temp==""):
 			continue
 		else:

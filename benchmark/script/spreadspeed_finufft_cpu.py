@@ -20,11 +20,10 @@ def main():
 		M = int((N/2.0)*(N/2.0))
 		for n in range(reps):
 			output=subprocess.check_output(["./spreadtestnd_mel",'2',str(M),str(N*N),'1e-6'], \
-                                            cwd="/mnt/home/yshih/finufft/test/").decode("utf-8")
-			t+= float(find_between(output, "=>", "pts/s"))
-		s_cpuspread[i] = t/reps
-	for i,N in enumerate(N_totry):
-		print('N={:5d}, s= {:5.3e}'.format(N,s_cpuspread[i]))
+                                            cwd="../").decode("utf-8")
+			s+= float(find_between(output, "=>", "pts/s"))
+		s_cpuspread[i] = s/reps
+		print('N={:5d}, t= {:5.3e}'.format(N,s_cpuspread[i]))
   
 if __name__== "__main__":
   main()

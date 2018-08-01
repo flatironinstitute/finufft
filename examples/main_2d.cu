@@ -56,6 +56,7 @@ int main(int argc, char* argv[])
 	opts.ES_halfwidth=(FLT)ns/2;
 	opts.use_thrust=use_thrust;
 	opts.method=method;
+	opts.Horner=0;
 	opts.pirange=0;
 
 	cout<<scientific<<setprecision(3);
