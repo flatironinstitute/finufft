@@ -10,6 +10,7 @@
 
 // try another library cub
 #include <cub/device/device_radix_sort.cuh>
+#include <cub/device/device_scan.cuh>
 
 #include <cuComplex.h>
 #include "spread.h"
@@ -401,8 +402,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 #ifdef INFO
 	cout<<"[info  ] Dividing the uniform grids to bin size["
 		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
-	cout<<"[info  ] numbins (including ghost bins) = ["
-		<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
+	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
 	FLT *d_kxsorted,*d_kysorted;
 	gpuComplex *d_csorted;
@@ -454,6 +454,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 #endif
 
 	cudaEventRecord(start);
+#if 0
 	int n=numbins[0]*numbins[1];
 	int scanblocksize=1024;
 	int numscanblocks=ceil((double)n/scanblocksize);
@@ -493,6 +494,15 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	}
 #endif
 	uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
+#else
+	int n=numbins[0]*numbins[1];
+	void *d_temp_storage = NULL;
+	size_t temp_storage_bytes = 0;
+	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, d_binsize, d_binstartpts+1, n));
+	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes)); // Allocate temporary storage for inclusive prefix scan
+	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, d_binsize, d_binstartpts+1, n));
+	checkCudaErrors(cudaMemset(d_binstartpts,0,1));
+#endif
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

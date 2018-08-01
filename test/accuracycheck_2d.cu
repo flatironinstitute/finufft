@@ -47,6 +47,7 @@ int main(int argc, char* argv[])
 	opts.ES_c=4.0/(ns*ns);
 	opts.ES_halfwidth=(FLT)ns/2;
 	opts.use_thrust=use_thrust;
+	opts.Horner=0;
 
 	cout<<scientific<<setprecision(3);
 	int ier;
