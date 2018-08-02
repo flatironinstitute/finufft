@@ -174,6 +174,57 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	return ier;
 }
 
+int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
+		              FLT *d_ky, gpuComplex *d_c, spread_opts opts)
+{
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+	dim3 threadsPerBlock;
+	dim3 blocks;
+
+	int ns=opts.nspread;   // psi's support in terms of number of cells
+	FLT es_c=opts.ES_c;
+	FLT es_beta=opts.ES_beta;
+	int bin_size_x=opts.bin_size_x;
+	int bin_size_y=opts.bin_size_y;
+
+	// Parameter setting
+	int numbins[2];
+
+	int *d_binsize;
+	int *d_binstartpts;
+	int *d_sortidx;
+
+	numbins[0] = ceil((FLT) nf1/bin_size_x);
+	numbins[1] = ceil((FLT) nf2/bin_size_y);
+	// assume that bin_size_x > ns/2;
+	cudaEventRecord(start);
+	threadsPerBlock.x = 16;
+	threadsPerBlock.y = 16;
+	blocks.x = numbins[0];
+	blocks.y = numbins[1];
+	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
+	if(sharedmemorysize > 49152){
+		cout<<"error: not enough shared memory"<<endl;
+		return 1;
+	}
+	// blockSize must be a multiple of bin_size_x
+	Spread_2d_Hybrid<<<blocks, threadsPerBlock, sharedmemorysize>>>(d_kx, d_ky, d_c, 
+									d_fw, M, ns, nf1, nf2, 
+									es_c, es_beta, fw_width, 
+									d_binstartpts, d_binsize, 
+									bin_size_x, bin_size_y);
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+  	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel Spread_2d_Hybrid \t\t%.3g ms\n", milliseconds);
+#endif
+	return 0;
+}
+
 int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
 		               FLT *d_ky, gpuComplex *d_c, spread_opts opts)
 {
