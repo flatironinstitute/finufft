@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
 		break;
 		case 2: // concentrate on a small region
 		{
+			cout<<"nupts"<<endl;
 			for (int i = 0; i < M; i++) {
 				x[i] = RESCALE(rand01()/10+0.3, nf1, 1);// x in [-pi,pi)
 				y[i] = RESCALE(rand01()/10+0.3, nf2, 1);
@@ -170,6 +171,7 @@ int main(int argc, char* argv[])
 				return 0;
 			}
 		}
+		break;	
 		case 5:
 		{
 			opts.bin_size_x=32;
