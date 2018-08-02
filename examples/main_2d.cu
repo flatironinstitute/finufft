@@ -19,7 +19,8 @@ int main(int argc, char* argv[])
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
 		fprintf(stderr,"method 3: output driven\n");
-		fprintf(stderr,"method t: hybrid\n");
+		fprintf(stderr,"method 4: hybrid\n");
+		fprintf(stderr,"method 5: subprob\n");
 		return 1;
 	}  
 	double w;
@@ -113,7 +114,7 @@ int main(int argc, char* argv[])
 		opts.bin_size_y=4;
 	}
 
-	if(opts.method == 4)
+	if(opts.method == 4 || opts.method==5)
 	{
 		opts.bin_size_x=32;
 		opts.bin_size_y=32;
@@ -128,13 +129,16 @@ int main(int argc, char* argv[])
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 		opts.method,M,nf1*nf2,t,M/t);
-#if 0
+#ifdef RESULT
 	switch(method)
 	{
 		case 3:
 			opts.bin_size_x=4;
 			opts.bin_size_y=4;
 		case 4:
+			opts.bin_size_x=32;
+			opts.bin_size_y=32;
+		case 5:
 			opts.bin_size_x=32;
 			opts.bin_size_y=32;
 		default:

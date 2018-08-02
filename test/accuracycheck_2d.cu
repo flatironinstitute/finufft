@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 
 
 	FLT *x, *y;
-	CPX *c, *fwic, *fwi, *fwo, *fwh, *fwfinufft;
+	CPX *c, *fwic, *fwi, *fwo, *fwh, *fws, *fwfinufft;
 	cudaMallocHost(&x, M*sizeof(CPX));
 	cudaMallocHost(&y, M*sizeof(CPX));
 	cudaMallocHost(&c, M*sizeof(CPX));
@@ -67,6 +67,7 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fwic,      nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fwo,       nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fwh,       nf1*nf2*sizeof(CPX));
+	cudaMallocHost(&fws,       nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fwfinufft, nf1*nf2*sizeof(CPX));
 
         switch(nupts_distribute){
@@ -165,6 +166,21 @@ int main(int argc, char* argv[])
 			M,N1,N2,nf1*nf2,thybrid,M/thybrid);
 
 	/* -------------------------------------- */
+	// Method 5: Subprob                     //
+	/* -------------------------------------- */
+	timer.restart();
+	opts.method=5;
+	opts.bin_size_x=32;
+	opts.bin_size_y=32;
+	ier = cnufftspread2d_gpu(nf1, nf2, fws, M, x, y, c, opts);
+	FLT tsubprob=timer.elapsedsec();
+	if(ier != 0 ){
+		cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
+		return 0;
+	}
+	printf("[subprob ] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
+			 M,N1,N2,nf1*nf2,tsubprob,M/thybrid);
+	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
 	timer.start();
@@ -201,6 +217,8 @@ int main(int argc, char* argv[])
 	}
 	err=relerrtwonorm(nf1*nf2,fwh,fwfinufft);
 	printf("|| fwh  - fwfinufft ||_2 / || fwh  ||_2 =  %.6g\n", err);
+	err=relerrtwonorm(nf1*nf2,fws,fwfinufft);
+	printf("|| fws  - fwfinufft ||_2 / || fwh  ||_2 =  %.6g\n", err);
 
 #ifdef RESULT
 	cout<<"[resultdiff]"<<endl;

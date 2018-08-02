@@ -19,7 +19,8 @@ int main(int argc, char* argv[])
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
 		fprintf(stderr,"method 3: output driven\n");
-		fprintf(stderr,"method t: hybrid\n");
+		fprintf(stderr,"method 4: hybrid\n");
+		fprintf(stderr,"method 5: subprob\n");
 		return 1;
 	}  
 	double w;
@@ -169,6 +170,17 @@ int main(int argc, char* argv[])
 				return 0;
 			}
 		}
+		case 5:
+		{
+			opts.bin_size_x=32;
+			opts.bin_size_y=32;
+        		cudaEventRecord(start);
+			ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+			if(ier != 0 ){
+				cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
+				return 0;
+			}
+		}
 		break;
 		default:
 			cout<<"error: incorrect method, should be 1,2,3 or 4"<<endl;
@@ -198,6 +210,12 @@ int main(int argc, char* argv[])
 		case 4:
 			opts.bin_size_x=32;
 			opts.bin_size_y=32;
+		case 5:
+			opts.bin_size_x=32;
+			opts.bin_size_y=32;
+		default:
+			opts.bin_size_x=nf1;
+			opts.bin_size_y=nf2;
 	}
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){

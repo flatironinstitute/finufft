@@ -125,6 +125,8 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
                                       FLT *d_kx,FLT *d_ky, gpuComplex* d_c, spread_opts opts);
 int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
                               FLT *d_ky, gpuComplex *d_c, spread_opts opts);
+int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
+                               FLT *d_ky, gpuComplex *d_c, spread_opts opts);
 
 int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, CPX* h_fw, gpuComplex** d_fw,
                           FLT *h_kx, FLT **d_kx, FLT* h_ky, FLT** d_ky,
