@@ -16,7 +16,7 @@ def main():
 	N = np.zeros(num_lines, dtype=int)
 	t_cunfft = np.zeros(num_lines)
 	t_nfft = np.zeros(num_lines)
-	t_cufinufft = np.zeros([3, num_lines])
+	t_cufinufft = np.zeros([4, num_lines])
 	t_finufft = np.zeros(num_lines)
 	#speedup = np.zeros([4, num_lines])
 	f = open('../results/compare_cunfft_0731.out', 'r')
@@ -30,7 +30,7 @@ def main():
 			t_cunfft[i]=float(find_between(line, 't=', '\n'))
 			i=i+1
 
-	f = open('../results/compare_cufinufft_0731.out', 'r')
+	f = open('../results/compare_cufinufft_0802.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -71,13 +71,14 @@ def main():
 		ax[i,j].bar(x, t_nfft[nn], w, color='darkblue', log=1, label='nfft')
 		ax[i,j].bar(x+w, t_finufft[nn], w, color='slateblue',log=1, label='finufft')
 		ax[i,j].bar(x+2*w, t_cunfft[nn], w, color='blueviolet',log=1, label='cunfft')
-		ax[i,j].bar(x+3*w, t_cufinufft[0,nn], w, color='darkviolet',log=1, label='input driven without sort')
-		ax[i,j].bar(x+4*w, t_cufinufft[1,nn], w, color='violet',log=1, label='input driven with sort')
-		ax[i,j].bar(x+5*w, t_cufinufft[2,nn], w, color='deeppink',log=1, label='hybrid')
+		ax[i,j].bar(x+3*w, t_cufinufft[0,nn], w, color='darkviolet',log=1, label='GPU: input driven without sort')
+		ax[i,j].bar(x+4*w, t_cufinufft[1,nn], w, color='violet',log=1, label='GPU: input driven with sort')
+		ax[i,j].bar(x+5*w, t_cufinufft[2,nn], w, color='deeppink',log=1, label='GPU: hybrid')
+		ax[i,j].bar(x+6*w, t_cufinufft[3,nn], w, color='lightpink',log=1, label='GPU: subprob')
 
-		ax[i,j].set_xticks([x+3*w])
+		ax[i,j].set_xticks([x+3.5*w])
 		ax[i,j].set_xticklabels(N[nn:nn+1])
-		ax[i,j].set_xlim([x-0.5*w, x+6.5*w])
+		ax[i,j].set_xlim([x-0.5*w, x+7.5*w])
 		ax[i,j].set_ylabel('ms')
 		ax[i,j].set_xlabel('N')
 		ax[i,j].grid()
@@ -86,7 +87,7 @@ def main():
 	
 	handles, labels = ax[0,0].get_legend_handles_labels()
         fig.legend(handles, labels, loc='upper center', ncol=6)
-	plt.savefig('../time_all.pdf')
+	plt.savefig('../time_all_0802.pdf')
 	plt.show()
 if __name__== "__main__":
   main()
