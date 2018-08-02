@@ -14,29 +14,32 @@ int main(int argc, char* argv[])
 	int nf1, nf2;
 	FLT sigma = 2.0;
 	int N1, N2, M;
-	if (argc<3) {
-		fprintf(stderr,"Usage: spread2d [N1 N2 [M [tol[use_thrust]]]]\n");
+	if (argc<4) {
+		fprintf(stderr,"Usage: accuracy [nupts_distribute [N1 N2 [M [tol[use_thrust]]]]]\n");
 		return 1;
 	}  
+	int nupts_distribute;
+	sscanf(argv[1],"%d",&nupts_distribute);
+
 	double w;
-	sscanf(argv[1],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
-	sscanf(argv[2],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
+	sscanf(argv[2],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
+	sscanf(argv[3],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 
 	N1 = (int) nf1/sigma;
 	N2 = (int) nf2/sigma;
 	M = N1*N2;// let density always be 1
-	if(argc>3){
-		sscanf(argv[3],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
+	if(argc>4){
+		sscanf(argv[4],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 	}
 
 	FLT tol=1e-6;
-	if(argc>4){
-		sscanf(argv[4],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+	if(argc>5){
+		sscanf(argv[5],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
 	int use_thrust=0;
-	if(argc>5){
-		sscanf(argv[5],"%d",&use_thrust);
+	if(argc>6){
+		sscanf(argv[6],"%d",&use_thrust);
 	}
 
 	int ns=std::ceil(-log10(tol/10.0));
@@ -48,6 +51,8 @@ int main(int argc, char* argv[])
 	opts.ES_halfwidth=(FLT)ns/2;
 	opts.use_thrust=use_thrust;
 	opts.Horner=0;
+	opts.maxsubprobsize=1000;
+	opts.pirange=0;
 
 	cout<<scientific<<setprecision(3);
 	int ier;
@@ -63,12 +68,30 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fwo,       nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fwh,       nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fwfinufft, nf1*nf2*sizeof(CPX));
-	for (int i = 0; i < M; i++) {
-		x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
-		y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-		c[i].real() = randm11();
-		c[i].imag() = randm11();
-	}
+
+        switch(nupts_distribute){
+                // Making data
+                case 1: //uniform
+                {
+                        for (int i = 0; i < M; i++) {
+                                x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
+                                y[i] = RESCALE(M_PI*randm11(), nf2, 1);
+                                c[i].real() = randm11();
+                                c[i].imag() = randm11();
+                        }
+                }
+                break;
+                case 2: // concentrate on a small region
+                {
+                        for (int i = 0; i < M; i++) {
+                                x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
+                                y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
+                                c[i].real() = randm11();
+                                c[i].imag() = randm11();
+                        }
+                }
+                break;
+        }
 
 	CNTime timer;
 	/*warm up gpu*/
@@ -106,22 +129,24 @@ int main(int argc, char* argv[])
 	FLT ticdriven=timer.elapsedsec();
 	printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
-
+	
 	/* -------------------------------------- */
 	// Method 3: Output driven                //
 	/* -------------------------------------- */
-	timer.restart();
-	opts.method=3;
-	opts.bin_size_x=4;
-	opts.bin_size_y=4;
-	ier = cnufftspread2d_gpu(nf1, nf2, fwo, M, x, y, c, opts);
-	if(ier != 0 ){
-		cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
-		return 0;
-	}
-	FLT todriven=timer.elapsedsec();
-	printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
+	if(nupts_distribute == 1){
+		timer.restart();
+		opts.method=3;
+		opts.bin_size_x=4;
+		opts.bin_size_y=4;
+		ier = cnufftspread2d_gpu(nf1, nf2, fwo, M, x, y, c, opts);
+		if(ier != 0 ){
+			cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
+			return 0;
+		}
+		FLT todriven=timer.elapsedsec();
+		printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,todriven,M/todriven);
+	}
 
 	/* -------------------------------------- */
 	// Method 4: Hybrid                       //
@@ -138,17 +163,22 @@ int main(int argc, char* argv[])
 	}
 	printf("[hybrid ] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,thybrid,M/thybrid);
-	cout<<endl;
 
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
 	timer.start();
-	opts.pirange = 0;
+	setup_spreader(opts,(FLT)tol,opts.upsampfac,opts.kerevalmeth);
+	opts.pirange=0;
+	opts.chkbnds=1;
 	opts.spread_direction=1;
 	opts.flags=0;//ker always return 1
-	opts.kerevalmeth=0;
+	opts.kerevalmeth=1;
+	opts.kerpad=1;
+	opts.sort_threads=0;
+	opts.sort=2;
 	opts.debug=0;
+
 	ier = cnufftspread(nf1,nf2,1,(FLT*) fwfinufft,M,x,y,NULL,(FLT*) c,opts);
 	FLT t=timer.elapsedsec();
 	if (ier!=0) {
@@ -159,13 +189,16 @@ int main(int argc, char* argv[])
 		M,N1,N2,nf1*nf2,t,M/t);
 		//printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,2)*M/t);
 	/* ------------------------------------------------------------------------------------------------------*/
-
+	
+	cout<<endl;
 	FLT err=relerrtwonorm(nf1*nf2,fwi,fwfinufft);
 	printf("|| fwi  - fwfinufft ||_2 / || fwi  ||_2 =  %.6g\n", err);
 	err=relerrtwonorm(nf1*nf2,fwic,fwfinufft);
 	printf("|| fwic - fwfinufft ||_2 / || fwic ||_2 =  %.6g\n", err);
-	err=relerrtwonorm(nf1*nf2,fwo,fwfinufft);
-	printf("|| fwo  - fwfinufft ||_2 / || fwo  ||_2 =  %.6g\n", err);
+	if(nupts_distribute == 1){
+		err=relerrtwonorm(nf1*nf2,fwo,fwfinufft);
+		printf("|| fwo  - fwfinufft ||_2 / || fwo  ||_2 =  %.6g\n", err);
+	}
 	err=relerrtwonorm(nf1*nf2,fwh,fwfinufft);
 	printf("|| fwh  - fwfinufft ||_2 / || fwh  ||_2 =  %.6g\n", err);
 
@@ -185,14 +218,14 @@ int main(int argc, char* argv[])
 	cout<<endl;
 #endif
 #ifdef RESULT
-	cout<<"[result-input]"<<endl;
+	cout<<"[result-hybrid]"<<endl;
 	for(int j=0; j<nf2; j++){
 		if( j % opts.bin_size_y == 0)
 			printf("\n");
 		for (int i=0; i<nf1; i++){
 			if( i % opts.bin_size_x == 0 && i!=0)
 				printf(" |");
-			printf(" (%2.3g,%2.3g)",fwi[i+j*nf1].real(),fwi[i+j*nf1].imag() );
+			printf(" (%2.3g,%2.3g)",fwh[i+j*nf1].real(),fwh[i+j*nf1].imag() );
 			//cout<<" "<<setw(8)<<fwo[i+j*nf1];
 		}
 		cout<<endl;
@@ -205,7 +238,7 @@ int main(int argc, char* argv[])
 	cudaFreeHost(c);
 	cudaFreeHost(fwi);
 	cudaFreeHost(fwic);
-	cudaFreeHost(fwo);
+	//cudaFreeHost(fwo);
 	cudaFreeHost(fwh);
 	cudaFreeHost(fwfinufft);
 	return 0;
