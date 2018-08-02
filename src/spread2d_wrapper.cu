@@ -388,6 +388,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	FLT es_beta=opts.ES_beta;
 	int bin_size_x=opts.bin_size_x;
 	int bin_size_y=opts.bin_size_y;
+	int maxsubprobsize=opts.maxsubprobsize;
 
 	// Parameter setting
 	int numbins[2];
@@ -494,15 +495,14 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	}
 #endif
 	uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
-#else
+#endif
 	int n=numbins[0]*numbins[1];
 	void *d_temp_storage = NULL;
 	size_t temp_storage_bytes = 0;
 	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, d_binsize, d_binstartpts+1, n));
 	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes)); // Allocate temporary storage for inclusive prefix scan
 	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, d_binsize, d_binstartpts+1, n));
-	checkCudaErrors(cudaMemset(d_binstartpts,0,1));
-#endif
+	checkCudaErrors(cudaMemset(d_binstartpts,0,sizeof(int)));
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -540,7 +540,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
   	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel PtsRearrange_noghost_2d \t\t%.3g ms\n", milliseconds);
 #endif
-#ifdef DEBUG
+#if 0
 	FLT *h_kxsorted, *h_kysorted;
 	CPX *h_csorted;
 	h_kxsorted = (FLT*)malloc(M*sizeof(FLT));
@@ -564,6 +564,87 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	free(h_csorted);
 #endif
 
+	int* d_numsubprob;
+	checkCudaErrors(cudaMalloc(&d_numsubprob,numbins[0]*numbins[1]*sizeof(int)));
+	CalcSubProb_2d<<<(M+1024-1)/1024, 1024>>>(d_binsize, d_numsubprob,maxsubprobsize,numbins[0]*numbins[1]);
+#ifdef DEBUG
+	int* h_numsubprob;
+	h_numsubprob = (int*) malloc(n*sizeof(int));
+	checkCudaErrors(cudaMemcpy(h_numsubprob,d_numsubprob,numbins[0]*numbins[1]*sizeof(int),
+                                   cudaMemcpyDeviceToHost));
+        for(int j=0; j<numbins[1]; j++){
+                cout<<"[debug ] ";
+                for(int i=0; i<numbins[0]; i++){
+                        if(i!=0) cout<<" ";
+                        cout <<"nsub["<<setw(3)<<i<<","<<setw(3)<<j<<"] = "<<setw(2)<<h_numsubprob[i+j*numbins[0]];
+                }
+                cout<<endl;
+        }
+	free(h_numsubprob);
+#endif
+	int* d_subprobstartpts;
+	checkCudaErrors(cudaMalloc(&d_subprobstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));	
+	// Scanning the same length array, so we don't need calculate temp_storage_bytes here
+        CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, d_numsubprob, &d_subprobstartpts[1], n));
+        checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
+
+#ifdef DEBUG
+	printf("[debug ] Subproblem start points\n");
+	int* h_subprobstartpts;
+        h_subprobstartpts = (int*) malloc((n+1)*sizeof(int));
+        checkCudaErrors(cudaMemcpy(h_subprobstartpts,d_subprobstartpts,(n+1)*sizeof(int),
+                                   cudaMemcpyDeviceToHost));
+        for(int j=0; j<numbins[1]; j++){
+                cout<<"[debug ] ";
+                for(int i=0; i<numbins[0]; i++){
+                        if(i!=0) cout<<" ";
+                        cout <<"nsub["<<setw(3)<<i<<","<<setw(3)<<j<<"] = "<<setw(2)<<h_subprobstartpts[i+j*numbins[0]];
+                }
+                cout<<endl;
+        }
+	printf("[debug ] Total number of subproblems = %d\n", h_subprobstartpts[n]);
+	free(h_subprobstartpts);
+#endif
+
+	int totalnumsubprob;
+	checkCudaErrors(cudaMemcpy(&totalnumsubprob,&d_subprobstartpts[n],sizeof(int),
+                                   cudaMemcpyDeviceToHost));
+	int* d_subprob_to_bin;
+	checkCudaErrors(cudaMalloc(&d_subprob_to_bin,totalnumsubprob*sizeof(int)));
+	MapBintoSubProb_2d<<<(numbins[0]*numbins[1]+1024-1)/1024, 1024>>>(d_subprob_to_bin, 
+                                                                          d_subprobstartpts,
+                                                                          d_numsubprob,
+                                                                          numbins[0]*numbins[1]);
+#ifdef DEBUG
+	printf("[debug ] Map Subproblem to Bins\n");
+	int* h_subprob_to_bin;
+        h_subprob_to_bin = (int*) malloc((totalnumsubprob)*sizeof(int));
+        checkCudaErrors(cudaMemcpy(h_subprob_to_bin,d_subprob_to_bin,(totalnumsubprob)*sizeof(int),
+                                   cudaMemcpyDeviceToHost));
+        for(int j=0; j<totalnumsubprob; j++){
+                cout<<"[debug ] ";
+                cout <<"nsub["<<j<<"] = "<<setw(2)<<h_subprob_to_bin[j];
+                cout<<endl;
+        }
+	free(h_subprob_to_bin);
+#endif
+
+	cudaEventRecord(start);
+	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
+	if(sharedmemorysize > 49152){
+		cout<<"error: not enough shared memory"<<endl;
+		return 1;
+	}
+	// blockSize must be a multiple of bin_size_x
+	Spread_2d_Subprob<<<totalnumsubprob, 256, sharedmemorysize>>>(d_kxsorted, d_kysorted, d_csorted, 
+									          d_fw, M, ns, nf1, nf2, 
+									          es_c, es_beta, fw_width, 
+									          d_binstartpts, d_binsize, 
+									          bin_size_x, bin_size_y,
+									 	  d_subprob_to_bin, d_subprobstartpts, 
+										  d_numsubprob, maxsubprobsize, 
+										  numbins[0], numbins[1]);
+#if 0
 	cudaEventRecord(start);
 	threadsPerBlock.x = 16;
 	threadsPerBlock.y = 16;
@@ -571,7 +652,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	blocks.y = numbins[1];
 	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
 	if(sharedmemorysize > 49152){
-		cout<<"error: not enought shared memory"<<endl;
+		cout<<"error: not enough shared memory"<<endl;
 		return 1;
 	}
 	// blockSize must be a multiple of bin_size_x
@@ -580,6 +661,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 									es_c, es_beta, fw_width, 
 									d_binstartpts, d_binsize, 
 									bin_size_x, bin_size_y);
+#endif
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -587,6 +669,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	printf("[time  ] \tKernel Spread_2d_Hybrid \t\t%.3g ms\n", milliseconds);
 #endif
 	// Free memory
+	cudaFree(d_temp_storage);
 	cudaEventRecord(start);
 	cudaFree(d_binsize);
 	cudaFree(d_binstartpts);
@@ -594,6 +677,9 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaFree(d_kxsorted);
 	cudaFree(d_kysorted);
 	cudaFree(d_csorted);
+	cudaFree(d_numsubprob);
+	cudaFree(d_subprobstartpts);
+	cudaFree(d_subprob_to_bin);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

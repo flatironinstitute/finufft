@@ -58,6 +58,7 @@ int main(int argc, char* argv[])
 	opts.method=method;
 	opts.Horner=0;
 	opts.pirange=0;
+	opts.maxsubprobsize=1000;
 
 	cout<<scientific<<setprecision(3);
 	int ier;
@@ -90,8 +91,6 @@ int main(int argc, char* argv[])
                                 c[i].real() = randm11();
                                 c[i].imag() = randm11();
                         }
-                        ofstream xyfile ("nupts_location_nonuniform.txt");
-
                 }
                 break;
         }
@@ -129,7 +128,7 @@ int main(int argc, char* argv[])
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 		opts.method,M,nf1*nf2,t,M/t);
-#ifdef RESULT
+#if 0
 	switch(method)
 	{
 		case 3:
@@ -138,6 +137,9 @@ int main(int argc, char* argv[])
 		case 4:
 			opts.bin_size_x=32;
 			opts.bin_size_y=32;
+		default:
+			opts.bin_size_x=nf1;
+			opts.bin_size_y=nf2;		
 	}
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){

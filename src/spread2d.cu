@@ -444,6 +444,25 @@ void CalcGlobalsortidx_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_
 }
 
 __global__
+void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, int numbins)
+{
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; i+=gridDim.x*blockDim.x){
+		num_subprob[i]=ceil(bin_size[i]/(float) maxsubprobsize);
+	}
+}
+
+__global__
+void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, int* d_numsubprob, 
+                        int numbins)
+{
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; i+=gridDim.x*blockDim.x){
+		for(int j=0; j<d_numsubprob[i]; j++){
+			d_subprob_to_bin[d_subprobstartpts[i]+j]=i;
+		}
+	}
+}
+
+__global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, 
 		int *bin_startpts, FLT *x_sorted, FLT *y_sorted, 
 		gpuComplex *c_sorted, gpuComplex *fw, int ns,
@@ -576,8 +595,6 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
 	}
 	__syncthreads();
 	/* write to global memory */
-	//for(int j=threadIdx.y; j<(bin_size_y+2*ceil(ns/2.0)); j+=blockDim.y){
-	//for(int i=threadIdx.x; i<(bin_size_x+2*ceil(ns/2.0)); i+=blockDim.x){
 	for(int k=threadIdx.x+threadIdx.y*blockDim.x; k<N; k+=blockDim.x*blockDim.y){
 		int i = k % (int) (bin_size_x+2*ceil(ns/2.0) );
 		int j = k /( bin_size_x+2*ceil(ns/2.0) );
@@ -590,6 +607,81 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
 			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
 			atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
 			atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+		}
+	}
+}
+
+__global__
+void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+		       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
+		       int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin, 
+		       int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny)
+{
+	extern __shared__ gpuComplex fwshared[];
+
+	int xstart,ystart,xend,yend;
+	int subpidx=blockIdx.x;
+	int bidx=subprob_to_bin[subpidx];
+	int binsubp_idx=subpidx-subprobstartpts[bidx];
+	int xx, yy, ix, iy;
+	int outidx;
+	int ptstart=binstartpts[bidx]+binsubp_idx*maxsubprobsize;
+	int nupts=min(maxsubprobsize, bin_size[bidx]-binsubp_idx*maxsubprobsize);
+
+	int xoffset=(bidx % nbinx)*bin_size_x;
+	int yoffset=(bidx / nbinx)*bin_size_y;
+
+	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0));
+	for(int i=threadIdx.x; i<N; i+=blockDim.x){
+		fwshared[i].x = 0.0;
+		fwshared[i].y = 0.0;
+	}
+	__syncthreads();
+
+	FLT x_rescaled, y_rescaled;
+	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
+		int idx=ptstart+i;
+		x_rescaled=x[idx];
+		y_rescaled=y[idx];
+		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
+		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
+		xend = floor(x_rescaled + ns/2.0)-xoffset;
+		yend = floor(y_rescaled + ns/2.0)-yoffset;
+
+		for(yy=ystart; yy<=yend; yy++){
+			FLT disy=abs(y_rescaled-(yy+yoffset));
+			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+			for(xx=xstart; xx<=xend; xx++){
+				ix = xx+ceil(ns/2.0);
+				iy = yy+ceil(ns/2.0);
+				outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
+				FLT disx=abs(x_rescaled-(xx+xoffset));
+				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+				//fwshared[outidx].x += kervalue1*kervalue2;
+				//fwshared[outidx].y += kervalue1*kervalue2;
+				atomicAdd(&fwshared[outidx].x, c[idx].x*kervalue1*kervalue2);
+				atomicAdd(&fwshared[outidx].y, c[idx].y*kervalue1*kervalue2);
+				//atomicAdd(&fwshared[outidx].x, kervalue1*kervalue2);
+				//atomicAdd(&fwshared[outidx].y, kervalue1*kervalue2);
+			}
+		}
+	}
+	__syncthreads();
+	/* write to global memory */
+	for(int k=threadIdx.x; k<N; k+=blockDim.x){
+		int i = k % (int) (bin_size_x+2*ceil(ns/2.0) );
+		int j = k /( bin_size_x+2*ceil(ns/2.0) );
+		ix = xoffset-ceil(ns/2.0)+i;
+		iy = yoffset-ceil(ns/2.0)+j;
+		if(ix < (nf1+ceil(ns/2.0)) && iy < (nf2+ceil(ns/2.0))){
+			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
+			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
+			outidx = ix+iy*fw_width;
+			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
+			atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
+			atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+			//atomicAdd(&fw[outidx].x, k);
+			//atomicAdd(&fw[outidx].y, k);
 		}
 	}
 }
