@@ -7,16 +7,16 @@ This is an implementation of nufft spreader on GPU.
 ```
   module load cuda
   make spread2d
-  ./spread2d [method [N1 N2 [M [tol [use_thrust]]]]]
+  ./spread2d [nf1 nf2 [M [tol [Horner [use_thrust]]]]]
 ``` 
 
 ### Code dependency
  - sorting function in CUB library
+ - scan in CUB library
  - sorting function in thurst
 
 ### To-do List
  - dir=2
- - generate speedup plot
  
 #### 2018/06/29
  - Finish 1D dir=1
@@ -38,3 +38,7 @@ This is an implementation of nufft spreader on GPU.
 #### 2018/07/20
  - Correct solution of finufft2d_test with gpu spreader
  - Add codes for speedup testing
+#### 2018/08/02
+ - Benchmark the performance for spreader of finufft, nfft, cufinufft, cunfft
+ - Kernel time breakdown of all the methods
+ - Add subproblem idea to deal with clustered nupts
