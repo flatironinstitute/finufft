@@ -21,7 +21,7 @@ def main():
 	for i,line in enumerate(f):
         	N[i]=int(find_between(line, 'N=', ','))
 		s_cpu[i]=float(find_between(line, 's=', '\n'))
-	f = open('../results/gputime_nonuniform_nupts_0730.out', 'r')
+	f = open('../results/gputime_nonuniform_nupts_0801.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 's=', '\n')
@@ -40,7 +40,7 @@ def main():
 	#ax2.plot(x, speedup[2,:],'-o', label='output driven')
 	ax2.plot(x, speedup[3,:],'-o', label='hybrid')
 	ax2.axhline(y=1, linestyle='--', color='k',label='cpu')
-	#ax2.set_ylim((0, 10))
+	ax2.set_ylim((0, 10))
 	ax2.set_ylabel('speedup')
 	leg = ax2.legend(loc=0,frameon=1)
 	leg.get_frame().set_alpha(0.5)
@@ -60,7 +60,7 @@ def main():
 	ax1.set_title('T_cpuspreader/T_gpuspreader')
 	plt.grid(True)
 
-	plt.savefig('../speedup_nonuniform_nupts_cnufftspread_vs_gpuspread_0730.pdf')
+	plt.savefig('../speedup_nonuniform_nupts_cnufftspread_vs_gpuspread_0801.pdf')
 	plt.show()
 if __name__== "__main__":
   main()

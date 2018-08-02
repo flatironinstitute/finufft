@@ -1,7 +1,7 @@
 CC=gcc
 CXX=g++
 NVCC=nvcc
-CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native
+CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
 #CXXFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
 NVCCFLAGS=-arch=sm_50
 INC=-I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/samples/common/inc/ \
