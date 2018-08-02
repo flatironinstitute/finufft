@@ -24,6 +24,9 @@ main_2d.o: examples/main_2d.cu
 compare_2d.o: examples/compare_2d.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
+simple_2d.o: examples/simple_2d.cu
+	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
+
 cufinufft2d_test.o: examples/cufinufft2d_test.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
@@ -64,6 +67,9 @@ spread2d: main_2d.o spread2d_wrapper.o spread2d.o utils.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 compare: compare_2d.o spread2d_wrapper.o spread2d.o utils.o
+	$(NVCC) $(NVCCFLAGS) -o $@ $^
+
+simple: simple_2d.o spread2d_wrapper.o spread2d.o utils.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 accuracy: accuracycheck_2d.o spread2d_wrapper.o spread2d.o utils.o cnufftspread.o

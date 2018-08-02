@@ -543,6 +543,72 @@ void CreateSortIdx(int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx)
 }
 
 __global__
+void Spread_2d_Simple(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+		      int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int bin_size, 
+                      int bin_size_x, int bin_size_y, int binx, int biny)
+{
+	extern __shared__ gpuComplex fwshared[];
+
+	int xstart,ystart,xend,yend;
+	int xx, yy, ix, iy;
+	int outidx;
+	int ptstart=0;
+
+	int xoffset=binx*bin_size_x;
+	int yoffset=biny*bin_size_y;
+
+	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0));
+	for(int i=threadIdx.x+threadIdx.y*blockDim.x; i<N; i+=blockDim.x*blockDim.y){
+		fwshared[i].x = 0.0;
+		fwshared[i].y = 0.0;
+	}
+	__syncthreads();
+
+	FLT x_rescaled, y_rescaled;
+	for(int i=threadIdx.x+threadIdx.y*blockDim.x; i<bin_size; i+=blockDim.x*blockDim.y){
+		int idx=ptstart+i;
+		x_rescaled=x[idx];
+		y_rescaled=y[idx];
+		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
+		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
+		xend = floor(x_rescaled + ns/2.0)-xoffset;
+		yend = floor(y_rescaled + ns/2.0)-yoffset;
+		for(yy=ystart; yy<=yend; yy++){
+			FLT disy=abs(y_rescaled-(yy+yoffset));
+			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+			for(xx=xstart; xx<=xend; xx++){
+				ix = xx+ceil(ns/2.0);
+				iy = yy+ceil(ns/2.0);
+				outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
+				FLT disx=abs(x_rescaled-(xx+xoffset));
+				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+				atomicAdd(&fwshared[outidx].x, c[idx].x*kervalue1*kervalue2);
+				atomicAdd(&fwshared[outidx].y, c[idx].y*kervalue1*kervalue2);
+			}
+		}
+	}
+	__syncthreads();
+
+	/* write to global memory */
+	for(int k=threadIdx.x+threadIdx.y*blockDim.x; k<N; k+=blockDim.x*blockDim.y){
+		int i = k % (int) (bin_size_x+2*ceil(ns/2.0) );
+		int j = k /( bin_size_x+2*ceil(ns/2.0) );
+		ix = xoffset+i-ceil(ns/2.0);
+		iy = yoffset+j-ceil(ns/2.0);
+		if(ix < (nf1+ceil(ns/2.0)) && iy < (nf2+ceil(ns/2.0))){
+			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
+			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
+			outidx = ix+iy*fw_width;
+			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
+			atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
+			atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+			//atomicAdd(&fw[outidx].x, y_rescaled);
+			//atomicAdd(&fw[outidx].y, ystart+ceil(ns/2.0));
+		}
+	}
+}
+
+__global__
 void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y)

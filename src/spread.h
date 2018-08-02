@@ -34,6 +34,8 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int use_thrust;
   int Horner;
   int maxsubprobsize;
+  int nthread_x;
+  int nthread_y;
 };
 
 //Kernels for 1D codes
@@ -97,6 +99,10 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
                       int* bin_size, int bin_size_x, int bin_size_y);
 __global__
+void Spread_2d_Simple(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+                      int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int bin_size,
+                      int bin_size_x, int bin_size_y, int binx, int biny);
+__global__
 void CreateSortIdx (int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx);
 __global__ 
 void CreateIndex(int* index, int nelem);
@@ -127,6 +133,8 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw, 
                               FLT *d_ky, gpuComplex *d_c, spread_opts opts);
 int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
                                FLT *d_ky, gpuComplex *d_c, spread_opts opts);
+int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
+                              FLT *d_ky, gpuComplex *d_c, spread_opts opts, int binx, int biny);
 
 int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, CPX* h_fw, gpuComplex** d_fw,
                           FLT *h_kx, FLT **d_kx, FLT* h_ky, FLT** d_ky,
