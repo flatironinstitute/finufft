@@ -14,7 +14,7 @@ def find_between( s, first, last ):
 def main():
 	num_n=0
 	num_method=0
-	for line in open('../results/gputime_kernel_breakdown_0731.out', 'r'):
+	for line in open('../results/gputime_kernel_breakdown_0803.out', 'r'):
 		temp=find_between(line, 'N=', '\n')
 		if(temp==""):
 			temp=find_between(line, 'Method', '\n')
@@ -28,7 +28,7 @@ def main():
 	t_methods = np.zeros([num_n, num_method, 7])
 	N = np.zeros(num_n, dtype=int)
 	
-	f = open('../results/gputime_kernel_breakdown_0731.out', 'r')
+	f = open('../results/gputime_kernel_breakdown_0803.out', 'r')
 	j=0
 	for line in f:
 		temp = find_between(line, 'N=', '\n')
@@ -39,7 +39,7 @@ def main():
 			N[j] = int(temp)
 			j+=1
 
-	f = open('../results/gputime_kernel_breakdown_0731.out', 'r')
+	f = open('../results/gputime_kernel_breakdown_0803.out', 'r')
 	m = -1
 	n = -1
 	for i,line in enumerate(f):
@@ -99,9 +99,25 @@ def main():
 		t_now+=t_methods[nn,2,3]
 		ax[i,j].bar(x[2],t_methods[nn,2,6],w,t_now,color='crimson')
 
+		#Method4
+		t_now=0
+		ax[i,j].bar(x[3],t_methods[nn,3,4],w,bottom=t_now,color='darkblue')
+		t_now+=t_methods[nn,3,4]
+		ax[i,j].bar(x[3],t_methods[nn,3,0],w,bottom=t_now,color='slateblue')
+		t_now+=t_methods[nn,3,0]
+		ax[i,j].bar(x[3],t_methods[nn,3,5],w,t_now,color='blueviolet')
+		t_now+=t_methods[nn,3,5]
+		ax[i,j].bar(x[3],t_methods[nn,3,1],w,t_now,color='violet')
+		t_now+=t_methods[nn,3,1]
+		ax[i,j].bar(x[3],t_methods[nn,3,2],w,t_now,color='fuchsia')
+		t_now+=t_methods[nn,3,2]
+		ax[i,j].bar(x[3],t_methods[nn,3,3],w,t_now,color='deeppink')
+		t_now+=t_methods[nn,3,3]
+		ax[i,j].bar(x[3],t_methods[nn,3,6],w,t_now,color='crimson')
+		
 		ax[i,j].set_xticks(np.array(x)+0.5*w)
 		ax[i,j].set_xlim([x[0]-0.5*w,x[-1]+1.5*w])
-    		ax[i,j].set_xticklabels(['Idriven', 'Idriven_sorted', 'Hybrid'])
+    		ax[i,j].set_xticklabels(['I', 'I_sort', 'I_binsort', 'Hybrid'])
 		ax[i,j].set_xlabel('N={:3d}'.format(N[nn]))
 		ax[i,j].set_ylabel('ms')
 		ax[i,j].grid()
@@ -110,7 +126,7 @@ def main():
 	handles, labels = ax[-1,-2].get_legend_handles_labels()
 	fig.legend(handles, labels, loc='upper center', ncol=4)
 
-	plt.savefig('../timebreakdown_gpu_0731.pdf')
+	plt.savefig('../timebreakdown_gpu_0802.pdf')
 	plt.show()
 if __name__== "__main__":
   main()

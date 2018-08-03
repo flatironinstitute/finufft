@@ -14,13 +14,16 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [nupts_dis [nf1 nf2 [M [tol [Horner]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [nupts_dis [nf1 nf2 [M [tol [Horner [bin_sort]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
 		fprintf(stderr,"method 3: output driven\n");
 		fprintf(stderr,"method 4: hybrid\n");
 		fprintf(stderr,"method 5: subprob\n");
+		fprintf(stderr,"Note --\n");
+		fprintf(stderr,"Horner only effects medthod 1\n");
+		fprintf(stderr,"bin_sort only effects medthod 2\n");
 		return 1;
 	}  
 	double w;
@@ -47,6 +50,11 @@ int main(int argc, char* argv[])
 		sscanf(argv[7],"%d",&Horner);
 	}
 
+	int bin_sort=0;
+	if(argc>8){
+		sscanf(argv[8],"%d",&bin_sort);
+	}
+
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
 	opts.nspread=ns;
@@ -58,6 +66,7 @@ int main(int argc, char* argv[])
 	opts.method=method;
 	opts.pirange=0;
 	opts.maxsubprobsize=1000;
+	opts.bin_sort=bin_sort;
 
 	cout<<scientific<<setprecision(3);
 	int ier;
@@ -137,6 +146,8 @@ int main(int argc, char* argv[])
 		break;
 		case 2:
 		{
+			opts.bin_size_x=16;
+			opts.bin_size_y=16;
         		cudaEventRecord(start);
 			ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
 		}

@@ -48,6 +48,7 @@ int main(int argc, char* argv[])
 	opts.Horner=0;
 	opts.maxsubprobsize=1000;
 	opts.pirange=0;
+	opts.bin_sort=1;
 
 	cout<<scientific<<setprecision(3);
 	int ier;
@@ -121,6 +122,8 @@ int main(int argc, char* argv[])
 	/* -------------------------------------- */
 	timer.restart();
 	opts.method=2;
+	opts.bin_size_x=16;
+	opts.bin_size_y=16;
 	ier = cnufftspread2d_gpu(nf1, nf2, fwic, M, x, y, c, opts);
 	FLT ticdriven=timer.elapsedsec();
 	printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",

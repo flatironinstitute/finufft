@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<4) {
-		fprintf(stderr,"Usage: spread2d [method [nupts_distr [N1 N2 [M [tol]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [nupts_distr [N1 N2 [M [tol [bin_sort]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -43,6 +43,11 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
+	int bin_sort=0;
+	if(argc>7){
+		sscanf(argv[7],"%d",&bin_sort);
+	}
+
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
 	opts.nspread=ns;
@@ -54,6 +59,7 @@ int main(int argc, char* argv[])
 	opts.Horner=0;
 	opts.pirange=0;
 	opts.maxsubprobsize=1000;
+	opts.bin_sort=bin_sort;
 
 	cout<<scientific<<setprecision(3);
 	int ier;
@@ -102,6 +108,12 @@ int main(int argc, char* argv[])
 #ifdef INFO
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
+	if(opts.method == 2)
+	{
+		opts.bin_size_x=16;
+		opts.bin_size_y=16;
+	}
+
 	if(opts.method == 3)
 	{
 		opts.bin_size_x=4;

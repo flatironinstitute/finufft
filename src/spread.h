@@ -35,6 +35,7 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int maxsubprobsize;
   int nthread_x;
   int nthread_y;
+  int bin_sort;
 };
 
 //Kernels for 1D codes
