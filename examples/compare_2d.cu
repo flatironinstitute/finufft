@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [nupts_dis [nf1 nf2 [M [tol [Horner [bin_sort]]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [nupts_dis [nf1 nf2 [M [tol [indirect [bin_sort]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
 		fprintf(stderr,"method 4: hybrid\n");
 		fprintf(stderr,"method 5: subprob\n");
 		fprintf(stderr,"Note --\n");
-		fprintf(stderr,"Horner only effects medthod 1\n");
+		fprintf(stderr,"indirect only effects medthod 5\n");
 		fprintf(stderr,"bin_sort only effects medthod 2\n");
 		return 1;
 	}  
@@ -38,6 +38,9 @@ int main(int argc, char* argv[])
 	M = N1*N2;// let density always be 1
 	if(argc>5){
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
+		if(M==0.0){
+			M = N1*N2;
+		}
 	}
 
 	FLT tol=1e-6;
@@ -46,8 +49,9 @@ int main(int argc, char* argv[])
 	}
 
 	int Horner=0;
+	int indirect=0;
 	if(argc>7){
-		sscanf(argv[7],"%d",&Horner);
+		sscanf(argv[7],"%d",&indirect);
 	}
 
 	int bin_sort=0;
@@ -67,6 +71,7 @@ int main(int argc, char* argv[])
 	opts.pirange=0;
 	opts.maxsubprobsize=1000;
 	opts.bin_sort=bin_sort;
+	opts.indirect=indirect;
 
 	cout<<scientific<<setprecision(3);
 	int ier;

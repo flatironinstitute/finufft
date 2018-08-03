@@ -49,6 +49,7 @@ int main(int argc, char* argv[])
 	opts.maxsubprobsize=1000;
 	opts.pirange=0;
 	opts.bin_sort=1;
+	opts.indirect=1;
 
 	cout<<scientific<<setprecision(3);
 	int ier;
