@@ -7,7 +7,7 @@ This is an implementation of nufft spreader on GPU.
 ```
   module load cuda
   make spread2d
-  ./spread2d [nf1 nf2 [M [tol [Horner [use_thrust]]]]]
+  ./spread2d [nf1 nf2 [M [tol [Horner]]]]
 ``` 
 
 ### Code dependency

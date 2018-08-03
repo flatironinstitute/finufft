@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<4) {
-		fprintf(stderr,"Usage: spread2d [method [nupts_distr [N1 N2 [M [tol [use_thrust]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [nupts_distr [N1 N2 [M [tol]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -43,11 +43,6 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int use_thrust=0;
-	if(argc>7){
-		sscanf(argv[7],"%d",&use_thrust);
-	}
-
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
 	opts.nspread=ns;
@@ -55,7 +50,6 @@ int main(int argc, char* argv[])
 	opts.ES_beta=2.30*(FLT)ns;
 	opts.ES_c=4.0/(ns*ns);
 	opts.ES_halfwidth=(FLT)ns/2;
-	opts.use_thrust=use_thrust;
 	opts.method=method;
 	opts.Horner=0;
 	opts.pirange=0;

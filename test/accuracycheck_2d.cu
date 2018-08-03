@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<4) {
-		fprintf(stderr,"Usage: accuracy [nupts_distribute [N1 N2 [M [tol[use_thrust]]]]]\n");
+		fprintf(stderr,"Usage: accuracy [nupts_distribute [N1 N2 [M [tol]]]]\n");
 		return 1;
 	}  
 	int nupts_distribute;
@@ -37,10 +37,6 @@ int main(int argc, char* argv[])
 		sscanf(argv[5],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int use_thrust=0;
-	if(argc>6){
-		sscanf(argv[6],"%d",&use_thrust);
-	}
 
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
@@ -49,7 +45,6 @@ int main(int argc, char* argv[])
 	opts.ES_beta= 2.30 * (FLT)ns;
 	opts.ES_c=4.0/(ns*ns);
 	opts.ES_halfwidth=(FLT)ns/2;
-	opts.use_thrust=use_thrust;
 	opts.Horner=0;
 	opts.maxsubprobsize=1000;
 	opts.pirange=0;

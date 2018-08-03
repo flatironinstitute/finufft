@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [nupts_dis [nf1 nf2 [M [tol [Horner [use_thrust]]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [nupts_dis [nf1 nf2 [M [tol [Horner]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -56,7 +56,6 @@ int main(int argc, char* argv[])
 	opts.ES_halfwidth=(FLT)ns/2;
 	opts.Horner=Horner;
 	opts.method=method;
-	opts.use_thrust=0;
 	opts.pirange=0;
 	opts.maxsubprobsize=1000;
 

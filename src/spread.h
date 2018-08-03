@@ -31,7 +31,6 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int method;
   int bin_size_x;
   int bin_size_y;
-  int use_thrust;
   int Horner;
   int maxsubprobsize;
   int nthread_x;
