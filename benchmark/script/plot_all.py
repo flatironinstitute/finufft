@@ -19,7 +19,7 @@ def main():
 	t_cufinufft = np.zeros([4, num_lines])
 	t_finufft = np.zeros(num_lines)
 	#speedup = np.zeros([4, num_lines])
-	f = open('../results/compare_cunfft_0731.out', 'r')
+	f = open('../results/compare_nonuniform_nupts_cunfft_0802.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 'N=', ',')
@@ -30,7 +30,7 @@ def main():
 			t_cunfft[i]=float(find_between(line, 't=', '\n'))
 			i=i+1
 
-	f = open('../results/compare_cufinufft_0802.out', 'r')
+	f = open('../results/compare_nonuniform_nupts_cufinufft_0802.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -40,7 +40,7 @@ def main():
 			t_cufinufft[i/num_lines, i%num_lines]=float(temp)
 			i=i+1
 
-	f = open('../results/compare_finufft_0731.out', 'r')
+	f = open('../results/compare_nonuniform_nupts_finufft_0802.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -50,7 +50,7 @@ def main():
 			t_finufft[i]=float(temp)
 			i=i+1
 
-	f = open('../results/compare_nfft_0731.out', 'r')
+	f = open('../results/compare_nonuniform_nupts_nfft_0802.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -63,7 +63,7 @@ def main():
 	#for m in range(4):
 	#	speedup[m,:] = np.divide(t_cunfft, t_finufft[m,:])
 	x = 0.0
-	w = 0.01
+	w = 0.02
 	fig, ax= plt.subplots(2,3,figsize=(30, 10))
 	for nn in range(len(N)):
 		i=nn/3
@@ -82,12 +82,13 @@ def main():
 		ax[i,j].set_ylabel('ms')
 		ax[i,j].set_xlabel('N')
 		ax[i,j].grid()
+		#ax[i,j].set_ylim(ymin=0.1)
 		#ax[i,j].set_ylim((0, 12))
 		#ax[i,j].set_title('T_cunfft/T_cufinufft')
 	
 	handles, labels = ax[0,0].get_legend_handles_labels()
         fig.legend(handles, labels, loc='upper center', ncol=6)
-	plt.savefig('../time_all_0802.pdf')
+	plt.savefig('../time_all_nonuniform_nupts_0802.pdf')
 	plt.show()
 if __name__== "__main__":
   main()
