@@ -85,15 +85,13 @@ int main(int argc, char* argv[])
 		break;
 		case 2: // concentrate on a small region
 		{
-			cout<<"nupts"<<endl;
+			printf("nonuniform case\n");
 			for (int i = 0; i < M; i++) {
-				x[i] = RESCALE(rand01()/10+0.3, nf1, 1);// x in [-pi,pi)
-				y[i] = RESCALE(rand01()/10+0.3, nf2, 1);
+				x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
+                                y[i] = RESCALE(M_PI*rand01()/(nf2*2/32), nf2, 1);
 				c[i].real() = randm11();
 				c[i].imag() = randm11();
 			}
-			//ofstream xyfile ("nupts_location_nonuniform.txt");
-			
 		}
 		break;
 	}

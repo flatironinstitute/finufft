@@ -87,7 +87,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Allocating GPU memory " << milliseconds/1000 <<" s"<<endl;
+	cout<<"[time  ]"<< " Allocating GPU memory " << milliseconds <<" ms"<<endl;
 #endif
 	cudaEventRecord(start);
 	ier = cnufft_copycpumem_to_gpumem(nf1, nf2, M, fw_width, h_fw, d_fw, h_kx, d_kx,
@@ -96,14 +96,14 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Copying memory from host to device " << milliseconds/1000 <<" s"<<endl;
+	cout<<"[time  ]"<< " Copying memory from host to device " << milliseconds <<" s"<<endl;
 #endif
 
-	cudaEventRecord(start);
 	switch(opts.method)
         {
                 case 1:
                 {
+			cudaEventRecord(start);
                         ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, d_fw, M, d_kx, 
                                                          d_ky, d_c, opts);
                         if(ier != 0 ){
@@ -114,12 +114,14 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                 break;
                 case 2:
                 {
+			cudaEventRecord(start);
                         ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, d_fw, M, 
                                                                 d_kx, d_ky, d_c, opts);
                 }
                 break;
 		case 3:
                 {
+			cudaEventRecord(start);
                         if(nf1 % opts.bin_size_x != 0 || nf2 % opts.bin_size_y !=0){
                                 cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
                                 return 0;
@@ -134,6 +136,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                 break;
                 case 4:
                 {
+			cudaEventRecord(start);
                         ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
                         if(ier != 0 ){
                                 cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
@@ -143,6 +146,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                 break;
                 case 5:
                 {
+			cudaEventRecord(start);
                         ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
                         if(ier != 0 ){
                                 cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
@@ -158,7 +162,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Spread " << milliseconds/1000 <<" s"<<endl;
+	cout<<"[time  ]"<< " Spread " << milliseconds <<" ms"<<endl;
 #endif
 	cudaEventRecord(start);
 	ier = cnufft_copygpumem_to_cpumem(nf1, nf2, M, fw_width, h_fw, d_fw, h_kx, d_kx,
@@ -167,7 +171,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
   	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Copying memory from device to host " << milliseconds/1000 <<" s"<<endl;
+	cout<<"[time  ]"<< " Copying memory from device to host " << milliseconds <<" ms"<<endl;
 #endif
 	cnufft_free_gpumemory(d_fw, d_kx, d_ky, d_c);
 
