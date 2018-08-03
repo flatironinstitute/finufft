@@ -82,134 +82,139 @@ int main(int argc, char* argv[])
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
-		{
-			for (int i = 0; i < M; i++) {
-				x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
-				y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-				c[i].real() = randm11();
-				c[i].imag() = randm11();
+			{
+				for (int i = 0; i < M; i++) {
+					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
 			}
-		}
-		break;
+			break;
 		case 2: // concentrate on a small region
-		{
-			printf("nonuniform case\n");
-			for (int i = 0; i < M; i++) {
-				x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
-                                y[i] = RESCALE(M_PI*rand01()/(nf2*2/32), nf2, 1);
-				c[i].real() = randm11();
-				c[i].imag() = randm11();
+			{
+				printf("nonuniform case\n");
+				for (int i = 0; i < M; i++) {
+					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*rand01()/(nf2*2/32), nf2, 1);
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
 			}
-		}
-		break;
+			break;
 	}
 	cudaEvent_t start, stop;
 	float milliseconds;
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
 
 #ifdef INFO
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
-	
-        int fw_width;
-        FLT *d_kx,*d_ky;
-        gpuComplex *d_c,*d_fw;
 
-        cudaEventRecord(start);
-        ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, fw, &d_fw, x, &d_kx,
-                                    y, &d_ky, c, &d_c);
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-        cudaEventElapsedTime(&milliseconds, start, stop);
+	int fw_width;
+	FLT *d_kx,*d_ky;
+	gpuComplex *d_c,*d_fw;
+
+	cudaEventRecord(start);
+	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, fw, &d_fw, x, &d_kx,
+			y, &d_ky, c, &d_c);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 
-        cudaEventRecord(start);
-        ier = cnufft_copycpumem_to_gpumem(nf1, nf2, M, fw_width, fw, d_fw, x, d_kx,
-                                          y, d_ky, c, d_c);
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-        cudaEventElapsedTime(&milliseconds, start, stop);
+	cudaEventRecord(start);
+	ier = cnufft_copycpumem_to_gpumem(nf1, nf2, M, fw_width, fw, d_fw, x, d_kx,
+			y, d_ky, c, d_c);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 
 	switch(method)
 	{
 		case 1:
-		{
-        		cudaEventRecord(start);
-			ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
-			if(ier != 0 ){
-				cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
-				return 0;
+			{
+				cudaEventRecord(start);
+				ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+				if(ier != 0 ){
+					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
+					return 0;
+				}
 			}
-		}
-		break;
+			break;
 		case 2:
-		{
-			opts.bin_size_x=16;
-			opts.bin_size_y=16;
-        		cudaEventRecord(start);
-			ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
-		}
-		break;
+			{
+				opts.bin_size_x=16;
+				opts.bin_size_y=16;
+				cudaEventRecord(start);
+				ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+			}
+			break;
 		case 3:
-		{
-			opts.bin_size_x=4;
-			opts.bin_size_y=4;
-			if(nf1 % opts.bin_size_x != 0 || nf2 % opts.bin_size_y !=0){
-				cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
-				return 0;
+			{
+				opts.bin_size_x=4;
+				opts.bin_size_y=4;
+				if(nf1 % opts.bin_size_x != 0 || nf2 % opts.bin_size_y !=0){
+					cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
+					return 0;
+				}
+				cudaEventRecord(start);
+				ier = cnufftspread2d_gpu_odriven(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+				if(ier != 0 ){
+					cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
+					return 0;
+				}
 			}
-        		cudaEventRecord(start);
-			ier = cnufftspread2d_gpu_odriven(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
-			if(ier != 0 ){
-				cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
-				return 0;
-			}
-		}
-		break;	
+			break;	
 		case 4:
-		{
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
-        		cudaEventRecord(start);
-			ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
-			if(ier != 0 ){
-				cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
-				return 0;
+			{
+				opts.bin_size_x=32;
+				opts.bin_size_y=32;
+				cudaEventRecord(start);
+				ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+				if(ier != 0 ){
+					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
+					return 0;
+				}
 			}
-		}
-		break;	
+			break;	
 		case 5:
-		{
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
-        		cudaEventRecord(start);
-			ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
-			if(ier != 0 ){
-				cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
-				return 0;
+			{
+				opts.bin_size_x=32;
+				opts.bin_size_y=32;
+				cudaEventRecord(start);
+				ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+				if(ier != 0 ){
+					cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
+					return 0;
+				}
 			}
-		}
-		break;
+			break;
 		default:
 			cout<<"error: incorrect method, should be 1,2,3 or 4"<<endl;
 			return 0;
 	}
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-        cudaEventElapsedTime(&milliseconds, start, stop);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
 
-        cudaEventRecord(start);
-        ier = cnufft_copygpumem_to_cpumem(nf1, nf2, M, fw_width, fw, d_fw, x, d_kx,
-                                          y, d_ky, c, d_c);
-        cudaEventRecord(stop);
-        cudaEventSynchronize(stop);
-        cudaEventElapsedTime(&milliseconds, start, stop);
+	cudaEventRecord(start);
+	ier = cnufft_copygpumem_to_cpumem(nf1, nf2, M, fw_width, fw, d_fw, x, d_kx,
+			y, d_ky, c, d_c);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 
-        cnufft_free_gpumemory(d_fw, d_kx, d_ky, d_c);
+	cudaEventRecord(start);
+	cnufft_free_gpumemory(d_fw, d_kx, d_ky, d_c);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
 
 #ifdef RESULT
 	switch(method)

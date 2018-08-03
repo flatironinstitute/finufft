@@ -45,7 +45,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_EX fftwf_execute
   #define FFTW_DE fftwf_destroy_plan
   #define FFTW_FR fftwf_free
-  #define gpuComplex cuFLoatComplex
+  #define gpuComplex cuFloatComplex
 #else
   // machine epsilon for rounding
   #define EPSILON (double)1.1e-16
