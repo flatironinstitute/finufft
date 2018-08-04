@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 	FLT ticdriven=timer.elapsedsec();
 	printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
-	
+#if 0	
 	/* -------------------------------------- */
 	// Method 3: Output driven                //
 	/* -------------------------------------- */
@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
 		printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,todriven,M/todriven);
 	}
-
+#endif
 	/* -------------------------------------- */
 	// Method 4: Hybrid                       //
 	/* -------------------------------------- */
@@ -210,10 +210,12 @@ int main(int argc, char* argv[])
 	printf("|| fwi  - fwfinufft ||_2 / || fwi  ||_2 =  %.6g\n", err);
 	err=relerrtwonorm(nf1*nf2,fwic,fwfinufft);
 	printf("|| fwic - fwfinufft ||_2 / || fwic ||_2 =  %.6g\n", err);
+#if 0
 	if(nupts_distribute == 1){
 		err=relerrtwonorm(nf1*nf2,fwo,fwfinufft);
 		printf("|| fwo  - fwfinufft ||_2 / || fwo  ||_2 =  %.6g\n", err);
 	}
+#endif
 	err=relerrtwonorm(nf1*nf2,fwh,fwfinufft);
 	printf("|| fwh  - fwfinufft ||_2 / || fwh  ||_2 =  %.6g\n", err);
 	err=relerrtwonorm(nf1*nf2,fws,fwfinufft);
