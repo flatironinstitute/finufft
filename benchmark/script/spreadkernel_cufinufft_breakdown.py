@@ -18,7 +18,8 @@ def main():
 	t_gpuspread_1 = np.zeros([len(N_totry),2])
 	t_gpuspread_2 = np.zeros([len(N_totry),7])
 	t_gpuspread_3 = np.zeros([len(N_totry),7])
-	t_gpuspread_4 = np.zeros([len(N_totry),7])
+	t_gpuspread_4 = np.zeros([len(N_totry),8])
+	t_gpuspread_5 = np.zeros([len(N_totry),8])
 	for i,N in enumerate(N_totry):
 		M = int((N/2.0)*(N/2.0))
 		# Method 1
@@ -73,22 +74,41 @@ def main():
                 #        t+= float(find_between(output, "Spread", "ms"))
 		#t_gpuspread_3[i] = t/reps
 
-		# Method 4
-		t = np.zeros(7)
+		# Method 5
+		t = np.zeros(8)
+		indirect=0
 		for n in range(reps):
-                        output=subprocess.check_output(["./compare",'4',str(nupts_distr),str(N),str(N)], \
-                                            cwd="../../").decode("utf-8")
+                        output=subprocess.check_output(["./compare",'5',str(nupts_distr),str(N),str(N),str(M), \
+                                                         '1e-6',str(indirect)], cwd="../../").decode("utf-8")
                         t[0]+= float(find_between(output, "array", "ms"))
                         t[1]+= float(find_between(output, "CalcBinSize_noghost_2d", "ms"))
                         t[2]+= float(find_between(output, "BinStartPts_2d", "ms"))
                         t[3]+= float(find_between(output, "PtsRearrange_noghost_2d", "ms"))
-                        t[4]+= float(find_between(output, "Spread_2d_Hybrid", "ms"))
-                        t[5]+= float(find_between(output, "GPU-memory", "ms"))
-                        t[6]+= float(find_between(output, "Spread\t\t", "ms"))
-		for k in range(7):
+			t[4]+= float(find_between(output, "map", "ms"))
+                        t[5]+= float(find_between(output, "Spread_2d_Subprob", "ms"))
+                        t[6]+= float(find_between(output, "GPU-memory", "ms"))
+                        t[7]+= float(find_between(output, "Spread\t\t", "ms"))
+		for k in range(8):
 			t_gpuspread_4[i,k] = t[k]/reps
 		t_gpuspread_4[i,-1] -= sum(t_gpuspread_4[i,:-1])
 	
+		# Method 5
+		t = np.zeros(8)
+		indirect=1
+		for n in range(reps):
+                        output=subprocess.check_output(["./compare",'5',str(nupts_distr),str(N),str(N),str(M), \
+                                                         '1e-6',str(indirect)], cwd="../../").decode("utf-8")
+                        t[0]+= float(find_between(output, "array", "ms"))
+                        t[1]+= float(find_between(output, "CalcBinSize_noghost_2d", "ms"))
+                        t[2]+= float(find_between(output, "BinStartPts_2d", "ms"))
+                        t[3]+= float(find_between(output, "CalcInvertofGlobalSortIdx_2d", "ms"))
+			t[4]+= float(find_between(output, "map", "ms"))
+                        t[5]+= float(find_between(output, "Spread_2d_Subprob_V2", "ms"))
+                        t[6]+= float(find_between(output, "GPU-memory", "ms"))
+                        t[7]+= float(find_between(output, "Spread\t\t", "ms"))
+		for k in range(8):
+			t_gpuspread_5[i,k] = t[k]/reps
+		t_gpuspread_5[i,-1] -= sum(t_gpuspread_5[i,:-1])
 	# Output result
 	print("Method 1: input driven without sort")
 	for i,N in enumerate(N_totry):
@@ -123,10 +143,10 @@ def main():
 	#		print('\t{:5.3g}'.format(t_gpuspread_3[i,k]))
 	#print("\n")
 
-	print("Method 4: hybrid")
+	print("Method 5: Subprob")
 	for i,N in enumerate(N_totry):
 		print('N={:5d}'.format(N))
-		for k in range(7):
+		for k in range(8):
 			print('k={:d}\t{:5.3g}'.format(k, t_gpuspread_4[i,k]))
 		#print('CUDA malloc      \t{:5.3g}'.format(t_gpuspread_4[i,0]))
 		#print('Calculate Binsize\t{:5.3g}'.format(t_gpuspread_4[i,1]))
@@ -135,6 +155,11 @@ def main():
 		#print('Spread           \t{:5.3g}'.format(t_gpuspread_4[i,4]))
 		#print('CUDA Free        \t{:5.3g}'.format(t_gpuspread_4[i,5]))
 		#print('Other            \t{:5.3g}'.format(t_gpuspread_4[i,6]))
+	print("Method 5: Subprob with indirect access of array")
+	for i,N in enumerate(N_totry):
+		print('N={:5d}'.format(N))
+		for k in range(8):
+			print('k={:d}\t{:5.3g}'.format(k, t_gpuspread_5[i,k]))
   
 if __name__== "__main__":
   main()
