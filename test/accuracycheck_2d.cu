@@ -30,6 +30,7 @@ int main(int argc, char* argv[])
 	M = N1*N2;// let density always be 1
 	if(argc>4){
 		sscanf(argv[4],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
+		if(M==0) M=N1*N2;
 	}
 
 	FLT tol=1e-6;
