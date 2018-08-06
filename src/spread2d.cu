@@ -391,7 +391,7 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
 }
 
 __global__
-void Spread_2d_Subprob_V2(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
 		          int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
 		          int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin, 
 		          int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,

@@ -56,6 +56,7 @@ int main(int argc, char* argv[])
 	opts.maxsubprobsize=1000;
 	opts.pirange=0;
 
+	spread_devicemem dmem;
 	cout<<scientific<<setprecision(3);
 	int ier;
 
@@ -134,7 +135,7 @@ int main(int argc, char* argv[])
 	/* -------------------------------------- */
 	timer.restart();
 	opts.method=1;
-	ier = cnufftspread2d_gpu(nf1, nf2, fwi, M, x, y, c, opts);
+	ier = cnufftspread2d_gpu(nf1, nf2, fwi, M, x, y, c, opts, &dmem);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
 		return 0;
@@ -163,7 +164,7 @@ int main(int argc, char* argv[])
 	opts.method=2;
 	opts.bin_size_x=16;
 	opts.bin_size_y=16;
-	ier = cnufftspread2d_gpu(nf1, nf2, fwic, M, x, y, c, opts);
+	ier = cnufftspread2d_gpu(nf1, nf2, fwic, M, x, y, c, opts, &dmem);
 	FLT ticdriven=timer.elapsedsec();
 	printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
@@ -174,7 +175,7 @@ int main(int argc, char* argv[])
 	opts.method=4;
 	opts.bin_size_x=32;
 	opts.bin_size_y=32;
-	ier = cnufftspread2d_gpu(nf1, nf2, fwh, M, x, y, c, opts);
+	ier = cnufftspread2d_gpu(nf1, nf2, fwh, M, x, y, c, opts, &dmem);
 	FLT thybrid=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
@@ -190,7 +191,7 @@ int main(int argc, char* argv[])
 	opts.method=5;
 	opts.bin_size_x=32;
 	opts.bin_size_y=32;
-	ier = cnufftspread2d_gpu(nf1, nf2, fws, M, x, y, c, opts);
+	ier = cnufftspread2d_gpu(nf1, nf2, fws, M, x, y, c, opts, &dmem);
 	FLT tsubprob=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_subprob"<<endl;

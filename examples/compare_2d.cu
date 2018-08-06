@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
 	opts.pirange=0;
 	opts.maxsubprobsize=1000;
 
+	spread_devicemem dmem;
 	cout<<scientific<<setprecision(3);
 	int ier;
 
@@ -109,20 +110,16 @@ int main(int argc, char* argv[])
 #endif
 
 	int fw_width;
-	FLT *d_kx,*d_ky;
-	gpuComplex *d_c,*d_fw;
 
 	cudaEventRecord(start);
-	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, fw, &d_fw, x, &d_kx,
-			y, &d_ky, c, &d_c);
+	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = cnufft_copycpumem_to_gpumem(nf1, nf2, M, fw_width, fw, d_fw, x, d_kx,
-			y, d_ky, c, d_c);
+	ier = cnufft_copycpumem_to_gpumem(M, x, y, c, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -133,7 +130,7 @@ int main(int argc, char* argv[])
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+				ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, M, opts, &dmem);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
 					return 0;
@@ -145,7 +142,7 @@ int main(int argc, char* argv[])
 				opts.bin_size_x=16;
 				opts.bin_size_y=16;
 				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+				ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, M, opts, &dmem);
 			}
 			break;
 		case 4:
@@ -153,7 +150,7 @@ int main(int argc, char* argv[])
 				opts.bin_size_x=32;
 				opts.bin_size_y=32;
 				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+				ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, M, opts, &dmem);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
 					return 0;
@@ -165,7 +162,7 @@ int main(int argc, char* argv[])
 				opts.bin_size_x=32;
 				opts.bin_size_y=32;
 				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
+				ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, M, opts, &dmem);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
 					return 0;
@@ -182,15 +179,14 @@ int main(int argc, char* argv[])
 	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = cnufft_copygpumem_to_cpumem(nf1, nf2, M, fw_width, fw, d_fw, x, d_kx,
-			y, d_ky, c, d_c);
+	ier = cnufft_copygpumem_to_cpumem(nf1, nf2, fw_width, fw, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	cnufft_free_gpumemory(d_fw, d_kx, d_ky, d_c);
+	cnufft_free_gpumemory(&dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

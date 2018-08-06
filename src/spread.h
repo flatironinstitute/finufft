@@ -37,6 +37,25 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int nthread_y;
 };
 
+struct spread_devicemem {
+  FLT *kx;
+  FLT *ky;
+  gpuComplex *c;
+  gpuComplex *fw;
+  
+  FLT *kxsorted;
+  FLT *kysorted;
+  gpuComplex *csorted;
+
+  int *sortidx;
+  int *binsize;
+  int *binstartpts;
+  int *numsubprob;
+  int *subprob_to_bin;
+
+  void *temp_storage;
+};
+
 //Kernels for 1D codes
 __global__
 void CalcBinSize_1d(int M, int nf1, int  bin_size_x, int nbinx,
@@ -94,7 +113,7 @@ __global__
 void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, int* d_numsubprob,
                         int numbins);
 __global__
-void Spread_2d_Subprob_V2(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
                           int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
                           int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
                           int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
@@ -102,26 +121,20 @@ void Spread_2d_Subprob_V2(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, 
 
 
 int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                       FLT *h_ky, CPX* h_c, spread_opts opts);
-int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
-                               FLT *d_ky, gpuComplex *d_c, spread_opts opts);
-int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, 
-                                      FLT *d_kx,FLT *d_ky, gpuComplex* d_c, spread_opts opts);
-int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
-                              FLT *d_ky, gpuComplex *d_c, spread_opts opts);
-int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
-                               FLT *d_ky, gpuComplex *d_c, spread_opts opts);
+                       FLT *h_ky, CPX* h_c, spread_opts opts, spread_devicemem *dmem);
+int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
+                               spread_devicemem *d_mem);
+int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+                               spread_devicemem *d_mem);
+int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+                               spread_devicemem *d_mem);
+int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+                               spread_devicemem *d_mem);
 int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
                               FLT *d_ky, gpuComplex *d_c, spread_opts opts, int binx, int biny);
 
-int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, CPX* h_fw, gpuComplex** d_fw,
-                          FLT *h_kx, FLT **d_kx, FLT* h_ky, FLT** d_ky,
-                          CPX *h_c, gpuComplex **d_c);
-int cnufft_copycpumem_to_gpumem(int nf1, int nf2, int M, int fw_width, CPX* h_fw, gpuComplex* d_fw,
-                                FLT *h_kx, FLT *d_kx, FLT* h_ky, FLT* d_ky,
-                                CPX *h_c, gpuComplex *d_c);
-int cnufft_copygpumem_to_cpumem(int nf1, int nf2, int M, int fw_width, CPX* h_fw, gpuComplex* d_fw,
-                                FLT *h_kx, FLT *d_kx, FLT* h_ky, FLT* d_ky,
-                                CPX *h_c, gpuComplex *d_c);
-void cnufft_free_gpumemory(gpuComplex* d_fw, FLT *d_kx, FLT* d_ky, gpuComplex *d_c);
+int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_devicemem *d_mem);
+int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, spread_devicemem *d_mem);
+int cnufft_copygpumem_to_cpumem(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem);
+void cnufft_free_gpumemory(spread_devicemem *d_mem);
 #endif

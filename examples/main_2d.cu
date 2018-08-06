@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
 	opts.pirange=0;
 	opts.maxsubprobsize=1000;
 
+	spread_devicemem dmem;
 	cout<<scientific<<setprecision(3);
 	int ier;
 
@@ -121,7 +122,7 @@ int main(int argc, char* argv[])
 	}
 
 	timer.restart();
-	ier = cnufftspread2d_gpu(nf1, nf2, fw, M, x, y, c, opts);
+	ier = cnufftspread2d_gpu(nf1, nf2, fw, M, x, y, c, opts, &dmem);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d"<<endl;
 		return 0;
