@@ -14,15 +14,12 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [nupts_dis [nf1 nf2 [M [tol [indirect]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [nupts_dis [nf1 nf2 [M [tol]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
-		fprintf(stderr,"method 3: output driven\n");
 		fprintf(stderr,"method 4: hybrid\n");
 		fprintf(stderr,"method 5: subprob\n");
-		fprintf(stderr,"Note --\n");
-		fprintf(stderr,"indirect only effects medthod 5\n");
 		return 1;
 	}  
 	double w;
@@ -48,10 +45,6 @@ int main(int argc, char* argv[])
 	}
 
 	int Horner=0;
-	int indirect=0;
-	if(argc>7){
-		sscanf(argv[7],"%d",&indirect);
-	}
 
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
@@ -70,7 +63,6 @@ int main(int argc, char* argv[])
 	opts.method=method;
 	opts.pirange=0;
 	opts.maxsubprobsize=1000;
-	opts.indirect=indirect;
 
 	cout<<scientific<<setprecision(3);
 	int ier;

@@ -491,47 +491,6 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 #endif
 
 	cudaEventRecord(start);
-#if 0
-	int n=numbins[0]*numbins[1];
-	int scanblocksize=1024;
-	int numscanblocks=ceil((double)n/scanblocksize);
-	int* d_scanblocksum, *d_scanblockstartpts;
-#ifdef DEBUG
-	printf("[debug ] n=%d, numscanblocks=%d\n",n,numscanblocks);
-#endif 
-	checkCudaErrors(cudaMalloc(&d_scanblocksum,numscanblocks*sizeof(int)));
-	checkCudaErrors(cudaMalloc(&d_scanblockstartpts,(numscanblocks+1)*sizeof(int)));
-
-	for(int i=0;i<numscanblocks;i++){
-		int nelemtoscan=(n-scanblocksize*i)>scanblocksize ? scanblocksize : n-scanblocksize*i;
-		prescan<<<1, scanblocksize/2>>>(nelemtoscan,d_binsize+i*scanblocksize,
-				d_binstartpts+i*scanblocksize,d_scanblocksum+i);
-	}
-#ifdef DEBUG
-	int* h_scanblocksum;
-	h_scanblocksum     =(int*) malloc(numscanblocks*sizeof(int));
-	checkCudaErrors(cudaMemcpy(h_scanblocksum,d_scanblocksum,numscanblocks*sizeof(int),
-				cudaMemcpyDeviceToHost));
-	for(int i=0;i<numscanblocks;i++){
-		cout<<"[debug ] scanblocksum["<<i<<"]="<<h_scanblocksum[i]<<endl;
-	}
-#endif
-	int next = pow(2, ceil(log(numscanblocks+1)/log(2)));
-	if(next > 2048){
-		cout<<"error: number of elements to sort exceed the prescan capability"<<endl;
-		return 1;
-	}
-	prescan<<<1, next/2>>>(numscanblocks,d_scanblocksum,d_scanblockstartpts,d_scanblockstartpts+numscanblocks);
-#ifdef DEBUG
-	int* h_scanblockstartpts = (int*) malloc((numscanblocks+1)*sizeof(int));
-	checkCudaErrors(cudaMemcpy(h_scanblockstartpts,d_scanblockstartpts,(numscanblocks+1)*sizeof(int),
-				cudaMemcpyDeviceToHost));
-	for(int i=0;i<numscanblocks+1;i++){
-		cout<<"[debug ] scanblockstartpts["<<i<<"]="<<h_scanblockstartpts[i]<<endl;
-	}
-#endif
-	uniformUpdate<<<numscanblocks,scanblocksize>>>(n,d_binstartpts,d_scanblockstartpts);
-#endif
 	int n=numbins[0]*numbins[1];
 	void *d_temp_storage = NULL;
 	size_t temp_storage_bytes = 0;
@@ -671,19 +630,11 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
 	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
-	FLT *d_kxsorted,*d_kysorted;
-	gpuComplex *d_csorted;
 	int* d_idxnupts;
 
 
 	cudaEventRecord(start);
-	if(!opts.indirect){
-		checkCudaErrors(cudaMalloc(&d_kxsorted,M*sizeof(FLT)));
-		checkCudaErrors(cudaMalloc(&d_kysorted,M*sizeof(FLT)));
-		checkCudaErrors(cudaMalloc(&d_csorted,M*sizeof(gpuComplex)));
-	}else{
-		checkCudaErrors(cudaMalloc(&d_idxnupts,M*sizeof(int)));
-	}
+	checkCudaErrors(cudaMalloc(&d_idxnupts,M*sizeof(int)));
 	checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
 	checkCudaErrors(cudaMalloc(&d_numsubprob,  numbins[0]*numbins[1]*sizeof(int)));
 	checkCudaErrors(cudaMalloc(&d_binsize,     numbins[0]*numbins[1]*sizeof(int)));
@@ -758,59 +709,25 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
 
-	if(!opts.indirect){
-		cudaEventRecord(start);
-		PtsRearrage_noghost_2d<<<(M+1024-1)/1024,1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
-				numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
-				d_ky, d_kysorted, d_c, d_csorted);
-#ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel PtsRearrange_noghost_2d \t\t%.3g ms\n", milliseconds);
-#endif
+	cudaEventRecord(start);
+	CalcInvertofGlobalSortIdx_2d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,bin_size_y,numbins[0],
+			numbins[1],d_binstartpts,d_sortidx,
+			d_kx,d_ky,d_idxnupts);
 #ifdef DEBUG
-		FLT *h_kxsorted, *h_kysorted;
-		CPX *h_csorted;
-		h_kxsorted = (FLT*)malloc(M*sizeof(FLT));
-		h_kysorted = (FLT*)malloc(M*sizeof(FLT));
-		h_csorted  = (CPX*)malloc(M*sizeof(CPX));
-		checkCudaErrors(cudaMemcpy(h_kxsorted,d_kxsorted,M*sizeof(FLT),
-					cudaMemcpyDeviceToHost));
-		checkCudaErrors(cudaMemcpy(h_kysorted,d_kysorted,M*sizeof(FLT),
-					cudaMemcpyDeviceToHost));
-		checkCudaErrors(cudaMemcpy(h_csorted,d_csorted,M*sizeof(CPX),
-					cudaMemcpyDeviceToHost));
-		for (int i=0; i<10; i++){
-			cout <<"[debug ] (x,y) = ("<<setw(10)<<h_kxsorted[i]<<","
-				<<setw(10)<<h_kysorted[i]<<"), bin# =  "
-				<<(floor(h_kxsorted[i]/bin_size_x))+numbins[0]*(floor(h_kysorted[i]/bin_size_y))<<endl;
-		}
-		free(h_kysorted);
-		free(h_kxsorted);
-		free(h_csorted);
-#endif
-	}else{
-		cudaEventRecord(start);
-		CalcInvertofGlobalSortIdx_2d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,bin_size_y,numbins[0],
-				numbins[1],d_binstartpts,d_sortidx,
-				d_kx,d_ky,d_idxnupts);
-#ifdef DEBUG
-		int *h_idxnupts;
-		h_idxnupts = (int*)malloc(M*sizeof(int));
-		checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,M*sizeof(int),cudaMemcpyDeviceToHost));
-		for (int i=0; i<M; i++){
-			cout <<"[debug ] idx="<< h_idxnupts[i]<<endl;
-		}
-		free(h_idxnupts);
-#endif
-#ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel CalcInvertofGlobalSortIdx_2d \t%.3g ms\n", milliseconds);
-#endif
+	int *h_idxnupts;
+	h_idxnupts = (int*)malloc(M*sizeof(int));
+	checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,M*sizeof(int),cudaMemcpyDeviceToHost));
+	for (int i=0; i<M; i++){
+		cout <<"[debug ] idx="<< h_idxnupts[i]<<endl;
 	}
+	free(h_idxnupts);
+#endif
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel CalcInvertofGlobalSortIdx_2d \t%.3g ms\n", milliseconds);
+#endif
 
 	/* --------------------------------------------- */
 	//        Determining Subproblem properties      //
@@ -890,38 +807,20 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 		return 1;
 	}
 
-	if(!opts.indirect){
-		// blockSize must be a multiple of bin_size_x
-		Spread_2d_Subprob<<<totalnumsubprob, 256, sharedmemorysize>>>(d_kxsorted, d_kysorted, d_csorted, 
-				d_fw, M, ns, nf1, nf2, 
-				es_c, es_beta, fw_width, 
-				d_binstartpts, d_binsize, 
-				bin_size_x, bin_size_y,
-				d_subprob_to_bin, d_subprobstartpts, 
-				d_numsubprob, maxsubprobsize, 
-				numbins[0], numbins[1]);
+	Spread_2d_Subprob_V2<<<totalnumsubprob, 256, sharedmemorysize>>>(d_kx, d_ky, d_c,
+			d_fw, M, ns, nf1, nf2,
+			es_c, es_beta, fw_width,
+			d_binstartpts, d_binsize,
+			bin_size_x, bin_size_y,
+			d_subprob_to_bin, d_subprobstartpts,
+			d_numsubprob, maxsubprobsize,
+			numbins[0], numbins[1], d_idxnupts);
 #ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel Spread_2d_Subprob \t\t%.3g ms\n", milliseconds);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel Spread_2d_Subprob_V2 \t\t%.3g ms\n", milliseconds);
 #endif
-	}else{
-		Spread_2d_Subprob_V2<<<totalnumsubprob, 256, sharedmemorysize>>>(d_kx, d_ky, d_c,
-				d_fw, M, ns, nf1, nf2,
-				es_c, es_beta, fw_width,
-				d_binstartpts, d_binsize,
-				bin_size_x, bin_size_y,
-				d_subprob_to_bin, d_subprobstartpts,
-				d_numsubprob, maxsubprobsize,
-				numbins[0], numbins[1], d_idxnupts);
-#ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel Spread_2d_Subprob_V2 \t\t%.3g ms\n", milliseconds);
-#endif
-	}
 	cudaEventRecord(start);
 	// Free memory
 	cudaFree(d_temp_storage);
@@ -931,13 +830,7 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, gpuComplex* d_fw,
 	cudaFree(d_numsubprob);
 	cudaFree(d_subprobstartpts);
 	cudaFree(d_subprob_to_bin);
-	if(!opts.indirect){
-		cudaFree(d_kxsorted);
-		cudaFree(d_kysorted);
-		cudaFree(d_csorted);
-	}else{
-		cudaFree(d_idxnupts);
-	}
+	cudaFree(d_idxnupts);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

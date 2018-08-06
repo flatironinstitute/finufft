@@ -60,7 +60,6 @@ int main(int argc, char* argv[])
 	opts.Horner=0;
 	opts.pirange=0;
 	opts.maxsubprobsize=1000;
-	opts.indirect=0;
 
 	cout<<scientific<<setprecision(3);
 	int ier;

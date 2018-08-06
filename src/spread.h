@@ -35,7 +35,6 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int maxsubprobsize;
   int nthread_x;
   int nthread_y;
-  int indirect;
 };
 
 //Kernels for 1D codes
@@ -59,32 +58,18 @@ void Spread_1d(int nbin_block_x, int nbinx, int *bin_startpts,
 
 //Kernels for 2D codes
 __global__
-void CalcBinSize_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
+void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
                     int nbiny, int* bin_size, FLT *x, FLT *y, int* sortidx);
 __global__
-void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
-                            int nbiny, int* bin_size, FLT *x, FLT *y, int* sortidx);
-__global__
-void FillGhostBin_2d(int nbinx, int nbiny, int*bin_size);
-__global__
-void BinsStartPts_2d(int M, int totalnumbins, int* bin_size, int* bin_startpts);
-__global__
-void prescan(int n, int* bin_size, int* bin_startpts, int* scanblock_sum);
-__global__
 void uniformUpdate(int n, int* data, int* buffer);
-
-__global__
-void PtsRearrage_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                    int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
-                    FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted);
-__global__
-void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                            int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
-                            FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted);
 __global__
 void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbinx,
                                   int nbiny, int* bin_startpts, int* sortidx,
                                   FLT *x, FLT *y, int* index);
+__global__
+void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
+                int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
+                FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted);
 __global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
                        FLT *x_sorted, FLT *y_sorted, gpuComplex *c_sorted, gpuComplex *fw, int ns,
@@ -104,23 +89,10 @@ void Spread_2d_Simple(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int bin_size,
                       int bin_size_x, int bin_size_y, int binx, int biny);
 __global__
-void CreateSortIdx (int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx);
-__global__ 
-void CreateIndex(int* index, int nelem);
-__global__
-void Gather(int nelem, int* index, FLT* x, FLT* y, gpuComplex* c,
-           FLT* xsorted, FLT* ysorted, gpuComplex* csorted);
-__global__
 void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
 __global__
 void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, int* d_numsubprob,
                         int numbins);
-__global__
-void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
-                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
-                       int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-                       int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny);
-
 __global__
 void Spread_2d_Subprob_V2(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
                           int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
