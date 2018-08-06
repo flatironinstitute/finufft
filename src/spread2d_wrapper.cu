@@ -39,19 +39,10 @@ int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, CPX* h_fw, gpu
 
 				int *d_binsize;
 				int *d_binstartpts;
-				// following variables are used when bin_sort=0
-				int *d_sortedidx;
-				int *d_index_out, *d_index_in;
-				if(opts.bin_sort){
-					numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
-					numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
-					checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
-					checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1])*sizeof(int)));
-				}else{
-					checkCudaErrors(cudaMalloc(&d_sortedidx,M*sizeof(int)));
-					checkCudaErrors(cudaMalloc(&d_index_in,M*sizeof(int)));
-					checkCudaErrors(cudaMalloc(&d_index_out,M*sizeof(int)));
-				}
+				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
+				numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
+				checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1])*sizeof(int)));
 			}
 			break;
 		case 4:
@@ -75,7 +66,7 @@ int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, CPX* h_fw, gpu
 			break;
 		case 5:
 			{
-				
+
 			}
 			break;
 	}
@@ -335,18 +326,11 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 	FLT *d_kxsorted,*d_kysorted;
 	gpuComplex *d_csorted;
 
-	// following variables are used when bin_sort=1
 	int bin_size_x=opts.bin_size_x;
 	int bin_size_y=opts.bin_size_y;
 	int numbins[2];
 	int *d_binsize;
 	int *d_binstartpts;
-
-	// following variables are used when bin_sort=0
-	int *d_sortedidx;
-	int *d_index_out, *d_index_in;
-
-	// following variables are used both in bin_sort=0 and 1 case
 	int *d_sortidx;
 	void*d_temp_storage=NULL;
 
@@ -355,16 +339,10 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 	checkCudaErrors(cudaMalloc(&d_kysorted,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_csorted,M*sizeof(gpuComplex)));
 	checkCudaErrors(cudaMalloc(&d_sortidx,M*sizeof(int)));
-	if(opts.bin_sort){
-		numbins[0] = ceil((FLT) nf1/bin_size_x);
-		numbins[1] = ceil((FLT) nf2/bin_size_y);
-		checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
-		checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1])*sizeof(int)));
-	}else{
-		checkCudaErrors(cudaMalloc(&d_sortedidx,M*sizeof(int)));
-		checkCudaErrors(cudaMalloc(&d_index_in,M*sizeof(int)));
-		checkCudaErrors(cudaMalloc(&d_index_out,M*sizeof(int)));
-	}
+	numbins[0] = ceil((FLT) nf1/bin_size_x);
+	numbins[1] = ceil((FLT) nf2/bin_size_y);
+	checkCudaErrors(cudaMalloc(&d_binsize,numbins[0]*numbins[1]*sizeof(int)));
+	checkCudaErrors(cudaMalloc(&d_binstartpts,(numbins[0]*numbins[1])*sizeof(int)));
 
 #ifdef SPREADTIME
 	float milliseconds = 0;
@@ -373,114 +351,48 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tAllocating GPU memory for sorted array \t%.3g ms\n", milliseconds);
 #endif
-	if(opts.bin_sort){
-		cudaEventRecord(start);
-		checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
-		CalcBinSize_noghost_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
-				numbins[0],numbins[1],d_binsize,
-				d_kx,d_ky,d_sortidx);
+	cudaEventRecord(start);
+	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
+	CalcBinSize_noghost_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
+			numbins[0],numbins[1],d_binsize,
+			d_kx,d_ky,d_sortidx);
 #ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n", milliseconds);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n", milliseconds);
 #endif
-		cudaEventRecord(start);
-		int n=numbins[0]*numbins[1];
-		size_t temp_storage_bytes = 0;
-		CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_binsize, d_binstartpts, n));
-		checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
-		CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, d_binsize, d_binstartpts+1, n));
+	cudaEventRecord(start);
+	int n=numbins[0]*numbins[1];
+	size_t temp_storage_bytes = 0;
+	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_binsize, d_binstartpts, n));
+	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
+	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, d_binsize, d_binstartpts+1, n));
 #ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel BinStartPts_2d \t\t\t%.3g ms\n", milliseconds);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel BinStartPts_2d \t\t\t%.3g ms\n", milliseconds);
 #endif
-		cudaEventRecord(start);
-		PtsRearrage_noghost_2d<<<(M+1024-1)/1024,1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
-				numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
-				d_ky, d_kysorted, d_c, d_csorted);
+	cudaEventRecord(start);
+	PtsRearrage_noghost_2d<<<(M+1024-1)/1024,1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
+			numbins[1], d_binstartpts, d_sortidx, d_kx, d_kxsorted,
+			d_ky, d_kysorted, d_c, d_csorted);
 #ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel PtsRearrange_noghost_2d \t\t%.3g ms\n", milliseconds);
-#endif
-	}else{
-		cudaEventRecord(start);
-		threadsPerBlock.x = 1024;
-		threadsPerBlock.y = 1;
-		blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
-		blocks.y = 1;
-		CreateSortIdx<<<blocks, threadsPerBlock>>>(M, nf1, nf2, d_kx, d_ky, d_sortidx);
-#ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tCreateSortIdx \t\t\t\t%.3g ms\n", milliseconds);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel PtsRearrange_noghost_2d \t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
-		FLT *h_kx, *h_ky;
-		CPX *h_c;
-		h_kx = (FLT*) malloc(M*sizeof(FLT)); 
-		h_ky = (FLT*) malloc(M*sizeof(FLT));
-		h_c = (CPX*) malloc(M*sizeof(CPX));
-		checkCudaErrors(cudaMemcpy(h_kx, d_kx, M*sizeof(FLT), cudaMemcpyDeviceToHost));
-		checkCudaErrors(cudaMemcpy(h_ky, d_ky, M*sizeof(FLT), cudaMemcpyDeviceToHost));
-		checkCudaErrors(cudaMemcpy(h_c, d_c, M*sizeof(CPX), cudaMemcpyDeviceToHost));
-		int* h_sortidx = (int*) malloc(M*sizeof(int));
-		checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
-		for(int i=0; i<M; i++){
-			printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], 
-					h_ky[i], h_c[i].real(), 
-					h_c[i].imag());
-		}
-		free(h_sortidx);
-#endif 
-		cudaEventRecord(start);
-		size_t  temp_storage_bytes  = 0;
-
-		threadsPerBlock.x = 1024;
-		threadsPerBlock.y = 1;
-		blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
-		blocks.y = 1;
-		CreateIndex<<<blocks, threadsPerBlock>>>(d_index_in, M);
-		cudaEventRecord(start);
-		cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_sortidx, 
-				d_sortedidx, d_index_in, d_index_out, M);
-		checkCudaErrors(cudaMalloc(&d_temp_storage,temp_storage_bytes));
-		cub::DeviceRadixSort::SortPairs(d_temp_storage, temp_storage_bytes, d_sortidx, 
-				d_sortedidx, d_index_in, d_index_out, M);
-
-#ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tCUB::SortPairs \t\t\t\t%.3g ms\n", milliseconds);
-#endif
-		cudaEventRecord(start);
-		threadsPerBlock.x = 1024;
-		threadsPerBlock.y = 1;
-		blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
-		blocks.y = 1;
-		Gather<<<blocks, threadsPerBlock>>>(M, d_index_out, d_kx, d_ky, d_c, d_kxsorted, d_kysorted, d_csorted);
-#ifdef SPREADTIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel (Gather) PtsRearrage \t\t%.3g ms\n", milliseconds);
-#endif
-#ifdef DEBUG
-		checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
-		checkCudaErrors(cudaMemcpy(h_kx,d_kxsorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
-		checkCudaErrors(cudaMemcpy(h_ky,d_kysorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
-		checkCudaErrors(cudaMemcpy(h_c,d_csorted,M*sizeof(gpuComplex),cudaMemcpyDeviceToHost));
-		for(int i=0; i<M; i++){
-			printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
-		}
-#endif 
+	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_kx,d_kxsorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_ky,d_kysorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_c,d_csorted,M*sizeof(gpuComplex),cudaMemcpyDeviceToHost));
+	for(int i=0; i<M; i++){
+		printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
 	}
+#endif 
 	cudaEventRecord(start);
 	threadsPerBlock.x = 16;
 	threadsPerBlock.y = 1;
@@ -500,16 +412,9 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex
 	cudaFree(d_kysorted);
 	cudaFree(d_csorted);
 	cudaFree(d_sortidx);
-	if(opts.bin_sort){
-		cudaFree(d_binsize);
-		cudaFree(d_binstartpts);
-		cudaFree(d_temp_storage);
-	}else{
-		cudaFree(d_sortedidx);
-		cudaFree(d_index_in);
-		cudaFree(d_index_out);
-		cudaFree(d_temp_storage);
-	}
+	cudaFree(d_binsize);
+	cudaFree(d_binstartpts);
+	cudaFree(d_temp_storage);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

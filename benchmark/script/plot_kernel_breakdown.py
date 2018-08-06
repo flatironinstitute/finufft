@@ -60,79 +60,69 @@ def main():
 	w=0.5
 	fig, ax = plt.subplots(2,3,figsize=(30,10))
 	for nn in range(len(N)):
-		t_now=0
 		i=nn/3
 		j=nn%3
-		ax[i,j].bar(x[0],t_methods[nn,0,0],width=w,color='darkblue',label='1,2,3-Spread')
-		t_now+=t_methods[nn,0,0]
-		ax[i,j].bar(x[0],t_methods[nn,0,1],w,bottom=t_now,color='crimson',label='1,2,3-Other')
+
+		#Method1
+		m=0
+		t_now=0
+		ax[i,j].bar(x[m],t_methods[nn,m,0],width=w,color='darkblue',label='1,2,3-Spread')
+		t_now+=t_methods[nn,m,0]
+		ax[i,j].bar(x[m],t_methods[nn,m,1],w,bottom=t_now,color='crimson',label='1,2,3-Other')
 	
 		#Method2
+		m=m+1
 		t_now=0
-		ax[i,j].bar(x[1],t_methods[nn,1,4],w,bottom=t_now,color='darkblue')
-		t_now+=t_methods[nn,1,4]
-		ax[i,j].bar(x[1],t_methods[nn,1,1],w,bottom=t_now,color='slateblue',label='2-Create SortIdx; 3-Calculate Binsize')
-		t_now+=t_methods[nn,1,1]
-		ax[i,j].bar(x[1],t_methods[nn,1,2],w,t_now,color='blueviolet',label='2-Sort; 3-Scan Binsizearray')
-		t_now+=t_methods[nn,1,2]
-		ax[i,j].bar(x[1],t_methods[nn,1,3],w,t_now,color='violet',label='2,3-Pts Rearrange; 4,5-CalcInvofGlobalSortIdx')
-		t_now+=t_methods[nn,1,3]
-		ax[i,j].bar(x[1],t_methods[nn,1,0],w,t_now,color='fuchsia',label='2,3-CUDA malloc')
-		t_now+=t_methods[nn,1,0]
-		ax[i,j].bar(x[1],t_methods[nn,1,5],w,t_now,color='deeppink',label='2,3-CUDA Free')
-		t_now+=t_methods[nn,1,5]
-		ax[i,j].bar(x[1],t_methods[nn,1,6],w,t_now,color='crimson')
-		
-		#Method3
-		t_now=0
-		ax[i,j].bar(x[2],t_methods[nn,2,4],w,bottom=t_now,color='darkblue')
-		t_now+=t_methods[nn,2,4]
-		ax[i,j].bar(x[2],t_methods[nn,2,1],w,bottom=t_now,color='slateblue')
-		t_now+=t_methods[nn,2,1]
-		ax[i,j].bar(x[2],t_methods[nn,2,2],w,t_now,color='blueviolet')
-		t_now+=t_methods[nn,2,2]
-		ax[i,j].bar(x[2],t_methods[nn,2,3],w,t_now,color='violet')
-		t_now+=t_methods[nn,2,3]
-		ax[i,j].bar(x[2],t_methods[nn,2,0],w,t_now,color='fuchsia')
-		t_now+=t_methods[nn,2,0]
-		ax[i,j].bar(x[2],t_methods[nn,2,5],w,t_now,color='deeppink')
-		t_now+=t_methods[nn,2,5]
-		ax[i,j].bar(x[2],t_methods[nn,2,6],w,t_now,color='crimson')
+		ax[i,j].bar(x[m],t_methods[nn,m,4],w,bottom=t_now,color='darkblue')
+		t_now+=t_methods[nn,m,4]
+		ax[i,j].bar(x[m],t_methods[nn,m,1],w,bottom=t_now,color='slateblue',label='2-Create SortIdx; 3-Calculate Binsize')
+		t_now+=t_methods[nn,m,1]
+		ax[i,j].bar(x[m],t_methods[nn,m,2],w,t_now,color='blueviolet',label='2-Sort; 3-Scan Binsizearray')
+		t_now+=t_methods[nn,m,2]
+		ax[i,j].bar(x[m],t_methods[nn,m,3],w,t_now,color='violet',label='2,3-Pts Rearrange; 4,5-CalcInvofGlobalSortIdx')
+		t_now+=t_methods[nn,m,3]
+		ax[i,j].bar(x[m],t_methods[nn,m,0],w,t_now,color='fuchsia',label='2,3-CUDA malloc')
+		t_now+=t_methods[nn,m,0]
+		ax[i,j].bar(x[m],t_methods[nn,m,5],w,t_now,color='deeppink',label='2,3-CUDA Free')
+		t_now+=t_methods[nn,m,5]
+		ax[i,j].bar(x[m],t_methods[nn,m,6],w,t_now,color='crimson')
 
 		#Method4
+		m=m+2
 		t_now=0
-		ax[i,j].bar(x[3],t_methods[nn,3,5],w,bottom=t_now,color='darkblue')
-		t_now+=t_methods[nn,3,5]
-		ax[i,j].bar(x[3],t_methods[nn,3,1],w,bottom=t_now,color='slateblue')
-		t_now+=t_methods[nn,3,1]
-		ax[i,j].bar(x[3],t_methods[nn,3,2],w,t_now,color='blueviolet')
-		t_now+=t_methods[nn,3,2]
-		ax[i,j].bar(x[3],t_methods[nn,3,3],w,t_now,color='violet')
-		t_now+=t_methods[nn,3,3]
-		ax[i,j].bar(x[3],t_methods[nn,3,4],w,t_now,color='hotpink',label='Subproblem to Bin map')
-		t_now+=t_methods[nn,3,4]
-		ax[i,j].bar(x[3],t_methods[nn,3,0],w,t_now,color='fuchsia')
-		t_now+=t_methods[nn,3,0]
-		ax[i,j].bar(x[3],t_methods[nn,3,6],w,t_now,color='deeppink')
-		t_now+=t_methods[nn,3,6]
-		ax[i,j].bar(x[3],t_methods[nn,3,7],w,t_now,color='crimson')
+		ax[i,j].bar(x[m],t_methods[nn,m,5],w,bottom=t_now,color='darkblue')
+		t_now+=t_methods[nn,m,5]
+		ax[i,j].bar(x[m],t_methods[nn,m,1],w,bottom=t_now,color='slateblue')
+		t_now+=t_methods[nn,m,1]
+		ax[i,j].bar(x[m],t_methods[nn,m,2],w,t_now,color='blueviolet')
+		t_now+=t_methods[nn,m,2]
+		ax[i,j].bar(x[m],t_methods[nn,m,3],w,t_now,color='violet')
+		t_now+=t_methods[nn,m,3]
+		ax[i,j].bar(x[m],t_methods[nn,m,4],w,t_now,color='hotpink',label='Subproblem to Bin map')
+		t_now+=t_methods[nn,m,4]
+		ax[i,j].bar(x[m],t_methods[nn,m,0],w,t_now,color='fuchsia')
+		t_now+=t_methods[nn,m,0]
+		ax[i,j].bar(x[m],t_methods[nn,m,6],w,t_now,color='deeppink')
+		t_now+=t_methods[nn,m,6]
+		ax[i,j].bar(x[m],t_methods[nn,m,7],w,t_now,color='crimson')
 		
+		m=m+1
 		t_now=0
-		ax[i,j].bar(x[4],t_methods[nn,4,5],w,bottom=t_now,color='darkblue')
-		t_now+=t_methods[nn,4,5]
-		ax[i,j].bar(x[4],t_methods[nn,4,1],w,bottom=t_now,color='slateblue')
-		t_now+=t_methods[nn,4,1]
-		ax[i,j].bar(x[4],t_methods[nn,4,2],w,t_now,color='blueviolet')
-		t_now+=t_methods[nn,4,2]
-		ax[i,j].bar(x[4],t_methods[nn,4,3],w,t_now,color='violet')
-		t_now+=t_methods[nn,4,3]
-		ax[i,j].bar(x[4],t_methods[nn,4,4],w,t_now,color='hotpink')
-		t_now+=t_methods[nn,4,4]
-		ax[i,j].bar(x[4],t_methods[nn,4,0],w,t_now,color='fuchsia')
-		t_now+=t_methods[nn,4,0]
-		ax[i,j].bar(x[4],t_methods[nn,4,6],w,t_now,color='deeppink')
-		t_now+=t_methods[nn,4,6]
-		ax[i,j].bar(x[4],t_methods[nn,4,7],w,t_now,color='crimson')
+		ax[i,j].bar(x[m],t_methods[nn,m,5],w,bottom=t_now,color='darkblue')
+		t_now+=t_methods[nn,m,5]
+		ax[i,j].bar(x[m],t_methods[nn,m,1],w,bottom=t_now,color='slateblue')
+		t_now+=t_methods[nn,m,1]
+		ax[i,j].bar(x[m],t_methods[nn,m,2],w,t_now,color='blueviolet')
+		t_now+=t_methods[nn,m,2]
+		ax[i,j].bar(x[m],t_methods[nn,m,3],w,t_now,color='violet')
+		t_now+=t_methods[nn,m,3]
+		ax[i,j].bar(x[m],t_methods[nn,m,4],w,t_now,color='hotpink')
+		t_now+=t_methods[nn,m,4]
+		ax[i,j].bar(x[m],t_methods[nn,m,0],w,t_now,color='fuchsia')
+		t_now+=t_methods[nn,m,0]
+		ax[i,j].bar(x[m],t_methods[nn,m,6],w,t_now,color='deeppink')
+		t_now+=t_methods[nn,m,6]
+		ax[i,j].bar(x[m],t_methods[nn,m,7],w,t_now,color='crimson')
 
 		ax[i,j].set_xticks(np.array(x)+0.5*w)
 		ax[i,j].set_xlim([x[0]-0.5*w,x[-1]+1.5*w])
@@ -145,7 +135,7 @@ def main():
 	handles, labels = ax[-1,-2].get_legend_handles_labels()
 	fig.legend(handles, labels, loc='upper center', ncol=4)
 
-	plt.savefig('../timebreakdown_gpu_nonuniform_0804.pdf')
+	#plt.savefig('../timebreakdown_gpu_nonuniform_0804.pdf')
 	plt.show()
 if __name__== "__main__":
   main()

@@ -35,10 +35,9 @@ def main():
 		
 		# Method 2
 		t = np.zeros(7)
-		bin_sort=0
 		for n in range(reps):
                         output=subprocess.check_output(["./compare",'2',str(nupts_distr),str(N),str(N),str(M), \
-                                                         '1e-6', '0', str(bin_sort)], cwd="../../").decode("utf-8")
+                                                         '1e-6', '0'], cwd="../../").decode("utf-8")
                         t[0]+= float(find_between(output, "array", "ms"))
                         t[1]+= float(find_between(output, "CreateSortIdx", "ms"))
                         t[2]+= float(find_between(output, "CUB::SortPairs", "ms"))
@@ -49,23 +48,6 @@ def main():
 		for k in range(7):
 			t_gpuspread_2[i,k] = t[k]/reps
 		t_gpuspread_2[i,-1] -= sum(t_gpuspread_2[i,:-1])
-
-		# Method 2 //bin_sort
-		t = np.zeros(7)
-		bin_sort=1
-		for n in range(reps):
-                        output=subprocess.check_output(["./compare",'2',str(nupts_distr),str(N),str(N),str(M), \
-                                                         '1e-6', '0', str(bin_sort)], cwd="../../").decode("utf-8")
-                        t[0]+= float(find_between(output, "array", "ms"))
-                        t[1]+= float(find_between(output, "CalcBinSize_noghost_2d", "ms"))
-                        t[2]+= float(find_between(output, "BinStartPts_2d", "ms"))
-                        t[3]+= float(find_between(output, "PtsRearrange_noghost_2d", "ms"))
-                        t[4]+= float(find_between(output, "Spread_2d_Idriven", "ms"))
-                        t[5]+= float(find_between(output, "GPU-memory", "ms"))
-                        t[6]+= float(find_between(output, "Spread\t\t", "ms"))
-		for k in range(7):
-			t_gpuspread_3[i,k] = t[k]/reps
-		t_gpuspread_3[i,-1] -= sum(t_gpuspread_3[i,:-1])
 		# Method 3
 		#t = 0
 		#for n in range(reps):
@@ -118,7 +100,7 @@ def main():
 		#print('Spread           \t{:5.3g}'.format(t_gpuspread_1[i,0]))
 		#print('Other            \t{:5.3g}'.format(t_gpuspread_1[i,1]))
 
-	print("Method 2: input driven with sort")
+	print("Method 2: input driven with binsort")
 	for i,N in enumerate(N_totry):
 		print('N={:5d}'.format(N))
 		for k in range(7):
@@ -130,18 +112,6 @@ def main():
 		#print('Spread           \t{:5.3g}'.format(t_gpuspread_2[i,4]))
 		#print('CUDA Free        \t{:5.3g}'.format(t_gpuspread_2[i,5]))
 		#print('Other            \t{:5.3g}'.format(t_gpuspread_2[i,6]))
-
-	print("Method 2: input driven with binsort")
-	for i,N in enumerate(N_totry):
-		print('N={:5d}'.format(N))
-		for k in range(7):
-			print('k={:d}\t{:5.3g}'.format(k, t_gpuspread_3[i,k]))
-	#print("Method 3: output driven")
-	#for i,N in enumerate(N_totry):
-	#	print('N={:5d}'.format(N))
-	#	for k in range(8):
-	#		print('\t{:5.3g}'.format(t_gpuspread_3[i,k]))
-	#print("\n")
 
 	print("Method 5: Subprob")
 	for i,N in enumerate(N_totry):
