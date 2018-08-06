@@ -42,9 +42,15 @@ int main(int argc, char* argv[])
 	spread_opts opts;
 	opts.nspread=ns;
 	opts.upsampfac=2.0;
-	opts.ES_beta= 2.30 * (FLT)ns;
-	opts.ES_c=4.0/(ns*ns);
-	opts.ES_halfwidth=(FLT)ns/2;
+	opts.ES_c=4.0/(FLT)(ns*ns);
+	opts.ES_halfwidth=(FLT)ns/2.0;
+	
+	FLT betaoverns=2.30;
+	if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
+	if (ns==3) betaoverns = 2.26;
+	if (ns==4) betaoverns = 2.38;
+	opts.ES_beta= betaoverns * (FLT)ns;
+
 	opts.Horner=0;
 	opts.maxsubprobsize=1000;
 	opts.pirange=0;
@@ -66,30 +72,50 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fwh,       nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fws,       nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fwfinufft, nf1*nf2*sizeof(CPX));
-
-        switch(nupts_distribute){
-                // Making data
-                case 1: //uniform
-                {
-                        for (int i = 0; i < M; i++) {
-                                x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
-                                y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-                                c[i].real() = randm11();
-                                c[i].imag() = randm11();
-                        }
-                }
-                break;
-                case 2: // concentrate on a small region
-                {
-                        for (int i = 0; i < M; i++) {
-                                x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
-                                y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
-                                c[i].real() = randm11();
-                                c[i].imag() = randm11();
-                        }
-                }
-                break;
-        }
+#if 0
+	// spread a single source, only for reference accuracy check...
+	opts.spread_direction=1;
+	c[0].real() = 1.0; c[0].imag() = 0.0;   // unit strength
+	x[0] = y[0] = nf1/2.0;                  // at center
+	ier = cnufftspread(nf1,nf2,1,(FLT*) fwfinufft,1,x,y,NULL,(FLT*) c,opts);
+	if (ier!=0) {
+		printf("error when spreading M=1 pt for ref acc check (ier=%d)!\n",ier);
+		return ier;
+	}
+	FLT kersumre = 0.0, kersumim = 0.0;  // sum kernel on uniform grid
+	for (int i=0;i<nf1*nf2;++i) {
+		kersumre += fwfinufft[i].real();
+		kersumim += fwfinufft[i].imag();    // in case the kernel isn't real!
+	}
+#endif
+	FLT strre = 0.0, strim = 0.0;          // also sum the strengths
+	switch(nupts_distribute){
+		// Making data
+		case 1: //uniform
+			{
+				for (int i = 0; i < M; i++) {
+					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+					strre += c[i].real();
+					strim += c[i].imag();
+				}
+			}
+			break;
+		case 2: // concentrate on a small region
+			{
+				for (int i = 0; i < M; i++) {
+					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+					strre += c[i].real();
+					strim += c[i].imag();
+				}
+			}
+			break;
+	}
 
 	CNTime timer;
 	/*warm up gpu*/
@@ -117,9 +143,22 @@ int main(int argc, char* argv[])
 	FLT tidriven=timer.elapsedsec();
 	printf("[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,tidriven,M/tidriven);
-
+#if 0
+	FLT sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
+	for (int i=0;i<nf1*nf2;++i) {
+		sumre += fwi[i].real();
+		sumim += fwi[i].imag();
+	}
+	FLT pre = kersumre*strre - kersumim*strim;   // pred ans, complex mult
+	FLT pim = kersumim*strre + kersumre*strim;
+	FLT maxerr = std::max(fabs(sumre-pre), fabs(sumim-pim));
+	FLT ansmod = sqrt(sumre*sumre+sumim*sumim);
+	printf("    rel err in total over grid:      %.3g\n",maxerr/ansmod);
+	// note this is weaker than below dir=2 test, but is good indicator that
+	// periodic wrapping is correct
+#endif
 	/* -------------------------------------- */
-	// Method 2: Input driven with sorting    //
+	// Method 2: Input driven with bin sort   //
 	/* -------------------------------------- */
 	timer.restart();
 	opts.method=2;
@@ -145,7 +184,7 @@ int main(int argc, char* argv[])
 		}
 		FLT todriven=timer.elapsedsec();
 		printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-			M,N1,N2,nf1*nf2,todriven,M/todriven);
+				M,N1,N2,nf1*nf2,todriven,M/todriven);
 	}
 #endif
 	/* -------------------------------------- */
@@ -178,7 +217,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	printf("[subprob ] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-			 M,N1,N2,nf1*nf2,tsubprob,M/thybrid);
+			M,N1,N2,nf1*nf2,tsubprob,M/thybrid);
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
@@ -201,10 +240,10 @@ int main(int argc, char* argv[])
 		return ier;
 	}
 	printf("[finufft] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-		M,N1,N2,nf1*nf2,t,M/t);
-		//printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,2)*M/t);
+			M,N1,N2,nf1*nf2,t,M/t);
+	//printf("    %.3g NU pts in %.3g s \t%.3g pts/s \t%.3g spread pts/s\n",(double)M,t,M/t,pow(opts.nspread,2)*M/t);
 	/* ------------------------------------------------------------------------------------------------------*/
-	
+
 	cout<<endl;
 	FLT err=relerrtwonorm(nf1*nf2,fwi,fwfinufft);
 	printf("|| fwi  - fwfinufft ||_2 / || fwi  ||_2 =  %.6g\n", err);
@@ -223,20 +262,20 @@ int main(int argc, char* argv[])
 
 #ifdef RESULT
 	cout<<"[resultdiff]"<<endl;
-	FLT fwi_infnorm=infnorm(nf1*nf2, fwi);
+	FLT fwfinufft_infnorm=infnorm(nf1*nf2, fwfinufft);
 	int nn=0;
 	for(int j=0; j<nf2; j++){
 		for (int i=0; i<nf1; i++){
-			if( norm(fwi[i+j*nf1]-fwh[i+j*nf1])/fwi_infnorm > 1e-5 & nn<10){
-				cout<<norm(fwi[i+j*nf1]-fwh[i+j*nf1])/fwi_infnorm<<" ";
-				cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwh[i+j*nf1]<<endl;
+			if( norm(fwi[i+j*nf1]-fwfinufft[i+j*nf1])/fwfinufft_infnorm > 1e-5 & nn<10){
+				cout<<norm(fwi[i+j*nf1]-fwh[i+j*nf1])/fwfinufft_infnorm<<" ";
+				cout<<"(i,j)=("<<i<<","<<j<<"), "<<fwi[i+j*nf1] <<","<<fwfinufft[i+j*nf1]<<endl;
 				nn++;
 			}
 		}
 	}
 	cout<<endl;
 #endif
-#ifdef RESULT
+#if 0
 	cout<<"[result-hybrid]"<<endl;
 	for(int j=0; j<nf2; j++){
 		if( j % opts.bin_size_y == 0)
@@ -244,8 +283,8 @@ int main(int argc, char* argv[])
 		for (int i=0; i<nf1; i++){
 			if( i % opts.bin_size_x == 0 && i!=0)
 				printf(" |");
-			printf(" (%2.3g,%2.3g)",fwh[i+j*nf1].real(),fwh[i+j*nf1].imag() );
-			//cout<<" "<<setw(8)<<fwo[i+j*nf1];
+			printf(" (%2.3g,%2.3g)",fwi[i+j*nf1].real(),fwi[i+j*nf1].imag() );
+			//cout<<" "<<setw(8)<<fwfinufft[i+j*nf1];
 		}
 		cout<<endl;
 	}

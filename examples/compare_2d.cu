@@ -63,7 +63,13 @@ int main(int argc, char* argv[])
 	spread_opts opts;
 	opts.nspread=ns;
 	opts.upsampfac=2.0;
-	opts.ES_beta=2.30*(FLT)ns;
+
+	FLT betaoverns=2.30;
+	if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
+	if (ns==3) betaoverns = 2.26;
+	if (ns==4) betaoverns = 2.38;
+        opts.ES_beta= betaoverns * (FLT)ns;
+
 	opts.ES_c=4.0/(ns*ns);
 	opts.ES_halfwidth=(FLT)ns/2;
 	opts.Horner=Horner;
