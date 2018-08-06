@@ -22,11 +22,13 @@ def main():
 		for n in range(reps):
                         output=subprocess.check_output(["./cunfft_timing",str(N),str(N),str(M)], \
                                             cwd="../").decode("utf-8")
+                        t+= float(find_between(output, "HtoD", "ms"))
                         t+= float(find_between(output, "cnufft spread", "ms"))
+                        t+= float(find_between(output, "DtoH", "ms"))
 		t_cunfft_conv[i] = t/reps
 	
 	# Output result
-	print("cunfft_timing: kernel conv")
+	print("cunfft_timing: kernel conv+copyin+copyout")
 	for i,N in enumerate(N_totry):
 		print('N={:5d}, t= {:5.3e}'.format(N,t_cunfft_conv[i]))
   
