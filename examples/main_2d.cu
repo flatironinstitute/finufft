@@ -18,7 +18,6 @@ int main(int argc, char* argv[])
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
-		fprintf(stderr,"method 3: output driven\n");
 		fprintf(stderr,"method 4: hybrid\n");
 		fprintf(stderr,"method 5: subprob\n");
 		return 1;
@@ -116,12 +115,6 @@ int main(int argc, char* argv[])
 		opts.bin_size_y=16;
 	}
 
-	if(opts.method == 3)
-	{
-		opts.bin_size_x=4;
-		opts.bin_size_y=4;
-	}
-
 	if(opts.method == 4 || opts.method==5)
 	{
 		opts.bin_size_x=32;
@@ -140,9 +133,6 @@ int main(int argc, char* argv[])
 #ifdef RESULT
 	switch(method)
 	{
-		case 3:
-			opts.bin_size_x=4;
-			opts.bin_size_y=4;
 		case 4:
 			opts.bin_size_x=32;
 			opts.bin_size_y=32;

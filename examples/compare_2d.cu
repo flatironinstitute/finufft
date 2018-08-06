@@ -156,22 +156,6 @@ int main(int argc, char* argv[])
 				ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
 			}
 			break;
-		case 3:
-			{
-				opts.bin_size_x=4;
-				opts.bin_size_y=4;
-				if(nf1 % opts.bin_size_x != 0 || nf2 % opts.bin_size_y !=0){
-					cout << "error: mod(nf1,block_size_x) and mod(nf2,block_size_y) should be 0" << endl;
-					return 0;
-				}
-				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_odriven(nf1, nf2, fw_width, d_fw, M, d_kx, d_ky, d_c, opts);
-				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
-					return 0;
-				}
-			}
-			break;	
 		case 4:
 			{
 				opts.bin_size_x=32;
@@ -197,7 +181,7 @@ int main(int argc, char* argv[])
 			}
 			break;
 		default:
-			cout<<"error: incorrect method, should be 1,2,3 or 4"<<endl;
+			cout<<"error: incorrect method, should be 1,2,4 or 5"<<endl;
 			return 0;
 	}
 	cudaEventRecord(stop);
@@ -223,9 +207,6 @@ int main(int argc, char* argv[])
 #ifdef RESULT
 	switch(method)
 	{
-		case 3:
-			opts.bin_size_x=4;
-			opts.bin_size_y=4;
 		case 4:
 			opts.bin_size_x=32;
 			opts.bin_size_y=32;

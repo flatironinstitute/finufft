@@ -131,8 +131,6 @@ void Spread_2d_Subprob_V2(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, 
 
 int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                        FLT *h_ky, CPX* h_c, spread_opts opts);
-int cnufftspread2d_gpu_odriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
-                               FLT *d_ky, gpuComplex* d_c, spread_opts opts);
 int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
                                FLT *d_ky, gpuComplex *d_c, spread_opts opts);
 int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, 

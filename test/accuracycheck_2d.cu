@@ -168,25 +168,6 @@ int main(int argc, char* argv[])
 	FLT ticdriven=timer.elapsedsec();
 	printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
-#if 0	
-	/* -------------------------------------- */
-	// Method 3: Output driven                //
-	/* -------------------------------------- */
-	if(nupts_distribute == 1){
-		timer.restart();
-		opts.method=3;
-		opts.bin_size_x=4;
-		opts.bin_size_y=4;
-		ier = cnufftspread2d_gpu(nf1, nf2, fwo, M, x, y, c, opts);
-		if(ier != 0 ){
-			cout<<"error: cnufftspread2d_gpu_odriven"<<endl;
-			return 0;
-		}
-		FLT todriven=timer.elapsedsec();
-		printf("[odriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-				M,N1,N2,nf1*nf2,todriven,M/todriven);
-	}
-#endif
 	/* -------------------------------------- */
 	// Method 4: Hybrid                       //
 	/* -------------------------------------- */
