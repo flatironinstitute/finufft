@@ -52,6 +52,8 @@ struct spread_devicemem {
   int *binstartpts;
   int *numsubprob;
   int *subprob_to_bin;
+  int *idxnupts;
+  int *subprobstartpts;
 
   void *temp_storage;
 };
@@ -133,8 +135,8 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opt
 int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
                               FLT *d_ky, gpuComplex *d_c, spread_opts opts, int binx, int biny);
 
-int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_devicemem *d_mem);
+int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_opts opts, spread_devicemem *d_mem);
 int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, spread_devicemem *d_mem);
 int cnufft_copygpumem_to_cpumem(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem);
-void cnufft_free_gpumemory(spread_devicemem *d_mem);
+void cnufft_free_gpumemory(spread_opts opts, spread_devicemem *d_mem);
 #endif

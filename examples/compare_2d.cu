@@ -110,9 +110,30 @@ int main(int argc, char* argv[])
 #endif
 
 	int fw_width;
+	switch(opts.method)
+	{
+		case 2:
+		{
+			opts.bin_size_x=16;
+			opts.bin_size_y=16;
+		}
+		break;
+		case 4:
+		{
+			opts.bin_size_x=32;
+			opts.bin_size_y=32;
+		}
+		break;
+		case 5:
+		{
+			opts.bin_size_x=32;
+			opts.bin_size_y=32;
+		}
+		break;
+	}
 
 	cudaEventRecord(start);
-	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, &dmem);
+	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, opts, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -139,16 +160,12 @@ int main(int argc, char* argv[])
 			break;
 		case 2:
 			{
-				opts.bin_size_x=16;
-				opts.bin_size_y=16;
 				cudaEventRecord(start);
 				ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, M, opts, &dmem);
 			}
 			break;
 		case 4:
 			{
-				opts.bin_size_x=32;
-				opts.bin_size_y=32;
 				cudaEventRecord(start);
 				ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, M, opts, &dmem);
 				if(ier != 0 ){
@@ -159,8 +176,6 @@ int main(int argc, char* argv[])
 			break;	
 		case 5:
 			{
-				opts.bin_size_x=32;
-				opts.bin_size_y=32;
 				cudaEventRecord(start);
 				ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, M, opts, &dmem);
 				if(ier != 0 ){
@@ -186,7 +201,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	cnufft_free_gpumemory(&dmem);
+	cnufft_free_gpumemory(opts, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -195,6 +210,9 @@ int main(int argc, char* argv[])
 #ifdef RESULT
 	switch(method)
 	{
+		case 2:
+			opts.bin_size_x=16;
+			opts.bin_size_y=16;
 		case 4:
 			opts.bin_size_x=32;
 			opts.bin_size_y=32;
