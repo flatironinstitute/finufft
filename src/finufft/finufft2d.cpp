@@ -110,6 +110,7 @@ int finufft2d1_cpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	           FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
+  spread_devicemem dmem;
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;
@@ -131,11 +132,11 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
-  int nth = MY_OMP_GET_MAX_THREADS();
-  if (nth>1) {             // set up multithreaded fftw stuff...
-    FFTW_INIT();
-    FFTW_PLAN_TH(nth);
-  }
+  //int nth = MY_OMP_GET_MAX_THREADS();
+  //if (nth>1) {             // set up multithreaded fftw stuff...
+    //FFTW_INIT();
+    //FFTW_PLAN_TH(nth);
+  //}
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
@@ -148,10 +149,10 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   FLT *dummy;
 #if 1
   int ier_gpu = cufinufft2d(nj, xj, yj, (CPX*) cj, eps,
-                            iflag, nf1, nf2, (CPX*) fw, spopts);
+                            fftsign, nf1, nf2, (CPX*) fw, spopts, &dmem);
 #endif
 #if 0
-  int ier_spread = cnufftspread2d_gpu(nf1,nf2,(CPX*)fw,nj,xj,yj,(CPX*)cj,spopts);
+  int ier_spread = cnufftspread2d_gpu(nf1,nf2,(CPX*)fw,nj,xj,yj,(CPX*)cj,spopts,&dmem);
   if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
   if (ier_spread>0) return ier_spread;
 

@@ -62,5 +62,6 @@ void check(cufftResult_t err){
 #define checkCufftErrors(call)
 
 int cufinufft2d(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
-                int iflag, int N1, int N2, CPX* h_fw, spread_opts opts);
+                int iflag, int N1, int N2, CPX* h_fw, spread_opts opts, 
+		spread_devicemem *d_mem);
 #endif
