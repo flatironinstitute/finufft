@@ -13,6 +13,7 @@ def find_between( s, first, last ):
 def main():
 	reps=10
 	density = 1.0
+	tol=1e-14
 	N_totry = 2**np.arange(7,13)
 	t_nfft = np.zeros(len(N_totry))
 	for i,N in enumerate(N_totry):
@@ -21,7 +22,7 @@ def main():
 		N1 = int(N/2.0)
 		N2 = int(N/2.0)
 		for n in range(reps):
-			output=subprocess.check_output(["./nfft_simpletest",str(N1),str(N2),str(M)], \
+			output=subprocess.check_output(["./nfft_simpletest",str(N1),str(N2),str(M),str(tol)], \
                                             cwd="../").decode("utf-8")
 			t+= float(find_between(output, "Spread", "ms"))
 		t_nfft[i] = t/reps

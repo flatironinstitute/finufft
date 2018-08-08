@@ -12,14 +12,14 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	num_lines = sum(1 for line in open('../results/compare_cunfft_0731.out', 'r'))-1
+	num_lines = sum(1 for line in open('../results/spreadwidth/cufinfft_tol_1e-14.out', 'r'))-1
 	N = np.zeros(num_lines, dtype=int)
 	t_cunfft = np.zeros(num_lines)
 	t_nfft = np.zeros(num_lines)
 	t_cufinufft = np.zeros([1, num_lines])
 	t_finufft = np.zeros(num_lines)
 	#speedup = np.zeros([4, num_lines])
-	f = open('../results/compare_cunfft_0804.out', 'r')
+	f = open('../results/spreadwidth/cunfft_tol_1e-14.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 'N=', ',')
@@ -30,7 +30,7 @@ def main():
 			t_cunfft[i]=float(find_between(line, 't=', '\n'))
 			i=i+1
 
-	f = open('../results/compare_cufinufft_0804.out', 'r')
+	f = open('../results/spreadwidth/cufinfft_tol_1e-14.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -40,7 +40,7 @@ def main():
 			t_cufinufft[i/num_lines, i%num_lines]=float(temp)
 			i=i+1
 
-	f = open('../results/compare_finufft_0804.out', 'r')
+	f = open('../results/spreadwidth/finufft_tol_1e-14.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -50,7 +50,7 @@ def main():
 			t_finufft[i]=float(temp)
 			i=i+1
 
-	f = open('../results/compare_nfft_0804.out', 'r')
+	f = open('../results/spreadwidth/nfft_tol_1e-14.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -102,10 +102,10 @@ def main():
 		ax[i,j].grid()
 		ax[i,j].set_ylim(ymin=0.1)
 		#ax[i,j].set_ylim((0, 12))
-		#ax[i,j].set_title('T_cunfft/T_cufinufft')	
+		ax[i,j].set_title('Tolerance: 1e-14')	
 	handles, labels = ax[0,0].get_legend_handles_labels()
         fig.legend(handles, labels, loc='upper center', ncol=6)
-	plt.savefig('../time_all_includecopyinout_bar_0804.pdf')
+	plt.savefig('../spreadwidth/time_all_tol_1e-14.pdf')
 	plt.show()
 if __name__== "__main__":
   main()
