@@ -14,12 +14,13 @@ using namespace std;
 int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_opts opts, spread_devicemem *d_mem)
 {
 #if 1
+	d_mem->byte_now=0;
 	// No extra memory is needed in idriven method;
 	switch(opts.method)
 	{
 		case 2:
 			{
-				printf("%d, %d\n", opts.bin_size_x, opts.bin_size_y);
+				//int total_mem_in_bytes=
 				checkCudaErrors(cudaMalloc(&d_mem->kxsorted,M*sizeof(FLT)));
 				checkCudaErrors(cudaMalloc(&d_mem->kysorted,M*sizeof(FLT)));
 				checkCudaErrors(cudaMalloc(&d_mem->csorted,M*sizeof(gpuComplex)));
@@ -759,7 +760,7 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opt
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel Subproblem to Bin map\t\t%.3g ms\n", milliseconds);
 #endif
-
+	FLT sigma=opts.upsampfac;
 	cudaEventRecord(start);
 	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
 	if(sharedmemorysize > 49152){
@@ -769,7 +770,7 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opt
 
 	Spread_2d_Subprob<<<totalnumsubprob, 256, sharedmemorysize>>>(d_kx, d_ky, d_c,
 			d_fw, M, ns, nf1, nf2,
-			es_c, es_beta, fw_width,
+			es_c, es_beta, sigma, fw_width,
 			d_binstartpts, d_binsize,
 			bin_size_x, bin_size_y,
 			d_subprob_to_bin, d_subprobstartpts,

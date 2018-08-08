@@ -7,6 +7,8 @@
 
 using namespace std;
 
+#define maxns 16
+
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
 static __inline__ __device__ double atomicAdd(double* address, double val)
@@ -50,17 +52,14 @@ void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, const i
 	   Obsolete (replaced by Horner), but keep around for experimentation since
 	   works for arbitrary beta. Formula must match reference implementation. */
 {
-	FLT b = es_beta;
-	FLT c = es_c;
 	// Note (by Ludvig af K): Splitting kernel evaluation into two loops
 	// seems to benefit auto-vectorization.
 	// gcc 5.4 vectorizes first loop; gcc 7.2 vectorizes both loops
-	int Npad = N;
-	for (int i = 0; i < Npad; i++) { // Loop 1: Compute exponential arguments
-		ker[i] = b * sqrt(1.0 - c*(xstart+i)*(xstart+i));
+	for (int i = 0; i < N; i++) { // Loop 1: Compute exponential arguments
+		ker[i] = exp(es_beta * sqrt(1.0 - es_c*(xstart+i)*(xstart+i)));
 	}
-	for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
-		ker[i] = exp(ker[i]);
+	//for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
+		//ker[i] = exp(ker[i]);
 }
 
 static __inline__ __device__
@@ -392,7 +391,7 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
 
 __global__
 void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
-		          int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
+		          int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int fw_width, int* binstartpts,
 		          int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin, 
 		          int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts)
@@ -403,7 +402,7 @@ void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
 	int subpidx=blockIdx.x;
 	int bidx=subprob_to_bin[subpidx];
 	int binsubp_idx=subpidx-subprobstartpts[bidx];
-	int xx, yy, ix, iy;
+	int ix, iy;
 	int outidx;
 	int ptstart=binstartpts[bidx]+binsubp_idx*maxsubprobsize;
 	int nupts=min(maxsubprobsize, bin_size[bidx]-binsubp_idx*maxsubprobsize);
@@ -412,6 +411,8 @@ void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
 	int yoffset=(bidx / nbinx)*bin_size_y;
 
 	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0));
+	
+
 	for(int i=threadIdx.x; i<N; i+=blockDim.x){
 		fwshared[i].x = 0.0;
 		fwshared[i].y = 0.0;
@@ -428,17 +429,24 @@ void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
 
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
 		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
-		xend = floor(x_rescaled + ns/2.0)-xoffset;
-		yend = floor(y_rescaled + ns/2.0)-yoffset;
-
-		for(yy=ystart; yy<=yend; yy++){
+		xend   = floor(x_rescaled + ns/2.0)-xoffset;
+		yend   = floor(y_rescaled + ns/2.0)-yoffset;
+		/*
+		FLT ker1[maxns];
+		FLT x1=(FLT) xstart+xoffset-x_rescaled;
+        	for (int j = 0; j < ns; j++) { // Loop 1: Compute exponential arguments
+                	ker1[j] = j;
+        	}*/
+		//evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
+		for(int yy=ystart; yy<=yend; yy++){
 			FLT disy=abs(y_rescaled-(yy+yoffset));
 			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-			for(xx=xstart; xx<=xend; xx++){
+			for(int xx=xstart; xx<=xend; xx++){
 				ix = xx+ceil(ns/2.0);
 				iy = yy+ceil(ns/2.0);
 				outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
 				FLT disx=abs(x_rescaled-(xx+xoffset));
+				//FLT kervalue1 = ker1[xx-xstart];
 				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
 				atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
 				atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
