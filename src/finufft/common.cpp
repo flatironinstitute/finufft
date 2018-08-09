@@ -41,6 +41,7 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
   spopts.kerpad = opts.spread_kerpad; // (only applies to kerevalmeth=0)
   spopts.chkbnds = opts.chkbnds;
   spopts.pirange = 1;                 // could allow user control?
+  // following is for gpu
   spopts.method = 5;
   spopts.maxsubprobsize = 1000;
   spopts.Horner = 0;

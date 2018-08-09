@@ -14,7 +14,7 @@ using namespace std;
 
 int cnufft_copygpumem_to_cpumem_fk(int ms, int mt, CPX* h_fk, spread_devicemem *d_mem)
 {
-        checkCudaErrors(cudaMemcpy(h_fk,d_mem->fk,ms*mt*sizeof(gpuComplex),cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(h_fk,d_mem->fk,ms*mt*sizeof(CUCPX),cudaMemcpyDeviceToHost));
         return 0;
 }
 
@@ -77,20 +77,21 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 	int ndata=1;
 	int n[] = {nf2, nf1};
 	int inembed[] = {nf2, fw_width};
-#ifdef SINGLE
 	cufftPlanMany(&plan,2,n,inembed,1,inembed[0]*inembed[1],inembed,1,inembed[0]*inembed[1],
-			CUFFT_C2C,ndata);
-	cufftExecC2C(plan, d_mem->fw, d_mem->fw, iflag);
-#else
-	cufftPlanMany(&plan,2,n,inembed,1,inembed[0]*inembed[1],inembed,1,inembed[0]*inembed[1],
-			CUFFT_Z2Z,ndata);
-	cufftExecZ2Z(plan, d_mem->fw, d_mem->fw, iflag);
-#endif
+		      CUFFT_TYPE,ndata);
 #ifdef TIME
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&milliseconds, start, stop);
-        printf("[time  ] CUFFT\t\t\t %.3g s\n", milliseconds/1000);
+        printf("[time  ] CUFFT Plan\t\t %.3g s\n", milliseconds/1000);
+#endif
+	cudaEventRecord(start);
+	CUFFT_EX(plan, d_mem->fw, d_mem->fw, iflag);
+#ifdef TIME
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        printf("[time  ] CUFFT Exec\t\t %.3g s\n", milliseconds/1000);
 #endif
 	// Step 3: deconvolve and shuffle
 	cudaEventRecord(start);

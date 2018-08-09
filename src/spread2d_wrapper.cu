@@ -22,7 +22,7 @@ int cnufft_allocgpumemory(int ms, int mt, int nf1, int nf2, int M, int* fw_width
 				//int total_mem_in_bytes=
 				checkCudaErrors(cudaMalloc(&d_mem->kxsorted,M*sizeof(FLT)));
 				checkCudaErrors(cudaMalloc(&d_mem->kysorted,M*sizeof(FLT)));
-				checkCudaErrors(cudaMalloc(&d_mem->csorted,M*sizeof(gpuComplex)));
+				checkCudaErrors(cudaMalloc(&d_mem->csorted,M*sizeof(CUCPX)));
 				checkCudaErrors(cudaMalloc(&d_mem->sortidx,M*sizeof(int)));
 
 				int numbins[2];
@@ -36,7 +36,7 @@ int cnufft_allocgpumemory(int ms, int mt, int nf1, int nf2, int M, int* fw_width
 			{
 				checkCudaErrors(cudaMalloc(&d_mem->kxsorted,M*sizeof(FLT)));
 				checkCudaErrors(cudaMalloc(&d_mem->kysorted,M*sizeof(FLT)));
-				checkCudaErrors(cudaMalloc(&d_mem->csorted,M*sizeof(gpuComplex)));
+				checkCudaErrors(cudaMalloc(&d_mem->csorted,M*sizeof(CUCPX)));
 
 				int numbins[2];
 				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
@@ -62,15 +62,15 @@ int cnufft_allocgpumemory(int ms, int mt, int nf1, int nf2, int M, int* fw_width
 	}
 	checkCudaErrors(cudaMalloc(&d_mem->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_mem->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_mem->c,M*sizeof(gpuComplex)));
+	checkCudaErrors(cudaMalloc(&d_mem->c,M*sizeof(CUCPX)));
 
 	size_t pitch;
-	checkCudaErrors(cudaMallocPitch((void**) &d_mem->fw, &pitch,nf1*sizeof(gpuComplex),nf2));
-	*fw_width = pitch/sizeof(gpuComplex);
+	checkCudaErrors(cudaMallocPitch((void**) &d_mem->fw, &pitch,nf1*sizeof(CUCPX),nf2));
+	*fw_width = pitch/sizeof(CUCPX);
 
 	checkCudaErrors(cudaMalloc(&d_mem->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_mem->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_mem->fk,ms*mt*sizeof(gpuComplex)));
+	checkCudaErrors(cudaMalloc(&d_mem->fk,ms*mt*sizeof(CUCPX)));
 
 	return 0;
 }
@@ -80,7 +80,7 @@ int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, int nf1, 
 {
 	checkCudaErrors(cudaMemcpy(d_mem->kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_mem->ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_mem->c, h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_mem->c, h_c,M*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	if(h_fwkerhalf1 != NULL)
 		checkCudaErrors(cudaMemcpy(d_mem->fwkerhalf1,h_fwkerhalf1,(nf1/2+1)*sizeof(FLT),cudaMemcpyHostToDevice));
@@ -92,8 +92,8 @@ int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, int nf1, 
 
 int cnufft_copygpumem_to_cpumem_fw(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem)
 {
-	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_mem->fw,fw_width*sizeof(gpuComplex),
-				nf1*sizeof(gpuComplex),nf2,cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(CUCPX),d_mem->fw,fw_width*sizeof(CUCPX),
+				nf1*sizeof(CUCPX),nf2,cudaMemcpyDeviceToHost));
 
 	return 0;
 }
@@ -240,8 +240,8 @@ int cnufftspread2d_gpu(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	return ier;
 }
 
-int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
-		FLT *d_ky, gpuComplex *d_c, spread_opts opts, int binx, int biny)
+int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
+		FLT *d_ky, CUCPX *d_c, spread_opts opts, int binx, int biny)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -262,7 +262,7 @@ int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, gpuComplex* d_fw, 
 	threadsPerBlock.y = opts.nthread_y;
 	blocks.x = 1;
 	blocks.y = 1;
-	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
+	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
 	if(sharedmemorysize > 49152){
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
@@ -298,8 +298,8 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, int M, spread_opt
 
 	FLT* d_kx = d_mem->kx;
 	FLT* d_ky = d_mem->ky;
-	gpuComplex* d_c = d_mem->c;
-	gpuComplex* d_fw = d_mem->fw;
+	CUCPX* d_c = d_mem->c;
+	CUCPX* d_fw = d_mem->fw;
 
 	threadsPerBlock.x = 16;
 	threadsPerBlock.y = 1;
@@ -345,12 +345,12 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, int M, spr
 
 	FLT* d_kx = d_mem->kx;
 	FLT* d_ky = d_mem->ky;
-	gpuComplex* d_c = d_mem->c;
-	gpuComplex* d_fw = d_mem->fw;
+	CUCPX* d_c = d_mem->c;
+	CUCPX* d_fw = d_mem->fw;
 
 	FLT *d_kxsorted = d_mem->kxsorted;
 	FLT *d_kysorted = d_mem->kysorted;
-	gpuComplex *d_csorted = d_mem->csorted;
+	CUCPX *d_csorted = d_mem->csorted;
 
 	int *d_binsize = d_mem->binsize;
 	int *d_binstartpts = d_mem->binstartpts;
@@ -396,7 +396,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, int M, spr
 	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMemcpy(h_kx,d_kxsorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMemcpy(h_ky,d_kysorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy(h_c,d_csorted,M*sizeof(gpuComplex),cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_c,d_csorted,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 	for(int i=0; i<M; i++){
 		printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
 	}
@@ -443,8 +443,8 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts
 
 	FLT* d_kx = d_mem->kx;
 	FLT* d_ky = d_mem->ky;
-	gpuComplex* d_c = d_mem->c;
-	gpuComplex* d_fw = d_mem->fw;
+	CUCPX* d_c = d_mem->c;
+	CUCPX* d_fw = d_mem->fw;
 
 	int *d_binsize = d_mem->binsize;
 	int *d_binstartpts = d_mem->binstartpts;
@@ -453,7 +453,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts
 	// assume that bin_size_x > ns/2;
 	FLT *d_kxsorted = d_mem->kxsorted;
 	FLT *d_kysorted = d_mem->kysorted;
-	gpuComplex *d_csorted = d_mem->csorted;
+	CUCPX *d_csorted = d_mem->csorted;
 	d_mem->temp_storage = NULL;
 	void *d_temp_storage = d_mem->temp_storage;
 
@@ -558,7 +558,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts
 	threadsPerBlock.y = 16;
 	blocks.x = numbins[0];
 	blocks.y = numbins[1];
-	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
+	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
 	if(sharedmemorysize > 49152){
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
@@ -606,8 +606,8 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opt
 
 	FLT* d_kx = d_mem->kx;
 	FLT* d_ky = d_mem->ky;
-	gpuComplex* d_c = d_mem->c;
-	gpuComplex* d_fw = d_mem->fw;
+	CUCPX* d_c = d_mem->c;
+	CUCPX* d_fw = d_mem->fw;
 
 	int *d_binsize = d_mem->binsize;
 	int *d_binstartpts = d_mem->binstartpts;
@@ -772,7 +772,7 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opt
 #endif
 	FLT sigma=opts.upsampfac;
 	cudaEventRecord(start);
-	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(gpuComplex);
+	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
 	if(sharedmemorysize > 49152){
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;

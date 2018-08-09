@@ -45,7 +45,9 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_EX fftwf_execute
   #define FFTW_DE fftwf_destroy_plan
   #define FFTW_FR fftwf_free
-  #define gpuComplex cuFloatComplex
+  #define CUCPX cuFloatComplex
+  #define CUFFT_TYPE CUFFT_C2C
+  #define CUFFT_EX cufftExecC2C
 #else
   // machine epsilon for rounding
   #define EPSILON (double)1.1e-16
@@ -65,7 +67,9 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_EX fftw_execute
   #define FFTW_DE fftw_destroy_plan
   #define FFTW_FR fftw_free
-  #define gpuComplex cuDoubleComplex
+  #define CUCPX cuDoubleComplex
+  #define CUFFT_TYPE CUFFT_Z2Z
+  #define CUFFT_EX cufftExecZ2Z
 #endif
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.

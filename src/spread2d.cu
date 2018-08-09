@@ -77,7 +77,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double ups
 }
 
 __global__
-void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
 {
 	int xstart,ystart,xend,yend;
@@ -116,7 +116,7 @@ void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
 }
 
 __global__
-void Spread_2d_Idriven_Horner(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
 {
 	int xx, yy, ix, iy;
@@ -180,7 +180,7 @@ void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_si
 __global__
 void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
 		int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
-		FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted)
+		FLT *y, FLT *y_sorted, CUCPX *c, CUCPX *c_sorted)
 {
 	//int i = blockDim.x*blockIdx.x + threadIdx.x;
 	int binx, biny;
@@ -254,11 +254,11 @@ void CreateSortIdx(int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx)
 }
 
 __global__
-void Spread_2d_Simple(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		      int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int bin_size, 
                       int bin_size_x, int bin_size_y, int binx, int biny)
 {
-	extern __shared__ gpuComplex fwshared[];
+	extern __shared__ CUCPX fwshared[];
 
 	int xstart,ystart,xend,yend;
 	int xx, yy, ix, iy;
@@ -320,11 +320,11 @@ void Spread_2d_Simple(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
 }
 
 __global__
-void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y)
 {
-	extern __shared__ gpuComplex fwshared[];
+	extern __shared__ CUCPX fwshared[];
 
 	int xstart,ystart,xend,yend;
 	int bidx=blockIdx.x+blockIdx.y*gridDim.x;
@@ -389,13 +389,13 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, cons
 }
 
 __global__
-void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		          int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int fw_width, int* binstartpts,
 		          int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin, 
 		          int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts)
 {
-	extern __shared__ gpuComplex fwshared[];
+	extern __shared__ CUCPX fwshared[];
 
 	int xstart,ystart,xend,yend;
 	int subpidx=blockIdx.x;
@@ -419,7 +419,7 @@ void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, con
 	__syncthreads();
 
 	FLT x_rescaled, y_rescaled;
-	gpuComplex cnow;
+	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
 		x_rescaled = x[idxnupts[idx]];

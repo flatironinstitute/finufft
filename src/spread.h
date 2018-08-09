@@ -44,13 +44,13 @@ struct spread_devicemem {
 
   FLT *kx;
   FLT *ky;
-  gpuComplex *c;
-  gpuComplex *fw;
-  gpuComplex *fk;
+  CUCPX *c;
+  CUCPX *fw;
+  CUCPX *fk;
   
   FLT *kxsorted;
   FLT *kysorted;
-  gpuComplex *csorted;
+  CUCPX *csorted;
 
   int *sortidx;
   int *binsize;
@@ -95,23 +95,23 @@ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbi
 __global__
 void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
                 int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
-                FLT *y, FLT *y_sorted, gpuComplex *c, gpuComplex *c_sorted);
+                FLT *y, FLT *y_sorted, CUCPX *c, CUCPX *c_sorted);
 __global__
 void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, int *bin_startpts,
-                       FLT *x_sorted, FLT *y_sorted, gpuComplex *c_sorted, gpuComplex *fw, int ns,
+                       FLT *x_sorted, FLT *y_sorted, CUCPX *c_sorted, CUCPX *fw, int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
 __global__
-void Spread_2d_Idriven(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
 __global__
-void Spread_2d_Idriven_Horner(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                               int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
 __global__
-void Spread_2d_Hybrid(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
                       int* bin_size, int bin_size_x, int bin_size_y);
 __global__
-void Spread_2d_Simple(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int bin_size,
                       int bin_size_x, int bin_size_y, int binx, int biny);
 __global__
@@ -120,7 +120,7 @@ __global__
 void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, int* d_numsubprob,
                         int numbins);
 __global__
-void Spread_2d_Subprob(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
+void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                           int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int fw_width, int* binstartpts,
                           int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
                           int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
@@ -137,8 +137,8 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts
                                spread_devicemem *d_mem);
 int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts,
                                spread_devicemem *d_mem);
-int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, gpuComplex* d_fw, int M, FLT *d_kx,
-                              FLT *d_ky, gpuComplex *d_c, spread_opts opts, int binx, int biny);
+int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
+                              FLT *d_ky, CUCPX *d_c, spread_opts opts, int binx, int biny);
 
 int cnufft_allocgpumemory(int ms, int mt, int nf1, int nf2, int M, int* fw_width, spread_opts opts, spread_devicemem *d_mem);
 int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, int nf1, int nf2, FLT* h_fwkerhalf1, 

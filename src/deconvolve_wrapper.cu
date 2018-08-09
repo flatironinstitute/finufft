@@ -9,7 +9,7 @@
 using namespace std;
 
 __global__
-void Deconvolve_2d(int ms, int mt, int nf1, int nf2, int fw_width, gpuComplex* fw, gpuComplex *fk, 
+void Deconvolve_2d(int ms, int mt, int nf1, int nf2, int fw_width, CUCPX* fw, CUCPX *fk, 
                    FLT *fwkerhalf1, FLT *fwkerhalf2)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt; i+=blockDim.x*gridDim.x){
