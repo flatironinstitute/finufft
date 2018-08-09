@@ -61,9 +61,6 @@ finufft2d.o: src/finufft/finufft2d.cpp
 legendre_rule_fast.o: src/finufft/contrib/legendre_rule_fast.c
 	$(CC) -c $< -o $@ $(INC)
 
-#finufft2d_test.o: test/finufft2d_test.cpp
-#	$(CXX) -c $< $(CXXFLAGS) $(INC) -o $@
-
 finufft2d_test.o: test/finufft2d_test.cu
 	$(NVCC) -c $< $(NVCCFLAGS) $(INC) -o $@
 

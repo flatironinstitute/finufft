@@ -11,7 +11,7 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	nupts_distr=2
+	nupts_distr=1
 	reps=10
 	density = 1.0
 	tol=1e-6
@@ -62,6 +62,7 @@ def main():
                         t+= float(find_between(output, "Spread", "ms"))
                         t+= float(find_between(output, "DtoH", "ms"))
 		t_gpuspread_5[i] = t/reps
+		print('N={:5d}, t= {:5.3e}'.format(N,t_gpuspread_5[i]))
 
 	# Output result
 	"""
@@ -79,9 +80,9 @@ def main():
 	for i,N in enumerate(N_totry):
 		print('N={:5d}, t= {:5.3e}'.format(N,t_gpuspread_4[i]))
 	print("\n")
-  	"""
 	print("Method 5: subprob")
 	for i,N in enumerate(N_totry):
 		print('N={:5d}, t= {:5.3e}'.format(N,t_gpuspread_5[i]))
+  	"""
 if __name__== "__main__":
   main()
