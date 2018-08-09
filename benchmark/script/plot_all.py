@@ -2,6 +2,7 @@ import subprocess
 import numpy as np
 import re
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 
 def find_between( s, first, last ):
     try:
@@ -12,14 +13,14 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	num_lines = sum(1 for line in open('../results/spreadwidth/cufinfft_tol_1e-14.out', 'r'))-1
+	num_lines = sum(1 for line in open('../results/singleprec/cufinufft_single_0808.out', 'r'))-1
 	N = np.zeros(num_lines, dtype=int)
 	t_cunfft = np.zeros(num_lines)
 	t_nfft = np.zeros(num_lines)
 	t_cufinufft = np.zeros([1, num_lines])
 	t_finufft = np.zeros(num_lines)
 	#speedup = np.zeros([4, num_lines])
-	f = open('../results/spreadwidth/cunfft_tol_1e-14.out', 'r')
+	f = open('../results/singleprec/cunfft_single_0808.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 'N=', ',')
@@ -30,7 +31,7 @@ def main():
 			t_cunfft[i]=float(find_between(line, 't=', '\n'))
 			i=i+1
 
-	f = open('../results/spreadwidth/cufinfft_tol_1e-14.out', 'r')
+	f = open('../results/singleprec/cufinufft_single_0808.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -40,7 +41,7 @@ def main():
 			t_cufinufft[i/num_lines, i%num_lines]=float(temp)
 			i=i+1
 
-	f = open('../results/spreadwidth/finufft_tol_1e-14.out', 'r')
+	f = open('../results/singleprec/finufft_single_0808.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -50,7 +51,7 @@ def main():
 			t_finufft[i]=float(temp)
 			i=i+1
 
-	f = open('../results/spreadwidth/nfft_tol_1e-14.out', 'r')
+	f = open('../results/singleprec/nfft_single_0808.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -81,11 +82,17 @@ def main():
 	"""
 	x = 0.0
 	w = 0.02
-	fig, ax= plt.subplots(2,3,figsize=(30, 10))
+	fig, ax= plt.subplots(2,3,figsize=(60, 40))
 	for nn in range(len(N)):
 		i=nn/3
 		j=nn%3
 		M = (N[nn]/2.0)**2*1000
+		ax2 = ax[i,j].twinx()
+		xx = [x+0.5*w,x+1.5*w,x+2.5*w,x+3.5*w]
+		yy = [t_finufft[nn]/t_nfft[nn], 1.0, t_finufft[nn]/t_cunfft[nn], t_finufft[nn]/t_cufinufft[0,nn]]
+		ax2.plot(xx,yy,'-kx')
+		ax2.axhline(y=1, linestyle='--', color='r',label='finufft')
+
 		ax[i,j].bar(x, M/t_nfft[nn], w, color='darkblue',log=0, label='nfft')
 		ax[i,j].bar(x+w, M/t_finufft[nn], w, color='slateblue',log=0, label='finufft')
 		ax[i,j].bar(x+2*w, M/t_cunfft[nn], w, color='blueviolet',log=0, label='cunfft')
@@ -100,12 +107,19 @@ def main():
 		ax[i,j].set_ylabel('#NU pts/s')
 		ax[i,j].set_xlabel('N')
 		ax[i,j].grid()
-		ax[i,j].set_ylim(ymin=0.1)
+		#ax[i,j].set_ylim(ymin=0.1)
+		from matplotlib import ticker
+		formatter = ticker.ScalarFormatter()
+		formatter.set_scientific(True)
+		formatter.set_powerlimits((-1,1))
+		ax[i,j].yaxis.set_major_formatter(formatter)
+		#ax[i,j].yaxis.set_major_formatter(mtick.FormatStrFormatter('%.3g'))
 		#ax[i,j].set_ylim((0, 12))
-		ax[i,j].set_title('Tolerance: 1e-14')	
+	plt.tight_layout(rect=[0, 0.07, 1, 1], pad=10, w_pad=20.0, h_pad=15.0)
+	fig.suptitle('Single Precision, Tolerance = 1e-6')	
 	handles, labels = ax[0,0].get_legend_handles_labels()
-        fig.legend(handles, labels, loc='upper center', ncol=6)
-	plt.savefig('../spreadwidth/time_all_tol_1e-14.pdf')
+	fig.legend(handles, labels, loc='lower center', ncol=6)
+	plt.savefig('../singleprec/time_all_single_0808.pdf')
 	plt.show()
 if __name__== "__main__":
   main()

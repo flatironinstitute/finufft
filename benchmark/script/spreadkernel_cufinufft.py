@@ -14,7 +14,7 @@ def main():
 	nupts_distr=1
 	reps=10
 	density = 1.0
-	tol=1e-14
+	tol=1e-6
 	N_totry = 2**np.arange(7,13)
 	#t_gpuspread_1 = np.zeros(len(N_totry))
 	#t_gpuspread_2 = np.zeros(len(N_totry))

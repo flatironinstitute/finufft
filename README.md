@@ -13,7 +13,6 @@ This is an implementation of nufft spreader on GPU.
 ### Code dependency
  - sorting function in CUB library
  - scan in CUB library
- - sorting function in thurst
 
 ### To-do List
  - dir=2
@@ -42,3 +41,14 @@ This is an implementation of nufft spreader on GPU.
  - Benchmark the performance for spreader of finufft, nfft, cufinufft, cunfft
  - Kernel time breakdown of all the methods
  - Add subproblem idea to deal with clustered nupts
+#### 2018/08/03
+ - Always using bin_sort for input driven sorted algorithm
+ - Using indirect access of x,y,c, instead of creating an array to store sorted arrays
+#### 2018/08/06
+ - Performance for different kernel width
+ - Performance for single precision
+ - Performance for different ways of kernel evaluation
+ - Device memory mannaged by struct
+### 2018/08/07
+ - Using CUFFT for FFT
+ - Deconvolution on gpu with fwkerhalf1, fwkerhalf2 calculated on CPU

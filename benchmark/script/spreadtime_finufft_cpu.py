@@ -13,7 +13,7 @@ def find_between( s, first, last ):
 def main():
 	reps=10
 	density = 1.0
-	tol=1e-14
+	tol=1e-6
 	N_totry = 2**np.arange(7,13)
 	t_cpuspread = np.zeros(len(N_totry))
 	for i,N in enumerate(N_totry):
