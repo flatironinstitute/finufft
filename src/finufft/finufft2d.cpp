@@ -110,7 +110,7 @@ int finufft2d1_cpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	           FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
-  spread_devicemem dmem;
+  cufinufft_devicemem dmem;
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
   if (ier_set) return ier_set;

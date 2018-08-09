@@ -43,27 +43,19 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
+	int ier;
+
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
-	opts.nspread=ns;
-	opts.upsampfac=2.0;
-	
-	FLT betaoverns=2.30;
-	if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
-	if (ns==3) betaoverns = 2.26;
-	if (ns==4) betaoverns = 2.38;
-        opts.ES_beta= betaoverns * (FLT)ns;
+	cufinufft_devicemem dmem;
+	FLT upsampfac=2.0;
 
-	opts.ES_c=4.0/(ns*ns);
-	opts.ES_halfwidth=(FLT)ns/2;
-	opts.method=method;
-	opts.Horner=0;
-	opts.pirange=0;
-	opts.maxsubprobsize=1000;
-
-	spread_devicemem dmem;
+	ier = setup_cuspreader(opts,tol,upsampfac);
+        if(ier != 0 ){
+                cout<<"error: setup_cuspreader"<<endl;
+                return 0;
+        }
 	cout<<scientific<<setprecision(3);
-	int ier;
 
 
 	FLT *x, *y;
@@ -73,6 +65,7 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
+	opts.pirange=0;
         switch(nupts_distribute){
                 // Making data
                 case 1: //uniform
@@ -122,7 +115,7 @@ int main(int argc, char* argv[])
 	}
 
 	timer.restart();
-	ier = cnufftspread2d_gpu(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dmem);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dmem);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d"<<endl;
 		return 0;

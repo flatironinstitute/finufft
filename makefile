@@ -37,6 +37,9 @@ spread2d_wrapper.o: src/spread2d_wrapper.cu
 deconvolve_wrapper.o: src/deconvolve_wrapper.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
+memtransfer_wrapper.o: src/memtransfer_wrapper.cu
+	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
+
 spread2d.o: src/spread2d.cu
 	$(NVCC) -c $< -o $@ $(NVCCFLAGS) $(INC)
 
@@ -67,23 +70,23 @@ finufft2d_test.o: test/finufft2d_test.cu
 accuracycheck_2d.o: test/accuracycheck_2d.cu
 	$(NVCC) -c $< $(NVCCFLAGS) -o $@ $(INC)
 
-spread2d: main_2d.o spread2d_wrapper.o spread2d.o utils.o
+spread2d: main_2d.o spread2d_wrapper.o spread2d.o utils.o memtransfer_wrapper.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-compare: compare_2d.o spread2d_wrapper.o spread2d.o utils.o
+compare: compare_2d.o spread2d_wrapper.o spread2d.o utils.o memtransfer_wrapper.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 simple: simple_2d.o spread2d_wrapper.o spread2d.o utils.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-accuracy: accuracycheck_2d.o spread2d_wrapper.o spread2d.o utils.o cnufftspread.o
+accuracy: accuracycheck_2d.o spread2d_wrapper.o spread2d.o utils.o cnufftspread.o memtransfer_wrapper.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 cufinufft2d_test: cufinufft2d_test.o spread2d_wrapper.o spread2d.o utils.o cnufftspread.o cufinufft2d.o
 	$(NVCC) $(NVCCFLAGS) $(LIBS_CUFINUFFT) -o $@ $^
 
 finufft2d_test: finufft2d_test.o finufft2d.o utils.o cnufftspread.o dirft2d.o common.o legendre_rule_fast.o spread2d_wrapper.o spread2d.o \
-                cufinufft2d.o deconvolve_wrapper.o
+                cufinufft2d.o deconvolve_wrapper.o memtransfer_wrapper.o
 	$(CXX) $^ $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 clean:

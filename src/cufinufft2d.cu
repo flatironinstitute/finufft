@@ -6,21 +6,16 @@
 #include <cufft.h>
 
 #include "spread.h"
+#include "memtransfer.h"
 #include "deconvolve.h"
 #include "cufinufft.h"
 #include "finufft/utils.h"
 
 using namespace std;
 
-int cnufft_copygpumem_to_cpumem_fk(int ms, int mt, CPX* h_fk, spread_devicemem *d_mem)
-{
-        checkCudaErrors(cudaMemcpy(h_fk,d_mem->fk,ms*mt*sizeof(CUCPX),cudaMemcpyDeviceToHost));
-        return 0;
-}
-
 int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol, 
 		int iflag, int nf1, int nf2, CPX* h_fk, spread_opts opts, 
-		spread_devicemem* d_mem, FLT *fwkerhalf1, FLT *fwkerhalf2)
+		cufinufft_devicemem* d_mem, FLT *fwkerhalf1, FLT *fwkerhalf2)
 {
 	if(opts.pirange){
 		for(int i=0; i<M; i++){
@@ -40,7 +35,7 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 
 	int fw_width;
 	cudaEventRecord(start);
-	ier = cnufft_allocgpumemory(N1, N2, nf1, nf2, M, &fw_width, opts, d_mem);
+	ier = allocgpumemory(N1, N2, nf1, nf2, M, &fw_width, opts, d_mem);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -50,7 +45,7 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 #endif
 
 	cudaEventRecord(start);
-	ier = cnufft_copycpumem_to_gpumem(M, h_kx, h_ky, h_c, nf1, nf2, fwkerhalf1, fwkerhalf2, d_mem);
+	ier = copycpumem_to_gpumem(M, h_kx, h_ky, h_c, nf1, nf2, fwkerhalf1, fwkerhalf2, d_mem);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -60,7 +55,7 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 
 	// Step 1: Spread
 	cudaEventRecord(start);
-	ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, M, opts, d_mem);
+	ier = cuspread2d(nf1, nf2, fw_width, M, opts, d_mem);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
 		return 0;
@@ -95,7 +90,7 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 #endif
 	// Step 3: deconvolve and shuffle
 	cudaEventRecord(start);
-	cnufftdeconvolve2d_gpu(N1,N2,nf1,nf2,fw_width,opts,d_mem);
+	cudeconvolve2d(N1,N2,nf1,nf2,fw_width,opts,d_mem);
 #ifdef TIME
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
@@ -104,7 +99,7 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 #endif
 
 	cudaEventRecord(start);
-	ier = cnufft_copygpumem_to_cpumem_fk(N1, N2, h_fk, d_mem);
+	ier = copygpumem_to_cpumem_fk(N1, N2, h_fk, d_mem);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -112,6 +107,6 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 	printf("[time  ] Copy memory DtoH\t %.3g s\n", milliseconds/1000);
 #endif
 	cufftDestroy(plan);
-	cnufft_free_gpumemory(opts, d_mem);
+	free_gpumemory(opts, d_mem);
 	return 0;
 }

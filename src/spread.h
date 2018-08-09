@@ -2,13 +2,14 @@
 #define __SPREAD_H__
 
 #include "finufft/utils.h"
+#include "memtransfer.h"
 
 #define MAX_NSPREAD 16
 #define RESCALE(x,N,p) (p ? \
                        ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
                        (x<0 ? x+N : (x>N ? x-N : x)))
 
-struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
+struct spread_opts {      // see cuspread:setup_spreader for defaults.
   int nspread;            // w, the kernel width in grid pts
   int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
   int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
@@ -37,33 +38,8 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int nthread_y;
 };
 
-struct spread_devicemem {
-  int byte_now;
-  FLT *fwkerhalf1;
-  FLT *fwkerhalf2;
-
-  FLT *kx;
-  FLT *ky;
-  CUCPX *c;
-  CUCPX *fw;
-  CUCPX *fk;
-  
-  FLT *kxsorted;
-  FLT *kysorted;
-  CUCPX *csorted;
-
-  int *sortidx;
-  int *binsize;
-  int *binstartpts;
-  int *numsubprob;
-  int *subprob_to_bin;
-  int *idxnupts;
-  int *subprobstartpts;
-
-  void *temp_storage;
-};
-
-//Kernels for 1D codes
+//Kernels for 1D codes (this is outdated ... )
+/*
 __global__
 void CalcBinSize_1d(int M, int nf1, int  bin_size_x, int nbinx,
                     int* bin_size, FLT *x, int* sortidx);
@@ -81,7 +57,7 @@ __global__
 void Spread_1d(int nbin_block_x, int nbinx, int *bin_startpts,
                FLT *x_sorted, FLT *c_sorted, FLT *fw, int ns,
                int nf1, FLT es_c, FLT es_beta);
-
+*/
 //Kernels for 2D codes
 __global__
 void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
@@ -126,23 +102,18 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                           int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts);
 
-
-int cnufftspread2d_gpu(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                       FLT *h_ky, CPX* h_c, spread_opts opts, spread_devicemem *dmem);
-int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
-                               spread_devicemem *d_mem);
-int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts,
-                               spread_devicemem *d_mem);
-int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts,
-                               spread_devicemem *d_mem);
-int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts,
-                               spread_devicemem *d_mem);
-int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
-                              FLT *d_ky, CUCPX *d_c, spread_opts opts, int binx, int biny);
-
-int cnufft_allocgpumemory(int ms, int mt, int nf1, int nf2, int M, int* fw_width, spread_opts opts, spread_devicemem *d_mem);
-int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, int nf1, int nf2, FLT* h_fwkerhalf1, 
-                                FLT* h_fwkerhalf2, spread_devicemem *d_mem);
-int cnufft_copygpumem_to_cpumem_fw(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem);
-void cnufft_free_gpumemory(spread_opts opts, spread_devicemem *d_mem);
+int setup_cuspreader(spread_opts &opts,FLT eps,FLT upsampfac);
+int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+                       FLT *h_ky, CPX* h_c, spread_opts opts, cufinufft_devicemem *dmem);
+int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
+                       cufinufft_devicemem *d_mem);
+int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+                               cufinufft_devicemem *d_mem);
+int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+                      cufinufft_devicemem *d_mem);
+int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+                       cufinufft_devicemem *d_mem);
+int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
+                      FLT *d_ky, CUCPX *d_c, spread_opts opts, int binx, int biny);
+int cuspread2d(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem* d_mem);
 #endif

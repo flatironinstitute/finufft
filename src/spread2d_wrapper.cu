@@ -8,145 +8,13 @@
 
 #include <cuComplex.h>
 #include "spread.h"
+#include "memtransfer.h"
 
 using namespace std;
 
-int cnufft_allocgpumemory(int ms, int mt, int nf1, int nf2, int M, int* fw_width, spread_opts opts, spread_devicemem *d_mem)
-{
-	d_mem->byte_now=0;
-	// No extra memory is needed in idriven method;
-	switch(opts.method)
-	{
-		case 2:
-			{
-				//int total_mem_in_bytes=
-				checkCudaErrors(cudaMalloc(&d_mem->kxsorted,M*sizeof(FLT)));
-				checkCudaErrors(cudaMalloc(&d_mem->kysorted,M*sizeof(FLT)));
-				checkCudaErrors(cudaMalloc(&d_mem->csorted,M*sizeof(CUCPX)));
-				checkCudaErrors(cudaMalloc(&d_mem->sortidx,M*sizeof(int)));
-
-				int numbins[2];
-				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
-				numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
-				checkCudaErrors(cudaMalloc(&d_mem->binsize,numbins[0]*numbins[1]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_mem->binstartpts,(numbins[0]*numbins[1])*sizeof(int)));
-			}
-			break;
-		case 4:
-			{
-				checkCudaErrors(cudaMalloc(&d_mem->kxsorted,M*sizeof(FLT)));
-				checkCudaErrors(cudaMalloc(&d_mem->kysorted,M*sizeof(FLT)));
-				checkCudaErrors(cudaMalloc(&d_mem->csorted,M*sizeof(CUCPX)));
-
-				int numbins[2];
-				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
-				numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
-				checkCudaErrors(cudaMalloc(&d_mem->binsize,numbins[0]*numbins[1]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_mem->sortidx,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_mem->binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
-			}
-			break;
-		case 5:
-			{
-				int numbins[2];
-				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
-				numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
-				checkCudaErrors(cudaMalloc(&d_mem->idxnupts,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_mem->sortidx,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_mem->numsubprob,  numbins[0]*numbins[1]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_mem->binsize,     numbins[0]*numbins[1]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_mem->binstartpts, numbins[0]*numbins[1]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_mem->subprobstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
-			}
-			break;
-	}
-	checkCudaErrors(cudaMalloc(&d_mem->kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_mem->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_mem->c,M*sizeof(CUCPX)));
-
-	size_t pitch;
-	checkCudaErrors(cudaMallocPitch((void**) &d_mem->fw, &pitch,nf1*sizeof(CUCPX),nf2));
-	*fw_width = pitch/sizeof(CUCPX);
-
-	checkCudaErrors(cudaMalloc(&d_mem->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_mem->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_mem->fk,ms*mt*sizeof(CUCPX)));
-
-	return 0;
-}
-
-int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, int nf1, int nf2, FLT* h_fwkerhalf1, FLT* h_fwkerhalf2, 
-                                spread_devicemem *d_mem)
-{
-	checkCudaErrors(cudaMemcpy(d_mem->kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_mem->ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_mem->c, h_c,M*sizeof(CUCPX),cudaMemcpyHostToDevice));
-
-	if(h_fwkerhalf1 != NULL)
-		checkCudaErrors(cudaMemcpy(d_mem->fwkerhalf1,h_fwkerhalf1,(nf1/2+1)*sizeof(FLT),cudaMemcpyHostToDevice));
-	if(h_fwkerhalf2 != NULL)
-		checkCudaErrors(cudaMemcpy(d_mem->fwkerhalf2,h_fwkerhalf2,(nf2/2+1)*sizeof(FLT),cudaMemcpyHostToDevice));
-	
-	return 0;
-}
-
-int cnufft_copygpumem_to_cpumem_fw(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem)
-{
-	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(CUCPX),d_mem->fw,fw_width*sizeof(CUCPX),
-				nf1*sizeof(CUCPX),nf2,cudaMemcpyDeviceToHost));
-
-	return 0;
-}
-
-void cnufft_free_gpumemory(spread_opts opts, spread_devicemem *d_mem)
-{
-	cudaFree(d_mem->fw);
-	cudaFree(d_mem->kx);
-	cudaFree(d_mem->ky);
-	cudaFree(d_mem->c);
-	cudaFree(d_mem->fwkerhalf1);
-	cudaFree(d_mem->fwkerhalf2);
-	switch(opts.method)
-	{
-		case 2:
-			{
-				checkCudaErrors(cudaFree(d_mem->kxsorted));
-				checkCudaErrors(cudaFree(d_mem->kysorted));
-				checkCudaErrors(cudaFree(d_mem->csorted));
-				checkCudaErrors(cudaFree(d_mem->sortidx));
-				checkCudaErrors(cudaFree(d_mem->binsize));
-				checkCudaErrors(cudaFree(d_mem->binstartpts));
-				checkCudaErrors(cudaFree(d_mem->temp_storage));
-			}
-			break;
-		case 4:
-			{
-				checkCudaErrors(cudaFree(d_mem->kxsorted));
-				checkCudaErrors(cudaFree(d_mem->kysorted));
-				checkCudaErrors(cudaFree(d_mem->csorted));
-				checkCudaErrors(cudaFree(d_mem->binsize));
-				checkCudaErrors(cudaFree(d_mem->sortidx));
-				checkCudaErrors(cudaFree(d_mem->binstartpts));
-				checkCudaErrors(cudaFree(d_mem->temp_storage));
-			}
-			break;
-		case 5:
-			{
-				checkCudaErrors(cudaFree(d_mem->idxnupts));
-				checkCudaErrors(cudaFree(d_mem->sortidx));
-				checkCudaErrors(cudaFree(d_mem->numsubprob));
-				checkCudaErrors(cudaFree(d_mem->binsize));
-				checkCudaErrors(cudaFree(d_mem->binstartpts));
-				checkCudaErrors(cudaFree(d_mem->subprobstartpts));
-				checkCudaErrors(cudaFree(d_mem->temp_storage));
-				checkCudaErrors(cudaFree(d_mem->subprob_to_bin));
-			}
-			break;
-	}
-}
-
-int cnufftspread2d_gpu(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts, spread_devicemem* d_mem)
+// This is a function only doing spread includes device memory allocation, transfer, free
+int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+		FLT *h_ky, CPX *h_c, spread_opts opts, cufinufft_devicemem* d_mem)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -162,85 +30,108 @@ int cnufftspread2d_gpu(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 		}
 	}
 	cudaEventRecord(start);
-	ier = cnufft_allocgpumemory(ms, mt, nf1, nf2, M, &fw_width, opts, d_mem);
+	ier = allocgpumemory(ms, mt, nf1, nf2, M, &fw_width, opts, d_mem);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Allocating GPU memory " << milliseconds <<" ms"<<endl;
+	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	ier = cnufft_copycpumem_to_gpumem(M, h_kx, h_ky, h_c, nf1, nf2, NULL, NULL, d_mem);
+	ier = copycpumem_to_gpumem(M, h_kx, h_ky, h_c, nf1, nf2, NULL, NULL, d_mem);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Copying memory from host to device " << milliseconds <<" s"<<endl;
+	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 #endif
+	ier = cuspread2d(nf1,nf2,fw_width,M,opts,d_mem);
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
+#endif
+	cudaEventRecord(start);
+	ier = copygpumem_to_cpumem_fw(nf1, nf2, fw_width, h_fw, d_mem);
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
+#endif
+	cudaEventRecord(start);
+	free_gpumemory(opts, d_mem);
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
+#endif
+	return ier;
+}
 
+// a wrapper of different methods of spreader
+int cuspread2d(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem* d_mem)
+{
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+	int ier;
 	switch(opts.method)
 	{
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, M, opts, d_mem);
+				ier = cuspread2d_idriven(nf1, nf2, fw_width, M, opts, d_mem);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
-					return 0;
+					return 1;
 				}
 			}
 			break;
 		case 2:
 			{
 				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, M, opts, d_mem);
+				ier = cuspread2d_idriven_sorted(nf1, nf2, fw_width, M, opts, d_mem);
 			}
 			break;
 		case 4:
 			{
 				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, M, opts, d_mem);
+				ier = cuspread2d_hybrid(nf1, nf2, fw_width, M, opts, d_mem);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
-					return 0;
+					return 1;
 				}
 			}
 			break;
 		case 5:
 			{
 				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, M, opts, d_mem);
+				ier = cuspread2d_subprob(nf1, nf2, fw_width, M, opts, d_mem);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
-					return 0;
+					return 1;
 				}
 			}
 			break;
 		default:
 			cout<<"error: incorrect method, should be 1,2,4 or 5"<<endl;
-			return 0;
+			return 2;
 	}
-#ifdef TIME
+#ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	cout<<"[time  ]"<< " Spread " << milliseconds <<" ms"<<endl;
 #endif
-	cudaEventRecord(start);
-	ier = cnufft_copygpumem_to_cpumem_fw(nf1, nf2, fw_width, h_fw, d_mem);
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Copying memory from device to host " << milliseconds <<" ms"<<endl;
-#endif
-	cnufft_free_gpumemory(opts, d_mem);
-
 	return ier;
 }
 
-int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
+int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
 		FLT *d_ky, CUCPX *d_c, spread_opts opts, int binx, int biny)
 {
 	cudaEvent_t start, stop;
@@ -283,7 +174,7 @@ int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M
 	return 0;
 }
 
-int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, spread_devicemem *d_mem)
+int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem *d_mem)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -324,7 +215,7 @@ int cnufftspread2d_gpu_idriven(int nf1, int nf2, int fw_width, int M, spread_opt
 	return 0;
 }
 
-int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts, spread_devicemem *d_mem)
+int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem *d_mem)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -392,15 +283,6 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, int M, spr
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel PtsRearrange_noghost_2d \t\t%.3g ms\n", milliseconds);
 #endif
-#ifdef DEBUG
-	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy(h_kx,d_kxsorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy(h_ky,d_kysorted,M*sizeof(FLT),cudaMemcpyDeviceToHost));
-	checkCudaErrors(cudaMemcpy(h_c,d_csorted,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
-	for(int i=0; i<M; i++){
-		printf("sortidx = %d, (x,y) = (%.3g, %.3g), c=(%f, %f)\n", h_sortidx[i], h_kx[i], h_ky[i], h_c[i].real(), h_c[i].imag());
-	}
-#endif 
 	cudaEventRecord(start);
 	threadsPerBlock.x = 16;
 	threadsPerBlock.y = 1;
@@ -417,7 +299,7 @@ int cnufftspread2d_gpu_idriven_sorted(int nf1, int nf2, int fw_width, int M, spr
 	return 0;
 }
 
-int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, spread_devicemem *d_mem)
+int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem *d_mem)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -578,7 +460,7 @@ int cnufftspread2d_gpu_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts
 	return 0;
 }
 
-int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, spread_devicemem *d_mem)
+int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem *d_mem)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -793,4 +675,46 @@ int cnufftspread2d_gpu_subprob(int nf1, int nf2, int fw_width, int M, spread_opt
 	printf("[time  ] \tKernel Spread_2d_Subprob_V2 \t\t%.3g ms\n", milliseconds);
 #endif
 	return 0;
+}
+
+int setup_cuspreader(spread_opts &opts,FLT eps,FLT upsampfac)
+{
+	// defaults... (user can change after this function called)
+	opts.pirange = 1;             // user also should always set this
+	opts.upsampfac = upsampfac;
+
+	// for gpu
+	opts.method = 5;
+	opts.bin_size_x = 32;
+	opts.bin_size_y = 32;
+	opts.Horner = 0;
+	opts.maxsubprobsize = 1000;
+	opts.nthread_x = 16;
+	opts.nthread_y = 16;
+
+	// Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
+	int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten
+	if (upsampfac!=2.0)           // override ns for custom sigma
+		ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
+	ns = max(2,ns);               // we don't have ns=1 version yet
+	if (ns>MAX_NSPREAD) {         // clip to match allocated arrays
+		fprintf(stderr,"setup_spreader: warning, kernel width ns=%d was clipped to max %d; will not match tolerance!\n",ns,MAX_NSPREAD);
+		ns = MAX_NSPREAD;
+	}
+	opts.nspread = ns;
+	opts.ES_halfwidth=(FLT)ns/2;   // constants to help ker eval (except Horner)
+	opts.ES_c = 4.0/(FLT)(ns*ns);
+
+	FLT betaoverns = 2.30;         // gives decent betas for default sigma=2.0
+	if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
+	if (ns==3) betaoverns = 2.26;
+	if (ns==4) betaoverns = 2.38;
+	if (upsampfac!=2.0) {          // again, override beta for custom sigma
+		FLT gamma=0.97;              // must match devel/gen_all_horner_C_code.m
+		betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
+	}
+	opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
+	//fprintf(stderr,"setup_spreader: sigma=%.6f, chose ns=%d beta=%.6f\n",(double)upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
+	return 0;
+
 }

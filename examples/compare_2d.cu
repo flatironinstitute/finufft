@@ -4,6 +4,7 @@
 #include <helper_cuda.h>
 #include <complex>
 #include "../src/spread.h"
+#include "../src/memtransfer.h"
 #include "../src/finufft/utils.h"
 
 using namespace std;
@@ -44,29 +45,18 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int Horner=0;
-
+	int ier;
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
-	opts.nspread=ns;
-	opts.upsampfac=2.0;
+	FLT upsampfac=2.0;
+	ier = setup_cuspreader(opts,tol,upsampfac);
+        if(ier != 0 ){
+                cout<<"error: setup_cuspreader"<<endl;
+                return 0;
+        }
 
-	FLT betaoverns=2.30;
-	if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
-	if (ns==3) betaoverns = 2.26;
-	if (ns==4) betaoverns = 2.38;
-        opts.ES_beta= betaoverns * (FLT)ns;
-
-	opts.ES_c=4.0/(ns*ns);
-	opts.ES_halfwidth=(FLT)ns/2;
-	opts.Horner=Horner;
-	opts.method=method;
-	opts.pirange=0;
-	opts.maxsubprobsize=1000;
-
-	spread_devicemem dmem;
+	cufinufft_devicemem dmem;
 	cout<<scientific<<setprecision(3);
-	int ier;
 
 
 	FLT *x, *y;
@@ -76,6 +66,7 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
+	opts.pirange=0;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -133,60 +124,23 @@ int main(int argc, char* argv[])
 	}
 
 	cudaEventRecord(start);
-	ier = cnufft_allocgpumemory(N1, N2, nf1, nf2, M, &fw_width, opts, &dmem);
+	ier = allocgpumemory(N1, N2, nf1, nf2, M, &fw_width, opts, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = cnufft_copycpumem_to_gpumem(M, x, y, c, nf1, nf2, NULL, NULL, &dmem);
+	ier = copycpumem_to_gpumem(M, x, y, c, nf1, nf2, NULL, NULL, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 
-	switch(method)
-	{
-		case 1:
-			{
-				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, M, opts, &dmem);
-				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
-					return 0;
-				}
-			}
-			break;
-		case 2:
-			{
-				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_idriven_sorted(nf1, nf2, fw_width, M, opts, &dmem);
-			}
-			break;
-		case 4:
-			{
-				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_hybrid(nf1, nf2, fw_width, M, opts, &dmem);
-				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
-					return 0;
-				}
-			}
-			break;	
-		case 5:
-			{
-				cudaEventRecord(start);
-				ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, M, opts, &dmem);
-				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
-					return 0;
-				}
-			}
-			break;
-		default:
-			cout<<"error: incorrect method, should be 1,2,4 or 5"<<endl;
-			return 0;
+	ier = cuspread2d(nf1, nf2, fw_width, M, opts, &dmem);
+	if(ier != 0 ){
+		cout<<"error: cuspread2d, method("<<opts.method<<")"<<endl;
+		return 0;
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -194,14 +148,14 @@ int main(int argc, char* argv[])
 	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = cnufft_copygpumem_to_cpumem_fw(nf1, nf2, fw_width, fw, &dmem);
+	ier = copygpumem_to_cpumem_fw(nf1, nf2, fw_width, fw, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	cnufft_free_gpumemory(opts, &dmem);
+	free_gpumemory(opts, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

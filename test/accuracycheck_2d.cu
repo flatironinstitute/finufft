@@ -39,26 +39,18 @@ int main(int argc, char* argv[])
 	}
 
 
+	int ier;
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
-	opts.nspread=ns;
-	opts.upsampfac=2.0;
-	opts.ES_c=4.0/(FLT)(ns*ns);
-	opts.ES_halfwidth=(FLT)ns/2.0;
-	
-	FLT betaoverns=2.30;
-	if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
-	if (ns==3) betaoverns = 2.26;
-	if (ns==4) betaoverns = 2.38;
-	opts.ES_beta= betaoverns * (FLT)ns;
+	FLT upsampfac=2.0;
+	ier = setup_cuspreader(opts,tol,upsampfac);
+        if(ier != 0 ){
+                cout<<"error: setup_cuspreader"<<endl;
+                return 0;
+        }
 
-	opts.Horner=0;
-	opts.maxsubprobsize=1000;
-	opts.pirange=0;
-
-	spread_devicemem dmem;
+	cufinufft_devicemem dmem;
 	cout<<scientific<<setprecision(3);
-	int ier;
 
 
 	FLT *x, *y;
@@ -88,6 +80,7 @@ int main(int argc, char* argv[])
 		kersumim += fwfinufft[i].imag();    // in case the kernel isn't real!
 	}
 #endif
+	opts.pirange=0;
 	FLT strre = 0.0, strim = 0.0;          // also sum the strengths
 	switch(nupts_distribute){
 		// Making data
@@ -135,7 +128,7 @@ int main(int argc, char* argv[])
 	/* -------------------------------------- */
 	timer.restart();
 	opts.method=1;
-	ier = cnufftspread2d_gpu(nf1, nf2, fwi, M, x, y, c, opts, &dmem);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fwi, M, x, y, c, opts, &dmem);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
 		return 0;
@@ -164,7 +157,7 @@ int main(int argc, char* argv[])
 	opts.method=2;
 	opts.bin_size_x=16;
 	opts.bin_size_y=16;
-	ier = cnufftspread2d_gpu(nf1, nf2, fwic, M, x, y, c, opts, &dmem);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fwic, M, x, y, c, opts, &dmem);
 	FLT ticdriven=timer.elapsedsec();
 	printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
@@ -175,7 +168,7 @@ int main(int argc, char* argv[])
 	opts.method=4;
 	opts.bin_size_x=32;
 	opts.bin_size_y=32;
-	ier = cnufftspread2d_gpu(nf1, nf2, fwh, M, x, y, c, opts, &dmem);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fwh, M, x, y, c, opts, &dmem);
 	FLT thybrid=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
@@ -191,7 +184,7 @@ int main(int argc, char* argv[])
 	opts.method=5;
 	opts.bin_size_x=32;
 	opts.bin_size_y=32;
-	ier = cnufftspread2d_gpu(nf1, nf2, fws, M, x, y, c, opts, &dmem);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, opts, &dmem);
 	FLT tsubprob=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_subprob"<<endl;

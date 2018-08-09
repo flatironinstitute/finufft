@@ -28,7 +28,7 @@ void Deconvolve_2d(int ms, int mt, int nf1, int nf2, int fw_width, CUCPX* fw, CU
 	}
 }
 
-int cnufftdeconvolve2d_gpu(int ms, int mt, int nf1, int nf2, int fw_width, spread_opts opts, spread_devicemem *d_mem)
+int cudeconvolve2d(int ms, int mt, int nf1, int nf2, int fw_width, spread_opts opts, cufinufft_devicemem *d_mem)
 // ms = N1
 // mt = N2
 {
