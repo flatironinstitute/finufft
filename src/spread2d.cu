@@ -119,7 +119,6 @@ __global__
 void Spread_2d_Idriven_Horner(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
 {
-	int xstart,ystart,xend,yend;
 	int xx, yy, ix, iy;
 	int outidx;
 	FLT ker1[7];
@@ -131,10 +130,10 @@ void Spread_2d_Idriven_Horner(FLT *x, FLT *y, gpuComplex *c, gpuComplex *fw, int
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		x_rescaled=x[i];
 		y_rescaled=y[i];
-		xstart = ceil(x_rescaled - ns/2.0);
-		ystart = ceil(y_rescaled - ns/2.0);
-		xend = floor(x_rescaled + ns/2.0);
-		yend = floor(y_rescaled + ns/2.0);
+		int xstart = ceil(x_rescaled - ns/2.0);
+		int ystart = ceil(y_rescaled - ns/2.0);
+		int xend = floor(x_rescaled + ns/2.0);
+		int yend = floor(y_rescaled + ns/2.0);
 
 		FLT x1=(FLT)xstart-x_rescaled;
 		//FLT y1=(FLT)ystart-y_rescaled;

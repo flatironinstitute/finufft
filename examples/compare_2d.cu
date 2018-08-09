@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = cnufft_copycpumem_to_gpumem(M, x, y, c, &dmem);
+	ier = cnufft_copycpumem_to_gpumem(M, x, y, c, nf1, nf2, NULL, NULL, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = cnufft_copygpumem_to_cpumem(nf1, nf2, fw_width, fw, &dmem);
+	ier = cnufft_copygpumem_to_cpumem_fw(nf1, nf2, fw_width, fw, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

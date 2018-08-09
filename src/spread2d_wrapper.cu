@@ -70,19 +70,28 @@ int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_opts op
 	checkCudaErrors(cudaMallocPitch((void**) &d_mem->fw, &pitch,nf1*sizeof(gpuComplex),nf2));
 	*fw_width = pitch/sizeof(gpuComplex);
 
+	checkCudaErrors(cudaMalloc(&d_mem->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_mem->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
+
 	return 0;
 }
 
-int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, spread_devicemem *d_mem)
+int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, int nf1, int nf2, FLT* h_fwkerhalf1, FLT* h_fwkerhalf2, 
+                                spread_devicemem *d_mem)
 {
 	checkCudaErrors(cudaMemcpy(d_mem->kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_mem->ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_mem->c, h_c,M*sizeof(gpuComplex),cudaMemcpyHostToDevice));
 
+	if(h_fwkerhalf1 != NULL)
+		checkCudaErrors(cudaMemcpy(d_mem->fwkerhalf1,h_fwkerhalf1,(nf1/2+1)*sizeof(FLT),cudaMemcpyHostToDevice));
+	if(h_fwkerhalf2 != NULL)
+		checkCudaErrors(cudaMemcpy(d_mem->fwkerhalf2,h_fwkerhalf2,(nf2/2+1)*sizeof(FLT),cudaMemcpyHostToDevice));
+	
 	return 0;
 }
 
-int cnufft_copygpumem_to_cpumem(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem)
+int cnufft_copygpumem_to_cpumem_fw(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem)
 {
 	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(gpuComplex),d_mem->fw,fw_width*sizeof(gpuComplex),
 				nf1*sizeof(gpuComplex),nf2,cudaMemcpyDeviceToHost));
@@ -96,6 +105,8 @@ void cnufft_free_gpumemory(spread_opts opts, spread_devicemem *d_mem)
 	cudaFree(d_mem->kx);
 	cudaFree(d_mem->ky);
 	cudaFree(d_mem->c);
+	cudaFree(d_mem->fwkerhalf1);
+	cudaFree(d_mem->fwkerhalf2);
 	switch(opts.method)
 	{
 		case 2:
@@ -161,7 +172,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cout<<"[time  ]"<< " Allocating GPU memory " << milliseconds <<" ms"<<endl;
 #endif
 	cudaEventRecord(start);
-	ier = cnufft_copycpumem_to_gpumem(M, h_kx, h_ky, h_c, d_mem);
+	ier = cnufft_copycpumem_to_gpumem(M, h_kx, h_ky, h_c, nf1, nf2, NULL, NULL, d_mem);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -218,7 +229,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 	cout<<"[time  ]"<< " Spread " << milliseconds <<" ms"<<endl;
 #endif
 	cudaEventRecord(start);
-	ier = cnufft_copygpumem_to_cpumem(nf1, nf2, fw_width, h_fw, d_mem);
+	ier = cnufft_copygpumem_to_cpumem_fw(nf1, nf2, fw_width, h_fw, d_mem);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

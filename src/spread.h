@@ -39,10 +39,14 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
 
 struct spread_devicemem {
   int byte_now;
+  FLT *fwkerhalf1;
+  FLT *fwkerhalf2;
+
   FLT *kx;
   FLT *ky;
   gpuComplex *c;
   gpuComplex *fw;
+  gpuComplex *fk;
   
   FLT *kxsorted;
   FLT *kysorted;
@@ -137,7 +141,8 @@ int cnufftspread2d_gpu_simple(int nf1, int nf2, int fw_width, gpuComplex* d_fw, 
                               FLT *d_ky, gpuComplex *d_c, spread_opts opts, int binx, int biny);
 
 int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_opts opts, spread_devicemem *d_mem);
-int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, spread_devicemem *d_mem);
-int cnufft_copygpumem_to_cpumem(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem);
+int cnufft_copycpumem_to_gpumem(int M, FLT *h_kx, FLT* h_ky, CPX *h_c, int nf1, int nf2, FLT* h_fwkerhalf1, 
+                                FLT* h_fwkerhalf2, spread_devicemem *d_mem);
+int cnufft_copygpumem_to_cpumem_fw(int nf1, int nf2, int fw_width, CPX* h_fw, spread_devicemem *d_mem);
 void cnufft_free_gpumemory(spread_opts opts, spread_devicemem *d_mem);
 #endif

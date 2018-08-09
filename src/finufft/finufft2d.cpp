@@ -148,8 +148,9 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   spopts.spread_direction = 1;
   FLT *dummy;
 #if 1
-  int ier_gpu = cufinufft2d(nj, xj, yj, (CPX*) cj, eps,
-                            fftsign, nf1, nf2, (CPX*) fw, spopts, &dmem);
+  int ier_gpu = cufinufft2d(ms, mt, nj, xj, yj, (CPX*) cj, eps,
+                            fftsign, nf1, nf2, (CPX*) fk, spopts, &dmem, 
+			    fwkerhalf1, fwkerhalf2);
 #endif
 #if 0
   int ier_spread = cnufftspread2d_gpu(nf1,nf2,(CPX*)fw,nj,xj,yj,(CPX*)cj,spopts,&dmem);
@@ -161,11 +162,11 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   FFTW_EX(p);
   FFTW_DE(p);
   if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
-#endif
   // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   timer.restart();
   deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw,opts.modeord);
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
+#endif
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
   if (opts.debug) printf("freed\n");

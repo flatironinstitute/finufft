@@ -6,13 +6,21 @@
 #include <cufft.h>
 
 #include "spread.h"
+#include "deconvolve.h"
 #include "cufinufft.h"
 #include "finufft/utils.h"
 
 using namespace std;
 
-int cufinufft2d(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol, 
-		int iflag, int nf1, int nf2, CPX* h_fw, spread_opts opts, spread_devicemem* d_mem)
+int cnufft_copygpumem_to_cpumem_fk(int ms, int mt, CPX* h_fk, spread_devicemem *d_mem)
+{
+        checkCudaErrors(cudaMemcpy(h_fk,d_mem->fk,ms*mt*sizeof(gpuComplex),cudaMemcpyDeviceToHost));
+        return 0;
+}
+
+int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol, 
+		int iflag, int nf1, int nf2, CPX* h_fk, spread_opts opts, 
+		spread_devicemem* d_mem, FLT *fwkerhalf1, FLT *fwkerhalf2)
 {
 	if(opts.pirange){
 		for(int i=0; i<M; i++){
@@ -42,7 +50,7 @@ int cufinufft2d(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 #endif
 
 	cudaEventRecord(start);
-	ier = cnufft_copycpumem_to_gpumem(M, h_kx, h_ky, h_c, d_mem);
+	ier = cnufft_copycpumem_to_gpumem(M, h_kx, h_ky, h_c, nf1, nf2, fwkerhalf1, fwkerhalf2, d_mem);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -68,13 +76,20 @@ int cufinufft2d(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 	int ndata=1;
 	int n[] = {nf2, nf1};
 	int inembed[] = {nf2, fw_width};
+#ifdef SINGLE
+	cufftPlanMany(&plan,2,n,inembed,1,inembed[0]*inembed[1],inembed,1,inembed[0]*inembed[1],
+			CUFFT_C2C,ndata);
+	cufftExecC2C(plan, d_mem->fw, d_mem->fw, iflag);
+#else
 	cufftPlanMany(&plan,2,n,inembed,1,inembed[0]*inembed[1],inembed,1,inembed[0]*inembed[1],
 			CUFFT_Z2Z,ndata);
 	cufftExecZ2Z(plan, d_mem->fw, d_mem->fw, iflag);
+#endif
+	// Step 3: deconvolve and shuffle
+	cnufftdeconvolve2d_gpu(N1,N2,nf1,nf2,fw_width,opts,d_mem);
 
 	cudaEventRecord(start);
-	ier = cnufft_copygpumem_to_cpumem(nf1, nf2, fw_width, h_fw, d_mem);
-	// Step 3: deconvolve and shuffle
+	ier = cnufft_copygpumem_to_cpumem_fk(N1, N2, h_fk, d_mem);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
