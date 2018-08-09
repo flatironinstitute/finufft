@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
+#include <helper_cuda.h>
 
 // how big a problem to do full direct DFT check in 2D...
 #define BIGPROB 1e8
@@ -84,15 +85,15 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("[cpu   ] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
+    printf("[cpu   ] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n\n",
 	   (int64_t)M,(int64_t)N1,(int64_t)N2,ti,M/ti);
   char *a;
   timer.restart();
   checkCudaErrors(cudaMalloc(&a,1));
 #ifdef TIME
-  cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() <<" s"<<endl<<endl;
+  printf("[time  ] (warm up) First cudamalloc call %.3g s\n", timer.elapsedsec());
 #endif
-
+  timer.restart();
   ier = finufft2d1_gpu(M,x,y,c,isign,tol,N1,N2,Fgpu,opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
@@ -101,7 +102,7 @@ int main(int argc, char* argv[])
     printf("[gpu   ] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
 	   (int64_t)M,(int64_t)N1,(int64_t)N2,ti,M/ti);
 
-  printf("[cpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fcpu[it]));
+  printf("\n[cpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fcpu[it]));
   printf("[cpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fcpu[it])/infnorm(N,Fcpu));
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);

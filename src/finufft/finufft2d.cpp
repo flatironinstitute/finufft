@@ -122,7 +122,7 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj);
+  if (opts.debug) printf("[time  ] 2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -130,45 +130,17 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
-  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
+  if (opts.debug) printf("[time  ] kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
-  //int nth = MY_OMP_GET_MAX_THREADS();
-  //if (nth>1) {             // set up multithreaded fftw stuff...
-    //FFTW_INIT();
-    //FFTW_PLAN_TH(nth);
-  //}
-  timer.restart();
-  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
-  FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
-  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
   // Step 1: spread from irregular points to regular grid
   timer.restart();
   spopts.spread_direction = 1;
-  FLT *dummy;
-#if 1
   int ier_gpu = cufinufft2d(ms, mt, nj, xj, yj, (CPX*) cj, eps,
                             fftsign, nf1, nf2, (CPX*) fk, spopts, &dmem, 
 			    fwkerhalf1, fwkerhalf2);
-#endif
-#if 0
-  int ier_spread = cnufftspread2d_gpu(nf1,nf2,(CPX*)fw,nj,xj,yj,(CPX*)cj,spopts,&dmem);
-  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) return ier_spread;
 
-  // Step 2:  Call FFT
-  timer.restart();
-  FFTW_EX(p);
-  FFTW_DE(p);
-  if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
-  // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
-  timer.restart();
-  deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw,opts.modeord);
-  if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
-#endif
-
-  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
-  if (opts.debug) printf("freed\n");
+  free(fwkerhalf1); free(fwkerhalf2);
   return 0;
 }

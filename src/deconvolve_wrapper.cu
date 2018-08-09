@@ -33,8 +33,6 @@ int cnufftdeconvolve2d_gpu(int ms, int mt, int nf1, int nf2, int fw_width, sprea
 // mt = N2
 {
 	int nmodes=ms*mt;
-
-	checkCudaErrors(cudaMalloc(&d_mem->fk,ms*mt*sizeof(gpuComplex)));
 	Deconvolve_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, fw_width, d_mem->fw, d_mem->fk,
 						   d_mem->fwkerhalf1, d_mem->fwkerhalf2);
 	return 0;

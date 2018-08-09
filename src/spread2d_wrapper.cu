@@ -11,9 +11,8 @@
 
 using namespace std;
 
-int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_opts opts, spread_devicemem *d_mem)
+int cnufft_allocgpumemory(int ms, int mt, int nf1, int nf2, int M, int* fw_width, spread_opts opts, spread_devicemem *d_mem)
 {
-#if 1
 	d_mem->byte_now=0;
 	// No extra memory is needed in idriven method;
 	switch(opts.method)
@@ -61,7 +60,6 @@ int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_opts op
 			}
 			break;
 	}
-#endif
 	checkCudaErrors(cudaMalloc(&d_mem->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_mem->ky,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_mem->c,M*sizeof(gpuComplex)));
@@ -72,6 +70,7 @@ int cnufft_allocgpumemory(int nf1, int nf2, int M, int* fw_width, spread_opts op
 
 	checkCudaErrors(cudaMalloc(&d_mem->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_mem->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_mem->fk,ms*mt*sizeof(gpuComplex)));
 
 	return 0;
 }
@@ -146,7 +145,7 @@ void cnufft_free_gpumemory(spread_opts opts, spread_devicemem *d_mem)
 	}
 }
 
-int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+int cnufftspread2d_gpu(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 		FLT *h_ky, CPX *h_c, spread_opts opts, spread_devicemem* d_mem)
 {
 	cudaEvent_t start, stop;
@@ -163,7 +162,7 @@ int cnufftspread2d_gpu(int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 		}
 	}
 	cudaEventRecord(start);
-	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, opts, d_mem);
+	ier = cnufft_allocgpumemory(ms, mt, nf1, nf2, M, &fw_width, opts, d_mem);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);

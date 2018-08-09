@@ -1,13 +1,14 @@
 CC=gcc
 CXX=g++
 NVCC=nvcc
-CXXFLAGS=-DNEED_EXTERN_C -DSINGLE -fPIC -Ofast -funroll-loops -march=native -g
+CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_50 -DSINGLE
+NVCCFLAGS=-arch=sm_50 -DTIME
 INC=-I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/samples/common/inc/ \
-    -I/mnt/home/yshih/cub/
+    -I/mnt/home/yshih/cub/ \
+    -I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/include/
 LIBS_PATH=
-LIBS=-lm -lfftw3f -lcudart -lstdc++
+LIBS=-lm -lfftw3 -lcudart -lstdc++
 LIBS_CUFINUFFT=-lcufft
 
 -include make.inc
@@ -60,8 +61,11 @@ finufft2d.o: src/finufft/finufft2d.cpp
 legendre_rule_fast.o: src/finufft/contrib/legendre_rule_fast.c
 	$(CC) -c $< -o $@ $(INC)
 
-finufft2d_test.o: test/finufft2d_test.cpp
-	$(CXX) -c $< $(CXXFLAGS) $(INC) -o $@
+#finufft2d_test.o: test/finufft2d_test.cpp
+#	$(CXX) -c $< $(CXXFLAGS) $(INC) -o $@
+
+finufft2d_test.o: test/finufft2d_test.cu
+	$(NVCC) -c $< $(NVCCFLAGS) $(INC) -o $@
 
 accuracycheck_2d.o: test/accuracycheck_2d.cu
 	$(NVCC) -c $< $(NVCCFLAGS) -o $@ $(INC)

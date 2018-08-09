@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
 	}
 
 	cudaEventRecord(start);
-	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, opts, &dmem);
+	ier = cnufft_allocgpumemory(N1, N2, nf1, nf2, M, &fw_width, opts, &dmem);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

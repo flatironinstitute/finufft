@@ -40,13 +40,13 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 
 	int fw_width;
 	cudaEventRecord(start);
-	ier = cnufft_allocgpumemory(nf1, nf2, M, &fw_width, opts, d_mem);
+	ier = cnufft_allocgpumemory(N1, N2, nf1, nf2, M, &fw_width, opts, d_mem);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Allocating GPU memory " << milliseconds <<" ms"<<endl;
+	printf("[time  ] Allocate GPU memory\t %.3g s\n", milliseconds/1000);
 #endif
 
 	cudaEventRecord(start);
@@ -55,12 +55,12 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Copying memory from host to device " << milliseconds <<" s"<<endl;
+	printf("[time  ] Copy memory HtoD\t %.3g s\n", milliseconds/1000);
 #endif
 
 	// Step 1: Spread
 	cudaEventRecord(start);
-	ier = cnufftspread2d_gpu_idriven(nf1, nf2, fw_width, M, opts, d_mem);
+	ier = cnufftspread2d_gpu_subprob(nf1, nf2, fw_width, M, opts, d_mem);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
 		return 0;
@@ -69,9 +69,10 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
+	printf("[time  ] Spread\t\t\t %.3g s\n", milliseconds/1000);
 #endif
 	// Step 2: Call FFT
+	cudaEventRecord(start);
 	cufftHandle plan;
 	int ndata=1;
 	int n[] = {nf2, nf1};
@@ -85,8 +86,21 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 			CUFFT_Z2Z,ndata);
 	cufftExecZ2Z(plan, d_mem->fw, d_mem->fw, iflag);
 #endif
+#ifdef TIME
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        printf("[time  ] CUFFT\t\t\t %.3g s\n", milliseconds/1000);
+#endif
 	// Step 3: deconvolve and shuffle
+	cudaEventRecord(start);
 	cnufftdeconvolve2d_gpu(N1,N2,nf1,nf2,fw_width,opts,d_mem);
+#ifdef TIME
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        printf("[time  ] Deconvolve\t\t %.3g s\n", milliseconds/1000);
+#endif
 
 	cudaEventRecord(start);
 	ier = cnufft_copygpumem_to_cpumem_fk(N1, N2, h_fk, d_mem);
@@ -94,7 +108,7 @@ int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
+	printf("[time  ] Copy memory DtoH\t %.3g s\n", milliseconds/1000);
 #endif
 	cufftDestroy(plan);
 	cnufft_free_gpumemory(opts, d_mem);
