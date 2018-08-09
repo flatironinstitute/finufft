@@ -11,7 +11,7 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	nupts_distr=1
+	nupts_distr=2
 	reps=10
 	density = 1.0
 	tol=1e-6

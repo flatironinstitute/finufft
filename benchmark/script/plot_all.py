@@ -13,14 +13,14 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	num_lines = sum(1 for line in open('../results/spreadwidth/cufinufft_tol_1e-14.out', 'r'))-1
+	num_lines = sum(1 for line in open('../results/compare_nonuniform_nupts_cufinufft_0809.out', 'r'))-1
 	N = np.zeros(num_lines, dtype=int)
 	t_cunfft = np.zeros(num_lines)
 	t_nfft = np.zeros(num_lines)
 	t_cufinufft = np.zeros([1, num_lines])
 	t_finufft = np.zeros(num_lines)
 	#speedup = np.zeros([4, num_lines])
-	f = open('../results/spreadwidth/cunfft_tol_1e-14.out', 'r')
+	f = open('../results/compare_nonuniform_nupts_cunfft_0809.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 'N=', ',')
@@ -31,7 +31,7 @@ def main():
 			t_cunfft[i]=float(find_between(line, 't=', '\n'))
 			i=i+1
 
-	f = open('../results/spreadwidth/cufinufft_tol_1e-14.out', 'r')
+	f = open('../results/compare_nonuniform_nupts_cufinufft_0809.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -41,7 +41,7 @@ def main():
 			t_cufinufft[i/num_lines, i%num_lines]=float(temp)
 			i=i+1
 
-	f = open('../results/spreadwidth/finufft_tol_1e-14.out', 'r')
+	f = open('../results/compare_nonuniform_nupts_finufft_0809.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -51,7 +51,7 @@ def main():
 			t_finufft[i]=float(temp)
 			i=i+1
 
-	f = open('../results/spreadwidth/nfft_tol_1e-14.out', 'r')
+	f = open('../results/compare_nonuniform_nupts_nfft_0809.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')
@@ -116,10 +116,10 @@ def main():
 		#ax[i,j].yaxis.set_major_formatter(mtick.FormatStrFormatter('%.3g'))
 		#ax[i,j].set_ylim((0, 12))
 	plt.tight_layout(rect=[0.01, 0.07, 1, 1], pad=1.5, w_pad=5.0, h_pad=1.5)
-	fig.suptitle('Double Precision, Tolerance = 1e-14')	
+	fig.suptitle('Clustered nupts, Double Precision, w = 7')	
 	handles, labels = ax[0,0].get_legend_handles_labels()
 	fig.legend(handles, labels, loc='lower center', ncol=6)
-	plt.savefig('../spreadwidth/time_all_tol_1e-14.pdf')
+	plt.savefig('../speed_all_clusterednupts_0809.pdf')
 	plt.show()
 if __name__== "__main__":
   main()
