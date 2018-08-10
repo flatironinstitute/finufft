@@ -1,4 +1,5 @@
 #include "../src/finufft/finufft.h"
+#include "../src/cufinufft.h"
 #include "../src/finufft/dirft.h"
 #include "../src/finufft/cnufftspread.h"
 #include <math.h>

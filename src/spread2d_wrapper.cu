@@ -14,14 +14,25 @@ using namespace std;
 
 // This is a function only doing spread includes device memory allocation, transfer, free
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts, cufinufft_devicemem* d_mem)
+		FLT *h_ky, CPX *h_c, spread_opts opts, cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
 	int ier;
-	int fw_width;
+	
+	d_plan->ms = ms;
+        d_plan->mt = mt;
+        d_plan->nf1 = nf1;
+        d_plan->nf2 = nf2;
+	d_plan->M = M;
+        d_plan->h_kx = h_kx;
+        d_plan->h_ky = h_ky;
+        d_plan->h_c = h_c;
+	d_plan->h_fw = h_fw;
+	d_plan->h_fwkerhalf1 = NULL;
+	d_plan->h_fwkerhalf2 = NULL;
 
 	if(opts.pirange){
 		for(int i=0; i<M; i++){
@@ -30,7 +41,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 		}
 	}
 	cudaEventRecord(start);
-	ier = allocgpumemory(ms, mt, nf1, nf2, M, &fw_width, opts, d_mem);
+	ier = allocgpumemory(opts, d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -39,14 +50,14 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	ier = copycpumem_to_gpumem(M, h_kx, h_ky, h_c, nf1, nf2, NULL, NULL, d_mem);
+	ier = copycpumem_to_gpumem(d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 #endif
-	ier = cuspread2d(nf1,nf2,fw_width,M,opts,d_mem);
+	ier = cuspread2d(opts, d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -54,7 +65,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	ier = copygpumem_to_cpumem_fw(nf1, nf2, fw_width, h_fw, d_mem);
+	ier = copygpumem_to_cpumem_fw(d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -62,7 +73,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	free_gpumemory(opts, d_mem);
+	free_gpumemory(opts, d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -73,8 +84,13 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 }
 
 // a wrapper of different methods of spreader
-int cuspread2d(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem* d_mem)
+int cuspread2d( spread_opts opts, cufinufft_plan* d_plan)
 {
+	int nf1 = d_plan->nf1;
+	int nf2 = d_plan->nf2;
+	int fw_width = d_plan->fw_width;
+	int M = d_plan->M;
+
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -85,7 +101,7 @@ int cuspread2d(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinuff
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuspread2d_idriven(nf1, nf2, fw_width, M, opts, d_mem);
+				ier = cuspread2d_idriven(nf1, nf2, fw_width, M, opts, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
 					return 1;
@@ -95,13 +111,13 @@ int cuspread2d(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinuff
 		case 2:
 			{
 				cudaEventRecord(start);
-				ier = cuspread2d_idriven_sorted(nf1, nf2, fw_width, M, opts, d_mem);
+				ier = cuspread2d_idriven_sorted(nf1, nf2, fw_width, M, opts, d_plan);
 			}
 			break;
 		case 4:
 			{
 				cudaEventRecord(start);
-				ier = cuspread2d_hybrid(nf1, nf2, fw_width, M, opts, d_mem);
+				ier = cuspread2d_hybrid(nf1, nf2, fw_width, M, opts, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
 					return 1;
@@ -111,7 +127,7 @@ int cuspread2d(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinuff
 		case 5:
 			{
 				cudaEventRecord(start);
-				ier = cuspread2d_subprob(nf1, nf2, fw_width, M, opts, d_mem);
+				ier = cuspread2d_subprob(nf1, nf2, fw_width, M, opts, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
 					return 1;
@@ -153,13 +169,13 @@ int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d
 	threadsPerBlock.y = opts.nthread_y;
 	blocks.x = 1;
 	blocks.y = 1;
-	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
-	if(sharedmemorysize > 49152){
+	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
+	if(sharedplanorysize > 49152){
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
 	}
 	// blockSize must be a multiple of bin_size_x
-	Spread_2d_Simple<<<blocks, threadsPerBlock, sharedmemorysize>>>(d_kx, d_ky, d_c, 
+	Spread_2d_Simple<<<blocks, threadsPerBlock, sharedplanorysize>>>(d_kx, d_ky, d_c, 
 			d_fw, M, ns, nf1, nf2, 
 			es_c, es_beta, fw_width, 
 			M, bin_size_x, bin_size_y, 
@@ -174,7 +190,7 @@ int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d
 	return 0;
 }
 
-int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem *d_mem)
+int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -187,10 +203,10 @@ int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
 
-	FLT* d_kx = d_mem->kx;
-	FLT* d_ky = d_mem->ky;
-	CUCPX* d_c = d_mem->c;
-	CUCPX* d_fw = d_mem->fw;
+	FLT* d_kx = d_plan->kx;
+	FLT* d_ky = d_plan->ky;
+	CUCPX* d_c = d_plan->c;
+	CUCPX* d_fw = d_plan->fw;
 
 	threadsPerBlock.x = 16;
 	threadsPerBlock.y = 1;
@@ -215,7 +231,7 @@ int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
 	return 0;
 }
 
-int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem *d_mem)
+int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -234,20 +250,20 @@ int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
 
-	FLT* d_kx = d_mem->kx;
-	FLT* d_ky = d_mem->ky;
-	CUCPX* d_c = d_mem->c;
-	CUCPX* d_fw = d_mem->fw;
+	FLT* d_kx = d_plan->kx;
+	FLT* d_ky = d_plan->ky;
+	CUCPX* d_c = d_plan->c;
+	CUCPX* d_fw = d_plan->fw;
 
-	FLT *d_kxsorted = d_mem->kxsorted;
-	FLT *d_kysorted = d_mem->kysorted;
-	CUCPX *d_csorted = d_mem->csorted;
+	FLT *d_kxsorted = d_plan->kxsorted;
+	FLT *d_kysorted = d_plan->kysorted;
+	CUCPX *d_csorted = d_plan->csorted;
 
-	int *d_binsize = d_mem->binsize;
-	int *d_binstartpts = d_mem->binstartpts;
-	int *d_sortidx = d_mem->sortidx;
-	d_mem->temp_storage = NULL;
-	void*d_temp_storage = d_mem->temp_storage;
+	int *d_binsize = d_plan->binsize;
+	int *d_binstartpts = d_plan->binstartpts;
+	int *d_sortidx = d_plan->sortidx;
+	d_plan->temp_storage = NULL;
+	void*d_temp_storage = d_plan->temp_storage;
 
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
@@ -299,7 +315,7 @@ int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts
 	return 0;
 }
 
-int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem *d_mem)
+int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -323,21 +339,21 @@ int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, c
 	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
 
-	FLT* d_kx = d_mem->kx;
-	FLT* d_ky = d_mem->ky;
-	CUCPX* d_c = d_mem->c;
-	CUCPX* d_fw = d_mem->fw;
+	FLT* d_kx = d_plan->kx;
+	FLT* d_ky = d_plan->ky;
+	CUCPX* d_c = d_plan->c;
+	CUCPX* d_fw = d_plan->fw;
 
-	int *d_binsize = d_mem->binsize;
-	int *d_binstartpts = d_mem->binstartpts;
-	int *d_sortidx = d_mem->sortidx;
+	int *d_binsize = d_plan->binsize;
+	int *d_binstartpts = d_plan->binstartpts;
+	int *d_sortidx = d_plan->sortidx;
 
 	// assume that bin_size_x > ns/2;
-	FLT *d_kxsorted = d_mem->kxsorted;
-	FLT *d_kysorted = d_mem->kysorted;
-	CUCPX *d_csorted = d_mem->csorted;
-	d_mem->temp_storage = NULL;
-	void *d_temp_storage = d_mem->temp_storage;
+	FLT *d_kxsorted = d_plan->kxsorted;
+	FLT *d_kysorted = d_plan->kysorted;
+	CUCPX *d_csorted = d_plan->csorted;
+	d_plan->temp_storage = NULL;
+	void *d_temp_storage = d_plan->temp_storage;
 
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
@@ -440,13 +456,13 @@ int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, c
 	threadsPerBlock.y = 16;
 	blocks.x = numbins[0];
 	blocks.y = numbins[1];
-	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
-	if(sharedmemorysize > 49152){
+	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
+	if(sharedplanorysize > 49152){
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
 	}
 	// blockSize must be a multiple of bin_size_x
-	Spread_2d_Hybrid<<<blocks, threadsPerBlock, sharedmemorysize>>>(d_kxsorted, d_kysorted, d_csorted, 
+	Spread_2d_Hybrid<<<blocks, threadsPerBlock, sharedplanorysize>>>(d_kxsorted, d_kysorted, d_csorted, 
 			d_fw, M, ns, nf1, nf2, 
 			es_c, es_beta, fw_width, 
 			d_binstartpts, d_binsize, 
@@ -460,7 +476,7 @@ int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, c
 	return 0;
 }
 
-int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_devicemem *d_mem)
+int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -486,21 +502,21 @@ int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
 	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
 
-	FLT* d_kx = d_mem->kx;
-	FLT* d_ky = d_mem->ky;
-	CUCPX* d_c = d_mem->c;
-	CUCPX* d_fw = d_mem->fw;
+	FLT* d_kx = d_plan->kx;
+	FLT* d_ky = d_plan->ky;
+	CUCPX* d_c = d_plan->c;
+	CUCPX* d_fw = d_plan->fw;
 
-	int *d_binsize = d_mem->binsize;
-	int *d_binstartpts = d_mem->binstartpts;
-	int *d_sortidx = d_mem->sortidx;
-	int *d_numsubprob = d_mem->numsubprob;
-	int *d_subprobstartpts = d_mem->subprobstartpts;
-	int *d_idxnupts = d_mem->idxnupts;
-	d_mem->subprob_to_bin = NULL;
-	int *d_subprob_to_bin = d_mem->subprob_to_bin;
-	d_mem->temp_storage = NULL;
-	void *d_temp_storage = d_mem->temp_storage;
+	int *d_binsize = d_plan->binsize;
+	int *d_binstartpts = d_plan->binstartpts;
+	int *d_sortidx = d_plan->sortidx;
+	int *d_numsubprob = d_plan->numsubprob;
+	int *d_subprobstartpts = d_plan->subprobstartpts;
+	int *d_idxnupts = d_plan->idxnupts;
+	d_plan->subprob_to_bin = NULL;
+	int *d_subprob_to_bin = d_plan->subprob_to_bin;
+	d_plan->temp_storage = NULL;
+	void *d_temp_storage = d_plan->temp_storage;
 
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
@@ -654,13 +670,13 @@ int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
 #endif
 	FLT sigma=opts.upsampfac;
 	cudaEventRecord(start);
-	size_t sharedmemorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
-	if(sharedmemorysize > 49152){
+	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*sizeof(CUCPX);
+	if(sharedplanorysize > 49152){
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
 	}
 
-	Spread_2d_Subprob<<<totalnumsubprob, 256, sharedmemorysize>>>(d_kx, d_ky, d_c,
+	Spread_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(d_kx, d_ky, d_c,
 			d_fw, M, ns, nf1, nf2,
 			es_c, es_beta, sigma, fw_width,
 			d_binstartpts, d_binsize,

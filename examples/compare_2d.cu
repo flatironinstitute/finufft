@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
                 return 0;
         }
 
-	cufinufft_devicemem dmem;
+	cufinufft_plan dplan;
 	cout<<scientific<<setprecision(3);
 
 
@@ -65,6 +65,18 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&y, M*sizeof(CPX));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
+
+	dplan.ms = N1;
+	dplan.mt = N2;
+	dplan.nf1 = nf1;
+	dplan.nf2 = nf2;
+	dplan.M = M;
+	dplan.h_kx = x;
+	dplan.h_ky = y;
+	dplan.h_c = c;
+	dplan.h_fw = fw;
+	dplan.h_fwkerhalf1 = NULL;
+	dplan.h_fwkerhalf2 = NULL;
 
 	opts.pirange=0;
 	switch(nupts_distribute){
@@ -100,7 +112,6 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
 
-	int fw_width;
 	switch(opts.method)
 	{
 		case 2:
@@ -124,20 +135,20 @@ int main(int argc, char* argv[])
 	}
 
 	cudaEventRecord(start);
-	ier = allocgpumemory(N1, N2, nf1, nf2, M, &fw_width, opts, &dmem);
+	ier = allocgpumemory(opts, &dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = copycpumem_to_gpumem(M, x, y, c, nf1, nf2, NULL, NULL, &dmem);
+	ier = copycpumem_to_gpumem(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 
-	ier = cuspread2d(nf1, nf2, fw_width, M, opts, &dmem);
+	ier = cuspread2d(opts, &dplan);
 	if(ier != 0 ){
 		cout<<"error: cuspread2d, method("<<opts.method<<")"<<endl;
 		return 0;
@@ -148,14 +159,14 @@ int main(int argc, char* argv[])
 	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = copygpumem_to_cpumem_fw(nf1, nf2, fw_width, fw, &dmem);
+	ier = copygpumem_to_cpumem_fw(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	free_gpumemory(opts, &dmem);
+	free_gpumemory(opts, &dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

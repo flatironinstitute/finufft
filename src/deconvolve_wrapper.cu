@@ -28,13 +28,18 @@ void Deconvolve_2d(int ms, int mt, int nf1, int nf2, int fw_width, CUCPX* fw, CU
 	}
 }
 
-int cudeconvolve2d(int ms, int mt, int nf1, int nf2, int fw_width, spread_opts opts, cufinufft_devicemem *d_mem)
+int cudeconvolve2d(spread_opts opts, cufinufft_plan *d_plan)
 // ms = N1
 // mt = N2
 {
+	int ms=d_plan->ms;
+	int mt=d_plan->mt;
+	int nf1=d_plan->nf1;
+	int nf2=d_plan->nf2;
+	int fw_width=d_plan->fw_width;
 	int nmodes=ms*mt;
-	Deconvolve_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, fw_width, d_mem->fw, d_mem->fk,
-						   d_mem->fwkerhalf1, d_mem->fwkerhalf2);
+	Deconvolve_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, fw_width, d_plan->fw, d_plan->fk,
+						   d_plan->fwkerhalf1, d_plan->fwkerhalf2);
 	return 0;
 }
 

@@ -60,8 +60,12 @@ void check(cufftResult_t err){
 #define checkCufftErrors(call) check((call))
 #endif
 #define checkCufftErrors(call)
-int cnufft_copygpumem_to_cpumem_fk(int ms, int mt, CPX* h_fk, cufinufft_devicemem *d_mem);
 int cufinufft2d(int N1, int N2, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
                 int iflag, int nf1, int nf2, CPX* h_fk, spread_opts opts, 
-		cufinufft_devicemem *d_mem, FLT* h_fwhalfker1, FLT* h_fwhalfker2);
+		cufinufft_plan *d_mem, FLT* h_fwhalfker1, FLT* h_fwhalfker2);
+
+int cufinufft2d1_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX* h_fk,
+                int iflag, FLT eps, FLT upsampfac, spread_opts &opts, cufinufft_plan *d_plan);
+int cufinufft2d1_exec(spread_opts opts, cufinufft_plan *d_plan);
+int cufinufft2d1_destroy(spread_opts opts, cufinufft_plan *d_plan);
 #endif

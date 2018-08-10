@@ -49,7 +49,7 @@ void FillGhostBin_1d(int bin_size_x, int nbinx, int*bin_size)
 __global__
 void BinsStartPts_1d(int M, int totalnumbins, int* bin_size, int* bin_startpts)
 {
-  __shared__ int temp[max_shared_mem];
+  __shared__ int temp[max_shared_plan];
   int i = threadIdx.x;
   //temp[i] = (i > 0) ? bin_size[i-1] : 0;
   if ( i < totalnumbins){
@@ -102,8 +102,8 @@ void Spread_1d(int nbin_block_x, int nbinx, int *bin_startpts,
                double *x_sorted, double *c_sorted, double *fw, int ns,
                int nf1, double es_c, double es_beta)
 {
-  __shared__ double xshared[max_shared_mem/4];
-  __shared__ double cshared[2*max_shared_mem/4];
+  __shared__ double xshared[max_shared_plan/4];
+  __shared__ double cshared[2*max_shared_plan/4];
 
   int ix = blockDim.x*blockIdx.x+threadIdx.x;// output index, coord of the index
   int outidx = ix;

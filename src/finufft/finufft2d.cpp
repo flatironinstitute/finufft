@@ -110,37 +110,19 @@ int finufft2d1_cpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	           FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
-  cufinufft_devicemem dmem;
+  cufinufft_plan dplan;
   spread_opts spopts;
-  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
-  if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
-  if (nf1*nf2>MAX_NF) {
-    fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
-    return ERR_MAXNALLOC;
-  }
-  cout << scientific << setprecision(15);  // for debug
+  CNTime timer;
+  timer.start();
+  int ier=cufinufft2d1_plan(nj, xj, yj, cj, ms, mt, fk, iflag, eps, opts.upsampfac, spopts, &dplan);
+  if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", timer.elapsedsec());
 
-  if (opts.debug) printf("[time  ] 2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj);
-
-  // STEP 0: get Fourier coeffs of spread kernel in each dim:
-  CNTime timer; timer.start();
-  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
-  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
-  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
-  if (opts.debug) printf("[time  ] kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
-
-  int fftsign = (iflag>=0) ? 1 : -1;
-
-  // Step 1: spread from irregular points to regular grid
   timer.restart();
-  spopts.spread_direction = 1;
-  int ier_gpu = cufinufft2d(ms, mt, nj, xj, yj, (CPX*) cj, eps,
-                            fftsign, nf1, nf2, (CPX*) fk, spopts, &dmem, 
-			    fwkerhalf1, fwkerhalf2);
+  ier=cufinufft2d1_exec(spopts, &dplan);
+  if (opts.debug) printf("[time  ] cufinufft2d1 exec:\t\t %.3g s\n", timer.elapsedsec());
 
-  free(fwkerhalf1); free(fwkerhalf2);
+  timer.restart();
+  ier=cufinufft2d1_destroy(spopts, &dplan);
+  if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", timer.elapsedsec());
   return 0;
 }

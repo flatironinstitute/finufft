@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 
 	int ns=std::ceil(-log10(tol/10.0));
 	spread_opts opts;
-	cufinufft_devicemem dmem;
+	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
 
 	ier = setup_cuspreader(opts,tol,upsampfac);
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
 	}
 
 	timer.restart();
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dmem);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d"<<endl;
 		return 0;
