@@ -44,10 +44,10 @@ int main(int argc, char* argv[])
 	spread_opts opts;
 	FLT upsampfac=2.0;
 	ier = setup_cuspreader(opts,tol,upsampfac);
-        if(ier != 0 ){
-                cout<<"error: setup_cuspreader"<<endl;
-                return 0;
-        }
+	if(ier != 0 ){
+		cout<<"error: setup_cuspreader"<<endl;
+		return 0;
+	}
 
 	cufinufft_plan dplan;
 	cout<<scientific<<setprecision(3);

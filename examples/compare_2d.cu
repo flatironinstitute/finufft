@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 
 	cudaEventRecord(start);
-	ier = copycpumem_to_gpumem(&dplan);
+	ier = copycpumem_to_gpumem(opts, &dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

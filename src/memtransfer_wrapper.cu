@@ -81,14 +81,22 @@ int allocgpumemory(spread_opts opts, cufinufft_plan *d_plan)
 	return 0;
 }
 
-int copycpumem_to_gpumem(cufinufft_plan *d_plan)
+int copycpumem_to_gpumem(spread_opts opts, cufinufft_plan *d_plan)
 {
 	int M=d_plan->M;
 	int nf1=d_plan->nf1;
 	int nf2=d_plan->nf2;
+	int fw_width=d_plan->fw_width;
 	checkCudaErrors(cudaMemcpy(d_plan->kx,d_plan->h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_plan->ky,d_plan->h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->c, d_plan->h_c,M*sizeof(CUCPX),cudaMemcpyHostToDevice));
+	if(opts.spread_direction == 1)
+		checkCudaErrors(cudaMemcpy(d_plan->c, d_plan->h_c,M*sizeof(CUCPX),cudaMemcpyHostToDevice));
+	
+	// if doing just spread on gpu, then we copy fw; otherwise, copy fk
+	if(opts.spread_direction == 2)
+		cudaMemcpy2D(d_plan->fw,fw_width*sizeof(CUCPX),d_plan->h_fw,nf1*sizeof(CUCPX),
+                             nf1*sizeof(CUCPX),nf2,cudaMemcpyHostToDevice);
+		//checkCudaErrors(cudaMemcpy(d_plan->fw, d_plan->h_fw,(nf1*nf2)*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	if(d_plan->h_fwkerhalf1 != NULL)
 		checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf1,d_plan->h_fwkerhalf1,(nf1/2+1)*sizeof(FLT),cudaMemcpyHostToDevice));
@@ -114,6 +122,13 @@ int copygpumem_to_cpumem_fk(cufinufft_plan *d_plan)
 	int ms = d_plan->ms;
 	int mt = d_plan->mt;
         checkCudaErrors(cudaMemcpy(d_plan->h_fk,d_plan->fk,ms*mt*sizeof(CUCPX),cudaMemcpyDeviceToHost));
+        return 0;
+}
+
+int copygpumem_to_cpumem_c(cufinufft_plan *d_plan)
+{
+	int M = d_plan->M;
+        checkCudaErrors(cudaMemcpy(d_plan->h_c,d_plan->c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
         return 0;
 }
 

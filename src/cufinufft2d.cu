@@ -93,7 +93,7 @@ int cufinufft2d1_exec(spread_opts opts, cufinufft_plan *d_plan)
 	}	
 
 	// Copy memory to device
-	int ier = copycpumem_to_gpumem(d_plan);
+	int ier = copycpumem_to_gpumem(opts, d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -208,7 +208,7 @@ int cufinufft2d(int ms, int mt, int M, FLT* h_kx, FLT* h_ky, CPX* h_c, FLT tol,
 #endif
 
 	cudaEventRecord(start);
-	ier = copycpumem_to_gpumem(d_plan);
+	ier = copycpumem_to_gpumem(opts, d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

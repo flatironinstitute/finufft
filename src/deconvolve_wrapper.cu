@@ -7,7 +7,7 @@
 #include "deconvolve.h"
 
 using namespace std;
-
+// Assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up to N/2-1)
 __global__
 void Deconvolve_2d(int ms, int mt, int nf1, int nf2, int fw_width, CUCPX* fw, CUCPX *fk, 
                    FLT *fwkerhalf1, FLT *fwkerhalf2)

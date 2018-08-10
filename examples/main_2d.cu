@@ -55,6 +55,8 @@ int main(int argc, char* argv[])
                 cout<<"error: setup_cuspreader"<<endl;
                 return 0;
         }
+	opts.spread_direction=1;
+	opts.method=method;
 	cout<<scientific<<setprecision(3);
 
 
