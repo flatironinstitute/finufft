@@ -251,10 +251,11 @@ int main(int argc, char* argv[])
 	printf("\n[info  ] Type 2: Interpolation\n");
 
 	CPX *fw;
-	CPX *cfinufft, *ci;
+	CPX *cfinufft, *ci, *cs;
 	cudaMallocHost(&fw, nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&cfinufft, M*sizeof(CPX));
 	cudaMallocHost(&ci,       M*sizeof(CPX));
+	cudaMallocHost(&cs,       M*sizeof(CPX));
 
 	for(int i=0; i<nf1*nf2; i++){
 		fw[i].real() = 1.0;
@@ -268,11 +269,26 @@ int main(int argc, char* argv[])
 	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, ci, opts, &dplan);
 	FLT tti=timer.elapsedsec();
 	if(ier != 0 ){
-		cout<<"error: cnufftinterp2d_gpu_subprob"<<endl;
+		cout<<"error: cnufftinterp2d_gpu_idriven"<<endl;
 		return 0;
 	}
 	printf("[idriven] Interp (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
 			  nf1,nf2,M,tti,nf1*nf2/tti);
+	/* -------------------------------------- */
+	// Method 1: Subprob                      //
+	/* -------------------------------------- */
+	timer.restart();
+	opts.method=5;
+	opts.bin_size_x=32;
+	opts.bin_size_y=32;
+	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, opts, &dplan);
+	FLT tts=timer.elapsedsec();
+	if(ier != 0 ){
+		cout<<"error: cnufftinterp2d_gpu_subprob"<<endl;
+		return 0;
+	}
+	printf("[subprob] Interp (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
+			  nf1,nf2,M,tts,nf1*nf2/tts);
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
@@ -298,6 +314,8 @@ int main(int argc, char* argv[])
 			  nf1,nf2,M,tt,nf1*nf2/tt);
 	err=relerrtwonorm(M,ci,cfinufft);
 	printf("|| ci  - cfinufft ||_2 / || ci  ||_2 =  %.6g\n", err);
+	err=relerrtwonorm(M,cs,cfinufft);
+	printf("|| cs  - cfinufft ||_2 / || cs  ||_2 =  %.6g\n", err);
 #if 0
 	cout<<"[result-hybrid]"<<endl;
 	for(int j=0; j<nf2; j++){

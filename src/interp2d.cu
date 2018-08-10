@@ -135,9 +135,23 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0));
 	
 
-	for(int i=threadIdx.x; i<N; i+=blockDim.x){
-		fwshared[i].x = 0.0;
-		fwshared[i].y = 0.0;
+	for(int k=threadIdx.x;k<N; k+=blockDim.x){
+		//fwshared[i].x = 0.0;
+		//fwshared[i].y = 0.0;
+		int i = k % (int) (bin_size_x+2*ceil(ns/2.0) );
+		int j = k /( bin_size_x+2*ceil(ns/2.0) );
+		ix = xoffset-ceil(ns/2.0)+i;
+		iy = yoffset-ceil(ns/2.0)+j;
+		if(ix < (nf1+ceil(ns/2.0)) && iy < (nf2+ceil(ns/2.0))){
+			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
+			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
+			outidx = ix+iy*fw_width;
+			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
+			fwshared[sharedidx].x = fw[outidx].x;
+			fwshared[sharedidx].y = fw[outidx].y;
+			//atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
+			//atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+		}
 	}
 	__syncthreads();
 
@@ -147,19 +161,14 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int idx = ptstart+i;
 		x_rescaled = x[idxnupts[idx]];
 		y_rescaled = y[idxnupts[idx]];
-		cnow = c[idxnupts[idx]];
+		cnow.x = 0.0;
+		cnow.y = 0.0;
 
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
 		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
 		xend   = floor(x_rescaled + ns/2.0)-xoffset;
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
-		/*
-		FLT ker1[maxns];
-		FLT x1=(FLT) xstart+xoffset-x_rescaled;
-        	for (int j = 0; j < ns; j++) { // Loop 1: Compute exponential arguments
-                	ker1[j] = j;
-        	}*/
-		//evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
+
 		for(int yy=ystart; yy<=yend; yy++){
 			FLT disy=abs(y_rescaled-(yy+yoffset));
 			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
@@ -170,25 +179,10 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 				FLT disx=abs(x_rescaled-(xx+xoffset));
 				//FLT kervalue1 = ker1[xx-xstart];
 				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-				atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
-				atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
+				cnow.x += fwshared[outidx].x*kervalue1*kervalue2;
+				cnow.y += fwshared[outidx].y*kervalue1*kervalue2;
 			}
 		}
-	}
-	__syncthreads();
-	/* write to global memory */
-	for(int k=threadIdx.x; k<N; k+=blockDim.x){
-		int i = k % (int) (bin_size_x+2*ceil(ns/2.0) );
-		int j = k /( bin_size_x+2*ceil(ns/2.0) );
-		ix = xoffset-ceil(ns/2.0)+i;
-		iy = yoffset-ceil(ns/2.0)+j;
-		if(ix < (nf1+ceil(ns/2.0)) && iy < (nf2+ceil(ns/2.0))){
-			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
-			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
-			outidx = ix+iy*fw_width;
-			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
-			atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
-			atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
-		}
+		c[idxnupts[idx]] = cnow;
 	}
 }
