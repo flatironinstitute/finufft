@@ -49,6 +49,8 @@ This is an implementation of nufft spreader on GPU.
  - Performance for single precision
  - Performance for different ways of kernel evaluation
  - Device memory mannaged by struct
-### 2018/08/07
+#### 2018/08/07
  - Using CUFFT for FFT
  - Deconvolution on gpu with fwkerhalf1, fwkerhalf2 calculated on CPU
+#### 2018/08/08
+ - Create Plan/Exec/Destroy interface
