@@ -21,13 +21,18 @@ LIBS_CUFINUFFT=-lcufft
 spread2d: examples/main_2d.o src/spread2d_wrapper.o src/spread2d.o src/finufft/utils.o src/memtransfer_wrapper.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
+interp2d: examples/interp_2d.o src/spread2d_wrapper.o src/spread2d.o src/interp2d_wrapper.o src/interp2d.o \
+          src/finufft/utils.o src/memtransfer_wrapper.o
+	$(NVCC) $(NVCCFLAGS) -o $@ $^
+
 compare: examples/compare_2d.o src/spread2d_wrapper.o src/spread2d.o src/finufft/utils.o src/memtransfer_wrapper.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 #simple: examples/simple_2d.o src/spread2d_wrapper.o src/spread2d.o src/finufft/utils.o
 #	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-accuracy: test/accuracycheck_2d.o src/spread2d_wrapper.o src/spread2d.o src/finufft/utils.o src/finufft/cnufftspread.o src/memtransfer_wrapper.o
+accuracy: test/accuracycheck_2d.o src/spread2d_wrapper.o src/spread2d.o src/finufft/utils.o \
+          src/finufft/cnufftspread.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 finufft2d_test: test/finufft2d_test.o src/finufft/finufft2d.o src/finufft/utils.o src/finufft/cnufftspread.o \

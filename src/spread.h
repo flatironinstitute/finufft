@@ -83,6 +83,9 @@ __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
 __global__
+void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
+__global__
 void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                               int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
 __global__
@@ -108,7 +111,11 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 int setup_cuspreader(spread_opts &opts,FLT eps,FLT upsampfac);
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                        FLT *h_ky, CPX* h_c, spread_opts opts, cufinufft_plan *dmem);
+int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+                       FLT *h_ky, CPX* h_c, spread_opts opts, cufinufft_plan *dmem);
 int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
+                       cufinufft_plan *d_mem);
+int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
                        cufinufft_plan *d_mem);
 int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts,
                                cufinufft_plan *d_mem);
@@ -119,4 +126,5 @@ int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts,
 int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
                       FLT *d_ky, CUCPX *d_c, spread_opts opts, int binx, int biny);
 int cuspread2d(spread_opts opts, cufinufft_plan* d_mem);
+int cuinterp2d(spread_opts opts, cufinufft_plan* d_mem);
 #endif
