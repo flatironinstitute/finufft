@@ -114,7 +114,9 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   spread_opts spopts;
   CNTime timer;
   timer.start();
-  int ier=cufinufft2d1_plan(nj, xj, yj, cj, ms, mt, fk, iflag, eps, opts.upsampfac, spopts, &dplan);
+  int ier=setup_cuspreader(spopts,eps,opts.upsampfac);
+  spopts.spread_direction=1;
+  ier=cufinufft2d1_plan(nj, xj, yj, cj, ms, mt, fk, iflag, spopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", timer.elapsedsec());
 
   timer.restart();

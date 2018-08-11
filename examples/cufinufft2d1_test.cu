@@ -85,9 +85,12 @@ int main(int argc, char* argv[])
 
 	cufinufft_plan dplan;
 	spread_opts opts;
+	ier=setup_cuspreader(opts,tol,sigma);
+	opts.method=method;
+	opts.spread_direction=1;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d1_plan(M, x, y, c, N1, N2, fk, iflag, tol, sigma, opts, &dplan);
+	ier=cufinufft2d1_plan(M, x, y, c, N1, N2, fk, iflag, opts, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d1_plan\n");
 	}

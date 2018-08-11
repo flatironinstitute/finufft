@@ -57,6 +57,7 @@ int main(int argc, char* argv[])
         }
 	opts.spread_direction=2;
 	opts.method=method;
+	opts.spreadonly=1;
 	cout<<scientific<<setprecision(3);
 
 
@@ -126,7 +127,7 @@ int main(int argc, char* argv[])
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
 		opts.method,nf1*nf2,M,t,nf1*nf2/t);
-#if 1
+#if 0
 	switch(method)
 	{
 		case 4:

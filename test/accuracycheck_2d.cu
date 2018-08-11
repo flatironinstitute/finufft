@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
 		cout<<"error: setup_cuspreader"<<endl;
 		return 0;
 	}
-
+	opts.spreadonly=1;
 	cufinufft_plan dplan;
 	cout<<scientific<<setprecision(3);
 

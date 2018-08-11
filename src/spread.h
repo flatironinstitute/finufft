@@ -31,8 +31,9 @@ struct spread_opts {      // see cuspread:setup_spreader for defaults.
   FLT ES_halfwidth;
   FLT ES_c;
   
-  // CUDA: for output driven
+  // CUDA
   int method;
+  int spreadonly;
   int bin_size_x;
   int bin_size_y;
   int Horner;

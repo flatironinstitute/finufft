@@ -15,13 +15,14 @@
 using namespace std;
 
 int cufinufft2d1_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX* h_fk, 
-		int iflag, FLT eps, FLT upsampfac, spread_opts &opts, cufinufft_plan *d_plan)
+		int iflag, spread_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	int ier=setup_cuspreader(opts,eps,upsampfac);
+	int ier;
+	//ier=setup_cuspreader(opts,eps,upsampfac);
 	int nf1 = (int) opts.upsampfac*ms;
 	int nf2 = (int) opts.upsampfac*mt;
 	int fftsign = (iflag>=0) ? 1 : -1;

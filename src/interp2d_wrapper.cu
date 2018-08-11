@@ -36,14 +36,6 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
         d_plan->h_ky = h_ky;
         d_plan->h_c = h_c;
 	d_plan->h_fw = h_fw;
-#ifdef DEBUG
-	for(int j=0; j<nf2; j++){
-		for(int i=0; i<nf1; i++){
-			printf("fw[%d,%d] = (%.3g, %.3g) ", i,j,h_fw[i+j*nf1].real(),h_fw[i+j*nf1].imag() );
-		}
-		printf("\n");
-	}
-#endif
 	d_plan->h_fwkerhalf1 = NULL;
 	d_plan->h_fwkerhalf2 = NULL;
 

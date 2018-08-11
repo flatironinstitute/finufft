@@ -16,8 +16,8 @@ void Deconvolve_2d(int ms, int mt, int nf1, int nf2, int fw_width, CUCPX* fw, CU
 		int k1 = i % ms;
 		int k2 = i / ms;
 		int outidx = k1 + k2*ms;
-		int w1 = k1-ms/2 > 0 ? k1-ms/2 : nf1+k1-ms/2;
-		int w2 = k2-mt/2 > 0 ? k2-mt/2 : nf2+k2-mt/2;
+		int w1 = k1-ms/2 >= 0 ? k1-ms/2 : nf1+k1-ms/2;
+		int w2 = k2-mt/2 >= 0 ? k2-mt/2 : nf2+k2-mt/2;
 		int inidx = w1 + w2*fw_width;
 
 		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
