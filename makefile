@@ -18,46 +18,52 @@ LIBS_CUFINUFFT=-lcufft
 %.o: %.cu
 	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
 
-spread2d: examples/main_2d.o src/spread2d_wrapper.o src/spread2d.o src/finufft/utils.o src/memtransfer_wrapper.o
+spread2d: examples/spread_2d.o src/spread2d_wrapper.o src/spread2d.o finufft/utils.o src/memtransfer_wrapper.o\
+          src/common.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 interp2d: examples/interp_2d.o src/spread2d_wrapper.o src/spread2d.o src/interp2d_wrapper.o src/interp2d.o \
-          src/finufft/utils.o src/memtransfer_wrapper.o
+          finufft/utils.o src/memtransfer_wrapper.o src/common.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-compare: examples/compare_2d.o src/spread2d_wrapper.o src/spread2d.o src/finufft/utils.o src/memtransfer_wrapper.o
+compare: examples/compare_2d.o src/spread2d_wrapper.o src/spread2d.o finufft/utils.o src/memtransfer_wrapper.o\
+         src/common.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-accuracy: test/accuracycheck_2d.o src/spread2d_wrapper.o src/spread2d.o src/finufft/utils.o \
-          src/finufft/cnufftspread.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o
+spreadinterp_test: test/spreadinterp_test.o src/spread2d_wrapper.o src/spread2d.o finufft/utils.o \
+                   finufft/cnufftspread.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o \
+                   src/common.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-finufft2d_test: test/finufft2d_test.o src/finufft/finufft2d.o src/finufft/utils.o src/finufft/cnufftspread.o \
-                src/finufft/dirft2d.o src/finufft/common.o \
-                src/finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
+finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o finufft/utils.o finufft/cnufftspread.o \
+                finufft/dirft2d.o finufft/common.o \
+                finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
                 src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o \
                 src/interp2d_wrapper.o src/interp2d.o
 	$(CXX) $^ $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
-cufinufft2d1_test: examples/cufinufft2d1_test.o src/finufft/utils.o src/finufft/dirft2d.o src/finufft/common.o \
-                   src/finufft/cnufftspread.o src/finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
+cufinufft2d1_test: examples/cufinufft2d1_test.o finufft/utils.o finufft/dirft2d.o finufft/common.o \
+                   finufft/cnufftspread.o finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
                    src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
-cufinufft2d2_test: examples/cufinufft2d2_test.o src/finufft/utils.o src/finufft/dirft2d.o src/finufft/common.o \
-                   src/finufft/cnufftspread.o src/finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
+cufinufft2d2_test: examples/cufinufft2d2_test.o finufft/utils.o finufft/dirft2d.o finufft/common.o \
+                   finufft/cnufftspread.o finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
                    src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
-all: spread2d interp2d compare accuracy finufft2d_test cufinufft2d1_test cufinufft2d2_test
+all: spread2d interp2d compare spreadinterp_test finufft2d_test cufinufft2d1_test cufinufft2d2_test
 clean:
 	rm -f *.o
 	rm -f examples/*.o
 	rm -f src/*.o
-	rm -f src/finufft/*.o
-	rm -f src/finufft/contrib/*.o
+	rm -f finufft/*.o
+	rm -f finufft/contrib/*.o
+	rm -f test/*.o
 	rm -f spread2d
 	rm -f accuracy
 	rm -f compare
+	rm -f interp2d
 	rm -f finufft2d_test
-	rm -f cufinufft2d_test
+	rm -f cufinufft2d1_test
+	rm -f cufinufft2d2_test
 

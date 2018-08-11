@@ -3,9 +3,9 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include "../src/spread.h"
-#include "../src/finufft/utils.h"
-#include "../src/finufft/cnufftspread.h"
+#include "../src/spreadinterp.h"
+#include "../finufft/utils.h"
+#include "../finufft/cnufftspread.h"
 
 using namespace std;
 
@@ -41,11 +41,11 @@ int main(int argc, char* argv[])
 
 	int ier;
 	int ns=std::ceil(-log10(tol/10.0));
-	spread_opts opts;
+	cufinufft_opts opts;
 	FLT upsampfac=2.0;
-	ier = setup_cuspreader(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(opts,tol,upsampfac);
 	if(ier != 0 ){
-		cout<<"error: setup_cuspreader"<<endl;
+		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
 	opts.spreadonly=1;
@@ -193,23 +193,23 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	printf("[subprob] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-			M,N1,N2,nf1*nf2,tsubprob,M/thybrid);
+			M,N1,N2,nf1*nf2,tsubprob,M/tsubprob);
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
 	timer.start();
-	setup_spreader(opts,(FLT)tol,opts.upsampfac,opts.kerevalmeth);
-	opts.pirange=0;
-	opts.chkbnds=1;
-	opts.spread_direction=1;
-	opts.flags=0;//ker always return 1
-	opts.kerevalmeth=1;
-	opts.kerpad=1;
-	opts.sort_threads=0;
-	opts.sort=2;
-	opts.debug=0;
+	spread_opts spopts;
+	setup_spreader(spopts,(FLT)tol,upsampfac,1);
+	spopts.pirange=0;
+	spopts.chkbnds=1;
+	spopts.spread_direction=1;
+	spopts.flags=0;//ker always return 1
+	spopts.kerpad=1;
+	spopts.sort_threads=0;
+	spopts.sort=2;
+	spopts.debug=0;
 
-	ier = cnufftspread(nf1,nf2,1,(FLT*) fwfinufft,M,x,y,NULL,(FLT*) c,opts);
+	ier = cnufftspread(nf1,nf2,1,(FLT*) fwfinufft,M,x,y,NULL,(FLT*) c,spopts);
 	FLT t=timer.elapsedsec();
 	if (ier!=0) {
 		printf("error (ier=%d)!\n",ier);
@@ -293,18 +293,17 @@ int main(int argc, char* argv[])
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
 	timer.start();
-	setup_spreader(opts,(FLT)tol,opts.upsampfac,opts.kerevalmeth);
-	opts.pirange=0;
-	opts.chkbnds=1;
-	opts.spread_direction=2;
-	opts.flags=0;//ker always return 1
-	opts.kerevalmeth=1;
-	opts.kerpad=1;
-	opts.sort_threads=0;
-	opts.sort=2;
-	opts.debug=0;
+	setup_spreader(spopts,(FLT)tol,opts.upsampfac,1);
+	spopts.pirange=0;
+	spopts.chkbnds=1;
+	spopts.spread_direction=2;
+	spopts.flags=0;//ker always return 1
+	spopts.kerpad=1;
+	spopts.sort_threads=0;
+	spopts.sort=2;
+	spopts.debug=0;
 
-	ier = cnufftspread(nf1,nf2,1,(FLT*) fw,M,x,y,NULL,(FLT*) cfinufft,opts);
+	ier = cnufftspread(nf1,nf2,1,(FLT*) fw,M,x,y,NULL,(FLT*) cfinufft,spopts);
 	FLT tt=timer.elapsedsec();
 	if (ier!=0) {
 		printf("error (ier=%d)!\n",ier);
@@ -337,7 +336,6 @@ int main(int argc, char* argv[])
 	cudaFreeHost(c);
 	cudaFreeHost(fwi);
 	cudaFreeHost(fwic);
-	//cudaFreeHost(fwo);
 	cudaFreeHost(fwh);
 	cudaFreeHost(fwfinufft);
 	return 0;

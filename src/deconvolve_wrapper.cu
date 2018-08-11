@@ -48,7 +48,7 @@ void Amplify_2d(int ms, int mt, int nf1, int nf2, int fw_width, CUCPX* fw, CUCPX
 	}
 }
 
-int cudeconvolve2d(spread_opts opts, cufinufft_plan *d_plan)
+int cudeconvolve2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 // ms = N1
 // mt = N2
 {

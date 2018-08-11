@@ -3,7 +3,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include "spread.h"
+#include "spreadinterp.h"
 #include "utils.h"
 
 using namespace std;

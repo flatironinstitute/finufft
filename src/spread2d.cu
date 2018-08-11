@@ -2,12 +2,11 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <cuda.h>
-#include "finufft/utils.h"
-#include "spread.h"
+#include "../finufft/utils.h"
+#include "spreadinterp.h"
 
 using namespace std;
 
-#define maxns 16
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
@@ -42,7 +41,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	//return x;
 	//return 1.0;
 }
-
+#if 0
 static __forceinline__ __device__
 void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, const int N)
 	/* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
@@ -61,7 +60,7 @@ void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, const i
 	//for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
 		//ker[i] = exp(ker[i]);
 }
-
+#endif
 static __inline__ __device__
 void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double upsampfac)
 	/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
@@ -72,7 +71,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double ups
 	FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
 	// insert the auto-generated code which expects z, w args, writes to ker...
 	if (upsampfac==2.0) {     // floating point equality is fine here
-#include "finufft/ker_horner_allw_loop.c"
+#include "../finufft/ker_horner_allw_loop.c"
 	}
 }
 
@@ -121,10 +120,10 @@ void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const 
 {
 	int xx, yy, ix, iy;
 	int outidx;
-	FLT ker1[7];
-	//FLT ker2[7];
+	FLT ker1[MAX_NSPREAD];
+	FLT ker2[MAX_NSPREAD];
 	FLT ker1val, ker2val;
-	//double sigma=2.0;
+	double sigma=2.0;
 
 	FLT x_rescaled, y_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
@@ -136,19 +135,20 @@ void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const 
 		int yend = floor(y_rescaled + ns/2.0);
 
 		FLT x1=(FLT)xstart-x_rescaled;
-		//FLT y1=(FLT)ystart-y_rescaled;
-		//eval_kernel_vec_Horner(ker1,x1,ns,sigma);
-		//eval_kernel_vec_Horner(ker2,y1,ns,sigma);
-		evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
+		FLT y1=(FLT)ystart-y_rescaled;
+		eval_kernel_vec_Horner(ker1,x1,ns,sigma);
+		eval_kernel_vec_Horner(ker2,y1,ns,sigma);
+		//evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
 		for(yy=ystart; yy<=yend; yy++){
-			FLT disy=abs(y_rescaled-yy);
-			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+			//FLT disy=abs(y_rescaled-yy);
+			//FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
 			//ker2val=ker2[yy-ystart];
 			for(xx=xstart; xx<=xend; xx++){
 				ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 				iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 				outidx = ix+iy*fw_width;
 				ker1val=ker1[xx-xstart];
+				ker2val=ker2[yy-ystart];
 				FLT kervalue=ker1val*ker2val;
 				atomicAdd(&fw[outidx].x, c[i].x*kervalue);
 				atomicAdd(&fw[outidx].y, c[i].y*kervalue);
@@ -431,7 +431,7 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		xend   = floor(x_rescaled + ns/2.0)-xoffset;
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		/*
-		FLT ker1[maxns];
+		FLT ker1[MAX_NSPREAD];
 		FLT x1=(FLT) xstart+xoffset-x_rescaled;
         	for (int j = 0; j < ns; j++) { // Loop 1: Compute exponential arguments
                 	ker1[j] = j;

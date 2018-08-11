@@ -7,14 +7,14 @@
 #include <cub/device/device_scan.cuh>
 
 #include <cuComplex.h>
-#include "spread.h"
+#include "spreadinterp.h"
 #include "memtransfer.h"
 
 using namespace std;
 
 // This is a function only doing spread includes device memory allocation, transfer, free
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts, cufinufft_plan* d_plan)
+		FLT *h_ky, CPX *h_c, const cufinufft_opts opts, cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -62,7 +62,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
+	printf("[time  ] Spread (%d)\t\t %.3g ms\n", opts.method, milliseconds);
 #endif
 	cudaEventRecord(start);
 	ier = copygpumem_to_cpumem_fw(d_plan);
@@ -84,7 +84,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 }
 
 // a wrapper of different methods of spreader
-int cuspread2d( spread_opts opts, cufinufft_plan* d_plan)
+int cuspread2d( const cufinufft_opts opts, cufinufft_plan* d_plan)
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
@@ -148,7 +148,7 @@ int cuspread2d( spread_opts opts, cufinufft_plan* d_plan)
 }
 
 int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
-		FLT *d_ky, CUCPX *d_c, spread_opts opts, int binx, int biny)
+		FLT *d_ky, CUCPX *d_c, const cufinufft_opts opts, int binx, int biny)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -190,7 +190,7 @@ int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d
 	return 0;
 }
 
-int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
+int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -231,7 +231,7 @@ int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
 	return 0;
 }
 
-int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
+int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -315,7 +315,7 @@ int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts
 	return 0;
 }
 
-int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
+int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -476,7 +476,7 @@ int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts, c
 	return 0;
 }
 
-int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
+int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -693,45 +693,3 @@ int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
 	return 0;
 }
 
-int setup_cuspreader(spread_opts &opts,FLT eps,FLT upsampfac)
-{
-	// defaults... (user can change after this function called)
-	opts.pirange = 1;             // user also should always set this
-	opts.upsampfac = upsampfac;
-
-	// for gpu
-	opts.method = 5;
-	opts.bin_size_x = 32;
-	opts.bin_size_y = 32;
-	opts.Horner = 0;
-	opts.maxsubprobsize = 1000;
-	opts.nthread_x = 16;
-	opts.nthread_y = 16;
-	opts.spreadonly = 0;
-
-	// Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
-	int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten
-	if (upsampfac!=2.0)           // override ns for custom sigma
-		ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
-	ns = max(2,ns);               // we don't have ns=1 version yet
-	if (ns>MAX_NSPREAD) {         // clip to match allocated arrays
-		fprintf(stderr,"setup_spreader: warning, kernel width ns=%d was clipped to max %d; will not match tolerance!\n",ns,MAX_NSPREAD);
-		ns = MAX_NSPREAD;
-	}
-	opts.nspread = ns;
-	opts.ES_halfwidth=(FLT)ns/2;   // constants to help ker eval (except Horner)
-	opts.ES_c = 4.0/(FLT)(ns*ns);
-
-	FLT betaoverns = 2.30;         // gives decent betas for default sigma=2.0
-	if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
-	if (ns==3) betaoverns = 2.26;
-	if (ns==4) betaoverns = 2.38;
-	if (upsampfac!=2.0) {          // again, override beta for custom sigma
-		FLT gamma=0.97;              // must match devel/gen_all_horner_C_code.m
-		betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
-	}
-	opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
-	//fprintf(stderr,"setup_spreader: sigma=%.6f, chose ns=%d beta=%.6f\n",(double)upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
-	return 0;
-
-}

@@ -5,9 +5,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "utils.h"
-#include "../spread.h"
-#include "../cufinufft.h"
-#if 0
+#include "../src/cufinufft.h"
+
 #define MAX_NSPREAD 16     // upper bound on w, ie nspread, even when padded
                            // (see evaluate_kernel_vector); also for common
 
@@ -30,6 +29,7 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   FLT ES_c;
 };
 
+#if 0
 // NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
 // folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
 #define RESCALE(x,N,p) (p ? \
@@ -70,6 +70,7 @@ int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3
                             spread_opts opts, int did_sort);
 
 FLT evaluate_kernel(FLT x,const spread_opts &opts);
+FLT evaluate_kernel(FLT x,const cufinufft_opts &opts);
 FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
 int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac,int kerevalmeth);
 

@@ -3,8 +3,9 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include "../src/spread.h"
-#include "../src/finufft/utils.h"
+#include "../src/cufinufft.h"
+#include "../src/spreadinterp.h"
+#include "../finufft/utils.h"
 
 using namespace std;
 
@@ -46,13 +47,13 @@ int main(int argc, char* argv[])
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
-	spread_opts opts;
+	cufinufft_opts opts;
 	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
 
-	ier = setup_cuspreader(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(opts,tol,upsampfac);
         if(ier != 0 ){
-                cout<<"error: setup_cuspreader"<<endl;
+                cout<<"error: cufinufft_default_opts"<<endl;
                 return 0;
         }
 	opts.spread_direction=1;

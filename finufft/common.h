@@ -3,7 +3,8 @@
 
 #include "utils.h"
 #include "finufft.h"
-#include "../spread.h"
+#include "cnufftspread.h"
+#include "../src/cufinufft.h"
 #include <fftw3.h>
 
 // constants needed within common
@@ -18,6 +19,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
 		  BIGINT *nf, FLT *h, FLT *gam);
 void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts);
 void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts);
+void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, cufinufft_opts opts);
 void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts);
 void deconvolveshuffle1d(int dir,FLT prefac,FLT* ker,BIGINT ms,FLT *fk,
 			 BIGINT nf1,FFTW_CPX* fw,int modeord);

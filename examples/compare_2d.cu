@@ -3,9 +3,9 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include "../src/spread.h"
+#include "../src/spreadinterp.h"
 #include "../src/memtransfer.h"
-#include "../src/finufft/utils.h"
+#include "../finufft/utils.h"
 
 using namespace std;
 
@@ -47,13 +47,14 @@ int main(int argc, char* argv[])
 
 	int ier;
 	int ns=std::ceil(-log10(tol/10.0));
-	spread_opts opts;
+	cufinufft_opts opts;
 	FLT upsampfac=2.0;
-	ier = setup_cuspreader(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(opts,tol,upsampfac);
         if(ier != 0 ){
-                cout<<"error: setup_cuspreader"<<endl;
+                cout<<"error: cufinufft_default_opts"<<endl;
                 return 0;
         }
+	opts.method=method;
 
 	cufinufft_plan dplan;
 	cout<<scientific<<setprecision(3);
@@ -112,6 +113,13 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
 
+	char *a;
+	cudaEventRecord(start);
+	checkCudaErrors(cudaMalloc(&a,1));
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] (warm up) First cudamalloc call \t %.3g ms\n", milliseconds);
 	switch(opts.method)
 	{
 		case 2:
@@ -156,7 +164,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
+	printf("[time  ] Spread (%d)\t\t %.3g ms\n", opts.method, milliseconds);
 
 	cudaEventRecord(start);
 	ier = copygpumem_to_cpumem_fw(&dplan);
