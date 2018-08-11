@@ -202,20 +202,20 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	           FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
   cufinufft_plan dplan;
-  spread_opts spopts;
+  cufinufft_opts cuopts;
   CNTime timer;
   timer.start();
-  int ier=setup_cuspreader(spopts,eps,opts.upsampfac);
-  spopts.spread_direction=1;
-  ier=cufinufft2d_plan(nj, xj, yj, cj, ms, mt, fk, iflag, spopts, &dplan);
+  int ier=setup_cuspreader(cuopts,eps,opts.upsampfac);
+  cuopts.spread_direction=1;
+  ier=cufinufft2d_plan(nj, xj, yj, cj, ms, mt, fk, iflag, cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", timer.elapsedsec());
 
   timer.restart();
-  ier=cufinufft2d1_exec(spopts, &dplan);
+  ier=cufinufft2d1_exec(cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 exec:\t\t %.3g s\n", timer.elapsedsec());
 
   timer.restart();
-  ier=cufinufft2d_destroy(spopts, &dplan);
+  ier=cufinufft2d_destroy(cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", timer.elapsedsec());
   return 0;
 }
@@ -224,21 +224,21 @@ int finufft2d2_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	           FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
   cufinufft_plan dplan;
-  spread_opts spopts;
+  cufinufft_opts cuopts;
   CNTime timer;
   timer.start();
-  int ier=setup_cuspreader(spopts,eps,opts.upsampfac);
-  spopts.spread_direction=2;
+  int ier=setup_cuspreader(cuopts,eps,opts.upsampfac);
+  cuopts.spread_direction=2;
 
-  ier=cufinufft2d_plan(nj, xj, yj, cj, ms, mt, fk, iflag, spopts, &dplan);
+  ier=cufinufft2d_plan(nj, xj, yj, cj, ms, mt, fk, iflag, cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", timer.elapsedsec());
 
   timer.restart();
-  ier=cufinufft2d2_exec(spopts, &dplan);
+  ier=cufinufft2d2_exec(cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d2 exec:\t\t %.3g s\n", timer.elapsedsec());
 
   timer.restart();
-  ier=cufinufft2d_destroy(spopts, &dplan);
+  ier=cufinufft2d_destroy(cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", timer.elapsedsec());
   return 0;
 }
