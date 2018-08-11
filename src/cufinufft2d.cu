@@ -9,13 +9,13 @@
 #include "memtransfer.h"
 #include "deconvolve.h"
 #include "cufinufft.h"
-#include "finufft/utils.h"
-#include "finufft/common.h"
+#include "../finufft/utils.h"
+#include "../finufft/common.h"
 
 using namespace std;
 
 int cufinufft2d_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX* h_fk, 
-		int iflag, spread_opts opts, cufinufft_plan *d_plan)
+		int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -79,9 +79,11 @@ int cufinufft2d_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX*
 	return ier;
 }
 
-int cufinufft2d1_exec(spread_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d1_exec(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
-	opts.spread_direction=1;
+	if(opts.spread_direction != 1){
+		printf("err: spread_direction (%d) is not correct\n", opts.spread_direction);
+	}
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -146,9 +148,11 @@ int cufinufft2d1_exec(spread_opts opts, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int cufinufft2d2_exec(spread_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d2_exec(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
-	opts.spread_direction=2;
+	if(opts.spread_direction != 2){
+		printf("err: spread_direction (%d) is not correct\n", opts.spread_direction);
+	}
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -215,7 +219,7 @@ int cufinufft2d2_exec(spread_opts opts, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int cufinufft2d_destroy(spread_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);

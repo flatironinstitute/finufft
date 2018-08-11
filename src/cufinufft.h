@@ -3,7 +3,72 @@
 
 #include <cufft.h>
 #include <cstdlib>
-#include "finufft/utils.h"
+#include "../finufft/utils.h"
+
+struct cufinufft_opts {      // see cuspread:setup_spreader for defaults.
+  int nspread;            // w, the kernel width in grid pts
+  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
+  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
+  FLT upsampfac;          // sigma, upsampling factor, default 2.0
+
+  // ES kernel specific...
+  FLT ES_beta;
+  FLT ES_halfwidth;
+  FLT ES_c;
+  
+  // CUDA
+  int method;
+  int spreadonly;
+  int bin_size_x;
+  int bin_size_y;
+  int Horner;
+  int maxsubprobsize;
+  int nthread_x;
+  int nthread_y;
+};
+
+struct cufinufft_plan {
+  int M;
+  int nf1;
+  int nf2;
+  int ms;
+  int mt; 
+  int fw_width;
+  int iflag;
+
+  int byte_now;
+  FLT *fwkerhalf1;
+  FLT *fwkerhalf2;
+  FLT *h_fwkerhalf1;
+  FLT *h_fwkerhalf2;
+
+  FLT *kx;
+  FLT *ky;
+  CUCPX *c;
+  CUCPX *fw;
+  CUCPX *fk;
+
+  FLT *h_kx;
+  FLT *h_ky;
+  CPX *h_c;
+  CPX *h_fk;
+  CPX *h_fw;
+
+  FLT *kxsorted;
+  FLT *kysorted;
+  CUCPX *csorted;
+
+  int *sortidx;
+  int *binsize;
+  int *binstartpts;
+  int *numsubprob;
+  int *subprob_to_bin;
+  int *idxnupts;
+  int *subprobstartpts;
+
+  void *temp_storage;
+  cufftHandle fftplan;
+};
 
 // For error checking (where should this function be??)
 static const char* _cufftGetErrorEnum(cufftResult_t error)
@@ -61,8 +126,8 @@ void check(cufftResult_t err){
 #endif
 #define checkCufftErrors(call)
 int cufinufft2d_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX* h_fk,
-                      int iflag, spread_opts opts, cufinufft_plan *d_plan);
-int cufinufft2d1_exec(spread_opts opts, cufinufft_plan *d_plan);
-int cufinufft2d2_exec(spread_opts opts, cufinufft_plan *d_plan);
-int cufinufft2d_destroy(spread_opts opts, cufinufft_plan *d_plan);
+                      int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft2d1_exec(const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft2d2_exec(const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft2d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
 #endif

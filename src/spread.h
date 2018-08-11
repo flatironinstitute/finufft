@@ -1,47 +1,13 @@
 #ifndef __SPREAD_H__
 #define __SPREAD_H__
 
-#include "finufft/utils.h"
+#include "../finufft/utils.h"
 #include "memtransfer.h"
 
 #define MAX_NSPREAD 16
 #define RESCALE(x,N,p) (p ? \
                        ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
                        (x<0 ? x+N : (x>N ? x-N : x)))
-
-struct spread_opts {      // see cuspread:setup_spreader for defaults.
-  int nspread;            // w, the kernel width in grid pts
-  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
-  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
-  FLT upsampfac;          // sigma, upsampling factor, default 2.0
-
-  // not used by gpu
-  int chkbnds;            // 0: don't check NU pts are in range; 1: do
-  int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
-  int kerevalmeth;        // 0: exp(sqrt()), old, or 1: Horner ppval, fastest
-  int kerpad;             // 0: no pad to mult of 4, 1: do (helps i7 kereval=0)
-  int sort_threads;       // 0: auto-choice, >0: fix number of sort threads
-  int max_subproblem_size; // sets extra RAM per thread
-  int flags;              // binary flags for timing only (may give wrong ans!)
-  int debug;              // 0: silent, 1: small text output, 2: verbose
-
-
-  // ES kernel specific...
-  FLT ES_beta;
-  FLT ES_halfwidth;
-  FLT ES_c;
-  
-  // CUDA
-  int method;
-  int spreadonly;
-  int bin_size_x;
-  int bin_size_y;
-  int Horner;
-  int maxsubprobsize;
-  int nthread_x;
-  int nthread_y;
-};
-
 //Kernels for 1D codes (this is outdated ... )
 /*
 __global__
@@ -115,25 +81,25 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                           int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts);
 
-int setup_cuspreader(spread_opts &opts,FLT eps,FLT upsampfac);
+int setup_cuspreader(cufinufft_opts &opts,FLT eps,FLT upsampfac);
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                       FLT *h_ky, CPX* h_c, spread_opts opts, cufinufft_plan *dmem);
+                       FLT *h_ky, CPX* h_c, cufinufft_opts opts, cufinufft_plan *dmem);
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                       FLT *h_ky, CPX* h_c, spread_opts opts, cufinufft_plan *dmem);
-int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
+                       FLT *h_ky, CPX* h_c, const cufinufft_opts opts, cufinufft_plan *dmem);
+int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, 
                        cufinufft_plan *d_mem);
-int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
+int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, 
                        cufinufft_plan *d_mem);
-int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
                                cufinufft_plan *d_mem);
-int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
                       cufinufft_plan *d_mem);
-int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
                        cufinufft_plan *d_mem);
-int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts,
+int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
                        cufinufft_plan *d_mem);
 int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
-                      FLT *d_ky, CUCPX *d_c, spread_opts opts, int binx, int biny);
-int cuspread2d(spread_opts opts, cufinufft_plan* d_mem);
-int cuinterp2d(spread_opts opts, cufinufft_plan* d_mem);
+                      FLT *d_ky, CUCPX *d_c, const cufinufft_opts opts, int binx, int biny);
+int cuspread2d(const cufinufft_opts opts, cufinufft_plan* d_plan);
+int cuinterp2d(const cufinufft_opts opts, cufinufft_plan* d_plan);
 #endif

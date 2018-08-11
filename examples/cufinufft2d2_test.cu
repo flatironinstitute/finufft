@@ -6,7 +6,7 @@
 
 #include "../src/spread.h"
 #include "../src/cufinufft.h"
-#include "../src/finufft/utils.h"
+#include "../finufft/utils.h"
 
 using namespace std;
 
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 #endif
 
 	cufinufft_plan dplan;
-	spread_opts opts;
+	cufinufft_opts opts;
 	ier=setup_cuspreader(opts,tol,sigma);
 	opts.method=method;
 	opts.spread_direction=2;

@@ -14,7 +14,7 @@ using namespace std;
 
 // This function includes device memory allocation, transfer, free
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, spread_opts opts, cufinufft_plan* d_plan)
+		FLT *h_ky, CPX *h_c, const cufinufft_opts opts, cufinufft_plan* d_plan)
 {
 	if(opts.spread_direction!=2){
 		printf("spread direction not set\n");
@@ -67,7 +67,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Interp\t\t\t %.3g ms\n", milliseconds);
+	printf("[time  ] Interp (%d)\t\t %.3g ms\n", opts.method, milliseconds);
 #endif
 	cudaEventRecord(start);
 	ier = copygpumem_to_cpumem_c(d_plan);
@@ -89,7 +89,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 }
 
 // a wrapper of different methods of spreader
-int cuinterp2d( spread_opts opts, cufinufft_plan* d_plan)
+int cuinterp2d( const cufinufft_opts opts, cufinufft_plan* d_plan)
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
@@ -136,7 +136,7 @@ int cuinterp2d( spread_opts opts, cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
+int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -172,7 +172,7 @@ int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
 	return 0;
 }
 
-int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, cufinufft_plan *d_plan)
+int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -384,7 +384,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, spread_opts opts, 
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Interp_2d_Subprob_V2 \t\t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel Interp_2d_Subprob \t\t%.3g ms\n", milliseconds);
 #endif
 	return 0;
 }

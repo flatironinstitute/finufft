@@ -11,7 +11,7 @@
 
 using namespace std;
 
-int allocgpumemory(spread_opts opts, cufinufft_plan *d_plan)
+int allocgpumemory(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	int ms = d_plan->ms;
 	int mt = d_plan->mt;
@@ -81,7 +81,7 @@ int allocgpumemory(spread_opts opts, cufinufft_plan *d_plan)
 	return 0;
 }
 
-int copycpumem_to_gpumem(spread_opts opts, cufinufft_plan *d_plan)
+int copycpumem_to_gpumem(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	int M=d_plan->M;
 	int nf1=d_plan->nf1;
@@ -138,7 +138,7 @@ int copygpumem_to_cpumem_c(cufinufft_plan *d_plan)
         return 0;
 }
 
-void free_gpumemory(spread_opts opts, cufinufft_plan *d_plan)
+void free_gpumemory(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaFree(d_plan->fw);
 	cudaFree(d_plan->kx);

@@ -4,7 +4,7 @@
 #include <helper_cuda.h>
 #include <complex>
 #include "../src/spread.h"
-#include "../src/finufft/utils.h"
+#include "../finufft/utils.h"
 
 using namespace std;
 
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
-	spread_opts opts;
+	cufinufft_opts opts;
 	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
 

@@ -2,7 +2,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <cuda.h>
-#include "finufft/utils.h"
+#include "../finufft/utils.h"
 #include "spread.h"
 
 using namespace std;
@@ -21,7 +21,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	//return x;
 	//return 1.0;
 }
-
+#if 0
 static __forceinline__ __device__
 void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, const int N)
 	/* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
@@ -54,6 +54,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double ups
 #include "finufft/ker_horner_allw_loop.c"
 	}
 }
+#endif
 __global__
 void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
