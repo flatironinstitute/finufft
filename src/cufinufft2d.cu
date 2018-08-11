@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int cufinufft2d1_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX* h_fk, 
+int cufinufft2d_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX* h_fk, 
 		int iflag, spread_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
@@ -114,7 +114,7 @@ int cufinufft2d1_exec(spread_opts opts, cufinufft_plan *d_plan)
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&milliseconds, start, stop);
-        printf("[time  ] \tSpread\t\t\t %.3g s\n", milliseconds/1000);
+        printf("[time  ] \tSpread (%d)\t\t %.3g s\n", milliseconds/1000, opts.method);
 #endif
 	// Step 2: FFT
 	cudaEventRecord(start);
@@ -201,7 +201,7 @@ int cufinufft2d2_exec(spread_opts opts, cufinufft_plan *d_plan)
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&milliseconds, start, stop);
-        printf("[time  ] \tUnspread\t\t %.3g s\n", milliseconds/1000);
+        printf("[time  ] \tUnspread (%d)\t\t %.3g s\n", milliseconds/1000,opts.method);
 #endif
 
 	cudaEventRecord(start);
@@ -215,7 +215,7 @@ int cufinufft2d2_exec(spread_opts opts, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int cufinufft2d1_destroy(spread_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d_destroy(spread_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);

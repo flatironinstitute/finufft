@@ -90,9 +90,9 @@ int main(int argc, char* argv[])
 	opts.spread_direction=1;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d1_plan(M, x, y, c, N1, N2, fk, iflag, opts, &dplan);
+	ier=cufinufft2d_plan(M, x, y, c, N1, N2, fk, iflag, opts, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft2d1_plan\n");
+		printf("err: cufinufft2d_plan\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d1_destroy(opts, &dplan);
+	ier=cufinufft2d_destroy(opts, &dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

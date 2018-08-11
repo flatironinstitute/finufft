@@ -1,4 +1,13 @@
 spread1d
 spread2d
 compare
+finufft2d_test
+interp2d
+cufinufft2d1_test
+cufinufft2d2_test
+accuracy
+benchmark/cunfft_timing
+benchmark/spreadtestnd_mel
+benchmark/nfft_simpletest
+benchmark/result/*.out
 *.o
