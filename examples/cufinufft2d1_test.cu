@@ -4,7 +4,7 @@
 #include <helper_cuda.h>
 #include <complex>
 
-#include "../src/spread.h"
+#include "../src/spreadinterp.h"
 #include "../src/cufinufft.h"
 #include "../finufft/utils.h"
 
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 
 	cufinufft_plan dplan;
 	cufinufft_opts opts;
-	ier=setup_cuspreader(opts,tol,sigma);
+	ier=cufinufft_default_opts(opts,tol,sigma);
 	opts.method=method;
 	opts.spread_direction=1;
 

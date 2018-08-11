@@ -3,11 +3,10 @@
 #include <helper_cuda.h>
 #include <cuda.h>
 #include "../finufft/utils.h"
-#include "spread.h"
+#include "spreadinterp.h"
 
 using namespace std;
 
-#define maxns 16
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
@@ -121,8 +120,8 @@ void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const 
 {
 	int xx, yy, ix, iy;
 	int outidx;
-	FLT ker1[maxns];
-	FLT ker2[maxns];
+	FLT ker1[MAX_NSPREAD];
+	FLT ker2[MAX_NSPREAD];
 	FLT ker1val, ker2val;
 	double sigma=2.0;
 
@@ -432,7 +431,7 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		xend   = floor(x_rescaled + ns/2.0)-xoffset;
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		/*
-		FLT ker1[maxns];
+		FLT ker1[MAX_NSPREAD];
 		FLT x1=(FLT) xstart+xoffset-x_rescaled;
         	for (int j = 0; j < ns; j++) { // Loop 1: Compute exponential arguments
                 	ker1[j] = j;

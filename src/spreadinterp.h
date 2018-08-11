@@ -2,12 +2,9 @@
 #define __SPREAD_H__
 
 #include "../finufft/utils.h"
-#include "memtransfer.h"
+#include "cufinufft.h"
 
 #define MAX_NSPREAD 16
-#define RESCALE(x,N,p) (p ? \
-                       ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
-                       (x<0 ? x+N : (x>N ? x-N : x)))
 //Kernels for 1D codes (this is outdated ... )
 /*
 __global__
@@ -81,7 +78,6 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                           int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts);
 
-int setup_cuspreader(cufinufft_opts &opts,FLT eps,FLT upsampfac);
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                        FLT *h_ky, CPX* h_c, cufinufft_opts opts, cufinufft_plan *dmem);
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,

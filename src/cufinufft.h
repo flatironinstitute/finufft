@@ -5,6 +5,11 @@
 #include <cstdlib>
 #include "../finufft/utils.h"
 
+#define MAX_NSPREAD 16
+#define RESCALE(x,N,p) (p ? \
+                       ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
+                       (x<0 ? x+N : (x>N ? x-N : x)))
+
 struct cufinufft_opts {      // see cuspread:setup_spreader for defaults.
   int nspread;            // w, the kernel width in grid pts
   int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
@@ -125,6 +130,7 @@ void check(cufftResult_t err){
 #define checkCufftErrors(call) check((call))
 #endif
 #define checkCufftErrors(call)
+int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac);
 int cufinufft2d_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX* h_fk,
                       int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cufinufft2d1_exec(const cufinufft_opts opts, cufinufft_plan *d_plan);

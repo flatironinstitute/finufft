@@ -3,7 +3,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include "../src/spread.h"
+#include "../src/spreadinterp.h"
 #include "../finufft/utils.h"
 #include "../finufft/cnufftspread.h"
 
@@ -43,9 +43,9 @@ int main(int argc, char* argv[])
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_opts opts;
 	FLT upsampfac=2.0;
-	ier = setup_cuspreader(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(opts,tol,upsampfac);
 	if(ier != 0 ){
-		cout<<"error: setup_cuspreader"<<endl;
+		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
 	opts.spreadonly=1;
@@ -193,7 +193,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	printf("[subprob] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-			M,N1,N2,nf1*nf2,tsubprob,M/thybrid);
+			M,N1,N2,nf1*nf2,tsubprob,M/tsubprob);
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */

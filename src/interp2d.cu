@@ -3,7 +3,7 @@
 #include <helper_cuda.h>
 #include <cuda.h>
 #include "../finufft/utils.h"
-#include "spread.h"
+#include "spreadinterp.h"
 
 using namespace std;
 
