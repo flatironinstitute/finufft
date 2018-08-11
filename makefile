@@ -41,7 +41,7 @@ finufft2d_test: test/finufft2d_test.o src/finufft/finufft2d.o src/finufft/utils.
 
 cufinufft2d1_test: examples/cufinufft2d1_test.o src/finufft/utils.o src/finufft/dirft2d.o src/finufft/common.o \
                    src/finufft/cnufftspread.o src/finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
-                   src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o
+                   src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 cufinufft2d2_test: examples/cufinufft2d2_test.o src/finufft/utils.o src/finufft/dirft2d.o src/finufft/common.o \

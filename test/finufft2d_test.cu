@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;    // default
   nufft_opts opts; finufft_default_opts(opts);
-  opts.debug = 1;            // 1 to see some timings
+  opts.debug = 0;            // 1 to see some timings
   opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE        ***
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) {
@@ -78,11 +78,18 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
+  
+  CPX* Ftt = (CPX*)malloc(sizeof(CPX)*N);
+  if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
+    dirft2d1(M,x,y,c,isign,N1,N2,Ftt);
+  }
 
   printf("test 2d type-1:\n"); // -------------- type 1
   CNTime timer; timer.start();
-  int ier = finufft2d1_cpu(M,x,y,c,isign,tol,N1,N2,Fcpu,opts);
-  double ti=timer.elapsedsec();
+  int ier;
+  double ti;
+  ier = finufft2d1_cpu(M,x,y,c,isign,tol,N1,N2,Fcpu,opts);
+  ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
@@ -106,52 +113,74 @@ int main(int argc, char* argv[])
   printf("\n[cpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fcpu[it]));
   printf("[cpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fcpu[it])/infnorm(N,Fcpu));
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
-    CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
-    dirft2d1(M,x,y,c,isign,N1,N2,Ft);
-    printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,Fcpu));
-    free(Ft);
+    printf("[cpu   ]dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ftt,Fcpu));
   }
 #if 1
   printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fgpu[it]));
   printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fgpu[it])/infnorm(N,Fgpu));
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
-    CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
-    dirft2d1(M,x,y,c,isign,N1,N2,Ft);
-    printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,Fgpu));
-    free(Ft);
+    printf("[gpu   ]dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ftt,Fgpu));
+    free(Ftt);
   }
 #endif
-#if 0
-  printf("test 2d type-2:\n"); // -------------- type 2
+
+  printf("\ntest 2d type-2:\n"); // -------------- type 2
+  CPX* F = (CPX*)malloc(sizeof(CPX)*N);   // mode ampls
+  CPX* ccpu = (CPX*)malloc(sizeof(CPX)*M);   // strengths 
+  CPX* cgpu = (CPX*)malloc(sizeof(CPX)*M);   // strengths 
+// since x, y have been modified by gpu code
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+#pragma omp for schedule(dynamic,CHUNK)
+    for (BIGINT j=0; j<M; ++j) {
+      x[j] = M_PI*randm11r(&se);
+      y[j] = M_PI*randm11r(&se);
+    }
+  }
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
 #pragma omp for schedule(dynamic,CHUNK)
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
-  timer.restart();
-  ier = finufft2d2(M,x,y,c,isign,tol,N1,N2,F,opts);
-  ti=timer.elapsedsec();
-  if (ier!=0) {
-    printf("error (ier=%d)!\n",ier);
-  } else
-    printf("\t(%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",(int64_t)N1,(int64_t)N2,(int64_t)M,ti,M/ti);
-
   BIGINT jt = M/2;          // check arbitrary choice of one targ pt
   CPX ct = CPX(0,0);
   BIGINT m=0;
   for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-  printf("one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(ct-c[jt])/infnorm(M,c));
-  if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
-    CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
-    dirft2d2(M,x,y,ct,isign,N1,N2,F);
-    printf("dirft2d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
-    //cout<<"c,ct:\n"; for (int j=0;j<M;++j) cout<<c[j]<<"\t"<<ct[j]<<endl;
-    free(ct);
-  }
 
+  CPX* ctt = (CPX*)malloc(sizeof(CPX)*M);
+  if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
+    dirft2d2(M,x,y,ctt,isign,N1,N2,F);
+  }
+  timer.restart();
+  ier = finufft2d2_cpu(M,x,y,ccpu,isign,tol,N1,N2,F,opts);
+  ti=timer.elapsedsec();
+  if (ier!=0) {
+    printf("error (ier=%d)!\n",ier);
+  } else
+    printf("[cpu   ] (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",(int64_t)N1,(int64_t)N2,(int64_t)M,ti,M/ti);
+  timer.restart();
+  ier = finufft2d2_gpu(M,x,y,cgpu,isign,tol,N1,N2,F,opts);
+  ti=timer.elapsedsec();
+  if (ier!=0) {
+    printf("error (ier=%d)!\n",ier);
+  } else
+    printf("\n[gpu   ] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
+	   (int64_t)M,(int64_t)N1,(int64_t)N2,ti,M/ti);
+
+  printf("\n[cpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(ccpu[jt]-ct)/infnorm(M,ccpu));
+  if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
+    printf("[cpu   ] dirft2d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ctt,ccpu));
+  }
+  printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(ct-cgpu[jt])/infnorm(M,cgpu));
+  if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
+    printf("[gpu   ] dirft2d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ctt,cgpu));
+    free(ctt);
+  }
+#if 0
   printf("test 2d type-3:\n"); // -------------- type 3
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
@@ -197,6 +226,6 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 #endif
-  free(x); free(y); free(c); free(Fgpu); free(Fcpu); //free(s); free(t);
+  free(x); free(y); free(c); free(Fgpu); free(Fcpu); free(F); free(ccpu); free(cgpu);//free(s); free(t);
   return ier;
 }

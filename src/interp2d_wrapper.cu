@@ -67,7 +67,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Spread\t\t\t %.3g ms\n", milliseconds);
+	printf("[time  ] Interp\t\t\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
 	ier = copygpumem_to_cpumem_c(d_plan);

@@ -13,7 +13,7 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	FLT sigma = 2.0;
-	int N1, N2, M, N;
+	int N1, N2, M;
 	if (argc<4) {
 		fprintf(stderr,"Usage: cufinufft2d_test [method [N1 N2 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
@@ -29,7 +29,6 @@ int main(int argc, char* argv[])
 	sscanf(argv[1],"%d",&method);
 	sscanf(argv[2],"%lf",&w); N1 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[3],"%lf",&w); N2 = (int)w;  // so can read 1e6 right!
-	N = N1*N2;
 	M = N1*N2;// let density always be 1
 	if(argc>4){
 		sscanf(argv[4],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
@@ -63,11 +62,13 @@ int main(int argc, char* argv[])
 		fk[i].imag() = 1.0;
 	}
 	// This must be here, since in gpu code, x, y gets modified if pirange=1
-	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
-	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
-	for (BIGINT j=0; j<M; ++j)
-		Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
-	int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
+	int jt = M/2;          // check arbitrary choice of one targ pt
+	CPX J = IMA*(FLT)iflag;
+	CPX ct = CPX(0,0);
+	int m=0;
+	for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
+		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+			ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
@@ -104,13 +105,13 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	ier=cufinufft2d2_exec(opts, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft2d1_exec\n");
+		printf("err: cufinufft2d2_exec\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
-#if 1
+
 	cudaEventRecord(start);
 	ier=cufinufft2d1_destroy(opts, &dplan);
 	cudaEventRecord(stop);
@@ -118,9 +119,7 @@ int main(int argc, char* argv[])
 	cudaEventElapsedTime(&milliseconds, start, stop);
 
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
-	//printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it]));
-	//printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it])/infnorm(N,fk));
-#endif
+	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(c[jt]-ct)/infnorm(M,c));
 #if 0
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){

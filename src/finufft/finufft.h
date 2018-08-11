@@ -26,7 +26,11 @@ void finufft_default_opts(nufft_opts &o);
 
 int finufft2d1_cpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 	           BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d2_cpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,BIGINT ms,
+	           BIGINT mt, CPX* fk, nufft_opts opts);
 int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 	           BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d2_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
 
 #endif
