@@ -1,5 +1,4 @@
 #include "common.h"
-#include "cnufftspread.h"
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
@@ -7,10 +6,10 @@
 
 #ifdef NEED_EXTERN_C
 extern "C" {
-  #include "contrib/legendre_rule_fast.h"
+  #include "./contrib/legendre_rule_fast.h"
 }
 #else
-  #include "contrib/legendre_rule_fast.h"
+  #include "./contrib/legendre_rule_fast.h"
 #endif
 
 void finufft_default_opts(nufft_opts &o)
@@ -27,8 +26,6 @@ void finufft_default_opts(nufft_opts &o)
   o.spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
   o.fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
   o.modeord = 0;
-  o.many_seq = 0;
-  o.nsimul = MY_OMP_GET_MAX_THREADS();
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)

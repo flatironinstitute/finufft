@@ -42,9 +42,11 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_PLAN_1D fftwf_plan_dft_1d
   #define FFTW_PLAN_2D fftwf_plan_dft_2d
   #define FFTW_PLAN_3D fftwf_plan_dft_3d
+  #define FFTW_PLAN_MANY_DFT fftwf_plan_many_dft
   #define FFTW_EX fftwf_execute
   #define FFTW_DE fftwf_destroy_plan
   #define FFTW_FR fftwf_free
+  #define FFTW_FORGET_WISDOM fftwf_forget_wisdom
   #define CUCPX cuFloatComplex
   #define CUFFT_TYPE CUFFT_C2C
   #define CUFFT_EX cufftExecC2C
@@ -64,9 +66,11 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
   #define FFTW_PLAN_1D fftw_plan_dft_1d
   #define FFTW_PLAN_2D fftw_plan_dft_2d
   #define FFTW_PLAN_3D fftw_plan_dft_3d
+  #define FFTW_PLAN_MANY_DFT fftw_plan_many_dft
   #define FFTW_EX fftw_execute
   #define FFTW_DE fftw_destroy_plan
   #define FFTW_FR fftw_free
+  #define FFTW_FORGET_WISDOM fftw_forget_wisdom
   #define CUCPX cuDoubleComplex
   #define CUFFT_TYPE CUFFT_Z2Z
   #define CUFFT_EX cufftExecZ2Z
@@ -90,7 +94,6 @@ typedef int64_t BIGINT;
 
 //#define MAX(a,b) (a>b) ? a : b  // but we use std::max instead
 #define MIN(a,b) (a<b) ? a : b
-#define max_shared_mem 6000
 
 // ahb math helpers
 FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b);
@@ -140,6 +143,7 @@ class CNTime {
   #define MY_OMP_GET_MAX_THREADS() omp_get_max_threads()
   #define MY_OMP_GET_THREAD_NUM() omp_get_thread_num()
   #define MY_OMP_SET_NUM_THREADS(x) omp_set_num_threads(x)
+  #define MY_OMP_SET_NESTED(x) omp_set_nested(x)
 #else
   // non-omp safe dummy versions of omp utils, and dummy fftw threads calls...
   #define MY_OMP_GET_NUM_THREADS() 1
@@ -150,6 +154,7 @@ class CNTime {
   #define FFTW_INIT()
   #undef FFTW_PLAN_TH
   #define FFTW_PLAN_TH(x)
+  #define MY_OMP_SET_NESTED(x)
 #endif
 
 #endif  // UTILS_H

@@ -1,5 +1,5 @@
-#ifndef CNUFFTSPREAD_H
-#define CNUFFTSPREAD_H
+#ifndef SPREADINTERP_H
+#define SPREADINTERP_H
 
 #include <math.h>
 #include <stdlib.h>
@@ -29,14 +29,13 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   FLT ES_c;
 };
 
-#if 0
 // NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
 // folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
 #define RESCALE(x,N,p) (p ? \
 		     ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
 		     (x<0 ? x+N : (x>N ? x-N : x)))
 // yuk! But this is *so* much faster than slow std::fmod that we stick to it.
-#endif
+
 
 /* Bitwise timing flag definitions; see spread_opts.flags.
     This is an unobtrusive way to determine the time contributions of the
@@ -54,24 +53,24 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
 
 
 // things external interface needs...
-int cnufftspread(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
+int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
 		 BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		 FLT *data_nonuniform, spread_opts opts);
 
-int cnufftcheck(BIGINT N1, BIGINT N2, BIGINT N3,
+int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
                  BIGINT M, FLT *kx, FLT *ky, FLT *kz,
                  spread_opts opts);
 
-int cnufftsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
+int spreadsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts);
 
-int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
-                            FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
-                            spread_opts opts, int did_sort);
+int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		      FLT *data_nonuniform, spread_opts opts, int did_sort);
 
 FLT evaluate_kernel(FLT x,const spread_opts &opts);
 FLT evaluate_kernel(FLT x,const cufinufft_opts &opts);
 FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
 int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac,int kerevalmeth);
 
-#endif // CNUFFTSPREAD_H
+#endif  // SPREADINTERP_H

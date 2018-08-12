@@ -1,11 +1,7 @@
-#include "cnufftspread.h"
+#include "spreadinterp.h"
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
-
-#ifdef VECT
-#include <x86intrin.h>
-#endif
 
 // declarations of internal functions...
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);
@@ -36,11 +32,11 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 FLT* kz0,int ns, int ndims);
 
 
-int cnufftspread(
+int spreadinterp(
         BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
         BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
         spread_opts opts)
-/* Spreader for 1, 2, or 3 dimensions.
+/* Spreader/interpolator for 1, 2, or 3 dimensions.
    If opts.spread_direction=1, evaluate, in the 1D case,
 
                          N1-1
@@ -113,9 +109,9 @@ int cnufftspread(
                      OR output values at targets (dir=2)
    Ouputs:
    returned value - 0 indicates success; other values as follows
-      (see utils.h for error codes)
+      (see utils.h and ../docs/usage.rst for error codes)
       3 : one or more non-trivial box dimensions is less than 2.nspread.
-      4 : nonuniform points outside range [-Nm,2*Nm] or [-3pi,3pi] in at least one
+      4 : nonuniform points outside [-Nm,2*Nm] or [-3pi,3pi] in at least one
           dimension m=1,2,3.
       6 : invalid opts.spread_direction
 
@@ -124,14 +120,16 @@ int cnufftspread(
    No separate subprob indices in t-1 2/11/18.
    sort_threads (since for M<<N, multithread sort slower than single) 3/27/18
    kereval, kerpad 4/24/18
+   Melody Shih split into 3 routines: check, sort, spread. Jun 2018, making
+   this routine just a caller to them. Name change, Barnett 7/27/18
 */
 {
-  int ier_spreadcheck = cnufftcheck(N1, N2, N3, M, kx, ky, kz, opts);
+  int ier_spreadcheck = spreadcheck(N1, N2, N3, M, kx, ky, kz, opts);
   if (ier_spreadcheck != 0) return ier_spreadcheck;
 
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
-  int did_sort = cnufftsort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
-  int ier_spread = cnufftspreadwithsortidx(sort_indices, N1, N2, N3, data_uniform,
+  int did_sort = spreadsort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
+  int ier_spread = spreadwithsortidx(sort_indices, N1, N2, N3, data_uniform,
                                            M, kx, ky, kz, data_nonuniform,
                                            opts,did_sort);
   if (ier_spread != 0) return ier_spread;
@@ -140,12 +138,27 @@ int cnufftspread(
   return 0;
 }
 
-int cnufftcheck(BIGINT N1, BIGINT N2, BIGINT N3,
-                 BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-                 spread_opts opts)
+int ndims_from_Ns(BIGINT N1, BIGINT N2, BIGINT N3)
+/* rule for getting number of spreading dimensions from the list of Ns per dim.
+   Split out, Barnett 7/26/18
+*/
+{
+  int ndims = 1;                // decide ndims: 1,2 or 3
+  if (N2>1) ++ndims;
+  if (N3>1) ++ndims;
+  return ndims;
+}
+
+int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
+		BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		spread_opts opts)
+/* This does just the input checking and reporting for the spreader.
+   See cnufftspread() for input arguments.
+   Return value is that returned by cnufftspread.
+   Split out by Melody Shih, Jun 2018. Finiteness chk 7/30/18.
+*/
 {
   CNTime timer;
-
   // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
   int minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
@@ -156,12 +169,7 @@ int cnufftcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     fprintf(stderr,"error: opts.spread_direction must be 1 or 2!\n");
     return ERR_SPREAD_DIR;
   }
-  int ndims = 1;                // decide ndims: 1,2 or 3
-  if (N2>1) ++ndims;
-  if (N3>1) ++ndims;
-  BIGINT N=N1*N2*N3;            // output array size
-  int ns=opts.nspread;          // abbrev. for w, kernel width
-  FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
+  int ndims = ndims_from_Ns(N1,N2,N3);
   if (opts.debug)
     printf("starting spread %dD (dir=%d. M=%ld; N1=%ld,N2=%ld,N3=%ld; pir=%d), %d threads\n",ndims,opts.spread_direction,M,N1,N2,N3,opts.pirange,MY_OMP_GET_MAX_THREADS());
   
@@ -170,7 +178,7 @@ int cnufftcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
-      if (x<0 || x>N1) {
+      if (x<0 || x>N1 || !isfinite(x)) {     // note isfinite() breaks with -Ofast
         fprintf(stderr,"NU pt not in valid range (central three periods): kx=%g, N1=%ld (pirange=%d)\n",x,N1,opts.pirange);
         return ERR_SPREAD_PTS_OUT_RANGE;
       }
@@ -178,7 +186,7 @@ int cnufftcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     if (ndims>1)
       for (BIGINT i=0; i<M; ++i) {
         FLT y=RESCALE(ky[i],N2,opts.pirange);
-        if (y<0 || y>N2) {
+        if (y<0 || y>N2 || !isfinite(y)) {
           fprintf(stderr,"NU pt not in valid range (central three periods): ky=%g, N2=%ld (pirange=%d)\n",y,N2,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
@@ -186,7 +194,7 @@ int cnufftcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     if (ndims>2)
       for (BIGINT i=0; i<M; ++i) {
         FLT z=RESCALE(kz[i],N3,opts.pirange);
-        if (z<0 || z>N3) {
+        if (z<0 || z>N3 || !isfinite(z)) {
           fprintf(stderr,"NU pt not in valid range (central three periods): kz=%g, N3=%ld (pirange=%d)\n",z,N3,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
@@ -196,18 +204,23 @@ int cnufftcheck(BIGINT N1, BIGINT N2, BIGINT N3,
   return 0; 
 }
 
-int cnufftsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
+int spreadsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts)
+/* This makes a decision whether to sort the NU pts, and if so, calls either
+   single- or multi-threaded bin sort, writing reordered index list to sort_indices.
+   See cnufftspread() for input arguments.
+   Return value is whether a sort was done.
+   Split out by Melody Shih, Jun 2018.
+*/
 {
   CNTime timer;
-  int ndims = 1;                // decide ndims: 1,2 or 3 //duplicate
-  if (N2>1) ++ndims;
-  if (N3>1) ++ndims;
+  int ndims = ndims_from_Ns(N1,N2,N3);
   BIGINT N=N1*N2*N3;            // output array size
   
   // NONUNIFORM POINT SORTING .....
   // heuristic binning box size for U grid... affects performance:
   double bin_size_x = 16, bin_size_y = 4, bin_size_z = 4;
+  // put in heuristics based on L3 size (only useful for single-thread) ?
   int better_to_sort = !(ndims==1 && (opts.spread_direction==2 || (M > 1000*N1))); // 1D small-N or dir=2 case: don't sort
 
   timer.start();                 // if needed, sort all the NU pts...
@@ -235,18 +248,20 @@ int cnufftsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
   return did_sort;
 }
 
-int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
-                            FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
-                            spread_opts opts, int did_sort)
-/* See cnufftspread() for more information */
+int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		      FLT *data_nonuniform, spread_opts opts, int did_sort)
+/* The main spreading (dir=1) and interpolation (dir=2) routines.
+   See cnufftspread() above for inputs arguments and definitions.
+   Return value should always be 0.
+   Split out by Melody Shih, Jun 2018.
+*/
 {
   CNTime timer;
-  int ndims = 1;                // decide ndims: 1,2 or 3 //duplicate
-  if (N2>1) ++ndims;            //duplicate
-  if (N3>1) ++ndims;            //duplicate
-  BIGINT N=N1*N2*N3;            // output array size //duplicate
-  int ns=opts.nspread;          // abbrev. for w, kernel width //duplicate
-  FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift //duplicate
+  int ndims = ndims_from_Ns(N1,N2,N3);
+  BIGINT N=N1*N2*N3;            // output array size
+  int ns=opts.nspread;          // abbrev. for w, kernel width
+  FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
 
   if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
 
@@ -287,12 +302,12 @@ int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3
       for (int isub=0; isub<nb; isub++) {    // Main loop through the subproblems
         BIGINT M0 = brk[isub+1]-brk[isub];   // # NU pts in this subproblem
         // copy the location and data vectors for the nonuniform points
-        FLT* kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0, *kz0;
+        FLT *kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0=NULL, *kz0=NULL;
         if (N2>1)
           ky0=(FLT*)malloc(sizeof(FLT)*M0);
         if (N3>1)
           kz0=(FLT*)malloc(sizeof(FLT)*M0);
-        FLT* dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
+        FLT *dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
         for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
           BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
           kx0[j]=RESCALE(kx[kk],N1,opts.pirange);
@@ -304,29 +319,31 @@ int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3
         // get the subgrid which will include padding by roughly nspread/2
         BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
         get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);  // sets offsets and sizes
-        if (opts.debug>1)  // verbose
+        if (opts.debug>1) { // verbose
           if (ndims==1)
             printf("\tsubgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
           else if (ndims==2)
             printf("\tsubgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
           else
             printf("\tsubgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
+	}
         for (BIGINT j=0; j<M0; j++) {
           kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
           if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
           if (N3>1) kz0[j]-=offset3;  // only access if 3D
         }
         // allocate output data for this subgrid
-        FLT* du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
+        FLT *du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
         
         // Spread to subgrid without need for bounds checking or wrapping
-        if (!(opts.flags & TF_OMIT_SPREADING))
+        if (!(opts.flags & TF_OMIT_SPREADING)) {
           if (ndims==1)
             spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
           else if (ndims==2)
             spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
           else
             spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
+	}
         
 #pragma omp critical
         {  // do the adding of subgrid to output; only here threads cannot clash
@@ -348,7 +365,7 @@ int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3
     timer.start();
 #pragma omp parallel
     {
-#define CHUNKSIZE 16 // Chunks of Type 2 targets
+#define CHUNKSIZE 16     // Chunks of Type 2 targets (Ludvig found by expt)
       BIGINT jlist[CHUNKSIZE];
       FLT xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
       FLT outbuf[2*CHUNKSIZE];
@@ -384,15 +401,14 @@ int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3
         }
         // Loop over targets in chunk
         for (int ibuf=0; ibuf<bufsize; ibuf++) {
-          BIGINT j = jlist[ibuf];
           FLT xj = xjlist[ibuf];
-          FLT* target = outbuf+2*ibuf;
+          FLT *target = outbuf+2*ibuf;
         
           // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
           BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
           FLT x1=(FLT)i1-xj;           // shift of ker center, in [-w/2,-w/2+1]
           // eval kernel values patch and use to interpolate from uniform data...
-          if (!(opts.flags & TF_OMIT_SPREADING))
+          if (!(opts.flags & TF_OMIT_SPREADING)) {
             if (ndims==1) {                                          // 1D
               if (opts.kerevalmeth==0) {               // choose eval method
                 set_kernel_args(kernel_args, x1, opts);
@@ -433,6 +449,7 @@ int cnufftspreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3
               }
               interp_cube(target,data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
             }
+	  }
         } // end loop over targets in chunk
         
         // Copy result buffer to output array
@@ -543,7 +560,6 @@ FLT evaluate_kernel(FLT x, const cufinufft_opts &opts)
   else
     return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
 }
-
 FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
 // Version of the above just for timing purposes - gives wrong answer!!!
 {

@@ -14,22 +14,38 @@ struct nufft_opts {   // see common/finufft_default_opts() for defaults
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
-  int many_seq;       // 0: simultaneously do nufft on all data
-                      // 1: sequentially run through the data
-  int nsimul;
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
 };
 
 // library provides...
 void finufft_default_opts(nufft_opts &o);
+int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
+	       CPX* fk, nufft_opts opts);
+int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
+	       CPX* fk, nufft_opts opts);
+int finufft1d3(BIGINT nj,FLT* x,CPX* c,int iflag,FLT eps,BIGINT nk, FLT* s, CPX* f, nufft_opts opts);
 
-int finufft2d1_cpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
-	           BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
-int finufft2d2_cpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	           BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
+	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
+	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+int finufft2d3(BIGINT nj,FLT* x,FLT *y,CPX* cj,int iflag,FLT eps,BIGINT nk, FLT* s, FLT* t, CPX* fk, nufft_opts opts);
+
+int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
+	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts opts);
+int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
+	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts opts);
+int finufft3d3(BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
+	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
+	       CPX* fk, nufft_opts opts);
 int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 	           BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
 int finufft2d2_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
                    FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts);
+
 
 #endif

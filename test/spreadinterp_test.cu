@@ -5,7 +5,7 @@
 #include <complex>
 #include "../src/spreadinterp.h"
 #include "../finufft/utils.h"
-#include "../finufft/cnufftspread.h"
+#include "../finufft/spreadinterp.h"
 
 using namespace std;
 
@@ -118,13 +118,10 @@ int main(int argc, char* argv[])
 #ifdef TIME
 	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() <<" s"<<endl<<endl;
 #endif
-#ifdef INFO
-	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
-#endif
 
 	// Direction 1: Spreading
 	opts.spread_direction=1;
-	printf("[info  ] Type 1: Spreading");
+	printf("[info  ] Type 1: Spreading\n");
 	/* -------------------------------------- */
 	// Method 1: Input driven without sorting //
 	/* -------------------------------------- */
@@ -136,7 +133,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	FLT tidriven=timer.elapsedsec();
-	printf("\n[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
+	printf("[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			M,N1,N2,nf1*nf2,tidriven,M/tidriven);
 #if 0
 	FLT sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
@@ -209,7 +206,7 @@ int main(int argc, char* argv[])
 	spopts.sort=2;
 	spopts.debug=0;
 
-	ier = cnufftspread(nf1,nf2,1,(FLT*) fwfinufft,M,x,y,NULL,(FLT*) c,spopts);
+	ier = spreadinterp(nf1,nf2,1,(FLT*) fwfinufft,M,x,y,NULL,(FLT*) c,spopts);
 	FLT t=timer.elapsedsec();
 	if (ier!=0) {
 		printf("error (ier=%d)!\n",ier);
@@ -303,7 +300,7 @@ int main(int argc, char* argv[])
 	spopts.sort=2;
 	spopts.debug=0;
 
-	ier = cnufftspread(nf1,nf2,1,(FLT*) fw,M,x,y,NULL,(FLT*) cfinufft,spopts);
+	ier = spreadinterp(nf1,nf2,1,(FLT*) fw,M,x,y,NULL,(FLT*) cfinufft,spopts);
 	FLT tt=timer.elapsedsec();
 	if (ier!=0) {
 		printf("error (ier=%d)!\n",ier);

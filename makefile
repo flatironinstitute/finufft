@@ -31,11 +31,11 @@ compare: examples/compare_2d.o src/spread2d_wrapper.o src/spread2d.o finufft/uti
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 spreadinterp_test: test/spreadinterp_test.o src/spread2d_wrapper.o src/spread2d.o finufft/utils.o \
-                   finufft/cnufftspread.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o \
+                   finufft/spreadinterp.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o \
                    src/common.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o finufft/utils.o finufft/cnufftspread.o \
+finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o finufft/utils.o finufft/spreadinterp.o \
                 finufft/dirft2d.o finufft/common.o \
                 finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
                 src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o \
@@ -43,14 +43,15 @@ finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o finufft/utils.o finuff
 	$(CXX) $^ $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 cufinufft2d1_test: examples/cufinufft2d1_test.o finufft/utils.o finufft/dirft2d.o finufft/common.o \
-                   finufft/cnufftspread.o finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
+                   finufft/spreadinterp.o finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
                    src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 cufinufft2d2_test: examples/cufinufft2d2_test.o finufft/utils.o finufft/dirft2d.o finufft/common.o \
-                   finufft/cnufftspread.o finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
+                   finufft/spreadinterp.o finufft/contrib/legendre_rule_fast.o src/spread2d_wrapper.o src/spread2d.o \
                    src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
+
 all: spread2d interp2d compare spreadinterp_test finufft2d_test cufinufft2d1_test cufinufft2d2_test
 clean:
 	rm -f *.o

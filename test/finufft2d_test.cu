@@ -1,7 +1,7 @@
 #include "../finufft/finufft.h"
 //#include "../src/cufinufft.h"
 #include "../finufft/dirft.h"
-#include "../finufft/cnufftspread.h"
+#include "../finufft/spreadinterp.h"
 #include <math.h>
 #include <vector>
 #include <stdio.h>
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
   CNTime timer; timer.start();
   int ier;
   double ti;
-  ier = finufft2d1_cpu(M,x,y,c,isign,tol,N1,N2,Fcpu,opts);
+  ier = finufft2d1(M,x,y,c,isign,tol,N1,N2,Fcpu,opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
     dirft2d2(M,x,y,ctt,isign,N1,N2,F);
   }
   timer.restart();
-  ier = finufft2d2_cpu(M,x,y,ccpu,isign,tol,N1,N2,F,opts);
+  ier = finufft2d2(M,x,y,ccpu,isign,tol,N1,N2,F,opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
