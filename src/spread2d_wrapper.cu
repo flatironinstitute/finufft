@@ -139,6 +139,7 @@ int cuspread2d( const cufinufft_opts opts, cufinufft_plan* d_plan)
 			return 2;
 	}
 #ifdef SPREADTIME
+	float milliseconds;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
