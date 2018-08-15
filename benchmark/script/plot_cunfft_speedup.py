@@ -12,12 +12,12 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	num_lines = sum(1 for line in open('../results/compare_cunfft_0731.out', 'r'))-1
+	num_lines = sum(1 for line in open('../results/spread2d_cunfft_0731.out', 'r'))-1
 	N = np.zeros(num_lines, dtype=int)
 	t_cunfft = np.zeros(num_lines)
 	t_finufft = np.zeros([4, num_lines])
 	speedup = np.zeros([4, num_lines])
-	f = open('../results/compare_cunfft_0731.out', 'r')
+	f = open('../results/spread2d_cunfft_0731.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 'N=', ',')
@@ -27,7 +27,7 @@ def main():
         		N[i]= int(temp)
 			t_cunfft[i]=float(find_between(line, 't=', '\n'))
 			i=i+1
-	f = open('../results/compare_cufinufft_0802.out', 'r')
+	f = open('../results/spread2d_cufinufft_0802.out', 'r')
 	i=0
 	for line in f:
 		temp=find_between(line, 't=', '\n')

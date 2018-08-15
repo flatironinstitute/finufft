@@ -3,7 +3,7 @@ CXX=g++
 NVCC=nvcc
 CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_50
+NVCCFLAGS=-arch=sm_50 -DTIME
 INC=-I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/samples/common/inc/ \
     -I/mnt/home/yshih/cub/ \
     -I/mnt/xfs1/flatiron-sw/pkg/devel/cuda/8.0.61/include/
@@ -24,10 +24,6 @@ spread2d: examples/spread_2d.o src/spread2d_wrapper.o src/spread2d.o finufft/uti
 
 interp2d: examples/interp_2d.o src/spread2d_wrapper.o src/spread2d.o src/interp2d_wrapper.o src/interp2d.o \
           finufft/utils.o src/memtransfer_wrapper.o src/common.o
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
-
-compare: examples/compare_2d.o src/spread2d_wrapper.o src/spread2d.o finufft/utils.o src/memtransfer_wrapper.o\
-         src/common.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 spreadinterp_test: test/spreadinterp_test.o src/spread2d_wrapper.o src/spread2d.o finufft/utils.o \
@@ -52,7 +48,7 @@ cufinufft2d2_test: examples/cufinufft2d2_test.o finufft/utils.o finufft/dirft2d.
                    src/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/interp2d_wrapper.o src/interp2d.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
-all: spread2d interp2d compare spreadinterp_test finufft2d_test cufinufft2d1_test cufinufft2d2_test
+all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test cufinufft2d2_test
 clean:
 	rm -f *.o
 	rm -f examples/*.o
@@ -62,7 +58,6 @@ clean:
 	rm -f test/*.o
 	rm -f spread2d
 	rm -f accuracy
-	rm -f compare
 	rm -f interp2d
 	rm -f finufft2d_test
 	rm -f cufinufft2d1_test

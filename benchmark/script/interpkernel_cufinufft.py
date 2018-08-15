@@ -29,7 +29,7 @@ def main():
 				"""
 				t = 0
 				for n in range(reps):
-					output=subprocess.check_output(["./compare",'1',str(nupts_distr),str(N),str(N)], \
+					output=subprocess.check_output(["./spread2d",'1',str(nupts_distr),str(N),str(N)], \
 							    cwd="../../").decode("utf-8")
 					t+= float(find_between(output, "HtoD", "ms"))
 					t+= float(find_between(output, "Spread", "ms"))

@@ -15,11 +15,10 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M, N;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft2d_test [method [N1 N2 [M [tol]]]]\n");
+		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
-		fprintf(stderr,"method 3: output driven\n");
 		fprintf(stderr,"method 4: hybrid\n");
 		fprintf(stderr,"method 5: subprob\n");
 		return 1;

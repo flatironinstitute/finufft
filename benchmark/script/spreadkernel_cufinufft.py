@@ -29,7 +29,7 @@ def main():
 				"""
 				t = 0
 				for n in range(reps):
-					output=subprocess.check_output(["./compare",'1',str(nupts_distr),str(N),str(N)], \
+					output=subprocess.check_output(["./spread2d",'1',str(nupts_distr),str(N),str(N)], \
 							    cwd="../../").decode("utf-8")
 					t+= float(find_between(output, "HtoD", "ms"))
 					t+= float(find_between(output, "Spread", "ms"))
@@ -41,8 +41,9 @@ def main():
 				tnow = float('Inf')
 				for nn in range(reps):
 					tt = 0.0
-					output=subprocess.check_output(["./compare",'5',str(nupts_distr),str(nf1),str(nf1),str(M), \
+					output=subprocess.check_output(["./spread2d",'5',str(nupts_distr),str(nf1),str(nf1),str(M), \
 									 str(tol)], cwd="../../").decode("utf-8")
+					print(output)
 					tt+= float(find_between(output, "HtoD", "ms"))
 					tt+= float(find_between(output, "Spread (5)", "ms"))
 					tt+= float(find_between(output, "DtoH", "ms"))
