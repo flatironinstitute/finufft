@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("[cpu   ] (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",(int64_t)N1,(int64_t)N2,(int64_t)M,ti,M/ti);
+    printf("[cpu   ] (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n\n",(int64_t)N1,(int64_t)N2,(int64_t)M,ti,M/ti);
   timer.restart();
   ier = finufft2d2_gpu(M,x,y,cgpu,isign,tol,N1,N2,F,opts);
   ti=timer.elapsedsec();

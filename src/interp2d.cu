@@ -93,7 +93,7 @@ void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 			}
 		}
 		c[i].x = cnow.x;
-		c[i].x = cnow.y;
+		c[i].y = cnow.y;
 	}
 
 }
