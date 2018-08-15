@@ -21,7 +21,6 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	//return x;
 	//return 1.0;
 }
-#if 0
 static __forceinline__ __device__
 void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, const int N)
 	/* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
@@ -41,6 +40,7 @@ void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, const i
 		//ker[i] = exp(ker[i]);
 }
 
+#if 0
 static __inline__ __device__
 void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double upsampfac)
 	/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
@@ -60,17 +60,22 @@ void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
+		                
 		//x_rescaled = RESCALE(x[i],nf1,1);
 		//y_rescaled = RESCALE(y[i],nf2,1);
 		FLT x_rescaled=x[i];
 		FLT y_rescaled=y[i];
-		c[i].x = 0.0;
-		c[i].y = 0.0;
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int xend = floor(x_rescaled + ns/2.0);
 		int yend = floor(y_rescaled + ns/2.0);
+		CUCPX cnow;
+		cnow.x = 0.0;
+		cnow.y = 0.0;
 
+                FLT ker1[MAX_NSPREAD];
+                FLT x1=(FLT) xstart-x_rescaled;
+                evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
 		for(int yy=ystart; yy<=yend; yy++){
 			FLT disy=abs(y_rescaled-yy);
 			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
@@ -79,14 +84,16 @@ void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 				int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 				int inidx = ix+iy*fw_width;
 				FLT disx=abs(x_rescaled-xx);
-				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-				c[i].x += fw[inidx].x*kervalue1*kervalue2;
-				c[i].y += fw[inidx].y*kervalue1*kervalue2;
+				//FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+				FLT kervalue1 = ker1[xx-xstart];
+				cnow.x += fw[inidx].x*kervalue1*kervalue2;
+				cnow.y += fw[inidx].y*kervalue1*kervalue2;
 				//c[i].x += fw[inidx].x;
 				//c[i].y += fw[inidx].y;
 			}
 		}
-
+		c[i].x = cnow.x;
+		c[i].x = cnow.y;
 	}
 
 }
