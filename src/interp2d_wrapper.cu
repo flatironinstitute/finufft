@@ -62,6 +62,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 #endif
+	cudaEventRecord(start);
 	ier = cuinterp2d(opts, d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);

@@ -72,25 +72,29 @@ void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		CUCPX cnow;
 		cnow.x = 0.0;
 		cnow.y = 0.0;
-
-                FLT ker1[MAX_NSPREAD];
-                FLT x1=(FLT) xstart-x_rescaled;
-                evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
+		//CUCPX subsum;
+                //FLT ker1[MAX_NSPREAD];
+                //FLT x1=(FLT) xstart-x_rescaled;
+                //evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
 		for(int yy=ystart; yy<=yend; yy++){
 			FLT disy=abs(y_rescaled-yy);
 			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+			//subsum.x = 0.0;
+			//subsum.y = 0.0;
 			for(int xx=xstart; xx<=xend; xx++){
 				int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 				int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 				int inidx = ix+iy*fw_width;
 				FLT disx=abs(x_rescaled-xx);
-				//FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-				FLT kervalue1 = ker1[xx-xstart];
+				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+				//FLT kervalue1 = ker1[xx-xstart];
 				cnow.x += fw[inidx].x*kervalue1*kervalue2;
 				cnow.y += fw[inidx].y*kervalue1*kervalue2;
 				//c[i].x += fw[inidx].x;
 				//c[i].y += fw[inidx].y;
 			}
+			//cnow.x = kervalue2*subsum.x;
+			//cnow.y = kervalue2*subsum.y;
 		}
 		c[i].x = cnow.x;
 		c[i].y = cnow.y;

@@ -18,7 +18,7 @@ def main():
 	tol_totry     = 10.0**np.linspace(-14,-2,4) #1e-14, 1e-10, 1e-6 , 1e-2
 	nf1_totry     = 2**np.arange(7,13) #128, ... ,4096 
 	t_gpuinterp_5 = np.zeros([len(density_totry), len(tol_totry), len(nf1_totry)])
-	f= open("../results/nfft_interp_d_1_0812.out","w")
+	f= open("../results/nfft_interp_d_1_0816.out","w")
 	f.write("nfft interp:\n")
 	f.write('(density,tol,nf1,M)\tTime(HtoD(ms) + Spread(ms) + DtoH(ms))\n')
 	for d,density in enumerate(density_totry):
@@ -37,7 +37,7 @@ def main():
 				t_gpuinterp_5[d,t,n] = tnow
 				f.write('({:5.1e},{:5.1e},{:5d},{:15d})\t t={:5.3e}\n'.format(density,tol,nf1,M,t_gpuinterp_5[d,t,n]))
 	
-	np.save('../results/nfft_interp_d_1_0812.npy', t_gpuinterp_5)
+	np.save('../results/nfft_interp_d_1_0816.npy', t_gpuinterp_5)
 
 	# Output result
 	"""

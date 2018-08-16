@@ -18,8 +18,6 @@ int main(int argc, char* argv[])
 		fprintf(stderr,"Usage: cufinufft2d2_test [method [N1 N2 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
-		fprintf(stderr,"method 2: input driven with sorting\n");
-		fprintf(stderr,"method 4: hybrid\n");
 		fprintf(stderr,"method 5: subprob\n");
 		return 1;
 	}  
