@@ -1,6 +1,6 @@
 # cufinufft
 
-This is a work as an intern at Flatiron Institute in 2018 Summer. It's an implementation of non-uniform FFT on GPU where the algorithms are based on FINUFFT (https://github.com/ahbarnett/finufft) a multi-threaded CPU code of non-uniform FFT developed by Alex H. Barnett and Jeremy F. Magland.
+This is an implementation of non-uniform FFT on GPU where the algorithms are based on FINUFFT (https://github.com/ahbarnett/finufft) a multi-threaded CPU code of non-uniform FFT developed by Alex H. Barnett and Jeremy F. Magland.
 
 ### Code dependency
  - CUB library (https://github.com/NVlabs/cub)
