@@ -63,8 +63,8 @@ int main(int argc, char* argv[])
 
 	FLT *x, *y;
 	CPX *c, *fw;
-	cudaMallocHost(&x, M*sizeof(CPX));
-	cudaMallocHost(&y, M*sizeof(CPX));
+	cudaMallocHost(&x, M*sizeof(FLT));
+	cudaMallocHost(&y, M*sizeof(FLT));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 

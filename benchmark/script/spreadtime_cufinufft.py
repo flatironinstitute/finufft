@@ -11,15 +11,15 @@ def find_between( s, first, last ):
         return ""
 
 def main():
-	nupts_distr=2
-	reps=10
+	nupts_distr=1
+	reps=5
 	#density_totry = 10.0**np.arange(-1,2) #0.1, 1, 10
 	density_totry = 10.0**np.arange(0,1) #0.1, 1, 10
 	tol_totry     = 10.0**np.linspace(-14,-2,4) #1e-14, 1e-10, 1e-6 , 1e-2
 	nf1_totry     = 2**np.arange(7,13) #128, ... ,4096 
 	t_gpuspread_5 = np.zeros([len(density_totry), len(tol_totry), len(nf1_totry)])
-	f= open("../results/cufinufft_spread_s_2_0812.out","w")
-	f.write("cufinufft spread (clustered nupts): method(5) subprob\n")
+	f= open("../results/cufinufft_spread_s_1_0816.out","w")
+	f.write("cufinufft spread: method(5) subprob\n")
 	f.write('(density,tol,nf1,M)\tTime(HtoD(ms) + Spread(ms) + DtoH(ms))\n')
 	for d,density in enumerate(density_totry):
 		for t,tol in enumerate(tol_totry):
@@ -43,7 +43,6 @@ def main():
 					tt = 0.0
 					output=subprocess.check_output(["./spread2d",'5',str(nupts_distr),str(nf1),str(nf1),str(M), \
 									 str(tol)], cwd="../../").decode("utf-8")
-					print(output)
 					tt+= float(find_between(output, "HtoD", "ms"))
 					tt+= float(find_between(output, "Spread (5)", "ms"))
 					tt+= float(find_between(output, "DtoH", "ms"))
@@ -51,7 +50,7 @@ def main():
 				t_gpuspread_5[d,t,n] = tnow
 				f.write('({:5.1e},{:5.1e},{:5d},{:15d})\t t={:5.3e}\n'.format(density,tol,nf1,M,t_gpuspread_5[d,t,n]))
 	
-	np.save('../results/cufinufft_spread_s_2_0812.npy', t_gpuspread_5)
+	np.save('../results/cufinufft_spread_s_1_0816.npy', t_gpuspread_5)
 
 	# Output result
 	"""
