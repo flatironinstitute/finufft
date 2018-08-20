@@ -5,7 +5,9 @@ Here we describe calling FINUFFT from C++, C, and Fortran.
 
 We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
-2, and 3.  This gives nine routines in all.
+2, and 3.  This gives nine basic routines.
+There are also two :ref:`advanced interfaces <manyinterface>`
+for multiple 2d1 and 2d2 transforms with the same point locations.
 
 Using the library is a matter of filling your input arrays,
 allocating the correct output array size, possibly setting fields in

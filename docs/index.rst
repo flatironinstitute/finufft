@@ -1,5 +1,4 @@
-.. finufft documentation master file, created by
-   sphinx-quickstart on Wed Nov  1 16:19:13 2017.
+.. finufft documentation master file.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
@@ -51,10 +50,11 @@ is faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~pot
 distributions and/or high precision.
 Our library does not require precomputation, and uses minimal RAM.
 
-For the case of small problems where repeated NUFFTs are needed with a fixed set of nonuniform points, we have started to build interfaces for this case.
+For the case of small problems where repeated NUFFTs are needed with a fixed set of nonuniform points, we have started to build advanced
+interfaces for this case.
 These are a factor of 2 or more faster than repeated calls to the plain
-interface, since certain costs such as FFTW setup and sorted are performed
-only once; see the advanced usage.
+interface, since certain costs such as FFTW setup and sorting are performed
+only once.
 
 .. note::
 
