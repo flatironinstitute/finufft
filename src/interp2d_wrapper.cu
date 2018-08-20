@@ -14,7 +14,7 @@ using namespace std;
 
 // This function includes device memory allocation, transfer, free
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX *h_c, const cufinufft_opts opts, cufinufft_plan* d_plan)
+		FLT *h_ky, CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	if(opts.spread_direction!=2){
 		printf("spread direction not set\n");
@@ -39,12 +39,6 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	d_plan->h_fwkerhalf1 = NULL;
 	d_plan->h_fwkerhalf2 = NULL;
 
-	if(opts.pirange){
-		for(int i=0; i<M; i++){
-			h_kx[i]=RESCALE(h_kx[i], nf1, opts.pirange);
-			h_ky[i]=RESCALE(h_ky[i], nf2, opts.pirange);
-		}
-	}
 	cudaEventRecord(start);
 	ier = allocgpumemory(opts, d_plan);
 #ifdef TIME
@@ -90,7 +84,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 }
 
 // a wrapper of different methods of spreader
-int cuinterp2d( const cufinufft_opts opts, cufinufft_plan* d_plan)
+int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
@@ -100,6 +94,19 @@ int cuinterp2d( const cufinufft_opts opts, cufinufft_plan* d_plan)
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
+
+	if(opts.pirange){
+		cudaEventRecord(start);
+		RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
+		opts.pirange=0;
+#ifdef SPREADTIME
+		float milliseconds;
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		cout<<"[time  ]"<< " RescaleXY_2d " << milliseconds <<" ms"<<endl;
+#endif
+	}
 
 	int ier;
 	switch(opts.method)

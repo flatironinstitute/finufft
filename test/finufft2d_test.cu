@@ -72,17 +72,6 @@ int main(int argc, char* argv[])
       c[j] = crandm11r(&se);
     }
   }
-// This must be here, since in gpu code, x, y gets modified if pirange=1
-  BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
-  CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
-  for (BIGINT j=0; j<M; ++j)
-    Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
-  BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  
-  CPX* Ftt = (CPX*)malloc(sizeof(CPX)*N);
-  if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
-    dirft2d1(M,x,y,c,isign,N1,N2,Ftt);
-  }
 
   printf("test 2d type-1:\n"); // -------------- type 1
   CNTime timer; timer.start();
@@ -109,6 +98,17 @@ int main(int argc, char* argv[])
   } else
     printf("[gpu   ] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
 	   (int64_t)M,(int64_t)N1,(int64_t)N2,ti,M/ti);
+
+  BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
+  CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
+  for (BIGINT j=0; j<M; ++j)
+    Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
+  BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
+  
+  CPX* Ftt = (CPX*)malloc(sizeof(CPX)*N);
+  if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
+    dirft2d1(M,x,y,c,isign,N1,N2,Ftt);
+  }
 
   printf("\n[cpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fcpu[it]));
   printf("[cpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-Fcpu[it])/infnorm(N,Fcpu));
@@ -144,17 +144,6 @@ int main(int argc, char* argv[])
 #pragma omp for schedule(dynamic,CHUNK)
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
-  BIGINT jt = M/2;          // check arbitrary choice of one targ pt
-  CPX ct = CPX(0,0);
-  BIGINT m=0;
-  for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
-    for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
-      ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-
-  CPX* ctt = (CPX*)malloc(sizeof(CPX)*M);
-  if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
-    dirft2d2(M,x,y,ctt,isign,N1,N2,F);
-  }
   timer.restart();
   ier = finufft2d2(M,x,y,ccpu,isign,tol,N1,N2,F,opts);
   ti=timer.elapsedsec();
@@ -170,6 +159,18 @@ int main(int argc, char* argv[])
   } else
     printf("\n[gpu   ] %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
 	   (int64_t)M,(int64_t)N1,(int64_t)N2,ti,M/ti);
+
+  BIGINT jt = M/2;          // check arbitrary choice of one targ pt
+  CPX ct = CPX(0,0);
+  BIGINT m=0;
+  for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
+    for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+      ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
+
+  CPX* ctt = (CPX*)malloc(sizeof(CPX)*M);
+  if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
+    dirft2d2(M,x,y,ctt,isign,N1,N2,F);
+  }
 
   printf("\n[cpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(ccpu[jt]-ct)/infnorm(M,ccpu));
   if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval

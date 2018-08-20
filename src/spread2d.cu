@@ -7,6 +7,10 @@
 
 using namespace std;
 
+#define RESCALE(x,N,p) (p ? \
+                       ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
+                       (x<0 ? x+N : (x>N ? x-N : x)))
+
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
@@ -72,6 +76,15 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double ups
 	// insert the auto-generated code which expects z, w args, writes to ker...
 	if (upsampfac==2.0) {     // floating point equality is fine here
 #include "../finufft/ker_horner_allw_loop.c"
+	}
+}
+
+__global__
+void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y)
+{
+	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
+		x[i] = RESCALE(x[i], nf1, 1);
+		y[i] = RESCALE(y[i], nf2, 1);
 	}
 }
 

@@ -79,7 +79,7 @@ int cufinufft2d_plan(int M, FLT* h_kx, FLT* h_ky, CPX* h_c, int ms, int mt, CPX*
 	return ier;
 }
 
-int cufinufft2d1_exec(const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d1_exec(cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
 	if(opts.spread_direction != 1){
 		printf("err: spread_direction (%d) is not correct\n", opts.spread_direction);
@@ -89,13 +89,6 @@ int cufinufft2d1_exec(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	cudaEventCreate(&stop);
 
 	cudaEventRecord(start);
-	if(opts.pirange){
-		for(int i=0; i<d_plan->M; i++){
-			d_plan->h_kx[i]=RESCALE(d_plan->h_kx[i], d_plan->nf1, opts.pirange);
-			d_plan->h_ky[i]=RESCALE(d_plan->h_ky[i], d_plan->nf2, opts.pirange);
-		}
-	}	
-
 	// Copy memory to device
 	int ier = copycpumem_to_gpumem(opts, d_plan);
 #ifdef TIME
@@ -148,7 +141,7 @@ int cufinufft2d1_exec(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int cufinufft2d2_exec(const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d2_exec(cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
 	if(opts.spread_direction != 2){
 		printf("err: spread_direction (%d) is not correct\n", opts.spread_direction);
@@ -159,13 +152,6 @@ int cufinufft2d2_exec(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	cudaEventCreate(&stop);
 
 	cudaEventRecord(start);
-	if(opts.pirange){
-		for(int i=0; i<d_plan->M; i++){
-			d_plan->h_kx[i]=RESCALE(d_plan->h_kx[i], d_plan->nf1, opts.pirange);
-			d_plan->h_ky[i]=RESCALE(d_plan->h_ky[i], d_plan->nf2, opts.pirange);
-		}
-	}	
-
 	// Copy memory to device
 	int ier = copycpumem_to_gpumem(opts, d_plan);
 #ifdef TIME

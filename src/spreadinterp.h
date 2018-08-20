@@ -25,6 +25,8 @@ void Spread_1d(int nbin_block_x, int nbinx, int *bin_startpts,
                FLT *x_sorted, FLT *c_sorted, FLT *fw, int ns,
                int nf1, FLT es_c, FLT es_beta);
 */
+__global__
+void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y);
 //Kernels for 2D codes
 __global__
 void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
@@ -79,9 +81,9 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                           int* idxnupts);
 
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                       FLT *h_ky, CPX* h_c, cufinufft_opts opts, cufinufft_plan *dmem);
+                       FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                       FLT *h_ky, CPX* h_c, const cufinufft_opts opts, cufinufft_plan *dmem);
+                       FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
 int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, 
                        cufinufft_plan *d_mem);
 int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, 
@@ -96,6 +98,6 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
                        cufinufft_plan *d_mem);
 int cuspread2d_simple(int nf1, int nf2, int fw_width, CUCPX* d_fw, int M, FLT *d_kx,
                       FLT *d_ky, CUCPX *d_c, const cufinufft_opts opts, int binx, int biny);
-int cuspread2d(const cufinufft_opts opts, cufinufft_plan* d_plan);
-int cuinterp2d(const cufinufft_opts opts, cufinufft_plan* d_plan);
+int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
+int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 #endif
