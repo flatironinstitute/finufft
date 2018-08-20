@@ -9,14 +9,14 @@ Also see notes in the ``TODO`` file.
 Issues with library
 *******************
 
-- When requestes accuracy is ``1e-14`` or less, it is sometimes not possible to match this, especially when there are a large number of input and/or output points. This is believed to be unavoidable round-off error.
+- When requested accuracy is ``1e-14`` or less, it is sometimes not possible to match this, especially when there are a large number of input and/or output points. This is believed to be unavoidable round-off error.
 
 - Currently in Mac OSX, ``make lib`` fails to make the shared object library (.so).
 
 - The timing of the first FFTW call is complicated, depending on whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used. Such issues are known, and discussed in other documentation, eg https://pythonhosted.org/poppy/fft_optimization.html
-  We would like to find a way of pre-storing some intel FFTW plans (as MATLAB does) to avoid the large FFTW_ESTIMATE planning time.
+  We would like to find a way of pre-storing some Intel-specific FFTW plans (as MATLAB does) to avoid the large FFTW_ESTIMATE planning time.
   
-- Currently, a single library name is used for single/double precision and for single-/multi-threaded versions. Thus, i) you need to ``make clean`` before changing such make options, and ii) if you wish to maintain multiple such versions you need to duplicate the directory.
+- Currently, a single library name is used for single- and multi-threaded versions. Thus, i) you need to ``make clean`` before changing such make options, and ii) if you wish to maintain multiple such versions you need to move them around and maintain them yourself, eg by duplicating the directory.
 
   
 Issues with interfaces

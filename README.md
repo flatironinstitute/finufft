@@ -1,9 +1,12 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
-### Alex H. Barnett and Jeremy F. Magland
+**Alex H. Barnett and Jeremy F. Magland**, with additional code by
+Ludvig af Klinteberg and Yu-hsuan "Melody" Shih.
 
+<p>
 <img src="docs/logo.png" width="350"/>
 <img src="docs/spreadpic.png" width="400"/>
+</p>
 
 This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, and python. A julia interface
 also exists.
@@ -17,9 +20,10 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/install.rst` : installation and compilation instructions
 - `docs/math.rst` : mathematical definitions
 - `docs/dirs.rst` : explanation of directories and files in the package
-- `docs/usage.rst` : C++ routine interfaces, and notes on parameters
+- `docs/usage.rst` : interfaces from C++, C and Fortran, notes on parameters
 - `docs/matlabhelp.raw` : MATLAB/octave interfaces
 - `finufftpy/_interfaces.py` : python interface docstrings
+- `docs/related.rst` : packages using FINUFFT
 - `docs/issues.rst` : known issues and bug reports
 - `docs/refs.rst` : journal article references
 - `docs/ackn.rst` : acknowledgments

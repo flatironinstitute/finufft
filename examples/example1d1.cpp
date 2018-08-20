@@ -1,5 +1,5 @@
 // this is all you must include for the finufft lib...
-#include "../src/finufft.h"
+#include "finufft.h"
 #include <complex>
 
 // also needed for this example...
@@ -13,9 +13,9 @@ int main(int argc, char* argv[])
    Double-precision version (see example1d1f for single-precision)
 
    Compile with:
-   g++ -fopenmp example1d1.cpp ../lib-static/libfinufft.a -o example1d1  -lfftw3 -lfftw3_threads -lm
+   g++ -fopenmp example1d1.cpp -I ../src ../lib-static/libfinufft.a -o example1d1  -lfftw3 -lfftw3_threads -lm
    or if you have built a single-core version:
-   g++ example1d1.cpp ../lib-static/libfinufft.a -o example1d1 -lfftw3 -lm
+   g++ example1d1.cpp -I ../src ../lib-static/libfinufft.a -o example1d1 -lfftw3 -lm
 
    Usage: ./example1d1
 */

@@ -4,7 +4,7 @@
 
 # Max OSX users: please edit as per below comments.
 
-__version__ = '0.99'
+__version__ = '1.0'
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext

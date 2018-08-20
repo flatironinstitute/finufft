@@ -1,3 +1,5 @@
+.. _math:
+
 Mathematical definitions of transforms
 ======================================
 

@@ -1,24 +1,7 @@
 Usage and interfaces
 ====================
 
-In your C++ code you will need to include the header ``src/finufft.h``.
-This is illustrated by the simple code ``example1d1.cpp``, in the ``examples``
-directory.
-From there, basic double-precision compilation with the static library is via::
-
-  g++ example1d1.cpp -o example1d1 ../lib-static/libfinufft.a -fopenmp -lfftw3_threads -lfftw3 -lm
-
-for the default multi-threaded version, or, if you compiled FINUFFT for single-threaded::
-
-  g++ example1d1.cpp -o example1d1 ../lib-static/libfinufft.a -lfftw3 -lm
-
-The ``examples`` and ``test`` directories are good places to see usage examples.
-
-If you have an application with multiple strength or coefficient vectors with fixed nonuniform points, see the :ref:`advanced interfaces <manyinterface>`.
-
-
-Interfaces from C++
-*******************
+Here we describe calling FINUFFT from C++, C, and Fortran.
 
 We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
@@ -28,16 +11,63 @@ Using the library is a matter of filling your input arrays,
 allocating the correct output array size, possibly setting fields in
 the options struct, then calling one of the transform routines below.
 
-Now, more about the options.
-You will see in  ``examples/example1d1.cpp`` the line::
+Interfaces from C++
+*******************
+
+We first give a simple example of performing a 1D type-1 transform
+in double precision from C++, the library's native language,
+using C++ complex number type. First include the headers::
+
+  #include "finufft.h"
+  #include <complex>
+  using namespace std;
+
+Now in the body of the code, assuming ``M`` has been set to be
+the number of nonuniform points, we allocate the input arrays::
+
+  double *x = (double *)malloc(sizeof(double)*M);
+  complex<double>* c = (complex<double>*)malloc(sizeof(complex<double>)*M);
+
+These arrays should now be filled with the user's data:
+values in ``x`` should lie in :math:`[-3\pi,3\pi]`, and
+``c`` can be arbitrary complex strengths (we omit example code for this here).
+With ``N`` as the number of modes, allocate the output array::
+
+  complex<double>* F = (complex<double>*)malloc(sizeof(complex<double>)*N);
+
+Before usage, set default values in the options struct ``opts``::
 
   nufft_opts opts; finufft_default_opts(opts);
 
-This is the recommended way to initialize the structure ``nufft_opts``.
-You may override these default settings by changing the fields in this struct.
-This allows control of various parameters such as the mode ordering, FFTW plan mode,
-upsampling factor :math:`\sigma`, and debug/timing output.
-Here is the list of the options fields you may set (see the header ``../src/finufft.h``).
+Warning: if this is not called, options may take on random values which may cause a crash. To perform the nonuniform FFT is then one line::
+
+  int ier = finufft1d1(M,x,c,+1,1e-6,N,F,opts);
+
+This fills ``F`` with the output modes, in increasing ordering
+from ``-N/2`` to ``N/2-1``.
+Here ``+1`` sets the sign of ``i`` in the exponentials in the
+:ref:`definitions <math>`,
+``1e-6`` chooses 6-digit relative tolerance, and ``ier`` is a status output
+which is zero if successful (see below).
+See ``example1d1.cpp``, in the ``examples`` directory, for a simple
+full working example.
+Then to compile, linking to the double-precision static library, use eg::
+
+  g++ example1d1.cpp -o example1d1 -I FINUFFT/src FINUFFT/lib-static/libfinufft.a -fopenmp -lfftw3_threads -lfftw3 -lm
+
+where ``FINUFFT`` denotes the top-level directory
+of the installed library.
+The ``examples`` and ``test`` directories are good places to see further
+usage examples. The documentation for all nine routines follows below.
+
+If you have a small-scale 2D task (say less than 10\ :sup:`5` points or modes) with multiple strength or coefficient vectors but fixed nonuniform points, see the :ref:`advanced interfaces <manyinterface>`.
+
+Options
+~~~~~~~
+
+You may override the default options in ``opts`` by changing the fields in this struct, after setting up with default values as above.
+This allows control of various parameters such as the mode ordering, FFTW plan mode, upsampling factor :math:`\sigma`, and debug/timing output.
+Here is the list of the options fields you may set (see the header ``src/finufft.h``).
 Here the abbreviation ``FLT`` means ``double`` if compiled in
 the default double-precision, or ``single`` if single precision:
 
@@ -54,7 +84,7 @@ the default double-precision, or ``single`` if single precision:
                       // 1: FFT-style mode ordering (affects type-1,2 only)
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
 
-Here are their default settings (set in ``../src/common.cpp:finufft_default_opts``):
+Here are their default settings (set in ``src/common.cpp:finufft_default_opts``):
 
 ::
 
@@ -67,6 +97,11 @@ Here are their default settings (set in ``../src/common.cpp:finufft_default_opts
   fftw = FFTW_ESTIMATE;
   modeord = 0;
   upsampfac = (FLT)2.0;
+
+To get the fastest runtime, we recommend that you experiment firstly with:
+``fftw``, ``upsampfac``, and ``spread_sort``, detailed below.
+If you are having crashes, set ``chkbnds=1`` to see if illegal ``x`` coordinates
+are being input.
 
 Notes on various options:
 
@@ -81,14 +116,14 @@ automatically from call to call in the same executable (incidentally also in the
 ``upsampfac``: This is the internal factor by which the FFT is larger than
 the number of requested modes in each dimension. We have built efficient kernels
 for only two settings: ``upsampfac=2.0`` (standard), and ``upsampfac=1.25``
-(lower RAM, smaller FFTs).
+(lower RAM, smaller FFTs, but wider spreading kernel).
 The latter can be much faster when the number of nonuniform points is similar or
 smaller to the number of modes, and/or if low accuracy is required.
 It is especially much faster for type 3 transforms.
 However, the kernel widths :math:`w` are about 50% larger in each dimension,
 which can lead to slower spreading (it can also be faster due to the smaller
 size of the fine grid).
-Thus only 9-digit accuracy can be reached with ``upsampfac=1.25``.
+Thus only 9-digit accuracy can currently be reached with ``upsampfac=1.25``.
 
 .. _errcodes:
 
@@ -96,7 +131,7 @@ Error codes
 ~~~~~~~~~~~
 
 In the interfaces, the returned value is 0 if successful, otherwise the error code
-has the following meanings (see ``../src/utils.h``):
+has the following meanings (see ``src/utils.h``):
 
 ::
 
