@@ -21,6 +21,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	//return x;
 	//return 1.0;
 }
+#if 0
 static __forceinline__ __device__
 void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, const int N)
 	/* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
@@ -39,7 +40,7 @@ void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, const i
 	//for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
 		//ker[i] = exp(ker[i]);
 }
-
+#endif
 #if 0
 static __inline__ __device__
 void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double upsampfac)

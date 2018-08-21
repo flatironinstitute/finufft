@@ -80,7 +80,7 @@ int allocgpumemory(const cufinufft_opts opts, cufinufft_plan *d_plan)
 
 	return 0;
 }
-
+#if 0
 int copycpumem_to_gpumem(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	int M=d_plan->M;
@@ -137,7 +137,7 @@ int copygpumem_to_cpumem_c(cufinufft_plan *d_plan)
         checkCudaErrors(cudaMemcpy(d_plan->h_c,d_plan->c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
         return 0;
 }
-
+#endif
 void free_gpumemory(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaFree(d_plan->fw);

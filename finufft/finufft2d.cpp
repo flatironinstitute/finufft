@@ -631,11 +631,15 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   timer.start();
   int ier=cufinufft_default_opts(cuopts,eps,opts.upsampfac);
   cuopts.spread_direction=1;
-  ier=cufinufft2d_plan(nj, xj, yj, cj, ms, mt, fk, iflag, cuopts, &dplan);
+  ier=cufinufft2d_plan(nj, ms, mt, iflag, cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", timer.elapsedsec());
 
+  timer.start();
+  ier=cufinufft2d_setptrs(xj, yj, cuopts, &dplan);
+  if (opts.debug) printf("[time  ] cufinufft2d1 setptrs:\t\t %.3g s\n", timer.elapsedsec());
+
   timer.restart();
-  ier=cufinufft2d1_exec(cuopts, &dplan);
+  ier=cufinufft2d1_exec(cj, fk, cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 exec:\t\t %.3g s\n", timer.elapsedsec());
 
   timer.restart();
@@ -654,11 +658,15 @@ int finufft2d2_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   int ier=cufinufft_default_opts(cuopts,eps,opts.upsampfac);
   cuopts.spread_direction=2;
 
-  ier=cufinufft2d_plan(nj, xj, yj, cj, ms, mt, fk, iflag, cuopts, &dplan);
+  ier=cufinufft2d_plan(nj, ms, mt, iflag, cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", timer.elapsedsec());
 
+  timer.start();
+  ier=cufinufft2d_setptrs(xj, yj, cuopts, &dplan);
+  if (opts.debug) printf("[time  ] cufinufft2d1 setptrs:\t\t %.3g s\n", timer.elapsedsec());
+
   timer.restart();
-  ier=cufinufft2d2_exec(cuopts, &dplan);
+  ier=cufinufft2d2_exec(cj, fk, cuopts, &dplan);
   if (opts.debug) printf("[time  ] cufinufft2d2 exec:\t\t %.3g s\n", timer.elapsedsec());
 
   timer.restart();

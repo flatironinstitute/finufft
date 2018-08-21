@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	int nf1, nf2;
 	FLT sigma = 2.0;
 	int N1, N2, M;
-	if (argc<4) {
+	if (argc<5) {
 		fprintf(stderr,"Usage: spread2d [method [nupts_distr [N1 N2 [M [tol]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");

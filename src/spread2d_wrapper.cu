@@ -27,12 +27,6 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
         d_plan->nf1 = nf1;
         d_plan->nf2 = nf2;
 	d_plan->M = M;
-        d_plan->h_kx = h_kx;
-        d_plan->h_ky = h_ky;
-        d_plan->h_c = h_c;
-	d_plan->h_fw = h_fw;
-	d_plan->h_fwkerhalf1 = NULL;
-	d_plan->h_fwkerhalf2 = NULL;
 
 	cudaEventRecord(start);
 	ier = allocgpumemory(opts, d_plan);
@@ -44,7 +38,9 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	ier = copycpumem_to_gpumem(opts, d_plan);
+	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_plan->c, h_c, M*sizeof(CUCPX),cudaMemcpyHostToDevice));
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -60,7 +56,8 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Spread (%d)\t\t %.3g ms\n", opts.method, milliseconds);
 #endif
 	cudaEventRecord(start);
-	ier = copygpumem_to_cpumem_fw(d_plan);
+	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(CUCPX),d_plan->fw,d_plan->fw_width*sizeof(CUCPX),
+				     nf1*sizeof(CUCPX),nf2,cudaMemcpyDeviceToHost));
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

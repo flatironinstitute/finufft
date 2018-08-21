@@ -44,8 +44,8 @@ int main(int argc, char* argv[])
 
 	FLT *x, *y;
 	CPX *c, *fk;
-	cudaMallocHost(&x, M*sizeof(CPX));
-	cudaMallocHost(&y, M*sizeof(CPX));
+	cudaMallocHost(&x, M*sizeof(FLT));
+	cudaMallocHost(&y, M*sizeof(FLT));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fk,N1*N2*sizeof(CPX));
 
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 	opts.spread_direction=2;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, x, y, c, N1, N2, fk, iflag, opts, &dplan);
+	ier=cufinufft2d_plan(M, N1, N2, iflag, opts, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
 	}
@@ -100,7 +100,17 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d2_exec(opts, &dplan);
+	ier=cufinufft2d_setptrs(x, y, opts, &dplan);
+	if (ier!=0){
+		printf("err: cufinufft2d_setptrs\n");
+	}
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] cufinufft setptrs:\t\t %.3g s\n", milliseconds/1000);
+
+	cudaEventRecord(start);
+	ier=cufinufft2d2_exec(c, fk, opts, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d2_exec\n");
 	}

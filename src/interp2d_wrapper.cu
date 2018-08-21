@@ -32,13 +32,6 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
         d_plan->nf2 = nf2;
 	d_plan->M = M;
 
-        d_plan->h_kx = h_kx;
-        d_plan->h_ky = h_ky;
-        d_plan->h_c = h_c;
-	d_plan->h_fw = h_fw;
-	d_plan->h_fwkerhalf1 = NULL;
-	d_plan->h_fwkerhalf2 = NULL;
-
 	cudaEventRecord(start);
 	ier = allocgpumemory(opts, d_plan);
 #ifdef TIME
@@ -49,7 +42,8 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	ier = copycpumem_to_gpumem(opts, d_plan);
+	cudaMemcpy2D(d_plan->fw,d_plan->fw_width*sizeof(CUCPX),h_fw,nf1*sizeof(CUCPX),
+                     nf1*sizeof(CUCPX),nf2,cudaMemcpyHostToDevice);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -65,7 +59,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Interp (%d)\t\t %.3g ms\n", opts.method, milliseconds);
 #endif
 	cudaEventRecord(start);
-	ier = copygpumem_to_cpumem_c(d_plan);
+	checkCudaErrors(cudaMemcpy(h_c,d_plan->c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
