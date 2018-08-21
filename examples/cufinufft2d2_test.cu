@@ -58,14 +58,6 @@ int main(int argc, char* argv[])
 		fk[i].real() = 1.0;
 		fk[i].imag() = 1.0;
 	}
-	// This must be here, since in gpu code, x, y gets modified if pirange=1
-	int jt = M/2;          // check arbitrary choice of one targ pt
-	CPX J = IMA*(FLT)iflag;
-	CPX ct = CPX(0,0);
-	int m=0;
-	for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
-		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
-			ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
@@ -125,6 +117,15 @@ int main(int argc, char* argv[])
 	cudaEventElapsedTime(&milliseconds, start, stop);
 
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
+
+	// This must be here, since in gpu code, x, y gets modified if pirange=1
+	int jt = M/2;          // check arbitrary choice of one targ pt
+	CPX J = IMA*(FLT)iflag;
+	CPX ct = CPX(0,0);
+	int m=0;
+	for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
+		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+			ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
 	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(c[jt]-ct)/infnorm(M,c));
 #if 0
 	cout<<"[result-input]"<<endl;
