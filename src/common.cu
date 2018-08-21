@@ -14,7 +14,6 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 	opts.maxsubprobsize = 1000;
 	opts.nthread_x = 16;
 	opts.nthread_y = 16;
-	opts.spreadonly = 0;
 
 	// Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
 	int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten

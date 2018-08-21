@@ -16,10 +16,6 @@ using namespace std;
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 		FLT *h_ky, CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
-	if(opts.spread_direction!=2){
-		printf("spread direction not set\n");
-		return 1;
-	}
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);

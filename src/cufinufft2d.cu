@@ -109,9 +109,7 @@ int cufinufft2d_setptrs(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinuf
 
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
-	if(opts.spread_direction != 1){
-		printf("err: spread_direction (%d) is not correct\n", opts.spread_direction);
-	}
+	opts.spread_direction = 1;
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -172,9 +170,7 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
-	if(opts.spread_direction != 2){
-		printf("err: spread_direction (%d) is not correct\n", opts.spread_direction);
-	}
+	opts.spread_direction = 2;
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -268,7 +264,6 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 	opts.maxsubprobsize = 1000;
 	opts.nthread_x = 16;
 	opts.nthread_y = 16;
-	opts.spreadonly = 0;
 
 	// Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
 	int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten

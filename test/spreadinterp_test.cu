@@ -48,7 +48,6 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
-	opts.spreadonly=1;
 	cufinufft_plan dplan;
 	cout<<scientific<<setprecision(3);
 
@@ -66,7 +65,6 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fwfinufft, nf1*nf2*sizeof(CPX));
 #if 0
 	// spread a single source, only for reference accuracy check...
-	opts.spread_direction=1;
 	c[0].real() = 1.0; c[0].imag() = 0.0;   // unit strength
 	x[0] = y[0] = nf1/2.0;                  // at center
 	ier = cnufftspread(nf1,nf2,1,(FLT*) fwfinufft,1,x,y,NULL,(FLT*) c,opts);
@@ -120,7 +118,6 @@ int main(int argc, char* argv[])
 #endif
 
 	// Direction 1: Spreading
-	opts.spread_direction=1;
 	printf("[info  ] Type 1: Spreading\n");
 	/* -------------------------------------- */
 	// Method 1: Input driven without sorting //
@@ -244,7 +241,6 @@ int main(int argc, char* argv[])
 #endif
 #if 1
 	// Direction 2: Interpolation
-	opts.spread_direction=2;
 	printf("\n[info  ] Type 2: Interpolation\n");
 
 	CPX *fw;

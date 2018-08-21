@@ -56,7 +56,6 @@ int main(int argc, char* argv[])
                 cout<<"error: cufinufft_default_opts"<<endl;
                 return 0;
         }
-	opts.spread_direction=1;
 	opts.method=method;
 	cout<<scientific<<setprecision(3);
 
