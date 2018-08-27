@@ -5,7 +5,7 @@ References for this software and the underlying mathematics include:
 
 [FIN]
 A parallel non-uniform fast Fourier transform library based on an ``exponential of semicircle'' kernel.
-A. H. Barnett, J. F. Magland, and L. af Klinteberg. Preprint (2018).
+A. H. Barnett, J. F. Magland, and L. af Klinteberg. Preprint (2018). math.NA:1808.06736
 
 [ORZ] Prolate Spheroidal Wave Functions of Order Zero: Mathematical Tools for Bandlimited Approximation.  A. Osipov, V. Rokhlin, and H. Xiao. Springer (2013).
 
