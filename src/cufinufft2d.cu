@@ -42,8 +42,6 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 	FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
 	onedim_fseries_kernel(nf1, fwkerhalf1, opts);
 	onedim_fseries_kernel(nf2, fwkerhalf2, opts);
-	d_plan->h_fwkerhalf1 = fwkerhalf1;
-	d_plan->h_fwkerhalf2 = fwkerhalf2;
 #ifdef TIME
 	printf("[time  ] \tkernel fser (ns=%d):\t %.3g s\n", opts.nspread,timer.elapsedsec());
 #endif
@@ -82,8 +80,6 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tCUFFT Plan\t\t %.3g s\n", milliseconds/1000);
 #endif
-	free(d_plan->h_fwkerhalf1);
-	free(d_plan->h_fwkerhalf2);
 	return ier;
 }
 

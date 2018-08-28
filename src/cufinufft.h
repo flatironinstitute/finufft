@@ -43,8 +43,6 @@ struct cufinufft_plan {
   int byte_now;
   FLT *fwkerhalf1;
   FLT *fwkerhalf2;
-  FLT *h_fwkerhalf1;
-  FLT *h_fwkerhalf2;
 
   FLT *kx;
   FLT *ky;
