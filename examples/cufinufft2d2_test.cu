@@ -91,14 +91,14 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_setptrs(x, y, opts, &dplan);
+	ier=cufinufft2d_setNUpts(x, y, opts, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft2d_setptrs\n");
+		printf("err: cufinufft2d_setNUpts\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] cufinufft setptrs:\t\t %.3g s\n", milliseconds/1000);
+	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
 	ier=cufinufft2d2_exec(c, fk, opts, &dplan);

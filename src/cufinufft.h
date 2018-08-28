@@ -125,7 +125,7 @@ void check(cufftResult_t err){
 #define checkCufftErrors(call)
 int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac);
 int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan);
-int cufinufft2d_setptrs(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
 int cufinufft2d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);

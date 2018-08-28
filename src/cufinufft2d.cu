@@ -87,7 +87,7 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 	return ier;
 }
 
-int cufinufft2d_setptrs(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
