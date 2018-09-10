@@ -11,8 +11,10 @@
 #ifndef __cplusplus
 #ifdef SINGLE
   #define FLT float
+  #define CPX float _Complex
 #else
   #define FLT double
+  #define CPX double _Complex
 #endif
 #endif
 
@@ -36,15 +38,15 @@ void finufft_default_c_opts(nufft_c_opts *o);
 
 // interface definitions. They work but I don't really understand _Complex :
 
-int finufft1d1_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms, FLT _Complex* fk, nufft_c_opts copts);
-int finufft1d2_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms, FLT _Complex* fk, nufft_c_opts copts);
-int finufft1d3_c(int j,FLT* x,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT _Complex* f, nufft_c_opts copts);
-int finufft2d1_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt,FLT _Complex* fk, nufft_c_opts copts);
-int finufft2d2_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts);
-int finufft2d3_c(int nj,FLT* x,FLT *y,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT _Complex* f, nufft_c_opts copts);
-int finufft3d1_c(int nj,FLT* xj,FLT* yj,FLT *zj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, int mu,FLT _Complex* fk, nufft_c_opts copts);
-int finufft3d2_c(int nj,FLT* xj,FLT *yj,FLT *zj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, int mu, FLT _Complex* fk, nufft_c_opts copts);
-int finufft3d3_c(int nj,FLT* x,FLT *y,FLT *z,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT *u,FLT _Complex* f, nufft_c_opts copts);
+int finufft1d1_c(int nj,FLT* xj,CPX* cj,int iflag, FLT eps,int ms,CPX* fk, nufft_c_opts copts);
+int finufft1d2_c(int nj,FLT* xj,CPX* cj,int iflag, FLT eps,int ms, CPX* fk, nufft_c_opts copts);
+int finufft1d3_c(int j,FLT* x,CPX* c,int iflag,FLT eps,int nk, FLT* s, CPX* f, nufft_c_opts copts);
+int finufft2d1_c(int nj,FLT* xj,FLT *yj,CPX* cj,int iflag, FLT eps,int ms, int mt,CPX* fk, nufft_c_opts copts);
+int finufft2d2_c(int nj,FLT* xj,FLT *yj,CPX* cj,int iflag, FLT eps,int ms, int mt, CPX* fk, nufft_c_opts copts);
+int finufft2d3_c(int nj,FLT* x,FLT *y,CPX* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,CPX* f, nufft_c_opts copts);
+int finufft3d1_c(int nj,FLT* xj,FLT* yj,FLT *zj,CPX* cj,int iflag, FLT eps,int ms, int mt, int mu,CPX* fk, nufft_c_opts copts);
+int finufft3d2_c(int nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag, FLT eps,int ms, int mt, int mu, CPX* fk, nufft_c_opts copts);
+int finufft3d3_c(int nj,FLT* x,FLT *y,FLT *z,CPX* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT *u,CPX* f, nufft_c_opts copts);
 
 
 #endif

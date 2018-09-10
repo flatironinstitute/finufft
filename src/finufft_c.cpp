@@ -52,15 +52,15 @@ void transfer_opts(nufft_opts &opts,nufft_c_opts copts)
 
 // interfaces for the C user:
 
-int finufft1d1_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms, FLT _Complex* fk, struct nufft_c_opts copts)
+int finufft1d1_c(int nj,FLT* xj,CPX* cj,int iflag, FLT eps,int ms, CPX* fk, struct nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
   return finufft1d1((BIGINT)nj,xj,(CPX *)cj,iflag,eps,(BIGINT)ms,(CPX *)fk,opts);
 }
 
-int finufft1d2_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms,
-	       FLT _Complex* fk, nufft_c_opts copts)
+int finufft1d2_c(int nj,FLT* xj,CPX* cj,int iflag, FLT eps,int ms,
+	       CPX* fk, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
@@ -68,28 +68,28 @@ int finufft1d2_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms,
 		    (CPX* )fk, opts);
 }
 
-int finufft1d3_c(int nj,FLT* x,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT _Complex* f, nufft_c_opts copts)
+int finufft1d3_c(int nj,FLT* x,CPX* c,int iflag,FLT eps,int nk, FLT* s, CPX* f, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
   return finufft1d3((BIGINT)nj,x,(CPX*)c,iflag,eps,(BIGINT)nk, s, (CPX*) f, opts);
 }
 
-int finufft2d1_c(int nj,FLT* xj,FLT* yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts)
+int finufft2d1_c(int nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps,int ms, int mt, CPX* fk, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
   return finufft2d1((BIGINT)nj,xj,yj,(CPX *)cj,iflag,eps,(BIGINT)ms,(BIGINT)mt,(CPX *)fk,opts);
 }
 
-int finufft2d1many_c(int ndata,int nj,FLT* xj,FLT* yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts)
+int finufft2d1many_c(int ndata,int nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps,int ms, int mt, CPX* fk, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
   return finufft2d1many(ndata,(BIGINT)nj,xj,yj,(CPX *)cj,iflag,eps,(BIGINT)ms,(BIGINT)mt,(CPX *)fk,opts);
 }
 
-int finufft2d2_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts)
+int finufft2d2_c(int nj,FLT* xj,FLT *yj,CPX* cj,int iflag, FLT eps,int ms, int mt, CPX* fk, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
@@ -97,7 +97,7 @@ int finufft2d2_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int 
 		    (CPX* )fk, opts);
 }
 
-int finufft2d2many_c(int ndata,int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts)
+int finufft2d2many_c(int ndata,int nj,FLT* xj,FLT *yj,CPX* cj,int iflag, FLT eps,int ms, int mt, CPX* fk, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
@@ -105,28 +105,28 @@ int finufft2d2many_c(int ndata,int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag
 			(BIGINT)mt,(CPX* )fk, opts);
 }
 
-int finufft2d3_c(int nj,FLT* x,FLT *y,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT _Complex* f, nufft_c_opts copts)
+int finufft2d3_c(int nj,FLT* x,FLT *y,CPX* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,CPX* f, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
   return finufft2d3((BIGINT)nj,x,y,(CPX*)c,iflag,eps,(BIGINT)nk, s, t,(CPX*) f, opts);
 }
 
-int finufft3d1_c(int nj,FLT* xj,FLT* yj,FLT *zj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, int mu,FLT _Complex* fk, nufft_c_opts copts)
+int finufft3d1_c(int nj,FLT* xj,FLT* yj,FLT *zj,CPX* cj,int iflag, FLT eps,int ms, int mt, int mu,CPX* fk, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
   return finufft3d1((BIGINT)nj,xj,yj,zj,(CPX *)cj,iflag,eps,(BIGINT)ms,(BIGINT)mt,(BIGINT)mu,(CPX *)fk,opts);
 }
 
-int finufft3d2_c(int nj,FLT* xj,FLT *yj,FLT *zj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, int mu, FLT _Complex* fk, nufft_c_opts copts)
+int finufft3d2_c(int nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag, FLT eps,int ms, int mt, int mu, CPX* fk, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
   return finufft3d2(BIGINT(nj),xj,yj,zj,(CPX*) cj,iflag,eps,(BIGINT)ms,(BIGINT)mt,(BIGINT)mu, (CPX* )fk, opts);
 }
 
-int finufft3d3_c(int nj,FLT* x,FLT *y,FLT *z,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT *u,FLT _Complex* f, nufft_c_opts copts)
+int finufft3d3_c(int nj,FLT* x,FLT *y,FLT *z,CPX* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT *u,CPX* f, nufft_c_opts copts)
 {
   nufft_opts opts;
   transfer_opts(opts,copts);
