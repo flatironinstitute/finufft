@@ -17,6 +17,10 @@ typedef struct {   // see common/finufft_default_opts() for defaults
 } nufft_opts;
 
 // library provides...
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 void finufft_default_opts(nufft_opts *o);
 int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts opts);
@@ -41,6 +45,9 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
 int finufft3d3(BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
 	       CPX* fk, nufft_opts opts);
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif
