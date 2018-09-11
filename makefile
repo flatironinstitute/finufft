@@ -86,7 +86,7 @@ OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rul
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
-HEADERS = src/spreadinterp.h src/finufft.h src/dirft.h src/common.h src/utils.h src/finufft_c.h fortran/finufft_f.h
+HEADERS = src/spreadinterp.h src/finufft.h src/dirft.h src/common.h src/defs.h src/utils.h src/finufft_c.h fortran/finufft_f.h
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python python3 clean objclean pyclean mexclean
 
