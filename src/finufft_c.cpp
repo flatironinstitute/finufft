@@ -24,7 +24,7 @@ void finufft_default_c_opts(nufft_c_opts *o)
 // user needs to see this to set up default C-struct opts
 {
   nufft_opts opts;
-  finufft_default_opts(opts);         // insert the C++ defaults
+  finufft_default_opts(&opts);         // insert the C++ defaults
   o->debug = opts.debug;              // copy stuff over - why?
   o->spread_debug = opts.spread_debug;   // ...annoying & hard to maintain
   o->spread_sort = opts.spread_sort;

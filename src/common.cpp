@@ -12,20 +12,20 @@ extern "C" {
   #include "../contrib/legendre_rule_fast.h"
 #endif
 
-void finufft_default_opts(nufft_opts &o)
+void finufft_default_opts(nufft_opts *o)
 // Sets default nufft opts. See finufft.h for definition of opts.
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX. Barnett 10/30/17
 {
-  o.upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
-  o.chkbnds = 0;
-  o.debug = 0;
-  o.spread_debug = 0;
-  o.spread_sort = 2;        // use heuristic rule for whether to sort
-  o.spread_kerevalmeth = 1; // 0: direct exp(sqrt()), 1: Horner ppval
-  o.spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
-  o.fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
-  o.modeord = 0;
+  o->upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
+  o->chkbnds = 0;
+  o->debug = 0;
+  o->spread_debug = 0;
+  o->spread_sort = 2;        // use heuristic rule for whether to sort
+  o->spread_kerevalmeth = 1; // 0: direct exp(sqrt()), 1: Horner ppval
+  o->spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
+  o->fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
+  o->modeord = 0;
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)

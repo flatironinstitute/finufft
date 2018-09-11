@@ -28,7 +28,7 @@ int finufft_mex_opts(nufft_opts &opts, double *mexo)
 // global setup of finufft opts given MEX interface opts 7-long double array.
 // Also sets multithreading. 9/20/18: now passes out previous omp num threads.
 {
-  finufft_default_opts(opts);
+  finufft_default_opts(&opts);
   opts.debug = IROUND(mexo[0]);
   if (opts.debug>1) {   //  Any amount of debug>1 is pushed to spread_debug...
     opts.spread_debug=opts.debug-1;    // allows MATLAB users to see spread info

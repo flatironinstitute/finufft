@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
   int M = 1e6;            // number of nonuniform points
   int N = 1e6;            // number of modes
   double acc = 1e-9;      // desired accuracy
-  nufft_opts opts; finufft_default_opts(opts);
+  nufft_opts opts; finufft_default_opts(&opts);
   complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
   
   // generate some random nonuniform points (x) and complex strengths (c):
