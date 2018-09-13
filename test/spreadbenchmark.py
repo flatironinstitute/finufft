@@ -58,14 +58,24 @@ def runTests():
     results = []
     for params in tests:
         cmd = cmdtemplate % params
-        output = runCommand(cmd).rstrip()
-        ms = spreadre.search(output)
-        mi = interpre.search(output)
+        # Best of 3
+        interp_speed = 0
+        interp_err = 0
+        spread_speed = 0
+        spread_err = 0
+        for i in [1,2,3]:
+            output = runCommand(cmd).rstrip()
+            ms = spreadre.search(output)
+            mi = interpre.search(output)
+            interp_speed = max(interp_speed, mi.group("speed"))
+            interp_err = max(interp_err, mi.group("err"))
+            spread_speed = max(spread_speed, ms.group("speed"))
+            spread_err = max(spread_err, ms.group("err"))            
         results.append({"cmd":cmd,
-                        "interp_speed":mi.group("speed"),
-                        "interp_err":mi.group("err"),
-                        "spread_speed":ms.group("speed"),
-                        "spread_err":ms.group("err")})
+                        "interp_speed":interp_speed,
+                        "interp_err":interp_err,
+                        "spread_speed":spread_speed,
+                        "spread_err":spread_err })
     return results
 
 # Code checkout machinery
