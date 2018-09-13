@@ -11,6 +11,9 @@ tests = []
 
 #tests.append({"dim":3, "M":1e7, "N":1e7, "tol":1e-3})
 #tests.append({"dim":3, "M":1e7, "N":1e7, "tol":1e-8})
+
+tests.append({"dim":3, "M":1e5, "N":1e5, "tol":1e-15})
+tests.append({"dim":3, "M":1e6, "N":1e6, "tol":1e-15})
 tests.append({"dim":3, "M":1e7, "N":1e7, "tol":1e-15})
 
 
@@ -18,7 +21,7 @@ tests.append({"dim":3, "M":1e7, "N":1e7, "tol":1e-15})
 flags = "1"
 
 # Make flags (eg OMP=OFF)
-makeflags = "OMP=OFF"
+makeflags = ""
 
 # Command template
 cmdtemplate = "test/spreadtestnd %(dim)d %(M)g %(N)g %(tol)g " + flags

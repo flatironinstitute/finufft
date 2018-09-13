@@ -377,7 +377,7 @@ int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       FLT *ker3 = kernel_values + 2*ns;       
 
       // Loop over interpolation chunks
-#pragma omp for schedule(dynamic,10000) // (dynamic not needed) assign threads to NU targ pts:
+#pragma omp for schedule(dynamic) // assign threads to NU targ pts:
       for (BIGINT i=0; i<M; i+=CHUNKSIZE)  // main loop over NU targs, interp each from U
       {
         // Setup buffers for this chunk
