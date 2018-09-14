@@ -10,19 +10,19 @@ int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C, using C complex type,
    with a math test.
    Single-precision version (must be linked with single-precision libfinufft.a)
-   Barnett 4/5/17
+   Barnett 4/5/17. opts ctrl, t1 prefac convention, smaller prob size 9/14/18
 
    Compile with:
-   gcc -fopenmp example1d1cf.c ../lib/libfinufft.a -o example1d1cf -lfftw3f -lfftw3f_threads -lm -lstdc++
+   gcc -fopenmp example1d1cf.c ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lfftw3f_threads -lm -lstdc++
    or if you have built a single-core version:
-   gcc example1d1cf.c ../lib/libfinufft.a -o example1d1cf -lfftw3f -lm -lstdc++
+   gcc example1d1cf.c ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lm -lstdc++
 
    Usage: ./example1d1cf
 */
 {
-  int M = 1e6;            // number of nonuniform points
-  int N = 1e6;            // number of modes
-  float acc = 1e-3;      // desired accuracy
+  int M = 1e5;            // number of nonuniform points
+  int N = 1e5;            // number of modes (NB if too large lose acc in 1d)
+  float acc = 1e-3;       // desired accuracy
   int j,ier,n,m,nout;
   float *x,err,aF,Fmax;
   float complex *c,*F,Ftest;
@@ -37,13 +37,18 @@ int main(int argc, char* argv[])
   // allocate complex output array for the Fourier modes
   F = (float complex*)malloc(sizeof(float complex)*N);
 
+  nufft_c_opts opts;
+  finufft_default_c_opts(&opts);          // set default opts (must do this)
+  opts.debug = 2;                         // show how to override a default
+  //opts.upsampfac =1.25;                 // other opts...
+  
   // call the NUFFT C interface (with iflag=+1):
-  ier = finufft1d1_c(M,x,c,+1,acc,N,F);
+  ier = finufft1d1_c(M,x,c,+1,acc,N,F,opts);
 
-  n = 142519;   // check the answer just for this mode...
+  n = 14251;   // check the answer just for this mode...
   Ftest = 0.0;
   for (j=0; j<M; ++j)
-    Ftest += c[j] * cexpf(I*(float)n*x[j]) / (float)M;
+    Ftest += c[j] * cexpf(I*(float)n*x[j]);
   nout = n+N/2;       // index in output array for freq mode n
   Fmax = 0.0;       // compute inf norm of F
   for (m=0; m<N; ++m) {

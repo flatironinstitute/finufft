@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
    arrays of C++ complex numbers, with a math test.
    Single-precision version (must be linked with single-precision libfinufftf.a)
    See example1d1 for double-precision.
-   Barnett 4/3/17
+   Barnett 4/3/17. Fixed t1 prefac convention; smaller prob size 9/14/18.
 
    Compile with:
    g++ -fopenmp example1d1f.cpp -I ../src ../lib-static/libfinufftf.a -o example1d1f -lfftw3f -lfftw3f_threads -lm -DSINGLE
@@ -22,8 +22,8 @@ int main(int argc, char* argv[])
    Usage: ./example1d1f
 */
 {
-  int M = 1e6;            // number of nonuniform points
-  int N = 1e6;            // number of modes
+  int M = 1e5;            // number of nonuniform points
+  int N = 1e5;            // number of modes (NB if too large lose acc in 1d)
   float acc = 1e-3;       // desired accuracy
   nufft_opts opts; finufft_default_opts(opts);
   complex<float> I = complex<float>(0.0,1.0);  // the imaginary unit
@@ -41,10 +41,10 @@ int main(int argc, char* argv[])
   // call the NUFFT (with iflag=+1): N,M will be typecast to BIGINT
   int ier = finufft1d1(M,x,c,+1,acc,N,F,opts);
 
-  int n = 142519;   // check the answer just for this mode...
-  complex<float> Ftest = complelx<float>(0,0);
+  int n = 14251;   // check the answer just for this mode...
+  complex<float> Ftest = complex<float>(0,0);
   for (int j=0; j<M; ++j)
-    Ftest += c[j] * exp(I*(float)n*x[j]) / (float)M;
+    Ftest += c[j] * exp(I*(float)n*x[j]);
   int nout = n+N/2;       // index in output array for freq mode n
   float Fmax = 0.0;       // compute inf norm of F
   for (int m=0; m<N; ++m) {
