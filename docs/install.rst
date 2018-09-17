@@ -160,7 +160,8 @@ Building the python wrappers
 ****************************
 
 First make sure you have python3 and pip3 (or python and pip) installed and that you have already compiled the C++ library (eg via ``make lib``).
-Python links to this compiled library.
+Python links to this compiled library. You will get an error unless you first
+compile the static library.
 Next make sure you have NumPy and pybind11 installed::
   
   pip3 install numpy pybind11

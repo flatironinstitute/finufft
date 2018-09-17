@@ -2,12 +2,12 @@ Python interface
 ================
 
 These python interfaces are by Daniel Foreman-Mackey, Jeremy Magland, and Alex Barnett, with help from David Stein.
-See the installation notes for how to install these interfaces. Below is the documentation for the nine routines. The 2d1 and 2d2
+See the installation notes for how to install these interfaces; the main thing to remember is to compile the library before trying to `pip install`. Below is the documentation for the nine routines. The 2d1 and 2d2
 "many vector" interfaces are now also included.
 
 Notes:
 
-  #. The module has been designed not to recompile the C++ library; rather, it links to the existing static library.
+  #. The module has been designed not to recompile the C++ library; rather, it links to the existing static library. Therefore this library must have been compiled before building python interfaces.
 
   #. In the below, "float" and "complex" refer to double-precision for the default library. One can compile the library for single-precision, but the python interfaces are untested in this case.
 
