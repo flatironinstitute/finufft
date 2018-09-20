@@ -24,9 +24,9 @@ void finufft_mex_setup()
   mexEvalString("fft(1:8);");
 }
 
-void finufft_mex_opts(nufft_opts &opts, double *mexo)
+int finufft_mex_opts(nufft_opts &opts, double *mexo)
 // global setup of finufft opts given MEX interface opts 7-long double array.
-// Also sets multithreading.
+// Also sets multithreading. 9/20/18: now passes out previous omp num threads.
 {
   finufft_default_opts(opts);
   opts.debug = IROUND(mexo[0]);
@@ -35,29 +35,46 @@ void finufft_mex_opts(nufft_opts &opts, double *mexo)
     opts.debug=1;
   }
   int nthreads = IROUND(mexo[1]);
-  if (nthreads>0) MY_OMP_SET_NUM_THREADS(nthreads);
+  int nthr_prev = 0;           // this value indicates no need to restore omp
+  if (nthreads>0) {
+    nthr_prev = MY_OMP_GET_MAX_THREADS(); // careful, not GET_NUM_THREADS !
+    MY_OMP_SET_NUM_THREADS(nthreads);
+  }
   opts.spread_sort=IROUND(mexo[2]);
   opts.fftw = !IROUND(mexo[3]) ? FFTW_ESTIMATE : FFTW_MEASURE;   // 0 then 1
   opts.modeord = IROUND(mexo[4]);      // unused by type-3
   opts.chkbnds = IROUND(mexo[5]);      // "
   opts.upsampfac = mexo[6];
+  return nthr_prev;
 }
 
-
+void restore_omp_nthr(int nthr)
+// return to previous number of openmp threads, or do nothing if zero.
+// Note that the true omp state is unreadable via Matlab's maxNumCompThreads.
+// Barnett 9/20/18
+{
+  if (nthr>0)
+    MY_OMP_SET_NUM_THREADS(nthr);
+}
+  
 int finufft1d1m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms, dcomplex* fk, double* mexo)
 {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft1d1((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(ms+0.5),fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo); // prev state, or 0 if unchanged
+  int ier = finufft1d1((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(ms+0.5),fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft1d2m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms, dcomplex* fk, double* mexo)
 {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft1d2((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(ms+0.5),fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft1d2((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(ms+0.5),fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft1d3m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double nk, double* s, dcomplex* fk, double* mexo)
@@ -65,23 +82,30 @@ int finufft1d3m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double nk
   nufft_opts opts;
   finufft_mex_setup();
   finufft_mex_opts(opts, mexo);
-  return finufft1d3((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(nk+0.5),s,fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft1d3((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(nk+0.5),s,fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft2d1m(double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double *mexo)
 {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft2d1((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft2d1((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft2d1manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double *mexo)
 {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft2d1many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft2d1many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft2d2m(double nj,double* xj,double* yj,dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double* mexo)
@@ -89,16 +113,19 @@ int finufft2d2m(double nj,double* xj,double* yj,dcomplex* cj,int iflag,double ep
   nufft_opts opts;
   finufft_mex_setup();
   finufft_mex_opts(opts, mexo);
-  return finufft2d2((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft2d2((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft2d2manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,int iflag,double eps,double ms, double mt, dcomplex* fk, double *mexo)
 {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
   int ier = finufft2d2many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
-
+  restore_omp_nthr(nthr_prev);
   return ier;
 }
 
@@ -106,30 +133,38 @@ int finufft2d3m(double nj,double* xj,double *yj,dcomplex* cj,int iflag,double ep
 {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft2d3((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft2d3((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft3d1m(double nj,double* xj,double* yj, double* zj, dcomplex* cj,int iflag,double eps,double ms, double mt, double mu, dcomplex* fk, double* mexo)
 {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft3d1((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),(BIGINT)(mu+0.5),fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft3d1((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),(BIGINT)(mu+0.5),fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft3d2m(double nj,double* xj,double* yj,double *zj,dcomplex* cj,int iflag,double eps,double ms, double mt, double mu, dcomplex* fk, double* mexo)
 {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft3d2((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),(BIGINT)(mu+0.5),fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft3d2((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),(BIGINT)(mu+0.5),fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
 
 int finufft3d3m(double nj,double* xj,double *yj,double *zj,dcomplex* cj,int iflag,double eps,double nk, double* s, double* t, double *u, dcomplex* fk, double* mexo)
   {
   nufft_opts opts;
   finufft_mex_setup();
-  finufft_mex_opts(opts, mexo);
-  return finufft3d3((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,u,fk,opts);
+  int nthr_prev = finufft_mex_opts(opts, mexo);
+  int ier = finufft3d3((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,u,fk,opts);
+  restore_omp_nthr(nthr_prev);
+  return ier;
 }
