@@ -31,7 +31,7 @@ static int fftwoptslist[] = {FFTW_ESTIMATE,FFTW_MEASURE,FFTW_PATIENT,FFTW_EXHAUS
 // Create and copy over FINUFFT's options struct...
 #define ASSEMBLE_OPTIONS               \
   nufft_opts opts;                     \
-  finufft_default_opts(opts);          \
+  finufft_default_opts(&opts);         \
   opts.debug = debug;                  \
   opts.spread_debug = spread_debug;    \
   opts.spread_sort = spread_sort;      \

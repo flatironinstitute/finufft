@@ -39,9 +39,11 @@ With ``N`` as the number of modes, allocate the output array::
 
 Before usage, set default values in the options struct ``opts``::
 
-  nufft_opts opts; finufft_default_opts(opts);
+  nufft_opts opts; finufft_default_opts(&opts);
 
-Warning: if this is not called, options may take on random values which may cause a crash. To perform the nonuniform FFT is then one line::
+Warnings: 1) This usage has changed from version 1.0 which used pass by reference. 2) If this is not called, options may take on random values which may cause a crash.
+
+To perform the nonuniform FFT is then one line::
 
   int ier = finufft1d1(M,x,c,+1,1e-6,N,F,opts);
 
@@ -515,26 +517,27 @@ The ``FLT`` type is, as above, either ``double`` or ``single``.
 Interfaces from C
 *****************
 
-The C user should initialize the options struct via::
+The C user should ``#include "finufft.h"`` then initialize the options just as in C++:
 
-  nufft_c_opts opts; finufft_default_c_opts(opts);
+  nufft_opts opts; finufft_default_opts(&opts);
 
 Options fields may then be changed in ``opts`` before passing to the following interfaces. We use the C99 complex type ``_Complex``, which is the same as
-``complex``. As above, ``FLT`` indicates ``double`` or ``float``.
+``complex``. As above, ``FLT`` indicates ``double`` or ``float``, and
+``CPX`` their complex equivalents.
 The meaning of arguments are identical to the C++ documentation above.
 For a demo see ``examples/example1d1c.c``::
 
-  int finufft1d1_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms, FLT _Complex* fk, nufft_c_opts copts);
-  int finufft1d2_c(int nj,FLT* xj,FLT _Complex* cj,int iflag, FLT eps,int ms, FLT _Complex* fk, nufft_c_opts copts);
-  int finufft1d3_c(int j,FLT* x,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT _Complex* f, nufft_c_opts copts);
-  int finufft2d1_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt,FLT _Complex* fk, nufft_c_opts copts);
-  int finufft2d1many_c(int ndata,int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt,FLT _Complex* fk, nufft_c_opts copts);
-  int finufft2d2_c(int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts);
-  int finufft2d2many_c(int ndata,int nj,FLT* xj,FLT *yj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, FLT _Complex* fk, nufft_c_opts copts);
-  int finufft2d3_c(int nj,FLT* x,FLT *y,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT _Complex* f, nufft_c_opts copts);
-  int finufft3d1_c(int nj,FLT* xj,FLT* yj,FLT *zj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, int mu,FLT _Complex* fk, nufft_c_opts copts);
-  int finufft3d2_c(int nj,FLT* xj,FLT *yj,FLT *zj,FLT _Complex* cj,int iflag, FLT eps,int ms, int mt, int mu, FLT _Complex* fk, nufft_c_opts copts);
-  int finufft3d3_c(int nj,FLT* x,FLT *y,FLT *z,FLT _Complex* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT *u,FLT _Complex* f, nufft_c_opts copts);
+  int finufft1d1_c(int nj,FLT* xj,CPX* cj,int iflag, FLT eps,int ms, CPX* fk, nufft_c_opts copts);
+  int finufft1d2_c(int nj,FLT* xj,CPX* cj,int iflag, FLT eps,int ms, CPX* fk, nufft_c_opts copts);
+  int finufft1d3_c(int j,FLT* x,CPX* c,int iflag,FLT eps,int nk, FLT* s, CPX* f, nufft_c_opts copts);
+  int finufft2d1_c(int nj,FLT* xj,FLT *yj,CPX* cj,int iflag, FLT eps,int ms, int mt,CPX* fk, nufft_c_opts copts);
+  int finufft2d1many_c(int ndata,int nj,FLT* xj,FLT *yj,CPX* cj,int iflag, FLT eps,int ms, int mt,CPX* fk, nufft_c_opts copts);
+  int finufft2d2_c(int nj,FLT* xj,FLT *yj,CPX* cj,int iflag, FLT eps,int ms, int mt, CPX* fk, nufft_c_opts copts);
+  int finufft2d2many_c(int ndata,int nj,FLT* xj,FLT *yj,CPX* cj,int iflag, FLT eps,int ms, int mt, CPX* fk, nufft_c_opts copts);
+  int finufft2d3_c(int nj,FLT* x,FLT *y,CPX* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,CPX* f, nufft_c_opts copts);
+  int finufft3d1_c(int nj,FLT* xj,FLT* yj,FLT *zj,CPX* cj,int iflag, FLT eps,int ms, int mt, int mu,CPX* fk, nufft_c_opts copts);
+  int finufft3d2_c(int nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag, FLT eps,int ms, int mt, int mu, CPX* fk, nufft_c_opts copts);
+  int finufft3d3_c(int nj,FLT* x,FLT *y,FLT *z,CPX* c,int iflag,FLT eps,int nk, FLT* s, FLT *t,FLT *u,CPX* f, nufft_c_opts copts);
 
 
 Interfaces from fortran
