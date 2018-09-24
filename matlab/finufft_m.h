@@ -3,7 +3,10 @@
 #ifndef FINUFFT_M_H
 #define FINUFFT_M_H
 
-#include "../src/finufft.h"
+// for the C++ complex type:
+#include <complex>
+// for matlab interface (always double prec) we use this left-over name:
+typedef std::complex<double> dcomplex;
 
 int finufft1d1m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms, dcomplex* fk, double* opts);
 int finufft1d2m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms, dcomplex* fk, double* opts);

@@ -10,7 +10,11 @@
 // fixed typecasting doubles to BIGINTs w/ correct rounding. 3/29/17
 // double array for passing in all opts. 10/30/17
 
+#include "finufft_m.h"
 #include "../src/finufft.h"
+// needed for OMP stuff...
+#include "../src/defs.h"
+
 #include <stdio.h>
 #include <iostream>
 #include <math.h>
