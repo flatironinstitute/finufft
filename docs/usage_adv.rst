@@ -1,4 +1,4 @@
-.. _manyinterface:
+.. _advinterface:
 
 Advanced interfaces for many vectors with same nonuniform points
 ================================================================
@@ -17,6 +17,8 @@ or coefficient vectors with the same nonuniform points.
 
 These have only been implemented for the 2d1 and 2d2 types so far,
 for which there are applications in cryo-EM.
+
+For data types in the below, please see :ref:`data types <datatypes>`.
 
 
 2D transforms
@@ -40,7 +42,7 @@ for which there are applications in cryo-EM.
     is used, otherwise the - sign is used, in the exponential.
   Inputs:
     ndata  number of data
-    nj     number of sources (int64)
+    nj     number of sources (int64, aka BIGINT)
     xj,yj  x,y locations of sources (each a size-nj FLT array) in [-3pi,3pi]
     c      a size nj*ndata complex FLT array of source strengths,
            increasing fast in nj then slow in ndata.
@@ -72,7 +74,7 @@ for which there are applications in cryo-EM.
 
   Inputs:
     ndata  number of mode coefficient vectors
-    nj     number of targets (int64)
+    nj     number of targets (int64, aka BIGINT)
     xj,yj  x,y locations of targets (each a size-nj FLT array) in [-3pi,3pi]
     fk     FLT complex array of Fourier transform values (size ms*mt*ndata,
            increasing fast in ms then slow in mt then in ndata, ie Fortran

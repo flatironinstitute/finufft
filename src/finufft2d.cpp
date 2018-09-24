@@ -22,7 +22,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
      in the exponential.
 
    Inputs:
-     nj     number of sources (int64)
+     nj     number of sources (int64, aka BIGINT)
      xj,yj     x,y locations of sources (each a size-nj FLT array) in [-3pi,3pi]
      cj     size-nj complex FLT array of source strengths,
             (ie, stored as 2*nj FLTs interleaving Re, Im).
@@ -38,7 +38,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
             ie Fortran ordering).
      returned value - 0 if success, else see ../docs/usage.rst
 
-     The type 1 NUFFT proceeds in three main steps (see [GL]):
+     The type 1 NUFFT proceeds in three main steps:
      1) spread data to oversampled regular mesh using kernel.
      2) compute FFT on uniform mesh
      3) deconvolve by division of each Fourier mode independently by the
@@ -122,7 +122,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
     is used, otherwise the - sign is used, in the exponential.
   Inputs:
     ndata  number of strength vectors
-    nj     number of sources (int64)
+    nj     number of sources (int64, aka BIGINT)
     xj,yj  x,y locations of sources (each a size-nj FLT array) in [-3pi,3pi]
     c      a size nj*ndata complex FLT array of source strengths,
            increasing fast in nj then slow in ndata.
@@ -267,7 +267,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
    Inputs:
-     nj     number of targets (int64)
+     nj     number of targets (int64, aka BIGINT)
      xj,yj     x,y locations of targets (each a size-nj FLT array) in [-3pi,3pi]
      fk     FLT complex array of Fourier transform values (size ms*mt,
             increasing fast in ms then slow in mt, ie Fortran ordering).
@@ -283,7 +283,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
             (ie, stored as 2*nj FLTs interleaving Re, Im).
      returned value - 0 if success, else see ../docs/usage.rst
 
-     The type 2 algorithm proceeds in three main steps (see [GL]).
+     The type 2 algorithm proceeds in three main steps:
      1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
      2) compute inverse FFT on uniform fine grid
      3) spread (dir=2, ie interpolate) data to regular mesh
@@ -362,7 +362,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 
   Inputs:
     ndata  number of mode coefficient vectors
-    nj     number of targets (int64)
+    nj     number of targets (int64, aka BIGINT)
     xj,yj  x,y locations of targets (each a size-nj FLT array) in [-3pi,3pi]
     fk     FLT complex array of Fourier transform values (size ms*mt*ndata,
            increasing fast in ms then slow in mt then in ndata, ie Fortran
@@ -504,7 +504,7 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
      fk[k]  =  SUM   c[j] exp(+-i (s[k] xj[j] + t[k] yj[j]),    for k=0,...,nk-1
                j=0
    Inputs:
-     nj     number of sources (int64)
+     nj     number of sources (int64, aka BIGINT)
      xj,yj  x,y location of sources in the plane R^2 (each size-nj FLT array)
      cj     size-nj complex FLT array of source strengths,
             (ie, stored as 2*nj FLTs interleaving Re, Im).
@@ -519,7 +519,7 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
      returned value - 0 if success, else see ../docs/usage.rst
 
      The type 3 algorithm is basically a type 2 (which is implemented precisely
-     as call to type 2) replacing the middle FFT (Step 2) of a type 1. See [LG].
+     as call to type 2) replacing the middle FFT (Step 2) of a type 1.
      Beyond this, the new twists are:
      i) number of upsampled points for the type-1 in each dim, depends on the
        product of interval widths containing input and output points (X*S), for
@@ -531,8 +531,7 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
      iii) Shifts in x (real) and s (Fourier) are done to minimize the interval
        half-widths X and S, hence nf, in each dim.
 
-   No references to FFTW are needed here. Some CPX arithmetic is used,
-   thus compile with -Ofast in GNU.
+   No references to FFTW are needed here. Some CPX arithmetic is used.
    Barnett 2/17/17, 6/12/17
  */
 {

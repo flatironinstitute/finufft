@@ -1,8 +1,14 @@
+// library-wide definitions. Eg, sng/dbl, complex types, fftw & openmp macros.
+// May be linked from C++ or C. Split out by Joakim Anden, 9/20/18.
+
 #ifndef DEFS_H
 #define DEFS_H
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <stdint.h>
+// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
+// This includes all calling arguments (eg M,N) that could be huge someday...
+typedef int64_t BIGINT;
 
 #ifdef __cplusplus
 #include <complex>          // C++ type complex
@@ -10,10 +16,11 @@
 #include <complex.h>
 #endif
 
-#include <fftw3.h>          // needed so can typedef FFTW_CPX
+#include <fftw3.h>          // (after complex.h) needed so can typedef FFTW_CPX
 
+// Used in common & matlab interface (slightly sneaky since duplicated by mwrap)
 #ifdef __cplusplus
-typedef std::complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
+typedef std::complex<double> dcomplex;
 #endif
 
 // Compile-flag choice of single or double (default) precision:
@@ -23,13 +30,13 @@ typedef std::complex<double> dcomplex;  // slightly sneaky since duplicated by m
   #define EPSILON (float)6e-08
   typedef float FLT;
 
-#ifdef __cplusplus
-  typedef std::complex<float> CPX;
-  #define IMA std::complex<float>(0.0,1.0)
-#else
-  typedef float complex CPX;
-  #define IMA I
-#endif
+  #ifdef __cplusplus
+    typedef std::complex<float> CPX;
+    #define IMA std::complex<float>(0.0,1.0)
+  #else
+    typedef float complex CPX;
+    #define IMA I
+  #endif
 
   #define FABS(x) fabs(x)
   typedef fftwf_complex FFTW_CPX;           //  single-prec has fftwf_*
@@ -47,17 +54,17 @@ typedef std::complex<double> dcomplex;  // slightly sneaky since duplicated by m
   #define FFTW_FR fftwf_free
   #define FFTW_FORGET_WISDOM fftwf_forget_wisdom
 #else
-  // machine epsilon for rounding
+  // Double-precision. machine epsilon for rounding
   #define EPSILON (double)1.1e-16
   typedef double FLT;
 
-#ifdef __cplusplus
-  typedef std::complex<double> CPX;
-  #define IMA std::complex<double>(0.0,1.0)
-#else
-  typedef double complex CPX;
-  #define IMA I
-#endif
+  #ifdef __cplusplus
+    typedef std::complex<double> CPX;
+    #define IMA std::complex<double>(0.0,1.0)
+  #else
+    typedef double complex CPX;
+    #define IMA I
+  #endif
 
   #define FABS(x) fabsf(x)
   typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
@@ -75,10 +82,6 @@ typedef std::complex<double> dcomplex;  // slightly sneaky since duplicated by m
   #define FFTW_FR fftw_free
   #define FFTW_FORGET_WISDOM fftw_forget_wisdom
 #endif
-
-// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
-// This includes all calling arguments (eg M,N) that could be huge someday...
-typedef int64_t BIGINT;
 
 // Global error codes for the library...
 #define ERR_EPS_TOO_SMALL        1

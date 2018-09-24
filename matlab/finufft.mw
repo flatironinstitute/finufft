@@ -2,15 +2,15 @@
 % Also allows control of number of openmp threads the library uses.
 % Barnett 3/22/17.
 % Dependence of C++11 removed, opts passed as double array, 10/30/17.
-% Many interface Jun 2018, Melody Shih.
+% Many interface: Jun 2018, Melody Shih.
 
 % Hints for linux OS. To generate the MEX C++ file:
 % mwrap -list -mex finufft -cppcomplex -mb finufft.mw
 % mwrap -mex finufft -c finufft.cpp -cppcomplex finufft.mw
 % To compile for matlab:
-% mex finufft.cpp ../lib/libfinufft.a -lgomp -largeArrayDims -lfftw3_threads -lfftw3 -lm
+% mex finufft.cpp ../lib/libfinufft.a -lgomp -largeArrayDims -lfftw3_omp -lfftw3 -lm
 % To compile for octave:
-% mkoctfile --mex finufft.cpp ../lib/libfinufft.a -lgomp -lfftw3_threads -lfftw3 -lm
+% mkoctfile --mex finufft.cpp ../lib/libfinufft.a -lgomp -lfftw3_omp -lfftw3 -lm
 % Don't forget to add this directory to your matlab/octave path.
 
 

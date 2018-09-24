@@ -14,9 +14,10 @@ CC=gcc
 FC=gfortran
 CLINK=-lstdc++
 FLINK=$(CLINK)
-# compile flags for baseline single-threaded, double precision case...
-# (note -Ofast breaks isfinite() and isnan(), so use -O3 which now is as fast)
-CFLAGS   = -fPIC -O3 -funroll-loops -march=native
+# compile flags for GCC, baseline single-threaded, double precision case...
+# Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
+#        2) -fcx-limited-range for fortran-speed complex arith in C/++.
+CFLAGS   = -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
 CFLAGS   += -I src
 FFLAGS   = $(CFLAGS)
@@ -57,14 +58,14 @@ endif
 FFTW = $(FFTWNAME)$(PRECSUFFIX)
 LIBSFFT = -l$(FFTW) $(LIBS)
 
-# multi-threaded libs & flags needed (see defns above)...
+# multi-threaded libs & flags (see defs above; note fftw3_threads slower)...
 ifneq ($(OMP),OFF)
 CXXFLAGS += $(OMPFLAGS)
 CFLAGS += $(OMPFLAGS)
 FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
-LIBSFFT += -l$(FFTW)_threads
+LIBSFFT += -l$(FFTW)_omp
 endif
 
 # decide name of obj files and finufft library we're building...

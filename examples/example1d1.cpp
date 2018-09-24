@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
    Double-precision version (see example1d1f for single-precision)
 
    Compile with:
-   g++ -fopenmp example1d1.cpp -I ../src ../lib-static/libfinufft.a -o example1d1  -lfftw3 -lfftw3_threads -lm
+   g++ -fopenmp example1d1.cpp -I ../src ../lib-static/libfinufft.a -o example1d1  -lfftw3 -lfftw3_omp -lm
    or if you have built a single-core version:
    g++ example1d1.cpp -I ../src ../lib-static/libfinufft.a -o example1d1 -lfftw3 -lm
 

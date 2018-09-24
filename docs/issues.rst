@@ -13,24 +13,23 @@ Issues with library
 
 - Currently in Mac OSX, ``make lib`` fails to make the shared object library (.so).
 
-- The timing of the first FFTW call is complicated, depending on whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used. Such issues are known, and discussed in other documentation, eg https://pythonhosted.org/poppy/fft_optimization.html
-  We would like to find a way of pre-storing some Intel-specific FFTW plans (as MATLAB does) to avoid the large FFTW_ESTIMATE planning time.
+- The timing of the first FFTW call is complicated, depending on whether FFTW_ESTIMATE (the default) or FFTW_MEASURE is used. Such issues are known, and discussed in other documentation, eg https://pythonhosted.org/poppy/fft_optimization.html .
+  We would like to find a way of pre-storing some Intel-specific FFTW plans (as MATLAB does) to avoid the large FFTW planning times.
   
 - Currently, a single library name is used for single- and multi-threaded versions. Thus, i) you need to ``make clean`` before changing such make options, and ii) if you wish to maintain multiple such versions you need to move them around and maintain them yourself, eg by duplicating the directory.
 
+- The overhead for small problem sizes (<10000 data points) is too high, due to things such as the delay in FFTW looking up pre-stored wisdom. A unified advanced interface with a plan stage is in the works.
+    
   
 Issues with interfaces
 **********************
 
 - MATLAB, octave and python cannot exceed input or output data sizes of 2^31.
 
-- MATLAB, octave and python interfaces do not handle single precision.  
-
-- A segfault occurs a small ``fft`` is done in MATLAB before the first ``finufft``
-  call in a session.
-  We believe this due to incompatibility between the versions of
-  FFTW used. We have fixed this by building a certain ``fft`` call into the MEX interface. A similar hack has been used by NFFT for the last decade.
-  This issue does not occur with octave.
+- MATLAB, octave and python interfaces do not handle single precision.
+    
+- Fortran interface does not allow control of options, nor data sizes exceeding 2^31.
+  
 
 
 Bug reports
@@ -38,7 +37,7 @@ Bug reports
   
 If you think you have found a bug, please
 file an issue on the github project page,
-https://github.com/ahbarnett/finufft/issues
+https://github.com/ahbarnett/finufft/issues .
 Include a minimal code which reproduces the bug, along with
 details about your machine, operating system, compiler, and version of FINUFFT.
 

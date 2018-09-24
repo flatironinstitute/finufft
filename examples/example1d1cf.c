@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
    Barnett 4/5/17. opts ctrl, t1 prefac convention, smaller prob size 9/14/18
 
    Compile with:
-   gcc -fopenmp example1d1cf.c ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lfftw3f_threads -lm -lstdc++
+   gcc -fopenmp example1d1cf.c ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lfftw3f_omp -lm -lstdc++
    or if you have built a single-core version:
    gcc example1d1cf.c ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lm -lstdc++
 

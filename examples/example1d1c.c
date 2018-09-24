@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
    with a math test. Double-precision. Barnett 3/10/17. Opts control 6/19/18.
 
    Compile with:
-   gcc -fopenmp example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lfftw3_threads -lm -lstdc++
+   gcc -fopenmp example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lfftw3_omp -lm -lstdc++
    or if you have built a single-core version:
    gcc example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lm -lstdc++
 

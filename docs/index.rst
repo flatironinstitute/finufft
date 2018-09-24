@@ -71,7 +71,7 @@ only once.
    math
    dirs
    usage
-   usage_many
+   usage_adv
    matlab
    pythoninterface
    juliainterface
