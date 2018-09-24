@@ -37,11 +37,13 @@ With ``N`` as the number of modes, allocate the output array::
 
   complex<double>* F = (complex<double>*)malloc(sizeof(complex<double>)*N);
 
-Before usage, set default values in the options struct ``opts``::
+Before use, set default values in the options struct ``opts``::
 
   nufft_opts opts; finufft_default_opts(&opts);
 
-Warnings: 1) This usage has changed from version 1.0 which used pass by reference. 2) If this is not called, options may take on random values which may cause a crash.
+.. warning::
+   - Without this call options may take on random values which may cause a crash.
+   - This usage has changed from version 1.0 which used C++-style pass by reference. Please make sure you pass a *pointer* to `opts`.
 
 To perform the nonuniform FFT is then one line::
 
@@ -83,7 +85,7 @@ the default double-precision, or ``single`` if single precision:
   int spread_kerevalmeth; // "     spread_opts, 0: exp(sqrt()), 1: Horner ppval (faster)
   int spread_kerpad;  // passed to spread_opts, 0: don't pad to mult of 4, 1: do
   int chkbnds;        // 0: don't check if input NU pts in [-3pi,3pi], 1: do
-  int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
+  int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan, faster run)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
@@ -104,8 +106,7 @@ Here are their default settings (set in ``src/common.cpp:finufft_default_opts``)
 
 To get the fastest runtime, we recommend that you experiment firstly with:
 ``fftw``, ``upsampfac``, and ``spread_sort``, detailed below.
-If you are having crashes, set ``chkbnds=1`` to see if illegal ``x`` coordinates
-are being input.
+If you are having crashes, set ``chkbnds=1`` to see if illegal ``xj`` non-uniform point coordinates are being input.
 
 Notes on various options:
 

@@ -37,11 +37,11 @@ int main(int argc, char* argv[])
   F = (double complex*)malloc(sizeof(double complex)*N);
 
   nufft_opts opts;
-  finufft_default_opts(&opts);          // set default opts (must do this)
+  finufft_default_opts(&opts);            // set default opts (must do this)
   opts.debug = 2;                         // show how to override a default
   //opts.upsampfac =1.25;                 // other opts...
   
-  // call the NUFFT C interface (with iflag=+1):
+  // call the NUFFT (with iflag=+1); this is the same code as from C++:
   ier = finufft1d1(M,x,c,+1,acc,N,F,opts);
 
   n = 142519;         // check the answer just for this mode...
