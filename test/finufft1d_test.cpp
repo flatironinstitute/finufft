@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   BIGINT M = 1e6, N = 1e6;   // defaults: M = # srcs, N = # modes out
   double w, tol = 1e-6;      // default
   double upsampfac = 2.0;    // default
-  nufft_opts opts; finufft_default_opts(opts);  // put defaults in opts
+  nufft_opts opts; finufft_default_opts(&opts);  // put defaults in opts
   opts.debug = 0;            // 1 to see sub-timings
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;            // choose which exponential sign to test

@@ -22,7 +22,7 @@ int main(int argc, char* argv[])
   int reps = 2e4;         // how many repetitions?
   double acc = 1e-6;      // desired accuracy
   
-  nufft_opts opts; finufft_default_opts(opts);
+  nufft_opts opts; finufft_default_opts(&opts);
   complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
   int ier;
   

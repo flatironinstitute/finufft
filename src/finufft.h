@@ -1,9 +1,9 @@
 #ifndef FINUFFT_H
 #define FINUFFT_H
 
-#include "utils.h"
+#include "defs.h"
 
-struct nufft_opts {   // see common/finufft_default_opts() for defaults
+typedef struct {   // see common/finufft_default_opts() for defaults
   int debug;          // 0: silent, 1: text basic timing output
   int spread_debug;   // passed to spread_opts, 0 (no text) 1 (some) or 2 (lots)
   int spread_sort;    // passed to spread_opts, 0 (don't sort) 1 (do) or 2 (heuristic)
@@ -14,10 +14,14 @@ struct nufft_opts {   // see common/finufft_default_opts() for defaults
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
-};
+} nufft_opts;
 
 // library provides...
-void finufft_default_opts(nufft_opts &o);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+void finufft_default_opts(nufft_opts *o);
 int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts opts);
 int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
@@ -41,6 +45,9 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
 int finufft3d3(BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
 	       CPX* fk, nufft_opts opts);
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif
