@@ -1,8 +1,13 @@
 List of tasks accomplished / changes made / release notes, in reverse chronological order:
 
+V 1.0 (9/20/18)
+
+* NOTE TO USERS: changed interface for setting default opts in C++ and C.
+
 V 1.0.1 (9/14/18)
 
 * Ludvig's removal of omp chunksize in dir=2, another 20%+ speedup.
+* Matlab doesn't change omp internal state.
 
 V 1.0 (8/20/18)
 
