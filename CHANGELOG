@@ -1,10 +1,12 @@
-List of tasks accomplished / changes made / release notes, in reverse chronological order:
+List of features / changes made / release notes, in reverse chronological order:
 
-V 1.0 (9/24/18)
+V 1.1 (9/24/18)
 
 * NOTE TO USERS: changed interface for setting default opts in C++ and C, from
-  pass by reference to pass by value of a pointer.
+  pass by reference to pass by value of a pointer (see docs/). Unifies C++/C
+  interfaces in a clean way.
 * fftw3_omp instead of fftw3_threads, is faster.
+* rationalized header files.
 
 V 1.0.1 (9/14/18)
 

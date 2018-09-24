@@ -30,9 +30,11 @@ class get_pybind_include(object):
         import pybind11
         return pybind11.get_include(self.user)
 
-libraries = ["lib-static/finufft","fftw3","fftw3_threads","gomp"]
+# changed from fftw3_threads, since a bit faster, 9/24/18:
+libraries = ["lib-static/finufft","fftw3","fftw3_omp","gomp"]
 extra_compile_args=['-fopenmp']
 extra_link_args=[]
+
 # Mac OSX you may need the following:
 #extra_link_args=['-static']
 #extra_link_args=['-static -fPIC']

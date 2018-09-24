@@ -89,7 +89,7 @@ the below.
   This is used for all complex-valued input and output arrays.
   In the documentation this is often referred to as ``complex FLT``.
 
-- ``BIGINT`` : this is the signed integer type used for all potentially-large input arguments, such as ``M`` and ``N`` in the example above. It is defined to the signed 64-bit integer type ``int64_t``, allowing the number of input points and/or output modes to exceed 2^31 (around 2 billion). Internally, the ``BIGINT`` type is also used for all relevant indexing; we have not noticed a slow-down relative to using 32-bit integers (the advanced user could explore this by changing its definition in ``defs.h`` and recompiling).
+- ``BIGINT`` : this is the signed integer type used for all potentially-large input arguments, such as ``M`` and ``N`` in the example above. It is defined to the signed 64-bit integer type ``int64_t``, allowing the number of input points and/or output modes to exceed 2^31 (around 2 billion). Internally, the ``BIGINT`` type is also used for all relevant indexing; we have not noticed a slow-down relative to using 32-bit integers (the advanced user could explore this by changing its definition in ``finufft.h`` and recompiling).
   This is also referred to as ``int64`` in the documentation.
 
 - ``int`` : (in contrast to the above)
@@ -471,7 +471,7 @@ Options fields may then be changed in ``opts`` before calling ``finufft?d?``
 
 As above, ``FLT`` indicates ``double`` or ``float``, but now
 ``CPX`` indicates their complex C99-type equivalents
-(see ``src/defs.h`` for the definitions used).
+(see ``src/finufft.h`` for the definitions used).
 For examples see ``examples/example1d1c.c`` (double precision)
 and ``examples/example1d1cf.c`` (single precision).
 

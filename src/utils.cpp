@@ -1,3 +1,4 @@
+// little library of low-level array manipulation and timers
 #include "utils.h"
 
 // ------------ complex array utils

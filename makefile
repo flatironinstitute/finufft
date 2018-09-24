@@ -73,7 +73,6 @@ LIBNAME=libfinufft$(PRECSUFFIX)
 DYNAMICLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
 
-
 # ======================================================================
 
 # objects to compile: spreader...
@@ -126,7 +125,7 @@ usage:
 %.o: %.f %.h
 	$(FC) -c $(FFLAGS) $< -o $@
 
-# included code dependency...
+# included auto-generated code dependency...
 src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
 
 # build the library...
@@ -249,7 +248,7 @@ endif
 
 # ------------- Various obscure/devel tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!
-manysmallprobs: $(STATICLIB) $(HEADERS) test/manysmallprobs.cpp
+test/manysmallprobs: $(STATICLIB) $(HEADERS) test/manysmallprobs.cpp
 	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp $(STATICLIB) -o test/manysmallprobs $(LIBSFFT)
 	(export OMP_NUM_THREADS=1; time test/manysmallprobs; unset OMP_NUM_THREADS)
 

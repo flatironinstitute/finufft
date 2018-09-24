@@ -1,4 +1,8 @@
+// Common higher-level routines for FINUFFT: options, kernel FT, deconvolution.
+// Note that algorithm parameters are now defined in defs.h (not common.h).
+
 #include "common.h"
+#include "defs.h"
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>

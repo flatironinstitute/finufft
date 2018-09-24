@@ -1,15 +1,15 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "utils.h"
 #include "finufft.h"
+#include "defs.h"
 #include "spreadinterp.h"
 #include <fftw3.h>
 
-// constants needed within common
-#define MAX_NQUAD 100              // max number of positive quadr nodes
-// increase this if you need >1TB RAM...
-#define MAX_NF    (BIGINT)1e11     // too big to ever succeed (next235 takes 1s)
+// defs internal to common.cpp...
+typedef std::complex<double> dcomplex;
+// (slightly sneaky since name duplicated by mwrap - unrelated)
+
 
 // common.cpp provides...
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts);

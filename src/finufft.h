@@ -1,9 +1,45 @@
+// minimum definitions needed for interface to FINUFFT library, from C++ or C
+
 #ifndef FINUFFT_H
 #define FINUFFT_H
 
-#include "defs.h"
+// ----------------- data type definitions ----------------------------------
+// (note: non-interface precision- and omp-dependent defs are in defs.h)
 
-typedef struct {   // see common/finufft_default_opts() for defaults
+// octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
+#include <stdint.h>
+
+// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
+// This includes all calling arguments (eg M,N) that could be huge someday...
+typedef int64_t BIGINT;
+
+// decide which kind of complex numbers to use in interface...
+#ifdef __cplusplus
+#include <complex>          // C++ type
+#else
+#include <complex.h>        // C99 type
+#endif
+
+// Precision-independent real and complex types for interfacing...
+#ifdef SINGLE
+  typedef float FLT;
+  #ifdef __cplusplus
+    typedef std::complex<float> CPX;
+  #else
+    typedef float complex CPX;
+  #endif
+#else
+  typedef double FLT;
+  #ifdef __cplusplus
+    typedef std::complex<double> CPX;
+  #else
+    typedef double complex CPX;
+  #endif
+#endif
+
+
+// ------------------- the user input options struct ------------------------
+typedef struct {      // Note: defaults in common/finufft_default_opts()
   int debug;          // 0: silent, 1: text basic timing output
   int spread_debug;   // passed to spread_opts, 0 (no text) 1 (some) or 2 (lots)
   int spread_sort;    // passed to spread_opts, 0 (don't sort) 1 (do) or 2 (heuristic)
@@ -16,7 +52,8 @@ typedef struct {   // see common/finufft_default_opts() for defaults
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
 } nufft_opts;
 
-// library provides...
+
+// ------------------ library provides ------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
@@ -50,4 +87,4 @@ int finufft3d3(BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 #endif
 
 
-#endif
+#endif   // FINUFFT_H

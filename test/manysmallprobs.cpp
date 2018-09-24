@@ -1,4 +1,4 @@
-#include "../src/finufft.h"
+#include "finufft.h"
 #include <complex>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,17 +9,17 @@ int main(int argc, char* argv[])
    arrays of C++ complex numbers?  Barnett 10/31/17.
    for Xi Chen question.
 
-   g++ -fopenmp manysmallprobs.cpp ../lib-static/libfinufft.a -o manysmallprobs  -lfftw3 -lfftw3_threads -lm
+   g++ -fopenmp manysmallprobs.cpp ../lib-static/libfinufft.a -o manysmallprobs  -lfftw3 -lfftw3_omp -lm
    # multithreaded is much slower, due to overhead of starting threads...
    export OMP_NUM_THREADS=1
    time ./manysmallprobs
 
-   Takes about 1.7s on single core. Ie, throughput is 2.5e6 pts/sec.
+   Takes about 1.2s on single core. Ie, throughput is 3.3e6 pts/sec.
 */
 {  
   int M = 2e2;            // number of nonuniform points
   int N = 2e2;            // number of modes
-  int reps = 2e4;         // how many repetitions?
+  int reps = 2e4;         // how many repetitions
   double acc = 1e-6;      // desired accuracy
   
   nufft_opts opts; finufft_default_opts(&opts);

@@ -1,13 +1,15 @@
+// interface to spreading/interpolation code.
+// Note: see defs.h for definition of MAX_NSPREAD (as of 9/24/18).
+
 #ifndef SPREADINTERP_H
 #define SPREADINTERP_H
 
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "finufft.h"
+#include "defs.h"
 #include "utils.h"
-
-#define MAX_NSPREAD 16     // upper bound on w, ie nspread, even when padded
-                           // (see evaluate_kernel_vector); also for common
 
 struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
   int nspread;            // w, the kernel width in grid pts
@@ -38,7 +40,7 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
 
 /* Bitwise timing flag definitions; see spread_opts.flags.
     This is an unobtrusive way to determine the time contributions of the
-    different components of the algorithm by selectively leaving them out.
+    different components of spreading/interp by selectively leaving them out.
     For example, running the following two tests shows the effect of the exp()
     in the kernel evaluation (the last argument is the flag):
     > test/spreadtestnd 3 8e6 8e6 1e-6 1 0 0 1 0
