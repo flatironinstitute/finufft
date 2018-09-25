@@ -476,8 +476,8 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
 // Must call before any kernel evals done.
 // Returns: 0 success, >0 failure (see error codes in utils.h)
 {
-  if (eps<0.5*EPSILON) {        // factor is since fortran wants 1e-16 to be ok
-    fprintf(stderr,"setup_spreader: error, requested eps is too small (<%.3g)\n",0.5*EPSILON);
+  if (eps<0.5*EPSILON) {     // factor there since fortran wants 1e-16 to be ok
+    fprintf(stderr,"setup_spreader: error, requested eps (%.3g) is too small (<%.3g)\n",(double)eps,0.5*EPSILON);
     return ERR_EPS_TOO_SMALL;
   }
   if (upsampfac!=2.0 && upsampfac!=1.25) {   // nonstandard sigma
@@ -491,7 +491,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
     }
     // calling routine must abort on above errors, since opts is garbage!
     if (upsampfac>4.0)
-      fprintf(stderr,"setup_spreader: warning, upsampfac=%.3g is too large to be beneficial!\n",(double)upsampfac);
+      fprintf(stderr,"setup_spreader: warning, upsampfac=%.3g is too large to be beneficial.\n",(double)upsampfac);
   }
     
   // defaults... (user can change after this function called)
@@ -499,7 +499,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
   opts.pirange = 1;             // user also should always set this
   opts.chkbnds = 1;
   opts.sort = 2;                // 2:auto-choice
-  opts.kerpad = 0;              // obsolete, affects only evaluate_kernel_vector
+  opts.kerpad = 0;              // affects only evaluate_kernel_vector
   opts.kerevalmeth = kerevalmeth;
   opts.upsampfac = upsampfac;
   opts.sort_threads = 0;        // 0:auto-choice
@@ -508,12 +508,13 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
   opts.debug = 0;               // 0:no debug output
 
   // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
-  int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten
-  if (upsampfac!=2.0)           // override ns for custom sigma
+  int ns = std::ceil(-log10(eps/(FLT)10.0));   // 1 digit per power of ten
+  // (FLT)10.0 is cosmetic: sng & dbl desire same ns for bdry cases eps=10^{-n}
+  if (upsampfac!=(FLT)2.0)           // override ns when custom sigma
     ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
-  ns = max(2,ns);               // we don't have ns=1 version yet
+  ns = max(2,ns);               // (we don't have ns=1 version yet)
   if (ns>MAX_NSPREAD) {         // clip to match allocated arrays
-    fprintf(stderr,"setup_spreader: warning, kernel width ns=%d was clipped to max %d; will not match tolerance!\n",ns,MAX_NSPREAD);
+    fprintf(stderr,"setup_spreader: warning, kernel width ns=%d clipped to max %d; will not match requested eps!\n",ns,MAX_NSPREAD);
     ns = MAX_NSPREAD;
   }
   opts.nspread = ns;
@@ -529,7 +530,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
     betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
   }
   opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
-  //fprintf(stderr,"setup_spreader: sigma=%.6f, chose ns=%d beta=%.6f\n",(double)upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
+  //fprintf(stderr,"setup_spreader: eps=%.3g sigma=%.6f, chose ns=%d beta=%.6f\n",(double)eps,(double)upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
   return 0;
 }
 
@@ -573,6 +574,7 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts
    If opts.kerpad true, args and ker must be allocated for Npad, and args is
    written to (to pad to length Npad), only first N outputs are correct.
    Barnett 4/24/18 option to pad to mult of 4 for better SIMD vectorization.
+
    Obsolete (replaced by Horner), but keep around for experimentation since
    works for arbitrary beta. Formula must match reference implementation. */
 {

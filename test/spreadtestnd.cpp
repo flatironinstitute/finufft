@@ -97,7 +97,11 @@ int main(int argc, char* argv[])
 
   spread_opts opts;
   FLT upsampfac = 2.0; // big to test spreader error alone, or 2 or 1.25 for kerevalmeth=1
-  setup_spreader(opts,(FLT)tol,upsampfac,kerevalmeth);
+  int ier_set = setup_spreader(opts,(FLT)tol,upsampfac,kerevalmeth);
+  if (ier_set!=0) {       // exit gracefully if can't set up.
+    printf("error when setting up spreader (ier_set=%d)!\n",ier_set);
+    return ier_set;
+  }
   opts.pirange = 0;  // crucial, since the below has NU pts on [0,Nd] in each dim
   opts.chkbnds = 0;  // only for debug, since below code has correct bounds
   opts.debug = debug;   // print more diagnostics?

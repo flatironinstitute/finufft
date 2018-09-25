@@ -1,4 +1,7 @@
-// little library of low-level array manipulation and timers
+// A little library of low-level array manipulations and timers.
+// For its embryonic self-test see ../test/testutils.cpp, which only tests
+// the next235 for now.
+
 #include "utils.h"
 
 // ------------ complex array utils
@@ -69,7 +72,7 @@ void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi)
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
-// ARRAYWIDCEN_GROWFRAC defined in utils.h.
+// ARRAYWIDCEN_GROWFRAC defined in defs.h.
 // This prevents rephasings which don't grow nf by much. 6/8/17
 {
   FLT lo,hi;
