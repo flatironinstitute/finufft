@@ -2,7 +2,7 @@ Known Issues
 ============
 
 One should also check the github issues for the project page,
-https://github.com/ahbarnett/finufft/issues
+https://github.com/flatironinstitute/finufft/issues
 
 Also see notes in the ``TODO`` file.
 
@@ -37,7 +37,7 @@ Bug reports
   
 If you think you have found a bug, please
 file an issue on the github project page,
-https://github.com/ahbarnett/finufft/issues .
+https://github.com/flatironinstitute/finufft/issues .
 Include a minimal code which reproduces the bug, along with
 details about your machine, operating system, compiler, and version of FINUFFT.
 

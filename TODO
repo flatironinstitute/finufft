@@ -29,6 +29,7 @@ Make the dimension and type arguments, so only adds 4 interfaces total.
 Would avoid cost of repeated sorting of NU pts, and of FFTW looking up saved wisdom, which dominates for small problems.
 * fix the slow speed for fancy t1 spreader when doing almost nothing, eg
 test/spreadtestnd 1 1e8 1e7 1e-6 0 9 1
+(Note the use of spreader-timing flag "9" which skips subproblem spreading.)
 Ie, decide to switch out fancy t1 spreader sometimes? Yes, make basic spreader.
 * Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) understand why clang needs _Complex removed.
 * release, outreach, users, NA-Digest

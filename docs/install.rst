@@ -4,7 +4,7 @@ Installation
 Obtaining FINUFFT
 *****************
 
-Go to the github page https://github.com/ahbarnett/finufft and
+Go to the github page https://github.com/flatironinstitute/finufft and
 follow instructions (eg see the green button).
 
 
@@ -17,7 +17,7 @@ on Windows too.
 
 For the basic libraries
 
-* C++ compiler, such as ``g++`` packaged with GCC
+* C++ compiler, such as ``g++`` packaged with GCC, or ``clang`` with OSX
 * FFTW3
 * GNU make
 
@@ -51,9 +51,18 @@ On Ubuntu linux (assuming python3 as opposed to python)::
 
 On Mac OSX:
 
+.. note::
+
+   Improved Mac OSX instructions will come shortly. Stay tuned.
+
 Make sure you have ``make`` installed, eg via XCode.
 
-Install gcc, for instance using pre-compiled binaries from
+We have now made the package compile under ``clang``. Therefore you
+should override the compiler settings by writing a file ``make.inc``
+including a line ``CXX=clang++``.
+
+However, you could instead
+install gcc, for instance using pre-compiled binaries from
 http://hpc.sourceforge.net/
 
 Install homebrew from http://brew.sh::
@@ -63,6 +72,9 @@ Install homebrew from http://brew.sh::
 Install ``numdiff`` as below.
 
 (Note: we are not exactly sure how to install python3 and pip3 on mac)
+
+Look in ``make.inc.mac``, and see below,
+for ideas for building Matlab MEX interfaces.
 
 Currently in Mac OSX, ``make lib`` fails to make the shared object library (.so);
 however the static (.a) library is of reasonable size and works fine.
@@ -100,21 +112,21 @@ Compile and do a rapid (less than 1-second) test of FINUFFT via::
 
 This should compile the main libraries then run tests which should report zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
 
-Use ``make perftest`` for larger spreader and NUFFT tests taking 15-30 seconds.
+Use ``make perftest`` for larger spreader and NUFFT tests taking 10-20 seconds.
 
 Run ``make`` without arguments for full list of possible make tasks.
 
-Note that the library includes the C and fortran interfaces
-defined in ``src/finufft_c.h`` and ``fortran/finufft_f.h`` respectively.
+Note that the library includes fortran interfaces
+defined in ``fortran/finufft_f.h``.
 If there is an error in testing on a standard set-up,
-please file a bug report as a New Issue at https://github.com/ahbarnett/finufft/issues
+please file a bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
 Custom library compilation options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may want to make the library for other data types. Currently
-library names are distinct for single precision (libfinufftf) vs
-double (libfinufft). However, single-threaded vs multithreaded are
+library names are distinct for single precision (``libfinufftf``) vs
+double (``libfinufft``). However, single-threaded vs multithreaded are
 built with the same name, so you will have to move them to other
 locations, or build a 2nd copy of the repo, if you want to keep both
 versions.
@@ -123,7 +135,7 @@ You *must* do at least ``make objclean`` before changing precision or openmp opt
 
 **Single precision**: append ``PREC=SINGLE`` to the make task.
 Single-precision saves half the RAM, and increases
-speed slightly (<20%). The  C++, C, and fortran demos are all tested in
+speed slightly (<20%). The C++, C, and fortran demos are all tested in
 single precision. However, it will break matlab, octave, python interfaces.
 
 **Single-threaded**: append ``OMP=OFF`` to the make task.

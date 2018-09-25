@@ -169,14 +169,14 @@ has the following meanings (see ``src/defs.h``):
 ::
 
   1  requested tolerance epsilon too small
-  2  attemped to allocate internal arrays larger than MAX_NF (defined in common.h)
-  3  spreader: fine grid too small
+  2  attemped to allocate internal arrays larger than MAX_NF (defined in defs.h)
+  3  spreader: fine grid too small compared to spread width
   4  spreader: if chkbnds=1, a nonuniform point out of input range [-3pi,3pi]^d
   5  spreader: array allocation error
   6  spreader: illegal direction (should be 1 or 2)
   7  upsampfac too small (should be >1)
   8  upsampfac not a value with known Horner eval: currently 2.0 or 1.25 only
-  9  ndata not valid (should be >= 1)
+  9  ndata not valid in "many" interface (should be >= 1)
 
 
 
@@ -515,8 +515,8 @@ Usage and design notes
   In fortran the interface is still 32-bit integers, limiting to
   array sizes <2^31. The fortran interface needs to be improved.
 
-- C++ is used for all main libraries, almost entirely avoiding object-oriented code. C++ ``std::complex<double>`` (aliased to ``CPX`` and ``dcomplex``) and FFTW complex types are mixed within the library, since to some extent our library is a glorified driver for FFTW. FFTW was considered universal and essential enough to be a dependency for the whole package.
+- C++ is used for all main libraries, almost entirely avoiding object-oriented code. C++ ``std::complex<double>`` (typedef'ed to ``CPX`` and sometimes ``dcomplex``) and FFTW complex types are mixed within the library, since to some extent our library is a glorified driver for FFTW. FFTW was considered universal and essential enough to be a dependency for the whole package.
 
-- There is a hard-defined limit of ``1e11`` for the size of internal FFT arrays, set in ``common.h`` as ``MAX_NF``: if your machine has RAM of order 1TB, and you need it, set this larger and recompile. The point of this is to catch ridiculous-sized mallocs and exit gracefully. Note that mallocs smaller than this, but which still exceed available RAM, cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc.
+- There is a hard-defined limit of ``1e11`` for the size of internal FFT arrays, set in ``defs.h`` as ``MAX_NF``: if your machine has RAM of order 1TB, and you need it, set this larger and recompile. The point of this is to catch ridiculous-sized mallocs and exit gracefully. Note that mallocs smaller than this, but which still exceed available RAM, cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc.
 
 - As a spreading kernel function, we use a new faster simplification of the Kaiser--Bessel kernel, and eventually settled on piecewise polynomial approximation of this kernel.  At high requested precisions, like the Kaiser--Bessel, this achieves roughly half the kernel width achievable by a truncated Gaussian. Our kernel is exp(-beta.sqrt(1-(2x/W)^2)), where W = nspread is the full kernel width in grid units. This (and Kaiser--Bessel) are good approximations to the prolate spheroidal wavefunction of order zero (PSWF), being the functions of given support [-W/2,W/2] whose Fourier transform has minimal L2 norm outside of a symmetric interval. The PSWF frequency parameter (see [ORZ]) is c = pi.(1-1/2sigma).W where sigma is the upsampling parameter. See our paper in the references.
