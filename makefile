@@ -39,6 +39,7 @@ OFLAGS=
 MWRAP=mwrap
 
 # For your OS, override the above by placing make variables in make.inc ...
+# (Please look in make.inc.* for ideas)
 -include make.inc
 
 # choose the precision (affects library names, test precisions)...
@@ -257,7 +258,7 @@ test/manysmallprobs: $(STATICLIB) $(HEADERS) test/manysmallprobs.cpp
 clean: objclean pyclean
 	rm -f lib-static/*.a lib/*.so
 	rm -f matlab/*.mex*
-	rm -f test/spreadtestnd test/finufft?d_test test/testutils test/manysmallprobs test/results/*.out fortran/nufft?d_demo fortran/nufft?d_demof examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf
+	rm -f test/spreadtestnd test/finufft?d_test test/finufft?d_test test/testutils test/manysmallprobs test/results/*.out fortran/*_demo fortran/*_demof examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf
 
 # this is needed before changing precision or threading...
 objclean:
@@ -269,4 +270,4 @@ pyclean:
 
 # for experts; only do this if you have mwrap to rebuild the interfaces!
 mexclean:
-	rm -f matlab/finufft.cpp matlab/finufft?d?.m matlab/finufft.mex*
+	rm -f matlab/finufft.cpp matlab/finufft?d?.m matlab/finufft?d?many.m matlab/finufft.mex*

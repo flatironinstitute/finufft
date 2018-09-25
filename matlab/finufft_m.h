@@ -5,9 +5,13 @@
 
 // for the C++ complex type:
 #include <complex>
-// for matlab interface (always double prec) we use this left-over name:
+
+// for matlab interface (always double prec for now) we use this left-over name,
+// which happens to be the same as what Mwrap calls double complex (but
+// this is not required):
 typedef std::complex<double> dcomplex;
 
+// library provides (facing MEX)....
 int finufft1d1m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms, dcomplex* fk, double* opts);
 int finufft1d2m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms, dcomplex* fk, double* opts);
 int finufft1d3m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double nk, double* s, dcomplex* f, double * opts);

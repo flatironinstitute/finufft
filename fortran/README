@@ -24,5 +24,8 @@ See ../makefile
 Eg
 (cd ..; make fortran)
 
-Barnett 3/21/17; normalization updated 6/6/17
+Finally, the default demos are double precision. The single-precision
+versions have an extra "f" after the name, ie as listed by: ls *f.f
+
+Barnett 3/21/17; normalization updated 6/6/17. Tweaked 9/24/18.
 
