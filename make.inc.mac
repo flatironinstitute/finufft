@@ -1,15 +1,27 @@
-# Makefile variable overrides for Mac OSX.
+# Makefile variable overrides for Mac OSX installation.
 # Copy this file to make.inc and edit for your setup.
 # Also see docs/install.rst for edits to MATLAB's XML file.
-# Barnett 6/7/18. Input from Yu-Hsuan Shih.
+# Barnett 10/27/18. Input from Yu-Hsuan Shih.
 
-# If you want to control which GCC version...
+# By default we use clang/LLVM (which is aliased to /usr/lib/gcc, etc).
+# If you want to override this, get gcc from brew then use, eg:
 #CXX=g++-8
 #CC=gcc-8
 #FC=gfortran
 
+# compile flags for use with clang:
+CFLAGS = -fPIC -O3
+# as in makefile...
+CFLAGS   += -I src
+FFLAGS   = $(CFLAGS)
+CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
+# OpenMP with clang needs following... (last is for linking)
+OMPFLAGS = -Xpreprocessor -fopenmp -lomp
+# since fftw3_omp doesn't work in OSX...
+FFTWOMPSUFFIX=threads
+
+# MATLAB interface:
 # some of these will depend on your FFTW library location...
 MFLAGS += -I/usr/local/include -L/usr/local/lib -L/usr/local/gfortran/lib -lgfortran -lm
-
 # edit for your MATLAB version location...
 MEX = /Applications/MATLAB_R2017a.app/bin/mex

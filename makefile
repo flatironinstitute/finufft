@@ -24,6 +24,8 @@ FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
 # FFTW base name, and math linking...
 FFTWNAME=fftw3
+# the following uses fftw3_omp, since 10% faster than fftw3_threads...
+FFTWOMPSUFFIX=omp
 LIBS = -lm
 # extra flags for multithreaded: C++/C/Fortran, MATLAB, and octave...
 OMPFLAGS = -fopenmp
@@ -66,7 +68,7 @@ CFLAGS += $(OMPFLAGS)
 FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
-LIBSFFT += -l$(FFTW)_omp
+LIBSFFT += -l$(FFTW)_$(FFTWOMPSUFFIX)
 endif
 
 # decide name of obj files and finufft library we're building...

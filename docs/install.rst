@@ -11,9 +11,10 @@ follow instructions (eg see the green button).
 Dependencies
 ************
 
-This library is currently supported for unix/linux
-and also tested on Mac OSX. We have heard that it can be compiled
-on Windows too.
+This library is fully supported for unix/linux and also works on
+Mac OSX.  We have heard that it is difficult to compile on Windows;
+for such a machine we suggest trying within the Windows Subsystem for
+Linux (WSL).
 
 For the basic libraries
 
@@ -26,8 +27,8 @@ Optional:
 * ``numdiff`` (preferred but not essential; enables pass-fail math validation)
 * for Fortran wrappers: compiler such as ``gfortran``
 * for matlab/octave wrappers: MATLAB, or octave and its development libraries
-* for building new matlab/octave wrappers (experts only): ``mwrap``
 * for the python wrappers you will need ``python`` and ``pip`` (if you prefer python v2), or ``python3`` and ``pip3`` (for python v3). You will also need ``pybind11``
+* for rebuilding new matlab/octave wrappers (experts only): ``mwrap``
 
 
 Tips for installing dependencies on various operating systems
@@ -43,7 +44,7 @@ then see below for ``numdiff`` and ``mwrap``.
 
    we are not exactly sure how to install python3 and pip3 using yum
 
-then download the latest ``numdiff`` from http://gnu.mirrors.pair.com/savannah/savannah/numdiff/ and set it up via ``./configure; make; sudo make install``
+Then download the latest ``numdiff`` from http://gnu.mirrors.pair.com/savannah/savannah/numdiff/ and set it up via ``./configure; make; sudo make install``
 
 On Ubuntu linux (assuming python3 as opposed to python)::
 
@@ -53,31 +54,37 @@ On Mac OSX:
 
 .. note::
 
-   Improved Mac OSX instructions will come shortly. Stay tuned.
+   Improved Mac OSX instructions, and possibly a brew package, will come shortly. Stay tuned. The below has been tested on 10.14 (Mojave).
 
-Make sure you have ``make`` installed, eg via XCode.
+First you'll want to set up Homebrew, as follows.
+If you don't have Xcode, install Command Line Tools
+(this is only around 130 MB in contrast to the full 6 GB size of Xcode),
+by opening a terminal (from ``/Applications/Utilities/``) and typing::
 
-We have now made the package compile under ``clang``. Therefore you
-should override the compiler settings by writing a file ``make.inc``
-including a line ``CXX=clang++``.
+  xcode-select --install
+   
+You will be asked for an administrator password.
+Then, also as an administrator,
+install Homebrew by pasting the installation command from
+https://brew.sh
 
-However, you could instead
-install gcc, for instance using pre-compiled binaries from
-http://hpc.sourceforge.net/
+Then do::
 
-Install homebrew from http://brew.sh::
+  brew install libomp fftw
 
-  brew install fftw
+This will also install the latest GCC. However, we have had success compiling
+with ``clang``. Once you have downloaded FINUFFT, to set up for this, do::
 
-Install ``numdiff`` as below.
+  cp make.inc.mac make.inc
+
+This gives you compile flags that should work once you do ``make`` as below.
+
+Optionally, install ``numdiff`` as below.
 
 (Note: we are not exactly sure how to install python3 and pip3 on mac)
 
 Look in ``make.inc.mac``, and see below,
-for ideas for building Matlab MEX interfaces.
-
-Currently in Mac OSX, ``make lib`` fails to make the shared object library (.so);
-however the static (.a) library is of reasonable size and works fine.
+for ideas for building Matlab MEX interfaces. These will be trickier.
 
 
 Installing numdiff
@@ -104,7 +111,7 @@ Compilation
 We first describe compilation for default options (double precision, openmp) via GCC.
 If you have a nonstandard unix environment (eg a Mac) or want to change the compiler,
 then place your compiler and linking options in a new file ``make.inc``.
-For example such files see ``make.inc.*``. See ``makefile`` for what can be overridden.
+For example such files see ``make.inc.*``. See the text of ``makefile`` for discussion of what can be overridden.
 
 Compile and do a rapid (less than 1-second) test of FINUFFT via::
 
@@ -163,7 +170,7 @@ to read, for instance::
   CFLAGS="-ansi -D_GNU_SOURCE -fexceptions -fPIC -fno-omit-frame-pointer -pthread"
   CXXFLAGS="-ansi -D_GNU_SOURCE -fPIC -fno-omit-frame-pointer -pthread"
 
-These settings are copied from the ``glnxa64`` case. Here you will want to replace the compilers by whatever version of GCC you have installed.
+These settings are copied from the ``glnxa64`` case. Here you will want to replace the compilers by whatever version of GCC you have installed, eg via brew.
 For pre-2016 MATLAB Mac OSX versions you'll instead want to edit the ``maci64``
 section of ``mexopts.sh``.
 
