@@ -11,6 +11,15 @@
 
 # compile flags for use with clang:
 CFLAGS = -fPIC -O3
+
+# If you're getting warning messages of the form:
+#    ld: warning: object file (lib-static/libfinufft.a(finufft1d.o)) was built for
+#    newer OSX version (10.13) than being linked (10.9)
+# Then you can uncomment the following two lines with the older version number
+# (in this example -mmacosx-version-min=10.9)
+#
+#CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
+
 # as in makefile...
 CFLAGS   += -I src
 FFLAGS   = $(CFLAGS)
@@ -22,6 +31,6 @@ FFTWOMPSUFFIX=threads
 
 # MATLAB interface:
 # some of these will depend on your FFTW library location...
-MFLAGS += -I/usr/local/include -L/usr/local/lib -L/usr/local/gfortran/lib -lgfortran -lm
+MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
 # edit for your MATLAB version location...
-MEX = /Applications/MATLAB_R2017a.app/bin/mex
+MEX = $(shell ls -d /Applications/MATLAB_R201*.app)/bin/mex
