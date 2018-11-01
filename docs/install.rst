@@ -50,7 +50,7 @@ On Ubuntu linux (assuming python3 as opposed to python)::
 
   sudo apt-get install make build-essential libfftw3-dev gfortran numdiff python3 python3-pip octave liboctave-dev
 
-On Mac OSX:
+### On Mac OSX:
 
 .. note::
 
@@ -79,19 +79,38 @@ with ``clang``. Once you have downloaded FINUFFT, to set up for this, do::
 
 This gives you compile flags that should work once you do ``make`` as below.
 
-Optionally, install ``numdiff`` as below.
+Optionally, install ``numdiff`` as below. For python (note the default python does not come with pip)::
 
-(Note: we are not exactly sure how to install python3 and pip3 on mac)
+  brew install python3
+  pip3 install numpy pybind11
+  
+Now replace ``fftw3_omp`` with ``fftw3_threads`` in ``setup.py``.
+Then ``make python3`` should work (it works for use on Mojave).
+
+ .. note::
+
+   We cannot get the fortran examples to compile on Mac OSX Mojave due to linking problems. Help is welcome.
 
 Look in ``make.inc.mac``, and see below,
-for ideas for building Matlab MEX interfaces. These will be trickier.
+for ideas for building Matlab MEX interfaces. These may be trickier.
 
 
 Installing numdiff
 ------------------
 
-`numdiff <http://www.nongnu.org/numdiff>`_ by Ivano Primi extends ``diff`` to assess errors in floating-point outputs.
-Download the latest ``numdiff`` from the above URL, un-tar the package, cd into it, then build via ``./configure; make; sudo make install``
+`numdiff <http://www.nongnu.org/numdiff>`_ by Ivano Primi extends ``diff`` to assess errors in floating-point outputs. It is an optional dependency that provides a better pass-fail test; in particular it gives the message
+``0 fails out of 5 tests done`` when ``make test`` is done for FINUFFT.
+To install ``numdiff`` on linux,
+download the latest version from the link above, un-tar the package, cd into it, then build via ``./configure; make; sudo make install``.
+
+This compilation fails on Mac OSX, for which we found the following was needed. Assume you un-tarred into ``/usr/local/numdiff-5.9.0``. Then::
+
+  brew install gettext
+  ./configure 'CFLAGS=-I/usr/local/opt/gettext/include' 'LDFLAGS=-L/usr/local/opt/gettext/lib'
+  make
+  sudo ln /usr/local/numdiff-5.9.0/numdiff /usr/local/bin
+
+You should now be able to run ``make test`` in FINUFFT and get the message about zero fails.
 
 Installing MWrap
 ----------------

@@ -50,7 +50,7 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d1: ms=%ld nf1=%ld nj=%ld ...\n",(int64_t)ms,(int64_t)nf1,(int64_t)nj);
+  if (opts.debug) printf("1d1: ms=%lld nf1=%lld nj=%lld ...\n",(long long)ms,(long long)nf1,(long long)nj);
 
   CNTime timer; timer.start();
   int nth = MY_OMP_GET_MAX_THREADS();
@@ -140,7 +140,7 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("1d2: ms=%ld nf1=%ld nj=%ld ...\n",(int64_t)ms,(int64_t)nf1,(int64_t)nj); 
+  if (opts.debug) printf("1d2: ms=%lld nf1=%lld nj=%lld ...\n",(long long)ms,(long long)nf1,(long long)nj); 
 
   // STEP 0: get FT of real symmetric spreading kernel
   CNTime timer; timer.start();
@@ -235,7 +235,7 @@ int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, 
   arraywidcen(nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
   arraywidcen(nk,s,&S1,&D1);   // get half-width, center, containing {s_k}
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
-  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,(int64_t)nf1,(int64_t)nj,(int64_t)nk);
+  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld nj=%lld nk=%lld...\n",X1,C1,S1,D1,gam1,(long long)nf1,(long long)nj,(long long)nk);
   if (nf1>MAX_NF) {
     fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)nf1,(double)MAX_NF);
     return ERR_MAXNALLOC;
