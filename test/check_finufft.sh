@@ -30,7 +30,7 @@ if type numdiff &> /dev/null; then
 	rm -f $DIR/$t.out
 	./$t | tee $DIR/$t.out              # stdout only; tee duplicates to screen
 	# $? is exit code of last thing...
-	if [ $? -eq 0 ]; then echo completed; else echo crashed; ((CRASHES++)); fi 
+	if [ $? -eq 0 ]; then echo completed; else echo crashed; ((CRASHES++)); fi
 	# since refout contains 0 for each error field, relerr=1 so 2 is for safety:
 	numdiff -q $DIR/$t.refout $DIR/$t.out -a $FINUFFT_CHECK_TOL -r 2.0
 	if [ $? -eq 0 ]; then echo accuracy passed; else echo accuracy failed; ((FAILS++)); fi

@@ -1,5 +1,5 @@
 # Makefile for FINUFFT.
-# Barnett 9/24/18
+# Barnett 11/1/18.
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # Users should not need to edit this makefile (doing so would make it hard to
@@ -157,11 +157,14 @@ $(EXC): $(EXC).o $(STATICLIB)
 	$(CC) $(CFLAGS) $(EXC).o $(STATICLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
 
 # validation tests... (most link to .o allowing testing pieces separately)
-test: $(STATICLIB) test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test
+test: $(STATICLIB) test/finufft1d_basicpassfail test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test
+	test/finufft1d_basicpassfail
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
 	./check_finufft.sh)
+test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(STATICLIB) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(STATICLIB) $(LIBSFFT) -o test/finufft1d_basicpassfail
 test/testutils: test/testutils.cpp src/utils.o src/utils.h $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
 test/finufft1d_test: test/finufft1d_test.cpp $(OBJS1) $(HEADERS)

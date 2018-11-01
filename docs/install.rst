@@ -1,22 +1,37 @@
 Installation
 ============
 
-Obtaining FINUFFT
-*****************
+Quick linux install instructions
+--------------------------------
 
-Go to the github page https://github.com/flatironinstitute/finufft and
-follow instructions (eg see the green button).
+In brief, go to the github page https://github.com/flatironinstitute/finufft and
+follow instructions to download the source (eg see the green button).
+Make sure you have packages ``fftw3`` and ``fftw3-devel`` installed.
+Then ``cd`` into your FINUFFT directory and ``make test``.
+This should compile the static
+library in ``lib/``, some C++ test drivers in ``test/``, then run them,
+printing some terminal output ending in::
 
+  0 crashes out of 5 tests done
+
+If this fails see the more detailed instructions below. If it succeeds,
+you may use the library, and
+proceed to type ``make`` to see a list of other aspects to build (language
+interfaces, etc). Consider installing ``numdiff`` as below to allow
+``make test`` to check the accuracy.
+Proceed to :ref:`Usage <usage>` and
+look in ``examples/`` and ``test/``
+for other usage examples.
 
 Dependencies
-************
+------------
 
-This library is fully supported for unix/linux and also works on
+This library is fully supported for unix/linux and almost fully on
 Mac OSX.  We have heard that it is difficult to compile on Windows;
 for such a machine we suggest trying within the Windows Subsystem for
 Linux (WSL).
 
-For the basic libraries
+For the basic libraries you need
 
 * C++ compiler, such as ``g++`` packaged with GCC, or ``clang`` with OSX
 * FFTW3
@@ -24,33 +39,33 @@ For the basic libraries
 
 Optional:
 
-* ``numdiff`` (preferred but not essential; enables pass-fail math validation)
+* ``numdiff`` (preferred but not essential; enables better pass-fail accuracy validation)
 * for Fortran wrappers: compiler such as ``gfortran``
 * for matlab/octave wrappers: MATLAB, or octave and its development libraries
-* for the python wrappers you will need ``python`` and ``pip`` (if you prefer python v2), or ``python3`` and ``pip3`` (for python v3). You will also need ``pybind11``
+* for the python wrappers you will need ``python`` and ``pip`` (if you are stuck on python v2), or ``python3`` and ``pip3`` (for the standard python v3). You will also need ``pybind11``
 * for rebuilding new matlab/octave wrappers (experts only): ``mwrap``
 
 
-Tips for installing dependencies on various operating systems
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Tips for installing dependencies on linux
+-----------------------------------------
 
-On a Fedora/CentOS linux system, these dependencies can be installed as follows::
+On a Fedora/CentOS linux system, dependencies can be installed as follows::
 
   sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp octave octave-devel
-
-then see below for ``numdiff`` and ``mwrap``.
 
 .. note::
 
    we are not exactly sure how to install python3 and pip3 using yum
 
-Then download the latest ``numdiff`` from http://gnu.mirrors.pair.com/savannah/savannah/numdiff/ and set it up via ``./configure; make; sudo make install``
-
-On Ubuntu linux (assuming python3 as opposed to python)::
+Alternatively, on Ubuntu linux (assuming python3 as opposed to python)::
 
   sudo apt-get install make build-essential libfftw3-dev gfortran numdiff python3 python3-pip octave liboctave-dev
 
-### On Mac OSX:
+For any linux flavor see below for the optional ``numdiff`` (and very optional ``mwrap``). You should then compile via the various ``make`` tasks.
+
+
+Tips for installing dependencies and compiling on Mac OSX
+---------------------------------------------------------
 
 .. note::
 
@@ -84,48 +99,24 @@ Optionally, install ``numdiff`` as below. For python (note the default python do
   brew install python3
   pip3 install numpy pybind11
   
-Now replace ``fftw3_omp`` with ``fftw3_threads`` in ``setup.py``.
-Then ``make python3`` should work (it works for use on Mojave).
+By hand (sorry!) replace the string
+``fftw3_omp`` with ``fftw3_threads`` in the file ``setup.py``.
+Then ``make python3`` should work (it works on Mojave).
 
  .. note::
 
-   We cannot get the fortran examples to compile on Mac OSX Mojave due to linking problems. Help is welcome.
+   We cannot get the fortran examples to compile on Mac OSX Mojave with gfortran due to linking problems. Help is needed!
 
 Look in ``make.inc.mac``, and see below,
-for ideas for building Matlab MEX interfaces. These may be trickier.
+for ideas for building MATLAB MEX interfaces.
+The octave interfaces appear to work out of the box with Mojave::
+
+  brew install octave
+  make octave
 
 
-Installing numdiff
-------------------
-
-`numdiff <http://www.nongnu.org/numdiff>`_ by Ivano Primi extends ``diff`` to assess errors in floating-point outputs. It is an optional dependency that provides a better pass-fail test; in particular it gives the message
-``0 fails out of 5 tests done`` when ``make test`` is done for FINUFFT.
-To install ``numdiff`` on linux,
-download the latest version from the link above, un-tar the package, cd into it, then build via ``./configure; make; sudo make install``.
-
-This compilation fails on Mac OSX, for which we found the following was needed. Assume you un-tarred into ``/usr/local/numdiff-5.9.0``. Then::
-
-  brew install gettext
-  ./configure 'CFLAGS=-I/usr/local/opt/gettext/include' 'LDFLAGS=-L/usr/local/opt/gettext/lib'
-  make
-  sudo ln /usr/local/numdiff-5.9.0/numdiff /usr/local/bin
-
-You should now be able to run ``make test`` in FINUFFT and get the message about zero fails.
-
-Installing MWrap
-----------------
-
-This is not needed for most users.
-`MWrap <http://www.cs.cornell.edu/~bindel/sw/mwrap>`_
-is a very useful MEX interface generator by Dave Bindel.
-Make sure you have ``flex`` and ``bison`` installed.
-Download version 0.33 or later from http://www.cs.cornell.edu/~bindel/sw/mwrap, un-tar the package, cd into it, then::
-  
-  make
-  sudo cp mwrap /usr/local/bin/
-
-Compilation
-***********
+General notes about compilation and tests
+-----------------------------------------
 
 We first describe compilation for default options (double precision, openmp) via GCC.
 If you have a nonstandard unix environment (eg a Mac) or want to change the compiler,
@@ -136,14 +127,26 @@ Compile and do a rapid (less than 1-second) test of FINUFFT via::
 
   make test
 
-This should compile the main libraries then run tests which should report zero crashes and zero fails. (If numdiff was not installed, it instead produces output that you will have to check by eye matches the requested accuracy.)
+This should compile the main libraries then run tests which should report zero crashes and zero fails. (If numdiff is absent, it instead produces output only about crashes; you will have to check by eye that accuracy is as expected.)
+Note that the very first test run is ``test/finufft1d_basicpassfail`` which
+does include a low-accuracy math test, producing the exit code 0 if success,
+nonzero if fail. You can check the exit code thus::
+  
+  test/finufft1d_basicpassfail; echo $?
 
-Use ``make perftest`` for larger spreader and NUFFT tests taking 10-20 seconds.
+Use ``make perftest`` for larger spread/interpolation and NUFFT tests taking 10-20 seconds. This writes into ``test/results/`` where you will be able to compare to results from standard CPUs.
 
 Run ``make`` without arguments for full list of possible make tasks.
 
+``make examples`` to compile and run the examples for calling from C++ and from C.
+
+The ``examples`` and ``test`` directories are good places to see usage examples.
+
+``make fortran`` to compile and run the fortran wrappers and examples.
+
 Note that the library includes fortran interfaces
 defined in ``fortran/finufft_f.h``.
+
 If there is an error in testing on a standard set-up,
 please file a bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
@@ -167,20 +170,15 @@ single precision. However, it will break matlab, octave, python interfaces.
 **Single-threaded**: append ``OMP=OFF`` to the make task.
 
 
-Building examples and wrappers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-``make examples`` to compile and run the examples for calling from C++ and from C.
-
-The ``examples`` and ``test`` directories are good places to see usage examples.
-
-``make fortran`` to compile and run the fortran wrappers and examples.
+Building MATLAB/octave wrappers, including in Mac OSX
+-----------------------------------------------------
 
 ``make matlab`` to build the MEX interface to matlab.
 
 ``make octave`` to build the MEX-like interface to octave.
 
-On Mac OSX, we have found that the MATLAB MEX settings need to be
+We have had success in Mac OSX Mojave compiling the octave wrapper out of the box.
+For MATLAB, the MEX settings may need to be
 overridden: edit the file ``mex_C++_maci64.xml`` in the MATLAB distro,
 to read, for instance::
 
@@ -189,15 +187,16 @@ to read, for instance::
   CFLAGS="-ansi -D_GNU_SOURCE -fexceptions -fPIC -fno-omit-frame-pointer -pthread"
   CXXFLAGS="-ansi -D_GNU_SOURCE -fPIC -fno-omit-frame-pointer -pthread"
 
-These settings are copied from the ``glnxa64`` case. Here you will want to replace the compilers by whatever version of GCC you have installed, eg via brew.
+These settings are copied from the ``glnxa64`` case. Here you will want to replace the compilers by whatever version of GCC you have installed, eg via brew,
+  or the default gcc/g++ that are aliased to clang.
 For pre-2016 MATLAB Mac OSX versions you'll instead want to edit the ``maci64``
 section of ``mexopts.sh``.
 
 
 Building the python wrappers
-****************************
+----------------------------
 
-First make sure you have python3 and pip3 (or python and pip) installed and that you have already compiled the C++ library (eg via ``make lib``).
+First make sure you have python3 and pip3 (or python and pip) installed and that you can already compile the C++ library (eg via ``make lib``).
 Python links to this compiled library. You will get an error unless you first
 compile the static library.
 Next make sure you have NumPy and pybind11 installed::
@@ -209,10 +208,9 @@ pip3 for the install then runs some tests. An additional test you could do is::
 
   python3 run_speed_tests.py
 
-In all the above the "3" can be omitted if you want to work with python v2.
+In all the above the "3" can be omitted if you insist on working with python v2.
 
 See also Dan Foreman-Mackey's earlier repo that also wraps finufft, and from which we have drawn code: `python-finufft <https://github.com/dfm/python-finufft>`_
-
 
 A few words about python environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -224,3 +222,43 @@ There can be confusion and conflicts between various versions of python and inst
   . env1/bin/activate
 
 Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the env1 directory. (You can get out of the environment by typing ``deactivate``)
+
+
+Tips for installing optional dependencies
+-----------------------------------------
+
+Installing numdiff
+~~~~~~~~~~~~~~~~~~
+
+`numdiff <http://www.nongnu.org/numdiff>`_ by Ivano Primi extends ``diff`` to assess errors in floating-point outputs. It is an optional dependency that provides a better pass-fail test; in particular it allows the accuracy check message
+``0 fails out of 5 tests done`` when ``make test`` is done for FINUFFT.
+To install ``numdiff`` on linux,
+download the latest version from
+http://gnu.mirrors.pair.com/savannah/savannah/numdiff/
+un-tar the package, cd into it, then build via ``./configure; make; sudo make install``.
+
+This compilation fails on Mac OSX, for which we found the following was needed
+in Mojave. Assume you un-tarred into ``/usr/local/numdiff-5.9.0``. Then::
+
+  brew install gettext
+  ./configure 'CFLAGS=-I/usr/local/opt/gettext/include' 'LDFLAGS=-L/usr/local/opt/gettext/lib'
+  make
+  sudo ln /usr/local/numdiff-5.9.0/numdiff /usr/local/bin
+
+You should now be able to run ``make test`` in FINUFFT and get the second
+message about zero fails.
+
+Installing MWrap
+~~~~~~~~~~~~~~~~
+
+This is not needed for most users.
+`MWrap <http://www.cs.cornell.edu/~bindel/sw/mwrap>`_
+is a very useful MEX interface generator by Dave Bindel.
+Make sure you have ``flex`` and ``bison`` installed.
+Download version 0.33 or later from http://www.cs.cornell.edu/~bindel/sw/mwrap, un-tar the package, cd into it, then::
+  
+  make
+  sudo cp mwrap /usr/local/bin/
+
+
+

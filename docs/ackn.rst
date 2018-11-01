@@ -17,7 +17,8 @@ Other code contributions:
 * Dan Foreman-Mackey - python wrappers
 * David Stein - python wrappers
 * Dylan Simon - sphinx help
-  
+* Amit Moscovich - Mac OSX build
+
 Testing, bug reports:
 
 * Joakim Anden - catching memory leak, Matlab/FFTW issues, performance tests
