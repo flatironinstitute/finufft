@@ -26,9 +26,10 @@ CFLAGS +=
 #CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
 
 # as in makefile, but with the brew /usr/local/ stuff...
-CFLAGS   += -I src -I/usr/local/include -L/usr/local/lib
+CFLAGS   += -I src -I/usr/local/include
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
+LIBS += -L/usr/local/lib
 
 # OpenMP with GCC on OSX needs following...
 OMPFLAGS = -fopenmp

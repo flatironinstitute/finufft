@@ -91,9 +91,11 @@ This happens to also install the latest GCC, which is 8.2.0 in our tests.
 
 .. note::
    
-   There are two options for compilers: 1) the native ``clang`` which will *not*
+   There are two options for compilers: 1) the native ``clang`` which
+   works with octave and pyhton3, but will *not*
    so far allow you to link against fortran applications, or 2) GCC, which
-   will allow fortran linking with ``gfortran``.
+   will allow fortran linking with ``gfortran``, but currently fails with
+   octave and python3.
 
 First the **clang route**.
 Once you have downloaded FINUFFT, to set up for this, do::
@@ -119,7 +121,13 @@ Alternatively, here's the **GCC route**, which we have also tested on Movaje::
 
   cp make.inc.macosx_gcc-8 make.inc
 
-Now edit ``setup.py``, changing ``gcc`` to ``gcc-8`` and ``g++`` to ``g++-8``. Proceed as above. In addition, ``make fortran`` should work.
+Now edit ``setup.py``, changing ``gcc`` to ``gcc-8`` and ``g++`` to ``g++-8``. Proceed as above. ``make fortran`` should now work.
+
+.. note::
+
+   Choosing GCC-8 in OSX there are still
+   problems with octave and a run-time failure with python3. Please help
+   if you can!
 
    
 General notes about compilation and tests
