@@ -29,6 +29,7 @@ FFTWOMPSUFFIX=omp
 LIBS = -lm
 # extra flags for multithreaded: C++/C/Fortran, MATLAB, and octave...
 OMPFLAGS = -fopenmp
+OMPLIBS =
 MOMPFLAGS = -lgomp -D_OPENMP
 OOMPFLAGS = -lgomp
 # flags for MATLAB MEX compilation...
@@ -68,7 +69,7 @@ CFLAGS += $(OMPFLAGS)
 FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
-LIBSFFT += -l$(FFTW)_$(FFTWOMPSUFFIX)
+LIBSFFT += -l$(FFTW)_$(FFTWOMPSUFFIX) -l$(OMPLIBS)
 endif
 
 # decide name of obj files and finufft library we're building...

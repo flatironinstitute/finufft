@@ -171,7 +171,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
   }
   int ndims = ndims_from_Ns(N1,N2,N3);
   if (opts.debug)
-    printf("starting spread %dD (dir=%d. M=%ld; N1=%ld,N2=%ld,N3=%ld; pir=%d), %d threads\n",ndims,opts.spread_direction,M,N1,N2,N3,opts.pirange,MY_OMP_GET_MAX_THREADS());
+    printf("starting spread %dD (dir=%d. M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), %d threads\n",ndims,opts.spread_direction,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,MY_OMP_GET_MAX_THREADS());
   
   // BOUNDS CHECKING .... check NU pts are valid (incl +-1 box), exit gracefully
   if (opts.chkbnds) {
@@ -179,7 +179,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
       if (x<0 || x>N1 || !isfinite(x)) {     // note isfinite() breaks with -Ofast
-        fprintf(stderr,"NU pt not in valid range (central three periods): kx=%g, N1=%ld (pirange=%d)\n",x,N1,opts.pirange);
+        fprintf(stderr,"NU pt not in valid range (central three periods): kx=%g, N1=%lld (pirange=%d)\n",x,(long long)N1,opts.pirange);
         return ERR_SPREAD_PTS_OUT_RANGE;
       }
     }
@@ -187,7 +187,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
       for (BIGINT i=0; i<M; ++i) {
         FLT y=RESCALE(ky[i],N2,opts.pirange);
         if (y<0 || y>N2 || !isfinite(y)) {
-          fprintf(stderr,"NU pt not in valid range (central three periods): ky=%g, N2=%ld (pirange=%d)\n",y,N2,opts.pirange);
+          fprintf(stderr,"NU pt not in valid range (central three periods): ky=%g, N2=%lld (pirange=%d)\n",y,(long long)N2,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
@@ -195,7 +195,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
       for (BIGINT i=0; i<M; ++i) {
         FLT z=RESCALE(kz[i],N3,opts.pirange);
         if (z<0 || z>N3 || !isfinite(z)) {
-          fprintf(stderr,"NU pt not in valid range (central three periods): kz=%g, N3=%ld (pirange=%d)\n",z,N3,opts.pirange);
+          fprintf(stderr,"NU pt not in valid range (central three periods): kz=%g, N3=%lld (pirange=%d)\n",z,(long long)N3,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
@@ -321,11 +321,11 @@ int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);  // sets offsets and sizes
         if (opts.debug>1) { // verbose
           if (ndims==1)
-            printf("\tsubgrid: off %ld\t siz %ld\t #NU %ld\n",offset1,size1,M0);
+            printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n",(long long)offset1,(long long)size1,(long long)M0);
           else if (ndims==2)
-            printf("\tsubgrid: off %ld,%ld\t siz %ld,%ld\t #NU %ld\n",offset1,offset2,size1,size2,M0);
+            printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n",(long long)offset1,(long long)offset2,(long long)size1,(long long)size2,(long long)M0);
           else
-            printf("\tsubgrid: off %ld,%ld,%ld\t siz %ld,%ld,%ld\t #NU %ld\n",offset1,offset2,offset3,size1,size2,size3,M0);
+            printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",(long long)offset1,(long long)offset2,(long long)offset3,(long long)size1,(long long)size2,(long long)size3,(long long)M0);
 	}
         for (BIGINT j=0; j<M0; j++) {
           kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
