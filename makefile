@@ -69,6 +69,7 @@ CFLAGS += $(OMPFLAGS)
 FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
+LIBS += $(OMPLIBS)
 LIBSFFT += -l$(FFTW)_$(FFTWOMPSUFFIX) $(OMPLIBS)
 endif
 
@@ -185,7 +186,7 @@ perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft
 	(cd test; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
 	(cd test; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
 test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJS) -o test/spreadtestnd
+	$(CXX) $(CXXFLAGS) $(LIBS) test/spreadtestnd.cpp $(SOBJS) -o test/spreadtestnd
 
 # spreader only test (useful for development work on spreader)...
 spreadtest: test/spreadtestnd
