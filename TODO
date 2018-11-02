@@ -4,22 +4,22 @@ Current list of items to do for FINUFFT library
 
 TRACTABLE USER PROJECTS - PLEASE HELP:
 
+* GPU spreader (in progress), with (plan, setNUpts, execute, destroy) interface.
+
 * Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? - C++ template the spreader and all inside it?
-
-* extend the 2d1many and 2d2many interfaces to the seven other ?d? cases.
-
-* GPU spreader (in progress)
+(please contact Ludvig af Klinteberg to coordinate).
 
 * Professionalize the single-precision version:
- - fix matlab, octave, and python interfaces for single-prec.
+ - fix matlab, octave, and python interfaces for single-prec (although there
+ is not much speed gain). Related to templating above.
 
 * Get huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
 
+* Package as RPM and .deb for linux, brew for OSX.
+
 * R interface?
 
-* support for OSX and Windows.
-
-* Package as RPM and .deb for linux
+* support for Windows?
 
 
 HIGH PRIORITY TODO: (also see above)
@@ -27,11 +27,13 @@ HIGH PRIORITY TODO: (also see above)
 * A (plan, setNUpts, execute, destroy) advanced interface which saves the FFTW widsom, and sorting order, in a plan which is passed to each of these routines.
 Make the dimension and type arguments, so only adds 4 interfaces total.
 Would avoid cost of repeated sorting of NU pts, and of FFTW looking up saved wisdom, which dominates for small problems.
+
 * fix the slow speed for fancy t1 spreader when doing almost nothing, eg
 test/spreadtestnd 1 1e8 1e7 1e-6 0 9 1
 (Note the use of spreader-timing flag "9" which skips subproblem spreading.)
-Ie, decide to switch out fancy t1 spreader sometimes? Yes, make basic spreader.
-* Work on Mac OSX: 1) fix: `make lib` fails to make the shared object library (.so), 2) ship .mexmaci64, 3) understand why clang needs _Complex removed.
+Ie, decide to switch out fancy t1 spreader sometimes? Yes, make basic spreader
+without subproblems.
+
 * release, outreach, users, NA-Digest
 
 

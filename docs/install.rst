@@ -14,13 +14,13 @@ printing some terminal output ending in::
 
   0 crashes out of 5 tests done
 
-If this fails see the more detailed instructions below. If it succeeds,
-you may use the library, and
-proceed to type ``make`` to see a list of other aspects to build (language
+If this fails see the more detailed instructions below.
+If it succeeds, run ``make lib`` and proceed to link to the library.
+Alternatively, try one of our `precompiled linux and OSX binaries <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_.
+Type ``make`` to see a list of other aspects to build (language
 interfaces, etc). Consider installing ``numdiff`` as below to allow
-``make test`` to check the accuracy.
-Proceed to :ref:`Usage <usage>` and
-look in ``examples/`` and ``test/``
+``make test`` to perform a better accuracy check.
+Please read :ref:`Usage <usage>` and look in ``examples/`` and ``test/``
 for other usage examples.
 
 Dependencies

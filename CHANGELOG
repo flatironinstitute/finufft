@@ -1,11 +1,19 @@
 List of features / changes made / release notes, in reverse chronological order:
 
+V 1.1.1 (11/2/18)
+
+* Mac OSX installation on clang and gcc-8, clearer install docs.
+* LIBSOMP split off in makefile.
+* printf(...%lld..) w/ long long typecast
+* new basic passfail tester
+* precompiled binaries
+
 V 1.1 (9/24/18)
 
 * NOTE TO USERS: changed interface for setting default opts in C++ and C, from
   pass by reference to pass by value of a pointer (see docs/). Unifies C++/C
   interfaces in a clean way.
-* fftw3_omp instead of fftw3_threads, is faster.
+* fftw3_omp instead of fftw3_threads (on linux), is faster.
 * rationalized header files.
 
 V 1.0.1 (9/14/18)
