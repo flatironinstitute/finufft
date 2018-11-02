@@ -46,7 +46,8 @@ elif sys.platform == "darwin":
         extra_link_args=['-fPIC']
     else:
         # GCC-8
-        extra_link_args=['-static -fPIC']
+        extra_link_args=['-fPIC']
+        #extra_link_args=['-static -fPIC']
 
 ext_modules = [Extension(
         'finufftpy_cpp',
