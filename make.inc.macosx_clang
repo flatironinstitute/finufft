@@ -8,7 +8,7 @@
 
 # (note that /usr/bin/g++,gcc are aliased to clang/LLVM, so CXX,CC unchanged)
 
-# compile flags for use with clang:
+# compile flags for use with clang: (note absence of -march, etc)
 CFLAGS = -fPIC -O3
 
 # If you're getting warning messages of the form:

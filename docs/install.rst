@@ -69,7 +69,7 @@ Tips for installing dependencies and compiling on Mac OSX
 
 .. note::
 
-   Improved Mac OSX instructions, and possibly a brew package, will come shortly. Stay tuned. The below has been tested on 10.14 (Mojave).
+   Improved Mac OSX instructions, and possibly a brew package, will come shortly. Stay tuned. The below has been tested on 10.14 (Mojave) with both clang and gcc-8.
 
 First you'll want to set up Homebrew, as follows.
 If you don't have Xcode, install Command Line Tools
@@ -87,31 +87,41 @@ Then do::
 
   brew install libomp fftw
 
-This will also install the latest GCC. However, we have had success compiling
-with ``clang``. Once you have downloaded FINUFFT, to set up for this, do::
+This happens to also install the latest GCC, which is 8.2.0 in our tests.
 
-  cp make.inc.mac make.inc
+.. note::
+   
+   There are two options for compilers: 1) the native ``clang`` which will *not*
+   so far allow you to link against fortran applications, or 2) GCC, which
+   will allow fortran linking with ``gfortran``.
 
-This gives you compile flags that should work once you do ``make`` as below.
+First the **clang route**.
+Once you have downloaded FINUFFT, to set up for this, do::
 
-Optionally, install ``numdiff`` as below. For python (note that pip is not installed with the default python v2)::
+  cp make.inc.macosx_clang make.inc
+
+This gives you compile flags that should work with ``make test`` and other tasks. Optionally, install ``numdiff`` as below. Then
+for python (note that pip is not installed with the default python v2)::
 
   brew install python3
   pip3 install numpy pybind11
   make python3
   
-.. note::
-
-   We cannot get the fortran examples to compile on Mac OSX Mojave with gfortran due to linking problems. Help is needed!
-
-Look in ``make.inc.mac``, and see below,
-for ideas for building MATLAB MEX interfaces.
-The octave interfaces appear to work out of the box with Mojave::
+Octave interfaces work out of the box::
 
   brew install octave
   make octave
 
+Look in ``make.inc.macosx_*``, and see below,
+for ideas for building MATLAB MEX interfaces.
 
+Alternatively, here's the **GCC route**, which we have also tested on Movaje::
+
+  cp make.inc.macosx_gcc-8 make.inc
+
+Now edit ``setup.py``, changing ``gcc`` to ``gcc-8`` and ``g++`` to ``g++-8``. Proceed as above. In addition, ``make fortran`` should work.
+
+   
 General notes about compilation and tests
 -----------------------------------------
 

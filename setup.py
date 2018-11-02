@@ -12,7 +12,7 @@ import sys
 import setuptools
 import os
 
-# choose your compilers here: (eg gcc-8, g++-8)
+# choose your compilers here (eg gcc-8, g++-8). Should match make.inc
 os.environ["CC"] = "gcc"
 os.environ["CXX"] = "g++"
 
@@ -41,7 +41,12 @@ elif sys.platform == "darwin":
     # Mac OSX
     libraries = ["lib-static/finufft","fftw3","fftw3_threads","gomp"]
     extra_compile_args=['-fopenmp']
-    extra_link_args=['-static -fPIC']
+    if os.environ["CXX"] == "g++":
+        # clang
+        extra_link_args=['-static -fPIC']
+    else:
+        # GCC-8
+        extra_link_args=['-fPIC']
 
 ext_modules = [Extension(
         'finufftpy_cpp',
@@ -95,8 +100,9 @@ class BuildExt(build_ext):
         'unix': [],
     }
 
-    # Mac OSX you may need to comment out the next two lines:
-    if sys.platform == 'darwin':
+    # Mac OSX w/ GCC (not clang) you may need to comment out the next two lines:
+    if sys.platform == 'darwin' & os.environ["CXX"] == "g++":
+        # (note the test for g++ means clang, confusingly...)
         c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
 
     def build_extensions(self):
