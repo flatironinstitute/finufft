@@ -94,15 +94,12 @@ with ``clang``. Once you have downloaded FINUFFT, to set up for this, do::
 
 This gives you compile flags that should work once you do ``make`` as below.
 
-Optionally, install ``numdiff`` as below. For python (note the default python does not come with pip)::
+Optionally, install ``numdiff`` as below. For python (note that pip is not installed with the default python v2)::
 
   brew install python3
   pip3 install numpy pybind11
+  make python3
   
-By hand (sorry!) replace the string
-``fftw3_omp`` with ``fftw3_threads`` in the file ``setup.py``.
-Then ``make python3`` should work (it works on Mojave).
-
  .. note::
 
    We cannot get the fortran examples to compile on Mac OSX Mojave with gfortran due to linking problems. Help is needed!

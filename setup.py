@@ -12,7 +12,7 @@ import sys
 import setuptools
 import os
 
-# Mac OSX: choose your compilers here: (eg gcc-8, g++-8)
+# choose your compilers here: (eg gcc-8, g++-8)
 os.environ["CC"] = "gcc"
 os.environ["CXX"] = "g++"
 
@@ -30,14 +30,18 @@ class get_pybind_include(object):
         import pybind11
         return pybind11.get_include(self.user)
 
-# changed from fftw3_threads, since a bit faster, 9/24/18:
-libraries = ["lib-static/finufft","fftw3","fftw3_omp","gomp"]
-extra_compile_args=['-fopenmp']
-extra_link_args=[]
+# choose compile flags for finufftpy.cpp (links to finufft lib)...
+if sys.platform == "linux" or sys.platform == "linux2":
+    # changed from fftw3_threads, since a bit faster, 9/24/18:
+    libraries = ["lib-static/finufft","fftw3","fftw3_omp","gomp"]
+    extra_compile_args=['-fopenmp']
+    extra_link_args=[]
 
-# Mac OSX you may need the following:
-#libraries = ["lib-static/finufft","fftw3","fftw3_threads","gomp"]
-#extra_link_args=['-static -fPIC']
+elif sys.platform == "darwin":
+    # Mac OSX
+    libraries = ["lib-static/finufft","fftw3","fftw3_threads","gomp"]
+    extra_compile_args=['-fopenmp']
+    extra_link_args=['-static -fPIC']
 
 ext_modules = [Extension(
         'finufftpy_cpp',
