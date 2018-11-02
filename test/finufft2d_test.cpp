@@ -76,15 +76,15 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("\t%ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
-	   (int64_t)M,(int64_t)N1,(int64_t)N2,ti,M/ti);
+    printf("\t%lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n",
+	   (long long)M,(long long)N1,(long long)N2,ti,M/ti);
 
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
   CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("one mode: rel err in F[%ld,%ld] is %.3g\n",(int64_t)nt1,(int64_t)nt2,abs(Ft-F[it])/infnorm(N,F));
+  printf("one mode: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft-F[it])/infnorm(N,F));
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft2d1(M,x,y,c,isign,N1,N2,Ft);
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("\t(%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",(int64_t)N1,(int64_t)N2,(int64_t)M,ti,M/ti);
+    printf("\t(%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n",(long long)N1,(long long)N2,(long long)M,ti,M/ti);
 
   BIGINT jt = M/2;          // check arbitrary choice of one targ pt
   CPX ct = CPX(0,0);
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
   for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-  printf("one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(ct-c[jt])/infnorm(M,c));
+  printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
   if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft2d2(M,x,y,ct,isign,N1,N2,F);
@@ -152,13 +152,13 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(int64_t)M,(int64_t)N,ti,M/ti,N/ti);
+    printf("\t%lld NU to %lld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(long long)M,(long long)N,ti,M/ti,N/ti);
 
   BIGINT kt = N/2;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j]));
-  printf("one targ: rel err in F[%ld] is %.3g\n",(int64_t)kt,abs(Ft-F[kt])/infnorm(N,F));
+  printf("one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft2d3(M,x,y,c,isign,N,s,t,Ft);       // writes to F

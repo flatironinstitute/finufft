@@ -2,7 +2,7 @@
 # Only for double-prec, multi-threaded for now.
 # Barnett 3/1/18, updates by Yu-Hsuan Shih, June 2018.
 
-# Max OSX users: please edit as per below comments.
+# Max OSX users: please edit as per below comments, and docs/install.rst
 
 __version__ = '1.1'
 
@@ -36,7 +36,7 @@ extra_compile_args=['-fopenmp']
 extra_link_args=[]
 
 # Mac OSX you may need the following:
-#extra_link_args=['-static']
+#libraries = ["lib-static/finufft","fftw3","fftw3_threads","gomp"]
 #extra_link_args=['-static -fPIC']
 
 ext_modules = [Extension(

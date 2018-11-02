@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
 
-   Example: finufft2dmany_test 1000 1e2 1e2 1e6 1e-12 1 2 2.0
+   Example: finufft2dmany_test 1000 1e2 1e2 1e4 1e-6 1 2 2.0
 
    Melody Shih Jun 2018, based on Barnett Feb 2017.
    Barnett removed many_seq for simplicity, 7/27/18.
@@ -88,8 +88,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("    %d of: %ld NU pts to (%ld,%ld) modes in %.3g s \t%.3g NU pts/s\n",
-	   ndata,(int64_t)M,(int64_t)N1,(int64_t)N2,ti,ndata*M/ti);
+    printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n", ndata,(long long)M,(long long)N1,(long long)N2,ti,ndata*M/ti);
 
   // compare the result with finufft2d1
   FFTW_FORGET_WISDOM(); // for fair comparison
@@ -115,7 +114,7 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j+d*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("one mode: rel err in F[%ld,%ld] of data[%d] is %.3g\n",(int64_t)nt1,(int64_t)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
+  printf("one mode: rel err in F[%lld,%lld] of data[%d] is %.3g\n",(long long)nt1,(long long)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
 
   // Check accuracy (worst over the ndata)
   for (int k = 0; k < ndata; ++k)
@@ -141,8 +140,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("    %d of: (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
-           ndata,(int64_t)N1,(int64_t)N2,(int64_t)M,ti,ndata*M/ti);
+    printf("    %d of: (%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n", ndata,(long long)N1,(long long)N2,(long long)M,ti,ndata*M/ti);
   
   FFTW_FORGET_WISDOM();
   opts.debug = 0;        // don't output timing for calls of finufft2d2
@@ -167,7 +165,7 @@ int main(int argc, char* argv[])
   for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[d*N + m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-  printf("one targ: rel err in c[%ld] of data[%d] is %.3g\n",(int64_t)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
+  printf("one targ: rel err in c[%lld] of data[%d] is %.3g\n",(long long)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
 
   maxerror = 0.0;           // worst error over the ndata
   for (int k = 0; k < ndata; ++k)

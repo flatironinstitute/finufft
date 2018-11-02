@@ -59,7 +59,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj);
+  if (opts.debug) printf("2d1: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n",(long long)ms,(long long)mt,(long long)nf1,(long long)nf2,(long long)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -157,8 +157,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1many: ndata=%d (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",
-                         ndata,(int64_t)ms,(int64_t)mt,nf1,nf2,(int64_t)nj);
+  if (opts.debug) printf("2d1many: ndata=%d (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n", ndata,(long long)ms,(long long)mt,(long long)nf1,(long long)nf2,(long long)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -303,7 +302,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj);
+  if (opts.debug) printf("2d2: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n",(long long)ms,(long long)mt,(long long)nf1,(long long)nf2,(long long)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -399,8 +398,8 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: ndata=%d (ms,mt)=(%ld,%ld) (nf1,nf2)=(%ld,%ld) nj=%ld ...\n",
-                         ndata,(int64_t)ms,(int64_t)mt,(int64_t)nf1,(int64_t)nf2,(int64_t)nj);
+  if (opts.debug) printf("2d2: ndata=%d (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n",
+                         ndata,(long long)ms,(long long)mt,(long long)nf1,(long long)nf2,(long long)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -550,7 +549,7 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
   arraywidcen(nk,t,&S2,&D2);   // {t_k}
   set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
-  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld nj=%ld nk=%ld...\n",X1,C1,S1,D1,gam1,(int64_t)nf1,X2,C2,S2,D2,gam2,(int64_t)nf2,(int64_t)nj,(int64_t)nk);
+  if (opts.debug) printf("2d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld nj=%lld nk=%lld...\n",X1,C1,S1,D1,gam1,(long long)nf1,X2,C2,S2,D2,gam2,(long long)nf2,(long long)nj,(long long)nk);
   if ((int64_t)nf1*nf2>MAX_NF) {
     fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
     return ERR_MAXNALLOC;

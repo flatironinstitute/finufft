@@ -61,7 +61,7 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("3d1: (ms,mt,mu)=(%ld,%ld,%ld) (nf1,nf2,nf3)=(%ld,%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)mu,(int64_t)nf1,(int64_t)nf2,(int64_t)nf3,(int64_t)nj);
+  if (opts.debug) printf("3d1: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) nj=%lld ...\n",(long long)ms,(long long)mt,(long long)mu,(long long)nf1,(long long)nf2,(long long)nf3,(long long)nj);
 
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -160,7 +160,7 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   }
   cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("3d2: (ms,mt,mu)=(%ld,%ld,%ld) (nf1,nf2,nf3)=(%ld,%ld,%ld) nj=%ld ...\n",(int64_t)ms,(int64_t)mt,(int64_t)mu,(int64_t)nf1,(int64_t)nf2,(int64_t)nf3,(int64_t)nj);
+  if (opts.debug) printf("3d2: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) nj=%lld ...\n",(long long)ms,(long long)mt,(long long)mu,(long long)nf1,(long long)nf2,(long long)nf3,(long long)nj);
   
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
@@ -266,8 +266,8 @@ int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   set_nhg_type3(S2,X2,opts,spopts,&nf2,&h2,&gam2);
   set_nhg_type3(S3,X3,opts,spopts,&nf3,&h3,&gam3);
   if (opts.debug)
-    printf("3d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%ld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%ld X3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%ld nj=%ld nk=%ld...\n",
-	   X1,C1,S1,D1,gam1,(int64_t)nf1,X2,C2,S2,D2,gam2,(int64_t)nf2,X3,C3,S3,D3,gam3,(int64_t)nf3,(int64_t)nj,(int64_t)nk);
+    printf("3d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld X3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld nj=%lld nk=%lld...\n",
+	   X1,C1,S1,D1,gam1,(long long)nf1,X2,C2,S2,D2,gam2,(long long)nf2,X3,C3,S3,D3,gam3,(long long)nf3,(long long)nj,(long long)nk);
   if ((int64_t)nf1*nf2*nf3>MAX_NF) {
     fprintf(stderr,"nf1*nf2*nf3=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2*nf3,(double)MAX_NF);
     return ERR_MAXNALLOC;

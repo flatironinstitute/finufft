@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("\t%ld NU pts to %ld modes in %.3g s \t%.3g NU pts/s\n",(int64_t)M,(int64_t)N,t,M/t);
+    printf("\t%lld NU pts to %lld modes in %.3g s \t%.3g NU pts/s\n",(long long)M,(long long)N,t,M/t);
 
   BIGINT nt = (BIGINT)(0.37*N);   // check arb choice of mode near the top (N/2)
   CPX Ft = CPX(0,0);
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(IMA*((FLT)(isign*nt))*x[j]);
-  printf("one mode: rel err in F[%ld] is %.3g\n",(int64_t)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
+  printf("one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d1(M,x,c,isign,N,Ft);
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("\t%ld modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",(int64_t)N,(int64_t)M,t,M/t);
+    printf("\t%lld modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n",(long long)N,(long long)M,t,M/t);
 
   BIGINT jt = M/2;          // check arbitrary choice of one targ pt
   CPX ct = CPX(0,0);
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1=-k0; m1<=(N-1)/2; ++m1)
     ct += F[m++] * exp(IMA*((FLT)(isign*m1))*x[jt]);   // crude direct
-  printf("one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(ct-c[jt])/infnorm(M,c));
+  printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft1d2(M,x,ct,isign,N,F);
@@ -145,14 +145,14 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("\t%ld NU to %ld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(int64_t)M,(int64_t)N,t,M/t,N/t);
+    printf("\t%lld NU to %lld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(long long)M,(long long)N,t,M/t,N/t);
 
   BIGINT kt = N/2;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*s[kt]*x[j]);
-  printf("one targ: rel err in F[%ld] is %.3g\n",(int64_t)kt,abs(Ft-F[kt])/infnorm(N,F));
+  printf("one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d3(M,x,c,isign,N,s,Ft);       // writes to F
