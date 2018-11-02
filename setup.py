@@ -101,7 +101,7 @@ class BuildExt(build_ext):
     }
 
     # Mac OSX w/ GCC (not clang) you may need to comment out the next two lines:
-    if sys.platform == 'darwin' & os.environ["CXX"] == "g++":
+    if sys.platform == 'darwin' and os.environ["CXX"] == "g++":
         # (note the test for g++ means clang, confusingly...)
         c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
 
