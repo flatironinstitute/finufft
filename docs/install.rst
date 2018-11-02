@@ -9,7 +9,7 @@ follow instructions to download the source (eg see the green button).
 Make sure you have packages ``fftw3`` and ``fftw3-devel`` installed.
 Then ``cd`` into your FINUFFT directory and ``make test``.
 This should compile the static
-library in ``lib/``, some C++ test drivers in ``test/``, then run them,
+library in ``lib-static/``, some C++ test drivers in ``test/``, then run them,
 printing some terminal output ending in::
 
   0 crashes out of 5 tests done
@@ -100,7 +100,7 @@ Optionally, install ``numdiff`` as below. For python (note that pip is not insta
   pip3 install numpy pybind11
   make python3
   
- .. note::
+.. note::
 
    We cannot get the fortran examples to compile on Mac OSX Mojave with gfortran due to linking problems. Help is needed!
 

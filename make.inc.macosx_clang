@@ -1,13 +1,12 @@
-# Makefile variable overrides for Mac OSX installation.
-# Copy this file to make.inc and edit for your setup.
-# Also see docs/install.rst for edits to MATLAB's XML file.
-# Barnett 10/27/18. Input from Yu-Hsuan Shih.
+# Makefile variable overrides for Mac OSX compilation with CLANG.
+#
+# Note that we have not been able to link against gfortran, so if you need
+# fortran interfaces, use make.inc.macosx_gcc-* instead.
+#
+# Copy this file to make.inc, and if needed edit for your setup.
+# Barnett 10/27/18. Input from Yu-Hsuan Shih, Amit Moskovich.
 
-# By default we use clang/LLVM (which is aliased to /usr/lib/gcc, etc).
-# If you want to override this, get gcc from brew then use, eg:
-#CXX=g++-8
-#CC=gcc-8
-#FC=gfortran
+# (note that /usr/bin/g++,gcc are aliased to clang/LLVM, so CXX,CC unchanged)
 
 # compile flags for use with clang:
 CFLAGS = -fPIC -O3
@@ -20,14 +19,15 @@ CFLAGS = -fPIC -O3
 #
 #CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
 
-# as in makefile...
+# taken from makefile...
 CFLAGS   += -I src
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
+
 # OpenMP with clang needs following...
 OMPFLAGS = -Xpreprocessor -fopenmp
 OMPLIBS = -lomp
-# since fftw3_omp doesn't work in OSX...
+# since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
 
 # MATLAB interface:
@@ -35,3 +35,4 @@ FFTWOMPSUFFIX=threads
 MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
 # edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R201*.app)/bin/mex
+# Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
