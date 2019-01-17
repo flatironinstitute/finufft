@@ -9,6 +9,7 @@
 #include "memtransfer.h"
 #include "deconvolve.h"
 #include "cufinufft.h"
+#include "profile.h"
 #include "../finufft/utils.h"
 #include "../finufft/common.h"
 
@@ -166,6 +167,7 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
+	int ier;
 	opts.spread_direction = 2;
 
 	cudaEvent_t start, stop;
@@ -175,7 +177,10 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 	cudaEventRecord(start);
 	// Copy memory to device
 	//int ier = copycpumem_to_gpumem(opts, d_plan);
-        checkCudaErrors(cudaMemcpy(d_plan->fk,h_fk,d_plan->ms*d_plan->mt*sizeof(CUCPX),cudaMemcpyHostToDevice));
+        {
+		PROFILE_CUDA_GROUP("Copy fk HtoD",2);
+		checkCudaErrors(cudaMemcpy(d_plan->fk,h_fk,d_plan->ms*d_plan->mt*sizeof(CUCPX),cudaMemcpyHostToDevice));
+	}
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -185,7 +190,10 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 #endif
 	// Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
 	cudaEventRecord(start);
-	cudeconvolve2d(opts,d_plan);
+	{
+		PROFILE_CUDA_GROUP("Amplify & Copy fktofw",2);
+		cudeconvolve2d(opts,d_plan);
+	}
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -194,7 +202,10 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 #endif
 	// Step 2: FFT
 	cudaEventRecord(start);
-	CUFFT_EX(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+	{
+		PROFILE_CUDA_GROUP("CUFFT Exec",2);
+		CUFFT_EX(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+	}
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -204,10 +215,13 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 
 	// Step 3: deconvolve and shuffle
         cudaEventRecord(start);
-        int ier = cuinterp2d(opts, d_plan);
-        if(ier != 0 ){
-                printf("error: cuinterp2d, method(%d)\n", opts.method);
-                return 0;
+	{
+		PROFILE_CUDA_GROUP("cuinterp2d",2);
+        	ier = cuinterp2d(opts, d_plan);
+		if(ier != 0 ){
+                	printf("error: cuinterp2d, method(%d)\n", opts.method);
+                	return 0;
+        	}
         }
 #ifdef TIME
         cudaEventRecord(stop);
