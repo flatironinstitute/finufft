@@ -6,6 +6,7 @@
 
 #include "../src/spreadinterp.h"
 #include "../src/cufinufft.h"
+#include "../src/profile.h"
 #include "../finufft/utils.h"
 
 using namespace std;
@@ -66,8 +67,11 @@ int main(int argc, char* argv[])
 
 	/*warm up gpu*/
 	cudaEventRecord(start);
-	char *a;
-	checkCudaErrors(cudaMalloc(&a,1));
+	{
+		PROFILE_CUDA_GROUP("Warm Up",1);
+		char *a;
+		checkCudaErrors(cudaMalloc(&a,1));
+	}
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -81,9 +85,12 @@ int main(int argc, char* argv[])
 	opts.method=method;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, N1, N2, iflag, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft2d_plan\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft2d_plan",2);
+		ier=cufinufft2d_plan(M, N1, N2, iflag, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft2d_plan\n");
+		}
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -91,9 +98,12 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_setNUpts(x, y, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft2d_setNUpts\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft2d_setNUpts",3);
+		ier=cufinufft2d_setNUpts(x, y, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft2d_setNUpts\n");
+		}
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -101,9 +111,12 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d2_exec(c, fk, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft2d2_exec\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft2d2_exec",4);
+		ier=cufinufft2d2_exec(c, fk, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft2d2_exec\n");
+		}
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -111,7 +124,10 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_destroy(opts, &dplan);
+	{
+		PROFILE_CUDA_GROUP("cufinufft2d_destroy",5);
+		ier=cufinufft2d_destroy(opts, &dplan);
+	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
