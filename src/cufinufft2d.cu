@@ -231,7 +231,10 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 #endif
 
 	cudaEventRecord(start);
-        checkCudaErrors(cudaMemcpy(h_c,d_plan->c,d_plan->M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
+	{
+		PROFILE_CUDA_GROUP("Copy c DtoH",2);
+        	checkCudaErrors(cudaMemcpy(h_c,d_plan->c,d_plan->M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
+	}
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
