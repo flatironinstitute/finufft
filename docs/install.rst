@@ -27,8 +27,8 @@ Dependencies
 ------------
 
 This library is fully supported for unix/linux and almost fully on
-Mac OSX.  We have heard that it is difficult to compile on Windows;
-for such a machine we suggest trying within the Windows Subsystem for
+Mac OSX.  We have also heard that it can be compiled under Windows
+using MinGW; we also suggest trying within the Windows Subsystem for
 Linux (WSL).
 
 For the basic libraries you need
@@ -97,7 +97,7 @@ This happens to also install the latest GCC, which is 8.2.0 in our tests.
    will allow fortran linking with ``gfortran``, but currently fails with
    octave.
 
-First the **clang route**.
+First the **clang route**, which is the default.
 Once you have downloaded FINUFFT, to set up for this, do::
 
   cp make.inc.macosx_clang make.inc
@@ -109,6 +109,18 @@ for python (note that pip is not installed with the default python v2)::
   pip3 install numpy pybind11
   make python3
   
+This should generate the ``finufftpy`` module (and ``finufftpy_cpp`` which it depends on).
+However, we have found that it may fail with an error about ``-lstdc++``,
+in which case you should try setting an environment variable::
+
+  export MACOSX_DEPLOYMENT_TARGET=10.14
+
+We have also found that running::
+
+  pip3 install .
+
+in the command line can work even when ``make python3`` does not (probably
+to do with environment variables).
 Octave interfaces work out of the box::
 
   brew install octave
