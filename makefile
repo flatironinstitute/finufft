@@ -1,5 +1,5 @@
 # Makefile for FINUFFT.
-# Barnett 11/1/18.
+# Barnett 2/12/19.
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # Users should not need to edit this makefile (doing so would make it hard to
@@ -143,9 +143,10 @@ endif
 $(STATICLIB): $(OBJS) $(HEADERS)
 	ar rcs $(STATICLIB) $(OBJS)
 $(DYNAMICLIB): $(OBJS) $(HEADERS)
-	$(CXX) -shared $(OMPFLAGS) $(LIBSFFT) $(OBJS) -o $(DYNAMICLIB)
-# here $(OMPFLAGS) $(LIBSFFT) is needed for mac osx.
+	$(CXX) -shared $(OMPFLAGS) $(OBJS) -o $(DYNAMICLIB) $(LIBSFFT)
+# here $(OMPFLAGS) and $(LIBSFFT) is needed for mac osx.
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
+# Also note -l libs come after objects, as per modern GCC requirement.
 
 # examples in C++ and C... (separate codes for double vs single prec)
 EX = examples/example1d1$(PRECSUFFIX)
@@ -186,7 +187,7 @@ perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft
 	(cd test; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
 	(cd test; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
 test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) $(LIBS) test/spreadtestnd.cpp $(SOBJS) -o test/spreadtestnd
+	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJS) $(LIBS) -o test/spreadtestnd
 
 # spreader only test (useful for development work on spreader)...
 spreadtest: test/spreadtestnd
