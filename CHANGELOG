@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order:
 
+* Bansal's Mingw32 python patches.
+
 V 1.1.1 (11/2/18)
 
 * Mac OSX installation on clang and gcc-8, clearer install docs.

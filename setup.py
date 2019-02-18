@@ -1,6 +1,8 @@
 # This defines the python module installation.
 # Only for double-prec, multi-threaded for now.
-# Barnett 3/1/18, updates by Yu-Hsuan Shih, June 2018.
+
+# Barnett 3/1/18. Updates by Yu-Hsuan Shih, June 2018.
+# win32 mingw patch by Vineet Bansal, Feb 2019.
 
 # Max OSX users: please edit as per below comments, and docs/install.rst
 
@@ -31,7 +33,12 @@ class get_pybind_include(object):
         return pybind11.get_include(self.user)
 
 # choose compile flags for finufftpy.cpp (links to finufft lib)...
-if sys.platform == "linux" or sys.platform == "linux2":
+if sys.platform == "win32":
+    libraries = ["lib-static/finufft","fftw3"]
+    extra_compile_args=['-fopenmp']
+    extra_link_args=[]
+
+elif sys.platform == "linux" or sys.platform == "linux2":
     # changed from fftw3_threads, since a bit faster, 9/24/18:
     libraries = ["lib-static/finufft","fftw3","fftw3_omp","gomp"]
     extra_compile_args=['-fopenmp']
@@ -99,6 +106,7 @@ class BuildExt(build_ext):
     c_opts = {
         'msvc': ['/EHsc'],
         'unix': [],
+        'mingw32': ['-D_hypot=hypot']
     }
 
     # Mac OSX w/ GCC (not clang) you may need to comment out the next two lines:
