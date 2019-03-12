@@ -126,7 +126,7 @@ c
 c
 c
         subroutine msgmerge(a,b,c)
-        character *1 a(1),b(1),c(1),ast
+        character *1 a(*),b(*),c(*),ast
         data ast/'*'/
 c
         do 1200 i=1,1000

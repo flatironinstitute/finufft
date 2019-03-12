@@ -1,0 +1,5 @@
+# example override compiler choices in makefile. Here we use GCC 7.
+
+CXX=g++-7
+CC=gcc-7
+FC=gfortran-7
