@@ -149,13 +149,19 @@ $(DYNAMICLIB): $(OBJS) $(HEADERS)
 # Also note -l libs come after objects, as per modern GCC requirement.
 
 # examples in C++ and C... (separate codes for double vs single prec)
-EX = examples/example1d1$(PRECSUFFIX)
-EXC = examples/example1d1c$(PRECSUFFIX)
-examples: $(EX) $(EXC)
+EX=examples/example1d1$(PRECSUFFIX)
+EXC=examples/example1d1c$(PRECSUFFIX)
+EX2=examples/example2d1
+
+examples: $(EX) $(EXC) $(EX2)
 	./$(EX)
 	./$(EXC)
+	./$(EX2)
+
 $(EX): $(EX).o $(STATICLIB)
 	$(CXX) $(CXXFLAGS) $(EX).o $(STATICLIB) $(LIBSFFT) -o $(EX)
+$(EX2): $(EX2).o $(STATICLIB)
+	$(CXX) $(CXXFLAGS) $(EX2).o $(STATICLIB) $(LIBSFFT) -o $(EX2)
 $(EXC): $(EXC).o $(STATICLIB)
 	$(CC) $(CFLAGS) $(EXC).o $(STATICLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
 
