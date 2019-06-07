@@ -55,9 +55,35 @@ int main(int argc, char* argv[])
   BIGINT N = N1*N2;
 
   FLT *x = (FLT *)malloc(sizeof(FLT)*M);        // NU pts x coords
+  if(!x){
+    fprintf(stderr, "failed malloc x coords");
+    return 1;
+  }
+
   FLT *y = (FLT *)malloc(sizeof(FLT)*M);        // NU pts y coords
+  if(!y){
+    fprintf(stderr, "failed malloc y coords");
+    free(x);
+    return 1;
+  }
+
   CPX* c = (CPX*)malloc(sizeof(CPX)*M);   // strengths 
+  if(!c){
+    fprintf(stderr, "failed malloc strengths");
+    free(x);
+    free(y);
+    return 1;
+  }
+
   CPX* F = (CPX*)malloc(sizeof(CPX)*N);   // mode ampls
+  if(!F){
+    fprintf(stderr, "failed malloc result array!");
+    free(x);
+    free(y);
+    free(c); 
+    return 1;
+  }
+  
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
@@ -87,9 +113,11 @@ int main(int argc, char* argv[])
   printf("one mode: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft-F[it])/infnorm(N,F));
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
-    dirft2d1(M,x,y,c,isign,N1,N2,Ft);
-    printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
-    free(Ft);
+    if(Ft){ 
+      dirft2d1(M,x,y,c,isign,N1,N2,Ft);
+      printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+      free(Ft);
+    }
   }
 
   printf("test 2d type-2:\n"); // -------------- type 2
@@ -116,10 +144,12 @@ int main(int argc, char* argv[])
   printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
   if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
+    if(ct){
     dirft2d2(M,x,y,ct,isign,N1,N2,F);
     printf("dirft2d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
     //cout<<"c,ct:\n"; for (int j=0;j<M;++j) cout<<c[j]<<"\t"<<ct[j]<<endl;
     free(ct);
+    }
   }
 
   printf("test 2d type-3:\n"); // -------------- type 3
@@ -161,10 +191,12 @@ int main(int argc, char* argv[])
   printf("one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
+    if(Ft){
     dirft2d3(M,x,y,c,isign,N,s,t,Ft);       // writes to F
     printf("dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     //cout<<"s t, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
+    }
   }
 
   free(x); free(y); free(c); free(F); free(s); free(t);

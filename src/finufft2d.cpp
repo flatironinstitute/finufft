@@ -64,7 +64,17 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
   FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  if(!fwkerhalf1){
+    fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
+    return ERR_MAXNALLOC;
+  }
   FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  if(!fwkerhalf2){
+    fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
+    free(fwkerhalf1);
+    return ERR_MAXNALLOC;
+  }
+
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
@@ -76,6 +86,13 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   }
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
+  if(!fw){
+    fprintf(stderr, "Call to malloc failed for result array allocation");
+    free(fwkerhalf1);
+    free(fwkerhalf2);
+    return ERR_MAXNALLOC; //release resources before exiting cleanly
+  }
+  
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
@@ -555,7 +572,17 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
     return ERR_MAXNALLOC;
   }
   FLT* xpj = (FLT*)malloc(sizeof(FLT)*nj);
+  if(!xpj){
+    fprintf(stderr, "Call to malloc failed for x source coordinate array allocation!");
+    return ERR_MAXNALLOC;
+  }
   FLT* ypj = (FLT*)malloc(sizeof(FLT)*nj);
+  if(!ypj){
+    fprintf(stderr, "Call to malloc failed for y source coordinate array allocation!");
+    free(xpj);
+    return ERR_MAXNALLOC;
+  }
+
   for (BIGINT j=0;j<nj;++j) {
     xpj[j] = (xj[j]-C1) / gam1;          // rescale x_j
     ypj[j] = (yj[j]-C2) / gam2;          // rescale y_j
