@@ -17,7 +17,7 @@ FLINK=$(CLINK)
 # compile flags for GCC, baseline single-threaded, double precision case...
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
-CFLAGS   = -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
+CFLAGS   =  -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
 CFLAGS   += -I src
 FFLAGS   = $(CFLAGS)
@@ -88,6 +88,7 @@ OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o sr
 OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rule_fast.o
 OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o
 OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o
+OBJSGURU = src/finufft_guru.o
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
@@ -166,7 +167,7 @@ $(EXC): $(EXC).o $(STATICLIB)
 	$(CC) $(CFLAGS) $(EXC).o $(STATICLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
 
 # validation tests... (most link to .o allowing testing pieces separately)
-test: $(STATICLIB) test/finufft1d_basicpassfail test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test
+test: $(STATICLIB) test/finufft1d_basicpassfail test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test test/finufft_guru_test
 	test/finufft1d_basicpassfail
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
@@ -185,7 +186,9 @@ test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)
 test/dumbinputs: test/dumbinputs.cpp $(STATICLIB) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(STATICLIB) $(LIBSFFT) -o test/dumbinputs
 test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS2) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
+	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS2)  $(LIBSFFT) -o test/finufft2dmany_test
+test/finufft_guru_test: test/finufft_guru_test.cpp  $(OBJS2)  $(OBJSGURU) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft_guru_test.cpp $(OBJS2)  $(OBJSGURU) $(LIBSFFT) -o test/finufft_guru_test
 
 # performance tests...
 perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft3d_test

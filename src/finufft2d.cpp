@@ -200,6 +200,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
                                    n[0]*n[1], fftsign, opts.fftw);
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
+  //all of this achieved in setup_spopts_nufft() except direction
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
