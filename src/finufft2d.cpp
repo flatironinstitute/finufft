@@ -212,7 +212,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   
   timer.restart();          // sort
   BIGINT *sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
-  int did_sort = spreadsort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  int did_sort = indexSort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
   if (opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", did_sort,
 			 timer.elapsedsec());
   
@@ -454,7 +454,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 
   timer.restart();            // sort
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
-  int did_sort = spreadsort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  int did_sort = indexSort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
   if (opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", did_sort,
 			 timer.elapsedsec());
 

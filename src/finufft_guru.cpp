@@ -104,12 +104,10 @@ int sortNUpoints(finufft_plan & plan , FLT *Xpts, FLT *Ypts, FLT *Zpts, CPX *tar
 
   CNTime timer; timer.start();
   plan.sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan.N);
-  plan.didSort = spreadsort(plan.sortIndices, plan.upsample_size[0], plan.upsample_size[1], plan.upsample_size[2], plan.N, Xpts, Ypts, Zpts, plan.spopts);
+  plan.didSort = indexSort(plan.sortIndices, plan.upsample_size[0], plan.upsample_size[1], plan.upsample_size[2], plan.N, Xpts, Ypts, Zpts, plan.spopts);
   if (plan.opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", plan.didSort,
 			      timer.elapsedsec());
   
-
-  //Do we want to store points to  X,Y,Z in the plan?
   if(plan.X)
     free(plan.X);
   if(plan.Y)
@@ -123,6 +121,8 @@ int sortNUpoints(finufft_plan & plan , FLT *Xpts, FLT *Ypts, FLT *Zpts, CPX *tar
   return 0;
   
 };
+
+
 
 
 int finufft_exec(finufft_plan & plan , CPX * weights, CPX * result){
@@ -141,12 +141,15 @@ int finufft_exec(finufft_plan & plan , CPX * weights, CPX * result){
     
   
     //CHECK ON ME : this conversion to FLT *??
-    ier_spread = spreadwithsortidx(plan.sortIndices, plan.upsample_size[0], plan.upsample_size[1], plan.upsample_size[2], (FLT*)plan.fw, plan.N, plan.X, plan.Y, plan.Z, (FLT *)weights, plan.spopts, plan.didSort) ;
+    if(plan.spopts.spread_direction == 1)
+      ier_spread = spreadSorted(plan.sortIndices, plan.upsample_size[0], plan.upsample_size[1], plan.upsample_size[2], (FLT*)plan.fw, plan.N, plan.X, plan.Y, plan.Z, (FLT *)weights, plan.spopts, plan.didSort) ;
+
+    else
+      ier_spread = interpSorted(plan.sortIndices, plan.upsample_size[0], plan.upsample_size[1], plan.upsample_size[2], (FLT*)plan.fw, plan.N, plan.X, plan.Y, plan.Z, (FLT *)weights, plan.spopts, plan.didSort) ;
+
     if(ier_spread) return ier_spread;
-    
+
     break;
-
-
 
     /* if type 2: deconvolve by ES kernel transform*/
   default:

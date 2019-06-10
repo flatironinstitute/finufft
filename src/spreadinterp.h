@@ -62,8 +62,15 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
                  BIGINT M, FLT *kx, FLT *ky, FLT *kz,
                  spread_opts opts);
 
-int spreadsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
+int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts);
+
+int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		 FLT *data_nonuniform, spread_opts opts, int did_sort);
+int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		 FLT *data_nonuniform, spread_opts opts, int did_sort);
 
 int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
