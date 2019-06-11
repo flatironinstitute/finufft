@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
   if (argc>8) sscanf(argv[8],"%lf",&upsampfac);
   opts.upsampfac=(FLT)upsampfac;
   if (argc==1 || argc==2 || argc>9) {
-    fprintf(stderr,"Usage: finufft2d_test [N1 N2 [Nsrc [howMany [tol [debug [spread_sort [upsampfac]]]]]]\n");
+    fprintf(stderr,"Usage: finufft_guru_test [N1 N2 [Nsrc [howMany [tol [debug [spread_sort [upsampfac]]]]]]\n");
     return 1;
   }
 
@@ -100,15 +100,14 @@ int main(int argc, char* argv[])
 	c[i] = crandm11r(&se);
   }
 
-  printf("test 2d type-1:\n"); // -------------- type 1
+  printf("test guru interface:\n"); // -------------- type 1
 
   finufft_plan plan;
 
   BIGINT n_modes[3] {N1, N2, 1}; //#modes per dimension 
-  BIGINT n_srcpts[3] {M,M,1}; //# pts per dimension
 
   CNTime timer; timer.start();
-  int ier = make_finufft_plan(finufft_type::type1, 2, &n_srcpts[0], &n_modes[0], isign, howMany,tol, plan);
+  int ier = make_finufft_plan(type1, 2,  n_modes, isign, howMany,tol, &plan);
   double t1 = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -118,7 +117,7 @@ int main(int argc, char* argv[])
   }
 
   timer.restart();
-  ier = sortNUpoints(plan, x, y, NULL, NULL);
+  ier = setNUpoints(&plan, M, x, y, NULL, NULL);
   t1 = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -126,7 +125,7 @@ int main(int argc, char* argv[])
     printf("set NU points for %lldx%lld src points completed in %.3g s\n", (long long)N1, (long long)N2, t1);
 
   timer.restart();
-  ier = finufft_exec(plan,c,F);
+  ier = finufft_exec(&plan,c,F);
   t1=timer.elapsedsec();
 
   if (ier!=0) {
@@ -152,6 +151,6 @@ int main(int argc, char* argv[])
     }
   }
   free(x); free(y); free(c); free(F);
-  finufft_destroy(plan);
+  finufft_destroy(&plan);
   return ier;
 }
