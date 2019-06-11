@@ -17,7 +17,7 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 2d, using the guru interface
 
-   Usage: finufft2d_test [Nmodes1 Nmodes2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]
+   Usage: finufft2d_test [Nmodes1 Nmodes2 [Nsrc [howMany [tol [debug [spread_sort [upsampfac]]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
   BIGINT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;        // default
-  
+  int howMany {1};
   nufft_opts opts; finufft_default_opts(&opts);
   opts.debug = 0;            // 1 to see some timings
   int isign = +1;             // choose which exponential sign to test
@@ -39,17 +39,18 @@ int main(int argc, char* argv[])
     sscanf(argv[2],"%lf",&w); N2 = (BIGINT)w;
   }
   if (argc>3) { sscanf(argv[3],"%lf",&w); M = (BIGINT)w; }
-  if (argc>4) {
-    sscanf(argv[4],"%lf",&tol);
+  if (argc>4) { sscanf(argv[4], "%d", &howMany); }
+  if (argc>5) {
+    sscanf(argv[5],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
-  if (argc>5) sscanf(argv[5],"%d",&opts.debug);
+  if (argc>6) sscanf(argv[6],"%d",&opts.debug);
   opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
-  if (argc>6) sscanf(argv[6],"%d",&opts.spread_sort);
-  if (argc>7) sscanf(argv[7],"%lf",&upsampfac);
+  if (argc>7) sscanf(argv[7],"%d",&opts.spread_sort);
+  if (argc>8) sscanf(argv[8],"%lf",&upsampfac);
   opts.upsampfac=(FLT)upsampfac;
-  if (argc==1 || argc==2 || argc>8) {
-    fprintf(stderr,"Usage: finufft2d_test [N1 N2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]\n");
+  if (argc==1 || argc==2 || argc>9) {
+    fprintf(stderr,"Usage: finufft2d_test [N1 N2 [Nsrc [howMany [tol [debug [spread_sort [upsampfac]]]]]]\n");
     return 1;
   }
 
@@ -69,7 +70,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  CPX* c = (CPX*)malloc(sizeof(CPX)*M);   // strengths 
+  CPX* c = (CPX*)malloc(sizeof(CPX)*M*howMany);   // strengths 
   if(!c){
     fprintf(stderr, "failed malloc strengths");
     free(x);
@@ -77,7 +78,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  CPX* F = (CPX*)malloc(sizeof(CPX)*N);   // mode ampls
+  CPX* F = (CPX*)malloc(sizeof(CPX)*N*howMany);   // mode ampls
   if(!F){
     fprintf(stderr, "failed malloc result array!");
     free(x);
@@ -93,8 +94,10 @@ int main(int argc, char* argv[])
     for (BIGINT j=0; j<M; ++j) {
       x[j] = M_PI*randm11r(&se);
       y[j] = M_PI*randm11r(&se);
-      c[j] = crandm11r(&se);
     }
+#pragma omp for schedule(dynamic,CHUNK)
+    for(BIGINT i = 0; i<howMany*M; i++)
+	c[i] = crandm11r(&se);
   }
 
   printf("test 2d type-1:\n"); // -------------- type 1
@@ -105,7 +108,7 @@ int main(int argc, char* argv[])
   BIGINT n_srcpts[3] {M,M,1}; //# pts per dimension
 
   CNTime timer; timer.start();
-  int ier = make_finufft_plan(finufft_type::type1, 2, &n_srcpts[0], &n_modes[0], isign, 1,tol, plan);
+  int ier = make_finufft_plan(finufft_type::type1, 2, &n_srcpts[0], &n_modes[0], isign, howMany,tol, plan);
   double t1 = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

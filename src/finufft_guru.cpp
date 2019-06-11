@@ -74,7 +74,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_pts, BIGINT *n_mo
     plan.upsample_size[0] = nf1;
     plan.upsample_size[1] = nf2;
     plan.upsample_size[2] = 1l;
-    plan.fw = FFTW_ALLOC_CPX(nf1*nf2);  
+    plan.fw = FFTW_ALLOC_CPX(nf1*nf2*how_many);  
     if(!plan.fw){
       fprintf(stderr, "Call to malloc failed for working upsampled array allocation");
       free(plan.fwker);
@@ -85,7 +85,11 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_pts, BIGINT *n_mo
     int fftsign = (iflag>=0) ? 1 : -1;
 
     //TYPE/DIMENSION/HOW MANY DEPENDENT 
-    plan.fftwPlan = FFTW_PLAN_2D(nf2,nf1,plan.fw,plan.fw,fftsign, opts.fftw);  // row-major order, in-place
+
+    const int n[] {(int)nf2, (int)nf1};
+    //HOW_MANY INSTEAD OF NTH? 
+    plan.fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, n, how_many, plan.fw, n, 1, n[0]*n[1], plan.fw, n, 1, n[0]*n[1], fftsign, opts.fftw ) ; 
+
     if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
      
 
