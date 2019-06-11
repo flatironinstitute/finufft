@@ -112,9 +112,10 @@ int main(int argc, char* argv[])
   double t1 = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
-  } else
-    printf("finufft_plan creation for %lldx%lld modes \n completed in %.3g s\n", (long long)M, (long long)M, t1);
-  
+  } else{
+    if(opts.debug)
+      printf("finufft_plan creation for %lldx%lld modes \n completed in %.3g s\n", (long long)M, (long long)M, t1);
+  }
 
   timer.restart();
   ier = sortNUpoints(plan, x, y, NULL, NULL);
