@@ -12,16 +12,17 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     //TO DO - re-experiment with initialization bug through Matlab
     nufft_opts opts;
     finufft_default_opts(&opts);
-
+    
     spread_opts spopts;
     int ier_set = setup_spreader_for_nufft(spopts, tol, opts);
     if(ier_set) return ier_set;
-
+    
     plan->spopts = spopts;
     
     plan->type = type;
     plan->n_dims = n_dims;
 
+    plan->how_many = how_many;
     plan->ms = n_modes[0];
     plan->mt = n_modes[1];
     plan->mu = n_modes[2];
@@ -114,8 +115,9 @@ int setNUpoints(finufft_plan * plan , BIGINT M, FLT *Xpts, FLT *Ypts, FLT *Zpts,
   CNTime timer; timer.start();
   plan->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan->M);
   plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->M, Xpts, Ypts, Zpts, plan->spopts);
-  if (plan->opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
-			      timer.elapsedsec());
+
+  if (plan->opts.debug) printf("[guru] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
+  			      timer.elapsedsec());
   
   if(plan->X)
     free(plan->X);
@@ -150,12 +152,21 @@ int finufft_exec(finufft_plan * plan , CPX * weights, CPX * result){
     
   
     //CHECK ON ME : this conversion to FLT *??
-    if(plan->spopts.spread_direction == 1)
-      ier_spread = spreadSorted(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, (FLT*)plan->fw, plan->M, plan->X, plan->Y, plan->Z, (FLT *)weights, plan->spopts, plan->didSort) ;
+    if(plan->spopts.spread_direction == 1){
 
-    else
+      //spread weights for all "howMany" vecs
+      timer.restart();
+      for(int i = 0; i < plan->how_many; i++)
+	ier_spread = spreadSorted(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, (FLT*)plan->fw + 2*plan->nf1*plan->nf2*i, plan->M, plan->X, plan->Y, plan->Z, (FLT *)weights + 2*plan->M*i, plan->spopts, plan->didSort) ;
+      time_spread = timer.elapsedsec();
+      if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
+    }
+    
+    
+    else{
+      //TO DO ADD LOOP
       ier_spread = interpSorted(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, (FLT*)plan->fw, plan->M, plan->X, plan->Y, plan->Z, (FLT *)weights, plan->spopts, plan->didSort) ;
-
+    }
     if(ier_spread) return ier_spread;
 
     break;
@@ -166,24 +177,26 @@ int finufft_exec(finufft_plan * plan , CPX * weights, CPX * result){
 
   }
   
-
+  
   
   //Step 2: Call FFT
   timer.restart();
   FFTW_EX(plan->fftwPlan);
-  if(plan->opts.debug) printf("fft : \t %.3g s\n", timer.elapsedsec());
+  double time_exec = timer.elapsedsec();
+  if(plan->opts.debug) printf("[guru] fft :\t\t\t %.3g s\n", time_exec);
 
-  
+  double time_deconv{0.0};
   
   switch(plan->type){
 
     //Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
   case type1:
     timer.restart();
-
-    deconvolveshuffle2d(1,1.0,plan->fwker, plan->fwker+(plan->nf1/2+1), plan->ms, plan->mt, (FLT *)result, plan->nf1, plan->nf2, plan->fw, plan->opts.modeord);
-
-    if(plan->opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
+    for(int i = 0; i < plan->how_many; i++)
+      deconvolveshuffle2d(1,1.0,plan->fwker, plan->fwker+(plan->nf1/2+1), plan->ms, plan->mt, (FLT *)result + 2*plan->ms*plan->mt*i, plan->nf1, plan->nf2, plan->fw + plan->nf1*plan->nf2*i, plan->opts.modeord);
+    
+    time_deconv = timer.elapsedsec(); 
+    if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", time_deconv);
     
     break;
   default:

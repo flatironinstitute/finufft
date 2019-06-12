@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n", ndata,(long long)M,(long long)N1,(long long)N2,ti,ndata*M/ti);
+    printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s or  \t%.3g NU pts/s\n", ndata,(long long)M,(long long)N1,(long long)N2,ti,ndata*M/ti);
 
   // compare the result with finufft2d1
   FFTW_FORGET_WISDOM(); // for fair comparison
