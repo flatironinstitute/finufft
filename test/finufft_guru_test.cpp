@@ -18,7 +18,7 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 2d, using the guru interface
 
-   Usage: finufft2d_test [Nmodes1 Nmodes2 [Nsrc [howMany [tol [debug [spread_sort [upsampfac]]]]]]]
+   Usage: finufft2d_test [Nmodes1 Nmodes2 [Nsrc [nvecs [tol [debug [spread_sort [upsampfac]]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
   BIGINT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;        // default
-  int howMany {1};
+  int nvecs {1};
   
   
   int isign = +1;             // choose which exponential sign to test
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     sscanf(argv[2],"%lf",&w); N2 = (BIGINT)w;
   }
   if (argc>3) { sscanf(argv[3],"%lf",&w); M = (BIGINT)w; }
-  if (argc>4) { sscanf(argv[4], "%d", &howMany); }
+  if (argc>4) { sscanf(argv[4], "%d", &nvecs); }
   if (argc>5) {
     sscanf(argv[5],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
   if (argc>8) sscanf(argv[8],"%lf",&upsampfac);
 
   if (argc==1 || argc==2 || argc>9) {
-    fprintf(stderr,"Usage: finufft_guru_test [N1 N2 [Nsrc [howMany [tol [debug [spread_sort [upsampfac]]]]]]\n");
+    fprintf(stderr,"Usage: finufft_guru_test [N1 N2 [Nsrc [nvecs [tol [debug [spread_sort [upsampfac]]]]]]\n");
     return 1;
   }
 
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  CPX* c = (CPX*)malloc(sizeof(CPX)*M*howMany);   // strengths 
+  CPX* c = (CPX*)malloc(sizeof(CPX)*M*nvecs);   // strengths 
   if(!c){
     fprintf(stderr, "failed malloc strengths");
     free(x);
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  CPX* F = (CPX*)malloc(sizeof(CPX)*N*howMany);   // mode ampls
+  CPX* F = (CPX*)malloc(sizeof(CPX)*N*nvecs);   // mode ampls
   if(!F){
     fprintf(stderr, "failed malloc result array!");
     free(x);
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
       y[j] = M_PI*randm11r(&se);
     }
 #pragma omp for schedule(dynamic,CHUNK)
-    for(BIGINT i = 0; i<howMany*M; i++)
+    for(BIGINT i = 0; i<nvecs*M; i++)
 	c[i] = crandm11r(&se);
   }
 
@@ -113,12 +113,12 @@ int main(int argc, char* argv[])
 
   int n_dims = 2;
   CNTime timer; timer.start();
-  int ier = make_finufft_plan(type1, n_dims,  n_modes, isign, howMany,tol, &plan);
+  int ier = make_finufft_plan(type1, n_dims,  n_modes, isign, nvecs,tol, &plan);
   double plan_t = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else{
-      printf("finufft_plan creation for %lldx%lld modes completed in %.3g s\n", (long long)M, (long long)M, plan_t);
+    printf("finufft_plan creation for %lld modes completed in %.3g s\n", (long long)N, plan_t);
   }
 
   plan.opts.upsampfac=(FLT)upsampfac;
@@ -143,8 +143,8 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("execute %d of: %lld NU pts to (%lld,%lld) modes in %.3g s or \t%.3g NU pts/s\n", howMany, 
-	   (long long)M,(long long)N1,(long long)N2,exec_t,howMany*M/exec_t);
+    printf("execute %d of: %lld NU pts to (%lld,%lld) modes in %.3g s or \t%.3g NU pts/s\n", nvecs, 
+	   (long long)M,(long long)N1,(long long)N2,exec_t,nvecs*M/exec_t);
 
   //Error Checking 
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
@@ -153,15 +153,15 @@ int main(int argc, char* argv[])
 
   for (BIGINT j=0; j<M; ++j){
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
-    if(howMany > 1){
-      Ft_last += c[j+ (howMany-1)*M] *  exp(J*(nt1*x[j]+nt2*y[j]));
+    if(nvecs > 1){
+      Ft_last += c[j+ (nvecs-1)*M] *  exp(J*(nt1*x[j]+nt2*y[j]));
     }
   }
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
   printf("one mode in first trial: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft-F[it])/infnorm(N,F));
 
-  if(howMany > 1)
-    printf("one mode in last trial: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft_last-F[it+(howMany-1)*M])/infnorm(N,F));
+  if(nvecs > 1)
+    printf("one mode in last trial: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft_last-F[it+(nvecs-1)*M])/infnorm(N,F));
   
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
@@ -171,46 +171,74 @@ int main(int argc, char* argv[])
       free(Ft);
     }
   }
- free(F);
- 
-  CPX* F_comp = (CPX*)malloc(sizeof(CPX)*N*howMany);   // mode ampls
-  if(!F_comp)
+
+
+ //compare timing results with finufft2dmany
+
+ FFTW_FORGET_WISDOM();
+ FLT maxerror{0.0};
+ CPX* F_compMany = (CPX*)malloc(sizeof(CPX)*N*nvecs);   // mode ampls
+
+ if(!F_compMany)
     printf("failed to malloc comparison result array\n");
 
   else{
 
-    #pragma omp parallel
-  {
-    unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+    printf("test finufft2d1many interface\n");
+    timer.restart();
+    ier = finufft2d1many(nvecs, M, x, y, c, isign , tol, N1, N2, F_compMany, plan.opts);
+    double t_compMany =timer.elapsedsec();
 
-
-   #pragma omp for schedule(dynamic,CHUNK)
-    for (BIGINT j=0; j<M; ++j) {
-      x[j] = M_PI*randm11r(&se);
-      y[j] = M_PI*randm11r(&se);
+    if(ier!=0){
+      printf("error (ier=%d)!\n", ier);
     }
-  #pragma omp for schedule(dynamic,CHUNK)
-    for(BIGINT i = 0; i<howMany*M; i++)
-	c[i] = crandm11r(&se);
+
+    else{
+      printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n", nvecs,(long long)M,(long long)N1,(long long)N2,t_compMany,nvecs*M/t_compMany);
   
-  }  
-  //compare the result with finufft2dmany
-  printf("test finufft2d1many interface\n");
+      printf("\tspeedup (T_finufft2d1many/T_finufft_guru) = %.3g\n", t_compMany/(plan_t + sort_t + exec_t));
+    }
+
+    //check accuracy (worst over the nvecs)
+    for(int k = 0; k < nvecs; k++)
+      maxerror = max(maxerror, relerrtwonorm(N, F_compMany + k*N, F + k*N));
+    printf("err check vs many: sup( ||F_guru-F_many|| / ||F_many||_2 ) = %.3g\n", maxerror);
+    
+    
+    free(F_compMany);
+  }
+  
+  //comparing timing results with repeated finufft2d1
   FFTW_FORGET_WISDOM();
-  timer.restart();
-  ier = finufft2d1many(howMany, M, x, y, c, isign , tol, N1, N2, F_comp, plan.opts);
-  double t_comp =timer.elapsedsec();
-  if(ier!=0){
-    printf("error (ier=%d)!\n", ier);
+  CPX *cStart;
+  CPX *fStart;
+
+  CPX  *F_compSingle = (CPX *)malloc(sizeof(CPX)*N*nvecs);
+  if(!F_compSingle){
+    printf("failed to malloc result array for single finufft comparison\n");
   }
   else{
-    printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n", howMany,(long long)M,(long long)N1,(long long)N2,t_comp,howMany*M/t_comp);
-  
-    printf("\tspeedup (T_finufft_guru/T_finufft2d1many) = %.3g\n", t_comp/(plan_t + sort_t + exec_t));
+    //dial down output
+    plan.opts.debug = 0;
+    plan.opts.spread_debug = 0;
+    timer.restart();
+    for(int k = 0; k < nvecs; k++){
+      cStart = c + M*k;
+      fStart = F_compSingle + N*k;
+      ier = finufft2d1(M, x, y, cStart, isign, tol, N1, N2, fStart, plan.opts);
+    }
+    double t_compSingle = timer.elapsedsec();
+    printf("\tspeedup (T_finufft2d1/T_finufft_guru) = %.3g\n", t_compSingle/(plan_t + sort_t + exec_t));
+
+    //check accuracy (worst over the nvecs)
+    for(int k = 0; k < nvecs; k++)
+      maxerror = max(maxerror, relerrtwonorm(N, F_compSingle + k*N, F + k*N));
+    printf("err check vs non-many: sup( ||F_guru-F_single|| / ||F_single||_2 ) = %.3g\n", maxerror);
+    
+    free(F_compSingle);
+    FFTW_FORGET_WISDOM();
   }
-  
-  }
-  free(x); free(y); free(c);
+  free(F);  free(x); free(y); free(c);
   finufft_destroy(&plan);
   return ier;
 }

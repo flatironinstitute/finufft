@@ -117,7 +117,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
-  if (opts.debug) printf("freed\n");
+  //if (opts.debug) printf("freed\n");
   return 0;
 }
 
@@ -269,7 +269,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   FFTW_DE(p);
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
   free(ier_spreads);
-  if (opts.debug) printf("freed\n");
+  //if (opts.debug) printf("freed\n");
   return 0;
 }
 

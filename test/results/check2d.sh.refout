@@ -17,3 +17,5 @@ test guru interface:
 one mode in first trial: rel err in F[37,2] is 0
 one mode in last trial: rel err in F[37,2] is 0
 dirft2d: rel l2-err of result F is 0
+err check vs many: sup( ||F_guru-F_many|| / ||F_many||_2 ) = 0
+err check vs non-many: sup( ||F_guru-F_single|| / ||F_single||_2 ) = 0
