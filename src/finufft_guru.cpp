@@ -40,7 +40,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     set_nf_type12(plan->ms, opts, spopts, &nf1); //type/DIMENSION dependent line
     BIGINT nf2;
     set_nf_type12(plan->mt, opts, spopts, &nf2); //type/DIMENSION dependent line
-    BIGINT nf3{0};
+    BIGINT nf3{1};
     
     //ensure size of upsampled grid does not exceed MAX
     if (nf1*nf2>MAX_NF) {  //DIMENSION DEPENDENT LINE

@@ -1,0 +1,608 @@
+test guru interface:
+finufft_plan creation for 100x100 modes completed in 0.00197 s
+starting spread 2D (dir=1. M=100; N1=20,N2=20,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.000145 s
+[guru] sort (did_sort=1):	 0.00015 s
+set NU points for 10x10 src points completed in 0.000153 s
+	zero output array	6.91e-06 s
+	t1 fancy spread: 	0.000466 s (32 subprobs)
+	zero output array	5.01e-06 s
+	t1 fancy spread: 	0.000122 s (32 subprobs)
+	zero output array	7.15e-06 s
+	t1 fancy spread: 	0.000118 s (32 subprobs)
+	zero output array	1.41e-05 s
+	t1 fancy spread: 	0.000123 s (32 subprobs)
+	zero output array	5.96e-06 s
+	t1 fancy spread: 	0.000115 s (32 subprobs)
+	zero output array	7.87e-06 s
+	t1 fancy spread: 	0.000124 s (32 subprobs)
+	zero output array	5.01e-06 s
+	t1 fancy spread: 	0.000117 s (32 subprobs)
+	zero output array	9.06e-06 s
+	t1 fancy spread: 	0.000112 s (32 subprobs)
+	zero output array	5.01e-06 s
+	t1 fancy spread: 	0.000115 s (32 subprobs)
+	zero output array	5.01e-06 s
+	t1 fancy spread: 	0.000117 s (32 subprobs)
+[guru] spread:			 0.00162 s
+[guru] fft :			 2e-05 s
+deconvolve & copy out:		 2.19e-05 s
+execute 10 of: 100 NU pts to (10,10) modes in 0.00166 s or 	6.01e+05 NU pts/s
+one mode in first trial: rel err in F[3,2] is 4.25e-07
+one mode in last trial: rel err in F[3,2] is 2.29e-07
+dirft2d: rel l2-err of result F is 8.78e-07
+test finufft2d1many interface
+2d1many: ndata=10 (ms,mt)=(10,10) (nf1,nf2)=(20,20) nj=100 ...
+kernel fser (ns=7):	 0.000159 s
+fftw plan (64)    	 0.000514 s
+starting spread 2D (dir=1. M=100; N1=20,N2=20,N3=1; pir=1), 8 threads
+	sorted (8 threads):	7.49e-05 s
+[many] sort (did_sort=1):	 7.68e-05 s
+	zero output array	1.5e-05 s
+	zero output array	2.1e-05 s
+	zero output array	2.31e-05 s
+	zero output array	1.41e-05 s
+	zero output array	2.31e-05 s
+	zero output array	1.72e-05 s
+	zero output array	2.31e-05 s
+	zero output array	2.31e-05 s
+	t1 fancy spread: 	0.000662 s (32 subprobs)
+	t1 fancy spread: 	0.00069 s (32 subprobs)
+	t1 fancy spread: 	0.000746 s (32 subprobs)
+	t1 fancy spread: 	0.000743 s (32 subprobs)
+	t1 fancy spread: 	0.000753 s (32 subprobs)
+	t1 fancy spread: 	0.00078 s (32 subprobs)
+	t1 fancy spread: 	0.000867 s (32 subprobs)
+	t1 fancy spread: 	0.000825 s (32 subprobs)
+	zero output array	1.91e-06 s
+	zero output array	1.91e-06 s
+	t1 fancy spread: 	0.000235 s (32 subprobs)
+	t1 fancy spread: 	0.000233 s (32 subprobs)
+[many] spread:			 0.00116 s
+[many] fft (8 threads):		 1.81e-05 s
+[many] deconvolve & copy out:	 6.91e-06 s
+freed
+    10 of: 100 NU pts to (10,10) modes in 0.002 s 	4.99e+05 NU pts/s
+	speedup (T_finufft_guru/T_finufft2d1many) = 0.529
+test guru interface:
+finufft_plan creation for 10000x10000 modes completed in 0.00633 s
+starting spread 2D (dir=1. M=10000; N1=200,N2=200,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.00137 s
+[guru] sort (did_sort=1):	 0.00139 s
+set NU points for 100x100 src points completed in 0.0014 s
+	zero output array	0.000437 s
+	t1 fancy spread: 	0.0021 s (32 subprobs)
+	zero output array	0.000432 s
+	t1 fancy spread: 	0.00226 s (32 subprobs)
+	zero output array	0.000865 s
+	t1 fancy spread: 	0.00174 s (32 subprobs)
+	zero output array	0.000404 s
+	t1 fancy spread: 	0.00166 s (32 subprobs)
+	zero output array	0.000412 s
+	t1 fancy spread: 	0.00166 s (32 subprobs)
+	zero output array	0.000402 s
+	t1 fancy spread: 	0.00167 s (32 subprobs)
+	zero output array	0.000392 s
+	t1 fancy spread: 	0.00182 s (32 subprobs)
+	zero output array	0.000391 s
+	t1 fancy spread: 	0.00171 s (32 subprobs)
+	zero output array	0.000383 s
+	t1 fancy spread: 	0.00157 s (32 subprobs)
+	zero output array	0.000366 s
+	t1 fancy spread: 	0.00159 s (32 subprobs)
+[guru] spread:			 0.0223 s
+[guru] fft :			 0.0021 s
+deconvolve & copy out:		 0.00204 s
+execute 10 of: 10000 NU pts to (100,100) modes in 0.0264 s or 	3.78e+06 NU pts/s
+one mode in first trial: rel err in F[37,26] is 3.98e-07
+one mode in last trial: rel err in F[37,26] is 3.71e-07
+dirft2d: rel l2-err of result F is 1.16e-06
+test finufft2d1many interface
+2d1many: ndata=10 (ms,mt)=(100,100) (nf1,nf2)=(200,200) nj=10000 ...
+kernel fser (ns=7):	 9.42e-05 s
+fftw plan (64)    	 0.00142 s
+starting spread 2D (dir=1. M=10000; N1=200,N2=200,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.000358 s
+[many] sort (did_sort=1):	 0.000365 s
+	zero output array	0.000433 s
+	zero output array	0.000454 s
+	zero output array	0.000467 s
+	zero output array	0.000471 s
+	zero output array	0.000478 s
+	zero output array	0.000483 s
+	zero output array	0.000483 s
+	zero output array	0.000454 s
+	t1 fancy spread: 	0.0104 s (32 subprobs)
+	t1 fancy spread: 	0.0108 s (32 subprobs)
+	t1 fancy spread: 	0.0109 s (32 subprobs)
+	t1 fancy spread: 	0.011 s (32 subprobs)
+	t1 fancy spread: 	0.0112 s (32 subprobs)
+	t1 fancy spread: 	0.0112 s (32 subprobs)
+	t1 fancy spread: 	0.0113 s (32 subprobs)
+	t1 fancy spread: 	0.0113 s (32 subprobs)
+	zero output array	0.000149 s
+	zero output array	0.000149 s
+	t1 fancy spread: 	0.00822 s (32 subprobs)
+	t1 fancy spread: 	0.00851 s (32 subprobs)
+[many] spread:			 0.0205 s
+[many] fft (8 threads):		 0.00292 s
+[many] deconvolve & copy out:	 0.000339 s
+freed
+    10 of: 10000 NU pts to (100,100) modes in 0.026 s 	3.85e+06 NU pts/s
+	speedup (T_finufft_guru/T_finufft2d1many) = 0.761
+test guru interface:
+finufft_plan creation for 10000x10000 modes completed in 0.00233 s
+starting spread 2D (dir=1. M=10000; N1=200,N2=200,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.0105 s
+[guru] sort (did_sort=1):	 0.0105 s
+set NU points for 100x100 src points completed in 0.0105 s
+	zero output array	0.000371 s
+	t1 fancy spread: 	0.004 s (32 subprobs)
+	zero output array	0.000403 s
+	t1 fancy spread: 	0.00232 s (32 subprobs)
+	zero output array	0.000499 s
+	t1 fancy spread: 	0.00204 s (32 subprobs)
+	zero output array	0.000529 s
+	t1 fancy spread: 	0.002 s (32 subprobs)
+	zero output array	0.000515 s
+	t1 fancy spread: 	0.00204 s (32 subprobs)
+	zero output array	0.000489 s
+	t1 fancy spread: 	0.00174 s (32 subprobs)
+	zero output array	0.00043 s
+	t1 fancy spread: 	0.00177 s (32 subprobs)
+	zero output array	0.000465 s
+	t1 fancy spread: 	0.00181 s (32 subprobs)
+	zero output array	0.000563 s
+	t1 fancy spread: 	0.00248 s (32 subprobs)
+	zero output array	0.000451 s
+	t1 fancy spread: 	0.00184 s (32 subprobs)
+	zero output array	0.000468 s
+	t1 fancy spread: 	0.00178 s (32 subprobs)
+	zero output array	0.000462 s
+	t1 fancy spread: 	0.0018 s (32 subprobs)
+	zero output array	0.00044 s
+	t1 fancy spread: 	0.00179 s (32 subprobs)
+	zero output array	0.000444 s
+	t1 fancy spread: 	0.00179 s (32 subprobs)
+	zero output array	0.000444 s
+	t1 fancy spread: 	0.00192 s (32 subprobs)
+	zero output array	0.000456 s
+	t1 fancy spread: 	0.00175 s (32 subprobs)
+	zero output array	0.00044 s
+	t1 fancy spread: 	0.00225 s (32 subprobs)
+	zero output array	0.000476 s
+	t1 fancy spread: 	0.0018 s (32 subprobs)
+	zero output array	0.000458 s
+	t1 fancy spread: 	0.00179 s (32 subprobs)
+	zero output array	0.000434 s
+	t1 fancy spread: 	0.00175 s (32 subprobs)
+	zero output array	0.00044 s
+	t1 fancy spread: 	0.0018 s (32 subprobs)
+	zero output array	0.000434 s
+	t1 fancy spread: 	0.002 s (32 subprobs)
+	zero output array	0.000456 s
+	t1 fancy spread: 	0.00176 s (32 subprobs)
+	zero output array	0.00045 s
+	t1 fancy spread: 	0.00209 s (32 subprobs)
+	zero output array	0.000471 s
+	t1 fancy spread: 	0.00182 s (32 subprobs)
+	zero output array	0.000447 s
+	t1 fancy spread: 	0.00212 s (32 subprobs)
+	zero output array	0.000446 s
+	t1 fancy spread: 	0.00175 s (32 subprobs)
+	zero output array	0.000444 s
+	t1 fancy spread: 	0.0018 s (32 subprobs)
+	zero output array	0.000463 s
+	t1 fancy spread: 	0.00182 s (32 subprobs)
+	zero output array	0.00048 s
+	t1 fancy spread: 	0.00174 s (32 subprobs)
+	zero output array	0.000455 s
+	t1 fancy spread: 	0.00194 s (32 subprobs)
+	zero output array	0.000498 s
+	t1 fancy spread: 	0.00185 s (32 subprobs)
+	zero output array	0.000447 s
+	t1 fancy spread: 	0.00174 s (32 subprobs)
+	zero output array	0.000438 s
+	t1 fancy spread: 	0.00388 s (32 subprobs)
+	zero output array	0.000423 s
+	t1 fancy spread: 	0.0023 s (32 subprobs)
+	zero output array	0.000498 s
+	t1 fancy spread: 	0.00194 s (32 subprobs)
+	zero output array	0.000464 s
+	t1 fancy spread: 	0.00215 s (32 subprobs)
+	zero output array	0.000521 s
+	t1 fancy spread: 	0.00205 s (32 subprobs)
+	zero output array	0.000487 s
+	t1 fancy spread: 	0.002 s (32 subprobs)
+	zero output array	0.000538 s
+	t1 fancy spread: 	0.00194 s (32 subprobs)
+	zero output array	0.000441 s
+	t1 fancy spread: 	0.00192 s (32 subprobs)
+	zero output array	0.000447 s
+	t1 fancy spread: 	0.00321 s (32 subprobs)
+	zero output array	0.000411 s
+	t1 fancy spread: 	0.00182 s (32 subprobs)
+	zero output array	0.000425 s
+	t1 fancy spread: 	0.00187 s (32 subprobs)
+	zero output array	0.000465 s
+	t1 fancy spread: 	0.00184 s (32 subprobs)
+[guru] spread:			 0.113 s
+[guru] fft :			 0.00924 s
+deconvolve & copy out:		 0.00637 s
+execute 45 of: 10000 NU pts to (100,100) modes in 0.128 s or 	3.51e+06 NU pts/s
+one mode in first trial: rel err in F[37,26] is 1.18e-07
+one mode in last trial: rel err in F[37,26] is 1.4e-07
+dirft2d: rel l2-err of result F is 1.15e-06
+test finufft2d1many interface
+2d1many: ndata=45 (ms,mt)=(100,100) (nf1,nf2)=(200,200) nj=10000 ...
+kernel fser (ns=7):	 0.000709 s
+fftw plan (64)    	 0.00187 s
+starting spread 2D (dir=1. M=10000; N1=200,N2=200,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.000332 s
+[many] sort (did_sort=1):	 0.000337 s
+	zero output array	0.000424 s
+	zero output array	0.000435 s
+	zero output array	0.000452 s
+	zero output array	0.000455 s
+	zero output array	0.000462 s
+	zero output array	0.000469 s
+	zero output array	0.000472 s
+	zero output array	0.000477 s
+	t1 fancy spread: 	0.0123 s (32 subprobs)
+	t1 fancy spread: 	0.0126 s (32 subprobs)
+	t1 fancy spread: 	0.0127 s (32 subprobs)
+	t1 fancy spread: 	0.0127 s (32 subprobs)
+	t1 fancy spread: 	0.0132 s (32 subprobs)
+	t1 fancy spread: 	0.0138 s (32 subprobs)
+	t1 fancy spread: 	0.014 s (32 subprobs)
+	t1 fancy spread: 	0.0141 s (32 subprobs)
+	zero output array	0.00028 s
+	zero output array	0.000301 s
+	zero output array	0.000303 s
+	zero output array	0.000317 s
+	zero output array	0.000318 s
+	zero output array	0.000349 s
+	zero output array	0.00028 s
+	zero output array	0.000765 s
+	t1 fancy spread: 	0.0135 s (32 subprobs)
+	t1 fancy spread: 	0.0136 s (32 subprobs)
+	t1 fancy spread: 	0.0136 s (32 subprobs)
+	t1 fancy spread: 	0.0137 s (32 subprobs)
+	t1 fancy spread: 	0.0139 s (32 subprobs)
+	t1 fancy spread: 	0.0142 s (32 subprobs)
+	t1 fancy spread: 	0.0137 s (32 subprobs)
+	t1 fancy spread: 	0.0143 s (32 subprobs)
+	zero output array	0.000232 s
+	zero output array	0.000264 s
+	zero output array	0.000265 s
+	zero output array	0.000264 s
+	zero output array	0.000235 s
+	zero output array	0.000264 s
+	zero output array	0.000265 s
+	zero output array	0.000265 s
+	t1 fancy spread: 	0.0138 s (32 subprobs)
+	t1 fancy spread: 	0.0146 s (32 subprobs)
+	t1 fancy spread: 	0.0146 s (32 subprobs)
+	t1 fancy spread: 	0.0149 s (32 subprobs)
+	t1 fancy spread: 	0.0151 s (32 subprobs)
+	t1 fancy spread: 	0.0154 s (32 subprobs)
+	t1 fancy spread: 	0.0154 s (32 subprobs)
+	t1 fancy spread: 	0.0158 s (32 subprobs)
+	zero output array	0.000266 s
+	zero output array	0.000301 s
+	zero output array	0.000303 s
+	zero output array	0.000268 s
+	zero output array	0.000302 s
+	zero output array	0.000301 s
+	zero output array	0.000303 s
+	zero output array	0.000303 s
+	t1 fancy spread: 	0.0139 s (32 subprobs)
+	t1 fancy spread: 	0.0141 s (32 subprobs)
+	t1 fancy spread: 	0.0142 s (32 subprobs)
+	t1 fancy spread: 	0.0143 s (32 subprobs)
+	t1 fancy spread: 	0.0144 s (32 subprobs)
+	t1 fancy spread: 	0.0148 s (32 subprobs)
+	t1 fancy spread: 	0.0152 s (32 subprobs)
+	t1 fancy spread: 	0.0155 s (32 subprobs)
+	zero output array	0.000281 s
+	zero output array	0.000283 s
+	zero output array	0.000319 s
+	zero output array	0.000323 s
+	zero output array	0.000322 s
+	zero output array	0.000321 s
+	zero output array	0.000322 s
+	zero output array	0.000322 s
+	t1 fancy spread: 	0.0135 s (32 subprobs)
+	t1 fancy spread: 	0.0142 s (32 subprobs)
+	t1 fancy spread: 	0.0143 s (32 subprobs)
+	t1 fancy spread: 	0.0144 s (32 subprobs)
+	t1 fancy spread: 	0.0147 s (32 subprobs)
+	t1 fancy spread: 	0.0148 s (32 subprobs)
+	t1 fancy spread: 	0.0159 s (32 subprobs)
+	t1 fancy spread: 	0.0188 s (32 subprobs)
+	zero output array	0.000173 s
+	zero output array	0.000214 s
+	zero output array	0.000214 s
+	zero output array	0.000246 s
+	zero output array	0.000246 s
+	t1 fancy spread: 	0.0114 s (32 subprobs)
+	t1 fancy spread: 	0.0124 s (32 subprobs)
+	t1 fancy spread: 	0.0129 s (32 subprobs)
+	t1 fancy spread: 	0.0131 s (32 subprobs)
+	t1 fancy spread: 	0.0169 s (32 subprobs)
+[many] spread:			 0.0974 s
+[many] fft (8 threads):		 0.0138 s
+[many] deconvolve & copy out:	 0.00134 s
+freed
+    45 of: 10000 NU pts to (100,100) modes in 0.115 s 	3.9e+06 NU pts/s
+	speedup (T_finufft_guru/T_finufft2d1many) = 0.819
+test guru interface:
+finufft_plan creation for 1000000x1000000 modes completed in 0.00278 s
+starting spread 2D (dir=1. M=1000000; N1=2000,N2=2000,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.0457 s
+[guru] sort (did_sort=1):	 0.0457 s
+set NU points for 1000x1000 src points completed in 0.0457 s
+	zero output array	0.0406 s
+	t1 fancy spread: 	0.188 s (100 subprobs)
+	zero output array	0.0371 s
+	t1 fancy spread: 	0.193 s (100 subprobs)
+	zero output array	0.0405 s
+	t1 fancy spread: 	0.186 s (100 subprobs)
+	zero output array	0.0372 s
+	t1 fancy spread: 	0.191 s (100 subprobs)
+	zero output array	0.0377 s
+	t1 fancy spread: 	0.193 s (100 subprobs)
+	zero output array	0.039 s
+	t1 fancy spread: 	0.188 s (100 subprobs)
+	zero output array	0.0357 s
+	t1 fancy spread: 	0.194 s (100 subprobs)
+	zero output array	0.0387 s
+	t1 fancy spread: 	0.18 s (100 subprobs)
+	zero output array	0.037 s
+	t1 fancy spread: 	0.188 s (100 subprobs)
+	zero output array	0.0368 s
+	t1 fancy spread: 	0.191 s (100 subprobs)
+[guru] spread:			 2.27 s
+[guru] fft :			 0.441 s
+deconvolve & copy out:		 0.0952 s
+execute 10 of: 1000000 NU pts to (1000,1000) modes in 2.81 s or 	3.56e+06 NU pts/s
+one mode in first trial: rel err in F[370,260] is 6.29e-08
+one mode in last trial: rel err in F[370,260] is 4.1e-08
+test finufft2d1many interface
+2d1many: ndata=10 (ms,mt)=(1000,1000) (nf1,nf2)=(2000,2000) nj=1000000 ...
+kernel fser (ns=7):	 0.00019 s
+fftw plan (64)    	 0.00195 s
+starting spread 2D (dir=1. M=1000000; N1=2000,N2=2000,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.0299 s
+[many] sort (did_sort=1):	 0.0299 s
+	zero output array	0.0602 s
+	zero output array	0.0606 s
+	zero output array	0.0608 s
+	zero output array	0.0625 s
+	zero output array	0.0635 s
+	zero output array	0.0637 s
+	zero output array	0.0645 s
+	zero output array	0.0689 s
+	t1 fancy spread: 	1.43 s (100 subprobs)
+	t1 fancy spread: 	1.43 s (100 subprobs)
+	t1 fancy spread: 	1.46 s (100 subprobs)
+	t1 fancy spread: 	1.48 s (100 subprobs)
+	t1 fancy spread: 	1.49 s (100 subprobs)
+	t1 fancy spread: 	1.51 s (100 subprobs)
+	t1 fancy spread: 	1.55 s (100 subprobs)
+	t1 fancy spread: 	1.59 s (100 subprobs)
+	zero output array	0.0187 s
+	zero output array	0.021 s
+	t1 fancy spread: 	0.76 s (100 subprobs)
+	t1 fancy spread: 	0.772 s (100 subprobs)
+[many] spread:			 2.45 s
+[many] fft (8 threads):		 0.765 s
+[many] deconvolve & copy out:	 0.0562 s
+freed
+    10 of: 1000000 NU pts to (1000,1000) modes in 3.32 s 	3.01e+06 NU pts/s
+	speedup (T_finufft_guru/T_finufft2d1many) = 1.16
+test guru interface:
+finufft_plan creation for 1000000x1000000 modes completed in 0.00286 s
+starting spread 2D (dir=1. M=1000000; N1=2000,N2=2000,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.0364 s
+[guru] sort (did_sort=1):	 0.0364 s
+set NU points for 1000x1000 src points completed in 0.0364 s
+	zero output array	0.0362 s
+	t1 fancy spread: 	0.186 s (100 subprobs)
+	zero output array	0.0363 s
+	t1 fancy spread: 	0.193 s (100 subprobs)
+	zero output array	0.0363 s
+	t1 fancy spread: 	0.205 s (100 subprobs)
+	zero output array	0.0376 s
+	t1 fancy spread: 	0.195 s (100 subprobs)
+	zero output array	0.0361 s
+	t1 fancy spread: 	0.189 s (100 subprobs)
+	zero output array	0.0386 s
+	t1 fancy spread: 	0.22 s (100 subprobs)
+	zero output array	0.0389 s
+	t1 fancy spread: 	0.197 s (100 subprobs)
+	zero output array	0.0391 s
+	t1 fancy spread: 	0.261 s (100 subprobs)
+	zero output array	0.0456 s
+	t1 fancy spread: 	0.188 s (100 subprobs)
+	zero output array	0.0525 s
+	t1 fancy spread: 	0.243 s (100 subprobs)
+	zero output array	0.0443 s
+	t1 fancy spread: 	0.287 s (100 subprobs)
+	zero output array	0.0674 s
+	t1 fancy spread: 	0.253 s (100 subprobs)
+	zero output array	0.0499 s
+	t1 fancy spread: 	0.201 s (100 subprobs)
+	zero output array	0.0386 s
+	t1 fancy spread: 	0.202 s (100 subprobs)
+	zero output array	0.0376 s
+	t1 fancy spread: 	0.203 s (100 subprobs)
+	zero output array	0.0393 s
+	t1 fancy spread: 	0.257 s (100 subprobs)
+	zero output array	0.0429 s
+	t1 fancy spread: 	0.211 s (100 subprobs)
+	zero output array	0.042 s
+	t1 fancy spread: 	0.178 s (100 subprobs)
+	zero output array	0.0387 s
+	t1 fancy spread: 	0.215 s (100 subprobs)
+	zero output array	0.0506 s
+	t1 fancy spread: 	0.225 s (100 subprobs)
+	zero output array	0.0463 s
+	t1 fancy spread: 	0.237 s (100 subprobs)
+	zero output array	0.0443 s
+	t1 fancy spread: 	0.216 s (100 subprobs)
+	zero output array	0.0416 s
+	t1 fancy spread: 	0.218 s (100 subprobs)
+	zero output array	0.0422 s
+	t1 fancy spread: 	0.194 s (100 subprobs)
+	zero output array	0.0375 s
+	t1 fancy spread: 	0.204 s (100 subprobs)
+	zero output array	0.0418 s
+	t1 fancy spread: 	0.214 s (100 subprobs)
+	zero output array	0.049 s
+	t1 fancy spread: 	0.227 s (100 subprobs)
+	zero output array	0.0395 s
+	t1 fancy spread: 	0.196 s (100 subprobs)
+	zero output array	0.0366 s
+	t1 fancy spread: 	0.204 s (100 subprobs)
+	zero output array	0.0404 s
+	t1 fancy spread: 	0.217 s (100 subprobs)
+	zero output array	0.037 s
+	t1 fancy spread: 	0.209 s (100 subprobs)
+	zero output array	0.0361 s
+	t1 fancy spread: 	0.219 s (100 subprobs)
+	zero output array	0.0414 s
+	t1 fancy spread: 	0.184 s (100 subprobs)
+	zero output array	0.036 s
+	t1 fancy spread: 	0.182 s (100 subprobs)
+	zero output array	0.0359 s
+	t1 fancy spread: 	0.205 s (100 subprobs)
+	zero output array	0.0374 s
+	t1 fancy spread: 	0.186 s (100 subprobs)
+	zero output array	0.0365 s
+	t1 fancy spread: 	0.202 s (100 subprobs)
+	zero output array	0.0368 s
+	t1 fancy spread: 	0.197 s (100 subprobs)
+	zero output array	0.0358 s
+	t1 fancy spread: 	0.183 s (100 subprobs)
+	zero output array	0.0356 s
+	t1 fancy spread: 	0.213 s (100 subprobs)
+	zero output array	0.0367 s
+	t1 fancy spread: 	0.202 s (100 subprobs)
+	zero output array	0.0385 s
+	t1 fancy spread: 	0.19 s (100 subprobs)
+	zero output array	0.0372 s
+	t1 fancy spread: 	0.195 s (100 subprobs)
+	zero output array	0.037 s
+	t1 fancy spread: 	0.182 s (100 subprobs)
+	zero output array	0.0361 s
+	t1 fancy spread: 	0.183 s (100 subprobs)
+[guru] spread:			 11.2 s
+[guru] fft :			 1.9 s
+deconvolve & copy out:		 0.407 s
+execute 45 of: 1000000 NU pts to (1000,1000) modes in 13.5 s or 	3.33e+06 NU pts/s
+one mode in first trial: rel err in F[370,260] is 5.03e-08
+one mode in last trial: rel err in F[370,260] is 5.77e-08
+test finufft2d1many interface
+2d1many: ndata=45 (ms,mt)=(1000,1000) (nf1,nf2)=(2000,2000) nj=1000000 ...
+kernel fser (ns=7):	 0.000166 s
+fftw plan (64)    	 0.00182 s
+starting spread 2D (dir=1. M=1000000; N1=2000,N2=2000,N3=1; pir=1), 8 threads
+	sorted (8 threads):	0.0365 s
+[many] sort (did_sort=1):	 0.0365 s
+	zero output array	0.061 s
+	zero output array	0.0619 s
+	zero output array	0.0625 s
+	zero output array	0.0626 s
+	zero output array	0.063 s
+	zero output array	0.0649 s
+	zero output array	0.0653 s
+	zero output array	0.0662 s
+	t1 fancy spread: 	1.37 s (100 subprobs)
+	t1 fancy spread: 	1.37 s (100 subprobs)
+	t1 fancy spread: 	1.42 s (100 subprobs)
+	t1 fancy spread: 	1.43 s (100 subprobs)
+	t1 fancy spread: 	1.45 s (100 subprobs)
+	t1 fancy spread: 	1.45 s (100 subprobs)
+	t1 fancy spread: 	1.46 s (100 subprobs)
+	t1 fancy spread: 	1.48 s (100 subprobs)
+	zero output array	0.043 s
+	zero output array	0.0437 s
+	zero output array	0.0441 s
+	zero output array	0.0442 s
+	zero output array	0.0447 s
+	zero output array	0.0448 s
+	zero output array	0.0453 s
+	zero output array	0.0574 s
+	t1 fancy spread: 	1.4 s (100 subprobs)
+	t1 fancy spread: 	1.41 s (100 subprobs)
+	t1 fancy spread: 	1.41 s (100 subprobs)
+	t1 fancy spread: 	1.4 s (100 subprobs)
+	t1 fancy spread: 	1.41 s (100 subprobs)
+	t1 fancy spread: 	1.43 s (100 subprobs)
+	t1 fancy spread: 	1.44 s (100 subprobs)
+	t1 fancy spread: 	1.44 s (100 subprobs)
+	zero output array	0.0454 s
+	zero output array	0.0457 s
+	zero output array	0.0459 s
+	zero output array	0.046 s
+	zero output array	0.0464 s
+	zero output array	0.0475 s
+	zero output array	0.0486 s
+	zero output array	0.0512 s
+	t1 fancy spread: 	1.38 s (100 subprobs)
+	t1 fancy spread: 	1.4 s (100 subprobs)
+	t1 fancy spread: 	1.41 s (100 subprobs)
+	t1 fancy spread: 	1.44 s (100 subprobs)
+	t1 fancy spread: 	1.46 s (100 subprobs)
+	t1 fancy spread: 	1.47 s (100 subprobs)
+	t1 fancy spread: 	1.48 s (100 subprobs)
+	t1 fancy spread: 	1.48 s (100 subprobs)
+	zero output array	0.0436 s
+	zero output array	0.0449 s
+	zero output array	0.0453 s
+	zero output array	0.0457 s
+	zero output array	0.0459 s
+	zero output array	0.0494 s
+	zero output array	0.0502 s
+	zero output array	0.0519 s
+	t1 fancy spread: 	1.38 s (100 subprobs)
+	t1 fancy spread: 	1.4 s (100 subprobs)
+	t1 fancy spread: 	1.4 s (100 subprobs)
+	t1 fancy spread: 	1.41 s (100 subprobs)
+	t1 fancy spread: 	1.41 s (100 subprobs)
+	t1 fancy spread: 	1.42 s (100 subprobs)
+	t1 fancy spread: 	1.42 s (100 subprobs)
+	t1 fancy spread: 	1.43 s (100 subprobs)
+	zero output array	0.0462 s
+	zero output array	0.0463 s
+	zero output array	0.0466 s
+	zero output array	0.047 s
+	zero output array	0.0473 s
+	zero output array	0.0486 s
+	zero output array	0.0487 s
+	zero output array	0.0492 s
+	t1 fancy spread: 	1.4 s (100 subprobs)
+	t1 fancy spread: 	1.41 s (100 subprobs)
+	t1 fancy spread: 	1.41 s (100 subprobs)
+	t1 fancy spread: 	1.43 s (100 subprobs)
+	t1 fancy spread: 	1.43 s (100 subprobs)
+	t1 fancy spread: 	1.44 s (100 subprobs)
+	t1 fancy spread: 	1.44 s (100 subprobs)
+	t1 fancy spread: 	1.44 s (100 subprobs)
+	zero output array	0.0231 s
+	zero output array	0.0294 s
+	zero output array	0.0297 s
+	zero output array	0.0297 s
+	zero output array	0.0301 s
+	t1 fancy spread: 	0.876 s (100 subprobs)
+	t1 fancy spread: 	0.882 s (100 subprobs)
+	t1 fancy spread: 	0.885 s (100 subprobs)
+	t1 fancy spread: 	1.14 s (100 subprobs)
+	t1 fancy spread: 	1.14 s (100 subprobs)
+[many] spread:			 8.7 s
+[many] fft (8 threads):		 2.2 s
+[many] deconvolve & copy out:	 0.19 s
+freed
+    45 of: 1000000 NU pts to (1000,1000) modes in 11.1 s 	4.04e+06 NU pts/s
+	speedup (T_finufft_guru/T_finufft2d1many) = 0.824
