@@ -6,8 +6,8 @@
 /*Responsible for allocating arrays for fftw_execute output and instantiating fftw_plan*/
 int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int how_many, FLT tol, finufft_plan *plan) {
 
-  //ONLY 2D TYPE 1
-  if(type == finufft_type::type1 && n_dims == 2){
+  //ONLY 2D TYPE 1+2
+  if(type != finufft_type::type3 && n_dims == 2){
 
     //TO DO - re-experiment with initialization bug through Matlab
     nufft_opts opts;
@@ -69,7 +69,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
       FFTW_INIT();
       FFTW_PLAN_TH(nth);
     }
-    timer.restart();
+
 
     plan->nf1 = nf1;
     plan->nf2 = nf2;
@@ -90,6 +90,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     //fftw enforced row major ordering
     const int nf[] {(int)nf2, (int)nf1};
 
+    timer.restart();
     //HOW_MANY INSTEAD OF NTH?
     plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, nf, 1, nf2*nf1, plan->fw, nf, 1, nf2*nf1, fftsign, opts.fftw ) ; 
 
@@ -104,8 +105,11 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
 
 
 int setNUpoints(finufft_plan * plan , BIGINT M, FLT *Xpts, FLT *Ypts, FLT *Zpts, CPX *targetFreqs){
+  if(plan->type == type1)
+    plan->spopts.spread_direction = 1; ///FIX THIS WILLY NILLY INITIALIZATION
+  if(plan->type == type2)
+    plan->spopts.spread_direction = 2; ///FIX THIS WILLY NILLY INITIALIZATION
 
-  plan->spopts.spread_direction = 1; ///FIX THIS WILLY NILLY INITIALIZATION
   plan->M = M;
   int ier_check = spreadcheck(plan->nf1,plan->nf2 , plan->nf3, plan->M, Xpts, Ypts, Zpts, plan->spopts);
   if(ier_check) return ier_check;
@@ -131,41 +135,9 @@ int setNUpoints(finufft_plan * plan , BIGINT M, FLT *Xpts, FLT *Ypts, FLT *Zpts,
   
 };
 
+void spreadInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX * c, int *ier_spreads){
 
-
-
-int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
-
-  CNTime timer; 
-  double time_spread{0.0};
-  double time_exec{0.0};
-  double time_deconv{0.0};
-  int nth = MY_OMP_GET_MAX_THREADS();
-
-  //this screams inheritance? 
-  switch(plan->type){
-
-  
-  //Step 1: Spread to Regular Grid
-  case type1:
-    
-    if(plan->spopts.spread_direction == 1){
-
-  
-       #if _OPENMP
-	MY_OMP_SET_NESTED(0); //no nested parallelization
-       #endif
-  
-      int *ier_spreads = (int *)calloc(nth,sizeof(int));
-      
-      //if (how_many == 1), this loop only executes once 
-      for(int j = 0; j*nth < plan->how_many; j++){
-
-	int blksize = min(plan->how_many - j*nth, nth);
-	timer.restart();
-	
 #pragma omp parallel for 
-
 	for(int i = 0; i < blksize; i++){ 
       	
 	  //index into this iteration of fft in fw and weights arrays
@@ -180,55 +152,114 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
 	  if(ier)
 	    ier_spreads[i] = ier;
 	}
-	time_spread += timer.elapsedsec();
-	
-      for(int i = 0; i < blksize; i++){
-	if(ier_spreads[i])
-	  return ier_spreads[i];
-      }
-      
-      
-      //Step 2: Call FFT
-      timer.restart();
-      FFTW_EX(plan->fftwPlan);
-      time_exec += timer.elapsedsec();
+}
 
-        
-    //Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output	
-      timer.restart();
+void interpInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX * c, int *ier_interps){
 
+#pragma omp parallel for 
+	for(int i = 0; i < blksize; i++){ 
+      	
+	  //index into this iteration of fft in fw and weights arrays
+	  FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*i; //fw gets rewritten on each iteration of j
+
+	  CPX * cStart = c + plan->M*(i + j*nth);
+	  
+	  int ier = interpSorted(plan->sortIndices,
+				 plan->nf1, plan->nf2, plan->nf3, (FLT*)fwStart,
+				 plan->M, plan->X, plan->Y, plan->Z, (FLT *)cStart,
+				 plan->spopts, plan->didSort) ;
+
+	  if(ier)
+	    ier_interps[i] = ier;
+	}
+}
+
+
+void deconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX *result){
 #pragma omp parallel for
       for(int i = 0; i < blksize; i++){
 	CPX *fkStart = result + (i+j*nth)*plan->ms*plan->mt;
 	FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*i;
 	
-	deconvolveshuffle2d(1,1.0,plan->fwker, plan->fwker+(plan->nf1/2+1), plan->ms, plan->mt, (FLT *)fkStart, plan->nf1, plan->nf2, fwStart, plan->opts.modeord);
+	deconvolveshuffle2d(plan->spopts.spread_direction,1.0,plan->fwker, plan->fwker+(plan->nf1/2+1),
+			    plan->ms, plan->mt, (FLT *)fkStart,
+			    plan->nf1, plan->nf2, fwStart, plan->opts.modeord);
+      }
+}
 
+
+int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
+
+  CNTime timer; 
+  double time_spread{0.0};
+  double time_exec{0.0};
+  double time_deconv{0.0};
+
+  int nth = MY_OMP_GET_MAX_THREADS();
+
+#if _OPENMP
+  MY_OMP_SET_NESTED(0); //no nested parallelization
+#endif
+  
+  int *ier_spreads = (int *)calloc(nth,sizeof(int));      
+	
+  for(int j = 0; j*nth < plan->how_many; j++){
+	  
+    int blksize = min(plan->how_many - j*nth, nth);
+
+
+    //Type 1 Step 1: Spread to Regular Grid    
+    if(plan->type == type1){
+      timer.restart();
+      spreadInParallel(blksize, j, nth, plan, c, ier_spreads);
+      time_spread += timer.elapsedsec();
+
+      for(int i = 0; i < blksize; i++){
+	if(ier_spreads[i])
+	  return ier_spreads[i];
       }
-      time_deconv += timer.elapsedsec(); 
-      }
-      if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
-      if(plan->opts.debug) printf("[guru] fft :\t\t\t %.3g s\n", time_exec);
-      if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", time_deconv);
+    }
+
+    //Type 2 Step 1: amplify Fourier coeffs fk and copy into fw
+    else if(plan->type == type2){
+      timer.restart();
+      deconvolveInParallel(blksize, j, nth, plan,result);
+      time_deconv += timer.elapsedsec();
+    }
+	
       
-      free(ier_spreads);
-    }
-    
-    
-    
-    else{
-      //FIX ME ADD LOOP
-      int ier = interpSorted(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, (FLT*)plan->fw, plan->M, plan->X, plan->Y, plan->Z, (FLT *)c, plan->spopts, plan->didSort) ;
-    
-    }
-    break;
+    //Step 2: Call FFT
+    timer.restart();
+    FFTW_EX(plan->fftwPlan);
+    time_exec += timer.elapsedsec();
 
-    /* if type 2: deconvolve by ES kernel transform*/
-  default:
-    return -1;
+	  
 
-  }
+    //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output	
+    if(plan->type == type1){
+      timer.restart();
+      deconvolveInParallel(blksize, j, nth, plan,result);
+      time_deconv += timer.elapsedsec();
+    }
+
+    //Type 2 Step 3: interpolate from regular to irregular target pts
+    else if(plan->type == type2){
+      timer.restart();
+      interpInParallel(blksize, j, nth, plan, c, ier_spreads);
+      time_spread += timer.elapsedsec(); 
     
+    for(int i = 0; i < blksize; i++){
+      if(ier_spreads[i])
+	return ier_spreads[i];
+    }
+    }
+  }   
+  if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
+  if(plan->opts.debug) printf("[guru] fft :\t\t\t %.3g s\n", time_exec);
+  if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", time_deconv);
+      
+  free(ier_spreads);
+
   return 0;
 
 };
