@@ -149,19 +149,20 @@ int main(int argc, char* argv[])
   //Error Checking 
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
   CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
-  CPX Ft_last(0,0);
+  int middleTrial = floor(nvecs/2);
+  CPX Ft_last = CPX(0,0);
 
   for (BIGINT j=0; j<M; ++j){
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
     if(nvecs > 1){
-      Ft_last += c[j+ (nvecs-1)*M] *  exp(J*(nt1*x[j]+nt2*y[j]));
+      Ft_last += c[j+middleTrial*M] *  exp(J*(nt1*x[j]+nt2*y[j]));
     }
   }
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("one mode in first trial: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft-F[it])/infnorm(N,F));
+  printf("in nvec[%d]: rel err in F[%lld,%lld] is %.3g\n",0, (long long)nt1,(long long)nt2, abs(Ft-F[it])/infnorm(N,F));
 
   if(nvecs > 1)
-    printf("one mode in last trial: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft_last-F[it+(nvecs-1)*M])/infnorm(N,F));
+    printf("in nvec[%d]: rel err in F[%lld,%lld] is %.3g\n", middleTrial, (long long)nt1,(long long)nt2, abs(Ft_last-F[it+middleTrial*N])/infnorm(N,F+middleTrial*N));
   
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
