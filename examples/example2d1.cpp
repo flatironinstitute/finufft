@@ -1,17 +1,16 @@
-// this is all you must include for the finufft lib...                                                          
+// this is all you must include for the finufft lib...
 #include "finufft.h"
 #include <complex>
-#include <iostream>
-#include <vector>
 
-// also needed for this example...                                                                              
-#include <stdio.h>
-#include <stdlib.h>
+// also needed for this example...
+#include <iostream>
+#include <iomanip>
+#include <vector>
 using namespace std;
 
 int main(int argc, char *argv[]){
 
-  /*Simple example of calling the FINUFFT library from C++, using plain
+/* Simple 2D type-1 example of calling the FINUFFT library from C++, using plain
    arrays of C++ complex numbers, with a math test. Double precision version. 
 
    Compile multithreaded with
@@ -20,11 +19,10 @@ int main(int argc, char *argv[]){
    g++ example2d1.cpp -I ../src ../lib-static/libfinufft.a -o example2d1 -lfftw3 -lm
    
    Usage:  ./example2d1
-
 */
 
-  int M = 1e6; //number of nonuniform points
-  int N = 1e6; //number of modes for x and y
+  int M = 1e6; // number of nonuniform points
+  int N = 1e6; // approximate total number of modes (N1*N2)
   double acc = 1e-9; //desired accuracy
   nufft_opts opts; finufft_default_opts(&opts);
   complex<double> I(0.0, 1.0); //the imaginary unit
@@ -74,7 +72,7 @@ int main(int argc, char *argv[]){
   //compute relative error
   double err = abs(F[indexOut] - Ftest)/Fmax; 
 
-  std::cout << "2D type-1 NUFFT done. ier = " << ier << ",  err in F[" << indexOut << "] is " << err << std::endl; 
+  std::cout << "2D type-1 NUFFT done. ier=" << ier << ", err in F[" << indexOut << "] rel to max(F) is " << std::setprecision(2) << err << std::endl;
 
   return ier;
 
