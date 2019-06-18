@@ -167,7 +167,8 @@ $(EXC): $(EXC).o $(STATICLIB)
 	$(CC) $(CFLAGS) $(EXC).o $(STATICLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
 
 # validation tests... (most link to .o allowing testing pieces separately)
-test: $(STATICLIB) test/finufft1d_basicpassfail test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test test/finufftGuru1_test test/finufftGuru2_test
+
+test: $(STATICLIB) test/finufft1d_basicpassfail test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test test/finufftGuru1_test test/finufftGuru2_test test/dumbInputsGuru
 	test/finufft1d_basicpassfail
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
@@ -185,6 +186,8 @@ test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o test/finufft3d_test
 test/dumbinputs: test/dumbinputs.cpp $(STATICLIB) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(STATICLIB) $(LIBSFFT) -o test/dumbinputs
+test/dumbInputsGuru: test/dumbInputsGuru.cpp $(OBJSGURU) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(OBJS2) $(OBJSGURU) $(LIBSFFT) -o test/dumbInputsGuru
 test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS2) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS2)  $(LIBSFFT) -o test/finufft2dmany_test
 test/finufftGuru1_test: test/finufftGuru1_test.cpp  $(OBJS2)  $(OBJSGURU) $(HEADERS)

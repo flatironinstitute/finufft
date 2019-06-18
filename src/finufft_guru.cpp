@@ -274,6 +274,7 @@ int finufft_destroy(finufft_plan * plan){
   FFTW_DE(plan->fftwPlan);
   FFTW_FR(plan->fw);
   
-  return -1;
+
+  return 0;
   
 };
