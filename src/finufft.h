@@ -38,6 +38,11 @@ typedef int64_t BIGINT;
 #endif
 
 
+
+
+
+enum finufft_type { type1, type2, type3};
+
 // ------------------- the user input options struct ------------------------
 typedef struct {      // Note: defaults in common/finufft_default_opts()
   int debug;          // 0: silent, 1: text basic timing output
@@ -53,11 +58,82 @@ typedef struct {      // Note: defaults in common/finufft_default_opts()
 } nufft_opts;
 
 
+struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
+  int nspread;            // w, the kernel width in grid pts
+  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
+  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
+  int chkbnds;            // 0: don't check NU pts are in range; 1: do
+  int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
+  int kerevalmeth;        // 0: exp(sqrt()), old, or 1: Horner ppval, fastest
+  int kerpad;             // 0: no pad to mult of 4, 1: do (helps i7 kereval=0)
+  int sort_threads;       // 0: auto-choice, >0: fix number of sort threads
+  BIGINT max_subproblem_size; // sets extra RAM per thread
+  int flags;              // binary flags for timing only (may give wrong ans!)
+  int debug;              // 0: silent, 1: small text output, 2: verbose
+  FLT upsampfac;          // sigma, upsampling factor, default 2.0
+  // ES kernel specific...
+  FLT ES_beta;
+  FLT ES_halfwidth;
+  FLT ES_c;
+};
+
+#include <fftw_defs.h>
+
+typedef struct {
+
+  finufft_type type;
+  int n_dims;
+  int how_many;
+  int M; 
+
+  BIGINT ms;
+  BIGINT mt;
+  BIGINT mu;
+  
+  BIGINT nf1;
+  BIGINT nf2;
+  BIGINT nf3; 
+  
+  int fw_width;
+  int iflag; 
+
+  FLT * fwker; //fourier coefficients of spreading kernel for all dims
+  FFTW_CPX * fw; //fourier coefficients for all dims //need to free
+  
+  BIGINT *sortIndices; //FREE ME
+  bool didSort;
+  
+  FLT * targetFreqs; //type 3 only 
+
+  FLT *X;
+  FLT *Y;
+  FLT *Z; 
+  
+  fftw_plan fftwPlan;
+  
+  nufft_opts opts;
+  spread_opts spopts;
+}finufft_plan;
+
+
+
+
+
+
+
 // ------------------ library provides ------------------------------------
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+// ------------------ Guru Interface ------------------------------------
+int make_finufft_plan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int how_many, FLT tol, finufft_plan *plan );
+int setNUpoints(finufft_plan * plan , BIGINT M, FLT *Xpts, FLT *Ypts, FLT *Zpts, CPX *targetFreqs); 
+int finufft_exec(finufft_plan * plan ,  CPX *weights, CPX * result);
+int finufft_destroy(finufft_plan * plan);
+
+// ------------------ Deprecate Interface ------------------------------------
 void finufft_default_opts(nufft_opts *o);
 int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts opts);

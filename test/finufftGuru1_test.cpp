@@ -1,4 +1,3 @@
-#include "../src/finufft_guru.h"
 #include "../src/finufft.h"
 #include "../src/dirft.h"
 #include <math.h>

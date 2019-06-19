@@ -1,10 +1,10 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "finufft.h"
-#include "defs.h"
-#include "spreadinterp.h"
-#include <fftw3.h>
+#include <finufft.h>
+#include <spreadinterp.h>
+#include <fftw_defs.h>
+
 
 // defs internal to common.cpp...
 typedef std::complex<double> dcomplex;

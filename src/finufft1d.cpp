@@ -1,5 +1,6 @@
 #include "finufft.h"
 #include "common.h"
+#include <utils.h>
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>

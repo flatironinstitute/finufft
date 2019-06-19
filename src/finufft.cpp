@@ -1,4 +1,5 @@
-#include "finufft_guru.h"
+#include "finufft.h"
+#include <utils.h>
 #include <iostream>
 #include <common.h>
 #include <iomanip>

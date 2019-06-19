@@ -88,7 +88,7 @@ OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o sr
 OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rule_fast.o
 OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o
 OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o
-OBJSGURU = src/finufft_guru.o
+OBJSGURU = src/finufft.o
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
@@ -281,7 +281,7 @@ test/manysmallprobs: $(STATICLIB) $(HEADERS) test/manysmallprobs.cpp
 clean: objclean pyclean
 	rm -f lib-static/*.a lib/*.so
 	rm -f matlab/*.mex*
-	rm -f test/spreadtestnd test/finufft?d_test test/finufft?d_test test/testutils test/manysmallprobs test/results/*.out fortran/*_demo fortran/*_demof examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf
+	rm -f test/spreadtestnd test/finufft?d_test test/finufft?d_test test/testutils test/manysmallprobs test/results/*.out fortran/*_demo fortran/*_demof examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf test/finufftGuru1_test test/finufftGuru2_test test/dumbInputsGuru
 
 # this is needed before changing precision or threading...
 objclean:
