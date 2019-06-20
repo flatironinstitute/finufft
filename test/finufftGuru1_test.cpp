@@ -1,4 +1,5 @@
 #include "../src/finufft.h"
+#include "../src/finufft_old.h"
 #include "../src/dirft.h"
 #include <math.h>
 #include <vector>
@@ -187,7 +188,7 @@ int main(int argc, char* argv[])
 
     printf("test finufft2d1many interface\n");
     timer.restart();
-    ier = finufft2d1many(nvecs, M, x, y, c, isign , tol, N1, N2, F_compMany, plan.opts);
+    ier = finufft2d1many_old(nvecs, M, x, y, c, isign , tol, N1, N2, F_compMany, plan.opts);
     double t_compMany =timer.elapsedsec();
 
     if(ier!=0){
@@ -226,7 +227,7 @@ int main(int argc, char* argv[])
     for(int k = 0; k < nvecs; k++){
       cStart = c + M*k;
       fStart = F_compSingle + N*k;
-      ier = finufft2d1(M, x, y, cStart, isign, tol, N1, N2, fStart, plan.opts);
+      ier = finufft2d1_old(M, x, y, cStart, isign, tol, N1, N2, fStart, plan.opts);
     }
     double t_compSingle = timer.elapsedsec();
     printf("\tspeedup (T_finufft2d1/T_finufft_guru) = %.3g\n", t_compSingle/(plan_t + sort_t + exec_t));

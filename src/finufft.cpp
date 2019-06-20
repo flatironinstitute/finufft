@@ -10,12 +10,19 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
   //ONLY 2D TYPE 1+2
   if(type != finufft_type::type3 && n_dims == 2){
 
-    //TO DO - re-experiment with initialization bug through Matlab
-    nufft_opts opts;
-    finufft_default_opts(&opts);
+
+    //THINK HARDER about this brittle code
+    //user may have edited the opts struct inside of the plan before calling this routine
+    //or it may be completely uninitialized. To check if latter, suffices to check upsampfac.
     
+    if(plan->opts.upsampfac != 2 && plan->opts.upsampfac != 1.25 ){ //uninitialized
+      nufft_opts def_opts;
+      finufft_default_opts(&def_opts);
+      plan->opts = {def_opts};
+    }
+
     spread_opts spopts;
-    int ier_set = setup_spreader_for_nufft(spopts, tol, opts);
+    int ier_set = setup_spreader_for_nufft(spopts, tol, plan->opts);
     if(ier_set) return ier_set;
     
     plan->spopts = spopts;    
@@ -28,17 +35,15 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     
     plan->iflag = iflag;
     //plan->fw_width = ?
-    plan->opts = opts;
-
     plan->X = NULL;
     plan->Y = NULL;
     plan->Z = NULL;
     
     //determine size of upsampled array
     BIGINT nf1;
-    set_nf_type12(plan->ms, opts, spopts, &nf1); //type/DIMENSION dependent line
+    set_nf_type12(plan->ms, plan->opts, spopts, &nf1); //type/DIMENSION dependent line
     BIGINT nf2;
-    set_nf_type12(plan->mt, opts, spopts, &nf2); //type/DIMENSION dependent line
+    set_nf_type12(plan->mt, plan->opts, spopts, &nf2); //type/DIMENSION dependent line
     BIGINT nf3{1};
     
     //ensure size of upsampled grid does not exceed MAX
@@ -49,10 +54,10 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     cout << scientific << setprecision(15);  // for debug
 
     //DIMENSION DPEENDENT LINE
-    if (opts.debug) printf("2d1: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) ...\n",(long long)plan->ms,(long long)plan->mt,(long long)nf1,(long long)nf2);
+    if (plan->opts.debug) printf("2d1: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) ...\n",(long long)plan->ms,(long long)plan->mt,(long long)nf1,(long long)nf2);
 
     //STEP 0: get Fourier coeffs of spreading kernel for each dim
-    CNTime timer; timer.start();
+
     BIGINT totCoeffs = (nf1/2 + 1)+(nf2/2 +1); //DIMENSION DEPENDENT LINE
     plan->fwker = (FLT *)malloc(sizeof(FLT)*totCoeffs);
     if(!plan->fwker){
@@ -60,10 +65,11 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
       return ERR_MAXNALLOC;
     }
 
+    CNTime timer; timer.start();
     //DIMENSION DEPENDENT LINES:
     onedim_fseries_kernel(nf1, plan->fwker, spopts);
     onedim_fseries_kernel(nf2, plan->fwker + (nf1/2+1), spopts);
-    if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
+    if (plan->opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
     int nth = MY_OMP_GET_MAX_THREADS();
     if (nth>1) {             // set up multithreaded fftw stuff...
@@ -93,9 +99,9 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
 
     timer.restart();
     //HOW_MANY INSTEAD OF NTH?
-    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, nf, 1, nf2*nf1, plan->fw, nf, 1, nf2*nf1, fftsign, opts.fftw ) ; 
+    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, nf, 1, nf2*nf1, plan->fw, nf, 1, nf2*nf1, fftsign, plan->opts.fftw ) ; 
 
-    if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
+    if (plan->opts.debug) printf("fftw plan (%d)    \t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
      
 
     return 0;
@@ -267,13 +273,21 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
 
 int finufft_destroy(finufft_plan * plan){
 
-  //free everything inside of finnufft_plan! alternatively, write a destructor for the class........
+  //free everything inside of finnufft_plan!
+  //preemptive pointer checks ensures safety of this call
+  //after an error to any of the three previous calls
+  
+  if(plan->fwker)
+    free(plan->fwker);
 
-  free(plan->fwker);
-  free(plan->sortIndices);
-   
-  FFTW_DE(plan->fftwPlan);
-  FFTW_FR(plan->fw);
+  if(plan->sortIndices)
+    free(plan->sortIndices);
+
+  if(plan->fftwPlan)
+    FFTW_DE(plan->fftwPlan);
+
+  if(plan->fw)
+    FFTW_FR(plan->fw);
   
 
   return 0;

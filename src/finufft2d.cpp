@@ -7,6 +7,41 @@
 #include <iostream>
 #include <iomanip>
 
+
+int invokeGuruInterface(int n_dims, finufft_type type, int n_vecs, BIGINT nj, FLT* xj,FLT *yj,CPX* cj,int iflag,
+			FLT eps, BIGINT *n_modes, CPX* fk, nufft_opts opts){
+
+
+  finufft_plan plan;
+  
+  plan.opts = opts;   /*Copy out user defined options in nufft_opts into the plan*/
+  
+  int ier = make_finufft_plan(type, n_dims, n_modes, iflag, n_vecs, eps, &plan);
+  if(ier){
+    if(plan.opts.debug)
+      printf("error (ier=%d)!\n", ier);
+    return ier;
+  }
+
+  ier = setNUpoints(&plan, nj, xj, yj, NULL, NULL);
+  if(ier){
+    if(plan.opts.debug)
+      printf("error (ier=%d)!\n", ier);
+    return ier;
+  }
+
+  ier = finufft_exec(&plan, cj, fk);
+  if(ier){
+    if(plan.opts.debug)
+      printf("error (ier=%d)!\n", ier);
+    return ier;
+  }
+
+  finufft_destroy(&plan);
+  
+  return 0;
+}
+
 int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
@@ -46,80 +81,20 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
         Fourier series coefficient of the kernel.
      The kernel coeffs are precomputed in what is called step 0 in the code.
 
-   Written with FFTW style complex arrays. Barnett 2/1/17
  */
 {
-  spread_opts spopts;
-  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
-  if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
-  if (nf1*nf2>MAX_NF) {
-    fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
-    return ERR_MAXNALLOC;
-  }
-  cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n",(long long)ms,(long long)mt,(long long)nf1,(long long)nf2,(long long)nj);
 
-  // STEP 0: get Fourier coeffs of spread kernel in each dim:
-  CNTime timer; timer.start();
-  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
-  if(!fwkerhalf1){
-    fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
-    return ERR_MAXNALLOC;
-  }
-  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
-  if(!fwkerhalf2){
-    fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
-    free(fwkerhalf1);
-    return ERR_MAXNALLOC;
-  }
+  BIGINT n_modes[3] = {ms,mt,0};
+  int n_dims = 2;
+  int n_vecs = 1;
+  finufft_type type = type1;
+  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, cj, iflag,
+		      eps, n_modes, fk, opts);
 
-  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
-  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
-
-  int nth = MY_OMP_GET_MAX_THREADS();
-  if (nth>1) {             // set up multithreaded fftw stuff...
-    FFTW_INIT();
-    FFTW_PLAN_TH(nth);
-  }
-  timer.restart();
-  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
-  if(!fw){
-    fprintf(stderr, "Call to malloc failed for result array allocation");
-    free(fwkerhalf1);
-    free(fwkerhalf2);
-    return ERR_MAXNALLOC; //release resources before exiting cleanly
-  }
   
-  int fftsign = (iflag>=0) ? 1 : -1;
-  FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
-  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
-
-  // Step 1: spread from irregular points to regular grid
-  timer.restart();
-  spopts.spread_direction = 1;
-  FLT *dummy=NULL;
-  int ier_spread = spreadinterp(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cj,spopts);
-  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) return ier_spread;
-
-  // Step 2:  Call FFT
-  timer.restart();
-  FFTW_EX(p);
-  FFTW_DE(p);
-  if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
-
-  // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
-  timer.restart();
-  deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw,opts.modeord);
-  if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
-
-  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
-  //if (opts.debug) printf("freed\n");
-  return 0;
+  return ier; 
+  
 }
 
 
@@ -157,121 +132,24 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
     returned value - 0 if success, else see ../docs/usage.rst
 
   Note: nthreads times the RAM is needed, so this is good only for small problems.
-  By Melody Shih, originally called "manysimul" (many_seq=0 opt). Jun 2018.
+
  */
 {
+
   if (ndata<1) {
     fprintf(stderr,"ndata should be at least 1 (ndata=%d)\n",ndata);
     return ERR_NDATA_NOTVALID;
   }
-  spread_opts spopts;
-  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
-  if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12((BIGINT)mt,opts,spopts,&nf2);
-  if (nf1*nf2>MAX_NF) {
-    fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
-    return ERR_MAXNALLOC;
-  }
-  cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d1many: ndata=%d (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n", ndata,(long long)ms,(long long)mt,(long long)nf1,(long long)nf2,(long long)nj);
-
-  // STEP 0: get Fourier coeffs of spread kernel in each dim:
-  CNTime timer; timer.start();
-  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
-  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
-  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
-  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
-
-  int nth = MY_OMP_GET_MAX_THREADS();
-  if (nth>1) {             // set up multithreaded fftw stuff...
-    FFTW_INIT();
-    FFTW_PLAN_TH(nth);
-  }
-
-  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // nthreads copies of upsampled array
-  int fftsign = (iflag>=0) ? 1 : -1;
-  const int n[] = {int(nf2), int(nf1)};
-  // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
-
-  timer.restart();
-  FFTW_PLAN p = FFTW_PLAN_MANY_DFT(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1,
-                                   n[0]*n[1], fftsign, opts.fftw);
-  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
-
-  //all of this achieved in setup_spopts_nufft() except direction
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
-  spopts.spread_direction = 1;
-  spopts.pirange = 1; FLT *dummy=NULL;
-  spopts.chkbnds = opts.chkbnds;
-
-  int ier_check = spreadcheck(nf1,nf2,1,nj,xj,yj,dummy,spopts);
-  if (ier_check>0) return ier_check;
+  BIGINT n_modes[3] = {ms,mt,0};
+  int n_dims = 2;
+  finufft_type type = type1;
   
-  timer.restart();          // sort
-  BIGINT *sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
-  int did_sort = indexSort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
-  if (opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", did_sort,
-			 timer.elapsedsec());
-  
-  double time_fft = 0.0, time_spread = 0.0, time_deconv = 0.0;
-  // since can't return within omp block, need this array to catch errors...
-  int *ier_spreads = (int*)calloc(nth,sizeof(int));
+  int ier = invokeGuruInterface(n_dims, type, ndata, nj, xj, yj, c, iflag,
+		      eps, n_modes, fk, opts);
 
-#if _OPENMP
-  // make sure only single threaded spreadinterp used for each data...
-  MY_OMP_SET_NESTED(0);       // note this doesn't change omp_get_max_nthreads()
-#endif
-  
-  for (int j = 0; j*nth < ndata; ++j) { // main loop over data blocks of size nth
-    
-    // Step 1: spread from irregular points to regular grid
-    timer.restart();
-    int blksize = min(ndata-j*nth,nth); // size of this block
-#pragma omp parallel for
-    for (int i=0; i<blksize; ++i) {
-      CPX *cstart  = c + (i+j*nth)*nj;  // ptr to strengths this thread spreads
-      FFTW_CPX *fwstart = fw + i*nf1*nf2;    // ptr to output grid for this thread
-      int ier = spreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,
-				  nj,xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
-      if (ier!=0)
-	ier_spreads[i] = ier;           // thank-you Melody for catching this
-    }
-    time_spread += timer.elapsedsec();
-    for (int i = 0; i<blksize; ++i)         // exit if any thr had error
-      if (ier_spreads[i]!=0)
-        return ier_spreads[i];              // tell us one of these errors
 
-    // Step 2:  Call FFT many
-    timer.restart();
-    FFTW_EX(p);                             // in-place, on all nth copies in fw
-    time_fft += timer.elapsedsec();
-
-    // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
-    timer.restart();
-#pragma omp parallel for
-    for (int i=0; i<blksize; ++i) {
-      FFTW_CPX *fwstart = fw + i*nf1*nf2;    // this thr input
-      CPX *fkstart = fk + (i+j*nth)*ms*mt;   // this thr output
-      deconvolveshuffle2d(1,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,
-			  nf2,fwstart,opts.modeord);
-    }
-    time_deconv += timer.elapsedsec();
-  }
-
-  if (opts.debug) printf("[many] spread:\t\t\t %.3g s\n", time_spread);
-  if (opts.debug) printf("[many] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
-  if (opts.debug) printf("[many] deconvolve & copy out:\t %.3g s\n", time_deconv);
-  //  if (opts.debug) printf("[many] total execute time (exclude fftw_plan, etc.) %.3g s\n", time_spread+time_fft+time_deconv);
-
-  FFTW_DE(p);
-  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
-  free(ier_spreads);
-  //if (opts.debug) printf("freed\n");
-  return 0;
+  return ier; 
 }
 
 
@@ -307,64 +185,18 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
      3) spread (dir=2, ie interpolate) data to regular mesh
      The kernel coeffs are precomputed in what is called step 0 in the code.
 
-   Written with FFTW style complex arrays. Barnett 2/1/17
  */
 {
-  spread_opts spopts;
-  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
-  if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
-  if (nf1*nf2>MAX_NF) {
-    fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
-    return ERR_MAXNALLOC;
-  }
-  cout << scientific << setprecision(15);  // for debug
-
-  if (opts.debug) printf("2d2: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n",(long long)ms,(long long)mt,(long long)nf1,(long long)nf2,(long long)nj);
-
-  // STEP 0: get Fourier coeffs of spread kernel in each dim:
-  CNTime timer; timer.start();
-  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
-  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
-  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
-  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
-
-  int nth = MY_OMP_GET_MAX_THREADS();
-  if (nth>1) {             // set up multithreaded fftw stuff...
-    FFTW_INIT();
-    FFTW_PLAN_TH(nth);
-  }
-  timer.restart();
-  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
-  int fftsign = (iflag>=0) ? 1 : -1;
-  FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
-  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
-
-  // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
-  timer.restart();
-  deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fk,nf1,nf2,fw,opts.modeord);
-  if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
-  //cout<<"fw:\n"; for (int j=0;j<nf1*nf2;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
-
-  // Step 2:  Call FFT
-  timer.restart();
-  FFTW_EX(p);
-  FFTW_DE(p);
-  if (opts.debug) printf("fft (%d threads):\t %.3g s\n",nth,timer.elapsedsec());
-
-  // Step 3: unspread (interpolate) from regular to irregular target pts
-  timer.restart();
-  spopts.spread_direction = 2;
-  FLT *dummy=NULL;
-  int ier_spread = spreadinterp(nf1,nf2,1,(FLT*)fw,nj,xj,yj,dummy,(FLT*)cj,spopts);
-  if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) return ier_spread;
-
-  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
-  if (opts.debug) printf("freed\n");
-  return 0;
+  
+  BIGINT n_modes[3] = {ms,mt,0};
+  int n_dims = 2;
+  int n_vecs = 1;
+  finufft_type type = type2;
+  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, cj, iflag,
+		      eps, n_modes, fk, opts);
+ 
+  
+  return ier;
 }
 
 
@@ -399,119 +231,22 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
     returned value - 0 if success, else see ../docs/usage.rst
 
   Note: nthreads times the RAM is needed, so this is good only for small problems.
-  By Melody Shih, originally called "manysimul" (many_seq=0 opt). Jun 2018.
+
 */
 {
+
   if (ndata<1) {
     fprintf(stderr,"ndata should be at least 1 (ndata=%d)\n",ndata);
     return ERR_NDATA_NOTVALID;
   }
-  spread_opts spopts;
-  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
-  if (ier_set) return ier_set;
-  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
-  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
-  if (nf1*nf2>MAX_NF) {
-    fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2,(double)MAX_NF);
-    return ERR_MAXNALLOC;
-  }
-  cout << scientific << setprecision(15);  // for debug
 
-  if (opts.debug) printf("2d2: ndata=%d (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) nj=%lld ...\n",
-                         ndata,(long long)ms,(long long)mt,(long long)nf1,(long long)nf2,(long long)nj);
+  BIGINT n_modes[3] = {ms,mt,0};
+  int n_dims = 2;
+  finufft_type type = type2;
+  int ier = invokeGuruInterface(n_dims, type, ndata, nj, xj, yj, c, iflag,
+		      eps, n_modes, fk, opts);
 
-  // STEP 0: get Fourier coeffs of spread kernel in each dim:
-  CNTime timer; timer.start();
-  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
-  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
-  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
-  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
-  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
-
-  int nth = MY_OMP_GET_MAX_THREADS();
-  if (nth>1) {             // set up multithreaded fftw stuff...
-    FFTW_INIT();
-    FFTW_PLAN_TH(nth);
-  }
-
-  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // nthreads copies of upsampled array
-  int fftsign = (iflag>=0) ? 1 : -1;
-  const int n[] = {int(nf2), int(nf1)};
-  // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
-
-  timer.restart();
-  FFTW_PLAN p = FFTW_PLAN_MANY_DFT(2, n, nth, fw, n, 1, n[0]*n[1], fw, n, 1,
-                                   n[0]*n[1], fftsign, opts.fftw);
-  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
-
-  spopts.debug = opts.spread_debug;
-  spopts.sort = opts.spread_sort;
-  spopts.spread_direction = 2;
-  spopts.pirange = 1; FLT *dummy=NULL;
-  spopts.chkbnds = opts.chkbnds;
-
-  int ier_check = spreadcheck(nf1,nf2,1,nj,xj,yj,dummy,spopts);
-  if (ier_check>0) return ier_check;
-
-  timer.restart();            // sort
-  BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
-  int did_sort = indexSort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
-  if (opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", did_sort,
-			 timer.elapsedsec());
-
-  double time_fft = 0.0, time_spread = 0.0, time_deconv = 0.0;
-  // since can't return within omp block, need this array to catch errors...
-  int *ier_spreads = (int*)calloc(nth,sizeof(int));
-
-#if _OPENMP
-  // make sure only single threaded spreadinterp used for each data...
-  MY_OMP_SET_NESTED(0);       // note this doesn't change omp_get_max_nthreads()
-#endif
-  
-  for (int j = 0; j*nth < ndata; ++j) {   // main loop over data blocks of size nth
-
-    // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
-    timer.restart();
-    int blksize = min(ndata-j*nth,nth);
-#pragma omp parallel for
-    for (int i = 0; i<blksize; ++i) {
-      CPX *fkstart = fk + (i+j*nth)*ms*mt; // ptr to coeffs this thread copies
-      FFTW_CPX* fwstart = fw + i*nf1*nf2;  // ptr to upsampled FFT array of this thread
-      deconvolveshuffle2d(2,1.0,fwkerhalf1,fwkerhalf2,ms,mt,(FLT*)fkstart,nf1,nf2,
-			  fwstart,opts.modeord);
-    }
-    time_deconv += timer.elapsedsec();
-
-    // Step 2:  Call FFT many
-    timer.restart();
-    FFTW_EX(p);                             // in-place, on all nth copies in fw
-    time_fft += timer.elapsedsec();
-
-    // Step 3: unspread (interpolate) from regular to irregular target pts
-    timer.restart();
-#pragma omp parallel for
-    for (int i=0; i<blksize; ++i) {
-      FFTW_CPX *fwstart = fw + i*nf1*nf2;      // ptr to input values for thread
-      CPX *cstart  = c + (i+j*nth)*nj;         // ptr to output vals for thread
-      int ier = spreadwithsortidx(sort_indices,nf1,nf2,1,(FLT*)fwstart,nj,
-				  xj,yj,dummy,(FLT*)cstart,spopts,did_sort);
-      if (ier!=0)
-	ier_spreads[i] = ier;           // thank-you Melody for catching this
-    }
-    time_spread+=timer.elapsedsec();
-    for (int i = 0; i<blksize; ++i)         // exit if any thr had error
-      if (ier_spreads[i]!=0)
-        return ier_spreads[i];              // tell us one of these errors
-  }
-  if (opts.debug) printf("[many] amplify & copy in:\t %.3g s\n", time_deconv);
-  if (opts.debug) printf("[many] fft (%d threads):\t\t %.3g s\n", nth, time_fft);
-  if (opts.debug) printf("[many] unspread:\t\t %.3g s\n", time_spread);
-  //if (opts.debug) printf("[many] total execute time (exclude fftw_plan, etc.) %.3g s\n",time_spread+time_fft+time_deconv);
-
-  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
-  free(ier_spreads);
-  if (opts.debug) printf("freed\n");
-  return 0;
+  return ier; 
 }
 
 

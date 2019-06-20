@@ -1,3 +1,4 @@
+#include "../src/finufft_old.h"
 #include "../src/finufft.h"
 #include "../src/dirft.h"
 #include <math.h>
@@ -189,7 +190,7 @@ int main(int argc, char* argv[])
 
     printf("test finufft2d2many interface\n");
     timer.restart();
-    ier = finufft2d2many(nvecs, M, x, y, c_compMany, isign , tol, N1, N2, F, plan.opts);
+    ier = finufft2d2many_old(nvecs, M, x, y, c_compMany, isign , tol, N1, N2, F, plan.opts);
     double t_compMany =timer.elapsedsec();
 
     if(ier!=0){
@@ -228,7 +229,7 @@ int main(int argc, char* argv[])
     for(int k = 0; k < nvecs; k++){
       cStart = c_compSingle + M*k;
       fStart = F + N*k;
-      ier = finufft2d2(M, x, y, cStart, isign, tol, N1, N2, fStart, plan.opts);
+      ier = finufft2d2_old(M, x, y, cStart, isign, tol, N1, N2, fStart, plan.opts);
     }
     
     double t_compSingle = timer.elapsedsec();
