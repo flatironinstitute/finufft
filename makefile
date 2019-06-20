@@ -189,8 +189,8 @@ test/dumbinputs: test/dumbinputs.cpp $(STATICLIB) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(STATICLIB) $(LIBSFFT) -o test/dumbinputs
 test/dumbInputsGuru: test/dumbInputsGuru.cpp $(OBJSGURU) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(OBJS2) $(OBJSGURU) $(LIBSFFT) -o test/dumbInputsGuru
-test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS2) $(OBJSGURU) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS2) $(OBJSGURU) $(LIBSFFT) -o test/finufft2dmany_test
+test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS2) $(OBJSGURU) $(OLDOBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS2) $(OBJSGURU) $(OLDOBJS) $(LIBSFFT) -o test/finufft2dmany_test
 test/finufftGuru1_test: test/finufftGuru1_test.cpp  $(OBJS2)  $(OBJSGURU) $(OLDOBJS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufftGuru1_test.cpp $(OBJS2)  $(OBJSGURU) $(OLDOBJS) $(LIBSFFT) -o test/finufftGuru1_test
 test/finufftGuru2_test: test/finufftGuru2_test.cpp  $(OBJS2)  $(OBJSGURU) $(OLDOBJS) $(HEADERS)

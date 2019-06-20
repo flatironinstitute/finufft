@@ -1,3 +1,4 @@
+#include "../src/finufft_old.h"
 #include "../src/finufft.h"
 #include "../src/dirft.h"
 #include <math.h>
@@ -103,7 +104,7 @@ int main(int argc, char* argv[])
   {
     cstart = c+k*M;
     Fstart = F_finufft2d1+k*N;
-    ier = finufft2d1(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
+    ier = finufft2d1_old(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
   }
   double t=timer.elapsedsec();
   printf("\tspeedup (T_finufft2d1 / T_finufft2d1many) = %.3g\n", t/ti);
@@ -153,7 +154,7 @@ int main(int argc, char* argv[])
   {
     cstart = c_finufft2d2+k*M;
     Fstart = F+k*N;
-    ier = finufft2d2(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
+    ier = finufft2d2_old(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
   }
   t = timer.elapsedsec();
   printf("\tspeedup (T_finufft2d2 / T_finufft2d2many) = %.3g\n", t/ti);
