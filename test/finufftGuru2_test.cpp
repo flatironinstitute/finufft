@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
     printf("\tspeedup (T_finufft2d1/T_finufft_guru) = %.3g\n", t_compSingle/(plan_t + sort_t + exec_t));
 
     //check accuracy (worst over the nvecs)
-    double max_error = 0.0;
+    maxerror = 0.0;
     for(int k = 0; k < nvecs; k++)
       maxerror = max(maxerror, relerrtwonorm(M, c_compSingle + k*M, c + k*M));
     printf("err check vs non-many: sup( ||F_guru-F_single|| / ||F_single||_2 ) = %.3g\n", maxerror);

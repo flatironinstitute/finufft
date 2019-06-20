@@ -258,7 +258,6 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     int ndims = ndims_from_Ns(N1,N2,N3);
     BIGINT N=N1*N2*N3;            // output array size
     int ns=opts.nspread;          // abbrev. for w, kernel width
-    FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
 
     timer.start();
     for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
@@ -363,7 +362,6 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort){
   CNTime timer;
   int ndims = ndims_from_Ns(N1,N2,N3);
-  BIGINT N=N1*N2*N3;            // output array size
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
 
@@ -478,7 +476,7 @@ int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   else          // ================= direction 2 (interpolation) ===========
     interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
 
-    return 0;
+  return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////
