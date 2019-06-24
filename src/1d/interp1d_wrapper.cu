@@ -13,7 +13,7 @@
 using namespace std;
 
 // This function includes device memory allocation, transfer, free
-int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
+int cufinufft_interp1d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
 		FLT *h_ky, CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
@@ -23,13 +23,13 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	int ier;
 
 	d_plan->ms = ms;
-        d_plan->mt = mt;
-        d_plan->nf1 = nf1;
-        d_plan->nf2 = nf2;
+  d_plan->mt = mt;
+  d_plan->nf1 = nf1;
+  d_plan->nf2 = nf2;
 	d_plan->M = M;
 
 	cudaEventRecord(start);
-	ier = allocgpumemory2d(opts, d_plan);
+	ier = allocgpumemory1d1d(opts, d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -38,7 +38,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	cudaMemcpy2D(d_plan->fw,d_plan->fw_width*sizeof(CUCPX),h_fw,nf1*sizeof(CUCPX),
+	cudaMemcpy1d(d_plan->fw,d_plan->fw_width*sizeof(CUCPX),h_fw,nf1*sizeof(CUCPX),
                      nf1*sizeof(CUCPX),nf2,cudaMemcpyHostToDevice);
 #ifdef TIME
 	cudaEventRecord(stop);
@@ -47,7 +47,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	ier = cuinterp2d(opts, d_plan);
+	ier = cuinterp1d(opts, d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -63,7 +63,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	freegpumemory2d(opts, d_plan);
+	freegpumemory1d1d(opts, d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -74,7 +74,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 }
 
 // a wrapper of different methods of spreader
-int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
+int cuinterp1d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
@@ -87,14 +87,14 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 
 	if(opts.pirange){
 		cudaEventRecord(start);
-		RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
+		RescaleXY_1d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
 		opts.pirange=0;
 #ifdef SPREADTIME
 		float milliseconds;
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
-		cout<<"[time  ]"<< " RescaleXY_2d " << milliseconds <<" ms"<<endl;
+		cout<<"[time  ]"<< " RescaleXY_1d " << milliseconds <<" ms"<<endl;
 #endif
 	}
 
@@ -104,9 +104,9 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuinterp2d_idriven(nf1, nf2, fw_width, M, opts, d_plan);
+				ier = cuinterp1d_idriven(nf1, nf2, fw_width, M, opts, d_plan);
 				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
+					cout<<"error: cnufftspread1d_gpu_idriven"<<endl;
 					return 1;
 				}
 			}
@@ -114,9 +114,9 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 		case 5:
 			{
 				cudaEventRecord(start);
-				ier = cuinterp2d_subprob(nf1, nf2, fw_width, M, opts, d_plan);
+				ier = cuinterp1d_subprob(nf1, nf2, fw_width, M, opts, d_plan);
 				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
+					cout<<"error: cnufftspread1d_gpu_hybrid"<<endl;
 					return 1;
 				}
 			}
@@ -135,7 +135,7 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cuinterp1d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -158,7 +158,7 @@ int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
 	cudaEventRecord(start);
-	Interp_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
+	Interp_1d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
 						       nf1, nf2, es_c, es_beta, fw_width);
 
 #ifdef SPREADTIME
@@ -166,12 +166,12 @@ int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Interp_2d_Idriven \t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel Interp_1d_Idriven \t%.3g ms\n", milliseconds);
 #endif
 	return 0;
 }
 
-int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cuinterp1d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -215,7 +215,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
-	CalcBinSize_noghost_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
+	CalcBinSize_noghost_1d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,bin_size_y,
 			numbins[0],numbins[1],d_binsize,
 			d_kx,d_ky,d_sortidx);
 #ifdef SPREADTIME
@@ -223,7 +223,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel CalcBinSize_noghost_1d \t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	int *h_binsize;// For debug
@@ -253,7 +253,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel BinStartPts_2d \t\t\t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel BinStartPts_1d \t\t\t%.3g ms\n", milliseconds);
 #endif
 
 #ifdef DEBUG
@@ -275,7 +275,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 #endif
 
 	cudaEventRecord(start);
-	CalcInvertofGlobalSortIdx_2d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,bin_size_y,numbins[0],
+	CalcInvertofGlobalSortIdx_1d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,bin_size_y,numbins[0],
 			numbins[1],d_binstartpts,d_sortidx,
 			d_kx,d_ky,d_idxnupts);
 #ifdef DEBUG
@@ -291,14 +291,14 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel CalcInvertofGlobalSortIdx_2d \t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel CalcInvertofGlobalSortIdx_1d \t%.3g ms\n", milliseconds);
 #endif
 
 	/* --------------------------------------------- */
 	//        Determining Subproblem properties      //
 	/* --------------------------------------------- */
 	cudaEventRecord(start);
-	CalcSubProb_2d<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,maxsubprobsize,numbins[0]*numbins[1]);
+	CalcSubProb_1d<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,maxsubprobsize,numbins[0]*numbins[1]);
 #ifdef DEBUG
 	int* h_numsubprob;
 	h_numsubprob = (int*) malloc(n*sizeof(int));
@@ -340,7 +340,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	checkCudaErrors(cudaMemcpy(&totalnumsubprob,&d_subprobstartpts[n],sizeof(int),
 				cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMalloc(&d_subprob_to_bin,totalnumsubprob*sizeof(int)));
-	MapBintoSubProb_2d<<<(numbins[0]*numbins[1]+1024-1)/1024, 1024>>>(d_subprob_to_bin,
+	MapBintoSubProb_1d<<<(numbins[0]*numbins[1]+1024-1)/1024, 1024>>>(d_subprob_to_bin,
 			d_subprobstartpts,
 			d_numsubprob,
 			numbins[0]*numbins[1]);
@@ -371,7 +371,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 		return 1;
 	}
 
-	Interp_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(d_kx, d_ky, d_c,
+	Interp_1d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(d_kx, d_ky, d_c,
 			d_fw, M, ns, nf1, nf2,
 			es_c, es_beta, sigma, fw_width,
 			d_binstartpts, d_binsize,
@@ -383,7 +383,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Interp_2d_Subprob \t\t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel Interp_1d_Subprob \t\t%.3g ms\n", milliseconds);
 #endif
 	return 0;
 }

@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cufinufft1d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -33,7 +33,7 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 	d_plan->M = M;
 	d_plan->iflag = fftsign;
 #ifdef INFO
-	printf("[info  ] 2d1: (ms,mt)=(%d,%d) (nf1, nf2)=(%d,%d) nj=%d\n", ms, mt, d_plan->nf1, d_plan->nf2, d_plan->M);
+	printf("[info  ] 1d1: (ms,mt)=(%d,%d) (nf1, nf2)=(%d,%d) nj=%d\n", ms, mt, d_plan->nf1, d_plan->nf2, d_plan->M);
 #endif
 
 	// this may move to gpu
@@ -47,7 +47,7 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 #endif
 
 	cudaEventRecord(start);
-	ier = allocgpumemory2d(opts, d_plan);
+	ier = allocgpumemory1d(opts, d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -83,7 +83,7 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 	return ier;
 }
 
-int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cufinufft1d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -103,7 +103,7 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinu
 	return 0;
 }
 
-int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan)
+int cufinufft1d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
 	opts.spread_direction = 1;
 	cudaEvent_t start, stop;
@@ -123,9 +123,9 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 #endif
 	// Step 1: Spread
   cudaEventRecord(start);
-  int ier = cuspread2d(opts, d_plan);
+  int ier = cuspread1d(opts, d_plan);
   if(ier != 0 ){
-          printf("error: cuspread2d, method(%d)\n", opts.method);
+          printf("error: cuspread1d, method(%d)\n", opts.method);
           return 0;
   }
 #ifdef TIME
@@ -146,7 +146,7 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 
 	// Step 3: deconvolve and shuffle
 	cudaEventRecord(start);
-	cudeconvolve2d(opts,d_plan);
+	cudeconvolve1d(opts,d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -164,7 +164,7 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 	return ier;
 }
 
-int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan)
+int cufinufft1d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
 	opts.spread_direction = 2;
 
@@ -185,7 +185,7 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 #endif
 	// Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
 	cudaEventRecord(start);
-	cudeconvolve2d(opts,d_plan);
+	cudeconvolve1d(opts,d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -204,9 +204,9 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 
 	// Step 3: deconvolve and shuffle
   cudaEventRecord(start);
-  int ier = cuinterp2d(opts, d_plan);
+  int ier = cuinterp1d(opts, d_plan);
   if(ier != 0 ){
-          printf("error: cuinterp2d, method(%d)\n", opts.method);
+          printf("error: cuinterp1d, method(%d)\n", opts.method);
           return 0;
   }
 #ifdef TIME
@@ -227,15 +227,15 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 	return ier;
 }
 
-int cufinufft2d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cufinufft1d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
 	cudaEventRecord(start);
-  cufftDestroy(d_plan->fftplan);
-  freegpumemory2d(opts, d_plan);
+        cufftDestroy(d_plan->fftplan);
+        freegpumemory1d1d(opts, d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);

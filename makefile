@@ -18,6 +18,10 @@ LIBS_CUFINUFFT=-lcufft
 %.o: %.cu
 	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
 
+spread1d: examples/spread_1d.o src/1d/spread1d_wrapper.o src/1d/spread1d.o finufft/utils.o src/memtransfer_wrapper.o\
+          src/common.o
+	$(NVCC) $(NVCCFLAGS) -o $@ $^
+
 spread2d: examples/spread_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o finufft/utils.o src/memtransfer_wrapper.o\
           src/common.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
@@ -48,7 +52,7 @@ cufinufft2d2_test: examples/cufinufft2d2_test.o finufft/utils.o finufft/dirft2d.
                    src/2d/cufinufft2d.o src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
-all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test cufinufft2d2_test
+all: spread1d spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test cufinufft2d2_test
 clean:
 	rm -f *.o
 	rm -f examples/*.o

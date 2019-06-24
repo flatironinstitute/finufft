@@ -23,13 +23,13 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	int ier;
 
 	d_plan->ms = ms;
-        d_plan->mt = mt;
-        d_plan->nf1 = nf1;
-        d_plan->nf2 = nf2;
+  d_plan->mt = mt;
+  d_plan->nf1 = nf1;
+  d_plan->nf2 = nf2;
 	d_plan->M = M;
 
 	cudaEventRecord(start);
-	ier = allocgpumemory(opts, d_plan);
+	ier = allocgpumemory2d(opts, d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -65,7 +65,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	freegpumemory(opts, d_plan);
+	freegpumemory2d(opts, d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

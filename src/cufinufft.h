@@ -20,7 +20,7 @@ struct cufinufft_opts {      // see cuspread:setup_spreader for defaults.
   FLT ES_beta;
   FLT ES_halfwidth;
   FLT ES_c;
-  
+
   // CUDA
   int method;
   int bin_size_x;
@@ -36,7 +36,7 @@ struct cufinufft_plan {
   int nf1;
   int nf2;
   int ms;
-  int mt; 
+  int mt;
   int fw_width;
   int iflag;
 
@@ -110,7 +110,7 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 }
 #if 0
 void check(cufftResult_t err){
-    if (err != CUFFT_SUCCESS) 
+    if (err != CUFFT_SUCCESS)
     {
         fprintf(stderr, "cuFFT error %d:%s at %s:%d\n", err, _cufftGetErrorEnum(err),
                 __FILE__, __LINE__);
@@ -122,6 +122,15 @@ void check(cufftResult_t err){
 #endif
 #define checkCufftErrors(call)
 int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac);
+
+// 1d
+int cufinufft1d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft1d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft1d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
+int cufinufft1d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
+int cufinufft1d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
+
+// 2d
 int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);

@@ -216,7 +216,7 @@ void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_siz
 
 __global__
 void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbinx,
-			          int nbiny, int* bin_startpts, int* sortidx,
+			                            int nbiny, int* bin_startpts, int* sortidx,
                                   FLT *x, FLT *y, int* index)
 {
 	int binx, biny;
