@@ -80,7 +80,7 @@ int allocgpumemory(const cufinufft_opts opts, cufinufft_plan *d_plan)
 
 	return 0;
 }
-void free_gpumemory(const cufinufft_opts opts, cufinufft_plan *d_plan)
+void freegpumemory(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaFree(d_plan->fw);
 	cudaFree(d_plan->kx);

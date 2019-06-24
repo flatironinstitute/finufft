@@ -21,7 +21,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	cudaEventCreate(&stop);
 
 	int ier;
-	
+
 	d_plan->ms = ms;
         d_plan->mt = mt;
         d_plan->nf1 = nf1;
@@ -63,7 +63,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	free_gpumemory(opts, d_plan);
+	freegpumemory(opts, d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -340,7 +340,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	checkCudaErrors(cudaMemcpy(&totalnumsubprob,&d_subprobstartpts[n],sizeof(int),
 				cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMalloc(&d_subprob_to_bin,totalnumsubprob*sizeof(int)));
-	MapBintoSubProb_2d<<<(numbins[0]*numbins[1]+1024-1)/1024, 1024>>>(d_subprob_to_bin, 
+	MapBintoSubProb_2d<<<(numbins[0]*numbins[1]+1024-1)/1024, 1024>>>(d_subprob_to_bin,
 			d_subprobstartpts,
 			d_numsubprob,
 			numbins[0]*numbins[1]);
