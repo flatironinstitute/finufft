@@ -2,8 +2,8 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <cuda.h>
-#include "../finufft/utils.h"
-#include "spreadinterp.h"
+#include "../../finufft/utils.h"
+#include "../spreadinterp.h"
 
 using namespace std;
 
@@ -40,7 +40,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	   related to an asymptotic approximation to the Kaiser--Bessel, itself an
 	   approximation to prolate spheroidal wavefunction (PSWF) of order 0.
 	   This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
-{   
+{
 	return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
 	//return x;
 	//return 1.0;
@@ -75,7 +75,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double ups
 	FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
 	// insert the auto-generated code which expects z, w args, writes to ker...
 	if (upsampfac==2.0) {     // floating point equality is fine here
-#include "../finufft/ker_horner_allw_loop.c"
+#include "../../finufft/ker_horner_allw_loop.c"
 	}
 }
 
@@ -207,7 +207,7 @@ void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_siz
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binidx = binx+biny*nbinx;
-		
+
 		x_sorted[bin_startpts[binidx]+sortidx[i]] = x_rescaled;
 		y_sorted[bin_startpts[binidx]+sortidx[i]] = y_rescaled;
 		c_sorted[bin_startpts[binidx]+sortidx[i]] = c[i];
@@ -216,7 +216,7 @@ void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_siz
 
 __global__
 void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbinx,
-			          int nbiny, int* bin_startpts, int* sortidx, 
+			          int nbiny, int* bin_startpts, int* sortidx,
                                   FLT *x, FLT *y, int* index)
 {
 	int binx, biny;
@@ -242,7 +242,7 @@ void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, int num
 }
 
 __global__
-void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, int* d_numsubprob, 
+void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, int* d_numsubprob,
                         int numbins)
 {
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; i+=gridDim.x*blockDim.x){
@@ -268,7 +268,7 @@ void CreateSortIdx(int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx)
 
 __global__
 void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		      int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int bin_size, 
+		      int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int bin_size,
                       int bin_size_x, int bin_size_y, int binx, int biny)
 {
 	extern __shared__ CUCPX fwshared[];
@@ -404,7 +404,7 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 __global__
 void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		          int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int fw_width, int* binstartpts,
-		          int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin, 
+		          int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
 		          int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts)
 {
@@ -423,7 +423,7 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 	int yoffset=(bidx / nbinx)*bin_size_y;
 
 	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0));
-	
+
 
 	for(int i=threadIdx.x; i<N; i+=blockDim.x){
 		fwshared[i].x = 0.0;

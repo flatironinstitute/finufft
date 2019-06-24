@@ -2,8 +2,8 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <cuda.h>
-#include "../finufft/utils.h"
-#include "spreadinterp.h"
+#include "../../finufft/utils.h"
+#include "../spreadinterp.h"
 
 using namespace std;
 
@@ -16,7 +16,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	   related to an asymptotic approximation to the Kaiser--Bessel, itself an
 	   approximation to prolate spheroidal wavefunction (PSWF) of order 0.
 	   This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
-{   
+{
 	return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
 	//return x;
 	//return 1.0;
@@ -61,7 +61,7 @@ void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		                
+
 		//x_rescaled = RESCALE(x[i],nf1,1);
 		//y_rescaled = RESCALE(y[i],nf2,1);
 		FLT x_rescaled=x[i];
@@ -106,7 +106,7 @@ void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 __global__
 void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		          int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int fw_width, int* binstartpts,
-		          int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin, 
+		          int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
 		          int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts)
 {
@@ -125,7 +125,7 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 	int yoffset=(bidx / nbinx)*bin_size_y;
 
 	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0));
-	
+
 
 	for(int k=threadIdx.x;k<N; k+=blockDim.x){
 		//fwshared[i].x = 0.0;
