@@ -1,4 +1,5 @@
 #include "finufft.h"
+#include <invokeGuru.h>
 #include "common.h"
 #include <utils.h>
 #include <fftw3.h>
@@ -8,39 +9,6 @@
 #include <iomanip>
 
 
-int invokeGuruInterface(int n_dims, finufft_type type, int n_vecs, BIGINT nj, FLT* xj,FLT *yj,CPX* cj,int iflag,
-			FLT eps, BIGINT *n_modes, CPX* fk, nufft_opts opts){
-
-
-  finufft_plan plan;
-  
-  plan.opts = opts;   /*Copy out user defined options in nufft_opts into the plan*/
-  
-  int ier = make_finufft_plan(type, n_dims, n_modes, iflag, n_vecs, eps, &plan);
-  if(ier){
-    if(plan.opts.debug)
-      printf("error (ier=%d)!\n", ier);
-    return ier;
-  }
-
-  ier = setNUpoints(&plan, nj, xj, yj, NULL, NULL);
-  if(ier){
-    if(plan.opts.debug)
-      printf("error (ier=%d)!\n", ier);
-    return ier;
-  }
-
-  ier = finufft_exec(&plan, cj, fk);
-  if(ier){
-    if(plan.opts.debug)
-      printf("error (ier=%d)!\n", ier);
-    return ier;
-  }
-
-  finufft_destroy(&plan);
-  
-  return 0;
-}
 
 int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
@@ -85,7 +53,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 {
 
 
-  BIGINT n_modes[3] = {ms,mt,0};
+  BIGINT n_modes[3] = {ms,mt,1};
   int n_dims = 2;
   int n_vecs = 1;
   finufft_type type = type1;

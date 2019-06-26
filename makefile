@@ -84,12 +84,12 @@ STATICLIB = lib-static/$(LIBNAME).a
 SOBJS = src/spreadinterp.o src/utils.o
 # for NUFFT library and its testers...
 OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o fortran/finufft_f.o
-OLDOBJS = $(SOBS) src/finufft2d_old.o
+OLDOBJS = $(SOBS) src/finufft1d_old.o src/finufft2d_old.o
 # just the dimensions (1,2,3) separately...
 OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rule_fast.o
 OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o
 OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o
-OBJSGURU = src/finufft.o
+OBJSGURU = src/finufft.o src/invokeGuru.o
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
@@ -179,8 +179,8 @@ test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(STATICLIB) $(HE
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(STATICLIB) $(LIBSFFT) -o test/finufft1d_basicpassfail
 test/testutils: test/testutils.cpp src/utils.o src/utils.h $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
-test/finufft1d_test: test/finufft1d_test.cpp $(OBJS1) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJS1) $(LIBSFFT) -o test/finufft1d_test
+test/finufft1d_test: test/finufft1d_test.cpp $(OBJS1)  $(OLDOBJS) $(OBJSGURU) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJS1)  $(OLDOBJS) $(OBJSGURU) $(LIBSFFT) -o test/finufft1d_test
 test/finufft2d_test: test/finufft2d_test.cpp $(OBJS2) $(OBJSGURU) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJS2) $(OBJSGURU) $(LIBSFFT) -o test/finufft2d_test
 test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)

@@ -94,7 +94,6 @@ typedef struct {
   BIGINT nf2;
   BIGINT nf3; 
   
-  int fw_width;
   int iflag; 
 
   FLT * fwker; //fourier coefficients of spreading kernel for all dims

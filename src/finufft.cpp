@@ -7,8 +7,8 @@
 /*Responsible for allocating arrays for fftw_execute output and instantiating fftw_plan*/
 int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int how_many, FLT tol, finufft_plan *plan) {
 
-  //ONLY 2D TYPE 1+2
-  if(type != finufft_type::type3 && n_dims == 2){
+  //ONLY 1/2D TYPE 1+2
+  if(type != finufft_type::type3 && n_dims != 3){
 
 
     //THINK HARDER about this brittle code
@@ -34,17 +34,18 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     plan->mu = n_modes[2];
     
     plan->iflag = iflag;
-    //plan->fw_width = ?
     plan->X = NULL;
     plan->Y = NULL;
     plan->Z = NULL;
     
     //determine size of upsampled array
-    BIGINT nf1;
+    BIGINT nf1 = 1;
+    BIGINT nf2 = 1;
+    BIGINT nf3 = 1;
     set_nf_type12(plan->ms, plan->opts, spopts, &nf1); //type/DIMENSION dependent line
-    BIGINT nf2;
+    if(n_dims > 1)
     set_nf_type12(plan->mt, plan->opts, spopts, &nf2); //type/DIMENSION dependent line
-    BIGINT nf3{1};
+    
     
     //ensure size of upsampled grid does not exceed MAX
     if (nf1*nf2>MAX_NF) {  //DIMENSION DEPENDENT LINE
@@ -57,8 +58,11 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     if (plan->opts.debug) printf("2d1: (ms,mt)=(%lld,%lld) (nf1,nf2)=(%lld,%lld) ...\n",(long long)plan->ms,(long long)plan->mt,(long long)nf1,(long long)nf2);
 
     //STEP 0: get Fourier coeffs of spreading kernel for each dim
-
-    BIGINT totCoeffs = (nf1/2 + 1)+(nf2/2 +1); //DIMENSION DEPENDENT LINE
+    BIGINT totCoeffs;
+    if(n_dims == 1)
+      totCoeffs = nf1/2 + 1; 
+    else if(n_dims == 2)
+     totCoeffs  = (nf1/2 + 1)+(nf2/2 +1); //DIMENSION DEPENDENT LINE
     plan->fwker = (FLT *)malloc(sizeof(FLT)*totCoeffs);
     if(!plan->fwker){
       fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
@@ -68,7 +72,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     CNTime timer; timer.start();
     //DIMENSION DEPENDENT LINES:
     onedim_fseries_kernel(nf1, plan->fwker, spopts);
-    onedim_fseries_kernel(nf2, plan->fwker + (nf1/2+1), spopts);
+    if(n_dims > 1) onedim_fseries_kernel(nf2, plan->fwker + (nf1/2+1), spopts);
     if (plan->opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
     int nth = MY_OMP_GET_MAX_THREADS();
@@ -92,14 +96,20 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     
     int fftsign = (iflag>=0) ? 1 : -1;
 
-    //TYPE/DIMENSION/HOW MANY DEPENDENT 
-
-    //fftw enforced row major ordering
-    const int nf[] {(int)nf2, (int)nf1};
-
     timer.restart();
-    //HOW_MANY INSTEAD OF NTH?
-    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, nf, 1, nf2*nf1, plan->fw, nf, 1, nf2*nf1, fftsign, plan->opts.fftw ) ; 
+
+    //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
+    if(n_dims == 1){
+      const int nf[] = {(int)nf1};
+      plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, nf2*nf1, plan->fw,
+					  NULL, 1, nf2*nf1, fftsign, plan->opts.fftw ) ;
+    }
+    else{
+    //fftw enforced row major ordering
+      const int nf[] {(int)nf2, (int)nf1};
+      plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, nf2*nf1, plan->fw,
+					  NULL, 1, nf2*nf1, fftsign, plan->opts.fftw ) ;
+    }
 
     if (plan->opts.debug) printf("fftw plan (%d)    \t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
      
@@ -187,8 +197,14 @@ void deconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX *
       for(int i = 0; i < blksize; i++){
 	CPX *fkStart = result + (i+j*nth)*plan->ms*plan->mt;
 	FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*i;
-	
-	deconvolveshuffle2d(plan->spopts.spread_direction,1.0,plan->fwker, plan->fwker+(plan->nf1/2+1),
+
+	//prefactors 
+	if(plan->n_dims == 1)
+	  deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, plan->fwker, plan->ms, (FLT *)fkStart,
+			      plan->nf1, fwStart, plan->opts.modeord);
+	  
+	else if (plan->n_dims == 2)
+	  deconvolveshuffle2d(plan->spopts.spread_direction,1.0,plan->fwker, plan->fwker+(plan->nf1/2+1),
 			    plan->ms, plan->mt, (FLT *)fkStart,
 			    plan->nf1, plan->nf2, fwStart, plan->opts.modeord);
       }
@@ -274,8 +290,6 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
 int finufft_destroy(finufft_plan * plan){
 
   //free everything inside of finnufft_plan!
-  //preemptive pointer checks ensures safety of this call
-  //after an error to any of the three previous calls
   
   if(plan->fwker)
     free(plan->fwker);

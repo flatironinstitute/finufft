@@ -1,6 +1,5 @@
 #include "finufft.h"
 #include "common.h"
-#include <invokeGuru.h>
 #include <utils.h>
 #include <fftw3.h>
 #include <math.h>
@@ -8,7 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
-int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
+int finufft1d1_old(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts opts)
  /*  Type-1 1D complex nonuniform FFT.
 
@@ -39,23 +38,67 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 
    Written with FFTW style complex arrays. Step 3a internally uses CPX,
    and Step 3b internally uses real arithmetic and FFTW style complex.
-
+   Barnett 1/22/17
  */
 {
+  spread_opts spopts;
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
+  if (ier_set) return ier_set;
+  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
+  if (nf1>MAX_NF) {
+    fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)nf1,(double)MAX_NF);
+    return ERR_MAXNALLOC;
+  }
+  cout << scientific << setprecision(15);  // for debug
 
-  BIGINT n_modes[3] = {ms,1,1};
-  int n_dims = 1;
-  int n_vecs = 1;
-  finufft_type type = type1;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, NULL, cj,
-				iflag, eps, n_modes, fk, opts);
- 
-  return ier;
+  if (opts.debug) printf("1d1: ms=%lld nf1=%lld nj=%lld ...\n",(long long)ms,(long long)nf1,(long long)nj);
 
+  CNTime timer; timer.start();
+  int nth = MY_OMP_GET_MAX_THREADS();
+  if (nth>1) {             // set up multithreaded fftw stuff...
+    FFTW_INIT();           // (these do nothing anyway when OMP=OFF)
+    FFTW_PLAN_TH(nth);
+  }
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
+  int fftsign = (iflag>=0) ? 1 : -1;
+  FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, opts.fftw);  // in-place
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
+
+  // Step 1: spread from irregular points to regular grid
+  timer.restart();
+  spopts.spread_direction = 1;
+  FLT *dummy=NULL;
+  int ier_spread = spreadinterp(nf1,1,1,(FLT*)fw,nj,xj,dummy,dummy,(FLT*)cj,spopts);
+  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread, timer.elapsedsec());
+  if (ier_spread>0) return ier_spread;
+  //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
+
+  // Step 2:  Call FFT
+  timer.restart();
+  FFTW_EX(p);
+  FFTW_DE(p);
+  if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
+  //for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
+
+  // STEP 3a: get FT (series) of real symmetric spreading kernel
+  timer.restart();
+  FLT *fwkerhalf = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  onedim_fseries_kernel(nf1, fwkerhalf, spopts);
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread, timer.elapsedsec());
+  //for (int j=0;j<=nf1/2;++j) cout<<fwkerhalf[j]<<endl;
+
+  // Step 3b: Deconvolve by dividing coeffs by that of kernel; shuffle to output
+  timer.restart();
+  deconvolveshuffle1d(1,1.0,fwkerhalf,ms,(FLT*)fk,nf1,fw,opts.modeord);  // prefac now 1
+  if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
+  //for (int j=0;j<ms;++j) cout<<fk[j]<<endl;
+
+  FFTW_FR(fw); free(fwkerhalf); if (opts.debug) printf("freed\n");
+  return 0;
 }
 
 
-int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
+int finufft1d2_old(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts opts)
  /*  Type-2 1D complex nonuniform FFT.
 
@@ -85,22 +128,66 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 
    Written with FFTW style complex arrays. Step 0 internally uses CPX,
    and Step 1 internally uses real arithmetic and FFTW style complex.
-
+   Barnett 1/25/17
  */
 {
+  spread_opts spopts;
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
+  if (ier_set) return ier_set;
+  BIGINT nf1; set_nf_type12((BIGINT)ms,opts,spopts,&nf1);
+  if (nf1>MAX_NF) {
+    fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)nf1,(double)MAX_NF);
+    return ERR_MAXNALLOC;
+  }
+  cout << scientific << setprecision(15);  // for debug
 
-  BIGINT n_modes[3] = {ms,1,1};
-  int n_dims = 1;
-  int n_vecs = 1;
-  finufft_type type = type2;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, NULL, cj,
-				iflag, eps, n_modes, fk, opts);
+  if (opts.debug) printf("1d2: ms=%lld nf1=%lld nj=%lld ...\n",(long long)ms,(long long)nf1,(long long)nj); 
 
-  return ier;
+  // STEP 0: get FT of real symmetric spreading kernel
+  CNTime timer; timer.start();
+  FLT *fwkerhalf = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  onedim_fseries_kernel(nf1, fwkerhalf, spopts);
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread, timer.elapsedsec());
+
+  int nth = MY_OMP_GET_MAX_THREADS();
+  if (nth>1) {             // set up multithreaded fftw stuff...
+    FFTW_INIT();
+    FFTW_PLAN_TH(nth);
+  }
+  timer.restart();
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
+  int fftsign = (iflag>=0) ? 1 : -1;
+  FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, opts.fftw); // in-place
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
+
+  // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
+  timer.restart();
+  deconvolveshuffle1d(2,1.0,fwkerhalf,ms,(FLT*)fk,nf1,fw,opts.modeord);
+  free(fwkerhalf);        // in 1d could help to free up
+  if (opts.debug) printf("amplify & copy in:\t %.3g s\n", timer.elapsedsec());
+  //cout<<"fw:\n"; for (int j=0;j<nf1;++j) cout<<fw[j][0]<<"\t"<<fw[j][1]<<endl;
+
+  // Step 2:  Call FFT
+  timer.restart();
+  FFTW_EX(p);
+  FFTW_DE(p);
+  if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
+
+  // Step 3: unspread (interpolate) from regular to irregular target pts
+  timer.restart();
+  spopts.spread_direction = 2;
+  FLT *dummy=NULL;
+  int ier_spread = spreadinterp(nf1,1,1,(FLT*)fw,nj,xj,dummy,dummy,(FLT*)cj,spopts);
+  //int ier_spread = twopispread1d(nf1,(CPX*)fw,nj,xj,cj,spopts);
+  if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n", ier_spread, timer.elapsedsec());
+  if (ier_spread>0) return ier_spread;
+
+  FFTW_FR(fw); if (opts.debug) printf("freed\n");
+  return 0;
 }
 
 
-int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts opts)
+int finufft1d3_old(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts opts)
  /*  Type-3 1D complex nonuniform FFT.
 
                nj-1
@@ -184,7 +271,7 @@ int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, 
   FLT *sp = (FLT*)malloc(sizeof(FLT)*nk);     // rescaled targs s'_k
   for (BIGINT k=0;k<nk;++k)
     sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
-  int ier_t2 = finufft1d2(nk,sp,fk,iflag,eps,nf1,fw,opts);  // the meat
+  int ier_t2 = finufft1d2_old(nk,sp,fk,iflag,eps,nf1,fw,opts);  // the meat
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2) return ier_t2;

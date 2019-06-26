@@ -1,4 +1,5 @@
 #include "../src/finufft.h"
+#include "../src/finufft_old.h"
 #include "../src/dirft.h"
 #include <math.h>
 #include <vector>
@@ -78,8 +79,6 @@ int main(int argc, char* argv[])
 
   BIGINT nt = (BIGINT)(0.37*N);   // check arb choice of mode near the top (N/2)
   CPX Ft = CPX(0,0);
-  //#pragma omp declare reduction (cmplxadd:CPX:omp_out=omp_out+omp_in) initializer(omp_priv={0.0,0.0})  // only for openmp v 4.0!
-  //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(IMA*((FLT)(isign*nt))*x[j]);
   printf("one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
@@ -90,6 +89,12 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 
+  //check against the old
+  CPX * F_old = (CPX *)malloc(sizeof(CPX)*N);
+  finufft1d1_old(M,x,c,isign,tol,N,F_old,opts);
+  printf("finufft1d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
+  free(F_old);
+  
   printf("test 1d type-2:\n"); // -------------- type 2
  #pragma omp parallel
   {
