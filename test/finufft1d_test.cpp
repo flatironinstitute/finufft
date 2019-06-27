@@ -1,6 +1,6 @@
-#include "../src/finufft.h"
-#include "../src/finufft_old.h"
-#include "../src/dirft.h"
+#include <finufft.h>
+#include <finufft_old.h>
+#include <dirft.h>
 #include <math.h>
 #include <vector>
 #include <stdio.h>

@@ -1,5 +1,5 @@
-#include "finufft.h"
-#include "common.h"
+#include <finufft.h>
+#include <common.h>
 #include <invokeGuru.h>
 #include <utils.h>
 #include <fftw3.h>
@@ -47,7 +47,7 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   int n_dims = 1;
   int n_vecs = 1;
   finufft_type type = type1;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, NULL, cj,
+  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, NULL, NULL, cj,
 				iflag, eps, n_modes, fk, opts);
  
   return ier;
@@ -93,7 +93,7 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   int n_dims = 1;
   int n_vecs = 1;
   finufft_type type = type2;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, NULL, cj,
+  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, NULL, NULL, cj,
 				iflag, eps, n_modes, fk, opts);
 
   return ier;

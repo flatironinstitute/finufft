@@ -1,5 +1,4 @@
 #include <finufft.h>
-#include <invokeGuru.h>
 #include <common.h>
 #include <utils.h>
 #include <fftw3.h>
@@ -8,7 +7,7 @@
 #include <iostream>
 #include <iomanip>
 
-int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
+int finufft3d1_old(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk,
 	       nufft_opts opts)
  /*  Type-1 3D complex nonuniform FFT.
@@ -48,21 +47,70 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
         Fourier series coefficient of the kernel.
      The kernel coeffs are precomputed in what is called step 0 in the code.
 
-   Written with FFTW style complex arrays.
+   Written with FFTW style complex arrays. Barnett 2/2/17
  */
 {
-  BIGINT n_modes[3] = {ms,mt,mu};
-  int n_dims = 3;
-  int n_vecs = 1;
-  finufft_type type = type1;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, zj, cj, iflag,
-		      eps, n_modes, fk, opts);
+  spread_opts spopts;
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
+  if (ier_set) return ier_set;
+  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
+  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
+  BIGINT nf3; set_nf_type12(mu,opts,spopts,&nf3);
+  if (nf1*nf2*nf3>MAX_NF) {
+    fprintf(stderr,"nf1*nf2*nf3=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2*nf3,(double)MAX_NF);
+    return ERR_MAXNALLOC;
+  }
+  cout << scientific << setprecision(15);  // for debug
 
+  if (opts.debug) printf("3d1: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) nj=%lld ...\n",(long long)ms,(long long)mt,(long long)mu,(long long)nf1,(long long)nf2,(long long)nf3,(long long)nj);
 
-  return ier;
+  // STEP 0: get Fourier coeffs of spread kernel in each dim:
+  CNTime timer; timer.start();
+  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  FLT *fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
+  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
+  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
+  onedim_fseries_kernel(nf3, fwkerhalf3, spopts);
+  double t=timer.elapsedsec();
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,t);
+
+  int nth = MY_OMP_GET_MAX_THREADS();
+  if (nth>1) {             // set up multithreaded fftw stuff...
+    FFTW_INIT();
+    FFTW_PLAN_TH(nth);
+  }
+  timer.restart();
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3);  // working upsampled array
+  int fftsign = (iflag>=0) ? 1 : -1;
+  FFTW_PLAN p = FFTW_PLAN_3D(nf3,nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
+
+  // Step 1: spread from irregular points to regular grid
+  timer.restart();
+  spopts.spread_direction = 1;
+  int ier_spread = spreadinterp(nf1,nf2,nf3,(FLT*)fw,nj,xj,yj,zj,(FLT*)cj,spopts);
+  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
+  if (ier_spread>0) return ier_spread;
+
+  // Step 2:  Call FFT
+  timer.restart();
+  FFTW_EX(p);
+  FFTW_DE(p);
+  if (opts.debug) printf("fft (%d threads):\t %.3g s\n", nth, timer.elapsedsec());
+
+  // Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output
+  timer.restart();
+  deconvolveshuffle3d(1,1.0,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(FLT*)fk,nf1,nf2,nf3,fw,opts.modeord);
+  if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
+
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(fwkerhalf3);
+  //fftw_cleanup();    // useful so doesn't show in valgrind
+  if (opts.debug) printf("freed\n");
+  return 0;
 }
 
-int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
+int finufft3d2_old(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 	       int iflag,FLT eps, BIGINT ms, BIGINT mt, BIGINT mu,
 	       CPX* fk, nufft_opts opts)
 
@@ -98,22 +146,68 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
      3) spread (dir=2, ie interpolate) data to regular mesh
      The kernel coeffs are precomputed in what is called step 0 in the code.
 
-   Written with FFTW style complex arrays. 
+   Written with FFTW style complex arrays. Barnett 2/2/17
  */
 {
-  BIGINT n_modes[3] = {ms,mt,mu};
-  int n_dims = 3;
-  int n_vecs = 1;
-  finufft_type type = type2;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, zj, cj, iflag,
-		      eps, n_modes, fk, opts);
+  spread_opts spopts;
+  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
+  if (ier_set) return ier_set;
+  BIGINT nf1; set_nf_type12(ms,opts,spopts,&nf1);
+  BIGINT nf2; set_nf_type12(mt,opts,spopts,&nf2);
+  BIGINT nf3; set_nf_type12(mu,opts,spopts,&nf3);
+  if (nf1*nf2*nf3>MAX_NF) {
+    fprintf(stderr,"nf1*nf2*nf3=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2*nf3,(double)MAX_NF);
+    return ERR_MAXNALLOC;
+  }
+  cout << scientific << setprecision(15);  // for debug
 
+  if (opts.debug) printf("3d2: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) nj=%lld ...\n",(long long)ms,(long long)mt,(long long)mu,(long long)nf1,(long long)nf2,(long long)nf3,(long long)nj);
+  
+  // STEP 0: get Fourier coeffs of spread kernel in each dim:
+  CNTime timer; timer.start();
+  FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  FLT *fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
+  onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
+  onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
+  onedim_fseries_kernel(nf3, fwkerhalf3, spopts);
+  if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
+  int nth = MY_OMP_GET_MAX_THREADS();
+  if (nth>1) {             // set up multithreaded fftw stuff...
+    FFTW_INIT();
+    FFTW_PLAN_TH(nth);
+  }
+  timer.restart();
+  FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3); // working upsampled array
+  int fftsign = (iflag>=0) ? 1 : -1;
+  FFTW_PLAN p = FFTW_PLAN_3D(nf3,nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
+  if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
-  return ier;
+  // STEP 1: amplify Fourier coeffs fk and copy into upsampled array fw
+  timer.restart();
+  deconvolveshuffle3d(2,1.0,fwkerhalf1,fwkerhalf2,fwkerhalf3,ms,mt,mu,(FLT*)fk,nf1,nf2,nf3,fw,opts.modeord);
+  if (opts.debug) printf("amplify & copy in:\t %.3g s\n",timer.elapsedsec());
+
+  // Step 2:  Call FFT
+  timer.restart();
+  FFTW_EX(p);
+  FFTW_DE(p);
+  if (opts.debug) printf("fft (%d threads):\t %.3g s\n",nth,timer.elapsedsec());
+
+  // Step 3: unspread (interpolate) from regular to irregular target pts
+  timer.restart();
+  spopts.spread_direction = 2;
+  int ier_spread = spreadinterp(nf1,nf2,nf3,(FLT*)fw,nj,xj,yj,zj,(FLT*)cj,spopts);
+  if (opts.debug) printf("unspread (ier=%d):\t %.3g s\n",ier_spread,timer.elapsedsec());
+  if (ier_spread>0) return ier_spread;
+
+  FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(fwkerhalf3);
+  if (opts.debug) printf("freed\n");
+  return 0;
 }
 
-int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
+int finufft3d3_old(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 	       int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t,
 	       FLT *u, CPX* fk, nufft_opts opts)
  /*  Type-3 3D complex nonuniform FFT.

@@ -17,9 +17,9 @@ FLINK=$(CLINK)
 # compile flags for GCC, baseline single-threaded, double precision case...
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
-CFLAGS   =  -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
+CFLAGS   = -g  -fPIC -O0 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
-CFLAGS   += -I src
+CFLAGS   += -I src -I src/oldOrDirect
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
 # FFTW base name, and math linking...
@@ -83,17 +83,17 @@ STATICLIB = lib-static/$(LIBNAME).a
 # objects to compile: spreader...
 SOBJS = src/spreadinterp.o src/utils.o
 # for NUFFT library and its testers...
-OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/dirft1d.o src/dirft2d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o fortran/finufft_f.o
-OLDOBJS = $(SOBS) src/finufft1d_old.o src/finufft2d_old.o
+OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/oldOrDirect/dirft1d.o src/oldOrDirect/dirft2d.o src/oldOrDirect/dirft3d.o src/common.o contrib/legendre_rule_fast.o fortran/finufft_f.o
+OLDOBJS = $(SOBS) src/oldOrDirect/finufft1d_old.o src/oldOrDirect/finufft2d_old.o
 # just the dimensions (1,2,3) separately...
-OBJS1 = $(SOBJS) src/finufft1d.o src/dirft1d.o src/common.o contrib/legendre_rule_fast.o
-OBJS2 = $(SOBJS) src/finufft2d.o src/dirft2d.o src/common.o contrib/legendre_rule_fast.o
-OBJS3 = $(SOBJS) src/finufft3d.o src/dirft3d.o src/common.o contrib/legendre_rule_fast.o
+OBJS1 = $(SOBJS) src/finufft1d.o src/oldOrDirect/dirft1d.o src/common.o contrib/legendre_rule_fast.o
+OBJS2 = $(SOBJS) src/finufft2d.o src/oldOrDirect/dirft2d.o src/common.o contrib/legendre_rule_fast.o
+OBJS3 = $(SOBJS) src/finufft3d.o src/oldOrDirect/dirft3d.o src/common.o contrib/legendre_rule_fast.o
 OBJSGURU = src/finufft.o src/invokeGuru.o
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
-HEADERS = src/spreadinterp.h src/finufft_old.h src/finufft.h src/dirft.h src/common.h src/defs.h src/utils.h fortran/finufft_f.h
+HEADERS = src/spreadinterp.h src/oldOrDirect/finufft_old.h src/finufft.h src/oldOrDirect/dirft.h src/common.h src/defs.h src/utils.h fortran/finufft_f.h
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python python3 clean objclean pyclean mexclean
 
@@ -183,8 +183,8 @@ test/finufft1d_test: test/finufft1d_test.cpp $(OBJS1)  $(OLDOBJS) $(OBJSGURU) $(
 	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJS1)  $(OLDOBJS) $(OBJSGURU) $(LIBSFFT) -o test/finufft1d_test
 test/finufft2d_test: test/finufft2d_test.cpp $(OBJS2) $(OBJSGURU) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJS2) $(OBJSGURU) $(LIBSFFT) -o test/finufft2d_test
-test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS3) $(LIBSFFT) -o test/finufft3d_test
+test/finufft3d_test: test/finufft3d_test.cpp $(OBJS3) $(OBJSGURU) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS3) $(OBJSGURU) $(LIBSFFT) -o test/finufft3d_test
 test/dumbinputs: test/dumbinputs.cpp $(STATICLIB) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(STATICLIB) $(LIBSFFT) -o test/dumbinputs
 test/dumbInputsGuru: test/dumbInputsGuru.cpp $(OBJSGURU) $(HEADERS)

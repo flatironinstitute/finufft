@@ -1,6 +1,6 @@
-#include "finufft.h"
+#include <finufft.h>
 #include <invokeGuru.h>
-#include "common.h"
+#include <common.h>
 #include <utils.h>
 #include <fftw3.h>
 #include <math.h>
@@ -57,7 +57,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   int n_dims = 2;
   int n_vecs = 1;
   finufft_type type = type1;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, cj, iflag,
+  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, NULL, cj, iflag,
 		      eps, n_modes, fk, opts);
 
   
@@ -109,11 +109,11 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
     return ERR_NDATA_NOTVALID;
   }
 
-  BIGINT n_modes[3] = {ms,mt,0};
+  BIGINT n_modes[3] = {ms,mt,1};
   int n_dims = 2;
   finufft_type type = type1;
   
-  int ier = invokeGuruInterface(n_dims, type, ndata, nj, xj, yj, c, iflag,
+  int ier = invokeGuruInterface(n_dims, type, ndata, nj, xj, yj,NULL, c, iflag,
 		      eps, n_modes, fk, opts);
 
 
@@ -160,7 +160,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   int n_dims = 2;
   int n_vecs = 1;
   finufft_type type = type2;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, cj, iflag,
+  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, NULL, cj, iflag,
 		      eps, n_modes, fk, opts);
  
   
@@ -208,10 +208,10 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
     return ERR_NDATA_NOTVALID;
   }
 
-  BIGINT n_modes[3] = {ms,mt,0};
+  BIGINT n_modes[3] = {ms,mt,1};
   int n_dims = 2;
   finufft_type type = type2;
-  int ier = invokeGuruInterface(n_dims, type, ndata, nj, xj, yj, c, iflag,
+  int ier = invokeGuruInterface(n_dims, type, ndata, nj, xj, yj, NULL, c, iflag,
 		      eps, n_modes, fk, opts);
 
   return ier; 
