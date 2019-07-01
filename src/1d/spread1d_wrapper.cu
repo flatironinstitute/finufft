@@ -13,8 +13,8 @@
 using namespace std;
 
 // This is a function only doing spread includes device memory allocation, transfer, free
-int cufinufft_spread1d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		       FLT *h_ky, CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
+int cufinufft_spread1d(int ms, int nf1, CPX* h_fw, int M, FLT *h_kx,
+		                   CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -23,9 +23,7 @@ int cufinufft_spread1d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	int ier;
 
 	d_plan->ms = ms;
-  d_plan->mt = mt;
   d_plan->nf1 = nf1;
-  d_plan->nf2 = nf2;
 	d_plan->M = M;
 
 	cudaEventRecord(start);
@@ -39,7 +37,6 @@ int cufinufft_spread1d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 #endif
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_plan->c, h_c, M*sizeof(CUCPX),cudaMemcpyHostToDevice));
 #ifdef TIME
 	cudaEventRecord(stop);
@@ -56,8 +53,7 @@ int cufinufft_spread1d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Spread (%d)\t\t %.3g ms\n", opts.method, milliseconds);
 #endif
 	cudaEventRecord(start);
-	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(CUCPX),d_plan->fw,d_plan->fw_width*sizeof(CUCPX),
-				     nf1*sizeof(CUCPX),nf2,cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_fw,d_plan->fw,nf1*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -79,7 +75,6 @@ int cufinufft_spread1d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 int cuspread1d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	int nf1 = d_plan->nf1;
-	int nf2 = d_plan->nf2;
 	int fw_width = d_plan->fw_width;
 	int M = d_plan->M;
 
@@ -89,7 +84,7 @@ int cuspread1d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 
 	if(opts.pirange){
 		cudaEventRecord(start);
-		RescaleXY_1d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
+		RescaleXY_1d<<<(M+1024-1)/1024, 1024>>>(M,nf1,d_plan->kx);
 		opts.pirange=0;
 #ifdef SPREADTIME
 		float milliseconds;
@@ -106,7 +101,7 @@ int cuspread1d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuspread1d_idriven(nf1, nf2, fw_width, M, opts, d_plan);
+				ier = cuspread1d_idriven(nf1, fw_width, M, opts, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread1d_gpu_idriven"<<endl;
 					return 1;
@@ -136,7 +131,8 @@ int cuspread1d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuspread1d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cuspread1d_idriven(int nf1, int fw_width, int M, const cufinufft_opts opts,
+											 cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -145,12 +141,11 @@ int cuspread1d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
-	int ns=opts.nspread;   // psi's support in terms of number of cells
+	const int ns=opts.nspread;   // psi's support in terms of number of cells
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
 
 	FLT* d_kx = d_plan->kx;
-	FLT* d_ky = d_plan->ky;
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
@@ -160,11 +155,11 @@ int cuspread1d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	blocks.y = 1;
 	cudaEventRecord(start);
 	if(opts.Horner){
-		Spread_1d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
-				nf1, nf2, es_c, es_beta, fw_width);
+		Spread_1d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_c, d_fw, M, ns,
+				nf1, es_c, es_beta, fw_width);
 	}else{
-		Spread_1d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, M, ns,
-				nf1, nf2, es_c, es_beta, fw_width);
+		Spread_1d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_c, d_fw, M, ns,
+				nf1, es_c, es_beta, fw_width);
 	}
 
 #ifdef SPREADTIME

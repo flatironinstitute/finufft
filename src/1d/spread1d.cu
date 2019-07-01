@@ -200,92 +200,68 @@ void Spread_1d(int nbin_block_x, int nbinx, int *bin_startpts,
 }
 */
 __global__
-void RescaleXY_1d(int M, int nf1, int nf2, FLT* x, FLT* y)
+void RescaleXY_1d(int M, int nf1, FLT* x)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		x[i] = RESCALE(x[i], nf1, 1);
-		y[i] = RESCALE(y[i], nf2, 1);
 	}
 }
 
 __global__
-void Spread_1d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
+void Spread_1d_Idriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+		int nf1, FLT es_c, FLT es_beta, int fw_width)
 {
-	int xstart,ystart,xend,yend;
-	int xx, yy, ix, iy;
+	int xstart,xend;
+	int xx, ix;
 	int outidx;
 
-	FLT x_rescaled, y_rescaled;
+	FLT x_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		//x_rescaled = RESCALE(x[i],nf1,1);
-		//y_rescaled = RESCALE(y[i],nf2,1);
 		x_rescaled=x[i];
-		y_rescaled=y[i];
 		xstart = ceil(x_rescaled - ns/2.0);
-		ystart = ceil(y_rescaled - ns/2.0);
 		xend = floor(x_rescaled + ns/2.0);
-		yend = floor(y_rescaled + ns/2.0);
 
-		for(yy=ystart; yy<=yend; yy++){
-			FLT disy=abs(y_rescaled-yy);
-			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
 			for(xx=xstart; xx<=xend; xx++){
 				ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
-				iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
-				outidx = ix+iy*fw_width;
+				outidx = ix;
 				FLT disx=abs(x_rescaled-xx);
 				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-				atomicAdd(&fw[outidx].x, c[i].x*kervalue1*kervalue2);
-				atomicAdd(&fw[outidx].y, c[i].y*kervalue1*kervalue2);
+				atomicAdd(&fw[outidx].x, c[i].x*kervalue1);
+				atomicAdd(&fw[outidx].y, c[i].y*kervalue1);
 				//atomicAdd(&fw[outidx].x, kervalue1*kervalue2);
 				//atomicAdd(&fw[outidx].y, kervalue1*kervalue2);
 			}
-		}
 
 	}
 
 }
 
 __global__
-void Spread_1d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
+void Spread_1d_Idriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+		int nf1, FLT es_c, FLT es_beta, int fw_width)
 {
-	int xx, yy, ix, iy;
+	int xx, ix;
 	int outidx;
 	FLT ker1[MAX_NSPREAD];
-	FLT ker2[MAX_NSPREAD];
-	FLT ker1val, ker2val;
+	FLT ker1val;
 	double sigma=2.0;
 
-	FLT x_rescaled, y_rescaled;
+	FLT x_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		x_rescaled=x[i];
-		y_rescaled=y[i];
 		int xstart = ceil(x_rescaled - ns/2.0);
-		int ystart = ceil(y_rescaled - ns/2.0);
 		int xend = floor(x_rescaled + ns/2.0);
-		int yend = floor(y_rescaled + ns/2.0);
 
 		FLT x1=(FLT)xstart-x_rescaled;
-		FLT y1=(FLT)ystart-y_rescaled;
 		eval_kernel_vec_Horner(ker1,x1,ns,sigma);
-		eval_kernel_vec_Horner(ker2,y1,ns,sigma);
 		//evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
-		for(yy=ystart; yy<=yend; yy++){
-			//FLT disy=abs(y_rescaled-yy);
-			//FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-			//ker2val=ker2[yy-ystart];
-			for(xx=xstart; xx<=xend; xx++){
-				ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
-				iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
-				outidx = ix+iy*fw_width;
-				ker1val=ker1[xx-xstart];
-				ker2val=ker2[yy-ystart];
-				FLT kervalue=ker1val*ker2val;
-				atomicAdd(&fw[outidx].x, c[i].x*kervalue);
-				atomicAdd(&fw[outidx].y, c[i].y*kervalue);
-			}
+		for(xx=xstart; xx<=xend; xx++){
+			ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
+			outidx = ix;
+			ker1val=ker1[xx-xstart];
+			FLT kervalue=ker1val;
+			atomicAdd(&fw[outidx].x, c[i].x*kervalue);
+			atomicAdd(&fw[outidx].y, c[i].y*kervalue);
 		}
 	}
 }

@@ -27,7 +27,7 @@ void Spread_1d(int nbin_block_x, int nbinx, int *bin_startpts,
 */
 
 __global__
-void RescaleXY_1d(int M, int nf1, int nf2, FLT* x, FLT* y);
+void RescaleXY_1d(int M, int nf1, FLT* x);
 //Kernels for 1D codes
 __global__
 void CalcBinSize_noghost_1d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
@@ -47,14 +47,14 @@ void Spread_1d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
                        FLT *x_sorted, FLT *y_sorted, CUCPX *c_sorted, CUCPX *fw, int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
 __global__
-void Spread_1d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
+void Spread_1d_Idriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+                       int nf1, FLT es_c, FLT es_beta, int fw_width);
 __global__
 void Interp_1d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                        int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
 __global__
-void Spread_1d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                              int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width);
+void Spread_1d_Idriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+                              int nf1, FLT es_c, FLT es_beta, int fw_width);
 __global__
 void Spread_1d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                       int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
@@ -136,11 +136,11 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                           int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts);
 // 1d
-int cufinufft_spread1d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                       FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
+int cufinufft_spread1d(int ms, int nf1, CPX* h_fw, int M, FLT *h_kx,
+                       CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
 int cufinufft_interp1d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                        FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
-int cuspread1d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
+int cuspread1d_idriven(int nf1, int fw_width, int M, const cufinufft_opts opts,
                        cufinufft_plan *d_mem);
 int cuinterp1d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
                        cufinufft_plan *d_mem);
