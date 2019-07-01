@@ -27,8 +27,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
 
     //THINK HARDER about this brittle code
     //user may have edited the opts struct inside of the plan before calling this routine
-    //or it may be completely uninitialized. To check if latter, suffices to check upsampfac.
-    
+    //or it may be completely uninitialized. To check if latter, suffices to check upsampfac.    
     if(plan->opts.upsampfac != 2 && plan->opts.upsampfac != 1.25 ){ //uninitialized
       nufft_opts def_opts;
       finufft_default_opts(&def_opts);
@@ -119,25 +118,16 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
 
     timer.restart();
 
-    //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-    if(n_dims == 1){
-      const int nf[] = {(int)nf1};
-      plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, nf1, plan->fw,
-					  NULL, 1, nf1, fftsign, plan->opts.fftw ) ;
-    }
-    else if (n_dims == 2){
-    //fftw enforced row major ordering
-      const int nf[] {(int)nf2, (int)nf1};
-      plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, nf2*nf1, plan->fw,
-					  NULL, 1, nf2*nf1, fftsign, plan->opts.fftw ) ;
-    }
-    else{
-      const int nf[] = {(int)nf3, (int)nf2, (int)nf1};
-      plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, nf2*nf1*nf3, plan->fw,
-					  NULL, 1, nf2*nf1*nf3, fftsign, plan->opts.fftw ) ;      
-    }
+    int * nf; 
     
+    //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
+    if(n_dims == 1){ nf = new int[1] {(int)nf1}; }
+    else if (n_dims == 2){ nf = new int[2] {(int)nf2, (int)nf1}; }   //fftw enforced row major ordering
+    else{ nf = new int[3] {(int)nf3, (int)nf2, (int)nf1}; }
 
+    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, nf2*nf1*nf3, plan->fw,
+				    	  NULL, 1, nf2*nf1*nf3, fftsign, plan->opts.fftw ) ;    
+    delete []nf;		    
     if (plan->opts.debug) printf("fftw plan (%d)    \t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
      
 

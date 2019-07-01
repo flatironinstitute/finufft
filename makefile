@@ -17,9 +17,9 @@ FLINK=$(CLINK)
 # compile flags for GCC, baseline single-threaded, double precision case...
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
-CFLAGS   = -g  -fPIC -O0 -funroll-loops -march=native -fcx-limited-range
+CFLAGS   =  -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
-CFLAGS   += -I src -I src/oldOrDirect
+CFLAGS   += -I src -I src/oldOrDirect -I src/legacy
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
 # FFTW base name, and math linking...
@@ -83,13 +83,13 @@ STATICLIB = lib-static/$(LIBNAME).a
 # objects to compile: spreader...
 SOBJS = src/spreadinterp.o src/utils.o
 # for NUFFT library and its testers...
-OBJS = $(SOBJS) src/finufft1d.o src/finufft2d.o src/finufft3d.o src/oldOrDirect/dirft1d.o src/oldOrDirect/dirft2d.o src/oldOrDirect/dirft3d.o src/common.o contrib/legendre_rule_fast.o fortran/finufft_f.o
+OBJS = $(SOBJS) src/legacy/finufft1d.o src/legacy/finufft2d.o src/legacy/finufft3d.o src/oldOrDirect/dirft1d.o src/oldOrDirect/dirft2d.o src/oldOrDirect/dirft3d.o src/common.o contrib/legendre_rule_fast.o fortran/finufft_f.o
 OLDOBJS = $(SOBS) src/oldOrDirect/finufft1d_old.o src/oldOrDirect/finufft2d_old.o
 # just the dimensions (1,2,3) separately...
-OBJS1 = $(SOBJS) src/finufft1d.o src/oldOrDirect/dirft1d.o src/common.o contrib/legendre_rule_fast.o
-OBJS2 = $(SOBJS) src/finufft2d.o src/oldOrDirect/dirft2d.o src/common.o contrib/legendre_rule_fast.o
-OBJS3 = $(SOBJS) src/finufft3d.o src/oldOrDirect/dirft3d.o src/common.o contrib/legendre_rule_fast.o
-OBJSGURU = src/finufft.o src/invokeGuru.o
+OBJS1 = $(SOBJS) src/legacy/finufft1d.o src/oldOrDirect/dirft1d.o src/common.o contrib/legendre_rule_fast.o
+OBJS2 = $(SOBJS) src/legacy/finufft2d.o src/oldOrDirect/dirft2d.o src/common.o contrib/legendre_rule_fast.o
+OBJS3 = $(SOBJS) src/legacy/finufft3d.o src/oldOrDirect/dirft3d.o src/common.o contrib/legendre_rule_fast.o
+OBJSGURU = src/finufft.o src/legacy/invokeGuru.o
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
