@@ -53,9 +53,9 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 {
   BIGINT n_modes[3] = {ms,mt,mu};
   int n_dims = 3;
-  int n_vecs = 1;
+  int n_transf = 1;
   finufft_type type = type1;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, zj, cj, iflag,
+  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
 		      eps, n_modes, fk, opts);
 
 
@@ -103,9 +103,9 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 {
   BIGINT n_modes[3] = {ms,mt,mu};
   int n_dims = 3;
-  int n_vecs = 1;
+  int n_transf = 1;
   finufft_type type = type2;
-  int ier = invokeGuruInterface(n_dims, type, n_vecs, nj, xj, yj, zj, cj, iflag,
+  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
 		      eps, n_modes, fk, opts);
 
 

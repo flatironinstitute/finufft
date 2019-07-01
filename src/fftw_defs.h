@@ -7,9 +7,6 @@
 
 // prec-indep interfaces to FFTW and other math utilities...
 #ifdef SINGLE
-  // single-prec, machine epsilon for rounding
-  #define EPSILON (float)6e-08
-  #define FABS(x) fabsf(x)
   typedef fftwf_complex FFTW_CPX;           //  single-prec has fftwf_*
   typedef fftwf_plan FFTW_PLAN;
   #define FFTW_INIT fftwf_init_threads
@@ -25,9 +22,6 @@
   #define FFTW_FR fftwf_free
   #define FFTW_FORGET_WISDOM fftwf_forget_wisdom
 #else
-  // double-precision, machine epsilon for rounding
-  #define EPSILON (double)1.1e-16
-  #define FABS(x) fabs(x)
   typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
   typedef fftw_plan FFTW_PLAN;
   #define FFTW_INIT fftw_init_threads

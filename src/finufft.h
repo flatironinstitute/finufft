@@ -3,42 +3,8 @@
 #ifndef FINUFFT_H
 #define FINUFFT_H
 
-// ----------------- data type definitions ----------------------------------
-// (note: non-interface precision- and omp-dependent defs are in defs.h)
-
-// octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
-#include <stdint.h>
-
-// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
-// This includes all calling arguments (eg M,N) that could be huge someday...
-typedef int64_t BIGINT;
-
-// decide which kind of complex numbers to use in interface...
-#ifdef __cplusplus
-#include <complex>          // C++ type
-#else
-#include <complex.h>        // C99 type
-#endif
-
-// Precision-independent real and complex types for interfacing...
-#ifdef SINGLE
-  typedef float FLT;
-  #ifdef __cplusplus
-    typedef std::complex<float> CPX;
-  #else
-    typedef float complex CPX;
-  #endif
-#else
-  typedef double FLT;
-  #ifdef __cplusplus
-    typedef std::complex<double> CPX;
-  #else
-    typedef double complex CPX;
-  #endif
-#endif
-
-
-
+#include <dataTypes.h>
+#include <spreadinterp.h>
 
 
 enum finufft_type { type1, type2, type3};
@@ -58,24 +24,6 @@ typedef struct {      // Note: defaults in common/finufft_default_opts()
 } nufft_opts;
 
 
-struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
-  int nspread;            // w, the kernel width in grid pts
-  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
-  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
-  int chkbnds;            // 0: don't check NU pts are in range; 1: do
-  int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
-  int kerevalmeth;        // 0: exp(sqrt()), old, or 1: Horner ppval, fastest
-  int kerpad;             // 0: no pad to mult of 4, 1: do (helps i7 kereval=0)
-  int sort_threads;       // 0: auto-choice, >0: fix number of sort threads
-  BIGINT max_subproblem_size; // sets extra RAM per thread
-  int flags;              // binary flags for timing only (may give wrong ans!)
-  int debug;              // 0: silent, 1: small text output, 2: verbose
-  FLT upsampfac;          // sigma, upsampling factor, default 2.0
-  // ES kernel specific...
-  FLT ES_beta;
-  FLT ES_halfwidth;
-  FLT ES_c;
-};
 
 #include <fftw_defs.h>
 
@@ -83,7 +31,7 @@ typedef struct {
 
   finufft_type type;
   int n_dims;
-  int how_many;
+  int n_transf;
   int M; 
 
   BIGINT ms;
@@ -127,7 +75,7 @@ extern "C"
 #endif
 
 // ------------------ Guru Interface ------------------------------------
-int make_finufft_plan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int how_many, FLT tol, finufft_plan *plan );
+int make_finufft_plan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, finufft_plan *plan );
 int setNUpoints(finufft_plan * plan , BIGINT M, FLT *Xpts, FLT *Ypts, FLT *Zpts, CPX *targetFreqs); 
 int finufft_exec(finufft_plan * plan ,  CPX *weights, CPX * result);
 int finufft_destroy(finufft_plan * plan);

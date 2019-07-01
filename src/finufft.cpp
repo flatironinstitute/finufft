@@ -20,7 +20,7 @@ int typeToInt(finufft_type type){
 }
 
 /*Responsible for allocating arrays for fftw_execute output and instantiating fftw_plan*/
-int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int how_many, FLT tol, finufft_plan *plan) {
+int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf, FLT tol, finufft_plan *plan) {
 
   //ONLY TYPE 1+2
   if(type != finufft_type::type3){
@@ -41,7 +41,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     plan->spopts = spopts;    
     plan->type = type;
     plan->n_dims = n_dims;
-    plan->how_many = how_many;
+    plan->n_transf = n_transf;
     plan->ms = n_modes[0];
     plan->mt = n_modes[1];
     plan->mu = n_modes[2];
@@ -250,9 +250,9 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
   
   int *ier_spreads = (int *)calloc(nth,sizeof(int));      
 	
-  for(int j = 0; j*nth < plan->how_many; j++){
+  for(int j = 0; j*nth < plan->n_transf; j++){
 	  
-    int blksize = min(plan->how_many - j*nth, nth);
+    int blksize = min(plan->n_transf - j*nth, nth);
 
 
     //Type 1 Step 1: Spread to Regular Grid    
@@ -265,6 +265,7 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
 	if(ier_spreads[i])
 	  return ier_spreads[i];
       }
+      if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
     }
 
     //Type 2 Step 1: amplify Fourier coeffs fk and copy into fw
@@ -272,6 +273,7 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
       timer.restart();
       deconvolveInParallel(blksize, j, nth, plan,result);
       time_deconv += timer.elapsedsec();
+      if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", time_deconv);
     }
 	
       
@@ -279,14 +281,14 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
     timer.restart();
     FFTW_EX(plan->fftwPlan);
     time_exec += timer.elapsedsec();
-
-	  
+    if(plan->opts.debug) printf("[guru] fft :\t\t\t %.3g s\n", time_exec);	  
 
     //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output	
     if(plan->type == type1){
       timer.restart();
       deconvolveInParallel(blksize, j, nth, plan,result);
       time_deconv += timer.elapsedsec();
+      if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", time_deconv);
     }
 
     //Type 2 Step 3: interpolate from regular to irregular target pts
@@ -294,16 +296,15 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
       timer.restart();
       interpInParallel(blksize, j, nth, plan, c, ier_spreads);
       time_spread += timer.elapsedsec(); 
-    
+
     for(int i = 0; i < blksize; i++){
       if(ier_spreads[i])
 	return ier_spreads[i];
     }
+    if(plan->opts.debug) printf("[guru] interp:\t\t\t %.3g s\n",time_spread);
+
     }
-  }   
-  if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
-  if(plan->opts.debug) printf("[guru] fft :\t\t\t %.3g s\n", time_exec);
-  if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", time_deconv);
+  }  
       
   free(ier_spreads);
 
