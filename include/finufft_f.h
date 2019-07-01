@@ -1,7 +1,7 @@
 #ifndef FINUFFT_F_H
 #define FINUFFT_F_H
 
-#include "../src/utils.h"
+#include <utils.h>
 
 // note FLT (= float or double) and CPX (= float complex or double complex)
 // used here. Make sure you call with appropriate fortran sizes.

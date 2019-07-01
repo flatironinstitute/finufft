@@ -1,6 +1,6 @@
-#include "../src/utils.h"
-#include "finufft_f.h"
-#include "../src/finufft.h"
+#include <utils.h>
+#include <finufft_f.h>
+#include <finufft.h>
 
 // wrappers for calling FINUFFT from fortran.
 // Note the trailing underscore which is not present in the fortran name.

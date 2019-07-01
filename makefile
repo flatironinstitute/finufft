@@ -19,7 +19,7 @@ FLINK=$(CLINK)
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 CFLAGS   =  -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
-CFLAGS   += -I src -I src/oldOrDirect -I src/legacy
+CFLAGS   += -I include
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
 # FFTW base name, and math linking...
@@ -93,7 +93,7 @@ OBJSGURU = src/finufft.o src/legacy/invokeGuru.o
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
-HEADERS = src/spreadinterp.h src/oldOrDirect/finufft_old.h src/finufft.h src/oldOrDirect/dirft.h src/common.h src/defs.h src/utils.h fortran/finufft_f.h
+HEADERS = include/spreadinterp.h include/finufft_old.h include/finufft.h include/dirft.h include/common.h include/defs.h include/utils.h include/finufft_f.h
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python python3 clean objclean pyclean mexclean
 
@@ -177,7 +177,7 @@ test: $(STATICLIB) test/finufft1d_basicpassfail test/testutils test/finufft1d_te
 	./check_finufft.sh)
 test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(STATICLIB) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(STATICLIB) $(LIBSFFT) -o test/finufft1d_basicpassfail
-test/testutils: test/testutils.cpp src/utils.o src/utils.h $(HEADERS)
+test/testutils: test/testutils.cpp src/utils.o  $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
 test/finufft1d_test: test/finufft1d_test.cpp $(OBJS1)  $(OLDOBJS) $(OBJSGURU) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJS1)  $(OLDOBJS) $(OBJSGURU) $(LIBSFFT) -o test/finufft1d_test

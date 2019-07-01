@@ -1,4 +1,4 @@
-#include "../src/utils.h"
+#include <utils.h>
 #include <stdio.h>
 
 int main(int argc, char* argv[])

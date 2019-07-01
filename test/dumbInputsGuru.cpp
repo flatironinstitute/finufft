@@ -1,5 +1,5 @@
-#include "../src/finufft.h"
-#include "../src/oldOrDirect/dirft.h"
+#include <finufft.h>
+#include <dirft.h>
 #include <math.h>
 #include <vector>
 #include <stdio.h>
