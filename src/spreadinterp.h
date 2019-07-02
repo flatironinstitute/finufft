@@ -158,8 +158,8 @@ int cuspread1d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 int cuinterp1d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 
 // 2d
-int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-                       FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
+int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const FLT *h_kx,
+                       const FLT *h_ky, const CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
                        FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
 int cuspread2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,

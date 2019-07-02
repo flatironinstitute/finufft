@@ -13,8 +13,8 @@
 using namespace std;
 
 // This is a function only doing spread includes device memory allocation, transfer, free
-int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		       FLT *h_ky, CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
+int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const FLT *h_kx,
+		       const FLT *h_ky, const CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -23,9 +23,9 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	int ier;
 
 	d_plan->ms = ms;
-  d_plan->mt = mt;
-  d_plan->nf1 = nf1;
-  d_plan->nf2 = nf2;
+	d_plan->mt = mt;
+	d_plan->nf1 = nf1;
+	d_plan->nf2 = nf2;
 	d_plan->M = M;
 
 	cudaEventRecord(start);
@@ -144,6 +144,7 @@ int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 			return 2;
 	}
 #ifdef SPREADTIME
+	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -255,14 +256,14 @@ int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, const cufin
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
 
-	FLT* d_kx = d_plan->kx;
-	FLT* d_ky = d_plan->ky;
-	CUCPX* d_c = d_plan->c;
+	FLT*   d_kx = d_plan->kx;
+	FLT*   d_ky = d_plan->ky;
+	CUCPX* d_c  = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
-	FLT *d_kxsorted = d_plan->kxsorted;
-	FLT *d_kysorted = d_plan->kysorted;
-	CUCPX *d_csorted = d_plan->csorted;
+	FLT   *d_kxsorted = d_plan->kxsorted;
+	FLT   *d_kysorted = d_plan->kysorted;
+	CUCPX *d_csorted  = d_plan->csorted;
 
 	int *d_binsize = d_plan->binsize;
 	int *d_binstartpts = d_plan->binstartpts;
