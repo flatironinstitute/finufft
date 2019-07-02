@@ -109,6 +109,8 @@ int main(int argc, char* argv[])
 
   finufft_plan plan;
 
+  finufft_default_opts(&plan.opts);
+  
   BIGINT n_modes[3] {N1, N2, 1}; //#modes per dimension 
 
   int n_dims = 2;

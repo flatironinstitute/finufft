@@ -1,4 +1,4 @@
-#include <finufft.h>
+#include <finufft_legacy.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <complex>

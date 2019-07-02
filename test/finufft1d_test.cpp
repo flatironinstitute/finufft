@@ -1,6 +1,7 @@
-#include <finufft.h>
+#include <finufft_legacy.h>
 #include <finufft_old.h>
 #include <dirft.h>
+
 #include <math.h>
 #include <vector>
 #include <stdio.h>

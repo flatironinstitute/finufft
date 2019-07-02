@@ -1,4 +1,4 @@
-#include <finufft.h>
+#include <finufft_legacy.h>
 #include <dirft.h>
 #include <math.h>
 #include <vector>

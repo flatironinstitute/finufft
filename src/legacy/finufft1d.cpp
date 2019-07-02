@@ -1,7 +1,8 @@
-#include <finufft.h>
 #include <common.h>
+#include <finufft_legacy.h>
 #include <invokeGuru.h>
 #include <utils.h>
+
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>

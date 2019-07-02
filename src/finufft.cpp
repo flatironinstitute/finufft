@@ -1,5 +1,4 @@
-
-#include "finufft.h"
+#include <finufft.h>
 #include <utils.h>
 #include <iostream>
 #include <common.h>
@@ -19,20 +18,14 @@ int typeToInt(finufft_type type){
   }
 }
 
+
+
+
 /*Responsible for allocating arrays for fftw_execute output and instantiating fftw_plan*/
 int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf, FLT tol, finufft_plan *plan) {
 
   //ONLY TYPE 1+2
   if(type != finufft_type::type3){
-
-    //THINK HARDER about this brittle code
-    //user may have edited the opts struct inside of the plan before calling this routine
-    //or it may be completely uninitialized. To check if latter, suffices to check upsampfac.    
-    if(plan->opts.upsampfac != 2 && plan->opts.upsampfac != 1.25 ){ //uninitialized
-      nufft_opts def_opts;
-      finufft_default_opts(&def_opts);
-      plan->opts = {def_opts};
-    }
 
     spread_opts spopts;
     int ier_set = setup_spreader_for_nufft(spopts, tol, plan->opts);

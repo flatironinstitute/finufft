@@ -311,7 +311,7 @@ int finufft3d3_old(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
     tp[k] = h2*gam2*(t[k]-D2);                         // so that |t'_k| < pi/R
     up[k] = h3*gam3*(u[k]-D3);                         // so that |u'_k| < pi/R
   }
-  int ier_t2 = finufft3d2(nk,sp,tp,up,fk,iflag,eps,nf1,nf2,nf3,fw,opts);
+  int ier_t2 = finufft3d2_old(nk,sp,tp,up,fk,iflag,eps,nf1,nf2,nf3,fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2>0) exit(ier_t2);

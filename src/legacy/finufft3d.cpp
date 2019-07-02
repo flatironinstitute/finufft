@@ -1,4 +1,4 @@
-#include <finufft.h>
+#include <finufft_legacy.h>
 #include <invokeGuru.h>
 #include <common.h>
 #include <utils.h>
