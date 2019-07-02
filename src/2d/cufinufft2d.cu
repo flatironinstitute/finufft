@@ -83,8 +83,13 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 	return ier;
 }
 
-int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
+	int M = d_plan->M;
+	int nf1 = d_plan->nf1;
+	int nf2 = d_plan->nf2;
+	int fw_width = d_plan->fw_width;
+
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -100,6 +105,26 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinu
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tCopy kx,ky HtoD\t\t %.3g s\n", milliseconds/1000);
 #endif
+
+        if(opts.rescaled==0){
+                cudaEventRecord(start);
+                RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
+                opts.rescaled=1;
+#ifdef SPREADTIME
+                float milliseconds;
+                cudaEventRecord(stop);
+                cudaEventSynchronize(stop);
+                cudaEventElapsedTime(&milliseconds, start, stop);
+                printf("[time  ]\tRescaleXY_2d\t\t %.3g ms\n", milliseconds);
+#endif
+        }
+	if(opts.method==5){
+		int ier = cuspread2d_subprob_prop(nf1,nf2,fw_width,M,opts,d_plan);
+		if(ier != 0 ){
+			printf("error: cuspread2d_subprob_prop, method(%d)\n", opts.method);
+		return 0;
+		}
+	}
 	return 0;
 }
 

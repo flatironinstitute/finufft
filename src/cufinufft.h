@@ -14,6 +14,7 @@ struct cufinufft_opts {      // see cuspread:setup_spreader for defaults.
   int nspread;            // w, the kernel width in grid pts
   int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
   int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
+  int rescaled;
   FLT upsampfac;          // sigma, upsampling factor, default 2.0
 
   // ES kernel specific...
@@ -40,6 +41,7 @@ struct cufinufft_plan {
   int fw_width;
   int iflag;
 
+  int totalnumsubprob;
   int byte_now;
   FLT *fwkerhalf1;
   FLT *fwkerhalf2;
@@ -132,7 +134,7 @@ int cufinufft1d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
 
 // 2d
 int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan);
-int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, cufinufft_plan *d_plan);
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
 int cufinufft2d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);

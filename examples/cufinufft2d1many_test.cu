@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M, N, ntransf;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft2d1_test [method [ntransf [N1 N2 [M [tol]]]]]\n");
+		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [ntransf [M [tol]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -26,11 +26,14 @@ int main(int argc, char* argv[])
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
-	sscanf(argv[2],"%d",&ntransf);
-	sscanf(argv[3],"%lf",&w); N1 = (int)w;  // so can read 1e6 right!
-	sscanf(argv[4],"%lf",&w); N2 = (int)w;  // so can read 1e6 right!
+	sscanf(argv[2],"%lf",&w); N1 = (int)w;  // so can read 1e6 right!
+	sscanf(argv[3],"%lf",&w); N2 = (int)w;  // so can read 1e6 right!
 	N = N1*N2;
-	M = N1*N2;// let density always be 1
+	M = N1*N2*2;// let density always be 2
+	ntransf = pow(2,28)/M;
+	if(argc>4){
+		sscanf(argv[4],"%d",&ntransf);
+	}
 	if(argc>5){
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 	}
@@ -45,6 +48,7 @@ int main(int argc, char* argv[])
 	cout<<scientific<<setprecision(3);
 	int ier;
 
+	printf("#modes = %d, #inputs = %d, #NUpts = %d\n", N, ntransf, M);
 
 	FLT *x, *y;
 	CPX *c, *fk;
@@ -66,6 +70,7 @@ int main(int argc, char* argv[])
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
+	double totaltime = 0;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
@@ -94,6 +99,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
@@ -104,6 +110,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
@@ -116,6 +123,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
@@ -123,8 +131,10 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 
+#if 0
 	for(int i=0; i<ntransf; i++){
 		int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
 		CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
@@ -134,6 +144,7 @@ int main(int argc, char* argv[])
 		printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it+i*N]));
 		printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
 	}
+#endif
 #if 0
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
@@ -147,6 +158,7 @@ int main(int argc, char* argv[])
 		cout<<endl;
 	}
 #endif	
+	printf("[totaltime] %.3g us, speed %.3g NUpts/s\n", totaltime*1000, M*ntransf/totaltime*1000);
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);

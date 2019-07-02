@@ -170,6 +170,8 @@ int cuspread2d_idriven_sorted(int nf1, int nf2, int fw_width, int M, const cufin
                                cufinufft_plan *d_mem);
 int cuspread2d_hybrid(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
                       cufinufft_plan *d_mem);
+int cuspread2d_subprob_prop(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, 
+				 cufinufft_plan *d_plan);
 int cuspread2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
                        cufinufft_plan *d_mem);
 int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts,
