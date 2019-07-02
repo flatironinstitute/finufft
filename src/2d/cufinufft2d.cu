@@ -112,14 +112,14 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 
 	cudaEventRecord(start);
 	// Copy memory to device
-	//int ier = copycpumem_to_gpumem(opts, d_plan);
 	checkCudaErrors(cudaMemcpy(d_plan->c,h_c,d_plan->M*sizeof(CUCPX),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemset(d_plan->fw,0,d_plan->nf1*d_plan->nf2*sizeof(CUCPX)));// this is needed
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tCopy h_c HtoD\t\t %.3g s\n", milliseconds/1000);
+	printf("[time  ] \tCopy h_c HtoD, Initialize fw to 0\t\t %.3g s\n", milliseconds/1000);
 #endif
 	// Step 1: Spread
 	cudaEventRecord(start);
@@ -143,7 +143,7 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tCUFFT Exec\t\t %.3g s\n", milliseconds/1000);
 #endif
-
+	
 	// Step 3: deconvolve and shuffle
 	cudaEventRecord(start);
 	cudeconvolve2d(opts,d_plan);
@@ -250,6 +250,7 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 {
 	// defaults... (user can change after this function called)
 	opts.pirange = 1;             // user also should always set this
+	opts.rescaled = 0;
 	opts.upsampfac = upsampfac;
 
 	// for gpu

@@ -87,10 +87,10 @@ int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	if(opts.pirange){
+	if(opts.rescaled==0){
 		cudaEventRecord(start);
 		RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
-		opts.pirange=0;
+		opts.rescaled=1;
 #ifdef SPREADTIME
 		float milliseconds;
 		cudaEventRecord(stop);
