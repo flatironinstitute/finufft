@@ -18,9 +18,9 @@ LIBS_CUFINUFFT=-lcufft
 %.o: %.cu
 	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
 
-spread1d: examples/spread_1d.o src/1d/spread1d_wrapper.o src/1d/spread1d.o finufft/utils.o src/memtransfer_wrapper.o\
-          src/common.o
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+#spread1d: examples/spread_1d.o src/1d/spread1d_wrapper.o src/1d/spread1d.o finufft/utils.o src/memtransfer_wrapper.o\
+#          src/common.o
+#	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 spread2d: examples/spread_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o finufft/utils.o src/memtransfer_wrapper.o\
           src/common.o

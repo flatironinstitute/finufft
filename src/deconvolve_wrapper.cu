@@ -58,12 +58,19 @@ int cudeconvolve2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	int nf2=d_plan->nf2;
 	int fw_width=d_plan->fw_width;
 	int nmodes=ms*mt;
+	int ntransfcufftplan=d_plan->ntransfcufftplan;
 	if(opts.spread_direction == 1){
-		Deconvolve_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, fw_width, d_plan->fw, d_plan->fk,
-						   	   d_plan->fwkerhalf1, d_plan->fwkerhalf2);
+		for(int t=0; t<ntransfcufftplan; t++){
+			Deconvolve_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, fw_width, 
+							   	   d_plan->fw+t*nf1*nf2, 
+								   d_plan->fk+t*nmodes,
+							   	   d_plan->fwkerhalf1, 
+								   d_plan->fwkerhalf2);
+		}
 	}else{
 		checkCudaErrors(cudaMemset(d_plan->fw,0,nf1*nf2*sizeof(CUCPX)));
-		Amplify_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, fw_width, d_plan->fw, d_plan->fk,
+		Amplify_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, fw_width, 
+							d_plan->fw, d_plan->fk,
 						   	d_plan->fwkerhalf1, d_plan->fwkerhalf2);
 #ifdef DEBUG
 		CPX* h_fw;

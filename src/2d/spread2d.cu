@@ -90,7 +90,7 @@ void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y)
 
 __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
+		int nf1, int nf2, FLT es_c, FLT es_beta)
 {
 	int xstart,ystart,xend,yend;
 	int xx, yy, ix, iy;
@@ -113,7 +113,7 @@ void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 			for(xx=xstart; xx<=xend; xx++){
 				ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 				iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
-				outidx = ix+iy*fw_width;
+				outidx = ix+iy*nf1;
 				FLT disx=abs(x_rescaled-xx);
 				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
 				atomicAdd(&fw[outidx].x, c[i].x*kervalue1*kervalue2);
@@ -129,7 +129,7 @@ void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 
 __global__
 void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width)
+		int nf1, int nf2, FLT es_c, FLT es_beta)
 {
 	int xx, yy, ix, iy;
 	int outidx;
@@ -159,7 +159,7 @@ void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const 
 			for(xx=xstart; xx<=xend; xx++){
 				ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 				iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
-				outidx = ix+iy*fw_width;
+				outidx = ix+iy*nf1;
 				ker1val=ker1[xx-xstart];
 				ker2val=ker2[yy-ystart];
 				FLT kervalue=ker1val*ker2val;
@@ -268,7 +268,7 @@ void CreateSortIdx(int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx)
 
 __global__
 void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		      int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int bin_size,
+		      int nf1, int nf2, FLT es_c, FLT es_beta, int bin_size,
                       int bin_size_x, int bin_size_y, int binx, int biny)
 {
 	extern __shared__ CUCPX fwshared[];
@@ -322,7 +322,7 @@ void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		if(ix < (nf1+ceil(ns/2.0)) && iy < (nf2+ceil(ns/2.0))){
 			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
 			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
-			outidx = ix+iy*fw_width;
+			outidx = ix+iy*nf1;
 			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
 			atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
 			atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
@@ -334,7 +334,7 @@ void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 
 __global__
 void Spread_2d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int fw_width, int* binstartpts,
+		int nf1, int nf2, FLT es_c, FLT es_beta, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y)
 {
 	extern __shared__ CUCPX fwshared[];
@@ -393,7 +393,7 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		if(ix < (nf1+ceil(ns/2.0)) && iy < (nf2+ceil(ns/2.0))){
 			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
 			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
-			outidx = ix+iy*fw_width;
+			outidx = ix+iy*nf1;
 			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
 			atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
 			atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
@@ -403,7 +403,7 @@ void Spread_2d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 
 __global__
 void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		          int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int fw_width, int* binstartpts,
+		          int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
 		          int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
 		          int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                           int* idxnupts)
@@ -475,7 +475,7 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		if(ix < (nf1+ceil(ns/2.0)) && iy < (nf2+ceil(ns/2.0))){
 			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
 			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
-			outidx = ix+iy*fw_width;
+			outidx = ix+iy*nf1;
 			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2);
 			atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
 			atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);

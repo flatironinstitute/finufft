@@ -14,6 +14,7 @@ int main(int argc, char* argv[])
 {
 	FLT sigma = 2.0;
 	int N1, N2, M, N;
+	int ntransf=1;
 	if (argc<4) {
 		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
@@ -82,7 +83,7 @@ int main(int argc, char* argv[])
 	opts.method=method;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, N1, N2, iflag, opts, &dplan);
+	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransf, iflag, opts, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
 	}

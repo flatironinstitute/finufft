@@ -88,11 +88,13 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int M = d_plan->M;
+	int ntransfcufftplan = d_plan->ntransfcufftplan;
 
 	d_plan->byte_now=0;
 	// No extra memory is needed in idriven method;
 	switch(opts.method)
 	{
+#if 0
 		case 2:
 			{
 				//int total_mem_in_bytes=
@@ -122,6 +124,7 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 				checkCudaErrors(cudaMalloc(&d_plan->binstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
 			}
 			break;
+#endif
 		case 5:
 			{
 				int numbins[2];
@@ -138,15 +141,16 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	}
 	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
 
-	size_t pitch;
-	checkCudaErrors(cudaMallocPitch((void**) &d_plan->fw, &pitch,nf1*sizeof(CUCPX),nf2));
-	d_plan->fw_width = pitch/sizeof(CUCPX);
+	//size_t pitch;
+	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*sizeof(CUCPX)));
+	//d_plan->fw_width = pitch/sizeof(CUCPX);
+	d_plan->fw_width = nf2;
 
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->fk,ms*mt*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*sizeof(CUCPX)));
 
 	return 0;
 }

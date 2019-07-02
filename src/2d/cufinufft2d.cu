@@ -14,7 +14,8 @@
 
 using namespace std;
 
-int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan, int iflag, 
+                     const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -32,8 +33,11 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 	d_plan->nf2 = nf2;
 	d_plan->M = M;
 	d_plan->iflag = fftsign;
+	d_plan->ntransf = ntransf;
+	d_plan->ntransfcufftplan = ntransfcufftplan;
 #ifdef INFO
-	printf("[info  ] 2d1: (ms,mt)=(%d,%d) (nf1, nf2)=(%d,%d) nj=%d\n", ms, mt, d_plan->nf1, d_plan->nf2, d_plan->M);
+	printf("[info  ] 2d1: (ms,mt)=(%d,%d) (nf1, nf2)=(%d,%d) nj=%d, ntransform = %d\n",
+			ms, mt, d_plan->nf1, d_plan->nf2, d_plan->M, d_plan->ntransf);
 #endif
 
 	// this may move to gpu
@@ -68,11 +72,10 @@ int cufinufft2d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts
 
 	cudaEventRecord(start);
 	cufftHandle fftplan;
-	int ndata=1;
 	int n[] = {nf2, nf1};
-	int inembed[] = {nf2, d_plan->fw_width};
+	int inembed[] = {nf2, nf1};
 	cufftPlanMany(&fftplan,2,n,inembed,1,inembed[0]*inembed[1],inembed,1,inembed[0]*inembed[1],
-			CUFFT_TYPE,ndata);
+			CUFFT_TYPE,ntransfcufftplan);
 	d_plan->fftplan = fftplan;
 #ifdef TIME
 	cudaEventRecord(stop);
@@ -88,7 +91,6 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, cufinufft_p
 	int M = d_plan->M;
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
-	int fw_width = d_plan->fw_width;
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -106,23 +108,23 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, cufinufft_p
 	printf("[time  ] \tCopy kx,ky HtoD\t\t %.3g s\n", milliseconds/1000);
 #endif
 
-        if(opts.rescaled==0){
-                cudaEventRecord(start);
-                RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
-                opts.rescaled=1;
+	if(opts.rescaled==0){
+		cudaEventRecord(start);
+		RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
+		opts.rescaled=1;
 #ifdef SPREADTIME
-                float milliseconds;
-                cudaEventRecord(stop);
-                cudaEventSynchronize(stop);
-                cudaEventElapsedTime(&milliseconds, start, stop);
-                printf("[time  ]\tRescaleXY_2d\t\t %.3g ms\n", milliseconds);
+		float milliseconds;
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ]\tRescaleXY_2d\t\t %.3g ms\n", milliseconds);
 #endif
-        }
+	}
 	if(opts.method==5){
-		int ier = cuspread2d_subprob_prop(nf1,nf2,fw_width,M,opts,d_plan);
+		int ier = cuspread2d_subprob_prop(nf1,nf2,M,opts,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", opts.method);
-		return 0;
+			return 0;
 		}
 	}
 	return 0;
@@ -135,57 +137,69 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
+	//int ntransfpertime = d_plan->ntransfpertime;
 	cudaEventRecord(start);
 	// Copy memory to device
-	checkCudaErrors(cudaMemcpy(d_plan->c,h_c,d_plan->M*sizeof(CUCPX),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemset(d_plan->fw,0,d_plan->nf1*d_plan->nf2*sizeof(CUCPX)));// this is needed
+	int blksize, ier;
+	CPX* h_fkstart;
+	CPX* h_cstart;
+	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
+		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, d_plan->ntransfcufftplan);
+		h_cstart = h_c + i*d_plan->ntransfcufftplan*d_plan->M;
+		h_fkstart = h_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt;
+
+		checkCudaErrors(cudaMemcpy(d_plan->c,h_cstart,blksize*d_plan->M*sizeof(CUCPX),
+					cudaMemcpyHostToDevice));
+		checkCudaErrors(cudaMemset(d_plan->fw,0,d_plan->ntransfcufftplan*
+					d_plan->nf1*d_plan->nf2*sizeof(CUCPX)));// this is needed
 #ifdef TIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tCopy h_c HtoD, Initialize fw to 0\t\t %.3g s\n", milliseconds/1000);
+		float milliseconds = 0;
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tCopy h_c HtoD, Initialize fw to 0\t\t %.3g s\n", milliseconds/1000);
 #endif
-	// Step 1: Spread
-	cudaEventRecord(start);
-	int ier = cuspread2d(opts, d_plan);
-	if(ier != 0 ){
-		printf("error: cuspread2d, method(%d)\n", opts.method);
-		return 0;
+		// Step 1: Spread
+		cudaEventRecord(start);
+		ier = cuspread2d(opts, d_plan);
+		if(ier != 0 ){
+			printf("error: cuspread2d, method(%d)\n", opts.method);
+			return 0;
+		}
+#ifdef TIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tSpread (%d)\t\t %.3g s\n", milliseconds/1000, opts.method);
+#endif
+		// Step 2: FFT
+		cudaEventRecord(start);
+		CUFFT_EX(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+#ifdef TIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tCUFFT Exec\t\t %.3g s\n", milliseconds/1000);
+#endif
+
+		// Step 3: deconvolve and shuffle
+		cudaEventRecord(start);
+		cudeconvolve2d(opts,d_plan);
+#ifdef TIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tDeconvolve\t\t %.3g s\n", milliseconds/1000);
+#endif
+		cudaEventRecord(start);
+		checkCudaErrors(cudaMemcpy(h_fkstart,d_plan->fk,blksize*d_plan->ms*d_plan->mt*sizeof(CUCPX),cudaMemcpyDeviceToHost));
+#ifdef TIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tCopy fk memory DtoH \t %.3g s\n", milliseconds/1000);
+#endif
 	}
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tSpread (%d)\t\t %.3g s\n", milliseconds/1000, opts.method);
-#endif
-	// Step 2: FFT
-	cudaEventRecord(start);
-	CUFFT_EX(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tCUFFT Exec\t\t %.3g s\n", milliseconds/1000);
-#endif
-	
-	// Step 3: deconvolve and shuffle
-	cudaEventRecord(start);
-	cudeconvolve2d(opts,d_plan);
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tDeconvolve\t\t %.3g s\n", milliseconds/1000);
-#endif
-	cudaEventRecord(start);
-	checkCudaErrors(cudaMemcpy(h_fk,d_plan->fk,d_plan->ms*d_plan->mt*sizeof(CUCPX),cudaMemcpyDeviceToHost));
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tCopy fk memory DtoH \t %.3g s\n", milliseconds/1000);
-#endif
 	return ier;
 }
 

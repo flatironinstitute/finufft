@@ -13,9 +13,9 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	FLT sigma = 2.0;
-	int N1, N2, M, N, ntransf;
+	int N1, N2, M, N, ntransf, ntransfcufftplan;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [ntransf [M [tol]]]]]\n");
+		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [ntransf [ntransfcufftplan [M [tol]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -34,13 +34,18 @@ int main(int argc, char* argv[])
 	if(argc>4){
 		sscanf(argv[4],"%d",&ntransf);
 	}
+	ntransfcufftplan = min(32, ntransf);
 	if(argc>5){
-		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
+		sscanf(argv[5],"%d",&ntransfcufftplan);
+	}
+
+	if(argc>6){
+		sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 	}
 
 	FLT tol=1e-6;
-	if(argc>6){
-		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+	if(argc>7){
+		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 	int iflag=1;
 
@@ -92,7 +97,7 @@ int main(int argc, char* argv[])
 	opts.pirange=1;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, N1, N2, iflag, opts, &dplan);
+	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransfcufftplan, iflag, opts, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
 	}
@@ -114,11 +119,9 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	for(int i=0; i<ntransf; i++){
-		ier=cufinufft2d1_exec(c+i*M, fk+i*N, opts, &dplan);
-		if (ier!=0){
-			printf("err: cufinufft2d1_exec\n");
-		}
+	ier=cufinufft2d1_exec(c, fk, opts, &dplan);
+	if (ier!=0){
+		printf("err: cufinufft2d1_exec\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -135,7 +138,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 
 #if 0
-	for(int i=0; i<ntransf; i++){
+	for(int i=0; i<ntransf; i+=10){
 		int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
 		CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
 		for (BIGINT j=0; j<M; ++j)
