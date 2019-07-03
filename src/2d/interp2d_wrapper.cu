@@ -228,6 +228,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 				numbins[0], numbins[1], d_idxnupts);
 	}
 #ifdef SPREADTIME
+ 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

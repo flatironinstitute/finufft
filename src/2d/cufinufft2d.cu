@@ -306,7 +306,7 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 	opts.method = 5;
 	opts.bin_size_x = 32;
 	opts.bin_size_y = 32;
-	opts.Horner = 0;
+	opts.Horner = 1;
 	opts.maxsubprobsize = 1000;
 	opts.nthread_x = 16;
 	opts.nthread_y = 16;
