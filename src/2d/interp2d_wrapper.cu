@@ -39,7 +39,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	cudaMemcpy2D(d_plan->fw,d_plan->fw_width*sizeof(CUCPX),h_fw,nf1*sizeof(CUCPX),
+	cudaMemcpy2D(d_plan->fw,d_plan->nf1*sizeof(CUCPX),h_fw,nf1*sizeof(CUCPX),
 			nf1*sizeof(CUCPX),nf2,cudaMemcpyHostToDevice);
 #ifdef TIME
 	cudaEventRecord(stop);
@@ -86,7 +86,6 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
-	int fw_width = d_plan->fw_width;
 	int M = d_plan->M;
 
 	cudaEvent_t start, stop;
@@ -99,7 +98,7 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuinterp2d_idriven(nf1, nf2, fw_width, M, opts, d_plan);
+				ier = cuinterp2d_idriven(nf1, nf2, M, opts, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
 					return 1;
@@ -109,7 +108,7 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 		case 5:
 			{
 				cudaEventRecord(start);
-				ier = cuinterp2d_subprob(nf1, nf2, fw_width, M, opts, d_plan);
+				ier = cuinterp2d_subprob(nf1, nf2, M, opts, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
 					return 1;
@@ -130,7 +129,7 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -142,6 +141,7 @@ int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	int ns=opts.nspread;   // psi's support in terms of number of cells
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
+	FLT sigma=opts.upsampfac;
 
 	FLT* d_kx = d_plan->kx;
 	FLT* d_ky = d_plan->ky;
@@ -154,10 +154,16 @@ int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	blocks.y = 1;
 	cudaEventRecord(start);
 
-	for(int t=0; t<d_plan->ntransfcufftplan; t++){
-		Interp_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, 
-				M, ns, nf1, nf2, es_c, es_beta, 
-				fw_width);
+	if(opts.Horner){
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Interp_2d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, 
+					M, ns, nf1, nf2, sigma);
+		}
+	}else{
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Interp_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, 
+					M, ns, nf1, nf2, es_c, es_beta);
+		}
 	}
 #ifdef SPREADTIME
 	float milliseconds = 0;
@@ -169,7 +175,7 @@ int cuinterp2d_idriven(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 	return 0;
 }
 
-int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -216,19 +222,32 @@ int cuinterp2d_subprob(int nf1, int nf2, int fw_width, int M, const cufinufft_op
 		return 1;
 	}
 
-	for(int t=0; t<d_plan->ntransfcufftplan; t++){
-		Interp_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
-				d_kx, d_ky, d_c+t*M,
-				d_fw+t*nf1*nf2, M, ns, nf1, nf2,
-				es_c, es_beta, sigma, fw_width,
-				d_binstartpts, d_binsize,
-				bin_size_x, bin_size_y,
-				d_subprob_to_bin, d_subprobstartpts,
-				d_numsubprob, maxsubprobsize,
-				numbins[0], numbins[1], d_idxnupts);
+	if(opts.Horner){
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Interp_2d_Subprob_Horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
+					d_kx, d_ky, d_c+t*M,
+					d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma,
+					d_binstartpts, d_binsize,
+					bin_size_x, bin_size_y,
+					d_subprob_to_bin, d_subprobstartpts,
+					d_numsubprob, maxsubprobsize,
+					numbins[0], numbins[1], d_idxnupts);
+		}
+	}else{
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Interp_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
+					d_kx, d_ky, d_c+t*M,
+					d_fw+t*nf1*nf2, M, ns, nf1, nf2,
+					es_c, es_beta, sigma,
+					d_binstartpts, d_binsize,
+					bin_size_x, bin_size_y,
+					d_subprob_to_bin, d_subprobstartpts,
+					d_numsubprob, maxsubprobsize,
+					numbins[0], numbins[1], d_idxnupts);
+		}
 	}
 #ifdef SPREADTIME
- 	float milliseconds = 0;
+	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

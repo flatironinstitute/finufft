@@ -720,8 +720,7 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 		if(opts.Horner){
 			Spread_2d_Subprob_Horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
 					d_kx, d_ky, d_c+t*M,
-					d_fw+t*nf1*nf2, M, ns, nf1, nf2,
-					es_c, es_beta, sigma,
+					d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma,
 					d_binstartpts, d_binsize,
 					bin_size_x, bin_size_y,
 					d_subprob_to_bin, d_subprobstartpts,
@@ -730,7 +729,8 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 		}else{
 			Spread_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
 					d_kx, d_ky, d_c+t*M,
-					d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma,
+					d_fw+t*nf1*nf2, M, ns, nf1, nf2, 
+					es_c, es_beta, sigma,
 					d_binstartpts, d_binsize,
 					bin_size_x, bin_size_y,
 					d_subprob_to_bin, d_subprobstartpts,
