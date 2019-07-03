@@ -13,13 +13,12 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	FLT sigma = 2.0;
-	int N1, N2, M, N, ntransf, ntransfcufftplan;
+	int N1, N2, M;
+	int ntransf, ntransfcufftplan;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [ntransf [ntransfcufftplan [M [tol]]]]]\n");
+		fprintf(stderr,"Usage: cufinufft2d2_test [method [N1 N2 [ntransf [ntransfcufftplan [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
-		fprintf(stderr,"method 2: input driven with sorting\n");
-		fprintf(stderr,"method 4: hybrid\n");
 		fprintf(stderr,"method 5: subprob\n");
 		return 1;
 	}  
@@ -28,12 +27,12 @@ int main(int argc, char* argv[])
 	sscanf(argv[1],"%d",&method);
 	sscanf(argv[2],"%lf",&w); N1 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[3],"%lf",&w); N2 = (int)w;  // so can read 1e6 right!
-	N = N1*N2;
-	M = N1*N2*2;// let density always be 2
+	M = 2*N1*N2;// let density always be 2
 	ntransf = pow(2,28)/M;
 	if(argc>4){
 		sscanf(argv[4],"%d",&ntransf);
 	}
+
 	ntransfcufftplan = min(8, ntransf);
 	if(argc>5){
 		sscanf(argv[5],"%d",&ntransfcufftplan);
@@ -48,29 +47,30 @@ int main(int argc, char* argv[])
 		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 	int iflag=1;
+	
 
 
 	cout<<scientific<<setprecision(3);
 	int ier;
 
-	printf("#modes = %d, #inputs = %d, #NUpts = %d\n", N, ntransf, M);
+	printf("#modes = %d, #inputs = %d, #NUpts = %d\n", N1*N2, ntransf, M);
 
 	FLT *x, *y;
 	CPX *c, *fk;
 	cudaMallocHost(&x, M*sizeof(FLT));
 	cudaMallocHost(&y, M*sizeof(FLT));
-	cudaMallocHost(&c, M*ntransf*sizeof(CPX));
-	cudaMallocHost(&fk,N1*N2*ntransf*sizeof(CPX));
+	cudaMallocHost(&c, ntransf*M*sizeof(CPX));
+	cudaMallocHost(&fk,ntransf*N1*N2*sizeof(CPX));
 
 	// Making data
-	for (int i=0; i<M; i++) {
+	for (int i = 0; i < M; i++) {
 		x[i] = M_PI*randm11();// x in [-pi,pi)
 		y[i] = M_PI*randm11();
 	}
 
-	for(int i=0; i<M*ntransf; i++){
-		c[i].real() = randm11();
-		c[i].imag() = randm11();
+	for(int i=0; i<ntransf*N1*N2; i++){
+		fk[i].real() = randm11();
+		fk[i].imag() = randm11();
 	}
 
 	cudaEvent_t start, stop;
@@ -94,8 +94,7 @@ int main(int argc, char* argv[])
 	cufinufft_opts opts;
 	ier=cufinufft_default_opts(opts,tol,sigma);
 	opts.method=method;
-	opts.pirange=1;
-	opts.spread_direction=1;
+	opts.spread_direction=2;
 
 	cudaEventRecord(start);
 	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransfcufftplan, iflag, opts, &dplan);
@@ -120,9 +119,9 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d1_exec(c, fk, opts, &dplan);
+	ier=cufinufft2d2_exec(c, fk, opts, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft2d1_exec\n");
+		printf("err: cufinufft2d2_exec\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -138,15 +137,22 @@ int main(int argc, char* argv[])
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 
+	// This must be here, since in gpu code, x, y gets modified if pirange=1
 #if 0
-	for(int i=0; i<ntransf; i+=10){
-		int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
-		CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
-		for (BIGINT j=0; j<M; ++j)
-			Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
-		int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-		printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it+i*N]));
-		printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
+	CPX* fkstart; 
+	CPX* cstart;
+	for(int t=0; t<ntransf; t++){
+		fkstart = fk + t*N1*N2;
+		cstart = c + t*M;
+		int jt = M/2;          // check arbitrary choice of one targ pt
+		CPX J = IMA*(FLT)iflag;
+		CPX ct = CPX(0,0);
+		int m=0;
+		for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
+			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+				ct += fkstart[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
+		
+		printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(cstart[jt]-ct)/infnorm(M,c));
 	}
 #endif
 #if 0
