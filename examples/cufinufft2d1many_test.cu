@@ -95,6 +95,7 @@ int main(int argc, char* argv[])
 	ier=cufinufft_default_opts(opts,tol,sigma);
 	opts.method=method;
 	opts.pirange=1;
+	opts.spread_direction=1;
 
 	cudaEventRecord(start);
 	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransfcufftplan, iflag, opts, &dplan);

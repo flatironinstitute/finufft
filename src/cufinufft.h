@@ -3,6 +3,7 @@
 
 #include <cufft.h>
 #include <cstdlib>
+#include <assert.h>
 #include "../finufft/utils.h"
 
 #define MAX_NSPREAD 16

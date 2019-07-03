@@ -139,6 +139,7 @@ int main(int argc, char* argv[])
 	/* -------------------------------------- */
 	timer.restart();
 	opts.method=method;
+	opts.spread_direction=1;
 	switch(method){
 		case 1:
 		case 2:
@@ -212,6 +213,7 @@ int main(int argc, char* argv[])
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 
+	opts.spread_direction=2;
 	CPX *fw;
 	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*sizeof(CPX));

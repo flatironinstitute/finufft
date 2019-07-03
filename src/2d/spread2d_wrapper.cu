@@ -28,6 +28,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const
 	d_plan->nf1 = nf1;
 	d_plan->nf2 = nf2;
 	d_plan->M = M;
+	d_plan->ntransfcufftplan = 1;
 
 	cudaEventRecord(start);
 	ier = allocgpumemory2d(opts, d_plan);
