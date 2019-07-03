@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
   BIGINT no_modes[3]{0,0,0};
   ier = make_finufft_plan(type1, n_dims,  no_modes, isign, nvecs, tol, &plan);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, M, x, y, NULL, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]){
   BIGINT weird_modes[3]{0,N2,0};
   ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, &plan);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, M, x, y, NULL, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -117,7 +117,7 @@ int main(int argc, char* argv[]){
   weird_modes[1] = 0;
   ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, &plan);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, M, x, y, NULL, NULL,  NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]){
   ier = make_finufft_plan(type1, n_dims,  n_modes, isign, nvecs, tol, &plan);
   int no_srcPts = 0;
   if(!ier)
-    ier = setNUpoints(&plan, no_srcPts, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, no_srcPts, x, y, NULL, NULL, NULL, NULL);
   if(!ier)
     ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -139,7 +139,7 @@ int main(int argc, char* argv[]){
   for(int k = 0; k < N; k++) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k); //set F for t2
   ier = make_finufft_plan(type2, n_dims, n_modes, isign, nvecs, 0, &plan);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, M, x, y, NULL, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -149,7 +149,7 @@ int main(int argc, char* argv[]){
   
   ier = make_finufft_plan(type2, n_dims,  no_modes, isign, nvecs, tol, &plan);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, M, x, y, NULL, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -160,7 +160,7 @@ int main(int argc, char* argv[]){
   weird_modes[1] = N2;
   ier = make_finufft_plan(type2, n_dims,  weird_modes, isign, nvecs, tol, &plan);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, M, x, y, NULL, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -171,7 +171,7 @@ int main(int argc, char* argv[]){
   weird_modes[1] = 0;
   ier = make_finufft_plan(type2, n_dims,  weird_modes, isign, nvecs, tol, &plan);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, M, x, y, NULL, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -180,7 +180,7 @@ int main(int argc, char* argv[]){
 
   ier = make_finufft_plan(type2, n_dims,  n_modes, isign, nvecs, tol, &plan);
   if(!ier)
-    ier = setNUpoints(&plan, no_srcPts, x, y, NULL, NULL);
+    ier = setNUpoints(&plan, no_srcPts, x, y, NULL, NULL, NULL, NULL);
   if(!ier)
     ier = finufft_exec(&plan,c,F);
   if(!ier)

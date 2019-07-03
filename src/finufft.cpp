@@ -1,4 +1,5 @@
 #include <finufft.h>
+#include <invokeGuru.h>
 #include <utils.h>
 #include <iostream>
 #include <common.h>
@@ -18,62 +19,75 @@ int typeToInt(finufft_type type){
   }
 }
 
-
-
-
 /*Responsible for allocating arrays for fftw_execute output and instantiating fftw_plan*/
 int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf, FLT tol, finufft_plan *plan) {
 
-  //ONLY TYPE 1+2
-  if(type != finufft_type::type3){
+  spread_opts spopts;
+  int ier_set = setup_spreader_for_nufft(spopts, tol, plan->opts);
+  if(ier_set) return ier_set;
 
-    spread_opts spopts;
-    int ier_set = setup_spreader_for_nufft(spopts, tol, plan->opts);
-    if(ier_set) return ier_set;
+  cout << scientific << setprecision(15);  // for debug    
+
+  plan->spopts = spopts;    
+  plan->type = type;
+  plan->n_dims = n_dims;
+  plan->n_transf = n_transf;
+  plan->ms = n_modes[0];
+  plan->mt = n_modes[1];
+  plan->mu = n_modes[2];
+  plan->tol = tol;
+  plan->iflag = iflag;
+  plan->X = NULL;
+  plan->Y = NULL;
+  plan->Z = NULL;
+  plan->X_orig = NULL;
+  plan->Y_orig = NULL;
+  plan->Z_orig = NULL;
+  plan->sp = NULL;
+  plan->tp = NULL;
+  plan->up = NULL;
+  plan->nf1 = 1;
+  plan->nf2 = 1;
+  plan->nf3 = 1;
+
+  int nth = MY_OMP_GET_MAX_THREADS();
+  if (nth>1) {             // set up multithreaded fftw stuff...
+    FFTW_INIT();
+    FFTW_PLAN_TH(nth);
+  }
     
-    plan->spopts = spopts;    
-    plan->type = type;
-    plan->n_dims = n_dims;
-    plan->n_transf = n_transf;
-    plan->ms = n_modes[0];
-    plan->mt = n_modes[1];
-    plan->mu = n_modes[2];
-    
-    plan->iflag = iflag;
-    plan->X = NULL;
-    plan->Y = NULL;
-    plan->Z = NULL;
+
+  
+  
+  if(type == finufft_type::type1 | type == finufft_type::type2){
     
     //determine size of upsampled array
-    BIGINT nf1 = 1;
-    BIGINT nf2 = 1;
-    BIGINT nf3 = 1;
-    set_nf_type12(plan->ms, plan->opts, spopts, &nf1); //type dependent line
+    set_nf_type12(plan->ms, plan->opts, spopts, &(plan->nf1)); 
     if(n_dims > 1)
-    set_nf_type12(plan->mt, plan->opts, spopts, &nf2); //type dependent line
+      set_nf_type12(plan->mt, plan->opts, spopts, &(plan->nf2)); 
     if(n_dims > 2)
-    set_nf_type12(plan->mu, plan->opts, spopts, &nf3); //type dependent line 
+      set_nf_type12(plan->mu, plan->opts, spopts, &(plan->nf3)); 
     
     
     //ensure size of upsampled grid does not exceed MAX
-    if (nf1*nf2*nf3>MAX_NF) { 
-    fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)nf1*nf2*nf3,(double)MAX_NF);
-    return ERR_MAXNALLOC;
+    if (plan->nf1*plan->nf2*plan->nf3>MAX_NF) { 
+      fprintf(stderr,"nf1*nf2=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf1*plan->nf2*plan->nf3,(double)MAX_NF);
+      return ERR_MAXNALLOC;
     }
     cout << scientific << setprecision(15);  // for debug
 
     if (plan->opts.debug) printf("%dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) ...\n",n_dims, typeToInt(type),
-				 (long long)plan->ms,(long long)plan->mt, (long long) plan->mu,
-				 (long long)nf1,(long long)nf2, (long long)nf3);
+                                 (long long)plan->ms,(long long)plan->mt, (long long) plan->mu,
+                                 (long long)plan->nf1,(long long)plan->nf2, (long long)plan->nf3);
 
     //STEP 0: get Fourier coeffs of spreading kernel for each dim
     BIGINT totCoeffs;
     
-    totCoeffs = nf1/2 + 1; 
+    totCoeffs = plan->nf1/2 + 1; 
     if(n_dims > 1)
-     totCoeffs  += (nf2/2 +1);
+      totCoeffs  += (plan->nf2/2 +1);
     if(n_dims > 2)
-      totCoeffs += (nf3/2+1);
+      totCoeffs += (plan->nf3/2+1);
       
     plan->fwker = (FLT *)malloc(sizeof(FLT)*totCoeffs);
     if(!plan->fwker){
@@ -83,30 +97,22 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
 
     CNTime timer; timer.start();
     
-    onedim_fseries_kernel(nf1, plan->fwker, spopts);
-    if(n_dims > 1) onedim_fseries_kernel(nf2, plan->fwker + (nf1/2+1), spopts);
-    if(n_dims > 2) onedim_fseries_kernel(nf3, plan->fwker + (nf1/2+1) + (nf2/2+1), spopts);
+    onedim_fseries_kernel(plan->nf1, plan->fwker, plan->spopts);
+    if(n_dims > 1) onedim_fseries_kernel(plan->nf2, plan->fwker + (plan->nf1/2+1), plan->spopts);
+    if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->fwker + (plan->nf1/2+1) + (plan->nf2/2+1), spopts);
     
     if (plan->opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
-    int nth = MY_OMP_GET_MAX_THREADS();
-    if (nth>1) {             // set up multithreaded fftw stuff...
-      FFTW_INIT();
-      FFTW_PLAN_TH(nth);
-    }
-    
-    plan->nf1 = nf1;
-    plan->nf2 = nf2;
-    plan->nf3 = nf3;
-    
-    plan->fw = FFTW_ALLOC_CPX(nf1*nf2*nf3*nth);  
+  
+    plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*nth);  
 
     if(!plan->fw){
       fprintf(stderr, "Call to malloc failed for working upsampled array allocation");
       free(plan->fwker);
-      return ERR_MAXNALLOC; //release resources before exiting cleanly
+      return ERR_MAXNALLOC; 
     }
-    
+  
+        
     int fftsign = (iflag>=0) ? 1 : -1;
 
     timer.restart();
@@ -114,40 +120,29 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     int * nf; 
     
     //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-    if(n_dims == 1){ nf = new int[1] {(int)nf1}; }
-    else if (n_dims == 2){ nf = new int[2] {(int)nf2, (int)nf1}; }   //fftw enforced row major ordering
-    else{ nf = new int[3] {(int)nf3, (int)nf2, (int)nf1}; }
+    if(n_dims == 1){ nf = new int[1] {(int)plan->nf1}; }
+    else if (n_dims == 2){ nf = new int[2] {(int)plan->nf2, (int)plan->nf1}; }   //fftw enforced row major ordering
+    else{ nf = new int[3] {(int)plan->nf3, (int)plan->nf2, (int)plan->nf1}; }
 
-    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, nf2*nf1*nf3, plan->fw,
-				    	  NULL, 1, nf2*nf1*nf3, fftsign, plan->opts.fftw ) ;    
-    delete []nf;		    
+    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, plan->nf2*plan->nf1*plan->nf3, plan->fw,
+                                        NULL, 1, plan->nf2*plan->nf1*plan->nf3, fftsign, plan->opts.fftw ) ;    
+    delete []nf;                    
     if (plan->opts.debug) printf("fftw plan (%d)    \t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
      
-
-    return 0;
   }
   
-  else return -1;
+  //so type 3 will not try to free on destroy_plan
+  else{
+    plan->fftwPlan = NULL; 
+  }
+
+  return 0;
 };
 
 
-int setNUpoints(finufft_plan * plan , BIGINT M, FLT *Xpts, FLT *Ypts, FLT *Zpts, CPX *targetFreqs){
-  if(plan->type == type1)
-    plan->spopts.spread_direction = 1; ///FIX THIS WILLY NILLY INITIALIZATION
-  if(plan->type == type2)
-    plan->spopts.spread_direction = 2; ///FIX THIS WILLY NILLY INITIALIZATION
+int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT * s, FLT *t, FLT * u){
 
-  plan->M = M;
-  int ier_check = spreadcheck(plan->nf1,plan->nf2 , plan->nf3, plan->M, Xpts, Ypts, Zpts, plan->spopts);
-  if(ier_check) return ier_check;
-
-  CNTime timer; timer.start();
-  plan->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan->M);
-  plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->M, Xpts, Ypts, Zpts, plan->spopts);
-
-  if (plan->opts.debug) printf("[guru] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
-  			      timer.elapsedsec());
-  
+  plan->nj = nj;
   if(plan->X)
     free(plan->X);
   if(plan->Y)
@@ -155,80 +150,306 @@ int setNUpoints(finufft_plan * plan , BIGINT M, FLT *Xpts, FLT *Ypts, FLT *Zpts,
   if(plan->Z)
     free(plan->Z);
 
-  plan->X = Xpts;
-  plan->Y = Ypts;
-  plan->Z = Zpts;
-  return 0;
+  CNTime timer; timer.start();
   
+  if(plan->type == finufft_type::type1 || plan->type == finufft_type::type2){
+
+    if(plan->type == type1)
+      plan->spopts.spread_direction = 1; ///FIX THIS WILLY NILLY INITIALIZATION
+    if(plan->type == type2)
+      plan->spopts.spread_direction = 2; ///FIX THIS WILLY NILLY INITIALIZATION
+
+  
+    int ier_check = spreadcheck(plan->nf1,plan->nf2 , plan->nf3, plan->nj, xj, yj, zj, plan->spopts);
+    if(ier_check) return ier_check;
+
+    timer.restart();
+    plan->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan->nj);
+    plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->nj, xj, yj, zj, plan->spopts);
+
+    if (plan->opts.debug) printf("[guru] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
+				 timer.elapsedsec());
+  
+
+    plan->X = xj;
+    plan->Y = yj;
+    plan->Z = zj;
+
+    plan->s = NULL;
+    plan->t = NULL;
+    plan->u = NULL;
+  }
+
+  else{ //(plan->type == finufft_type::type3)
+
+    BIGINT nk = plan->ms;
+    
+    FLT S1, S2, S3 = 0;
+    
+    // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
+    CNTime timer; timer.start();
+    arraywidcen(plan->nj,xj,&(plan->t3P.X1),&(plan->t3P.C1));  // get half-width, center, containing {x_j}
+    arraywidcen(nk,s,&S1,&(plan->t3P.D1));   // {s_k}
+    set_nhg_type3(S1,plan->t3P.X1,plan->opts,plan->spopts,
+		  &(plan->nf1),&(plan->t3P.h1),&(plan->t3P.gam1));          // applies twist i)
+
+    if(plan->n_dims > 1){
+      arraywidcen(plan->nj,yj,&(plan->t3P.X2),&(plan->t3P.C2));  // {y_j}
+      arraywidcen(nk,t,&S2,&(plan->t3P.D2));   // {t_k}
+      set_nhg_type3(S2,plan->t3P.X2,plan->opts,plan->spopts,&(plan->nf2),
+				&(plan->t3P.h2),&(plan->t3P.gam2));
+    }
+    
+    if(plan->n_dims > 2){
+      arraywidcen(plan->nj,zj,&(plan->t3P.X3),&(plan->t3P.C3));  // {z_j}
+      arraywidcen(nk,u,&S3,&(plan->t3P.D3));   // {u_k}
+      set_nhg_type3(S3,plan->t3P.X3,plan->opts,plan->spopts,
+		    &(plan->nf3),&(plan->t3P.h3),&(plan->t3P.gam3));
+    }
+
+    if (plan->opts.debug){
+       printf("%d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld X2=%.3g C2=%.3g S2=%.3g D2=%.3g \
+               gam2=%g nf2=%lld X3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld M=%lld nk=%lld...\n", plan->n_dims,
+	      plan->t3P.X1, plan->t3P.C1,S1, plan->t3P.D1, plan->t3P.gam1,(long long) plan->nf1,
+	      plan->t3P.X2, plan->t3P.C2,S2, plan->t3P.D2, plan->t3P.gam2,(long long) plan->nf2,
+	      plan->t3P.X3, plan->t3P.C3,S3, plan->t3P.D3, plan->t3P.gam3,
+	      (long long) plan->nf3,(long long)plan->nj,(long long)nk);
+    }
+
+    if ((int64_t)plan->nf1*plan->nf2*plan->nf3>MAX_NF) {
+      fprintf(stderr,"nf1*nf2*nf3=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf1*plan->nf2*plan->nf3,(double)MAX_NF);
+      return ERR_MAXNALLOC;
+    }
+
+    int nth = MY_OMP_GET_MAX_THREADS();
+    plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*nth);  
+
+    if(!plan->fw){
+      fprintf(stderr, "Call to malloc failed for working upsampled array allocation");
+      return ERR_MAXNALLOC; 
+    }
+
+    plan->fwker = (FLT *)malloc(sizeof(FLT)*nk*plan->n_dims);
+    if(!plan->fwker){
+      fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
+      return ERR_MAXNALLOC;
+    }
+
+  
+
+    
+    FLT* xpj = (FLT*)malloc(sizeof(FLT)*plan->nj);
+    FLT *ypj = NULL;
+    FLT* zpj = NULL;
+
+    if(plan->n_dims > 1)
+      ypj = (FLT*)malloc(sizeof(FLT)*nj);
+    if(plan->n_dims > 2)
+      zpj = (FLT*)malloc(sizeof(FLT)*nj);
+
+    for (BIGINT j=0;j<nj;++j) {
+      xpj[j] = (xj[j] - plan->t3P.C1) / plan->t3P.gam1;          // rescale x_j
+      if(plan->n_dims > 1)
+	ypj[j] = (yj[j]- plan->t3P.C2) / plan->t3P.gam2;          // rescale y_j
+      if(plan->n_dims > 2)
+	zpj[j] = (zj[j] - plan->t3P.C3) / plan->t3P.gam3;          // rescale z_j
+    }
+
+
+    plan->spopts.spread_direction = 1;
+    int ier_check = spreadcheck(plan->nf1,plan->nf2 , plan->nf3, plan->nj, xpj, ypj, zpj, plan->spopts);
+    if(ier_check) return ier_check;
+
+    timer.restart();
+    plan->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan->nj);
+    plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->nj, xpj, ypj, zpj, plan->spopts);
+
+    if (plan->opts.debug) printf("[guru] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
+				 timer.elapsedsec());
+    
+    plan->X = xpj;
+    plan->X_orig = xj;
+    plan->Y = ypj;
+    plan->Y_orig = yj;
+    plan->Z = zpj;
+    plan->Z_orig = zj;
+    
+    
+    FLT *sp = (FLT*)malloc(sizeof(FLT)*nk);     // rescaled targs s'_k
+    FLT *tp = (FLT*)malloc(sizeof(FLT)*nk);     // t'_k
+    FLT *up = (FLT*)malloc(sizeof(FLT)*nk);     // u'_k
+
+    // rescaled targs s'_k
+    //was once in step 2, but only happens once, so extracting out of many block in exec()
+    timer.restart();
+    for (BIGINT k=0;k<nk;++k) {
+	sp[k] = plan->t3P.h1*plan->t3P.gam1*(s[k]-plan->t3P.D1);      // so that |s'_k| < pi/R
+	if(plan->n_dims > 1 )
+	  tp[k] = plan->t3P.h2*plan->t3P.gam2*(t[k]-plan->t3P.D2);      // so that |t'_k| < pi/R
+	if(plan->n_dims > 2)
+	  up[k] = plan->t3P.h3*plan->t3P.gam3*(u[k]-plan->t3P.D3);      // so that |u'_k| < pi/R
+    }
+    if(plan->opts.debug) printf("[guru] rescaling target-freqs: \t %.3g s\n", timer.elapsedsec());
+
+    // Step 3a: compute Fourier transform of scaled kernel at targets
+    timer.restart();
+   
+    //fwker := fkker  
+    // exploit that Fourier transform separates because kernel built separable...
+    onedim_nuft_kernel(nk, sp, plan->fwker, plan->spopts);           // fill fkker1
+    if(plan->n_dims > 1)
+      onedim_nuft_kernel(nk, tp, plan->fwker + nk, plan->spopts);           // etc
+    if(plan->n_dims > 2)
+      onedim_nuft_kernel(nk, up, plan->fwker + 2*nk, plan->spopts);
+    if (plan->opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());
+
+
+    
+    plan->s = s;
+    plan->sp = sp;
+    //null if 1 dim
+    plan->t = t;
+    plan->tp = tp;  
+    //null if 2 dim
+    plan->u = u;
+    plan->up = up;
+    
+  }
+  
+  return 0;
 };
 
 void spreadInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX * c, int *ier_spreads){
 
 #pragma omp parallel for 
-	for(int i = 0; i < blksize; i++){ 
-      	
-	  //index into this iteration of fft in fw and weights arrays
-	  FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i; //fw gets rewritten on each iteration of j
+  for(int i = 0; i < blksize; i++){ 
+        
+    //index into this iteration of fft in fw and weights arrays
+    FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i; //fw gets rewritten on each iteration of j
 
-	  CPX * cStart = c + plan->M*(i + j*nth);
-	  
-	  int ier = spreadSorted(plan->sortIndices,
-				    plan->nf1, plan->nf2, plan->nf3, (FLT*)fwStart,
-				    plan->M, plan->X, plan->Y, plan->Z, (FLT *)cStart,
-				    plan->spopts, plan->didSort) ;
-	  if(ier)
-	    ier_spreads[i] = ier;
-	}
+    CPX * cStart = c + plan->nj*(i + j*nth);
+          
+    int ier = spreadSorted(plan->sortIndices,
+                           plan->nf1, plan->nf2, plan->nf3, (FLT*)fwStart,
+                           plan->nj, plan->X, plan->Y, plan->Z, (FLT *)cStart,
+                           plan->spopts, plan->didSort) ;
+    if(ier)
+      ier_spreads[i] = ier;
+  }
 }
 
 void interpInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX * c, int *ier_interps){
 
 #pragma omp parallel for 
-	for(int i = 0; i < blksize; i++){ 
-      	
-	  //index into this iteration of fft in fw and weights arrays
-	  FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i; //fw gets rewritten on each iteration of j
+  for(int i = 0; i < blksize; i++){ 
+        
+    //index into this iteration of fft in fw and weights arrays
+    FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i; //fw gets rewritten on each iteration of j
 
-	  CPX * cStart = c + plan->M*(i + j*nth);
-	  
-	  int ier = interpSorted(plan->sortIndices,
-				 plan->nf1, plan->nf2, plan->nf3, (FLT*)fwStart,
-				 plan->M, plan->X, plan->Y, plan->Z, (FLT *)cStart,
-				 plan->spopts, plan->didSort) ;
+    CPX * cStart = c + plan->nj*(i + j*nth);
+          
+    int ier = interpSorted(plan->sortIndices,
+                           plan->nf1, plan->nf2, plan->nf3, (FLT*)fwStart,
+                           plan->nj, plan->X, plan->Y, plan->Z, (FLT *)cStart,
+                           plan->spopts, plan->didSort) ;
 
-	  if(ier)
-	    ier_interps[i] = ier;
-	}
+    if(ier)
+      ier_interps[i] = ier;
+  }
 }
 
 
-void deconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX *result){
+void deconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX *fk){
+
 #pragma omp parallel for
-      for(int i = 0; i < blksize; i++){
-	CPX *fkStart = result + (i+j*nth)*plan->ms*plan->mt*plan->mu;
-	FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i;
+  for(int i = 0; i < blksize; i++){
 
-	//prefactors ?
-	if(plan->n_dims == 1){
-	  deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, plan->fwker, plan->ms, (FLT *)fkStart,
-			      plan->nf1, fwStart, plan->opts.modeord);
-	}
-	else if (plan->n_dims == 2){
-	  deconvolveshuffle2d(plan->spopts.spread_direction,1.0,plan->fwker, plan->fwker+(plan->nf1/2+1),
-			    plan->ms, plan->mt, (FLT *)fkStart,
-			    plan->nf1, plan->nf2, fwStart, plan->opts.modeord);
-      }
-      else{
-	deconvolveshuffle3d(plan->spopts.spread_direction, 1.0, plan->fwker, plan->fwker+(plan->nf1/2+1),
-			    plan->fwker+(plan->nf1/2+1)+(plan->nf2/2+1), plan->ms, plan->mt, plan->mu,
-			    (FLT *)fkStart, plan->nf1, plan->nf2, plan->nf3, fwStart, plan->opts.modeord);
-      }
+    CPX *fkStart = fk + (i+j*nth)*plan->ms*plan->mt*plan->mu;
+    FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i;
+    FLT *fwker1 = plan->fwker;
+    FLT *fwker2;
+    FLT *fwker3;
+    if(plan->n_dims > 1 )
+      fwker2 = plan->fwker + plan->nf1/2 + 1;
+    if(plan->n_dims > 2)
+      fwker3 = plan->fwker+(plan->nf1/2+1)+(plan->nf2/2+1);
+    
+    
+    //prefactors ?
+    if(plan->n_dims == 1){
+      deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, fwker1, plan->ms, (FLT *)fkStart,
+                          plan->nf1, fwStart, plan->opts.modeord);
+    }
+    else if (plan->n_dims == 2){
+      deconvolveshuffle2d(plan->spopts.spread_direction,1.0, fwker1, fwker2,
+                          plan->ms, plan->mt, (FLT *)fkStart,
+                          plan->nf1, plan->nf2, fwStart, plan->opts.modeord);
+    }
+    else{
+      deconvolveshuffle3d(plan->spopts.spread_direction, 1.0, fwker1, fwker2,
+                          fwker3, plan->ms, plan->mt, plan->mu,
+                          (FLT *)fkStart, plan->nf1, plan->nf2, plan->nf3,
+			  fwStart, plan->opts.modeord);
+    }
       
+  }
+}
+
+void type3DeconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX *fk){
+
+  int nk = plan->ms;
+
+  CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
+  
+#pragma omp parallel for
+  for(int i = 0; i < blksize; i++){
+
+    CPX *fkStart = fk + (i+j*nth)*plan->ms*plan->mt*plan->mu;
+
+    FLT * fwker1 = plan->fwker;
+    FLT * fwker2;
+    FLT * fwker3;
+    if(plan->n_dims > 1)
+      fwker2 = plan->fwker + nk;
+    if(plan->n_dims>2)
+      fwker3 = fwker2 + nk;
+  
+    if (isfinite(plan->t3P.C1) && isfinite(plan->t3P.C2) && isfinite(plan->t3P.C3) &&
+	(plan->t3P.C1!=0.0 || plan->t3P.C2!=0.0 || plan->t3P.C3!=0.0)){
+      
+#pragma omp parallel for schedule(dynamic)              // since cexps slow
+      for (BIGINT k=0;k<nk;++k){         // also phases to account for C1,C2,C3 shift
+	FLT sumCoords = (plan->s[k] - plan->t3P.D1)*plan->t3P.C1;
+	FLT prodfwKer = fwker1[k];
+	if(plan->n_dims > 1 ){
+	  sumCoords += (plan->t[k] - plan->t3P.D2)*plan->t3P.C2 ;
+	  prodfwKer *= fwker2[k];
+	}
+	if(plan->n_dims > 2){
+	  sumCoords += (plan->u[k] - plan->t3P.D3)*plan->t3P.C3;
+	  prodfwKer *= fwker3[k];
+	}
+	fkStart[k] *= (CPX)(1.0/prodfwKer)*exp(imasign*(sumCoords));
       }
+    }
+
+    else{
+  
+#pragma omp parallel for schedule(dynamic)
+      for (BIGINT k=0;k<nk;++k){
+	FLT prodfwKer = fwker1[k];
+	if(plan->n_dims >1 )
+	  prodfwKer *= fwker2[k];
+	if(plan->n_dims > 2 )
+	  prodfwKer *= fwker3[k];
+	fkStart[k] *= (CPX)(1.0/(prodfwKer));
+      }
+    }
+  }
 }
 
 
-int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
+int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
   CNTime timer; 
   double time_spread{0.0};
@@ -236,27 +457,93 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
   double time_deconv{0.0};
 
   int nth = MY_OMP_GET_MAX_THREADS();
+  CPX* cpj;
 
+  BIGINT nk = plan->ms;
+    
 #if _OPENMP
   MY_OMP_SET_NESTED(0); //no nested parallelization
 #endif
   
   int *ier_spreads = (int *)calloc(nth,sizeof(int));      
-	
+  
+  if(plan->type == type3){
+
+    CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
+    cpj = (CPX*)malloc(sizeof(CPX)*plan->nj);  // c'_j rephased src
+
+    if (plan->t3P.D1!=0.0 || plan->t3P.D2!=0.0 || plan->t3P.D3!=0.0) {
+      
+#pragma omp parallel for schedule(dynamic)                // since cexp slow
+      for (BIGINT j=0;j<plan->nj;++j){
+	FLT sumCoords = plan->t3P.D1*plan->X_orig[j];
+	if(plan->n_dims > 1)
+	  sumCoords += plan->t3P.D2*plan->Y_orig[j];
+	if(plan->n_dims > 2)
+	  sumCoords += plan->t3P.D3*plan->Z_orig[j];
+	cpj[j] = cj[j] * exp(imasign*(sumCoords)); // rephase
+      }
+      if (plan->opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
+    } else
+      for (BIGINT j=0;j<plan->nj;++j)
+	cpj[j] = cj[j];                                    // just copy over
+
+
   for(int j = 0; j*nth < plan->n_transf; j++){
-	  
+          
+    int blksize = min(plan->n_transf - j*nth, nth);
+    
+    spreadInParallel(blksize, j, nth, plan, cpj, ier_spreads);
+    time_spread += timer.elapsedsec();
+      
+    for(int i = 0; i < blksize; i++){
+      if(ier_spreads[i])
+	return ier_spreads[i];
+    }
+    if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
+
+  }
+
+  timer.restart();
+  BIGINT n_modes[3] = {plan->nf1, plan->nf2, plan->nf3};
+
+  int ier_t2 = invokeGuruInterface(plan->n_dims, type2, plan->n_transf, nk, plan->sp, plan->tp, plan->up,
+				   fk, plan->iflag, plan->tol, n_modes, NULL, NULL, NULL, 
+				   (CPX *)plan->fw, plan->opts);
+
+  if (plan->opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
+  if (ier_t2>0) exit(ier_t2);
+  
+  timer.restart();
+
+  for(int j = 0; j*nth < plan->n_transf; j++){
+
+    int blksize = min(plan->n_transf - j*nth, nth);
+  
+    type3DeconvolveInParallel(blksize, j, nth, plan,fk); 
+
+  }
+
+    if (plan->opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
+    
+  }
+
+  else{
+  
+  for(int j = 0; j*nth < plan->n_transf; j++){
+          
     int blksize = min(plan->n_transf - j*nth, nth);
 
 
-    //Type 1 Step 1: Spread to Regular Grid    
+    //Type 1/3 Step 1: Spread to Regular Grid    
     if(plan->type == type1){
       timer.restart();
-      spreadInParallel(blksize, j, nth, plan, c, ier_spreads);
+      if(plan->type == type1) spreadInParallel(blksize, j, nth, plan, cj, ier_spreads);
       time_spread += timer.elapsedsec();
 
       for(int i = 0; i < blksize; i++){
-	if(ier_spreads[i])
-	  return ier_spreads[i];
+        if(ier_spreads[i])
+          return ier_spreads[i];
       }
       if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
     }
@@ -264,22 +551,27 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
     //Type 2 Step 1: amplify Fourier coeffs fk and copy into fw
     else if(plan->type == type2){
       timer.restart();
-      deconvolveInParallel(blksize, j, nth, plan,result);
+      deconvolveInParallel(blksize, j, nth, plan,fk);
       time_deconv += timer.elapsedsec();
       if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", time_deconv);
     }
-	
+        
       
-    //Step 2: Call FFT
-    timer.restart();
-    FFTW_EX(plan->fftwPlan);
-    time_exec += timer.elapsedsec();
-    if(plan->opts.debug) printf("[guru] fft :\t\t\t %.3g s\n", time_exec);	  
-
-    //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output	
+    //Type 1/2 Step 2: Call FFT
+   
+      timer.restart();
+      FFTW_EX(plan->fftwPlan);
+      time_exec += timer.elapsedsec();
+      if(plan->opts.debug) printf("[guru] fft :\t\t\t %.3g s\n", time_exec);        
+   
+    
+    //Type 3 Step 2: call type-2 to eval regular as Fourier series at rescaled targs
+    
+    
+    //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output 
     if(plan->type == type1){
       timer.restart();
-      deconvolveInParallel(blksize, j, nth, plan,result);
+      deconvolveInParallel(blksize, j, nth, plan,fk);
       time_deconv += timer.elapsedsec();
       if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", time_deconv);
     }
@@ -287,17 +579,17 @@ int finufft_exec(finufft_plan * plan , CPX * c, CPX * result){
     //Type 2 Step 3: interpolate from regular to irregular target pts
     else if(plan->type == type2){
       timer.restart();
-      interpInParallel(blksize, j, nth, plan, c, ier_spreads);
+      interpInParallel(blksize, j, nth, plan, cj, ier_spreads);
       time_spread += timer.elapsedsec(); 
 
-    for(int i = 0; i < blksize; i++){
-      if(ier_spreads[i])
-	return ier_spreads[i];
+      for(int i = 0; i < blksize; i++){
+        if(ier_spreads[i])
+          return ier_spreads[i];
+      }
+      if(plan->opts.debug) printf("[guru] interp:\t\t\t %.3g s\n",time_spread);
     }
-    if(plan->opts.debug) printf("[guru] interp:\t\t\t %.3g s\n",time_spread);
-
-    }
-  }  
+  }
+  }
       
   free(ier_spreads);
 
@@ -320,8 +612,25 @@ int finufft_destroy(finufft_plan * plan){
 
   if(plan->fw)
     FFTW_FR(plan->fw);
-  
 
+    if(plan->sp)
+      free(plan->sp);
+    if(plan->tp)
+      free(plan->tp);
+    if(plan->up)
+      free(plan->up);
+
+  
+  //for type 3, original coordinates are kept in {X,Y,Z}_orig,
+  //free the X,Y,Z which hold x',y',z'
+  if(plan->type == type3){
+    free(plan->X);
+    if(plan->Y)
+      free(plan->Y);
+    if(plan->Z)
+      free(plan->Z);
+  }
+   
   return 0;
   
 };

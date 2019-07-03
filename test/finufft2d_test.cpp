@@ -119,7 +119,9 @@ int main(int argc, char* argv[])
       free(Ft);
     }
   }
-
+  
+  
+  
   printf("test 2d type-2:\n"); // -------------- type 2
 #pragma omp parallel
   {

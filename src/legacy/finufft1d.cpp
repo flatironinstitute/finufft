@@ -49,7 +49,7 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   int n_transf = 1;
   finufft_type type = type1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
-				iflag, eps, n_modes, fk, opts);
+				iflag, eps, n_modes, NULL, NULL, NULL, fk, opts);
  
   return ier;
 
@@ -95,7 +95,7 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   int n_transf = 1;
   finufft_type type = type2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
-				iflag, eps, n_modes, fk, opts);
+				iflag, eps, n_modes,NULL, NULL, NULL, fk, opts);
 
   return ier;
 }
@@ -138,77 +138,16 @@ int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, 
    Barnett 2/7/17-6/9/17. 
  */
 {
-  spread_opts spopts;
-  int ier_set = setup_spreader_for_nufft(spopts,eps,opts);
-  if (ier_set) return ier_set;
-  BIGINT nf1;
-  FLT X1,C1,S1,D1,h1,gam1;
-  cout << scientific << setprecision(15);  // for debug
 
-  // pick x, s intervals & shifts, then apply these to xj, cj (twist iii)...
-  CNTime timer; timer.start();
-  arraywidcen(nj,xj,&X1,&C1);  // get half-width, center, containing {x_j}
-  arraywidcen(nk,s,&S1,&D1);   // get half-width, center, containing {s_k}
-  set_nhg_type3(S1,X1,opts,spopts,&nf1,&h1,&gam1);          // applies twist i)
-  if (opts.debug) printf("1d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld nj=%lld nk=%lld...\n",X1,C1,S1,D1,gam1,(long long)nf1,(long long)nj,(long long)nk);
-  if (nf1>MAX_NF) {
-    fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)nf1,(double)MAX_NF);
-    return ERR_MAXNALLOC;
-  }
-  FLT* xpj = (FLT*)malloc(sizeof(FLT)*nj);
-  for (BIGINT j=0;j<nj;++j)
-    xpj[j] = (xj[j]-C1) / gam1;                          // rescale x_j
-  CPX imasign = (iflag>=0) ? IMA : -IMA;
-  CPX* cpj = (CPX*)malloc(sizeof(CPX)*nj); // c'_j rephased src
-  if (D1!=0.0) {
-#pragma omp parallel for schedule(dynamic)               // since cexp slow
-    for (BIGINT j=0;j<nj;++j)
-      cpj[j] = cj[j] * exp(imasign*D1*xj[j]);            // rephase c_j -> c'_j
-    if (opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
-  } else
-    for (BIGINT j=0;j<nj;++j)
-      cpj[j] = cj[j];                                    // just copy over
-  
-  // Step 1: spread from irregular sources to regular grid as in type 1
-  CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1);
-  timer.restart();
-  spopts.spread_direction = 1;
-  FLT *dummy=NULL;
-  int ier_spread = spreadinterp(nf1,1,1,(FLT*)fw,nj,xpj,dummy,dummy,(FLT*)cpj,spopts);
-  free(xpj); free(cpj);
-  if (opts.debug) printf("spread (ier=%d):\t\t %.3g s\n",ier_spread,timer.elapsedsec());
-  if (ier_spread>0) return ier_spread;
-  //for (int j=0;j<nf1;++j) printf("fw[%d]=%.3g\n",j,real(fw[j]));
 
-  // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
-  timer.restart();
-  FLT *sp = (FLT*)malloc(sizeof(FLT)*nk);     // rescaled targs s'_k
-  for (BIGINT k=0;k<nk;++k)
-    sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
-  int ier_t2 = finufft1d2(nk,sp,fk,iflag,eps,nf1,fw,opts);  // the meat
-  free(fw);
-  if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
-  if (ier_t2) return ier_t2;
-  //for (int k=0;k<nk;++k) printf("fk[%d]=(%.3g,%.3g)\n",k,real(fk[k]),imag(fk[k]));
+  BIGINT n_modes[3] = {nk,1,1};
+  int n_dims = 1;
+  int n_transf = 1;
+  finufft_type type = type3;
+  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
+				iflag, eps, n_modes, s, NULL, NULL, fk, opts);
 
-  // Step 3a: compute Fourier transform of scaled kernel at targets
-  timer.restart();
-  FLT *fkker = (FLT*)malloc(sizeof(FLT)*nk);
-  onedim_nuft_kernel(nk, sp, fkker, spopts);           // fill fkker
-  if (opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
-  free(sp);
-  // Step 3b: correct for spreading by dividing by the Fourier transform from 3a
-  timer.restart();
-  if (isfinite(C1) && C1!=0.0)
-#pragma omp parallel for schedule(dynamic)              // since cexps slow
-    for (BIGINT k=0;k<nk;++k)          // also phases to account for C1 x-shift
-      fk[k] *= (CPX)(1.0/fkker[k]) * exp(imasign*(s[k]-D1)*C1);
-  else
-#pragma omp parallel for schedule(dynamic)
-    for (BIGINT k=0;k<nk;++k)
-      fk[k] *= (CPX)(1.0/fkker[k]);
-  if (opts.debug) printf("deconvolve:\t\t %.3g s\n",timer.elapsedsec());
+  return ier;
 
-  free(fkker); if (opts.debug) printf("freed\n");
-  return 0;
+
 }

@@ -209,14 +209,14 @@ test/finufft3d_test: test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $
 	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3d_test
 test/dumbinputs: test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(LIBSFFT) -o test/dumbinputs
-test/dumbInputsGuru: test/dumbInputsGuru.cpp $(OBJS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(OBJS) $(LIBSFFT) -o test/dumbInputsGuru
+test/dumbInputsGuru: test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(LIBSFFT) -o test/dumbInputsGuru
 test/finufft2dmany_test: test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
-test/finufftGuru1_test: test/finufftGuru1_test.cpp  $(OBJS) $(OLD_OBJS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufftGuru1_test.cpp $(OBJS) $(OLD_OBJS) $(LIBSFFT) -o test/finufftGuru1_test
-test/finufftGuru2_test: test/finufftGuru2_test.cpp  $(OBJS) $(OLD_OBJS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufftGuru2_test.cpp $(OBJS) $(OLD_OBJS) $(LIBSFFT) -o test/finufftGuru2_test
+test/finufftGuru1_test: test/finufftGuru1_test.cpp  $(LEG_OBJS) $(OLD_OBJS) $(OBJS)  $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufftGuru1_test.cpp $(LEG_OBJS) $(OLD_OBJS) $(OBJS) $(LIBSFFT) -o test/finufftGuru1_test
+test/finufftGuru2_test: test/finufftGuru2_test.cpp  $(LEG_OBJS) $(OLD_OBJS) $(OBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufftGuru2_test.cpp $(LEG_OBJS) $(OLD_OBJS) $(OBJS) $(LIBSFFT) -o test/finufftGuru2_test
 
 
 # performance tests...

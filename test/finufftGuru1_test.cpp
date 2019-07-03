@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
   plan.opts.upsampfac = upsampfac;
   
   timer.restart();
-  ier = setNUpoints(&plan, M, x, y, NULL, NULL);
+  ier = setNUpoints(&plan, M, x, y, NULL, NULL,NULL, NULL);
   double sort_t = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

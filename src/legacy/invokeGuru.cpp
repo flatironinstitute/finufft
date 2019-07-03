@@ -2,7 +2,7 @@
 
 
 int invokeGuruInterface(int n_dims, finufft_type type, int n_transf, BIGINT nj, FLT* xj,FLT *yj, FLT *zj, CPX* cj,int iflag,
-			FLT eps, BIGINT *n_modes, CPX* fk, nufft_opts opts){
+			FLT eps, BIGINT *n_modes, FLT *s, FLT *t,  FLT *u,  CPX* fk, nufft_opts opts){
 
 
   finufft_plan plan;
@@ -16,7 +16,7 @@ int invokeGuruInterface(int n_dims, finufft_type type, int n_transf, BIGINT nj, 
     return ier;
   }
 
-  ier = setNUpoints(&plan, nj, xj, yj, zj, NULL);
+  ier = setNUpoints(&plan, nj, xj, yj, zj, s, t, u);
   if(ier){
     if(plan.opts.debug)
       printf("error (ier=%d)!\n", ier);
