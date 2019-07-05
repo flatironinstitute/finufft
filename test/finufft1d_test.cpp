@@ -94,6 +94,7 @@ int main(int argc, char* argv[])
   CPX * F_old = (CPX *)malloc(sizeof(CPX)*N);
   finufft1d1_old(M,x,c,isign,tol,N,F_old,opts);
   printf("finufft1d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
+  printf("one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(F_old[N/2+nt]-F[N/2+nt])/infnorm(N,F));
   free(F_old);
   
   printf("test 1d type-2:\n"); // -------------- type 2
@@ -128,11 +129,11 @@ int main(int argc, char* argv[])
     free(ct);
   }
 
-    //check against the old
-
+  //check against the old
   CPX * c_old = (CPX *)malloc(sizeof(CPX)*M);
   finufft1d2_old(M,x,c_old,isign,tol,N,F,opts);
-  printf("finufft1d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,c_old,c));
+  printf("finufft1d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old,c));
+  printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(c_old[jt]-c[jt])/infnorm(M,c));
   free(c_old);
 
 

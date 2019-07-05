@@ -1,4 +1,5 @@
 #include <finufft_legacy.h>
+#include <finufft_old.h>
 #include <dirft.h>
 #include <math.h>
 #include <vector>
@@ -97,6 +98,14 @@ int main(int argc, char* argv[])
     printf("dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     free(Ft);
   }
+
+  //check against the old
+  CPX * F_old = (CPX *)malloc(sizeof(CPX)*N);
+  finufft3d1_old(M,x,y,z,c,isign,tol,N1,N2,N3,F_old,opts);
+  printf("finufft3d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
+  printf("one mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,nt3, abs(F_old[it]-F[it])/infnorm(N,F));
+  free(F_old);
+
   
   printf("test 3d type-2:\n"); // -------------- type 2
 #pragma omp parallel
@@ -130,6 +139,14 @@ int main(int argc, char* argv[])
     free(ct);
   }
 
+  //check against the old
+  CPX * c_old = (CPX *)malloc(sizeof(CPX)*M);
+  finufft3d2_old(M,x,y,z,c_old,isign,tol,N1,N2,N3,F,opts);
+  printf("finufft3d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old,c));
+  printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(c_old[jt]-c[jt])/infnorm(M,c));
+  free(c_old);
+
+  
   printf("test 3d type-3:\n"); // -------------- type 3
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
@@ -180,6 +197,16 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 
+  //check against the old
+  CPX *F3_old = (CPX *)malloc(sizeof(CPX)*N);
+  ier = finufft3d3_old(M,x,y,z,c,isign,tol,N,s,t,u,F3_old,opts);
+  printf("finufft3d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old,F));
+  printf("one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(F3_old[kt]-F[kt])/infnorm(N,F));
+  free(F3_old);
+
+
+
+  
   free(x); free(y); free(z); free(c); free(F); free(s); free(t); free(u);
   return ier;
 }

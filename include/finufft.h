@@ -25,6 +25,7 @@ typedef struct {
   int n_dims;
   int n_transf;
   int nj; 
+  int nk;
   FLT tol;
   
   BIGINT ms;
