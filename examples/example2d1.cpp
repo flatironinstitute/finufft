@@ -30,7 +30,7 @@ int main(int argc, char *argv[]){
   //generate random non-uniform points on (x,y) and complex strengths (c):
   vector<double> x(M);
   vector<double> y(M);
-  vector<complex<double>> c(M, std::complex<double>(0,0));
+  vector<complex<double> > c(M, std::complex<double>(0,0));
 
   for(int i = 0; i < M; i++){
     x[i] = M_PI*(2*(double)rand()/RAND_MAX-1); //uniform random in [-pi, pi)
