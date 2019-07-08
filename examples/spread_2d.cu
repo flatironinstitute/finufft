@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [nupts_distr [N1 N2 [M [tol [Horner]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [nupts_distr [N1 N2 [M [tol [Horner [Paul]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
 
 	N1 = (int) nf1/sigma;
 	N2 = (int) nf2/sigma;
-	M = N1*N2;// let density always be 1
+	M = N1*N2*4*10;// let density always be 1
 	if(argc>5){
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 		if(M == 0) M=N1*N2;
@@ -45,8 +45,13 @@ int main(int argc, char* argv[])
 	}
 
 	int Horner=0;
-	if(argc>6){
+	if(argc>7){
 		sscanf(argv[7],"%d",&Horner);
+	}
+
+	int Paul=0;
+	if(argc>8){
+		sscanf(argv[8],"%d",&Paul);
 	}
 
 	int ier;
@@ -57,10 +62,10 @@ int main(int argc, char* argv[])
 	FLT upsampfac=2.0;
 
 	ier = cufinufft_default_opts(opts,tol,upsampfac);
-        if(ier != 0 ){
-                cout<<"error: cufinufft_default_opts"<<endl;
-                return 0;
-        }
+	if(ier != 0 ){
+		cout<<"error: cufinufft_default_opts"<<endl;
+		return 0;
+	}
 	opts.method=method;
 	cout<<scientific<<setprecision(3);
 
@@ -74,29 +79,78 @@ int main(int argc, char* argv[])
 
 	opts.pirange=0;
 	opts.Horner=Horner;
-        switch(nupts_distribute){
-                // Making data
-                case 1: //uniform
-                {
-                        for (int i = 0; i < M; i++) {
-                                x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
-                                y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-                                c[i].real() = randm11();
-                                c[i].imag() = randm11();
-                        }
-                }
-                break;
-                case 2: // concentrate on a small region
-                {
-                        for (int i = 0; i < M; i++) {
-                                x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
-                                y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
-                                c[i].real() = randm11();
-                                c[i].imag() = randm11();
-                        }
-                }
-                break;
-        }
+	opts.Paul=Paul;
+	if(method == 6)
+		opts.maxsubprobsize=10;
+	switch(nupts_distribute){
+		// Making data
+		case 1: //uniform
+			{
+				for (int k=0; k<10; k++){
+					for (int j=0; j<nf2; j++) {
+						for (int i=0; i<nf1; i++){
+							x[i+j*nf1+k*nf1*nf2] = i;
+							y[i+j*nf1+k*nf1*nf2] = j;
+						}
+					}
+				}
+				for (int i = 0; i < M; i++) {
+#if 0
+					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
+					if(method == 6){
+						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
+						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
+					}
+#endif
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
+				//x[0] = 2.642;
+				//y[0] = 31.67;
+				//x[1] = 15.96;
+				//y[1] = 1.157;
+#if 0
+				rand1 = randm11();
+				rand2 = randm11();
+				for (int i = M/2; i < M; i++) {
+					x[i] = RESCALE(M_PI*rand1, nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*rand2, nf2, 1);
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
+#endif
+			}
+			break;
+		case 2: // concentrate on a small region
+			{
+				for (int i = 0; i < M; i++) {
+					x[i] = RESCALE(M_PI*rand01(), nf1, 1)/2.0;// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*rand01(), nf2, 1)/2.0;
+					if(method == 6){
+						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
+						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
+					}
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
+			}
+			break;
+		case 3:
+			{
+				for (int i = 0; i < M; i++) {
+					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
+					if(method == 6){
+						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
+						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
+					}
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
+			}
+			break;
+	}
 
 	CNTime timer;
 	/*warm up gpu*/
@@ -104,11 +158,13 @@ int main(int argc, char* argv[])
 	timer.restart();
 	checkCudaErrors(cudaMalloc(&a,1));
 #ifdef TIME
-	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() <<" s"<<endl<<endl;
+	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() 
+		<<" s"<<endl<<endl;
 #endif
 
 #ifdef INFO
-	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
+	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"
+		<<endl;
 #endif
 	if(opts.method == 2)
 	{
@@ -116,7 +172,7 @@ int main(int argc, char* argv[])
 		opts.bin_size_y=16;
 	}
 
-	if(opts.method == 4 || opts.method==5)
+	if(opts.method == 4 || opts.method==5 || opts.method==6)
 	{
 		opts.bin_size_x=32;
 		opts.bin_size_y=32;
@@ -130,16 +186,16 @@ int main(int argc, char* argv[])
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-		opts.method,M,nf1*nf2,t,M/t);
-#ifdef RESULT
+			opts.method,M,nf1*nf2,t,M/t);
+#if 0
 	switch(method)
 	{
 		case 4:
 			opts.bin_size_x=32;
 			opts.bin_size_y=32;
 		case 5:
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
+			opts.bin_size_x=16;
+			opts.bin_size_y=16;
 		default:
 			opts.bin_size_x=nf1;
 			opts.bin_size_y=nf2;		
