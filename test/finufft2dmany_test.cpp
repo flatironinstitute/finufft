@@ -92,14 +92,24 @@ int main(int argc, char* argv[])
   } else
     printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s or  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,ti,ntransf*M/ti);
 
+  int d = floor(ntransf/2);    // choose a data to check
+  BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
+  CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
+  for (BIGINT j=0; j<M; ++j)
+    Ft += c[j+d*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
+  BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
+  printf("one mode: rel err in F[%lld,%lld] of data[%d] is %.3g\n",
+	 (long long)nt1,(long long)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
+
   // compare the result with finufft2d1
-  FFTW_FORGET_WISDOM(); // for fair comparison
+  FFTW_FORGET_WISDOM();
+
+  opts.debug = 0;       // don't output timing for calls of finufft2d1
+  opts.spread_debug = 0;
+
   CPX* cstart;
   CPX* Fstart;
   CPX* F_finufft2d1 = (CPX*)malloc(sizeof(CPX)*N*ntransf);
-  FLT maxerror = 0.0;
-  opts.debug = 0;       // don't output timing for calls of finufft2d1
-  opts.spread_debug = 0;
   timer.restart();
   for (int k= 0; k<ntransf; ++k)
   {
@@ -110,21 +120,15 @@ int main(int argc, char* argv[])
   double t=timer.elapsedsec();
   printf("\tspeedup (T_finufft2d1 / T_finufft2d1many) = %.3g\n", t/ti);
 
-  int d = floor(ntransf/2);    // choose a data to check
-  BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
-  CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
-  for (BIGINT j=0; j<M; ++j)
-    Ft += c[j+d*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
-  BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("one mode: rel err in F[%lld,%lld] of data[%d] is %.3g\n",(long long)nt1,(long long)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
 
   // Check accuracy (worst over the ntransf)
+  FLT maxerror = 0.0;
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(N,F_finufft2d1+k*N,F+k*N));
   printf("err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 
-  FFTW_FORGET_WISDOM();
+
   printf("test 2dmany type-2:\n"); // -------------- type 2
 
 #pragma omp parallel
@@ -179,7 +183,22 @@ int main(int argc, char* argv[])
 
   FFTW_FORGET_WISDOM();
   printf("test 2dmany type-3:\n"); // -------------- type 3
+  opts.debug = debug;
+  opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
 
+
+  // reuse the strengths c, interpret N as number of targs:
+#pragma omp parallel
+  {
+    unsigned int se=MY_OMP_GET_THREAD_NUM();
+#pragma omp for schedule(dynamic,CHUNK)
+    for (BIGINT j=0; j<M; ++j) {
+      x[j] = 2.0 + M_PI*randm11r(&se);      // new x_j srcs, offset from origin
+      y[j] = -3.0 + M_PI*randm11r(&se);     // " y_j
+    }
+  }
+
+  
   FLT* s_freq = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs (1-cmpt)
   FLT* t_freq = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs (2-cmpt)
   FLT S1 = (FLT)N1/2;                   // choose freq range sim to type 1
@@ -204,15 +223,15 @@ int main(int argc, char* argv[])
     printf("    %d of: %lld NU to %lld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",ntransf, (long long)M,(long long)N,ti,M/ti,N/ti);
 
 
-  d = floor(ntransf/2); // choose a data to check
-  BIGINT kt = N/2;          // check arbitrary choice of one targ pt
+  d = floor(ntransf-1); // choose a transform to check
+  BIGINT kt = N/4;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);
   for (BIGINT j=0;j<M;++j)
-    Ft += c[d*M + j] * exp(IMA*(FLT)isign*(s_freq[kt]*x[j] + t_freq[kt]*y[j]));
-  printf("one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt+d*N])/infnorm(N,F+d*N));
+    Ft += c[d*M + j] * exp(J*(s_freq[kt]*x[j] + t_freq[kt]*y[j]));
+  printf("on trial %d: rel err in F[%lld] against direct is %.3g\n",d,(long long)kt,abs(Ft-F[kt+d*N])/infnorm(N,F+d*N));
 
 
-// compare the result with finufft2d3...
+// compare the result with finufft2d3_old...
   CPX* f_finufft2d3 = (CPX*)malloc(sizeof(CPX)*N*ntransf);
   timer.restart();
   for (int k=0; k<ntransf; ++k)
@@ -223,14 +242,19 @@ int main(int argc, char* argv[])
   }
   t = timer.elapsedsec();
   printf("\tspeedup (T_finufft2d3 / T_finufft2d3many) = %.3g\n", t/ti);
+
+  //check against the old
+  printf("on trial %d one targ: rel err in F[%lld] against old is %.3g\n",d,(long long)kt,abs(f_finufft2d3[kt+d*N]-F[kt+d*N])/infnorm(N,F+d*N));
+
   
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
-    maxerror = max(maxerror, relerrtwonorm(M,f_finufft2d3+d*N,F+d*N));
-  printf("err check vs non-many: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n",maxerror);
+    maxerror = max(maxerror, relerrtwonorm(N,f_finufft2d3+k*N,F+k*N));
+  printf("err check vs non-many: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
   free(f_finufft2d3);
   
+
   
-  free(x); free(y); free(c); free(F);
+  free(x); free(y); free(c); free(F); free(s_freq); free(t_freq);
   return ier;
 }

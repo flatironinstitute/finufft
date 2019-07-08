@@ -267,7 +267,7 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
 
 
 int finufft2d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts){
-  BIGINT n_modes[3] {nk,nk,1};
+  BIGINT n_modes[3] {nk,1,1};
 
   int n_dims = 2;
   finufft_type type = type3;

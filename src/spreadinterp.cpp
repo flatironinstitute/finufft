@@ -361,6 +361,7 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort){
   CNTime timer;
+  timer.start();
   int ndims = ndims_from_Ns(N1,N2,N3);
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
@@ -454,7 +455,7 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     }         
         
       } // end NU targ loop
-} // end parallel section
+  } // end parallel section
 if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n",timer.elapsedsec());
 return 0;
 };

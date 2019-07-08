@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("one mode: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft-F[it])/infnorm(N,F));
+  printf("one mode: rel err in F[%lld,%lld] from direct is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft-F[it])/infnorm(N,F));
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     if(Ft){ 
