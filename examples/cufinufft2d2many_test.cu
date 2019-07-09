@@ -97,7 +97,8 @@ int main(int argc, char* argv[])
 	opts.spread_direction=2;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransfcufftplan, iflag, opts, &dplan);
+	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransfcufftplan, iflag, opts, 
+		&dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
 	}
