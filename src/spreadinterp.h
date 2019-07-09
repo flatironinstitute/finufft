@@ -152,6 +152,42 @@ void Interp_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const 
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
 		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
 		int* idxnupts);
+
+//Kernels for 3D codes
+__global__
+void RescaleXY_3d(int M, int nf1, int nf2, FLT* x, FLT* y);
+__global__
+void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int  bin_size_x, 
+	int bin_size_y, int nbinx, int nbiny, int* bin_size, FLT *x, FLT *y, 
+	int* sortidx);
+__global__
+void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y, 
+	int nbinx, int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *y, 
+	int* index);
+__global__
+void PtsRearrage_noghost_3d(int M, int nf1, int nf2, int bin_size_x, 
+	int bin_size_y, int nbinx, int nbiny, int* bin_startpts, int* sortidx, 
+	FLT *x, FLT *x_sorted, FLT *y, FLT *y_sorted, CUCPX *c, CUCPX *c_sorted);
+__global__
+void Spread_3d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, FLT es_c, FLT es_beta);
+__global__
+void CalcSubProb_3d(int* bin_size, int* num_subprob, int maxsubprobsize, 
+	int numbins);
+__global__
+void MapBintoSubProb_3d(int* d_subprob_to_bin, int* d_subprobstartpts, 
+	int* d_numsubprob, int numbins);
+__global__
+void Spread_3d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+	int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
+	int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
+	int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
+	int nbiny, int* idxnupts);
+__global__
+void Spread_3d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size, 
+	int bin_size_x, int bin_size_y, int* subprob_to_bin, int* subprobstartpts, 
+	int* numsubprob, int maxsubprobsize, int nbinx, int nbiny, int* idxnupts);
 #if 0
 // 1d
 int cufinufft_spread1d(int ms, int nf1, CPX* h_fw, int M, FLT *h_kx,
@@ -177,10 +213,11 @@ int cuinterp1d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 #endif
 
 // 2d
-int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const FLT *h_kx,
-		const FLT *h_ky, const CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
-int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-		FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
+int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
+		const FLT *h_kx, const FLT *h_ky, const CPX* h_c, cufinufft_opts &opts, 
+		cufinufft_plan *dmem);
+int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
+	FLT *h_kx, FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
 int cuspread2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_mem);
 int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts,
@@ -199,4 +236,17 @@ int cuspread2d_simple(int nf1, int nf2, CUCPX* d_fw, int M, FLT *d_kx,
 		FLT *d_ky, CUCPX *d_c, const cufinufft_opts opts, int binx, int biny);
 int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
+
+// 3d
+int cufinufft_spread3d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
+		const FLT *h_kx, const FLT *h_ky, const CPX* h_c, cufinufft_opts &opts, 
+		cufinufft_plan *dmem);
+int cuspread3d(cufinufft_opts &opts, cufinufft_plan* d_plan);
+int cuspread3d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts,
+		cufinufft_plan *d_mem);
+int cuspread3d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
+		cufinufft_plan *d_plan);
+int cuspread3d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts,
+		cufinufft_plan *d_mem);
+
 #endif
