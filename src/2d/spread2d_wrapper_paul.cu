@@ -214,7 +214,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts, cuf
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tCalcSubProb_2d_Paul\t\t%.3g ms\n", milliseconds);
 #endif
-#if 1
+#if 0
 	int* h_numsubprob;
 	h_numsubprob = (int*) malloc(n*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_numsubprob,d_numsubprob,numbins[0]*

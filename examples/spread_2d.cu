@@ -97,17 +97,17 @@ int main(int argc, char* argv[])
 				for (int j=0; j<nf2; j++) {
 					for (int i=0; i<nf1; i++){
 						for (int k=0; k<rep; k++){
-							if(k+i*rep+j*32*rep < M){
+							if(k+i*rep+j*nf1*rep < M){
 								x[k+i*rep+j*nf1*rep] = i;
 								y[k+i*rep+j*nf1*rep] = j;
 							}
 						}
 					}
 				}
-#if 0
-				srand(unsigned(time(0))); 
+#if 1 
+				srand(unsigned(1)); 
 				random_shuffle (&x[0], &x[M-1]);
-				srand(unsigned(time(0))); 
+				srand(unsigned(1)); 
 				random_shuffle (&y[0], &y[M-1]);
 #endif
 				for (int i = 0; i < M; i++) {
@@ -116,6 +116,26 @@ int main(int argc, char* argv[])
 				}
 			}
 			break;
+
+		case 5:
+			{
+				for (int k=0; k<rep; k++){
+					for (int j=0; j<nf2; j++) {
+						for (int i=0; i<nf1; i++){
+							if(i+j*nf1+k*nf1*nf2< M){
+								x[i+j*nf1+k*nf1*nf2] = i;
+								y[i+j*nf1+k*nf1*nf2] = j;
+							}
+						}
+					}
+				}
+				for (int i = 0; i < M; i++) {
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
+			}
+			break;
+		
 		case 2: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
@@ -229,3 +249,4 @@ int main(int argc, char* argv[])
 	cudaFreeHost(fw);
 	return 0;
 }
+		

@@ -1,9 +1,9 @@
 CC=gcc
 CXX=g++
 NVCC=nvcc
-CXXFLAGS=-DSINGLE -DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
+CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-DSINGLE -arch=sm_50 #If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
+NVCCFLAGS=-arch=sm_50 -DSPREADTIME -DTIME#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 INC=-I/cm/shared/sw/pkg/devel/cuda/9.0.176/samples/common/inc/ \
     -I/mnt/home/yshih/cub/ \
     -I/cm/shared/sw/pkg/devel/cuda/9.0.176/include/
