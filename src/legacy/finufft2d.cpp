@@ -267,8 +267,14 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
 
 
 int finufft2d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts){
-  BIGINT n_modes[3] {nk,1,1};
 
+  if (n_transf<1) {
+    fprintf(stderr,"n_transf should be at least 1 (n_transf=%d)\n",n_transf);
+    return ERR_NDATA_NOTVALID;
+  }
+
+
+  BIGINT n_modes[3] {nk,1,1};
   int n_dims = 2;
   finufft_type type = type3;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj,iflag, eps, n_modes,s,t,NULL, fk, opts);

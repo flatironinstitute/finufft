@@ -208,7 +208,7 @@ int main(int argc, char* argv[])
     //check accuracy (worst over the nvecs)
     for(int k = 0; k < nvecs; k++)
       maxerror = max(maxerror, relerrtwonorm(M, c_compMany + k*M, c + k*M));
-    printf("err check vs many: sup( ||F_guru-F_many|| / ||F_many||_2 ) = %.3g\n", maxerror);
+    printf("err check vs many: sup( ||c_guru-c_many|| / ||c_many||_2 ) = %.3g\n", maxerror);
     
     
     free(c_compMany);
@@ -241,7 +241,7 @@ int main(int argc, char* argv[])
     maxerror = 0.0;
     for(int k = 0; k < nvecs; k++)
       maxerror = max(maxerror, relerrtwonorm(M, c_compSingle + k*M, c + k*M));
-    printf("err check vs non-many: sup( ||F_guru-F_single|| / ||F_single||_2 ) = %.3g\n", maxerror);
+    printf("err check vs non-many: sup( ||c_guru-c_single|| / ||c_single||_2 ) = %.3g\n", maxerror);
     
     free(c_compSingle);
     FFTW_FORGET_WISDOM();
