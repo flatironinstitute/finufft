@@ -638,7 +638,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	cudaEventRecord(start);
 	CalcSubProb_2d<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,
 		maxsubprobsize,numbins[0]*numbins[1]);
-#if 1
+#ifdef DEBUG
 	int* h_numsubprob;
 	h_numsubprob = (int*) malloc(n*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_numsubprob,d_numsubprob,numbins[0]*numbins[1]*

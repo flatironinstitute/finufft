@@ -319,14 +319,14 @@ __global__
 void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
 	int maxsubprobsize)
 {
-	typedef cub::BlockReduce<int, 64> BlockReduce; // how to fix this...?
+	typedef cub::BlockReduce<int, 1024> BlockReduce; // how to fix this...?
 	__shared__ typename BlockReduce::TempStorage temp_storage;
 	
 	int i = threadIdx.x+blockIdx.x*blockDim.x;
 	int aggregate = BlockReduce(temp_storage).Reduce(finegridsize[i], 
 			cub::Max());
 	
-	num_subprob[blockIdx.x] = ceil(aggregate/(float) maxsubprobsize);
+	num_subprob[blockIdx.x] = (int)ceil(aggregate/(float) maxsubprobsize);
 	//num_subprob[blockIdx.x] = aggregate;
 }
 
@@ -689,7 +689,7 @@ void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0));
 	
 	FLT ker1[MAX_NSPREAD];
-        FLT ker2[MAX_NSPREAD];
+	FLT ker2[MAX_NSPREAD];
 
 
 	for(int i=threadIdx.x; i<N; i+=blockDim.x){
@@ -806,7 +806,7 @@ void Spread_2d_Subprob_Horner_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 				FLT kervalue2[10];
 				for(int m=0; m<nupts; m++){
 					int idx = idxstart+m;
-#if 1
+#if 1 
 					y_rescaled = y[idxnupts[idx]];
 					FLT disy = abs(y_rescaled-(yy+yoffset));
 					kervalue2[m] = evaluate_kernel(disy, es_c, es_beta);
@@ -827,6 +827,7 @@ void Spread_2d_Subprob_Horner_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 						x_rescaled = x[idxnupts[idx]];
 						FLT disx = abs(x_rescaled-(xx+xoffset));
 						FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+
 						updatevalue.x += kervalue2[m]*kervalue1*
 										 c[idxnupts[idx]].x;
 						updatevalue.y += kervalue2[m]*kervalue1*

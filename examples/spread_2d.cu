@@ -36,9 +36,9 @@ int main(int argc, char* argv[])
 
 	N1 = (int) nf1/sigma;
 	N2 = (int) nf2/sigma;
-	int rep = 80;
+	int rep = 10;
 	M = N1*N2*4*rep;// let density always be 1
-	M = 32*32*rep;// let density always be 1
+	M = nf1*nf2*rep;// let density always be 1
 	if(argc>6){
 		sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 		if(M == 0) M=N1*N2*4*rep;
@@ -88,16 +88,19 @@ int main(int argc, char* argv[])
 	if(method == 6)
 		opts.maxsubprobsize=maxsubprobsize;
 	if(method == 5)
-		opts.maxsubprobsize=1024;
+		opts.maxsubprobsize=2048;
+	cout<<(int)ceil(8)<<endl;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
 			{
-				for (int j=0; j<32; j++) {
-					for (int i=0; i<32; i++){
+				for (int j=0; j<nf2; j++) {
+					for (int i=0; i<nf1; i++){
 						for (int k=0; k<rep; k++){
-							x[k+i*rep+j*32*rep] = i;
-							y[k+i*rep+j*32*rep] = j;
+							if(k+i*rep+j*32*rep < M){
+								x[k+i*rep+j*nf1*rep] = i;
+								y[k+i*rep+j*nf1*rep] = j;
+							}
 						}
 					}
 				}
@@ -107,43 +110,10 @@ int main(int argc, char* argv[])
 				srand(unsigned(time(0))); 
 				random_shuffle (&y[0], &y[M-1]);
 #endif
-#if 0
-				for (int k=0; k<rep; k++){
-					for (int j=0; j<8; j++) {
-						for (int i=0; i<8; i++){
-							x[i+j*8+k*64] = i;
-							y[i+j*8+k*64] = j;
-						}
-					}
-				}
-#endif
-				
 				for (int i = 0; i < M; i++) {
-#if 0
-					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
-					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-					if(method == 6){
-						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
-						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
-					}
-#endif
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
 				}
-				//x[0] = 2.642;
-				//y[0] = 31.67;
-				//x[1] = 15.96;
-				//y[1] = 1.157;
-#if 0
-				rand1 = randm11();
-				rand2 = randm11();
-				for (int i = M/2; i < M; i++) {
-					x[i] = RESCALE(M_PI*rand1, nf1, 1);// x in [-pi,pi)
-					y[i] = RESCALE(M_PI*rand2, nf2, 1);
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
-				}
-#endif
 			}
 			break;
 		case 2: // concentrate on a small region
