@@ -546,7 +546,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n", milliseconds);
 #endif
-#ifdef DEBUG
+#if 0
 	int *h_binsize;// For debug
 	h_binsize     = (int*)malloc(numbins[0]*numbins[1]*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*sizeof(int),
@@ -562,6 +562,8 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	}
 	free(h_binsize);
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
+#endif
+#ifdef DEBUG
 	int *h_sortidx;
 	h_sortidx = (int*)malloc(M*sizeof(int));
 
@@ -636,7 +638,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	cudaEventRecord(start);
 	CalcSubProb_2d<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,
 		maxsubprobsize,numbins[0]*numbins[1]);
-#ifdef DEBUG
+#if 1
 	int* h_numsubprob;
 	h_numsubprob = (int*) malloc(n*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_numsubprob,d_numsubprob,numbins[0]*numbins[1]*
@@ -686,6 +688,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	d_plan->subprob_to_bin = d_subprob_to_bin;
 	assert(d_plan->subprob_to_bin != NULL);
 	d_plan->totalnumsubprob = totalnumsubprob;
+	printf("[debug ] Total number of subproblems = %d\n", totalnumsubprob);
 #ifdef DEBUG
 	printf("[debug ] Map Subproblem to Bins\n");
 	int* h_subprob_to_bin;
@@ -761,13 +764,18 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 	if(opts.Horner){
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
 			if(opts.Paul){
-#if 0
-				Spread_2d_Subprob_Horner_Paul<<<totalnumsubprob, 256, 
+				Spread_2d_Subprob_Paul<<<totalnumsubprob, 256, 
 					sharedplanorysize>>>(d_kx, d_ky, d_c+t*M,d_fw+t*nf1*nf2, M, 
 					ns, nf1, nf2, es_c, es_beta, sigma,d_binstartpts, d_binsize,
 					bin_size_x, bin_size_y,d_subprob_to_bin, d_subprobstartpts,
 					d_numsubprob, maxsubprobsize,numbins[0], numbins[1], 
 					d_idxnupts);
+#ifdef SPREADTIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel Spread_2d_Subprob_Paul \t\t%.3g ms\n", milliseconds);
 #endif
 			}else{
 				Spread_2d_Subprob_Horner<<<totalnumsubprob, 256, 
@@ -776,6 +784,13 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 					bin_size_y, d_subprob_to_bin, d_subprobstartpts, 
 					d_numsubprob, maxsubprobsize,numbins[0], numbins[1], 
 					d_idxnupts);
+#ifdef SPREADTIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel Spread_2d_Subprob_Horner \t%.3g ms\n", milliseconds);
+#endif
 			}
 		}
 	}else{
@@ -790,13 +805,13 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 					d_numsubprob, maxsubprobsize,
 					numbins[0], numbins[1], d_idxnupts);
 		}
-	}
 #ifdef SPREADTIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_2d_Subprob_V2 \t\t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel Spread_2d_Subprob\t\t%.3g ms\n", milliseconds);
 #endif
+	}
 	return 0;
 }

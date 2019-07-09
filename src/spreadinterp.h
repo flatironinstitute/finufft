@@ -137,14 +137,22 @@ __global__
 void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
-		int* idxnupts);
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
+		int nbiny,int* idxnupts);
+
 __global__
-void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT sigma, int* binstartpts,
+void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+		const int ns, int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, 
+		int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
+		int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+		int maxsubprobsize, int nbinx, int nbiny,int* idxnupts);
+
+__global__
+void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+		const int ns, int nf1, int nf2, FLT sigma, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
-		int* idxnupts);
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
+		int nbiny,int* idxnupts);
 
 __global__
 void Spread_2d_Subprob_Horner_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 

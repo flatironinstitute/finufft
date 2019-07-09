@@ -3,6 +3,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
+#include <algorithm>
 #include "../src/cufinufft.h"
 #include "../src/spreadinterp.h"
 #include "../finufft/utils.h"
@@ -15,7 +16,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [nupts_distr [N1 N2 [M [tol [Horner [Paul]]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [M [tol [Horner [Paul]]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -26,34 +27,38 @@ int main(int argc, char* argv[])
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
+	int maxsubprobsize;
+	sscanf(argv[2],"%d",&maxsubprobsize);
 	int nupts_distribute;
-	sscanf(argv[2],"%d",&nupts_distribute);
-	sscanf(argv[3],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
-	sscanf(argv[4],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
+	sscanf(argv[3],"%d",&nupts_distribute);
+	sscanf(argv[4],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
+	sscanf(argv[5],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 
 	N1 = (int) nf1/sigma;
 	N2 = (int) nf2/sigma;
-	M = N1*N2*4*10;// let density always be 1
-	if(argc>5){
-		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
-		if(M == 0) M=N1*N2;
+	int rep = 80;
+	M = N1*N2*4*rep;// let density always be 1
+	M = 32*32*rep;// let density always be 1
+	if(argc>6){
+		sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
+		if(M == 0) M=N1*N2*4*rep;
 	}
 
 	FLT tol=1e-6;
-	if(argc>6){
-		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+	if(argc>7){
+		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
 	int Horner=0;
-	if(argc>7){
-		sscanf(argv[7],"%d",&Horner);
+	if(argc>8){
+		sscanf(argv[8],"%d",&Horner);
 	}
 
 	int Paul=0;
-	if(argc>8){
-		sscanf(argv[8],"%d",&Paul);
+	if(argc>9){
+		sscanf(argv[9],"%d",&Paul);
 	}
-
+	
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
@@ -81,19 +86,38 @@ int main(int argc, char* argv[])
 	opts.Horner=Horner;
 	opts.Paul=Paul;
 	if(method == 6)
-		opts.maxsubprobsize=10;
+		opts.maxsubprobsize=maxsubprobsize;
+	if(method == 5)
+		opts.maxsubprobsize=1024;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
 			{
-				for (int k=0; k<10; k++){
-					for (int j=0; j<nf2; j++) {
-						for (int i=0; i<nf1; i++){
-							x[i+j*nf1+k*nf1*nf2] = i;
-							y[i+j*nf1+k*nf1*nf2] = j;
+				for (int j=0; j<32; j++) {
+					for (int i=0; i<32; i++){
+						for (int k=0; k<rep; k++){
+							x[k+i*rep+j*32*rep] = i;
+							y[k+i*rep+j*32*rep] = j;
 						}
 					}
 				}
+#if 0
+				srand(unsigned(time(0))); 
+				random_shuffle (&x[0], &x[M-1]);
+				srand(unsigned(time(0))); 
+				random_shuffle (&y[0], &y[M-1]);
+#endif
+#if 0
+				for (int k=0; k<rep; k++){
+					for (int j=0; j<8; j++) {
+						for (int i=0; i<8; i++){
+							x[i+j*8+k*64] = i;
+							y[i+j*8+k*64] = j;
+						}
+					}
+				}
+#endif
+				
 				for (int i = 0; i < M; i++) {
 #if 0
 					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
@@ -125,8 +149,8 @@ int main(int argc, char* argv[])
 		case 2: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
-					x[i] = RESCALE(M_PI*rand01(), nf1, 1)/2.0;// x in [-pi,pi)
-					y[i] = RESCALE(M_PI*rand01(), nf2, 1)/2.0;
+					x[i] = RESCALE(M_PI*rand01(), nf1, 1)/2.0 - 0.5;// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*rand01(), nf2, 1)/2.0 - 0.5;
 					if(method == 6){
 						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
 						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
@@ -145,6 +169,16 @@ int main(int argc, char* argv[])
 						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
 						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
 					}
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
+			}
+			break;
+		case 4:
+			{
+				for(int i=0; i<M; i++) {
+					x[i] = 1;// x in [-pi,pi)
+					y[i] = 1;
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
 				}
@@ -172,12 +206,17 @@ int main(int argc, char* argv[])
 		opts.bin_size_y=16;
 	}
 
-	if(opts.method == 4 || opts.method==5 || opts.method==6)
+	if(opts.method == 4 || opts.method==5)
 	{
 		opts.bin_size_x=32;
 		opts.bin_size_y=32;
 	}
 
+	if(opts.method == 6)
+	{
+		opts.bin_size_x=32;
+		opts.bin_size_y=32;
+	}
 	timer.restart();
 	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dplan);
 	if(ier != 0 ){
