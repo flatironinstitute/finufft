@@ -100,9 +100,9 @@ int main(int argc, char* argv[])
 
   //check against the old
   CPX * F_old = (CPX *)malloc(sizeof(CPX)*N*ntransf);
-  timer.restart();
   CPX * F_start;
   CPX * c_start;
+  timer.restart();
   for(BIGINT j = 0; j < ntransf; j++){
     F_start = F_old + j*N;
     c_start = c + j*M;

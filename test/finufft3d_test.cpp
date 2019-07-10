@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
   CPX * F_old = (CPX *)malloc(sizeof(CPX)*N);
   finufft3d1_old(M,x,y,z,c,isign,tol,N1,N2,N3,F_old,opts);
   printf("finufft3d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
-  printf("one mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,nt3, abs(F_old[it]-F[it])/infnorm(N,F));
+  printf("one mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2, (long long)nt3, abs(F_old[it]-F[it])/infnorm(N,F));
   free(F_old);
 
   
