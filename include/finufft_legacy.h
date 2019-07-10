@@ -39,9 +39,17 @@ int finufft2d3many(int ntransf, BIGINT nj,FLT* x,FLT *y,CPX* cj,int iflag,FLT ep
   
 int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
 	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts opts);
+int finufft3d1many(int ntransfs, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
+	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts opts);
+
 int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
 	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts opts);
+int finufft3d2many(int ntransf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
+	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts opts);
 int finufft3d3(BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
+	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
+	       CPX* fk, nufft_opts opts);
+int finufft3d3many(int ntransf, BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
 	       CPX* fk, nufft_opts opts);
 

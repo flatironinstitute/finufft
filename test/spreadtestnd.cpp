@@ -1,4 +1,7 @@
-#include "../src/spreadinterp.h"
+#include <spreadinterp.h>
+#include <defs.h>
+#include <utils.h>
+
 #include <vector>
 #include <math.h>
 #include <stdio.h>

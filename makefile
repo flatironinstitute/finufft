@@ -17,7 +17,7 @@ FLINK=$(CLINK)
 # compile flags for GCC, baseline single-threaded, double precision case...
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
-CFLAGS   = -g  -fPIC -O0 -funroll-loops -march=native -fcx-limited-range
+CFLAGS   =  -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
 CFLAGS   += -I include
 FFLAGS   = $(CFLAGS)
@@ -189,7 +189,7 @@ $(EXC): $(EXC).o $(LEGLIB)
 
 # validation tests... (most link to .o allowing testing pieces separately)
 
-test: $(LEG_STATICLIB)  test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft2dmany_test  test/finufft1dmany_test test/finufftGuru1_test test/finufftGuru2_test test/dumbInputsGuru test/finufft1d_basicpassfail
+test: $(LEG_STATICLIB)  test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test  test/finufft1dmany_test test/finufftGuru1_test test/finufftGuru2_test test/dumbInputsGuru test/finufft1d_basicpassfail
 	test/finufft1d_basicpassfail
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
@@ -211,6 +211,8 @@ test/dumbinputs: test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(LIBSFFT) -o test/dumbinputs
 test/dumbInputsGuru: test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(LIBSFFT) -o test/dumbInputsGuru
+test/finufft3dmany_test: test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3dmany_test
 test/finufft2dmany_test: test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
 test/finufft1dmany_test: test/finufft1dmany_test.cpp $(LEG_OBJS1) $(OBJS) $(OLD_OBJS1) $(HEADERS)

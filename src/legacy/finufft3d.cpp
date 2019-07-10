@@ -62,6 +62,29 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   return ier;
 }
 
+
+int finufft3d1many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
+	       FLT eps, BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk,
+	       nufft_opts opts)
+{
+
+  if (n_transf<1) {
+    fprintf(stderr,"n_transf should be at least 1 (n_transf=%d)\n",n_transf);
+    return ERR_NDATA_NOTVALID;
+  }
+    
+  BIGINT n_modes[3] = {ms,mt,mu};
+  int n_dims = 3;
+  finufft_type type = type1;
+  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
+		      eps, n_modes, NULL, NULL, NULL, fk, opts);
+
+
+  return ier;
+
+
+}
+
 int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 	       int iflag,FLT eps, BIGINT ms, BIGINT mt, BIGINT mu,
 	       CPX* fk, nufft_opts opts)
@@ -112,6 +135,30 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 
   return ier;
 }
+
+int finufft3d2many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
+	       int iflag,FLT eps, BIGINT ms, BIGINT mt, BIGINT mu,
+	       CPX* fk, nufft_opts opts)
+{
+
+  if (n_transf<1) {
+    fprintf(stderr,"n_transf should be at least 1 (n_transf=%d)\n",n_transf);
+    return ERR_NDATA_NOTVALID;
+  }
+
+  
+  BIGINT n_modes[3] = {ms,mt,mu};
+  int n_dims = 3;
+  finufft_type type = type2;
+  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
+		      eps, n_modes,NULL, NULL, NULL, fk, opts);
+
+  return ier;
+  
+}
+
+
+
 
 int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 	       int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t,
@@ -164,4 +211,31 @@ int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 
 
   return ier;
+}
+
+
+int finufft3d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
+	       int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t,
+	       FLT *u, CPX* fk, nufft_opts opts)
+{
+
+
+  if (n_transf<1) {
+    fprintf(stderr,"n_transf should be at least 1 (n_transf=%d)\n",n_transf);
+    return ERR_NDATA_NOTVALID;
+  }
+
+  
+  BIGINT n_modes[3] = {nk,nk,nk};
+  int n_dims = 3;
+  finufft_type type = type3;
+  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
+				eps, n_modes,s ,t ,u, fk, opts);
+
+
+
+  return ier;
+
+
+  
 }
