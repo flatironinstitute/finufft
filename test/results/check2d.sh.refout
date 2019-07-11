@@ -16,22 +16,12 @@ one targ: rel err in F[500] is 0
 test 2dmany type-1:
 one mode: rel err in F[37,2] of data[5] is 0
 err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  0
+test finufft2d1many_old interface
 test 2dmany type-2:
 err check vs non-many: sup ( ||c_many-c||_2 / ||c||_2 ) =  0
 one targ: rel err in c[500] of data[5] is 0
+test finufft2d2many_old interface
 test 2dmany type-3:
 on trial 5: rel err in F[250] against direct is 0
 on trial 5 one targ: rel err in F[250] against old is 0
 err check vs non-many: sup ( ||f_many-f||_2 / ||f||_2 ) =  0
-test guru interface type 1:
-in nvec[0]: rel err in F[37,2] is 0
-in nvec[5]: rel err in F[37,2] is 0
-dirft2d: rel l2-err of result F is 0
-err check vs many: sup( ||F_guru-F_many|| / ||F_many||_2 ) = 0
-err check vs non-many: sup( ||F_guru-F_single|| / ||F_single||_2 ) = 0
-test guru interface type 2:
-in nvec[0]: rel err in c[500] is 0
-in nvec[5]: rel err in c[500] is 0
-dirft2d: rel l2-err of result F is 0
-err check vs many: sup( ||c_guru-c_many|| / ||c_many||_2 ) = 0
-err check vs non-many: sup( ||c_guru-c_single|| / ||c_single||_2 ) = 0

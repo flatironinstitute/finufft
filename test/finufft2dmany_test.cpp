@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
   } else
     printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s or  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,ti,ntransf*M/ti);
-
+  
   int d = floor(ntransf/2);    // choose a data to check
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
   CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
@@ -128,7 +128,35 @@ int main(int argc, char* argv[])
   printf("err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 
+  /* SPECIAL 2D1many implementation comparison*/
 
+  FFTW_FORGET_WISDOM();
+  maxerror = 0.0;
+  CPX* F_compMany = (CPX*)malloc(sizeof(CPX)*N*ntransf);   // mode ampls
+
+  if(!F_compMany)
+    printf("failed to malloc comparison result array\n");
+
+  else{
+      
+    printf("test finufft2d1many_old interface\n");
+    timer.restart();
+    ier = finufft2d1many_old(ntransf, M, x, y, c, isign , tol, N1, N2, F_compMany, opts);
+    double t_compMany =timer.elapsedsec();
+
+    if(ier!=0){
+      printf("error (ier=%d)!\n", ier);
+    }
+
+    else{
+      printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,t_compMany,ntransf*M/t_compMany);
+  
+      printf("\tspeedup (T_finufft2d1many_old/T_finufft2d1many) = %.3g\n", t_compMany/ti);
+    }
+    free(F_compMany);
+  }
+  
+ 
   printf("test 2dmany type-2:\n"); // -------------- type 2
 
 #pragma omp parallel
@@ -147,7 +175,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
   } else
     printf("    %d of: (%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)N1,(long long)N2,(long long)M,ti,ntransf*M/ti);
-  
+
   FFTW_FORGET_WISDOM();
   opts.debug = 0;        // don't output timing for calls of finufft2d2
   opts.spread_debug = 0;
@@ -179,6 +207,37 @@ int main(int argc, char* argv[])
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[d*N + m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
   printf("one targ: rel err in c[%lld] of data[%d] is %.3g\n",(long long)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
+
+  /* SPECIAL 2D2many implementation comparison*/
+
+  FFTW_FORGET_WISDOM();
+  maxerror = 0.0;
+  CPX* F_compMany2 = (CPX*)malloc(sizeof(CPX)*N*ntransf);   // mode ampls
+
+  if(!F_compMany2)
+    printf("failed to malloc comparison result array\n");
+
+  else{
+      
+    printf("test finufft2d2many_old interface\n");
+    timer.restart();
+    ier = finufft2d2many_old(ntransf, M, x, y, c, isign , tol, N1, N2, F_compMany2, opts);
+    double t_compMany =timer.elapsedsec();
+
+    if(ier!=0){
+      printf("error (ier=%d)!\n", ier);
+    }
+
+    else{
+      printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,t_compMany,ntransf*M/t_compMany);
+  
+      printf("\tspeedup (T_finufft2d1many_old/T_finufft2d1many) = %.3g\n", t_compMany/ti);
+    }
+    free(F_compMany2);
+  }
+
+
+
 
   
   FFTW_FORGET_WISDOM();

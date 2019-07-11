@@ -1,8 +1,8 @@
 // Common higher-level routines for FINUFFT: options, kernel FT, deconvolution.
 // Note that algorithm parameters are now defined in defs.h (not common.h).
 
-#include "common.h"
-#include "defs.h"
+#include <common.h>
+#include <defs.h>
 #include <utils.h>
 #include <fftw3.h>
 #include <math.h>
@@ -325,3 +325,6 @@ void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
     deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
 			fk + pn,nf1,nf2,&fw[np*(nf3+k3)],modeord);
 }
+
+
+

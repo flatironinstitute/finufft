@@ -6,19 +6,8 @@
 #include <common.h>
 #include <iomanip>
 
-
-int typeToInt(finufft_type type){
-  switch(type){
-  case type1:
-    return 1;
-  case type2:
-    return 2;
-  case type3:
-    return 3;
-  default:
-    return 0;
-  }
-}
+//forward declaration
+int typeToInt(finufft_type type);
 
 /*Responsible for allocating arrays for fftw_execute output and instantiating fftw_plan*/
 int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf, FLT tol, finufft_plan *plan) {
@@ -247,13 +236,11 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
     if(plan->n_dims > 2)
       zpj = (FLT*)malloc(sizeof(FLT)*nj);
 
+#pragma omp parallel for     
     for (BIGINT j=0;j<nj;++j) {
-
       xpj[j] = (xj[j] - plan->t3P.C1) / plan->t3P.gam1;          // rescale x_j
-
       if(plan->n_dims > 1)
 	ypj[j] = (yj[j]- plan->t3P.C2) / plan->t3P.gam2;          // rescale y_j
-
       if(plan->n_dims > 2)
 	zpj[j] = (zj[j] - plan->t3P.C3) / plan->t3P.gam3;          // rescale z_j
     }
@@ -286,6 +273,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
 
     // rescaled targs s'_k
     timer.restart();
+#pragma omp parallel for 
     for (BIGINT k=0;k<plan->nk;++k) {
 	sp[k] = plan->t3P.h1*plan->t3P.gam1*(s[k]-plan->t3P.D1);      // so that |s'_k| < pi/R
 	if(plan->n_dims > 1 )
@@ -466,9 +454,9 @@ void type3DeconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, 
 int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
   CNTime timer; 
-  double time_spread{0.0};
-  double time_exec{0.0};
-  double time_deconv{0.0};
+  double time_spread = 0.0;
+  double time_exec = 0.0;
+  double time_deconv = 0.0;
 
   int nth = MY_OMP_GET_MAX_THREADS();
 
@@ -656,3 +644,29 @@ int finufft_destroy(finufft_plan * plan){
   return 0;
   
 };
+
+
+int typeToInt(finufft_type type){
+  switch(type){
+  case type1:
+    return 1;
+  case type2:
+    return 2;
+  case type3:
+    return 3;
+  default:
+    return 0;
+  }
+}
+
+finufft_type intToType(int i){
+
+  switch(i){
+  case 1: return type1;
+  case 2: return type2;
+  case 3: return type3;
+  default : return type1; //barf invalid 
+
+  }
+}
+
