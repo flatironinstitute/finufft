@@ -269,7 +269,7 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
 {
   BIGINT n_modes[3];
   n_modes[0] = nk;
-  n_modes[1] = nk;
+  n_modes[1] = 1;
   n_modes[2] = 1;
 
   int n_dims = 2;

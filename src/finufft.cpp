@@ -134,7 +134,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
   
   else{
     plan->fftwPlan = NULL;
-    plan->nk = n_modes[0];
+    plan->nk = n_modes[0]*n_modes[1]*n_modes[2];
   }
 
   return 0;
@@ -225,26 +225,39 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
 
     plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*plan->n_transf);  
 
-
     if(!plan->fw){
-      fprintf(stderr, "Call to malloc failed for working upsampled array allocation");
+      fprintf(stderr, "Call to malloc failed for working upsampled array allocation\n");
       return ERR_MAXNALLOC; 
     }
 
     plan->fwker = (FLT *)malloc(sizeof(FLT)*plan->nk*plan->n_dims);
     if(!plan->fwker){
-      fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
+      fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation\n");
       return ERR_MAXNALLOC;
     }
     
     FLT* xpj = (FLT*)malloc(sizeof(FLT)*plan->nj);
+    if(!xpj){
+      fprintf(stderr, "Call to malloc failed for rescaled coordinates\n");
+      return ERR_MAXNALLOC; 
+    }    
     FLT *ypj = NULL;
     FLT* zpj = NULL;
 
-    if(plan->n_dims > 1)
+    if(plan->n_dims > 1){
       ypj = (FLT*)malloc(sizeof(FLT)*nj);
-    if(plan->n_dims > 2)
+      if(!ypj){
+	fprintf(stderr, "Call to malloc failed for rescaled coordinates\n");
+	return ERR_MAXNALLOC; 
+      }
+    }
+    if(plan->n_dims > 2){
       zpj = (FLT*)malloc(sizeof(FLT)*nj);
+      if(!zpj){
+	fprintf(stderr, "Call to malloc failed for rescaled coordinates\n");
+	return ERR_MAXNALLOC; 
+      }
+    }
 
 #pragma omp parallel for     
     for (BIGINT j=0;j<nj;++j) {
@@ -274,12 +287,28 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
     
     
     FLT *sp = (FLT*)malloc(sizeof(FLT)*plan->nk);     // rescaled targs s'_k
+    if(!sp){
+      fprintf(stderr, "Call to malloc failed for rescaled target freqs\n");
+      return ERR_MAXNALLOC; 
+    }
+    
     FLT *tp = NULL;
-    if(plan->n_dims > 1 )
+    if(plan->n_dims > 1 ){
       tp = (FLT*)malloc(sizeof(FLT)*plan->nk);     // t'_k
+      if(!tp){
+	fprintf(stderr, "Call to malloc failed for rescaled target freqs\n");
+	return ERR_MAXNALLOC; 
+      }
+    }
+
     FLT *up = NULL;
-    if(plan->n_dims > 2 )
+    if(plan->n_dims > 2 ){
       up = (FLT*)malloc(sizeof(FLT)*plan->nk);     // u'_k
+      if(!up){
+	fprintf(stderr, "Call to malloc failed for rescaled target freqs\n");
+	return ERR_MAXNALLOC; 
+      }
+    }
 
     // rescaled targs s'_k
     timer.restart();
@@ -333,16 +362,10 @@ void spreadInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX * c, 
 #pragma omp parallel for 
   for(int i = 0; i < maxi ; i++){ 
 
-    int jumpsize;
-    if(plan->type == type3)
-      jumpsize = i+j*nth;
-    else
-      jumpsize = i;  //fw gets rewritten on each iteration of j
-    
     //index into this iteration of fft in fw and weights arrays
-    FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*jumpsize;
+    FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i;
 
-    CPX * cStart = c + plan->nj*(i + j*nth);
+    CPX * cStart = c + plan->nj*(i + j*nth); //type3 j = 0
           
     int ier = spreadSorted(plan->sortIndices,
                            plan->nf1, plan->nf2, plan->nf3, (FLT*)fwStart,
@@ -550,6 +573,10 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
     CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
     CPX *cpj = (CPX*)malloc(sizeof(CPX)*plan->nj*plan->n_transf);  // c'_j rephased src
+    if(!cpj){
+      fprintf(stderr, "Call to malloc failed for rescaled input weights \n");
+      return ERR_MAXNALLOC; 
+    }
 
     bool notZero = plan->t3P.D1 != 0.0;
     if(plan->n_dims > 1) notZero |=  (plan->t3P.D2 != 0.0);
@@ -576,7 +603,8 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
     if (plan->opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
     
-    int j, blksize = 0 ; //vestigial
+    int j = 0;
+    int blksize = 0 ; //vestigial
     int *ier_spreads3 = (int *)calloc(plan->n_transf,sizeof(int));      
       
     timer.restart();

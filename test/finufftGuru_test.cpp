@@ -238,7 +238,7 @@ int main(int argc, char* argv[])
   //Guru Step 2
   ier = setNUpoints(&plan, M, x, y, z, s, t, u);
   double sort_t = timer.elapsedsec();
-  if (ier!=0) {
+  if (ier) {
     printf("error (ier=%d)!\n",ier);
   } else{
     printf("set NU points for %lld src points completed in %.3g s\n", (long long)M, sort_t);
