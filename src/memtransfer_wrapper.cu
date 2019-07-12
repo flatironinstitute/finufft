@@ -240,6 +240,35 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 					*numobins[1]*numobins[2]+1)*sizeof(int)));
 			}
 			break;
+		case 6:
+			{
+				int numobins[3], numbins[3];
+				int binsperobins[3];
+				numobins[0] = ceil((FLT) nf1/opts.o_bin_size_x);
+				numobins[1] = ceil((FLT) nf2/opts.o_bin_size_y);
+				numobins[2] = ceil((FLT) nf3/opts.o_bin_size_z);
+				
+				binsperobins[0] = opts.o_bin_size_x/opts.bin_size_x;
+				binsperobins[1] = opts.o_bin_size_y/opts.bin_size_y;
+				binsperobins[2] = opts.o_bin_size_z/opts.bin_size_z;
+
+				numbins[0] = numobins[0]*(binsperobins[0]+2);
+				numbins[1] = numobins[1]*(binsperobins[1]+2);
+				numbins[2] = numobins[2]*(binsperobins[2]+2);
+
+				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,  
+					numbins[0]*numbins[1]*numbins[2]*sizeof(int)));
+				//checkCudaErrors(cudaMalloc(&d_plan->numnupts,  
+					//numobins[0]*numobins[1]*numobins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->binsize,    
+					numbins[0]*numbins[1]*numbins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->binstartpts, 
+					(numbins[0]*numbins[1]*numbins[2]+1)*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,(numobins[0]
+					*numobins[1]*numobins[2]+1)*sizeof(int)));
+			}
+			break;
 	}
 	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
@@ -268,6 +297,7 @@ void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	switch(opts.method)
 	{
 		case 5:
+		case 6:
 			{
 				checkCudaErrors(cudaFree(d_plan->idxnupts));
 				checkCudaErrors(cudaFree(d_plan->sortidx));

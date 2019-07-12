@@ -31,13 +31,13 @@ int main(int argc, char* argv[])
 	sscanf(argv[4],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[5],"%lf",&w); nf3 = (int)w;  // so can read 1e6 right!
 
-	N1 = (int) nf1/sigma;
-	N2 = (int) nf2/sigma;
-	N3 = (int) nf3/sigma;
+	N1 = (int) nf1/sigma*2;
+	N2 = (int) nf2/sigma*2;
+	N3 = (int) nf3/sigma*2;
 	M = N1*N2*N3;// let density always be 1
 	if(argc>6){
 		sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
-		if(M == 0) M=N1*N2;
+		//if(M == 0) M=N1*N2;
 	}
 
 	FLT tol=1e-6;
@@ -99,9 +99,9 @@ int main(int argc, char* argv[])
 		case 2: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
-					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);
-					y[i] = RESCALE(M_PI*rand01()/(nf2*2/32), nf2, 1);
-					z[i] = RESCALE(M_PI*rand01()/(nf3*2/32), nf3, 1);
+					x[i] = RESCALE(M_PI*rand01()/(nf1*2/8), nf1, 1);
+					y[i] = RESCALE(M_PI*rand01()/(nf2*2/8), nf2, 1);
+					z[i] = RESCALE(M_PI*rand01()/(nf3*2/8), nf3, 1);
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
 				}
@@ -113,6 +113,25 @@ int main(int argc, char* argv[])
 					x[i] = RESCALE(M_PI*randm11(), nf1, 1);
 					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
 					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
+			}
+		case 4:
+			{
+				for(int k=0; k<nf3; k++){
+					for(int j=0; j<nf2; j++){
+						for(int i=0; i<nf1; i++){
+							int idx = i+j*nf1+k*nf1*nf2;
+							if(idx <= M){
+								x[idx] = i;
+								y[idx] = j;
+								z[idx] = k;
+							}
+						}
+					}
+				}
+				for (int i = 0; i < M; i++) {
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
 				}
@@ -135,11 +154,11 @@ int main(int argc, char* argv[])
 		<<endl;
 #endif
 
-	if(opts.method==5)
+	if(opts.method==5 || opts.method == 6)
 	{
-		opts.bin_size_x=2;
-		opts.bin_size_y=2;
-		opts.bin_size_z=2;
+		opts.bin_size_x=4;
+		opts.bin_size_y=4;
+		opts.bin_size_z=4;
 		opts.o_bin_size_x=8;
 		opts.o_bin_size_y=8;
 		opts.o_bin_size_z=8;

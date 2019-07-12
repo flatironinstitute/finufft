@@ -80,6 +80,23 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 #include "../../finufft/ker_horner_allw_loop.c"
 	}
 }
+#if 0
+__device__
+int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz, 
+	int bnx, int bny, int bnz){
+	int oix,oiy,oiz,b;
+	oix = xidx/bnx;
+	oiy = yidx/bny;
+	oiz = zidx/bnz;
+	return = (oix + oiy*onx + oiz*ony*onz)*(bnx*bny*bnz) + 
+			 (xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx);
+}
+#endif
+__device__
+int CalcGlobalIdx(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbinz){
+	return xidx + yidx*nbinx + zidx*nbinx*nbiny;
+}
+
 
 __global__
 void RescaleXY_3d(int M, int nf1, int nf2, int nf3, FLT* x, FLT* y, FLT* z)
@@ -141,8 +158,6 @@ void LocateNUptstoBins(int M, int nf1, int nf2, int nf3, int  bin_size_x,
 	int oldidx;
 	FLT x_rescaled,y_rescaled,z_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		//x_rescaled = RESCALE(x[i],nf1,1);
-		//y_rescaled = RESCALE(y[i],nf2,1);
 		x_rescaled=x[i];
 		y_rescaled=y[i];
 		z_rescaled=z[i];
@@ -152,6 +167,120 @@ void LocateNUptstoBins(int M, int nf1, int nf2, int nf3, int  bin_size_x,
 		binidx = binx+biny*nbinx+binz*nbinx*nbiny;
 		oldidx = atomicAdd(&bin_size[binidx], 1);
 		sortidx[i] = oldidx;
+	}
+}
+
+__global__
+void LocateNUptstoBins_ghost(int M, int  bin_size_x, int bin_size_y, 
+	int bin_size_z, int nbinx, int nbiny, int nbinz, int binsperobinx, 
+	int binsperobiny, int binsperobinz, int* bin_size, FLT *x, FLT *y, FLT *z, 
+	int* sortidx)
+{
+	int binidx,binx,biny,binz;
+	int oldidx;
+	FLT x_rescaled,y_rescaled,z_rescaled;
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
+		x_rescaled=x[i];
+		y_rescaled=y[i];
+		z_rescaled=z[i];
+		binx = floor(x_rescaled/bin_size_x);
+		biny = floor(y_rescaled/bin_size_y);
+		binz = floor(z_rescaled/bin_size_z);
+		binx = binx/binsperobinx*(binsperobinx+2) + (binx%binsperobinx+1);
+		biny = biny/binsperobiny*(binsperobiny+2) + (biny%binsperobiny+1);
+		binz = binz/binsperobinz*(binsperobinz+2) + (binz%binsperobinz+1);
+
+		binidx = CalcGlobalIdx(binx,biny,binz,nbinx,nbiny,nbinz);
+		oldidx = atomicAdd(&bin_size[binidx], 1);
+		sortidx[i] = oldidx;
+	}
+}
+
+__global__
+void Temp(int binsperobinx, int binsperobiny, int binsperobinz, 
+	int nbinx, int nbiny, int nbinz, int* binsize)
+{
+	int binx =threadIdx.x+blockIdx.x*blockDim.x;
+	int biny =threadIdx.y+blockIdx.y*blockDim.y;
+	int binz =threadIdx.z+blockIdx.z*blockDim.z;
+	int binidx = CalcGlobalIdx(binx, biny, binz, nbinx, nbiny, nbinz);
+	
+	if(binx < nbinx && biny < nbiny && binz < nbinz)
+		if (binx%(binsperobinx+2) >=1 && binx%(binsperobinx+2)<= binsperobinx)
+			if (biny%(binsperobiny+2) >=1 && biny%(binsperobiny+2) <= binsperobiny)
+				if (binz%(binsperobinz+2) >=1 && binz%(binsperobinz+2)<= binsperobinz)
+					binsize[binidx] = binidx;
+}
+__global__
+void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz, 
+	int nbinx, int nbiny, int nbinz, int* binsize)
+{
+	int binx =threadIdx.x+blockIdx.x*blockDim.x;
+	int biny =threadIdx.y+blockIdx.y*blockDim.y;
+	int binz =threadIdx.z+blockIdx.z*blockDim.z;
+
+	if(binx < nbinx && biny < nbiny && binz < nbinz){
+		int binidx = CalcGlobalIdx(binx, biny, binz, nbinx, nbiny, nbinz);
+		if(binx % (binsperobinx+2) == 1){
+			int i = binx - 2;
+			i = i<0 ? i+nbinx : i; 
+			int idxtoupdate = CalcGlobalIdx(i, biny, binz, nbinx, nbiny, nbinz);
+			binsize[idxtoupdate] = binsize[binidx]; 
+		}
+		if(binx % (binsperobinx+2) == binsperobinx){
+			int i = binx + 2;
+			i = (i==nbinx) ? i-nbinx : i; 
+			int idxtoupdate = CalcGlobalIdx(i, biny, binz, nbinx, nbiny, nbinz);
+			binsize[idxtoupdate] = binsize[binidx]; 
+		}
+		if(biny % (binsperobiny+2) == 1){
+			int i = biny - 2;
+			i = i<0 ? i+nbiny : i; 
+			int idxtoupdate = CalcGlobalIdx(binx, i, binz, nbinx, nbiny, nbinz);
+			binsize[idxtoupdate] =  binsize[binidx]; 
+		}
+		if(biny % (binsperobinx+2) == binsperobiny){
+			int i = biny + 2;
+			i = (i==nbiny) ? i-nbiny : i; 
+			int idxtoupdate = CalcGlobalIdx(binx, i, binz, nbinx, nbiny, nbinz);
+			binsize[idxtoupdate] = binsize[binidx];; 
+		}
+		if(binz % (binsperobinz+2) == 1){
+			int i = binz - 2;
+			i = i<0 ? i+nbinz : i; 
+			int idxtoupdate = CalcGlobalIdx(binx, biny, i, nbinx, nbiny, nbinz);
+			binsize[idxtoupdate] = binsize[binidx]; 
+		}
+		if(binz % (binsperobinz+2) == binsperobinz){
+			int i = binz + 2;
+			i = (i==nbinz) ? i-nbinz : i; 
+			int idxtoupdate = CalcGlobalIdx(binx, biny, i, nbinx, nbiny, nbinz);
+			binsize[idxtoupdate] = binsize[binidx]; 
+		}
+	}
+}
+__global__
+void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x, 
+	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz, 
+	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_startpts, 
+	int* sortidx, FLT *x, FLT *y, FLT *z, int* index)
+{
+	int binx,biny,binz;
+	int binidx;
+	FLT x_rescaled,y_rescaled,z_rescaled;
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
+		x_rescaled=x[i];
+		y_rescaled=y[i];
+		z_rescaled=z[i];
+		binx = floor(x_rescaled/bin_size_x);
+		biny = floor(y_rescaled/bin_size_y);
+		binz = floor(z_rescaled/bin_size_z);
+		binx = binx/binsperobinx*(binsperobinx+2) + (binx%binsperobinx+1);
+		biny = biny/binsperobiny*(binsperobiny+2) + (biny%binsperobiny+1);
+		binz = binz/binsperobinz*(binsperobinz+2) + (binz%binsperobinz+1);
+
+		binidx = CalcGlobalIdx(binx,biny,binz,nbinx,nbiny,nbinz);
+		index[bin_startpts[binidx]+sortidx[i]] = i;
 	}
 }
 
@@ -170,14 +299,68 @@ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);
-		binidx = binx+biny*nbinx+binz*nbinx*nbiny;
+		binidx = CalcGlobalIdx(binx,biny,binz,nbinx,nbiny,nbinz);
 
 		index[bin_startpts[binidx]+sortidx[i]] = i;
 	}
 }
-#if 0
 __global__
-void CalcSubProb_3d(int* bin_size, int* num_subprob, int maxsubprobsize, 
+void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz, 
+	int nbinx, int nbiny, int nbinz, int* binsize, int* index, 
+	int* binstartpts)
+{
+	int binx =threadIdx.x+blockIdx.x*blockDim.x;
+	int biny =threadIdx.y+blockIdx.y*blockDim.y;
+	int binz =threadIdx.z+blockIdx.z*blockDim.z;
+	int i,j,k;
+	int w = 0;
+	if(binx < nbinx && biny < nbiny && binz < nbinz){
+		i = binx;
+		j = biny;
+		k = binz;
+		int binidx = CalcGlobalIdx(binx, biny, binz, nbinx, nbiny, nbinz);
+		if(binx % (binsperobinx+2) == 0){
+			i = binx - 2;
+			i = i<0 ? i+nbinx : i; 
+			w=1;
+		}
+		if(binx % (binsperobinx+2) == binsperobinx+1){
+			i = binx + 2;
+			i = (i>nbinx) ? i-nbinx : i; 
+			w=1;
+		}
+		if(biny % (binsperobiny+2) == 0){
+			j = biny - 2;
+			j = j<0 ? j+nbiny : j; 
+			w=1;
+		}
+		if(biny % (binsperobiny+2) == binsperobiny+1){
+			j = biny + 2;
+			j = (j>nbiny) ? j-nbiny : j; 
+			w=1;
+		}
+		if(binz % (binsperobinz+2) == 0){
+			k = binz - 2;
+			k = k<0 ? k+nbinz : k; 
+			w=1;
+		}
+		if(binz % (binsperobinz+2) == binsperobinz+1){
+			k = binz + 2;
+			k = (k>nbinz) ? k-nbinz : k; 
+			w=1;
+		}
+		int corbinidx = CalcGlobalIdx(i,j,k,nbinx,nbiny,nbinz);
+		if(w==1){
+			for(int n = 0; n<binsize[binidx];n++){
+				index[binstartpts[binidx]+n] = index[binstartpts[corbinidx]+n];
+			}
+		}
+	}
+	
+}
+
+__global__
+void CalcSubProb_3d_v1(int* bin_size, int* num_subprob, int maxsubprobsize, 
 	int numbins)
 {
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; i+=gridDim.x*
@@ -185,10 +368,11 @@ void CalcSubProb_3d(int* bin_size, int* num_subprob, int maxsubprobsize,
 		num_subprob[i]=ceil(bin_size[i]/(float) maxsubprobsize);
 	}
 }
-#endif
+
 
 // This kernels assumes that number of bins less than #maxnumberofthreads in 
 // each dim
+
 __global__
 void CalcSubProb_3d(int bin_size_x, int bin_size_y, int bin_size_z, 
 	int o_bin_size_x, int o_bin_size_y, int o_bin_size_z, int nbinx, int nbiny, 
