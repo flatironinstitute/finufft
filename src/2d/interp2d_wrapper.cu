@@ -148,30 +148,38 @@ int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
-	threadsPerBlock.x = 16;
+	threadsPerBlock.x = 32;
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
-	cudaEventRecord(start);
 
 	if(opts.Horner){
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			Interp_2d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, 
-					M, ns, nf1, nf2, sigma);
+			cudaEventRecord(start);
+			Interp_2d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, 
+					d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma);
+#ifdef SPREADTIME
+			float milliseconds = 0;
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			printf("[time  ] \tKernel Interp_2d_Idriven_Horner \t%.3g ms\n", milliseconds);
+#endif
 		}
 	}else{
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			Interp_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, 
-					M, ns, nf1, nf2, es_c, es_beta);
+			cudaEventRecord(start);
+			Interp_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c+t*M,
+					d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, es_beta);
+#ifdef SPREADTIME
+			float milliseconds = 0;
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			printf("[time  ] \tKernel Interp_2d_Idriven \t%.3g ms\n", milliseconds);
+#endif
 		}
 	}
-#ifdef SPREADTIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Interp_2d_Idriven \t%.3g ms\n", milliseconds);
-#endif
 	return 0;
 }
 
@@ -251,7 +259,8 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Interp_2d_Subprob \t\t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel Interp_2d_Subprob \t\t%.3g ms/transf\n", 
+		milliseconds/d_plan->ntransfcufftplan);
 #endif
 	return 0;
 }

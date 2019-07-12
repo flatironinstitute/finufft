@@ -597,6 +597,12 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
 	/* --------------------------------------------- */
 	cudaEventRecord(start);
 	CalcSubProb_2d<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,maxsubprobsize,numbins[0]*numbins[1]);
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel CalcSubProb_2d\t\t%.3g ms\n", milliseconds);
+#endif
 #ifdef DEBUG
 	int* h_numsubprob;
 	h_numsubprob = (int*) malloc(n*sizeof(int));
@@ -612,9 +618,16 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
 	}
 	free(h_numsubprob);
 #endif
+	cudaEventRecord(start);
 	// Scanning the same length array, so we don't need calculate temp_storage_bytes here
 	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, temp_storage_bytes, d_numsubprob, d_subprobstartpts+1, n));
 	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel Scan Subprob array\t\t%.3g ms\n", milliseconds);
+#endif
 
 #ifdef DEBUG
 	printf("[debug ] Subproblem start points\n");
