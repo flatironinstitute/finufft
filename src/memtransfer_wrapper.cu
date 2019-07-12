@@ -205,8 +205,10 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	int ms = d_plan->ms;
 	int mt = d_plan->mt;
+	int mu = d_plan->mu;
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
+	int nf3 = d_plan->nf3;
 	int M = d_plan->M;
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
 
@@ -216,26 +218,37 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	{
 		case 5:
 			{
-				int numbins[2];
-				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
-				numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
+				int numobins[3], numbins[3];
+				numobins[0] = ceil((FLT) nf1/opts.o_bin_size_x);
+				numobins[1] = ceil((FLT) nf2/opts.o_bin_size_y);
+				numobins[2] = ceil((FLT) nf3/opts.o_bin_size_z);
+				
+				numbins[0] = numobins[0]*opts.o_bin_size_x/opts.bin_size_x;
+				numbins[1] = numobins[1]*opts.o_bin_size_y/opts.bin_size_y;
+				numbins[2] = numobins[2]*opts.o_bin_size_z/opts.bin_size_z;
 				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,  numbins[0]*numbins[1]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->binsize,     numbins[0]*numbins[1]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins[0]*numbins[1]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,(numbins[0]*numbins[1]+1)*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,  
+					numobins[0]*numobins[1]*numobins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->numnupts,  
+					numobins[0]*numobins[1]*numobins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->binsize,    
+					numbins[0]*numbins[1]*numbins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->binstartpts, 
+					numbins[0]*numbins[1]*numbins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,(numobins[0]
+					*numobins[1]*numobins[2]+1)*sizeof(int)));
 			}
 			break;
 	}
 	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->kz,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
 
 	//size_t pitch;
-	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*sizeof(CUCPX)));
-	//d_plan->fw_width = pitch/sizeof(CUCPX);
-	d_plan->fw_width = nf2;
+	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*nf3*
+		sizeof(CUCPX)));
 
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
@@ -248,6 +261,7 @@ void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	cudaFree(d_plan->fw);
 	cudaFree(d_plan->kx);
 	cudaFree(d_plan->ky);
+	cudaFree(d_plan->kz);
 	cudaFree(d_plan->c);
 	cudaFree(d_plan->fwkerhalf1);
 	cudaFree(d_plan->fwkerhalf2);
@@ -261,8 +275,8 @@ void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 				checkCudaErrors(cudaFree(d_plan->binsize));
 				checkCudaErrors(cudaFree(d_plan->binstartpts));
 				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
-				checkCudaErrors(cudaFree(d_plan->temp_storage));
 				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
+				checkCudaErrors(cudaFree(d_plan->subprob_to_nupts));
 			}
 			break;
 	}

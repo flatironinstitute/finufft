@@ -3,7 +3,8 @@ CXX=g++
 NVCC=nvcc
 CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_50 -DTIME -DSPREADTIME#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
+NVCCFLAGS=-arch=sm_50 -DTIME -DSPREADTIME #If using any card with 
+#architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 INC=-I/cm/shared/sw/pkg/devel/cuda/9.0.176/samples/common/inc/ \
     -I/mnt/home/yshih/cub/ \
     -I/cm/shared/sw/pkg/devel/cuda/9.0.176/include/
@@ -72,6 +73,7 @@ clean:
 	rm -f examples/*.o
 	rm -f src/*.o
 	rm -f src/2d/*.o
+	rm -f src/3d/*.o
 	rm -f finufft/*.o
 	rm -f finufft/contrib/*.o
 	rm -f test/*.o
@@ -81,3 +83,4 @@ clean:
 	rm -f finufft2d_test
 	rm -f cufinufft2d1_test
 	rm -f cufinufft2d2_test
+	rm -f spread3d

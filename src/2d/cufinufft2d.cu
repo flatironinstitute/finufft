@@ -304,12 +304,19 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 
 	// for gpu
 	opts.method = 5;
-	opts.bin_size_x = 32;
-	opts.bin_size_y = 32;
+	opts.bin_size_x = 4;
+	opts.bin_size_y = 4;
+	opts.bin_size_z = 4;
+
+	opts.o_bin_size_x = 8;
+	opts.o_bin_size_y = 8;
+	opts.o_bin_size_z = 8;
+
 	opts.Horner = 1;
 	opts.maxsubprobsize = 1000;
 	opts.nthread_x = 16;
 	opts.nthread_y = 16;
+	opts.nthread_z = 16;
 
 	// Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
 	int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten
