@@ -326,7 +326,7 @@ void spreadInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX * c, 
 
   int maxi = 0;
   if(plan->type == type3)
-    maxi = plan->n_transf - j*nth;
+    maxi = plan->n_transf;
   else
     maxi = blksize;
   
@@ -576,22 +576,21 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
     if (plan->opts.debug) printf("prephase:\t\t %.3g s\n",timer.elapsedsec());
     
-    for(int j = 0; j*nth < plan->n_transf; j++){
-          
-      int blksize = min(plan->n_transf - j*nth, nth);
-      timer.restart();
-      spreadInParallel(blksize, j, nth, plan, cpj, ier_spreads);
-      time_spread += timer.elapsedsec();
+    int j, blksize = 0 ; //vestigial
+    int *ier_spreads3 = (int *)calloc(plan->n_transf,sizeof(int));      
       
-      for(int i = 0; i < blksize; i++){
-	if(ier_spreads[i])
-	  return ier_spreads[i];
-      }
-
-      if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
-
+    timer.restart();
+    spreadInParallel(blksize, j, nth, plan, cpj, ier_spreads3);
+    time_spread += timer.elapsedsec();
+      
+    for(int i = 0; i < plan->n_transf; i++){
+      if(ier_spreads3[i])
+	return ier_spreads3[i];
     }
+
+    if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",time_spread);
     
+    free(ier_spreads3);
     free(cpj);
     
     timer.restart();
