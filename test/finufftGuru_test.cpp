@@ -65,11 +65,11 @@ int main(int argc, char* argv[])
     sscanf(argv[8],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
-  int optsDebug{0};
-  int sprDebug{0};
+  int optsDebug = 0;
+  int sprDebug = 0;
   if (argc>9) sscanf(argv[9],"%d",&optsDebug);
   sprDebug = (optsDebug>1) ? 1 : 0;  // see output from spreader
-  int sprSort{2};
+  int sprSort = 2 ;
   if (argc>10) sscanf(argv[10],"%d",&sprSort);
 
   if (argc>11) sscanf(argv[11],"%lf",&upsampfac);
@@ -217,7 +217,10 @@ int main(int argc, char* argv[])
   plan.opts.upsampfac = upsampfac;
 
   
-  BIGINT n_modes[3] {N1, N2, N3}; //#modes per dimension 
+  BIGINT n_modes[3];
+  n_modes[0] = N1;
+  n_modes[1] = N2;
+  n_modes[2] = N3; //#modes per dimension 
 
   CNTime timer; timer.start();
 

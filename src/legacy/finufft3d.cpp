@@ -51,7 +51,10 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
    Written with FFTW style complex arrays.
  */
 {
-  BIGINT n_modes[3] = {ms,mt,mu};
+  BIGINT n_modes[3];
+  n_modes[0] = ms;
+  n_modes[1] = mt;
+  n_modes[2] = mu;
   int n_dims = 3;
   int n_transf = 1;
   finufft_type type = type1;
@@ -73,7 +76,10 @@ int finufft3d1many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int i
     return ERR_NDATA_NOTVALID;
   }
     
-  BIGINT n_modes[3] = {ms,mt,mu};
+  BIGINT n_modes[3];
+  n_modes[0] = ms;
+  n_modes[1] = mt;
+  n_modes[2] = mu;
   int n_dims = 3;
   finufft_type type = type1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
@@ -124,7 +130,10 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
    Written with FFTW style complex arrays. 
  */
 {
-  BIGINT n_modes[3] = {ms,mt,mu};
+  BIGINT n_modes[3];
+  n_modes[0] = ms;
+  n_modes[1] = mt;
+  n_modes[2] = mu;
   int n_dims = 3;
   int n_transf = 1;
   finufft_type type = type2;
@@ -147,7 +156,10 @@ int finufft3d2many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   }
 
   
-  BIGINT n_modes[3] = {ms,mt,mu};
+  BIGINT n_modes[3];
+  n_modes[0] = ms;
+  n_modes[1] = mt;
+  n_modes[2] = mu;
   int n_dims = 3;
   finufft_type type = type2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
@@ -201,7 +213,10 @@ int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
    Barnett 2/17/17, 6/12/17
  */
 {
-  BIGINT n_modes[3] = {nk,nk,nk};
+  BIGINT n_modes[3];
+  n_modes[0] = nk;
+  n_modes[1] = 1;
+  n_modes[2] = 1;
   int n_dims = 3;
   int n_transf = 1;
   finufft_type type = type3;
@@ -226,7 +241,10 @@ int finufft3d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   }
 
   
-  BIGINT n_modes[3] = {nk,nk,nk};
+  BIGINT n_modes[3];
+  n_modes[0] = nk;
+  n_modes[1] = 1;
+  n_modes[2] = 1;
   int n_dims = 3;
   finufft_type type = type3;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,

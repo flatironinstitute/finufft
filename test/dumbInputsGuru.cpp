@@ -82,7 +82,10 @@ int main(int argc, char* argv[]){
 
   finufft_plan plan;
 
-  BIGINT n_modes[3] {N1, N2, 1}; //#modes per dimension 
+  BIGINT n_modes[3];
+  n_modes[0] = N1;
+  n_modes[1] = N2;
+  n_modes[2] = 1; //#modes per dimension 
 
   int n_dims = 2;
   CNTime timer; timer.start();
@@ -93,7 +96,10 @@ int main(int argc, char* argv[]){
 
 
   /*Type 1*/
-  BIGINT no_modes[3]{0,0,0};
+  BIGINT no_modes[3];
+  n_modes[0] = 0;
+  n_modes[1] = 0;
+  n_modes[2] = 0;
   ier = make_finufft_plan(type1, n_dims,  no_modes, isign, nvecs, tol, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, NULL, NULL, NULL);
@@ -103,7 +109,10 @@ int main(int argc, char* argv[]){
     ier = finufft_destroy(&plan); 
   printf("2d1 Ns=Nt=0:\tier=%d \n", ier);
 
-  BIGINT weird_modes[3]{0,N2,0};
+  BIGINT weird_modes[3];
+  weird_modes[0] = 0;
+  weird_modes[1] = N2;
+  weird_modes[2] = 0;
   ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, NULL, NULL, NULL);

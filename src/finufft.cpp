@@ -46,7 +46,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     FFTW_PLAN_TH(nth);
   }
       
-  if(type == finufft_type::type1 | type == finufft_type::type2){
+  if((type == type1) || (type == type2)){
     
     //determine size of upsampled array
     set_nf_type12(plan->ms, plan->opts, spopts, &(plan->nf1)); 
@@ -107,9 +107,21 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     int * nf; 
     
     //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-    if(n_dims == 1){ nf = new int[1] {(int)plan->nf1}; }
-    else if (n_dims == 2){ nf = new int[2] {(int)plan->nf2, (int)plan->nf1}; }   //fftw enforced row major ordering
-    else{ nf = new int[3] {(int)plan->nf3, (int)plan->nf2, (int)plan->nf1}; }
+    if(n_dims == 1){ 
+      nf = new int[1];
+      nf[0] = (int)plan->nf1;
+    }
+    else if (n_dims == 2){ 
+      nf = new int[2];
+      nf[0] = (int)plan->nf2;
+      nf[1] = (int)plan->nf1; 
+    }   //fftw enforced row major ordering
+    else{ 
+      nf = new int[3];
+      nf[0] = (int)plan->nf3;
+      nf[1] = (int)plan->nf2;
+      nf[2] = (int)plan->nf1;
+    }
 
     timer.restart();
     plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, nth, plan->fw, NULL, 1, plan->nf2*plan->nf1*plan->nf3, plan->fw,
@@ -141,7 +153,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
 
   CNTime timer; timer.start();
   
-  if(plan->type == finufft_type::type1 || plan->type == finufft_type::type2){
+  if((plan->type == type1) || (plan->type == type2)){
 
     if(plan->type == type1)
       plan->spopts.spread_direction = 1; 
@@ -206,10 +218,8 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
 				   S3, plan->t3P.D3, plan->t3P.gam3,(long long) plan->nf3);
     }
 
-    int nth = MY_OMP_GET_MAX_THREADS();
-
     if ((int64_t)plan->nf1*plan->nf2*plan->nf3*plan->n_transf>MAX_NF) {
-      fprintf(stderr,"nf1*nf2*nf3*nth=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf1*plan->nf2*plan->nf3*plan->n_transf,(double)MAX_NF);
+      fprintf(stderr,"nf1*nf2*nf3*n_transf=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf1*plan->nf2*plan->nf3*plan->n_transf,(double)MAX_NF);
       return ERR_MAXNALLOC;
     }
 
@@ -313,8 +323,15 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
 
 void spreadInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX * c, int *ier_spreads){
 
+
+  int maxi = 0;
+  if(plan->type == type3)
+    maxi = plan->n_transf - j*nth;
+  else
+    maxi = blksize;
+  
 #pragma omp parallel for 
-  for(int i = 0; i < blksize; i++){ 
+  for(int i = 0; i < maxi ; i++){ 
 
     int jumpsize;
     if(plan->type == type3)
@@ -579,7 +596,10 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     
     timer.restart();
 
-    BIGINT n_modes[3] = {plan->nf1, plan->nf2, plan->nf3};
+    BIGINT n_modes[3];
+    n_modes[0] = plan->nf1;
+    n_modes[1] = plan->nf2;
+    n_modes[2] = plan->nf3;
   
     int ier_t2 = invokeGuruInterface(plan->n_dims, type2, plan->n_transf, plan->nk, plan->sp, plan->tp, plan->up,
 				     fk, plan->iflag, plan->tol, n_modes, NULL, NULL, NULL, 
