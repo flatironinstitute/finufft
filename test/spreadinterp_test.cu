@@ -139,6 +139,7 @@ int main(int argc, char* argv[])
 	/* -------------------------------------- */
 	timer.restart();
 	opts.method=method;
+	opts.Horner=1;
 	opts.spread_direction=1;
 	switch(method){
 		case 1:

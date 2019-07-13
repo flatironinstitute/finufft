@@ -15,7 +15,7 @@ using namespace std;
 
 // This is a function only doing spread includes device memory allocation, transfer, free
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const FLT *h_kx,
-		       const FLT *h_ky, const CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
+		const FLT *h_ky, const CPX *h_c, cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -51,10 +51,10 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const
 #endif
 	if(opts.method == 5){
 		ier = cuspread2d_subprob_prop(nf1,nf2,M,opts,d_plan);
-                if(ier != 0 ){
-                        printf("error: cuspread2d_subprob_prop, method(%d)\n", opts.method);
-                return 0;
-                }
+		if(ier != 0 ){
+			printf("error: cuspread2d_subprob_prop, method(%d)\n", opts.method);
+			return 0;
+		}
 	}
 	cudaEventRecord(start);
 	ier = cuspread2d(opts, d_plan);
@@ -66,7 +66,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const
 #endif
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(CUCPX),d_plan->fw,d_plan->nf1*sizeof(CUCPX),
-				     nf1*sizeof(CUCPX),nf2,cudaMemcpyDeviceToHost));
+				nf1*sizeof(CUCPX),nf2,cudaMemcpyDeviceToHost));
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -99,12 +99,22 @@ int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	int ier;
 	switch(opts.method)
 	{
+		case 1:
+			{
+				cudaEventRecord(start);
+				ier = cuspread2d_idriven(nf1, nf2, M, opts, d_plan);
+				if(ier != 0 ){
+					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
+					return 1;
+				}
+			}
+			break;
 		case 5:
 			{
 				cudaEventRecord(start);
 				ier = cuspread2d_subprob(nf1, nf2, M, opts, d_plan);
 				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
+					cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
 					return 1;
 				}
 			}
@@ -466,11 +476,28 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
 	int numbins[2];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
-	
+#ifdef DEBUG
+	cout<<"[debug  ] Dividing the uniform grids to bin size["
+		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
+	cout<<"[debug  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
+#endif
+
 	FLT*   d_kx = d_plan->kx;
 	FLT*   d_ky = d_plan->ky;
 
-
+#ifdef DEBUG
+	FLT *h_kx;
+	FLT *h_ky;
+	h_kx = (FLT*)malloc(M*sizeof(FLT));
+	h_ky = (FLT*)malloc(M*sizeof(FLT));
+	
+	checkCudaErrors(cudaMemcpy(h_kx,d_kx,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_ky,d_ky,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+	for(int i=0; i<M; i++){
+		cout<<"[debug ]";
+		cout <<"("<<setw(3)<<h_kx[i]<<","<<setw(3)<<h_ky[i]<<")"<<endl;
+	}
+#endif
 	int *d_binsize = d_plan->binsize;
 	int *d_binstartpts = d_plan->binstartpts;
 	int *d_sortidx = d_plan->sortidx;
@@ -511,6 +538,15 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
 	}
 	free(h_binsize);
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
+	int *h_sortidx;
+	h_sortidx = (int*)malloc(M*sizeof(int));
+	
+	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),cudaMemcpyDeviceToHost));
+	cout<<"[debug ]";
+	for(int i=0; i<M; i++){
+		cout <<"point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
+	}
+	
 #endif
 
 	cudaEventRecord(start);
@@ -681,15 +717,26 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 	}
 
 	for(int t=0; t<d_plan->ntransfcufftplan; t++){
-		Spread_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
-				d_kx, d_ky, d_c+t*M,
-				d_fw+t*nf1*nf2, M, ns, nf1, nf2,
-				es_c, es_beta, sigma,
-				d_binstartpts, d_binsize,
-				bin_size_x, bin_size_y,
-				d_subprob_to_bin, d_subprobstartpts,
-				d_numsubprob, maxsubprobsize,
-				numbins[0], numbins[1], d_idxnupts);
+		if(opts.Horner){
+			Spread_2d_Subprob_Horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
+					d_kx, d_ky, d_c+t*M,
+					d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma,
+					d_binstartpts, d_binsize,
+					bin_size_x, bin_size_y,
+					d_subprob_to_bin, d_subprobstartpts,
+					d_numsubprob, maxsubprobsize,
+					numbins[0], numbins[1], d_idxnupts);
+		}else{
+			Spread_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
+					d_kx, d_ky, d_c+t*M,
+					d_fw+t*nf1*nf2, M, ns, nf1, nf2, 
+					es_c, es_beta, sigma,
+					d_binstartpts, d_binsize,
+					bin_size_x, bin_size_y,
+					d_subprob_to_bin, d_subprobstartpts,
+					d_numsubprob, maxsubprobsize,
+					numbins[0], numbins[1], d_idxnupts);
+		}
 	}
 #ifdef SPREADTIME
 	float milliseconds = 0;
