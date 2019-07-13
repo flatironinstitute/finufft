@@ -179,8 +179,8 @@ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz,
 	int nbinx, int nbiny, int nbinz, int* binsize, int* index, 
 	int* bin_startpts);
 __global__
-void CalcSubProb_3d_v1(int* bin_size, int* num_subprob, int maxsubprobsize, 
-	int numbins);
+void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, 
+	int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
 __global__
 void CalcSubProb_3d(int bin_size_x, int bin_size_y, int bin_size_z, 
 	int o_bin_size_x, int o_bin_size_y, int o_bin_size_z, int nbinx, int nbiny, 
@@ -201,6 +201,9 @@ void Spread_3d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 __global__
 void CalcSubProb_3d(int* bin_size, int* num_subprob, int maxsubprobsize, 
 	int numbins);
+__global__
+void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts, 
+	int* d_numsubprob,int numbins);
 __global__
 void MapBintoSubProb_3d(int* d_subprobstartpts, int* d_subprob_to_bin, 
 	int* d_subprob_to_nupts, int bin_size_x, int bin_size_y, int bin_size_z, 

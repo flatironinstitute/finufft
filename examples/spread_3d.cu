@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
 		opts.o_bin_size_x=8;
 		opts.o_bin_size_y=8;
 		opts.o_bin_size_z=8;
-		opts.maxsubprobsize=2;
+		opts.maxsubprobsize=1024;
 	}
 
 	timer.restart();

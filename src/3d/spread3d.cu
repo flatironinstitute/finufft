@@ -80,23 +80,20 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 #include "../../finufft/ker_horner_allw_loop.c"
 	}
 }
-#if 0
 __device__
 int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz, 
 	int bnx, int bny, int bnz){
-	int oix,oiy,oiz,b;
+	int oix,oiy,oiz;
 	oix = xidx/bnx;
 	oiy = yidx/bny;
 	oiz = zidx/bnz;
-	return = (oix + oiy*onx + oiz*ony*onz)*(bnx*bny*bnz) + 
+	return   (oix + oiy*onx + oiz*ony*onz)*(bnx*bny*bnz) + 
 			 (xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx);
 }
-#endif
 __device__
-int CalcGlobalIdx(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbinz){
+int CalcGlobalIdx_V2(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbinz){
 	return xidx + yidx*nbinx + zidx*nbinx*nbiny;
 }
-
 
 __global__
 void RescaleXY_3d(int M, int nf1, int nf2, int nf3, FLT* x, FLT* y, FLT* z)
@@ -172,7 +169,7 @@ void LocateNUptstoBins(int M, int nf1, int nf2, int nf3, int  bin_size_x,
 
 __global__
 void LocateNUptstoBins_ghost(int M, int  bin_size_x, int bin_size_y, 
-	int bin_size_z, int nbinx, int nbiny, int nbinz, int binsperobinx, 
+	int bin_size_z, int nobinx, int nobiny, int nobinz, int binsperobinx, 
 	int binsperobiny, int binsperobinz, int* bin_size, FLT *x, FLT *y, FLT *z, 
 	int* sortidx)
 {
@@ -186,11 +183,12 @@ void LocateNUptstoBins_ghost(int M, int  bin_size_x, int bin_size_y,
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);
-		binx = binx/binsperobinx*(binsperobinx+2) + (binx%binsperobinx+1);
-		biny = biny/binsperobiny*(binsperobiny+2) + (biny%binsperobiny+1);
-		binz = binz/binsperobinz*(binsperobinz+2) + (binz%binsperobinz+1);
+		binx = binx/(binsperobinx-2)*binsperobinx + (binx%(binsperobinx-2)+1);
+		biny = biny/(binsperobiny-2)*binsperobiny + (biny%(binsperobiny-2)+1);
+		binz = binz/(binsperobinz-2)*binsperobinz + (binz%(binsperobinz-2)+1);
 
-		binidx = CalcGlobalIdx(binx,biny,binz,nbinx,nbiny,nbinz);
+		binidx = CalcGlobalIdx(binx,biny,binz,nobinx,nobiny,nobinz,binsperobinx,
+			binsperobiny, binsperobinz);
 		oldidx = atomicAdd(&bin_size[binidx], 1);
 		sortidx[i] = oldidx;
 	}
@@ -198,70 +196,83 @@ void LocateNUptstoBins_ghost(int M, int  bin_size_x, int bin_size_y,
 
 __global__
 void Temp(int binsperobinx, int binsperobiny, int binsperobinz, 
-	int nbinx, int nbiny, int nbinz, int* binsize)
+	int nobinx, int nobiny, int nobinz, int* binsize)
 {
 	int binx =threadIdx.x+blockIdx.x*blockDim.x;
 	int biny =threadIdx.y+blockIdx.y*blockDim.y;
 	int binz =threadIdx.z+blockIdx.z*blockDim.z;
-	int binidx = CalcGlobalIdx(binx, biny, binz, nbinx, nbiny, nbinz);
+	int binidx = CalcGlobalIdx(binx,biny,binz,nobinx,nobiny,nobinz,binsperobinx,
+			binsperobiny, binsperobinz);
 	
-	if(binx < nbinx && biny < nbiny && binz < nbinz)
-		if (binx%(binsperobinx+2) >=1 && binx%(binsperobinx+2)<= binsperobinx)
-			if (biny%(binsperobiny+2) >=1 && biny%(binsperobiny+2) <= binsperobiny)
-				if (binz%(binsperobinz+2) >=1 && binz%(binsperobinz+2)<= binsperobinz)
+	if(binx < nobinx*binsperobinx && biny < nobiny*binsperobiny && 
+		binz < nobinz*binsperobinz)
+		if (binx%binsperobinx >0 && binx%binsperobinx< binsperobinx-1)
+			if (biny%binsperobiny >0 && biny%binsperobiny< binsperobiny-1)
+				if (binz%binsperobinz >0 && binz%binsperobinz< binsperobinz-1)
 					binsize[binidx] = binidx;
 }
 __global__
 void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz, 
-	int nbinx, int nbiny, int nbinz, int* binsize)
+	int nobinx, int nobiny, int nobinz, int* binsize)
 {
 	int binx =threadIdx.x+blockIdx.x*blockDim.x;
 	int biny =threadIdx.y+blockIdx.y*blockDim.y;
 	int binz =threadIdx.z+blockIdx.z*blockDim.z;
 
+	int nbinx = nobinx*binsperobinx;
+	int nbiny = nobiny*binsperobiny;
+	int nbinz = nobinz*binsperobinz;
+
 	if(binx < nbinx && biny < nbiny && binz < nbinz){
-		int binidx = CalcGlobalIdx(binx, biny, binz, nbinx, nbiny, nbinz);
-		if(binx % (binsperobinx+2) == 1){
+		int binidx = CalcGlobalIdx(binx,biny,binz,nobinx,nobiny,nobinz,
+			binsperobinx,binsperobiny, binsperobinz);
+		if(binx % binsperobinx == 1){
 			int i = binx - 2;
 			i = i<0 ? i+nbinx : i; 
-			int idxtoupdate = CalcGlobalIdx(i, biny, binz, nbinx, nbiny, nbinz);
+			int idxtoupdate = CalcGlobalIdx(i,biny,binz,nobinx,nobiny,nobinz,
+				binsperobinx,binsperobiny, binsperobinz);
 			binsize[idxtoupdate] = binsize[binidx]; 
 		}
-		if(binx % (binsperobinx+2) == binsperobinx){
+		if(binx % binsperobinx == binsperobinx-2){
 			int i = binx + 2;
 			i = (i==nbinx) ? i-nbinx : i; 
-			int idxtoupdate = CalcGlobalIdx(i, biny, binz, nbinx, nbiny, nbinz);
+			int idxtoupdate = CalcGlobalIdx(i,biny,binz,nobinx,nobiny,nobinz,
+				binsperobinx,binsperobiny, binsperobinz);
 			binsize[idxtoupdate] = binsize[binidx]; 
 		}
-		if(biny % (binsperobiny+2) == 1){
+		if(biny % binsperobiny == 1){
 			int i = biny - 2;
 			i = i<0 ? i+nbiny : i; 
-			int idxtoupdate = CalcGlobalIdx(binx, i, binz, nbinx, nbiny, nbinz);
+			int idxtoupdate = CalcGlobalIdx(binx,i,binz,nobinx,nobiny,nobinz,
+				binsperobinx,binsperobiny, binsperobinz);
 			binsize[idxtoupdate] =  binsize[binidx]; 
 		}
-		if(biny % (binsperobinx+2) == binsperobiny){
+		if(biny % binsperobinx == binsperobiny-2){
 			int i = biny + 2;
 			i = (i==nbiny) ? i-nbiny : i; 
-			int idxtoupdate = CalcGlobalIdx(binx, i, binz, nbinx, nbiny, nbinz);
-			binsize[idxtoupdate] = binsize[binidx];; 
-		}
-		if(binz % (binsperobinz+2) == 1){
-			int i = binz - 2;
-			i = i<0 ? i+nbinz : i; 
-			int idxtoupdate = CalcGlobalIdx(binx, biny, i, nbinx, nbiny, nbinz);
+			int idxtoupdate = CalcGlobalIdx(binx,i,binz,nobinx,nobiny,nobinz,
+				binsperobinx,binsperobiny, binsperobinz);
 			binsize[idxtoupdate] = binsize[binidx]; 
 		}
-		if(binz % (binsperobinz+2) == binsperobinz){
+		if(binz % binsperobinz == 1){
+			int i = binz - 2;
+			i = i<0 ? i+nbinz : i; 
+			int idxtoupdate = CalcGlobalIdx(binx,biny,i,nobinx,nobiny,nobinz,
+				binsperobinx,binsperobiny, binsperobinz);
+			binsize[idxtoupdate] = binsize[binidx]; 
+		}
+		if(binz % binsperobinz == binsperobinz-2){
 			int i = binz + 2;
 			i = (i==nbinz) ? i-nbinz : i; 
-			int idxtoupdate = CalcGlobalIdx(binx, biny, i, nbinx, nbiny, nbinz);
+			int idxtoupdate = CalcGlobalIdx(binx,biny,i,nobinx,nobiny,nobinz,
+				binsperobinx,binsperobiny, binsperobinz);
 			binsize[idxtoupdate] = binsize[binidx]; 
 		}
 	}
 }
 __global__
 void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x, 
-	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz, 
+	int bin_size_y, int bin_size_z, int nobinx, int nobiny, int nobinz, 
 	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_startpts, 
 	int* sortidx, FLT *x, FLT *y, FLT *z, int* index)
 {
@@ -275,11 +286,12 @@ void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x,
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);
-		binx = binx/binsperobinx*(binsperobinx+2) + (binx%binsperobinx+1);
-		biny = biny/binsperobiny*(binsperobiny+2) + (biny%binsperobiny+1);
-		binz = binz/binsperobinz*(binsperobinz+2) + (binz%binsperobinz+1);
+		binx = binx/(binsperobinx-2)*binsperobinx + (binx%(binsperobinx-2)+1);
+		biny = biny/(binsperobiny-2)*binsperobiny + (biny%(binsperobiny-2)+1);
+		binz = binz/(binsperobinz-2)*binsperobinz + (binz%(binsperobinz-2)+1);
 
-		binidx = CalcGlobalIdx(binx,biny,binz,nbinx,nbiny,nbinz);
+		binidx = CalcGlobalIdx(binx,biny,binz,nobinx,nobiny,nobinz,binsperobinx,
+			binsperobiny, binsperobinz);
 		index[bin_startpts[binidx]+sortidx[i]] = i;
 	}
 }
@@ -299,57 +311,63 @@ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);
-		binidx = CalcGlobalIdx(binx,biny,binz,nbinx,nbiny,nbinz);
+		binidx = CalcGlobalIdx_V2(binx,biny,binz,nbinx,nbiny,nbinz);
 
 		index[bin_startpts[binidx]+sortidx[i]] = i;
 	}
 }
 __global__
 void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz, 
-	int nbinx, int nbiny, int nbinz, int* binsize, int* index, 
+	int nobinx, int nobiny, int nobinz, int* binsize, int* index, 
 	int* binstartpts)
 {
 	int binx =threadIdx.x+blockIdx.x*blockDim.x;
 	int biny =threadIdx.y+blockIdx.y*blockDim.y;
 	int binz =threadIdx.z+blockIdx.z*blockDim.z;
+	int nbinx = nobinx*binsperobinx;
+	int nbiny = nobiny*binsperobiny;
+	int nbinz = nobinz*binsperobinz;
+
 	int i,j,k;
 	int w = 0;
 	if(binx < nbinx && biny < nbiny && binz < nbinz){
 		i = binx;
 		j = biny;
 		k = binz;
-		int binidx = CalcGlobalIdx(binx, biny, binz, nbinx, nbiny, nbinz);
-		if(binx % (binsperobinx+2) == 0){
+		int binidx = CalcGlobalIdx(binx,biny,binz,nobinx,nobiny,nobinz,
+			binsperobinx,binsperobiny,binsperobinz);
+		if(binx % binsperobinx == 0){
 			i = binx - 2;
 			i = i<0 ? i+nbinx : i; 
 			w=1;
 		}
-		if(binx % (binsperobinx+2) == binsperobinx+1){
+		if(binx % binsperobinx == binsperobinx-1){
 			i = binx + 2;
 			i = (i>nbinx) ? i-nbinx : i; 
 			w=1;
 		}
-		if(biny % (binsperobiny+2) == 0){
+		if(biny % binsperobiny == 0){
 			j = biny - 2;
 			j = j<0 ? j+nbiny : j; 
 			w=1;
 		}
-		if(biny % (binsperobiny+2) == binsperobiny+1){
+		if(biny % binsperobiny == binsperobiny-1){
 			j = biny + 2;
 			j = (j>nbiny) ? j-nbiny : j; 
 			w=1;
 		}
-		if(binz % (binsperobinz+2) == 0){
+		if(binz % binsperobinz == 0){
 			k = binz - 2;
 			k = k<0 ? k+nbinz : k; 
 			w=1;
 		}
-		if(binz % (binsperobinz+2) == binsperobinz+1){
+		if(binz % binsperobinz == binsperobinz-1){
 			k = binz + 2;
 			k = (k>nbinz) ? k-nbinz : k; 
 			w=1;
 		}
-		int corbinidx = CalcGlobalIdx(i,j,k,nbinx,nbiny,nbinz);
+		int corbinidx = CalcGlobalIdx(i,j,k,nobinx,nobiny,nobinz,
+			binsperobinx,binsperobiny, binsperobinz);
 		if(w==1){
 			for(int n = 0; n<binsize[binidx];n++){
 				index[binstartpts[binidx]+n] = index[binstartpts[corbinidx]+n];
@@ -360,12 +378,17 @@ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz,
 }
 
 __global__
-void CalcSubProb_3d_v1(int* bin_size, int* num_subprob, int maxsubprobsize, 
-	int numbins)
+void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, 
+	int* bin_size, int* num_subprob, int maxsubprobsize, int numbins)
 {
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; i+=gridDim.x*
 		blockDim.x){
-		num_subprob[i]=ceil(bin_size[i]/(float) maxsubprobsize);
+		int numnupts = 0;
+		int binsperobin = binsperobinx*binsperobiny*binsperobinz;
+		for(int b = 0; b<binsperobin; b++){
+			numnupts += bin_size[binsperobin*i+b];
+		}
+		num_subprob[i]=ceil(numnupts/(float) maxsubprobsize);
 	}
 }
 
@@ -422,6 +445,17 @@ void CalcSubProb_3d(int bin_size_x, int bin_size_y, int bin_size_z,
 		num_subprob[obinidx] = ceil(numNUpts/ (float) maxsubprobsize);
 		//num_subprob[obinidx] = numSubProbs;
 		num_nupts[obinidx]   = numNUpts;
+	}
+}
+__global__
+void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts, 
+	int* d_numsubprob,int numbins)
+{
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; 
+		i+=gridDim.x*blockDim.x){
+		for(int j=0; j<d_numsubprob[i]; j++){
+			d_subprob_to_obin[d_subprobstartpts[i]+j]=i;
+		}
 	}
 }
 
