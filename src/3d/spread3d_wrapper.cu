@@ -295,7 +295,7 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel CalcBinSize_noghost_3d \t\t%.3g ms\n", 
+	printf("[time  ] \tKernel LocateNUptstoBins_ghost \t\t%.3g ms\n", 
 		milliseconds);
 #endif
 #ifdef DEBUG
@@ -371,6 +371,7 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	}
 	cout<<"[debug ] ---------------------------------------------------"<<endl;
 #endif
+	cudaEventRecord(start);
 	int n=numbins[0]*numbins[1]*numbins[2];
 	size_t temp_storage_bytes = 0;
 	assert(d_temp_storage == NULL);
@@ -387,7 +388,7 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel BinStartPts_3d \t\t\t%.3g ms\n", milliseconds);
 #endif
-#if 1 
+#ifdef DEBUG
 	int *h_binstartpts;
 	h_binstartpts = (int*)malloc((numbins[0]*numbins[1]*numbins[2])*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*
@@ -408,6 +409,7 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	}
 	cout<<"[debug ] ----------------------------------------------------"<<endl;
 #endif
+	cudaEventRecord(start);
 	int totalNUpts;
 	checkCudaErrors(cudaMemcpy(&totalNUpts,&d_binstartpts[n],
 		sizeof(int),cudaMemcpyDeviceToHost));
@@ -418,13 +420,18 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 		bin_size_y,bin_size_z,numobins[0],numobins[1],numobins[2],binsperobinx, 
 		binsperobiny,binsperobinz,d_binstartpts,d_sortidx,d_kx,d_ky,d_kz,
 		d_idxnupts);
-#if 1 
 	GhostBinPtsIdx<<<blocks, threadsPerBlock>>>(binsperobinx, binsperobiny, 
 		binsperobinz, numobins[0], numobins[1], numobins[2], d_binsize, 
 		d_idxnupts, d_binstartpts);
-#endif
 	d_plan->idxnupts = d_idxnupts;
-#if 1 
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel CalcInvertofGlobalIdx_ghost \t\t\t%.3g ms\n", 
+		milliseconds);
+#endif
+#ifdef DEBUG 
 	int *h_idxnupts;
 	h_idxnupts = (int*)malloc(totalNUpts*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,totalNUpts*sizeof(int),
@@ -443,15 +450,22 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	free(h_binstartpts);
 	free(h_binsize);
 #endif
-#if 1
 	/* --------------------------------------------- */
 	//        Determining Subproblem properties      //
 	/* --------------------------------------------- */
+	cudaEventRecord(start);
 	n = numobins[0]*numobins[1]*numobins[2];
 	cudaEventRecord(start);
 	CalcSubProb_3d_v1<<<(n+1024-1)/1024, 1024>>>(binsperobinx, binsperobiny, 
 		binsperobinz, d_binsize, d_numsubprob, maxsubprobsize, numobins[0]*
 		numobins[1]*numobins[2]);
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel CalcSubProb_3d_v1\t\t\t%.3g ms\n", 
+		milliseconds);
+#endif
 #ifdef DEBUG
 	int* h_numsubprob;
 	h_numsubprob = (int*) malloc(n*sizeof(int));
@@ -472,13 +486,19 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	}
 	free(h_numsubprob);
 #endif
-#endif
+	cudaEventRecord(start);
 	n = numobins[0]*numobins[1]*numobins[2];
 	// Scanning a array with less length, so we don't need calculate temp_
 	// storage_bytes here
 	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, 
 		temp_storage_bytes, d_numsubprob, d_subprobstartpts+1, n));
 	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
+#ifdef SPREADTIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tScan numsubprob\t\t%.3g ms\n", milliseconds);
+#endif
 #ifdef DEBUG
 	printf("[debug ] Subproblem start points\n");
 	int* h_subprobstartpts;
