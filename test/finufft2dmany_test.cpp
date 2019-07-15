@@ -211,7 +211,8 @@ int main(int argc, char* argv[])
   /* SPECIAL 2D2many implementation comparison*/
 
   FFTW_FORGET_WISDOM();
-  maxerror = 0.0;
+
+  /*maxerror = 0.0;
   CPX* F_compMany2 = (CPX*)malloc(sizeof(CPX)*N*ntransf);   // mode ampls
 
   if(!F_compMany2)
@@ -235,11 +236,7 @@ int main(int argc, char* argv[])
     }
     free(F_compMany2);
   }
-
-
-
-
-  
+  */
   FFTW_FORGET_WISDOM();
   printf("test 2dmany type-3:\n"); // -------------- type 3
   opts.debug = debug;
