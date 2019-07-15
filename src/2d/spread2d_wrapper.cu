@@ -688,7 +688,6 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	d_plan->subprob_to_bin = d_subprob_to_bin;
 	assert(d_plan->subprob_to_bin != NULL);
 	d_plan->totalnumsubprob = totalnumsubprob;
-	printf("[debug ] Total number of subproblems = %d\n", totalnumsubprob);
 #ifdef DEBUG
 	printf("[debug ] Map Subproblem to Bins\n");
 	int* h_subprob_to_bin;

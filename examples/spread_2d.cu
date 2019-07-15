@@ -88,8 +88,7 @@ int main(int argc, char* argv[])
 	if(method == 6)
 		opts.maxsubprobsize=maxsubprobsize;
 	if(method == 5)
-		opts.maxsubprobsize=2048;
-	cout<<(int)ceil(8)<<endl;
+		opts.maxsubprobsize=1000;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
