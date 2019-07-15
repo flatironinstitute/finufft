@@ -129,7 +129,6 @@ int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 				}
 			}
 			break;
-#if 1
 		case 6:
 			{
 				cudaEventRecord(start);
@@ -140,7 +139,6 @@ int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 				}
 			}
 			break;
-#endif	
 		default:
 			cout<<"error: incorrect method, should be 5"<<endl;
 			return 2;

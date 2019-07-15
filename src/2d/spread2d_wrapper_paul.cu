@@ -72,7 +72,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts, cuf
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel LocateFineGridPos \t%.3g ms\n", milliseconds);
 #endif
-#if 0 
+#ifdef DEBUG 
 	printf("[debug ] ns = %d\n", ns);
 	int binx, biny, binidx;
 	int *h_finegridsize;
