@@ -177,7 +177,7 @@ void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz,
 __global__
 void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz, 
 	int nbinx, int nbiny, int nbinz, int* binsize, int* index, 
-	int* bin_startpts);
+	int* bin_startpts, int M);
 __global__
 void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, 
 	int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
@@ -211,11 +211,11 @@ void MapBintoSubProb_3d(int* d_subprobstartpts, int* d_subprob_to_bin,
 	int nbiny, int nbinz, int nobinx, int nobiny, int nobinz, int* bin_size, 
 	int* num_subprob, int* num_nupts, int maxsubprobsize);
 __global__
-void Spread_3d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-	int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
-	int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-	int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
-	int nbiny, int* idxnupts);
+void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
+	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
+	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
+	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
 __global__
 void Spread_3d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size, 

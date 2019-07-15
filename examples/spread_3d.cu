@@ -83,11 +83,10 @@ int main(int argc, char* argv[])
 				x[0] = 5;
 				y[0] = 5;
 				z[0] = 5;
-				for (int i = 1; i < M; i++) {
+				for (int i = 0; i < M; i++) {
 					x[i] = x[0];//RESCALE(M_PI*randm11(), nf1, 1);
 					y[i] = y[0];//RESCALE(M_PI*randm11(), nf2, 1);
 					z[i] = z[0];//RESCALE(M_PI*randm11(), nf3, 1);
-					cout<<z[i]<<endl;
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
 				}
@@ -162,7 +161,7 @@ int main(int argc, char* argv[])
 		opts.o_bin_size_x=8;
 		opts.o_bin_size_y=8;
 		opts.o_bin_size_z=8;
-		opts.maxsubprobsize=1024;
+		opts.maxsubprobsize=2048;
 	}
 
 	timer.restart();
@@ -175,31 +174,22 @@ int main(int argc, char* argv[])
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 			opts.method,M,nf1*nf2,t,M/t);
-#ifdef RESULT
-	switch(method)
-	{
-		case 4:
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
-		case 5:
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
-		default:
-			opts.bin_size_x=nf1;
-			opts.bin_size_y=nf2;		
-	}
+#if 0
 	cout<<"[result-input]"<<endl;
-	for(int j=0; j<nf2; j++){
-		if( j % opts.bin_size_y == 0)
-			printf("\n");
-		for (int i=0; i<nf1; i++){
-			if( i % opts.bin_size_x == 0 && i!=0)
-				printf(" |");
-			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
+	for(int k=0; k<nf3; k++){
+		for(int j=0; j<nf2; j++){
+			//if( j % opts.bin_size_y == 0)
+			//	printf("\n");
+			for (int i=0; i<nf1; i++){
+				if( i % opts.bin_size_x == 0 && i!=0)
+					printf(" |");
+				printf(" (%2.3g,%2.3g)",fw[i+j*nf1+k*nf2*nf1].real(),
+					fw[i+j*nf1+k*nf2*nf1].imag() );
+			}
+			cout<<endl;
 		}
-		cout<<endl;
+		cout<<"----------------------------------------------------------------"<<endl;
 	}
-	cout<<endl;
 #endif
 
 	cudaFreeHost(x);
