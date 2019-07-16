@@ -29,13 +29,14 @@ spread2d: examples/spread_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o \
 
 interp2d: examples/interp_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o \
 	src/2d/interp2d_wrapper.o src/2d/interp2d.o finufft/utils.o \
-	src/memtransfer_wrapper.o src/common.o src/2d/spread2d_wrapper_paul.o
+	src/memtransfer_wrapper.o src/common.o src/2d/spread2d_wrapper_paul.o \
+	src/profile.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 spreadinterp_test: test/spreadinterp_test.o src/2d/spread2d_wrapper.o \
 	src/2d/spread2d.o finufft/utils.o finufft/spreadinterp.o \
 	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/common.o src/2d/spread2d_wrapper_paul.o
+	src/common.o src/2d/spread2d_wrapper_paul.o src/profile.o
 	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
 finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o finufft/utils.o \
@@ -43,7 +44,7 @@ finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o finufft/utils.o \
 	finufft/contrib/legendre_rule_fast.o src/2d/spread2d_wrapper.o \
 	src/2d/spread2d.o src/2d/cufinufft2d.o src/deconvolve_wrapper.o \
 	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/2d/spread2d_wrapper_paul.o
+	src/2d/spread2d_wrapper_paul.o src/profile.o
 	$(CXX) $^ $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 cufinufft2d1_test: examples/cufinufft2d1_test.o finufft/utils.o \
@@ -51,7 +52,7 @@ cufinufft2d1_test: examples/cufinufft2d1_test.o finufft/utils.o \
 	finufft/contrib/legendre_rule_fast.o src/2d/spread2d_wrapper.o \
 	src/2d/spread2d.o src/2d/cufinufft2d.o src/deconvolve_wrapper.o \
 	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/2d/spread2d_wrapper_paul.o
+	src/2d/spread2d_wrapper_paul.o src/profile.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 cufinufft2d1many_test: examples/cufinufft2d1many_test.o finufft/utils.o \
