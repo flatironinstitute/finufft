@@ -58,11 +58,17 @@ int main(int argc, char* argv[])
 
 	FLT *x, *y;
 	CPX *c, *fk;
+#if 1
 	cudaMallocHost(&x, M*sizeof(FLT));
 	cudaMallocHost(&y, M*sizeof(FLT));
 	cudaMallocHost(&c, ntransf*M*sizeof(CPX));
 	cudaMallocHost(&fk,ntransf*N1*N2*sizeof(CPX));
-
+#else
+	x = (FLT*) malloc(M*sizeof(FLT));
+	y = (FLT*) malloc(M*sizeof(FLT));
+	c = (CPX*) malloc(ntransf*M*sizeof(CPX));
+	fk = (CPX*) malloc(ntransf*N1*N2*sizeof(CPX));
+#endif
 	// Making data
 	for (int i = 0; i < M; i++) {
 		x[i] = M_PI*randm11();// x in [-pi,pi)
@@ -85,20 +91,19 @@ int main(int argc, char* argv[])
 		char *a;
 		checkCudaErrors(cudaMalloc(&a,1));
 	}
-#ifdef TIME
 	float milliseconds = 0;
 	double totaltime = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tWarm up GPU \t\t %.3g s\n", milliseconds/1000);
-#endif
 
 	cufinufft_plan dplan;
 	cufinufft_opts opts;
 	ier=cufinufft_default_opts(opts,tol,sigma);
 	opts.method=method;
 	opts.spread_direction=2;
+	opts.Horner=1;
 
 	cudaEventRecord(start);
 	{
@@ -109,13 +114,11 @@ int main(int argc, char* argv[])
 			printf("err: cufinufft2d_plan\n");
 		}
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
-#endif
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_setNUpts",3);
@@ -124,13 +127,11 @@ int main(int argc, char* argv[])
 			printf("err: cufinufft2d_setNUpts\n");
 		}
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
-#endif
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_exec",4);
@@ -139,25 +140,21 @@ int main(int argc, char* argv[])
 			printf("err: cufinufft2d2_exec\n");
 		}
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
-#endif
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_destroy",5);
 		ier=cufinufft2d_destroy(opts, &dplan);
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
-#endif
 	// This must be here, since in gpu code, x, y gets modified if pirange=1
 #if 0
 	CPX* fkstart; 
@@ -189,12 +186,18 @@ int main(int argc, char* argv[])
 		cout<<endl;
 	}
 #endif	
-#ifdef TIME
 	printf("[totaltime] %.3g us, speed %.3g NUpts/s\n", totaltime*1000, M*ntransf/totaltime*1000);
-#endif
+#if 1
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);
 	cudaFreeHost(fk);
+#else
+	free(x);
+	free(y);
+	free(c);
+	free(fk);
+#endif
+	checkCudaErrors(cudaDeviceReset());
 	return 0;
 }
