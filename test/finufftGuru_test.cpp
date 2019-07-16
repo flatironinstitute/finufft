@@ -226,8 +226,10 @@ int main(int argc, char* argv[])
 
   CNTime timer; timer.start();
 
+  int blksize = MY_OMP_GET_MAX_THREADS(); 
+  
   //Guru Step 1
-  int ier = make_finufft_plan(type, ndim,  n_modes, isign, ntransf,tol, &plan);
+  int ier = make_finufft_plan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan);
   //for type3, omit n_modes and send in NULL
 
   double plan_t = timer.elapsedsec();

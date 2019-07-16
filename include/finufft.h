@@ -27,6 +27,7 @@ typedef struct {
   int nj; 
   int nk;
   FLT tol;
+  int threadBlkSize;
   
   BIGINT ms;
   BIGINT mt;
@@ -65,6 +66,8 @@ typedef struct {
   nufft_opts opts;
   spread_opts spopts;
   type3Params t3P;
+
+  bool isInnerT2;
   
 }finufft_plan;
 
@@ -78,7 +81,7 @@ extern "C"
 
 // ------------------ Guru Interface ------------------------------------
 
-int make_finufft_plan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, finufft_plan *plan );
+int make_finufft_plan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, int blksize, finufft_plan *plan );
 void finufft_default_opts(nufft_opts *o);
 int setNUpoints(finufft_plan * plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
 int finufft_exec(finufft_plan * plan ,  CPX *weights, CPX * result);

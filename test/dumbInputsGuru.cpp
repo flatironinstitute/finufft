@@ -87,11 +87,12 @@ int main(int argc, char* argv[]){
   n_modes[1] = N2;
   n_modes[2] = 1; //#modes per dimension 
 
+  int blkSize = 8;
   int n_dims = 2;
   CNTime timer; timer.start();
 
   printf("2D dumb case ------------------------------------\n");
-  int ier = make_finufft_plan(type1, n_dims,  n_modes, isign, nvecs, 0, &plan);
+  int ier = make_finufft_plan(type1, n_dims,  n_modes, isign, nvecs, 0, blkSize, &plan);
   printf("2D1, tol=0:\tier=%d (should complain)\n", ier);
 
 
@@ -100,7 +101,7 @@ int main(int argc, char* argv[]){
   n_modes[0] = 0;
   n_modes[1] = 0;
   n_modes[2] = 0;
-  ier = make_finufft_plan(type1, n_dims,  no_modes, isign, nvecs, tol, &plan);
+  ier = make_finufft_plan(type1, n_dims,  no_modes, isign, nvecs, tol, blkSize, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
@@ -113,7 +114,7 @@ int main(int argc, char* argv[]){
   weird_modes[0] = 0;
   weird_modes[1] = N2;
   weird_modes[2] = 0;
-  ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, &plan);
+  ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
@@ -124,7 +125,7 @@ int main(int argc, char* argv[]){
   
   weird_modes[0] = N1;
   weird_modes[1] = 0;
-  ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, &plan);
+  ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL,  NULL, NULL);
   if(!ier)
@@ -133,7 +134,7 @@ int main(int argc, char* argv[]){
     ier = finufft_destroy(&plan);
   printf("2D1 Ns>0,Nt=0:\tier=%d\n", ier );
 
-  ier = make_finufft_plan(type1, n_dims,  n_modes, isign, nvecs, tol, &plan);
+  ier = make_finufft_plan(type1, n_dims,  n_modes, isign, nvecs, tol, blkSize, &plan);
   int no_srcPts = 0;
   if(!ier)
     ier = setNUpoints(&plan, no_srcPts, x, y, NULL, 0, NULL, NULL, NULL);
@@ -146,7 +147,7 @@ int main(int argc, char* argv[]){
 
   /*Type 2*/
   for(int k = 0; k < N; k++) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k); //set F for t2
-  ier = make_finufft_plan(type2, n_dims, n_modes, isign, nvecs, 0, &plan);
+  ier = make_finufft_plan(type2, n_dims, n_modes, isign, nvecs, 0, blkSize, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
@@ -156,7 +157,7 @@ int main(int argc, char* argv[]){
   printf("2d2 tol=0:\tier=%d (should complain)\n", ier);
 
   
-  ier = make_finufft_plan(type2, n_dims,  no_modes, isign, nvecs, tol, &plan);
+  ier = make_finufft_plan(type2, n_dims,  no_modes, isign, nvecs, tol, blkSize, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
@@ -167,7 +168,7 @@ int main(int argc, char* argv[]){
 
   weird_modes[0] = 0;
   weird_modes[1] = N2;
-  ier = make_finufft_plan(type2, n_dims,  weird_modes, isign, nvecs, tol, &plan);
+  ier = make_finufft_plan(type2, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
@@ -178,7 +179,7 @@ int main(int argc, char* argv[]){
   
   weird_modes[0] = N1;
   weird_modes[1] = 0;
-  ier = make_finufft_plan(type2, n_dims,  weird_modes, isign, nvecs, tol, &plan);
+  ier = make_finufft_plan(type2, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan);
   if(!ier)
     ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
@@ -187,7 +188,7 @@ int main(int argc, char* argv[]){
     ier = finufft_destroy(&plan);
   printf("2D2 Ns>0,Nt=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n", ier,twonorm(M,c));
 
-  ier = make_finufft_plan(type2, n_dims,  n_modes, isign, nvecs, tol, &plan);
+  ier = make_finufft_plan(type2, n_dims,  n_modes, isign, nvecs, tol, blkSize, &plan);
   if(!ier)
     ier = setNUpoints(&plan, no_srcPts, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
@@ -196,6 +197,5 @@ int main(int argc, char* argv[]){
     ier = finufft_destroy(&plan);
   printf("2d2 M=0:\tier=%d\n",ier);
   
-  
-  
+   
 }

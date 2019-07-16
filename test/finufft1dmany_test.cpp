@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
  {
 
    BIGINT M = 1e6, N = 1000;  // defaults: M = # srcs, N = # modes
-  int debug;
+  int debug = 0;
   int ntransf = 400;                      // # of vectors for "many" interface
 
   double w, tol = 1e-6;          // default
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
   
   
-  int d = floor(ntransf/2);    // choose a trial to check
+  int d = (ntransf-1);    // choose a trial to check
   BIGINT nt1 = (BIGINT)(0.37*N);  // choose some mode index to check
   CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
   for (BIGINT j=0; j<M; ++j)
@@ -213,6 +213,8 @@ int main(int argc, char* argv[])
   printf("finufft1d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old+d*N,F+d*N));
   printf("one targ: rel err against old in F[%lld] is %.3g\n",(long long)kt,abs(F3_old[kt+d*N]-F[kt+d*N])/infnorm(N,F+d*N));
   free(F3_old);
-
-
+  free(x);
+  free(s);
+  free(c);
+  free(F);
 }  
