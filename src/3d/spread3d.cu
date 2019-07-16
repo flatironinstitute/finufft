@@ -41,9 +41,9 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	   approximation to prolate spheroidal wavefunction (PSWF) of order 0.
 	   This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
 {
-	//return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
+	return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
 	//return x;
-	return 1.0;
+	//return 1.0;
 }
 #if 0 
 static __forceinline__ __device__
@@ -389,7 +389,6 @@ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz,
 	}
 	
 }
-
 __global__
 void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, 
 	int* bin_size, int* num_subprob, int maxsubprobsize, int numbins)
@@ -604,16 +603,13 @@ void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 				FLT disy=abs(y_rescaled-(yy+yoffset));
 				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
 				for(int xx=xstart; xx<=xend; xx++){
-					ix = xx;
-					iy = yy;
-					iz = zz;
-					outidx = ix+iy*obin_size_x+iz*obin_size_y*obin_size_x;
+					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
 					FLT disx=abs(x_rescaled-(xx+xoffset));
 					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*kervalue3);
-					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*kervalue3);
-					//atomicAdd(&fwshared[outidx].x, 1);
-					//atomicAdd(&fwshared[outidx].y, 1);
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
+						kervalue3);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
+						kervalue3);
 				}
 			}
 		}
@@ -631,11 +627,124 @@ void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		outidx = ix+iy*nf1+iz*nf1*nf2;
 		atomicAdd(&fw[outidx].x, fwshared[n].x);
 		atomicAdd(&fw[outidx].y, fwshared[n].y);
-		//atomicAdd(&fw[outidx].x, 1);
-		//atomicAdd(&fw[outidx].y, 1);
 	}
 }
 
+__global__
+void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
+	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
+	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
+	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts)
+{
+	extern __shared__ CUCPX fwshared[];
+
+	int xstart,ystart,zstart,xend,yend,zend;
+	int subpidx=blockIdx.x;
+	int obidx=subprob_to_bin[subpidx];
+	int bidx = obidx*binsperobin;
+
+	int obinsubp_idx=subpidx-subprobstartpts[obidx];
+	int ix, iy, iz;
+	int outidx;
+	int ptstart=binstartpts[bidx]+obinsubp_idx*maxsubprobsize;
+	int nupts=min(maxsubprobsize, binstartpts[bidx+binsperobin]-binstartpts[bidx]
+			-obinsubp_idx*maxsubprobsize);
+
+	int xoffset=(obidx % nobinx)*obin_size_x;
+	int yoffset=(obidx / nobinx)%nobiny*obin_size_y;
+	int zoffset=(obidx / (nobinx*nobiny))*obin_size_z;
+
+	int N = obin_size_x*obin_size_y*obin_size_z;
+	
+	FLT ker1[MAX_NSPREAD];
+	FLT ker2[MAX_NSPREAD];
+	FLT ker3[MAX_NSPREAD];
+
+	for(int i=threadIdx.x; i<N; i+=blockDim.x){
+		fwshared[i].x = 0.0;
+		fwshared[i].y = 0.0;
+	}
+	__syncthreads();
+	FLT x_rescaled, y_rescaled, z_rescaled;
+	CUCPX cnow;
+	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
+		int idx = ptstart+i;
+		int b = idxnupts[idx]/M;
+		int box[3];
+		for(int d=0;d<3;d++){
+			box[d] = b%3;
+			if(box[d] == 2)
+				box[d] = -1;
+			b=b/3;
+		}
+		x_rescaled = x[idxnupts[idx]%M] + box[0]*nf1;
+		y_rescaled = y[idxnupts[idx]%M] + box[1]*nf2;
+		z_rescaled = z[idxnupts[idx]%M] + box[2]*nf3;
+		cnow = c[idxnupts[idx]%M];
+
+#if 0
+		xstart = max((int)ceil(x_rescaled - ns/2.0)-xoffset, 0);
+		//xstart = xstart < 0 ? 0 : xstart;
+		ystart = max((int)ceil(y_rescaled - ns/2.0)-yoffset, 0);
+		//ystart = ystart < 0 ? 0 : ystart;
+		zstart = max((int)ceil(z_rescaled - ns/2.0)-zoffset, 0);
+		//zstart = zstart < 0 ? 0 : zstart;
+		xend   = min((int)floor(x_rescaled + ns/2.0)-xoffset, obin_size_x-1);
+		//xend   = xend >= obin_size_x ? obin_size_x-1 : xend;
+		yend   = min((int)floor(y_rescaled + ns/2.0)-yoffset, obin_size_y-1);
+		//yend   = yend >= obin_size_y ? obin_size_y-1 : yend;
+		zend   = min((int)floor(z_rescaled + ns/2.0)-zoffset, obin_size_z-1);
+		//zend   = zend >= obin_size_z ? obin_size_z-1 : zend;
+#else
+		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
+		xstart = xstart < 0 ? 0 : xstart;
+		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
+		ystart = ystart < 0 ? 0 : ystart;
+		zstart = ceil(z_rescaled - ns/2.0)-zoffset;
+		zstart = zstart < 0 ? 0 : zstart;
+		xend   = floor(x_rescaled + ns/2.0)-xoffset;
+		xend   = xend >= obin_size_x ? obin_size_x-1 : xend;
+		yend   = floor(y_rescaled + ns/2.0)-yoffset;
+		yend   = yend >= obin_size_y ? obin_size_y-1 : yend;
+		zend   = floor(z_rescaled + ns/2.0)-zoffset;
+		zend   = zend >= obin_size_z ? obin_size_z-1 : zend;
+#endif
+		eval_kernel_vec_Horner(ker1,xstart+xoffset-x_rescaled,ns,sigma);
+		eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
+		eval_kernel_vec_Horner(ker3,zstart+zoffset-z_rescaled,ns,sigma);
+#if 1
+		for(int zz=zstart; zz<=zend; zz++){
+			FLT kervalue3 = ker3[zz-zstart];
+			for(int yy=ystart; yy<=yend; yy++){
+				FLT kervalue2 = ker2[yy-ystart];
+				for(int xx=xstart; xx<=xend; xx++){
+					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
+					FLT kervalue1 = ker1[xx-xstart];
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
+						kervalue3);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
+						kervalue3);
+				}
+			}
+		}
+#endif
+	}
+	__syncthreads();
+	/* write to global memory */
+	for(int n=threadIdx.x; n<N; n+=blockDim.x){
+		int i = n%obin_size_x;
+		int j = (n/obin_size_x)%obin_size_y;
+		int k = n/(obin_size_x*obin_size_y);
+
+		ix = xoffset+i;
+		iy = yoffset+j;
+		iz = zoffset+k;
+		outidx = ix+iy*nf1+iz*nf1*nf2;
+		atomicAdd(&fw[outidx].x, fwshared[n].x);
+		atomicAdd(&fw[outidx].y, fwshared[n].y);
+	}
+}
 __global__
 void Spread_3d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size, 

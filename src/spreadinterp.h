@@ -217,6 +217,12 @@ void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
 	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
 __global__
+void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
+	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
+	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
+	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
+__global__
 void Spread_3d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size, 
 	int bin_size_x, int bin_size_y, int* subprob_to_bin, int* subprobstartpts, 

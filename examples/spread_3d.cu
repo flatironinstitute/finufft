@@ -31,23 +31,28 @@ int main(int argc, char* argv[])
 	sscanf(argv[4],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[5],"%lf",&w); nf3 = (int)w;  // so can read 1e6 right!
 
+	int maxsubprobsize=1024;
+	if(argc>6){
+		sscanf(argv[6],"%d",&maxsubprobsize); M  = (int)w;
+		//if(M == 0) M=N1*N2;
+	}
 	N1 = (int) nf1/sigma*2;
 	N2 = (int) nf2/sigma*2;
 	N3 = (int) nf3/sigma*2;
 	M = N1*N2*N3;// let density always be 1
-	if(argc>6){
-		sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
+	if(argc>7){
+		sscanf(argv[7],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 		//if(M == 0) M=N1*N2;
 	}
 
 	FLT tol=1e-6;
-	if(argc>7){
-		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+	if(argc>8){
+		sscanf(argv[8],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
 	int Horner=0;
-	if(argc>8){
-		sscanf(argv[8],"%d",&Horner);
+	if(argc>9){
+		sscanf(argv[9],"%d",&Horner);
 	}
 
 	int ier;
@@ -155,13 +160,13 @@ int main(int argc, char* argv[])
 
 	if(opts.method==5 || opts.method == 6)
 	{
-		opts.bin_size_x=4;
-		opts.bin_size_y=4;
-		opts.bin_size_z=4;
+		opts.bin_size_x=8;
+		opts.bin_size_y=8;
+		opts.bin_size_z=8;
 		opts.o_bin_size_x=8;
 		opts.o_bin_size_y=8;
 		opts.o_bin_size_z=8;
-		opts.maxsubprobsize=2048;
+		opts.maxsubprobsize=maxsubprobsize;
 	}
 
 	timer.restart();
