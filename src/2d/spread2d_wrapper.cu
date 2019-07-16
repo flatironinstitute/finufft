@@ -15,8 +15,8 @@ using namespace std;
 
 // This is a function only doing spread includes device memory allocation, transfer, free
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
-					   const FLT *h_kx, const FLT *h_ky, const CPX *h_c, 
-					   cufinufft_opts &opts, cufinufft_plan* d_plan)
+		const FLT *h_kx, const FLT *h_ky, const CPX *h_c, 
+		cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -44,7 +44,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_plan->c, h_c, M*sizeof(CUCPX),
-							   cudaMemcpyHostToDevice));
+				cudaMemcpyHostToDevice));
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -129,7 +129,6 @@ int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 				}
 			}
 			break;
-#if 1
 		case 6:
 			{
 				cudaEventRecord(start);
@@ -140,7 +139,6 @@ int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 				}
 			}
 			break;
-#endif	
 		default:
 			cout<<"error: incorrect method, should be 5"<<endl;
 			return 2;
@@ -485,7 +483,7 @@ int cuspread2d_hybrid(int nf1, int nf2, int M, const cufinufft_opts opts, cufinu
 // of the strength of the nodes,  only relates to the locations of the nodes, 
 // which only needs to be done once
 int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
-							cufinufft_plan *d_plan)
+		cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -580,15 +578,15 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	size_t temp_storage_bytes = 0;
 	assert(d_temp_storage == NULL);
 	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage, 
-											   temp_storage_bytes, 
-											   d_binsize, d_binstartpts, 
-											   n));
-    // Allocate temporary storage for inclusive prefix scan
+				temp_storage_bytes, 
+				d_binsize, d_binstartpts, 
+				n));
+	// Allocate temporary storage for inclusive prefix scan
 	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes)); 
 	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage, 
-											   temp_storage_bytes, 
-											   d_binsize, d_binstartpts, 
-											   n));
+				temp_storage_bytes, 
+				d_binsize, d_binstartpts, 
+				n));
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -599,15 +597,15 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	int *h_binstartpts;
 	h_binstartpts = (int*)malloc((numbins[0]*numbins[1])*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,
-							  (numbins[0]*numbins[1])*sizeof(int),
-							   cudaMemcpyDeviceToHost));
+				(numbins[0]*numbins[1])*sizeof(int),
+				cudaMemcpyDeviceToHost));
 	cout<<"[debug ] Result of scan bin_size array:"<<endl;
 	for(int j=0; j<numbins[1]; j++){
 		cout<<"[debug ] ";
 		for(int i=0; i<numbins[0]; i++){
 			if(i!=0) cout<<" ";
 			cout <<"bin["<<setw(3)<<i<<","<<setw(3)<<j<<"] = "<<setw(2)
-				 <<h_binstartpts[i+j*numbins[0]];
+				<<h_binstartpts[i+j*numbins[0]];
 		}
 		cout<<endl;
 	}
@@ -616,17 +614,17 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 #endif
 	cudaEventRecord(start);
 	CalcInvertofGlobalSortIdx_2d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,
-														   bin_size_y,
-														   numbins[0],
-														   numbins[1],
-														   d_binstartpts,
-														   d_sortidx,d_kx,d_ky,
-														   d_idxnupts);
+			bin_size_y,
+			numbins[0],
+			numbins[1],
+			d_binstartpts,
+			d_sortidx,d_kx,d_ky,
+			d_idxnupts);
 #ifdef DEBUG
 	int *h_idxnupts;
 	h_idxnupts = (int*)malloc(M*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,M*sizeof(int),
-					cudaMemcpyDeviceToHost));
+				cudaMemcpyDeviceToHost));
 	for (int i=0; i<M; i++){
 		cout <<"[debug ] idx="<< h_idxnupts[i]<<endl;
 	}
@@ -637,12 +635,12 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	/* --------------------------------------------- */
 	cudaEventRecord(start);
 	CalcSubProb_2d<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,
-		maxsubprobsize,numbins[0]*numbins[1]);
+			maxsubprobsize,numbins[0]*numbins[1]);
 #ifdef DEBUG
 	int* h_numsubprob;
 	h_numsubprob = (int*) malloc(n*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_numsubprob,d_numsubprob,numbins[0]*numbins[1]*
-		sizeof(int),cudaMemcpyDeviceToHost));
+				sizeof(int),cudaMemcpyDeviceToHost));
 	for(int j=0; j<numbins[1]; j++){
 		cout<<"[debug ] ";
 		for(int i=0; i<numbins[0]; i++){
@@ -657,7 +655,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	// Scanning the same length array, so we don't need calculate 
 	// temp_storage_bytes here
 	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, 
-		temp_storage_bytes, d_numsubprob, d_subprobstartpts+1, n));
+				temp_storage_bytes, d_numsubprob, d_subprobstartpts+1, n));
 	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
 
 #ifdef DEBUG
@@ -665,7 +663,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	int* h_subprobstartpts;
 	h_subprobstartpts = (int*) malloc((n+1)*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_subprobstartpts,d_subprobstartpts,
-		(n+1)*sizeof(int),cudaMemcpyDeviceToHost));
+				(n+1)*sizeof(int),cudaMemcpyDeviceToHost));
 	for(int j=0; j<numbins[1]; j++){
 		cout<<"[debug ] ";
 		for(int i=0; i<numbins[0]; i++){
@@ -680,10 +678,10 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 #endif
 	int totalnumsubprob;
 	checkCudaErrors(cudaMemcpy(&totalnumsubprob,&d_subprobstartpts[n],
-		sizeof(int),cudaMemcpyDeviceToHost));
+				sizeof(int),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMalloc(&d_subprob_to_bin,totalnumsubprob*sizeof(int)));
 	MapBintoSubProb_2d<<<(numbins[0]*numbins[1]+1024-1)/1024, 1024>>>(
-		d_subprob_to_bin,d_subprobstartpts,d_numsubprob,numbins[0]*numbins[1]);
+			d_subprob_to_bin,d_subprobstartpts,d_numsubprob,numbins[0]*numbins[1]);
 	assert(d_subprob_to_bin != NULL);
 	d_plan->subprob_to_bin = d_subprob_to_bin;
 	assert(d_plan->subprob_to_bin != NULL);
@@ -693,7 +691,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	int* h_subprob_to_bin;
 	h_subprob_to_bin = (int*) malloc((totalnumsubprob)*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_subprob_to_bin,d_subprob_to_bin,
-		(totalnumsubprob)*sizeof(int),cudaMemcpyDeviceToHost));
+				(totalnumsubprob)*sizeof(int),cudaMemcpyDeviceToHost));
 	for(int j=0; j<totalnumsubprob; j++){
 		cout<<"[debug ] ";
 		cout <<"nsub["<<j<<"] = "<<setw(2)<<h_subprob_to_bin[j];
@@ -754,7 +752,7 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 	FLT sigma=opts.upsampfac;
 	cudaEventRecord(start);
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*
-		ceil(ns/2.0))*sizeof(CUCPX);
+			ceil(ns/2.0))*sizeof(CUCPX);
 	if(sharedplanorysize > 49152){
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
@@ -762,35 +760,19 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 
 	if(opts.Horner){
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			if(opts.Paul){
-				Spread_2d_Subprob_Paul<<<totalnumsubprob, 256, 
-					sharedplanorysize>>>(d_kx, d_ky, d_c+t*M,d_fw+t*nf1*nf2, M, 
-					ns, nf1, nf2, es_c, es_beta, sigma,d_binstartpts, d_binsize,
-					bin_size_x, bin_size_y,d_subprob_to_bin, d_subprobstartpts,
-					d_numsubprob, maxsubprobsize,numbins[0], numbins[1], 
-					d_idxnupts);
+			Spread_2d_Subprob_Horner<<<totalnumsubprob, 256, 
+				sharedplanorysize>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
+						ns, nf1, nf2, sigma, d_binstartpts, d_binsize, bin_size_x, 
+						bin_size_y, d_subprob_to_bin, d_subprobstartpts, 
+						d_numsubprob, maxsubprobsize,numbins[0], numbins[1], 
+						d_idxnupts);
 #ifdef SPREADTIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_2d_Subprob_Paul \t\t%.3g ms\n", milliseconds);
+			float milliseconds = 0;
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			printf("[time  ] \tKernel Spread_2d_Subprob_Horner \t%.3g ms\n", milliseconds);
 #endif
-			}else{
-				Spread_2d_Subprob_Horner<<<totalnumsubprob, 256, 
-					sharedplanorysize>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
-					ns, nf1, nf2, sigma, d_binstartpts, d_binsize, bin_size_x, 
-					bin_size_y, d_subprob_to_bin, d_subprobstartpts, 
-					d_numsubprob, maxsubprobsize,numbins[0], numbins[1], 
-					d_idxnupts);
-#ifdef SPREADTIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_2d_Subprob_Horner \t%.3g ms\n", milliseconds);
-#endif
-			}
 		}
 	}else{
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
@@ -805,11 +787,11 @@ int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 					numbins[0], numbins[1], d_idxnupts);
 		}
 #ifdef SPREADTIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_2d_Subprob\t\t%.3g ms\n", milliseconds);
+		float milliseconds = 0;
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tKernel Spread_2d_Subprob\t\t%.3g ms\n", milliseconds);
 #endif
 	}
 	return 0;

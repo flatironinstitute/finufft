@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [M [tol [Horner [Paul]]]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [rep [tol [Horner]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -37,12 +37,13 @@ int main(int argc, char* argv[])
 	N1 = (int) nf1/sigma;
 	N2 = (int) nf2/sigma;
 	int rep = 10;
+	if(argc>6){
+		//sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
+		sscanf(argv[6],"%d",&rep);
+		//if(M == 0) M=N1*N2*4*rep;
+	}
 	M = N1*N2*4*rep;// let density always be 1
 	M = nf1*nf2*rep;// let density always be 1
-	if(argc>6){
-		sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
-		if(M == 0) M=N1*N2*4*rep;
-	}
 
 	FLT tol=1e-6;
 	if(argc>7){
@@ -54,11 +55,6 @@ int main(int argc, char* argv[])
 		sscanf(argv[8],"%d",&Horner);
 	}
 
-	int Paul=0;
-	if(argc>9){
-		sscanf(argv[9],"%d",&Paul);
-	}
-	
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
@@ -84,11 +80,10 @@ int main(int argc, char* argv[])
 
 	opts.pirange=0;
 	opts.Horner=Horner;
-	opts.Paul=Paul;
 	if(method == 6)
 		opts.maxsubprobsize=maxsubprobsize;
 	if(method == 5)
-		opts.maxsubprobsize=1000;
+		opts.maxsubprobsize=maxsubprobsize;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -103,7 +98,7 @@ int main(int argc, char* argv[])
 						}
 					}
 				}
-#if 1 
+#if 0 
 				srand(unsigned(1)); 
 				random_shuffle (&x[0], &x[M-1]);
 				srand(unsigned(1)); 
@@ -116,7 +111,7 @@ int main(int argc, char* argv[])
 			}
 			break;
 
-		case 5:
+		case 2:
 			{
 				for (int k=0; k<rep; k++){
 					for (int j=0; j<nf2; j++) {
@@ -135,7 +130,29 @@ int main(int argc, char* argv[])
 			}
 			break;
 		
-		case 2: // concentrate on a small region
+		case 3:
+			{
+				for (int j=0; j<nf2; j++) {
+					for (int i=0; i<nf1; i++){
+						for (int k=0; k<rep; k++){
+							if(k+i*rep+j*nf1*rep < M){
+								x[k+i*rep+j*nf1*rep] = i;
+								y[k+i*rep+j*nf1*rep] = j;
+							}
+						}
+					}
+				}
+				srand(unsigned(1)); 
+				random_shuffle (&x[0], &x[M-1]);
+				srand(unsigned(1)); 
+				random_shuffle (&y[0], &y[M-1]);
+				for (int i = 0; i < M; i++) {
+					c[i].real() = randm11();
+					c[i].imag() = randm11();
+				}
+			}
+			break;
+		case 4: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
 					x[i] = RESCALE(M_PI*rand01(), nf1, 1)/2.0 - 0.5;// x in [-pi,pi)
@@ -149,7 +166,7 @@ int main(int argc, char* argv[])
 				}
 			}
 			break;
-		case 3:
+		case 5:
 			{
 				for (int i = 0; i < M; i++) {
 					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
@@ -163,7 +180,7 @@ int main(int argc, char* argv[])
 				}
 			}
 			break;
-		case 4:
+		case 6:
 			{
 				for(int i=0; i<M; i++) {
 					x[i] = 1;// x in [-pi,pi)
