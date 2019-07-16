@@ -69,9 +69,9 @@ int cudeconvolve2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	}else{
 		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*sizeof(CUCPX)));
 		for(int t=0; t<ntransfcufftplan; t++){
-			Amplify_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, 
-					d_plan->fw+t*nf1*nf2, d_plan->fk+t*nmodes,
-					d_plan->fwkerhalf1, d_plan->fwkerhalf2);
+			Amplify_2d<<<(nmodes+256-1)/256, 256>>>(ms, 
+				mt, nf1, nf2, d_plan->fw+t*nf1*nf2, d_plan->fk+t*nmodes,
+				d_plan->fwkerhalf1, d_plan->fwkerhalf2);
 #ifdef DEBUG
 			CPX* h_fw;
 			h_fw = (CPX*) malloc(nf1*nf2*sizeof(CPX));

@@ -6,6 +6,7 @@
 
 #include "../src/spreadinterp.h"
 #include "../src/cufinufft.h"
+#include "../src/profile.h"
 #include "../finufft/utils.h"
 
 using namespace std;
@@ -67,8 +68,11 @@ int main(int argc, char* argv[])
 
 	/*warm up gpu*/
 	cudaEventRecord(start);
-	char *a;
-	checkCudaErrors(cudaMalloc(&a,1));
+	{
+		PROFILE_CUDA_GROUP("Warm Up",1);
+		char *a;
+		checkCudaErrors(cudaMalloc(&a,1));
+	}
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -83,19 +87,26 @@ int main(int argc, char* argv[])
 	opts.spread_direction=2;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransf, iflag, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft2d_plan\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft2d_plan",2);
+		ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransf, iflag, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft2d_plan\n");
+		}
 	}
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
-
+#endif
 	cudaEventRecord(start);
-	ier=cufinufft2d_setNUpts(x, y, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft2d_setNUpts\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft2d_setNUpts",3);
+		ier=cufinufft2d_setNUpts(x, y, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft2d_setNUpts\n");
+		}
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -103,23 +114,31 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d2_exec(c, fk, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft2d2_exec\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft2d2_exec",4);
+		ier=cufinufft2d2_exec(c, fk, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft2d2_exec\n");
+		}
 	}
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
-
+#endif
 	cudaEventRecord(start);
-	ier=cufinufft2d_destroy(opts, &dplan);
+	{
+		PROFILE_CUDA_GROUP("cufinufft2d_destroy",5);
+		ier=cufinufft2d_destroy(opts, &dplan);
+	}
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
-
+#endif
+#if 0
 	// This must be here, since in gpu code, x, y gets modified if pirange=1
 	int jt = M/2;          // check arbitrary choice of one targ pt
 	CPX J = IMA*(FLT)iflag;
@@ -129,7 +148,6 @@ int main(int argc, char* argv[])
 		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 			ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
 	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(c[jt]-ct)/infnorm(M,c));
-#if 0
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
 		//        if( j % opts.bin_size_y == 0)

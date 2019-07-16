@@ -174,13 +174,17 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	//size_t pitch;
 	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*
 			sizeof(CUCPX)));
-	//d_plan->fw_width = pitch/sizeof(CUCPX);
-	//d_plan->fw_width = nf1;
 
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*
 		sizeof(CUCPX)));
+	
+	d_plan->nstreams=16;
+	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->nstreams*
+		sizeof(cudaStream_t));
+	for(int i=0; i<d_plan->nstreams; i++)
+		checkCudaErrors(cudaStreamCreate(&d_plan->streams[i]));
 
 	return 0;
 }
@@ -242,4 +246,6 @@ void freegpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 			}
 			break;
 	}
+	for(int i=0; i<d_plan->nstreams; i++)
+		checkCudaErrors(cudaStreamDestroy(d_plan->streams[i]));
 }
