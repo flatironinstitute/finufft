@@ -353,7 +353,6 @@ int cuspread2d_paul(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
 	}
-	int blocksize = bin_size_x*bin_size_y;
 	for(int t=0; t<d_plan->ntransfcufftplan; t++){
 		Spread_2d_Subprob_Horner_Paul<<<totalnumsubprob,1024,
 			sharedplanorysize>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 

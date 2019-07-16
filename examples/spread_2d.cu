@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [rep [tol [Horner [Paul]]]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [rep [tol [Horner]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -55,11 +55,6 @@ int main(int argc, char* argv[])
 		sscanf(argv[8],"%d",&Horner);
 	}
 
-	int Paul=0;
-	if(argc>9){
-		sscanf(argv[9],"%d",&Paul);
-	}
-	
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
@@ -85,7 +80,6 @@ int main(int argc, char* argv[])
 
 	opts.pirange=0;
 	opts.Horner=Horner;
-	opts.Paul=Paul;
 	if(method == 6)
 		opts.maxsubprobsize=maxsubprobsize;
 	if(method == 5)
