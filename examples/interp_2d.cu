@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: interp2d [method [nupts_distr [nf1 nf2 [M [tol]]]]]\n");
+		fprintf(stderr,"Usage: interp2d [method [nupts_distr [nf1 nf2 [M [tol [Horner]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 5: subprob\n");
@@ -41,6 +41,10 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
+	int Horner=1;
+	if(argc>7){
+		sscanf(argv[7],"%d",&Horner);
+	}
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
@@ -49,10 +53,10 @@ int main(int argc, char* argv[])
 	FLT upsampfac=2.0;
 
 	ier = cufinufft_default_opts(opts,tol,upsampfac);
-        if(ier != 0 ){
-                cout<<"error: cufinufft_default_opts"<<endl;
-                return 0;
-        }
+	if(ier != 0 ){
+		cout<<"error: cufinufft_default_opts"<<endl;
+		return 0;
+	}
 	opts.method=method;
 	cout<<scientific<<setprecision(3);
 
@@ -65,25 +69,26 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
 	opts.pirange=0;
-        switch(nupts_distribute){
-                // Making data
-                case 1: //uniform
-                {
-                        for (int i = 0; i < M; i++) {
-                                x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
-                                y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-                        }
-                }
-                break;
-                case 2: // concentrate on a small region
-                {
-                        for (int i = 0; i < M; i++) {
-                                x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
-                                y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
-                        }
-                }
-                break;
-        }
+	opts.Horner=Horner;
+	switch(nupts_distribute){
+		// Making data
+		case 1: //uniform
+			{
+				for (int i = 0; i < M; i++) {
+					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
+				}
+			}
+			break;
+		case 2: // concentrate on a small region
+			{
+				for (int i = 0; i < M; i++) {
+					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
+					y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
+				}
+			}
+			break;
+	}
 	for(int i=0; i<nf1*nf2; i++){
 		fw[i].real() = 1.0;
 		fw[i].imag() = 0.0;
@@ -122,7 +127,7 @@ int main(int argc, char* argv[])
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
-		opts.method,nf1*nf2,M,t,nf1*nf2/t);
+			opts.method,nf1*nf2,M,t,nf1*nf2/t);
 #if 0
 	switch(method)
 	{

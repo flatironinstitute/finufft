@@ -4,7 +4,9 @@ compare
 finufft2d_test
 interp2d
 cufinufft2d1_test
+cufinufft2d1many_test
 cufinufft2d2_test
+cufinufft2d2many_test
 spreadinterp_test
 benchmark/cunfft_timing
 benchmark/spreadtestnd_mel

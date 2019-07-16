@@ -14,28 +14,31 @@ int main(int argc, char* argv[])
 	int nf1, nf2;
 	FLT sigma = 2.0;
 	int N1, N2, M;
-	if (argc<4) {
-		fprintf(stderr,"Usage: accuracy [nupts_distribute [N1 N2 [M [tol]]]]\n");
+	if (argc<5) {
+		fprintf(stderr,"Usage: ./spreadinterp [method [nupts_distribute [N1 N2 [M [tol]]]]]\n");
 		return 1;
 	}  
+	int method;
+	sscanf(argv[1],"%d",&method);
+
 	int nupts_distribute;
-	sscanf(argv[1],"%d",&nupts_distribute);
+	sscanf(argv[2],"%d",&nupts_distribute);
 
 	double w;
-	sscanf(argv[2],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
-	sscanf(argv[3],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
+	sscanf(argv[3],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
+	sscanf(argv[4],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 
 	N1 = (int) nf1/sigma;
 	N2 = (int) nf2/sigma;
 	M = N1*N2;// let density always be 1
-	if(argc>4){
-		sscanf(argv[4],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
+	if(argc>5){
+		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 		if(M==0) M=N1*N2;
 	}
 
 	FLT tol=1e-6;
-	if(argc>5){
-		sscanf(argv[5],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+	if(argc>6){
+		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
 
@@ -53,14 +56,11 @@ int main(int argc, char* argv[])
 
 
 	FLT *x, *y;
-	CPX *c, *fwic, *fwi, *fwo, *fwh, *fws, *fwfinufft;
+	CPX *c;
+	CPX *fws, *fwfinufft;
 	cudaMallocHost(&x, M*sizeof(CPX));
 	cudaMallocHost(&y, M*sizeof(CPX));
 	cudaMallocHost(&c, M*sizeof(CPX));
-	cudaMallocHost(&fwi,       nf1*nf2*sizeof(CPX));
-	cudaMallocHost(&fwic,      nf1*nf2*sizeof(CPX));
-	cudaMallocHost(&fwo,       nf1*nf2*sizeof(CPX));
-	cudaMallocHost(&fwh,       nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fws,       nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&fwfinufft, nf1*nf2*sizeof(CPX));
 #if 0
@@ -119,19 +119,6 @@ int main(int argc, char* argv[])
 
 	// Direction 1: Spreading
 	printf("[info  ] Type 1: Spreading\n");
-	/* -------------------------------------- */
-	// Method 1: Input driven without sorting //
-	/* -------------------------------------- */
-	timer.restart();
-	opts.method=1;
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fwi, M, x, y, c, opts, &dplan);
-	if(ier != 0 ){
-		cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
-		return 0;
-	}
-	FLT tidriven=timer.elapsedsec();
-	printf("[idriven] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-			M,N1,N2,nf1*nf2,tidriven,M/tidriven);
 #if 0
 	FLT sumre = 0.0, sumim = 0.0;   // check spreading accuracy, wrapping
 	for (int i=0;i<nf1*nf2;++i) {
@@ -146,48 +133,37 @@ int main(int argc, char* argv[])
 	// note this is weaker than below dir=2 test, but is good indicator that
 	// periodic wrapping is correct
 #endif
-	/* -------------------------------------- */
-	// Method 2: Input driven with bin sort   //
-	/* -------------------------------------- */
-	timer.restart();
-	opts.method=2;
-	opts.bin_size_x=16;
-	opts.bin_size_y=16;
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fwic, M, x, y, c, opts, &dplan);
-	FLT ticdriven=timer.elapsedsec();
-	printf("[isorted] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-			M,N1,N2,nf1*nf2,ticdriven,M/ticdriven);
-	/* -------------------------------------- */
-	// Method 4: Hybrid                       //
-	/* -------------------------------------- */
-	timer.restart();
-	opts.method=4;
-	opts.bin_size_x=32;
-	opts.bin_size_y=32;
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fwh, M, x, y, c, opts, &dplan);
-	FLT thybrid=timer.elapsedsec();
-	if(ier != 0 ){
-		cout<<"error: cnufftspread2d_gpu_hybrid"<<endl;
-		return 0;
-	}
-	printf("[hybrid ] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-			M,N1,N2,nf1*nf2,thybrid,M/thybrid);
 
 	/* -------------------------------------- */
 	// Method 5: Subprob                     //
 	/* -------------------------------------- */
 	timer.restart();
-	opts.method=5;
-	opts.bin_size_x=32;
-	opts.bin_size_y=32;
+	opts.method=method;
+	opts.Horner=1;
+	opts.spread_direction=1;
+	switch(method){
+		case 1:
+		case 2:
+		case 4:
+		{
+			opts.bin_size_x=16;
+			opts.bin_size_y=16;
+		}
+		case 5:
+		{
+			opts.bin_size_x=32;
+			opts.bin_size_y=32;
+		}
+	}
 	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, opts, &dplan);
 	FLT tsubprob=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
 		return 0;
 	}
-	printf("[subprob] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
-			M,N1,N2,nf1*nf2,tsubprob,M/tsubprob);
+	printf("[method %d] %ld NU pts to (%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
+			method,M,N1,N2,nf1*nf2,tsubprob,M/tsubprob);
+
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
@@ -215,14 +191,9 @@ int main(int argc, char* argv[])
 	/* ------------------------------------------------------------------------------------------------------*/
 
 	cout<<endl;
-	FLT err=relerrtwonorm(nf1*nf2,fwi,fwfinufft);
-	printf("|| fwi  - fwfinufft ||_2 / || fwi  ||_2 =  %.6g\n", err);
-	err=relerrtwonorm(nf1*nf2,fwic,fwfinufft);
-	printf("|| fwic - fwfinufft ||_2 / || fwic ||_2 =  %.6g\n", err);
-	err=relerrtwonorm(nf1*nf2,fwh,fwfinufft);
-	printf("|| fwh  - fwfinufft ||_2 / || fwh  ||_2 =  %.6g\n", err);
+	FLT err=relerrtwonorm(nf1*nf2,fws,fwfinufft);
 	err=relerrtwonorm(nf1*nf2,fws,fwfinufft);
-	printf("|| fws  - fwfinufft ||_2 / || fwh  ||_2 =  %.6g\n", err);
+	printf("|| fws  - fwfinufft ||_2 / || fws  ||_2 =  %.6g\n", err);
 
 #if 0
 	cout<<"[resultdiff]"<<endl;
@@ -243,11 +214,11 @@ int main(int argc, char* argv[])
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 
+	opts.spread_direction=2;
 	CPX *fw;
-	CPX *cfinufft, *ci, *cs;
+	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*sizeof(CPX));
 	cudaMallocHost(&cfinufft, M*sizeof(CPX));
-	cudaMallocHost(&ci,       M*sizeof(CPX));
 	cudaMallocHost(&cs,       M*sizeof(CPX));
 
 	for(int i=0; i<nf1*nf2; i++){
@@ -255,33 +226,17 @@ int main(int argc, char* argv[])
 		fw[i].imag() = 0.0;
 	}
 	/* -------------------------------------- */
-	// Method 1: Idriven                      //
-	/* -------------------------------------- */
-	timer.restart();
-	opts.method=1;
-	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, ci, opts, &dplan);
-	FLT tti=timer.elapsedsec();
-	if(ier != 0 ){
-		cout<<"error: cnufftinterp2d_gpu_idriven"<<endl;
-		return 0;
-	}
-	printf("[idriven] Interp (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
-			  nf1,nf2,M,tti,nf1*nf2/tti);
-	/* -------------------------------------- */
 	// Method 1: Subprob                      //
 	/* -------------------------------------- */
 	timer.restart();
-	opts.method=5;
-	opts.bin_size_x=32;
-	opts.bin_size_y=32;
 	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, opts, &dplan);
 	FLT tts=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d_gpu_subprob"<<endl;
 		return 0;
 	}
-	printf("[subprob] Interp (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
-			  nf1,nf2,M,tts,nf1*nf2/tts);
+	printf("[method %d] Interp (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
+			  method,nf1,nf2,M,tts,nf1*nf2/tts);
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
@@ -304,8 +259,6 @@ int main(int argc, char* argv[])
 	}
 	printf("[finufft] Interp (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
 			  nf1,nf2,M,tt,nf1*nf2/tt);
-	err=relerrtwonorm(M,ci,cfinufft);
-	printf("|| ci  - cfinufft ||_2 / || ci  ||_2 =  %.6g\n", err);
 	err=relerrtwonorm(M,cs,cfinufft);
 	printf("|| cs  - cfinufft ||_2 / || cs  ||_2 =  %.6g\n", err);
 #if 0
@@ -327,9 +280,7 @@ int main(int argc, char* argv[])
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);
-	cudaFreeHost(fwi);
-	cudaFreeHost(fwic);
-	cudaFreeHost(fwh);
+	cudaFreeHost(fws);
 	cudaFreeHost(fwfinufft);
 	return 0;
 }
