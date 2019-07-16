@@ -30,6 +30,9 @@ int main(int argc, char* argv[])
            2: also spreading output
 
    Example: finufftGuru_test 1 1 2 1000 1000 0 1000000 1e-12 2 2.0
+
+   For Type3, please enter nk in Nmodes space, 0 for rest
+   Example w/ nk = 5000: finufftGuru_test 1 3 2 5000 0 0 1000000 1e-12 2 2.0
 */
   
 {
@@ -216,7 +219,6 @@ int main(int argc, char* argv[])
   plan.opts.spread_sort = sprSort;
   plan.opts.upsampfac = upsampfac;
 
-  
   BIGINT n_modes[3];
   n_modes[0] = N1;
   n_modes[1] = N2;
@@ -226,6 +228,8 @@ int main(int argc, char* argv[])
 
   //Guru Step 1
   int ier = make_finufft_plan(type, ndim,  n_modes, isign, ntransf,tol, &plan);
+  //for type3, omit n_modes and send in NULL
+
   double plan_t = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -236,7 +240,7 @@ int main(int argc, char* argv[])
   
   timer.restart();
   //Guru Step 2
-  ier = setNUpoints(&plan, M, x, y, z, s, t, u);
+  ier = setNUpoints(&plan, M, x, y, z, N, s, t, u); //type 1+2, N=0, s,t,u = NULL
   double sort_t = timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);

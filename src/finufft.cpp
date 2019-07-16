@@ -22,9 +22,6 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
   plan->type = type;
   plan->n_dims = n_dims;
   plan->n_transf = n_transf;
-  plan->ms = n_modes[0];
-  plan->mt = n_modes[1];
-  plan->mu = n_modes[2];
   plan->tol = tol;
   plan->iflag = iflag;
   plan->X = NULL;
@@ -47,6 +44,9 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
   }
       
   if((type == type1) || (type == type2)){
+    plan->ms = n_modes[0];
+    plan->mt = n_modes[1];
+    plan->mu = n_modes[2];
     
     //determine size of upsampled array
     set_nf_type12(plan->ms, plan->opts, spopts, &(plan->nf1)); 
@@ -76,17 +76,17 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     if(n_dims > 2)
       totCoeffs += (plan->nf3/2+1);
       
-    plan->fwker = (FLT *)malloc(sizeof(FLT)*totCoeffs);
-    if(!plan->fwker){
+    plan->phiHat = (FLT *)malloc(sizeof(FLT)*totCoeffs);
+    if(!plan->phiHat){
       fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
       return ERR_MAXNALLOC;
     }
 
     CNTime timer; timer.start();
     
-    onedim_fseries_kernel(plan->nf1, plan->fwker, plan->spopts);
-    if(n_dims > 1) onedim_fseries_kernel(plan->nf2, plan->fwker + (plan->nf1/2+1), plan->spopts);
-    if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->fwker + (plan->nf1/2+1) + (plan->nf2/2+1), spopts);
+    onedim_fseries_kernel(plan->nf1, plan->phiHat, plan->spopts);
+    if(n_dims > 1) onedim_fseries_kernel(plan->nf2, plan->phiHat + (plan->nf1/2+1), plan->spopts);
+    if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->phiHat + (plan->nf1/2+1) + (plan->nf2/2+1), spopts);
     
     if (plan->opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
@@ -95,7 +95,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
 
     if(!plan->fw){
       fprintf(stderr, "Call to malloc failed for working upsampled array allocation");
-      free(plan->fwker);
+      free(plan->phiHat);
       return ERR_MAXNALLOC; 
     }
   
@@ -134,14 +134,13 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
   
   else{
     plan->fftwPlan = NULL;
-    plan->nk = n_modes[0];
   }
 
   return 0;
 };
 
 
-int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT * s, FLT *t, FLT * u){
+int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT nk, FLT * s, FLT *t, FLT * u){
 
   plan->nj = nj;
   if(plan->X)
@@ -183,6 +182,8 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
 
   else{ //(plan->type == finufft_type::type3)
 
+    plan->nk = nk;
+    
     plan->spopts.spread_direction = 1;
     FLT S1, S2, S3 = 0;
     
@@ -232,8 +233,8 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
       return ERR_MAXNALLOC; 
     }
 
-    plan->fwker = (FLT *)malloc(sizeof(FLT)*plan->nk*plan->n_dims);
-    if(!plan->fwker){
+    plan->phiHat = (FLT *)malloc(sizeof(FLT)*plan->nk*plan->n_dims);
+    if(!plan->phiHat){
       fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation\n");
       return ERR_MAXNALLOC;
     }
@@ -327,13 +328,13 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, FLT 
     // Step 3a: compute Fourier transform of scaled kernel at targets
     timer.restart();
    
-    //fwker := fkker  
+    //phiHat := fkker  
     // exploit that Fourier transform separates because kernel built separable...
-    onedim_nuft_kernel(plan->nk, sp, plan->fwker, plan->spopts);           // fill fkker1
+    onedim_nuft_kernel(plan->nk, sp, plan->phiHat, plan->spopts);           // fill fkker1
     if(plan->n_dims > 1)
-      onedim_nuft_kernel(plan->nk, tp, plan->fwker + plan->nk, plan->spopts);           // etc
+      onedim_nuft_kernel(plan->nk, tp, plan->phiHat + plan->nk, plan->spopts);           // etc
     if(plan->n_dims > 2)
-      onedim_nuft_kernel(plan->nk, up, plan->fwker + 2*plan->nk, plan->spopts);
+      onedim_nuft_kernel(plan->nk, up, plan->phiHat + 2*plan->nk, plan->spopts);
     if (plan->opts.debug) printf("kernel FT (ns=%d):\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());
 
 
@@ -399,28 +400,28 @@ void deconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, CPX *
 
     CPX *fkStart = fk + (i+j*nth)*plan->ms*plan->mt*plan->mu;
     FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i;
-    FLT *fwker1 = plan->fwker;
-    FLT *fwker2;
-    FLT *fwker3;
+    FLT *phiHat1 = plan->phiHat;
+    FLT *phiHat2;
+    FLT *phiHat3;
     if(plan->n_dims > 1 )
-      fwker2 = plan->fwker + plan->nf1/2 + 1;
+      phiHat2 = plan->phiHat + plan->nf1/2 + 1;
     if(plan->n_dims > 2)
-      fwker3 = plan->fwker+(plan->nf1/2+1)+(plan->nf2/2+1);
+      phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
     
     
     //prefactors ?
     if(plan->n_dims == 1){
-      deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, fwker1, plan->ms, (FLT *)fkStart,
+      deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, phiHat1, plan->ms, (FLT *)fkStart,
                           plan->nf1, fwStart, plan->opts.modeord);
     }
     else if (plan->n_dims == 2){
-      deconvolveshuffle2d(plan->spopts.spread_direction,1.0, fwker1, fwker2,
+      deconvolveshuffle2d(plan->spopts.spread_direction,1.0, phiHat1, phiHat2,
                           plan->ms, plan->mt, (FLT *)fkStart,
                           plan->nf1, plan->nf2, fwStart, plan->opts.modeord);
     }
     else{
-      deconvolveshuffle3d(plan->spopts.spread_direction, 1.0, fwker1, fwker2,
-                          fwker3, plan->ms, plan->mt, plan->mu,
+      deconvolveshuffle3d(plan->spopts.spread_direction, 1.0, phiHat1, phiHat2,
+                          phiHat3, plan->ms, plan->mt, plan->mu,
                           (FLT *)fkStart, plan->nf1, plan->nf2, plan->nf3,
 			  fwStart, plan->opts.modeord);
     }
@@ -444,29 +445,29 @@ void type3DeconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, 
   for(int i = 0; i < blksize; i++){
     CPX *fkStart = fk + (i+j*nth)*plan->nk;
     
-    FLT * fwker1 = plan->fwker;
-    FLT * fwker2;
-    FLT * fwker3;
+    FLT * phiHat1 = plan->phiHat;
+    FLT * phiHat2;
+    FLT * phiHat3;
     if(plan->n_dims > 1)
-      fwker2 = plan->fwker + plan->nk;
+      phiHat2 = plan->phiHat + plan->nk;
     if(plan->n_dims > 2)
-      fwker3 = fwker2 + plan->nk;
+      phiHat3 = phiHat2 + plan->nk;
 
     if(finite && notzero){
 #pragma omp parallel for schedule(dynamic)              
       for (BIGINT k=0;k<plan->nk;++k){         // also phases to account for C1,C2,C3 shift
 	
         FLT sumCoords = (plan->s[k] - plan->t3P.D1)*plan->t3P.C1;
-        FLT prodfwKer = fwker1[k];
+        FLT prodPhiHat = phiHat1[k];
         if(plan->n_dims > 1 ){
           sumCoords += (plan->t[k] - plan->t3P.D2)*plan->t3P.C2 ;
-          prodfwKer *= fwker2[k];
+          prodPhiHat *= phiHat2[k];
         }
         if(plan->n_dims > 2){
           sumCoords += (plan->u[k] - plan->t3P.D3)*plan->t3P.C3;
-          prodfwKer *= fwker3[k];
+          prodPhiHat *= phiHat3[k];
         }
-        fkStart[k] *= (CPX)(1.0/prodfwKer)*exp(imasign*(sumCoords));
+        fkStart[k] *= (CPX)(1.0/prodPhiHat)*exp(imasign*(sumCoords));
       }
     }
     
@@ -474,12 +475,12 @@ void type3DeconvolveInParallel(int blksize, int j, int nth, finufft_plan *plan, 
   
 #pragma omp parallel for schedule(dynamic)
       for (BIGINT k=0;k<plan->nk;++k){    
-        FLT prodfwKer = fwker1[k];
+        FLT prodPhiHat = phiHat1[k];
         if(plan->n_dims >1 )
-          prodfwKer *= fwker2[k];
+          prodPhiHat *= phiHat2[k];
         if(plan->n_dims > 2 )
-          prodfwKer *= fwker3[k];
-        fkStart[k] *= (CPX)(1.0/prodfwKer);
+          prodPhiHat *= phiHat3[k];
+        fkStart[k] *= (CPX)(1.0/prodPhiHat);
       }
     }
   }
@@ -501,7 +502,11 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 #endif
   
   int *ier_spreads = (int *)calloc(nth,sizeof(int));      
-  
+
+
+  /******************************************************************/
+  /* Type 1 and Type 2                                              */
+  /******************************************************************/
   if (plan->type != type3){
   
     for(int j = 0; j*nth < plan->n_transf; j++){
@@ -557,7 +562,10 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     }
   }
 
-  //type 3
+  /******************************************************************/
+  /* Type 3                                                         */
+  /******************************************************************/
+
   else{
 
     CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
@@ -580,8 +588,9 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 	  sumCoords += plan->t3P.D2*plan->Y_orig[j];
 	if(plan->n_dims > 2)
 	  sumCoords += plan->t3P.D3*plan->Z_orig[j];
+	CPX multiplier = exp(imasign*(sumCoords)); // rephase
 	for(int k = 0; k < plan->n_transf; k++)
-	  cpj[k*plan->nj + j] = cj[k*plan->nj + j] * exp(imasign*(sumCoords)); // rephase
+	  cpj[k*plan->nj + j] = cj[k*plan->nj + j] * multiplier; 
       }
     }
     
@@ -623,7 +632,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
       t_innerPlan += timer.elapsedsec();
     
       timer.restart();
-      ier_t2 = setNUpoints(&t2Plan, plan->nk, plan->sp, plan->tp, plan->up, NULL, NULL, NULL);
+      ier_t2 = setNUpoints(&t2Plan, plan->nk, plan->sp, plan->tp, plan->up, 0, NULL, NULL, NULL);
       if(ier_t2)
 	printf("SET POINTS failed\n");
       t_innerSet += timer.elapsedsec();
@@ -639,6 +648,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
       type3DeconvolveInParallel(blksize, j, nth, plan,fk);
       t_deConvShuff += timer.elapsedsec();
 
+    
       fkIncrement += blksize; 
     }
 
@@ -660,8 +670,8 @@ int finufft_destroy(finufft_plan * plan){
 
   //free everything inside of finnufft_plan!
   
-  if(plan->fwker)
-    free(plan->fwker);
+  if(plan->phiHat)
+    free(plan->phiHat);
 
   if(plan->sortIndices)
     free(plan->sortIndices);

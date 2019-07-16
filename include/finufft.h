@@ -38,7 +38,7 @@ typedef struct {
   
   int iflag; 
 
-  FLT * fwker; //fourier coefficients of spreading kernel for all dims
+  FLT * phiHat; //fourier coefficients of spreading kernel for all dims
   FFTW_CPX * fw; //fourier coefficients for all dims
   
   BIGINT *sortIndices; 
@@ -80,7 +80,7 @@ extern "C"
 
 int make_finufft_plan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, finufft_plan *plan );
 void finufft_default_opts(nufft_opts *o);
-int setNUpoints(finufft_plan * plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, FLT *s, FLT *t, FLT *u); 
+int setNUpoints(finufft_plan * plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
 int finufft_exec(finufft_plan * plan ,  CPX *weights, CPX * result);
 int finufft_destroy(finufft_plan * plan);
 
