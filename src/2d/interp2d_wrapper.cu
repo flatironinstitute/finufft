@@ -163,9 +163,14 @@ int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+#if 1
 			Interp_2d_Idriven_Horner<<<blocks, threadsPerBlock, 0, 
 				streams[t%nstreams]>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
 				ns, nf1, nf2, sigma);
+#else
+			Interp_2d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, 
+				d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma);
+#endif
 		}
 	}else{
 		cudaStream_t *streams = d_plan->streams;
