@@ -59,7 +59,7 @@ cufinufft2d1many_test: examples/cufinufft2d1many_test.o finufft/utils.o \
 	finufft/contrib/legendre_rule_fast.o src/2d/spread2d_wrapper.o \
 	src/2d/spread2d.o src/2d/cufinufft2d.o src/deconvolve_wrapper.o \
 	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/2d/spread2d_wrapper_paul.o
+	src/2d/spread2d_wrapper_paul.o src/profile.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 cufinufft2d2_test: examples/cufinufft2d2_test.o finufft/utils.o \
@@ -67,7 +67,7 @@ cufinufft2d2_test: examples/cufinufft2d2_test.o finufft/utils.o \
 	finufft/contrib/legendre_rule_fast.o src/2d/spread2d_wrapper.o \
 	src/2d/spread2d.o src/2d/cufinufft2d.o src/deconvolve_wrapper.o \
 	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/2d/spread2d_wrapper_paul.o
+	src/2d/spread2d_wrapper_paul.o src/profile.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 cufinufft2d2many_test: examples/cufinufft2d2many_test.o finufft/utils.o \
@@ -75,7 +75,7 @@ cufinufft2d2many_test: examples/cufinufft2d2many_test.o finufft/utils.o \
 	finufft/contrib/legendre_rule_fast.o src/2d/spread2d_wrapper.o \
 	src/2d/spread2d.o src/2d/cufinufft2d.o src/deconvolve_wrapper.o \
 	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/2d/spread2d_wrapper_paul.o
+	src/2d/spread2d_wrapper_paul.o src/profile.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
