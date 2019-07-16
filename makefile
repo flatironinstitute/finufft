@@ -11,7 +11,7 @@ LIBS_PATH=
 LIBS=-lm -lfftw3 -lcudart -lstdc++
 LIBS_CUFINUFFT=-lcufft
 
--include make.inc
+#-include make.inc
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(INC) $< -o $@

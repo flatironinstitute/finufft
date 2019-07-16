@@ -28,6 +28,7 @@ struct cufinufft_opts {      // see cuspread:setup_spreader for defaults.
   int bin_size_x;
   int bin_size_y;
   int Horner;
+  int Paul;
   int maxsubprobsize;
   int nthread_x;
   int nthread_y;
@@ -66,6 +67,10 @@ struct cufinufft_plan {
   int *subprob_to_bin;
   int *idxnupts;
   int *subprobstartpts;
+
+// Paul
+  int *finegridsize;
+  int *fgstartpts;
 
   void *temp_storage;
   cufftHandle fftplan;

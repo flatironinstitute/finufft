@@ -96,7 +96,7 @@ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbi
 		int nbiny, int* bin_startpts, int* sortidx,
 		FLT *x, FLT *y, int* index);
 __global__
-void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
+void PtsRearrange_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
 		int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
 		FLT *y, FLT *y_sorted, CUCPX *c, CUCPX *c_sorted);
 __global__
@@ -125,6 +125,11 @@ void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int bin_size_x, int bin_size_y, int binx, int biny);
 __global__
 void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
+
+__global__
+void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
+	int maxsubprobsize);
+
 __global__
 void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, int* d_numsubprob,
 		int numbins);
@@ -132,14 +137,30 @@ __global__
 void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
-		int* idxnupts);
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
+		int nbiny,int* idxnupts);
+
 __global__
-void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT sigma, int* binstartpts,
+void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+		const int ns, int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, 
+		int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
+		int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+		int maxsubprobsize, int nbinx, int nbiny,int* idxnupts);
+
+__global__
+void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+		const int ns, int nf1, int nf2, FLT sigma, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
-		int* idxnupts);
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
+		int nbiny,int* idxnupts);
+
+__global__
+void Spread_2d_Subprob_Horner_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, 
+	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+	int maxsubprobsize, int nbinx, int nbiny, int* idxnupts, int* fgstartpts, 
+	int* finegridsize);
 __global__
 void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
@@ -152,6 +173,15 @@ void Interp_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const 
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
 		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
 		int* idxnupts);
+// Paul
+__global__
+void LocateFineGridPos(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, 
+		int nbinx, int nbiny, int* bin_size, int ns, FLT *x, FLT *y, 
+		int* sortidx, int* finegridsize);
+__global__
+void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x, 
+		int bin_size_y, int nbinx,int nbiny, int ns, FLT *x, FLT *y, 
+		int* finegridstartpts, int* sortidx, int* index);
 #if 0
 // 1d
 int cufinufft_spread1d(int ms, int nf1, CPX* h_fw, int M, FLT *h_kx,
@@ -191,7 +221,11 @@ int cuspread2d_hybrid(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_mem);
 int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
 		cufinufft_plan *d_plan);
+int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
+		cufinufft_plan *d_plan);
 int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts,
+		cufinufft_plan *d_mem);
+int cuspread2d_paul(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_mem);
 int cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_mem);
