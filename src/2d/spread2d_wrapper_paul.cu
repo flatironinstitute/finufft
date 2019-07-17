@@ -58,8 +58,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	int *d_idxnupts        = d_plan->idxnupts;
 	int *d_numsubprob      = d_plan->numsubprob;
 
-	d_plan->temp_storage = NULL;
-	void *d_temp_storage = d_plan->temp_storage;
+	void *d_temp_storage = NULL;
 
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemset(d_finegridsize,0,nf1*nf2*sizeof(int)));
@@ -297,6 +296,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cout<<endl;
 	}
 #endif
+	cudaFree(d_temp_storage);
 	return 0;
 }
 

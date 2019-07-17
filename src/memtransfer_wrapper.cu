@@ -21,7 +21,7 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
 
 	d_plan->byte_now=0;
-	// No extra memory is needed in idriven method (case 1);
+	// No extra memory is needed in idriven method (case 1)
 	switch(opts.method)
 	{
 		case 5:
@@ -100,7 +100,6 @@ void freegpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 				checkCudaErrors(cudaFree(d_plan->binsize));
 				checkCudaErrors(cudaFree(d_plan->binstartpts));
 				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
-				checkCudaErrors(cudaFree(d_plan->temp_storage));
 				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
 			}
 			break;
@@ -113,7 +112,6 @@ void freegpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 				checkCudaErrors(cudaFree(d_plan->finegridsize));
 				checkCudaErrors(cudaFree(d_plan->binstartpts));
 				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
-				checkCudaErrors(cudaFree(d_plan->temp_storage));
 				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
 			}
 			break;

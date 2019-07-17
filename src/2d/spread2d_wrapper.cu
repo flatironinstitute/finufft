@@ -250,9 +250,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	int *d_idxnupts = d_plan->idxnupts;
 
 	int *d_subprob_to_bin = NULL;
-
-	d_plan->temp_storage = NULL;
-	void *d_temp_storage = d_plan->temp_storage;
+	void *d_temp_storage = NULL;
 
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));

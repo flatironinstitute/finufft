@@ -46,13 +46,13 @@ int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan, i
 	FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
 	onedim_fseries_kernel(nf1, fwkerhalf1, opts);
 	onedim_fseries_kernel(nf2, fwkerhalf2, opts);
-#if 1
+#ifdef DEUBG
 	printf("[time  ] \tkernel fser (ns=%d):\t %.3g s\n", opts.nspread,timer.elapsedsec());
 #endif
 
 	cudaEventRecord(start);
 	ier = allocgpumemory2d(opts, d_plan);
-#if 1
+#ifdef DEUBG
 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -63,7 +63,7 @@ int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan, i
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf1,fwkerhalf1,(nf1/2+1)*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf2,fwkerhalf2,(nf2/2+1)*sizeof(FLT),cudaMemcpyHostToDevice));
-#if 1
+#ifdef DEUBG
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -77,7 +77,7 @@ int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan, i
 	cufftPlanMany(&fftplan,2,n,inembed,1,inembed[0]*inembed[1],inembed,1,inembed[0]*inembed[1],
 			CUFFT_TYPE,ntransfcufftplan);
 	d_plan->fftplan = fftplan;
-#if 1
+#ifdef DEUBG
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -108,23 +108,29 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, cufinufft_p
 	printf("[time  ] \tCopy kx,ky HtoD\t\t %.3g s\n", milliseconds/1000);
 #endif
 
-	if(opts.rescaled==0){
+	if(opts.pirange == 1){
 		cudaEventRecord(start);
-		RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, d_plan->ky);
-		opts.rescaled=1;
+		RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, 
+			d_plan->ky); // the x, y coordinate on GPU will always be in range [0, 
 #ifdef SPREADTIME
-		float milliseconds;
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ]\tRescaleXY_2d\t\t %.3g ms\n", milliseconds);
+	float milliseconds;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ]\tRescaleXY_2d\t\t %.3g ms\n", milliseconds);
 #endif
 	}
-
 	if(opts.method==5){
 		int ier = cuspread2d_subprob_prop(nf1,nf2,M,opts,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", opts.method);
+			return 0;
+		}
+	}
+	if(opts.method==6){
+		int ier = cuspread2d_paul_prop(nf1,nf2,M,opts,d_plan);
+		if(ier != 0 ){
+			printf("error: cuspread2d_paul_prop, method(%d)\n", opts.method);
 			return 0;
 		}
 	}
@@ -134,6 +140,7 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, cufinufft_p
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan)
 {
 	assert(opts.spread_direction == 1);
+	assert(opts.pirange == 0);
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -306,10 +313,10 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 {
 	// defaults... (user can change after this function called)
 	opts.pirange = 1;             // user also should always set this
-	opts.rescaled = 0;
 	opts.upsampfac = upsampfac;
 
 	// for gpu
+	opts.nstreams = 16;
 	opts.method = 5;
 	opts.bin_size_x = 32;
 	opts.bin_size_y = 32;
@@ -340,7 +347,6 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 		betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
 	}
 	opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
-	//fprintf(stderr,"setup_spreader: sigma=%.6f, chose ns=%d beta=%.6f\n",(double)upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
-	return 0;
 
+	return 0;
 }
