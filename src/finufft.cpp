@@ -96,7 +96,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*plan->threadBlkSize);  
 
     if(!plan->fw){
-      fprintf(stderr, "Call to malloc failed for working upsampled array allocation");
+      fprintf(stderr, "Call to malloc failed for working upsampled array allocation\n");
       free(plan->phiHat);
       return ERR_MAXNALLOC; 
     }
@@ -591,32 +591,21 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     if(plan->n_dims > 2) notZero |=  (plan->t3P.D3 != 0.0);
 
     timer.restart();
-    CPX multiplier[plan->nj];
-#pragma omp parallel for schedule(dynamic)                // since cexp slow
-    for (BIGINT j=0;j<plan->nj;j++){
-      FLT sumCoords = plan->t3P.D1*plan->X_orig[j];
-      if(plan->n_dims > 1)
-	sumCoords += plan->t3P.D2*plan->Y_orig[j];
-      if(plan->n_dims > 2)
-	sumCoords += plan->t3P.D3*plan->Z_orig[j];
-      multiplier[j] = exp(imasign*(sumCoords)); // rephase
-    }
-    if (plan->opts.debug) printf("prephase precomp:\t\t %.3g s\n",timer.elapsedsec());
-
-
-    timer.restart();
     ier_t2 = make_finufft_plan(type2, plan->n_dims, n_modes, plan->iflag, plan->threadBlkSize, plan->tol,
 			       plan->threadBlkSize, &t2Plan);
     if(ier_t2){
-      printf("PLAN creation failed\n");
+      printf("inner type 2 plan creation failed\n");
+      return ier_t2;  
     }
     t_innerPlan += timer.elapsedsec();
     t2Plan.isInnerT2 = true;
     
     timer.restart();
     ier_t2 = setNUpoints(&t2Plan, plan->nk, plan->sp, plan->tp, plan->up, 0, NULL, NULL, NULL);
-    if(ier_t2)
-      printf("SET POINTS failed\n");
+    if(ier_t2){
+      printf("inner type 2 set points failed\n");
+      return ier_t2;
+    }
     t_innerSet += timer.elapsedsec();
 
     int fkIncrement = 0;
@@ -633,21 +622,33 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
       //prephase this block of coordinate weights
       timer.restart();
+#pragma omp parallel for schedule(dynamic)                
+	for (BIGINT i=0; i<plan->nj;i++){
 
-      for(int k = 0; k < plan->threadBlkSize; k++){
-	  for (BIGINT i=0; i<plan->nj;i++){
+	  FLT sumCoords = plan->t3P.D1*plan->X_orig[i];
+
+	  if(plan->n_dims > 1)
+	    sumCoords += plan->t3P.D2*plan->Y_orig[i];
+	  if(plan->n_dims > 2)
+	    sumCoords += plan->t3P.D3*plan->Z_orig[i];
+	  
+	  CPX multiplier = exp(imasign*(sumCoords)); // rephase
+	  
+	  for(int k = 0; k < plan->threadBlkSize; k++){
 	    int cpjIndex = k*plan->nj + i;
 	    int cjIndex = blkNum*plan->threadBlkSize*plan->nj + cpjIndex;
 	    if(cjIndex > plan->n_transf*plan->nj){
 	      cpj[cpjIndex] = 0;
 	    }
-	    if(notZero)
-	      cpj[cpjIndex] = cj[cjIndex]*multiplier[i];
-	    else
-	      cpj[cpjIndex] = cj[cjIndex]; //just copy over
+	    else{
+	      if(notZero)
+		cpj[cpjIndex] = cj[cjIndex]*multiplier;
+	      else
+		cpj[cpjIndex] = cj[cjIndex]; //just copy over
+	    }
 	  }
-      }
-      
+	}
+	
       if (plan->opts.debug) printf("prephase comp:\t\t %.3g s\n",timer.elapsedsec());
       
       timer.restart();
