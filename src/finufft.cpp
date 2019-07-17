@@ -96,7 +96,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     if(n_dims > 1) onedim_fseries_kernel(plan->nf2, plan->phiHat + (plan->nf1/2+1), plan->spopts);
     if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->phiHat + (plan->nf1/2+1) + (plan->nf2/2+1), spopts);
     
-    if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
+    if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
   
     plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*plan->threadBlkSize);  
@@ -117,7 +117,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
 					plan->nf2*plan->nf1*plan->nf3, plan->fw,
                                         NULL, 1, plan->nf2*plan->nf1*plan->nf3,
 					fftsign, plan->opts.fftw ) ;    
-    if (plan->opts.debug) printf("[make plan] fftw plan (%d)    \t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
+    if (plan->opts.debug) printf("[make plan] fftw plan (%d) \t\t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
     delete []nf;                       
   }
 
@@ -338,7 +338,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
       onedim_nuft_kernel(plan->nk, tp, plan->phiHat + plan->nk, plan->spopts);           
     if(plan->n_dims > 2)
       onedim_nuft_kernel(plan->nk, up, plan->phiHat + 2*plan->nk, plan->spopts);
-    if (plan->opts.debug) printf("[setNUpoints] kernel FT (ns=%d):\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());
+    if (plan->opts.debug) printf("[setNUpoints] kernel FT (ns=%d):\t\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());
 
 
     
@@ -592,7 +592,6 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 	  if(ier_spreads[i])
 	    return ier_spreads[i];
 	}
-	if(plan->opts.debug) printf("[guru] spread:\t\t\t %.3g s\n",t_spread);
       }
 
       //Type 2 Step 1: amplify Fourier coeffs fk and copy into fw
@@ -600,16 +599,12 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 	timer.restart();
 	deconvolveInParallel(maxSafeIndex, blkNum, plan,fk);
 	t_deconv += timer.elapsedsec();
-	if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", t_deconv);
       }
-        
-     
+             
       //Type 1/2 Step 2: Call FFT   
       timer.restart();
       FFTW_EX(plan->fftwPlan);
       t_exec += timer.elapsedsec();
-      if(plan->opts.debug) printf("[guru] fft :\t\t\t %.3g s\n", t_exec);        
-   
     
     
       //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output 
@@ -617,7 +612,6 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 	timer.restart();
 	deconvolveInParallel(maxSafeIndex, blkNum, plan,fk);
 	t_deconv += timer.elapsedsec();
-	if(plan->opts.debug) printf("deconvolve & copy out:\t\t %.3g s\n", t_deconv);
       }
 
       //Type 2 Step 3: interpolate from regular to irregular target pts
@@ -625,10 +619,14 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 	timer.restart();
 	interpInParallel(maxSafeIndex, blkNum, plan, cj, ier_spreads);
 	t_spread += timer.elapsedsec(); 
-
-	if(plan->opts.debug) printf("[guru] interp:\t\t\t %.3g s\n",t_spread);
       }
     }
+    
+    if(plan->opts.debug) printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
+    if(plan->opts.debug) printf("[finufft_exec] fft :\t\t\t %.3g s\n", t_exec);
+    if(plan->opts.debug) printf("[finufft_exec] deconvolve & copy out:\t %.3g s\n", t_deconv);
+    if(plan->opts.debug) printf("[finufft_exec] interp:\t\t\t %.3g s\n",t_spread);
+    
   }
 
   /******************************************************************/
@@ -699,7 +697,6 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
       timer.restart();
       type3PrePhaseInParallel(blkNum, plan, cj, cpj);
       double t = timer.elapsedsec();
-      if (plan->opts.debug) printf("[finufft_exec] prephase comp:\t\t %.3g s\n", t);
       t_prePhase += t;
       
       //Spread from cpj to internal fw array (only threadBlockSize)
@@ -727,7 +724,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
     }
 
-    if(plan->opts.debug) printf("[finufft_exec] prephase:\t\t\t %.3g s\n",t_prePhase);
+    if(plan->opts.debug) printf("[finufft_exec] prephase:\t\t %.3g s\n",t_prePhase);
     if(plan->opts.debug) printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
     if(plan->opts.debug) printf("[finufft_exec] total type-2 (ier=%d):\t %.3g s\n",ier_t2, t_innerPlan + t_innerSet + t_innerExec);
     if(plan->opts.debug) printf("[finufft_exec] deconvolve:\t\t %.3g s\n", t_deConvShuff);

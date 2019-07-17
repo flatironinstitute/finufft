@@ -18,7 +18,7 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 1d many interface, types 1,2, and 3.
 
-   Usage: finufft2dmany_test [ntransf [Nmodes [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]
+   Usage: finufft2dmany_test [ntransf [Nmodes [Nsrc [tol [debug [spreadsort [upsampfac]]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
@@ -53,8 +53,8 @@ int main(int argc, char* argv[])
   if (argc>7) sscanf(argv[7],"%lf",&upsampfac);
   opts.upsampfac=(FLT)upsampfac;
 
-  if (argc==1 || argc==2 || argc>7) {
-    fprintf(stderr,"Usage: finufft1d_test [ntransf [Nmodes [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]\n");
+  if (argc==1 || argc==2 || argc>8) {
+    fprintf(stderr,"Usage: finufft1d_test [ntransf [Nmodes [Nsrc [tol [debug [upsampfac]]]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
   }
 
 
-  printf("test 1dmany type-1:\n"); // -------------- type 1
+  printf("------------------test 1dmany type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
   int ier = finufft1d1many(ntransf,M,x,c,isign,tol,N,F,opts);
   double ti=timer.elapsedsec();
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j+d*M] * exp(J*(nt1*x[j]));   // crude direct
   BIGINT it = N/2+nt1 ; // index in complex F as 1d array
-  printf("one mode: rel err in F[%lld] of data[%d] is %.3g\n",
+  printf("[err check] one mode: rel err in F[%lld] of data[%d] is %.3g\n",
 	 (long long)nt1,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
 
   //check against the old
@@ -103,22 +103,28 @@ int main(int argc, char* argv[])
   CPX * F_start;
   CPX * c_start;
   timer.restart();
+  opts.debug = 0;
+  opts.spread_debug = 0; 
   for(BIGINT j = 0; j < ntransf; j++){
     F_start = F_old + j*N;
     c_start = c + j*M;
     finufft1d1_old(M,x,c_start,isign,tol,N,F_start,opts);
   }
   double t = timer.elapsedsec();
-  printf("\tspeedup (T_finufft1d1 / T_finufft1d1many) = %.3g\n", t/ti);
+  printf("[speedup] \t (T_finufft1d1 / T_finufft1d1many) = %.3g\n", t/ti);
   
-  printf("finufft1d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
-  printf("on trial %d one mode: rel err in F[%lld] is %.3g\n",d,(long long)nt1,abs(F_old[N/2+nt1 + d*N]-F[N/2+nt1+d*N])/infnorm(N,F+d*N));
+  printf("[err check] finufft1d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
+  printf("[err check] on trial %d one mode: rel err in F[%lld] is %.3g\n",d,(long long)nt1,abs(F_old[N/2+nt1 + d*N]-F[N/2+nt1+d*N])/infnorm(N,F+d*N));
   free(F_old);
  
 
 
-  printf("test 1d type-2:\n"); // -------------- type 2
- #pragma omp parallel
+  printf("------------------test 1dmany type-2:------------------\n"); // -------------- type 2
+
+  opts.debug = debug;
+  opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
+
+#pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
 #pragma omp for schedule(dynamic,CHUNK)
@@ -141,8 +147,10 @@ int main(int argc, char* argv[])
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1=-k0; m1<=(N-1)/2; ++m1)
     ct += F[d*N + m++] * exp(IMA*((FLT)(isign*m1))*x[jt]);   // crude direct
-  printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt + d*M])/infnorm(M,c+d*M));
+  printf("[err check] one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt + d*M])/infnorm(M,c+d*M));
 
+  opts.debug = 0;
+  opts.spread_debug = 0;
   //check against the old
   CPX * c_old = (CPX *)malloc(sizeof(CPX)*M*ntransf);
   timer.restart();
@@ -152,13 +160,17 @@ int main(int argc, char* argv[])
     finufft1d2_old(M,x,c_start,isign,tol,N,F_start,opts);
   }
   t = timer.elapsedsec();
-  printf("\tspeedup (T_finufft1d2 / T_finufft1d2many) = %.3g\n", t/ti);
+  printf("[speedup] \t (T_finufft1d2 / T_finufft1d2many) = %.3g\n", t/ti);
 
-  printf("finufft1d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old+d*M,c+d*M));
-  printf("on trial %d one targ: rel err in c[%lld] is %.3g\n",d, (long long)jt,abs(c_old[jt+d*M]-c[jt+d*M])/infnorm(M,c+d*M));
+  printf("[err check] finufft1d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old+d*M,c+d*M));
+  printf("[err check] on trial %d one targ: rel err in c[%lld] is %.3g\n",d, (long long)jt,abs(c_old[jt+d*M]-c[jt+d*M])/infnorm(M,c+d*M));
   free(c_old);
 
-  printf("test 1d type-3:\n"); // -------------- type 3
+  printf("------------------test 1dmany type-3:------------------\n"); // -------------- type 3
+
+  opts.debug = debug;
+  opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
+
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
@@ -196,8 +208,11 @@ int main(int argc, char* argv[])
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0;j<M;++j)
     Ft += c[j+d*M] * exp(IMA*(FLT)isign*s[kt]*x[j]);
-  printf("one targ: rel err against direct in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt+d*N])/infnorm(N,F+d*N));
+  printf("[err check] one targ: rel err against direct in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt+d*N])/infnorm(N,F+d*N));
 
+
+  opts.debug = 0;
+  opts.spread_debug = 0;
   //check against the old
   CPX *F3_old = (CPX *)malloc(sizeof(CPX)*N*ntransf);
   timer.restart();
@@ -207,11 +222,13 @@ int main(int argc, char* argv[])
     ier = finufft1d3_old(M,x,c_start,isign,tol,N,s,F_start, opts);
   }
   t = timer.elapsedsec();
-  printf("\tspeedup (T_finufft1d2 / T_finufft1d2many) = %.3g\n", t/ti);
+  printf("[speedup] \t T_finufft1d2 / T_finufft1d2many) = %.3g\n", t/ti);
 
   
-  printf("finufft1d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old+d*N,F+d*N));
-  printf("one targ: rel err against old in F[%lld] is %.3g\n",(long long)kt,abs(F3_old[kt+d*N]-F[kt+d*N])/infnorm(N,F+d*N));
+  printf("[err check] finufft1d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old+d*N,F+d*N));
+  printf("[err check] one targ: rel err against old in F[%lld] is %.3g\n",(long long)kt,
+	 abs(F3_old[kt+d*N]-F[kt+d*N])/infnorm(N,F+d*N));
+
   free(F3_old);
   free(x);
   free(s);

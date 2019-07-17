@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
   //for (BIGINT j=0; j<M; ++j) x[j] = 0.999 * PI*randm11();  // avoid ends
   //for (BIGINT j=0; j<M; ++j) x[j] = PI*(2*j/(FLT)M-1);  // test a grid
 
-  printf("test 1d type-1:\n"); // -------------- type 1
+  printf("------------------test 1d type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
   int ier = finufft1d1(M,x,c,isign,tol,N,F,opts);
   //for (int j=0;j<N;++j) cout<<F[j]<<endl;
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
   printf("one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(F_old[N/2+nt]-F[N/2+nt])/infnorm(N,F));
   free(F_old);
   
-  printf("test 1d type-2:\n"); // -------------- type 2
+  printf("------------------test 1d type-2:------------------\n"); // -------------- type 2
  #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 
 
 
-  printf("test 1d type-3:\n"); // -------------- type 3
+  printf("------------------test 1d type-3:------------------\n"); // -------------- type 3
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
   {
