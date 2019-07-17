@@ -138,21 +138,21 @@ int main(int argc, char* argv[])
 	// Method 5: Subprob                     //
 	/* -------------------------------------- */
 	timer.restart();
-	opts.method=method;
-	opts.Horner=1;
+	opts.gpu_method=method;
+	opts.kerevalmeth=1;
 	opts.spread_direction=1;
 	switch(method){
 		case 1:
 		case 2:
 		case 4:
 		{
-			opts.bin_size_x=16;
-			opts.bin_size_y=16;
+			opts.gpu_binsizex=16;
+			opts.gpu_binsizey=16;
 		}
 		case 5:
 		{
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
+			opts.gpu_binsizex=32;
+			opts.gpu_binsizey=32;
 		}
 	}
 	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, opts, &dplan);
@@ -264,10 +264,10 @@ int main(int argc, char* argv[])
 #if 0
 	cout<<"[result-hybrid]"<<endl;
 	for(int j=0; j<nf2; j++){
-		if( j % opts.bin_size_y == 0)
+		if( j % opts.gpu_binsizey == 0)
 			printf("\n");
 		for (int i=0; i<nf1; i++){
-			if( i % opts.bin_size_x == 0 && i!=0)
+			if( i % opts.gpu_binsizex == 0 && i!=0)
 				printf(" |");
 			printf(" (%2.3g,%2.3g)",fwi[i+j*nf1].real(),fwi[i+j*nf1].imag() );
 			//cout<<" "<<setw(8)<<fwfinufft[i+j*nf1];

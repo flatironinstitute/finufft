@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 	cufinufft_plan dplan;
 	cufinufft_opts opts;
 	ier=cufinufft_default_opts(opts,tol,sigma);
-	opts.method=method;
+	opts.gpu_method=method;
 	opts.spread_direction=1;
 
 	cudaEventRecord(start);
@@ -130,10 +130,10 @@ int main(int argc, char* argv[])
 #if 0
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
-		//        if( j % opts.bin_size_y == 0)
+		//        if( j % opts.gpu_binsizey == 0)
 		//                printf("\n");
 		for (int i=0; i<nf1; i++){
-			//                if( i % opts.bin_size_x == 0 && i!=0)
+			//                if( i % opts.gpu_binsizex == 0 && i!=0)
 			//                        printf(" |");
 			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
 		}

@@ -120,17 +120,17 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, cufinufft_p
 	printf("[time  ]\tRescaleXY_2d\t\t %.3g ms\n", milliseconds);
 #endif
 	}
-	if(opts.method==5){
+	if(opts.gpu_method==5){
 		int ier = cuspread2d_subprob_prop(nf1,nf2,M,opts,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread2d_subprob_prop, method(%d)\n", opts.method);
+			printf("error: cuspread2d_subprob_prop, method(%d)\n", opts.gpu_method);
 			return 0;
 		}
 	}
-	if(opts.method==6){
+	if(opts.gpu_method==6){
 		int ier = cuspread2d_paul_prop(nf1,nf2,M,opts,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread2d_paul_prop, method(%d)\n", opts.method);
+			printf("error: cuspread2d_paul_prop, method(%d)\n", opts.gpu_method);
 			return 0;
 		}
 	}
@@ -172,7 +172,7 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 		cudaEventRecord(start);
 		ier = cuspread2d(opts, d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread2d, method(%d)\n", opts.method);
+			printf("error: cuspread2d, method(%d)\n", opts.gpu_method);
 			return 0;
 		}
 #ifdef TIME
@@ -180,7 +180,7 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
 		printf("[time  ] \tSpread (%d)\t\t %.3g s\n", milliseconds/1000, 
-			opts.method);
+			opts.gpu_method);
 #endif
 		// Step 2: FFT
 		cudaEventRecord(start);
@@ -267,14 +267,14 @@ int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts,
 		cudaEventRecord(start);
 		ier = cuinterp2d(opts, d_plan);
 		if(ier != 0 ){
-			printf("error: cuinterp2d, method(%d)\n", opts.method);
+			printf("error: cuinterp2d, method(%d)\n", opts.gpu_method);
 			return 0;
 		}
 #ifdef TIME
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tUnspread (%d)\t\t %.3g s\n", milliseconds/1000,opts.method);
+		printf("[time  ] \tUnspread (%d)\t\t %.3g s\n", milliseconds/1000,opts.gpu_method);
 #endif
 
 		cudaDeviceSynchronize();
@@ -316,14 +316,12 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 	opts.upsampfac = upsampfac;
 
 	// for gpu
-	opts.nstreams = 16;
-	opts.method = 5;
-	opts.bin_size_x = 32;
-	opts.bin_size_y = 32;
-	opts.Horner = 1;
-	opts.maxsubprobsize = 1000;
-	opts.nthread_x = 16;
-	opts.nthread_y = 16;
+	opts.gpu_nstreams = 16;
+	opts.gpu_method = 5;
+	opts.gpu_binsizex = 32;
+	opts.gpu_binsizey = 32;
+	opts.kerevalmeth = 1;
+	opts.gpu_maxsubprobsize = 1000;
 
 	// Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
 	int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten

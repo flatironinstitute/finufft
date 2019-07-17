@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [rep [tol [Horner]]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [rep [tol [kerevalmeth]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -50,9 +50,9 @@ int main(int argc, char* argv[])
 		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int Horner=0;
+	int kerevalmeth=0;
 	if(argc>8){
-		sscanf(argv[8],"%d",&Horner);
+		sscanf(argv[8],"%d",&kerevalmeth);
 	}
 
 	int ier;
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
-	opts.method=method;
+	opts.gpu_method=method;
 	cout<<scientific<<setprecision(3);
 
 
@@ -79,11 +79,11 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
 	opts.pirange=0;
-	opts.Horner=Horner;
+	opts.kerevalmeth=kerevalmeth;
 	if(method == 6)
-		opts.maxsubprobsize=maxsubprobsize;
+		opts.gpu_maxsubprobsize=maxsubprobsize;
 	if(method == 5)
-		opts.maxsubprobsize=maxsubprobsize;
+		opts.gpu_maxsubprobsize=maxsubprobsize;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -206,22 +206,22 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"
 		<<endl;
 #endif
-	if(opts.method == 2)
+	if(opts.gpu_method == 2)
 	{
-		opts.bin_size_x=16;
-		opts.bin_size_y=16;
+		opts.gpu_binsizex=16;
+		opts.gpu_binsizey=16;
 	}
 
-	if(opts.method == 4 || opts.method==5)
+	if(opts.gpu_method == 4 || opts.gpu_method==5)
 	{
-		opts.bin_size_x=32;
-		opts.bin_size_y=32;
+		opts.gpu_binsizex=32;
+		opts.gpu_binsizey=32;
 	}
 
-	if(opts.method == 6)
+	if(opts.gpu_method == 6)
 	{
-		opts.bin_size_x=32;
-		opts.bin_size_y=32;
+		opts.gpu_binsizex=32;
+		opts.gpu_binsizey=32;
 	}
 	timer.restart();
 	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dplan);
@@ -231,26 +231,26 @@ int main(int argc, char* argv[])
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			opts.method,M,nf1*nf2,t,M/t);
+			opts.gpu_method,M,nf1*nf2,t,M/t);
 #if 0
 	switch(method)
 	{
 		case 4:
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
+			opts.gpu_binsizex=32;
+			opts.gpu_binsizey=32;
 		case 5:
-			opts.bin_size_x=16;
-			opts.bin_size_y=16;
+			opts.gpu_binsizex=16;
+			opts.gpu_binsizey=16;
 		default:
-			opts.bin_size_x=nf1;
-			opts.bin_size_y=nf2;		
+			opts.gpu_binsizex=nf1;
+			opts.gpu_binsizey=nf2;		
 	}
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
-		if( j % opts.bin_size_y == 0)
+		if( j % opts.gpu_binsizey == 0)
 			printf("\n");
 		for (int i=0; i<nf1; i++){
-			if( i % opts.bin_size_x == 0 && i!=0)
+			if( i % opts.gpu_binsizex == 0 && i!=0)
 				printf(" |");
 			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
 		}

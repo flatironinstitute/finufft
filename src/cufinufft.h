@@ -11,29 +11,34 @@
 		((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
 		(x<0 ? x+N : (x>N ? x-N : x)))
 
-struct cufinufft_opts {     // see cuspread:setup_spreader for defaults.
+enum nufft_type {type1,type2,type3};
+
+struct cufinufft_opts {
+	/* following options are in nufft opts */
+	FLT upsampfac;          // sigma, upsampling factor, default 2.0
+
+	/* following options are in spopts */
 	int nspread;            // w, the kernel width in grid pts
 	int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
 	int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
-	FLT upsampfac;          // sigma, upsampling factor, default 2.0
+	int kerevalmeth;		// 0: direct exp(sqrt()), 1: Horner ppval
 
 	// ES kernel specific...
 	FLT ES_beta;
 	FLT ES_halfwidth;
 	FLT ES_c;
 
-	// CUDA, variables
-	int method;
-	int bin_size_x;
-	int bin_size_y;
-	int Horner;
-	int maxsubprobsize;
-	int nthread_x; //now threads block size is hard coded, not used
-	int nthread_y; 
-	int nstreams; 
+	/* following options are for gpu */
+	int gpu_method;
+	int gpu_binsizex;
+	int gpu_binsizey;
+	int gpu_maxsubprobsize;
+	int gpu_nstreams; 
 };
 
 struct cufinufft_plan {
+	nufft_type type;
+
 	int M;
 	int nf1;
 	int nf2;

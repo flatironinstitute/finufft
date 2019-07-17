@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: interp2d [method [nupts_distr [nf1 nf2 [M [tol [Horner]]]]]]\n");
+		fprintf(stderr,"Usage: interp2d [method [nupts_distr [nf1 nf2 [M [tol [kerevalmeth]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 5: subprob\n");
@@ -41,9 +41,9 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int Horner=1;
+	int kerevalmeth=1;
 	if(argc>7){
-		sscanf(argv[7],"%d",&Horner);
+		sscanf(argv[7],"%d",&kerevalmeth);
 	}
 	int ier;
 
@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
-	opts.method=method;
+	opts.gpu_method=method;
 	cout<<scientific<<setprecision(3);
 
 
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
 	opts.pirange=0;
-	opts.Horner=Horner;
+	opts.kerevalmeth=kerevalmeth;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -107,16 +107,16 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Interpolating  ["<<nf1<<"x"<<nf2<<"] uniform points to "<<M<<"nupts"<<endl;
 #endif
 #if 0
-	if(opts.method == 2)
+	if(opts.gpu_method == 2)
 	{
-		opts.bin_size_x=16;
-		opts.bin_size_y=16;
+		opts.gpu_binsizex=16;
+		opts.gpu_binsizey=16;
 	}
 
-	if(opts.method == 4 || opts.method==5)
+	if(opts.gpu_method == 4 || opts.gpu_method==5)
 	{
-		opts.bin_size_x=32;
-		opts.bin_size_y=32;
+		opts.gpu_binsizex=32;
+		opts.gpu_binsizey=32;
 	}
 #endif
 	timer.restart();
@@ -127,19 +127,19 @@ int main(int argc, char* argv[])
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
-			opts.method,nf1*nf2,M,t,nf1*nf2/t);
+			opts.gpu_method,nf1*nf2,M,t,nf1*nf2/t);
 #if 0
 	switch(method)
 	{
 		case 4:
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
+			opts.gpu_binsizex=32;
+			opts.gpu_binsizey=32;
 		case 5:
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
+			opts.gpu_binsizex=32;
+			opts.gpu_binsizey=32;
 		default:
-			opts.bin_size_x=nf1;
-			opts.bin_size_y=nf2;		
+			opts.gpu_binsizex=nf1;
+			opts.gpu_binsizey=nf2;		
 	}
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<M; j++){

@@ -7,13 +7,12 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 	opts.upsampfac = upsampfac;
 
 	// for gpu
-	opts.method = 5;
-	opts.bin_size_x = 32;
-	opts.bin_size_y = 32;
-	opts.Horner = 0;
-	opts.maxsubprobsize = 1000;
-	opts.nthread_x = 16;
-	opts.nthread_y = 16;
+	opts.gpu_nstreams = 16;
+	opts.gpu_method = 5;
+	opts.gpu_binsizex = 32;
+	opts.gpu_binsizey = 32;
+	opts.kerevalmeth = 1;
+	opts.gpu_maxsubprobsize = 1000;
 
 	// Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
 	int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten
@@ -37,7 +36,6 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 		betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
 	}
 	opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
-	//fprintf(stderr,"setup_spreader: sigma=%.6f, chose ns=%d beta=%.6f\n",(double)upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
-	return 0;
 
+	return 0;
 }

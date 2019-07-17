@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
     cout<<"error: cufinufft_default_opts"<<endl;
     return 0;
   }
-	opts.method=method;
+	opts.gpu_method=method;
 	cout<<scientific<<setprecision(3);
 
 
@@ -98,9 +98,9 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"<<endl;
 #endif
 
-	if(opts.method==5)
+	if(opts.gpu_method==5)
 	{
-		opts.bin_size_x=32;
+		opts.gpu_binsizex=32;
 
 	}
 
@@ -112,18 +112,18 @@ int main(int argc, char* argv[])
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-		opts.method,M,nf1,t,M/t);
+		opts.gpu_method,M,nf1,t,M/t);
 #ifdef RESULT
 	switch(method)
 	{
 		case 5:
-			opts.bin_size_x=32;
+			opts.gpu_binsizex=32;
 		default:
-			opts.bin_size_x=nf1;
+			opts.gpu_binsizex=nf1;
 	}
 	cout<<"[result-input]"<<endl;
 	for (int i=0; i<nf1; i++){
-		if( i % opts.bin_size_x == 0 && i!=0)
+		if( i % opts.gpu_binsizex == 0 && i!=0)
 			printf(" |");
 		printf(" (%2.3g,%2.3g)",fw[i].real(),fw[i].imag() );
 	}

@@ -22,13 +22,13 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 
 	d_plan->byte_now=0;
 	// No extra memory is needed in idriven method (case 1)
-	switch(opts.method)
+	switch(opts.gpu_method)
 	{
 		case 5:
 			{
 				int numbins[2];
-				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
-				numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
+				numbins[0] = ceil((FLT) nf1/opts.gpu_binsizex);
+				numbins[1] = ceil((FLT) nf2/opts.gpu_binsizey);
 				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
@@ -43,8 +43,8 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 		case 6:
 			{
 				int numbins[2];
-				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
-				numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
+				numbins[0] = ceil((FLT) nf1/opts.gpu_binsizex);
+				numbins[1] = ceil((FLT) nf2/opts.gpu_binsizey);
 				checkCudaErrors(cudaMalloc(&d_plan->finegridsize,nf1*nf2*
 						sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->fgstartpts,nf1*nf2*
@@ -74,9 +74,9 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 
-	cudaStream_t* streams =(cudaStream_t*) malloc(opts.nstreams*
+	cudaStream_t* streams =(cudaStream_t*) malloc(opts.gpu_nstreams*
 		sizeof(cudaStream_t));
-	for(int i=0; i<opts.nstreams; i++)
+	for(int i=0; i<opts.gpu_nstreams; i++)
 		checkCudaErrors(cudaStreamCreate(&streams[i]));
 	d_plan->streams = streams;
 
@@ -90,7 +90,7 @@ void freegpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	cudaFree(d_plan->c);
 	cudaFree(d_plan->fwkerhalf1);
 	cudaFree(d_plan->fwkerhalf2);
-	switch(opts.method)
+	switch(opts.gpu_method)
 	{
 		case 5:
 			{
@@ -117,6 +117,6 @@ void freegpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 			break;
 	}
 
-	for(int i=0; i<opts.nstreams; i++)
+	for(int i=0; i<opts.gpu_nstreams; i++)
 		checkCudaErrors(cudaStreamDestroy(d_plan->streams[i]));
 }

@@ -25,14 +25,14 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	dim3 blocks;
 
 	int ns=opts.nspread;
-	int bin_size_x=opts.bin_size_x;
-	int bin_size_y=opts.bin_size_y;
+	int bin_size_x=opts.gpu_binsizex;
+	int bin_size_y=opts.gpu_binsizey;
 	int numbins[2];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
 #ifdef DEBUG
 	cout<<"[debug ] Dividing the uniform grids to bin size["
-		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
+		<<opts.gpu_binsizex<<"x"<<opts.gpu_binsizey<<"]"<<endl;
 	cout<<"[debug ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
 
@@ -81,12 +81,12 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	checkCudaErrors(cudaMemcpy(h_finegridsize,d_finegridsize,
 				nf1*nf2*sizeof(int),cudaMemcpyDeviceToHost));
 	for(int j=0; j<nf2; j++){
-		if( j % opts.bin_size_y == 0)
+		if( j % opts.gpu_binsizey == 0)
 			printf("\n");
 		biny = floor(j/bin_size_y);
 		cout<<"[debug ] ";
 		for(int i=0; i<nf1; i++){
-			if( i % opts.bin_size_x == 0 && i!=0)
+			if( i % opts.gpu_binsizex == 0 && i!=0)
 				printf(" |");
 			binx = floor(i/bin_size_x);
 			binidx = binx+biny*numbins[0];
@@ -158,12 +158,12 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 				(nf1*nf2)*sizeof(int),cudaMemcpyDeviceToHost));
 	cout<<"[debug ] Result of scan finegridsize array:"<<endl;
 	for(int j=0; j<nf2; j++){
-		if( j % opts.bin_size_y == 0)
+		if( j % opts.gpu_binsizey == 0)
 			printf("\n");
 		biny = floor(j/bin_size_y);
 		cout<<"[debug ] ";
 		for(int i=0; i<nf1; i++){
-			if( i % opts.bin_size_x == 0 && i!=0)
+			if( i % opts.gpu_binsizex == 0 && i!=0)
 				printf(" |");
 			binx = floor(i/bin_size_x);
 			binidx = binx+biny*numbins[0];
@@ -199,7 +199,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 	cout<<endl;
 	free(h_idxnupts);
 #endif
-	int maxsubprobsize = opts.maxsubprobsize;
+	int maxsubprobsize = opts.gpu_maxsubprobsize;
 	cudaEventRecord(start);
 	int blocksize = bin_size_x*bin_size_y;
 	cudaEventRecord(start);
@@ -313,17 +313,17 @@ int cuspread2d_paul(int nf1, int nf2, int M, const cufinufft_opts opts,
 	int ns=opts.nspread;   // psi's support in terms of number of cells
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
-	int maxsubprobsize=opts.maxsubprobsize;
+	int maxsubprobsize=opts.gpu_maxsubprobsize;
 
 	// assume that bin_size_x > ns/2;
-	int bin_size_x=opts.bin_size_x;
-	int bin_size_y=opts.bin_size_y;
+	int bin_size_x=opts.gpu_binsizex;
+	int bin_size_y=opts.gpu_binsizey;
 	int numbins[2];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
 #ifdef INFO
 	cout<<"[info  ] Dividing the uniform grids to bin size["
-		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
+		<<opts.gpu_binsizex<<"x"<<opts.gpu_binsizey<<"]"<<endl;
 	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
 

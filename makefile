@@ -25,19 +25,19 @@ LIBS_CUFINUFFT=-lcufft
 spread2d: examples/spread_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o \
 	finufft/utils.o src/memtransfer_wrapper.o src/common.o \
 	src/2d/spread2d_wrapper_paul.o
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 interp2d: examples/interp_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o \
 	src/2d/interp2d_wrapper.o src/2d/interp2d.o finufft/utils.o \
 	src/memtransfer_wrapper.o src/common.o src/2d/spread2d_wrapper_paul.o \
 	src/profile.o
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 spreadinterp_test: test/spreadinterp_test.o src/2d/spread2d_wrapper.o \
 	src/2d/spread2d.o finufft/utils.o finufft/spreadinterp.o \
 	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
 	src/common.o src/2d/spread2d_wrapper_paul.o src/profile.o
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o finufft/utils.o \
 	finufft/spreadinterp.o finufft/dirft2d.o finufft/common.o \
