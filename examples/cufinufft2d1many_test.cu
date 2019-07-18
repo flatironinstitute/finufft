@@ -12,7 +12,6 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	FLT sigma = 2.0;
 	int N1, N2, M, N, ntransf, ntransfcufftplan;
 	if (argc<4) {
 		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [ntransf [ntransfcufftplan [M [tol]]]]]\n");
@@ -112,9 +111,9 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_setNUpts(M, x, y, &dplan);
+	ier=cufinufft_setNUpts(M, x, y, NULL, 0, NULL, NULL, NULL, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft2d_setNUpts\n");
+		printf("err: cufinufft_setNUpts\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -123,7 +122,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d1_exec(c, fk, &dplan);
+	ier=cufinufft_exec(c, fk, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d1_exec\n");
 	}
@@ -134,7 +133,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_destroy(&dplan);
+	ier=cufinufft_destroy(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

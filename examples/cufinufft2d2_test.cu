@@ -107,9 +107,9 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_setNUpts",3);
-		ier=cufinufft2d_setNUpts(M, x, y, &dplan);
+		ier=cufinufft_setNUpts(M, x, y, NULL, 0, NULL, NULL, NULL, &dplan);
 		if (ier!=0){
-			printf("err: cufinufft2d_setNUpts\n");
+			printf("err: cufinufft_setNUpts\n");
 		}
 	}
 	cudaEventRecord(stop);
@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d2_exec",4);
-		ier=cufinufft2d2_exec(c, fk, &dplan);
+		ier=cufinufft_exec(c, fk, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft2d2_exec\n");
 		}
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_destroy",5);
-		ier=cufinufft2d_destroy(&dplan);
+		ier=cufinufft_destroy(&dplan);
 	}
 #ifdef TIME
 	cudaEventRecord(stop);

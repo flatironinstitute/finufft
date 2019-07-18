@@ -12,6 +12,12 @@ LIBS=-lm -lfftw3 -lcudart -lstdc++ -lnvToolsExt -lcufft
 
 FINUFFTOBJS=finufft/utils.o finufft/dirft2d.o finufft/common.o \
 	finufft/spreadinterp.o finufft/contrib/legendre_rule_fast.o
+
+CUFINUFFTOBJS=src/2d/interp2d.o src/2d/spread2d.o src/2d/cufinufft2d.o \
+	src/2d/spread2d_wrapper.o src/2d/spread2d_wrapper_paul.o \
+	src/2d/interp2d_wrapper.o src/memtransfer_wrapper.o \
+	src/deconvolve_wrapper.o src/cufinufft.o src/profile.o
+	
 #-include make.inc
 
 %.o: %.cpp
@@ -23,58 +29,34 @@ FINUFFTOBJS=finufft/utils.o finufft/dirft2d.o finufft/common.o \
 #          src/common.o
 #	$(NVCC) $(NVCCFLAGS) -o $@ $^
 
-spread2d: examples/spread_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o \
-	finufft/utils.o src/memtransfer_wrapper.o src/2d/spread2d_wrapper_paul.o \
-	src/cufinufft.o $(FINUFFTOBJS)
+spread2d: examples/spread_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-interp2d: examples/interp_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o \
-	src/2d/interp2d_wrapper.o src/2d/interp2d.o src/memtransfer_wrapper.o \
-	src/2d/spread2d_wrapper_paul.o src/profile.o src/cufinufft.o $(FINUFFTOBJS)
+interp2d: examples/interp_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-spreadinterp_test: test/spreadinterp_test.o src/2d/spread2d_wrapper.o \
-	src/2d/spread2d.o finufft/utils.o src/memtransfer_wrapper.o \
-	src/2d/interp2d_wrapper.o src/2d/interp2d.o src/2d/spread2d_wrapper_paul.o \
-	src/profile.o src/cufinufft.o $(FINUFFTOBJS)
+spreadinterp_test: test/spreadinterp_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o src/2d/spread2d_wrapper.o \
-	src/2d/spread2d.o src/2d/cufinufft2d.o src/deconvolve_wrapper.o \
-	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/2d/spread2d_wrapper_paul.o src/profile.o src/cufinufft.o $(FINUFFTOBJS)
+finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o $(CUFINUFFTOBJS) \
+	$(FINUFFTOBJS)
 	$(CXX) $^ $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft_test: examples/cufinufft_test.o src/2d/spread2d.o src/cufinufft.o \
-	src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o \
-	src/2d/interp2d.o src/2d/spread2d_wrapper_paul.o src/profile.o \
-	src/2d/spread2d_wrapper.o $(FINUFFTOBJS)
+cufinufft_test: examples/cufinufft_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d1_test: examples/cufinufft2d1_test.o src/2d/spread2d_wrapper.o \
-	src/2d/spread2d.o src/2d/cufinufft2d.o src/deconvolve_wrapper.o \
-	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/2d/spread2d_wrapper_paul.o src/profile.o src/cufinufft.o $(FINUFFTOBJS)
+cufinufft2d1_test: examples/cufinufft2d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d1many_test: examples/cufinufft2d1many_test.o \
-	src/2d/spread2d_wrapper.o src/2d/spread2d.o src/2d/cufinufft2d.o \
-	src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o \
-	src/2d/interp2d.o src/2d/spread2d_wrapper_paul.o src/profile.o \
-	src/cufinufft.o $(FINUFFTOBJS)
+cufinufft2d1many_test: examples/cufinufft2d1many_test.o $(CUFINUFFTOBJS) \
+	$(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d2_test: examples/cufinufft2d2_test.o src/2d/spread2d_wrapper.o \
-	src/2d/spread2d.o src/2d/cufinufft2d.o src/deconvolve_wrapper.o \
-	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
-	src/2d/spread2d_wrapper_paul.o src/profile.o src/cufinufft.o $(FINUFFTOBJS)
+cufinufft2d2_test: examples/cufinufft2d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d2many_test: examples/cufinufft2d2many_test.o \
-	src/2d/spread2d_wrapper.o src/2d/spread2d.o src/2d/cufinufft2d.o \
-	src/deconvolve_wrapper.o src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o\
-	 src/2d/interp2d.o src/2d/spread2d_wrapper_paul.o src/profile.o \
-	src/cufinufft.o $(FINUFFTOBJS)
+cufinufft2d2many_test: examples/cufinufft2d2many_test.o $(CUFINUFFTOBJS) \
+	$(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \

@@ -47,6 +47,7 @@ typedef struct {
 	nufft_opts      opts; 
 	spread_opts     spopts;
 
+	int dim;
 	int M;
 	int nf1;
 	int nf2;
@@ -66,6 +67,7 @@ typedef struct {
 
 	FLT *kx;
 	FLT *ky;
+	FLT *kz;
 	CUCPX *c;
 	CUCPX *fw;
 	CUCPX *fk;
@@ -134,18 +136,13 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 int cufinufft_default_opts(nufft_opts &opts);
 
 // 2d
-int cufinufft2d_plan(int ms, int mt, int ntransf, int ntransfcufftplan, 
-		int iflag, cufinufft_plan *d_plan);
-int cufinufft2d_setNUpts(int M, FLT* h_kx, FLT* h_ky, cufinufft_plan *d_plan);
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
-int cufinufft2d_destroy(cufinufft_plan *d_plan);
 
 int cufinufft_makeplan(finufft_type type, int n_dims, int *n_modes, int iflag, 
 		int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan);
-int cufinufft_destroy(cufinufft_plan *d_plan);
-#if 0
-int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, cufinufft_plan *d_plan);
+int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
+	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan);
 int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
-#endif
+int cufinufft_destroy(cufinufft_plan *d_plan);
 #endif

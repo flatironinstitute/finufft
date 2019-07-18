@@ -86,14 +86,10 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 	switch(d_plan->opts.gpu_method)
 	{
 		case 5:
-			{
-				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
-			}
 		case 6:
 			{
 				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
 			}
 			break;
 	}
@@ -137,4 +133,33 @@ void freegpumemory2d(cufinufft_plan *d_plan)
 
 	for(int i=0; i<d_plan->opts.gpu_nstreams; i++)
 		checkCudaErrors(cudaStreamDestroy(d_plan->streams[i]));
+}
+int allocgpumem1d_plan(cufinufft_plan *d_plan)
+{
+	cerr<<"Not yet implemented"<<endl;
+	return 1;
+}
+int allocgpumem1d_nupts(cufinufft_plan *d_plan)
+{
+	cerr<<"Not yet implemented"<<endl;
+	return 1;
+}
+void freegpumemory1d(cufinufft_plan *d_plan)
+{
+	cerr<<"Not yet implemented"<<endl;
+}
+
+int allocgpumem3d_plan(cufinufft_plan *d_plan)
+{
+	cerr<<"Not yet implemented"<<endl;
+	return 1;
+}
+int allocgpumem3d_nupts(cufinufft_plan *d_plan)
+{
+	cerr<<"Not yet implemented"<<endl;
+	return 1;
+}
+void freegpumemory3d(cufinufft_plan *d_plan)
+{
+	cerr<<"Not yet implemented"<<endl;
 }
