@@ -78,13 +78,13 @@ int main(int argc, char* argv[])
 #endif
 
 	cufinufft_plan dplan;
-	cufinufft_opts opts;
-	ier=cufinufft_default_opts(opts,tol,sigma);
-	opts.gpu_method=method;
-	opts.spread_direction=1;
+
+	ier=cufinufft_default_opts(dplan.opts,tol,sigma);
+	dplan.opts.gpu_method=method;
+	dplan.opts.spread_direction=1;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransf, iflag, opts, &dplan);
+	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransf, iflag, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
 	}
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_setNUpts(x, y, opts, &dplan);
+	ier=cufinufft2d_setNUpts(x, y, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_setNUpts\n");
 	}
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d1_exec(c, fk, opts, &dplan);
+	ier=cufinufft2d1_exec(c, fk, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d1_exec\n");
 	}
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_destroy(opts, &dplan);
+	ier=cufinufft2d_destroy(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

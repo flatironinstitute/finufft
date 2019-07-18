@@ -114,29 +114,22 @@ void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 /* CPU wrapper for calling CUDA kernels */
 // Wrapper for testing spread, interpolation only
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const FLT *h_kx,
-	const FLT *h_ky, const CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
+	const FLT *h_ky, const CPX* h_c, cufinufft_plan *d_plan);
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-	FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
+	FLT *h_ky, CPX* h_c, cufinufft_plan *d_plan);
 
 // Functions for calling different methods of spreading & interpolation
-int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
-int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
+int cuspread2d(cufinufft_plan* d_plan);
+int cuinterp2d(cufinufft_plan* d_plan);
 
 // Wrappers for methods of spreading
-int cuspread2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts,
-	cufinufft_plan *d_mem);
-int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
-	cufinufft_plan *d_plan);
-int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
-	cufinufft_plan *d_plan);
-int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts,
-	cufinufft_plan *d_mem);
-int cuspread2d_paul(int nf1, int nf2, int M, const cufinufft_opts opts,
-	cufinufft_plan *d_mem);
+int cuspread2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 
 // Wrappers for methods of interpolation
-int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts,
-	cufinufft_plan *d_mem);
-int cuinterp2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts,
-	cufinufft_plan *d_mem);
+int cuinterp2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 #endif

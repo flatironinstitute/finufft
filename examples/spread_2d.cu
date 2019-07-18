@@ -58,16 +58,15 @@ int main(int argc, char* argv[])
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_opts opts;
 	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
 
-	ier = cufinufft_default_opts(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(dplan.opts,tol,upsampfac);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
-	opts.gpu_method=method;
+	dplan.opts.gpu_method=method;
 	cout<<scientific<<setprecision(3);
 
 
@@ -78,12 +77,12 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
-	opts.pirange=0;
-	opts.kerevalmeth=kerevalmeth;
+	dplan.opts.pirange=0;
+	dplan.opts.gpu_kerevalmeth=kerevalmeth;
 	if(method == 6)
-		opts.gpu_maxsubprobsize=maxsubprobsize;
+		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	if(method == 5)
-		opts.gpu_maxsubprobsize=maxsubprobsize;
+		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -206,51 +205,39 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"
 		<<endl;
 #endif
-	if(opts.gpu_method == 2)
+	if(dplan.opts.gpu_method == 2)
 	{
-		opts.gpu_binsizex=16;
-		opts.gpu_binsizey=16;
+		dplan.opts.gpu_binsizex=16;
+		dplan.opts.gpu_binsizey=16;
 	}
 
-	if(opts.gpu_method == 4 || opts.gpu_method==5)
+	if(dplan.opts.gpu_method == 4 || dplan.opts.gpu_method==5)
 	{
-		opts.gpu_binsizex=32;
-		opts.gpu_binsizey=32;
+		dplan.opts.gpu_binsizex=32;
+		dplan.opts.gpu_binsizey=32;
 	}
 
-	if(opts.gpu_method == 6)
+	if(dplan.opts.gpu_method == 6)
 	{
-		opts.gpu_binsizex=32;
-		opts.gpu_binsizey=32;
+		dplan.opts.gpu_binsizex=32;
+		dplan.opts.gpu_binsizey=32;
 	}
 	timer.restart();
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dplan);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, &dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d"<<endl;
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			opts.gpu_method,M,nf1*nf2,t,M/t);
+			dplan.opts.gpu_method,M,nf1*nf2,t,M/t);
 #if 0
-	switch(method)
-	{
-		case 4:
-			opts.gpu_binsizex=32;
-			opts.gpu_binsizey=32;
-		case 5:
-			opts.gpu_binsizex=16;
-			opts.gpu_binsizey=16;
-		default:
-			opts.gpu_binsizex=nf1;
-			opts.gpu_binsizey=nf2;		
-	}
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
-		if( j % opts.gpu_binsizey == 0)
+		if( j % dplan.opts.gpu_binsizey == 0)
 			printf("\n");
 		for (int i=0; i<nf1; i++){
-			if( i % opts.gpu_binsizex == 0 && i!=0)
+			if( i % dplan.opts.gpu_binsizex == 0 && i!=0)
 				printf(" |");
 			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
 		}

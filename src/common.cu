@@ -11,7 +11,7 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac)
 	opts.gpu_method = 5;
 	opts.gpu_binsizex = 32;
 	opts.gpu_binsizey = 32;
-	opts.kerevalmeth = 1;
+	opts.gpu_kerevalmeth = 1;
 	opts.gpu_maxsubprobsize = 1000;
 
 	// Set kernel width w (aka ns) and ES kernel beta parameter, in opts...

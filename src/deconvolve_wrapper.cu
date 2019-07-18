@@ -49,7 +49,7 @@ void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk,
 }
 
 /* CPU wrapper for deconvolution & amplication */
-int cudeconvolve2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cudeconvolve2d(cufinufft_plan *d_plan)
 {
 	int ms=d_plan->ms;
 	int mt=d_plan->mt;
@@ -58,7 +58,7 @@ int cudeconvolve2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	int nmodes=ms*mt;
 	int ntransfcufftplan=d_plan->ntransfcufftplan;
 
-	if(opts.spread_direction == 1){
+	if(d_plan->opts.spread_direction == 1){
 		for(int t=0; t<ntransfcufftplan; t++){
 			Deconvolve_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, 
 				d_plan->fw+t*nf1*nf2,d_plan->fk+t*nmodes,d_plan->fwkerhalf1, 

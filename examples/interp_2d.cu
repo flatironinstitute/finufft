@@ -48,16 +48,15 @@ int main(int argc, char* argv[])
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_opts opts;
 	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
 
-	ier = cufinufft_default_opts(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(dplan.opts,tol,upsampfac);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
-	opts.gpu_method=method;
+	dplan.opts.gpu_method=method;
 	cout<<scientific<<setprecision(3);
 
 
@@ -68,8 +67,8 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
-	opts.pirange=0;
-	opts.kerevalmeth=kerevalmeth;
+	dplan.opts.pirange=0;
+	dplan.opts.gpu_kerevalmeth=kerevalmeth;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -107,39 +106,39 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Interpolating  ["<<nf1<<"x"<<nf2<<"] uniform points to "<<M<<"nupts"<<endl;
 #endif
 #if 0
-	if(opts.gpu_method == 2)
+	if(d_plan->opts.gpu_method == 2)
 	{
-		opts.gpu_binsizex=16;
-		opts.gpu_binsizey=16;
+		d_plan->opts.gpu_binsizex=16;
+		d_plan->opts.gpu_binsizey=16;
 	}
 
-	if(opts.gpu_method == 4 || opts.gpu_method==5)
+	if(d_plan->opts.gpu_method == 4 || d_plan->opts.gpu_method==5)
 	{
-		opts.gpu_binsizex=32;
-		opts.gpu_binsizey=32;
+		d_plan->opts.gpu_binsizex=32;
+		d_plan->opts.gpu_binsizey=32;
 	}
 #endif
 	timer.restart();
-	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dplan);
+	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, c, &dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d"<<endl;
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
-			opts.gpu_method,nf1*nf2,M,t,nf1*nf2/t);
+			dplan.opts.gpu_method,nf1*nf2,M,t,nf1*nf2/t);
 #if 0
 	switch(method)
 	{
 		case 4:
-			opts.gpu_binsizex=32;
-			opts.gpu_binsizey=32;
+			d_plan->opts.gpu_binsizex=32;
+			d_plan->opts.gpu_binsizey=32;
 		case 5:
-			opts.gpu_binsizex=32;
-			opts.gpu_binsizey=32;
+			d_plan->opts.gpu_binsizex=32;
+			d_plan->opts.gpu_binsizey=32;
 		default:
-			opts.gpu_binsizex=nf1;
-			opts.gpu_binsizey=nf2;		
+			d_plan->opts.gpu_binsizex=nf1;
+			d_plan->opts.gpu_binsizey=nf2;		
 	}
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<M; j++){

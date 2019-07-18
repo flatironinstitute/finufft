@@ -44,14 +44,13 @@ int main(int argc, char* argv[])
 
 	int ier;
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_opts opts;
+	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
-	ier = cufinufft_default_opts(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(dplan.opts,tol,upsampfac);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
-	cufinufft_plan dplan;
 	cout<<scientific<<setprecision(3);
 
 
@@ -78,7 +77,7 @@ int main(int argc, char* argv[])
 		kersumim += fwfinufft[i].imag();    // in case the kernel isn't real!
 	}
 #endif
-	opts.pirange=0;
+	dplan.opts.pirange=0;
 	FLT strre = 0.0, strim = 0.0;          // also sum the strengths
 	switch(nupts_distribute){
 		// Making data
@@ -138,24 +137,24 @@ int main(int argc, char* argv[])
 	// Method 5: Subprob                     //
 	/* -------------------------------------- */
 	timer.restart();
-	opts.gpu_method=method;
-	opts.kerevalmeth=1;
-	opts.spread_direction=1;
+	dplan.opts.gpu_method=method;
+	dplan.opts.gpu_kerevalmeth=1;
+	dplan.opts.spread_direction=1;
 	switch(method){
 		case 1:
 		case 2:
 		case 4:
 		{
-			opts.gpu_binsizex=16;
-			opts.gpu_binsizey=16;
+			dplan.opts.gpu_binsizex=16;
+			dplan.opts.gpu_binsizey=16;
 		}
 		case 5:
 		{
-			opts.gpu_binsizex=32;
-			opts.gpu_binsizey=32;
+			dplan.opts.gpu_binsizex=32;
+			dplan.opts.gpu_binsizey=32;
 		}
 	}
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, opts, &dplan);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, &dplan);
 	FLT tsubprob=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
@@ -214,7 +213,7 @@ int main(int argc, char* argv[])
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 
-	opts.spread_direction=2;
+	dplan.opts.spread_direction=2;
 	CPX *fw;
 	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*sizeof(CPX));
@@ -229,7 +228,7 @@ int main(int argc, char* argv[])
 	// Method 1: Subprob                      //
 	/* -------------------------------------- */
 	timer.restart();
-	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, opts, &dplan);
+	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, &dplan);
 	FLT tts=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d_gpu_subprob"<<endl;
@@ -241,7 +240,7 @@ int main(int argc, char* argv[])
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
 	timer.start();
-	setup_spreader(spopts,(FLT)tol,opts.upsampfac,1);
+	setup_spreader(spopts,(FLT)tol,upsampfac,1);
 	spopts.pirange=0;
 	spopts.chkbnds=1;
 	spopts.spread_direction=2;
