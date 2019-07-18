@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
     }
   }
 
-  printf("test 3d type-1:\n"); // -------------- type 1
+  printf("------------------test 3d type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
   int ier = finufft3d1(M,x,y,z,c,isign,tol,N1,N2,N3,F,opts);
   double ti=timer.elapsedsec();
@@ -90,24 +90,24 @@ int main(int argc, char* argv[])
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
   // index in complex F as 1d array...
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);
-  printf("one mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,(long long)nt3,
+  printf("[err check] one mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,(long long)nt3,
 	 abs(Ft-F[it])/infnorm(N,F));
   if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft3d1(M,x,y,z,c,isign,N1,N2,N3,Ft);
-    printf("dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    printf("[err check] dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     free(Ft);
   }
 
   //check against the old
   CPX * F_old = (CPX *)malloc(sizeof(CPX)*N);
   finufft3d1_old(M,x,y,z,c,isign,tol,N1,N2,N3,F_old,opts);
-  printf("finufft3d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
-  printf("one mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2, (long long)nt3, abs(F_old[it]-F[it])/infnorm(N,F));
+  printf("[err check] finufft3d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
+  printf("[err check] one mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2, (long long)nt3, abs(F_old[it]-F[it])/infnorm(N,F));
   free(F_old);
 
   
-  printf("test 3d type-2:\n"); // -------------- type 2
+  printf("------------------test 3d type-2:------------------\n"); // -------------- type 2
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
@@ -131,23 +131,23 @@ int main(int argc, char* argv[])
     for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)
       for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 	ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt] + m3*z[jt]));   // direct
-  printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
+  printf("[err check] one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
   if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft3d2(M,x,y,z,ct,isign,N1,N2,N3,F);
-    printf("dirft3d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
+    printf("[err check] dirft3d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
     free(ct);
   }
 
   //check against the old
   CPX * c_old = (CPX *)malloc(sizeof(CPX)*M);
   finufft3d2_old(M,x,y,z,c_old,isign,tol,N1,N2,N3,F,opts);
-  printf("finufft3d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old,c));
-  printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(c_old[jt]-c[jt])/infnorm(M,c));
+  printf("[err check] finufft3d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old,c));
+  printf("[err check] one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(c_old[jt]-c[jt])/infnorm(M,c));
   free(c_old);
 
   
-  printf("test 3d type-3:\n"); // -------------- type 3
+  printf("------------------test 3d type-3:------------------\n"); // -------------- type 3
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
   {
@@ -188,11 +188,11 @@ int main(int argc, char* argv[])
   Ft = CPX(0,0);
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j] + u[kt]*z[j]));
-  printf("one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
+  printf("[err check] one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft3d3(M,x,y,z,c,isign,N,s,t,u,Ft);       // writes to F
-    printf("dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    printf("[err check] dirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     //cout<<"s t u, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<" "<<u[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   }
@@ -200,8 +200,8 @@ int main(int argc, char* argv[])
   //check against the old
   CPX *F3_old = (CPX *)malloc(sizeof(CPX)*N);
   ier = finufft3d3_old(M,x,y,z,c,isign,tol,N,s,t,u,F3_old,opts);
-  printf("finufft3d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old,F));
-  printf("one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(F3_old[kt]-F[kt])/infnorm(N,F));
+  printf("[err check] finufft3d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old,F));
+  printf("[err check] one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(F3_old[kt]-F[kt])/infnorm(N,F));
   free(F3_old);
 
 

@@ -24,15 +24,15 @@ int typeToInt(finufft_type type);
 int main(int argc, char* argv[])
 /* Test/Demo the guru interface
 
-   Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]
+   Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [do_spread [upsampfac]]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
 
-   Example: finufftGuru_test 1 1 2 1000 1000 0 1000000 1e-12 2 2.0
+   Example: finufftGuru_test 1 1 2 1000 1000 0 1000000 1e-12 2 1 2.0
 
    For Type3, please enter nk in Nmodes space, 0 for rest
-   Example w/ nk = 5000: finufftGuru_test 1 3 2 5000 0 0 1000000 1e-12 2 2.0
+   Example w/ nk = 5000: finufftGuru_test 1 3 2 5000 0 0 1000000 1e-12 2 1 2.0
 */
   
 {
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
   if (argc>11) sscanf(argv[11],"%lf",&upsampfac);
 
   if (argc==1 || argc>12) {
-    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]\n");
+    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug [do_spread [upsampfac]]]]]]\n");
     return 1;
   }
 
@@ -231,10 +231,11 @@ int main(int argc, char* argv[])
   //Guru Step 1
   int ier = make_finufft_plan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan);
   //for type3, omit n_modes and send in NULL
-
+  
   double plan_t = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
+    return ier;
   } else{
     printf("finufft_plan creation for %lld modes completed in %.3g s\n", (long long)N, plan_t);
   }
@@ -246,6 +247,7 @@ int main(int argc, char* argv[])
   double sort_t = timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);
+    return ier;
   } else{
     printf("set NU points for %lld src points completed in %.3g s\n", (long long)M, sort_t);
   }
@@ -257,6 +259,7 @@ int main(int argc, char* argv[])
 
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
+    return ier;
   } else
     printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, exec_t , ntransf*M/exec_t);
@@ -283,9 +286,6 @@ int main(int argc, char* argv[])
   printf("\tspeedup (T_finufft[%d]d[%d]_old / T_finufft[%d]d[%d]) = %.3g\n", typeToInt(type), ndim,
 	 typeToInt(type), ndim, oldTime/totalTime);
   
-  //???
-  //runDirectComputation(c,F,plan);
-  //FFTW_FORGET_WISDOM();
   
   /**********************************************************************************************/
   /* Free Memory

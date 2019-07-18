@@ -139,7 +139,6 @@ int main(int argc, char* argv[])
 
   else{
       
-    printf("test finufft2d1many_old interface\n");
     timer.restart();
     ier = finufft2d1many_old(ntransf, M, x, y, c, isign , tol, N1, N2, F_compMany, opts);
     double t_compMany =timer.elapsedsec();
