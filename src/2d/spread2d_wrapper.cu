@@ -10,19 +10,20 @@
 #include <cuComplex.h>
 #include "../spreadinterp.h"
 #include "../memtransfer.h"
+#include "../../finufft/common.h"
 
 using namespace std;
 
 // This is a function only doing spread includes device memory allocation, transfer, free
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
-	const FLT *h_kx, const FLT *h_ky, const CPX *h_c, cufinufft_plan* d_plan)
+	const FLT *h_kx, const FLT *h_ky, const CPX *h_c, FLT eps, 
+	cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	int ier;
-
+	int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
 	d_plan->ms = ms;
 	d_plan->mt = mt;
 	d_plan->nf1 = nf1;
@@ -170,10 +171,10 @@ int cuspread2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
-	int ns=d_plan->opts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=d_plan->opts.ES_c;
-	FLT es_beta=d_plan->opts.ES_beta;
-	FLT sigma=d_plan->opts.upsampfac;
+	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
+	FLT es_c=d_plan->spopts.ES_c;
+	FLT es_beta=d_plan->spopts.ES_beta;
+	FLT sigma=d_plan->spopts.upsampfac;
 
 	FLT* d_kx = d_plan->kx;
 	FLT* d_ky = d_plan->ky;
@@ -433,9 +434,9 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
-	int ns=d_plan->opts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=d_plan->opts.ES_c;
-	FLT es_beta=d_plan->opts.ES_beta;
+	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
+	FLT es_c=d_plan->spopts.ES_c;
+	FLT es_beta=d_plan->spopts.ES_beta;
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 
 	// assume that bin_size_x > ns/2;

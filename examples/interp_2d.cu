@@ -11,7 +11,7 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	int nf1, nf2;
-	FLT sigma = 2.0;
+	FLT upsampfac=2.0;
 	int N1, N2, M;
 	if (argc<5) {
 		fprintf(stderr,"Usage: interp2d [method [nupts_distr [nf1 nf2 [M [tol [kerevalmeth]]]]]]\n");
@@ -28,8 +28,8 @@ int main(int argc, char* argv[])
 	sscanf(argv[3],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[4],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 
-	N1 = (int) nf1/sigma;
-	N2 = (int) nf2/sigma;
+	N1 = (int) nf1/upsampfac;
+	N2 = (int) nf2/upsampfac;
 	M = N1*N2;// let density always be 1
 	if(argc>5){
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
@@ -49,9 +49,8 @@ int main(int argc, char* argv[])
 
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_plan dplan;
-	FLT upsampfac=2.0;
 
-	ier = cufinufft_default_opts(dplan.opts,tol,upsampfac);
+	ier = cufinufft_default_opts(dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
@@ -67,7 +66,6 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
-	dplan.opts.pirange=0;
 	dplan.opts.gpu_kerevalmeth=kerevalmeth;
 	switch(nupts_distribute){
 		// Making data
@@ -119,7 +117,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 	timer.restart();
-	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, c, &dplan);
+	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, c, tol, &dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d"<<endl;
 		return 0;

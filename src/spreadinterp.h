@@ -16,23 +16,25 @@ __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta);
 __global__
-void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT sigma);
+void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, FLT sigma);
 
 /* Kernels for SubProb Method */
 // SubProb properties
 __global__
-void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, int nbinx,
-		int nbiny, int* bin_size, FLT *x, FLT *y, int* sortidx);
+void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, 
+	int bin_size_y, int nbinx,int nbiny, int* bin_size, FLT *x, FLT *y, 
+	int* sortidx);
 __global__
-void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbinx,
-		int nbiny, int* bin_startpts, int* sortidx,
-		FLT *x, FLT *y, int* index);
+void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, 
+	int nbinx,int nbiny, int* bin_startpts, int* sortidx,FLT *x, FLT *y, 
+	int* index);
 __global__
-void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, int* d_numsubprob,
-		int numbins);
+void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, 
+	int* d_numsubprob,int numbins);
 __global__
-void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
+void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, 
+	int numbins);
 
 // Main Spreading Kernel
 __global__
@@ -113,10 +115,11 @@ void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 
 /* CPU wrapper for calling CUDA kernels */
 // Wrapper for testing spread, interpolation only
-int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, const FLT *h_kx,
-	const FLT *h_ky, const CPX* h_c, cufinufft_plan *d_plan);
-int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *h_kx,
-	FLT *h_ky, CPX* h_c, cufinufft_plan *d_plan);
+int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
+	const FLT *h_kx, const FLT *h_ky, const CPX* h_c, FLT eps, 
+	cufinufft_plan *d_plan);
+int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
+	FLT *h_kx, FLT *h_ky, CPX* h_c, FLT eps, cufinufft_plan *d_plan);
 
 // Functions for calling different methods of spreading & interpolation
 int cuspread2d(cufinufft_plan* d_plan);

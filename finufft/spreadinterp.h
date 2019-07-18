@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "utils.h"
-#include "../src/cufinufft.h"
+//#include "../src/cufinufft.h"
 
 #define MAX_NSPREAD 16     // upper bound on w, ie nspread, even when padded
                            // (see evaluate_kernel_vector); also for common
@@ -69,7 +69,7 @@ int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort);
 
 FLT evaluate_kernel(FLT x,const spread_opts &opts);
-FLT evaluate_kernel(FLT x,const cufinufft_opts &opts);
+//FLT evaluate_kernel(FLT x,const cufinufft_opts &opts);
 FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
 int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac,int kerevalmeth);
 

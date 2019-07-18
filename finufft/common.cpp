@@ -17,15 +17,15 @@ void finufft_default_opts(nufft_opts &o)
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX. Barnett 10/30/17
 {
-  o.upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
-  o.chkbnds = 0;
-  o.debug = 0;
-  o.spread_debug = 0;
-  o.spread_sort = 2;        // use heuristic rule for whether to sort
-  o.spread_kerevalmeth = 1; // 0: direct exp(sqrt()), 1: Horner ppval
-  o.spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
-  o.fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
-  o.modeord = 0;
+	o.upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
+	o.chkbnds = 0;
+	o.debug = 0;
+	o.spread_debug = 0;
+	o.spread_sort = 2;        // use heuristic rule for whether to sort
+	o.spread_kerevalmeth = 1; // 0: direct exp(sqrt()), 1: Horner ppval
+	o.spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
+	o.fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
+	o.modeord = 0;
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
@@ -148,6 +148,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   }
 }
 
+#if 0
 void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, cufinufft_opts opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
@@ -207,7 +208,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, cufinufft_opts opts)
     }
   }
 }
-
+#endif
 void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric

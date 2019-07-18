@@ -46,7 +46,8 @@ int main(int argc, char* argv[])
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
-	ier = cufinufft_default_opts(dplan.opts,tol,upsampfac);
+	ier = cufinufft_default_opts(dplan.opts);
+	dplan.opts.upsampfac=upsampfac;
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
@@ -77,7 +78,7 @@ int main(int argc, char* argv[])
 		kersumim += fwfinufft[i].imag();    // in case the kernel isn't real!
 	}
 #endif
-	dplan.opts.pirange=0;
+	dplan.spopts.pirange=0;
 	FLT strre = 0.0, strim = 0.0;          // also sum the strengths
 	switch(nupts_distribute){
 		// Making data
@@ -139,7 +140,7 @@ int main(int argc, char* argv[])
 	timer.restart();
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
-	dplan.opts.spread_direction=1;
+	dplan.spopts.spread_direction=1;
 	switch(method){
 		case 1:
 		case 2:
@@ -154,7 +155,7 @@ int main(int argc, char* argv[])
 			dplan.opts.gpu_binsizey=32;
 		}
 	}
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, &dplan);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, tol, &dplan);
 	FLT tsubprob=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
@@ -213,7 +214,7 @@ int main(int argc, char* argv[])
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 
-	dplan.opts.spread_direction=2;
+	dplan.spopts.spread_direction=2;
 	CPX *fw;
 	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*sizeof(CPX));
@@ -228,7 +229,7 @@ int main(int argc, char* argv[])
 	// Method 1: Subprob                      //
 	/* -------------------------------------- */
 	timer.restart();
-	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, &dplan);
+	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, tol, &dplan);
 	FLT tts=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d_gpu_subprob"<<endl;

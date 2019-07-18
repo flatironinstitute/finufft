@@ -12,9 +12,7 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	FLT sigma = 2.0;
 	int N1, N2, M, N;
-	int ntransf=1;
 	if (argc<4) {
 		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
@@ -79,12 +77,19 @@ int main(int argc, char* argv[])
 
 	cufinufft_plan dplan;
 
-	ier=cufinufft_default_opts(dplan.opts,tol,sigma);
+	ier=cufinufft_default_opts(dplan.opts);
 	dplan.opts.gpu_method=method;
-	dplan.opts.spread_direction=1;
 
+	int dim = 2;
+	int nmodes[3];
+	int ntransf = 1;
+	int ntransfcufftplan = 1;
+	nmodes[0] = N1;
+	nmodes[1] = N2;
+	nmodes[2] = 1;
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(N1, N2, ntransf, ntransf, iflag, &dplan);
+	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, 
+		ntransfcufftplan, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
 	}

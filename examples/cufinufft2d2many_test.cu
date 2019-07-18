@@ -13,7 +13,6 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	FLT sigma = 2.0;
 	int N1, N2, M;
 	int ntransf, ntransfcufftplan;
 	if (argc<4) {
@@ -99,16 +98,20 @@ int main(int argc, char* argv[])
 	printf("[time  ] \tWarm up GPU \t\t %.3g s\n", milliseconds/1000);
 
 	cufinufft_plan dplan;
-	ier=cufinufft_default_opts(dplan.opts,tol,sigma);
+	ier=cufinufft_default_opts(dplan.opts);
 	dplan.opts.gpu_method=method;
-	dplan.opts.spread_direction=2;
 	dplan.opts.gpu_kerevalmeth=1;
 
+	int dim = 2;
+	int nmodes[3];
+	nmodes[0] = N1;
+	nmodes[1] = N2;
+	nmodes[2] = 1;
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_plan",2);
-		ier=cufinufft2d_plan(N1, N2, ntransf, ntransfcufftplan, iflag, 
-			&dplan);
+		ier=cufinufft_makeplan(type2, dim, nmodes, iflag, ntransf, tol, 
+			ntransfcufftplan, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft2d_plan\n");
 		}

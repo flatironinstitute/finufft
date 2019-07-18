@@ -23,7 +23,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
-	int ns=d_plan->opts.nspread;
+	int ns=d_plan->spopts.nspread;
 	int bin_size_x=d_plan->opts.gpu_binsizex;
 	int bin_size_y=d_plan->opts.gpu_binsizey;
 	int numbins[2];
@@ -308,9 +308,9 @@ int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
-	int ns=d_plan->opts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=d_plan->opts.ES_c;
-	FLT es_beta=d_plan->opts.ES_beta;
+	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
+	FLT es_c=d_plan->spopts.ES_c;
+	FLT es_beta=d_plan->spopts.ES_beta;
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 
 	// assume that bin_size_x > ns/2;
