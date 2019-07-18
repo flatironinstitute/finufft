@@ -98,8 +98,8 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     
     if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
-  
-    plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*plan->threadBlkSize);  
+    int blkSize = min(plan->threadBlkSize, plan->n_transf); 
+    plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*blkSize);  
 
     if(!plan->fw){
       fprintf(stderr, "Call to malloc failed for working upsampled array allocation\n");
@@ -113,7 +113,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     
     timer.restart();
     //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, plan->threadBlkSize, plan->fw, NULL, 1,
+    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, blkSize, plan->fw, NULL, 1,
 					plan->nf2*plan->nf1*plan->nf3, plan->fw,
                                         NULL, 1, plan->nf2*plan->nf1*plan->nf3,
 					fftsign, plan->opts.fftw ) ;    
@@ -228,7 +228,8 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
       return ERR_MAXNALLOC;
     }
 
-    plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*plan->threadBlkSize);  
+    int blkSize = min(plan->threadBlkSize, plan->n_transf);
+    plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*blkSize);  
 
     if(!plan->fw){
       fprintf(stderr, "Call to malloc failed for working upsampled array allocation\n");
@@ -273,7 +274,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
       if(plan->n_dims > 2)
 	zpj[j] = (zj[j] - plan->t3P.C3) / plan->t3P.gam3;          // rescale z_j
     }
-    if (plan->opts.debug) printf("[setNUpoints] t3 coord scale:\t %.3g s\n",timer.elapsedsec());
+    if (plan->opts.debug) printf("[setNUpoints] t3 coord scale:\t\t %.3g s\n",timer.elapsedsec());
 
     int ier_check = spreadcheck(plan->nf1,plan->nf2 , plan->nf3, plan->nj, xpj, ypj, zpj, plan->spopts);
     if(ier_check) return ier_check;
