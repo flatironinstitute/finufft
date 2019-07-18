@@ -9,6 +9,7 @@
 #include <cuComplex.h>
 #include "../spreadinterp.h"
 #include "../memtransfer.h"
+#include "../profile.h"
 
 using namespace std;
 
@@ -98,10 +99,13 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuinterp2d_idriven(nf1, nf2, M, opts, d_plan);
-				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
-					return 1;
+				{
+					PROFILE_CUDA_GROUP("Spreading", 6);
+					ier = cuinterp2d_idriven(nf1, nf2, M, opts, d_plan);
+					if(ier != 0 ){
+						cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
+						return 1;
+					}
 				}
 			}
 			break;
@@ -129,7 +133,8 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts, 
+	cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -154,23 +159,22 @@ int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 	blocks.y = 1;
 
 	if(opts.Horner){
+		cudaStream_t *streams = d_plan->streams;
+		int nstreams = d_plan->nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			cudaEventRecord(start);
-			Interp_2d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, 
-					d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma);
-#ifdef SPREADTIME
-			float milliseconds = 0;
-			cudaEventRecord(stop);
-			cudaEventSynchronize(stop);
-			cudaEventElapsedTime(&milliseconds, start, stop);
-			printf("[time  ] \tKernel Interp_2d_Idriven_Horner \t%.3g ms\n", milliseconds);
-#endif
+			Interp_2d_Idriven_Horner<<<blocks, threadsPerBlock, 0, 
+				streams[t%nstreams]>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
+				ns, nf1, nf2, sigma);
 		}
 	}else{
+		cudaStream_t *streams = d_plan->streams;
+		int nstreams = d_plan->nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			cudaEventRecord(start);
-			Interp_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c+t*M,
-					d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, es_beta);
+			Interp_2d_Idriven<<<blocks, threadsPerBlock, 0, streams[t%nstreams]
+				>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, 
+				es_beta);
+		}
+	}
 #ifdef SPREADTIME
 			float milliseconds = 0;
 			cudaEventRecord(stop);
@@ -178,8 +182,6 @@ int cuinterp2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts, cufin
 			cudaEventElapsedTime(&milliseconds, start, stop);
 			printf("[time  ] \tKernel Interp_2d_Idriven \t%.3g ms\n", milliseconds);
 #endif
-		}
-	}
 	return 0;
 }
 

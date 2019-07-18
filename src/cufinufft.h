@@ -31,6 +31,7 @@ struct cufinufft_opts {      // see cuspread:setup_spreader for defaults.
 	int o_bin_size_x;
 	int o_bin_size_y;
 	int o_bin_size_z;
+
 	int Horner;
 	int maxsubprobsize;
 	int nthread_x;
@@ -45,6 +46,7 @@ struct cufinufft_plan {
 	int ms;
 	int mt;
 	int mu;
+
 	int ntransf;
 	int ntransfcufftplan;
 	int fw_width;
@@ -58,6 +60,7 @@ struct cufinufft_plan {
 	FLT *kx;
 	FLT *ky;
 	FLT *kz;
+
 	CUCPX *c;
 	CUCPX *fw;
 	CUCPX *fk;
@@ -70,14 +73,22 @@ struct cufinufft_plan {
 	int *binsize;
 	int *binstartpts;
 	int *numsubprob;
+
 	int *numnupts;
-	int *subprob_to_bin;
 	int *subprob_to_nupts;
+	int *subprob_to_bin;
 	int *idxnupts;
 	int *subprobstartpts;
 
+	// Paul
+	int *finegridsize;
+	int *fgstartpts;
+
 	void *temp_storage;
 	cufftHandle fftplan;
+
+	int nstreams;
+	cudaStream_t *streams;
 };
 
 // For error checking (where should this function be??)
