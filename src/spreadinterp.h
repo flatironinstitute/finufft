@@ -3,9 +3,9 @@
 #define __SPREAD_H__
 
 #include "../finufft/utils.h"
+#include "../finufft/spreadinterp.h"
 #include "cufinufft.h"
 
-#define MAX_NSPREAD 16
 //Kernels for 2D codes
 __global__
 void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y);

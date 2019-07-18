@@ -7,8 +7,6 @@
 
 using namespace std;
 
-#define maxns 16
-
 static __forceinline__ __device__
 FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	/* ES ("exp sqrt") kernel evaluation at single real argument:

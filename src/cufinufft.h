@@ -8,39 +8,7 @@
 #include "../finufft/spreadinterp.h"
 #include "../finufft/finufft.h"
 
-#define MAX_NSPREAD 16
-#define RESCALE(x,N,p) (p ? \
-		((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
-		(x<0 ? x+N : (x>N ? x-N : x)))
-
 enum finufft_type {type1,type2,type3};
-
-#if 0
-typedef struct {
-	/* Copy from nufft_opts.h */    
-	// Note: defaults in common/finufft_default_opts()
-	int debug;          // 0: silent, 1: text basic timing output
-	int spread_debug;   // passed to spread_opts, 0 (no text) 1 (some) or 2 (lots)
-	int spread_sort;    // passed to spread_opts, 0 (don't sort) 1 (do) or 2 (heuristic)
-	int spread_kerevalmeth; // "     spread_opts, 0: exp(sqrt()), 
-	//                    1: Horner ppval (faster)
-	int spread_kerpad;  // passed to spread_opts, 0: don't pad to mult of 4, 1: do
-	int chkbnds;        // 0: don't check if input NU pts in [-3pi,3pi], 1: do
-	int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
-	int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
-	// 1: FFT-style mode ordering (affects type-1,2 only)
-	FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 
-	//1.25 (small FFT)
-
-	/* following options are for gpu */
-	int gpu_method;
-	int gpu_binsizex;
-	int gpu_binsizey;
-	int gpu_maxsubprobsize;
-	int gpu_nstreams; 
-	int gpu_kerevalmeth;	// 0: direct exp(sqrt()), 1: Horner ppval
-} cufinufft_opts;
-#endif
 
 typedef struct {
 	finufft_type  type;
@@ -135,14 +103,15 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 #define checkCufftErrors(call)
 int cufinufft_default_opts(nufft_opts &opts);
 
-// 2d
-int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
-int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
 
 int cufinufft_makeplan(finufft_type type, int n_dims, int *n_modes, int iflag, 
-		int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan);
+	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan);
 int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
 	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan);
 int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
 int cufinufft_destroy(cufinufft_plan *d_plan);
+
+// 2d
+int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
+int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
 #endif

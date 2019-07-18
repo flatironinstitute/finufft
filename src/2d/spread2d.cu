@@ -9,10 +9,6 @@
 using namespace std;
 
 #define MAXBINSIZE 1024
-#define RESCALE(x,N,p) (p ? \
-                       ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
-                       (x<0 ? x+N : (x>N ? x-N : x)))
-
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
