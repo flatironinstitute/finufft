@@ -168,6 +168,12 @@ int main(int argc, char* argv[])
     if(z)
       free(z);
     return 1;
+    if(s)
+      free(s);
+    if(t)
+      free(t);
+    if(u)
+      free(u);
   }
 
   CPX* F = (CPX*)malloc(sizeof(CPX)*N*ntransf);   // mode ampls

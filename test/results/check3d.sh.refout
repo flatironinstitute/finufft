@@ -1,18 +1,18 @@
-test 3d type-1:
-one mode: rel err in F[1,2,-7] is 0
-dirft3d: rel l2-err of result F is 0
-finufft3d1_old: rel l2-err of result F is 0
-one mode: rel err in F[1,2,-7] is 0
-test 3d type-2:
-one targ: rel err in c[500] is 0
-dirft3d: rel l2-err of result c is 0
-finufft3d2_old: rel l2-err of result c is 0
-one targ: rel err in c[500] is 0
-test 3d type-3:
-one targ: rel err in F[500] is 0
-dirft3d: rel l2-err of result F is 0
-finufft3d3_old: rel l2-err of result c is 0
-one targ: rel err in F[500] is 0
+------------------test 3d type-1:------------------
+[err check] one mode: rel err in F[1,2,-7] is 0
+[err check] dirft3d: rel l2-err of result F is 0
+[err check] finufft3d1_old: rel l2-err of result F is 0
+[err check] one mode: rel err in F[1,2,-7] is 0
+------------------test 3d type-2:------------------
+[err check] one targ: rel err in c[500] is 0
+[err check] dirft3d: rel l2-err of result c is 0
+[err check] finufft3d2_old: rel l2-err of result c is 0
+[err check] one targ: rel err in c[500] is 0
+------------------test 3d type-3:------------------
+[err check] one targ: rel err in F[500] is 0
+[err check] dirft3d: rel l2-err of result F is 0
+[err check] finufft3d3_old: rel l2-err of result c is 0
+[err check] one targ: rel err in F[500] is 0
 ------------------test 3dmany type-1:------------------
 [err check] one mode: rel err in F[37,26,-3] of data[5] is 0
 [err check] err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) = 0

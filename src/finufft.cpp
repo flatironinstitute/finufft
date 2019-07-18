@@ -42,7 +42,11 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
   plan->nf2 = 1;
   plan->nf3 = 1;
   plan->isInnerT2 = false;
-
+  plan->ms = 1;
+  plan->mt = 1; 
+  plan->mu = 1;
+    
+  
   if (plan->threadBlkSize>1) {          
     FFTW_INIT();
     FFTW_PLAN_TH(plan->threadBlkSize);

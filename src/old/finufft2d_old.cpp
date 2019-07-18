@@ -326,7 +326,19 @@ int finufft2d2_old(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
   FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  if(!fwkerhalf1){
+    fprintf(stderr, "Call to malloc failed for fwkerhalf2 array allocation!");
+    return ERR_MAXNALLOC;        
+  }
+
   FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  if(!fwkerhalf2){
+    fprintf(stderr, "Call to malloc failed for fwkerhalf2 array allocation!");
+    free(fwkerhalf1);
+    return ERR_MAXNALLOC;        
+  }
+
+
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
@@ -338,6 +350,12 @@ int finufft2d2_old(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   }
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
+  if(!fw){
+    fprintf(stderr, "Call to malloc failed for fw array allocation!");
+    free(fwkerhalf1);
+    free(fwkerhalf2);
+    return ERR_MAXNALLOC;        
+  }
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
@@ -423,7 +441,20 @@ int finufft2d2many_old(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
   FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  if(!fwkerhalf1){
+    fprintf(stderr, "Call to malloc failed for fwkerhalf1 array allocation!");
+    return ERR_MAXNALLOC;        
+  }
+
   FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  if(!fwkerhalf2){
+    free(fwkerhalf1);
+    fprintf(stderr, "Call to malloc failed for fwkerhalf2 array allocation!");
+    return ERR_MAXNALLOC;    
+    
+  }
+
+
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
@@ -435,6 +466,12 @@ int finufft2d2many_old(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag
   }
 
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // nthreads copies of upsampled array
+  if(!fw){
+    free(fwkerhalf1);
+    free(fwkerhalf2);
+    fprintf(stderr, "Call to malloc failed for fw array allocation!");
+    return ERR_MAXNALLOC;        
+  }
   int fftsign = (iflag>=0) ? 1 : -1;
   const int n[] = {int(nf2), int(nf1)};
   // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
@@ -455,6 +492,12 @@ int finufft2d2many_old(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag
 
   timer.restart();            // sort
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
+    if(!sort_indices){
+      FFTW_FR(fw);
+      fprintf(stderr, "Call to malloc failed for sort_indices array allocation!");
+      return ERR_MAXNALLOC;        
+  }
+
   int did_sort = indexSort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
   if (opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", did_sort,
 			 timer.elapsedsec());

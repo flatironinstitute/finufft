@@ -1,18 +1,18 @@
 ------------------test 1d type-1:------------------
-one mode: rel err in F[370] is 0
-dirft1d: rel l2-err of result F is 0
-finufft1d1_old: rel l2-err of result F is 0
-one mode: rel err in F[370] is 0
+[err check] one mode: rel err in F[370] is 0
+[err check] dirft1d: rel l2-err of result F is 0
+[err check] finufft1d1_old: rel l2-err of result F is 0
+[err check] one mode: rel err in F[370] is 0
 ------------------test 1d type-2:------------------
-one targ: rel err in c[500] is 0
-dirft1d: rel l2-err of result c is 0
-finufft1d2_old: rel l2-err of result c is 0
-one targ: rel err in c[500] is 0
+[err check] one targ: rel err in c[500] is 0
+[err check] dirft1d: rel l2-err of result c is 0
+[err check] finufft1d2_old: rel l2-err of result c is 0
+[err check] one targ: rel err in c[500] is 0
 ------------------test 1d type-3:------------------
-one targ: rel err in F[250] is 0
-dirft1d: rel l2-err of result F is 0
-finufft1d3_old: rel l2-err of result c is 0
-one targ: rel err in F[250] is 0
+[err check] one targ: rel err in F[250] is 0
+[err check] dirft1d: rel l2-err of result F is 0
+[err check] finufft1d3_old: rel l2-err of result c is 0
+[err check] one targ: rel err in F[250] is 0
 ------------------test 1dmany type-1:------------------
 [err check] one mode: rel err in F[37] of data[9] is 0
 [err check] finufft1d1_old: rel l2-err of result F is 0

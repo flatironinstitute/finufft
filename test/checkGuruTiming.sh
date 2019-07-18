@@ -16,22 +16,22 @@
 #./finufftGuru_test 1 1 1 1 0 0 20000 1e-6 1 #same as above
 
 
-#./finufftGuru_test 1 2 3 1e2 1e2 1e4 750 1e-6 1
+#./finufftGuru_test 250 2 3 1e2 1e2 1e1 750 1e-6 1
 
-#./finufftGuru_test 1 2 3 1e3 1e3 1e6 15 1e-6 1
+#./finufftGuru_test 250 2 2 1e3 1e2 0 1e5 1e-6 1
 
-#./finufftGuru_test 1 2 3 1e3 1e3 1e1 10 1e-6 1 #low density
+#./finufftGuru_test 250 2 2 1e2 1e3 0 1e1  1e-6 1 #low density
 
-#./finufftGuru_test 1 2 3 1e1 1e1 1e2 20000 1e-6 1
+#./finufftGuru_test 250 2 3 1e1 1e1 1e2 20000 1e-6 1
 
 
 
-#./finufftGuru_test 1 3 3 1e2 1e2 1e2 750 1e-6 1
+#./finufftGuru_test 25 3 3 1e2 1e1 1e2 750 1e-6 1 
 
-#./finufftGuru_test 15 3 2 1e3 1e3 0 1e5 1e-6 1
+#./finufftGuru_test 15 3 2 1e3 1e2 0 1e5 1e-6 1
 
 #./finufftGuru_test 10 3 2 1e3 1e1 0 1e3 1e-6 1 #low density
 
-#./finufftGuru_test 200 3 2 1e1 1e1 1e2 0 1e-6 1
+#./finufftGuru_test 200 3 2 1e1 1e1 0 1e2 1e-6 1
 
 

@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
   CPX Ft = CPX(0,0);
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(IMA*((FLT)(isign*nt))*x[j]);
-  printf("one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
+  printf("[err check] one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d1(M,x,c,isign,N,Ft);
