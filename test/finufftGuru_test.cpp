@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
   
   FLT *x = (FLT *)malloc(sizeof(FLT)*M);        // NU pts x coords
   if(!x){
-    fprintf(stderr, "failed malloc x coords");
+    fprintf(stderr, "failed malloc x coords\n");
     return 1;
   }
 
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
   if(ndim > 1){
     y = (FLT *)malloc(sizeof(FLT)*M);        // NU pts y coords
     if(!y){
-      fprintf(stderr, "failed malloc y coords");
+      fprintf(stderr, "failed malloc y coords\n");
       free(x);
       return 1;
     }
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
   if(ndim > 2){
     z = (FLT *)malloc(sizeof(FLT)*M);        // NU pts z coords
     if(!z){
-      fprintf(stderr, "failed malloc z coords");
+      fprintf(stderr, "failed malloc z coords\n");
       free(x);
       if(y)
 	free(y);
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
   
   CPX* c = (CPX*)malloc(sizeof(CPX)*M*ntransf);   // strengths 
   if(!c){
-    fprintf(stderr, "failed malloc strengths");
+    fprintf(stderr, "failed malloc strengths array allocation \n");
     free(x);
     if(y)
       free(y);
@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
 
   CPX* F = (CPX*)malloc(sizeof(CPX)*N*ntransf);   // mode ampls
   if(!F){
-    fprintf(stderr, "failed malloc result array!");
+    fprintf(stderr, "failed malloc result array!\n");
     free(x);
     if(y)
       free(y);

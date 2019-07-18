@@ -236,12 +236,6 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
       return ERR_MAXNALLOC; 
     }
 
-    plan->phiHat = (FLT *)malloc(sizeof(FLT)*plan->nk*plan->n_dims);
-    if(!plan->phiHat){
-      fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation\n");
-      return ERR_MAXNALLOC;
-    }
-    
     FLT* xpj = (FLT*)malloc(sizeof(FLT)*plan->nj);
     if(!xpj){
       fprintf(stderr, "Call to malloc failed for rescaled x coordinates\n");
@@ -331,6 +325,13 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
     if(plan->opts.debug) printf("[setNUpoints] rescaling target-freqs: \t %.3g s\n", timer.elapsedsec());
 
     // Originally Step 3a: compute Fourier transform of scaled kernel at targets
+    
+    plan->phiHat = (FLT *)malloc(sizeof(FLT)*plan->nk*plan->n_dims);
+    if(!plan->phiHat){
+      fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation\n");
+      return ERR_MAXNALLOC;
+    }
+
     timer.restart();
    
     //phiHat spreading kernel fourier weights for non uniform target freqs := referred to as fkker in older code
@@ -341,7 +342,18 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
       onedim_nuft_kernel(plan->nk, up, plan->phiHat + 2*plan->nk, plan->spopts);
     if (plan->opts.debug) printf("[setNUpoints] kernel FT (ns=%d):\t\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());
 
+    //precompute product of phiHat for 2 and 3 dimensions 
+    if(plan->n_dims > 1){
+#pragma omp parallel for schedule(dynamic)              
+      for(BIGINT k=0; k < plan->nk; k++)
+	plan->phiHat[k]*=(plan->phiHat+plan->nk)[k];
+    }
 
+    if(plan->n_dims > 2){
+#pragma omp parallel for schedule(dynamic)              
+      for(BIGINT k=0; k < plan->nk; k++)
+	plan->phiHat[k]*=(plan->phiHat+plan->nk + plan->nk)[k];
+    }
     
     plan->s = s;
     plan->sp = sp;
@@ -423,6 +435,15 @@ void interpInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
 /*Type 2: deconvolves from user supplied fk into interior fw array */
 void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX *fk){
 
+    //phiHat is a stacked version fwker in the old code 
+    FLT *phiHat1 = plan->phiHat;
+    FLT *phiHat2;
+    FLT *phiHat3;
+    if(plan->n_dims > 1 )
+      phiHat2 = plan->phiHat + plan->nf1/2 + 1;
+    if(plan->n_dims > 2)
+      phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
+    
 #pragma omp parallel for
   for(int i = 0; i < maxSafeIndex; i++){
 
@@ -438,16 +459,6 @@ void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX 
     
     FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i;
 
-    //phiHat is a stacked version fwker in the old code 
-    FLT *phiHat1 = plan->phiHat;
-    FLT *phiHat2;
-    FLT *phiHat3;
-    if(plan->n_dims > 1 )
-      phiHat2 = plan->phiHat + plan->nf1/2 + 1;
-    if(plan->n_dims > 2)
-      phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
-    
-    
     //prefactors hardcoded to 1...
     if(plan->n_dims == 1){
       deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, phiHat1, plan->ms, (FLT *)fkStart,
@@ -519,41 +530,29 @@ void type3DeconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan,
   if(plan->n_dims > 1 ) notzero |=  (plan->t3P.C2 != 0.0);
   if(plan->n_dims > 2 ) notzero |=  (plan->t3P.C3 != 0.0);
 
-    /*phiHat is a stacked version of fkker in old code*/
-    FLT * phiHat1 = plan->phiHat;
-    FLT * phiHat2;
-    FLT * phiHat3;
-    if(plan->n_dims > 1)
-      phiHat2 = plan->phiHat + plan->nk;
-    if(plan->n_dims > 2)
-      phiHat3 = phiHat2 + plan->nk;
-
  
 #pragma omp parallel for schedule(dynamic)              
       for (BIGINT k=0;k<plan->nk;++k){     
 	
         FLT sumCoords = (plan->s[k] - plan->t3P.D1)*plan->t3P.C1;
-        FLT prodPhiHat = phiHat1[k];
-	
+	FLT prodPhiHat = plan->phiHat[k]; //already the product of phiHat in each dimension
+
         if(plan->n_dims > 1 ){
           sumCoords += (plan->t[k] - plan->t3P.D2)*plan->t3P.C2 ;
-          prodPhiHat *= phiHat2[k];
         }
 	
         if(plan->n_dims > 2){
           sumCoords += (plan->u[k] - plan->t3P.D3)*plan->t3P.C3;
-          prodPhiHat *= phiHat3[k];
         }
 
 	for(int i = 0; i < maxSafeIndex ; i++){
 
 	  CPX *fkStart = fk + (i+blkNum*plan->threadBlkSize)*plan->nk; //array of size nk*n_transforms
 
-	  if(finite && notzero)
-	    fkStart[k] *= (CPX)(1.0/prodPhiHat)*exp(imasign*(sumCoords));
+	  fkStart[k] *= (CPX)(1.0/prodPhiHat);
 
-	  else
-	    fkStart[k] *= (CPX)(1.0/prodPhiHat);  
+	  if(finite && notzero)
+	    fkStart[k] *= exp(imasign*(sumCoords));    
 	}
       }
 }

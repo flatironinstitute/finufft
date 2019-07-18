@@ -217,8 +217,8 @@ test/finufft2dmany_test: test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_
 	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
 test/finufft1dmany_test: test/finufft1dmany_test.cpp $(LEG_OBJS1) $(OBJS) $(OLD_OBJS1) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(LEG_OBJS1) $(OBJS) $(OLD_OBJS1) $(LIBSFFT) -o test/finufft1dmany_test
-test/finufftGuru_test: test/finufftGuru_test.cpp test/runOldFinufft.o $(LEG_OBJS) $(OLD_OBJS) $(OBJS)  $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp test/runOldFinufft.o $(LEG_OBJS) $(OLD_OBJS) $(OBJS) $(LIBSFFT) -o test/finufftGuru_test
+test/finufftGuru_test: test/finufftGuru_test.cpp test/runOldFinufft.o $(OLD_OBJS) $(OBJS)  $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp test/runOldFinufft.o $(OLD_OBJS) $(OBJS) $(LIBSFFT) -o test/finufftGuru_test
 
 
 # performance tests...

@@ -591,6 +591,12 @@ int finufft2d3_old(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT 
   }
   CPX imasign = (iflag>=0) ? IMA : -IMA;
   CPX* cpj = (CPX*)malloc(sizeof(CPX)*nj);  // c'_j rephased src
+  if(!cpj){
+    free(xpj);
+    free(ypj);
+    fprintf(stderr, "Call to malloc failed for c' array allocation!");
+    return ERR_MAXNALLOC;
+  }
   if (D1!=0.0 || D2!=0.0) {
 #pragma omp parallel for schedule(dynamic)               // since cexp slow
     for (BIGINT j=0;j<nj;++j)
@@ -602,6 +608,13 @@ int finufft2d3_old(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT 
 
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2);
+  if(!fw){
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    fprintf(stderr, "Call to malloc failed for fw array allocation!");
+    return ERR_MAXNALLOC;
+ }
   timer.restart();
   spopts.spread_direction = 1;
   FLT *dummy=NULL;
@@ -613,7 +626,24 @@ int finufft2d3_old(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT 
   // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
   timer.restart();
   FLT *sp = (FLT*)malloc(sizeof(FLT)*nk);     // rescaled targs s'_k
+  if(!sp){
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    free(fw);
+    fprintf(stderr, "Call to malloc failed for s' coordinate array allocation!");
+    return ERR_MAXNALLOC;
+ }
   FLT *tp = (FLT*)malloc(sizeof(FLT)*nk);     // t'_k
+  if(!tp){
+    fprintf(stderr, "Call to malloc failed for t' array allocation!");
+    free(sp);
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    free(fw);
+    return ERR_MAXNALLOC;
+ }
   for (BIGINT k=0;k<nk;++k) {
     sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
     tp[k] = h2*gam2*(t[k]-D2);                         // so that |t'_k| < pi/R
@@ -626,7 +656,26 @@ int finufft2d3_old(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT 
   // Step 3a: compute Fourier transform of scaled kernel at targets
   timer.restart();
   FLT *fkker1 = (FLT*)malloc(sizeof(FLT)*nk);
+  if(!fkker1){
+    fprintf(stderr, "Call to malloc failed for fkker array allocation!");
+    free(tp);
+    free(sp);
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    return ERR_MAXNALLOC;
+  }
   FLT *fkker2 = (FLT*)malloc(sizeof(FLT)*nk);
+  if(!fkker2){
+    fprintf(stderr, "Call to malloc failed for fkker2 coordinate array allocation!");
+    free(fkker1);
+    free(tp);
+    free(sp);
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    return ERR_MAXNALLOC;
+ }
   // exploit that Fourier transform separates because kernel built separable...
   onedim_nuft_kernel(nk, sp, fkker1, spopts);           // fill fkker1
   onedim_nuft_kernel(nk, tp, fkker2, spopts);           // fill fkker2
