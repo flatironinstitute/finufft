@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan, 
+int cufinufft2d_plan(int ms, int mt, int ntransf, int ntransfcufftplan, 
 	int iflag, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
@@ -31,14 +31,9 @@ int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan,
 	d_plan->mt = mt;
 	d_plan->nf1 = nf1;
 	d_plan->nf2 = nf2;
-	d_plan->M = M;
 	d_plan->iflag = fftsign;
 	d_plan->ntransf = ntransf;
 	d_plan->ntransfcufftplan = ntransfcufftplan;
-#ifdef INFO
-	printf("[info  ] 2d1: (ms,mt)=(%d,%d) (nf1, nf2)=(%d,%d) nj=%d, ntransform = %d\n",
-			ms, mt, d_plan->nf1, d_plan->nf2, d_plan->M, d_plan->ntransf);
-#endif
 
 	// this may move to gpu
 	CNTime timer; timer.start();
@@ -46,19 +41,19 @@ int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan,
 	FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
 	onedim_fseries_kernel(nf1, fwkerhalf1, d_plan->opts);
 	onedim_fseries_kernel(nf2, fwkerhalf2, d_plan->opts);
-#ifdef DEUBG
+#ifdef TIME
 	printf("[time  ] \tkernel fser (ns=%d):\t %.3g s\n", d_plan->opts.nspread,
 		timer.elapsedsec());
 #endif
 
 	cudaEventRecord(start);
-	ier = allocgpumemory2d(d_plan);
-#ifdef DEUBG
+	ier = allocgpumem2d_plan(d_plan);
+#ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tAllocate GPU memory\t %.3g s\n", milliseconds/1000);
+	printf("[time  ] \tAllocate GPU memory plan %.3g s\n", milliseconds/1000);
 #endif
 
 	cudaEventRecord(start);
@@ -66,7 +61,7 @@ int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan,
 		sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf2,fwkerhalf2,(nf2/2+1)*
 		sizeof(FLT),cudaMemcpyHostToDevice));
-#ifdef DEUBG
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -80,7 +75,7 @@ int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan,
 	cufftPlanMany(&fftplan,2,n,inembed,1,inembed[0]*inembed[1],inembed,1,
 		inembed[0]*inembed[1],CUFFT_TYPE,ntransfcufftplan);
 	d_plan->fftplan = fftplan;
-#ifdef DEUBG
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -89,15 +84,30 @@ int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan,
 	return ier;
 }
 
-int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_plan *d_plan)
+int cufinufft2d_setNUpts(int M, FLT* h_kx, FLT* h_ky, cufinufft_plan *d_plan)
 {
-	int M = d_plan->M;
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 
+	d_plan->M = M;
+#ifdef INFO
+	printf("[info  ] 2d1: (ms,mt)=(%d,%d) (nf1, nf2)=(%d,%d) nj=%d, ntransform = %d\n",
+		d_plan->ms, d_plan->mt, d_plan->nf1, d_plan->nf2, d_plan->M, 
+		d_plan->ntransf);
+#endif
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
+
+	cudaEventRecord(start);
+	int ier = allocgpumem2d_nupts(d_plan);
+#ifdef TIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tAllocate GPU memory NUpts%.3g s\n", milliseconds/1000);
+#endif
 
 	// Copy memory to device
 	cudaEventRecord(start);
@@ -106,7 +116,6 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,d_plan->M*sizeof(FLT),
 		cudaMemcpyHostToDevice));
 #ifdef TIME
-	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -127,7 +136,7 @@ int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_plan *d_plan)
 #endif
 	}
 	if(d_plan->opts.gpu_method==5){
-		int ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
+		ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);

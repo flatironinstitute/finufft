@@ -31,7 +31,8 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	d_plan->ntransfcufftplan = 1;
 
 	cudaEventRecord(start);
-	ier = allocgpumemory2d(d_plan);
+	ier = allocgpumem2d_plan(d_plan);
+	ier = allocgpumem2d_nupts(d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);

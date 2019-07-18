@@ -11,13 +11,12 @@
 
 using namespace std;
 
-int allocgpumemory2d(cufinufft_plan *d_plan)
+int allocgpumem2d_plan(cufinufft_plan *d_plan)
 {
 	int ms = d_plan->ms;
 	int mt = d_plan->mt;
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
-	int M = d_plan->M;
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
 
 	d_plan->byte_now=0;
@@ -29,8 +28,6 @@ int allocgpumemory2d(cufinufft_plan *d_plan)
 				int numbins[2];
 				numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
 				numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
-				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
 						numbins[1]*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
@@ -49,8 +46,6 @@ int allocgpumemory2d(cufinufft_plan *d_plan)
 						sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->fgstartpts,nf1*nf2*
 						sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
 						numbins[1]*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
@@ -62,9 +57,6 @@ int allocgpumemory2d(cufinufft_plan *d_plan)
 			}
 			break;
 	}
-	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
 
 	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*
 			sizeof(CUCPX)));
@@ -82,6 +74,32 @@ int allocgpumemory2d(cufinufft_plan *d_plan)
 
 	return 0;
 }
+
+int allocgpumem2d_nupts(cufinufft_plan *d_plan)
+{
+	int M = d_plan->M;
+	int ntransfcufftplan = d_plan->ntransfcufftplan;
+
+	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
+	switch(d_plan->opts.gpu_method)
+	{
+		case 5:
+			{
+				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
+			}
+		case 6:
+			{
+				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
+			}
+			break;
+	}
+	return 0;
+}
+
 void freegpumemory2d(cufinufft_plan *d_plan)
 {
 	cudaFree(d_plan->fw);

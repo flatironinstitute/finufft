@@ -153,9 +153,9 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac);
 
 // 2d
-int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan, 
-		int iflag, cufinufft_plan *d_plan);
-int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_plan *d_plan);
+int cufinufft2d_plan(int ms, int mt, int ntransf, int ntransfcufftplan, 
+	int iflag, cufinufft_plan *d_plan);
+int cufinufft2d_setNUpts(int M, FLT* h_kx, FLT* h_ky, cufinufft_plan *d_plan);
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
 int cufinufft2d_destroy(cufinufft_plan *d_plan);

@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
 	dplan.opts.spread_direction=1;
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransfcufftplan, iflag, &dplan);
+	ier=cufinufft2d_plan(N1, N2, ntransf, ntransfcufftplan, iflag, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
 	}
@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_setNUpts(x, y, &dplan);
+	ier=cufinufft2d_setNUpts(M, x, y, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_setNUpts\n");
 	}

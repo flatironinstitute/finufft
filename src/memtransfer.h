@@ -4,7 +4,9 @@
 #include <cufft.h>
 #include "cufinufft.h"
 
-int allocgpumemory2d(cufinufft_plan *d_plan);
+int allocgpumem2d_plan(cufinufft_plan *d_plan);
+int allocgpumem2d_nupts(cufinufft_plan *d_plan);
+
 void freegpumemory2d(cufinufft_plan *d_plan);
 
 #endif
