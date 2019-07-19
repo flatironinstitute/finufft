@@ -33,8 +33,7 @@ int main(int argc, char* argv[])
 
 	int maxsubprobsize=1024;
 	if(argc>6){
-		sscanf(argv[6],"%d",&maxsubprobsize); M  = (int)w;
-		//if(M == 0) M=N1*N2;
+		sscanf(argv[6],"%d",&maxsubprobsize);
 	}
 	N1 = (int) nf1/sigma*2;
 	N2 = (int) nf2/sigma*2;
@@ -95,9 +94,6 @@ int main(int argc, char* argv[])
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
 				}
-				x[1] = 2;
-				y[1] = 2;
-				z[1] = 2;
 			}
 			break;
 		case 2: // concentrate on a small region
@@ -158,11 +154,11 @@ int main(int argc, char* argv[])
 		<<endl;
 #endif
 
-	if(opts.method==5 || opts.method == 6)
+	if(opts.method==1 || opts.method == 2 || opts.method==3)
 	{
-		opts.bin_size_x=8;
-		opts.bin_size_y=8;
-		opts.bin_size_z=8;
+		opts.bin_size_x=4;
+		opts.bin_size_y=4;
+		opts.bin_size_z=4;
 		opts.o_bin_size_x=8;
 		opts.o_bin_size_y=8;
 		opts.o_bin_size_z=8;
@@ -178,7 +174,7 @@ int main(int argc, char* argv[])
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			opts.method,M,nf1*nf2,t,M/t);
+			opts.method,M,nf1*nf2*nf3,t,M/t);
 #if 0
 	cout<<"[result-input]"<<endl;
 	for(int k=0; k<nf3; k++){
@@ -197,6 +193,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 
+	cudaDeviceReset();
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);

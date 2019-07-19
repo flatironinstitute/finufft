@@ -179,13 +179,13 @@ int allocgpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*
 		sizeof(CUCPX)));
-	
+
 	d_plan->nstreams=16;
 	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->nstreams*
 		sizeof(cudaStream_t));
 	for(int i=0; i<d_plan->nstreams; i++)
-		checkCudaErrors(cudaStreamCreate(&d_plan->streams[i]));
-
+		checkCudaErrors(cudaStreamCreate(&streams[i]));
+	d_plan->streams = streams;
 	return 0;
 }
 void freegpumemory2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
@@ -289,7 +289,9 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 					*numobins[1]*numobins[2]+1)*sizeof(int)));
 			}
 			break;
-		case 6:
+		case 1:
+		case 2:
+		case 3:
 			{
 				int numobins[3], numbins[3];
 				int binsperobins[3];
@@ -357,7 +359,9 @@ void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 				checkCudaErrors(cudaFree(d_plan->subprob_to_nupts));
 			}
 			break;
-		case 6:
+		case 1:
+		case 2:
+		case 3:
 			{
 				checkCudaErrors(cudaFree(d_plan->idxnupts));
 				checkCudaErrors(cudaFree(d_plan->sortidx));

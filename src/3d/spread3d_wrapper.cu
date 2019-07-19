@@ -21,7 +21,7 @@ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 	oix = xidx/bnx;
 	oiy = yidx/bny;
 	oiz = zidx/bnz;
-	return   (oix + oiy*onx + oiz*onx*ony)*(bnx*bny*bnz) + 
+	return   (oix+oiy*onx + oiz*onx*ony)*(bnx*bny*bnz) + 
 			 (xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx);
 }
 #endif
@@ -68,7 +68,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
+	printf("[time  ] Copy memory HtoD \t %.3g ms\n", milliseconds);
 #endif
 #if 0
 	if(opts.method == 5){
@@ -79,13 +79,21 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 		}
 	}
 #endif
-	if(opts.method == 6){
+	cudaEventRecord(start);
+	if(opts.method == 1 || opts.method ==  2 || opts.method == 3){
 		ier = cuspread3d_gather_prop(nf1,nf2,nf3,M,opts,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_gather_prop, method(%d)\n", opts.method);
 			return 0;
 		}
 	}
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] Obtain subproblem properties\t %.3g ms\n", milliseconds);
+#endif
+#if 1
 	cudaEventRecord(start);
 	ier = cuspread3d(opts, d_plan);
 #ifdef TIME
@@ -102,6 +110,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
+#endif
 #endif
 	cudaEventRecord(start);
 	freegpumemory3d(opts, d_plan);
@@ -127,10 +136,11 @@ int cuspread3d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	cudaEventCreate(&stop);
 
 	int ier = 0;
-#if 1
 	switch(opts.method)
 	{
-		case 6:
+		case 1:
+		case 2:
+		case 3:
 			{
 				cudaEventRecord(start);
 				ier = cuspread3d_subprob(nf1, nf2, nf3, M, opts, d_plan);
@@ -140,18 +150,21 @@ int cuspread3d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 				}
 			}
 			break;
+		case 4:
+			{
+				cudaEventRecord(start);
+				ier = cuspread3d_idriven(nf1, nf2, nf3, M, opts, d_plan);
+				if(ier != 0 ){
+					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
+					return 1;
+				}
+			}
+			break;
+	
 		default:
 			cerr<<"error: incorrect method, should be 6"<<endl;
 			return 2;
 	}
-#ifdef SPREADTIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Spread " << milliseconds <<" ms"<<endl;
-#endif
-#endif
 	return ier;
 }
 
@@ -171,26 +184,26 @@ int cuspread3d_idriven(int nf1, int nf2, int nf3, int M,
 
 	FLT* d_kx = d_plan->kx;
 	FLT* d_ky = d_plan->ky;
+	FLT* d_kz = d_plan->kz;
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
-	threadsPerBlock.x = 16;
+	threadsPerBlock.x = 64;
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
 	cudaEventRecord(start);
 	if(opts.Horner){
-		Spread_3d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, 
-			d_fw, M, ns, nf1, nf2, es_c, es_beta);
-	}
-
+		Spread_3d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz, 
+			d_c, d_fw, M, ns, nf1, nf2, nf3, es_c, es_beta);
 #ifdef SPREADTIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_3d_Idriven \t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel Spread_3d_Idriven_Horner\t%.3g ms\n", milliseconds);
 #endif
+	}
 	return 0;
 }
 
@@ -225,7 +238,7 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	numbins[0] = numobins[0]*(binsperobinx);
 	numbins[1] = numobins[1]*(binsperobiny);
 	numbins[2] = numobins[2]*(binsperobinz);
-#ifdef DEBUG
+#if 1
 	cout<<"[debug ] Dividing the uniform grids to bin size["
 		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"x"<<opts.bin_size_z<<"]"<<endl;
 	cout<<"[debug ] numobins = ["<<numobins[0]<<"x"<<numobins[1]<<"x"<<
@@ -340,7 +353,6 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	printf("[time  ] \tKernel FillGhostBins \t\t\t%.3g ms\n", 
 		milliseconds);
 #endif
-
 #ifdef DEBUG
 	checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*
 		numbins[2]*sizeof(int),cudaMemcpyDeviceToHost));
@@ -417,7 +429,16 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	printf("[time  ] \tKernel CalcInvertofGlobalIdx_ghost \t%.3g ms\n", 
 		milliseconds);
 #endif
+#if 1
 	cudaEventRecord(start);
+	threadsPerBlock.x=2;
+	threadsPerBlock.y=2;
+	threadsPerBlock.z=2;
+
+	blocks.x = (threadsPerBlock.x+numbins[0]-1)/threadsPerBlock.x;
+	blocks.y = (threadsPerBlock.y+numbins[1]-1)/threadsPerBlock.y;
+	blocks.z = (threadsPerBlock.z+numbins[2]-1)/threadsPerBlock.z;
+
 	GhostBinPtsIdx<<<blocks, threadsPerBlock>>>(binsperobinx, binsperobiny, 
 		binsperobinz, numobins[0], numobins[1], numobins[2], d_binsize, 
 		d_idxnupts, d_binstartpts, M);
@@ -448,6 +469,8 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	free(h_binstartpts);
 	free(h_binsize);
 #endif
+#endif
+#if 1
 	/* --------------------------------------------- */
 	//        Determining Subproblem properties      //
 	/* --------------------------------------------- */
@@ -552,6 +575,7 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	}
 	free(h_subprob_to_bin);
 #endif
+#endif
 	cudaFree(d_temp_storage);
 	return 0;
 }
@@ -609,14 +633,15 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
 
 	FLT sigma=opts.upsampfac;
 	cudaEventRecord(start);
-	size_t sharedplanorysize = obin_size_x*obin_size_y*obin_size_z*sizeof(CUCPX);
-	if(sharedplanorysize > 49152){
-		cout<<"error: not enough shared memory"<<endl;
-		return 1;
-	}
 	for(int t=0; t<d_plan->ntransfcufftplan; t++){
-		if(opts.Horner){
-			Spread_3d_Gather_Horner<<<totalnumsubprob, 256, sharedplanorysize
+		if(opts.method == 1){
+			size_t sharedplanorysize = obin_size_x*obin_size_y*obin_size_z
+				*sizeof(CUCPX);
+			if(sharedplanorysize > 49152){
+				cout<<"error: not enough shared memory"<<endl;
+				return 1;
+			}
+			Spread_3d_Gather_Horner<<<totalnumsubprob, 64, sharedplanorysize
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
 					nf1, nf2, nf3, es_c, es_beta, sigma, d_binstartpts, 
 					obin_size_x, obin_size_y, obin_size_z,
@@ -631,8 +656,81 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
 			printf("[time  ] \tKernel Spread_3d_Subprob_Horner \t%.3g ms\n", 
 				milliseconds);
 #endif
-		}else{
-			Spread_3d_Gather<<<totalnumsubprob, 256, sharedplanorysize>>>(
+		}
+		if(opts.method == 2){
+			size_t sharedplanorysize = obin_size_x*obin_size_y*obin_size_z*
+				sizeof(CUCPX);
+			cout<<sharedplanorysize+1024*5*sizeof(FLT)<<endl;
+			if(sharedplanorysize+1024*5*sizeof(FLT) > 49152){
+				cout<<"error: not enough shared memory"<<endl;
+				return 1;
+			}
+			Spread_3d_Odriven<<<totalnumsubprob, 512, sharedplanorysize>>>(
+					d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
+					nf1, nf2, nf3, es_c, es_beta, sigma, d_binstartpts, 
+					obin_size_x, obin_size_y, obin_size_z,
+					binsperobinx*binsperobiny*binsperobinz,d_subprob_to_bin, 
+					d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], 
+					numobins[2], d_idxnupts);
+#ifdef SPREADTIME
+			float milliseconds = 0;
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			printf("[time  ] \tKernel Spread_3d_Odriven \t\t%.3g ms\n", milliseconds);
+#endif
+		}
+		if(opts.method == 3){
+			size_t sharedplanorysize = obin_size_x*obin_size_y*obin_size_z
+				*sizeof(CUCPX);
+			if(sharedplanorysize > 49152){
+				cout<<"error: not enough shared memory"<<endl;
+				return 1;
+			}
+			Spread_3d_Gather<<<totalnumsubprob, 64, sharedplanorysize>>>(
+					d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
+					nf1, nf2, nf3, es_c, es_beta, sigma, d_binstartpts, 
+					obin_size_x, obin_size_y, obin_size_z,
+					binsperobinx*binsperobiny*binsperobinz,d_subprob_to_bin, 
+					d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], 
+					numobins[2], d_idxnupts);
+#ifdef SPREADTIME
+			float milliseconds = 0;
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			printf("[time  ] \tKernel Spread_3d_Gather \t\t%.3g ms\n", milliseconds);
+#endif
+		}
+	}
+	return 0;
+}
+// this function determines the properties for spreading that are independent 
+// of the strength of the nodes, only relates to the locations of the nodes, 
+// which only needs to be done once
+#if 0
+int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, 
+		const cufinufft_opts opts, cufinufft_plan *d_plan)
+{
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+			Spread_3d_Odriven<<<totalnumsubprob, 512, sharedplanorysize>>>(
+					d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
+					nf1, nf2, nf3, es_c, es_beta, sigma, d_binstartpts, 
+					obin_size_x, obin_size_y, obin_size_z,
+					binsperobinx*binsperobiny*binsperobinz,d_subprob_to_bin, 
+					d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], 
+					numobins[2], d_idxnupts);
+#ifdef SPREADTIME
+			float milliseconds = 0;
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			printf("[time  ] \tKernel Spread_3d_Odriven \t\t%.3g ms\n", milliseconds);
+#endif
+		}
+		if(opts.method == 3){
+			Spread_3d_Gather<<<totalnumsubprob, 64, sharedplanorysize>>>(
 					d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
 					nf1, nf2, nf3, es_c, es_beta, sigma, d_binstartpts, 
 					obin_size_x, obin_size_y, obin_size_z,
@@ -983,4 +1081,5 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	cudaFree(d_temp_storage);
 	return 0;
 }
+#endif
 #endif

@@ -4,7 +4,6 @@
 #include "../finufft/utils.h"
 #include "cufinufft.h"
 
-#define MAX_NSPREAD 16
 //Kernels for 1D codes (this is outdated ... )
 /*
    __global__
@@ -191,6 +190,10 @@ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz,
 	int nbinx, int nbiny, int nbinz, int* binsize, int* index, 
 	int* bin_startpts, int M);
 __global__
+void GhostBinPtsIdx_x(int binsperobinx, int binsperobiny, int binsperobinz, 
+	int nbinx, int nbiny, int nbinz, int* binsize, int* index, 
+	int* bin_startpts, int M);
+__global__
 void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, 
 	int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
 __global__
@@ -208,8 +211,8 @@ void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x,
 	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_startpts, 
 	int* sortidx, FLT *x, FLT *y, FLT *z, int* index);
 __global__
-void Spread_3d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT es_c, FLT es_beta);
+void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
 __global__
 void CalcSubProb_3d(int* bin_size, int* num_subprob, int maxsubprobsize, 
 	int numbins);
@@ -224,6 +227,12 @@ void MapBintoSubProb_3d(int* d_subprobstartpts, int* d_subprob_to_bin,
 	int* num_subprob, int* num_nupts, int maxsubprobsize);
 __global__
 void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
+	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
+	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
+	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
+__global__
+void Spread_3d_Odriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
 	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 

@@ -106,41 +106,54 @@ void RescaleXY_3d(int M, int nf1, int nf2, int nf3, FLT* x, FLT* y, FLT* z)
 }
 
 __global__
-void Spread_3d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT es_c, FLT es_beta)
+void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta)
 {
-	int xx, yy, ix, iy;
+	int xx, yy, zz, ix, iy, iz;
 	int outidx;
 	FLT ker1[MAX_NSPREAD];
 	FLT ker2[MAX_NSPREAD];
-	FLT ker1val, ker2val;
+	FLT ker3[MAX_NSPREAD];
+
+	FLT ker1val, ker2val, ker3val;
 	double sigma=2.0;
 
-	FLT x_rescaled, y_rescaled;
+	FLT x_rescaled, y_rescaled, z_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		x_rescaled=x[i];
 		y_rescaled=y[i];
+		z_rescaled=z[i];
+
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
+		int zstart = ceil(z_rescaled - ns/2.0);
 		int xend = floor(x_rescaled + ns/2.0);
 		int yend = floor(y_rescaled + ns/2.0);
+		int zend = floor(z_rescaled + ns/2.0);
 
 		FLT x1=(FLT)xstart-x_rescaled;
 		FLT y1=(FLT)ystart-y_rescaled;
+		FLT z1=(FLT)zstart-z_rescaled;
+
 		eval_kernel_vec_Horner(ker1,x1,ns,sigma);
 		eval_kernel_vec_Horner(ker2,y1,ns,sigma);
+		eval_kernel_vec_Horner(ker3,z1,ns,sigma);
 		//evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
 		//evaluate_kernel_vector(ker2, y1, es_c, es_beta, ns);
-		for(yy=ystart; yy<=yend; yy++){
-			for(xx=xstart; xx<=xend; xx++){
-				ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
-				iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
-				outidx = ix+iy*nf1;
-				ker1val=ker1[xx-xstart];
+		for(zz=zstart; zz<=zend; zz++){
+			ker3val=ker3[zz-zstart];
+			for(yy=ystart; yy<=yend; yy++){
 				ker2val=ker2[yy-ystart];
-				FLT kervalue=ker1val*ker2val;
-				atomicAdd(&fw[outidx].x, c[i].x*kervalue);
-				atomicAdd(&fw[outidx].y, c[i].y*kervalue);
+				for(xx=xstart; xx<=xend; xx++){
+					ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
+					iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
+					iz = zz < 0 ? zz+nf3 : (zz>nf3-1 ? zz-nf3 : zz);
+					outidx = ix+iy*nf1+iz*nf1*nf2;
+					ker1val=ker1[xx-xstart];
+					FLT kervalue=ker1val*ker2val*ker3val;
+					atomicAdd(&fw[outidx].x, c[i].x*kervalue);
+					atomicAdd(&fw[outidx].y, c[i].y*kervalue);
+				}
 			}
 		}
 	}
@@ -349,7 +362,6 @@ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz,
 			box[0] = (i>nbinx)*2;
 			i = (i>nbinx) ? i-nbinx : i; 
 			w=1;
-			box[0]=1;
 		}
 		if(biny % binsperobiny == 0){
 			j = biny - 2;
@@ -362,21 +374,18 @@ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz,
 			box[1] = (j>nbiny)*2;
 			j = (j>nbiny) ? j-nbiny : j; 
 			w=1;
-			box[1]=1;
 		}
 		if(binz % binsperobinz == 0){
 			k = binz - 2;
 			box[2] = (k<0);
 			k = k<0 ? k+nbinz : k; 
 			w=1;
-			box[2]=0;
 		}
 		if(binz % binsperobinz == binsperobinz-1){
 			k = binz + 2;
 			box[2] = (k>nbinz)*2;
 			k = (k>nbinz) ? k-nbinz : k; 
 			w=1;
-			box[2]=1;
 		}
 		int corbinidx = CalcGlobalIdx(i,j,k,nobinx,nobiny,nobinz,
 			binsperobinx,binsperobiny, binsperobinz);
@@ -388,6 +397,29 @@ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz,
 		}
 	}
 	
+}
+__global__
+void GhostBinPtsIdx_x(int binsperobinx, int binsperobiny, int binsperobinz, 
+	int nobinx, int nobiny, int nobinz, int* binsize, int* index, 
+	int* binstartpts, int M)
+{
+	int binx =threadIdx.x+blockIdx.x*blockDim.x;
+	int biny =(threadIdx.y+blockIdx.y*blockDim.y)*binsperobiny;
+	int binz =(threadIdx.z+blockIdx.z*blockDim.z)*binsperobinz;
+	int nbinx = nobinx*binsperobinx;
+	int nbiny = nobiny*binsperobiny;
+	int nbinz = nobinz*binsperobinz;
+	int binidx = CalcGlobalIdx(binx,biny,binz,nobinx,nobiny,nobinz,
+		binsperobinx,binsperobiny,binsperobinz);
+	if(binx < nbinx && biny < nbiny && binz < nbinz){
+		int i = binx - 2;
+		i = i<0 ? i+nbinx : i; 
+		int corbinidx = CalcGlobalIdx(i,biny,binz,nobinx,nobiny,nobinz,
+			binsperobinx,binsperobiny, binsperobinz);
+		for(int n = 0; n<binsize[binidx];n++){
+			index[binstartpts[binidx]+n] = index[binstartpts[corbinidx]+n];
+		}
+	}
 }
 __global__
 void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, 
@@ -578,11 +610,13 @@ void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 				box[d] = -1;
 			b=b/3;
 		}
-		x_rescaled = x[idxnupts[idx] % M] + box[0]*nf1;
-		y_rescaled = y[(idxnupts[idx]%M)] + box[1]*nf2;
-		z_rescaled = z[(idxnupts[idx]%M)] + box[2]*nf3;
-		cnow = c[idxnupts[idx]%M];
+		int ii = idxnupts[idx]%M;
+		x_rescaled = x[ii] + box[0]*nf1;
+		y_rescaled = y[ii] + box[1]*nf2;
+		z_rescaled = z[ii] + box[2]*nf3;
+		cnow = c[ii];
 
+#if 1
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
 		xstart = xstart < 0 ? 0 : xstart;
 		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
@@ -595,21 +629,35 @@ void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		yend   = yend >= obin_size_y ? obin_size_y-1 : yend;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
 		zend   = zend >= obin_size_z ? obin_size_z-1 : zend;
-
+#else
+		xstart = 0;
+		ystart = 0;
+		zstart = 0;
+		xend = ns;
+		yend = ns;
+		zend = ns;
+#endif
 		for(int zz=zstart; zz<=zend; zz++){
 			FLT disz=abs(z_rescaled-(zz+zoffset));
 			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta);
+			//FLT kervalue3 = disz;
 			for(int yy=ystart; yy<=yend; yy++){
 				FLT disy=abs(y_rescaled-(yy+yoffset));
 				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+				//FLT kervalue2 = disy;
 				for(int xx=xstart; xx<=xend; xx++){
 					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
 					FLT disx=abs(x_rescaled-(xx+xoffset));
 					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+					//FLT kervalue1 = disx;
+	//				fwshared[outidx].x += cnow.x*kervalue1*kervalue2*kervalue3;
+	//				fwshared[outidx].y += cnow.y*kervalue1*kervalue2*kervalue3;
+#if 1
 					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
 						kervalue3);
 					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
 						kervalue3);
+#endif
 				}
 			}
 		}
@@ -631,6 +679,105 @@ void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 }
 
 __global__
+void Spread_3d_Odriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
+	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
+	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
+	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts)
+{
+	extern __shared__ CUCPX fwshared[];
+	__shared__ FLT xs[1024];
+	__shared__ FLT ys[1024];
+	__shared__ FLT zs[1024];
+	__shared__ CUCPX cs[1024];
+
+	int subpidx=blockIdx.x;
+	int obidx=subprob_to_bin[subpidx];
+	int bidx = obidx*binsperobin;
+
+	int obinsubp_idx=subpidx-subprobstartpts[obidx];
+	int ix, iy, iz;
+	int outidx;
+	int ptstart=binstartpts[bidx]+obinsubp_idx*maxsubprobsize;
+	int nupts=min(maxsubprobsize, binstartpts[bidx+binsperobin]-binstartpts[bidx]
+			-obinsubp_idx*maxsubprobsize);
+
+	int xoffset=(obidx % nobinx)*obin_size_x;
+	int yoffset=(obidx / nobinx)%nobiny*obin_size_y;
+	int zoffset=(obidx / (nobinx*nobiny))*obin_size_z;
+
+	int N = obin_size_x*obin_size_y*obin_size_z;
+	
+	for(int i=threadIdx.x; i<N; i+=blockDim.x){
+		fwshared[i].x = 0.0;
+		fwshared[i].y = 0.0;
+	}
+
+	for(int i=threadIdx.x; i<N; i+=blockDim.x){
+		int idx = ptstart+i;
+		int b = idxnupts[idx]/M;
+		int box[3];
+		for(int d=0;d<3;d++){
+			box[d] = b%3;
+			if(box[d] == 2)
+				box[d] = -1;
+			b=b/3;
+		}
+		int ii = idxnupts[idx]%M;
+		xs[i] = x[ii] + box[0]*nf1;
+		ys[i] = y[ii] + box[1]*nf2;
+		zs[i] = z[ii] + box[2]*nf3;
+		cs[i] = c[ii];
+	}
+	__syncthreads();
+	FLT x_rescaled, y_rescaled, z_rescaled;
+	CUCPX value;
+	CUCPX cnow;
+	for(int n=threadIdx.x; n<obin_size_x*obin_size_y*obin_size_z; 
+		n+=blockDim.x){
+		value.x = 0;
+		value.y = 0;
+		ix = n%obin_size_x;
+		iy = (n/obin_size_x)%obin_size_y;
+		iz = n/(obin_size_x*obin_size_y);
+		
+		for(int i = 0; i<1024; i++){
+			x_rescaled = xs[(n+i)%1024];
+			y_rescaled = ys[(n+i)%1024];
+			z_rescaled = zs[(n+i)%1024];
+			cnow = cs[(n+i)%1024];
+			FLT disx=abs(x_rescaled-(ix+xoffset));
+			FLT disy=abs(y_rescaled-(iy+yoffset));
+			FLT disz=abs(z_rescaled-(iz+zoffset));
+
+			FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta);
+
+			value.x += cnow.x*kervalue1*kervalue2*kervalue3;
+			value.y += cnow.y*kervalue1*kervalue2*kervalue3;
+			
+		}
+		outidx = ix+iy*obin_size_x+iz*obin_size_y*obin_size_x;
+		fwshared[outidx].x = value.x;
+		fwshared[outidx].y = value.y;
+	}
+	__syncthreads();
+	/* write to global memory */
+	for(int n=threadIdx.x; n<N; n+=blockDim.x){
+		int i = n%obin_size_x;
+		int j = (n/obin_size_x)%obin_size_y;
+		int k = n/(obin_size_x*obin_size_y);
+
+		ix = xoffset+i;
+		iy = yoffset+j;
+		iz = zoffset+k;
+		outidx = ix+iy*nf1+iz*nf1*nf2;
+		atomicAdd(&fw[outidx].x, fwshared[n].x);
+		atomicAdd(&fw[outidx].y, fwshared[n].y);
+	}
+}
+__global__
 void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
 	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
@@ -651,9 +798,9 @@ void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	int nupts=min(maxsubprobsize, binstartpts[bidx+binsperobin]-binstartpts[bidx]
 			-obinsubp_idx*maxsubprobsize);
 
-	int xoffset=(obidx % nobinx)*obin_size_x;
-	int yoffset=(obidx / nobinx)%nobiny*obin_size_y;
-	int zoffset=(obidx / (nobinx*nobiny))*obin_size_z;
+	int xoffset=(obidx%nobinx)*obin_size_x;
+	int yoffset=(obidx/nobinx)%nobiny*obin_size_y;
+	int zoffset=(obidx/(nobinx*nobiny))*obin_size_z;
 
 	int N = obin_size_x*obin_size_y*obin_size_z;
 	
@@ -666,11 +813,12 @@ void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		fwshared[i].y = 0.0;
 	}
 	__syncthreads();
+
 	FLT x_rescaled, y_rescaled, z_rescaled;
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
-		int idx = ptstart+i;
-		int b = idxnupts[idx]/M;
+		int nidx = idxnupts[ptstart+i];
+		int b = nidx/M;
 		int box[3];
 		for(int d=0;d<3;d++){
 			box[d] = b%3;
@@ -678,10 +826,11 @@ void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 				box[d] = -1;
 			b=b/3;
 		}
-		x_rescaled = x[idxnupts[idx]%M] + box[0]*nf1;
-		y_rescaled = y[idxnupts[idx]%M] + box[1]*nf2;
-		z_rescaled = z[idxnupts[idx]%M] + box[2]*nf3;
-		cnow = c[idxnupts[idx]%M];
+		int ii = nidx%M;
+		x_rescaled = x[ii] + box[0]*nf1;
+		y_rescaled = y[ii] + box[1]*nf2;
+		z_rescaled = z[ii] + box[2]*nf3;
+		cnow = c[ii];
 
 #if 0
 		xstart = max((int)ceil(x_rescaled - ns/2.0)-xoffset, 0);
@@ -721,10 +870,15 @@ void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 				for(int xx=xstart; xx<=xend; xx++){
 					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
 					FLT kervalue1 = ker1[xx-xstart];
+#if 1
 					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
 						kervalue3);
 					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
 						kervalue3);
+#else
+					fwshared[outidx].x+= cnow.x*kervalue1*kervalue2*kervalue3;
+					fwshared[outidx].y+= cnow.y*kervalue1*kervalue2*kervalue3;
+#endif
 				}
 			}
 		}
