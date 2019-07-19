@@ -86,35 +86,35 @@ void Interp_1d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 __global__
 void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y);
 __global__
-void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, 
-	int bin_size_y, int nbinx, int nbiny, int* bin_size, FLT *x, FLT *y, 
+void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x,
+	int bin_size_y, int nbinx, int nbiny, int* bin_size, FLT *x, FLT *y,
 	int* sortidx);
 __global__
 void uniformUpdate(int n, int* data, int* buffer);
 __global__
-void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, 
-		int nbinx, int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *y, 
+void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y,
+		int nbinx, int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *y,
 		int* index);
 __global__
-void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x, 
-		int bin_size_y, int nbinx, int nbiny, int* bin_startpts, 
-		int* sortidx, FLT *x, FLT *x_sorted, FLT *y, FLT *y_sorted, CUCPX *c, 
+void PtsRearrage_noghost_2d(int M, int nf1, int nf2, int bin_size_x,
+		int bin_size_y, int nbinx, int nbiny, int* bin_startpts,
+		int* sortidx, FLT *x, FLT *x_sorted, FLT *y, FLT *y_sorted, CUCPX *c,
 		CUCPX *c_sorted);
 __global__
-void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny, 
-		int *bin_startpts, FLT *x_sorted, FLT *y_sorted, CUCPX *c_sorted, 
+void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
+		int *bin_startpts, FLT *x_sorted, FLT *y_sorted, CUCPX *c_sorted,
 		CUCPX *fw, int ns, int nf1, int nf2, FLT es_c, FLT es_beta);
 __global__
 void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta);
 __global__
-void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 		const int ns, int nf1, int nf2, FLT es_c, FLT es_beta);
 __global__
 void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta);
 __global__
-void Interp_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+void Interp_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 		const int ns, int nf1, int nf2, FLT sigma);
 __global__
 void Spread_2d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
@@ -125,34 +125,34 @@ void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, int bin_size,
 		int bin_size_x, int bin_size_y, int binx, int biny);
 __global__
-void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, 
+void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize,
 		int numbins);
 
 __global__
-void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
+void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob,
 	int maxsubprobsize);
 
 __global__
-void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, 
+void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts,
 		int* d_numsubprob, int numbins);
 __global__
 void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx,
 		int nbiny, int* idxnupts);
 __global__
-void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 		const int ns, int nf1, int nf2, FLT sigma, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx,
 		int nbiny, int* idxnupts);
 __global__
-void Spread_2d_Subprob_Horner_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, 
-	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
-	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
-	int maxsubprobsize, int nbinx, int nbiny, int* idxnupts, int* fgstartpts, 
+void Spread_2d_Subprob_Horner_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma,
+	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y,
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob,
+	int maxsubprobsize, int nbinx, int nbiny, int* idxnupts, int* fgstartpts,
 	int* finegridsize);
 __global__
 void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
@@ -161,102 +161,112 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, int nbiny,
 		int* idxnupts);
 __global__
-void Interp_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+void Interp_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 		const int ns, int nf1, int nf2, FLT sigma, int* binstartpts,
 		int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
-		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx,
 		int nbiny, int* idxnupts);
+// Paul
+__global__
+void LocateFineGridPos(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y,
+	int nbinx, int nbiny, int* bin_size, int ns, FLT *x, FLT *y,
+	int* sortidx, int* finegridsize);
+__global__
+void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x,
+	int bin_size_y, int nbinx,int nbiny, int ns, FLT *x, FLT *y,
+	int* finegridstartpts, int* sortidx, int* index);
 
 //Kernels for 3D codes
 __global__
 void RescaleXY_3d(int M, int nf1, int nf2, int nf3, FLT* x, FLT* y, FLT* z);
 __global__
-void LocateNUptstoBins(int M, int nf1, int nf2, int nf3, int  bin_size_x, 
-	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz, 
+void LocateNUptstoBins(int M, int nf1, int nf2, int nf3, int  bin_size_x,
+	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz,
 	int* bin_size, FLT *x, FLT *y, FLT *z, int* sortidx);
 __global__
-void LocateNUptstoBins_ghost(int M, int  bin_size_x, 
-	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz, 
-	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_size, 
+void LocateNUptstoBins_ghost(int M, int  bin_size_x,
+	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz,
+	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_size,
 	FLT *x, FLT *y, FLT *z, int* sortidx);
 __global__
-void Temp(int binsperobinx, int binsperobiny, int binsperobinz, 
+void Temp(int binsperobinx, int binsperobiny, int binsperobinz,
 	int nbinx, int nbiny, int nbinz, int* binsize);
 __global__
-void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz, 
+void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz,
 	int nbinx, int nbiny, int nbinz, int* binsize);
 __global__
-void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz, 
-	int nbinx, int nbiny, int nbinz, int* binsize, int* index, 
+void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz,
+	int nbinx, int nbiny, int nbinz, int* binsize, int* index,
 	int* bin_startpts, int M);
 __global__
-void GhostBinPtsIdx_x(int binsperobinx, int binsperobiny, int binsperobinz, 
-	int nbinx, int nbiny, int nbinz, int* binsize, int* index, 
+void GhostBinPtsIdx_x(int binsperobinx, int binsperobiny, int binsperobinz,
+	int nbinx, int nbiny, int nbinz, int* binsize, int* index,
 	int* bin_startpts, int M);
 __global__
-void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, 
-	int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
-__global__
-void CalcSubProb_3d(int bin_size_x, int bin_size_y, int bin_size_z, 
-	int o_bin_size_x, int o_bin_size_y, int o_bin_size_z, int nbinx, int nbiny, 
-	int nbinz, int nobinx, int nobiny, int nobinz, int* bin_size, 
-	int* num_subprob, int* num_nupts, int maxsubprobsize);
-__global__
-void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y, 
-	int bin_size_z, int nbinx, int nbiny, int nbinz, int* bin_startpts, 
-	int* sortidx, FLT *x, FLT *y, FLT *z, int* index);
-__global__
-void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x, 
-	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz, 
-	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_startpts, 
-	int* sortidx, FLT *x, FLT *y, FLT *z, int* index);
-__global__
-void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
-__global__
-void CalcSubProb_3d(int* bin_size, int* num_subprob, int maxsubprobsize, 
+void CalcSubProb_3d_v2(int* bin_size, int* num_subprob, int maxsubprobsize,
 	int numbins);
 __global__
-void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts, 
-	int* d_numsubprob,int numbins);
+void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz,
+	int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
 __global__
-void MapBintoSubProb_3d(int* d_subprobstartpts, int* d_subprob_to_bin, 
-	int* d_subprob_to_nupts, int bin_size_x, int bin_size_y, int bin_size_z, 
-	int o_bin_size_x, int o_bin_size_y, int o_bin_size_z, int nbinx, 
-	int nbiny, int nbinz, int nobinx, int nobiny, int nobinz, int* bin_size, 
+void CalcSubProb_3d(int bin_size_x, int bin_size_y, int bin_size_z,
+	int o_bin_size_x, int o_bin_size_y, int o_bin_size_z, int nbinx, int nbiny,
+	int nbinz, int nobinx, int nobiny, int nobinz, int* bin_size,
 	int* num_subprob, int* num_nupts, int maxsubprobsize);
 __global__
-void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
-	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
-	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
+void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
+	int bin_size_z, int nbinx, int nbiny, int nbinz, int* bin_startpts,
+	int* sortidx, FLT *x, FLT *y, FLT *z, int* index);
+__global__
+void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x,
+	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz,
+	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_startpts,
+	int* sortidx, FLT *x, FLT *y, FLT *z, int* index);
+__global__
+void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
+__global__
+void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts,
+	int* d_numsubprob,int numbins);
+__global__
+void MapBintoSubProb_3d(int* d_subprobstartpts, int* d_subprob_to_bin,
+	int* d_subprob_to_nupts, int bin_size_x, int bin_size_y, int bin_size_z,
+	int o_bin_size_x, int o_bin_size_y, int o_bin_size_z, int nbinx,
+	int nbiny, int nbinz, int nobinx, int nobiny, int nobinz, int* bin_size,
+	int* num_subprob, int* num_nupts, int maxsubprobsize);
+__global__
+void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
+	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
+	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
 	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
 __global__
-void Spread_3d_Odriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
-	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
-	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
+void Spread_3d_Odriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
+	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
+	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
 	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
 __global__
-void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma, 
-	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z, 
-	int binsperobin, int* subprob_to_bin, int* subprobstartpts, 
+void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
+	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
+	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
 	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
 __global__
-void Spread_3d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size, 
-	int bin_size_x, int bin_size_y, int* subprob_to_bin, int* subprobstartpts, 
+void Spread_3d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size,
+	int bin_size_x, int bin_size_y, int* subprob_to_bin, int* subprobstartpts,
 	int* numsubprob, int maxsubprobsize, int nbinx, int nbiny, int* idxnupts);
-// Paul
+
 __global__
-void LocateFineGridPos(int M, int nf1, int nf2, int  bin_size_x, int bin_size_y, 
-		int nbinx, int nbiny, int* bin_size, int ns, FLT *x, FLT *y, 
-		int* sortidx, int* finegridsize);
+void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int  bin_size_x,
+	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz,
+	int* bin_size, FLT *x, FLT *y, FLT *z, int* sortidx);
 __global__
-void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x, 
-		int bin_size_y, int nbinx,int nbiny, int ns, FLT *x, FLT *y, 
-		int* finegridstartpts, int* sortidx, int* index);
+void MapBintoSubProb_3d_v2(int* d_subprob_to_bin,int* d_subprobstartpts,
+	int* d_numsubprob,int numbins);
+
+
 #if 0
 // 1d
 int cufinufft_spread1d(int ms, int nf1, CPX* h_fw, int M, FLT *h_kx,
@@ -282,10 +292,10 @@ int cuinterp1d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 #endif
 
 // 2d
-int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
-		const FLT *h_kx, const FLT *h_ky, const CPX* h_c, cufinufft_opts &opts, 
+int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
+		const FLT *h_kx, const FLT *h_ky, const CPX* h_c, cufinufft_opts &opts,
 		cufinufft_plan *dmem);
-int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
+int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	FLT *h_kx, FLT *h_ky, CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dmem);
 int cuspread2d_idriven(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_mem);
@@ -295,9 +305,9 @@ int cuspread2d_idriven_sorted(int nf1, int nf2, int M, const cufinufft_opts opts
 		cufinufft_plan *d_mem);
 int cuspread2d_hybrid(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_mem);
-int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
+int cuspread2d_subprob_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_plan);
-int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts, 
+int cuspread2d_paul_prop(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_plan);
 int cuspread2d_subprob(int nf1, int nf2, int M, const cufinufft_opts opts,
 		cufinufft_plan *d_mem);
@@ -311,17 +321,17 @@ int cuspread2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 
 // 3d
-int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, 
-		CPX* h_fw, int M, const FLT *h_kx, const FLT *h_ky, const FLT* h_z, 
+int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
+		CPX* h_fw, int M, const FLT *h_kx, const FLT *h_ky, const FLT* h_z,
 		const CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dplan);
 int cuspread3d(cufinufft_opts &opts, cufinufft_plan* d_plan);
-int cuspread3d_idriven(int nf1, int nf2, int nf3, int M, 
+int cuspread3d_idriven(int nf1, int nf2, int nf3, int M,
 		const cufinufft_opts opts,cufinufft_plan *d_mem);
-int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, 
+int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 		const cufinufft_opts opts, cufinufft_plan *d_plan);
-int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M, 
+int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 		const cufinufft_opts opts, cufinufft_plan *d_plan);
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, 
+int cuspread3d_gather(int nf1, int nf2, int nf3, int M,
 		const cufinufft_opts opts, cufinufft_plan *d_mem);
 
 #endif
