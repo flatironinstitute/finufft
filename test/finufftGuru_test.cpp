@@ -211,6 +211,7 @@ int main(int argc, char* argv[])
   /* Finufft
   /**********************************************************************************************/
 
+  printf("------------------------GURU INTERFACE------------------------------\n");
   //Start by instantiating a finufft_plan
   finufft_plan plan;
 
@@ -286,11 +287,16 @@ int main(int argc, char* argv[])
   //comparing timing results with repeated calls to corresponding finufft function 
   FFTW_FORGET_WISDOM();
 
+ printf("------------------------OLD IMPLEMENTATION------------------------------\n");
+  
   double oldTime = runOldFinufft(c,F, &plan);
   FFTW_FORGET_WISDOM();
 
-  printf("\tspeedup (T_finufft[%d]d[%d]_old / T_finufft[%d]d[%d]) = %.3g\n", typeToInt(type), ndim,
-	 typeToInt(type), ndim, oldTime/totalTime);
+  printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
+	   (long long)M,(long long)N, oldTime , ntransf*M/oldTime);
+  
+  printf("\tspeedup (T_finufft[%d]d[%d]_old / T_finufft[%d]d[%d]) = %.3g\n", ndim,  typeToInt(type),
+	  ndim,typeToInt(type), oldTime/totalTime);
   
   
   /**********************************************************************************************/

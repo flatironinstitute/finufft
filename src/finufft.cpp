@@ -318,7 +318,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
 
     //Originally performed right before Step 2 recursive call to finufftxd2
     timer.restart();
-#pragma omp parallel for 
+#pragma omp parallel for schedule(dynamic)
     for (BIGINT k=0;k<plan->nk;++k) {
 	sp[k] = plan->t3P.h1*plan->t3P.gam1*(s[k]-plan->t3P.D1);      // so that |s'_k| < pi/R
 	if(plan->n_dims > 1 )
@@ -380,9 +380,14 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
 
   //maxSafeIndex is the threadBlockSize, except for the last round if threadBlockSize does not
   //divide evenly into n_transf. Ensures safe indexing of c.
+
+#if _OPENMP
+  if(maxSafeIndex != plan->threadBlkSize)                                                                                                                                                                                                                                      
+    MY_OMP_SET_NESTED(1); //nested parallelization
+#endif 
   
-  
-#pragma omp parallel for 
+#pragma omp parallel num_threads(maxSafeIndex)
+#pragma omp for
   for(int i = 0; i < maxSafeIndex; i++){ 
 
     //index into this iteration of fft in fw and weights arrays
@@ -404,12 +409,23 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
     if(ier)
       ier_spreads[i] = ier;
   }
+#if _OPENMP
+   MY_OMP_SET_NESTED(0); //no nested parallelization                                                                                                                                                                                                                            
+#endif 
+
 }
 
 /*Type 2: Interpolates from weights at uniform points in fw to non uniform points in c*/
 void interpInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c, int *ier_interps){
 
-#pragma omp parallel for 
+#if _OPENMP
+  if(maxSafeIndex != plan->threadBlkSize)                                                                                                                                                                                                                                      
+    MY_OMP_SET_NESTED(1); //nested parallelization
+#endif 
+
+  
+#pragma omp parallel num_threads(maxSafeIndex)
+#pragma omp for
   for(int i = 0; i < maxSafeIndex; i++){ 
         
     //index into this iteration of fft in fw and weights arrays
@@ -433,6 +449,10 @@ void interpInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
     if(ier)
       ier_interps[i] = ier;
   }
+#if _OPENMP
+   MY_OMP_SET_NESTED(0); //no nested parallelization                                                                                                                                                                                                                            
+#endif 
+
 }
 
 /*Type 1: deconvolves from interior fw array into user supplied fk*/ 
@@ -447,9 +467,16 @@ void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX 
       phiHat2 = plan->phiHat + plan->nf1/2 + 1;
     if(plan->n_dims > 2)
       phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
-    
-#pragma omp parallel for
-  for(int i = 0; i < maxSafeIndex; i++){
+
+#if _OPENMP
+    if(maxSafeIndex != plan->threadBlkSize)                                                                                                                                                                                                                                     
+      MY_OMP_SET_NESTED(1); //nested parallelization
+#endif 
+
+
+#pragma omp parallel num_threads(maxSafeIndex)
+#pragma omp for
+    for(int i = 0; i < maxSafeIndex; i++){
 
     CPX *fkStart;
 
@@ -480,6 +507,13 @@ void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX 
 			  fwStart, plan->opts.modeord);
     }
   }
+
+
+#if _OPENMP
+   MY_OMP_SET_NESTED(0); //no nested parallelization                                                                                                                                                                                                                            
+#endif 
+
+
 }
 
 
@@ -491,7 +525,8 @@ void type3PrePhaseInParallel(int blkNum, finufft_plan * plan, CPX *cj, CPX *cpj)
 
     CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
     
-#pragma omp parallel for schedule(dynamic)                
+#pragma omp parallel num_threads(plan->threadBlkSize)
+#pragma omp for
 	for (BIGINT i=0; i<plan->nj;i++){
 
 	  FLT sumCoords = plan->t3P.D1*plan->X_orig[i];
@@ -534,8 +569,8 @@ void type3DeconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan,
   if(plan->n_dims > 1 ) notzero |=  (plan->t3P.C2 != 0.0);
   if(plan->n_dims > 2 ) notzero |=  (plan->t3P.C3 != 0.0);
 
- 
-#pragma omp parallel for schedule(dynamic)              
+#pragma omp parallel num_threads(plan->threadBlkSize)
+#pragma omp for
       for (BIGINT k=0;k<plan->nk;++k){     
 	
         FLT sumCoords = (plan->s[k] - plan->t3P.D1)*plan->t3P.C1;
@@ -568,11 +603,6 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
   double t_spread = 0.0;
   double t_exec = 0.0;
   double t_deconv = 0.0;
-
-    
-#if _OPENMP
-  MY_OMP_SET_NESTED(0); //no nested parallelization
-#endif
   
   int *ier_spreads = (int *)calloc(plan->threadBlkSize,sizeof(int));      
 
@@ -585,7 +615,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     for(int blkNum = 0; blkNum*plan->threadBlkSize < plan->n_transf; blkNum++){
           
       int maxSafeIndex = min(plan->n_transf - blkNum*plan->threadBlkSize, plan->threadBlkSize);
-      
+
       //Type 1 Step 1: Spread to Regular Grid    
       if(plan->type == type1){
 	timer.restart();
@@ -626,10 +656,15 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
       }
     }
     
-    if(plan->opts.debug) printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
-    if(plan->opts.debug) printf("[finufft_exec] fft :\t\t\t %.3g s\n", t_exec);
-    if(plan->opts.debug) printf("[finufft_exec] deconvolve & copy out:\t %.3g s\n", t_deconv);
-    if(plan->opts.debug) printf("[finufft_exec] interp:\t\t\t %.3g s\n",t_spread);
+
+    if(plan->opts.debug){
+      if(plan->type == type1)
+	printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
+      else //type 2
+	printf("[finufft_exec] interp:\t\t\t %.3g s\n",t_spread);
+    printf("[finufft_exec] fft :\t\t\t %.3g s\n", t_exec);
+    printf("[finufft_exec] deconvolve :\t\t %.3g s\n", t_deconv);
+    }
     
   }
 
@@ -663,10 +698,13 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
     finufft_plan t2Plan;
     finufft_default_opts(&t2Plan.opts);
+    t2Plan.opts.debug = plan->opts.debug;
+    t2Plan.opts.spread_debug = plan->opts.spread_debug;
+
     
     //contains the only fftw_plan(with threadBlkSize = n_transforms) used for all finufft/fftw_execute in loop below 
     timer.restart();
-    ier_t2 = make_finufft_plan(type2, plan->n_dims, n_modes, plan->iflag, plan->threadBlkSize, plan->tol,
+    ier_t2 = make_finufft_plan(type2, plan->n_dims, n_modes, plan->iflag, plan->n_transf, plan->tol,
 			       plan->threadBlkSize, &t2Plan);
     if(ier_t2){
       printf("inner type 2 plan creation failed\n");
@@ -693,6 +731,12 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
       //modulus ntransf/blocksize 
      int maxSafeIndex = min(plan->n_transf - blkNum*plan->threadBlkSize, plan->threadBlkSize);
 
+     #if _OPENMP
+      if(maxSafeIndex == plan->threadBlkSize)
+	MY_OMP_SET_NESTED(0); //no nested parallelization
+      #endif
+
+     
      //Is this the last iteration ? 
      if((blkNum+1)*plan->threadBlkSize > plan->n_transf)
 	lastRound = true;
@@ -728,11 +772,13 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
     }
 
-    if(plan->opts.debug) printf("[finufft_exec] prephase:\t\t %.3g s\n",t_prePhase);
-    if(plan->opts.debug) printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
-    if(plan->opts.debug) printf("[finufft_exec] total type-2 (ier=%d):\t %.3g s\n",ier_t2, t_innerPlan + t_innerSet + t_innerExec);
-    if(plan->opts.debug) printf("[finufft_exec] deconvolve:\t\t %.3g s\n", t_deConvShuff);
-
+    if(plan->opts.debug){
+      printf("[finufft_exec] prephase:\t\t %.3g s\n",t_prePhase);
+      printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
+      printf("[finufft_exec] total type-2 (ier=%d):\t %.3g s\n",ier_t2, t_innerPlan + t_innerSet + t_innerExec);
+      printf("[finufft_exec] deconvolve:\t\t %.3g s\n", t_deConvShuff);
+    }
+    
     finufft_destroy(&t2Plan);
     free(cpj);
   }

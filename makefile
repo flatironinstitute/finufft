@@ -190,8 +190,8 @@ $(EXC): $(EXC).o $(LEGLIB)
 # validation tests... (most link to .o allowing testing pieces separately)
 
 test: $(LEG_STATICLIB)  test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test  test/finufft1dmany_test test/finufftGuru_test test/dumbInputsGuru test/finufft1d_basicpassfail
-	test/finufft1d_basicpassfail
 	(cd test; \
+	./finufft1d_basicpassfail \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
 	./check_finufft.sh)

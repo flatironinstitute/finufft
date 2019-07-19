@@ -10,9 +10,7 @@ double runOldFinufft(CPX *c,CPX *F,finufft_plan *plan){
     
     CPX *cStart;
     CPX *fStart;
-    
-    plan->opts.debug = 0;
-    plan->opts.spread_debug = 0;
+
     double time = 0;
     double temp = 0;;
     int ier = 0;
@@ -20,6 +18,11 @@ double runOldFinufft(CPX *c,CPX *F,finufft_plan *plan){
     for(int k = 0; k < plan->n_transf; k++){
       cStart = c + plan->nj*k;
       fStart = F + plan->ms*plan->mt*plan->mu*k;
+      
+      if(k != 0){
+	plan->opts.debug = 0;
+	plan->opts.spread_debug = 0;
+      }
       
       temp = finufftFunnel(cStart,fStart, plan);
       if(temp == -1){
