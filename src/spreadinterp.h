@@ -223,9 +223,6 @@ void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x,
 	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_startpts,
 	int* sortidx, FLT *x, FLT *y, FLT *z, int* index);
 __global__
-void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
-__global__
 void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts,
 	int* d_numsubprob,int numbins);
 __global__
@@ -266,8 +263,17 @@ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int  bin_size_x,
 __global__
 void MapBintoSubProb_3d_v2(int* d_subprob_to_bin,int* d_subprobstartpts,
 	int* d_numsubprob,int numbins);
+__global__
+void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
 
 
+__global__
+void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
+__global__
+void Interp_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma);
 #if 0
 // 1d
 int cufinufft_spread1d(int ms, int nf1, CPX* h_fw, int M, FLT *h_kx,
@@ -323,18 +329,24 @@ int cuinterp2d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 
 // 3d
 int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
-		CPX* h_fw, int M, const FLT *h_kx, const FLT *h_ky, const FLT* h_z,
-		const CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dplan);
+	CPX* h_fw, int M, const FLT *h_kx, const FLT *h_ky, const FLT* h_z,
+	const CPX* h_c, cufinufft_opts &opts, cufinufft_plan *dplan);
 int cuspread3d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 int cuspread3d_idriven(int nf1, int nf2, int nf3, int M,
-		const cufinufft_opts opts,cufinufft_plan *d_mem);
+	const cufinufft_opts opts,cufinufft_plan *d_mem);
 int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
-		const cufinufft_opts opts, cufinufft_plan *d_plan);
+	const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
-		const cufinufft_opts opts, cufinufft_plan *d_plan);
+	const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cuspread3d_gather(int nf1, int nf2, int nf3, int M,
-		const cufinufft_opts opts, cufinufft_plan *d_mem);
+	const cufinufft_opts opts, cufinufft_plan *d_mem);
 int cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
-		const cufinufft_opts opts, cufinufft_plan *d_mem);
+	const cufinufft_opts opts, cufinufft_plan *d_mem);
 
+int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, 
+	CPX* h_fw, int M, FLT *h_kx, FLT *h_ky, FLT *hz, CPX* h_c, 
+	cufinufft_opts &opts, cufinufft_plan *dmem);
+int cuinterp3d(cufinufft_opts &opts, cufinufft_plan* d_plan);
+int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M, const cufinufft_opts opts,
+	cufinufft_plan *d_mem);
 #endif

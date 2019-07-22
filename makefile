@@ -3,7 +3,7 @@ CXX=g++
 NVCC=nvcc
 CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_70 -DTIME -DSPREADTIME --default-stream per-thread#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
+NVCCFLAGS=-arch=sm_70 -DDEBUG -DTIME -DSPREADTIME --default-stream per-thread#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 INC=-I/cm/shared/sw/pkg/devel/cuda/9.0.176/samples/common/inc/ \
     -I/mnt/home/yshih/cub/ \
     -I/cm/shared/sw/pkg/devel/cuda/9.0.176/include/
@@ -38,6 +38,10 @@ interp2d: examples/interp_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o \
 	src/profile.o
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
+interp3d: examples/interp_3d.o src/3d/interp3d_wrapper.o src/3d/interp3d.o \
+	finufft/utils.o src/memtransfer_wrapper.o src/profile.o src/common.o
+	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
+
 spreadinterp_test: test/spreadinterp_test.o src/2d/spread2d_wrapper.o \
 	src/2d/spread2d.o finufft/utils.o finufft/spreadinterp.o \
 	src/memtransfer_wrapper.o src/2d/interp2d_wrapper.o src/2d/interp2d.o \
@@ -46,7 +50,7 @@ spreadinterp_test: test/spreadinterp_test.o src/2d/spread2d_wrapper.o \
 
 spreadinterp3d_test: test/spreadinterp3d_test.o src/3d/spread3d_wrapper.o \
 	src/3d/spread3d.o finufft/utils.o finufft/spreadinterp.o \
-	src/memtransfer_wrapper.o \
+	src/memtransfer_wrapper.o src/3d/interp3d.o src/3d/interp3d_wrapper.o \
 	src/common.o src/profile.o
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 

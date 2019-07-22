@@ -43,7 +43,6 @@ int main(int argc, char* argv[])
 		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	cout << M << endl;
 	int ier;
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_opts opts;
@@ -257,18 +256,18 @@ int main(int argc, char* argv[])
 	}
 	cout<<endl;
 #endif
-#if 0
+#if 1
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 
 	opts.spread_direction=2;
 	CPX *fw;
 	CPX *cfinufft, *cs;
-	cudaMallocHost(&fw, nf1*nf2*sizeof(CPX));
+	cudaMallocHost(&fw, nf1*nf2*nf3*sizeof(CPX));
 	cudaMallocHost(&cfinufft, M*sizeof(CPX));
 	cudaMallocHost(&cs,       M*sizeof(CPX));
 
-	for(int i=0; i<nf1*nf2; i++){
+	for(int i=0; i<nf1*nf2*nf3; i++){
 		fw[i].real() = 1.0;
 		fw[i].imag() = 0.0;
 	}
@@ -276,14 +275,14 @@ int main(int argc, char* argv[])
 	// Method 1: Subprob                      //
 	/* -------------------------------------- */
 	timer.restart();
-	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, opts, &dplan);
+	ier = cufinufft_interp3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, cs, opts, &dplan);
 	FLT tts=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d_gpu_subprob"<<endl;
 		return 0;
 	}
-	printf("[method %d] Interp (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
-			  method,nf1,nf2,M,tts,nf1*nf2/tts);
+	printf("[method %d] Interp (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
+			  method,nf1,nf2,nf3,M,tts,nf1*nf2*nf3/tts);
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
@@ -298,16 +297,19 @@ int main(int argc, char* argv[])
 	spopts.sort=2;
 	spopts.debug=0;
 
-	ier = spreadinterp(nf1,nf2,1,(FLT*) fw,M,x,y,NULL,(FLT*) cfinufft,spopts);
+	ier = spreadinterp(nf1,nf2,nf3,(FLT*) fw,M,x,y,z,(FLT*) cfinufft,spopts);
 	FLT tt=timer.elapsedsec();
 	if (ier!=0) {
 		printf("error (ier=%d)!\n",ier);
 		return ier;
 	}
-	printf("[finufft] Interp (%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
-			  nf1,nf2,M,tt,nf1*nf2/tt);
+	printf("[finufft] Interp (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
+			  nf1,nf2,nf3,M,tt,nf1*nf2*nf3/tt);
 	err=relerrtwonorm(M,cs,cfinufft);
 	printf("|| cs  - cfinufft ||_2 / || cs  ||_2 =  %.6g\n", err);
+	for(int i=0; i<10; i++){
+		cout << cs[i]<<","<<cfinufft[i]<<endl;
+	}
 #if 0
 	cout<<"[result-hybrid]"<<endl;
 	for(int j=0; j<nf2; j++){

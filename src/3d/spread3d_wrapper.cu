@@ -1398,8 +1398,8 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
 
 	for(int t=0; t<d_plan->ntransfcufftplan; t++){
 		Spread_3d_Subprob_Horner<<<totalnumsubprob, 256,
-			sharedplanorysize>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2, M,
-			ns, nf1, nf2, nf3, sigma, d_binstartpts, d_binsize, bin_size_x,
+			sharedplanorysize>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, 
+			M, ns, nf1, nf2, nf3, sigma, d_binstartpts, d_binsize, bin_size_x,
 			bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
 			d_numsubprob, maxsubprobsize,numbins[0], numbins[1], numbins[2],
 			d_idxnupts);

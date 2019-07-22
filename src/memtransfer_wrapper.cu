@@ -354,6 +354,13 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*mu*
 		sizeof(CUCPX)));
 
+	d_plan->nstreams=16;
+	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->nstreams*
+		sizeof(cudaStream_t));
+	for(int i=0; i<d_plan->nstreams; i++)
+		checkCudaErrors(cudaStreamCreate(&streams[i]));
+	d_plan->streams = streams;
+
 	return 0;
 }
 void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
@@ -406,4 +413,6 @@ void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 			}
 			break;
 	}
+	for(int i=0; i<d_plan->nstreams; i++)
+		checkCudaErrors(cudaStreamDestroy(d_plan->streams[i]));
 }

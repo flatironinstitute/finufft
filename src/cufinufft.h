@@ -151,7 +151,7 @@ int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac);
 
 // 1d
 int cufinufft1d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, 
-		cufinufft_plan *d_plan);
+	cufinufft_plan *d_plan);
 int cufinufft1d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cufinufft1d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
 int cufinufft1d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
