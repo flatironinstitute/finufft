@@ -382,7 +382,7 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
   //divide evenly into n_transf. Ensures safe indexing of c.
 
 #if _OPENMP
-  if(maxSafeIndex != plan->threadBlkSize)                                                                                                                                                                                                                                      
+  if(maxSafeIndex != plan->threadBlkSize)                                                   
     MY_OMP_SET_NESTED(1); //nested parallelization
 #endif 
   
@@ -410,7 +410,7 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
       ier_spreads[i] = ier;
   }
 #if _OPENMP
-   MY_OMP_SET_NESTED(0); //no nested parallelization                                                                                                                                                                                                                            
+   MY_OMP_SET_NESTED(0); //no nested parallelization         
 #endif 
 
 }
@@ -419,7 +419,7 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
 void interpInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c, int *ier_interps){
 
 #if _OPENMP
-  if(maxSafeIndex != plan->threadBlkSize)                                                                                                                                                                                                                                      
+  if(maxSafeIndex != plan->threadBlkSize)
     MY_OMP_SET_NESTED(1); //nested parallelization
 #endif 
 
@@ -450,7 +450,7 @@ void interpInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
       ier_interps[i] = ier;
   }
 #if _OPENMP
-   MY_OMP_SET_NESTED(0); //no nested parallelization                                                                                                                                                                                                                            
+   MY_OMP_SET_NESTED(0); //no nested parallelization                                               
 #endif 
 
 }
@@ -468,13 +468,7 @@ void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX 
     if(plan->n_dims > 2)
       phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
 
-#if _OPENMP
-    if(maxSafeIndex != plan->threadBlkSize)                                                                                                                                                                                                                                     
-      MY_OMP_SET_NESTED(1); //nested parallelization
-#endif 
-
-
-#pragma omp parallel num_threads(maxSafeIndex)
+#pragma omp parallel num_threads(plan->threadBlkSize)
 #pragma omp for
     for(int i = 0; i < maxSafeIndex; i++){
 
@@ -490,6 +484,7 @@ void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX 
     
     FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i;
 
+    //deconvolveshuffle?d are not multithreaded inside, so called in parallel here
     //prefactors hardcoded to 1...
     if(plan->n_dims == 1){
       deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, phiHat1, plan->ms, (FLT *)fkStart,
@@ -507,13 +502,6 @@ void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX 
 			  fwStart, plan->opts.modeord);
     }
   }
-
-
-#if _OPENMP
-   MY_OMP_SET_NESTED(0); //no nested parallelization                                                                                                                                                                                                                            
-#endif 
-
-
 }
 
 
