@@ -381,13 +381,6 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
   //maxSafeIndex is the threadBlockSize, except for the last round if threadBlockSize does not
   //divide evenly into n_transf. Ensures safe indexing of c.
 
-#if _OPENMP
-  if(maxSafeIndex != plan->threadBlkSize)                                                   
-    MY_OMP_SET_NESTED(1); //nested parallelization
-#endif 
-  
-#pragma omp parallel num_threads(maxSafeIndex)
-#pragma omp for
   for(int i = 0; i < maxSafeIndex; i++){ 
 
     //index into this iteration of fft in fw and weights arrays
@@ -409,24 +402,12 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
     if(ier)
       ier_spreads[i] = ier;
   }
-#if _OPENMP
-   MY_OMP_SET_NESTED(0); //no nested parallelization         
-#endif 
-
 }
 
 /*Type 2: Interpolates from weights at uniform points in fw to non uniform points in c*/
 void interpInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c, int *ier_interps){
 
-#if _OPENMP
-  if(maxSafeIndex != plan->threadBlkSize)
-    MY_OMP_SET_NESTED(1); //nested parallelization
-#endif 
-
-  
-#pragma omp parallel num_threads(maxSafeIndex)
-#pragma omp for
-  for(int i = 0; i < maxSafeIndex; i++){ 
+for(int i = 0; i < maxSafeIndex; i++){ 
         
     //index into this iteration of fft in fw and weights arrays
     FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i; //fw gets reread on each iteration of j
@@ -449,10 +430,6 @@ void interpInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
     if(ier)
       ier_interps[i] = ier;
   }
-#if _OPENMP
-   MY_OMP_SET_NESTED(0); //no nested parallelization                                               
-#endif 
-
 }
 
 /*Type 1: deconvolves from interior fw array into user supplied fk*/ 
@@ -718,12 +695,6 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
       //modulus ntransf/blocksize 
      int maxSafeIndex = min(plan->n_transf - blkNum*plan->threadBlkSize, plan->threadBlkSize);
-
-     #if _OPENMP
-      if(maxSafeIndex == plan->threadBlkSize)
-	MY_OMP_SET_NESTED(0); //no nested parallelization
-      #endif
-
      
      //Is this the last iteration ? 
      if((blkNum+1)*plan->threadBlkSize > plan->n_transf)
