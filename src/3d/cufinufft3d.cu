@@ -53,13 +53,13 @@ int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf,
 	onedim_fseries_kernel(nf1, fwkerhalf1, opts);
 	onedim_fseries_kernel(nf2, fwkerhalf2, opts);
 	onedim_fseries_kernel(nf3, fwkerhalf3, opts);
-#if 1
+#ifdef DEBUG
 	printf("[time  ] \tkernel fser (ns=%d):\t %.3g s\n", opts.nspread,timer.elapsedsec());
 #endif
 
 	cudaEventRecord(start);
 	ier = allocgpumemory3d(opts, d_plan);
-#if 1
+#ifdef DEBUG
 	float milliseconds = 0;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -74,11 +74,11 @@ int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf,
 		sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf3,fwkerhalf3,(nf3/2+1)*
 		sizeof(FLT),cudaMemcpyHostToDevice));
-#if 1
+#ifdef DEBUG
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tCopy fwkerhalf1,2,3 HtoD\t %.3g s\n", milliseconds/1000);
+	printf("[time  ] \tCopy fwkerhalf1,2,3 HtoD %.3g s\n", milliseconds/1000);
 #endif
 
 	cudaEventRecord(start);
@@ -91,7 +91,7 @@ int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf,
 		inembed,istride,inembed[0]*inembed[1]*inembed[2],CUFFT_TYPE,
 		ntransfcufftplan);
 	d_plan->fftplan = fftplan;
-#if 1
+#ifdef DEBUG
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -121,7 +121,7 @@ int cufinufft3d_setNUpts(FLT* h_kx, FLT* h_ky, FLT *h_kz, cufinufft_opts &opts, 
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tCopy kx,ky,kz HtoD\t\t %.3g s\n", milliseconds/1000);
+	printf("[time  ] \tCopy kx,ky,kz HtoD\t %.3g s\n", milliseconds/1000);
 #endif
 
 	if(opts.pirange==1){
@@ -157,7 +157,7 @@ int cufinufft3d_setNUpts(FLT* h_kx, FLT* h_ky, FLT *h_kz, cufinufft_opts &opts, 
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tSetup spreader/interpolator properties\t\t %.3g s\n", 
+	printf("[time  ] \tSetup Subprob properties %.3g s\n", 
 		milliseconds/1000);
 #endif
 	return 0;
@@ -240,7 +240,7 @@ int cufinufft3d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan 
 	}
 	return ier;
 }
-#if 0
+
 int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, 
 	cufinufft_plan *d_plan)
 {
@@ -250,7 +250,6 @@ int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts,
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	cudaEventRecord(start);
 
 	int blksize, ier;
 	CPX* h_fkstart;
@@ -262,6 +261,7 @@ int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts,
 		h_fkstart = h_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt*
 			d_plan->mu;
 
+		cudaEventRecord(start);
 		checkCudaErrors(cudaMemcpy(d_plan->fk,h_fkstart,blksize*
 			d_plan->ms*d_plan->mt*d_plan->mu*sizeof(CUCPX),cudaMemcpyHostToDevice));
 #ifdef TIME
@@ -281,8 +281,8 @@ int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts,
 		printf("[time  ] \tAmplify & Copy fktofw\t %.3g s\n", milliseconds/1000);
 #endif
 		// Step 2: FFT
-		cudaDeviceSynchronize();
 		cudaEventRecord(start);
+		cudaDeviceSynchronize();
 		CUFFT_EX(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
 #ifdef TIME
 		cudaEventRecord(stop);
@@ -317,7 +317,7 @@ int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts,
 	}
 	return ier;
 }
-#endif
+
 int cufinufft3d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;

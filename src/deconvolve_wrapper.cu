@@ -166,8 +166,8 @@ int cudeconvolve3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 			h_fw = (CPX*) malloc(nf1*nf2*nf3*sizeof(CPX));
 			checkCudaErrors(cudaMemcpy(h_fw,d_plan->fw,nf1*nf2*nf3*sizeof(CUCPX),
 				cudaMemcpyDeviceToHost));
-			for(int j=0; j<nf2; j++){
-				for(int i=0; i<nf1; i++){
+			for(int k=0; k<nf3; k++){
+				for(int j=0; j<nf2; j++){
 					for(int i=0; i<nf1; i++){
 						printf("(%g,%g,%g)",h_fw[i+j*nf1+k*nf1*nf2].real(),
 							h_fw[i+j*nf1+k*nf1*nf2].imag());

@@ -6,6 +6,7 @@
 
 #include "../src/spreadinterp.h"
 #include "../src/cufinufft.h"
+#include "../src/profile.h"
 #include "../finufft/utils.h"
 
 using namespace std;
@@ -13,14 +14,12 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	FLT sigma = 2.0;
-	int N1, N2, N3, M, N;
+	int N1, N2, N3, M;
 	int ntransf=1;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft3d1_test [method [N1 N2 N3 [M [tol]]]]\n");
+		fprintf(stderr,"Usage: cufinufft2d2_test [method [N1 N2 N3 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
-		fprintf(stderr,"method 2: input driven with sorting\n");
-		fprintf(stderr,"method 4: hybrid\n");
 		fprintf(stderr,"method 5: subprob\n");
 		return 1;
 	}  
@@ -30,7 +29,6 @@ int main(int argc, char* argv[])
 	sscanf(argv[2],"%lf",&w); N1 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[3],"%lf",&w); N2 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[4],"%lf",&w); N3 = (int)w;  // so can read 1e6 right!
-	
 	M = N1*N2*N3;// let density always be 1
 	if(argc>5){
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
@@ -60,8 +58,11 @@ int main(int argc, char* argv[])
 		x[i] = M_PI*randm11();// x in [-pi,pi)
 		y[i] = M_PI*randm11();
 		z[i] = M_PI*randm11();
-		c[i].real() = randm11();
-		c[i].imag() = randm11();
+	}
+
+	for(int i=0; i<N1*N2; i++){
+		fk[i].real() = 1.0;
+		fk[i].imag() = 1.0;
 	}
 
 	cudaEvent_t start, stop;
@@ -72,8 +73,11 @@ int main(int argc, char* argv[])
 
 	/*warm up gpu*/
 	cudaEventRecord(start);
-	char *a;
-	checkCudaErrors(cudaMalloc(&a,1));
+	{
+		PROFILE_CUDA_GROUP("Warm Up",1);
+		char *a;
+		checkCudaErrors(cudaMalloc(&a,1));
+	}
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -85,73 +89,82 @@ int main(int argc, char* argv[])
 	cufinufft_opts opts;
 	ier=cufinufft_default_opts(opts,tol,sigma);
 	opts.method=method;
+	opts.spread_direction=2;
 
 	cudaEventRecord(start);
-	ier=cufinufft3d_plan(M, N1, N2, N3, ntransf, ntransf, iflag, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft2d_plan\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft3d_plan",2);
+		ier=cufinufft3d_plan(M, N1, N2, N3, ntransf, ntransf, iflag, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft3d_plan\n");
+		}
 	}
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
-
+#endif
 	cudaEventRecord(start);
-	ier=cufinufft3d_setNUpts(x, y, z, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft3d_setNUpts\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft3d_setNUpts",3);
+		ier=cufinufft3d_setNUpts(x, y, z, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft3d_setNUpts\n");
+		}
 	}
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
-
+#endif
 	cudaEventRecord(start);
-	ier=cufinufft3d1_exec(c, fk, opts, &dplan);
-	if (ier!=0){
-		printf("err: cufinufft3d1_exec\n");
+	{
+		PROFILE_CUDA_GROUP("cufinufft3d2_exec",4);
+		ier=cufinufft3d2_exec(c, fk, opts, &dplan);
+		if (ier!=0){
+			printf("err: cufinufft3d2_exec\n");
+		}
 	}
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
-
+#endif
 	cudaEventRecord(start);
-	ier=cufinufft3d_destroy(opts, &dplan);
+	{
+		PROFILE_CUDA_GROUP("cufinufft3d_destroy",5);
+		ier=cufinufft3d_destroy(opts, &dplan);
+	}
+#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
-
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 			opts.method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
-	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2), nt3 = (int) (0.13*N3);  // choose some mode index to check
-	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
-	for (BIGINT j=0; j<M; ++j)
-		Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
-	int it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);   // index in complex F as 1d array
-	N = N1*N2*N3;
-	printf("[gpu   ] one mode: abs err in F[%ld,%ld,%ld] is %.3g\n",(int)nt1,(int)nt2, (int)nt3, (abs(Ft-fk[it])));
-	printf("[gpu   ] one mode: rel err in F[%ld,%ld,%ld] is %.3g\n",(int)nt1,(int)nt2, (int)nt3, abs(Ft-fk[it])/infnorm(N,fk));
-#if 0
-	cout<<"[result-input]"<<endl;
-	for(int j=0; j<nf2; j++){
-		//        if( j % opts.bin_size_y == 0)
-		//                printf("\n");
-		for (int i=0; i<nf1; i++){
-			//                if( i % opts.bin_size_x == 0 && i!=0)
-			//                        printf(" |");
-			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
-		}
-		cout<<endl;
-	}
+#endif
+#if 1
+	// This must be here, since in gpu code, x, y gets modified if pirange=1
+	int jt = M/2;          // check arbitrary choice of one targ pt
+	CPX J = IMA*(FLT)iflag;
+	CPX ct = CPX(0,0);
+	int m=0;
+	for (int m3=-(N3/2); m3<=(N3-1)/2; ++m3)  // loop in correct order over F
+		for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
+			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+				ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt] + m3*z[jt]));   // crude direct
+	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(c[jt]-ct)/infnorm(M,c));
 #endif	
 	cudaFreeHost(x);
 	cudaFreeHost(y);
+	cudaFreeHost(z);
 	cudaFreeHost(c);
 	cudaFreeHost(fk);
 	return 0;
