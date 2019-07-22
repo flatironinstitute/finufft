@@ -253,10 +253,11 @@ void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
 	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
 __global__
-void Spread_3d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
-	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size,
-	int bin_size_x, int bin_size_y, int* subprob_to_bin, int* subprobstartpts,
-	int* numsubprob, int maxsubprobsize, int nbinx, int nbiny, int* idxnupts);
+void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts, 
+	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z, 
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts);
 
 __global__
 void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int  bin_size_x,
@@ -332,6 +333,8 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 		const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cuspread3d_gather(int nf1, int nf2, int nf3, int M,
+		const cufinufft_opts opts, cufinufft_plan *d_mem);
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
 		const cufinufft_opts opts, cufinufft_plan *d_mem);
 
 #endif

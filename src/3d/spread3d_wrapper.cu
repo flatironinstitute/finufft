@@ -245,7 +245,7 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	numbins[0] = numobins[0]*(binsperobinx);
 	numbins[1] = numobins[1]*(binsperobiny);
 	numbins[2] = numobins[2]*(binsperobinz);
-#if 1
+#ifdef DEBUG
 	cout<<"[debug ] Dividing the uniform grids to bin size["
 		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"x"<<opts.bin_size_z<<"]"<<endl;
 	cout<<"[debug ] numobins = ["<<numobins[0]<<"x"<<numobins[1]<<"x"<<
@@ -458,6 +458,9 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 		milliseconds);
 #endif
 #ifdef DEBUG
+	int binidx = CalcGlobalIdx(0,0,2,numobins[0],numobins[1],
+					numobins[2],binsperobinx,binsperobiny,binsperobinz);
+	cout<<"binidx = "<<binidx;
 	int *h_idxnupts;
 	h_idxnupts = (int*)malloc(totalNUpts*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,totalNUpts*sizeof(int),
@@ -755,6 +758,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	}
 	return 0;
 }
+#endif
 // this function determines the properties for spreading that are independent
 // of the strength of the nodes, only relates to the locations of the nodes,
 // which only needs to be done once
@@ -772,14 +776,14 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	int bin_size_x=opts.bin_size_x;
 	int bin_size_y=opts.bin_size_y;
 	int bin_size_z=opts.bin_size_z;
-	int numbins[2];
+	int numbins[3];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
-	numbins[2] = ceil((FLT) nf2/bin_size_y);
+	numbins[2] = ceil((FLT) nf2/bin_size_z);
 #ifdef DEBUG
-	cout<<"[debug  ] Dividing the uniform grids to bin size["
-		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"]"<<endl;
-	cout<<"[debug  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"x"<<numbins[2]
+	cout<<"[debug ] Dividing the uniform grids to bin size["
+		<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"x"<<opts.bin_size_z<<"]"<<endl;
+	cout<<"[debug ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"x"<<numbins[2]
 		<<"]"<<endl;
 #endif
 
@@ -790,6 +794,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 #ifdef DEBUG
 	FLT *h_kx;
 	FLT *h_ky;
+	FLT *h_kz;
 	h_kx = (FLT*)malloc(M*sizeof(FLT));
 	h_ky = (FLT*)malloc(M*sizeof(FLT));
 	h_kz = (FLT*)malloc(M*sizeof(FLT));
@@ -797,8 +802,8 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	checkCudaErrors(cudaMemcpy(h_kx,d_kx,M*sizeof(FLT),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMemcpy(h_ky,d_ky,M*sizeof(FLT),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMemcpy(h_kz,d_kz,M*sizeof(FLT),cudaMemcpyDeviceToHost));
-	for(int i=0; i<M; i++){
-		cout<<"[debug ]";
+	for(int i=500; i<M; i++){
+		cout<<"[debug ] ";
 		cout <<"("<<setw(3)<<h_kx[i]<<","<<setw(3)<<h_ky[i]<<","<<setw(3)<<h_kz[i]
 			<<")"<<endl;
 	}
@@ -820,8 +825,8 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*numbins[2]*
 		sizeof(int)));
 	CalcBinSize_noghost_3d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,nf3,bin_size_x,
-		bin_size_y,numbins[0],numbins[1],numbins[2],d_binsize,d_kx,d_ky,d_kz,
-		d_sortidx);
+		bin_size_y,bin_size_z,numbins[0],numbins[1],numbins[2],d_binsize,d_kx,
+		d_ky,d_kz,d_sortidx);
 #ifdef SPREADTIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -829,7 +834,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel CalcBinSize_noghost_3d \t\t%.3g ms\n", milliseconds);
 #endif
-#if 0
+#ifdef DEBUG
 	int *h_binsize;// For debug
 	h_binsize     = (int*)malloc(numbins[0]*numbins[1]*numbins[2]*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*
@@ -841,7 +846,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 			for(int i=0; i<numbins[0]; i++){
 				if(i!=0) cout<<" ";
 				cout <<" bin["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
-					h_binsize[i+j*numbins[0]+k*numbins[0]*numbins[2]];
+					h_binsize[i+j*numbins[0]+k*numbins[0]*numbins[1]];
 			}
 			cout<<endl;
 		}
@@ -849,14 +854,14 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	free(h_binsize);
 	cout<<"[debug ] --------------------------------------------------------------"<<endl;
 #endif
-#ifdef DEBUG
+#if 0
 	int *h_sortidx;
 	h_sortidx = (int*)malloc(M*sizeof(int));
 
 	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
 		cudaMemcpyDeviceToHost));
-	cout<<"[debug ]";
 	for(int i=0; i<M; i++){
+		cout<<"[debug ] ";
 		cout <<"point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
 	}
 #endif
@@ -875,13 +880,13 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel BinStartPts_2d \t\t\t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel BinStartPts_3d \t\t\t%.3g ms\n", milliseconds);
 #endif
 #ifdef DEBUG
 	int *h_binstartpts;
 	h_binstartpts = (int*)malloc((numbins[0]*numbins[1]*numbins[2])*sizeof(int));
-	checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*numbins[1])
-		*sizeof(int),cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*
+		numbins[1]*numbins[2])*sizeof(int),cudaMemcpyDeviceToHost));
 	cout<<"[debug ] Result of scan bin_size array:"<<endl;
 	for(int k=0; k<numbins[2]; k++){
 		for(int j=0; j<numbins[1]; j++){
@@ -889,7 +894,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 			for(int i=0; i<numbins[0]; i++){
 				if(i!=0) cout<<" ";
 				cout <<" bin["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
-					h_binstartpts[i+j*numbins[0]+k*numbins[0]*numbins[2]];
+					h_binstartpts[i+j*numbins[0]+k*numbins[0]*numbins[1]];
 			}
 			cout<<endl;
 		}
@@ -898,10 +903,10 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	cout<<"[debug ] ---------------------------------------------------"<<endl;
 #endif
 	cudaEventRecord(start);
-	CalcInvertofGlobalSortIdx_2d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,
+	CalcInvertofGlobalSortIdx_3d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,
 		bin_size_y,bin_size_z,numbins[0],numbins[1],numbins[2], d_binstartpts,
 		d_sortidx,d_kx,d_ky,d_kz,d_idxnupts);
-#ifdef DEBUG
+#if 0
 	int *h_idxnupts;
 	h_idxnupts = (int*)malloc(M*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,M*sizeof(int),
@@ -915,7 +920,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	//        Determining Subproblem properties      //
 	/* --------------------------------------------- */
 	cudaEventRecord(start);
-	CalcSubProb_2d_v2<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,
+	CalcSubProb_3d_v2<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,
 			maxsubprobsize,numbins[0]*numbins[1]*numbins[2]);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
@@ -927,14 +932,14 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	int* h_numsubprob;
 	h_numsubprob = (int*) malloc(n*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_numsubprob,d_numsubprob,numbins[0]*numbins[1]*
-				sizeof(int),cudaMemcpyDeviceToHost));
+				numbins[2]*sizeof(int),cudaMemcpyDeviceToHost));
 	for(int k=0; k<numbins[2]; k++){
 		for(int j=0; j<numbins[1]; j++){
 			cout<<"[debug ] ";
 			for(int i=0; i<numbins[0]; i++){
 				if(i!=0) cout<<" ";
 				cout <<" ns["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
-					h_numsubprob[i+j*numbins[0]+k*numbins[0]*numbins[2]];
+					h_numsubprob[i+j*numbins[0]+k*numbins[0]*numbins[1]];
 			}
 			cout<<endl;
 		}
@@ -965,7 +970,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 			for(int i=0; i<numbins[0]; i++){
 				if(i!=0) cout<<" ";
 				cout <<" ns["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
-					h_subprobstartpts[i+j*numbins[0]+k*numbins[0]*numbins[2]];
+					h_subprobstartpts[i+j*numbins[0]+k*numbins[0]*numbins[1]];
 			}
 			cout<<endl;
 		}
@@ -1351,15 +1356,13 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
 	dim3 blocks;
 
 	int ns=opts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=opts.ES_c;
-	FLT es_beta=opts.ES_beta;
 	int maxsubprobsize=opts.maxsubprobsize;
 
 	// assume that bin_size_x > ns/2;
 	int bin_size_x=opts.bin_size_x;
 	int bin_size_y=opts.bin_size_y;
 	int bin_size_z=opts.bin_size_z;
-	int numbins[2];
+	int numbins[3];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
 	numbins[2] = ceil((FLT) nf3/bin_size_z);
@@ -1387,7 +1390,7 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
 	FLT sigma=opts.upsampfac;
 	cudaEventRecord(start);
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*
-			ceil(ns/2.0))*(bin_size_x+2*ceil(ns/2.0))*sizeof(CUCPX);
+			ceil(ns/2.0))*(bin_size_z+2*ceil(ns/2.0))*sizeof(CUCPX);
 	if(sharedplanorysize > 49152){
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
@@ -1408,14 +1411,5 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M,
 			printf("[time  ] \tKernel Spread_2d_Subprob_Horner \t%.3g ms\n", milliseconds);
 #endif
 	}
-#ifdef SPREADTIME
-		float milliseconds = 0;
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel Spread_3d_Subprob\t\t%.3g ms\n", milliseconds);
-#endif
-	}
 	return 0;
 }
-#endif

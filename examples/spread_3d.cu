@@ -84,9 +84,9 @@ int main(int argc, char* argv[])
 		// Making data
 		case 1: //uniform
 			{
-				x[0] = 5;
-				y[0] = 5;
-				z[0] = 5;
+				x[0] = 0;
+				y[0] = 0;
+				z[0] = 2;
 				for (int i = 0; i < M; i++) {
 					x[i] = x[0];//RESCALE(M_PI*randm11(), nf1, 1);
 					y[i] = y[0];//RESCALE(M_PI*randm11(), nf2, 1);
@@ -115,8 +115,10 @@ int main(int argc, char* argv[])
 					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
+					cout << x[i] <<","<<y[i]<<","<<z[i]<<endl;
 				}
 			}
+			break;
 		case 4:
 			{
 				for(int k=0; k<nf3; k++){
@@ -162,6 +164,13 @@ int main(int argc, char* argv[])
 		opts.o_bin_size_x=8;
 		opts.o_bin_size_y=8;
 		opts.o_bin_size_z=8;
+		opts.maxsubprobsize=maxsubprobsize;
+	}
+	if(opts.method == 5)
+	{
+		opts.bin_size_x=16;
+		opts.bin_size_y=16;
+		opts.bin_size_z=2;
 		opts.maxsubprobsize=maxsubprobsize;
 	}
 

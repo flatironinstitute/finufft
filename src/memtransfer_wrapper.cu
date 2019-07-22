@@ -265,7 +265,7 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	// No extra memory is needed in idriven method;
 	switch(opts.method)
 	{
-		case 5:
+		case 6:
 			{
 				int numobins[3], numbins[3];
 				numobins[0] = ceil((FLT) nf1/opts.o_bin_size_x);
@@ -320,12 +320,12 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 					*numobins[1]*numobins[2]+1)*sizeof(int)));
 			}
 			break;
-			case 5:
+		case 5:
 			{
-				int numbins[2];
+				int numbins[3];
 				numbins[0] = ceil((FLT) nf1/opts.bin_size_x);
 				numbins[1] = ceil((FLT) nf2/opts.bin_size_y);
-				numbins[1] = ceil((FLT) nf3/opts.bin_size_z);
+				numbins[2] = ceil((FLT) nf3/opts.bin_size_z);
 				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
@@ -337,6 +337,7 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,
 					(numbins[0]*numbins[1]*numbins[2]+1)*sizeof(int)));
 			}
+			break;
 	}
 	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
@@ -364,7 +365,7 @@ void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	cudaFree(d_plan->fwkerhalf2);
 	switch(opts.method)
 	{
-		case 5:
+		case 6:
 			{
 				checkCudaErrors(cudaFree(d_plan->idxnupts));
 				checkCudaErrors(cudaFree(d_plan->sortidx));
@@ -386,6 +387,18 @@ void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 				checkCudaErrors(cudaFree(d_plan->binsize));
 				checkCudaErrors(cudaFree(d_plan->binstartpts));
 				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
+				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
+			}
+			break;
+		case 5:
+			{
+				checkCudaErrors(cudaFree(d_plan->idxnupts));
+				checkCudaErrors(cudaFree(d_plan->sortidx));
+				checkCudaErrors(cudaFree(d_plan->numsubprob));
+				checkCudaErrors(cudaFree(d_plan->binsize));
+				checkCudaErrors(cudaFree(d_plan->binstartpts));
+				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
+				checkCudaErrors(cudaFree(d_plan->temp_storage));
 				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
 			}
 			break;

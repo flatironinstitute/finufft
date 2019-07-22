@@ -44,6 +44,12 @@ spreadinterp_test: test/spreadinterp_test.o src/2d/spread2d_wrapper.o \
 	src/common.o src/2d/spread2d_wrapper_paul.o src/profile.o
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
+spreadinterp3d_test: test/spreadinterp3d_test.o src/3d/spread3d_wrapper.o \
+	src/3d/spread3d.o finufft/utils.o finufft/spreadinterp.o \
+	src/memtransfer_wrapper.o \
+	src/common.o src/profile.o
+	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
+
 finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o finufft/utils.o \
 	finufft/spreadinterp.o finufft/dirft2d.o finufft/common.o \
 	finufft/contrib/legendre_rule_fast.o src/2d/spread2d_wrapper.o \
