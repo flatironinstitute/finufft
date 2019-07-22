@@ -90,6 +90,15 @@ cufinufft2d2many_test: examples/cufinufft2d2many_test.o finufft/utils.o \
 	src/2d/spread2d_wrapper_paul.o src/profile.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
+cufinufft3d1_test: examples/cufinufft3d1_test.o finufft/utils.o \
+	finufft/dirft2d.o finufft/common.o finufft/spreadinterp.o \
+	finufft/contrib/legendre_rule_fast.o src/3d/spread3d_wrapper.o \
+	src/3d/spread3d.o src/3d/cufinufft3d.o src/deconvolve_wrapper.o \
+	src/memtransfer_wrapper.o src/profile.o src/2d/cufinufft2d.o \
+	src/2d/spread2d_wrapper.o  src/2d/spread2d.o src/2d/interp2d.o \
+	src/2d/spread2d_wrapper_paul.o src/2d/interp2d_wrapper.o
+	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
+
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test
 clean:

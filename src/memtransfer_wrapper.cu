@@ -350,7 +350,9 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3,(nf3/2+1)*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*mu*
+		sizeof(CUCPX)));
 
 	return 0;
 }
@@ -363,6 +365,7 @@ void freegpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	cudaFree(d_plan->c);
 	cudaFree(d_plan->fwkerhalf1);
 	cudaFree(d_plan->fwkerhalf2);
+	cudaFree(d_plan->fwkerhalf3);
 	switch(opts.method)
 	{
 		case 6:

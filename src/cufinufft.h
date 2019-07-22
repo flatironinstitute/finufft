@@ -56,6 +56,7 @@ struct cufinufft_plan {
 	int byte_now;
 	FLT *fwkerhalf1;
 	FLT *fwkerhalf2;
+	FLT *fwkerhalf3;
 
 	FLT *kx;
 	FLT *ky;
@@ -158,8 +159,8 @@ int cufinufft1d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
 
 // 2d
 int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan, 
-		int iflag, const cufinufft_opts opts, 
-		cufinufft_plan *d_plan);
+	int iflag, const cufinufft_opts opts, 
+	cufinufft_plan *d_plan);
 int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, 
 	cufinufft_plan *d_plan);
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, 
@@ -167,4 +168,16 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts,
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, 
 	cufinufft_plan *d_plan);
 int cufinufft2d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
+
+// 3d
+int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf, int ntransfcufftplan, 
+	int iflag, const cufinufft_opts opts, 
+	cufinufft_plan *d_plan);
+int cufinufft3d_setNUpts(FLT* h_kx, FLT* h_ky, FLT *h_kz, cufinufft_opts &opts, 
+	cufinufft_plan *d_plan);
+int cufinufft3d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, 
+	cufinufft_plan *d_plan);
+int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, 
+	cufinufft_plan *d_plan);
+int cufinufft3d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
 #endif
