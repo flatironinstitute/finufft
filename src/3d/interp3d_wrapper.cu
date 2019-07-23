@@ -15,7 +15,7 @@ using namespace std;
 
 // This function includes device memory allocation, transfer, free
 int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, 
-	CPX* h_fw, int M, FLT *h_kx, FLT *h_ky, FLT *h_jz, CPX *h_c, 
+	CPX* h_fw, int M, FLT *h_kx, FLT *h_ky, FLT *h_kz, CPX *h_c, 
 	cufinufft_opts &opts, cufinufft_plan* d_plan)
 {
 	cudaEvent_t start, stop;
@@ -43,7 +43,14 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	cudaMemcpy(d_plan->fw,h_fw,nf1*nf2*nf3*sizeof(CUCPX),cudaMemcpyHostToDevice);
+	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),
+		cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),
+		cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_plan->kz,h_kz,M*sizeof(FLT),
+		cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_plan->fw,h_fw,nf1*nf2*nf3*sizeof(CUCPX),
+		cudaMemcpyHostToDevice));
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -140,13 +147,14 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M,
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
-	threadsPerBlock.x = 32;
+	threadsPerBlock.x = 16;
 	threadsPerBlock.y = 1;
 	blocks.x = (M + threadsPerBlock.x - 1)/threadsPerBlock.x;
 	blocks.y = 1;
 
 	cudaEventRecord(start);
 	if(opts.Horner){
+#if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
@@ -154,7 +162,22 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M,
 				streams[t%nstreams]>>>(d_kx, d_ky, d_kz, d_c+t*M, 
 				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma);
 		}
+#else 
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Interp_3d_Idriven_Horner<<<blocks, threadsPerBlock, 0, 
+				0>>>(d_kx, d_ky, d_kz, d_c+t*M, 
+				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma);
+		}
+#endif
+#ifdef SPREADTIME
+			float milliseconds = 0;
+			cudaEventRecord(stop);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&milliseconds, start, stop);
+			printf("[time  ] \tKernel Interp_3d_Idriven_Horner \t%.3g ms\n", milliseconds);
+#endif
 	}else{
+#if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
@@ -162,7 +185,13 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M,
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
 				nf1, nf2, nf3,es_c, es_beta);
 		}
-	}
+#else
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Interp_3d_Idriven<<<blocks, threadsPerBlock, 0, 0 
+				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
+				nf1, nf2, nf3,es_c, es_beta);
+		}
+#endif
 #ifdef SPREADTIME
 			float milliseconds = 0;
 			cudaEventRecord(stop);
@@ -170,5 +199,6 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M,
 			cudaEventElapsedTime(&milliseconds, start, stop);
 			printf("[time  ] \tKernel Interp_3d_Idriven \t%.3g ms\n", milliseconds);
 #endif
+	}
 	return 0;
 }

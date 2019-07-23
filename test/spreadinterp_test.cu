@@ -215,6 +215,7 @@ int main(int argc, char* argv[])
 	printf("\n[info  ] Type 2: Interpolation\n");
 
 	opts.spread_direction=2;
+	opts.Horner=0;
 	CPX *fw;
 	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*sizeof(CPX));

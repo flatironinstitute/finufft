@@ -76,14 +76,16 @@ void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		for(int zz=zstart; zz<=zend; zz++){
 			FLT disz=abs(z_rescaled-zz);
 			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta);
-			int iz = zz < 0 ? zz+nf3 : (zz>nf3-1 ? zz-nf3 : zz);
 			for(int yy=ystart; yy<=yend; yy++){
 				FLT disy=abs(y_rescaled-yy);
 				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-				int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 				for(int xx=xstart; xx<=xend; xx++){
 					int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
+					int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
+					int iz = zz < 0 ? zz+nf3 : (zz>nf3-1 ? zz-nf3 : zz);
+					
 					int inidx = ix+iy*nf1+iz*nf2*nf1;
+					
 					FLT disx=abs(x_rescaled-xx);
 					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
 					cnow.x += fw[inidx].x*kervalue1*kervalue2*kervalue3;
@@ -109,6 +111,7 @@ void Interp_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int zstart = ceil(z_rescaled - ns/2.0);
+
 		int xend   = floor(x_rescaled + ns/2.0);
 		int yend   = floor(y_rescaled + ns/2.0);
 		int zend   = floor(z_rescaled + ns/2.0);
@@ -128,9 +131,9 @@ void Interp_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		for(int zz=zstart; zz<=zend; zz++){
 			FLT kervalue3 = ker3[zz-zstart];
 			int iz = zz < 0 ? zz+nf3 : (zz>nf3-1 ? zz-nf3 : zz);
-				for(int yy=ystart; yy<=yend; yy++){
-					FLT kervalue2 = ker2[yy-ystart];
-					int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
+			for(int yy=ystart; yy<=yend; yy++){
+				FLT kervalue2 = ker2[yy-ystart];
+				int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 				for(int xx=xstart; xx<=xend; xx++){
 					int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 					int inidx = ix+iy*nf1+iz*nf2*nf1;

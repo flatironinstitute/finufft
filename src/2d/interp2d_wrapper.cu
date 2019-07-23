@@ -40,6 +40,10 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, FLT *
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
+	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),
+		cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),
+		cudaMemcpyHostToDevice));
 	cudaMemcpy2D(d_plan->fw,d_plan->nf1*sizeof(CUCPX),h_fw,nf1*sizeof(CUCPX),
 			nf1*sizeof(CUCPX),nf2,cudaMemcpyHostToDevice);
 #ifdef TIME

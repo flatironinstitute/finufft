@@ -266,6 +266,12 @@ void MapBintoSubProb_3d_v2(int* d_subprob_to_bin,int* d_subprobstartpts,
 __global__
 void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
+__global__
+void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, int* binstartpts,
+	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, int maxsubprobsize,
+	int nbinx, int nbiny, int nbinz, int* idxnupts);
 
 
 __global__

@@ -305,8 +305,11 @@ int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts,
 		printf("[time  ] \tUnspread (%d)\t\t %.3g s\n", milliseconds/1000,opts.method);
 #endif
 
-		cudaDeviceSynchronize();
 		cudaEventRecord(start);
+#if 0
+		if(d_plan->nstreams != 1)
+			cudaDeviceSynchronize();
+#endif
 		checkCudaErrors(cudaMemcpy(h_cstart,d_plan->c,blksize*d_plan->M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 #ifdef TIME
 		cudaEventRecord(stop);

@@ -951,6 +951,105 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 	extern __shared__ CUCPX fwshared[];
 
 	int xstart,ystart,xend,yend,zstart,zend;
+	int bidx=subprob_to_bin[blockIdx.x];
+	int binsubp_idx=blockIdx.x-subprobstartpts[bidx];
+	int ix,iy,iz,outidx;
+	int ptstart=binstartpts[bidx]+binsubp_idx*maxsubprobsize;
+	int nupts=min(maxsubprobsize, bin_size[bidx]-binsubp_idx*maxsubprobsize);
+
+	int xoffset=(bidx % nbinx)*bin_size_x;
+	int yoffset=((bidx / nbinx)%nbiny)*bin_size_y;
+	int zoffset=(bidx/ (nbinx*nbiny))*bin_size_z;
+
+	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*
+		(bin_size_z+2*ceil(ns/2.0));
+
+
+	for(int i=threadIdx.x; i<N; i+=blockDim.x){
+		fwshared[i].x = 0.0;
+		fwshared[i].y = 0.0;
+	}
+	__syncthreads();
+	FLT x_rescaled, y_rescaled, z_rescaled;
+	CUCPX cnow;
+
+	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
+		FLT ker1[MAX_NSPREAD];
+		FLT ker2[MAX_NSPREAD];
+		FLT ker3[MAX_NSPREAD];
+		
+		int nuptsidx = idxnupts[ptstart+i];
+		x_rescaled = x[nuptsidx];
+		y_rescaled = y[nuptsidx];
+		z_rescaled = z[nuptsidx];
+		cnow = c[nuptsidx];
+
+		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
+		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
+		zstart = ceil(z_rescaled - ns/2.0)-zoffset;
+
+		xend   = floor(x_rescaled + ns/2.0)-xoffset;
+		yend   = floor(y_rescaled + ns/2.0)-yoffset;
+		zend   = floor(z_rescaled + ns/2.0)-zoffset;
+
+		eval_kernel_vec_Horner(ker1,xstart+xoffset-x_rescaled,ns,sigma);
+		eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
+		eval_kernel_vec_Horner(ker3,zstart+zoffset-z_rescaled,ns,sigma);
+
+    	for (int zz=zstart; zz<=zend; zz++){
+			FLT kervalue3 = ker3[zz-zstart];
+			iz = zz+ceil(ns/2.0);
+			for(int yy=ystart; yy<=yend; yy++){
+				FLT kervalue2 = ker2[yy-ystart];
+				iy = yy+ceil(ns/2.0);
+				for(int xx=xstart; xx<=xend; xx++){
+					ix = xx+ceil(ns/2.0);
+					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
+						iz*(bin_size_x+ceil(ns/2.0)*2)*
+						   (bin_size_y+ceil(ns/2.0)*2);
+					FLT kervalue1 = ker1[xx-xstart];
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*kervalue3);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*kervalue3);
+					//atomicAdd(&fwshared[outidx].x, 1);
+					//atomicAdd(&fwshared[outidx].y, 1);
+        		}
+      		}
+		}
+	}
+	__syncthreads();
+	/* write to global memory */
+	for(int n=threadIdx.x; n<N; n+=blockDim.x){
+		int i = n % (int) (bin_size_x+2*ceil(ns/2.0) );
+		int j = (int) (n /(bin_size_x+2*ceil(ns/2.0))) % (int) (bin_size_y+2*ceil(ns/2.0));
+		int k = n / ((bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0)));
+
+		ix = xoffset-ceil(ns/2.0)+i;
+		iy = yoffset-ceil(ns/2.0)+j;
+		iz = zoffset-ceil(ns/2.0)+k;
+
+		if(ix<(nf1+ceil(ns/2.0)) && iy<(nf2+ceil(ns/2.0)) && iz<(nf3+ceil(ns/2.0))){
+			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
+			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
+			iz = iz < 0 ? iz+nf3 : (iz>nf3-1 ? iz-nf3 : iz);
+			outidx = ix+iy*nf1+iz*nf1*nf2;
+			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2)+
+				k*(bin_size_x+ceil(ns/2.0)*2)*(bin_size_y+ceil(ns/2.0)*2);
+			atomicAdd(&fw[outidx].x, fwshared[sharedidx].x);
+			atomicAdd(&fw[outidx].y, fwshared[sharedidx].y);
+		}
+	}
+}
+
+__global__
+void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, int* binstartpts,
+	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, int maxsubprobsize,
+	int nbinx, int nbiny, int nbinz, int* idxnupts)
+{
+	extern __shared__ CUCPX fwshared[];
+
+	int xstart,ystart,xend,yend,zstart,zend;
 	int subpidx=blockIdx.x;
 	int bidx=subprob_to_bin[subpidx];
 	int binsubp_idx=subpidx-subprobstartpts[bidx];
@@ -960,15 +1059,10 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 
 	int xoffset=(bidx % nbinx)*bin_size_x;
 	int yoffset=((bidx / nbinx)%nbiny)*bin_size_y;
-	//int yoffset=0;
 	int zoffset=(bidx/ (nbinx*nbiny))*bin_size_z;
 
 	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*
 		(bin_size_z+2*ceil(ns/2.0));
-
-	FLT ker1[MAX_NSPREAD];
-	FLT ker2[MAX_NSPREAD];
-	FLT ker3[MAX_NSPREAD];
 
 	for(int i=threadIdx.x; i<N; i+=blockDim.x){
 		fwshared[i].x = 0.0;
@@ -992,14 +1086,15 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
 
-		eval_kernel_vec_Horner(ker1,xstart+xoffset-x_rescaled,ns,sigma);
-		eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
-		eval_kernel_vec_Horner(ker3,zstart+zoffset-z_rescaled,ns,sigma);
 #if 1
-    	for (int zz=zstart; zz<=zend; zz++){
-			FLT kervalue3 = ker3[zz-zstart];
+		for(int zz=zstart; zz<=zend; zz++){
+			FLT disz=abs(z_rescaled-(zz+zoffset));
+			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta);
+			//FLT kervalue3 = disz;
 			for(int yy=ystart; yy<=yend; yy++){
-				FLT kervalue2 = ker2[yy-ystart];
+				FLT disy=abs(y_rescaled-(yy+yoffset));
+				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+				//FLT kervalue2 = disy;
 				for(int xx=xstart; xx<=xend; xx++){
 					ix = xx+ceil(ns/2.0);
 					iy = yy+ceil(ns/2.0);
@@ -1007,13 +1102,16 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
 						iz*(bin_size_x+ceil(ns/2.0)*2)*
 						   (bin_size_y+ceil(ns/2.0)*2);
-					FLT kervalue1 = ker1[xx-xstart];
-					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*kervalue3);
-					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*kervalue3);
-					//atomicAdd(&fwshared[outidx].x, 1);
-					//atomicAdd(&fwshared[outidx].y, 1);
-        		}
-      		}
+					FLT disx=abs(x_rescaled-(xx+xoffset));
+					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+#if 1
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
+						kervalue3);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
+						kervalue3);
+#endif
+				}
+			}
 		}
 #endif
 	}

@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	cufinufft_plan dplan;
-	cout<<scientific<<setprecision(3);
+	cout<<scientific<<setprecision(6);
 
 
 	FLT *x, *y, *z;
@@ -62,6 +62,7 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&x, M*sizeof(FLT));
 	cudaMallocHost(&y, M*sizeof(FLT));
 	cudaMallocHost(&z, M*sizeof(FLT));
+
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fws,       nf1*nf2*nf3*sizeof(CPX));
 	cudaMallocHost(&fwfinufft, nf1*nf2*nf3*sizeof(CPX));
@@ -143,9 +144,9 @@ int main(int argc, char* argv[])
 	// Method 5: Subprob                     //
 	/* -------------------------------------- */
 	timer.restart();
-	opts.method=method;
+	opts.method=5;
 	opts.Horner=1;
-	switch(method){
+	switch(opts.method){
 		case 1:
 		case 2:
 		case 3:
@@ -175,7 +176,6 @@ int main(int argc, char* argv[])
 	}
 	printf("[method %d] %ld NU pts to (%ld,%ld,%ld) modes, #%d U pts in %.3g s \t%.3g NU pts/s\n",
 			method,M,N1,N2,N3,nf1*nf2*nf3,tsubprob,M/tsubprob);
-
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
@@ -256,11 +256,12 @@ int main(int argc, char* argv[])
 	}
 	cout<<endl;
 #endif
-#if 1
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 
 	opts.spread_direction=2;
+	opts.method=4;
+	opts.Horner=1;
 	CPX *fw;
 	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*nf3*sizeof(CPX));
@@ -275,14 +276,15 @@ int main(int argc, char* argv[])
 	// Method 1: Subprob                      //
 	/* -------------------------------------- */
 	timer.restart();
-	ier = cufinufft_interp3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, cs, opts, &dplan);
+	ier = cufinufft_interp3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, cs, opts, 
+		&dplan);
 	FLT tts=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d_gpu_subprob"<<endl;
 		return 0;
 	}
-	printf("[method %d] Interp (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
-			  method,nf1,nf2,nf3,M,tts,nf1*nf2*nf3/tts);
+	printf("[method %d] Interp (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
+			  method,nf1,nf2,nf3,M,tts,M/tts);
 	/* -------------------------------------- */
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
@@ -303,12 +305,17 @@ int main(int argc, char* argv[])
 		printf("error (ier=%d)!\n",ier);
 		return ier;
 	}
-	printf("[finufft] Interp (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g U pts/s\n",
-			  nf1,nf2,nf3,M,tt,nf1*nf2*nf3/tt);
+	printf("[finufft] Interp (%ld,%ld,%ld) modes to %ld NU pts in %.3g s \t%.3g NU pts/s\n",
+			  nf1,nf2,nf3,M,tt,M/tt);
 	err=relerrtwonorm(M,cs,cfinufft);
 	printf("|| cs  - cfinufft ||_2 / || cs  ||_2 =  %.6g\n", err);
-	for(int i=0; i<10; i++){
-		cout << cs[i]<<","<<cfinufft[i]<<endl;
+	FLT cfinufft_infnorm=infnorm(M, cfinufft);
+	nn = 0;
+	for(int i=0; i<M; i++){
+		if( norm(cs[i]-cfinufft[i])/cfinufft_infnorm > tol & nn<10){
+			cout << cs[i]<<","<<cfinufft[i]<<endl;
+			nn++;
+		}
 	}
 #if 0
 	cout<<"[result-hybrid]"<<endl;
@@ -324,7 +331,6 @@ int main(int argc, char* argv[])
 		cout<<endl;
 	}
 	cout<<endl;
-#endif
 #endif
 	cudaFreeHost(x);
 	cudaFreeHost(y);

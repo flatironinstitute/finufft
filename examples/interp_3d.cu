@@ -39,8 +39,8 @@ int main(int argc, char* argv[])
 	}
 
 	FLT tol=1e-6;
-	if(argc>6){
-		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+	if(argc>7){
+		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
 	int Horner=1;
@@ -81,6 +81,7 @@ int main(int argc, char* argv[])
 					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
 					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
 					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
+					//cout << x[i] << "," << y[i] << "," << z[i] << endl;
 				}
 			}
 			break;
@@ -122,9 +123,9 @@ int main(int argc, char* argv[])
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
 			opts.method,nf1*nf2*nf3,M,t,M/t);
-#if 0
+#if 1
 	cout<<"[result-input]"<<endl;
-	for(int j=0; j<M; j++){
+	for(int j=0; j<10; j++){
 		printf(" (%2.3g,%2.3g)",c[j].real(),c[j].imag() );
 		cout<<endl;
 	}

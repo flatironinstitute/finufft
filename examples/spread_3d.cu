@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
 	sscanf(argv[4],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[5],"%lf",&w); nf3 = (int)w;  // so can read 1e6 right!
 
-	int maxsubprobsize=1024;
+	int maxsubprobsize=65536;
 	if(argc>6){
 		sscanf(argv[6],"%d",&maxsubprobsize);
 	}
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 		sscanf(argv[8],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int Horner=0;
+	int Horner=1;
 	if(argc>9){
 		sscanf(argv[9],"%d",&Horner);
 	}
@@ -99,9 +99,9 @@ int main(int argc, char* argv[])
 		case 2: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
-					x[i] = RESCALE(M_PI*rand01()/(nf1*2/8), nf1, 1);
-					y[i] = RESCALE(M_PI*rand01()/(nf2*2/8), nf2, 1);
-					z[i] = RESCALE(M_PI*rand01()/(nf3*2/8), nf3, 1);
+					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);
+					y[i] = RESCALE(M_PI*rand01()/(nf2*2/32), nf2, 1);
+					z[i] = RESCALE(M_PI*rand01()/(nf3*2/32), nf3, 1);
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
 				}
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
 					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
 					c[i].real() = randm11();
 					c[i].imag() = randm11();
-					cout << x[i] <<","<<y[i]<<","<<z[i]<<endl;
+					//cout << x[i] <<","<<y[i]<<","<<z[i]<<endl;
 				}
 			}
 			break;

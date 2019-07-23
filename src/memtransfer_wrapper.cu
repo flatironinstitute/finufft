@@ -354,7 +354,7 @@ int allocgpumemory3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*mu*
 		sizeof(CUCPX)));
 
-	d_plan->nstreams=16;
+	d_plan->nstreams=min(16, d_plan->ntransfcufftplan);
 	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->nstreams*
 		sizeof(cudaStream_t));
 	for(int i=0; i<d_plan->nstreams; i++)
