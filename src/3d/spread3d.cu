@@ -945,8 +945,8 @@ __global__
 void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts,
 	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
-	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, int maxsubprobsize,
-	int nbinx, int nbiny, int nbinz, int* idxnupts)
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts)
 {
 	extern __shared__ CUCPX fwshared[];
 

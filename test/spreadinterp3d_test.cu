@@ -260,7 +260,7 @@ int main(int argc, char* argv[])
 	printf("\n[info  ] Type 2: Interpolation\n");
 
 	opts.spread_direction=2;
-	opts.method=4;
+	opts.method=5;
 	opts.Horner=1;
 	CPX *fw;
 	CPX *cfinufft, *cs;

@@ -280,6 +280,12 @@ void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 __global__
 void Interp_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
 	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma);
+__global__
+void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts, 
+	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z, 
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts);
 #if 0
 // 1d
 int cufinufft_spread1d(int ms, int nf1, CPX* h_fw, int M, FLT *h_kx,
@@ -355,4 +361,6 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 int cuinterp3d(cufinufft_opts &opts, cufinufft_plan* d_plan);
 int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M, const cufinufft_opts opts,
 	cufinufft_plan *d_mem);
+int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, const cufinufft_opts opts, 
+	cufinufft_plan *d_plan);
 #endif

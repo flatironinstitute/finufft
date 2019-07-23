@@ -50,6 +50,7 @@ int main(int argc, char* argv[])
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
+	int maxsubprobsize;
 	cufinufft_opts opts;
 	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
@@ -83,6 +84,7 @@ int main(int argc, char* argv[])
 					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
 					//cout << x[i] << "," << y[i] << "," << z[i] << endl;
 				}
+				maxsubprobsize = 65536;
 			}
 			break;
 		case 2: // concentrate on a small region
@@ -92,12 +94,21 @@ int main(int argc, char* argv[])
 					y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
 					z[i] = RESCALE(M_PI*rand01()/(nf3*2/32), nf3, 1);
 				}
+				maxsubprobsize = 1024;
 			}
 			break;
 	}
 	for(int i=0; i<nf1*nf2*nf3; i++){
 		fw[i].real() = 1.0;
 		fw[i].imag() = 0.0;
+	}
+
+	if(opts.method == 5)
+	{
+		opts.bin_size_x=16;
+		opts.bin_size_y=16;
+		opts.bin_size_z=2;
+		opts.maxsubprobsize=maxsubprobsize;
 	}
 
 	CNTime timer;
