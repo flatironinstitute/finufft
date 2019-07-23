@@ -47,7 +47,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
   plan->mu = 1;
     
   
-  if (plan->threadBlkSize>1) {          
+ if (plan->threadBlkSize>1) {          
     FFTW_INIT();
     FFTW_PLAN_TH(plan->threadBlkSize);
   }
@@ -82,19 +82,20 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
       totCoeffs  += (plan->nf2/2 +1);
     if(n_dims > 2)
       totCoeffs += (plan->nf3/2+1);
+
+
+    CNTime timer; timer.start();
       
     plan->phiHat = (FLT *)malloc(sizeof(FLT)*totCoeffs);
     if(!plan->phiHat){
       fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
       return ERR_MAXNALLOC;
     }
-
-    CNTime timer; timer.start();
     onedim_fseries_kernel(plan->nf1, plan->phiHat, plan->spopts);
     if(n_dims > 1) onedim_fseries_kernel(plan->nf2, plan->phiHat + (plan->nf1/2+1), plan->spopts);
     if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->phiHat + (plan->nf1/2+1) + (plan->nf2/2+1), spopts);
-    
-    if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", spopts.nspread,timer.elapsedsec());
+    if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", spopts.nspread,timer.elapsedsec());    
+
 
     int blkSize = min(plan->threadBlkSize, plan->n_transf); 
     //ensure size of upsampled grid does not exceed MAX
@@ -266,7 +267,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
     }
 
     timer.restart();
-#pragma omp parallel for     
+#pragma omp parallel for schedule(static)
     for (BIGINT j=0;j<nj;++j) {
       xpj[j] = (xj[j] - plan->t3P.C1) / plan->t3P.gam1;          // rescale x_j
       if(plan->n_dims > 1)
@@ -320,8 +321,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
 
     //Originally performed right before Step 2 recursive call to finufftxd2
     timer.restart();
-#pragma omp parallel num_threads(plan->threadBlkSize)
-#pragma omp for
+#pragma omp parallel for schedule(static) //static appropriate for load balance across loop iterations 
     for (BIGINT k=0;k<plan->nk;++k) {
 	sp[k] = plan->t3P.h1*plan->t3P.gam1*(s[k]-plan->t3P.D1);      // so that |s'_k| < pi/R
 	if(plan->n_dims > 1 )
@@ -332,15 +332,15 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
     if(plan->opts.debug) printf("[setNUpoints] rescaling target-freqs: \t %.3g s\n", timer.elapsedsec());
 
     // Originally Step 3a: compute Fourier transform of scaled kernel at targets
-    
+
+
+    timer.restart();
     plan->phiHat = (FLT *)malloc(sizeof(FLT)*plan->nk*plan->n_dims);
     if(!plan->phiHat){
       fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation\n");
       return ERR_MAXNALLOC;
     }
 
-    timer.restart();
-   
     //phiHat spreading kernel fourier weights for non uniform target freqs := referred to as fkker in older code
     onedim_nuft_kernel(plan->nk, sp, plan->phiHat, plan->spopts);         
     if(plan->n_dims > 1)
@@ -351,13 +351,13 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
 
     //precompute product of phiHat for 2 and 3 dimensions 
     if(plan->n_dims > 1){
-#pragma omp parallel for schedule(dynamic)              
+#pragma omp parallel for schedule(static)              
       for(BIGINT k=0; k < plan->nk; k++)
 	plan->phiHat[k]*=(plan->phiHat+plan->nk)[k];
     }
 
     if(plan->n_dims > 2){
-#pragma omp parallel for schedule(dynamic)              
+#pragma omp parallel for schedule(static)              
       for(BIGINT k=0; k < plan->nk; k++)
 	plan->phiHat[k]*=(plan->phiHat+plan->nk + plan->nk)[k];
     }
@@ -459,7 +459,6 @@ void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX 
     BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3;
     int blockJump = blkNum*plan->threadBlkSize;
 
-#pragma omp parallel num_threads(maxSafeIndex)
 #pragma omp parallel for
     for(int i = 0; i < maxSafeIndex; i++){
 
@@ -504,8 +503,7 @@ void type3PrePhaseInParallel(int blkNum, finufft_plan * plan, CPX *cj, CPX *cpj)
 
     CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
     
-#pragma omp parallel num_threads(plan->threadBlkSize)
-#pragma omp for
+#pragma omp parallel for
 	for (BIGINT i=0; i<plan->nj;i++){
 
 	  FLT sumCoords = plan->t3P.D1*plan->X_orig[i];
@@ -547,8 +545,7 @@ void type3DeconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan,
   if(plan->n_dims > 1 ) notzero |=  (plan->t3P.C2 != 0.0);
   if(plan->n_dims > 2 ) notzero |=  (plan->t3P.C3 != 0.0);
 
-#pragma omp parallel num_threads(plan->threadBlkSize)
-#pragma omp for
+#pragma omp parallel for
       for (BIGINT k=0;k<plan->nk;++k){     
 	
         FLT sumCoords = (plan->s[k] - plan->t3P.D1)*plan->t3P.C1;
