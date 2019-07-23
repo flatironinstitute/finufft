@@ -69,12 +69,6 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
       set_nf_type12(plan->mu, plan->opts, spopts, &(plan->nf3)); 
     
     
-    //ensure size of upsampled grid does not exceed MAX
-    if (plan->nf1*plan->nf2*plan->nf3*plan->threadBlkSize>MAX_NF) { 
-      fprintf(stderr,"nf1*nf2*nf3*plan->threadBlkSize=%.3g exceeds MAX_NF of %.3g\n",
-	      (double)plan->nf1*plan->nf2*plan->nf3*plan->threadBlkSize,(double)MAX_NF);
-      return ERR_MAXNALLOC;
-    }
 
     if (plan->opts.debug) printf("%dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) ...\n",n_dims, typeToInt(type),
                                  (long long)plan->ms,(long long)plan->mt, (long long) plan->mu,
@@ -103,6 +97,13 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
     if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", spopts.nspread,timer.elapsedsec());
 
     int blkSize = min(plan->threadBlkSize, plan->n_transf); 
+    //ensure size of upsampled grid does not exceed MAX
+    if (plan->nf1*plan->nf2*plan->nf3*blkSize>MAX_NF) { 
+      fprintf(stderr,"nf1*nf2*nf3*plan->threadBlkSize=%.3g exceeds MAX_NF of %.3g\n",
+	      (double)plan->nf1*plan->nf2*plan->nf3*blkSize,(double)MAX_NF);
+      return ERR_MAXNALLOC;
+    }
+
     plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*blkSize);  
 
     if(!plan->fw){
@@ -226,13 +227,14 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
 				   S3, plan->t3P.D3, plan->t3P.gam3,(long long) plan->nf3);
     }
 
+    int blkSize = min(plan->threadBlkSize, plan->n_transf);
     
-    if ((int64_t)plan->nf1*plan->nf2*plan->nf3*plan->threadBlkSize>MAX_NF) {
-      fprintf(stderr,"nf1*nf2*nf3*threadBlkSize=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf1*plan->nf2*plan->nf3*plan->threadBlkSize,(double)MAX_NF);
+    if ((int64_t)plan->nf1*plan->nf2*plan->nf3*blkSize>MAX_NF) {
+      fprintf(stderr,"nf1*nf2*nf3*threadBlkSize=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf1*plan->nf2*plan->nf3*blkSize,(double)MAX_NF);
       return ERR_MAXNALLOC;
     }
 
-    int blkSize = min(plan->threadBlkSize, plan->n_transf);
+
     plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*blkSize);  
 
     if(!plan->fw){
@@ -318,7 +320,8 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
 
     //Originally performed right before Step 2 recursive call to finufftxd2
     timer.restart();
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel num_threads(plan->threadBlkSize)
+#pragma omp for
     for (BIGINT k=0;k<plan->nk;++k) {
 	sp[k] = plan->t3P.h1*plan->t3P.gam1*(s[k]-plan->t3P.D1);      // so that |s'_k| < pi/R
 	if(plan->n_dims > 1 )
@@ -381,10 +384,13 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
   //maxSafeIndex is the threadBlockSize, except for the last round if threadBlockSize does not
   //divide evenly into n_transf. Ensures safe indexing of c.
 
+  BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3; 
+  int blkJump = blkNum*plan->threadBlkSize; 
+
   for(int i = 0; i < maxSafeIndex; i++){ 
 
     //index into this iteration of fft in fw and weights arrays
-    FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i;
+    FFTW_CPX *fwStart = plan->fw + fwRowSize*i;
 
     //for type 3, c is "cpj", scaled weights, and spreading is done in batches of size threadBlockSize
     CPX *cStart;
@@ -393,7 +399,7 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
 
     //for type1+2, c is the client's array and of size nj*n_transforms
     else
-      cStart = c + plan->nj*(i + blkNum*plan->threadBlkSize); 
+      cStart = c + plan->nj*(i + blkJump); 
     
     int ier = spreadSorted(plan->sortIndices,
                            plan->nf1, plan->nf2, plan->nf3, (FLT*)fwStart,
@@ -407,10 +413,14 @@ void spreadInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c,
 /*Type 2: Interpolates from weights at uniform points in fw to non uniform points in c*/
 void interpInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX * c, int *ier_interps){
 
+  BIGINT fwRowSize =  plan->nf1*plan->nf2*plan->nf3;
+  int blkJump = blkNum*plan->threadBlkSize; 
+
+
 for(int i = 0; i < maxSafeIndex; i++){ 
         
     //index into this iteration of fft in fw and weights arrays
-    FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i; //fw gets reread on each iteration of j
+    FFTW_CPX *fwStart = plan->fw + fwRowSize*i; //fw gets reread on each iteration of j
 
     CPX * cStart;
 
@@ -420,7 +430,7 @@ for(int i = 0; i < maxSafeIndex; i++){
 
     //for type 1+ regular 2, c is the result array, size nj*n_transforms
     else
-      cStart = c + plan->nj*(i + blkNum*plan->threadBlkSize);
+      cStart = c + plan->nj*(i + blkJump);
 
     int ier = interpSorted(plan->sortIndices,
                            plan->nf1, plan->nf2, plan->nf3, (FLT*)fwStart,
@@ -445,21 +455,25 @@ void deconvolveInParallel(int maxSafeIndex, int blkNum, finufft_plan *plan, CPX 
     if(plan->n_dims > 2)
       phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
 
-#pragma omp parallel num_threads(plan->threadBlkSize)
-#pragma omp for
+    BIGINT fkRowSize = plan->ms*plan->mt*plan->mu;
+    BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3;
+    int blockJump = blkNum*plan->threadBlkSize;
+
+#pragma omp parallel num_threads(maxSafeIndex)
+#pragma omp parallel for
     for(int i = 0; i < maxSafeIndex; i++){
 
     CPX *fkStart;
 
     //If this is a type 2 being executed inside of a type 3, fk is internal array of size nj*threadBlockSize
     if(plan->isInnerT2)
-      fkStart = fk + i*plan->ms*plan->mt*plan->mu;
+      fkStart = fk + i*fkRowSize;
 
     //otherwise it is a user supplied array of size ms*mt*mu*n_transforms
     else
-      fkStart = fk + (i+blkNum*plan->threadBlkSize)*plan->ms*plan->mt*plan->mu;
+      fkStart = fk + (i+blockJump)*fkRowSize;
     
-    FFTW_CPX *fwStart = plan->fw + plan->nf1*plan->nf2*plan->nf3*i;
+    FFTW_CPX *fwStart = plan->fw + fwRowSize*i;
 
     //deconvolveshuffle?d are not multithreaded inside, so called in parallel here
     //prefactors hardcoded to 1...
@@ -512,10 +526,9 @@ void type3PrePhaseInParallel(int blkNum, finufft_plan * plan, CPX *cj, CPX *cpj)
 	      cpj[cpjIndex] = 0;
 	    }
 	    else{
+		cpj[cpjIndex] = cj[cjIndex]; 
 	      if(notZero)
-		cpj[cpjIndex] = cj[cjIndex]*multiplier;
-	      else
-		cpj[cpjIndex] = cj[cjIndex]; //just copy over
+		cpj[cpjIndex] *= multiplier;
 	    }
 	  }
 	}
@@ -667,7 +680,6 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     t2Plan.opts.spread_debug = plan->opts.spread_debug;
 
     
-    //contains the only fftw_plan(with threadBlkSize = n_transforms) used for all finufft/fftw_execute in loop below 
     timer.restart();
     ier_t2 = make_finufft_plan(type2, plan->n_dims, n_modes, plan->iflag, plan->n_transf, plan->tol,
 			       plan->threadBlkSize, &t2Plan);
