@@ -1,14 +1,16 @@
 CC=gcc
 CXX=g++
 NVCC=nvcc
-CXXFLAGS=-DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
+CXXFLAGS=-DSINGLE -DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_70 -DTIME -DSPREADTIME -lineinfo --default-stream per-thread#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
+NVCCFLAGS=-arch=sm_70 -DSINGLE -DSPREADTIME -DTIME -lineinfo --default-stream per-thread
+#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 INC=-I/cm/shared/sw/pkg/devel/cuda/9.0.176/samples/common/inc/ \
     -I/mnt/home/yshih/cub/ \
     -I/cm/shared/sw/pkg/devel/cuda/9.0.176/include/
 LIBS_PATH=
-LIBS=-lm -lfftw3 -lcudart -lstdc++ -lnvToolsExt
+LIBS=-lm -lfftw3f -lcudart -lstdc++ -lnvToolsExt 
+#change to -lfftw3f for single precision
 LIBS_CUFINUFFT=-lcufft
 
 #-include make.inc
@@ -39,7 +41,8 @@ interp2d: examples/interp_2d.o src/2d/spread2d_wrapper.o src/2d/spread2d.o \
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 interp3d: examples/interp_3d.o src/3d/interp3d_wrapper.o src/3d/interp3d.o \
-	finufft/utils.o src/memtransfer_wrapper.o src/profile.o src/common.o
+	finufft/utils.o src/memtransfer_wrapper.o src/profile.o src/common.o \
+	src/3d/spread3d_wrapper.o src/3d/spread3d.o
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 spreadinterp_test: test/spreadinterp_test.o src/2d/spread2d_wrapper.o \
@@ -115,7 +118,7 @@ cufinufft3d2_test: examples/cufinufft3d2_test.o finufft/utils.o \
 	src/2d/spread2d_wrapper_paul.o src/2d/interp2d_wrapper.o
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
-	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test
+	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d
 clean:
 	rm -f *.o
 	rm -f examples/*.o
