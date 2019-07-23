@@ -147,10 +147,11 @@ int main(int argc, char* argv[])
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
+#endif
+	
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 			opts.method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
-#endif
-#if 1
+#if 0
 	// This must be here, since in gpu code, x, y gets modified if pirange=1
 	int jt = M/2;          // check arbitrary choice of one targ pt
 	CPX J = IMA*(FLT)iflag;

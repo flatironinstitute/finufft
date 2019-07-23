@@ -85,6 +85,10 @@ int main(int argc, char* argv[])
 	cufinufft_opts opts;
 	ier=cufinufft_default_opts(opts,tol,sigma);
 	opts.method=method;
+	opts.bin_size_x = 16;
+	opts.bin_size_y = 16;
+	opts.bin_size_z = 2;
+	opts.maxsubprobsize = 4096;
 
 	cudaEventRecord(start);
 	ier=cufinufft3d_plan(M, N1, N2, N3, ntransf, ntransf, iflag, opts, &dplan);
