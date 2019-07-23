@@ -89,7 +89,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Obtain subproblem properties\t %.3g ms\n", milliseconds);
+	printf("[time  ] Obtain SubProb prop\t %.3g ms\n", milliseconds);
 #endif
 #if 1
 	cudaEventRecord(start);
@@ -563,7 +563,6 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	assert(d_subprob_to_bin != NULL);
 	d_plan->subprob_to_bin   = d_subprob_to_bin;
 	d_plan->totalnumsubprob  = totalnumsubprob;
-	cout<<"[debug ] Total number of subproblem = "<<totalnumsubprob<<endl;
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -987,7 +986,6 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	d_plan->subprob_to_bin = d_subprob_to_bin;
 	assert(d_plan->subprob_to_bin != NULL);
 	d_plan->totalnumsubprob = totalnumsubprob;
-	printf("[debug ] Total number of subproblems = %d\n", totalnumsubprob);
 #ifdef DEBUG
 	printf("[debug ] Map Subproblem to Bins\n");
 	int* h_subprob_to_bin;
