@@ -265,7 +265,7 @@ void MapBintoSubProb_3d_v2(int* d_subprob_to_bin,int* d_subprobstartpts,
 	int* d_numsubprob,int numbins);
 __global__
 void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
+	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts);
 __global__
 void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, int* binstartpts,
@@ -276,16 +276,19 @@ void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 
 __global__
 void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta);
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
+	int* idxnupts);
 __global__
 void Interp_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
-	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma);
+	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts);
 __global__
 void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts, 
 	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z, 
 	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
 	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts);
+__global__ 
+void TrivialGlobalSortIdx_3d(int M, int* index);
 #if 0
 // 1d
 int cufinufft_spread1d(int ms, int nf1, CPX* h_fw, int M, FLT *h_kx,
@@ -349,6 +352,8 @@ int cuspread3d_idriven(int nf1, int nf2, int nf3, int M,
 int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
+	const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cuspread3d_idriven_prop(int nf1, int nf2, int nf3, int M,
 	const cufinufft_opts opts, cufinufft_plan *d_plan);
 int cuspread3d_gather(int nf1, int nf2, int nf3, int M,
 	const cufinufft_opts opts, cufinufft_plan *d_mem);

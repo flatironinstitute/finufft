@@ -107,7 +107,7 @@ void RescaleXY_3d(int M, int nf1, int nf2, int nf3, FLT* x, FLT* y, FLT* z)
 
 __global__
 void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta)
+	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts)
 {
 	int xx, yy, zz, ix, iy, iz;
 	int outidx;
@@ -116,13 +116,12 @@ void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 	FLT ker3[MAX_NSPREAD];
 
 	FLT ker1val, ker2val, ker3val;
-	double sigma=2.0;
 
 	FLT x_rescaled, y_rescaled, z_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
-		z_rescaled=z[i];
+		x_rescaled=x[idxnupts[i]];
+		y_rescaled=y[idxnupts[i]];
+		z_rescaled=z[idxnupts[i]];
 
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
@@ -308,7 +307,14 @@ void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x,
 		index[bin_startpts[binidx]+sortidx[i]] = i;
 	}
 }
-
+__global__ 
+void TrivialGlobalSortIdx_3d(int M, int* index)
+{
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
+		index[i] = i;
+	}
+	
+}
 __global__
 void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
 	int bin_size_z, int nbinx, int nbiny, int nbinz, int* bin_startpts,

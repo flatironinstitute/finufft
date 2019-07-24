@@ -33,6 +33,7 @@ struct cufinufft_opts {      // see cuspread:setup_spreader for defaults.
 	int o_bin_size_z;
 
 	int Horner;
+	int sort;
 	int maxsubprobsize;
 	int nthread_x;
 	int nthread_y;

@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 	int N1, N2, N3, M;
 	if (argc<6) {
 		fprintf(stderr,
-			"Usage: spread3d [method [nupts_distr [N1 N2 [M [tol [Horner]]]]]]\n");
+			"Usage: spread3d [method [nupts_distr [N1 N2 [M [tol [Horner [sort]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 5: subprob\n");
@@ -54,6 +54,10 @@ int main(int argc, char* argv[])
 		sscanf(argv[9],"%d",&Horner);
 	}
 
+	int sort=1;
+	if(argc>10){
+		sscanf(argv[10],"%d",&sort);
+	}
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
@@ -80,6 +84,7 @@ int main(int argc, char* argv[])
 
 	opts.rescaled=1;
 	opts.Horner=Horner;
+	opts.sort=sort;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -169,8 +174,15 @@ int main(int argc, char* argv[])
 	if(opts.method == 5)
 	{
 		opts.bin_size_x=16;
-		opts.bin_size_y=16;
-		opts.bin_size_z=2;
+		opts.bin_size_y=8;
+		opts.bin_size_z=4;
+		opts.maxsubprobsize=maxsubprobsize;
+	}
+	if(opts.method == 4)
+	{
+		opts.bin_size_x=16;
+		opts.bin_size_y=8;
+		opts.bin_size_z=4;
 		opts.maxsubprobsize=maxsubprobsize;
 	}
 

@@ -14,9 +14,9 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, N3, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: interp3d [method [nupts_distr [nf1 nf2 nf3 [M [tol [Horner]]]]]]\n");
+		fprintf(stderr,"Usage: interp3d [method [nupts_distr [nf1 nf2 nf3 [M [tol [sort]]]]]]\n");
 		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: input driven without sorting\n");
+		fprintf(stderr,"method 4: input driven with sorting\n");
 		fprintf(stderr,"method 5: subprob\n");
 		return 1;
 	}  
@@ -43,9 +43,9 @@ int main(int argc, char* argv[])
 		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int Horner=1;
+	int sort=1;
 	if(argc>8){
-		sscanf(argv[8],"%d",&Horner);
+		sscanf(argv[8],"%d",&sort);
 	}
 	int ier;
 
@@ -73,7 +73,8 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fw,nf1*nf2*nf3*sizeof(CPX));
 
 	opts.pirange=0;
-	opts.Horner=Horner;
+	opts.Horner=1;
+	opts.sort=sort;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -106,8 +107,15 @@ int main(int argc, char* argv[])
 	if(opts.method == 5)
 	{
 		opts.bin_size_x=16;
-		opts.bin_size_y=16;
-		opts.bin_size_z=2;
+		opts.bin_size_y=8;
+		opts.bin_size_z=4;
+		opts.maxsubprobsize=maxsubprobsize;
+	}
+	if(opts.method == 4)
+	{
+		opts.bin_size_x=16;
+		opts.bin_size_y=8;
+		opts.bin_size_z=4;
 		opts.maxsubprobsize=maxsubprobsize;
 	}
 
@@ -134,7 +142,7 @@ int main(int argc, char* argv[])
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
 			opts.method,nf1*nf2*nf3,M,t,M/t);
-#if 1
+#ifdef RESULT
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<10; j++){
 		printf(" (%2.3g,%2.3g)",c[j].real(),c[j].imag() );

@@ -85,6 +85,13 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 			return 0;
 		}
 	}
+	if(opts.method == 4){
+		ier = cuspread3d_idriven_prop(nf1,nf2,nf3,M,opts,d_plan);
+		if(ier != 0 ){
+			printf("error: cuspread3d_idriven_prop, method(%d)\n", opts.method);
+			return 0;
+		}
+	}
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -175,6 +182,180 @@ int cuspread3d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	return ier;
 }
 
+int cuspread3d_idriven_prop(int nf1, int nf2, int nf3, int M,
+	const cufinufft_opts opts, cufinufft_plan *d_plan)
+{
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+	if(opts.sort){
+		dim3 threadsPerBlock;
+		dim3 blocks;
+
+		int bin_size_x=opts.bin_size_x;
+		int bin_size_y=opts.bin_size_y;
+		int bin_size_z=opts.bin_size_z;
+		int numbins[3];
+		numbins[0] = ceil((FLT) nf1/bin_size_x);
+		numbins[1] = ceil((FLT) nf2/bin_size_y);
+		numbins[2] = ceil((FLT) nf2/bin_size_z);
+
+#ifdef DEBUG
+		cout<<"[debug ] Dividing the uniform grids to bin size["
+			<<opts.bin_size_x<<"x"<<opts.bin_size_y<<"x"<<opts.bin_size_z<<"]"<<endl;
+		cout<<"[debug ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"x"<<numbins[2]
+			<<"]"<<endl;
+#endif
+
+		FLT*   d_kx = d_plan->kx;
+		FLT*   d_ky = d_plan->ky;
+		FLT*   d_kz = d_plan->kz;
+
+#ifdef DEBUG
+		FLT *h_kx;
+		FLT *h_ky;
+		FLT *h_kz;
+		h_kx = (FLT*)malloc(M*sizeof(FLT));
+		h_ky = (FLT*)malloc(M*sizeof(FLT));
+		h_kz = (FLT*)malloc(M*sizeof(FLT));
+
+		checkCudaErrors(cudaMemcpy(h_kx,d_kx,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+		checkCudaErrors(cudaMemcpy(h_ky,d_ky,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+		checkCudaErrors(cudaMemcpy(h_kz,d_kz,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+		for(int i=500; i<M; i++){
+			cout<<"[debug ] ";
+			cout <<"("<<setw(3)<<h_kx[i]<<","<<setw(3)<<h_ky[i]<<","<<setw(3)<<h_kz[i]
+				<<")"<<endl;
+		}
+#endif
+
+		int *d_binsize = d_plan->binsize;
+		int *d_binstartpts = d_plan->binstartpts;
+		int *d_sortidx = d_plan->sortidx;
+		int *d_idxnupts = d_plan->idxnupts;
+
+
+		d_plan->temp_storage = NULL;
+		void *d_temp_storage = d_plan->temp_storage;
+
+		cudaEventRecord(start);
+		checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*numbins[2]*
+			sizeof(int)));
+		CalcBinSize_noghost_3d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,nf3,bin_size_x,
+			bin_size_y,bin_size_z,numbins[0],numbins[1],numbins[2],d_binsize,d_kx,
+			d_ky,d_kz,d_sortidx);
+#ifdef SPREADTIME
+		float milliseconds = 0;
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tKernel CalcBinSize_noghost_3d \t\t%.3g ms\n", milliseconds);
+#endif
+#ifdef DEBUG
+		int *h_binsize;// For debug
+		h_binsize     = (int*)malloc(numbins[0]*numbins[1]*numbins[2]*sizeof(int));
+		checkCudaErrors(cudaMemcpy(h_binsize,d_binsize,numbins[0]*numbins[1]*
+			numbins[2]*sizeof(int),cudaMemcpyDeviceToHost));
+		cout<<"[debug ] bin size:"<<endl;
+		for(int k=0; k<numbins[2]; k++){
+			for(int j=0; j<numbins[1]; j++){
+				cout<<"[debug ] ";
+				for(int i=0; i<numbins[0]; i++){
+					if(i!=0) cout<<" ";
+					cout <<" bin["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
+						h_binsize[i+j*numbins[0]+k*numbins[0]*numbins[1]];
+				}
+				cout<<endl;
+			}
+		}
+		free(h_binsize);
+		cout<<"[debug ] --------------------------------------------------------------"<<endl;
+#endif
+#ifdef DEBUG
+		int *h_sortidx;
+		h_sortidx = (int*)malloc(M*sizeof(int));
+
+		checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
+			cudaMemcpyDeviceToHost));
+		for(int i=0; i<M; i++){
+			cout<<"[debug ] ";
+			cout <<"point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
+		}
+#endif
+
+		cudaEventRecord(start);
+		int n=numbins[0]*numbins[1]*numbins[2];
+		size_t temp_storage_bytes = 0;
+		assert(d_temp_storage == NULL);
+		CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,temp_storage_bytes,
+			d_binsize, d_binstartpts, n));
+		// Allocate temporary storage for inclusive prefix scan
+		checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
+		CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,temp_storage_bytes,
+			d_binsize, d_binstartpts, n));
+#ifdef SPREADTIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tKernel BinStartPts_3d \t\t\t%.3g ms\n", milliseconds);
+#endif
+#ifdef DEBUG
+		int *h_binstartpts;
+		h_binstartpts = (int*)malloc((numbins[0]*numbins[1]*numbins[2])*sizeof(int));
+		checkCudaErrors(cudaMemcpy(h_binstartpts,d_binstartpts,(numbins[0]*
+			numbins[1]*numbins[2])*sizeof(int),cudaMemcpyDeviceToHost));
+		cout<<"[debug ] Result of scan bin_size array:"<<endl;
+		for(int k=0; k<numbins[2]; k++){
+			for(int j=0; j<numbins[1]; j++){
+				cout<<"[debug ] ";
+				for(int i=0; i<numbins[0]; i++){
+					if(i!=0) cout<<" ";
+					cout <<" bin["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
+						h_binstartpts[i+j*numbins[0]+k*numbins[0]*numbins[1]];
+				}
+				cout<<endl;
+			}
+		}
+		free(h_binstartpts);
+		cout<<"[debug ] ---------------------------------------------------"<<endl;
+#endif
+		cudaEventRecord(start);
+		CalcInvertofGlobalSortIdx_3d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,
+			bin_size_y,bin_size_z,numbins[0],numbins[1],numbins[2], d_binstartpts,
+			d_sortidx,d_kx,d_ky,d_kz,d_idxnupts);
+#ifdef SPREADTIME
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ] \tKernel CalcInvertofGlobalSortIdx_3d \t%.3g ms\n", milliseconds);
+#endif
+#ifdef DEBUG
+		int *h_idxnupts;
+		h_idxnupts = (int*)malloc(M*sizeof(int));
+		checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,M*sizeof(int),
+					cudaMemcpyDeviceToHost));
+		for (int i=0; i<M; i++){
+			cout <<"[debug ] idx="<< h_idxnupts[i]<<endl;
+		}
+		free(h_idxnupts);
+#endif
+	}else{
+		int *d_idxnupts = d_plan->idxnupts;
+
+		cudaEventRecord(start);
+		TrivialGlobalSortIdx_3d<<<(M+1024-1)/1024, 1024>>>(M,d_idxnupts);
+#ifdef SPREADTIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel TrivialGlobalSortIDx_3d \t%.3g ms\n", milliseconds);
+#endif
+	}
+	return 0;
+}
+
 int cuspread3d_idriven(int nf1, int nf2, int nf3, int M,
 		const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
@@ -186,9 +367,9 @@ int cuspread3d_idriven(int nf1, int nf2, int nf3, int M,
 	dim3 blocks;
 
 	int ns=opts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=opts.ES_c;
-	FLT es_beta=opts.ES_beta;
+	FLT sigma=opts.upsampfac;
 
+	int* d_idxnupts = d_plan->idxnupts;
 	FLT* d_kx = d_plan->kx;
 	FLT* d_ky = d_plan->ky;
 	FLT* d_kz = d_plan->kz;
@@ -201,7 +382,7 @@ int cuspread3d_idriven(int nf1, int nf2, int nf3, int M,
 	blocks.y = 1;
 	cudaEventRecord(start);
 	Spread_3d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz,
-			d_c, d_fw, M, ns, nf1, nf2, nf3, es_c, es_beta);
+		d_c, d_fw, M, ns, nf1, nf2, nf3, sigma, d_idxnupts);
 #ifdef SPREADTIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);

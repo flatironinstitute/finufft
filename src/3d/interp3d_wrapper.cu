@@ -64,6 +64,13 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 			return 0;
 		}
 	}
+	if(opts.method == 4){
+		ier = cuspread3d_idriven_prop(nf1,nf2,nf3,M,opts,d_plan);
+		if(ier != 0 ){
+			printf("error: cuinterp3d_idriven_prop, method(%d)\n", opts.method);
+			return 0;
+		}
+	}
 	cudaEventRecord(start);
 	ier = cuinterp3d(opts, d_plan);
 #ifdef TIME
@@ -146,6 +153,7 @@ int cuinterp3d(cufinufft_opts &opts, cufinufft_plan* d_plan)
 	return ier;
 }
 
+
 int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M, 
 	const cufinufft_opts opts, cufinufft_plan *d_plan)
 {
@@ -160,6 +168,8 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M,
 	FLT es_c=opts.ES_c;
 	FLT es_beta=opts.ES_beta;
 	FLT sigma=opts.upsampfac;
+
+	int *d_idxnupts = d_plan->idxnupts;
 
 	FLT* d_kx = d_plan->kx;
 	FLT* d_ky = d_plan->ky;
@@ -186,7 +196,7 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M,
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
 			Interp_3d_Idriven_Horner<<<blocks, threadsPerBlock, 0, 
 				0>>>(d_kx, d_ky, d_kz, d_c+t*M, 
-				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma);
+				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma, d_idxnupts);
 		}
 #endif
 #ifdef SPREADTIME
@@ -209,7 +219,7 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M,
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
 			Interp_3d_Idriven<<<blocks, threadsPerBlock, 0, 0 
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
-				nf1, nf2, nf3,es_c, es_beta);
+				nf1, nf2, nf3,es_c, es_beta, d_idxnupts);
 		}
 #endif
 #ifdef SPREADTIME
@@ -234,8 +244,6 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, const cufinufft_opts op
 	dim3 blocks;
 
 	int ns=opts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=opts.ES_c;
-	FLT es_beta=opts.ES_beta;
 	int maxsubprobsize=opts.maxsubprobsize;
 
 	// assume that bin_size_x > ns/2;

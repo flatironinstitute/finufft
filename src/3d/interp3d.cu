@@ -58,12 +58,13 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, const double ups
 #endif
 __global__
 void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta)
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
+	int *idxnupts)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		FLT x_rescaled=x[i];
-		FLT y_rescaled=y[i];
-		FLT z_rescaled=z[i];
+		FLT x_rescaled=x[idxnupts[i]];
+		FLT y_rescaled=y[idxnupts[i]];
+		FLT z_rescaled=z[idxnupts[i]];
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int zstart = ceil(z_rescaled - ns/2.0);
@@ -101,12 +102,12 @@ void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 
 __global__
 void Interp_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
-	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma)
+	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int *idxnupts)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		FLT x_rescaled=x[i];
-		FLT y_rescaled=y[i];
-		FLT z_rescaled=z[i];
+		FLT x_rescaled=x[idxnupts[i]];
+		FLT y_rescaled=y[idxnupts[i]];
+		FLT z_rescaled=z[idxnupts[i]];
 
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
