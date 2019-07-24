@@ -1,4 +1,5 @@
 #include "finufft.h"
+#include "../src/cufinufft.h"
 #include "common.h"
 #include <fftw3.h>
 #include <math.h>
@@ -625,54 +626,72 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
 int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 		   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
-  int ntransf=1;
-  cufinufft_plan dplan;
-  cufinufft_opts cuopts;
-  CNTime timer;
-  timer.start();
-  int ier=cufinufft_default_opts(cuopts,eps,opts.upsampfac);
-  cuopts.spread_direction=1;
-  ier=cufinufft2d_plan(nj, ms, mt, ntransf, ntransf, iflag, cuopts, &dplan);
-  if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", timer.elapsedsec());
+	cufinufft_plan dplan;
+	CNTime timer;
+	timer.start();
+	int ier=cufinufft_default_opts(dplan.opts);
+	int dim = 2;
+	int nmodes[3];
+	int ntransf = 1;
+	int ntransfcufftplan = 1;
+	nmodes[0] = ms;
+	nmodes[1] = mt;
+	nmodes[2] = 1;
+	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, eps, 
+		ntransfcufftplan, &dplan);
+	if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", 
+		timer.elapsedsec());
 
-  timer.start();
-  ier=cufinufft2d_setNUpts(xj, yj, cuopts, &dplan);
-  if (opts.debug) printf("[time  ] cufinufft2d1 setNUpts:\t\t %.3g s\n", timer.elapsedsec());
+	timer.start();
+	ier=cufinufft_setNUpts(nj, xj, yj, NULL, 0, NULL, NULL, NULL, &dplan);
+	if (opts.debug) printf("[time  ] cufinufft2d1 setNUpts:\t\t %.3g s\n", 
+		timer.elapsedsec());
 
-  timer.restart();
-  ier=cufinufft2d1_exec(cj, fk, cuopts, &dplan);
-  if (opts.debug) printf("[time  ] cufinufft2d1 exec:\t\t %.3g s\n", timer.elapsedsec());
+	timer.restart();
+	ier=cufinufft_exec(cj, fk, &dplan);
+	if (opts.debug) printf("[time  ] cufinufft2d1 exec:\t\t %.3g s\n", 
+		timer.elapsedsec());
 
-  timer.restart();
-  ier=cufinufft2d_destroy(cuopts, &dplan);
-  if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", timer.elapsedsec());
-  return 0;
+	timer.restart();
+	ier=cufinufft_destroy(&dplan);
+	if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", 
+		timer.elapsedsec());
+	return 0;
 }
 
 int finufft2d2_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 		   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
-  int ntransf=1;
-  cufinufft_plan dplan;
-  cufinufft_opts cuopts;
-  CNTime timer;
-  timer.start();
-  int ier=cufinufft_default_opts(cuopts,eps,opts.upsampfac);
-  cuopts.spread_direction=2;
+	cufinufft_plan dplan;
+	CNTime timer;
+	timer.start();
+	int ier=cufinufft_default_opts(dplan.opts);
 
-  ier=cufinufft2d_plan(nj, ms, mt, ntransf, ntransf, iflag, cuopts, &dplan);
-  if (opts.debug) printf("[time  ] cufinufft2d1 plan:\t\t %.3g s\n", timer.elapsedsec());
+	int dim = 2;
+	int nmodes[3];
+	int ntransf = 1;
+	int ntransfcufftplan = 1;
+	nmodes[0] = ms;
+	nmodes[1] = mt;
+	nmodes[2] = 1;
+	ier=cufinufft_makeplan(type2, dim, nmodes, iflag, ntransf, eps, 
+		ntransfcufftplan, &dplan);
+  	if (opts.debug) printf("[time  ] cufinufft2d2 plan:\t\t %.3g s\n", 
+		timer.elapsedsec());
 
-  timer.start();
-  ier=cufinufft2d_setNUpts(xj, yj, cuopts, &dplan);
-  if (opts.debug) printf("[time  ] cufinufft2d1 setNUpts:\t\t %.3g s\n", timer.elapsedsec());
+  	timer.start();
+  	ier=cufinufft_setNUpts(nj, xj, yj, NULL, 0, NULL, NULL, NULL, &dplan);
+  	if (opts.debug) printf("[time  ] cufinufft2d1 setNUpts:\t\t %.3g s\n", 
+		timer.elapsedsec());
 
-  timer.restart();
-  ier=cufinufft2d2_exec(cj, fk, cuopts, &dplan);
-  if (opts.debug) printf("[time  ] cufinufft2d2 exec:\t\t %.3g s\n", timer.elapsedsec());
+  	timer.restart();
+  	ier=cufinufft_exec(cj, fk, &dplan);
+  	if (opts.debug) printf("[time  ] cufinufft2d2 exec:\t\t %.3g s\n", 
+		timer.elapsedsec());
 
-  timer.restart();
-  ier=cufinufft2d_destroy(cuopts, &dplan);
-  if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", timer.elapsedsec());
-  return 0;
+  	timer.restart();
+  	ier=cufinufft_destroy(&dplan);
+  	if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", 
+		timer.elapsedsec());
+  	return 0;
 }

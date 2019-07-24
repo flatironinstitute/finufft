@@ -7,7 +7,10 @@
 #include "deconvolve.h"
 
 using namespace std;
-// Assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up to N/2-1)
+
+/* Kernel for copying fw to fk with amplication by prefac/ker */
+// Note: assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up 
+// to N/2-1)
 __global__
 void Deconvolve_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk, 
 	FLT *fwkerhalf1, FLT *fwkerhalf2)
@@ -23,11 +26,10 @@ void Deconvolve_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk,
 		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
 		fk[outidx].x = fw[inidx].x/kervalue;
 		fk[outidx].y = fw[inidx].y/kervalue;
-		//fk[outidx].x = kervalue;
-		//fk[outidx].y = kervalue;
 	}
 }
 
+/* Kernel for copying fk to fw with same amplication */
 __global__
 void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk, 
 	FLT *fwkerhalf1, FLT *fwkerhalf2)
@@ -43,8 +45,6 @@ void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk,
 		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
 		fw[outidx].x = fk[inidx].x/kervalue;
 		fw[outidx].y = fk[inidx].y/kervalue;
-		//fw[outidx].x = fk[inidx].x;
-		//fw[outidx].y = fk[inidx].y;
 	}
 }
 
@@ -95,9 +95,8 @@ void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 	}
 }
 
-int cudeconvolve2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
-// ms = N1
-// mt = N2
+/* CPU wrapper for deconvolution & amplication */
+int cudeconvolve2d(cufinufft_plan *d_plan)
 {
 	int ms=d_plan->ms;
 	int mt=d_plan->mt;
@@ -105,16 +104,16 @@ int cudeconvolve2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	int nf2=d_plan->nf2;
 	int nmodes=ms*mt;
 	int ntransfcufftplan=d_plan->ntransfcufftplan;
-	if(opts.spread_direction == 1){
+
+	if(d_plan->spopts.spread_direction == 1){
 		for(int t=0; t<ntransfcufftplan; t++){
 			Deconvolve_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, 
-					d_plan->fw+t*nf1*nf2, 
-					d_plan->fk+t*nmodes,
-					d_plan->fwkerhalf1, 
-					d_plan->fwkerhalf2);
+				d_plan->fw+t*nf1*nf2,d_plan->fk+t*nmodes,d_plan->fwkerhalf1, 
+				d_plan->fwkerhalf2);
 		}
 	}else{
-		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*sizeof(CUCPX)));
+		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*
+			sizeof(CUCPX)));
 		for(int t=0; t<ntransfcufftplan; t++){
 			Amplify_2d<<<(nmodes+256-1)/256, 256>>>(ms, 
 				mt, nf1, nf2, d_plan->fw+t*nf1*nf2, d_plan->fk+t*nmodes,
@@ -138,8 +137,6 @@ int cudeconvolve2d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 }
 
 int cudeconvolve3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
-// ms = N1
-// mt = N2
 {
 	int ms=d_plan->ms;
 	int mt=d_plan->mt;

@@ -547,6 +547,7 @@ FLT evaluate_kernel(FLT x, const spread_opts &opts)
     return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
 }
 
+#if 0
 FLT evaluate_kernel(FLT x, const cufinufft_opts &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
@@ -560,6 +561,8 @@ FLT evaluate_kernel(FLT x, const cufinufft_opts &opts)
   else
     return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
 }
+#endif
+
 FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
 // Version of the above just for timing purposes - gives wrong answer!!!
 {

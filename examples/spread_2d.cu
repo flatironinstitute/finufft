@@ -13,10 +13,10 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	int nf1, nf2;
-	FLT sigma = 2.0;
+	FLT upsampfac=2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [rep [tol [Horner]]]]]]]\n");
+		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [rep [tol [kerevalmeth]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: input driven without sorting\n");
 		fprintf(stderr,"method 2: input driven with sorting\n");
@@ -34,8 +34,8 @@ int main(int argc, char* argv[])
 	sscanf(argv[4],"%lf",&w); nf1 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[5],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 
-	N1 = (int) nf1/sigma;
-	N2 = (int) nf2/sigma;
+	N1 = (int) nf1/upsampfac;
+	N2 = (int) nf2/upsampfac;
 	int rep = 10;
 	if(argc>6){
 		//sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
@@ -50,24 +50,22 @@ int main(int argc, char* argv[])
 		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int Horner=0;
+	int kerevalmeth=0;
 	if(argc>8){
-		sscanf(argv[8],"%d",&Horner);
+		sscanf(argv[8],"%d",&kerevalmeth);
 	}
 
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_opts opts;
 	cufinufft_plan dplan;
-	FLT upsampfac=2.0;
-
-	ier = cufinufft_default_opts(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
-	opts.method=method;
+	dplan.opts.gpu_method=method;
+	dplan.opts.upsampfac=upsampfac;
 	cout<<scientific<<setprecision(3);
 
 
@@ -78,12 +76,11 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
-	opts.pirange=0;
-	opts.Horner=Horner;
+	dplan.opts.gpu_kerevalmeth=kerevalmeth;
 	if(method == 6)
-		opts.maxsubprobsize=maxsubprobsize;
+		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	if(method == 5)
-		opts.maxsubprobsize=maxsubprobsize;
+		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -206,51 +203,39 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"
 		<<endl;
 #endif
-	if(opts.method == 2)
+	if(dplan.opts.gpu_method == 2)
 	{
-		opts.bin_size_x=16;
-		opts.bin_size_y=16;
+		dplan.opts.gpu_binsizex=16;
+		dplan.opts.gpu_binsizey=16;
 	}
 
-	if(opts.method == 4 || opts.method==5)
+	if(dplan.opts.gpu_method == 4 || dplan.opts.gpu_method==5)
 	{
-		opts.bin_size_x=32;
-		opts.bin_size_y=32;
+		dplan.opts.gpu_binsizex=32;
+		dplan.opts.gpu_binsizey=32;
 	}
 
-	if(opts.method == 6)
+	if(dplan.opts.gpu_method == 6)
 	{
-		opts.bin_size_x=32;
-		opts.bin_size_y=32;
+		dplan.opts.gpu_binsizex=32;
+		dplan.opts.gpu_binsizey=32;
 	}
 	timer.restart();
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, opts, &dplan);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, tol, &dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d"<<endl;
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			opts.method,M,nf1*nf2,t,M/t);
+			dplan.opts.gpu_method,M,nf1*nf2,t,M/t);
 #if 0
-	switch(method)
-	{
-		case 4:
-			opts.bin_size_x=32;
-			opts.bin_size_y=32;
-		case 5:
-			opts.bin_size_x=16;
-			opts.bin_size_y=16;
-		default:
-			opts.bin_size_x=nf1;
-			opts.bin_size_y=nf2;		
-	}
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
-		if( j % opts.bin_size_y == 0)
+		if( j % dplan.opts.gpu_binsizey == 0)
 			printf("\n");
 		for (int i=0; i<nf1; i++){
-			if( i % opts.bin_size_x == 0 && i!=0)
+			if( i % dplan.opts.gpu_binsizex == 0 && i!=0)
 				printf(" |");
 			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
 		}

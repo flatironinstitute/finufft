@@ -78,7 +78,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday...
-typedef int64_t BIGINT;
+typedef int BIGINT;
 
 // Global error codes for the library...
 #define ERR_EPS_TOO_SMALL        1

@@ -5,41 +5,17 @@
 #include <cstdlib>
 #include <assert.h>
 #include "../finufft/utils.h"
+#include "../finufft/spreadinterp.h"
+#include "../finufft/finufft.h"
 
-#define MAX_NSPREAD 16
-#define RESCALE(x,N,p) (p ? \
-		((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
-		(x<0 ? x+N : (x>N ? x-N : x)))
+enum finufft_type {type1,type2,type3};
 
-struct cufinufft_opts {      // see cuspread:setup_spreader for defaults.
-	int nspread;            // w, the kernel width in grid pts
-	int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
-	int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
-	int rescaled;
-	FLT upsampfac;          // sigma, upsampling factor, default 2.0
+typedef struct {
+	finufft_type  type;
+	nufft_opts      opts; 
+	spread_opts     spopts;
 
-	// ES kernel specific...
-	FLT ES_beta;
-	FLT ES_halfwidth;
-	FLT ES_c;
-
-	// CUDA
-	int method;
-	int bin_size_x;
-	int bin_size_y;
-	int bin_size_z;
-	int o_bin_size_x;
-	int o_bin_size_y;
-	int o_bin_size_z;
-
-	int Horner;
-	int sort;
-	int maxsubprobsize;
-	int nthread_x;
-	int nthread_y;
-};
-
-struct cufinufft_plan {
+	int dim;
 	int M;
 	int nf1;
 	int nf2;
@@ -47,10 +23,8 @@ struct cufinufft_plan {
 	int ms;
 	int mt;
 	int mu;
-
 	int ntransf;
 	int ntransfcufftplan;
-	int fw_width;
 	int iflag;
 
 	int totalnumsubprob;
@@ -62,36 +36,32 @@ struct cufinufft_plan {
 	FLT *kx;
 	FLT *ky;
 	FLT *kz;
-
 	CUCPX *c;
 	CUCPX *fw;
 	CUCPX *fk;
 
-	FLT *kxsorted;
-	FLT *kysorted;
-	CUCPX *csorted;
-
+	// Arrays that used in subprob method
+	int *idxnupts;
 	int *sortidx;
+	int *numsubprob;
 	int *binsize;
 	int *binstartpts;
 	int *numsubprob;
-
-	int *numnupts;
-	int *subprob_to_nupts;
 	int *subprob_to_bin;
-	int *idxnupts;
 	int *subprobstartpts;
 
-	// Paul
+	// Extra arrays for Paul's method
 	int *finegridsize;
 	int *fgstartpts;
 
-	void *temp_storage;
-	cufftHandle fftplan;
+	// Arrays for 3d (need to sort out)
+	int *numnupts;
+	int *subprob_to_nupts;
 
-	int nstreams;
+	cufftHandle fftplan;
 	cudaStream_t *streams;
-};
+
+}cufinufft_plan;
 
 // For error checking (where should this function be??)
 static const char* _cufftGetErrorEnum(cufftResult_t error)
@@ -135,40 +105,18 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 	}
 	return "<unknown>";
 }
-#if 0
-void check(cufftResult_t err){
-	if (err != CUFFT_SUCCESS)
-	{
-		fprintf(stderr, "cuFFT error %d:%s at %s:%d\n", err, _cufftGetErrorEnum(err),
-				__FILE__, __LINE__);
-		exit(1);
-	}
-}
-
-#define checkCufftErrors(call) check((call))
-#endif
 #define checkCufftErrors(call)
-int cufinufft_default_opts(cufinufft_opts &opts,FLT eps,FLT upsampfac);
-
-// 1d
-int cufinufft1d_plan(int M, int ms, int mt, int iflag, const cufinufft_opts opts, 
-	cufinufft_plan *d_plan);
-int cufinufft1d_setNUpts(FLT* h_kx, FLT* h_ky, const cufinufft_opts opts, cufinufft_plan *d_plan);
-int cufinufft1d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
-int cufinufft1d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, cufinufft_plan *d_plan);
-int cufinufft1d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft_default_opts(nufft_opts &opts);
+int cufinufft_makeplan(finufft_type type, int n_dims, int *n_modes, int iflag, 
+	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan);
+int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
+	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan);
+int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
+int cufinufft_destroy(cufinufft_plan *d_plan);
 
 // 2d
-int cufinufft2d_plan(int M, int ms, int mt, int ntransf, int ntransfcufftplan, 
-	int iflag, const cufinufft_opts opts, 
-	cufinufft_plan *d_plan);
-int cufinufft2d_setNUpts(FLT* h_kx, FLT* h_ky, cufinufft_opts &opts, 
-	cufinufft_plan *d_plan);
-int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, 
-	cufinufft_plan *d_plan);
-int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, 
-	cufinufft_plan *d_plan);
-int cufinufft2d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
+int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
+int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
 
 // 3d
 int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf, int ntransfcufftplan, 

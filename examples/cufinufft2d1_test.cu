@@ -12,9 +12,7 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	FLT sigma = 2.0;
 	int N1, N2, M, N;
-	int ntransf=1;
 	if (argc<4) {
 		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
@@ -78,13 +76,20 @@ int main(int argc, char* argv[])
 #endif
 
 	cufinufft_plan dplan;
-	cufinufft_opts opts;
-	ier=cufinufft_default_opts(opts,tol,sigma);
-	opts.method=method;
-	opts.spread_direction=1;
 
+	ier=cufinufft_default_opts(dplan.opts);
+	dplan.opts.gpu_method=method;
+
+	int dim = 2;
+	int nmodes[3];
+	int ntransf = 1;
+	int ntransfcufftplan = 1;
+	nmodes[0] = N1;
+	nmodes[1] = N2;
+	nmodes[2] = 1;
 	cudaEventRecord(start);
-	ier=cufinufft2d_plan(M, N1, N2, ntransf, ntransf, iflag, opts, &dplan);
+	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, 
+		ntransfcufftplan, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
 	}
@@ -94,9 +99,9 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_setNUpts(x, y, opts, &dplan);
+	ier=cufinufft_setNUpts(M, x, y, NULL, 0, NULL, NULL, NULL, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft2d_setNUpts\n");
+		printf("err: cufinufft_setNUpts\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -104,7 +109,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d1_exec(c, fk, opts, &dplan);
+	ier=cufinufft_exec(c, fk, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d1_exec\n");
 	}
@@ -114,7 +119,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft2d_destroy(opts, &dplan);
+	ier=cufinufft_destroy(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -130,10 +135,10 @@ int main(int argc, char* argv[])
 #if 0
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
-		//        if( j % opts.bin_size_y == 0)
+		//        if( j % opts.gpu_binsizey == 0)
 		//                printf("\n");
 		for (int i=0; i<nf1; i++){
-			//                if( i % opts.bin_size_x == 0 && i!=0)
+			//                if( i % opts.gpu_binsizex == 0 && i!=0)
 			//                        printf(" |");
 			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
 		}
