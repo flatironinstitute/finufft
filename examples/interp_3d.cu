@@ -116,7 +116,6 @@ int main(int argc, char* argv[])
 		opts.bin_size_x=16;
 		opts.bin_size_y=8;
 		opts.bin_size_z=4;
-		opts.maxsubprobsize=maxsubprobsize;
 	}
 
 	CNTime timer;
