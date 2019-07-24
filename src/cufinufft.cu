@@ -22,7 +22,6 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	assert(dim==2);
 	int ier = setup_spreader_for_nufft(d_plan->spopts,tol,d_plan->opts);
 
 	d_plan->dim = dim;
@@ -159,8 +158,6 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
 	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan)
 {
-	assert(d_plan->dim==2);
-
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int nf3 = d_plan->nf3;
@@ -343,9 +340,9 @@ int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 		case 3:
 		{
 			if(type == type1)
-				ier = cufinufft2d1_exec(h_c,  h_fk, d_plan);
+				ier = cufinufft3d1_exec(h_c,  h_fk, d_plan);
 			if(type == type2)
-				ier = cufinufft2d2_exec(h_c,  h_fk, d_plan);
+				ier = cufinufft3d2_exec(h_c,  h_fk, d_plan);
 			if(type == type3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;

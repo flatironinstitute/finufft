@@ -12,9 +12,7 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	FLT sigma = 2.0;
 	int N1, N2, N3, M, N;
-	int ntransf=1;
 	if (argc<4) {
 		fprintf(stderr,"Usage: cufinufft3d1_test [method [N1 N2 N3 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
@@ -82,29 +80,37 @@ int main(int argc, char* argv[])
 #endif
 
 	cufinufft_plan dplan;
-	cufinufft_opts opts;
-	ier=cufinufft_default_opts(opts,tol,sigma);
-	opts.method=method;
-	opts.bin_size_x = 16;
-	opts.bin_size_y = 16;
-	opts.bin_size_z = 2;
-	opts.maxsubprobsize = 4096;
 
+	ier=cufinufft_default_opts(dplan.opts);
+	dplan.opts.gpu_method=method;
+	dplan.opts.gpu_binsizex = 16;
+	dplan.opts.gpu_binsizey = 16;
+	dplan.opts.gpu_binsizez = 2;
+	dplan.opts.gpu_maxsubprobsize = 4096;
+
+	int dim = 3;
+	int nmodes[3];
+	int ntransf = 1;
+	int ntransfcufftplan = 1;
+	nmodes[0] = N1;
+	nmodes[1] = N2;
+	nmodes[2] = N3;
 	cudaEventRecord(start);
-	ier=cufinufft3d_plan(M, N1, N2, N3, ntransf, ntransf, iflag, opts, &dplan);
+	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, 
+		ntransfcufftplan, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft2d_plan\n");
+		printf("err: cufinufft_makeplan\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	totaltime += milliseconds;
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
+
 	cudaEventRecord(start);
-	ier=cufinufft3d_setNUpts(x, y, z, opts, &dplan);
+	ier=cufinufft_setNUpts(M, x, y, z, 0, NULL, NULL, NULL, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft3d_setNUpts\n");
+		printf("err: cufinufft_setNUpts\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -113,9 +119,9 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft3d1_exec(c, fk, opts, &dplan);
+	ier=cufinufft_exec(c, fk, &dplan);
 	if (ier!=0){
-		printf("err: cufinufft3d1_exec\n");
+		printf("err: cufinufft_exec\n");
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -124,7 +130,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft3d_destroy(opts, &dplan);
+	ier=cufinufft_destroy(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -132,15 +138,17 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			opts.method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
+			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2), nt3 = (int) (0.13*N3);  // choose some mode index to check
 	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
 	for (BIGINT j=0; j<M; ++j)
 		Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
 	int it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);   // index in complex F as 1d array
 	N = N1*N2*N3;
-	printf("[gpu   ] one mode: abs err in F[%ld,%ld,%ld] is %.3g\n",(int)nt1,(int)nt2, (int)nt3, (abs(Ft-fk[it])));
-	printf("[gpu   ] one mode: rel err in F[%ld,%ld,%ld] is %.3g\n",(int)nt1,(int)nt2, (int)nt3, abs(Ft-fk[it])/infnorm(N,fk));
+	printf("[gpu   ] one mode: abs err in F[%ld,%ld,%ld] is %.3g\n",(int)nt1,
+		(int)nt2, (int)nt3, (abs(Ft-fk[it])));
+	printf("[gpu   ] one mode: rel err in F[%ld,%ld,%ld] is %.3g\n",(int)nt1,
+		(int)nt2, (int)nt3, abs(Ft-fk[it])/infnorm(N,fk));
 #if 0
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){

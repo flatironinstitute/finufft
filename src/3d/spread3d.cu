@@ -7,11 +7,6 @@
 
 using namespace std;
 
-#define RESCALE(x,N,p) (p ? \
-                       ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
-                       (x<0 ? x+N : (x>N ? x-N : x)))
-
-
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
 #else
 static __inline__ __device__ double atomicAdd(double* address, double val)
@@ -45,27 +40,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	//return x;
 	//return 1.0;
 }
-#if 0
-static __forceinline__ __device__
-void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta,
-	const int N)
-	/* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
-	   If opts.kerpad true, args and ker must be allocated for Npad, and args is
-	   written to (to pad to length Npad), only first N outputs are correct.
-	   Barnett 4/24/18 option to pad to mult of 4 for better SIMD vectorization.
-	   Obsolete (replaced by Horner), but keep around for experimentation since
-	   works for arbitrary beta. Formula must match reference implementation. */
-{
-	// Note (by Ludvig af K): Splitting kernel evaluation into two loops
-	// seems to benefit auto-vectorization.
-	// gcc 5.4 vectorizes first loop; gcc 7.2 vectorizes both loops
-	for (int i = 0; i < N; i++) { // Loop 1: Compute exponential arguments
-		ker[i] = exp(es_beta * sqrt(1.0 - es_c*(xstart+i)*(xstart+i)));
-	}
-	//for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
-		//ker[i] = exp(ker[i]);
-}
-#endif
+
 static __inline__ __device__
 void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 	const double upsampfac)
@@ -80,6 +55,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 #include "../../finufft/ker_horner_allw_loop.c"
 	}
 }
+
 __device__
 int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 	int bnx, int bny, int bnz){
@@ -90,6 +66,7 @@ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 	return   (oix + oiy*onx + oiz*ony*onz)*(bnx*bny*bnz) +
 			 (xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx);
 }
+
 __device__
 int CalcGlobalIdx_V2(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbinz){
 	return xidx + yidx*nbinx + zidx*nbinx*nbiny;

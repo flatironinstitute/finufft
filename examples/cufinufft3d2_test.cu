@@ -13,9 +13,7 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
-	FLT sigma = 2.0;
 	int N1, N2, N3, M;
-	int ntransf=1;
 	if (argc<4) {
 		fprintf(stderr,"Usage: cufinufft2d2_test [method [N1 N2 N3 [M [tol]]]]\n");
 		fprintf(stderr,"Details --\n");
@@ -86,17 +84,29 @@ int main(int argc, char* argv[])
 #endif
 
 	cufinufft_plan dplan;
-	cufinufft_opts opts;
-	ier=cufinufft_default_opts(opts,tol,sigma);
-	opts.method=method;
-	opts.spread_direction=2;
+
+	ier=cufinufft_default_opts(dplan.opts);
+	dplan.opts.gpu_method=method;
+	dplan.opts.gpu_binsizex = 16;
+	dplan.opts.gpu_binsizey = 16;
+	dplan.opts.gpu_binsizez = 2;
+	dplan.opts.gpu_maxsubprobsize = 4096;
+
+	int dim = 3;
+	int nmodes[3];
+	int ntransf = 1;
+	int ntransfcufftplan = 1;
+	nmodes[0] = N1;
+	nmodes[1] = N2;
+	nmodes[2] = N3;
 
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_plan",2);
-		ier=cufinufft3d_plan(M, N1, N2, N3, ntransf, ntransf, iflag, opts, &dplan);
+		ier=cufinufft_makeplan(type2, dim, nmodes, iflag, ntransf, tol, 
+			ntransfcufftplan, &dplan);
 		if (ier!=0){
-			printf("err: cufinufft3d_plan\n");
+			printf("err: cufinufft_makeplan\n");
 		}
 	}
 #ifdef TIME
@@ -108,10 +118,10 @@ int main(int argc, char* argv[])
 #endif
 	cudaEventRecord(start);
 	{
-		PROFILE_CUDA_GROUP("cufinufft3d_setNUpts",3);
-		ier=cufinufft3d_setNUpts(x, y, z, opts, &dplan);
+		PROFILE_CUDA_GROUP("cufinufft_setNUpts",3);
+		ier=cufinufft_setNUpts(M, x, y, z, 0, NULL, NULL, NULL, &dplan);
 		if (ier!=0){
-			printf("err: cufinufft3d_setNUpts\n");
+			printf("err: cufinufft_setNUpts\n");
 		}
 	}
 #ifdef TIME
@@ -123,10 +133,10 @@ int main(int argc, char* argv[])
 #endif
 	cudaEventRecord(start);
 	{
-		PROFILE_CUDA_GROUP("cufinufft3d2_exec",4);
-		ier=cufinufft3d2_exec(c, fk, opts, &dplan);
+		PROFILE_CUDA_GROUP("cufinufft_exec",4);
+		ier=cufinufft_exec(c, fk, &dplan);
 		if (ier!=0){
-			printf("err: cufinufft3d2_exec\n");
+			printf("err: cufinufft_exec\n");
 		}
 	}
 #ifdef TIME
@@ -139,7 +149,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_destroy",5);
-		ier=cufinufft3d_destroy(opts, &dplan);
+		ier=cufinufft_destroy(&dplan);
 	}
 #ifdef TIME
 	cudaEventRecord(stop);
@@ -150,9 +160,8 @@ int main(int argc, char* argv[])
 #endif
 	
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			opts.method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
-#if 0
-	// This must be here, since in gpu code, x, y gets modified if pirange=1
+			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
+#if 1
 	int jt = M/2;          // check arbitrary choice of one targ pt
 	CPX J = IMA*(FLT)iflag;
 	CPX ct = CPX(0,0);
@@ -161,7 +170,8 @@ int main(int argc, char* argv[])
 		for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
 			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 				ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt] + m3*z[jt]));   // crude direct
-	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(c[jt]-ct)/infnorm(M,c));
+	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,
+		abs(c[jt]-ct)/infnorm(M,c));
 #endif	
 	cudaFreeHost(x);
 	cudaFreeHost(y);

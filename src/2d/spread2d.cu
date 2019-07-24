@@ -45,25 +45,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	//return x;
 	//return 1.0;
 }
-static __forceinline__ __device__
-void evaluate_kernel_vector(FLT *ker, FLT xstart, FLT es_c, FLT es_beta, 
-	const int N)
-	/* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
-	   If opts.kerpad true, args and ker must be allocated for Npad, and args is
-	   written to (to pad to length Npad), only first N outputs are correct.
-	   Barnett 4/24/18 option to pad to mult of 4 for better SIMD vectorization.
-	   Obsolete (replaced by Horner), but keep around for experimentation since
-	   works for arbitrary beta. Formula must match reference implementation. */
-{
-	// Note (by Ludvig af K): Splitting kernel evaluation into two loops
-	// seems to benefit auto-vectorization.
-	// gcc 5.4 vectorizes first loop; gcc 7.2 vectorizes both loops
-	for (int i = 0; i < N; i++) { // Loop 1: Compute exponential arguments
-		ker[i] = exp(es_beta * sqrt(1.0 - es_c*(xstart+i)*(xstart+i)));
-	}
-	//for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
-		//ker[i] = exp(ker[i]);
-}
+
 static __inline__ __device__
 void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, 
 	const double upsampfac)
