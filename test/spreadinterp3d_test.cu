@@ -45,14 +45,13 @@ int main(int argc, char* argv[])
 
 	int ier;
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_opts opts;
+	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
-	ier = cufinufft_default_opts(opts,tol,upsampfac);
+	ier = cufinufft_default_opts(dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
-	cufinufft_plan dplan;
 	cout<<scientific<<setprecision(6);
 
 
@@ -81,7 +80,6 @@ int main(int argc, char* argv[])
 		kersumim += fwfinufft[i].imag();    // in case the kernel isn't real!
 	}
 #endif
-	opts.pirange=0;
 	FLT strre = 0.0, strim = 0.0;          // also sum the strengths
 	switch(nupts_distribute){
 		// Making data
@@ -144,31 +142,33 @@ int main(int argc, char* argv[])
 	// Method 5: Subprob                     //
 	/* -------------------------------------- */
 	timer.restart();
-	opts.method=5;
-	opts.Horner=1;
-	switch(opts.method){
+	dplan.opts.upsampfac=upsampfac;
+	dplan.opts.gpu_method=5;
+	dplan.opts.gpu_kerevalmeth=1;
+	dplan.opts.gpu_sort=1;
+	switch(dplan.opts.gpu_method){
 		case 1:
 		case 2:
 		case 3:
 		{
-			opts.bin_size_x=4;
-			opts.bin_size_y=4;
-			opts.bin_size_z=4;
-			opts.o_bin_size_x=8;
-			opts.o_bin_size_y=8;
-			opts.o_bin_size_z=8;
+			dplan.opts.gpu_binsizex=4;
+			dplan.opts.gpu_binsizey=4;
+			dplan.opts.gpu_binsizez=4;
+			dplan.opts.gpu_obinsizex=8;
+			dplan.opts.gpu_obinsizey=8;
+			dplan.opts.gpu_obinsizez=8;
 		}
 		break;
 		case 5:
 		{
-			opts.bin_size_x=8;
-			opts.bin_size_y=8;
-			opts.bin_size_z=2;
+			dplan.opts.gpu_binsizex=8;
+			dplan.opts.gpu_binsizey=8;
+			dplan.opts.gpu_binsizez=2;
 		}
 		break;
 	}
-	ier = cufinufft_spread3d(N1, N2, N3, nf1, nf2, nf3, fws, M, x, y, z, c, 
-		opts, &dplan);
+	ier = cufinufft_spread3d(N1, N2, N3, nf1, nf2, nf3, fws, M, x, y, z, c, tol, 
+		&dplan);
 	FLT tsubprob=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 	spopts.kerpad=1;
 	spopts.sort_threads=0;
 	spopts.sort=2;
-	spopts.debug=0;
+	spopts.debug=1;
 
 	ier = spreadinterp(nf1,nf2,nf3,(FLT*) fwfinufft,M,x,y,z,(FLT*) c,spopts);
 	FLT t=timer.elapsedsec();
@@ -247,8 +247,11 @@ int main(int argc, char* argv[])
 	for(int k=0; k<nf3; k++){
 		for(int j=0; j<nf2; j++){
 			for (int i=0; i<nf1; i++){
-				if( norm(fws[i+j*nf1+k*nf1*nf2]-fwfinufft[i+j*nf1+k*nf1*nf2])/fwfinufft_infnorm > tol & nn<10){
-					cout<<"(i,j,k)=("<<i<<","<<j<<","<<k<<"), "<<fws[i+j*nf1+k*nf1*nf2] <<","<<fwfinufft[i+j*nf1+k*nf1*nf2]<<endl;
+				if( norm(fws[i+j*nf1+k*nf1*nf2]-fwfinufft[i+j*nf1+k*nf1*nf2])/
+					fwfinufft_infnorm > tol & nn<10){
+					cout<<"(i,j,k)=("<<i<<","<<j<<","<<k<<"), "<<
+						fws[i+j*nf1+k*nf1*nf2] <<","<<
+						fwfinufft[i+j*nf1+k*nf1*nf2]<<endl;
 					nn++;
 				}
 			}
@@ -259,9 +262,8 @@ int main(int argc, char* argv[])
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 
-	opts.spread_direction=2;
-	opts.method=5;
-	opts.Horner=1;
+	dplan.opts.gpu_method=5;
+	dplan.opts.gpu_kerevalmeth=1;
 	CPX *fw;
 	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*nf3*sizeof(CPX));
@@ -276,7 +278,7 @@ int main(int argc, char* argv[])
 	// Method 1: Subprob                      //
 	/* -------------------------------------- */
 	timer.restart();
-	ier = cufinufft_interp3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, cs, opts, 
+	ier = cufinufft_interp3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, cs, tol,
 		&dplan);
 	FLT tts=timer.elapsedsec();
 	if(ier != 0 ){
@@ -289,7 +291,7 @@ int main(int argc, char* argv[])
 	// FINUTFFT cpu spreader                  //
 	/* -------------------------------------- */
 	timer.start();
-	setup_spreader(spopts,(FLT)tol,opts.upsampfac,1);
+	setup_spreader(spopts,(FLT)tol,upsampfac,1);
 	spopts.pirange=0;
 	spopts.chkbnds=1;
 	spopts.spread_direction=2;
@@ -310,6 +312,8 @@ int main(int argc, char* argv[])
 	err=relerrtwonorm(M,cs,cfinufft);
 	printf("|| cs  - cfinufft ||_2 / || cs  ||_2 =  %.6g\n", err);
 	FLT cfinufft_infnorm=infnorm(M, cfinufft);
+
+	cout<<"[resultdiff]"<<endl;
 	nn = 0;
 	for(int i=0; i<M; i++){
 		if( norm(cs[i]-cfinufft[i])/cfinufft_infnorm > tol & nn<10){
@@ -317,6 +321,7 @@ int main(int argc, char* argv[])
 			nn++;
 		}
 	}
+	cout<<endl;	
 #if 0
 	cout<<"[result-hybrid]"<<endl;
 	for(int j=0; j<nf2; j++){

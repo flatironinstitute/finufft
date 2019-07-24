@@ -78,7 +78,6 @@ int main(int argc, char* argv[])
 		kersumim += fwfinufft[i].imag();    // in case the kernel isn't real!
 	}
 #endif
-	dplan.spopts.pirange=0;
 	FLT strre = 0.0, strim = 0.0;          // also sum the strengths
 	switch(nupts_distribute){
 		// Making data
@@ -140,7 +139,6 @@ int main(int argc, char* argv[])
 	timer.restart();
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
-	dplan.spopts.spread_direction=1;
 	switch(method){
 		case 1:
 		case 2:
