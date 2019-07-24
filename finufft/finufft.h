@@ -16,6 +16,7 @@ struct nufft_opts {   // see common/finufft_default_opts() for defaults
 	FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
 	/* following options are for gpu */
 	int gpu_method;
+	int gpu_sort;
 	int gpu_binsizex;
 	int gpu_binsizey;
 	int gpu_binsizez;

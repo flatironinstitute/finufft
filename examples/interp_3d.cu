@@ -51,16 +51,7 @@ int main(int argc, char* argv[])
 
 	int ns=std::ceil(-log10(tol/10.0));
 	int maxsubprobsize;
-	cufinufft_opts opts;
-	cufinufft_plan dplan;
-	FLT upsampfac=2.0;
 
-	ier = cufinufft_default_opts(opts,tol,upsampfac);
-	if(ier != 0 ){
-		cout<<"error: cufinufft_default_opts"<<endl;
-		return 0;
-	}
-	opts.method=method;
 	cout<<scientific<<setprecision(3);
 
 
@@ -72,9 +63,6 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*nf3*sizeof(CPX));
 
-	opts.pirange=0;
-	opts.Horner=1;
-	opts.sort=sort;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -104,18 +92,28 @@ int main(int argc, char* argv[])
 		fw[i].imag() = 0.0;
 	}
 
-	if(opts.method == 5)
-	{
-		opts.bin_size_x=16;
-		opts.bin_size_y=8;
-		opts.bin_size_z=4;
-		opts.maxsubprobsize=maxsubprobsize;
+	cufinufft_plan dplan;
+	ier = cufinufft_default_opts(dplan.opts);
+	if(ier != 0 ){
+		cout<<"error: cufinufft_default_opts"<<endl;
+		return 0;
 	}
-	if(opts.method == 4)
+	dplan.opts.upsampfac=sigma;
+	dplan.opts.gpu_method=method;
+	dplan.opts.gpu_kerevalmeth=1;
+	dplan.opts.gpu_sort=sort;
+	if(dplan.opts.gpu_method == 5)
 	{
-		opts.bin_size_x=16;
-		opts.bin_size_y=8;
-		opts.bin_size_z=4;
+		dplan.opts.gpu_binsizex=16;
+		dplan.opts.gpu_binsizey=8;
+		dplan.opts.gpu_binsizez=4;
+		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
+	}
+	if(dplan.opts.gpu_method == 4)
+	{
+		dplan.opts.gpu_binsizex=16;
+		dplan.opts.gpu_binsizey=8;
+		dplan.opts.gpu_binsizez=4;
 	}
 
 	CNTime timer;
@@ -132,15 +130,15 @@ int main(int argc, char* argv[])
 		"] uniform points to "<<M<<"nupts"<<endl;
 #endif
 	timer.restart();
-	ier = cufinufft_interp3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, c, 
-		opts, &dplan);
+	ier = cufinufft_interp3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, c, tol,
+		&dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp3d"<<endl;
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
-			opts.method,nf1*nf2*nf3,M,t,M/t);
+			dplan.opts.gpu_method,nf1*nf2*nf3,M,t,M/t);
 #ifdef RESULT
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<10; j++){

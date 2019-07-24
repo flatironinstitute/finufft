@@ -136,7 +136,7 @@ int cudeconvolve2d(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cudeconvolve3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
+int cudeconvolve3d(cufinufft_plan *d_plan)
 {
 	int ms=d_plan->ms;
 	int mt=d_plan->mt;
@@ -146,7 +146,7 @@ int cudeconvolve3d(const cufinufft_opts opts, cufinufft_plan *d_plan)
 	int nf3=d_plan->nf3;
 	int nmodes=ms*mt*mu;
 	int ntransfcufftplan=d_plan->ntransfcufftplan;
-	if(opts.spread_direction == 1){
+	if(d_plan->spopts.spread_direction == 1){
 		for(int t=0; t<ntransfcufftplan; t++){
 			Deconvolve_3d<<<(nmodes+256-1)/256, 256>>>(ms, mt, mu, nf1, nf2, 
 				nf3, d_plan->fw+t*nf1*nf2, d_plan->fk+t*nmodes, 

@@ -60,18 +60,10 @@ int main(int argc, char* argv[])
 	}
 	int ier;
 
+	cout<<scientific<<setprecision(3);
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_opts opts;
-	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
 
-	ier = cufinufft_default_opts(opts,tol,upsampfac);
-	if(ier != 0 ){
-		cout<<"error: cufinufft_default_opts"<<endl;
-		return 0;
-	}
-	opts.method=method;
-	cout<<scientific<<setprecision(3);
 
 
 	FLT *x, *y, *z;
@@ -81,10 +73,6 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&z, M*sizeof(FLT));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*nf3*sizeof(CPX));
-
-	opts.rescaled=1;
-	opts.Horner=Horner;
-	opts.sort=sort;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -155,55 +143,65 @@ int main(int argc, char* argv[])
 	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() 
 		<<" s"<<endl<<endl;
 #endif
-
 #ifdef INFO
-	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"
-		<<endl;
+	cout<<"[info  ] Spreading  ["<<nf1<<"x"<<nf2<<"x"<<nf3<<
+		"] uniform points to "<<M<<"nupts"<<endl;
 #endif
 
-	if(opts.method==1 || opts.method == 2 || opts.method==3)
-	{
-		opts.bin_size_x=4;
-		opts.bin_size_y=4;
-		opts.bin_size_z=4;
-		opts.o_bin_size_x=8;
-		opts.o_bin_size_y=8;
-		opts.o_bin_size_z=8;
-		opts.maxsubprobsize=maxsubprobsize;
+	cufinufft_plan dplan;
+	ier = cufinufft_default_opts(dplan.opts);
+	if(ier != 0 ){
+		cout<<"error: cufinufft_default_opts"<<endl;
+		return 0;
 	}
-	if(opts.method == 5)
+	dplan.opts.gpu_method=method;
+	dplan.opts.upsampfac=upsampfac;
+	dplan.opts.gpu_kerevalmeth=Horner;
+	dplan.opts.gpu_sort=sort;
+
+	if(dplan.opts.gpu_method==1 || dplan.opts.gpu_method == 2 || dplan.opts.gpu_method==3)
 	{
-		opts.bin_size_x=16;
-		opts.bin_size_y=8;
-		opts.bin_size_z=4;
-		opts.maxsubprobsize=maxsubprobsize;
+		dplan.opts.gpu_binsizex=4;
+		dplan.opts.gpu_binsizey=4;
+		dplan.opts.gpu_binsizez=4;
+		dplan.opts.gpu_obinsizex=8;
+		dplan.opts.gpu_obinsizey=8;
+		dplan.opts.gpu_obinsizez=8;
+		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	}
-	if(opts.method == 4)
+	if(dplan.opts.gpu_method == 5)
 	{
-		opts.bin_size_x=16;
-		opts.bin_size_y=8;
-		opts.bin_size_z=4;
-		opts.maxsubprobsize=maxsubprobsize;
+		dplan.opts.gpu_binsizex=16;
+		dplan.opts.gpu_binsizey=8;
+		dplan.opts.gpu_binsizez=4;
+		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
+	}
+	if(dplan.opts.gpu_method == 4)
+	{
+		dplan.opts.gpu_binsizex=16;
+		dplan.opts.gpu_binsizey=8;
+		dplan.opts.gpu_binsizez=4;
+		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	}
 
 	timer.restart();
-	ier = cufinufft_spread3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, c, 
-		opts, &dplan);
+	ier = cufinufft_spread3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, c, tol, 
+		&dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread3d"<<endl;
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			opts.method,M,nf1*nf2*nf3,t,M/t);
+			dplan.opts.gpu_method,M,nf1*nf2*nf3,t,M/t);
 #if 0
 	cout<<"[result-input]"<<endl;
 	for(int k=0; k<nf3; k++){
 		for(int j=0; j<nf2; j++){
-			//if( j % opts.bin_size_y == 0)
+			//if( j % dplan.opts.gpu_binsizey == 0)
 			//	printf("\n");
 			for (int i=0; i<nf1; i++){
-				if( i % opts.bin_size_x == 0 && i!=0)
+				if( i % dplan.opts.gpu_binsizex == 0 && i!=0)
 					printf(" |");
 				printf(" (%2.3g,%2.3g)",fw[i+j*nf1+k*nf2*nf1].real(),
 					fw[i+j*nf1+k*nf2*nf1].imag() );

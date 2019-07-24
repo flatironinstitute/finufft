@@ -46,7 +46,6 @@ typedef struct {
 	int *numsubprob;
 	int *binsize;
 	int *binstartpts;
-	int *numsubprob;
 	int *subprob_to_bin;
 	int *subprobstartpts;
 
@@ -117,7 +116,7 @@ int cufinufft_destroy(cufinufft_plan *d_plan);
 // 2d
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
-
+#if 0
 // 3d
 int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf, int ntransfcufftplan, 
 	int iflag, const cufinufft_opts opts, 
@@ -129,4 +128,6 @@ int cufinufft3d1_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts,
 int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_opts &opts, 
 	cufinufft_plan *d_plan);
 int cufinufft3d_destroy(const cufinufft_opts opts, cufinufft_plan *d_plan);
+
+#endif
 #endif

@@ -17,8 +17,8 @@ FINUFFTOBJS=finufft/utils.o finufft/dirft2d.o finufft/common.o \
 CUFINUFFTOBJS=src/2d/interp2d.o src/2d/spread2d.o src/2d/cufinufft2d.o \
 	src/2d/spread2d_wrapper.o src/2d/spread2d_wrapper_paul.o \
 	src/2d/interp2d_wrapper.o src/memtransfer_wrapper.o \
-	src/deconvolve_wrapper.o src/cufinufft.o src/profile.o \ 
-	src/3d/spread3d.o src/3d/interp2d.o src/3d/spread3d_wrapper.o \
+	src/deconvolve_wrapper.o src/cufinufft.o src/profile.o \
+	src/3d/spread3d.o src/3d/interp3d.o src/3d/spread3d_wrapper.o \
 	src/3d/interp3d_wrapper.o src/3d/cufinufft3d.o
 	
 #-include make.inc

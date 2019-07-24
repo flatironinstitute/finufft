@@ -19,5 +19,5 @@ __global__
 void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, int fw_width, 
 	CUCPX* fw, CUCPX *fk, FLT *fwkerhalf1, FLT *fwkerhalf2, FLT *fwkerhalf3);
 
-int cudeconvolve3d(const cufinufft_opts opts, cufinufft_plan *d_mem);
+int cudeconvolve3d(cufinufft_plan *d_mem);
 #endif

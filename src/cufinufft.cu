@@ -114,11 +114,32 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 
 	cudaEventRecord(start);
 	cufftHandle fftplan;
-	if(dim == 2){
-		int n[] = {nf2, nf1};
-		int inembed[] = {nf2, nf1};
-		cufftPlanMany(&fftplan,dim,n,inembed,1,inembed[0]*inembed[1],inembed,1,
-			inembed[0]*inembed[1],CUFFT_TYPE,ntransfcufftplan);
+	switch(d_plan->dim)
+	{
+		case 1:
+		{
+			cerr<<"Not implemented yet"<<endl;
+		}
+		break;
+		case 2:
+		{
+			int n[] = {nf2, nf1};
+			int inembed[] = {nf2, nf1};
+			cufftPlanMany(&fftplan,dim,n,inembed,1,inembed[0]*inembed[1],
+				inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,ntransfcufftplan);
+		}
+		break;
+		case 3:
+		{
+			int dim = 3;
+			int n[] = {nf3, nf2, nf1};
+			int inembed[] = {nf3, nf2, nf1};
+			int istride = 1;
+			cufftPlanMany(&fftplan,dim,n,inembed,istride,inembed[0]*inembed[1]*
+				inembed[2],inembed,istride,inembed[0]*inembed[1]*inembed[2],
+				CUFFT_TYPE,ntransfcufftplan);
+		}
+		break;
 	}
 	d_plan->fftplan = fftplan;
 #ifdef TIME
@@ -142,6 +163,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
+	int nf3 = d_plan->nf3;
 	int dim = d_plan->dim;
 
 	d_plan->M = M;
@@ -202,34 +224,95 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 
 	if(d_plan->spopts.pirange == 1){
 		cudaEventRecord(start);
-		RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, 
-			d_plan->ky);
-		d_plan->spopts.pirange = 0;
+		switch(d_plan->dim)
+		{
+			case 1:
+			{
+				cerr<<"Not implemented yet"<<endl;
+			}
+			break;
+			case 2:
+			{
+				RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, 
+					d_plan->ky);
+				d_plan->spopts.pirange = 0;
+			}
+			break;
+			case 3:
+			{
+				RescaleXY_3d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,nf3,d_plan->kx,
+					d_plan->ky,d_plan->kz);
+				d_plan->spopts.pirange = 0;
+			}
+			break;
+		}	
 #ifdef SPREADTIME
-	float milliseconds;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ]\tRescaleXY_2d\t\t %.3g ms\n", milliseconds);
+		float milliseconds;
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf("[time  ]\tRescaleXYZ\t\t %.3g ms\n", milliseconds);
 #endif
 	}
 
-	if(d_plan->opts.gpu_method==5){
-		ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
-		if(ier != 0 ){
-			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
-				d_plan->opts.gpu_method);
-			return 0;
+	switch(d_plan->dim)
+	{
+		case 1:
+		{
+			cerr<<"Not implemented yet"<<endl;
 		}
-	}
-	if(d_plan->opts.gpu_method==6){
-		int ier = cuspread2d_paul_prop(nf1,nf2,M,d_plan);
-		if(ier != 0 ){
-			printf("error: cuspread2d_paul_prop, method(%d)\n", 
-				d_plan->opts.gpu_method);
-			return 0;
+		break;
+		case 2:
+		{
+			if(d_plan->opts.gpu_method==5){
+				ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
+				if(ier != 0 ){
+					printf("error: cuspread2d_subprob_prop, method(%d)\n", 
+						d_plan->opts.gpu_method);
+					return 1;
+				}
+			}
+			if(d_plan->opts.gpu_method==6){
+				int ier = cuspread2d_paul_prop(nf1,nf2,M,d_plan);
+				if(ier != 0 ){
+					printf("error: cuspread2d_paul_prop, method(%d)\n", 
+						d_plan->opts.gpu_method);
+					return 1;
+				}
+			}
 		}
-	}
+		break;
+		case 3:
+		{
+			if(d_plan->opts.gpu_method==1 || d_plan->opts.gpu_method==2 || 
+				d_plan->opts.gpu_method==3){
+				int ier = cuspread3d_gather_prop(nf1,nf2,nf3,M,d_plan);
+				if(ier != 0 ){
+					printf("error: cuspread3d_gather_prop, method(%d)\n", 
+						d_plan->opts.gpu_method);
+					return 0;
+				}
+			}
+			if(d_plan->opts.gpu_method==4){
+				ier = cuspread3d_idriven_prop(nf1,nf2,nf3,M,d_plan);
+				if(ier != 0 ){
+					printf("error: cuspread3d_idriven_prop, method(%d)\n", 
+						d_plan->opts.gpu_method);
+					return 0;
+				}
+			}
+			if(d_plan->opts.gpu_method==5){
+				int ier = cuspread3d_subprob_prop(nf1,nf2,nf3,M,d_plan);
+				if(ier != 0 ){
+					printf("error: cuspread3d_subprob_prop, method(%d)\n", 
+						d_plan->opts.gpu_method);
+					return 0;
+				}
+			}
+		}
+		break;
+	}	
+
 	return 0;
 }
 
@@ -259,8 +342,14 @@ int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 		break;
 		case 3:
 		{
-			cerr<<"Not Implemented yet"<<endl;
-			ier = 1;
+			if(type == type1)
+				ier = cufinufft2d1_exec(h_c,  h_fk, d_plan);
+			if(type == type2)
+				ier = cufinufft2d2_exec(h_c,  h_fk, d_plan);
+			if(type == type3){
+				cerr<<"Not Implemented yet"<<endl;
+				ier = 1;
+			}
 		}
 		break;
 	}
