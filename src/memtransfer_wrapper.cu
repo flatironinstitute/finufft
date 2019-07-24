@@ -163,34 +163,7 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	// No extra memory is needed in idriven method;
 	switch(d_plan->opts.gpu_method)
 	{
-		case 6:
-			{
-				int numobins[3], numbins[3];
-				numobins[0] = ceil((FLT) nf1/d_plan->opts.gpu_obinsizex);
-				numobins[1] = ceil((FLT) nf2/d_plan->opts.gpu_obinsizey);
-				numobins[2] = ceil((FLT) nf3/d_plan->opts.gpu_obinsizez);
-
-				numbins[0] = numobins[0]*d_plan->opts.gpu_obinsizex/
-					d_plan->opts.gpu_binsizex;
-				numbins[1] = numobins[1]*d_plan->opts.gpu_obinsizey/
-					d_plan->opts.gpu_binsizey;
-				numbins[2] = numobins[2]*d_plan->opts.gpu_obinsizez/
-					d_plan->opts.gpu_binsizez;
-				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,
-					numobins[0]*numobins[1]*numobins[2]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->numnupts,
-					numobins[0]*numobins[1]*numobins[2]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->binsize,
-					numbins[0]*numbins[1]*numbins[2]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->binstartpts,
-					numbins[0]*numbins[1]*numbins[2]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,(numobins[0]
-					*numobins[1]*numobins[2]+1)*sizeof(int)));
-			}
-			break;
 		case 1:
-		case 2:
-		case 3:
 			{
 				int numobins[3], numbins[3];
 				int binsperobins[3];
@@ -322,21 +295,7 @@ void freegpumemory3d(cufinufft_plan *d_plan)
 	cudaFree(d_plan->fwkerhalf3);
 	switch(d_plan->opts.gpu_method)
 	{
-		case 6:
-			{
-				checkCudaErrors(cudaFree(d_plan->idxnupts));
-				checkCudaErrors(cudaFree(d_plan->sortidx));
-				checkCudaErrors(cudaFree(d_plan->numsubprob));
-				checkCudaErrors(cudaFree(d_plan->binsize));
-				checkCudaErrors(cudaFree(d_plan->binstartpts));
-				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
-				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
-				checkCudaErrors(cudaFree(d_plan->subprob_to_nupts));
-			}
-			break;
 		case 1:
-		case 2:
-		case 3:
 			{
 				checkCudaErrors(cudaFree(d_plan->idxnupts));
 				checkCudaErrors(cudaFree(d_plan->sortidx));
