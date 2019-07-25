@@ -67,9 +67,9 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 		}
 	}
 	if(d_plan->opts.gpu_method == 4){
-		ier = cuspread3d_idriven_prop(nf1,nf2,nf3,M,d_plan);
+		ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
-			printf("error: cuinterp3d_idriven_prop, method(%d)\n", d_plan->opts.gpu_method);
+			printf("error: cuinterp3d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
 			return 0;
 		}
 	}
@@ -120,9 +120,9 @@ int cuinterp3d(cufinufft_plan* d_plan)
 				cudaEventRecord(start);
 				{
 					PROFILE_CUDA_GROUP("Interpolation", 6);
-					ier = cuinterp3d_idriven(nf1, nf2, nf3, M, d_plan);
+					ier = cuinterp3d_nuptsdriven(nf1, nf2, nf3, M, d_plan);
 					if(ier != 0 ){
-						cout<<"error: cnufftspread3d_gpu_idriven"<<endl;
+						cout<<"error: cnufftspread3d_gpu_nuptsdriven"<<endl;
 						return 1;
 					}
 				}
@@ -156,7 +156,7 @@ int cuinterp3d(cufinufft_plan* d_plan)
 }
 
 
-int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
+int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -189,13 +189,13 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			Interp_3d_Idriven_Horner<<<blocks, threadsPerBlock, 0, 
+			Interp_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				streams[t%nstreams]>>>(d_kx, d_ky, d_kz, d_c+t*M, 
 				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma);
 		}
 #else 
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			Interp_3d_Idriven_Horner<<<blocks, threadsPerBlock, 0, 
+			Interp_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				0>>>(d_kx, d_ky, d_kz, d_c+t*M, 
 				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma, d_idxnupts);
 		}
@@ -205,20 +205,20 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 			cudaEventRecord(stop);
 			cudaEventSynchronize(stop);
 			cudaEventElapsedTime(&milliseconds, start, stop);
-			printf("[time  ] \tKernel Interp_3d_Idriven_Horner \t%.3g ms\n", milliseconds);
+			printf("[time  ] \tKernel Interp_3d_NUptsdriven_Horner \t%.3g ms\n", milliseconds);
 #endif
 	}else{
 #if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			Interp_3d_Idriven<<<blocks, threadsPerBlock, 0, streams[t%nstreams]
+			Interp_3d_NUptsdriven<<<blocks, threadsPerBlock, 0, streams[t%nstreams]
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
 				nf1, nf2, nf3,es_c, es_beta);
 		}
 #else
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			Interp_3d_Idriven<<<blocks, threadsPerBlock, 0, 0 
+			Interp_3d_NUptsdriven<<<blocks, threadsPerBlock, 0, 0 
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
 				nf1, nf2, nf3,es_c, es_beta, d_idxnupts);
 		}
@@ -228,7 +228,7 @@ int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 			cudaEventRecord(stop);
 			cudaEventSynchronize(stop);
 			cudaEventElapsedTime(&milliseconds, start, stop);
-			printf("[time  ] \tKernel Interp_3d_Idriven \t%.3g ms\n", milliseconds);
+			printf("[time  ] \tKernel Interp_3d_NUptsdriven \t%.3g ms\n", milliseconds);
 #endif
 	}
 	return 0;

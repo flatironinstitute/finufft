@@ -134,9 +134,9 @@ void TrivialGlobalSortIdx_3d(int M, int* index)
 	}
 }
 
-/* Kernels for Idriven method */
+/* Kernels for NUptsdriven method */
 __global__
-void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts)
 {
 	int xx, yy, zz, ix, iy, iz;
@@ -407,7 +407,7 @@ void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		}
 	}
 }
-/* Kernels for Block Gather Method */
+/* Kernels for Block BlockGather Method */
 __global__
 void Temp(int binsperobinx, int binsperobiny, int binsperobinz,
 	int nobinx, int nobiny, int nobinz, int* binsize)
@@ -637,7 +637,7 @@ void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts,
 }
 
 __global__
-void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
 	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
@@ -749,7 +749,7 @@ void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 }
 
 __global__
-void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
 	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
@@ -872,9 +872,9 @@ void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 }
 
 /* ---------------------- 3d Interpolation Kernels ---------------------------*/
-/* Kernels for Idriven Method */
+/* Kernels for NUptsdriven Method */
 __global__
-void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
 	int *idxnupts)
 {
@@ -918,7 +918,7 @@ void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 }
 
 __global__
-void Interp_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
 	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int *idxnupts)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){

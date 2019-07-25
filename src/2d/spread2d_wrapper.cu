@@ -121,9 +121,9 @@ int cuspread2d(cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuspread2d_idriven(nf1, nf2, M, d_plan);
+				ier = cuspread2d_nuptsdriven(nf1, nf2, M, d_plan);
 				if(ier != 0 ){
-					cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
+					cout<<"error: cnufftspread2d_gpu_nuptsdriven"<<endl;
 					return 1;
 				}
 			}
@@ -162,7 +162,7 @@ int cuspread2d(cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuspread2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
+int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -187,10 +187,10 @@ int cuspread2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	blocks.y = 1;
 	cudaEventRecord(start);
 	if(d_plan->opts.gpu_kerevalmeth){
-		Spread_2d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, 
+		Spread_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, 
 			d_fw, M, ns, nf1, nf2, sigma);
 	}else{
-		Spread_2d_Idriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, 
+		Spread_2d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, 
 			M, ns, nf1, nf2, es_c, es_beta);
 	}
 
@@ -199,7 +199,7 @@ int cuspread2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_2d_Idriven \t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel Spread_2d_NUptsdriven \t%.3g ms\n", milliseconds);
 #endif
 	return 0;
 }

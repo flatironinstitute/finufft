@@ -20,7 +20,7 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
 
 	d_plan->byte_now=0;
-	// No extra memory is needed in idriven method (case 1)
+	// No extra memory is needed in nuptsdriven method (case 1)
 	switch(d_plan->opts.gpu_method)
 	{
 		case 5:
@@ -160,7 +160,7 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
 
 	d_plan->byte_now=0;
-	// No extra memory is needed in idriven method;
+	// No extra memory is needed in nuptsdriven method;
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -247,7 +247,7 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
 
 	d_plan->byte_now=0;
-	// No extra memory is needed in idriven method;
+	// No extra memory is needed in nuptsdriven method;
 	switch(d_plan->opts.gpu_method)
 	{
 		case 6:

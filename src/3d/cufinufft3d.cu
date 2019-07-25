@@ -303,9 +303,9 @@ int cufinufft3d_setNUpts(FLT* h_kx, FLT* h_ky, FLT *h_kz, cufinufft_opts &opts, 
 		}
 	}
 	if(d_plan->opts.gpu_method == 1 || d_plan->opts.gpu_method ==  2 || d_plan->opts.gpu_method == 3){
-		int ier = cuspread3d_gather_prop(nf1,nf2,nf3,M,opts,d_plan);
+		int ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,opts,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread3d_gather_prop, method(%d)\n", d_plan->opts.gpu_method);
+			printf("error: cuspread3d_blockgather_prop, method(%d)\n", d_plan->opts.gpu_method);
 			return 0;
 		}
 	}

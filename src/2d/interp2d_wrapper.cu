@@ -109,9 +109,9 @@ int cuinterp2d(cufinufft_plan* d_plan)
 				cudaEventRecord(start);
 				{
 					PROFILE_CUDA_GROUP("Spreading", 6);
-					ier = cuinterp2d_idriven(nf1, nf2, M, d_plan);
+					ier = cuinterp2d_nuptsdriven(nf1, nf2, M, d_plan);
 					if(ier != 0 ){
-						cout<<"error: cnufftspread2d_gpu_idriven"<<endl;
+						cout<<"error: cnufftspread2d_gpu_nuptsdriven"<<endl;
 						return 1;
 					}
 				}
@@ -141,7 +141,7 @@ int cuinterp2d(cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuinterp2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -169,7 +169,7 @@ int cuinterp2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->opts.gpu_nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			Interp_2d_Idriven_Horner<<<blocks, threadsPerBlock, 0, 
+			Interp_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				streams[t%nstreams]>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
 				ns, nf1, nf2, sigma);
 		}
@@ -177,7 +177,7 @@ int cuinterp2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->opts.gpu_nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
-			Interp_2d_Idriven<<<blocks, threadsPerBlock, 0, streams[t%nstreams]
+			Interp_2d_NUptsdriven<<<blocks, threadsPerBlock, 0, streams[t%nstreams]
 				>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, 
 				es_beta);
 		}
@@ -187,7 +187,7 @@ int cuinterp2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 			cudaEventRecord(stop);
 			cudaEventSynchronize(stop);
 			cudaEventElapsedTime(&milliseconds, start, stop);
-			printf("[time  ] \tKernel Interp_2d_Idriven \t%.3g ms\n", milliseconds);
+			printf("[time  ] \tKernel Interp_2d_NUptsdriven \t%.3g ms\n", milliseconds);
 #endif
 	return 0;
 }

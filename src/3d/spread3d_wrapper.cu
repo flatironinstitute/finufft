@@ -82,17 +82,17 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	}
 	if(d_plan->opts.gpu_method == 1 || d_plan->opts.gpu_method ==  2 || 
 		d_plan->opts.gpu_method == 3){
-		ier = cuspread3d_gather_prop(nf1,nf2,nf3,M,d_plan);
+		ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread3d_gather_prop, method(%d)\n", 
+			printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
 			return 0;
 		}
 	}
 	if(d_plan->opts.gpu_method == 4){
-		ier = cuspread3d_idriven_prop(nf1,nf2,nf3,M,d_plan);
+		ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread3d_idriven_prop, method(%d)\n", 
+			printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
 			return 0;
 		}
@@ -151,7 +151,7 @@ int cuspread3d(cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuspread3d_gather(nf1, nf2, nf3, M, d_plan);
+				ier = cuspread3d_blockgather(nf1, nf2, nf3, M, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
 					return 1;
@@ -161,7 +161,7 @@ int cuspread3d(cufinufft_plan* d_plan)
 		case 4:
 			{
 				cudaEventRecord(start);
-				ier = cuspread3d_idriven(nf1, nf2, nf3, M, d_plan);
+				ier = cuspread3d_nuptsdriven(nf1, nf2, nf3, M, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
 					return 1;
@@ -185,7 +185,7 @@ int cuspread3d(cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuspread3d_idriven_prop(int nf1, int nf2, int nf3, int M, 
+int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, 
 	cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
@@ -360,7 +360,7 @@ int cuspread3d_idriven_prop(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -385,14 +385,14 @@ int cuspread3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 	blocks.y = 1;
 	cudaEventRecord(start);
 	if(d_plan->opts.gpu_kerevalmeth==1){
-		Spread_3d_Idriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz,
+		Spread_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz,
 			d_c, d_fw, M, ns, nf1, nf2, nf3, sigma, d_idxnupts);
 #ifdef SPREADTIME
 		float milliseconds = 0;
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel Spread_3d_Idriven_Horner\t%.3g ms\n", milliseconds);
+		printf("[time  ] \tKernel Spread_3d_NUptsdriven_Horner\t%.3g ms\n", milliseconds);
 #endif
 	}else{
 		cerr<<"Not implemented yet"<<endl;
@@ -401,7 +401,7 @@ int cuspread3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M, 
+int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, 
 	cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
@@ -774,7 +774,7 @@ int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_gather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -833,7 +833,7 @@ int cuspread3d_gather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 				cout<<"error: not enough shared memory"<<endl;
 				return 1;
 			}
-			Spread_3d_Gather_Horner<<<totalnumsubprob, 64, sharedplanorysize
+			Spread_3d_BlockGather_Horner<<<totalnumsubprob, 64, sharedplanorysize
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns,
 					nf1, nf2, nf3, es_c, es_beta, sigma, d_binstartpts,
 					obin_size_x, obin_size_y, obin_size_z,
@@ -845,7 +845,7 @@ int cuspread3d_gather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 			cudaEventRecord(stop);
 			cudaEventSynchronize(stop);
 			cudaEventElapsedTime(&milliseconds, start, stop);
-			printf("[time  ] \tKernel Spread_3d_Gather_Horner \t%.3g ms\n",
+			printf("[time  ] \tKernel Spread_3d_BlockGather_Horner \t%.3g ms\n",
 				milliseconds);
 #endif
 		}else{
@@ -855,7 +855,7 @@ int cuspread3d_gather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 				cout<<"error: not enough shared memory"<<endl;
 				return 1;
 			}
-			Spread_3d_Gather<<<totalnumsubprob, 64, sharedplanorysize>>>(
+			Spread_3d_BlockGather<<<totalnumsubprob, 64, sharedplanorysize>>>(
 					d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns,
 					nf1, nf2, nf3, es_c, es_beta, sigma, d_binstartpts,
 					obin_size_x, obin_size_y, obin_size_z,
@@ -867,7 +867,7 @@ int cuspread3d_gather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 			cudaEventRecord(stop);
 			cudaEventSynchronize(stop);
 			cudaEventElapsedTime(&milliseconds, start, stop);
-			printf("[time  ] \tKernel Spread_3d_Gather \t\t%.3g ms\n", milliseconds);
+			printf("[time  ] \tKernel Spread_3d_BlockGather \t\t%.3g ms\n", milliseconds);
 #endif
 		}
 	}

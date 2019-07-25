@@ -283,17 +283,17 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 		{
 			if(d_plan->opts.gpu_method==1 || d_plan->opts.gpu_method==2 || 
 				d_plan->opts.gpu_method==3){
-				int ier = cuspread3d_gather_prop(nf1,nf2,nf3,M,d_plan);
+				int ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread3d_gather_prop, method(%d)\n", 
+					printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
 					return 0;
 				}
 			}
 			if(d_plan->opts.gpu_method==4){
-				ier = cuspread3d_idriven_prop(nf1,nf2,nf3,M,d_plan);
+				ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread3d_idriven_prop, method(%d)\n", 
+					printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
 					return 0;
 				}
@@ -397,11 +397,12 @@ int cufinufft_default_opts(nufft_opts &opts)
 	opts.gpu_binsizex = 32;
 	opts.gpu_binsizey = 32;
 	opts.gpu_binsizez = 1;
-	opts.gpu_obinsizez = 8;
-	opts.gpu_obinsizez = 8;
+	opts.gpu_obinsizex = 8;
+	opts.gpu_obinsizey = 8;
 	opts.gpu_obinsizez = 8;
 	opts.gpu_kerevalmeth = 1;
 	opts.gpu_maxsubprobsize = 1000;
+	opts.gpu_sort = 1;
 
 	opts.upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
 

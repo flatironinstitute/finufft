@@ -11,12 +11,12 @@ __global__
 void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y);
 
 /* -----------------------------Spreading Kernels-----------------------------*/
-/* Kernels for Idriven Method */
+/* Kernels for NUptsdriven Method */
 __global__
-void Spread_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta);
 __global__
-void Spread_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+void Spread_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT sigma);
 
 /* Kernels for SubProb Method */
@@ -72,12 +72,12 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 
 
 /* ---------------------------Interpolation Kernels---------------------------*/
-/* Kernels for Idriven Method */
+/* Kernels for NUptsdriven Method */
 __global__
-void Interp_2d_Idriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 	int nf1, int nf2, FLT es_c, FLT es_beta);
 __global__
-void Interp_2d_Idriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
+void Interp_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT sigma);
 /* Kernels for Subprob Method */
 __global__
@@ -130,9 +130,9 @@ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
 __global__ 
 void TrivialGlobalSortIdx_3d(int M, int* index);
 
-/* Kernels for Idriven Method */
+/* Kernels for NUptsdriven Method */
 __global__
-void Spread_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts);
 
 /* Kernels for Subprob Method */
@@ -155,7 +155,7 @@ void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	int bin_size_z, int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
 	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts);
 
-/* Kernels for Block Gather Method */
+/* Kernels for Block BlockGather Method */
 __global__
 void LocateNUptstoBins_ghost(int M, int  bin_size_x,
 	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz,
@@ -183,25 +183,25 @@ __global__
 void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts,
 	int* d_numsubprob,int numbins);
 __global__
-void Spread_3d_Gather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
 	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
 	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
 __global__
-void Spread_3d_Gather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
 	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
 	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts);
 
 /* -----------------------------Spreading Kernels-----------------------------*/
-/* Kernels for Idriven Method */
+/* Kernels for NUptsdriven Method */
 __global__
-void Interp_3d_Idriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
 	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts);
 __global__
-void Interp_3d_Idriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
+void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
 	int* idxnupts);
 
@@ -251,25 +251,25 @@ int cuspread3d(cufinufft_plan* d_plan);
 int cuinterp3d(cufinufft_plan* d_plan);
 
 // Wrappers for methods of spreading
-int cuspread2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 
-int cuspread3d_idriven_prop(int nf1, int nf2, int nf3, int M,
+int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
-int cuspread3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
-int cuspread3d_gather_prop(int nf1, int nf2, int nf3, int M,
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
+int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
-int cuspread3d_gather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
 int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
 int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
 
 // Wrappers for methods of interpolation
-int cuinterp2d_idriven(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan);
-int cuinterp3d_idriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
+int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
 int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
 #endif
