@@ -72,7 +72,15 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	printf("[time  ] Copy memory HtoD \t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	if(d_plan->opts.gpu_method == 5){
+	if(d_plan->opts.gpu_method == 1){
+		ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
+		if(ier != 0 ){
+			printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
+				d_plan->opts.gpu_method);
+			return 0;
+		}
+	}
+	if(d_plan->opts.gpu_method == 2){
 		ier = cuspread3d_subprob_prop(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_subprob_prop, method(%d)\n", 
@@ -80,18 +88,10 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 			return 0;
 		}
 	}
-	if(d_plan->opts.gpu_method == 1 ){
+	if(d_plan->opts.gpu_method == 4){
 		ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
-				d_plan->opts.gpu_method);
-			return 0;
-		}
-	}
-	if(d_plan->opts.gpu_method == 4){
-		ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
-		if(ier != 0 ){
-			printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
 			return 0;
 		}
@@ -150,16 +150,6 @@ int cuspread3d(cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuspread3d_blockgather(nf1, nf2, nf3, M, d_plan);
-				if(ier != 0 ){
-					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
-					return 1;
-				}
-			}
-			break;
-		case 4:
-			{
-				cudaEventRecord(start);
 				ier = cuspread3d_nuptsdriven(nf1, nf2, nf3, M, d_plan);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
@@ -167,7 +157,7 @@ int cuspread3d(cufinufft_plan* d_plan)
 				}
 			}
 			break;
-		case 5:
+		case 2:
 				{
 					cudaEventRecord(start);
 					ier = cuspread3d_subprob(nf1, nf2, nf3, M, d_plan);
@@ -177,8 +167,18 @@ int cuspread3d(cufinufft_plan* d_plan)
 					}
 				}
 				break;
+		case 4:
+			{
+				cudaEventRecord(start);
+				ier = cuspread3d_blockgather(nf1, nf2, nf3, M, d_plan);
+				if(ier != 0 ){
+					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
+					return 1;
+				}
+			}
+			break;
 		default:
-			cerr<<"error: incorrect method, should be 1,4,5"<<endl;
+			cerr<<"error: incorrect method, should be 1,2,4"<<endl;
 			return 2;
 	}
 	return ier;

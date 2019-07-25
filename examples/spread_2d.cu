@@ -18,10 +18,9 @@ int main(int argc, char* argv[])
 	if (argc<5) {
 		fprintf(stderr,"Usage: spread2d [method [maxsubprob [nupts_distr [N1 N2 [rep [tol [kerevalmeth]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: input driven without sorting\n");
-		fprintf(stderr,"method 2: input driven with sorting\n");
-		fprintf(stderr,"method 4: hybrid\n");
-		fprintf(stderr,"method 5: subprob\n");
+		fprintf(stderr,"method 1: nupts driven\n");
+		fprintf(stderr,"method 2: sub-problem\n");
+		fprintf(stderr,"method 3: sub-problem with paul's idea\n");
 		return 1;
 	}  
 	double w;
@@ -203,19 +202,13 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"
 		<<endl;
 #endif
-	if(dplan.opts.gpu_method == 2)
-	{
-		dplan.opts.gpu_binsizex=16;
-		dplan.opts.gpu_binsizey=16;
-	}
-
-	if(dplan.opts.gpu_method == 4 || dplan.opts.gpu_method==5)
+	if(dplan.opts.gpu_method==2)
 	{
 		dplan.opts.gpu_binsizex=32;
 		dplan.opts.gpu_binsizey=32;
 	}
 
-	if(dplan.opts.gpu_method == 6)
+	if(dplan.opts.gpu_method==3)
 	{
 		dplan.opts.gpu_binsizex=32;
 		dplan.opts.gpu_binsizey=32;

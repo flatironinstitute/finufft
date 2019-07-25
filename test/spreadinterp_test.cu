@@ -140,14 +140,8 @@ int main(int argc, char* argv[])
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	switch(method){
-		case 1:
 		case 2:
-		case 4:
-		{
-			dplan.opts.gpu_binsizex=16;
-			dplan.opts.gpu_binsizey=16;
-		}
-		case 5:
+		case 3:
 		{
 			dplan.opts.gpu_binsizex=32;
 			dplan.opts.gpu_binsizey=32;

@@ -16,10 +16,9 @@ int main(int argc, char* argv[])
 	if (argc<4) {
 		fprintf(stderr,"Usage: cufinufft2d1_test [method [N1 N2 [ntransf [ntransfcufftplan [M [tol]]]]]\n");
 		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: input driven without sorting\n");
-		fprintf(stderr,"method 2: input driven with sorting\n");
-		fprintf(stderr,"method 4: hybrid\n");
-		fprintf(stderr,"method 5: subprob\n");
+		fprintf(stderr,"method 1: nupts driven\n");
+		fprintf(stderr,"method 2: sub-problem\n");
+		fprintf(stderr,"method 3: sub-problem with paul's idea\n");
 		return 1;
 	}  
 	double w;

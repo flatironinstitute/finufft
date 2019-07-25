@@ -16,10 +16,11 @@ int main(int argc, char* argv[])
 	int N1, N2, N3, M;
 	if (argc<6) {
 		fprintf(stderr,
-			"Usage: spread3d [method [nupts_distr [N1 N2 [M [tol [Horner [sort]]]]]]]\n");
+			"Usage: spread3d [method [nupts_distr [N1 N2 N3 [M [tol [Horner [sort]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: input driven without sorting\n");
-		fprintf(stderr,"method 5: subprob\n");
+		fprintf(stderr,"method 1: nupts driven\n");
+		fprintf(stderr,"method 2: sub-problems\n");
+		fprintf(stderr,"method 4: block gather\n");
 		return 1;
 	}  
 	double w;
@@ -132,6 +133,8 @@ int main(int argc, char* argv[])
 				}
 			}
 			break;
+		default:
+			cerr << "not valid nupts distr" << endl;
 	}
 
 	CNTime timer;
@@ -159,7 +162,7 @@ int main(int argc, char* argv[])
 	dplan.opts.gpu_kerevalmeth=Horner;
 	dplan.opts.gpu_sort=sort;
 
-	if(dplan.opts.gpu_method==1 || dplan.opts.gpu_method == 2 || dplan.opts.gpu_method==3)
+	if(dplan.opts.gpu_method == 4)
 	{
 		dplan.opts.gpu_binsizex=4;
 		dplan.opts.gpu_binsizey=4;
@@ -169,19 +172,18 @@ int main(int argc, char* argv[])
 		dplan.opts.gpu_obinsizez=8;
 		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	}
-	if(dplan.opts.gpu_method == 5)
+	if(dplan.opts.gpu_method == 2)
 	{
 		dplan.opts.gpu_binsizex=16;
 		dplan.opts.gpu_binsizey=8;
 		dplan.opts.gpu_binsizez=4;
 		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	}
-	if(dplan.opts.gpu_method == 4)
+	if(dplan.opts.gpu_method == 1)
 	{
 		dplan.opts.gpu_binsizex=16;
 		dplan.opts.gpu_binsizey=8;
 		dplan.opts.gpu_binsizez=4;
-		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	}
 
 	timer.restart();

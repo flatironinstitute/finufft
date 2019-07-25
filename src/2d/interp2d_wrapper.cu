@@ -54,7 +54,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 #endif
-	if(d_plan->opts.gpu_method == 5){
+	if(d_plan->opts.gpu_method == 2){
 		ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
@@ -117,7 +117,7 @@ int cuinterp2d(cufinufft_plan* d_plan)
 				}
 			}
 			break;
-		case 5:
+		case 2:
 			{
 				cudaEventRecord(start);
 				ier = cuinterp2d_subprob(nf1, nf2, M, d_plan);
@@ -128,7 +128,7 @@ int cuinterp2d(cufinufft_plan* d_plan)
 			}
 			break;
 		default:
-			cout<<"error: incorrect method, should be 1 or 5"<<endl;
+			cout<<"error: incorrect method, should be 1 or 2"<<endl;
 			return 2;
 	}
 #ifdef SPREADTIME

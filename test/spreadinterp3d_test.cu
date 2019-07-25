@@ -143,13 +143,11 @@ int main(int argc, char* argv[])
 	/* -------------------------------------- */
 	timer.restart();
 	dplan.opts.upsampfac=upsampfac;
-	dplan.opts.gpu_method=5;
+	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	dplan.opts.gpu_sort=1;
 	switch(dplan.opts.gpu_method){
-		case 1:
-		case 2:
-		case 3:
+		case 4:
 		{
 			dplan.opts.gpu_binsizex=4;
 			dplan.opts.gpu_binsizey=4;
@@ -159,7 +157,14 @@ int main(int argc, char* argv[])
 			dplan.opts.gpu_obinsizez=8;
 		}
 		break;
-		case 5:
+		case 2:
+		{
+			dplan.opts.gpu_binsizex=8;
+			dplan.opts.gpu_binsizey=8;
+			dplan.opts.gpu_binsizez=2;
+		}
+		break;
+		case 1:
 		{
 			dplan.opts.gpu_binsizex=8;
 			dplan.opts.gpu_binsizey=8;
@@ -262,7 +267,7 @@ int main(int argc, char* argv[])
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 
-	dplan.opts.gpu_method=5;
+	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	CPX *fw;
 	CPX *cfinufft, *cs;

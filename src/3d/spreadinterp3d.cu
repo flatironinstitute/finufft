@@ -181,8 +181,8 @@ void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 					outidx = ix+iy*nf1+iz*nf1*nf2;
 					ker1val=ker1[xx-xstart];
 					FLT kervalue=ker1val*ker2val*ker3val;
-					atomicAdd(&fw[outidx].x, c[i].x*kervalue);
-					atomicAdd(&fw[outidx].y, c[i].y*kervalue);
+					atomicAdd(&fw[outidx].x, c[idxnupts[i]].x*kervalue);
+					atomicAdd(&fw[outidx].y, c[idxnupts[i]].y*kervalue);
 				}
 			}
 		}
@@ -224,8 +224,8 @@ void Spread_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 					FLT ker1val = evaluate_kernel(disx, es_c, es_beta);
 					FLT kervalue=ker1val*ker2val*ker3val;
 
-					atomicAdd(&fw[outidx].x, c[i].x*kervalue);
-					atomicAdd(&fw[outidx].y, c[i].y*kervalue);
+					atomicAdd(&fw[outidx].x, c[idxnupts[i]].x*kervalue);
+					atomicAdd(&fw[outidx].y, c[idxnupts[i]].y*kervalue);
 				}
 			}
 		}
@@ -953,8 +953,8 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 				}
 			}
 		}
-		c[i].x = cnow.x;
-		c[i].y = cnow.y;
+		c[idxnupts[i]].x = cnow.x;
+		c[idxnupts[i]].y = cnow.y;
 	}
 
 }
@@ -1003,8 +1003,8 @@ void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 				}
 			}
 		}
-		c[i].x = cnow.x;
-		c[i].y = cnow.y;
+		c[idxnupts[i]].x = cnow.x;
+		c[idxnupts[i]].y = cnow.y;
 	}
 
 }
@@ -1075,6 +1075,7 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
 
+
     	for (int zz=zstart; zz<=zend; zz++){
 			FLT disz=abs(z_rescaled-zz);
 			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta);
@@ -1096,7 +1097,8 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
         		}
       		}
 		}
-		c[idxnupts[idx]] = cnow;
+		c[idxnupts[idx]].x = cnow.x;
+		c[idxnupts[idx]].y = cnow.y;
 	}
 }
 __global__
@@ -1165,6 +1167,9 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
 
+		eval_kernel_vec_Horner(ker1,xstart+xoffset-x_rescaled,ns,sigma);
+		eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
+		eval_kernel_vec_Horner(ker3,zstart+zoffset-z_rescaled,ns,sigma);
     	for (int zz=zstart; zz<=zend; zz++){
 			FLT kervalue3 = ker3[zz-zstart];
 			iz = zz+ceil(ns/2.0);
@@ -1174,15 +1179,16 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 				for(int xx=xstart; xx<=xend; xx++){
 					ix = xx+ceil(ns/2.0);
 					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
-						iz*(bin_size_x+ceil(ns/2.0)*2)*
-						   (bin_size_y+ceil(ns/2.0)*2);
+							 iz*(bin_size_x+ceil(ns/2.0)*2)*
+							    (bin_size_y+ceil(ns/2.0)*2);
 					FLT kervalue1 = ker1[xx-xstart];
 					cnow.x += fwshared[outidx].x*kervalue1*kervalue2*kervalue3;
 					cnow.y += fwshared[outidx].y*kervalue1*kervalue2*kervalue3;
         		}
       		}
 		}
-		c[idxnupts[idx]] = cnow;
+		c[idxnupts[idx]].x = cnow.x;
+		c[idxnupts[idx]].y = cnow.y;
 	}
 }
 #if 0

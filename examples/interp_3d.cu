@@ -16,8 +16,8 @@ int main(int argc, char* argv[])
 	if (argc<5) {
 		fprintf(stderr,"Usage: interp3d [method [nupts_distr [nf1 nf2 nf3 [M [tol [sort]]]]]]\n");
 		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 4: input driven with sorting\n");
-		fprintf(stderr,"method 5: subprob\n");
+		fprintf(stderr,"method 1: nupts driven\n");
+		fprintf(stderr,"method 2: sub-problem\n");
 		return 1;
 	}  
 	double w;
@@ -105,15 +105,14 @@ int main(int argc, char* argv[])
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	dplan.opts.gpu_sort=sort;
-	if(dplan.opts.gpu_method == 5)
+	if(dplan.opts.gpu_method == 2)
 	{
-		cout <<"hihihi" << endl;
 		dplan.opts.gpu_binsizex=16;
 		dplan.opts.gpu_binsizey=8;
 		dplan.opts.gpu_binsizez=4;
 		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	}
-	if(dplan.opts.gpu_method == 4)
+	if(dplan.opts.gpu_method == 1)
 	{
 		dplan.opts.gpu_binsizex=16;
 		dplan.opts.gpu_binsizey=8;

@@ -16,8 +16,8 @@ int main(int argc, char* argv[])
 	if (argc<5) {
 		fprintf(stderr,"Usage: interp2d [method [nupts_distr [nf1 nf2 [M [tol [kerevalmeth]]]]]]\n");
 		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: input driven without sorting\n");
-		fprintf(stderr,"method 5: subprob\n");
+		fprintf(stderr,"method 1: nupts driven\n");
+		fprintf(stderr,"method 2: sub-problems\n");
 		return 1;
 	}  
 	double w;
@@ -102,19 +102,6 @@ int main(int argc, char* argv[])
 
 #ifdef INFO
 	cout<<"[info  ] Interpolating  ["<<nf1<<"x"<<nf2<<"] uniform points to "<<M<<"nupts"<<endl;
-#endif
-#if 0
-	if(d_plan->opts.gpu_method == 2)
-	{
-		d_plan->opts.gpu_binsizex=16;
-		d_plan->opts.gpu_binsizey=16;
-	}
-
-	if(d_plan->opts.gpu_method == 4 || d_plan->opts.gpu_method==5)
-	{
-		d_plan->opts.gpu_binsizex=32;
-		d_plan->opts.gpu_binsizey=32;
-	}
 #endif
 	timer.restart();
 	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, c, tol, &dplan);

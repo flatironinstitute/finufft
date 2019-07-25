@@ -56,7 +56,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 		2*M*sizeof(FLT)+M*sizeof(CUCPX), milliseconds);
 #endif
 
-	if(d_plan->opts.gpu_method == 5){
+	if(d_plan->opts.gpu_method == 2){
 		ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
@@ -65,7 +65,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 		}
 	}
 
-	if(d_plan->opts.gpu_method == 6){
+	if(d_plan->opts.gpu_method == 3){
 		ier = cuspread2d_paul_prop(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
@@ -128,7 +128,7 @@ int cuspread2d(cufinufft_plan* d_plan)
 				}
 			}
 			break;
-		case 5:
+		case 2:
 			{
 				cudaEventRecord(start);
 				ier = cuspread2d_subprob(nf1, nf2, M, d_plan);
@@ -138,7 +138,7 @@ int cuspread2d(cufinufft_plan* d_plan)
 				}
 			}
 			break;
-		case 6:
+		case 3:
 			{
 				cudaEventRecord(start);
 				ier = cuspread2d_paul(nf1, nf2, M, d_plan);
@@ -149,7 +149,7 @@ int cuspread2d(cufinufft_plan* d_plan)
 			}
 			break;
 		default:
-			cout<<"error: incorrect method, should be 5"<<endl;
+			cout<<"error: incorrect method, should be 1,2,3"<<endl;
 			return 2;
 	}
 #ifdef SPREADTIME

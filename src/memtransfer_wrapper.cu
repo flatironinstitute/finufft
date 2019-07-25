@@ -23,7 +23,7 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 	// No extra memory is needed in nuptsdriven method (case 1)
 	switch(d_plan->opts.gpu_method)
 	{
-		case 5:
+		case 2:
 			{
 				int numbins[2];
 				numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
@@ -37,7 +37,7 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,
 						(numbins[0]*numbins[1]+1)*sizeof(int)));
 			}
-		case 6:
+		case 3:
 			{
 				int numbins[2];
 				numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
@@ -84,8 +84,8 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
 	switch(d_plan->opts.gpu_method)
 	{
-		case 5:
-		case 6:
+		case 2:
+		case 3:
 			{
 				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
@@ -105,7 +105,7 @@ void freegpumemory2d(cufinufft_plan *d_plan)
 	cudaFree(d_plan->fwkerhalf2);
 	switch(d_plan->opts.gpu_method)
 	{
-		case 5:
+		case 2:
 			{
 				checkCudaErrors(cudaFree(d_plan->idxnupts));
 				checkCudaErrors(cudaFree(d_plan->sortidx));
@@ -116,7 +116,7 @@ void freegpumemory2d(cufinufft_plan *d_plan)
 				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
 			}
 			break;
-		case 6:
+		case 3:
 			{
 				checkCudaErrors(cudaFree(d_plan->idxnupts));
 				checkCudaErrors(cudaFree(d_plan->sortidx));
@@ -165,6 +165,38 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	{
 		case 1:
 			{
+				if(d_plan->opts.gpu_sort){
+					int numbins[3];
+					numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
+					numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
+					numbins[2] = ceil((FLT) nf3/d_plan->opts.gpu_binsizez);
+					checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
+						numbins[1]*numbins[2]*sizeof(int)));
+					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
+						numbins[1]*numbins[2]*sizeof(int)));
+					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
+						numbins[1]*numbins[2]*sizeof(int)));
+				}
+			}
+			break;
+		case 2:
+			{
+				int numbins[3];
+				numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
+				numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
+				numbins[2] = ceil((FLT) nf3/d_plan->opts.gpu_binsizez);
+				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
+					numbins[1]*numbins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
+					numbins[1]*numbins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
+					numbins[1]*numbins[2]*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,
+					(numbins[0]*numbins[1]*numbins[2]+1)*sizeof(int)));
+			}
+			break;
+		case 4:
+			{
 				int numobins[3], numbins[3];
 				int binsperobins[3];
 				numobins[0] = ceil((FLT) nf1/d_plan->opts.gpu_obinsizex);
@@ -192,38 +224,6 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 					*numobins[1]*numobins[2]+1)*sizeof(int)));
 			}
 			break;
-		case 4:
-			{
-				if(d_plan->opts.gpu_sort){
-					int numbins[3];
-					numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
-					numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
-					numbins[2] = ceil((FLT) nf3/d_plan->opts.gpu_binsizez);
-					checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
-						numbins[1]*numbins[2]*sizeof(int)));
-					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
-						numbins[1]*numbins[2]*sizeof(int)));
-					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
-						numbins[1]*numbins[2]*sizeof(int)));
-				}
-			}
-			break;
-		case 5:
-			{
-				int numbins[3];
-				numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
-				numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
-				numbins[2] = ceil((FLT) nf3/d_plan->opts.gpu_binsizez);
-				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
-					numbins[1]*numbins[2]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
-					numbins[1]*numbins[2]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
-					numbins[1]*numbins[2]*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,
-					(numbins[0]*numbins[1]*numbins[2]+1)*sizeof(int)));
-			}
-			break;
 	}
 	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*nf3*
 		sizeof(CUCPX)));
@@ -241,6 +241,7 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	d_plan->streams = streams;
 	return 0;
 }
+
 int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 {
 	int M = d_plan->M;
@@ -250,29 +251,22 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 	// No extra memory is needed in nuptsdriven method;
 	switch(d_plan->opts.gpu_method)
 	{
-		case 6:
+		case 1:
 			{
+				if(d_plan->opts.gpu_sort)
+					checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
 			}
 			break;
-		case 1:
 		case 2:
-		case 3:
 			{
-				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
 			}
 			break;
 		case 4:
 			{
-				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
-			}
-			break;
-		case 5:
-			{
-				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
-				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
 			}
 			break;
 	}
@@ -297,17 +291,6 @@ void freegpumemory3d(cufinufft_plan *d_plan)
 	{
 		case 1:
 			{
-				checkCudaErrors(cudaFree(d_plan->idxnupts));
-				checkCudaErrors(cudaFree(d_plan->sortidx));
-				checkCudaErrors(cudaFree(d_plan->numsubprob));
-				checkCudaErrors(cudaFree(d_plan->binsize));
-				checkCudaErrors(cudaFree(d_plan->binstartpts));
-				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
-				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
-			}
-			break;
-		case 4:
-			{
 				if(d_plan->opts.gpu_sort){
 					checkCudaErrors(cudaFree(d_plan->idxnupts));
 					checkCudaErrors(cudaFree(d_plan->sortidx));
@@ -318,7 +301,18 @@ void freegpumemory3d(cufinufft_plan *d_plan)
 				}
 			}
 			break;
-		case 5:
+		case 2:
+			{
+				checkCudaErrors(cudaFree(d_plan->idxnupts));
+				checkCudaErrors(cudaFree(d_plan->sortidx));
+				checkCudaErrors(cudaFree(d_plan->numsubprob));
+				checkCudaErrors(cudaFree(d_plan->binsize));
+				checkCudaErrors(cudaFree(d_plan->binstartpts));
+				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
+				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
+			}
+			break;
+		case 4:
 			{
 				checkCudaErrors(cudaFree(d_plan->idxnupts));
 				checkCudaErrors(cudaFree(d_plan->sortidx));
