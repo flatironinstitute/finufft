@@ -215,6 +215,7 @@ int main(int argc, char* argv[])
 	cudaDeviceReset();
 	cudaFreeHost(x);
 	cudaFreeHost(y);
+	cudaFreeHost(z);
 	cudaFreeHost(c);
 	cudaFreeHost(fw);
 	return 0;

@@ -200,13 +200,6 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma, d_idxnupts);
 		}
 #endif
-#ifdef SPREADTIME
-			float milliseconds = 0;
-			cudaEventRecord(stop);
-			cudaEventSynchronize(stop);
-			cudaEventElapsedTime(&milliseconds, start, stop);
-			printf("[time  ] \tKernel Interp_3d_NUptsdriven_Horner \t%.3g ms\n", milliseconds);
-#endif
 	}else{
 #if 0
 		cudaStream_t *streams = d_plan->streams;
@@ -223,14 +216,15 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 				nf1, nf2, nf3,es_c, es_beta, d_idxnupts);
 		}
 #endif
-#ifdef SPREADTIME
-			float milliseconds = 0;
-			cudaEventRecord(stop);
-			cudaEventSynchronize(stop);
-			cudaEventElapsedTime(&milliseconds, start, stop);
-			printf("[time  ] \tKernel Interp_3d_NUptsdriven \t%.3g ms\n", milliseconds);
-#endif
 	}
+#ifdef SPREADTIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel Interp_3d_NUptsdriven (%d) \t%.3g ms\n", 
+		milliseconds, d_plan->opts.gpu_kerevalmeth);
+#endif
 	return 0;
 }
 
@@ -276,6 +270,8 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 	int totalnumsubprob=d_plan->totalnumsubprob;
 
 	FLT sigma=d_plan->spopts.upsampfac;
+	FLT es_c=d_plan->spopts.ES_c;
+	FLT es_beta=d_plan->spopts.ES_beta;
 	cudaEventRecord(start);
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*
 		(bin_size_y+2*ceil(ns/2.0))*(bin_size_z+2*ceil(ns/2.0))*sizeof(CUCPX);
@@ -292,17 +288,22 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 				bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
 				d_numsubprob, maxsubprobsize,numbins[0], numbins[1], numbins[2],
 				d_idxnupts);
-#ifdef SPREADTIME
-				float milliseconds = 0;
-				cudaEventRecord(stop);
-				cudaEventSynchronize(stop);
-				cudaEventElapsedTime(&milliseconds, start, stop);
-				printf("[time  ] \tKernel Interp_3d_Subprob_Horner \t%.3g ms\n", milliseconds);
-#endif
 		}else{
-			cerr<<"Not implemented yet (Interp 3d using exp kernels)"<<endl;
-			return 1;
+			Interp_3d_Subprob<<<totalnumsubprob, 256,
+				sharedplanorysize>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, 
+				M, ns, nf1, nf2, nf3, es_c, es_beta, d_binstartpts, d_binsize, 
+				bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, 
+				d_subprobstartpts, d_numsubprob, maxsubprobsize,numbins[0], 
+				numbins[1], numbins[2],d_idxnupts);
 		}
 	}
+#ifdef SPREADTIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tKernel Interp_3d_Subprob (%d) \t%.3g ms\n", milliseconds,
+	d_plan->opts.gpu_kerevalmeth);
+#endif
 	return 0;
 }

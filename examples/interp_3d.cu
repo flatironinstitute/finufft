@@ -86,6 +86,9 @@ int main(int argc, char* argv[])
 				maxsubprobsize = 1024;
 			}
 			break;
+		default:
+			cerr<<"error: nupts distr should be 1,2" << endl;
+			return 1;
 	}
 	for(int i=0; i<nf1*nf2*nf3; i++){
 		fw[i].real() = 1.0;
@@ -104,6 +107,7 @@ int main(int argc, char* argv[])
 	dplan.opts.gpu_sort=sort;
 	if(dplan.opts.gpu_method == 5)
 	{
+		cout <<"hihihi" << endl;
 		dplan.opts.gpu_binsizex=16;
 		dplan.opts.gpu_binsizey=8;
 		dplan.opts.gpu_binsizez=4;

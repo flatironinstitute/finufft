@@ -199,7 +199,8 @@ int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_2d_NUptsdriven \t%.3g ms\n", milliseconds);
+	printf("[time  ] \tKernel Spread_2d_NUptsdriven (%d)\t%.3g ms\n", 
+		milliseconds, d_plan->opts.gpu_kerevalmeth);
 #endif
 	return 0;
 }

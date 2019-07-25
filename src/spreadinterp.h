@@ -132,8 +132,12 @@ void TrivialGlobalSortIdx_3d(int M, int* index);
 
 /* Kernels for NUptsdriven Method */
 __global__
-void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
-	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts);
+void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts);
+__global__
+void Spread_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
+	int* idxnupts);
 
 /* Kernels for Subprob Method */
 __global__
@@ -211,6 +215,12 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts, 
 	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z, 
 	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts);
+__global__
+void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+	int M, const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
+	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
+	int bin_size_z, int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
 	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts);
 
 #if 0

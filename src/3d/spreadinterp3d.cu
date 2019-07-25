@@ -55,6 +55,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 #include "../../finufft/ker_horner_allw_loop.c"
 	}
 }
+/* Common Kernels */
 __device__
 int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 	int bnx, int bny, int bnz){
@@ -187,6 +188,49 @@ void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 		}
 	}
 }
+__global__
+void Spread_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, int* idxnupts)
+{
+	int xx, yy, zz, ix, iy, iz;
+	int outidx;
+
+	FLT x_rescaled, y_rescaled, z_rescaled;
+	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
+		x_rescaled=x[idxnupts[i]];
+		y_rescaled=y[idxnupts[i]];
+		z_rescaled=z[idxnupts[i]];
+
+		int xstart = ceil(x_rescaled - ns/2.0);
+		int ystart = ceil(y_rescaled - ns/2.0);
+		int zstart = ceil(z_rescaled - ns/2.0);
+		int xend = floor(x_rescaled + ns/2.0);
+		int yend = floor(y_rescaled + ns/2.0);
+		int zend = floor(z_rescaled + ns/2.0);
+
+		for(zz=zstart; zz<=zend; zz++){
+			FLT disz=abs(z_rescaled-zz);
+			FLT ker3val = evaluate_kernel(disz, es_c, es_beta);
+			for(yy=ystart; yy<=yend; yy++){
+				FLT disy=abs(y_rescaled-yy);
+				FLT ker2val = evaluate_kernel(disy, es_c, es_beta);
+				for(xx=xstart; xx<=xend; xx++){
+					ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
+					iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
+					iz = zz < 0 ? zz+nf3 : (zz>nf3-1 ? zz-nf3 : zz);
+					outidx = ix+iy*nf1+iz*nf1*nf2;
+
+					FLT disx=abs(x_rescaled-xx);
+					FLT ker1val = evaluate_kernel(disx, es_c, es_beta);
+					FLT kervalue=ker1val*ker2val*ker3val;
+
+					atomicAdd(&fw[outidx].x, c[i].x*kervalue);
+					atomicAdd(&fw[outidx].y, c[i].y*kervalue);
+				}
+			}
+		}
+	}
+}
 
 /* Kernels for Subprob method */
 __global__
@@ -280,8 +324,6 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 					FLT kervalue1 = ker1[xx-xstart];
 					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*kervalue3);
 					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*kervalue3);
-					//atomicAdd(&fwshared[outidx].x, 1);
-					//atomicAdd(&fwshared[outidx].y, 1);
         		}
       		}
 		}
@@ -969,10 +1011,10 @@ void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 
 /* Kernels for SubProb Method */
 __global__
-void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
-	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts,
-	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z, 
-	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+	int M, const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
+	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
+	int bin_size_z, int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
 	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts)
 {
 	extern __shared__ CUCPX fwshared[];
@@ -1016,6 +1058,93 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 #endif
 	__syncthreads();
 
+	FLT x_rescaled, y_rescaled, z_rescaled;
+	CUCPX cnow;
+	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
+		int idx = ptstart+i;
+		x_rescaled = x[idxnupts[idx]];
+		y_rescaled = y[idxnupts[idx]];
+		z_rescaled = z[idxnupts[idx]];
+		cnow.x = 0.0;
+		cnow.y = 0.0;
+
+		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
+		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
+		zstart = ceil(z_rescaled - ns/2.0)-zoffset;
+		xend   = floor(x_rescaled + ns/2.0)-xoffset;
+		yend   = floor(y_rescaled + ns/2.0)-yoffset;
+		zend   = floor(z_rescaled + ns/2.0)-zoffset;
+
+    	for (int zz=zstart; zz<=zend; zz++){
+			FLT disz=abs(z_rescaled-zz);
+			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta);
+			iz = zz+ceil(ns/2.0);
+			for(int yy=ystart; yy<=yend; yy++){
+				FLT disy=abs(y_rescaled-yy);
+				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+				iy = yy+ceil(ns/2.0);
+				for(int xx=xstart; xx<=xend; xx++){
+					ix = xx+ceil(ns/2.0);
+					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
+						iz*(bin_size_x+ceil(ns/2.0)*2)*
+						   (bin_size_y+ceil(ns/2.0)*2);
+					
+					FLT disx=abs(x_rescaled-xx);
+					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+					cnow.x += fwshared[outidx].x*kervalue1*kervalue2*kervalue3;
+					cnow.y += fwshared[outidx].y*kervalue1*kervalue2*kervalue3;
+        		}
+      		}
+		}
+		c[idxnupts[idx]] = cnow;
+	}
+}
+__global__
+void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts,
+	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z, 
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts)
+{
+	extern __shared__ CUCPX fwshared[];
+
+	int xstart,ystart,xend,yend,zstart,zend;
+	int subpidx=blockIdx.x;
+	int bidx=subprob_to_bin[subpidx];
+	int binsubp_idx=subpidx-subprobstartpts[bidx];
+	int ix, iy, iz;
+	int outidx;
+	int ptstart=binstartpts[bidx]+binsubp_idx*maxsubprobsize;
+	int nupts=min(maxsubprobsize, bin_size[bidx]-binsubp_idx*maxsubprobsize);
+
+	int xoffset=(bidx % nbinx)*bin_size_x;
+	int yoffset=((bidx / nbinx)%nbiny)*bin_size_y;
+	int zoffset=(bidx/ (nbinx*nbiny))*bin_size_z;
+
+	int N = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0))*
+			(bin_size_z+2*ceil(ns/2.0));
+
+	for(int n=threadIdx.x;n<N; n+=blockDim.x){
+		int i = n % (int) (bin_size_x+2*ceil(ns/2.0) );
+		int j = (int) (n /(bin_size_x+2*ceil(ns/2.0))) % (int) (bin_size_y+2*ceil(ns/2.0));
+		int k = n / ((bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0)));
+
+		ix = xoffset-ceil(ns/2.0)+i;
+		iy = yoffset-ceil(ns/2.0)+j;
+		iz = zoffset-ceil(ns/2.0)+k;
+		if(ix<(nf1+ceil(ns/2.0)) && iy<(nf2+ceil(ns/2.0)) && iz<(nf3+ceil(ns/2.0))){
+			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
+			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
+			iz = iz < 0 ? iz+nf3 : (iz>nf3-1 ? iz-nf3 : iz);
+			outidx = ix+iy*nf1+iz*nf1*nf2;
+			int sharedidx=i+j*(bin_size_x+ceil(ns/2.0)*2)+
+				k*(bin_size_x+ceil(ns/2.0)*2)*(bin_size_y+ceil(ns/2.0)*2);
+			fwshared[sharedidx].x = fw[outidx].x;
+			fwshared[sharedidx].y = fw[outidx].y;
+		}
+	}
+	__syncthreads();
+
 	FLT ker1[MAX_NSPREAD];
 	FLT ker2[MAX_NSPREAD];
 	FLT ker3[MAX_NSPREAD];
@@ -1036,9 +1165,6 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
 
-		eval_kernel_vec_Horner(ker1,xstart+xoffset-x_rescaled,ns,sigma);
-        eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
-        eval_kernel_vec_Horner(ker3,zstart+zoffset-z_rescaled,ns,sigma);
     	for (int zz=zstart; zz<=zend; zz++){
 			FLT kervalue3 = ker3[zz-zstart];
 			iz = zz+ceil(ns/2.0);
