@@ -5,6 +5,8 @@ CXXFLAGS=-DSINGLE -DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
 NVCCFLAGS=-arch=sm_70 -DSINGLE -DSPREADTIME -DTIME -lineinfo --default-stream per-thread
 #If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
+#DEBUG add "-g -G" for cuda-gdb debugger
+
 INC=-I/cm/shared/sw/pkg/devel/cuda/9.0.176/samples/common/inc/ \
     -I/mnt/home/yshih/cub/ \
     -I/cm/shared/sw/pkg/devel/cuda/9.0.176/include/
@@ -29,10 +31,10 @@ CUFINUFFTOBJS=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
 
 
-spread2d: examples/spread_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+spread2d: test/spread_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-interp2d: examples/interp_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+interp2d: test/interp_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 spreadinterp_test: test/spreadinterp_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
@@ -42,36 +44,36 @@ finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o $(CUFINUFFTOBJS) \
 	$(FINUFFTOBJS)
 	$(CXX) $^ $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft_test: examples/cufinufft_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft_test: test/cufinufft_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d1_test: examples/cufinufft2d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft2d1_test: test/cufinufft2d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d1many_test: examples/cufinufft2d1many_test.o $(CUFINUFFTOBJS) \
+cufinufft2d1many_test: test/cufinufft2d1many_test.o $(CUFINUFFTOBJS) \
 	$(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d2_test: examples/cufinufft2d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft2d2_test: test/cufinufft2d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d2many_test: examples/cufinufft2d2many_test.o $(CUFINUFFTOBJS) \
+cufinufft2d2many_test: test/cufinufft2d2many_test.o $(CUFINUFFTOBJS) \
 	$(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
-spread3d: examples/spread_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+spread3d: test/spread_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-interp3d: examples/interp_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+interp3d: test/interp_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 spreadinterp3d_test: test/spreadinterp3d_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-cufinufft3d1_test: examples/cufinufft3d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft3d1_test: test/cufinufft3d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
-cufinufft3d2_test: examples/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
@@ -79,13 +81,13 @@ all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	interp3d cufinufft3d1_test cufinufft3d2_test spreadinterp3d_test
 clean:
 	rm -f *.o
-	rm -f examples/*.o
+	rm -f test/*.o
 	rm -f src/*.o
 	rm -f src/2d/*.o
 	rm -f src/3d/*.o
 	rm -f finufft/*.o
 	rm -f finufft/contrib/*.o
-	rm -f test/*.o
+	rm -f examples/*.o
 	rm -f spread2d
 	rm -f accuracy
 	rm -f interp2d
