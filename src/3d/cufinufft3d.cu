@@ -97,7 +97,6 @@ int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-
 	int blksize, ier;
 	CPX* h_fkstart;
 	CPX* h_cstart;

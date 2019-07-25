@@ -89,10 +89,10 @@ int main(int argc, char* argv[])
 #endif
 
 	cufinufft_plan dplan;
-	ier=cufinufft_default_opts(dplan.opts);
+	int dim = 2;
+	ier=cufinufft_default_opts(type1, dim, dplan.opts);
 	dplan.opts.gpu_method=method;
 
-	int dim = 2;
 	int nmodes[3];
 	nmodes[0] = N1;
 	nmodes[1] = N2;

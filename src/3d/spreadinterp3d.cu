@@ -1146,7 +1146,6 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		}
 	}
 	__syncthreads();
-
 	FLT ker1[MAX_NSPREAD];
 	FLT ker2[MAX_NSPREAD];
 	FLT ker3[MAX_NSPREAD];
@@ -1163,6 +1162,7 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
 		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
 		zstart = ceil(z_rescaled - ns/2.0)-zoffset;
+
 		xend   = floor(x_rescaled + ns/2.0)-xoffset;
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;

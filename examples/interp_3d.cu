@@ -95,8 +95,9 @@ int main(int argc, char* argv[])
 		fw[i].imag() = 0.0;
 	}
 
+	int dim=3;
 	cufinufft_plan dplan;
-	ier = cufinufft_default_opts(dplan.opts);
+	ier = cufinufft_default_opts(type2, dim, dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
@@ -108,8 +109,8 @@ int main(int argc, char* argv[])
 	if(dplan.opts.gpu_method == 2)
 	{
 		dplan.opts.gpu_binsizex=16;
-		dplan.opts.gpu_binsizey=8;
-		dplan.opts.gpu_binsizez=4;
+		dplan.opts.gpu_binsizey=16;
+		dplan.opts.gpu_binsizez=2;
 		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	}
 	if(dplan.opts.gpu_method == 1)

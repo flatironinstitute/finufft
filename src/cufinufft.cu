@@ -261,7 +261,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 		break;
 		case 2:
 		{
-			if(d_plan->opts.gpu_method==5){
+			if(d_plan->opts.gpu_method==2){
 				ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread2d_subprob_prop, method(%d)\n", 
@@ -269,7 +269,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 					return 1;
 				}
 			}
-			if(d_plan->opts.gpu_method==6){
+			if(d_plan->opts.gpu_method==3){
 				int ier = cuspread2d_paul_prop(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread2d_paul_prop, method(%d)\n", 
@@ -281,8 +281,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 		break;
 		case 3:
 		{
-			if(d_plan->opts.gpu_method==1 || d_plan->opts.gpu_method==2 || 
-				d_plan->opts.gpu_method==3){
+			if(d_plan->opts.gpu_method==4){
 				int ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
@@ -290,7 +289,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 					return 0;
 				}
 			}
-			if(d_plan->opts.gpu_method==4){
+			if(d_plan->opts.gpu_method==1){
 				ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
@@ -298,7 +297,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 					return 0;
 				}
 			}
-			if(d_plan->opts.gpu_method==5){
+			if(d_plan->opts.gpu_method==2){
 				int ier = cuspread3d_subprob_prop(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread3d_subprob_prop, method(%d)\n", 
@@ -389,20 +388,71 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cufinufft_default_opts(nufft_opts &opts)
+int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
 {
+	int ier;
 	/* following options are for gpu */
-	opts.gpu_nstreams = 16;
-	opts.gpu_method = 5;
-	opts.gpu_binsizex = 32;
-	opts.gpu_binsizey = 32;
-	opts.gpu_binsizez = 1;
+	opts.gpu_nstreams = 0;
+	opts.gpu_kerevalmeth = 1; // using Horner ppval
+	opts.gpu_sort = 1; // access nupts in an ordered way for nupts driven method
+
+	opts.gpu_maxsubprobsize = 1024;
 	opts.gpu_obinsizex = 8;
 	opts.gpu_obinsizey = 8;
 	opts.gpu_obinsizez = 8;
-	opts.gpu_kerevalmeth = 1;
-	opts.gpu_maxsubprobsize = 1000;
-	opts.gpu_sort = 1;
+
+	opts.gpu_binsizex = 8;
+	opts.gpu_binsizey = 8;
+	opts.gpu_binsizez = 2;
+
+	switch(dim)
+	{
+		case 1:
+		{
+			cerr<<"Not Implemented yet"<<endl;
+			ier = 1;
+			return ier;
+		}
+		case 2:
+		{
+			if(type == type1){
+				opts.gpu_method = 2;
+				opts.gpu_binsizex = 32;
+				opts.gpu_binsizey = 32;
+				opts.gpu_binsizez = 1;
+			}
+			if(type == type2){
+				opts.gpu_method = 1;
+			}
+			if(type == type3){
+				cerr<<"Not Implemented yet"<<endl;
+				ier = 1;
+				return ier;
+			}
+		}
+		break;
+		case 3:
+		{
+			if(type == type1){
+				opts.gpu_method = 2;
+				opts.gpu_binsizex = 16;
+				opts.gpu_binsizey = 16;
+				opts.gpu_binsizez = 2;
+			}
+			if(type == type2){
+				opts.gpu_method = 1;
+				opts.gpu_binsizex = 16;
+				opts.gpu_binsizey = 16;
+				opts.gpu_binsizez = 2;
+			}
+			if(type == type3){
+				cerr<<"Not Implemented yet"<<endl;
+				ier = 1;
+				return ier;
+			}
+		}
+		break;
+	}
 
 	opts.upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
 

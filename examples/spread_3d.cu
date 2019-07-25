@@ -151,8 +151,9 @@ int main(int argc, char* argv[])
 		"] uniform points to "<<M<<"nupts"<<endl;
 #endif
 
+	int dim=3;
 	cufinufft_plan dplan;
-	ier = cufinufft_default_opts(dplan.opts);
+	ier = cufinufft_default_opts(type1, dim, dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;

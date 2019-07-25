@@ -23,6 +23,8 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 	// No extra memory is needed in nuptsdriven method (case 1)
 	switch(d_plan->opts.gpu_method)
 	{
+		case 1:
+			break;
 		case 2:
 			{
 				int numbins[2];
@@ -56,6 +58,8 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 						(numbins[0]*numbins[1]+1)*sizeof(int)));
 			}
 			break;
+		default:
+			cerr << "err: invalid method " << endl;
 	}
 
 	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*
@@ -84,6 +88,8 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
 	switch(d_plan->opts.gpu_method)
 	{
+		case 1:
+			break;
 		case 2:
 		case 3:
 			{
@@ -91,6 +97,8 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
 			}
 			break;
+		default: 
+			cerr<<"err: invalid method" << endl;
 	}
 	return 0;
 }
@@ -224,6 +232,8 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 					*numobins[1]*numobins[2]+1)*sizeof(int)));
 			}
 			break;
+		default:
+			cerr << "err: invalid method" << endl;
 	}
 	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*nf3*
 		sizeof(CUCPX)));
@@ -234,11 +244,13 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*mu*
 		sizeof(CUCPX)));
 
+#if 0
 	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->opts.gpu_nstreams*
 		sizeof(cudaStream_t));
 	for(int i=0; i<d_plan->opts.gpu_nstreams; i++)
 		checkCudaErrors(cudaStreamCreate(&streams[i]));
 	d_plan->streams = streams;
+#endif
 	return 0;
 }
 
@@ -269,6 +281,8 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 				checkCudaErrors(cudaMalloc(&d_plan->sortidx,M*sizeof(int)));
 			}
 			break;
+		default:
+			cerr << "err: invalid method" << endl;
 	}
 	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));

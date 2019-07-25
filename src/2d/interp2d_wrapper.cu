@@ -166,6 +166,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	blocks.y = 1;
 
 	if(d_plan->opts.gpu_kerevalmeth){
+#if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->opts.gpu_nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
@@ -173,7 +174,15 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 				streams[t%nstreams]>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
 				ns, nf1, nf2, sigma);
 		}
+#else 
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Interp_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
+				0>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
+				ns, nf1, nf2, sigma);
+		}
+#endif
 	}else{
+#if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->opts.gpu_nstreams;
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
@@ -181,6 +190,13 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 				>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, 
 				es_beta);
 		}
+#else
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Interp_2d_NUptsdriven<<<blocks, threadsPerBlock, 0, 0
+				>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, 
+				es_beta);
+		}
+#endif
 	}
 #ifdef SPREADTIME
 	float milliseconds = 0;

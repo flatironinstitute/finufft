@@ -228,7 +228,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 			cudaMemcpyDeviceToHost));
 		checkCudaErrors(cudaMemcpy(h_kz,d_kz,M*sizeof(FLT),
 			cudaMemcpyDeviceToHost));
-		for(int i=0; i<M; i++){
+		for(int i=0; i<10; i++){
 			cout<<"[debug ] ";
 			cout <<"("<<setw(3)<<h_kx[i]<<","<<setw(3)<<h_ky[i]<<","<<setw(3)
 				<<h_kz[i]<<")"<<endl;
@@ -342,7 +342,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 		h_idxnupts = (int*)malloc(M*sizeof(int));
 		checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,M*sizeof(int),
 					cudaMemcpyDeviceToHost));
-		for (int i=0; i<M; i++){
+		for (int i=0; i<10; i++){
 			cout <<"[debug ] idx="<< h_idxnupts[i]<<endl;
 		}
 		free(h_idxnupts);
@@ -916,7 +916,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	checkCudaErrors(cudaMemcpy(h_kx,d_kx,M*sizeof(FLT),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMemcpy(h_ky,d_ky,M*sizeof(FLT),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMemcpy(h_kz,d_kz,M*sizeof(FLT),cudaMemcpyDeviceToHost));
-	for(int i=500; i<M; i++){
+	for(int i=M-10; i<M; i++){
 		cout<<"[debug ] ";
 		cout <<"("<<setw(3)<<h_kx[i]<<","<<setw(3)<<h_ky[i]<<","<<setw(3)<<h_kz[i]
 			<<")"<<endl;
@@ -972,7 +972,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 
 	checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
 		cudaMemcpyDeviceToHost));
-	for(int i=0; i<M; i++){
+	for(int i=0; i<10; i++){
 		cout<<"[debug ] ";
 		cout <<"point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
 	}
@@ -1023,7 +1023,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	h_idxnupts = (int*)malloc(M*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,M*sizeof(int),
 				cudaMemcpyDeviceToHost));
-	for (int i=0; i<M; i++){
+	for (int i=0; i<4; i++){
 		cout <<"[debug ] idx="<< h_idxnupts[i]<<endl;
 	}
 	free(h_idxnupts);
@@ -1107,7 +1107,8 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	h_subprob_to_bin = (int*) malloc((totalnumsubprob)*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_subprob_to_bin,d_subprob_to_bin,
 				(totalnumsubprob)*sizeof(int),cudaMemcpyDeviceToHost));
-	for(int j=0; j<totalnumsubprob; j++){
+	cout << totalnumsubprob << endl;
+	for(int j=0; j<10; j++){
 		cout<<"[debug ] ";
 		cout <<"nsub["<<j<<"] = "<<setw(2)<<h_subprob_to_bin[j];
 		cout<<endl;

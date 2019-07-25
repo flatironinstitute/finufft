@@ -56,15 +56,19 @@ int main(int argc, char* argv[])
 
 	int ier;
 
+	int dim=2;
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_plan dplan;
-	ier = cufinufft_default_opts(dplan.opts);
+	ier = cufinufft_default_opts(type1, dim, dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
 	dplan.opts.gpu_method=method;
 	dplan.opts.upsampfac=upsampfac;
+	dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
+	dplan.opts.gpu_kerevalmeth=kerevalmeth;
+
 	cout<<scientific<<setprecision(3);
 
 
@@ -75,11 +79,6 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
-	dplan.opts.gpu_kerevalmeth=kerevalmeth;
-	if(method == 6)
-		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
-	if(method == 5)
-		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	switch(nupts_distribute){
 		// Making data
 		case 1: //uniform
@@ -202,17 +201,6 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Spreading "<<M<<" pts to ["<<nf1<<"x"<<nf2<<"] uniform grids"
 		<<endl;
 #endif
-	if(dplan.opts.gpu_method==2)
-	{
-		dplan.opts.gpu_binsizex=32;
-		dplan.opts.gpu_binsizey=32;
-	}
-
-	if(dplan.opts.gpu_method==3)
-	{
-		dplan.opts.gpu_binsizex=32;
-		dplan.opts.gpu_binsizey=32;
-	}
 	timer.restart();
 	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, tol, &dplan);
 	if(ier != 0 ){

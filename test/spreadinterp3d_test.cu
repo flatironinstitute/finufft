@@ -47,11 +47,6 @@ int main(int argc, char* argv[])
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
-	ier = cufinufft_default_opts(dplan.opts);
-	if(ier != 0 ){
-		cout<<"error: cufinufft_default_opts"<<endl;
-		return 0;
-	}
 	cout<<scientific<<setprecision(6);
 
 
@@ -141,7 +136,11 @@ int main(int argc, char* argv[])
 	/* -------------------------------------- */
 	// Method 5: Subprob                     //
 	/* -------------------------------------- */
-	timer.restart();
+	ier = cufinufft_default_opts(type1, 3, dplan.opts);
+	if(ier != 0 ){
+		cout<<"error: cufinufft_default_opts"<<endl;
+		return 0;
+	}
 	dplan.opts.upsampfac=upsampfac;
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
@@ -155,6 +154,7 @@ int main(int argc, char* argv[])
 			dplan.opts.gpu_obinsizex=8;
 			dplan.opts.gpu_obinsizey=8;
 			dplan.opts.gpu_obinsizez=8;
+			dplan.opts.gpu_maxsubprobsize=1024;
 		}
 		break;
 		case 2:
@@ -162,6 +162,7 @@ int main(int argc, char* argv[])
 			dplan.opts.gpu_binsizex=8;
 			dplan.opts.gpu_binsizey=8;
 			dplan.opts.gpu_binsizez=2;
+			dplan.opts.gpu_maxsubprobsize=1024;
 		}
 		break;
 		case 1:
@@ -172,6 +173,7 @@ int main(int argc, char* argv[])
 		}
 		break;
 	}
+	timer.restart();
 	ier = cufinufft_spread3d(N1, N2, N3, nf1, nf2, nf3, fws, M, x, y, z, c, tol, 
 		&dplan);
 	FLT tsubprob=timer.elapsedsec();
@@ -266,9 +268,44 @@ int main(int argc, char* argv[])
 #endif
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
-
+	ier = cufinufft_default_opts(type2, 3, dplan.opts);
+	if(ier != 0 ){
+		cout<<"error: cufinufft_default_opts"<<endl;
+		return 0;
+	}
+	dplan.opts.upsampfac=upsampfac;
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
+	dplan.opts.gpu_sort=1;
+	switch(dplan.opts.gpu_method){
+		case 4:
+		{
+			dplan.opts.gpu_binsizex=4;
+			dplan.opts.gpu_binsizey=4;
+			dplan.opts.gpu_binsizez=4;
+			dplan.opts.gpu_obinsizex=8;
+			dplan.opts.gpu_obinsizey=8;
+			dplan.opts.gpu_obinsizez=8;
+			dplan.opts.gpu_maxsubprobsize=1024;
+		}
+		break;
+		case 2:
+		{
+			dplan.opts.gpu_binsizex=8;
+			dplan.opts.gpu_binsizey=8;
+			dplan.opts.gpu_binsizez=2;
+			dplan.opts.gpu_maxsubprobsize=1024;
+		}
+		break;
+		case 1:
+		{
+			dplan.opts.gpu_binsizex=8;
+			dplan.opts.gpu_binsizey=8;
+			dplan.opts.gpu_binsizez=2;
+		}
+		break;
+	}
+
 	CPX *fw;
 	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*nf3*sizeof(CPX));

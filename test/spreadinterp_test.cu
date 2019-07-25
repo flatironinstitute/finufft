@@ -43,15 +43,10 @@ int main(int argc, char* argv[])
 
 
 	int ier;
+	int dim=2;
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_plan dplan;
 	FLT upsampfac=2.0;
-	ier = cufinufft_default_opts(dplan.opts);
-	dplan.opts.upsampfac=upsampfac;
-	if(ier != 0 ){
-		cout<<"error: cufinufft_default_opts"<<endl;
-		return 0;
-	}
 	cout<<scientific<<setprecision(3);
 
 
@@ -136,7 +131,12 @@ int main(int argc, char* argv[])
 	/* -------------------------------------- */
 	// Method 5: Subprob                     //
 	/* -------------------------------------- */
-	timer.restart();
+	ier = cufinufft_default_opts(type1, dim, dplan.opts);
+	if(ier != 0 ){
+		cout<<"error: cufinufft_default_opts"<<endl;
+		return 0;
+	}
+	dplan.opts.upsampfac=upsampfac;
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	switch(method){
@@ -147,6 +147,7 @@ int main(int argc, char* argv[])
 			dplan.opts.gpu_binsizey=32;
 		}
 	}
+	timer.restart();
 	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, tol, &dplan);
 	FLT tsubprob=timer.elapsedsec();
 	if(ier != 0 ){
@@ -205,8 +206,19 @@ int main(int argc, char* argv[])
 #if 1
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
+	ier = cufinufft_default_opts(type2, dim, dplan.opts);
+	dplan.opts.upsampfac=upsampfac;
+	dplan.opts.gpu_method=method;
+	dplan.opts.gpu_kerevalmeth=1;
+	switch(method){
+		case 2:
+		case 3:
+		{
+			dplan.opts.gpu_binsizex=32;
+			dplan.opts.gpu_binsizey=32;
+		}
+	}
 
-	dplan.spopts.spread_direction=2;
 	CPX *fw;
 	CPX *cfinufft, *cs;
 	cudaMallocHost(&fw, nf1*nf2*sizeof(CPX));

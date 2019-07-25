@@ -50,7 +50,8 @@ int main(int argc, char* argv[])
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_plan dplan;
 
-	ier = cufinufft_default_opts(dplan.opts);
+	int dim=2;
+	ier = cufinufft_default_opts(type2, dim, dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
@@ -113,18 +114,6 @@ int main(int argc, char* argv[])
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
 			dplan.opts.gpu_method,nf1*nf2,M,t,nf1*nf2/t);
 #if 0
-	switch(method)
-	{
-		case 4:
-			d_plan->opts.gpu_binsizex=32;
-			d_plan->opts.gpu_binsizey=32;
-		case 5:
-			d_plan->opts.gpu_binsizex=32;
-			d_plan->opts.gpu_binsizey=32;
-		default:
-			d_plan->opts.gpu_binsizex=nf1;
-			d_plan->opts.gpu_binsizey=nf2;		
-	}
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<M; j++){
 		printf(" (%2.3g,%2.3g)",c[j].real(),c[j].imag() );
