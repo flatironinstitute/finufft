@@ -9,7 +9,7 @@ This is an implementation of 2,3 dimenstion type 1,2 non-uniform FFT in CUDA bas
  - Get the CUB library - ```git clone https://github.com/NVlabs/cub.git```
  - Modify make.inc - set the ```INC``` with ```-I$(CUDA_DIR)/samples/common/inc/ -I$(CUDA_DIR)/include/ -I$(CUB_DIR)```
  - Compile - ```make all```
- - Run an example - ``` ./cufinufft2d1_test 2 128 128 10 1e-6```
+ - Run an test code - ``` ./cufinufft2d1_test 2 128 128 10 1e-6```
  
 ### Interface
 cuFINUFFT API contains 5 stages:
@@ -23,7 +23,7 @@ cuFINUFFT API contains 5 stages:
  - SINGLE - single-precision
  - TIME - timing for each stage
  - SPREADTIME - more detailed timing from spreading and interpolation
- - DEBUG - debug mode outputs all the middle stages 
+ - DEBUG - debug mode outputs all the middle stages' result
  
 ### Other
  - If you're running the code on GPU with Compute Capability less than 5.0 (ex. Kepler, Fermi), change the ```-arch=sm_50``` flag to lower number. (See http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/) 
