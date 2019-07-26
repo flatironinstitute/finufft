@@ -1,5 +1,5 @@
 - cufinufft3d.cu
-  This file contains the exection functions for 3d type1,2 that are called in ../cufinufft.cu
+  This file contains the execution functions for 3d type1,2 that are called in ../cufinufft.cu
 
 - spreadinterp3d.cu
   This file contains all the GPU kernels for 3d spreading, interpolation.
