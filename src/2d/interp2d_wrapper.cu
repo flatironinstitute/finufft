@@ -14,9 +14,15 @@
 
 using namespace std;
 
-// This function includes device memory allocation, transfer, free
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
 	FLT *h_kx, FLT *h_ky, CPX *h_c, FLT eps, cufinufft_plan* d_plan)
+/*
+	This c function is written for only doing 2D interpolation. It includes 
+	allocating, transfering and freeing the memories on gpu. See 
+	test/interp_2d.cu for usage.
+
+	Melody Shih 07/25/19
+*/
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -92,6 +98,15 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 }
 
 int cuinterp2d(cufinufft_plan* d_plan)
+/*
+	A wrapper for different interpolation methods. 
+
+	Methods available:
+	(1) Non-uniform points driven
+	(2) Subproblem
+
+	Melody Shih 07/25/19
+*/
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;

@@ -29,25 +29,6 @@ void Deconvolve_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk,
 	}
 }
 
-/* Kernel for copying fk to fw with same amplication */
-__global__
-void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk, 
-	FLT *fwkerhalf1, FLT *fwkerhalf2)
-{
-	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt; i+=blockDim.x*gridDim.x){
-		int k1 = i % ms;
-		int k2 = i / ms;
-		int inidx = k1 + k2*ms;
-		int w1 = k1-ms/2 >= 0 ? k1-ms/2 : nf1+k1-ms/2;
-		int w2 = k2-mt/2 >= 0 ? k2-mt/2 : nf2+k2-mt/2;
-		int outidx = w1 + w2*nf1;
-
-		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
-		fw[outidx].x = fk[inidx].x/kervalue;
-		fw[outidx].y = fk[inidx].y/kervalue;
-	}
-}
-
 __global__
 void Deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw, 
 	CUCPX *fk, FLT *fwkerhalf1, FLT *fwkerhalf2, FLT *fwkerhalf3)
@@ -69,6 +50,25 @@ void Deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 		fk[outidx].y = fw[inidx].y/kervalue;
 		//fk[outidx].x = kervalue;
 		//fk[outidx].y = kervalue;
+	}
+}
+
+/* Kernel for copying fk to fw with same amplication */
+__global__
+void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk, 
+	FLT *fwkerhalf1, FLT *fwkerhalf2)
+{
+	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt; i+=blockDim.x*gridDim.x){
+		int k1 = i % ms;
+		int k2 = i / ms;
+		int inidx = k1 + k2*ms;
+		int w1 = k1-ms/2 >= 0 ? k1-ms/2 : nf1+k1-ms/2;
+		int w2 = k2-mt/2 >= 0 ? k2-mt/2 : nf2+k2-mt/2;
+		int outidx = w1 + w2*nf1;
+
+		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
+		fw[outidx].x = fk[inidx].x/kervalue;
+		fw[outidx].y = fk[inidx].y/kervalue;
 	}
 }
 
@@ -95,8 +95,13 @@ void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 	}
 }
 
-/* CPU wrapper for deconvolution & amplication */
+
 int cudeconvolve2d(cufinufft_plan *d_plan)
+/* 
+	CPU wrapper for deconvolution & amplication in 2D.
+
+	Melody Shih 07/25/19
+*/
 {
 	int ms=d_plan->ms;
 	int mt=d_plan->mt;
@@ -137,6 +142,11 @@ int cudeconvolve2d(cufinufft_plan *d_plan)
 }
 
 int cudeconvolve3d(cufinufft_plan *d_plan)
+/* 
+	CPU wrapper for deconvolution & amplication in 3D.
+
+	Melody Shih 07/25/19
+*/
 {
 	int ms=d_plan->ms;
 	int mt=d_plan->mt;

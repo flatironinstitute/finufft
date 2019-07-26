@@ -15,6 +15,18 @@
 using namespace std;
 
 int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
+/*  
+	2D Type-1 NUFFT
+
+	This function is called in "exec" stage (See ../cufinufft.cu).
+	It includes (copied from doc in finufft library)
+		Step 1: spread data to oversampled regular mesh using kernel
+		Step 2: compute FFT on uniform mesh
+		Step 3: deconvolve by division of each Fourier mode independently by the
+		        Fourier series coefficient of the kernel.
+
+	Melody Shih 07/25/19		
+*/
 {
 	assert(d_plan->spopts.spread_direction == 1);
 	assert(d_plan->spopts.pirange == 0);
@@ -92,6 +104,18 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 }
 
 int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
+/*  
+	2D Type-2 NUFFT
+
+	This function is called in "exec" stage (See ../cufinufft.cu).
+	It includes (copied from doc in finufft library)
+		Step 1: deconvolve (amplify) each Fourier mode, dividing by kernel 
+		        Fourier coeff
+		Step 2: compute FFT on uniform mesh
+		Step 3: interpolate data to regular mesh
+
+	Melody Shih 07/25/19		
+*/
 {
 	assert(d_plan->spopts.spread_direction == 2);
 

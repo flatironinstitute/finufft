@@ -14,10 +14,16 @@
 
 using namespace std;
 
-// This is a function only doing spread includes device memory allocation, transfer, free
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
 	const FLT *h_kx, const FLT *h_ky, const CPX *h_c, FLT eps, 
 	cufinufft_plan* d_plan)
+/*
+	This c function is written for only doing 2D spreading. It includes 
+	allocating, transfering, and freeing the memories on gpu. See 
+	test/spread_2d.cu for usage.
+
+	Melody Shih 07/25/19
+*/
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -104,8 +110,17 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	return ier;
 }
 
-// a wrapper of different methods of spreader
 int cuspread2d(cufinufft_plan* d_plan)
+/*
+	A wrapper for different spreading methods. 
+
+	Methods available:
+	(1) Non-uniform points driven
+	(2) Subproblem
+	(3) Paul
+
+	Melody Shih 07/25/19
+*/
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
@@ -204,10 +219,12 @@ int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 #endif
 	return 0;
 }
-// this function determines the properties for spreading that are independent
-// of the strength of the nodes,  only relates to the locations of the nodes, 
-// which only needs to be done once
 int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
+/* 
+	This function determines the properties for spreading that are independent
+	of the strength of the nodes,  only relates to the locations of the nodes, 
+	which only needs to be done once.
+*/
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -446,7 +463,7 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	dim3 threadsPerBlock;
 	dim3 blocks;
 
-	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
+	int ns=d_plan->spopts.nspread;// psi's support in terms of number of cells
 	FLT es_c=d_plan->spopts.ES_c;
 	FLT es_beta=d_plan->spopts.ES_beta;
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;

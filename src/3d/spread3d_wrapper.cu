@@ -31,6 +31,13 @@ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	CPX* h_fw, int M, const FLT *h_kx, const FLT *h_ky, const FLT* h_kz,
 	const CPX *h_c, FLT eps, cufinufft_plan* d_plan)
+/*
+	This c function is written for only doing 3D spreading. It includes 
+	allocating, transfering, and freeing the memories on gpu. See 
+	test/spread_3d.cu for usage.
+
+	Melody Shih 07/25/19
+*/
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -132,8 +139,17 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	return ier;
 }
 
-// a wrapper of different methods of spreader
 int cuspread3d(cufinufft_plan* d_plan)
+/*
+	A wrapper for different spreading methods. 
+
+	Methods available:
+	(1) Non-uniform points driven
+	(2) Subproblem
+	(4) Block gather
+
+	Melody Shih 07/25/19
+*/
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;

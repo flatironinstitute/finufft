@@ -2,7 +2,6 @@
 #include <iostream>
 #include <iomanip>
 
-// try another library cub
 #include <cub/device/device_radix_sort.cuh>
 #include <cub/device/device_scan.cuh>
 
@@ -12,6 +11,11 @@
 using namespace std;
 
 int allocgpumem2d_plan(cufinufft_plan *d_plan)
+/* 
+	CPU wrapper for gpu memory allocation in "plan" stage.
+
+	Melody Shih 07/25/19
+*/
 {
 	int ms = d_plan->ms;
 	int mt = d_plan->mt;
@@ -79,6 +83,11 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 }
 
 int allocgpumem2d_nupts(cufinufft_plan *d_plan)
+/* 
+	CPU wrapper for gpu memory allocation in "setNUpts" stage.
+
+	Melody Shih 07/25/19
+*/
 {
 	int M = d_plan->M;
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
@@ -104,6 +113,11 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 }
 
 void freegpumemory2d(cufinufft_plan *d_plan)
+/* 
+	CPU wrapper for freeing gpu memory.
+
+	Melody Shih 07/25/19
+*/
 {
 	cudaFree(d_plan->fw);
 	cudaFree(d_plan->kx);
@@ -158,6 +172,11 @@ void freegpumemory1d(cufinufft_plan *d_plan)
 }
 
 int allocgpumem3d_plan(cufinufft_plan *d_plan)
+/* 
+	CPU wrapper for gpu memory allocation in "plan" stage.
+
+	Melody Shih 07/25/19
+*/
 {
 	int ms = d_plan->ms;
 	int mt = d_plan->mt;
@@ -255,6 +274,11 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 }
 
 int allocgpumem3d_nupts(cufinufft_plan *d_plan)
+/* 
+	CPU wrapper for gpu memory allocation in "setNUpts" stage.
+
+	Melody Shih 07/25/19
+*/
 {
 	int M = d_plan->M;
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
@@ -291,7 +315,12 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 
 	return 0;
 }
-void freegpumemory3d(cufinufft_plan *d_plan)
+void freegpumemory3d(cufinufft_plan *d_plan) 
+/* 
+	CPU wrapper for freeing gpu memory.
+
+	Melody Shih 07/25/19
+*/
 {
 	cudaFree(d_plan->fw);
 	cudaFree(d_plan->kx);

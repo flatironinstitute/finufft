@@ -14,10 +14,16 @@
 
 using namespace std;
 
-// This function includes device memory allocation, transfer, free
 int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, 
 	CPX* h_fw, int M, FLT *h_kx, FLT *h_ky, FLT *h_kz, CPX *h_c, FLT eps, 
 	cufinufft_plan* d_plan)
+/*
+	This c function is written for only doing 3D interpolation. It includes 
+	allocating, transfering and freeing the memories on gpu. See 
+	test/interp_3d.cu for usage.
+
+	Melody Shih 07/25/19
+*/
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -101,8 +107,16 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	return ier;
 }
 
-// a wrapper of different methods of spreader
 int cuinterp3d(cufinufft_plan* d_plan)
+/*
+	A wrapper for different interpolation methods. 
+
+	Methods available:
+	(1) Non-uniform points driven
+	(2) Subproblem
+
+	Melody Shih 07/25/19
+*/
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;

@@ -15,6 +15,18 @@
 using namespace std;
 
 int cufinufft3d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
+/*  
+	3D Type-1 NUFFT
+
+	This function is called in "exec" stage (See ../cufinufft.cu).
+	It includes (copied from doc in finufft library)
+		Step 1: spread data to oversampled regular mesh using kernel
+		Step 2: compute FFT on uniform mesh
+		Step 3: deconvolve by division of each Fourier mode independently by the
+		        Fourier series coefficient of the kernel.
+
+	Melody Shih 07/25/19		
+*/
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -92,6 +104,18 @@ int cufinufft3d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 }
 
 int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
+/*  
+	3D Type-2 NUFFT
+
+	This function is called in "exec" stage (See ../cufinufft.cu).
+	It includes (copied from doc in finufft library)
+		Step 1: deconvolve (amplify) each Fourier mode, dividing by kernel 
+		        Fourier coeff
+		Step 2: compute FFT on uniform mesh
+		Step 3: interpolate data to regular mesh
+
+	Melody Shih 07/25/19		
+*/
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);

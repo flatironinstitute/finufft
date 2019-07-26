@@ -16,6 +16,35 @@ using namespace std;
 
 int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag, 
 	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan)
+/*
+	"plan" stage: 
+	
+	In this stage, we
+		(1) set up the spread option, d_plan.spopts.
+		(2) calculate the correction factor on cpu, copy the value from cpu to
+		    gpu
+		(3) allocate gpu arrays with size determined by number of fourier modes 
+		    and method related options that had been set in d_plan.opts
+		(4) call cufftPlanMany and save the cufft plan inside cufinufft plan
+		
+	Input:
+	type    type of the transform, can be type1, type2, type3 (finufft_type is 
+	        defined in cufinufft.h)
+	dim     dimension of the transform
+	nmodes  a size 3 integer array, nmodes[d] is the number of modes in d 
+	        dimension
+	iflag   if >=0, uses + sign in exponential, otherwise - sign (int)
+    ntransf number of transforms performed in exec stage
+	tol     precision requested (>1e-16 for double precision, >1e-8 for single
+	        precision)
+	
+	Input/Output:
+	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft.h) 
+			d_plan.nufft_opts is used for plan stage. Variables and arrays 
+	        inside the plan are set and allocated
+	
+	Melody Shih 07/25/19
+*/
 {
 
 	cudaEvent_t start, stop;
@@ -157,6 +186,32 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 
 int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
 	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan)
+/*
+	"setNUpts" stage:
+	
+	In this stage, we
+		(1) set the number and locations of nonuniform points
+		(2) allocate gpu arrays with size determined by number of nupts
+		(3) rescale x,y,z coordinates for spread/interp (on gpu, rescaled 
+		    coordinates are stored)
+		(4) determine the spread/interp properties that only relates to the 
+		    locations of nupts (see 2d/spread2d_wrapper.cu, 
+		    3d/spread3d_wrapper.cu for what have been done in 
+		    function spread<dim>d_<method>_prop() )
+	
+	Input: 
+	M                 number of nonuniform points
+	h_kx, h_ky, h_kz  cpu array of x,y,z locations of sources (each a size M 
+	                  FLT array) in [-pi, pi). set h_kz to "NULL" if dimension 
+	                  is less than 3. same for h_ky for dimension 1.
+	N, h_s, h_t, h_u  not used for type1, type2. set to 0 and NULL.
+
+	Input/Output:
+	d_plan            pointer to a cufinufft_plan. Variables and arrays inside 
+	                  the plan are set and allocated.
+
+	Melody Shih 07/25/19
+*/
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
@@ -313,6 +368,24 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 }
 
 int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
+/*
+	"exec" stage:
+	
+	The actual transformation is done in this stage. Type and dimension of the 
+	transformantion are defined in d_plan in previous stages. 
+
+	Input/Output:
+	h_c   a size d_plan->M CPX array on cpu (input for Type 1; output for Type 
+	      2)
+	h_fk  a size d_plan->ms*d_plan->mt*d_plan->mu CPX array on cpu ((input for 
+	      Type 2; output for Type 1)
+
+	Notes:
+	For now, we assume both h_c, h_fk arrays are on cpu so this stage includes
+    copying the arrays from/to cpu to/from gpu.
+
+	Melody Shih 07/25/19
+*/
 {
 	int ier;
 	finufft_type type=d_plan->type;
@@ -353,6 +426,14 @@ int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 }
 
 int cufinufft_destroy(cufinufft_plan *d_plan)
+/*
+	"destroy" stage:
+
+	In this stage, we
+		(1) free all the memories that have been allocated on gpu
+		(2) delete the cuFFT plan
+
+*/
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -389,6 +470,19 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 }
 
 int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
+/*
+	"default_opts" stage:
+	
+	In this stage, the default options in nufft_opts are set (see finufft.h for
+	available options). Options with prefix "gpu_" are used for gpu code. 
+
+	Notes:
+	Values set in this function for different type and dimensions are preferable 
+	based on experiments. User can experiement with different settings by 
+	replacing them after calling this function.
+
+	Melody Shih 07/25/19
+*/
 {
 	int ier;
 	/* following options are for gpu */
