@@ -6,7 +6,7 @@ This folder contains the main source files of the GPU implementations.
 
 - memtransfer.h
 - memtransfer_wrapper.cu
-  CPU wrapper of allocation and free GPU memories for different dimentions and methods.
+  CPU wrapper of allocation and free GPU memories for different dimensions and methods.
 
 - deconvolve.h
 - deconvolve_wrapper.cu
