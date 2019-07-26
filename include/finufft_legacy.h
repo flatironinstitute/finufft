@@ -1,7 +1,7 @@
 #ifndef FINUFFT_LEGACY_H
 #define FINUFFT_LEGACY_H
 
-#include <dataTypes.h>
+#include <dataTypes_legacy.h>
 #include <nufft_opts.h>
 
 

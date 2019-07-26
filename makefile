@@ -46,18 +46,18 @@ MWRAP=mwrap
 -include make.inc
 
 
- # choose the precision (affects library names, test precisions)... \
-ifeq ($(PREC),SINGLE) \
-CXXFLAGS += -DSINGLE \
-CFLAGS += -DSINGLE \
-# note that PRECSUFFIX is used to choose fftw lib name, and also our demo names \
-PRECSUFFIX=f \
-REQ_TOL = 1e-6 \
-CHECK_TOL = 2e-4 \
-else \
-PRECSUFFIX= \
-REQ_TOL = 1e-12 \
-CHECK_TOL = 1e-11 \
+ # choose the precision (affects library names, test precisions)... 
+ifeq ($(PREC),SINGLE) 
+CXXFLAGS += -DSINGLE 
+CFLAGS += -DSINGLE 
+# note that PRECSUFFIX is used to choose fftw lib name, and also our demo names 
+PRECSUFFIX=f
+REQ_TOL = 1e-6 
+CHECK_TOL = 2e-4 
+else 
+PRECSUFFIX= 
+REQ_TOL = 1e-12 
+CHECK_TOL = 1e-11 
 endif
 
 
@@ -155,7 +155,7 @@ usage:
 src/spreadinterp_tempinstant.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
 
 # build the library...
-lib: $(STATICLIB) $(DYNAMICLIB) # $(LEGLIB) $(OLDLIB)
+lib: $(STATICLIB) $(DYNAMICLIB)  $(LEGLIB) $(OLDLIB)
 
 ifeq ($(OMP),OFF)
 	echo "$(STATICLIB) and $(DYNAMICLIB) and $(LEGLIB)  and $(OLDLIB) built, single-thread versions"
@@ -195,7 +195,7 @@ $(EXC): $(EXC).o $(LEGLIB)
 
 # validation tests... (most link to .o allowing testing pieces separately)
 
-test: $(LEG_STATICLIB)  test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test  test/finufft1dmany_test test/finufftGuru_test test/dumbInputsGuru test/finufft1d_basicpassfail
+test: $(LEG_STATICLIB) test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test  test/finufft1dmany_test test/finufftGuru_test test/dumbInputsGuru test/finufft1d_basicpassfail
 	(cd test; \
 	./finufft1d_basicpassfail \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
@@ -205,7 +205,7 @@ test: $(LEG_STATICLIB)  test/testutils test/finufft1d_test test/finufft2d_test t
 test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(LEG_OBJS1)  $(OBJS)  $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(LEG_OBJS1)  $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
 
-test/testutils: test/testutils.cpp src/utils.o  $(HEADERS)
+#test/testutils: test/testutils.cpp src/utils.o  $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
 test/finufft1d_test: test/finufft1d_test.cpp  $(LEG_OBJS1) $(OLD_OBJS1) $(OBJS) $(HEADERS)
 	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(LEG_OBJS1) $(OLD_OBJS1) $(OBJS) $(LIBSFFT) -o test/finufft1d_test

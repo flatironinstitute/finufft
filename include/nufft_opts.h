@@ -1,8 +1,6 @@
 #ifndef OPTS_H
 #define OPTS_H
 
-#include <dataTypes.h>
-
 // ------------------- the user input options struct ------------------------
 typedef struct {      // Note: defaults in common/finufft_default_opts()
   int debug;          // 0: silent, 1: text basic timing output

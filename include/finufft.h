@@ -6,10 +6,11 @@
 #include <fftw_defs.h>
 #include <templates.h>
 #include <defs.h>
+#include <finufft_type.h>
 
 #ifndef ONCE_FTYPE
 #define ONCE_FTYPE
-enum finufft_type { type1, type2, type3};
+
 #endif
 
 typedef struct {
