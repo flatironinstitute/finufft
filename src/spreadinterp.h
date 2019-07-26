@@ -2,8 +2,6 @@
 #ifndef __SPREAD_H__
 #define __SPREAD_H__
 
-#include "../finufft/utils.h"
-#include "../finufft/spreadinterp.h"
 #include "cufinufft.h"
 
 //Kernels for 2D codes

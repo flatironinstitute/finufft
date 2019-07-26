@@ -2,7 +2,6 @@
 #include <iomanip>
 #include <math.h>
 #include <complex>
-#include <cuda_runtime.h>
 
 #include "../src/cufinufft.h"
 

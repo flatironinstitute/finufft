@@ -3,14 +3,12 @@
 #include <iomanip>
 #include <assert.h>
 
-// try another library cub
 #include <cub/device/device_radix_sort.cuh>
 #include <cub/device/device_scan.cuh>
 
 #include <cuComplex.h>
 #include "../spreadinterp.h"
 #include "../memtransfer.h"
-#include "../../finufft/common.h"
 
 using namespace std;
 

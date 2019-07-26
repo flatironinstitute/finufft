@@ -2,7 +2,6 @@
 #include <iostream>
 #include <iomanip>
 
-// try another library cub
 #include <cub/device/device_radix_sort.cuh>
 #include <cub/device/device_scan.cuh>
 
@@ -10,7 +9,6 @@
 #include "../spreadinterp.h"
 #include "../memtransfer.h"
 #include "../profile.h"
-#include "../../finufft/common.h"
 
 using namespace std;
 

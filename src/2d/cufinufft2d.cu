@@ -9,8 +9,6 @@
 #include "../memtransfer.h"
 #include "../deconvolve.h"
 #include "../cufinufft.h"
-#include "../../finufft/utils.h"
-#include "../../finufft/common.h"
 
 using namespace std;
 

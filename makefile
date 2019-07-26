@@ -81,7 +81,8 @@ example2d1: examples/example2d1.cpp $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d \
-	interp3d cufinufft3d1_test cufinufft3d2_test spreadinterp3d_test
+	interp3d cufinufft3d1_test cufinufft3d2_test spreadinterp3d_test \
+	example2d1
 clean:
 	rm -f *.o
 	rm -f test/*.o
@@ -105,3 +106,4 @@ clean:
 	rm -f cufinufft3d2_test
 	rm -f spreadinterp_test
 	rm -f spreadinterp3d_test
+	rm -f example2d1

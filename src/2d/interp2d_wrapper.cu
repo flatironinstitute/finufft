@@ -10,7 +10,6 @@
 #include "../spreadinterp.h"
 #include "../memtransfer.h"
 #include "../profile.h"
-#include "../../finufft/common.h"
 
 using namespace std;
 
