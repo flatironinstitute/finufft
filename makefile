@@ -17,7 +17,7 @@ FLINK=$(CLINK)
 # compile flags for GCC, baseline single-threaded, double precision case...
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
-CFLAGS   =  -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
+CFLAGS   =  -Wall -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
 CFLAGS   += -I include
 FFLAGS   = $(CFLAGS)
@@ -45,22 +45,25 @@ MWRAP=mwrap
 # (Please look in make.inc.* for ideas)
 -include make.inc
 
-# choose the precision (affects library names, test precisions)...
-ifeq ($(PREC),SINGLE)
-CXXFLAGS += -DSINGLE
-CFLAGS += -DSINGLE
-# note that PRECSUFFIX is used to choose fftw lib name, and also our demo names
-PRECSUFFIX=f
-REQ_TOL = 1e-6
-CHECK_TOL = 2e-4
-else
-PRECSUFFIX=
-REQ_TOL = 1e-12
-CHECK_TOL = 1e-11
+
+ # choose the precision (affects library names, test precisions)... \
+ifeq ($(PREC),SINGLE) \
+CXXFLAGS += -DSINGLE \
+CFLAGS += -DSINGLE \
+# note that PRECSUFFIX is used to choose fftw lib name, and also our demo names \
+PRECSUFFIX=f \
+REQ_TOL = 1e-6 \
+CHECK_TOL = 2e-4 \
+else \
+PRECSUFFIX= \
+REQ_TOL = 1e-12 \
+CHECK_TOL = 1e-11 \
 endif
+
+
 # build (since fftw has many) names of libs to link against...
-FFTW = $(FFTWNAME)$(PRECSUFFIX)
-LIBSFFT = -l$(FFTW) $(LIBS)
+#FFTW = # $(FFTWNAME) $(PRECSUFFIX)
+LIBSFFT = -lfftw3f -lfftw3 $(LIBS)
 
 # multi-threaded libs & flags (see defs above; note fftw3_threads slower)...
 ifneq ($(OMP),OFF)
@@ -70,7 +73,7 @@ FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
 LIBS += $(OMPLIBS)
-LIBSFFT += -l$(FFTW)_$(FFTWOMPSUFFIX) $(OMPLIBS)
+LIBSFFT += -lfftw3_$(FFTWOMPSUFFIX) -lfftw3f_$(FFTWOMPSUFFIX) $(OMPLIBS)
 endif
 
 # decide name of obj files and finufft library we're building...
@@ -82,10 +85,10 @@ OLDLIB = lib-static/$(LIBNAME)_old.a
 # ======================================================================
 
 # objects to compile: spreader...
-SOBJS = src/spreadinterp.o src/utils.o
+SOBJS = src/spreadinterp_tempinstant.o src/utils_tempinstant.o
 
 #common objects
-COBJS = src/common.o contrib/legendre_rule_fast.o
+COBJS = src/common_tempinstant.o contrib/legendre_rule_fast.o
 
 # LEGACY just the dimensions (1,2,3) separately...
 LEG_OBJS1 =  src/legacy/finufft1d.o src/legacy/invokeGuru.o  
@@ -101,12 +104,15 @@ OLD_OBJS3 = src/old/finufft3d_old.o src/direct/dirft3d.o
 
 OLD_OBJS = $(OLD_OBJS1) $(OLD_OBJS2) $(OLD_OBJS3)
 
-OBJS = src/finufft.o $(COBJS) $(SOBJS)
+OBJS = src/finufft_tempinstant.o $(COBJS) $(SOBJS)
 
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
-HEADERS = include/spreadinterp.h include/finufft_old.h include/finufft.h include/dirft.h include/common.h include/defs.h include/utils.h include/finufft_f.h
+HEADERS = include/spreadinterp_tempinstant.h include/finufft_tempinstant.h include/dirft.h include/common_tempinstant.h include/defs.h include/utils_tempinstant.h include/finufft_f.h
+
+#LEG_HEADERS =
+OLD_HEADERS = include/finufft_old.h
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python python3 clean objclean pyclean mexclean
 
@@ -146,10 +152,10 @@ usage:
 	$(FC) -c $(FFLAGS) $< -o $@
 
 # included auto-generated code dependency...
-src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
+src/spreadinterp_tempinstant.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
 
 # build the library...
-lib: $(STATICLIB) $(DYNAMICLIB) $(LEGLIB) $(OLDLIB)
+lib: $(STATICLIB) $(DYNAMICLIB) # $(LEGLIB) $(OLDLIB)
 
 ifeq ($(OMP),OFF)
 	echo "$(STATICLIB) and $(DYNAMICLIB) and $(LEGLIB)  and $(OLDLIB) built, single-thread versions"
@@ -163,7 +169,7 @@ $(DYNAMICLIB): $(OBJS) $(HEADERS)
 	$(CXX) -shared $(OMPFLAGS) $(OBJS)  -o $(DYNAMICLIB) $(LIBSFFT)
 $(LEGLIB): $(LEG_OBJS) $(OBJS)  $(HEADERS)
 	ar rcs $(LEGLIB) $(LEG_OBJS) $(OBJS)  
-$(OLDLIB): $(OLD_OBJS) $(HEADERS)
+$(OLDLIB): $(OLD_OBJS) $(OLD_HEADERS)
 	ar rcs $(OLDLIB) $(OLD_OBJS) 
 
 # here $(OMPFLAGS) and $(LIBSFFT) is needed for mac osx.

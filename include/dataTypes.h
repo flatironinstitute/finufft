@@ -19,30 +19,22 @@ typedef int64_t BIGINT;
 #include <complex.h>        // C99 type
 #endif
 
-// Precision-independent real and complex types for interfacing...
-#ifdef SINGLE
-  typedef float FLT;
-  #ifdef __cplusplus
-    typedef std::complex<float> CPX;
-  #else
-    typedef float complex CPX;
-  #endif
-  // single-prec, machine epsilon for rounding
-  #define EPSILON (float)6e-08
-  #define FABS(x) fabsf(x)
 
+#ifdef T
+#ifdef __cplusplus
+typedef std::complex<float> CPX_float;
+typedef std::complex<double> CPX_double;
 #else
-  typedef double FLT;
-  #ifdef __cplusplus
-    typedef std::complex<double> CPX;
-  #else
-    typedef double complex CPX;
-  #endif
-  // double-precision, machine epsilon for rounding
-  #define EPSILON (double)1.1e-16
-  #define FABS(x) fabs(x)
-
+typedef float complex CPX_float;
+typedef double complex CPX_double;
 #endif
+#endif
+//hhmmm what to do here? 
+//#define EPSILON (float)6e-08
+//#define FABS(x) fabsf(x)
+
+#define EPSILON (double)1.1e-16
+#define FABS(x) fabs(x)
 
 
 

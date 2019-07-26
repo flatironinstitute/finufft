@@ -1,32 +1,29 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifdef T
 
-#include <finufft.h>
-#include <spreadinterp.h>
 #include <fftw_defs.h>
-
+#include <nufft_opts.h>
 
 // defs internal to common.cpp...
 typedef std::complex<double> dcomplex;
 // (slightly sneaky since name duplicated by mwrap - unrelated)
 
-
 // common.cpp provides...
-int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts);
-void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,BIGINT *nf);
-void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
-		  BIGINT *nf, FLT *h, FLT *gam);
-void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts);
-void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts);
-void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts);
-void deconvolveshuffle1d(int dir,FLT prefac,FLT* ker,BIGINT ms,FLT *fk,
-			 BIGINT nf1,FFTW_CPX* fw,int modeord);
-void deconvolveshuffle2d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
+int TEMPLATE(setup_spreader_for_nufft,T)(TEMPLATE(spread_opts,T) &spopts, T eps, nufft_opts opts);
+void set_nf_type12(BIGINT ms, nufft_opts opts, TEMPLATE(spread_opts,T) spopts,BIGINT *nf);
+void TEMPLATE(set_nhg_type3,T)(T S, T X, nufft_opts opts, TEMPLATE(spread_opts,T) spopts,
+		  BIGINT *nf, T *h, T *gam);
+void TEMPLATE(onedim_dct_kernel,T)(BIGINT nf, T *fwkerhalf, TEMPLATE(spread_opts,T) opts);
+void TEMPLATE(onedim_fseries_kernel,T)(BIGINT nf, T *fwkerhalf, TEMPLATE(spread_opts,T) opts);
+void TEMPLATE(onedim_nuft_kernel,T)(BIGINT nk, T *k, T *phihat, TEMPLATE(spread_opts,T) opts);
+void TEMPLATE(deconvolveshuffle1d,T)(int dir,T prefac,T* ker,BIGINT ms,T *fk,
+			 BIGINT nf1,TEMPLATE(FFTW_CPX,T)* fw,int modeord);
+void TEMPLATE(deconvolveshuffle2d,T)(int dir,T prefac,T *ker1, T *ker2,
 			 BIGINT ms,BIGINT mt,
-			 FLT *fk, BIGINT nf1, BIGINT nf2, FFTW_CPX* fw,
+			 T *fk, BIGINT nf1, BIGINT nf2, TEMPLATE(FFTW_CPX,T)* fw,
 			 int modeord);
-void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
-			 FLT *ker3, BIGINT ms, BIGINT mt, BIGINT mu,
-			 FLT *fk, BIGINT nf1, BIGINT nf2, BIGINT nf3,
-			 FFTW_CPX* fw, int modeord);
-#endif  // COMMON_H
+void TEMPLATE(deconvolveshuffle3d,T)(int dir,T prefac,T *ker1, T *ker2,
+			 T *ker3, BIGINT ms, BIGINT mt, BIGINT mu,
+			 T *fk, BIGINT nf1, BIGINT nf2, BIGINT nf3,
+			 TEMPLATE(FFTW_CPX,T)* fw, int modeord);
+#endif //def T
+

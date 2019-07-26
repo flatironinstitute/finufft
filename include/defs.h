@@ -45,11 +45,11 @@
 // -------------- Math consts (not in math.h) and useful math macros ----------
 
 // prec-indep unit imaginary number
-#define IMA std::complex<FLT>(0.0,1.0)
+#define IMA std::complex<T>(0.0,1.0)
 #define M_1_2PI 0.159154943091895336
 #define M_2PI   6.28318530717958648
 // to avoid mixed precision operators in eg i*pi...
-#define PI (FLT)M_PI
+#define PI (T)M_PI
 
 using namespace std;        // means std:: not needed for cout, max, etc
 
@@ -57,17 +57,17 @@ using namespace std;        // means std:: not needed for cout, max, etc
 #define MIN(a,b) (a<b) ? a : b
 
 // Random numbers: crappy unif random number generator in [0,1):
-//#define rand01() (((FLT)(rand()%RAND_MAX))/RAND_MAX)
-#define rand01() ((FLT)rand()/RAND_MAX)
+//#define rand01() (((T)(rand()%RAND_MAX))/RAND_MAX)
+#define rand01() ((T)rand()/RAND_MAX)
 // unif[-1,1]:
-#define randm11() (2*rand01() - (FLT)1.0)
+#define randm11() (2*rand01() - (T)1.0)
 // complex unif[-1,1] for Re and Im:
 #define crandm11() (randm11() + IMA*randm11())
 
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
-#define rand01r(x) ((FLT)rand_r(x)/RAND_MAX)
+#define rand01r(x) ((T)rand_r(x)/RAND_MAX)
 // unif[-1,1]:
-#define randm11r(x) (2*rand01r(x) - (FLT)1.0)
+#define randm11r(x) (2*rand01r(x) - (T)1.0)
 // complex unif[-1,1] for Re and Im:
 #define crandm11r(x) (randm11r(x) + IMA*randm11r(x))
 

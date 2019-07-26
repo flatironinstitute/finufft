@@ -1,32 +1,34 @@
 // minimum definitions needed for interface to FINUFFT library, from C++ or C
 
-#ifndef FINUFFT_H
-#define FINUFFT_H
+#ifdef T
 
-#include <dataTypes.h>
 #include <nufft_opts.h>
-#include <spreadinterp.h>
 #include <fftw_defs.h>
+#include <templates.h>
+#include <defs.h>
 
+#ifndef ONCE_FTYPE
+#define ONCE_FTYPE
 enum finufft_type { type1, type2, type3};
+#endif
 
 typedef struct {
 
-  FLT X1,C1,D1,h1,gam1;
-  FLT X2,C2,D2,h2,gam2;
-  FLT X3,C3,D3,h3,gam3;
+  T X1,C1,D1,h1,gam1;
+  T X2,C2,D2,h2,gam2;
+  T X3,C3,D3,h3,gam3;
 
-} type3Params;
+} TEMPLATE(type3Params,T) ;
 
 
-typedef struct {
+typedef struct  {
 
   finufft_type type;
   int n_dims;
   int n_transf;
   int nj; 
   int nk;
-  FLT tol;
+  T tol;
   int threadBlkSize;
   
   BIGINT ms;
@@ -39,38 +41,37 @@ typedef struct {
   
   int iflag; 
 
-  FLT * phiHat; //fourier coefficients of spreading kernel for all dims
-  FFTW_CPX * fw; //fourier coefficients for all dims
+  T * phiHat; //fourier coefficients of spreading kernel for all dims
+  TEMPLATE(FFTW_CPX,T) * fw; //fourier coefficients for all dims
   
   BIGINT *sortIndices; 
   bool didSort;
 
   //target freqs
   //type 3 only
-  FLT * s; 
-  FLT * t; 
-  FLT * u;
-  FLT * sp; 
-  FLT * tp; 
-  FLT * up; 
+  T * s; 
+  T * t; 
+  T * u;
+  T * sp; 
+  T * tp; 
+  T * up; 
 
-  FLT *X;
-  FLT *Y;
-  FLT *Z; 
-  FLT *X_orig;
-  FLT *Y_orig;
-  FLT *Z_orig; 
+  T *X;
+  T *Y;
+  T *Z; 
+  T *X_orig;
+  T *Y_orig;
+  T *Z_orig; 
   
-  fftw_plan fftwPlan;
+  TEMPLATE(FFTW_PLAN,T) fftwPlan;
   
   nufft_opts opts;
-  spread_opts spopts;
-  type3Params t3P;
+  TEMPLATE(spread_opts,T) spopts;
+  TEMPLATE(type3Params,T) t3P;
 
   bool isInnerT2;
   
-}finufft_plan;
-
+} TEMPLATE(finufft_plan,T) ;
 
 
 // ------------------ library provides ------------------------------------
@@ -81,11 +82,11 @@ extern "C"
 
 // ------------------ Guru Interface ------------------------------------
 
-int make_finufft_plan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, int blksize, finufft_plan *plan );
-void finufft_default_opts(nufft_opts *o);
-int setNUpoints(finufft_plan * plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
-int finufft_exec(finufft_plan * plan ,  CPX *weights, CPX * result);
-int finufft_destroy(finufft_plan * plan);
+  int TEMPLATE(make_finufft_plan,T)(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, T tol, int blksize, TEMPLATE(finufft_plan,T) *plan );
+  void finufft_default_opts(nufft_opts *o);
+  int TEMPLATE(setNUpoints,T)(TEMPLATE(finufft_plan,T) * plan , BIGINT M, T *xj, T *yj, T *zj, BIGINT N, T *s, T *t, T *u); 
+  int TEMPLATE(finufft_exec,T)(TEMPLATE(finufft_plan,T) * plan ,  TEMPLATE(CPX,T) *weights, TEMPLATE(CPX,T) * result);
+  int TEMPLATE(finufft_destroy,T)(TEMPLATE(finufft_plan,T) * plan);
 
 
   
@@ -93,5 +94,5 @@ int finufft_destroy(finufft_plan * plan);
 }
 #endif
 
+#endif   // def t
 
-#endif   // FINUFFT_H

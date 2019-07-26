@@ -1,21 +1,23 @@
 // Header for utils.cpp, a little library of low-level array and timer stuff.
 // (rest of finufft defs and types are now in defs.h)
+#ifdef T
 
-#ifndef UTILS_H
-#define UTILS_H
+#include <defs.h>
+#include <templates.h>
 
-#include "defs.h"
 
 // ahb's low-level array helpers
-FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b);
-FLT errtwonorm(BIGINT n, CPX* a, CPX* b);
-FLT twonorm(BIGINT n, CPX* a);
-FLT infnorm(BIGINT n, CPX* a);
-void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi);
-void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi);
-void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
+T TEMPLATE(relerrtwonorm,T)(BIGINT n, TEMPLATE(CPX,T)* a, TEMPLATE(CPX,T)* b);
+T TEMPLATE(errtwonorm,T)(BIGINT n, TEMPLATE(CPX,T)* a, TEMPLATE(CPX,T)* b);
+T TEMPLATE(twonorm,T)(BIGINT n, TEMPLATE(CPX,T)* a);
+T TEMPLATE(infnorm,T)(BIGINT n, TEMPLATE(CPX,T)* a);
+void TEMPLATE(arrayrange,T)(BIGINT n, T* a, T *lo, T *hi);
+void TEMPLATE(indexedarrayrange,T)(BIGINT n, BIGINT* i, T* a, T *lo, T *hi);
+void TEMPLATE(arraywidcen,T)(BIGINT n, T* a, T *w, T *c);
 BIGINT next235even(BIGINT n);
 
+#ifndef ONCE_CNTIME
+#define ONCE_CNTIME
 // jfm's timer class
 #include <sys/time.h>
 class CNTime {
@@ -26,5 +28,7 @@ class CNTime {
  private:
   struct timeval initial;
 };
+#endif
 
-#endif  // UTILS_H
+#endif //def T
+
