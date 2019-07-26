@@ -240,7 +240,7 @@ void MapBintoSubProb_3d(int* d_subprobstartpts, int* d_subprob_to_bin,
 	int nbiny, int nbinz, int nobinx, int nobiny, int nobinz, int* bin_size,
 	int* num_subprob, int* num_nupts, int maxsubprobsize);
 #endif
-/* CPU wrapper for calling CUDA kernels */
+/* C wrapper for calling CUDA kernels */
 // Wrapper for testing spread, interpolation only
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
 	const FLT *h_kx, const FLT *h_ky, const CPX* h_c, FLT eps, 

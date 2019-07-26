@@ -98,7 +98,7 @@ void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 
 int cudeconvolve2d(cufinufft_plan *d_plan)
 /* 
-	CPU wrapper for deconvolution & amplication in 2D.
+	wrapper for deconvolution & amplication in 2D.
 
 	Melody Shih 07/25/19
 */
@@ -143,7 +143,7 @@ int cudeconvolve2d(cufinufft_plan *d_plan)
 
 int cudeconvolve3d(cufinufft_plan *d_plan)
 /* 
-	CPU wrapper for deconvolution & amplication in 3D.
+	wrapper for deconvolution & amplication in 3D.
 
 	Melody Shih 07/25/19
 */

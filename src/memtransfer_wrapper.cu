@@ -12,7 +12,7 @@ using namespace std;
 
 int allocgpumem2d_plan(cufinufft_plan *d_plan)
 /* 
-	CPU wrapper for gpu memory allocation in "plan" stage.
+	wrapper for gpu memory allocation in "plan" stage.
 
 	Melody Shih 07/25/19
 */
@@ -84,7 +84,7 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 
 int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 /* 
-	CPU wrapper for gpu memory allocation in "setNUpts" stage.
+	wrapper for gpu memory allocation in "setNUpts" stage.
 
 	Melody Shih 07/25/19
 */
@@ -114,7 +114,7 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 
 void freegpumemory2d(cufinufft_plan *d_plan)
 /* 
-	CPU wrapper for freeing gpu memory.
+	wrapper for freeing gpu memory.
 
 	Melody Shih 07/25/19
 */
@@ -173,7 +173,7 @@ void freegpumemory1d(cufinufft_plan *d_plan)
 
 int allocgpumem3d_plan(cufinufft_plan *d_plan)
 /* 
-	CPU wrapper for gpu memory allocation in "plan" stage.
+	wrapper for gpu memory allocation in "plan" stage.
 
 	Melody Shih 07/25/19
 */
@@ -275,7 +275,7 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 
 int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 /* 
-	CPU wrapper for gpu memory allocation in "setNUpts" stage.
+	wrapper for gpu memory allocation in "setNUpts" stage.
 
 	Melody Shih 07/25/19
 */
@@ -317,7 +317,7 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 }
 void freegpumemory3d(cufinufft_plan *d_plan) 
 /* 
-	CPU wrapper for freeing gpu memory.
+	wrapper for freeing gpu memory.
 
 	Melody Shih 07/25/19
 */

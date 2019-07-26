@@ -6,14 +6,14 @@ This folder contains the main source files of the GPU implementations.
 
 - memtransfer.h
 - memtransfer_wrapper.cu
-  CPU wrapper of allocation and free GPU memories for different dimensions and methods.
+  Wrapper of allocation and free GPU memories for different dimensions and methods.
 
 - deconvolve.h
 - deconvolve_wrapper.cu
-  GPU kernels and CPU wrappers of deconvolve and amplify the input/output coefficients by correction factor. (Step 3 in Type 1; Step 1 in Type 2)
+  GPU kernels and wrappers of deconvolve and amplify the input/output coefficients by correction factor. (Step 3 in Type 1; Step 1 in Type 2)
 
 - spreadinterp.h
-  Definitions of GPU kernels and CPU wrappers for spreader and interpolator for 2,3 dimensions under 2d and 3d folders.
+  Definitions of GPU kernels and wrappers for spreader and interpolator for 2,3 dimensions under 2d and 3d folders.
 
 - profile.h
 - profile.cu
