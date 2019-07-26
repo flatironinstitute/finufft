@@ -11,7 +11,7 @@ INC=-I/cm/shared/sw/pkg/devel/cuda/9.0.176/samples/common/inc/ \
     -I/mnt/home/yshih/cub/ \
     -I/cm/shared/sw/pkg/devel/cuda/9.0.176/include/
 LIBS_PATH=
-LIBS=-lm -lfftw3f -lcudart -lstdc++ -lnvToolsExt -lcufft
+LIBS=-lm -lfftw3f -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda
 
 FINUFFTOBJS=finufft/utils.o finufft/dirft2d.o finufft/common.o \
 	finufft/spreadinterp.o finufft/contrib/legendre_rule_fast.o
@@ -75,6 +75,9 @@ cufinufft3d1_test: test/cufinufft3d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 
 cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
+
+example2d1: examples/example2d1.cpp $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+	$(CXX) $^ $(CXXFLAGS) $(LIBS_PATH) $(LIBS) -o $@
 
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d \
