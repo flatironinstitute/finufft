@@ -1,5 +1,7 @@
 # cuFINUFFT
-A GPU implementation of 2,3 dimension type 1,2 non-uniform FFT based on FINUFFT (https://github.com/flatironinstitute/finufft). This is a work as a summer intern at Flatiron Institute advised by CCM project leader Alex Banett.
+A GPU implementation of 2,3 dimension type 1,2 non-uniform FFT based on FINUFFT (https://github.com/flatironinstitute/finufft). 
+
+This is a work as a summer intern at Flatiron Institute advised by CCM project leader Alex Banett.
 
 
 ### Code dependency
