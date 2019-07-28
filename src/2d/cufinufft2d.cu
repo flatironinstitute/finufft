@@ -27,7 +27,7 @@ int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 */
 {
 	assert(d_plan->spopts.spread_direction == 1);
-	assert(d_plan->spopts.pirange == 0);
+	//assert(d_plan->spopts.pirange == 0);
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);

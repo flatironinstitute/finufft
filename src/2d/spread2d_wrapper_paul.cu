@@ -57,13 +57,15 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	int *d_idxnupts        = d_plan->idxnupts;
 	int *d_numsubprob      = d_plan->numsubprob;
 
+	int pirange=d_plan->spopts.pirange;
+
 	void *d_temp_storage = NULL;
 
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemset(d_finegridsize,0,nf1*nf2*sizeof(int)));
 	LocateFineGridPos_Paul<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,
 			bin_size_y,numbins[0],numbins[1],d_binsize,ns,d_kx,d_ky,
-			d_sortidx,d_finegridsize);
+			d_sortidx,d_finegridsize,pirange);
 #ifdef SPREADTIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -178,8 +180,8 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 #endif
 	cudaEventRecord(start);
 	CalcInvertofGlobalSortIdx_Paul<<<(M+1024-1)/1024,1024>>>(nf1, nf2, M, 
-			bin_size_x, bin_size_y, numbins[0], numbins[1],ns,d_kx, d_ky, 
-			d_fgstartpts, d_sortidx, d_idxnupts);
+		bin_size_x, bin_size_y, numbins[0], numbins[1],ns,d_kx, d_ky, 
+		d_fgstartpts, d_sortidx, d_idxnupts, pirange);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -203,7 +205,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	int blocksize = bin_size_x*bin_size_y;
 	cudaEventRecord(start);
 	CalcSubProb_2d_Paul<<<numbins[0]*numbins[1], blocksize>>>(
-			d_finegridsize, d_numsubprob, maxsubprobsize);
+		d_finegridsize, d_numsubprob, maxsubprobsize);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -341,6 +343,7 @@ int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	int totalnumsubprob=d_plan->totalnumsubprob;
 	int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
+	int pirange=d_plan->spopts.pirange;
 	FLT sigma=d_plan->opts.upsampfac;
 	cudaEventRecord(start);
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+
@@ -355,7 +358,7 @@ int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 			ns, nf1, nf2, es_c, es_beta, sigma, d_binstartpts, d_binsize, 
 			bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, 
 			d_numsubprob, maxsubprobsize, numbins[0], numbins[1], d_idxnupts, 
-			d_fgstartpts, d_finegridsize);
+			d_fgstartpts, d_finegridsize, pirange);
 	}
 #ifdef SPREADTIME
 	float milliseconds = 0;

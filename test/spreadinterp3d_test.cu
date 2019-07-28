@@ -141,10 +141,12 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
+	ier = setup_spreader_for_nufft(dplan.spopts, tol, dplan.opts);
 	dplan.opts.upsampfac=upsampfac;
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	dplan.opts.gpu_sort=1;
+	dplan.spopts.pirange=0;
 	switch(dplan.opts.gpu_method){
 		case 4:
 		{
@@ -273,10 +275,13 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
+	ier = setup_spreader_for_nufft(dplan.spopts, tol, dplan.opts);
+	
 	dplan.opts.upsampfac=upsampfac;
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	dplan.opts.gpu_sort=1;
+	dplan.spopts.pirange=0;
 	switch(dplan.opts.gpu_method){
 		case 4:
 		{

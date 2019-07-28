@@ -61,6 +61,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 	}
 }
 
+#if 0
 __global__
 void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y)
 {
@@ -69,11 +70,12 @@ void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y)
 		y[i] = RESCALE(y[i], nf2, 1);
 	}
 }
+#endif
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
 __global__
 void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta)
+		int nf1, int nf2, FLT es_c, FLT es_beta, int pirange)
 {
 	int xstart,ystart,xend,yend;
 	int xx, yy, ix, iy;
@@ -81,8 +83,8 @@ void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 
 	FLT x_rescaled, y_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
 		xstart = ceil(x_rescaled - ns/2.0);
 		ystart = ceil(y_rescaled - ns/2.0);
 		xend = floor(x_rescaled + ns/2.0);
@@ -108,7 +110,7 @@ void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 
 __global__
 void Spread_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT sigma)
+	const int ns, int nf1, int nf2, FLT sigma, int pirange)
 {
 	int xx, yy, ix, iy;
 	int outidx;
@@ -118,8 +120,8 @@ void Spread_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 
 	FLT x_rescaled, y_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int xend = floor(x_rescaled + ns/2.0);
@@ -148,15 +150,15 @@ void Spread_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 // SubProb properties
 __global__
 void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x, 
-		int bin_size_y, int nbinx, int nbiny, int* bin_size, FLT *x, FLT *y, 
-		int* sortidx)
+	int bin_size_y, int nbinx, int nbiny, int* bin_size, FLT *x, FLT *y, 
+	int* sortidx, int pirange)
 {
 	int binidx, binx, biny;
 	int oldidx;
 	FLT x_rescaled,y_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binidx = binx+biny*nbinx;
@@ -167,15 +169,15 @@ void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x,
 
 __global__
 void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, 
-		int nbinx,int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *y, 
-		int* index)
+	int nbinx,int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *y, 
+	int* index, int pirange, int nf1, int nf2)
 {
 	int binx, biny;
 	int binidx;
 	FLT x_rescaled, y_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binidx = binx+biny*nbinx;
@@ -211,7 +213,7 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 	int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
 	int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
 	int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
-	int nbiny, int* idxnupts)
+	int nbiny, int* idxnupts, int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -239,8 +241,8 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
-		x_rescaled = x[idxnupts[idx]];
-		y_rescaled = y[idxnupts[idx]];
+		x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
 		cnow = c[idxnupts[idx]];
 
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
@@ -286,7 +288,8 @@ __global__
 void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size, 
 	int bin_size_x, int bin_size_y, int* subprob_to_bin, int* subprobstartpts, 
-	int* numsubprob, int maxsubprobsize, int nbinx, int nbiny, int* idxnupts)
+	int* numsubprob, int maxsubprobsize, int nbinx, int nbiny, int* idxnupts, 
+	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -317,8 +320,8 @@ void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
-		x_rescaled = x[idxnupts[idx]];
-		y_rescaled = y[idxnupts[idx]];
+		x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
 		cnow = c[idxnupts[idx]];
 
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
@@ -364,7 +367,7 @@ void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 __global__
 void LocateFineGridPos_Paul(int M, int nf1, int nf2, int  bin_size_x, 
 	int bin_size_y, int nbinx, int nbiny, int* bin_size, int ns, FLT *x, FLT *y, 
-	int* sortidx, int* finegridsize)
+	int* sortidx, int* finegridsize, int pirange)
 {
 	int binidx, binx, biny;
 	int oldidx;
@@ -372,8 +375,8 @@ void LocateFineGridPos_Paul(int M, int nf1, int nf2, int  bin_size_x,
 	FLT x_rescaled,y_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
 		if(ns%2 == 0){
-			x_rescaled=x[i];
-			y_rescaled=y[i];
+			x_rescaled=RESCALE(x[i], nf1, pirange);
+			y_rescaled=RESCALE(y[i], nf2, pirange);
 			binx = floor(floor(x_rescaled)/bin_size_x);
 			biny = floor(floor(y_rescaled)/bin_size_y);
 			binidx = binx+biny*nbinx;
@@ -381,8 +384,8 @@ void LocateFineGridPos_Paul(int M, int nf1, int nf2, int  bin_size_x,
 			yidx = floor(y_rescaled) - biny*bin_size_y;
 			finegrididx = binidx*bin_size_x*bin_size_y + xidx + yidx*bin_size_x;
 		}else{
-			x_rescaled=x[i];
-			y_rescaled=y[i];
+			x_rescaled=RESCALE(x[i], nf1, pirange);
+			y_rescaled=RESCALE(y[i], nf2, pirange);
 			xidx = ceil(x_rescaled - 0.5);
 			yidx = ceil(y_rescaled - 0.5);
 			
@@ -405,14 +408,14 @@ void LocateFineGridPos_Paul(int M, int nf1, int nf2, int  bin_size_x,
 __global__
 void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x, 
 		int bin_size_y, int nbinx,int nbiny,int ns, FLT *x, FLT *y, 
-		int* finegridstartpts, int* sortidx, int* index)
+		int* finegridstartpts, int* sortidx, int* index, int pirange)
 {
 	FLT x_rescaled, y_rescaled;
 	int binx, biny, binidx, xidx, yidx, finegrididx;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
 		if(ns%2 == 0){
-			x_rescaled=x[i];
-			y_rescaled=y[i];
+			x_rescaled=RESCALE(x[i], nf1, pirange);
+			y_rescaled=RESCALE(y[i], nf2, pirange);
 			binx = floor(floor(x_rescaled)/bin_size_x);
 			biny = floor(floor(y_rescaled)/bin_size_y);
 			binidx = binx+biny*nbinx;
@@ -420,8 +423,8 @@ void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x,
 			yidx = floor(y_rescaled) - biny*bin_size_y;
 			finegrididx = binidx*bin_size_x*bin_size_y + xidx + yidx*bin_size_x;
 		}else{
-			x_rescaled=x[i];
-			y_rescaled=y[i];
+			x_rescaled=RESCALE(x[i], nf1, pirange);
+			y_rescaled=RESCALE(y[i], nf2, pirange);
 			xidx = ceil(x_rescaled - 0.5);
 			yidx = ceil(y_rescaled - 0.5);
 			
@@ -461,7 +464,7 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
 	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
 	int maxsubprobsize, int nbinx, int nbiny, int* idxnupts, int* fgstartpts,
-	int* finegridsize)
+	int* finegridsize, int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -503,8 +506,8 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 #if 0
 			for(int m=0; m<nupts; m++){
 				int idx = idxstart+m;
-				x_rescaled = x[idxnupts[idx]];
-				y_rescaled = y[idxnupts[idx]];
+				x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
+				y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
 
 				eval_kernel_vec_Horner(ker1+m*MAX_NSPREAD,xstart+xoffset-
 					x_rescaled,ns,sigma);
@@ -517,7 +520,7 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 				for(int m=0; m<nupts; m++){
 					int idx = idxstart+m;
 #if 1 
-					y_rescaled = y[idxnupts[idx]];
+					y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
 					FLT disy = abs(y_rescaled-(yy+yoffset));
 					kervalue2[m] = evaluate_kernel(disy, es_c, es_beta);
 #else
@@ -534,7 +537,7 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 					for(int m=0; m<nupts; m++){
 						int idx = idxstart+m;
 #if 1
-						x_rescaled = x[idxnupts[idx]];
+						x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
 						FLT disx = abs(x_rescaled-(xx+xoffset));
 						FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
 
@@ -578,12 +581,12 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 /* Kernels for NUptsdriven Method */
 __global__
 void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		       int nf1, int nf2, FLT es_c, FLT es_beta)
+		       int nf1, int nf2, FLT es_c, FLT es_beta, int pirange)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 
-		FLT x_rescaled=x[i];
-		FLT y_rescaled=y[i];
+		FLT x_rescaled=RESCALE(x[i], nf1, pirange);
+		FLT y_rescaled=RESCALE(y[i], nf2, pirange);
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int xend = floor(x_rescaled + ns/2.0);
@@ -612,11 +615,11 @@ void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 
 __global__
 void Interp_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT sigma)
+	const int ns, int nf1, int nf2, FLT sigma, int pirange)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		FLT x_rescaled=x[i];
-		FLT y_rescaled=y[i];
+		FLT x_rescaled=RESCALE(x[i], nf1, pirange);
+		FLT y_rescaled=RESCALE(y[i], nf2, pirange);
 
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
@@ -657,7 +660,7 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 	int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
 	int* bin_size, int bin_size_x, int bin_size_y, int* subprob_to_bin,
 	int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
-	int nbiny, int* idxnupts)
+	int nbiny, int* idxnupts, int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -694,8 +697,8 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
-		x_rescaled = x[idxnupts[idx]];
-		y_rescaled = y[idxnupts[idx]];
+		x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
 		cnow.x = 0.0;
 		cnow.y = 0.0;
 
@@ -726,7 +729,8 @@ __global__
 void Interp_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT sigma, int* binstartpts, int* bin_size, 
 	int bin_size_x, int bin_size_y, int* subprob_to_bin, int* subprobstartpts, 
-	int* numsubprob, int maxsubprobsize, int nbinx, int nbiny, int* idxnupts)
+	int* numsubprob, int maxsubprobsize, int nbinx, int nbiny, int* idxnupts, 
+	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -768,8 +772,8 @@ void Interp_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
-		x_rescaled = x[idxnupts[idx]];
-		y_rescaled = y[idxnupts[idx]];
+		x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
 		cnow.x = 0.0;
 		cnow.y = 0.0;
 
@@ -808,8 +812,8 @@ void PtsRearrange_noghost_2d(int M, int nf1, int nf2, int bin_size_x,
 	int binidx;
 	FLT x_rescaled, y_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
+		x_rescaled=RESCALE(x[i], nf1, 1);
+		y_rescaled=RESCALE(y[i], nf2, 1);
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binidx = binx+biny*nbinx;
@@ -828,8 +832,8 @@ void CreateSortIdx(int M, int nf1, int nf2, FLT *x, FLT *y, int* sortidx)
 	if (i < M){
 		//x_rescaled = RESCALE(x[i],nf1,1);
 		//y_rescaled = RESCALE(y[i],nf2,1);
-		x_rescaled=x[i];
-		y_rescaled=y[i];
+		x_rescaled=RESCALE(x[i], nf1, 1);
+		y_rescaled=RESCALE(y[i], nf2, 1);
 		sortidx[i] = floor(x_rescaled) + floor(y_rescaled)*nf1;
 	}
 }

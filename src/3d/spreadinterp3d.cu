@@ -72,7 +72,7 @@ int CalcGlobalIdx_V2(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbi
 	return xidx + yidx*nbinx + zidx*nbinx*nbiny;
 }
 
-/* Common Kernels */
+#if 0
 __global__
 void RescaleXY_3d(int M, int nf1, int nf2, int nf3, FLT* x, FLT* y, FLT* z)
 {
@@ -82,21 +82,21 @@ void RescaleXY_3d(int M, int nf1, int nf2, int nf3, FLT* x, FLT* y, FLT* z)
 		z[i] = RESCALE(z[i], nf3, 1);
 	}
 }
-
+#endif
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */
 __global__
 void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int  bin_size_x,
-		int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz,
-    int* bin_size, FLT *x, FLT *y, FLT *z, int* sortidx)
+	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz,
+    int* bin_size, FLT *x, FLT *y, FLT *z, int* sortidx, int pirange)
 {
 	int binidx, binx, biny, binz;
 	int oldidx;
 	FLT x_rescaled,y_rescaled,z_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
-		z_rescaled=z[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
+		z_rescaled=RESCALE(z[i], nf3, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);
@@ -109,15 +109,16 @@ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int  bin_size_x,
 __global__
 void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
 	int bin_size_z, int nbinx, int nbiny, int nbinz, int* bin_startpts,
-	int* sortidx, FLT *x, FLT *y, FLT *z, int* index)
+	int* sortidx, FLT *x, FLT *y, FLT *z, int* index, int pirange, int nf1, 
+	int nf2, int nf3)
 {
 	int binx,biny,binz;
 	int binidx;
 	FLT x_rescaled,y_rescaled,z_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
-		z_rescaled=z[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
+		z_rescaled=RESCALE(z[i], nf3, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);
@@ -137,8 +138,9 @@ void TrivialGlobalSortIdx_3d(int M, int* index)
 
 /* Kernels for NUptsdriven method */
 __global__
-void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
-	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts)
+void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts, 
+	int pirange)
 {
 	int xx, yy, zz, ix, iy, iz;
 	int outidx;
@@ -150,9 +152,9 @@ void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 
 	FLT x_rescaled, y_rescaled, z_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		x_rescaled=x[idxnupts[i]];
-		y_rescaled=y[idxnupts[i]];
-		z_rescaled=z[idxnupts[i]];
+		x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
+		z_rescaled=RESCALE(z[idxnupts[i]], nf3, pirange);
 
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
@@ -190,16 +192,17 @@ void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 }
 __global__
 void Spread_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, int* idxnupts)
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
+	int* idxnupts, int pirange)
 {
 	int xx, yy, zz, ix, iy, iz;
 	int outidx;
 
 	FLT x_rescaled, y_rescaled, z_rescaled;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		x_rescaled=x[idxnupts[i]];
-		y_rescaled=y[idxnupts[i]];
-		z_rescaled=z[idxnupts[i]];
+		x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
+		z_rescaled=RESCALE(z[idxnupts[i]], nf3, pirange);
 
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
@@ -260,7 +263,8 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts,
 	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
 	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
-	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts)
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts, 
+	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -293,9 +297,9 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 		FLT ker3[MAX_NSPREAD];
 		
 		int nuptsidx = idxnupts[ptstart+i];
-		x_rescaled = x[nuptsidx];
-		y_rescaled = y[nuptsidx];
-		z_rescaled = z[nuptsidx];
+		x_rescaled = RESCALE(x[nuptsidx],nf1,pirange);
+		y_rescaled = RESCALE(y[nuptsidx],nf2,pirange);
+		z_rescaled = RESCALE(z[nuptsidx],nf3,pirange);
 		cnow = c[nuptsidx];
 
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
@@ -357,7 +361,7 @@ void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, int* binstartpts,
 	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
 	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, int maxsubprobsize,
-	int nbinx, int nbiny, int nbinz, int* idxnupts)
+	int nbinx, int nbiny, int nbinz, int* idxnupts, int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -385,9 +389,9 @@ void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
-		x_rescaled = x[idxnupts[idx]];
-		y_rescaled = y[idxnupts[idx]];
-		z_rescaled = z[idxnupts[idx]];
+		x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
+		z_rescaled=RESCALE(z[idxnupts[idx]], nf3, pirange);
 		cnow = c[idxnupts[idx]];
 
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
@@ -472,15 +476,15 @@ __global__
 void LocateNUptstoBins_ghost(int M, int  bin_size_x, int bin_size_y,
 	int bin_size_z, int nobinx, int nobiny, int nobinz, int binsperobinx,
 	int binsperobiny, int binsperobinz, int* bin_size, FLT *x, FLT *y, FLT *z,
-	int* sortidx)
+	int* sortidx, int pirange, int nf1, int nf2, int nf3)
 {
 	int binidx,binx,biny,binz;
 	int oldidx;
 	FLT x_rescaled,y_rescaled,z_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
-		z_rescaled=z[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
+		z_rescaled=RESCALE(z[i], nf3, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);
@@ -559,15 +563,16 @@ __global__
 void CalcInvertofGlobalSortIdx_ghost(int M, int  bin_size_x,
 	int bin_size_y, int bin_size_z, int nobinx, int nobiny, int nobinz,
 	int binsperobinx, int binsperobiny, int binsperobinz, int* bin_startpts,
-	int* sortidx, FLT *x, FLT *y, FLT *z, int* index)
+	int* sortidx, FLT *x, FLT *y, FLT *z, int* index, int pirange, int nf1,
+	int nf2, int nf3)
 {
 	int binx,biny,binz;
 	int binidx;
 	FLT x_rescaled,y_rescaled,z_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
-		z_rescaled=z[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
+		z_rescaled=RESCALE(z[i], nf3, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);
@@ -683,7 +688,8 @@ void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
 	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
-	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts)
+	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts,
+	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -723,9 +729,9 @@ void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 			b=b/3;
 		}
 		int ii = idxnupts[idx]%M;
-		x_rescaled = x[ii] + box[0]*nf1;
-		y_rescaled = y[ii] + box[1]*nf2;
-		z_rescaled = z[ii] + box[2]*nf3;
+		x_rescaled = RESCALE(x[ii],nf1,pirange) + box[0]*nf1;
+		y_rescaled = RESCALE(y[ii],nf2,pirange) + box[1]*nf2;
+		z_rescaled = RESCALE(z[ii],nf3,pirange) + box[2]*nf3;
 		cnow = c[ii];
 
 #if 1
@@ -795,7 +801,8 @@ void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, FLT sigma,
 	int* binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
 	int binsperobin, int* subprob_to_bin, int* subprobstartpts,
-	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts)
+	int maxsubprobsize, int nobinx, int nobiny, int nobinz, int* idxnupts,
+	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -840,9 +847,9 @@ void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 			b=b/3;
 		}
 		int ii = nidx%M;
-		x_rescaled = x[ii] + box[0]*nf1;
-		y_rescaled = y[ii] + box[1]*nf2;
-		z_rescaled = z[ii] + box[2]*nf3;
+		x_rescaled = RESCALE(x[ii],nf1,pirange) + box[0]*nf1;
+		y_rescaled = RESCALE(y[ii],nf2,pirange) + box[1]*nf2;
+		z_rescaled = RESCALE(z[ii],nf3,pirange) + box[2]*nf3;
 		cnow = c[ii];
 
 #if 0
@@ -918,12 +925,12 @@ void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 __global__
 void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
-	int *idxnupts)
+	int *idxnupts, int pirange)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		FLT x_rescaled=x[idxnupts[i]];
-		FLT y_rescaled=y[idxnupts[i]];
-		FLT z_rescaled=z[idxnupts[i]];
+		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		FLT y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
+		FLT z_rescaled=RESCALE(z[idxnupts[i]], nf3, pirange);
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int zstart = ceil(z_rescaled - ns/2.0);
@@ -961,12 +968,13 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 
 __global__
 void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
-	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int *idxnupts)
+	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int *idxnupts,
+	int pirange)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		FLT x_rescaled=x[idxnupts[i]];
-		FLT y_rescaled=y[idxnupts[i]];
-		FLT z_rescaled=z[idxnupts[i]];
+		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		FLT y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
+		FLT z_rescaled=RESCALE(z[idxnupts[i]], nf3, pirange);
 
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
@@ -1015,7 +1023,8 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	int M, const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
 	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
 	int bin_size_z, int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
-	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts)
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts, 
+	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -1062,9 +1071,9 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
-		x_rescaled = x[idxnupts[idx]];
-		y_rescaled = y[idxnupts[idx]];
-		z_rescaled = z[idxnupts[idx]];
+		x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
+		z_rescaled=RESCALE(z[idxnupts[idx]], nf3, pirange);
 		cnow.x = 0.0;
 		cnow.y = 0.0;
 
@@ -1106,7 +1115,8 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts,
 	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z, 
 	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
-	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts)
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts,
+	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
 
@@ -1153,9 +1163,9 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
-		x_rescaled = x[idxnupts[idx]];
-		y_rescaled = y[idxnupts[idx]];
-		z_rescaled = z[idxnupts[idx]];
+		x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
+		z_rescaled=RESCALE(z[idxnupts[idx]], nf3, pirange);
 		cnow.x = 0.0;
 		cnow.y = 0.0;
 
@@ -1317,9 +1327,9 @@ void LocateNUptstoBins(int M, int nf1, int nf2, int nf3, int  bin_size_x,
 	int oldidx;
 	FLT x_rescaled,y_rescaled,z_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		x_rescaled=x[i];
-		y_rescaled=y[i];
-		z_rescaled=z[i];
+		x_rescaled=RESCALE(x[i], nf1, pirange);
+		y_rescaled=RESCALE(y[i], nf2, pirange);
+		z_rescaled=RESCALE(z[i], nf3, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		biny = floor(y_rescaled/bin_size_y);
 		binz = floor(z_rescaled/bin_size_z);

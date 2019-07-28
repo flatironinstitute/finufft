@@ -64,10 +64,12 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
+	ier = setup_spreader_for_nufft(dplan.spopts, tol, dplan.opts);
 	dplan.opts.gpu_method=method;
 	dplan.opts.upsampfac=upsampfac;
 	dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
 	dplan.opts.gpu_kerevalmeth=kerevalmeth;
+	dplan.spopts.pirange=0;
 
 	cout<<scientific<<setprecision(3);
 
@@ -202,7 +204,7 @@ int main(int argc, char* argv[])
 		<<endl;
 #endif
 	timer.restart();
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, tol, &dplan);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fw, M, x, y, c, &dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d"<<endl;
 		return 0;

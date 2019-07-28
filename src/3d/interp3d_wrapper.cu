@@ -27,7 +27,8 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
+	int ier;
+	//ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
 
 	d_plan->ms = ms;
 	d_plan->mt = mt;
@@ -182,6 +183,7 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 	FLT es_c=d_plan->spopts.ES_c;
 	FLT es_beta=d_plan->spopts.ES_beta;
 	FLT sigma=d_plan->spopts.upsampfac;
+	int pirange=d_plan->spopts.pirange;
 
 	int *d_idxnupts = d_plan->idxnupts;
 
@@ -210,7 +212,8 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
 			Interp_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				0>>>(d_kx, d_ky, d_kz, d_c+t*M, 
-				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma, d_idxnupts);
+				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma, d_idxnupts,
+				pirange);
 		}
 #endif
 	}else{
@@ -226,7 +229,7 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
 			Interp_3d_NUptsdriven<<<blocks, threadsPerBlock, 0, 0 
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
-				nf1, nf2, nf3,es_c, es_beta, d_idxnupts);
+				nf1, nf2, nf3,es_c, es_beta, d_idxnupts,pirange);
 		}
 #endif
 	}
@@ -285,6 +288,7 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 	FLT sigma=d_plan->spopts.upsampfac;
 	FLT es_c=d_plan->spopts.ES_c;
 	FLT es_beta=d_plan->spopts.ES_beta;
+	int pirange=d_plan->spopts.pirange;
 	cudaEventRecord(start);
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*
 		(bin_size_y+2*ceil(ns/2.0))*(bin_size_z+2*ceil(ns/2.0))*sizeof(CUCPX);
@@ -300,14 +304,14 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 				M, ns, nf1, nf2, nf3, sigma, d_binstartpts, d_binsize, bin_size_x,
 				bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
 				d_numsubprob, maxsubprobsize,numbins[0], numbins[1], numbins[2],
-				d_idxnupts);
+				d_idxnupts,pirange);
 		}else{
 			Interp_3d_Subprob<<<totalnumsubprob, 256,
 				sharedplanorysize>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, 
 				M, ns, nf1, nf2, nf3, es_c, es_beta, d_binstartpts, d_binsize, 
 				bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, 
 				d_subprobstartpts, d_numsubprob, maxsubprobsize,numbins[0], 
-				numbins[1], numbins[2],d_idxnupts);
+				numbins[1], numbins[2],d_idxnupts,pirange);
 		}
 	}
 #ifdef SPREADTIME

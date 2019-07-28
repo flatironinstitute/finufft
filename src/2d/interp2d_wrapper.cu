@@ -14,7 +14,7 @@
 using namespace std;
 
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
-	FLT *h_kx, FLT *h_ky, CPX *h_c, FLT eps, cufinufft_plan* d_plan)
+	FLT *h_kx, FLT *h_ky, CPX *h_c, cufinufft_plan* d_plan)
 /*
 	This c function is written for only doing 2D interpolation. It includes 
 	allocating, transfering and freeing the memories on gpu. See 
@@ -34,7 +34,8 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	d_plan->M = M;
 	d_plan->ntransfcufftplan = 1;
 
-	int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
+	int ier;
+	//int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
 
 	cudaEventRecord(start);
 	ier = allocgpumem2d_plan(d_plan);
@@ -168,6 +169,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	FLT es_c=d_plan->spopts.ES_c;
 	FLT es_beta=d_plan->spopts.ES_beta;
 	FLT sigma=d_plan->opts.upsampfac;
+	int pirange=d_plan->spopts.pirange;
 
 	FLT* d_kx = d_plan->kx;
 	FLT* d_ky = d_plan->ky;
@@ -192,7 +194,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
 			Interp_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				0>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
-				ns, nf1, nf2, sigma);
+				ns, nf1, nf2, sigma, pirange);
 		}
 #endif
 	}else{
@@ -208,7 +210,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
 			Interp_2d_NUptsdriven<<<blocks, threadsPerBlock, 0, 0
 				>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, 
-				es_beta);
+				es_beta, pirange);
 		}
 #endif
 	}
@@ -261,6 +263,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	int *d_idxnupts = d_plan->idxnupts;
 	int *d_subprob_to_bin = d_plan->subprob_to_bin;
 	int totalnumsubprob=d_plan->totalnumsubprob;
+	int pirange=d_plan->spopts.pirange;
 
 	FLT sigma=d_plan->opts.upsampfac;
 	cudaEventRecord(start);
@@ -280,7 +283,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 					bin_size_x, bin_size_y,
 					d_subprob_to_bin, d_subprobstartpts,
 					d_numsubprob, maxsubprobsize,
-					numbins[0], numbins[1], d_idxnupts);
+					numbins[0], numbins[1], d_idxnupts, pirange);
 		}
 	}else{
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
@@ -292,7 +295,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 					bin_size_x, bin_size_y,
 					d_subprob_to_bin, d_subprobstartpts,
 					d_numsubprob, maxsubprobsize,
-					numbins[0], numbins[1], d_idxnupts);
+					numbins[0], numbins[1], d_idxnupts, pirange);
 		}
 	}
 #ifdef SPREADTIME

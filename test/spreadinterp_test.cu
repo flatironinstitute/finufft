@@ -136,9 +136,12 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
+	ier = setup_spreader_for_nufft(dplan.spopts, tol, dplan.opts);
+
 	dplan.opts.upsampfac=upsampfac;
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
+	dplan.spopts.pirange=0;
 	switch(method){
 		case 2:
 		case 3:
@@ -148,7 +151,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	timer.restart();
-	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, tol, &dplan);
+	ier = cufinufft_spread2d(N1, N2, nf1, nf2, fws, M, x, y, c, &dplan);
 	FLT tsubprob=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
@@ -207,9 +210,11 @@ int main(int argc, char* argv[])
 	// Direction 2: Interpolation
 	printf("\n[info  ] Type 2: Interpolation\n");
 	ier = cufinufft_default_opts(type2, dim, dplan.opts);
+	ier = setup_spreader_for_nufft(dplan.spopts, tol, dplan.opts);
 	dplan.opts.upsampfac=upsampfac;
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
+	dplan.spopts.pirange=0;
 	switch(method){
 		case 2:
 		case 3:
@@ -233,7 +238,7 @@ int main(int argc, char* argv[])
 	// Method 1: Subprob                      //
 	/* -------------------------------------- */
 	timer.restart();
-	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, tol, &dplan);
+	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, cs, &dplan);
 	FLT tts=timer.elapsedsec();
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d_gpu_subprob"<<endl;

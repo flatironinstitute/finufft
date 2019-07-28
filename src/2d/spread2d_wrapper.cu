@@ -13,8 +13,7 @@
 using namespace std;
 
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
-	const FLT *h_kx, const FLT *h_ky, const CPX *h_c, FLT eps, 
-	cufinufft_plan* d_plan)
+	const FLT *h_kx, const FLT *h_ky, const CPX *h_c, cufinufft_plan* d_plan)
 /*
 	This c function is written for only doing 2D spreading. It includes 
 	allocating, transfering, and freeing the memories on gpu. See 
@@ -27,7 +26,8 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
+	int ier;
+	//int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
 	d_plan->ms = ms;
 	d_plan->mt = mt;
 	d_plan->nf1 = nf1;
@@ -185,6 +185,8 @@ int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	dim3 blocks;
 
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
+	int pirange=d_plan->spopts.pirange;
+	cout << pirange << endl;
 	FLT es_c=d_plan->spopts.ES_c;
 	FLT es_beta=d_plan->spopts.ES_beta;
 	FLT sigma=d_plan->spopts.upsampfac;
@@ -200,11 +202,16 @@ int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	blocks.y = 1;
 	cudaEventRecord(start);
 	if(d_plan->opts.gpu_kerevalmeth){
-		Spread_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, 
-			d_fw, M, ns, nf1, nf2, sigma);
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Spread_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, 
+				d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma, pirange);
+		}
 	}else{
-		Spread_2d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c, d_fw, 
-			M, ns, nf1, nf2, es_c, es_beta);
+		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+			Spread_2d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, 
+				d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, es_beta, 
+				pirange);
+		}
 	}
 
 #ifdef SPREADTIME
@@ -269,10 +276,12 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	int *d_subprob_to_bin = NULL;
 	void *d_temp_storage = NULL;
 
+	int pirange=d_plan->spopts.pirange;
+
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemset(d_binsize,0,numbins[0]*numbins[1]*sizeof(int)));
 	CalcBinSize_noghost_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,bin_size_x,
-		bin_size_y,numbins[0],numbins[1],d_binsize,d_kx,d_ky,d_sortidx);
+		bin_size_y,numbins[0],numbins[1],d_binsize,d_kx,d_ky,d_sortidx,pirange);
 #ifdef SPREADTIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -353,7 +362,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	cudaEventRecord(start);
 	CalcInvertofGlobalSortIdx_2d<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,
 		bin_size_y,numbins[0],numbins[1],d_binstartpts,d_sortidx,d_kx,d_ky,
-		d_idxnupts);
+		d_idxnupts,pirange,nf1,nf2);
 #ifdef DEBUG
 	int *h_idxnupts;
 	h_idxnupts = (int*)malloc(M*sizeof(int));
@@ -366,7 +375,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 #endif
 	cudaEventRecord(start);
 	CalcSubProb_2d<<<(M+1024-1)/1024, 1024>>>(d_binsize,d_numsubprob,
-			maxsubprobsize,numbins[0]*numbins[1]);
+		maxsubprobsize,numbins[0]*numbins[1]);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -492,6 +501,8 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	int totalnumsubprob=d_plan->totalnumsubprob;
 	int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
+	int pirange=d_plan->spopts.pirange;
+
 	FLT sigma=d_plan->opts.upsampfac;
 	cudaEventRecord(start);
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*
@@ -508,16 +519,16 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 				ns, nf1, nf2, sigma, d_binstartpts, d_binsize, bin_size_x, 
 				bin_size_y, d_subprob_to_bin, d_subprobstartpts, 
 				d_numsubprob, maxsubprobsize,numbins[0], numbins[1], 
-				d_idxnupts);
+				d_idxnupts, pirange);
 		}
 	}else{
 		for(int t=0; t<d_plan->ntransfcufftplan; t++){
 			Spread_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
-					d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, 
-					es_c, es_beta, sigma,d_binstartpts, d_binsize, bin_size_x, 
-					bin_size_y, d_subprob_to_bin, d_subprobstartpts,
-					d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
-					d_idxnupts);
+				d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, 
+				es_c, es_beta, sigma,d_binstartpts, d_binsize, bin_size_x, 
+				bin_size_y, d_subprob_to_bin, d_subprobstartpts,
+				d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
+				d_idxnupts, pirange);
 		}
 	}
 #ifdef SPREADTIME

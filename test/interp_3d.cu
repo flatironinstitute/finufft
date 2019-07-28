@@ -102,10 +102,13 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
+	ier = setup_spreader_for_nufft(dplan.spopts, tol, dplan.opts);
+
 	dplan.opts.upsampfac=sigma;
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	dplan.opts.gpu_sort=sort;
+	dplan.spopts.pirange=0;
 	if(dplan.opts.gpu_method == 2)
 	{
 		dplan.opts.gpu_binsizex=16;

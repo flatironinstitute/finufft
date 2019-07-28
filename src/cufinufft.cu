@@ -272,6 +272,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 	printf("[time  ] \tCopy kx,ky,kz HtoD\t %.3g s\n", milliseconds/1000);
 #endif
 
+#if 0
 	if(d_plan->spopts.pirange == 1){
 		cudaEventRecord(start);
 		switch(d_plan->dim)
@@ -304,7 +305,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 		printf("[time  ]\tRescaleXYZ\t\t %.3g ms\n", milliseconds);
 #endif
 	}
-
+#endif
 	switch(d_plan->dim)
 	{
 		case 1:

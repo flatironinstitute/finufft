@@ -56,7 +56,9 @@ int main(int argc, char* argv[])
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;
 	}
+	ier = setup_spreader_for_nufft(dplan.spopts, tol, dplan.opts);
 	dplan.opts.gpu_method=method;
+	dplan.spopts.pirange=0;
 	cout<<scientific<<setprecision(3);
 
 
@@ -105,7 +107,7 @@ int main(int argc, char* argv[])
 	cout<<"[info  ] Interpolating  ["<<nf1<<"x"<<nf2<<"] uniform points to "<<M<<"nupts"<<endl;
 #endif
 	timer.restart();
-	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, c, tol, &dplan);
+	ier = cufinufft_interp2d(N1, N2, nf1, nf2, fw, M, x, y, c, &dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp2d"<<endl;
 		return 0;
