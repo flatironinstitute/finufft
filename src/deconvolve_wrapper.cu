@@ -76,7 +76,8 @@ __global__
 void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw, 
 	CUCPX *fk, FLT *fwkerhalf1, FLT *fwkerhalf2, FLT *fwkerhalf3)
 {
-	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt; i+=blockDim.x*gridDim.x){
+	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt*mu; 
+		i+=blockDim.x*gridDim.x){
 		int k1 = i % ms;
 		int k2 = (i / ms) % mt;
 		int k3 = (i / ms / mt);
@@ -159,15 +160,16 @@ int cudeconvolve3d(cufinufft_plan *d_plan)
 	if(d_plan->spopts.spread_direction == 1){
 		for(int t=0; t<ntransfcufftplan; t++){
 			Deconvolve_3d<<<(nmodes+256-1)/256, 256>>>(ms, mt, mu, nf1, nf2, 
-				nf3, d_plan->fw+t*nf1*nf2, d_plan->fk+t*nmodes, 
+				nf3, d_plan->fw+t*nf1*nf2*nf3, d_plan->fk+t*nmodes, 
 				d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);
 		}
 	}else{
-		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*sizeof(CUCPX)));
+		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*nf3*
+			sizeof(CUCPX)));
 		for(int t=0; t<ntransfcufftplan; t++){
 			Amplify_3d<<<(nmodes+256-1)/256, 256>>>(ms, mt, mu, nf1, nf2, nf3,
-				d_plan->fw+t*nf1*nf2, d_plan->fk+t*nmodes, d_plan->fwkerhalf1, 
-				d_plan->fwkerhalf2, d_plan->fwkerhalf3);
+				d_plan->fw+t*nf1*nf2*nf3, d_plan->fk+t*nmodes, 
+				d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);
 #if 0
 			CPX* h_fw;
 			h_fw = (CPX*) malloc(nf1*nf2*nf3*sizeof(CPX));

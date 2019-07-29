@@ -49,6 +49,12 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fk,N1*N2*sizeof(CPX));
 
+	FLT *d_x, *d_y;
+	CUCPX *d_c, *d_fk;
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_fk,N1*N2*sizeof(CUCPX)));
 	// Making data
 	for (int i = 0; i < M; i++) {
 		x[i] = M_PI*randm11();// x in [-pi,pi)
@@ -58,6 +64,10 @@ int main(int argc, char* argv[])
 		fk[i].real() = 1.0;
 		fk[i].imag() = 1.0;
 	}
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(CPX), 
+		cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
@@ -107,7 +117,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_setNUpts",3);
-		ier=cufinufft_setNUpts(M, x, y, NULL, 0, NULL, NULL, NULL, &dplan);
+		ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft_setNUpts\n");
 		}
@@ -120,7 +130,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d2_exec",4);
-		ier=cufinufft_exec(c, fk, &dplan);
+		ier=cufinufft_exec(d_c, d_fk, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft2d2_exec\n");
 		}
@@ -142,8 +152,7 @@ int main(int argc, char* argv[])
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 #endif
-#if 0
-	// This must be here, since in gpu code, x, y gets modified if pirange=1
+	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 	int jt = M/2;          // check arbitrary choice of one targ pt
 	CPX J = IMA*(FLT)iflag;
 	CPX ct = CPX(0,0);
@@ -152,6 +161,7 @@ int main(int argc, char* argv[])
 		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 			ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
 	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(c[jt]-ct)/infnorm(M,c));
+#if 0
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
 		//        if( j % opts.gpu_binsizey == 0)
@@ -168,5 +178,9 @@ int main(int argc, char* argv[])
 	cudaFreeHost(y);
 	cudaFreeHost(c);
 	cudaFreeHost(fk);
+	cudaFree(d_x);
+	cudaFree(d_y);
+	cudaFree(d_c);
+	cudaFree(d_fk);
 	return 0;
 }

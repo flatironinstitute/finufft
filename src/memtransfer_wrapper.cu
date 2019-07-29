@@ -17,8 +17,8 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 	Melody Shih 07/25/19
 */
 {
-	int ms = d_plan->ms;
-	int mt = d_plan->mt;
+	//int ms = d_plan->ms;
+	//int mt = d_plan->mt;
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
@@ -68,9 +68,10 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 
 	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*
 			sizeof(CUCPX)));
+#if 0
 	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*
 		sizeof(CUCPX)));
-
+#endif
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 
@@ -92,9 +93,11 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 	int M = d_plan->M;
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
 
+#if 0
 	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
+#endif
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -120,9 +123,9 @@ void freegpumemory2d(cufinufft_plan *d_plan)
 */
 {
 	cudaFree(d_plan->fw);
-	cudaFree(d_plan->kx);
-	cudaFree(d_plan->ky);
-	cudaFree(d_plan->c);
+	//cudaFree(d_plan->kx);
+	//cudaFree(d_plan->ky);
+	//cudaFree(d_plan->c);
 	cudaFree(d_plan->fwkerhalf1);
 	cudaFree(d_plan->fwkerhalf2);
 	switch(d_plan->opts.gpu_method)
@@ -178,9 +181,9 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	Melody Shih 07/25/19
 */
 {
-	int ms = d_plan->ms;
-	int mt = d_plan->mt;
-	int mu = d_plan->mu;
+	//int ms = d_plan->ms;
+	//int mt = d_plan->mt;
+	//int mu = d_plan->mu;
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int nf3 = d_plan->nf3;
@@ -260,9 +263,10 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3,(nf3/2+1)*sizeof(FLT)));
+#if 0
 	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*mu*
 		sizeof(CUCPX)));
-
+#endif
 #if 0
 	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->opts.gpu_nstreams*
 		sizeof(cudaStream_t));
@@ -308,9 +312,11 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 		default:
 			cerr << "err: invalid method" << endl;
 	}
+#if 0
 	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->kz,M*sizeof(FLT)));
+#endif
 	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
 
 	return 0;
@@ -323,10 +329,10 @@ void freegpumemory3d(cufinufft_plan *d_plan)
 */
 {
 	cudaFree(d_plan->fw);
-	cudaFree(d_plan->kx);
-	cudaFree(d_plan->ky);
-	cudaFree(d_plan->kz);
-	cudaFree(d_plan->c);
+	//cudaFree(d_plan->kx);
+	//cudaFree(d_plan->ky);
+	//cudaFree(d_plan->kz);
+	//cudaFree(d_plan->c);
 	cudaFree(d_plan->fwkerhalf1);
 	cudaFree(d_plan->fwkerhalf2);
 	cudaFree(d_plan->fwkerhalf3);

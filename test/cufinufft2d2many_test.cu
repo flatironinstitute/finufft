@@ -68,6 +68,13 @@ int main(int argc, char* argv[])
 	c = (CPX*) malloc(ntransf*M*sizeof(CPX));
 	fk = (CPX*) malloc(ntransf*N1*N2*sizeof(CPX));
 #endif
+	FLT *d_x, *d_y;
+	CUCPX *d_c, *d_fk;
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_c,ntransf*M*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_fk,ntransf*N1*N2*sizeof(CUCPX)));
+
 	// Making data
 	for (int i = 0; i < M; i++) {
 		x[i] = M_PI*randm11();// x in [-pi,pi)
@@ -78,6 +85,10 @@ int main(int argc, char* argv[])
 		fk[i].real() = randm11();
 		fk[i].imag() = randm11();
 	}
+
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_fk,fk,N1*N2*ntransf*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -124,7 +135,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_setNUpts",3);
-		ier=cufinufft_setNUpts(M, x, y, NULL, 0, NULL, NULL, NULL, &dplan);
+		ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft2d_setNUpts\n");
 		}
@@ -137,7 +148,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_exec",4);
-		ier=cufinufft_exec(c, fk, &dplan);
+		ier=cufinufft_exec(d_c, d_fk, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft2d2_exec\n");
 		}
@@ -158,7 +169,8 @@ int main(int argc, char* argv[])
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 	// This must be here, since in gpu code, x, y gets modified if pirange=1
-#if 0
+	checkCudaErrors(cudaMemcpy(c,d_c,M*ntransf*sizeof(CUCPX),cudaMemcpyDeviceToHost));
+#if 1 
 	CPX* fkstart; 
 	CPX* cstart;
 	for(int t=0; t<ntransf; t++){

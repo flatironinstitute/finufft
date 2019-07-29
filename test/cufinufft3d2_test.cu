@@ -51,6 +51,14 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fk,N1*N2*N3*sizeof(CPX));
 
+	FLT *d_x, *d_y, *d_z;
+	CUCPX *d_c, *d_fk;
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_z,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_fk,N1*N2*N3*sizeof(CUCPX)));
+
 	// Making data
 	for (int i = 0; i < M; i++) {
 		x[i] = M_PI*randm11();// x in [-pi,pi)
@@ -58,10 +66,16 @@ int main(int argc, char* argv[])
 		z[i] = M_PI*randm11();
 	}
 
-	for(int i=0; i<N1*N2; i++){
+	for(int i=0; i<N1*N2*N3; i++){
 		fk[i].real() = 1.0;
 		fk[i].imag() = 1.0;
 	}
+
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_z,z,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_fk,fk,N1*N2*N3*sizeof(CPX),
+		cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
@@ -118,7 +132,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft_setNUpts",3);
-		ier=cufinufft_setNUpts(M, x, y, z, 0, NULL, NULL, NULL, &dplan);
+		ier=cufinufft_setNUpts(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft_setNUpts\n");
 		}
@@ -133,7 +147,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft_exec",4);
-		ier=cufinufft_exec(c, fk, &dplan);
+		ier=cufinufft_exec(d_c, d_fk, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft_exec\n");
 		}
@@ -157,6 +171,8 @@ int main(int argc, char* argv[])
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 #endif
+
+	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 	
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
@@ -177,5 +193,10 @@ int main(int argc, char* argv[])
 	cudaFreeHost(z);
 	cudaFreeHost(c);
 	cudaFreeHost(fk);
+	cudaFree(d_x);
+	cudaFree(d_y);
+	cudaFree(d_z);
+	cudaFree(d_c);
+	cudaFree(d_fk);
 	return 0;
 }

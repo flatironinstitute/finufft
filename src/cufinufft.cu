@@ -182,8 +182,8 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 	return ier;
 }
 
-int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
-	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan)
+int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s, 
+	FLT *d_t, FLT *d_u, cufinufft_plan *d_plan)
 /*
 	"setNUpts" stage:
 	
@@ -199,10 +199,10 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 	
 	Input: 
 	M                 number of nonuniform points
-	h_kx, h_ky, h_kz  cpu array of x,y,z locations of sources (each a size M 
+	d_kx, d_ky, d_kz  gpu array of x,y,z locations of sources (each a size M 
 	                  FLT array) in [-pi, pi). set h_kz to "NULL" if dimension 
 	                  is less than 3. same for h_ky for dimension 1.
-	N, h_s, h_t, h_u  not used for type1, type2. set to 0 and NULL.
+	N, d_s, d_t, d_u  not used for type1, type2. set to 0 and NULL.
 
 	Input/Output:
 	d_plan            pointer to a cufinufft_plan. Variables and arrays inside 
@@ -254,6 +254,12 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 	printf("[time  ] \tAllocate GPU memory NUpts%.3g s\n", milliseconds/1000);
 #endif
 
+	d_plan->kx = d_kx;
+	if(dim > 1)
+		d_plan->ky = d_ky;
+	if(dim > 2)
+		d_plan->kz = d_kz;
+#if 0
 	// Copy memory to device
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,d_plan->M*sizeof(FLT),
@@ -271,7 +277,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tCopy kx,ky,kz HtoD\t %.3g s\n", milliseconds/1000);
 #endif
-
+#endif
 #if 0
 	if(d_plan->spopts.pirange == 1){
 		cudaEventRecord(start);
@@ -366,7 +372,7 @@ int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 	return 0;
 }
 
-int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
+int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 /*
 	"exec" stage:
 	
@@ -374,9 +380,9 @@ int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 	transformantion are defined in d_plan in previous stages. 
 
 	Input/Output:
-	h_c   a size d_plan->M CPX array on cpu (input for Type 1; output for Type 
+	d_c   a size d_plan->M CPX array on gpu (input for Type 1; output for Type 
 	      2)
-	h_fk  a size d_plan->ms*d_plan->mt*d_plan->mu CPX array on cpu ((input for 
+	d_fk  a size d_plan->ms*d_plan->mt*d_plan->mu CPX array on gpu ((input for 
 	      Type 2; output for Type 1)
 
 	Notes:
@@ -399,9 +405,9 @@ int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 		case 2:
 		{
 			if(type == type1)
-				ier = cufinufft2d1_exec(h_c,  h_fk, d_plan);
+				ier = cufinufft2d1_exec(d_c,  d_fk, d_plan);
 			if(type == type2)
-				ier = cufinufft2d2_exec(h_c,  h_fk, d_plan);
+				ier = cufinufft2d2_exec(d_c,  d_fk, d_plan);
 			if(type == type3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
@@ -411,9 +417,9 @@ int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan)
 		case 3:
 		{
 			if(type == type1)
-				ier = cufinufft3d1_exec(h_c,  h_fk, d_plan);
+				ier = cufinufft3d1_exec(d_c,  d_fk, d_plan);
 			if(type == type2)
-				ier = cufinufft3d2_exec(h_c,  h_fk, d_plan);
+				ier = cufinufft3d2_exec(d_c,  d_fk, d_plan);
 			if(type == type3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;

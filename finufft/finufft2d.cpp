@@ -626,6 +626,17 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
 int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 		   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 {
+	FLT *d_xj, *d_yj;
+	CUCPX *d_cj, *d_fk;
+	cudaMalloc(&d_xj,nj*sizeof(FLT));
+	cudaMalloc(&d_yj,nj*sizeof(FLT));
+	cudaMalloc(&d_cj,nj*sizeof(CUCPX));
+	cudaMalloc(&d_fk,ms*mt*sizeof(CUCPX));
+
+	cudaMemcpy(d_xj,xj,nj*sizeof(FLT),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_yj,yj,nj*sizeof(FLT),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_cj,cj,nj*sizeof(CUCPX),cudaMemcpyHostToDevice);
+
 	cufinufft_plan dplan;
 	CNTime timer;
 	timer.start();
@@ -643,12 +654,12 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 		timer.elapsedsec());
 
 	timer.start();
-	ier=cufinufft_setNUpts(nj, xj, yj, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=cufinufft_setNUpts(nj, d_xj, d_yj, NULL, 0, NULL, NULL, NULL, &dplan);
 	if (opts.debug) printf("[time  ] cufinufft2d1 setNUpts:\t\t %.3g s\n", 
 		timer.elapsedsec());
 
 	timer.restart();
-	ier=cufinufft_exec(cj, fk, &dplan);
+	ier=cufinufft_exec(d_cj, d_fk, &dplan);
 	if (opts.debug) printf("[time  ] cufinufft2d1 exec:\t\t %.3g s\n", 
 		timer.elapsedsec());
 
@@ -656,6 +667,8 @@ int finufft2d1_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	ier=cufinufft_destroy(&dplan);
 	if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", 
 		timer.elapsedsec());
+
+	cudaMemcpy(fk,d_fk,ms*mt*sizeof(CUCPX),cudaMemcpyDeviceToHost);
 	return 0;
 }
 
@@ -665,6 +678,17 @@ int finufft2d2_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	cufinufft_plan dplan;
 	CNTime timer;
 	timer.start();
+
+	FLT *d_xj, *d_yj;
+	CUCPX *d_cj, *d_fk;
+	cudaMalloc(&d_xj,nj*sizeof(FLT));
+	cudaMalloc(&d_yj,nj*sizeof(FLT));
+	cudaMalloc(&d_cj,nj*sizeof(CUCPX));
+	cudaMalloc(&d_fk,ms*mt*sizeof(CUCPX));
+
+	cudaMemcpy(d_xj,xj,nj*sizeof(FLT),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_yj,yj,nj*sizeof(FLT),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_fk,fk,ms*mt*sizeof(CUCPX),cudaMemcpyHostToDevice);
 
 	int dim = 2;
 	int nmodes[3];
@@ -680,12 +704,12 @@ int finufft2d2_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 		timer.elapsedsec());
 
   	timer.start();
-  	ier=cufinufft_setNUpts(nj, xj, yj, NULL, 0, NULL, NULL, NULL, &dplan);
+  	ier=cufinufft_setNUpts(nj, d_xj, d_yj, NULL, 0, NULL, NULL, NULL, &dplan);
   	if (opts.debug) printf("[time  ] cufinufft2d1 setNUpts:\t\t %.3g s\n", 
 		timer.elapsedsec());
 
   	timer.restart();
-  	ier=cufinufft_exec(cj, fk, &dplan);
+  	ier=cufinufft_exec(d_cj, d_fk, &dplan);
   	if (opts.debug) printf("[time  ] cufinufft2d2 exec:\t\t %.3g s\n", 
 		timer.elapsedsec());
 
@@ -693,5 +717,8 @@ int finufft2d2_gpu(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   	ier=cufinufft_destroy(&dplan);
   	if (opts.debug) printf("[time  ] cufinufft2d1 destroy:\t\t %.3g s\n", 
 		timer.elapsedsec());
+
+	cudaMemcpy(cj,d_cj,nj*sizeof(CUCPX),cudaMemcpyDeviceToHost);
+
   	return 0;
 }

@@ -112,14 +112,14 @@ int cufinufft_makeplan(finufft_type type, int dim, int *n_modes, int iflag,
 	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan);
 int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
 	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan);
-int cufinufft_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
+int cufinufft_exec(CUCPX* h_c, CUCPX* h_fk, cufinufft_plan *d_plan);
 int cufinufft_destroy(cufinufft_plan *d_plan);
 
 // 2d
-int cufinufft2d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
-int cufinufft2d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
+int cufinufft2d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
+int cufinufft2d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
 
 // 3d
-int cufinufft3d1_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
-int cufinufft3d2_exec(CPX* h_c, CPX* h_fk, cufinufft_plan *d_plan);
+int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
+int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
 #endif

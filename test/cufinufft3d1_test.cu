@@ -52,6 +52,14 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fk,N1*N2*N3*sizeof(CPX));
 
+	FLT *d_x, *d_y, *d_z;
+	CUCPX *d_c, *d_fk;
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_z,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_fk,N1*N2*N3*sizeof(CUCPX)));
+
 	// Making data
 	for (int i = 0; i < M; i++) {
 		x[i] = M_PI*randm11();// x in [-pi,pi)
@@ -60,6 +68,11 @@ int main(int argc, char* argv[])
 		c[i].real() = randm11();
 		c[i].imag() = randm11();
 	}
+
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_z,z,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_c,c,M*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
@@ -106,7 +119,7 @@ int main(int argc, char* argv[])
 
 
 	cudaEventRecord(start);
-	ier=cufinufft_setNUpts(M, x, y, z, 0, NULL, NULL, NULL, &dplan);
+	ier=cufinufft_setNUpts(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_setNUpts\n");
 	}
@@ -117,7 +130,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft_exec(c, fk, &dplan);
+	ier=cufinufft_exec(d_c, d_fk, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_exec\n");
 	}
@@ -134,6 +147,9 @@ int main(int argc, char* argv[])
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
+
+	checkCudaErrors(cudaMemcpy(fk,d_fk,N1*N2*N3*sizeof(CUCPX),
+		cudaMemcpyDeviceToHost));
 
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);

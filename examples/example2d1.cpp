@@ -27,6 +27,13 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*ntransf*sizeof(CPX));
 	cudaMallocHost(&fk,N1*N2*ntransf*sizeof(CPX));
 
+	FLT *d_x, *d_y;
+	CUCPX *d_c, *d_fk;
+	cudaMalloc(&d_x,M*sizeof(FLT));
+	cudaMalloc(&d_y,M*sizeof(FLT));
+	cudaMalloc(&d_c,M*ntransf*sizeof(CUCPX));
+	cudaMalloc(&d_fk,N1*N2*ntransf*sizeof(CUCPX));
+
 	for (int i=0; i<M; i++) {
 		x[i] = M_PI*randm11();
 		y[i] = M_PI*randm11();
@@ -36,6 +43,9 @@ int main(int argc, char* argv[])
 		c[i].real() = randm11();
 		c[i].imag() = randm11();
 	}
+	cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_c,c,M*ntransf*sizeof(CUCPX),cudaMemcpyHostToDevice);
 
 	cufinufft_plan dplan;
 
@@ -51,12 +61,13 @@ int main(int argc, char* argv[])
 	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, 
 		ntransfcufftplan, &dplan);
 
-	ier=cufinufft_setNUpts(M, x, y, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 
-	ier=cufinufft_exec(c, fk, &dplan);
+	ier=cufinufft_exec(d_c, d_fk, &dplan);
 
 	ier=cufinufft_destroy(&dplan);
 
+	cudaMemcpy(fk,d_fk,N1*N2*ntransf*sizeof(CUCPX),cudaMemcpyDeviceToHost);
 
 	cout<<endl<<"Accuracy check:"<<endl;
 	int N = N1*N2;
@@ -76,5 +87,10 @@ int main(int argc, char* argv[])
 	cudaFreeHost(y);
 	cudaFreeHost(c);
 	cudaFreeHost(fk);
+
+	cudaFree(d_x);
+	cudaFree(d_y);
+	cudaFree(d_c);
+	cudaFree(d_fk);
 	return 0;
 }
