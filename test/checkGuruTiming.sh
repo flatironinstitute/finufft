@@ -1,188 +1,39 @@
 #!/bin/bash
 
-#------------------------------------------------------------#1D
+srcpts=1e7
+tolerance=1e-6
+debug=1
+modes[0]=1e6
+modes[1]=1
+modes[2]=1
+modes[3]=1e3
+modes[4]=1e3
+modes[5]=1
+modes[6]=1e2
+modes[7]=1e2
+modes[8]=1e2
 
-#: ' #uncomment to start comment over 1D section 
+for dimension in 1 2 3
+do
+    for type in 1 2 3
+    do
+	for n_trials in 1 20 41
+	do
+	    declare -i row
+	    row=${dimension}-1
 
-#********************T1
+	    declare -i index
+	    index=row*3
 
-######1
-echo "./finufftGuru_test 1 1 1 1e2 1 1 1e7 1e-6 1"
-./finufftGuru_test 1 1 1 1e2 1 1 1e7 1e-6 1
+	    declare -i modeNum
+	    modeNum1=${modes[index]}
+	    modeNum2=${modes[index+1]}
+	    modeNum3=${modes[index+2]}
 
-#######20
-#echo "./finufftGuru_test 20 1 1 1e2 1 1 1e7 1e-6 1"
-#./finufftGuru_test 20 1 1 1e2 1 1 1e7 1e-6 1
+	    echo "./finufftGuru_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}"				 
+	    ./finufftGuru_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}
+	done
+    done
+done
 
-#######41
-echo "./finufftGuru_test 41 1 1 1e2 1 1  1e7 1e-6 1" 
-./finufftGuru_test 41 1 1 1e2 1 1 1e7 1e-6 1
-
-
-#######81
-echo "./finufftGuru_test 81 1 1 1e2 1 1  1e7 1e-6 1" 
-./finufftGuru_test 81 1 1 1e2 1 1 1e7 1e-6 1
-
-#********************T2
-
-#######1
-echo "./finufftGuru_test 1 2 1 1e2 1 1 1e7 1e-6 1"
-./finufftGuru_test 1 2 1 1e2 1 1 1e7 1e-6 1
-
-#######20
-#echo "./finufftGuru_test 20 2 1 1e2 1 1 1e7 1e-6 1"
-#./finufftGuru_test 20 2 1 1e2 1 1 1e7 1e-6 1
-
-#######41
-echo "./finufftGuru_test 41 2 1 1e2 1 1 1e7 1e-6 1" 
-./finufftGuru_test 41 2 1 1e2 1 1 1e7 1e-6 1
-
-#######81
-echo "./finufftGuru_test 81 2 1 1e2 1 1 1e7 1e-6 1" 
-./finufftGuru_test 81 2 1 1e2 1 1 1e7 1e-6 1
-
-
-
-#********************T3
-
-#######1
-echo "./finufftGuru_test 1 3 1 1e2 1 1 1e7 1e-6 1" 
-./finufftGuru_test 1 3 1 1e2 1 1 1e7 1e-6 1
-
-#######20
-#echo "./finufftGuru_test 20 3 1 1e2 1 1 1e7 1e-6 1" 
-#./finufftGuru_test 20 3 1 1e2 1 1 1e7 1e-6 1
-
-#######41 
-echo "./finufftGuru_test 41 3 1 1e2 1 1 1e7 1e-6 1"
-./finufftGuru_test 41 3 1 1e2 1 1 1e7 1e-6 1
-
-#######81 
-echo "./finufftGuru_test 81 3 1 1e2 1 1 1e7 1e-6 1"
-./finufftGuru_test 81 3 1 1e2 1 1 1e7 1e-6 1
-
-# '# end of commented out 1D
-
-#------------------------------------------------------------#2D
-
-#: ' #uncomment to start comment over 2D section 
-
-#********************T1
-
-#######1
-echo "./finufftGuru_test 1 1 2 1e2 1e2 1 1e7 1e-6 1"
-./finufftGuru_test 1 1 2 1e2 1e2 1 1e7 1e-6 1
-
-#######20
-#echo "./finufftGuru_test 20 1 2 1e2 1e2 1 1e7 1e-6 1" 
-#./finufftGuru_test 20 1 2 1e2 1e2 1 1e7 1e-6 1
-
-#######41
- echo "./finufftGuru_test 41 1 2 1e2 1e2 1 1e7 1e-6 1" 
-./finufftGuru_test 41 1 2 1e2 1e2 1 1e7 1e-6 1
-
-#######81
-echo "./finufftGuru_test 81 1 2 1e2 1e2 1 1e7 1e-6 1" 
-./finufftGuru_test 81 1 2 1e2 1e2 1 1e7 1e-6 1
-
-
-#********************T2
-
-#######1
-echo "./finufftGuru_test 1 2 2 1e2 1e2 1 1e7 1e-6 1" 
-./finufftGuru_test 1 2 2 1e2 1e2 1 1e7 1e-6 1
-
-#######20
-#echo "./finufftGuru_test 20 2 2 1e2 1e2 1 1e7 1e-6 1" 
-#./finufftGuru_test 20 2 2 1e2 1e2 1 1e7 1e-6 1
-
-#######41
-echo "./finufftGuru_test 41 2 2 1e2 1e2 1 1e7 1e-6 1"
-./finufftGuru_test 41 2 2 1e2 1e2 1 1e7 1e-6 1
-
-#######81
-echo "./finufftGuru_test 81 2 2 1e2 1e2 1 1e7 1e-6 1"
-./finufftGuru_test 81 2 2 1e2 1e2 1 1e7 1e-6 1
-
-#********************T3
-
-#######1
-echo "./finufftGuru_test 1 3 2 1e2 1e2 1 1e7 1e-6 1" 
-./finufftGuru_test 1 3 2 1e2 1e2 1 1e7 1e-6 1
- 
-#######20
-#echo "./finufftGuru_test 20 3 2 1e2 1e2 1 1e7 1e-6 1" 
-#./finufftGuru_test 20 3 2 1e2 1e2 1 1e7 1e-6 1
-
-#######41
-echo "./finufftGuru_test 41 3 2 1e2 1e2 1 1e7 1e-6 1"
-./finufftGuru_test 41 3 2 1e2 1e2 1 1e7 1e-6 1
-
-#######81
-echo "./finufftGuru_test 81 3 2 1e2 1e2 1 1e7 1e-6 1"
-./finufftGuru_test 81 3 2 1e2 1e2 1 1e7 1e-6 1
-
-# ' # end of commented out 1D
-
-#------------------------------------------------------------#3D
-
-#: ' #uncomment to start comment over 3D section 
-
-#********************T1
-
-#######1
-echo "./finufftGuru_test 1 1 3 1e2 1e2 1e2 1e7 1e-6 1"
-./finufftGuru_test 1 1 3 1e2 1e2 1e2 1e7 1e-6 1
-
-#######20
-#echo "./finufftGuru_test 20 1 3 1e2 1e2 1e2 1e7 1e-6 1" 
-#./finufftGuru_test 20 1 3 1e2 1e2 1e2 1e7 1e-6 1
-
-#######41
-echo "./finufftGuru_test 41 1 3 1e2 1e2 1e2 1e7 1e-6 1" 
-./finufftGuru_test 41 1 3 1e2 1e2 1e2 1e7 1e-6 1
-
-#######81
-echo "./finufftGuru_test 81 1 3 1e2 1e2 1e2 1e7 1e-6 1" 
-./finufftGuru_test 81 1 3 1e2 1e2 1e2 1e7 1e-6 1
-
-
-#********************T2
-
-#######1
-echo "./finufftGuru_test 1 2 3 1e2 1e2 1e2 1e7 1e-6 1"
-./finufftGuru_test 1 2 3 1e2 1e2 1e2 1e7 1e-6 1
-
-#######20
-#echo "./finufftGuru_test 20 2 3 1e2 1e2 1e2 1e7 1e-6 1"
-#./finufftGuru_test 20 2 3 1e2 1e2 1e2 1e7 1e-6 1
-
-#######41
-echo "./finufftGuru_test 41 2 3 1e2 1e2 1e2 1e7 1e-6 1" 
-./finufftGuru_test 41 2 3 1e2 1e2 1e2 1e7 1e-6 1
-
-#######81
-echo "./finufftGuru_test 81 2 3 1e2 1e2 1e2 1e7 1e-6 1" 
-./finufftGuru_test 81 2 3 1e2 1e2 1e2 1e7 1e-6 1
-
-#********************T3
-
-#######1
-echo "./finufftGuru_test 1 3 3  1e2 1e2 1e2 1e7 1e-6 1"
-./finufftGuru_test 1 3 3  1e2 1e2 1e2 1e7 1e-6 1
-
-#######20
-#echo "./finufftGuru_test 20 3 3 1e2 1e2 1e2 1e7 1e-6 1"
-#./finufftGuru_test 20 3 3 1e2 1e2 1e2 1e7 1e-6 1
-
-#######41
-echo "./finufftGuru_test 41 3 3 1e2 1e2 1e2 1e7 1e-6 1" 
-./finufftGuru_test 41 3 3 1e2 1e2 1e2 1e7 1e-6 1
-
-
-#######81
-echo "./finufftGuru_test 81 3 3 1e2 1e2 1e2 1e7 1e-6 1" 
-./finufftGuru_test 81 3 3 1e2 1e2 1e2 1e7 1e-6 1
-
-
-#'
+			       
