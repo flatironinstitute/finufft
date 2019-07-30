@@ -53,6 +53,11 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	d_plan->ntransfcufftplan = 1;
 
 	cudaEventRecord(start);
+	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->kz,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
+
 	ier = allocgpumem3d_plan(d_plan);
 	ier = allocgpumem3d_nupts(d_plan);
 #ifdef TIME
@@ -135,6 +140,10 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
 #endif
+	cudaFree(d_plan->kx);
+	cudaFree(d_plan->ky);
+	cudaFree(d_plan->kz);
+	cudaFree(d_plan->c);
 	return ier;
 }
 

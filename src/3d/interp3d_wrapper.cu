@@ -50,6 +50,11 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
+	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->kz,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
+
 	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),
 		cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),
@@ -103,6 +108,10 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
 #endif
+	cudaFree(d_plan->kx);
+	cudaFree(d_plan->ky);
+	cudaFree(d_plan->kz);
+	cudaFree(d_plan->c);
 	return ier;
 }
 

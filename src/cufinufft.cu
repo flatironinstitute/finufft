@@ -278,40 +278,6 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	printf("[time  ] \tCopy kx,ky,kz HtoD\t %.3g s\n", milliseconds/1000);
 #endif
 #endif
-#if 0
-	if(d_plan->spopts.pirange == 1){
-		cudaEventRecord(start);
-		switch(d_plan->dim)
-		{
-			case 1:
-			{
-				cerr<<"Not implemented yet"<<endl;
-			}
-			break;
-			case 2:
-			{
-				RescaleXY_2d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,d_plan->kx, 
-					d_plan->ky);
-				d_plan->spopts.pirange = 0;
-			}
-			break;
-			case 3:
-			{
-				RescaleXY_3d<<<(M+1024-1)/1024, 1024>>>(M,nf1,nf2,nf3,d_plan->kx,
-					d_plan->ky,d_plan->kz);
-				d_plan->spopts.pirange = 0;
-			}
-			break;
-		}	
-#ifdef SPREADTIME
-		float milliseconds;
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ]\tRescaleXYZ\t\t %.3g ms\n", milliseconds);
-#endif
-	}
-#endif
 	switch(d_plan->dim)
 	{
 		case 1:

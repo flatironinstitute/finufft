@@ -26,6 +26,10 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
+	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
+
 	int ier;
 	//int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
 	d_plan->ms = ms;
@@ -45,6 +49,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
 #endif
+
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),
 		cudaMemcpyHostToDevice));
@@ -105,6 +110,9 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
 #endif
+	cudaFree(d_plan->kx);
+	cudaFree(d_plan->ky);
+	cudaFree(d_plan->c);
 	return ier;
 }
 
