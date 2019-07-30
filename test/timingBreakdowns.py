@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
+import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import re
 import subprocess
 
-M_srcpts = 1e4
+M_srcpts = 1e5
 tolerance = 1e-6
 debug = 1
-modes = [1e4,1,1,1e2,1e2,1,1e2,1e2,1e1]
+modes = [1e5,1,1,1e2,1e2,1,1e2,1e2,1e1]
 dimensions = [1,2,3]
 types = [1,2,3] #To do: 3 spreading!
-n_trials = [1,5,12]
+n_trials = [1,4,10]
 
 
 #data capture arrays
@@ -41,7 +42,7 @@ for dim in dimensions:
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
             strOut = out.stdout.decode() #convert bytes to string
-            #print(strOut)
+            print(strOut)
 
             
             #parse the output and syphon into data arrays
@@ -77,7 +78,7 @@ for dim in dimensions:
                 if(not sortVal):
                     sortVal = re.search(decimalMatchString, match)
                 newSort = newSort + float(sortVal.group(0).split('s')[0].strip()) #trim off " s"
-                
+            
             #collect spreading if any
             newSpread=0
             lineMatch = re.search('.*finufft.*exec.*spread.*',strOut)
@@ -86,7 +87,7 @@ for dim in dimensions:
                 if(not spreadVal):
                     spreadVal = re.search(decimalMatchString, lineMatch.group(0))
                 newSpread = float(spreadVal.group(0).split('s')[0].strip())  #trim off " s"
-                
+
             #collect interp if any
             newInterp=0
             lineMatch = re.search('.*finufft.*exec.*interp.*',strOut)
@@ -95,8 +96,7 @@ for dim in dimensions:
                 if(not interpVal):
                     interpVal = re.search(decimalMatchString, lineMatch.group(0))
                 newInterp = float(interpVal.group(0).split('s')[0].strip())  #trim off " s"
-
-
+            
             #collect the spread timings for each trial of old
             totalOldSpread=0   
             lineMatch = re.findall('.*spread.*ier.*', strOut) #gets spread AND unspread
@@ -108,7 +108,7 @@ for dim in dimensions:
                             oldSpreadVal = re.search(decimalMatchString, match)
                         oldSpreadVal = oldSpreadVal.group(0).split('s')[0].strip() #trim off " s"
                         totalOldSpread = totalOldSpread + float(oldSpreadVal)
-
+                                    
             spreadRatio = round((totalOldSpread)/(newSort + newSpread + newInterp),3)
 
             if(ftype == 1):
@@ -225,6 +225,8 @@ fig = plt.figure()
 t1_proxy = plt.Rectangle((0,0),1,1,fc="r")
 t2_proxy = plt.Rectangle((0,0),1,1,fc="b")
 t3_proxy = plt.Rectangle((0,0),1,1,fc="g")
+
+
 ##################TotalSpeed BAR GRAPH####################################################
 print("TotalTime T1 " + str(totalTimeT1))
 print("TotalTime T2 " + str(totalTimeT2))
@@ -232,15 +234,24 @@ print("TotalTime T3 " + str(totalTimeT3))
 
 ax1 = fig.add_subplot(221,projection='3d')
 
-ax1.bar3d(t1x, t1y, zbot, widths, depths, totalTimeT1, shade=True, color='r', label='type1')
-ax1.bar3d(t2x, t2y, zbot, widths, depths, totalTimeT2, shade=True, color='b', label='type2')
-ax1.bar3d(t3x, t3y, zbot, widths, depths, totalTimeT3, shade=True, color='g', label='type3')
+logTotalTimeT1 = np.zeros(len(totalTimeT1))
+logTotalTimeT2 = np.zeros(len(totalTimeT1))
+logTotalTimeT3 = np.zeros(len(totalTimeT1))
+for i in range(len(totalTimeT1)):
+    logTotalTimeT1 = math.log(totalTimeT1[i])
+    logTotalTimeT2 = math.log(totalTimeT2[i])
+    logTotalTimeT3 = math.log(totalTimeT3[i])
+    
+
+ax1.bar3d(t1x, t1y, zbot, widths, depths, logTotalTimeT1, shade=True, color='r', label='type1', alpha='1')
+ax1.bar3d(t2x, t2y, zbot, widths, depths, logTotalTimeT2, shade=True, color='b', label='type2', alpha='1')
+ax1.bar3d(t3x, t3y, zbot, widths, depths, logTotalTimeT3, shade=True, color='g', label='type3', alpha='1')
 
 ax1.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 
 plt.xlabel('n_trials')
 plt.ylabel('Dimensions')
-plt.yticks([y+barWidth for y in range(len(t1y))], ['1', '2', '3'])
+plt.yticks([y+barWidth+1 for y in range(len(t1y))], ['1', '2', '3'])
 plt.title('totalOldTime/totalNewTime')
 
 
@@ -249,17 +260,27 @@ print("Spreading T1 " + str(spreadT1))
 print("Spreading T2 " + str(spreadT2))
 print("Spreading T3 " + str(spreadT3))
 
+
+logSpreadT1 = np.zeros(len(spreadT1))
+logSpreadT2 = np.zeros(len(spreadT1))
+logSpreadT3 = np.zeros(len(spreadT1))
+for i in range(len(spreadT1)):
+    logSpreadT1 = math.log(spreadT1[i])
+    logSpreadT2 = math.log(spreadT2[i])
+    logSpreadT3 = math.log(spreadT3[i])
+
+
 ax2 = fig.add_subplot(222,projection='3d')
 
-ax2.bar3d(t1x, t1y, zbot, widths, depths, spreadT1, shade=True, color='r', label='type1')
-ax2.bar3d(t2x, t2y, zbot, widths, depths, spreadT2, shade=True, color='b', label='type2')
-ax2.bar3d(t3x, t3y, zbot, widths, depths, spreadT3, shade=True, color='g', label='type3')
+ax2.bar3d(t1x, t1y, zbot, widths, depths, logSpreadT1, shade=True, color='r', label='type1', alpha='1')
+ax2.bar3d(t2x, t2y, zbot, widths, depths, logSpreadT2, shade=True, color='b', label='type2', alpha='1')
+ax2.bar3d(t3x, t3y, zbot, widths, depths, logSpreadT3, shade=True, color='g', label='type3', alpha='1')
 
 ax2.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 
 plt.xlabel('n_trials')
 plt.ylabel('Dimensions')
-plt.yticks([y+barWidth for y in range(len(t1y))], ['1', '2', '3'])
+plt.yticks([y+barWidth+1 for y in range(len(t1y))], ['1', '2', '3'])
 plt.title('oldSpreadTime/NewSpreadTime')
 
 
@@ -270,17 +291,26 @@ print("FFTW Plan T1 " + str(fftwPlanT1))
 print("FFTW Plan T2 " + str(fftwPlanT2))
 print("FFTW Plan T3 " + str(fftwPlanT3))
 
+
+logfftwPlanT1 = np.zeros(len(fftwPlanT1))
+logfftwPlanT2 = np.zeros(len(fftwPlanT1))
+logfftwPlanT3 = np.zeros(len(fftwPlanT1))
+for i in range(len(fftwPlanT1)):
+    logfftwPlanT1 = math.log(fftwPlanT1[i])
+    logfftwPlanT2 = math.log(fftwPlanT2[i])
+    logfftwPlanT3 = math.log(fftwPlanT3[i])
+
 ax3 = fig.add_subplot(223,projection='3d')
 
-ax3.bar3d(t1x, t1y, zbot, widths, depths, fftwPlanT1, shade=True, color='r', label='type1')
-ax3.bar3d(t2x, t2y, zbot, widths, depths, fftwPlanT2, shade=True, color='b', label='type2')
-ax3.bar3d(t3x, t3y, zbot, widths, depths, fftwPlanT3, shade=True, color='g', label='type3')
+ax3.bar3d(t1x, t1y, zbot, widths, depths, logfftwPlanT1, shade=True, color='r', label='type1', alpha='1')
+ax3.bar3d(t2x, t2y, zbot, widths, depths, logfftwPlanT2, shade=True, color='b', label='type2', alpha='1')
+ax3.bar3d(t3x, t3y, zbot, widths, depths, logfftwPlanT3, shade=True, color='g', label='type3', alpha='1')
 
 ax3.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 
 plt.xlabel('n_trials')
 plt.ylabel('Dimensions')
-plt.yticks([y+barWidth for y in range(len(t1y))], ['1', '2', '3'])
+plt.yticks([y+barWidth+1 for y in range(len(t1y))], ['1', '2', '3'])
 plt.title('totalOldFFtwPlan/NewFftwPlan')
 
 
@@ -290,18 +320,26 @@ print("FFT Exec T1 " + str(fftT1))
 print("FFT Exec T2 " + str(fftT2))
 print("FFT Exec T3 " + str(fftT3))
 
+logfftT1 = np.zeros(len(fftT1))
+logfftT2 = np.zeros(len(fftT1))
+logfftT3 = np.zeros(len(fftT1))
+for i in range(len(fftT1)):
+    logfftT1 = math.log(fftT1[i])
+    logfftT2 = math.log(fftT2[i])
+    logfftT3 = math.log(fftT3[i])
+
+
 ax4 = fig.add_subplot(224,projection='3d')
 
-ax4.bar3d(t1x, t1y, zbot, widths, depths, fftT1, shade=True, color='r', label='type1')
-ax4.bar3d(t2x, t2y, zbot, widths, depths, fftT2, shade=True, color='b', label='type2')
-ax4.bar3d(t3x, t3y, zbot, widths, depths, fftT3, shade=True, color='g', label='type3')
+ax4.bar3d(t1x, t1y, zbot, widths, depths, logfftT1, shade=True, color='r', label='type1', alpha='1')
+ax4.bar3d(t2x, t2y, zbot, widths, depths, logfftT2, shade=True, color='b', label='type2', alpha='1')
+ax4.bar3d(t3x, t3y, zbot, widths, depths, logfftT3, shade=True, color='g', label='type3', alpha='1')
 
 ax4.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 
 plt.xlabel('n_trials')
 plt.ylabel('Dimensions')
-plt.yticks([y+barWidth for y in range(len(t1y))], ['1', '2', '3'])
-
+plt.yticks([y+barWidth+1 for y in range(len(t1y))], ['1', '2', '3'])
 plt.title('totalOldFFtwExec/NewFftwExec')
 
 plt.show()
