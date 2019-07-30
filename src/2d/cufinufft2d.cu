@@ -129,12 +129,13 @@ int cufinufft2d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	cudaEventCreate(&stop);
 
 	cudaEventRecord(start);
-	int blksize, ier;
+	//int blksize;
+	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
 	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
-		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
-			d_plan->ntransfcufftplan);
+		//blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
+		//	d_plan->ntransfcufftplan);
 		d_cstart  = d_c  + i*d_plan->ntransfcufftplan*d_plan->M;
 		d_fkstart = d_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt;
 

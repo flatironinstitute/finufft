@@ -17,8 +17,6 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 	Melody Shih 07/25/19
 */
 {
-	//int ms = d_plan->ms;
-	//int mt = d_plan->mt;
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int ntransfcufftplan = d_plan->ntransfcufftplan;
@@ -68,10 +66,8 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 
 	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*
 			sizeof(CUCPX)));
-#if 0
-	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*
-		sizeof(CUCPX)));
-#endif
+	//checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*
+	//	sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 
@@ -91,13 +87,11 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 */
 {
 	int M = d_plan->M;
-	int ntransfcufftplan = d_plan->ntransfcufftplan;
+	//int ntransfcufftplan = d_plan->ntransfcufftplan;
 
-#if 0
-	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
-#endif
+	//checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
+	//checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
+	//checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:

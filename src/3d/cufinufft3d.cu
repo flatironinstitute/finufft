@@ -33,7 +33,8 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	//int ntransfpertime = d_plan->ntransfpertime;
 	cudaEventRecord(start);
 	// Copy memory to device
-	int blksize, ier;
+	//int blksize, 
+	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
 	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
@@ -123,7 +124,8 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	int blksize, ier;
+	//int blksize;
+	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
 	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
