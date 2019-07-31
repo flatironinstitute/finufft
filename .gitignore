@@ -4,8 +4,10 @@
 *.so
 *.out
 *.o
+*.png
 examples/example2d1
 test/dumbinputs
 test/dumbInputsGuru
 test/finufft1d_basicpassfail
 test/testutils
+__pycache__*
