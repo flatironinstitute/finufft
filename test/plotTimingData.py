@@ -56,7 +56,6 @@ zbot = np.zeros(len(t1x))
 widths = [barWidth]*len(t1x)
 depths = [barDepth]*len(t1x)
 
-fig = plt.figure()
 #create legend
 t1_proxy = plt.Rectangle((0,0),1,1,fc="r")
 t2_proxy = plt.Rectangle((0,0),1,1,fc="b")
@@ -122,9 +121,9 @@ ax4.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 plt.xlabel('n_trials')
 plt.ylabel('Dimensions')
 plt.yticks([y+barWidth+1 for y in range(len(t1y))], ['1', '2', '3'])
-plt.title('totalOldFFtwExec/NewFftwExec')
+plt.title('totalOldFFtwExec-NewFftwExec')
 plt.show()
-fig.savefig('totalfftwExec/newfftwExec')
+fig.savefig('totalfftwExec-newfftwExec.png')
 
 
 
@@ -164,6 +163,7 @@ fig.savefig('oldSpreadTime-NewSpreadTime.png')
 print("TotalTime T1 " + str(totalTimeT1))
 print("TotalTime T2 " + str(totalTimeT2))
 print("TotalTime T3 " + str(totalTimeT3))
+fig = plt.figure()
 
 ax1 = fig.add_subplot(111,projection='3d')
 
@@ -185,7 +185,7 @@ ax1.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 plt.xlabel('n_trials')
 plt.ylabel('Dimensions')
 plt.yticks([y+barWidth+1 for y in range(len(t1y))], ['1', '2', '3'])
-plt.title('totalOldTime/totalNewTime')
+plt.title('totalOldTime-totalNewTime')
 plt.show()
 fig.savefig('TotalOldTime-TotalNewTime.png')
 

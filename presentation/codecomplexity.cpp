@@ -19,7 +19,7 @@ finufft1d1(){
   .
   .
   for (BIGINT k=0;k<nk;++k)
-    sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
+    sp[k] = h1*gam1*(s[k]-D1);  
   .
   .
   .
@@ -36,7 +36,7 @@ finufft_exec(){
   .
   .
   .
-  /*Five extra multiplies*/
+  /*Five extra multiplies?*/
   BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3; 
   int blkJump = blkNum*plan->threadBlkSize; 
 
