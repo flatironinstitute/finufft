@@ -81,7 +81,9 @@ int main(int argc, char* argv[]){
 
 
   finufft_plan plan;
-
+  nufft_opts opts;
+  finufft_default_opts(&opts);
+  
   BIGINT n_modes[3];
   n_modes[0] = N1;
   n_modes[1] = N2;
@@ -92,7 +94,7 @@ int main(int argc, char* argv[]){
   CNTime timer; timer.start();
 
   printf("2D dumb case ------------------------------------\n");
-  int ier = make_finufft_plan(type1, n_dims,  n_modes, isign, nvecs, 0, blkSize, &plan);
+  int ier = finufft_makeplan(type1, n_dims,  n_modes, isign, nvecs, 0, blkSize, &plan,opts);
   printf("2D1, tol=0:\tier=%d (should complain)\n", ier);
 
 
@@ -101,9 +103,9 @@ int main(int argc, char* argv[]){
   n_modes[0] = 0;
   n_modes[1] = 0;
   n_modes[2] = 0;
-  ier = make_finufft_plan(type1, n_dims,  no_modes, isign, nvecs, tol, blkSize, &plan);
+  ier = finufft_makeplan(type1, n_dims,  no_modes, isign, nvecs, tol, blkSize, &plan,opts);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -114,9 +116,9 @@ int main(int argc, char* argv[]){
   weird_modes[0] = 0;
   weird_modes[1] = N2;
   weird_modes[2] = 0;
-  ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan);
+  ier = finufft_makeplan(type1, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan,opts);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -125,19 +127,19 @@ int main(int argc, char* argv[]){
   
   weird_modes[0] = N1;
   weird_modes[1] = 0;
-  ier = make_finufft_plan(type1, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan);
+  ier = finufft_makeplan(type1, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan,opts);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL,  NULL, NULL);
+    ier = finufft_setpts(&plan, M, x, y, NULL, 0, NULL,  NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
     ier = finufft_destroy(&plan);
   printf("2D1 Ns>0,Nt=0:\tier=%d\n", ier );
 
-  ier = make_finufft_plan(type1, n_dims,  n_modes, isign, nvecs, tol, blkSize, &plan);
+  ier = finufft_makeplan(type1, n_dims,  n_modes, isign, nvecs, tol, blkSize, &plan,opts);
   int no_srcPts = 0;
   if(!ier)
-    ier = setNUpoints(&plan, no_srcPts, x, y, NULL, 0, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, no_srcPts, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
     ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -147,9 +149,9 @@ int main(int argc, char* argv[]){
 
   /*Type 2*/
   for(int k = 0; k < N; k++) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k); //set F for t2
-  ier = make_finufft_plan(type2, n_dims, n_modes, isign, nvecs, 0, blkSize, &plan);
+  ier = finufft_makeplan(type2, n_dims, n_modes, isign, nvecs, 0, blkSize, &plan,opts);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -157,9 +159,9 @@ int main(int argc, char* argv[]){
   printf("2d2 tol=0:\tier=%d (should complain)\n", ier);
 
   
-  ier = make_finufft_plan(type2, n_dims,  no_modes, isign, nvecs, tol, blkSize, &plan);
+  ier = finufft_makeplan(type2, n_dims,  no_modes, isign, nvecs, tol, blkSize, &plan,opts);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -168,9 +170,9 @@ int main(int argc, char* argv[]){
 
   weird_modes[0] = 0;
   weird_modes[1] = N2;
-  ier = make_finufft_plan(type2, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan);
+  ier = finufft_makeplan(type2, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan,opts);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
@@ -179,18 +181,18 @@ int main(int argc, char* argv[]){
   
   weird_modes[0] = N1;
   weird_modes[1] = 0;
-  ier = make_finufft_plan(type2, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan);
+  ier = finufft_makeplan(type2, n_dims,  weird_modes, isign, nvecs, tol, blkSize, &plan,opts);
   if(!ier)
-    ier = setNUpoints(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, M, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
       ier = finufft_exec(&plan,c,F);
   if(!ier)
     ier = finufft_destroy(&plan);
   printf("2D2 Ns>0,Nt=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n", ier,twonorm(M,c));
 
-  ier = make_finufft_plan(type2, n_dims,  n_modes, isign, nvecs, tol, blkSize, &plan);
+  ier = finufft_makeplan(type2, n_dims,  n_modes, isign, nvecs, tol, blkSize, &plan,opts);
   if(!ier)
-    ier = setNUpoints(&plan, no_srcPts, x, y, NULL, 0, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, no_srcPts, x, y, NULL, 0, NULL, NULL, NULL);
   if(!ier)
     ier = finufft_exec(&plan,c,F);
   if(!ier)

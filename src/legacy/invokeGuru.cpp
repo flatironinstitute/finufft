@@ -8,18 +8,16 @@ int invokeGuruInterface(int n_dims, finufft_type type, int n_transf, BIGINT nj, 
 
   finufft_plan plan;
   
-  plan.opts = opts;   /*Copy out user defined options in nufft_opts into the plan*/
-
   int blksize = MY_OMP_GET_MAX_THREADS(); //default - can only specify through guru interface 
   
-  int ier = make_finufft_plan(type, n_dims, n_modes, iflag, n_transf, eps, blksize, &plan);
+  int ier = finufft_makeplan(type, n_dims, n_modes, iflag, n_transf, eps, blksize, &plan, opts);
   if(ier){
     if(plan.opts.debug)
       printf("error (ier=%d)!\n", ier);
     return ier;
   }
 
-  ier = setNUpoints(&plan, nj, xj, yj, zj, nk, s, t, u);
+  ier = finufft_setpts(&plan, nj, xj, yj, zj, nk, s, t, u);
   if(ier){
     if(plan.opts.debug)
       printf("error (ier=%d)!\n", ier);

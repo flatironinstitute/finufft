@@ -13,9 +13,10 @@ int typeToInt(finufft_type type);
 int * buildNf(finufft_plan *plan);
 
 
-int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf,
-		      FLT tol, int threadBlkSize, finufft_plan *plan) {
+int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf,
+		     FLT tol, int threadBlkSize, finufft_plan *plan, nufft_opts opts) {
 
+  plan->opts = opts;
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts, tol, plan->opts);
   if(ier_set) return ier_set;
@@ -141,7 +142,7 @@ int make_finufft_plan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag,
 };
 
 
-int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT nk, FLT * s, FLT *t, FLT * u){
+int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT nk, FLT * s, FLT *t, FLT * u){
 
   plan->nj = nj;
   if(plan->X)
@@ -171,7 +172,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
     plan->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan->nj);
     plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->nj, xj, yj, zj, plan->spopts);
 
-    if (plan->opts.debug) printf("[setNUpoints] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
+    if (plan->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
 				 timer.elapsedsec());
   
 
@@ -275,7 +276,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
       if(plan->n_dims > 2)
 	zpj[j] = (zj[j] - plan->t3P.C3) / plan->t3P.gam3;          // rescale z_j
     }
-    if (plan->opts.debug) printf("[setNUpoints] t3 coord scale:\t\t %.3g s\n",timer.elapsedsec());
+    if (plan->opts.debug) printf("[finufft_setpts] t3 coord scale:\t\t %.3g s\n",timer.elapsedsec());
 
     int ier_check = spreadcheck(plan->nf1,plan->nf2 , plan->nf3, plan->nj, xpj, ypj, zpj, plan->spopts);
     if(ier_check) return ier_check;
@@ -284,7 +285,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
     plan->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan->nj);
     plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->nj, xpj, ypj, zpj, plan->spopts);
 
-    if (plan->opts.debug) printf("[setNUpoints] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
+    if (plan->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
 				 timer.elapsedsec());
     
     plan->X = xpj;
@@ -329,7 +330,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
 	if(plan->n_dims > 2)
 	  up[k] = plan->t3P.h3*plan->t3P.gam3*(u[k]-plan->t3P.D3);      // so that |u'_k| < pi/R
     }
-    if(plan->opts.debug) printf("[setNUpoints] rescaling target-freqs: \t %.3g s\n", timer.elapsedsec());
+    if(plan->opts.debug) printf("[finufft_setpts] rescaling target-freqs: \t %.3g s\n", timer.elapsedsec());
 
     // Originally Step 3a: compute Fourier transform of scaled kernel at targets
 
@@ -347,7 +348,7 @@ int setNUpoints(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGI
       onedim_nuft_kernel(plan->nk, tp, plan->phiHat + plan->nk, plan->spopts);           
     if(plan->n_dims > 2)
       onedim_nuft_kernel(plan->nk, up, plan->phiHat + 2*plan->nk, plan->spopts);
-    if (plan->opts.debug) printf("[setNUpoints] kernel FT (ns=%d):\t\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());
+    if (plan->opts.debug) printf("[finufft_setpts] kernel FT (ns=%d):\t\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());
 
     //precompute product of phiHat for 2 and 3 dimensions 
     if(plan->n_dims > 1){
@@ -669,7 +670,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     
     //Preparations for the interior type 2 finufft call
     // 1) a single call to construct a finufft_plan
-    // 2) a single call to setNUpoints where scaled target freqs are type2 x,y,z coordinates 
+    // 2) a single call to finufft_setpts where scaled target freqs are type2 x,y,z coordinates 
 
     finufft_plan t2Plan;
     finufft_default_opts(&t2Plan.opts);
@@ -678,8 +679,8 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
     
     timer.restart();
-    ier_t2 = make_finufft_plan(type2, plan->n_dims, n_modes, plan->iflag, plan->n_transf, plan->tol,
-			       plan->threadBlkSize, &t2Plan);
+    ier_t2 = finufft_makeplan(type2, plan->n_dims, n_modes, plan->iflag, plan->n_transf, plan->tol,
+			      plan->threadBlkSize, &t2Plan, t2Plan.opts);
     if(ier_t2){
       printf("inner type 2 plan creation failed\n");
       return ier_t2;  
@@ -688,7 +689,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     t2Plan.isInnerT2 = true;
 
     timer.restart();
-    ier_t2 = setNUpoints(&t2Plan, plan->nk, plan->sp, plan->tp, plan->up, 0, NULL, NULL, NULL);
+    ier_t2 = finufft_setpts(&t2Plan, plan->nk, plan->sp, plan->tp, plan->up, 0, NULL, NULL, NULL);
     if(ier_t2){
       printf("inner type 2 set points failed\n");
       return ier_t2;

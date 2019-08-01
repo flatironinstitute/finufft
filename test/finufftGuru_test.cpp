@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
     sscanf(argv[3],"%d",&i); ndim = i;    
 
   if(argc > 4){
-    sscanf(argv[4],"%lf",&w); N1 = (BIGINT)w;
+   sscanf(argv[4],"%lf",&w); N1 = (BIGINT)w;
     sscanf(argv[5],"%lf",&w); N2 = (BIGINT)w;
     sscanf(argv[6],"%lf",&w); N3 = (BIGINT)w;
   }
@@ -214,17 +214,19 @@ int main(int argc, char* argv[])
   printf("------------------------GURU INTERFACE------------------------------\n");
   //Start by instantiating a finufft_plan
   finufft_plan plan;
+  //then by instantiating a nufft_opts
+  nufft_opts opts;
 
   //Guru Step 0
-  finufft_default_opts(&plan.opts);
+  finufft_default_opts(&opts);
   
   //Optional Customization opts 
-  plan.opts.upsampfac=(FLT)upsampfac;
-  plan.opts.debug = optsDebug;
-  plan.opts.spread_debug = sprDebug;
+  opts.upsampfac=(FLT)upsampfac;
+  opts.debug = optsDebug;
+  opts.spread_debug = sprDebug;
   plan.spopts.debug = sprDebug;
-  plan.opts.spread_sort = sprSort;
-  plan.opts.upsampfac = upsampfac;
+  opts.spread_sort = sprSort;
+  opts.upsampfac = upsampfac;
 
   BIGINT n_modes[3];
   n_modes[0] = N1;
@@ -236,21 +238,23 @@ int main(int argc, char* argv[])
   int blksize = MY_OMP_GET_MAX_THREADS(); 
   
   //Guru Step 1
-  int ier = make_finufft_plan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan);
+  int ier = finufft_makeplan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan, opts);
   //for type3, omit n_modes and send in NULL
+
+  //the opts struct can no longer be modified with effect!
   
   double plan_t = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else{
-    printf("finufft_plan creation for %lld modes completed in %.3g s\n", (long long)N, plan_t);
+    printf("finufft_makeplan creation for %lld modes completed in %.3g s\n", (long long)N, plan_t);
   }
 
   
   timer.restart();
   //Guru Step 2
-  ier = setNUpoints(&plan, M, x, y, z, N, s, t, u); //type 1+2, N=0, s,t,u = NULL
+  ier = finufft_setpts(&plan, M, x, y, z, N, s, t, u); //type 1+2, N=0, s,t,u = NULL
   double sort_t = timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);
