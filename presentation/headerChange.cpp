@@ -94,16 +94,16 @@ finufft?d?many();
   
 // ------------------ Wholeway Solution ------ Guru Interface ------------------------------------
 
-int make_finufft_plan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, int blksize, finufft_plan *plan );
+int finufft_makeplan(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, int blksize, finufft_plan *plan );
 void finufft_default_opts(nufft_opts *o);
-int setNUpoints(finufft_plan * plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
+int finufft_setpts(finufft_plan * plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
 int finufft_exec(finufft_plan * plan ,  CPX *weights, CPX * result);
 int finufft_destroy(finufft_plan * plan);
 
 /**********************************************/
 //newest regime [source code reduction]
 {
-  finufft_plan();
+  finufft_makeplan();
   finufft_default_opts();
   finufft_setpts();
   finufft_exec();

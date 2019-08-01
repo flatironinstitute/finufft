@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+'''
+A script to run a seris of finufftGuru_tests with varying parameters
+Captures the stdout, parses it for timing statistics, and graphs speedup
+ratio trends. 
+'''
+
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -10,14 +16,20 @@ import subprocess
 M_srcpts = 1e5
 tolerance = 1e-6
 debug = 1
+
+#modes array.
+#first dimension counts are in modes[0,1,2]
+#second dimension: modes[3,4,5]
+#3rd dimension [6,7,8]
 modes = [1e5,1,1,1e2,1e2,1,1e2,1e2,1e1]
+
 dimensions = [1,2,3]
-types = [1,2,3] #To do: 3 spreading!
+types = [1,2,3] 
 n_trials = [1,4,10]
 
 
 #data capture arrays
-#Ratio = oldImplementation/newImplentation
+#Datapoints are speedup ratio := oldImplementationTime/newImplentationTime
 totalTimeT1=[]
 totalTimeT2=[]
 totalTimeT3=[]
@@ -42,22 +54,22 @@ for dim in dimensions:
                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
             strOut = out.stdout.decode() #convert bytes to string
-            print(strOut)
+
+            #print(strOut)
 
             
             #parse the output and syphon into data arrays
 
-            decimalMatchString = "\d+\.?\d+"
-            sciNotString = "(\d*.?\d*e-\d* s)"
+            decimalMatchString = "\d+\.?\d+" #regular expression to match a decimal number
+            sciNotString = "(\d*.?\d*e-\d* s)" #regular expression to match a number in scientificNotation
 
             ###############################################################################
             #total time speedup
-            lineMatch = re.search(r'=.*$',strOut)
+            lineMatch = re.search(r'=.*$',strOut) #speedup line is the only one with an "="
             totalSpeedup = re.search(decimalMatchString, lineMatch.group(0))
             if(not totalSpeedup): #whole number speedup edge case
                 totalSpeedup = re.search("\d+", lineMatch.group(0))
             totalSpeedup = float(totalSpeedup.group(0))
-            #print(totalSpeedup)
             
             if(ftype == 1):
                 totalTimeT1.append(totalSpeedup)
@@ -69,13 +81,12 @@ for dim in dimensions:
             ###############################################################################
                 
             #spread (old) / [sort+spread]  (new)
-            n_sorts = 1
-            newSort = 0
 
-            lineMatch = re.findall('.*setNUpoints.*sort.*',strOut)
+            newSort = 0
+            lineMatch = re.findall('.*finufft_setpts.*sort.*',strOut)
             for match in lineMatch:
                 sortVal = re.search(sciNotString, match)
-                if(not sortVal):
+                if(not sortVal):#search failed- try decimal format
                     sortVal = re.search(decimalMatchString, match)
                 newSort = newSort + float(sortVal.group(0).split('s')[0].strip()) #trim off " s"
             
@@ -84,7 +95,7 @@ for dim in dimensions:
             lineMatch = re.search('.*finufft.*exec.*spread.*',strOut)
             if(lineMatch):
                 spreadVal = re.search(sciNotString, lineMatch.group(0))
-                if(not spreadVal):
+                if(not spreadVal): #search failed- try decimal format
                     spreadVal = re.search(decimalMatchString, lineMatch.group(0))
                 newSpread = float(spreadVal.group(0).split('s')[0].strip())  #trim off " s"
 
@@ -93,18 +104,18 @@ for dim in dimensions:
             lineMatch = re.search('.*finufft.*exec.*interp.*',strOut)
             if(lineMatch):
                 interpVal = re.search(sciNotString, lineMatch.group(0))
-                if(not interpVal):
+                if(not interpVal): #search failed- try decimal format
                     interpVal = re.search(decimalMatchString, lineMatch.group(0))
                 newInterp = float(interpVal.group(0).split('s')[0].strip())  #trim off " s"
             
             #collect the spread timings for each trial of old
             totalOldSpread=0   
-            lineMatch = re.findall('.*spread.*ier.*', strOut) #gets spread AND unspread
+            lineMatch = re.findall('.*spread.*ier.*', strOut) #gets spread AND unspread (i.e. interpolation)
             if(lineMatch):
                 for match in lineMatch:
                     if(match):
                         oldSpreadVal = re.search(sciNotString, match)
-                        if(not oldSpreadVal):
+                        if(not oldSpreadVal): #search failed- try decimal format
                             oldSpreadVal = re.search(decimalMatchString, match)
                         oldSpreadVal = oldSpreadVal.group(0).split('s')[0].strip() #trim off " s"
                         totalOldSpread = totalOldSpread + float(oldSpreadVal)
@@ -121,7 +132,9 @@ for dim in dimensions:
 
             #fftw_plan(old) / fftw_plan(new)
 
+            #RE for scientific notation specific to plan line  (don't want to catch the "64")
             planSciNotString = '(\(64\)[ \t]+)(\d*.?\d*e-\d* s)'
+            #RE for decimal notatino specific to plan line
             planDecimalMatchString= '(\(64\)[ \t]+)(\d*\.?\d*)'
             
             #collect new fftw_plan time
@@ -129,18 +142,19 @@ for dim in dimensions:
             lineMatch = re.search(".*make plan.*fftw plan \(64\).*",strOut)
             if(lineMatch):
                 fftwPlanVal = re.search(planSciNotString, lineMatch.group(0))
-                if(not fftwPlanVal):
+                if(not fftwPlanVal): #search failed- try decimal format
                     fftwPlanVal = re.search(planDecimalMatchString, lineMatch.group(0))
                 new_fftwPlan = float(fftwPlanVal.group(2).split('s')[0])  #strip off s
 
             #collect the fftw_plan timings for each trial of old
-            totalOldfftwPlan=0   
-            lineMatch = re.findall('(?<!\(make plan\))fftw plan \(64\).*', strOut) #all fftw plan lines that don't include "make plan"
+            totalOldfftwPlan=0
+            #all fftw plan lines that don't include "make plan" indicating old implementation
+            lineMatch = re.findall('(?<!\(make plan\))fftw plan \(64\).*', strOut) 
             if(lineMatch):
                 for match in lineMatch:
                     if(match):
                         oldfftwPlanVal = re.search(planSciNotString, match)
-                        if(not oldfftwPlanVal):
+                        if(not oldfftwPlanVal): #search failed- try decimal format
                             oldfftwPlanVal = re.search(planDecimalMatchString, match)
                         oldfftwPlanVal = float(oldfftwPlanVal.group(2).split('s')[0]) #trim off " s"
                         totalOldfftwPlan = totalOldfftwPlan + oldfftwPlanVal
@@ -213,10 +227,7 @@ t2x,t2y = _t2xx.ravel(), _t2yy.ravel()
 _t3xx, _t3yy = np.meshgrid(_t3xs,_t3ys)
 t3x,t3y = _t3xx.ravel(), _t3yy.ravel()
 
-print(t1x)
-print(t1y)
-    
-zbot = np.zeros(len(t1x))
+zbot = np.zeros(len(t1x)) #z translation always 0
 widths = [barWidth]*len(t1x)
 depths = [barDepth]*len(t1x)
 

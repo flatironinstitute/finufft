@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+'''
+A script that performs just the first half of the work of timingBreakdowns.py. For
+instances where the data should be generated on one compute node that cannot use X11 forwarding.
+Writes the data to a file: timing.data. Step 2 is to run plotTimingData.py with the timing.data file in the
+same directory on a machine with graphics. Will produce the same graphs as timingBreakdowns.py.
+'''
+
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -72,7 +79,7 @@ for dim in dimensions:
             n_sorts = 1
             newSort = 0
 
-            lineMatch = re.findall('.*setNUpoints.*sort.*',strOut)
+            lineMatch = re.findall('.*finufft_setpts.*sort.*',strOut)
             for match in lineMatch:
                 sortVal = re.search(sciNotString, match)
                 if(not sortVal):
@@ -134,8 +141,9 @@ for dim in dimensions:
                 new_fftwPlan = float(fftwPlanVal.group(2).split('s')[0])  #strip off s
 
             #collect the fftw_plan timings for each trial of old
-            totalOldfftwPlan=0   
-            lineMatch = re.findall('(?<!\(make plan\))fftw plan \(64\).*', strOut) #all fftw plan lines that don't include "make plan"
+            totalOldfftwPlan=0
+            #all fftw plan lines that don't include "make plan" i.e. the old implementation ones
+            lineMatch = re.findall('(?<!\(make plan\))fftw plan \(64\).*', strOut) 
             if(lineMatch):
                 for match in lineMatch:
                     if(match):
@@ -192,6 +200,7 @@ for dim in dimensions:
             ###############################################################################
 
 import numpy as np
+#saved in a format directly mirrored in "plotTimingData.py"
 data = np.zeros(len(totalTimeT1), dtype=[('totalT1','float'), ('totalT2','float'), ('totalT3','float'),
                                          ('spreadT1','float'), ('spreadT2','float'), ('spreadT3','float'),
                                          ('fftwPlanT1','float'), ('fftwPlanT2','float'), ('fftwPlanT3','float'),

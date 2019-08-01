@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+
+'''
+Plots timing breakdown bar graphs from data generated with generateTimingData.py. See generateTimingData.py
+for details.
+'''
+
 import math
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -20,7 +26,7 @@ n_trials = [1,10,100]
 #Ratio = oldImplementation/newImplentation
 
 #import the data
-
+#loading in the format mirroring "generateTimingData.py"
 (totalTimeT1, totalTimeT2,totalTimeT3, spreadT1, spreadT2, spreadT3, fftwPlanT1, fftwPlanT2, fftwPlanT3, fftT1, fftT2, fftT3)  = np.loadtxt('timing.data', unpack=True, dtype=[('totalT1','float'), ('totalT2','float'), ('totalT3','float'),
                                          ('spreadT1','float'), ('spreadT2','float'), ('spreadT3','float'),
                                          ('fftwPlanT1','float'), ('fftwPlanT2','float'), ('fftwPlanT3','float'),
