@@ -14,12 +14,12 @@
 [err check] finufft3d3_old: rel l2-err of result c is 0
 [err check] one targ: rel err in F[500] is 0
 ------------------test 3dmany type-1:------------------
-[err check] one mode: rel err in F[37,26,-3] of data[5] is 0
-[err check] err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) = 0
+[err check] one mode: rel err in F[37,26,-3] of data[2] is 0
+[err check] err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  0
 ------------------test 3dmany type-2:------------------
 [err check] err check vs non-many: sup ( ||c_many-c||_2 / ||c||_2 ) =  0
-[err check] one targ: rel err in c[500] of data[5] is 0
+[err check] one targ: rel err in c[500] of data[2] is 0
 ------------------test 3dmany type-3:------------------
-[err check] on trial 5: rel err in F[25000] against direct is 0
-[err check] on trial 5 one targ: rel err in F[25000] against old is 0
+[err check] on trial 2: rel err in F[25000] against direct is 0
+[err check] on trial 2 one targ: rel err in F[25000] against old is 0
 [err check] err check vs non-many: sup ( ||f_many-f||_2 / ||f||_2 ) =  0
