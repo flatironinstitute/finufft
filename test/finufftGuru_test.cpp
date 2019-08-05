@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
     sscanf(argv[3],"%d",&i); ndim = i;    
 
   if(argc > 4){
-   sscanf(argv[4],"%lf",&w); N1 = (BIGINT)w;
+    sscanf(argv[4],"%lf",&w); N1 = (BIGINT)w;
     sscanf(argv[5],"%lf",&w); N2 = (BIGINT)w;
     sscanf(argv[6],"%lf",&w); N3 = (BIGINT)w;
   }
@@ -204,9 +204,6 @@ int main(int argc, char* argv[])
 	c[i] = crandm11r(&se);
   }
 
-  //clean slate
-  FFTW_FORGET_WISDOM();
-    
   /**********************************************************************************************/
   /* Finufft
   /**********************************************************************************************/
@@ -214,9 +211,10 @@ int main(int argc, char* argv[])
   printf("------------------------GURU INTERFACE------------------------------\n");
   //Start by instantiating a finufft_plan
   finufft_plan plan;
+
   //then by instantiating a nufft_opts
   nufft_opts opts;
-
+  
   //Guru Step 0
   finufft_default_opts(&opts);
   
@@ -236,6 +234,7 @@ int main(int argc, char* argv[])
   CNTime timer; timer.start();
 
   int blksize = MY_OMP_GET_MAX_THREADS(); 
+
   
   //Guru Step 1
   int ier = finufft_makeplan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan, opts);
@@ -248,7 +247,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else{
-    printf("finufft_makeplan creation for %lld modes completed in %.3g s\n", (long long)N, plan_t);
+    printf("finufft_plan creation for %lld modes completed in %.3g s\n", (long long)N, plan_t);
   }
 
   
@@ -260,7 +259,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else{
-    printf("set NU points for %lld src points completed in %.3g s\n", (long long)M, sort_t);
+    printf("finufft_setpts for %lld src points completed in %.3g s\n", (long long)M, sort_t);
   }
   
   timer.restart();
@@ -276,25 +275,30 @@ int main(int argc, char* argv[])
 	   (long long)M,(long long)N, exec_t , ntransf*M/exec_t);
 
   //Guru Step 4
-  //finufft_destroy(&plan);
-
-  //Don't forget to destroy, but in this instance we'll wait and save the plan
-  //for the timing comparison step
-
+  timer.restart();
+  finufft_destroy(&plan);
+  double destroy_t = timer.elapsedsec();
   //You're done!
   
   /**********************************************************************************************/
   /* Timing Comparisons 
   /**********************************************************************************************/
 
-  double totalTime = plan_t + sort_t + exec_t;
+  double totalTime = plan_t + sort_t + exec_t + destroy_t;
   //comparing timing results with repeated calls to corresponding finufft function 
+
+  fftw_cleanup();
+  fftw_cleanup_threads();
   FFTW_FORGET_WISDOM();
 
+
  printf("------------------------OLD IMPLEMENTATION------------------------------\n");
-  
-  double oldTime = runOldFinufft(c,F, &plan);
-  FFTW_FORGET_WISDOM();
+
+ double oldTime = runOldFinufft(c,F, &plan);
+
+ fftw_cleanup();
+ fftw_cleanup_threads();
+ FFTW_FORGET_WISDOM();
 
   printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, oldTime , ntransf*M/oldTime);
@@ -306,9 +310,6 @@ int main(int argc, char* argv[])
   /**********************************************************************************************/
   /* Free Memory
   /*******************************************************************************************/
-
-  finufft_destroy(&plan);
-
   free(F);
   free(c);
   free(x); 

@@ -27,6 +27,7 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
   plan->type = type;
   plan->n_dims = n_dims;
   plan->n_transf = n_transf;
+
   plan->tol = tol;
   plan->iflag = iflag;
   plan->threadBlkSize = threadBlkSize;
@@ -47,17 +48,19 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
   plan->mt = 1; 
   plan->mu = 1;
     
-  
- if (plan->threadBlkSize>1) {          
-    FFTW_INIT();
-    FFTW_PLAN_TH(plan->threadBlkSize);
-  }
 
   /******************************************************************/
   /* Type 1 and Type 2                                              */
   /******************************************************************/
 
   if((type == type1) || (type == type2)){
+  
+    if (plan->threadBlkSize>1) {          
+      FFTW_INIT();
+      FFTW_PLAN_TH(plan->threadBlkSize);
+    }
+
+
     plan->ms = n_modes[0];
     plan->mt = n_modes[1];
     plan->mu = n_modes[2];
@@ -97,16 +100,17 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
     if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->phiHat + (plan->nf1/2+1) + (plan->nf2/2+1), spopts);
     if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", spopts.nspread,timer.elapsedsec());    
 
+    BIGINT nfTotal = plan->nf1*plan->nf2*plan->nf3;
 
     int blkSize = min(plan->threadBlkSize, plan->n_transf); 
     //ensure size of upsampled grid does not exceed MAX
-    if (plan->nf1*plan->nf2*plan->nf3*blkSize>MAX_NF) { 
+    if (nfTotal*blkSize>MAX_NF) { 
       fprintf(stderr,"nf1*nf2*nf3*plan->threadBlkSize=%.3g exceeds MAX_NF of %.3g\n",
-	      (double)plan->nf1*plan->nf2*plan->nf3*blkSize,(double)MAX_NF);
+	      (double)nfTotal*blkSize,(double)MAX_NF);
       return ERR_MAXNALLOC;
     }
 
-    plan->fw = FFTW_ALLOC_CPX(plan->nf1*plan->nf2*plan->nf3*blkSize);  
+    plan->fw = FFTW_ALLOC_CPX(nfTotal*blkSize);  
 
     if(!plan->fw){
       fprintf(stderr, "Call to malloc failed for working upsampled array allocation\n");
@@ -121,9 +125,8 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
     timer.restart();
     //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
     plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, blkSize, plan->fw, NULL, 1,
-					plan->nf2*plan->nf1*plan->nf3, plan->fw,
-                                        NULL, 1, plan->nf2*plan->nf1*plan->nf3,
-					fftsign, plan->opts.fftw ) ;    
+					nfTotal, plan->fw, NULL, 1, nfTotal, fftsign, plan->opts.fftw ) ;    
+
     if (plan->opts.debug) printf("[make plan] fftw plan (%d) \t\t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
     delete []nf;                       
   }
@@ -614,8 +617,9 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
       //Type 1/2 Step 2: Call FFT   
       timer.restart();
       FFTW_EX(plan->fftwPlan);
-      t_exec += timer.elapsedsec();
-    
+      double temp_t = timer.elapsedsec();
+      t_exec += temp_t;
+      //std::cout << "Execution took: " << temp_t << std::endl;
     
       //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output 
       if(plan->type == type1){

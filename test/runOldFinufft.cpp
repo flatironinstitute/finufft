@@ -69,7 +69,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan){
       
     case type3:
       timer.restart();
-      ier = finufft1d3_old(plan->nj, plan->X, cStart, plan->iflag, plan->tol, plan->nk, plan->s, fStart, plan->opts);
+      ier = finufft1d3_old(plan->nj, plan->X_orig, cStart, plan->iflag, plan->tol, plan->nk, plan->s, fStart, plan->opts);
       t = timer.elapsedsec();
       if(ier)
 	return -1;
@@ -107,7 +107,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan){
 
     case type3:
       timer.restart();
-      ier = finufft2d3_old(plan->nj, plan->X, plan->Y, cStart, plan->iflag, plan->tol, plan->nk, plan->s, plan->t,
+      ier = finufft2d3_old(plan->nj, plan->X_orig, plan->Y_orig, cStart, plan->iflag, plan->tol, plan->nk, plan->s, plan->t,
 			   fStart, plan->opts); 
       t = timer.elapsedsec();
       if(ier)
@@ -146,7 +146,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan){
       
     case type3:
       timer.restart();
-      ier = finufft3d3_old(plan->nj, plan->X, plan->Y, plan->Z, cStart, plan->iflag, plan->tol,
+      ier = finufft3d3_old(plan->nj, plan->X_orig, plan->Y_orig, plan->Z_orig, cStart, plan->iflag, plan->tol,
 			   plan->nk, plan->s, plan->t, plan->u, fStart, plan->opts);
       t = timer.elapsedsec();
       if(ier)
