@@ -14,7 +14,7 @@ ratio trends.
 '''
 
 
-M_srcpts = 1e7
+M_srcpts = 1e7 #1e6
 tolerance = 1e-6
 debug = 1
 
@@ -26,25 +26,72 @@ modes = [1e6,1,1,1e3,1e3,1,1e2,1e2,1e2]
 
 dimensions = [1,2,3]
 types = [1,2,3] 
-n_trials=[1,10,100]
-#n_trials = [1,10]
+#n_trials=[1,10,100]
+n_trials = [1]
 
 
 #data capture arrays
 #Datapoints are speedup ratio := oldImplementationTime/newImplentationTime
-totalTimeT1=[]
-totalTimeT2=[]
-totalTimeT3=[]
-spreadT1=[]
-spreadT2=[]
-spreadT3=[]
-fftwPlanT1=[]
-fftwPlanT2=[]
-fftwPlanT3=[]
-fftT1=[]
-fftT2=[]
-fftT3=[]
+totalTimeT1Ratio=[]
+totalTimeT2Ratio=[]
+totalTimeT3Ratio=[]
+spreadT1Ratio=[]
+spreadT2Ratio=[]
+spreadT3Ratio=[]
+fftwPlanT1Ratio=[]
+fftwPlanT2Ratio=[]
+fftwPlanT3Ratio=[]
+fftT1Ratio=[]
+fftT2Ratio=[]
+fftT3Ratio=[]
 
+#raw timing values
+
+totalTimeT1_Old =[]
+totalTimeT1_New =[]
+totalTimeT2_Old =[]
+totalTimeT2_New =[]
+totalTimeT3_Old =[]
+totalTimeT3_New =[]
+
+spreadT1_Old =[]
+spreadT1_New =[]
+spreadT2_Old =[]
+spreadT2_New =[]
+spreadT3_Old =[]
+spreadT3_New =[]
+
+fftwPlanT1_Old =[]
+fftwPlanT1_New =[]
+fftwPlanT2_Old =[]
+fftwPlanT2_New =[]
+fftwPlanT3_Old =[]
+fftwPlanT3_New =[]
+
+fftT1_Old =[]
+fftT1_New =[]
+fftT2_Old =[]
+fftT2_New =[]
+fftT3_Old =[]
+fftT3_New =[]
+
+decimalMatchString = "\d+\.?\d+" #regular expression to match a decimal number
+sciNotString = "(\d*.?\d*e-\d* s)" #regular expression to match a number in scientific notation
+wholeNumberMatchString = "\d+" 
+
+
+#search string needs to have two groupings! (one for everything besides) (time s)
+def extractTime(searchString, stdOut):
+    lineMatch = re.search(searchString,strOut)
+    val = re.search(sciNotString,lineMatch.group(2))
+    if(not val):
+        val = re.search(decimalMatchString, lineMatch.group(2))
+    if(not val):
+        planVal = re.search(wholeNumberMatchString, lineMatch.group(2))
+    planTime = round(float(val.group(0).split('s')[0].strip()),5)
+    return planTime
+
+#do
 for dim in dimensions:
     for ftype in types:
         for trial in n_trials:
@@ -64,25 +111,37 @@ for dim in dimensions:
             
             #parse the output and syphon into data arrays
 
-            decimalMatchString = "\d+\.?\d+" #regular expression to match a decimal number
-            sciNotString = "(\d*.?\d*e-\d* s)" #regular expression to match a number in scientific notation
-            wholeNumberMatchString = "\d+" 
-
             ###############################################################################
-            #total time speedup
-            lineMatch = re.search(r'=.*$',strOut) #speedup line is the only one with an "="
-            totalSpeedup = re.search(decimalMatchString, lineMatch.group(0))
-            if(not totalSpeedup): #whole number speedup edge case
-                totalSpeedup = re.search("\d+", lineMatch.group(0))
-            totalSpeedup = float(totalSpeedup.group(0))
-            #print(totalSpeedup)
-            
+
+            #gather total plan,setpts,execute,destroy
+            planTime = extractTime('(finufft_plan.*completed)(.*)',strOut)
+            setPtsTime = extractTime('(finufft_setpts.*completed)(.*)',strOut)
+            execTime = extractTime('(finufft_exec.*completed)(.*)', strOut)
+            delTime = extractTime('(finufft_destroy.*completed)(.*)',strOut)
+            totalNewTime = planTime + setPtsTime + execTime + delTime
+
+            #gather old total time
+            totalOldTime = extractTime('(execute.*in)(.*)(or .*)' ,strOut)
+
             if(ftype == 1):
-                totalTimeT1.append(totalSpeedup)
+                totalTimeT1_New.append(totalNewTime)
+                totalTimeT1_Old.append(totalOldTime)
             elif(ftype == 2):
-                totalTimeT2.append(totalSpeedup)
+                totalTimeT2_New.append(totalNewTime)
+                totalTimeT2_Old.append(totalOldTime)
             else:
-                totalTimeT3.append(totalSpeedup)
+                totalTimeT3_New.append(totalNewTime)
+                totalTimeT3_Old.append(totalOldTime)
+
+            #total time speedup
+            totalSpeedup = round(totalOldTime/totalNewTime,5)
+
+            if(ftype == 1):
+                totalTimeT1Ratio.append(totalSpeedup)
+            elif(ftype == 2):
+                totalTimeT2Ratio.append(totalSpeedup)
+            else:
+                totalTimeT3Ratio.append(totalSpeedup)
 
             ###############################################################################
                 
@@ -98,7 +157,8 @@ for dim in dimensions:
                 if(not sortVal):
                     sortVal = re.search(whooleNumberMatchString, match)
                 newSort = newSort + float(sortVal.group(0).split('s')[0].strip()) #trim off " s"
-            
+            newSort = round(newSort,5)
+
             #collect spreading if any
             newSpread=0
             lineMatch = re.search('.*finufft.*exec.*spread.*',strOut)
@@ -107,9 +167,10 @@ for dim in dimensions:
                 if(not spreadVal):
                     spreadVal = re.search(decimalMatchString, lineMatch.group(0))
                 if(not spreadVal):
-                    spreadVal = re.search(wholeNumberMatchSTring, lineMatch.group(0))
+                    spreadVal = re.search(wholeNumberMatchString, lineMatch.group(0))
                 newSpread = float(spreadVal.group(0).split('s')[0].strip())  #trim off " s"
-
+            newSpread = round(newSpread,5)
+            
             #collect interp if any
             newInterp=0
             lineMatch = re.search('.*finufft.*exec.*interp.*',strOut)
@@ -121,6 +182,8 @@ for dim in dimensions:
                     interpVal = re.search(wholeNumberMatchString, lineMatch.group(0))
                 newInterp = float(interpVal.group(0).split('s')[0].strip())  #trim off " s"
             
+            newInterp = round(newInterp,5)
+
             #collect the spread timings for each trial of old
             totalOldSpread=0   
             lineMatch = re.findall('.*spread.*ier.*', strOut) #gets spread AND unspread (i.e. interpolation)
@@ -134,20 +197,29 @@ for dim in dimensions:
                             oldSpreadVal = re.search(wholeNumberMatchString, match)
                         oldSpreadVal = oldSpreadVal.group(0).split('s')[0].strip() #trim off " s"
                         totalOldSpread = totalOldSpread + float(oldSpreadVal)
-                                    
-            spreadRatio = round((totalOldSpread)/(newSort + newSpread + newInterp),3)
+            totalOldSpread = round(totalOldSpread,5)
+
+            spreadRatio = round(totalOldSpread/(newSort + newSpread + newInterp),5)
 
             if(ftype == 1):
-                spreadT1.append(spreadRatio)
+                spreadT1Ratio.append(spreadRatio)
+                spreadT1_New.append(round(newSort + newSpread + newInterp,5))
+                spreadT1_Old.append(totalOldSpread)
             elif(ftype == 2):
-                spreadT2.append(spreadRatio)
+                spreadT2Ratio.append(spreadRatio)
+                spreadT2_New.append(round(newSort + newSpread + newInterp,5))
+                spreadT2_Old.append(totalOldSpread)
             else:
-                spreadT3.append(spreadRatio)
+                spreadT3Ratio.append(spreadRatio)
+                spreadT3_New.append(round(newSort + newSpread + newInterp,5))
+                spreadT3_Old.append(totalOldSpread)
+
             ###############################################################################
 
             #fftw_plan(old) / fftw_plan(new)
             planSciNotString = '(\(64\)[ \t]+)(\d*.?\d*e-\d* s)'
             planDecimalMatchString= '(\(64\)[ \t]+)(\d*\.?\d* s)'
+            planWholeNumberMatchString= '(\(64\)[ \t]+)(\d+ s)' 
 
             #collect new fftw_plan time
             new_fftwPlan=0
@@ -156,7 +228,10 @@ for dim in dimensions:
                 fftwPlanVal = re.search(planSciNotString, lineMatch.group(0))
                 if(not fftwPlanVal):
                     fftwPlanVal = re.search(planDecimalMatchString, lineMatch.group(0))
+                if(not fftwPlanVal):
+                    fftwPlanVal = re.search(wholeNumberMatchString, lineMatch.group(0))
                 new_fftwPlan = float(fftwPlanVal.group(2).split('s')[0])  #strip off s
+            new_fftwPlan = round(new_fftwPlan,5)    
 
             #collect the fftw_plan timings for each trial of old
             totalOldfftwPlan=0   
@@ -167,18 +242,27 @@ for dim in dimensions:
                         oldfftwPlanVal = re.search(planSciNotString, match)
                         if(not oldfftwPlanVal):
                             oldfftwPlanVal = re.search(planDecimalMatchString, match)
+                        if(not oldfftwPlanVal):
+                            oldfftwPlanVal = re.search(planWholeNumberMatchString, match)
                         oldfftwPlanVal = float(oldfftwPlanVal.group(2).split('s')[0]) #trim off " s"
                         totalOldfftwPlan = totalOldfftwPlan + oldfftwPlanVal
-
-            fftwPlanRatio = round(totalOldfftwPlan/new_fftwPlan,3)
+            totalOldfftwPlan = round(totalOldfftwPlan,5)
+            
+            fftwPlanRatio = round(totalOldfftwPlan/new_fftwPlan,5)
             
             if(ftype == 1):
-                fftwPlanT1.append(fftwPlanRatio)
+                fftwPlanT1Ratio.append(fftwPlanRatio)
+                fftwPlanT1_New.append(new_fftwPlan)
+                fftwPlanT1_Old.append(totalOldfftwPlan)
             elif(ftype == 2):
-                fftwPlanT2.append(fftwPlanRatio)
+                fftwPlanT2Ratio.append(fftwPlanRatio)
+                fftwPlanT2_New.append(new_fftwPlan)
+                fftwPlanT2_Old.append(totalOldfftwPlan)
             else:
-                fftwPlanT3.append(fftwPlanRatio)
-            
+                fftwPlanT3Ratio.append(fftwPlanRatio)
+                fftwPlanT3_New.append(new_fftwPlan)
+                fftwPlanT3_Old.append(totalOldfftwPlan)
+
             
             ###############################################################################
             #fftw_exec(old) / fftw_exec(new)
@@ -193,6 +277,7 @@ for dim in dimensions:
                 if(not fftVal):
                     fftVal = re.search(wholeNumberMatchString, lineMatch.group(0))
                 new_fft = float(fftVal.group(0).split('s')[0])  #strip off s
+            new_fft = round(new_fft,5)
 
             #collect the fftw_exec timings for each trial of old
             totalOldfft=0   
@@ -205,19 +290,25 @@ for dim in dimensions:
                             oldfftVal = re.search(decimalMatchString, match[1])
                         if(not oldfftVal):
                             oldfftVal = re.search(wholeNumberMatchString,match[1])
-                            print("whole number match old!: " )
-                            print(float(oldfftVal.group(0).split('s')[0]))
                         oldfftVal = float(oldfftVal.group(0).split('s')[0]) #trim off " s"
                         totalOldfft = totalOldfft + oldfftVal
-            
-            fftRatio = round(totalOldfft/new_fft,3)
+            totalOldfft = round(totalOldfft,5)
+
+            fftRatio = round(totalOldfft/new_fft,5)
             
             if(ftype == 1):
-                fftT1.append(fftRatio)
+                fftT1Ratio.append(fftRatio)
+                fftT1_New.append(new_fft)
+                fftT1_Old.append(totalOldfft)
             elif(ftype == 2):
-                fftT2.append(fftRatio)
+                fftT2Ratio.append(fftRatio)
+                fftT2_New.append(new_fft)
+                fftT2_Old.append(totalOldfft)
             else:
-                fftT3.append(fftRatio)
+                fftT3Ratio.append(fftRatio)
+                fftT3_New.append(new_fft)
+                fftT3_Old.append(totalOldfft)
+
             
             ###############################################################################
 
@@ -243,7 +334,9 @@ t2x,t2y = _t2xx.ravel(), _t2yy.ravel()
 _t3xx, _t3yy = np.meshgrid(_t3xs,_t3ys)
 t3x,t3y = _t3xx.ravel(), _t3yy.ravel()
 
+print("n_trials:" )
 print(t1x)
+print("dimensions: ")
 print(t1y)
     
 zbot = np.zeros(len(t1x))
@@ -258,27 +351,21 @@ t3_proxy = plt.Rectangle((0,0),1,1,fc="g")
 
 
 ##################TotalSpeed BAR GRAPH####################################################
-print("TotalTime T1 " + str(totalTimeT1))
-print("TotalTime T2 " + str(totalTimeT2))
-print("TotalTime T3 " + str(totalTimeT3))
-
+print("\n")
+print("TotalTime T1Ratio " + str(totalTimeT1Ratio))
+print("\n")
+print("TotalTime T2Ratio " + str(totalTimeT2Ratio))
+print("\n")
+print("TotalTime T3Ratio " + str(totalTimeT3Ratio))
+print("\n")
 ax1 = fig.add_subplot(221,projection='3d')
 
-logTotalTimeT1 = np.zeros(len(totalTimeT1))
-logTotalTimeT2 = np.zeros(len(totalTimeT1))
-logTotalTimeT3 = np.zeros(len(totalTimeT1))
-for i in range(len(totalTimeT1)):
-    logTotalTimeT1 = math.log(totalTimeT1[i])
-    logTotalTimeT2 = math.log(totalTimeT2[i])
-    logTotalTimeT3 = math.log(totalTimeT3[i])
-    
-
-if(totalTimeT1):
-    ax1.bar3d(t1x, t1y, zbot, widths, depths, logTotalTimeT1, shade=True, color='r', label='type1', alpha='1')
-if(totalTimeT2):
-    ax1.bar3d(t2x, t2y, zbot, widths, depths, logTotalTimeT2, shade=True, color='b', label='type2', alpha='1')
-if(totalTimeT3):
-    ax1.bar3d(t3x, t3y, zbot, widths, depths, logTotalTimeT3, shade=True, color='g', label='type3', alpha='1')
+if(totalTimeT1Ratio):
+    ax1.bar3d(t1x, t1y, zbot, widths, depths, totalTimeT1Ratio, shade=True, color='r', label='type1', alpha='1')
+if(totalTimeT2Ratio):
+    ax1.bar3d(t2x, t2y, zbot, widths, depths, totalTimeT2Ratio, shade=True, color='b', label='type2', alpha='1')
+if(totalTimeT3Ratio):
+    ax1.bar3d(t3x, t3y, zbot, widths, depths, totalTimeT3Ratio, shade=True, color='g', label='type3', alpha='1')
 
 ax1.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 
@@ -289,28 +376,29 @@ plt.title('totalOldTime/totalNewTime')
 
 
 ##################SPREADING BAR GRAPH####################################################
-print("Spreading T1 " + str(spreadT1))
-print("Spreading T2 " + str(spreadT2))
-print("Spreading T3 " + str(spreadT3))
-
-
-logSpreadT1 = np.zeros(len(spreadT1))
-logSpreadT2 = np.zeros(len(spreadT1))
-logSpreadT3 = np.zeros(len(spreadT1))
-for i in range(len(spreadT1)):
-    logSpreadT1 = math.log(spreadT1[i])
-    logSpreadT2 = math.log(spreadT2[i])
-    logSpreadT3 = math.log(spreadT3[i])
-
+print("##################SPREADING####################################################") 
+print("\n")
+print("Raw T1 Spreading New" + str(spreadT1_New))
+print("Raw T1 Spreading Old" + str(spreadT1_Old))
+print("Spreading T1Ratio " + str(spreadT1Ratio))
+print("\n")
+print("Raw T2 Spreading New" + str(spreadT2_New))
+print("Raw T2 Spreading Old" + str(spreadT2_Old))
+print("Spreading T2Ratio " + str(spreadT2Ratio))
+print("\n")
+print("Raw T3 Spreading New" + str(spreadT3_New))
+print("Raw T3 Spreading Old" + str(spreadT3_Old))
+print("Spreading T3Ratio " + str(spreadT3Ratio))
+print("\n")
 
 ax2 = fig.add_subplot(222,projection='3d')
 
-if(spreadT1):
-    ax2.bar3d(t1x, t1y, zbot, widths, depths, logSpreadT1, shade=True, color='r', label='type1', alpha='1')
-if(spreadT2):
-    ax2.bar3d(t2x, t2y, zbot, widths, depths, logSpreadT2, shade=True, color='b', label='type2', alpha='1')
-if(spreadT3):
-    ax2.bar3d(t3x, t3y, zbot, widths, depths, logSpreadT3, shade=True, color='g', label='type3', alpha='1')
+if(spreadT1Ratio):
+    ax2.bar3d(t1x, t1y, zbot, widths, depths, spreadT1Ratio, shade=True, color='r', label='type1', alpha='1')
+if(spreadT2Ratio):
+    ax2.bar3d(t2x, t2y, zbot, widths, depths, spreadT2Ratio, shade=True, color='b', label='type2', alpha='1')
+if(spreadT3Ratio):
+    ax2.bar3d(t3x, t3y, zbot, widths, depths, spreadT3Ratio, shade=True, color='g', label='type3', alpha='1')
 
 ax2.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 
@@ -322,28 +410,29 @@ plt.title('oldSpreadTime/NewSpreadTime')
 
 
 ##################Total FFTW Plan BAR GRAPH####################################################
-
-print("FFTW Plan T1 " + str(fftwPlanT1))
-print("FFTW Plan T2 " + str(fftwPlanT2))
-print("FFTW Plan T3 " + str(fftwPlanT3))
-
-
-logfftwPlanT1 = np.zeros(len(fftwPlanT1))
-logfftwPlanT2 = np.zeros(len(fftwPlanT1))
-logfftwPlanT3 = np.zeros(len(fftwPlanT1))
-for i in range(len(fftwPlanT1)):
-    logfftwPlanT1 = math.log(fftwPlanT1[i])
-    logfftwPlanT2 = math.log(fftwPlanT2[i])
-    logfftwPlanT3 = math.log(fftwPlanT3[i])
+print("##################Total FFTW Plan####################################################")
+print("\n")
+print("FFTW Plan T1 New " + str(fftwPlanT1_New))
+print("FFTW Plan T1 Old " + str(fftwPlanT1_Old))
+print("FFTW Plan T1Ratio " + str(fftwPlanT1Ratio))
+print("\n")
+print("FFTW Plan T2 New " + str(fftwPlanT2_New))
+print("FFTW Plan T2 Old " + str(fftwPlanT2_Old))
+print("FFTW Plan T2Ratio " + str(fftwPlanT2Ratio))
+print("\n")
+print("FFTW Plan T3 New " + str(fftwPlanT3_New))
+print("FFTW Plan T3 Old " + str(fftwPlanT3_Old))
+print("FFTW Plan T3Ratio " + str(fftwPlanT3Ratio))
+print("\n")
 
 ax3 = fig.add_subplot(223,projection='3d')
 
-if(fftwPlanT1):
-    ax3.bar3d(t1x, t1y, zbot, widths, depths, logfftwPlanT1, shade=True, color='r', label='type1', alpha='1')
-if(fftwPlanT2):
-    ax3.bar3d(t2x, t2y, zbot, widths, depths, logfftwPlanT2, shade=True, color='b', label='type2', alpha='1')
-if(fftwPlanT3):
-    ax3.bar3d(t3x, t3y, zbot, widths, depths, logfftwPlanT3, shade=True, color='g', label='type3', alpha='1')
+if(fftwPlanT1Ratio):
+    ax3.bar3d(t1x, t1y, zbot, widths, depths, fftwPlanT1Ratio, shade=True, color='r', label='type1', alpha='1')
+if(fftwPlanT2Ratio):
+    ax3.bar3d(t2x, t2y, zbot, widths, depths, fftwPlanT2Ratio, shade=True, color='b', label='type2', alpha='1')
+if(fftwPlanT3Ratio):
+    ax3.bar3d(t3x, t3y, zbot, widths, depths, fftwPlanT3Ratio, shade=True, color='g', label='type3', alpha='1')
 
 ax3.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 
@@ -354,28 +443,29 @@ plt.title('totalOldFFtwPlan/NewFftwPlan')
 
 
 ##################Total FFT Exec BAR GRAPH####################################################
-
-print("FFT Exec T1 " + str(fftT1))
-print("FFT Exec T2 " + str(fftT2))
-print("FFT Exec T3 " + str(fftT3))
-
-logfftT1 = np.zeros(len(fftT1))
-logfftT2 = np.zeros(len(fftT1))
-logfftT3 = np.zeros(len(fftT1))
-for i in range(len(fftT1)):
-    logfftT1 = math.log(fftT1[i])
-    logfftT2 = math.log(fftT2[i])
-    logfftT3 = math.log(fftT3[i])
-
+print("##################Total FFT Exec####################################################")
+print("\n")
+print("FFT Exec T1 New " + str(fftT1_New))
+print("FFT Exec T1 Old " + str(fftT1_Old))
+print("FFT Exec T1Ratio " + str(fftT1Ratio))
+print("\n")
+print("FFT Exec T2 New " + str(fftT2_New))
+print("FFT Exec T2 Old " + str(fftT2_Old))
+print("FFT Exec T2Ratio " + str(fftT2Ratio))
+print("\n")
+print("FFT Exec T3 New " + str(fftT3_New))
+print("FFT Exec T3 Old " + str(fftT3_Old))
+print("FFT Exec T3Ratio " + str(fftT3Ratio))
+print("\n")
 
 ax4 = fig.add_subplot(224,projection='3d')
 
-if(fftT1):
-    ax4.bar3d(t1x, t1y, zbot, widths, depths, logfftT1, shade=True, color='r', label='type1', alpha='1')
-if(fftT2):
-    ax4.bar3d(t2x, t2y, zbot, widths, depths, logfftT2, shade=True, color='b', label='type2', alpha='1')
-if(fftT3):
-    ax4.bar3d(t3x, t3y, zbot, widths, depths, logfftT3, shade=True, color='g', label='type3', alpha='1')
+if(fftT1Ratio):
+    ax4.bar3d(t1x, t1y, zbot, widths, depths, fftT1Ratio, shade=True, color='r', label='type1', alpha='1')
+if(fftT2Ratio):
+    ax4.bar3d(t2x, t2y, zbot, widths, depths, fftT2Ratio, shade=True, color='b', label='type2', alpha='1')
+if(fftT3Ratio):
+    ax4.bar3d(t3x, t3y, zbot, widths, depths, fftT3Ratio, shade=True, color='g', label='type3', alpha='1')
 
 ax4.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 

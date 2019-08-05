@@ -7,6 +7,9 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
+#include <thread>
+#include <chrono>
+
 
 // how big a problem to do full direct DFT check in 3D...
 #define BIGPROB 1e8
@@ -204,6 +207,12 @@ int main(int argc, char* argv[])
 	c[i] = crandm11r(&se);
   }
 
+
+  FFTW_CLEANUP();
+  FFTW_CLEANUP_THREADS();
+  FFTW_FORGET_WISDOM();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
   /**********************************************************************************************/
   /* Finufft
   /**********************************************************************************************/
@@ -231,11 +240,11 @@ int main(int argc, char* argv[])
   n_modes[1] = N2;
   n_modes[2] = N3; //#modes per dimension 
 
-  CNTime timer; timer.start();
+
 
   int blksize = MY_OMP_GET_MAX_THREADS(); 
 
-  
+  CNTime timer; timer.start();  
   //Guru Step 1
   int ier = finufft_makeplan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan, opts);
   //for type3, omit n_modes and send in NULL
@@ -271,13 +280,14 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
-    printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
+    printf("finufft_exec %d of: %lld NU pts to %lld modes completed in %.3g s or \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, exec_t , ntransf*M/exec_t);
 
   //Guru Step 4
   timer.restart();
   finufft_destroy(&plan);
   double destroy_t = timer.elapsedsec();
+  printf("finufft_destroy completed in %.3g s\n", destroy_t);
   //You're done!
   
   /**********************************************************************************************/
@@ -287,20 +297,21 @@ int main(int argc, char* argv[])
   double totalTime = plan_t + sort_t + exec_t + destroy_t;
   //comparing timing results with repeated calls to corresponding finufft function 
 
-  fftw_cleanup();
-  fftw_cleanup_threads();
+  FFTW_CLEANUP();
+  FFTW_CLEANUP_THREADS();
   FFTW_FORGET_WISDOM();
-
+  std::this_thread::sleep_for(std::chrono::seconds(1)); 
 
  printf("------------------------OLD IMPLEMENTATION------------------------------\n");
 
  double oldTime = runOldFinufft(c,F, &plan);
 
- fftw_cleanup();
- fftw_cleanup_threads();
+ FFTW_CLEANUP();
+ FFTW_CLEANUP_THREADS();
  FFTW_FORGET_WISDOM();
-
-  printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
+ std::this_thread::sleep_for(std::chrono::seconds(1));
+ 
+ printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, oldTime , ntransf*M/oldTime);
   
   printf("\tspeedup (T_finufft[%d]d[%d]_old / T_finufft[%d]d[%d]) = %.3g\n", ndim,  typeToInt(type),

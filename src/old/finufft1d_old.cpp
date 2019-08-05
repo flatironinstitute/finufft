@@ -53,7 +53,7 @@ int finufft1d1_old(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 
   if (opts.debug) printf("1d1: ms=%lld nf1=%lld nj=%lld ...\n",(long long)ms,(long long)nf1,(long long)nj);
 
-  CNTime timer; timer.start();
+
   int nth = MY_OMP_GET_MAX_THREADS();
   if (nth>1) {             // set up multithreaded fftw stuff...
     FFTW_INIT();           // (these do nothing anyway when OMP=OFF)
@@ -61,6 +61,7 @@ int finufft1d1_old(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   }
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
+  CNTime timer; timer.start();
   FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -154,9 +155,10 @@ int finufft1d2_old(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, opts.fftw); // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 

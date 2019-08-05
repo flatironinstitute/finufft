@@ -1,5 +1,5 @@
 #ifndef FFTW_DEFS_H
-#define FFTE_DEFS_H
+#define FFTW_DEFS_H
 
 // ---------- Precision-indep complex types, macros to FFTW -------------------
 
@@ -21,6 +21,8 @@
   #define FFTW_DE fftwf_destroy_plan
   #define FFTW_FR fftwf_free
   #define FFTW_FORGET_WISDOM fftwf_forget_wisdom
+  #define FFTW_CLEANUP fftwf_cleanup
+  #define FFTW_CLEANUP_THREADS fftwf_cleanup_threads
 #else
   typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
   typedef fftw_plan FFTW_PLAN;
@@ -36,6 +38,8 @@
   #define FFTW_DE fftw_destroy_plan
   #define FFTW_FR fftw_free
   #define FFTW_FORGET_WISDOM fftw_forget_wisdom
+  #define FFTW_CLEANUP fftw_cleanup
+  #define FFTW_CLEANUP_THREADS fftw_cleanup_threads
 #endif
 
 

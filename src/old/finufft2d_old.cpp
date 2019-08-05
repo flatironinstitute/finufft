@@ -85,7 +85,7 @@ int finufft2d1_old(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   if(!fw){
     fprintf(stderr, "Call to malloc failed for result array allocation");
@@ -95,6 +95,7 @@ int finufft2d1_old(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   }
   
   int fftsign = (iflag>=0) ? 1 : -1;
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -348,7 +349,7 @@ int finufft2d2_old(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   if(!fw){
     fprintf(stderr, "Call to malloc failed for fw array allocation!");
@@ -357,6 +358,7 @@ int finufft2d2_old(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
     return ERR_MAXNALLOC;        
   }
   int fftsign = (iflag>=0) ? 1 : -1;
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -551,6 +553,7 @@ int finufft2d2many_old(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag
   if (opts.debug) printf("[many] unspread:\t\t %.3g s\n", time_spread);
   //if (opts.debug) printf("[many] total execute time (exclude fftw_plan, etc.) %.3g s\n",time_spread+time_fft+time_deconv);
 
+  //NOTE: no FFT_DE
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
   free(ier_spreads);
   if (opts.debug) printf("freed\n");

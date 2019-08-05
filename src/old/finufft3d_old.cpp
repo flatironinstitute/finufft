@@ -80,9 +80,11 @@ int finufft3d1_old(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
+
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_3D(nf3,nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -178,9 +180,10 @@ int finufft3d2_old(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3); // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_3D(nf3,nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
