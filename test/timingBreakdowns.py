@@ -63,11 +63,15 @@ spreadT3_Old =[]
 spreadT3_New =[]
 
 fftwPlanT1_Old =[]
+fftwPlanT1_Old_initial =[]
 fftwPlanT1_New =[]
 fftwPlanT2_Old =[]
+fftwPlanT2_Old_initial =[]
 fftwPlanT2_New =[]
 fftwPlanT3_Old =[]
+fftwPlanT3_Old_initial =[]
 fftwPlanT3_New =[]
+
 
 fftT1_Old =[]
 fftT1_New =[]
@@ -103,7 +107,7 @@ for dim in dimensions:
             setPtsTime = stm.extractTime('(finufft_setpts.*completed)(.*)',strOut)
             execTime = stm.extractTime('(finufft_exec.*completed)(.*)', strOut)
             delTime = stm.extractTime('(finufft_destroy.*completed)(.*)',strOut)
-            totalNewTime = planTime + setPtsTime + execTime + delTime
+            totalNewTime = round(planTime + setPtsTime + execTime + delTime,5)
 
             #gather old total time
             totalOldTime = stm.extractTime('(execute.*in)(.*)(or .*)' ,strOut)
@@ -177,6 +181,8 @@ for dim in dimensions:
             new_fftwPlan = round(new_fftwPlan,5)    
 
             #collect the fftw_plan timings for each trial of old
+            isInitial = True
+            initialLookup = 0
             totalOldfftwPlan=0   
             lineMatch = re.findall('(?<!\[make plan\] )fftw plan \(64\).*', strOut) #all fftw plan lines that don't include "make plan" indicating old implm.
             if(lineMatch):
@@ -187,24 +193,31 @@ for dim in dimensions:
                     if(not oldfftwPlanVal):
                         oldfftwPlanVal = re.search(planWholeNumberMatchString, match)
                     oldfftwPlanVal = float(oldfftwPlanVal.group(2).split('s')[0]) #trim off " s"
+                    if(isInitial): #Capture the first fftwplan output - indicating initial construction time
+                        initalLookup = oldfftwPlanVal
+                        isInitial = False
+                    
                     totalOldfftwPlan = totalOldfftwPlan + oldfftwPlanVal
             totalOldfftwPlan = round(totalOldfftwPlan,5)
             
+            #These plan ratios include the initial old implementation plan construction!!
             fftwPlanRatio = round(totalOldfftwPlan/new_fftwPlan,5)
             
             if(ftype == 1):
                 fftwPlanT1Ratio.append(fftwPlanRatio)
                 fftwPlanT1_New.append(new_fftwPlan)
                 fftwPlanT1_Old.append(totalOldfftwPlan)
+                fftwPlanT1_Old_initial.append(initialLookup)
             elif(ftype == 2):
                 fftwPlanT2Ratio.append(fftwPlanRatio)
                 fftwPlanT2_New.append(new_fftwPlan)
                 fftwPlanT2_Old.append(totalOldfftwPlan)
+                fftwPlanT2_Old_initial.append(initialLookup)
             else:
                 fftwPlanT3Ratio.append(fftwPlanRatio)
                 fftwPlanT3_New.append(new_fftwPlan)
                 fftwPlanT3_Old.append(totalOldfftwPlan)
-
+                fftwPlanT3_Old_initial.append(initialLookup)
             
             ###############################################################################
             #fftw_exec(old) / fftw_exec(new)
@@ -272,11 +285,18 @@ t3_proxy = plt.Rectangle((0,0),1,1,fc="g")
 
 
 ##################TotalSpeed BAR GRAPH####################################################
+print("##################Total Time####################################################") 
 print("\n")
+print("Raw T1 Total Time New " + str(totalTimeT1_New))
+print("Raw T1 Total Time Old " + str(totalTimeT1_Old))
 print("TotalTime T1Ratio " + str(totalTimeT1Ratio))
 print("\n")
+print("Raw T2 Total Time New " + str(totalTimeT2_New))
+print("Raw T2 Total Time Old " + str(totalTimeT2_Old))
 print("TotalTime T2Ratio " + str(totalTimeT2Ratio))
 print("\n")
+print("Raw T3 Total Time New " + str(totalTimeT3_New))
+print("Raw T3 Total Time Old " + str(totalTimeT3_Old))
 print("TotalTime T3Ratio " + str(totalTimeT3Ratio))
 print("\n")
 ax1 = fig.add_subplot(221,projection='3d')
@@ -294,6 +314,23 @@ plt.xlabel('n_trials')
 plt.ylabel('Dimensions')
 plt.yticks([y+barWidth+1 for y in range(len(t1y))], ['1', '2', '3'])
 plt.title('totalOldTime/totalNewTime')
+
+
+#### Speed Statistics SANS Initial Planning Time 
+
+TotalSpeedRatioSansPlanT1 = (np.array(totalTimeT1_Old) - np.array(fftwPlanT1_Old_initial))/(np.array(totalTimeT1_New) - np.array(fftwPlanT1_New))
+TotalSpeedRatioSansPlanT2 = (np.array(totalTimeT2_Old) - np.array(fftwPlanT2_Old_initial))/(np.array(totalTimeT2_New) - np.array(fftwPlanT2_New))
+TotalSpeedRatioSansPlanT3 = (np.array(totalTimeT3_Old) - np.array(fftwPlanT3_Old_initial))/(np.array(totalTimeT3_New) - np.array(fftwPlanT3_New))
+
+
+print("Total Speed Ratio SANS initial fftwPlan for old implm. and only fftwPlan for new")
+print("T1: " + str(TotalSpeedRatioSansPlanT1))
+print("T2: " + str(TotalSpeedRatioSansPlanT2))
+print("T3: " + str(TotalSpeedRatioSansPlanT3))
+
+
+
+
 
 
 ##################SPREADING BAR GRAPH####################################################
