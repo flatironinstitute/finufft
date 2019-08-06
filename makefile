@@ -106,7 +106,6 @@ OBJS = src/finufft.o $(COBJS) $(SOBJS)
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
-HEADERS = include/spreadinterp.h include/finufft_old.h include/finufft.h include/dirft.h include/common.h include/defs.h include/utils.h include/finufft_f.h
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python python3 clean objclean pyclean mexclean
 
@@ -157,13 +156,13 @@ else
 	echo "$(STATICLIB) and $(DYNAMICLIB) and $(LEGLIB)  and $(OLDLIB) built, multithreaded versions"
 endif
 
-$(STATICLIB): $(OBJS) $(HEADERS)
+$(STATICLIB): $(OBJS) 
 	ar rcs $(STATICLIB) $(OBJS) 
-$(DYNAMICLIB): $(OBJS) $(HEADERS)
+$(DYNAMICLIB): $(OBJS) 
 	$(CXX) -shared $(OMPFLAGS) $(OBJS)  -o $(DYNAMICLIB) $(LIBSFFT)
-$(LEGLIB): $(LEG_OBJS) $(OBJS)  $(HEADERS)
+$(LEGLIB): $(LEG_OBJS) $(OBJS)
 	ar rcs $(LEGLIB) $(LEG_OBJS) $(OBJS)  
-$(OLDLIB): $(OLD_OBJS) $(HEADERS)
+$(OLDLIB): $(OLD_OBJS) 
 	ar rcs $(OLDLIB) $(OLD_OBJS) 
 
 # here $(OMPFLAGS) and $(LIBSFFT) is needed for mac osx.
@@ -196,28 +195,28 @@ test: $(LEG_STATICLIB)  test/testutils test/finufft1d_test test/finufft2d_test t
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
 	./check_finufft.sh)
 
-test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(LEG_OBJS1)  $(OBJS)  $(HEADERS)
+test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(LEG_OBJS1)  $(OBJS) 
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(LEG_OBJS1)  $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
 
-test/testutils: test/testutils.cpp src/utils.o  $(HEADERS)
+test/testutils: test/testutils.cpp src/utils.o  
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
-test/finufft1d_test: test/finufft1d_test.cpp  $(LEG_OBJS1) $(OLD_OBJS1) $(OBJS) $(HEADERS)
+test/finufft1d_test: test/finufft1d_test.cpp  $(LEG_OBJS1) $(OLD_OBJS1) $(OBJS) 
 	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(LEG_OBJS1) $(OLD_OBJS1) $(OBJS) $(LIBSFFT) -o test/finufft1d_test
-test/finufft2d_test: test/finufft2d_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(HEADERS)
+test/finufft2d_test: test/finufft2d_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) 
 	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(LIBSFFT) -o test/finufft2d_test
-test/finufft3d_test: test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(HEADERS)
+test/finufft3d_test: test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) 
 	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3d_test
-test/dumbinputs: test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(HEADERS)
+test/dumbinputs: test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) 
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(LIBSFFT) -o test/dumbinputs
-test/dumbInputsGuru: test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(HEADERS)
+test/dumbInputsGuru: test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) 
 	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(LIBSFFT) -o test/dumbInputsGuru
-test/finufft3dmany_test: test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(HEADERS)
+test/finufft3dmany_test: test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) 
 	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3dmany_test
-test/finufft2dmany_test: test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(HEADERS)
+test/finufft2dmany_test: test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) 
 	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
-test/finufft1dmany_test: test/finufft1dmany_test.cpp $(LEG_OBJS1) $(OBJS) $(OLD_OBJS1) $(HEADERS)
+test/finufft1dmany_test: test/finufft1dmany_test.cpp $(LEG_OBJS1) $(OBJS) $(OLD_OBJS1) 
 	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(LEG_OBJS1) $(OBJS) $(OLD_OBJS1) $(LIBSFFT) -o test/finufft1dmany_test
-test/finufftGuru_test: test/finufftGuru_test.cpp test/runOldFinufft.o $(OLD_OBJS) $(OBJS)  $(HEADERS)
+test/finufftGuru_test: test/finufftGuru_test.cpp test/runOldFinufft.o $(OLD_OBJS) $(OBJS)  
 	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp test/runOldFinufft.o $(OLD_OBJS) $(OBJS) $(LIBSFFT) -o test/finufftGuru_test
 
 
@@ -226,7 +225,7 @@ perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd test; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
 	(cd test; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
-test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) $(HEADERS)
+test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) 
 	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJS) $(LIBS) -o test/spreadtestnd
 
 # spreader only test (useful for development work on spreader)...
@@ -241,7 +240,7 @@ F1=fortran/nufft1d_demo$(PRECSUFFIX)
 F2=fortran/nufft2d_demo$(PRECSUFFIX)
 F3=fortran/nufft3d_demo$(PRECSUFFIX)
 F4=fortran/nufft2dmany_demo$(PRECSUFFIX)
-fortran: $(FOBJS) $(OBJS) $(HEADERS)
+fortran: $(FOBJS) $(OBJS) 
 	$(FC) $(FFLAGS) $(F1).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F1)
 	$(FC) $(FFLAGS) $(F2).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F2)
 	$(FC) $(FFLAGS) $(F3).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F3)
@@ -252,7 +251,7 @@ fortran: $(FOBJS) $(OBJS) $(HEADERS)
 	time -p $(F4)
 
 # matlab .mex* executable...
-matlab: $(STATICLIB) $(HEADERS) matlab/finufft_m.cpp
+matlab: $(STATICLIB)  matlab/finufft_m.cpp
 ifeq ($(PREC),SINGLE)
 	@echo "MATLAB interface only supports double precision; doing nothing"
 else
@@ -260,7 +259,7 @@ else
 endif
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
-octave: $(STATICLIB) $(HEADERS) matlab/finufft_m.cpp
+octave: $(STATICLIB)  matlab/finufft_m.cpp
 ifeq ($(PREC),SINGLE)
 	@echo "Octave interface only supports double precision; doing nothing"
 else
@@ -297,7 +296,7 @@ endif
 
 # ------------- Various obscure/devel tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!
-test/manysmallprobs: $(STATICLIB) $(HEADERS) test/manysmallprobs.cpp
+test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
 	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp $(STATICLIB) -o test/manysmallprobs $(LIBSFFT)
 	(export OMP_NUM_THREADS=1; time test/manysmallprobs; unset OMP_NUM_THREADS)
 
