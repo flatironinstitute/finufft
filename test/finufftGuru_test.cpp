@@ -27,15 +27,19 @@ int typeToInt(finufft_type type);
 int main(int argc, char* argv[])
 /* Test/Demo the guru interface
 
-   Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [do_spread [upsampfac]]]]]]]
+   Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [spread_scheme [do_spread [upsampfac]]]]]]]]
 
-   debug = 0: rel errors and overall timing, 1: timing breakdowns
+   debug = 0: rel errors and overall timing
+           1: timing breakdowns
            2: also spreading output
-
+   
+   spread_scheme = 0: sequential maximally multithreaded spread/interp
+                   1: parallel singlethreaded spread/interp, nested last batch
+   
    Example: finufftGuru_test 1 1 2 1000 1000 0 1000000 1e-12 2 1 2.0
 
    For Type3, please enter nk in Nmodes space, 0 for rest
-   Example w/ nk = 5000: finufftGuru_test 1 3 2 5000 0 0 1000000 1e-12 2 1 2.0
+   Example w/ nk = 5000: finufftGuru_test 1 3 2 5000 0 0 1000000 1e-12 2 0 1 2.0
 */
   
 {
@@ -75,13 +79,17 @@ int main(int argc, char* argv[])
   int sprDebug = 0;
   if (argc>9) sscanf(argv[9],"%d",&optsDebug);
   sprDebug = (optsDebug>1) ? 1 : 0;  // see output from spreader
+  
+  int sprScheme = 0;
+  if(argc>10) sscanf(argv[10], "%d", &sprScheme); 
+  
   int sprSort = 2 ;
-  if (argc>10) sscanf(argv[10],"%d",&sprSort);
+  if (argc>11) sscanf(argv[11],"%d",&sprSort);
 
-  if (argc>11) sscanf(argv[11],"%lf",&upsampfac);
+  if (argc>12) sscanf(argv[12],"%lf",&upsampfac);
 
-  if (argc==1 || argc>12) {
-    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug [do_spread [upsampfac]]]]]]\n");
+  if (argc==1 || argc>13) {
+    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug spread_scheme [do_spread [upsampfac]]]]]]]]]\n");
     return 1;
   }
 
@@ -234,6 +242,7 @@ int main(int argc, char* argv[])
   plan.spopts.debug = sprDebug;
   opts.spread_sort = sprSort;
   opts.upsampfac = upsampfac;
+  opts.spread_scheme = sprScheme;
 
   BIGINT n_modes[3];
   n_modes[0] = N1;

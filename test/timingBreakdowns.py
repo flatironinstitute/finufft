@@ -6,6 +6,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import re
 import subprocess
+import searchForTimeMetrics as stm
 
 '''
 A script to run a seris of finufftGuru_tests with varying parameters
@@ -75,38 +76,6 @@ fftT2_New =[]
 fftT3_Old =[]
 fftT3_New =[]
 
-decimalMatchString = "\d+\.?\d+" #regular expression to match a decimal number
-sciNotString = "(\d*.?\d*e-\d* s)" #regular expression to match a number in scientific notation
-wholeNumberMatchString = "\d+" 
-
-
-#search string needs to have two groupings! (one for everything besides) (time s)
-def extractTime(searchString, stdOut):
-    planTime = 0
-    lineMatch = re.search(searchString,strOut)
-    if(lineMatch):
-        val = re.search(sciNotString,lineMatch.group(2))
-        if(not val):
-            val = re.search(decimalMatchString, lineMatch.group(2))
-        if(not val):
-            planVal = re.search(wholeNumberMatchString, lineMatch.group(2))
-        planTime = round(float(val.group(0).split('s')[0].strip()),5)
-    return planTime
-
-
-def sumAllTime(searchString, stdOut):
-    newVal = 0
-    lineMatch = re.findall(searchString,strOut)
-    for match in lineMatch:
-        val = re.search(sciNotString, match[1])
-        if(not val): #search failed, try decimal format 
-            val = re.search(decimalMatchString, match[1])
-        if(not val):
-            val = re.search(wholeNumberMatchString, match[1])
-        newVal = newVal + float(val.group(0).split('s')[0].strip()) #trim off " s"
-    newVal = round(newVal,5)
-    return newVal
-
 #do
 for dim in dimensions:
     for ftype in types:
@@ -130,14 +99,14 @@ for dim in dimensions:
             ###############################################################################
 
             #gather total plan,setpts,execute,destroy
-            planTime = extractTime('(finufft_plan.*completed)(.*)',strOut)
-            setPtsTime = extractTime('(finufft_setpts.*completed)(.*)',strOut)
-            execTime = extractTime('(finufft_exec.*completed)(.*)', strOut)
-            delTime = extractTime('(finufft_destroy.*completed)(.*)',strOut)
+            planTime = stm.extractTime('(finufft_plan.*completed)(.*)',strOut)
+            setPtsTime = stm.extractTime('(finufft_setpts.*completed)(.*)',strOut)
+            execTime = stm.extractTime('(finufft_exec.*completed)(.*)', strOut)
+            delTime = stm.extractTime('(finufft_destroy.*completed)(.*)',strOut)
             totalNewTime = planTime + setPtsTime + execTime + delTime
 
             #gather old total time
-            totalOldTime = extractTime('(execute.*in)(.*)(or .*)' ,strOut)
+            totalOldTime = stm.extractTime('(execute.*in)(.*)(or .*)' ,strOut)
 
             if(ftype == 1):
                 totalTimeT1_New.append(totalNewTime)
@@ -162,16 +131,16 @@ for dim in dimensions:
             ###############################################################################
                 
             #spread (old) / [sort+spread]  (new)            
-            newSort = sumAllTime('(.*finufft_setpts.*sort)(.*)', strOut)
+            newSort = stm.sumAllTime('(.*finufft_setpts.*sort)(.*)', strOut)
 
             #collect spreading if any
-            newSpread = extractTime('(.*finufft.*exec.*spread)(.*)' , strOut) 
+            newSpread = stm.extractTime('(.*finufft.*exec.*spread)(.*)' , strOut) 
 
             #collect interp if any
-            newInterp = extractTime('(.*finufft.*exec.*interp)(.*)',strOut)
+            newInterp = stm.extractTime('(.*finufft.*exec.*interp)(.*)',strOut)
 
             #collect the spread timings for each trial of old
-            totalOldSpread = sumAllTime('(.*spread.*ier)(.*)', strOut) #gets spread AND unspread (i.e. interpolation)
+            totalOldSpread = stm.sumAllTime('(.*spread.*ier)(.*)', strOut) #gets spread AND unspread (i.e. interpolation)
 
             spreadRatio = round(totalOldSpread/(newSort + newSpread + newInterp),5)
 
@@ -241,10 +210,10 @@ for dim in dimensions:
             #fftw_exec(old) / fftw_exec(new)
 
             #collect new fft time
-            new_fft = extractTime("(.*finufft_exec.*fft)(.*)" , strOut)
+            new_fft = stm.extractTime("(.*finufft_exec.*fft)(.*)" , strOut)
 
             #collect the fftw_exec timings for each trial of old
-            totalOldfft = sumAllTime("(.*fft \(\d+ threads\))(.*)",strOut) 
+            totalOldfft = stm.sumAllTime("(.*fft \(\d+ threads\))(.*)",strOut) 
 
             fftRatio = round(totalOldfft/new_fft,5)
             

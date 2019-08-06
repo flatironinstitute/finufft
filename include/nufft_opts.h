@@ -15,6 +15,7 @@ typedef struct {      // Note: defaults in common/finufft_default_opts()
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
+  int spread_scheme;  // 0: Sequential Multithreaded, 1: Nested Multithreading
 } nufft_opts;
 
 #endif
