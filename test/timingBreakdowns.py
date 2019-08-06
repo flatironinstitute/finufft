@@ -27,7 +27,7 @@ modes = [1e6,1,1,1e3,1e3,1,1e2,1e2,1e2]
 dimensions = [1,2,3]
 types = [1,2,3] 
 #n_trials=[1,10,100]
-n_trials = [1]
+n_trials = [1,10]
 
 
 #data capture arrays
@@ -82,14 +82,30 @@ wholeNumberMatchString = "\d+"
 
 #search string needs to have two groupings! (one for everything besides) (time s)
 def extractTime(searchString, stdOut):
+    planTime = 0
     lineMatch = re.search(searchString,strOut)
-    val = re.search(sciNotString,lineMatch.group(2))
-    if(not val):
-        val = re.search(decimalMatchString, lineMatch.group(2))
-    if(not val):
-        planVal = re.search(wholeNumberMatchString, lineMatch.group(2))
-    planTime = round(float(val.group(0).split('s')[0].strip()),5)
+    if(lineMatch):
+        val = re.search(sciNotString,lineMatch.group(2))
+        if(not val):
+            val = re.search(decimalMatchString, lineMatch.group(2))
+        if(not val):
+            planVal = re.search(wholeNumberMatchString, lineMatch.group(2))
+        planTime = round(float(val.group(0).split('s')[0].strip()),5)
     return planTime
+
+
+def sumAllTime(searchString, stdOut):
+    newVal = 0
+    lineMatch = re.findall(searchString,strOut)
+    for match in lineMatch:
+        val = re.search(sciNotString, match[1])
+        if(not val): #search failed, try decimal format 
+            val = re.search(decimalMatchString, match[1])
+        if(not val):
+            val = re.search(wholeNumberMatchString, match[1])
+        newVal = newVal + float(val.group(0).split('s')[0].strip()) #trim off " s"
+    newVal = round(newVal,5)
+    return newVal
 
 #do
 for dim in dimensions:
@@ -145,59 +161,17 @@ for dim in dimensions:
 
             ###############################################################################
                 
-            #spread (old) / [sort+spread]  (new)
-            n_sorts = 1
-            newSort = 0
-
-            lineMatch = re.findall('.*finufft_setpts.*sort.*',strOut)
-            for match in lineMatch:
-                sortVal = re.search(sciNotString, match)
-                if(not sortVal): #search failed, try decimal format 
-                    sortVal = re.search(decimalMatchString, match)
-                if(not sortVal):
-                    sortVal = re.search(whooleNumberMatchString, match)
-                newSort = newSort + float(sortVal.group(0).split('s')[0].strip()) #trim off " s"
-            newSort = round(newSort,5)
+            #spread (old) / [sort+spread]  (new)            
+            newSort = sumAllTime('(.*finufft_setpts.*sort)(.*)', strOut)
 
             #collect spreading if any
-            newSpread=0
-            lineMatch = re.search('.*finufft.*exec.*spread.*',strOut)
-            if(lineMatch):
-                spreadVal = re.search(sciNotString, lineMatch.group(0))
-                if(not spreadVal):
-                    spreadVal = re.search(decimalMatchString, lineMatch.group(0))
-                if(not spreadVal):
-                    spreadVal = re.search(wholeNumberMatchString, lineMatch.group(0))
-                newSpread = float(spreadVal.group(0).split('s')[0].strip())  #trim off " s"
-            newSpread = round(newSpread,5)
-            
+            newSpread = extractTime('(.*finufft.*exec.*spread)(.*)' , strOut) 
+
             #collect interp if any
-            newInterp=0
-            lineMatch = re.search('.*finufft.*exec.*interp.*',strOut)
-            if(lineMatch):
-                interpVal = re.search(sciNotString, lineMatch.group(0))
-                if(not interpVal):
-                    interpVal = re.search(decimalMatchString, lineMatch.group(0))
-                if(not interpVal):
-                    interpVal = re.search(wholeNumberMatchString, lineMatch.group(0))
-                newInterp = float(interpVal.group(0).split('s')[0].strip())  #trim off " s"
-            
-            newInterp = round(newInterp,5)
+            newInterp = extractTime('(.*finufft.*exec.*interp)(.*)',strOut)
 
             #collect the spread timings for each trial of old
-            totalOldSpread=0   
-            lineMatch = re.findall('.*spread.*ier.*', strOut) #gets spread AND unspread (i.e. interpolation)
-            if(lineMatch):
-                for match in lineMatch:
-                    if(match):
-                        oldSpreadVal = re.search(sciNotString, match)
-                        if(not oldSpreadVal):
-                            oldSpreadVal = re.search(decimalMatchString, match)
-                        if(not oldSpreadVal):
-                            oldSpreadVal = re.search(wholeNumberMatchString, match)
-                        oldSpreadVal = oldSpreadVal.group(0).split('s')[0].strip() #trim off " s"
-                        totalOldSpread = totalOldSpread + float(oldSpreadVal)
-            totalOldSpread = round(totalOldSpread,5)
+            totalOldSpread = sumAllTime('(.*spread.*ier)(.*)', strOut) #gets spread AND unspread (i.e. interpolation)
 
             spreadRatio = round(totalOldSpread/(newSort + newSpread + newInterp),5)
 
@@ -217,13 +191,13 @@ for dim in dimensions:
             ###############################################################################
 
             #fftw_plan(old) / fftw_plan(new)
-            planSciNotString = '(\(64\)[ \t]+)(\d*.?\d*e-\d* s)'
-            planDecimalMatchString= '(\(64\)[ \t]+)(\d*\.?\d* s)'
-            planWholeNumberMatchString= '(\(64\)[ \t]+)(\d+ s)' 
+            planSciNotString = '(\(\d+\)[ \t]+)(\d*.?\d*e-\d* s)'
+            planDecimalMatchString= '(\(\d+\)[ \t]+)(\d*\.?\d* s)'
+            planWholeNumberMatchString= '(\(\d+\)[ \t]+)(\d+ s)' 
 
             #collect new fftw_plan time
             new_fftwPlan=0
-            lineMatch = re.search("(.*make plan.*fftw plan \(64\).*)|(.*make plan.*fftw plan \(0\).*)",strOut)
+            lineMatch = re.search("(.*make plan.*fftw plan \(\d+\).*)",strOut)
             if(lineMatch):
                 fftwPlanVal = re.search(planSciNotString, lineMatch.group(0))
                 if(not fftwPlanVal):
@@ -238,14 +212,13 @@ for dim in dimensions:
             lineMatch = re.findall('(?<!\[make plan\] )fftw plan \(64\).*', strOut) #all fftw plan lines that don't include "make plan" indicating old implm.
             if(lineMatch):
                 for match in lineMatch:
-                    if(match):
-                        oldfftwPlanVal = re.search(planSciNotString, match)
-                        if(not oldfftwPlanVal):
-                            oldfftwPlanVal = re.search(planDecimalMatchString, match)
-                        if(not oldfftwPlanVal):
-                            oldfftwPlanVal = re.search(planWholeNumberMatchString, match)
-                        oldfftwPlanVal = float(oldfftwPlanVal.group(2).split('s')[0]) #trim off " s"
-                        totalOldfftwPlan = totalOldfftwPlan + oldfftwPlanVal
+                    oldfftwPlanVal = re.search(planSciNotString, match)
+                    if(not oldfftwPlanVal):
+                        oldfftwPlanVal = re.search(planDecimalMatchString, match)
+                    if(not oldfftwPlanVal):
+                        oldfftwPlanVal = re.search(planWholeNumberMatchString, match)
+                    oldfftwPlanVal = float(oldfftwPlanVal.group(2).split('s')[0]) #trim off " s"
+                    totalOldfftwPlan = totalOldfftwPlan + oldfftwPlanVal
             totalOldfftwPlan = round(totalOldfftwPlan,5)
             
             fftwPlanRatio = round(totalOldfftwPlan/new_fftwPlan,5)
@@ -268,31 +241,10 @@ for dim in dimensions:
             #fftw_exec(old) / fftw_exec(new)
 
             #collect new fft time
-            new_fft=0
-            lineMatch = re.search(".*finufft_exec.*fft.*",strOut)
-            if(lineMatch):
-                fftVal = re.search(sciNotString, lineMatch.group(0))
-                if(not fftVal):
-                    fftVal = re.search(decimalMatchString, lineMatch.group(0))
-                if(not fftVal):
-                    fftVal = re.search(wholeNumberMatchString, lineMatch.group(0))
-                new_fft = float(fftVal.group(0).split('s')[0])  #strip off s
-            new_fft = round(new_fft,5)
+            new_fft = extractTime("(.*finufft_exec.*fft)(.*)" , strOut)
 
             #collect the fftw_exec timings for each trial of old
-            totalOldfft=0   
-            lineMatch = re.findall("(.*fft \(\d+ threads\))(.*)", strOut) 
-            if(lineMatch):
-                for match in lineMatch:
-                    if(match):
-                        oldfftVal = re.search(sciNotString, match[1])
-                        if(not oldfftVal): #search failed
-                            oldfftVal = re.search(decimalMatchString, match[1])
-                        if(not oldfftVal):
-                            oldfftVal = re.search(wholeNumberMatchString,match[1])
-                        oldfftVal = float(oldfftVal.group(0).split('s')[0]) #trim off " s"
-                        totalOldfft = totalOldfft + oldfftVal
-            totalOldfft = round(totalOldfft,5)
+            totalOldfft = sumAllTime("(.*fft \(\d+ threads\))(.*)",strOut) 
 
             fftRatio = round(totalOldfft/new_fft,5)
             
