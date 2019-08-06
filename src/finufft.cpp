@@ -393,7 +393,7 @@ void spreadInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, CPX 
   BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3; 
   int blkJump = blkNum*plan->threadBlkSize; 
   
-  int n_outerThreads = 1;
+  int n_outerThreads = 0;
   if(plan->opts.spread_scheme){
     n_outerThreads = ntransfThisBatch;
   }
@@ -435,7 +435,7 @@ void interpInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, CPX 
   BIGINT fwRowSize =  plan->nf1*plan->nf2*plan->nf3;
   int blkJump = blkNum*plan->threadBlkSize; 
 
-  int n_outerThreads = 1;
+  int n_outerThreads = 0;
   if(plan->opts.spread_scheme){
     n_outerThreads = ntransfThisBatch;
   }
