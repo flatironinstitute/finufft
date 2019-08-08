@@ -188,7 +188,7 @@ $(EXC): $(EXC).o $(LEGLIB)
 
 # validation tests... (most link to .o allowing testing pieces separately)
 
-test: $(LEG_STATICLIB)  test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test  test/finufft1dmany_test test/finufftGuru_test test/dumbInputsGuru test/finufft1d_basicpassfail
+test: $(LEG_STATICLIB)  test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test  test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
 	test/finufft1d_basicpassfail 
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
@@ -208,8 +208,6 @@ test/finufft3d_test: test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3)
 	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3d_test
 test/dumbinputs: test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) 
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(LIBSFFT) -o test/dumbinputs
-test/dumbInputsGuru: test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) 
-	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(LIBSFFT) -o test/dumbInputsGuru
 test/finufft3dmany_test: test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) 
 	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3dmany_test
 test/finufft2dmany_test: test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) 
