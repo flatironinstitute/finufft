@@ -1,0 +1,32 @@
+The purpose of this branch was to provide proof of a concept for a finufft library templated for both float and double s.t. a user
+does not need to recompile to switch between data types.
+
+This branch has chaotic git diffs, because every file has changes, but the changes are rather repetitive and tedious.
+
+The core concept implemented in this library is simple.
+
+in include/templates.h, a macro called TEMPLATE is defined:
+
+#define CAT(X,Y) X##_##Y //  "##" is preprocessor syntax for concatentate
+#define TEMPLATE(X,Y) CAT(X,Y)
+
+Everywhere you see TEMPLATE(functionName, float), this expands to functionName_float, and this is how
+two sets of finufft interfaces are defined. finufft_makeplan_float and finufft_makeplan_double and so on for the 4 main
+finufft functions are now the interface to the external finufft user, and all of the internal functions that perform any data
+manipulation or computation and now called by the same TEMPLATE(functionName, T) pattern inside of the library.
+
+The source files finufft.cpp, spread_interp.cpp, common.cpp, etc. and their corresponding header files replace the typedef FLT
+with T, with a #ifdef T at the top (#endif at the bottom). For each of these pairs of source and header files, TWO more files
+are created. All of them have the naming scheme of ${origfile}_tempinstant.{cpp/h}, where tempinstant stands for template
+instantiation. And inside, this is all they do. For instance for finufft.h, first T is defined as float, then the finufft header
+is included, thereby declaring all of the finufft_x_float functions. Then T is redefined as double, and finufft.h is included
+again, thereby declaraing all of the finufft_x_double functions. This is repeated for the source file.
+
+
+A disproportionate amount of messing around and rearranging of the old files was necessary in order to keep all of the
+finufft tests that call the guru interface against old/direct routines. Specifically, non templated versions of all
+the functions and definitions needed to be put in new files (_legacy) all over the place, and some code that was common
+to both the templated and non templated versions had be extracted into new shared files in order to avoid mulitiple definition
+linking errors. I do fear that merging this back into the tip of the guruInterface branch will be a bit of a bear.
+It will be much cleaner if this is done again on a version of the repo that does not contain both the old and new finufft versions,
+because it is the fitting of them together that causes all of the commotion. 

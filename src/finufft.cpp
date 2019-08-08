@@ -3,7 +3,6 @@
 #include <iomanip>
 #include <helpers.h>
 
-//forward declaration
 #ifdef T
 
 //converts a finufft_type to corresponding integer for printing output
