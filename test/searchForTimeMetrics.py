@@ -8,16 +8,16 @@ wholeNumberMatchString = "\d+"
 
 #search string needs to have two groupings! (one for everything besides) (time s)
 def extractTime(searchString, strOut):
-    planTime = 0
+    time = 0
     lineMatch = re.search(searchString,strOut)
     if(lineMatch):
         val = re.search(sciNotString,lineMatch.group(2))
         if(not val):
             val = re.search(decimalMatchString, lineMatch.group(2))
         if(not val):
-            planVal = re.search(wholeNumberMatchString, lineMatch.group(2))
-        planTime = round(float(val.group(0).split('s')[0].strip()),5)
-    return planTime
+            val = re.search(wholeNumberMatchString, lineMatch.group(2))
+        time = round(float(val.group(0).split('s')[0].strip()),5)
+    return time
 
 
 def sumAllTime(searchString, strOut):

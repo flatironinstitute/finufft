@@ -14,7 +14,7 @@ int * buildNf(finufft_plan *plan);
 
 
 int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf,
-		     FLT tol, int threadBlkSize, finufft_plan *plan, nufft_opts opts) {
+                     FLT tol, int threadBlkSize, finufft_plan *plan, nufft_opts opts) {
 
   plan->opts = opts;
   spread_opts spopts;
@@ -104,10 +104,11 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
 
     //do no more work than necessary if the number of transforms is smaller than the the threadBlkSize
     int transfPerBatch = min(plan->threadBlkSize, plan->n_transf); 
+
     //ensure size of upsampled grid does not exceed MAX
     if (nfTotal*transfPerBatch>MAX_NF) { 
       fprintf(stderr,"nf1*nf2*nf3*plan->threadBlkSize=%.3g exceeds MAX_NF of %.3g\n",
-	      (double)nfTotal*transfPerBatch,(double)MAX_NF);
+              (double)nfTotal*transfPerBatch,(double)MAX_NF);
       return ERR_MAXNALLOC;
     }
 
@@ -126,7 +127,7 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
     timer.restart();
     //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
     plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, transfPerBatch, plan->fw, NULL, 1,
-					nfTotal, plan->fw, NULL, 1, nfTotal, fftsign, plan->opts.fftw ) ;    
+                                        nfTotal, plan->fw, NULL, 1, nfTotal, fftsign, plan->opts.fftw ) ;    
 
     if (plan->opts.debug) printf("[make plan] fftw plan (%d) \t\t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
     delete []nf;                       
@@ -177,7 +178,7 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->nj, xj, yj, zj, plan->spopts);
 
     if (plan->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
-				 timer.elapsedsec());
+                                 timer.elapsedsec());
   
 
     plan->X = xj;
@@ -206,31 +207,31 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     arraywidcen(plan->nj,xj,&(plan->t3P.X1),&(plan->t3P.C1));  // get half-width, center, containing {x_j}
     arraywidcen(plan->nk,s,&S1,&(plan->t3P.D1));   // {s_k}
     set_nhg_type3(S1,plan->t3P.X1,plan->opts,plan->spopts,
-		  &(plan->nf1),&(plan->t3P.h1),&(plan->t3P.gam1));          // applies twist i)
+                  &(plan->nf1),&(plan->t3P.h1),&(plan->t3P.gam1));          // applies twist i)
 
     if(plan->n_dims > 1){
       arraywidcen(plan->nj,yj,&(plan->t3P.X2),&(plan->t3P.C2));  // {y_j}
       arraywidcen(plan->nk,t,&S2,&(plan->t3P.D2));   // {t_k}
       set_nhg_type3(S2,plan->t3P.X2,plan->opts,plan->spopts,&(plan->nf2),
-				&(plan->t3P.h2),&(plan->t3P.gam2));
+                    &(plan->t3P.h2),&(plan->t3P.gam2));
     }
     
     if(plan->n_dims > 2){
       arraywidcen(plan->nj,zj,&(plan->t3P.X3),&(plan->t3P.C3));  // {z_j}
       arraywidcen(plan->nk,u,&S3,&(plan->t3P.D3));   // {u_k}
       set_nhg_type3(S3,plan->t3P.X3,plan->opts,plan->spopts,
-		    &(plan->nf3),&(plan->t3P.h3),&(plan->t3P.gam3));
+                    &(plan->nf3),&(plan->t3P.h3),&(plan->t3P.gam3));
     }
 
     if (plan->opts.debug){
       printf("%d d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld M=%lld N=%lld \n", plan->n_dims,
-	     plan->t3P.X1, plan->t3P.C1,S1, plan->t3P.D1, plan->t3P.gam1,(long long) plan->nf1,
-	     (long long)plan->nj,(long long)plan->nk);
+             plan->t3P.X1, plan->t3P.C1,S1, plan->t3P.D1, plan->t3P.gam1,(long long) plan->nf1,
+             (long long)plan->nj,(long long)plan->nk);
       
       if(plan->n_dims > 1 ) printf("X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld \n",plan->t3P.X2, plan->t3P.C2,S2,
-				   plan->t3P.D2, plan->t3P.gam2,(long long) plan->nf2);
+                                   plan->t3P.D2, plan->t3P.gam2,(long long) plan->nf2);
       if(plan->n_dims > 2 ) printf("X3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld \n", plan->t3P.X3, plan->t3P.C3,
-				   S3, plan->t3P.D3, plan->t3P.gam3,(long long) plan->nf3);
+                                   S3, plan->t3P.D3, plan->t3P.gam3,(long long) plan->nf3);
     }
 
     //do no more work than necessary if the number of transforms is smaller than the the threadBlkSize
@@ -260,15 +261,15 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     if(plan->n_dims > 1){
       ypj = (FLT*)malloc(sizeof(FLT)*nj);
       if(!ypj){
-	fprintf(stderr, "Call to malloc failed for rescaled y coordinates\n");
-	return ERR_MAXNALLOC; 
+        fprintf(stderr, "Call to malloc failed for rescaled y coordinates\n");
+        return ERR_MAXNALLOC; 
       }
     }
     if(plan->n_dims > 2){
       zpj = (FLT*)malloc(sizeof(FLT)*nj);
       if(!zpj){
-	fprintf(stderr, "Call to malloc failed for rescaled z coordinates\n");
-	return ERR_MAXNALLOC; 
+        fprintf(stderr, "Call to malloc failed for rescaled z coordinates\n");
+        return ERR_MAXNALLOC; 
       }
     }
 
@@ -277,9 +278,9 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     for (BIGINT j=0;j<nj;++j) {
       xpj[j] = (xj[j] - plan->t3P.C1) / plan->t3P.gam1;          // rescale x_j
       if(plan->n_dims > 1)
-	ypj[j] = (yj[j]- plan->t3P.C2) / plan->t3P.gam2;          // rescale y_j
+        ypj[j] = (yj[j]- plan->t3P.C2) / plan->t3P.gam2;          // rescale y_j
       if(plan->n_dims > 2)
-	zpj[j] = (zj[j] - plan->t3P.C3) / plan->t3P.gam3;          // rescale z_j
+        zpj[j] = (zj[j] - plan->t3P.C3) / plan->t3P.gam3;          // rescale z_j
     }
     if (plan->opts.debug) printf("[finufft_setpts] t3 coord scale:\t\t %.3g s\n",timer.elapsedsec());
 
@@ -291,7 +292,7 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->nj, xpj, ypj, zpj, plan->spopts);
 
     if (plan->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
-				 timer.elapsedsec());
+                                 timer.elapsedsec());
     
     plan->X = xpj;
     plan->X_orig = xj;
@@ -311,8 +312,8 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     if(plan->n_dims > 1 ){
       tp = (FLT*)malloc(sizeof(FLT)*plan->nk);     // t'_k
       if(!tp){
-	fprintf(stderr, "Call to malloc failed for rescaled t target freqs\n");
-	return ERR_MAXNALLOC; 
+        fprintf(stderr, "Call to malloc failed for rescaled t target freqs\n");
+        return ERR_MAXNALLOC; 
       }
     }
 
@@ -320,8 +321,8 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     if(plan->n_dims > 2 ){
       up = (FLT*)malloc(sizeof(FLT)*plan->nk);     // u'_k
       if(!up){
-	fprintf(stderr, "Call to malloc failed for rescaled u target freqs\n");
-	return ERR_MAXNALLOC; 
+        fprintf(stderr, "Call to malloc failed for rescaled u target freqs\n");
+        return ERR_MAXNALLOC; 
       }
     }
 
@@ -329,11 +330,11 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     timer.restart();
 #pragma omp parallel for schedule(static) //static appropriate for load balance across loop iterations 
     for (BIGINT k=0;k<plan->nk;++k) {
-	sp[k] = plan->t3P.h1*plan->t3P.gam1*(s[k]-plan->t3P.D1);      // so that |s'_k| < pi/R
-	if(plan->n_dims > 1 )
-	  tp[k] = plan->t3P.h2*plan->t3P.gam2*(t[k]-plan->t3P.D2);      // so that |t'_k| < pi/R
-	if(plan->n_dims > 2)
-	  up[k] = plan->t3P.h3*plan->t3P.gam3*(u[k]-plan->t3P.D3);      // so that |u'_k| < pi/R
+      sp[k] = plan->t3P.h1*plan->t3P.gam1*(s[k]-plan->t3P.D1);      // so that |s'_k| < pi/R
+      if(plan->n_dims > 1 )
+        tp[k] = plan->t3P.h2*plan->t3P.gam2*(t[k]-plan->t3P.D2);      // so that |t'_k| < pi/R
+      if(plan->n_dims > 2)
+        up[k] = plan->t3P.h3*plan->t3P.gam3*(u[k]-plan->t3P.D3);      // so that |u'_k| < pi/R
     }
     if(plan->opts.debug) printf("[finufft_setpts] rescaling target-freqs: \t %.3g s\n", timer.elapsedsec());
 
@@ -359,13 +360,13 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     if(plan->n_dims > 1){
 #pragma omp parallel for schedule(static)              
       for(BIGINT k=0; k < plan->nk; k++)
-	plan->phiHat[k]*=(plan->phiHat+plan->nk)[k];
+        plan->phiHat[k]*=(plan->phiHat+plan->nk)[k];
     }
 
     if(plan->n_dims > 2){
 #pragma omp parallel for schedule(static)              
       for(BIGINT k=0; k < plan->nk; k++)
-	plan->phiHat[k]*=(plan->phiHat+plan->nk + plan->nk)[k];
+        plan->phiHat[k]*=(plan->phiHat+plan->nk + plan->nk)[k];
     }
     
     plan->s = s;
@@ -385,9 +386,9 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
 };
 
 /*Type 1 + Type 3: Spreads coordinate weights from c into internal workspace fw for sending into fftw */
-void spreadInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, CPX * c, int *ier_spreads){
+void spreadAllSetsInBatch(int nSetsThisBatch, int blkNum, finufft_plan *plan, CPX * c, int *ier_spreads){
 
-  //ntransfThisBatch is the threadBlockSize, except for the last round if threadBlockSize does not
+  //nSetsThisBatch is the threadBlockSize, except for the last round if threadBlockSize does not
   //divide evenly into n_transf. Ensures safe indexing of c.
 
   BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3; 
@@ -395,14 +396,14 @@ void spreadInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, CPX 
   
   int n_outerThreads = 0;
   if(plan->opts.spread_scheme){
-    n_outerThreads = ntransfThisBatch;
+    n_outerThreads = nSetsThisBatch;
   }
   
 #if _OPENMP
   MY_OMP_SET_NESTED(1);
 #endif
 #pragma omp parallel for num_threads(n_outerThreads)
-  for(int i = 0; i < ntransfThisBatch; i++){ 
+  for(int i = 0; i < nSetsThisBatch; i++){ 
 
     //index into this iteration of fft in fw and weights arrays
     FFTW_CPX *fwStart = plan->fw + fwRowSize*i;
@@ -430,21 +431,21 @@ void spreadInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, CPX 
 }
 
 /*Type 2: Interpolates from weights at uniform points in fw to non uniform points in c*/
-void interpInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, CPX * c, int *ier_interps){
+void interpAllSetsInBatch(int nSetsThisBatch, int batchNum, finufft_plan *plan, CPX * c, int *ier_interps){
 
   BIGINT fwRowSize =  plan->nf1*plan->nf2*plan->nf3;
-  int blkJump = blkNum*plan->threadBlkSize; 
+  int blkJump = batchNum*plan->threadBlkSize; 
 
   int n_outerThreads = 0;
   if(plan->opts.spread_scheme){
-    n_outerThreads = ntransfThisBatch;
+    n_outerThreads = nSetsThisBatch;
   }
   
 #if _OPENMP
   MY_OMP_SET_NESTED(1);
 #endif
 #pragma omp parallel for num_threads(n_outerThreads)
-for(int i = 0; i < ntransfThisBatch; i++){ 
+  for(int i = 0; i < nSetsThisBatch; i++){ 
         
     //index into this iteration of fft in fw and weights arrays
     FFTW_CPX *fwStart = plan->fw + fwRowSize*i; //fw gets reread on each iteration of j
@@ -475,23 +476,23 @@ for(int i = 0; i < ntransfThisBatch; i++){
 
 /*Type 1: deconvolves from interior fw array into user supplied fk*/ 
 /*Type 2: deconvolves from user supplied fk into interior fw array */
-void deconvolveInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, CPX *fk){
+void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *plan, CPX *fk){
 
-    //phiHat is a stacked version fwker in the old code 
-    FLT *phiHat1 = plan->phiHat;
-    FLT *phiHat2;
-    FLT *phiHat3;
-    if(plan->n_dims > 1 )
-      phiHat2 = plan->phiHat + plan->nf1/2 + 1;
-    if(plan->n_dims > 2)
-      phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
+  //phiHat is a stacked version fwker in the old code 
+  FLT *phiHat1 = plan->phiHat;
+  FLT *phiHat2;
+  FLT *phiHat3;
+  if(plan->n_dims > 1 )
+    phiHat2 = plan->phiHat + plan->nf1/2 + 1;
+  if(plan->n_dims > 2)
+    phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
 
-    BIGINT fkRowSize = plan->ms*plan->mt*plan->mu;
-    BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3;
-    int blockJump = blkNum*plan->threadBlkSize;
+  BIGINT fkRowSize = plan->ms*plan->mt*plan->mu;
+  BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3;
+  int blockJump = batchNum*plan->threadBlkSize;
 
 #pragma omp parallel for
-    for(int i = 0; i < ntransfThisBatch; i++){
+  for(int i = 0; i < nSetsThisBatch; i++){
 
     CPX *fkStart;
 
@@ -520,52 +521,46 @@ void deconvolveInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, 
       deconvolveshuffle3d(plan->spopts.spread_direction, 1.0, phiHat1, phiHat2,
                           phiHat3, plan->ms, plan->mt, plan->mu,
                           (FLT *)fkStart, plan->nf1, plan->nf2, plan->nf3,
-			  fwStart, plan->opts.modeord);
+                          fwStart, plan->opts.modeord);
     }
   }
 }
 
 
-void type3PrePhaseInParallel(int blkNum, finufft_plan * plan, CPX *cj, CPX *cpj){
+void type3PrePhaseInParallel(int nSetsThisBatch, int batchNum, finufft_plan * plan, CPX *cj, CPX *cpj){
 
-    bool notZero = plan->t3P.D1 != 0.0;
-    if(plan->n_dims > 1) notZero |=  (plan->t3P.D2 != 0.0);
-    if(plan->n_dims > 2) notZero |=  (plan->t3P.D3 != 0.0);
+  bool notZero = plan->t3P.D1 != 0.0;
+  if(plan->n_dims > 1) notZero |=  (plan->t3P.D2 != 0.0);
+  if(plan->n_dims > 2) notZero |=  (plan->t3P.D3 != 0.0);
 
-    CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
+  CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
     
 #pragma omp parallel for
-	for (BIGINT i=0; i<plan->nj;i++){
+  for (BIGINT i=0; i<plan->nj;i++){
 
-	  FLT sumCoords = plan->t3P.D1*plan->X_orig[i];
+    FLT sumCoords = plan->t3P.D1*plan->X_orig[i];
 
-	  if(plan->n_dims > 1)
-	    sumCoords += plan->t3P.D2*plan->Y_orig[i];
-	  if(plan->n_dims > 2)
-	    sumCoords += plan->t3P.D3*plan->Z_orig[i];
-	  
-	  CPX multiplier = exp(imasign*(sumCoords)); // rephase
-	  
-	  for(int k = 0; k < plan->threadBlkSize; k++){
-	    int cpjIndex = k*plan->nj + i;
-	    int cjIndex = blkNum*plan->threadBlkSize*plan->nj + cpjIndex;
+    if(plan->n_dims > 1)
+      sumCoords += plan->t3P.D2*plan->Y_orig[i];
+    if(plan->n_dims > 2)
+      sumCoords += plan->t3P.D3*plan->Z_orig[i];
+          
+    CPX multiplier = exp(imasign*(sumCoords)); // rephase
+          
+    for(int k = 0; k < nSetsThisBatch; k++){
+      int cpjIndex = k*plan->nj + i;
+      int cjIndex = batchNum*plan->threadBlkSize*plan->nj + cpjIndex;
 
-	    //on the last round, cpj will have extra padding at the end
-	    if(cjIndex > plan->n_transf*plan->nj){
-	      cpj[cpjIndex] = 0;
-	    }
-	    else{
-		cpj[cpjIndex] = cj[cjIndex]; 
-	      if(notZero)
-		cpj[cpjIndex] *= multiplier;
-	    }
-	  }
-	}
+      cpj[cpjIndex] = cj[cjIndex]; 
+      if(notZero)
+	cpj[cpjIndex] *= multiplier;
+    }
+  }
 }
 
 
 /*Type 3: In place deconvolve of user supplied result array fk*/
-void type3DeconvolveInParallel(int ntransfThisBatch, int blkNum, finufft_plan *plan, CPX *fk){
+void type3DeconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *plan, CPX *fk){
 
   CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
 
@@ -577,29 +572,29 @@ void type3DeconvolveInParallel(int ntransfThisBatch, int blkNum, finufft_plan *p
   if(plan->n_dims > 2 ) notzero |=  (plan->t3P.C3 != 0.0);
 
 #pragma omp parallel for
-      for (BIGINT k=0;k<plan->nk;++k){     
-	
-        FLT sumCoords = (plan->s[k] - plan->t3P.D1)*plan->t3P.C1;
-	FLT prodPhiHat = plan->phiHat[k]; //already the product of phiHat in each dimension
+  for (BIGINT k=0;k<plan->nk;++k){     
+        
+    FLT sumCoords = (plan->s[k] - plan->t3P.D1)*plan->t3P.C1;
+    FLT prodPhiHat = plan->phiHat[k]; //already the product of phiHat in each dimension
 
-        if(plan->n_dims > 1 ){
-          sumCoords += (plan->t[k] - plan->t3P.D2)*plan->t3P.C2 ;
-        }
-	
-        if(plan->n_dims > 2){
-          sumCoords += (plan->u[k] - plan->t3P.D3)*plan->t3P.C3;
-        }
+    if(plan->n_dims > 1 ){
+      sumCoords += (plan->t[k] - plan->t3P.D2)*plan->t3P.C2 ;
+    }
+        
+    if(plan->n_dims > 2){
+      sumCoords += (plan->u[k] - plan->t3P.D3)*plan->t3P.C3;
+    }
 
-	for(int i = 0; i < ntransfThisBatch ; i++){
+    for(int i = 0; i < nSetsThisBatch ; i++){
 
-	  CPX *fkStart = fk + (i+blkNum*plan->threadBlkSize)*plan->nk; //array of size nk*n_transforms
+      CPX *fkStart = fk + (i+batchNum*plan->threadBlkSize)*plan->nk; //array of size nk*n_transforms
 
-	  fkStart[k] *= (CPX)(1.0/prodPhiHat);
+      fkStart[k] *= (CPX)(1.0/prodPhiHat);
 
-	  if(finite && notzero)
-	    fkStart[k] *= exp(imasign*(sumCoords));    
-	}
-      }
+      if(finite && notzero)
+        fkStart[k] *= exp(imasign*(sumCoords));    
+    }
+  }
 }
 
 
@@ -618,27 +613,27 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
   /******************************************************************/
   if (plan->type != type3){
   
-    for(int blkNum = 0; blkNum*plan->threadBlkSize < plan->n_transf; blkNum++){
+    for(int batchNum = 0; batchNum*plan->threadBlkSize < plan->n_transf; batchNum++){
           
-      int ntransfThisBatch = min(plan->n_transf - blkNum*plan->threadBlkSize, plan->threadBlkSize);
+      int nSetsThisBatch = min(plan->n_transf - batchNum*plan->threadBlkSize, plan->threadBlkSize);
 
       //Type 1 Step 1: Spread to Regular Grid    
       if(plan->type == type1){
-	timer.restart();
-	spreadInParallel(ntransfThisBatch, blkNum, plan, cj, ier_spreads);
-	t_spread += timer.elapsedsec();
+        timer.restart();
+        spreadAllSetsInBatch(nSetsThisBatch, batchNum, plan, cj, ier_spreads);
+        t_spread += timer.elapsedsec();
 
-	for(int i = 0; i < ntransfThisBatch; i++){
-	  if(ier_spreads[i])
-	    return ier_spreads[i];
-	}
+        for(int i = 0; i < nSetsThisBatch; i++){
+          if(ier_spreads[i])
+            return ier_spreads[i];
+        }
       }
 
       //Type 2 Step 1: amplify Fourier coeffs fk and copy into fw
       else if(plan->type == type2){
-	timer.restart();
-	deconvolveInParallel(ntransfThisBatch, blkNum, plan,fk);
-	t_deconv += timer.elapsedsec();
+        timer.restart();
+        deconvolveInParallel(nSetsThisBatch, batchNum, plan,fk);
+        t_deconv += timer.elapsedsec();
       }
              
       //Type 1/2 Step 2: Call FFT   
@@ -649,27 +644,27 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
       //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output 
       if(plan->type == type1){
-	timer.restart();
-	deconvolveInParallel(ntransfThisBatch, blkNum, plan,fk);
-	t_deconv += timer.elapsedsec();
+        timer.restart();
+        deconvolveInParallel(nSetsThisBatch, batchNum, plan,fk);
+        t_deconv += timer.elapsedsec();
       }
 
       //Type 2 Step 3: interpolate from regular to irregular target pts
       else if(plan->type == type2){
-	timer.restart();
-	interpInParallel(ntransfThisBatch, blkNum, plan, cj, ier_spreads);
-	t_spread += timer.elapsedsec(); 
+        timer.restart();
+        interpAllSetsInBatch(nSetsThisBatch, batchNum, plan, cj, ier_spreads);
+        t_spread += timer.elapsedsec(); 
       }
     }
     
 
     if(plan->opts.debug){
       if(plan->type == type1)
-	printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
+        printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
       else //type 2
-	printf("[finufft_exec] interp:\t\t\t %.3g s\n",t_spread);
-    printf("[finufft_exec] fft :\t\t\t %.3g s\n", t_exec);
-    printf("[finufft_exec] deconvolve :\t\t %.3g s\n", t_deconv);
+        printf("[finufft_exec] interp:\t\t\t %.3g s\n",t_spread);
+      printf("[finufft_exec] fft :\t\t\t %.3g s\n", t_exec);
+      printf("[finufft_exec] deconvolve :\t\t %.3g s\n", t_deconv);
     }
     
   }
@@ -707,10 +702,10 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     t2Plan.opts.debug = plan->opts.debug;
     t2Plan.opts.spread_debug = plan->opts.spread_debug;
 
-    
+    int batchSize = min(plan->n_transf, plan->threadBlkSize);
     timer.restart();
-    ier_t2 = finufft_makeplan(type2, plan->n_dims, n_modes, plan->iflag, plan->n_transf, plan->tol,
-			      plan->threadBlkSize, &t2Plan, t2Plan.opts);
+    ier_t2 = finufft_makeplan(type2, plan->n_dims, n_modes, plan->iflag, batchSize, plan->tol,
+                              plan->threadBlkSize, &t2Plan, t2Plan.opts);
     if(ier_t2){
       printf("inner type 2 plan creation failed\n");
       return ier_t2;  
@@ -729,44 +724,45 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     double t_prePhase = 0; 
 
     //Loop over blocks of size plan->threadBlkSize until n_transforms have been computed
-    for(int blkNum = 0; blkNum*plan->threadBlkSize < plan->n_transf; blkNum++){
+    for(int batchNum = 0; batchNum*plan->threadBlkSize < plan->n_transf; batchNum++){
 
       bool lastRound = false;
-
-      //modulus ntransf/blocksize 
-     int ntransfThisBatch = min(plan->n_transf - blkNum*plan->threadBlkSize, plan->threadBlkSize);
+      
+      int nSetsThisBatch = min(plan->n_transf - batchNum*plan->threadBlkSize, plan->threadBlkSize);
      
-     //Is this the last iteration ? 
-     if((blkNum+1)*plan->threadBlkSize > plan->n_transf)
-	lastRound = true;
+      //Is this the last iteration ? 
+      if((batchNum+1)*plan->threadBlkSize > plan->n_transf)
+        lastRound = true;
 
       //prephase this block of coordinate weights
       timer.restart();
-      type3PrePhaseInParallel(blkNum, plan, cj, cpj);
+      type3PrePhaseInParallel(nSetsThisBatch, batchNum, plan, cj, cpj);
       double t = timer.elapsedsec();
       t_prePhase += t;
       
       //Spread from cpj to internal fw array (only threadBlockSize)
       timer.restart();      
-      spreadInParallel(ntransfThisBatch, blkNum, plan, cpj, ier_spreads);
+      spreadAllSetsInBatch(nSetsThisBatch, batchNum, plan, cpj, ier_spreads);
       t_spread += timer.elapsedsec();
 
-      //Indicate to inner type 2 that only ntransfThisBatch transforms are left 
+      //Indicate to inner type 2 that only nSetsThisBatch transforms are left.
+      //This ensures the batch loop for type 2 execute will not attempt to
+      //access beyond allocated size of user supplied arrays: cj and fk.
       if(lastRound){
-	t2Plan.n_transf = ntransfThisBatch;
-      }
+        t2Plan.n_transf = nSetsThisBatch;
+       }
 
       //carry out a finufft execution of size threadBlockSize, indexing appropriately into
       //fk (size nk*n_transforms) each iteration 
       timer.restart();
-      ier_t2 = finufft_exec(&t2Plan, fk+(blkNum*plan->threadBlkSize*plan->nk), (CPX *)plan->fw);
+      ier_t2 = finufft_exec(&t2Plan, fk+(batchNum*plan->threadBlkSize*plan->nk), (CPX *)plan->fw);
       t_innerExec += timer.elapsedsec();
       
       if (ier_t2>0) exit(ier_t2);
       
       //deconvolve this chunk of fk newly output from finufft_exec
       timer.restart();
-      type3DeconvolveInParallel(ntransfThisBatch, blkNum, plan, fk);
+      type3DeconvolveInParallel(nSetsThisBatch, batchNum, plan, fk);
       t_deConvShuff += timer.elapsedsec();
 
     }
@@ -806,7 +802,7 @@ int finufft_destroy(finufft_plan * plan){
   
   //for type 3, original coordinates are kept in {X,Y,Z}_orig,
   //free the X,Y,Z which hold x',y',z'
-   if(plan->type == type3){
+  if(plan->type == type3){
     free(plan->X);
     if(plan->Y)
       free(plan->Y);
@@ -819,7 +815,7 @@ int finufft_destroy(finufft_plan * plan){
       free(plan->tp);
     if(plan->up)
       free(plan->up);
-   }
+  }
    
   return 0;
   
@@ -845,7 +841,7 @@ finufft_type intToType(int i){
   case 1: return type1;
   case 2: return type2;
   case 3: return type3;
-  default : return type1; //barf invalid 
+  default : return type1; //invalid 
 
   }
 }
