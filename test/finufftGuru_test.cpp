@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
-#include <thread>
-#include <chrono>
+#include <unistd.h> //for sleep call 
+//#include <thread>
+//#include <chrono>
 
 
 // how big a problem to do full direct DFT check in 3D...
@@ -219,8 +220,8 @@ int main(int argc, char* argv[])
   FFTW_CLEANUP();
   FFTW_CLEANUP_THREADS();
   FFTW_FORGET_WISDOM();
-  std::this_thread::sleep_for(std::chrono::seconds(1));
-
+  //std::this_thread::sleep_for(std::chrono::seconds(1));
+  sleep(1);
   /**********************************************************************************************/
   /* Finufft
   /**********************************************************************************************/
@@ -309,7 +310,9 @@ int main(int argc, char* argv[])
   FFTW_CLEANUP();
   FFTW_CLEANUP_THREADS();
   FFTW_FORGET_WISDOM();
-  std::this_thread::sleep_for(std::chrono::seconds(1)); 
+
+  //std::this_thread::sleep_for(std::chrono::seconds(1)); if c++11 is allowed
+  sleep(1); //sleep for one second using linux sleep call
 
  printf("------------------------OLD IMPLEMENTATION------------------------------\n");
 
@@ -318,8 +321,8 @@ int main(int argc, char* argv[])
  FFTW_CLEANUP();
  FFTW_CLEANUP_THREADS();
  FFTW_FORGET_WISDOM();
- std::this_thread::sleep_for(std::chrono::seconds(1));
- 
+ //std::this_thread::sleep_for(std::chrono::seconds(1));
+ sleep(1);
  printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, oldTime , ntransf*M/oldTime);
   
