@@ -1,5 +1,7 @@
-#include <finufft.h>
+#include <finufft_tempinstant.h>
 #include <finufft_old.h>
+#include <helpers.h>
+#include <fftw_defs.h>
 #include <dirft.h>
 #include <math.h>
 #include <vector>
@@ -16,7 +18,7 @@
 
 
 //forward declaration 
-double runOldFinufft(CPX *c,CPX *F,finufft_plan *plan);
+double runOldFinufft(TEMPLATE(CPX, float) *c,TEMPLATE(CPX, float) *F,TEMPLATE(finufft_plan, float) *plan);
 finufft_type intToType(int i);
 int typeToInt(finufft_type type);
 
@@ -92,16 +94,16 @@ int main(int argc, char* argv[])
   
   BIGINT N = N1*N2*N3;
   
-  FLT *x = (FLT *)malloc(sizeof(FLT)*M);        // NU pts x coords
+  float *x = (float *)malloc(sizeof(float)*M);        // NU pts x coords
   if(!x){
     fprintf(stderr, "failed malloc x coords\n");
     return 1;
   }
 
-  FLT *y = NULL;
-  FLT *z = NULL;
+  float *y = NULL;
+  float *z = NULL;
   if(ndim > 1){
-    y = (FLT *)malloc(sizeof(FLT)*M);        // NU pts y coords
+    y = (float *)malloc(sizeof(float)*M);        // NU pts y coords
     if(!y){
       fprintf(stderr, "failed malloc y coords\n");
       free(x);
@@ -110,7 +112,7 @@ int main(int argc, char* argv[])
   }
 
   if(ndim > 2){
-    z = (FLT *)malloc(sizeof(FLT)*M);        // NU pts z coords
+    z = (float *)malloc(sizeof(float)*M);        // NU pts z coords
     if(!z){
       fprintf(stderr, "failed malloc z coords\n");
       free(x);
@@ -121,13 +123,13 @@ int main(int argc, char* argv[])
   }
 
   
-  FLT* s = NULL; 
-  FLT* t = NULL; 
-  FLT* u = NULL;
+  float* s = NULL; 
+  float* t = NULL; 
+  float* u = NULL;
 
   if(type == type3){
-    s = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs (1-cmpt)
-    FLT S1 = (FLT)N1/2;            
+    s = (float*)malloc(sizeof(float)*N);    // targ freqs (1-cmpt)
+    float S1 = (float)N1/2;            
 
 #pragma omp parallel
   {
@@ -138,8 +140,8 @@ int main(int argc, char* argv[])
     }
     
     if(ndim > 1 ){
-      t = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs (2-cmpt)
-      FLT S2 = (FLT)N2/2;
+      t = (float*)malloc(sizeof(float)*N);    // targ freqs (2-cmpt)
+      float S2 = (float)N2/2;
       
 #pragma omp for schedule(dynamic,CHUNK)
       for (BIGINT k=0; k<N; ++k) {
@@ -148,8 +150,8 @@ int main(int argc, char* argv[])
     }
     
     if(ndim > 2){
-      u = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs (3-cmpt)
-      FLT S3 = (FLT) N3/2;
+      u = (float*)malloc(sizeof(float)*N);    // targ freqs (3-cmpt)
+      float S3 = (float) N3/2;
 
 #pragma omp for schedule(dynamic,CHUNK)
       for (BIGINT k=0; k<N; ++k) {
@@ -159,7 +161,7 @@ int main(int argc, char* argv[])
   }
   }      
   
-  CPX* c = (CPX*)malloc(sizeof(CPX)*M*ntransf);   // strengths 
+  TEMPLATE(CPX, float)* c = (TEMPLATE(CPX, float)*)malloc(sizeof(TEMPLATE(CPX, float))*M*ntransf);   // strengths 
   if(!c){
     fprintf(stderr, "failed malloc strengths array allocation \n");
     free(x);
@@ -176,7 +178,7 @@ int main(int argc, char* argv[])
       free(u);
   }
 
-  CPX* F = (CPX*)malloc(sizeof(CPX)*N*ntransf);   // mode ampls
+  TEMPLATE(CPX, float)* F = (TEMPLATE(CPX, float)*)malloc(sizeof(TEMPLATE(CPX, float))*N*ntransf);   // mode ampls
   if(!F){
     fprintf(stderr, "failed malloc result array!\n");
     free(x);
@@ -205,7 +207,7 @@ int main(int argc, char* argv[])
   }
 
   //clean slate
-  FFTW_FORGET_WISDOM();
+  TEMPLATE(FFTW_FORGET_WISDOM, float)();
     
   /**********************************************************************************************/
   /* Finufft
@@ -213,13 +215,13 @@ int main(int argc, char* argv[])
 
   printf("------------------------GURU INTERFACE------------------------------\n");
   //Start by instantiating a finufft_plan
-  finufft_plan plan;
+  TEMPLATE(finufft_plan, float) plan;
 
   //Guru Step 0
   finufft_default_opts(&plan.opts);
   
   //Optional Customization opts 
-  plan.opts.upsampfac=(FLT)upsampfac;
+  plan.opts.upsampfac=(float)upsampfac;
   plan.opts.debug = optsDebug;
   plan.opts.spread_debug = sprDebug;
   plan.spopts.debug = sprDebug;
@@ -236,7 +238,7 @@ int main(int argc, char* argv[])
   int blksize = MY_OMP_GET_MAX_THREADS(); 
   
   //Guru Step 1
-  int ier = make_finufft_plan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan);
+  int ier = TEMPLATE(make_finufft_plan,float)(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan);
   //for type3, omit n_modes and send in NULL
   
   double plan_t = timer.elapsedsec();
@@ -250,7 +252,7 @@ int main(int argc, char* argv[])
   
   timer.restart();
   //Guru Step 2
-  ier = setNUpoints(&plan, M, x, y, z, N, s, t, u); //type 1+2, N=0, s,t,u = NULL
+  ier = TEMPLATE(setNUpoints,float)(&plan, M, x, y, z, N, s, t, u); //type 1+2, N=0, s,t,u = NULL
   double sort_t = timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);
@@ -261,7 +263,7 @@ int main(int argc, char* argv[])
   
   timer.restart();
   //Guru Step 3
-  ier = finufft_exec(&plan,c,F);
+  ier = TEMPLATE(finufft_exec,float)(&plan,c,F);
   double  exec_t=timer.elapsedsec();
 
   if (ier!=0) {
@@ -285,12 +287,12 @@ int main(int argc, char* argv[])
 
   double totalTime = plan_t + sort_t + exec_t;
   //comparing timing results with repeated calls to corresponding finufft function 
-  FFTW_FORGET_WISDOM();
+  TEMPLATE(FFTW_FORGET_WISDOM, float)();
 
  printf("------------------------OLD IMPLEMENTATION------------------------------\n");
   
   double oldTime = runOldFinufft(c,F, &plan);
-  FFTW_FORGET_WISDOM();
+  TEMPLATE(FFTW_FORGET_WISDOM, float)();
 
   printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, oldTime , ntransf*M/oldTime);
@@ -303,7 +305,7 @@ int main(int argc, char* argv[])
   /* Free Memory
   /*******************************************************************************************/
 
-  finufft_destroy(&plan);
+  TEMPLATE(finufft_destroy,float)(&plan);
 
   free(F);
   free(c);

@@ -1,15 +1,16 @@
-#include <finufft.h>
+#include <finufft_tempinstant.h>
 #include <finufft_old.h>
+#include <helper.h>
 #include <utils.h>
 
 //forward declaration
-double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan);
+double finufftFunnel(TEMPLATE(CPX,float) *cStart, TEMPLATE(CPX,float) *fStart, TEMPLATE(finufft_plan,float) *plan);
 
 /*A unified interface to all of the old implementations*/ 
-double runOldFinufft(CPX *c,CPX *F,finufft_plan *plan){
+double runOldFinufft(TEMPLATE(CPX,float) *c,TEMPLATE(CPX,float) *F,TEMPLATE(finufft_plan,float) *plan){
     
-    CPX *cStart;
-    CPX *fStart;
+    TEMPLATE(CPX,float) *cStart;
+    TEMPLATE(CPX,float) *fStart;
 
     double time = 0;
     double temp = 0;;
@@ -38,7 +39,7 @@ double runOldFinufft(CPX *c,CPX *F,finufft_plan *plan){
 
 
 
-double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan){
+double finufftFunnel(TEMPLATE(CPX,float) *cStart, TEMPLATE(CPX,float) *fStart, TEMPLATE(finufft_plan,float) *plan){
 
   CNTime timer; timer.start();
   int ier = 0;

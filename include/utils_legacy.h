@@ -17,17 +17,6 @@ void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi);
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
 BIGINT next235even(BIGINT n);
 
-// jfm's timer class
-#include <sys/time.h>
-class CNTime {
- public:
-  void start();
-  double restart();
-  double elapsedsec();
- private:
-  struct timeval initial;
-};
-
 
 #endif 
 

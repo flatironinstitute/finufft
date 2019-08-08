@@ -1,6 +1,7 @@
 #include <iostream>
 #include <common.h>
 #include <iomanip>
+#include <helpers.h>
 
 //forward declaration
 #ifdef T
@@ -60,11 +61,11 @@ int TEMPLATE(make_finufft_plan,T)(finufft_type type, int n_dims, BIGINT *n_modes
     plan->mu = n_modes[2];
     
     //determine size of upsampled array
-    set_nf_type12(plan->ms, plan->opts, spopts, &(plan->nf1)); 
+    TEMPLATE(set_nf_type12,T)(plan->ms, plan->opts, spopts, &(plan->nf1)); 
     if(n_dims > 1)
-      set_nf_type12(plan->mt, plan->opts, spopts, &(plan->nf2)); 
+      TEMPLATE(set_nf_type12,T)(plan->mt, plan->opts, spopts, &(plan->nf2)); 
     if(n_dims > 2)
-      set_nf_type12(plan->mu, plan->opts, spopts, &(plan->nf3)); 
+      TEMPLATE(set_nf_type12,T)(plan->mu, plan->opts, spopts, &(plan->nf3)); 
     
     
 
@@ -670,7 +671,8 @@ int TEMPLATE(finufft_exec,T)(TEMPLATE(finufft_plan,T) * plan , TEMPLATE(CPX,T) *
     // 2) a single call to setNUpoints where scaled target freqs are type2 x,y,z coordinates 
 
     TEMPLATE(finufft_plan,T) t2Plan;
-    finufft_default_opts(&t2Plan.opts);
+    nufft_opts * opts_p = &t2Plan.opts;
+    finufft_default_opts(opts_p);
     t2Plan.opts.debug = plan->opts.debug;
     t2Plan.opts.spread_debug = plan->opts.spread_debug;
 

@@ -74,7 +74,6 @@ typedef struct  {
   
 } TEMPLATE(finufft_plan,T) ;
 
-
 // ------------------ library provides ------------------------------------
 #ifdef __cplusplus
 extern "C"
@@ -83,8 +82,8 @@ extern "C"
 
 // ------------------ Guru Interface ------------------------------------
 
-  int TEMPLATE(make_finufft_plan,T)(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, T tol, int blksize, TEMPLATE(finufft_plan,T) *plan );
   void finufft_default_opts(nufft_opts *o);
+  int TEMPLATE(make_finufft_plan,T)(finufft_type type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, T tol, int blksize, TEMPLATE(finufft_plan,T) *plan );
   int TEMPLATE(setNUpoints,T)(TEMPLATE(finufft_plan,T) * plan , BIGINT M, T *xj, T *yj, T *zj, BIGINT N, T *s, T *t, T *u); 
   int TEMPLATE(finufft_exec,T)(TEMPLATE(finufft_plan,T) * plan ,  TEMPLATE(CPX,T) *weights, TEMPLATE(CPX,T) * result);
   int TEMPLATE(finufft_destroy,T)(TEMPLATE(finufft_plan,T) * plan);

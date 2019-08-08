@@ -1,6 +1,7 @@
 #include <finufft_legacy.h>
 #include <common_legacy.h>
 #include <utils_legacy.h>
+#include <helpers.h>
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>

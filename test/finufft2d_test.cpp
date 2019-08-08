@@ -1,5 +1,6 @@
 #include <finufft_legacy.h>
 #include <finufft_old.h>
+#include <helpers.h> //CNTimer
 #include <dirft.h>
 #include <math.h>
 #include <vector>
@@ -207,13 +208,13 @@ int main(int argc, char* argv[])
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j]));
   printf("[err check] one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
+
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     if(Ft){
-    dirft2d3(M,x,y,c,isign,N,s,t,Ft);       // writes to F
-    printf("[err check] dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
-    //cout<<"s t, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
-    free(Ft);
+      dirft2d3(M,x,y,c,isign,N,s,t,Ft);       // writes to F
+      printf("[err check] dirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+      free(Ft);
     }
   }
   //check against the old

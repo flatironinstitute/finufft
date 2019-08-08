@@ -1,6 +1,7 @@
 #include <finufft_old.h>
 #include <finufft_legacy.h>
-#include <fftw_defs.h>
+#include <fftw_defs_legacy.h>
+#include <helpers.h>
 #include <dirft.h>
 #include <math.h>
 #include <vector>

@@ -85,10 +85,20 @@ OLDLIB = lib-static/$(LIBNAME)_old.a
 # ======================================================================
 
 # objects to compile: spreader...
-SOBJS = src/spreadinterp_tempinstant.o src/utils_tempinstant.o
+SOBJS_TEMP = src/spreadinterp_tempinstant.o src/utils_tempinstant.o
 
 #common objects
-COBJS = src/common_tempinstant.o contrib/legendre_rule_fast.o
+COBJS_TEMP = src/common_tempinstant.o 
+
+# objects to compile: spreader...
+SOBJS = src/legacy/spreadinterp_legacy.o src/legacy/utils_legacy.o
+
+NOTEMPLATE = src/helpers.o
+
+#common objects
+COBJS = src/legacy/common_legacy.o 
+
+LOBJS = contrib/legendre_rule_fast.o
 
 # LEGACY just the dimensions (1,2,3) separately...
 LEG_OBJS1 =  src/legacy/finufft1d.o src/legacy/invokeGuru.o  
@@ -104,15 +114,14 @@ OLD_OBJS3 = src/old/finufft3d_old.o src/direct/dirft3d.o
 
 OLD_OBJS = $(OLD_OBJS1) $(OLD_OBJS2) $(OLD_OBJS3)
 
-OBJS = src/finufft_tempinstant.o $(COBJS) $(SOBJS)
+LIBOBJS = src/finufft_tempinstant.o $(COBJS_TEMP) $(SOBJS_TEMP) $(NOTEMPLATE)
+
+TESTOBJS =  src/finufft_tempinstant.o $(COBJS_TEMP) $(SOBJS_TEMP) $(COBJS) $(SOBJS) $(NOTEMPLATE) $(LOBJS) 
 
 # for Fortran interface demos...
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
-HEADERS = include/spreadinterp_tempinstant.h include/finufft_tempinstant.h include/dirft.h include/common_tempinstant.h include/defs.h include/utils_tempinstant.h include/finufft_f.h
-
-#LEG_HEADERS =
-OLD_HEADERS = include/finufft_old.h
+HEADERS = include/spreadinterp_tempinstant.h include/finufft_tempinstant.h include/dirft.h include/common_tempinstant.h include/defs.h include/utils_tempinstant.h include/finufft_f.h 
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python python3 clean objclean pyclean mexclean
 
@@ -163,12 +172,12 @@ else
 	echo "$(STATICLIB) and $(DYNAMICLIB) and $(LEGLIB)  and $(OLDLIB) built, multithreaded versions"
 endif
 
-$(STATICLIB): $(OBJS) $(HEADERS)
-	ar rcs $(STATICLIB) $(OBJS) 
-$(DYNAMICLIB): $(OBJS) $(HEADERS)
-	$(CXX) -shared $(OMPFLAGS) $(OBJS)  -o $(DYNAMICLIB) $(LIBSFFT)
-$(LEGLIB): $(LEG_OBJS) $(OBJS)  $(HEADERS)
-	ar rcs $(LEGLIB) $(LEG_OBJS) $(OBJS)  
+$(STATICLIB): $(LIBOBJS) $(HEADERS)
+	ar rcs $(STATICLIB) $(LIBOBJS) 
+$(DYNAMICLIB): $(LIBOBJS) $(HEADERS)
+	$(CXX) -shared $(OMPFLAGS) $(LIBOBJS)  -o $(DYNAMICLIB) $(LIBSFFT)
+$(LEGLIB): $(LEG_OBJS) $(LIBOBJS)  $(HEADERS)
+	ar rcs $(LEGLIB) $(LEG_OBJS) $(LIBOBJS)  
 $(OLDLIB): $(OLD_OBJS) $(OLD_HEADERS)
 	ar rcs $(OLDLIB) $(OLD_OBJS) 
 
@@ -195,36 +204,36 @@ $(EXC): $(EXC).o $(LEGLIB)
 
 # validation tests... (most link to .o allowing testing pieces separately)
 
-test: $(LEG_STATICLIB) test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test  test/finufft1dmany_test test/finufftGuru_test test/dumbInputsGuru test/finufft1d_basicpassfail
+test: $(LEG_STATICLIB) test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test  test/finufft1dmany_test  test/finufft1d_basicpassfail
 	(cd test; \
 	./finufft1d_basicpassfail \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
 	./check_finufft.sh)
 
-test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(LEG_OBJS1)  $(OBJS)  $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(LEG_OBJS1)  $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
+test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(LEG_OBJS1)  $(OBJS) $(TESTOBJS)  $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(LEG_OBJS1) $(OBJS) $(TESTOBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
 
 #test/testutils: test/testutils.cpp src/utils.o  $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
-test/finufft1d_test: test/finufft1d_test.cpp  $(LEG_OBJS1) $(OLD_OBJS1) $(OBJS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(LEG_OBJS1) $(OLD_OBJS1) $(OBJS) $(LIBSFFT) -o test/finufft1d_test
-test/finufft2d_test: test/finufft2d_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(LIBSFFT) -o test/finufft2d_test
-test/finufft3d_test: test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3d_test
-test/dumbinputs: test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(LEGLIB) $(OLD_OBJS) $(LIBSFFT) -o test/dumbinputs
-test/dumbInputsGuru: test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(LEG_OBJS) $(OBJS) $(LIBSFFT) -o test/dumbInputsGuru
-test/finufft3dmany_test: test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3dmany_test
-test/finufft2dmany_test: test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
-test/finufft1dmany_test: test/finufft1dmany_test.cpp $(LEG_OBJS1) $(OBJS) $(OLD_OBJS1) $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(LEG_OBJS1) $(OBJS) $(OLD_OBJS1) $(LIBSFFT) -o test/finufft1dmany_test
-test/finufftGuru_test: test/finufftGuru_test.cpp test/runOldFinufft.o $(OLD_OBJS) $(OBJS)  $(HEADERS)
-	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp test/runOldFinufft.o $(OLD_OBJS) $(OBJS) $(LIBSFFT) -o test/finufftGuru_test
+#	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
+test/finufft1d_test: test/finufft1d_test.cpp  $(LEG_OBJS1) $(OLD_OBJS1) $(TESTOBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(LEG_OBJS1) $(OLD_OBJS1) $(TESTOBJS) $(LIBSFFT) -o test/finufft1d_test
+test/finufft2d_test: test/finufft2d_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(TESTOBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(LEG_OBJS2) $(OBJS) $(OLD_OBJS2) $(TESTOBJS) $(LIBSFFT) -o test/finufft2d_test
+test/finufft3d_test: test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3)  $(TESTOBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(LEG_OBJS3) $(OBJS) $(OLD_OBJS3)  $(TESTOBJS) $(LIBSFFT) -o test/finufft3d_test
+test/dumbinputs: test/dumbinputs.cpp  $(LEG_OBJS) $(TESTOBJS) $(OLD_OBJS) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp  $(LEG_OBJS)  $(TESTOBJS) $(OLD_OBJS) $(LIBSFFT) -o test/dumbinputs
+#test/dumbInputsGuru: test/dumbInputsGuru.cpp $(LEG_OBJS) $(TESTOBJS) $(HEADERS)
+#	$(CXX) $(CXXFLAGS) test/dumbInputsGuru.cpp $(LEG_OBJS) $(TESTOBJS) $(LIBSFFT) -o test/dumbInputsGuru
+test/finufft3dmany_test: test/finufft3dmany_test.cpp $(LEG_OBJS3) $(TESTOBJS) $(OLD_OBJS3) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(LEG_OBJS3) $(TESTOBJS) $(OLD_OBJS3) $(LIBSFFT) -o test/finufft3dmany_test
+test/finufft2dmany_test: test/finufft2dmany_test.cpp $(LEG_OBJS2) $(TESTOBJS) $(OLD_OBJS2) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(LEG_OBJS2) $(TESTOBJS) $(OLD_OBJS2) $(LIBSFFT) -o test/finufft2dmany_test
+test/finufft1dmany_test: test/finufft1dmany_test.cpp $(LEG_OBJS1) $(TESTOBJS) $(OLD_OBJS1) $(HEADERS)
+	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(LEG_OBJS1) $(TESTOBJS) $(OLD_OBJS1) $(LIBSFFT) -o test/finufft1dmany_test
+#test/finufftGuru_test: test/finufftGuru_test.cpp test/runOldFinufft.o $(OLD_OBJS) $(TESTOBJS)  $(HEADERS)
+#	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp $(OLD_OBJS) $(TESTOBJS) test/runOldFinufft.o $(LIBSFFT) -o test/finufftGuru_test
 
 
 # performance tests...
@@ -316,7 +325,7 @@ clean: objclean pyclean
 
 # this is needed before changing precision or threading...
 objclean:
-	rm -f $(OBJS) $(OLD_OBJS) $(LEG_OBJS)
+	rm -f $(TESTOBJS) $(OLD_OBJS) $(LEG_OBJS)
 	rm -f fortran/*.o examples/*.o matlab/*.o
 
 pyclean:

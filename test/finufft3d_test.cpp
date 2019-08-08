@@ -1,5 +1,6 @@
 #include <finufft_legacy.h>
 #include <finufft_old.h>
+#include <helpers.h> //CNTimer
 #include <dirft.h>
 #include <math.h>
 #include <vector>

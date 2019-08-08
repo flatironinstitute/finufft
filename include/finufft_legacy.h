@@ -4,7 +4,6 @@
 #include <dataTypes_legacy.h>
 #include <nufft_opts.h>
 
-
 #ifdef __cplusplus
 extern "C"
 {

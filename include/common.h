@@ -9,7 +9,7 @@ typedef std::complex<double> dcomplex;
 
 // common.cpp provides...
 int TEMPLATE(setup_spreader_for_nufft,T)(TEMPLATE(spread_opts,T) &spopts, T eps, nufft_opts opts);
-void set_nf_type12(BIGINT ms, nufft_opts opts, TEMPLATE(spread_opts,T) spopts,BIGINT *nf);
+void TEMPLATE(set_nf_type12,T)(BIGINT ms, nufft_opts opts, TEMPLATE(spread_opts,T) spopts,BIGINT *nf);
 void TEMPLATE(set_nhg_type3,T)(T S, T X, nufft_opts opts, TEMPLATE(spread_opts,T) spopts,
 		  BIGINT *nf, T *h, T *gam);
 void TEMPLATE(onedim_dct_kernel,T)(BIGINT nf, T *fwkerhalf, TEMPLATE(spread_opts,T) opts);
