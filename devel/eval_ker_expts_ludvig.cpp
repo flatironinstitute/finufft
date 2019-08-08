@@ -5,6 +5,9 @@
 
 g++-7 eval_ker_expts_ludvig.cpp -o eval_ker_expts_ludvig -Ofast -funroll-loops -march=native -fopt-info; time ./eval_ker_expts_ludvig
 
+Update: (8/8/19)
+g++-8 is less brittle - it is able to get 0.2 s runtime for i=1 or 0 start.
+
 Ludvig's tweak of eval_ker_expts, 3/29/18.  Can get <0.2s for M=1e7, w=12.
 Note that the range of arguments is wrong [-1,1] not [-w/2,w/2].
 This might explain the v. fast 0.2 s timing possible.
