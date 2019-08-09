@@ -13,6 +13,8 @@ int typeToInt(finufft_type type);
 int * buildNf(finufft_plan *plan);
 
 
+//populates the fields of finufft_plan, and for type 1+2 allocates memory for internal working arrays,
+//evaluates spreading kernel coefficients, and instantiates the fftw_plan
 int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf,
                      FLT tol, int threadBlkSize, finufft_plan *plan, nufft_opts opts) {
 
@@ -55,7 +57,7 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
 
   if((type == type1) || (type == type2)){
   
-    if (plan->threadBlkSize>1) {          
+    if (plan->threadBlkSize>1) {          //type 3 will call finufft_makeplan for type2, thus no need to call twice. 
       FFTW_INIT();
       FFTW_PLAN_TH(plan->threadBlkSize);
     }
@@ -147,6 +149,8 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
 };
 
 
+//Sorts the coordinate points and for type 3:  allocates internal working arrays, scales the grid coordinates and target freqs,
+//and evaluates the spreading kernel fourier weights 
 int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT nk, FLT * s, FLT *t, FLT * u){
 
   plan->nj = nj;
@@ -339,8 +343,6 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
     if(plan->opts.debug) printf("[finufft_setpts] rescaling target-freqs: \t %.3g s\n", timer.elapsedsec());
 
     // Originally Step 3a: compute Fourier transform of scaled kernel at targets
-
-
     timer.restart();
     plan->phiHat = (FLT *)malloc(sizeof(FLT)*plan->nk*plan->n_dims);
     if(!plan->phiHat){
@@ -393,14 +395,19 @@ void spreadAllSetsInBatch(int nSetsThisBatch, int blkNum, finufft_plan *plan, CP
 
   BIGINT fwRowSize = plan->nf1*plan->nf2*plan->nf3; 
   int blkJump = blkNum*plan->threadBlkSize; 
-  
+
+  //default sequential maximum multithreaded: execute
+  //the for-loop down below on THIS thread (spawn no others)
+  //and leave all the multithreading for inside of the spreadSorted call
   int n_outerThreads = 0;
   if(plan->opts.spread_scheme){
-    n_outerThreads = nSetsThisBatch;
+    //spread_scheme == 1 -> simultaneous singlethreaded/nested multi
+    n_outerThreads = nSetsThisBatch; //spawn as many threads as sets, if fewer sets than available threads
+                                     //the extra threads used for work inside of spreadSorted 
   }
   
 #if _OPENMP
-  MY_OMP_SET_NESTED(1);
+  MY_OMP_SET_NESTED(1); 
 #endif
 #pragma omp parallel for num_threads(n_outerThreads)
   for(int i = 0; i < nSetsThisBatch; i++){ 
@@ -436,9 +443,14 @@ void interpAllSetsInBatch(int nSetsThisBatch, int batchNum, finufft_plan *plan, 
   BIGINT fwRowSize =  plan->nf1*plan->nf2*plan->nf3;
   int blkJump = batchNum*plan->threadBlkSize; 
 
+  //default sequential maximum multithreaded: execute
+  //the for-loop down below on THIS thread (spawn no others)
+  //and leave all the multithreading for inside of the interpSorted call
   int n_outerThreads = 0;
   if(plan->opts.spread_scheme){
-    n_outerThreads = nSetsThisBatch;
+    //spread_scheme == 1 -> simultaneous singlethreaded/nested multi
+    n_outerThreads = nSetsThisBatch; //spawn as many threads as sets, if fewer sets than available threads
+                                     //the extra threads used for work inside of spreadSorted 
   }
   
 #if _OPENMP
@@ -526,7 +538,8 @@ void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *plan, 
   }
 }
 
-
+/*Type 3 multithreaded prephase all nj scaled weights for all of the sets of weights in this batch*/
+//occurs inplace of internal finufft array cpj (sized nj*threadBlkSize)
 void type3PrePhaseInParallel(int nSetsThisBatch, int batchNum, finufft_plan * plan, CPX *cj, CPX *cpj){
 
   bool notZero = plan->t3P.D1 != 0.0;
@@ -559,7 +572,7 @@ void type3PrePhaseInParallel(int nSetsThisBatch, int batchNum, finufft_plan * pl
 }
 
 
-/*Type 3: In place deconvolve of user supplied result array fk*/
+/*Type 3 multithreaded In place deconvolve of user supplied result array fk (size nk*n_transf)*/
 void type3DeconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *plan, CPX *fk){
 
   CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
@@ -597,7 +610,8 @@ void type3DeconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *p
   }
 }
 
-
+/*Performs spread/interp, pre/post deconvolve, and fftw_exec as appropriate for 3 types*/
+//for cases of n_transf > 1, performs work in batches of size min(n_transf, threadBlkSize)
 int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
   CNTime timer; 
