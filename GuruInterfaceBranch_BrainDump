@@ -18,7 +18,8 @@ All headers are in the include directory. Include statements use #include <heade
 the makefile line "CFLAGS += -I include" ensures all headers inside of this "include" directory will be
 available to a file if they are referred to with the former syntax.
 
-|nufft_opts.h| : Additional parameter spread_scheme {0:Sequential Multithreaded, 1: Nested Multithreaded}
+|nufft_opts.h| : Additional parameter spread_scheme {0:Sequential Multithreaded, 1: Nested Multithreaded}.
+	         The default spread_scheme is set to 0. 
 
 **Src Directory**
 
@@ -26,8 +27,8 @@ available to a file if they are referred to with the former syntax.
 
 |old| : All of the old implementations have been moved to src/old/finufft?d_old.cpp.
 
-        The one change made was for collection of timing statistics - malloc calls for fftw working arrays moved outside
-	of timing capture. Only in the 1d file were fftw_init() calls also inside of the time capture, those also moved outside,
+        The one change made to these files was for collection of timing statistics - malloc calls for fftw working arrays moved outside
+	of timing capture. Only in the 1d file were fftw_init() calls also inside of the time capture. Those also moved outside,
 	as neither are included in the new implementations fftw_plan time statistic.
 
 |legacy|: these files maintain backwards compatability with prior release such that the old routines call the new
@@ -43,7 +44,8 @@ available to a file if they are referred to with the former syntax.
 
               1) finufft_default_opts(): identical to original version + extra spreading_scheme parameter set default to 0 : sequential
 	      	 		         multithreaded scheme. Set to 1 to switch to simultaneous single threaded with nested at
-					 the end.
+					 the end. Description of schemes below.
+					 
               2) finufft_makeplan(): sets the fields of the plan struct.
 
 	      	 		     ==================================Types 1 + 2=============================================
@@ -62,10 +64,11 @@ available to a file if they are referred to with the former syntax.
 				     Then how_many is set to n_transf. Note that when n_transf > threadBlkSize, but is not divided
 				     evenly by threadBlkSize, the final call to fftw_exec within the final loop of finufft_execution
 				     will still perform threadBlkSize transforms, even though a remainder less than threadBlkSize
-				     remains to be done. This is safe because the fw array allocated is large enough, for fftw
+				     remains to be done. This is safe because the fw array allocated is large enough for fftw
 				     to not run into trouble, however the contents of the array at the end are garbage- never filled
-				     in with sets of spread/interpolated weights. This course was chosen instead of creating a new
-				     fftw_plan on the last round with a different "how_many" and calling fftw_exec on the new plan. 
+				     in with sets of spread/interpolated weights. They are not read out either, so there is no effect.
+				     This course was chosen instead of creating a new fftw_plan on the last round with a different
+				     "how_many" and calling fftw_exec on the new plan. 
 				     
               3) finufft_setpts():  sets the coordinate pointers with the provided pts. 
 
@@ -80,8 +83,8 @@ available to a file if they are referred to with the former syntax.
 				    according to the same batch sizing guidelines described above.
 
 				    The coordinates are rescaled, and then indexSort is called. The scaled coordinates are stored
-				    as X,Y,Z in the plan, in order to share the spreading/interp functions with types 1 and 2.
-				    A pointer to the originals are also saved for the prephase function. The destroy function
+				    as X,Y,Z in the plan, (instead of Xp,Yp,Zp) in order to share the spreading/interp functions with
+				    types 1 and 2. A pointer to the originals are also saved for the prephase function. The destroy function
 				    handles type3 pointers specially, only deleting the scaled ones and not the user supplied ones.
 
 				    The target frequencies are scaled, and the spreading kernel fourier weights are computed. PhiHat
@@ -113,7 +116,7 @@ available to a file if they are referred to with the former syntax.
 
 				 spreadAllSetsInBatch and interpAllSetsInBatch work differently than the other three. The internal
 				 spread and interp routines are multithreaded, and configured to use however many threads happen
-				 to be available at they are executing. There was a decision to be made whether to turn off the
+				 to be available as they are executing. There was a decision to be made whether to turn off the
 				 multithreading inside of these threads, and execute the loop containing these calls in parallel,
 				 or to sequentially call these routines allowing for maximal multithreading inside. See #4 down below
 				 for a complete discussion.
@@ -126,7 +129,7 @@ available to a file if they are referred to with the former syntax.
 				  interior type2.
 
 				  The n_transf parameter for the internal type2 plan is min(n_transf, threadBlkSize). In other words
-				  the interior type 2 will like all the other routines be called several times, with a constant
+				  the interior type 2 will, like all the other routines, be called several times, with a constant
 				  batch size. Inside of that type 2 finufft_exec, there will only be a single "interior batch",
 				  because the type 2 n_transf is always less than or equal to the threadBlkSize. On the last
 				  type 3 execute batch, the interior type 2 n_transf field must be set to the modulus of
@@ -142,7 +145,7 @@ available to a file if they are referred to with the former syntax.
 |make test| : still calls check1d.sh, check2d.sh, check3d.sh, dumpinputs. check?d all call finufft?d_test and finufft?dmany_test
 
 |finufft?d_test| : use the legacy interface to call the new implementations, and check for accuracy against the old/direct/bruteforce
-                   at a randome mode/target point, for either the only trial if single transform, or the middle/last if there are many
+                   at a random mode/target point, for either the only trial if single transform, or the middle/last if there are many
 
 |dumbinputs| : has been expanded to check bad inputs across the extended legacy interface
 
@@ -163,7 +166,7 @@ available to a file if they are referred to with the former syntax.
                       this single finufft?d? call. FinufftFunnel merely parses the parameters contained in plan- namely dimension and
                       type to call the appropriate finufft?d?_old routine
 
-|timingBreakdowns.py| :  this script automates running finufftGuru_test with varyinf  dimension, type, and n_transf parameters.
+|timingBreakdowns.py| :  this script automates running finufftGuru_test with varying dimension, type, and n_transf parameters.
 		         The output is then parsed for raw timing statistics reported for totalTime, spread time, fftw_plan time,
 			 and fftw_execution time. Ratios of (old implementation time)/(new implementation time) are calculated,
 			 and 3D Bar graphs are generated for all four statistics.
@@ -199,16 +202,19 @@ available to a file if they are referred to with the former syntax.
 1) Speedup due to non fftw_plan retrieval?
    Evidence exists that a primary goal of this guru interface effort has been achieved for large problems.
    The file timingResults/timingBreakdowns_largeProblems.out contain stats reported from timingBreakdowns.py for a problem size 1e7.
-   These show a decrease in time spent in fftw_plan linearly proportional to the number of transforms computed.
+   The files timingResults/timingBreakdowns_smallProblems_* contain stats reported for timingBreaddowns.py for a problem of size 1e4.
+   All of these show a decrease in time spent in fftw_plan linearly proportional to the number of transforms computed.
    
 2) Speedup due to non-repeated sorting?
-   timingResults/timingBreakdowns_sortingDominates.out provides good evidence for the guru speedup due to time advantage of
-   single sort over repeated sort
+   The Spreading results section in timingResults/timingBreakdowns_sortingDominates.out, run with M = 1e7 and N = 1e4,
+   provides good evidence for the guru speedup due to time advantage of single sort over repeated sort. 
    
 3) FFTW and single vs many plan and execution?
-   Does FFTW do better for one or the other? For large problems, many execution looks better than repeated single, however trials
+   Does FFTW do better performing one fftw_execute many times in a loop or a single time over many sets?
+   For large problems, many execution looks better than repeated single, however trials
    consistently show a few troublesome looking ratios: 2d_10trials, 3d_10trials for type 1 and type 2. However, raw timing values
-   shown just above reveal that the actual differences are < 0.09s. This phenomenon is exacerbated for small problems.
+   shown just above reveal that the actual differences are < 0.09s. This phenomenon is exacerbated for small problems, as can clearly
+   be seen in the smallProblems timing result files.
 
 4) Speed implications of spreading scheme?
 
@@ -242,7 +248,7 @@ available to a file if they are referred to with the former syntax.
    the very inclusion of the code that allows for the user configurable switch between the two sorting schemes causes
    an impactful slow down more significant than anything apparent between the two schemes. This is unintuitive,
    as the #pragma parallel for num_threads(0) shouldn't perform significant work, but the New raw spreading times between
-   SequentialMulti.out and SequentialMulti_noSwitch.out shows definitively that the former eats up more time. This needs more
+   SequentialMulti.out and SequentialMulti_noSwitch.out shows definitively that the former eats up more raw time. This needs more
    investigation. The code being referred to is identical in spreadAllSetsInBatch and interpAllSetsInBatch in finufft.cpp.
    The lines beginning at the declaration of the n_outerThreads variable down to #pragma omp parallel before the for-loop, and then
    the three lines at the bottom that reset nested to 0.
