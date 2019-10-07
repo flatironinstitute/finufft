@@ -1,18 +1,37 @@
 CC=gcc
 CXX=g++
 NVCC=nvcc
-CXXFLAGS=-DSINGLE -DNEED_EXTERN_C -fPIC -Ofast -funroll-loops -march=native -g
+
+CXXFLAGS=-DNEED_EXTERN_C -fPIC -O3 -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_70 -DSINGLE -DSPREADTIME -DTIME -lineinfo --default-stream per-thread
+NVCCFLAGS=-arch=sm_70 -DTIME --default-stream per-thread -Xcompiler -fPIC
 #If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 #DEBUG add "-g -G" for cuda-gdb debugger
+
+ifeq ($(PREC),SINGLE)
+PRECSUFFIX=f
+CXXFLAGS+=-DSINGLE
+NVCCFLAGS+=-DSINGLE
+else
+PRECSUFFIX=
+endif
 
 INC=-I/cm/shared/sw/pkg/devel/cuda/9.0.176/samples/common/inc/ \
     -I/mnt/home/yshih/cub/ \
     -I/cm/shared/sw/pkg/devel/cuda/9.0.176/include/
 LIBS_PATH=
-LIBS=-lm -lfftw3f -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda
 
+FFTWNAME=fftw3
+FFTW=$(FFTWNAME)$(PRECSUFFIX)
+
+LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTW)
+
+LIBNAME=libcufinufft$(PRECSUFFIX)
+DYNAMICLIB=lib/$(LIBNAME).so
+STATICLIB=lib-static/$(LIBNAME).a
+
+HEADERS = src/cufinufft.h src/deconvolve.h src/memtrasfer.h src/profile.h \
+	src/spreadinterp.h
 FINUFFTOBJS=finufft/utils.o finufft/dirft2d.o finufft/common.o \
 	finufft/spreadinterp.o finufft/contrib/legendre_rule_fast.o
 
@@ -27,6 +46,8 @@ CUFINUFFTOBJS=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(INC) $< -o $@
+%.o: %.c
+	$(CC) -c $(CXXFLAGS) $(INC) $< -o $@
 %.o: %.cu
 	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
 
@@ -83,6 +104,14 @@ all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d \
 	interp3d cufinufft3d1_test cufinufft3d2_test spreadinterp3d_test \
 	example2d1
+
+lib: $(STATICLIB) $(DYNAMICLIB)
+
+$(STATICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+	ar rcs $(STATICLIB) $(CUFINUFFTOBJS)
+$(DYNAMICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+	$(NVCC) -shared $(NVCCFLAGS) $(CUFINUFFTOBJS) $(FINUFFTOBJS) -o $(DYNAMICLIB) $(LIBS) 
+
 clean:
 	rm -f *.o
 	rm -f test/*.o
