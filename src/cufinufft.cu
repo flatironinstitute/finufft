@@ -151,6 +151,9 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 		{
 			int n[] = {nf2, nf1};
 			int inembed[] = {nf2, nf1};
+			
+			//cufftCreate(&fftplan);
+			//cufftPlan2d(&fftplan,n[0],n[1],CUFFT_TYPE);
 			cufftPlanMany(&fftplan,dim,n,inembed,1,inembed[0]*inembed[1],
 				inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,ntransfcufftplan);
 		}

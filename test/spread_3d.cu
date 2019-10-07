@@ -36,9 +36,9 @@ int main(int argc, char* argv[])
 	if(argc>6){
 		sscanf(argv[6],"%d",&maxsubprobsize);
 	}
-	N1 = (int) nf1/sigma*2;
-	N2 = (int) nf2/sigma*2;
-	N3 = (int) nf3/sigma*2;
+	N1 = (int) nf1/sigma;
+	N2 = (int) nf2/sigma;
+	N3 = (int) nf3/sigma;
 	M = N1*N2*N3;// let density always be 1
 	if(argc>7){
 		sscanf(argv[7],"%lf",&w); M  = (int)w;  // so can read 1e6 right!

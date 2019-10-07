@@ -71,6 +71,7 @@ int main(int argc, char* argv[])
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
+	float totaltime = 0;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
@@ -105,6 +106,7 @@ int main(int argc, char* argv[])
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
+	totaltime += milliseconds;
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
@@ -116,6 +118,7 @@ int main(int argc, char* argv[])
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
+	totaltime += milliseconds;
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
@@ -127,6 +130,7 @@ int main(int argc, char* argv[])
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
+	totaltime += milliseconds;
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
@@ -134,11 +138,15 @@ int main(int argc, char* argv[])
 	ier=cufinufft_destroy(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
+	totaltime += milliseconds;
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 
 	checkCudaErrors(cudaMemcpy(fk,d_fk,N1*N2*sizeof(CUCPX),
 		cudaMemcpyDeviceToHost));
+
+	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
+			dplan.opts.gpu_method,M,N1*N2,totaltime/1000,M/totaltime*1000);
 
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
 	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;

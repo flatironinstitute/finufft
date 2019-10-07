@@ -55,7 +55,7 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tCopy h_c HtoD, zeroed fw %.3g s\n", 
+		printf("[time  ] \tZeroed fw\t\t%.3g s\n", 
 			milliseconds/1000);
 #endif
 		// Step 1: Spread

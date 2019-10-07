@@ -122,13 +122,12 @@ int main(int argc, char* argv[])
 			printf("err: cufinufft_makeplan\n");
 		}
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
-#endif
+
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft_setNUpts",3);
@@ -137,13 +136,12 @@ int main(int argc, char* argv[])
 			printf("err: cufinufft_setNUpts\n");
 		}
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
-#endif
+
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft_exec",4);
@@ -152,25 +150,22 @@ int main(int argc, char* argv[])
 			printf("err: cufinufft_exec\n");
 		}
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
-#endif
+
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_destroy",5);
 		ier=cufinufft_destroy(&dplan);
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
-#endif
 
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 	
