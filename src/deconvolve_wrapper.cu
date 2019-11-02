@@ -127,8 +127,9 @@ int cudeconvolve2d(cufinufft_plan *d_plan)
 #ifdef DEBUG
 			CPX* h_fw;
 			h_fw = (CPX*) malloc(nf1*nf2*sizeof(CPX));
-			checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(CUCPX),d_plan->fw,nf1*sizeof(CUCPX),
-						nf1*sizeof(CUCPX),nf2,cudaMemcpyDeviceToHost));
+			checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(CUCPX),d_plan->fw,
+				nf1*sizeof(CUCPX),nf1*sizeof(CUCPX),nf2,
+				cudaMemcpyDeviceToHost));
 			for(int j=0; j<nf2; j++){
 				for(int i=0; i<nf1; i++){
 					printf("(%g,%g)",h_fw[i+j*nf1].real(),h_fw[i+j*nf1].imag());
@@ -191,4 +192,3 @@ int cudeconvolve3d(cufinufft_plan *d_plan)
 	}
 	return 0;
 }
-

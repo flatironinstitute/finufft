@@ -4,7 +4,7 @@ NVCC=nvcc
 
 CXXFLAGS=-DNEED_EXTERN_C -fPIC -O3 -funroll-loops -march=native -g
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-arch=sm_70 -DTIME --default-stream per-thread -Xcompiler -fPIC
+NVCCFLAGS=-DTIME -arch=sm_70 --default-stream per-thread -Xcompiler -fPIC
 #If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 #DEBUG add "-g -G" for cuda-gdb debugger
 
@@ -136,3 +136,5 @@ clean:
 	rm -f spreadinterp_test
 	rm -f spreadinterp3d_test
 	rm -f example2d1
+	rm -f lib/*.so
+	rm -f lib-static/*.a
