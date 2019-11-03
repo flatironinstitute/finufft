@@ -301,7 +301,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan)
+int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan, int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -352,7 +352,7 @@ int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 		cout<<"error: not enough shared memory"<<endl;
 		return 1;
 	}
-	for(int t=0; t<d_plan->ntransfcufftplan; t++){
+	for(int t=0; t<blksize; t++){
 		Spread_2d_Subprob_Paul<<<totalnumsubprob,1024,
 			sharedplanorysize>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
 			ns, nf1, nf2, es_c, es_beta, sigma, d_binstartpts, d_binsize, 

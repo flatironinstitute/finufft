@@ -97,7 +97,7 @@ void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 }
 
 
-int cudeconvolve2d(cufinufft_plan *d_plan)
+int cudeconvolve2d(cufinufft_plan *d_plan, int blksize)
 /* 
 	wrapper for deconvolution & amplication in 2D.
 
@@ -112,7 +112,7 @@ int cudeconvolve2d(cufinufft_plan *d_plan)
 	int ntransfcufftplan=d_plan->ntransfcufftplan;
 
 	if(d_plan->spopts.spread_direction == 1){
-		for(int t=0; t<ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Deconvolve_2d<<<(nmodes+256-1)/256, 256>>>(ms, mt, nf1, nf2, 
 				d_plan->fw+t*nf1*nf2,d_plan->fk+t*nmodes,d_plan->fwkerhalf1, 
 				d_plan->fwkerhalf2);
@@ -120,7 +120,7 @@ int cudeconvolve2d(cufinufft_plan *d_plan)
 	}else{
 		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*
 			sizeof(CUCPX)));
-		for(int t=0; t<ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Amplify_2d<<<(nmodes+256-1)/256, 256>>>(ms, 
 				mt, nf1, nf2, d_plan->fw+t*nf1*nf2, d_plan->fk+t*nmodes,
 				d_plan->fwkerhalf1, d_plan->fwkerhalf2);
@@ -143,7 +143,7 @@ int cudeconvolve2d(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cudeconvolve3d(cufinufft_plan *d_plan)
+int cudeconvolve3d(cufinufft_plan *d_plan, int blksize)
 /* 
 	wrapper for deconvolution & amplication in 3D.
 
@@ -159,7 +159,7 @@ int cudeconvolve3d(cufinufft_plan *d_plan)
 	int nmodes=ms*mt*mu;
 	int ntransfcufftplan=d_plan->ntransfcufftplan;
 	if(d_plan->spopts.spread_direction == 1){
-		for(int t=0; t<ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Deconvolve_3d<<<(nmodes+256-1)/256, 256>>>(ms, mt, mu, nf1, nf2, 
 				nf3, d_plan->fw+t*nf1*nf2*nf3, d_plan->fk+t*nmodes, 
 				d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);
@@ -167,7 +167,7 @@ int cudeconvolve3d(cufinufft_plan *d_plan)
 	}else{
 		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*nf3*
 			sizeof(CUCPX)));
-		for(int t=0; t<ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Amplify_3d<<<(nmodes+256-1)/256, 256>>>(ms, mt, mu, nf1, nf2, nf3,
 				d_plan->fw+t*nf1*nf2*nf3, d_plan->fk+t*nmodes, 
 				d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);

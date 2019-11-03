@@ -115,7 +115,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 #endif
 
 	cudaEventRecord(start);
-	ier = cuspread3d(d_plan);
+	ier = cuspread3d(d_plan, 1);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -147,7 +147,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	return ier;
 }
 
-int cuspread3d(cufinufft_plan* d_plan)
+int cuspread3d(cufinufft_plan* d_plan, int blksize)
 /*
 	A wrapper for different spreading methods. 
 
@@ -174,7 +174,7 @@ int cuspread3d(cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuspread3d_nuptsdriven(nf1, nf2, nf3, M, d_plan);
+				ier = cuspread3d_nuptsdriven(nf1, nf2, nf3, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
 					return 1;
@@ -182,19 +182,19 @@ int cuspread3d(cufinufft_plan* d_plan)
 			}
 			break;
 		case 2:
-				{
-					cudaEventRecord(start);
-					ier = cuspread3d_subprob(nf1, nf2, nf3, M, d_plan);
-					if(ier != 0 ){
-						cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
-						return 1;
-					}
+			{
+				cudaEventRecord(start);
+				ier = cuspread3d_subprob(nf1, nf2, nf3, M, d_plan, blksize);
+				if(ier != 0 ){
+					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
+					return 1;
 				}
-				break;
+			}
+			break;
 		case 4:
 			{
 				cudaEventRecord(start);
-				ier = cuspread3d_blockgather(nf1, nf2, nf3, M, d_plan);
+				ier = cuspread3d_blockgather(nf1, nf2, nf3, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
 					return 1;
@@ -391,7 +391,8 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, 
+	cufinufft_plan *d_plan, int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -419,13 +420,13 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 	blocks.y = 1;
 	cudaEventRecord(start);
 	if(d_plan->opts.gpu_kerevalmeth==1){
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Spread_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, 
 				d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma, 
 				d_idxnupts,pirange);
 		}
 	}else{
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Spread_3d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz,
 				d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, 
 				d_idxnupts,pirange);
@@ -818,7 +819,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 }
 
 int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, 
-	cufinufft_plan *d_plan)
+	cufinufft_plan *d_plan, int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -870,7 +871,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
 	int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
 	cudaEventRecord(start);
-	for(int t=0; t<d_plan->ntransfcufftplan; t++){
+	for(int t=0; t<blksize; t++){
 		if(d_plan->opts.gpu_kerevalmeth == 1){
 			size_t sharedplanorysize = obin_size_x*obin_size_y*obin_size_z
 				*sizeof(CUCPX);
@@ -1162,7 +1163,8 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
+	int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -1216,7 +1218,7 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan)
 		return 1;
 	}
 
-	for(int t=0; t<d_plan->ntransfcufftplan; t++){
+	for(int t=0; t<blksize; t++){
 		if(d_plan->opts.gpu_kerevalmeth){
 			Spread_3d_Subprob_Horner<<<totalnumsubprob, 256,
 				sharedplanorysize>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, 

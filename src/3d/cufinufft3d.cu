@@ -30,24 +30,21 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	//int ntransfpertime = d_plan->ntransfpertime;
 	cudaEventRecord(start);
-	// Copy memory to device
-	//int blksize, 
+	int blksize; 
 	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
 	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
-//		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
-//		d_plan->ntransfcufftplan);
+		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
+			d_plan->ntransfcufftplan);
 		d_cstart = d_c + i*d_plan->ntransfcufftplan*d_plan->M;
 		d_fkstart = d_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt*
 			d_plan->mu;
 
 		d_plan->c = d_cstart;
 		d_plan->fk = d_fkstart;
-		//checkCudaErrors(cudaMemcpy(d_plan->c,h_cstart,blksize*d_plan->M*
-		//	sizeof(CUCPX),cudaMemcpyHostToDevice));
+
 		checkCudaErrors(cudaMemset(d_plan->fw,0,d_plan->ntransfcufftplan*
 					d_plan->nf1*d_plan->nf2*d_plan->nf3*sizeof(CUCPX)));
 #ifdef TIME
@@ -59,7 +56,7 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 #endif
 		// Step 1: Spread
 		cudaEventRecord(start);
-		ier = cuspread3d(d_plan);
+		ier = cuspread3d(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuspread3d, method(%d)\n", d_plan->opts.gpu_method);
 			return 0;
@@ -83,23 +80,12 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 		// Step 3: deconvolve and shuffle
 		cudaEventRecord(start);
-		cudeconvolve3d(d_plan);
+		cudeconvolve3d(d_plan, blksize);
 #ifdef TIME
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
 		printf("[time  ] \tDeconvolve\t\t %.3g s\n", milliseconds/1000);
-#endif
-#if 0
-		cudaEventRecord(start);
-		checkCudaErrors(cudaMemcpy(h_fkstart,d_plan->fk,blksize*d_plan->ms*
-			d_plan->mt*d_plan->mu*sizeof(CUCPX),cudaMemcpyDeviceToHost));
-#ifdef TIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tCopy fk memory DtoH \t %.3g s\n", milliseconds/1000);
-#endif
 #endif
 	}
 	return ier;
@@ -123,34 +109,23 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	//int blksize;
+	int blksize;
 	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
 	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
-		//blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
-		//	d_plan->ntransfcufftplan);
+		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
+			d_plan->ntransfcufftplan);
 		d_cstart  = d_c  + i*d_plan->ntransfcufftplan*d_plan->M;
 		d_fkstart = d_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt*
 			d_plan->mu;
 
 		d_plan->c = d_cstart;
 		d_plan->fk = d_fkstart;
-#if 0
-		cudaEventRecord(start);
-		checkCudaErrors(cudaMemcpy(d_plan->fk,h_fkstart,blksize*
-			d_plan->ms*d_plan->mt*d_plan->mu*sizeof(CUCPX),cudaMemcpyHostToDevice));
-#ifdef TIME
-		float milliseconds = 0;
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tCopy h_fk HtoD\t\t %.3g s\n", milliseconds/1000);
-#endif
-#endif
+
 		// Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
 		cudaEventRecord(start);
-		cudeconvolve3d(d_plan);
+		cudeconvolve3d(d_plan, blksize);
 #ifdef TIME
 		float milliseconds = 0;
 		cudaEventRecord(stop);
@@ -171,7 +146,7 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 		// Step 3: deconvolve and shuffle
 		cudaEventRecord(start);
-		ier = cuinterp3d(d_plan);
+		ier = cuinterp3d(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuinterp3d, method(%d)\n", d_plan->opts.gpu_method);
 			return 0;
@@ -188,16 +163,6 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 #if 0
 		if(d_plan->nstreams != 1)
 			cudaDeviceSynchronize();
-#endif
-#if 0
-		checkCudaErrors(cudaMemcpy(h_cstart,d_plan->c,blksize*d_plan->M*
-			sizeof(CUCPX),cudaMemcpyDeviceToHost));
-#ifdef TIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tCopy c DtoH\t\t %.3g s\n", milliseconds/1000);
-#endif
 #endif
 	}
 	return ier;

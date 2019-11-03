@@ -263,31 +263,41 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cufinufft_plan *dplan);
 
 // Functions for calling different methods of spreading & interpolation
-int cuspread2d(cufinufft_plan* d_plan);
-int cuinterp2d(cufinufft_plan* d_plan);
-int cuspread3d(cufinufft_plan* d_plan);
-int cuinterp3d(cufinufft_plan* d_plan);
+int cuspread2d(cufinufft_plan* d_plan, int blksize);
+int cuinterp2d(cufinufft_plan* d_plan, int blksize);
+int cuspread3d(cufinufft_plan* d_plan, int blksize);
+int cuinterp3d(cufinufft_plan* d_plan, int blksize);
 
 // Wrappers for methods of spreading
-int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan, 
+	int blksize);
 int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
-int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan);
-int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+	int blksize);
+int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+	int blksize);
 
 int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
-int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, 
+	cufinufft_plan *d_plan, int blksize);
 int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
-int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, 
+	cufinufft_plan *d_plan, int blksize);
 int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
+	int blksize);
 
 // Wrappers for methods of interpolation
-int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan);
-int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan);
-int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
-int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan);
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+	int blksize);
+int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+	int blksize);
+int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, 
+	cufinufft_plan *d_plan, int blksize);
+int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
+	int blksize);
 #endif

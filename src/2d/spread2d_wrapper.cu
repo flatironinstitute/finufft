@@ -84,7 +84,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	}
 
 	cudaEventRecord(start);
-	ier = cuspread2d(d_plan);
+	ier = cuspread2d(d_plan,1);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -116,7 +116,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	return ier;
 }
 
-int cuspread2d(cufinufft_plan* d_plan)
+int cuspread2d(cufinufft_plan* d_plan, int blksize)
 /*
 	A wrapper for different spreading methods. 
 
@@ -142,7 +142,7 @@ int cuspread2d(cufinufft_plan* d_plan)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuspread2d_nuptsdriven(nf1, nf2, M, d_plan);
+				ier = cuspread2d_nuptsdriven(nf1, nf2, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_nuptsdriven"<<endl;
 					return 1;
@@ -152,7 +152,7 @@ int cuspread2d(cufinufft_plan* d_plan)
 		case 2:
 			{
 				cudaEventRecord(start);
-				ier = cuspread2d_subprob(nf1, nf2, M, d_plan);
+				ier = cuspread2d_subprob(nf1, nf2, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_subprob"<<endl;
 					return 1;
@@ -162,7 +162,7 @@ int cuspread2d(cufinufft_plan* d_plan)
 		case 3:
 			{
 				cudaEventRecord(start);
-				ier = cuspread2d_paul(nf1, nf2, M, d_plan);
+				ier = cuspread2d_paul(nf1, nf2, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread2d_gpu_paul"<<endl;
 					return 1;
@@ -183,7 +183,8 @@ int cuspread2d(cufinufft_plan* d_plan)
 	return ier;
 }
 
-int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
+int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+	int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -209,12 +210,12 @@ int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	blocks.y = 1;
 	cudaEventRecord(start);
 	if(d_plan->opts.gpu_kerevalmeth){
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Spread_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, 
 				d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma, pirange);
 		}
 	}else{
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Spread_2d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, 
 				d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, es_beta, 
 				pirange);
@@ -468,7 +469,8 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
+int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan, 
+	int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -520,7 +522,7 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	}
 
 	if(d_plan->opts.gpu_kerevalmeth){
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Spread_2d_Subprob_Horner<<<totalnumsubprob, 256, 
 				sharedplanorysize>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
 				ns, nf1, nf2, sigma, d_binstartpts, d_binsize, bin_size_x, 
@@ -529,7 +531,7 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 				d_idxnupts, pirange);
 		}
 	}else{
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<blksize; t++){
 			Spread_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
 				d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, 
 				es_c, es_beta, sigma,d_binstartpts, d_binsize, bin_size_x, 
