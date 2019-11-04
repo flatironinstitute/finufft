@@ -8,6 +8,18 @@
 using namespace std;
 
 int main(int argc, char* argv[])
+/*
+ * example code for 2D Type 1 transformation.
+ *
+ * To compile the code:
+ * 	nvcc -DSINGLE example2d1.cpp -o example2d1 /loc/to/cufinufft/lib-static/libcufinufftf.a -lcudart -lcufft -lnvToolsExt
+ * 
+ * or
+ * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
+ * nvcc -DSINGLE example2d1.cpp -L/loc/to/cufinufft/lib/ -o example2d1 -lcufinufftf
+ *
+ *
+ */
 {
 	cout<<scientific<<setprecision(3);
 
