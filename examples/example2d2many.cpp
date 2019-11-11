@@ -12,11 +12,11 @@ int main(int argc, char* argv[])
  * example code for 2D Type 1 transformation.
  *
  * To compile the code:
- * 	nvcc example2d2many.cpp -o example2d2many /loc/to/cufinufft/lib-static/libcufinufftf.a -lcudart -lcufft -lnvToolsExt
+ * 	nvcc -DSINGLE example2d2many.cpp -o example2d2many /loc/to/cufinufft/lib-static/libcufinufftf.a -lcudart -lcufft -lnvToolsExt
  * 
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
- * nvcc example2d2many.cpp -L/loc/to/cufinufft/lib/ -o example2d1 -lcufinufftf
+ * nvcc -DSINGLE example2d2many.cpp -L/loc/to/cufinufft/lib/ -o example2d1 -lcufinufftf
  *
  *
  */
