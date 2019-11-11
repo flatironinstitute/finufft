@@ -13,7 +13,7 @@
 enum finufft_type {type1,type2,type3};
 
 typedef struct {
-	finufft_type  type;
+	finufft_type    type;
 	nufft_opts      opts; 
 	spread_opts     spopts;
 

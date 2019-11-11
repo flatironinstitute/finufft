@@ -281,6 +281,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	printf("[time  ] \tCopy kx,ky,kz HtoD\t %.3g s\n", milliseconds/1000);
 #endif
 #endif
+	cudaEventRecord(start);
 	switch(d_plan->dim)
 	{
 		case 1:
@@ -337,6 +338,13 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 		}
 		break;
 	}	
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tSetup Subprob properties %.3g s\n", 
+		milliseconds/1000);
+#endif
 
 	return 0;
 }
@@ -483,6 +491,7 @@ int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
 		}
 		case 2:
 		{
+			opts.gpu_maxsubprobsize = 1024;
 			if(type == type1){
 				opts.gpu_method = 2;
 				opts.gpu_binsizex = 32;
@@ -501,6 +510,7 @@ int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
 		break;
 		case 3:
 		{
+			opts.gpu_maxsubprobsize = 1024;
 			if(type == type1){
 				opts.gpu_method = 2;
 				opts.gpu_binsizex = 16;
