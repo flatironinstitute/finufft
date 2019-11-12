@@ -51,13 +51,13 @@ int main(int argc, char* argv[])
 		y[i] = M_PI*randm11();
 	}
 
-	for(int i=0; i<M*ntransf; i++){
-		c[i].real() = randm11();
-		c[i].imag() = randm11();
+	for(int i=0; i<N1*N2*ntransf; i++){
+		fk[i].real() = randm11();
+		fk[i].imag() = randm11();
 	}
 	cudaMemcpy(d_x,x,M*sizeof(float),cudaMemcpyHostToDevice);
 	cudaMemcpy(d_y,y,M*sizeof(float),cudaMemcpyHostToDevice);
-	cudaMemcpy(d_c,c,M*ntransf*sizeof(cuFloatComplex),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_fk,fk,N1*N2*ntransf*sizeof(cuFloatComplex),cudaMemcpyHostToDevice);
 
 	cufinufft_plan dplan;
 
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 
-	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, 
+	ier=cufinufft_makeplan(type2, dim, nmodes, iflag, ntransf, tol, 
 		ntransfcufftplan, &dplan);
 
 	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
@@ -79,20 +79,23 @@ int main(int argc, char* argv[])
 
 	ier=cufinufft_destroy(&dplan);
 
-	cudaMemcpy(fk,d_fk,N1*N2*ntransf*sizeof(cuFloatComplex),cudaMemcpyDeviceToHost);
+	cudaMemcpy(c,d_c,M*ntransf*sizeof(cuFloatComplex),cudaMemcpyDeviceToHost);
 
 	cout<<endl<<"Accuracy check:"<<endl;
-	int N = N1*N2;
-	for(int i=0; i<ntransf; i+=5){
-		int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
-		complex<float> Ft = complex<float>(0,0), J = IMA*(float)iflag;
-		for (BIGINT j=0; j<M; ++j)
-			Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
-		int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-		printf("[gpu %3d] one mode: abs err in F[%ld,%ld] is %.3g\n",i,(int)nt1,
-			(int)nt2,abs(Ft-fk[it+i*N]));
-		printf("[gpu %3d] one mode: rel err in F[%ld,%ld] is %.3g\n",i,(int)nt1,
-			(int)nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
+	complex<float>* fkstart; 
+	complex<float>* cstart;
+	for(int t=0; t<ntransf; t++){
+		fkstart = fk + t*N1*N2;
+		cstart = c + t*M;
+		int jt = M/2;          // check arbitrary choice of one targ pt
+		complex<float> J(0,iflag*1);
+		complex<float> ct(0,0);
+		int m=0;
+		for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
+			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+				ct += fkstart[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
+		
+		printf("[gpu %3d] one targ: rel err in c[%ld] is %.3g\n",t,(int)jt,abs(cstart[jt]-ct)/infnorm(M,c));
 	}
 
 	cudaFreeHost(x);
