@@ -317,11 +317,14 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
     	for (int zz=zstart; zz<=zend; zz++){
 			FLT kervalue3 = ker3[zz-zstart];
 			iz = zz+ceil(ns/2.0);
+			if(iz >= (bin_size_z + (int) ceil(ns/2.0)*2)) break;
 			for(int yy=ystart; yy<=yend; yy++){
 				FLT kervalue2 = ker2[yy-ystart];
 				iy = yy+ceil(ns/2.0);
+				if(iy >= (bin_size_y + (int) ceil(ns/2.0)*2)) break;
 				for(int xx=xstart; xx<=xend; xx++){
 					ix = xx+ceil(ns/2.0);
+					if(ix >= (bin_size_x + (int) ceil(ns/2.0)*2)) break;
 					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
 						iz*(bin_size_x+ceil(ns/2.0)*2)*
 						   (bin_size_y+ceil(ns/2.0)*2);
@@ -413,8 +416,11 @@ void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 				//FLT kervalue2 = disy;
 				for(int xx=xstart; xx<=xend; xx++){
 					ix = xx+ceil(ns/2.0);
+					if(ix >= (bin_size_x + (int) ceil(ns/2.0)*2)) break;
 					iy = yy+ceil(ns/2.0);
+					if(iy >= (bin_size_y + (int) ceil(ns/2.0)*2)) break;
 					iz = zz+ceil(ns/2.0);
+					if(iz >= (bin_size_z + (int) ceil(ns/2.0)*2)) break;
 					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
 						iz*(bin_size_x+ceil(ns/2.0)*2)*
 						   (bin_size_y+ceil(ns/2.0)*2);

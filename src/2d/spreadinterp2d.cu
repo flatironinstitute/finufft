@@ -73,18 +73,29 @@ void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y)
 #endif
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
+__global__ 
+void TrivialGlobalSortIdx_2d(int M, int* index)
+{
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
+		index[i] = i;
+	}
+}
+
 __global__
 void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int pirange)
+		int nf1, int nf2, FLT es_c, FLT es_beta, int *idxnupts, int pirange)
 {
 	int xstart,ystart,xend,yend;
 	int xx, yy, ix, iy;
 	int outidx;
 
 	FLT x_rescaled, y_rescaled;
+	CUCPX cnow;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		x_rescaled=RESCALE(x[i], nf1, pirange);
-		y_rescaled=RESCALE(y[i], nf2, pirange);
+		x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
+		cnow = c[idxnupts[i]];
+
 		xstart = ceil(x_rescaled - ns/2.0);
 		ystart = ceil(y_rescaled - ns/2.0);
 		xend = floor(x_rescaled + ns/2.0);
@@ -99,8 +110,8 @@ void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 				outidx = ix+iy*nf1;
 				FLT disx=abs(x_rescaled-xx);
 				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-				atomicAdd(&fw[outidx].x, c[i].x*kervalue1*kervalue2);
-				atomicAdd(&fw[outidx].y, c[i].y*kervalue1*kervalue2);
+				atomicAdd(&fw[outidx].x, cnow.x*kervalue1*kervalue2);
+				atomicAdd(&fw[outidx].y, cnow.y*kervalue1*kervalue2);
 			}
 		}
 
@@ -110,7 +121,7 @@ void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 
 __global__
 void Spread_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT sigma, int pirange)
+	const int ns, int nf1, int nf2, FLT sigma, int* idxnupts, int pirange)
 {
 	int xx, yy, ix, iy;
 	int outidx;
@@ -119,9 +130,11 @@ void Spread_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 	FLT ker1val, ker2val;
 
 	FLT x_rescaled, y_rescaled;
+	CUCPX cnow;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		x_rescaled=RESCALE(x[i], nf1, pirange);
-		y_rescaled=RESCALE(y[i], nf2, pirange);
+		x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
+		cnow = c[idxnupts[i]];
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int xend = floor(x_rescaled + ns/2.0);
@@ -139,8 +152,8 @@ void Spread_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 				ker1val=ker1[xx-xstart];
 				ker2val=ker2[yy-ystart];
 				FLT kervalue=ker1val*ker2val;
-				atomicAdd(&fw[outidx].x, c[i].x*kervalue);
-				atomicAdd(&fw[outidx].y, c[i].y*kervalue);
+				atomicAdd(&fw[outidx].x, cnow.x*kervalue);
+				atomicAdd(&fw[outidx].y, cnow.y*kervalue);
 			}
 		}
 	}
@@ -254,15 +267,18 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 			FLT disy=abs(y_rescaled-(yy+yoffset));
 			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
 			for(int xx=xstart; xx<=xend; xx++){
-				ix = xx+ceil(ns/2.0);
-				iy = yy+ceil(ns/2.0);
-				outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
-				FLT disx=abs(x_rescaled-(xx+xoffset));
-				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-				atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
-				atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
+				if(ix < (bin_size_x + (int) ceil(ns/2.0)*2) && 
+				   iy < (bin_size_y + (int) ceil(ns/2.0)*2)){
+					ix = xx+ceil(ns/2.0);
+					iy = yy+ceil(ns/2.0);
+					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
+					FLT disx=abs(x_rescaled-(xx+xoffset));
+					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
 				//atomicAdd(&fwshared[outidx].x, 1);
 				//atomicAdd(&fwshared[outidx].y, 1);
+				}
 			}
 		}
 	}
@@ -335,12 +351,15 @@ void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 		for(int yy=ystart; yy<=yend; yy++){
 			FLT kervalue2 = ker2[yy-ystart];
 			for(int xx=xstart; xx<=xend; xx++){
-				ix = xx+ceil(ns/2.0);
-				iy = yy+ceil(ns/2.0);
-				outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
-				FLT kervalue1 = ker1[xx-xstart];
-				atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
-				atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
+				ix = xx+ (int) ceil(ns/2.0);
+				iy = yy+ (int) ceil(ns/2.0);
+				if(ix < (bin_size_x + (int) ceil(ns/2.0)*2) && 
+				   iy < (bin_size_y + (int) ceil(ns/2.0)*2)){
+					outidx = ix+iy*(bin_size_x+ (int) ceil(ns/2.0)*2);
+					FLT kervalue1 = ker1[xx-xstart];
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
+				}
 			}
 		}
 	}
@@ -581,12 +600,12 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 /* Kernels for NUptsdriven Method */
 __global__
 void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		       int nf1, int nf2, FLT es_c, FLT es_beta, int pirange)
+		       int nf1, int nf2, FLT es_c, FLT es_beta, int* idxnupts, int pirange)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 
-		FLT x_rescaled=RESCALE(x[i], nf1, pirange);
-		FLT y_rescaled=RESCALE(y[i], nf2, pirange);
+		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		FLT y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int xend = floor(x_rescaled + ns/2.0);
@@ -615,11 +634,11 @@ void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 
 __global__
 void Interp_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT sigma, int pirange)
+	const int ns, int nf1, int nf2, FLT sigma, int* idxnupts, int pirange)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		FLT x_rescaled=RESCALE(x[i], nf1, pirange);
-		FLT y_rescaled=RESCALE(y[i], nf2, pirange);
+		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		FLT y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
 
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
