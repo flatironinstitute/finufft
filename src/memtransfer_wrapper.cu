@@ -26,6 +26,19 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
+			{
+				if(d_plan->opts.gpu_sort){
+					int numbins[2];
+					numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
+					numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
+					checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
+						numbins[1]*sizeof(int)));
+					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
+						numbins[1]*sizeof(int)));
+					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
+						numbins[1]*sizeof(int)));
+				}
+			}
 			break;
 		case 2:
 			{
@@ -95,6 +108,11 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
+			{
+				if(d_plan->opts.gpu_sort)
+					checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
+			}
 			break;
 		case 2:
 		case 3:
@@ -116,14 +134,26 @@ void freegpumemory2d(cufinufft_plan *d_plan)
 	Melody Shih 07/25/19
 */
 {
-	cudaFree(d_plan->fw);
+	checkCudaErrors(cudaFree(d_plan->fw));
 	//cudaFree(d_plan->kx);
 	//cudaFree(d_plan->ky);
 	//cudaFree(d_plan->c);
-	cudaFree(d_plan->fwkerhalf1);
-	cudaFree(d_plan->fwkerhalf2);
+	checkCudaErrors(cudaFree(d_plan->fwkerhalf1));
+	checkCudaErrors(cudaFree(d_plan->fwkerhalf2));
 	switch(d_plan->opts.gpu_method)
 	{
+		case 1:
+			{
+				if(d_plan->opts.gpu_sort){
+					checkCudaErrors(cudaFree(d_plan->idxnupts));
+					checkCudaErrors(cudaFree(d_plan->sortidx));
+					checkCudaErrors(cudaFree(d_plan->binsize));
+					checkCudaErrors(cudaFree(d_plan->binstartpts));
+				}else{
+					checkCudaErrors(cudaFree(d_plan->idxnupts));
+				}
+			}
+			break;
 		case 2:
 			{
 				checkCudaErrors(cudaFree(d_plan->idxnupts));

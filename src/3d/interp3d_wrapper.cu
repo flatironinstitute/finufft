@@ -277,7 +277,7 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
 	numbins[2] = ceil((FLT) nf3/bin_size_z);
 #ifdef INFO
 	cout<<"[info  ] Dividing the uniform grids to bin size["
-		<<d_plan->opts.gpu_bin_size_x<<"x"<<d_plan->opts.gpu_bin_size_y<<"x"<<d_plan->opts.gpu_bin_size_z<<"]"<<endl;
+		<<d_plan->opts.gpu_binsizex<<"x"<<d_plan->opts.gpu_binsizey<<"x"<<d_plan->opts.gpu_binsizez<<"]"<<endl;
 	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"x"<<numbins[2]
 	<<"]"<<endl;
 #endif

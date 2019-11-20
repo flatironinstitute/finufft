@@ -221,8 +221,8 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 
 	d_plan->M = M;
 #ifdef INFO
-	printf("[info  ] 2d1: (ms,mt)=(%d,%d) (nf1, nf2)=(%d,%d) nj=%d, ntransform = %d\n",
-		d_plan->ms, d_plan->mt, d_plan->nf1, d_plan->nf2, d_plan->M,
+	printf("[info  ] 2d1: (ms,mt)=(%d,%d) (nf1, nf2, nf3)=(%d,%d,%d) nj=%d, ntransform = %d\n",
+		d_plan->ms, d_plan->mt, d_plan->nf1, d_plan->nf2, nf3, d_plan->M,
 		d_plan->ntransf);
 #endif
 	cudaEvent_t start, stop;
@@ -291,6 +291,14 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 		break;
 		case 2:
 		{
+			if(d_plan->opts.gpu_method==1){
+				ier = cuspread2d_nuptsdriven_prop(nf1,nf2,M,d_plan);
+				if(ier != 0 ){
+					printf("error: cuspread2d_nupts_prop, method(%d)\n", 
+						d_plan->opts.gpu_method);
+					return 1;
+				}
+			}
 			if(d_plan->opts.gpu_method==2){
 				ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
@@ -427,7 +435,7 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	{
 		case 1:
 		{
-			freegpumemory2d(d_plan);
+			freegpumemory1d(d_plan);
 		}
 		break;
 		case 2:
@@ -500,6 +508,9 @@ int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
 			}
 			if(type == type2){
 				opts.gpu_method = 1;
+				opts.gpu_binsizex = 32;
+				opts.gpu_binsizey = 32;
+				opts.gpu_binsizez = 1;
 			}
 			if(type == type3){
 				cerr<<"Not Implemented yet"<<endl;

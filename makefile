@@ -97,9 +97,6 @@ cufinufft3d1_test: test/cufinufft3d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
-example2d1: examples/example2d1.cpp $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	$(CXX) $^ $(CXXFLAGS) $(LIBS_PATH) $(LIBS) -o $@
-
 lib: $(STATICLIB) $(DYNAMICLIB)
 
 $(STATICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
@@ -110,7 +107,7 @@ $(DYNAMICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d \
 	interp3d cufinufft3d1_test cufinufft3d2_test spreadinterp3d_test \
-	example2d1 lib
+	lib
 
 
 clean:

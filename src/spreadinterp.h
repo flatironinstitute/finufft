@@ -10,12 +10,14 @@
 
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
+__global__ 
+void TrivialGlobalSortIdx_2d(int M, int* index);
 __global__
 void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int pirange);
+		int nf1, int nf2, FLT es_c, FLT es_beta, int* idxnupts, int pirange);
 __global__
 void Spread_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT sigma, int pirange);
+	const int ns, int nf1, int nf2, FLT sigma, int* idxnupts, int pirange);
 
 /* Kernels for SubProb Method */
 // SubProb properties
@@ -73,10 +75,10 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 /* Kernels for NUptsdriven Method */
 __global__
 void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-	int nf1, int nf2, FLT es_c, FLT es_beta, int pirange);
+	int nf1, int nf2, FLT es_c, FLT es_beta, int *idxnupts, int pirange);
 __global__
 void Interp_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, FLT sigma, int pirange);
+	const int ns, int nf1, int nf2, FLT sigma, int *idxnupts, int pirange);
 /* Kernels for Subprob Method */
 __global__
 void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
@@ -269,6 +271,7 @@ int cuspread3d(cufinufft_plan* d_plan, int blksize);
 int cuinterp3d(cufinufft_plan* d_plan, int blksize);
 
 // Wrappers for methods of spreading
+int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
 int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan, 
 	int blksize);
 int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);

@@ -63,6 +63,14 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 #endif
+	if(d_plan->opts.gpu_method == 1){
+		ier = cuspread2d_nuptsdriven_prop(nf1,nf2,M,d_plan);
+		if(ier != 0 ){
+			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
+				d_plan->opts.gpu_method);
+			return 0;
+		}
+	}
 	if(d_plan->opts.gpu_method == 2){
 		ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
@@ -177,6 +185,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 	FLT es_beta=d_plan->spopts.ES_beta;
 	FLT sigma=d_plan->opts.upsampfac;
 	int pirange=d_plan->spopts.pirange;
+	int *d_idxnupts=d_plan->idxnupts;
 
 	FLT* d_kx = d_plan->kx;
 	FLT* d_ky = d_plan->ky;
@@ -201,7 +210,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 		for(int t=0; t<blksize; t++){
 			Interp_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				0>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
-				ns, nf1, nf2, sigma, pirange);
+				ns, nf1, nf2, sigma, d_idxnupts, pirange);
 		}
 #endif
 	}else{
@@ -217,7 +226,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 		for(int t=0; t<blksize; t++){
 			Interp_2d_NUptsdriven<<<blocks, threadsPerBlock, 0, 0
 				>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, 
-				es_beta, pirange);
+				es_beta, d_idxnupts, pirange);
 		}
 #endif
 	}
