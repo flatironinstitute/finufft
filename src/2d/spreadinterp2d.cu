@@ -173,10 +173,15 @@ void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x,
 		x_rescaled=RESCALE(x[i], nf1, pirange);
 		y_rescaled=RESCALE(y[i], nf2, pirange);
 		binx = floor(x_rescaled/bin_size_x);
+		binx = binx >= nbinx ? binx-1 : binx;
 		biny = floor(y_rescaled/bin_size_y);
+		biny = biny >= nbiny ? biny-1 : biny;
 		binidx = binx+biny*nbinx;
 		oldidx = atomicAdd(&bin_size[binidx], 1);
 		sortidx[i] = oldidx;
+		if(binx >= nbinx || biny >= nbiny){
+			sortidx[i] = -biny;
+		}
 	}
 }
 
@@ -192,7 +197,9 @@ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y,
 		x_rescaled=RESCALE(x[i], nf1, pirange);
 		y_rescaled=RESCALE(y[i], nf2, pirange);
 		binx = floor(x_rescaled/bin_size_x);
+		binx = binx >= nbinx ? binx-1 : binx;
 		biny = floor(y_rescaled/bin_size_y);
+		biny = biny >= nbiny ? biny-1 : biny;
 		binidx = binx+biny*nbinx;
 
 		index[bin_startpts[binidx]+sortidx[i]] = i;

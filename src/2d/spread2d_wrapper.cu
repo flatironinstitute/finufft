@@ -217,12 +217,11 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 			cudaMemcpyDeviceToHost));
 		checkCudaErrors(cudaMemcpy(h_ky,d_ky,M*sizeof(FLT),
 			cudaMemcpyDeviceToHost));
-		for(int i=0; i<10; i++){
+		for(int i=M-10; i<M; i++){
 			cout<<"[debug ] ";
 			cout <<"("<<setw(3)<<h_kx[i]<<","<<setw(3)<<h_ky[i]<<")"<<endl;
 		}
 #endif
-
 		int *d_binsize = d_plan->binsize;
 		int *d_binstartpts = d_plan->binstartpts;
 		int *d_sortidx = d_plan->sortidx;
@@ -262,19 +261,27 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 		}
 		free(h_binsize);
 		cout<<"[debug ] ------------------------------------------------"<<endl;
-#endif
-#ifdef DEBUG
+
 		int *h_sortidx;
 		h_sortidx = (int*)malloc(M*sizeof(int));
 
 		checkCudaErrors(cudaMemcpy(h_sortidx,d_sortidx,M*sizeof(int),
 			cudaMemcpyDeviceToHost));
+
 		for(int i=0; i<M; i++){
-			cout<<"[debug ] ";
-			cout <<"point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
+			if(h_sortidx[i] < 0){
+				cout<<"[debug ] ";
+				cout <<"point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
+				cout<<"[debug ] ";
+				printf("(%10.10f, %10.10f) ", RESCALE(h_kx[i],nf1,pirange),
+                                     RESCALE(h_ky[i],nf1,pirange)); 
+				printf("(%10.10f, %10.10f) ", RESCALE(h_kx[i],nf1,pirange)/32,
+                                     RESCALE(h_ky[i],nf1,pirange)/32); 
+				printf("(%f, %f)\n", floor(RESCALE(h_kx[i],nf1,pirange)/32),
+                                     floor(RESCALE(h_ky[i],nf1,pirange)/32)); 
+			}
 		}
 #endif
-
 		cudaEventRecord(start);
 		int n=numbins[0]*numbins[1];
 		size_t temp_storage_bytes = 0;

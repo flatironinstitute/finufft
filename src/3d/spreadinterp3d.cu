@@ -98,8 +98,13 @@ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int  bin_size_x,
 		y_rescaled=RESCALE(y[i], nf2, pirange);
 		z_rescaled=RESCALE(z[i], nf3, pirange);
 		binx = floor(x_rescaled/bin_size_x);
+		binx = binx >= nbinx ? binx-1 : binx;
+
 		biny = floor(y_rescaled/bin_size_y);
+		biny = biny >= nbiny ? biny-1 : biny;
+
 		binz = floor(z_rescaled/bin_size_z);
+		binz = binz >= nbinz ? binz-1 : binz;
 		binidx = binx+biny*nbinx+binz*nbinx*nbiny;
 		oldidx = atomicAdd(&bin_size[binidx], 1);
 		sortidx[i] = oldidx;
@@ -120,8 +125,11 @@ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
 		y_rescaled=RESCALE(y[i], nf2, pirange);
 		z_rescaled=RESCALE(z[i], nf3, pirange);
 		binx = floor(x_rescaled/bin_size_x);
+		binx = binx >= nbinx ? binx-1 : binx;
 		biny = floor(y_rescaled/bin_size_y);
+		biny = biny >= nbiny ? biny-1 : biny;
 		binz = floor(z_rescaled/bin_size_z);
+		binz = binz >= nbinz ? binz-1 : binz;
 		binidx = CalcGlobalIdx_V2(binx,biny,binz,nbinx,nbiny,nbinz);
 
 		index[bin_startpts[binidx]+sortidx[i]] = i;
@@ -329,8 +337,10 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 						iz*(bin_size_x+ceil(ns/2.0)*2)*
 						   (bin_size_y+ceil(ns/2.0)*2);
 					FLT kervalue1 = ker1[xx-xstart];
-					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*kervalue3);
-					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*kervalue3);
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
+						kervalue3);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
+						kervalue3);
         		}
       		}
 		}
@@ -339,14 +349,17 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 	/* write to global memory */
 	for(int n=threadIdx.x; n<N; n+=blockDim.x){
 		int i = n % (int) (bin_size_x+2*ceil(ns/2.0) );
-		int j = (int) (n /(bin_size_x+2*ceil(ns/2.0))) % (int) (bin_size_y+2*ceil(ns/2.0));
+		int j = (int) (n /(bin_size_x+2*ceil(ns/2.0))) % 
+				(int) (bin_size_y+2*ceil(ns/2.0));
 		int k = n / ((bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0)));
 
 		ix = xoffset-ceil(ns/2.0)+i;
 		iy = yoffset-ceil(ns/2.0)+j;
 		iz = zoffset-ceil(ns/2.0)+k;
 
-		if(ix<(nf1+ceil(ns/2.0)) && iy<(nf2+ceil(ns/2.0)) && iz<(nf3+ceil(ns/2.0))){
+		if(ix<(nf1+ceil(ns/2.0)) && 
+		   iy<(nf2+ceil(ns/2.0)) && 
+		   iz<(nf3+ceil(ns/2.0))){
 			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
 			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
 			iz = iz < 0 ? iz+nf3 : (iz>nf3-1 ? iz-nf3 : iz);
