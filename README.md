@@ -30,4 +30,8 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/ackn.rst` : acknowledgments
 
 If you find FINUFFT useful in your work, please cite this code and
-the forthcoming paper (see references).
+our paper:
+
+A parallel non-uniform fast Fourier transform library based on an ``exponential of semicircle'' kernel.
+A. H. Barnett, J. F. Magland, and L. af Klinteberg.
+SIAM J. Sci. Comput. 41(5), C479-C504 (2019).
