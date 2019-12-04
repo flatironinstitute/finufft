@@ -1,8 +1,9 @@
 // Common higher-level routines for FINUFFT: options, kernel FT, deconvolution.
 // Note that algorithm parameters are now defined in defs.h (not common.h).
 
-#include "common.h"
-#include "defs.h"
+#include <common.h>
+#include <defs.h>
+#include <utils.h>
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
@@ -30,6 +31,7 @@ void finufft_default_opts(nufft_opts *o)
   o->spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
   o->fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
   o->modeord = 0;
+  o->spread_scheme = 0;      //default: sequential multithreaded
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
@@ -324,3 +326,6 @@ void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
     deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
 			fk + pn,nf1,nf2,&fw[np*(nf3+k3)],modeord);
 }
+
+
+

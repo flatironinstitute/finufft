@@ -1,12 +1,13 @@
-#include "finufft.h"
-#include "common.h"
+#include <finufft.h>
+#include <common.h>
+#include <utils.h>
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
 #include <iostream>
 #include <iomanip>
 
-int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
+int finufft3d1_old(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk,
 	       nufft_opts opts)
  /*  Type-1 3D complex nonuniform FFT.
@@ -79,9 +80,11 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
+
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_3D(nf3,nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -109,7 +112,7 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   return 0;
 }
 
-int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
+int finufft3d2_old(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 	       int iflag,FLT eps, BIGINT ms, BIGINT mt, BIGINT mu,
 	       CPX* fk, nufft_opts opts)
 
@@ -177,9 +180,10 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3); // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_3D(nf3,nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -206,7 +210,7 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   return 0;
 }
 
-int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
+int finufft3d3_old(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 	       int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t,
 	       FLT *u, CPX* fk, nufft_opts opts)
  /*  Type-3 3D complex nonuniform FFT.
@@ -310,7 +314,7 @@ int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
     tp[k] = h2*gam2*(t[k]-D2);                         // so that |t'_k| < pi/R
     up[k] = h3*gam3*(u[k]-D3);                         // so that |u'_k| < pi/R
   }
-  int ier_t2 = finufft3d2(nk,sp,tp,up,fk,iflag,eps,nf1,nf2,nf3,fw,opts);
+  int ier_t2 = finufft3d2_old(nk,sp,tp,up,fk,iflag,eps,nf1,nf2,nf3,fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2>0) exit(ier_t2);

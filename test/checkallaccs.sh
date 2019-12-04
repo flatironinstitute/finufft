@@ -25,4 +25,5 @@ do
     echo ----------requesting $TOL :
     ./spreadtestnd $DIM 1e6 1e6 $TOL $SORT
     ./finufft${DIM}d_test $TEST $TOL 0 $SORT
+    ./finufftGuru1_test $TEST2 1 $TOL 0 $SORT
 done

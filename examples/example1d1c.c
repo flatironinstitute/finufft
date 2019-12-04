@@ -1,5 +1,5 @@
 // this is all you must include to access finufft from C...
-#include "../src/finufft.h"
+#include <finufft_legacy.h>
 
 // also needed for this example...
 #include <stdlib.h>

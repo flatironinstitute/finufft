@@ -1,12 +1,13 @@
 #include "finufft.h"
 #include "common.h"
+#include <utils.h>
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
 #include <iostream>
 #include <iomanip>
 
-int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
+int finufft2d1_old(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
  /*  Type-1 2D complex nonuniform FFT.
 
@@ -64,7 +65,17 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
   FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  if(!fwkerhalf1){
+    fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
+    return ERR_MAXNALLOC;
+  }
   FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  if(!fwkerhalf2){
+    fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
+    free(fwkerhalf1);
+    return ERR_MAXNALLOC;
+  }
+
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
@@ -74,9 +85,17 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
+  if(!fw){
+    fprintf(stderr, "Call to malloc failed for result array allocation");
+    free(fwkerhalf1);
+    free(fwkerhalf2);
+    return ERR_MAXNALLOC; //release resources before exiting cleanly
+  }
+  
   int fftsign = (iflag>=0) ? 1 : -1;
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -100,12 +119,12 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   if (opts.debug) printf("deconvolve & copy out:\t %.3g s\n", timer.elapsedsec());
 
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2);
-  if (opts.debug) printf("freed\n");
+  //if (opts.debug) printf("freed\n");
   return 0;
 }
 
 
-int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
+int finufft2d1many_old(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
 		   int iflag, FLT eps, BIGINT ms, BIGINT mt, CPX* fk,
 		   nufft_opts opts)
 /*
@@ -183,6 +202,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
                                    n[0]*n[1], fftsign, opts.fftw);
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
+  //all of this achieved in setup_spopts_nufft() except direction
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;
   spopts.spread_direction = 1;
@@ -194,7 +214,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   
   timer.restart();          // sort
   BIGINT *sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
-  int did_sort = spreadsort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
+  int did_sort = indexSort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
   if (opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", did_sort,
 			 timer.elapsedsec());
   
@@ -251,12 +271,12 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   FFTW_DE(p);
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
   free(ier_spreads);
-  if (opts.debug) printf("freed\n");
+  //if (opts.debug) printf("freed\n");
   return 0;
 }
 
 
-int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
+int finufft2d2_old(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 
  /*  Type-2 2D complex nonuniform FFT.
@@ -307,7 +327,19 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
   FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  if(!fwkerhalf1){
+    fprintf(stderr, "Call to malloc failed for fwkerhalf2 array allocation!");
+    return ERR_MAXNALLOC;        
+  }
+
   FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  if(!fwkerhalf2){
+    fprintf(stderr, "Call to malloc failed for fwkerhalf2 array allocation!");
+    free(fwkerhalf1);
+    return ERR_MAXNALLOC;        
+  }
+
+
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
@@ -317,9 +349,16 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
-  timer.restart();
+
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
+  if(!fw){
+    fprintf(stderr, "Call to malloc failed for fw array allocation!");
+    free(fwkerhalf1);
+    free(fwkerhalf2);
+    return ERR_MAXNALLOC;        
+  }
   int fftsign = (iflag>=0) ? 1 : -1;
+  timer.restart();
   FFTW_PLAN p = FFTW_PLAN_2D(nf2,nf1,fw,fw,fftsign, opts.fftw);  // in-place
   if (opts.debug) printf("fftw plan (%d)    \t %.3g s\n",opts.fftw,timer.elapsedsec());
 
@@ -349,7 +388,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 }
 
 
-int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+int finufft2d2many_old(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 		   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
 /*
   Type-2 2D complex nonuniform FFT for multiple coeff vectors, same NU pts.
@@ -404,7 +443,20 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   // STEP 0: get Fourier coeffs of spread kernel in each dim:
   CNTime timer; timer.start();
   FLT *fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+  if(!fwkerhalf1){
+    fprintf(stderr, "Call to malloc failed for fwkerhalf1 array allocation!");
+    return ERR_MAXNALLOC;        
+  }
+
   FLT *fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+  if(!fwkerhalf2){
+    free(fwkerhalf1);
+    fprintf(stderr, "Call to malloc failed for fwkerhalf2 array allocation!");
+    return ERR_MAXNALLOC;    
+    
+  }
+
+
   onedim_fseries_kernel(nf1, fwkerhalf1, spopts);
   onedim_fseries_kernel(nf2, fwkerhalf2, spopts);
   if (opts.debug) printf("kernel fser (ns=%d):\t %.3g s\n", spopts.nspread,timer.elapsedsec());
@@ -416,6 +468,12 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   }
 
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // nthreads copies of upsampled array
+  if(!fw){
+    free(fwkerhalf1);
+    free(fwkerhalf2);
+    fprintf(stderr, "Call to malloc failed for fw array allocation!");
+    return ERR_MAXNALLOC;        
+  }
   int fftsign = (iflag>=0) ? 1 : -1;
   const int n[] = {int(nf2), int(nf1)};
   // http://www.fftw.org/fftw3_doc/Row_002dmajor-Format.html#Row_002dmajor-Format
@@ -436,7 +494,13 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 
   timer.restart();            // sort
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*nj);
-  int did_sort = spreadsort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
+    if(!sort_indices){
+      FFTW_FR(fw);
+      fprintf(stderr, "Call to malloc failed for sort_indices array allocation!");
+      return ERR_MAXNALLOC;        
+  }
+
+  int did_sort = indexSort(sort_indices,nf1,nf2,1,nj,xj,yj,dummy,spopts);
   if (opts.debug) printf("[many] sort (did_sort=%d):\t %.3g s\n", did_sort,
 			 timer.elapsedsec());
 
@@ -489,6 +553,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   if (opts.debug) printf("[many] unspread:\t\t %.3g s\n", time_spread);
   //if (opts.debug) printf("[many] total execute time (exclude fftw_plan, etc.) %.3g s\n",time_spread+time_fft+time_deconv);
 
+  //NOTE: no FFT_DE
   FFTW_FR(fw); free(fwkerhalf1); free(fwkerhalf2); free(sort_indices);
   free(ier_spreads);
   if (opts.debug) printf("freed\n");
@@ -496,7 +561,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 }
 
 
-int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts)
+int finufft2d3_old(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts)
  /*  Type-3 2D complex nonuniform FFT.
 
                nj-1
@@ -555,13 +620,29 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
     return ERR_MAXNALLOC;
   }
   FLT* xpj = (FLT*)malloc(sizeof(FLT)*nj);
+  if(!xpj){
+    fprintf(stderr, "Call to malloc failed for x source coordinate array allocation!");
+    return ERR_MAXNALLOC;
+  }
   FLT* ypj = (FLT*)malloc(sizeof(FLT)*nj);
+  if(!ypj){
+    fprintf(stderr, "Call to malloc failed for y source coordinate array allocation!");
+    free(xpj);
+    return ERR_MAXNALLOC;
+  }
+
   for (BIGINT j=0;j<nj;++j) {
     xpj[j] = (xj[j]-C1) / gam1;          // rescale x_j
     ypj[j] = (yj[j]-C2) / gam2;          // rescale y_j
   }
   CPX imasign = (iflag>=0) ? IMA : -IMA;
   CPX* cpj = (CPX*)malloc(sizeof(CPX)*nj);  // c'_j rephased src
+  if(!cpj){
+    free(xpj);
+    free(ypj);
+    fprintf(stderr, "Call to malloc failed for c' array allocation!");
+    return ERR_MAXNALLOC;
+  }
   if (D1!=0.0 || D2!=0.0) {
 #pragma omp parallel for schedule(dynamic)               // since cexp slow
     for (BIGINT j=0;j<nj;++j)
@@ -573,6 +654,13 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
 
   // Step 1: spread from irregular sources to regular grid as in type 1
   CPX* fw = (CPX*)malloc(sizeof(CPX)*nf1*nf2);
+  if(!fw){
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    fprintf(stderr, "Call to malloc failed for fw array allocation!");
+    return ERR_MAXNALLOC;
+ }
   timer.restart();
   spopts.spread_direction = 1;
   FLT *dummy=NULL;
@@ -584,12 +672,29 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
   // Step 2: call type-2 to eval regular as Fourier series at rescaled targs
   timer.restart();
   FLT *sp = (FLT*)malloc(sizeof(FLT)*nk);     // rescaled targs s'_k
+  if(!sp){
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    free(fw);
+    fprintf(stderr, "Call to malloc failed for s' coordinate array allocation!");
+    return ERR_MAXNALLOC;
+ }
   FLT *tp = (FLT*)malloc(sizeof(FLT)*nk);     // t'_k
+  if(!tp){
+    fprintf(stderr, "Call to malloc failed for t' array allocation!");
+    free(sp);
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    free(fw);
+    return ERR_MAXNALLOC;
+ }
   for (BIGINT k=0;k<nk;++k) {
     sp[k] = h1*gam1*(s[k]-D1);                         // so that |s'_k| < pi/R
     tp[k] = h2*gam2*(t[k]-D2);                         // so that |t'_k| < pi/R
   }
-  int ier_t2 = finufft2d2(nk,sp,tp,fk,iflag,eps,nf1,nf2,fw,opts);
+  int ier_t2 = finufft2d2_old(nk,sp,tp,fk,iflag,eps,nf1,nf2,fw,opts);
   free(fw);
   if (opts.debug) printf("total type-2 (ier=%d):\t %.3g s\n",ier_t2,timer.elapsedsec());
   if (ier_t2) exit(ier_t2);
@@ -597,7 +702,26 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
   // Step 3a: compute Fourier transform of scaled kernel at targets
   timer.restart();
   FLT *fkker1 = (FLT*)malloc(sizeof(FLT)*nk);
+  if(!fkker1){
+    fprintf(stderr, "Call to malloc failed for fkker array allocation!");
+    free(tp);
+    free(sp);
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    return ERR_MAXNALLOC;
+  }
   FLT *fkker2 = (FLT*)malloc(sizeof(FLT)*nk);
+  if(!fkker2){
+    fprintf(stderr, "Call to malloc failed for fkker2 coordinate array allocation!");
+    free(fkker1);
+    free(tp);
+    free(sp);
+    free(cpj);
+    free(xpj);
+    free(ypj);
+    return ERR_MAXNALLOC;
+ }
   // exploit that Fourier transform separates because kernel built separable...
   onedim_nuft_kernel(nk, sp, fkker1, spopts);           // fill fkker1
   onedim_nuft_kernel(nk, tp, fkker2, spopts);           // fill fkker2

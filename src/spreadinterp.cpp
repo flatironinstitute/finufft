@@ -1,4 +1,6 @@
-#include "spreadinterp.h"
+#include <spreadinterp.h>
+#include <defs.h>
+#include <utils.h>
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
@@ -128,7 +130,7 @@ int spreadinterp(
   if (ier_spreadcheck != 0) return ier_spreadcheck;
 
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
-  int did_sort = spreadsort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
+  int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
   int ier_spread = spreadwithsortidx(sort_indices, N1, N2, N3, data_uniform,
                                            M, kx, ky, kz, data_nonuniform,
                                            opts,did_sort);
@@ -204,7 +206,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
   return 0; 
 }
 
-int spreadsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
+int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts)
 /* This makes a decision whether to sort the NU pts, and if so, calls either
    single- or multi-threaded bin sort, writing reordered index list to sort_indices.
@@ -248,22 +250,14 @@ int spreadsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
   return did_sort;
 }
 
-int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		      FLT *data_nonuniform, spread_opts opts, int did_sort)
-/* The main spreading (dir=1) and interpolation (dir=2) routines.
-   See cnufftspread() above for inputs arguments and definitions.
-   Return value should always be 0.
-   Split out by Melody Shih, Jun 2018.
-*/
-{
-  CNTime timer;
-  int ndims = ndims_from_Ns(N1,N2,N3);
-  BIGINT N=N1*N2*N3;            // output array size
-  int ns=opts.nspread;          // abbrev. for w, kernel width
-  FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
+		      FLT *data_nonuniform, spread_opts opts, int did_sort){
 
-  if (opts.spread_direction==1) { // ========= direction 1 (spreading) =======
+    CNTime timer;
+    int ndims = ndims_from_Ns(N1,N2,N3);
+    BIGINT N=N1*N2*N3;            // output array size
+    int ns=opts.nspread;          // abbrev. for w, kernel width
 
     timer.start();
     for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
@@ -360,109 +354,129 @@ int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       }     // end main loop over subprobs
       if (opts.debug) printf("\tt1 fancy spread: \t%.3g s (%d subprobs)\n",timer.elapsedsec(), nb);
     }   // end of choice of which t1 spread type to use
-    
-  } else {          // ================= direction 2 (interpolation) ===========
-    timer.start();
-#pragma omp parallel
-    {
-#define CHUNKSIZE 16     // Chunks of Type 2 targets (Ludvig found by expt)
-      BIGINT jlist[CHUNKSIZE];
-      FLT xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
-      FLT outbuf[2*CHUNKSIZE];
-      // Kernels: static alloc is faster, so we do it for up to 3D...
-      FLT kernel_args[3*MAX_NSPREAD];
-      FLT kernel_values[3*MAX_NSPREAD];
-      FLT *ker1 = kernel_values;
-      FLT *ker2 = kernel_values + ns;
-      FLT *ker3 = kernel_values + 2*ns;       
+    return 0;
+};
 
-      // Loop over interpolation chunks
+int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		      FLT *data_nonuniform, spread_opts opts, int did_sort){
+  CNTime timer;
+  timer.start();
+  int ndims = ndims_from_Ns(N1,N2,N3);
+  int ns=opts.nspread;          // abbrev. for w, kernel width
+  FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
+
+
+#pragma omp parallel
+  {
+#define CHUNKSIZE 16     // Chunks of Type 2 targets (Ludvig found by expt)
+    BIGINT jlist[CHUNKSIZE];
+    FLT xjlist[CHUNKSIZE], yjlist[CHUNKSIZE], zjlist[CHUNKSIZE];
+    FLT outbuf[2*CHUNKSIZE];
+    // Kernels: static alloc is faster, so we do it for up to 3D...
+    FLT kernel_args[3*MAX_NSPREAD];
+    FLT kernel_values[3*MAX_NSPREAD];
+    FLT *ker1 = kernel_values;
+    FLT *ker2 = kernel_values + ns;
+    FLT *ker3 = kernel_values + 2*ns;       
+
+    // Loop over interpolation chunks
 #pragma omp for schedule(dynamic) // assign threads to NU targ pts:
-      for (BIGINT i=0; i<M; i+=CHUNKSIZE)  // main loop over NU targs, interp each from U
+    for (BIGINT i=0; i<M; i+=CHUNKSIZE)  // main loop over NU targs, interp each from U
       {
         // Setup buffers for this chunk
         int bufsize = (i+CHUNKSIZE > M) ? M-i : CHUNKSIZE;
         for (int ibuf=0; ibuf<bufsize; ibuf++) {
           BIGINT j = sort_indices[i+ibuf];
           jlist[ibuf] = j;
-          xjlist[ibuf] = RESCALE(kx[j],N1,opts.pirange);
-        }
-        if (ndims==3) {
-          for (int ibuf=0; ibuf<bufsize; ibuf++) {
-            BIGINT j = jlist[ibuf];
-            yjlist[ibuf] = RESCALE(ky[j],N2,opts.pirange);
-            zjlist[ibuf] = RESCALE(kz[j],N3,opts.pirange);                              
-          }
-        } else if (ndims==2) {
-          for (int ibuf=0; ibuf<bufsize; ibuf++) {
-            BIGINT j = jlist[ibuf];
-            yjlist[ibuf] = RESCALE(ky[j],N2,opts.pirange);
-          }
-        }
-        // Loop over targets in chunk
-        for (int ibuf=0; ibuf<bufsize; ibuf++) {
-          FLT xj = xjlist[ibuf];
-          FLT *target = outbuf+2*ibuf;
-        
-          // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
-          BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
-          FLT x1=(FLT)i1-xj;           // shift of ker center, in [-w/2,-w/2+1]
-          // eval kernel values patch and use to interpolate from uniform data...
-          if (!(opts.flags & TF_OMIT_SPREADING)) {
-            if (ndims==1) {                                          // 1D
-              if (opts.kerevalmeth==0) {               // choose eval method
-                set_kernel_args(kernel_args, x1, opts);
-                evaluate_kernel_vector(kernel_values, kernel_args, opts, ns);
-              } else
-                eval_kernel_vec_Horner(ker1,x1,ns,opts);
-              interp_line(target,data_uniform,ker1,i1,N1,ns);
+	  xjlist[ibuf] = RESCALE(kx[j],N1,opts.pirange);
+	  if(ndims >=2)
+	    yjlist[ibuf] = RESCALE(ky[j],N2,opts.pirange);
+	  if(ndims == 3)
+	    zjlist[ibuf] = RESCALE(kz[j],N3,opts.pirange);                              
+	}
+      
+    // Loop over targets in chunk
+    for (int ibuf=0; ibuf<bufsize; ibuf++) {
+      FLT xj = xjlist[ibuf];
+      FLT yj = (ndims > 1) ? yjlist[ibuf] : 0;
+      FLT zj = (ndims > 2) ? zjlist[ibuf] : 0;
 
-            } else if (ndims==2) {                                   // 2D
-              FLT yj=yjlist[ibuf];
-              BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
-              FLT x2=(FLT)i2-yj;
-              if (opts.kerevalmeth==0) {               // choose eval method
-                set_kernel_args(kernel_args, x1, opts);
-                set_kernel_args(kernel_args+ns, x2, opts);
-                evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
-              } else {
-                eval_kernel_vec_Horner(ker1,x1,ns,opts);
-                eval_kernel_vec_Horner(ker2,x2,ns,opts);
-              }
-              interp_square(target,data_uniform,ker1,ker2,i1,i2,N1,N2,ns);
-            } else {                                                 // 3D
-              FLT yj=yjlist[ibuf];
-              FLT zj=zjlist[ibuf];
-              BIGINT i2=(BIGINT)std::ceil(yj-ns2); // min y grid index
-              BIGINT i3=(BIGINT)std::ceil(zj-ns2); // min z grid index
-              FLT x2=(FLT)i2-yj;
-              FLT x3=(FLT)i3-zj;
-              if (opts.kerevalmeth==0) {               // choose eval method
-                set_kernel_args(kernel_args, x1, opts);
-                set_kernel_args(kernel_args+ns, x2, opts);
-                set_kernel_args(kernel_args+2*ns, x3, opts);
-                evaluate_kernel_vector(kernel_values, kernel_args, opts, 3*ns);
-              } else {
-                eval_kernel_vec_Horner(ker1,x1,ns,opts);
-                eval_kernel_vec_Horner(ker2,x2,ns,opts);
-                eval_kernel_vec_Horner(ker3,x3,ns,opts);
-              }
-              interp_cube(target,data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
-            }
+      FLT *target = outbuf+2*ibuf;
+        
+      // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
+      BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
+      BIGINT i2= (ndims > 1) ? (BIGINT)std::ceil(yj-ns2) : 0; // min y grid index
+      BIGINT i3= (ndims > 1) ? (BIGINT)std::ceil(zj-ns2) : 0; // min z grid index
+     
+      FLT x1=(FLT)i1-xj;           // shift of ker center, in [-w/2,-w/2+1]
+      FLT x2= (ndims > 1) ? (FLT)i2-yj : 0 ;
+      FLT x3= (ndims > 2)? (FLT)i3-zj : 0;
+
+      // eval kernel values patch and use to interpolate from uniform data...
+      if (!(opts.flags & TF_OMIT_SPREADING)) {
+
+	  if (opts.kerevalmeth==0) {               // choose eval method
+	    set_kernel_args(kernel_args, x1, opts);
+	    if(ndims > 1)  set_kernel_args(kernel_args+ns, x2, opts);
+	    if(ndims > 2)  set_kernel_args(kernel_args+2*ns, x3, opts);
+	    
+	    evaluate_kernel_vector(kernel_values, kernel_args, opts, ndims*ns);
 	  }
-        } // end loop over targets in chunk
+
+	  else{
+	    eval_kernel_vec_Horner(ker1,x1,ns,opts);
+	    if (ndims > 1) eval_kernel_vec_Horner(ker2,x2,ns,opts);  
+	    if (ndims > 2) eval_kernel_vec_Horner(ker3,x3,ns,opts);
+	  }
+
+	  switch(ndims){
+	  case 1:
+	    interp_line(target,data_uniform,ker1,i1,N1,ns);
+	    break;
+	  case 2:
+	    interp_square(target,data_uniform,ker1,ker2,i1,i2,N1,N2,ns);
+	    break;
+	  case 3:
+	    interp_cube(target,data_uniform,ker1,ker2,ker3,i1,i2,i3,N1,N2,N3,ns);
+	    break;
+	  default: //can't get here
+	    break;
+	     
+	  }	 
+      }
+    } // end loop over targets in chunk
         
-        // Copy result buffer to output array
-        for (int ibuf=0; ibuf<bufsize; ibuf++) {
-          BIGINT j = jlist[ibuf];
-          data_nonuniform[2*j] = outbuf[2*ibuf];
-          data_nonuniform[2*j+1] = outbuf[2*ibuf+1];              
-        }         
+    // Copy result buffer to output array
+    for (int ibuf=0; ibuf<bufsize; ibuf++) {
+      BIGINT j = jlist[ibuf];
+      data_nonuniform[2*j] = outbuf[2*ibuf];
+      data_nonuniform[2*j+1] = outbuf[2*ibuf+1];              
+    }         
         
-      }    // end NU targ loop
-    } // end parallel section
-    if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n",timer.elapsedsec());
-  }                           // ================= end direction choice ========
+      } // end NU targ loop
+  } // end parallel section
+if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n",timer.elapsedsec());
+return 0;
+};
+
+
+int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		      FLT *data_nonuniform, spread_opts opts, int did_sort)
+/* The main spreading (dir=1) and interpolation (dir=2) routines.
+   See cnufftspread() above for inputs arguments and definitions.
+   Return value should always be 0.
+   Split out by Melody Shih, Jun 2018.
+*/
+{
+
+  if (opts.spread_direction==1)  // ========= direction 1 (spreading) =======
+    spreadSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
+    
+  else          // ================= direction 2 (interpolation) ===========
+    interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
+
   return 0;
 }
 

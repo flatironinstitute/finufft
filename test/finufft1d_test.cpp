@@ -1,5 +1,7 @@
-#include "../src/finufft.h"
-#include "../src/dirft.h"
+#include <finufft_legacy.h>
+#include <finufft_old.h>
+#include <dirft.h>
+
 #include <math.h>
 #include <vector>
 #include <stdio.h>
@@ -65,7 +67,7 @@ int main(int argc, char* argv[])
   //for (BIGINT j=0; j<M; ++j) x[j] = 0.999 * PI*randm11();  // avoid ends
   //for (BIGINT j=0; j<M; ++j) x[j] = PI*(2*j/(FLT)M-1);  // test a grid
 
-  printf("test 1d type-1:\n"); // -------------- type 1
+  printf("------------------test 1d type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
   int ier = finufft1d1(M,x,c,isign,tol,N,F,opts);
   //for (int j=0;j<N;++j) cout<<F[j]<<endl;
@@ -74,23 +76,28 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("\t%lld NU pts to %lld modes in %.3g s \t%.3g NU pts/s\n",(long long)M,(long long)N,t,M/t);
+    printf("[err check] \t%lld NU pts to %lld modes in %.3g s \t%.3g NU pts/s\n",(long long)M,(long long)N,t,M/t);
 
   BIGINT nt = (BIGINT)(0.37*N);   // check arb choice of mode near the top (N/2)
   CPX Ft = CPX(0,0);
-  //#pragma omp declare reduction (cmplxadd:CPX:omp_out=omp_out+omp_in) initializer(omp_priv={0.0,0.0})  // only for openmp v 4.0!
-  //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(IMA*((FLT)(isign*nt))*x[j]);
-  printf("one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
+  printf("[err check] one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d1(M,x,c,isign,N,Ft);
-    printf("dirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    printf("[err check] dirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     free(Ft);
   }
 
-  printf("test 1d type-2:\n"); // -------------- type 2
+  //check against the old
+  CPX * F_old = (CPX *)malloc(sizeof(CPX)*N);
+  finufft1d1_old(M,x,c,isign,tol,N,F_old,opts);
+  printf("[err check] finufft1d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
+  printf("[err check] one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(F_old[N/2+nt]-F[N/2+nt])/infnorm(N,F));
+  free(F_old);
+  
+  printf("------------------test 1d type-2:------------------\n"); // -------------- type 2
  #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
@@ -113,16 +120,25 @@ int main(int argc, char* argv[])
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1=-k0; m1<=(N-1)/2; ++m1)
     ct += F[m++] * exp(IMA*((FLT)(isign*m1))*x[jt]);   // crude direct
-  printf("one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
+  printf("[err check] one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft1d2(M,x,ct,isign,N,F);
-    printf("dirft1d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
+    printf("[err check] dirft1d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
     //cout<<"c/ct:\n"; for (int j=0;j<M;++j) cout<<c[j]/ct[j]<<endl;
     free(ct);
   }
 
-  printf("test 1d type-3:\n"); // -------------- type 3
+  //check against the old
+  CPX * c_old = (CPX *)malloc(sizeof(CPX)*M);
+  finufft1d2_old(M,x,c_old,isign,tol,N,F,opts);
+  printf("[err check] finufft1d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old,c));
+  printf("[err check] one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(c_old[jt]-c[jt])/infnorm(M,c));
+  free(c_old);
+
+
+
+  printf("------------------test 1d type-3:------------------\n"); // -------------- type 3
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
   {
@@ -147,19 +163,26 @@ int main(int argc, char* argv[])
   } else
     printf("\t%lld NU to %lld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(long long)M,(long long)N,t,M/t,N/t);
 
-  BIGINT kt = N/2;          // check arbitrary choice of one targ pt
+  BIGINT kt = N/4;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*s[kt]*x[j]);
-  printf("one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
+  printf("[err check] one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
   if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d3(M,x,c,isign,N,s,Ft);       // writes to F
-    printf("dirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    printf("[err check] dirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
     //cout<<"s, F, Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<F[k]<<"\t"<<Ft[k]<<"\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   }
+
+  //check against the old
+  CPX *F3_old = (CPX *)malloc(sizeof(CPX)*N);
+  ier = finufft1d3_old(M,x,c,isign,tol,N,s,F3_old,opts);
+   printf("[err check] finufft1d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old,F));
+   printf("[err check] one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(F3_old[kt]-F[kt])/infnorm(N,F));
+  free(F3_old);
 
   free(x); free(c); free(F); free(s);
   return 0;

@@ -4,31 +4,11 @@
 #ifndef SPREADINTERP_H
 #define SPREADINTERP_H
 
+#include <dataTypes.h>
+
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "finufft.h"
-#include "defs.h"
-#include "utils.h"
-
-struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
-  int nspread;            // w, the kernel width in grid pts
-  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
-  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
-  int chkbnds;            // 0: don't check NU pts are in range; 1: do
-  int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
-  int kerevalmeth;        // 0: exp(sqrt()), old, or 1: Horner ppval, fastest
-  int kerpad;             // 0: no pad to mult of 4, 1: do (helps i7 kereval=0)
-  int sort_threads;       // 0: auto-choice, >0: fix number of sort threads
-  BIGINT max_subproblem_size; // sets extra RAM per thread
-  int flags;              // binary flags for timing only (may give wrong ans!)
-  int debug;              // 0: silent, 1: small text output, 2: verbose
-  FLT upsampfac;          // sigma, upsampling factor, default 2.0
-  // ES kernel specific...
-  FLT ES_beta;
-  FLT ES_halfwidth;
-  FLT ES_c;
-};
 
 // NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
 // folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
@@ -53,6 +33,27 @@ struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
 #define TF_OMIT_SPREADING            8 // don't interp/spread (dir=1: to subgrids)
 
 
+
+struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
+  int nspread;            // w, the kernel width in grid pts
+  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
+  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
+  int chkbnds;            // 0: don't check NU pts are in range; 1: do
+  int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
+  int kerevalmeth;        // 0: exp(sqrt()), old, or 1: Horner ppval, fastest
+  int kerpad;             // 0: no pad to mult of 4, 1: do (helps i7 kereval=0)
+  int sort_threads;       // 0: auto-choice, >0: fix number of sort threads
+  BIGINT max_subproblem_size; // sets extra RAM per thread
+  int flags;              // binary flags for timing only (may give wrong ans!)
+  int debug;              // 0: silent, 1: small text output, 2: verbose
+  FLT upsampfac;          // sigma, upsampling factor, default 2.0
+  // ES kernel specific...
+  FLT ES_beta;
+  FLT ES_halfwidth;
+  FLT ES_c;
+};
+
+
 // things external interface needs...
 int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
 		 BIGINT M, FLT *kx, FLT *ky, FLT *kz,
@@ -62,8 +63,15 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
                  BIGINT M, FLT *kx, FLT *ky, FLT *kz,
                  spread_opts opts);
 
-int spreadsort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
+int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts);
+
+int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		 FLT *data_nonuniform, spread_opts opts, int did_sort);
+int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		 FLT *data_nonuniform, spread_opts opts, int did_sort);
 
 int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
