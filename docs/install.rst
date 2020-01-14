@@ -232,9 +232,9 @@ Next make sure you have NumPy and pybind11 installed::
 You may then do ``make python3`` which calls
 pip3 for the install then runs some tests. An additional test you could do is::
 
-  python3 run_speed_tests.py
+  python3 python_tests/run_speed_tests.py
 
-In all the above the "3" can be omitted if you insist on working with python v2.
+In all the above, the suffix "3" should be omitted if you either want to work with python v2, or you are using a virtual python environment (see below).
 
 See also Dan Foreman-Mackey's earlier repo that also wraps finufft, and from which we have drawn code: `python-finufft <https://github.com/dfm/python-finufft>`_
 
@@ -247,7 +247,7 @@ There can be confusion and conflicts between various versions of python and inst
   virtualenv -p /usr/bin/python3 env1
   . env1/bin/activate
 
-Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the env1 directory. (You can get out of the environment by typing ``deactivate``)
+Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the env1 directory. (You can get out of the environment by typing ``deactivate``). Also see documentation for ``conda``. You then should use ``make python`` instead of ``make python3`` in the above.
 
 
 Tips for installing optional dependencies
