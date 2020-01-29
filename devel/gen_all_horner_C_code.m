@@ -5,9 +5,11 @@
 % Barnett 4/23/18; now calling Ludvig's loop version from 4/25/18.
 % version including low upsampfac, 6/17/18.
 clear
+opts = struct();
 
 ws = 2:16;
-upsampfac = 5/4;   % sigma (upsampling): either 2 (default) or low (eg 5/4).
+upsampfac = 2;   % sigma (upsampling): either 2 (default) or low (eg 5/4).
+opts.wpad = true; % pad kernel eval to multiple of 4
 
 if upsampfac==2, fid = fopen('../src/ker_horner_allw_loop.c','w');
 else, fid = fopen('../src/ker_lowupsampfac_horner_allw_loop.c','w');
@@ -27,7 +29,7 @@ for j=1:numel(ws)
     d = w + 1 + (w<=8);                   % less less, beta smaller, smoother
   end
   %str = gen_ker_horner_C_code(w,d,beta);       % barnett
-  str = gen_ker_horner_loop_C_code(w,d,beta);  % ludvig loop improvement
+  str = gen_ker_horner_loop_C_code(w,d,beta,opts);  % ludvig loop improvement
   if j==1                                % write switch statement
     fwrite(fid,sprintf('  if (w==%d) {\n',w));
   else
