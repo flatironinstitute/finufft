@@ -1,5 +1,9 @@
 List of features / changes made / release notes, in reverse chronological order:
 
+
+V 1.1.2 (1/31/20)
+
+* Ludvig's padding of Horner loop to w=4n, speeds up kernel, esp for GCC5.4.
 * Bansal's Mingw32 python patches.
 
 V 1.1.1 (11/2/18)

@@ -63,6 +63,21 @@ Alternatively, on Ubuntu linux (assuming python3 as opposed to python)::
 
 For any linux flavor see below for the optional ``numdiff`` (and very optional ``mwrap``). You should then compile via the various ``make`` tasks.
 
+.. note::
+
+   GCC versions on linux.  Rather than using the default GCC which may be as
+   old as 4.8 or 5.4 on current linux systems, we **strongly** recommend you
+   compile with a recent GCC version such as GCC 7.3 (which we used
+   benchmarks in our SISC paper), or GCC 9.2.1. We do not recommend
+   GCC versions prior to 7. We also **do not recommend GCC8** since
+   its auto vectorization has worsened, and its kernel evaluation rate
+   using the default looped piecewise-polynomial Horner code drops to
+   less than 150 Meval/s/core on an i7. This contrasts 400-700
+   Meval/s/core achievable with GCC7 or GCC9 on i7. If you wish to
+   test these raw kernel evaluation rates, do into ``devel\``, compile
+   ``test_ker_ppval.cpp`` and run ``fig_speed_ker_ppval.m`` in MATLAB. We are
+   unsure if GCC8 is poor in Mac OSX (see below).
+
 
 Tips for installing dependencies and compiling on Mac OSX
 ---------------------------------------------------------
