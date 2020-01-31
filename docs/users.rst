@@ -24,7 +24,8 @@ Papers using our new window function but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt, window function. https://arxiv.org/abs/1712.04732
 
-#. Daniel Potts and Manfred Tasche, "Uniform error estimates for the NFFT", (2019) https://arxiv.org/abs/1912.09746 Claims a proof of tighter error constant for our exp-sqrt kernel, via Chebyshev expansions.
+   #. Daniel Potts and Manfred Tasche, "Uniform error estimates for the NFFT", (2019) https://arxiv.org/abs/1912.09746 Claims a proof of tighter error constant for our exp-sqrt kernel, via Chebyshev expansions. See our remark on this in
+      https://arxiv.org/abs/2001.09405
    
 Citations to FINUFFT or its paper, that are not actual users:
 
