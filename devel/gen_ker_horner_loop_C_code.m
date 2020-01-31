@@ -25,15 +25,22 @@ if nargin<4, o=[]; end
 
 C = ker_ppval_coeff_mat(w,d,be,o);
 str = cell(d+1,1);
+if isfield(o,'wpad') && o.wpad
+    % Pad coefficients lists with zeros, up to multiple of 4
+    width = 4*ceil(w/4);
+    C = [C zeros(size(C,1),4)];
+else
+    width = w;
+end
 for n=1:d % loop over poly coeffs
   s = sprintf('FLT c%d[] = {%.16E',n-1, C(n,1));
-  for i=2:w % loop over segments
+  for i=2:width % loop over segments
     s = sprintf('%s, %.16E', s, C(n,i));      
   end
   str{n} = [s sprintf('};\n')];
 end
 
-s = sprintf('for (int i=0; i<%d; i++) ker[i] = ',w);
+s = sprintf('for (int i=0; i<%d; i++) ker[i] = ',width);
 for n=1:d-1
   s = [s sprintf('c%d[i] + z*(',n-1)];   % (n-1)th coeff for i'th segment
 end
