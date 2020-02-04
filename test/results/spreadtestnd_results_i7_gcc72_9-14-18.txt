@@ -1,0 +1,80 @@
+spreadtestnd output:
+what CPUs do I have?...
+model name	: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                8
+On-line CPU(s) list:   0-7
+Thread(s) per core:    2
+Core(s) per socket:    4
+Socket(s):             1
+NUMA node(s):          1
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 158
+Model name:            Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+Stepping:              9
+CPU MHz:               799.968
+CPU max MHz:           3800.0000
+CPU min MHz:           800.0000
+BogoMIPS:              5615.90
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              6144K
+NUMA node0 CPU(s):     0-7
+Flags:                 fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb invpcid_single intel_pt ibrs ibpb stibp kaiser tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp
+
+#NU = 1e6, #U = 1e6, tol = 1e-6, sort = 2: multi-core tests...
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0268 s 	3.73e+07 pts/s 	2.61e+08 spread pts/s
+    rel err in total over grid:      7.15e-07
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.02 s 	5.01e+07 pts/s 	3.51e+08 spread pts/s
+    max rel err in values at NU pts: 1.12e-06
+making random data...
+spreadinterp 2D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0346 s 	2.89e+07 pts/s 	1.42e+09 spread pts/s
+    rel err in total over grid:      1.52e-06
+making more random NU pts...
+spreadinterp 2D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0301 s 	3.32e+07 pts/s 	1.63e+09 spread pts/s
+    max rel err in values at NU pts: 2.23e-06
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0997 s 	1e+07 pts/s 	3.44e+09 spread pts/s
+    rel err in total over grid:      1.43e-06
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0899 s 	1.11e+07 pts/s 	3.82e+09 spread pts/s
+    max rel err in values at NU pts: 3.27e-06
+
+#NU = 1e6, #U = 1e6, tol = 1e-6, sort = 2: single core tests...
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0672 s 	1.49e+07 pts/s 	1.04e+08 spread pts/s
+    rel err in total over grid:      7.15e-07
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.107 s 	9.33e+06 pts/s 	6.53e+07 spread pts/s
+    max rel err in values at NU pts: 1.12e-06
+making random data...
+spreadinterp 2D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.124 s 	8.08e+06 pts/s 	3.96e+08 spread pts/s
+    rel err in total over grid:      1.52e-06
+making more random NU pts...
+spreadinterp 2D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.128 s 	7.78e+06 pts/s 	3.81e+08 spread pts/s
+    max rel err in values at NU pts: 2.23e-06
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.34 s 	2.94e+06 pts/s 	1.01e+09 spread pts/s
+    rel err in total over grid:      1.43e-06
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.499 s 	2e+06 pts/s 	6.87e+08 spread pts/s
+    max rel err in values at NU pts: 3.32e-06
