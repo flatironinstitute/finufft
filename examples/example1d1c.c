@@ -1,5 +1,5 @@
 // this is all you must include to access finufft from C...
-#include <finufft_legacy.h>
+#include <finufft_legacy_c.h>
 
 // also needed for this example...
 #include <stdlib.h>
@@ -36,13 +36,13 @@ int main(int argc, char* argv[])
   // allocate complex output array for the Fourier modes
   F = (double complex*)malloc(sizeof(double complex)*N);
 
-  nufft_opts opts;
-  finufft_default_opts(&opts);            // set default opts (must do this)
-  opts.debug = 2;                         // show how to override a default
+  nufft_opts *opts = create_opts();
+  finufft_default_opts(opts);            // set default opts (must do this)
+  set_opts_debug(opts,2);                         // show how to override a default
   //opts.upsampfac =1.25;                 // other opts...
   
   // call the NUFFT (with iflag=+1); this is the same code as from C++:
-  ier = finufft1d1(M,x,c,+1,acc,N,F,opts);
+  ier = finufft1d1_c(M,x,c,+1,acc,N,F,opts);
 
   n = 142519;         // check the answer just for this mode...
   Ftest = 0.0;
@@ -57,6 +57,7 @@ int main(int argc, char* argv[])
   err = cabs(F[nout] - Ftest)/Fmax;
   printf("1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
 
+  destroy_opts(opts);
   free(x); free(c); free(F);
   return ier;
 }

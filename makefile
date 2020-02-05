@@ -85,7 +85,7 @@ OLDLIB = lib-static/$(LIBNAME)_old.a
 SOBJS = src/spreadinterp.o src/utils.o
 
 #common objects
-COBJS = src/common.o contrib/legendre_rule_fast.o
+COBJS = src/common.o contrib/legendre_rule_fast.o src/legacy/finufft_legacy_c.o
 
 # LEGACY just the dimensions (1,2,3) separately...
 LEG_OBJS1 =  src/legacy/finufft1d.o src/legacy/invokeGuru.o  

@@ -5,15 +5,101 @@
 // finufftpy.finufftpy_cpp.* from python.
 // Rather, they should call finufftpy.nufftpy?d?  which are documented in
 // _interfaces.py
-
+#include <iostream>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
-#include "finufft.h"
 #include <fftw3.h>
-#include "ndarray.h"
+#include "finufft.h"
 
 namespace py = pybind11;
 
+static int fftwoptslist[] = {FFTW_ESTIMATE,FFTW_MEASURE,FFTW_PATIENT,FFTW_EXHAUSTIVE};
+
+// 0, finufft_default_opts(&opts)
+// 1, finufft_makeplane
+// 2, finufft_setpts
+// 3, finufft_exec(&plan,c,F)
+// 4, finufft_destroy
+
+void pyfinufft_default_opts(nufft_opts &o){
+
+    finufft_default_opts(&o);
+
+}
+
+void pyfinufft_makeplan(finufft_type type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n_transf, 
+     FLT tol, int blksize, finufft_plan &plan, nufft_opts o){
+
+    finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,blksize,&plan,o);
+
+}
+
+void pyfinufft_setpts(finufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> yj, py::array_t<FLT> zj, 
+     BIGINT N, py::array_t<FLT> s, py::array_t<FLT> t, py::array_t<FLT> u){
+
+    finufft_setpts(&plan,M,xj.mutable_data(),yj.mutable_data(),zj.mutable_data(),N,s.mutable_data(),t.mutable_data(),u.mutable_data());
+
+}
+
+void pyfinufft_exec(finufft_plan &plan, py::array_t<CPX> weights, py::array_t<CPX> result){
+
+    finufft_exec(&plan,weights.mutable_data(),result.mutable_data());
+
+}
+
+void pyfinufft_destroy(finufft_plan &plan){
+
+    finufft_destroy(&plan);
+
+}
+
+PYBIND11_MODULE(pyfinufft, m) {
+      m.doc() = "pybind11 finufft plugin"; // optional module docstring
+
+      // functions
+      m.def("pyfinufft_default_opts", &pyfinufft_default_opts, "Set default nufft opts");
+      m.def("pyfinufft_makeplan", &pyfinufft_makeplan, "Make finufft plan");
+      m.def("pyfinufft_setpts", &pyfinufft_setpts, "Set points");
+      m.def("pyfinufft_exec", &pyfinufft_exec, "Execute");
+      m.def("pyfinufft_destroy", &pyfinufft_destroy, "Destroy");
+
+      // nufft_opts struct
+      py::class_<nufft_opts>(m,"nufft_opts")
+          .def(py::init<>())
+          .def("set_debug",[](nufft_opts &o,int opt){o.debug=opt;})
+          .def("set_spread_debug",[](nufft_opts &o,int opt){o.spread_debug=opt;})
+          .def("set_spread_sort",[](nufft_opts &o,int opt){o.spread_sort=opt;})
+          .def("set_spread_kerevalmeth",[](nufft_opts &o,int opt){o.spread_kerevalmeth=opt;})
+          .def("set_spread_kerpad",[](nufft_opts &o,int opt){o.spread_kerpad=opt;})
+          .def("set_chkbnds",[](nufft_opts &o,int opt){o.chkbnds=opt;})
+          .def("set_fftw",[](nufft_opts &o,int opt){o.fftw=fftwoptslist[opt];})
+          .def("set_modeord",[](nufft_opts &o,int opt){o.modeord=opt;})
+          .def("set_upsampfac",[](nufft_opts &o,FLT opt){o.upsampfac=opt;})
+          .def("set_spread_scheme",[](nufft_opts &o,int opt){o.spread_scheme=opt;})
+          .def_readonly("debug", &nufft_opts::debug)
+          .def_readonly("spread_debug", &nufft_opts::spread_debug)
+          .def_readonly("spread_sort", &nufft_opts::spread_sort)
+          .def_readonly("spread_kerevalmeth", &nufft_opts::spread_kerevalmeth)
+          .def_readonly("spread_kerpad", &nufft_opts::spread_kerpad)
+          .def_readonly("chkbnds", &nufft_opts::chkbnds)
+          .def_readonly("fftw", &nufft_opts::fftw)
+          .def_readonly("modeord", &nufft_opts::modeord)
+          .def_readonly("upsampfac", &nufft_opts::upsampfac)
+          .def_readonly("spread_scheme", &nufft_opts::spread_scheme);
+
+      // finufft_plan stuct
+      py::class_<finufft_plan>(m,"finufft_plan")
+          .def(py::init<>());
+
+      // type enum
+      py::enum_<finufft_type>(m,"finufft_type",py::arithmetic(),"Unscoped finufft type enumeration")
+          .value("type1",type1,"type1 calculation")
+          .value("type2",type2,"type2 calculation")
+          .value("type3",type3,"type3 calculation")
+          .export_values();
+}
+
+/*
 // DFM's custom error handler to propagate errors back to Python
 class error : public std::exception {
 public:
@@ -341,3 +427,4 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
 	py::arg("fftw"),py::arg("upsampfac"));
 
 }   // end of module
+*/

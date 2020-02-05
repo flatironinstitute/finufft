@@ -57,12 +57,13 @@ elif sys.platform == "darwin":
         #extra_link_args=['-static -fPIC']
 
 ext_modules = [Extension(
-        'finufftpy_cpp',
+        'pyfinufft',
         ['finufftpy/finufftpy.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
             get_pybind_include(user=True),
+            'include',
             'src'
         ],
         libraries=libraries,
@@ -131,7 +132,7 @@ class BuildExt(build_ext):
 
 ########## SETUP ###########
 setup(
-    name='finufftpy',
+    name='pyfinufft',
     version=__version__,
     author='python interfaces by: Jeremy Magland, Daniel Foreman-Mackey, Alex Barnett',
     author_email='abarnett@flatironinstitute.org',
@@ -140,7 +141,7 @@ setup(
     long_description='python interface to FINUFFT (Flatiron Institute Nonuniform Fast Fourier Transform) library.',
     license="Apache 2",
     ext_modules=ext_modules,
-    packages=['finufftpy'],
+#    packages=['finufftpy'],
     install_requires=['numpy','pybind11>=2.2'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False
