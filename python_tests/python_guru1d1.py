@@ -14,7 +14,6 @@ M = int(1e5)
 x = np.random.uniform(-np.pi, np.pi, M)
 c = np.random.randn(M) + 1.j * np.random.randn(M)
 F = np.zeros([N], dtype=np.complex128)       # allocate F (modes out)
-narr = np.random.uniform(-np.pi, np.pi, 0)
 n_modes = np.ones([3], dtype=np.int64)
 n_modes[0] = N
 
@@ -29,7 +28,7 @@ plan = pf.finufft_plan()
 status = pf.pyfinufft_makeplan(1,1,n_modes,iflag,1,acc,8,plan,opts)
 
 #set pts
-status = pf.pyfinufft_setpts(plan,M,x,narr,narr,0,narr,narr,narr)
+status = pf.pyfinufft_setpts(plan,M,x,None,None,0,None,None,None)
 
 #exec
 status = pf.pyfinufft_exec(plan,c,F)
