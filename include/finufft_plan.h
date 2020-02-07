@@ -18,7 +18,7 @@ typedef struct {
 
 
 typedef struct finufft_plan{
-  finufft_plan(){}
+  //finufft_plan(){}
 
   finufft_type type;
   int n_dims;
