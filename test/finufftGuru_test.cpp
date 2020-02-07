@@ -21,8 +21,8 @@
 
 //forward declaration 
 double runOldFinufft(CPX *c,CPX *F,finufft_plan *plan);
-finufft_type intToType(int i);
-int typeToInt(finufft_type type);
+//finufft_type intToType(int i);
+//int typeToInt(finufft_type type);
 
   
 int main(int argc, char* argv[])
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
   double upsampfac = 2.0;        // default
   int ntransf = 1;
   int ndim = 1;
-  finufft_type type = type1;
+  int type = 1;
   int i;
   int isign = +1;             // choose which exponential sign to test
 
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
   if (argc>1) 
     sscanf(argv[1],"%d",&i); ntransf = i;
   if(argc > 2)
-    sscanf(argv[2],"%d",&i); type = intToType(i);
+    sscanf(argv[2],"%d",&i); type = i;
 
   if(argc > 3)
     sscanf(argv[3],"%d",&i); ndim = i;    
@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
   FLT* t = NULL; 
   FLT* u = NULL;
 
-  if(type == type3){
+  if(type == 3){
     s = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs (1-cmpt)
     FLT S1 = (FLT)N1/2;            
 
@@ -326,8 +326,8 @@ int main(int argc, char* argv[])
  printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, oldTime , ntransf*M/oldTime);
   
-  printf("\tspeedup (T_finufft[%d]d[%d]_old / T_finufft[%d]d[%d]) = %.3g\n", ndim,  typeToInt(type),
-	  ndim,typeToInt(type), oldTime/totalTime);
+  printf("\tspeedup (T_finufft[%d]d[%d]_old / T_finufft[%d]d[%d]) = %.3g\n", ndim,  type,
+	  ndim, type, oldTime/totalTime);
   
   
   /**********************************************************************************************/

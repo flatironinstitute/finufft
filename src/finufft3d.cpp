@@ -57,7 +57,7 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   n_modes[2] = mu;
   int n_dims = 3;
   int n_transf = 1;
-  finufft_type type = type1;
+  int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
 				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
 
@@ -81,7 +81,7 @@ int finufft3d1many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int i
   n_modes[1] = mt;
   n_modes[2] = mu;
   int n_dims = 3;
-  finufft_type type = type1;
+  int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
 				eps, n_modes, 0,  NULL, NULL, NULL, fk, opts);
 
@@ -136,7 +136,7 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   n_modes[2] = mu;
   int n_dims = 3;
   int n_transf = 1;
-  finufft_type type = type2;
+  int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
 				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
 
@@ -161,7 +161,7 @@ int finufft3d2many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   n_modes[1] = mt;
   n_modes[2] = mu;
   int n_dims = 3;
-  finufft_type type = type2;
+  int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
 				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
 
@@ -215,7 +215,7 @@ int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 {
   int n_dims = 3;
   int n_transf = 1;
-  finufft_type type = type3;
+  int type = 3;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
 				eps, NULL, nk, s ,t ,u, fk, opts);
 
@@ -238,7 +238,7 @@ int finufft3d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 
   
   int n_dims = 3;
-  finufft_type type = type3;
+  int type = 3;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
 				eps, NULL, nk, s ,t ,u, fk, opts);
 

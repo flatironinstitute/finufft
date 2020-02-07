@@ -5,7 +5,7 @@
 #include <nufft_opts.h>
 #include <spreadinterp.h>
 
-enum finufft_type { type1, type2, type3};
+//enum finufft_type { type1, type2, type3};
 
 
 typedef struct {
@@ -20,7 +20,7 @@ typedef struct {
 typedef struct finufft_plan{
   //finufft_plan(){}
 
-  finufft_type type;
+  int type;
   int n_dims;
   int n_transf;
   int nj; 

@@ -7,7 +7,7 @@
 //forward declaration
 
 //converts a finufft_type to corresponding integer for printing output
-int typeToInt(finufft_type type);
+//int typeToInt(finufft_type type);
 
 //helper function to construct a n_dim size array, containing nf_i for i=1:n_dim
 int * buildNf(finufft_plan *plan);
@@ -15,13 +15,18 @@ int * buildNf(finufft_plan *plan);
 
 //populates the fields of finufft_plan, and for type 1+2 allocates memory for internal working arrays,
 //evaluates spreading kernel coefficients, and instantiates the fftw_plan
-int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, int n_transf,
+int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag, int n_transf,
                      FLT tol, int threadBlkSize, finufft_plan *plan, nufft_opts opts) {
 
   plan->opts = opts;
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts, tol, plan->opts);
   if(ier_set) return ier_set;
+  
+  if((type!=1)&&(type!=2)&&(type!=3)) {
+      fprintf(stderr, "Invalid type, type should be 1, 2 or 3.");
+      return ERR_TYPE_NOTVALID;
+  }
 
   cout << scientific << setprecision(15);  // for debug    
 
@@ -55,7 +60,7 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
   /* Type 1 and Type 2                                              */
   /******************************************************************/
 
-  if((type == type1) || (type == type2)){
+  if((type == 1) || (type == 2)){
   
     if (plan->threadBlkSize>1) {          //type 3 will call finufft_makeplan for type2, thus no need to call twice. 
       FFTW_INIT();
@@ -76,7 +81,7 @@ int finufft_makeplan(finufft_type type, int n_dims, BIGINT *n_modes, int iflag, 
     
     
 
-    if (plan->opts.debug) printf("%dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) ...\n",n_dims, typeToInt(type),
+    if (plan->opts.debug) printf("%dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) ...\n",n_dims, type,
                                  (long long)plan->ms,(long long)plan->mt, (long long) plan->mu,
                                  (long long)plan->nf1,(long long)plan->nf2, (long long)plan->nf3);
 
@@ -166,11 +171,11 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, B
   /******************************************************************/
   /* Type 1 and Type 2                                              */
   /******************************************************************/
-  if((plan->type == type1) || (plan->type == type2)){
+  if((plan->type == 1) || (plan->type == 2)){
 
-    if(plan->type == type1)
+    if(plan->type == 1)
       plan->spopts.spread_direction = 1; 
-    if(plan->type == type2)
+    if(plan->type == 2)
       plan->spopts.spread_direction = 2; 
 
   
@@ -417,7 +422,7 @@ void spreadAllSetsInBatch(int nSetsThisBatch, int blkNum, finufft_plan *plan, CP
 
     //for type 3, c is "cpj", scaled weights, and spreading is done in batches of size threadBlockSize
     CPX *cStart;
-    if(plan->type == type3)
+    if(plan->type == 3)
       cStart = c + plan->nj*i;
 
     //for type1+2, c is the client's array and of size nj*n_transforms
@@ -625,14 +630,14 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
   /******************************************************************/
   /* Type 1 and Type 2                                              */
   /******************************************************************/
-  if (plan->type != type3){
+  if (plan->type != 3){
   
     for(int batchNum = 0; batchNum*plan->threadBlkSize < plan->n_transf; batchNum++){
           
       int nSetsThisBatch = min(plan->n_transf - batchNum*plan->threadBlkSize, plan->threadBlkSize);
 
       //Type 1 Step 1: Spread to Regular Grid    
-      if(plan->type == type1){
+      if(plan->type == 1){
         timer.restart();
         spreadAllSetsInBatch(nSetsThisBatch, batchNum, plan, cj, ier_spreads);
         t_spread += timer.elapsedsec();
@@ -644,7 +649,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
       }
 
       //Type 2 Step 1: amplify Fourier coeffs fk and copy into fw
-      else if(plan->type == type2){
+      else if(plan->type == 2){
         timer.restart();
         deconvolveInParallel(nSetsThisBatch, batchNum, plan,fk);
         t_deconv += timer.elapsedsec();
@@ -657,14 +662,14 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
       t_exec += temp_t;
 
       //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output 
-      if(plan->type == type1){
+      if(plan->type == 1){
         timer.restart();
         deconvolveInParallel(nSetsThisBatch, batchNum, plan,fk);
         t_deconv += timer.elapsedsec();
       }
 
       //Type 2 Step 3: interpolate from regular to irregular target pts
-      else if(plan->type == type2){
+      else if(plan->type == 2){
         timer.restart();
         interpAllSetsInBatch(nSetsThisBatch, batchNum, plan, cj, ier_spreads);
         t_spread += timer.elapsedsec(); 
@@ -673,7 +678,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     
 
     if(plan->opts.debug){
-      if(plan->type == type1)
+      if(plan->type == 1)
         printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
       else //type 2
         printf("[finufft_exec] interp:\t\t\t %.3g s\n",t_spread);
@@ -718,7 +723,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
     int batchSize = min(plan->n_transf, plan->threadBlkSize);
     timer.restart();
-    ier_t2 = finufft_makeplan(type2, plan->n_dims, n_modes, plan->iflag, batchSize, plan->tol,
+    ier_t2 = finufft_makeplan(2, plan->n_dims, n_modes, plan->iflag, batchSize, plan->tol,
                               plan->threadBlkSize, &t2Plan, t2Plan.opts);
     if(ier_t2){
       printf("inner type 2 plan creation failed\n");
@@ -816,7 +821,7 @@ int finufft_destroy(finufft_plan * plan){
   
   //for type 3, original coordinates are kept in {X,Y,Z}_orig,
   //free the X,Y,Z which hold x',y',z'
-  if(plan->type == type3){
+  if(plan->type == 3){
     free(plan->X);
     if(plan->Y)
       free(plan->Y);
@@ -835,7 +840,7 @@ int finufft_destroy(finufft_plan * plan){
   
 };
 
-
+/*
 int typeToInt(finufft_type type){
   switch(type){
   case type1:
@@ -859,6 +864,7 @@ finufft_type intToType(int i){
 
   }
 }
+*/
 
 int * buildNf(finufft_plan *plan){
   int * nf;
