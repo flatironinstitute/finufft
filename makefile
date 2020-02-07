@@ -88,11 +88,11 @@ SOBJS = src/spreadinterp.o src/utils.o
 COBJS = src/common.o contrib/legendre_rule_fast.o
 
 # LEGACY just the dimensions (1,2,3) separately...
-LEG_OBJS1 =  src/legacy/finufft1d.o src/legacy/invokeGuru.o  
-LEG_OBJS2 =  src/legacy/finufft2d.o src/legacy/invokeGuru.o 
-LEG_OBJS3 =  src/legacy/finufft3d.o src/legacy/invokeGuru.o 
+LEG_OBJS1 =  src/finufft1d.o src/invokeGuru.o
+LEG_OBJS2 =  src/finufft2d.o src/invokeGuru.o
+LEG_OBJS3 =  src/finufft3d.o src/invokeGuru.o
 
-LEG_OBJS = src/legacy/finufft1d.o src/legacy/finufft2d.o src/legacy/finufft3d.o src/legacy/invokeGuru.o 
+LEG_OBJS = src/finufft1d.o src/finufft2d.o src/finufft3d.o src/invokeGuru.o
 
 #OLD
 OLD_OBJS1 = src/old/finufft1d_old.o src/direct/dirft1d.o
