@@ -13,3 +13,6 @@ benchmark/spreadtestnd_mel
 benchmark/nfft_simpletest
 benchmark/result/*.out
 *.o
+
+lib
+lib-static
