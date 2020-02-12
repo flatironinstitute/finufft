@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 
   printf("------------------test 2dmany type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
-  int ier = finufft2d1many(ntransf,M,x,y,c,isign,tol,N1,N2,F,opts);
+  int ier = finufft2d1many(ntransf,M,x,y,c,isign,tol,N1,N2,F,&opts);
   double ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
   opts.debug = debug; // set debug flags back to original setting
   opts.spread_debug = (debug>1) ? 1 : 0;
   timer.restart();
-  ier = finufft2d2many(ntransf,M,x,y,c,isign,tol,N1,N2,F,opts);
+  ier = finufft2d2many(ntransf,M,x,y,c,isign,tol,N1,N2,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -273,7 +273,7 @@ int main(int argc, char* argv[])
   }
 
   timer.restart();
-  ier = finufft2d3many(ntransf,M,x,y,c,isign,tol,N,s_freq,t_freq,F,opts);
+  ier = finufft2d3many(ntransf,M,x,y,c,isign,tol,N,s_freq,t_freq,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

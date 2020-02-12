@@ -287,8 +287,9 @@ ifeq ($(PREC),SINGLE)
 	@echo "python3 interface only supports double precision; doing nothing"
 else
 	pip3 install .
-	python3 python_tests/demo1d1.py
-	python3 python_tests/run_accuracy_tests.py
+	python3 python_tests/python_guru1d1.py
+	#python3 python_tests/demo1d1.py
+	#python3 python_tests/run_accuracy_tests.py
 endif
 
 

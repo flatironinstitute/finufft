@@ -11,7 +11,7 @@
 
 
 int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
-	       FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
+	       FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts)
  /*  Type-1 2D complex nonuniform FFT.
 
                   nj-1
@@ -61,7 +61,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   int n_transf = 1;
   int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj, iflag,
-				eps, n_modes, 0, NULL, NULL, NULL,fk, opts);
+				eps, n_modes, 0, NULL, NULL, NULL,fk, *opts);
 
   
   return ier; 
@@ -71,7 +71,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 
 int finufft2d1many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
 		   int iflag, FLT eps, BIGINT ms, BIGINT mt, CPX* fk,
-		   nufft_opts opts)
+		   nufft_opts *opts)
 /*
   Type-1 2D complex nonuniform FFT for multiple strength vectors, same NU pts.
 
@@ -120,7 +120,7 @@ int finufft2d1many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   int type = 1;
   
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj,NULL, c, iflag,
-				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
 
 
   return ier; 
@@ -128,7 +128,7 @@ int finufft2d1many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
 
 
 int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
-	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
+	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts)
 
  /*  Type-2 2D complex nonuniform FFT.
 
@@ -170,7 +170,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   int n_transf = 1;
   int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj, iflag,
-				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
  
   
   return ier;
@@ -178,7 +178,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 
 
 int finufft2d2many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
-		   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts opts)
+		   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts)
 /*
   Type-2 2D complex nonuniform FFT for multiple coeff vectors, same NU pts.
 
@@ -224,13 +224,13 @@ int finufft2d2many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   int n_dims = 2;
   int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, c, iflag,
-				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
 
   return ier; 
 }
 
 
-int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts)
+int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts *opts)
  /*  Type-3 2D complex nonuniform FFT.
 
                nj-1
@@ -271,13 +271,13 @@ int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, 
   int n_dims = 2;
   int type = 3;
   int n_transf = 1;
-  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj,iflag, eps, NULL, nk, s,t,NULL, fk, opts);
+  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj,iflag, eps, NULL, nk, s,t,NULL, fk, *opts);
   return ier;
   
 }
 
 
-int finufft2d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts opts){
+int finufft2d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts *opts){
 
   if (n_transf<1) {
     fprintf(stderr,"n_transf should be at least 1 (n_transf=%d)\n",n_transf);
@@ -286,6 +286,6 @@ int finufft2d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FL
 
   int n_dims = 2;
   int type = 3;
-  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj,iflag, eps, NULL, nk, s,t,NULL, fk, opts);
+  int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj,iflag, eps, NULL, nk, s,t,NULL, fk, *opts);
   return ier;
 }

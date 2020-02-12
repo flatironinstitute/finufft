@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
   printf("------------------test 1dmany type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
-  int ier = finufft1d1many(ntransf,M,x,c,isign,tol,N,F,opts);
+  int ier = finufft1d1many(ntransf,M,x,c,isign,tol,N,F,&opts);
   double ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
-  ier = finufft1d2many(ntransf, M,x,c,isign,tol,N,F,opts);
+  ier = finufft1d2many(ntransf, M,x,c,isign,tol,N,F,&opts);
   //cout<<"c:\n"; for (int j=0;j<M;++j) cout<<c[j]<<endl;
   ti=timer.elapsedsec();
   if (ier!=0) {
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
   }
   
   timer.restart();
-  ier = finufft1d3many(ntransf, M,x,c,isign,tol,N,s,F,opts);
+  ier = finufft1d3many(ntransf, M,x,c,isign,tol,N,s,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

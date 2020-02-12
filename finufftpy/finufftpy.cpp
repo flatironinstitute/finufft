@@ -30,7 +30,7 @@ void pyfinufft_default_opts(nufft_opts &o){
 void pyfinufft_makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n_transf, 
      FLT tol, int blksize, finufft_plan &plan, nufft_opts o){
 
-    finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,blksize,&plan,o);
+    finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,blksize,&plan,&o);
 
 }
 

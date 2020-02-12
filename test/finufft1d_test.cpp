@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 
   printf("------------------test 1d type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
-  int ier = finufft1d1(M,x,c,isign,tol,N,F,opts);
+  int ier = finufft1d1(M,x,c,isign,tol,N,F,&opts);
   //for (int j=0;j<N;++j) cout<<F[j]<<endl;
   double t=timer.elapsedsec();
   if (ier!=0) {
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
-  ier = finufft1d2(M,x,c,isign,tol,N,F,opts);
+  ier = finufft1d2(M,x,c,isign,tol,N,F,&opts);
   //cout<<"c:\n"; for (int j=0;j<M;++j) cout<<c[j]<<endl;
   t=timer.elapsedsec();
   if (ier!=0) {
@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
     for (BIGINT k=0; k<N; ++k) s[k] = S*(1.7 + randm11r(&se)); //S*(1.7 + k/(FLT)N); // offset
   }
   timer.restart();
-  ier = finufft1d3(M,x,c,isign,tol,N,s,F,opts);
+  ier = finufft1d3(M,x,c,isign,tol,N,s,F,&opts);
   t=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

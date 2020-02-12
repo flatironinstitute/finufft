@@ -10,7 +10,7 @@
 
 int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk,
-	       nufft_opts opts)
+	       nufft_opts *opts)
  /*  Type-1 3D complex nonuniform FFT.
 
                      nj-1
@@ -59,7 +59,7 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
   int n_transf = 1;
   int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
-				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
 
 
   return ier;
@@ -68,7 +68,7 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 
 int finufft3d1many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk,
-	       nufft_opts opts)
+	       nufft_opts *opts)
 {
 
   if (n_transf<1) {
@@ -83,7 +83,7 @@ int finufft3d1many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int i
   int n_dims = 3;
   int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
-				eps, n_modes, 0,  NULL, NULL, NULL, fk, opts);
+				eps, n_modes, 0,  NULL, NULL, NULL, fk, *opts);
 
 
   return ier;
@@ -93,7 +93,7 @@ int finufft3d1many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int i
 
 int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 	       int iflag,FLT eps, BIGINT ms, BIGINT mt, BIGINT mu,
-	       CPX* fk, nufft_opts opts)
+	       CPX* fk, nufft_opts *opts)
 
  /*  Type-2 3D complex nonuniform FFT.
 
@@ -138,7 +138,7 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   int n_transf = 1;
   int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
-				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
 
 
 
@@ -147,7 +147,7 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 
 int finufft3d2many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 	       int iflag,FLT eps, BIGINT ms, BIGINT mt, BIGINT mu,
-	       CPX* fk, nufft_opts opts)
+	       CPX* fk, nufft_opts *opts)
 {
 
   if (n_transf<1) {
@@ -163,7 +163,7 @@ int finufft3d2many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   int n_dims = 3;
   int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
-				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
 
   return ier;
   
@@ -174,7 +174,7 @@ int finufft3d2many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 
 int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 	       int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t,
-	       FLT *u, CPX* fk, nufft_opts opts)
+	       FLT *u, CPX* fk, nufft_opts *opts)
  /*  Type-3 3D complex nonuniform FFT.
 
                nj-1
@@ -217,7 +217,7 @@ int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   int n_transf = 1;
   int type = 3;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
-				eps, NULL, nk, s ,t ,u, fk, opts);
+				eps, NULL, nk, s ,t ,u, fk, *opts);
 
 
 
@@ -227,7 +227,7 @@ int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 
 int finufft3d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 	       int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t,
-	       FLT *u, CPX* fk, nufft_opts opts)
+	       FLT *u, CPX* fk, nufft_opts *opts)
 {
 
 
@@ -240,7 +240,7 @@ int finufft3d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   int n_dims = 3;
   int type = 3;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, zj, cj, iflag,
-				eps, NULL, nk, s ,t ,u, fk, opts);
+				eps, NULL, nk, s ,t ,u, fk, *opts);
 
 
 

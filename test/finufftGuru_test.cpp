@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
 
   CNTime timer; timer.start();  
   //Guru Step 1
-  int ier = finufft_makeplan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan, opts);
+  int ier = finufft_makeplan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan, &opts);
   //for type3, omit n_modes and send in NULL
 
   //the opts struct can no longer be modified with effect!

@@ -47,7 +47,7 @@ int main(int argc, char *argv[]){
   vector<complex<double> > F(int(N1*N2) + 1, std::complex<double>(0,0));
 
   //call the NUFFT (with iflag += 1): note N and M are typecast to BIGINT
-  int ier = finufft2d1(M,&x[0],&y[0], &c[0], 1, acc, N1, N2, &F[0], opts);
+  int ier = finufft2d1(M,&x[0],&y[0], &c[0], 1, acc, N1, N2, &F[0], &opts);
 
   double n_x = round(0.45*N1); //check the answer for this arbitrary mode
   double n_y = round(-0.35*N2);

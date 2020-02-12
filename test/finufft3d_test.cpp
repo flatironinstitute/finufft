@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 
   printf("------------------test 3d type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
-  int ier = finufft3d1(M,x,y,z,c,isign,tol,N1,N2,N3,F,opts);
+  int ier = finufft3d1(M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   double ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
-  ier = finufft3d2(M,x,y,z,c,isign,tol,N1,N2,N3,F,opts);
+  ier = finufft3d2(M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -176,7 +176,7 @@ int main(int argc, char* argv[])
     }
   }
   timer.restart();
-  ier = finufft3d3(M,x,y,z,c,isign,tol,N,s,t,u,F,opts);
+  ier = finufft3d3(M,x,y,z,c,isign,tol,N,s,t,u,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

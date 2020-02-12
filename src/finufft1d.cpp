@@ -10,7 +10,7 @@
 #include <iomanip>
 
 int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	       CPX* fk, nufft_opts opts)
+	       CPX* fk, nufft_opts *opts)
  /*  Type-1 1D complex nonuniform FFT.
 
               nj-1
@@ -52,14 +52,14 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   int n_transf = 1;
   int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
-				iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
  
   return ier;
 
 }
 
 int finufft1d1many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	       CPX* fk, nufft_opts opts)
+	       CPX* fk, nufft_opts *opts)
 {
 
   BIGINT n_modes[3];
@@ -69,7 +69,7 @@ int finufft1d1many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIG
   int n_dims = 1;
   int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
-				iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
  
   return ier;
 
@@ -77,7 +77,7 @@ int finufft1d1many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIG
 
 
 int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	       CPX* fk, nufft_opts opts)
+	       CPX* fk, nufft_opts *opts)
  /*  Type-2 1D complex nonuniform FFT.
 
      cj[j] = SUM   fk[k1] exp(+/-i k1 xj[j])      for j = 0,...,nj-1
@@ -118,13 +118,13 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   int n_transf = 1;
   int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
-				iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
 
   return ier;
 }
 
 int finufft1d2many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	       CPX* fk, nufft_opts opts)
+	       CPX* fk, nufft_opts *opts)
 {
 
   if (n_transf<1) {
@@ -139,7 +139,7 @@ int finufft1d2many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIG
   int n_dims = 1;
   int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
-				iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
+				iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, *opts);
 
   return ier;
 
@@ -147,7 +147,7 @@ int finufft1d2many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIG
 }
 
 
-int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts opts)
+int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts *opts)
  /*  Type-3 1D complex nonuniform FFT.
 
                nj-1
@@ -191,13 +191,13 @@ int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, 
   int n_transf = 1;
   int type = 3;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
-				iflag, eps, NULL, nk, s, NULL, NULL, fk, opts);
+				iflag, eps, NULL, nk, s, NULL, NULL, fk, *opts);
 
   return ier;
 
 }
 
-int finufft1d3many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts opts)
+int finufft1d3many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts *opts)
 {
 
   if (n_transf<1) {
@@ -209,7 +209,7 @@ int finufft1d3many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, B
   int n_dims = 1;
   int type = 3;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
-				iflag, eps, NULL, nk, s, NULL, NULL, fk, opts);
+				iflag, eps, NULL, nk, s, NULL, NULL, fk, *opts);
 
   return ier;
 

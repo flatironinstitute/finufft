@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
   complex<float>* F = (complex<float>*)malloc(sizeof(complex<float>)*N);
 
   // call the NUFFT (with iflag=+1): N,M will be typecast to BIGINT
-  int ier = finufft1d1(M,x,c,+1,acc,N,F,opts);
+  int ier = finufft1d1(M,x,c,+1,acc,N,F,&opts);
 
   int n = 14251;   // check the answer just for this mode...
   complex<float> Ftest = complex<float>(0,0);

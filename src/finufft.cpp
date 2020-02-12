@@ -16,9 +16,9 @@ int * buildNf(finufft_plan *plan);
 //populates the fields of finufft_plan, and for type 1+2 allocates memory for internal working arrays,
 //evaluates spreading kernel coefficients, and instantiates the fftw_plan
 int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag, int n_transf,
-                     FLT tol, int threadBlkSize, finufft_plan *plan, nufft_opts opts) {
+                     FLT tol, int threadBlkSize, finufft_plan *plan, nufft_opts *opts) {
 
-  plan->opts = opts;
+  plan->opts = *opts;
   spread_opts spopts;
   int ier_set = setup_spreader_for_nufft(spopts, tol, plan->opts);
   if(ier_set) return ier_set;
@@ -724,7 +724,7 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
     int batchSize = min(plan->n_transf, plan->threadBlkSize);
     timer.restart();
     ier_t2 = finufft_makeplan(2, plan->n_dims, n_modes, plan->iflag, batchSize, plan->tol,
-                              plan->threadBlkSize, &t2Plan, t2Plan.opts);
+                              plan->threadBlkSize, &t2Plan, &t2Plan.opts);
     if(ier_t2){
       printf("inner type 2 plan creation failed\n");
       return ier_t2;  

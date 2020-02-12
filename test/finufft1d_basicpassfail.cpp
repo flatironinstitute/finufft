@@ -26,7 +26,7 @@ int main()
     c[j] = 2*((FLT)rand()/RAND_MAX)-1 + I*(2*((FLT)rand()/RAND_MAX)-1);
   }
   // Run it.................................................
-  int ier = finufft1d1(M,x,c,isign,tol,N,F,opts);
+  int ier = finufft1d1(M,x,c,isign,tol,N,F,&opts);
   if (ier!=0) {
     printf("basicpassfail: finufft1d1 error (ier=%d)!",ier);
     exit(ier);

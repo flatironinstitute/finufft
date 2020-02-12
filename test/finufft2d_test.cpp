@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 
   printf("------------------test 2d type-1:------------------\n"); // -------------- type 1
   CNTime timer; timer.start();
-  int ier = finufft2d1(M,x,y,c,isign,tol,N1,N2,F,opts);
+  int ier = finufft2d1(M,x,y,c,isign,tol,N1,N2,F,&opts);
   double ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
-  ier = finufft2d2(M,x,y,c,isign,tol,N1,N2,F,opts);
+  ier = finufft2d2(M,x,y,c,isign,tol,N1,N2,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
     }
   }
   timer.restart();
-  ier = finufft2d3(M,x,y,c,isign,tol,N,s,t,F,opts);
+  ier = finufft2d3(M,x,y,c,isign,tol,N,s,t,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

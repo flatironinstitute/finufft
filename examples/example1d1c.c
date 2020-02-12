@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
   //opts.upsampfac =1.25;                 // other opts...
   
   // call the NUFFT (with iflag=+1); this is the same code as from C++:
-  ier = finufft1d1(M,x,c,+1,acc,N,F,opts);
+  ier = finufft1d1(M,x,c,+1,acc,N,F,&opts);
 
   n = 142519;         // check the answer just for this mode...
   Ftest = 0.0;
