@@ -107,11 +107,11 @@ OBJS = src/finufft.o $(COBJS) $(SOBJS)
 FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
 
 
-.PHONY: usage lib examples test perftest fortran matlab octave all mex python python3 clean objclean pyclean mexclean
+.PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean
 
 default: usage
 
-all: test perftest lib examples fortran matlab octave python3
+all: test perftest lib examples fortran matlab octave python
 
 usage:
 	@echo "Makefile for FINUFFT library. Specify what to make:"
@@ -122,9 +122,8 @@ usage:
 	@echo " make fortran - compile and test Fortran interfaces"
 	@echo " make matlab - compile MATLAB interfaces"
 	@echo " make octave - compile and test octave interfaces"
-	@echo " make python3 - compile and test python3 interfaces"	
+	@echo " make python - compile and test python interfaces"	
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
-	@echo " make python - compile and test python (v2) interfaces"
 	@echo " make spreadtest - compile and run spreader tests only"
 	@echo " make objclean - remove all object files, preserving lib & MEX"
 	@echo " make clean - also remove lib, MEX, py, and demo executables"
@@ -273,25 +272,16 @@ mex: matlab/finufft.mw
 	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
 
-# python(3) interfaces...
+# python interfaces (v3 assumed)...
 python: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "python interface only supports double precision; doing nothing"
 else
-	pip install .
-	python python_tests/demo1d1.py
-	python python_tests/run_accuracy_tests.py
+	(cd python; pip install .)
+	python python/test/python_guru1d1.py	
+	python python/test/demo1d1.py
+	python python/test/run_accuracy_tests.py
 endif
-python3: $(STATICLIB)
-ifeq ($(PREC),SINGLE)
-	@echo "python3 interface only supports double precision; doing nothing"
-else
-	pip3 install .
-	python3 python_tests/python_guru1d1.py
-	#python3 python_tests/demo1d1.py
-	#python3 python_tests/run_accuracy_tests.py
-endif
-
 
 # ------------- Various obscure/devel tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!
@@ -312,7 +302,7 @@ objclean:
 	rm -f fortran/*.o examples/*.o matlab/*.o
 
 pyclean:
-	rm -f finufftpy/*.pyc finufftpy/__pycache__/* python_tests/*.pyc python_tests/__pycache__/*
+	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 
 # for experts; only do this if you have mwrap to rebuild the interfaces!
 mexclean:

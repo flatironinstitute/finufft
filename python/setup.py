@@ -6,7 +6,7 @@
 
 # Max OSX users: please edit as per below comments, and docs/install.rst
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -63,8 +63,8 @@ ext_modules = [Extension(
             # Path to pybind11 headers
             get_pybind_include(),
             get_pybind_include(user=True),
-            'include',
-            'src'
+            '../include',
+            '../src'
         ],
         libraries=libraries,
         extra_compile_args=extra_compile_args,

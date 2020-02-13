@@ -42,7 +42,7 @@ Optional:
 * ``numdiff`` (preferred but not essential; enables better pass-fail accuracy validation)
 * for Fortran wrappers: compiler such as ``gfortran``
 * for matlab/octave wrappers: MATLAB, or octave and its development libraries
-* for the python wrappers you will need ``python`` and ``pip`` (if you are stuck on python v2), or ``python3`` and ``pip3`` (for the standard python v3). You will also need ``pybind11``
+* for the python wrappers you will need ``python`` and ``pip`` (it is assumed you have python v3; v2 is unsupported). You will also need ``pybind11``
 * for rebuilding new matlab/octave wrappers (experts only): ``mwrap``
 
 
@@ -57,7 +57,7 @@ On a Fedora/CentOS linux system, dependencies can be installed as follows::
 
    we are not exactly sure how to install python3 and pip3 using yum
 
-Alternatively, on Ubuntu linux (assuming python3 as opposed to python)::
+Alternatively, on Ubuntu linux::
 
   sudo apt-get install make build-essential libfftw3-dev gfortran numdiff python3 python3-pip octave liboctave-dev
 
@@ -107,7 +107,7 @@ for python (note that pip is not installed with the default python v2)::
 
   brew install python3
   pip3 install numpy pybind11
-  make python3
+  make python
   
 This should generate the ``finufftpy`` module (and ``finufftpy_cpp`` which it depends on).
 However, we have found that it may fail with an error about ``-lstdc++``,
@@ -119,7 +119,7 @@ We have also found that running::
 
   pip3 install .
 
-in the command line can work even when ``make python3`` does not (probably
+in the command line can work even when ``make python`` does not (probably
 to do with environment variables).
 Octave interfaces work out of the box::
 
@@ -133,7 +133,7 @@ Alternatively, here's the **GCC route**, which we have also tested on Movaje::
 
   cp make.inc.macosx_gcc-8 make.inc
 
-You must now by hand edit ``setup.py``, changing ``gcc`` to ``gcc-8`` and ``g++`` to ``g++-8``. Then proceed as above with python3. ``make fortran`` in addition to the above (apart from octave) should now work.
+You must now by hand edit ``python/setup.py``, changing ``gcc`` to ``gcc-8`` and ``g++`` to ``g++-8``. Then proceed as above with python3. ``make fortran`` in addition to the above (apart from octave) should now work.
 
 .. note::
 
@@ -227,14 +227,13 @@ Python links to this compiled library. You will get an error unless you first
 compile the static library.
 Next make sure you have NumPy and pybind11 installed::
   
-  pip3 install numpy pybind11
+  pip install numpy pybind11
 
-You may then do ``make python3`` which calls
-pip3 for the install then runs some tests. An additional test you could do is::
+You may then do ``make python`` which calls
+``pip`` for the install then runs some tests.
+An additional test you could do is::
 
-  python3 run_speed_tests.py
-
-In all the above the "3" can be omitted if you insist on working with python v2.
+  python python/run_speed_tests.py
 
 See also Dan Foreman-Mackey's earlier repo that also wraps finufft, and from which we have drawn code: `python-finufft <https://github.com/dfm/python-finufft>`_
 
