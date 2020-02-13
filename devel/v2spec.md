@@ -1,7 +1,5 @@
 # FINUFFT v1.2 specifications
 
-2/6/20
-
 We will write the docs for v1.2 first, then fill out implementation in a
 fresh branch.
 Developing in guruInterface_v2 is fine for now.
@@ -65,17 +63,57 @@ FLT* xj,FLT *yj, FLT *zj, CPX* cj,int iflag, FLT eps, BIGINT *n_modes, BIGINT nk
 
 ```
 
-## Usage from python
+
+
+## Python interface
+
+Here's an example guru call, defining the guru interface:
+This is close to Joakim's GPU interface at
+https://github.com/janden/cufinufft/blob/python/python/cufinufft.py
+
+# type 1 or 2 ------------
+import finufft
+N = (50,100)     # shape implicitly sets dimension, here 2D
+type = 1
+isign = +1
+tol = 1e-6
+plan = finufft.plan(type, N, ntransf, isign, tol)     # there's a last optional arg opts=None
+  # if opts=None then use default opts  (opts lives inside plan)
+# (set x,y)
+finufft.set_nu_pts(plan, x,y)     # here y=None, z=None in the def
+finufft.execute(plan, c, f)    # either reads c and writes to existing f, or opposite.
+f = finufft.execute(plan, c)    # another way to call (eg for type 1), creates f
+finufft.destroy(plan)
+
+# type 3 ----------------
+N=2    # now N is interpreted as the dim ? or have separate dim argument??
+plan = finufft.plan(3, N, ntransf, isign, tol)
+# (set x,y, sx, sy)
+finufft.set_nu_pts(plan, x,y,None, sx,sy,None)  # here sx,sy,sz are output NU  
+finufft.execute(plan, c, f)    # reads c and writes to f.
+# note c, f size must match ntransf
+finufft.destroy(plan)
+
+# this needs to be fleshed out.
+
+
+Notes:
+
+There will be pure-python wrappers implementing
+the simple finufftpy.nufft() calls.
+INTERFACE TO DO.
 
 proceed with pybind11. Allow python to see and edit all fields in opts struct.
 
-Pass ptr to plan, but py user cannot see inside it.
+[Pass ptr to plan, but py user cannot see inside it. ?
+No: copy Joakim's GPU interface plan.
+]
 
 Detect whether "many" is called in guru (ie, n_transf>1) via shape
-of input U array.
+of input U array. This won't work for t3 many. See above.
 
 Use of out=None to write to returned array or to pre-alloc array in arg
-list.
+list. See above.
 
 pythonic error reporting
 
@@ -98,7 +136,7 @@ examples
 python - finufftpy
        - examples
        - test
-       setup.py
+       setup.py    (this is for pybind11)
        requirements.txt
 fortran
 matlab - examples
