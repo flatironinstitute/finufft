@@ -13,3 +13,5 @@ benchmark/spreadtestnd_mel
 benchmark/nfft_simpletest
 benchmark/result/*.out
 *.o
+
+__pycache__
