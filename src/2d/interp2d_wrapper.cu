@@ -316,7 +316,6 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 					numbins[0], numbins[1], d_idxnupts, pirange);
 		}
 	}
-		printf("pirange=%d\n", pirange);
 #ifdef SPREADTIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);

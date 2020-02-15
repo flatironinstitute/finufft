@@ -674,8 +674,8 @@ void Interp_2d_NUptsdriven_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 				cnow.y += fw[inidx].y*kervalue1*kervalue2;
 			}
 		}
-		c[i].x = cnow.x;
-		c[i].y = cnow.y;
+		c[idxnupts[i]].x = cnow.x;
+		c[idxnupts[i]].y = cnow.y;
 	}
 
 }
