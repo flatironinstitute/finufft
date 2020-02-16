@@ -33,7 +33,7 @@ figure(2); subplot(1,2,1); imagesc(x,x,f'); colorbar('southoutside');  % show it
 axis xy equal tight; title('source term f'); xlabel('x'); ylabel('y');
 subplot(1,2,2); imagesc(x,x,u'); colorbar('southoutside');
 axis xy equal tight; title('FFT solution u'); xlabel('x'); ylabel('y'); drawnow
-
+set(gcf,'paperposition',[0 0 10 5]); print -dpng ../../docs/pics/pois_fft.png
 
 % B) solve on general nonuniform tensor prod grid............................
 tol = 1e-12;       % precision
@@ -93,8 +93,7 @@ for i=1:numel(ns), n = ns(i);
   if i==1, figure(3); mesh(xx,yy,f); view(2); axis equal; axis([0 2*pi 0 2*pi]); title('f on mesh'); end
   Nk = 0.5*n; Nk = 2*ceil(Nk/2);  % modes to trust due to quadr err (dep on map)
   o.modeord = 1;      % fft output mode ordering
-  fhat = finufft2d1(xx(:),yy(:),f(:).*ww(:),1,tol,Nk,Nk,o);  % do E-F
-  % note: since tensor-prod case, could do stack of 1d1 NUFFTs faster :)
+  fhat = finufft2d1(xx(:),yy(:),f(:).*ww(:),1,tol,Nk,Nk,o);  % step 1: do E-F
   k = [0:Nk/2-1 -Nk/2:-1];   % Fourier mode grid
   [kx ky] = ndgrid(k,k);
   kfilter = 1./(kx.^2+ky.^2);  % inverse -Laplacian in Fourier space (as above)

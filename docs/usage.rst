@@ -15,6 +15,17 @@ Using the library is a matter of filling your input arrays,
 allocating the correct output array size, possibly setting fields in
 the options struct, then calling one of the transform routines below.
 
+.. warning::
+   FINUFFT (when compiled with OpenMP) by default uses all available threads,
+   which is often twice the number of cores (full hyperthreading).
+   We have observed that a large thread
+   count can lead to *reduced* performance, presumably because RAM access is the limiting factor. We recommend that one limit the
+   number of threads at most around 24. This can be done in linux via
+   the shell environment, eg ``OMP_NUM_THREADS=16``, or using OpenMP
+   commands in the various languages.
+
+   
+
 Interfaces from C++
 *******************
 
@@ -71,7 +82,7 @@ usage examples. The documentation for all nine routines follows below.
 .. note::
  If you have a small-scale 2D task (say less than 10\ :sup:`5` points or modes) with multiple strength or coefficient vectors but fixed nonuniform points, see the :ref:`advanced interfaces <advinterface>`.
 
-
+ 
  .. _datatypes:
  
 Data types
