@@ -1,4 +1,4 @@
-Examples and applications
+Applications and Examples
 =========================
 
 For further applications, see the References, and these
@@ -20,7 +20,7 @@ find $u$ satisfying
 which has a unique solution up to constants. When $f$ and $u$ live on
 a regular Cartesian mesh, three steps are needed.
 The first takes an FFT to approximate
-the Fourier series coefficent array of $f$, the second divides by $\|k\|^2$,
+the Fourier series coefficient array of $f$, the second divides by $\|k\|^2$,
 and the third uses another FFT to evaluate the Fourier series for $u$
 back on the original grid. Here is a MATLAB demo in $d=2$ dimensions.
 Firstly we set up a smooth function, periodic up to machine precision::
@@ -159,4 +159,4 @@ The full code is at ``matlab/examples/poisson2dnuquad.m``
 .. note::
    Using the NUFFT as above does *not* give an optimal scaling scheme in the case of
    a **fully adaptive grid**, because all frequencies must be handled up to the highest
-   one needed. The latter is controlled by the smallest spatial scale, so that the number of modes needed, $N$, is no smaller than the number in a *uniform* spatial discretization of the original domain at resolution needed to capture the smallest features. In other words, the advantage of full adaptivity is lost when using the NUFFT, and one may has well have used the FFT with a uniform Cartesian grid. To remedy this and recover linear complexity in the fully adaptive case, an FMM could be used to convolve $f$ with the (periodized) Laplace fundamental solution to obtain $u$, or a multigrid or direct solver used on the discretization of the Laplacian on the adaptive grid.
+   one needed. The latter is controlled by the smallest spatial scale, so that the number of modes needed, $N$, is no smaller than the number in a *uniform* spatial discretization of the original domain at resolution needed to capture the smallest features. In other words, the advantage of full adaptivity is lost when using the NUFFT, and one may as well have used the FFT with a uniform Cartesian grid. To remedy this and recover linear complexity in the fully adaptive case, an FMM could be used to convolve $f$ with the (periodized) Laplace fundamental solution to obtain $u$, or a multigrid or direct solver used on the discretization of the Laplacian on the adaptive grid.
