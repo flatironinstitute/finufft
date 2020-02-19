@@ -17,6 +17,7 @@ import os
 # choose your compilers here (eg gcc-8, g++-8). Should match make.inc
 os.environ["CC"] = "gcc"
 os.environ["CXX"] = "g++"
+# how can read these from ../make.inc ?
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path

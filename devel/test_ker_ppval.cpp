@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
   FLT c = 4.0/(FLT)(w*w);          // set up ker params for plain eval
   FLT iw = 1.0/(FLT)w;        // scale factor
   std::vector<FLT> x(w);
-  std::vector<FLT> f(w), f2(w);
+  std::vector<FLT> f(16), f2(16); // length=MAX_NSPREAD
 
   int Macc = 100;        // test accuracy.......
   FLT superr = 0.0;

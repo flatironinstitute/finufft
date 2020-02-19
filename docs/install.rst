@@ -63,6 +63,21 @@ Alternatively, on Ubuntu linux::
 
 For any linux flavor see below for the optional ``numdiff`` (and very optional ``mwrap``). You should then compile via the various ``make`` tasks.
 
+.. note::
+
+   GCC versions on linux.  Rather than using the default GCC which may be as
+   old as 4.8 or 5.4 on current linux systems, we **strongly** recommend you
+   compile with a recent GCC version such as GCC 7.3 (which we used
+   benchmarks in our SISC paper), or GCC 9.2.1. We do not recommend
+   GCC versions prior to 7. We also **do not recommend GCC8** since
+   its auto vectorization has worsened, and its kernel evaluation rate
+   using the default looped piecewise-polynomial Horner code drops to
+   less than 150 Meval/s/core on an i7. This contrasts 400-700
+   Meval/s/core achievable with GCC7 or GCC9 on i7. If you wish to
+   test these raw kernel evaluation rates, do into ``devel/``, compile
+   ``test_ker_ppval.cpp`` and run ``fig_speed_ker_ppval.m`` in MATLAB. We are
+   unsure if GCC8 is poor in Mac OSX (see below).
+
 
 Tips for installing dependencies and compiling on Mac OSX
 ---------------------------------------------------------
@@ -246,7 +261,7 @@ There can be confusion and conflicts between various versions of python and inst
   virtualenv -p /usr/bin/python3 env1
   . env1/bin/activate
 
-Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the env1 directory. (You can get out of the environment by typing ``deactivate``)
+Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the env1 directory. (You can get out of the environment by typing ``deactivate``). Also see documentation for ``conda``. In both cases ``python`` will call the version of python you set up, which these days should be v3.
 
 
 Tips for installing optional dependencies

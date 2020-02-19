@@ -1,0 +1,88 @@
+Xeon detected, switching off spreader sorting...
+nuffttestnd output:
+what CPUs do I have?...
+model name	: Intel(R) Xeon(R) CPU E5-2643 v3 @ 3.40GHz
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                24
+On-line CPU(s) list:   0-23
+Thread(s) per core:    2
+Core(s) per socket:    6
+Socket(s):             2
+NUMA node(s):          2
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 63
+Model name:            Intel(R) Xeon(R) CPU E5-2643 v3 @ 3.40GHz
+Stepping:              2
+CPU MHz:               1200.085
+CPU max MHz:           3700.0000
+CPU min MHz:           1200.0000
+BogoMIPS:              6784.82
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              20480K
+NUMA node0 CPU(s):     0-5,12-17
+NUMA node1 CPU(s):     6-11,18-23
+Flags:                 fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm epb intel_ppin ssbd ibrs ibpb stibp tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid cqm xsaveopt cqm_llc cqm_occup_llc dtherm ida arat pln pts md_clear spec_ctrl intel_stibp flush_l1d
+
+size = 1e6, tol = 1e-6: multi-core tests...
+test 1d type-1:
+	1000000 NU pts to 1000000 modes in 0.16 s 	6.24e+06 NU pts/s
+one mode: rel err in F[370000] is 8.42e-08
+test 1d type-2:
+	1000000 modes to 1000000 NU pts in 0.0979 s 	1.02e+07 NU pts/s
+one targ: rel err in c[500000] is 1.89e-07
+test 1d type-3:
+	1000000 NU to 1000000 NU in 0.558 s   1.79e+06 srcs/s, 1.79e+06 targs/s
+one targ: rel err in F[500000] is 1.51e-07
+test 2d type-1:
+	1000000 NU pts to (500,2000) modes in 0.197 s 	5.07e+06 NU pts/s
+one mode: rel err in F[185,520] is 1.32e-08
+test 2d type-2:
+	(500,2000) modes to 1000000 NU pts in 0.0863 s 	1.16e+07 NU pts/s
+one targ: rel err in c[500000] is 1.05e-07
+test 2d type-3:
+	1000000 NU to 1000000 NU in 0.7 s   1.43e+06 srcs/s, 1.43e+06 targs/s
+one targ: rel err in F[500000] is 6.72e-07
+test 3d type-1:
+     1000000 NU pts to (100,200,50) modes in 0.369 s 	2.71e+06 NU pts/s
+one mode: rel err in F[37,52,-19] is 2e-07
+test 3d type-2:
+     (100,200,50) modes to 1000000 NU pts in 0.164 s 	6.11e+06 NU pts/s
+one targ: rel err in c[500000] is 1.35e-07
+test 3d type-3:
+	1000000 NU to 1000000 NU in 1.83 s   5.48e+05 srcs/s, 5.48e+05 targs/s
+one targ: rel err in F[500000] is 3.25e-07
+
+size = 1e6, tol = 1e-6: single core tests...
+test 1d type-1:
+	1000000 NU pts to 1000000 modes in 0.193 s 	5.17e+06 NU pts/s
+one mode: rel err in F[370000] is 6.59e-08
+test 1d type-2:
+	1000000 modes to 1000000 NU pts in 0.196 s 	5.11e+06 NU pts/s
+one targ: rel err in c[500000] is 1.87e-07
+test 1d type-3:
+	1000000 NU to 1000000 NU in 0.823 s   1.22e+06 srcs/s, 1.22e+06 targs/s
+one targ: rel err in F[500000] is 1.81e-07
+test 2d type-1:
+	1000000 NU pts to (500,2000) modes in 0.323 s 	3.09e+06 NU pts/s
+one mode: rel err in F[185,520] is 1.25e-08
+test 2d type-2:
+	(500,2000) modes to 1000000 NU pts in 0.339 s 	2.95e+06 NU pts/s
+one targ: rel err in c[500000] is 1.29e-07
+test 2d type-3:
+	1000000 NU to 1000000 NU in 2.15 s   4.66e+05 srcs/s, 4.66e+05 targs/s
+one targ: rel err in F[500000] is 3.11e-07
+test 3d type-1:
+     1000000 NU pts to (100,200,50) modes in 0.76 s 	1.32e+06 NU pts/s
+one mode: rel err in F[37,52,-19] is 2e-07
+test 3d type-2:
+     (100,200,50) modes to 1000000 NU pts in 1.08 s 	9.27e+05 NU pts/s
+one targ: rel err in c[500000] is 6.75e-07
+test 3d type-3:
+	1000000 NU to 1000000 NU in 5.34 s   1.87e+05 srcs/s, 1.87e+05 targs/s
+one targ: rel err in F[500000] is 4.27e-07

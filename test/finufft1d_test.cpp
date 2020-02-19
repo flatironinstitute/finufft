@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("\t%lld NU to %lld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(long long)M,(long long)N,t,M/t,N/t);
+    printf("\t%lld NU to %lld NU in %.3g s        \t%.3g tot NU pts/s\n",(long long)M,(long long)N,t,(M+N)/t);
 
   BIGINT kt = N/4;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);

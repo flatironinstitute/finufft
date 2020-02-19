@@ -97,7 +97,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	print_report('finufft2d1',elapsed,Xest,Xtrue,nj)
 
 	## 2d1many:
-	ndata = 5       # how many vectors to do
+	ndata = 8       # how many vectors to do
 	cj=np.array(np.random.rand(nj,ndata)+1j*np.random.rand(nj,ndata),order='F')
 	fk=np.zeros([ms,mt,ndata],dtype=np.complex128,order='F')
 	timer=time.time()
