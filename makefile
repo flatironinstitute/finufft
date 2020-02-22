@@ -277,7 +277,7 @@ python: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "python interface only supports double precision; doing nothing"
 else
-	(cd python; pip install .)
+	(export FINUFFT_DIR=$(PWD); cd python; pip install .)
 	python python/test/python_guru1d1.py	
 	python python/test/demo1d1.py
 	python python/test/run_accuracy_tests.py

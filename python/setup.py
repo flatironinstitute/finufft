@@ -18,6 +18,9 @@ import os
 os.environ["CC"] = "gcc"
 os.environ["CXX"] = "g++"
 # how can read these from ../make.inc ?
+inc_dir = os.environ.get('FINUFFT_DIR')+"/include"
+src_dir = os.environ.get('FINUFFT_DIR')+"/src"
+finufft_lib = os.environ.get('FINUFFT_DIR')+"/lib-static/finufft"
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -35,19 +38,19 @@ class get_pybind_include(object):
 
 # choose compile flags for finufftpy.cpp (links to finufft lib)...
 if sys.platform == "win32":
-    libraries = ["lib-static/finufft","fftw3"]
+    libraries = [finufft_lib,"fftw3"]
     extra_compile_args=['-fopenmp']
     extra_link_args=[]
 
 elif sys.platform == "linux" or sys.platform == "linux2":
     # changed from fftw3_threads, since a bit faster, 9/24/18:
-    libraries = ["lib-static/finufft","fftw3","fftw3_omp","gomp"]
+    libraries = [finufft_lib,"fftw3","fftw3_omp","gomp"]
     extra_compile_args=['-fopenmp']
     extra_link_args=[]
 
 elif sys.platform == "darwin":
     # Mac OSX
-    libraries = ["lib-static/finufft","fftw3","fftw3_threads","gomp"]
+    libraries = [finufft_lib,"fftw3","fftw3_threads","gomp"]
     extra_compile_args=['-fopenmp']
     if os.environ["CXX"] == "g++":
         # clang
@@ -64,8 +67,8 @@ ext_modules = [Extension(
             # Path to pybind11 headers
             get_pybind_include(),
             get_pybind_include(user=True),
-            '../include',
-            '../src'
+            inc_dir,
+            src_dir
         ],
         libraries=libraries,
         extra_compile_args=extra_compile_args,
