@@ -27,41 +27,41 @@ void pyfinufft_default_opts(nufft_opts &o){
 
 }
 
-void pyfinufft_makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n_transf, 
-     FLT tol, int blksize, finufft_plan &plan, nufft_opts o){
+int pyfinufft_makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n_transf, 
+     FLT tol, int blksize, finufft_plan &plan, nufft_opts &o){
 
-    finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,blksize,&plan,&o);
+    return finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,blksize,&plan,&o);
 
 }
 
-void pyfinufft_setpts(finufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> yj, py::array_t<FLT> zj, 
+int pyfinufft_setpts(finufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> yj, py::array_t<FLT> zj, 
      BIGINT N, py::array_t<FLT> s, py::array_t<FLT> t, py::array_t<FLT> u){
 
-    finufft_setpts(&plan,M,xj.mutable_data(),yj.mutable_data(),zj.mutable_data(),N,s.mutable_data(),t.mutable_data(),u.mutable_data());
+    return finufft_setpts(&plan,M,xj.mutable_data(),yj.mutable_data(),zj.mutable_data(),N,s.mutable_data(),t.mutable_data(),u.mutable_data());
 
 }
 
-void pyfinufft_exec(finufft_plan &plan, py::array_t<CPX> weights, py::array_t<CPX> result){
+int pyfinufft_exec(finufft_plan &plan, py::array_t<CPX> weights, py::array_t<CPX> result){
 
-    finufft_exec(&plan,weights.mutable_data(),result.mutable_data());
-
-}
-
-void pyfinufft_destroy(finufft_plan &plan){
-
-    finufft_destroy(&plan);
+    return finufft_exec(&plan,weights.mutable_data(),result.mutable_data());
 
 }
 
-PYBIND11_MODULE(pyfinufft, m) {
+int pyfinufft_destroy(finufft_plan &plan){
+
+    return finufft_destroy(&plan);
+
+}
+
+PYBIND11_MODULE(finufftpy_cpp, m) {
       m.doc() = "pybind11 finufft plugin"; // optional module docstring
 
       // functions
-      m.def("pyfinufft_default_opts", &pyfinufft_default_opts, "Set default nufft opts");
-      m.def("pyfinufft_makeplan", &pyfinufft_makeplan, "Make finufft plan");
-      m.def("pyfinufft_setpts", &pyfinufft_setpts, "Set points");
-      m.def("pyfinufft_exec", &pyfinufft_exec, "Execute");
-      m.def("pyfinufft_destroy", &pyfinufft_destroy, "Destroy");
+      m.def("default_opts", &pyfinufft_default_opts, "Set default nufft opts");
+      m.def("makeplan", &pyfinufft_makeplan, "Make finufft plan");
+      m.def("setpts", &pyfinufft_setpts, "Set points");
+      m.def("execute", &pyfinufft_exec, "Execute");
+      m.def("destroy", &pyfinufft_destroy, "Destroy");
 
       // nufft_opts struct
       py::class_<nufft_opts>(m,"nufft_opts")

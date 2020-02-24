@@ -2,7 +2,7 @@
 # Lu 02/07/20.
 
 import time
-import pyfinufft as pf
+import finufftpy as fp
 import numpy as np
 
 np.random.seed(42)
@@ -20,18 +20,18 @@ n_modes[0] = N
 strt = time.time()
 
 #opts
-opts = pf.nufft_opts()
-pf.pyfinufft_default_opts(opts)
+opts = fp.nufft_opts()
+fp.default_opts(opts)
 
 #plan
-plan = pf.finufft_plan()
-status = pf.pyfinufft_makeplan(1,1,n_modes,iflag,1,acc,8,plan,opts)
+plan = fp.finufft_plan()
+status = fp.makeplan(1,1,n_modes,iflag,1,acc,8,plan,opts)
 
 #set pts
-status = pf.pyfinufft_setpts(plan,M,x,None,None,0,None,None,None)
+status = fp.setpts(plan,M,x,None,None,0,None,None,None)
 
 #exec
-status = pf.pyfinufft_exec(plan,c,F)
+status = fp.execute(plan,c,F)
 
 #timing
 print("Finished nufft in {0:.2g} seconds. Checking..."
@@ -48,4 +48,4 @@ err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
 
 #destroy
-pf.pyfinufft_destroy(plan)
+fp.destroy(plan)
