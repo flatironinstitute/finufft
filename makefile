@@ -2,9 +2,9 @@ CC=gcc
 CXX=g++
 NVCC=nvcc
 
-CXXFLAGS=-DNEED_EXTERN_C -fPIC -O3 -funroll-loops -march=native -g
+CXXFLAGS= -DNEED_EXTERN_C  -fPIC -O3 -funroll-loops -march=native -g -std=c++11
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS=-DTIME -arch=sm_70 --default-stream per-thread -Xcompiler -fPIC
+NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME -arch=sm_61 --default-stream per-thread   -Xcompiler "$(CXXFLAGS)"
 #If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 #DEBUG add "-g -G" for cuda-gdb debugger
 
@@ -100,8 +100,10 @@ cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 lib: $(STATICLIB) $(DYNAMICLIB)
 
 $(STATICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+	mkdir -p lib-static
 	ar rcs $(STATICLIB) $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 $(DYNAMICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+	mkdir -p lib	
 	$(NVCC) -shared $(NVCCFLAGS) $(CUFINUFFTOBJS) $(FINUFFTOBJS) -o $(DYNAMICLIB) $(LIBS) 
 
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
@@ -136,3 +138,4 @@ clean:
 	rm -f example2d1
 	rm -f lib/*.so
 	rm -f lib-static/*.a
+	rmdir lib lib-static
