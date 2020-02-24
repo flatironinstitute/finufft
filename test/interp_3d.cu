@@ -91,8 +91,8 @@ int main(int argc, char* argv[])
 			return 1;
 	}
 	for(int i=0; i<nf1*nf2*nf3; i++){
-		fw[i].real() = 1.0;
-		fw[i].imag() = 0.0;
+		fw[i].real(1.0);
+		fw[i].imag(0.0);
 	}
 
 	int dim=3;

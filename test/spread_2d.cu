@@ -102,8 +102,8 @@ int main(int argc, char* argv[])
 				random_shuffle (&y[0], &y[M-1]);
 #endif
 				for (int i = 0; i < M; i++) {
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+				  c[i].real(randm11());
+				  c[i].imag(randm11());
 				}
 			}
 			break;
@@ -121,8 +121,8 @@ int main(int argc, char* argv[])
 					}
 				}
 				for (int i = 0; i < M; i++) {
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+				  c[i].real(randm11());
+				  c[i].imag(randm11());
 				}
 			}
 			break;
@@ -144,8 +144,8 @@ int main(int argc, char* argv[])
 				srand(unsigned(1)); 
 				random_shuffle (&y[0], &y[M-1]);
 				for (int i = 0; i < M; i++) {
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 				}
 			}
 			break;
@@ -158,8 +158,8 @@ int main(int argc, char* argv[])
 						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
 						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
 					}
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 				}
 			}
 			break;
@@ -172,8 +172,8 @@ int main(int argc, char* argv[])
 						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
 						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
 					}
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 				}
 			}
 			break;
@@ -182,8 +182,8 @@ int main(int argc, char* argv[])
 				for(int i=0; i<M; i++) {
 					x[i] = 1;// x in [-pi,pi)
 					y[i] = 1;
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 				}
 			}
 			break;

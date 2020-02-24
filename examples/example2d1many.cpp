@@ -27,8 +27,8 @@ int main(int argc, char* argv[])
 	int N1 = 256;
 	int N2 = 256;
 	int M = 65536;
-	int ntransf = 16;
-	int ntransfcufftplan = 8;
+	int ntransf = 1;
+	int ntransfcufftplan = 1;
 	int iflag=1;
 	FLT tol=1e-6;
 
@@ -52,8 +52,8 @@ int main(int argc, char* argv[])
 	}
 
 	for(int i=0; i<M*ntransf; i++){
-		c[i].real() = randm11();
-		c[i].imag() = randm11();
+		c[i].real(randm11());
+		c[i].imag(randm11());
 	}
 	cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice);
 	cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice);

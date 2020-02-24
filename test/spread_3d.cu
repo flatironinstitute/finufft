@@ -85,8 +85,8 @@ int main(int argc, char* argv[])
 					x[i] = x[0];//RESCALE(M_PI*randm11(), nf1, 1);
 					y[i] = y[0];//RESCALE(M_PI*randm11(), nf2, 1);
 					z[i] = z[0];//RESCALE(M_PI*randm11(), nf3, 1);
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 				}
 			}
 			break;
@@ -96,8 +96,8 @@ int main(int argc, char* argv[])
 					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);
 					y[i] = RESCALE(M_PI*rand01()/(nf2*2/32), nf2, 1);
 					z[i] = RESCALE(M_PI*rand01()/(nf3*2/32), nf3, 1);
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 				}
 			}
 			break;
@@ -107,8 +107,8 @@ int main(int argc, char* argv[])
 					x[i] = RESCALE(M_PI*randm11(), nf1, 1);
 					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
 					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 					//cout << x[i] <<","<<y[i]<<","<<z[i]<<endl;
 				}
 			}
@@ -128,8 +128,8 @@ int main(int argc, char* argv[])
 					}
 				}
 				for (int i = 0; i < M; i++) {
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 				}
 			}
 			break;

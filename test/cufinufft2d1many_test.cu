@@ -75,8 +75,8 @@ int main(int argc, char* argv[])
 	}
 
 	for(int i=0; i<M*ntransf; i++){
-		c[i].real() = randm11();
-		c[i].imag() = randm11();
+		c[i].real(randm11());
+		c[i].imag(randm11());
 	}
 
 	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));

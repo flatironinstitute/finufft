@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fwfinufft, nf1*nf2*sizeof(CPX));
 #if 0
 	// spread a single source, only for reference accuracy check...
-	c[0].real() = 1.0; c[0].imag() = 0.0;   // unit strength
+	c[0].real(1.0); c[0].imag(0.0);   // unit strength
 	x[0] = y[0] = nf1/2.0;                  // at center
 	ier = cnufftspread(nf1,nf2,1,(FLT*) fwfinufft,1,x,y,NULL,(FLT*) c,opts);
 	if (ier!=0) {
@@ -81,8 +81,8 @@ int main(int argc, char* argv[])
 				for (int i = 0; i < M; i++) {
 					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
 					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 					strre += c[i].real();
 					strim += c[i].imag();
 				}
@@ -93,8 +93,8 @@ int main(int argc, char* argv[])
 				for (int i = 0; i < M; i++) {
 					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
 					y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
-					c[i].real() = randm11();
-					c[i].imag() = randm11();
+					c[i].real(randm11());
+					c[i].imag(randm11());
 					strre += c[i].real();
 					strim += c[i].imag();
 				}
@@ -231,8 +231,8 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&cs,       M*sizeof(CPX));
 
 	for(int i=0; i<nf1*nf2; i++){
-		fw[i].real() = 1.0;
-		fw[i].imag() = 0.0;
+	  fw[i].real(1.0);
+	  fw[i].imag(0.0);
 	}
 	/* -------------------------------------- */
 	// Method 1: Subprob                      //
