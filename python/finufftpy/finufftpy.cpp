@@ -10,10 +10,42 @@
 #include <pybind11/numpy.h>
 #include <fftw3.h>
 #include "finufft.h"
+#include "utils.h"
 
 namespace py = pybind11;
 
+// DFM's custom error handler to propagate errors back to Python
+class error : public std::exception {
+public:
+  error (const std::string& msg) : msg_(msg) {};
+  virtual const char* what() const throw() {
+    return msg_.c_str();
+  }
+private:
+  std::string msg_;
+};
+
 static int fftwoptslist[] = {FFTW_ESTIMATE,FFTW_MEASURE,FFTW_PATIENT,FFTW_EXHAUSTIVE};
+
+// Create and copy over FINUFFT's options struct...
+#define ASSEMBLE_OPTIONS               \
+  nufft_opts opts;                     \
+  finufft_default_opts(&opts);         \
+  opts.debug = debug;                  \
+  opts.spread_debug = spread_debug;    \
+  opts.spread_sort = spread_sort;      \
+  opts.fftw = fftwoptslist[fftw];      \
+  opts.modeord = modeord;              \
+  opts.chkbnds = chkbnds;              \
+  opts.upsampfac = upsampfac;
+
+// DFM's error status reporting...
+#define CHECK_FLAG(NAME)                            \
+  if (ier != 0) {                                   \
+    std::ostringstream msg;                         \
+    msg << #NAME << " failed with code " << ier;    \
+    throw error(msg.str());                         \
+  }
 
 // 0, finufft_default_opts(&opts)
 // 1, finufft_makeplane
@@ -53,6 +85,37 @@ int pyfinufft_destroy(finufft_plan &plan){
 
 }
 
+////////////////////////////////////////////////////////////////// 1D
+int finufft1d1_cpp(py::array_t<double> xj,py::array_t<CPX> cj,int iflag,double eps,int ms,py::array_t<CPX> fk, int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds,double upsampfac)
+{
+    if (xj.size() != cj.size())
+        throw error("Inconsistent dimensions between xj and cj");
+    if (fk.size() != ms)
+        throw error("Incorrect size for fk");
+
+    finufft_plan plan;
+    ASSEMBLE_OPTIONS
+
+    BIGINT n_modes[3];
+    n_modes[0] = ms;
+    n_modes[1] = 1;
+    n_modes[2] = 1;
+    
+    int blksize = MY_OMP_GET_MAX_THREADS();
+    BIGINT nj = xj.size();
+    
+    int ier = finufft_makeplan(1, 1, n_modes, iflag, 1, eps, blksize, &plan, &opts);
+    CHECK_FLAG(finufft1d1_makeplan)
+    
+    ier = finufft_setpts(&plan, nj, xj.mutable_data(), NULL, NULL, ms, NULL, NULL, NULL);
+    CHECK_FLAG(finufft1d1_setpts)
+
+    ier = finufft_exec(&plan, cj.mutable_data(), fk.mutable_data());
+    CHECK_FLAG(finufft1d1_execute)
+    
+    return ier;
+}
+
 PYBIND11_MODULE(finufftpy_cpp, m) {
       m.doc() = "pybind11 finufft plugin"; // optional module docstring
 
@@ -62,6 +125,7 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
       m.def("setpts", &pyfinufft_setpts, "Set points");
       m.def("execute", &pyfinufft_exec, "Execute");
       m.def("destroy", &pyfinufft_destroy, "Destroy");
+      m.def("finufft1d1_cpp", &finufft1d1_cpp, "Python wrapper for 1-d type 1 nufft");
 
       // nufft_opts struct
       py::class_<nufft_opts>(m,"nufft_opts")

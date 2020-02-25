@@ -57,3 +57,42 @@ def execute(plan,weights,result):
   _copy(_weights,weights)
   _copy(_result,result)
   return info
+
+## easy interfaces
+def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  x = _rchk(x)
+  c = _cchk(c)
+  _f = _cchk(f)
+  info = finufftpy_cpp.finufft1d1_cpp(x,c,isign,eps,ms,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+  _copy(_f, f)
+  return info
+
+def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  return 0
+
+def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
+  return 0
+
+def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  return 0
+
+def nufft2d1many(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  return 0
+
+def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  return 0
+
+def nufft2d2many(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  return 0
+
+def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
+  return 0
+
+def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  return 0
+
+def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+  return 0
+
+def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
+  return 0
