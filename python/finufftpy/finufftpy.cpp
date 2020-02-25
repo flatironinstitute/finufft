@@ -113,6 +113,43 @@ int finufft1d1_cpp(py::array_t<double> xj,py::array_t<CPX> cj,int iflag,double e
     ier = finufft_exec(&plan, cj.mutable_data(), fk.mutable_data());
     CHECK_FLAG(finufft1d1_execute)
     
+    ier = finufft_destroy(&plan);
+    CHECK_FLAG(finufft1d1_destroy)
+    
+    return ier;
+}
+
+////////////////////////////////////////////////////////////////////// 2D
+int finufft2d1_cpp(py::array_t<double> xj,py::array_t<double> yj,py::array_t<CPX> cj,int iflag,double eps,int ms,int mt,py::array_t<CPX> fk,int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds,double upsampfac)
+{
+    if ((xj.size()!=cj.size())||(yj.size()!=cj.size()))
+        throw error("Inconsistent dimensions between xj or yj and cj");
+    if (fk.size()!=ms*mt)
+        throw error("Incorrect size for fk");
+
+    finufft_plan plan;
+    ASSEMBLE_OPTIONS
+
+    BIGINT n_modes[3];
+    n_modes[0] = ms;
+    n_modes[1] = mt;
+    n_modes[2] = 1;
+
+    int blksize = MY_OMP_GET_MAX_THREADS();
+    BIGINT nj=xj.size();
+
+    int ier = finufft_makeplan(1, 2, n_modes, iflag, 1, eps, blksize, &plan, &opts);
+    CHECK_FLAG(finufft2d1_makeplan)
+    
+    ier = finufft_setpts(&plan, nj, xj.mutable_data(), yj.mutable_data(), NULL, ms*mt, NULL, NULL, NULL);
+    CHECK_FLAG(finufft2d1_setpts)
+
+    ier = finufft_exec(&plan, cj.mutable_data(), fk.mutable_data());
+    CHECK_FLAG(finufft2d1_execute)
+    
+    ier = finufft_destroy(&plan);
+    CHECK_FLAG(finufft2d1_destroy)
+    
     return ier;
 }
 
@@ -126,6 +163,7 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
       m.def("execute", &pyfinufft_exec, "Execute");
       m.def("destroy", &pyfinufft_destroy, "Destroy");
       m.def("finufft1d1_cpp", &finufft1d1_cpp, "Python wrapper for 1-d type 1 nufft");
+      m.def("finufft2d1_cpp", &finufft2d1_cpp, "Python wrapper for 2-d type 1 nufft");
 
       // nufft_opts struct
       py::class_<nufft_opts>(m,"nufft_opts")

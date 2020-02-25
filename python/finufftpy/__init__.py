@@ -25,4 +25,4 @@ from finufftpy_cpp import destroy
 from finufftpy_cpp import nufft_opts
 from finufftpy_cpp import finufft_plan
 
-from finufftpy._interfaces import makeplan,setpts,execute,nufft1d1
+from finufftpy._interfaces import makeplan,setpts,execute,nufft1d1,nufft2d1

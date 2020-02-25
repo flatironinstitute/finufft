@@ -68,7 +68,13 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
   return info
 
 def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  y = _rchk(y)
+  c = _cchk(c)
+  _f = _cchk(f)
+  info = finufftpy_cpp.finufft2d1_cpp(x,y,c,isign,eps,ms,mt,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+  _copy(_f, f)
+  return info
 
 def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
   return 0
