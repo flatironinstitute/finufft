@@ -3,6 +3,7 @@
 
 # Barnett 3/1/18. Updates by Yu-Hsuan Shih, June 2018.
 # win32 mingw patch by Vineet Bansal, Feb 2019.
+# attempt ../make.inc reading (failed) and default finufftdir. 2/25/20
 
 # Max OSX users: please edit as per below comments, and docs/install.rst
 
@@ -13,14 +14,34 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 import os
+import dotenv   # is this part of standard python? (install_requires fails) ?
 
-# choose your compilers here (eg gcc-8, g++-8). Should match make.inc
-os.environ["CC"] = "gcc"
-os.environ["CXX"] = "g++"
-# how can read these from ../make.inc ?
-inc_dir = os.environ.get('FINUFFT_DIR')+"/include"
-src_dir = os.environ.get('FINUFFT_DIR')+"/src"
-finufft_lib = os.environ.get('FINUFFT_DIR')+"/lib-static/finufft"
+# since people might not set it, set to the parent of this script's dir...
+finufftdir = os.environ.get('FINUFFT_DIR')
+if finufftdir==None:
+    finufftdir = os.path.dirname(os.path.dirname(__file__))
+
+# default compiler choice (note g++ = clang in mac-osx):
+os.environ['CC'] = 'gcc'
+os.environ['CXX'] = 'g++'
+
+# attempt override compiler choice using ../make.inc to match your C++ build
+makeinc = finufftdir+"/make.inc"
+dotenv.load_dotenv(makeinc)   # modifies os.environ
+print(os.environ['CXX'])  # check - doesn't read correctly from ../make.inc  :(
+
+# in the end avoided code from https://stackoverflow.com/questions/3503719/emulating-bash-source-in-python
+#if os.path.isfile(makeinc):
+#    command = 'env -i bash -c "source %s"' % (makeinc)
+#    for line in subprocess.getoutput(command).split("\n"):
+#        if line!='':
+#            key, value = line.split("=")
+#            print(key, value)
+#            os.environ[key] = value
+
+inc_dir = finufftdir+"/include"
+src_dir = finufftdir+"/src"
+finufft_lib = finufftdir+"/lib-static/finufft"
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -56,7 +77,7 @@ elif sys.platform == "darwin":
         # clang
         extra_link_args=['-fPIC']
     else:
-        # GCC-8
+        # some variety of GCC
         extra_link_args=['-fPIC']
         #extra_link_args=['-static -fPIC']
 
@@ -146,7 +167,7 @@ setup(
     license="Apache 2",
     ext_modules=ext_modules,
     packages=['finufftpy'],
-    install_requires=['numpy','pybind11>=2.2'],
+    install_requires=['numpy','pybind11>=2.2'], #,'dotenv'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False
 )
