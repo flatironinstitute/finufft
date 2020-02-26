@@ -68,10 +68,21 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
   return info
 
 def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  f = _cchk(f)
+  _c = _cchk(c)
+  info = finufftpy_cpp.finufft1d2_cpp(x,_c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+  _copy(_c, c)
+  return info
 
 def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  c = _cchk(c)
+  s = _rchk(s)
+  _f = _cchk(f)
+  info = finufftpy_cpp.finufft1d3_cpp(x,c,isign,eps,s,_f,debug,spread_debug,spread_sort,fftw,upsampfac)
+  _copy(_f, f)
+  return info
 
 def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
   x = _rchk(x)
@@ -83,22 +94,72 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0
   return info
 
 def nufft2d1many(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  y = _rchk(y)
+  c = _cchk(c)
+  _f = _cchk(f)
+  info = finufftpy_cpp.finufft2d1many_cpp(x,y,c,isign,eps,ms,mt,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+  _copy(_f, f)
+  return info
 
 def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  y = _rchk(y)
+  f = _cchk(f)
+  _c = _cchk(c)
+  info = finufftpy_cpp.finufft2d2_cpp(x,y,_c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+  _copy(_c, c)
+  return info
 
 def nufft2d2many(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  y = _rchk(y)
+  f = _cchk(f)
+  _c = _cchk(c)
+  info = finufftpy_cpp.finufft2d2many_cpp(x,y,_c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+  _copy(_c, c)
+  return info
 
 def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  y = _rchk(y)
+  c = _cchk(c)
+  s = _rchk(s)
+  t = _rchk(t)
+  _f = _cchk(f)
+  info = finufftpy_cpp.finufft2d3_cpp(x,y,c,isign,eps,s,t,_f,debug,spread_debug,spread_sort,fftw,upsampfac)
+  _copy(_f, f)
+  return info
 
 def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  y = _rchk(y)
+  z = _rchk(z)
+  c = _cchk(c)
+  _f = _cchk(f)
+  info = finufftpy_cpp.finufft3d1_cpp(x,y,z,c,isign,eps,ms,mt,mu,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+  _copy(_f, f)
+  return info
 
 def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  y = _rchk(y)
+  z = _rchk(z)
+  f = _cchk(f)
+  _c = _cchk(c)
+  info = finufftpy_cpp.finufft3d2_cpp(x,y,z,_c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+  _copy(_c, c)
+  return info
 
 def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
-  return 0
+  x = _rchk(x)
+  y = _rchk(y)
+  z = _rchk(z)
+  c = _cchk(c)
+  s = _rchk(s)
+  t = _rchk(t)
+  u = _rchk(u)
+  _f = _cchk(f)
+  info = finufftpy_cpp.finufft3d3_cpp(x,y,z,c,isign,eps,s,t,u,_f,debug,spread_debug,spread_sort,fftw,upsampfac)
+  _copy(_f, f)
+  return info
