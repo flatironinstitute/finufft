@@ -96,6 +96,17 @@ finufft.destroy(plan)
 
 # this needs to be fleshed out.
 
+# simple py calls:
+outf = finufft.nufft1d1(asdasd)
+# implement via:
+def finufft.nufft1d1(asdasd, fout=None)
+  throw error if fout wrong.
+  If fout==None:
+    create fout
+  return fout
+
+
+
 
 Notes:
 
@@ -104,6 +115,11 @@ the simple finufftpy.nufft() calls.
 INTERFACE TO DO.
 
 proceed with pybind11. Allow python to see and edit all fields in opts struct.
+
+Notes on finufftpy.cpp:
+// * pyfinufft -> finufftpy everywhere,  right?
+// * do we need this cpp module at all - can we interface directly to guru
+//   cmds in the C++ lib?
 
 [Pass ptr to plan, but py user cannot see inside it. ?
 No: copy Joakim's GPU interface plan.
