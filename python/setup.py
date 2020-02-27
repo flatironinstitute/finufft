@@ -167,7 +167,7 @@ setup(
     license="Apache 2",
     ext_modules=ext_modules,
     packages=['finufftpy'],
-    install_requires=['numpy','pybind11>=2.2'], #,'dotenv'],
+    install_requires=['numpy','pybind11>=2.2','python-dotenv'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False
 )
