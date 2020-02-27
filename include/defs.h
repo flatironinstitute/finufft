@@ -31,6 +31,7 @@
 // (it could be argued these belong in finufft.h, but to avoid polluting
 //  user's name space we keep them here)
 #define ERR_EPS_TOO_SMALL        1
+// this means that a fine grid array was bigger than MAX_NF, no malloc tried...
 #define ERR_MAXNALLOC            2
 #define ERR_SPREAD_BOX_SMALL     3
 #define ERR_SPREAD_PTS_OUT_RANGE 4
@@ -40,7 +41,8 @@
 #define HORNER_WRONG_BETA        8
 #define ERR_NDATA_NOTVALID       9
 #define ERR_TYPE_NOTVALID        10
-
+// some generic internal allocation failure
+#define ERR_ALLOC                11
 
 
 // -------------- Math consts (not in math.h) and useful math macros ----------

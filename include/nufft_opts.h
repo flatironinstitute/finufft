@@ -15,7 +15,7 @@ typedef struct nufft_opts{      // Note: defaults set in common/finufft_default_
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
-  int spread_scheme;  // 0: Sequential Multithreaded, 1: Nested Multithreading
+  int spread_scheme;  // for n_trans>1. 0: Sequential Multithreaded, 1: Nested Multithreading
 } nufft_opts;
 
 #endif

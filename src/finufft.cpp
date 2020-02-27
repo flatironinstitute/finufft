@@ -17,7 +17,7 @@ int * n_for_fftw(finufft_plan *plan){
     nf = new int[2];
     nf[0] = (int)plan->nf2;
     nf[1] = (int)plan->nf1; 
-  }   //fftw enforced row major ordering
+  }   // fftw enforced row major ordering, ie dims are backwards ordering
   else{ 
     nf = new int[3];
     nf[0] = (int)plan->nf3;
@@ -36,7 +36,9 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
 // opts is ptr to a nufft_opts to choose options, or NULL to use defaults.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
-{
+{  
+  cout << scientific << setprecision(15);  // for debug outputs
+
   if((type!=1)&&(type!=2)&&(type!=3)) {
       fprintf(stderr, "Invalid type, type should be 1, 2 or 3.");
       return ERR_TYPE_NOTVALID;
@@ -49,16 +51,16 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
   int ier_set = setup_spreader_for_nufft(plan->spopts, tol, plan->opts);
   if (ier_set)
     return ier_set;
-  
-  cout << scientific << setprecision(15);  // for debug out 
 
+  // get stuff from args...
   plan->type = type;
   plan->n_dims = n_dims;
   plan->n_transf = n_transf;
-
   plan->tol = tol;
   plan->iflag = iflag;
   plan->threadBlkSize = threadBlkSize;
+
+  // set others as defaults (or unallocated for arrays)...
   plan->X = NULL;
   plan->Y = NULL;
   plan->Z = NULL;
@@ -68,68 +70,71 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
   plan->sp = NULL;
   plan->tp = NULL;
   plan->up = NULL;
-  plan->nf1 = 1;
+  plan->nf1 = 1;             // crucial to leave as 1 for unused dims
   plan->nf2 = 1;
   plan->nf3 = 1;
   plan->isInnerT2 = false;
-  plan->ms = 1;
+  plan->ms = 1;             // crucial to leave as 1 for unused dims
   plan->mt = 1;
   plan->mu = 1;
-    
 
-  /******************************************************************/
-  /* Type 1 and Type 2                                              */
-  /******************************************************************/
-
-  if((type == 1) || (type == 2)){
+  //  ------------------------ types 1,2: planning needed ---------------------
+  if((type == 1) || (type == 2)) {
   
-    if (plan->threadBlkSize>1) {          //type 3 will call finufft_makeplan for type2, thus no need to call twice. 
-      FFTW_INIT();
+    if (plan->threadBlkSize>1) {
+      FFTW_INIT();    // only does anything when OMP=ONfor >1 threads
       FFTW_PLAN_TH(plan->threadBlkSize);
     }
 
-
+    // read in mode array dims then determine fine grid sizes & sanity check...
     plan->ms = n_modes[0];
-    plan->mt = n_modes[1];
-    plan->mu = n_modes[2];
-    
-    //determine size of upsampled array
-    set_nf_type12(plan->ms, plan->opts, plan->spopts, &(plan->nf1)); 
-    if(n_dims > 1)
-      set_nf_type12(plan->mt, plan->opts, plan->spopts, &(plan->nf2)); 
-    if(n_dims > 2)
+    set_nf_type12(plan->ms, plan->opts, plan->spopts, &(plan->nf1));
+    if (plan->nf1>MAX_NF) {
+      fprintf(stderr,"nf1=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf1,(double)MAX_NF);
+      return ERR_MAXNALLOC;
+    }
+    if(n_dims > 1) {
+      plan->mt = n_modes[1];
+      set_nf_type12(plan->mt, plan->opts, plan->spopts, &(plan->nf2));
+      if (plan->nf2>MAX_NF) {
+        fprintf(stderr,"nf2=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf2,(double)MAX_NF);
+        return ERR_MAXNALLOC;
+      }
+    }
+    if(n_dims > 2) {
+      plan->mu = n_modes[2];
       set_nf_type12(plan->mu, plan->opts, plan->spopts, &(plan->nf3)); 
-    
-    
+      if (plan->nf3>MAX_NF) {
+        fprintf(stderr,"nf3=%.3g exceeds MAX_NF of %.3g\n",(double)plan->nf3,(double)MAX_NF);
+        return ERR_MAXNALLOC;
+      }
+    }
 
-    if (plan->opts.debug) printf("%dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) ...\n",n_dims, type,
-                                 (long long)plan->ms,(long long)plan->mt, (long long) plan->mu,
-                                 (long long)plan->nf1,(long long)plan->nf2, (long long)plan->nf3);
+    if (plan->opts.debug) printf("[finufft_plan] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n",n_dims, type,
+               (long long)plan->ms,(long long)plan->mt, (long long) plan->mu,
+               (long long)plan->nf1,(long long)plan->nf2, (long long)plan->nf3);
 
-    //STEP 0: get Fourier coeffs of spreading kernel for each dim
-    BIGINT totCoeffs;
-    
+    // STEP 0: get Fourier coeffs of spreading kernel for each dim
+    CNTime timer; timer.start(); 
+    BIGINT totCoeffs;    // size of concatenated kernel Fourier xforms
     totCoeffs = plan->nf1/2 + 1; 
     if(n_dims > 1)
       totCoeffs  += (plan->nf2/2 +1);
     if(n_dims > 2)
       totCoeffs += (plan->nf3/2+1);
-
-
-    CNTime timer; timer.start();
-      
     plan->phiHat = (FLT *)malloc(sizeof(FLT)*totCoeffs);
     if(!plan->phiHat){
-      fprintf(stderr, "Call to Malloc failed for Fourier coeff array allocation");
-      return ERR_MAXNALLOC;
+      fprintf(stderr, "finufft_plan: malloc failed for Fourier coeff array!");
+      return ERR_ALLOC;
     }
     onedim_fseries_kernel(plan->nf1, plan->phiHat, plan->spopts);
-    if(n_dims > 1) onedim_fseries_kernel(plan->nf2, plan->phiHat + (plan->nf1/2+1), plan->spopts);
-    if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->phiHat + (plan->nf1/2+1) + (plan->nf2/2+1), plan->spopts);
-    if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());    
+    if(n_dims > 1)
+      onedim_fseries_kernel(plan->nf2, plan->phiHat + (plan->nf1/2+1), plan->spopts);
+    if(n_dims > 2)
+      onedim_fseries_kernel(plan->nf3, plan->phiHat + (plan->nf1/2+1) + (plan->nf2/2+1), plan->spopts);
+    if (plan->opts.debug) printf("[finufft_plan] kernel fser (ns=%d):\t\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());    
 
-    BIGINT nfTotal = plan->nf1*plan->nf2*plan->nf3;
-
+    BIGINT nfTotal = plan->nf1*plan->nf2*plan->nf3;   // each fine grid size
     //do no more work than necessary if the number of transforms is smaller than the the threadBlkSize
     int transfPerBatch = min(plan->threadBlkSize, plan->n_transf); 
 
@@ -141,14 +146,13 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
     }
 
     plan->fw = FFTW_ALLOC_CPX(nfTotal*transfPerBatch);  
-
     if(!plan->fw){
       fprintf(stderr, "Call to malloc failed for working upsampled array allocation\n");
       free(plan->phiHat);
-      return ERR_MAXNALLOC; 
+      return ERR_ALLOC; 
     }
    
-    int fftsign = (iflag>=0) ? 1 : -1;
+    int fftsign = (iflag>=0) ? 1 : -1;          // clean up flag input
     int *n = n_for_fftw(plan);
     
     timer.restart();
@@ -156,28 +160,28 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
     plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, n, transfPerBatch, plan->fw,
                                         NULL, 1, nfTotal, plan->fw, NULL, 1,
                                         nfTotal, fftsign, plan->opts.fftw );
-
-    if (plan->opts.debug) printf("[make plan] fftw plan (%d) \t\t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
+    if (plan->opts.debug) printf("[finufft_plan] fftw plan (mode %d):\t\t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
     delete []n;
-  }
-
-
-  /******************************************************************/
-  /* Type 3                                                         */
-  /******************************************************************/
-
-  else{
+    
+  } else {  // -------------------------- type 3 -----------------------------
+    if (plan->opts.debug) printf("[finufft_plan] %dd%d\n",n_dims, type);
     plan->fftwPlan = NULL;
+    // type 3 will call finufft_makeplan for type2, thus no need to init FFTW
   }
-
   return 0;
+}
 
-};
+
+//////////////////////////////////////////////////////////////////////////////
+int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj,
+                   BIGINT nk, FLT * s, FLT *t, FLT * u)
+// Sorts the coordinate points,
+// and for type 3 allocates internal working arrays, scales the grid
+// coordinates and target freqs, and evaluates the spreading kernel fourier
+// weights 
 
 
-//Sorts the coordinate points and for type 3:  allocates internal working arrays, scales the grid coordinates and target freqs,
-//and evaluates the spreading kernel fourier weights 
-int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj, BIGINT nk, FLT * s, FLT *t, FLT * u){
+{
 
   plan->nj = nj;
   if(plan->X)
