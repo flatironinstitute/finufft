@@ -14,13 +14,20 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 import os
+
+# libin to change to python-dotenv or whatever's simplest:
 import dotenv   # is this part of standard python? (install_requires fails) ?
 
 # since people might not set it, set to the parent of this script's dir...
 finufftdir = os.environ.get('FINUFFT_DIR')
-if finufftdir==None:
+if finufftdir==None or finufftdir=='':
     finufftdir = os.path.dirname(os.path.dirname(__file__))
 
+# alex debugging - please remove when debugged:
+print("finufftdir: ", finufftdir)
+print("pathname of __file__: ",os.path.dirname(__file__))   # ok, fails why?
+
+    
 # default compiler choice (note g++ = clang in mac-osx):
 os.environ['CC'] = 'gcc'
 os.environ['CXX'] = 'g++'
@@ -28,6 +35,8 @@ os.environ['CXX'] = 'g++'
 # attempt override compiler choice using ../make.inc to match your C++ build
 makeinc = finufftdir+"/make.inc"
 dotenv.load_dotenv(makeinc)   # modifies os.environ
+
+# debug and remove:
 print(os.environ['CXX'])  # check - doesn't read correctly from ../make.inc  :(
 
 # in the end avoided code from https://stackoverflow.com/questions/3503719/emulating-bash-source-in-python
