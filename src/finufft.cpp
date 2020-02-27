@@ -4,33 +4,54 @@
 #include <common.h>
 #include <iomanip>
 
-//forward declaration
 
-//converts a finufft_type to corresponding integer for printing output
-//int typeToInt(finufft_type type);
+int * n_for_fftw(finufft_plan *plan){
+// helper func to create a new int array of length n_dims, extracted from
+// the plan, that fft_many_many_dft needs as its 2nd argument.
+  int * nf;
+  if(plan->n_dims == 1){ 
+    nf = new int[1];
+    nf[0] = (int)plan->nf1;
+  }
+  else if (plan->n_dims == 2){ 
+    nf = new int[2];
+    nf[0] = (int)plan->nf2;
+    nf[1] = (int)plan->nf1; 
+  }   //fftw enforced row major ordering
+  else{ 
+    nf = new int[3];
+    nf[0] = (int)plan->nf3;
+    nf[1] = (int)plan->nf2;
+    nf[2] = (int)plan->nf1;
+  }
+  return nf;
+}
 
-//helper function to construct a n_dim size array, containing nf_i for i=1:n_dim
-int * buildNf(finufft_plan *plan);
 
-
-//populates the fields of finufft_plan, and for type 1+2 allocates memory for internal working arrays,
-//evaluates spreading kernel coefficients, and instantiates the fftw_plan
-int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag, int n_transf,
-                     FLT tol, int threadBlkSize, finufft_plan *plan, nufft_opts *opts) {
-
-  plan->opts = *opts;
-  spread_opts spopts;
-  int ier_set = setup_spreader_for_nufft(spopts, tol, plan->opts);
-  if(ier_set) return ier_set;
-  
+////////////////////////////////////////////////////////////////////////////
+int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
+                     int n_transf, FLT tol, int threadBlkSize,
+                     finufft_plan *plan, nufft_opts *opts)
+// Populates the fields of finufft_plan which is pointed to by "plan".
+// opts is ptr to a nufft_opts to choose options, or NULL to use defaults.
+// For types 1,2 allocates memory for internal working arrays,
+// evaluates spreading kernel coefficients, and instantiates the fftw_plan
+{
   if((type!=1)&&(type!=2)&&(type!=3)) {
       fprintf(stderr, "Invalid type, type should be 1, 2 or 3.");
       return ERR_TYPE_NOTVALID;
   }
+  if (opts==NULL)                        // use defaults
+    finufft_default_opts(&(plan->opts));
+  else                                   // or read from what's passed in
+    plan->opts = *opts;    // does deep copy; changing *opts now has no effect
+  // write into plan's spread options...
+  int ier_set = setup_spreader_for_nufft(plan->spopts, tol, plan->opts);
+  if (ier_set)
+    return ier_set;
+  
+  cout << scientific << setprecision(15);  // for debug out 
 
-  cout << scientific << setprecision(15);  // for debug    
-
-  plan->spopts = spopts;    
   plan->type = type;
   plan->n_dims = n_dims;
   plan->n_transf = n_transf;
@@ -52,7 +73,7 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag, int n_tra
   plan->nf3 = 1;
   plan->isInnerT2 = false;
   plan->ms = 1;
-  plan->mt = 1; 
+  plan->mt = 1;
   plan->mu = 1;
     
 
@@ -73,11 +94,11 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag, int n_tra
     plan->mu = n_modes[2];
     
     //determine size of upsampled array
-    set_nf_type12(plan->ms, plan->opts, spopts, &(plan->nf1)); 
+    set_nf_type12(plan->ms, plan->opts, plan->spopts, &(plan->nf1)); 
     if(n_dims > 1)
-      set_nf_type12(plan->mt, plan->opts, spopts, &(plan->nf2)); 
+      set_nf_type12(plan->mt, plan->opts, plan->spopts, &(plan->nf2)); 
     if(n_dims > 2)
-      set_nf_type12(plan->mu, plan->opts, spopts, &(plan->nf3)); 
+      set_nf_type12(plan->mu, plan->opts, plan->spopts, &(plan->nf3)); 
     
     
 
@@ -104,8 +125,8 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag, int n_tra
     }
     onedim_fseries_kernel(plan->nf1, plan->phiHat, plan->spopts);
     if(n_dims > 1) onedim_fseries_kernel(plan->nf2, plan->phiHat + (plan->nf1/2+1), plan->spopts);
-    if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->phiHat + (plan->nf1/2+1) + (plan->nf2/2+1), spopts);
-    if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", spopts.nspread,timer.elapsedsec());    
+    if(n_dims > 2) onedim_fseries_kernel(plan->nf3, plan->phiHat + (plan->nf1/2+1) + (plan->nf2/2+1), plan->spopts);
+    if (plan->opts.debug) printf("[make plan] kernel fser (ns=%d):\t\t %.3g s\n", plan->spopts.nspread,timer.elapsedsec());    
 
     BIGINT nfTotal = plan->nf1*plan->nf2*plan->nf3;
 
@@ -126,18 +147,18 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag, int n_tra
       free(plan->phiHat);
       return ERR_MAXNALLOC; 
     }
-  
-        
+   
     int fftsign = (iflag>=0) ? 1 : -1;
-    int * nf = buildNf(plan);
+    int *n = n_for_fftw(plan);
     
     timer.restart();
-    //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, nf, transfPerBatch, plan->fw, NULL, 1,
-                                        nfTotal, plan->fw, NULL, 1, nfTotal, fftsign, plan->opts.fftw ) ;    
+    //fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
+    plan->fftwPlan = FFTW_PLAN_MANY_DFT(n_dims, n, transfPerBatch, plan->fw,
+                                        NULL, 1, nfTotal, plan->fw, NULL, 1,
+                                        nfTotal, fftsign, plan->opts.fftw );
 
     if (plan->opts.debug) printf("[make plan] fftw plan (%d) \t\t %.3g s\n",plan->opts.fftw,timer.elapsedsec());
-    delete []nf;                       
+    delete []n;
   }
 
 
@@ -839,50 +860,3 @@ int finufft_destroy(finufft_plan * plan){
   return 0;
   
 };
-
-/*
-int typeToInt(finufft_type type){
-  switch(type){
-  case type1:
-    return 1;
-  case type2:
-    return 2;
-  case type3:
-    return 3;
-  default:
-    return 0;
-  }
-}
-
-finufft_type intToType(int i){
-
-  switch(i){
-  case 1: return type1;
-  case 2: return type2;
-  case 3: return type3;
-  default : return type1; //invalid 
-
-  }
-}
-*/
-
-int * buildNf(finufft_plan *plan){
-  int * nf;
-  //rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-  if(plan->n_dims == 1){ 
-    nf = new int[1];
-    nf[0] = (int)plan->nf1;
-  }
-  else if (plan->n_dims == 2){ 
-    nf = new int[2];
-    nf[0] = (int)plan->nf2;
-    nf[1] = (int)plan->nf1; 
-  }   //fftw enforced row major ordering
-  else{ 
-    nf = new int[3];
-    nf[0] = (int)plan->nf3;
-    nf[1] = (int)plan->nf2;
-    nf[2] = (int)plan->nf1;
-  }
-  return nf;
-}

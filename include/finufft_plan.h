@@ -5,9 +5,6 @@
 #include <nufft_opts.h>
 #include <spreadinterp.h>
 
-//enum finufft_type { type1, type2, type3};
-
-
 typedef struct {
 
   FLT X1,C1,D1,h1,gam1;
@@ -18,7 +15,6 @@ typedef struct {
 
 
 typedef struct finufft_plan{
-  //finufft_plan(){}
 
   int type;
   int n_dims;
@@ -38,14 +34,13 @@ typedef struct finufft_plan{
   
   int iflag; 
 
-  FLT * phiHat; //fourier coefficients of spreading kernel for all dims
-  FFTW_CPX * fw; //fourier coefficients for all dims
+  FLT * phiHat;    // fourier coefficients of spreading kernel for all dims
+  FFTW_CPX * fw;   // fourier coefficients for all dims
   
   BIGINT *sortIndices; 
   bool didSort;
 
-  //target freqs
-  //type 3 only
+  //target freqs (used at planning stage for type 3 only)
   FLT * s; 
   FLT * t; 
   FLT * u;
@@ -59,18 +54,15 @@ typedef struct finufft_plan{
   FLT *X_orig;
   FLT *Y_orig;
   FLT *Z_orig; 
-  
-  fftw_plan fftwPlan;
-  
+
+  // other internal structs
+  fftw_plan fftwPlan;  
   nufft_opts opts;
   spread_opts spopts;
   type3Params t3P;
 
   bool isInnerT2;
   
-}finufft_plan;
-
-
+} finufft_plan;
 
 #endif
-

@@ -4,8 +4,7 @@
 #include <dataTypes.h>
 
 // ------------------- the user input options struct ------------------------
-typedef struct nufft_opts{      // Note: defaults in common/finufft_default_opts()
-  //nufft_opts(){}
+typedef struct nufft_opts{      // Note: defaults set in common/finufft_default_opts()
   int debug;          // 0: silent, 1: text basic timing output
   int spread_debug;   // passed to spread_opts, 0 (no text) 1 (some) or 2 (lots)
   int spread_sort;    // passed to spread_opts, 0 (don't sort) 1 (do) or 2 (heuristic)

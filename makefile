@@ -1,5 +1,6 @@
 # Makefile for FINUFFT.
-# Barnett 2/12/19.
+# Barnett 2/12/19. Malleo's expansion for guru interface, summer 2019.
+# Barnett tidying Feb 2020.
 
 # This is the only makefile; there are no makefiles in subdirectories.
 # Users should not need to edit this makefile (doing so would make it hard to
@@ -21,7 +22,7 @@ CFLAGS   =  -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
 CFLAGS   += -I include
 FFLAGS   = $(CFLAGS)
-CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
+CXXFLAGS = $(CFLAGS) -std=c++14 -DNEED_EXTERN_C
 # FFTW base name, and math linking...
 FFTWNAME=fftw3
 # the following uses fftw3_omp, since 10% faster than fftw3_threads...
@@ -172,11 +173,13 @@ $(OLDLIB): $(OLD_OBJS)
 EX=examples/example1d1$(PRECSUFFIX)
 EXC=examples/example1d1c$(PRECSUFFIX)
 EX2=examples/example2d1
+EXG=examples/guru1d1
 
-examples: $(EX) $(EXC) $(EX2)
+examples: $(EX) $(EXC) $(EX2) $(EXG)
 	./$(EX)
 	./$(EXC)
 	./$(EX2)
+	./$(EXG)
 
 $(EX): $(EX).o $(LEGLIB)
 	$(CXX) $(CXXFLAGS) $(EX).o $(LEGLIB) $(LIBSFFT) -o $(EX)
@@ -184,6 +187,8 @@ $(EX2): $(EX2).o $(LEGLIB)
 	$(CXX) $(CXXFLAGS) $(EX2).o $(LEGLIB) $(LIBSFFT) -o $(EX2)
 $(EXC): $(EXC).o $(LEGLIB)
 	$(CC) $(CFLAGS) $(EXC).o $(LEGLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
+$(EXG): $(EXG).o $(STATICLIB)
+	$(CXX) $(CXXFLAGS) $(EXG).o $(STATICLIB) $(LIBSFFT) -o $(EXG)
 
 # validation tests... (most link to .o allowing testing pieces separately)
 
