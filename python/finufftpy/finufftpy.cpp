@@ -53,33 +53,33 @@ static int fftwoptslist[] = {FFTW_ESTIMATE,FFTW_MEASURE,FFTW_PATIENT,FFTW_EXHAUS
 // 3, finufft_exec(&plan,c,F)
 // 4, finufft_destroy
 
-void pyfinufft_default_opts(nufft_opts &o){
+void default_opts(nufft_opts &o){
 
     finufft_default_opts(&o);
 
 }
 
-int pyfinufft_makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n_transf, 
+int makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n_transf, 
      FLT tol, int blksize, finufft_plan &plan, nufft_opts &o){
 
     return finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,blksize,&plan,&o);
 
 }
 
-int pyfinufft_setpts(finufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> yj, py::array_t<FLT> zj, 
+int setpts(finufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> yj, py::array_t<FLT> zj, 
      BIGINT N, py::array_t<FLT> s, py::array_t<FLT> t, py::array_t<FLT> u){
 
     return finufft_setpts(&plan,M,xj.mutable_data(),yj.mutable_data(),zj.mutable_data(),N,s.mutable_data(),t.mutable_data(),u.mutable_data());
 
 }
 
-int pyfinufft_exec(finufft_plan &plan, py::array_t<CPX> weights, py::array_t<CPX> result){
+int execute(finufft_plan &plan, py::array_t<CPX> weights, py::array_t<CPX> result){
 
     return finufft_exec(&plan,weights.mutable_data(),result.mutable_data());
 
 }
 
-int pyfinufft_destroy(finufft_plan &plan){
+int destroy(finufft_plan &plan){
 
     return finufft_destroy(&plan);
 
@@ -454,11 +454,11 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
       m.doc() = "pybind11 finufft plugin"; // optional module docstring
 
       // functions
-      m.def("default_opts", &pyfinufft_default_opts, "Set default nufft opts");
-      m.def("makeplan", &pyfinufft_makeplan, "Make finufft plan");
-      m.def("setpts", &pyfinufft_setpts, "Set points");
-      m.def("execute", &pyfinufft_exec, "Execute");
-      m.def("destroy", &pyfinufft_destroy, "Destroy");
+      m.def("default_opts", &default_opts, "Set default nufft opts");
+      m.def("makeplan", &makeplan, "Make finufft plan");
+      m.def("setpts", &setpts, "Set points");
+      m.def("execute", &execute, "Execute");
+      m.def("destroy", &destroy, "Destroy");
       m.def("finufft1d1_cpp", &finufft1d1_cpp, "Python wrapper for 1-d type 1 nufft");
       m.def("finufft1d2_cpp", &finufft1d2_cpp, "Python wrapper for 1-d type 2 nufft");
       m.def("finufft1d3_cpp", &finufft1d3_cpp, "Python wrapper for 1-d type 3 nufft");
