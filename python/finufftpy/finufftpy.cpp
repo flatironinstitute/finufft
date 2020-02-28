@@ -85,6 +85,16 @@ int destroy(finufft_plan &plan){
 
 }
 
+int fftwopts(int fftw){
+    if(fftw<0||fftw>3)
+        throw error("invalid fftw option value");
+    return fftwoptslist[fftw];
+}
+
+int get_max_threads(){
+    return MY_OMP_GET_MAX_THREADS();
+}
+
 ////////////////////////////////////////////////////////////////// 1D
 int finufft1d1_cpp(py::array_t<double> xj,py::array_t<CPX> cj,int iflag,double eps,int ms,py::array_t<CPX> fk, int debug, int spread_debug, int spread_sort, int fftw, int modeord, int chkbnds,double upsampfac)
 {
@@ -107,7 +117,7 @@ int finufft1d1_cpp(py::array_t<double> xj,py::array_t<CPX> cj,int iflag,double e
     int ier = finufft_makeplan(1, 1, n_modes, iflag, 1, eps, blksize, &plan, &opts);
     CHECK_FLAG(finufft1d1_makeplan)
     
-    ier = finufft_setpts(&plan, nj, xj.mutable_data(), NULL, NULL, ms, NULL, NULL, NULL);
+    ier = finufft_setpts(&plan, nj, xj.mutable_data(), NULL, NULL, 0, NULL, NULL, NULL);
     CHECK_FLAG(finufft1d1_setpts)
 
     ier = finufft_exec(&plan, cj.mutable_data(), fk.mutable_data());
@@ -459,6 +469,8 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
       m.def("setpts", &setpts, "Set points");
       m.def("execute", &execute, "Execute");
       m.def("destroy", &destroy, "Destroy");
+      m.def("fftwopts", &fftwopts, "FFTW options");
+      m.def("get_max_threads", &get_max_threads, "Get max number of threads");
       m.def("finufft1d1_cpp", &finufft1d1_cpp, "Python wrapper for 1-d type 1 nufft");
       m.def("finufft1d2_cpp", &finufft1d2_cpp, "Python wrapper for 1-d type 2 nufft");
       m.def("finufft1d3_cpp", &finufft1d3_cpp, "Python wrapper for 1-d type 3 nufft");

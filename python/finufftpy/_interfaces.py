@@ -12,6 +12,13 @@
 import finufftpy_cpp
 import numpy as np
 
+from finufftpy_cpp import default_opts
+from finufftpy_cpp import destroy
+from finufftpy_cpp import nufft_opts
+from finufftpy_cpp import finufft_plan
+from finufftpy_cpp import fftwopts
+from finufftpy_cpp import get_max_threads
+
 ## David Stein's functions for checking input and output variables
 def _rchk(x):
   """
@@ -63,7 +70,41 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
   x = _rchk(x)
   c = _cchk(c)
   _f = _cchk(f)
-  info = finufftpy_cpp.finufft1d1_cpp(x,c,isign,eps,ms,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+
+  assert x.size==c.size
+  assert f.size==ms
+
+  M = x.size
+  n_modes = np.ones([3], dtype=np.int64)
+  n_modes[0] = ms
+  blksize = get_max_threads()
+
+  #opts
+  opts = nufft_opts()
+  default_opts(opts)
+  opts.debug = debug
+  opts.spread_debug = spread_debug;
+  opts.spread_sort = spread_sort
+  opts.fftw = fftwopts(fftw)
+  opts.modeord = modeord
+  opts.chkbnds = chkbnds
+  opts.upsampfac = upsampfac
+
+  #plan
+  plan = finufft_plan()
+  info = makeplan(1,1,n_modes,isign,1,eps,blksize,plan,opts)
+
+  #setpts
+  info = setpts(plan,M,x,None,None,0,None,None,None)
+
+  #excute
+  info = execute(plan,c,_f)
+
+  #destroy
+  info = destroy(plan)
+
+  #info = finufftpy_cpp.finufft1d1_cpp(x,c,isign,eps,ms,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+
   _copy(_f, f)
   return info
 

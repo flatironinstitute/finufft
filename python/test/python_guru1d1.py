@@ -22,6 +22,8 @@ strt = time.time()
 #opts
 opts = fp.nufft_opts()
 fp.default_opts(opts)
+opts.debug = 1
+opts.upsampfac = 2.0
 
 #plan
 plan = fp.finufft_plan()
