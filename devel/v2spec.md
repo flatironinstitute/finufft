@@ -25,15 +25,10 @@ Here nufft_opts is a simple struct, not an object.
 
 ### guru
 
-finufft_makeplan is passed ptr to opts object, or NONE:
-It starts with
 
-if (opts_ptr==NONE) {
-  nufft_opts *opts_ptr;
-  finufft_default_opts(opts_ptr);
-}
+finufft_makeplan is passed ptr to opts object, or NULL which uses defaults.
 
-
+[should finufft_makeplan return a plan object, or a pointer to plan? no]
 
 
 
@@ -97,9 +92,9 @@ finufft.destroy(plan)
 # this needs to be fleshed out.
 
 # simple py calls:
-outf = finufft.nufft1d1(asdasd)
+outf = finufft.nufft1d1(...)
 # implement via:
-def finufft.nufft1d1(asdasd, fout=None)
+def finufft.nufft1d1(..., fout=None)
   throw error if fout wrong.
   If fout==None:
     create fout
@@ -154,7 +149,10 @@ python - finufftpy
        - test
        setup.py    (this is for pybind11)
        requirements.txt
-fortran
+fortran - test
+                dir*.f
+        - examples
+                *demo*.f
 matlab - examples
        - test
        *.m (interfaces)
