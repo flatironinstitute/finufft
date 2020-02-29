@@ -4,8 +4,10 @@ NVCC=nvcc
 
 CXXFLAGS= -DNEED_EXTERN_C  -fPIC -O3 -funroll-loops -march=native -g -std=c++11
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME -arch=sm_61 --default-stream per-thread   -Xcompiler "$(CXXFLAGS)"
-#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs supported section in https://en.wikipedia.org/wiki/CUDA for more info)
+NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME -arch=sm_70 \
+	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
+#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs 
+#supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 #DEBUG add "-g -G" for cuda-gdb debugger
 
 ifeq ($(PREC),SINGLE)
