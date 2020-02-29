@@ -22,7 +22,7 @@ void finufft_default_opts(nufft_opts *o)
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX. Barnett 10/30/17
 {
-  o->upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
+  o->upsampfac = 2.0;        // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
   o->chkbnds = 0;
   o->debug = 0;
   o->spread_debug = 0;
@@ -38,7 +38,8 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
-  int ier=setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth);
+  int ier = setup_spreader(spopts, eps, opts.upsampfac,
+                           opts.spread_kerevalmeth);
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;     // could make dim or CPU choices here?
   spopts.kerpad = opts.spread_kerpad; // (only applies to kerevalmeth=0)

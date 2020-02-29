@@ -13,15 +13,18 @@ extern "C"
 {
 #endif
 
-// ------------------ Guru Interface ------------------------------------
+// ------------------ the guru interface ------------------------------------
 
-  int finufft_makeplan(int type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, int blksize, finufft_plan *plan, nufft_opts *o);
+int finufft_makeplan(int type, int n_dims, BIGINT* n_modes, int iflag, int n_transf, FLT tol, int blksize, finufft_plan *plan, nufft_opts *o);
 void finufft_default_opts(nufft_opts *o);
 int finufft_setpts(finufft_plan * plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
 int finufft_exec(finufft_plan * plan ,  CPX *weights, CPX * result);
 int finufft_destroy(finufft_plan * plan);
 
+// ----------------- the simple interfaces -------------------------------
 
+
+  
   
 #ifdef __cplusplus
 }

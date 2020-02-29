@@ -508,7 +508,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
       fprintf(stderr,"setup_spreader: warning, upsampfac=%.3g is too large to be beneficial.\n",(double)upsampfac);
   }
     
-  // defaults... (user can change after this function called)
+  // spread_opts defaults... (user can change after this function called)
   opts.spread_direction = 1;    // user should always set to 1 or 2 as desired
   opts.pirange = 1;             // user also should always set this
   opts.chkbnds = 1;
@@ -524,7 +524,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
   // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
   int ns = std::ceil(-log10(eps/(FLT)10.0));   // 1 digit per power of ten
   // (FLT)10.0 is cosmetic: sng & dbl desire same ns for bdry cases eps=10^{-n}
-  if (upsampfac!=(FLT)2.0)           // override ns when custom sigma
+  if (upsampfac!=2.0)           // override ns when custom sigma
     ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
   ns = max(2,ns);               // (we don't have ns=1 version yet)
   if (ns>MAX_NSPREAD) {         // clip to match allocated arrays
@@ -544,7 +544,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
     betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
   }
   opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
-  //fprintf(stderr,"setup_spreader: eps=%.3g sigma=%.6f, chose ns=%d beta=%.6f\n",(double)eps,(double)upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
+  //fprintf(stderr,"setup_spreader: eps=%.3g sigma=%.6f, chose ns=%d beta=%.6f\n",(double)eps,upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
   return 0;
 }
 

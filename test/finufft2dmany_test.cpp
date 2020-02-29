@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
   opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
   if (argc>7) sscanf(argv[7],"%d",&opts.spread_sort);
   if (argc>8) sscanf(argv[8],"%lf",&upsampfac);
-  opts.upsampfac=(FLT)upsampfac;
+  opts.upsampfac=upsampfac;
 
   if (argc==1 || argc==2 || argc>9) {
     fprintf(stderr,"Usage: finufft2d_test [ntransf [N1 N2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]\n");

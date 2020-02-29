@@ -1,7 +1,8 @@
 #ifndef FFTW_DEFS_H
 #define FFTW_DEFS_H
 
-// ---------- Precision-indep complex types, macros to FFTW -------------------
+// Here we define typedefs and MACROS to switch between single and double
+// precision library compilation, which need different FFTW commands.
 
 #include <fftw3.h>          // (after complex.h) needed so can typedef FFTW_CPX
 
@@ -41,6 +42,5 @@
   #define FFTW_CLEANUP fftw_cleanup
   #define FFTW_CLEANUP_THREADS fftw_cleanup_threads
 #endif
-
 
 #endif

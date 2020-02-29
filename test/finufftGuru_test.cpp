@@ -7,9 +7,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
-#include <unistd.h> //for sleep call 
-//#include <thread>
-//#include <chrono>
+#include <unistd.h>  // for sleep call 
 
 
 // how big a problem to do full direct DFT check in 3D...
@@ -18,17 +16,15 @@
 // for omp rand filling
 #define CHUNK 1000000
 
-
 //forward declaration 
 double runOldFinufft(CPX *c,CPX *F,finufft_plan *plan);
-//finufft_type intToType(int i);
-//int typeToInt(finufft_type type);
 
   
 int main(int argc, char* argv[])
 /* Test/Demo the guru interface
 
-   Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [spread_scheme [do_spread [upsampfac]]]]]]]]
+   Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc
+                      [tol [debug [spread_scheme [do_spread [upsampfac]]]]]]]]
 
    debug = 0: rel errors and overall timing
            1: timing breakdowns
@@ -53,10 +49,7 @@ int main(int argc, char* argv[])
   int i;
   int isign = +1;             // choose which exponential sign to test
 
-
-  /************************************************************************************************************/
-  /* Collect command line arguments
-  /************************************************************************************************************/
+  // Collect command line arguments ------------------------------------------
 
   if (argc>1) 
     sscanf(argv[1],"%d",&i); ntransf = i;
@@ -94,9 +87,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
-  /************************************************************************************************************/
-  /*  Allocate and initialize input:
-  /************************************************************************************************************/
+  // Allocate and initialize input --------------------------------------------
   
   cout << scientific << setprecision(15);
   N2 = (N2 == 0) ? 1 : N2;
@@ -222,11 +213,11 @@ int main(int argc, char* argv[])
   FFTW_FORGET_WISDOM();
   //std::this_thread::sleep_for(std::chrono::seconds(1));
   sleep(1);
-  /**********************************************************************************************/
-  /* Finufft
-  /**********************************************************************************************/
 
-  printf("------------------------GURU INTERFACE------------------------------\n");
+
+  // call FINUFFT -----------------------------------------------------------
+
+  printf("------------------------GURU INTERFACE---------------------------\n");
   //Start by instantiating a finufft_plan
   finufft_plan plan;
 
@@ -237,7 +228,6 @@ int main(int argc, char* argv[])
   finufft_default_opts(&opts);
   
   //Optional Customization opts 
-  opts.upsampfac=(FLT)upsampfac;
   opts.debug = optsDebug;
   opts.spread_debug = sprDebug;
   plan.spopts.debug = sprDebug;
@@ -249,8 +239,6 @@ int main(int argc, char* argv[])
   n_modes[0] = N1;
   n_modes[1] = N2;
   n_modes[2] = N3; //#modes per dimension 
-
-
 
   int blksize = MY_OMP_GET_MAX_THREADS(); 
 
@@ -268,7 +256,6 @@ int main(int argc, char* argv[])
   } else{
     printf("finufft_plan creation for %lld modes completed in %.3g s\n", (long long)N, plan_t);
   }
-
   
   timer.restart();
   //Guru Step 2
@@ -300,9 +287,8 @@ int main(int argc, char* argv[])
   printf("finufft_destroy completed in %.3g s\n", destroy_t);
   //You're done!
   
-  /**********************************************************************************************/
-  /* Timing Comparisons 
-  /**********************************************************************************************/
+
+  // Do a timing ratio against the simple interface ---------------------------
 
   double totalTime = plan_t + sort_t + exec_t + destroy_t;
   //comparing timing results with repeated calls to corresponding finufft function 
@@ -349,8 +335,3 @@ int main(int argc, char* argv[])
     free(u);
 }
 
-
-
-
-
-  

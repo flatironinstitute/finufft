@@ -56,7 +56,7 @@ typedef struct finufft_plan{
   FLT *Z_orig; 
 
   // other internal structs
-  fftw_plan fftwPlan;  
+  FFTW_PLAN fftwPlan;  
   nufft_opts opts;
   spread_opts spopts;
   type3Params t3P;

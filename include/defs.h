@@ -41,7 +41,7 @@
 #define HORNER_WRONG_BETA        8
 #define ERR_NDATA_NOTVALID       9
 #define ERR_TYPE_NOTVALID        10
-// some generic internal allocation failure
+// some generic internal allocation failure...
 #define ERR_ALLOC                11
 
 

@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
   opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
   if (argc>6) sscanf(argv[6],"%d",&opts.spread_sort);
   if (argc>7) sscanf(argv[7],"%lf",&upsampfac);
-  opts.upsampfac=(FLT)upsampfac;
+  opts.upsampfac=upsampfac;
 
   if (argc==1 || argc==2 || argc>8) {
     fprintf(stderr,"Usage: finufft1d_test [ntransf [Nmodes [Nsrc [tol [debug [upsampfac]]]]]]\n");

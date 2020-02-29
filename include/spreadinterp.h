@@ -1,4 +1,4 @@
-// interface to spreading/interpolation code.
+// Defines interface to spreading/interpolation code.
 // Note: see defs.h for definition of MAX_NSPREAD (as of 9/24/18).
 
 #ifndef SPREADINTERP_H
@@ -16,6 +16,7 @@
 		     ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
 		     (x<0 ? x+N : (x>N ? x-N : x)))
 // yuk! But this is *so* much faster than slow std::fmod that we stick to it.
+// todo: replace w/ C++ function, apparently will be as fast
 
 
 /* Bitwise timing flag definitions; see spread_opts.flags.
