@@ -90,8 +90,8 @@ int main(int argc, char* argv[])
 			break;
 	}
 	for(int i=0; i<nf1*nf2; i++){
-		fw[i].real() = 1.0;
-		fw[i].imag() = 0.0;
+		fw[i].real(1.0);
+		fw[i].imag(0.0);
 	}
 
 	CNTime timer;

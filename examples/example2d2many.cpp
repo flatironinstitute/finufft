@@ -52,8 +52,8 @@ int main(int argc, char* argv[])
 	}
 
 	for(int i=0; i<N1*N2*ntransf; i++){
-		fk[i].real() = randm11();
-		fk[i].imag() = randm11();
+		fk[i].real(randm11());
+		fk[i].imag(randm11());
 	}
 	cudaMemcpy(d_x,x,M*sizeof(float),cudaMemcpyHostToDevice);
 	cudaMemcpy(d_y,y,M*sizeof(float),cudaMemcpyHostToDevice);
