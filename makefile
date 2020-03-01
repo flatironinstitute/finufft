@@ -239,7 +239,7 @@ matlab: $(STATICLIB)  matlab/finufft_m.cpp
 ifeq ($(PREC),SINGLE)
 	@echo "MATLAB interface only supports double precision; doing nothing"
 else
-	$(MEX) matlab/finufft.cpp $(STATICLIB) matlab/finufft_m.cpp $(MFLAGS) $(LIBSFFT) -output matlab/finufft
+	$(MEX) matlab/finufft.cpp $(STATICLIB) matlab/finufft_m.cpp -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 endif
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
@@ -247,7 +247,7 @@ octave: $(STATICLIB)  matlab/finufft_m.cpp
 ifeq ($(PREC),SINGLE)
 	@echo "Octave interface only supports double precision; doing nothing"
 else
-	(cd matlab; mkoctfile --mex finufft.cpp ../$(STATICLIB) finufft_m.cpp $(OFLAGS) $(LIBSFFT) -output finufft)
+	(cd matlab; mkoctfile --mex finufft.cpp -I../include ../$(STATICLIB) finufft_m.cpp $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave check_finufft.m)
 endif

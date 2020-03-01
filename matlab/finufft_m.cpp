@@ -11,9 +11,9 @@
 // double array for passing in all opts. 10/30/17
 
 #include "finufft_m.h"
-#include "../src/finufft.h"
+#include <finufft.h>
 // needed for OMP stuff...
-#include "../src/defs.h"
+#include <defs.h>
 
 #include <stdio.h>
 #include <iostream>
@@ -66,7 +66,7 @@ int finufft1d1m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo); // prev state, or 0 if unchanged
-  int ier = finufft1d1((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(ms+0.5),fk,opts);
+  int ier = finufft1d1((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(ms+0.5),fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -76,7 +76,7 @@ int finufft1d2m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft1d2((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(ms+0.5),fk,opts);
+  int ier = finufft1d2((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(ms+0.5),fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -87,7 +87,7 @@ int finufft1d3m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double nk
   finufft_mex_setup();
   finufft_mex_opts(opts, mexo);
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft1d3((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(nk+0.5),s,fk,opts);
+  int ier = finufft1d3((BIGINT)(nj+0.5),xj,cj,iflag,eps,(BIGINT)(nk+0.5),s,fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -97,7 +97,7 @@ int finufft2d1m(double nj,double* xj,double* yj, dcomplex* cj,int iflag,double e
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft2d1((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  int ier = finufft2d1((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -107,7 +107,7 @@ int finufft2d1manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft2d1many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  int ier = finufft2d1many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -118,7 +118,7 @@ int finufft2d2m(double nj,double* xj,double* yj,dcomplex* cj,int iflag,double ep
   finufft_mex_setup();
   finufft_mex_opts(opts, mexo);
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft2d2((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  int ier = finufft2d2((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -128,7 +128,7 @@ int finufft2d2manym(double ndata, double nj,double* xj,double* yj, dcomplex* cj,
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft2d2many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,opts);
+  int ier = finufft2d2many((int)(ndata+0.5),(BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -138,7 +138,7 @@ int finufft2d3m(double nj,double* xj,double *yj,dcomplex* cj,int iflag,double ep
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft2d3((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,fk,opts);
+  int ier = finufft2d3((BIGINT)(nj+0.5),xj,yj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -148,7 +148,7 @@ int finufft3d1m(double nj,double* xj,double* yj, double* zj, dcomplex* cj,int if
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft3d1((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),(BIGINT)(mu+0.5),fk,opts);
+  int ier = finufft3d1((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),(BIGINT)(mu+0.5),fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -158,7 +158,7 @@ int finufft3d2m(double nj,double* xj,double* yj,double *zj,dcomplex* cj,int ifla
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft3d2((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),(BIGINT)(mu+0.5),fk,opts);
+  int ier = finufft3d2((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(ms+0.5),(BIGINT)(mt+0.5),(BIGINT)(mu+0.5),fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
@@ -168,7 +168,7 @@ int finufft3d3m(double nj,double* xj,double *yj,double *zj,dcomplex* cj,int ifla
   nufft_opts opts;
   finufft_mex_setup();
   int nthr_prev = finufft_mex_opts(opts, mexo);
-  int ier = finufft3d3((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,u,fk,opts);
+  int ier = finufft3d3((BIGINT)(nj+0.5),xj,yj,zj,cj,iflag,eps,(BIGINT)(nk+0.5),s,t,u,fk,&opts);
   restore_omp_nthr(nthr_prev);
   return ier;
 }
