@@ -3,17 +3,21 @@
 
 #include <fftw_defs.h>
 #include <nufft_opts.h>
-#include <spreadinterp.h>
+#include <spread_opts.h>
+
+#ifndef __cplusplus
+#include <stdbool.h>     // for bools in C
+#endif
 
 typedef struct {
-  // groups together a bunch of type 3 parameters, will live inside the finufft_plan
+  // groups together a bunch of type 3 parameters for inside the finufft_plan
   FLT X1,C1,D1,h1,gam1;
   FLT X2,C2,D2,h2,gam2;
   FLT X3,C3,D3,h3,gam3;
 } type3Params;
 
 
-typedef struct finufft_plan{
+typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   
   int type;        // 1,2 or 3
   int n_dims;      // 1,2, or 3
@@ -39,7 +43,7 @@ typedef struct finufft_plan{
   BIGINT *sortIndices; 
   bool didSort;
 
-  //target freqs (used at planning stage for type 3 only)
+  // target freqs (needed at planning stage for type 3 only)
   FLT * s; 
   FLT * t; 
   FLT * u;
@@ -55,7 +59,7 @@ typedef struct finufft_plan{
   FLT *Y_orig;
   FLT *Z_orig; 
 
-  // other internal structs
+  // other internal structs; each is C-compatible of course.
   FFTW_PLAN fftwPlan;  
   nufft_opts opts;
   spread_opts spopts;
@@ -66,4 +70,4 @@ typedef struct finufft_plan{
   
 } finufft_plan;
 
-#endif
+#endif  // FINUFFT_PLAN_H

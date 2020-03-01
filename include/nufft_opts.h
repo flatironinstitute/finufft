@@ -3,8 +3,8 @@
 
 #include "dataTypes.h"
 
-// ------------------- Struct for user-controllabel options ------------------
-// Deliberately a plain C struct. Needs the 
+// ------------------- Struct for user-controllable options ------------------
+// Deliberately a plain C struct. Needs the FLT typedef from dataTypes.h
 
 typedef struct nufft_opts{      // Note: defaults set in common/finufft_default_opts()
   int debug;          // 0: silent, 1: text basic timing output
@@ -16,8 +16,8 @@ typedef struct nufft_opts{      // Note: defaults set in common/finufft_default_
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
-  FLT upsampfac;   // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
+  FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
   int spread_scheme;  // for n_trans>1. 0: Sequential Multithreaded, 1: Nested Multithreading
 } nufft_opts;
 
-#endif
+#endif  // OPTS_H

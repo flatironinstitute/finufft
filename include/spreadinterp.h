@@ -5,6 +5,7 @@
 #define SPREADINTERP_H
 
 #include <dataTypes.h>
+#include <spread_opts.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -33,29 +34,7 @@
 #define TF_OMIT_EVALUATE_EXPONENTIAL 4 // omit exp() in kernel (kereval=0 only)
 #define TF_OMIT_SPREADING            8 // don't interp/spread (dir=1: to subgrids)
 
-
-
-struct spread_opts {      // see cnufftspread:setup_spreader for defaults.
-  int nspread;            // w, the kernel width in grid pts
-  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
-  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
-  int chkbnds;            // 0: don't check NU pts are in range; 1: do
-  int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
-  int kerevalmeth;        // 0: exp(sqrt()), old, or 1: Horner ppval, fastest
-  int kerpad;             // 0: no pad to mult of 4, 1: do (helps i7 kereval=0)
-  int sort_threads;       // 0: auto-choice, >0: fix number of sort threads
-  BIGINT max_subproblem_size; // sets extra RAM per thread
-  int flags;              // binary flags for timing only (may give wrong ans!)
-  int debug;              // 0: silent, 1: small text output, 2: verbose
-  FLT upsampfac;          // sigma, upsampling factor, default 2.0
-  // ES kernel specific...
-  FLT ES_beta;
-  FLT ES_halfwidth;
-  FLT ES_c;
-};
-
-
-// things external interface needs...
+// things external (spreadinterp) interface needs...
 int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
 		 BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		 FLT *data_nonuniform, spread_opts opts);

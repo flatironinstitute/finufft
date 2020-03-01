@@ -155,9 +155,8 @@ EXG = examples/guru1d1
 EXS = $(EX) $(EXC) $(EX2) $(EXG)
 
 examples: $(EXS)
-	for E in $(EXS); do
-		./$(E);
-	done
+# use shell script to execute all in list. shell doesn't use $(E); $$ escapes $
+	(for E in $(EXS); do ./$$E; done)
 
 $(EX): $(EX).o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $(EX).o $(DYNLIB) $(LIBSFFT) -o $(EX)

@@ -1,8 +1,9 @@
 // this is all you must include for the finufft lib...
-#include <finufft_legacy.h>
+#include <finufft.h>
+
 #include <complex>
 
-// also needed for this example...
+// also used in this example...
 #include <stdio.h>
 #include <stdlib.h>
 using namespace std;

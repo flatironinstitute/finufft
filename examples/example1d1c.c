@@ -1,5 +1,5 @@
 // this is all you must include to access finufft from C...
-#include <finufft_legacy.h>
+#include <finufft.h>
 
 // also needed for this example...
 #include <stdlib.h>
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 
   nufft_opts opts;
   finufft_default_opts(&opts);            // set default opts (must do this)
-  opts.debug=2;                         // show how to override a default
+  opts.debug=2;                           // show how to override a default
   //opts.upsampfac =1.25;                 // other opts...
   
   // call the NUFFT (with iflag=+1); this is the same code as from C++:
