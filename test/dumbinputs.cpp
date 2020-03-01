@@ -10,6 +10,7 @@ int main(int argc, char* argv[])
    might cause errors. Simple interfaces only. All should be caught gracefully.
    (It also checks accuracy for 1D type 3, for some reason.)
    Barnett 3/14/17, updated Andrea Malleo, summer 2019.
+   Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
 
    Compile with (better to go up a directory and use: make test/dumbinputs) :
    g++ -std=c++14 -fopenmp dumbinputs.cpp -I ../include directft/dirft1d.o ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
@@ -88,7 +89,7 @@ int main(int argc, char* argv[])
 
   int ndata = 10;                 // how many multiple vectors to test it on
   CPX* cm = (CPX*)malloc(sizeof(CPX)*M*ndata);
-  CPX* Fm = (CPX*)malloc(sizeof(CPX)*NN*ndata);
+  CPX* Fm = (CPX*)malloc(sizeof(CPX)*NN*ndata);     // the biggest array
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // set cm for 1d1many
   ier = finufft1d1many(0,M,x,cm,+1,0,N,Fm,&opts);
   printf("1d1many ndata=0:\tier=%d (should complain)\n",ier);
@@ -98,15 +99,17 @@ int main(int argc, char* argv[])
   printf("1d1many Ns=0:\tier=%d\n",ier);
   ier = finufft1d1many(ndata,0,x,cm,+1,acc,N,Fm,&opts);
   printf("1d1many M=0:\t\tier=%d\tnrm(Fm)=%.3g (should vanish)\n",ier,twonorm(N*ndata,Fm));
+  
   for (int k=0; k<NN*ndata; ++k) Fm[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set Fm for 1d2many
   ier = finufft1d2many(0,M,x,cm,+1,0,N,Fm,&opts);
   printf("1d2many ndata=0:\tier=%d (should complain)\n",ier);
   ier = finufft1d2many(ndata,M,x,cm,+1,0,N,Fm,&opts);
   printf("1d2many tol=0:\t\tier=%d (should complain)\n",ier);
   ier = finufft1d2many(ndata,M,x,cm,+1,acc,0,Fm,&opts);
-  printf("1d2many Ns=0:\tier=%d\n",ier);
+  printf("1d2many Ns=0:\tier=%d\tnrm(cm)=%.3g (should vanish)\n",ier,twonorm(M*ndata,cm));
   ier = finufft1d2many(ndata,0,x,cm,+1,acc,N,Fm,&opts);
-  printf("1d2many M=0:\t\tier=%d\tnrm(Fm)=%.3g (should vanish)\n",ier,twonorm(N*ndata,Fm));
+  printf("1d2many M=0:\t\tier=%d\n",ier);
+
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset cm for 1d3many
   ier = finufft1d3many(0, M,x,c,+1,acc,N,s,Fm,&opts);
   printf("1d3many ndata=0:\tier=%d (should complain)\n",ier);
@@ -164,7 +167,6 @@ int main(int argc, char* argv[])
   for (int k=0; k<N; ++k) shuge[k] = sqrt(huge)*s[k];     // less huge coords
   ier = finufft2d3(M,x,x,c,+1,acc,N,shuge,shuge,F,&opts);
   printf("2d3 XK prod too big:\tier=%d (should complain)\n",ier);
-
 
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset cm for 2d1many
   ier = finufft2d1many(0,M,x,x,cm,+1,0,N,N,Fm,&opts);

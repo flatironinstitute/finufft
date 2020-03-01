@@ -18,8 +18,8 @@
 1d1many M=0:		ier=0	nrm(Fm)=0 (should vanish)
 1d2many ndata=0:	ier=9 (should complain)
 1d2many tol=0:		ier=1 (should complain)
-1d2many Ns=0:	ier=0
-1d2many M=0:		ier=0	nrm(Fm)=9.98 (should vanish)
+1d2many Ns=0:	ier=0	nrm(cm)=0 (should vanish)
+1d2many M=0:		ier=0
 1d3many ndata=0:	ier=9 (should complain)
 1d3many tol=0:	ier=1 (should complain)
 1d3many nk=0:	ier=0
