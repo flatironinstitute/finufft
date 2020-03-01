@@ -3,7 +3,7 @@
 Usage and interfaces
 ====================
 
-Here we describe calling FINUFFT from C++, C, and Fortran.
+Here we describe the simple interfaces to call FINUFFT from C++, C, and Fortran.
 
 We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
@@ -11,6 +11,9 @@ nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
 There are also two :ref:`advanced interfaces <advinterface>`
 for multiple 2d1 and 2d2 transforms with the same point locations.
 
+         *** TO DISCUSS! UPDATE ! ********
+
+         
 Using the library is a matter of filling your input arrays,
 allocating the correct output array size, possibly setting fields in
 the options struct, then calling one of the transform routines below.
@@ -20,53 +23,60 @@ Interfaces from C++
 
 We first give a simple example of performing a 1D type-1 transform
 in double precision from C++, the library's native language,
-using C++ complex number type. First include the headers::
+using plain arrays (for simplicity)
+of C++ complex number type. First include the headers::
 
   #include "finufft.h"
   #include <complex>
-  using namespace std;
 
 Now in the body of the code, assuming ``M`` has been set to be
 the number of nonuniform points, we allocate the input arrays::
 
   double *x = (double *)malloc(sizeof(double)*M);
   complex<double>* c = (complex<double>*)malloc(sizeof(complex<double>)*M);
-
-These arrays should now be filled with the user's data:
+  
+The user should now fill these with their input data;
 values in ``x`` should lie in :math:`[-3\pi,3\pi]`, and
 ``c`` can be arbitrary complex strengths (we omit example code for this here).
-With ``N`` as the number of modes, allocate the output array::
+With ``N`` as the desired number of modes, allocate an output array::
 
   complex<double>* F = (complex<double>*)malloc(sizeof(complex<double>)*N);
 
-Before use, set default values in the options struct ``opts``::
+To perform the nonuniform FFT (with default options) is then one line::
 
-  nufft_opts opts; finufft_default_opts(&opts);
+  int ier = finufft1d1(M,x,c,+1,1e-6,N,F,NULL);
 
-.. warning::
-   - Without this call options may take on random values which may cause a crash.
-   - This usage has changed from version 1.0 which used C++-style pass by reference. Please make sure you pass a *pointer* to `opts`.
-
-To perform the nonuniform FFT is then one line::
-
-  int ier = finufft1d1(M,x,c,+1,1e-6,N,F,opts);
-
+Here the ``NULL`` is what causes default options to be used.
 This fills ``F`` with the output modes, in increasing ordering
 from ``-N/2`` to ``N/2-1``.
 Here ``+1`` sets the sign of ``i`` in the exponentials in the
 :ref:`definitions <math>`,
 ``1e-6`` chooses 6-digit relative tolerance, and ``ier`` is a status output
 which is zero if successful (see below).
+
+To set non-default options, first
+put default values in a ``nufft_opts`` struct with pointer ``popts``,
+make your changes, then pass the pointer to FINUFFT::
+
+  nufft_opts* popts;
+  finufft_default_opts(popts);
+  popts->debug = 1;                                // example option choice
+  int ier = finufft1d1(M,x,c,+1,1e-6,N,F,popts);
+  
+.. warning::
+   - Without the ``finufft_default_opts`` call, options may take on random values which may cause a crash.
+   - This usage has changed from versions 1.0 and 1.1 which used C++-style pass by reference. Please make sure you pass a *pointer* to `opts` in both places.
+
 See ``example1d1.cpp``, in the ``examples`` directory, for a simple
 full working example.
 Then to compile, linking to the double-precision static library, use eg::
 
-  g++ example1d1.cpp -o example1d1 -I FINUFFT/src FINUFFT/lib-static/libfinufft.a -fopenmp -lfftw3_omp -lfftw3 -lm
+  g++ example1d1.cpp -o example1d1 -I FINUFFT/include FINUFFT/lib-static/libfinufft.a -fopenmp -lfftw3_omp -lfftw3 -lm
 
-where ``FINUFFT`` denotes the top-level directory
-of the installed library.
+where ``FINUFFT`` denotes the library location (top directory).
 The ``examples`` and ``test`` directories are good places to see further
-usage examples. The documentation for all nine routines follows below.
+usage examples. The documentation for all 18 simple interfaces,
+and the more powerful guru interface, follows below.
 
 .. note::
  If you have a small-scale 2D task (say less than 10\ :sup:`5` points or modes) with multiple strength or coefficient vectors but fixed nonuniform points, see the :ref:`advanced interfaces <advinterface>`.
@@ -118,10 +128,9 @@ Here is the list of the options fields you may set (see the header ``src/finufft
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
+  int spread_scheme;  // for n_trans>1. 0: sequential multithreaded, 1: nested multithreaded
 
-Here are their default settings (set in ``src/common.cpp:finufft_default_opts``):
-
-::
+Here are their default settings (set in ``src/common.cpp:finufft_default_opts``)::
 
   debug = 0;
   spread_debug = 0;
@@ -131,8 +140,9 @@ Here are their default settings (set in ``src/common.cpp:finufft_default_opts``)
   chkbnds = 0;
   fftw = FFTW_ESTIMATE;
   modeord = 0;
-  upsampfac = (FLT)2.0;
-
+  upsampfac = 2.0;
+  spread_scheme = 0;
+  
 To get the fastest run-time, we recommend that you experiment firstly with:
 ``fftw``, ``upsampfac``, and ``spread_sort``, detailed below.
 If you are having crashes, set ``chkbnds=1`` to see if illegal ``x`` non-uniform point coordinates are being input.
@@ -160,35 +170,37 @@ size of the fine grid).
 Thus only 9-digit accuracy can currently be reached when using
 ``upsampfac=1.25``.
 
+``spread_scheme``: only applies to the case of multiple-vector calls
+(the simple "many" interfaces, or the guru interface).
+
 .. _errcodes:
 
 Error codes
 ~~~~~~~~~~~
 
 In the interfaces, the returned value is 0 if successful, otherwise the error code
-has the following meanings (see ``src/defs.h``):
+has the following meanings (see ``include/defs.h``):
 
 ::
 
   1  requested tolerance epsilon too small
   2  attemped to allocate internal arrays larger than MAX_NF (defined in defs.h)
-  3  spreader: fine grid too small compared to spread width
+  3  spreader: fine grid too small compared to spread (kernel) width
   4  spreader: if chkbnds=1, a nonuniform point out of input range [-3pi,3pi]^d
   5  spreader: array allocation error
   6  spreader: illegal direction (should be 1 or 2)
   7  upsampfac too small (should be >1)
   8  upsampfac not a value with known Horner eval: currently 2.0 or 1.25 only
   9  ndata not valid in "many" interface (should be >= 1)
+  10 transform type not valid
+  11 general allocation failure
 
 
-
-1D transforms
-~~~~~~~~~~~~~
+1D transforms, simple interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Now we list the calling sequences for the main C++ codes.
 Please refer to the above :ref:`data types <datatypes>`.
-(Some comments not referring to the interface have been removed;
-if you want detail about the algorithms, please see comments in code.)
 
 ::
 
@@ -268,8 +280,8 @@ if you want detail about the algorithms, please see comments in code.)
 
      
 
-2D transforms
-~~~~~~~~~~~~~
+2D transforms, simple interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 
@@ -360,8 +372,8 @@ if you want detail about the algorithms, please see comments in code.)
      returned value - 0 if success, else see ../docs/usage.rst
 
    
-3D transforms
-~~~~~~~~~~~~~
+3D transforms, simple interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ::
 

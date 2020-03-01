@@ -12,7 +12,7 @@
 1d3 N=1:	ier=0	err=0.0000
 1d3 M=N=1:	ier=0	err=0.0000
 1d3 XK prod too big:	ier=2 (should complain)
-1d1many ndata=0:	ier=1 (should complain)
+1d1many ndata=0:	ier=9 (should complain)
 1d1many tol=0:		ier=1 (should complain)
 1d1many Ns=0:	ier=0
 1d1many M=0:		ier=0	nrm(Fm)=0 (should vanish)

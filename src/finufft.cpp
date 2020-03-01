@@ -4,10 +4,59 @@
 #include <common.h>
 #include <iomanip>
 
+/* The main guru functions for FINUFFT.
 
-int * n_for_fftw(finufft_plan *plan){
-// helper func to create a new int array of length n_dims, extracted from
-// the plan, that fft_many_many_dft needs as its 2nd argument.
+   Guru interface written by Andrea Malleo, summer 2019, with help from
+   Alex Barnett.
+   As of v1.2 these replace the old hand-coded separate 9 finufft?d?() functions
+   and the two finufft2d?many() functions.
+   The (now 18) simple interfaces are in simpleinterfaces.cpp
+
+   Notes on algorithms taken from old finufft?d?() documentation, Feb-Jun 2017:
+
+   TYPE 1:
+     The type 1 NUFFT proceeds in three main steps:
+     1) spread data to oversampled regular mesh using kernel.
+     2) compute FFT on uniform mesh
+     3) deconvolve by division of each Fourier mode independently by the kernel
+        Fourier series coeffs (not merely FFT of kernel), shuffle to output.
+     The kernel coeffs are precomputed in what is called step 0 in the code.
+   Written with FFTW style complex arrays. Step 3a internally uses CPX,
+   and Step 3b internally uses real arithmetic and FFTW style complex.
+
+   TYPE 2:
+     The type 2 algorithm proceeds in three main steps:
+     1) deconvolve (amplify) each Fourier mode, dividing by kernel Fourier coeff
+     2) compute inverse FFT on uniform fine grid
+     3) spread (dir=2, ie interpolate) data to regular mesh
+     The kernel coeffs are precomputed in what is called step 0 in the code.
+   Written with FFTW style complex arrays. Step 0 internally uses CPX,
+   and Step 1 internally uses real arithmetic and FFTW style complex.
+
+   TYPE 3:
+     The type 3 algorithm is basically a type 2 (which is implemented precisely
+     as call to type 2) replacing the middle FFT (Step 2) of a type 1.
+     Beyond this, the new twists are:
+     i) nf1, number of upsampled points for the type-1, depends on the product
+       of interval widths containing input and output points (X*S).
+     ii) The deconvolve (post-amplify) step is division by the Fourier transform
+       of the scaled kernel, evaluated on the *nonuniform* output frequency
+       grid; this is done by direct approximation of the Fourier integral
+       using quadrature of the kernel function times exponentials.
+     iii) Shifts in x (real) and s (Fourier) are done to minimize the interval
+       half-widths X and S, hence nf1.
+   No references to FFTW are needed here. CPX arithmetic is used.
+
+   MULTIPLE STRENGTH VECTORS FOR THE SAME NONUNIFORM POINTS (n_transf>1):
+     blksize (set to max_num_omp_threads) times the RAM is needed, so this is
+     good only for small problems.
+
+*/
+
+
+int* n_for_fftw(finufft_plan *plan){
+// helper func returns a new int array of length n_dims, extracted from
+// the finufft plan, that fft_many_many_dft needs as its 2nd argument.
   int * nf;
   if(plan->n_dims == 1){ 
     nf = new int[1];
@@ -40,9 +89,14 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
   cout << scientific << setprecision(15);  // for debug outputs
 
   if((type!=1)&&(type!=2)&&(type!=3)) {
-      fprintf(stderr, "Invalid type, type should be 1, 2 or 3.");
-      return ERR_TYPE_NOTVALID;
+    fprintf(stderr, "Invalid type, type should be 1, 2 or 3.");
+    return ERR_TYPE_NOTVALID;
   }
+  if (n_transf<1) {
+    fprintf(stderr,"n_transf should be at least 1 (n_transf=%d)\n",n_transf);
+    return ERR_NDATA_NOTVALID;
+  }
+
   if (opts==NULL)                        // use defaults
     finufft_default_opts(&(plan->opts));
   else                                   // or read from what's passed in
@@ -82,7 +136,7 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
   if((type == 1) || (type == 2)) {
   
     if (plan->threadBlkSize>1) {
-      FFTW_INIT();    // only does anything when OMP=ONfor >1 threads
+      FFTW_INIT();    // only does anything when OMP=ON for >1 threads
       FFTW_PLAN_TH(plan->threadBlkSize);
     }
 
@@ -258,7 +312,7 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj,
     }
 
     if (plan->opts.debug){
-      printf("%d d3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld M=%lld N=%lld \n", plan->n_dims,
+      printf("%dd3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld M=%lld N=%lld \n", plan->n_dims,
              plan->t3P.X1, plan->t3P.C1,S1, plan->t3P.D1, plan->t3P.gam1,(long long) plan->nf1,
              (long long)plan->nj,(long long)plan->nk);
       
@@ -516,15 +570,15 @@ void interpAllSetsInBatch(int nSetsThisBatch, int batchNum, finufft_plan *plan, 
 
 }
 
-/*Type 1: deconvolves from interior fw array into user supplied fk*/ 
-/*Type 2: deconvolves from user supplied fk into interior fw array */
-void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *plan, CPX *fk){
-
-  //phiHat is a stacked version fwker in the old code 
-  FLT *phiHat1 = plan->phiHat;
-  FLT *phiHat2;
-  FLT *phiHat3;
-  if(plan->n_dims > 1 )
+void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *plan, CPX *fk)
+/* Type 1: deconvolves (amplifies) from interior fw array into user-supplied fk.
+   Type 2: deconvolves from user-supplied fk into interior fw array.
+   This is mostly a parallel loop calling deconvolveshuffle?d in the needed dim.
+*/
+{
+  // phiHat = kernel FT arrays (stacked version of fwker in 2017 code)
+  FLT* phiHat1 = plan->phiHat, *phiHat2=NULL, *phiHat3=NULL;
+  if(plan->n_dims > 1)
     phiHat2 = plan->phiHat + plan->nf1/2 + 1;
   if(plan->n_dims > 2)
     phiHat3 = plan->phiHat+(plan->nf1/2+1)+(plan->nf2/2+1);
@@ -534,8 +588,7 @@ void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *plan, 
   int blockJump = batchNum*plan->threadBlkSize;
 
 #pragma omp parallel for
-  for(int i = 0; i < nSetsThisBatch; i++){
-
+  for(int i = 0; i < nSetsThisBatch; i++) {
     CPX *fkStart;
 
     //If this is a type 2 being executed inside of a type 3, fk is internal array of size nj*threadBlockSize
@@ -550,21 +603,19 @@ void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *plan, 
 
     //deconvolveshuffle?d are not multithreaded inside, so called in parallel here
     //prefactors hardcoded to 1...
-    if(plan->n_dims == 1){
-      deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, phiHat1, plan->ms, (FLT *)fkStart,
+    if(plan->n_dims == 1)
+      deconvolveshuffle1d(plan->spopts.spread_direction, 1.0, phiHat1,
+                          plan->ms, (FLT *)fkStart,
                           plan->nf1, fwStart, plan->opts.modeord);
-    }
-    else if (plan->n_dims == 2){
+    else if (plan->n_dims == 2)
       deconvolveshuffle2d(plan->spopts.spread_direction,1.0, phiHat1, phiHat2,
                           plan->ms, plan->mt, (FLT *)fkStart,
                           plan->nf1, plan->nf2, fwStart, plan->opts.modeord);
-    }
-    else{
+    else
       deconvolveshuffle3d(plan->spopts.spread_direction, 1.0, phiHat1, phiHat2,
                           phiHat3, plan->ms, plan->mt, plan->mu,
                           (FLT *)fkStart, plan->nf1, plan->nf2, plan->nf3,
                           fwStart, plan->opts.modeord);
-    }
   }
 }
 
@@ -578,6 +629,7 @@ void type3PrePhaseInParallel(int nSetsThisBatch, int batchNum, finufft_plan * pl
 
   CPX imasign = (plan->iflag>=0) ? IMA : -IMA;
     
+  // note that schedule(dynamic) actually slows this down (was in v<=1.1.2):
 #pragma omp parallel for
   for (BIGINT i=0; i<plan->nj;i++){
 
@@ -823,26 +875,22 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
   }
   
   free(ier_spreads);
-  return 0;
-  
-};
+  return 0; 
+}
 
-int finufft_destroy(finufft_plan * plan){
 
-  //free everything inside of finnufft_plan!
-  
+// ..........................................................................
+int finufft_destroy(finufft_plan * plan)
+  //free everything inside of finufft_plan!
+{ 
   if(plan->phiHat)
     free(plan->phiHat);
-
   if(plan->sortIndices)
     free(plan->sortIndices);
-
   if(plan->fftwPlan)
     FFTW_DE(plan->fftwPlan);
-
   if(plan->fw)
     FFTW_FR(plan->fw);
-  
   
   //for type 3, original coordinates are kept in {X,Y,Z}_orig,
   //free the X,Y,Z which hold x',y',z'
@@ -852,15 +900,11 @@ int finufft_destroy(finufft_plan * plan){
       free(plan->Y);
     if(plan->Z)
       free(plan->Z);
-
-
     free(plan->sp);
     if(plan->tp)
       free(plan->tp);
     if(plan->up)
       free(plan->up);
-  }
-   
+  }   
   return 0;
-  
-};
+}

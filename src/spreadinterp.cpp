@@ -250,10 +250,12 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
   return did_sort;
 }
 
+
+// --------------------------------------------------------------------------
 int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		      FLT *data_nonuniform, spread_opts opts, int did_sort){
-
+		      FLT *data_nonuniform, spread_opts opts, int did_sort)
+{
     CNTime timer;
     int ndims = ndims_from_Ns(N1,N2,N3);
     BIGINT N=N1*N2*N3;            // output array size
@@ -357,6 +359,8 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     return 0;
 };
 
+
+// --------------------------------------------------------------------------
 int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort){
@@ -479,6 +483,7 @@ int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 
   return 0;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////
 

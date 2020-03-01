@@ -1,7 +1,7 @@
-#include <finufft_old.h>
-#include <finufft_legacy.h>
-#include <fftw_defs.h>
-#include <dirft.h>
+#include <finufft.h>
+#include <defs.h>
+#include <utils.h>
+
 #include <math.h>
 #include <vector>
 #include <stdio.h>
@@ -25,16 +25,15 @@ int main(int argc, char* argv[])
 
    Example: finufft1dmany_test 1000 1e2 1e4 1e-6 1 2 2.0
 */
- {
-
-   BIGINT M = 1e6, N = 1000;  // defaults: M = # srcs, N = # modes
-  int debug = 0;
-  int ntransf = 400;                      // # of vectors for "many" interface
+{
+   
+  BIGINT M = 1e6, N = 1000;  // defaults: M = # srcs, N = # modes
+  int debug = 0;             // 1 to see some timings
+  int ntransf = 40;                      // # of vectors for "many" interface
 
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;        // default
   nufft_opts opts; finufft_default_opts(&opts);
-  opts.debug = 0;            // 1 to see some timings
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); ntransf = (int)w; }
@@ -85,7 +84,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("    %d of: %lld NU pts to %lld modes in %.3g s or  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N,ti,ntransf*M/ti);
+    printf("%d of\t%lld NU pts to %lld modes in %.3g s  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N,ti,ntransf*M/ti);
 
   
   
@@ -108,10 +107,10 @@ int main(int argc, char* argv[])
   for(BIGINT j = 0; j < ntransf; j++){
     F_start = F_old + j*N;
     c_start = c + j*M;
-    finufft1d1_old(M,x,c_start,isign,tol,N,F_start,opts);
+    finufft1d1(M,x,c_start,isign,tol,N,F_start,&opts);
   }
   double t = timer.elapsedsec();
-  printf("[speedup] \t (T_finufft1d1 / T_finufft1d1many) = %.3g\n", t/ti);
+  printf("[speedup] \t T_finufft1d1 / T_finufft1d1many = %.3g\n", t/ti);
   
   printf("[err check] finufft1d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
   printf("[err check] on trial %d one mode: rel err in F[%lld] is %.3g\n",d,(long long)nt1,abs(F_old[N/2+nt1 + d*N]-F[N/2+nt1+d*N])/infnorm(N,F+d*N));
@@ -138,7 +137,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("\t%lld modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n",(long long)N,(long long)M,ti,M/ti);
+    printf("%d of\t%lld modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n",ntransf,(long long)N,(long long)M,ti,ntransf*M/ti);
  
 
   BIGINT jt = M/2;          // check arbitrary choice of one targ pt
@@ -157,10 +156,10 @@ int main(int argc, char* argv[])
   for(BIGINT j = 0; j < ntransf; j++){
     F_start = F + j*N;
     c_start = c_old + j*M;
-    finufft1d2_old(M,x,c_start,isign,tol,N,F_start,opts);
+    finufft1d2(M,x,c_start,isign,tol,N,F_start,&opts);
   }
   t = timer.elapsedsec();
-  printf("[speedup] \t (T_finufft1d2 / T_finufft1d2many) = %.3g\n", t/ti);
+  printf("[speedup] \t T_finufft1d2 / T_finufft1d2many = %.3g\n", t/ti);
 
   printf("[err check] finufft1d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old+d*M,c+d*M));
   printf("[err check] on trial %d one targ: rel err in c[%lld] is %.3g\n",d, (long long)jt,abs(c_old[jt+d*M]-c[jt+d*M])/infnorm(M,c+d*M));
@@ -200,8 +199,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("\t%lld NU to %lld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",(long long)M,(long long)N,t,M/ti,N/ti);
-
+    printf("%d of \t%lld NU to %lld NU in %.3g s       \t%.3g tot NU pts/s\n",ntransf,(long long)M,(long long)N,t,ntransf*(M+N)/ti);
   
   BIGINT kt = N/4;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);
@@ -219,10 +217,10 @@ int main(int argc, char* argv[])
   for(int k = 0; k < ntransf; k++){
     c_start = c + k*M;
     F_start = F3_old + k*N;
-    ier = finufft1d3_old(M,x,c_start,isign,tol,N,s,F_start, opts);
+    ier = finufft1d3(M,x,c_start,isign,tol,N,s,F_start,&opts);
   }
   t = timer.elapsedsec();
-  printf("[speedup] \t T_finufft1d2 / T_finufft1d2many) = %.3g\n", t/ti);
+  printf("[speedup] \t T_finufft1d3 / T_finufft1d3many = %.3g\n", t/ti);
 
   
   printf("[err check] finufft1d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old+d*N,F+d*N));

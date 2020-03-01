@@ -1,6 +1,7 @@
-#include <finufft_legacy.h>
-#include <finufft_old.h>
+#include <finufft.h>
 #include <dirft.h>
+#include <defs.h>
+#include <utils.h>
 
 #include <math.h>
 #include <vector>
@@ -76,7 +77,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     exit(ier);
   } else
-    printf("[err check] \t%lld NU pts to %lld modes in %.3g s \t%.3g NU pts/s\n",(long long)M,(long long)N,t,M/t);
+    printf("\t%lld NU pts to %lld modes in %.3g s \t%.3g NU pts/s\n",(long long)M,(long long)N,t,M/t);
 
   BIGINT nt = (BIGINT)(0.37*N);   // check arb choice of mode near the top (N/2)
   CPX Ft = CPX(0,0);
@@ -90,12 +91,13 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 
-  //check against the old
+  /* check against the old
   CPX * F_old = (CPX *)malloc(sizeof(CPX)*N);
   finufft1d1_old(M,x,c,isign,tol,N,F_old,opts);
   printf("[err check] finufft1d1_old: rel l2-err of result F is %.3g\n",relerrtwonorm(N,F_old,F));
   printf("[err check] one mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(F_old[N/2+nt]-F[N/2+nt])/infnorm(N,F));
   free(F_old);
+  */
   
   printf("------------------test 1d type-2:------------------\n"); // -------------- type 2
  #pragma omp parallel
@@ -129,13 +131,13 @@ int main(int argc, char* argv[])
     free(ct);
   }
 
-  //check against the old
+  /* check against the old
   CPX * c_old = (CPX *)malloc(sizeof(CPX)*M);
   finufft1d2_old(M,x,c_old,isign,tol,N,F,opts);
   printf("[err check] finufft1d2_old: rel l2-err of result c is %.3g\n",relerrtwonorm(M,c_old,c));
   printf("[err check] one targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(c_old[jt]-c[jt])/infnorm(M,c));
   free(c_old);
-
+  */
 
 
   printf("------------------test 1d type-3:------------------\n"); // -------------- type 3
@@ -177,12 +179,13 @@ int main(int argc, char* argv[])
     free(Ft);
   }
 
-  //check against the old
+  /* check against the old
   CPX *F3_old = (CPX *)malloc(sizeof(CPX)*N);
   ier = finufft1d3_old(M,x,c,isign,tol,N,s,F3_old,opts);
    printf("[err check] finufft1d3_old: rel l2-err of result c is %.3g\n",relerrtwonorm(N,F3_old,F));
    printf("[err check] one targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(F3_old[kt]-F[kt])/infnorm(N,F));
   free(F3_old);
+  */
 
   free(x); free(c); free(F); free(s);
   return 0;

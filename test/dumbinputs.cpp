@@ -1,4 +1,4 @@
-#include <finufft_legacy.h>
+#include <finufft.h>
 #include <dirft.h>
 #include <complex>
 #include <stdio.h>
@@ -7,13 +7,15 @@ using namespace std;
 
 int main(int argc, char* argv[])
 /* calling the FINUFFT library from C++ using all manner of crazy inputs that
-   might cause errors. All should be caught gracefully.
-   Barnett 3/14/17.
+   might cause errors. Simple interfaces only. All should be caught gracefully.
+   (It also checks accuracy for 1D type 3, for some reason.)
+   Barnett 3/14/17, updated Andrea Malleo, summer 2019.
 
-   Compile with:
-   g++ -fopenmp dumbinputs.cpp ../lib/libfinufft.a -o dumbinputs  -lfftw3 -lfftw3_omp -lm
+   Compile with (better to go up a directory and use: make test/dumbinputs) :
+   g++ -std=c++14 -fopenmp dumbinputs.cpp -I ../include directft/dirft1d.o ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
+
    or if you have built a single-core version:
-   g++ dumbinputs.cpp ../lib/libfinufft.a -o dumbinputs -lfftw3 -lm
+   g++ -std=c++14 dumbinputs.cpp -I ../include directft/dirft1d.o ../lib/libfinufft.so -o dumbinputs -lfftw3 -lm
 
    Usage: ./dumbinputs
 */
@@ -21,7 +23,7 @@ int main(int argc, char* argv[])
   int M = 100;            // number of nonuniform points
   int N = 10;             // # modes, keep small, also output NU pts in type 3
   FLT acc = 1e-6;         // desired accuracy
-  nufft_opts opts; finufft_default_opts(&opts);   // recommended
+  nufft_opts opts; finufft_default_opts(&opts);
 
   int NN = N*N*N;         // modes F alloc size since we'll go to 3d
   // generate some "random" nonuniform points (x) and complex strengths (c):
@@ -84,7 +86,7 @@ int main(int argc, char* argv[])
   ier = finufft1d3(M,x,c,+1,acc,N,shuge,F,&opts);
   printf("1d3 XK prod too big:\tier=%d (should complain)\n",ier);
 
-  int ndata = 10;
+  int ndata = 10;                 // how many multiple vectors to test it on
   CPX* cm = (CPX*)malloc(sizeof(CPX)*M*ndata);
   CPX* Fm = (CPX*)malloc(sizeof(CPX)*NN*ndata);
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // set cm for 1d1many
@@ -116,7 +118,7 @@ int main(int argc, char* argv[])
   printf("1d3many M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,Fm));
   ier = finufft1d3many(ndata, 1,x,c,+1,acc,N,s,Fm,&opts);   // XK prod formally 0
   dirft1d3(1,x,c,+1,N,s,Fe); for (int k=0; k<N; ++k) Fm[k] -= Fe[k]; // acc chk
-  printf("1d3many M=1:\tier=%d\tnrm(err)=%.4f\n",ier,twonorm(N,Fm));  // to 1e-4 abs //check just first trial
+  printf("1d3many M=1:\tier=%d\tnrm(err)=%.4f\n",ier,twonorm(N,Fm));  // to 1e-4 abs; check just first trial
   ier = finufft1d3many(ndata,M,x,c,+1,acc,1,s,Fm,&opts);   // "
   dirft1d3(M,x,c,+1,1,s,Fe);
   printf("1d3many N=1:\tier=%d\terr=%.4f\n",ier,abs(Fm[0]-Fe[0]));
@@ -301,6 +303,6 @@ int main(int argc, char* argv[])
   
 
   free(x); free(c); free(F); free(s); free(shuge); free(cm); free(Fm);
-  printf("freed.");
+  printf("freed.\n");
   return 0;
 }

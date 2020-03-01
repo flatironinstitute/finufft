@@ -1,32 +1,33 @@
-#include <finufft_legacy.h>
+#include <finufft.h>
+#include <dataTypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <complex>
+#include <vector>
 
-// Basic pass-fail test of library. exit code 0 success, failure otherwise.
-// This is useful for brew recipe.
-// Doesn't use any macros other than finufft.h
-// Works for single/double or multi-/single-thread.
+// Basic pass-fail test of one routine in library w/ default opts.
+// exit code 0 success, failure otherwise. This is useful for brew recipe.
+// Works for single/double or multi-/single-thread, hence use of FLT and CPX.
 // Simplified from Amit Moscovitz and example1d1. Barnett 11/1/18.
+// Using vectors and default opts, 2/29/20.
 
 int main()
 {
   BIGINT M = 1e3, N = 1e3;   // defaults: M = # srcs, N = # modes out
   double tol = 1e-5;         // req tol, covers both single & double prec cases
-  nufft_opts opts; finufft_default_opts(&opts);     // set default opts
   int isign = +1;            // exponential sign for NUFFT
-  static const CPX I = CPX(0.0,1.0);      // imaginary unit. Note: avoid (CPX)
-  CPX* F = (CPX*)malloc(sizeof(CPX)*N);   // alloc output mode coeffs
+  static const CPX I = CPX(0.0,1.0);  // imaginary unit. Note: avoid (CPX) cast
+  std::vector<CPX> F(N);     // alloc output mode coeffs
 
   // Make the input data....................................
-  FLT* x = (FLT*)malloc(sizeof(FLT)*M);   // NU pts locs
-  CPX* c = (CPX*)malloc(sizeof(CPX)*M);   // strengths 
+  std::vector<FLT> x(M);     // NU pts locs
+  std::vector<CPX> c(M);     // strengths 
   for (BIGINT j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((FLT)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
+    x[j] = M_PI*(2*((FLT)rand()/RAND_MAX)-1);     // uniform random in [-pi,pi)
     c[j] = 2*((FLT)rand()/RAND_MAX)-1 + I*(2*((FLT)rand()/RAND_MAX)-1);
   }
-  // Run it.................................................
-  int ier = finufft1d1(M,x,c,isign,tol,N,F,&opts);
+  // Run it (NULL = default opts) .......................................
+  int ier = finufft1d1(M,&x[0],&c[0],isign,tol,N,&F[0],NULL);
   if (ier!=0) {
     printf("basicpassfail: finufft1d1 error (ier=%d)!",ier);
     exit(ier);
@@ -44,6 +45,5 @@ int main()
   }
   FLT relerr = abs(F[nout] - Ftest)/Finfnrm;
   //printf("requested tol %.3g: rel err for one mode %.3g\n",tol,relerr);
-  free(x); free(c); free(F);
-  return (std::isnan(relerr) || relerr > 10.0*tol);  // ne.0 -> make test error
+  return (std::isnan(relerr) || relerr > 10.0*tol);    // true reports failure
 }

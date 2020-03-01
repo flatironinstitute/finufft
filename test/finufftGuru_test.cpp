@@ -1,14 +1,13 @@
 #include <finufft.h>
-#include <finufft_old.h>
-#include <dirft.h>
+#include <defs.h>
+#include <utils.h>
 #include <math.h>
-#include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
-#include <unistd.h>  // for sleep call 
-
+// for sleep call
+#include <unistd.h>
 
 // how big a problem to do full direct DFT check in 3D...
 #define BIGPROB 1e8
@@ -16,10 +15,11 @@
 // for omp rand filling
 #define CHUNK 1000000
 
-//forward declaration 
-double runOldFinufft(CPX *c,CPX *F,finufft_plan *plan);
+//forward declarations for helper to (repeatedly if needed) call finufft?d?
+double many_simple_calls(CPX *c,CPX *F,finufft_plan *plan);
 
-  
+
+// --------------------------------------------------------------------------
 int main(int argc, char* argv[])
 /* Test/Demo the guru interface
 
@@ -35,10 +35,9 @@ int main(int argc, char* argv[])
    
    Example: finufftGuru_test 1 1 2 1000 1000 0 1000000 1e-12 2 1 2.0
 
-   For Type3, please enter nk in Nmodes space, 0 for rest
+   For Type3, please enter nk in Nmodes space, 0 for rest.
    Example w/ nk = 5000: finufftGuru_test 1 3 2 5000 0 0 1000000 1e-12 2 0 1 2.0
 */
-  
 {
   BIGINT M = 1e6, N1 = 1000, N2 = 500, N3=250;  // defaults: M = # srcs, N1,N2 = # modes
   double w, tol = 1e-6;          // default
@@ -51,14 +50,15 @@ int main(int argc, char* argv[])
 
   // Collect command line arguments ------------------------------------------
 
-  if (argc>1) 
+  if (argc>1) {
     sscanf(argv[1],"%d",&i); ntransf = i;
-  if(argc > 2)
+  }
+  if(argc > 2) {
     sscanf(argv[2],"%d",&i); type = i;
-
-  if(argc > 3)
+  }
+  if(argc > 3) {
     sscanf(argv[3],"%d",&i); ndim = i;    
-
+  }
   if(argc > 4){
     sscanf(argv[4],"%lf",&w); N1 = (BIGINT)w;
     sscanf(argv[5],"%lf",&w); N2 = (BIGINT)w;
@@ -301,8 +301,10 @@ int main(int argc, char* argv[])
   sleep(1); //sleep for one second using linux sleep call
 
  printf("------------------------OLD IMPLEMENTATION------------------------------\n");
-
- double oldTime = runOldFinufft(c,F, &plan);
+ // this used to actually call Alex's old (v1.1) src/finufft?d.cpp routines.
+ // Since we don't want to ship those, we now call the simple interfaces.
+ 
+ double oldTime = many_simple_calls(c,F, &plan);
 
  FFTW_CLEANUP();
  FFTW_CLEANUP_THREADS();
@@ -312,13 +314,11 @@ int main(int argc, char* argv[])
  printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, oldTime , ntransf*M/oldTime);
   
-  printf("\tspeedup (T_finufft[%d]d[%d]_old / T_finufft[%d]d[%d]) = %.3g\n", ndim,  type,
+  printf("\tspeedup (T_finufft[%d]d[%d]_simple / T_finufft[%d]d[%d]) = %.3g\n", ndim,  type,
 	  ndim, type, oldTime/totalTime);
   
   
-  /**********************************************************************************************/
-  /* Free Memory
-  /*******************************************************************************************/
+  //--------------------------------------- Free Memory
   free(F);
   free(c);
   free(x); 
@@ -335,3 +335,170 @@ int main(int argc, char* argv[])
     free(u);
 }
 
+
+
+// ---------------------------------------------------------------------------
+double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
+// HELPER FOR COMPARING AGAINST SIMPLE INTERFACES. Reads opts from the
+// finufft plan, and does a single simple interface call.
+// returns the run-time in seconds, or -1.0 if error.
+{
+
+  CNTime timer; timer.start();
+  int ier = 0;
+  double t = 0;
+  double fail = -1.0;
+  nufft_opts* popts = &(plan->opts);   // opts ptr, as v1.2 simple calls need
+  switch(plan->n_dims){
+
+    /*1d*/
+  case 1:
+    switch(plan->type){
+
+    case 1:
+      timer.restart();
+      ier = finufft1d1(plan->nj, plan->X, cStart, plan->iflag, plan->tol, plan->ms, fStart, popts);
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+      
+    case 2:
+      timer.restart();
+      ier = finufft1d2(plan->nj, plan->X, cStart, plan->iflag, plan->tol, plan->ms, fStart, popts);
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+      
+    case 3:
+      timer.restart();
+      ier = finufft1d3(plan->nj, plan->X_orig, cStart, plan->iflag, plan->tol, plan->nk, plan->s, fStart, popts);
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+      
+    default:
+      return fail; 
+
+    }
+
+    /*2d*/
+  case 2:
+    switch(plan->type){
+      
+    case 1:
+      timer.restart();
+      ier = finufft2d1(plan->nj, plan->X, plan->Y, cStart, plan->iflag, plan->tol, plan->ms, plan->mt, fStart, popts);
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+      
+    case 2:
+      timer.restart();
+      ier = finufft2d2(plan->nj, plan->X, plan->Y, cStart, plan->iflag, plan->tol, plan->ms, plan->mt,
+     		       fStart, popts);
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+
+    case 3:
+      timer.restart();
+      ier = finufft2d3(plan->nj, plan->X_orig, plan->Y_orig, cStart, plan->iflag, plan->tol, plan->nk, plan->s, plan->t,
+                       fStart, popts); 
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+      
+    default:
+      return fail;
+    }
+
+    /*3d*/
+  case 3:
+    
+    switch(plan->type){
+
+    case 1:
+      timer.restart();
+      ier = finufft3d1(plan->nj, plan->X, plan->Y, plan->Z, cStart, plan->iflag, plan->tol,
+                       plan->ms, plan->mt, plan->mu, fStart, popts);
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+      
+    case 2:
+      timer.restart();
+      ier = finufft3d2(plan->nj, plan->X, plan->Y, plan->Z, cStart, plan->iflag, plan->tol,
+                       plan->ms, plan->mt, plan->mu, fStart, popts);
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+      
+    case 3:
+      timer.restart();
+      ier = finufft3d3(plan->nj, plan->X_orig, plan->Y_orig, plan->Z_orig, cStart, plan->iflag, plan->tol,
+                       plan->nk, plan->s, plan->t, plan->u, fStart, popts);
+      t = timer.elapsedsec();
+      if(ier)
+	return fail;
+      else
+	return t;
+
+    /*invalid type*/
+    default:
+      return fail;
+    }
+
+    /*invalid dimension*/
+  default:
+    return fail;
+  }
+}
+
+
+double many_simple_calls(CPX *c,CPX *F,finufft_plan *plan)
+// A unified interface to all of the simple interfaces
+// (was actually runOldFinufft, calling the old v1.1 lib, which was shipped too)
+{
+    
+    CPX *cStart;
+    CPX *fStart;
+
+    double time = 0;
+    double temp = 0;;
+    
+    for(int k = 0; k < plan->n_transf; k++){
+      cStart = c + plan->nj*k;
+      fStart = F + plan->ms*plan->mt*plan->mu*k;
+      
+      /*if(k != 0){
+	plan->opts.debug = 0;
+	plan->opts.spread_debug = 0;
+	}*/
+      
+      temp = finufftFunnel(cStart,fStart, plan);
+      if(temp == -1.0){
+	printf("Call to finufft FAILED!"); 
+	time = -1.0;
+	break;
+      }
+      else
+	time += temp;
+    }
+    return time;
+}

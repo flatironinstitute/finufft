@@ -13,8 +13,8 @@ using namespace std;
 using namespace std::complex_literals;
 
 int main(int argc, char* argv[])
-/* Example calling guru C++ interface to FINUFFT library, using
-   STL vectors of C++ double complex numbers, with a math test.
+/* Example calling guru C++ interface to FINUFFT library, passing
+   pointers to STL vectors of C++ double complex numbers, with a math check.
    Barnett 2/27/20
 
    Compile on linux with:

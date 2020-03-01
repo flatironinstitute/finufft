@@ -1,7 +1,7 @@
-#include <finufft_old.h>
-#include <finufft_legacy.h>
-#include <fftw_defs.h>
-#include <dirft.h>
+#include <finufft.h>
+#include <defs.h>
+#include <utils.h>
+
 #include <math.h>
 #include <vector>
 #include <stdio.h>
@@ -30,13 +30,12 @@ int main(int argc, char* argv[])
 */
 {
   BIGINT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
-  int debug;
-  int ntransf = 400;                      // # of vectors for "many" interface
+  int debug = 0;       // 1 to see some timings
+  int ntransf = 40;                      // # of vectors for "many" interface
 
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;        // default
   nufft_opts opts; finufft_default_opts(&opts);
-  opts.debug = 0;            // 1 to see some timings
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); ntransf = (int)w; }
@@ -90,7 +89,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("    %d of: %lld NU pts to (%lld,%lld) modes in %.3g s or  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,ti,ntransf*M/ti);
+    printf("%d of\t%lld NU pts to (%lld,%lld) modes in %.3g s  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,ti,ntransf*M/ti);
   
   int d = floor(ntransf/2);    // choose a data to check
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
@@ -115,10 +114,10 @@ int main(int argc, char* argv[])
   {
     cstart = c+k*M;
     Fstart = F_finufft2d1+k*N;
-    ier = finufft2d1_old(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
+    ier = finufft2d1(M,x,y,cstart,isign,tol,N1,N2,Fstart,&opts);
   }
   double t=timer.elapsedsec();
-  printf("[speedup] \t (T_finufft2d1 / T_finufft2d1many) = %.3g\n", t/ti);
+  printf("[speedup] \t T_finufft2d1 / T_finufft2d1many = %.3g\n", t/ti);
 
 
   // Check accuracy (worst over the ntransf)
@@ -128,8 +127,8 @@ int main(int argc, char* argv[])
   printf("[err check] err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 
-  /* SPECIAL 2D1many implementation comparison*/
 
+  /* SPECIAL 2D1many implementation comparison - removed for now
   FFTW_FORGET_WISDOM();
   maxerror = 0.0;
   CPX* F_compMany = (CPX*)malloc(sizeof(CPX)*N*ntransf);   // mode ampls
@@ -154,7 +153,8 @@ int main(int argc, char* argv[])
     }
     free(F_compMany);
   }
-  
+  */
+
  
   printf("------------------test 2dmany type-2:------------------\n"); // -------------- type 2
 
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("    %d of: (%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)N1,(long long)N2,(long long)M,ti,ntransf*M/ti);
+    printf("%d of\t(%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)N1,(long long)N2,(long long)M,ti,ntransf*M/ti);
 
   FFTW_FORGET_WISDOM();
   opts.debug = 0;        // don't output timing for calls of finufft2d2
@@ -196,10 +196,10 @@ int main(int argc, char* argv[])
   {
     cstart = c_finufft2d2+k*M;
     Fstart = F+k*N;
-    ier = finufft2d2_old(M,x,y,cstart,isign,tol,N1,N2,Fstart,opts);
+    ier = finufft2d2(M,x,y,cstart,isign,tol,N1,N2,Fstart,&opts);
   }
   t = timer.elapsedsec();
-  printf("speedup \t (T_finufft2d2 / T_finufft2d2many) = %.3g\n", t/ti);
+  printf("speedup \t T_finufft2d2 / T_finufft2d2many = %.3g\n", t/ti);
 
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
@@ -209,11 +209,11 @@ int main(int argc, char* argv[])
 
   
 
-  /* SPECIAL 2D2many implementation comparison*/
+  /* SPECIAL 2D2many implementation comparison  - omitted for now
 
   //  FFTW_FORGET_WISDOM();
 
-  /*maxerror = 0.0;
+  maxerror = 0.0;
   CPX* F_compMany2 = (CPX*)malloc(sizeof(CPX)*N*ntransf);   // mode ampls
 
   if(!F_compMany2)
@@ -278,7 +278,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("    %d of: %lld NU to %lld NU in %.3g s   %.3g srcs/s, %.3g targs/s\n",ntransf, (long long)M,(long long)N,ti,M/ti,N/ti);
+    printf("%d of\t%lld NU to %lld NU in %.3g s      \t%.3g tot NU pts/s\n",ntransf, (long long)M,(long long)N,ti,ntransf*(M+N)/ti);
 
   d = floor(ntransf/2); // choose a transform to check
   BIGINT kt = N/4;          // check arbitrary choice of one targ pt
@@ -287,7 +287,7 @@ int main(int argc, char* argv[])
     Ft += c[d*M + j] * exp(J*(s_freq[kt]*x[j] + t_freq[kt]*y[j]));
   printf("[err check] on trial %d: rel err in F[%lld] against direct is %.3g\n",d,(long long)kt,abs(Ft-F[kt+d*N])/infnorm(N,F+d*N));  
 
-// compare the result with finufft2d3_old...
+// compare the result with finufft2d3...
   opts.debug = 0;
   opts.spread_debug = 0;  // no output from spreader
 
@@ -297,10 +297,10 @@ int main(int argc, char* argv[])
   {
     Fstart = f_old2d3+k*N;
     cstart = c+k*M;
-    ier = finufft2d3_old(M,x,y,cstart,isign,tol,N, s_freq,t_freq,Fstart,opts);
+    ier = finufft2d3(M,x,y,cstart,isign,tol,N, s_freq,t_freq,Fstart,&opts);
   }
   t = timer.elapsedsec();
-  printf("speedup \t (T_finufft2d3 / T_finufft2d3many) = %.3g\n", t/ti);
+  printf("speedup \t T_finufft2d3 / T_finufft2d3many = %.3g\n", t/ti);
 
   //check against the old
   printf("[err check] on trial %d one targ: rel err in F[%lld] against old is %.3g\n",d,(long long)kt,abs(f_old2d3[kt+d*N]-F[kt+d*N])/infnorm(N,F+d*N));

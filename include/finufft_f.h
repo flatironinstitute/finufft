@@ -1,11 +1,16 @@
 #ifndef FINUFFT_F_H
 #define FINUFFT_F_H
 
-#include <utils.h>
+#include <dataTypes.h>
+
+// This defines a rather simple fortran interface to the simple library calls.
 
 // note FLT (= float or double) and CPX (= float complex or double complex)
 // used here. Make sure you call with appropriate fortran sizes.
-// All ints are int*4 for now in fortran interface, all nufft_opts default.
+
+// All ints are int*4 for now in fortran interface, all nufft_opts defaults.
+// TODO: make more flexible fortran interfaces
+
 
 extern "C" {
 void finufft1d1_f_(int *nj,FLT* xj,CPX* cj,int *iflag, FLT *eps,
