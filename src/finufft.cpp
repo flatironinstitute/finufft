@@ -12,7 +12,7 @@
    and the two finufft2d?many() functions.
    The (now 18) simple interfaces are in simpleinterfaces.cpp
 
-   Notes on algorithms taken from old finufft?d?() documentation, Feb-Jun 2017:
+Notes on algorithms taken from old finufft?d?() documentation, Feb-Jun 2017:
 
    TYPE 1:
      The type 1 NUFFT proceeds in three main steps:
@@ -50,6 +50,12 @@
    MULTIPLE STRENGTH VECTORS FOR THE SAME NONUNIFORM POINTS (n_transf>1):
      blksize (set to max_num_omp_threads) times the RAM is needed, so this is
      good only for small problems.
+
+Design notes for guru interface implementation:
+
+* Since finufft_plan is C-compatible, we need to use malloc/free for its
+  allocatable arrays, keeping it quite low-level. We can't use std::vector
+  since the only survive in the scope of each function.
 
 */
 
@@ -112,7 +118,10 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
   plan->n_transf = n_transf;
   plan->tol = tol;
   plan->iflag = iflag;
-  plan->threadBlkSize = threadBlkSize;
+  if (threadBlkSize==0)            // set default
+    plan->threadBlkSize = min(MY_OMP_GET_MAX_THREADS(), MAX_USEFUL_NTHREADS);
+  else
+    plan->threadBlkSize = threadBlkSize;
 
   // set others as defaults (or unallocated for arrays)...
   plan->X = NULL;
@@ -164,9 +173,9 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
       }
     }
 
-    if (plan->opts.debug) printf("[finufft_plan] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n",n_dims, type,
+    if (plan->opts.debug) printf("[finufft_plan] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) blksiz=%d\n",n_dims, type,
                (long long)plan->ms,(long long)plan->mt, (long long) plan->mu,
-               (long long)plan->nf1,(long long)plan->nf2, (long long)plan->nf3);
+                                 (long long)plan->nf1,(long long)plan->nf2, (long long)plan->nf3,plan->threadBlkSize);
 
     // STEP 0: get Fourier coeffs of spreading kernel for each dim
     CNTime timer; timer.start(); 
@@ -218,7 +227,7 @@ int finufft_makeplan(int type, int n_dims, BIGINT *n_modes, int iflag,
     delete []n;
     
   } else {  // -------------------------- type 3 -----------------------------
-    if (plan->opts.debug) printf("[finufft_plan] %dd%d\n",n_dims, type);
+    if (plan->opts.debug) printf("[finufft_plan] %dd%d, blksiz=%d\n",n_dims, type,plan->threadBlkSize);
     plan->fftwPlan = NULL;
     // type 3 will call finufft_makeplan for type2, thus no need to init FFTW
   }
@@ -236,21 +245,13 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj,
 
 
 {
-
-  plan->nj = nj;
-  if(plan->X)
-    free(plan->X);
-  if(plan->Y)
-    free(plan->Y);
-  if(plan->Z)
-    free(plan->Z);
-
   CNTime timer; timer.start();
-
-  /******************************************************************/
-  /* Type 1 and Type 2                                              */
-  /******************************************************************/
+  plan->nj = nj;
+  
   if((plan->type == 1) || (plan->type == 2)){
+    /******************************************************************/
+    /* Type 1 and Type 2                                              */
+    /******************************************************************/
 
     if(plan->type == 1)
       plan->spopts.spread_direction = 1; 
@@ -265,27 +266,23 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj,
     plan->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan->nj);
     plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->nj, xj, yj, zj, plan->spopts);
 
-    if (plan->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
-                                 timer.elapsedsec());
+    if (plan->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", plan->didSort, timer.elapsedsec());
   
 
-    plan->X = xj;
+    plan->X = xj; // we just point to user's data, which must be length >=nj
     plan->Y = yj;
     plan->Z = zj;
 
-    plan->s = NULL;
+    plan->s = NULL; // unused for t1,t2
     plan->t = NULL;
     plan->u = NULL;
   }
 
-  /******************************************************************/
-  /* Type 3                                                         */
-  /******************************************************************/
-  
-  else{ 
-
-    plan->nk = nk;
-    
+  else{
+    /******************************************************************/
+    /* Type 3                                                         */
+    /******************************************************************/  
+    plan->nk = nk;    
     plan->spopts.spread_direction = 1;
 
     FLT S1, S2, S3 = 0;
@@ -379,8 +376,7 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj,
     plan->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*plan->nj);
     plan->didSort = indexSort(plan->sortIndices, plan->nf1, plan->nf2, plan->nf3, plan->nj, xpj, ypj, zpj, plan->spopts);
 
-    if (plan->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", plan->didSort,
-                                 timer.elapsedsec());
+    if (plan->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", plan->didSort, timer.elapsedsec());
     
     plan->X = xpj;
     plan->X_orig = xj;
@@ -469,7 +465,8 @@ int finufft_setpts(finufft_plan * plan , BIGINT nj, FLT *xj, FLT *yj, FLT *zj,
   }
   
   return 0;
-};
+}
+
 
 /*Type 1 + Type 3: Spreads coordinate weights from c into internal workspace fw for sending into fftw */
 void spreadAllSetsInBatch(int nSetsThisBatch, int blkNum, finufft_plan *plan, CPX * c, int *ier_spreads){
@@ -692,6 +689,9 @@ void type3DeconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *p
   }
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////////
 /*Performs spread/interp, pre/post deconvolve, and fftw_exec as appropriate for 3 types*/
 //for cases of n_transf > 1, performs work in batches of size min(n_transf, threadBlkSize)
 int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
@@ -880,8 +880,8 @@ int finufft_exec(finufft_plan * plan , CPX * cj, CPX * fk){
 
 
 // ..........................................................................
-int finufft_destroy(finufft_plan * plan)
-  //free everything inside of finufft_plan!
+int finufft_destroy(finufft_plan* plan)
+  // free everything we allocated inside of finufft_plan
 { 
   if(plan->phiHat)
     free(plan->phiHat);
@@ -892,8 +892,8 @@ int finufft_destroy(finufft_plan * plan)
   if(plan->fw)
     FFTW_FR(plan->fw);
   
-  //for type 3, original coordinates are kept in {X,Y,Z}_orig,
-  //free the X,Y,Z which hold x',y',z'
+  // for type 3, original coordinates are kept in {X,Y,Z}_orig,
+  // but we must free the X,Y,Z we allocated which hold x',y',z'
   if(plan->type == 3){
     free(plan->X);
     if(plan->Y)

@@ -234,7 +234,7 @@ fortran: $(FOBJS) $(OBJS)
 	time -p $(F3)
 	time -p $(F4)
 
-# matlab .mex* executable...
+# matlab .mex* executable... (not worth starting matlab to test it)
 matlab: $(STATICLIB)  matlab/finufft_m.cpp
 ifeq ($(PREC),SINGLE)
 	@echo "MATLAB interface only supports double precision; doing nothing"
@@ -249,7 +249,7 @@ ifeq ($(PREC),SINGLE)
 else
 	(cd matlab; mkoctfile --mex finufft.cpp -I../include ../$(STATICLIB) finufft_m.cpp $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface test; please wait a few seconds..."
-	(cd matlab; octave check_finufft.m)
+	(cd matlab; octave test/check_finufft.m)
 endif
 
 # for experts; force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
@@ -274,14 +274,17 @@ endif
 # This was for a CCQ application; zgemm was 10x faster!
 test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
 	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp $(STATICLIB) -o test/manysmallprobs $(LIBSFFT)
-	(export OMP_NUM_THREADS=1; time test/manysmallprobs; unset OMP_NUM_THREADS)
+#	@echo "manysmallprobs: all avail threads..."
+#	test/manysmallprobs	
+	@echo "manysmallprobs: single-thread..."
+	OMP_NUM_THREADS=1 test/manysmallprobs
 
 
 # ------------- Cleaning up (including all versions of lib, and interfaces)...
 clean: objclean pyclean
 	rm -f lib-static/*.a lib/*.so
 	rm -f matlab/*.mex*
-	rm -f $(TESTS) test/results/*.out fortran/*_demo fortran/*_demof examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf examples/guru1d1
+	rm -f $(TESTS) test/results/*.out fortran/*_demo fortran/*_demof $(EXS) examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf
 
 # this is needed before changing precision or threading...
 objclean:

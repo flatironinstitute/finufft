@@ -29,7 +29,7 @@ void finufft_mex_setup()
 }
 
 int finufft_mex_opts(nufft_opts &opts, double *mexo)
-// global setup of finufft opts given MEX interface opts 7-long double array.
+// global setup of nufft opts given MEX interface opts 7-long double array.
 // Also sets multithreading. 9/20/18: now passes out previous omp num threads.
 {
   finufft_default_opts(&opts);
@@ -60,7 +60,10 @@ void restore_omp_nthr(int nthr)
   if (nthr>0)
     MY_OMP_SET_NUM_THREADS(nthr);
 }
-  
+
+// *** ALL THE FOLLOWING TO BE REPLACED BY GURU PLUS NATIVE MATLAB WRAPPERS:
+
+
 int finufft1d1m(double nj,double* xj,dcomplex* cj,int iflag,double eps,double ms, dcomplex* fk, double* mexo)
 {
   nufft_opts opts;

@@ -25,6 +25,8 @@
 // Increase this if you need >1TB RAM... (used only in common.cpp)
 #define MAX_NF    (BIGINT)1e11
 
+// Max number of useful threads for setting default blksize (depends on NUMA)
+#define MAX_USEFUL_NTHREADS 24
 
 
 // ---------- Global error output codes for the library -----------------------
