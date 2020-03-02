@@ -19,13 +19,16 @@ from finufftpy_cpp import finufft_plan
 from finufftpy_cpp import fftwopts
 from finufftpy_cpp import get_max_threads
 
-debug_def=0
-spread_debug_def=0
-spread_sort_def=2
+# default opts
+opts_default = nufft_opts()
+default_opts(opts_default)
+debug_def=opts_default.debug
+spread_debug_def=opts_default.spread_debug
+spread_sort_def=opts_default.spread_sort
 fftw_def=0
-modeord_def=0
-chkbnds_def=1
-upsampfac_def=2.0
+modeord_def=opts_default.modeord
+chkbnds_def=opts_default.chkbnds
+upsampfac_def=opts_default.upsampfac
 
 ## David Stein's functions for checking input and output variables
 def _rchk(x):
@@ -74,7 +77,6 @@ def execute(plan,weights,result):
   return info
 
 def set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac):
-  default_opts(opts)
   opts.debug = debug
   opts.spread_debug = spread_debug;
   opts.spread_sort = spread_sort
