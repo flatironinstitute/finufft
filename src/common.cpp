@@ -144,7 +144,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   for (int t=0; t<=nt; ++t)             // split nout mode indices btw threads
     brk[t] = (BIGINT)(0.5 + nout*t/(double)nt);
 #pragma omp parallel
-  {
+  {                                     // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
     if (t<nt) {                         // could be nt < actual # threads
       dcomplex aj[MAX_NQUAD];           // phase rotator for this thread
@@ -194,7 +194,7 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
     f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // w/ quadr weights
     //    printf("f[%d] = %.3g\n",n,f[n]);
   }
-  #pragma omp parallel for schedule(dynamic)
+  #pragma omp parallel for
   for (BIGINT j=0;j<nk;++j) {          // loop along output array
     FLT x = 0.0;                    // register
     for (int n=0;n<q;++n) x += f[n] * 2*cos(k[j]*z[n]);  // pos & neg freq pair

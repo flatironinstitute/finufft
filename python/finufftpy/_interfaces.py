@@ -19,6 +19,17 @@ from finufftpy_cpp import finufft_plan
 from finufftpy_cpp import fftwopts
 from finufftpy_cpp import get_max_threads
 
+# default opts
+opts_default = nufft_opts()
+default_opts(opts_default)
+debug_def=opts_default.debug
+spread_debug_def=opts_default.spread_debug
+spread_sort_def=opts_default.spread_sort
+fftw_def=0
+modeord_def=opts_default.modeord
+chkbnds_def=opts_default.chkbnds
+upsampfac_def=opts_default.upsampfac
+
 ## David Stein's functions for checking input and output variables
 def _rchk(x):
   """
@@ -65,8 +76,17 @@ def execute(plan,weights,result):
   _copy(_result,result)
   return info
 
+def set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac):
+  opts.debug = debug
+  opts.spread_debug = spread_debug;
+  opts.spread_sort = spread_sort
+  opts.fftw = fftwopts(fftw)
+  opts.modeord = modeord
+  opts.chkbnds = chkbnds
+  opts.upsampfac = upsampfac
+
 ## easy interfaces
-def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+def nufft1d1(x,c,isign,eps,ms,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
   x = _rchk(x)
   c = _cchk(c)
   _f = _cchk(f)
@@ -81,14 +101,7 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
 
   #opts
   opts = nufft_opts()
-  default_opts(opts)
-  opts.debug = debug
-  opts.spread_debug = spread_debug;
-  opts.spread_sort = spread_sort
-  opts.fftw = fftwopts(fftw)
-  opts.modeord = modeord
-  opts.chkbnds = chkbnds
-  opts.upsampfac = upsampfac
+  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
   #plan
   plan = finufft_plan()
@@ -103,104 +116,5 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
   #destroy
   info = destroy(plan)
 
-  #info = finufftpy_cpp.finufft1d1_cpp(x,c,isign,eps,ms,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  _copy(_f, f)
-  return info
-
-def nufft1d2(x,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  x = _rchk(x)
-  f = _cchk(f)
-  _c = _cchk(c)
-  info = finufftpy_cpp.finufft1d2_cpp(x,_c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-  _copy(_c, c)
-  return info
-
-def nufft1d3(x,c,isign,eps,s,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
-  x = _rchk(x)
-  c = _cchk(c)
-  s = _rchk(s)
-  _f = _cchk(f)
-  info = finufftpy_cpp.finufft1d3_cpp(x,c,isign,eps,s,_f,debug,spread_debug,spread_sort,fftw,upsampfac)
-  _copy(_f, f)
-  return info
-
-def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  x = _rchk(x)
-  y = _rchk(y)
-  c = _cchk(c)
-  _f = _cchk(f)
-  info = finufftpy_cpp.finufft2d1_cpp(x,y,c,isign,eps,ms,mt,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-  _copy(_f, f)
-  return info
-
-def nufft2d1many(x,y,c,isign,eps,ms,mt,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  x = _rchk(x)
-  y = _rchk(y)
-  c = _cchk(c)
-  _f = _cchk(f)
-  info = finufftpy_cpp.finufft2d1many_cpp(x,y,c,isign,eps,ms,mt,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-  _copy(_f, f)
-  return info
-
-def nufft2d2(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  x = _rchk(x)
-  y = _rchk(y)
-  f = _cchk(f)
-  _c = _cchk(c)
-  info = finufftpy_cpp.finufft2d2_cpp(x,y,_c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-  _copy(_c, c)
-  return info
-
-def nufft2d2many(x,y,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  x = _rchk(x)
-  y = _rchk(y)
-  f = _cchk(f)
-  _c = _cchk(c)
-  info = finufftpy_cpp.finufft2d2many_cpp(x,y,_c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-  _copy(_c, c)
-  return info
-
-def nufft2d3(x,y,c,isign,eps,s,t,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
-  x = _rchk(x)
-  y = _rchk(y)
-  c = _cchk(c)
-  s = _rchk(s)
-  t = _rchk(t)
-  _f = _cchk(f)
-  info = finufftpy_cpp.finufft2d3_cpp(x,y,c,isign,eps,s,t,_f,debug,spread_debug,spread_sort,fftw,upsampfac)
-  _copy(_f, f)
-  return info
-
-def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  x = _rchk(x)
-  y = _rchk(y)
-  z = _rchk(z)
-  c = _cchk(c)
-  _f = _cchk(f)
-  info = finufftpy_cpp.finufft3d1_cpp(x,y,z,c,isign,eps,ms,mt,mu,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-  _copy(_f, f)
-  return info
-
-def nufft3d2(x,y,z,c,isign,eps,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
-  x = _rchk(x)
-  y = _rchk(y)
-  z = _rchk(z)
-  f = _cchk(f)
-  _c = _cchk(c)
-  info = finufftpy_cpp.finufft3d2_cpp(x,y,z,_c,isign,eps,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-  _copy(_c, c)
-  return info
-
-def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,upsampfac=2.0):
-  x = _rchk(x)
-  y = _rchk(y)
-  z = _rchk(z)
-  c = _cchk(c)
-  s = _rchk(s)
-  t = _rchk(t)
-  u = _rchk(u)
-  _f = _cchk(f)
-  info = finufftpy_cpp.finufft3d3_cpp(x,y,z,c,isign,eps,s,t,u,_f,debug,spread_debug,spread_sort,fftw,upsampfac)
   _copy(_f, f)
   return info
