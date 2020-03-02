@@ -44,6 +44,4 @@ typedef int64_t BIGINT;
 
 #endif
 
-
-
 #endif

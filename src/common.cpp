@@ -7,6 +7,7 @@
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <vector>
 
 #ifdef NEED_EXTERN_C
@@ -48,14 +49,20 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
   return ier;
 } 
 
-void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
+int set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
-// and requested number of Fourier modes ms.
+// and requested number of Fourier modes ms. Returns 0 if success, else an
+// error code if nf was unreasonably big (& tell the world).
 {
-  *nf = (BIGINT)(opts.upsampfac*ms);
+  *nf = (BIGINT)(opts.upsampfac*ms);       // manner of rounding not crucial
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
-  if (*nf<MAX_NF)                                 // otherwise will fail anyway
+  if (*nf<MAX_NF) {
     *nf = next235even(*nf);                       // expensive at huge nf
+    return 0;
+  } else {
+    fprintf(stderr,"nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting even a malloc\n",(double)*nf,(double)MAX_NF);
+    return ERR_MAXNALLOC;
+  }
 }
 
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,

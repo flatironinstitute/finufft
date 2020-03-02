@@ -5,15 +5,13 @@
 #include <spreadinterp.h>
 #include <fftw_defs.h>
 
-
 // defs internal to common.cpp...
 typedef std::complex<double> dcomplex;
 // (slightly sneaky since name duplicated by mwrap - unrelated)
 
-
 // common.cpp provides...
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts);
-void set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,BIGINT *nf);
+int set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,BIGINT *nf);
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
 		  BIGINT *nf, FLT *h, FLT *gam);
 void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts);

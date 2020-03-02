@@ -32,6 +32,7 @@
 // ---------- Global error output codes for the library -----------------------
 // (it could be argued these belong in finufft.h, but to avoid polluting
 //  user's name space we keep them here)
+// NB: if change these numbers also must regen test/results/dumbinputs.refout
 #define ERR_EPS_TOO_SMALL        1
 // this means that a fine grid array was bigger than MAX_NF, no malloc tried...
 #define ERR_MAXNALLOC            2
@@ -45,12 +46,14 @@
 #define ERR_TYPE_NOTVALID        10
 // some generic internal allocation failure...
 #define ERR_ALLOC                11
+#define ERR_DIM_NOTVALID         12
 
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
 
 // prec-indep unit imaginary number
-#define IMA std::complex<FLT>(0.0,1.0)
+// using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
+#define IMA (std::complex<FLT>(0.0,1.0))
 #define M_1_2PI 0.159154943091895336
 #define M_2PI   6.28318530717958648
 // to avoid mixed precision operators in eg i*pi...

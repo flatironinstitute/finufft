@@ -20,7 +20,7 @@ typedef struct {
 typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   
   int type;        // 1,2 or 3
-  int n_dims;      // 1,2, or 3
+  int n_dims;      // 1,2 or 3
   int n_transf;    // how many transforms to do at once (vector or "many" mode)
   int nj;          // number of NU pts (for type 3, the input x pts)
   int nk;          // number of NU freq pts (type 3 only)
@@ -35,7 +35,7 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   BIGINT nf2;
   BIGINT nf3; 
   
-  int iflag;
+  int fftsign;
 
   FLT * phiHat;    // fourier coefficients of spreading kernel for all dims
   FFTW_CPX * fw;   // fourier coefficients for all dims

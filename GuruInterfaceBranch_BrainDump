@@ -137,7 +137,7 @@ available to a file if they are referred to with the former syntax.
 				  stacked to {M,N}*n_transf, so extra work at the end would try to access outside of allocated memory. 
 
 
-	      5) finnuft_destroy(): releases all memory allocated internally by finufft and calls fftw_destroy on the plan. 
+	      5) finufft_destroy(): releases all memory allocated internally by finufft and calls fftw_destroy on the plan. 
 
 
 **Test Directory**
