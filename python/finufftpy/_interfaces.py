@@ -19,6 +19,14 @@ from finufftpy_cpp import finufft_plan
 from finufftpy_cpp import fftwopts
 from finufftpy_cpp import get_max_threads
 
+debug_def=0
+spread_debug_def=0
+spread_sort_def=2
+fftw_def=0
+modeord_def=0
+chkbnds_def=1
+upsampfac_def=2.0
+
 ## David Stein's functions for checking input and output variables
 def _rchk(x):
   """
@@ -65,8 +73,18 @@ def execute(plan,weights,result):
   _copy(_result,result)
   return info
 
+def set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac):
+  default_opts(opts)
+  opts.debug = debug
+  opts.spread_debug = spread_debug;
+  opts.spread_sort = spread_sort
+  opts.fftw = fftwopts(fftw)
+  opts.modeord = modeord
+  opts.chkbnds = chkbnds
+  opts.upsampfac = upsampfac
+
 ## easy interfaces
-def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,modeord=0,chkbnds=1,upsampfac=2.0):
+def nufft1d1(x,c,isign,eps,ms,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
   x = _rchk(x)
   c = _cchk(c)
   _f = _cchk(f)
@@ -81,14 +99,7 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=0,spread_debug=0,spread_sort=2,fftw=0,mode
 
   #opts
   opts = nufft_opts()
-  default_opts(opts)
-  opts.debug = debug
-  opts.spread_debug = spread_debug;
-  opts.spread_sort = spread_sort
-  opts.fftw = fftwopts(fftw)
-  opts.modeord = modeord
-  opts.chkbnds = chkbnds
-  opts.upsampfac = upsampfac
+  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
   #plan
   plan = finufft_plan()
