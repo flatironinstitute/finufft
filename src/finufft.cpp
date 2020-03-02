@@ -394,10 +394,61 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       for(BIGINT k=0; k < p->nk; k++)
         p->phiHat[k]*=(p->phiHat + 2*p->nk)[k];
     }
+
+    plan->s = s;
+    plan->sp = sp;
     
-    p->s = s; p->t = t; p->u = u;  // point to orig freq targs in plan *** CHECK
-    p->sp = sp; p->tp = tp; p->up = up;    // store rescaled targs in plan
-  }  
+    //NULL if 1 dim
+    plan->t = t;
+    plan->tp = tp;
+    
+    //NULL if 2 dim
+    plan->u = u;
+    plan->up = up;
+
+    BIGINT n_modes[3];
+    n_modes[0] = plan->nf1;
+    n_modes[1] = plan->nf2;
+    n_modes[2] = plan->nf3;
+
+    int ier_t2;
+    
+    // Preparations for the interior type 2 finufft call
+    // 1) a single call to construct a finufft_plan
+    // 2) a single call to finufft_setpts where scaled target freqs become the type2 x,y,z coordinates 
+    finufft_plan *t2Plan = new finufft_plan;
+    finufft_default_opts(&(t2Plan->opts));
+    t2Plan->opts.debug = plan->opts.debug;
+    t2Plan->opts.spread_debug = plan->opts.spread_debug;
+
+    int batchSize = min(plan->n_transf, plan->threadBlkSize);
+    timer.restart();
+    ier_t2 = finufft_makeplan(2, plan->n_dims, n_modes, plan->fftsign, batchSize, plan->tol,
+                              plan->threadBlkSize, t2Plan, &t2Plan->opts);
+    double t_innerPlan = timer.elapsedsec();
+    
+    if(ier_t2){
+      printf("inner type 2 plan creation failed\n");
+      return ier_t2;  
+    }
+    
+    t2Plan->isInnerT2 = true;
+
+    timer.restart();
+    ier_t2 = finufft_setpts(t2Plan, plan->nk, plan->sp, plan->tp, plan->up, 0, NULL, NULL, NULL);
+    double t_innerSet = timer.elapsedsec();
+    if(ier_t2){
+      printf("inner type 2 set points failed\n");
+      return ier_t2;
+    }
+
+    plan->innerT2Plan = t2Plan;
+
+    if(plan->opts.debug){
+      printf("[finufft_setpts] type-3 inner type2 plan creation: %.3g s\n", t_innerPlan+t_innerSet);
+    }
+  }
+  
   return 0;
 }
 // ............ end setpts ..................................................
@@ -745,13 +796,17 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       //Indicate to inner type 2 that only nSetsThisBatch transforms are left.
       //This ensures the batch loop for type 2 execute will not attempt to
       //access beyond allocated size of user supplied arrays: cj and fk.
-      if(lastRound)
-        t2Plan.n_transf = nSetsThisBatch;
+
+      if(lastRound){
+        plan->innerT2Plan->n_transf = nSetsThisBatch;
+       }
 
       //carry out a finufft execution of size threadBlockSize, indexing appropriately into
       //fk (size nk*n_transforms) each iteration 
       timer.restart();
-      ier_t2 = finufft_exec(&t2Plan, fk+(batchNum*p->threadBlkSize*p->nk), (CPX *)p->fw);
+
+      ier_t2 = finufft_exec(plan->innerT2Plan, fk+(batchNum*plan->threadBlkSize*plan->nk), (CPX *)plan->fw);
+
       t_innerExec += timer.elapsedsec();
       if (ier_t2>0) exit(ier_t2);         // *** return? crashes it?
       
@@ -764,11 +819,10 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
     if(p->opts.debug){
       printf("[finufft_exec] prephase:\t\t %.3g s\n",t_prePhase);
       printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
-      printf("[finufft_exec] total type-2 (ier=%d):\t %.3g s\n",ier_t2, t_innerPlan + t_innerSet + t_innerExec);
+      printf("[finufft_exec] total type-2 (ier=%d):\t %.3g s\n",ier_t2, t_innerExec);
       printf("[finufft_exec] deconvolve:\t\t %.3g s\n", t_deConvShuff);
     }
     
-    finufft_destroy(&t2Plan);
     free(cpj);
   }
   
@@ -803,6 +857,7 @@ int finufft_destroy(finufft_plan* p)
       free(p->tp);
     if(p->up)
       free(p->up);
-  }   
+    finufft_destroy(p->innerT2Plan);  // doesn't recurse since inner plan is t2
+  }
   return 0;
 }

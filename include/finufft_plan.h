@@ -65,6 +65,9 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
 
   // whether this plan is the type-2 inner call needed within a type-3 transform
   bool isInnerT2;
+
+  //Null unless a type2 plan
+  finufft_plan *innerT2Plan; 
   
 } finufft_plan;
 
