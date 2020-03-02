@@ -27,13 +27,6 @@ nufft3d3
 __all__ = ["finufft_plan","default_opts","nufft_opts","destroy","makeplan","setpts","execute","fftwopts","get_max_threads","nufft1d1"]
 # etc..
 
-# alex: why is finufftpy_cpp module needed?
-# libin: removed, finufftpy_cpp module is only imported in _interfaces.py
-#from finufftpy_cpp import default_opts
-#from finufftpy_cpp import destroy
-#from finufftpy_cpp import nufft_opts
-#from finufftpy_cpp import finufft_plan
-
 # let's just get guru and nufft1d1 working first...
 from finufftpy._interfaces import finufft_plan,default_opts,nufft_opts,destroy,makeplan,setpts,execute,fftwopts,get_max_threads
 from finufftpy._interfaces import nufft1d1
