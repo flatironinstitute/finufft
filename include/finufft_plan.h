@@ -10,10 +10,10 @@
 #endif
 
 typedef struct {
-  // groups together a bunch of type 3 parameters for inside the finufft_plan
-  FLT X1,C1,D1,h1,gam1;
-  FLT X2,C2,D2,h2,gam2;
-  FLT X3,C3,D3,h3,gam3;
+  // groups together a bunch of type 3 rescaling/centering/phasing parameters
+  FLT X1,C1,D1,h1,gam1;   // x dim
+  FLT X2,C2,D2,h2,gam2;   // y
+  FLT X3,C3,D3,h3,gam3;   // z
 } type3Params;
 
 
@@ -35,7 +35,7 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   BIGINT nf2;
   BIGINT nf3; 
   
-  int fftsign;
+  int fftsign;     // guaranteed to be +-1
 
   FLT * phiHat;    // fourier coefficients of spreading kernel for all dims
   FFTW_CPX * fw;   // fourier coefficients for all dims
@@ -69,5 +69,6 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   bool isInnerT2;
   
 } finufft_plan;
+
 
 #endif  // FINUFFT_PLAN_H

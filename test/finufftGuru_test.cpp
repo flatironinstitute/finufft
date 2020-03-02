@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 /* Test/Demo the guru interface
 
    Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc
-                      [tol [debug [spread_scheme [do_spread [upsampfac]]]]]]]]
+                  [tol [debug [spread_scheme [spread_sort [upsampfac]]]]]]]]]]
 
    debug = 0: rel errors and overall timing
            1: timing breakdowns
@@ -33,33 +33,31 @@ int main(int argc, char* argv[])
    spread_scheme = 0: sequential maximally multithreaded spread/interp
                    1: parallel singlethreaded spread/interp, nested last batch
    
-   Example: finufftGuru_test 1 1 2 1000 1000 0 1000000 1e-12 2 1 2.0
+   Example: finufftGuru_test 10 1 2 1000 1000 0 1000000 1e-12 0 [0 2 2.0]
 
-   For Type3, please enter nk in Nmodes space, 0 for rest.
-   Example w/ nk = 5000: finufftGuru_test 1 3 2 5000 0 0 1000000 1e-12 2 0 1 2.0
+   For Type3, Nmodes{1,2,3} controls the spread of NU freq targs in each dim.
+   Example w/ nk = 5000: finufftGuru_test 1 3 2 100 50 0 1000000 1e-12 0
+
+   By: Andrea Malleo 2019, tweaked by Alex Barnett 2020.
 */
 {
-  BIGINT M = 1e6, N1 = 1000, N2 = 500, N3=250;  // defaults: M = # srcs, N1,N2 = # modes
-  double w, tol = 1e-6;          // default
-  double upsampfac = 2.0;        // default
-  int ntransf = 1;
-  int ndim = 1;
+  int ntransf = 1;  // defaults...
   int type = 1;
-  int i;
+  int ndim = 1;
+  BIGINT M = 1e6, N1 = 1000, N2 = 500, N3=250;   // M = # srcs, N1,N2,N3= # modes in each dim
+  double tol = 1e-6;
+  int optsDebug = 0, sprDebug = 0;
+  int sprScheme = 0;
+  int sprSort = 2;
+  double upsampfac = 2.0;     // either 2.0 or 1.25
   int isign = +1;             // choose which exponential sign to test
-
+  
   // Collect command line arguments ------------------------------------------
-
-  if (argc>1) {
-    sscanf(argv[1],"%d",&i); ntransf = i;
-  }
-  if(argc > 2) {
-    sscanf(argv[2],"%d",&i); type = i;
-  }
-  if(argc > 3) {
-    sscanf(argv[3],"%d",&i); ndim = i;    
-  }
-  if(argc > 4){
+  if (argc>1) sscanf(argv[1],"%d",&ntransf);
+  if(argc > 2) sscanf(argv[2],"%d",&type);
+  if(argc > 3) sscanf(argv[3],"%d",&ndim);
+  double w;
+  if(argc > 4) {
     sscanf(argv[4],"%lf",&w); N1 = (BIGINT)w;
     sscanf(argv[5],"%lf",&w); N2 = (BIGINT)w;
     sscanf(argv[6],"%lf",&w); N3 = (BIGINT)w;
@@ -69,21 +67,13 @@ int main(int argc, char* argv[])
     sscanf(argv[8],"%lf",&tol);
     if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
   }
-  int optsDebug = 0;
-  int sprDebug = 0;
   if (argc>9) sscanf(argv[9],"%d",&optsDebug);
   sprDebug = (optsDebug>1) ? 1 : 0;  // see output from spreader
-  
-  int sprScheme = 0;
-  if(argc>10) sscanf(argv[10], "%d", &sprScheme); 
-  
-  int sprSort = 2 ;
+  if (argc>10) sscanf(argv[10], "%d", &sprScheme); 
   if (argc>11) sscanf(argv[11],"%d",&sprSort);
-
   if (argc>12) sscanf(argv[12],"%lf",&upsampfac);
-
   if (argc==1 || argc>13) {
-    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug spread_scheme [do_spread [upsampfac]]]]]]]]]\n");
+    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug [spread_scheme [spread_sort [upsampfac]]]]]]]]]]\n");
     return 1;
   }
 
@@ -254,7 +244,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else{
-    printf("finufft_plan creation for %lld modes completed in %.3g s\n", (long long)N, plan_t);
+    printf("plan creation for %lld modes: %.3g s\n", (long long)N, plan_t);
   }
   
   timer.restart();
@@ -265,7 +255,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else{
-    printf("finufft_setpts for %lld src points completed in %.3g s\n", (long long)M, sort_t);
+    printf("setpts for %lld src points: %.3g s\n", (long long)M, sort_t);
   }
   
   timer.restart();
@@ -277,7 +267,7 @@ int main(int argc, char* argv[])
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
-    printf("finufft_exec %d of: %lld NU pts to %lld modes completed in %.3g s or \t%.3g NU pts/s\n", ntransf, 
+    printf("exec %d of %lld NU pts to %lld modes: %.3g s \t%.3g NU pts/s\n", ntransf, 
 	   (long long)M,(long long)N, exec_t , ntransf*M/exec_t);
 
   //Guru Step 4
@@ -299,23 +289,23 @@ int main(int argc, char* argv[])
 
   //std::this_thread::sleep_for(std::chrono::seconds(1)); if c++11 is allowed
   sleep(1); //sleep for one second using linux sleep call
-
- printf("------------------------OLD IMPLEMENTATION------------------------------\n");
- // this used to actually call Alex's old (v1.1) src/finufft?d.cpp routines.
- // Since we don't want to ship those, we now call the simple interfaces.
- 
- double oldTime = many_simple_calls(c,F, &plan);
-
- FFTW_CLEANUP();
- FFTW_CLEANUP_THREADS();
- FFTW_FORGET_WISDOM();
- //std::this_thread::sleep_for(std::chrono::seconds(1));
- sleep(1);
- printf("execute %d of: %lld NU pts to %lld modes in %.3g s or \t%.3g NU pts/s\n", ntransf, 
-	   (long long)M,(long long)N, oldTime , ntransf*M/oldTime);
   
-  printf("\tspeedup (T_finufft[%d]d[%d]_simple / T_finufft[%d]d[%d]) = %.3g\n", ndim,  type,
-	  ndim, type, oldTime/totalTime);
+  printf("------------------------SIMPLE INTERFACE-------------------------\n");
+  // this used to actually call Alex's old (v1.1) src/finufft?d.cpp routines.
+  // Since we don't want to ship those, we now call the simple interfaces.
+  
+  double oldTime = many_simple_calls(c,F, &plan);
+
+  FFTW_CLEANUP();
+  FFTW_CLEANUP_THREADS();
+  FFTW_FORGET_WISDOM();
+  //std::this_thread::sleep_for(std::chrono::seconds(1));
+  sleep(1);
+  printf("%d of\t%lld NU pts to %lld modes in %.3g s      \t%.3g NU pts/s\n",
+         ntransf,(long long)M,(long long)N, oldTime , ntransf*M/oldTime);
+  
+  printf("\tspeedup: T_finufft%dd%d_simple / T_finufft%dd%d = %.3g\n",ndim,type,
+         ndim, type, oldTime/totalTime);
   
   
   //--------------------------------------- Free Memory
@@ -473,7 +463,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
 
 double many_simple_calls(CPX *c,CPX *F,finufft_plan *plan)
 // A unified interface to all of the simple interfaces
-// (was actually runOldFinufft, calling the old v1.1 lib, which was shipped too)
+// (was actually runOldFinufft, calling the old v1.1 lib, which was in subdir)
 {
     
     CPX *cStart;
