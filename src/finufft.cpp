@@ -250,8 +250,8 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->X = xj; // we just point to user's data, which must be length >=nj
     p->Y = yj;
     p->Z = zj;
-    p->s = NULL;   // freq NU pts unused for t1,t2
-    p->t = NULL;
+    p->s=NULL;
+    p->t= NULL;
     p->u = NULL;
     
   } else {    // ------------------------- TYPE 3 SETPTS ---------------------
@@ -335,8 +335,8 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->didSort = indexSort(p->sortIndices, p->nf1, p->nf2, p->nf3, p->nj, xpj, ypj, zpj, p->spopts);
     if (p->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t\t %.3g s\n", p->didSort, timer.elapsedsec());
     
-    p->X = xpj; p->Y = ypj; p->Z = zpj;   // rescaled x' to feed to t2
-    p->X_orig = xj; p->Y_orig = yj; p->Z_orig = zj;  // keep unscaled x
+    p->X = xpj; p->Y = ypj; p->Z = zpj;             // rescaled x' to feed to t2
+    p->X_orig = xj; p->Y_orig = yj; p->Z_orig = zj; // keep unscaled x   *** NEED?
 
     timer.restart();           // Allocate rescaled targets s'_k, etc...
     FLT *sp = (FLT*)malloc(sizeof(FLT)*p->nk);       // s'_k
@@ -370,13 +370,9 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     }
     if (p->opts.debug) printf("[finufft_setpts] rescaling NU targ freqs:\t %.3g s\n", timer.elapsedsec());
 
-    // precompute for Step 3a: Fourier transform of scaled kernel at NU targets
+    // precompute Step 3a: alloc & fill phiHat, scaled kernel FT at NU targs...
     timer.restart();
-    p->phiHat = (FLT *)malloc(sizeof(FLT)*p->nk*p->n_dims);
-    if (!p->phiHat){
-      fprintf(stderr, "malloc failed for Fourier coeff phiHat allocation\n");
-      return ERR_ALLOC;
-    }
+    p->phiHat = (FLT*)malloc(sizeof(FLT)*p->nk * p->n_dims);  // *** shrink!
 
     // phiHat spreading kernel fourier weights for non uniform target freqs := referred to as fkker in older code
     onedim_nuft_kernel(p->nk, sp, p->phiHat, p->spopts);         
@@ -396,20 +392,11 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     if(p->n_dims > 2){
 #pragma omp parallel for schedule(static)              
       for(BIGINT k=0; k < p->nk; k++)
-        p->phiHat[k]*=(p->phiHat+p->nk + p->nk)[k];
+        p->phiHat[k]*=(p->phiHat + 2*p->nk)[k];
     }
     
-    p->s = s;
-    p->sp = sp;
-    
-    //NULL if 1 dim
-    p->t = t;
-    p->tp = tp;
-    
-    //NULL if 2 dim
-    p->u = u;
-    p->up = up;
-    
+    p->s = s; p->t = t; p->u = u;  // point to orig freq targs in plan *** CHECK
+    p->sp = sp; p->tp = tp; p->up = up;    // store rescaled targs in plan
   }  
   return 0;
 }
@@ -602,7 +589,9 @@ void type3DeconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *p
 
 #pragma omp parallel for
   for (BIGINT k=0;k<p->nk;++k){         // .... loop over NU targ freqs
-        
+
+    //  *** THIS CAN BE PRECOMPUTED EARLIER, IN SETPTS! :
+    
     FLT sumCoords = (p->s[k] - p->t3P.D1)*p->t3P.C1;
     if(p->n_dims > 1)
       sumCoords += (p->t[k] - p->t3P.D2)*p->t3P.C2;
@@ -614,7 +603,7 @@ void type3DeconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *p
 
       CPX *fkStart = fk + (i+batchNum*p->threadBlkSize)*p->nk; //array of size nk*n_transforms
 
-      fkStart[k] *= (CPX)(1.0/prodPhiHat);
+      fkStart[k] *= (CPX)(1.0/prodPhiHat);    // *** UGH - PRECOMPUTE!
 
       if (Cfinite && Cnotzero)
         fkStart[k] *= exp((FLT)p->fftsign * IMA*sumCoords);

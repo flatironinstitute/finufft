@@ -37,25 +37,23 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   
   int fftsign;     // guaranteed to be +-1
 
-  FLT * phiHat;    // fourier coefficients of spreading kernel for all dims
-  FFTW_CPX * fw;   // fourier coefficients for all dims
+  FLT * phiHat;    // FT of kernel (for each dim in t1,2; for nk targs in t3)
+  FFTW_CPX * fw;   // (batches of) fine grid(s) for FFTW to act on
   
-  BIGINT *sortIndices; 
-  bool didSort;
+  BIGINT *sortIndices;  // precomputed NU x permutation, speeds spread/interp
+  bool didSort;         // whether binsorting used (false: identity perm used)
 
-  // target freqs (needed at planning stage for type 3 only)
-  FLT * s; 
+  FLT * s;         // *** TO DELETE WHEN FIX t3
   FLT * t; 
-  FLT * u;
-  FLT * sp; 
+  FLT * u; 
+  FLT * sp;         // rescaled target freqs (relevant for type 3 only)
   FLT * tp; 
   FLT * up; 
 
-  // NU point arrays
-  FLT *X;
+  FLT *X;         // pointers to user-supplied NU pts arrays
   FLT *Y;
   FLT *Z; 
-  FLT *X_orig;
+  FLT *X_orig;    // needed for t3 only
   FLT *Y_orig;
   FLT *Z_orig; 
 
