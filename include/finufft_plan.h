@@ -19,42 +19,39 @@ typedef struct {
 
 typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   
-  int type;        // 1,2 or 3
-  int n_dims;      // 1,2 or 3
+  int type;        // transform type (Rokhlin naming): 1,2 or 3
+  int dim;         // overall dimension: 1,2 or 3
   int n_transf;    // how many transforms to do at once (vector or "many" mode)
   int nj;          // number of NU pts (for type 3, the input x pts)
   int nk;          // number of NU freq pts (type 3 only)
   FLT tol;         // tolerance
-  int blksize;     // how many strength vectors to block together in FFTW, etc
+  int batchSize;   // # strength vectors to group together for FFTW, etc
   
   BIGINT ms;       // number of modes in x (1) direction; old CMCL notation
   BIGINT mt;       // number of modes in y (2) direction
   BIGINT mu;       // number of modes in z (3) direction
   
-  BIGINT nf1;      // size of internal fine grid in x (1) direction, etc
-  BIGINT nf2;
-  BIGINT nf3; 
+  BIGINT nf1;      // size of internal fine grid in x (1) direction
+  BIGINT nf2;      // " y
+  BIGINT nf3;      // " z
+  BIGINT nf;       // total fine grid points (product of the above 3)
   
-  int fftsign;     // guaranteed to be +-1
+  int fftSign;     // guaranteed to be +-1
 
-  FLT* phiHat;     // FT of kernel (for each dim in t1,2; for nk targs in t3)
-  FFTW_CPX* fw;    // (batches of) fine grid(s) for FFTW to act on
+  FLT* phiHat1;    // FT of kernel in t1,2, x-axis; for t3 it's all nk targs.
+  FLT* phiHat2;    // " y
+  FLT* phiHat3;    // " z
+  
+  FFTW_CPX* fwBatch;    // (batches of) fine grid(s) for FFTW to plan and act on
   
   BIGINT *sortIndices;  // precomputed NU x permutation, speeds spread/interp
   bool didSort;         // whether binsorting used (false: identity perm used)
 
-  FLT * sp;         // rescaled target freqs (relevant for type 3 only)
-  FLT * tp; 
-  FLT * up; 
-
   FLT *X;         // pointers to user-supplied NU pts arrays
   FLT *Y;
   FLT *Z; 
-  FLT *X_orig;    // needed for t3 only
-  FLT *Y_orig;
-  FLT *Z_orig; 
 
-  // other internal structs; each is C-compatible of course.
+  // other internal structs; each is C-compatible of course
   FFTW_PLAN fftwPlan;
   nufft_opts opts;
   spread_opts spopts;

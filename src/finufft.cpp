@@ -48,7 +48,7 @@ Notes on algorithms taken from old finufft?d?() documentation, Feb-Jun 2017:
    No references to FFTW are needed here. CPX arithmetic is used.
 
    MULTIPLE STRENGTH VECTORS FOR THE SAME NONUNIFORM POINTS (n_transf>1):
-     blksize (set to max_num_omp_threads) times the RAM is needed, so this is
+     maxBatchSize (set to max_num_omp_threads) times the RAM is needed, so this is
      good only for small problems.
 
 Design notes for guru interface implementation:
@@ -60,7 +60,7 @@ Design notes for guru interface implementation:
 */
 
 
-int* n_for_fftw(finufft_plan* p){
+int* gridsize_for_fftw(finufft_plan* p){
 // helper func returns a new int array of length dim, extracted from
 // the finufft plan, that fft_many_many_dft needs as its 2nd argument.
   int* nf;
@@ -85,7 +85,7 @@ int* n_for_fftw(finufft_plan* p){
 
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
-                     int n_transf, FLT tol, int blksize,
+                     int n_transf, FLT tol, int maxBatchSize,
                      finufft_plan* p, nufft_opts* opts)
 // Populates the fields of finufft_plan which is pointed to by "p".
 // opts is ptr to a nufft_opts to set options, or NULL to use defaults.
@@ -121,14 +121,16 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   p->dim = dim;
   p->n_transf = n_transf;
   p->tol = tol;
-  p->fftsign = (iflag>=0) ? 1 : -1;          // clean up flag input
-  if (blksize==0)                            // use default
-    p->blksize = min(MY_OMP_GET_MAX_THREADS(), MAX_USEFUL_NTHREADS);
+  p->fftSign = (iflag>=0) ? 1 : -1;          // clean up flag input
+  if (maxBatchSize==0)                            // use default
+    p->batchSize = min(MY_OMP_GET_MAX_THREADS(), MAX_USEFUL_NTHREADS);
   else
-    p->blksize = blksize;
+    p->batchSize = maxBatchSize;
+  p->batchSize = min(p->batchSize,n_transf);     // don't overrun n_transf
 
   // set others as defaults (or unallocated for arrays)...
   p->X = NULL; p->Y = NULL; p->Z = NULL;
+  p->phiHat2 = NULL; p->phiHat3 = NULL; 
   p->nf1 = 1; p->nf2 = 1; p->nf3 = 1;  // crucial to leave as 1 for unused dims
   p->ms = 1; p->mt = 1; p->mu = 1;     // crucial to leave as 1 for unused dims
 
@@ -137,74 +139,59 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
 
     int nth = MY_OMP_GET_MAX_THREADS();    // tell FFTW what it has access to
     FFTW_INIT();           // only does anything when OMP=ON for >1 threads
-    FFTW_PLAN_TH(nth);
+    FFTW_PLAN_TH(nth);     // "
     p->spopts.spread_direction = type;
-    // do no more work than necessary if the number of transforms is smaller than the the blksize...
-    int transfPerBatch = min(p->blksize, p->n_transf); 
     
-    // read in mode array dims then determine fine grid sizes, sanity check...
+    // read user mode array dims then determine fine grid sizes, sanity check...
     p->ms = n_modes[0];
     int ier_nf = set_nf_type12(p->ms,p->opts,p->spopts,&(p->nf1));
-    if (ier_nf) return ier_nf;  // nf too big; we're outta here
+    if (ier_nf) return ier_nf;    // nf too big; we're outta here
+    p->phiHat1 = (FLT*)malloc(sizeof(FLT)*(p->nf1/2 + 1));
     if (dim > 1) {
       p->mt = n_modes[1];
       ier_nf = set_nf_type12(p->mt, p->opts, p->spopts, &(p->nf2));
       if (ier_nf) return ier_nf;
+      p->phiHat2 = (FLT*)malloc(sizeof(FLT)*(p->nf2/2 + 1));
     }
     if (dim > 2) {
       p->mu = n_modes[2];
       ier_nf = set_nf_type12(p->mu, p->opts, p->spopts, &(p->nf3)); 
       if (ier_nf) return ier_nf;
+      p->phiHat3 = (FLT*)malloc(sizeof(FLT)*(p->nf3/2 + 1));
     }
 
     if (p->opts.debug)
-      printf("[finufft_plan] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) batch=%d\n",
+      printf("[finufft_plan] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld) batchSize=%d\n",
              dim, type, (long long)p->ms,(long long)p->mt,
              (long long) p->mu, (long long)p->nf1,(long long)p->nf2,
-             (long long)p->nf3,transfPerBatch);
+             (long long)p->nf3, p->batchSize);
 
     // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
-    CNTime timer; timer.start(); 
-    BIGINT NphiHat;    // size of concatenated kernel Fourier xforms
-    NphiHat = p->nf1/2 + 1; 
-    if (dim > 1) NphiHat += (p->nf2/2 + 1);
-    if (dim > 2) NphiHat += (p->nf3/2 + 1);
-    p->phiHat = (FLT *)malloc(sizeof(FLT)*NphiHat);
-    if(!p->phiHat){
-      fprintf(stderr, "finufft_plan: malloc failed for Fourier coeff array!");
-      return ERR_ALLOC;
-    }
-    onedim_fseries_kernel(p->nf1, p->phiHat, p->spopts);
-    if (dim > 1)       // stack the 2nd dim of phiHat
-      onedim_fseries_kernel(p->nf2, p->phiHat + (p->nf1/2+1), p->spopts);
-    if (dim > 2)
-      onedim_fseries_kernel(p->nf3, p->phiHat + (p->nf1/2+1) + (p->nf2/2+1), p->spopts);
-    if (p->opts.debug) printf("[finufft_plan] kernel fser (ns=%d):\t\t %.3g s\n", p->spopts.nspread,timer.elapsedsec());    
+    CNTime timer; timer.start();
+    onedim_fseries_kernel(p->nf1, p->phiHat1, p->spopts);
+    if (dim>1) onedim_fseries_kernel(p->nf2, p->phiHat2, p->spopts);
+    if (dim>2) onedim_fseries_kernel(p->nf3, p->phiHat3, p->spopts);
+    if (p->opts.debug) printf("[finufft_plan] kernel fser (ns=%d):\t\t %.3g s\n", p->spopts.nspread, timer.elapsedsec());
 
-    BIGINT nfTotal = p->nf1*p->nf2*p->nf3;   // each fine grid size
-    // ensure size of upsampled grid does not exceed MAX, otherwise give up
-    if (nfTotal*transfPerBatch>MAX_NF) { 
-      fprintf(stderr,"nf1*nf2*nf3*p->blksize=%.3g exceeds MAX_NF of %.3g\n",
-              (double)nfTotal*transfPerBatch,(double)MAX_NF);
-      return ERR_MAXNALLOC;
-    }
-    p->fw = FFTW_ALLOC_CPX(nfTotal*transfPerBatch);
-    if(!p->fw){
-      fprintf(stderr, "fftw malloc failed for working upsampled array(s)\n");
-      free(p->phiHat);
+    p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
+    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);
+    if (p->opts.debug) printf("[finufft_plan] fwBatch alloc:\t\t\t %.3g s\n",timer.elapsedsec());
+    if(!p->fwBatch) {
+      fprintf(stderr, "fftw malloc failed for batch of working fine grids\n");
+      free(p->phiHat1); free(p->phiHat2); free(p->phiHat3);
       return ERR_ALLOC; 
     }
    
     timer.restart();            // plan the FFTW
-    int *n = n_for_fftw(p);
+    int *ns = gridsize_for_fftw(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-    p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, n, transfPerBatch, p->fw,
-                     NULL, 1, nfTotal, p->fw, NULL, 1,
-                     nfTotal, p->fftsign, p->opts.fftw);
-    if (p->opts.debug) printf("[finufft_plan] fftw plan (mode %d):\t\t %.3g s\n",p->opts.fftw,timer.elapsedsec());
-    delete []n;
+    p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
+         NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
+    if (p->opts.debug) printf("[finufft_plan] fftw plan (mode %d):\t\t %.3g s\n", p->opts.fftw, timer.elapsedsec());
+    delete []ns;
     
   } else {  // -------------------------- type 3 (no planning) ----------------
+
     if (p->opts.debug) printf("[finufft_plan] %dd%d\n",dim,type);
     printf("*** guru t3 gutted for now :(");
     p->fftwPlan = NULL;
@@ -226,7 +213,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
   
   if (p->type!=3) {   // ------------------ TYPE 1,2 SETPTS ---------------
     
-    int ier_check = spreadcheck(p->nf1,p->nf2 , p->nf3, p->nj, xj, yj, zj, p->spopts);
+    int ier_check = spreadcheck(p->nf1, p->nf2, p->nf3, p->nj, xj, yj, zj, p->spopts);
     if (ier_check) return ier_check;
     if (p->opts.debug>1) printf("[finufft_setpts] spreadcheck (%d):\t %.3g s\n", p->spopts.chkbnds, timer.elapsedsec());
     
@@ -235,7 +222,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->didSort = indexSort(p->sortIndices, p->nf1, p->nf2, p->nf3, p->nj, xj, yj, zj, p->spopts);
     if (p->opts.debug) printf("[finufft_setpts] sort (did_sort=%d):\t %.3g s\n", p->didSort, timer.elapsedsec());
     
-    p->X = xj; // we just point to user's data, which must be length >=nj
+    p->X = xj;  // keep pointers to user's data, which must be length >=nj
     p->Y = yj;
     p->Z = zj;
 
@@ -249,16 +236,21 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
 
 
-/////////////////////////////////////////////////////////////////////////////
-void spreadAllSetsInBatch(int nSetsThisBatch, int blkNum, finufft_plan* p, CPX* c, int* ier_spreads){
-  // Type 1 + Type 3: Spreads coordinate weights from c into internal workspace
-  // fw for sending into fftw
 
-  // nSetsThisBatch is the threadBlockSize, except for the last round if
-  // threadBlockSize does not divide evenly into n_transf, prevents c overrun.
 
-  BIGINT fwRowSize = p->nf1*p->nf2*p->nf3; 
-  int blkJump = blkNum*p->blksize; 
+// BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+int spreadBatch(int batchSize, finufft_plan* p, CPX* cBatch)
+/* Spreads a batch of batchSize strength vectors cBatch to the batch of fine
+   working grids p->fw, using the same set of NU points p->X,Y,Z for each
+   vector in the batch.
+   Note that cBatch is already assumed to have the correct offset, ie it
+   reads from the start of cBatch.
+*/
+{
+
+
+  BIGINT Nfw = p->nf1*p->nf2*p->nf3;     // size of each fw 
+  int blkJump = blkNum*p->batchSize; 
 
   // default sequential maximum multithreaded: execute
   //the for-loop down below on THIS thread (spawn no others)
@@ -294,11 +286,11 @@ void spreadAllSetsInBatch(int nSetsThisBatch, int blkNum, finufft_plan* p, CPX* 
   MY_OMP_SET_NESTED(0);
 }
 
-void interpAllSetsInBatch(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX* c, int* ier_interps)
+void interpAllSetsInBatch(int nSetsThisBatch, int blk, finufft_plan* p, CPX* c, int* ier_interps)
 // Type 2: Interpolates from weights at uniform points in fw to non uniform points in c
 {
   BIGINT fwRowSize =  p->nf1*p->nf2*p->nf3;
-  int blkJump = batchNum*p->blksize; 
+  int blkJump = blk*p->batchSize; 
 
   //default sequential maximum multithreaded: execute
   //the for-loop down below on THIS thread (spawn no others)
@@ -338,7 +330,7 @@ void interpAllSetsInBatch(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX
   MY_OMP_SET_NESTED(0);
 }
 
-void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX* fk)
+void deconvolveInParallel(int nSetsThisBatch, int blk, finufft_plan* p, CPX* fk)
 /* Type 1: deconvolves (amplifies) from interior fw array into user-supplied fk.
    Type 2: deconvolves from user-supplied fk into interior fw array.
    This is mostly a parallel loop calling deconvolveshuffle?d in the needed dim.
@@ -353,7 +345,7 @@ void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX
 
   BIGINT fkRowSize = p->ms*p->mt*p->mu;
   BIGINT fwRowSize = p->nf1*p->nf2*p->nf3;
-  int blockJump = batchNum*p->blksize;
+  int blockJump = blk*p->batchSize;
 
 #pragma omp parallel for
   for(int i = 0; i < nSetsThisBatch; i++) {
@@ -376,7 +368,7 @@ void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX
                           p->ms, (FLT *)fkStart,
                           p->nf1, fwStart, p->opts.modeord);
     else if (p->dim == 2)
-      deconvolveshuffle2d(p->spopts.spread_direction,1.0, phiHat1, phiHat2,
+      deconvolveshuffle2d(p->spopts.spread_direction, 1.0, phiHat1, phiHat2,
                           p->ms, p->mt, (FLT *)fkStart,
                           p->nf1, p->nf2, fwStart, p->opts.modeord);
     else
@@ -388,103 +380,33 @@ void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX
 }
 
 
-// *** REWRITE BOTH THE NEXT TO PRECOMPUTE PHASES INSTEAD!
-
-void type3PrePhaseInParallel(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX* cj, CPX* cpj)
-// Type 3 multithreaded prephase all nj scaled weights for all of the sets of weights in this batch
-// occurs inplace of internal finufft array cpj (sized nj*blksize)
-{
-
-  bool notZero = p->t3P.D1 != 0.0;
-  if(p->dim > 1) notZero |=  (p->t3P.D2 != 0.0);
-  if(p->dim > 2) notZero |=  (p->t3P.D3 != 0.0);
-    
-  // note that schedule(dynamic) actually slows this down (was in v<=1.1.2):
-#pragma omp parallel for
-  for (BIGINT i=0; i<p->nj;i++){
-
-    FLT sumCoords = p->t3P.D1*p->X_orig[i];
-    if(p->dim > 1)
-      sumCoords += p->t3P.D2*p->Y_orig[i];
-    if(p->dim > 2)
-      sumCoords += p->t3P.D3*p->Z_orig[i];
-          
-    CPX multiplier = exp((FLT)p->fftsign * IMA*sumCoords); // rephase
-          
-    for(int k = 0; k < nSetsThisBatch; k++){ // *** jumps around in RAM - speed?
-      int cpjIndex = k*p->nj + i;
-      int cjIndex = batchNum*p->blksize*p->nj + cpjIndex;
-
-      cpj[cpjIndex] = cj[cjIndex]; 
-      if(notZero)
-	cpj[cpjIndex] *= multiplier;
-    }
-  }
-}
-
-
-void type3DeconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan *p, CPX *fk)
-// Type 3 multithreaded in-place deconvolve of user supplied result array fk
-// (size nk*n_transf). Ie, do step 3b.
-{  
-  bool Cfinite  = isfinite(p->t3P.C1);          // *** is this needed?
-  if(p->dim > 1 ) Cfinite &= isfinite(p->t3P.C2);
-  if(p->dim > 2 ) Cfinite &= isfinite(p->t3P.C3);
-  bool Cnotzero = p->t3P.C1!=0.0;
-  if(p->dim > 1 ) Cnotzero |= (p->t3P.C2 != 0.0);
-  if(p->dim > 2 ) Cnotzero |= (p->t3P.C3 != 0.0);
-
-#pragma omp parallel for
-  for (BIGINT k=0;k<p->nk;++k){         // .... loop over NU targ freqs
-
-    //  *** THIS CAN BE PRECOMPUTED EARLIER, IN SETPTS! :
-    
-    FLT sumCoords = (p->s[k] - p->t3P.D1)*p->t3P.C1;
-    if(p->dim > 1)
-      sumCoords += (p->t[k] - p->t3P.D2)*p->t3P.C2;
-    if(p->dim > 2)
-      sumCoords += (p->u[k] - p->t3P.D3)*p->t3P.C3;
-    FLT prodPhiHat = p->phiHat[k]; // already the product of phiHat in each dimension
-    
-    for(int i = 0; i < nSetsThisBatch ; i++){
-
-      CPX *fkStart = fk + (i+batchNum*p->blksize)*p->nk; //array of size nk*n_transforms
-
-      fkStart[k] *= (CPX)(1.0/prodPhiHat);    // *** UGH - PRECOMPUTE!
-
-      if (Cfinite && Cnotzero)
-        fkStart[k] *= exp((FLT)p->fftsign * IMA*sumCoords);
-    }
-  }
-}
-
-
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
+  // Uses a new set of weights (cj) and performs NUFFTs with existing NU pts
+  // and plan.
   // Performs spread/interp, pre/post deconvolve, and fftw_exec as appropriate
-  // for 3 types. For cases of n_transf > 1, performs work in batches of size
-  // min(n_transf, blksize)
-  CNTime timer; 
-  double t_spread = 0.0;
-  double t_exec = 0.0;
-  double t_deconv = 0.0;
+  // for 3 types. For cases of n_transf>1, performs work in blocks of size
+  // up to batchSize.
+  CNTime timer;
+  double t_spread = 0.0, t_fft = 0.0, t_deconv = 0.0;  // accumulate timings
   
-  int *ier_spreads = (int *)calloc(p->blksize,sizeof(int));      
+  int *ier_spreads = (int *)calloc(p->batchSize,sizeof(int)); // errors within blk
 
   if (p->type!=3){ // --------------------- TYPE 1,2 EXEC ------------------
   
-    for(int batchNum = 0; batchNum*p->blksize < p->n_transf; batchNum++){
-          
-      int nSetsThisBatch = min(p->n_transf - batchNum*p->blksize, p->blksize);
+    for(int blk=0; blk*p->batchSize < p->n_transf; blk++){  // loop over blocks...
 
-      //Type 1 Step 1: Spread to Regular Grid    
-      if(p->type == 1){
+      // current block either batchSize, or truncated if last one
+      int thisBatchSize = min(p->n_transf - blk*p->batchSize, p->batchSize);
+
+      // Type 1 Step 1: Spread to Regular Grid    
+      if(p->type == 1) { // step 1: spread from NU pts p->X, weights cj,
         timer.restart();
-        spreadAllSetsInBatch(nSetsThisBatch, batchNum, p, cj, ier_spreads);
+        spreadAllSetsInBatch(thisBatchSize, blk, p, cj, ier_spreads);
         t_spread += timer.elapsedsec();
 
-        for(int i = 0; i < nSetsThisBatch; i++){
+        for(int i = 0; i < thisBatchSize; i++){
           if(ier_spreads[i])
             return ier_spreads[i];
         }
@@ -493,27 +415,26 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       //Type 2 Step 1: amplify Fourier coeffs fk and copy into fw
       else if(p->type == 2){
         timer.restart();
-        deconvolveInParallel(nSetsThisBatch, batchNum, p,fk);
+        deconvolveInParallel(thisBatchSize, blk, p,fk);
         t_deconv += timer.elapsedsec();
       }
              
-      //Type 1/2 Step 2: Call FFT   
+      //Type 1 or 2. Step 2: call the preplanned FFT
       timer.restart();
-      FFTW_EX(p->fftwPlan);
-      double temp_t = timer.elapsedsec();
-      t_exec += temp_t;
+      FFTW_EX(p->fftwPlan);                 // *** what if thisBatchSize<batchSize?
+      t_fft += timer.elapsedsec();
 
       //Type 1 Step 3: Deconvolve by dividing coeffs by that of kernel; shuffle to output 
       if(p->type == 1){
         timer.restart();
-        deconvolveInParallel(nSetsThisBatch, batchNum, p,fk);
+        deconvolveInParallel(thisBatchSize, blk, p,fk);
         t_deconv += timer.elapsedsec();
       }
 
       //Type 2 Step 3: interpolate from regular to irregular target pts
       else if(p->type == 2){
         timer.restart();
-        interpAllSetsInBatch(nSetsThisBatch, batchNum, p, cj, ier_spreads);
+        interpAllSetsInBatch(thisBatchSize, blk, p, cj, ier_spreads);
         t_spread += timer.elapsedsec(); 
       }
     }
@@ -525,74 +446,13 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       else   // type 2
         printf("[finufft_exec] tot interp:\t\t\t %.3g s\n",t_spread);
       
-      printf("[finufft_exec] tot fft:\t\t\t %.3g s\n", t_exec);
+      printf("[finufft_exec] tot fft:\t\t\t %.3g s\n", t_fft);
       printf("[finufft_exec] tot deconvolve:\t\t %.3g s\n", t_deconv);
     }
   }
 
   else{  // ----------------------------- TYPE 3 EXEC ---------------------
 
-    /// *** SHOULD BE MOVED TO SETPTS (& CPJ INTO F_PLAN):
-    //Allocate only nj*blksize array for scaled coordinate weights
-    //this array will be recomputed for each batch/iteration 
-    CPX *cpj = (CPX*)malloc(sizeof(CPX)*p->nj*p->blksize);  // c'_j rephased src
-    if(!cpj){
-      fprintf(stderr, "Call to malloc failed for rescaled input weights \n");
-      return ERR_ALLOC; 
-    }
-    
-    double t_prePhase = 0, t_innerExec = 0, t_deConvShuff = 0;  // total times
-    t_spread = 0;
-    int ier_t2;
-    
-    // Loop over blocks of size <= blksize up to n_transf, executing t2...
-    for(int batchNum = 0; batchNum*p->blksize < p->n_transf;
-        batchNum++) {   // ................ batch loop
-
-      // *** RENAME TO SHORTER LAST ROUND:
-      bool lastRound = ((batchNum+1)*p->blksize > p->n_transf);
-      int nSetsThisBatch = min(p->n_transf - batchNum*p->blksize, p->blksize);
-     
-      // prephase this batch of coordinate weights
-      timer.restart();
-      type3PrePhaseInParallel(nSetsThisBatch, batchNum, p, cj, cpj);
-      double t = timer.elapsedsec();
-      t_prePhase += t;
-      
-      //Spread from cpj to internal fw array (only threadBlockSize)
-      timer.restart();      
-      spreadAllSetsInBatch(nSetsThisBatch, batchNum, p, cpj, ier_spreads);
-      t_spread += timer.elapsedsec();
-
-      //Indicate to inner type 2 that only nSetsThisBatch transforms are left.
-      //This ensures the batch loop for type 2 execute will not attempt to
-      //access beyond allocated size of user supplied arrays: cj and fk.
-      // *** BUT WHAT ABOUT FFTW? NEED TO RE-PLAN IT?
-      if(lastRound){
-        p->innerT2Plan->n_transf = nSetsThisBatch;
-       }
-
-      //carry out a finufft execution of size threadBlockSize, indexing appropriately into
-      //fk (size nk*n_transforms) each iteration 
-      timer.restart();
-      ier_t2 = finufft_exec(p->innerT2Plan, fk+(batchNum*p->blksize*p->nk), (CPX *)p->fw);
-      t_innerExec += timer.elapsedsec();
-      if (ier_t2>0) exit(ier_t2);         // *** return? crashes it?
-      
-      //deconvolve this chunk of fk newly output from finufft_exec
-      timer.restart();
-      type3DeconvolveInParallel(nSetsThisBatch, batchNum, p, fk);
-      t_deConvShuff += timer.elapsedsec();
-    }  // ............... end batch loop
-
-    if(p->opts.debug){
-      printf("[finufft_exec] tot prephase:\t\t %.3g s\n",t_prePhase);
-      printf("[finufft_exec] tot spread:\t\t\t %.3g s\n",t_spread);
-      printf("[finufft_exec] tot type-2 exec (ier=%d):\t %.3g s\n",ier_t2, t_innerExec);
-      printf("[finufft_exec] tot deconvolve:\t\t %.3g s\n", t_deConvShuff);
-    }
-    
-    free(cpj);
   }
   
   free(ier_spreads);
@@ -604,14 +464,12 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
 int finufft_destroy(finufft_plan* p)
   // free everything we allocated inside of finufft_plan pointed to by p
 { 
-  if(p->fftwPlan)
-    FFTW_DE(p->fftwPlan);  // destroy any FFTW plan (t1,2 only)
-  if(p->fw)
-    FFTW_FR(p->fw);        // free the FFTW working array
-  if(p->phiHat)
-    free(p->phiHat);
-  if(p->sortIndices)
-    free(p->sortIndices);
+  FFTW_DE(p->fftwPlan);  // destroy any FFTW plan (t1,2 only)
+  FFTW_FR(p->fwBatch);   // free the FFTW working array
+  free(p->phiHat1);
+  free(p->phiHat2);
+  free(p->phiHat3);
+  free(p->sortIndices);
 
   // for type 3, original coordinates are kept in {X,Y,Z}_orig,
   // but we must free the X,Y,Z we allocated which hold x',y',z':
