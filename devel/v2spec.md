@@ -28,7 +28,8 @@ Here nufft_opts is a simple struct, not an object.
 
 finufft_makeplan is passed ptr to opts object, or NULL which uses defaults.
 
-[should finufft_makeplan return a plan object, or a pointer to plan? no]
+[should finufft_makeplan return a plan object, or a pointer to plan? no.
+Instead it needs an error code, so return that. A ptr to plan is an arg.]
 
 
 
@@ -116,8 +117,8 @@ Notes on finufftpy.cpp:
 // * do we need this cpp module at all - can we interface directly to guru
 //   cmds in the C++ lib?
 
-[Pass ptr to plan, but py user cannot see inside it. ?
-No: copy Joakim's GPU interface plan.
+[Pass ptr to plan, but py user cannot see inside it. ?  ie, "blind pointer"
+No: copy Joakim's GPU interface plan?
 ]
 
 Detect whether "many" is called in guru (ie, n_transf>1) via shape
@@ -142,9 +143,11 @@ include
 contrib
 lib
 lib-static
-test   - direct
-examples
-python - finufftpy
+test   - directft
+       - results
+                *.refout
+examples (C++/C examples)
+python - finufftpy (the py module)
        - examples
        - test
        setup.py    (this is for pybind11)
