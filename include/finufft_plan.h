@@ -25,27 +25,24 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   int nj;          // number of NU pts (for type 3, the input x pts)
   int nk;          // number of NU freq pts (type 3 only)
   FLT tol;         // tolerance
-  int threadBlkSize;   // chunk size for vector "many" mode... I think
+  int blksize;     // how many strength vectors to block together in FFTW, etc
   
-  BIGINT ms;        // number of modes in x (1) direction; old CMCL notation
-  BIGINT mt;        // number of modes in y (2) direction
-  BIGINT mu;        // number of modes in z (3) direction
+  BIGINT ms;       // number of modes in x (1) direction; old CMCL notation
+  BIGINT mt;       // number of modes in y (2) direction
+  BIGINT mu;       // number of modes in z (3) direction
   
-  BIGINT nf1;       // size of internal fine grid in x (1) direction, etc
+  BIGINT nf1;      // size of internal fine grid in x (1) direction, etc
   BIGINT nf2;
   BIGINT nf3; 
   
   int fftsign;     // guaranteed to be +-1
 
-  FLT * phiHat;    // FT of kernel (for each dim in t1,2; for nk targs in t3)
-  FFTW_CPX * fw;   // (batches of) fine grid(s) for FFTW to act on
+  FLT* phiHat;     // FT of kernel (for each dim in t1,2; for nk targs in t3)
+  FFTW_CPX* fw;    // (batches of) fine grid(s) for FFTW to act on
   
   BIGINT *sortIndices;  // precomputed NU x permutation, speeds spread/interp
   bool didSort;         // whether binsorting used (false: identity perm used)
 
-  FLT * s;         // *** TO DELETE WHEN FIX t3
-  FLT * t; 
-  FLT * u; 
   FLT * sp;         // rescaled target freqs (relevant for type 3 only)
   FLT * tp; 
   FLT * up; 
@@ -58,16 +55,13 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   FLT *Z_orig; 
 
   // other internal structs; each is C-compatible of course.
-  FFTW_PLAN fftwPlan;  
+  FFTW_PLAN fftwPlan;
   nufft_opts opts;
   spread_opts spopts;
   type3Params t3P;
 
   // whether this plan is the type-2 inner call needed within a type-3 transform
-  bool isInnerT2;
-
-  //Null unless a type2 plan
-  struct finufft_plan *innerT2Plan; 
+  struct finufft_plan *innerT2Plan;   // used for type-2 as step 2 of type-3
   
 } finufft_plan;
 

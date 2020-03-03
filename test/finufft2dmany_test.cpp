@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;        // default
   nufft_opts opts; finufft_default_opts(&opts);
+  opts.spread_scheme = 1;
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); ntransf = (int)w; }

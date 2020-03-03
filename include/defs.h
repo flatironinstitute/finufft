@@ -42,7 +42,7 @@
 #define ERR_SPREAD_DIR           6
 #define ERR_UPSAMPFAC_TOO_SMALL  7
 #define HORNER_WRONG_BETA        8
-#define ERR_NDATA_NOTVALID       9
+#define ERR_NTRANSF_NOTVALID     9
 #define ERR_TYPE_NOTVALID        10
 // some generic internal allocation failure...
 #define ERR_ALLOC                11
