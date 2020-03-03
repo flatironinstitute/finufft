@@ -67,7 +67,7 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   bool isInnerT2;
 
   //Null unless a type2 plan
-  finufft_plan *innerT2Plan; 
+  struct finufft_plan *innerT2Plan; 
   
 } finufft_plan;
 
