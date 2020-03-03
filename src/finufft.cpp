@@ -322,6 +322,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       fprintf(stderr,"nf1*nf2*nf3*batch=%.3g exceeds MAX_NF of %.3g\n",(double)p->nf1*p->nf2*p->nf3*transfPerBatch,(double)MAX_NF);
       return ERR_MAXNALLOC;
     }
+    // *** CHANGE TO PLAIN MALLOC AS IN v1.1:
     p->fw = FFTW_ALLOC_CPX(p->nf1*p->nf2*p->nf3*transfPerBatch);  
     if(!p->fw){
       fprintf(stderr, "fftw malloc fail for t3 working upsampled grid fw\n");
@@ -395,6 +396,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
         p->phiHat[k]*=(p->phiHat + 2*p->nk)[k];
     }
 
+    // *** KILL p->s etc here...
     p->s = s;
     p->sp = sp;
     
@@ -406,12 +408,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->u = u;
     p->up = up;
 
-    BIGINT n_modes[3];
-    n_modes[0] = p->nf1;
-    n_modes[1] = p->nf2;
-    n_modes[2] = p->nf3;
-
-    int ier_t2;
+    BIGINT n_modes[] = {p->nf1,p->nf2,p->nf3};
     
     // Preparations for the interior type 2 finufft call
     // 1) a single call to construct a finufft_plan
@@ -421,9 +418,10 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     t2Plan->opts.debug = p->opts.debug;
     t2Plan->opts.spread_debug = p->opts.spread_debug;
 
+    // not inner t2 is only to handle batchSize
     int batchSize = min(p->n_transf, p->threadBlkSize);
     timer.restart();
-    ier_t2 = finufft_makeplan(2, p->n_dims, n_modes, p->fftsign, batchSize, p->tol,
+    int ier_t2 = finufft_makeplan(2, p->n_dims, n_modes, p->fftsign, batchSize, p->tol,
                               p->threadBlkSize, t2Plan, &t2Plan->opts);
     double t_innerPlan = timer.elapsedsec();
     
@@ -442,10 +440,10 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       return ier_t2;
     }
 
-    p->innerT2Plan = t2Plan;
+    p->innerT2Plan = t2Plan;    // keep ptr to the inner plan
 
     if(p->opts.debug){
-      printf("[finufft_setpts] type-3 inner type2 plan creation: %.3g s\n", t_innerPlan+t_innerSet);
+      printf("[finufft_setpts] t3 inner t2 plan & setpts: \t%.3g s\n", t_innerPlan+t_innerSet);
     }
   }
   
@@ -493,7 +491,7 @@ void spreadAllSetsInBatch(int nSetsThisBatch, int blkNum, finufft_plan* p, CPX* 
     int ier = spreadSorted(p->sortIndices,
                            p->nf1, p->nf2, p->nf3, (FLT*)fwStart,
                            p->nj, p->X, p->Y, p->Z, (FLT *)cStart,
-                           p->spopts, p->didSort) ;
+                           p->spopts, p->didSort);
     if(ier)
       ier_spreads[i] = ier;
   }
@@ -593,6 +591,8 @@ void deconvolveInParallel(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX
   }
 }
 
+
+// *** REWRITE BOTH THE NEXT TO PRECOMPUTE PHASES INSTEAD!
 
 void type3PrePhaseInParallel(int nSetsThisBatch, int batchNum, finufft_plan* p, CPX* cj, CPX* cpj)
 // Type 3 multithreaded prephase all nj scaled weights for all of the sets of weights in this batch
@@ -735,6 +735,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
 
   else{  // ----------------------------- TYPE 3 EXEC ---------------------
 
+    /// *** SHOULD BE MOVED TO SETPTS (& CPJ INTO F_PLAN):
     //Allocate only nj*threadBlkSize array for scaled coordinate weights
     //this array will be recomputed for each batch/iteration 
     CPX *cpj = (CPX*)malloc(sizeof(CPX)*p->nj*p->threadBlkSize);  // c'_j rephased src
@@ -742,14 +743,16 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       fprintf(stderr, "Call to malloc failed for rescaled input weights \n");
       return ERR_ALLOC; 
     }
-
-    int ier_t2 = 0;
+    
     double t_prePhase = 0, t_innerExec = 0, t_deConvShuff = 0;  // total times
     t_spread = 0;
-
+    int ier_t2;
+    
     // Loop over blocks of size <= threadBlkSize up to n_transf, executing t2...
     for(int batchNum = 0; batchNum*p->threadBlkSize < p->n_transf;
         batchNum++) {   // ................ batch loop
+
+      // *** RENAME TO SHORTER LAST ROUND:
       bool lastRound = ((batchNum+1)*p->threadBlkSize > p->n_transf);
       int nSetsThisBatch = min(p->n_transf - batchNum*p->threadBlkSize, p->threadBlkSize);
      
@@ -767,7 +770,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       //Indicate to inner type 2 that only nSetsThisBatch transforms are left.
       //This ensures the batch loop for type 2 execute will not attempt to
       //access beyond allocated size of user supplied arrays: cj and fk.
-
+      // *** BUT WHAT ABOUT FFTW? NEED TO RE-PLAN IT?
       if(lastRound){
         p->innerT2Plan->n_transf = nSetsThisBatch;
        }
@@ -775,9 +778,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       //carry out a finufft execution of size threadBlockSize, indexing appropriately into
       //fk (size nk*n_transforms) each iteration 
       timer.restart();
-
       ier_t2 = finufft_exec(p->innerT2Plan, fk+(batchNum*p->threadBlkSize*p->nk), (CPX *)p->fw);
-
       t_innerExec += timer.elapsedsec();
       if (ier_t2>0) exit(ier_t2);         // *** return? crashes it?
       
@@ -788,10 +789,10 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
     }  // ............... end batch loop
 
     if(p->opts.debug){
-      printf("[finufft_exec] prephase:\t\t %.3g s\n",t_prePhase);
-      printf("[finufft_exec] spread:\t\t\t %.3g s\n",t_spread);
-      printf("[finufft_exec] total type-2 (ier=%d):\t %.3g s\n",ier_t2, t_innerExec);
-      printf("[finufft_exec] deconvolve:\t\t %.3g s\n", t_deConvShuff);
+      printf("[finufft_exec] tot prephase:\t\t %.3g s\n",t_prePhase);
+      printf("[finufft_exec] tot spread:\t\t\t %.3g s\n",t_spread);
+      printf("[finufft_exec] tot type-2 exec (ier=%d):\t %.3g s\n",ier_t2, t_innerExec);
+      printf("[finufft_exec] tot deconvolve:\t\t %.3g s\n", t_deConvShuff);
     }
     
     free(cpj);
@@ -807,14 +808,14 @@ int finufft_destroy(finufft_plan* p)
   // free everything we allocated inside of finufft_plan pointed to by p
 { 
   if(p->fftwPlan)
-    FFTW_DE(p->fftwPlan);  // destroy the FFTW plan
-  // rest is dealloc...
+    FFTW_DE(p->fftwPlan);  // destroy any FFTW plan (t1,2 only)
+  if(p->fw)
+    FFTW_FR(p->fw);        // free the FFTW working array
   if(p->phiHat)
     free(p->phiHat);
   if(p->sortIndices)
     free(p->sortIndices);
-  if(p->fw)
-    FFTW_FR(p->fw);
+
   // for type 3, original coordinates are kept in {X,Y,Z}_orig,
   // but we must free the X,Y,Z we allocated which hold x',y',z':
   if(p->type == 3){
