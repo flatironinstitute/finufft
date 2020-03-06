@@ -32,6 +32,9 @@ LIBNAME=libcufinufft$(PRECSUFFIX)
 DYNAMICLIB=lib/$(LIBNAME).so
 STATICLIB=lib-static/$(LIBNAME).a
 
+CLIBNAME=libcufinufftc$(PRECSUFFIX)
+DYNAMICCLIB=lib/$(CLIBNAME).so
+
 HEADERS = src/cufinufft.h src/deconvolve.h src/memtrasfer.h src/profile.h \
 	src/spreadinterp.h
 FINUFFTOBJS=finufft/utils.o finufft/dirft2d.o finufft/common.o \
@@ -44,6 +47,7 @@ CUFINUFFTOBJS=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	src/3d/spreadinterp3d.o src/3d/spread3d_wrapper.o \
 	src/3d/interp3d_wrapper.o src/3d/cufinufft3d.o
 	
+CUFINUFFTCOBJS=src/cufinufftc.o
 #-include make.inc
 
 %.o: %.cpp
@@ -101,12 +105,18 @@ cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 
 lib: $(STATICLIB) $(DYNAMICLIB)
 
+clib: $(DYNAMICCLIB)
+
 $(STATICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	mkdir -p lib-static
 	ar rcs $(STATICLIB) $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 $(DYNAMICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	mkdir -p lib	
 	$(NVCC) -shared $(NVCCFLAGS) $(CUFINUFFTOBJS) $(FINUFFTOBJS) -o $(DYNAMICLIB) $(LIBS) 
+
+$(DYNAMICCLIB): $(CUFINUFFTCOBJS) $(STATICLIB)
+	mkdir -p lib
+	gcc -shared -o $(DYNAMICCLIB) $(CUFINUFFTCOBJS) $(STATICLIB) $(LIBS)
 
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d \
