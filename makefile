@@ -4,7 +4,7 @@ NVCC=nvcc
 
 CXXFLAGS= -DNEED_EXTERN_C  -fPIC -O3 -funroll-loops -march=native -g -std=c++11
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME -arch=sm_70 \
+NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME -arch=sm_60 \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
 #If using any card with architecture KXX, change to -arch=sm_30 (see GPUs 
 #supported section in https://en.wikipedia.org/wiki/CUDA for more info)
@@ -121,7 +121,7 @@ $(DYNAMICCLIB): $(CUFINUFFTCOBJS) $(STATICLIB)
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d \
 	interp3d cufinufft3d1_test cufinufft3d2_test spreadinterp3d_test \
-	lib
+	lib clib
 
 
 clean:
