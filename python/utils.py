@@ -1,22 +1,22 @@
 import numpy as np
 
 def gen_nu_pts(M, seed=0):
-    rng = np.random.default_rng(seed)
-    kxyz = rng.uniform(-np.pi, np.pi, (3, M))
+    np.random.seed(seed)
+    kxyz = np.random.uniform(-np.pi, np.pi, (3, M))
     kxyz = kxyz.astype(np.float32)
     return kxyz
 
 
 def gen_uniform_data(shape, seed=0):
-    rng = np.random.default_rng(seed)
-    fk = rng.standard_normal(shape + (2,))
+    np.random.seed(seed)
+    fk = np.random.standard_normal(shape + (2,))
     fk = fk.astype(np.float32).view(np.complex64)[..., 0]
     return fk
 
 
 def gen_nonuniform_data(M, seed=0):
-    rng = np.random.default_rng(seed)
-    c = rng.standard_normal(2 * M)
+    np.random.seed(seed)
+    c = np.random.standard_normal(2 * M)
     c = c.astype(np.float32).view(np.complex64)
     return c
 
