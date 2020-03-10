@@ -57,7 +57,7 @@ elif sys.platform == "darwin":
         #extra_link_args=['-static -fPIC']
 
 ext_modules = [Extension(
-        'finufftpy_cpp',
+        'finufftpy.finufftpy_cpp',
         ['finufftpy/finufftpy.cpp'],
         include_dirs=[
             # Path to pybind11 headers
