@@ -383,6 +383,7 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=debug_def,spread_debug=spread_debug_def
     ntransf = 1
   assert x.size==c.shape[0]
   assert x.size*ntransf==c.size
+  assert y.size*ntransf==c.size
   
   # check output f, if none _f is returned as output,
   # otherwise output is stored in f
@@ -445,6 +446,8 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=debug_def,spread_debug=spread_de
     ntransf = 1
   assert x.size==c.shape[0]
   assert x.size*ntransf==c.size
+  assert y.size*ntransf==c.size
+  assert z.size*ntransf==c.size
   
   # check output f, if none _f is returned as output,
   # otherwise output is stored in f
@@ -517,6 +520,8 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,s
     _c = _cchk(c)
 
   assert x.size*ntransf==_c.size
+  assert y.size*ntransf==_c.size
+  assert z.size*ntransf==_c.size
   assert x.size==_c.shape[0]
   if f.ndim==4:
     assert f.shape[3]==_c.shape[1]
@@ -567,6 +572,8 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=debug_def,spread_debug=spread_debug
     ntransf = 1
   assert x.size==c.shape[0]
   assert x.size*ntransf==c.size
+  assert y.size*ntransf==c.size
+  assert z.size*ntransf==c.size
   
   # check output f, if none _f is returned as output,
   # otherwise output is stored in f
