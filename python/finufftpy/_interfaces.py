@@ -85,6 +85,26 @@ def set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
   opts.chkbnds = chkbnds
   opts.upsampfac = upsampfac
 
+def invoke_guru(x,y,z,c,isign,eps,s,t,u,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,tp,ndim,n_modes,ntransf,blksize,M,nk):
+  #opts
+  opts = nufft_opts()
+  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
+
+  #plan
+  plan = finufft_plan()
+  info = makeplan(tp,ndim,n_modes,isign,ntransf,eps,blksize,plan,opts)
+
+  #setpts
+  info = setpts(plan,M,x,y,z,nk,s,t,u)
+
+  #excute
+  info = execute(plan,c,f)
+
+  #destroy
+  info = destroy(plan)
+
+  return info
+
 ## easy interfaces
 ## 1D
 def nufft1d1(x,c,isign,eps,ms,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
@@ -113,34 +133,21 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=debug_def,spread_debug=spread_debug_def,sp
   if c.ndim==2:
     assert _f.shape[1]==c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   M = x.size
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = ms
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(1,1,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,None,None,0,None,None,None)
-
-  #excute
-  info = execute(plan,c,_f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,None,None,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,1,n_modes,ntransf,blksize,M,0)
 
   # return _f if f is none else output is in f
   if f is None:
     return _f
   else:
     _copy(_f, f)
+    return info
 
 def nufft1d2(x,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
   # check input x and f array, use f to detect ntransf
@@ -166,33 +173,20 @@ def nufft1d2(x,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,sprea
   if f.ndim==2:
     assert f.shape[1]==_c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = ms
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(2,1,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,None,None,0,None,None,None)
-
-  #excute
-  info = execute(plan,_c,f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,None,None,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,1,n_modes,ntransf,blksize,M,0)
 
   # return _f if f is none else output is in f
   if c is None:
     return _c
   else:
     _copy(_c, c)
+    return info
 
 def nufft1d3(x,c,isign,eps,s,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
   # check input x and c array, use c to detect ntransf
@@ -223,34 +217,21 @@ def nufft1d3(x,c,isign,eps,s,f,debug=debug_def,spread_debug=spread_debug_def,spr
   if c.ndim==2:
     assert _f.shape[1]==c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   M = x.size
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = nk
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(3,1,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,None,None,nk,s,None,None)
-
-  #excute
-  info = execute(plan,c,_f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,None,None,c,isign,eps,s,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,1,n_modes,ntransf,blksize,M,nk)
 
   # return _f if f is none else output is in f
   if f is None:
     return _f
   else:
     _copy(_f, f)
+    return info
 
 ## 2D
 def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
@@ -282,35 +263,22 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=debug_def,spread_debug=spread_debug_d
   if c.ndim==2:
     assert _f.shape[2]==c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   M = x.size
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = ms
   n_modes[1] = mt
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(1,2,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,y,None,0,None,None,None)
-
-  #excute
-  info = execute(plan,c,_f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,y,None,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,2,n_modes,ntransf,blksize,M,0)
 
   # return _f if f is none else output is in f
   if f is None:
     return _f
   else:
     _copy(_f, f)
+    return info
 
 def nufft2d2(x,y,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
   # check input x and f array, use f to detect ntransf
@@ -340,34 +308,21 @@ def nufft2d2(x,y,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,spr
   if f.ndim==3:
     assert f.shape[2]==_c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = ms
   n_modes[1] = mt
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(2,2,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,y,None,0,None,None,None)
-
-  #excute
-  info = execute(plan,_c,f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,y,None,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,2,n_modes,ntransf,blksize,M,0)
 
   # return _f if f is none else output is in f
   if c is None:
     return _c
   else:
     _copy(_c, c)
+    return info
 
 def nufft2d3(x,y,c,isign,eps,s,t,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
   # check input x and c array, use c to detect ntransf
@@ -403,34 +358,21 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=debug_def,spread_debug=spread_debug_def
   if c.ndim==2:
     assert _f.shape[1]==c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   M = x.size
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = nk
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(3,2,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,y,None,nk,s,t,None)
-
-  #excute
-  info = execute(plan,c,_f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,y,None,c,isign,eps,s,t,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,2,n_modes,ntransf,blksize,M,nk)
 
   # return _f if f is none else output is in f
   if f is None:
     return _f
   else:
     _copy(_f, f)
+    return info
 
 ## 3D
 def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
@@ -465,7 +407,7 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=debug_def,spread_debug=spread_de
   if c.ndim==2:
     assert _f.shape[3]==c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   M = x.size
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = ms
@@ -473,28 +415,15 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=debug_def,spread_debug=spread_de
   n_modes[2] = mu
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(1,3,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,y,z,0,None,None,None)
-
-  #excute
-  info = execute(plan,c,_f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,y,z,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,3,n_modes,ntransf,blksize,M,0)
 
   # return _f if f is none else output is in f
   if f is None:
     return _f
   else:
     _copy(_f, f)
+    return info
 
 def nufft3d2(x,y,z,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
   # check input x and f array, use f to detect ntransf
@@ -526,35 +455,22 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,s
   if f.ndim==4:
     assert f.shape[3]==_c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = ms
   n_modes[1] = mt
   n_modes[2] = mu
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(2,3,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,y,z,0,None,None,None)
-
-  #excute
-  info = execute(plan,_c,f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,y,z,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,3,n_modes,ntransf,blksize,M,0)
 
   # return _f if f is none else output is in f
   if c is None:
     return _c
   else:
     _copy(_c, c)
+    return info
 
 def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
   # check input x and c array, use c to detect ntransf
@@ -595,31 +511,18 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=debug_def,spread_debug=spread_debug
   if c.ndim==2:
     assert _f.shape[1]==c.shape[1]
 
-  # number of input pts
+  # number of input pts and modes info
   M = x.size
   n_modes = np.ones([3], dtype=np.int64)
   n_modes[0] = nk
   blksize = get_max_threads()
 
-  #opts
-  opts = nufft_opts()
-  set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
-
-  #plan
-  plan = finufft_plan()
-  info = makeplan(3,3,n_modes,isign,ntransf,eps,blksize,plan,opts)
-
-  #setpts
-  info = setpts(plan,M,x,y,z,nk,s,t,u)
-
-  #excute
-  info = execute(plan,c,_f)
-
-  #destroy
-  info = destroy(plan)
+  # invoke guruinterface
+  info = invoke_guru(x,y,z,c,isign,eps,s,t,u,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,3,n_modes,ntransf,blksize,M,nk)
 
   # return _f if f is none else output is in f
   if f is None:
     return _f
   else:
     _copy(_f, f)
+    return info
