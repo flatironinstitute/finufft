@@ -9,7 +9,7 @@
 
 # google-style docstrings for napoleon
 
-import finufftpy_cpp
+import finufftpy.finufftpy_cpp as finufftpy_cpp
 import numpy as np
 
 from finufftpy_cpp import default_opts
