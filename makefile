@@ -270,6 +270,11 @@ else
 	python python/test/run_accuracy_tests.py
 endif
 
+wheel:
+	export FINUFFT_DIR=$(shell pwd)
+	python -m pip wheel python/ -w wheelhouse
+	delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl
+
 # ------------- Various obscure/devel tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!
 test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
