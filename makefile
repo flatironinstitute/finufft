@@ -271,8 +271,7 @@ else
 endif
 
 wheel:
-	export FINUFFT_DIR=$(shell pwd)
-	python -m pip wheel python/ -w wheelhouse
+	(export FINUFFT_DIR=$(shell pwd); python -m pip wheel python/ -w wheelhouse)
 	delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl
 
 # ------------- Various obscure/devel tests -----------------
@@ -298,6 +297,7 @@ objclean:
 
 pyclean:
 	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
+	rm -rf fixed_wheel wheelhouse
 
 # for experts; only do this if you have mwrap to rebuild the interfaces!
 mexclean:
