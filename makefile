@@ -270,9 +270,8 @@ else
 	python python/test/run_accuracy_tests.py
 endif
 
-wheel:
-	(export FINUFFT_DIR=$(shell pwd); python -m pip wheel python/ -w wheelhouse)
-	delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl
+wheel: $(STATICLIB)
+	(export FINUFFT_DIR=$(shell pwd); cd python; python -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
 
 # ------------- Various obscure/devel tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!
@@ -297,7 +296,7 @@ objclean:
 
 pyclean:
 	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
-	rm -rf fixed_wheel wheelhouse
+	rm -rf python/fixed_wheel python/wheelhouse
 
 # for experts; only do this if you have mwrap to rebuild the interfaces!
 mexclean:
