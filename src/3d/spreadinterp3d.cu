@@ -55,6 +55,16 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 #include "../../finufft/ker_horner_allw_loop.c"
 	}
 }
+
+static __inline__ __device__
+void eval_kernel_vec(FLT *ker, const FLT x, const double w, const double es_c,
+                     const double es_beta)
+{
+    for(int i=0; i<w; i++){
+        ker[i] = evaluate_kernel(abs(x+i), es_c, es_beta);
+    }
+}
+
 /* Common Kernels */
 __device__
 int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
@@ -178,8 +188,6 @@ void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		eval_kernel_vec_Horner(ker1,x1,ns,sigma);
 		eval_kernel_vec_Horner(ker2,y1,ns,sigma);
 		eval_kernel_vec_Horner(ker3,z1,ns,sigma);
-		//evaluate_kernel_vector(ker1, x1, es_c, es_beta, ns);
-		//evaluate_kernel_vector(ker2, y1, es_c, es_beta, ns);
 		for(zz=zstart; zz<=zend; zz++){
 			ker3val=ker3[zz-zstart];
 			for(yy=ystart; yy<=yend; yy++){
@@ -205,8 +213,12 @@ void Spread_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 {
 	int xx, yy, zz, ix, iy, iz;
 	int outidx;
+	FLT ker1[MAX_NSPREAD];
+	FLT ker2[MAX_NSPREAD];
+	FLT ker3[MAX_NSPREAD];
 
 	FLT x_rescaled, y_rescaled, z_rescaled;
+	FLT ker1val, ker2val, ker3val;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
 		y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -219,20 +231,24 @@ void Spread_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		int yend = floor(y_rescaled + ns/2.0);
 		int zend = floor(z_rescaled + ns/2.0);
 
+		FLT x1=(FLT)xstart-x_rescaled;
+		FLT y1=(FLT)ystart-y_rescaled;
+		FLT z1=(FLT)zstart-z_rescaled;
+
+		eval_kernel_vec(ker1,x1,ns,es_c,es_beta);
+		eval_kernel_vec(ker2,y1,ns,es_c,es_beta);
+		eval_kernel_vec(ker3,z1,ns,es_c,es_beta);
 		for(zz=zstart; zz<=zend; zz++){
-			FLT disz=abs(z_rescaled-zz);
-			FLT ker3val = evaluate_kernel(disz, es_c, es_beta);
+			ker3val=ker3[zz-zstart];
 			for(yy=ystart; yy<=yend; yy++){
-				FLT disy=abs(y_rescaled-yy);
-				FLT ker2val = evaluate_kernel(disy, es_c, es_beta);
+				ker2val=ker2[yy-ystart];
 				for(xx=xstart; xx<=xend; xx++){
 					ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 					iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 					iz = zz < 0 ? zz+nf3 : (zz>nf3-1 ? zz-nf3 : zz);
 					outidx = ix+iy*nf1+iz*nf1*nf2;
 
-					FLT disx=abs(x_rescaled-xx);
-					FLT ker1val = evaluate_kernel(disx, es_c, es_beta);
+					ker1val=ker1[xx-xstart];
 					FLT kervalue=ker1val*ker2val*ker3val;
 
 					atomicAdd(&fw[outidx].x, c[idxnupts[i]].x*kervalue);
@@ -404,6 +420,9 @@ void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	FLT x_rescaled, y_rescaled, z_rescaled;
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
+		FLT ker1[MAX_NSPREAD];
+		FLT ker2[MAX_NSPREAD];
+		FLT ker3[MAX_NSPREAD];
 		int idx = ptstart+i;
 		x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
 		y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
@@ -418,27 +437,29 @@ void Spread_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
 
+		FLT x1=(FLT)xstart+xoffset-x_rescaled;
+		FLT y1=(FLT)ystart+yoffset-y_rescaled;
+		FLT z1=(FLT)zstart+zoffset-z_rescaled;
+
+		eval_kernel_vec(ker1,x1,ns,es_c,es_beta);
+		eval_kernel_vec(ker2,y1,ns,es_c,es_beta);
+		eval_kernel_vec(ker3,z1,ns,es_c,es_beta);
 #if 1
 		for(int zz=zstart; zz<=zend; zz++){
-			FLT disz=abs(z_rescaled-(zz+zoffset));
-			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta);
-			//FLT kervalue3 = disz;
+			FLT kervalue3 = ker3[zz-zstart];
+			iz = zz+ceil(ns/2.0);
 			for(int yy=ystart; yy<=yend; yy++){
-				FLT disy=abs(y_rescaled-(yy+yoffset));
-				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-				//FLT kervalue2 = disy;
+				FLT kervalue2 = ker2[yy-ystart];
+				iy = yy+ceil(ns/2.0);
 				for(int xx=xstart; xx<=xend; xx++){
+					FLT kervalue1 = ker1[xx-xstart];
 					ix = xx+ceil(ns/2.0);
 					if(ix >= (bin_size_x + (int) ceil(ns/2.0)*2)) break;
-					iy = yy+ceil(ns/2.0);
 					if(iy >= (bin_size_y + (int) ceil(ns/2.0)*2)) break;
-					iz = zz+ceil(ns/2.0);
 					if(iz >= (bin_size_z + (int) ceil(ns/2.0)*2)) break;
 					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
-						iz*(bin_size_x+ceil(ns/2.0)*2)*
-						   (bin_size_y+ceil(ns/2.0)*2);
-					FLT disx=abs(x_rescaled-(xx+xoffset));
-					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+							 iz*(bin_size_x+ceil(ns/2.0)*2)*
+						        (bin_size_y+ceil(ns/2.0)*2);
 #if 1
 					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
 						kervalue3);

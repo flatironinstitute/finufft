@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 	int N1, N2, N3, M;
 	if (argc<6) {
 		fprintf(stderr,
-			"Usage: spread3d [method [nupts_distr [N1 N2 N3 [M [tol [Horner [sort]]]]]]]\n");
+			"Usage: spread3d [method [nupts_distr [maxsubprobsize [N1 N2 N3 [M [tol [Horner [sort]]]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: nupts driven\n");
 		fprintf(stderr,"method 2: sub-problems\n");
@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
-	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
+	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,M,nf1*nf2*nf3,t,M/t);
 #if 0
 	cout<<"[result-input]"<<endl;
