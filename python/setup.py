@@ -85,12 +85,12 @@ elif sys.platform == "darwin":
         # clang
         extra_compile_args=['-fopenmp']
         extra_link_args=['-fPIC']
-        libraries = [libraries,"gomp"]
+        libraries.append("gomp")
     else:
         # some variety of GCC
         extra_compile_args=['-Xpreprocessor -fopenmp']
         extra_link_args=['-fPIC']
-        libraries = [libraries,"omp"]
+        libraries.append("omp")
 
 ext_modules = [Extension(
         'finufftpy/finufftpy_cpp',
