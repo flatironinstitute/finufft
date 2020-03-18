@@ -29,8 +29,8 @@ print("pathname of __file__: ",os.path.dirname(__file__))   # ok, fails why?
 
     
 # default compiler choice (note g++ = clang in mac-osx):
-#os.environ['CC'] = 'gcc'
-#os.environ['CXX'] = 'g++'
+os.environ['CC'] = 'gcc'
+os.environ['CXX'] = 'g++'
 
 # attempt override compiler choice using ../make.inc to match your C++ build
 makeinc = finufftdir+"/make.inc"
