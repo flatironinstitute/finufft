@@ -34,7 +34,7 @@ os.environ['CXX'] = 'g++'
 
 # attempt override compiler choice using ../make.inc to match your C++ build
 makeinc = finufftdir+"/make.inc"
-dotenv.load_dotenv(makeinc)   # modifies os.environ
+dotenv.load_dotenv(makeinc, override=True)   # modifies os.environ
 
 # debug and remove:
 print(os.environ['CXX'])  # check - doesn't read correctly from ../make.inc  :(
