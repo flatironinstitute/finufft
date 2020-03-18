@@ -273,6 +273,9 @@ endif
 wheel: $(STATICLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; python -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
 
+docker-wheel:
+	docker run --rm -e package_name=finufftpy -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/python/ci/build-wheels.sh
+
 # ------------- Various obscure/devel tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!
 test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp

@@ -1,7 +1,7 @@
 language: cpp
 branches: 
  only:
- - guruInterface-v2
+ - guruInterface_v2
 sudo: required
 virtualenv:
     system_site_packages: true
@@ -28,38 +28,20 @@ matrix:
         - cp make.inc.macosx_clang make.inc
       install:
         - pip install -r python/requirements.txt
+      script:
+        - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/ccache/libexec:$PATH"; fi
+        - ccache --max-size=5.0G
+        - ccache -V && ccache --show-stats && ccache --zero-stats
+        - make python
     - os: linux
       dist: xenial
-      python: "2.7"
-      addons:
-        apt:
-          update: true
-          sources:
-            - sourceline: ppa:deadsnakes/ppa
-          packages:
-            - libfftw3-dev
-      before_install:
-        - git submodule update --init
-        # Conda (Miniconda)
-        - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-        - bash miniconda.sh -b -p $HOME/miniconda
-        - export PATH="$HOME/miniconda/bin:$PATH"
-        - hash -r
-        - conda config --set always_yes yes --set changeps1 no
-        - conda update -q conda
-        # Useful for debugging any issues with conda
-        - conda info -a
+      services:
+        - docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux2010_x86_64
       install:
-        # Create conda enviroment
-        - conda create -q -n test-environment python=2.7
-        - source activate test-environment
-        - conda install cmake
-        # info on python executables
-        - python --version
-        - pip install -r python/requirements.txt
-
-script:
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/ccache/libexec:$PATH"; fi
-    - ccache --max-size=5.0G
-    - ccache -V && ccache --show-stats && ccache --zero-stats
-    - make python
+        - docker pull $DOCKER_IMAGE
+      script:
+        - make docker-wheel
+        - ls -lh python/wheelhouse/
+        - mkdir -p dist
+        - cp python/wheelhouse/finufftpy*.whl dist/.

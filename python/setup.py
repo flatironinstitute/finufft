@@ -29,8 +29,8 @@ print("pathname of __file__: ",os.path.dirname(__file__))   # ok, fails why?
 
     
 # default compiler choice (note g++ = clang in mac-osx):
-os.environ['CC'] = 'gcc'
-os.environ['CXX'] = 'g++'
+#os.environ['CC'] = 'gcc'
+#os.environ['CXX'] = 'g++'
 
 # attempt override compiler choice using ../make.inc to match your C++ build
 makeinc = finufftdir+"/make.inc"
@@ -80,15 +80,17 @@ elif sys.platform == "linux" or sys.platform == "linux2":
 
 elif sys.platform == "darwin":
     # Mac OSX
-    libraries = [finufft_lib,"fftw3","fftw3_threads","gomp"]
-    extra_compile_args=['-fopenmp']
+    libraries = [finufft_lib,"fftw3","fftw3_threads"]
     if os.environ["CXX"] == "g++":
         # clang
+        extra_compile_args=['-fopenmp']
         extra_link_args=['-fPIC']
+        libraries = [libraries,"gomp"]
     else:
         # some variety of GCC
+        extra_compile_args=['-Xpreprocessor -fopenmp']
         extra_link_args=['-fPIC']
-        #extra_link_args=['-static -fPIC']
+        libraries = [libraries,"omp"]
 
 ext_modules = [Extension(
         'finufftpy/finufftpy_cpp',
@@ -145,7 +147,7 @@ class BuildExt(build_ext):
     }
 
     # Mac OSX w/ GCC (not clang) you may need to comment out the next two lines:
-    if sys.platform == 'darwin' and os.environ["CXX"] == "g++":
+    if sys.platform == 'darwin' and os.environ["CXX"] == "clang++":
         # (note the test for g++ means clang, confusingly...)
         c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
 

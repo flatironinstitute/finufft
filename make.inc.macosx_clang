@@ -19,10 +19,14 @@ CFLAGS = -fPIC -O3
 #
 #CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
 
+CXX=clang++
+CC=clang
+
 # taken from makefile...
-CFLAGS   += -I src
+CFLAGS   += -I include -I/usr/local/include
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
+LIBS += -L/usr/local/lib
 
 # OpenMP with clang needs following...
 OMPFLAGS = -Xpreprocessor -fopenmp
