@@ -101,7 +101,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	cj=np.array(np.random.rand(nj,ndata)+1j*np.random.rand(nj,ndata),order='F')
 	fk=np.zeros([ms,mt,ndata],dtype=np.complex128,order='F')
 	timer=time.time()
-	ret=finufftpy.nufft2d1many(xj,yj,cj,iflag,eps,ms,mt,fk)
+	ret=finufftpy.nufft2d1(xj,yj,cj,iflag,eps,ms,mt,fk)
 	elapsed=time.time()-timer
 
 	dtest = ndata-1    # which of the ndata to test (in 0,..,ndata-1)
@@ -129,7 +129,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	cj=np.zeros([nj,ndata],order='F',dtype=np.complex128);
 	fk=np.array(np.random.rand(ms,mt,ndata)+1j*np.random.rand(ms,mt,ndata),order='F')
 	timer=time.time()
-	ret=finufftpy.nufft2d2many(xj,yj,cj,iflag,eps,fk)
+	ret=finufftpy.nufft2d2(xj,yj,cj,iflag,eps,fk)
 	elapsed=time.time()-timer
 
 	for ii in np.arange(0,num_samples):

@@ -88,7 +88,7 @@ SOBJS = src/spreadinterp.o src/utils.o
 OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS)
 
 # for Fortran interface demos...
-FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o
+FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o fortran/finufft_f.o
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean
 
@@ -224,15 +224,18 @@ F1=fortran/nufft1d_demo$(PRECSUFFIX)
 F2=fortran/nufft2d_demo$(PRECSUFFIX)
 F3=fortran/nufft3d_demo$(PRECSUFFIX)
 F4=fortran/nufft2dmany_demo$(PRECSUFFIX)
+F5=fortran/guru1d_demo$(PRECSUFFIX)
 fortran: $(FOBJS) $(OBJS) 
 	$(FC) $(FFLAGS) $(F1).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F1)
 	$(FC) $(FFLAGS) $(F2).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F2)
 	$(FC) $(FFLAGS) $(F3).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F3)
 	$(FC) $(FFLAGS) $(F4).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F4)
+	$(FC) $(FFLAGS) $(F5).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F5)
 	time -p $(F1)
 	time -p $(F2)
 	time -p $(F3)
 	time -p $(F4)
+	time -p $(F5)
 
 # matlab .mex* executable... (not worth starting matlab to test it)
 matlab: $(STATICLIB)  matlab/finufft_m.cpp
