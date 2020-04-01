@@ -13,15 +13,17 @@ c          -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
       program guru1d_demo
       implicit none
-c      include 'fftw3.f'
+      include 'fftw3.f'
 c
 c --- local variables
 c
-      integer i,ier,iflag,j,k1,mx,ms,nj
-      real*8, allocatable :: xj(:),sk(:)
+      integer i,ier,iflag,j,k1,mx
+      integer*8 ms,nj,zero
+      real*8, allocatable :: xj(:),sk(:),rnull(:)
       real*8 err,eps,pi,upsampfac
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+      complex*16, allocatable :: cnull(:)
       integer*8 opt
       integer*8 plan
       integer*8, allocatable :: n_modes(:)
@@ -31,6 +33,7 @@ c
       n_transf=1
       blksize=6
       upsampfac=2.0
+      zero=0
 c
 c     --------------------------------------------------
 c     create some test data
@@ -79,13 +82,20 @@ c     -----------------------
 c     call 1D Type1 method
 c     -----------------------
 c
+cccccccc      reference solution
          call dirft1d1(nj,xj,cj,iflag, ms,fk0)
+
+cccccccc      guru interface calls
          call finufft_default_opts_f(opt)
+         call set_debug(opt,1)
+         call set_fftw(opt,FFTW_ESTIMATE)
          call finufft_makeplan_f(ftype,ndim,n_modes,iflag,n_transf,
-     $          eps,blksize,plan,opt,ier)
-         call finufft_setpts_f(plan,nj,xj,xj,xj,ms,fk1,fk1,fk1,ier)
+     $        eps,blksize,plan,opt,ier)
+         call finufft_setpts_f(plan,nj,xj,rnull,rnull,zero,
+     $        cnull,cnull,cnull,ier)
          call finufft_exec_f(plan,cj,fk1,ier)
          call finufft_destroy_f(plan,opt,ier)
+
 c         call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk1,ier)
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
