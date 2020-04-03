@@ -86,17 +86,21 @@ cccccccc      reference solution
          call dirft1d1(nj,xj,cj,iflag, ms,fk0)
 
 cccccccc      guru interface calls
+cccccccc      set opts
          call finufft_default_opts_f(opt)
          call set_debug(opt,1)
          call set_fftw(opt,FFTW_ESTIMATE)
+cccccccc      make plan
          call finufft_makeplan_f(ftype,ndim,n_modes,iflag,n_transf,
      $        eps,blksize,plan,opt,ier)
+cccccccc      set pts
          call finufft_setpts_f(plan,nj,xj,rnull,rnull,zero,
      $        cnull,cnull,cnull,ier)
+cccccccc      execute
          call finufft_exec_f(plan,cj,fk1,ier)
+cccccccc      destroy
          call finufft_destroy_f(plan,opt,ier)
 
-c         call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk1,ier)
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
