@@ -224,7 +224,9 @@ int main(int argc, char* argv[])
   opts.spread_sort = sprSort;
   opts.upsampfac = upsampfac;
   opts.spread_scheme = sprScheme;
-
+  
+  opts.fftw = FFTW_ESTIMATE; // unlike docs say (has 0,1) this is passed to FFTW plan directly.
+  
   BIGINT n_modes[3];
   n_modes[0] = N1;
   n_modes[1] = N2;
