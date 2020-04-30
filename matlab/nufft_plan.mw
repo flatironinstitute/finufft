@@ -1,0 +1,96 @@
+% nufft_plan.mw
+%   FINUFFT plan wrapper
+
+$ #include <finufft.h>
+
+@ nufft_plan.m --------------------------------------------
+
+classdef nufft_plan < handle
+
+  properties
+    mwptr
+  end
+
+  methods
+
+    function [plan] = nufft_plan()
+      # finufft_plan* p = new finufft_plan();
+      plan.mwptr = p;
+    end
+
+    function delete(plan)
+      # finufft_destroy(finufft_plan* plan);
+    end
+
+    function nufft_destroy(plan)
+      # finufft_destroy(finufft_plan* plan);
+    end
+
+    function [ier] = nufft_makeplan(plan, type, n_dims, n_modes, iflag, n_transf, tol, blksize, opts)
+      $ int mex_makeplan(int type, int n_dims, double* n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* opts=NULL) {
+      $   BIGINT Ns[3];
+      $   Ns[0] = (BIGINT)(n_modes[0]+0.5);
+      $   Ns[1] = (BIGINT)(n_modes[1]+0.5);
+      $   Ns[2] = (BIGINT)(n_modes[2]+0.5);
+      $   return finufft_makeplan(type, n_dims, Ns, iflag, n_transf, tol, blksize, plan, opts);
+      $ }
+      if nargin<9
+        # int ier = mex_makeplan(int type, int n_dims, double[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan);
+      else
+        # int ier = mex_makeplan(int type, int n_dims, double[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* opts);
+      end
+    end
+
+    function [ier] = nufft_setpts(plan, nj, xj, yj, zj, nk, s, t, u)
+      $ int mex_setpts(finufft_plan* plan, double nj, double* xj, double* yj, double* zj, double nk, double *s, double *t, double* u) {
+      $   BIGINT nj_mex = (BIGINT)(nj+0.5);
+      $   BIGINT nk_mex = (BIGINT)(nk+0.5);
+      $   return finufft_setpts(plan, nj_mex, xj, yj, zj, nk_mex, s, t, u);
+      $ }
+      # int ier = mex_setpts(finufft_plan* plan, double nj, double[] xj, double[] yj, double[] zj, double nk, double[] s, double[] t, double[] u);
+    end
+
+    function [result, ier] = nufft_excute(plan, data_in)
+      $ int get_type(finufft_plan* plan) {
+      $   return plan->type;
+      $ }
+      $ int get_ndim(finufft_plan* plan) {
+      $   return plan->n_dims;
+      $ }
+      $ int get_nj(finufft_plan* plan) {
+      $   return plan->nj;
+      $ }
+      $ int get_nk(finufft_plan* plan) {
+      $   return plan->nk;
+      $ }
+      $ void get_nmodes(finufft_plan* plan, double& ms, double& mt, double& mu) {
+      $   ms = plan->ms ? plan->ms : 1;
+      $   mt = plan->mt ? plan->mt : 1;
+      $   mu = plan->mt ? plan->mu : 1;
+      $ }
+      $ int get_ntransf(finufft_plan* plan) {
+      $   return plan->n_transf;
+      $ }
+
+      # int type = get_type(finufft_plan* plan);
+      # int n_transf = get_ntransf(finufft_plan* plan);
+
+      if type==1
+        # get_nmodes(finufft_plan* plan, output double& ms, output double& mt, output double& mu);
+        outsize = ms*mt*mu*n_transf;
+        # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[outsize] result);
+        reshape(result, ms, mt, mu, n_transf);
+      elseif type==2
+        # int nj = get_nj(finufft_plan* plan);
+        # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_transf] result, dcomplex[] data_in);
+      elseif type==3
+        # int nk = get_nk(finufft_plan* plan);
+        # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[nj, n_transf] result);
+      else
+        result = 4;
+        ier = 1;
+      end
+    end
+
+  end
+end

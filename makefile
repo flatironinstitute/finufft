@@ -244,6 +244,9 @@ ifeq ($(PREC),SINGLE)
 else
 	$(MEX) matlab/finufft.cpp $(STATICLIB) matlab/finufft_m.cpp -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 endif
+matlab_guru: $(STATICLIB)
+	$(MEX) -DR2008OO matlab/nufft_opts_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/nufft_opts_mex
+	$(MEX) -DR2008OO matlab/nufft_plan_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/nufft_plan_mex
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
 octave: $(STATICLIB)  matlab/finufft_m.cpp
@@ -261,6 +264,10 @@ mex: matlab/finufft.mw
 	(cd matlab;\
 	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
+mex_guru: matlab/nufft_opts.mw
+	(cd matlab;\
+	$(MWRAP) -mex nufft_opts_mex -c nufft_opts_mex.cpp -mb -cppcomplex nufft_opts.mw;\
+	$(MWRAP) -mex nufft_plan_mex -c nufft_plan_mex.cpp -mb -cppcomplex nufft_plan.mw)
 
 # python interfaces (v3 assumed)...
 python: $(STATICLIB)
