@@ -66,7 +66,7 @@ classdef nufft_plan < handle
       $ void get_nmodes(finufft_plan* plan, double& ms, double& mt, double& mu) {
       $   ms = plan->ms ? plan->ms : 1;
       $   mt = plan->mt ? plan->mt : 1;
-      $   mu = plan->mt ? plan->mu : 1;
+      $   mu = plan->mu ? plan->mu : 1;
       $ }
       $ int get_ntransf(finufft_plan* plan) {
       $   return plan->n_transf;
