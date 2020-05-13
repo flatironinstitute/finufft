@@ -1,16 +1,18 @@
 # cuFINUFFT
-A GPU implementation of 2,3 dimension type 1,2 non-uniform FFT based on FINUFFT (https://github.com/flatironinstitute/finufft). 
+A GPU implementation of 2,3 dimension type 1,2 non-uniform FFT based on [FINUFFT][1].
 
-This is a work as a summer intern at Flatiron Institute advised by CCM project leader Alex Barnett.
+This is a work from Melody Shih's internship at Flatiron Institute, advised by CCM project leader Alex Barnett.
 
 
 ### Code dependency
- - CUB library (https://github.com/NVlabs/cub)
+ - [CUB Library][3]. Until the dependence is severed, this is managed by a git submodule,
+   note the clone command below.
 
 ### Installation
- - Get the CUB library - ```git clone https://github.com/NVlabs/cub.git```
- - Modify make.inc - set the ```INC``` with ```-I$(CUDA_DIR)/samples/common/inc/ -I$(CUDA_DIR)/include/ -I$(CUB_DIR)```
- - Compile - ```make all```
+ - Get this code and dependency - ```git clone --recurse-submodules https://github.com/flatironinstitute/cufinufft.git```
+ - Review the `makefile`. - If you need to customize build settings, modify your `make.inc`.  Example:
+   - Override the standard CUDA `/usr/local/cuda` location your `make.inc` would contain: ```CUDA_ROOT=/your/path/to/cuda```.
+ - Compile - ```make all -j```
  - Run a test code - ``` ./cufinufft2d1_test 2 128 128 10 1e-6```
  
 ### Interface
@@ -28,4 +30,10 @@ cuFINUFFT API contains 5 stages:
  - DEBUG - debug mode outputs all the middle stages' result
  
 ### Other
- - If you're running the code on GPU with Compute Capability less than 5.0 (ex. Kepler, Fermi), change the ```-arch=sm_50``` flag to lower number. (See http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/) 
+ - If you are interesting in optimizing for GPU Compute Capability,
+ you may want to specicfy ```NVARCH=-arch=sm_XX``` in your make.inc to reduce compile times,
+ or other performance reasons. See [Matching SM Architectures][2].
+
+[1]: https://github.com/flatironinstitute/finufft
+[2]: http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+[3]: https://github.com/NVlabs/cub
