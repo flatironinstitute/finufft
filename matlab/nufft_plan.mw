@@ -42,7 +42,7 @@ classdef nufft_plan < handle
     end
 
     function [ier] = nufft_setpts(plan, nj, xj, yj, zj, nk, s, t, u)
-      $ int mex_setpts(finufft_plan* plan, double nj, double* xj, double* yj, double* zj, double nk, double *s, double *t, double* u) {
+      $ int mex_setpts(finufft_plan* plan, double nj, double* xj, double* yj, double* zj, double nk, double* s, double* t, double* u) {
       $   BIGINT nj_mex = (BIGINT)(nj+0.5);
       $   BIGINT nk_mex = (BIGINT)(nk+0.5);
       $   return finufft_setpts(plan, nj_mex, xj, yj, zj, nk_mex, s, t, u);
@@ -67,6 +67,8 @@ classdef nufft_plan < handle
       $   ms = plan->ms ? plan->ms : 1;
       $   mt = plan->mt ? plan->mt : 1;
       $   mu = plan->mu ? plan->mu : 1;
+      $   if(plan->n_dims<3) mu=1;
+      $   if(plan->n_dims<2) mt=1;
       $ }
       $ int get_ntransf(finufft_plan* plan) {
       $   return plan->n_transf;
