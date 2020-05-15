@@ -5,13 +5,14 @@ This is a work from Melody Shih's internship at Flatiron Institute, advised by C
 
 
 ### Code dependency
- - [CUB Library][3]. Until the dependence is severed, this is managed by a git submodule,
-   note the clone command below.
+ - [CUB Library][3]. This is managed by a git submodule, note the clone command below.
 
 ### Installation
- - Get this code and dependency - ```git clone --recurse-submodules https://github.com/flatironinstitute/cufinufft.git```
- - Review the `makefile`. - If you need to customize build settings, modify your `make.inc`.  Example:
-   - Override the standard CUDA `/usr/local/cuda` location your `make.inc` would contain: ```CUDA_ROOT=/your/path/to/cuda```.
+ - Get this code and dependency -
+ ```git clone --recurse-submodules https://github.com/flatironinstitute/cufinufft.git```
+ - Review the `makefile`. - If you need to customize build settings, create and edit a `make.inc`.  Example:
+   - To override the standard CUDA `/usr/local/cuda` location your `make.inc` should contain: ```CUDA_ROOT=/your/path/to/cuda```.
+   - Two examples are provided, one for IBM machines (make.inc.power9), and another for the Courant Institute cluster (make.inc.CIMS).
  - Compile - ```make all -j```
  - Run a test code - ``` ./cufinufft2d1_test 2 128 128 10 1e-6```
  
