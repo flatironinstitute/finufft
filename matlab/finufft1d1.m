@@ -30,12 +30,20 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 %           2 : size of arrays to malloc exceed MAX_NF
 %           other codes: as returned by cnufftspread
 
-if nargin<6, o=[]; end
-opts = finufft_opts(o);
-nj=numel(x);
-if numel(c)~=nj, error('c must have the same number of elements as x'); end
 
-mex_id_ = 'o int = finufft1d1m(i double, i double[], i dcomplex[], i int, i double, i double, o dcomplex[x], i double[])';
-[ier, f] = finufft(mex_id_, nj, x, c, isign, eps, ms, opts, ms);
+% Alex prototyping how the simple & "auto-detect many" interface could look.
+% 5/17/20
+opts = nufft_opts();
 
-% ---------------------------------------------------------------------------
+% problem is now how to get the passed-in o fields into opts! :
+if isfield(o,'debug'), opts.set_debug(o.debug); end
+if isfield(o,'upsampfac'), opts.set_upsampfac(o.upsampfac); end
+% this is repetitive and not very maintainable, to add new opts fields.
+% ugh
+% Would be fixed by making opts a simple matlab struct, not a matlab obj.
+
+p = nufft_plan();       % would be nice to combine this w/ next line :)
+n_modes = [ms];
+p.nufft_makeplan(1,n_modes,isign,1,eps,0,opts);   % blsize=0 is default
+p.nufft_setpts(x,[],[],[],[],[]);
+[f,ier] = p.nufft_excute(c); 
