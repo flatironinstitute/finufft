@@ -81,13 +81,6 @@ spread2d: test/spread_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 interp2d: test/interp_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-spreadinterp_test: test/spreadinterp_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
-
-finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o $(CUFINUFFTOBJS) \
-	$(FINUFFTOBJS)
-	$(CXX) $^ $(NVCC_LIBS_PATH) $(LIBS) -o $@
-
 cufinufft_test: test/cufinufft_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
@@ -111,9 +104,6 @@ spread3d: test/spread_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 interp3d: test/interp_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-spreadinterp3d_test: test/spreadinterp3d_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
-
 cufinufft3d1_test: test/cufinufft3d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
@@ -135,9 +125,9 @@ $(DYNAMICCLIB): $(CUFINUFFTCOBJS) $(STATICLIB)
 	mkdir -p lib
 	gcc -shared -o $(DYNAMICCLIB) $(CUFINUFFTCOBJS) $(STATICLIB) $(NVCC_LIBS_PATH) $(LIBS)
 
-all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
+all: spread2d interp2d cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d \
-	interp3d cufinufft3d1_test cufinufft3d2_test spreadinterp3d_test \
+	interp3d cufinufft3d1_test cufinufft3d2_test \
 	lib clib
 
 
@@ -162,8 +152,6 @@ clean:
 	rm -f interp3d
 	rm -f cufinufft3d1_test
 	rm -f cufinufft3d2_test
-	rm -f spreadinterp_test
-	rm -f spreadinterp3d_test
 	rm -f example2d1
 	rm -rf lib
 	rm -rf lib-static
