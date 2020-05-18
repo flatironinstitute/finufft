@@ -543,15 +543,6 @@ int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
 		break;
 	}
 
-	opts.upsampfac = (FLT)2.0;   // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
-
-	/* following options are not used in gpu code */
-	opts.chkbnds = -1;
-	opts.debug = -1;
-	opts.spread_debug = -1;
-	opts.spread_sort = -1;        // use heuristic rule for whether to sort
-	opts.spread_kerevalmeth = -1; // 0: direct exp(sqrt()), 1: Horner ppval
-	opts.spread_kerpad = -1;      // (relevant iff kerevalmeth=0)
-
+	opts.upsampfac = (FLT)2.0;
 	return 0;
 }
