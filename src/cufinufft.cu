@@ -463,8 +463,8 @@ int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
 /*
 	"default_opts" stage:
 	
-	In this stage, the default options in nufft_opts are set (see finufft.h for
-	available options). Options with prefix "gpu_" are used for gpu code. 
+	In this stage, the default options in nufft_opts are set. 
+  Options with prefix "gpu_" are used for gpu code. 
 
 	Notes:
 	Values set in this function for different type and dimensions are preferable 

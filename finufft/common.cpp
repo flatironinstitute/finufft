@@ -1,4 +1,5 @@
 #include "common.h"
+#include "../src/cufinufft.h"
 #include <math.h>
 #include <stdio.h>
 #include <vector>
