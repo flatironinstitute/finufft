@@ -1,12 +1,12 @@
 % matlab guru interface 1d1.
-% Lu 5/11/2020
+% Lu 5/11/2020. Barnett added timing, tweaked interface.
 clear
 
 %parameters
 isign   = +1;     % sign of imaginary unit in exponential
 eps     = 1e-6;   % requested accuracy
-M       = 1e7;
-N       = 1e7;    % # of modes (approx total, used in all dims)
+M       = 2e6;
+N       = 1e6;    % # of modes (approx total, used in all dims)
 type=1;
 n_modes = N;  % n_dims inferred from length of this
 n_transf=1;
