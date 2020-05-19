@@ -11,7 +11,7 @@
 
 enum finufft_type {type1,type2,type3};
 
-struct nufft_opts {   // see common/finufft_default_opts() for defaults
+struct nufft_opts {   // see cufinufft_default_opts() for defaults
 	FLT upsampfac;      // upsampling ratio sigma, only 2.0 (standard) is implemented
 	/* following options are for gpu */
 	int gpu_method;
