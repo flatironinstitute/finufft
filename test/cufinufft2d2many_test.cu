@@ -6,7 +6,7 @@
 
 #include "../src/spreadinterp.h"
 #include "../src/cufinufft.h"
-#include "../finufft/utils.h"
+#include "../contrib/utils.h"
 #include "../src/profile.h"
 
 using namespace std;

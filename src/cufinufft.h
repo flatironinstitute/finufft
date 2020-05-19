@@ -5,10 +5,9 @@
 #include <cstdlib>
 #include <assert.h>
 #include <cuda_runtime.h>
-#include "../finufft/utils.h"
-#include "../finufft/spreadinterp.h"
-//#include "../finufft/finufft.h"
-#include "../finufft/common.h"
+#include "../contrib/utils.h"
+#include "../contrib/spreadinterp.h"
+#include "../contrib/common.h"
 
 enum finufft_type {type1,type2,type3};
 

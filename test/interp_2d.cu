@@ -4,7 +4,7 @@
 #include <helper_cuda.h>
 #include <complex>
 #include "../src/spreadinterp.h"
-#include "../finufft/utils.h"
+#include "../contrib/utils.h"
 
 using namespace std;
 

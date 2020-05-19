@@ -55,10 +55,10 @@ DYNAMICCLIB=lib/$(CLIBNAME).so
 
 HEADERS = src/cufinufft.h src/deconvolve.h src/memtrasfer.h src/profile.h \
 	src/spreadinterp.h
-FINUFFTOBJS=finufft/utils.o finufft/dirft2d.o finufft/common.o \
-	finufft/spreadinterp.o finufft/contrib/legendre_rule_fast.o
+CONTRIBOBJS=contrib/utils.o contrib/dirft2d.o contrib/common.o \
+	contrib/spreadinterp.o contrib/legendre_rule_fast.o
 
-CUFINUFFTOBJS=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
+CUCONTRIBOBJS=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	src/2d/spread2d_wrapper.o src/2d/spread2d_wrapper_paul.o \
 	src/2d/interp2d_wrapper.o src/memtransfer_wrapper.o \
 	src/deconvolve_wrapper.o src/cufinufft.o src/profile.o \
@@ -75,51 +75,51 @@ CUFINUFFTCOBJS=src/cufinufftc.o
 	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
 
 
-spread2d: test/spread_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+spread2d: test/spread_2d.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-interp2d: test/interp_2d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+interp2d: test/interp_2d.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-cufinufft_test: test/cufinufft_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft_test: test/cufinufft_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d1_test: test/cufinufft2d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft2d1_test: test/cufinufft2d1_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d1many_test: test/cufinufft2d1many_test.o $(CUFINUFFTOBJS) \
-	$(FINUFFTOBJS)
+cufinufft2d1many_test: test/cufinufft2d1many_test.o $(CUCONTRIBOBJS) \
+	$(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d2_test: test/cufinufft2d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft2d2_test: test/cufinufft2d2_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d2many_test: test/cufinufft2d2many_test.o $(CUFINUFFTOBJS) \
-	$(FINUFFTOBJS)
+cufinufft2d2many_test: test/cufinufft2d2many_test.o $(CUCONTRIBOBJS) \
+	$(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-spread3d: test/spread_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+spread3d: test/spread_3d.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-interp3d: test/interp_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+interp3d: test/interp_3d.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-cufinufft3d1_test: test/cufinufft3d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft3d1_test: test/cufinufft3d1_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
-cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+cufinufft3d2_test: test/cufinufft3d2_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 lib: $(STATICLIB) $(DYNAMICLIB)
 
 clib: $(DYNAMICCLIB)
 
-$(STATICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+$(STATICLIB): $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	mkdir -p lib-static
-	ar rcs $(STATICLIB) $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-$(DYNAMICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
+	ar rcs $(STATICLIB) $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+$(DYNAMICLIB): $(CUCONTRIBOBJS) $(CONTRIBOBJS)
 	mkdir -p lib
-	$(NVCC) -shared $(NVCCFLAGS) $(CUFINUFFTOBJS) $(FINUFFTOBJS) -o $(DYNAMICLIB) $(LIBS)
+	$(NVCC) -shared $(NVCCFLAGS) $(CUCONTRIBOBJS) $(CONTRIBOBJS) -o $(DYNAMICLIB) $(LIBS)
 
 $(DYNAMICCLIB): $(CUFINUFFTCOBJS) $(STATICLIB)
 	mkdir -p lib
@@ -137,8 +137,7 @@ clean:
 	rm -f src/*.o
 	rm -f src/2d/*.o
 	rm -f src/3d/*.o
-	rm -f finufft/*.o
-	rm -f finufft/contrib/*.o
+	rm -f contrib/*.o
 	rm -f examples/*.o
 	rm -f spread2d
 	rm -f accuracy

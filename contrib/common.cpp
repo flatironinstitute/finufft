@@ -6,10 +6,10 @@
 
 #ifdef NEED_EXTERN_C
 extern "C" {
-  #include "./contrib/legendre_rule_fast.h"
+  #include "legendre_rule_fast.h"
 }
 #else
-  #include "./contrib/legendre_rule_fast.h"
+  #include "legendre_rule_fast.h"
 #endif
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft

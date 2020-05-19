@@ -3,7 +3,7 @@
 #include <helper_cuda.h>
 #include <cuda.h>
 #include <cub/cub.cuh> 
-#include "../../finufft/utils.h"
+#include "../../contrib/utils.h"
 #include "../spreadinterp.h"
 
 using namespace std;
@@ -57,7 +57,7 @@ void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 	FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
 	// insert the auto-generated code which expects z, w args, writes to ker...
 	if (upsampfac==2.0) {     // floating point equality is fine here
-#include "../../finufft/ker_horner_allw_loop.c"
+#include "../../contrib/ker_horner_allw_loop.c"
 	}
 }
 

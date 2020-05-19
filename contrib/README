@@ -1,0 +1,18 @@
+This folder contains functions/files from FINUFFT that cuFINUFFT used. Following describes details of dependencies of each file.
+- utils.h
+  Definitions of CUCPX, CUFFT_TYPE, CUFFT_EX are added and are set depending on preprocessor SINGLE. 
+  Definition of BIGINT is changed to the normal 4 byte integer (See line 81)
+
+- utils.cpp
+  This is required because of the use of computing norm, relative norm of vectors, e.g. relerrtwonorm, in the test codes.
+
+- common.h 
+- common.cpp (hence legendre_rule_fast.c/.h are included)
+  setup_spreader_for_nufft, set_nf_type12, onedim_fseries_kernel are called in cufinufft_makeplan.
+  
+- spreadinterp.h
+  cufinufft plan contains the spread_opts struct where nspread, spread_direction, pirange, upsampfac, ES_beta, ES_c are used. 
+  
+- ker_horner_allw_loop.c
+- ker_lowupsampfac_horner_allw_loop.c
+  These two files are included in the src/2,3d/spreadinterp2,3d.cu files (See device function eval_kernel_vec_Horner)

@@ -5,7 +5,7 @@
 #include <complex>
 #include "../src/cufinufft.h"
 #include "../src/spreadinterp.h"
-#include "../finufft/utils.h"
+#include "../contrib/utils.h"
 
 using namespace std;
 
