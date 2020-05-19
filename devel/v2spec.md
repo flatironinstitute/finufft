@@ -28,7 +28,8 @@ Here nufft_opts is a simple struct, not an object.
 
 finufft_makeplan is passed ptr to opts object, or NULL which uses defaults.
 
-[should finufft_makeplan return a plan object, or a pointer to plan? no]
+[should finufft_makeplan return a plan object, or a pointer to plan? no.
+Instead it needs an error code, so return that. A ptr to plan is an arg.]
 
 
 
@@ -116,12 +117,11 @@ Notes on finufftpy.cpp:
 // * do we need this cpp module at all - can we interface directly to guru
 //   cmds in the C++ lib?
 
-[Pass ptr to plan, but py user cannot see inside it. ?
-No: copy Joakim's GPU interface plan.
+[Pass ptr to plan, but py user cannot see inside it. ?  ie, "blind pointer"
+No: copy Joakim's GPU interface plan?
 ]
 
-Detect whether "many" is called in guru (ie, n_transf>1) via shape
-of input U array. This won't work for t3 many. See above.
+
 
 Use of out=None to write to returned array or to pre-alloc array in arg
 list. See above.
@@ -134,6 +134,15 @@ Joakim: if ordering is C not F, simply flip kx and ky pointers to NU locs.
 
 
 
+Old decisions:
+
+* Decided not to detect whether "many" is called in guru (ie, n_transf>1)
+via shape of input U array. This won't work for t3 many.
+Instead force guru py user to give n_transf up front, in C++ guru.
+
+
+
+
 
 ## Directory structure
 
@@ -142,9 +151,11 @@ include
 contrib
 lib
 lib-static
-test   - direct
-examples
-python - finufftpy
+test   - directft
+       - results
+                *.refout
+examples (C++/C examples)
+python - finufftpy (the py module)
        - examples
        - test
        setup.py    (this is for pybind11)
