@@ -6,9 +6,9 @@
 #include <cufft.h>
 
 #include "cufinufft.h"
-#include "spreadinterp.h"
+#include "cuspreadinterp.h"
+#include "cudeconvolve.h"
 #include "memtransfer.h"
-#include "deconvolve.h"
 
 using namespace std;
 

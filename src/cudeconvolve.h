@@ -1,5 +1,5 @@
-#ifndef __DECONVOLVE_H__
-#define __DECONVOLVE_H__
+#ifndef __CUDECONVOLVE_H__
+#define __CUDECONVOLVE_H__
 
 #include "cufinufft.h"
 

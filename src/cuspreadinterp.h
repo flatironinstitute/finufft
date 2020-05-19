@@ -1,6 +1,5 @@
-
-#ifndef __SPREAD_H__
-#define __SPREAD_H__
+#ifndef __CUSPREADINTERP_H__
+#define __CUSPREADINTERP_H__
 
 #include "cufinufft.h"
 

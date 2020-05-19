@@ -6,7 +6,7 @@
 #include <cub/device/device_scan.cuh>
 
 #include <cuComplex.h>
-#include "spreadinterp.h"
+#include "cuspreadinterp.h"
 
 using namespace std;
 
