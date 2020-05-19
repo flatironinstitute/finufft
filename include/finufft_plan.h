@@ -10,7 +10,7 @@
 #endif
 
 typedef struct {
-  // groups together a bunch of type 3 rescaling/centering/phasing parameters
+  // groups together a bunch of type-3 rescaling/centering/phasing parameters
   FLT X1,C1,D1,h1,gam1;   // x dim
   FLT X2,C2,D2,h2,gam2;   // y
   FLT X3,C3,D3,h3,gam3;   // z
@@ -34,7 +34,7 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   BIGINT nf1;      // size of internal fine grid in x (1) direction
   BIGINT nf2;      // " y
   BIGINT nf3;      // " z
-  BIGINT nf;       // total fine grid points (product of the above 3)
+  BIGINT nf;       // total # fine grid points (product of the above 3)
   
   int fftSign;     // guaranteed to be +-1
 

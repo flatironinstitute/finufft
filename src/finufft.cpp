@@ -10,7 +10,7 @@
    Alex Barnett.
    As of v1.2 these replace the old hand-coded separate 9 finufft?d?() functions
    and the two finufft2d?many() functions.
-   The (now 18) simple interfaces are in simpleinterfaces.cpp
+   The (now 18) simple C++ interfaces are in simpleinterfaces.cpp
 
 Notes on algorithms taken from old finufft?d?() documentation, Feb-Jun 2017:
 
@@ -48,8 +48,9 @@ Notes on algorithms taken from old finufft?d?() documentation, Feb-Jun 2017:
    No references to FFTW are needed here. CPX arithmetic is used.
 
    MULTIPLE STRENGTH VECTORS FOR THE SAME NONUNIFORM POINTS (n_transf>1):
-     maxBatchSize (set to max_num_omp_threads) times the RAM is needed, so this is
-     good only for small problems.
+     maxBatchSize (set to max_num_omp_threads) times the RAM is needed, so
+     this is good only for small problems.
+
 
 Design notes for guru interface implementation:
 
@@ -242,13 +243,14 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 int spreadBatch(int batchSize, finufft_plan* p, CPX* cBatch)
 /* Spreads a batch of batchSize strength vectors cBatch to the batch of fine
    working grids p->fw, using the same set of NU points p->X,Y,Z for each
-   vector in the batch.
+   vector in the batch. Returns code of any spreader errors.
    Note that cBatch is already assumed to have the correct offset, ie it
    reads from the start of cBatch.
 */
 {
 
-
+  ****   rewrite, simpler!
+    
   BIGINT Nfw = p->nf1*p->nf2*p->nf3;     // size of each fw 
   int blkJump = blkNum*p->batchSize; 
 
@@ -286,130 +288,32 @@ int spreadBatch(int batchSize, finufft_plan* p, CPX* cBatch)
   MY_OMP_SET_NESTED(0);
 }
 
-void interpAllSetsInBatch(int nSetsThisBatch, int blk, finufft_plan* p, CPX* c, int* ier_interps)
-// Type 2: Interpolates from weights at uniform points in fw to non uniform points in c
-{
-  BIGINT fwRowSize =  p->nf1*p->nf2*p->nf3;
-  int blkJump = blk*p->batchSize; 
-
-  //default sequential maximum multithreaded: execute
-  //the for-loop down below on THIS thread (spawn no others)
-  //and leave all the multithreading for inside of the interpSorted call
-  int n_outerThreads = 0;
-  if(p->opts.spread_scheme){
-    //spread_scheme == 1 -> simultaneous singlethreaded/nested multi
-    n_outerThreads = nSetsThisBatch; //spawn as many threads as sets, if fewer sets than available threads
-                                     //the extra threads used for work inside of spreadSorted 
-  }
-  
-  MY_OMP_SET_NESTED(1);
-#pragma omp parallel for num_threads(n_outerThreads)
-  for(int i = 0; i < nSetsThisBatch; i++){ 
-        
-    //index into this iteration of fft in fw and weights arrays
-    FFTW_CPX *fwStart = p->fw + fwRowSize*i; //fw gets reread on each iteration of j
-
-    CPX * cStart;
-
-    //If this is a type 2 being executed inside of a type 3, c is an internal array of size nj*threadBlockSize
-    if(p->isInnerT2)
-      cStart = c + p->nj*i;
-
-    //for type 1+ regular 2, c is the result array, size nj*n_transforms
-    else
-      cStart = c + p->nj*(i + blkJump);
-
-    int ier = interpSorted(p->sortIndices,
-                           p->nf1, p->nf2, p->nf3, (FLT*)fwStart,
-                           p->nj, p->X, p->Y, p->Z, (FLT *)cStart,
-                           p->spopts, p->didSort) ;
-
-    if(ier)
-      ier_interps[i] = ier;
-  }
-  MY_OMP_SET_NESTED(0);
-}
-
-void deconvolveInParallel(int nSetsThisBatch, int blk, finufft_plan* p, CPX* fk)
-/* Type 1: deconvolves (amplifies) from interior fw array into user-supplied fk.
-   Type 2: deconvolves from user-supplied fk into interior fw array.
-   This is mostly a parallel loop calling deconvolveshuffle?d in the needed dim.
-*/
-{
-  // phiHat = kernel FT arrays (stacked version of fwker in 2017 code)
-  FLT* phiHat1 = p->phiHat, *phiHat2=NULL, *phiHat3=NULL;
-  if(p->dim > 1)
-    phiHat2 = p->phiHat + p->nf1/2 + 1;
-  if(p->dim > 2)
-    phiHat3 = p->phiHat+(p->nf1/2+1)+(p->nf2/2+1);
-
-  BIGINT fkRowSize = p->ms*p->mt*p->mu;
-  BIGINT fwRowSize = p->nf1*p->nf2*p->nf3;
-  int blockJump = blk*p->batchSize;
-
-#pragma omp parallel for
-  for(int i = 0; i < nSetsThisBatch; i++) {
-    CPX *fkStart;
-
-    //If this is a type 2 being executed inside of a type 3, fk is internal array of size nj*threadBlockSize
-    if(p->isInnerT2)
-      fkStart = fk + i*fkRowSize;
-
-    //otherwise it is a user supplied array of size ms*mt*mu*n_transforms
-    else
-      fkStart = fk + (i+blockJump)*fkRowSize;
-    
-    FFTW_CPX *fwStart = p->fw + fwRowSize*i;
-
-    //deconvolveshuffle?d are not multithreaded inside, so called in parallel here
-    //prefactors hardcoded to 1...
-    if(p->dim == 1)
-      deconvolveshuffle1d(p->spopts.spread_direction, 1.0, phiHat1,
-                          p->ms, (FLT *)fkStart,
-                          p->nf1, fwStart, p->opts.modeord);
-    else if (p->dim == 2)
-      deconvolveshuffle2d(p->spopts.spread_direction, 1.0, phiHat1, phiHat2,
-                          p->ms, p->mt, (FLT *)fkStart,
-                          p->nf1, p->nf2, fwStart, p->opts.modeord);
-    else
-      deconvolveshuffle3d(p->spopts.spread_direction, 1.0, phiHat1, phiHat2,
-                          phiHat3, p->ms, p->mt, p->mu,
-                          (FLT *)fkStart, p->nf1, p->nf2, p->nf3,
-                          fwStart, p->opts.modeord);
-  }
-}
-
 
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
-  // Uses a new set of weights (cj) and performs NUFFTs with existing NU pts
-  // and plan.
-  // Performs spread/interp, pre/post deconvolve, and fftw_exec as appropriate
-  // for 3 types. For cases of n_transf>1, performs work in blocks of size
-  // up to batchSize.
+  /* Uses new batch of weight vectors (cj) and performs NUFFTs with existing
+     NU pts and plan.
+     Performs spread/interp, pre/post deconvolve, and fftw_exec as appropriate
+     for 3 types. For cases of n_transf>1, performs work in blocks of size
+     up to batchSize.
+  */
   CNTime timer;
   double t_spread = 0.0, t_fft = 0.0, t_deconv = 0.0;  // accumulate timings
+  int ier;
   
-  int *ier_spreads = (int *)calloc(p->batchSize,sizeof(int)); // errors within blk
-
   if (p->type!=3){ // --------------------- TYPE 1,2 EXEC ------------------
   
-    for(int blk=0; blk*p->batchSize < p->n_transf; blk++){  // loop over blocks...
+    for(int b=0; b*p->batchSize < p->n_transf; b++){   // loop b over batches
 
       // current block either batchSize, or truncated if last one
-      int thisBatchSize = min(p->n_transf - blk*p->batchSize, p->batchSize);
+      int thisBatchSize = min(p->n_transf - b*p->batchSize, p->batchSize);
 
-      // Type 1 Step 1: Spread to Regular Grid    
-      if(p->type == 1) { // step 1: spread from NU pts p->X, weights cj,
+      if(p->type == 1) {    // step 1: spread NU pts p->X, weights cj, to grid
         timer.restart();
-        spreadAllSetsInBatch(thisBatchSize, blk, p, cj, ier_spreads);
+        ier = spreadBatch(thisBatchSize, p, cj + b*p->nj);   // offset cj read
         t_spread += timer.elapsedsec();
-
-        for(int i = 0; i < thisBatchSize; i++){
-          if(ier_spreads[i])
-            return ier_spreads[i];
-        }
+        if (ier) return ier;
       }
 
       //Type 2 Step 1: amplify Fourier coeffs fk and copy into fw
