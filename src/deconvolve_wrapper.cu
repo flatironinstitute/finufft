@@ -4,7 +4,7 @@
 #include <iomanip>
 
 #include <cuComplex.h>
-#include "cudeconvolve.h"
+#include <cudeconvolve.h>
 
 using namespace std;
 

@@ -6,9 +6,9 @@
 #include <cub/device/device_scan.cuh>
 
 #include <cuComplex.h>
-#include "../cuspreadinterp.h"
-#include "../memtransfer.h"
-#include "../profile.h"
+#include <cuspreadinterp.h>
+#include <memtransfer.h>
+#include <profile.h>
 
 using namespace std;
 

@@ -1,7 +1,7 @@
 #ifndef __CUSPREADINTERP_H__
 #define __CUSPREADINTERP_H__
 
-#include "cufinufft.h"
+#include <cufinufft.h>
 
 //Kernels for 2D codes
 //__global__

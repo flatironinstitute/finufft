@@ -1,7 +1,7 @@
 #ifndef __CUDECONVOLVE_H__
 #define __CUDECONVOLVE_H__
 
-#include "cufinufft.h"
+#include <cufinufft.h>
 
 __global__
 void Deconvolve_2d(int ms, int mt, int nf1, int nf2, int fw_width, CUCPX* fw, 

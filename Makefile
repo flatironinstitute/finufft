@@ -38,6 +38,9 @@ LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTW)
 # Allow the user to override any variable above this point. #
 -include make.inc
 
+# Include header files
+INC += -I include
+
 ifeq ($(PREC),SINGLE)
 PRECSUFFIX=f
 CXXFLAGS+=-DSINGLE

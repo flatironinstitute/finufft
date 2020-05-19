@@ -1,4 +1,4 @@
-#include "cufinufft.h"
+#include <cufinufft.h>
 
 extern "C" {
 

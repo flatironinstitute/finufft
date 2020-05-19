@@ -4,8 +4,8 @@
 #include <helper_cuda.h>
 #include <complex>
 
-#include "../src/cufinufft.h"
-#include "../src/profile.h"
+#include <cufinufft.h>
+#include <profile.h>
 #include "../contrib/utils.h"
 
 using namespace std;

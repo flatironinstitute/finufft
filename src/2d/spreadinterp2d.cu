@@ -4,7 +4,7 @@
 #include <cuda.h>
 #include <cub/cub.cuh> 
 #include "../../contrib/utils.h"
-#include "../cuspreadinterp.h"
+#include <cuspreadinterp.h>
 
 using namespace std;
 
