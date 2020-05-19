@@ -41,5 +41,5 @@ FFTWOMPSUFFIX=threads
 # some of these will depend on your FFTW library location...
 MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
 # edit for your MATLAB version location...
-MEX = $(shell ls -d /Applications/MATLAB_R201*.app)/bin/mex
+MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 # Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
