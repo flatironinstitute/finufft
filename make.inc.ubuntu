@@ -1,5 +1,0 @@
-CUB_ROOT=./cub
-SAMPLES_ROOT=./contrib/cuda_samples
-
-INC=-I$(CUB_ROOT) \
-    -I$(SAMPLES_ROOT)

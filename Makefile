@@ -24,7 +24,7 @@ NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME $(NVARCH) \
 CUDA_ROOT=/usr/local/cuda
 CUB_ROOT=./cub
 INC=-I$(CUDA_ROOT)/include \
-	-I$(CUDA_ROOT)/samples/common/inc \
+	-Icontrib/cuda_samples \
 	-I$(CUB_ROOT)
 NVCC_LIBS_PATH=-L$(CUDA_ROOT)/lib64
 
