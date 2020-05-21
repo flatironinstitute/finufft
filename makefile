@@ -238,15 +238,12 @@ fortran: $(FOBJS) $(OBJS)
 	time -p $(F5)
 
 # matlab .mex* executable... (not worth starting matlab to test it)
-matlab: $(STATICLIB)  matlab/finufft_m.cpp
+matlab: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "MATLAB interface only supports double precision; doing nothing"
 else
-	$(MEX) matlab/finufft.cpp $(STATICLIB) matlab/finufft_m.cpp -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/finufft
-endif
-matlab_guru: $(STATICLIB)
-	$(MEX) -DR2008OO matlab/nufft_opts_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/nufft_opts_mex
 	$(MEX) -DR2008OO matlab/nufft_plan_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/nufft_plan_mex
+endif
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
 octave: $(STATICLIB)  matlab/finufft_m.cpp
@@ -260,13 +257,8 @@ endif
 
 # for experts; force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
 # (needs mwrap)
-mex: matlab/finufft.mw
+mex: matlab/nufft_plan.mw
 	(cd matlab;\
-	$(MWRAP) -list -mex finufft -cppcomplex -mb finufft.mw ;\
-	$(MWRAP) -mex finufft -c finufft.cpp -cppcomplex finufft.mw )
-mex_guru: matlab/nufft_opts.mw
-	(cd matlab;\
-	$(MWRAP) -mex nufft_opts_mex -c nufft_opts_mex.cpp -mb -cppcomplex nufft_opts.mw;\
 	$(MWRAP) -mex nufft_plan_mex -c nufft_plan_mex.cpp -mb -cppcomplex nufft_plan.mw)
 
 # python interfaces (v3 assumed)...
