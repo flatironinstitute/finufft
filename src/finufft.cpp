@@ -278,6 +278,8 @@ int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
     spreadinterpSorted(p->sortIndices, p->nf1, p->nf2, p->nf3, (FLT*)fwi, p->nj,
                        p->X, p->Y, p->Z, (FLT*)ci, p->spopts, p->didSort);
   }
+
+  MY_OMP_SET_NESTED(0);                    // back to default
   return 0;
 }
 
@@ -293,7 +295,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
    Barnett 5/20/20 based on Malleo 2019.
 */
   CNTime timer;
-  double t_sprint = 0.0, t_fft = 0.0, t_deconv = 0.0;  // accumulate timings
+  double t_sprint = 0.0, t_fft = 0.0, t_deconv = 0.0;  // accumulated timings
   
   if (p->type!=3){ // --------------------- TYPE 1,2 EXEC ------------------
   
