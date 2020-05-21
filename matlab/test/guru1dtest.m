@@ -18,8 +18,8 @@ c = randn(1,M)+1i*randn(1,M);
 
 disp('starting...'), tic
 %opts
-opts = nufft_opts();
-opts.set_debug(0);
+opts.debug=1;
+opts.spread_debug=1;
 
 %plan
 plan = nufft_plan(type,n_modes,isign,n_transf,eps,blksize,opts);

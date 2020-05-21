@@ -35,19 +35,8 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 % 5/17/20.
 % Have not tested ntransf>1 yet.
 
-opts = nufft_opts();  % libin's creator
-
-% problem is now how to get the passed-in o fields into opts! :
-if isfield(o,'debug'), opts.set_debug(o.debug); end
-if isfield(o,'upsampfac'), opts.set_upsampfac(o.upsampfac); end
-% etc...
-% this is repetitive and not very maintainable, to add new opts fields.
-% ugh
-% Would be fixed by making opts a simple matlab struct, not a matlab obj ?
-
-p = nufft_plan();       % would be nice to combine this w/ makeplan :)
 n_transf = round(numel(c)/numel(x));   % back out how many transf
 blksize=0;    % default
-p.nufft_makeplan(1,ms,isign,n_transf,eps,blksize,opts);
+p = nufft_plan(1,ms,isign,n_transf,eps,blksize,o);
 p.nufft_setpts(x,[],[],[],[],[]);
 [f,ier] = p.nufft_excute(c);
