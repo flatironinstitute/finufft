@@ -1,5 +1,5 @@
 # cuFINUFFT
-A GPU implementation of 2,3 dimension type 1,2 non-uniform FFT based on [FINUFFT][1].
+A GPU implementation of 2, 3 dimension type 1, 2 non-uniform FFT based on [FINUFFT][1].
 
 This is a work from Melody Shih's internship at Flatiron Institute, advised by CCM project leader Alex Barnett.
 
@@ -31,9 +31,9 @@ cuFINUFFT API contains 5 stages:
  - DEBUG - debug mode outputs all the middle stages' result
  
 ### Other
- - If you are interesting in optimizing for GPU Compute Capability,
+ - If you are interested in optimizing for GPU Compute Capability,
  you may want to specicfy ```NVARCH=-arch=sm_XX``` in your make.inc to reduce compile times,
- or other performance reasons. See [Matching SM Architectures][2].
+ or for other performance reasons. See [Matching SM Architectures][2].
 
 [1]: https://github.com/flatironinstitute/finufft
 [2]: http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
