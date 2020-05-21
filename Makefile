@@ -2,13 +2,41 @@ CC=gcc
 CXX=g++
 NVCC=nvcc
 
+# We'll sacrifice longer compile times for broader compatibility out of the box.
+# Developer-users are suggested to change this in their make.inc, see:
+#   http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+NVARCH = -arch=sm_70 \
+	-gencode=arch=compute_50,code=sm_50 \
+	-gencode=arch=compute_52,code=sm_52 \
+	-gencode=arch=compute_60,code=sm_60 \
+	-gencode=arch=compute_61,code=sm_61 \
+	-gencode=arch=compute_70,code=sm_70 \
+	-gencode=arch=compute_75,code=sm_75 \
+	-gencode=arch=compute_75,code=compute_75 
+
 CXXFLAGS= -DNEED_EXTERN_C  -fPIC -O3 -funroll-loops -march=native -g -std=c++11
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME -arch=sm_60 \
+NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME $(NVARCH) \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
-#If using any card with architecture KXX, change to -arch=sm_30 (see GPUs 
-#supported section in https://en.wikipedia.org/wiki/CUDA for more info)
 #DEBUG add "-g -G" for cuda-gdb debugger
+
+# CUDA Related build dependencies
+CUDA_ROOT=/usr/local/cuda
+CUB_ROOT=./cub
+INC=-I$(CUDA_ROOT)/include \
+	-Icontrib/cuda_samples \
+	-I$(CUB_ROOT)
+NVCC_LIBS_PATH=-L$(CUDA_ROOT)/lib64
+
+FFTWNAME=fftw3
+FFTW=$(FFTWNAME)$(PRECSUFFIX)
+
+LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTW)
+
+
+#############################################################
+# Allow the user to override any variable above this point. #
+-include make.inc
 
 ifeq ($(PREC),SINGLE)
 PRECSUFFIX=f
@@ -17,16 +45,6 @@ NVCCFLAGS+=-DSINGLE
 else
 PRECSUFFIX=
 endif
-
-INC=-I/cm/shared/sw/pkg/devel/cuda/9.0.176/samples/common/inc/ \
-    -I/mnt/home/yshih/cub/ \
-    -I/cm/shared/sw/pkg/devel/cuda/9.0.176/include/
-LIBS_PATH=
-
-FFTWNAME=fftw3
-FFTW=$(FFTWNAME)$(PRECSUFFIX)
-
-LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTW)
 
 LIBNAME=libcufinufft$(PRECSUFFIX)
 DYNAMICLIB=lib/$(LIBNAME).so
@@ -46,9 +64,8 @@ CUFINUFFTOBJS=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	src/deconvolve_wrapper.o src/cufinufft.o src/profile.o \
 	src/3d/spreadinterp3d.o src/3d/spread3d_wrapper.o \
 	src/3d/interp3d_wrapper.o src/3d/cufinufft3d.o
-	
+
 CUFINUFFTCOBJS=src/cufinufftc.o
-#-include make.inc
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $(INC) $< -o $@
@@ -69,24 +86,24 @@ spreadinterp_test: test/spreadinterp_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 
 finufft2d_test: test/finufft2d_test.o finufft/finufft2d.o $(CUFINUFFTOBJS) \
 	$(FINUFFTOBJS)
-	$(CXX) $^ $(LIBS_PATH) $(LIBS) -o $@
+	$(CXX) $^ $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 cufinufft_test: test/cufinufft_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
+	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 cufinufft2d1_test: test/cufinufft2d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
+	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 cufinufft2d1many_test: test/cufinufft2d1many_test.o $(CUFINUFFTOBJS) \
 	$(FINUFFTOBJS)
-	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
+	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 cufinufft2d2_test: test/cufinufft2d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
+	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 cufinufft2d2many_test: test/cufinufft2d2many_test.o $(CUFINUFFTOBJS) \
 	$(FINUFFTOBJS)
-	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) -o $@
+	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 spread3d: test/spread_3d.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
@@ -98,10 +115,10 @@ spreadinterp3d_test: test/spreadinterp3d_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 cufinufft3d1_test: test/cufinufft3d1_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
+	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	$(NVCC) $^ $(NVCCFLAGS) $(LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
+	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 lib: $(STATICLIB) $(DYNAMICLIB)
 
@@ -111,12 +128,12 @@ $(STATICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 	mkdir -p lib-static
 	ar rcs $(STATICLIB) $(CUFINUFFTOBJS) $(FINUFFTOBJS)
 $(DYNAMICLIB): $(CUFINUFFTOBJS) $(FINUFFTOBJS)
-	mkdir -p lib	
-	$(NVCC) -shared $(NVCCFLAGS) $(CUFINUFFTOBJS) $(FINUFFTOBJS) -o $(DYNAMICLIB) $(LIBS) 
+	mkdir -p lib
+	$(NVCC) -shared $(NVCCFLAGS) $(CUFINUFFTOBJS) $(FINUFFTOBJS) -o $(DYNAMICLIB) $(LIBS)
 
 $(DYNAMICCLIB): $(CUFINUFFTCOBJS) $(STATICLIB)
 	mkdir -p lib
-	gcc -shared -o $(DYNAMICCLIB) $(CUFINUFFTCOBJS) $(STATICLIB) $(LIBS)
+	gcc -shared -o $(DYNAMICCLIB) $(CUFINUFFTCOBJS) $(STATICLIB) $(NVCC_LIBS_PATH) $(LIBS)
 
 all: spread2d interp2d spreadinterp_test finufft2d_test cufinufft2d1_test \
 	cufinufft2d2_test cufinufft2d1many_test cufinufft2d2many_test spread3d \
@@ -148,6 +165,5 @@ clean:
 	rm -f spreadinterp_test
 	rm -f spreadinterp3d_test
 	rm -f example2d1
-	rm -f lib/*.so
-	rm -f lib-static/*.a
-	rmdir lib lib-static
+	rm -rf lib
+	rm -rf lib-static
