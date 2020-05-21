@@ -738,7 +738,7 @@ mw_err_label:
 
 /* ---- nufft_plan.mw: 83 ----
  * nufft_opts* o = new();
- * Also at nufft_plan.mw: 88
+ * Also at nufft_plan.mw: 89
  */
 static const char* stubids2_ = "o nufft_opts* = new()";
 
@@ -760,7 +760,7 @@ mw_err_label:
 
 /* ---- nufft_plan.mw: 84 ----
  * finufft_default_opts(nufft_opts* o);
- * Also at nufft_plan.mw: 89
+ * Also at nufft_plan.mw: 90
  */
 static const char* stubids3_ = "finufft_default_opts(i nufft_opts*)";
 
@@ -1388,8 +1388,8 @@ void mexFunction(int nlhs, mxArray* plhs[],
         if (!mexprofrecord_)
             mexPrintf("Profiler inactive\n");
         mexPrintf("%d calls to nufft_plan.mw:69\n", mexprofrecord_[1]);
-        mexPrintf("%d calls to nufft_plan.mw:83 (nufft_plan.mw:88)\n", mexprofrecord_[2]);
-        mexPrintf("%d calls to nufft_plan.mw:84 (nufft_plan.mw:89)\n", mexprofrecord_[3]);
+        mexPrintf("%d calls to nufft_plan.mw:83 (nufft_plan.mw:89)\n", mexprofrecord_[2]);
+        mexPrintf("%d calls to nufft_plan.mw:84 (nufft_plan.mw:90)\n", mexprofrecord_[3]);
         mexPrintf("%d calls to nufft_plan.mw:85 (nufft_plan.mw:92)\n", mexprofrecord_[4]);
         mexPrintf("%d calls to nufft_plan.mw:86 (nufft_plan.mw:93)\n", mexprofrecord_[5]);
         mexPrintf("%d calls to nufft_plan.mw:91\n", mexprofrecord_[8]);
@@ -1413,8 +1413,8 @@ void mexFunction(int nlhs, mxArray* plhs[],
         if (!mexprofrecord_)
             fprintf(logfp, "Profiler inactive\n");
         fprintf(logfp, "%d calls to nufft_plan.mw:69\n", mexprofrecord_[1]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:83 (nufft_plan.mw:88)\n", mexprofrecord_[2]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:84 (nufft_plan.mw:89)\n", mexprofrecord_[3]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:83 (nufft_plan.mw:89)\n", mexprofrecord_[2]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:84 (nufft_plan.mw:90)\n", mexprofrecord_[3]);
         fprintf(logfp, "%d calls to nufft_plan.mw:85 (nufft_plan.mw:92)\n", mexprofrecord_[4]);
         fprintf(logfp, "%d calls to nufft_plan.mw:86 (nufft_plan.mw:93)\n", mexprofrecord_[5]);
         fprintf(logfp, "%d calls to nufft_plan.mw:91\n", mexprofrecord_[8]);

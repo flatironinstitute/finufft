@@ -34,11 +34,11 @@ nufft_plan_mex(mex_id_, o);
         mex_id_ = 'delete(i nufft_opts*)';
 nufft_plan_mex(mex_id_, o);
       else
+        % first set o with default value and then replace with fields in opts
         mex_id_ = 'o nufft_opts* = new()';
 [o] = nufft_plan_mex(mex_id_);
         mex_id_ = 'finufft_default_opts(i nufft_opts*)';
 nufft_plan_mex(mex_id_, o);
-        % first set o with default value and then replace with fields in opts
         mex_id_ = 'copy_nufft_opts(i mxArray*, i nufft_opts*)';
 nufft_plan_mex(mex_id_, opts, o);
         mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i int, i finufft_plan*, i nufft_opts*)';
