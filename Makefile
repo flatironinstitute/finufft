@@ -165,6 +165,5 @@ clean:
 	rm -f spreadinterp_test
 	rm -f spreadinterp3d_test
 	rm -f example2d1
-	rm -f lib/*.so
-	rm -f lib-static/*.a
-	rmdir lib lib-static
+	rm -rf lib
+	rm -rf lib-static
