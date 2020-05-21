@@ -4,6 +4,8 @@
  #include <cstring>
  #include <math.h>
  void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
+   if(!mxIsStruct(om))
+     mexErrMsgIdAndTxt("MATLAB:phonebook:inputNotStruct","Input must be a structure.");
    mwIndex idx = 0;
    int ifield, nfields;
    const char **fname;
@@ -715,7 +717,7 @@ mxWrapCopyZDef     (mxWrapCopy_dcomplex, dcomplex,
 mxWrapReturnZDef   (mxWrapReturn_dcomplex, dcomplex,
                     real_dcomplex, imag_dcomplex)
 
-/* ---- nufft_plan.mw: 69 ----
+/* ---- nufft_plan.mw: 71 ----
  * finufft_plan* p = new();
  */
 static const char* stubids1_ = "o finufft_plan* = new()";
@@ -736,9 +738,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 83 ----
+/* ---- nufft_plan.mw: 85 ----
  * nufft_opts* o = new();
- * Also at nufft_plan.mw: 89
+ * Also at nufft_plan.mw: 91
  */
 static const char* stubids2_ = "o nufft_opts* = new()";
 
@@ -758,9 +760,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 84 ----
+/* ---- nufft_plan.mw: 86 ----
  * finufft_default_opts(nufft_opts* o);
- * Also at nufft_plan.mw: 90
+ * Also at nufft_plan.mw: 92
  */
 static const char* stubids3_ = "finufft_default_opts(i nufft_opts*)";
 
@@ -782,9 +784,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 85 ----
+/* ---- nufft_plan.mw: 87 ----
  * int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* o);
- * Also at nufft_plan.mw: 92
+ * Also at nufft_plan.mw: 94
  */
 static const char* stubids4_ = "o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i int, i finufft_plan*, i nufft_opts*)";
 
@@ -857,9 +859,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 86 ----
+/* ---- nufft_plan.mw: 88 ----
  * delete(nufft_opts* o);
- * Also at nufft_plan.mw: 93
+ * Also at nufft_plan.mw: 95
  */
 static const char* stubids5_ = "delete(i nufft_opts*)";
 
@@ -881,10 +883,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 91 ----
- * copy_nufft_opts(mxArray* opts, nufft_opts* o);
+/* ---- nufft_plan.mw: 93 ----
+ * copy_nufft_opts(mxArray opts, nufft_opts* o);
  */
-static const char* stubids8_ = "copy_nufft_opts(i mxArray*, i nufft_opts*)";
+static const char* stubids8_ = "copy_nufft_opts(i mxArray, i nufft_opts*)";
 
 void mexStub8(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -906,9 +908,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 98 ----
+/* ---- nufft_plan.mw: 100 ----
  * finufft_destroy(finufft_plan* plan);
- * Also at nufft_plan.mw: 102
+ * Also at nufft_plan.mw: 104
  */
 static const char* stubids11_ = "finufft_destroy(i finufft_plan*)";
 
@@ -930,7 +932,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 108 ----
+/* ---- nufft_plan.mw: 110 ----
  * int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
  */
 static const char* stubids13_ = "o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])";
@@ -1011,7 +1013,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 135 ----
+/* ---- nufft_plan.mw: 137 ----
  * int type = get_type(finufft_plan* plan);
  */
 static const char* stubids14_ = "o int = get_type(i finufft_plan*)";
@@ -1042,7 +1044,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 136 ----
+/* ---- nufft_plan.mw: 138 ----
  * int n_transf = get_ntransf(finufft_plan* plan);
  */
 static const char* stubids15_ = "o int = get_ntransf(i finufft_plan*)";
@@ -1073,7 +1075,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 139 ----
+/* ---- nufft_plan.mw: 141 ----
  * get_nmodes(finufft_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
  */
 static const char* stubids16_ = "get_nmodes(i finufft_plan*, o int64_t&, o int64_t&, o int64_t&)";
@@ -1120,7 +1122,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 141 ----
+/* ---- nufft_plan.mw: 143 ----
  * int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[outsize] result);
  */
 static const char* stubids17_ = "o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[x])";
@@ -1167,7 +1169,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 144 ----
+/* ---- nufft_plan.mw: 146 ----
  * int64_t nj = get_nj(finufft_plan* plan);
  */
 static const char* stubids18_ = "o int64_t = get_nj(i finufft_plan*)";
@@ -1198,7 +1200,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 145 ----
+/* ---- nufft_plan.mw: 147 ----
  * int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_transf] result, dcomplex[] data_in);
  */
 static const char* stubids19_ = "o int = finufft_exec(i finufft_plan*, o dcomplex[xx], i dcomplex[])";
@@ -1247,7 +1249,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 147 ----
+/* ---- nufft_plan.mw: 149 ----
  * int64_t nk = get_nk(finufft_plan* plan);
  */
 static const char* stubids20_ = "o int64_t = get_nk(i finufft_plan*)";
@@ -1278,7 +1280,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- nufft_plan.mw: 148 ----
+/* ---- nufft_plan.mw: 150 ----
  * int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[nk, n_transf] result);
  */
 static const char* stubids21_ = "o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[xx])";
@@ -1387,22 +1389,22 @@ void mexFunction(int nlhs, mxArray* plhs[],
     } else if (strcmp(id, "*profile report*") == 0) {
         if (!mexprofrecord_)
             mexPrintf("Profiler inactive\n");
-        mexPrintf("%d calls to nufft_plan.mw:69\n", mexprofrecord_[1]);
-        mexPrintf("%d calls to nufft_plan.mw:83 (nufft_plan.mw:89)\n", mexprofrecord_[2]);
-        mexPrintf("%d calls to nufft_plan.mw:84 (nufft_plan.mw:90)\n", mexprofrecord_[3]);
-        mexPrintf("%d calls to nufft_plan.mw:85 (nufft_plan.mw:92)\n", mexprofrecord_[4]);
-        mexPrintf("%d calls to nufft_plan.mw:86 (nufft_plan.mw:93)\n", mexprofrecord_[5]);
-        mexPrintf("%d calls to nufft_plan.mw:91\n", mexprofrecord_[8]);
-        mexPrintf("%d calls to nufft_plan.mw:98 (nufft_plan.mw:102)\n", mexprofrecord_[11]);
-        mexPrintf("%d calls to nufft_plan.mw:108\n", mexprofrecord_[13]);
-        mexPrintf("%d calls to nufft_plan.mw:135\n", mexprofrecord_[14]);
-        mexPrintf("%d calls to nufft_plan.mw:136\n", mexprofrecord_[15]);
-        mexPrintf("%d calls to nufft_plan.mw:139\n", mexprofrecord_[16]);
-        mexPrintf("%d calls to nufft_plan.mw:141\n", mexprofrecord_[17]);
-        mexPrintf("%d calls to nufft_plan.mw:144\n", mexprofrecord_[18]);
-        mexPrintf("%d calls to nufft_plan.mw:145\n", mexprofrecord_[19]);
-        mexPrintf("%d calls to nufft_plan.mw:147\n", mexprofrecord_[20]);
-        mexPrintf("%d calls to nufft_plan.mw:148\n", mexprofrecord_[21]);
+        mexPrintf("%d calls to nufft_plan.mw:71\n", mexprofrecord_[1]);
+        mexPrintf("%d calls to nufft_plan.mw:85 (nufft_plan.mw:91)\n", mexprofrecord_[2]);
+        mexPrintf("%d calls to nufft_plan.mw:86 (nufft_plan.mw:92)\n", mexprofrecord_[3]);
+        mexPrintf("%d calls to nufft_plan.mw:87 (nufft_plan.mw:94)\n", mexprofrecord_[4]);
+        mexPrintf("%d calls to nufft_plan.mw:88 (nufft_plan.mw:95)\n", mexprofrecord_[5]);
+        mexPrintf("%d calls to nufft_plan.mw:93\n", mexprofrecord_[8]);
+        mexPrintf("%d calls to nufft_plan.mw:100 (nufft_plan.mw:104)\n", mexprofrecord_[11]);
+        mexPrintf("%d calls to nufft_plan.mw:110\n", mexprofrecord_[13]);
+        mexPrintf("%d calls to nufft_plan.mw:137\n", mexprofrecord_[14]);
+        mexPrintf("%d calls to nufft_plan.mw:138\n", mexprofrecord_[15]);
+        mexPrintf("%d calls to nufft_plan.mw:141\n", mexprofrecord_[16]);
+        mexPrintf("%d calls to nufft_plan.mw:143\n", mexprofrecord_[17]);
+        mexPrintf("%d calls to nufft_plan.mw:146\n", mexprofrecord_[18]);
+        mexPrintf("%d calls to nufft_plan.mw:147\n", mexprofrecord_[19]);
+        mexPrintf("%d calls to nufft_plan.mw:149\n", mexprofrecord_[20]);
+        mexPrintf("%d calls to nufft_plan.mw:150\n", mexprofrecord_[21]);
     } else if (strcmp(id, "*profile log*") == 0) {
         FILE* logfp;
         if (nrhs != 2 || mxGetString(prhs[1], id, sizeof(id)) != 0)
@@ -1412,22 +1414,22 @@ void mexFunction(int nlhs, mxArray* plhs[],
             mexErrMsgTxt("Cannot open log for output");
         if (!mexprofrecord_)
             fprintf(logfp, "Profiler inactive\n");
-        fprintf(logfp, "%d calls to nufft_plan.mw:69\n", mexprofrecord_[1]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:83 (nufft_plan.mw:89)\n", mexprofrecord_[2]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:84 (nufft_plan.mw:90)\n", mexprofrecord_[3]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:85 (nufft_plan.mw:92)\n", mexprofrecord_[4]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:86 (nufft_plan.mw:93)\n", mexprofrecord_[5]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:91\n", mexprofrecord_[8]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:98 (nufft_plan.mw:102)\n", mexprofrecord_[11]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:108\n", mexprofrecord_[13]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:135\n", mexprofrecord_[14]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:136\n", mexprofrecord_[15]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:139\n", mexprofrecord_[16]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:141\n", mexprofrecord_[17]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:144\n", mexprofrecord_[18]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:145\n", mexprofrecord_[19]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:147\n", mexprofrecord_[20]);
-        fprintf(logfp, "%d calls to nufft_plan.mw:148\n", mexprofrecord_[21]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:71\n", mexprofrecord_[1]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:85 (nufft_plan.mw:91)\n", mexprofrecord_[2]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:86 (nufft_plan.mw:92)\n", mexprofrecord_[3]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:87 (nufft_plan.mw:94)\n", mexprofrecord_[4]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:88 (nufft_plan.mw:95)\n", mexprofrecord_[5]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:93\n", mexprofrecord_[8]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:100 (nufft_plan.mw:104)\n", mexprofrecord_[11]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:110\n", mexprofrecord_[13]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:137\n", mexprofrecord_[14]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:138\n", mexprofrecord_[15]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:141\n", mexprofrecord_[16]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:143\n", mexprofrecord_[17]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:146\n", mexprofrecord_[18]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:147\n", mexprofrecord_[19]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:149\n", mexprofrecord_[20]);
+        fprintf(logfp, "%d calls to nufft_plan.mw:150\n", mexprofrecord_[21]);
         fclose(logfp);
     } else
         mexErrMsgTxt("Unknown identifier");

@@ -8,6 +8,8 @@ $ #include <cstring>
 $ #include <math.h>
 
 $ void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
+$   if(!mxIsStruct(om))
+$     mexErrMsgIdAndTxt("MATLAB:phonebook:inputNotStruct","Input must be a structure.");
 $   mwIndex idx = 0;
 $   int ifield, nfields;
 $   const char **fname;
@@ -88,7 +90,7 @@ classdef nufft_plan < handle
         % first set o with default value and then replace with fields in opts
         # nufft_opts* o = new nufft_opts();
         # finufft_default_opts(nufft_opts* o);
-        # copy_nufft_opts(mxArray* opts, nufft_opts* o);
+        # copy_nufft_opts(mxArray opts, nufft_opts* o);
         # int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* o);
         # delete(nufft_opts* o);
       end
