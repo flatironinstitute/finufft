@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;        // default
   nufft_opts opts; finufft_default_opts(&opts);
-  opts.spread_scheme = 1;
+  opts.spread_thread = 0;
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); ntransf = (int)w; }
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("%d of\t%lld NU pts to (%lld,%lld) modes in %.3g s  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,ti,ntransf*M/ti);
+    printf("%d of: %lld NU pts to (%lld,%lld) modes in %.3g s  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,ti,ntransf*M/ti);
   
   int d = floor(ntransf/2);    // choose a data to check
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j+d*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("[err check] one mode: rel err in F[%lld,%lld] of data[%d] is %.3g\n",
+  printf("\tone mode: rel err in F[%lld,%lld] of data[%d] is %.3g\n",
 	 (long long)nt1,(long long)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
 
   // compare the result with finufft2d1
@@ -118,14 +118,14 @@ int main(int argc, char* argv[])
     ier = finufft2d1(M,x,y,cstart,isign,tol,N1,N2,Fstart,&opts);
   }
   double t=timer.elapsedsec();
-  printf("[speedup] \t T_finufft2d1 / T_finufft2d1many = %.3g\n", t/ti);
+  printf("\tspeedup \t T_finufft2d1 / T_finufft2d1many = %.3g\n", t/ti);
 
 
   // Check accuracy (worst over the ntransf)
   FLT maxerror = 0.0;
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(N,F_finufft2d1+k*N,F+k*N));
-  printf("[err check] err check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  %.3g\n",maxerror);
+  printf("\terr check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 
 
@@ -174,7 +174,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("%d of\t(%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)N1,(long long)N2,(long long)M,ti,ntransf*M/ti);
+    printf("%d of: (%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)N1,(long long)N2,(long long)M,ti,ntransf*M/ti);
 
   FFTW_FORGET_WISDOM();
   opts.debug = 0;        // don't output timing for calls of finufft2d2
@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
   for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[d*N + m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-  printf("[err check] one targ: rel err in c[%lld] of data[%d] is %.3g\n",(long long)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
+  printf("\tone targ: rel err in c[%lld] of data[%d] is %.3g\n",(long long)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
   
   // compare the result with finufft2d2...
   CPX* c_finufft2d2 = (CPX*)malloc(sizeof(CPX)*M*ntransf);
@@ -200,12 +200,12 @@ int main(int argc, char* argv[])
     ier = finufft2d2(M,x,y,cstart,isign,tol,N1,N2,Fstart,&opts);
   }
   t = timer.elapsedsec();
-  printf("speedup \t T_finufft2d2 / T_finufft2d2many = %.3g\n", t/ti);
+  printf("\tspeedup \t T_finufft2d2 / T_finufft2d2many = %.3g\n", t/ti);
 
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(M,c_finufft2d2+k*M,c+k*M));
-  printf("[err check] err check vs non-many: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n",maxerror);
+  printf("\terr check vs non-many: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n",maxerror);
   free(c_finufft2d2);
 
   
@@ -279,14 +279,14 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("%d of\t%lld NU to %lld NU in %.3g s      \t%.3g tot NU pts/s\n",ntransf, (long long)M,(long long)N,ti,ntransf*(M+N)/ti);
+    printf("%d of: %lld NU to %lld NU in %.3g s      \t%.3g tot NU pts/s\n",ntransf, (long long)M,(long long)N,ti,ntransf*(M+N)/ti);
 
   d = floor(ntransf/2); // choose a transform to check
   BIGINT kt = N/4;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);
   for (BIGINT j=0;j<M;++j)
     Ft += c[d*M + j] * exp(J*(s_freq[kt]*x[j] + t_freq[kt]*y[j]));
-  printf("[err check] on trial %d: rel err in F[%lld] against direct is %.3g\n",d,(long long)kt,abs(Ft-F[kt+d*N])/infnorm(N,F+d*N));  
+  printf("\ton trial %d: rel err in F[%lld] against direct is %.3g\n",d,(long long)kt,abs(Ft-F[kt+d*N])/infnorm(N,F+d*N));  
 
 // compare the result with finufft2d3...
   opts.debug = 0;
@@ -301,16 +301,16 @@ int main(int argc, char* argv[])
     ier = finufft2d3(M,x,y,cstart,isign,tol,N, s_freq,t_freq,Fstart,&opts);
   }
   t = timer.elapsedsec();
-  printf("speedup \t T_finufft2d3 / T_finufft2d3many = %.3g\n", t/ti);
+  printf("\tspeedup \t T_finufft2d3 / T_finufft2d3many = %.3g\n", t/ti);
 
   //check against the old
-  printf("[err check] on trial %d one targ: rel err in F[%lld] against old is %.3g\n",d,(long long)kt,abs(f_old2d3[kt+d*N]-F[kt+d*N])/infnorm(N,F+d*N));
+  printf("\ton trial %d one targ: rel err in F[%lld] against old is %.3g\n",d,(long long)kt,abs(f_old2d3[kt+d*N]-F[kt+d*N])/infnorm(N,F+d*N));
 
   
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(N,f_old2d3+k*N,F+k*N));
-  printf("[err check] err check vs non-many: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
+  printf("\terr check vs non-many: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
   free(f_old2d3);
   
 

@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 /* Test/Demo the guru interface
 
    Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc
-                  [tol [debug [spread_scheme [spread_sort [upsampfac]]]]]]]]]]
+                  [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]]]
 
    debug = 0: rel errors and overall timing
            1: timing breakdowns
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
    spread_scheme = 0: sequential maximally multithreaded spread/interp
                    1: parallel singlethreaded spread/interp, nested last batch
    
-   Example: finufftGuru_test 10 1 2 1000 1000 0 1000000 1e-12 0 [0 2 2.0]
+   Example: finufftGuru_test 10 1 2 1000 1000 0 1000000 1e-12 0 [0 0 2 2.0]
 
    For Type3, Nmodes{1,2,3} controls the spread of NU freq targs in each dim.
    Example w/ nk = 5000: finufftGuru_test 1 3 2 100 50 0 1000000 1e-12 0
@@ -47,7 +47,8 @@ int main(int argc, char* argv[])
   BIGINT M = 1e6, N1 = 1000, N2 = 500, N3=250;   // M = # srcs, N1,N2,N3= # modes in each dim
   double tol = 1e-6;
   int optsDebug = 0, sprDebug = 0;
-  int sprScheme = 0;
+  int sprThr = 0;
+  int maxbatchsize = 0;
   int sprSort = 2;
   double upsampfac = 2.0;     // either 2.0 or 1.25
   int isign = +1;             // choose which exponential sign to test
@@ -69,11 +70,12 @@ int main(int argc, char* argv[])
   }
   if (argc>9) sscanf(argv[9],"%d",&optsDebug);
   sprDebug = (optsDebug>1) ? 1 : 0;  // see output from spreader
-  if (argc>10) sscanf(argv[10], "%d", &sprScheme); 
-  if (argc>11) sscanf(argv[11],"%d",&sprSort);
-  if (argc>12) sscanf(argv[12],"%lf",&upsampfac);
-  if (argc==1 || argc>13) {
-    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug [spread_scheme [spread_sort [upsampfac]]]]]]]]]]\n");
+  if (argc>10) sscanf(argv[10], "%d", &sprThr);
+  if (argc>11) sscanf(argv[11], "%d", &maxbatchsize); 
+  if (argc>12) sscanf(argv[12],"%d",&sprSort);
+  if (argc>13) sscanf(argv[13],"%lf",&upsampfac);
+  if (argc==1 || argc>14) {
+    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]]]\n");
     return 1;
   }
 
@@ -223,18 +225,17 @@ int main(int argc, char* argv[])
   plan.spopts.debug = sprDebug;
   opts.spread_sort = sprSort;
   opts.upsampfac = upsampfac;
-  opts.spread_scheme = sprScheme;
+  opts.spread_thread = sprThr;
+  opts.maxbatchsize = maxbatchsize;
 
   BIGINT n_modes[3];
   n_modes[0] = N1;
   n_modes[1] = N2;
   n_modes[2] = N3; //#modes per dimension 
 
-  int blksize = MY_OMP_GET_MAX_THREADS(); 
-
   CNTime timer; timer.start();  
   //Guru Step 1
-  int ier = finufft_makeplan(type, ndim,  n_modes, isign, ntransf, tol, blksize, &plan, &opts);
+  int ier = finufft_makeplan(type, ndim,  n_modes, isign, ntransf, tol, &plan, &opts);
   //for type3, omit n_modes and send in NULL
 
   //the opts struct can no longer be modified with effect!
@@ -339,7 +340,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
   double t = 0;
   double fail = -1.0;
   nufft_opts* popts = &(plan->opts);   // opts ptr, as v1.2 simple calls need
-  switch(plan->n_dims){
+  switch(plan->dim){
 
     /*1d*/
   case 1:
@@ -347,7 +348,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
 
     case 1:
       timer.restart();
-      ier = finufft1d1(plan->nj, plan->X, cStart, plan->fftsign, plan->tol, plan->ms, fStart, popts);
+      ier = finufft1d1(plan->nj, plan->X, cStart, plan->fftSign, plan->tol, plan->ms, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
 	return fail;
@@ -356,7 +357,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
       
     case 2:
       timer.restart();
-      ier = finufft1d2(plan->nj, plan->X, cStart, plan->fftsign, plan->tol, plan->ms, fStart, popts);
+      ier = finufft1d2(plan->nj, plan->X, cStart, plan->fftSign, plan->tol, plan->ms, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
 	return fail;
@@ -365,7 +366,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
       
     case 3:
       timer.restart();
-      ier = finufft1d3(plan->nj, plan->X_orig, cStart, plan->fftsign, plan->tol, plan->nk, plan->s, fStart, popts);
+      ier = finufft1d3(plan->nj, plan->X_orig, cStart, plan->fftSign, plan->tol, plan->nk, plan->s, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
 	return fail;
@@ -383,7 +384,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
       
     case 1:
       timer.restart();
-      ier = finufft2d1(plan->nj, plan->X, plan->Y, cStart, plan->fftsign, plan->tol, plan->ms, plan->mt, fStart, popts);
+      ier = finufft2d1(plan->nj, plan->X, plan->Y, cStart, plan->fftSign, plan->tol, plan->ms, plan->mt, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
 	return fail;
@@ -392,7 +393,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
       
     case 2:
       timer.restart();
-      ier = finufft2d2(plan->nj, plan->X, plan->Y, cStart, plan->fftsign, plan->tol, plan->ms, plan->mt,
+      ier = finufft2d2(plan->nj, plan->X, plan->Y, cStart, plan->fftSign, plan->tol, plan->ms, plan->mt,
      		       fStart, popts);
       t = timer.elapsedsec();
       if(ier)
@@ -402,7 +403,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
 
     case 3:
       timer.restart();
-      ier = finufft2d3(plan->nj, plan->X_orig, plan->Y_orig, cStart, plan->fftsign, plan->tol, plan->nk, plan->s, plan->t,
+      ier = finufft2d3(plan->nj, plan->X_orig, plan->Y_orig, cStart, plan->fftSign, plan->tol, plan->nk, plan->s, plan->t,
                        fStart, popts); 
       t = timer.elapsedsec();
       if(ier)
@@ -421,7 +422,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
 
     case 1:
       timer.restart();
-      ier = finufft3d1(plan->nj, plan->X, plan->Y, plan->Z, cStart, plan->fftsign, plan->tol,
+      ier = finufft3d1(plan->nj, plan->X, plan->Y, plan->Z, cStart, plan->fftSign, plan->tol,
                        plan->ms, plan->mt, plan->mu, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
@@ -431,7 +432,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
       
     case 2:
       timer.restart();
-      ier = finufft3d2(plan->nj, plan->X, plan->Y, plan->Z, cStart, plan->fftsign, plan->tol,
+      ier = finufft3d2(plan->nj, plan->X, plan->Y, plan->Z, cStart, plan->fftSign, plan->tol,
                        plan->ms, plan->mt, plan->mu, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
@@ -441,7 +442,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
       
     case 3:
       timer.restart();
-      ier = finufft3d3(plan->nj, plan->X_orig, plan->Y_orig, plan->Z_orig, cStart, plan->fftsign, plan->tol,
+      ier = finufft3d3(plan->nj, plan->X_orig, plan->Y_orig, plan->Z_orig, cStart, plan->fftSign, plan->tol,
                        plan->nk, plan->s, plan->t, plan->u, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
@@ -472,7 +473,7 @@ double many_simple_calls(CPX *c,CPX *F,finufft_plan *plan)
     double time = 0;
     double temp = 0;;
     
-    for(int k = 0; k < plan->n_transf; k++){
+    for(int k = 0; k < plan->ntrans; k++){
       cStart = c + plan->nj*k;
       fStart = F + plan->ms*plan->mt*plan->mu*k;
       

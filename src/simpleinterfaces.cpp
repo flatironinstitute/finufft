@@ -23,10 +23,8 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
 // Author: Andrea Malleo, 2019.
 {
   finufft_plan plan;
-  int blksize = MY_OMP_GET_MAX_THREADS(); // default; would need guru to control
-  
   int ier = finufft_makeplan(type, n_dims, n_modes, iflag, n_transf, eps,
-                             blksize, &plan, popts);  // popts can be NULL
+                             &plan, popts);  // popts (ptr to opts) can be NULL
   if (ier){
     fprintf(stderr, "invokeGuru: plan error (ier=%d)!\n", ier);
     return ier;
