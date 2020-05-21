@@ -13,21 +13,10 @@ classdef nufft_plan < handle
 
   methods
 
-    function [plan] = nufft_plan()
+    function [plan] = nufft_plan(type, n_modes, iflag, n_transf, tol, blksize, opts)
       % can we combine this with makeplan? simpler.
       # finufft_plan* p = new finufft_plan();
       plan.mwptr = p;
-    end
-
-    function delete(plan)
-      # finufft_destroy(finufft_plan* plan);
-    end
-
-    function nufft_destroy(plan)
-      # finufft_destroy(finufft_plan* plan);
-    end
-
-    function [ier] = nufft_makeplan(plan, type, n_modes, iflag, n_transf, tol, blksize, opts)
       n_dims = length(n_modes);
       assert(n_dims==1 || n_dims==2 || n_dims==3);
       % if n_modes had length <3, pad with 1's (also overwrites whatever there):
@@ -46,6 +35,34 @@ classdef nufft_plan < handle
         # int ier = mex_makeplan(int type, int n_dims, double[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* opts);
       end
     end
+
+    function delete(plan)
+      # finufft_destroy(finufft_plan* plan);
+    end
+
+    function nufft_destroy(plan)
+      # finufft_destroy(finufft_plan* plan);
+    end
+
+%    function [ier] = nufft_makeplan(plan, type, n_modes, iflag, n_transf, tol, blksize, opts)
+%      n_dims = length(n_modes);
+%      assert(n_dims==1 || n_dims==2 || n_dims==3);
+%      % if n_modes had length <3, pad with 1's (also overwrites whatever there):
+%      if n_dims<2, n_modes(2)=1; end
+%      if n_dims<3, n_modes(3)=1; end
+%      $ int mex_makeplan(int type, int n_dims, double* n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* opts=NULL) {
+%      $   BIGINT Ns[3];
+%      $   Ns[0] = (BIGINT)(n_modes[0]+0.5);
+%      $   Ns[1] = (BIGINT)(n_modes[1]+0.5);
+%      $   Ns[2] = (BIGINT)(n_modes[2]+0.5);
+%      $   return finufft_makeplan(type, n_dims, Ns, iflag, n_transf, tol, blksize, plan, opts);
+%      $ }
+%      if nargin<9
+%        # int ier = mex_makeplan(int type, int n_dims, double[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan);
+%      else
+%        # int ier = mex_makeplan(int type, int n_dims, double[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* opts);
+%      end
+%    end
 
     function [ier] = nufft_setpts(plan, xj, yj, zj, s, t, u)
       nj = numel(xj);   % note the matlab way is to extract sizes like this

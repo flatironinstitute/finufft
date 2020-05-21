@@ -22,10 +22,7 @@ opts = nufft_opts();
 opts.set_debug(0);
 
 %plan
-plan = nufft_plan();
-
-%make plan
-plan.nufft_makeplan(type,n_modes,isign,n_transf,eps,blksize,opts);
+plan = nufft_plan(type,n_modes,isign,n_transf,eps,blksize,opts);
 
 %set pts
 plan.nufft_setpts(x,[],[],[],[],[]);
