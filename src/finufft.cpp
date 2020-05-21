@@ -142,9 +142,10 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   if((type == 1) || (type == 2)) {
 
     int nth = MY_OMP_GET_MAX_THREADS();    // tell FFTW what it has access to
-    // *** should limt max # threads here too?
+    // *** should limt max # threads here too? or set equal to batchsize?
+    // *** put in logic for setting FFTW # thr based on o.spread_thread?
     FFTW_INIT();           // only does anything when OMP=ON for >1 threads
-    FFTW_PLAN_TH(nth);     // "
+    FFTW_PLAN_TH(nth);     // "  (not batchSize since can be 1 but want mul-thr)
     p->spopts.spread_direction = type;
     
     // read user mode array dims then determine fine grid sizes, sanity check...
@@ -251,6 +252,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
 
 // BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+
 int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
@@ -260,7 +262,7 @@ int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
   Returns 0, no error reporting for now.
   Notes:
   1) cBatch is already assumed to have the correct offset, ie here we
-     read from the start of cBatch.
+     read from the start of cBatch (unlike Malleo).
   2) this routine is a batched version of spreadinterpSorted in spreadinterp.cpp
   Barnett 5/19/20, based on Malleo 2019.
 */
@@ -273,8 +275,8 @@ int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
   
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i=0; i<batchSize; i++) {
-    FFTW_CPX *fwi = p->fwBatch + i*p->nf;  // start of i'th fw array in batch
-    CPX *ci = cBatch + i*p->nj;            // start of i'th c array in batch
+    FFTW_CPX *fwi = p->fwBatch + i*p->nf;  // start of i'th fw array in wkspace
+    CPX *ci = cBatch + i*p->nj;            // start of i'th c array in cBatch
     spreadinterpSorted(p->sortIndices, p->nf1, p->nf2, p->nf3, (FLT*)fwi, p->nj,
                        p->X, p->Y, p->Z, (FLT*)ci, p->spopts, p->didSort);
   }
@@ -282,6 +284,43 @@ int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
   MY_OMP_SET_NESTED(0);                    // back to default
   return 0;
 }
+
+int deconvolveBatch(int batchSize, finufft_plan* p, CPX* fkBatch)
+/*
+  Type 1: deconvolves (amplifies) from each interior fw array in p->fwBatch
+  into each output array fk in fkBatch.
+  Type 2: deconvolves from user-supplied input fk to 0-padded interior fw,
+  again looping over fk in fkBatch and fw in p->fwBatch.
+  The direction (spread vs interpolate) is set by p->spopts.spread_direction.
+  This is mostly a loop calling deconvolveshuffle?d for the needed dim batchSize
+  times.
+  Barnett 5/21/20, simplified from Malleo 2019 (eg t3 logic won't be in here)
+*/
+{
+  // since deconvolveshuffle?d are single-thread, *** test OMP par... RAM-bnd?
+  for (int i=0; i<batchSize; i++) {
+    FFTW_CPX *fwi = p->fwBatch + i*p->nf;  // start of i'th fw array in wkspace
+    CPX *fki = fkBatch + i*p->N;           // start of i'th fk array in fkBatch
+    
+    // Call routine from common.cpp for the dim; prefactors hardcoded to 1.0...
+    if (p->dim == 1)
+      deconvolveshuffle1d(p->spopts.spread_direction, 1.0, p->phiHat1,
+                          p->ms, (FLT *)fki,
+                          p->nf1, fwi, p->opts.modeord);
+    else if (p->dim == 2)
+      deconvolveshuffle2d(p->spopts.spread_direction,1.0, p->phiHat1,
+                          p->phiHat2, p->ms, p->mt, (FLT *)fki,
+                          p->nf1, p->nf2, fwi, p->opts.modeord);
+    else
+      deconvolveshuffle3d(p->spopts.spread_direction, 1.0, p->phiHat1,
+                          p->phiHat2, p->phiHat3, p->ms, p->mt, p->mu,
+                          (FLT *)fki, p->nf1, p->nf2, p->nf3,
+                          fwi, p->opts.modeord);
+  }
+
+  return 0;
+}
+
 
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -303,16 +342,17 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
 
       // current batch is either batchSize, or possibly truncated if last one
       int thisBatchSize = min(p->ntrans - b*p->batchSize, p->batchSize);
-      CPX* thiscj = cj + b*p->nj;               // point to batch of weights
+      CPX* cjb = cj + b*p->nj;               // point to batch of weights
+      CPX* fkb = fk + b*p->N;                // point to batch of mode coeffs
 
       // STEP 1 (varies by type)
-      if (p->type == 1) {  // spread NU pts p->X, weights cj, to fw grid
+      if (p->type == 1) {  // type 1: spread NU pts p->X, weights cj, to fw grid
         timer.restart();
-        spreadinterpSortedBatch(thisBatchSize, p, thiscj);
+        spreadinterpSortedBatch(thisBatchSize, p, cjb);
         t_sprint += timer.elapsedsec();
-      } else { //  type 2: amplify Fourier coeffs fk and copy into fw
+      } else {          //  type 2: amplify Fourier coeffs fk into 0-padded fw
         timer.restart();
-        //    deconvolveInParallel(thisBatchSize, blk, p,fk);
+        deconvolveBatch(thisBatchSize, p, fkb);
         t_deconv += timer.elapsedsec();
       }
              
@@ -324,13 +364,13 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
         printf("\tFFTW exec:\t\t%.3g s\n", timer.elapsedsec());
       
       // STEP 3 (varies by type)
-      if (p->type == 1) { // Deconvolve by dividing coeffs by that of kernel; shuffle to output 
+      if (p->type == 1) {   // type 1: deconvolve (amplify) fw and shuffle to fk
         timer.restart();
-        //    deconvolveInParallel(thisBatchSize, blk, p,fk);
+        deconvolveBatch(thisBatchSize, p, fkb);
         t_deconv += timer.elapsedsec();
-      } else {  // type 2: interp unif fw grid to NU target pts
+      } else {          // type 2: interpolate unif fw grid to NU target pts
         timer.restart();
-        spreadinterpSortedBatch(thisBatchSize, p, thiscj);
+        spreadinterpSortedBatch(thisBatchSize, p, cjb);
         t_sprint += timer.elapsedsec(); 
       }
     }                                                       // .....end b loop
