@@ -7,9 +7,11 @@
 #include <iomanip>
 
 // ---------------------------------------------------------------------------
-// The 18 simple interfaces (3 dims * 3 types * {singlecall,many}) to FINUFFT.
+// The 18 simple interfaces (= 3 dims * 3 types * {singlecall,many}) to FINUFFT.
 // As of v1.2 these simply invoke the guru interface, through a helper layer.
-// Andrea Malleo and Alex Barnett, 2019-2020.
+// See ../docs/usage.rst or http://finufft.readthedocs.io for documentation
+// all routines here.
+// Authors: Andrea Malleo and Alex Barnett, 2019-2020.
 // ---------------------------------------------------------------------------
 
 

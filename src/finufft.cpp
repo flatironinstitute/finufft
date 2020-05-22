@@ -166,11 +166,16 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
       p->phiHat3 = (FLT*)malloc(sizeof(FLT)*(p->nf3/2 + 1));
     }
 
-    if (p->opts.debug)  // "long long" here is to avoid warnings with printf...
-      printf("[finufft_plan] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n               nthr=%d batchSize=%d spread_thread=%d\n",
+    if (p->opts.debug) { // "long long" here is to avoid warnings with printf...
+      printf("[finufft_plan] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n               nth=%d batchSize=%d",
              dim, type, (long long)p->ms,(long long)p->mt,
              (long long) p->mu, (long long)p->nf1,(long long)p->nf2,
-             (long long)p->nf3, nth, p->batchSize,p->opts.spread_thread);
+             (long long)p->nf3, nth, p->batchSize);
+      if (p->batchSize==1)          // spread_thread has no effect in this case
+        printf("\n");
+      else
+        printf(" spread_thread=%d\n", p->opts.spread_thread);
+    }
 
     // STEP 0: get Fourier coeffs of spreading kernel along each fine grid dim
     CNTime timer; timer.start();
@@ -200,7 +205,6 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   } else {  // -------------------------- type 3 (no planning) ----------------
 
     if (p->opts.debug) printf("[finufft_plan] %dd%d\n",dim,type);
-    printf("*** guru t3 gutted for now :(\n");
     p->fftwPlan = NULL;
     // type 3 will call finufft_makeplan for type 2, thus no need to init FFTW
   }
@@ -240,6 +244,57 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->Z = zj;
 
   } else {    // ------------------------- TYPE 3 SETPTS ---------------------
+
+    p->nk = nk;     // user set # targ freq pts
+
+    // pick x, s intervals & shifts & # fine grid pts (nf) in each dim...
+    FLT S1,S2,S3;       // get half-width X, center C, which contains {x_j}...
+    arraywidcen(p->nj,xj,&(p->t3P.X1),&(p->t3P.C1));
+    arraywidcen(p->nk,s,&S1,&(p->t3P.D1));   // same D, S, but for {s_k}
+    set_nhg_type3(S1,p->t3P.X1,p->opts,p->spopts,
+           &(p->nf1),&(p->t3P.h1),&(p->t3P.gam1));  // applies twist i)
+    if (p->dim > 1) {
+      arraywidcen(p->nj,yj,&(p->t3P.X2),&(p->t3P.C2));  // {y_j}
+      arraywidcen(p->nk,t,&S2,&(p->t3P.D2));               // {t_k}
+      set_nhg_type3(S2,p->t3P.X2,p->opts,p->spopts,&(p->nf2),
+                    &(p->t3P.h2),&(p->t3P.gam2));
+    }    
+    if (p->dim > 2) {
+      arraywidcen(p->nj,zj,&(p->t3P.X3),&(p->t3P.C3));  // {z_j}
+      arraywidcen(p->nk,u,&S3,&(p->t3P.D3));               // {u_k}
+      set_nhg_type3(S3,p->t3P.X3,p->opts,p->spopts,
+                    &(p->nf3),&(p->t3P.h3),&(p->t3P.gam3));
+    }
+
+    if (p->opts.debug) {  // report on choices of shifts, centers, etc...
+      printf("%dd3: X1=%.3g C1=%.3g S1=%.3g D1=%.3g gam1=%g nf1=%lld M=%lld N=%lld\n", p->dim, p->t3P.X1, p->t3P.C1,S1, p->t3P.D1, p->t3P.gam1,(long long) p->nf1, (long long)p->nj,(long long)p->nk);  
+      if (p->dim > 1)
+        printf("     X2=%.3g C2=%.3g S2=%.3g D2=%.3g gam2=%g nf2=%lld \n",p->t3P.X2, p->t3P.C2,S2, p->t3P.D2, p->t3P.gam2,(long long) p->nf2);
+      if (p->dim > 2)
+        printf("     X3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld \n", p->t3P.X3, p->t3P.C3,S3, p->t3P.D3, p->t3P.gam3,(long long) p->nf3);
+    }
+
+    // alloc rescaled NU src pts x'_j...
+    FLT* xpj = (FLT*)malloc(sizeof(FLT)*p->nj);
+    FLT* ypj = NULL;
+    if (p->dim > 1)
+      ypj = (FLT*)malloc(sizeof(FLT)*nj);
+    FLT* zpj = NULL;
+    if (p->dim > 2)
+      zpj = (FLT*)malloc(sizeof(FLT)*nj);
+
+    // always shift as use gam to rescale x_j to x'_j, etc (twist iii)...
+#pragma omp parallel for schedule(static)
+    for (BIGINT j=0;j<nj;++j) {
+      xpj[j] = (xj[j] - p->t3P.C1) / p->t3P.gam1;         // rescale x_j
+      if (p->dim > 1)
+        ypj[j] = (yj[j]- p->t3P.C2) / p->t3P.gam2;        // rescale y_j
+      if (p->dim > 2)
+        zpj[j] = (zj[j] - p->t3P.C3) / p->t3P.gam3;       // rescale z_j
+    }
+
+
+
     
   }
   
@@ -336,6 +391,8 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
 */
   CNTime timer;
   double t_sprint = 0.0, t_fft = 0.0, t_deconv = 0.0;  // accumulated timings
+  if (p->opts.debug)
+    printf("[finufft_exec] start ntrans=%d (%d batches, bsize=%d)...\n",p->ntrans,1+(p->ntrans-1)/p->batchSize, p->batchSize);  // int div
   
   if (p->type!=3){ // --------------------- TYPE 1,2 EXEC ------------------
   
@@ -378,13 +435,13 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       }
     }                                                       // .....end b loop
     
-    if (p->opts.debug){  // report total times in their natural order...
+    if (p->opts.debug) {  // report total times in their natural order...
       if(p->type == 1) {
-        printf("[finufft_exec] tot spread:\t\t\t%.3g s\n",t_sprint);
+        printf("[finufft_exec] done. tot spread:\t\t%.3g s\n",t_sprint);
         printf("               tot FFT:\t\t\t\t%.3g s\n", t_fft);
         printf("               tot deconvolve:\t\t\t%.3g s\n", t_deconv);
       } else {
-        printf("[finufft_exec] tot deconvolve:\t\t\t%.3g s\n", t_deconv);
+        printf("[finufft_exec] done. tot deconvolve:\t\t%.3g s\n", t_deconv);
         printf("               tot FFT:\t\t\t\t%.3g s\n", t_fft);
         printf("               tot interp:\t\t\t%.3g s\n",t_sprint);
       }

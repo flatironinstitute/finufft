@@ -27,4 +27,7 @@ class CNTime {
   struct timeval initial;
 };
 
+// openmp helpers
+int get_num_threads_parallel_block();
+
 #endif  // UTILS_H

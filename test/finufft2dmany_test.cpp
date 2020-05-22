@@ -58,8 +58,8 @@ int main(int argc, char* argv[])
   if (argc>10) sscanf(argv[10],"%lf",&upsampfac);
   opts.upsampfac=upsampfac;
 
-  if (argc==1 || argc==2 || argc>9) {
-    fprintf(stderr,"Usage: finufft2d_test [ntransf [N1 N2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]\n");
+  if (argc==1 || argc==2 || argc>11) {
+    fprintf(stderr,"Usage: finufft2d_test [ntransf [N1 N2 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("ntr=%d: %lld NU pts to (%lld,%lld) modes in %.3g s  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,ti,ntransf*M/ti);
+    printf("ntr=%d: %lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,ti,ntransf*M/ti);
   
   int d = floor(ntransf/2);    // choose a data to check
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2);  // choose some mode index to check
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
   } else
-    printf("%d of: %lld NU pts to (%lld,%lld) modes in %.3g s  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,t,ntransf*M/t);
+    printf("%d of: %lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,t,ntransf*M/t);
 
   printf("\t\t\tspeedup \t T_finufft2d1 / T_finufft2d1many = %.3g\n", t/ti);
 
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
   FLT maxerror = 0.0;
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(N,F_finufft2d1+k*N,F+k*N));
-  printf("\terr check vs non-many: sup ( ||F_many-F||_2 / ||F||_2  ) =  %.3g\n",maxerror);
+  printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2  ) =  %.3g\n",maxerror);
   free(F_finufft2d1);
 
 
@@ -216,7 +216,7 @@ int main(int argc, char* argv[])
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(M,c_finufft2d2+k*M,c+k*M));
-  printf("\terr check vs non-many: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n",maxerror);
+  printf("\tconsistency check: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n",maxerror);
   free(c_finufft2d2);
 
   
@@ -325,7 +325,7 @@ int main(int argc, char* argv[])
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(N,f_old2d3+k*N,F+k*N));
-  printf("\terr check vs non-many: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
+  printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
   free(f_old2d3);
   
 

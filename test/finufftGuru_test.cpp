@@ -39,6 +39,7 @@ int main(int argc, char* argv[])
    Example w/ nk = 5000: finufftGuru_test 1 3 2 100 50 0 1000000 1e-12 0
 
    By: Andrea Malleo 2019, tweaked by Alex Barnett 2020.
+   Todo: needs to be tidied up a bit.
 */
 {
   int ntransf = 1;  // defaults...
@@ -332,7 +333,7 @@ int main(int argc, char* argv[])
 double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
 // HELPER FOR COMPARING AGAINST SIMPLE INTERFACES. Reads opts from the
 // finufft plan, and does a single simple interface call.
-// returns the run-time in seconds, or -1.0 if error.
+// Returns the run-time in seconds, or -1.0 if error.
 {
 
   CNTime timer; timer.start();
@@ -463,8 +464,10 @@ double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
 
 
 double many_simple_calls(CPX *c,CPX *F,finufft_plan *plan)
-// A unified interface to all of the simple interfaces
-// (was actually runOldFinufft, calling the old v1.1 lib, which was in subdir)
+/* A unified interface to all of the simple interfaces, with a loop over
+   many such transforms. Returns total time reported by the transforms.
+   (Was actually runOldFinufft, calling the old v1.1 lib, which was in subdir)
+*/
 {
     
     CPX *cStart;
@@ -477,14 +480,14 @@ double many_simple_calls(CPX *c,CPX *F,finufft_plan *plan)
       cStart = c + plan->nj*k;
       fStart = F + plan->ms*plan->mt*plan->mu*k;
       
-      /*if(k != 0){
+      if(k != 0) {                     // prevent massive debug output
 	plan->opts.debug = 0;
 	plan->opts.spread_debug = 0;
-	}*/
-      
+      }
+        
       temp = finufftFunnel(cStart,fStart, plan);
-      if(temp == -1.0){
-	printf("Call to finufft FAILED!"); 
+      if (temp == -1.0) {              // -1.0 is a code here; equality test ok
+	printf("[many_simple_calls] Funnel call to finufft FAILED!"); 
 	time = -1.0;
 	break;
       }

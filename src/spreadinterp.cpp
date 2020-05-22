@@ -174,8 +174,6 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
     return ERR_SPREAD_DIR;
   }
   int ndims = ndims_from_Ns(N1,N2,N3);
-  if (opts.debug)
-    printf("starting spread %dD (dir=%d. M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), %d threads\n",ndims,opts.spread_direction,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,MY_OMP_GET_MAX_THREADS());
   
   // BOUNDS CHECKING .... check NU pts are valid (incl +-1 box), exit gracefully
   if (opts.chkbnds) {
@@ -212,19 +210,19 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts)
 /* This makes a decision whether to sort the NU pts, and if so, calls either
    single- or multi-threaded bin sort, writing reordered index list to sort_indices.
-   See cnufftspread() for input arguments.
-   Return value is whether a sort was done.
-   Split out by Melody Shih, Jun 2018.
+   See spreadinterp() for input arguments, and ../docs/usage.rst for opts.
+   Return value is whether a sort was done or not.
+   Barnett 2017; split out by Melody Shih, Jun 2018.
 */
 {
   CNTime timer;
   int ndims = ndims_from_Ns(N1,N2,N3);
   BIGINT N=N1*N2*N3;            // output array size
   
-  // NONUNIFORM POINT SORTING .....
   // heuristic binning box size for U grid... affects performance:
   double bin_size_x = 16, bin_size_y = 4, bin_size_z = 4;
-  // put in heuristics based on L3 size (only useful for single-thread) ?
+  // put in heuristics based on cache sizes (only useful for single-thread) ?
+
   int better_to_sort = !(ndims==1 && (opts.spread_direction==2 || (M > 1000*N1))); // 1D small-N or dir=2 case: don't sort
 
   timer.start();                 // if needed, sort all the NU pts...
@@ -262,6 +260,10 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     int ndims = ndims_from_Ns(N1,N2,N3);
     BIGINT N=N1*N2*N3;            // output array size
     int ns=opts.nspread;          // abbrev. for w, kernel width
+    // figure out how many threads would *actually* be used in omp parallel...
+    int nth_used = get_num_threads_parallel_block();
+    if (opts.debug)
+      printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nth_u=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nth_used);
 
     timer.start();
     for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
@@ -271,6 +273,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       return 0;
 
     int spread_single = (M*100<N);     // low-density heuristic?
+    // *** should check if nth_used==1 and if so use single
     spread_single = 0;                 // for now
     timer.start();
     if (spread_single) {    // ------- Basic single-core t1 spreading ------
@@ -281,16 +284,16 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 
     } else {               // ------- Fancy multi-core blocked t1 spreading ----
       // Split sorted inds (jfm's advanced2), could double RAM
-      int nb = MIN(4*MY_OMP_GET_MAX_THREADS(),M);     // Choose # subprobs
+      int nb = MIN(4*nth_used,M);  // choose # subprobs via nthreads to be used
       if (nb*opts.max_subproblem_size<M)
         nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;  // int div
       if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
         nb = M;
         if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
       }
-      if (!did_sort && MY_OMP_GET_MAX_THREADS()==1) {
+      if (!did_sort && nth_used==1) {
         nb = 1;
-        if (opts.debug) printf("\tforcing single subproblem...\n");
+        if (opts.debug) printf("\tunsorted nth_u=1: forcing single subproblem...\n");
       }
       std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
       for (int p=0;p<=nb;++p)
@@ -367,12 +370,15 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort){
   CNTime timer;
-  timer.start();
   int ndims = ndims_from_Ns(N1,N2,N3);
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
+  // figure out how many threads would *actually* be used in omp parallel...
+  int nth_used = get_num_threads_parallel_block();
+  if (opts.debug)
+    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nth_u=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nth_used);
 
-
+  timer.start();  
 #pragma omp parallel
   {
 #define CHUNKSIZE 16     // Chunks of Type 2 targets (Ludvig found by expt)

@@ -94,6 +94,7 @@ using namespace std;        // means std:: not needed for cout, max, etc
   #define MY_OMP_GET_THREAD_NUM() omp_get_thread_num()
   #define MY_OMP_SET_NUM_THREADS(x) omp_set_num_threads(x)
   #define MY_OMP_SET_NESTED(x) omp_set_nested(x)
+  #define MY_OMP_GET_NESTED() omp_get_nested()
 #else
   // non-omp safe dummy versions of omp utils, and dummy fftw threads calls...
   #define MY_OMP_GET_NUM_THREADS() 1
@@ -101,6 +102,7 @@ using namespace std;        // means std:: not needed for cout, max, etc
   #define MY_OMP_GET_THREAD_NUM() 0
   #define MY_OMP_SET_NUM_THREADS(x)
   #define MY_OMP_SET_NESTED(x)
+  #define MY_OMP_GET_NESTED() 1
   #undef FFTW_INIT
   #define FFTW_INIT()
   #undef FFTW_PLAN_TH
