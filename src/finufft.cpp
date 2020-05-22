@@ -123,8 +123,8 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   p->ntrans = ntrans;
   p->tol = tol;
   p->fftSign = (iflag>=0) ? 1 : -1;          // clean up flag input
+  int nth = min(MY_OMP_GET_MAX_THREADS(), MAX_USEFUL_NTHREADS);  // limit it
   if (p->opts.maxbatchsize==0) {             // logic to auto-set best batchsize
-    int nth = min(MY_OMP_GET_MAX_THREADS(), MAX_USEFUL_NTHREADS);
     int nbatches = (int)ceil((double)ntrans/nth);       // min # batches needed
     p->batchSize = (int)ceil((double)ntrans/nbatches);  // cut # thr in each b
   } else
@@ -141,11 +141,11 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   //  ------------------------ types 1,2: planning needed ---------------------
   if((type == 1) || (type == 2)) {
 
-    int nth = MY_OMP_GET_MAX_THREADS();    // tell FFTW what it has access to
+    int nth_fft = MY_OMP_GET_MAX_THREADS();  // tell FFTW what it has access to
     // *** should limt max # threads here too? or set equal to batchsize?
     // *** put in logic for setting FFTW # thr based on o.spread_thread?
     FFTW_INIT();           // only does anything when OMP=ON for >1 threads
-    FFTW_PLAN_TH(nth);     // "  (not batchSize since can be 1 but want mul-thr)
+    FFTW_PLAN_TH(nth_fft); // "  (not batchSize since can be 1 but want mul-thr)
     p->spopts.spread_direction = type;
     
     // read user mode array dims then determine fine grid sizes, sanity check...
@@ -182,9 +182,9 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     p->N = p->ms*p->mt*p->mu;          // N = total # modes
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // the big workspace
-    if (p->opts.debug) printf("[finufft_plan] fwBatch %.1fGB alloc:\t\t%.3g s\n", (double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
+    if (p->opts.debug) printf("[finufft_plan] fwBatch %.2fGB alloc:\t\t%.3g s\n", (double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch) {      // we don't catch all such mallocs, just this big one
-      fprintf(stderr, "fftw malloc failed for batch of working fine grids!\n");
+      fprintf(stderr, "FFTW malloc failed for fwBatch (working fine grids)!\n");
       free(p->phiHat1); free(p->phiHat2); free(p->phiHat3);
       return ERR_ALLOC; 
     }
@@ -194,7 +194,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
     p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
          NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
-    if (p->opts.debug) printf("[finufft_plan] FFTW plan (mode %d):\t\t%.3g s\n", p->opts.fftw, timer.elapsedsec());
+    if (p->opts.debug) printf("[finufft_plan] FFTW plan (mode %d, nth=%d):\t%.3g s\n", p->opts.fftw, nth_fft, timer.elapsedsec());
     delete []ns;
     
   } else {  // -------------------------- type 3 (no planning) ----------------
@@ -297,7 +297,8 @@ int deconvolveBatch(int batchSize, finufft_plan* p, CPX* fkBatch)
   Barnett 5/21/20, simplified from Malleo 2019 (eg t3 logic won't be in here)
 */
 {
-  // since deconvolveshuffle?d are single-thread, *** test OMP par... RAM-bnd?
+  // since deconvolveshuffle?d are single-thread, omp par seems to help here...
+#pragma omp parallel for
   for (int i=0; i<batchSize; i++) {
     FFTW_CPX *fwi = p->fwBatch + i*p->nf;  // start of i'th fw array in wkspace
     CPX *fki = fkBatch + i*p->N;           // start of i'th fk array in fkBatch
@@ -342,8 +343,10 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
 
       // current batch is either batchSize, or possibly truncated if last one
       int thisBatchSize = min(p->ntrans - b*p->batchSize, p->batchSize);
-      CPX* cjb = cj + b*p->nj;               // point to batch of weights
-      CPX* fkb = fk + b*p->N;                // point to batch of mode coeffs
+      int i = b*p->batchSize;          // index of vector, since batchsizes same
+      CPX* cjb = cj + i*p->nj;         // point to batch of weights
+      // *** to insert some t3 logic here changing fkb...
+      CPX* fkb = fk + i*p->N;          // point to batch of mode coeffs
 
       // STEP 1 (varies by type)
       if (p->type == 1) {  // type 1: spread NU pts p->X, weights cj, to fw grid
@@ -356,7 +359,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
         t_deconv += timer.elapsedsec();
       }
              
-      // STEP 2: call the preplanned FFT
+      // STEP 2: call the pre-planned FFT on this batch
       timer.restart();
       FFTW_EX(p->fftwPlan);           // *** what if thisBatchSize<batchSize?
       t_fft += timer.elapsedsec();

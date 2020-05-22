@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j+d*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("\tone mode: rel err in F[%lld,%lld] of data[%d] is %.3g\n",
+  printf("\tone mode: rel err in F[%lld,%lld] of trans#%d is %.3g\n",
 	 (long long)nt1,(long long)nt2,d,abs(Ft-F[it+d*N])/infnorm(N,F+d*N));
 
   // compare the result with finufft2d1
@@ -193,7 +193,7 @@ int main(int argc, char* argv[])
   for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[d*N + m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-  printf("\tone targ: rel err in c[%lld] of data[%d] is %.3g\n",(long long)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
+  printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n",(long long)jt,d,abs(ct-c[jt+d*M])/infnorm(M,c+d*M));
   
   // compare the result with finufft2d2...
   CPX* c_finufft2d2 = (CPX*)malloc(sizeof(CPX)*M*ntransf);
