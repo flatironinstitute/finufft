@@ -25,7 +25,7 @@ def main():
 		# Method 1
 		t = np.zeros(2)
 		for n in range(reps):
-                        output=subprocess.check_output(["./spread2d",'1',str(nupts_distr),str(N),str(N)], \
+                        output=subprocess.check_output(["bin/spread2d",'1',str(nupts_distr),str(N),str(N)], \
                                             cwd="../../").decode("utf-8")
                         t[0]+= float(find_between(output, "Spread_2d_Idriven", "ms"))
                         t[1]+= float(find_between(output, "Spread\t\t", "ms"))
@@ -36,7 +36,7 @@ def main():
 		# Method 2
 		t = np.zeros(7)
 		for n in range(reps):
-                        output=subprocess.check_output(["./spread2d",'2',str(nupts_distr),str(N),str(N),str(M), \
+                        output=subprocess.check_output(["bin/spread2d",'2',str(nupts_distr),str(N),str(N),str(M), \
                                                          '1e-6', '0'], cwd="../../").decode("utf-8")
                         t[0]+= float(find_between(output, "array", "ms"))
                         t[1]+= float(find_between(output, "CreateSortIdx", "ms"))
@@ -51,7 +51,7 @@ def main():
 		# Method 3
 		#t = 0
 		#for n in range(reps):
-                #        output=subprocess.check_output(["./spread2d",'3',str(nupts_distr),str(N),str(N)], \
+                #        output=subprocess.check_output(["bin/spread2d",'3',str(nupts_distr),str(N),str(N)], \
                 #                            cwd="../../").decode("utf-8")
                 #        t+= float(find_between(output, "Spread", "ms"))
 		#t_gpuspread_3[i] = t/reps
@@ -59,7 +59,7 @@ def main():
 		# Method 5
 		t = np.zeros(8)
 		for n in range(reps):
-                        output=subprocess.check_output(["./spread2d",'5',str(nupts_distr),str(N),str(N),str(M), \
+                        output=subprocess.check_output(["bin/spread2d",'5',str(nupts_distr),str(N),str(N),str(M), \
                                                          '1e-6'], cwd="../../").decode("utf-8")
                         t[0]+= float(find_between(output, "array", "ms"))
                         t[1]+= float(find_between(output, "CalcBinSize_noghost_2d", "ms"))

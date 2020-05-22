@@ -30,7 +30,7 @@ def main():
 				tnow = float('Inf')
 				for nn in range(reps):
 					tt = 0.0
-					output=subprocess.check_output(["./interp2d",'1',str(nupts_distr),str(nf1),str(nf1),str(M), \
+					output=subprocess.check_output(["bin/interp2d",'1',str(nupts_distr),str(nf1),str(nf1),str(M), \
 									 str(tol)], cwd="../../").decode("utf-8")
 					tt+= float(find_between(output, "HtoD", "ms"))
 					tt+= float(find_between(output, "Interp (1)", "ms"))
