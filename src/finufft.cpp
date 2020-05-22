@@ -96,7 +96,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   cout << scientific << setprecision(15);  // for debug outputs
 
   if((type!=1)&&(type!=2)&&(type!=3)) {
-    fprintf(stderr, "Invalid type (%d), type should be 1, 2 or 3.",type);
+    fprintf(stderr, "Invalid type (%d), should be 1, 2 or 3.",type);
     return ERR_TYPE_NOTVALID;
   }
   if((dim!=1)&&(dim!=2)&&(dim!=3)) {
@@ -130,7 +130,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   } else
     p->batchSize = min(p->opts.maxbatchsize,ntrans);    // user override
   if (p->opts.spread_thread==0)
-    p->opts.spread_thread=1;                   // the auto choice, for now
+    p->opts.spread_thread=2;                   // the auto choice
   
   // set others as defaults (or unallocated for arrays)...
   p->X = NULL; p->Y = NULL; p->Z = NULL;
@@ -141,7 +141,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   //  ------------------------ types 1,2: planning needed ---------------------
   if((type == 1) || (type == 2)) {
 
-    int nth_fft = MY_OMP_GET_MAX_THREADS();  // tell FFTW what it has access to
+    int nth_fft = MY_OMP_GET_MAX_THREADS();  // give FFTW all it has access to
     // *** should limt max # threads here too? or set equal to batchsize?
     // *** put in logic for setting FFTW # thr based on o.spread_thread?
     FFTW_INIT();           // only does anything when OMP=ON for >1 threads
@@ -361,7 +361,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
              
       // STEP 2: call the pre-planned FFT on this batch
       timer.restart();
-      FFTW_EX(p->fftwPlan);           // *** what if thisBatchSize<batchSize?
+      FFTW_EX(p->fftwPlan);   // if thisBatchSize<batchSize it wastes some flops
       t_fft += timer.elapsedsec();
       if (p->opts.debug>1)
         printf("\tFFTW exec:\t\t%.3g s\n", timer.elapsedsec());
@@ -378,7 +378,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       }
     }                                                       // .....end b loop
     
-    if (p->opts.debug){  // report total times in the order they would happen...
+    if (p->opts.debug){  // report total times in their natural order...
       if(p->type == 1) {
         printf("[finufft_exec] tot spread:\t\t\t%.3g s\n",t_sprint);
         printf("               tot FFT:\t\t\t\t%.3g s\n", t_fft);

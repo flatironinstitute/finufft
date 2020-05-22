@@ -18,15 +18,15 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 2d many interface, types 1,2, and 3.
 
-   Usage: finufft2dmany_test [ntransf [Nmodes1 Nmodes2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]
+   Usage: finufft2dmany_test [ntransf [Nmodes1 Nmodes2 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
 
-   Example: finufft2dmany_test 1000 1e2 1e2 1e4 1e-6 1 2 2.0
+   Example: finufft2dmany_test 1000 1e2 1e2 1e4 1e-6 1 0 0 2 2.0
 
    Melody Shih Jun 2018, based on Barnett Feb 2017.
-   Barnett removed many_seq for simplicity, 7/27/18.
+   Barnett removed many_seq for simplicity, 7/27/18. Extra args 5/21/20.
 */
 {
   BIGINT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
@@ -36,8 +36,7 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;          // default
   double upsampfac = 2.0;        // default
   nufft_opts opts; finufft_default_opts(&opts);
-  opts.spread_thread = 0;        // vectorization thread scheme
-  //opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
+  //opts.fftw = FFTW_MEASURE;  // change from default FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc>1) { sscanf(argv[1],"%lf",&w); ntransf = (int)w; }
   if (argc>2) {
@@ -52,8 +51,11 @@ int main(int argc, char* argv[])
   if (argc>6) sscanf(argv[6],"%d",&debug);
   opts.debug = debug;
   opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
-  if (argc>7) sscanf(argv[7],"%d",&opts.spread_sort);
-  if (argc>8) sscanf(argv[8],"%lf",&upsampfac);
+  
+  if (argc>7) sscanf(argv[7],"%d",&opts.spread_thread);  
+  if (argc>8) sscanf(argv[8],"%d",&opts.maxbatchsize);  
+  if (argc>9) sscanf(argv[9],"%d",&opts.spread_sort);
+  if (argc>10) sscanf(argv[10],"%lf",&upsampfac);
   opts.upsampfac=upsampfac;
 
   if (argc==1 || argc==2 || argc>9) {

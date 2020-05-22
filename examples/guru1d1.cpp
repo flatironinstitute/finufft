@@ -32,17 +32,16 @@ int main(int argc, char* argv[])
   int type = 1, dim = 1;     // 1d1
   BIGINT Ns[3];              // guru describes mode array by vector [N1,N2..]
   Ns[0] = N;
-  int ntransf = 1;           // we want to do a single transform
-  int blksize = 8;           // multiple transf block size (set to n_threads)
+  int ntransf = 1;           // we want to do a single transform at a time
   finufft_plan plan;         // creates a plan struct
-  int changeopts = 1;        // 0 or 1
+  int changeopts = 0;        // do you want to try changing opts? 0 or 1
   if (changeopts) {          // demo how to change options away from defaults..
     nufft_opts opts;
     finufft_default_opts(&opts);
     opts.debug = 1;          // example options change
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, blksize, &plan, &opts);
+    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);
   } else                     // or, NULL here means use default opts...
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, blksize, &plan, NULL);
+    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
 
   // generate some random nonuniform points
   vector<double> x(M);
