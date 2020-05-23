@@ -332,8 +332,11 @@ int main(int argc, char* argv[])
 // ---------------------------------------------------------------------------
 double finufftFunnel(CPX *cStart, CPX *fStart, finufft_plan *plan)
 // HELPER FOR COMPARING AGAINST SIMPLE INTERFACES. Reads opts from the
-// finufft plan, and does a single simple interface call.
+// finufft plan, but also the NU pts, and does a single simple interface call.
 // Returns the run-time in seconds, or -1.0 if error.
+  
+// *** be ready to disallow this to look at plan->X, etc, which it shouldn't
+//    know about.
 {
 
   CNTime timer; timer.start();

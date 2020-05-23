@@ -21,7 +21,7 @@
 #define MAX_NQUAD 100
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
-// (Note: next235 takes 1s for this size.)
+// (Note: next235 takes 1s for this size, so it is also to prevent hang here.)
 // Increase this if you need >1TB RAM... (used only in common.cpp)
 #define MAX_NF    (BIGINT)1e11
 
@@ -34,7 +34,7 @@
 //  user's name space we keep them here)
 // NB: if change these numbers also must regen test/results/dumbinputs.refout
 #define ERR_EPS_TOO_SMALL        1
-// this means that a fine grid array was bigger than MAX_NF, no malloc tried...
+// this means that a fine grid array dim exceeded MAX_NF; no malloc tried...
 #define ERR_MAXNALLOC            2
 #define ERR_SPREAD_BOX_SMALL     3
 #define ERR_SPREAD_PTS_OUT_RANGE 4

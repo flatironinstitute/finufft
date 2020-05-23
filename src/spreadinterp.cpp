@@ -286,7 +286,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       // Split sorted inds (jfm's advanced2), could double RAM
       int nb = MIN(4*nth_used,M);  // choose # subprobs via nthreads to be used
       if (nb*opts.max_subproblem_size<M)
-        nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;  // int div
+        nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
       if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
         nb = M;
         if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");

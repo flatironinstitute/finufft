@@ -9,28 +9,29 @@
 #include <stdbool.h>     // for bools in C
 #endif
 
-// group together a bunch of type-3 rescaling/centering/phasing parameters:
+// group together a bunch of type 3 rescaling/centering/phasing parameters:
 typedef struct {
-  FLT X1,C1,D1,h1,gam1;   // x dim
-  FLT X2,C2,D2,h2,gam2;   // y
-  FLT X3,C3,D3,h3,gam3;   // z
+  FLT X1,C1,D1,h1,gam1;  // x dim: X=halfwid C=center D=freqcen h,gam=rescale
+  FLT X2,C2,D2,h2,gam2;  // y
+  FLT X3,C3,D3,h3,gam3;  // z
 } type3Params;
 
 
-typedef struct finufft_plan{  // the main plan object; note C-compatible struct
+typedef struct finufft_plan {  // the main plan object; note C-compatible struct
   
   int type;        // transform type (Rokhlin naming): 1,2 or 3
   int dim;         // overall dimension: 1,2 or 3
   int ntrans;      // how many transforms to do at once (vector or "many" mode)
   int nj;          // number of NU pts in type 1,2 (for type 3, num input x pts)
   int nk;          // number of NU freq pts (type 3 only)
-  FLT tol;         // relative tolerance
+  FLT tol;         // relative user tolerance
   int batchSize;   // # strength vectors to group together for FFTW, etc
+  int nbatch;      // how many batches done to cover all ntrans vectors
   
-  BIGINT ms;       // number of modes in x (1) direction (historical CMCL name)
-  BIGINT mt;       // number of modes in y (2) direction
-  BIGINT mu;       // number of modes in z (3) direction
-  BIGINT N;        // total # modes
+  BIGINT ms;       // number of modes in x (1) dir (historical CMCL name) = N1
+  BIGINT mt;       // number of modes in y (2) direction = N2
+  BIGINT mu;       // number of modes in z (3) direction = N3
+  BIGINT N;        // total # modes (prod of above three)
   
   BIGINT nf1;      // size of internal fine grid in x (1) direction
   BIGINT nf2;      // " y
@@ -39,7 +40,7 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   
   int fftSign;     // sign in exponential for NUFFT defn, guaranteed to be +-1
 
-  FLT* phiHat1;    // FT of kernel in t1,2, x-axis; for t3 it's all nk targs.
+  FLT* phiHat1;    // FT of kernel in t1,2, on x-axis mode grid
   FLT* phiHat2;    // " y-axis.
   FLT* phiHat3;    // " z-axis.
   
@@ -49,24 +50,22 @@ typedef struct finufft_plan{  // the main plan object; note C-compatible struct
   BIGINT *sortIndices;  // precomputed NU pt permutation, speeds spread/interp
   bool didSort;         // whether binsorting used (false: identity perm used)
 
-  FLT *X;         // pointers to user-supplied NU pts arrays
-  FLT *Y;
-  FLT *Z; 
+  FLT *X, *Y, *Z;  // pointers to user-supplied NU pts arrays (no new allocs)
 
-  FLT *X_orig;   // *** poss to delete, there for test guru t3
-  FLT *Y_orig;
-  FLT *Z_orig;
-  FLT *s, *t, *u; // ***
-
+  // type 3 specific
+  FLT *S, *T, *U;  // pointers to user's target NU pts arrays (no new allocs)
+  CPX* prephase;   // pre-phase, for all input NU pts
+  CPX* deconv;     // reciprocal of kernel FT, phase, all output NU pts
+  CPX* CpBatch;    // working array of prephased strengths
+  FLT *Xp, *Yp, *Zp, *Sp, *Tp, *Up;  // internal primed (x', s', etc), allocated
+  type3Params t3P; // groups together type 3 shift, scale, phase, parameters
+  bool isInnerT2;  // whether this plan is the type 2 inside a type 3
+  struct finufft_plan *innerT2plan;   // ptr used for type 2 in step 2 of type 3
   
   // other internal structs; each is C-compatible of course
-  FFTW_PLAN fftwPlan;   // should these be ptrs to structs?
+  FFTW_PLAN fftwPlan;   // *** should these 3 be ptrs instead?
   nufft_opts opts;
   spread_opts spopts;
-  type3Params t3P;       // groups together type 3 parameters
-
-  // whether this plan is the type-2 inner call needed within a type-3 transform
-  struct finufft_plan *innerT2Plan;   // used for type-2 as step 2 of type-3
   
 } finufft_plan;
 
