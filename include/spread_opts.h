@@ -3,7 +3,8 @@
 
 #include <dataTypes.h>
 
-// C-compatible options struct for spreader.
+// C-compatible options struct for spreader
+// (mostly internal to spreadinterp.cpp, with a little bleed to common.cpp)
 
 typedef struct spread_opts {    // see cnufftspread:setup_spreader for defaults.
   int nspread;            // w, the kernel width in grid pts

@@ -50,16 +50,16 @@ typedef struct finufft_plan {  // the main plan object; note C-compatible struct
   BIGINT *sortIndices;  // precomputed NU pt permutation, speeds spread/interp
   bool didSort;         // whether binsorting used (false: identity perm used)
 
-  FLT *X, *Y, *Z;  // pointers to user-supplied NU pts arrays (no new allocs)
+  FLT *X, *Y, *Z;  // for t1,2: ptr to user-supplied NU pts (no new allocs).
+                   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
 
   // type 3 specific
   FLT *S, *T, *U;  // pointers to user's target NU pts arrays (no new allocs)
   CPX* prephase;   // pre-phase, for all input NU pts
   CPX* deconv;     // reciprocal of kernel FT, phase, all output NU pts
   CPX* CpBatch;    // working array of prephased strengths
-  FLT *Xp, *Yp, *Zp, *Sp, *Tp, *Up;  // internal primed (x', s', etc), allocated
+  FLT *Sp, *Tp, *Up;  // internal primed targs (s'_k, etc), allocated
   type3Params t3P; // groups together type 3 shift, scale, phase, parameters
-  bool isInnerT2;  // whether this plan is the type 2 inside a type 3
   struct finufft_plan *innerT2plan;   // ptr used for type 2 in step 2 of type 3
   
   // other internal structs; each is C-compatible of course
