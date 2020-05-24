@@ -316,34 +316,39 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     }
 
     // always shift as use gam to rescale x_j to x'_j, etc (twist iii)...
-    // *** CHECK REMOVING OMP HERE:          ***  COMPARE static vs dynamic
+    FLT ig1 = 1.0/p->t3P.gam1, ig2=0.0, ig3=0.0;   // "reciprocal-math" optim
+    if (d>1)
+      ig2 = 1.0/p->t3P.gam2;
+    if (d>2)
+      ig3 = 1.0/p->t3P.gam3;
 #pragma omp parallel for schedule(static)
     for (BIGINT j=0;j<nj;++j) {
-      p->X[j] = (xj[j] - p->t3P.C1) / p->t3P.gam1;         // rescale x_j
+      p->X[j] = (xj[j] - p->t3P.C1) * ig1;         // rescale x_j
       if (d>1)        // (ok to do inside loop because of branch predict)
-        p->Y[j] = (yj[j]- p->t3P.C2) / p->t3P.gam2;        // rescale y_j
+        p->Y[j] = (yj[j]- p->t3P.C2) * ig2;        // rescale y_j
       if (d>2)
-        p->Z[j] = (zj[j] - p->t3P.C3) / p->t3P.gam3;       // rescale z_j
+        p->Z[j] = (zj[j] - p->t3P.C3) * ig3;       // rescale z_j
     }
 
     // set up prephase array...
-    FLT fsign = (p->fftSign>=0) ? (FLT)1.0 : (FLT)-1.0;     // +-1
+    CPX imasign = (p->fftSign>=0) ? IMA : -IMA;             // +-i
     p->prephase = (CPX*)malloc(sizeof(CPX)*nj);
     if (p->t3P.D1!=0.0 || p->t3P.D2!=0.0 || p->t3P.D3!=0.0) {
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(static)
       for (BIGINT j=0;j<nj;++j) {          // ... loop over src NU locs
         FLT phase = p->t3P.D1*xj[j];
         if (d>1)
           phase += p->t3P.D2*yj[j];
         if (d>2)
           phase += p->t3P.D3*zj[j];
-        p->prephase[j] = cos(phase)+fsign*sin(phase); // e^{+-i.phase}, phase Re
+        p->prephase[j] = cos(phase)+imasign*sin(phase);   // Euler e^{+-i.phase}
       }
     } else
       for (BIGINT j=0;j<nj;++j)
         p->prephase[j] = (CPX)1.0;     // *** or keep flag so no mult in exec??
       
-    // rescale the target s_k etc to s'_k etc...                  *** OMP ?
+    // rescale the target s_k etc to s'_k etc...
+#pragma omp parallel for schedule(static)
     for (BIGINT k=0;k<nk;++k) {
       p->Sp[k] = p->t3P.h1*p->t3P.gam1*(s[k]- p->t3P.D1);  // so |s'_k| < pi/R
       if (d>1)
@@ -368,7 +373,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     }
     // *** check if C1 etc can be nonfinite ?
     int Cnonzero = (p->t3P.C1!=0.0 || p->t3P.C2!=0.0 || p->t3P.C3!=0.0);  // cen
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(static)
     for (BIGINT k=0;k<nk;++k) {         // .... loop over NU targ freqs
       FLT phiHat = phiHatk1[k];
       if (d>1)
@@ -382,7 +387,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
           phase += (t[k] - p->t3P.D2) * p->t3P.C2;
         if (d>2)
           phase += (u[k] - p->t3P.D3) * p->t3P.C3;
-        p->deconv[k] *= cos(phase)+fsign*sin(phase);  // e^{+-i.phase}, phase Re
+        p->deconv[k] *= cos(phase)+imasign*sin(phase);   // Euler e^{+-i.phase}
       }
     }
     free(phiHatk1); free(phiHatk2); free(phiHatk3);  // done w/ deconv fill
