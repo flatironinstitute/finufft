@@ -61,7 +61,7 @@ HEADERS = src/cufinufft.h src/deconvolve.h src/memtrasfer.h src/profile.h \
 CONTRIBOBJS=contrib/utils.o contrib/dirft2d.o contrib/common.o \
 	contrib/spreadinterp.o contrib/legendre_rule_fast.o
 
-CUCONTRIBOBJS=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
+CUFINUFFTOBJS=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	src/2d/spread2d_wrapper.o src/2d/spread2d_wrapper_paul.o \
 	src/2d/interp2d_wrapper.o src/memtransfer_wrapper.o \
 	src/deconvolve_wrapper.o src/cufinufft.o src/profile.o \
@@ -78,51 +78,51 @@ CUFINUFFTCOBJS=src/cufinufftc.o
 	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
 
 
-spread2d: test/spread_2d.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+spread2d: test/spread_2d.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-interp2d: test/interp_2d.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+interp2d: test/interp_2d.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-cufinufft_test: test/cufinufft_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+cufinufft_test: test/cufinufft_test.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d1_test: test/cufinufft2d1_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+cufinufft2d1_test: test/cufinufft2d1_test.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d1many_test: test/cufinufft2d1many_test.o $(CUCONTRIBOBJS) \
+cufinufft2d1many_test: test/cufinufft2d1many_test.o $(CUFINUFFTOBJS) \
 	$(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d2_test: test/cufinufft2d2_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+cufinufft2d2_test: test/cufinufft2d2_test.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-cufinufft2d2many_test: test/cufinufft2d2many_test.o $(CUCONTRIBOBJS) \
+cufinufft2d2many_test: test/cufinufft2d2many_test.o $(CUFINUFFTOBJS) \
 	$(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-spread3d: test/spread_3d.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+spread3d: test/spread_3d.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-interp3d: test/interp_3d.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+interp3d: test/interp_3d.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-cufinufft3d1_test: test/cufinufft3d1_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+cufinufft3d1_test: test/cufinufft3d1_test.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
-cufinufft3d2_test: test/cufinufft3d2_test.o $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
 
 lib: $(STATICLIB) $(DYNAMICLIB)
 
 clib: $(DYNAMICCLIB)
 
-$(STATICLIB): $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+$(STATICLIB): $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	mkdir -p lib-static
-	ar rcs $(STATICLIB) $(CUCONTRIBOBJS) $(CONTRIBOBJS)
-$(DYNAMICLIB): $(CUCONTRIBOBJS) $(CONTRIBOBJS)
+	ar rcs $(STATICLIB) $(CUFINUFFTOBJS) $(CONTRIBOBJS)
+$(DYNAMICLIB): $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	mkdir -p lib
-	$(NVCC) -shared $(NVCCFLAGS) $(CUCONTRIBOBJS) $(CONTRIBOBJS) -o $(DYNAMICLIB) $(LIBS)
+	$(NVCC) -shared $(NVCCFLAGS) $(CUFINUFFTOBJS) $(CONTRIBOBJS) -o $(DYNAMICLIB) $(LIBS)
 
 $(DYNAMICCLIB): $(CUFINUFFTCOBJS) $(STATICLIB)
 	mkdir -p lib
