@@ -9,10 +9,8 @@
 #include "../contrib/spreadinterp.h"
 #include "../contrib/common.h"
 
-enum finufft_type {type1,type2,type3};
-
-struct nufft_opts {   // see cufinufft_default_opts() for defaults
-	FLT upsampfac;      // upsampling ratio sigma, only 2.0 (standard) is implemented
+typedef struct cufinufft_opts{   // see cufinufft_default_opts() for defaults
+	FLT upsampfac;   // upsampling ratio sigma, only 2.0 (standard) is implemented
 	/* following options are for gpu */
 	int gpu_method;
 	int gpu_sort; // used for 3D nupts driven method
@@ -28,13 +26,13 @@ struct nufft_opts {   // see cufinufft_default_opts() for defaults
 	int gpu_maxsubprobsize;
 	int gpu_nstreams; 
 	int gpu_kerevalmeth;	// 0: direct exp(sqrt()), 1: Horner ppval
-};
+}cufinufft_opts;
 
 typedef struct {
-	finufft_type    type;
-	nufft_opts      opts; 
+	cufinufft_opts  opts; 
 	spread_opts     spopts;
 
+	int type;
 	int dim;
 	int M;
 	int nf1;
@@ -125,8 +123,8 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 	return "<unknown>";
 }
 #define checkCufftErrors(call)
-int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts);
-int cufinufft_makeplan(finufft_type type, int dim, int *n_modes, int iflag, 
+int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts);
+int cufinufft_makeplan(int type, int dim, int *n_modes, int iflag, 
 	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan);
 int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
 	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan);

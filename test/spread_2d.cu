@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 	int dim=2;
 	int ns=std::ceil(-log10(tol/10.0));
 	cufinufft_plan dplan;
-	ier = cufinufft_default_opts(type1, dim, dplan.opts);
+	ier = cufinufft_default_opts(1, dim, dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
 		return 0;

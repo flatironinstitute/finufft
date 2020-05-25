@@ -92,7 +92,8 @@ int main(int argc, char* argv[])
 
 	cufinufft_plan dplan;
 	int dim = 3;
-	ier=cufinufft_default_opts(type1, dim, dplan.opts);
+	int type = 1;
+	ier=cufinufft_default_opts(type, dim, dplan.opts);
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_binsizex = 16;
 	dplan.opts.gpu_binsizey = 16;
@@ -106,7 +107,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = N3;
 	cudaEventRecord(start);
-	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, 
+	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
 		ntransfcufftplan, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_makeplan\n");

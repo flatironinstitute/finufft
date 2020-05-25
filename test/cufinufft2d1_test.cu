@@ -87,8 +87,9 @@ int main(int argc, char* argv[])
 
 	cufinufft_plan dplan;
 	int dim = 2;
+	int type = 1;
 
-	ier=cufinufft_default_opts(type1, dim, dplan.opts);
+	ier=cufinufft_default_opts(type, dim, dplan.opts);
 	dplan.opts.gpu_method=method;
 
 	int nmodes[3];
@@ -98,7 +99,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 	cudaEventRecord(start);
-	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, 
+	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
 		ntransfcufftplan, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");

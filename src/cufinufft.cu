@@ -12,7 +12,7 @@
 
 using namespace std;
 
-int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag, 
+int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, 
 	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan)
 /*
 	"plan" stage: 
@@ -26,8 +26,7 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 		(4) call cufftPlanMany and save the cufft plan inside cufinufft plan
 		
 	Input:
-	type    type of the transform, can be type1, type2, type3 (finufft_type is 
-	        defined in cufinufft.h)
+	type    type of the transform, can be 1, 2, or 3 (3 not implemented yet))
 	dim     dimension of the transform
 	nmodes  a size 3 integer array, nmodes[d] is the number of modes in d 
 	        dimension
@@ -38,7 +37,7 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 	
 	Input/Output:
 	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft.h) 
-			d_plan.nufft_opts is used for plan stage. Variables and arrays 
+			    d_plan.opts is used for plan stage. Variables and arrays 
 	        inside the plan are set and allocated
 	
 	Melody Shih 07/25/19
@@ -72,9 +71,9 @@ int cufinufft_makeplan(finufft_type type, int dim, int *nmodes, int iflag,
 	d_plan->ntransfcufftplan = ntransfcufftplan;
 	d_plan->type = type;
 
-	if(d_plan->type == type1)
+	if(d_plan->type == 1)
 		d_plan->spopts.spread_direction = 1; 
-	if(d_plan->type == type2)
+	if(d_plan->type == 2)
 		d_plan->spopts.spread_direction = 2; 
 	// this may move to gpu
 	CNTime timer; timer.start();
@@ -378,7 +377,7 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 */
 {
 	int ier;
-	finufft_type type=d_plan->type;
+	int type=d_plan->type;
 	switch(d_plan->dim)
 	{
 		case 1:
@@ -389,11 +388,11 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		break;
 		case 2:
 		{
-			if(type == type1)
+			if(type == 1)
 				ier = cufinufft2d1_exec(d_c,  d_fk, d_plan);
-			if(type == type2)
+			if(type == 2)
 				ier = cufinufft2d2_exec(d_c,  d_fk, d_plan);
-			if(type == type3){
+			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
 			}
@@ -401,11 +400,11 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		break;
 		case 3:
 		{
-			if(type == type1)
+			if(type == 1)
 				ier = cufinufft3d1_exec(d_c,  d_fk, d_plan);
-			if(type == type2)
+			if(type == 2)
 				ier = cufinufft3d2_exec(d_c,  d_fk, d_plan);
-			if(type == type3){
+			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
 			}
@@ -459,11 +458,11 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
+int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 /*
 	"default_opts" stage:
 	
-	In this stage, the default options in nufft_opts are set. 
+	In this stage, the default options in cufinufft_opts are set. 
   Options with prefix "gpu_" are used for gpu code. 
 
 	Notes:
@@ -500,19 +499,19 @@ int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
 		case 2:
 		{
 			opts.gpu_maxsubprobsize = 1024;
-			if(type == type1){
+			if(type == 1){
 				opts.gpu_method = 2;
 				opts.gpu_binsizex = 32;
 				opts.gpu_binsizey = 32;
 				opts.gpu_binsizez = 1;
 			}
-			if(type == type2){
+			if(type == 2){
 				opts.gpu_method = 1;
 				opts.gpu_binsizex = 32;
 				opts.gpu_binsizey = 32;
 				opts.gpu_binsizez = 1;
 			}
-			if(type == type3){
+			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
 				return ier;
@@ -522,19 +521,19 @@ int cufinufft_default_opts(finufft_type type, int dim, nufft_opts &opts)
 		case 3:
 		{
 			opts.gpu_maxsubprobsize = 1024;
-			if(type == type1){
+			if(type == 1){
 				opts.gpu_method = 2;
 				opts.gpu_binsizex = 16;
 				opts.gpu_binsizey = 16;
 				opts.gpu_binsizez = 2;
 			}
-			if(type == type2){
+			if(type == 2){
 				opts.gpu_method = 1;
 				opts.gpu_binsizex = 16;
 				opts.gpu_binsizey = 16;
 				opts.gpu_binsizez = 2;
 			}
-			if(type == type3){
+			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
 				return ier;
