@@ -3,7 +3,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include <cuspreadinterp.h>
+#include "../src/cuspreadinterp.h"
 #include "../contrib/utils.h"
 
 using namespace std;

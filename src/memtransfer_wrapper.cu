@@ -6,7 +6,7 @@
 #include <cub/device/device_scan.cuh>
 
 #include <cuComplex.h>
-#include <cuspreadinterp.h>
+#include "memtransfer.h"
 
 using namespace std;
 

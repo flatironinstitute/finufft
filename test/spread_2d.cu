@@ -4,7 +4,7 @@
 #include <helper_cuda.h>
 #include <complex>
 #include <algorithm>
-#include <cuspreadinterp.h>
+#include "../src/cuspreadinterp.h"
 #include "../contrib/utils.h"
 
 using namespace std;
