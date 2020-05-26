@@ -57,7 +57,7 @@ To perform the nonuniform FFT (with default options) is then one line::
 
   int ier = finufft1d1(M,x,c,+1,1e-6,N,F,NULL);
 
-Here the ``NULL`` is what causes default options to be used.
+Here ``NULL`` is interpreted as using default options.
 This fills ``F`` with the output modes, in increasing ordering
 from ``-N/2`` to ``N/2-1``.
 Here ``+1`` sets the sign of ``i`` in the exponentials in the
@@ -125,7 +125,7 @@ Options
 
 You may override the default options in ``opts`` by changing the fields in this struct, after setting up with default values as above.
 This allows control of various parameters such as the mode ordering, FFTW plan mode, upsampling factor :math:`\sigma`, and debug/timing output.
-Here is the list of the options fields you may set (see the header ``src/finufft.h``):
+Here is the list of the options fields you may set, with 1-line descriptions (see the header ``include/finufft.h``):
 
 ::
 
@@ -139,7 +139,8 @@ Here is the list of the options fields you may set (see the header ``src/finufft
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
   FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
-  int spread_scheme;  // for n_trans>1. 0: sequential multithreaded, 1: nested multithreaded
+  int spread_thread;  // for ntrans>1 only. 0: auto, 1: sequential multithreaded, 2: parallel singlethreaded, 3: nested multithreaded
+  int maxbatchsize;   // for ntrans>1 only. max chunk size of data vectors. 0: auto
 
 Here are their default settings (set in ``src/common.cpp:finufft_default_opts``)::
 
@@ -152,7 +153,8 @@ Here are their default settings (set in ``src/common.cpp:finufft_default_opts``)
   fftw = FFTW_ESTIMATE;
   modeord = 0;
   upsampfac = 2.0;
-  spread_scheme = 0;
+  spread_thread = 0;
+  maxbatchsize = 0;
   
 To get the fastest run-time, we recommend that you experiment firstly with:
 ``fftw``, ``upsampfac``, and ``spread_sort``, detailed below.
@@ -181,8 +183,24 @@ size of the fine grid).
 Thus only 9-digit accuracy can currently be reached when using
 ``upsampfac=1.25``.
 
-``spread_scheme``: only applies to the case of multiple-vector calls
-(the simple "many" interfaces, or the guru interface).
+The remaining options only are relevant for multiple-vector calls, that is,
+using the simple interfaces containing the word "many", or the guru interface with ``ntrans`` > 1:
+
+``spread_thread``: control how multithreading is used to spread/interpolate each batch of data.
+
+- 0: makes an automatic choice.
+  
+- 1: acts on each vector in the batch in sequence, using multithreaded spread/interpolate. It can be slightly better than 2 for large problems.
+
+- 2: acts on all vectors in batch simultaneously, assigning each a thread which performs single-threaded spread/interpolate. (This was used by Melody Shih for the original "2dmany" interface in 2018.) It is much better than 1 for all but large problems.
+
+- 3: like 2 except allowing nested OMP parallelism, so multi-threaded spread-interpolate is used. (This was used by Andrea Malleo in 2019.) I have not yet found a case where this beats both 1 and 2.
+  
+``maxbatchsize``: set the largest batch size of data vectors. 0 makes an automatic choice. If you are unhappy with this, then for small problems it should equal the number of threads, while for large problems it appears that 1 is better
+(since otherwise too much simultaneous RAM movement occurs).
+
+
+
 
 .. _errcodes:
 
@@ -201,10 +219,11 @@ has the following meanings (see ``include/defs.h``):
   5  spreader: array allocation error
   6  spreader: illegal direction (should be 1 or 2)
   7  upsampfac too small (should be >1)
-  8  upsampfac not a value with known Horner eval: currently 2.0 or 1.25 only
-  9  ndata not valid in "many" interface (should be >= 1)
-  10 transform type not valid
+  8  upsampfac not a value with known Horner eval (currently 2.0 or 1.25 only)
+  9  ntrans not valid in "many" or guru interface (should be >= 1)
+  10 transform type invalid
   11 general allocation failure
+  12 dimension invalid
 
 
 1D transforms, simple interface

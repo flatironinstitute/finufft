@@ -129,3 +129,20 @@ double CNTime::elapsedsec()
   double initialsec = (double)initial.tv_sec + 1e-6*initial.tv_usec;
   return nowsec - initialsec;
 }
+
+
+// -------------------------- openmp helpers
+
+int get_num_threads_parallel_block()
+// return how many threads an omp parallel block would use.
+// omp_get_max_threads() does not report this; consider case of NESTED = 0.
+// Why is there no such routine?   Barnett 5/22/20
+{
+  int nth_used;
+#pragma omp parallel
+  {
+#pragma omp single
+    nth_used = MY_OMP_GET_NUM_THREADS();
+  }
+  return nth_used;
+}

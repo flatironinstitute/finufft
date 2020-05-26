@@ -21,7 +21,7 @@ extern "C" {
 void finufft_default_opts(nufft_opts *o)
 // Sets default nufft opts. See finufft.h for definition of opts.
 // This was created to avoid uncertainty about C++11 style static initialization
-// when called from MEX. Barnett 10/30/17
+// when called from MEX. Barnett 10/30/17 onwards.
 {
   o->upsampfac = 2.0;        // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
   o->chkbnds = 0;
@@ -32,15 +32,16 @@ void finufft_default_opts(nufft_opts *o)
   o->spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
   o->fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
   o->modeord = 0;
-  o->spread_scheme = 0;      //default: sequential multithreaded
+  o->spread_thread = 0;      // default: auto
+  o->maxbatchsize = 0;       // "
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
-// options. Report status of setup_spreader.  Barnett 10/30/17
+// options. Report status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
   int ier = setup_spreader(spopts, eps, opts.upsampfac,
-                           opts.spread_kerevalmeth);
+                           opts.spread_kerevalmeth);    // see spreadinterp.cpp
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;     // could make dim or CPU choices here?
   spopts.kerpad = opts.spread_kerpad; // (only applies to kerevalmeth=0)

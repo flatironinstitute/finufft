@@ -21,7 +21,7 @@
 #define MAX_NQUAD 100
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
-// (Note: next235 takes 1s for this size.)
+// (Note: next235 takes 1s for this size, so it is also to prevent hang here.)
 // Increase this if you need >1TB RAM... (used only in common.cpp)
 #define MAX_NF    (BIGINT)1e11
 
@@ -34,7 +34,7 @@
 //  user's name space we keep them here)
 // NB: if change these numbers also must regen test/results/dumbinputs.refout
 #define ERR_EPS_TOO_SMALL        1
-// this means that a fine grid array was bigger than MAX_NF, no malloc tried...
+// this means that a fine grid array dim exceeded MAX_NF; no malloc tried...
 #define ERR_MAXNALLOC            2
 #define ERR_SPREAD_BOX_SMALL     3
 #define ERR_SPREAD_PTS_OUT_RANGE 4
@@ -42,7 +42,7 @@
 #define ERR_SPREAD_DIR           6
 #define ERR_UPSAMPFAC_TOO_SMALL  7
 #define HORNER_WRONG_BETA        8
-#define ERR_NDATA_NOTVALID       9
+#define ERR_NTRANS_NOTVALID      9
 #define ERR_TYPE_NOTVALID        10
 // some generic internal allocation failure...
 #define ERR_ALLOC                11
@@ -94,6 +94,7 @@ using namespace std;        // means std:: not needed for cout, max, etc
   #define MY_OMP_GET_THREAD_NUM() omp_get_thread_num()
   #define MY_OMP_SET_NUM_THREADS(x) omp_set_num_threads(x)
   #define MY_OMP_SET_NESTED(x) omp_set_nested(x)
+  #define MY_OMP_GET_NESTED() omp_get_nested()
 #else
   // non-omp safe dummy versions of omp utils, and dummy fftw threads calls...
   #define MY_OMP_GET_NUM_THREADS() 1
@@ -101,6 +102,7 @@ using namespace std;        // means std:: not needed for cout, max, etc
   #define MY_OMP_GET_THREAD_NUM() 0
   #define MY_OMP_SET_NUM_THREADS(x)
   #define MY_OMP_SET_NESTED(x)
+  #define MY_OMP_GET_NESTED() 1
   #undef FFTW_INIT
   #define FFTW_INIT()
   #undef FFTW_PLAN_TH

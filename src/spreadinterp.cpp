@@ -109,13 +109,15 @@ int spreadinterp(
    data_uniform - output values on grid (dir=1) OR input grid data (dir=2)
    data_nonuniform - input strengths of the sources (dir=1)
                      OR output values at targets (dir=2)
-   Ouputs:
-   returned value - 0 indicates success; other values as follows
-      (see utils.h and ../docs/usage.rst for error codes)
+   Returned value:
+   0 indicates success; other values as follows (see spreadcheck below and
+   see utils.h and ../docs/usage.rst for error codes):
       3 : one or more non-trivial box dimensions is less than 2.nspread.
       4 : nonuniform points outside [-Nm,2*Nm] or [-3pi,3pi] in at least one
           dimension m=1,2,3.
+      5 : failed allocate sort indices
       6 : invalid opts.spread_direction
+
 
    Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
    error codes 3/13/17. pirange 3/28/17. Rewritten 6/15/17. parallel sort 2/9/18
@@ -124,18 +126,20 @@ int spreadinterp(
    kereval, kerpad 4/24/18
    Melody Shih split into 3 routines: check, sort, spread. Jun 2018, making
    this routine just a caller to them. Name change, Barnett 7/27/18
+   Tidy, Barnett 5/20/20.
 */
 {
-  int ier_spreadcheck = spreadcheck(N1, N2, N3, M, kx, ky, kz, opts);
-  if (ier_spreadcheck != 0) return ier_spreadcheck;
-
+  int ier = spreadcheck(N1, N2, N3, M, kx, ky, kz, opts);
+  if (ier)
+    return ier;
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
+  if (!sort_indices) {
+    fprintf(stderr,"failed to allocate sort_indices!\n");
+    return ERR_SPREAD_ALLOC;
+  }
   int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
-  int ier_spread = spreadwithsortidx(sort_indices, N1, N2, N3, data_uniform,
-                                           M, kx, ky, kz, data_nonuniform,
-                                           opts,did_sort);
-  if (ier_spread != 0) return ier_spread;
-
+  spreadinterpSorted(sort_indices, N1, N2, N3, data_uniform,
+                     M, kx, ky, kz, data_nonuniform, opts, did_sort);
   free(sort_indices);
   return 0;
 }
@@ -151,13 +155,11 @@ int ndims_from_Ns(BIGINT N1, BIGINT N2, BIGINT N3)
   return ndims;
 }
 
-int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
-		BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		spread_opts opts)
+int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
+                FLT *kz, spread_opts opts)
 /* This does just the input checking and reporting for the spreader.
-   See cnufftspread() for input arguments.
-   Return value is that returned by cnufftspread.
-   Split out by Melody Shih, Jun 2018. Finiteness chk 7/30/18.
+   See spreadinterp() for input arguments and meaning of returned value.
+   Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
 */
 {
   CNTime timer;
@@ -172,8 +174,6 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
     return ERR_SPREAD_DIR;
   }
   int ndims = ndims_from_Ns(N1,N2,N3);
-  if (opts.debug)
-    printf("starting spread %dD (dir=%d. M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), %d threads\n",ndims,opts.spread_direction,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,MY_OMP_GET_MAX_THREADS());
   
   // BOUNDS CHECKING .... check NU pts are valid (incl +-1 box), exit gracefully
   if (opts.chkbnds) {
@@ -210,19 +210,19 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts)
 /* This makes a decision whether to sort the NU pts, and if so, calls either
    single- or multi-threaded bin sort, writing reordered index list to sort_indices.
-   See cnufftspread() for input arguments.
-   Return value is whether a sort was done.
-   Split out by Melody Shih, Jun 2018.
+   See spreadinterp() for input arguments, and ../docs/usage.rst for opts.
+   Return value is whether a sort was done or not.
+   Barnett 2017; split out by Melody Shih, Jun 2018.
 */
 {
   CNTime timer;
   int ndims = ndims_from_Ns(N1,N2,N3);
   BIGINT N=N1*N2*N3;            // output array size
   
-  // NONUNIFORM POINT SORTING .....
   // heuristic binning box size for U grid... affects performance:
   double bin_size_x = 16, bin_size_y = 4, bin_size_z = 4;
-  // put in heuristics based on L3 size (only useful for single-thread) ?
+  // put in heuristics based on cache sizes (only useful for single-thread) ?
+
   int better_to_sort = !(ndims==1 && (opts.spread_direction==2 || (M > 1000*N1))); // 1D small-N or dir=2 case: don't sort
 
   timer.start();                 // if needed, sort all the NU pts...
@@ -260,6 +260,10 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     int ndims = ndims_from_Ns(N1,N2,N3);
     BIGINT N=N1*N2*N3;            // output array size
     int ns=opts.nspread;          // abbrev. for w, kernel width
+    // figure out how many threads would *actually* be used in omp parallel...
+    int nth_used = get_num_threads_parallel_block();
+    if (opts.debug)
+      printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nth_u=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nth_used);
 
     timer.start();
     for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
@@ -269,6 +273,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       return 0;
 
     int spread_single = (M*100<N);     // low-density heuristic?
+    // *** should check if nth_used==1 and if so use single
     spread_single = 0;                 // for now
     timer.start();
     if (spread_single) {    // ------- Basic single-core t1 spreading ------
@@ -279,16 +284,16 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 
     } else {               // ------- Fancy multi-core blocked t1 spreading ----
       // Split sorted inds (jfm's advanced2), could double RAM
-      int nb = MIN(4*MY_OMP_GET_MAX_THREADS(),M);     // Choose # subprobs
+      int nb = MIN(4*nth_used,M);  // choose # subprobs via nthreads to be used
       if (nb*opts.max_subproblem_size<M)
-        nb = (M+opts.max_subproblem_size-1)/opts.max_subproblem_size;  // int div
+        nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
       if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
         nb = M;
         if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
       }
-      if (!did_sort && MY_OMP_GET_MAX_THREADS()==1) {
+      if (!did_sort && nth_used==1) {
         nb = 1;
-        if (opts.debug) printf("\tforcing single subproblem...\n");
+        if (opts.debug) printf("\tunsorted nth_u=1: forcing single subproblem...\n");
       }
       std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
       for (int p=0;p<=nb;++p)
@@ -365,12 +370,15 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort){
   CNTime timer;
-  timer.start();
   int ndims = ndims_from_Ns(N1,N2,N3);
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
+  // figure out how many threads would *actually* be used in omp parallel...
+  int nth_used = get_num_threads_parallel_block();
+  if (opts.debug)
+    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nth_u=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nth_used);
 
-
+  timer.start();  
 #pragma omp parallel
   {
 #define CHUNKSIZE 16     // Chunks of Type 2 targets (Ludvig found by expt)
@@ -460,27 +468,26 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         
       } // end NU targ loop
   } // end parallel section
-if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n",timer.elapsedsec());
-return 0;
+  if (opts.debug) printf("\tt2 spreading loop: \t%.3g s\n",timer.elapsedsec());
+  return 0;
 };
 
 
-int spreadwithsortidx(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
+int spreadinterpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort)
-/* The main spreading (dir=1) and interpolation (dir=2) routines.
-   See cnufftspread() above for inputs arguments and definitions.
-   Return value should always be 0.
-   Split out by Melody Shih, Jun 2018.
+/* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
+   See spreadinterp() above for inputs arguments and definitions.
+   Return value should always be 0 (no error reporting).
+   Split out by Melody Shih, Jun 2018; renamed Barnett 5/20/20.
 */
 {
-
   if (opts.spread_direction==1)  // ========= direction 1 (spreading) =======
     spreadSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
-    
-  else          // ================= direction 2 (interpolation) ===========
+  
+  else           // ================= direction 2 (interpolation) ===========
     interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
-
+  
   return 0;
 }
 

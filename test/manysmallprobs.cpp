@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
   }
   // (note this can't use the many-vectors interface since the NU change)
   complex<double> y=F[0];    // actually use the data so not optimized away
-  printf("%d reps of 1d1 done in %.3g s, %.3g NU pts/s (last ier=%d)\nF[0]=%.6g + %.6gi\n",reps,timer.elapsedsec(),reps*M/timer.elapsedsec(),ier,real(y),imag(y));
+  printf("%d reps of 1d1 done in %.3g s,\t%.3g NU pts/s\t(last ier=%d)\nF[0]=%.6g + %.6gi\n",reps,timer.elapsedsec(),reps*M/timer.elapsedsec(),ier,real(y),imag(y));
 
   printf("repeatedly executing via the guru interface: -------------------\n");
   timer.restart();
@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
   //opts.debug = 1;
   BIGINT Ns[]={N,1,1};
   int ntransf = 1;    // since we do one at a time (neq reps)
-  finufft_makeplan(1,1,Ns,+1,ntransf,acc,0,&plan,&opts);
+  finufft_makeplan(1,1,Ns,+1,ntransf,acc,&plan,&opts);
   for (int r=0;r<reps;++r) {    // set the pts and execute
     x[0] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // one source jiggles around
     finufft_setpts(&plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
   }
   finufft_destroy(&plan);
   y = F[0];
-  printf("%d reps of 1d1 done in %.3g s, %.3g NU pts/s (last ier=%d)\nF[0]=%.6g + %.6gi\n",reps,timer.elapsedsec(),reps*M/timer.elapsedsec(),ier,real(y),imag(y));
+  printf("%d reps of 1d1 done in %.3g s,\t%.3g NU pts/s\t(last ier=%d)\nF[0]=%.6g + %.6gi\n",reps,timer.elapsedsec(),reps*M/timer.elapsedsec(),ier,real(y),imag(y));
   free(x); free(c); free(F);
   return ier;
 }

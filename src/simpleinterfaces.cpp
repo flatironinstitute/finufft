@@ -7,9 +7,11 @@
 #include <iomanip>
 
 // ---------------------------------------------------------------------------
-// The 18 simple interfaces (3 dims * 3 types * {singlecall,many}) to FINUFFT.
+// The 18 simple interfaces (= 3 dims * 3 types * {singlecall,many}) to FINUFFT.
 // As of v1.2 these simply invoke the guru interface, through a helper layer.
-// Andrea Malleo and Alex Barnett, 2019-2020.
+// See ../docs/usage.rst or http://finufft.readthedocs.io for documentation
+// all routines here.
+// Authors: Andrea Malleo and Alex Barnett, 2019-2020.
 // ---------------------------------------------------------------------------
 
 
@@ -23,10 +25,8 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
 // Author: Andrea Malleo, 2019.
 {
   finufft_plan plan;
-  int blksize = MY_OMP_GET_MAX_THREADS(); // default; would need guru to control
-  
   int ier = finufft_makeplan(type, n_dims, n_modes, iflag, n_transf, eps,
-                             blksize, &plan, popts);  // popts can be NULL
+                             &plan, popts);  // popts (ptr to opts) can be NULL
   if (ier){
     fprintf(stderr, "invokeGuru: plan error (ier=%d)!\n", ier);
     return ier;
