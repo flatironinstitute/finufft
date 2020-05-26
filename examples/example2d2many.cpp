@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 	int dim = 2;
 	int nmodes[3];
 
-	ier=cufinufft_default_opts(type2, dim, dplan.opts);
+	ier=cufinufft_default_opts(type2, dim, &dplan.opts);
 
 	nmodes[0] = N1;
 	nmodes[1] = N2;

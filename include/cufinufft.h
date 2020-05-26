@@ -123,7 +123,7 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 	return "<unknown>";
 }
 #define checkCufftErrors(call)
-int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts);
+int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts);
 int cufinufft_makeplan(int type, int dim, int *n_modes, int iflag, 
 	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan);
 int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 

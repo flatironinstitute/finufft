@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 	cufinufft_plan dplan;
 	int dim = 3;
 	int type = 1;
-	ier=cufinufft_default_opts(type, dim, dplan.opts);
+	ier=cufinufft_default_opts(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_binsizex = 16;
 	dplan.opts.gpu_binsizey = 16;

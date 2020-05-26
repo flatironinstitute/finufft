@@ -458,7 +458,7 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
+int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 /*
 	"default_opts" stage:
 	
@@ -475,18 +475,18 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 {
 	int ier;
 	/* following options are for gpu */
-	opts.gpu_nstreams = 0;
-	opts.gpu_kerevalmeth = 1; // using Horner ppval
-	opts.gpu_sort = 1; // access nupts in an ordered way for nupts driven method
+	opts->gpu_nstreams = 0;
+	opts->gpu_kerevalmeth = 1; // using Horner ppval
+	opts->gpu_sort = 1; // access nupts in an ordered way for nupts driven method
 
-	opts.gpu_maxsubprobsize = 1024;
-	opts.gpu_obinsizex = 8;
-	opts.gpu_obinsizey = 8;
-	opts.gpu_obinsizez = 8;
+	opts->gpu_maxsubprobsize = 1024;
+	opts->gpu_obinsizex = 8;
+	opts->gpu_obinsizey = 8;
+	opts->gpu_obinsizez = 8;
 
-	opts.gpu_binsizex = 8;
-	opts.gpu_binsizey = 8;
-	opts.gpu_binsizez = 2;
+	opts->gpu_binsizex = 8;
+	opts->gpu_binsizey = 8;
+	opts->gpu_binsizez = 2;
 
 	switch(dim)
 	{
@@ -498,18 +498,18 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 		}
 		case 2:
 		{
-			opts.gpu_maxsubprobsize = 1024;
+			opts->gpu_maxsubprobsize = 1024;
 			if(type == 1){
-				opts.gpu_method = 2;
-				opts.gpu_binsizex = 32;
-				opts.gpu_binsizey = 32;
-				opts.gpu_binsizez = 1;
+				opts->gpu_method = 2;
+				opts->gpu_binsizex = 32;
+				opts->gpu_binsizey = 32;
+				opts->gpu_binsizez = 1;
 			}
 			if(type == 2){
-				opts.gpu_method = 1;
-				opts.gpu_binsizex = 32;
-				opts.gpu_binsizey = 32;
-				opts.gpu_binsizez = 1;
+				opts->gpu_method = 1;
+				opts->gpu_binsizex = 32;
+				opts->gpu_binsizey = 32;
+				opts->gpu_binsizez = 1;
 			}
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
@@ -520,18 +520,18 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 		break;
 		case 3:
 		{
-			opts.gpu_maxsubprobsize = 1024;
+			opts->gpu_maxsubprobsize = 1024;
 			if(type == 1){
-				opts.gpu_method = 2;
-				opts.gpu_binsizex = 16;
-				opts.gpu_binsizey = 16;
-				opts.gpu_binsizez = 2;
+				opts->gpu_method = 2;
+				opts->gpu_binsizex = 16;
+				opts->gpu_binsizey = 16;
+				opts->gpu_binsizez = 2;
 			}
 			if(type == 2){
-				opts.gpu_method = 1;
-				opts.gpu_binsizex = 16;
-				opts.gpu_binsizey = 16;
-				opts.gpu_binsizez = 2;
+				opts->gpu_method = 1;
+				opts->gpu_binsizex = 16;
+				opts->gpu_binsizey = 16;
+				opts->gpu_binsizez = 2;
 			}
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
@@ -542,6 +542,6 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 		break;
 	}
 
-	opts.upsampfac = (FLT)2.0;
+	opts->upsampfac = (FLT)2.0;
 	return 0;
 }

@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 	cufinufft_plan dplan;
 	int dim = 2;
 	int type = 2;
-	ier=cufinufft_default_opts(type, dim, dplan.opts);
+	ier=cufinufft_default_opts(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 
