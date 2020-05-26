@@ -9,7 +9,7 @@ $ #include <math.h>
 
 $ void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
 $   if(!mxIsStruct(om))
-$     mexErrMsgIdAndTxt("MATLAB:phonebook:inputNotStruct","Input must be a structure.");
+$     mexErrMsgIdAndTxt("MATLAB:copy_nufft_opts:inputNotStruct","Input must be a structure.");
 $   mwIndex idx = 0;
 $   int ifield, nfields;
 $   const char **fname;

@@ -119,12 +119,12 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=debug_def,spread_debug=spread_debug_def,sp
 
   Args:
     x     (float[nj]): nonuniform source points, valid only in [-3pi,3pi]
-    c     (complex[nj]): source strengths
+    c     (complex[nj] or complex[nj,ntransf]): source strengths
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
     ms    (int): number of Fourier modes requested, may be even or odd;
         in either case the modes are integers lying in [-ms/2, (ms-1)/2]
-    f     (complex[ms]): output Fourier mode values. Should be initialized as a
+    f     (complex[ms] or complex[ms,ntransf]): output Fourier mode values. Should be initialized as a
               numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown).
     spread_debug (int, optional): 0 (silent), 1, 2... (prints spreader info)
@@ -201,11 +201,11 @@ def nufft1d2(x,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,sprea
 
   Args:
     x     (float[nj]): nonuniform target points, valid only in [-3pi,3pi]
-    c     (complex[nj]): output values at targets. Should be initialized as a
+    c     (complex[nj] or complex[nj,ntransf]): output values at targets. Should be initialized as a
         numpy array of the correct size
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
-    f     (complex[ms]): Fourier mode coefficients, where ms is even or odd
+    f     (complex[ms] or complex[ms,ntransf]): Fourier mode coefficients, where ms is even or odd
           In either case the mode indices are integers in [-ms/2, (ms-1)/2]
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
@@ -278,11 +278,11 @@ def nufft1d3(x,c,isign,eps,s,f,debug=debug_def,spread_debug=spread_debug_def,spr
 
   Args:
     x     (float[nj]): nonuniform source points, in R
-    c     (complex[nj]): source strengths
+    c     (complex[nj] or complex[nj,ntransf]): source strengths
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
     s     (float[nk]): nonuniform target frequency points, in R
-    f     (complex[nk]): output values at target frequencies.
+    f     (complex[nk] or complex[nk,ntransf]): output values at target frequencies.
        Should be initialized as a numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
@@ -361,7 +361,7 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=debug_def,spread_debug=spread_debug_d
   Args:
     x     (float[nj]): nonuniform source x-coords, valid only in [-3pi,3pi]
     y     (float[nj]): nonuniform source y-coords, valid only in [-3pi,3pi]
-    c     (complex[nj]): source strengths
+    c     (complex[nj] or complex[nj,ntransf]): source strengths
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
     ms    (int): number of Fourier modes in x-direction, may be even or odd;
@@ -369,7 +369,7 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=debug_def,spread_debug=spread_debug_d
     mt    (int): number of Fourier modes in y-direction, may be even or odd;
         in either case the modes are integers lying in [-mt/2, (mt-1)/2]
 
-    f     (complex[ms,mt]): output Fourier mode values. Should be initialized as a Fortran-ordered (ie ms fast, mt slow) numpy array of the correct size
+    f     (complex[ms,mt] or complex[ms,mt,ntransf]): output Fourier mode values. Should be initialized as a Fortran-ordered (ie ms fast, mt slow) numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (prints spreader info)
     spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
@@ -450,11 +450,11 @@ def nufft2d2(x,y,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,spr
   Args:
     x     (float[nj]): nonuniform target x-coords, valid only in [-3pi,3pi]
     y     (float[nj]): nonuniform target y-coords, valid only in [-3pi,3pi]
-    c     (complex[nj]): output values at targets. Should be initialized as a
+    c     (complex[nj] or complex[nj,ntransf]): output values at targets. Should be initialized as a
         numpy array of the correct size
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
-    f     (complex[ms,mt]): Fourier mode coefficients, where ms and mt are
+    f     (complex[ms,mt] or complex[ms,mt,ntransf]): Fourier mode coefficients, where ms and mt are
           either even or odd; in either case
 	  their mode range is integers lying in [-m/2, (m-1)/2], with
 	  mode ordering in all dimensions given by modeord.  Ordering is Fortran-style, ie ms fastest.
@@ -535,12 +535,12 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=debug_def,spread_debug=spread_debug_def
   Args:
     x     (float[nj]): nonuniform source point x-coords, in R
     y     (float[nj]): nonuniform source point y-coords, in R
-    c     (complex[nj]): source strengths
+    c     (complex[nj] or complex[nj,ntransf]): source strengths
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
     s     (float[nk]): nonuniform target x-frequencies, in R
     t     (float[nk]): nonuniform target y-frequencies, in R
-    f     (complex[nk]): output values at target frequencies.
+    f     (complex[nk] or complex[nk,ntransf]): output values at target frequencies.
        Should be initialized as a numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
@@ -626,7 +626,7 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=debug_def,spread_debug=spread_de
     x     (float[nj]): nonuniform source x-coords, valid only in [-3pi,3pi]
     y     (float[nj]): nonuniform source y-coords, valid only in [-3pi,3pi]
     z     (float[nj]): nonuniform source z-coords, valid only in [-3pi,3pi]
-    c     (complex[nj]): source strengths
+    c     (complex[nj] or complex[nj,ntransf]): source strengths
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
     ms    (int): number of Fourier modes in x-direction, may be even or odd;
@@ -636,7 +636,7 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=debug_def,spread_debug=spread_de
     mu    (int): number of Fourier modes in z-direction, may be even or odd;
         in either case the modes are integers lying in [-mu/2, (mu-1)/2]
 
-    f     (complex[ms,mt,mu]): output Fourier mode values. Should be initialized as a Fortran-ordered (ie ms fastest) numpy array of the correct size
+    f     (complex[ms,mt,mu] or complex[ms,mt,mu,ntransf]): output Fourier mode values. Should be initialized as a Fortran-ordered (ie ms fastest) numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (prints spreader info)
     spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
@@ -722,11 +722,11 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,s
     x     (float[nj]): nonuniform target x-coords, valid only in [-3pi,3pi]
     y     (float[nj]): nonuniform target y-coords, valid only in [-3pi,3pi]
     z     (float[nj]): nonuniform target z-coords, valid only in [-3pi,3pi]
-    c     (complex[nj]): output values at targets. Should be initialized as a
+    c     (complex[nj] or complex[nj,ntransf]): output values at targets. Should be initialized as a
         numpy array of the correct size
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
-    f     (complex[ms,mt,mu]): Fourier mode coefficients, where ms, mt and mu
+    f     (complex[ms,mt,mu] or complex[ms,mt,mu,ntransf]): Fourier mode coefficients, where ms, mt and mu
           are either even or odd; in either case
 	  their mode range is integers lying in [-m/2, (m-1)/2], with
 	  mode ordering in all dimensions given by modeord. Ordering is Fortran-style, ie ms fastest.
@@ -812,13 +812,13 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=debug_def,spread_debug=spread_debug
     x     (float[nj]): nonuniform source point x-coords, in R
     y     (float[nj]): nonuniform source point y-coords, in R
     z     (float[nj]): nonuniform source point z-coords, in R
-    c     (complex[nj]): source strengths
+    c     (complex[nj] or complex[nj,ntransf]): source strengths
     isign (int): if >=0, uses + sign in exponential, otherwise - sign
     eps   (float): precision requested (>1e-16)
     s     (float[nk]): nonuniform target x-frequencies, in R
     t     (float[nk]): nonuniform target y-frequencies, in R
     u     (float[nk]): nonuniform target z-frequencies, in R
-    f     (complex[nk]): output values at target frequencies.
+    f     (complex[nk] or complex[nk,ntransf]): output values at target frequencies.
        Should be initialized as a numpy array of the correct size
     debug (int, optional): 0 (silent), 1 (print timing breakdown)
     spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
