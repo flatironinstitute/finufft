@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	int N1, N2, N3, M;
 	if (argc<6) {
 		fprintf(stderr,
-			"Usage: spread3d [method [nupts_distr [maxsubprobsize [N1 N2 N3 [M [tol [Horner [sort]]]]]]]\n");
+			"Usage: spread3d method nupts_distr N1 N2 N3 [maxsubprobsize [M [tol [Horner [sort]]]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: nupts driven\n");
 		fprintf(stderr,"method 2: sub-problems\n");

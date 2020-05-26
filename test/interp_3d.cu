@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, N3, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: interp3d [method [nupts_distr [nf1 nf2 nf3 [M [tol [sort]]]]]]\n");
+		fprintf(stderr,"Usage: interp3d method nupts_distr nf1 nf2 nf3 [M [tol [sort]]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: nupts driven\n");
 		fprintf(stderr,"method 2: sub-problem\n");

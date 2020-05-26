@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 {
 	int N1, N2, N3, M;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft2d2_test [method [N1 N2 N3 [M [tol]]]]\n");
+		fprintf(stderr,"Usage: cufinufft3d2_test method N1 N2 N3 [M [tol]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: nupts driven\n");
 		fprintf(stderr,"method 2: sub-problem\n");

@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	int N1, N2, M;
 	int ntransf, ntransfcufftplan;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft2d2_test [method [N1 N2 [ntransf [ntransfcufftplan [M [tol]]]]\n");
+		fprintf(stderr,"Usage: cufinufft2d2many_test method N1 N2 [ntransf [ntransfcufftplan [M [tol]]\n");
 		fprintf(stderr,"Details --\n");
 		fprintf(stderr,"method 1: nupts driven\n");
 		fprintf(stderr,"method 2: sub-problems\n");
