@@ -27,7 +27,7 @@ opts.upsampfac = 2.0
 
 #plan
 plan = fp.finufft_plan()
-status = fp.makeplan(1,1,n_modes,iflag,1,acc,8,plan,opts)
+status = fp.makeplan(1,1,n_modes,iflag,1,acc,plan,opts)
 
 #set pts
 status = fp.setpts(plan,M,x,None,None,0,None,None,None)

@@ -54,8 +54,8 @@ def _copy(_x, x):
     x[:] = _x
 
 ## makeplan
-def makeplan(tp,n_dims,n_modes,iflag,n_transf,tol,blksize,plan,opts):
-  return finufftpy_cpp.makeplan(tp,n_dims,n_modes,iflag,n_transf,tol,blksize,plan,opts)
+def makeplan(tp,n_dims,n_modes,iflag,n_transf,tol,plan,opts):
+  return finufftpy_cpp.makeplan(tp,n_dims,n_modes,iflag,n_transf,tol,plan,opts)
 
 ## setpts
 def setpts(plan,M,xj,yj,zj,N,s,t,u):
@@ -86,14 +86,14 @@ def set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
   opts.chkbnds = chkbnds
   opts.upsampfac = upsampfac
 
-def invoke_guru(x,y,z,c,isign,eps,s,t,u,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,tp,ndim,n_modes,ntransf,blksize,M,nk):
+def invoke_guru(x,y,z,c,isign,eps,s,t,u,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,tp,ndim,n_modes,ntransf,M,nk):
   #opts
   opts = nufft_opts()
   set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac)
 
   #plan
   plan = finufft_plan()
-  info = makeplan(tp,ndim,n_modes,isign,ntransf,eps,blksize,plan,opts)
+  info = makeplan(tp,ndim,n_modes,isign,ntransf,eps,plan,opts)
 
   #setpts
   info = setpts(plan,M,x,y,z,nk,s,t,u)
@@ -180,7 +180,7 @@ def nufft1d1(x,c,isign,eps,ms,f,debug=debug_def,spread_debug=spread_debug_def,sp
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,None,None,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,1,n_modes,ntransf,blksize,M,0)
+  info = invoke_guru(x,None,None,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,1,n_modes,ntransf,M,0)
 
   # return _f if f is none else output is in f
   if f is None:
@@ -258,7 +258,7 @@ def nufft1d2(x,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,sprea
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,None,None,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,1,n_modes,ntransf,blksize,M,0)
+  info = invoke_guru(x,None,None,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,1,n_modes,ntransf,M,0)
 
   # return _f if f is none else output is in f
   if c is None:
@@ -338,7 +338,7 @@ def nufft1d3(x,c,isign,eps,s,f,debug=debug_def,spread_debug=spread_debug_def,spr
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,None,None,c,isign,eps,s,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,1,n_modes,ntransf,blksize,M,nk)
+  info = invoke_guru(x,None,None,c,isign,eps,s,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,1,n_modes,ntransf,M,nk)
 
   # return _f if f is none else output is in f
   if f is None:
@@ -428,7 +428,7 @@ def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=debug_def,spread_debug=spread_debug_d
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,y,None,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,2,n_modes,ntransf,blksize,M,0)
+  info = invoke_guru(x,y,None,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,2,n_modes,ntransf,M,0)
 
   # return _f if f is none else output is in f
   if f is None:
@@ -514,7 +514,7 @@ def nufft2d2(x,y,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,spr
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,y,None,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,2,n_modes,ntransf,blksize,M,0)
+  info = invoke_guru(x,y,None,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,2,n_modes,ntransf,M,0)
 
   # return _f if f is none else output is in f
   if c is None:
@@ -601,7 +601,7 @@ def nufft2d3(x,y,c,isign,eps,s,t,f,debug=debug_def,spread_debug=spread_debug_def
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,y,None,c,isign,eps,s,t,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,2,n_modes,ntransf,blksize,M,nk)
+  info = invoke_guru(x,y,None,c,isign,eps,s,t,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,2,n_modes,ntransf,M,nk)
 
   # return _f if f is none else output is in f
   if f is None:
@@ -699,7 +699,7 @@ def nufft3d1(x,y,z,c,isign,eps,ms,mt,mu,f,debug=debug_def,spread_debug=spread_de
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,y,z,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,3,n_modes,ntransf,blksize,M,0)
+  info = invoke_guru(x,y,z,c,isign,eps,None,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,1,3,n_modes,ntransf,M,0)
 
   # return _f if f is none else output is in f
   if f is None:
@@ -789,7 +789,7 @@ def nufft3d2(x,y,z,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,s
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,y,z,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,3,n_modes,ntransf,blksize,M,0)
+  info = invoke_guru(x,y,z,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,3,n_modes,ntransf,M,0)
 
   # return _f if f is none else output is in f
   if c is None:
@@ -884,7 +884,7 @@ def nufft3d3(x,y,z,c,isign,eps,s,t,u,f,debug=debug_def,spread_debug=spread_debug
   blksize = get_max_threads()
 
   # invoke guruinterface
-  info = invoke_guru(x,y,z,c,isign,eps,s,t,u,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,3,n_modes,ntransf,blksize,M,nk)
+  info = invoke_guru(x,y,z,c,isign,eps,s,t,u,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,3,n_modes,ntransf,M,nk)
 
   # return _f if f is none else output is in f
   if f is None:

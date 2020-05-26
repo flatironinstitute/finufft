@@ -46,7 +46,7 @@ void default_opts(nufft_opts &o){
 }
 
 int makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n_transf, 
-     FLT tol, int blksize, finufft_plan &plan, nufft_opts &o){
+     FLT tol, finufft_plan &plan, nufft_opts &o){
   /*
    ::
      Populates the fields of finufft_plan.
@@ -59,7 +59,6 @@ int makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n
      iflag  (int): if>=0, uses + sign in exponential, otherwise - sign
      n_transf  (int): number of NUFFT transforms
      tol  (float): precision requested (>1e-16)
-     blksize  (int): transforms per batch, default is number of threads
      plan  (finufft_plan): struct pointer for FINUFFT plan
      opts  (nufft_opts): struct controlling options
    Returns:
@@ -67,7 +66,7 @@ int makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n
    Example:
      see ``python/tests/python_guru1d1.py``
    */
-    return finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,blksize,&plan,&o);
+    return finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,&plan,&o);
 }
 
 int setpts(finufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> yj, py::array_t<FLT> zj, 
@@ -138,7 +137,8 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
           .def_readwrite("fftw", &nufft_opts::fftw)
           .def_readwrite("modeord", &nufft_opts::modeord)
           .def_readwrite("upsampfac", &nufft_opts::upsampfac)
-          .def_readwrite("spread_scheme", &nufft_opts::spread_scheme);
+          .def_readwrite("spread_thread", &nufft_opts::spread_thread)
+          .def_readwrite("maxbatchsize", &nufft_opts::maxbatchsize);
 
       // finufft_plan stuct
       py::class_<finufft_plan>(m,"finufft_plan")

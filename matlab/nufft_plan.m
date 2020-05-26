@@ -9,7 +9,7 @@ classdef nufft_plan < handle
 
   methods
 
-    function [plan] = nufft_plan(type, n_modes, iflag, n_transf, tol, blksize, opts)
+    function [plan] = nufft_plan(type, n_modes, iflag, n_transf, tol, opts)
       mex_id_ = 'o finufft_plan* = new()';
 [p] = nufft_plan_mex(mex_id_);
       plan.mwptr = p;
@@ -29,8 +29,8 @@ classdef nufft_plan < handle
 [o] = nufft_plan_mex(mex_id_);
         mex_id_ = 'finufft_default_opts(i nufft_opts*)';
 nufft_plan_mex(mex_id_, o);
-        mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i int, i finufft_plan*, i nufft_opts*)';
-[ier] = nufft_plan_mex(mex_id_, type, n_dims, n_modes, iflag, n_transf, tol, blksize, plan, o, 3);
+        mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)';
+[ier] = nufft_plan_mex(mex_id_, type, n_dims, n_modes, iflag, n_transf, tol, plan, o, 3);
         mex_id_ = 'delete(i nufft_opts*)';
 nufft_plan_mex(mex_id_, o);
       else
@@ -41,8 +41,8 @@ nufft_plan_mex(mex_id_, o);
 nufft_plan_mex(mex_id_, o);
         mex_id_ = 'copy_nufft_opts(i mxArray, i nufft_opts*)';
 nufft_plan_mex(mex_id_, opts, o);
-        mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i int, i finufft_plan*, i nufft_opts*)';
-[ier] = nufft_plan_mex(mex_id_, type, n_dims, n_modes, iflag, n_transf, tol, blksize, plan, o, 3);
+        mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)';
+[ier] = nufft_plan_mex(mex_id_, type, n_dims, n_modes, iflag, n_transf, tol, plan, o, 3);
         mex_id_ = 'delete(i nufft_opts*)';
 nufft_plan_mex(mex_id_, o);
       end

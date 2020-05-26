@@ -45,8 +45,11 @@ $     }
 $     else if (strcmp(fname[ifield],"upsampfac") == 0) {
 $       oc->upsampfac = (FLT)*mxGetPr(mxGetFieldByNumber(om,idx,ifield));
 $     }
-$     else if (strcmp(fname[ifield],"spread_scheme") == 0) {
-$       oc->spread_scheme = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     else if (strcmp(fname[ifield],"spread_thread") == 0) {
+$       oc->spread_thread = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     }
+$     else if (strcmp(fname[ifield],"maxbatchsize") == 0) {
+$       oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
 $     else
 $       return;
@@ -67,7 +70,7 @@ classdef nufft_plan < handle
 
   methods
 
-    function [plan] = nufft_plan(type, n_modes, iflag, n_transf, tol, blksize, opts)
+    function [plan] = nufft_plan(type, n_modes, iflag, n_transf, tol, opts)
       # finufft_plan* p = new finufft_plan();
       plan.mwptr = p;
       assert(type==1 || type==2 || type==3);
@@ -84,14 +87,14 @@ classdef nufft_plan < handle
       if nargin<7
         # nufft_opts* o = new nufft_opts();
         # finufft_default_opts(nufft_opts* o);
-        # int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* o);
+        # int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
         # delete(nufft_opts* o);
       else
         % first set o with default value and then replace with fields in opts
         # nufft_opts* o = new nufft_opts();
         # finufft_default_opts(nufft_opts* o);
         # copy_nufft_opts(mxArray opts, nufft_opts* o);
-        # int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, int blksize, finufft_plan* plan, nufft_opts* o);
+        # int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
         # delete(nufft_opts* o);
       end
     end
@@ -115,7 +118,7 @@ classdef nufft_plan < handle
       $   return plan->type;
       $ }
       $ int get_ndim(finufft_plan* plan) {
-      $   return plan->n_dims;
+      $   return plan->dim;
       $ }
       $ int64_t get_nj(finufft_plan* plan) {
       $   return plan->nj;
@@ -127,11 +130,11 @@ classdef nufft_plan < handle
       $   ms = plan->ms ? plan->ms : 1;
       $   mt = plan->mt ? plan->mt : 1;
       $   mu = plan->mu ? plan->mu : 1;
-      $   if(plan->n_dims<3) mu=1;
-      $   if(plan->n_dims<2) mt=1;
+      $   if(plan->dim<3) mu=1;
+      $   if(plan->dim<2) mt=1;
       $ }
       $ int get_ntransf(finufft_plan* plan) {
-      $   return plan->n_transf;
+      $   return plan->ntrans;
       $ }
 
       # int type = get_type(finufft_plan* plan);

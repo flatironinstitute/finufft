@@ -10,7 +10,6 @@ N       = 1e6;    % # of modes (approx total, used in all dims)
 type=1;
 n_modes = N;  % n_dims inferred from length of this
 n_transf=1;
-blksize=1;
 
 %init pts, strength
 x = pi*(2*rand(1,M)-1);
@@ -22,7 +21,7 @@ opts.debug=1;
 opts.spread_debug=1;
 
 %plan
-plan = nufft_plan(type,n_modes,isign,n_transf,eps,blksize,opts);
+plan = nufft_plan(type,n_modes,isign,n_transf,eps,opts);
 
 %set pts
 plan.nufft_setpts(x,[],[],[],[],[]);
