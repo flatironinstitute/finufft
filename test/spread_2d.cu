@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int kerevalmeth=0;
+	int kerevalmeth=1;
 	if(argc>8){
 		sscanf(argv[8],"%d",&kerevalmeth);
 	}
