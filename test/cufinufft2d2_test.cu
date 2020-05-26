@@ -14,10 +14,15 @@ int main(int argc, char* argv[])
 {
 	int N1, N2, M;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft2d2_test method N1 N2 [M [tol]]\n");
-		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: nupts driven\n");
-		fprintf(stderr,"method 2: sub-problems\n");
+		fprintf(stderr,
+			"Usage: cufinufft2d2_test method N1 N2 [M [tol]]\n"
+			"Arguments:\n"
+			"  method: One of\n"
+			"    1: nupts driven, or\n"
+			"    2: sub-problem.\n"
+			"  N1, N2: The size of the 2D array.\n"
+			"  M: The number of non-uniform points (default N1 * N2).\n"
+			"  tol: NUFFT tolerance (default 1e-6).\n");
 		return 1;
 	}  
 	double w;

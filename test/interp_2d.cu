@@ -14,10 +14,21 @@ int main(int argc, char* argv[])
 	FLT upsampfac=2.0;
 	int N1, N2, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: interp2d method nupts_distr nf1 nf2 [M [tol [kerevalmeth]]]\n");
-		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: nupts driven\n");
-		fprintf(stderr,"method 2: sub-problems\n");
+		fprintf(stderr,
+			"Usage: interp2d method nupts_distr nf1 nf2 [M [tol [kerevalmeth]]]\n"
+			"Arguments:\n"
+			"  method: One of\n"
+			"    1: nupts driven, or\n"
+			"    2: sub-problem.\n"
+			"  nupts_distr: The distribution of the points; one of\n"
+			"    0: uniform, or\n"
+			"    1: concentrated in a small region.\n"
+			"  nf1, nf2: The size of the 2D array.\n"
+			"  M: The number of non-uniform points (default nf1 * nf2 / 4).\n"
+			"  tol: NUFFT tolerance (default 1e-6).\n"
+			"  kerevalmeth: Kernel evaluation method; one of\n"
+			"     0: Exponential of square root, or\n"
+			"     1: Horner evaluation (default).\n");
 		return 1;
 	}  
 	double w;

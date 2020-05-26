@@ -14,10 +14,21 @@ int main(int argc, char* argv[])
 	FLT sigma = 2.0;
 	int N1, N2, N3, M;
 	if (argc<5) {
-		fprintf(stderr,"Usage: interp3d method nupts_distr nf1 nf2 nf3 [M [tol [sort]]]\n");
-		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: nupts driven\n");
-		fprintf(stderr,"method 2: sub-problem\n");
+		fprintf(stderr,
+			"Usage: interp3d method nupts_distr nf1 nf2 nf3 [M [tol [sort]]]\n"
+			"Arguments:\n"
+			"  method: One of\n"
+			"    1: nupts driven, or\n"
+			"    2: sub-problem.\n"
+			"  nupts_distr: The distribution of the points; one of\n"
+			"    0: uniform, or\n"
+			"    1: concentrated in a small region.\n"
+			"  nf1, nf2, nf3: The size of the 3D array.\n"
+			"  M: The number of non-uniform points (default nf1 * nf2 * nf3 / 8).\n"
+			"  tol: NUFFT tolerance (default 1e-6).\n"
+			"  sort: One of\n"
+			"     0: do not sort the points, or\n"
+			"     1: sort the points (default).\n");
 		return 1;
 	}  
 	double w;

@@ -13,11 +13,16 @@ int main(int argc, char* argv[])
 {
 	int N1, N2, N3, M, N;
 	if (argc<4) {
-		fprintf(stderr,"Usage: cufinufft3d1_test method N1 N2 N3 [M [tol]]\n");
-		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: nupts driven\n");
-		fprintf(stderr,"method 2: sub-problems\n");
-		fprintf(stderr,"method 4: block gather\n");
+		fprintf(stderr,
+			"Usage: cufinufft3d1_test method N1 N2 N3 [M [tol]]\n"
+			"Arguments:\n"
+			"  method: One of\n"
+			"    1: nupts driven,\n"
+			"    2: sub-problem, or\n"
+			"    4: block gather.\n"
+			"  N1, N2, N3: The size of the 3D array.\n"
+			"  M: The number of non-uniform points (default N1 * N2 * N3).\n"
+			"  tol: NUFFT tolerance (default 1e-6).\n");
 		return 1;
 	}  
 	double w;
