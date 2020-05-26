@@ -19,14 +19,14 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 3d, all 3 types.
 
-   Usage: finufft3d_test [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]
+   Usage: finufft3d_test [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
 
    Example: finufft3d_test 100 200 50 1e6 1e-12
 
-   Barnett 2/2/17
+   Barnett 2/2/17.
 */
 {
   BIGINT M = 1e6, N1 = 100, N2 = 200, N3 = 50;  // defaults: M = # srcs, N1,N2,N3 = # modes
