@@ -2,7 +2,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <cuda.h>
-#include <cub/cub.cuh> 
+#include <thrust/extrema.h>
 #include "../../contrib/utils.h"
 #include "../cuspreadinterp.h"
 
@@ -488,17 +488,13 @@ void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x,
 
 __global__
 void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
-	int maxsubprobsize)
+	int maxsubprobsize, int bin_size_x, int bin_size_y)
 {
-	typedef cub::BlockReduce<int, 1024> BlockReduce; // how to fix this...?
-	__shared__ typename BlockReduce::TempStorage temp_storage;
-	
-	int i = threadIdx.x+blockIdx.x*blockDim.x;
-	int aggregate = BlockReduce(temp_storage).Reduce(finegridsize[i], 
-			cub::Max());
-	
-	num_subprob[blockIdx.x] = (int)ceil(aggregate/(float) maxsubprobsize);
-	//num_subprob[blockIdx.x] = aggregate;
+	int binsize = bin_size_x*bin_size_y;
+	int *maxptsinbin = thrust::max_element(thrust::seq,
+			finegridsize+binsize*blockIdx.x, 
+			finegridsize + binsize*(blockIdx.x+1));
+	num_subprob[blockIdx.x] = (int)ceil(*maxptsinbin/(float) maxsubprobsize);
 }
 
 __global__
