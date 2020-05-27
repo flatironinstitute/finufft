@@ -67,6 +67,15 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 		2*M*sizeof(FLT)+M*sizeof(CUCPX), milliseconds);
 #endif
 
+	if(d_plan->opts.gpu_method == 1){
+		ier = cuspread2d_nuptsdriven_prop(nf1,nf2,M,d_plan);
+		if(ier != 0 ){
+			printf("error: cuspread2d_nuptsdriven_prop, method(%d)\n", 
+				d_plan->opts.gpu_method);
+			return 0;
+		}
+	}
+
 	if(d_plan->opts.gpu_method == 2){
 		ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
