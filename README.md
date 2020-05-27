@@ -25,8 +25,8 @@ cuFINUFFT API contains 5 stages:
  - Destroy cufinufft plan - ```ier=cufinufft_destroy(&dplan);```
  
 ### Preprocessors
- - SINGLE - single-precision
- - TIME - timing for each stage
+ - SINGLE - single-precision.  Enable by calling `PREC=SINGLE make ...` or adding to your make.inc.
+ - TIME - timing for each stage.  Enable by adding "-DTIME" to `NVCCFLAGS`.
  - SPREADTIME - more detailed timing from spreading and interpolation
  - DEBUG - debug mode outputs all the middle stages' result
  
