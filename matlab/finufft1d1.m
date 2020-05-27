@@ -37,6 +37,6 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 
 n_transf = round(numel(c)/numel(x));   % back out how many transf
 blksize=0;    % default
-p = nufft_plan(1,ms,isign,n_transf,eps,blksize,o);
+p = nufft_plan(1,ms,isign,n_transf,eps,o);
 p.nufft_setpts(x,[],[],[],[],[]);
 [f,ier] = p.nufft_excute(c);

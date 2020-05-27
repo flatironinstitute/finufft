@@ -252,7 +252,7 @@ ifeq ($(PREC),SINGLE)
 else
 	(cd matlab; mkoctfile --mex -DR2008OO nufft_plan_mex.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output nufft_plan_mex)
 	@echo "Running octave interface test; please wait a few seconds..."
-	(cd matlab; octave test/check_finufft.m)
+	(cd matlab; octave test/guru1dtest.m)
 endif
 
 # for experts; force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
