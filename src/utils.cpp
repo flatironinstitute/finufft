@@ -49,6 +49,7 @@ FLT infnorm(BIGINT n, CPX* a)
 void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi)
 // With a a length-n array, writes out min(a) to lo and max(a) to hi,
 // so that all a values lie in [lo,hi].
+// If n==0, lo and hi are not finite.
 {
   *lo = INFINITY; *hi = -INFINITY;
   for (BIGINT m=0; m<n; ++m) {
@@ -60,6 +61,7 @@ void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi)
 void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi)
 // With i a list of n indices, and a an array of length max(i), writes out
 // min(a(i)) to lo and max(a(i)) to hi, so that all a(i) values lie in [lo,hi].
+// This is not currently used in FINUFFT v1.2.
 {
   *lo = INFINITY; *hi = -INFINITY;
   for (BIGINT m=0; m<n; ++m) {
@@ -74,6 +76,7 @@ void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
 // Only chooses a nonzero center if this increases w by less than fraction
 // ARRAYWIDCEN_GROWFRAC defined in defs.h.
 // This prevents rephasings which don't grow nf by much. 6/8/17
+// If n==0, w and c are not finite.
 {
   FLT lo,hi;
   arrayrange(n,a,&lo,&hi);

@@ -7,8 +7,9 @@ using namespace std;
 
 int main(int argc, char* argv[])
 /* calling the FINUFFT library from C++ using all manner of crazy inputs that
-   might cause errors. Simple interfaces only. All should be caught gracefully.
-   (It also checks accuracy for 1D type 3, for some reason.)
+   might cause errors. Simple and "many" interfaces only (no explicit guru
+   interface tests). All should be caught gracefully.
+   (It also checks accuracy for 1D type 3, for some reason - could be killed.)
    Barnett 3/14/17, updated Andrea Malleo, summer 2019.
    Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
 
@@ -19,6 +20,10 @@ int main(int argc, char* argv[])
    g++ -std=c++14 dumbinputs.cpp -I ../include directft/dirft1d.o ../lib/libfinufft.so -o dumbinputs -lfftw3 -lm
 
    Usage: ./dumbinputs
+   
+   Output file will say "(should complain)" if that ier should be >0.
+
+   Also compare (numdiff) against test/results/dumbinputs.refout
 */
 {
   int M = 100;            // number of nonuniform points
