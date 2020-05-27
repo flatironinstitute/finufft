@@ -1,21 +1,18 @@
-------------------test 1d type-1:------------------
-[err check] one mode: rel err in F[370] is 0
-[err check] dirft1d: rel l2-err of result F is 0
-------------------test 1d type-2:------------------
-[err check] one targ: rel err in c[500] is 0
-[err check] dirft1d: rel l2-err of result c is 0
-------------------test 1d type-3:------------------
-[err check] one targ: rel err in F[250] is 0
-[err check] dirft1d: rel l2-err of result F is 0
-------------------test 1dmany type-1:------------------
-[err check] one mode: rel err in F[37] of data[9] is 0
-[err check] finufft1d1_old: rel l2-err of result F is 0
-[err check] on trial 9 one mode: rel err in F[37] is 0
-------------------test 1dmany type-2:------------------
-[err check] one targ: rel err in c[500] is 0
-[err check] finufft1d2_old: rel l2-err of result c is 0 
-[err check] on trial 9 one targ: rel err in c[500] is 0
-------------------test 1dmany type-3:------------------
-[err check] one targ: rel err against direct in F[25] is 0
-[err check] finufft1d3_old: rel l2-err of result c is 0
-[err check] one targ: rel err against old in F[25] is 0
+test 1d type 1:
+	one mode: rel err in F[370] is 0
+	dirft1d: rel l2-err of result F is 0
+test 1d type 2:
+	one targ: rel err in c[500] is 0
+	dirft1d: rel l2-err of result c is 0
+test 1d type 3:
+	one targ: rel err in F[500] is 0
+	dirft1d: rel l2-err of result F is 0
+test 1d1 many vs repeated single: ------------------------------------
+	one mode: rel err in F[37] of trans#9 is 0
+	consistency check: sup ( ||f_many-f||_2 / ||f||_2  ) =  0
+test 1d2 many vs repeated single: ------------------------------------
+	one targ: rel err in c[500] is 0
+	consistency check: sup ( ||c_many-c||_2 / ||c||_2 ) =  0
+test 1d3 many vs repeated single: ------------------------------------
+	one targ: rel err in F[25] of trans#9 is 0
+	consistency check: sup ( ||f_many-f||_2 / ||f||_2 ) =  0

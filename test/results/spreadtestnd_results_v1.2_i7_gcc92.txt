@@ -1,0 +1,81 @@
+spreadtestnd output:
+what CPUs do I have?...
+(I'm in a linux OS)
+model name	: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                8
+On-line CPU(s) list:   0-7
+Thread(s) per core:    2
+Core(s) per socket:    4
+Socket(s):             1
+NUMA node(s):          1
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 158
+Model name:            Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+Stepping:              9
+CPU MHz:               3415.890
+CPU max MHz:           3800.0000
+CPU min MHz:           800.0000
+BogoMIPS:              5615.88
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              6144K
+NUMA node0 CPU(s):     0-7
+Flags:                 fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb invpcid_single intel_pt ssbd ibrs ibpb stibp kaiser tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp md_clear flush_l1d
+
+#NU = 1e6, #U = 1e6, tol = 1e-6, sort = 2: multi-core tests...
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.026 s 	3.85e+07 pts/s 	2.7e+08 spread pts/s
+    rel err in total over grid:      7.73e-07
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0203 s 	4.94e+07 pts/s 	3.46e+08 spread pts/s
+    max rel err in values at NU pts: 1.13e-06
+making random data...
+spreadinterp 2D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0328 s 	3.05e+07 pts/s 	1.5e+09 spread pts/s
+    rel err in total over grid:      1.25e-06
+making more random NU pts...
+spreadinterp 2D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0311 s 	3.22e+07 pts/s 	1.58e+09 spread pts/s
+    max rel err in values at NU pts: 2.27e-06
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0952 s 	1.05e+07 pts/s 	3.6e+09 spread pts/s
+    rel err in total over grid:      6.39e-07
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.103 s 	9.75e+06 pts/s 	3.34e+09 spread pts/s
+    max rel err in values at NU pts: 3.31e-06
+
+#NU = 1e6, #U = 1e6, tol = 1e-6, sort = 2: single core tests...
+making random data...
+spreadinterp 1D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0613 s 	1.63e+07 pts/s 	1.14e+08 spread pts/s
+    rel err in total over grid:      7.17e-07
+making more random NU pts...
+spreadinterp 1D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.0767 s 	1.3e+07 pts/s 	9.13e+07 spread pts/s
+    max rel err in values at NU pts: 1.13e-06
+making random data...
+spreadinterp 2D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.11 s 	9.05e+06 pts/s 	4.43e+08 spread pts/s
+    rel err in total over grid:      1.52e-06
+making more random NU pts...
+spreadinterp 2D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.126 s 	7.91e+06 pts/s 	3.88e+08 spread pts/s
+    max rel err in values at NU pts: 2.27e-06
+making random data...
+spreadinterp 3D, 1e+06 U pts, dir=1, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.307 s 	3.25e+06 pts/s 	1.12e+09 spread pts/s
+    rel err in total over grid:      1.44e-06
+making more random NU pts...
+spreadinterp 3D, 1e+06 U pts, dir=2, tol=1e-06: nspread=7
+    1e+06 NU pts in 0.495 s 	2.02e+06 pts/s 	6.93e+08 spread pts/s
+    max rel err in values at NU pts: 3.37e-06

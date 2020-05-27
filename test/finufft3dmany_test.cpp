@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 
    Example: finufft3dmany_test 1000 1e2 1e2 1e2 1e4 1e-6 1 0 0 2.0
 
-   Malleo 2019. Tidied, extra args, Barnett 5/25/20.
+   Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20.
 */
 {
   BIGINT M = 1e6, N1 = 1000, N2 = 500, N3 = 200;  // defaults: M = # srcs, N1,N2 = # modes
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
   opts.upsampfac=upsampfac;
 
   if (argc==1 || argc==2 || argc>12) {
-    fprintf(stderr,"Usage: finufft3d_test [ntransf [N1 N2 N3 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]\n");
+    fprintf(stderr,"Usage: finufft3dmany_test [ntransf [N1 N2 N3 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);

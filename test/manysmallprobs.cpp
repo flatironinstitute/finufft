@@ -18,6 +18,8 @@ int main(int argc, char* argv[])
 
    simple interface: about 1.2s on single core. Ie, throughput 3.3e6 NU pts/sec.
    guru interface: about 0.24s on single core. Ie, throughput 1.7e7 NU pts/sec.
+
+   But why is multi-thread so much slower?
 */
 {  
   int M = 2e2;            // number of nonuniform points
@@ -53,12 +55,13 @@ int main(int argc, char* argv[])
   printf("repeatedly executing via the guru interface: -------------------\n");
   timer.restart();
   finufft_plan plan; nufft_opts opts; finufft_default_opts(&opts);
-  //opts.debug = 1;
+  opts.debug = 0;
   BIGINT Ns[]={N,1,1};
   int ntransf = 1;    // since we do one at a time (neq reps)
   finufft_makeplan(1,1,Ns,+1,ntransf,acc,&plan,&opts);
   for (int r=0;r<reps;++r) {    // set the pts and execute
-    x[0] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // one source jiggles around
+    x[0] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // one source jiggles around.
+    // (of course if most sources *were* in fact fixed, use ZGEMM for them!)
     finufft_setpts(&plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
     c[1] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1); // one coeff also jiggles
     ier = finufft_exec(&plan, c, F);
