@@ -88,6 +88,7 @@ int main(int argc, char* argv[])
 					c[i].imag(randm11());
 				}
 			}
+			break;
 		case 2: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
@@ -102,6 +103,8 @@ int main(int argc, char* argv[])
 				}
 			}
 			break;
+		default:
+			cerr << "not valid nupts distr" << endl;
 	}
 
 	CNTime timer;
