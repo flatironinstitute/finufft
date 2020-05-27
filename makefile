@@ -246,11 +246,11 @@ else
 endif
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
-octave: $(STATICLIB)  matlab/finufft_m.cpp
+octave: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "Octave interface only supports double precision; doing nothing"
 else
-	(cd matlab; mkoctfile --mex finufft.cpp -I../include ../$(STATICLIB) finufft_m.cpp $(OFLAGS) $(LIBSFFT) -output finufft)
+	(cd matlab; mkoctfile --mex -DR2008OO nufft_plan_mex.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output nufft_plan_mex)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave test/check_finufft.m)
 endif
