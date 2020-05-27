@@ -5,8 +5,6 @@
 
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
-//#include <cub/device/device_radix_sort.cuh>
-//#include <cub/device/device_scan.cuh>
 
 #include <cuComplex.h>
 #include "../cuspreadinterp.h"
@@ -321,18 +319,6 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 		thrust::device_ptr<int> d_ptr(d_binsize);
 		thrust::device_ptr<int> d_result(d_binstartpts);
 		thrust::exclusive_scan(d_ptr, d_ptr + n, d_result);
-#if 0
-		void *d_temp_storage = NULL;
-		size_t temp_storage_bytes = 0;
-		assert(d_temp_storage == NULL);
-		CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,
-			temp_storage_bytes,d_binsize, d_binstartpts, n));
-		// Allocate temporary storage for inclusive prefix scan
-		checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
-		CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,
-			temp_storage_bytes,d_binsize, d_binstartpts, n));
-		cudaFree(d_temp_storage);
-#endif
 #ifdef SPREADTIME
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
@@ -625,17 +611,6 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	thrust::device_ptr<int> d_result(d_binstartpts+1);
 	thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
 	checkCudaErrors(cudaMemset(d_binstartpts,0,sizeof(int)));
-#if 0
-	size_t temp_storage_bytes = 0;
-	assert(d_temp_storage == NULL);
-	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage,
-		temp_storage_bytes, d_binsize, d_binstartpts, n));
-	// Allocate temporary storage for inclusive prefix scan
-	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
-	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage,
-		temp_storage_bytes, d_binsize, d_binstartpts+1, n));
-	checkCudaErrors(cudaMemset(d_binstartpts,0,sizeof(int)));
-#endif
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -766,13 +741,6 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	d_result = thrust::device_pointer_cast(d_subprobstartpts+1);
 	thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
 	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
-#if 0
-	// Scanning a array with less length, so we don't need calculate temp_
-	// storage_bytes here
-	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage,
-		temp_storage_bytes, d_numsubprob, d_subprobstartpts+1, n));
-	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
-#endif
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -1039,16 +1007,6 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	thrust::device_ptr<int> d_ptr(d_binsize);
 	thrust::device_ptr<int> d_result(d_binstartpts);
 	thrust::exclusive_scan(d_ptr, d_ptr + n, d_result);
-#if 0
-	size_t temp_storage_bytes = 0;
-	assert(d_temp_storage == NULL);
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,temp_storage_bytes,
-		d_binsize, d_binstartpts, n));
-	// Allocate temporary storage for inclusive prefix scan
-	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,temp_storage_bytes,
-		d_binsize, d_binstartpts, n));
-#endif
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -1121,13 +1079,6 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	d_result = thrust::device_pointer_cast(d_subprobstartpts+1);
 	thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
 	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
-#if 0
-	// Scanning the same length array, so we don't need calculate
-	// temp_storage_bytes here
-	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage,temp_storage_bytes,
-		d_numsubprob, d_subprobstartpts+1, n));
-	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
-#endif
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -1384,16 +1335,6 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	thrust::device_ptr<int> d_ptr(d_binsize);
 	thrust::device_ptr<int> d_result(d_binstartpts);
 	thrust::exclusive_scan(d_ptr, d_ptr + n, d_result);
-#if 0
-	size_t temp_storage_bytes = 0;
-	assert(d_temp_storage == NULL);
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,
-		temp_storage_bytes, d_binsize, d_binstartpts, n));
-	// Allocate temporary storage for inclusive prefix scan
-	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,
-		temp_storage_bytes, d_binsize, d_binstartpts, n));
-#endif
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -1531,13 +1472,6 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	d_result = thrust::device_pointer_cast(d_subprobstartpts+1);
 	thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
 	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
-#if 0
-	// Scanning a array with less length, so we don't need calculate temp_
-	// storage_bytes here
-	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage,
-		temp_storage_bytes, d_numsubprob, d_subprobstartpts+1, n));
-	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
-#endif
 #ifdef DEBUG
 	printf("[debug ] Subproblem start points\n");
 	int* h_subprobstartpts;
