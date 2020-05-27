@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
   opts.upsampfac=upsampfac;
 
   if (argc==1 || argc==2 || argc>11) {
-    fprintf(stderr,"Usage: finufft2d_test [ntransf [N1 N2 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]\n");
+    fprintf(stderr,"Usage: finufft2dmany_test [ntransf [N1 N2 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);

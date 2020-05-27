@@ -143,10 +143,10 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   p->ms = 1; p->mt = 1; p->mu = 1;     // crucial to leave as 1 for unused dims
 
   //  ------------------------ types 1,2: planning needed ---------------------
-  if((type == 1) || (type == 2)) {
+  if (type==1 || type==2) {
 
     int nth_fft = MY_OMP_GET_MAX_THREADS();   // give FFTW all it has access to
-    // *** should limt max # threads here too? or set equal to batchsize?
+    // should limit max # threads here too? or set equal to batchsize?
     // *** put in logic for setting FFTW # thr based on o.spread_thread?
     FFTW_INIT();           // only does anything when OMP=ON for >1 threads
     FFTW_PLAN_TH(nth_fft); // "  (not batchSize since can be 1 but want mul-thr)
@@ -206,12 +206,15 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
          NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
     if (p->opts.debug) printf("[finufft_plan] FFTW plan (mode %d, nth=%d):\t%.3g s\n", p->opts.fftw, nth_fft, timer.elapsedsec());
     delete []ns;
+
+    p->sortIndices = NULL;
     
   } else {  // -------------------------- type 3 (no planning) ------------
 
     if (p->opts.debug) printf("[finufft_plan] %dd%d: ntrans=%d\n",dim,type,ntrans);
     // in case destroy occurs before setpts, need safe dummy ptrs/plans...
     p->CpBatch = NULL;
+    p->fwBatch = NULL;
     p->Sp = NULL; p->Tp = NULL; p->Up = NULL;
     p->prephase = NULL;
     p->deconv = NULL;
@@ -296,7 +299,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     }
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // maybe big workspace
-    // (note FFTW_ALLOC is not needed but matches its type)
+    // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     p->CpBatch = (CPX*)malloc(sizeof(CPX) * nj*p->batchSize);  // batch c' work
     if (p->opts.debug) printf("[finufft_setpts t3] widcen, batch %.2fGB alloc:\t%.3g s\n", (double)1E-09*sizeof(CPX)*(p->nf+nj)*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch || !p->CpBatch) {
@@ -372,8 +375,8 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       phiHatk3 = (FLT*)malloc(sizeof(FLT)*nk);
       onedim_nuft_kernel(nk, p->Up, phiHatk3, p->spopts);       // fill phiHat3
     }
-    // *** check if C1 etc can be nonfinite ?
-    int Cnonzero = (p->t3P.C1!=0.0 || p->t3P.C2!=0.0 || p->t3P.C3!=0.0);  // cen
+    int Cfinite = isfinite(p->t3P.C1) && isfinite(p->t3P.C2) && isfinite(p->t3P.C3);    // C can be nan or inf if M=0, no input NU pts
+    int Cnonzero = p->t3P.C1!=0.0 || p->t3P.C2!=0.0 || p->t3P.C3!=0.0;  // cen
 #pragma omp parallel for schedule(static)
     for (BIGINT k=0;k<nk;++k) {         // .... loop over NU targ freqs
       FLT phiHat = phiHatk1[k];
@@ -382,7 +385,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       if (d>2)
         phiHat *= phiHatk3[k];
       p->deconv[k] = (CPX)(1.0 / phiHat);
-      if (Cnonzero) {
+      if (Cfinite && Cnonzero) {
         FLT phase = (s[k] - p->t3P.D1) * p->t3P.C1;
         if (d>1)
           phase += (t[k] - p->t3P.D2) * p->t3P.C2;
@@ -434,7 +437,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
 
 
-// BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+// --------- batch helper functions for t1,2 exec: ---------------------------
 
 int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
 /*
@@ -452,7 +455,7 @@ int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
 {
   // OMP nesting. 0: any omp-parallelism inside the loop sees only 1 thread;
   // note this doesn't change omp_get_max_nthreads()
-  // 1: omp par inside the loop sees all threads.  *** ?
+  // 1: omp par inside the loop sees all threads.
   MY_OMP_SET_NESTED(p->opts.spread_thread!=2);
   int nthr_outer = p->opts.spread_thread==1 ? 1 : batchSize;
   
@@ -503,7 +506,6 @@ int deconvolveBatch(int batchSize, finufft_plan* p, CPX* fkBatch)
   }
   return 0;
 }
-
 
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
@@ -605,6 +607,8 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       spreadinterpSortedBatch(thisBatchSize, p, p->CpBatch);  // p->X are primed
       t_spr += timer.elapsedsec();
 
+      //for (int j=0;j<p->nf1;++j) printf("fw[%d]=%.3g+%.3gi\n",j,p->fwBatch[j][0],p->fwBatch[j][1]);  // debug
+   
       // STEP 2: type 2 NUFFT from fw batch to user output fk array batch...
       timer.restart();
       // illegal possible shrink of ntrans *after* plan for smaller last batch:
@@ -640,6 +644,8 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
 int finufft_destroy(finufft_plan* p)
 // Free everything we allocated inside of finufft_plan pointed to by p.
 // Also must not crash if called immediately after finufft_makeplan.
+// Thus either each thing free'd here is guaranteed to be NULL or correctly
+// allocated.
 { 
   FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
   if (p->type==1 || p->type==2) {
@@ -649,7 +655,7 @@ int finufft_destroy(finufft_plan* p)
     free(p->phiHat3);
     free(p->sortIndices);
   } else {          // free the stuff alloc for type 3
-    if (!p->innerT2plan)
+    if (p->innerT2plan)
       finufft_destroy(p->innerT2plan);
     free(p->CpBatch);
     free(p->Sp); free(p->Tp); free(p->Up);

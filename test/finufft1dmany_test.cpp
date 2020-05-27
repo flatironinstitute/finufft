@@ -18,14 +18,14 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 1d many interface, types 1,2, and 3.
 
-   Usage: finufft2dmany_test [ntrans [Nmodes [Nsrc [tol [debug [spread_thread[ maxbatchsize [spreadsort [upsampfac]]]]]]]]]
+   Usage: finufft1dmany_test [ntrans [Nmodes [Nsrc [tol [debug [spread_thread[ maxbatchsize [spreadsort [upsampfac]]]]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
 
    Example: finufft1dmany_test 1000 1e2 1e4 1e-6 1 0 0 2 2.0
 
-   Malleo. Extra args 5/21/20.
+   Malleo 2019 based on Shih 2018. Tidied and extra args, Barnett 5/25/20.
 */
 {
    
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
   opts.upsampfac=upsampfac;
 
   if (argc==1 || argc==2 || argc>10) {
-    fprintf(stderr,"Usage: finufft1d_test [ntransf [Nmodes [Nsrc [tol [debug [spread_thread [maxbatchsize [upsampfac]]]]]]]]\n");
+    fprintf(stderr,"Usage: finufft1dmany_test [ntransf [Nmodes [Nsrc [tol [debug [spread_thread [maxbatchsize [upsampfac]]]]]]]]\n");
     return 1;
   }
   cout << scientific << setprecision(15);

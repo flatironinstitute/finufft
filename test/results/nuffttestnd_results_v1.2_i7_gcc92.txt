@@ -1,0 +1,87 @@
+nuffttestnd output:
+what CPUs do I have?...
+(I'm in a linux OS)
+model name	: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                8
+On-line CPU(s) list:   0-7
+Thread(s) per core:    2
+Core(s) per socket:    4
+Socket(s):             1
+NUMA node(s):          1
+Vendor ID:             GenuineIntel
+CPU family:            6
+Model:                 158
+Model name:            Intel(R) Core(TM) i7-7700HQ CPU @ 2.80GHz
+Stepping:              9
+CPU MHz:               3487.640
+CPU max MHz:           3800.0000
+CPU min MHz:           800.0000
+BogoMIPS:              5615.88
+Virtualization:        VT-x
+L1d cache:             32K
+L1i cache:             32K
+L2 cache:              256K
+L3 cache:              6144K
+NUMA node0 CPU(s):     0-7
+Flags:                 fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf pni pclmulqdq dtes64 monitor ds_cpl vmx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch epb invpcid_single intel_pt ssbd ibrs ibpb stibp kaiser tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid mpx rdseed adx smap clflushopt xsaveopt xsavec xgetbv1 dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp md_clear flush_l1d
+
+size = 1e6, tol = 1e-6: multi-core tests...
+test 1d type 1:
+	1000000 NU pts to 1000000 modes in 0.105 s 	9.51e+06 NU pts/s
+	one mode: rel err in F[370000] is 6.27e-08
+test 1d type 2:
+	1000000 modes to 1000000 NU pts in 0.0842 s 	1.19e+07 NU pts/s
+	one targ: rel err in c[500000] is 2.46e-07
+test 1d type 3:
+	1000000 NU to 1000000 NU in 0.455 s        	4.39e+06 tot NU pts/s
+	one targ: rel err in F[500000] is 3.09e-07
+test 2d type 1:
+	1000000 NU pts to (500,2000) modes in 0.138 s 	7.22e+06 NU pts/s
+	one mode: rel err in F[185,520] is 1.26e-08
+test 2d type 2:
+	(500,2000) modes to 1000000 NU pts in 0.115 s 	8.7e+06 NU pts/s
+	one targ: rel err in c[500000] is 2.91e-07
+test 2d type 3:
+	1000000 NU to 1000000 NU in 0.782 s         	2.56e+06 tot NU pts/s
+	one targ: rel err in F[500000] is 1.03e-07
+test 3d type 1:
+     1000000 NU pts to (100,200,50) modes in 0.368 s 	2.72e+06 NU pts/s
+	one mode: rel err in F[37,52,-19] is 1.15e-07
+test 3d type 2:
+     (100,200,50) modes to 1000000 NU pts in 0.244 s 	4.1e+06 NU pts/s
+	one targ: rel err in c[500000] is 5.48e-07
+test 3d type 3:
+	1000000 NU to 1000000 NU in 1.85 s         	1.08e+06 tot NU pts/s
+	one targ: rel err in F[500000] is 1.9e-07
+
+size = 1e6, tol = 1e-6: single core tests...
+test 1d type 1:
+	1000000 NU pts to 1000000 modes in 0.154 s 	6.49e+06 NU pts/s
+	one mode: rel err in F[370000] is 6.59e-08
+test 1d type 2:
+	1000000 modes to 1000000 NU pts in 0.137 s 	7.3e+06 NU pts/s
+	one targ: rel err in c[500000] is 1.87e-07
+test 1d type 3:
+	1000000 NU to 1000000 NU in 0.81 s        	2.47e+06 tot NU pts/s
+	one targ: rel err in F[500000] is 1.81e-07
+test 2d type 1:
+	1000000 NU pts to (500,2000) modes in 0.278 s 	3.6e+06 NU pts/s
+	one mode: rel err in F[185,520] is 1.26e-08
+test 2d type 2:
+	(500,2000) modes to 1000000 NU pts in 0.291 s 	3.44e+06 NU pts/s
+	one targ: rel err in c[500000] is 1.28e-07
+test 2d type 3:
+	1000000 NU to 1000000 NU in 2.26 s         	8.85e+05 tot NU pts/s
+	one targ: rel err in F[500000] is 3.13e-07
+test 3d type 1:
+     1000000 NU pts to (100,200,50) modes in 0.839 s 	1.19e+06 NU pts/s
+	one mode: rel err in F[37,52,-19] is 2.01e-07
+test 3d type 2:
+     (100,200,50) modes to 1000000 NU pts in 0.778 s 	1.29e+06 NU pts/s
+	one targ: rel err in c[500000] is 6.76e-07
+test 3d type 3:
+	1000000 NU to 1000000 NU in 4.55 s         	4.4e+05 tot NU pts/s
+	one targ: rel err in F[500000] is 4.26e-07

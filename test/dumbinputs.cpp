@@ -7,10 +7,12 @@ using namespace std;
 
 int main(int argc, char* argv[])
 /* calling the FINUFFT library from C++ using all manner of crazy inputs that
-   might cause errors. Simple interfaces only. All should be caught gracefully.
-   (It also checks accuracy for 1D type 3, for some reason.)
+   might cause errors. Simple and "many" interfaces mostly, with 2 guru cases
+   at the end (need more). All bad inputs should be caught gracefully.
+   (It also checks accuracy for 1D type 3, for some reason - could be killed.)
    Barnett 3/14/17, updated Andrea Malleo, summer 2019.
    Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
+   guru: makeplan followed by immediate destrory. Barnett 5/26/20.
 
    Compile with (better to go up a directory and use: make test/dumbinputs) :
    g++ -std=c++14 -fopenmp dumbinputs.cpp -I ../include directft/dirft1d.o ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
@@ -19,6 +21,10 @@ int main(int argc, char* argv[])
    g++ -std=c++14 dumbinputs.cpp -I ../include directft/dirft1d.o ../lib/libfinufft.so -o dumbinputs -lfftw3 -lm
 
    Usage: ./dumbinputs
+   
+   Output file will say "(should complain)" if that ier should be >0.
+
+   Also compare (numdiff) against test/results/dumbinputs.refout
 */
 {
   int M = 100;            // number of nonuniform points
@@ -303,8 +309,17 @@ int main(int argc, char* argv[])
   ier = finufft3d3many(ndata,M,x,x,x,c,+1,acc,N,shuge,shuge,shuge,Fm,&opts);
   printf("3d3many XK prod too big:\tier=%d (should complain)\n",ier);
   
-
   free(x); free(c); free(F); free(s); free(shuge); free(cm); free(Fm);
   printf("freed.\n");
+  
+  // some dumb tests for guru interface to induce free() crash in destroy...
+  finufft_plan plan;
+  BIGINT Ns[1] = {0};      // since dim=1, don't have to make length 3
+  finufft_makeplan(1, 1, Ns, +1, 1, acc, &plan, NULL);  // type 1, now kill it
+  finufft_destroy(&plan);
+  finufft_makeplan(3, 1, Ns, +1, 1, acc, &plan, NULL);  // type 3, now kill it
+  finufft_destroy(&plan);
+  // *** todo: more extensive bad inputs and error catching in guru...
+  
   return 0;
 }
