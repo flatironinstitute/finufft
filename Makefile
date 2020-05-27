@@ -16,7 +16,7 @@ NVARCH = -arch=sm_70 \
 
 CXXFLAGS= -DNEED_EXTERN_C  -fPIC -O3 -funroll-loops -march=native -g -std=c++11
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
-NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 -DTIME $(NVARCH) \
+NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 $(NVARCH) \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
 #DEBUG add "-g -G" for cuda-gdb debugger
 
