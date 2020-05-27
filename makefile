@@ -10,23 +10,23 @@
 # See docs/install.rst, and make.inc.*
 
 # compilers, and linking from C, fortran...
-CXX=g++
-CC=gcc
-FC=gfortran
-CLINK=-lstdc++
-FLINK=$(CLINK)
+CXX = g++
+CC = gcc
+FC = gfortran
+CLINK = -lstdc++
+FLINK = $(CLINK)
 # compile flags for GCC, baseline single-threaded, double precision case...
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
-CFLAGS   =  -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
+CFLAGS = -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
-CFLAGS   += -I include
-FFLAGS   = $(CFLAGS)
+CFLAGS += -I include
+FFLAGS = $(CFLAGS) -I /usr/include
 CXXFLAGS = $(CFLAGS) -std=c++14 -DNEED_EXTERN_C
 # FFTW base name, and math linking...
-FFTWNAME=fftw3
+FFTWNAME = fftw3
 # the following uses fftw3_omp, since 10% faster than fftw3_threads...
-FFTWOMPSUFFIX=omp
+FFTWOMPSUFFIX = omp
 LIBS = -lm
 # extra flags for multithreaded: C++/C/Fortran, MATLAB, and octave...
 OMPFLAGS = -fopenmp
@@ -34,13 +34,13 @@ OMPLIBS =
 MOMPFLAGS = -lgomp -D_OPENMP
 OOMPFLAGS = -lgomp
 # flags for MATLAB MEX compilation...
-MFLAGS=-largeArrayDims
+MFLAGS = -largeArrayDims
 # location of MATLAB's mex compiler...
-MEX=mex
+MEX = mex
 # flags for octave mkoctfile...
-OFLAGS=
+OFLAGS =
 # For experts, location of MWrap executable (see docs/install.rst):
-MWRAP=mwrap
+MWRAP = mwrap
 
 # For your OS, override the above by placing make variables in make.inc ...
 # (Please look in make.inc.* for ideas)
@@ -51,11 +51,11 @@ ifeq ($(PREC),SINGLE)
 CXXFLAGS += -DSINGLE
 CFLAGS += -DSINGLE
 # note that PRECSUFFIX is used to choose fftw lib name, and also our demo names
-PRECSUFFIX=f
+PRECSUFFIX = f
 REQ_TOL = 1e-6
 CHECK_TOL = 2e-4
 else
-PRECSUFFIX=
+PRECSUFFIX =
 REQ_TOL = 1e-12
 CHECK_TOL = 1e-11
 endif
@@ -75,7 +75,7 @@ LIBSFFT += -l$(FFTW)_$(FFTWOMPSUFFIX) $(OMPLIBS)
 endif
 
 # decide name of obj files and finufft library we're building...
-LIBNAME=libfinufft$(PRECSUFFIX)
+LIBNAME = libfinufft$(PRECSUFFIX)
 DYNLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
 # ======================================================================
