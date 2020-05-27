@@ -27,11 +27,10 @@ c
       integer*8 opt
       integer*8 plan
       integer*8, allocatable :: n_modes(:)
-      integer ftype,ndim,n_transf,blksize
+      integer ftype,ndim,n_transf
       ftype=1
       ndim=1
       n_transf=1
-      blksize=6
       upsampfac=2.0
       zero=0
 c
@@ -92,7 +91,7 @@ cccccccc      set opts
          call set_fftw(opt,FFTW_ESTIMATE)
 cccccccc      make plan
          call finufft_makeplan_f(ftype,ndim,n_modes,iflag,n_transf,
-     $        eps,blksize,plan,opt,ier)
+     $        eps,plan,opt,ier)
 cccccccc      set pts
          call finufft_setpts_f(plan,nj,xj,rnull,rnull,zero,
      $        cnull,cnull,cnull,ier)

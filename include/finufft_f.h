@@ -42,10 +42,10 @@ void finufft2d2many_f_(int *ndata, int *nj,FLT* xj,FLT *yj,CPX* cj,int *iflag,
 		   FLT *eps, int *ms, int *mt, CPX* fk, int *ier);
 // ---------------- the guru interface ---------------------------------
 void finufft_default_opts_f_(nufft_opts *o);
-void finufft_makeplan_f_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, int *blksize, finufft_plan *plan, nufft_opts *o, int *ier);
+void finufft_makeplan_f_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, finufft_plan *plan, nufft_opts *o, int *ier);
 void finufft_setpts_f_(finufft_plan *plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *N, FLT *s, FLT *t, FLT *u, int *ier);
 void finufft_exec_f_(finufft_plan *plan, CPX *weights, CPX *result, int *ier);
-void finufft_destroy_f_(finufft_plan *plan, void *o, int *ier);
+void finufft_destroy_f_(finufft_plan *plan, int *ier);
 // --------------- set nufft_opts attributes --------------------------
 void set_debug_(nufft_opts *o, int *debug);
 void set_spread_debug_(nufft_opts *o, int *spread_debug);
@@ -55,7 +55,8 @@ void set_chkbnds_(nufft_opts *o, int *chkbnds);
 void set_fftw_(nufft_opts *o, int *fftw);
 void set_modeord_(nufft_opts *o, int *modeord);
 void set_upsampfac_(nufft_opts *o, FLT *upsampfac);
-void set_spread_scheme_(nufft_opts *o, int *spread_scheme);
+void set_spread_thread_(nufft_opts *o, int *spread_thread);
+void set_maxbatchsize_(nufft_opts *o, int *maxbatchsize);
 }
 
 #endif

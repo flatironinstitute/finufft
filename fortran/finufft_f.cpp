@@ -114,10 +114,10 @@ void mkplan_mem(finufft_plan *plan)
   plan = (finufft_plan *)malloc(sizeof(finufft_plan));
 }
 
-void finufft_makeplan_f_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, int *blksize, finufft_plan *plan, nufft_opts *o, int *ier)
+void finufft_makeplan_f_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, finufft_plan *plan, nufft_opts *o, int *ier)
 {
   mkplan_mem(plan);
-  *ier = finufft_makeplan(*type, *n_dims, n_modes, *iflag, *n_transf, *tol, *blksize, plan, o);
+  *ier = finufft_makeplan(*type, *n_dims, n_modes, *iflag, *n_transf, *tol, plan, o);
 }
 
 void finufft_setpts_f_(finufft_plan *plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *N, FLT *s, FLT *t, FLT *u, int *ier)
@@ -130,7 +130,7 @@ void finufft_exec_f_(finufft_plan *plan, CPX *weights, CPX *result, int *ier)
   *ier = finufft_exec(plan, weights, result);
 }
 
-void finufft_destroy_f_(finufft_plan *plan, void *o, int *ier)
+void finufft_destroy_f_(finufft_plan *plan, int *ier)
 {
   *ier = finufft_destroy(plan);
 }
@@ -176,9 +176,14 @@ void set_upsampfac_(nufft_opts *o, FLT *upsampfac)
   o->upsampfac = *upsampfac;
 }
 
-void set_spread_scheme_(nufft_opts *o, int *spread_scheme)
+void set_spread_thread_(nufft_opts *o, int *spread_thread)
 {
-  o->spread_scheme = *spread_scheme;
+  o->spread_thread = *spread_thread;
+}
+
+void set_maxbatchsize_(nufft_opts *o, int *maxbatchsize)
+{
+  o->maxbatchsize = *maxbatchsize;
 }
 
 #ifdef __cplusplus
