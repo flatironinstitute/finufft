@@ -143,7 +143,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   p->ms = 1; p->mt = 1; p->mu = 1;     // crucial to leave as 1 for unused dims
 
   //  ------------------------ types 1,2: planning needed ---------------------
-  if((type == 1) || (type == 2)) {
+  if (type==1 || type==2) {
 
     int nth_fft = MY_OMP_GET_MAX_THREADS();   // give FFTW all it has access to
     // should limit max # threads here too? or set equal to batchsize?
@@ -206,12 +206,15 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
          NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
     if (p->opts.debug) printf("[finufft_plan] FFTW plan (mode %d, nth=%d):\t%.3g s\n", p->opts.fftw, nth_fft, timer.elapsedsec());
     delete []ns;
+
+    p->sortIndices = NULL;
     
   } else {  // -------------------------- type 3 (no planning) ------------
 
     if (p->opts.debug) printf("[finufft_plan] %dd%d: ntrans=%d\n",dim,type,ntrans);
     // in case destroy occurs before setpts, need safe dummy ptrs/plans...
     p->CpBatch = NULL;
+    p->fwBatch = NULL;
     p->Sp = NULL; p->Tp = NULL; p->Up = NULL;
     p->prephase = NULL;
     p->deconv = NULL;
@@ -641,6 +644,8 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
 int finufft_destroy(finufft_plan* p)
 // Free everything we allocated inside of finufft_plan pointed to by p.
 // Also must not crash if called immediately after finufft_makeplan.
+// Thus either each thing free'd here is guaranteed to be NULL or correctly
+// allocated.
 { 
   FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
   if (p->type==1 || p->type==2) {
@@ -650,7 +655,7 @@ int finufft_destroy(finufft_plan* p)
     free(p->phiHat3);
     free(p->sortIndices);
   } else {          // free the stuff alloc for type 3
-    if (!p->innerT2plan)
+    if (p->innerT2plan)
       finufft_destroy(p->innerT2plan);
     free(p->CpBatch);
     free(p->Sp); free(p->Tp); free(p->Up);
