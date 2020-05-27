@@ -1014,8 +1014,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 			cout<<"[debug ] ";
 			for(int i=0; i<numbins[0]; i++){
 				if(i!=0) cout<<" ";
-				cout <<" bin["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
-					h_binsize[i+j*numbins[0]+k*numbins[0]*numbins[1]];
+				cout <<h_binsize[i+j*numbins[0]+k*numbins[0]*numbins[1]];
 			}
 			cout<<endl;
 		}
@@ -1067,8 +1066,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 			cout<<"[debug ] ";
 			for(int i=0; i<numbins[0]; i++){
 				if(i!=0) cout<<" ";
-				cout <<" bin["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
-					h_binstartpts[i+j*numbins[0]+k*numbins[0]*numbins[1]];
+				cout <<h_binstartpts[i+j*numbins[0]+k*numbins[0]*numbins[1]];
 			}
 			cout<<endl;
 		}
@@ -1148,8 +1146,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 			cout<<"[debug ] ";
 			for(int i=0; i<numbins[0]; i++){
 				if(i!=0) cout<<" ";
-				cout <<" ns["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k<<"]="<<
-					h_subprobstartpts[i+j*numbins[0]+k*numbins[0]*numbins[1]];
+				cout <<h_subprobstartpts[i+j*numbins[0]+k*numbins[0]*numbins[1]];
 			}
 			cout<<endl;
 		}
@@ -1175,7 +1172,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	checkCudaErrors(cudaMemcpy(h_subprob_to_bin,d_subprob_to_bin,
 				(totalnumsubprob)*sizeof(int),cudaMemcpyDeviceToHost));
 	cout << totalnumsubprob << endl;
-	for(int j=0; j<10; j++){
+	for(int j=0; j<min(totalnumsubprob,10); j++){
 		cout<<"[debug ] ";
 		cout <<"nsub["<<j<<"] = "<<setw(2)<<h_subprob_to_bin[j];
 		cout<<endl;
