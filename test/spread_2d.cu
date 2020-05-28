@@ -108,10 +108,6 @@ int main(int argc, char* argv[])
 				for (int i = 0; i < M; i++) {
 					x[i] = RESCALE(M_PI*rand01(), nf1, 1)/2.0 - 0.5;// x in [-pi,pi)
 					y[i] = RESCALE(M_PI*rand01(), nf2, 1)/2.0 - 0.5;
-					if(method == 6){
-						x[i] = x[i] > nf1-0.5 ? x[i] - nf1 : x[i];
-						y[i] = y[i] > nf2-0.5 ? y[i] - nf2 : y[i];// x in [-pi,pi)
-					}
 					c[i].real(randm11());
 					c[i].imag(randm11());
 				}
