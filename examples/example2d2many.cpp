@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 	int N2 = 128;
 	int M = 10;
 	int ntransf = 4;
-	int ntransfcufftplan = 4;
+	int maxbatchsize = 4;
 	int iflag=1;
 	float tol=1e-6;
 
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	nmodes[2] = 1;
 
 	ier=cufinufft_makeplan(type2, dim, nmodes, iflag, ntransf, tol, 
-		ntransfcufftplan, &dplan);
+		maxbatchsize, &dplan);
 
 	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 

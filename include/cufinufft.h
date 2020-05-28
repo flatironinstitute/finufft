@@ -42,7 +42,7 @@ typedef struct {
 	int mt;
 	int mu;
 	int ntransf;
-	int ntransfcufftplan;
+	int maxbatchsize;
 	int iflag;
 
 	int totalnumsubprob;
@@ -125,7 +125,7 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 #define checkCufftErrors(call)
 int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts);
 int cufinufft_makeplan(int type, int dim, int *n_modes, int iflag, 
-	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan);
+	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan);
 int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
 	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan);
 int cufinufft_exec(CUCPX* h_c, CUCPX* h_fk, cufinufft_plan *d_plan);

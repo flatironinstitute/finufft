@@ -28,7 +28,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	d_plan->nf1 = nf1;
 	d_plan->nf2 = nf2;
 	d_plan->M = M;
-	d_plan->ntransfcufftplan = 1;
+	d_plan->maxbatchsize = 1;
 
 	int ier;
 	//int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
@@ -198,7 +198,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 #if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->opts.gpu_nstreams;
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<d_plan->maxbatchsize; t++){
 			Interp_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				streams[t%nstreams]>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
 				ns, nf1, nf2, sigma);
@@ -214,7 +214,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 #if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->opts.gpu_nstreams;
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<d_plan->maxbatchsize; t++){
 			Interp_2d_NUptsdriven<<<blocks, threadsPerBlock, 0, streams[t%nstreams]
 				>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, 
 				es_beta);

@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
 
 	int nmodes[3];
 	int ntransf = 1;
-	int ntransfcufftplan = 1;
+	int maxbatchsize = 1;
 	nmodes[0] = N1;
 	nmodes[1] = N2;
 	nmodes[2] = N3;
@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_plan",2);
 		ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
-			ntransfcufftplan, &dplan);
+			maxbatchsize, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft_makeplan\n");
 		}

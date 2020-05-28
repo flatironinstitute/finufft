@@ -35,17 +35,17 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
-	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
-		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
-			d_plan->ntransfcufftplan);
-		d_cstart = d_c + i*d_plan->ntransfcufftplan*d_plan->M;
-		d_fkstart = d_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt*
+	for(int i=0; i*d_plan->maxbatchsize < d_plan->ntransf; i++){
+		blksize = min(d_plan->ntransf - i*d_plan->maxbatchsize, 
+			d_plan->maxbatchsize);
+		d_cstart = d_c + i*d_plan->maxbatchsize*d_plan->M;
+		d_fkstart = d_fk + i*d_plan->maxbatchsize*d_plan->ms*d_plan->mt*
 			d_plan->mu;
 
 		d_plan->c = d_cstart;
 		d_plan->fk = d_fkstart;
 
-		checkCudaErrors(cudaMemset(d_plan->fw,0,d_plan->ntransfcufftplan*
+		checkCudaErrors(cudaMemset(d_plan->fw,0,d_plan->maxbatchsize*
 					d_plan->nf1*d_plan->nf2*d_plan->nf3*sizeof(CUCPX)));
 #ifdef TIME
 		float milliseconds = 0;
@@ -113,11 +113,11 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
-	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
-		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
-			d_plan->ntransfcufftplan);
-		d_cstart  = d_c  + i*d_plan->ntransfcufftplan*d_plan->M;
-		d_fkstart = d_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt*
+	for(int i=0; i*d_plan->maxbatchsize < d_plan->ntransf; i++){
+		blksize = min(d_plan->ntransf - i*d_plan->maxbatchsize, 
+			d_plan->maxbatchsize);
+		d_cstart  = d_c  + i*d_plan->maxbatchsize*d_plan->M;
+		d_fkstart = d_fk + i*d_plan->maxbatchsize*d_plan->ms*d_plan->mt*
 			d_plan->mu;
 
 		d_plan->c = d_cstart;
@@ -170,7 +170,7 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 #if 0
 int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf, 
-	int ntransfcufftplan, int iflag, const cufinufft_opts opts, 
+	int maxbatchsize, int iflag, const cufinufft_opts opts, 
 	cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
@@ -193,7 +193,7 @@ int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf,
 	d_plan->M = M;
 	d_plan->iflag = fftsign;
 	d_plan->ntransf = ntransf;
-	d_plan->ntransfcufftplan = ntransfcufftplan;
+	d_plan->maxbatchsize = maxbatchsize;
 #ifdef INFO
 	printf("[info  ] 3d: (ms,mt,mu)=(%d,%d) (nf1, nf2, nf3)=(%d,%d,%d) nj=%d, ntransform = %d\n",
 		ms, mt, mu, d_plan->nf1, d_plan->nf2, d_plan->nf3, d_plan->M, 
@@ -244,7 +244,7 @@ int cufinufft3d_plan(int M, int ms, int mt, int mu, int ntransf,
 	int istride = 1;
 	cufftPlanMany(&fftplan,dim,n,inembed,istride,inembed[0]*inembed[1]*inembed[2],
 		inembed,istride,inembed[0]*inembed[1]*inembed[2],CUFFT_TYPE,
-		ntransfcufftplan);
+		maxbatchsize);
 	d_plan->fftplan = fftplan;
 #ifdef DEBUG
 	cudaEventRecord(stop);

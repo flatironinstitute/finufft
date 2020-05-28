@@ -34,7 +34,7 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	d_plan->nf2 = nf2;
 	d_plan->nf3 = nf3;
 	d_plan->M = M;
-	d_plan->ntransfcufftplan = 1;
+	d_plan->maxbatchsize = 1;
 
 	cudaEventRecord(start);
 	ier = allocgpumem3d_plan(d_plan);
@@ -210,7 +210,7 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 #if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->nstreams;
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<d_plan->maxbatchsize; t++){
 			Interp_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				streams[t%nstreams]>>>(d_kx, d_ky, d_kz, d_c+t*M, 
 				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma);
@@ -227,7 +227,7 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 #if 0
 		cudaStream_t *streams = d_plan->streams;
 		int nstreams = d_plan->nstreams;
-		for(int t=0; t<d_plan->ntransfcufftplan; t++){
+		for(int t=0; t<d_plan->maxbatchsize; t++){
 			Interp_3d_NUptsdriven<<<blocks, threadsPerBlock, 0, streams[t%nstreams]
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
 				nf1, nf2, nf3,es_c, es_beta);

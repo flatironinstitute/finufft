@@ -13,7 +13,7 @@
 using namespace std;
 
 int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, 
-	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan)
+	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan)
 /*
 	"plan" stage: 
 	
@@ -68,7 +68,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	d_plan->nf3 = nf3;	
 	d_plan->iflag = fftsign;
 	d_plan->ntransf = ntransf;
-	d_plan->ntransfcufftplan = ntransfcufftplan;
+	d_plan->maxbatchsize = maxbatchsize;
 	d_plan->type = type;
 
 	if(d_plan->type == 1)
@@ -154,7 +154,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 			//cufftCreate(&fftplan);
 			//cufftPlan2d(&fftplan,n[0],n[1],CUFFT_TYPE);
 			cufftPlanMany(&fftplan,dim,n,inembed,1,inembed[0]*inembed[1],
-				inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,ntransfcufftplan);
+				inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,maxbatchsize);
 		}
 		break;
 		case 3:
@@ -165,7 +165,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 			int istride = 1;
 			cufftPlanMany(&fftplan,dim,n,inembed,istride,inembed[0]*inembed[1]*
 				inembed[2],inembed,istride,inembed[0]*inembed[1]*inembed[2],
-				CUFFT_TYPE,ntransfcufftplan);
+				CUFFT_TYPE,maxbatchsize);
 		}
 		break;
 	}

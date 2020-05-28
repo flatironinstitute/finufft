@@ -50,7 +50,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	d_plan->nf2 = nf2;
 	d_plan->nf3 = nf3;
 	d_plan->M = M;
-	d_plan->ntransfcufftplan = 1;
+	d_plan->maxbatchsize = 1;
 
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
