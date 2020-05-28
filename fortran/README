@@ -1,31 +1,32 @@
 This directory contains Fortran wrappers to the FINUFFT C++ library,
-and older test codes changed little from the CMCL NUFFT library apart from
-that they call the FINUFFT library.
+and demo codes to illustrate their use.
 
-The interfaces are identical to those of CMCL (ie drop-in replacements),
-apart from the type-1 no longer have the 1/nj normalization.
-The naming is:
-finufftNdM_f(...)  where N=dimensions (1,2 or 3) and M=type (1,2 or 3).
+Please refer to (equivalent forms of) documentation in
+  ../docs/fortran.rst                (human-readable text)
+  ../finufft-manual.pdf              (PDF)
+  https://finufft.readthedocs.io/    (online)
 
-Note that, on a linux system, to compile and
-link a Fortran program against the FINUFFT
-library, use the following:
+Please (cd ..; make fortran) to build the wrappers and demos.
 
-gfortran nufft1d_demo.f dirft1d.f -o nufft1d_demo ../lib/libfinufft.a -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
+COPYRIGHT (C) 2017-2020 Simons Foundation Inc.
 
-For Mac OSX, replace fftw3_omp by fftw3_threads.
-Or, if you compiled a single-threaded version:
+Authors: Alex Barnett & Libin Lu (CCM, Flatiron Inst.)
 
-gfortran nufft1d_demo.f dirft1d.f -o nufft1d_demo ../lib/libfinufft.a -lstdc++ -lfftw3 -lm
 
-Alternatively you may want to compile with g++ and use -lgfortran at the *end* of the compile statement.
+Note on COPYRIGHT for contributed code. This directory contains slight
+modifications of test drivers and direct nonuniform FT evaluations
+from the CMCL NUFFT fortran codes available here (as of 2020):
 
-See ../makefile
-Eg
-(cd ..; make fortran)
+https://cims.nyu.edu/cmcl/nufft/nufft.html
 
-Finally, the default demos are double precision. The single-precision
-versions have an extra "f" after the name, ie as listed by: ls *f.f
+These are under a BSD license (see cmcl_license.txt) with the following:
+Copyright (C) 2004-2014: Leslie Greengard, June-Yub Lee, Zydrunas Gimbutas.
+Used and modified with permission.
 
-Barnett 3/21/17; normalization updated 6/6/17. Tweaked 9/24/18.
 
+CHANGELOG for fortran interfaces:
+
+Libin Lu: guru interface 5/26/20.
+Barnett tweaked 9/24/18.
+Barnett normalization updated 6/6/17.
+Barnett created 3/21/17.

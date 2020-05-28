@@ -72,6 +72,7 @@ only once.
    dirs
    usage
    usage_adv
+   fortran          
    matlab
    pythoninterface
    juliainterface

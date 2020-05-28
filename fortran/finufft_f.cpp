@@ -97,16 +97,11 @@ void finufft2d2many_f_(int *ndata, int *nj,FLT* xj,FLT *yj,CPX* cj,int *iflag,
   *ier = finufft2d2many(*ndata,(BIGINT)*nj,xj,yj,cj,*iflag,*eps,(BIGINT)*ms,(BIGINT)*mt,fk,&opts);
 }
 
-// --------------------- guru interface ------------------------
+
+  // -------- helpers ------------
 void mkopts_mem(nufft_opts *o)
 {
   o = (nufft_opts *)malloc(sizeof(nufft_opts));
-}
-
-void finufft_default_opts_f_(nufft_opts* o)
-{
-  mkopts_mem(o);
-  finufft_default_opts(o);
 }
 
 void mkplan_mem(finufft_plan *plan)
@@ -114,23 +109,32 @@ void mkplan_mem(finufft_plan *plan)
   plan = (finufft_plan *)malloc(sizeof(finufft_plan));
 }
 
-void finufft_makeplan_f_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, finufft_plan *plan, nufft_opts *o, int *ier)
+
+  
+// --------------------- guru interface ------------------------
+void finufft_default_opts_(nufft_opts* o)
+{
+  mkopts_mem(o);
+  finufft_default_opts(o);
+}
+
+void finufft_makeplan_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, finufft_plan *plan, nufft_opts *o, int *ier)
 {
   mkplan_mem(plan);
   *ier = finufft_makeplan(*type, *n_dims, n_modes, *iflag, *n_transf, *tol, plan, o);
 }
 
-void finufft_setpts_f_(finufft_plan *plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *N, FLT *s, FLT *t, FLT *u, int *ier)
+void finufft_setpts_(finufft_plan *plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *N, FLT *s, FLT *t, FLT *u, int *ier)
 {
   *ier = finufft_setpts(plan, *M, xj, yj, zj, *N, s, t, u);
 }
 
-void finufft_exec_f_(finufft_plan *plan, CPX *weights, CPX *result, int *ier)
+void finufft_exec_(finufft_plan *plan, CPX *weights, CPX *result, int *ier)
 {
   *ier = finufft_exec(plan, weights, result);
 }
 
-void finufft_destroy_f_(finufft_plan *plan, int *ier)
+void finufft_destroy_(finufft_plan *plan, int *ier)
 {
   *ier = finufft_destroy(plan);
 }

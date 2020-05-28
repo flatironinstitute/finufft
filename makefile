@@ -21,7 +21,7 @@ FLINK = $(CLINK)
 CFLAGS = -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
 CFLAGS += -I include
-FFLAGS = $(CFLAGS) -I /usr/include
+FFLAGS = $(CFLAGS) -I fortran -I /usr/include
 CXXFLAGS = $(CFLAGS) -std=c++14 -DNEED_EXTERN_C
 # FFTW base name, and math linking...
 FFTWNAME = fftw3
@@ -86,9 +86,6 @@ SOBJS = src/spreadinterp.o src/utils.o
 
 # main library object files
 OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS)
-
-# for Fortran interface demos...
-FOBJS = fortran/dirft1d.o fortran/dirft2d.o fortran/dirft3d.o fortran/dirft1df.o fortran/dirft2df.o fortran/dirft3df.o fortran/prini.o fortran/finufft_f.o
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean
 
@@ -170,7 +167,7 @@ $(EXG): $(EXG).o $(DYNLIB)
 # validation tests... (some link to .o allowing testing pieces separately)
 TESTS = test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
 
-# slow FTs, for testing only
+# slow FTs in C++, for testing only
 DO1 = test/directft/dirft1d.o
 DO2 = test/directft/dirft2d.o
 DO3 = test/directft/dirft3d.o
@@ -219,12 +216,21 @@ spreadtest: test/spreadtestnd
 	test/spreadtestnd 3 8e6 8e6 1e-6 1 0
 
 # --------------- LANGUAGE INTERFACES -----------------------
+
 # fortran interface...
-F1=fortran/nufft1d_demo$(PRECSUFFIX)
-F2=fortran/nufft2d_demo$(PRECSUFFIX)
-F3=fortran/nufft3d_demo$(PRECSUFFIX)
-F4=fortran/nufft2dmany_demo$(PRECSUFFIX)
-F5=fortran/guru1d_demo$(PRECSUFFIX)
+FT = fortran/test
+FOBJS = $(FT)/dirft1d.o $(FT)/dirft2d.o $(FT)/dirft3d.o $(FT)/dirft1df.o $(FT)/dirft2df.o $(FT)/dirft3df.o $(FT)/prini.o fortran/finufft_f.o
+FE = fortran/examples
+F1 = $(FE)/nufft1d_demo$(PRECSUFFIX)
+F2 = $(FE)/nufft2d_demo$(PRECSUFFIX)
+F3 = $(FE)/nufft3d_demo$(PRECSUFFIX)
+F4 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
+F5 = $(FE)/guru1d_demo$(PRECSUFFIX)
+
+#fortran/finufft_f.o:
+#	$(CXX) -c $(CXXFLAGS) fortran/ -o $@
+# *** first decide if include f77 interface in main lib - easiest.
+
 fortran: $(FOBJS) $(OBJS) 
 	$(FC) $(FFLAGS) $(F1).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F1)
 	$(FC) $(FFLAGS) $(F2).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F2)
@@ -255,7 +261,7 @@ else
 	(cd matlab; octave test/guru1dtest.m)
 endif
 
-# for experts; force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
+# for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
 # (needs mwrap)
 mex: matlab/nufft_plan.mw
 	(cd matlab;\
@@ -272,11 +278,14 @@ else
 	python python/test/run_accuracy_tests.py
 endif
 
+# *** please document these in make tasks echo above...:
 wheel: $(STATICLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; python -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
 
 docker-wheel:
 	docker run --rm -e package_name=finufftpy -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/python/ci/build-wheels.sh
+
+
 
 # ------------- Various obscure/devel tests -----------------
 # This was for a CCQ application; zgemm was 10x faster!

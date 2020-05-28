@@ -8,6 +8,8 @@ Other recommended NUFFT libraries
 
 - `CMCL NUFFT <https://cims.nyu.edu/cmcl/nufft/nufft.html>`_: NYU single-threaded Fortran library using self-contained FFT, Gaussian kernel. Has MATLAB interface. Much slower than FINUFFT.
 
+- `cuFINUFFT <https://github.com/flatironinstitute/cufinufft>`_: Our GPU version of FINUFFT, for single precision in 2D and 3D, type 1 and 2. Achieves speeds around 10x the CPU version.
+  
 - `MIRT <https://web.eecs.umich.edu/~fessler/code/index.html>`_ Michigan Image Reconstruction Toolbox. Native MATLAB, single-threaded sparse mat-vec, prestores all kernel evaluations, thus is memory-intensive. Slower than FINUFFT for all tolerances smaller than 0.1.
 
 - `PyNUFFT <https://github.com/jyhmiinlin/pynufft>`_ Python code supporting CPU and GPU operation. Have not compared against FINUFFT yet.

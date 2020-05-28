@@ -3,7 +3,7 @@
 Usage and interfaces
 ====================
 
-Here we describe the simple interfaces to call FINUFFT from C++, C, and Fortran.
+Here we describe the simple interfaces to call FINUFFT from C++, C.
 
 We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
 nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
@@ -518,33 +518,6 @@ As above, ``FLT`` indicates ``double`` or ``float``, but now
 (see ``src/finufft.h`` for the definitions used).
 For examples see ``examples/example1d1c.c`` (double precision)
 and ``examples/example1d1cf.c`` (single precision).
-
-
-Interfaces from fortran
-***********************
-
-We have not yet included control of the options in the fortran wrappers. (Please help create these if you want a simple user project!)
-The meaning of arguments is as in the C++ documentation above,
-apart from that now ``ier`` is an argument which is output to.
-Examples of calling the basic 9 routines from fortran are in ``fortran/nufft?d_demo.f`` (for double-precision) and ``fortran/nufft?d_demof.f`` (single-precision). ``fortran/nufft2dmany_demo.f`` shows how to use the many-vector interface.
-Here are the calling commands with fortran types for the default double-precision case (the simple-precision case is analogous) ::
-
-      integer ier,iflag,ms,mt,mu,nj,ndata
-      real*8, allocatable :: xj(:),yj(:),zj(:), sk(:),tk(:),uk(:)
-      real*8 err,eps
-      complex*16, allocatable :: cj(:), fk(:)
-
-      call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk,ier)
-      call finufft1d2_f(nj,xj,cj,iflag, eps, ms,fk,ier)
-      call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk,ier)
-      call finufft2d1_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
-      call finufft2d1many_f(ndata,nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
-      call finufft2d2_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
-      call finufft2d2many_f(ndata,nj,xj,yj,cj,iflag,eps,ms,mt,fk,ier)
-      call finufft2d3_f(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk,ier)
-      call finufft3d1_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,ier)
-      call finufft3d2_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk,ier)
-      call finufft3d3_f(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk,ier)
 
 
 Usage and design notes

@@ -8,19 +8,31 @@ c tweaked Alex Barnett to call FINUFFT 2/17/17
 c dyn malloc; type 2 uses same input data fk0, 3/8/17
 c
 c Compile with (multithreaded version):
-c gfortran nufft1d_demo.f dirft1d.f -o nufft1d_demo ../lib/libfinufft.a
+c gfortran guru1d_demo.f dirft1d.f -o guru1d_demo ../lib/libfinufft.a
 c          -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
-      program nufft1d_demo
+      program guru1d_demo
       implicit none
+      include 'fftw3.f'
 c
 c --- local variables
 c
-      integer i,ier,iflag,j,k1,mx,ms,nj
-      real*8, allocatable :: xj(:),sk(:)
-      real*8 err,eps,pi
+      integer i,ier,iflag,j,k1,mx
+      integer*8 ms,nj,zero
+      real*8, allocatable :: xj(:),sk(:),rnull(:)
+      real*8 err,eps,pi,upsampfac
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+      complex*16, allocatable :: cnull(:)
+      integer*8 opt
+      integer*8 plan
+      integer*8, allocatable :: n_modes(:)
+      integer ftype,ndim,n_transf
+      ftype=1
+      ndim=1
+      n_transf=1
+      upsampfac=2.0
+      zero=0
 c
 c     --------------------------------------------------
 c     create some test data
@@ -35,6 +47,10 @@ c     first alloc everything
       allocate(cj(nj))
       allocate(cj0(nj))
       allocate(cj1(nj))
+      allocate(n_modes(3))
+      n_modes(1) = ms
+      n_modes(2) = 0
+      n_modes(3) = 0
       do k1 = -nj/2, (nj-1)/2
          j = k1+nj/2+1
          xj(j) = pi * dcos(-pi*j/nj)
@@ -65,8 +81,25 @@ c     -----------------------
 c     call 1D Type1 method
 c     -----------------------
 c
+cccccccc      reference solution
          call dirft1d1(nj,xj,cj,iflag, ms,fk0)
-         call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk1,ier)
+
+cccccccc      guru interface calls
+cccccccc      set opts
+         call finufft_default_opts(opt)
+         call set_debug(opt,1)
+         call set_fftw(opt,FFTW_ESTIMATE)
+cccccccc      make plan
+         call finufft_makeplan(ftype,ndim,n_modes,iflag,n_transf,
+     $        eps,plan,opt,ier)
+cccccccc      set pts
+         call finufft_setpts(plan,nj,xj,rnull,rnull,zero,
+     $        cnull,cnull,cnull,ier)
+cccccccc      execute
+         call finufft_exec(plan,cj,fk1,ier)
+cccccccc      destroy
+         call finufft_destroy(plan,opt,ier)
+
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
@@ -75,11 +108,11 @@ c     -----------------------
 c     call 1D Type2 method
 c     -----------------------
 c
-         call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
-         call finufft1d2_f(nj,xj,cj1,iflag, eps, ms,fk0,ier)
-         call errcomp(cj0,cj1,nj,err)
-         print *,' ier = ',ier
-         print *,' type 2 error = ',err
+c         call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
+c         call finufft1d2_f(nj,xj,cj1,iflag, eps, ms,fk0,ier)
+c         call errcomp(cj0,cj1,nj,err)
+c         print *,' ier = ',ier
+c         print *,' type 2 error = ',err
 c
 c     -----------------------
 c     call 1D Type3 method
@@ -87,11 +120,11 @@ c     -----------------------
          do k1 = 1, ms
             sk(k1) = 48*dcos(k1*pi/ms)
          enddo
-         call dirft1d3(nj,xj,cj,iflag, ms,sk,fk0)
-         call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk1,ier)
-         call errcomp(cj0,cj1,nj,err)
-         print *,' ier = ',ier
-         print *,' type 3 error = ',err
+c         call dirft1d3(nj,xj,cj,iflag, ms,sk,fk0)
+c         call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk1,ier)
+c         call errcomp(cj0,cj1,nj,err)
+c         print *,' ier = ',ier
+c         print *,' type 3 error = ',err
       enddo
       stop
       end
