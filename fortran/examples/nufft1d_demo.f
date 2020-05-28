@@ -18,11 +18,13 @@ c
 c
 c --- local variables
 c
-      integer i,ier,iflag,j,k1,mx,ms,nj
+      integer i,ier,iflag,j,k1,mx
+      integer*8 ms,nj
       real*8, allocatable :: xj(:),sk(:)
       real*8 err,eps,pi
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+      integer*8, allocatable :: null
 c
 c     --------------------------------------------------
 c     create some test data
@@ -68,7 +70,7 @@ c     call 1D Type1 method
 c     -----------------------
 c
          call dirft1d1(nj,xj,cj,iflag, ms,fk0)
-         call finufft1d1_f(nj,xj,cj,iflag,eps, ms,fk1,ier)
+         call finufft1d1(nj,xj,cj,iflag,eps,ms,fk1,null,ier)
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
@@ -78,7 +80,7 @@ c     call 1D Type2 method
 c     -----------------------
 c
          call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
-         call finufft1d2_f(nj,xj,cj1,iflag, eps, ms,fk0,ier)
+         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0,null,ier)
          call errcomp(cj0,cj1,nj,err)
          print *,' ier = ',ier
          print *,' type 2 error = ',err
@@ -90,7 +92,7 @@ c     -----------------------
             sk(k1) = 48*dcos(k1*pi/ms)
          enddo
          call dirft1d3(nj,xj,cj,iflag, ms,sk,fk0)
-         call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk1,ier)
+         call finufft1d3(nj,xj,cj,iflag,eps, ms,sk,fk1,null,ier)
          call errcomp(cj0,cj1,nj,err)
          print *,' ier = ',ier
          print *,' type 3 error = ',err

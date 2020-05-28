@@ -15,11 +15,13 @@ c
 
       implicit none
 c
-      integer i,ier,iflag,j,k1,k2,mx,ms,mt,n1,n2,nj,nk,ndata,d
+      integer i,ier,iflag,j,k1,k2,mx,n1,n2,ndata,d
+      integer*8 ms,mt,nj,nk
       real*8, allocatable :: xj(:),yj(:),sk(:),tk(:)
       real*8 err,pi,eps,salg,ealg,maxerr
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+      integer*8, allocatable :: null
 c
 c     --------------------------------------------------
 c     create some test data
@@ -77,8 +79,8 @@ c     -----------------------
 c     call 2D Type 1 method
 c     -----------------------
 c
-         call finufft2d1many_f(ndata,nj,xj,yj,cj,iflag, 
-     &                         eps,ms,mt,fk1,ier)
+         call finufft2d1many(ndata,nj,xj,yj,cj,iflag, 
+     &                         eps,ms,mt,fk1,null,ier)
          do d = 1, ndata
             call dirft2d1(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))
@@ -91,8 +93,8 @@ c
 c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
-         call finufft2d2many_f(ndata,nj,xj,yj,cj1,iflag,
-     &                         eps,ms,mt,fk0,ier)
+         call finufft2d2many(ndata,nj,xj,yj,cj1,iflag,
+     &                         eps,ms,mt,fk0,null,ier)
          do d = 1, ndata
             call dirft2d2(nj,xj,yj,cj0(1+(d-1)*nj:d*nj),iflag,ms,mt,
      &                    fk0(1+(d-1)*nk:d*nk))

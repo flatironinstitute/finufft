@@ -14,11 +14,13 @@ c
       program nufft2d_demo
       implicit none
 c
-      integer i,ier,iflag,j,k1,k2,mx,ms,mt,n1,n2,nj,nk
+      integer i,ier,iflag,j,k1,k2,mx,n1,n2
+      integer*8 nj,ms,mt,nk
       real*8, allocatable :: xj(:),yj(:),sk(:),tk(:)
       real*8 err,pi,eps,salg,ealg
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+      integer*8, allocatable :: null
 c
 c     --------------------------------------------------
 c     create some test data
@@ -74,7 +76,7 @@ c     call 2D Type 1 method
 c     -----------------------
 c
          call dirft2d1(nj,xj,yj,cj,iflag,ms,mt,fk0)
-         call finufft2d1_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
+         call finufft2d1(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,null,ier)
          call errcomp(fk0,fk1,nk,err)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
@@ -84,7 +86,7 @@ c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
          call dirft2d2(nj,xj,yj,cj0,iflag,ms,mt,fk0)
-         call finufft2d2_f(nj,xj,yj,cj1,iflag,eps,ms,mt,fk0,ier)
+         call finufft2d2(nj,xj,yj,cj1,iflag,eps,ms,mt,fk0,null,ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 err = ',err
@@ -98,7 +100,7 @@ c     -----------------------
          enddo
 
          call dirft2d3(nj,xj,yj,cj,iflag,nk,sk,tk,fk0)
-         call finufft2d3_f(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk1,ier)
+         call finufft2d3(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk1,null,ier)
 c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)

@@ -100,20 +100,124 @@ void set_maxbatchsize_(nufft_opts *o, int *maxbatchsize)
 }
 
 // -------------- simple and many-vector interfaces --------------------
-void finufft1d1_(BIGINT* nj,FLT* xj,CPX* cj, int* iflag, FLT* eps,
+// --- 1D ---
+void finufft1d1_(BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
                  BIGINT* ms, CPX* fk, nufft_opts* o, int* ier)
 {
   *ier = finufft1d1(*nj,xj,cj,*iflag,*eps,*ms,fk,o);
 }
 
-// *** 17 others to add...  :O
+void finufft1d1many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft1d1many(*ntransf,*nj,xj,cj,*iflag,*eps,*ms,fk,o);
+}
 
+void finufft1d2_(BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft1d2(*nj,xj,cj,*iflag,*eps,*ms,fk,o);
+}
 
+void finufft1d2many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft1d2many(*ntransf,*nj,xj,cj,*iflag,*eps,*ms,fk,o);
+}
 
+void finufft1d3_(BIGINT* nj, FLT* x, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, CPX* f, nufft_opts* o, int* ier)
+{
+  *ier = finufft1d3(*nj,x,c,*iflag,*eps,*nk,s,f,o);
+}
 
+void finufft1d3many_(int* ntransf,
+                 BIGINT* nj, FLT* x, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, CPX* f, nufft_opts* o, int* ier)
+{
+  *ier = finufft1d3many(*ntransf,*nj,x,c,*iflag,*eps,*nk,s,f,o);
+}
 
-  
-  
+// --- 2D ---
+void finufft2d1_(BIGINT* nj, FLT* xj, FLT* yj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft2d1(*nj,xj,yj,cj,*iflag,*eps,*ms,*mt,fk,o);
+}
+void finufft2d1many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, FLT* yj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft2d1many(*ntransf,*nj,xj,yj,cj,*iflag,*eps,*ms,*mt,fk,o);
+}
+
+void finufft2d2_(BIGINT* nj, FLT* xj, FLT* yj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft2d2(*nj,xj,yj,cj,*iflag,*eps,*ms,*mt,fk,o);
+}
+void finufft2d2many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, FLT* yj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft2d2many(*ntransf,*nj,xj,yj,cj,*iflag,*eps,*ms,*mt,fk,o);
+}
+
+void finufft2d3_(BIGINT* nj, FLT* x, FLT* y, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, FLT* t, CPX* f, nufft_opts* o, int* ier)
+{
+  *ier = finufft2d3(*nj,x,y,c,*iflag,*eps,*nk,s,t,f,o);
+}
+
+void finufft2d3many_(int* ntransf,
+                 BIGINT* nj, FLT* x, FLT* y, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, FLT* t, CPX* f, nufft_opts* o, int* ier)
+{
+  *ier = finufft2d3many(*ntransf,*nj,x,y,c,*iflag,*eps,*nk,s,t,f,o);
+}
+
+// --- 3D ---
+void finufft3d1_(BIGINT* nj, FLT* xj, FLT* yj, FLT* zj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, BIGINT* mu, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft3d1(*nj,xj,yj,zj,cj,*iflag,*eps,*ms,*mt,*mu,fk,o);
+}
+
+void finufft3d1many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, FLT* yj, FLT* zj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, BIGINT* mu, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft3d1many(*ntransf,*nj,xj,yj,zj,cj,*iflag,*eps,*ms,*mt,*mu,fk,o);
+}
+
+void finufft3d2_(BIGINT* nj, FLT* xj, FLT* yj, FLT* zj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, BIGINT* mu, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft3d2(*nj,xj,yj,zj,cj,*iflag,*eps,*ms,*mt,*mu,fk,o);
+}
+
+void finufft3d2many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, FLT* yj, FLT* zj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, BIGINT* mu, CPX* fk, nufft_opts* o, int* ier)
+{
+  *ier = finufft3d2many(*ntransf,*nj,xj,yj,zj,cj,*iflag,*eps,*ms,*mt,*mu,fk,o);
+}
+
+void finufft3d3_(BIGINT* nj, FLT* x, FLT* y, FLT* z, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, FLT* t, FLT* u, CPX* f, nufft_opts* o, int* ier)
+{
+  *ier = finufft3d3(*nj,x,y,z,c,*iflag,*eps,*nk,s,t,u,f,o);
+}
+
+void finufft3d3many_(int* ntransf,
+                 BIGINT* nj, FLT* x, FLT* y, FLT* z, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, FLT* t, FLT* u, CPX* f, nufft_opts* o, int* ier)
+{
+  *ier = finufft3d3many(*ntransf,*nj,x,y,z,c,*iflag,*eps,*nk,s,t,u,f,o);
+}
+
   
 #ifdef __cplusplus
 }

@@ -184,7 +184,7 @@ test: $(STATICLIB) $(TESTS)
 test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
 test/testutils: test/testutils.cpp src/utils.o
-	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o -o test/testutils
+	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o $(LIBSFFT) -o test/testutils
 test/dumbinputs: test/dumbinputs.cpp $(DYNLIB) $(DO1)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJS) $(DO1) $(LIBSFFT) -o test/dumbinputs
 test/finufft1d_test: test/finufft1d_test.cpp $(OBJS) $(DO1)

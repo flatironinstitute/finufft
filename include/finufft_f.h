@@ -36,9 +36,61 @@ void set_spread_thread_(nufft_opts *o, int *spread_thread);
 void set_maxbatchsize_(nufft_opts *o, int *maxbatchsize);
 
 // -------------- simple and many-vector interfaces --------------------
-void finufft1d1_(BIGINT* nj,FLT* xj,CPX* cj, int* iflag, FLT* eps,
+// --- 1D ---
+void finufft1d1_(BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
                  BIGINT* ms, CPX* fk, nufft_opts* o, int* ier);
-// *** 17 others to add...
+void finufft1d1many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, CPX* fk, nufft_opts* o, int* ier);
+
+void finufft1d2_(BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, CPX* fk, nufft_opts* o, int* ier);
+void finufft1d2many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, CPX* fk, nufft_opts* o, int* ier);
+
+void finufft1d3_(BIGINT* nj, FLT* x, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, CPX* f, nufft_opts* o, int* ier);
+void finufft1d3many_(int* ntransf,
+                 BIGINT* nj, FLT* x, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, CPX* f, nufft_opts* o, int* ier);
+// --- 2D ---
+void finufft2d1_(BIGINT* nj, FLT* xj, FLT* yj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, CPX* fk, nufft_opts* o, int* ier);
+void finufft2d1many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, FLT* yj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, CPX* fk, nufft_opts* o, int* ier);
+
+void finufft2d2_(BIGINT* nj, FLT* xj, FLT* yj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, CPX* fk, nufft_opts* o, int* ier);
+void finufft2d2many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, FLT* yj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, CPX* fk, nufft_opts* o, int* ier);
+
+void finufft2d3_(BIGINT* nj, FLT* x, FLT* y, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, FLT* t, CPX* f, nufft_opts* o, int* ier);
+void finufft2d3many_(int* ntransf,
+                 BIGINT* nj, FLT* x, FLT* y, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, FLT* t, CPX* f, nufft_opts* o, int* ier);
+// --- 3D ---
+void finufft3d1_(BIGINT* nj, FLT* xj, FLT* yj, FLT* zj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, BIGINT* mu, CPX* fk, nufft_opts* o, int* ier);
+void finufft3d1many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, FLT* yj, FLT* zj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, BIGINT* mu, CPX* fk, nufft_opts* o, int* ier);
+
+void finufft3d2_(BIGINT* nj, FLT* xj, FLT* yj, FLT* zj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, BIGINT* mu, CPX* fk, nufft_opts* o, int* ier);
+void finufft3d2many_(int* ntransf,
+                 BIGINT* nj, FLT* xj, FLT* yj, FLT* zj, CPX* cj, int* iflag, FLT* eps,
+                 BIGINT* ms, BIGINT* mt, BIGINT* mu, CPX* fk, nufft_opts* o, int* ier);
+
+void finufft3d3_(BIGINT* nj, FLT* x, FLT* y, FLT* z, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, FLT* t, FLT* u, CPX* f, nufft_opts* o, int* ier);
+void finufft3d3many_(int* ntransf,
+                 BIGINT* nj, FLT* x, FLT* y, FLT* z, CPX* c, int* iflag, FLT* eps,
+                 BIGINT* nk, FLT* s, FLT* t, FLT* u, CPX* f, nufft_opts* o, int* ier);
+// -------------- end of simple and many-vector interfaces -------------
 
 }
 

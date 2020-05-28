@@ -14,12 +14,14 @@ c
       program nufft3d_demo
       implicit none
 c
-      integer i,ier,iflag,j,k1,k2,k3,mx,ms,mt,mu,n1,n2,n3,nj,nk
+      integer i,ier,iflag,j,k1,k2,k3,mx,n1,n2,n3
+      integer*8 ms,mt,mu,nj,nk
       real*8, allocatable :: xj(:),yj(:),zj(:),sk(:),tk(:),uk(:)
       real*8 err,pi,eps,salg,ealg
       real*8 t0,t1,second
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+      integer*8, allocatable :: null
 c
 c     --------------------------------------------------
 c     create some test data
@@ -82,7 +84,7 @@ c     call 3D Type 1 method
 c     -----------------------
 c
          call dirft3d1(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
-         call finufft3d1_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
+         call finufft3d1(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,null,ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 err = ',err
@@ -91,7 +93,8 @@ c     -----------------------
 c      call 3D Type 2 method
 c     -----------------------
          call dirft3d2(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
-         call finufft3d2_f(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,ier)
+         call finufft3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,null,
+     1        ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 err = ',err
@@ -106,7 +109,8 @@ c     -----------------------
          enddo
 
          call dirft3d3(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
-         call finufft3d3_f(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,ier)
+         call finufft3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,null,
+     1        ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 err = ',err
