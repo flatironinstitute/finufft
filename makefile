@@ -1,13 +1,15 @@
 # Makefile for FINUFFT.
 # Barnett 2/12/19. Malleo's expansion for guru interface, summer 2019.
-# Barnett tidying Feb 2020.
+# Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
 
-# This is the only makefile; there are no makefiles in subdirectories.
+# For simplicity, this is the only makefile; there are no makefiles in
+# subdirectories. This makefile is useful to show humans how to compile
+# FINUFFT and its various language interfaces and examples.
 # Users should not need to edit this makefile (doing so would make it hard to
 # stay up to date with the repo version). Rather, in order to change
 # OS/environment-specific compilers and flags, create the file make.inc, which
-# overrides the defaults below (which are for ubuntu linux/GCC system).
-# See docs/install.rst, and make.inc.*
+# overrides the defaults below (which are for an ubuntu linux/GCC system).
+# See docs/install.rst, and make.inc.* for examples.
 
 # compilers, and linking from C, fortran...
 CXX = g++
@@ -85,9 +87,9 @@ STATICLIB = lib-static/$(LIBNAME).a
 SOBJS = src/spreadinterp.o src/utils.o
 
 # main library object files
-OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS)
+OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o
 
-.PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean
+.PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
 
 default: usage
 
@@ -99,7 +101,7 @@ usage:
 	@echo " make examples - compile and run codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
 	@echo " make perftest - compile and run performance tests"
-	@echo " make fortran - compile and test Fortran interfaces"
+	@echo " make fortran - compile and run Fortran examples"
 	@echo " make matlab - compile MATLAB interfaces"
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"	
@@ -219,29 +221,24 @@ spreadtest: test/spreadtestnd
 
 # fortran interface...
 FT = fortran/test
-FOBJS = $(FT)/dirft1d.o $(FT)/dirft2d.o $(FT)/dirft3d.o $(FT)/dirft1df.o $(FT)/dirft2df.o $(FT)/dirft3df.o $(FT)/prini.o fortran/finufft_f.o
+FTOBJS = $(FT)/dirft1d.o $(FT)/dirft2d.o $(FT)/dirft3d.o $(FT)/dirft1df.o $(FT)/dirft2df.o $(FT)/dirft3df.o $(FT)/prini.o
 FE = fortran/examples
 F1 = $(FE)/nufft1d_demo$(PRECSUFFIX)
 F2 = $(FE)/nufft2d_demo$(PRECSUFFIX)
 F3 = $(FE)/nufft3d_demo$(PRECSUFFIX)
 F4 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
 F5 = $(FE)/guru1d_demo$(PRECSUFFIX)
-
-#fortran/finufft_f.o:
-#	$(CXX) -c $(CXXFLAGS) fortran/ -o $@
-# *** first decide if include f77 interface in main lib - easiest.
-
-fortran: $(FOBJS) $(OBJS) 
-	$(FC) $(FFLAGS) $(F1).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F1)
-	$(FC) $(FFLAGS) $(F2).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F2)
-	$(FC) $(FFLAGS) $(F3).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F3)
-	$(FC) $(FFLAGS) $(F4).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F4)
-	$(FC) $(FFLAGS) $(F5).f $(FOBJS) $(OBJS) $(LIBSFFT) $(FLINK) -o $(F5)
-	time -p $(F1)
-	time -p $(F2)
-	time -p $(F3)
-	time -p $(F4)
-	time -p $(F5)
+F6 = $(FE)/nufft1d1_demo$(PRECSUFFIX)
+# GNU make trick to get list of executables to compile... (how auto 1 2... ?)
+F = $(foreach V, 1 2 3 4 5 6, $(F$V))
+# *** todo: make DYNLIB, but need to add to user's dyn lib path or exec only
+# works from the top-level dir:
+fortran: $(FTOBJS) $(STATICLIB)
+	for i in $(F); do \
+	$(FC) $(FFLAGS) $$i.f $(FTOBJS) $(STATICLIB) $(LIBSFFT) $(FLINK) -o $$i; \
+	time -p $$i; \
+	done
+# (that was a bash script loop; note $$'s here are escaped dollar signs)
 
 # matlab .mex* executable... (not worth starting matlab to test it)
 matlab: $(STATICLIB)

@@ -1,12 +1,18 @@
-This directory contains Fortran wrappers to the FINUFFT C++ library,
-and demo codes to illustrate their use.
+This directory contains f77-style Fortran wrappers to the FINUFFT C++ library.
+They don't use any f90 or later features.
+
+Directory structure:
+
+finufft_f.cpp - the C++ wrapper layer that is linked to fortran
+examples/ - fortran drivers
+test/     - helper routines for tests that occur in the examples
 
 Please refer to (equivalent forms of) documentation in
   ../docs/fortran.rst                (human-readable text)
   ../finufft-manual.pdf              (PDF)
   https://finufft.readthedocs.io/    (online)
 
-Please (cd ..; make fortran) to build the wrappers and demos.
+Please (cd ..; make fortran) to build the examples.
 
 COPYRIGHT (C) 2017-2020 Simons Foundation Inc.
 

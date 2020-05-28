@@ -3,12 +3,12 @@
 Using FINUFFT from fortran
 ==========================
 
-We provide fortran interfaces that are similar to those in C.
+We provide fortran interfaces that are very similar to those in C/C++.
 
 Simple example
 **************
 
-
+*** TO DO ....
 
 
 
