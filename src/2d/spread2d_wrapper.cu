@@ -3,8 +3,8 @@
 #include <iomanip>
 #include <assert.h>
 
-#include <cub/device/device_radix_sort.cuh>
-#include <cub/device/device_scan.cuh>
+#include <thrust/device_ptr.h>
+#include <thrust/scan.h>
 
 #include <cuComplex.h>
 #include "../cuspreadinterp.h"
@@ -64,6 +64,15 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	printf("[time  ] Copy memory HtoD (%d Bytes) \t%.3g ms\n", 
 		2*M*sizeof(FLT)+M*sizeof(CUCPX), milliseconds);
 #endif
+
+	if(d_plan->opts.gpu_method == 1){
+		ier = cuspread2d_nuptsdriven_prop(nf1,nf2,M,d_plan);
+		if(ier != 0 ){
+			printf("error: cuspread2d_nuptsdriven_prop, method(%d)\n", 
+				d_plan->opts.gpu_method);
+			return 0;
+		}
+	}
 
 	if(d_plan->opts.gpu_method == 2){
 		ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
@@ -226,7 +235,6 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 		int *d_binstartpts = d_plan->binstartpts;
 		int *d_sortidx = d_plan->sortidx;
 		int *d_idxnupts = d_plan->idxnupts;
-		void *d_temp_storage = NULL;
 
 		int pirange = d_plan->spopts.pirange;
 
@@ -284,14 +292,9 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 #endif
 		cudaEventRecord(start);
 		int n=numbins[0]*numbins[1];
-		size_t temp_storage_bytes = 0;
-		assert(d_temp_storage == NULL);
-		CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,
-			temp_storage_bytes,d_binsize, d_binstartpts, n));
-		// Allocate temporary storage for inclusive prefix scan
-		checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
-		CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,
-			temp_storage_bytes,d_binsize, d_binstartpts, n));
+		thrust::device_ptr<int> d_ptr(d_binsize);
+		thrust::device_ptr<int> d_result(d_binstartpts);
+		thrust::exclusive_scan(d_ptr, d_ptr + n, d_result);
 #ifdef SPREADTIME
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
@@ -337,7 +340,6 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 		}
 		free(h_idxnupts);
 #endif
-		cudaFree(d_temp_storage);
 	}else{
 		int *d_idxnupts = d_plan->idxnupts;
 
@@ -456,7 +458,6 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	int *d_idxnupts = d_plan->idxnupts;
 
 	int *d_subprob_to_bin = NULL;
-	void *d_temp_storage = NULL;
 
 	int pirange=d_plan->spopts.pirange;
 
@@ -504,18 +505,9 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 
 	cudaEventRecord(start);
 	int n=numbins[0]*numbins[1];
-	size_t temp_storage_bytes = 0;
-	assert(d_temp_storage == NULL);
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage, 
-				temp_storage_bytes, 
-				d_binsize, d_binstartpts, 
-				n));
-	// Allocate temporary storage for inclusive prefix scan
-	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes)); 
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage, 
-				temp_storage_bytes, 
-				d_binsize, d_binstartpts, 
-				n));
+	thrust::device_ptr<int> d_ptr(d_binsize);
+	thrust::device_ptr<int> d_result(d_binstartpts);
+	thrust::exclusive_scan(d_ptr, d_ptr + n, d_result);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -580,10 +572,9 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	}
 	free(h_numsubprob);
 #endif
-	// Scanning the same length array, so we don't need calculate 
-	// temp_storage_bytes here
-	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage, 
-				temp_storage_bytes, d_numsubprob, d_subprobstartpts+1, n));
+	d_ptr    = thrust::device_pointer_cast(d_numsubprob);
+	d_result = thrust::device_pointer_cast(d_subprobstartpts+1);
+	thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
 	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
@@ -639,7 +630,6 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel Subproblem to Bin map\t\t%.3g ms\n", milliseconds);
 #endif
-	cudaFree(d_temp_storage);
 	return 0;
 }
 

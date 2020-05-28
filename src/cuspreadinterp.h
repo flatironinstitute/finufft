@@ -60,7 +60,7 @@ void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x,
 	int* finegridstartpts, int* sortidx, int* index, int pirange);
 __global__
 void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
-	int maxsubprobsize);
+	int maxsubprobsize, int bin_size_x, int bin_size_y);
 __global__
 void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, 

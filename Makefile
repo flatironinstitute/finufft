@@ -22,10 +22,8 @@ NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 $(NVARCH) \
 
 # CUDA Related build dependencies
 CUDA_ROOT=/usr/local/cuda
-CUB_ROOT=./cub
 INC=-I$(CUDA_ROOT)/include \
-	-Icontrib/cuda_samples \
-	-I$(CUB_ROOT)
+	-Icontrib/cuda_samples
 NVCC_LIBS_PATH=-L$(CUDA_ROOT)/lib64
 
 FFTWNAME=fftw3

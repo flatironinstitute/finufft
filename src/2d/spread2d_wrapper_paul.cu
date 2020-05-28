@@ -3,9 +3,8 @@
 #include <iomanip>
 #include <assert.h>
 
-// try another library cub
-#include <cub/device/device_radix_sort.cuh>
-#include <cub/device/device_scan.cuh>
+#include <thrust/device_ptr.h>
+#include <thrust/scan.h>
 
 #include <cuComplex.h>
 #include "../cuspreadinterp.h"
@@ -132,19 +131,10 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	}
 #endif
 	int n=nf1*nf2;
-	size_t temp_storage_bytes = 0;
-	assert(d_temp_storage == NULL);
 	cudaEventRecord(start);
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage, 
-				temp_storage_bytes, 
-				d_finegridsize, 
-				d_fgstartpts, n));
-	// Allocate temporary storage for inclusive prefix scan
-	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes)); 
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage, 
-				temp_storage_bytes, 
-				d_finegridsize, 
-				d_fgstartpts, n));
+	thrust::device_ptr<int> d_ptr(d_finegridsize);
+	thrust::device_ptr<int> d_result(d_fgstartpts);
+	thrust::exclusive_scan(d_ptr, d_ptr + n, d_result);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -205,7 +195,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	int blocksize = bin_size_x*bin_size_y;
 	cudaEventRecord(start);
 	CalcSubProb_2d_Paul<<<numbins[0]*numbins[1], blocksize>>>(
-		d_finegridsize, d_numsubprob, maxsubprobsize);
+		d_finegridsize, d_numsubprob, maxsubprobsize, bin_size_x, bin_size_y);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -228,17 +218,12 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	}
 	free(h_numsubprob);
 #endif
-	// Scanning the same length array, so we don't need calculate
-	// temp_storage_bytes here
 	int *d_subprobstartpts = d_plan->subprobstartpts;
 	n = numbins[0]*numbins[1];
 	cudaEventRecord(start);
-	CubDebugExit(cub::DeviceScan::ExclusiveSum(d_temp_storage,
-				temp_storage_bytes, d_numsubprob, d_subprobstartpts, n));
-	// Allocate temporary storage for inclusive prefix scan
-	checkCudaErrors(cudaMalloc(&d_temp_storage, temp_storage_bytes));
-	CubDebugExit(cub::DeviceScan::InclusiveSum(d_temp_storage,
-				temp_storage_bytes, d_numsubprob, d_subprobstartpts+1, n));
+	d_ptr    = thrust::device_pointer_cast(d_numsubprob);
+	d_result = thrust::device_pointer_cast(d_subprobstartpts+1);
+	thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
 	checkCudaErrors(cudaMemset(d_subprobstartpts,0,sizeof(int)));
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
@@ -278,7 +263,6 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	d_plan->subprob_to_bin = d_subprob_to_bin;
 	assert(d_plan->subprob_to_bin != NULL);
 	d_plan->totalnumsubprob = totalnumsubprob;
-	printf("[debug ] total number of subproblem = %d\n", totalnumsubprob);
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

@@ -2,9 +2,6 @@
 #include <iostream>
 #include <iomanip>
 
-#include <cub/device/device_radix_sort.cuh>
-#include <cub/device/device_scan.cuh>
-
 #include <cuComplex.h>
 #include "../cuspreadinterp.h"
 #include "../memtransfer.h"

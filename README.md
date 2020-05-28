@@ -4,12 +4,9 @@ A GPU implementation of 2, 3 dimension type 1, 2 non-uniform FFT based on [FINUF
 This is a work from Melody Shih's internship at Flatiron Institute, advised by CCM project leader Alex Barnett.
 
 
-### Code dependency
- - [CUB Library][3]. This is managed by a git submodule, note the clone command below.
-
 ### Installation
  - Get this code and dependency -
- ```git clone --recurse-submodules https://github.com/flatironinstitute/cufinufft.git```
+ ```git clone https://github.com/flatironinstitute/cufinufft.git```
  - Review the `makefile`. - If you need to customize build settings, create and edit a `make.inc`.  Example:
    - To override the standard CUDA `/usr/local/cuda` location your `make.inc` should contain: ```CUDA_ROOT=/your/path/to/cuda```.
    - Two examples are provided, one for IBM machines (make.inc.power9), and another for the Courant Institute cluster (make.inc.CIMS).
@@ -37,4 +34,3 @@ cuFINUFFT API contains 5 stages:
 
 [1]: https://github.com/flatironinstitute/finufft
 [2]: http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
-[3]: https://github.com/NVlabs/cub
