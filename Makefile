@@ -86,10 +86,6 @@ $(BINDIR)/interp2d: test/interp_2d.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	mkdir -p $(BINDIR)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-$(BINDIR)/cufinufft_test: test/cufinufft_test.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
-	mkdir -p $(BINDIR)
-	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
-
 $(BINDIR)/cufinufft2d1_test: test/cufinufft2d1_test.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	mkdir -p $(BINDIR)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
