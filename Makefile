@@ -77,6 +77,17 @@ CUFINUFFTCOBJS=src/cufinufftc.o
 %.o: %.cu
 	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
 
+all: $(BINDIR)/spread2d \
+	$(BINDIR)/interp2d \
+	$(BINDIR)/cufinufft2d1_test \
+	$(BINDIR)/cufinufft2d2_test \
+	$(BINDIR)/cufinufft2d1many_test \
+	$(BINDIR)/cufinufft2d2many_test \
+	$(BINDIR)/spread3d \
+	$(BINDIR)/interp3d \
+	$(BINDIR)/cufinufft3d1_test \
+	$(BINDIR)/cufinufft3d2_test \
+	lib clib
 
 $(BINDIR)/spread2d: test/spread_2d.o $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 	mkdir -p $(BINDIR)
@@ -135,19 +146,6 @@ $(DYNAMICCLIB): $(CUFINUFFTCOBJS) $(STATICLIB)
 	mkdir -p lib
 	gcc -shared -o $(DYNAMICCLIB) $(CUFINUFFTCOBJS) $(STATICLIB) $(NVCC_LIBS_PATH) $(LIBS)
 
-all: $(BINDIR)/spread2d \
-	$(BINDIR)/interp2d \
-	$(BINDIR)/cufinufft2d1_test \
-	$(BINDIR)/cufinufft2d2_test \
-	$(BINDIR)/cufinufft2d1many_test \
-	$(BINDIR)/cufinufft2d2many_test \
-	$(BINDIR)/spread3d \
-	$(BINDIR)/interp3d \
-	$(BINDIR)/cufinufft3d1_test \
-	$(BINDIR)/cufinufft3d2_test \
-	lib clib
-
-
 clean:
 	rm -f *.o
 	rm -f test/*.o
@@ -160,3 +158,8 @@ clean:
 	rm -rf $(BINDIR)
 	rm -rf lib
 	rm -rf lib-static
+
+.PHONY: all
+.PHONY: clean
+.PHONY: clib
+.PHONY: lib
