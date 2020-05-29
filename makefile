@@ -73,7 +73,7 @@ FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
 LIBS += $(OMPLIBS)
-LIBSFFT = -l$(FFTW) -l$(FFTW)_$(FFTWOMPSUFFIX) $(OMPLIBS)
+LIBSFFT += -l$(FFTW) -l$(FFTW)_$(FFTWOMPSUFFIX) $(OMPLIBS)
 endif
 
 # decide name of obj files and finufft library we're building...
