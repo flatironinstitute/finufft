@@ -226,7 +226,7 @@ FE = fortran/examples
 F1 = $(FE)/example1d1$(PRECSUFFIX)
 FS = $(FE)/testf77struc
 FSS = $(FE)/testf90struc
-F2 = $(FE)/example1d1_guru$(PRECSUFFIX)
+FG = $(FE)/example1d1_guru
 F3 = $(FE)/nufft1d_demo$(PRECSUFFIX)
 F4 = $(FE)/nufft2d_demo$(PRECSUFFIX)
 F5 = $(FE)/nufft3d_demo$(PRECSUFFIX)
@@ -238,9 +238,10 @@ F6 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
 # works from the top-level dir:
 fortran: $(FTOBJS) $(STATICLIB)
 	$(FC) $(FFLAGS) $(F1).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(F1)
+	$(FC) $(FFLAGS) $(FG).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(FG)
 	$(FC) $(FFLAGS) $(FS).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(FS) -fdec-structure
 	$(FC) $(FFLAGS) $(FSS).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(FSS)
-	for i in $(F1) $(FS) $(FSS); do ./$$i; done
+	for i in $(F1) $(FG) $(FS) $(FSS); do ./$$i; done
 # (that was a bash script loop; note $$'s here are escaped dollar signs)
 
 # matlab .mex* executable... (not worth starting matlab to test it)
