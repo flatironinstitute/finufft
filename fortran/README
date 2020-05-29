@@ -1,10 +1,11 @@
-This directory contains f77-style Fortran wrappers to the FINUFFT C++ library.
-They don't use any f90 or later features.
+This directory contains f77-style Fortran wrappers to the FINUFFT C++ library
+and examples that use them. They are deliberately "legacy" fortran, ie f77
+plus dynamic allocation, but no later features.
 
 Directory structure:
 
-finufft_f.cpp - the C++ wrapper layer that is linked to fortran
-examples/ - fortran drivers
+finufft_f.cpp - the C++ to fortran wrapper layer (goes into libfinufft.a, etc)
+examples/ - fortran driver examples
 test/     - helper routines for tests that occur in the examples
 
 Please refer to (equivalent forms of) documentation in

@@ -28,19 +28,19 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
   int ier = finufft_makeplan(type, n_dims, n_modes, iflag, n_transf, eps,
                              &plan, popts);  // popts (ptr to opts) can be NULL
   if (ier){
-    fprintf(stderr, "invokeGuru: plan error (ier=%d)!\n", ier);
+    fprintf(stderr, "finufft invokeGuru: plan error (ier=%d)!\n", ier);
     return ier;
   }
   
   ier = finufft_setpts(&plan, nj, xj, yj, zj, nk, s, t, u);
   if (ier){
-    fprintf(stderr,"invokeGuru: setpts error (ier=%d)!\n", ier);
+    fprintf(stderr,"finufft invokeGuru: setpts error (ier=%d)!\n", ier);
     return ier;
   }
 
   ier = finufft_exec(&plan, cj, fk);
   if (ier){
-    fprintf(stderr,"invokeGuru: exec error (ier=%d)!\n", ier);
+    fprintf(stderr,"finufft invokeGuru: exec error (ier=%d)!\n", ier);
     return ier;
   }
 

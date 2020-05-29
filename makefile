@@ -32,7 +32,7 @@ FFTWOMPSUFFIX = omp
 LIBS = -lm
 # extra flags for multithreaded: C++/C/Fortran, MATLAB, and octave...
 OMPFLAGS = -fopenmp
-OMPLIBS =
+OMPLIBS = -lgomp
 MOMPFLAGS = -lgomp -D_OPENMP
 OOMPFLAGS = -lgomp
 # flags for MATLAB MEX compilation...
@@ -184,7 +184,7 @@ test: $(STATICLIB) $(TESTS)
 test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
 test/testutils: test/testutils.cpp src/utils.o
-	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o $(LIBSFFT) -o test/testutils
+	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o $(LIBS) -o test/testutils
 test/dumbinputs: test/dumbinputs.cpp $(DYNLIB) $(DO1)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJS) $(DO1) $(LIBSFFT) -o test/dumbinputs
 test/finufft1d_test: test/finufft1d_test.cpp $(OBJS) $(DO1)
@@ -223,21 +223,20 @@ spreadtest: test/spreadtestnd
 FT = fortran/test
 FTOBJS = $(FT)/dirft1d.o $(FT)/dirft2d.o $(FT)/dirft3d.o $(FT)/dirft1df.o $(FT)/dirft2df.o $(FT)/dirft3df.o $(FT)/prini.o
 FE = fortran/examples
-F1 = $(FE)/nufft1d_demo$(PRECSUFFIX)
-F2 = $(FE)/nufft2d_demo$(PRECSUFFIX)
-F3 = $(FE)/nufft3d_demo$(PRECSUFFIX)
-F4 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
-F5 = $(FE)/guru1d_demo$(PRECSUFFIX)
-F6 = $(FE)/nufft1d1_demo$(PRECSUFFIX)
+F1 = $(FE)/example1d1$(PRECSUFFIX)
+F2 = $(FE)/example1d1_guru$(PRECSUFFIX)
+F3 = $(FE)/nufft1d_demo$(PRECSUFFIX)
+F4 = $(FE)/nufft2d_demo$(PRECSUFFIX)
+F5 = $(FE)/nufft3d_demo$(PRECSUFFIX)
+F6 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
 # GNU make trick to get list of executables to compile... (how auto 1 2... ?)
-F = $(foreach V, 1 2 3 4 5 6, $(F$V))
+#F = $(foreach V, 1 2 3 4 5 6, $(F$V))
+# too fancy; don't need.
 # *** todo: make DYNLIB, but need to add to user's dyn lib path or exec only
 # works from the top-level dir:
 fortran: $(FTOBJS) $(STATICLIB)
-	for i in $(F); do \
-	$(FC) $(FFLAGS) $$i.f $(FTOBJS) $(STATICLIB) $(LIBSFFT) $(FLINK) -o $$i; \
-	time -p $$i; \
-	done
+	$(FC) $(FFLAGS) $(F1).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(F1)
+	for i in $(F1); do ./$$i; done
 # (that was a bash script loop; note $$'s here are escaped dollar signs)
 
 # matlab .mex* executable... (not worth starting matlab to test it)

@@ -1,4 +1,4 @@
-// A little library of low-level array manipulations and timers.
+// A little library of low-level array manipulations, timer, and OMP helpers.
 // For its embryonic self-test see ../test/testutils.cpp, which only tests
 // the next235 for now.
 
@@ -138,7 +138,7 @@ double CNTime::elapsedsec()
 
 int get_num_threads_parallel_block()
 // return how many threads an omp parallel block would use.
-// omp_get_max_threads() does not report this; consider case of NESTED = 0.
+// omp_get_max_threads() does not report this; consider case of NESTED=0.
 // Why is there no such routine?   Barnett 5/22/20
 {
   int nth_used;

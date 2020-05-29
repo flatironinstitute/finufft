@@ -10,12 +10,12 @@ extern "C" {
 #endif
 
 // -------- helpers for guru ------------
-void mkopts_mem(nufft_opts *o)
+void mkopts_mem(nufft_opts* o)
 {
   o = (nufft_opts *)malloc(sizeof(nufft_opts));
 }
 
-void mkplan_mem(finufft_plan *plan)
+void mkplan_mem(finufft_plan* plan)
 {
   plan = (finufft_plan *)malloc(sizeof(finufft_plan));
 }

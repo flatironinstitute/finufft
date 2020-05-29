@@ -13,6 +13,9 @@ c          -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
       program guru1d_demo
       implicit none
+
+
+      
       include 'fftw3.f'
 c
 c --- local variables
@@ -84,47 +87,25 @@ c
 cccccccc      reference solution
          call dirft1d1(nj,xj,cj,iflag, ms,fk0)
 
+
+         
 cccccccc      guru interface calls
-cccccccc      set opts
+cccccccc      set nonstandard options:
          call finufft_default_opts(opt)
          call set_debug(opt,1)
          call set_fftw(opt,FFTW_ESTIMATE)
-cccccccc      make plan
+
          call finufft_makeplan(ftype,ndim,n_modes,iflag,n_transf,
      $        eps,plan,opt,ier)
-cccccccc      set pts
          call finufft_setpts(plan,nj,xj,rnull,rnull,zero,
      $        cnull,cnull,cnull,ier)
-cccccccc      execute
          call finufft_exec(plan,cj,fk1,ier)
-cccccccc      destroy
          call finufft_destroy(plan,opt,ier)
 
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
-c
-c     -----------------------
-c     call 1D Type2 method
-c     -----------------------
-c
-c         call dirft1d2(nj,xj,cj0,iflag, ms,fk0,ier)
-c         call finufft1d2_f(nj,xj,cj1,iflag, eps, ms,fk0,ier)
-c         call errcomp(cj0,cj1,nj,err)
-c         print *,' ier = ',ier
-c         print *,' type 2 error = ',err
-c
-c     -----------------------
-c     call 1D Type3 method
-c     -----------------------
-         do k1 = 1, ms
-            sk(k1) = 48*dcos(k1*pi/ms)
-         enddo
-c         call dirft1d3(nj,xj,cj,iflag, ms,sk,fk0)
-c         call finufft1d3_f(nj,xj,cj,iflag,eps, ms,sk,fk1,ier)
-c         call errcomp(cj0,cj1,nj,err)
-c         print *,' ier = ',ier
-c         print *,' type 3 error = ',err
+         
       enddo
       stop
       end
