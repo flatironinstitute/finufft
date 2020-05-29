@@ -24,10 +24,11 @@ c     note some inputs are int (int*4) but others BIGINT (int*8)
 c     following (if never allocated) passes a NULL ptr to C...
       integer*8, allocatable :: null
 c     any 8-byte holder for a C pointer (to nufft_opts struct)...
-      integer*8, allocatable :: opts(:)
+c      integer*8, allocatable :: opts(:)
 c     currently nufft_opts in C is of 48 bytes,
 c     need more allocation if add more fields in the future
-      allocate(opts(6))
+c      allocate(opts(6))
+      integer*8 opts
       
 c     how many nonuniform pts
       M = 2000000

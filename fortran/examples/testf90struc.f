@@ -34,7 +34,7 @@ c     stuff from example1d1
       call finufft_default_opts(o)
       print *,o%debug,o%spread_sort
 c     that seemed to work
-      o%debug = 1
+c      o%debug = 1
       print *,o%debug,o%spread_sort
 c     ok      
 c     this would be made irrelevant, but tests if idea works...
