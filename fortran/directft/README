@@ -1,0 +1,3 @@
+This directory contains the CMCL NUFFT direct summation implementations,
+plus single-precision versions by Alex Barnett, 2017.
+It also contains the legendary prini.f, which is currently unused.

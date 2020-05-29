@@ -220,28 +220,25 @@ spreadtest: test/spreadtestnd
 # --------------- LANGUAGE INTERFACES -----------------------
 
 # fortran interface...
-FT = fortran/test
-FTOBJS = $(FT)/dirft1d.o $(FT)/dirft2d.o $(FT)/dirft3d.o $(FT)/dirft1df.o $(FT)/dirft2df.o $(FT)/dirft3df.o $(FT)/prini.o
+FD = fortran/directft
+# CMCL NUFFT fortran test codes (only needed by nufft*_demo* codes)
+CMCLOBJS = $(FD)/dirft1d.o $(FD)/dirft2d.o $(FD)/dirft3d.o $(FD)/dirft1df.o $(FD)/dirft2df.o $(FD)/dirft3df.o $(FD)/prini.o
 FE = fortran/examples
-F1 = $(FE)/example1d1$(PRECSUFFIX)
-FS = $(FE)/testf77struc
-FSS = $(FE)/testf90struc
-FG = $(FE)/example1d1_guru
+F1 = $(FE)/simple1d1
+F2 = $(FE)/guru1d1
 F3 = $(FE)/nufft1d_demo$(PRECSUFFIX)
 F4 = $(FE)/nufft2d_demo$(PRECSUFFIX)
 F5 = $(FE)/nufft3d_demo$(PRECSUFFIX)
 F6 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
 # GNU make trick to get list of executables to compile... (how auto 1 2... ?)
-#F = $(foreach V, 1 2 3 4 5 6, $(F$V))
-# too fancy; don't need.
-# *** todo: make DYNLIB, but need to add to user's dyn lib path or exec only
-# works from the top-level dir:
+F = $(foreach V, 1 2 3 4 5 6, $(F$V))
+# *** todo: make DYNLIB, but need to add to user's dyn lib path, or exec only
+# works from the top-level makefile dir:
 fortran: $(FTOBJS) $(STATICLIB)
-	$(FC) $(FFLAGS) $(F1).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(F1)
-	$(FC) $(FFLAGS) $(FG).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(FG)
-	$(FC) $(FFLAGS) $(FS).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(FS) -fdec-structure
-	$(FC) $(FFLAGS) $(FSS).f $(STATICLIB) $(LIBSFFT) $(FLINK) -o $(FSS)
-	for i in $(F1) $(FG) $(FS) $(FSS); do ./$$i; done
+	for i in $(F); do \
+	$(FC) $(FFLAGS) $$i.f $(CMCLOBJS) $(STATICLIB) $(LIBSFFT) $(FLINK) -o $$i ; \
+	./$$i ; \
+	done
 # (that was a bash script loop; note $$'s here are escaped dollar signs)
 
 # matlab .mex* executable... (not worth starting matlab to test it)

@@ -1,23 +1,30 @@
 This directory contains f77-style Fortran wrappers to the FINUFFT C++ library
-and examples that use them. They are deliberately "legacy" fortran, ie f77
-plus dynamic allocation, but no later features.
+and examples that showcase them. They are deliberately "legacy" fortran, ie f77
+plus dynamic allocation, and a derived type if you want to change options.
 
 Directory structure:
 
-finufft_f.cpp - the C++ to fortran wrapper layer (goes into libfinufft.a, etc)
-examples/ - fortran driver examples
-test/     - helper routines for tests that occur in the examples
+finufft_f.cpp  - the C++ to fortran wrapper layer (goes into libfinufft.a, etc)
+examples/      - fortran driver examples
+directft/      - direct summation routines from the CMCL NUFFT package
+
+Also you will need to include ../include/finufft.fh if you want to change opts.
 
 Please refer to (equivalent forms of) documentation in
   ../docs/fortran.rst                (human-readable text)
   ../finufft-manual.pdf              (PDF)
   https://finufft.readthedocs.io/    (online)
 
-Please (cd ..; make fortran) to build the examples.
+Please (cd ..; make fortran) to build and run the examples.
+Notes:
+ 1) the examples/nufft?d_demo from CMCL will request tol=1e-16 and
+    FINUFFT will report a warning that it cannot achieve this; it gets
+    around 1e-14.
+
 
 COPYRIGHT (C) 2017-2020 Simons Foundation Inc.
 
-Authors: Alex Barnett & Libin Lu (CCM, Flatiron Inst.)
+Authors: Alex Barnett & Libin Lu (CCM, Flatiron Inst.), Melody Shih (NYU)
 
 
 Note on COPYRIGHT for contributed code. This directory contains slight
@@ -33,7 +40,7 @@ Used and modified with permission.
 
 CHANGELOG for fortran interfaces:
 
-Libin Lu: guru interface 5/26/20.
+Libin Lu: guru interface 5/26/20, Barnett+Lu new interfaces & tests 5/29/20.
 Barnett tweaked 9/24/18.
 Barnett normalization updated 6/6/17.
 Barnett created 3/21/17.

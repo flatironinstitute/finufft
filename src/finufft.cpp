@@ -111,7 +111,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   if (opts==NULL)                        // use default opts
     finufft_default_opts(&(p->opts));
   else                                   // or read from what's passed in
-    p->opts = *opts;    // does deep copy; changing *opts now has no effect
+    p->opts = *opts;    // keep a deep copy; changing *opts now has no effect
   // write into plan's spread options...
   int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts);
   if (ier)
@@ -229,10 +229,10 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
 // SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
 int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
                    BIGINT nk, FLT* s, FLT* t, FLT* u)
-/* For type 1,2: just checks and (possibly) sorts the NU points, in prep for
-   spreading.
+/* For type 1,2: just checks and (possibly) sorts the NU xyz points, in prep for
+   spreading. (The last 4 arguments are ignored.)
    For type 3: allocates internal working arrays, scales/centers the NU points
-   and NU target freqs, evaluates spreading kernel FT at all target freqs.
+   and NU target freqs (stu), evaluates spreading kernel FT at all target freqs.
 */
 {
   int d = p->dim;     // abbrev for spatial dim

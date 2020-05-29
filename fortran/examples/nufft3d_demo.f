@@ -1,15 +1,18 @@
-cc Copyright (C) 2004-2009: Leslie Greengard and June-Yub Lee 
-cc Contact: greengard@cims.nyu.edu
-cc 
-cc This software is being released under a FreeBSD license
-cc (see license.txt in this directory). 
-cc
-c tweaked Alex Barnett to call FINUFFT 2/17/17
-c dyn malloc; type 2 uses same input data fk0, other bugs 3/8/17
+c     Demo using FINUFFT for double-precision 3d transforms in legacy fortran.
+c     Does types 1,2,3, including math test against direct summation.
+c     Default opts only (see simple1d1 for how to change opts).
 c
-c Compile with (multithreaded version):
-c gfortran nufft3d_demo.f dirft3d.f -o nufft3d_demo ../lib/libfinufft.a
-c          -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
+c     A slight modification of drivers from the CMCL NUFFT, (C) 2004-2009,
+c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
+c
+c     Tweaked by Alex Barnett to call FINUFFT 2/17/17.
+c     dyn malloc; type 2 uses same input data fk0, 3/8/17
+c     Also see: ../README.
+c
+c     Compile with, eg (multithreaded version, paste to a single line):
+c
+c     gfortran nufft3d_demo.f ../directft/dirft3d.f -o nufft3d_demo
+c     ../../lib/libfinufft.so -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
       program nufft3d_demo
       implicit none
@@ -21,6 +24,7 @@ c
       real*8 t0,t1,second
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+c     this (since unallocated) used to pass a NULL ptr to FINUFFT...
       integer*8, allocatable :: null
 c
 c     --------------------------------------------------
@@ -124,7 +128,7 @@ c
 c
       subroutine errcomp(fk0,fk1,n,err)
       implicit none
-      integer k,n
+      integer*8 k,n
       complex*16 fk0(n), fk1(n)
       real *8 salg,ealg,err
 c
