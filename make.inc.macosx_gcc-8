@@ -33,7 +33,7 @@ LIBS += -L/usr/local/lib
 
 # OpenMP with GCC on OSX needs following...
 OMPFLAGS = -fopenmp
-OMPLIBS = -L/usr/local/lib -lomp
+OMPLIBS = -L/usr/local/lib -lgomp
 # since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
 

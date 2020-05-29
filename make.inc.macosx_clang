@@ -30,7 +30,7 @@ LIBS += -L/usr/local/lib
 
 # OpenMP with clang needs following...
 OMPFLAGS = -Xpreprocessor -fopenmp
-OMPLIBS = -lomp
+OMPLIBS = -L/usr/local/lib -lomp
 # since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
 
