@@ -234,7 +234,7 @@ F6 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
 F = $(foreach V, 1 2 3 4 5 6, $(F$V))
 # *** todo: make DYNLIB, but need to add to user's dyn lib path, or exec only
 # works from the top-level makefile dir:
-fortran: $(FTOBJS) $(STATICLIB)
+fortran: $(CMCLOBJS) $(STATICLIB)
 	for i in $(F); do \
 	$(FC) $(FFLAGS) $$i.f $(CMCLOBJS) $(STATICLIB) $(LIBSFFT) $(FLINK) -o $$i ; \
 	./$$i ; \
@@ -299,12 +299,12 @@ test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
 clean: objclean pyclean
 	rm -f lib-static/*.a lib/*.so
 	rm -f matlab/*.mex*
-	rm -f $(TESTS) test/results/*.out fortran/*_demo fortran/*_demof $(EXS) examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf
+	rm -f $(TESTS) test/results/*.out $(F) $(EXS) examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf
 
 # this is needed before changing precision or threading...
 objclean:
 	rm -f $(OBJS) test/directft/*.o test/*.o
-	rm -f fortran/*.o examples/*.o matlab/*.o
+	rm -f fortran/*.o examples/*.o matlab/*.o $(CMCLOBJS)
 
 pyclean:
 	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
