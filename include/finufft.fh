@@ -1,0 +1,9 @@
+c     Fortran header ecreating nufft_opts struct in fortran (f90 style).
+c     Also see ../fortran/finufft_f.cpp.  Barnett 5/29/20
+      type nufft_opts
+         integer debug, spread_debug,spread_sort,spread_kerevalmeth,
+     $        spread_kerpad,chkbnds,fftw,modeord
+         real*8 upsampfac
+         integer spread_thread,maxbatchsize 
+      end type
+c     done
