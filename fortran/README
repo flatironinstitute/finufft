@@ -17,9 +17,10 @@ Please refer to (equivalent forms of) documentation in
 
 Please (cd ..; make fortran) to build and run the examples.
 Notes:
- 1) the examples/nufft?d_demo from CMCL will request tol=1e-16 and
-    FINUFFT will report a warning that it cannot achieve this; it gets
-    around 1e-14.
+ 1) the examples include versions of the three nufft?d_demo.f driver codes
+    from the CMCL NUFFT package, adjusted only to call FINUFFT. The final
+    tolerance they request is tol=1e-16. For this case FINUFFT will report a
+    warning that it cannot achieve it, and gets merely around 1e-14.
 
 
 COPYRIGHT (C) 2017-2020 Simons Foundation Inc.

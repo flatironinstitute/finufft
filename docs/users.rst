@@ -1,8 +1,8 @@
 Users and citations
 ===================
 
-Here we list papers describing work which uses FINUFFT or its new spreading
-kernel. Papers that merely cite our work are listed separately at the bottom. Please let me know if you are a user but not listed:
+Here we list papers or groups using FINUFFT, or its new spreading
+kernel. Papers that merely cite our work are listed separately at the bottom. Please let me know if you are a user or package maintainer but not listed:
 
 1. ASPIRE software for cryo-EM, based at Amit Singer's group at Princeton. https://github.com/PrincetonUniversity/ASPIRE-Python http://spr.math.princeton.edu/
 

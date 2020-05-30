@@ -35,3 +35,5 @@ Here are some packages dependent on FINUFFT (please let us know others):
 
 - `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++
   and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
+
+- `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation python package.
