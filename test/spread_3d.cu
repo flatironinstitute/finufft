@@ -15,11 +15,25 @@ int main(int argc, char* argv[])
 	int N1, N2, N3, M;
 	if (argc<6) {
 		fprintf(stderr,
-			"Usage: spread3d [method [nupts_distr [maxsubprobsize [N1 N2 N3 [M [tol [Horner [sort]]]]]]]\n");
-		fprintf(stderr,"Details --\n");
-		fprintf(stderr,"method 1: nupts driven\n");
-		fprintf(stderr,"method 2: sub-problems\n");
-		fprintf(stderr,"method 4: block gather\n");
+			"Usage: spread3d method nupts_distr nf1 nf2 nf3 [maxsubprobsize [M [tol [kerevalmeth [sort]]]]]\n"
+			"Arguments:\n"
+			"  method: One of\n"
+			"    1: nupts driven,\n"
+			"    2: sub-problem, or\n"
+			"    4: block gather.\n"
+			"  nupts_distr: The distribution of the points; one of\n"
+			"    0: uniform, or\n"
+			"    1: concentrated in a small region.\n"
+			"  nf1, nf2, nf3: The size of the 3D array.\n"
+			"  maxsubprobsize: Maximum size of subproblems (default 65536).\n"
+			"  M: The number of non-uniform points (default nf1 * nf2 * nf3 / 8).\n"
+			"  tol: NUFFT tolerance (default 1e-6).\n"
+			"  kerevalmeth: Kernel evaluation method; one of\n"
+			"     0: Exponential of square root, or\n"
+			"     1: Horner evaluation (default).\n"
+			"  sort: One of\n"
+			"     0: do not sort the points, or\n"
+			"     1: sort the points (default).\n");
 		return 1;
 	}  
 	double w;
@@ -77,13 +91,10 @@ int main(int argc, char* argv[])
 		// Making data
 		case 1: //uniform
 			{
-				x[0] = 0;
-				y[0] = 0;
-				z[0] = 2;
 				for (int i = 0; i < M; i++) {
-					x[i] = x[0];//RESCALE(M_PI*randm11(), nf1, 1);
-					y[i] = y[0];//RESCALE(M_PI*randm11(), nf2, 1);
-					z[i] = z[0];//RESCALE(M_PI*randm11(), nf3, 1);
+					x[i] = RESCALE(M_PI*randm11(), nf1, 1);
+					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
+					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
 					c[i].real(randm11());
 					c[i].imag(randm11());
 				}
@@ -95,38 +106,6 @@ int main(int argc, char* argv[])
 					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);
 					y[i] = RESCALE(M_PI*rand01()/(nf2*2/32), nf2, 1);
 					z[i] = RESCALE(M_PI*rand01()/(nf3*2/32), nf3, 1);
-					c[i].real(randm11());
-					c[i].imag(randm11());
-				}
-			}
-			break;
-		case 3:
-			{
-				for (int i = 0; i < M; i++) {
-					x[i] = RESCALE(M_PI*randm11(), nf1, 1);
-					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
-					c[i].real(randm11());
-					c[i].imag(randm11());
-					//cout << x[i] <<","<<y[i]<<","<<z[i]<<endl;
-				}
-			}
-			break;
-		case 4:
-			{
-				for(int k=0; k<nf3; k++){
-					for(int j=0; j<nf2; j++){
-						for(int i=0; i<nf1; i++){
-							int idx = i+j*nf1+k*nf1*nf2;
-							if(idx <= M){
-								x[idx] = i;
-								y[idx] = j;
-								z[idx] = k;
-							}
-						}
-					}
-				}
-				for (int i = 0; i < M; i++) {
 					c[i].real(randm11());
 					c[i].imag(randm11());
 				}
