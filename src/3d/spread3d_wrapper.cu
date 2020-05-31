@@ -463,7 +463,19 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	int o_bin_size_x = d_plan->opts.gpu_obinsizex;
 	int o_bin_size_y = d_plan->opts.gpu_obinsizey;
 	int o_bin_size_z = d_plan->opts.gpu_obinsizez;
+	
 	int numobins[3];
+	if (nf1 % o_bin_size_x != 0 ||
+		nf2 % o_bin_size_y != 0 ||
+		nf3 % o_bin_size_z != 0){
+		cout<<"error: mod(nf1, opts.gpu_obinsizex) != 0"<<endl;
+		cout<<"       mod(nf2, opts.gpu_obinsizey) != 0"<<endl;
+		cout<<"       mod(nf3, opts.gpu_obinsizez) != 0"<<endl;
+		cout<<"error: (nf1, nf2, nf3) = ("<<nf1<<", "<<nf2<<", "<<nf3<<")"<<endl;
+		cout<<"error: (obinsizex, obinsizey, obinsizez) = ("
+			<<o_bin_size_x<<", "<<o_bin_size_y<<", "<<o_bin_size_z<<")"<<endl;
+		return 1;
+	}
 
 	numobins[0] = ceil((FLT) nf1/o_bin_size_x);
 	numobins[1] = ceil((FLT) nf2/o_bin_size_y);
@@ -472,6 +484,19 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	int bin_size_x=d_plan->opts.gpu_binsizex;
 	int bin_size_y=d_plan->opts.gpu_binsizey;
 	int bin_size_z=d_plan->opts.gpu_binsizez;
+	if (o_bin_size_x % bin_size_x != 0 ||
+		o_bin_size_y % bin_size_y != 0 ||
+		o_bin_size_z % bin_size_z != 0){
+		cout<<"error: mod(ops.gpu_obinsizex, opts.gpu_binsizex) != 0"<<endl;
+		cout<<"       mod(ops.gpu_obinsizey, opts.gpu_binsizey) != 0"<<endl;
+		cout<<"       mod(ops.gpu_obinsizez, opts.gpu_binsizez) != 0"<<endl;
+		cout<<"error: (binsizex, binsizey, binsizez) = ("
+			<<bin_size_x<<", "<<bin_size_y<<", "<<bin_size_z<<")"<<endl;
+		cout<<"error: (obinsizex, obinsizey, obinsizez) = ("
+			<<o_bin_size_x<<", "<<o_bin_size_y<<", "<<o_bin_size_z<<")"<<endl;
+		return 1;
+	}
+
 	int binsperobinx, binsperobiny, binsperobinz;
 	int numbins[3];
 	binsperobinx = o_bin_size_x/bin_size_x+2;
