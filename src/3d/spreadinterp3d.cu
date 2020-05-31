@@ -554,47 +554,38 @@ void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz,
 	if(binx < nbinx && biny < nbiny && binz < nbinz){
 		int binidx = CalcGlobalIdx(binx,biny,binz,nobinx,nobiny,nobinz,
 			binsperobinx,binsperobiny, binsperobinz);
-		if(binx % binsperobinx == 1){
-			int i = binx - 2;
+		int i,j,k;
+		i = binx;
+		j = biny;
+		k = binz;
+		if(binx % binsperobinx == 0){
+			i = binx - 2;
 			i = i<0 ? i+nbinx : i;
-			int idxtoupdate = CalcGlobalIdx(i,biny,binz,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
 		}
-		if(binx % binsperobinx == binsperobinx-2){
-			int i = binx + 2;
-			i = (i==nbinx) ? i-nbinx : i;
-			int idxtoupdate = CalcGlobalIdx(i,biny,binz,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
+		if(binx % binsperobinx == binsperobinx-1){
+			i = binx + 2;
+			i = (i>=nbinx) ? i-nbinx : i;
 		}
-		if(biny % binsperobiny == 1){
-			int i = biny - 2;
-			i = i<0 ? i+nbiny : i;
-			int idxtoupdate = CalcGlobalIdx(binx,i,binz,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] =  binsize[binidx];
+		if(biny % binsperobiny == 0){
+			j = biny - 2;
+			j = j<0 ? j+nbiny : j;
 		}
-		if(biny % binsperobinx == binsperobiny-2){
-			int i = biny + 2;
-			i = (i==nbiny) ? i-nbiny : i;
-			int idxtoupdate = CalcGlobalIdx(binx,i,binz,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
+		if(biny % binsperobiny == binsperobiny-1){
+			j = biny + 2;
+			j = (j>=nbiny) ? j-nbiny : j;
 		}
-		if(binz % binsperobinz == 1){
-			int i = binz - 2;
-			i = i<0 ? i+nbinz : i;
-			int idxtoupdate = CalcGlobalIdx(binx,biny,i,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
+		if(binz % binsperobinz == 0){
+			k = binz - 2;
+			k = k<0 ? k+nbinz : k;
 		}
-		if(binz % binsperobinz == binsperobinz-2){
-			int i = binz + 2;
-			i = (i==nbinz) ? i-nbinz : i;
-			int idxtoupdate = CalcGlobalIdx(binx,biny,i,nobinx,nobiny,nobinz,
+		if(binz % binsperobinz == binsperobinz-1){
+			k = binz + 2;
+			k = (k>=nbinz) ? k-nbinz : k;
+		}
+		int idxtoupdate = CalcGlobalIdx(i,j,k,nobinx,nobiny,nobinz,
 				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
+		if(idxtoupdate != binidx){
+			binsize[binidx] = binsize[idxtoupdate];
 		}
 	}
 }
@@ -799,14 +790,10 @@ void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
 					FLT disx=abs(x_rescaled-(xx+xoffset));
 					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-					fwshared[outidx].x += cnow.x*kervalue1*kervalue2*kervalue3;
-					fwshared[outidx].y += cnow.y*kervalue1*kervalue2*kervalue3;
-#if 0
 					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
 						kervalue3);
 					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
 						kervalue3);
-#endif
 				}
 			}
 		}
@@ -911,8 +898,8 @@ void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 				for(int xx=xstartnew; xx<=xendnew; xx++){
 					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
 					FLT kervalue1 = ker1[xx-xstart];
-					fwshared[outidx].x+= cnow.x*kervalue1*kervalue2*kervalue3;
-					fwshared[outidx].y+= cnow.y*kervalue1*kervalue2*kervalue3;
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*kervalue3);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*kervalue3);
 				}
 			}
 		}
