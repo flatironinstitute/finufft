@@ -76,6 +76,7 @@ void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi);
 void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi);
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
 BIGINT next235even(BIGINT n);
+BIGINT next235beven(BIGINT n, BIGINT b);
 
 
 // jfm timer class

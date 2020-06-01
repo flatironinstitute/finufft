@@ -56,11 +56,14 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	d_plan->mu = nmodes[2];
 
 	int nf1=1, nf2=1, nf3=1;
-	set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1);
+	set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1, 
+				  d_plan->opts.gpu_obinsizex);
 	if(dim > 1)
-		set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2); 
+		set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2, 
+                      d_plan->opts.gpu_obinsizey); 
 	if(dim > 2)
-		set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3);
+		set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
+                      d_plan->opts.gpu_obinsizez);
 	int fftsign = (iflag>=0) ? 1 : -1;
 
 	d_plan->nf1 = nf1;	

@@ -20,14 +20,19 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, cufinufft_opts opts)
   return ier;
 } 
 
-void set_nf_type12(BIGINT ms, cufinufft_opts opts, spread_opts spopts, BIGINT *nf)
+void set_nf_type12(BIGINT ms, cufinufft_opts opts, spread_opts spopts, 
+				   BIGINT *nf, BIGINT bs)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
 {
   *nf = (BIGINT)(opts.upsampfac*ms);
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
-  if (*nf<MAX_NF)                                 // otherwise will fail anyway
-    *nf = next235even(*nf);                       // expensive at huge nf
+  if (*nf<MAX_NF){                                // otherwise will fail anyway
+  	if (opts.gpu_method == 4)                     // expensive at huge nf
+    	*nf = next235beven(*nf, bs);
+	else
+        *nf = next235even(*nf);
+  }
 }
 
 void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
