@@ -1,18 +1,18 @@
 c     Demo using FINUFFT for double-precision 2d transforms in legacy fortran.
-c     Does types 1,2, including math test against direct summation.
+c     Does types 1,2,3, including math test against direct summation.
 c     Default opts only (see simple1d1 for how to change opts).
 c
 c     A modification of drivers from the CMCL NUFFT, (C) 2004-2009,
 c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
 c
 c     Vectorized (many data vectors) demo type 1,2 by Melody Shih, 2018,
-c     type 3 by Alex Barnett, edited from nufft2d_demo.f.
+c     type 3 by Alex Barnett, 2020. Based on nufft2d_demo.f.
 c     Also see: ../README.     
 c
-c     Compile with, eg (multithreaded version; paste to a single line):
+c     Compile with, eg (GCC, multithreaded; paste to a single line):
 c
 c     gfortran nufft2dmany_demo.f ../directft/dirft2d.f -o nufft2dmany_demo
-c     -L$(FINUFFT)/lib -lfinufft -lfftw3 -lfftw3_omp -lstdc++
+c     -L../../lib -lfinufft -lfftw3 -lfftw3_omp -lstdc++
 c
       program nufft2dmany_demo
 

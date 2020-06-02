@@ -4,10 +4,9 @@ Using FINUFFT from Fortran
 ==========================
 
 We provide Fortran interfaces that are very similar to those in C/C++.
-We deliberately use "legacy" Fortran style (in the terminology
-of FFTW, see http://www.fftw.org/fftw3_doc/Calling-FFTW-from-Legacy-Fortran.html
-), enabling the widest applicability and avoiding the complexity of
-later fortran features.
+We deliberately use "legacy" Fortran style (in the `terminology
+of FFTW <http://www.fftw.org/fftw3_doc/Calling-FFTW-from-Legacy-Fortran.html>`_), enabling the widest applicability and avoiding the complexity of
+later Fortran features.
 Namely, we use f77, with two features from f90: dynamic allocation
 and derived types. The former feature is only used for convenience in
 the example drivers, and the latter is only needed if options must be
@@ -21,7 +20,7 @@ with strengths ``cj``, to ``N`` output modes whose coefficients will be written
 into the ``fk`` array, using 9-digit tolerance, the $+i$ imaginary sign,
 and default options, the declarations and call are
 
-::
+.. code-block:: fortran
 
       integer ier,iflag
       integer*8 N,M
@@ -30,7 +29,7 @@ and default options, the declarations and call are
       complex*16, allocatable :: cj(:),fk(:)
       integer*8, allocatable :: null
 
-      (...allocate xj, cj, and fk, and fill xj and cj here...)
+ !    (...allocate xj, cj, and fk, and fill xj and cj here...)
 
       tol = 1.0D-9
       iflag = +1
@@ -64,12 +63,12 @@ To choose non-default options in the above example, create an options
 derived type, set it to default values, change whichever you wish, and pass
 it to FINUFFT, for instance
 
-::
-   
+.. code-block:: fortran
+
       include 'finufft.fh'
       type(nufft_opts) opts
  
-      (...do stuff as before...)
+ !    (...declare, allocate, and fill stuff as above...)
 
       call finufft_default_opts(opts)
       opts%debug = 2
@@ -79,11 +78,6 @@ it to FINUFFT, for instance
 See ``fortran/examples/simple1d1.f`` for the complete code,
 and below for the complete list of Fortran subroutines available,
 and more complicated examples.
-
-
-.. note ::
- The default demos are double precision. Some single-precision versions have an extra ``f`` after the name, ie, as listed by: ``ls fortran/examples/*f.f``
-
 
 Summary of Fortran interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,49 +89,83 @@ strength vectors (vectorized interface).
 The guru interface has very similar arguments to its C/C++ version.
 Compared to C/C++, all argument lists have ``ier`` appended at the end,
 to which the status is written.
-Assuming a double-precision build of FINUFFT, these routines and arguments are::
-                
-       include 'finufft.fh'
+Assuming a double-precision build of FINUFFT, these routines and arguments are
 
-       integer ier,iflag,ntrans,type,dim
-       integer*8 M,N1,N2,N3,Nk
-       integer*8 plan,n_modes(3)
-       real*8, allocatable :: xj(:),yj(:),zj(:), sk(:),tk(:),uk(:)
-       real*8 tol
-       complex*16, allocatable :: cj(:), fk(:)
-       type(nufft_opts) opts
+.. code-block:: fortran
 
- c     simple interface   
-       call finufft1d1(M,xj,cj,iflag,tol,N1,fk,opts,ier)
-       call finufft1d2(M,xj,cj,iflag,tol,N1,fk,opts,ier)
-       call finufft1d3(M,xj,cj,iflag,tol,Nk,sk,fk,opts,ier)
-       call finufft2d1(M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)
-       call finufft2d2(M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)
-       call finufft2d3(M,xj,yj,cj,iflag,tol,Nk,sk,tk,fk,opts,ier)
-       call finufft3d1(M,xj,yj,zj,cj,iflag,tol,N1,N2,N3,fk,opts,ier)
-       call finufft3d2(M,xj,yj,zj,cj,iflag,tol,N1,N2,N3,fk,opts,ier)
-       call finufft3d3(M,xj,yj,zj,cj,iflag,tol,Nk,sk,tk,uk,fk,opts,ier)
+      include 'finufft.fh'
 
- c     vectorized interface
-       call finufft1d1many(ntrans,M,xj,cj,iflag,tol,N1,fk,opts,ier)
-       call finufft1d2many(ntrans,M,xj,cj,iflag,tol,N1,fk,opts,ier)
-       call finufft1d3many(ntrans,M,xj,cj,iflag,tol,Nk,sk,fk,opts,ier)
-       call finufft2d1many(ntrans,M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)
-       call finufft2d2many(ntrans,M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)
-       call finufft2d3many(ntrans,M,xj,yj,cj,iflag,tol,Nk,sk,tk,fk,opts,ier)
-       call finufft3d1many(ntrans,M,xj,yj,zj,cj,iflag,tol,N1,N2,N3,fk,opts,ier)
-       call finufft3d2many(ntrans,M,xj,yj,zj,cj,iflag,tol,N1,N2,N3,fk,opts,ier)
-       call finufft3d3many(ntrans,M,xj,yj,zj,cj,iflag,tol,Nk,sk,tk,uk,fk,opts,ier)
+      integer ier,iflag,ntrans,type,dim
+      integer*8 M,N1,N2,N3,Nk
+      integer*8 plan,n_modes(3)
+      real*8, allocatable :: xj(:),yj(:),zj(:), sk(:),tk(:),uk(:)
+      real*8 tol
+      complex*16, allocatable :: cj(:), fk(:)
+      type(nufft_opts) opts
 
- c     guru interface
-       call finufft_makeplan(type,dim,n_modes,iflag,ntrans,tol,plan,opts,ier)
-       call finufft_setpts(plan,M,xj,yj,zj,Nk,sk,yk,uk,ier)
-       call finufft_exec(plan,cj,fk,ier)
-       call finufft_destroy(plan,ier)
+ !    simple interface   
+      call finufft1d1(M,xj,cj,iflag,tol,N1,fk,opts,ier)
+      call finufft1d2(M,xj,cj,iflag,tol,N1,fk,opts,ier)
+      call finufft1d3(M,xj,cj,iflag,tol,Nk,sk,fk,opts,ier)
+      call finufft2d1(M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)
+      call finufft2d2(M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)
+      call finufft2d3(M,xj,yj,cj,iflag,tol,Nk,sk,tk,fk,opts,ier)
+      call finufft3d1(M,xj,yj,zj,cj,iflag,tol,N1,N2,N3,fk,opts,ier)
+      call finufft3d2(M,xj,yj,zj,cj,iflag,tol,N1,N2,N3,fk,opts,ier)
+      call finufft3d3(M,xj,yj,zj,cj,iflag,tol,Nk,sk,tk,uk,fk,opts,ier)
+
+ !    vectorized interface
+      call finufft1d1many(ntrans,M,xj,cj,iflag,tol,N1,fk,opts,ier)
+      call finufft1d2many(ntrans,M,xj,cj,iflag,tol,N1,fk,opts,ier)
+      call finufft1d3many(ntrans,M,xj,cj,iflag,tol,Nk,sk,fk,opts,ier)
+      call finufft2d1many(ntrans,M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)
+      call finufft2d2many(ntrans,M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)
+      call finufft2d3many(ntrans,M,xj,yj,cj,iflag,tol,Nk,sk,tk,fk,opts,ier)
+      call finufft3d1many(ntrans,M,xj,yj,zj,cj,iflag,tol,N1,N2,N3,fk,opts,ier)
+      call finufft3d2many(ntrans,M,xj,yj,zj,cj,iflag,tol,N1,N2,N3,fk,opts,ier)
+      call finufft3d3many(ntrans,M,xj,yj,zj,cj,iflag,tol,Nk,sk,tk,uk,fk,opts,ier)
+
+ !    guru interface
+      call finufft_makeplan(type,dim,n_modes,iflag,ntrans,tol,plan,opts,ier)
+      call finufft_setpts(plan,M,xj,yj,zj,Nk,sk,yk,uk,ier)
+      call finufft_exec(plan,cj,fk,ier)
+      call finufft_destroy(plan,ier)
+
+These are defined (from the C++ side) in ``fortran/finufft_f.cpp``.
+Currently the single-precision subroutines have the same name, but instead
+of linking with ``-lfinufft`` one uses ``-lfinufftf`` (after having built
+a single-precision FINUFFT). This means that they
+cannot be used together in the same executable.
 
 
+Code examples
+~~~~~~~~~~~~~
 
+The ``fortran/examples`` directory contains the following demos.
+Each has a math test to check the correctness of some or all outputs::
 
-       Examples of calling the basic nine routines from fortran are in ``fortran/examples/nufft?d_demo.f`` (for double-precision) and ``fortran/examples/nufft?d_demof.f`` (single-precision). ``fortran/examples/nufft2dmany_demo.f`` shows how to use the vectorized interface.
-Here are the calling commands with fortran types for the default double-precision case (the single-precision case is analogous) ::
+  simple1d1.f        - 1D type 1, simple interface, default and various opts
+  guru1d1.f          - 1D type 1, guru interface, default and various opts
+  nufft1d_demo.f     - 1D types 1,2,3, minimally changed from CMCL demo codes
+  nufft2d_demo.f     - 2D "
+  nufft3d_demo.f     - 3D "
+  nufft2dmany_demo.f - 2D types 1,2,3, vectorized (many strengths) interface
+  
+The last four here are modified from demos in the
+`CMCL NUFFT libraries <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_.
+The first three of these have been changed only to use FINUFFT,
+The final tolerance they request is ``tol=1d-16``. For this case FINUFFT
+will report a warning that it cannot achieve it, and gets
+merely around $10^{-14}$.
+The last four demos require direct summation (slow) reference implementations
+of the transforms in ``fortran/directft``, modified from their CMCL
+counterparts only to remove the $1/M$ prefactor for type 1 transforms.
 
+.. note ::
+ The above demos are double precision. Some single-precision versions exist and have an extra ``f`` after the name, ie, as listed by: ``ls fortran/examples/*f.f``
+
+All demos have self-contained example GCC
+compilation/linking commands in their comment headers.
+
+For authorship and licensing of the Fortran wrappers, see
+the directory `README <https://github.com/flatironinstitute/finufft/blob/master/fortran/README>`_

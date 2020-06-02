@@ -9,10 +9,10 @@ c     Tweaked by Alex Barnett to call FINUFFT 2/17/17.
 c     dyn malloc; type 2 uses same input data fk0, 3/8/17
 c     Also see: ../README.
 c
-c     Compile with, eg (multithreaded version, paste to a single line):
+c     Compile with, eg (GCC, multithreaded, dyn lib; paste to a single line):
 c
 c     gfortran nufft1d_demo.f ../directft/dirft1d.f -o nufft1d_demo
-c     ../../lib/libfinufft.so -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
+c     -L../../lib -lfinufft
 c
       program nufft1d_demo
       implicit none
@@ -58,11 +58,6 @@ c
          if (i.eq.2) eps=1d-8
          if (i.eq.3) eps=1d-12
          if (i.eq.4) eps=1d-16
-c extended/quad precision tests
-         if (i.eq.5) eps=1d-20
-         if (i.eq.6) eps=1d-24
-         if (i.eq.7) eps=1d-28
-         if (i.eq.8) eps=1d-32
 	 print*,' '
   	 print*,' Requested precision eps =',eps
 	 print*,' '
