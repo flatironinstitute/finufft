@@ -4,6 +4,11 @@
 #include <dataTypes.h>
 #include <finufft.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 // This defines functions used in Julia interface
 
 /* Note our typedefs:
@@ -16,5 +21,9 @@
 // --------------- plan opaque pointer ------------
 finufft_plan* finufft_plan_alloc();
 void finufft_plan_free(finufft_plan* plan);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // FINUFFT_J_H

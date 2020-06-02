@@ -12,6 +12,10 @@
    Make sure you call this library with matching julia types
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 finufft_plan* finufft_plan_alloc()
 {
   finufft_plan* plan = (finufft_plan*)malloc(sizeof(finufft_plan));
@@ -23,3 +27,7 @@ void finufft_plan_free(finufft_plan* plan)
   if(plan)
     free(plan);
 }
+
+#ifdef __cplusplus
+}
+#endif
