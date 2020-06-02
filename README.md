@@ -1,7 +1,8 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
 
 **Alex H. Barnett and Jeremy F. Magland**, with additional code by
-Ludvig af Klinteberg and Yu-hsuan "Melody" Shih.
+Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu,
+and Joakim Anden.
 
 <p>
 <img src="docs/logo.png" width="350"/>
@@ -23,7 +24,7 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/dirs.rst` : explanation of directories and files in the package
 - `docs/usage.rst` : interfaces from C++, C and Fortran, notes on parameters
 - `docs/matlabhelp.raw` : MATLAB/octave interfaces
-- `finufftpy/_interfaces.py` : python interface docstrings
+- `python/finufftpy/_interfaces.py` : python interface docstrings
 - `docs/related.rst` : packages using FINUFFT
 - `docs/issues.rst` : known issues and bug reports
 - `docs/refs.rst` : journal article references

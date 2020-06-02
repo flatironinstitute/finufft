@@ -27,7 +27,7 @@ c     note some inputs are int (int*4) but others BIGINT (int*8)
       complex*16, allocatable :: cj(:),fk(:)
       complex*16 fktest
 
-c     this (since unallocated) used to pass a NULL ptr to FINUFFT...
+c     this (when unallocated) passes a NULL ptr (0 value) to FINUFFT...
       integer*8, allocatable :: null
 c     this is how you create the options struct in fortran...
       type(nufft_opts) opts
@@ -53,8 +53,8 @@ c     mandatory parameters to FINUFFT: sign of +-i in NUFFT
       iflag = 1
 c     tolerance
       tol = 1d-9
-c     Do it: writes to fk (mode coeffs), and ier (status flag).
-c     here "null" tells it to use default options
+c     Do transform: writes to fk (mode coeffs), and ier (status flag).
+c     here unallocated "null" tells it to use default options:
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
       t = omp_get_wtime()-t
       if (ier.eq.0) then

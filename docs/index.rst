@@ -10,31 +10,71 @@ Flatiron Institute Nonuniform Fast Fourier Transform
 .. image:: spreadpic.png
     :width: 54%
 	    
-`FINUFFT <https://github.com/flatironinstitute/finufft>`_ is a set of libraries to compute efficiently three types of nonuniform fast Fourier transform
+`FINUFFT <https://github.com/flatironinstitute/finufft>`_ is a multi-threaded library to compute efficiently the three most common types of nonuniform fast Fourier transform
 (NUFFT) to a specified precision, in one, two, or three dimensions,
 on a multi-core shared-memory machine.
-The library has a very simple interface, does not need any precomputation step,
-is written in C++ (using OpenMP and FFTW),
-and has wrappers to C, fortran, MATLAB, octave, and python.
+It is extremely fast (typically achieving $10^6$ to $10^8$ points
+per second),
+has very simple interfaces to most major numerical languages
+(C/C++, fortran, MATLAB, octave, python, and julia),
+but also has more advanced (vectorized and "guru") interfaces that
+allow multiple strength vectors and the reuse of FFT plans.
+It is written in C++ (with limited use of ++ features), OpenMP, and calls
+`FFTW <http://www.fftw.org>`_.
+It has been developed at the `Center for Computational Mathematics
+<https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/>`_ at the `Flatiron Institute <https://www.simonsfoundation.org/flatiron>`_,
+by `Alex Barnett <https://users.flatironinstitute.org/~ahb>`_
+and others, and is released under an
+`Apache v2 license <https://github.com/flatironinstitute/finufft/blob/master/LICENSE>`_.
+
 As an example, given $M$ arbitrary real numbers $x_j$ and complex
 numbers $c_j$, with $j=1,\dots,M$, and a requested integer number of
-modes $N$, the 1D type-1 (aka "adjoint") transform evaluates the $N$ numbers
+modes $N$, FINUFFT can compute
+the 1D type 1 (aka "adjoint") transform, which means it evaluates
+the $N$ numbers
 
 .. math:: f_k = \sum_{j=1}^M c_j e^{ik x_j}~, \qquad \mbox{ for } \; k\in\mathbb{Z}, \quad -N/2 \le k \le N/2-1 ~.
    :label: 1d1
 
-The $x_j$ can be interpreted as nonuniform source locations, $c_j$
-as source strengths, and $f_k$ then as the $k$th Fourier series coefficient
-of the distribution $f(x) = \sum_{j=1}^M c_j \delta(x-x_j)$.
-Such exponential sums are needed in many applications in science and engineering, including signal processing, imaging, diffraction, and numerical 
-partial differential equations.
-The naive CPU effort to evaluate :eq:`1d1` is $O(NM)$.
-The library approximates :eq:`1d1` to a requested relative precision
-$\epsilon$ with nearly linear effort $O(M \log (1/\epsilon) + N \log N)$.
-Thus the speedup over the naive cost is similar to that achieved by the FFT.
-This is achieved by spreading onto a regular grid using a carefully chosen kernel,
-followed by an upsampled FFT, then a division (deconvolution) step.
-For the 2D and 3D definitions, and other types of transform, see below.
+As with other "fast" algorithms, FINUFFT does not evaluate this
+sum directly (which would take $O(NM)$ effort),
+but rather uses a sequence of steps (in this case, optimally chosen
+spreading, FFT, and deconvolution stages)
+to approximate the vector of answers :eq:`1d1` to within the user's
+desired relative tolerance in (quasi-) *linear time*, ie, close to
+$O(N+M)$ effort. Thus the speed-up is similar to that of the FFT.
+For the two other transform types, and 2D and 3D cases, see
+the :ref:`math <math>`_.
+
+One interpretation of :eq:`1d1` is: the returned values $f_k$ are the
+*Fourier series coefficients* of the $2\pi$-periodic
+distribution $f(x) := \sum_{j=1}^M c_j \delta(x-x_j)$,
+a sum of point-masses with arbitrary locations $x_j$ and strengths $c_j$.
+Such exponential sums are needed in many applications in science and engineering, including signal processing (scattered data interpolation, applying convolutional transforms, fast summation), imaging (cryo-EM, CT, MRI gridding, coherent diffraction),
+and numerical analysis
+(computing Fourier *transforms* of functions,
+moving between non-conforming quadrature grids,
+solving partial differential equations).
+See our :ref:`tutorials and demos<demos>` pages
+and the :ref:`related works<related>`
+for examples of how to use the NUFFT in applications.
+In fact, there are many application areas where it has been overlooked
+that the needed computation is simply a NUFFT
+(eg, particle-mesh Ewald in molecular dynamics).
+
+   
+Why FINUFFT? Features and comparison against other NUFFT software
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The basic scheme used by FINUFFT is not new, but there are several
+mathematical and implementation novelties that account for its high speed.
+An upsampled (fine) grid underlies the calculation, that the user does
+not need to have access to.
+There is a tradeoff between the size of this grid, the size
+of the spreading 
+The upsampling
+
+
 
 The FINUFFT library achieves its speed via several innovations including:
 
@@ -42,6 +82,17 @@ The FINUFFT library achieves its speed via several innovations including:
 #. Quadrature approximation for the Fourier transform of the spreading kernel
 #. Load-balanced multithreading of the type-1 spreading operation
 
+   Rapid kernel evaluation via
+piecewise polynomial approximation
+that SIMD-vectorizes well.
+  
+point to spread pic above.
+
+
+* vectorized 
+
+* guru interface.
+  
 For the same accuracy in 3D, the
 library is 3-50 times faster on a single core than the
 single-threaded fast Gaussian gridding `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_, and in the multi-core setting
@@ -56,6 +107,17 @@ These are a factor of 2 or more faster than repeated calls to the plain
 interface, since certain costs such as FFTW setup and sorting are performed
 only once.
 
+indebted to nfft, cmcl, for certain design aspects.
+
+
+Do I need a NUFFT at all?
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are new to this area, or even if not, it is important to
+first
+
+
+
 .. note::
 
    For very small repeated problems (less than 10000 input and output points),
@@ -63,6 +125,9 @@ only once.
    the NUDFT matrix using BLAS3 (eg ZGEMM). Since we did not want BLAS to
    be a dependency, we have not yet included this option.
 
+
+
+   
    
 .. toctree::
    :maxdepth: 2
@@ -72,6 +137,7 @@ only once.
    dirs
    usage
    usage_adv
+   error
    fortran          
    matlab
    pythoninterface
