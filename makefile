@@ -87,7 +87,7 @@ STATICLIB = lib-static/$(LIBNAME).a
 SOBJS = src/spreadinterp.o src/utils.o
 
 # main library object files
-OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o
+OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o julia/finufft_j.o
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
 
