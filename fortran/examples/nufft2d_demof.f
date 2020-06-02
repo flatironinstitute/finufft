@@ -1,25 +1,30 @@
-cc Copyright (C) 2004-2009: Leslie Greengard and June-Yub Lee 
-cc Contact: greengard@cims.nyu.edu
-cc 
-cc This software is being released under a FreeBSD license
-cc (see license.txt in this directory). 
-cc
-c tweaked Alex Barnett to call FINUFFT 2/17/17
-c dyn malloc; type 2 uses same input data fk0, other bugs 3/8/17
-c Single-prec version 4/5/17
-c      
-c Compile with (multithreaded version):
-c gfortran nufft2d_demof.f dirft2df.f -o nufft2d_demof ../lib/libfinufft.a
-c          -lstdc++ -lfftw3f -lfftw3f_threads -lm -fopenmp
+c     Demo using FINUFFT for single-precision 2d transforms in legacy fortran.
+c     Does types 1,2,3, including math test against direct summation.
+c     Default opts only (see simple1d1f for how to change opts).
+c
+c     A slight modification of drivers from the CMCL NUFFT, (C) 2004-2009,
+c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
+c
+c     Tweaked by Alex Barnett to call FINUFFT 2/17/17, single-prec.
+c     dyn malloc; type 2 uses same input data fk0, 3/8/17
+c     Also see: ../README.
+c
+c     Compile with, eg (GCC, multithreaded, static lib, paste to a single line):
+c
+c     gfortran nufft2d_demof.f ../directft/dirft2df.f -o nufft2d_demof
+c     ../../lib-static/libfinufftf.a -lstdc++ -lfftw3f -lfftw3f_omp -lm -fopenmp
 c
       program nufft2d_demof
       implicit none
 c
-      integer i,ier,iflag,j,k1,k2,mx,ms,mt,n1,n2,nj,nk
+      integer i,ier,iflag,j,k1,k2,mx,n1,n2
+      integer*8 nj,ms,mt,nk
       real*4, allocatable :: xj(:),yj(:),sk(:),tk(:)
       real*4 err,pi,eps,salg,ealg
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*8, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+c     this (since unallocated) used to pass a NULL ptr to FINUFFT...
+      integer*8, allocatable :: null
 c
 c     --------------------------------------------------
 c     create some test data
@@ -56,10 +61,11 @@ c     -----------------------
 c
       iflag = 1
       print*,'Starting 2D testing: ', ' nj =',nj, ' ms,mt =',ms,mt
-      do i = 1,3
-         if (i.eq.1) eps=1d-2
-         if (i.eq.2) eps=1d-4
-         if (i.eq.3) eps=1d-6
+      do i = 1,4
+         if (i.eq.1) eps=1e-2
+         if (i.eq.2) eps=1e-4
+         if (i.eq.3) eps=1e-6
+         if (i.eq.4) eps=1e-8
 	 print*,' '
 	 print*,' Requested precision eps =',eps
 	 print*,' '
@@ -69,7 +75,7 @@ c     call 2D Type 1 method
 c     -----------------------
 c
          call dirft2d1f(nj,xj,yj,cj,iflag,ms,mt,fk0)
-         call finufft2d1_f(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,ier)
+         call finufft2d1(nj,xj,yj,cj,iflag,eps,ms,mt,fk1,null,ier)
          call errcomp(fk0,fk1,nk,err)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
@@ -79,7 +85,7 @@ c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
          call dirft2d2f(nj,xj,yj,cj0,iflag,ms,mt,fk0)
-         call finufft2d2_f(nj,xj,yj,cj1,iflag,eps,ms,mt,fk0,ier)
+         call finufft2d2(nj,xj,yj,cj1,iflag,eps,ms,mt,fk0,null,ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 err = ',err
@@ -93,7 +99,7 @@ c     -----------------------
          enddo
 
          call dirft2d3f(nj,xj,yj,cj,iflag,nk,sk,tk,fk0)
-         call finufft2d3_f(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk1,ier)
+         call finufft2d3(nj,xj,yj,cj,iflag,eps,nk,sk,tk,fk1,null,ier)
 c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
@@ -108,12 +114,12 @@ c
 c
       subroutine errcomp(fk0,fk1,n,err)
       implicit none
-      integer k,n
+      integer*8 k,n
       complex*8 fk0(n), fk1(n)
       real *4 salg,ealg,err
 c
-      ealg = 0d0
-      salg = 0d0
+      ealg = 0e0
+      salg = 0e0
       do k = 1, n
          ealg = ealg + cabs(fk1(k)-fk0(k))**2
          salg = salg + cabs(fk0(k))**2

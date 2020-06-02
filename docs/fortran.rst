@@ -8,8 +8,7 @@ We deliberately use "legacy" Fortran style (in the `terminology
 of FFTW <http://www.fftw.org/fftw3_doc/Calling-FFTW-from-Legacy-Fortran.html>`_), enabling the widest applicability and avoiding the complexity of
 later Fortran features.
 Namely, we use f77, with two features from f90: dynamic allocation
-and derived types. The former feature is only used for convenience in
-the example drivers, and the latter is only needed if options must be
+and derived types. The latter is only needed if options must be
 changed from default values.
 
 Simple example
@@ -44,12 +43,17 @@ a NULL pointer to our C++ wrapper; another would be ``%val(0_8)``.)
 For a minimally complete test code demonstrating the above see
 ``fortran/examples/simple1d1.f``.
 
-To compile (eg using GCC) and link such a program against FINUFFT::
+To compile (eg using GCC/linux) and link such a program against the FINUFFT
+dynamic (.so) library (which links all dependent libraries)::
 
-  gfortran -I $(FINUFFT)/include simple1d1.f -o simple1d1 $(FINUFFT)/lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++
+  gfortran -I $(FINUFFT)/include simple1d1.f -o simple1d1 -L$(FINUFFT)/lib -lfinufft
 
 where ``$(FINUFFT)`` indicates the top-level FINUFFT directory.
-Alternatively you may want to compile with ``g++`` and use ``-lgfortran`` at the *end* of the compile statement.
+Or, using the static library, one must list dependent libraries::
+
+  gfortran -I $(FINUFFT)/include simple1d1.f -o simple1d1 $(FINUFFT)/lib-static/libfinufft.a -lfftw3 -lfftw3_omp -lgomp -lstdc++
+  
+Alternatively you may want to compile with ``g++`` and use ``-lgfortran`` at the end of the compile statement instead of ``-lstdc++``.
 In Mac OSX, replace ``fftw3_omp`` by ``fftw3_threads``, and if you use
 clang, ``-lgomp`` by ``-lomp``. See ``makefile`` and ``make.inc.*``.
 
@@ -162,10 +166,12 @@ of the transforms in ``fortran/directft``, modified from their CMCL
 counterparts only to remove the $1/M$ prefactor for type 1 transforms.
 
 .. note ::
- The above demos are double precision. Some single-precision versions exist and have an extra ``f`` after the name, ie, as listed by: ``ls fortran/examples/*f.f``
+ The above demos are double precision. Single-precision versions also exist and have an extra ``f`` after the name, ie, as listed by: ``ls fortran/examples/*f.f``. Remember to use ``-lfinufftf`` instead of ``-lfinufft``.
 
 All demos have self-contained example GCC
 compilation/linking commands in their comment headers.
+For dynamic linking so that execution works from any directory, bake in an
+absolute path via the compile flag ``-Wl,-rpath,$(FINUFFT)/lib``.
 
 For authorship and licensing of the Fortran wrappers, see
 the directory `README <https://github.com/flatironinstitute/finufft/blob/master/fortran/README>`_

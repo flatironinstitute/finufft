@@ -6,15 +6,15 @@ c     A modification of drivers from the CMCL NUFFT, (C) 2004-2009,
 c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
 c
 c     Vectorized (many data vectors) demo type 1,2 by Melody Shih, 2018,
-c     type 3 by Alex Barnett, 2020. Based on nufft2d_demo.f.
+c     type 3 & single-prec by Alex Barnett, 2020. Based on nufft2d_demo.f.
 c     Also see: ../README.     
 c
 c     Compile with, eg (GCC, multithreaded; paste to a single line):
 c
 c     gfortran nufft2dmany_demof.f ../directft/dirft2df.f -o nufft2dmany_demof
-c     -L../../lib -lfinufftf -lfftw3f -lfftw3f_omp -lstdc++
+c     -L../../lib -lfinufftf
 c
-c     Note: you must link to single-precision builds of FINUFFT and FFTW
+c     Note: you must link to single-precision build of FINUFFT
       program nufft2dmany_demof
 
       implicit none
@@ -75,8 +75,7 @@ c
          if (i.eq.1) eps=1e-2
          if (i.eq.2) eps=1e-4
          if (i.eq.3) eps=1e-6
-c     this is as small as the requested single-prec tol can get...
-         if (i.eq.4) eps=3e-8
+         if (i.eq.4) eps=1e-8
 	 print*,' '
 	 print*,' Requested precision eps =',eps
 	 print*,' '
@@ -142,8 +141,8 @@ c
       complex*8 fk0(n), fk1(n)
       real *4 salg,ealg,err
 c
-      ealg = 0d0
-      salg = 0d0
+      ealg = 0e0
+      salg = 0e0
       do k = 1, n
          ealg = ealg + cabs(fk1(k)-fk0(k))**2
          salg = salg + cabs(fk0(k))**2

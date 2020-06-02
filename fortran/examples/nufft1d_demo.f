@@ -9,10 +9,10 @@ c     Tweaked by Alex Barnett to call FINUFFT 2/17/17.
 c     dyn malloc; type 2 uses same input data fk0, 3/8/17
 c     Also see: ../README.
 c
-c     Compile with, eg (GCC, multithreaded, dyn lib; paste to a single line):
+c     Compile with, eg (GCC, multithreaded, static lib; paste to a single line):
 c
 c     gfortran nufft1d_demo.f ../directft/dirft1d.f -o nufft1d_demo
-c     -L../../lib -lfinufft
+c     ../../lib-static/libfinufft.a -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
       program nufft1d_demo
       implicit none

@@ -9,10 +9,10 @@ c     Tweaked by Alex Barnett to call FINUFFT 2/17/17.
 c     dyn malloc; type 2 uses same input data fk0, 3/8/17
 c     Also see: ../README.
 c
-c     Compile with, eg (multithreaded version, paste to a single line):
+c     Compile with, eg (GCC, multithreaded, static, paste to a single line):
 c
 c     gfortran nufft3d_demo.f ../directft/dirft3d.f -o nufft3d_demo
-c     ../../lib/libfinufft.so -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
+c     ../../lib-static/libfinufft.a -lstdc++ -lfftw3 -lfftw3_omp -lm -fopenmp
 c
       program nufft3d_demo
       implicit none
@@ -21,7 +21,6 @@ c
       integer*8 ms,mt,mu,nj,nk
       real*8, allocatable :: xj(:),yj(:),zj(:),sk(:),tk(:),uk(:)
       real*8 err,pi,eps,salg,ealg
-      real*8 t0,t1,second
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     this (since unallocated) used to pass a NULL ptr to FINUFFT...

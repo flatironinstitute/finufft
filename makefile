@@ -19,7 +19,8 @@ CLINK = -lstdc++
 FLINK = $(CLINK)
 # compile flags for GCC, baseline single-threaded, double precision case...
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
-#        2) -fcx-limited-range for fortran-speed complex arith in C++
+#        2) -fcx-limited-range for fortran-speed complex arith in C++.
+#        3) -fPIC is pos-indep code so dyn lib (.so) can be built.
 CFLAGS = -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
 # tell examples where to find header files...
 CFLAGS += -I include
@@ -43,6 +44,8 @@ MEX = mex
 OFLAGS =
 # For experts, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
+# absolute path of this makefile, ie FINUFFT's top-level directory...
+FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
 # For your OS, override the above by placing make variables in make.inc ...
 # (Please look in make.inc.* for ideas)
@@ -52,7 +55,7 @@ MWRAP = mwrap
 ifeq ($(PREC),SINGLE)
 CXXFLAGS += -DSINGLE
 CFLAGS += -DSINGLE
-# note that PRECSUFFIX is used to choose fftw lib name, and also our demo names
+# note that PRECSUFFIX appends the fftw lib names, and also our demo names
 PRECSUFFIX = f
 REQ_TOL = 1e-6
 CHECK_TOL = 2e-4
@@ -139,8 +142,8 @@ endif
 
 $(STATICLIB): $(OBJS) 
 	ar rcs $(STATICLIB) $(OBJS) 
-$(DYNLIB): $(OBJS) 
-	$(CXX) -shared $(OMPFLAGS) $(OBJS)  -o $(DYNLIB) $(LIBSFFT)
+$(DYNLIB): $(OBJS)
+	$(CXX) -shared $(OMPFLAGS) $(OBJS) -o $(DYNLIB) $(LIBSFFT)
 
 # here $(OMPFLAGS) and $(LIBSFFT) is needed for linking under mac osx.
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
@@ -221,11 +224,11 @@ spreadtest: test/spreadtestnd
 
 # fortran interface...
 FD = fortran/directft
-# CMCL NUFFT fortran test codes (only needed by nufft*_demo* codes)
+# CMCL NUFFT fortran test codes (only needed by the nufft*_demo* codes)
 CMCLOBJS = $(FD)/dirft1d.o $(FD)/dirft2d.o $(FD)/dirft3d.o $(FD)/dirft1df.o $(FD)/dirft2df.o $(FD)/dirft3df.o $(FD)/prini.o
 FE = fortran/examples
-F1 = $(FE)/simple1d1
-F2 = $(FE)/guru1d1
+F1 = $(FE)/simple1d1$(PRECSUFFIX)
+F2 = $(FE)/guru1d1$(PRECSUFFIX)
 F3 = $(FE)/nufft1d_demo$(PRECSUFFIX)
 F4 = $(FE)/nufft2d_demo$(PRECSUFFIX)
 F5 = $(FE)/nufft3d_demo$(PRECSUFFIX)

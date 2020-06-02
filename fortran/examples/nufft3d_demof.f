@@ -1,26 +1,30 @@
-cc Copyright (C) 2004-2009: Leslie Greengard and June-Yub Lee 
-cc Contact: greengard@cims.nyu.edu
-cc 
-cc This software is being released under a FreeBSD license
-cc (see license.txt in this directory). 
-cc
-c tweaked Alex Barnett to call FINUFFT 2/17/17
-c dyn malloc; type 2 uses same input data fk0, other bugs 3/8/17
-c Single-prec version, 4/5/17     
+c     Demo using FINUFFT for single-precision 3d transforms in legacy fortran.
+c     Does types 1,2,3, including math test against direct summation.
+c     Default opts only (see simple1d1f for how to change opts).
 c
-c Compile with (multithreaded version):
-c gfortran nufft3d_demof.f dirft3df.f -o nufft3d_demof ../lib/libfinufft.a
-c          -lstdc++ -lfftw3f -lfftw3f_omp -lm -fopenmp
+c     A slight modification of drivers from the CMCL NUFFT, (C) 2004-2009,
+c     Leslie Greengard and June-Yub Lee. See: cmcl_license.txt.
+c
+c     Tweaked by Alex Barnett to call FINUFFT 2/17/17, single-prec.
+c     dyn malloc; type 2 uses same input data fk0, 3/8/17
+c     Also see: ../README.
+c
+c     Compile with, eg (GCC, multithreaded, static, paste to a single line):
+c
+c     gfortran nufft3d_demof.f ../directft/dirft3df.f -o nufft3d_demof
+c     ../../lib-static/libfinufftf.a -lstdc++ -lfftw3f -lfftw3f_omp -lm -fopenmp
 c
       program nufft3d_demof
       implicit none
 c
-      integer i,ier,iflag,j,k1,k2,k3,mx,ms,mt,mu,n1,n2,n3,nj,nk
+      integer i,ier,iflag,j,k1,k2,k3,mx,n1,n2,n3
+      integer*8 ms,mt,mu,nj,nk
       real*4, allocatable :: xj(:),yj(:),zj(:),sk(:),tk(:),uk(:)
       real*4 err,pi,eps,salg,ealg
-      real*4 t0,t1,second
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*8, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
+c     this (since unallocated) used to pass a NULL ptr to FINUFFT...
+      integer*8, allocatable :: null
 c
 c     --------------------------------------------------
 c     create some test data
@@ -53,7 +57,7 @@ c     first alloc everything
                xj(j) = pi*cos(-pi*k1/n1)
                yj(j) = pi*cos(-pi*k2/n2)
                zj(j) = pi*cos(-pi*k3/n3)
-               cj(j) = dcmplx(sin(pi*j/n1),cos(pi*j/n2))
+               cj(j) = cmplx(sin(pi*j/n1),cos(pi*j/n2))
             enddo
          enddo
       enddo
@@ -64,10 +68,11 @@ c     -----------------------
 c
       iflag = 1
       print*,'Starting 3D testing: ', 'nj =',nj, 'ms,mt,mu =',ms,mt,mu
-      do i = 1,3
-         if (i.eq.1) eps=1d-2
-         if (i.eq.2) eps=1d-4
-         if (i.eq.3) eps=1d-6
+      do i = 1,4
+         if (i.eq.1) eps=1e-2
+         if (i.eq.2) eps=1e-4
+         if (i.eq.3) eps=1e-6
+         if (i.eq.4) eps=1e-8
 	 print*,' '
 	 print*,' Requested precision eps =',eps
 	 print*,' '
@@ -77,7 +82,7 @@ c     call 3D Type 1 method
 c     -----------------------
 c
          call dirft3d1f(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
-         call finufft3d1_f(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,ier)
+         call finufft3d1(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,null,ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 err = ',err
@@ -86,7 +91,8 @@ c     -----------------------
 c      call 3D Type 2 method
 c     -----------------------
          call dirft3d2f(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
-         call finufft3d2_f(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,ier)
+         call finufft3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,null,
+     1        ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 err = ',err
@@ -101,7 +107,8 @@ c     -----------------------
          enddo
 
          call dirft3d3f(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
-         call finufft3d3_f(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,ier)
+         call finufft3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,null,
+     1        ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 err = ',err
@@ -115,12 +122,12 @@ c
 c
       subroutine errcomp(fk0,fk1,n,err)
       implicit none
-      integer k,n
+      integer*8 k,n
       complex*8 fk0(n), fk1(n)
       real *4 salg,ealg,err
 c
-      ealg = 0d0
-      salg = 0d0
+      ealg = 0e0
+      salg = 0e0
       do k = 1, n
          ealg = ealg + cabs(fk1(k)-fk0(k))**2
          salg = salg + cabs(fk0(k))**2
