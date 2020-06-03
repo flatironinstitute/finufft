@@ -249,7 +249,7 @@ matlab: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "MATLAB interface only supports double precision; doing nothing"
 else
-	$(MEX) -DR2008OO matlab/nufft_plan_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/nufft_plan_mex
+	$(MEX) -DR2008OO matlab/finufft_plan_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/finufft_plan_mex
 endif
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
@@ -257,16 +257,16 @@ octave: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "Octave interface only supports double precision; doing nothing"
 else
-	(cd matlab; mkoctfile --mex -DR2008OO nufft_plan_mex.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output nufft_plan_mex)
+	(cd matlab; mkoctfile --mex -DR2008OO finufft_plan_mex.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft_plan_mex)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave test/guru1dtest.m)
 endif
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
 # (needs mwrap)
-mex: matlab/nufft_plan.mw
+mex: matlab/finufft_plan.mw
 	(cd matlab;\
-	$(MWRAP) -mex nufft_plan_mex -c nufft_plan_mex.cpp -mb -cppcomplex nufft_plan.mw)
+	$(MWRAP) -mex finufft_plan_mex -c finufft_plan_mex.cpp -mb -cppcomplex finufft_plan.mw)
 
 # python interfaces (v3 assumed)...
 python: $(STATICLIB)

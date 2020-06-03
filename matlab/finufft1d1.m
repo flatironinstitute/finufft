@@ -35,8 +35,8 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 % 5/17/20.
 % Have not tested ntransf>1 yet.
 
+if nargin<6, o=[]; end
 n_transf = round(numel(c)/numel(x));   % back out how many transf
-blksize=0;    % default
-p = nufft_plan(1,ms,isign,n_transf,eps,o);
-p.nufft_setpts(x,[],[],[],[],[]);
-[f,ier] = p.nufft_excute(c);
+p = finufft_plan(1,ms,isign,n_transf,eps,o);
+p.finufft_setpts(x,[],[],[],[],[]);
+[f,ier] = p.finufft_exec(c);

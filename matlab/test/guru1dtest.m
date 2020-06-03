@@ -21,13 +21,13 @@ opts.debug=1;
 opts.spread_debug=1;
 
 %plan
-plan = nufft_plan(type,n_modes,isign,n_transf,eps,opts);
+plan = finufft_plan(type,n_modes,isign,n_transf,eps,opts);
 
 %set pts
-plan.nufft_setpts(x,[],[],[],[],[]);
+plan.finufft_setpts(x,[],[],[],[],[]);
 
-%excute
-[f,ier] = plan.nufft_excute(c); 
+%exec
+[f,ier] = plan.finufft_exec(c); 
 disp('done.'); toc
 
 %error

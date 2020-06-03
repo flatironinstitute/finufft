@@ -1,4 +1,4 @@
-% nufft_plan.mw
+% finufft_plan.mw
 %   FINUFFT plan wrapper
 
 $ #include <finufft.h>
@@ -58,19 +58,17 @@ $   mxFree(fname);
 $ }
 
 
-@ nufft_plan.m --------------------------------------------
+@ finufft_plan.m --------------------------------------------
 
-classdef nufft_plan < handle
+classdef finufft_plan < handle
 
   properties
     mwptr;
-    nthreads_user;
-    nthreads_omp;
   end
 
   methods
 
-    function [plan] = nufft_plan(type, n_modes, iflag, n_transf, tol, opts)
+    function [plan] = finufft_plan(type, n_modes, iflag, n_transf, tol, opts)
       # finufft_plan* p = new finufft_plan();
       plan.mwptr = p;
       assert(type==1 || type==2 || type==3);
@@ -103,17 +101,17 @@ classdef nufft_plan < handle
       # finufft_destroy(finufft_plan* plan);
     end
 
-    function nufft_destroy(plan)
+    function finufft_destroy(plan)
       # finufft_destroy(finufft_plan* plan);
     end
 
-    function [ier] = nufft_setpts(plan, xj, yj, zj, s, t, u)
+    function [ier] = finufft_setpts(plan, xj, yj, zj, s, t, u)
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
       # int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
     end
 
-    function [result, ier] = nufft_excute(plan, data_in)
+    function [result, ier] = finufft_exec(plan, data_in)
       $ int get_type(finufft_plan* plan) {
       $   return plan->type;
       $ }
