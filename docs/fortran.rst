@@ -166,7 +166,7 @@ of the transforms in ``fortran/directft``, modified from their CMCL
 counterparts only to remove the $1/M$ prefactor for type 1 transforms.
 
 .. note ::
- The above demos are double precision. Single-precision versions also exist and have an extra ``f`` after the name, ie, as listed by: ``ls fortran/examples/*f.f``. Remember to use ``-lfinufftf`` instead of ``-lfinufft``.
+ The above demos are double precision. Single-precision versions also exist and have an extra ``f`` after the name, ie, as listed by: ``ls fortran/examples/*f.f``. Remember to use ``-lfinufftf`` and ``type(nufft_optsf)`` for single precision, otherwise it will segfault!
 
 All demos have self-contained example GCC
 compilation/linking commands in their comment headers.

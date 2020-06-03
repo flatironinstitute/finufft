@@ -7,11 +7,11 @@ We use notation with a general space dimensionality $d$, which will
 be 1, 2, or 3, in our library.
 The arbitrary (ie nonuniform) points in space are denoted
 $\mathbf{x}_j \in \mathbb{R}^d$, $j=1,\dots,M$.
-We will see that for type-1 and type-2, without loss of generality
+We will see that for type 1 and type 2, without loss of generality
 one could restrict to the periodic box $[-\pi,\pi)^d$.
-For type-1 and type-3, each such NU point carries a given associated strength
+For type 1 and type 3, each such NU point carries a given associated strength
 $c_j\in\mathbb{C}$.
-Type-1 and type-2 involve the Fourier "modes" (Fourier series coefficients)
+Type 1 and type 2 involve the Fourier "modes" (Fourier series coefficients)
 with integer indices lying in the set
 
 .. math::
@@ -33,7 +33,7 @@ in 2D it is
 a rectangle of $N_1N_2$ index pairs, and in 3D it is a cuboid of $N_1N_2N_3$
 index triplets.
 
-Then the type-1 (nonuniform to uniform, aka "adjoint") NUFFT evaluates
+Then the type 1 (nonuniform to uniform, aka "adjoint") NUFFT evaluates
 
 .. math::
   :label: 1
@@ -47,7 +47,7 @@ Fourier series coefficients due to sources
 with strengths $c_j$ at the arbitrary locations $\mathbf{x}_j$.	  
 Either sign of the imaginary unit in the exponential can be chosen in the interface. Note that our normalization differs from that of references [DR,GL].
 
-The type-2 (U to NU, aka "forward") NUFFT evaluates
+The type 2 (U to NU, aka "forward") NUFFT evaluates
 
 .. math::
    :label: 2
@@ -56,9 +56,9 @@ The type-2 (U to NU, aka "forward") NUFFT evaluates
    \qquad \mbox{for } j=1,\ldots,M
 
 
-This is the adjoint of the type-1, ie the evaluation of a given Fourier
+This is the adjoint of the type 1, ie the evaluation of a given Fourier
 series at a set of arbitrary points.
-Both type-1 and type-2 transforms are invariant under
+Both type 1 and type 2 transforms are invariant under
 translations of the NU points by multiples of $2\pi$,
 thus one could require that all NU points live in the
 origin-centered box $[-\pi,\pi)^d$.
@@ -72,11 +72,11 @@ touch this three-times-bigger box.
 However, there may be a slight speed increase if most points fall in
 $[-\pi,\pi)^d$.
 
-Finally, the type-3 (NU to NU) transform does not have restrictions on
+Finally, the type 3 (NU to NU) transform does not have restrictions on
 the NU points, and there is no periodicity.
 Let $\mathbf{x}_j\in\mathbb{R}^d$, $j=1,\ldots,M$, be NU locations, with strengths $c_j \in \mathbb{C}$,
 and let $\mathbf{s}_k$, $k=1,\ldots,N$ be NU frequencies.
-Then the type-3 transform evaluates:
+Then the type 3 transform evaluates:
 
 .. math::
   :label: 3
@@ -85,9 +85,9 @@ Then the type-3 transform evaluates:
    \qquad \mbox{for } k=1,\ldots,N
 
 For all three transforms, the computational effort scales like the
-product of the space-bandwidth products (real-space width times frequency-space width) in each dimension. For type-1 and type-2 this means near-linear
+product of the space-bandwidth products (real-space width times frequency-space width) in each dimension. For type 1 and type 2 this means near-linear
 scaling in the total number of modes $N := N_1\dots N_d$.
-However, be warned that for type-3 this means that, even if $N$ and $M$ are
+However, be warned that for type 3 this means that, even if $N$ and $M$ are
 small, if the product of the tightest intervals enclosing the coordinates of
 $\mathbf{x}_j$ and $\mathbf{s}_k$ is large, the algorithm will be
 inefficient. For such NU points, a direct sum should be used instead.
@@ -98,6 +98,6 @@ should not be confused with either the discrete Fourier transform (DFT),
 the (continuous) Fourier transform (although it may be used to approximate
 this via a quadrature rule), or the inverse NUFFT (the iterative solution of
 the linear system arising from nonuniform Fourier sampling, as in, eg, MRI).
-It is also important to know that, for NU points, *the type-1 is not
-the inverse of the type-2*.
+It is also important to know that, for NU points, *the type 1 is not
+the inverse of the type 2*.
 See the references for clarification.

@@ -23,9 +23,12 @@ It is written in C++ (with limited use of ++ features), OpenMP, and calls
 `FFTW <http://www.fftw.org>`_.
 It has been developed at the `Center for Computational Mathematics
 <https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/>`_ at the `Flatiron Institute <https://www.simonsfoundation.org/flatiron>`_,
-by `Alex Barnett <https://users.flatironinstitute.org/~ahb>`_
-and others, and is released under an
+by :ref:`Alex Barnett and others<ackn>`,
+and is released under an
 `Apache v2 license <https://github.com/flatironinstitute/finufft/blob/master/LICENSE>`_.
+
+What does FINUFFT do?
+~~~~~~~~~~~~~~~~~~~~~
 
 As an example, given $M$ arbitrary real numbers $x_j$ and complex
 numbers $c_j$, with $j=1,\dots,M$, and a requested integer number of
@@ -37,14 +40,14 @@ the $N$ numbers
    :label: 1d1
 
 As with other "fast" algorithms, FINUFFT does not evaluate this
-sum directly (which would take $O(NM)$ effort),
-but rather uses a sequence of steps (in this case, optimally chosen
+sum directly---which would take $O(NM)$ effort---but
+rather uses a sequence of steps (in this case, optimally chosen
 spreading, FFT, and deconvolution stages)
 to approximate the vector of answers :eq:`1d1` to within the user's
-desired relative tolerance in (quasi-) *linear time*, ie, close to
-$O(N+M)$ effort. Thus the speed-up is similar to that of the FFT.
-For the two other transform types, and 2D and 3D cases, see
-the :ref:`math <math>`_.
+desired relative tolerance with only $O(N \log N +M)$ effort,
+ie, quasi-linear. Thus the speed-up is similar to that of the FFT.
+For the definitions of the type 2 and 3 transforms, and the 2D and 3D cases,
+see :ref:`here <math>`.
 
 One interpretation of :eq:`1d1` is: the returned values $f_k$ are the
 *Fourier series coefficients* of the $2\pi$-periodic
@@ -62,72 +65,60 @@ In fact, there are many application areas where it has been overlooked
 that the needed computation is simply a NUFFT
 (eg, particle-mesh Ewald in molecular dynamics).
 
-   
-Why FINUFFT? Features and comparison against other NUFFT software
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Why FINUFFT? Features and comparison against other NUFFT libraries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The basic scheme used by FINUFFT is not new, but there are several
-mathematical and implementation novelties that account for its high speed.
-An upsampled (fine) grid underlies the calculation, that the user does
-not need to have access to.
-There is a tradeoff between the size of this grid, the size
-of the spreading 
-The upsampling
+The basic scheme used by FINUFFT is not new, but there are many
+mathematical and software engineering improvements over other libraries.
+As is common in NUFFT algorithms, under the hood is an FFT on a
+regular "fine" (upsampled) grid---the user
+has no need to access this directly. Nonuniform points are either spread to,
+or interpolated from, this fine grid, using a specially designed kernel
+(see right figure above).
+Our main features are:
 
+* **High speed**.  For instance, at similar accuracy, FINUFFT is up to 10x faster than the multi-threaded `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_, and (in single-thread mode) up to 50x faster than the `CMCL NUFFT library <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_. This is achieved via:
 
+  1. a simple new `"exponential of semicircle" kernel <https://arxiv.org/abs/2001.09405>`_ that is provably close to optimal
+  #. quadrature approximation for this kernel's Fourier transform
+  #. load-balanced multithreaded spreading/interpolation (see left figure above)
+  #. bin-sorting of points to improve cache reuse
+  #. a low upsampling option for smaller FFTs, especially in type 3 transforms
+  #. piecewise polynomial kernel evaluation (additions and multiplications only) that SIMD-vectorizes reliably on open-source compilers
 
-The FINUFFT library achieves its speed via several innovations including:
+* **Less RAM**. Our kernel is so fast that there is no point in precomputation; it is always evaluated on the fly. Thus our memory footprint is often an order of magnitude less than the fastest (precomputed) modes of competitors such as NFFT3 and MIRT, especially at high accuracy.
 
-#. The use of a new spreading kernel that is provably close to optimal, yet faster to evaluate than the Kaiser-Bessel kernel
-#. Quadrature approximation for the Fourier transform of the spreading kernel
-#. Load-balanced multithreading of the type-1 spreading operation
+* **Automated kernel parameters**. Unlike many competitors, we do not force the user to worry about kernel choice or parameters. The user simply requests a desired relative accuracy, then FINUFFT chooses parameters that achieve this accuracy as fast as possible.
 
-   Rapid kernel evaluation via
-piecewise polynomial approximation
-that SIMD-vectorizes well.
-  
-point to spread pic above.
+* **Simplicity**. We have simple interfaces that perform a NUFFT with a single command---just like an FFT---from seven common languages/environments. For advanced users we also have "many vector" interfaces that can be much faster than repeated calls to the simple interface with the same points. Finally (like NFFT3) we have a "guru" interface for maximum flexibility.
 
+For technical details on much of the above see our :ref:`papers <refs>`.
+Note that there are other tasks (eg, transforms on spheres, inverse NUFFTs)
+provided by other libraries, such as NFFT3, that FINUFFT does not provide.
 
-* vectorized 
+Do I even need a NUFFT?
+~~~~~~~~~~~~~~~~~~~~~~~
 
-* guru interface.
-  
-For the same accuracy in 3D, the
-library is 3-50 times faster on a single core than the
-single-threaded fast Gaussian gridding `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_, and in the multi-core setting
-for spreading-dominated problems
-is faster than the `Chemnitz NFFT3 library <https://www-user.tu-chemnitz.de/~potts/nfft/>`_ even when the latter is allowed a RAM-intensive full precomputation of the kernel. This is especially true for highly non-uniform point
-distributions and/or high precision.
-Our library does not require precomputation, and uses minimal RAM.
+Maybe you already know that your application needs a NUFFT.
+For instance, if you need Fourier transforms or power spectra
+but have data on non-equispaced grids, you may be able to
+rewrite your task as one of the :ref:`three transform types<math>`.
+To help, please read the :ref:`tutorials and demos<demos>`.
+If so, and both $M$ and $N$ are larger than of order $10^2$, FINUFFT may
+be the ticket.
+However, if $M$ and/or $N$ is small (of order $10$ or less)
+you should simply evaluate the sums directly.
+Another scenario is that you wish to evaluate, eg, :eq:`1d1` repeatedly with
+the same set of nonuniform points $x_j$ but *fresh* strength vectors
+$\{c_j\}_{j=1}^M$, as in the "many vectors" interface mentioned above.
+In that case it may be better to fill the $N$-by-$M$ matrix $A$ with entries
+$a_{kj} = e^{ik x_j}$, then use BLAS3 (eg ``ZGEMM``) to compute $F = AC$,
+where each column of $F$ and $C$ is a new instance of :eq:`1d1`.
+If you have very many columns this can be competitive with a NUFFT
+even for $M$ and $N$ up to $10^4$, because BLAS3 is so fast.
 
-For the case of small problems where repeated NUFFTs are needed with a fixed set of nonuniform points, we have started to build advanced
-interfaces for this case.
-These are a factor of 2 or more faster than repeated calls to the plain
-interface, since certain costs such as FFTW setup and sorting are performed
-only once.
-
-indebted to nfft, cmcl, for certain design aspects.
-
-
-Do I need a NUFFT at all?
+Contents of documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you are new to this area, or even if not, it is important to
-first
-
-
-
-.. note::
-
-   For very small repeated problems (less than 10000 input and output points),
-   users should also consider a dense matrix-matrix multiplication against
-   the NUDFT matrix using BLAS3 (eg ZGEMM). Since we did not want BLAS to
-   be a dependency, we have not yet included this option.
-
-
-
-   
    
 .. toctree::
    :maxdepth: 2

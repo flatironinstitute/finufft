@@ -1,36 +1,44 @@
+.. _ackn:
+
 Acknowledgments
 ===============
 
-The main code and mathematical development is by:
+FINUFFT was initiated by Jeremy Magland and Alex Barnett at the
+Center for Computational Mathematics, Flatiron Institute.
+The main developer and maintainer is:
 
-* Alex Barnett (Flatiron Institute)
-* Jeremy Magland (Flatiron Institute)
-    
-Significant SIMD vectorization/acceleration of the spreader by:
+* Alex Barnett
 
-* Ludvig af Klinteberg (SFU)
+Major code contributions by:
 
-Other code contributions:
+* Jeremy Magland - multithreaded spreader, benchmark other codes
+* Ludvig af Klinteberg - SIMD vectorization/acceleration of spreader, julia
+* Yu-Hsuan ("Melody") Shih - 2d1many, 2d2many vectorized interface, GPU version
+* Andrea Malleo - guru interface prototype and tests
+* Libin Lu - guru Fortran, python, Matlab, julia interfaces
+  
+Other significant code contributions by:
 
-* Yu-Hsuan ("Melody") Shih - 2d1many, 2d2many interface for many vectors same points
+* Joakim Anden - catching bugs, Matlab/FFTW issues, performance tests, python
 * Leslie Greengard and June-Yub Lee - CMCL fortran drivers and test codes
-* Dan Foreman-Mackey - python wrappers
+* Dan Foreman-Mackey - early python wrappers
 * David Stein - python wrappers
-* Dylan Simon - sphinx help
-* Amit Moscovich - Mac OSX build
+* Vineet Bansal - pypy packaging
+  
+Testing, bug reports, helpful discussions:
 
-Testing, bug reports:
-
-* Joakim Anden - catching memory leak, Matlab/FFTW issues, performance tests
 * Hannah Lawrence - user testing and finding bugs
 * Marina Spivak - fortran testing
 * Hugo Strand - python bugs
-  
-Helpful discussions:
-
-* Charlie Epstein - analysis of kernel Fourier transform sums
+* Amit Moscovich - Mac OSX build
+* Dylan Simon - sphinx help
+* Zydrunas Gimbutas - explanation that NFFT uses Kaiser-Bessel backwards
+* Charlie Epstein - help with analysis of kernel Fourier transform sums
 * Christian Muller - optimization (CMA-ES) for early kernel design
 * Andras Pataki - complex number speed in C++
 * Timo Heister - pass/fail numdiff testing ideas
-* Zydrunas Gimbutas - explanation that NFFT uses Kaiser-Bessel backwards
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
+
+We are also indebted to the authors of other NUFFT codes
+such as NFFT3, CMCL NUFFT, MIRT, BART, etc, upon whose interfaces, code,
+and algorithms we have built.
