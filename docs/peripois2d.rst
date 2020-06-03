@@ -1,16 +1,9 @@
-Applications and Examples
-=========================
+.. _peripois2d:
 
-For further applications, see the References, and these
-`PDF slides <http://users.flatironinstitute.org/~ahb/notes/wam19.pdf>`_.
+Periodic Poisson solve on non-Cartesian quadrature grid
+=======================================================
 
-
-
-1. Periodic Poisson solve on non-Cartesian quadrature grid
-----------------------------------------------------------
-
-As a warm-up, it
-is standard that FFT can be used as a fast solver for the Poisson
+It is standard to use the FFT as a fast solver for the Poisson
 equation on a periodic domain, say $[0,2\pi)^d$. Namely, given $f$,
 find $u$ satisfying
 
@@ -23,14 +16,18 @@ The first takes an FFT to approximate
 the Fourier series coefficient array of $f$, the second divides by $\|k\|^2$,
 and the third uses another FFT to evaluate the Fourier series for $u$
 back on the original grid. Here is a MATLAB demo in $d=2$ dimensions.
-Firstly we set up a smooth function, periodic up to machine precision::
+Firstly we set up a smooth function, periodic up to machine precision:
 
+.. code-block:: matlab
+  
   w0 = 0.1;  % width of bumps
   src = @(x,y) exp(-0.5*((x-1).^2+(y-2).^2)/w0^2)-exp(-0.5*((x-3).^2+(y-5).^2)/w0^2);
 
 Now we do the FFT solve, using a loop to check convergence with respect to
-``n`` the number of grid points in each dimension::
+``n`` the number of grid points in each dimension:
 
+.. code-block:: matlab
+  
   ns = 40:20:120;              % convergence study of grid points per side
   for i=1:numel(ns), n = ns(i);
     x = 2*pi*(0:n-1)/n;        % grid
@@ -39,9 +36,9 @@ Now we do the FFT solve, using a loop to check convergence with respect to
     fhat = ifft2(f);           % step 1: Fourier coeffs by Euler-F projection
     k = [0:n/2-1 -n/2:-1];     % Fourier mode grid
     [kx ky] = ndgrid(k,k);
-    kfilter = 1./(kx.^2+ky.^2);    % inverse -Laplacian in Fourier space
+    kfilter = 1./(kx.^2+ky.^2);    % -(Laplacian)^{-1} in Fourier space
     kfilter(1,1) = 0;          % kill the zero mode (even if inconsistent)
-    kfilter(n/2+1,:) = 0; kfilter(:,n/2+1) = 0; % kill n/2 modes since non-symm
+    kfilter(n/2+1,:) = 0; kfilter(:,n/2+1) = 0;  % kill n/2 modes since non-symm
     u = fft2(kfilter.*fhat);   % steps 2 and 3
     u = real(u);
     fprintf('n=%d:\t\tu(0,0) = %.15e\n',n,u(1,1))   % check conv at a point
@@ -55,8 +52,10 @@ We observe spectral convergence to 14 digits::
   n=100:	u(0,0) = 1.549852191075839e-03
   n=120:	u(0,0) = 1.549852191075828e-03
 
-Here we plot the FFT solution::
+Here we plot the FFT solution:
 
+.. code-block:: matlab
+  
   figure; subplot(1,2,1); imagesc(x,x,f'); colorbar('southoutside');
   axis xy equal tight; title('source term f'); xlabel('x'); ylabel('y');
   subplot(1,2,2); imagesc(x,x,u'); colorbar('southoutside');
@@ -80,15 +79,19 @@ holds to sufficient accuracy. We consider case b) only.
 For demo purposes, we use a simple smooth
 diffeomorphism from $[0,2\pi)^2$ to itself to define a distorted mesh
 (the associated quadrature weights will come from the determinant of the
-Jacobian)::
+Jacobian):
 
+.. code-block:: matlab
+  
   map = @(t,s) [t + 0.5*sin(t) + 0.2*sin(2*s); s + 0.3*sin(2*s) + 0.3*sin(s-t)];
   mapJ = @(t,s) [1 + 0.5*cos(t), 0.4*cos(2*s); ...
                 -0.3*cos(s-t),  1+0.6*cos(2*s)+0.3*cos(s-t)]; % its 2x2 Jacobian
 
 For convenience of checking the solution against the above one, we chose the
 map to take the origin to itself. To visualize the grid, we plot $f$ on it,
-noting that it covers the domain when periodically extended::
+noting that it covers the domain when periodically extended:
+
+.. code-block:: matlab
 
   t = 2*pi*(0:n-1)/n;           % 1d unif grid
   [tt ss] = ndgrid(t,t);
@@ -100,8 +103,10 @@ noting that it covers the domain when periodically extended::
 .. image:: pics/pois_nugrid.png
    :width: 40%
            
-To solve on this grid, replace step 1 above by evaluating the Euler-Fourier formula using the quadrature scheme, which needs a type-1 NUFFT, and step 3 (evaluation on the nonuniform grid) by a type-2 NUFFT. Step 2 (the frequency filter) remains the same. Here is the demo code::              
-                
+To solve on this grid, replace step 1 above by evaluating the Euler-Fourier formula using the quadrature scheme, which needs a type-1 NUFFT, and step 3 (evaluation on the nonuniform grid) by a type-2 NUFFT. Step 2 (the frequency filter) remains the same. Here is the demo code:
+
+.. code-block:: matlab
+
   tol = 1e-12;            % NUFFT precision
   ns = 80:40:240;         % convergence study of grid points per side
   for i=1:numel(ns), n = ns(i);
@@ -147,14 +152,14 @@ FFT and NUFFT versions. They are identical down to the level ``tol``:
 .. image:: pics/pois_fhat.png
    :width: 90%
            
-The full code is at ``matlab/examples/poisson2dnuquad.m``
-           
+The full code is at
+`matlab/examples/poisson2dnuquad.m <https://github.com/flatironinstitute/finufft/blob/master/matlab/examples/poisson2dnuquad.m>`_.
+
 .. note::
    If the non-Cartesian grids were of *tensor product* form,
    one could instead exploit 1D NUFFTs for the above, and, most likely
-   the use of BLAS3 (ZGEMM with an order-``n`` dense NUDFT matrix) would be
+   the use of BLAS3 (``ZGEMM`` with an order-``n`` dense NUDFT matrix) would be
    optimal.
-
 
 .. note::
    Using the NUFFT as above does *not* give an optimal scaling scheme in the case of

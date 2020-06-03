@@ -1,7 +1,7 @@
 .. _error:
 
 Error (status) codes
-~~~~~~~~~~~~~~~~~~~~
+====================
 
 In all FINUFFT interfaces, the returned value ``ier`` is a status indicator.
 It is 0 if successful, otherwise the error code
@@ -22,11 +22,10 @@ has the following meanings (see ``include/defs.h``):
   11 general allocation failure
   12 dimension invalid
 
-When ``ier=1`` the transform(s) is/are still completed, at the smallest epsilon achievable, so the answer should be usable. For any other nonzero values of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope the value of ``ier`` will help narrow down the problem.
+When ``ier=1`` the transform(s) is/are still completed, at the smallest epsilon achievable, so the answer should be usable. For any other nonzero values of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help narrow down the problem.
 
 FINUFFT sometimes also sends error reports to ``stderr`` if it detects faulty input parameters.
 
-If FINUFFT is reporting errors, segfaulting, or has unusually long run times, we recommend setting ``opts.debug`` to 1 or 2, and checking the text output of the various stages. With a debug setting of 2 or above, when ``ntrans>1`` a large amount of text can be generated.
-To diagnose problems with the spread/interpolation stage, similarly setting ``opts.spread_debug`` to 1 or 2 will print even more output. Here the setting 2 generates a large amount of output even for a single transform.
+If you are getting error codes, please reread the documentation
+for your language, then see our :ref:`troubleshooting advice <trouble>`.
 
-  

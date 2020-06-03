@@ -1,6 +1,6 @@
 .. _fort:
 
-Using FINUFFT from Fortran
+Usage from Fortran
 ==========================
 
 We provide Fortran interfaces that are very similar to those in C/C++.

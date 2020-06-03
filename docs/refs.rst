@@ -8,7 +8,7 @@ Please cite the following two papers if you use this software:
 [FIN]
 A parallel non-uniform fast Fourier transform library based on an ``exponential of semicircle'' kernel.
 A. H. Barnett, J. F. Magland, and L. af Klinteberg.
-SIAM J. Sci. Comput. 41(5), C479-C504 (2019). `arxiv version <https://arxiv.org/abs/1808.06736v2>`_
+SIAM J. Sci. Comput. 41(5), C479-C504 (2019). `arxiv version <https://arxiv.org/abs/1808.06736>`_
 
 [B20]
 Aliasing error of the exp$(\beta \sqrt{1-z^2})$ kernel in the nonuniform fast Fourier transform.
@@ -56,3 +56,10 @@ improving upon the first):
 
 [S] A note on fast Fourier transforms for nonequispaced grids.
 G. Steidl, Adv. Comput. Math. 9, 337-352 (1998).
+
+Talk slides
+~~~~~~~~~~~
+
+These
+`PDF slides <http://users.flatironinstitute.org/~ahb/notes/wam19.pdf>`_
+may be a useful introduction.

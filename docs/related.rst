@@ -1,3 +1,5 @@
+.. _related:
+
 Related packages
 ================
 
@@ -15,10 +17,11 @@ Other recommended NUFFT libraries
 - `PyNUFFT <https://github.com/jyhmiinlin/pynufft>`_ Python code supporting CPU and GPU operation. Have not compared against FINUFFT yet.
 
   
-Also see the summary of library performances in our paper [FIN].
+Also see the summary of library performances in our paper [FIN] in the
+:ref:`references <refs>`.
   
 
-Interfaces to FINUFFT from other languages
+Other language interfaces to FINUFFT
 ------------------------------------------
 
 - `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg (SFU). This is actually a secondary wrapper around our python interface, so you should make sure that the latter is working first.
@@ -26,10 +29,10 @@ Interfaces to FINUFFT from other languages
 - Vineet Bansal's pypi package https://pypi.org/project/finufftpy/
 
 
-Packages making use of FINUFFT
+Packages relying on FINUFFT
 ------------------------------
 
-Here are some packages dependent on FINUFFT (please let us know others):
+Here are some packages dependent on FINUFFT (please let us know of others):
 
 - `ASPIRE <http://spr.math.princeton.edu>`_: software for cryo-EM, based at Amit Singer's group at Princeton. `github <https://github.com/PrincetonUniversity/ASPIRE-Python>`_
 

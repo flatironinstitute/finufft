@@ -32,7 +32,7 @@ What does FINUFFT do?
 
 As an example, given $M$ arbitrary real numbers $x_j$ and complex
 numbers $c_j$, with $j=1,\dots,M$, and a requested integer number of
-modes $N$, FINUFFT can compute
+modes $N$, FINUFFT computes
 the 1D type 1 (aka "adjoint") transform, which means it evaluates
 the $N$ numbers
 
@@ -42,12 +42,13 @@ the $N$ numbers
 As with other "fast" algorithms, FINUFFT does not evaluate this
 sum directly---which would take $O(NM)$ effort---but
 rather uses a sequence of steps (in this case, optimally chosen
-spreading, FFT, and deconvolution stages)
+spreading, FFT, and deconvolution)
 to approximate the vector of answers :eq:`1d1` to within the user's
 desired relative tolerance with only $O(N \log N +M)$ effort,
 ie, quasi-linear. Thus the speed-up is similar to that of the FFT.
-For the definitions of the type 2 and 3 transforms, and the 2D and 3D cases,
-see :ref:`here <math>`.
+You may want to jump to :ref:`quickstart <quick>`, or see
+the :ref:`definitions <math>` of the type 2 and 3 transforms,
+and 2D and 3D cases.
 
 One interpretation of :eq:`1d1` is: the returned values $f_k$ are the
 *Fourier series coefficients* of the $2\pi$-periodic
@@ -58,7 +59,7 @@ and numerical analysis
 (computing Fourier *transforms* of functions,
 moving between non-conforming quadrature grids,
 solving partial differential equations).
-See our :ref:`tutorials and demos<demos>` pages
+See our :ref:`tutorials and demos<tut>` pages
 and the :ref:`related works<related>`
 for examples of how to use the NUFFT in applications.
 In fact, there are many application areas where it has been overlooked
@@ -96,6 +97,9 @@ For technical details on much of the above see our :ref:`papers <refs>`.
 Note that there are other tasks (eg, transforms on spheres, inverse NUFFTs)
 provided by other libraries, such as NFFT3, that FINUFFT does not provide.
 
+
+.. _need:
+
 Do I even need a NUFFT?
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -103,7 +107,7 @@ Maybe you already know that your application needs a NUFFT.
 For instance, if you need Fourier transforms or power spectra
 but have data on non-equispaced grids, you may be able to
 rewrite your task as one of the :ref:`three transform types<math>`.
-To help decide, see the :ref:`tutorials and demos<demos>`.
+To help decide, see the :ref:`tutorials and demos<tut>`.
 If so, and both $M$ and $N$ are larger than of order $10^2$, FINUFFT may
 be the ticket.
 However, if $M$ and/or $N$ is small (of order $10$ or less)
@@ -117,25 +121,25 @@ where each column of $F$ and $C$ is a new instance of :eq:`1d1`.
 If you have very many columns this can be competitive with a NUFFT
 even for $M$ and $N$ up to $10^4$, because BLAS3 is so fast.
 
-Contents of documentation
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Contents of remainder of documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    
 .. toctree::
    :maxdepth: 2
 	   
    install
-   math
    dirs
-   usage
-   usage_adv
+   math
+   c
+   opts
    error
+   trouble
+   tut
    fortran          
    matlab
    pythoninterface
    juliainterface
-   examples           
    related
-   issues
    users
    ackn
    refs

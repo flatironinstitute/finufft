@@ -3,41 +3,42 @@
 Usage from C/C++
 ================
 
+.. _quick:
 Quick start guide
 -----------------
 
 We first give a simple example of performing a 1D type-1 transform
 in double precision from C++, the library's native language,
-using plain arrays (for simplicity)
-of C++ complex number type. First include the headers::
+using C++ STL complex number type arrays. First include the headers::
 
   #include "finufft.h"
   #include <complex>
 
 Now in the body of the code, assuming ``M`` has been set to be
-the number of nonuniform points, we allocate the input arrays::
+the number of nonuniform points, allocate the input arrays::
 
   double *x = (double *)malloc(sizeof(double)*M);
   complex<double>* c = (complex<double>*)malloc(sizeof(complex<double>)*M);
   
 The user should now fill these with their input data;
 values in ``x`` should lie in :math:`[-3\pi,3\pi]`, and
-``c`` can be arbitrary complex strengths (we omit example code for this here).
-With ``N`` as the desired number of modes, allocate an output array::
+``c`` can be arbitrary complex strengths.
+With ``N`` as the desired number of Fourier mode coefficients,
+allocate this output array::
 
   complex<double>* F = (complex<double>*)malloc(sizeof(complex<double>)*N);
 
-To perform the nonuniform FFT (with default options) is then one line::
+Now do the NUFFT (with default options)::
 
   int ier = finufft1d1(M,x,c,+1,1e-6,N,F,NULL);
 
 Here ``NULL`` is interpreted as using default options.
 This fills ``F`` with the output modes, in increasing ordering
-from ``-N/2`` to ``N/2-1``.
-Here ``+1`` sets the sign of ``i`` in the exponentials in the
-:ref:`definitions <math>`,
-``1e-6`` chooses 6-digit relative tolerance, and ``ier`` is a status output
-which is zero if successful (see below).
+from frequency index ``-N/2`` up to ``N/2-1``.
+Here ``+1`` sets the sign of ``i`` in the exponentials
+(see :ref:`definitions <math>`),
+``1e-6`` requests 6-digit relative tolerance, and ``ier`` is a status output
+which is zero if successful (otherwise see :ref:`error codes <error>`).
 
 To set non-default options, first
 put default values in a ``nufft_opts`` struct with pointer ``popts``,
@@ -67,7 +68,7 @@ and the more powerful guru interface, follows below.
  If you have a small-scale 2D task (say less than 10\ :sup:`5` points or modes) with multiple strength or coefficient vectors but fixed nonuniform points, see the :ref:`advanced interfaces <advinterface>`.
 
 
-Complete documentation for C/C++
+Full documentation for C/C++
 -------------------------------- 
  
  .. _datatypes:
