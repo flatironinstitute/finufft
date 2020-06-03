@@ -8,6 +8,8 @@ classdef finufft_plan < handle
   methods
 
     function [plan] = finufft_plan(type, n_modes, iflag, n_transf, tol, opts)
+      mex_id_ = 'finufft_mex_setup()';
+finufft_plan_mex(mex_id_);
       mex_id_ = 'o finufft_plan* = new()';
 [p] = finufft_plan_mex(mex_id_);
       plan.mwptr = p;

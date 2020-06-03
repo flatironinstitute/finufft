@@ -57,6 +57,11 @@ $   }
 $   mxFree(fname);
 $ }
 
+$ void finufft_mex_setup() {
+$   /* Forces MATLAB to properly initialize their FFTW library. */
+$   mexEvalString("fft(1:8);");
+$ }
+
 
 @ finufft_plan.m --------------------------------------------
 
@@ -69,6 +74,7 @@ classdef finufft_plan < handle
   methods
 
     function [plan] = finufft_plan(type, n_modes, iflag, n_transf, tol, opts)
+      # finufft_mex_setup();
       # finufft_plan* p = new finufft_plan();
       plan.mwptr = p;
       assert(type==1 || type==2 || type==3);
