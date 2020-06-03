@@ -1,5 +1,21 @@
-List of features / changes made / release notes, in reverse chronological order:
+List of features / changes made / release notes, in reverse chronological order
 
+V 1.2 (June 2020)
+
+* a major change to code, internally, and major improvements to operation and
+language interfaces.
+	WARNING: Here are all the interface changes from 1.1.2:
+	- opts is a pointer in C++/C
+	- Fortran simple calls are now finufft?d?(..) not finufft?d?_f(..)
+	- 
+	These are minor, and led to some needed improvements.
+
+...
+* completely new Fortran interface, allowing >2^31 sized (int64) arrays,
+  all simple, many-vector and guru interface, with options control.
+* all simple and many-vector interfaces call guru interface.
+* new guru interface, by Andrea Malleo and Alex Barnett, allowing easier
+language wrapping and control of point-setting, reuse of sorting and FFTW plans. This finally bypasses the 0.1ms/thread cost of FFTW looking up previous wisdom, which slowed down performance for many small problems.
 
 V 1.1.2 (1/31/20)
 

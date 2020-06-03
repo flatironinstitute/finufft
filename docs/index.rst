@@ -90,7 +90,7 @@ Our main features are:
 
 * **Automated kernel parameters**. Unlike many competitors, we do not force the user to worry about kernel choice or parameters. The user simply requests a desired relative accuracy, then FINUFFT chooses parameters that achieve this accuracy as fast as possible.
 
-* **Simplicity**. We have simple interfaces that perform a NUFFT with a single command---just like an FFT---from seven common languages/environments. For advanced users we also have "many vector" interfaces that can be much faster than repeated calls to the simple interface with the same points. Finally (like NFFT3) we have a "guru" interface for maximum flexibility.
+* **Simplicity**. We have simple interfaces that perform a NUFFT with a single command---just like an FFT---from seven common languages/environments. For advanced users we also have "many vector" interfaces that can be much faster than repeated calls to the simple interface with the same points. Finally (like NFFT3) we have a "guru" interface for maximum flexibility, in all of these languages.
 
 For technical details on much of the above see our :ref:`papers <refs>`.
 Note that there are other tasks (eg, transforms on spheres, inverse NUFFTs)
@@ -103,7 +103,7 @@ Maybe you already know that your application needs a NUFFT.
 For instance, if you need Fourier transforms or power spectra
 but have data on non-equispaced grids, you may be able to
 rewrite your task as one of the :ref:`three transform types<math>`.
-To help, please read the :ref:`tutorials and demos<demos>`.
+To help decide, see the :ref:`tutorials and demos<demos>`.
 If so, and both $M$ and $N$ are larger than of order $10^2$, FINUFFT may
 be the ticket.
 However, if $M$ and/or $N$ is small (of order $10$ or less)

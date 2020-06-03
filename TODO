@@ -1,13 +1,11 @@
-Current list of items to do for FINUFFT library
-===============================================
+Current list of items to do for FINUFFT library that are not in github Issues
+=============================================================================
 
 
 TRACTABLE USER PROJECTS - PLEASE HELP:
 
-* GPU spreader (in progress), with (plan, setNUpts, execute, destroy) interface.
-
 * Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? - C++ template the spreader and all inside it?
-(please contact Ludvig af Klinteberg to coordinate).
+(please contact Ludvig af Klinteberg to coordinate). Related: templating for single/double prec living in the same library.
 
 * Professionalize the single-precision version:
  - fix matlab, octave, and python interfaces for single-prec (although there
@@ -21,36 +19,19 @@ TRACTABLE USER PROJECTS - PLEASE HELP:
 
 * support for Windows?
 
-
-HIGH PRIORITY TODO: (also see above)
-
-* A (plan, setNUpts, execute, destroy) advanced interface which saves the FFTW widsom, and sorting order, in a plan which is passed to each of these routines.
-Make the dimension and type arguments, so only adds 4 interfaces total.
-Would avoid cost of repeated sorting of NU pts, and of FFTW looking up saved wisdom, which dominates for small problems.
-
-* fix the slow speed for fancy t1 spreader when doing almost nothing, eg
-test/spreadtestnd 1 1e8 1e7 1e-6 0 9 1
-(Note the use of spreader-timing flag "9" which skips subproblem spreading.)
-Ie, decide to switch out fancy t1 spreader sometimes? Yes, make basic spreader
-without subproblems.
-
-* release, outreach, users, NA-Digest
+* tutorials, release, outreach, users, NA-Digest
 
 
 LOWER PRIORITY TODO:
 
-* Return FFTW's internal state to single-threaded upon exit from finufft (deals with Marina & Andras' problem where fftw was then kicked from single to multi-threaded by an intervening finufft call).
+* Return FFTW's internal state to single-threaded upon exit from finufft (deals with Marina & Andras' problem where fftw was then kicked from single to multi-threaded by an intervening finufft call).  Remind ourselves why?
 * understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
-* Decide if non vs omp get different lib names? not yet
-* check possible transpose convention for 2d,3d, found by David S.
+* Decide if non vs omp get different lib names? (like FFTW) not yet.
 * Intel MKL FFT interface option instead of FFTW?
 * swap out mallocs for std:vector in finufft?
 * recoup DFM's PyPI publishing of finufftpy, maybe awkward
 * figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
 * test huge arrays >=2^31 2d, 3d in C++.
 * test huge arrays >=2^31 in octave/mex.
-* allow fortran interface to access >=2^31 arrays; make int*8 default in interface?
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
-* figure out how to set up path to link to shared library - rpath?
-* MS Windows test
 * rewrite fftw3 plans via 64bit guru interface to allow eg 1024^3 type 1 or 2 in 3D. Not sure needed (only for huge 1d transforms). see http://www.fftw.org/fftw3_doc/Guru-Interface.html#Guru-Interface

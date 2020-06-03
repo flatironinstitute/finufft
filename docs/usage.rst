@@ -1,36 +1,10 @@
-.. _usage:
+.. _c:
 
-Usage and interfaces
-====================
+Usage from C/C++
+================
 
-Here we describe the simple interfaces to call FINUFFT from C++, C.
-
-We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
-nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
-2, and 3.  This gives nine basic routines.
-There are also two :ref:`advanced interfaces <advinterface>`
-for multiple 2d1 and 2d2 transforms with the same point locations.
-
-         *** TO DISCUSS! UPDATE ! ********
-
-         
-Using the library is a matter of filling your input arrays,
-allocating the correct output array size, possibly setting fields in
-the options struct, then calling one of the transform routines below.
-
-.. warning::
-   FINUFFT (when compiled with OpenMP) by default uses all available threads,
-   which is often twice the number of cores (full hyperthreading).
-   We have observed that a large thread
-   count can lead to *reduced* performance, presumably because RAM access is the limiting factor. We recommend that one limit the
-   number of threads at most around 24. This can be done in linux via
-   the shell environment, eg ``OMP_NUM_THREADS=16``, or using OpenMP
-   commands in the various languages.
-
-   
-
-Interfaces from C++
-*******************
+Quick start guide
+-----------------
 
 We first give a simple example of performing a 1D type-1 transform
 in double precision from C++, the library's native language,
@@ -92,6 +66,9 @@ and the more powerful guru interface, follows below.
 .. note::
  If you have a small-scale 2D task (say less than 10\ :sup:`5` points or modes) with multiple strength or coefficient vectors but fixed nonuniform points, see the :ref:`advanced interfaces <advinterface>`.
 
+
+Complete documentation for C/C++
+-------------------------------- 
  
  .. _datatypes:
  
@@ -120,6 +97,38 @@ the below.
   flags (such as the value ``+1`` used above) and the output error code.
 
 
+  
+Here we describe the simple interfaces to call FINUFFT from C++, C.
+
+We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
+nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
+2, and 3.  This gives nine basic routines.
+There are also two :ref:`advanced interfaces <advinterface>`
+for multiple 2d1 and 2d2 transforms with the same point locations.
+
+         *** TO DISCUSS! UPDATE ! ********
+
+         
+Using the library is a matter of filling your input arrays,
+allocating the correct output array size, possibly setting fields in
+the options struct, then calling one of the transform routines below.
+
+.. warning::
+   FINUFFT (when compiled with OpenMP) by default uses all available threads,
+   which is often twice the number of cores (full hyperthreading).
+   We have observed that a large thread
+   count can lead to *reduced* performance, presumably because RAM access is the limiting factor. We recommend that one limit the
+   number of threads at most around 24. This can be done in linux via
+   the shell environment, eg ``OMP_NUM_THREADS=16``, or using OpenMP
+   commands in the various languages.
+
+   
+
+Interfaces from C++
+*******************
+
+
+  
 
 1D transforms, simple interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -11,16 +11,16 @@ The main developer and maintainer is:
 
 Major code contributions by:
 
-* Jeremy Magland - multithreaded spreader, benchmark other codes
-* Ludvig af Klinteberg - SIMD vectorization/acceleration of spreader, julia
+* Jeremy Magland - multithreaded spreader, benchmark vs other codes
+* Ludvig af Klinteberg - SIMD vectorization/acceleration of spreader, julia wrapper
 * Yu-Hsuan ("Melody") Shih - 2d1many, 2d2many vectorized interface, GPU version
 * Andrea Malleo - guru interface prototype and tests
-* Libin Lu - guru Fortran, python, Matlab, julia interfaces
+* Libin Lu - guru Fortran, python, MATLAB/octave, julia interfaces
   
 Other significant code contributions by:
 
 * Joakim Anden - catching bugs, Matlab/FFTW issues, performance tests, python
-* Leslie Greengard and June-Yub Lee - CMCL fortran drivers and test codes
+* Leslie Greengard and June-Yub Lee - CMCL Fortran test drivers
 * Dan Foreman-Mackey - early python wrappers
 * David Stein - python wrappers
 * Vineet Bansal - pypy packaging
@@ -28,7 +28,7 @@ Other significant code contributions by:
 Testing, bug reports, helpful discussions:
 
 * Hannah Lawrence - user testing and finding bugs
-* Marina Spivak - fortran testing
+* Marina Spivak - Fortran testing
 * Hugo Strand - python bugs
 * Amit Moscovich - Mac OSX build
 * Dylan Simon - sphinx help
