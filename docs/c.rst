@@ -4,35 +4,44 @@ Usage from C/C++
 ================
 
 .. _quick:
-Quick start guide
------------------
+
+Quick start example
+-------------------
 
 We first give a simple example of performing a 1D type-1 transform
-in double precision from C++, the library's native language,
-using C++ STL complex number type arrays. First include the headers::
+in double precision from C++,
+using STL complex number type arrays. First include the headers:
 
+.. code-block:: C++
+  
   #include "finufft.h"
   #include <complex>
 
 Now in the body of the code, assuming ``M`` has been set to be
-the number of nonuniform points, allocate the input arrays::
+the number of nonuniform points, allocate the input arrays:
 
+.. code-block:: C++
+  
   double *x = (double *)malloc(sizeof(double)*M);
   complex<double>* c = (complex<double>*)malloc(sizeof(complex<double>)*M);
   
 The user should now fill these with their input data;
-values in ``x`` should lie in :math:`[-3\pi,3\pi]`, and
+the nonuniform points ``x`` should lie in :math:`[-3\pi,3\pi]`, while
 ``c`` can be arbitrary complex strengths.
 With ``N`` as the desired number of Fourier mode coefficients,
-allocate this output array::
+allocate their output array:
 
+.. code-block:: C++
+  
   complex<double>* F = (complex<double>*)malloc(sizeof(complex<double>)*N);
 
-Now do the NUFFT (with default options)::
+Now do the NUFFT (with default options):
 
+.. code-block:: C++
+  
   int ier = finufft1d1(M,x,c,+1,1e-6,N,F,NULL);
 
-Here ``NULL`` is interpreted as using default options.
+Here ``NULL`` means use default options.
 This fills ``F`` with the output modes, in increasing ordering
 from frequency index ``-N/2`` up to ``N/2-1``.
 Here ``+1`` sets the sign of ``i`` in the exponentials
@@ -42,44 +51,49 @@ which is zero if successful (otherwise see :ref:`error codes <error>`).
 
 To set non-default options, first
 put default values in a ``nufft_opts`` struct with pointer ``popts``,
-make your changes, then pass the pointer to FINUFFT::
+make your changes, then pass the pointer to FINUFFT:
 
+.. code-block:: C++
+  
   nufft_opts* popts;
   finufft_default_opts(popts);
-  popts->debug = 1;                                // example option choice
+  popts->debug = 1;                                // example option change
   int ier = finufft1d1(M,x,c,+1,1e-6,N,F,popts);
   
 .. warning::
-   - Without the ``finufft_default_opts`` call, options may take on random values which may cause a crash.
-   - This usage has changed from versions 1.0 and 1.1 which used C++-style pass by reference. Please make sure you pass a *pointer* to `opts` in both places.
+   - Without the ``finufft_default_opts`` call, options may take on arbitrary values which may cause a crash.
+   - This usage is new as of version 1.2. Please make sure you pass a *pointer* to `opts` in both places.
 
-See ``example1d1.cpp``, in the ``examples`` directory, for a simple
-full working example.
-Then to compile, linking to the double-precision static library, use eg::
+See ``examples/example1d1.cpp`` for a simple full working demo.
+Then to compile on a linux/GCC system, linking to the double-precision static library, use eg::
 
-  g++ example1d1.cpp -o example1d1 -I FINUFFT/include FINUFFT/lib-static/libfinufft.a -fopenmp -lfftw3_omp -lfftw3 -lm
+  g++ example1d1.cpp -o example1d1 -I$FINUFFT/include $FINUFFT/lib-static/libfinufft.a -fopenmp -lfftw3_omp -lfftw3 -lm
 
-where ``FINUFFT`` denotes the library location (top directory).
+where ``$FINUFFT`` denotes the absolute path of the package location
+(top directory).
+Better is instead link to dynamic shared (.so) libraries, via eg::
+
+  g++ example1d1.cpp -o example1d1 -I$FINUFFT/include -L$FINUFFT/lib -lfinufft -lm
+  
 The ``examples`` and ``test`` directories are good places to see further
 usage examples. The documentation for all 18 simple interfaces,
-and the more powerful guru interface, follows below.
-
-.. note::
- If you have a small-scale 2D task (say less than 10\ :sup:`5` points or modes) with multiple strength or coefficient vectors but fixed nonuniform points, see the :ref:`advanced interfaces <advinterface>`.
+and the more flexible guru interface, follows below.
 
 
-Full documentation for C/C++
+Simple interfaces
 -------------------------------- 
- 
+
+FIX THE BELOW - REMOVE REPETITIONS:
+(don't have to have each 18 interfaces listed out in full).
+
+
  .. _datatypes:
  
 Data types
 ~~~~~~~~~~
 
-
-There are certain data type names
-that we found convenient to unify the interfaces. These are used throughout
-the below.
+We define data types that are convenient to unify the interfaces.
+These are used throughout the below.
 
 - ``FLT`` : this means ``double`` if compiled in
   the default double-precision, or ``float`` if compiled in single precision.
@@ -406,7 +420,22 @@ Please refer to the above :ref:`data types <datatypes>`.
      returned value - 0 if success, else see ../docs/usage.rst
 
   
-Interfaces from C
+
+
+
+.. note::
+ If you have a small-scale 2D task (say less than 10\ :sup:`5` points or modes) with multiple strength or coefficient vectors but fixed nonuniform points, see the :ref:`advanced interfaces <advinterface>`.
+
+
+
+
+
+
+
+
+
+
+     Interfaces from C
 *****************
 
 From C one calls the same routines as for C++, and includes

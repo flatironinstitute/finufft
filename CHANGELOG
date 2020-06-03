@@ -5,10 +5,12 @@ V 1.2 (June 2020)
 * a major change to code, internally, and major improvements to operation and
 language interfaces.
 	WARNING: Here are all the interface changes from 1.1.2:
-	- opts is a pointer in C++/C
-	- Fortran simple calls are now finufft?d?(..) not finufft?d?_f(..)
+	- opts is always passed as a pointer in C++/C, not pass-by-reference
+	  as in v1.1.2 or earlier.
+	- Fortran simple calls are now finufft?d?(..) not finufft?d?_f(..), and
+	  they add a penultimate opts argument.
 	- 
-	These are minor, and led to some needed improvements.
+	These changes were deemed necessary to rationalize and improve FINUFFT.
 
 ...
 * completely new Fortran interface, allowing >2^31 sized (int64) arrays,
