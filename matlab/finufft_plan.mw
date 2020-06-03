@@ -52,7 +52,7 @@ $     else if (strcmp(fname[ifield],"maxbatchsize") == 0) {
 $       oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
 $     else
-$       return;
+$       continue;
 $   }
 $   mxFree(fname);
 $ }
@@ -75,6 +75,7 @@ classdef finufft_plan < handle
       if type==3
         assert(length(n_modes)==1);
         n_dims = n_modes;
+        n_modes=ones(3,1);
       else
         n_dims = length(n_modes);
       end
@@ -82,7 +83,7 @@ classdef finufft_plan < handle
       % if n_modes had length <3, pad with 1's (also overwrites whatever there):
       if n_dims<2, n_modes(2)=1; end
       if n_dims<3, n_modes(3)=1; end
-      if nargin<7
+      if nargin<6
         # nufft_opts* o = new nufft_opts();
         # finufft_default_opts(nufft_opts* o);
         # int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
@@ -142,7 +143,7 @@ classdef finufft_plan < handle
         # get_nmodes(finufft_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
         outsize = ms*mt*mu*n_transf;
         # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[outsize] result);
-        reshape(result, ms, mt, mu, n_transf);
+        result = reshape(result, [ms mt mu n_transf]);
       elseif type==2
         # int64_t nj = get_nj(finufft_plan* plan);
         # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_transf] result, dcomplex[] data_in);

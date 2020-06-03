@@ -14,8 +14,8 @@ j = ceil(0.93*M);                               % target pt index to test
 
 if 0
 fprintf('generating x & c data (single-threaded and slow)...\n')
-x = pi*(2*rand(1,M)-1);
-c = randn(1,M)+1i*randn(1,M);
+x = pi*(2*rand(M,1)-1);
+c = randn(M,1)+1i*randn(M,1);
 fprintf('1D type 1: using %d modes...\n',N)
 tic;
 [f ier] = finufft1d1(x,c,isign,eps,N,o);
@@ -30,13 +30,13 @@ end
 
 if 1
 fprintf('generating x data (single-threaded and slow)...\n')
-x = pi*(2*rand(1,M)-1);
-f = randn(1,N)+1i*randn(1,N);
+x = pi*(2*rand(M,1)-1);
+f = randn(N,1)+1i*randn(N,1);
 fprintf('1D type 2: using %d modes...\n',N)
 tic
 [c ier] = finufft1d2(x,isign,eps,f,o);        % Out of memory iff >=2^31
 fprintf('done in %.3g s, ier=%d\n',toc,ier)
-ms=numel(f); mm = ceil(-ms/2):floor((ms-1)/2);  % mode index list
+ms=numel(f); mm = (ceil(-ms/2):floor((ms-1)/2))';  % mode index list
 ce = sum(f.*exp(1i*isign*mm*x(j)));             % crucial f, mm same shape
 fprintf('1D type-2: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 end

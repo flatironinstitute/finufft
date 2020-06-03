@@ -15,6 +15,7 @@ classdef finufft_plan < handle
       if type==3
         assert(length(n_modes)==1);
         n_dims = n_modes;
+        n_modes=ones(3,1);
       else
         n_dims = length(n_modes);
       end
@@ -22,7 +23,7 @@ classdef finufft_plan < handle
       % if n_modes had length <3, pad with 1's (also overwrites whatever there):
       if n_dims<2, n_modes(2)=1; end
       if n_dims<3, n_modes(3)=1; end
-      if nargin<7
+      if nargin<6
         mex_id_ = 'o nufft_opts* = new()';
 [o] = finufft_plan_mex(mex_id_);
         mex_id_ = 'finufft_default_opts(i nufft_opts*)';
@@ -76,7 +77,7 @@ finufft_plan_mex(mex_id_, plan);
         outsize = ms*mt*mu*n_transf;
         mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[x])';
 [ier, result] = finufft_plan_mex(mex_id_, plan, data_in, outsize);
-        reshape(result, ms, mt, mu, n_transf);
+        result = reshape(result, [ms mt mu n_transf]);
       elseif type==2
         mex_id_ = 'o int64_t = get_nj(i finufft_plan*)';
 [nj] = finufft_plan_mex(mex_id_, plan);
