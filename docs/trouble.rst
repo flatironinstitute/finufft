@@ -48,8 +48,8 @@ If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is 
   Consider direct summation, as discussed :ref:`here <need>`.
   
 - The timing of the first FFTW call is complicated, depending on the FFTW flags (plan mode) used. This is really an
-  `FFTW planner flag usage question <http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags>`_.
-  Such issues are known, and modes compared in other documentation, eg in `poppy <https://poppy-optics.readthedocs.io/en/stable/fft_optimization.html>`_. In short, using more expensive FFTW planning modes like ``FFTW_MEASURE`` can give better performance for repeated FFTW calls, but be **much** more expensive in the first (planning) call. This is why we choose ``FFTW_ESTIMATE`` as our default ``opts.fftw`` option.
+  `FFTW planner flag usage <http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags>`_ question.
+  Such issues are known, and modes benchmarked in other documentation, eg for 2D in `poppy <https://poppy-optics.readthedocs.io/en/stable/fft_optimization.html>`_. In short, using more expensive FFTW planning modes like ``FFTW_MEASURE`` can give better performance for repeated FFTW calls, but be **much** more expensive in the first (planning) call. This is why we choose ``FFTW_ESTIMATE`` as our default ``opts.fftw`` option.
 
 - Make sure you did not override ``opts.spread_sort``, which if set to zero
   does no sorting, which can give very slow RAM access if the nonuniform points

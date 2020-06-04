@@ -19,7 +19,7 @@ Major code contributions by:
   
 Other significant code contributions by:
 
-* Joakim Anden - catching bugs, Matlab/FFTW issues, performance tests, python
+* Joakim Andén - catching bugs, Matlab/FFTW issues, performance tests, python
 * Leslie Greengard and June-Yub Lee - CMCL Fortran test drivers
 * Dan Foreman-Mackey - early python wrappers
 * David Stein - python wrappers
