@@ -75,9 +75,9 @@ only once.
    matlab
    pythoninterface
    juliainterface
-   examples           
+   tut          
    related
-   issues
+   trouble
    users
    ackn
    refs
