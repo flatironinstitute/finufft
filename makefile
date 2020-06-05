@@ -11,7 +11,7 @@
 # overrides the defaults below (which are for an ubuntu linux/GCC system).
 # See docs/install.rst, and make.inc.* for examples.
 
-# compilers, and linking from C, fortran...
+# compilers, and linking from C, fortran. We use GCC by default...
 CXX = g++
 CC = gcc
 FC = gfortran
@@ -20,18 +20,16 @@ FLINK = $(CLINK)
 # compile flags for GCC, baseline single-threaded, double precision case...
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++.
-#        3) -fPIC is pos-indep code so dyn lib (.so) can be built.
-CFLAGS = -fPIC -O3 -funroll-loops -march=native -fcx-limited-range
-# tell examples where to find header files...
-CFLAGS += -I include
-FFLAGS = $(CFLAGS) -I fortran -I /usr/include
-CXXFLAGS = $(CFLAGS) -std=c++14 -DNEED_EXTERN_C
+#        3) we use simply-expanded makefile variables, otherwise confusing.
+CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range
+FFLAGS := $(CFLAGS)
+CXXFLAGS := $(CFLAGS)
 # FFTW base name, and math linking...
 FFTWNAME = fftw3
 # the following uses fftw3_omp, since 10% faster than fftw3_threads...
 FFTWOMPSUFFIX = omp
 LIBS = -lm
-# extra flags for multithreaded: C++/C/Fortran, MATLAB, and octave...
+# multithreading for GCC: C++/C/Fortran, MATLAB, and octave (ICC differs)...
 OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
 MOMPFLAGS = -lgomp -D_OPENMP
@@ -50,6 +48,18 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # For your OS, override the above by placing make variables in make.inc ...
 # (Please look in make.inc.* for ideas)
 -include make.inc
+
+# now come flags that should be added, whatever you overrode in make.inc
+# to prevent 
+# tell tests & examples where to find header files...
+INCL = -Iinclude
+# the NEED_EXTERN_C directive tells common.cpp to include plain C header
+# -fPIC (position-indep code) needed to build dyn lib (.so)
+# Also, we force return (via :=) to the land of simply-expanded variables...
+CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14 -DNEED_EXTERN_C
+CFLAGS := $(CFLAGS) $(INCL) -fPIC
+# /usr/include needed for fftw3.f...
+FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
 # choose the precision (affects library names, test precisions)...
 ifeq ($(PREC),SINGLE)
@@ -211,7 +221,7 @@ perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd test; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
 	(cd test; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
-test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS) 
+test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS)
 	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJS) $(LIBS) -o test/spreadtestnd
 
 # spreader only test (useful for development work on spreader)...
