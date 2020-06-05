@@ -298,7 +298,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
       for (int p=0;p<=nb;++p)
         brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
-      
+
 #pragma omp parallel for schedule(dynamic,1)
       for (int isub=0; isub<nb; isub++) {    // Main loop through the subproblems
         BIGINT M0 = brk[isub+1]-brk[isub];   // # NU pts in this subproblem

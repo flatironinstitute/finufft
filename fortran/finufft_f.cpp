@@ -83,8 +83,6 @@ void finufft_default_opts_(nufft_opts* o)
 void finufft1d1_(BIGINT* nj, FLT* xj, CPX* cj, int* iflag, FLT* eps,
                  BIGINT* ms, CPX* fk, nufft_opts* o, int* ier)
 {
-  if (!o)
-    printf("o=NULL\n");
   *ier = finufft1d1(*nj,xj,cj,*iflag,*eps,*ms,fk,o);
 }
 

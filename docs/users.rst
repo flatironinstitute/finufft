@@ -1,10 +1,35 @@
-Users and citations
-===================
+.. _users:
 
-Here we list papers or groups using FINUFFT, or its new spreading
-kernel. Papers that merely cite our work are listed separately at the bottom. Please let me know if you are a user or package maintainer but not listed:
+Dependent packages, users, and citations
+========================================
 
-1. ASPIRE software for cryo-EM, based at Amit Singer's group at Princeton. https://github.com/PrincetonUniversity/ASPIRE-Python http://spr.math.princeton.edu/
+Here we list packages that depend on FINUFFT, and papers or groups using it.
+Papers that merely cite our work are listed separately at the bottom. Please let us know (and use github's dependent package link) if you are a user or package maintainer but not listed.
+
+Packages relying on FINUFFT
+---------------------------
+
+Here are some packages dependent on FINUFFT (please let us know of others,
+and also add them to github's Used By feature):
+
+1. `SMILI <https://github.com/astrosmili/smili>`_, very long baseline interferometry reconstruction code by `Kazu Akiyama <http://kazuakiyama.github.io/>`_ and others, uses FINUFFT (2d1, 2d2, Fortran interfaces) as a `key library <https://smili.readthedocs.io/en/latest/install.html#external-libraries>`_. Akiyama used SMILI to reconstruct the `famous black hole image <https://physicstoday.scitation.org/do/10.1063/PT.6.1.20190411a/full/>`_ in 2019 from the Event Horizon Telescope.
+
+#. `ASPIRE <http://spr.math.princeton.edu>`_: software for cryo-EM, based at Amit Singer's group at Princeton. `github <https://github.com/PrincetonUniversity/ASPIRE-Python>`_
+
+#. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
+
+#. `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation python package.
+
+#. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
+      
+#. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg (SFU), now using pure julia rather than python.
+
+#. Vineet Bansal's pypi package https://pypi.org/project/finufftpy/. This will be updated soon.
+
+
+
+Research output using FINUFFT
+-----------------------------
 
 #. "Cryo-EM reconstruction of continuous heterogeneity by Laplacian spectral volumes", Amit Moscovich, Amit Halevi, Joakim Andén, and Amit Singer. To appear, Inv. Prob. (2020), https://arxiv.org/abs/1907.01898
 
@@ -18,16 +43,22 @@ kernel. Papers that merely cite our work are listed separately at the bottom. Pl
    series taken at unknown view angles with non-uniform distribution",
    International Conference on Image Processing (ICIP), (2019).
 
-#. Aleks Donev's group at NYU.
+#. "Factorization of the translation kernel for fast rigid image alignment,"
+   Aaditya Rangan, Marina Spivak, Joakim Andén, and Alex Barnett.
+   Inverse Problems 36 (2), 024001 (2020).
+   https://arxiv.org/abs/1905.12317
 
-Papers using our new window function but not the whole FINUFFT package:
+#. Aleks Donev's group at NYU; ongoing
+
+Papers using our new window (spreading) function but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt, window function. https://arxiv.org/abs/1712.04732
 
-   #. Daniel Potts and Manfred Tasche, "Uniform error estimates for the NFFT", (2019) https://arxiv.org/abs/1912.09746 Claims a proof of tighter error constant for our exp-sqrt kernel, via Chebyshev expansions. See our remark on this in
-      https://arxiv.org/abs/2001.09405
+
    
-Citations to FINUFFT or its paper, that are not actual users:
+   
+Citations to FINUFFT that do not appear to be actual users
+----------------------------------------------------------
 
 1. https://arxiv.org/abs/1903.08365
 
@@ -35,3 +66,5 @@ Citations to FINUFFT or its paper, that are not actual users:
 
 #. https://arxiv.org/abs/1908.00574
 
+#. https://arxiv.org/abs/1912.09746
+      

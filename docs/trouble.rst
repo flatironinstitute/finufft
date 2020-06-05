@@ -43,9 +43,9 @@ If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is 
 
 - Try setting a crude tolerance, eg ``tol=1e-3``. How many digits do you actually need? This has a big effect in higher dimensions, since the number of flops scales like $(\log 1/\epsilon)^d$, but not quite as big an effect as this scaling would suggest, because in higher dimensions the flops/RAM ratio is higher.
 
-- If type 3, make sure your choice of points does not have a massive *space-bandwidth product* (ie, product of the sides of the smallest $2d$-dimension cuboid enclosing all of the nonuniform source and target points); see Remark 5 of our `SISC paper <https://arxiv.org/abs/1808.06736>`_.
-  This can lead to enormous fine grids and hence slow FFTs.
-  Consider direct summation, as discussed :ref:`here <need>`.
+- If type 3, make sure your choice of points does not have a massive *space-bandwidth product* (ie, product of the volumes of the smallest $d$-dimension axes-aligned cuboids enclosing the nonuniform source and the target points); see Remark 5 of our `SISC paper <https://arxiv.org/abs/1808.06736>`_.
+  In short, if the spreads of $\mathbf{x}_j$ and of $\mathbf{s}_k$ are both big, you may be in trouble.
+  This can lead to enormous fine grids and hence slow FFTs. Set ``opts.debug=1`` to examine the ``nf1``, etc, fine grid sizes being chosen, and the array allocation sizes. If they are huge, consider direct summation, as discussed :ref:`here <need>`.
   
 - The timing of the first FFTW call is complicated, depending on the FFTW flags (plan mode) used. This is really an
   `FFTW planner flag usage <http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags>`_ question.
@@ -58,7 +58,7 @@ If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is 
 - Are you calling the simple interface a huge number of times for small problems, but these tasks have something in common (number of modes, or locations of nonuniform points)? If so, try the "many vector" or guru interface, which removes overheads in repeated FFTW plan look-up, and in bin-sorting. They can be 10-100x faster.
 
 
-Crashing (segfaulting) issues and advice
+Crash (segfault) issues and advice
 ****************************************
 
 - The most common problem is passing in pointers to the wrong size of object,

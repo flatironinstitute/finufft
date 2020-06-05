@@ -6,13 +6,13 @@ Related packages
 Other recommended NUFFT libraries
 ---------------------------------
 
-- `NFFT3 <https://www-user.tu-chemnitz.de/~potts/nfft/>`_: well-supported and multi-featured C++ library using FFTW. Has MATLAB interface. However, significantly slower and/or more memory-intensive than FINUFFT (see reference [FIN]).
+- `NFFT3 <https://www-user.tu-chemnitz.de/~potts/nfft/>`_: well-supported and multi-featured C++ library using FFTW. Has MATLAB MEX interface. However, significantly slower and/or more memory-intensive than FINUFFT (see reference [FIN]). Has many more general abilities, eg, inverse NUFFT. We are working on this too.
 
-- `CMCL NUFFT <https://cims.nyu.edu/cmcl/nufft/nufft.html>`_: NYU single-threaded Fortran library using self-contained FFT, Gaussian kernel. Has MATLAB interface. Much slower than FINUFFT.
+- `CMCL NUFFT <https://cims.nyu.edu/cmcl/nufft/nufft.html>`_: NYU single-threaded Fortran library using self-contained FFT, fast Gaussian gridding kernel. Has MATLAB MEX interface. Much (up to 50x even for one thread) slower than FINUFFT, but very easy to compile.
 
-- `cuFINUFFT <https://github.com/flatironinstitute/cufinufft>`_: Our GPU version of FINUFFT, for single precision in 2D and 3D, type 1 and 2. Achieves speeds around 10x the CPU version.
-  
-- `MIRT <https://web.eecs.umich.edu/~fessler/code/index.html>`_ Michigan Image Reconstruction Toolbox. Native MATLAB, single-threaded sparse mat-vec, prestores all kernel evaluations, thus is memory-intensive. Slower than FINUFFT for all tolerances smaller than 0.1.
+- `cuFINUFFT <https://github.com/flatironinstitute/cufinufft>`_: Our GPU version of FINUFFT, for single precision in 2D and 3D, type 1 and 2. Still under development by Melody Shih (NYU) and others. Often achieves speeds around 10x the CPU version.
+
+- `MIRT <https://web.eecs.umich.edu/~fessler/code/index.html>`_ Michigan Image Reconstruction Toolbox. Native MATLAB, single-threaded sparse mat-vec, prestores all kernel evaluations, thus is memory-intensive but surprisingly fast for a single-threaded implementation. However, slower than FINUFFT for all tolerances smaller than 0.1.
 
 - `PyNUFFT <https://github.com/jyhmiinlin/pynufft>`_ Python code supporting CPU and GPU operation. Have not compared against FINUFFT yet.
 
@@ -20,23 +20,3 @@ Other recommended NUFFT libraries
 Also see the summary of library performances in our paper [FIN] in the
 :ref:`references <refs>`.
   
-
-Other language interfaces to FINUFFT
-------------------------------------------
-
-- `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg (SFU). This is actually a secondary wrapper around our python interface, so you should make sure that the latter is working first.
-
-- Vineet Bansal's pypi package https://pypi.org/project/finufftpy/
-
-
-Packages relying on FINUFFT
-------------------------------
-
-Here are some packages dependent on FINUFFT (please let us know of others):
-
-- `ASPIRE <http://spr.math.princeton.edu>`_: software for cryo-EM, based at Amit Singer's group at Princeton. `github <https://github.com/PrincetonUniversity/ASPIRE-Python>`_
-
-- `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++
-  and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
-
-- `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation python package.

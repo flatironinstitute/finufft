@@ -100,7 +100,7 @@ STATICLIB = lib-static/$(LIBNAME).a
 SOBJS = src/spreadinterp.o src/utils.o
 
 # main library object files
-OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o julia/finufft_j.o
+OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o fortran/finufft_f_legacy.o julia/finufft_j.o
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
 
@@ -240,11 +240,12 @@ FE = fortran/examples
 F1 = $(FE)/simple1d1$(PRECSUFFIX)
 F2 = $(FE)/guru1d1$(PRECSUFFIX)
 F3 = $(FE)/nufft1d_demo$(PRECSUFFIX)
-F4 = $(FE)/nufft2d_demo$(PRECSUFFIX)
-F5 = $(FE)/nufft3d_demo$(PRECSUFFIX)
-F6 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
+F4 = $(FE)/nufft1d_demo_legacy$(PRECSUFFIX)
+F5 = $(FE)/nufft2d_demo$(PRECSUFFIX)
+F6 = $(FE)/nufft3d_demo$(PRECSUFFIX)
+F7 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
 # GNU make trick to get list of executables to compile... (how auto 1 2... ?)
-F = $(foreach V, 1 2 3 4 5 6, $(F$V))
+F = $(foreach V, 1 2 3 4 5 6 7, $(F$V))
 # *** todo: make DYNLIB, but need to add to user's dyn lib path, or exec only
 # works from the top-level makefile dir:
 fortran: $(CMCLOBJS) $(STATICLIB)
