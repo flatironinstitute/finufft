@@ -158,12 +158,6 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		printf("[time  ] \tUnspread (%d)\t\t %.3g s\n", milliseconds/1000,
 			d_plan->opts.gpu_method);
 #endif
-
-		cudaEventRecord(start);
-#if 0
-		if(d_plan->nstreams != 1)
-			cudaDeviceSynchronize();
-#endif
 	}
 	return ier;
 }

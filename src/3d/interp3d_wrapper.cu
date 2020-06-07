@@ -207,38 +207,18 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_p
 
 	cudaEventRecord(start);
 	if(d_plan->opts.gpu_kerevalmeth){
-#if 0
-		cudaStream_t *streams = d_plan->streams;
-		int nstreams = d_plan->nstreams;
-		for(int t=0; t<d_plan->maxbatchsize; t++){
-			Interp_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
-				streams[t%nstreams]>>>(d_kx, d_ky, d_kz, d_c+t*M, 
-				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma);
-		}
-#else 
 		for(int t=0; t<blksize; t++){
 			Interp_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 
 				0>>>(d_kx, d_ky, d_kz, d_c+t*M, 
 				d_fw+t*nf1*nf2*nf3, M, ns, nf1, nf2, nf3, sigma, d_idxnupts,
 				pirange);
 		}
-#endif
 	}else{
-#if 0
-		cudaStream_t *streams = d_plan->streams;
-		int nstreams = d_plan->nstreams;
-		for(int t=0; t<d_plan->maxbatchsize; t++){
-			Interp_3d_NUptsdriven<<<blocks, threadsPerBlock, 0, streams[t%nstreams]
-				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
-				nf1, nf2, nf3,es_c, es_beta);
-		}
-#else
 		for(int t=0; t<blksize; t++){
 			Interp_3d_NUptsdriven<<<blocks, threadsPerBlock, 0, 0 
 				>>>(d_kx, d_ky, d_kz, d_c+t*M, d_fw+t*nf1*nf2*nf3, M, ns, 
 				nf1, nf2, nf3,es_c, es_beta, d_idxnupts,pirange);
 		}
-#endif
 	}
 #ifdef SPREADTIME
 	float milliseconds = 0;
