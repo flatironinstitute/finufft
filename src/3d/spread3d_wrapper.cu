@@ -684,7 +684,9 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	checkCudaErrors(cudaMemcpy(&totalNUpts,&d_binstartpts[n],
 		sizeof(int),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMalloc(&d_idxnupts,totalNUpts*sizeof(int)));
+#ifdef DEBUG
 	checkCudaErrors(cudaMemset(d_idxnupts,-1,totalNUpts*sizeof(int)));
+#endif
 	cudaEventRecord(start);
 	CalcInvertofGlobalSortIdx_ghost<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,
 		bin_size_y,bin_size_z,numobins[0],numobins[1],numobins[2],binsperobinx,
