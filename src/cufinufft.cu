@@ -261,25 +261,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 		d_plan->ky = d_ky;
 	if(dim > 2)
 		d_plan->kz = d_kz;
-#if 0
-	// Copy memory to device
-	cudaEventRecord(start);
-	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,d_plan->M*sizeof(FLT),
-		cudaMemcpyHostToDevice));
-	if(dim > 1)
-		checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,d_plan->M*sizeof(FLT),
-			cudaMemcpyHostToDevice));
-	if(dim > 2)
-		checkCudaErrors(cudaMemcpy(d_plan->kz,h_kz,d_plan->M*sizeof(FLT),
-			cudaMemcpyHostToDevice));
-		
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tCopy kx,ky,kz HtoD\t %.3g s\n", milliseconds/1000);
-#endif
-#endif
+
 	cudaEventRecord(start);
 	switch(d_plan->dim)
 	{
