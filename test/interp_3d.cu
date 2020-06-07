@@ -139,9 +139,7 @@ int main(int argc, char* argv[])
 	char *a;
 	timer.restart();
 	checkCudaErrors(cudaMalloc(&a,1));
-#ifdef TIME
 	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() <<" s"<<endl<<endl;
-#endif
 
 #ifdef INFO
 	cout<<"[info  ] Interpolating  ["<<nf1<<"x"<<nf2<<"x"<<nf3<<
