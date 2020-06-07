@@ -28,10 +28,10 @@ void set_nf_type12(BIGINT ms, cufinufft_opts opts, spread_opts spopts,
   *nf = (BIGINT)(opts.upsampfac*ms);
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
   if (*nf<MAX_NF){                                // otherwise will fail anyway
-  	if (opts.gpu_method == 4)                     // expensive at huge nf
-    	*nf = next235beven(*nf, bs);
-	else
-        *nf = next235even(*nf);
+    if (opts.gpu_method == 4)                     // expensive at huge nf
+      *nf = next235beven(*nf, bs);
+    else
+      *nf = next235beven(*nf, 1);
   }
 }
 

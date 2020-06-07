@@ -81,25 +81,6 @@ void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
   }
 }
 
-BIGINT next235even(BIGINT n)
-// finds even integer not less than n, with prime factors no larger than 5
-// (ie, "smooth"). Adapted from fortran in hellskitchen.  Barnett 2/9/17
-// changed INT64 type 3/28/17. Runtime is around n*1e-11 sec for big n.
-{
-  if (n<=2) return 2;
-  if (n%2 == 1) n+=1;   // even
-  BIGINT nplus = n-2;   // to cancel out the +=2 at start of loop
-  BIGINT numdiv = 2;    // a dummy that is >1
-  while (numdiv>1) {
-    nplus += 2;         // stays even
-    numdiv = nplus;
-    while (numdiv%2 == 0) numdiv /= 2;  // remove all factors of 2,3,5...
-    while (numdiv%3 == 0) numdiv /= 3;
-    while (numdiv%5 == 0) numdiv /= 5;
-  }
-  return nplus;
-}
-
 BIGINT next235beven(BIGINT n, BIGINT b)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth") and is a multiple of b (b is a number that the only prime 
