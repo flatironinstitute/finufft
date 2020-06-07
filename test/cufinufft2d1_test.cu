@@ -160,19 +160,7 @@ int main(int argc, char* argv[])
 	int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
 	printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it]));
 	printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it])/infnorm(N,fk));
-#if 0
-	cout<<"[result-input]"<<endl;
-	for(int j=0; j<nf2; j++){
-		//        if( j % opts.gpu_binsizey == 0)
-		//                printf("\n");
-		for (int i=0; i<nf1; i++){
-			//                if( i % opts.gpu_binsizex == 0 && i!=0)
-			//                        printf(" |");
-			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
-		}
-		cout<<endl;
-	}
-#endif	
+
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);

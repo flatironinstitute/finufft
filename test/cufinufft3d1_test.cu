@@ -158,6 +158,7 @@ int main(int argc, char* argv[])
 
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
+
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2), nt3 = (int) (0.13*N3);  // choose some mode index to check
 	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
 	for (BIGINT j=0; j<M; ++j)
@@ -168,19 +169,7 @@ int main(int argc, char* argv[])
 		(int)nt2, (int)nt3, (abs(Ft-fk[it])));
 	printf("[gpu   ] one mode: rel err in F[%ld,%ld,%ld] is %.3g\n",(int)nt1,
 		(int)nt2, (int)nt3, abs(Ft-fk[it])/infnorm(N,fk));
-#if 0
-	cout<<"[result-input]"<<endl;
-	for(int j=0; j<nf2; j++){
-		//        if( j % opts.bin_size_y == 0)
-		//                printf("\n");
-		for (int i=0; i<nf1; i++){
-			//                if( i % opts.bin_size_x == 0 && i!=0)
-			//                        printf(" |");
-			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
-		}
-		cout<<endl;
-	}
-#endif	
+
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);

@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,M,nf1*nf2,t,M/t);
-#if 0
+#ifdef RESULT
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<nf2; j++){
 		if( j % dplan.opts.gpu_binsizey == 0)

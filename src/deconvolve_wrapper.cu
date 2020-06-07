@@ -171,7 +171,7 @@ int cudeconvolve3d(cufinufft_plan *d_plan, int blksize)
 			Amplify_3d<<<(nmodes+256-1)/256, 256>>>(ms, mt, mu, nf1, nf2, nf3,
 				d_plan->fw+t*nf1*nf2*nf3, d_plan->fk+t*nmodes, 
 				d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);
-#if 0
+#ifdef DEBUG
 			CPX* h_fw;
 			h_fw = (CPX*) malloc(nf1*nf2*nf3*sizeof(CPX));
 			checkCudaErrors(cudaMemcpy(h_fw,d_plan->fw,nf1*nf2*nf3*sizeof(CUCPX),

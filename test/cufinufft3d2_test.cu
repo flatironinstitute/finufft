@@ -176,7 +176,7 @@ int main(int argc, char* argv[])
 	
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
-#if 1
+
 	int jt = M/2;          // check arbitrary choice of one targ pt
 	CPX J = IMA*(FLT)iflag;
 	CPX ct = CPX(0,0);
@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
 				ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt] + m3*z[jt]));   // crude direct
 	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,
 		abs(c[jt]-ct)/infnorm(M,c));
-#endif	
+
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(z);
