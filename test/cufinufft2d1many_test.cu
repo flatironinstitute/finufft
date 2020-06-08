@@ -162,7 +162,6 @@ int main(int argc, char* argv[])
 		cudaMemcpyDeviceToHost));
 
 	int i = (int) (0.13*ntransf); // // choose some data to check
-	printf("i = %d\n", i);
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
 	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
 	for (BIGINT j=0; j<M; ++j)
