@@ -33,7 +33,7 @@
 %  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
 %     interfaces.
 %
-% Main author: Libin Lu, started May 2020; edits/doc by Alex Barnett.
+% Main author: Libin Lu, started May 2020; edits & docs by Alex Barnett.
 
 $ #include <finufft.h>
 $ #include <mex.h>
@@ -42,9 +42,10 @@ $ #include <cstring>
 $ #include <math.h>
 
 
+% .........................................................................
 % This C++ code overwrites any properties of nufft_opts *oc with any valid
-% fields in the matlab struct *om...
-
+% fields in the matlab struct *om.
+%
 $ void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
 $   if(!mxIsStruct(om))
 $     mexErrMsgIdAndTxt("MATLAB:copy_nufft_opts:inputNotStruct","Input must be a structure.");
@@ -89,6 +90,8 @@ $     }
 $     else if (strcmp(fname[ifield],"maxbatchsize") == 0) {
 $       oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
+$     else if (strcmp(fname[ifield],"nthreads") == 0)
+$       mexWarnMsgIdAndTxt("MATLAB:copy_nufft_opts:nthreadsObsolete","FINUFFT opts.nthreads is obsolete from v1.2, does nothing; please use maxNumCompThreads.");
 $     else
 $       continue;
 $   }

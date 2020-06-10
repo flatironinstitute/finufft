@@ -35,11 +35,11 @@ OMPLIBS = -lgomp
 MOMPFLAGS = -D_OPENMP
 OOMPFLAGS = 
 # MATLAB MEX compilation (OO for new interface; int64 for mwrap 0.33.9)...
-MFLAGS := -largeArrayDims -DR2008OO -D_INT64_T
+MFLAGS := -largeArrayDims -DR2008OO
 # location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
 MEX = mex
 # octave mkoctfile...
-OFLAGS = -DR2008OO -D_INT64_T
+OFLAGS = -DR2008OO
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 # absolute path of this makefile, ie FINUFFT's top-level directory...
@@ -280,7 +280,7 @@ else
 endif
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
-# (needs mwrap, moreover the correct version, eg 0.33.9)
+# (needs mwrap, moreover a recent version, eg 0.33.10)
 mex: matlab/finufft.mw
 	(cd matlab;\
 	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
