@@ -10,11 +10,12 @@
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C, using C complex type,
    with a math test. Double-precision. Barnett 3/10/17. Opts control 6/19/18.
+   fixed to not pass by ref (!), 6/9/20.
 
    Compile with:
-   gcc -fopenmp example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lfftw3_omp -lm -lstdc++
+   gcc -fopenmp example1d1c.c -I../include ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lfftw3_omp -lm -lstdc++
    or if you have built a single-core version:
-   gcc example1d1c.c ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lm -lstdc++
+   gcc example1d1c.c -I../include ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lm -lstdc++
 
    Usage: ./example1d1c
 */
@@ -36,13 +37,14 @@ int main(int argc, char* argv[])
   // allocate complex output array for the Fourier modes
   F = (double complex*)malloc(sizeof(double complex)*N);
 
-  nufft_opts opts;
-  finufft_default_opts(&opts);            // set default opts (must do this)
-  opts.debug=2;                           // show how to override a default
-  //opts.upsampfac =1.25;                 // other opts...
+  nufft_opts *popts;                      // pts to opts
+  popts = (nufft_opts *)malloc(sizeof(nufft_opts));  // allocate it
+  finufft_default_opts(popts);            // set default opts (must do this)
+  popts->debug=2;                         // show how to override a default
+  //opts->upsampfac =1.25;                 // other opts...
   
   // call the NUFFT (with iflag=+1); this is the same code as from C++:
-  ier = finufft1d1(M,x,c,+1,acc,N,F,&opts);
+  ier = finufft1d1(M,x,c,+1,acc,N,F,popts);
 
   n = 142519;         // check the answer just for this mode...
   Ftest = 0.0;
@@ -57,6 +59,6 @@ int main(int argc, char* argv[])
   err = cabs(F[nout] - Ftest)/Fmax;
   printf("1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
 
-  free(x); free(c); free(F);
+  free(x); free(c); free(F); free(popts);
   return ier;
 }

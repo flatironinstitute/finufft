@@ -28,7 +28,7 @@ CXXFLAGS := $(CFLAGS)
 FFTWNAME = fftw3
 # the following uses fftw3_omp, since 10% faster than fftw3_threads...
 FFTWOMPSUFFIX = omp
-LIBS = -lm
+LIBS := -lm
 # multithreading for GCC: C++/C/Fortran, MATLAB, and octave (ICC differs)...
 OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
@@ -86,13 +86,15 @@ FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
 LIBS += $(OMPLIBS)
-LIBSFFT = -l$(FFTW) -l$(FFTW)_$(FFTWOMPSUFFIX) $(OMPLIBS)
+LIBSFFT = -l$(FFTW) -l$(FFTW)_$(FFTWOMPSUFFIX) $(LIBS)
 endif
 
 # decide name of obj files and finufft library we're building...
 LIBNAME = libfinufft$(PRECSUFFIX)
 DYNLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
+# absolute path to the .so, useful for portable executables...
+ABSDYNLIB = $(FINUFFT)/$(DYNLIB)
 # ======================================================================
 
 
@@ -164,20 +166,25 @@ EX = examples/example1d1$(PRECSUFFIX)
 EXC = examples/example1d1c$(PRECSUFFIX)
 EX2 = examples/example2d1
 EXG = examples/guru1d1
+ifeq ($(PRECSUFFIX),f)
+EXS = $(EX) $(EXC)
+else
 EXS = $(EX) $(EXC) $(EX2) $(EXG)
+endif
 
 examples: $(EXS)
 # use shell script to execute all in list. shell doesn't use $(E); $$ escapes $
 	(for E in $(EXS); do ./$$E; done)
 
+# compile examples; note absolute .so path so executable anywhere, dep libs not needed to be listed...
 $(EX): $(EX).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EX).o $(DYNLIB) $(LIBSFFT) -o $(EX)
+	$(CXX) $(CXXFLAGS) $(EX).o $(ABSDYNLIB) -o $(EX)
 $(EX2): $(EX2).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EX2).o $(DYNLIB) $(LIBSFFT) -o $(EX2)
+	$(CXX) $(CXXFLAGS) $(EX2).o $(ABSDYNLIB) -o $(EX2)
 $(EXC): $(EXC).o $(DYNLIB)
-	$(CC) $(CFLAGS) $(EXC).o $(DYNLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
+	$(CC) $(CFLAGS) $(EXC).o $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
 $(EXG): $(EXG).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EXG).o $(DYNLIB) $(LIBSFFT) -o $(EXG)
+	$(CXX) $(CXXFLAGS) $(EXG).o $(ABSDYNLIB) -o $(EXG)
 
 # validation tests... (some link to .o allowing testing pieces separately)
 TESTS = test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
@@ -194,6 +201,7 @@ test: $(STATICLIB) $(TESTS)
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
 	./check_finufft.sh)
 
+# these all link to .o rather than the lib.so, for simplicity...
 test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
 test/testutils: test/testutils.cpp src/utils.o

@@ -1,5 +1,5 @@
 // this is all you must include...
-#include "../src/finufft.h"
+#include <finufft.h>
 // also needed for this example...
 #include <stdlib.h>
 #include <math.h>
@@ -11,11 +11,12 @@ int main(int argc, char* argv[])
    with a math test.
    Single-precision version (must be linked with single-precision libfinufft.a)
    Barnett 4/5/17. opts ctrl, t1 prefac convention, smaller prob size 9/14/18
+   fixed to not pass by ref (!), 6/9/20.
 
    Compile with:
-   gcc -fopenmp example1d1cf.c ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lfftw3f_omp -lm -lstdc++
+   gcc -fopenmp example1d1cf.c -I../include ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lfftw3f_omp -lm -lstdc++
    or if you have built a single-core version:
-   gcc example1d1cf.c ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lm -lstdc++
+   gcc example1d1cf.c -I../include ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lm -lstdc++
 
    Usage: ./example1d1cf
 */
@@ -37,13 +38,14 @@ int main(int argc, char* argv[])
   // allocate complex output array for the Fourier modes
   F = (float complex*)malloc(sizeof(float complex)*N);
 
-  nufft_opts opts;
-  finufft_default_opts(&opts);            // set default opts (must do this)
-  opts.debug = 2;                         // show how to override a default
-  //opts.upsampfac =1.25;                 // other opts...
+  nufft_opts *popts;                       // ptr to opts
+  popts = (nufft_opts *)malloc(sizeof(nufft_opts));  // allocate it
+  finufft_default_opts(popts);             // set default opts (must do this)
+  popts->debug = 2;                        // show how to override a default
+  //popts->upsampfac =1.25;                // other opts...
   
   // call the NUFFT (with iflag=+1); this is the same code as from C++:
-  ier = finufft1d1(M,x,c,+1,acc,N,F,opts);
+  ier = finufft1d1(M,x,c,+1,acc,N,F,popts);
 
   n = 14251;   // check the answer just for this mode...
   Ftest = 0.0;
@@ -58,6 +60,6 @@ int main(int argc, char* argv[])
   err = cabsf(F[nout] - Ftest)/Fmax;
   printf("1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
 
-  free(x); free(c); free(F);
+  free(x); free(c); free(F); free(popts);
   return ier;
 }

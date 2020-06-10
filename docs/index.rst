@@ -54,7 +54,7 @@ One interpretation of :eq:`1d1` is: the returned values $f_k$ are the
 *Fourier series coefficients* of the $2\pi$-periodic
 distribution $f(x) := \sum_{j=1}^M c_j \delta(x-x_j)$,
 a sum of point-masses with arbitrary locations $x_j$ and strengths $c_j$.
-Such exponential sums are needed in many applications in science and engineering, including signal processing (scattered data interpolation, applying convolutional transforms, fast summation), imaging (cryo-EM, CT, MRI gridding, coherent diffraction),
+Such exponential sums are needed in many applications in science and engineering, including signal processing (scattered data interpolation, applying convolutional transforms, fast summation), imaging (cryo-EM, CT, MRI gridding, coherent diffraction, VLBI astronomy),
 and numerical analysis
 (computing Fourier *transforms* of functions,
 moving between non-conforming quadrature grids,
@@ -62,7 +62,7 @@ solving partial differential equations).
 See our :ref:`tutorials and demos<tut>` pages
 and the :ref:`related works<related>`
 for examples of how to use the NUFFT in applications.
-In fact, there are many application areas where it has been overlooked
+In fact, there are several application areas where it has been overlooked
 that the needed computation is simply a NUFFT
 (eg, particle-mesh Ewald in molecular dynamics).
 
@@ -103,19 +103,31 @@ provided by other libraries, such as NFFT3, that FINUFFT does not provide.
 Do I even need a NUFFT?
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Maybe you already know that your application needs a NUFFT.
-For instance, if you need Fourier transforms or power spectra
-but have data on non-equispaced grids, you may be able to
-rewrite your task as one of the :ref:`three transform types<math>`.
-To help decide, see the :ref:`tutorials and demos<tut>`.
-If so, and both $M$ and $N$ are larger than of order $10^2$, FINUFFT may
+A user's need for a nonuniform fast Fourier transform is often obscured
+by the lack of mathematical description in science application areas.
+Therefore, read
+our :ref:`tutorials and demos<tut>` to try and match to your task.
+Write the task in terms of one of the
+:ref:`three transform types<math>`.
+If both $M$ and $N$ are larger than of order $10^2$, FINUFFT should
 be the ticket.
-However, if $M$ and/or $N$ is small (of order $10$ or less)
-you should simply evaluate the sums directly.
-Another scenario is that you wish to evaluate, eg, :eq:`1d1` repeatedly with
-the same set of nonuniform points $x_j$ but *fresh* strength vectors
+However, if $M$ and/or $N$ is small (of order $10$ or less),
+there is no need for a "fast" algorithm: simply evaluate the sums directly.
+
+If you need to fit off-grid data to a Fourier representation
+(eg, if you have off-grid $\mathbf{k}$-space samples of an unknown image)
+but you
+do not have *quadrature weights* for the off-grid points, you may
+need to *invert* the NUFFT, which actually means solving a large linear system;
+see the :ref:`tutorials and demos<tut>` and :ref:`references<refs>` [GLI] [KKP].
+Poor coverage of the nonuniform point set leads to ill-conditioning and
+a heavy reliance on regularization.
+
+Another scenario is that you wish to evaluate a forward transform such as
+:eq:`1d1` repeatedly with
+the same set of nonuniform points $x_j$, but *fresh* strength vectors
 $\{c_j\}_{j=1}^M$, as in the "many vectors" interface mentioned above.
-In that case it may be better to fill the $N$-by-$M$ matrix $A$ with entries
+In that case it may be even faster to fill an $N$-by-$M$ matrix $A$ with entries
 $a_{kj} = e^{ik x_j}$, then use BLAS3 (eg ``ZGEMM``) to compute $F = AC$,
 where each column of $F$ and $C$ is a new instance of :eq:`1d1`.
 If you have very many columns this can be competitive with a NUFFT

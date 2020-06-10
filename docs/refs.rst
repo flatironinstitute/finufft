@@ -40,7 +40,7 @@ J. A. Fessler and B. P. Sutton. IEEE Trans. Sig. Proc., 51(2):560-74, (Feb. 2003
 [DFT] How exponentially ill-conditioned are contiguous submatrices of the Fourier matrix? A. H. Barnett, submitted, SIAM Rev. (2020).
 `arxiv version <https://arxiv.org/abs/2004.09643>`_
 
-The appendix of the last of these contains the first known published proof
+The appendix of the last of the above contains the first known published proof
 of the Kaiser--Bessel Fourier transform pair.
 
 FINUFFT builds upon the CMCL NUFFT, and the Fortran wrappers are very similar to its interfaces. For that, the following are references:
@@ -48,6 +48,10 @@ FINUFFT builds upon the CMCL NUFFT, and the Fortran wrappers are very similar to
 [GL] Accelerating the Nonuniform Fast Fourier Transform. L. Greengard and J.-Y. Lee. SIAM Review 46, 443 (2004).
 
 [LG] The type 3 nonuniform FFT and its applications. J.-Y. Lee and L. Greengard. J. Comput. Phys. 206, 1 (2005).
+
+Inversion of the NUFFT is covered in [KKP] above and in:
+
+[GLI] The fast sinc transform and image reconstruction from nonuniform samples in $\mathbf{k}$-space. L. Greengard, J.-Y. Lee and S. Inati, Commun. Appl. Math. Comput. Sci (CAMCOS) 1(1) 121-131 (2006).
 
 The original NUFFT analysis using truncated Gaussians is (the second
 improving upon the first):
