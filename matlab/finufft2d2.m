@@ -17,7 +17,6 @@ function [c ier] = finufft2d2(x,y,isign,eps,f,o)
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps    precision requested (>1e-16)
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.nthreads sets requested number of threads (else automatic)
 %     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
@@ -29,6 +28,8 @@ function [c ier] = finufft2d2(x,y,isign,eps,f,o)
 %           1 : eps too small
 %           2 : size of arrays to malloc exceed MAX_NF
 %           other codes: as returned by cnufftspread
+%
+% All available threads are used; control how many with maxNumCompThreads
 
 if nargin<6, o.dummy=1; end
 [ms,mt,n_transf] = size(f);
