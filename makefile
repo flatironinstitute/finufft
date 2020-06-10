@@ -32,8 +32,8 @@ LIBS := -lm
 # multithreading for GCC: C++/C/Fortran, MATLAB, and octave (ICC differs)...
 OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
-MOMPFLAGS = -lgomp -D_OPENMP
-OOMPFLAGS = -lgomp
+MOMPFLAGS = -D_OPENMP
+OOMPFLAGS = 
 # MATLAB MEX compilation (OO for new interface; int64 for mwrap 0.33.9)...
 MFLAGS := -largeArrayDims -DR2008OO -D_INT64_T
 # location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
@@ -44,15 +44,14 @@ OFLAGS = -DR2008OO -D_INT64_T
 MWRAP = mwrap
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+# tell tests & examples where to find header files...
+INCL = -Iinclude
 
 # For your OS, override the above by placing make variables in make.inc ...
 # (Please look in make.inc.* for ideas)
 -include make.inc
 
 # now come flags that should be added, whatever you overrode in make.inc
-# to prevent 
-# tell tests & examples where to find header files...
-INCL = -Iinclude
 # the NEED_EXTERN_C directive tells common.cpp to include plain C header
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
@@ -267,7 +266,7 @@ matlab: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "MATLAB interface only supports double precision; doing nothing"
 else
-	$(MEX) matlab/finufft_plan_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/finufft_plan_mex
+	$(MEX) matlab/finufft.cpp $(STATICLIB) $(INCL) $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 endif
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
@@ -275,16 +274,16 @@ octave: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "Octave interface only supports double precision; doing nothing"
 else
-	(cd matlab; mkoctfile --mex finufft_plan_mex.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft_plan_mex)
+	(cd matlab; mkoctfile --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave test/guru1dtest.m)
 endif
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
 # (needs mwrap, moreover the correct version, eg 0.33.9)
-mex: matlab/finufft_plan.mw
+mex: matlab/finufft.mw
 	(cd matlab;\
-	$(MWRAP) -mex finufft_plan_mex -c finufft_plan_mex.cpp -mb -cppcomplex finufft_plan.mw)
+	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
 
 # python interfaces (v3 assumed)...
 python: $(STATICLIB)
@@ -316,6 +315,7 @@ test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
 	OMP_NUM_THREADS=1 test/manysmallprobs
 
 
+
 # ------------- Cleaning up (including *all* versions of lib, and interfaces)...
 clean: objclean pyclean
 	rm -f $(STATICLIB) $(DYNLIB)
@@ -338,6 +338,6 @@ pyclean:
 	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 	rm -rf python/fixed_wheel python/wheelhouse
 
-# for experts; only do this if you have mwrap to rebuild the interfaces!
+# for experts; only run this if you have mwrap to rebuild the interfaces!
 mexclean:
-	rm -f matlab/finufft.cpp matlab/finufft?d?.m matlab/finufft?d?many.m matlab/finufft.mex*
+	rm -f matlab/finufft_plan.m matlab/finufft.cpp matlab/finufft.mex*

@@ -1,11 +1,49 @@
-% finufft_plan.mw
-%   FINUFFT plan wrapper
+% finufft.mw
+% MWrap MEX interface descriptor file for FINUFFT, using the new guru interface.
+% This provides an object-oriented style interface to the guru interface, by
+% mirroring the finufft_plan C++ object with a matlab object "finufft_plan".
+% The OO use makes it compatible only with MATLAB R2008a or later, and octave
+% version 4.4 or later.
+%
+% To match the object name, generated matlab interface is (and must be) called
+% finufft_plan.m; see Path Folders here:
+% https://www.mathworks.com/help/matlab/matlab_oop/organizing-classes-in-folders.html
+%
+% Hints for linux/GNU build (see ../makefile for definitive build):
+% To generate the MEX C++ file, run these both:
+%
+% mwrap -list -mex finufft -cppcomplex -mb finufft.mw
+% mwrap -mex finufft -c finufft.cpp -cppcomplex finufft.mw
+%
+% Then to compile for matlab:
+% mex finufft.cpp ../lib/libfinufft.a -largeArrayDims -DR2008OO -D_INT64_T -lfftw3_omp -lfftw3 -lgomp -lm
+% And to compile for octave:
+% mkoctfile --mex finufft.cpp ../lib/libfinufft.a -DR2008OO -D_INT64_T -lfftw3_omp -lfftw3 -lgomp -lm
+% Don't forget to add this directory to your matlab/octave path.
+%
+% See also: finufft?d?.m in this directory for the simple/many interfaces which
+% call finufft_plan.m, or test/guru1dtest.m for direct example.
+%
+% Notes:
+%  0) see mwrap documentation for how this type of .mw file works:
+%     https://github.com/zgimbutas/mwrap
+%  1) Double-precision only for now.
+%  2) in the FINUFFT library, BIGINT type must be int64_t, as is default.
+%     Since int64_t is hardwired in the below, MEX will break otherwise.
+%  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
+%     interfaces.
+%
+% Main author: Libin Lu, started May 2020; edits/doc by Alex Barnett.
 
 $ #include <finufft.h>
 $ #include <mex.h>
 $ #include <iostream>
 $ #include <cstring>
 $ #include <math.h>
+
+
+% This C++ code overwrites any properties of nufft_opts *oc with any valid
+% fields in the matlab struct *om...
 
 $ void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
 $   if(!mxIsStruct(om))
@@ -68,6 +106,8 @@ $ }
 classdef finufft_plan < handle
 
   properties
+% this is a dummy property to tell MWrap to treat this in OO way...
+% (mwptr = MWrap-pointer, not MathWorks!)
     mwptr;
   end
 
