@@ -122,8 +122,8 @@ usage:
 	@echo " make python - compile and test python interfaces"	
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
 	@echo " make spreadtest - compile and run spreader tests only"
-	@echo " make objclean - remove all object files, preserving lib & MEX"
-	@echo " make clean - also remove lib, MEX, py, and demo executables"
+	@echo " make objclean - remove all object files, preserving libs & MEX"
+	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo "For faster (multicore) making, append the flag -j"
 	@echo ""
 	@echo "Compile options: 'make [task] PREC=SINGLE' for single-precision"
@@ -166,7 +166,7 @@ EX = examples/example1d1$(PRECSUFFIX)
 EXC = examples/example1d1c$(PRECSUFFIX)
 EX2 = examples/example2d1
 EXG = examples/guru1d1
-ifeq ($(PRECSUFFIX),f)
+ifeq ($(PREC),SINGLE)
 EXS = $(EX) $(EXC)
 else
 EXS = $(EX) $(EXC) $(EX2) $(EXG)
@@ -254,11 +254,9 @@ F6 = $(FE)/nufft3d_demo$(PRECSUFFIX)
 F7 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
 # GNU make trick to get list of executables to compile... (how auto 1 2... ?)
 F = $(foreach V, 1 2 3 4 5 6 7, $(F$V))
-# *** todo: make DYNLIB, but need to add to user's dyn lib path, or exec only
-# works from the top-level makefile dir:
-fortran: $(CMCLOBJS) $(STATICLIB)
+fortran: $(CMCLOBJS) $(DYNLIB)
 	for i in $(F); do \
-	$(FC) $(FFLAGS) $$i.f $(CMCLOBJS) $(STATICLIB) $(LIBSFFT) $(FLINK) -o $$i ; \
+	$(FC) $(FFLAGS) $$i.f $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $$i ; \
 	./$$i ; \
 	done
 # (that was a bash script loop; note $$'s here are escaped dollar signs)
@@ -299,7 +297,7 @@ else
 	python python/test/run_accuracy_tests.py
 endif
 
-# *** please document these in make tasks echo above...:
+# python packaging: *** please document these in make tasks echo above...
 wheel: $(STATICLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; python -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
 
@@ -318,16 +316,23 @@ test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
 	OMP_NUM_THREADS=1 test/manysmallprobs
 
 
-# ------------- Cleaning up (including all versions of lib, and interfaces)...
+# ------------- Cleaning up (including *all* versions of lib, and interfaces)...
 clean: objclean pyclean
-	rm -f lib-static/*.a lib/*.so
+	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
-	rm -f $(TESTS) test/results/*.out $(F) $(EXS) examples/example1d1 examples/example1d1c examples/example1d1f examples/example1d1cf
+	rm -f $(TESTS) test/results/*.out
+# recursion hack to clean up all example single-prec, executables too...
+# (note it's possible to clean single only, but not double only)
+ifneq ($(PREC),SINGLE)
+	make clean PREC=SINGLE
+else
+	rm -f $(EXS) $(F)
+endif
 
-# this is needed before changing precision or threading...
+# indiscriminate .o killer: needed before changing precision or threading...
 objclean:
 	rm -f $(OBJS) test/directft/*.o test/*.o
-	rm -f fortran/*.o examples/*.o matlab/*.o $(CMCLOBJS)
+	rm -f fortran/*.o fortran/examples/*.o examples/*.o matlab/*.o $(CMCLOBJS)
 
 pyclean:
 	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
