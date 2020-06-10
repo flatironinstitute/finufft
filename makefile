@@ -34,13 +34,13 @@ OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
 MOMPFLAGS = -lgomp -D_OPENMP
 OOMPFLAGS = -lgomp
-# flags for MATLAB MEX compilation...
-MFLAGS = -largeArrayDims
-# location of MATLAB's mex compiler...
+# MATLAB MEX compilation (OO for new interface; int64 for mwrap 0.33.9)...
+MFLAGS := -largeArrayDims -DR2008OO -D_INT64_T
+# location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
 MEX = mex
-# flags for octave mkoctfile...
-OFLAGS =
-# For experts, location of MWrap executable (see docs/install.rst):
+# octave mkoctfile...
+OFLAGS = -DR2008OO -D_INT64_T
+# For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -161,7 +161,7 @@ $(DYNLIB): $(OBJS)
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 # Also note -l libs come after objects, as per modern GCC requirement.
 
-# Examples in C++ and C... (exist separate codes for double vs single prec)
+# Examples in C++ and C... (single prec codes separate, and not all have one)
 EX = examples/example1d1$(PRECSUFFIX)
 EXC = examples/example1d1c$(PRECSUFFIX)
 EX2 = examples/example2d1
@@ -179,10 +179,10 @@ examples: $(EXS)
 # compile examples; note absolute .so path so executable anywhere, dep libs not needed to be listed...
 $(EX): $(EX).o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $(EX).o $(ABSDYNLIB) -o $(EX)
-$(EX2): $(EX2).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EX2).o $(ABSDYNLIB) -o $(EX2)
 $(EXC): $(EXC).o $(DYNLIB)
 	$(CC) $(CFLAGS) $(EXC).o $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
+$(EX2): $(EX2).o $(DYNLIB)
+	$(CXX) $(CXXFLAGS) $(EX2).o $(ABSDYNLIB) -o $(EX2)
 $(EXG): $(EXG).o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $(EXG).o $(ABSDYNLIB) -o $(EXG)
 
@@ -264,11 +264,12 @@ fortran: $(CMCLOBJS) $(STATICLIB)
 # (that was a bash script loop; note $$'s here are escaped dollar signs)
 
 # matlab .mex* executable... (not worth starting matlab to test it)
+# note various -D defines; INT64_T needed for mwrap 0.33.9.
 matlab: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "MATLAB interface only supports double precision; doing nothing"
 else
-	$(MEX) -DR2008OO matlab/finufft_plan_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/finufft_plan_mex
+	$(MEX) matlab/finufft_plan_mex.cpp $(STATICLIB) -Iinclude $(MFLAGS) $(LIBSFFT) -output matlab/finufft_plan_mex
 endif
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
@@ -276,13 +277,13 @@ octave: $(STATICLIB)
 ifeq ($(PREC),SINGLE)
 	@echo "Octave interface only supports double precision; doing nothing"
 else
-	(cd matlab; mkoctfile --mex -DR2008OO finufft_plan_mex.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft_plan_mex)
+	(cd matlab; mkoctfile --mex finufft_plan_mex.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft_plan_mex)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave test/guru1dtest.m)
 endif
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
-# (needs mwrap)
+# (needs mwrap, moreover the correct version, eg 0.33.9)
 mex: matlab/finufft_plan.mw
 	(cd matlab;\
 	$(MWRAP) -mex finufft_plan_mex -c finufft_plan_mex.cpp -mb -cppcomplex finufft_plan.mw)

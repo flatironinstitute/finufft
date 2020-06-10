@@ -4,14 +4,14 @@ Acknowledgments
 ===============
 
 FINUFFT was initiated by Jeremy Magland and Alex Barnett at the
-Center for Computational Mathematics, Flatiron Institute.
+Center for Computational Mathematics, Flatiron Institute in early 2017.
 The main developer and maintainer is:
 
 * Alex Barnett
 
 Major code contributions by:
 
-* Jeremy Magland - multithreaded spreader, benchmark vs other codes
+* Jeremy Magland - early multithreaded spreader, benchmark vs other libraries
 * Ludvig af Klinteberg - SIMD vectorization/acceleration of spreader, julia wrapper
 * Yu-Hsuan ("Melody") Shih - 2d1many, 2d2many vectorized interface, GPU version
 * Andrea Malleo - guru interface prototype and tests
@@ -19,7 +19,7 @@ Major code contributions by:
   
 Other significant code contributions by:
 
-* Joakim Andén - catching bugs, Matlab/FFTW issues, performance tests, python
+* Joakim Andén - catching bugs, MATLAB/FFTW issues, performance tests, python
 * Leslie Greengard and June-Yub Lee - CMCL Fortran test drivers
 * Dan Foreman-Mackey - early python wrappers
 * David Stein - python wrappers

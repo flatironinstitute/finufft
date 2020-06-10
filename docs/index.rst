@@ -16,10 +16,10 @@ on a multi-core shared-memory machine.
 It is extremely fast (typically achieving $10^6$ to $10^8$ points
 per second),
 has very simple interfaces to most major numerical languages
-(C/C++, fortran, MATLAB, octave, python, and julia),
+(C/C++, Fortran, MATLAB, octave, python, and julia),
 but also has more advanced (vectorized and "guru") interfaces that
 allow multiple strength vectors and the reuse of FFT plans.
-It is written in C++ (with limited use of ++ features), OpenMP, and calls
+It is written in C++ (with limited use of ++ features), OpenMP, and uses
 `FFTW <http://www.fftw.org>`_.
 It has been developed at the `Center for Computational Mathematics
 <https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/>`_ at the `Flatiron Institute <https://www.simonsfoundation.org/flatiron>`_,
@@ -133,7 +133,7 @@ where each column of $F$ and $C$ is a new instance of :eq:`1d1`.
 If you have very many columns this can be competitive with a NUFFT
 even for $M$ and $N$ up to $10^4$, because BLAS3 is so fast.
 
-Contents of remainder of documentation
+Documentation contents
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    
 .. toctree::
