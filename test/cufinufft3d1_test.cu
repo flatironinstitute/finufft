@@ -101,6 +101,8 @@ int main(int argc, char* argv[])
 	ier=cufinufft_default_opts(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
+
+	/* if not set, some hard coded values for the bin size are used */
 	switch(method){
 		case 1:
 		case 2:
@@ -108,17 +110,6 @@ int main(int argc, char* argv[])
 				dplan.opts.gpu_binsizex = 8;
 				dplan.opts.gpu_binsizey = 8;
 				dplan.opts.gpu_binsizez = 2;
-				dplan.opts.gpu_maxsubprobsize = 4096;
-			}
-			break;
-		case 4:
-			{
-				dplan.opts.gpu_binsizex = 4;
-				dplan.opts.gpu_binsizey = 4;
-				dplan.opts.gpu_binsizez = 4;
-				dplan.opts.gpu_obinsizex = 8;
-				dplan.opts.gpu_obinsizey = 8;
-				dplan.opts.gpu_obinsizez = 8;
 				dplan.opts.gpu_maxsubprobsize = 4096;
 			}
 			break;

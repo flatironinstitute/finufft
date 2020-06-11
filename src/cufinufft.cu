@@ -12,6 +12,56 @@
 
 using namespace std;
 
+void setup_binsize(int type, int dim, cufinufft_opts *opts)
+{
+	switch(dim)
+	{
+		case 2:
+		{
+			opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32: 
+				opts->gpu_binsizex;
+			opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 32:
+				opts->gpu_binsizey;
+			opts->gpu_binsizez = 1;
+		}
+		break;
+		case 3:
+		{
+			switch(opts->gpu_method)
+			{
+				case 1:
+				case 2:
+				{
+					opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 16:
+						opts->gpu_binsizex;
+					opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 16:
+						opts->gpu_binsizey;
+					opts->gpu_binsizez = (opts->gpu_binsizez < 0) ? 2:
+						opts->gpu_binsizez;
+				}
+				break;
+				case 4:
+				{
+					opts->gpu_obinsizex = (opts->gpu_obinsizex < 0) ? 8:
+						opts->gpu_obinsizex;
+					opts->gpu_obinsizey = (opts->gpu_obinsizey < 0) ? 8:
+						opts->gpu_obinsizey;
+					opts->gpu_obinsizez = (opts->gpu_obinsizez < 0) ? 8:
+						opts->gpu_obinsizez;
+					opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 4:
+						opts->gpu_binsizex;
+					opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 4:
+						opts->gpu_binsizey;
+					opts->gpu_binsizez = (opts->gpu_binsizez < 0) ? 4:
+						opts->gpu_binsizez;
+				}
+				break;
+			}
+		}
+		break;
+	}
+}
+
 int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, 
 	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan)
 /*
@@ -55,6 +105,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	d_plan->mt = nmodes[1];
 	d_plan->mu = nmodes[2];
 
+	setup_binsize(type, dim, &d_plan->opts);
 	int nf1=1, nf2=1, nf3=1;
 	set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1, 
 				  d_plan->opts.gpu_obinsizex);
@@ -477,19 +528,21 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 */
 {
 	int ier;
+	opts->upsampfac = (FLT)2.0;
+
 	/* following options are for gpu */
 	opts->gpu_nstreams = 0;
 	opts->gpu_kerevalmeth = 1; // using Horner ppval
 	opts->gpu_sort = 1; // access nupts in an ordered way for nupts driven method
 
 	opts->gpu_maxsubprobsize = 1024;
-	opts->gpu_obinsizex = 8;
-	opts->gpu_obinsizey = 8;
-	opts->gpu_obinsizez = 8;
+	opts->gpu_obinsizex = -1;
+	opts->gpu_obinsizey = -1;
+	opts->gpu_obinsizez = -1;
 
-	opts->gpu_binsizex = 8;
-	opts->gpu_binsizey = 8;
-	opts->gpu_binsizez = 2;
+	opts->gpu_binsizex = -1;
+	opts->gpu_binsizey = -1;
+	opts->gpu_binsizez = -1;
 
 	switch(dim)
 	{
@@ -501,18 +554,11 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 		}
 		case 2:
 		{
-			opts->gpu_maxsubprobsize = 1024;
 			if(type == 1){
 				opts->gpu_method = 2;
-				opts->gpu_binsizex = 32;
-				opts->gpu_binsizey = 32;
-				opts->gpu_binsizez = 1;
 			}
 			if(type == 2){
 				opts->gpu_method = 1;
-				opts->gpu_binsizex = 32;
-				opts->gpu_binsizey = 32;
-				opts->gpu_binsizez = 1;
 			}
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
@@ -523,18 +569,11 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 		break;
 		case 3:
 		{
-			opts->gpu_maxsubprobsize = 1024;
 			if(type == 1){
 				opts->gpu_method = 2;
-				opts->gpu_binsizex = 16;
-				opts->gpu_binsizey = 16;
-				opts->gpu_binsizez = 2;
 			}
 			if(type == 2){
 				opts->gpu_method = 1;
-				opts->gpu_binsizex = 16;
-				opts->gpu_binsizey = 16;
-				opts->gpu_binsizez = 2;
 			}
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
@@ -545,6 +584,5 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 		break;
 	}
 
-	opts->upsampfac = (FLT)2.0;
 	return 0;
 }
