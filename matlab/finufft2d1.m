@@ -21,7 +21,7 @@ function [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 %           in either case the mode range is integers lying in [-m/2, (m-1)/2]
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
-%     opts.fftw: 0 (use FFTW_ESTIMATE, default), 1 (use FFTW_MEASURE)
+%     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)

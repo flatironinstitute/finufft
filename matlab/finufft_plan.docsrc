@@ -1,0 +1,6 @@
+% FINUFFT_PLAN  create plan object for general nonuniform FFT(s).
+%
+% [plan] = finufft_plan(type, n_modes, iflag, n_transf, tol, opts)
+%
+% blah
+

@@ -32,8 +32,7 @@
        oc->chkbnds = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
      else if (strcmp(fname[ifield],"fftw") == 0) {
-       int fftw = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-       oc->fftw = !fftw ? FFTW_ESTIMATE : FFTW_MEASURE;  
+       oc->fftw = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
      else if (strcmp(fname[ifield],"modeord") == 0) {
        oc->modeord = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
@@ -48,7 +47,7 @@
        oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
      else if (strcmp(fname[ifield],"nthreads") == 0)
-       mexWarnMsgIdAndTxt("MATLAB:copy_nufft_opts:nthreadsObsolete","FINUFFT opts.nthreads is obsolete from v1.2, does nothing; please use maxNumCompThreads.");
+       mexWarnMsgIdAndTxt("MATLAB:copy_nufft_opts:nthreadsObsolete","FINUFFT opts.nthreads is obsolete, does nothing; please use maxNumCompThreads.");
      else
        continue;
    }

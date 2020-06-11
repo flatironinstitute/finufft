@@ -1,0 +1,23 @@
+% FINUFFT1D1  1D complex nonuniform FFT of type 1 (nonuniform to uniform).
+%
+% [f ier] = finufft1d1(x,c,isign,eps,ms)
+% [f ier] = finufft1d1(x,c,isign,eps,ms,opts)
+%
+% This computes:
+%
+%               nj
+%     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
+%              j=1
+%   Inputs:
+%     x     location of sources on interval [-3pi,3pi], length nj
+%     c     size-nj complex array of source strengths
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps     precision requested (>1e-16)
+%     ms     number of Fourier modes computed, may be even or odd;
+%            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+STARTOPTS
+STOPOPTS
+%   Outputs:
+%     f     size-ms double complex array of Fourier transform values
+STARTTAIL
+STOPTAIL

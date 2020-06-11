@@ -1,0 +1,22 @@
+% FINUFFT1D2   1D complex nonuniform FFT of type 2 (uniform to nonuniform).
+%
+% [c ier] = finufft1d2(x,isign,eps,f)
+% [c ier] = finufft1d2(x,isign,eps,f,opts)
+%
+% This computes:
+%
+%    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
+%            k1
+%     where sum is over -ms/2 <= k1 <= (ms-1)/2.
+%
+%  Inputs:
+%     x     location of NU targets on interval [-3pi,3pi], length nj
+%     f     complex Fourier transform values
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps    precision requested (>1e-16)
+STARTOPTS
+STOPOPTS
+%  Outputs:
+%     c     complex double array of nj answers at targets
+STARTTAIL
+STOPTAIL

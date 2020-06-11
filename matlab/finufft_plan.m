@@ -10,11 +10,12 @@ classdef finufft_plan < handle
   methods
 
     function [plan] = finufft_plan(type, n_modes, iflag, n_transf, tol, opts)
+    % FINUFFT_PLAN
       mex_id_ = 'finufft_mex_setup()';
 finufft(mex_id_);
       mex_id_ = 'o finufft_plan* = new()';
 [p] = finufft(mex_id_);
-      plan.mwptr = p;
+      plan.mwptr = p;             % alex asks is this needed? 
       assert(type==1 || type==2 || type==3);
       if type==3
         assert(length(n_modes)==1);
