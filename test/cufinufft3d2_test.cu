@@ -87,20 +87,6 @@ int main(int argc, char* argv[])
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	/*warm up gpu*/
-	cudaEventRecord(start);
-	{
-		PROFILE_CUDA_GROUP("Warm Up",1);
-		char *a;
-		checkCudaErrors(cudaMalloc(&a,1));
-	}
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tWarm up GPU \t\t %.3g s\n", milliseconds/1000);
-#endif
-
 	cufinufft_plan dplan;
 	int dim = 3;
 	int type = 2;

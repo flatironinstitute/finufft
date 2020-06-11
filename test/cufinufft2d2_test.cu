@@ -78,20 +78,6 @@ int main(int argc, char* argv[])
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	/*warm up gpu*/
-	cudaEventRecord(start);
-	{
-		PROFILE_CUDA_GROUP("Warm Up",1);
-		char *a;
-		checkCudaErrors(cudaMalloc(&a,1));
-	}
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tWarm up GPU \t\t %.3g s\n", milliseconds/1000);
-#endif
-
 	cufinufft_plan dplan;
 	int dim = 2;
 	int type = 2;
@@ -113,12 +99,11 @@ int main(int argc, char* argv[])
 			printf("err: cufinufft2d_plan\n");
 		}
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
-#endif
+
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_setNUpts",3);
@@ -140,23 +125,21 @@ int main(int argc, char* argv[])
 			printf("err: cufinufft2d2_exec\n");
 		}
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
-#endif
+
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_destroy",5);
 		ier=cufinufft_destroy(&dplan);
 	}
-#ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
-#endif
+
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 	int jt = M/2;          // check arbitrary choice of one targ pt
 	CPX J = IMA*(FLT)iflag;
