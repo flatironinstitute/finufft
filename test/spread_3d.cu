@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&fw,nf1*nf2*nf3*sizeof(CPX));
 	switch(nupts_distribute){
 		// Making data
-		case 1: //uniform
+		case 0: //uniform
 			{
 				for (int i = 0; i < M; i++) {
 					x[i] = RESCALE(M_PI*randm11(), nf1, 1);
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 				}
 			}
 			break;
-		case 2: // concentrate on a small region
+		case 1: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
 					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);
@@ -113,6 +113,7 @@ int main(int argc, char* argv[])
 			break;
 		default:
 			cerr << "not valid nupts distr" << endl;
+			return 1;
 	}
 
 	CNTime timer;
