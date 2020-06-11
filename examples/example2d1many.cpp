@@ -12,11 +12,11 @@ int main(int argc, char* argv[])
  * example code for 2D Type 1 transformation.
  *
  * To compile the code:
- * 	nvcc -DSINGLE example2d1many.cpp -o example2d1 /loc/to/cufinufft/lib-static/libcufinufftf.a -lcudart -lcufft -lnvToolsExt
+ * 	nvcc -DSINGLE example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include /loc/to/cufinufft/lib-static/libcufinufftf.a -lcudart -lcufft -lnvToolsExt
  * 
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
- * nvcc -DSINGLE example2d1many.cpp -L/loc/to/cufinufft/lib/ -o example2d1 -lcufinufftf
+ * nvcc -DSINGLE example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include -L/loc/to/cufinufft/lib/ -lcufinufftf
  *
  *
  */
@@ -27,8 +27,8 @@ int main(int argc, char* argv[])
 	int N1 = 256;
 	int N2 = 256;
 	int M = 65536;
-	int ntransf = 1;
-	int ntransfcufftplan = 1;
+	int ntransf = 2;
+	int maxbatchsize = 1;
 	int iflag=1;
 	FLT tol=1e-6;
 
@@ -63,15 +63,16 @@ int main(int argc, char* argv[])
 
 	int dim = 2;
 	int nmodes[3];
+	int type = 1;
 
-	ier=cufinufft_default_opts(type1, dim, dplan.opts);
+	ier=cufinufft_default_opts(type, dim, &dplan.opts);
 
 	nmodes[0] = N1;
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 
-	ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, 
-		ntransfcufftplan, &dplan);
+	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
+		maxbatchsize, &dplan);
 
 	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 
@@ -83,7 +84,7 @@ int main(int argc, char* argv[])
 
 	cout<<endl<<"Accuracy check:"<<endl;
 	int N = N1*N2;
-	for(int i=0; i<ntransf; i+=5){
+	for(int i=0; i<ntransf; i+=1){
 		int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
 		CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
 		for (BIGINT j=0; j<M; ++j)

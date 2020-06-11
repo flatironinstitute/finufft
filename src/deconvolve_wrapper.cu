@@ -109,7 +109,7 @@ int cudeconvolve2d(cufinufft_plan *d_plan, int blksize)
 	int nf1=d_plan->nf1;
 	int nf2=d_plan->nf2;
 	int nmodes=ms*mt;
-	int ntransfcufftplan=d_plan->ntransfcufftplan;
+	int maxbatchsize=d_plan->maxbatchsize;
 
 	if(d_plan->spopts.spread_direction == 1){
 		for(int t=0; t<blksize; t++){
@@ -118,7 +118,7 @@ int cudeconvolve2d(cufinufft_plan *d_plan, int blksize)
 				d_plan->fwkerhalf2);
 		}
 	}else{
-		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*
+		checkCudaErrors(cudaMemset(d_plan->fw,0,maxbatchsize*nf1*nf2*
 			sizeof(CUCPX)));
 		for(int t=0; t<blksize; t++){
 			Amplify_2d<<<(nmodes+256-1)/256, 256>>>(ms, 
@@ -157,7 +157,7 @@ int cudeconvolve3d(cufinufft_plan *d_plan, int blksize)
 	int nf2=d_plan->nf2;
 	int nf3=d_plan->nf3;
 	int nmodes=ms*mt*mu;
-	int ntransfcufftplan=d_plan->ntransfcufftplan;
+	int maxbatchsize=d_plan->maxbatchsize;
 	if(d_plan->spopts.spread_direction == 1){
 		for(int t=0; t<blksize; t++){
 			Deconvolve_3d<<<(nmodes+256-1)/256, 256>>>(ms, mt, mu, nf1, nf2, 
@@ -165,7 +165,7 @@ int cudeconvolve3d(cufinufft_plan *d_plan, int blksize)
 				d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);
 		}
 	}else{
-		checkCudaErrors(cudaMemset(d_plan->fw,0,ntransfcufftplan*nf1*nf2*nf3*
+		checkCudaErrors(cudaMemset(d_plan->fw,0,maxbatchsize*nf1*nf2*nf3*
 			sizeof(CUCPX)));
 		for(int t=0; t<blksize; t++){
 			Amplify_3d<<<(nmodes+256-1)/256, 256>>>(ms, mt, mu, nf1, nf2, nf3,

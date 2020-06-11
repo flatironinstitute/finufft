@@ -13,7 +13,7 @@
 using namespace std;
 
 int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, 
-	int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan)
+	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan)
 /*
 	"plan" stage: 
 	
@@ -71,7 +71,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	d_plan->nf3 = nf3;	
 	d_plan->iflag = fftsign;
 	d_plan->ntransf = ntransf;
-	d_plan->ntransfcufftplan = ntransfcufftplan;
+	d_plan->maxbatchsize = maxbatchsize;
 	d_plan->type = type;
 
 	if(d_plan->type == 1)
@@ -157,7 +157,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 			//cufftCreate(&fftplan);
 			//cufftPlan2d(&fftplan,n[0],n[1],CUFFT_TYPE);
 			cufftPlanMany(&fftplan,dim,n,inembed,1,inembed[0]*inembed[1],
-				inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,ntransfcufftplan);
+				inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,maxbatchsize);
 		}
 		break;
 		case 3:
@@ -168,7 +168,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 			int istride = 1;
 			cufftPlanMany(&fftplan,dim,n,inembed,istride,inembed[0]*inembed[1]*
 				inembed[2],inembed,istride,inembed[0]*inembed[1]*inembed[2],
-				CUFFT_TYPE,ntransfcufftplan);
+				CUFFT_TYPE,maxbatchsize);
 		}
 		break;
 	}
@@ -461,7 +461,7 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
+int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 /*
 	"default_opts" stage:
 	
@@ -478,18 +478,18 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 {
 	int ier;
 	/* following options are for gpu */
-	opts.gpu_nstreams = 0;
-	opts.gpu_kerevalmeth = 1; // using Horner ppval
-	opts.gpu_sort = 1; // access nupts in an ordered way for nupts driven method
+	opts->gpu_nstreams = 0;
+	opts->gpu_kerevalmeth = 1; // using Horner ppval
+	opts->gpu_sort = 1; // access nupts in an ordered way for nupts driven method
 
-	opts.gpu_maxsubprobsize = 1024;
-	opts.gpu_obinsizex = 8;
-	opts.gpu_obinsizey = 8;
-	opts.gpu_obinsizez = 8;
+	opts->gpu_maxsubprobsize = 1024;
+	opts->gpu_obinsizex = 8;
+	opts->gpu_obinsizey = 8;
+	opts->gpu_obinsizez = 8;
 
-	opts.gpu_binsizex = 8;
-	opts.gpu_binsizey = 8;
-	opts.gpu_binsizez = 2;
+	opts->gpu_binsizex = 8;
+	opts->gpu_binsizey = 8;
+	opts->gpu_binsizez = 2;
 
 	switch(dim)
 	{
@@ -501,18 +501,18 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 		}
 		case 2:
 		{
-			opts.gpu_maxsubprobsize = 1024;
+			opts->gpu_maxsubprobsize = 1024;
 			if(type == 1){
-				opts.gpu_method = 2;
-				opts.gpu_binsizex = 32;
-				opts.gpu_binsizey = 32;
-				opts.gpu_binsizez = 1;
+				opts->gpu_method = 2;
+				opts->gpu_binsizex = 32;
+				opts->gpu_binsizey = 32;
+				opts->gpu_binsizez = 1;
 			}
 			if(type == 2){
-				opts.gpu_method = 1;
-				opts.gpu_binsizex = 32;
-				opts.gpu_binsizey = 32;
-				opts.gpu_binsizez = 1;
+				opts->gpu_method = 1;
+				opts->gpu_binsizex = 32;
+				opts->gpu_binsizey = 32;
+				opts->gpu_binsizez = 1;
 			}
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
@@ -523,18 +523,18 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 		break;
 		case 3:
 		{
-			opts.gpu_maxsubprobsize = 1024;
+			opts->gpu_maxsubprobsize = 1024;
 			if(type == 1){
-				opts.gpu_method = 2;
-				opts.gpu_binsizex = 16;
-				opts.gpu_binsizey = 16;
-				opts.gpu_binsizez = 2;
+				opts->gpu_method = 2;
+				opts->gpu_binsizex = 16;
+				opts->gpu_binsizey = 16;
+				opts->gpu_binsizez = 2;
 			}
 			if(type == 2){
-				opts.gpu_method = 1;
-				opts.gpu_binsizex = 16;
-				opts.gpu_binsizey = 16;
-				opts.gpu_binsizez = 2;
+				opts->gpu_method = 1;
+				opts->gpu_binsizex = 16;
+				opts->gpu_binsizey = 16;
+				opts->gpu_binsizez = 2;
 			}
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
@@ -545,6 +545,6 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts &opts)
 		break;
 	}
 
-	opts.upsampfac = (FLT)2.0;
+	opts->upsampfac = (FLT)2.0;
 	return 0;
 }

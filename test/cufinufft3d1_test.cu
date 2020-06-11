@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 	cufinufft_plan dplan;
 	int dim = 3;
 	int type = 1;
-	ier=cufinufft_default_opts(type, dim, dplan.opts);
+	ier=cufinufft_default_opts(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 	switch(method){
@@ -126,13 +126,13 @@ int main(int argc, char* argv[])
 
 	int nmodes[3];
 	int ntransf = 1;
-	int ntransfcufftplan = 1;
+	int maxbatchsize = 1;
 	nmodes[0] = N1;
 	nmodes[1] = N2;
 	nmodes[2] = N3;
 	cudaEventRecord(start);
 	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
-		ntransfcufftplan, &dplan);
+		maxbatchsize, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_makeplan\n");
 	}

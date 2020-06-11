@@ -36,15 +36,15 @@ int cufinufft2d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
-	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
-		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
-			d_plan->ntransfcufftplan);
-		d_cstart   = d_c + i*d_plan->ntransfcufftplan*d_plan->M;
-		d_fkstart  = d_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt;
+	for(int i=0; i*d_plan->maxbatchsize < d_plan->ntransf; i++){
+		blksize = min(d_plan->ntransf - i*d_plan->maxbatchsize, 
+			d_plan->maxbatchsize);
+		d_cstart   = d_c + i*d_plan->maxbatchsize*d_plan->M;
+		d_fkstart  = d_fk + i*d_plan->maxbatchsize*d_plan->ms*d_plan->mt;
 		d_plan->c  = d_cstart;
 		d_plan->fk = d_fkstart;
 
-		checkCudaErrors(cudaMemset(d_plan->fw,0,d_plan->ntransfcufftplan*
+		checkCudaErrors(cudaMemset(d_plan->fw,0,d_plan->maxbatchsize*
 					d_plan->nf1*d_plan->nf2*sizeof(CUCPX)));// this is needed
 #ifdef TIME
 		float milliseconds = 0;
@@ -116,11 +116,11 @@ int cufinufft2d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	int ier;
 	CUCPX* d_fkstart;
 	CUCPX* d_cstart;
-	for(int i=0; i*d_plan->ntransfcufftplan < d_plan->ntransf; i++){
-		blksize = min(d_plan->ntransf - i*d_plan->ntransfcufftplan, 
-			d_plan->ntransfcufftplan);
-		d_cstart  = d_c  + i*d_plan->ntransfcufftplan*d_plan->M;
-		d_fkstart = d_fk + i*d_plan->ntransfcufftplan*d_plan->ms*d_plan->mt;
+	for(int i=0; i*d_plan->maxbatchsize < d_plan->ntransf; i++){
+		blksize = min(d_plan->ntransf - i*d_plan->maxbatchsize, 
+			d_plan->maxbatchsize);
+		d_cstart  = d_c  + i*d_plan->maxbatchsize*d_plan->M;
+		d_fkstart = d_fk + i*d_plan->maxbatchsize*d_plan->ms*d_plan->mt;
 
 		d_plan->c = d_cstart;
 		d_plan->fk = d_fkstart;

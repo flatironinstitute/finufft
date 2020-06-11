@@ -16,7 +16,7 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 {
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
-	int ntransfcufftplan = d_plan->ntransfcufftplan;
+	int maxbatchsize = d_plan->maxbatchsize;
 
 	d_plan->byte_now=0;
 	// No extra memory is needed in nuptsdriven method (case 1)
@@ -74,9 +74,9 @@ int allocgpumem2d_plan(cufinufft_plan *d_plan)
 			cerr << "err: invalid method " << endl;
 	}
 
-	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*
+	checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*
 			sizeof(CUCPX)));
-	//checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*
+	//checkCudaErrors(cudaMalloc(&d_plan->fk,maxbatchsize*ms*mt*
 	//	sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
@@ -97,11 +97,11 @@ int allocgpumem2d_nupts(cufinufft_plan *d_plan)
 */
 {
 	int M = d_plan->M;
-	//int ntransfcufftplan = d_plan->ntransfcufftplan;
+	//int maxbatchsize = d_plan->maxbatchsize;
 
 	//checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
 	//checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	//checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
+	//checkCudaErrors(cudaMalloc(&d_plan->c,maxbatchsize*M*sizeof(CUCPX)));
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -208,7 +208,7 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int nf3 = d_plan->nf3;
-	int ntransfcufftplan = d_plan->ntransfcufftplan;
+	int maxbatchsize = d_plan->maxbatchsize;
 
 	d_plan->byte_now=0;
 	// No extra memory is needed in nuptsdriven method;
@@ -278,14 +278,14 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 		default:
 			cerr << "err: invalid method" << endl;
 	}
-	checkCudaErrors(cudaMalloc(&d_plan->fw, ntransfcufftplan*nf1*nf2*nf3*
+	checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*nf3*
 		sizeof(CUCPX)));
 
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3,(nf3/2+1)*sizeof(FLT)));
 #if 0
-	checkCudaErrors(cudaMalloc(&d_plan->fk,ntransfcufftplan*ms*mt*mu*
+	checkCudaErrors(cudaMalloc(&d_plan->fk,maxbatchsize*ms*mt*mu*
 		sizeof(CUCPX)));
 #endif
 #if 0
@@ -306,7 +306,7 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 */
 {
 	int M = d_plan->M;
-	int ntransfcufftplan = d_plan->ntransfcufftplan;
+	int maxbatchsize = d_plan->maxbatchsize;
 
 	d_plan->byte_now=0;
 	// No extra memory is needed in nuptsdriven method;
@@ -338,7 +338,7 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->kz,M*sizeof(FLT)));
 #endif
-	checkCudaErrors(cudaMalloc(&d_plan->c,ntransfcufftplan*M*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_plan->c,maxbatchsize*M*sizeof(CUCPX)));
 
 	return 0;
 }

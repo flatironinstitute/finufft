@@ -12,11 +12,11 @@ int main(int argc, char* argv[])
  * example code for 2D Type 1 transformation.
  *
  * To compile the code:
- * 	nvcc -DSINGLE example2d2many.cpp -o example2d2many ../lib-static/libcufinufftf.a -I/loc/to/cufinufft/src/ -lcudart -lcufft -lnvToolsExt
+ * 	nvcc -DSINGLE example2d2many.cpp -o example2d2many loc/to/cufinufft/lib-static/libcufinufftf.a -I/loc/to/cufinufft/include -lcudart -lcufft -lnvToolsExt
  * 
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
- * nvcc -DSINGLE example2d2many.cpp -L/loc/to/cufinufft/lib/ -I/loc/to/cufinufft/src/ -o example2d1 -lcufinufftf
+ * nvcc -DSINGLE example2d2many.cpp -L/loc/to/cufinufft/lib/ -I/loc/to/cufinufft/include -o example2d1 -lcufinufftf
  *
  *
  */
@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 	int N2 = 128;
 	int M = 10;
 	int ntransf = 4;
-	int ntransfcufftplan = 4;
+	int maxbatchsize = 4;
 	int iflag=1;
 	float tol=1e-6;
 
@@ -63,15 +63,16 @@ int main(int argc, char* argv[])
 
 	int dim = 2;
 	int nmodes[3];
+	int type = 2;
 
-	ier=cufinufft_default_opts(type2, dim, dplan.opts);
+	ier=cufinufft_default_opts(type, dim, &dplan.opts);
 
 	nmodes[0] = N1;
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 
-	ier=cufinufft_makeplan(type2, dim, nmodes, iflag, ntransf, tol, 
-		ntransfcufftplan, &dplan);
+	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
+		maxbatchsize, &dplan);
 
 	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 

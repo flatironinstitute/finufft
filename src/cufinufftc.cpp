@@ -4,13 +4,13 @@ extern "C" {
 
 int cufinufftc_default_opts(int type, int dim, cufinufft_opts *opts)
 {
-    return cufinufft_default_opts(type, dim, *opts);
+    return cufinufft_default_opts(type, dim, opts);
 }
 
 int cufinufftc_makeplan(int type, int dim, int *n_modes, int iflag,
-    int ntransf, FLT tol, int ntransfcufftplan, cufinufft_plan *d_plan)
+    int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan)
 {
-    return cufinufft_makeplan(type, dim, n_modes, iflag, ntransf, tol, ntransfcufftplan, d_plan);
+    return cufinufft_makeplan(type, dim, n_modes, iflag, ntransf, tol, maxbatchsize, d_plan);
 }
 
 int cufinufftc_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT

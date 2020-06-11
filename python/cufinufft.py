@@ -66,7 +66,7 @@ CufinufftPlan._fields_ = [
     ('mt', c_int),
     ('mu', c_int),
     ('ntransf', c_int),
-    ('ntransfcufftplan', c_int),
+    ('maxbatchsize', c_int),
     ('iflag', c_int),
     ('totalnumsubprob', c_int),
     ('byte_now', c_int),

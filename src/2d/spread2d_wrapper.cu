@@ -37,7 +37,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	d_plan->nf1 = nf1;
 	d_plan->nf2 = nf2;
 	d_plan->M = M;
-	d_plan->ntransfcufftplan = 1;
+	d_plan->maxbatchsize = 1;
 
 	cudaEventRecord(start);
 	ier = allocgpumem2d_plan(d_plan);
