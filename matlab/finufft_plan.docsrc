@@ -1,24 +1,35 @@
 % FINUFFT_PLAN   is a class which wraps the guru interface to FINUFFT.
 %
+%  Full documentation is given in ../finufft-manual.pdf and online at
+%  http://finufft.readthedocs.io
+%
+% PROPERTIES
+%   mwptr - pointer to a C++ finufft_plan object (see MWrap manual).
+%
 % METHODS
-
-
+%   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
+%   finufft_setpts  - process nonuniform points for general NUFFT transform(s).
+%   finufft_exec - execute single or many-vector NUFFT transforms in a plan.
+%   finufft_destroy - deallocate (delete) a nonuniform FFT plan.
+%
+%
+%
 % =========== Detailed description of methods =================================
 %
-%   FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
+% 1) FINUFFT_PLAN create guru plan object for one/many general nonuniform FFTs.
 %
-% [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
-% [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
+% [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
+% [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
 %
 % Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
-%  type 1,2 or 3.
+%  type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
 %
 % Inputs: 
 %     type            transform type, 1, 2, or 3
 %     n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
 %                     dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
 %                     Its length sets the dimension, which must be 1, 2 or 3.
-%                     If type is 3, in constrast, its value sets the dimension.
+%                     If type is 3, in contrast, its value equals the dimension.
 %     iflag           if >=0, uses + sign in exponential, otherwise - sign
 %     eps             precision requested (>1e-16)
 OPTS
@@ -29,4 +40,23 @@ OPTS12
 IER
 %
 % Notes:
+%  * For type 1 and 2, this does the FFTW planning and kernel-FT precomputation.
+%  * For type 3, this does very little, since the FFT sizes are not yet known.
+%  * All available threads are planned; control how many with maxNumCompThreads.
+%  * For more details about the opts fields, see ../docs/opts.rst
+%
+%
+% 2) FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
+%
+% 
+%
+
+%
+%
+% 4) FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
+%
+% Usage: p.finufft_destroy; where p is a finufft_plan object.
+%
+% Note: since this is a handle class, one may instead clean up with: clear p;
+
 

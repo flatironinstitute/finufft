@@ -16,7 +16,7 @@ do
         # we define all tags here
         case $line in
             OPTS)
-                # start of opts description, common to all routines
+                # opts descriptions common to all routines
                 cat opts.docbit
                 ;;
             OPTS12)
@@ -24,9 +24,11 @@ do
                 cat opts12.docbit
                 ;;
             IER)
+                # error codes summary
                 cat ier.docbit
                 ;;
             NOTES)
+                # notes for the simple/many interfaces, not guru
                 cat notes.docbit
                 ;;
             *)
@@ -58,3 +60,5 @@ done
 
 # clean up
 rm -f *.docexp
+
+# debug note: to debug, best to echo "$stuff" 1>&2   so it goes to stderr.

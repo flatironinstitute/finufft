@@ -33,7 +33,7 @@ figure(1); clf;
 Mp = 1e4;               % how many pts to plot
 jplot = 1:Mp;           % indices to plot
 plot(x(jplot),real(c(jplot)),'b.'); axis tight; xlabel('x'); ylabel('Re f(x)');
-set(gcf,'paperposition',[0 0 10 2.5]); print -dpng ../../docs/pics/fser1d.png
+%set(gcf,'paperposition',[0 0 10 2.5]); print -dpng ../../docs/pics/fser1d.png
 
 % check with evaluation of same series on Mp uniform points via FFT
 fk_pad = [zeros((Mp-N)/2,1); fk; zeros((Mp-N)/2,1)];  % column pad with zeros

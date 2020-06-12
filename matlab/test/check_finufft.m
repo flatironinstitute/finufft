@@ -8,7 +8,7 @@ clear     % choose params...
 isign   = +1;     % sign of imaginary unit in exponential
 eps     = 1e-6;   % requested accuracy
 o.debug = 0;      % choose 1 for timing breakdown text output
-o.fftw = 64;
+FFTW_ESTIMATE = bitshift(1,6); o.fftw = FFTW_ESTIMATE;       % or see fftw3.h
 o.upsampfac=1.25; % 2.0 (default) or 1.25 (low-RAM, small-FFT)
 M       = 1e6;    % # of NU pts (in all dims)
 N       = 1e6;    % # of modes (approx total, used in all dims)

@@ -14,7 +14,7 @@
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps     precision requested (>1e-16)
 %     ms     number of Fourier modes computed, may be even or odd;
-%            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+%            in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
 OPTS
 OPTS12
 %   Outputs:

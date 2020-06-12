@@ -1,4 +1,3 @@
-
 % FINUFFT1D1   1D complex nonuniform FFT of type 1 (nonuniform to uniform).
 %
 % [f ier] = finufft1d1(x,c,isign,eps,ms)
@@ -15,12 +14,17 @@
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps     precision requested (>1e-16)
 %     ms     number of Fourier modes computed, may be even or odd;
-%            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+%            in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
 %     opts   optional struct with optional fields controlling the following:
-%     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+%     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+%     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+%     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+%     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+%     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+%     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+%     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+%     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
 %   Outputs:
@@ -53,6 +57,8 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 if nargin<6, o.dummy=1; end            % make a dummy options struct
 n_transf = round(numel(c)/numel(x));   % back out how many transf
 if n_transf*numel(x)~=numel(c), error('the number of elements of c must be divisible by the number of elements of x'); end
-p = finufft_plan(1,ms,isign,n_transf,eps,o);
-p.finufft_setpts(x,[],[],[],[],[]);
+[p ier] = finufft_plan(1,ms,isign,n_transf,eps,o);
+assert(ier<2,'finufft_plan ier=%d\n',ier);    % *** keep trying here
+if ier>0, return; end
+ier = p.finufft_setpts(x,[],[],[],[],[]);
 [f,ier] = p.finufft_exec(c);

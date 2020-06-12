@@ -111,7 +111,7 @@ classdef finufft_plan < handle
   properties
 % this is a dummy property to tell MWrap to treat this in OO way...
 % (mwptr = MWrap-pointer, not MathWorks!)
-    mwptr;
+    mwptr
   end
 
   methods
@@ -120,7 +120,7 @@ classdef finufft_plan < handle
 % FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
       # finufft_mex_setup();
       # finufft_plan* p = new finufft_plan();
-      plan.mwptr = p;                        % alex asks: is this needed? 
+      plan.mwptr = p;         % I see this copies p.12 of mwrap doc, but why?
       assert(type==1 || type==2 || type==3);
       n_modes = ones(3,1);    % dummy for type 3
       if type==3
@@ -201,7 +201,7 @@ classdef finufft_plan < handle
       elseif type==3
         # int64_t nk = get_nk(finufft_plan* plan);
         # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[nk, n_transf] result);
-      else
+      else                 % something went horribly wrong; output something
         result = [];       % why was it 4?
         ier = 1;
       end

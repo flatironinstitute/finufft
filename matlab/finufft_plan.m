@@ -1,27 +1,47 @@
 % FINUFFT_PLAN   is a class which wraps the guru interface to FINUFFT.
 %
-% METHODS
-%   FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
+%  Full documentation is given in ../finufft-manual.pdf and online at
+%  http://finufft.readthedocs.io
 %
-% [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
-% [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
+% PROPERTIES
+%   mwptr - pointer to a C++ finufft_plan object (see MWrap manual).
+%
+% METHODS
+%   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
+%   finufft_setpts  - process nonuniform points for general NUFFT transform(s).
+%   finufft_exec - execute single or many-vector NUFFT transforms in a plan.
+%   finufft_destroy - deallocate (delete) a nonuniform FFT plan.
+%
+%
+%
+% =========== Detailed description of methods =================================
+%
+% 1) FINUFFT_PLAN create guru plan object for one/many general nonuniform FFTs.
+%
+% [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
+% [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
 %
 % Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
-%  type 1,2 or 3.
+%  type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
 %
 % Inputs: 
 %     type            transform type, 1, 2, or 3
 %     n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
 %                     dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
 %                     Its length sets the dimension, which must be 1, 2 or 3.
-%                     If type is 3, in constrast, its value sets the dimension.
+%                     If type is 3, in contrast, its value equals the dimension.
 %     iflag           if >=0, uses + sign in exponential, otherwise - sign
 %     eps             precision requested (>1e-16)
 %     opts   optional struct with optional fields controlling the following:
-%     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+%     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+%     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+%     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+%     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+%     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+%     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+%     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+%     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     for type 1 and 2 only, the following opts fields are active:
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
@@ -42,20 +62,33 @@
 %          12 : dimension invalid (guru)
 %
 % Notes:
-%  * All available threads are used; control how many with maxNumCompThreads.
-%  * The above documents the simple (single-transform) interface. To transform
-%    ntrans vectors together with the same nonuniform points, add a final
-%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * For type 1 and 2, this does the FFTW planning and kernel-FT precomputation.
+%  * For type 3, this does very little, since the FFT sizes are not yet known.
+%  * All available threads are planned; control how many with maxNumCompThreads.
 %  * For more details about the opts fields, see ../docs/opts.rst
-%  * Full documentation is given in ../finufft-manual.pdf and online at
-%    http://finufft.readthedocs.io
+%
+%
+% 2) FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
+%
+% 
+%
+
+%
+%
+% 4) FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
+%
+% Usage: p.finufft_destroy; where p is a finufft_plan object.
+%
+% Note: since this is a handle class, one may instead clean up with: clear p;
+
+
 
 classdef finufft_plan < handle
 
   properties
 % this is a dummy property to tell MWrap to treat this in OO way...
 % (mwptr = MWrap-pointer, not MathWorks!)
-    mwptr;
+    mwptr
   end
 
   methods
@@ -66,7 +99,7 @@ classdef finufft_plan < handle
 finufft(mex_id_);
       mex_id_ = 'o finufft_plan* = new()';
 [p] = finufft(mex_id_);
-      plan.mwptr = p;                        % alex asks: is this needed? 
+      plan.mwptr = p;         % I see this copies p.12 of mwrap doc, but why?
       assert(type==1 || type==2 || type==3);
       n_modes = ones(3,1);    % dummy for type 3
       if type==3
@@ -145,7 +178,7 @@ finufft(mex_id_, plan);
 [nk] = finufft(mex_id_, plan);
         mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_transf);
-      else
+      else                 % something went horribly wrong; output something
         result = [];       % why was it 4?
         ier = 1;
       end

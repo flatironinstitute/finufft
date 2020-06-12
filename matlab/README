@@ -28,17 +28,18 @@ The simple interfaces finufft?d?.m are short wrappers to the
 finufft_plan.m object methods.
 
 
-* Documentation:
+* Documentation generation:
 
 The source of MATLAB documentation is *.docsrc, which are matlab comment
-blocks, plus tokens indicating insertion of repeated text blocks.
-Our bash script addmhelp.sh uses *.docsrc write help comment blocks into
-the *.m files, using repeated text blocks in:
-opts.docbit
-tail.docbit
+blocks, plus tokens indicating insertion of the repeated text blocks *.docbit.
+This is a simple custom format.
+To generate the docs, and prepend them to all the f*.m files, run:
+  ./addmhelp.sh
+in which the list of tokens is defined.
+Note that the f*.m files should have no % comment block after the function
+definitions; the script adds the help comments at the start of each m-file.
 
-Once *.m contain the updated help comments, one should run:
-
- - in MATLAB: contentsrpt to generate/update the Contents.m
- - in the shell: ../docs/genmatlabhelp.sh to update .rst web doc source
- 
+Once *.m contains the updated help comments, and Contents.m is to your liking,
+one should run
+  ../docs/genmatlabhelp.sh
+to update .rst web doc source.
