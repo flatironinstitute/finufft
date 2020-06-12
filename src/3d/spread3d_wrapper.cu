@@ -20,17 +20,7 @@ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 	oix = xidx/bnx;
 	oiy = yidx/bny;
 	oiz = zidx/bnz;
-#if 0
-	cout << bnx << " "<<bny << " "<<bnz<< endl;
-	cout << xidx << " ";
-	cout << yidx << " ";
-	cout << zidx << endl;
-	cout << oix << " ";
-	cout << oiy << " ";
-	cout << oiz << endl;
-	cout << "=> "<<(oix+oiy*onx+oiz*onx*ony)*(bnx*bny*bnz) << endl;
-	cout << "=> + "<<(xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx)<< endl;
-#endif
+
 	return   (oix+oiy*onx+oiz*onx*ony)*(bnx*bny*bnz) +
 			 (xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx);
 }
@@ -550,17 +540,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 		bin_size_y,bin_size_z,numobins[0],numobins[1],numobins[2],binsperobinx,
 		binsperobiny, binsperobinz,d_binsize,d_kx,
 		d_ky,d_kz,d_sortidx,pirange,nf1,nf2,nf3);
-#if 0
-	threadsPerBlock.x=8;
-	threadsPerBlock.y=8;
-	threadsPerBlock.z=8;
-	blocks.x = (threadsPerBlock.x+numbins[0]-1)/threadsPerBlock.x;
-	blocks.y = (threadsPerBlock.y+numbins[1]-1)/threadsPerBlock.y;
-	blocks.z = (threadsPerBlock.z+numbins[2]-1)/threadsPerBlock.z;
 
-	Temp<<<blocks, threadsPerBlock>>>(binsperobinx, binsperobiny, binsperobinz,
-		numobins[0], numobins[1], numobins[2], d_binsize);
-#endif
 #ifdef SPREADTIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
