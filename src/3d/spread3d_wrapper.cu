@@ -20,7 +20,18 @@ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 	oix = xidx/bnx;
 	oiy = yidx/bny;
 	oiz = zidx/bnz;
-	return   (oix+oiy*onx + oiz*onx*ony)*(bnx*bny*bnz) +
+#if 0
+	cout << bnx << " "<<bny << " "<<bnz<< endl;
+	cout << xidx << " ";
+	cout << yidx << " ";
+	cout << zidx << endl;
+	cout << oix << " ";
+	cout << oiy << " ";
+	cout << oiz << endl;
+	cout << "=> "<<(oix+oiy*onx+oiz*onx*ony)*(bnx*bny*bnz) << endl;
+	cout << "=> + "<<(xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx)<< endl;
+#endif
+	return   (oix+oiy*onx+oiz*onx*ony)*(bnx*bny*bnz) +
 			 (xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx);
 }
 #endif
@@ -452,7 +463,19 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	int o_bin_size_x = d_plan->opts.gpu_obinsizex;
 	int o_bin_size_y = d_plan->opts.gpu_obinsizey;
 	int o_bin_size_z = d_plan->opts.gpu_obinsizez;
+	
 	int numobins[3];
+	if (nf1 % o_bin_size_x != 0 ||
+		nf2 % o_bin_size_y != 0 ||
+		nf3 % o_bin_size_z != 0){
+		cout<<"error: mod(nf1, opts.gpu_obinsizex) != 0"<<endl;
+		cout<<"       mod(nf2, opts.gpu_obinsizey) != 0"<<endl;
+		cout<<"       mod(nf3, opts.gpu_obinsizez) != 0"<<endl;
+		cout<<"error: (nf1, nf2, nf3) = ("<<nf1<<", "<<nf2<<", "<<nf3<<")"<<endl;
+		cout<<"error: (obinsizex, obinsizey, obinsizez) = ("
+			<<o_bin_size_x<<", "<<o_bin_size_y<<", "<<o_bin_size_z<<")"<<endl;
+		return 1;
+	}
 
 	numobins[0] = ceil((FLT) nf1/o_bin_size_x);
 	numobins[1] = ceil((FLT) nf2/o_bin_size_y);
@@ -461,6 +484,19 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	int bin_size_x=d_plan->opts.gpu_binsizex;
 	int bin_size_y=d_plan->opts.gpu_binsizey;
 	int bin_size_z=d_plan->opts.gpu_binsizez;
+	if (o_bin_size_x % bin_size_x != 0 ||
+		o_bin_size_y % bin_size_y != 0 ||
+		o_bin_size_z % bin_size_z != 0){
+		cout<<"error: mod(ops.gpu_obinsizex, opts.gpu_binsizex) != 0"<<endl;
+		cout<<"       mod(ops.gpu_obinsizey, opts.gpu_binsizey) != 0"<<endl;
+		cout<<"       mod(ops.gpu_obinsizez, opts.gpu_binsizez) != 0"<<endl;
+		cout<<"error: (binsizex, binsizey, binsizez) = ("
+			<<bin_size_x<<", "<<bin_size_y<<", "<<bin_size_z<<")"<<endl;
+		cout<<"error: (obinsizex, obinsizey, obinsizez) = ("
+			<<o_bin_size_x<<", "<<o_bin_size_y<<", "<<o_bin_size_z<<")"<<endl;
+		return 1;
+	}
+
 	int binsperobinx, binsperobiny, binsperobinz;
 	int numbins[3];
 	binsperobinx = o_bin_size_x/bin_size_x+2;
@@ -514,7 +550,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 		bin_size_y,bin_size_z,numobins[0],numobins[1],numobins[2],binsperobinx,
 		binsperobiny, binsperobinz,d_binsize,d_kx,
 		d_ky,d_kz,d_sortidx,pirange,nf1,nf2,nf3);
-#ifdef DEBUG
+#if 0
 	threadsPerBlock.x=8;
 	threadsPerBlock.y=8;
 	threadsPerBlock.z=8;
@@ -542,15 +578,16 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	for(int k=0; k<numbins[2]; k++){
 		cout<<"[debug ]"<<endl;
 		for(int j=0; j<numbins[1]; j++){
+			if(j%binsperobinx == 0 && j!=0)
+				cout<<"[debug ] -----------------"<<endl;
 			cout<<"[debug ] ";
 			for(int i=0; i<numbins[0]; i++){
-				if(i%binsperobiny == 0 && i!=0)
-				cout<<"|";
+				if(i%binsperobinx == 0 && i!=0)
+					cout<<"|";
+				if(i!=0) cout<<" ";
 				int binidx = CalcGlobalIdx(i,j,k,numobins[0],numobins[1],
 					numobins[2],binsperobinx,binsperobiny,binsperobinz);
-				if(i!=0) cout<<" ";
-				cout<<" b["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k
-					<<"]= "<<setw(3)<<h_binsize[binidx];
+				cout<<h_binsize[binidx];
 			}
 			cout<<endl;
 		}
@@ -591,14 +628,18 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	cout<<"[debug ] Filled ghost bins:"<<endl;
 	for(int k=0; k<numbins[2]; k++){
 		cout<<"[debug ] "<<endl;
+		cout<<"[debug ] "<<endl;
 		for(int j=0; j<numbins[1]; j++){
+			if(j%binsperobinx == 0 && j!=0)
+				cout<<"[debug ] -----------------"<<endl;
 			cout<<"[debug ] ";
 			for(int i=0; i<numbins[0]; i++){
-				if(i!=0) cout<<" ";
+				if(i%binsperobinx == 0 && i!=0)
+				cout<<"|";
 				int binidx = CalcGlobalIdx(i,j,k,numobins[0],numobins[1],
 					numobins[2],binsperobinx,binsperobiny,binsperobinz);
-				cout<<" b["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k
-					<<"]= "<<setw(3)<<h_binsize[binidx];
+				if(i!=0) cout<<" ";
+				cout<<h_binsize[binidx];
 			}
 			cout<<endl;
 		}
@@ -631,8 +672,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 				if(i!=0) cout<<" ";
 				int binidx = CalcGlobalIdx(i,j,k,numobins[0],numobins[1],
 					numobins[2],binsperobinx,binsperobiny,binsperobinz);
-				cout<<" b["<<setw(1)<<i<<","<<setw(1)<<j<<","<<setw(1)<<k
-					<<"]= "<<setw(3)<<h_binstartpts[binidx];
+				cout<<h_binstartpts[binidx];
 			}
 			cout<<endl;
 		}
@@ -644,6 +684,9 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	checkCudaErrors(cudaMemcpy(&totalNUpts,&d_binstartpts[n],
 		sizeof(int),cudaMemcpyDeviceToHost));
 	checkCudaErrors(cudaMalloc(&d_idxnupts,totalNUpts*sizeof(int)));
+#ifdef DEBUG
+	checkCudaErrors(cudaMemset(d_idxnupts,-1,totalNUpts*sizeof(int)));
+#endif
 	cudaEventRecord(start);
 	CalcInvertofGlobalSortIdx_ghost<<<(M+1024-1)/1024,1024>>>(M,bin_size_x,
 		bin_size_y,bin_size_z,numobins[0],numobins[1],numobins[2],binsperobinx,
@@ -655,6 +698,22 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tKernel CalcInvertofGlobalIdx_ghost \t%.3g ms\n",
 		milliseconds);
+#endif
+#ifdef DEBUG
+	int *h_idxnupts;
+	h_idxnupts = (int*)malloc(totalNUpts*sizeof(int));
+	checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,totalNUpts*sizeof(int),
+		cudaMemcpyDeviceToHost));
+	int pts = 0;
+	for(int b=0; b<numbins[0]*numbins[1]*numbins[1]; b++){
+		if(h_binsize[b] > 0)
+			cout <<"[debug ] Bin "<<b<<endl;
+		for (int i=h_binstartpts[b]; i<h_binstartpts[b]+h_binsize[b]; i++){
+			cout <<"[debug ] NUpts-index= "<< h_idxnupts[i]<<endl;
+			pts++;
+		}
+	}
+	cout<<"[debug ] totalpts = "<<pts<<endl;
 #endif
 	cudaEventRecord(start);
 	threadsPerBlock.x=2;
@@ -677,14 +736,9 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 		milliseconds);
 #endif
 #ifdef DEBUG
-	int binidx = CalcGlobalIdx(0,0,2,numobins[0],numobins[1],
-					numobins[2],binsperobinx,binsperobiny,binsperobinz);
-	cout<<"binidx = "<<binidx;
-	int *h_idxnupts;
-	h_idxnupts = (int*)malloc(totalNUpts*sizeof(int));
 	checkCudaErrors(cudaMemcpy(h_idxnupts,d_idxnupts,totalNUpts*sizeof(int),
 		cudaMemcpyDeviceToHost));
-	int pts = 0;
+	pts = 0;
 	for(int b=0; b<numbins[0]*numbins[1]*numbins[1]; b++){
 		if(h_binsize[b] > 0)
 			cout <<"[debug ] Bin "<<b<<endl;
@@ -842,6 +896,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
 		<<obin_size_x<<"x"<<obin_size_y<<"x"<<obin_size_z<<"]"<<endl;
 	cout<<"[info  ] numbins = ["<<numobins[0]<<"x"<<numobins[1]<<"x"<<
 		numobins[2]<<"]"<<endl;
+	cout<<"[info  ] ns = "<< ns<<endl;
 #endif
 
 	FLT* d_kx = d_plan->kx;

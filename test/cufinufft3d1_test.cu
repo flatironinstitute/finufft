@@ -89,10 +89,7 @@ int main(int argc, char* argv[])
 	int type = 1;
 	ier=cufinufft_default_opts(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
-	dplan.opts.gpu_binsizex = 16;
-	dplan.opts.gpu_binsizey = 16;
-	dplan.opts.gpu_binsizez = 2;
-	dplan.opts.gpu_maxsubprobsize = 4096;
+	dplan.opts.gpu_kerevalmeth=1;
 
 	int nmodes[3];
 	int ntransf = 1;
