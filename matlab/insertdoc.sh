@@ -10,9 +10,9 @@
 # in the input being
 # the name of the command, which must therefore match the filename in *.docsrc
 #
-# test this script with:
+# test this script with (when finufft1d1.docexp is present):
 # ./insertdoc.sh < finufft1d1.m
-# ./insertdoc.sh < finufft_plan.m
+# and check it generates the right doc comments
 #
 # Barnett 6/11/20
 
@@ -43,24 +43,24 @@ while IFS= read -r line; do
         fi
         # convert the 2nd word to lowercase via tr cmd; $(..) does cmd sub...
         filehead=$(echo ${w[1]} | tr A-Z a-z)
-        docsrc=$filehead.docsrc
-        # report progess to stderr not stdout...
-        if [ -f $docsrc ]; then 
-            echo "insertdoc.sh: inserting $docsrc ..." 1>&2
-            # doc source to flesh out, and do it via some pipes, to stdout...
-            cat $docsrc | bash replaceblkwithfile.sh STARTOPTS STOPOPTS opts.docbit | bash replaceblkwithfile.sh STARTOPTS3 STOPOPTS3 opts3.docbit | bash replaceblkwithfile.sh STARTTAIL STOPTAIL tail.docbit
-            # (is there a way to loop over token pairs here?)
-            # discard all contiguous % lines, leaving stdin read pointer for next...
+        i=$filehead.docexp
+        # if this expanded doc file exsists, insert it and kill old % block...
+        if [ -f "$i" ]; then
+            # report progess to stderr not stdout...
+            echo "insertdoc.sh: inserting $i ..." 1>&2
+            # insert the file...
+            cat "$i"
+            # discard contiguous % lines, leaving stdin read pointer for next...
             while IFS= read -r nextline; do
                 w=($nextline)
                 if [ "${w[0]}" != "%" ]; then
-                    echo $nextline
+                    echo "$nextline"
                     break
                 fi
             done
         else
             echo "$nextline"
-            echo "insertdoc.sh: $docsrc not found (!); not replacing doc..." 1>&2
+            echo "insertdoc.sh: $i not found (!); not replacing doc..." 1>&2
         fi
     fi
 done

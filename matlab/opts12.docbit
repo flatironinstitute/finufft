@@ -1,0 +1,2 @@
+%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)

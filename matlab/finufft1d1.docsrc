@@ -15,9 +15,8 @@
 %     eps     precision requested (>1e-16)
 %     ms     number of Fourier modes computed, may be even or odd;
 %            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
-STARTOPTS
-STOPOPTS
+OPTS
+OPTS12
 %   Outputs:
 %     f     size-ms double complex array of Fourier transform values
-STARTTAIL
-STOPTAIL
+TAIL

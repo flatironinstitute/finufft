@@ -1,10 +1,10 @@
 function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
-% FINUFFT1D1  1D complex nonuniform FFT of type 1 (nonuniform to uniform).
+% FINUFFT1D1   1D complex nonuniform FFT of type 1 (nonuniform to uniform).
 %
 % [f ier] = finufft1d1(x,c,isign,eps,ms)
 % [f ier] = finufft1d1(x,c,isign,eps,ms,opts)
 %
-% This computes:
+% This computes, to relative precision eps, via a fast algorithm:
 %
 %               nj
 %     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
@@ -16,6 +16,7 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 %     eps     precision requested (>1e-16)
 %     ms     number of Fourier modes computed, may be even or odd;
 %            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+%     opts - optional struct with optional fields controlling the following:
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
@@ -24,8 +25,8 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %   Outputs:
 %     f     size-ms double complex array of Fourier transform values
-%     ier - 0 if success, else:
-%           1 : eps too small (transform still performed, at smallest eps)
+%     ier   0 if success, else:
+%           1 : eps too small (transform still performed at closest eps)
 %           2 : size of arrays to malloc exceed MAX_NF
 %           3 : spreader: fine grid too small compared to spread (kernel) width
 %           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
@@ -39,7 +40,13 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 %          12 : dimension invalid (guru)
 %
 % Notes:
-%   All available threads are used; control how many with maxNumCompThreads
+%  * All available threads are used; control how many with maxNumCompThreads.
+%  * The above documents the simple (single-transform) interface. To transform
+%    ntrans vectors together with the same nonuniform points, add a final
+%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * For more details about the opts fields, see ../docs/opts.rst
+%  * Full documentation is given in ../finufft-manual.pdf and online at
+%    http://finufft.readthedocs.io
 
 if nargin<6, o.dummy=1; end            % make a dummy options struct
 n_transf = round(numel(c)/numel(x));   % back out how many transf

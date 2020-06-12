@@ -1,6 +1,5 @@
 % FINUFFT3D1   3D complex nonuniform FFT of type 1 (nonuniform to uniform).
 %
-%
 % [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
 % [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
 %
@@ -21,11 +20,10 @@
 %     ms,mt,mu number of Fourier modes requested in x,y and z; each may be
 %           even or odd.
 %           In either case the mode range is integers lying in [-m/2, (m-1)/2]
-STARTOPTS
-STOPOPTS
+OPTS
+OPTS12
 %   Outputs:
 %     f     size (ms*mt*mu) double complex array of Fourier transform values
 %            (ordering given by opts.modeord in each dimension, ms fastest, mu
 %             slowest).
-STARTTAIL
-STOPTAIL
+TAIL

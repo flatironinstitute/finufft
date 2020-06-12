@@ -15,9 +15,8 @@
 %           (mode ordering given by opts.modeord in each dimension)
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps    precision requested (>1e-16)
-STARTOPTS
-STOPTOPTS
+OPTS
+OPTS12
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
-STARTTAIL
-STOPTAIL
+TAIL

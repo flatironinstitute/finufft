@@ -15,10 +15,8 @@
 %     s,t,u   frequency locations of NU targets in R^3.
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps    precision requested (>1e-16)
-STARTOPTS3
-STOPOPTS3
+OPTS
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target
 %            frequencies s,t,u
-STARTTAIL
-STOPTAIL
+TAIL

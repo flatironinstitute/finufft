@@ -51,7 +51,7 @@ finufft(mex_id_, o);
     end
 
     function delete(plan)
-    % (no docs)
+    % NODOCS
       mex_id_ = 'finufft_destroy(i finufft_plan*)';
 finufft(mex_id_, plan);
     end
@@ -96,7 +96,7 @@ finufft(mex_id_, plan);
         mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_transf);
       else
-        result = 4;   % why?
+        result = [];       % why was it 4?
         ier = 1;
       end
     end

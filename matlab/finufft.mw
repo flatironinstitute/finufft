@@ -148,7 +148,7 @@ classdef finufft_plan < handle
     end
 
     function delete(plan)
-    % (no docs)
+    % NODOCS
       # finufft_destroy(finufft_plan* plan);
     end
 
