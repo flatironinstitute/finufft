@@ -1,12 +1,14 @@
 #!/bin/bash
-# Insert expanded comment help string blocks into a single .m file.
-# Every time the .m file has a line starting with "function", the word starting
-# the *next* line (which must be a comment) defines a filename (after
+# Inserts expanded comment help string blocks for each function in
+# a single MATLAB .m file, expected as stdin.
+# Every time the input has a line starting with "function", the word starting
+# the *next* non-empty line (which must be a comment) defines a filename (after
 # conversion to lowercase and
 # adding the .docsrc suffix) to process (flesh out by replacing blocks defined
 # by start/end tokens), then insert. The old comment block is destroyed.
-# To work this relies on the first word of each original comment block being
-# the name of the command, which must match the filename in *.docsrc
+# To work, this relies on the first word of each *original* comment block in the
+# in the input being
+# the name of the command, which must therefore match the filename in *.docsrc
 #
 # test this script with:
 # ./insertdoc.sh < finufft1d1.m
@@ -43,10 +45,11 @@ while IFS= read -r line; do
         filehead=$(echo ${w[1]} | tr A-Z a-z)
         docsrc=$filehead.docsrc
         # report progess to stderr not stdout...
-        if [ -f docsrc ]; then 
+        if [ -f $docsrc ]; then 
             echo "insertdoc.sh: inserting $docsrc ..." 1>&2
-            # doc source to flesh out, and do it via two pipes, to stdout...
-            cat $docsrc | bash replaceblkwithfile.sh STARTOPTS STOPOPTS opts.docbit | bash replaceblkwithfile.sh STARTTAIL STOPTAIL tail.docbit
+            # doc source to flesh out, and do it via some pipes, to stdout...
+            cat $docsrc | bash replaceblkwithfile.sh STARTOPTS STOPOPTS opts.docbit | bash replaceblkwithfile.sh STARTOPTS3 STOPOPTS3 opts3.docbit | bash replaceblkwithfile.sh STARTTAIL STOPTAIL tail.docbit
+            # (is there a way to loop over token pairs here?)
             # discard all contiguous % lines, leaving stdin read pointer for next...
             while IFS= read -r nextline; do
                 w=($nextline)
@@ -56,7 +59,8 @@ while IFS= read -r line; do
                 fi
             done
         else
-            echo "insertdoc.sh: $docsrc not found (!); not replacing ..." 1>&2
+            echo "$nextline"
+            echo "insertdoc.sh: $docsrc not found (!); not replacing doc..." 1>&2
         fi
     fi
 done

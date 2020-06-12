@@ -1,0 +1,24 @@
+% FINUFFT3D3   3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
+%
+% [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u)
+% [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u,opts)
+%
+% This computes, to relative precision eps, via a fast algorithm:
+%
+%              nj
+%     f[k]  =  SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j] + u[k] z[j])),
+%              j=1
+%                              for k = 1, ..., nk
+%   Inputs:
+%     x,y,z  location of NU sources in R^3, each length nj.
+%     c      size-nj double complex array of source strengths
+%     s,t,u   frequency locations of NU targets in R^3.
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps    precision requested (>1e-16)
+STARTOPTS3
+STOPOPTS3
+%   Outputs:
+%     f     size-nk double complex Fourier transform values at target
+%            frequencies s,t,u
+STARTTAIL
+STOPTAIL

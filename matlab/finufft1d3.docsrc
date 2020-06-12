@@ -1,0 +1,23 @@
+% FINUFFT1D3   1D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
+%
+% [f ier] = finufft1d3(x,c,isign,eps,s)
+% [f ier] = finufft1d3(x,c,isign,eps,s,opts)
+%
+% This computes:
+%
+%              nj
+%     f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 1, ..., nk
+%              j=1
+%   Inputs:
+%     x      location of NU sources in R (real line).
+%     c      size-nj double complex array of source strengths
+%     s      frequency locations of NU targets in R.
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps    precision requested (>1e-16)
+STARTOPTS3
+STOPOPTS3
+%   Outputs:
+%     f     size-nk double complex Fourier transform values at target
+%            frequencies s
+STARTTAIL
+STOPTAIL

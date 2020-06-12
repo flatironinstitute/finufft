@@ -1,9 +1,9 @@
-% FINUFFT1D1  1D complex nonuniform FFT of type 1 (nonuniform to uniform).
+% FINUFFT1D1   1D complex nonuniform FFT of type 1 (nonuniform to uniform).
 %
 % [f ier] = finufft1d1(x,c,isign,eps,ms)
 % [f ier] = finufft1d1(x,c,isign,eps,ms,opts)
 %
-% This computes:
+% This computes, to relative precision eps, via a fast algorithm:
 %
 %               nj
 %     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2

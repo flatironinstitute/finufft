@@ -3,7 +3,7 @@
 % [c ier] = finufft1d2(x,isign,eps,f)
 % [c ier] = finufft1d2(x,isign,eps,f,opts)
 %
-% This computes:
+% This computes, to relative precision eps, via a fast algorithm:
 %
 %    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 1,...,nj
 %            k1

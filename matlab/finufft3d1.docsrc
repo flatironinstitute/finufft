@@ -1,0 +1,31 @@
+% FINUFFT3D1   3D complex nonuniform FFT of type 1 (nonuniform to uniform).
+%
+%
+% [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
+% [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
+%
+% This computes, to relative precision eps, via a fast algorithm:
+%
+%                       nj
+%     f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
+%                      j=1
+%
+%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
+%         -mu/2 <= k3 <= (mu-1)/2.
+%
+%   Inputs:
+%     x,y,z locations of NU sources on [-3pi,3pi]^3, each length nj
+%     c     size-nj complex array of source strengths
+%     isign  if >=0, uses + sign in exponential, otherwise - sign.
+%     eps     precision requested (>1e-16)
+%     ms,mt,mu number of Fourier modes requested in x,y and z; each may be
+%           even or odd.
+%           In either case the mode range is integers lying in [-m/2, (m-1)/2]
+STARTOPTS
+STOPOPTS
+%   Outputs:
+%     f     size (ms*mt*mu) double complex array of Fourier transform values
+%            (ordering given by opts.modeord in each dimension, ms fastest, mu
+%             slowest).
+STARTTAIL
+STOPTAIL

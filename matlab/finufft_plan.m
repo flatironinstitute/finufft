@@ -9,32 +9,30 @@ classdef finufft_plan < handle
 
   methods
 
-    function [plan] = finufft_plan(type, n_modes, iflag, n_transf, tol, opts)
+    function [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
     % FINUFFT_PLAN
       mex_id_ = 'finufft_mex_setup()';
 finufft(mex_id_);
       mex_id_ = 'o finufft_plan* = new()';
 [p] = finufft(mex_id_);
-      plan.mwptr = p;             % alex asks is this needed? 
+      plan.mwptr = p;                        % alex asks: is this needed? 
       assert(type==1 || type==2 || type==3);
+      n_modes = ones(3,1);    % dummy for type 3
       if type==3
-        assert(length(n_modes)==1);
-        n_dims = n_modes;
-        n_modes=ones(3,1);
+        assert(length(n_modes_or_dim)==1);
+        dim = n_modes_or_dim;      % interpret as dim
       else
-        n_dims = length(n_modes);
+        dim = length(n_modes_or_dim);
+        n_modes(1:dim) = n_modes_or_dim;
       end
-      assert(n_dims==1 || n_dims==2 || n_dims==3);
-      % if n_modes had length <3, pad with 1's (also overwrites whatever there):
-      if n_dims<2, n_modes(2)=1; end
-      if n_dims<3, n_modes(3)=1; end
+      assert(dim==1 || dim==2 || dim==3);
       if nargin<6
         mex_id_ = 'o nufft_opts* = new()';
 [o] = finufft(mex_id_);
         mex_id_ = 'finufft_default_opts(i nufft_opts*)';
 finufft(mex_id_, o);
         mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)';
-[ier] = finufft(mex_id_, type, n_dims, n_modes, iflag, n_transf, tol, plan, o, 3);
+[ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_transf, tol, plan, o, 3);
         mex_id_ = 'delete(i nufft_opts*)';
 finufft(mex_id_, o);
       else
@@ -46,23 +44,26 @@ finufft(mex_id_, o);
         mex_id_ = 'copy_nufft_opts(i mxArray, i nufft_opts*)';
 finufft(mex_id_, opts, o);
         mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)';
-[ier] = finufft(mex_id_, type, n_dims, n_modes, iflag, n_transf, tol, plan, o, 3);
+[ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_transf, tol, plan, o, 3);
         mex_id_ = 'delete(i nufft_opts*)';
 finufft(mex_id_, o);
       end
     end
 
     function delete(plan)
+    % (no docs)
       mex_id_ = 'finufft_destroy(i finufft_plan*)';
 finufft(mex_id_, plan);
     end
 
     function finufft_destroy(plan)
+    % FINUFFT_DESTROY
       mex_id_ = 'finufft_destroy(i finufft_plan*)';
 finufft(mex_id_, plan);
     end
 
     function [ier] = finufft_setpts(plan, xj, yj, zj, s, t, u)
+    % FINUFFT_SETPTS
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
       mex_id_ = 'o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
@@ -70,6 +71,7 @@ finufft(mex_id_, plan);
     end
 
     function [result, ier] = finufft_exec(plan, data_in)
+    % FINUFFT_EXEC
                                                                                                                                     
       mex_id_ = 'o int = get_type(i finufft_plan*)';
 [type] = finufft(mex_id_, plan);
@@ -94,7 +96,7 @@ finufft(mex_id_, plan);
         mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_transf);
       else
-        result = 4;
+        result = 4;   % why?
         ier = 1;
       end
     end

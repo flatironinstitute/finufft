@@ -32,6 +32,8 @@
 %     Since int64_t is hardwired in the below, MEX will break otherwise.
 %  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
 %     interfaces.
+%  4) The 1-line help strings after each function must be left for doc gen
+%     (see README).
 %
 % Main author: Libin Lu, started May 2020; edits & docs by Alex Barnett.
 
@@ -115,53 +117,55 @@ classdef finufft_plan < handle
 
   methods
 
-    function [plan] = finufft_plan(type, n_modes, iflag, n_transf, tol, opts)
+    function [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
     % FINUFFT_PLAN
       # finufft_mex_setup();
       # finufft_plan* p = new finufft_plan();
-      plan.mwptr = p;             % alex asks is this needed? 
+      plan.mwptr = p;                        % alex asks: is this needed? 
       assert(type==1 || type==2 || type==3);
+      n_modes = ones(3,1);    % dummy for type 3
       if type==3
-        assert(length(n_modes)==1);
-        n_dims = n_modes;
-        n_modes=ones(3,1);
+        assert(length(n_modes_or_dim)==1);
+        dim = n_modes_or_dim;      % interpret as dim
       else
-        n_dims = length(n_modes);
+        dim = length(n_modes_or_dim);
+        n_modes(1:dim) = n_modes_or_dim;
       end
-      assert(n_dims==1 || n_dims==2 || n_dims==3);
-      % if n_modes had length <3, pad with 1's (also overwrites whatever there):
-      if n_dims<2, n_modes(2)=1; end
-      if n_dims<3, n_modes(3)=1; end
+      assert(dim==1 || dim==2 || dim==3);
       if nargin<6
         # nufft_opts* o = new nufft_opts();
         # finufft_default_opts(nufft_opts* o);
-        # int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
+        # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
         # delete(nufft_opts* o);
       else
         % first set o with default value and then replace with fields in opts
         # nufft_opts* o = new nufft_opts();
         # finufft_default_opts(nufft_opts* o);
         # copy_nufft_opts(mxArray opts, nufft_opts* o);
-        # int ier = finufft_makeplan(int type, int n_dims, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
+        # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
         # delete(nufft_opts* o);
       end
     end
 
     function delete(plan)
+    % (no docs)
       # finufft_destroy(finufft_plan* plan);
     end
 
     function finufft_destroy(plan)
+    % FINUFFT_DESTROY
       # finufft_destroy(finufft_plan* plan);
     end
 
     function [ier] = finufft_setpts(plan, xj, yj, zj, s, t, u)
+    % FINUFFT_SETPTS
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
       # int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
     end
 
     function [result, ier] = finufft_exec(plan, data_in)
+    % FINUFFT_EXEC
       $ int get_type(finufft_plan* plan) {
       $   return plan->type;
       $ }
@@ -200,7 +204,7 @@ classdef finufft_plan < handle
         # int64_t nk = get_nk(finufft_plan* plan);
         # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[nk, n_transf] result);
       else
-        result = 4;
+        result = [];       % why was it 4?
         ier = 1;
       end
     end

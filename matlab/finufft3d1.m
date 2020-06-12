@@ -1,42 +1,5 @@
 function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 % FINUFFT3D1
-%
-% [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
-% [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
-%
-% Type-1 3D complex nonuniform FFT.
-%
-%                       nj
-%     f[k1,k2,k3] =    SUM  c[j] exp(+-i (k1 x[j] + k2 y[j] + k3 z[j]))
-%                      j=1
-%
-%     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2,
-%         -mu/2 <= k3 <= (mu-1)/2.
-%
-%   Inputs:
-%     x,y,z locations of NU sources on [-3pi,3pi]^3, each length nj
-%     c     size-nj complex array of source strengths
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps     precision requested (>1e-16)
-%     ms,mt,mu number of Fourier modes requested in x,y and z; each may be
-%           even or odd.
-%           In either case the mode range is integers lying in [-m/2, (m-1)/2]
-%     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
-%     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default).
-%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
-%   Outputs:
-%     f     size (ms*mt*mu) double complex array of Fourier transform values
-%            (ordering given by opts.modeord in each dimension, ms fastest, mu
-%             slowest).
-%     ier - 0 if success, else:
-%           1 : eps too small
-%           2 : size of arrays to malloc exceed MAX_NF
-%           other codes: as returned by cnufftspread
-%
-% All available threads are used; control how many with maxNumCompThreads
 
 if nargin<10, o.dummy=1; end
 nj=numel(x);

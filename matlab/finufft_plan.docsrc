@@ -1,6 +1,23 @@
-% FINUFFT_PLAN  create plan object for general nonuniform FFT(s).
+% FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
 %
-% [plan] = finufft_plan(type, n_modes, iflag, n_transf, tol, opts)
+% [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
+% [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
 %
-% blah
-
+% Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
+%  type 1,2 or 3.
+%
+% Inputs: 
+%     type            transform type, 1, 2, or 3
+%     n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
+%                     dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
+%                     Its length sets the dimension, which must be 1, 2 or 3.
+%                     If type is 3, in constrast, its value sets the dimension.
+%     iflag           if >=0, uses + sign in exponential, otherwise - sign
+%     eps             precision requested (>1e-16)
+STARTOPTS
+STOPOPTS
+%     (note that opts.modeord and opts.chkbnds have no effect for type 3)
+% Outputs:
+%     plan            finufft_plan object
+STARTTAIL
+STOPTAIL
