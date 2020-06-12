@@ -543,47 +543,38 @@ void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz,
 	if(binx < nbinx && biny < nbiny && binz < nbinz){
 		int binidx = CalcGlobalIdx(binx,biny,binz,nobinx,nobiny,nobinz,
 			binsperobinx,binsperobiny, binsperobinz);
-		if(binx % binsperobinx == 1){
-			int i = binx - 2;
+		int i,j,k;
+		i = binx;
+		j = biny;
+		k = binz;
+		if(binx % binsperobinx == 0){
+			i = binx - 2;
 			i = i<0 ? i+nbinx : i;
-			int idxtoupdate = CalcGlobalIdx(i,biny,binz,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
 		}
-		if(binx % binsperobinx == binsperobinx-2){
-			int i = binx + 2;
-			i = (i==nbinx) ? i-nbinx : i;
-			int idxtoupdate = CalcGlobalIdx(i,biny,binz,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
+		if(binx % binsperobinx == binsperobinx-1){
+			i = binx + 2;
+			i = (i>=nbinx) ? i-nbinx : i;
 		}
-		if(biny % binsperobiny == 1){
-			int i = biny - 2;
-			i = i<0 ? i+nbiny : i;
-			int idxtoupdate = CalcGlobalIdx(binx,i,binz,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] =  binsize[binidx];
+		if(biny % binsperobiny == 0){
+			j = biny - 2;
+			j = j<0 ? j+nbiny : j;
 		}
-		if(biny % binsperobinx == binsperobiny-2){
-			int i = biny + 2;
-			i = (i==nbiny) ? i-nbiny : i;
-			int idxtoupdate = CalcGlobalIdx(binx,i,binz,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
+		if(biny % binsperobiny == binsperobiny-1){
+			j = biny + 2;
+			j = (j>=nbiny) ? j-nbiny : j;
 		}
-		if(binz % binsperobinz == 1){
-			int i = binz - 2;
-			i = i<0 ? i+nbinz : i;
-			int idxtoupdate = CalcGlobalIdx(binx,biny,i,nobinx,nobiny,nobinz,
-				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
+		if(binz % binsperobinz == 0){
+			k = binz - 2;
+			k = k<0 ? k+nbinz : k;
 		}
-		if(binz % binsperobinz == binsperobinz-2){
-			int i = binz + 2;
-			i = (i==nbinz) ? i-nbinz : i;
-			int idxtoupdate = CalcGlobalIdx(binx,biny,i,nobinx,nobiny,nobinz,
+		if(binz % binsperobinz == binsperobinz-1){
+			k = binz + 2;
+			k = (k>=nbinz) ? k-nbinz : k;
+		}
+		int idxtoupdate = CalcGlobalIdx(i,j,k,nobinx,nobiny,nobinz,
 				binsperobinx,binsperobiny, binsperobinz);
-			binsize[idxtoupdate] = binsize[binidx];
+		if(idxtoupdate != binidx){
+			binsize[binidx] = binsize[idxtoupdate];
 		}
 	}
 }
@@ -755,6 +746,8 @@ void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 			box[d] = b%3;
 			if(box[d] == 1)
 				box[d] = -1;
+			if(box[d] == 2)
+				box[d] = 1;
 			b=b/3;
 		}
 		int ii = idxnupts[idx]%M;
@@ -763,7 +756,6 @@ void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		z_rescaled = RESCALE(z[ii],nf3,pirange) + box[2]*nf3;
 		cnow = c[ii];
 
-#if 1
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
 		xstart = xstart < 0 ? 0 : xstart;
 		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
@@ -776,35 +768,21 @@ void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		yend   = yend >= obin_size_y ? obin_size_y-1 : yend;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
 		zend   = zend >= obin_size_z ? obin_size_z-1 : zend;
-#else
-		xstart = 0;
-		ystart = 0;
-		zstart = 0;
-		xend = ns;
-		yend = ns;
-		zend = ns;
-#endif
+
 		for(int zz=zstart; zz<=zend; zz++){
 			FLT disz=abs(z_rescaled-(zz+zoffset));
 			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta);
-			//FLT kervalue3 = disz;
 			for(int yy=ystart; yy<=yend; yy++){
 				FLT disy=abs(y_rescaled-(yy+yoffset));
 				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
-				//FLT kervalue2 = disy;
 				for(int xx=xstart; xx<=xend; xx++){
 					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
 					FLT disx=abs(x_rescaled-(xx+xoffset));
 					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
-					//FLT kervalue1 = disx;
-	//				fwshared[outidx].x += cnow.x*kervalue1*kervalue2*kervalue3;
-	//				fwshared[outidx].y += cnow.y*kervalue1*kervalue2*kervalue3;
-#if 1
 					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
 						kervalue3);
 					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
 						kervalue3);
-#endif
 				}
 			}
 		}
@@ -836,6 +814,7 @@ void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 	extern __shared__ CUCPX fwshared[];
 
 	int xstart,ystart,zstart,xend,yend,zend;
+	int xstartnew,ystartnew,zstartnew,xendnew,yendnew,zendnew;
 	int subpidx=blockIdx.x;
 	int obidx=subprob_to_bin[subpidx];
 	int bidx = obidx*binsperobin;
@@ -873,6 +852,8 @@ void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 			box[d] = b%3;
 			if(box[d] == 1)
 				box[d] = -1;
+			if(box[d] == 2)
+				box[d] = 1;
 			b=b/3;
 		}
 		int ii = nidx%M;
@@ -881,57 +862,36 @@ void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 		z_rescaled = RESCALE(z[ii],nf3,pirange) + box[2]*nf3;
 		cnow = c[ii];
 
-#if 0
-		xstart = max((int)ceil(x_rescaled - ns/2.0)-xoffset, 0);
-		//xstart = xstart < 0 ? 0 : xstart;
-		ystart = max((int)ceil(y_rescaled - ns/2.0)-yoffset, 0);
-		//ystart = ystart < 0 ? 0 : ystart;
-		zstart = max((int)ceil(z_rescaled - ns/2.0)-zoffset, 0);
-		//zstart = zstart < 0 ? 0 : zstart;
-		xend   = min((int)floor(x_rescaled + ns/2.0)-xoffset, obin_size_x-1);
-		//xend   = xend >= obin_size_x ? obin_size_x-1 : xend;
-		yend   = min((int)floor(y_rescaled + ns/2.0)-yoffset, obin_size_y-1);
-		//yend   = yend >= obin_size_y ? obin_size_y-1 : yend;
-		zend   = min((int)floor(z_rescaled + ns/2.0)-zoffset, obin_size_z-1);
-		//zend   = zend >= obin_size_z ? obin_size_z-1 : zend;
-#else
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
-		xstart = xstart < 0 ? 0 : xstart;
 		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
-		ystart = ystart < 0 ? 0 : ystart;
 		zstart = ceil(z_rescaled - ns/2.0)-zoffset;
-		zstart = zstart < 0 ? 0 : zstart;
 		xend   = floor(x_rescaled + ns/2.0)-xoffset;
-		xend   = xend >= obin_size_x ? obin_size_x-1 : xend;
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
-		yend   = yend >= obin_size_y ? obin_size_y-1 : yend;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
-		zend   = zend >= obin_size_z ? obin_size_z-1 : zend;
-#endif
+
 		eval_kernel_vec_Horner(ker1,xstart+xoffset-x_rescaled,ns,sigma);
 		eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
 		eval_kernel_vec_Horner(ker3,zstart+zoffset-z_rescaled,ns,sigma);
-#if 1
-		for(int zz=zstart; zz<=zend; zz++){
+
+		xstartnew = xstart < 0 ? 0 : xstart;
+		ystartnew = ystart < 0 ? 0 : ystart;
+		zstartnew = zstart < 0 ? 0 : zstart;
+		xendnew   = xend >= obin_size_x ? obin_size_x-1 : xend;
+		yendnew   = yend >= obin_size_y ? obin_size_y-1 : yend;
+		zendnew   = zend >= obin_size_z ? obin_size_z-1 : zend;
+
+		for(int zz=zstartnew; zz<=zendnew; zz++){
 			FLT kervalue3 = ker3[zz-zstart];
-			for(int yy=ystart; yy<=yend; yy++){
+			for(int yy=ystartnew; yy<=yendnew; yy++){
 				FLT kervalue2 = ker2[yy-ystart];
-				for(int xx=xstart; xx<=xend; xx++){
+				for(int xx=xstartnew; xx<=xendnew; xx++){
 					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
 					FLT kervalue1 = ker1[xx-xstart];
-#if 1
-					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
-						kervalue3);
-					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
-						kervalue3);
-#else
-					fwshared[outidx].x+= cnow.x*kervalue1*kervalue2*kervalue3;
-					fwshared[outidx].y+= cnow.y*kervalue1*kervalue2*kervalue3;
-#endif
+					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*kervalue3);
+					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*kervalue3);
 				}
 			}
 		}
-#endif
 	}
 	__syncthreads();
 	/* write to global memory */

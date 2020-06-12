@@ -84,26 +84,12 @@ int main(int argc, char* argv[])
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	/*warm up gpu*/
-	cudaEventRecord(start);
-	char *a;
-	checkCudaErrors(cudaMalloc(&a,1));
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tWarm up GPU \t\t %.3g s\n", milliseconds/1000);
-#endif
-
 	cufinufft_plan dplan;
 	int dim = 3;
 	int type = 1;
 	ier=cufinufft_default_opts(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
-	dplan.opts.gpu_binsizex = 16;
-	dplan.opts.gpu_binsizey = 16;
-	dplan.opts.gpu_binsizez = 2;
-	dplan.opts.gpu_maxsubprobsize = 4096;
+	dplan.opts.gpu_kerevalmeth=1;
 
 	int nmodes[3];
 	int ntransf = 1;
