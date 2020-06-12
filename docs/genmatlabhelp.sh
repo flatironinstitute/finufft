@@ -9,7 +9,7 @@
 > matlabhelp.raw
 
 # dump the matlab comment blocks
-for i in ../matlab/finufft?d?.m
+for i in ../matlab/finufft?d?.m ../matlab/finufft_plan.m
 do
     printf "::\n\n" >> matlabhelp.raw
     sed -n '/^%/p' $i | sed 's/^.//' >> matlabhelp.raw

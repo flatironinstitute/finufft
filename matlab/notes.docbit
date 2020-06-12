@@ -1,0 +1,9 @@
+% Notes:
+%  * All available threads are used; control how many with maxNumCompThreads.
+%  * The above documents the simple (single-transform) interface. To transform
+%    ntrans vectors together with the same nonuniform points, add a final
+%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * For more details about the opts fields, see ../docs/opts.rst
+%  * Full documentation is given in ../finufft-manual.pdf and online at
+%    http://finufft.readthedocs.io
+

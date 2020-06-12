@@ -19,4 +19,6 @@ OPTS
 OPTS12
 %   Outputs:
 %     f     size-ms double complex array of Fourier transform values
-TAIL
+IER
+%
+NOTES

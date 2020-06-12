@@ -26,4 +26,6 @@ OPTS12
 %     f     size (ms*mt*mu) double complex array of Fourier transform values
 %            (ordering given by opts.modeord in each dimension, ms fastest, mu
 %             slowest).
-TAIL
+IER
+%
+NOTES

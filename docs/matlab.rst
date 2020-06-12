@@ -28,7 +28,7 @@ If you have added the ``matlab`` directory of FINUFFT correctly to your
 MATLAB path via something like ``addpath FINUFFT/matlab``, then
 ``help finufft/matlab`` will give the summary of all commands:
 
-.. literalinclude:: Contents.m
+.. literalinclude:: ../matlab/Contents.m
 
 The individual commands have the following help documentation:
                     

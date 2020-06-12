@@ -25,15 +25,14 @@
 % call finufft_plan.m, or test/guru1dtest.m for direct example.
 %
 % Notes:
-%  0) see mwrap documentation for how this type of .mw file works:
+%  0) see mwrap's documentation for how this type of .mw file works:
 %     https://github.com/zgimbutas/mwrap
 %  1) Double-precision only for now.
 %  2) in the FINUFFT library, BIGINT type must be int64_t, as is default.
 %     Since int64_t is hardwired in the below, MEX will break otherwise.
 %  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
 %     interfaces.
-%  4) The 1-line help strings after each function must be left for doc gen
-%     (see README).
+%  4) detailed documentation is later prepended to finufft_plan.m by addmhelp.sh
 %
 % Main author: Libin Lu, started May 2020; edits & docs by Alex Barnett.
 
@@ -118,7 +117,7 @@ classdef finufft_plan < handle
   methods
 
     function [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
-    % FINUFFT_PLAN
+% FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
       # finufft_mex_setup();
       # finufft_plan* p = new finufft_plan();
       plan.mwptr = p;                        % alex asks: is this needed? 
@@ -148,24 +147,23 @@ classdef finufft_plan < handle
     end
 
     function delete(plan)
-    % NODOCS
       # finufft_destroy(finufft_plan* plan);
     end
 
     function finufft_destroy(plan)
-    % FINUFFT_DESTROY
+% FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
       # finufft_destroy(finufft_plan* plan);
     end
 
     function [ier] = finufft_setpts(plan, xj, yj, zj, s, t, u)
-    % FINUFFT_SETPTS
+% FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
       # int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
     end
 
     function [result, ier] = finufft_exec(plan, data_in)
-    % FINUFFT_EXEC
+% FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
       $ int get_type(finufft_plan* plan) {
       $   return plan->type;
       $ }

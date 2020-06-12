@@ -1,4 +1,11 @@
-% FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
+% FINUFFT_PLAN   is a class which wraps the guru interface to FINUFFT.
+%
+% METHODS
+
+
+% =========== Detailed description of methods =================================
+%
+%   FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
 %
 % [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
 % [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
@@ -19,4 +26,7 @@ OPTS
 OPTS12
 % Outputs:
 %     plan            finufft_plan object
-TAIL
+IER
+%
+% Notes:
+

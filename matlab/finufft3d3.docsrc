@@ -19,4 +19,6 @@ OPTS
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target
 %            frequencies s,t,u
-TAIL
+IER
+%
+NOTES

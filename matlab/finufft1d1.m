@@ -1,4 +1,4 @@
-function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
+
 % FINUFFT1D1   1D complex nonuniform FFT of type 1 (nonuniform to uniform).
 %
 % [f ier] = finufft1d1(x,c,isign,eps,ms)
@@ -48,6 +48,7 @@ function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
 
+function [f ier] = finufft1d1(x,c,isign,eps,ms,o)
 
 if nargin<6, o.dummy=1; end            % make a dummy options struct
 n_transf = round(numel(c)/numel(x));   % back out how many transf

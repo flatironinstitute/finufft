@@ -19,4 +19,6 @@ OPTS
 OPTS12
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
-TAIL
+IER
+%
+NOTES
