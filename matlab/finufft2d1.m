@@ -19,13 +19,13 @@ function [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 %     eps     precision requested (>1e-16)
 %     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
 %           in either case the mode range is integers lying in [-m/2, (m-1)/2]
-%     opts - optional struct with optional fields controlling the following:
+%     opts   optional struct with optional fields controlling the following:
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
+%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
-%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %   Outputs:
 %     f     size (ms*mt) double complex array of Fourier transform values
 %           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
@@ -51,6 +51,7 @@ function [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
+
 if nargin<8, o.dummy=1; end
 nj=numel(x);
 n_transf = round(numel(c)/numel(x));

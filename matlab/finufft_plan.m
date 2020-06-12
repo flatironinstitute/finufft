@@ -10,7 +10,54 @@ classdef finufft_plan < handle
   methods
 
     function [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
-    % FINUFFT_PLAN
+% FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
+%
+% [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
+% [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
+%
+% Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
+%  type 1,2 or 3.
+%
+% Inputs: 
+%     type            transform type, 1, 2, or 3
+%     n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
+%                     dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
+%                     Its length sets the dimension, which must be 1, 2 or 3.
+%                     If type is 3, in constrast, its value sets the dimension.
+%     iflag           if >=0, uses + sign in exponential, otherwise - sign
+%     eps             precision requested (>1e-16)
+%     opts   optional struct with optional fields controlling the following:
+%     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
+%     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+%     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
+%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+%     for type 1 and 2 only, the following opts fields are active:
+%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
+%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+% Outputs:
+%     plan            finufft_plan object
+%     ier   0 if success, else:
+%           1 : eps too small (transform still performed at closest eps)
+%           2 : size of arrays to malloc exceed MAX_NF
+%           3 : spreader: fine grid too small compared to spread (kernel) width
+%           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
+%           5 : spreader: array allocation error
+%           6 : spreader: illegal direction (should be 1 or 2)
+%           7 : upsampfac too small (should be >1.0)
+%           8 : upsampfac not a value with known Horner poly eval rule
+%           9 : ntrans invalid in "many" (vectorized) or guru interface
+%          10 : transform type invalid (guru)
+%          11 : general allocation failure
+%          12 : dimension invalid (guru)
+%
+% Notes:
+%  * All available threads are used; control how many with maxNumCompThreads.
+%  * The above documents the simple (single-transform) interface. To transform
+%    ntrans vectors together with the same nonuniform points, add a final
+%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * For more details about the opts fields, see ../docs/opts.rst
+%  * Full documentation is given in ../finufft-manual.pdf and online at
+%    http://finufft.readthedocs.io
       mex_id_ = 'finufft_mex_setup()';
 finufft(mex_id_);
       mex_id_ = 'o finufft_plan* = new()';
@@ -51,19 +98,48 @@ finufft(mex_id_, o);
     end
 
     function delete(plan)
-    % NODOCS
+% NODOCS
       mex_id_ = 'finufft_destroy(i finufft_plan*)';
 finufft(mex_id_, plan);
     end
 
     function finufft_destroy(plan)
-    % FINUFFT_DESTROY
+% FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan
+%
+% finufft_destroy(plan) deallocates and forgets a FINUFFT plan object.
+%
+% See also: FINUFFT_PLAN
+
       mex_id_ = 'finufft_destroy(i finufft_plan*)';
 finufft(mex_id_, plan);
     end
 
     function [ier] = finufft_setpts(plan, xj, yj, zj, s, t, u)
-    % FINUFFT_SETPTS
+% FINUFFT_SETPTS    Process nonuniform points for general NUFFT transform(s).
+%
+% to do
+%     ier   0 if success, else:
+%           1 : eps too small (transform still performed at closest eps)
+%           2 : size of arrays to malloc exceed MAX_NF
+%           3 : spreader: fine grid too small compared to spread (kernel) width
+%           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
+%           5 : spreader: array allocation error
+%           6 : spreader: illegal direction (should be 1 or 2)
+%           7 : upsampfac too small (should be >1.0)
+%           8 : upsampfac not a value with known Horner poly eval rule
+%           9 : ntrans invalid in "many" (vectorized) or guru interface
+%          10 : transform type invalid (guru)
+%          11 : general allocation failure
+%          12 : dimension invalid (guru)
+%
+% Notes:
+%  * All available threads are used; control how many with maxNumCompThreads.
+%  * The above documents the simple (single-transform) interface. To transform
+%    ntrans vectors together with the same nonuniform points, add a final
+%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * For more details about the opts fields, see ../docs/opts.rst
+%  * Full documentation is given in ../finufft-manual.pdf and online at
+%    http://finufft.readthedocs.io
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
       mex_id_ = 'o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
@@ -71,7 +147,31 @@ finufft(mex_id_, plan);
     end
 
     function [result, ier] = finufft_exec(plan, data_in)
-    % FINUFFT_EXEC
+% FINUFFT_EXEC    execute single or many-vector NUFFT transforms in a plan
+%
+% to do
+%     ier   0 if success, else:
+%           1 : eps too small (transform still performed at closest eps)
+%           2 : size of arrays to malloc exceed MAX_NF
+%           3 : spreader: fine grid too small compared to spread (kernel) width
+%           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
+%           5 : spreader: array allocation error
+%           6 : spreader: illegal direction (should be 1 or 2)
+%           7 : upsampfac too small (should be >1.0)
+%           8 : upsampfac not a value with known Horner poly eval rule
+%           9 : ntrans invalid in "many" (vectorized) or guru interface
+%          10 : transform type invalid (guru)
+%          11 : general allocation failure
+%          12 : dimension invalid (guru)
+%
+% Notes:
+%  * All available threads are used; control how many with maxNumCompThreads.
+%  * The above documents the simple (single-transform) interface. To transform
+%    ntrans vectors together with the same nonuniform points, add a final
+%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * For more details about the opts fields, see ../docs/opts.rst
+%  * Full documentation is given in ../finufft-manual.pdf and online at
+%    http://finufft.readthedocs.io
                                                                                                                                     
       mex_id_ = 'o int = get_type(i finufft_plan*)';
 [type] = finufft(mex_id_, plan);

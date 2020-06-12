@@ -1,7 +1,6 @@
 function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 % FINUFFT3D1   3D complex nonuniform FFT of type 1 (nonuniform to uniform).
 %
-%
 % [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
 % [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
 %
@@ -22,13 +21,13 @@ function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 %     ms,mt,mu number of Fourier modes requested in x,y and z; each may be
 %           even or odd.
 %           In either case the mode range is integers lying in [-m/2, (m-1)/2]
-%     opts - optional struct with optional fields controlling the following:
+%     opts   optional struct with optional fields controlling the following:
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
+%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
-%     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %   Outputs:
 %     f     size (ms*mt*mu) double complex array of Fourier transform values
 %            (ordering given by opts.modeord in each dimension, ms fastest, mu
@@ -55,6 +54,7 @@ function [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
+
 if nargin<10, o.dummy=1; end
 nj=numel(x);
 n_transf = round(numel(c)/numel(x));

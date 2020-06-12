@@ -14,10 +14,9 @@
 %                     If type is 3, in constrast, its value sets the dimension.
 %     iflag           if >=0, uses + sign in exponential, otherwise - sign
 %     eps             precision requested (>1e-16)
-STARTOPTS
-STOPOPTS
-%     (note that opts.modeord and opts.chkbnds have no effect for type 3)
+OPTS
+%     for type 1 and 2 only, the following opts fields are active:
+OPTS12
 % Outputs:
 %     plan            finufft_plan object
-STARTTAIL
-STOPTAIL
+TAIL

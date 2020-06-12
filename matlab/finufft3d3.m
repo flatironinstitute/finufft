@@ -16,12 +16,10 @@ function [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u,o)
 %     s,t,u   frequency locations of NU targets in R^3.
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
 %     eps    precision requested (>1e-16)
-%     opts - optional struct with optional fields controlling the following:
+%     opts   optional struct with optional fields controlling the following:
 %     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-%     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
 %     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target
@@ -48,6 +46,7 @@ function [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u,o)
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
+
 if nargin<10, o.dummy=1; end
 n_transf = round(numel(c)/numel(x));
 nj=numel(x);
