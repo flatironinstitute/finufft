@@ -12,4 +12,5 @@ u = randn(N,1)+1i*randn(N,1);
 ip1 = dot(u,finufft1d1(x,v,+1,tol,N));
 ip2 = dot(finufft1d2(x,-1,tol,u),v);    % note sign flips to be complex adjoint
 fprintf('M=%d,N=%d,tol=%.1g: rel err (u,F1 v) vs (F2 u,v): %.3g\n',M,N,tol,abs(ip1-ip2)/abs(ip1))
+clear eps
 fprintf('cf estimated rounding err for this prob size; %.3g\n',0.2*eps*N)

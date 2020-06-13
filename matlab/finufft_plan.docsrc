@@ -52,8 +52,10 @@ OPTS12
 %
 % 2) FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
 %
+% finufft_setpts(plan, xj, yj, zj)
 % finufft_setpts(plan, xj, yj, zj, s, t, u)
 %  or
+% plan.finufft_setpts(xj, yj, zj)
 % plan.finufft_setpts(xj, yj, zj, s, t, u)
 %
 % Inputs nonuniform spatial points (xj,yj,zj) in the case of all types, and
@@ -83,6 +85,8 @@ OPTS12
 % 3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
 %
 % result = finufft_exec(plan, data_in);
+% or
+% result = plan.finufft_exec(data_in); 
 %
 % Execute a single (or if ntrans>1 in the plan stage, multiple) NUFFT transforms
 %  according to the previously defined plan, using the nonuniform points chosen
@@ -104,7 +108,9 @@ OPTS12
 %
 % 4) FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
 %
-% Usage: p.finufft_destroy; where p is a finufft_plan object.
+% finufft_destroy(plan)
+% or
+% plan.finufft_destroy;
 %
 % Note: since this is a handle class, one may instead clean up with: clear p;
 

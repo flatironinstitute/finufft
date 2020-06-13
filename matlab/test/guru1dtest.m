@@ -1,4 +1,4 @@
-% matlab guru interface 1d1.
+% matlab guru interface 1D type 1.
 % Lu 5/11/2020. Barnett added timing, tweaked interface.
 clear
 
@@ -24,10 +24,10 @@ opts.spread_debug=1;
 plan = finufft_plan(type,n_modes,isign,n_transf,eps,opts);
 
 %set pts
-plan.finufft_setpts(x,[],[],[],[],[]);
+plan.finufft_setpts(x,[],[]);
 
 %exec
-[f,ier] = plan.finufft_exec(c); 
+f = plan.finufft_exec(c); 
 disp('done.'); toc
 
 %error
