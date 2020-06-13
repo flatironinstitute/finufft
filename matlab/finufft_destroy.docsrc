@@ -1,6 +1,0 @@
-% FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan
-%
-% finufft_destroy(plan) deallocates and forgets a FINUFFT plan object.
-%
-% See also: FINUFFT_PLAN
-

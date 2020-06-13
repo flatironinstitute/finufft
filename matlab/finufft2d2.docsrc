@@ -1,7 +1,7 @@
 % FINUFFT2D2   2D complex nonuniform FFT of type 2 (uniform to nonuniform).
 %
-% [c ier] = finufft2d2(x,y,isign,eps,f)
-% [c ier] = finufft2d2(x,y,isign,eps,f,opts)
+% c = finufft2d2(x,y,isign,eps,f)
+% c = finufft2d2(x,y,isign,eps,f,opts)
 %
 % This computes, to relative precision eps, via a fast algorithm:
 %
@@ -19,6 +19,5 @@ OPTS
 OPTS12
 %  Outputs:
 %     c     complex double array of nj answers at the targets.
-IER
 %
 NOTES

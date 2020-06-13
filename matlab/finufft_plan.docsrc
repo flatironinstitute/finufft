@@ -2,9 +2,11 @@
 %
 %  Full documentation is given in ../finufft-manual.pdf and online at
 %  http://finufft.readthedocs.io
+%  Also see examples in the matlab/examples and matlab/test directories.
 %
 % PROPERTIES
-%   mwptr - pointer to a C++ finufft_plan object (see MWrap manual).
+%   mwptr - opaque pointer to a C++ finufft_plan object (see MWrap manual),
+%           whose properties cannot be accessed directly
 %
 % METHODS
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
@@ -12,14 +14,17 @@
 %   finufft_exec - execute single or many-vector NUFFT transforms in a plan.
 %   finufft_destroy - deallocate (delete) a nonuniform FFT plan.
 %
+% General notes:
+%  * See ERRHANDLER for all possible warning/error IDs, and ../docs/error.rst
+%
 %
 %
 % =========== Detailed description of methods =================================
 %
 % 1) FINUFFT_PLAN create guru plan object for one/many general nonuniform FFTs.
 %
-% [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
-% [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
+% plan = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
+% plan = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
 %
 % Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
 %  type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
@@ -33,11 +38,10 @@
 %     iflag           if >=0, uses + sign in exponential, otherwise - sign
 %     eps             precision requested (>1e-16)
 OPTS
-%     for type 1 and 2 only, the following opts fields are active:
+%     for type 1 and 2 only, the following opts fields are also relevant:
 OPTS12
 % Outputs:
 %     plan            finufft_plan object
-IER
 %
 % Notes:
 %  * For type 1 and 2, this does the FFTW planning and kernel-FT precomputation.
@@ -48,9 +52,54 @@ IER
 %
 % 2) FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
 %
+% finufft_setpts(plan, xj, yj, zj, s, t, u)
+%  or
+% plan.finufft_setpts(xj, yj, zj, s, t, u)
+%
+% Inputs nonuniform spatial points (xj,yj,zj) in the case of all types, and
+%  also nonuniform frequency target points (s,t,u) for type 3. These points
+%  are not duplicated, but are bin-sorted. For type 3 the spreading and
+%  FFTs are planned. These nonuniform points may be used for multiple
+%  transforms.
+%
+% Inputs:
+%     xj     vector of x-coords of all nonuniform points
+%     yj     empty (if dim<2), or vector of y-coords of all nonuniform points
+%     zj     empty (if dim<3), or vector of z-coords of all nonuniform points
+%     s      vector of x-coords of all nonuniform frequency targets
+%     t      empty (if dim<2), or vector of y-coords of all NU freq targets
+%     u      empty (if dim<3), or vector of z-coords of all NU freq targets
+% Input/Outputs:
+%     plan   finufft_plan object
+%
+% Notes:
+%  * For type 1 and 2, the values in xj (and if nonempty, yj and zj) must
+%    lie in the interval [-3pi,3pi]. For type 1 they are "sources", but for
+%    type 2, "targets". In contrast, for type 3 there are no restrictions other
+%    than the resulting size of the internal fine grids.
+%  * s (and t and u) are only relevant for type 3, and may be omitted otherwise
 % 
 %
-
+% 3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
+%
+% result = finufft_exec(plan, data_in);
+%
+% Execute a single (or if ntrans>1 in the plan stage, multiple) NUFFT transforms
+%  according to the previously defined plan, using the nonuniform points chosen
+%  previously with finufft_setpts, and with the strengths or Fourier
+%  coefficient inputs vector(s) from data_in, creating result, a new array of
+%  the output vector(s).
+%
+% Inputs:
+%     plan     finufft_plan object
+%     data_in  strengths (types 1 or 3) or Fourier coefficients (type 2)
+%              vector or matrix of appropriate size
+% Outputs:
+%     result   vector of output strengths at targets (types 2 or 3), or array
+%              of Fourier coefficients (type 1), or, if ntrans>1, a stack of
+%              such vectors or arrays.
+%
+% *** stuff about row vecs vs cols, and ntrans>1 case, for I and O.
 %
 %
 % 4) FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.

@@ -2,8 +2,8 @@
 
  FINUFFT1D1   1D complex nonuniform FFT of type 1 (nonuniform to uniform).
 
- [f ier] = finufft1d1(x,c,isign,eps,ms)
- [f ier] = finufft1d1(x,c,isign,eps,ms,opts)
+ f = finufft1d1(x,c,isign,eps,ms)
+ f = finufft1d1(x,c,isign,eps,ms,opts)
 
  This computes, to relative precision eps, via a fast algorithm:
 
@@ -13,32 +13,24 @@
    Inputs:
      x     location of sources on interval [-3pi,3pi], length nj
      c     size-nj complex array of source strengths
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps     precision requested (>1e-16)
-     ms     number of Fourier modes computed, may be even or odd;
-            in either case the mode range is integers lying in [-ms/2, (ms-1)/2]
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   precision requested (>1e-16)
+     ms    number of Fourier modes computed, may be even or odd;
+           in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
    Outputs:
      f     size-ms double complex array of Fourier transform values
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -46,6 +38,7 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -53,8 +46,8 @@
 
  FINUFFT1D2   1D complex nonuniform FFT of type 2 (uniform to nonuniform).
 
- [c ier] = finufft1d2(x,isign,eps,f)
- [c ier] = finufft1d2(x,isign,eps,f,opts)
+ c = finufft1d2(x,isign,eps,f)
+ c = finufft1d2(x,isign,eps,f,opts)
 
  This computes, to relative precision eps, via a fast algorithm:
 
@@ -68,27 +61,19 @@
      isign  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
   Outputs:
      c     complex double array of nj answers at targets
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -96,6 +81,7 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -103,8 +89,8 @@
 
  FINUFFT1D3   1D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
 
- [f ier] = finufft1d3(x,c,isign,eps,s)
- [f ier] = finufft1d3(x,c,isign,eps,s,opts)
+ f = finufft1d3(x,c,isign,eps,s)
+ f = finufft1d3(x,c,isign,eps,s,opts)
 
  This computes:
 
@@ -118,26 +104,18 @@
      isign  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
    Outputs:
      f     size-nk double complex Fourier transform values at target
             frequencies s
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -145,6 +123,7 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -152,8 +131,8 @@
 
  FINUFFT2D1   2D complex nonuniform FFT of type 1 (nonuniform to uniform).
 
- [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt)
- [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,opts)
+ f = finufft2d1(x,y,c,isign,eps,ms,mt)
+ f = finufft2d1(x,y,c,isign,eps,ms,mt,opts)
 
  This computes, to relative precision eps, via a fast algorithm:
 
@@ -164,35 +143,27 @@
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
    Inputs:
-     x,y   locations of NU sources on the square [-3pi,3pi]^2, each length nj
-     c     size-nj complex array of source strengths
+     x,y    locations of NU sources on the square [-3pi,3pi]^2, each length nj
+     c      size-nj complex array of source strengths
      isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps     precision requested (>1e-16)
+     eps    precision requested (>1e-16)
      ms,mt  number of Fourier modes requested in x & y; each may be even or odd
-           in either case the mode range is integers lying in [-m/2, (m-1)/2]
+            in either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
    Outputs:
      f     size (ms*mt) double complex array of Fourier transform values
            (ordering given by opts.modeord in each dimension, ms fast, mt slow)
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -200,6 +171,7 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -207,8 +179,8 @@
 
  FINUFFT2D2   2D complex nonuniform FFT of type 2 (uniform to nonuniform).
 
- [c ier] = finufft2d2(x,y,isign,eps,f)
- [c ier] = finufft2d2(x,y,isign,eps,f,opts)
+ c = finufft2d2(x,y,isign,eps,f)
+ c = finufft2d2(x,y,isign,eps,f,opts)
 
  This computes, to relative precision eps, via a fast algorithm:
 
@@ -223,27 +195,19 @@
      isign  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
   Outputs:
      c     complex double array of nj answers at the targets.
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -251,6 +215,7 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -258,8 +223,8 @@
 
  FINUFFT2D3   2D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
 
- [f ier] = finufft2d3(x,y,c,isign,eps,s,t)
- [f ier] = finufft2d3(x,y,c,isign,eps,s,t,opts)
+ f = finufft2d3(x,y,c,isign,eps,s,t)
+ f = finufft2d3(x,y,c,isign,eps,s,t,opts)
 
  This computes, to relative precision eps, via a fast algorithm:
 
@@ -273,26 +238,18 @@
      isign  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
    Outputs:
      f     size-nk double complex Fourier transform values at target
             frequencies s,t
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -300,6 +257,7 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -307,8 +265,8 @@
 
  FINUFFT3D1   3D complex nonuniform FFT of type 1 (nonuniform to uniform).
 
- [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
- [f ier] = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
+ f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu)
+ f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,opts)
 
  This computes, to relative precision eps, via a fast algorithm:
 
@@ -328,29 +286,21 @@
            even or odd.
            In either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
    Outputs:
      f     size (ms*mt*mu) double complex array of Fourier transform values
             (ordering given by opts.modeord in each dimension, ms fastest, mu
              slowest).
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -358,6 +308,7 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -365,8 +316,8 @@
 
  FINUFFT3D2   3D complex nonuniform FFT of type 2 (uniform to nonuniform).
 
- [c ier] = finufft3d2(x,y,z,isign,eps,f)
- [c ier] = finufft3d2(x,y,z,isign,eps,f,opts)
+ c = finufft3d2(x,y,z,isign,eps,f)
+ c = finufft3d2(x,y,z,isign,eps,f,opts)
 
  This computes, to relative precision eps, via a fast algorithm:
 
@@ -384,27 +335,19 @@
      isign  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
   Outputs:
      c     complex double array of nj answers at the targets.
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -412,6 +355,7 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -419,8 +363,8 @@
 
  FINUFFT3D3   3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
 
- [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u)
- [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u,opts)
+ f = finufft3d3(x,y,z,c,isign,eps,s,t,u)
+ f = finufft3d3(x,y,z,c,isign,eps,s,t,u,opts)
 
  This computes, to relative precision eps, via a fast algorithm:
 
@@ -435,26 +379,18 @@
      isign  if >=0, uses + sign in exponential, otherwise - sign.
      eps    precision requested (>1e-16)
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
    Outputs:
      f     size-nk double complex Fourier transform values at target
             frequencies s,t,u
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
@@ -462,115 +398,135 @@
     ntrans vectors together with the same nonuniform points, add a final
     dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
+  * See ERRHANDLER for list of possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
 ::
 
- this is a dummy property to tell MWrap to treat this in OO way...
- (mwptr = MWrap-pointer, not MathWorks!)
- FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
+ FINUFFT_PLAN   is a class which wraps the guru interface to FINUFFT.
 
- [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
- [plan] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
+  Full documentation is given in ../finufft-manual.pdf and online at
+  http://finufft.readthedocs.io
+  Also see examples in the matlab/examples and matlab/test directories.
+
+ PROPERTIES
+   mwptr - opaque pointer to a C++ finufft_plan object (see MWrap manual),
+           whose properties cannot be accessed directly
+
+ METHODS
+   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
+   finufft_setpts  - process nonuniform points for general NUFFT transform(s).
+   finufft_exec - execute single or many-vector NUFFT transforms in a plan.
+   finufft_destroy - deallocate (delete) a nonuniform FFT plan.
+
+ General notes:
+  * See ERRHANDLER for all possible warning/error IDs, and ../docs/error.rst
+
+
+
+ =========== Detailed description of methods =================================
+
+ 1) FINUFFT_PLAN create guru plan object for one/many general nonuniform FFTs.
+
+ plan = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
+ plan = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
 
  Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
-  type 1,2 or 3.
+  type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
 
  Inputs: 
      type            transform type, 1, 2, or 3
      n_modes_or_dim  if type is 1 or 2, the number of Fourier modes in each
                      dimension: [ms] in 1D, [ms mt] in 2D, or [ms mt mu] in 3D.
                      Its length sets the dimension, which must be 1, 2 or 3.
-                     If type is 3, in constrast, its value sets the dimension.
+                     If type is 3, in contrast, its value equals the dimension.
      iflag           if >=0, uses + sign in exponential, otherwise - sign
      eps             precision requested (>1e-16)
      opts   optional struct with optional fields controlling the following:
-     opts.debug: 0 (silent, default), 1 (timing breakdown), 2 (debug info).
-     opts.spread_sort: 0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
+     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
+     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
+     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
      opts.fftw: FFTW plan mode, 64=FFTW_ESTIMATE (default), 0=FFTW_MEASURE, etc
-     opts.upsampfac: either 2.0 (default), or 1.25 (low RAM, smaller FFT size)
-     for type 1 and 2 only, the following opts fields are active:
+     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
+     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
+     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
+     for type 1 and 2 only, the following opts fields are also relevant:
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
  Outputs:
      plan            finufft_plan object
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
 
  Notes:
-  * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * For type 1 and 2, this does the FFTW planning and kernel-FT precomputation.
+  * For type 3, this does very little, since the FFT sizes are not yet known.
+  * All available threads are planned; control how many with maxNumCompThreads.
   * For more details about the opts fields, see ../docs/opts.rst
-  * Full documentation is given in ../finufft-manual.pdf and online at
-    http://finufft.readthedocs.io
- NODOCS
- FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan
 
- finufft_destroy(plan) deallocates and forgets a FINUFFT plan object.
 
- See also: FINUFFT_PLAN
- FINUFFT_SETPTS    Process nonuniform points for general NUFFT transform(s).
+ 2) FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
 
- to do
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
+ finufft_setpts(plan, xj, yj, zj, s, t, u)
+  or
+ plan.finufft_setpts(xj, yj, zj, s, t, u)
+
+ Inputs nonuniform spatial points (xj,yj,zj) in the case of all types, and
+  also nonuniform frequency target points (s,t,u) for type 3. These points
+  are not duplicated, but are bin-sorted. For type 3 the spreading and
+  FFTs are planned. These nonuniform points may be used for multiple
+  transforms.
+
+ Inputs:
+     xj     vector of x-coords of all nonuniform points
+     yj     empty (if dim<2), or vector of y-coords of all nonuniform points
+     zj     empty (if dim<3), or vector of z-coords of all nonuniform points
+     s      vector of x-coords of all nonuniform frequency targets
+     t      empty (if dim<2), or vector of y-coords of all NU freq targets
+     u      empty (if dim<3), or vector of z-coords of all NU freq targets
+ Input/Outputs:
+     plan   finufft_plan object
 
  Notes:
-  * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
-  * For more details about the opts fields, see ../docs/opts.rst
-  * Full documentation is given in ../finufft-manual.pdf and online at
-    http://finufft.readthedocs.io
- FINUFFT_EXEC    execute single or many-vector NUFFT transforms in a plan
+  * For type 1 and 2, the values in xj (and if nonempty, yj and zj) must
+    lie in the interval [-3pi,3pi]. For type 1 they are "sources", but for
+    type 2, "targets". In contrast, for type 3 there are no restrictions other
+    than the resulting size of the internal fine grids.
+  * s (and t and u) are only relevant for type 3, and may be omitted otherwise
+ 
 
- to do
-     ier   0 if success, else:
-           1 : eps too small (transform still performed at closest eps)
-           2 : size of arrays to malloc exceed MAX_NF
-           3 : spreader: fine grid too small compared to spread (kernel) width
-           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-           5 : spreader: array allocation error
-           6 : spreader: illegal direction (should be 1 or 2)
-           7 : upsampfac too small (should be >1.0)
-           8 : upsampfac not a value with known Horner poly eval rule
-           9 : ntrans invalid in "many" (vectorized) or guru interface
-          10 : transform type invalid (guru)
-          11 : general allocation failure
-          12 : dimension invalid (guru)
+ 3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
 
- Notes:
-  * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
-  * For more details about the opts fields, see ../docs/opts.rst
-  * Full documentation is given in ../finufft-manual.pdf and online at
-    http://finufft.readthedocs.io
+ result = finufft_exec(plan, data_in);
+
+ Execute a single (or if ntrans>1 in the plan stage, multiple) NUFFT transforms
+  according to the previously defined plan, using the nonuniform points chosen
+  previously with finufft_setpts, and with the strengths or Fourier
+  coefficient inputs vector(s) from data_in, creating result, a new array of
+  the output vector(s).
+
+ Inputs:
+     plan     finufft_plan object
+     data_in  strengths (types 1 or 3) or Fourier coefficients (type 2)
+              vector or matrix of appropriate size
+ Outputs:
+     result   vector of output strengths at targets (types 2 or 3), or array
+              of Fourier coefficients (type 1), or, if ntrans>1, a stack of
+              such vectors or arrays.
+
+ *** stuff about row vecs vs cols, and ntrans>1 case, for I and O.
+
+
+ 4) FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
+
+ Usage: p.finufft_destroy; where p is a finufft_plan object.
+
+ Note: since this is a handle class, one may instead clean up with: clear p;
+ this is a special property that MWrap uses as an opaque pointer to C++ object
+ (mwptr = MWrap-pointer, not MathWorks!)
+ FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
+ FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
+ FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
+ FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
 

@@ -23,10 +23,6 @@ do
                 # just opts for types 1,2, not type 3
                 cat opts12.docbit
                 ;;
-            IER)
-                # error codes summary
-                cat ier.docbit
-                ;;
             NOTES)
                 # notes for the simple/many interfaces, not guru
                 cat notes.docbit
@@ -40,12 +36,12 @@ do
     # (note sneaky use of pipes above, filters lines from $i, output to $o)
 done
 
-# stage 2: prepend doc to each .m file after first stripping any top % block
-# (can't use *.m since Contents.m exists)
+# stage 2: prepend doc to needed .m files after first stripping any top % block
 for mfile in finufft?d?.m finufft_plan.m
 do
     o=${mfile/.m/.docexp}
     # read from .m (skipping leading % or empty lines), appending to .docexp:
+    reachedcode=
     while IFS= read -r line; do
         # in bash, a string is "true" iff nonzero length...
         if [[ $reachedcode || ($line && $line != %*) ]]; then

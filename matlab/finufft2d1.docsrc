@@ -1,7 +1,7 @@
 % FINUFFT2D1   2D complex nonuniform FFT of type 1 (nonuniform to uniform).
 %
-% [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt)
-% [f ier] = finufft2d1(x,y,c,isign,eps,ms,mt,opts)
+% f = finufft2d1(x,y,c,isign,eps,ms,mt)
+% f = finufft2d1(x,y,c,isign,eps,ms,mt,opts)
 %
 % This computes, to relative precision eps, via a fast algorithm:
 %
@@ -12,17 +12,16 @@
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 %
 %   Inputs:
-%     x,y   locations of NU sources on the square [-3pi,3pi]^2, each length nj
-%     c     size-nj complex array of source strengths
+%     x,y    locations of NU sources on the square [-3pi,3pi]^2, each length nj
+%     c      size-nj complex array of source strengths
 %     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps     precision requested (>1e-16)
+%     eps    precision requested (>1e-16)
 %     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
-%           in either case the mode range is integers lying in [-m/2, (m-1)/2]
+%            in either case the mode range is integers lying in [-m/2, (m-1)/2]
 OPTS
 OPTS12
 %   Outputs:
 %     f     size (ms*mt) double complex array of Fourier transform values
 %           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
-IER
 %
 NOTES

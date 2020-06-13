@@ -2,9 +2,11 @@
 %
 %  Full documentation is given in ../finufft-manual.pdf and online at
 %  http://finufft.readthedocs.io
+%  Also see examples in the matlab/examples and matlab/test directories.
 %
 % PROPERTIES
-%   mwptr - pointer to a C++ finufft_plan object (see MWrap manual).
+%   mwptr - opaque pointer to a C++ finufft_plan object (see MWrap manual),
+%           whose properties cannot be accessed directly
 %
 % METHODS
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
@@ -12,14 +14,17 @@
 %   finufft_exec - execute single or many-vector NUFFT transforms in a plan.
 %   finufft_destroy - deallocate (delete) a nonuniform FFT plan.
 %
+% General notes:
+%  * See ERRHANDLER for all possible warning/error IDs, and ../docs/error.rst
+%
 %
 %
 % =========== Detailed description of methods =================================
 %
 % 1) FINUFFT_PLAN create guru plan object for one/many general nonuniform FFTs.
 %
-% [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
-% [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
+% plan = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps)
+% plan = finufft_plan(type, n_modes_or_dim, iflag, ntrans, eps, opts)
 %
 % Creates a finufft_plan MATLAB object in the guru interface to FINUFFT, of
 %  type 1, 2 or 3, and with given numbers of Fourier modes (unless type 3).
@@ -42,24 +47,11 @@
 %     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
 %     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
-%     for type 1 and 2 only, the following opts fields are active:
+%     for type 1 and 2 only, the following opts fields are also relevant:
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
 % Outputs:
 %     plan            finufft_plan object
-%     ier   0 if success, else:
-%           1 : eps too small (transform still performed at closest eps)
-%           2 : size of arrays to malloc exceed MAX_NF
-%           3 : spreader: fine grid too small compared to spread (kernel) width
-%           4 : spreader: if chkbnds=1, nonuniform pt out of range [-3pi,3pi]^d
-%           5 : spreader: array allocation error
-%           6 : spreader: illegal direction (should be 1 or 2)
-%           7 : upsampfac too small (should be >1.0)
-%           8 : upsampfac not a value with known Horner poly eval rule
-%           9 : ntrans invalid in "many" (vectorized) or guru interface
-%          10 : transform type invalid (guru)
-%          11 : general allocation failure
-%          12 : dimension invalid (guru)
 %
 % Notes:
 %  * For type 1 and 2, this does the FFTW planning and kernel-FT precomputation.
@@ -70,9 +62,54 @@
 %
 % 2) FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
 %
+% finufft_setpts(plan, xj, yj, zj, s, t, u)
+%  or
+% plan.finufft_setpts(xj, yj, zj, s, t, u)
+%
+% Inputs nonuniform spatial points (xj,yj,zj) in the case of all types, and
+%  also nonuniform frequency target points (s,t,u) for type 3. These points
+%  are not duplicated, but are bin-sorted. For type 3 the spreading and
+%  FFTs are planned. These nonuniform points may be used for multiple
+%  transforms.
+%
+% Inputs:
+%     xj     vector of x-coords of all nonuniform points
+%     yj     empty (if dim<2), or vector of y-coords of all nonuniform points
+%     zj     empty (if dim<3), or vector of z-coords of all nonuniform points
+%     s      vector of x-coords of all nonuniform frequency targets
+%     t      empty (if dim<2), or vector of y-coords of all NU freq targets
+%     u      empty (if dim<3), or vector of z-coords of all NU freq targets
+% Input/Outputs:
+%     plan   finufft_plan object
+%
+% Notes:
+%  * For type 1 and 2, the values in xj (and if nonempty, yj and zj) must
+%    lie in the interval [-3pi,3pi]. For type 1 they are "sources", but for
+%    type 2, "targets". In contrast, for type 3 there are no restrictions other
+%    than the resulting size of the internal fine grids.
+%  * s (and t and u) are only relevant for type 3, and may be omitted otherwise
 % 
 %
-
+% 3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
+%
+% result = finufft_exec(plan, data_in);
+%
+% Execute a single (or if ntrans>1 in the plan stage, multiple) NUFFT transforms
+%  according to the previously defined plan, using the nonuniform points chosen
+%  previously with finufft_setpts, and with the strengths or Fourier
+%  coefficient inputs vector(s) from data_in, creating result, a new array of
+%  the output vector(s).
+%
+% Inputs:
+%     plan     finufft_plan object
+%     data_in  strengths (types 1 or 3) or Fourier coefficients (type 2)
+%              vector or matrix of appropriate size
+% Outputs:
+%     result   vector of output strengths at targets (types 2 or 3), or array
+%              of Fourier coefficients (type 1), or, if ntrans>1, a stack of
+%              such vectors or arrays.
+%
+% *** stuff about row vecs vs cols, and ntrans>1 case, for I and O.
 %
 %
 % 4) FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
@@ -82,26 +119,24 @@
 % Note: since this is a handle class, one may instead clean up with: clear p;
 
 
-
 classdef finufft_plan < handle
 
   properties
-% this is a dummy property to tell MWrap to treat this in OO way...
+% this is a special property that MWrap uses as an opaque pointer to C++ object
 % (mwptr = MWrap-pointer, not MathWorks!)
     mwptr
   end
 
   methods
 
-    function [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
+    function plan = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
 % FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
       mex_id_ = 'finufft_mex_setup()';
 finufft(mex_id_);
       mex_id_ = 'o finufft_plan* = new()';
 [p] = finufft(mex_id_);
-      plan.mwptr = p;         % I see this copies p.12 of mwrap doc, but why?
-      assert(type==1 || type==2 || type==3);
-      n_modes = ones(3,1);    % dummy for type 3
+      plan.mwptr = p;       % crucial: copies p.12 of mwrap doc; I don't get it
+      n_modes = ones(3,1);  % dummy for type 3
       if type==3
         assert(length(n_modes_or_dim)==1);
         dim = n_modes_or_dim;      % interpret as dim
@@ -109,7 +144,6 @@ finufft(mex_id_);
         dim = length(n_modes_or_dim);
         n_modes(1:dim) = n_modes_or_dim;
       end
-      assert(dim==1 || dim==2 || dim==3);
       if nargin<6
         mex_id_ = 'o nufft_opts* = new()';
 [o] = finufft(mex_id_);
@@ -132,6 +166,7 @@ finufft(mex_id_, opts, o);
         mex_id_ = 'delete(i nufft_opts*)';
 finufft(mex_id_, o);
       end
+      errhandler(ier);
     end
 
     function delete(plan)
@@ -145,15 +180,16 @@ finufft(mex_id_, plan);
 finufft(mex_id_, plan);
     end
 
-    function [ier] = finufft_setpts(plan, xj, yj, zj, s, t, u)
+    function finufft_setpts(plan, xj, yj, zj, s, t, u)
 % FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
       mex_id_ = 'o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
 [ier] = finufft(mex_id_, plan, nj, xj, yj, zj, nk, s, t, u);
+      errhandler(ier);
     end
 
-    function [result, ier] = finufft_exec(plan, data_in)
+    function result = finufft_exec(plan, data_in)
 % FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
                                                                                                                                     
       mex_id_ = 'o int = get_type(i finufft_plan*)';
@@ -178,10 +214,10 @@ finufft(mex_id_, plan);
 [nk] = finufft(mex_id_, plan);
         mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_transf);
-      else                 % something went horribly wrong; output something
-        result = [];       % why was it 4?
-        ier = 1;
+      else
+        ier = 10;        % something went horribly wrong with type
       end
+      errhandler(ier);
     end
 
   end

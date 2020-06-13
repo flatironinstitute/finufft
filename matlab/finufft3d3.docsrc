@@ -1,7 +1,7 @@
 % FINUFFT3D3   3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
 %
-% [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u)
-% [f ier] = finufft3d3(x,y,z,c,isign,eps,s,t,u,opts)
+% f = finufft3d3(x,y,z,c,isign,eps,s,t,u)
+% f = finufft3d3(x,y,z,c,isign,eps,s,t,u,opts)
 %
 % This computes, to relative precision eps, via a fast algorithm:
 %
@@ -19,6 +19,5 @@ OPTS
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target
 %            frequencies s,t,u
-IER
 %
 NOTES

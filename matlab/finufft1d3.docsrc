@@ -1,7 +1,7 @@
 % FINUFFT1D3   1D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
 %
-% [f ier] = finufft1d3(x,c,isign,eps,s)
-% [f ier] = finufft1d3(x,c,isign,eps,s,opts)
+% f = finufft1d3(x,c,isign,eps,s)
+% f = finufft1d3(x,c,isign,eps,s,opts)
 %
 % This computes:
 %
@@ -18,6 +18,5 @@ OPTS
 %   Outputs:
 %     f     size-nk double complex Fourier transform values at target
 %            frequencies s
-IER
 %
 NOTES

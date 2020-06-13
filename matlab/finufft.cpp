@@ -5,7 +5,7 @@
  #include <math.h>
  void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
    if(!mxIsStruct(om))
-     mexErrMsgIdAndTxt("MATLAB:copy_nufft_opts:inputNotStruct","Input must be a structure.");
+     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
    mwIndex idx = 0;
    int ifield, nfields;
    const char **fname;
@@ -47,7 +47,7 @@
        oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
      else if (strcmp(fname[ifield],"nthreads") == 0)
-       mexWarnMsgIdAndTxt("MATLAB:copy_nufft_opts:nthreadsObsolete","FINUFFT opts.nthreads is obsolete, does nothing; please use maxNumCompThreads.");
+       mexWarnMsgIdAndTxt("FINUFFT:nthreadsObsolete","FINUFFT opts.nthreads is obsolete, does nothing; please use maxNumCompThreads.");
      else
        continue;
    }
@@ -743,9 +743,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 135 ----
+/* ---- finufft.mw: 133 ----
  * nufft_opts* o = new();
- * Also at finufft.mw: 141
+ * Also at finufft.mw: 139
  */
 static const char* stubids3_ = "o nufft_opts* = new()";
 
@@ -765,9 +765,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 136 ----
+/* ---- finufft.mw: 134 ----
  * finufft_default_opts(nufft_opts* o);
- * Also at finufft.mw: 142
+ * Also at finufft.mw: 140
  */
 static const char* stubids4_ = "finufft_default_opts(i nufft_opts*)";
 
@@ -789,9 +789,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 137 ----
+/* ---- finufft.mw: 135 ----
  * int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
- * Also at finufft.mw: 144
+ * Also at finufft.mw: 142
  */
 static const char* stubids5_ = "o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)";
 
@@ -860,9 +860,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 138 ----
+/* ---- finufft.mw: 136 ----
  * delete(nufft_opts* o);
- * Also at finufft.mw: 145
+ * Also at finufft.mw: 143
  */
 static const char* stubids6_ = "delete(i nufft_opts*)";
 
@@ -884,7 +884,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 143 ----
+/* ---- finufft.mw: 141 ----
  * copy_nufft_opts(mxArray opts, nufft_opts* o);
  */
 static const char* stubids9_ = "copy_nufft_opts(i mxArray, i nufft_opts*)";
@@ -909,9 +909,9 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 150 ----
+/* ---- finufft.mw: 149 ----
  * finufft_destroy(finufft_plan* plan);
- * Also at finufft.mw: 155
+ * Also at finufft.mw: 154
  */
 static const char* stubids12_ = "finufft_destroy(i finufft_plan*)";
 
@@ -933,7 +933,7 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 162 ----
+/* ---- finufft.mw: 161 ----
  * int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
  */
 static const char* stubids14_ = "o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])";
@@ -1406,13 +1406,13 @@ void mexFunction(int nlhs, mxArray* plhs[],
             mexPrintf("Profiler inactive\n");
         mexPrintf("%d calls to finufft.mw:121\n", mexprofrecord_[1]);
         mexPrintf("%d calls to finufft.mw:122\n", mexprofrecord_[2]);
-        mexPrintf("%d calls to finufft.mw:135 (finufft.mw:141)\n", mexprofrecord_[3]);
-        mexPrintf("%d calls to finufft.mw:136 (finufft.mw:142)\n", mexprofrecord_[4]);
-        mexPrintf("%d calls to finufft.mw:137 (finufft.mw:144)\n", mexprofrecord_[5]);
-        mexPrintf("%d calls to finufft.mw:138 (finufft.mw:145)\n", mexprofrecord_[6]);
-        mexPrintf("%d calls to finufft.mw:143\n", mexprofrecord_[9]);
-        mexPrintf("%d calls to finufft.mw:150 (finufft.mw:155)\n", mexprofrecord_[12]);
-        mexPrintf("%d calls to finufft.mw:162\n", mexprofrecord_[14]);
+        mexPrintf("%d calls to finufft.mw:133 (finufft.mw:139)\n", mexprofrecord_[3]);
+        mexPrintf("%d calls to finufft.mw:134 (finufft.mw:140)\n", mexprofrecord_[4]);
+        mexPrintf("%d calls to finufft.mw:135 (finufft.mw:142)\n", mexprofrecord_[5]);
+        mexPrintf("%d calls to finufft.mw:136 (finufft.mw:143)\n", mexprofrecord_[6]);
+        mexPrintf("%d calls to finufft.mw:141\n", mexprofrecord_[9]);
+        mexPrintf("%d calls to finufft.mw:149 (finufft.mw:154)\n", mexprofrecord_[12]);
+        mexPrintf("%d calls to finufft.mw:161\n", mexprofrecord_[14]);
         mexPrintf("%d calls to finufft.mw:190\n", mexprofrecord_[15]);
         mexPrintf("%d calls to finufft.mw:191\n", mexprofrecord_[16]);
         mexPrintf("%d calls to finufft.mw:194\n", mexprofrecord_[17]);
@@ -1432,13 +1432,13 @@ void mexFunction(int nlhs, mxArray* plhs[],
             fprintf(logfp, "Profiler inactive\n");
         fprintf(logfp, "%d calls to finufft.mw:121\n", mexprofrecord_[1]);
         fprintf(logfp, "%d calls to finufft.mw:122\n", mexprofrecord_[2]);
-        fprintf(logfp, "%d calls to finufft.mw:135 (finufft.mw:141)\n", mexprofrecord_[3]);
-        fprintf(logfp, "%d calls to finufft.mw:136 (finufft.mw:142)\n", mexprofrecord_[4]);
-        fprintf(logfp, "%d calls to finufft.mw:137 (finufft.mw:144)\n", mexprofrecord_[5]);
-        fprintf(logfp, "%d calls to finufft.mw:138 (finufft.mw:145)\n", mexprofrecord_[6]);
-        fprintf(logfp, "%d calls to finufft.mw:143\n", mexprofrecord_[9]);
-        fprintf(logfp, "%d calls to finufft.mw:150 (finufft.mw:155)\n", mexprofrecord_[12]);
-        fprintf(logfp, "%d calls to finufft.mw:162\n", mexprofrecord_[14]);
+        fprintf(logfp, "%d calls to finufft.mw:133 (finufft.mw:139)\n", mexprofrecord_[3]);
+        fprintf(logfp, "%d calls to finufft.mw:134 (finufft.mw:140)\n", mexprofrecord_[4]);
+        fprintf(logfp, "%d calls to finufft.mw:135 (finufft.mw:142)\n", mexprofrecord_[5]);
+        fprintf(logfp, "%d calls to finufft.mw:136 (finufft.mw:143)\n", mexprofrecord_[6]);
+        fprintf(logfp, "%d calls to finufft.mw:141\n", mexprofrecord_[9]);
+        fprintf(logfp, "%d calls to finufft.mw:149 (finufft.mw:154)\n", mexprofrecord_[12]);
+        fprintf(logfp, "%d calls to finufft.mw:161\n", mexprofrecord_[14]);
         fprintf(logfp, "%d calls to finufft.mw:190\n", mexprofrecord_[15]);
         fprintf(logfp, "%d calls to finufft.mw:191\n", mexprofrecord_[16]);
         fprintf(logfp, "%d calls to finufft.mw:194\n", mexprofrecord_[17]);

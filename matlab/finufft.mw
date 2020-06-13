@@ -32,9 +32,9 @@
 %     Since int64_t is hardwired in the below, MEX will break otherwise.
 %  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
 %     interfaces.
-%  4) detailed documentation is later prepended to finufft_plan.m by addmhelp.sh
+%  4) detailed user documentation is prepended to finufft_plan.m by addmhelp.sh
 %
-% Main author: Libin Lu, started May 2020; edits & docs by Alex Barnett.
+% Main author: Libin Lu, started May 2020; edits, ier, docs by Alex Barnett.
 
 $ #include <finufft.h>
 $ #include <mex.h>
@@ -49,7 +49,7 @@ $ #include <math.h>
 %
 $ void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
 $   if(!mxIsStruct(om))
-$     mexErrMsgIdAndTxt("MATLAB:copy_nufft_opts:inputNotStruct","Input must be a structure.");
+$     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
 $   mwIndex idx = 0;
 $   int ifield, nfields;
 $   const char **fname;
@@ -91,7 +91,7 @@ $     else if (strcmp(fname[ifield],"maxbatchsize") == 0) {
 $       oc->maxbatchsize = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
 $     else if (strcmp(fname[ifield],"nthreads") == 0)
-$       mexWarnMsgIdAndTxt("MATLAB:copy_nufft_opts:nthreadsObsolete","FINUFFT opts.nthreads is obsolete, does nothing; please use maxNumCompThreads.");
+$       mexWarnMsgIdAndTxt("FINUFFT:nthreadsObsolete","FINUFFT opts.nthreads is obsolete, does nothing; please use maxNumCompThreads.");
 $     else
 $       continue;
 $   }
@@ -109,20 +109,19 @@ $ }
 classdef finufft_plan < handle
 
   properties
-% this is a dummy property to tell MWrap to treat this in OO way...
+% this is a special property that MWrap uses as an opaque pointer to C++ object
 % (mwptr = MWrap-pointer, not MathWorks!)
     mwptr
   end
 
   methods
 
-    function [plan, ier] = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
+    function plan = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
 % FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
       # finufft_mex_setup();
       # finufft_plan* p = new finufft_plan();
-      plan.mwptr = p;         % I see this copies p.12 of mwrap doc, but why?
-      assert(type==1 || type==2 || type==3);
-      n_modes = ones(3,1);    % dummy for type 3
+      plan.mwptr = p;       % crucial: copies p.12 of mwrap doc; I don't get it
+      n_modes = ones(3,1);  % dummy for type 3
       if type==3
         assert(length(n_modes_or_dim)==1);
         dim = n_modes_or_dim;      % interpret as dim
@@ -130,7 +129,6 @@ classdef finufft_plan < handle
         dim = length(n_modes_or_dim);
         n_modes(1:dim) = n_modes_or_dim;
       end
-      assert(dim==1 || dim==2 || dim==3);
       if nargin<6
         # nufft_opts* o = new nufft_opts();
         # finufft_default_opts(nufft_opts* o);
@@ -144,6 +142,7 @@ classdef finufft_plan < handle
         # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
         # delete(nufft_opts* o);
       end
+      errhandler(ier);
     end
 
     function delete(plan)
@@ -155,14 +154,16 @@ classdef finufft_plan < handle
       # finufft_destroy(finufft_plan* plan);
     end
 
-    function [ier] = finufft_setpts(plan, xj, yj, zj, s, t, u)
+    function finufft_setpts(plan, xj, yj, zj, s, t, u)
 % FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
+      if nargin<5, s=[]; t=[]; u=[]; end
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
       # int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
+      errhandler(ier);
     end
 
-    function [result, ier] = finufft_exec(plan, data_in)
+    function result = finufft_exec(plan, data_in)
 % FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
       $ int get_type(finufft_plan* plan) {
       $   return plan->type;
@@ -201,10 +202,10 @@ classdef finufft_plan < handle
       elseif type==3
         # int64_t nk = get_nk(finufft_plan* plan);
         # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[nk, n_transf] result);
-      else                 % something went horribly wrong; output something
-        result = [];       % why was it 4?
-        ier = 1;
+      else
+        ier = 10;        % something went horribly wrong with type
       end
+      errhandler(ier);
     end
 
   end
