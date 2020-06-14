@@ -64,7 +64,7 @@ Design notes for guru interface implementation:
 
 int* gridsize_for_fftw(finufft_plan* p){
 // helper func returns a new int array of length dim, extracted from
-// the finufft plan, that fft_plan_many_dft needs as its 2nd argument.
+// the finufft plan, that fftw_plan_many_dft needs as its 2nd argument.
   int* nf;
   if(p->dim == 1){ 
     nf = new int[1];
@@ -90,6 +90,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
                      int ntrans, FLT tol, finufft_plan* p, nufft_opts* opts)
 // Populates the fields of finufft_plan which is pointed to by "p".
 // opts is ptr to a nufft_opts to set options, or NULL to use defaults.
+// For some of the fields, if "auto" selected, choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
 {  
@@ -112,10 +113,6 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     finufft_default_opts(&(p->opts));
   else                                   // or read from what's passed in
     p->opts = *opts;    // keep a deep copy; changing *opts now has no effect
-  // write into plan's spread options...
-  int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts);
-  if (ier)
-    return ier;
 
   // get stuff from args...
   p->type = type;
@@ -134,13 +131,36 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     p->nbatch = 1+(ntrans-1)/p->batchSize;  // resulting # batches
   }
   if (p->opts.spread_thread==0)
-    p->opts.spread_thread=2;                // the auto choice
+    p->opts.spread_thread=2;                // our auto choice
+
+  if (type!=3) {    // read in user Fourier mode array sizes...
+    p->ms = n_modes[0];
+    p->mt = (dim>1) ? n_modes[1] : 1;       // leave as 1 for unused dims
+    p->mu = (dim>2) ? n_modes[2] : 1;
+    p->N = p->ms*p->mt*p->mu;               // N = total # modes
+  }
+  
+  // heuristic to choose default upsampfac... (currently two poss)
+  if (p->opts.upsampfac==0.0) {             // indicates auto-choose
+    p->opts.upsampfac=2.0;                  // default, and need for tol small
+    if (tol>=(FLT)1E-9) {                   // the tol sigma=5/4 can reach
+      if (type==3)                          // could move to setpts, more known?
+        p->opts.upsampfac=1.25;             // faster b/c smaller RAM & FFT
+      else if ((dim==1 && p->N>10000000) || (dim==2 && p->N>300000) || (dim==3 && p->N>3000000))  // type 1 & 2 heuristic cutoffs for typ tol on 12-core xeon
+        p->opts.upsampfac=1.25;
+    }
+    if (p->opts.debug > 1)
+      printf("[finufft_plan] set auto upsampfac=%.2f\n",(double)p->opts.upsampfac);
+  }
+  // use opts to write into plan's spread options...
+  int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts);
+  if (ier>1)
+    return ier;
   
   // set others as defaults (or unallocated for arrays)...
   p->X = NULL; p->Y = NULL; p->Z = NULL;
-  p->phiHat1 = NULL; p->phiHat2 = NULL; p->phiHat3 = NULL; 
+  p->phiHat1 = NULL; p->phiHat2 = NULL; p->phiHat3 = NULL;
   p->nf1 = 1; p->nf2 = 1; p->nf3 = 1;  // crucial to leave as 1 for unused dims
-  p->ms = 1; p->mt = 1; p->mu = 1;     // crucial to leave as 1 for unused dims
 
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type==1 || type==2) {
@@ -152,19 +172,16 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     FFTW_PLAN_TH(nth_fft); // "  (not batchSize since can be 1 but want mul-thr)
     p->spopts.spread_direction = type;
     
-    // read user mode array dims then determine fine grid sizes, sanity check...
-    p->ms = n_modes[0];
-    ier = set_nf_type12(p->ms,p->opts,p->spopts,&(p->nf1));
+    // determine fine grid sizes, sanity check...
+    ier = set_nf_type12(p->ms, p->opts, p->spopts, &(p->nf1));
     if (ier) return ier;    // nf too big; we're done
     p->phiHat1 = (FLT*)malloc(sizeof(FLT)*(p->nf1/2 + 1));
     if (dim > 1) {
-      p->mt = n_modes[1];
       ier = set_nf_type12(p->mt, p->opts, p->spopts, &(p->nf2));
       if (ier) return ier;
       p->phiHat2 = (FLT*)malloc(sizeof(FLT)*(p->nf2/2 + 1));
     }
     if (dim > 2) {
-      p->mu = n_modes[2];
       ier = set_nf_type12(p->mu, p->opts, p->spopts, &(p->nf3)); 
       if (ier) return ier;
       p->phiHat3 = (FLT*)malloc(sizeof(FLT)*(p->nf3/2 + 1));
@@ -189,7 +206,6 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     if (p->opts.debug) printf("[finufft_plan] kernel fser (ns=%d):\t\t%.3g s\n", p->spopts.nspread, timer.elapsedsec());
 
     timer.restart();
-    p->N = p->ms*p->mt*p->mu;          // N = total # modes
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // the big workspace
     if (p->opts.debug) printf("[finufft_plan] fwBatch %.2fGB alloc:\t\t%.3g s\n", (double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());

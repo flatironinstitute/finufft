@@ -23,7 +23,7 @@ void finufft_default_opts(nufft_opts *o)
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX. Barnett 10/30/17 onwards.
 {
-  o->upsampfac = 2.0;        // sigma: either 2.0, or 1.25 for smaller RAM, FFTs
+  o->upsampfac = 0.0;        // sigma: 0 auto; 2.0; or 1.25 smaller RAM, FFTs
   o->chkbnds = 0;
   o->debug = 0;
   o->spread_debug = 0;

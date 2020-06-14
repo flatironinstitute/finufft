@@ -17,7 +17,7 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 2d, all 3 types
 
-   Usage: finufft2d_test [Nmodes1 Nmodes2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]
+   Usage: finufft2d_test Nmodes1 Nmodes2 Nsrc [tol [debug [spread_sort [upsampfac]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
@@ -27,31 +27,24 @@ int main(int argc, char* argv[])
    Barnett 2/1/17
 */
 {
-  BIGINT M = 1e6, N1 = 1000, N2 = 500;  // defaults: M = # srcs, N1,N2 = # modes
+  BIGINT M, N1, N2;              // M = # srcs, N1,N2 = # modes
   double w, tol = 1e-6;          // default
-  double upsampfac = 2.0;        // default
   nufft_opts opts; finufft_default_opts(&opts);
-  opts.debug = 0;            // 1 to see some timings
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
-  if (argc>1) {
-    sscanf(argv[1],"%lf",&w); N1 = (BIGINT)w;
-    sscanf(argv[2],"%lf",&w); N2 = (BIGINT)w;
-  }
-  if (argc>3) { sscanf(argv[3],"%lf",&w); M = (BIGINT)w; }
-  if (argc>4) {
-    sscanf(argv[4],"%lf",&tol);
-    if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
-  }
-  if (argc>5) sscanf(argv[5],"%d",&opts.debug);
-  opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
-  if (argc>6) sscanf(argv[6],"%d",&opts.spread_sort);
-  if (argc>7) sscanf(argv[7],"%lf",&upsampfac);
-  opts.upsampfac=(FLT)upsampfac;
-  if (argc==1 || argc==2 || argc>8) {
+  if (argc<4 || argc>8) {
     fprintf(stderr,"Usage: finufft2d_test [N1 N2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]\n\teg:\tfinufft2d_test 1e3 1e3 1e6 1e-9 0 2 1.25\n");
     return 1;
   }
+  sscanf(argv[1],"%lf",&w); N1 = (BIGINT)w;
+  sscanf(argv[2],"%lf",&w); N2 = (BIGINT)w;
+  sscanf(argv[3],"%lf",&w); M = (BIGINT)w;
+  if (argc>4) sscanf(argv[4],"%lf",&tol);
+  if (argc>5) sscanf(argv[5],"%d",&opts.debug);
+  opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
+  if (argc>6) sscanf(argv[6],"%d",&opts.spread_sort);
+  if (argc>7) { sscanf(argv[7],"%lf",&w); opts.upsampfac=(FLT)w; }
+
   cout << scientific << setprecision(15);
   BIGINT N = N1*N2;
 

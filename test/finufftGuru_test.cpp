@@ -23,8 +23,8 @@ double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,finufft_plan *plan);
 int main(int argc, char* argv[])
 /* Test/demo the guru interface, for many transforms with same NU pts.
 
-   Usage: finufftGuru_test [ntransf [type [ndim [Nmodes1 Nmodes2 Nmodes3 [Nsrc
-                  [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]]]
+   Usage: finufftGuru_test ntransf type ndim Nmodes1 Nmodes2 Nmodes3 Nsrc
+                  [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]
 
    debug = 0: rel errors and overall timing
            1: timing breakdowns
@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
    spread_scheme = 0: sequential maximally multithreaded spread/interp
                    1: parallel singlethreaded spread/interp, nested last batch
    
-   Example: finufftGuru_test 10 1 2 1000 1000 0 1000000 1e-12 0 0 0 2 2.0
+   Example: finufftGuru_test 10 1 2 1000 1000 0 1000000 1e-9 0 0 0 2 2.0
 
    The unused dimensions of Nmodes may be left as zero.
    For type 3, Nmodes{1,2,3} controls the spread of NU freq targs in each dim.
@@ -44,43 +44,32 @@ int main(int argc, char* argv[])
 */
 {
   double tsleep = 0.1;  // how long wait between tests to let FFTW settle (1.0?)
-  int ntransf = 1;  // defaults...
-  int type = 1;
-  int ndim = 1;
-  BIGINT M = 1e6, N1 = 1000, N2 = 500, N3=250;   // M = # srcs, N1,N2,N3= # modes in each dim
-  double tol = 1e-6;
-  int optsDebug = 0, sprDebug = 0;
-  int sprThr = 0;
-  int maxbatchsize = 0;
-  int sprSort = 2;
-  double upsampfac = 2.0;     // either 2.0 or 1.25
+  int ntransf, type, ndim;
+  BIGINT M, N1, N2, N3; // M = # srcs, N1,N2,N3= # modes in each dim
+  double w, tol = 1e-6;
   int isign = +1;             // choose which exponential sign to test
+  nufft_opts opts;
+  finufft_default_opts(&opts);   // for guru interface
   
   // Collect command line arguments ------------------------------------------
-  if (argc>1) sscanf(argv[1],"%d",&ntransf);
-  if(argc > 2) sscanf(argv[2],"%d",&type);
-  if(argc > 3) sscanf(argv[3],"%d",&ndim);
-  double w;
-  if(argc > 4) {
-    sscanf(argv[4],"%lf",&w); N1 = (BIGINT)w;
-    sscanf(argv[5],"%lf",&w); N2 = (BIGINT)w;
-    sscanf(argv[6],"%lf",&w); N3 = (BIGINT)w;
-  }
-  if (argc>7) { sscanf(argv[7],"%lf",&w); M = (BIGINT)w; }
-  if (argc>8) {
-    sscanf(argv[8],"%lf",&tol);
-    if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
-  }
-  if (argc>9) sscanf(argv[9],"%d",&optsDebug);
-  sprDebug = (optsDebug>1) ? 1 : 0;  // see output from spreader
-  if (argc>10) sscanf(argv[10], "%d", &sprThr);
-  if (argc>11) sscanf(argv[11], "%d", &maxbatchsize); 
-  if (argc>12) sscanf(argv[12],"%d",&sprSort);
-  if (argc>13) sscanf(argv[13],"%lf",&upsampfac);
-  if (argc==1 || argc>14) {
-    fprintf(stderr,"Usage: finufftGuru_test [ntransf [type [ndim [N1 N2 N3 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]]]\n\teg:\tfinufftGuru_test 10 1 2 1e3 1e3 0 1e6 1e-9 0 0 0 2 1.25\n");
+  if (argc<8 || argc>14) {
+    fprintf(stderr,"Usage: finufftGuru_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]\n\teg:\tfinufftGuru_test 10 1 2 1e3 1e3 0 1e6 1e-9 0 0 0 2 1.25\n");
     return 1;
   }
+  sscanf(argv[1],"%d",&ntransf);
+  sscanf(argv[2],"%d",&type);
+  sscanf(argv[3],"%d",&ndim);
+  sscanf(argv[4],"%lf",&w); N1 = (BIGINT)w;
+  sscanf(argv[5],"%lf",&w); N2 = (BIGINT)w;
+  sscanf(argv[6],"%lf",&w); N3 = (BIGINT)w;
+  sscanf(argv[7],"%lf",&w); M = (BIGINT)w;
+  if (argc>8) sscanf(argv[8],"%lf",&tol);
+  if (argc>9) sscanf(argv[9],"%d",&opts.debug);
+  opts.spread_debug = (opts.debug>1) ? 1 : 0;   // see output from spreader
+  if (argc>10) sscanf(argv[10], "%d", &opts.spread_thread);
+  if (argc>11) sscanf(argv[11], "%d", &opts.maxbatchsize); 
+  if (argc>12) sscanf(argv[12],"%d",&opts.spread_sort);
+  if (argc>13) { sscanf(argv[13],"%lf",&w); opts.upsampfac = (FLT)w; }
 
   // Allocate and initialize input -------------------------------------------  
   cout << scientific << setprecision(15);
@@ -151,24 +140,11 @@ int main(int argc, char* argv[])
   sleep(tsleep);
 
   printf("FINUFFT %dd%d use guru interface to do %d calls together:-------------------\n",ndim,type,ntransf);
-  //Start by instantiating a finufft_plan
-  finufft_plan plan;
-  //then by instantiating a nufft_opts
-  nufft_opts opts;
-  
-  finufft_default_opts(&opts);     // Guru Step 0
-  opts.debug = optsDebug;
-  opts.spread_debug = sprDebug;
-  plan.spopts.debug = sprDebug;
-  opts.spread_sort = sprSort;
-  opts.upsampfac = upsampfac;
-  opts.spread_thread = sprThr;
-  opts.maxbatchsize = maxbatchsize;
-
+  finufft_plan plan;                  // instantiate a finufft_plan
   CNTime timer; timer.start();        // Guru Step 1
   BIGINT n_modes[3] = {N1,N2,N3};     // #modes per dimension (ignored for t3)
   int ier = finufft_makeplan(type, ndim, n_modes, isign, ntransf, tol, &plan, &opts);
-  // NB: the opts struct can no longer be modified with effect!
+  // (NB: the opts struct can no longer be modified with effect!)
   double plan_t = timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

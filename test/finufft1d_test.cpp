@@ -17,7 +17,7 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 1d, all 3 types.
 
-   Usage: finufft1d_test [Nmodes [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]
+   Usage: finufft1d_test Nmodes Nsrc [tol [debug [spread_sort [upsampfac]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
@@ -27,28 +27,23 @@ int main(int argc, char* argv[])
    Barnett 1/22/17 - 2/9/17
 */
 {
-  BIGINT M = 1e6, N = 1e6;   // defaults: M = # srcs, N = # modes out
+  BIGINT M, N;   // M = # srcs, N = # modes out
   double w, tol = 1e-6;      // default
-  double upsampfac = 2.0;    // default
   nufft_opts opts; finufft_default_opts(&opts);  // put defaults in opts
-  opts.debug = 0;            // 1 to see sub-timings
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;            // choose which exponential sign to test
-  if (argc>1) { sscanf(argv[1],"%lf",&w); N = (BIGINT)w; }
-  if (argc>2) { sscanf(argv[2],"%lf",&w); M = (BIGINT)w; }
-  if (argc>3) {
-    sscanf(argv[3],"%lf",&tol);
-    if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
+  if (argc<3 || argc>7) {
+    fprintf(stderr,"Usage: finufft1d_test Nmodes Nsrc [tol [debug [spread_sort [upsampfac]]]]\n\teg:\tfinufft1d_test 1e6 1e6 1e-6 1 2 2.0\n");
+    return 1;
   }
+  sscanf(argv[1],"%lf",&w); N = (BIGINT)w;
+  sscanf(argv[2],"%lf",&w); M = (BIGINT)w;
+  if (argc>3) sscanf(argv[3],"%lf",&tol);
   if (argc>4) sscanf(argv[4],"%d",&opts.debug);
   opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
   if (argc>5) sscanf(argv[5],"%d",&opts.spread_sort);
-  if (argc>6) sscanf(argv[6],"%lf",&upsampfac);
-  opts.upsampfac=(FLT)upsampfac;
-  if (argc==1 || argc>7) {
-    fprintf(stderr,"Usage: finufft1d_test [Nmodes [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]\n\teg:\tfinufft1d_test 1e6 1e6 1e-6 1 2 2.0\n");
-    return 1;
-  }
+  if (argc>6) { sscanf(argv[6],"%lf",&w); opts.upsampfac=(FLT)w; }
+  
   cout << scientific << setprecision(15);
 
   FLT *x = (FLT *)malloc(sizeof(FLT)*M);        // NU pts

@@ -18,49 +18,39 @@
 int main(int argc, char* argv[])
 /* Test executable for finufft in 3d many interface, types 1,2, and 3.
 
-   Usage: finufft3dmany_test [ntransf [Nmodes1 Nmodes2 Nmodes3 [Nsrc [tol [debug [spread_thread [maxbatchsize [spreadsort [upsampfac]]]]]]]]]
+   Usage: finufft3dmany_test ntransf Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug [spread_thread [maxbatchsize [spreadsort [upsampfac]]]]]]
 
    debug = 0: rel errors and overall timing, 1: timing breakdowns
            2: also spreading output
 
-   Example: finufft3dmany_test 1000 1e2 1e2 1e2 1e4 1e-6 1 0 0 2.0
+   Example: finufft3dmany_test 100 50 50 50 1e5 1e-3
 
    Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20.
 */
 {
-  BIGINT M = 1e6, N1 = 1000, N2 = 500, N3 = 200;  // defaults: M = # srcs, N1,N2 = # modes
-  int debug = 0;                 // 1 to see some timings
-  int ntransf = 40;                      // # of vectors for "many" interface
-
+  BIGINT M, N1, N2, N3;          // M = # srcs, N1,N2 = # modes
+  int ntransf;                   // # of vectors for "many" interface
   double w, tol = 1e-6;          // default
-  double upsampfac = 2.0;        // default
   nufft_opts opts; finufft_default_opts(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
-  if (argc>1) { sscanf(argv[1],"%lf",&w); ntransf = (int)w; }
-  if (argc>2) {
-    sscanf(argv[2],"%lf",&w); N1 = (BIGINT)w;
-    sscanf(argv[3],"%lf",&w); N2 = (BIGINT)w;
-    sscanf(argv[4],"%lf",&w); N3 = (BIGINT)w;
+  if (argc<6 || argc>12) {
+    fprintf(stderr,"Usage: finufft3dmany_test ntransf N1 N2 N3 Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]\n");
+    return 1;
   }
-  if (argc>5) { sscanf(argv[5],"%lf",&w); M = (BIGINT)w; }
-  if (argc>6) {
-    sscanf(argv[6],"%lf",&tol);
-    if (tol<=0.0) { printf("tol must be positive!\n"); return 1; }
-  }
-  if (argc>7) sscanf(argv[7],"%d",&debug);
-  opts.debug = debug;
-  opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
+  sscanf(argv[1],"%lf",&w); ntransf = (int)w;
+  sscanf(argv[2],"%lf",&w); N1 = (BIGINT)w;
+  sscanf(argv[3],"%lf",&w); N2 = (BIGINT)w;
+  sscanf(argv[4],"%lf",&w); N3 = (BIGINT)w;
+  sscanf(argv[5],"%lf",&w); M = (BIGINT)w;
+  if (argc>6) sscanf(argv[6],"%lf",&tol);
+  if (argc>7) sscanf(argv[7],"%d",&opts.debug);
+  opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
   if (argc>8) sscanf(argv[8],"%d",&opts.spread_thread);  
   if (argc>9) sscanf(argv[9],"%d",&opts.maxbatchsize);  
   if (argc>10) sscanf(argv[10],"%d",&opts.spread_sort);
-  if (argc>11) sscanf(argv[11],"%lf",&upsampfac);
-  opts.upsampfac=upsampfac;
+  if (argc>11) { sscanf(argv[11],"%lf",&w); opts.upsampfac = (FLT)w; }
 
-  if (argc==1 || argc==2 || argc>12) {
-    fprintf(stderr,"Usage: finufft3dmany_test [ntransf [N1 N2 N3 [Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]]]]\n");
-    return 1;
-  }
   cout << scientific << setprecision(15);
   BIGINT N = N1*N2*N3;
 
@@ -108,8 +98,9 @@ int main(int argc, char* argv[])
 
   // compare the result with finufft3d1
   FFTW_FORGET_WISDOM();
-  opts.debug = 0;       // don't output timing for calls of finufft3d1
-  opts.spread_debug = 0;
+  nufft_opts simpleopts=opts;
+  simpleopts.debug = 0;       // don't output timing for calls of finufft3d1
+  simpleopts.spread_debug = 0;
 
   CPX* cstart;
   CPX* Fstart;
@@ -119,7 +110,7 @@ int main(int argc, char* argv[])
   {
     cstart = c+k*M;
     Fstart = F_3d1+k*N;
-    ier = finufft3d1(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&opts);
+    ier = finufft3d1(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&simpleopts);
   }
   double t=timer.elapsedsec();
   if (ier!=0) {
@@ -145,8 +136,6 @@ int main(int argc, char* argv[])
     for (BIGINT m=0; m<N*ntransf; ++m) F[m] = crandm11r(&se);
   }
   FFTW_FORGET_WISDOM();
-  opts.debug = debug;   // set debug flags back to original setting
-  opts.spread_debug = (debug>1) ? 1 : 0;
   timer.restart();
   ier = finufft3d2many(ntransf,M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   ti=timer.elapsedsec();
@@ -170,9 +159,6 @@ int main(int argc, char* argv[])
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n",(long long)jt,i,abs(ct-c[jt+i*M])/infnorm(M,c+i*M));
 
   FFTW_FORGET_WISDOM();
-  opts.debug = 0;        // don't output timing for calls of finufft3d2
-  opts.spread_debug = 0;
- 
   // compare the result with finufft3d2...
   CPX* c_3d2 = (CPX*)malloc(sizeof(CPX)*M*ntransf);
   timer.restart();
@@ -180,7 +166,7 @@ int main(int argc, char* argv[])
   {
     cstart = c_3d2+k*M;
     Fstart = F+k*N;
-    ier = finufft3d2(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&opts);
+    ier = finufft3d2(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&simpleopts);
   }
   t = timer.elapsedsec();
   if (ier!=0) {
@@ -199,9 +185,6 @@ int main(int argc, char* argv[])
 
   printf("test 3d3 many vs repeated single: ------------------------------------\n");
   FFTW_FORGET_WISDOM();
-  opts.debug = debug;
-  opts.spread_debug = (debug>1) ? 1 : 0;  // see output from spreader
-  
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
   {
@@ -248,16 +231,13 @@ int main(int argc, char* argv[])
 printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,abs(Ft-F[kt+i*N])/infnorm(N,F+i*N));
 
   FFTW_FORGET_WISDOM();
-  opts.debug = 0;       // don't output timing for calls of finufft3d3
-  opts.spread_debug = 0;
-
 // compare the result with finufft3d3...
   CPX* f_3d3 = (CPX*)malloc(sizeof(CPX)*N*ntransf);
   timer.restart();
   for (int k=0; k<ntransf; ++k) {
     Fstart = f_3d3+k*N;
     cstart = c+k*M;
-    ier = finufft3d3(M,x,y,z,cstart,isign,tol,N, s_freq,t_freq,u_freq,Fstart,&opts);
+    ier = finufft3d3(M,x,y,z,cstart,isign,tol,N, s_freq,t_freq,u_freq,Fstart,&simpleopts);
   }
   t = timer.elapsedsec();
   if (ier!=0) {
