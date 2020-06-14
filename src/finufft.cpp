@@ -154,7 +154,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   }
   // use opts to write into plan's spread options...
   int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts);
-  if (ier>1)
+  if (ier>0)           // *** need to make ier>1 when better handle tol
     return ier;
   
   // set others as defaults (or unallocated for arrays)...

@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 
    Barnett 2/2/17
 */
-
+{
   BIGINT M, N1, N2, N3;       // M = # srcs, N1,N2,N3 = # modes
   double w, tol = 1e-6;       // default
   nufft_opts opts; finufft_default_opts(&opts);

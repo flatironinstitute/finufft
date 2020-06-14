@@ -12,7 +12,7 @@ int main(int argc, char* argv[])
    (It also checks accuracy for 1D type 3, for some reason - could be killed.)
    Barnett 3/14/17, updated Andrea Malleo, summer 2019.
    Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
-   guru: makeplan followed by immediate destrory. Barnett 5/26/20.
+   guru: makeplan followed by immediate destroy. Barnett 5/26/20.
 
    Compile with (better to go up a directory and use: make test/dumbinputs) :
    g++ -std=c++14 -fopenmp dumbinputs.cpp -I ../include directft/dirft1d.o ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
