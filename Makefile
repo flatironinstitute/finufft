@@ -159,7 +159,59 @@ clean:
 	rm -rf lib
 	rm -rf lib-static
 
+check2D: all
+	@echo Running 2-D cases
+	bin/cufinufft2d1_test 1 256 256
+	bin/cufinufft2d1_test 2 512 512
+	bin/cufinufft2d2_test 1 256 256
+	bin/cufinufft2d2_test 2 512 512
+	@echo Running 2-D High Density cases
+	bin/cufinufft2d1_test 1 64 64 8192
+	bin/cufinufft2d1_test 2 64 64 8192
+	bin/cufinufft2d2_test 1 64 64 8192
+	bin/cufinufft2d2_test 2 64 64 8192
+	@echo Running 2-D Low Density cases
+	bin/cufinufft2d1_test 1 64 64 1024
+	bin/cufinufft2d1_test 2 64 64 1024
+	bin/cufinufft2d2_test 1 64 64 1024
+	bin/cufinufft2d2_test 2 64 64 1024
+	@echo Running 2-D-Many cases
+	bin/cufinufft2d1many_test 1 64 64 128 1e-3
+	bin/cufinufft2d1many_test 1 256 256 1024
+	bin/cufinufft2d1many_test 2 512 512 256
+	bin/cufinufft2d2many_test 1 64 64 128 1e-3
+	bin/cufinufft2d2many_test 1 256 256 1024
+	bin/cufinufft2d2many_test 2 512 512 256
+	bin/cufinufft2d2many_test 1 256 256 1024
+
+check3D: all
+	@echo Running 3-D cases
+	bin/cufinufft3d1_test 1 16 16 16 4096 1e-3
+	bin/cufinufft3d1_test 2 16 16 16 8192 1e-3
+	bin/cufinufft3d1_test 4 15 15 15 2048 1e-3
+	bin/cufinufft3d2_test 1 16 16 16 4096 1e-3
+	bin/cufinufft3d2_test 2 16 16 16 8192 1e-3
+	bin/cufinufft3d1_test 1 128 128 128
+	bin/cufinufft3d1_test 2 16 16 16
+	bin/cufinufft3d1_test 4 15 15 15
+	bin/cufinufft3d2_test 1 16 16 16
+	bin/cufinufft3d2_test 2 16 16 16
+	bin/cufinufft3d1_test 1 64 64 64 1000
+	bin/cufinufft3d1_test 2 64 64 64 10000
+
+ifeq ($(PREC),SINGLE)
+check: all
+	$(MAKE) check2D
+	$(MAKE) check3D
+else
+check: all
+	$(MAKE) check2D
+endif
+
 .PHONY: all
+.PHONY: check
+.PHONY: check2D
+.PHONY: check3D
 .PHONY: clean
 .PHONY: clib
 .PHONY: lib
