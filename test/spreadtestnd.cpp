@@ -9,7 +9,7 @@
 
 void usage()
 {
-  printf("usage: spreadtestnd [dims [M [N [tol [sort [flags [debug [kerpad [kerevalmeth]]]]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n\tflags : expert timing flags (see cnufftspread.h)\n\tdebug=0 (less text out), 1 (more), 2 (lots)\n\tkerpad=0 (no pad to mult of 4), 1 (do)\n\tkerevalmeth=0 (direct), 1 (Horner ppval)\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 2 0 1\n");
+  printf("usage: spreadtestnd dims [M N [tol [sort [flags [debug [kerpad [kerevalmeth [upsampfac]]]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n\tflags : expert timing flags (see cnufftspread.h)\n\tdebug=0 (less text out), 1 (more), 2 (lots)\n\tkerpad=0 (no pad to mult of 4), 1 (do)\n\tkerevalmeth=0 (direct), 1 (Horner ppval)\n\tupsampfac>1; 2 or 1.25 for Horner\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 2 0 1\n");
 }
 
 int main(int argc, char* argv[])
@@ -24,11 +24,12 @@ int main(int argc, char* argv[])
  *
  * Magland; expanded by Barnett 1/14/17. Better cmd line args 3/13/17
  * indep setting N 3/27/17. parallel rand() & sort flag 3/28/17
- * timing_flags 6/14/17. debug control 2/8/18. sort=2 opt 3/5/18, pad 4/24/18
+ * timing_flags 6/14/17. debug control 2/8/18. sort=2 opt 3/5/18, pad 4/24/18.
+ * ier=1 warning not error, upsampfac 6/14/20.
  */
 {
   int d = 3;            // Cmd line args & their defaults:  default #dims
-  double tol = 1e-6;    // default (eg 1e-6 has nspread=7)
+  double w, tol = 1e-6; // default (eg 1e-6 has nspread=7)
   BIGINT M = 1e6;       // default # NU pts
   BIGINT roughNg = 1e6; // default # U pts
   int sort = 2;         // spread_sort
@@ -36,29 +37,26 @@ int main(int argc, char* argv[])
   int debug = 0;        // default
   int kerpad = 0;       // default
   int kerevalmeth = 1;  // default: Horner
-  if (argc<=1) { usage(); return 0; }
+  FLT upsampfac = 2.0;  // standard
+  
+  if (argc<2 || argc==3 || argc>11) {
+    usage(); return (argc>1);
+  }
   sscanf(argv[1],"%d",&d);
   if (d<1 || d>3) {
     printf("d must be 1, 2 or 3!\n"); usage(); return 1;
   }
   if (argc>2) {
-    double w; sscanf(argv[2],"%lf",&w); M = (BIGINT)w;  // so can read 1e6 right!
+    sscanf(argv[2],"%lf",&w); M = (BIGINT)w;       // to read "1e6" right!
     if (M<1) {
       printf("M (# NU pts) must be positive!\n"); usage(); return 1;
     }
-  }
-  if (argc>3) {
-    double w; sscanf(argv[3],"%lf",&w); roughNg = (BIGINT)w;
+    sscanf(argv[3],"%lf",&w); roughNg = (BIGINT)w;
     if (roughNg<1) {
       printf("N (# U pts) must be positive!\n"); usage(); return 1;
     }
   }
-  if (argc>4) {
-    sscanf(argv[4],"%lf",&tol);
-    if (tol<=0.0) {
-      printf("tol must be positive!\n"); usage(); return 1;
-    }
-  }
+  if (argc>4) sscanf(argv[4],"%lf",&tol);
   if (argc>5) {
     sscanf(argv[5],"%d",&sort);
     if ((sort!=0) && (sort!=1) && (sort!=2)) {
@@ -86,7 +84,10 @@ int main(int argc, char* argv[])
     }
   }
   if (argc>10) {
-    usage(); return 1;
+    sscanf(argv[10],"%lf",&w); upsampfac = (FLT)w;
+    if (upsampfac<=1.0) {
+      printf("upsampfac must be >1.0!\n"); usage(); return 1;
+    }
   }
 
   int dodir1 = true;                        // control if dir=1 tested at all
@@ -99,18 +100,18 @@ int main(int argc, char* argv[])
   std::vector<FLT> d_uniform(2*Ng);                        // Re and Im
 
   spread_opts opts;
-  FLT upsampfac = 2.0; // big to test spreader error alone, or 2 or 1.25 for kerevalmeth=1
-  int ier_set = setup_spreader(opts,(FLT)tol,upsampfac,kerevalmeth);
-  if (ier_set!=0) {       // exit gracefully if can't set up.
+  int ier_set = setup_spreader(opts,(FLT)tol,upsampfac,kerevalmeth,debug,1);
+  if (ier_set>1) {       // exit gracefully if can't set up.
     printf("error when setting up spreader (ier_set=%d)!\n",ier_set);
     return ier_set;
   }
-  opts.pirange = 0;  // crucial, since the below has NU pts on [0,Nd] in each dim
+  opts.pirange = 0;  // crucial, since below has NU pts on [0,Nd] in each dim
   opts.chkbnds = 0;  // only for debug, since below code has correct bounds
   opts.debug = debug;   // print more diagnostics?
   opts.sort = sort;
   opts.flags = flags;
   opts.kerpad = kerpad;
+  opts.upsampfac = upsampfac;
   //opts.max_subproblem_size = 1e4; // default is 1e5; minimal difference
   FLT maxerr, ansmod;
   

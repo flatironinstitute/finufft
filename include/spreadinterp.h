@@ -20,7 +20,7 @@
 // todo: replace w/ C++ function; apparently will be as fast
 
 
-/* Bitwise debugging timing flag definitions; see spread_opts.flags.
+/* Bitwise debugging timing flag (TF) definitions; see spread_opts.flags.
     This is an unobtrusive way to determine the time contributions of the
     different components of spreading/interp by selectively leaving them out.
     For example, running the following two tests shows the effect of the exp()
@@ -54,6 +54,6 @@ int spreadinterpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort);
 FLT evaluate_kernel(FLT x,const spread_opts &opts);
 FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
-int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac,int kerevalmeth);
+int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac,int kerevalmeth, int debug, int showwarn);
 
 #endif  // SPREADINTERP_H

@@ -146,17 +146,17 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     if (tol>=(FLT)1E-9) {                   // the tol sigma=5/4 can reach
       if (type==3)                          // could move to setpts, more known?
         p->opts.upsampfac=1.25;             // faster b/c smaller RAM & FFT
-      else if ((dim==1 && p->N>10000000) || (dim==2 && p->N>300000) || (dim==3 && p->N>3000000))  // type 1 & 2 heuristic cutoffs for typ tol on 12-core xeon
+      else if ((dim==1 && p->N>10000000) || (dim==2 && p->N>300000) || (dim==3 && p->N>3000000))  // type 1,2 heuristic cutoffs, double, typ tol, 12-core xeon
         p->opts.upsampfac=1.25;
     }
     if (p->opts.debug > 1)
       printf("[finufft_plan] set auto upsampfac=%.2f\n",(double)p->opts.upsampfac);
   }
-  // use opts to write into plan's spread options...
+  // use opts to choose and write into plan's spread options...
   int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts);
-  if (ier>0)           // *** need to make ier>1 when better handle tol
+  if (ier>1)                                 // proceed if success or warning
     return ier;
-  
+
   // set others as defaults (or unallocated for arrays)...
   p->X = NULL; p->Y = NULL; p->Z = NULL;
   p->phiHat1 = NULL; p->phiHat2 = NULL; p->phiHat3 = NULL;
@@ -173,17 +173,17 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     p->spopts.spread_direction = type;
     
     // determine fine grid sizes, sanity check...
-    ier = set_nf_type12(p->ms, p->opts, p->spopts, &(p->nf1));
-    if (ier) return ier;    // nf too big; we're done
+    int nfier = set_nf_type12(p->ms, p->opts, p->spopts, &(p->nf1));
+    if (nfier) return nfier;    // nf too big; we're done
     p->phiHat1 = (FLT*)malloc(sizeof(FLT)*(p->nf1/2 + 1));
     if (dim > 1) {
-      ier = set_nf_type12(p->mt, p->opts, p->spopts, &(p->nf2));
-      if (ier) return ier;
+      nfier = set_nf_type12(p->mt, p->opts, p->spopts, &(p->nf2));
+      if (nfier) return nfier;
       p->phiHat2 = (FLT*)malloc(sizeof(FLT)*(p->nf2/2 + 1));
     }
     if (dim > 2) {
-      ier = set_nf_type12(p->mu, p->opts, p->spopts, &(p->nf3)); 
-      if (ier) return ier;
+      nfier = set_nf_type12(p->mu, p->opts, p->spopts, &(p->nf3)); 
+      if (nfier) return nfier;
       p->phiHat3 = (FLT*)malloc(sizeof(FLT)*(p->nf3/2 + 1));
     }
 
@@ -238,7 +238,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     // Type 3 will call finufft_makeplan for type 2; no need to init FFTW
     // Note we don't even know nj or nk yet, so can't do anything else!
   }
-  return 0;
+  return ier;         // report setup_spreader status (could be warning)
 }
 
 
@@ -262,7 +262,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->Z = zj;
     int ier = spreadcheck(p->nf1, p->nf2, p->nf3, p->nj, xj, yj, zj, p->spopts);
     if (p->opts.debug>1) printf("[finufft_setpts] spreadcheck (%d):\t%.3g s\n", p->spopts.chkbnds, timer.elapsedsec());
-    if (ier)
+    if (ier)         // no warnings allowed here
       return ier;    
     timer.restart();
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*p->nj);
@@ -430,16 +430,17 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     nufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
     t2opts.debug = max(0,p->opts.debug-1);        // don't print as much detail
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);
+    t2opts.showwarn = 0;                          // so don't see warnings 2x
     // (...could vary other t2opts here?)
     int ier = finufft_makeplan(2, d, t2nmodes, p->fftSign, p->batchSize, p->tol,
                                p->innerT2plan, &t2opts);
-    if (ier) {
-      fprintf(stderr,"finufft_setpts t3: inner type 2 plan creation failed!\n");
+    if (ier>1) {     // if merely warning, still proceed
+      fprintf(stderr,"finufft_setpts t3: inner type 2 plan creation failed with ier=%d!\n",ier);
       return ier;
     }
     ier = finufft_setpts(p->innerT2plan, nk, p->Sp, p->Tp, p->Up, 0, NULL, NULL, NULL);  // note nk = # output points (not nj)
-    if (ier) {
-      fprintf(stderr,"finufft_setpts t3: inner type 2 setpts failed!\n");
+    if (ier>1) {
+      fprintf(stderr,"finufft_setpts t3: inner type 2 setpts failed, ier=%d!\n",ier);
       return ier;
     }
     if (p->opts.debug) printf("[finufft_setpts t3] inner t2 plan & setpts: \t%.3g s\n", timer.elapsedsec());

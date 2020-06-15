@@ -7,7 +7,7 @@ c     double-precision version...
          integer debug, spread_debug,spread_sort,spread_kerevalmeth,
      $        spread_kerpad,chkbnds,fftw,modeord
          real*8 upsampfac
-         integer spread_thread,maxbatchsize 
+         integer spread_thread,maxbatchsize,showwarn
       end type
 
 c     single-precision version...
@@ -15,5 +15,5 @@ c     single-precision version...
          integer debug, spread_debug,spread_sort,spread_kerevalmeth,
      $        spread_kerpad,chkbnds,fftw,modeord
          real*4 upsampfac
-         integer spread_thread,maxbatchsize 
+         integer spread_thread,maxbatchsize,showwarn
       end type

@@ -34,19 +34,20 @@ void finufft_default_opts(nufft_opts *o)
   o->modeord = 0;
   o->spread_thread = 0;      // default: auto
   o->maxbatchsize = 0;       // "
+  o->showwarn = 1;
 }
 
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
-// options. Report status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
+// options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
-  int ier = setup_spreader(spopts, eps, opts.upsampfac,
-                           opts.spread_kerevalmeth);    // see spreadinterp.cpp
+  int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
+                   opts.spread_debug, opts.showwarn);   // --> spreadinterp.cpp
+  // override various spread opts from their defaults...
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;     // could make dim or CPU choices here?
   spopts.kerpad = opts.spread_kerpad; // (only applies to kerevalmeth=0)
   spopts.chkbnds = opts.chkbnds;
-  spopts.pirange = 1;                 // could allow user control?
   return ier;
 } 
 

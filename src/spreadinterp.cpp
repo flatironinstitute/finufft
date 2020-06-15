@@ -166,11 +166,11 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
   // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
   int minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
-    fprintf(stderr,"error: one or more non-trivial box dims is less than 2.nspread!\n");
+    fprintf(stderr,"FINUFFT spread error: one or more non-trivial box dims is less than 2.nspread!\n");
     return ERR_SPREAD_BOX_SMALL;
   }
   if (opts.spread_direction!=1 && opts.spread_direction!=2) {
-    fprintf(stderr,"error: opts.spread_direction must be 1 or 2!\n");
+    fprintf(stderr,"FINUFFT error: opts.spread_direction must be 1 or 2!\n");
     return ERR_SPREAD_DIR;
   }
   int ndims = ndims_from_Ns(N1,N2,N3);
@@ -181,7 +181,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
       if (x<0 || x>N1 || !isfinite(x)) {     // note isfinite() breaks with -Ofast
-        fprintf(stderr,"NU pt not in valid range (central three periods): kx=%g, N1=%lld (pirange=%d)\n",x,(long long)N1,opts.pirange);
+        fprintf(stderr,"FINUFFT: NU pt not in valid range (central three periods): kx=%g, N1=%lld (pirange=%d)\n",x,(long long)N1,opts.pirange);
         return ERR_SPREAD_PTS_OUT_RANGE;
       }
     }
@@ -189,7 +189,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
       for (BIGINT i=0; i<M; ++i) {
         FLT y=RESCALE(ky[i],N2,opts.pirange);
         if (y<0 || y>N2 || !isfinite(y)) {
-          fprintf(stderr,"NU pt not in valid range (central three periods): ky=%g, N2=%lld (pirange=%d)\n",y,(long long)N2,opts.pirange);
+          fprintf(stderr,"FINUFFT: NU pt not in valid range (central three periods): ky=%g, N2=%lld (pirange=%d)\n",y,(long long)N2,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
@@ -197,7 +197,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
       for (BIGINT i=0; i<M; ++i) {
         FLT z=RESCALE(kz[i],N3,opts.pirange);
         if (z<0 || z>N3 || !isfinite(z)) {
-          fprintf(stderr,"NU pt not in valid range (central three periods): kz=%g, N3=%lld (pirange=%d)\n",z,(long long)N3,opts.pirange);
+          fprintf(stderr,"FINUFFT: NU pt not in valid range (central three periods): kz=%g, N3=%lld (pirange=%d)\n",z,(long long)N3,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
@@ -494,70 +494,87 @@ int spreadinterpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 
 ///////////////////////////////////////////////////////////////////////////
 
-int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
-// Initializes spreader kernel parameters given desired NUFFT tolerance eps,
-// upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
-// (etiher 0:exp(sqrt()), 1: Horner ppval).
-// Also sets all default options in spread_opts. See cnufftspread.h for opts.
-// Must call before any kernel evals done.
-// Returns: 0 success, >0 failure (see error codes in utils.h)
+int setup_spreader(spread_opts &opts, FLT eps, FLT upsampfac, int kerevalmeth,
+                   int debug, int showwarn)
+/* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
+   upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
+   (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
+   Also sets all default options in spread_opts. See spread_opts.h for opts.
+   See finufft.cpp:finufft_plan() for where upsampfac is set.
+   Must call this before any kernel evals done, otherwise segfault likely.
+   Returns:
+     0  : success
+     WARN_EPS_TOO_SMALL : requested eps cannot be achieved, but proceed with
+                          best possible eps
+     otherwise : failure (see codes in defs.h); spreading must not proceed
+   Barnett 2017. debug, loosened eps logic 6/14/20.
+*/
 {
-  if (eps<0.5*EPSILON) {     // factor there since fortran wants 1e-16 to be ok
-    fprintf(stderr,"setup_spreader: error, requested eps (%.3g) is too small (<%.3g)\n",(double)eps,0.5*EPSILON);
-    return ERR_EPS_TOO_SMALL;
-  }
-  if (upsampfac!=2.0 && upsampfac!=1.25) {   // nonstandard sigma
+  if (upsampfac!=(FLT)2.0 && upsampfac!=(FLT)1.25) {   // nonstandard sigma
     if (kerevalmeth==1) {
-      fprintf(stderr,"setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",(double)upsampfac);
-      return HORNER_WRONG_BETA;
+      fprintf(stderr,"FINUFFT setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",(double)upsampfac);
+      return ERR_HORNER_WRONG_BETA;
     }
-    if (upsampfac<=1.0) {
-      fprintf(stderr,"setup_spreader: error, upsampfac=%.3g is <=1.0\n",(double)upsampfac);
+    if (upsampfac<=1.0) {       // no digits would result
+      fprintf(stderr,"FINUFFT setup_spreader: error, upsampfac=%.3g is <=1.0\n",(double)upsampfac);
       return ERR_UPSAMPFAC_TOO_SMALL;
     }
     // calling routine must abort on above errors, since opts is garbage!
-    if (upsampfac>4.0)
-      fprintf(stderr,"setup_spreader: warning, upsampfac=%.3g is too large to be beneficial.\n",(double)upsampfac);
+    if (showwarn && upsampfac>4.0)
+      fprintf(stderr,"FINUFFT setup_spreader warning: upsampfac=%.3g way too large to be beneficial.\n",(double)upsampfac);
   }
     
-  // spread_opts defaults... (user can change after this function called)
+  // spread_opts defaults... (some overridden in setup_spreader_for_nufft)
   opts.spread_direction = 1;    // user should always set to 1 or 2 as desired
   opts.pirange = 1;             // user also should always set this
-  opts.chkbnds = 1;
+  opts.chkbnds = 0;
   opts.sort = 2;                // 2:auto-choice
   opts.kerpad = 0;              // affects only evaluate_kernel_vector
   opts.kerevalmeth = kerevalmeth;
   opts.upsampfac = upsampfac;
   opts.sort_threads = 0;        // 0:auto-choice
-  opts.max_subproblem_size = (BIGINT)1e4;  // was larger (1e5, slightly worse)
-  opts.flags = 0;               // 0:no timing flags
+  opts.max_subproblem_size = (BIGINT)1e4;   // was larger (1e5 slightly worse)
+  opts.flags = 0;               // 0:no timing flags (>0 for experts only)
   opts.debug = 0;               // 0:no debug output
 
-  // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
-  int ns = std::ceil(-log10(eps/(FLT)10.0));   // 1 digit per power of ten
-  // (FLT)10.0 is cosmetic: sng & dbl desire same ns for bdry cases eps=10^{-n}
-  if (upsampfac!=2.0)           // override ns when custom sigma
+  int ns, ier = 0;  // Set kernel width w (aka ns, nspread) then copy to opts...
+  if (eps<EPSILON) {            // safety; there's no hope of beating e_mach
+    if (showwarn)
+      fprintf(stderr,"FINUFFT setup_spreader warning: increasing tol=%.3g to eps_mach=%.3g.\n",(double)eps,(double)EPSILON);
+    eps = EPSILON;              // only changes local copy (not any opts)
+    ier = WARN_EPS_TOO_SMALL;
+  }
+  if (upsampfac==2.0)           // standard sigma (see SISC paper)
+    ns = std::ceil(-log10(eps/(FLT)10.0));          // 1 digit per power of 10
+  else                          // custom sigma
     ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
   ns = max(2,ns);               // (we don't have ns=1 version yet)
-  if (ns>MAX_NSPREAD) {         // clip to match allocated arrays
-    fprintf(stderr,"setup_spreader: warning, kernel width ns=%d clipped to max %d; will not match requested eps!\n",ns,MAX_NSPREAD);
+  if (ns>MAX_NSPREAD) {         // clip to fit allocated arrays, Horner rules
+    if (showwarn)
+      fprintf(stderr,"FINUFFT setup_spreader warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",
+              (double)upsampfac,(double)eps,ns,MAX_NSPREAD);
     ns = MAX_NSPREAD;
+    ier = WARN_EPS_TOO_SMALL;
   }
   opts.nspread = ns;
-  opts.ES_halfwidth=(FLT)ns/2;   // constants to help ker eval (except Horner)
-  opts.ES_c = 4.0/(FLT)(ns*ns);
 
+  // setup for reference kernel eval (via formula): select beta width param...
+  // (even when kerevalmeth=1, this ker eval needed for FTs in onedim_*_kernel)
+  opts.ES_halfwidth=(FLT)ns/2;   // constants to help (see below routines)
+  opts.ES_c = 4.0/(FLT)(ns*ns);
   FLT betaoverns = 2.30;         // gives decent betas for default sigma=2.0
   if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
   if (ns==3) betaoverns = 2.26;
   if (ns==4) betaoverns = 2.38;
   if (upsampfac!=2.0) {          // again, override beta for custom sigma
-    FLT gamma=0.97;              // must match devel/gen_all_horner_C_code.m
+    FLT gamma=0.97;              // must match devel/gen_all_horner_C_code.m !
     betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
   }
   opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
-  //fprintf(stderr,"setup_spreader: eps=%.3g sigma=%.6f, chose ns=%d beta=%.6f\n",(double)eps,upsampfac,ns,(double)opts.ES_beta); // user hasn't set debug yet
-  return 0;
+  if (debug)
+    fprintf(stderr,"FINUFFT setup_spreader (kerevalmeth=0) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n",(double)eps,upsampfac,ns,(double)opts.ES_beta);
+  
+  return ier;
 }
 
 FLT evaluate_kernel(FLT x, const spread_opts &opts)
@@ -641,9 +658,9 @@ static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
     FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
-    if (opts.upsampfac==2.0) {     // floating point equality is fine here
+    if (opts.upsampfac==(FLT)2.0) {     // floating point equality is fine here
 #include "ker_horner_allw_loop.c"
-    } else if (opts.upsampfac==1.25) {
+    } else if (opts.upsampfac==(FLT)1.25) {
 #include "ker_lowupsampfac_horner_allw_loop.c"
     } else
       fprintf(stderr,"eval_kernel_vec_Horner: unknown upsampfac, failed!\n");

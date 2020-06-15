@@ -27,25 +27,25 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
   finufft_plan plan;
   int ier = finufft_makeplan(type, n_dims, n_modes, iflag, n_transf, eps,
                              &plan, popts);  // popts (ptr to opts) can be NULL
-  if (ier){
-    fprintf(stderr, "finufft invokeGuru: plan error (ier=%d)!\n", ier);
+  if (ier>1) {   // since 1 (a warning) still allows proceeding...
+    fprintf(stderr, "FINUFFT invokeGuru: plan error (ier=%d)!\n", ier);
     return ier;
   }
   
-  ier = finufft_setpts(&plan, nj, xj, yj, zj, nk, s, t, u);
-  if (ier){
-    fprintf(stderr,"finufft invokeGuru: setpts error (ier=%d)!\n", ier);
-    return ier;
+  int ier2 = finufft_setpts(&plan, nj, xj, yj, zj, nk, s, t, u);
+  if (ier2>1) {
+    fprintf(stderr,"FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
+    return ier2;
   }
 
-  ier = finufft_exec(&plan, cj, fk);
-  if (ier){
-    fprintf(stderr,"finufft invokeGuru: exec error (ier=%d)!\n", ier);
-    return ier;
+  int ier3 = finufft_exec(&plan, cj, fk);
+  if (ier3>1) {
+    fprintf(stderr,"FINUFFT invokeGuru: exec error (ier=%d)!\n", ier3);
+    return ier3;
   }
 
   finufft_destroy(&plan);  
-  return 0;
+  return max(max(ier,ier2),ier3);   // in case any one gave a warning
 }
 
 
@@ -62,7 +62,7 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, NULL, NULL, cj,
 			 iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
-   return ier;
+  return ier;
 }
 
 int finufft1d1many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,
