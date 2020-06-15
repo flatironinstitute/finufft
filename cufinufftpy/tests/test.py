@@ -4,7 +4,7 @@ import pycuda.autoinit
 import pycuda.driver as cuda
 import pycuda.gpuarray as gpuarray
 
-from cufinufft import cufinufft
+from cufinufftpy import cufinufft
 
 import utils
 

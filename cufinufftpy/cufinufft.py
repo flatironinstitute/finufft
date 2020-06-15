@@ -11,20 +11,20 @@ import numpy as np
 
 from ctypes import c_int
 
-from _cufinufft import NufftOpts
-from _cufinufft import NufftOptsf
-from _cufinufft import CufinufftPlan
-from _cufinufft import CufinufftPlanf
-from _cufinufft import _default_opts
-from _cufinufft import _default_optsf
-from _cufinufft import _make_plan
-from _cufinufft import _make_planf
-from _cufinufft import _set_nu_pts
-from _cufinufft import _set_nu_ptsf
-from _cufinufft import _exec_plan
-from _cufinufft import _exec_planf
-from _cufinufft import _destroy_plan
-from _cufinufft import _destroy_planf
+from cufinufftpy._cufinufft import NufftOpts
+from cufinufftpy._cufinufft import NufftOptsf
+from cufinufftpy._cufinufft import CufinufftPlan
+from cufinufftpy._cufinufft import CufinufftPlanf
+from cufinufftpy._cufinufft import _default_opts
+from cufinufftpy._cufinufft import _default_optsf
+from cufinufftpy._cufinufft import _make_plan
+from cufinufftpy._cufinufft import _make_planf
+from cufinufftpy._cufinufft import _set_nu_pts
+from cufinufftpy._cufinufft import _set_nu_ptsf
+from cufinufftpy._cufinufft import _exec_plan
+from cufinufftpy._cufinufft import _exec_planf
+from cufinufftpy._cufinufft import _destroy_plan
+from cufinufftpy._cufinufft import _destroy_planf
 
 
 class cufinufft:
