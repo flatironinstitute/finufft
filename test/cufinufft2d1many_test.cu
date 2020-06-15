@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 	checkCudaErrors(cudaMemcpy(fk,d_fk,N1*N2*ntransf*sizeof(CUCPX),
 		cudaMemcpyDeviceToHost));
 
-	int i = (int) (0.13*ntransf); // // choose some data to check
+	int i = ntransf-1; // // choose some data to check
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
 	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
 	for (BIGINT j=0; j<M; ++j)
