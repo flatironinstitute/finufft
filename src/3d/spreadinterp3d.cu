@@ -73,7 +73,7 @@ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 	oix = xidx/bnx;
 	oiy = yidx/bny;
 	oiz = zidx/bnz;
-	return   (oix + oiy*onx + oiz*ony*onz)*(bnx*bny*bnz) +
+	return   (oix + oiy*onx + oiz*ony*onx)*(bnx*bny*bnz) +
 			 (xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx);
 }
 
