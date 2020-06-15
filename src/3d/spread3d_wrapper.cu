@@ -236,7 +236,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 		int numbins[3];
 		numbins[0] = ceil((FLT) nf1/bin_size_x);
 		numbins[1] = ceil((FLT) nf2/bin_size_y);
-		numbins[2] = ceil((FLT) nf2/bin_size_z);
+		numbins[2] = ceil((FLT) nf3/bin_size_z);
 
 #ifdef DEBUG
 		cout<<"[debug ] Dividing the uniform grids to bin size["
@@ -972,7 +972,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	int numbins[3];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
-	numbins[2] = ceil((FLT) nf2/bin_size_z);
+	numbins[2] = ceil((FLT) nf3/bin_size_z);
 #ifdef DEBUG
 	cout<<"[debug ] Dividing the uniform grids to bin size["
 		<<d_plan->opts.gpu_binsizex<<"x"<<d_plan->opts.gpu_binsizey<<"x"<<d_plan->opts.gpu_binsizez<<"]"<<endl;
