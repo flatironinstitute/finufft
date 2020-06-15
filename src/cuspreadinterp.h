@@ -4,9 +4,6 @@
 #include <cufinufft.h>
 
 //Kernels for 2D codes
-//__global__
-//void RescaleXY_2d(int M, int nf1, int nf2, FLT* x, FLT* y);
-
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
 __global__ 
@@ -92,30 +89,7 @@ void Interp_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 	int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
 	int nbiny, int* idxnupts, int pirange);
 
-#if 0
-__global__
-void uniformUpdate(int n, int* data, int* buffer);
-__global__
-void PtsRearrange_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx,
-		int nbiny, int* bin_startpts, int* sortidx, FLT *x, FLT *x_sorted,
-		FLT *y, FLT *y_sorted, CUCPX *c, CUCPX *c_sorted);
-__global__
-void Spread_2d_Odriven(int nbin_block_x, int nbin_block_y, int nbinx, int nbiny,
-		int *bin_startpts, FLT *x_sorted, FLT *y_sorted, CUCPX *c_sorted,
-		CUCPX *fw, int ns, int nf1, int nf2, FLT es_c, FLT es_beta);
-__global__
-void Spread_2d_Hybrid(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int* binstartpts,
-		int* bin_size, int bin_size_x, int bin_size_y);
-__global__
-void Spread_2d_Simple(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-		int nf1, int nf2, FLT es_c, FLT es_beta, int bin_size,
-		int bin_size_x, int bin_size_y, int binx, int biny);
-#endif
-
 //Kernels for 3D codes
-//__global__
-//void RescaleXY_3d(int M, int nf1, int nf2, int nf3, FLT* x, FLT* y, FLT* z);
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for Bin Sort NUpts */
 __global__
@@ -233,23 +207,6 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts, 
 	int pirange);
 
-#if 0
-__global__
-void LocateNUptstoBins(int M, int nf1, int nf2, int nf3, int  bin_size_x,
-	int bin_size_y, int bin_size_z, int nbinx, int nbiny, int nbinz,
-	int* bin_size, FLT *x, FLT *y, FLT *z, int* sortidx);
-__global__
-void CalcSubProb_3d(int bin_size_x, int bin_size_y, int bin_size_z,
-	int o_bin_size_x, int o_bin_size_y, int o_bin_size_z, int nbinx, int nbiny,
-	int nbinz, int nobinx, int nobiny, int nobinz, int* bin_size,
-	int* num_subprob, int* num_nupts, int maxsubprobsize);
-__global__
-void MapBintoSubProb_3d(int* d_subprobstartpts, int* d_subprob_to_bin,
-	int* d_subprob_to_nupts, int bin_size_x, int bin_size_y, int bin_size_z,
-	int o_bin_size_x, int o_bin_size_y, int o_bin_size_z, int nbinx,
-	int nbiny, int nbinz, int nobinx, int nobiny, int nobinz, int* bin_size,
-	int* num_subprob, int* num_nupts, int maxsubprobsize);
-#endif
 /* C wrapper for calling CUDA kernels */
 // Wrapper for testing spread, interpolation only
 int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 

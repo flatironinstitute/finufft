@@ -149,30 +149,16 @@ int main(int argc, char* argv[])
 
 	checkCudaErrors(cudaMemcpy(fk,d_fk,N1*N2*ntransf*sizeof(CUCPX),
 		cudaMemcpyDeviceToHost));
-#if 0
-	for(int i=0; i<ntransf; i+=10){
-		int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
-		CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
-		for (BIGINT j=0; j<M; ++j)
-			Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
-		int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-		printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it+i*N]));
-		printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
-	}
-#endif
-#if 0
-	cout<<"[result-input]"<<endl;
-	for(int j=0; j<nf2; j++){
-		//        if( j % opts.gpu_binsizey == 0)
-		//                printf("\n");
-		for (int i=0; i<nf1; i++){
-			//                if( i % opts.gpu_binsizex == 0 && i!=0)
-			//                        printf(" |");
-			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
-		}
-		cout<<endl;
-	}
-#endif	
+
+	int i = ntransf-1; // // choose some data to check
+	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
+	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
+	for (BIGINT j=0; j<M; ++j)
+		Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
+	int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
+	printf("[gpu   ] %dth data one mode: abs err in F[%ld,%ld] is %.3g\n",(int)i, (int)nt1,(int)nt2,abs(Ft-fk[it+i*N]));
+	printf("[gpu   ] %dth data one mode: rel err in F[%ld,%ld] is %.3g\n",(int)i, (int)nt1,(int)nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
+
 	printf("[totaltime] %.3g us, speed %.3g NUpts/s\n", totaltime*1000, M*ntransf/totaltime*1000);
 	cudaFreeHost(x);
 	cudaFreeHost(y);
