@@ -14,7 +14,7 @@ NVARCH = -arch=sm_70 \
 	-gencode=arch=compute_75,code=sm_75 \
 	-gencode=arch=compute_75,code=compute_75 
 
-CXXFLAGS= -DNEED_EXTERN_C  -fPIC -O3 -funroll-loops -march=native -g -std=c++11
+CXXFLAGS= -DNEED_EXTERN_C -fPIC -O3 -funroll-loops -march=native -g -std=c++11
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
 NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 $(NVARCH) \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
@@ -161,8 +161,12 @@ clean:
 
 check2D: all
 	@echo Running 2-D cases
+	bin/cufinufft2d1_test 1 8 8
+	bin/cufinufft2d1_test 2 8 8
 	bin/cufinufft2d1_test 1 256 256
 	bin/cufinufft2d1_test 2 512 512
+	bin/cufinufft2d2_test 1 8 8
+	bin/cufinufft2d2_test 2 8 8
 	bin/cufinufft2d2_test 1 256 256
 	bin/cufinufft2d2_test 2 512 512
 	@echo Running 2-D High Density cases
@@ -179,10 +183,14 @@ check2D: all
 	bin/cufinufft2d1many_test 1 64 64 128 1e-3
 	bin/cufinufft2d1many_test 1 256 256 1024
 	bin/cufinufft2d1many_test 2 512 512 256
+	bin/cufinufft2d1many_test 1 1e2 2e2 3e2 16 1e4
+	bin/cufinufft2d1many_test 2 1e2 2e2 3e2 16 1e4
 	bin/cufinufft2d2many_test 1 64 64 128 1e-3
 	bin/cufinufft2d2many_test 1 256 256 1024
 	bin/cufinufft2d2many_test 2 512 512 256
 	bin/cufinufft2d2many_test 1 256 256 1024
+	bin/cufinufft2d2many_test 1 1e2 2e2 3e2 16 1e4
+	bin/cufinufft2d2many_test 2 1e2 2e2 3e2 16 1e4
 
 check3D: all
 	@echo Running 3-D cases
@@ -198,6 +206,11 @@ check3D: all
 	bin/cufinufft3d2_test 2 16 16 16
 	bin/cufinufft3d1_test 1 64 64 64 1000
 	bin/cufinufft3d1_test 2 64 64 64 10000
+	bin/cufinufft3d1_test 1 1e2 2e2 3e2 1e4
+	bin/cufinufft3d1_test 2 1e2 2e2 3e2 1e4
+	bin/cufinufft3d1_test 4 1e2 2e2 3e2 1e4
+	bin/cufinufft3d2_test 1 1e2 2e2 3e2
+	bin/cufinufft3d2_test 2 1e2 2e2 3e2
 
 ifeq ($(PREC),SINGLE)
 check: all
