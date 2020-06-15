@@ -71,14 +71,14 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 		if(ier != 0 ){
 			printf("error: cuinterp3d_nuptsdriven_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 	if(d_plan->opts.gpu_method == 2){
 		ier = cuspread3d_subprob_prop(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 	cudaEventRecord(start);

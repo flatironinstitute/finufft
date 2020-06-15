@@ -377,7 +377,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
-					return 0;
+					return ier;
 				}
 			}
 			if(d_plan->opts.gpu_method==1){
@@ -385,7 +385,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
-					return 0;
+					return ier;
 				}
 			}
 			if(d_plan->opts.gpu_method==2){
@@ -393,7 +393,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread3d_subprob_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
-					return 0;
+					return ier;
 				}
 			}
 		}

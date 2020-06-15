@@ -59,7 +59,7 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		ier = cuspread3d(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuspread3d, method(%d)\n", d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 #ifdef TIME
 		cudaEventRecord(stop);
@@ -149,7 +149,7 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		ier = cuinterp3d(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuinterp3d, method(%d)\n", d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 #ifdef TIME
 		cudaEventRecord(stop);
@@ -297,14 +297,14 @@ int cufinufft3d_setNUpts(FLT* h_kx, FLT* h_ky, FLT *h_kz, cufinufft_opts &opts, 
 		int ier = cuspread3d_subprob_prop(nf1,nf2,nf3,M,opts,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 	if(d_plan->opts.gpu_method == 1 || d_plan->opts.gpu_method ==  2 || d_plan->opts.gpu_method == 3){
 		int ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,opts,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_blockgather_prop, method(%d)\n", d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 #ifdef TIME
