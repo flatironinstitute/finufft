@@ -4,7 +4,7 @@ import pycuda.autoinit
 import pycuda.driver as cuda
 import pycuda.gpuarray as gpuarray
 
-import cufinufft
+from cufinufft import cufinufft
 
 import utils
 
@@ -17,12 +17,11 @@ def test_type1(shape=(16, 16, 16), M=4096, tol=1e-3):
     c_gpu = gpuarray.to_gpu(c)
     fk_gpu = gpuarray.GPUArray(shape, dtype=np.complex64)
 
-    plan = cufinufft.plan(1, shape, 1, tol)
+    plan = cufinufft(1, shape, 1, tol)
 
-    cufinufft.set_nu_pts(plan, M, kxyz_gpu[0].gpudata, kxyz_gpu[1].gpudata,
-            kxyz_gpu[2].gpudata)
+    plan.set_nu_pts(M, kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
 
-    cufinufft.execute(plan, c_gpu.gpudata, fk_gpu.gpudata)
+    plan.execute(c_gpu, fk_gpu)
 
     fk = fk_gpu.get()
 
@@ -35,6 +34,7 @@ def test_type1(shape=(16, 16, 16), M=4096, tol=1e-3):
 
     print('Type 1 relative error:', type1_rel_err)
 
+    plan.destroy()
 
 def test_type2(shape=(16, 16, 16), M=4096, tol=1e-3):
     kxyz = utils.gen_nu_pts(M)
@@ -45,14 +45,13 @@ def test_type2(shape=(16, 16, 16), M=4096, tol=1e-3):
 
     c_gpu = gpuarray.GPUArray(shape=(M,), dtype=np.complex64)
 
-    plan = cufinufft.plan(2, shape, -1, tol)
+    plan = cufinufft(2, shape, -1, tol)
 
-    cufinufft.set_nu_pts(plan, M, kxyz_gpu[0].gpudata, kxyz_gpu[1].gpudata,
-            kxyz_gpu[2].gpudata)
+    plan.set_nu_pts(M, kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
 
-    cufinufft.execute(plan, c_gpu.gpudata, fk_gpu.gpudata)
+    plan.execute(c_gpu, fk_gpu)
 
-    cufinufft.destroy(plan)
+    plan.destroy()
 
     c = c_gpu.get()
 
