@@ -64,7 +64,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 	if(d_plan->opts.gpu_method == 2){
@@ -72,7 +72,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 	cudaEventRecord(start);
