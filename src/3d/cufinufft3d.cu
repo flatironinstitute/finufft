@@ -59,7 +59,7 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		ier = cuspread3d(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuspread3d, method(%d)\n", d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 #ifdef TIME
 		cudaEventRecord(stop);
@@ -149,7 +149,7 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		ier = cuinterp3d(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuinterp3d, method(%d)\n", d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 #ifdef TIME
 		cudaEventRecord(stop);

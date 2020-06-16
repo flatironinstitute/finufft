@@ -89,7 +89,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 		if(ier != 0 ){
 			printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 	if(d_plan->opts.gpu_method == 2){
@@ -97,7 +97,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 		if(ier != 0 ){
 			printf("error: cuspread3d_subprob_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 	if(d_plan->opts.gpu_method == 4){
@@ -105,7 +105,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 		if(ier != 0 ){
 			printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
-			return 0;
+			return ier;
 		}
 	}
 #ifdef TIME
