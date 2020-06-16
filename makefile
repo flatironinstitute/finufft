@@ -51,11 +51,10 @@ INCL = -Iinclude
 # (Please look in make.inc.* for ideas)
 -include make.inc
 
-# now come flags that should be added, whatever you overrode in make.inc
-# the NEED_EXTERN_C directive tells common.cpp to include plain C header
+# Now come flags that should be added, whatever you overrode in make.inc.
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
-CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14 -DNEED_EXTERN_C
+CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # /usr/include needed for fftw3.f...
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC

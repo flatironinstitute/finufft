@@ -1,5 +1,5 @@
 # makefile overrides to use Intel ICC compiler & libiomp5. double prec only.
-# fixed the fatal mistake of leaving -lgomp in the compile line, 6/4/20.
+# (fixed the fatal mistake of leaving -lgomp in the compile line! 6/4/20)
 
 CXX=icpc
 CC=icc

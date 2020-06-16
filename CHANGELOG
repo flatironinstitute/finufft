@@ -5,19 +5,27 @@ V 1.2 (June 2020)
 * a major change to code, internally, and major improvements to operation and
 language interfaces.
 	WARNING: Here are all the interface changes from 1.1.2:
-	- opts is always passed as a pointer in C++/C, not pass-by-reference
-	  as in v1.1.2 or earlier.
+	- opts (nufft_opts) is always passed as a pointer in C++/C, not
+	  pass-by-reference as in v1.1.2 or earlier.
 	- Fortran simple calls are now finufft?d?(..) not finufft?d?_f(..), and
 	  they add a penultimate opts argument.
-	- 
-	These changes were deemed necessary to rationalize and improve FINUFFT.
+	- ier=1 is now a warning not an error; this indicates requested tol
+	  was too small, but that a transform *was* done at the best possible
+	  accuracy.
+	- opts.nthreads was removed in language interfaces. Control of the
+	  number of available OpenMP threads is up to the user.
+	- opts.fftw directly controls the FFTW plan mode consistently in all
+	  language interfaces (this changes the meaning of fftw=0 in MATLAB).
+	These changes were deemed necessary to rationalize and improve FINUFFT
+	for the long term.
 
 ...
 * completely new Fortran interface, allowing >2^31 sized (int64) arrays,
-  all simple, many-vector and guru interface, with options control.
-* all simple and many-vector interfaces call guru interface.
-* new guru interface, by Andrea Malleo and Alex Barnett, allowing easier
-language wrapping and control of point-setting, reuse of sorting and FFTW plans. This finally bypasses the 0.1ms/thread cost of FFTW looking up previous wisdom, which slowed down performance for many small problems.
+  all simple, many-vector and guru interface, with full options control.
+* all simple and many-vector interfaces now call guru interface, for much
+  better maintainability and less code repetition.	
+* new guru interface, by Andrea Malleo and Alex Barnett, allowing easier language wrapping and control of point-setting, reuse of sorting and FFTW plans. This finally bypasses the 0.1ms/thread cost of FFTW looking up previous wisdom, which slowed down performance for many small problems.
+* removed obsolete -DNEED_EXTERN_C flag.
 
 V 1.1.2 (1/31/20)
 

@@ -10,13 +10,9 @@
 #include <stdlib.h>
 #include <vector>
 
-#ifdef NEED_EXTERN_C
 extern "C" {
   #include "../contrib/legendre_rule_fast.h"
 }
-#else
-  #include "../contrib/legendre_rule_fast.h"
-#endif
 
 void finufft_default_opts(nufft_opts *o)
 // Sets default nufft opts. See finufft.h for definition of opts.

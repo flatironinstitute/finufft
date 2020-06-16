@@ -9,7 +9,7 @@
 # (note that /usr/bin/g++,gcc are aliased to clang/LLVM, so CXX,CC unchanged)
 
 # compile flags for use with clang: (note absence of -march, etc)
-CFLAGS = -fPIC -O3
+CFLAGS = -O3
 
 # If you're getting warning messages of the form:
 #    ld: warning: object file (lib-static/libfinufft.a(finufft1d.o)) was built for
@@ -25,7 +25,7 @@ CC=clang
 # taken from makefile...
 CFLAGS   += -I include -I/usr/local/include
 FFLAGS   = $(CFLAGS)
-CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
+CXXFLAGS = $(CFLAGS)
 LIBS += -L/usr/local/lib
 
 # OpenMP with clang needs following...
@@ -38,5 +38,5 @@ FFTWOMPSUFFIX=threads
 # some of these will depend on your FFTW library location...
 MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
 # edit for your MATLAB version location...
-MEX = $(shell ls -d /Applications/MATLAB_R201*.app)/bin/mex
+MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 # Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
