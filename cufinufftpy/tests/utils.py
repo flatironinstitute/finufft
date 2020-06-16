@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def gen_nu_pts(M, seed=0):
     np.random.seed(seed)
     kxyz = np.random.uniform(-np.pi, np.pi, (3, M))

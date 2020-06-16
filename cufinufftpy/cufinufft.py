@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 This file contains high level python wrapper for the cufinufft CUDA libraries.
-Upon instantiation of the cufinufft class instance, dtype of `modes` is detected.
+Upon instantiation of a cufinufft instance, dtype of `modes` is detected.
 This dtype selects which of the low level libraries to bind for this plan.
 The wrapper performs a few very basic conversions,
 and calls the low level library with runtime python error checking.
@@ -28,10 +28,12 @@ from cufinufftpy._cufinufft import _destroy_planf
 
 
 class cufinufft:
-    def __init__(self, nufft_type, modes, isign, tol, ntransforms=1, opts=None, dtype=np.float32):
+    def __init__(self, nufft_type, modes, isign, tol,
+                 ntransforms=1, opts=None, dtype=np.float32):
         """
         Initialize a dtype bound cufinufft python wrapper.
-        This will bind variables/methods and make a plan with the cufinufft libraries.
+        This will bind variables/methods
+        and make a plan with the cufinufft libraries.
         Exposes python methods to execute and destroy.
 
         :param finufft_type: integer 1, 2, or 3.
@@ -39,10 +41,12 @@ class cufinufft:
         :param isign: 1 or -1, controls sign of imaginary component output.
         :param tol: Floating point tolerance.
         :param ntransforms: Number of transforms, defaults to 1.
-        :param opts: Optionally, experts may supply their own opts struct (untested).
-        :param dtype: Datatype for this plan (np.float32 or np.float64). Defaults np.float32.
+        :param opts: Optionally, supply opts struct (untested).
+        :param dtype: Datatype for this plan (np.float32 or np.float64).
+        Defaults np.float32.
 
-        :return: cufinufft instance of the correct dtype, ready for point setting, and execution.
+        :return: cufinufft instance of the correct dtype,
+        ready for point setting, and execution.
         """
 
         # Setup type bound methods
@@ -86,7 +90,6 @@ class cufinufft:
         # Initialize the plan for this instance
         self._plan()
 
-
     def default_opts(self, nufft_type, dim):
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
@@ -106,7 +109,6 @@ class cufinufft:
 
         return nufft_opts
 
-
     def _plan(self):
         """
         Internal method to initialize plan struct and call low level make_plan.
@@ -116,45 +118,55 @@ class cufinufft:
         plan = self.CufinufftPlan()
         plan.opts = self.opts
 
-        ier = self._make_plan(self._finufft_type, self.dim, self.modes, self.isign,
-                              self.ntransforms, self.tol, 1, plan)
+        ier = self._make_plan(self._finufft_type,
+                              self.dim,
+                              self.modes,
+                              self.isign,
+                              self.ntransforms,
+                              self.tol,
+                              1,
+                              plan)
 
         if ier != 0:
             raise RuntimeError('Error creating plan.')
 
         self.plan = plan
 
-
     def set_nu_pts(self, M, kx, ky=None, kz=None):
         """
         Sets non uniform points of the correct dtype.
 
-        Note kx, ky, kz are required for  1, 2, and 3 dimensional cases respectively.
+        Note kx, ky, kz are required for 1, 2, and 3
+        dimensional cases respectively.
 
         :param M: Number of points
         :param kx: Array of x points.
         :param ky: Array of y points.
         :param kz: Array of z points.
         """
+
         kx = kx.ptr
-        if ky is not None: ky = ky.ptr
-        if kz is not None: kz = kz.ptr
+
+        if ky is not None:
+            ky = ky.ptr
+
+        if kz is not None:
+            kz = kz.ptr
 
         ier = self._set_nu_pts(M, kx, ky, kz, 0, None, None, None, self.plan)
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
 
-
     def execute(self, c, fk):
         """
         Executes plan.
         """
+
         ier = self._exec_plan(c.ptr, fk.ptr, self.plan)
 
         if ier != 0:
             raise RuntimeError('Error executing plan.')
-
 
     def destroy(self):
         """

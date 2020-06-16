@@ -8,11 +8,9 @@ differentiated by 'f' suffix.
 import ctypes
 
 import numpy as np
-import pycuda.driver as cuda
 
 from ctypes import c_double
 from ctypes import c_int
-from ctypes import c_uint
 from ctypes import c_float
 from ctypes import c_void_p
 
@@ -24,12 +22,13 @@ c_double_p = ctypes.POINTER(c_double)
 lib = ctypes.cdll.LoadLibrary('libcufinufftc.so')
 libf = ctypes.cdll.LoadLibrary('libcufinufftcf.so')
 
+
 def _get_ctypes(dtype):
-    """ 
+    """
     Checks dtype is float32 or float64.
     Returns floating point and floating point pointer.
     """
-    
+
     if dtype == np.float64:
         REAL_t = c_double
     elif dtype == np.float32:
@@ -40,6 +39,7 @@ def _get_ctypes(dtype):
     REAL_ptr = ctypes.POINTER(REAL_t)
 
     return REAL_t, REAL_ptr
+
 
 def _get_NufftOptsFields(dtype):
     REAL_t, REAL_ptr = _get_ctypes(dtype)
@@ -58,11 +58,20 @@ def _get_NufftOptsFields(dtype):
         ('gpu_kerevalmeth', c_int)]
     return fields
 
-class NufftOpts(ctypes.Structure): pass
+
+class NufftOpts(ctypes.Structure):
+    pass
+
+
 NufftOpts._fields_ = _get_NufftOptsFields(np.float64)
 
-class NufftOptsf(ctypes.Structure): pass
+
+class NufftOptsf(ctypes.Structure):
+    pass
+
+
 NufftOptsf._fields_ = _get_NufftOptsFields(np.float32)
+
 
 def _get_NufftOpts(dtype):
     if dtype == np.float64:
@@ -73,6 +82,7 @@ def _get_NufftOpts(dtype):
         raise TypeError("Expected np.float32 or np.float64.")
 
     return s
+
 
 def _get_SpeadOptsFields(dtype):
     REAL_t, REAL_ptr = _get_ctypes(dtype)
@@ -87,11 +97,19 @@ def _get_SpeadOptsFields(dtype):
     return fields
 
 
-class SpreadOpts(ctypes.Structure): pass
+class SpreadOpts(ctypes.Structure):
+    pass
+
+
 SpreadOpts._fields_ = _get_SpeadOptsFields(np.float64)
 
-class SpreadOptsf(ctypes.Structure): pass
+
+class SpreadOptsf(ctypes.Structure):
+    pass
+
+
 SpreadOptsf._fields_ = _get_SpeadOptsFields(np.float32)
+
 
 def _get_SpreadOpts(dtype):
     if dtype == np.float64:
@@ -103,9 +121,10 @@ def _get_SpreadOpts(dtype):
 
     return s
 
+
 def _get_CufinufftPlan(dtype):
     REAL_t, REAL_ptr = _get_ctypes(dtype)
-    
+
     fields = [
         ('opts', _get_NufftOpts(dtype)),
         ('spopts', _get_SpreadOpts(dtype)),
@@ -149,10 +168,17 @@ def _get_CufinufftPlan(dtype):
     return fields
 
 
-class CufinufftPlan(ctypes.Structure): pass
+class CufinufftPlan(ctypes.Structure):
+    pass
+
+
 CufinufftPlan._fields_ = _get_CufinufftPlan(np.float64)
 
-class CufinufftPlanf(ctypes.Structure): pass
+
+class CufinufftPlanf(ctypes.Structure):
+    pass
+
+
 CufinufftPlanf._fields_ = _get_CufinufftPlan(np.float32)
 
 CufinufftPlan_p = ctypes.POINTER(CufinufftPlan)

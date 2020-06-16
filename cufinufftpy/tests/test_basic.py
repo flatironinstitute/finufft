@@ -1,7 +1,6 @@
 import numpy as np
 
-import pycuda.autoinit
-import pycuda.driver as cuda
+import pycuda.autoinit # NOQA:401
 import pycuda.gpuarray as gpuarray
 
 from cufinufftpy import cufinufft
