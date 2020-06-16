@@ -27,8 +27,8 @@ else:
 setup(
     name='cufinufftpy',
     version='0.1',
-    author='abc efg',
-    author_email='asb@123.com',
+    author='python interfaces by: Joakim Anden, Melody Shih, Garrett Wright',
+    author_email='abarnett@flatironinstitute.org',
     url='http://github.com/flatironinstitute/cufinufft',
     description='python interface to cufinufft',
     long_description='python interface to cufinufft (CUDA Flatiron Institute Nonuniform Fast Fourier Transform) library.',
