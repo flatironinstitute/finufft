@@ -176,12 +176,10 @@ int main(int argc, char* argv[])
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,M,nf1*nf2*nf3,t,M/t);
-#if 0
+#ifdef RESULT
 	cout<<"[result-input]"<<endl;
 	for(int k=0; k<nf3; k++){
 		for(int j=0; j<nf2; j++){
-			//if( j % dplan.opts.gpu_binsizey == 0)
-			//	printf("\n");
 			for (int i=0; i<nf1; i++){
 				if( i % dplan.opts.gpu_binsizex == 0 && i!=0)
 					printf(" |");

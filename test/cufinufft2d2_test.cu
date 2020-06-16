@@ -149,19 +149,7 @@ int main(int argc, char* argv[])
 		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 			ct += fk[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
 	printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(c[jt]-ct)/infnorm(M,c));
-#if 0
-	cout<<"[result-input]"<<endl;
-	for(int j=0; j<nf2; j++){
-		//        if( j % opts.gpu_binsizey == 0)
-		//                printf("\n");
-		for (int i=0; i<nf1; i++){
-			//                if( i % opts.gpu_binsizex == 0 && i!=0)
-			//                        printf(" |");
-			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
-		}
-		cout<<endl;
-	}
-#endif	
+
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);

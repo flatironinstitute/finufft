@@ -284,17 +284,6 @@ int allocgpumem3d_plan(cufinufft_plan *d_plan)
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3,(nf3/2+1)*sizeof(FLT)));
-#if 0
-	checkCudaErrors(cudaMalloc(&d_plan->fk,maxbatchsize*ms*mt*mu*
-		sizeof(CUCPX)));
-#endif
-#if 0
-	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->opts.gpu_nstreams*
-		sizeof(cudaStream_t));
-	for(int i=0; i<d_plan->opts.gpu_nstreams; i++)
-		checkCudaErrors(cudaStreamCreate(&streams[i]));
-	d_plan->streams = streams;
-#endif
 	return 0;
 }
 
@@ -309,7 +298,6 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 	int maxbatchsize = d_plan->maxbatchsize;
 
 	d_plan->byte_now=0;
-	// No extra memory is needed in nuptsdriven method;
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -333,11 +321,6 @@ int allocgpumem3d_nupts(cufinufft_plan *d_plan)
 		default:
 			cerr << "err: invalid method" << endl;
 	}
-#if 0
-	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->kz,M*sizeof(FLT)));
-#endif
 	checkCudaErrors(cudaMalloc(&d_plan->c,maxbatchsize*M*sizeof(CUCPX)));
 
 	return 0;

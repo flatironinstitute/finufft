@@ -164,50 +164,29 @@ int main(int argc, char* argv[])
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
-	// This must be here, since in gpu code, x, y gets modified if pirange=1
+
 	checkCudaErrors(cudaMemcpy(c,d_c,M*ntransf*sizeof(CUCPX),cudaMemcpyDeviceToHost));
-#if 1 
+
 	CPX* fkstart; 
 	CPX* cstart;
-	for(int t=0; t<ntransf; t++){
-		fkstart = fk + t*N1*N2;
-		cstart = c + t*M;
-		int jt = M/2;          // check arbitrary choice of one targ pt
-		CPX J = IMA*(FLT)iflag;
-		CPX ct = CPX(0,0);
-		int m=0;
-		for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
-			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
-				ct += fkstart[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-		
-		printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n",(int64_t)jt,abs(cstart[jt]-ct)/infnorm(M,c));
-	}
-#endif
-#if 0
-	cout<<"[result-input]"<<endl;
-	for(int j=0; j<nf2; j++){
-		//        if( j % opts.gpu_binsizey == 0)
-		//                printf("\n");
-		for (int i=0; i<nf1; i++){
-			//                if( i % opts.gpu_binsizex == 0 && i!=0)
-			//                        printf(" |");
-			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
-		}
-		cout<<endl;
-	}
-#endif	
+	int t = ntransf-1;
+	fkstart = fk + t*N1*N2;
+	cstart = c + t*M;
+	int jt = M/2;          // check arbitrary choice of one targ pt
+	CPX J = IMA*(FLT)iflag;
+	CPX ct = CPX(0,0);
+	int m=0;
+	for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
+		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
+			ct += fkstart[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
+
+	printf("[gpu   ] %dth data one targ: rel err in c[%ld] is %.3g\n",(int)t, (int64_t)jt,abs(cstart[jt]-ct)/infnorm(M,c));
+
 	printf("[totaltime] %.3g us, speed %.3g NUpts/s\n", totaltime*1000, M*ntransf/totaltime*1000);
-#if 1
+
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);
 	cudaFreeHost(fk);
-#else
-	free(x);
-	free(y);
-	free(c);
-	free(fk);
-#endif
-	checkCudaErrors(cudaDeviceReset());
 	return 0;
 }
