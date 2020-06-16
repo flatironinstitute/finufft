@@ -35,5 +35,9 @@ setup(
     license="Apache 2",
     packages=['cufinufftpy'],
     install_requires=requirements,
+    # If you'd like to build or alter the docs you may additionally require these.
+    extras_require={
+        'docs': ['sphinx', 'sphinx_rtd_theme']
+    }
     zip_safe=False,
 )

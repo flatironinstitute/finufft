@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 """
-This file contains high level python wrapper for the cufinufft CUDA libraries.
-Upon instantiation of a cufinufft instance, dtype of `modes` is detected.
-This dtype selects which of the low level libraries to bind for this plan.
-The wrapper performs a few very basic conversions,
-and calls the low level library with runtime python error checking.
+This module contains the high level python wrapper for
+the cufinufft CUDA libraries.
 """
 
 import numpy as np
@@ -28,6 +25,12 @@ from cufinufftpy._cufinufft import _destroy_planf
 
 
 class cufinufft:
+    """
+    Upon instantiation of a cufinufft instance, dtype of `modes` is detected.
+    This dtype selects which of the low level libraries to bind for this plan.
+    The wrapper performs a few very basic conversions,
+    and calls the low level library with runtime python error checking.
+    """
     def __init__(self, nufft_type, modes, isign, tol,
                  ntransforms=1, opts=None, dtype=np.float32):
         """
@@ -37,15 +40,16 @@ class cufinufft:
         Exposes python methods to execute and destroy.
 
         :param finufft_type: integer 1, 2, or 3.
-        :param modes:
+        :param modes: Array describing the shape of the transform \
+        in 1, 2, or 3 dimensions.
         :param isign: 1 or -1, controls sign of imaginary component output.
         :param tol: Floating point tolerance.
         :param ntransforms: Number of transforms, defaults to 1.
         :param opts: Optionally, supply opts struct (untested).
-        :param dtype: Datatype for this plan (np.float32 or np.float64).
+        :param dtype: Datatype for this plan (np.float32 or np.float64). \
         Defaults np.float32.
 
-        :return: cufinufft instance of the correct dtype,
+        :return: cufinufft instance of the correct dtype, \
         ready for point setting, and execution.
         """
 
@@ -160,7 +164,14 @@ class cufinufft:
 
     def execute(self, c, fk):
         """
-        Executes plan.
+        Executes plan. Note the IO orientation of `c` and `fk` are
+        determined by plan type.
+
+        In type 1, `c` is input, `fk` is output, while
+        in type 2, 'fk' in input, `c` is output.
+
+        :param c: Real space array in 1, 2, or 3 dimensions.
+        :param fk: Fourier space array in 1, 2, or 3 dimensions.
         """
 
         ier = self._exec_plan(c.ptr, fk.ptr, self.plan)

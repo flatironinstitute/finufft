@@ -3,3 +3,7 @@ __pycache__
 bin
 lib
 lib-static
+
+cufinufftpy/docs/_build
+cufinufftpy/docs/_static
+cufinufftpy/docs/_templates
