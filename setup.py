@@ -26,9 +26,9 @@ else:
 # Python Package Setup
 setup(
     name='cufinufftpy',
-    version='0.1',
-    author='python interfaces by: Joakim Anden, Melody Shih, Garrett Wright',
-    author_email='abarnett@flatironinstitute.org',
+    version='1.0',
+    author='python interfaces by: Melody Shih, Joakim Anden, Garrett Wright',
+    author_email='yoyoshih13@gmail.com',
     url='http://github.com/flatironinstitute/cufinufft',
     description='python interface to cufinufft',
     long_description='python interface to cufinufft (CUDA Flatiron Institute Nonuniform Fast Fourier Transform) library.',
@@ -38,6 +38,6 @@ setup(
     # If you'd like to build or alter the docs you may additionally require these.
     extras_require={
         'docs': ['sphinx', 'sphinx_rtd_theme']
-    }
+    },
     zip_safe=False,
 )
