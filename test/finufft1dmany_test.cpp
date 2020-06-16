@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
   //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1=-k0; m1<=(N-1)/2; ++m1)
     ct += F[i*N + m++] * exp(IMA*((FLT)(isign*m1))*x[jt]);   // crude direct
-  printf("\tone targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt + i*M])/infnorm(M,c+i*M));
+  printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n",(long long)jt,i,abs(ct-c[jt + i*M])/infnorm(M,c+i*M));
 
   // check against single calls to finufft1d2...
   FFTW_FORGET_WISDOM();
