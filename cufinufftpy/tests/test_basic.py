@@ -32,9 +32,12 @@ def test_type1(shape=(16, 16, 16), M=4096, tol=1e-3):
 
     type1_rel_err = np.abs(fk_target - fk_est) / np.abs(fk_target)
 
+    plan.destroy()
+
     print('Type 1 relative error:', type1_rel_err)
 
-    plan.destroy()
+    assert type1_rel_err < 0.01
+
 
 def test_type2(shape=(16, 16, 16), M=4096, tol=1e-3):
     kxyz = utils.gen_nu_pts(M)
@@ -63,6 +66,8 @@ def test_type2(shape=(16, 16, 16), M=4096, tol=1e-3):
     type2_rel_err = np.abs(c_target - c_est) / np.abs(c_target)
 
     print('Type 2 relative error:', type2_rel_err)
+
+    assert type2_rel_err < 0.01
 
 
 def main():
