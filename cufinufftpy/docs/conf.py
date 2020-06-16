@@ -18,11 +18,11 @@ sys.path.insert(0, os.path.abspath('..'))
 # -- Project information -----------------------------------------------------
 
 project = 'cufinufftpy'
-copyright = '2020, Joakim Anden, Garrett Wright, Melody Shih'
-author = 'Joakim Anden, Garrett Wright, Melody Shih'
+copyright = '2020 The Simons Foundation, Melody Shih, Joakim Anden, Garrett Wright.'
+author = 'Melody Shih, Joakim Anden, Garrett Wright'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '1.0'
 
 
 # -- General configuration ---------------------------------------------------
