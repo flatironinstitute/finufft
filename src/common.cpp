@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <vector>
 
+// Gauss-L quadrature library
 extern "C" {
   #include "../contrib/legendre_rule_fast.h"
 }
@@ -128,9 +129,10 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
-  FLT f[MAX_NQUAD]; double z[2*MAX_NQUAD],w[2*MAX_NQUAD];
+  FLT f[MAX_NQUAD];
+  double z[2*MAX_NQUAD], w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
-  dcomplex a[MAX_NQUAD];
+  std::complex<FLT> a[MAX_NQUAD];
   for (int n=0;n<q;++n) {               // set up nodes z_n and vals f_n
     z[n] *= J2;                         // rescale nodes
     f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
@@ -145,7 +147,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   {                                     // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
     if (t<nt) {                         // could be nt < actual # threads
-      dcomplex aj[MAX_NQUAD];           // phase rotator for this thread
+      std::complex<FLT> aj[MAX_NQUAD];       // phase rotator for this thread
       for (int n=0;n<q;++n)
 	aj[n] = pow(a[n],(FLT)brk[t]);       // init phase factors for chunk
       for (BIGINT j=brk[t];j<brk[t+1];++j) {       // loop along output array
@@ -220,7 +222,7 @@ void deconvolveshuffle1d(int dir,FLT prefac,FLT* ker, BIGINT ms,
   only contributes at the <3% level in 3D relative to the fftw cost (8 threads).
   This could be removed by passing in an inverse kernel and doing mults.
 
-  todo: rewrite w/ native dcomplex I/O, check complex divide not slower than
+  todo: rewrite w/ C++-complex I/O, check complex divide not slower than
         real divide, or is there a way to force a real divide?
 
   Barnett 1/25/17. Fixed ms=0 case 3/14/17. modeord flag & clean 10/25/17

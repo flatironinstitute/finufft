@@ -65,6 +65,7 @@ CXXFLAGS += -DSINGLE
 CFLAGS += -DSINGLE
 # note that PRECSUFFIX appends the fftw lib names, and also our demo names
 PRECSUFFIX = f
+# for make test (requesting 1e-7 or 6e-8 actually slightly worse for type 3)
 REQ_TOL = 1e-6
 CHECK_TOL = 2e-4
 else
