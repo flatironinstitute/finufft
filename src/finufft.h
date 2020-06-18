@@ -3,6 +3,12 @@
 #ifndef FINUFFT_H
 #define FINUFFT_H
 
+// ----------------- rand number generator for Windows platform --------------
+#ifdef _WIN32
+#include <random>
+int rand_r(unsigned int *seedp);
+#endif
+
 // ----------------- data type definitions ----------------------------------
 // (note: non-interface precision- and omp-dependent defs are in defs.h)
 

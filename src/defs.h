@@ -65,16 +65,6 @@ using namespace std;        // means std:: not needed for cout, max, etc
 // complex unif[-1,1] for Re and Im:
 #define crandm11() (randm11() + IMA*randm11())
 
-#ifdef _WIN32
-#include <random>
-int rand_r(unsigned int *seedp)
-{
-    std::random_device rd;
-    std::default_random_engine generator(rd());
-    std::uniform_int_distribution<int> distribution(0,RAND_MAX);
-    return distribution(generator);
-}
-#endif
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
 #define rand01r(x) ((FLT)rand_r(x)/RAND_MAX)
 // unif[-1,1]:

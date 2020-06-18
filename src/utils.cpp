@@ -129,3 +129,14 @@ double CNTime::elapsedsec()
   double initialsec = (double)initial.tv_sec + 1e-6*initial.tv_usec;
   return nowsec - initialsec;
 }
+
+// ----------------- rand number generator for Windows platform --------------
+#ifdef _WIN32
+int rand_r(unsigned int *seedp)
+{
+    std::random_device rd;
+    std::default_random_engine generator(rd());
+    std::uniform_int_distribution<int> distribution(0,RAND_MAX);
+    return distribution(generator);
+}
+#endif
