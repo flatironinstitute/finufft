@@ -30,4 +30,11 @@ class CNTime {
 // openmp helpers
 int get_num_threads_parallel_block();
 
+// thread-safe rand number generator for Windows platform
+#ifdef _WIN32
+#include <random>
+int rand_r(unsigned int *seedp);
+#endif
+
+
 #endif  // UTILS_H

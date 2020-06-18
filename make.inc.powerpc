@@ -1,0 +1,45 @@
+# Custom makefile settings for PowerPC (as opposed to Intel x86) architecture.
+# Copy this to make.inc to apply.
+# It adds a COMP (compiler) make argument, with values COMP=ibm, otherwise GCC.
+# By Hugo Brunie, May 2020.
+# This makefile is greatly inspired by AMReX (amrex/Tools/GNUMake/comps)
+
+## Compiler choice
+ifeq ($(COMP),ibm)
+OMPFLAGS = -qsmp=omp
+ifneq ($(OMP),OFF)
+  CXX = xlC_r
+  CC  = xlc_r
+  FC  = xlf_r
+else
+  CXX = xlC
+  CC  = xlc
+  FC  = xlf
+endif
+ifneq ($(DEBUG),TRUE)
+  CXXFLAGS = -qsimd=auto -qmaxmem=-1
+  CFLAGS   = -qsimd=auto -qmaxmem=-1
+endif
+else                # DEFAULT is gnu compiler (you can update to g++-9, etc)
+CXX = g++
+CC  = gcc
+FC=gfortran
+OMPFLAGS = -fopenmp
+CFLAGS = -funroll-loops -mcpu=powerpc64 -fcx-limited-range
+endif
+
+FFLAGS   = $(CFLAGS)
+CXXFLAGS = $(CFLAGS) -DNEED_EXTERN_C
+
+## shared library
+CFLAGS += -fPIC
+
+ifeq ($(DEBUG),TRUE)
+  CXXFLAGS += -g -O0
+  CFLAGS   += -g -O0
+else
+  CXXFLAGS += -g -O3
+  CFLAGS   += -g -O3
+endif
+CLINK=-lstdc++
+FLINK=$(CLINK)

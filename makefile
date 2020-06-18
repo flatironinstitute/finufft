@@ -75,7 +75,7 @@ CHECK_TOL = 1e-11
 endif
 # build (since fftw has many) names of libs to link against...
 FFTW = $(FFTWNAME)$(PRECSUFFIX)
-LIBSFFT = -l$(FFTW) $(LIBS)
+LIBSFFT := -l$(FFTW) $(LIBS)
 
 # multi-threaded libs & flags (see defs above; note fftw3_threads slower)...
 ifneq ($(OMP),OFF)
@@ -85,7 +85,9 @@ FFLAGS += $(OMPFLAGS)
 MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
 LIBS += $(OMPLIBS)
-LIBSFFT = -l$(FFTW) -l$(FFTW)_$(FFTWOMPSUFFIX) $(LIBS)
+ifneq ($(MINGW),ON)
+LIBSFFT := -l$(FFTW) -l$(FFTW)_$(FFTWOMPSUFFIX) $(LIBS)
+endif
 endif
 
 # decide name of obj files and finufft library we're building...

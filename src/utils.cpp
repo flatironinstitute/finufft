@@ -4,7 +4,7 @@
 
 #include "utils.h"
 
-// ------------ complex array utils
+// ------------ complex array utils ---------------------------------
 
 FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b)
 // ||a-b||_2 / ||a||_2
@@ -107,7 +107,7 @@ BIGINT next235even(BIGINT n)
   return nplus;
 }
 
-// ----------------------- helpers for timing (always stay double prec)...
+// ----------------------- helpers for timing (always stay double prec) ------
 using namespace std;
 
 void CNTime::start()
@@ -134,7 +134,7 @@ double CNTime::elapsedsec()
 }
 
 
-// -------------------------- openmp helpers
+// -------------------------- openmp helpers -------------------------------
 
 int get_num_threads_parallel_block()
 // return how many threads an omp parallel block would use.
@@ -149,3 +149,17 @@ int get_num_threads_parallel_block()
   }
   return nth_used;
 }
+
+
+// ---------- thread-safe rand number generator for Windows platform ---------
+// (note this is used by macros in defs.h, and supplied in linux/macosx)
+#ifdef _WIN32
+int rand_r(unsigned int *seedp)
+// Libin Lu, 6/18/20
+{
+    std::random_device rd;
+    std::default_random_engine generator(rd());
+    std::uniform_int_distribution<int> distribution(0,RAND_MAX);
+    return distribution(generator);
+}
+#endif
