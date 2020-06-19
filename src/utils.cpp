@@ -85,8 +85,8 @@ void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
   arrayrange(n,a,&lo,&hi);
   *w = (hi-lo)/2;
   *c = (hi+lo)/2;
-  if (abs(*c)<ARRAYWIDCEN_GROWFRAC*(*w)) {
-    *w += abs(*c);
+  if (std::abs(*c)<ARRAYWIDCEN_GROWFRAC*(*w)) {
+    *w += std::abs(*c);
     *c = 0.0;
   }
 }
