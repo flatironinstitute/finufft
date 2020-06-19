@@ -18,12 +18,15 @@ finufft(mex_id_);
       plan.mwptr = p;       % crucial: copies p.12 of mwrap doc; I don't get it
       n_modes = ones(3,1);  % dummy for type 3
       if type==3
-        assert(length(n_modes_or_dim)==1);
+        if length(n_modes_or_dim)~=1
+          error('FINUFFT:badT3dim', 'FINUFFT type 3 plan n_modes_or_dim must be one number, the dim');
+        end
         dim = n_modes_or_dim;      % interpret as dim
       else
         dim = length(n_modes_or_dim);
         n_modes(1:dim) = n_modes_or_dim;
       end
+      % (checks of type and dim occur in the C++ library so omit them here)
       if nargin<6
         mex_id_ = 'o nufft_opts* = new()';
 [o] = finufft(mex_id_);
@@ -67,27 +70,7 @@ finufft(mex_id_, plan);
 [dim] = finufft(mex_id_, plan);
       mex_id_ = 'o int = get_type(i finufft_plan*)';
 [type] = finufft(mex_id_, plan);
-      if ~isvector(xj), error('xj must be a row or col vector.'); end
-      if type==3 && ~isvector(s), error('s must be a row or col vector.'); end
-      nj = numel(xj);   % note the matlab way is to extract sizes like this
-      nk = numel(s);
-      if dim>1
-        if ~isvector(yj), error('yj must be a row or col vector.'); end
-        if numel(yj)~=nj, error('yj must have the same length as xj.'); end
-        if type==3
-          if ~isvector(t), error('t must be a row or col vector.'); end
-          if numel(t)~=nk, error('t must have the same length as s.'); end
-        end
-      end              
-      if dim>2
-        if ~isvector(zj), error('zj must be a row or col vector.'); end
-        if numel(zj)~=nj, error('zj must have the same length as xj.'); end
-        if type==3
-          if ~isvector(u), error('u must be a row or col vector.'); end
-          if numel(u)~=nk, error('u must have the same length as s.'); end
-        end
-      end              
-
+      [nj, nk] = valid_setpts(type, dim, xj, yj, zj, s, t, u);
       mex_id_ = 'o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
 [ier] = finufft(mex_id_, plan, nj, xj, yj, zj, nk, s, t, u);
       errhandler(ier);

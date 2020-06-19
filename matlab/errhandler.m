@@ -3,8 +3,10 @@ function errhandler(ier)
 
 % Barnett 6/13/20
 
-% these must at least include the ERR_ #defines in ../include/defs.h:
+% Note that there are other matlab-only error types defined in valid_*.m
+
 switch ier
+ % These are the ERR_ #defines in ../include/defs.h:
  case 1
   warning('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve');
  case 2
@@ -30,4 +32,3 @@ switch ier
  case 12
   error('FINUFFT:badDim','FINUFFT number of dimensions dim invalid');
 end
-% note: it is possible to handle extra MATLAB-interface-specific codes here

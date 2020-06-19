@@ -50,11 +50,8 @@
 function f = finufft3d1(x,y,z,c,isign,eps,ms,mt,mu,o)
 
 if nargin<10, o.dummy=1; end
-nj=numel(x);
-n_transf = round(numel(c)/numel(x));
-if numel(y)~=nj, error('y must have the same number of elements as x'); end
-if numel(z)~=nj, error('z must have the same number of elements as x'); end
-if n_transf*nj~=numel(c), error('the number of elements of c must be divisible by the number of elements of x'); end
+valid_setpts(1,3,x,y,z);
+n_transf = valid_ntr(x,c);
 p = finufft_plan(1,[ms;mt;mu],isign,n_transf,eps,o);
 p.finufft_setpts(x,y,z);
 f = p.finufft_exec(c);

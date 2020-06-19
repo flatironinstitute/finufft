@@ -47,10 +47,8 @@
 function f = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 
 if nargin<8, o.dummy=1; end
-nj=numel(x);
-n_transf = round(numel(c)/numel(x));
-if numel(y)~=nj, error('y must have the same number of elements as x'); end
-if n_transf*nj~=numel(c), error('the number of elements of c must be divisible by the number of elements of x'); end
+valid_setpts(1,2,x,y,[]);
+n_transf = valid_ntr(x,c);
 p = finufft_plan(1,[ms;mt],isign,n_transf,eps,o);
 p.finufft_setpts(x,y,[]);
 f = p.finufft_exec(c);
