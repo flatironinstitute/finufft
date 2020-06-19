@@ -2,13 +2,16 @@
 // Note that algorithm parameters are now defined in defs.h (not common.h).
 
 #include <common.h>
+#include <dataTypes.h>
 #include <defs.h>
 #include <utils.h>
+
 #include <fftw3.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+using namespace std;
 
 // Gauss-L quadrature library
 extern "C" {

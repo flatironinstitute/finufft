@@ -1,7 +1,11 @@
 #include <finufft.h>
 #include <dirft.h>
+#include <dataTypes.h>
+#include <defs.h>
+#include <utils.h>
 #include <complex>
-#include <stdio.h>
+
+#include <cstdio>
 #include <stdlib.h>
 using namespace std;
 

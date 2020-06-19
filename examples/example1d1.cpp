@@ -1,11 +1,11 @@
 // this is all you must include for the finufft lib...
 #include <finufft.h>
-
 #include <complex>
 
 // also used in this example...
 #include <stdio.h>
 #include <stdlib.h>
+
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
    Double-precision version (see example1d1f for single-precision)
 
    Compile with:
-   g++ -fopenmp example1d1.cpp -I../include ../lib-static/libfinufft.a -o example1d1  -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp example1d1.cpp -I../include ../lib-static/libfinufft.a -o example1d1 -lfftw3 -lfftw3_omp -lm
    or if you have built a single-core version:
    g++ example1d1.cpp -I../include ../lib-static/libfinufft.a -o example1d1 -lfftw3 -lm
 

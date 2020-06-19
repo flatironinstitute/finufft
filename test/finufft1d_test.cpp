@@ -1,18 +1,16 @@
 #include <finufft.h>
 #include <dirft.h>
+#include <utils.h>
+#include <defs.h>
+#include <test_defs.h>
 
 #include <math.h>
-#include <vector>
-#include <stdio.h>
 #include <stdlib.h>
+
+#include <cstdio>
 #include <iostream>
 #include <iomanip>
-
-// how big a problem to check direct DFT for in 1D...
-#define BIGPROB 1e8
-
-// for omp rand filling
-#define CHUNK 1000000
+using namespace std;
 
 int main(int argc, char* argv[])
 /* Test executable for finufft in 1d, all 3 types.
@@ -52,7 +50,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = PI*randm11r(&se);   // fills [-pi,pi)
       c[j] = crandm11r(&se);
@@ -75,11 +73,11 @@ int main(int argc, char* argv[])
   BIGINT nt = (BIGINT)(0.37*N);   // check arb choice of mode near the top (N/2)
   CPX Ft = CPX(0,0);
   //#pragma omp declare reduction (cmplxadd:CPX:omp_out=omp_out+omp_in) initializer(omp_priv={0.0,0.0})  // only for openmp v 4.0!
-  //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
+  //#pragma omp parallel for schedule(dynamic,TEST_RANDCHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(IMA*((FLT)(isign*nt))*x[j]);
   printf("\tone mode: rel err in F[%lld] is %.3g\n",(long long)nt,abs(Ft-F[N/2+nt])/infnorm(N,F));
-  if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
+  if (((int64_t)M)*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d1(M,x,c,isign,N,Ft);
     printf("\tdirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
@@ -90,7 +88,7 @@ int main(int argc, char* argv[])
  #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
@@ -106,11 +104,11 @@ int main(int argc, char* argv[])
   BIGINT jt = M/2;          // check arbitrary choice of one targ pt
   CPX ct = CPX(0,0);
   BIGINT m=0, k0 = N/2;          // index shift in fk's = mag of most neg freq
-  //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:ct)
+  //#pragma omp parallel for schedule(dynamic,TEST_RANDCHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1=-k0; m1<=(N-1)/2; ++m1)
     ct += F[m++] * exp(IMA*((FLT)(isign*m1))*x[jt]);   // crude direct
   printf("\tone targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
-  if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
+  if (((int64_t)M)*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft1d2(M,x,ct,isign,N,F);
     printf("\tdirft1d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
@@ -123,7 +121,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) x[j] = 2.0 + PI*randm11r(&se);  // new x_j srcs
   }
   FLT* s = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs
@@ -131,7 +129,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT k=0; k<N; ++k) s[k] = S*(1.7 + randm11r(&se)); //S*(1.7 + k/(FLT)N); // offset
   }
   timer.restart();
@@ -145,11 +143,11 @@ int main(int argc, char* argv[])
 
   BIGINT kt = N/2;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);
-  //#pragma omp parallel for schedule(dynamic,CHUNK) reduction(cmplxadd:Ft)
+  //#pragma omp parallel for schedule(dynamic,TEST_RANDCHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*s[kt]*x[j]);
   printf("\tone targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
-  if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
+  if (((int64_t)M)*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft1d3(M,x,c,isign,N,s,Ft);       // writes to F
     printf("\tdirft1d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));

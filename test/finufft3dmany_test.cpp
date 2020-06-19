@@ -1,19 +1,15 @@
 #include <finufft.h>
-#include <defs.h>
 #include <utils.h>
+#include <defs.h>
+#include <test_defs.h>
 
 #include <math.h>
-#include <vector>
-#include <stdio.h>
 #include <stdlib.h>
+
+#include <cstdio>
 #include <iostream>
 #include <iomanip>
-
-// how big a problem to do full direct DFT check in 2D...
-#define BIGPROB 1e8
-
-// for omp rand filling
-#define CHUNK 1000000
+using namespace std;
 
 int main(int argc, char* argv[])
 /* Test executable for finufft in 3d many interface, types 1,2, and 3.
@@ -63,13 +59,13 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = M_PI*randm11r(&se);
       y[j] = M_PI*randm11r(&se);
       z[j] = M_PI*randm11r(&se);
     }
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT j = 0; j<ntransf*M; ++j)
     {
         c[j] = crandm11r(&se);
@@ -132,7 +128,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT m=0; m<N*ntransf; ++m) F[m] = crandm11r(&se);
   }
   FFTW_FORGET_WISDOM();
@@ -189,7 +185,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = 2.0 + M_PI*randm11r(&se);      // new x_j srcs, offset from origin
       y[j] = -3.0 + M_PI*randm11r(&se);     // " y_j
@@ -206,7 +202,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT k=0; k<N; ++k) {
       s_freq[k] = S1*(1.7 + randm11r(&se));    //S*(1.7 + k/(FLT)N); // offset the freqs
       t_freq[k] = S2*(-0.5 + randm11r(&se));

@@ -1,18 +1,16 @@
 #include <finufft.h>
 #include <dirft.h>
+#include <utils.h>
+#include <defs.h>
+#include <test_defs.h>
 
 #include <math.h>
-#include <vector>
-#include <stdio.h>
 #include <stdlib.h>
+
+#include <cstdio>
 #include <iostream>
 #include <iomanip>
-
-// how big a problem to do full direct DFT check in 2D...
-#define BIGPROB 1e8
-
-// for omp rand filling
-#define CHUNK 1000000
+using namespace std;
 
 int main(int argc, char* argv[])
 /* Test executable for finufft in 2d, all 3 types
@@ -55,7 +53,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = M_PI*randm11r(&se);
       y[j] = M_PI*randm11r(&se);
@@ -79,7 +77,7 @@ int main(int argc, char* argv[])
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
   printf("\tone mode: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft-F[it])/infnorm(N,F));
-  if ((int64_t)M*N<=BIGPROB) {                   // also check vs full direct eval
+  if ((int64_t)M*N<=TEST_BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft2d1(M,x,y,c,isign,N1,N2,Ft);
     printf("\tdirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
@@ -90,7 +88,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
@@ -108,7 +106,7 @@ int main(int argc, char* argv[])
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
   printf("\tone targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
-  if ((int64_t)M*N<=BIGPROB) {                  // also full direct eval
+  if ((int64_t)M*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft2d2(M,x,y,ct,isign,N1,N2,F);
     printf("\tdirft2d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
@@ -121,7 +119,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = 2.0 + M_PI*randm11r(&se);      // new x_j srcs, offset from origin
       y[j] = -3.0 + M_PI*randm11r(&se);     // " y_j
@@ -134,7 +132,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT k=0; k<N; ++k) {
       s[k] = S1*(1.7 + randm11r(&se));    //S*(1.7 + k/(FLT)N); // offset the freqs
       t[k] = S2*(-0.5 + randm11r(&se));
@@ -153,7 +151,7 @@ int main(int argc, char* argv[])
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j]));
   printf("\tone targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
-  if (((int64_t)M)*N<=BIGPROB) {                  // also full direct eval
+  if (((int64_t)M)*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft2d3(M,x,y,c,isign,N,s,t,Ft);       // writes to F
     printf("\tdirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));

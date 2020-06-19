@@ -4,7 +4,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "defs.h"
+#include "dataTypes.h"
 
 // ahb's low-level array helpers
 FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b);
@@ -35,6 +35,5 @@ int get_num_threads_parallel_block();
 #include <random>
 int rand_r(unsigned int *seedp);
 #endif
-
 
 #endif  // UTILS_H

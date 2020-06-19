@@ -1,27 +1,30 @@
 #include <finufft.h>
-#include <defs.h>
 #include <utils.h>
+#include <defs.h>
+#include <test_defs.h>
+
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <iostream>
-#include <iomanip>
 // for sleep call
 #include <unistd.h>
 
-// how big a problem to do full direct DFT check in 3D...
-#define BIGPROB 1e8
+#include <cstdio>
+#include <iostream>
+#include <iomanip>
+using namespace std;
 
-// for omp rand filling
-#define CHUNK 1000000
 
-//forward declarations for helper to (repeatedly if needed) call finufft?d?
+// forward declaration of helper to (repeatedly if needed) call finufft?d?
 double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,finufft_plan *plan);
 
 
 // --------------------------------------------------------------------------
 int main(int argc, char* argv[])
 /* Test/demo the guru interface, for many transforms with same NU pts.
+
+   Warning: unlike the finufft?d{many}_test routines, this does *not* perform
+   a math test of the library, just consistency of the simple vs guru
+   interfaces, and measuring their speed ratio.
 
    Usage: finufftGuru_test ntransf type ndim Nmodes1 Nmodes2 Nmodes3 Nsrc
                   [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]
@@ -86,14 +89,14 @@ int main(int argc, char* argv[])
 #pragma omp parallel
     {
       unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
       for (BIGINT k=0; k<N; ++k) {
       s[k] = S1*(1.7 + randm11r(&se));    // note the offset, to test type 3.
       }      
       if(ndim > 1) {
         t = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs (2-cmpt)
         FLT S2 = (FLT)N2/2;
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
         for (BIGINT k=0; k<N; ++k) {
           t[k] = S2*(-0.5 + randm11r(&se));  
         }
@@ -101,7 +104,7 @@ int main(int argc, char* argv[])
       if(ndim > 2) {
         u = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs (3-cmpt)
         FLT S3 = (FLT)N3/2;
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
         for (BIGINT k=0; k<N; ++k) {
           u[k] = S3*(0.9 + randm11r(&se));  
         }
@@ -120,7 +123,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = M_PI*randm11r(&se);
       if(y)
@@ -128,7 +131,7 @@ int main(int argc, char* argv[])
       if(z)
 	z[j] = M_PI*randm11r(&se);
     }
-#pragma omp for schedule(dynamic,CHUNK)
+#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
     for(BIGINT i = 0; i<ntransf*M; i++)       // random strengths
 	c[i] = crandm11r(&se);
   }
@@ -146,7 +149,7 @@ int main(int argc, char* argv[])
   int ier = finufft_makeplan(type, ndim, n_modes, isign, ntransf, tol, &plan, &opts);
   // (NB: the opts struct can no longer be modified with effect!)
   double plan_t = timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else {
@@ -172,7 +175,7 @@ int main(int argc, char* argv[])
   timer.restart();                     // Guru Step 3
   ier = finufft_exec(&plan,c,F);
   double exec_t=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
@@ -244,7 +247,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
   CNTime timer; timer.start();
   int ier = 0;
   double t = 0;
-  double fail = -1.0;
+  double fail = -1.0;                  // dummy code for failure
   nufft_opts* popts = &(plan->opts);   // opts ptr, as v1.2 simple calls need
   switch(plan->dim){
     

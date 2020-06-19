@@ -5,7 +5,7 @@
 #ifndef DEFS_H
 #define DEFS_H
 
-// define types intrinsic to finufft interface (FLT, CPX, BIGINT, etc):
+// use types intrinsic to finufft interface (FLT, CPX, BIGINT, etc)
 #include <dataTypes.h>
 
 
@@ -62,7 +62,12 @@
 // to avoid mixed precision operators in eg i*pi...
 #define PI (FLT)M_PI
 
-using namespace std;        // means std:: not needed for cout, max, etc
+// machine epsilon for decisions of achievable tolerance...
+#ifdef SINGLE
+  #define EPSILON (float)6e-08
+#else
+  #define EPSILON (double)1.1e-16
+#endif
 
 #define MAX(a,b) (a>b) ? a : b  // but we use std::max instead
 #define MIN(a,b) (a<b) ? a : b

@@ -1,5 +1,5 @@
-#include <utils.h>
 #include <finufft_f.h>
+#include <dataTypes.h>
 
 /* C++ layer for calling FINUFFT from fortran, in f77 style + derived type
    for the nufft_opts C-struct. The ptr to finufft_plan is passed as an "opaque"
@@ -17,8 +17,6 @@
 
    Barnett 2/17/17. Single prec 4/5/17. Libin Lu & Alex Barnett, May 2020.
 */
-
-
 
 #ifdef __cplusplus
 extern "C" {

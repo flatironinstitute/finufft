@@ -1,13 +1,12 @@
 #include <finufft.h>
-#include <stdio.h>
+#include <cstdio>
+using namespace std;
 
 /* C++ layer for legacy interfaces calling FINUFFT from fortran
    without options control.
    These will become obsolete, but are needed for a transition period.
    Barnett 6/5/20.
 */
-
-
 
 #ifdef __cplusplus
 extern "C" {

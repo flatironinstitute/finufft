@@ -1,8 +1,13 @@
 #include <finufft.h>
 #include <utils.h>
-#include <iostream>
+#include <dataTypes.h>
+#include <defs.h>
 #include <common.h>
+
+#include <iostream>
 #include <iomanip>
+
+using namespace std;
 
 /* The main guru functions for FINUFFT.
 

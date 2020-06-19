@@ -1,11 +1,14 @@
 #include <spreadinterp.h>
+#include <dataTypes.h>
 #include <defs.h>
 #include <utils.h>
+
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
+using namespace std;
 
-// declarations of internal functions...
+// declarations of purely internal functions...
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);
 static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts& opts, const int N);
 static inline void eval_kernel_vec_Horner(FLT *ker, const FLT z, const int w, const spread_opts &opts);
@@ -34,11 +37,12 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 FLT* kz0,int ns, int ndims);
 
 
+// ==========================================================================
 int spreadinterp(
         BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
         BIGINT M, FLT *kx, FLT *ky, FLT *kz, FLT *data_nonuniform,
         spread_opts opts)
-/* Spreader/interpolator for 1, 2, or 3 dimensions.
+/* ------------Spreader/interpolator for 1, 2, or 3 dimensions --------------
    If opts.spread_direction=1, evaluate, in the 1D case,
 
                          N1-1

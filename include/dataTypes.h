@@ -1,8 +1,7 @@
 #ifndef DATATYPE_H
 #define DATATYPE_H
 
-// ----------------- data type definitions ----------------------------------
-// (note: non-interface precision- and omp-dependent defs are in defs.h)
+// ------------ FINUFFT data type definitions ----------------------------------
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <stdint.h>
@@ -26,8 +25,6 @@ typedef int64_t BIGINT;
   #else
     typedef float complex CPX;
   #endif
-  // single-prec, machine epsilon for rounding
-  #define EPSILON (float)6e-08
   #define FABS(x) fabsf(x)
 
 #else
@@ -37,8 +34,6 @@ typedef int64_t BIGINT;
   #else
     typedef double complex CPX;
   #endif
-  // double-precision, machine epsilon for rounding
-  #define EPSILON (double)1.1e-16
   #define FABS(x) fabs(x)
 
 #endif

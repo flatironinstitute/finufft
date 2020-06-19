@@ -1,10 +1,8 @@
 #include <finufft.h>
 #include <dataTypes.h>
-#include <defs.h>
 
-#include <stdio.h>
-#include <iostream>
-#include <iomanip>
+#include <cstdio>
+using namespace std;
 
 // ---------------------------------------------------------------------------
 // The 18 simple interfaces (= 3 dims * 3 types * {singlecall,many}) to FINUFFT.

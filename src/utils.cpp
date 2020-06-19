@@ -1,8 +1,11 @@
 // A little library of low-level array manipulations, timer, and OMP helpers.
 // For its embryonic self-test see ../test/testutils.cpp, which only tests
-// the next235 for now.
+// the next235 for now.  Barnett 2017-2020.
 
 #include "utils.h"
+#include "dataTypes.h"
+#include "defs.h"
+
 
 // ------------ complex array utils ---------------------------------
 
@@ -135,7 +138,6 @@ double CNTime::elapsedsec()
 
 
 // -------------------------- openmp helpers -------------------------------
-
 int get_num_threads_parallel_block()
 // return how many threads an omp parallel block would use.
 // omp_get_max_threads() does not report this; consider case of NESTED=0.

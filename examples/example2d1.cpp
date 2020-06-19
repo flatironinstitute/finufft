@@ -1,8 +1,8 @@
 // this is all you must include for the finufft lib...
-#include "finufft.h"
+#include <finufft.h>
+#include <complex>
 
 // also needed for this example...
-#include <complex>
 #include <iostream>
 #include <iomanip>
 #include <vector>
