@@ -32,7 +32,8 @@
 %     Since int64_t is hardwired in the below, MEX will break otherwise.
 %  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
 %     interfaces.
-%  4) detailed user documentation is prepended to finufft_plan.m by addmhelp.sh
+%  4) after mwrap generates finufft_plan.m from this file, documentation is
+%     prepended to finufft_plan.m by running ./addmhelp.sh
 %
 % Main author: Libin Lu, started May 2020; edits, ier, docs by Alex Barnett.
 
@@ -109,8 +110,8 @@ $ }
 classdef finufft_plan < handle
 
   properties
-% this is a special property that MWrap uses as an opaque pointer to C++ object
-% (mwptr = MWrap-pointer, not MathWorks! see MWrap manual).
+    % this is a special property that MWrap uses as an opaque pointer to C++ object
+    % (mwptr = MWrap-pointer, not MathWorks! see MWrap manual).
     mwptr
   end
 
