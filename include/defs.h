@@ -69,10 +69,8 @@
   #define EPSILON (double)1.1e-16
 #endif
 
-#define MAX(a,b) (a>b) ? a : b  // but we use std::max instead
-#define MIN(a,b) (a<b) ? a : b
-
 // Random numbers: crappy unif random number generator in [0,1):
+// (RAND_MAX is in stdlib.h)
 //#define rand01() (((FLT)(rand()%RAND_MAX))/RAND_MAX)
 #define rand01() ((FLT)rand()/RAND_MAX)
 // unif[-1,1]:

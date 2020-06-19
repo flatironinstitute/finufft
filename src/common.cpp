@@ -142,7 +142,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
     a[n] = exp(2*PI*IMA*(FLT)(nf/2-z[n])/(FLT)nf);  // phase winding rates
   }
   BIGINT nout=nf/2+1;                   // how many values we're writing to
-  int nt = MIN(nout,MY_OMP_GET_MAX_THREADS());  // how many chunks
+  int nt = min(nout,(BIGINT)MY_OMP_GET_MAX_THREADS());      // how many chunks
   std::vector<BIGINT> brk(nt+1);        // start indices for each thread
   for (int t=0; t<=nt; ++t)             // split nout mode indices btw threads
     brk[t] = (BIGINT)(0.5 + nout*t/(double)nt);

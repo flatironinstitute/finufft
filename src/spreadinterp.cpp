@@ -288,7 +288,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 
     } else {               // ------- Fancy multi-core blocked t1 spreading ----
       // Split sorted inds (jfm's advanced2), could double RAM
-      int nb = MIN(4*nth_used,M);  // choose # subprobs via nthreads to be used
+      int nb = min(4*(BIGINT)nth_used,M);  // choose # subprobs via nthreads to be used
       if (nb*opts.max_subproblem_size<M)
         nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
       if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
@@ -1097,7 +1097,7 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   nbins2 = isky ? N2/bin_size_y+1 : 1;
   nbins3 = iskz ? N3/bin_size_z+1 : 1;
   BIGINT nbins = nbins1*nbins2*nbins3;
-  int nt = MIN(M,MY_OMP_GET_MAX_THREADS());      // printf("\tnt=%d\n",nt);
+  int nt = min(M,(BIGINT)MY_OMP_GET_MAX_THREADS());   // printf("\tnt=%d\n",nt);
   std::vector<BIGINT> brk(nt+1); // start NU pt indices per thread
 
   // distribute the M NU pts to threads once & for all...

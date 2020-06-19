@@ -3,9 +3,8 @@
 #include <complex>
 
 // also used in this example...
-#include <stdio.h>
+#include <cstdio>
 #include <stdlib.h>
-
 using namespace std;
 
 int main(int argc, char* argv[])
