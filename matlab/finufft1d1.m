@@ -43,8 +43,11 @@
 function f = finufft1d1(x,c,isign,eps,ms,o)
 
 if nargin<6, o.dummy=1; end            % make a dummy options struct
-n_transf = round(numel(c)/numel(x));   % back out how many transf
-if n_transf*numel(x)~=numel(c), error('the number of elements of c must be divisible by the number of elements of x'); end
+M = numel(x);
+if M==1, c = c(:).';    % silly case of many M=1 trans: make row vec.
+else, if isvector(c), c = c(:); end
+end
+n_transf = size(c,2);
 p = finufft_plan(1,ms,isign,n_transf,eps,o);
 p.finufft_setpts(x,[],[]);
 f = p.finufft_exec(c);

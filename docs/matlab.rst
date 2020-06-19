@@ -4,7 +4,7 @@ MATLAB/octave interfaces
 Quick-start example
 ~~~~~~~~~~~~~~~~~~~
 
-To perform a 
+To perform a single
 
 The simple (single-vector) and many vector interfaces are combined,
 meaning that 
@@ -20,9 +20,10 @@ Full documentation
 ~~~~~~~~~~~~~~~~~~
 
 Here are the help documentation strings for all MATLAB/octave interfaces.
-They only abbreviate the options and error codes.
-For full documentation of options see :ref:`opts`.
-For a full list of error codes see :ref:`errcodes`.
+They only abbreviate the options (for full documentation see :ref:`opts`).
+Informative warnings and errors are raised in MATLAB style
+(see ``../matlab/errhandler.m``).
+The number codes in :ref:`errcodes` are not returned.
 
 If you have added the ``matlab`` directory of FINUFFT correctly to your
 MATLAB path via something like ``addpath FINUFFT/matlab``, then

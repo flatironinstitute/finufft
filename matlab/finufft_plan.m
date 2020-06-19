@@ -63,8 +63,31 @@ finufft(mex_id_, plan);
     function finufft_setpts(plan, xj, yj, zj, s, t, u)
 % FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
       if nargin<5, s=[]; t=[]; u=[]; end
+                                          mex_id_ = 'o int = get_dim(i finufft_plan*)';
+[dim] = finufft(mex_id_, plan);
+      mex_id_ = 'o int = get_type(i finufft_plan*)';
+[type] = finufft(mex_id_, plan);
+      if ~isvector(xj), error('xj must be a row or col vector.'); end
+      if type==3 && ~isvector(s), error('s must be a row or col vector.'); end
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
+      if dim>1
+        if ~isvector(yj), error('yj must be a row or col vector.'); end
+        if numel(yj)~=nj, error('yj must have the same length as xj.'); end
+        if type==3
+          if ~isvector(t), error('t must be a row or col vector.'); end
+          if numel(t)~=nk, error('t must have the same length as s.'); end
+        end
+      end              
+      if dim>2
+        if ~isvector(zj), error('zj must be a row or col vector.'); end
+        if numel(zj)~=nj, error('zj must have the same length as xj.'); end
+        if type==3
+          if ~isvector(u), error('u must be a row or col vector.'); end
+          if numel(u)~=nk, error('u must have the same length as s.'); end
+        end
+      end              
+
       mex_id_ = 'o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
 [ier] = finufft(mex_id_, plan, nj, xj, yj, zj, nk, s, t, u);
       errhandler(ier);
@@ -72,22 +95,25 @@ finufft(mex_id_, plan);
 
     function result = finufft_exec(plan, data_in)
 % FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
-                                                                                                                                    
+                                                                                                
       mex_id_ = 'o int = get_type(i finufft_plan*)';
 [type] = finufft(mex_id_, plan);
       mex_id_ = 'o int = get_ntransf(i finufft_plan*)';
 [n_transf] = finufft(mex_id_, plan);
+      mex_id_ = 'o int64_t = get_nj(i finufft_plan*)';
+[nj] = finufft(mex_id_, plan);
 
       if type==1
+        % *** insert logic to test size of c here & allow row/col for ntr=1...
+        
         mex_id_ = 'get_nmodes(i finufft_plan*, o int64_t&, o int64_t&, o int64_t&)';
 [ms, mt, mu] = finufft(mex_id_, plan);
         outsize = ms*mt*mu*n_transf;
         mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[x])';
 [ier, result] = finufft(mex_id_, plan, data_in, outsize);
-        result = reshape(result, [ms mt mu n_transf]);
+        % for d<3, squeeze removes unused dims...
+        result = squeeze(reshape(result, [ms mt mu n_transf]));
       elseif type==2
-        mex_id_ = 'o int64_t = get_nj(i finufft_plan*)';
-[nj] = finufft(mex_id_, plan);
         mex_id_ = 'o int = finufft_exec(i finufft_plan*, o dcomplex[xx], i dcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_transf);
       elseif type==3

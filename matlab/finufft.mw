@@ -157,20 +157,41 @@ classdef finufft_plan < handle
     function finufft_setpts(plan, xj, yj, zj, s, t, u)
 % FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
       if nargin<5, s=[]; t=[]; u=[]; end
+      $ int get_type(finufft_plan* plan) {
+      $   return plan->type;
+      $ }
+      $ int get_dim(finufft_plan* plan) {
+      $   return plan->dim;
+      $ }
+      # int dim = get_dim(finufft_plan* plan);
+      # int type = get_type(finufft_plan* plan);
+      if ~isvector(xj), error('xj must be a row or col vector.'); end
+      if type==3 && ~isvector(s), error('s must be a row or col vector.'); end
       nj = numel(xj);   % note the matlab way is to extract sizes like this
       nk = numel(s);
+      if dim>1
+        if ~isvector(yj), error('yj must be a row or col vector.'); end
+        if numel(yj)~=nj, error('yj must have the same length as xj.'); end
+        if type==3
+          if ~isvector(t), error('t must be a row or col vector.'); end
+          if numel(t)~=nk, error('t must have the same length as s.'); end
+        end
+      end              
+      if dim>2
+        if ~isvector(zj), error('zj must be a row or col vector.'); end
+        if numel(zj)~=nj, error('zj must have the same length as xj.'); end
+        if type==3
+          if ~isvector(u), error('u must be a row or col vector.'); end
+          if numel(u)~=nk, error('u must have the same length as s.'); end
+        end
+      end              
+
       # int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
       errhandler(ier);
     end
 
     function result = finufft_exec(plan, data_in)
 % FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
-      $ int get_type(finufft_plan* plan) {
-      $   return plan->type;
-      $ }
-      $ int get_ndim(finufft_plan* plan) {
-      $   return plan->dim;
-      $ }
       $ int64_t get_nj(finufft_plan* plan) {
       $   return plan->nj;
       $ }
@@ -190,14 +211,17 @@ classdef finufft_plan < handle
 
       # int type = get_type(finufft_plan* plan);
       # int n_transf = get_ntransf(finufft_plan* plan);
+      # int64_t nj = get_nj(finufft_plan* plan);
 
       if type==1
+        % *** insert logic to test size of c here & allow row/col for ntr=1...
+        
         # get_nmodes(finufft_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
         outsize = ms*mt*mu*n_transf;
         # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[outsize] result);
-        result = reshape(result, [ms mt mu n_transf]);
+        % for d<3, squeeze removes unused dims...
+        result = squeeze(reshape(result, [ms mt mu n_transf]));
       elseif type==2
-        # int64_t nj = get_nj(finufft_plan* plan);
         # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_transf] result, dcomplex[] data_in);
       elseif type==3
         # int64_t nk = get_nk(finufft_plan* plan);
