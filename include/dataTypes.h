@@ -25,8 +25,6 @@ typedef int64_t BIGINT;
   #else
     typedef float complex CPX;
   #endif
-  #define FABS(x) fabsf(x)
-
 #else
   typedef double FLT;
   #ifdef __cplusplus
@@ -34,8 +32,6 @@ typedef int64_t BIGINT;
   #else
     typedef double complex CPX;
   #endif
-  #define FABS(x) fabs(x)
-
 #endif
 
-#endif
+#endif  // DATATYPE_H
