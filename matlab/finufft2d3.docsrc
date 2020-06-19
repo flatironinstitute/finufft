@@ -9,14 +9,16 @@
 %     f[k]  =  SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j])),  for k = 1, ..., nk
 %              j=1
 %   Inputs:
-%     x,y    location of NU sources in R^2, each length nj.
-%     c      size-nj double complex array of source strengths
-%     s,t    frequency locations of NU targets in R^2.
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps    precision requested (>1e-16)
+%     x,y   coordinates of nonuniform sources in R^2, each a length-nj vector.
+%     c     length-nj complex vector of source strengths. If numel(c)>nj,
+%           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+%           transformed with the same source and target locations.
+ISIGNEPS
+%     s,t   frequency coordinates of nonuniform targets in R^2,
+%           each a length-nk vector.
 OPTS
 %   Outputs:
-%     f     size-nk double complex Fourier transform values at target
-%            frequencies s,t
+%     f     length-nk complex vector of values at targets, or, if ntrans>1,
+%           a matrix of size (nk,ntrans)
 %
 NOTES

@@ -12,15 +12,17 @@
 %                       -mu/2 <= k3 <= (mu-1)/2.
 %
 %  Inputs:
-%     x,y,z location of NU targets on cube [-3pi,3pi]^3, each length nj
-%     f     size (ms,mt,mu) complex Fourier transform value matrix
-%           (ordering given by opts.modeord in each dimension; ms fastest to mu
-%            slowest).
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps    precision requested (>1e-16)
+%     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi]^3,
+%           each a vector of length nj
+%     f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
+%           (Mode ordering given by opts.modeord, in each dimension.)
+%           If a 4D array, 4th dimension sets ntrans, and each of ntrans
+%           3D arrays is transformed with the same nonuniform targets.
+ISIGNEPS
 OPTS
 OPTS12
 %  Outputs:
-%     c     complex double array of nj answers at the targets.
+%     c     complex column vector of nj answers at targets, or,
+%           if ntrans>1, matrix of size (nj,ntrans).
 %
 NOTES

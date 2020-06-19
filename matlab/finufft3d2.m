@@ -12,12 +12,14 @@
 %                       -mu/2 <= k3 <= (mu-1)/2.
 %
 %  Inputs:
-%     x,y,z location of NU targets on cube [-3pi,3pi]^3, each length nj
-%     f     size (ms,mt,mu) complex Fourier transform value matrix
-%           (ordering given by opts.modeord in each dimension; ms fastest to mu
-%            slowest).
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps    precision requested (>1e-16)
+%     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi]^3,
+%           each a vector of length nj
+%     f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
+%           (Mode ordering given by opts.modeord, in each dimension.)
+%           If a 4D array, 4th dimension sets ntrans, and each of ntrans
+%           3D arrays is transformed with the same nonuniform targets.
+%     isign if >=0, uses + sign in exponential, otherwise - sign.
+%     eps   relative precision requested (generally between 1e-15 and 1e-1)
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -31,15 +33,16 @@
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
 %  Outputs:
-%     c     complex double array of nj answers at the targets.
+%     c     complex column vector of nj answers at targets, or,
+%           if ntrans>1, matrix of size (nj,ntrans).
 %
 % Notes:
 %  * All available threads are used; control how many with maxNumCompThreads.
-%  * The above documents the simple (single-transform) interface. To transform
-%    ntrans vectors together with the same nonuniform points, add a final
-%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+%    than repeated calls with the same nonuniform points. Note that here the I/O
+%    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
 %  * For more details about the opts fields, see ../docs/opts.rst
-%  * See ERRHANDLER for list of possible warning/error IDs.
+%  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
 
@@ -47,8 +50,7 @@ function c = finufft3d2(x,y,z,isign,eps,f,o)
 
 if nargin<7, o.dummy=1; end
 valid_setpts(2,3,x,y,z);
-[ms,mt,mu,n_transf] = size(f);
-if ms==1, warning('f must be a column vector for n_transf=1, n_transf should be the last dimension of f.'); end
+[ms,mt,mu,n_transf] = size(f);    % if f 3D array, n_transf=1
 p = finufft_plan(2,[ms;mt;mu],isign,n_transf,eps,o);
 p.finufft_setpts(x,y,z);
 c = p.finufft_exec(f);

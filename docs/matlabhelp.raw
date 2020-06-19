@@ -11,10 +11,12 @@
      f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
               j=1
    Inputs:
-     x     location of sources on interval [-3pi,3pi], length nj
-     c     size-nj complex array of source strengths
+     x     locations of nonuniform sources on interval [-3pi,3pi], length nj
+     c     length-nj complex vector of source strengths. If numel(c)>nj,
+           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+           transformed with the same source locations.
      isign if >=0, uses + sign in exponential, otherwise - sign.
-     eps   precision requested (>1e-16)
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
      ms    number of Fourier modes computed, may be even or odd;
            in either case, mode range is integers lying in [-ms/2, (ms-1)/2]
      opts   optional struct with optional fields controlling the following:
@@ -30,15 +32,16 @@
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
    Outputs:
-     f     size-ms double complex array of Fourier transform values
+     f     size-ms complex column vector of Fourier coefficients, or, if
+           ntrans>1, a matrix of size (ms,ntrans).
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -56,10 +59,12 @@
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
   Inputs:
-     x     location of NU targets on interval [-3pi,3pi], length nj
-     f     complex Fourier transform values
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested (>1e-16)
+     x     location of nonuniform targets on interval [-3pi,3pi], length nj
+     f     complex Fourier coefficients. If a vector, length sets ms
+           (with mode ordering given by opts.modeord). If a matrix, each
+           of ntrans columns is transformed with the same nonuniform targets.
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
      opts   optional struct with optional fields controlling the following:
      opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
      opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -73,15 +78,16 @@
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
   Outputs:
-     c     complex double array of nj answers at targets
+     c     complex column vector of nj answers at targets, or,
+           if ntrans>1, matrix of size (nj,ntrans).
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -92,17 +98,19 @@
  f = finufft1d3(x,c,isign,eps,s)
  f = finufft1d3(x,c,isign,eps,s,opts)
 
- This computes:
+ This computes, to relative precision eps, via a fast algorithm:
 
               nj
      f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 1, ..., nk
               j=1
    Inputs:
-     x      location of NU sources in R (real line).
-     c      size-nj double complex array of source strengths
-     s      frequency locations of NU targets in R.
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested (>1e-16)
+     x     locations of nonuniform sources on R (real line), length-nj vector.
+     c     length-nj complex vector of source strengths. If numel(c)>nj,
+           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+           transformed with the same source and target locations.
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
+     s     frequency locations of nonuniform targets on R, length-nk vector.
      opts   optional struct with optional fields controlling the following:
      opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
      opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -114,16 +122,16 @@
      opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
    Outputs:
-     f     size-nk double complex Fourier transform values at target
-            frequencies s
+     f     length-nk complex vector of values at targets, or, if ntrans>1,
+           a matrix of size (nk,ntrans)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -143,12 +151,15 @@
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
    Inputs:
-     x,y    locations of NU sources on the square [-3pi,3pi]^2, each length nj
-     c      size-nj complex array of source strengths
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested (>1e-16)
-     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
-            in either case the mode range is integers lying in [-m/2, (m-1)/2]
+     x,y   coordinates of nonuniform sources on the square [-3pi,3pi]^2,
+           each a length-nj vector
+     c     length-nj complex vector of source strengths. If numel(c)>nj,
+           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+           transformed with the same source locations.
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
+     ms,mt  number of Fourier modes requested in x & y; each may be even or odd.
+            In either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   optional struct with optional fields controlling the following:
      opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
      opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -162,16 +173,17 @@
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
    Outputs:
-     f     size (ms*mt) double complex array of Fourier transform values
-           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
+     f     size (ms,mt) complex matrix of Fourier coefficients
+           (ordering given by opts.modeord in each dimension; ms fast, mt slow),
+           or, if ntrans>1, a 3D array of size (ms,mt,ntrans).
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -189,11 +201,14 @@
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
   Inputs:
-     x,y   location of NU targets on the square [-3pi,3pi]^2, each length nj
-     f     size (ms,mt) complex Fourier transform value matrix
-           (mode ordering given by opts.modeord in each dimension)
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested (>1e-16)
+     x,y   coordinates of nonuniform targets on the square [-3pi,3pi]^2,
+           each a vector of length nj
+     f     complex Fourier coefficient matrix, whose size determines (ms,mt).
+           (Mode ordering given by opts.modeord, in each dimension.)
+           If a 3D array, 3rd dimension sets ntrans, and each of ntrans
+           matrices is transformed with the same nonuniform targets.
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
      opts   optional struct with optional fields controlling the following:
      opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
      opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -207,15 +222,16 @@
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
   Outputs:
-     c     complex double array of nj answers at the targets.
+     c     complex column vector of nj answers at targets, or,
+           if ntrans>1, matrix of size (nj,ntrans).
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -232,11 +248,14 @@
      f[k]  =  SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j])),  for k = 1, ..., nk
               j=1
    Inputs:
-     x,y    location of NU sources in R^2, each length nj.
-     c      size-nj double complex array of source strengths
-     s,t    frequency locations of NU targets in R^2.
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested (>1e-16)
+     x,y   coordinates of nonuniform sources in R^2, each a length-nj vector.
+     c     length-nj complex vector of source strengths. If numel(c)>nj,
+           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+           transformed with the same source and target locations.
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
+     s,t   frequency coordinates of nonuniform targets in R^2,
+           each a length-nk vector.
      opts   optional struct with optional fields controlling the following:
      opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
      opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -248,16 +267,16 @@
      opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
    Outputs:
-     f     size-nk double complex Fourier transform values at target
-            frequencies s,t
+     f     length-nk complex vector of values at targets, or, if ntrans>1,
+           a matrix of size (nk,ntrans)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -278,11 +297,14 @@
          -mu/2 <= k3 <= (mu-1)/2.
 
    Inputs:
-     x,y,z locations of NU sources on [-3pi,3pi]^3, each length nj
-     c     size-nj complex array of source strengths
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps     precision requested (>1e-16)
-     ms,mt,mu number of Fourier modes requested in x,y and z; each may be
+     x,y,z  coordinates of nonuniform sources on the cube [-3pi,3pi]^3,
+            each a length-nj vector
+     c     length-nj complex vector of source strengths. If numel(c)>nj,
+           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+           transformed with the same source locations.
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
+     ms,mt,mu  number of Fourier modes requested in x,y and z; each may be
            even or odd.
            In either case the mode range is integers lying in [-m/2, (m-1)/2]
      opts   optional struct with optional fields controlling the following:
@@ -298,17 +320,17 @@
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
    Outputs:
-     f     size (ms*mt*mu) double complex array of Fourier transform values
-            (ordering given by opts.modeord in each dimension, ms fastest, mu
-             slowest).
+     f     size (ms,mt,mu) complex array of Fourier coefficients
+           (ordering given by opts.modeord in each dimension; ms fastest, mu
+           slowest), or, if ntrans>1, a 4D array of size (ms,mt,mu,ntrans).
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -328,12 +350,14 @@
                        -mu/2 <= k3 <= (mu-1)/2.
 
   Inputs:
-     x,y,z location of NU targets on cube [-3pi,3pi]^3, each length nj
-     f     size (ms,mt,mu) complex Fourier transform value matrix
-           (ordering given by opts.modeord in each dimension; ms fastest to mu
-            slowest).
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested (>1e-16)
+     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi]^3,
+           each a vector of length nj
+     f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
+           (Mode ordering given by opts.modeord, in each dimension.)
+           If a 4D array, 4th dimension sets ntrans, and each of ntrans
+           3D arrays is transformed with the same nonuniform targets.
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
      opts   optional struct with optional fields controlling the following:
      opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
      opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -347,15 +371,16 @@
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
   Outputs:
-     c     complex double array of nj answers at the targets.
+     c     complex column vector of nj answers at targets, or,
+           if ntrans>1, matrix of size (nj,ntrans).
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -373,11 +398,14 @@
               j=1
                               for k = 1, ..., nk
    Inputs:
-     x,y,z  location of NU sources in R^3, each length nj.
-     c      size-nj double complex array of source strengths
-     s,t,u   frequency locations of NU targets in R^3.
-     isign  if >=0, uses + sign in exponential, otherwise - sign.
-     eps    precision requested (>1e-16)
+     x,y,z  coordinates of nonuniform sources in R^3, each a length-nj vector.
+     c     length-nj complex vector of source strengths. If numel(c)>nj,
+           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+           transformed with the same source and target locations.
+     isign if >=0, uses + sign in exponential, otherwise - sign.
+     eps   relative precision requested (generally between 1e-15 and 1e-1)
+     s,t,u  frequency coordinates of nonuniform targets in R^3,
+           each a length-nk vector.
      opts   optional struct with optional fields controlling the following:
      opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
      opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -389,16 +417,16 @@
      opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
    Outputs:
-     f     size-nk double complex Fourier transform values at target
-            frequencies s,t,u
+     f     length-nk complex vector of values at targets, or, if ntrans>1,
+           a matrix of size (nk,ntrans)
 
  Notes:
   * All available threads are used; control how many with maxNumCompThreads.
-  * The above documents the simple (single-transform) interface. To transform
-    ntrans vectors together with the same nonuniform points, add a final
-    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+    than repeated calls with the same nonuniform points. Note that here the I/O
+    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
   * For more details about the opts fields, see ../docs/opts.rst
-  * See ERRHANDLER for list of possible warning/error IDs.
+  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
 
@@ -468,8 +496,10 @@
 
  2) FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
 
+ finufft_setpts(plan, xj, yj, zj)
  finufft_setpts(plan, xj, yj, zj, s, t, u)
   or
+ plan.finufft_setpts(xj, yj, zj)
  plan.finufft_setpts(xj, yj, zj, s, t, u)
 
  Inputs nonuniform spatial points (xj,yj,zj) in the case of all types, and
@@ -499,6 +529,8 @@
  3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
 
  result = finufft_exec(plan, data_in);
+ or
+ result = plan.finufft_exec(data_in); 
 
  Execute a single (or if ntrans>1 in the plan stage, multiple) NUFFT transforms
   according to the previously defined plan, using the nonuniform points chosen
@@ -520,13 +552,11 @@
 
  4) FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
 
- Usage: p.finufft_destroy; where p is a finufft_plan object.
+ finufft_destroy(plan)
+ or
+ plan.finufft_destroy;
 
  Note: since this is a handle class, one may instead clean up with: clear p;
  this is a special property that MWrap uses as an opaque pointer to C++ object
- (mwptr = MWrap-pointer, not MathWorks!)
- FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
- FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
- FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
- FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
+ (mwptr = MWrap-pointer, not MathWorks! see MWrap manual).
 

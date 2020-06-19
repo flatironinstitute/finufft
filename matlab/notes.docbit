@@ -1,10 +1,10 @@
 % Notes:
 %  * All available threads are used; control how many with maxNumCompThreads.
-%  * The above documents the simple (single-transform) interface. To transform
-%    ntrans vectors together with the same nonuniform points, add a final
-%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+%    than repeated calls with the same nonuniform points. Note that here the I/O
+%    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
 %  * For more details about the opts fields, see ../docs/opts.rst
-%  * See ERRHANDLER for list of possible warning/error IDs.
+%  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
 

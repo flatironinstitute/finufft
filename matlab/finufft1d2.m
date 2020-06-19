@@ -10,10 +10,12 @@
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2.
 %
 %  Inputs:
-%     x     location of NU targets on interval [-3pi,3pi], length nj
-%     f     complex Fourier transform values
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps    precision requested (>1e-16)
+%     x     location of nonuniform targets on interval [-3pi,3pi], length nj
+%     f     complex Fourier coefficients. If a vector, length sets ms
+%           (with mode ordering given by opts.modeord). If a matrix, each
+%           of ntrans columns is transformed with the same nonuniform targets.
+%     isign if >=0, uses + sign in exponential, otherwise - sign.
+%     eps   relative precision requested (generally between 1e-15 and 1e-1)
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -27,15 +29,16 @@
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
 %  Outputs:
-%     c     complex double array of nj answers at targets
+%     c     complex column vector of nj answers at targets, or,
+%           if ntrans>1, matrix of size (nj,ntrans).
 %
 % Notes:
 %  * All available threads are used; control how many with maxNumCompThreads.
-%  * The above documents the simple (single-transform) interface. To transform
-%    ntrans vectors together with the same nonuniform points, add a final
-%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+%    than repeated calls with the same nonuniform points. Note that here the I/O
+%    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
 %  * For more details about the opts fields, see ../docs/opts.rst
-%  * See ERRHANDLER for list of possible warning/error IDs.
+%  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
 
@@ -43,8 +46,8 @@ function c = finufft1d2(x,isign,eps,f,o)
 
 if nargin<5, o.dummy=1; end
 valid_setpts(2,1,x,[],[]);
-[ms,n_transf]=size(f);
-if ms==1, warning('f must be a column vector for n_transf=1, n_transf should be the last dimension of f.'); end
+[ms,n_transf]=size(f);                     % if f a col vec, n_transf=1, but...
+if ms==1, ms=n_transf; n_transf=1; end     % allow a single row vec as valid f
 p = finufft_plan(2,ms,isign,n_transf,eps,o);
 p.finufft_setpts(x,[],[]);
 c = p.finufft_exec(f);

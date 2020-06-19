@@ -110,7 +110,7 @@ classdef finufft_plan < handle
 
   properties
 % this is a special property that MWrap uses as an opaque pointer to C++ object
-% (mwptr = MWrap-pointer, not MathWorks!)
+% (mwptr = MWrap-pointer, not MathWorks! see MWrap manual).
     mwptr
   end
 
@@ -130,7 +130,7 @@ classdef finufft_plan < handle
         end
         dim = n_modes_or_dim;      % interpret as dim
       else
-        dim = length(n_modes_or_dim);
+        dim = length(n_modes_or_dim);    % allows any of ms,mt,mu to be 1 (weird)
         n_modes(1:dim) = n_modes_or_dim;
       end
       % (checks of type and dim will occur in the C++ library so omit them above)
@@ -207,7 +207,7 @@ classdef finufft_plan < handle
       end
       if type==1
         # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
-        % make output correct matlab shape; for d<3, squeeze removes unused dims...
+        % make modes output correct shape; when d<3 squeeze removes unused dims...
         result = squeeze(reshape(result, [ms mt mu n_transf]));
       elseif type==2
         # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_transf] result, dcomplex[] data_in);

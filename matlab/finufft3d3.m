@@ -10,11 +10,14 @@
 %              j=1
 %                              for k = 1, ..., nk
 %   Inputs:
-%     x,y,z  location of NU sources in R^3, each length nj.
-%     c      size-nj double complex array of source strengths
-%     s,t,u   frequency locations of NU targets in R^3.
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps    precision requested (>1e-16)
+%     x,y,z  coordinates of nonuniform sources in R^3, each a length-nj vector.
+%     c     length-nj complex vector of source strengths. If numel(c)>nj,
+%           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+%           transformed with the same source and target locations.
+%     isign if >=0, uses + sign in exponential, otherwise - sign.
+%     eps   relative precision requested (generally between 1e-15 and 1e-1)
+%     s,t,u  frequency coordinates of nonuniform targets in R^3,
+%           each a length-nk vector.
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -26,16 +29,16 @@
 %     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %   Outputs:
-%     f     size-nk double complex Fourier transform values at target
-%            frequencies s,t,u
+%     f     length-nk complex vector of values at targets, or, if ntrans>1,
+%           a matrix of size (nk,ntrans)
 %
 % Notes:
 %  * All available threads are used; control how many with maxNumCompThreads.
-%  * The above documents the simple (single-transform) interface. To transform
-%    ntrans vectors together with the same nonuniform points, add a final
-%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+%    than repeated calls with the same nonuniform points. Note that here the I/O
+%    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
 %  * For more details about the opts fields, see ../docs/opts.rst
-%  * See ERRHANDLER for list of possible warning/error IDs.
+%  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
 

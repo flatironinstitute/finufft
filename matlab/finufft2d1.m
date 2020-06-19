@@ -12,12 +12,15 @@
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 %
 %   Inputs:
-%     x,y    locations of NU sources on the square [-3pi,3pi]^2, each length nj
-%     c      size-nj complex array of source strengths
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps    precision requested (>1e-16)
-%     ms,mt  number of Fourier modes requested in x & y; each may be even or odd
-%            in either case the mode range is integers lying in [-m/2, (m-1)/2]
+%     x,y   coordinates of nonuniform sources on the square [-3pi,3pi]^2,
+%           each a length-nj vector
+%     c     length-nj complex vector of source strengths. If numel(c)>nj,
+%           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+%           transformed with the same source locations.
+%     isign if >=0, uses + sign in exponential, otherwise - sign.
+%     eps   relative precision requested (generally between 1e-15 and 1e-1)
+%     ms,mt  number of Fourier modes requested in x & y; each may be even or odd.
+%            In either case the mode range is integers lying in [-m/2, (m-1)/2]
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
@@ -31,16 +34,17 @@
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
 %     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
 %   Outputs:
-%     f     size (ms*mt) double complex array of Fourier transform values
-%           (ordering given by opts.modeord in each dimension, ms fast, mt slow)
+%     f     size (ms,mt) complex matrix of Fourier coefficients
+%           (ordering given by opts.modeord in each dimension; ms fast, mt slow),
+%           or, if ntrans>1, a 3D array of size (ms,mt,ntrans).
 %
 % Notes:
 %  * All available threads are used; control how many with maxNumCompThreads.
-%  * The above documents the simple (single-transform) interface. To transform
-%    ntrans vectors together with the same nonuniform points, add a final
-%    dimension of size ntrans>1 to the f and c arrays. See ../docs/matlab.rst
+%  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
+%    than repeated calls with the same nonuniform points. Note that here the I/O
+%    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
 %  * For more details about the opts fields, see ../docs/opts.rst
-%  * See ERRHANDLER for list of possible warning/error IDs.
+%  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is given in ../finufft-manual.pdf and online at
 %    http://finufft.readthedocs.io
 

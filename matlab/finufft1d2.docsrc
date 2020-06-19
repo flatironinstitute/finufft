@@ -10,13 +10,15 @@
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2.
 %
 %  Inputs:
-%     x     location of NU targets on interval [-3pi,3pi], length nj
-%     f     complex Fourier transform values
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps    precision requested (>1e-16)
+%     x     location of nonuniform targets on interval [-3pi,3pi], length nj
+%     f     complex Fourier coefficients. If a vector, length sets ms
+%           (with mode ordering given by opts.modeord). If a matrix, each
+%           of ntrans columns is transformed with the same nonuniform targets.
+ISIGNEPS
 OPTS
 OPTS12
 %  Outputs:
-%     c     complex double array of nj answers at targets
+%     c     complex column vector of nj answers at targets, or,
+%           if ntrans>1, matrix of size (nj,ntrans).
 %
 NOTES

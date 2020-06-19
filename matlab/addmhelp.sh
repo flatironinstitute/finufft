@@ -15,6 +15,10 @@ do
     while IFS= read -r line; do
         # we define all tags here
         case $line in
+            ISIGNEPS)
+                # isign and eps descriptions common to all routines
+                cat isigneps.docbit
+                ;;
             OPTS)
                 # opts descriptions common to all routines
                 cat opts.docbit

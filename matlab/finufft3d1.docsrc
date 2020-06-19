@@ -13,18 +13,20 @@
 %         -mu/2 <= k3 <= (mu-1)/2.
 %
 %   Inputs:
-%     x,y,z locations of NU sources on [-3pi,3pi]^3, each length nj
-%     c     size-nj complex array of source strengths
-%     isign  if >=0, uses + sign in exponential, otherwise - sign.
-%     eps     precision requested (>1e-16)
-%     ms,mt,mu number of Fourier modes requested in x,y and z; each may be
+%     x,y,z  coordinates of nonuniform sources on the cube [-3pi,3pi]^3,
+%            each a length-nj vector
+%     c     length-nj complex vector of source strengths. If numel(c)>nj,
+%           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
+%           transformed with the same source locations.
+ISIGNEPS
+%     ms,mt,mu  number of Fourier modes requested in x,y and z; each may be
 %           even or odd.
 %           In either case the mode range is integers lying in [-m/2, (m-1)/2]
 OPTS
 OPTS12
 %   Outputs:
-%     f     size (ms*mt*mu) double complex array of Fourier transform values
-%            (ordering given by opts.modeord in each dimension, ms fastest, mu
-%             slowest).
+%     f     size (ms,mt,mu) complex array of Fourier coefficients
+%           (ordering given by opts.modeord in each dimension; ms fastest, mu
+%           slowest), or, if ntrans>1, a 4D array of size (ms,mt,mu,ntrans).
 %
 NOTES
