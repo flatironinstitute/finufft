@@ -11,6 +11,7 @@
 #include <fftw3.h>
 #include "finufft.h"
 #include "utils.h"
+#include "defs.h"
 
 namespace py = pybind11;
 
@@ -138,7 +139,8 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
           .def_readwrite("modeord", &nufft_opts::modeord)
           .def_readwrite("upsampfac", &nufft_opts::upsampfac)
           .def_readwrite("spread_thread", &nufft_opts::spread_thread)
-          .def_readwrite("maxbatchsize", &nufft_opts::maxbatchsize);
+          .def_readwrite("maxbatchsize", &nufft_opts::maxbatchsize)
+          .def_readwrite("showwarn", &nufft_opts::showwarn);
 
       // finufft_plan stuct
       py::class_<finufft_plan>(m,"finufft_plan")
