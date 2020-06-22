@@ -55,7 +55,10 @@ def _copy(_x, x):
 
 ## makeplan
 def makeplan(tp,n_dims,n_modes,iflag,n_transf,tol,plan,opts):
-  return finufftpy_cpp.makeplan(tp,n_dims,n_modes,iflag,n_transf,tol,plan,opts)
+  ier = finufftpy_cpp.makeplan(tp,n_dims,n_modes,iflag,n_transf,tol,plan,opts)
+  if ier != 0:
+    raise RuntimeError('Error creating plan.')
+  return ier
 
 ## setpts
 def setpts(plan,M,xj,yj,zj,N,s,t,u):
@@ -66,16 +69,21 @@ def setpts(plan,M,xj,yj,zj,N,s,t,u):
   _s = _rchk(s)
   _t = _rchk(t)
   _u = _rchk(u)
-  return finufftpy_cpp.setpts(plan,M,_xj,_yj,_zj,N,_s,_t,_u)
+  ier = finufftpy_cpp.setpts(plan,M,_xj,_yj,_zj,N,_s,_t,_u)
+  if ier != 0:
+    raise RuntimeError('Error setting non-uniform points.')
+  return ier
 
 ## execute
 def execute(plan,weights,result):
   _weights = _cchk(weights)
   _result = _cchk(result)
-  info = finufftpy_cpp.execute(plan,_weights,_result)
+  ier = finufftpy_cpp.execute(plan,_weights,_result)
+  if ier != 0:
+    raise RuntimeError('Error executing plan.')
   _copy(_weights,weights)
   _copy(_result,result)
-  return info
+  return ier
 
 def set_opts(opts,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac):
   opts.debug = debug
@@ -93,18 +101,21 @@ def invoke_guru(x,y,z,c,isign,eps,s,t,u,f,debug,spread_debug,spread_sort,fftw,mo
 
   #plan
   plan = finufft_plan()
-  info = makeplan(tp,ndim,n_modes,isign,ntransf,eps,plan,opts)
+  ier = makeplan(tp,ndim,n_modes,isign,ntransf,eps,plan,opts)
 
   #setpts
-  info = setpts(plan,M,x,y,z,nk,s,t,u)
+  ier = setpts(plan,M,x,y,z,nk,s,t,u)
 
   #excute
-  info = execute(plan,c,f)
+  ier = execute(plan,c,f)
 
   #destroy
-  info = destroy(plan)
+  ier = destroy(plan)
 
-  return info
+  if ier != 0:
+    raise RuntimeError('Error destroying plan.')
+
+  return ier
 
 ## easy interfaces
 ## 1D
