@@ -7,7 +7,7 @@
 
 # Max OSX users: please edit as per below comments, and docs/install.rst
 
-__version__ = '1.1.2'
+__version__ = '1.2.0'
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -27,7 +27,6 @@ if finufftdir==None or finufftdir=='':
 print("finufftdir: ", finufftdir)
 print("pathname of __file__: ",os.path.dirname(__file__))   # ok, fails why?
 
-    
 # default compiler choice (note g++ = clang in mac-osx):
 os.environ['CC'] = 'gcc'
 os.environ['CXX'] = 'g++'
