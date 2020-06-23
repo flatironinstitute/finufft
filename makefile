@@ -167,10 +167,11 @@ EX = examples/example1d1$(PRECSUFFIX)
 EXC = examples/example1d1c$(PRECSUFFIX)
 EX2 = examples/example2d1
 EXG = examples/guru1d1
+EXGC = examples/guru1d1c
 ifeq ($(PREC),SINGLE)
 EXS = $(EX) $(EXC)
 else
-EXS = $(EX) $(EXC) $(EX2) $(EXG)
+EXS = $(EX) $(EXC) $(EX2) $(EXG) $(EXGC)
 endif
 
 examples: $(EXS)
@@ -186,6 +187,8 @@ $(EX2): $(EX2).o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $(EX2).o $(ABSDYNLIB) -o $(EX2)
 $(EXG): $(EXG).o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $(EXG).o $(ABSDYNLIB) -o $(EXG)
+$(EXGC): $(EXGC).o $(DYNLIB)
+	$(CC) $(CFLAGS) $(EXGC).o $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $(EXGC)
 
 # validation tests... (some link to .o allowing testing pieces separately)
 TESTS = test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
