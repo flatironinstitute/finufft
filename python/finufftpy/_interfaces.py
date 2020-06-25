@@ -13,12 +13,12 @@
 import finufftpy.finufftpy_cpp as finufftpy_cpp
 import numpy as np
 
-from finufftpy_cpp import default_opts
-from finufftpy_cpp import destroy
-from finufftpy_cpp import nufft_opts
-from finufftpy_cpp import finufft_plan
-from finufftpy_cpp import fftwopts
-from finufftpy_cpp import get_max_threads
+from finufftpy.finufftpy_cpp import default_opts
+from finufftpy.finufftpy_cpp import destroy
+from finufftpy.finufftpy_cpp import nufft_opts
+from finufftpy.finufftpy_cpp import finufft_plan
+from finufftpy.finufftpy_cpp import fftwopts
+from finufftpy.finufftpy_cpp import get_max_threads
 
 # default opts for simple interface
 opts_default = nufft_opts()
