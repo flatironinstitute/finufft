@@ -2,9 +2,9 @@
    math exp(sqrt(..)) evals. Also writes to tmp file.
 
 For dyn linked:
-g++-7 test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fopenmp
+g++-9 test_ker_ppval.cpp -o test_ker_ppval -O3 -funroll-loops -march=native -fopenmp
 For statically linked so can control glibc (avoid Matlab calling being different):
-g++ test_ker_ppval.cpp -o test_ker_ppval -Ofast -funroll-loops -march=native -fopenmp -static -lmvec
+g++-9 test_ker_ppval.cpp -o test_ker_ppval -O3 -funroll-loops -march=native -fopenmp -static -lmvec
 
 For GCC vectorization info: -fopt-info
 
@@ -14,7 +14,7 @@ where M is number of pts for the speed test, and w is kernel width
 
 See also: gen_ker_horner_C_code.m, ker_ppval_coeff_mat.m, fig_speed_ker_ppval.m
 
-Barnett 4/23/18
+Barnett 4/23/18 & later.
 
 
 Results:
@@ -62,7 +62,7 @@ static inline void evaluate_kernel_vector(FLT *ker, const FLT *args, const FLT b
 {
 #pragma omp simd
   for (int i = 0; i < w; i++)
-    ker[i] = exp(beta * sqrt(1.0 - c*args[i]*args[i]));
+    ker[i] = exp(beta * sqrt((FLT)1.0 - c*args[i]*args[i]));
   // gcc 5.4 can't simd the combined loop, hence we split the
   // out-of-support test to subsequent loop...
   // This check loop prevents getting 0.2s (600 Meval/s):

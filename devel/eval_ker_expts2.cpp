@@ -24,7 +24,8 @@ THe __restrict__ on the I/O args don't matter.
 {
   //#pragma omp simd
   for (int i = 0; i < N; i++)
-    ker[i] = exp(beta * sqrt(1.0 - c*args[i]*args[i]));
+    ker[i] = exp(beta * sqrt(FLT(1.0) - c*args[i]*args[i]));
+  // FLT(1.0) suggested by mreineck
 
  // slows down from 0.2s to 2.0s for w=12, unless it's at 0.4s when no effect...
   //  for (int i = 0; i < N; i++)         
@@ -37,7 +38,7 @@ int main(int argc, char* argv[])
   int M = (int) 1e7;          // # of reps
   if (argc>1)
     sscanf(argv[1],"%d",&M);  // find not needed to get the 0.2 s time.
-  int w=12;        // spread width: 10 0.17s, 11 1.8s, 12 0.2s, 13 2.0s, 15 2.5s
+  int w=11;        // spread width: 10 0.17s, 11 1.8s, 12 0.2s, 13 2.0s, 15 2.5s
   //if (argc>2)                 // even including this code slows to 0.4s !!
   //sscanf(argv[2],"%d",&w);       //  .. but speeds up w=13 from 2s to 0.4s !
   FLT beta=2.3*w, c = 4.0/(w*w); // typ ker params
@@ -46,7 +47,7 @@ int main(int argc, char* argv[])
   std::vector<FLT> x(w);
   std::vector<FLT> f(w);
   for (int i=1;i<=M;++i) { // i=0 to M-1 : 2.1s;  i=1 to M : 0.2s !!!!!
-    FLT xi = -w/2.0 + i/(FLT)M;     // dummy offset to make each rep different
+    FLT xi = -w/(FLT)2.0 + i/(FLT)M;  // dummy offset to make each rep different
     for (int j=0;j<w;++j)           // fill a simple argument vector (cheap)
       x[j] = xi + (FLT)j;      // note each x in [-w/2,w/2]
     evaluate_kernel_vector(&f[0],&x[0],beta,c,w);   // eval kernel into f

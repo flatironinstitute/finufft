@@ -32,7 +32,7 @@ ylim([0, 700])
 grid on
 
 legend('exp eval','Horner'); title(sprintf('1thr, with padding, M=%d',Mwant))
-print -dpng 1thr_ker_eval_speeds_withpadding.png
+%print -dpng 1thr_ker_eval_speeds_withpadding.png
 
 
 % xeon gcc6.4: exp max out at 40 Meval/s; horner 170-300 Meval/s.

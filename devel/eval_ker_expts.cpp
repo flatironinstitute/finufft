@@ -3,7 +3,7 @@
 
    compile with:
 
-g++ eval_ker_expts.cpp -o eval_ker_expts -Ofast -funroll-loops -march=native -; time ./eval_ker_expts
+g++ eval_ker_expts.cpp -o eval_ker_expts -Ofast -funroll-loops -march=native; time ./eval_ker_expts
 
    Barnett 3/28/18 for JD Patel (Intel).
    Single-prec version also of interest, if faster.
