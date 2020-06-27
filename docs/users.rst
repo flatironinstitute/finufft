@@ -50,12 +50,13 @@ Research output using FINUFFT
 
 #. Aleks Donev's group at NYU; ongoing
 
-Papers using our new window (spreading) function but not the whole FINUFFT package:
+Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
 
-1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt, window function. https://arxiv.org/abs/1712.04732
+1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
+
+#. Martin Reinecke, codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/ift/nifty_gridder
 
 
-   
    
 Citations to FINUFFT that do not appear to be actual users
 ----------------------------------------------------------
