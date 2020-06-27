@@ -57,16 +57,16 @@ Here we use the guru interface to repeat the first demo above:
 
 .. code-block:: matlab
 
-  M = 1e5;                            % number of NU source points
-  N = 2e5;                            % how many desired Fourier modes?
   type = 1; ntr = 1; o.modeord = 1;   % transform type, #transforms, opts
+  N = 2e5;                            % how many desired Fourier modes?
   plan = finufft_plan(1,N,+1,ntr,1e-12,o);      % plan for N output modes
+  M = 1e5;                            % number of NU source points
   plan.finufft_setpts(2*pi*rand(M,1),[],[]);    % set some nonuniform points
   c = randn(M,1)+1i*randn(M,1);       % iid random complex data (row or col vec)
   f = plan.finufft_exec(c);           % do the transform (0.008 sec)
   % ...one could now change the points with setpts, and/or do new transforms
   % with new c data...
-  delete(plan);                       % don't forget to clean up
+  plan.finufft_destroy;               % don't forget to clean up
 
 Finally, we demo a 2D type 1 transform using the simple interface. Let's
 request a rectangular Fourier mode array of 1000 modes in the x direction but 500 in the
