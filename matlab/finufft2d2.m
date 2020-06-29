@@ -52,3 +52,4 @@ valid_setpts(2,2,x,y,[]);
 p = finufft_plan(2,[ms;mt],isign,n_transf,eps,o);
 p.finufft_setpts(x,y,[]);
 c = p.finufft_exec(f);
+delete(p);
