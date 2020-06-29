@@ -114,6 +114,35 @@ int get_max_threads(){
     return MY_OMP_GET_MAX_THREADS();
 }
 
+int get_type(finufft_plan &plan){
+    return plan.type;
+}
+
+int get_dim(finufft_plan &plan){
+    return plan.dim;
+}
+
+BIGINT get_nj(finufft_plan &plan){
+    return plan.nj;
+}
+
+BIGINT get_nk(finufft_plan &plan){
+    return plan.nk;
+}
+
+py::tuple get_nmodes(finufft_plan &plan){
+    BIGINT ms = plan.ms ? plan.ms : 1;
+    BIGINT mt = plan.mt ? plan.mt : 1;
+    BIGINT mu = plan.mu ? plan.mu : 1;
+    if(plan.dim<3) mu = 1;
+    if(plan.dim<2) mt = 1;
+    return py::make_tuple(ms,mt,mu);
+}
+
+int get_ntransf(finufft_plan &plan){
+    return plan.ntrans;
+}
+
 PYBIND11_MODULE(finufftpy_cpp, m) {
       m.doc() = "pybind11 finufft plugin"; // optional module docstring
 
@@ -125,6 +154,12 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
       m.def("destroy", &destroy, "Destroy");
       m.def("fftwopts", &fftwopts, "FFTW options");
       m.def("get_max_threads", &get_max_threads, "Get max number of threads");
+      m.def("get_type", &get_type, "Get FINUFFT transfer type");
+      m.def("get_dim", &get_dim, "Get FINUFFT dimension");
+      m.def("get_nj", &get_nj, "Get FINUFFT number of nu points");
+      m.def("get_nk", &get_nk, "Get FINUFFT number of nu modes for type 3");
+      m.def("get_nmodes", &get_nmodes, "Get FINUFFT nmodes for type 1 and type 2");
+      m.def("get_ntransf", &get_ntransf, "Get FINUFFT ntrans");
 
       // nufft_opts struct
       py::class_<nufft_opts>(m,"nufft_opts")

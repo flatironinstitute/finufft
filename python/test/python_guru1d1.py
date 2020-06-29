@@ -14,7 +14,7 @@ M = int(1e5)
 x = np.random.uniform(-np.pi, np.pi, M)
 c = np.random.randn(M) + 1.j * np.random.randn(M)
 F = np.zeros([N], dtype=np.complex128)       # allocate F (modes out)
-n_modes = np.ones([3], dtype=np.int64)
+n_modes = np.ones([1], dtype=np.int64)
 n_modes[0] = N
 
 strt = time.time()
@@ -26,14 +26,13 @@ opts.debug = 1
 opts.upsampfac = 2.0
 
 #plan
-plan = fp.finufft_plan()
-status = fp.makeplan(1,1,n_modes,iflag,1,acc,plan,opts)
+plan = fp.makeplan(1,n_modes,iflag,1,acc,opts)
 
 #set pts
-status = fp.setpts(plan,M,x,None,None,0,None,None,None)
+fp.setpts(plan,x,None,None,None,None,None)
 
 #exec
-status = fp.execute(plan,c,F)
+fp.execute(plan,c,F)
 
 #timing
 print("Finished nufft in {0:.2g} seconds. Checking..."
