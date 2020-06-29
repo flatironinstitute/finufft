@@ -61,9 +61,55 @@ FLT* xj,FLT *yj, FLT *zj, CPX* cj,int iflag, FLT eps, BIGINT *n_modes, BIGINT nk
 
 
 
+
 ## Python interface
 
-Here's an example guru call, defining the guru interface:
+Here is a simple interface prototype, as of 6/29/20:
+
+# simple py calls: all these are allowed for 1d1:
+f = finufft.nufft1d1(x,c,+1,1e-12,N)          # note that N must be given!
+c = finufft.nufft1d2(x,f,+1,1e-12)          # type-2 size inferred from x,f.
+finufft.nufft1d1(x,c,+1,1e-12,out=f)        # N can be inferred from f.
+finufft.nufft1d1(x,c,+1,1e-6,f)             # ditto
+finufft.nufft1d1(x,c,+1,1e-6,f,modeord=0)    # trailing options
+f = finufft.nufft1d1(x,c,+1,1e-6,modeord=0)    # trailing options (possible?)
+
+
+Notes / discussion:
+
+* I think it is crucial to keep tol as required argument.
+This forces the user to understand that, unlike FFT,
+this is an approximate algorithm.
+I have already seen FINUFFT usage in code saying things like
+"Finufft has an accuracy of 1e-12", which is simply wrong. A default accuracy
+would help propagate such myths in the numerically uneducated, so I am
+against it.
+Instead forcing a required "set-accuracy" command is ok,
+but clumsy (IMHO) since it's yet another custom interface routine.
+
+* isign=+-1, defines the transform. This is related to having fft and
+ifft commands (except not inverses). So I propose also forcing the
+user to make this decision explicitly. It makes them read the formula.
+
+* default mode-ordering - if we make python have FFT-ordering by default,
+which is ok, will it be weird if the other languages don't?
+The fortran users may still expect CMCL-compatibility. So we're stuck on a
+fence. I'm willing to jump to FFT-default throughout all languages,
+but have to update all the matlab docs now...
+
+
+
+
+# implement simple interface via:
+def finufft.nufft1d1(..., fout=None)
+  throw error if fout wrong type/shape.
+  If fout==None:
+    create fout
+  call guru
+  return fout
+
+
+Here's an example guru call, defining the guru interface (pre-6/29/20):
 This is close to Joakim's GPU interface at
 https://github.com/janden/cufinufft/blob/python/python/cufinufft.py
 
@@ -122,7 +168,6 @@ No: copy Joakim's GPU interface plan?
 ]
 
 
-
 Use of out=None to write to returned array or to pre-alloc array in arg
 list. See above.
 
@@ -130,8 +175,6 @@ pythonic error reporting
 
 Joakim: if ordering is C not F, simply flip kx and ky pointers to NU locs.
 (t1, t2 only, d=2 or d=3).
-
-
 
 
 Old decisions:
