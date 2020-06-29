@@ -63,8 +63,11 @@ def err_handler(ier):
     11: 'FINUFFT general malloc failure',
     12: 'FINUFFT number of dimensions dim invalid'
   }
-  err_msg = 'Error creating plan'
-  raise RuntimeError(err_msg)
+  err_msg = switcher.get(ier,'Unknown error')
+  if ier == 1:
+    warnings.warn(err_msg, Warning)
+  else:
+    raise RuntimeError(err_msg)
 
 # valid sizes when setpts
 def valid_setpts(tp,dim,x,y,z,s,t,u):
