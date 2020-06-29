@@ -137,6 +137,10 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   }
   if (p->opts.spread_thread==0)
     p->opts.spread_thread=2;                // our auto choice
+  if (p->opts.spread_thread!=1 && p->opts.spread_thread!=2) {
+    fprintf(stderr,"finufft spreadinterpSortedBatch: illegal opts.spread_thread!\n");
+    return ERR_SPREAD_THREAD_NOTVALID;
+  }
 
   if (type!=3) {    // read in user Fourier mode array sizes...
     p->ms = n_modes[0];
@@ -475,10 +479,9 @@ int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
   Barnett 5/19/20, based on Malleo 2019.
 */
 {
-  // OMP nesting. 0: any omp-parallelism inside the loop sees only 1 thread;
-  // note this doesn't change omp_get_max_nthreads()
-  // 1: omp par inside the loop sees all threads.
-  MY_OMP_SET_NESTED(p->opts.spread_thread!=2);
+  // spread_thread=1 sequential multithread; 2 parallel single-thread.
+  // omp_sets_nested deprecated, so don't use; assume not nested for 2 to work.
+  // But when nthr_outer=1, omp par inside the loop sees all threads.
   int nthr_outer = p->opts.spread_thread==1 ? 1 : batchSize;
   
 #pragma omp parallel for num_threads(nthr_outer)
@@ -488,8 +491,6 @@ int spreadinterpSortedBatch(int batchSize, finufft_plan* p, CPX* cBatch)
     spreadinterpSorted(p->sortIndices, p->nf1, p->nf2, p->nf3, (FLT*)fwi, p->nj,
                        p->X, p->Y, p->Z, (FLT*)ci, p->spopts, p->didSort);
   }
-
-  MY_OMP_SET_NESTED(0);                    // back to default
   return 0;
 }
 
