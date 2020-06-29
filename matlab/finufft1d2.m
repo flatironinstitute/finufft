@@ -51,3 +51,4 @@ if ms==1, ms=n_transf; n_transf=1; end     % allow a single row vec as valid f
 p = finufft_plan(2,ms,isign,n_transf,eps,o);
 p.finufft_setpts(x,[],[]);
 c = p.finufft_exec(f);
+delete(p);

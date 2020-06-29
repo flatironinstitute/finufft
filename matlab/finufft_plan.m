@@ -12,10 +12,10 @@
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
 %   finufft_setpts  - process nonuniform points for general NUFFT transform(s).
 %   finufft_exec - execute single or many-vector NUFFT transforms in a plan.
-%   finufft_destroy - deallocate (delete) a nonuniform FFT plan.
 %
 % General notes:
-%  * See ERRHANDLER, VALID_* and this code for warning/error IDs.
+%  * use delete(plan) to remove a plan after use.
+%  * See ERRHANDLER, VALID_*, and this code for warning/error IDs.
 %
 %
 %
@@ -130,16 +130,10 @@
 %              of such objects, ie, it has an extra last dimension ntrans.
 %
 %
-% 4) FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
-%
-% finufft_destroy(plan)
-% or
-% plan.finufft_destroy;
+% 4) To deallocate (delete) a nonuniform FFT plan, use delete(plan)
 %
 % This deallocates all stored FFTW plans, nonuniform point sorting arrays,
 %  kernel Fourier transforms arrays, etc.
-%
-% Note: since this is a handle class, one may instead clean up with: clear p;
 classdef finufft_plan < handle
 
   properties
@@ -187,12 +181,7 @@ finufft(mex_id_, o);
     end
 
     function delete(plan)
-      mex_id_ = 'finufft_destroy(i finufft_plan*)';
-finufft(mex_id_, plan);
-    end
-
-    function finufft_destroy(plan)
-    % FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
+    % This does clean-up (deallocation) of the C++ ptr before the obj deletes.
       mex_id_ = 'finufft_destroy(i finufft_plan*)';
 finufft(mex_id_, plan);
     end

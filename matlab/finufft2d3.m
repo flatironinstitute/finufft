@@ -49,3 +49,4 @@ n_transf = valid_ntr(x,c);
 p = finufft_plan(3,2,isign,n_transf,eps,o);
 p.finufft_setpts(x,y,[],s,t,[]);
 f = p.finufft_exec(c);
+delete(p);

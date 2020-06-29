@@ -35,7 +35,7 @@
 %  4) after mwrap generates finufft_plan.m from this file, documentation is
 %     prepended to finufft_plan.m by running ./addmhelp.sh
 %
-% Main author: Libin Lu, started May 2020; edits, ier, docs by Alex Barnett.
+% Main author: Libin Lu, started May 2020; edits, ier, docs etc by Alex Barnett.
 
 $ #include <finufft.h>
 $ #include <mex.h>
@@ -147,11 +147,7 @@ classdef finufft_plan < handle
     end
 
     function delete(plan)
-      # finufft_destroy(finufft_plan* plan);
-    end
-
-    function finufft_destroy(plan)
-    % FINUFFT_DESTROY   deallocate (delete) a nonuniform FFT plan.
+    % This does clean-up (deallocation) of the C++ ptr before the obj deletes.
       # finufft_destroy(finufft_plan* plan);
     end
 
