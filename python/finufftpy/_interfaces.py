@@ -104,7 +104,7 @@ def valid_setpts(tp,dim,x,y,z,s,t,u):
 
 # valid number of transforms
 def valid_ntr(x,c):
-  n_transf = x.size/c.size
+  n_transf = int(x.size/c.size)
   if n_transf*x.size != c.size:
     raise RuntimeError('FINUFFT c.size must be divisible by x.size')
   return n_transf
