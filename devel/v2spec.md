@@ -66,11 +66,23 @@ FLT* xj,FLT *yj, FLT *zj, CPX* cj,int iflag, FLT eps, BIGINT *n_modes, BIGINT nk
 
 Here is a simple interface prototype, as of 6/29/20:
 
-# simple py calls: all these are allowed for 1d1:
+# simple/many-interface py calls... all of these would work:
+
 f = finufft.nufft1d1(x,c,+1,1e-12,N)          # note that N must be given!
+                                       # ntrans inferred from 2nd dim of c.
 c = finufft.nufft1d2(x,f,+1,1e-12)          # type-2 size inferred from x,f.
-finufft.nufft1d1(x,c,+1,1e-12,out=f)        # N can be inferred from f.
+                                       # ntrans inferred from 2nd dim of f.
+f = finufft.nufft1d3(x,c,+1,1e-12,s)          # type-3 size inferred from x,s
+                                       # ntrans inferred from 2nd dim of c.
+
+f = finufft.nufft2d1(x,y,c,+1,1e-12,N1,N2)   # note that N1,N2 must be given!
+finufft.nufft2d1(x,y,c,+1,1e-12,out=f)   # N1,N2 inferred from shape f
+                                       # ntrans inferred from 2nd dim of c.
+
+finufft.nufft1d1(x,c,+1,1e-12,out=f)        # now N can be inferred from shape f
+                                    # error thrown if 2nd dim f != ntrans from c
 finufft.nufft1d1(x,c,+1,1e-6,f)             # ditto
+                                   # actually, how does this differ from out=..?
 finufft.nufft1d1(x,c,+1,1e-6,f,modeord=0)    # trailing options
 f = finufft.nufft1d1(x,c,+1,1e-6,modeord=0)    # trailing options (possible?)
 
@@ -78,13 +90,13 @@ f = finufft.nufft1d1(x,c,+1,1e-6,modeord=0)    # trailing options (possible?)
 Notes / discussion:
 
 * I think it is crucial to keep tol as required argument.
-This forces the user to understand that, unlike FFT,
-this is an approximate algorithm.
+This forces the user to understand that, unlike FFT and most math operations,
+this is an approximate algorithm with user-chosen tolerance.
 I have already seen FINUFFT usage in code saying things like
 "Finufft has an accuracy of 1e-12", which is simply wrong. A default accuracy
 would help propagate such myths in the numerically uneducated, so I am
 against it.
-Instead forcing a required "set-accuracy" command is ok,
+Instead, forcing a required "set-accuracy" command is ok,
 but clumsy (IMHO) since it's yet another custom interface routine.
 
 * isign=+-1, defines the transform. This is related to having fft and
@@ -97,6 +109,21 @@ The fortran users may still expect CMCL-compatibility. So we're stuck on a
 fence. I'm willing to jump to FFT-default throughout all languages,
 but have to update all the matlab docs now...
 
+
+## Comparison against other NUFFT py interfaces:
+
+https://github.com/pyNFFT/pyNFFT/blob/master/doc/source/tutorial.rst
+is plan-type object-oriented interface.
+Find rather clunky.
+Forces the user to copy over their NU pts and data in a separate commands,
+but why?
+
+https://jyhmiinlin.github.io/pynufft/
+is plan-type object-oriented interface.
+has rather too many commands, but partly because iterative inverse xforms
+are included. Also one controls upsampling and kernel width directly,
+rather than tolerance (which forces the user to go too far into technical
+details).
 
 
 
