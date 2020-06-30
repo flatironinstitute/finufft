@@ -3,6 +3,7 @@
 #include <dataTypes.h>
 #include <defs.h>
 #include <utils.h>
+#include <utils_fp.h>
 #include <complex>
 
 #include <cstdio>

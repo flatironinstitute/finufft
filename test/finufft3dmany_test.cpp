@@ -1,5 +1,6 @@
 #include <finufft.h>
 #include <utils.h>
+#include <utils_fp.h>
 #include <defs.h>
 #include <test_defs.h>
 

@@ -55,7 +55,7 @@ c     tolerance
       tol = 1e-6
 c     Do transform: writes to fk (mode coeffs), and ier (status flag).
 c     here unallocated "null" tells it to use default options:
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
+      call finufftf1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
       t = omp_get_wtime()-t
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2" NU pts/s")',t,M/t
@@ -82,14 +82,14 @@ c     compute inf norm of fk coeffs for use in rel err
 c     do another transform, but now first setting some options...
       print *,''
       print *, 'setting new options, rerun simple interface...'
-      call finufft_default_opts(opts)
+      call finufftf_default_opts(opts)
 c     fields of derived type opts may be queried/set as usual...
       opts%debug = 2
       opts%upsampfac = 1.25e0
       print *,'first list our new set of opts values (cf nufft_opts.h):'
       print *,opts
       t = omp_get_wtime()
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
+      call finufftf1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
       t = omp_get_wtime()-t
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2" NU pts/s")',t,M/t

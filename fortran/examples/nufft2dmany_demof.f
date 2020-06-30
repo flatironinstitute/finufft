@@ -84,7 +84,7 @@ c     -----------------------
 c     call 2D Type 1 method
 c     -----------------------
 c
-         call finufft2d1many(ntrans,nj,xj,yj,cj,iflag, 
+         call finufftf2d1many(ntrans,nj,xj,yj,cj,iflag, 
      &                         eps,ms,mt,fk1,null,ier)
          do d = 1, ntrans
             call dirft2d1f(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,ms,mt,
@@ -98,7 +98,7 @@ c
 c     -----------------------
 c      call 2D Type 2 method
 c     -----------------------
-         call finufft2d2many(ntrans,nj,xj,yj,cj1,iflag,
+         call finufftf2d2many(ntrans,nj,xj,yj,cj1,iflag,
      &                         eps,ms,mt,fk0,null,ier)
          do d = 1, ntrans
             call dirft2d2f(nj,xj,yj,cj0(1+(d-1)*nj:d*nj),iflag,ms,mt,
@@ -117,7 +117,7 @@ c     -----------------------
             tk(k1) = 32*(sin(-pi/2+k1*pi/nk))
          enddo
 
-         call finufft2d3many(ntrans,nj,xj,yj,cj,iflag,eps,nk,sk,tk,
+         call finufftf2d3many(ntrans,nj,xj,yj,cj,iflag,eps,nk,sk,tk,
      &        fk1,null,ier)
          do d = 1, ntrans
             call dirft2d3f(nj,xj,yj,cj(1+(d-1)*nj:d*nj),iflag,nk,

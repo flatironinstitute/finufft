@@ -82,7 +82,8 @@ c     call 3D Type 1 method
 c     -----------------------
 c
          call dirft3d1f(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
-         call finufft3d1(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,null,ier)
+         call finufftf3d1(nj,xj,yj,zj,cj,iflag,
+     1        eps,ms,mt,mu,fk1,null,ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 err = ',err
@@ -91,7 +92,7 @@ c     -----------------------
 c      call 3D Type 2 method
 c     -----------------------
          call dirft3d2f(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
-         call finufft3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,null,
+         call finufftf3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,null,
      1        ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
@@ -107,7 +108,7 @@ c     -----------------------
          enddo
 
          call dirft3d3f(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
-         call finufft3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,null,
+         call finufftf3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,null,
      1        ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)

@@ -67,7 +67,7 @@ c     call 1D Type1 method
 c     -----------------------
 c
          call dirft1d1f(nj,xj,cj,iflag, ms,fk0)
-         call finufft1d1(nj,xj,cj,iflag,eps,ms,fk1,null,ier)
+         call finufftf1d1(nj,xj,cj,iflag,eps,ms,fk1,null,ier)
          call errcomp(fk0,fk1,ms,err)
          print *,' ier = ',ier
          print *,' type 1 error = ',err
@@ -77,7 +77,7 @@ c     call 1D Type2 method
 c     -----------------------
 c
          call dirft1d2f(nj,xj,cj0,iflag, ms,fk0,ier)
-         call finufft1d2(nj,xj,cj1,iflag, eps, ms,fk0,null,ier)
+         call finufftf1d2(nj,xj,cj1,iflag, eps, ms,fk0,null,ier)
          call errcomp(cj0,cj1,nj,err)
          print *,' ier = ',ier
          print *,' type 2 error = ',err
@@ -89,7 +89,7 @@ c     -----------------------
             sk(k1) = 48*cos(k1*pi/ms)
          enddo
          call dirft1d3f(nj,xj,cj,iflag, ms,sk,fk0)
-         call finufft1d3(nj,xj,cj,iflag,eps, ms,sk,fk1,null,ier)
+         call finufftf1d3(nj,xj,cj,iflag,eps, ms,sk,fk1,null,ier)
          call errcomp(cj0,cj1,nj,err)
          print *,' ier = ',ier
          print *,' type 3 error = ',err

@@ -66,20 +66,20 @@ c     mandatory parameters to FINUFFT guru interface...
 c     (note since dim=1, unused entries on n_modes are never read)
       t = omp_get_wtime()
 c     null here uses default options
-      call finufft_makeplan(type,dim,n_modes,iflag,ntrans,
+      call finufftf_makeplan(type,dim,n_modes,iflag,ntrans,
      $     tol,plan,null,ier)
 c     note for type 1 or 2, arguments 6-9 ignored...
-      call finufft_setpts(plan,M,xj,null,null,null,
+      call finufftf_setpts(plan,M,xj,null,null,null,
      $     null,null,null,ier)
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
-      call finufft_exec(plan,cj,fk,ier)
+      call finufftf_exec(plan,cj,fk,ier)
       t = omp_get_wtime()-t
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2" NU pts/s")',t,M/t
       else
          print *,'failed! ier=',ier
       endif
-      call finufft_destroy(plan,ier)
+      call finufftf_destroy(plan,ier)
 
       
 c     math test: single output mode with given freq (not array index) k
@@ -101,36 +101,36 @@ c     compute inf norm of fk coeffs for use in rel err
 c     ----------- GURU DEMO WITH NEW OPTIONS, MULTIPLE EXECS ----------
       print *,''
       print *, 'setting new options, rerun guru interface...'
-      call finufft_default_opts(opts)
+      call finufftf_default_opts(opts)
 c     refer to fftw3.f to set various FFTW plan modes...
       opts%fftw = FFTW_ESTIMATE_PATIENT
       opts%debug = 1
 c     note you need a fresh plan if change opts
-      call finufft_makeplan(type,dim,n_modes,iflag,ntrans,
+      call finufftf_makeplan(type,dim,n_modes,iflag,ntrans,
      $     tol,plan,opts,ier)
-      call finufft_setpts(plan,M,xj,null,null,null,
+      call finufftf_setpts(plan,M,xj,null,null,null,
      $     null,null,null,ier)
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
-      call finufft_exec(plan,cj,fk,ier)
+      call finufftf_exec(plan,cj,fk,ier)
 c     change the strengths
       do j = 1,M
          cj(j) = cmplx( sin((10e0*j)/M), cos(2.0+(20e0*j)/M))
       enddo
 c     do another transform using same NU pts
-      call finufft_exec(plan,cj,fk,ier)
+      call finufftf_exec(plan,cj,fk,ier)
 c     change the NU pts then do another transform w/ existing strengths...
       do j = 1,M
          xj(j) = pi/2.0 * cos(pi*j/M)
       enddo
-      call finufft_setpts(plan,M,xj,null,null,null,
+      call finufftf_setpts(plan,M,xj,null,null,null,
      $     null,null,null,ier)
-      call finufft_exec(plan,cj,fk,ier)
+      call finufftf_exec(plan,cj,fk,ier)
       if (ier.eq.0) then
          print *,'done.'
       else
          print *,'failed! ier=',ier
       endif
-      call finufft_destroy(plan,ier)
+      call finufftf_destroy(plan,ier)
       
       stop
       end

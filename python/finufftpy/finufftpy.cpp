@@ -11,6 +11,7 @@
 #include <fftw3.h>
 #include "finufft.h"
 #include "utils.h"
+#include "utils_fp.h"
 #include "defs.h"
 
 namespace py = pybind11;

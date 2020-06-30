@@ -2,6 +2,7 @@
 #include <dataTypes.h>
 #include <defs.h>
 #include <utils.h>
+#include <utils_fp.h>
 
 #include <stdlib.h>
 #include <vector>
@@ -148,7 +149,7 @@ int spreadinterp(
   return 0;
 }
 
-int ndims_from_Ns(BIGINT N1, BIGINT N2, BIGINT N3)
+static int ndims_from_Ns(BIGINT N1, BIGINT N2, BIGINT N3)
 /* rule for getting number of spreading dimensions from the list of Ns per dim.
    Split out, Barnett 7/26/18
 */
