@@ -212,23 +212,38 @@ def execute(plan,data,result=None):
     _copy(_result,result)
     return result
 
+def valid_ntr_tp12(dim,shape,n_transfin,n_modesin):
+  if len(shape) == dim+1:
+    n_transf = shape[dim]
+    n_modes = shape[0:dim]
+  elif len(shape) == dim:
+    n_transf = 1
+    n_modes = shape
+  else:
+    raise RuntimeError('FINUFFT type 1 output dimension or type 2 input dimension should be either dim or dim+1(n_transf>1)')
+  if n_transfin is not None and n_transf != n_transfin:
+    raise RuntimeError('FINUFFT input n_transf and output n_transf do not match')
+  if n_modesin is not None:
+    if None not in n_modesin and n_modes != n_modesin:
+      raise RuntimeError('FINUFFT input n_modes and output n_modes do not match')
+  return (n_transf,n_modes)
+
 ### invoke guru interface, this function is used for simple interfaces
-def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes=None,**kwargs):
+def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
   #opts
   opts = nufft_opts()
   default_opts(opts)
   setkwopts(opts,**kwargs)
 
-  if tp==2:
-    tp2shape = f.shape
-    if len(tp2shape) == dim+1:
-        n_transf = tp2shape[dim]
-        n_modes = tp2shape[0:dim]
-    elif len(tp2shape) == dim:
-        n_transf = 1
-        n_modes = tp2shape
-    else:
-      raise RuntimeError('FINUFFT type 2 input dimension should be either dim or dim+1(n_transf>1)');
+  # infer n_modes/n_transf from input/output
+  if tp==1:
+    n_transf = valid_ntr(x,c)
+    if None in n_modes and f is None:
+      raise RuntimeError('FINUFFT type 1 input should supply n_modes or output vector, or both')
+    if f is not None:
+      (n_transf,n_modes) = valid_ntr_tp12(dim,f.shape,n_transf,n_modes)
+  elif tp==2:
+      (n_transf,n_modes) = valid_ntr_tp12(dim,f.shape,None,None)
   else:
     n_transf = valid_ntr(x,c)
 
@@ -257,7 +272,7 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes=None,**kwargs):
     
 ## easy interfaces
 ## 1D
-def nufft1d1(x,c,isign,eps,ms,f=None,**kwargs):
+def nufft1d1(x,c,isign,eps,ms=None,out=None,**kwargs):
   """1D type-1 (aka adjoint) complex nonuniform fast Fourier transform
 
   ::
@@ -296,9 +311,9 @@ def nufft1d1(x,c,isign,eps,ms,f=None,**kwargs):
   Example:
     see ``python_tests/demo1d1.py``
   """
-  return invoke_guru(1,1,x,None,None,c,None,None,None,f,isign,eps,(ms),**kwargs)
+  return invoke_guru(1,1,x,None,None,c,None,None,None,out,isign,eps,(ms,),**kwargs)
 
-def nufft1d2(x,f,isign,eps,c=None,**kwargs):
+def nufft1d2(x,f,isign,eps,out=None,**kwargs):
   """1D type-2 (aka forward) complex nonuniform fast Fourier transform
 
   ::
@@ -337,9 +352,9 @@ def nufft1d2(x,f,isign,eps,c=None,**kwargs):
   Example:
     see ``python_tests/accuracy_speed_tests.py``
   """
-  return invoke_guru(1,2,x,None,None,c,None,None,None,f,isign,eps,None,**kwargs)
+  return invoke_guru(1,2,x,None,None,out,None,None,None,f,isign,eps,None,**kwargs)
 
-def nufft1d3(x,c,isign,eps,s,f=None,**kwargs):
+def nufft1d3(x,c,isign,eps,s,out=None,**kwargs):
   """1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
 
   ::
@@ -374,7 +389,7 @@ def nufft1d3(x,c,isign,eps,s,f=None,**kwargs):
   Example:
     see ``python_tests/accuracy_speed_tests.py``
   """
-  return invoke_guru(1,3,x,None,None,c,s,None,None,f,isign,eps,None,**kwargs)
+  return invoke_guru(1,3,x,None,None,c,s,None,None,out,isign,eps,None,**kwargs)
 
 ### 2D
 #def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):

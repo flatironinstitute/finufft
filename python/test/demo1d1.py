@@ -18,7 +18,7 @@ c = np.random.randn(M) + 1.j * np.random.randn(M)
 F = np.zeros([N], dtype=np.complex128)       # allocate F (modes out)
 
 strt = time.time()
-finufftpy.nufft1d1(x, c, iflag, acc, N, F, debug=1, spread_debug=1)
+F = finufftpy.nufft1d1(x, c, iflag, acc, N, debug=1, spread_debug=1)
 print("Finished nufft in {0:.2g} seconds. Checking..."
       .format(time.time()-strt))
 
@@ -33,7 +33,7 @@ print("Error relative to max of F: {0:.2e}".format(err))
 
 # now test FFT mode output version, overwriting F...
 strt = time.time()
-finufftpy.nufft1d1(x, c, iflag, acc, N, F, modeord=1)
+finufftpy.nufft1d1(x, c, iflag, acc, out=F, modeord=1)
 print("Finished nufft in {0:.2g} seconds (modeord=1)"
       .format(time.time()-strt))
 err = np.abs((F[n] - Ftest) / Fmax)   # now zero offset in F array
@@ -41,8 +41,9 @@ print("Error relative to max of F: {0:.2e}".format(err))
 
 # now test low-upsampfac (sigma) version...
 strt = time.time()
-finufftpy.nufft1d1(x, c, iflag, acc, N, F, upsampfac=1.25)
+Ftest2 = finufftpy.nufft1d1(x, c, iflag, acc, N, F, upsampfac=1.25)
+print(Ftest2 is F)
 print("Finished nufft in {0:.2g} seconds (upsampfac=1.25)"
       .format(time.time()-strt))
-err = np.abs((F[n + N // 2] - Ftest) / Fmax)   # now zero offset in F array
+err = np.abs((Ftest2[n + N // 2] - Ftest) / Fmax)   # now zero offset in F array
 print("Error relative to max of F: {0:.2e}".format(err))
