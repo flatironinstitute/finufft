@@ -99,7 +99,7 @@ SOBJS = src/spreadinterp.o src/utils.o src/utils_fp.o
 # main library object files
 OBJS = src/finufft.o src/simpleinterfaces.o src/common.o src/fftw_util.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o fortran/finufft_f_legacy.o julia/finufft_j.o
 OBJSF = $(OBJS:%.o=%_32.o)
-# filter out some objects that are currently singles only.
+# filter out some objects that are currently doubles only.
 OBJSF := $(filter-out julia/%_32.o, $(OBJSF))
 OBJSF := $(filter-out src/utils_32.o, $(OBJSF))
 OBJSF := $(filter-out contrib/legendre_rule_fast_32.o, $(OBJSF))
