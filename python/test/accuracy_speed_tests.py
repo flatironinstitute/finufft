@@ -55,7 +55,7 @@ def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):
 	cj=np.zeros([nj],dtype=np.complex128);
 	fk=np.random.rand(ms)+1j*np.random.rand(ms);
 	timer=time.time()
-	ret=finufftpy.nufft1d2(xj,cj,iflag,eps,fk)
+	ret=finufftpy.nufft1d2(xj,fk,iflag,eps,cj)
 	elapsed=time.time()-timer
 
 	k=np.arange(-np.floor(ms/2),np.floor((ms-1)/2+1))

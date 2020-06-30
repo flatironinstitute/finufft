@@ -167,6 +167,7 @@ def execute(plan,data,result=None):
   tp = finufftpy_cpp.get_type(plan)
   n_transf = finufftpy_cpp.get_ntransf(plan)
   nj = finufftpy_cpp.get_nj(plan)
+  nk = finufftpy_cpp.get_nk(plan)
 
   if tp==1 or tp==2:
     (ms, mt, mu) = finufftpy_cpp.get_nmodes(plan)
@@ -212,7 +213,7 @@ def execute(plan,data,result=None):
     return result
 
 ### invoke guru interface, this function is used for simple interfaces
-def invoke_guru(tp,dim,x,y,z,c,s,t,u,f,isign,eps,n_modes=None,**kwargs):
+def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes=None,**kwargs):
   #opts
   opts = nufft_opts()
   default_opts(opts)
@@ -297,164 +298,84 @@ def nufft1d1(x,c,isign,eps,ms,f=None,**kwargs):
   """
   return invoke_guru(1,1,x,None,None,c,None,None,None,f,isign,eps,(ms),**kwargs)
 
-#def nufft1d2(x,c,isign,eps,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
-#  """1D type-2 (aka forward) complex nonuniform fast Fourier transform
-#
-#  ::
-#
-#    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 0,...,nj-1
-#            k1
-#
-#	where sum is over -ms/2 <= k1 <= (ms-1)/2.
-#
-#  Args:
-#    x     (float[nj]): nonuniform target points, valid only in [-3pi,3pi]
-#    c     (complex[nj] or complex[nj,ntransf]): output values at targets. Should be initialized as a
-#        numpy array of the correct size
-#    isign (int): if >=0, uses + sign in exponential, otherwise - sign
-#    eps   (float): precision requested (>1e-16)
-#    f     (complex[ms] or complex[ms,ntransf]): Fourier mode coefficients, where ms is even or odd
-#          In either case the mode indices are integers in [-ms/2, (ms-1)/2]
-#    debug (int, optional): 0 (silent), 1 (print timing breakdown)
-#    spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
-#    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
-#       2 (heuristic decision to sort)
-#    fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
-#    modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
-#    chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
-#    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
-#
-#  .. note::
-#
-#    The output is written into the c array.
-#
-#  Returns:
-#    int: 0 if success, 1 if eps too small,
-#       2 if size of arrays to malloc exceed MAX_NF,
-#       4 at least one NU point out of range (if chkbnds true)
-#
-#  Example:
-#    see ``python_tests/accuracy_speed_tests.py``
-#  """
-#  # c is the output and must have dtype=np.complex128
-#  # check input x and f array, use f to detect ntransf
-#  x = _rchk(x)
-#  f = _cchk(f)
-#  if f.ndim>1:
-#    assert f.ndim==2
-#    ntransf = f.shape[1]
-#  else:
-#    ntransf = 1
-#  
-#  ms = f.shape[0]
-#  M = x.size
-#  if c is None and f.ndim==2:
-#    _c = np.zeros([M,ntransf], dtype=np.complex128, order='F')
-#  elif c is None:
-#    _c = np.zeros([M], dtype=np.complex128, order='F')
-#  else:
-#    _c = _cchk(c)
-#
-#  assert x.size*ntransf==_c.size
-#  assert x.size==_c.shape[0]
-#  if f.ndim==2:
-#    assert f.shape[1]==_c.shape[1]
-#
-#  # number of input pts and modes info
-#  n_modes = np.ones([3], dtype=np.int64)
-#  n_modes[0] = ms
-#  blksize = get_max_threads()
-#
-#  # invoke guruinterface
-#  info = invoke_guru(x,None,None,_c,isign,eps,None,None,None,f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,2,1,n_modes,ntransf,M,0)
-#
-#  # return _f if f is none else output is in f
-#  if c is None:
-#    return _c
-#  else:
-#    _copy(_c, c)
-#    return info
-#
-#def nufft1d3(x,c,isign,eps,s,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
-#  """1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
-#
-#  ::
-#
-#	     nj-1
-#    f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 0, ..., nk-1
-#	     j=0
-#
-#  Args:
-#    x     (float[nj]): nonuniform source points, in R
-#    c     (complex[nj] or complex[nj,ntransf]): source strengths
-#    isign (int): if >=0, uses + sign in exponential, otherwise - sign
-#    eps   (float): precision requested (>1e-16)
-#    s     (float[nk]): nonuniform target frequency points, in R
-#    f     (complex[nk] or complex[nk,ntransf]): output values at target frequencies.
-#       Should be initialized as a numpy array of the correct size
-#    debug (int, optional): 0 (silent), 1 (print timing breakdown)
-#    spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
-#    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
-#       2 (heuristic decision to sort)
-#    fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
-#    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
-#
-#  .. note::
-#
-#    The output is written into the f array.
-#
-#  Returns:
-#    int: 0 if success, 1 if eps too small,
-#       2 if size of arrays to malloc exceed MAX_NF
-#
-#  Example:
-#    see ``python_tests/accuracy_speed_tests.py``
-#  """
-#  # f is the output and must have dtype=np.complex128
-#  # check input x and c array, use c to detect ntransf
-#  x = _rchk(x)
-#  c = _cchk(c)
-#  s = _rchk(s)
-#  if c.ndim>1:
-#    assert c.ndim==2
-#    ntransf = c.shape[1]
-#  else:
-#    ntransf = 1
-#  assert x.size==c.shape[0]
-#  assert x.size*ntransf==c.size
-#  
-#  # check output f, if none _f is returned as output,
-#  # otherwise output is stored in f
-#  assert s.ndim==1
-#  nk=s.size
-#  if f is None and c.ndim==2:
-#    _f = np.zeros([nk,ntransf], dtype=np.complex128, order='F')
-#  elif f is None:
-#    _f = np.zeros([nk], dtype=np.complex128, order='F')
-#  else:
-#    _f = _cchk(f)
-#  assert _f.size==nk*ntransf
-#  assert _f.shape[0]==nk
-#  assert _f.ndim==c.ndim
-#  if c.ndim==2:
-#    assert _f.shape[1]==c.shape[1]
-#
-#  # number of input pts and modes info
-#  M = x.size
-#  n_modes = np.ones([3], dtype=np.int64)
-#  n_modes[0] = nk
-#  blksize = get_max_threads()
-#
-#  # invoke guruinterface
-#  info = invoke_guru(x,None,None,c,isign,eps,s,None,None,_f,debug,spread_debug,spread_sort,fftw,modeord,chkbnds,upsampfac,3,1,n_modes,ntransf,M,nk)
-#
-#  # return _f if f is none else output is in f
-#  if f is None:
-#    return _f
-#  else:
-#    _copy(_f, f)
-#    return info
-#
+def nufft1d2(x,f,isign,eps,c=None,**kwargs):
+  """1D type-2 (aka forward) complex nonuniform fast Fourier transform
+
+  ::
+
+    c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 0,...,nj-1
+            k1
+
+	where sum is over -ms/2 <= k1 <= (ms-1)/2.
+
+  Args:
+    x     (float[nj]): nonuniform target points, valid only in [-3pi,3pi]
+    c     (complex[nj] or complex[nj,ntransf]): output values at targets. Should be initialized as a
+        numpy array of the correct size
+    isign (int): if >=0, uses + sign in exponential, otherwise - sign
+    eps   (float): precision requested (>1e-16)
+    f     (complex[ms] or complex[ms,ntransf]): Fourier mode coefficients, where ms is even or odd
+          In either case the mode indices are integers in [-ms/2, (ms-1)/2]
+    debug (int, optional): 0 (silent), 1 (print timing breakdown)
+    spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
+    fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+    modeord (int, optional): 0 (CMCL increasing mode ordering), 1 (FFT ordering)
+    chkbnds (int, optional): 0 (don't check NU points valid), 1 (do)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+
+  .. note::
+
+    The output is written into the c array.
+
+  Returns:
+    int: 0 if success, 1 if eps too small,
+       2 if size of arrays to malloc exceed MAX_NF,
+       4 at least one NU point out of range (if chkbnds true)
+
+  Example:
+    see ``python_tests/accuracy_speed_tests.py``
+  """
+  return invoke_guru(1,2,x,None,None,c,None,None,None,f,isign,eps,None,**kwargs)
+
+def nufft1d3(x,c,isign,eps,s,f=None,**kwargs):
+  """1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
+
+  ::
+
+	     nj-1
+    f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 0, ..., nk-1
+	     j=0
+
+  Args:
+    x     (float[nj]): nonuniform source points, in R
+    c     (complex[nj] or complex[nj,ntransf]): source strengths
+    isign (int): if >=0, uses + sign in exponential, otherwise - sign
+    eps   (float): precision requested (>1e-16)
+    s     (float[nk]): nonuniform target frequency points, in R
+    f     (complex[nk] or complex[nk,ntransf]): output values at target frequencies.
+       Should be initialized as a numpy array of the correct size
+    debug (int, optional): 0 (silent), 1 (print timing breakdown)
+    spread_debug (int, optional): 0 (silent), 1, 2... (print spreader info)
+    spread_sort (int, optional): 0 (don't sort NU pts in spreader), 1 (sort),
+       2 (heuristic decision to sort)
+    fftw (int, optional): 0 (use FFTW_ESTIMATE), 1 (use FFTW_MEASURE)
+    upsampfac (float): either 2.0 (default), or 1.25 (low RAM & small FFT size)
+
+  .. note::
+
+    The output is written into the f array.
+
+  Returns:
+    int: 0 if success, 1 if eps too small,
+       2 if size of arrays to malloc exceed MAX_NF
+
+  Example:
+    see ``python_tests/accuracy_speed_tests.py``
+  """
+  return invoke_guru(1,3,x,None,None,c,s,None,None,f,isign,eps,None,**kwargs)
+
 ### 2D
 #def nufft2d1(x,y,c,isign,eps,ms,mt,f,debug=debug_def,spread_debug=spread_debug_def,spread_sort=spread_sort_def,fftw=fftw_def,modeord=modeord_def,chkbnds=chkbnds_def,upsampfac=upsampfac_def):
 #  """2D type-1 (aka adjoint) complex nonuniform fast Fourier transform
