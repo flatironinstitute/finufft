@@ -92,6 +92,8 @@ STATICLIB = lib-static/$(LIBNAME).a
 ABSDYNLIB = $(FINUFFT)/$(DYNLIB)
 # ======================================================================
 
+# Collect headers for depends
+HEADERS = $(wildcard include/*.h)
 
 # spreader object files
 SOBJS = src/spreadinterp.o src/utils.o src/utils_fp.o
@@ -134,17 +136,17 @@ usage:
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 
-%.o: %.cpp
+%.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-%_32.o: %.cpp
+%_32.o: %.cpp $(HEADERS)
 	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
-%.o: %.c
+%.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
-%_32.o: %.c
+%_32.o: %.c $(HEADERS)
 	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
-%.o: %.f
+%.o: %.f $(HEADERS)
 	$(FC) -c $(FFLAGS) $< -o $@
-%_32.o: %.f
+%_32.o: %.f $(HEADERS)
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
 # included auto-generated code dependency...
