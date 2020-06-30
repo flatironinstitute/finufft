@@ -171,34 +171,19 @@ $(DYNLIB): $(OBJS) $(OBJSF)
 # Also note -l libs come after objects, as per modern GCC requirement.
 
 # Examples in C++ and C... (single prec codes separate, and not all have one)
-EX = examples/example1d1
-EX_32 = examples/example1d1f
-EXC = examples/example1d1c
-EXC_32 = examples/example1d1cf
-EX2 = examples/example2d1
-EXG = examples/guru1d1
-EXGC = examples/guru1d1c
-EXS = $(EX) $(EX_32) $(EXC) $(EXC_32) $(EX2) $(EXG) $(EXGC)
+EXAMPLES = $(basename $(wildcard examples/*.*))
+examples: $(EXAMPLES)
 
-examples: $(EXS)
-# use shell script to execute all in list. shell doesn't use $(E); $$ escapes $
-	(for E in $(EXS); do ./$$E; done)
+examples/%: examples/%.o $(DYNLIB)
+	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) -o $@
+	./$@
+examples/%c: examples/%c.o $(DYNLIB)
+	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
+	./$@
+examples/%cf: examples/%cf.o $(DYNLIB)
+	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
+	./$@
 
-# compile examples; note absolute .so path so executable anywhere, dep libs not needed to be listed...
-$(EX): $(EX).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EX).o $(ABSDYNLIB) -o $(EX)
-$(EX_32): $(EX_32).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EX_32).o $(ABSDYNLIB) -o $(EX_32)
-$(EXC): $(EXC).o $(DYNLIB)
-	$(CC) $(CFLAGS) $(EXC).o $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
-$(EXC_32): $(EXC_32).o $(DYNLIB)
-	$(CC) $(CFLAGS) $(EXC_32).o $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $(EXC_32)
-$(EX2): $(EX2).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EX2).o $(ABSDYNLIB) -o $(EX2)
-$(EXG): $(EXG).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EXG).o $(ABSDYNLIB) -o $(EXG)
-$(EXGC): $(EXGC).o $(DYNLIB)
-	$(CC) $(CFLAGS) $(EXGC).o $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $(EXGC)
 
 # validation tests... (some link to .o allowing testing pieces separately)
 TESTS = test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
@@ -324,6 +309,7 @@ clean: objclean pyclean
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out
+	rm -f $(EXAMPLES)
 
 # indiscriminate .o killer: needed before changing precision or threading...
 objclean:
