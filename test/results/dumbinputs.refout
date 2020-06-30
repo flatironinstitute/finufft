@@ -11,7 +11,7 @@
 1d3 M=1:	ier=0	nrm(err)=0.0000
 1d3 N=1:	ier=0	err=0.0000
 1d3 M=N=1:	ier=0	err=0.0000
-1d3 XK prod too big:	ier=11 (should complain)
+1d3 XK prod too big:	ier=2 (should complain)
 1d1many ndata=0:	ier=9 (should complain)
 1d1many tol=0:		ier=1 (should complain)
 1d1many Ns=0:	ier=0
@@ -27,7 +27,7 @@
 1d3many M=1:	ier=0	nrm(err)=0.0000
 1d3many N=1:	ier=0	err=0.0000
 1d3many M=N=1:	ier=0	err=0.0000
-1d3many XK prod too big:	ier=11 (should complain)
+1d3many XK prod too big:	ier=2 (should complain)
 2D dumb cases ----------------
 2d1 tol=0:	ier=1 (should complain)
 2d1 Ns=Nt=0:	ier=0
@@ -43,7 +43,7 @@
 2d3 nk=0:	ier=0
 2d3 M=0:	ier=0	nrm(F)=0 (should vanish)
 2d3 M=1:	ier=0	nrm(F)=3.16
-2d3 XK prod too big:	ier=11 (should complain)
+2d3 XK prod too big:	ier=2 (should complain)
 2d1many ndata=0:	ier=9 (should complain)
 2d1many tol=0:		ier=1 (should complain)
 2d1many Ns=Nt=0:	ier=0
@@ -61,7 +61,7 @@
 2d3many nk=0:	ier=0
 2d3many M=0:	ier=0	nrm(F)=0 (should vanish)
 2d3 M=1:	ier=0	nrm(F)=0
-2d3many XK prod too big:	ier=11 (should complain)
+2d3many XK prod too big:	ier=2 (should complain)
 3D dumb cases ----------------
 3d1 tol=0:	ier=1 (should complain)
 3d1 Ns=Nt=Nu=0:	ier=0
@@ -79,7 +79,7 @@
 3d3 nk=0:	ier=0
 3d3 M=0:	ier=0	nrm(F)=0 (should vanish)
 3d3 M=1:	ier=0	nrm(F)=3.16
-3d3 XK prod too big:	ier=11 (should complain)
+3d3 XK prod too big:	ier=2 (should complain)
 3d1many ndata=0:	ier=9 (should complain)
 3d1many tol=0:		ier=1 (should complain)
 3d1many Ns=Nt=Nu=0:	ier=0
@@ -99,5 +99,5 @@
 3d3many nk=0:	ier=0
 3d3many M=0:	ier=0	nrm(F)=0 (should vanish)
 3d3 M=1:	ier=0	nrm(F)=0
-3d3many XK prod too big:	ier=11 (should complain)
+3d3many XK prod too big:	ier=2 (should complain)
 freed.

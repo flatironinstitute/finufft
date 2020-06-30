@@ -95,7 +95,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
   FLT nfd = 2.0*opts.upsampfac*Ssafe*Xsafe/PI + nss;
   if (!isfinite(nfd)) nfd=0.0;                // use FLT to catch inf
   *nf = (BIGINT)nfd;
-  //printf("initial nf=%ld, ns=%d\n",*nf,spopts.nspread);
+  //printf("initial nf=%lld, ns=%d\n",*nf,spopts.nspread);
   // catch too small nf, and nan or +-inf, otherwise spread fails...
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread;
   if (*nf<MAX_NF)                             // otherwise will fail anyway

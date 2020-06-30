@@ -216,12 +216,16 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
 
     timer.restart();
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
+    if (p->nf * p->batchSize > MAX_NF) {
+      fprintf(stderr, "finufft_setpts fwBatch would be bigger than MAX_NF, not attempting malloc!\n");
+      return ERR_MAXNALLOC;
+    }
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // the big workspace
     if (p->opts.debug) printf("[finufft_plan] fwBatch %.2fGB alloc:\t\t%.3g s\n", (double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch) {      // we don't catch all such mallocs, just this big one
       fprintf(stderr, "FFTW malloc failed for fwBatch (working fine grids)!\n");
       free(p->phiHat1); free(p->phiHat2); free(p->phiHat3);
-      return ERR_ALLOC; 
+      return ERR_ALLOC;
     }
    
     timer.restart();            // plan the FFTW
@@ -323,6 +327,10 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
         printf("\tX3=%.3g C3=%.3g S3=%.3g D3=%.3g gam3=%g nf3=%lld\n", p->t3P.X3, p->t3P.C3,S3, p->t3P.D3, p->t3P.gam3,(long long) p->nf3);
     }
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
+    if (p->nf * p->batchSize > MAX_NF) {
+      fprintf(stderr, "finufft_setpts t3 fwBatch would be bigger than MAX_NF, not attempting malloc!\n");
+      return ERR_MAXNALLOC;
+    }
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // maybe big workspace
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     p->CpBatch = (CPX*)malloc(sizeof(CPX) * nj*p->batchSize);  // batch c' work
@@ -331,6 +339,7 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       fprintf(stderr, "finufft_setpts t3 malloc fail for fwBatch or CpBatch!\n");
       return ERR_ALLOC; 
     }
+    //printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
     p->X = (FLT*)malloc(sizeof(FLT)*nj);
