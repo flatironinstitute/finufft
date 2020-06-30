@@ -23,26 +23,26 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
 // Author: Andrea Malleo, 2019.
 {
   finufft_plan plan;
-  int ier = finufft_makeplan(type, n_dims, n_modes, iflag, n_transf, eps,
+  int ier = FINUFFT_MAKEPLAN(type, n_dims, n_modes, iflag, n_transf, eps,
                              &plan, popts);  // popts (ptr to opts) can be NULL
   if (ier>1) {   // since 1 (a warning) still allows proceeding...
     fprintf(stderr, "FINUFFT invokeGuru: plan error (ier=%d)!\n", ier);
     return ier;
   }
-  
-  int ier2 = finufft_setpts(&plan, nj, xj, yj, zj, nk, s, t, u);
+
+  int ier2 = FINUFFT_SETPTS(&plan, nj, xj, yj, zj, nk, s, t, u);
   if (ier2>1) {
     fprintf(stderr,"FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
     return ier2;
   }
 
-  int ier3 = finufft_exec(&plan, cj, fk);
+  int ier3 = FINUFFT_EXEC(&plan, cj, fk);
   if (ier3>1) {
     fprintf(stderr,"FINUFFT invokeGuru: exec error (ier=%d)!\n", ier3);
     return ier3;
   }
 
-  finufft_destroy(&plan);  
+  FINUFFT_DESTROY(&plan);
   return max(max(ier,ier2),ier3);   // in case any one gave a warning
 }
 
@@ -50,7 +50,7 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
 
 // Dimension 1111111111111111111111111111111111111111111111111111111111111111
 
-int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
+int FINUFFT1D1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts *opts)
 //  Type-1 1D complex nonuniform FFT. See ../docs/usage.rst
 {
@@ -63,7 +63,7 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   return ier;
 }
 
-int finufft1d1many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,
+int FINUFFT1D1MANY(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,
                    BIGINT ms, CPX* fk, nufft_opts *opts)
 // Type-1 1D complex nonuniform FFT for many vectors. See ../docs/usage.rst
 {
@@ -75,7 +75,7 @@ int finufft1d1many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,
   return ier;
 }
 
-int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
+int FINUFFT1D2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts *opts)
 //  Type-2 1D complex nonuniform FFT. See ../docs/usage.rst
 {
@@ -88,7 +88,7 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
   return ier;
 }
 
-int finufft1d2many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
+int FINUFFT1D2MANY(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts *opts)
 //  Type-2 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
 {
@@ -100,7 +100,7 @@ int finufft1d2many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIG
   return ier;
 }
 
-int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts *opts)
+int FINUFFT1D3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts *opts)
 // Type-3 1D complex nonuniform FFT. See ../docs/usage.rst
 {
   int n_dims = 1;
@@ -111,7 +111,7 @@ int finufft1d3(BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, 
   return ier;
 }
 
-int finufft1d3many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts *opts)
+int FINUFFT1D3MANY(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, CPX* fk, nufft_opts *opts)
   // Type-3 1D complex nonuniform FFT, many vectors. See ../docs/usage.rst
 {
   int n_dims = 1;
@@ -124,7 +124,7 @@ int finufft1d3many(int n_transf, BIGINT nj,FLT* xj,CPX* cj,int iflag, FLT eps, B
 
 // Dimension 22222222222222222222222222222222222222222222222222222222222222222
 
-int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
+int FINUFFT2D1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts* opts)
 //  Type-1 2D complex nonuniform FFT. See ../docs/usage.rst
 {
@@ -134,10 +134,10 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
   int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj,
                           iflag, eps, n_modes, 0, NULL, NULL, NULL,fk, opts);
-  return ier; 
+  return ier;
 }
 
-int finufft2d1many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
+int FINUFFT2D1MANY(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
 		   int iflag, FLT eps, BIGINT ms, BIGINT mt, CPX* fk,
 		   nufft_opts *opts)
 //  Type-1 2D complex nonuniform FFT, many vectors. See ../docs/usage.rst
@@ -147,13 +147,13 @@ int finufft2d1many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
   int type = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj,NULL, c,
                         iflag, eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
-  return ier; 
+  return ier;
 }
 
-int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
+int FINUFFT2D2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
 	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts)
 //  Type-2 2D complex nonuniform FFT.  See ../docs/usage.rst
-{  
+{
   BIGINT n_modes[]={ms,mt,1};
   int n_dims = 2;
   int n_transf = 1;
@@ -163,7 +163,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
   return ier;
 }
 
-int finufft2d2many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
+int FINUFFT2D2MANY(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
 		   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts)
 //  Type-2 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
 {
@@ -172,20 +172,20 @@ int finufft2d2many(int n_transf, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
   int type = 2;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, c, iflag,
 				eps, n_modes, 0, NULL, NULL, NULL, fk, opts);
-  return ier; 
+  return ier;
 }
 
-int finufft2d3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts *opts)
+int FINUFFT2D3(BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts *opts)
 // Type-3 2D complex nonuniform FFT.  See ../docs/usage.rst
 {
   int n_dims = 2;
   int type = 3;
   int n_transf = 1;
   int ier = invokeGuruInterface(n_dims, type, n_transf, nj, xj, yj, NULL, cj,iflag, eps, NULL, nk, s,t,NULL, fk, opts);
-  return ier;  
+  return ier;
 }
 
-int finufft2d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts *opts)
+int FINUFFT2D3MANY(int n_transf, BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t, CPX* fk, nufft_opts *opts)
 // Type-3 2D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
 {
   int n_dims = 2;
@@ -198,7 +198,7 @@ int finufft2d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,CPX* cj,int iflag, FL
 
 // Dimension 3333333333333333333333333333333333333333333333333333333333333333
 
-int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
+int FINUFFT3D1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 	       FLT eps, BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk,
 	       nufft_opts *opts)
 //  Type-1 3D complex nonuniform FFT.   See ../docs/usage.rst
@@ -213,7 +213,7 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
 }
 
 
-int finufft3d1many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
+int FINUFFT3D1MANY(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
                    int iflag, FLT eps, BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk,
                    nufft_opts *opts)
 // Type-1 3D complex nonuniform FFT, many vectors.  See ../docs/usage.rst
@@ -226,7 +226,7 @@ int finufft3d1many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   return ier;
 }
 
-int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
+int FINUFFT3D2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 	       int iflag,FLT eps, BIGINT ms, BIGINT mt, BIGINT mu,
 	       CPX* fk, nufft_opts *opts)
 // Type-2 3D complex nonuniform FFT.   See ../docs/usage.rst
@@ -240,7 +240,7 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   return ier;
 }
 
-int finufft3d2many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
+int FINUFFT3D2MANY(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
 	       int iflag,FLT eps, BIGINT ms, BIGINT mt, BIGINT mu,
 	       CPX* fk, nufft_opts *opts)
 // Type-2 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst
@@ -256,7 +256,7 @@ int finufft3d2many(int n_transf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
   return ier;
 }
 
-int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
+int FINUFFT3D3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 	       int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t,
 	       FLT *u, CPX* fk, nufft_opts *opts)
 //  Type-3 3D complex nonuniform FFT.   See ../docs/usage.rst
@@ -269,7 +269,7 @@ int finufft3d3(BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
   return ier;
 }
 
-int finufft3d3many(int n_transf, BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
+int FINUFFT3D3MANY(int n_transf, BIGINT nj,FLT* xj,FLT* yj,FLT *zj, CPX* cj,
 	       int iflag, FLT eps, BIGINT nk, FLT* s, FLT *t,
 	       FLT *u, CPX* fk, nufft_opts *opts)
 //  Type-3 3D complex nonuniform FFT, many vectors.   See ../docs/usage.rst

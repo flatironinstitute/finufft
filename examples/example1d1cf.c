@@ -1,5 +1,5 @@
 // this is all you must include...
-#include <finufft.h>
+#include <finufftf.h>
 // also needed for this example...
 #include <stdlib.h>
 #include <math.h>
@@ -40,12 +40,12 @@ int main(int argc, char* argv[])
 
   nufft_opts *popts;                       // ptr to opts
   popts = (nufft_opts *)malloc(sizeof(nufft_opts));  // allocate it
-  finufft_default_opts(popts);             // set default opts (must do this)
+  finufftf_default_opts(popts);             // set default opts (must do this)
   popts->debug = 2;                        // show how to override a default
   //popts->upsampfac =1.25;                // other opts...
   
   // call the NUFFT (with iflag=+1); this is the same code as from C++:
-  ier = finufft1d1(M,x,c,+1,acc,N,F,popts);
+  ier = finufftf1d1(M,x,c,+1,acc,N,F,popts);
 
   n = 14251;   // check the answer just for this mode...
   Ftest = 0.0;

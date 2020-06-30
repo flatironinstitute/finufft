@@ -18,7 +18,24 @@ extern "C" {
   #include "../contrib/legendre_rule_fast.h"
 }
 
-void finufft_default_opts(nufft_opts *o)
+// We macro this because it implicitly contains FLTs in the structs.
+int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
+// type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
+// and requested number of Fourier modes ms. Returns 0 if success, else an
+// error code if nf was unreasonably big (& tell the world).
+{
+  *nf = (BIGINT)(opts.upsampfac*ms);       // manner of rounding not crucial
+  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
+  if (*nf<MAX_NF) {
+    *nf = next235even(*nf);                       // expensive at huge nf
+    return 0;
+  } else {
+    fprintf(stderr,"nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting even a malloc\n",(double)*nf,(double)MAX_NF);
+    return ERR_MAXNALLOC;
+  }
+}
+
+void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
 // Sets default nufft opts. See finufft.h for definition of opts.
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX. Barnett 10/30/17 onwards.
@@ -51,21 +68,6 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
   return ier;
 } 
 
-int set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
-// type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
-// and requested number of Fourier modes ms. Returns 0 if success, else an
-// error code if nf was unreasonably big (& tell the world).
-{
-  *nf = (BIGINT)(opts.upsampfac*ms);       // manner of rounding not crucial
-  if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
-  if (*nf<MAX_NF) {
-    *nf = next235even(*nf);                       // expensive at huge nf
-    return 0;
-  } else {
-    fprintf(stderr,"nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting even a malloc\n",(double)*nf,(double)MAX_NF);
-    return ERR_MAXNALLOC;
-  }
-}
 
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
 		     BIGINT *nf, FLT *h, FLT *gam)

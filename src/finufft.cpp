@@ -1,8 +1,10 @@
 #include <finufft.h>
 #include <utils.h>
+#include <utils_fp.h>
 #include <dataTypes.h>
 #include <defs.h>
 #include <common.h>
+#include <fftw_util.h>
 
 #include <iostream>
 #include <iomanip>
@@ -67,31 +69,8 @@ Design notes for guru interface implementation:
 */
 
 
-int* gridsize_for_fftw(finufft_plan* p){
-// helper func returns a new int array of length dim, extracted from
-// the finufft plan, that fftw_plan_many_dft needs as its 2nd argument.
-  int* nf;
-  if(p->dim == 1){ 
-    nf = new int[1];
-    nf[0] = (int)p->nf1;
-  }
-  else if (p->dim == 2){ 
-    nf = new int[2];
-    nf[0] = (int)p->nf2;
-    nf[1] = (int)p->nf1; 
-  }   // fftw enforced row major ordering, ie dims are backwards ordered
-  else{ 
-    nf = new int[3];
-    nf[0] = (int)p->nf3;
-    nf[1] = (int)p->nf2;
-    nf[2] = (int)p->nf1;
-  }
-  return nf;
-}
-
-
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
-int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
+int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
                      int ntrans, FLT tol, finufft_plan* p, nufft_opts* opts)
 // Populates the fields of finufft_plan which is pointed to by "p".
 // opts is ptr to a nufft_opts to set options, or NULL to use defaults.
@@ -115,7 +94,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
   }
 
   if (opts==NULL)                        // use default opts
-    finufft_default_opts(&(p->opts));
+    FINUFFT_DEFAULT_OPTS(&(p->opts));
   else                                   // or read from what's passed in
     p->opts = *opts;    // keep a deep copy; changing *opts now has no effect
 
@@ -181,17 +160,17 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     FFTW_PLAN_TH(nth_fft); // "  (not batchSize since can be 1 but want mul-thr)
     p->spopts.spread_direction = type;
     
-    // determine fine grid sizes, sanity check...
-    int nfier = set_nf_type12(p->ms, p->opts, p->spopts, &(p->nf1));
+    // determine fine grid sizes, sanity check..
+    int nfier = SET_NF_TYPE12(p->ms, p->opts, p->spopts, &(p->nf1));
     if (nfier) return nfier;    // nf too big; we're done
     p->phiHat1 = (FLT*)malloc(sizeof(FLT)*(p->nf1/2 + 1));
     if (dim > 1) {
-      nfier = set_nf_type12(p->mt, p->opts, p->spopts, &(p->nf2));
+      nfier = SET_NF_TYPE12(p->mt, p->opts, p->spopts, &(p->nf2));
       if (nfier) return nfier;
       p->phiHat2 = (FLT*)malloc(sizeof(FLT)*(p->nf2/2 + 1));
     }
     if (dim > 2) {
-      nfier = set_nf_type12(p->mu, p->opts, p->spopts, &(p->nf3)); 
+      nfier = SET_NF_TYPE12(p->mu, p->opts, p->spopts, &(p->nf3)); 
       if (nfier) return nfier;
       p->phiHat3 = (FLT*)malloc(sizeof(FLT)*(p->nf3/2 + 1));
     }
@@ -229,7 +208,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
     }
    
     timer.restart();            // plan the FFTW
-    int *ns = gridsize_for_fftw(p);
+    int *ns = GRIDSIZE_FOR_FFTW(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
     p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
          NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
@@ -256,7 +235,7 @@ int finufft_makeplan(int type, int dim, BIGINT* n_modes, int iflag,
 
 
 // SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
-int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
+int FINUFFT_SETPTS(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
                    BIGINT nk, FLT* s, FLT* t, FLT* u)
 /* For type 1,2: just checks and (possibly) sorts the NU xyz points, in prep for
    spreading. (The last 4 arguments are ignored.)
@@ -450,13 +429,13 @@ int finufft_setpts(finufft_plan* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);
     t2opts.showwarn = 0;                          // so don't see warnings 2x
     // (...could vary other t2opts here?)
-    int ier = finufft_makeplan(2, d, t2nmodes, p->fftSign, p->batchSize, p->tol,
+    int ier = FINUFFT_MAKEPLAN(2, d, t2nmodes, p->fftSign, p->batchSize, p->tol,
                                p->innerT2plan, &t2opts);
     if (ier>1) {     // if merely warning, still proceed
       fprintf(stderr,"finufft_setpts t3: inner type 2 plan creation failed with ier=%d!\n",ier);
       return ier;
     }
-    ier = finufft_setpts(p->innerT2plan, nk, p->Sp, p->Tp, p->Up, 0, NULL, NULL, NULL);  // note nk = # output points (not nj)
+    ier = FINUFFT_SETPTS(p->innerT2plan, nk, p->Sp, p->Tp, p->Up, 0, NULL, NULL, NULL);  // note nk = # output points (not nj)
     if (ier>1) {
       fprintf(stderr,"finufft_setpts t3: inner type 2 setpts failed, ier=%d!\n",ier);
       return ier;
@@ -541,7 +520,7 @@ int deconvolveBatch(int batchSize, finufft_plan* p, CPX* fkBatch)
 
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
+int FINUFFT_EXEC(finufft_plan* p, CPX* cj, CPX* fk){
 /* For given (batch of) weights cj, performs NUFFTs with existing
    (sorted) NU pts and existing plan.
    Performs spread/interp, pre/post deconvolve, and fftw_exec as appropriate
@@ -647,7 +626,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
       p->innerT2plan->ntrans = thisBatchSize;      // do not try this at home!
       /* (alarming that FFTW not shrunk, but safe, because t2's fwBatch array
          still the same size, as Andrea explained; just wastes a few flops) */
-      finufft_exec(p->innerT2plan, fkb, (CPX*)(p->fwBatch));
+      FINUFFT_EXEC(p->innerT2plan, fkb, (CPX*)(p->fwBatch));
       t_t2 += timer.elapsedsec();
 
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
@@ -673,7 +652,7 @@ int finufft_exec(finufft_plan* p, CPX* cj, CPX* fk){
 
 
 // DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-int finufft_destroy(finufft_plan* p)
+int FINUFFT_DESTROY(finufft_plan* p)
 // Free everything we allocated inside of finufft_plan pointed to by p.
 // Also must not crash if called immediately after finufft_makeplan.
 // Thus either each thing free'd here is guaranteed to be NULL or correctly
@@ -688,7 +667,7 @@ int finufft_destroy(finufft_plan* p)
     free(p->sortIndices);
   } else {          // free the stuff alloc for type 3
     if (p->innerT2plan)
-      finufft_destroy(p->innerT2plan);
+      FINUFFT_DESTROY(p->innerT2plan);
     free(p->CpBatch);
     free(p->Sp); free(p->Tp); free(p->Up);
     free(p->prephase);

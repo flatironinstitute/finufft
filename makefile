@@ -33,7 +33,7 @@ LIBS := -lm
 OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
 MOMPFLAGS = -D_OPENMP
-OOMPFLAGS = 
+OOMPFLAGS =
 # MATLAB MEX compilation (OO for new interface; int64 for mwrap 0.33.9)...
 MFLAGS := -largeArrayDims -DR2008OO
 # location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
@@ -59,23 +59,17 @@ CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # /usr/include needed for fftw3.f...
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
-# choose the precision (affects library names, test precisions)...
-ifeq ($(PREC),SINGLE)
-CXXFLAGS += -DSINGLE
-CFLAGS += -DSINGLE
-# note that PRECSUFFIX appends the fftw lib names, and also our demo names
-PRECSUFFIX = f
-# for make test (requesting 1e-7 or 6e-8 actually slightly worse for type 3)
-REQ_TOL = 1e-6
-CHECK_TOL = 2e-4
-else
-PRECSUFFIX =
+# Choice of pecision relates to test precision.
+#   These are exported in the `test` target.
+# Singles
+REQ_TOL_32 = 1e-6
+CHECK_TOL_32 = 2e-4
+# Doubles
 REQ_TOL = 1e-12
 CHECK_TOL = 1e-11
-endif
+
 # build (since fftw has many) names of libs to link against...
-FFTW = $(FFTWNAME)$(PRECSUFFIX)
-LIBSFFT := -l$(FFTW) $(LIBS)
+LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
 
 # multi-threaded libs & flags (see defs above; note fftw3_threads slower)...
 ifneq ($(OMP),OFF)
@@ -86,24 +80,31 @@ MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
 LIBS += $(OMPLIBS)
 ifneq ($(MINGW),ON)
-LIBSFFT := -l$(FFTW) -l$(FFTW)_$(FFTWOMPSUFFIX) $(LIBS)
+LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
 endif
 endif
 
 # decide name of obj files and finufft library we're building...
-LIBNAME = libfinufft$(PRECSUFFIX)
+LIBNAME = libfinufft
 DYNLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
 # absolute path to the .so, useful for portable executables...
 ABSDYNLIB = $(FINUFFT)/$(DYNLIB)
 # ======================================================================
 
+# Collect headers for depends
+HEADERS = $(wildcard include/*.h)
 
 # spreader object files
-SOBJS = src/spreadinterp.o src/utils.o
+SOBJS = src/spreadinterp.o src/utils.o src/utils_fp.o
 
 # main library object files
-OBJS = src/finufft.o src/simpleinterfaces.o src/common.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o fortran/finufft_f_legacy.o julia/finufft_j.o
+OBJS = src/finufft.o src/simpleinterfaces.o src/common.o src/fftw_util.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o fortran/finufft_f_legacy.o julia/finufft_j.o
+OBJSF = $(OBJS:%.o=%_32.o)
+# filter out some objects that are currently doubles only.
+OBJSF := $(filter-out julia/%_32.o, $(OBJSF))
+OBJSF := $(filter-out src/utils_32.o, $(OBJSF))
+OBJSF := $(filter-out contrib/legendre_rule_fast_32.o, $(OBJSF))
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
 
@@ -120,26 +121,33 @@ usage:
 	@echo " make fortran - compile and run Fortran examples"
 	@echo " make matlab - compile MATLAB interfaces"
 	@echo " make octave - compile and test octave interfaces"
-	@echo " make python - compile and test python interfaces"	
+	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
 	@echo " make spreadtest - compile and run spreader tests only"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo "For faster (multicore) making, append the flag -j"
 	@echo ""
-	@echo "Compile options: 'make [task] PREC=SINGLE' for single-precision"
+	@echo "Compile options:"
 	@echo " 'make [task] OMP=OFF' for single-threaded (otherwise OpenMP)"
 	@echo " You must 'make objclean' before changing such options!"
 	@echo ""
 	@echo "Also see docs/install.rst"
 
 # implicit rules for objects (note -o ensures writes to correct dir)
-%.o: %.cpp %.h
+
+%.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-%.o: %.c %.h
+%_32.o: %.cpp $(HEADERS)
+	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
+%.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
-%.o: %.f %.h
+%_32.o: %.c $(HEADERS)
+	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
+%.o: %.f $(HEADERS)
 	$(FC) -c $(FFLAGS) $< -o $@
+%_32.o: %.f $(HEADERS)
+	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
 # included auto-generated code dependency...
 src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
@@ -153,42 +161,29 @@ else
 	echo "$(STATICLIB) and $(DYNLIB) built, multithreaded versions"
 endif
 
-$(STATICLIB): $(OBJS) 
-	ar rcs $(STATICLIB) $(OBJS) 
-$(DYNLIB): $(OBJS)
-	$(CXX) -shared $(OMPFLAGS) $(OBJS) -o $(DYNLIB) $(LIBSFFT)
+$(STATICLIB): $(OBJS) $(OBJSF)
+	ar rcs $(STATICLIB) $(OBJS) $(OBJSF)
+$(DYNLIB): $(OBJS) $(OBJSF)
+	$(CXX) -shared $(OMPFLAGS) $(OBJS) $(OBJSF) -o $(DYNLIB) $(LIBSFFT)
 
 # here $(OMPFLAGS) and $(LIBSFFT) is needed for linking under mac osx.
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 # Also note -l libs come after objects, as per modern GCC requirement.
 
 # Examples in C++ and C... (single prec codes separate, and not all have one)
-EX = examples/example1d1$(PRECSUFFIX)
-EXC = examples/example1d1c$(PRECSUFFIX)
-EX2 = examples/example2d1
-EXG = examples/guru1d1
-EXGC = examples/guru1d1c
-ifeq ($(PREC),SINGLE)
-EXS = $(EX) $(EXC)
-else
-EXS = $(EX) $(EXC) $(EX2) $(EXG) $(EXGC)
-endif
+EXAMPLES = $(basename $(wildcard examples/*.*))
+examples: $(EXAMPLES)
 
-examples: $(EXS)
-# use shell script to execute all in list. shell doesn't use $(E); $$ escapes $
-	(for E in $(EXS); do ./$$E; done)
+examples/%: examples/%.o $(DYNLIB)
+	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) -o $@
+	./$@
+examples/%c: examples/%c.o $(DYNLIB)
+	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
+	./$@
+examples/%cf: examples/%cf.o $(DYNLIB)
+	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
+	./$@
 
-# compile examples; note absolute .so path so executable anywhere, dep libs not needed to be listed...
-$(EX): $(EX).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EX).o $(ABSDYNLIB) -o $(EX)
-$(EXC): $(EXC).o $(DYNLIB)
-	$(CC) $(CFLAGS) $(EXC).o $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $(EXC)
-$(EX2): $(EX2).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EX2).o $(ABSDYNLIB) -o $(EX2)
-$(EXG): $(EXG).o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $(EXG).o $(ABSDYNLIB) -o $(EXG)
-$(EXGC): $(EXGC).o $(DYNLIB)
-	$(CC) $(CFLAGS) $(EXGC).o $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $(EXGC)
 
 # validation tests... (some link to .o allowing testing pieces separately)
 TESTS = test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
@@ -199,10 +194,12 @@ DO2 = test/directft/dirft2d.o
 DO3 = test/directft/dirft3d.o
 
 test: $(STATICLIB) $(TESTS)
-	test/finufft1d_basicpassfail 
+	test/finufft1d_basicpassfail
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
+	export FINUFFTF_REQ_TOL=$(REQ_TOL_32); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
+	export FINUFFTF_CHECK_TOL=$(CHECK_TOL_32); \
 	./check_finufft.sh)
 
 # these all link to .o rather than the lib.so, for simplicity...
@@ -222,7 +219,7 @@ test/finufft1dmany_test: test/finufft1dmany_test.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(OBJS) $(LIBSFFT) -o test/finufft1dmany_test
 test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS) $(LIBSFFT) -o test/finufft2dmany_test
-test/finufft3dmany_test: test/finufft3dmany_test.cpp $(OBJS) 
+test/finufft3dmany_test: test/finufft3dmany_test.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(OBJS) $(LIBSFFT) -o test/finufft3dmany_test
 test/finufftGuru_test: test/finufftGuru_test.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp $(OBJS) $(LIBSFFT) -o test/finufftGuru_test
@@ -248,41 +245,31 @@ spreadtest: test/spreadtestnd
 FD = fortran/directft
 # CMCL NUFFT fortran test codes (only needed by the nufft*_demo* codes)
 CMCLOBJS = $(FD)/dirft1d.o $(FD)/dirft2d.o $(FD)/dirft3d.o $(FD)/dirft1df.o $(FD)/dirft2df.o $(FD)/dirft3df.o $(FD)/prini.o
-FE = fortran/examples
-F1 = $(FE)/simple1d1$(PRECSUFFIX)
-F2 = $(FE)/guru1d1$(PRECSUFFIX)
-F3 = $(FE)/nufft1d_demo$(PRECSUFFIX)
-F4 = $(FE)/nufft1d_demo_legacy$(PRECSUFFIX)
-F5 = $(FE)/nufft2d_demo$(PRECSUFFIX)
-F6 = $(FE)/nufft3d_demo$(PRECSUFFIX)
-F7 = $(FE)/nufft2dmany_demo$(PRECSUFFIX)
-# GNU make trick to get list of executables to compile... (how auto 1 2... ?)
-F = $(foreach V, 1 2 3 4 5 6 7, $(F$V))
-fortran: $(CMCLOBJS) $(DYNLIB)
-	for i in $(F); do \
-	$(FC) $(FFLAGS) $$i.f $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $$i ; \
-	./$$i ; \
-	done
-# (that was a bash script loop; note $$'s here are escaped dollar signs)
+FE_DIR = fortran/examples
+FE64 = $(FE_DIR)/simple1d1 $(FE_DIR)/guru1d1 $(FE_DIR)/nufft1d_demo $(FE_DIR)/nufft2d_demo $(FE_DIR)/nufft3d_demo $(FE_DIR)/nufft2dmany_demo $(FE_DIR)/nufft1d_demo_legacy
+FE32 = $(FE64:%=%f)
+
+#fortran target pattern match
+$(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB)
+	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
+	./$@
+$(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
+	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
+	./$@
+
+fortran: $(FE64) $(FE32) $(CMCLOBJS) $(DYNLIB)
+
 
 # matlab .mex* executable... (not worth starting matlab to test it)
 # note various -D defines; INT64_T needed for mwrap 0.33.9.
 matlab: $(STATICLIB)
-ifeq ($(PREC),SINGLE)
-	@echo "MATLAB interface only supports double precision; doing nothing"
-else
 	$(MEX) matlab/finufft.cpp $(STATICLIB) $(INCL) $(MFLAGS) $(LIBSFFT) -output matlab/finufft
-endif
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
 octave: $(STATICLIB)
-ifeq ($(PREC),SINGLE)
-	@echo "Octave interface only supports double precision; doing nothing"
-else
 	(cd matlab; mkoctfile --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave test/guru1dtest.m)
-endif
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
 # (needs mwrap, moreover a recent version, eg 0.33.10)
@@ -291,18 +278,14 @@ mex: matlab/finufft.mw
 	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
 
 # python interfaces (v3 assumed)...
-python: $(STATICLIB)
-ifeq ($(PREC),SINGLE)
-	@echo "python interface only supports double precision; doing nothing"
-else
+python: $(STATICLIB) $(DYNLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; pip install .)
-	python python/test/python_guru1d1.py	
+	python python/test/python_guru1d1.py
 	python python/test/demo1d1.py
 	python python/test/run_accuracy_tests.py
-endif
 
 # python packaging: *** please document these in make tasks echo above...
-wheel: $(STATICLIB)
+wheel: $(STATICLIB) $(DYNLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; python -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
 
 docker-wheel:
@@ -315,7 +298,7 @@ docker-wheel:
 test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
 	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp $(STATICLIB) -o test/manysmallprobs $(LIBSFFT)
 #	@echo "manysmallprobs: all avail threads..."
-#	test/manysmallprobs	
+#	test/manysmallprobs
 	@echo "manysmallprobs: single-thread..."
 	OMP_NUM_THREADS=1 test/manysmallprobs
 
@@ -326,17 +309,12 @@ clean: objclean pyclean
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out
-# recursion hack to clean up all example single-prec, executables too...
-# (note it's possible to clean single only, but not double only)
-ifneq ($(PREC),SINGLE)
-	make clean PREC=SINGLE
-else
-	rm -f $(EXS) $(F)
-endif
+	rm -f $(EXAMPLES)
 
 # indiscriminate .o killer: needed before changing precision or threading...
 objclean:
 	rm -f $(OBJS) test/directft/*.o test/*.o
+	rm -f $(OBJSF)
 	rm -f fortran/*.o fortran/examples/*.o examples/*.o matlab/*.o $(CMCLOBJS)
 
 pyclean:

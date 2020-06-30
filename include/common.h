@@ -1,13 +1,18 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <dataTypes.h>
+#include <defs.h>
 #include <finufft.h>
 #include <spreadinterp.h>
 #include <fftw_defs.h>
+#include <utils.h>
+#include <utils_fp.h>
 
 // common.cpp provides...
+
+int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf);
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts);
-int set_nf_type12(BIGINT ms, nufft_opts opts, spread_opts spopts,BIGINT *nf);
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
 		  BIGINT *nf, FLT *h, FLT *gam);
 void onedim_dct_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts);
