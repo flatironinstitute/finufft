@@ -7,4 +7,6 @@
 
 #include <finufft.h>
 
+#undef SINGLE
+
 #endif   // FINUFFTF_H
