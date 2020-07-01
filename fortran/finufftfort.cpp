@@ -1,10 +1,10 @@
-#include <finufft_f.h>
+#include <finufftfort.h>
 #include <dataTypes.h>
 
 /* C++ layer for calling FINUFFT from fortran, in f77 style + derived type
    for the nufft_opts C-struct. The ptr to finufft_plan is passed as an "opaque"
    pointer (as in FFTW3 legacy fortran interface).
-   Note the trailing underscore which is not present in the fortran name.
+   Note the trailing underscore name-mangle which is not needed from fortran.
 
    Note our typedefs:
    FLT = double (or float, depending on compilation precision)
@@ -22,7 +22,7 @@
 extern "C" {
 #endif
   
-// --------------------- guru interface ------------------------
+// --------------------- guru interface from fortran ------------------------
 void FINUFFT_MAKEPLAN_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, finufft_plan **plan, nufft_opts *o, int *ier)
 {
   if (!plan)
@@ -69,7 +69,7 @@ void FINUFFT_DESTROY_(finufft_plan **plan, int *ier)
 void FINUFFT_DEFAULT_OPTS_(nufft_opts* o)
 {
   if (!o)
-    fprintf(stderr,"finufft_default_opts_: opts must be allocated!\n");
+    fprintf(stderr,"finufft_default_opts_ fortran: opts must be allocated!\n");
   else
     // o is a ptr to already-allocated fortran nufft_opts derived type...
     FINUFFT_DEFAULT_OPTS(o);

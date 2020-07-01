@@ -1,5 +1,5 @@
 #include <finufft.h>
-#include <finufft_f.h>
+#include <finufftfort.h>
 #include <cstdio>
 using namespace std;
 

@@ -1,11 +1,11 @@
-#ifndef FINUFFT_F_H
-#define FINUFFT_F_H
+#ifndef FINUFFTFORT_H
+#define FINUFFTFORT_H
 
 #include <dataTypes.h>
 #include <finufft.h>
 
 // This defines a rather simple fortran77-style interface to FINUFFT.
-// (although fortran compilers won't usually look at this C header file)
+// (although fortran compilers won't usually even look at this C header file)
 
 /* Note our typedefs:
    FLT = double (or float, depending on compilation precision)
@@ -160,4 +160,4 @@ void FINUFFT3D3MANY_(int* ntransf,
 
 }
 
-#endif
+#endif   // FINUFFTFORT_H

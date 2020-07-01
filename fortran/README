@@ -4,7 +4,7 @@ plus dynamic allocation, and a derived type if you want to change options.
 
 Directory structure:
 
-finufft_f.cpp  - the C++ to fortran wrapper layer (goes into libfinufft.a, etc)
+finufftfort.cpp  - the C++ to fortran wrapper layer (is linked into the lib)
 examples/      - fortran driver examples
 directft/      - direct summation routines from the CMCL NUFFT package
 
@@ -18,9 +18,10 @@ Please refer to (equivalent forms of) documentation in
 Please (cd ..; make fortran) to build and run the examples.
 Notes:
  1) the examples include versions of the three nufft?d_demo.f driver codes
-    from the CMCL NUFFT package, adjusted only to call FINUFFT. The final
-    tolerance they request is tol=1e-16. For this case FINUFFT will report a
-    warning that it cannot achieve it, and gets merely around 1e-14.
+    from the CMCL NUFFT package, adjusted only to call FINUFFT. The (rather
+    ambitious) final tolerance they request is tol=1e-16. For this case
+    FINUFFT will report a warning that it cannot achieve it, and gets merely
+    around 1e-14.
 
 
 COPYRIGHT (C) 2017-2020 Simons Foundation Inc.
@@ -41,6 +42,7 @@ Used and modified with permission.
 
 CHANGELOG for fortran interfaces:
 
+renamed interface to avoid _f confusion w/ suffix for single prec, 7/1/20.
 Libin Lu: guru interface 5/26/20, Barnett+Lu new interfaces & tests 5/29/20.
 Barnett tweaked 9/24/18.
 Barnett normalization updated 6/6/17.

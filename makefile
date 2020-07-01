@@ -98,16 +98,16 @@ ABSDYNLIB = $(FINUFFT)/$(DYNLIB)
 SOBJS = src/spreadinterp.o src/utils.o
 # their single-prec versions
 SOBJSF = $(SOBJS:%.o=%_32.o)
-# spreader object files precision-dependent (compiled & linked only once)...
+# precision-dependent spreader object files (compiled & linked only once)...
 SOBJS_PI = src/utils_precindep.o
 # spreader dual-precision objs
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
 # double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufft_f.o fortran/finufft_f_legacy.o
+OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o fortran/finufft_f_legacy.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
-# library object files precision-dependent (compiled & linked only once)...
+# precision-dependent library object files (compiled & linked only once)...
 OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufft_j.o
 # lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
