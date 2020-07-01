@@ -17,12 +17,10 @@ c     our fortran header, only needed if want to set options...
       include 'finufft.fh'
 c     if you want to use FFTW's modes by name... (hence -I/usr/include)
       include 'fftw3.f'
-c     this purely for wall-clock timer...
-      include 'omp_lib.h'
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)
       integer ier,iflag
-      integer*8 N,ktest,M,j,k,ktestindex
+      integer*8 N,ktest,M,j,k,ktestindex,t1,t2,crate
       real*8, allocatable :: xj(:)
       real*8 err,tol,pi,t,fmax
       parameter (pi=3.141592653589793238462643383279502884197d0)
@@ -64,7 +62,7 @@ c     mandatory parameters to FINUFFT guru interface...
       allocate(n_modes(3))
       n_modes(1) = N
 c     (note since dim=1, unused entries on n_modes are never read)
-      t = omp_get_wtime()
+      call system_clock(t1)
 c     null here uses default options
       call finufft_makeplan(type,dim,n_modes,iflag,ntrans,
      $     tol,plan,null,ier)
@@ -73,7 +71,8 @@ c     note for type 1 or 2, arguments 6-9 ignored...
      $     null,null,null,ier)
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufft_exec(plan,cj,fk,ier)
-      t = omp_get_wtime()-t
+      call system_clock(t2,crate)
+      t = (t2-t1)/float(crate)
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2" NU pts/s")',t,M/t
       else

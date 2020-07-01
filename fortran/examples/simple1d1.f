@@ -15,14 +15,12 @@ c     Alex Barnett and Libin Lu 5/28/20
       
 c     our fortran-header, only needed if want to set options...
       include 'finufft.fh'
-c     this purely for wall-clock timer...
-      include 'omp_lib.h'
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)
       integer ier,iflag
-      integer*8 N,ktest,M,j,k,ktestindex
+      integer*8 N,ktest,M,j,k,ktestindex,t1,t2,crate
       real*8, allocatable :: xj(:)
-      real*8 err,tol,pi,t,fmax
+      real*8 err,tol,pi,fmax,t
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*16, allocatable :: cj(:),fk(:)
       complex*16 fktest
@@ -48,7 +46,7 @@ c     create some quasi-random NU pts in [-pi,pi], complex strengths
          cj(j) = dcmplx( dsin((100d0*j)/M), dcos(1.0+(50d0*j)/M))
       enddo
 
-      t = omp_get_wtime()
+      call system_clock(t1)
 c     mandatory parameters to FINUFFT: sign of +-i in NUFFT
       iflag = 1
 c     tolerance
@@ -56,7 +54,8 @@ c     tolerance
 c     Do transform: writes to fk (mode coeffs), and ier (status flag).
 c     here unallocated "null" tells it to use default options:
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
-      t = omp_get_wtime()-t
+      call system_clock(t2,crate)
+      t = (t2-t1)/float(crate)
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2" NU pts/s")',t,M/t
       else
@@ -88,9 +87,10 @@ c     fields of derived type opts may be queried/set as usual...
       opts%upsampfac = 1.25d0
       print *,'first list our new set of opts values (cf nufft_opts.h):'
       print *,opts
-      t = omp_get_wtime()
+      call system_clock(t1)
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)
-      t = omp_get_wtime()-t
+      call system_clock(t2,crate)
+      t = (t2-t1)/float(crate)
       if (ier.eq.0) then
          print '("done in ",f6.3," sec, ",e10.2" NU pts/s")',t,M/t
       else

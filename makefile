@@ -132,7 +132,7 @@ usage:
 	@echo " make spreadtest - compile & run spreader tests only (no FFTW)"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
-	@echo "For faster (multicore) making, append the flag -j"
+	@echo "For faster (multicore) making, append, for example, -j8"
 	@echo ""
 	@echo "Compile options:"
 	@echo " 'make [task] OMP=OFF' for single-threaded (otherwise OpenMP)"

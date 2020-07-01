@@ -90,7 +90,7 @@ c
          call finufft3d1(nj,xj,yj,zj,cj,iflag,eps,ms,mt,mu,fk1,null,ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
-         print *, ' type 1 err = ',err
+         print *, ' type 1 error = ',err
 c
 c     -----------------------
 c      call 3D Type 2 method
@@ -100,7 +100,7 @@ c     -----------------------
      1        ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
-         print *, ' type 2 err = ',err
+         print *, ' type 2 error = ',err
 c
 c     -----------------------
 c      call 3D Type3 method
@@ -116,7 +116,7 @@ c     -----------------------
      1        ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
-         print *, ' type 3 err = ',err
+         print *, ' type 3 error = ',err
       enddo 
       stop
       end

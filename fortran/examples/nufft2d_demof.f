@@ -79,7 +79,7 @@ c
          call errcomp(fk0,fk1,nk,err)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
-         print *, ' type 1 err = ',err
+         print *, ' type 1 error = ',err
 c
 c     -----------------------
 c      call 2D Type 2 method
@@ -88,7 +88,7 @@ c     -----------------------
          call finufftf2d2(nj,xj,yj,cj1,iflag,eps,ms,mt,fk0,null,ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
-         print *, ' type 2 err = ',err
+         print *, ' type 2 error = ',err
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -103,7 +103,7 @@ c     -----------------------
 c
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
-         print *, ' type 3 err = ',err
+         print *, ' type 3 error = ',err
       enddo 
       stop
       end

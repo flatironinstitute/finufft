@@ -97,7 +97,7 @@ c
      &                   nk,err)
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 1 err = ',err
+         print *, ' max type 1 error = ',err
 c
 c     -----------------------
 c      call 2D Type 2 method
@@ -111,7 +111,7 @@ c     -----------------------
      &                   nj,err)
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 2 err = ',err
+         print *, ' max type 2 error = ',err
 c
 c     -----------------------
 c      call 2D Type3 method
@@ -130,7 +130,7 @@ c     -----------------------
      &                   nk,err)
             maxerr = max(maxerr,err)
          enddo
-         print *, ' max type 3 err = ',err
+         print *, ' max type 3 error = ',err
       enddo 
       stop
       end
