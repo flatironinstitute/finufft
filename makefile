@@ -1,6 +1,4 @@
-# Makefile for FINUFFT.
-# Barnett 2/12/19. Malleo's expansion for guru interface, summer 2019.
-# Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
+# Makefile for FINUFFT v1.2
 
 # For simplicity, this is the only makefile; there are no makefiles in
 # subdirectories. This makefile is useful to show humans how to compile
@@ -11,13 +9,17 @@
 # overrides the defaults below (which are for an ubuntu linux/GCC system).
 # See docs/install.rst, and make.inc.* for examples.
 
+# Barnett 2017-2020. Malleo's expansion for guru interface, summer 2019.
+# Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
+# Garrett Wright dual-prec lib build, June 2020.
+
 # compilers, and linking from C, fortran. We use GCC by default...
 CXX = g++
 CC = gcc
 FC = gfortran
 CLINK = -lstdc++
 FLINK = $(CLINK)
-# compile flags for GCC, baseline single-threaded, double precision case...
+# baseline compile flags for GCC (no multithreading):
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++.
 #        3) we use simply-expanded makefile variables, otherwise confusing.
@@ -26,7 +28,7 @@ FFLAGS := $(CFLAGS)
 CXXFLAGS := $(CFLAGS)
 # FFTW base name, and math linking...
 FFTWNAME = fftw3
-# the following uses fftw3_omp, since 10% faster than fftw3_threads...
+# linux default is fftw3_omp, since 10% faster than fftw3_threads...
 FFTWOMPSUFFIX = omp
 LIBS := -lm
 # multithreading for GCC: C++/C/Fortran, MATLAB, and octave (ICC differs)...
@@ -44,34 +46,32 @@ OFLAGS = -DR2008OO
 MWRAP = mwrap
 # absolute path of this makefile, ie FINUFFT's top-level directory...
 FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
-# tell tests & examples where to find header files...
-INCL = -Iinclude
 
-# For your OS, override the above by placing make variables in make.inc ...
+# For your OS, override the above by setting make variables in make.inc ...
 # (Please look in make.inc.* for ideas)
 -include make.inc
 
-# Now come flags that should be added, whatever you overrode in make.inc.
+# Now come flags that should be added, whatever user overrode in make.inc.
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
+INCL = -Iinclude
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
-# /usr/include needed for fftw3.f...
+# here /usr/include needed for fftw3.f "fortran header"...
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
-# Choice of pecision relates to test precision.
-#   These are exported in the `test` target.
-# Singles
-REQ_TOL_32 = 1e-6
-CHECK_TOL_32 = 2e-4
-# Doubles
+# double precision tolerances and test errors (`test' target)...
 REQ_TOL = 1e-12
 CHECK_TOL = 1e-11
+# same for single-prec tests...
+REQ_TOL_SINGLE = 1e-6
+CHECK_TOL_SINGLE = 2e-4
 
-# build (since fftw has many) names of libs to link against...
+# single-thread total list of math and FFTW libs (now both precisions)...
+# (Note: finufft tests use LIBSFFT; lower-level tests only need LIBS)
 LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
 
-# multi-threaded libs & flags (see defs above; note fftw3_threads slower)...
+# multi-threaded libs & flags
 ifneq ($(OMP),OFF)
 CXXFLAGS += $(OMPFLAGS)
 CFLAGS += $(OMPFLAGS)
@@ -80,31 +80,37 @@ MFLAGS += $(MOMPFLAGS)
 OFLAGS += $(OOMPFLAGS)
 LIBS += $(OMPLIBS)
 ifneq ($(MINGW),ON)
+# omp override for total list of math and FFTW libs (now both precisions)...
 LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
 endif
 endif
 
-# decide name of obj files and finufft library we're building...
+# name & location of library we're building...
 LIBNAME = libfinufft
 DYNLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
-# absolute path to the .so, useful for portable executables...
+# absolute path to the .so, useful for linking so executables portable...
 ABSDYNLIB = $(FINUFFT)/$(DYNLIB)
 # ======================================================================
 
-# Collect headers for depends
-HEADERS = $(wildcard include/*.h)
+# spreader is subset of the library with self-contained testing, hence own objs:
+# double-prec spreader object files that also need single precision...
+SOBJS = src/spreadinterp.o src/utils.o
+# their single-prec versions
+SOBJSF = $(SOBJS:%.o=%_32.o)
+# spreader object files precision-dependent (compiled & linked only once)...
+SOBJS_PI = src/utils_precindep.o
+# dual-precision objs
+SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
-# spreader object files
-SOBJS = src/spreadinterp.o src/utils.o src/utils_fp.o
-
-# main library object files
-OBJS = src/finufft.o src/simpleinterfaces.o src/common.o src/fftw_util.o contrib/legendre_rule_fast.o $(SOBJS) fortran/finufft_f.o fortran/finufft_f_legacy.o julia/finufft_j.o
+# double-prec library object files that also need single precision...
+OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o src/common.o fortran/finufft_f.o fortran/finufft_f_legacy.o
+# their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
-# filter out some objects that are currently doubles only.
-OBJSF := $(filter-out julia/%_32.o, $(OBJSF))
-OBJSF := $(filter-out src/utils_32.o, $(OBJSF))
-OBJSF := $(filter-out contrib/legendre_rule_fast_32.o, $(OBJSF))
+# library object files precision-dependent (compiled & linked only once)...
+OBJS_PI = contrib/legendre_rule_fast.o julia/finufft_j.o
+# dual-precision objs
+OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
 
@@ -116,14 +122,14 @@ usage:
 	@echo "Makefile for FINUFFT library. Specify what to make:"
 	@echo " make lib - compile the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run codes in examples/"
-	@echo " make test - compile and run quick math validation tests"
+	@echo " make test - compile and run quick math validation tests (double only right now)"
 	@echo " make perftest - compile and run performance tests"
-	@echo " make fortran - compile and run Fortran examples"
+	@echo " make fortran - compile and run Fortran tests and examples"
 	@echo " make matlab - compile MATLAB interfaces"
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
-	@echo " make spreadtest - compile and run spreader tests only"
+	@echo " make spreadtest - compile and run spreader tests only (no FFTW)"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo "For faster (multicore) making, append the flag -j"
@@ -134,8 +140,10 @@ usage:
 	@echo ""
 	@echo "Also see docs/install.rst"
 
-# implicit rules for objects (note -o ensures writes to correct dir)
+# collect headers for implicit depends
+HEADERS = $(wildcard include/*.h)
 
+# implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 %_32.o: %.cpp $(HEADERS)
@@ -152,21 +160,34 @@ usage:
 # included auto-generated code dependency...
 src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
 
-# build the library...
+# spreader only test, double/single (useful for development work on spreader)...
+spreadtest: test/spreadtestnd test/spreadtestnd_32
+	@echo "running double then single precision spreader tests..."
+	test/spreadtestnd 1 8e6 8e6 1e-6
+	test/spreadtestnd 2 8e6 8e6 1e-6
+	test/spreadtestnd 3 8e6 8e6 1e-6
+	test/spreadtestnd_32 1 8e6 8e6 1e-3
+	test/spreadtestnd_32 2 8e6 8e6 1e-3
+	test/spreadtestnd_32 3 8e6 8e6 1e-3
+
+# build library with double/single prec both bundled in...
 lib: $(STATICLIB) $(DYNLIB)
-
+$(STATICLIB): $(OBJSD)
 ifeq ($(OMP),OFF)
-	echo "$(STATICLIB) and $(DYNLIB) built, single-thread versions"
+	@echo "$(STATICLIB) built, single-thread version"
 else
-	echo "$(STATICLIB) and $(DYNLIB) built, multithreaded versions"
+	@echo "$(STATICLIB) built, multithreaded version"
 endif
+	ar rcs $(STATICLIB) $(OBJSD)
+$(DYNLIB): $(OBJSD)
+ifeq ($(OMP),OFF)
+	@echo "$(DYNLIB) built, single-thread version"
+else
+	@echo "$(DYNLIB) built, multithreaded version"
+endif
+	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(DYNLIB) $(LIBSFFT)
 
-$(STATICLIB): $(OBJS) $(OBJSF)
-	ar rcs $(STATICLIB) $(OBJS) $(OBJSF)
-$(DYNLIB): $(OBJS) $(OBJSF)
-	$(CXX) -shared $(OMPFLAGS) $(OBJS) $(OBJSF) -o $(DYNLIB) $(LIBSFFT)
-
-# here $(OMPFLAGS) and $(LIBSFFT) is needed for linking under mac osx.
+# here $(OMPFLAGS) and $(LIBSFFT) is even needed for linking under mac osx.
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 # Also note -l libs come after objects, as per modern GCC requirement.
 
@@ -197,16 +218,16 @@ test: $(STATICLIB) $(TESTS)
 	test/finufft1d_basicpassfail
 	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
-	export FINUFFTF_REQ_TOL=$(REQ_TOL_32); \
+	export FINUFFTF_REQ_TOL=$(REQ_TOL_SINGLE); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
-	export FINUFFTF_CHECK_TOL=$(CHECK_TOL_32); \
+	export FINUFFTF_CHECK_TOL=$(CHECK_TOL_SINGLE); \
 	./check_finufft.sh)
 
 # these all link to .o rather than the lib.so, for simplicity...
 test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
-test/testutils: test/testutils.cpp src/utils.o
-	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o $(LIBS) -o test/testutils
+test/testutils: test/testutils.cpp src/utils_precindep.o
+	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
 test/dumbinputs: test/dumbinputs.cpp $(DYNLIB) $(DO1)
 	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJS) $(DO1) $(LIBSFFT) -o test/dumbinputs
 test/finufft1d_test: test/finufft1d_test.cpp $(OBJS) $(DO1)
@@ -230,14 +251,9 @@ perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd test; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
 	(cd test; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
-test/spreadtestnd: test/spreadtestnd.cpp $(SOBJS)
-	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJS) $(LIBS) -o test/spreadtestnd
-
-# spreader only test (useful for development work on spreader)...
-spreadtest: test/spreadtestnd
-	test/spreadtestnd 1 8e6 8e6 1e-6 1 0
-	test/spreadtestnd 2 8e6 8e6 1e-6 1 0
-	test/spreadtestnd 3 8e6 8e6 1e-6 1 0
+test/spreadtestnd: test/spreadtestnd.cpp $(SOBJSD)
+	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJSD) $(LIBS) -o test/spreadtestnd
+	$(CXX) $(CXXFLAGS) -DSINGLE test/spreadtestnd.cpp $(SOBJSD) $(LIBS) -o test/spreadtestnd_32
 
 # --------------- LANGUAGE INTERFACES -----------------------
 

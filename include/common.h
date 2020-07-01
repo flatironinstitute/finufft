@@ -5,12 +5,16 @@
 #include <defs.h>
 #include <finufft.h>
 #include <spreadinterp.h>
-#include <fftw_defs.h>
 #include <utils.h>
-#include <utils_fp.h>
+#include <utils_precindep.h>
+
+#ifdef SINGLE
+#define SET_NF_TYPE12 set_nf_type12f
+#else
+#define SET_NF_TYPE12 set_nf_type12
+#endif
 
 // common.cpp provides...
-
 int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf);
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts);
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,

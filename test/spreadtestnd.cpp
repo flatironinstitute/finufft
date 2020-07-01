@@ -1,6 +1,7 @@
 #include <spreadinterp.h>
 #include <defs.h>
 #include <utils.h>
+#include <utils_precindep.h>
 
 #include <vector>
 #include <math.h>

@@ -7,8 +7,8 @@
 #include <nufft_opts.h>
 #include <finufft_plan.h>
 
+// interfaces finufft.cpp provides to the outside world only...
 #ifdef SINGLE
-#define SET_NF_TYPE12 set_nf_type12_f
 #define FINUFFT_DEFAULT_OPTS finufftf_default_opts
 #define FINUFFT_MAKEPLAN finufftf_makeplan
 #define FINUFFT_SETPTS finufftf_setpts
@@ -33,7 +33,6 @@
 #define FINUFFT3D3 finufftf3d3
 #define FINUFFT3D3MANY finufftf3d3many
 #else
-#define SET_NF_TYPE12 set_nf_type12
 #define FINUFFT_DEFAULT_OPTS finufft_default_opts
 #define FINUFFT_MAKEPLAN finufft_makeplan
 #define FINUFFT_SETPTS finufft_setpts

@@ -1,4 +1,6 @@
-#include <utils.h>
+// tests for utils/utils_precindep module
+
+#include <utils_precindep.h>
 #include <stdio.h>
 
 int main(int argc, char* argv[])

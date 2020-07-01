@@ -1,10 +1,9 @@
 #include <finufft.h>
 #include <utils.h>
-#include <utils_fp.h>
+#include <utils_precindep.h>
 #include <dataTypes.h>
 #include <defs.h>
 #include <common.h>
-#include <fftw_util.h>
 
 #include <iostream>
 #include <iomanip>
@@ -67,6 +66,36 @@ Design notes for guru interface implementation:
   since that would  only survive in the scope of each function.
 
 */
+
+
+// since this func is local only, we macro its name here...
+#ifdef SINGLE
+#define GRIDSIZE_FOR_FFTW gridsize_for_fftwf
+#else
+#define GRIDSIZE_FOR_FFTW gridsize_for_fftw
+#endif
+
+int* GRIDSIZE_FOR_FFTW(finufft_plan* p){
+// local helper func returns a new int array of length dim, extracted from
+// the finufft plan, that fftw_plan_many_dft needs as its 2nd argument.
+  int* nf;
+  if(p->dim == 1){ 
+    nf = new int[1];
+    nf[0] = (int)p->nf1;
+  }
+  else if (p->dim == 2){ 
+    nf = new int[2];
+    nf[0] = (int)p->nf2;
+    nf[1] = (int)p->nf1; 
+  }   // fftw enforced row major ordering, ie dims are backwards ordered
+  else{ 
+    nf = new int[3];
+    nf[0] = (int)p->nf3;
+    nf[1] = (int)p->nf2;
+    nf[2] = (int)p->nf1;
+  }
+  return nf;
+}
 
 
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP

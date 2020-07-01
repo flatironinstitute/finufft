@@ -2,7 +2,7 @@
 #include <dataTypes.h>
 #include <defs.h>
 #include <utils.h>
-#include <utils_fp.h>
+#include <utils_precindep.h>
 
 #include <stdlib.h>
 #include <vector>

@@ -66,7 +66,7 @@ Here we use the guru interface to repeat the first demo above:
   f = plan.finufft_exec(c);           % do the transform (0.008 sec)
   % ...one could now change the points with setpts, and/or do new transforms
   % with new c data...
-  plan.finufft_destroy;               % don't forget to clean up
+  delete(plan);                       % don't forget to clean up
 
 Finally, we demo a 2D type 1 transform using the simple interface. Let's
 request a rectangular Fourier mode array of 1000 modes in the x direction but 500 in the
