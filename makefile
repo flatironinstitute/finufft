@@ -263,7 +263,7 @@ FD = fortran/directft
 # CMCL NUFFT fortran test codes (only needed by the nufft*_demo* codes)
 CMCLOBJS = $(FD)/dirft1d.o $(FD)/dirft2d.o $(FD)/dirft3d.o $(FD)/dirft1df.o $(FD)/dirft2df.o $(FD)/dirft3df.o $(FD)/prini.o
 FE_DIR = fortran/examples
-FE64 = $(FE_DIR)/simple1d1 $(FE_DIR)/guru1d1 $(FE_DIR)/nufft1d_demo $(FE_DIR)/nufft2d_demo $(FE_DIR)/nufft3d_demo $(FE_DIR)/nufft2dmany_demo $(FE_DIR)/nufft1d_demo_legacy
+FE64 = $(FE_DIR)/simple1d1 $(FE_DIR)/guru1d1 $(FE_DIR)/nufft1d_demo $(FE_DIR)/nufft2d_demo $(FE_DIR)/nufft3d_demo $(FE_DIR)/nufft2dmany_demo
 FE32 = $(FE64:%=%f)
 
 #fortran target pattern match
@@ -326,13 +326,14 @@ clean: objclean pyclean
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out
-	rm -f $(EXAMPLES)
+	rm -f $(EXAMPLES) $(FE64) $(FE32)
 
 # indiscriminate .o killer (including old ones); needed before changing threading...
 objclean:
-	rm -f $(OBJSD) test/directft/*.o test/*.o examples/*.o matlab/*.o
-	rm -f fortran/*.o fortran/examples/*.o $(CMCLOBJS)
+	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o
+	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
 
+# *** need to update this:
 pyclean:
 	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 	rm -rf python/fixed_wheel python/wheelhouse
