@@ -40,18 +40,6 @@
 #define FINUFFT3D2MANY_ finufftf3d2many_
 #define FINUFFT3D3_ finufftf3d3_
 #define FINUFFT3D3MANY_ finufftf3d3many_
-/* Legacy Interfaces*/
-#define FINUFFT1D1_F_ finufftf1d1_f_
-#define FINUFFT1D2_F_ finufftf1d2_f_
-#define FINUFFT1D3_F_ finufftf1d3_f_
-#define FINUFFT2D1_F_ finufftf2d1_f_
-#define FINUFFT2D2_F_ finufftf2d2_f_
-#define FINUFFT2D3_F_ finufftf2d3_f_
-#define FINUFFT3D1_F_ finufftf3d1_f_
-#define FINUFFT3D2_F_ finufftf3d2_f_
-#define FINUFFT3D3_F_ finufftf3d3_f_
-#define FINUFFT2D1MANY_F_ finufftf2d1many_f_
-#define FINUFFT2D2MANY_F_ finufftf2d2many_f_
 #else
 #define FINUFFT_MAKEPLAN_ finufft_makeplan_
 #define FINUFFT_SETPTS_ finufft_setpts_
@@ -76,30 +64,16 @@
 #define FINUFFT3D2MANY_ finufft3d2many_
 #define FINUFFT3D3_ finufft3d3_
 #define FINUFFT3D3MANY_ finufft3d3many_
-/* Legacy Interfaces */
-#define FINUFFT1D1_F_ finufft1d1_f_
-#define FINUFFT1D2_F_ finufft1d2_f_
-#define FINUFFT1D3_F_ finufft1d3_f_
-#define FINUFFT2D1_F_ finufft2d1_f_
-#define FINUFFT2D2_F_ finufft2d2_f_
-#define FINUFFT2D3_F_ finufft2d3_f_
-#define FINUFFT3D1_F_ finufft3d1_f_
-#define FINUFFT3D2_F_ finufft3d2_f_
-#define FINUFFT3D3_F_ finufft3d3_f_
-#define FINUFFT2D1MANY_F_ finufft2d1many_f_
-#define FINUFFT2D2MANY_F_ finufft2d2many_f_
 #endif
 
 extern "C" {
 
 // ---------------- the guru interface ---------------------------------
+void FINUFFT_DEFAULT_OPTS_(nufft_opts *o);
 void FINUFFT_MAKEPLAN_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, finufft_plan **plan, nufft_opts *o, int *ier);
 void FINUFFT_SETPTS_(finufft_plan **plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *N, FLT *s, FLT *t, FLT *u, int *ier);
 void FINUFFT_EXEC_(finufft_plan **plan, CPX *weights, CPX *result, int *ier);
 void FINUFFT_DESTROY_(finufft_plan **plan, int *ier);
-
-// --------------- set default nufft_opts ----------------
-void FINUFFT_DEFAULT_OPTS_(nufft_opts *o);
 
 // -------------- simple and many-vector interfaces --------------------
 // --- 1D ---

@@ -104,7 +104,7 @@ SOBJS_PI = src/utils_precindep.o
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
 # double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o fortran/finufft_f_legacy.o
+OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
@@ -328,10 +328,10 @@ clean: objclean pyclean
 	rm -f $(TESTS) test/results/*.out
 	rm -f $(EXAMPLES)
 
-# indiscriminate .o killer: needed before changing precision or threading...
+# indiscriminate .o killer (including old ones); needed before changing threading...
 objclean:
-	rm -f $(OBJSD) test/directft/*.o test/*.o
-	rm -f fortran/*.o fortran/examples/*.o examples/*.o matlab/*.o $(CMCLOBJS)
+	rm -f $(OBJSD) test/directft/*.o test/*.o examples/*.o matlab/*.o
+	rm -f fortran/*.o fortran/examples/*.o $(CMCLOBJS)
 
 pyclean:
 	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
