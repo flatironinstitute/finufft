@@ -1,20 +1,23 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+// just what's needed to describe the interface to what provided below
 #include <dataTypes.h>
-#include <defs.h>
-#include <finufft.h>
-#include <spreadinterp.h>
-#include <utils.h>
-#include <utils_precindep.h>
+#include <nufft_opts.h>
+#include <spread_opts.h>
+#include <fftw_defs.h>
 
+// although these have no FLT args, distinct prec versions are needed
+// because the structs implicitly depend on FLT...
 #ifdef SINGLE
 #define SET_NF_TYPE12 set_nf_type12f
+#define FINUFFT_DEFAULT_OPTS finufftf_default_opts
 #else
 #define SET_NF_TYPE12 set_nf_type12
+#define FINUFFT_DEFAULT_OPTS finufft_default_opts
 #endif
 
-// common.cpp provides...
+// common.cpp provides... (not including finufft_default_opts)
 int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf);
 int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts);
 void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,

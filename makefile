@@ -100,7 +100,7 @@ SOBJS = src/spreadinterp.o src/utils.o
 SOBJSF = $(SOBJS:%.o=%_32.o)
 # spreader object files precision-dependent (compiled & linked only once)...
 SOBJS_PI = src/utils_precindep.o
-# dual-precision objs
+# spreader dual-precision objs
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
 # double-prec library object files that also need single precision...
@@ -108,8 +108,8 @@ OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o src/common.o fortran/finuff
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # library object files precision-dependent (compiled & linked only once)...
-OBJS_PI = contrib/legendre_rule_fast.o julia/finufft_j.o
-# dual-precision objs
+OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufft_j.o
+# lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
 .PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
@@ -129,7 +129,7 @@ usage:
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
-	@echo " make spreadtest - compile and run spreader tests only (no FFTW)"
+	@echo " make spreadtest - compile & run spreader tests only (no FFTW)"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo "For faster (multicore) making, append the flag -j"
@@ -329,8 +329,7 @@ clean: objclean pyclean
 
 # indiscriminate .o killer: needed before changing precision or threading...
 objclean:
-	rm -f $(OBJS) test/directft/*.o test/*.o
-	rm -f $(OBJSF)
+	rm -f $(OBJSD) test/directft/*.o test/*.o
 	rm -f fortran/*.o fortran/examples/*.o examples/*.o matlab/*.o $(CMCLOBJS)
 
 pyclean:

@@ -3,11 +3,12 @@
 #ifndef FINUFFT_H
 #define FINUFFT_H
 
+// just what's needed to describe the headers for what finufft provides
 #include <dataTypes.h>
 #include <nufft_opts.h>
 #include <finufft_plan.h>
 
-// interfaces finufft.cpp provides to the outside world only...
+// interfaces finufft.cpp provides to the outside world only (all macroed)...
 #ifdef SINGLE
 #define FINUFFT_DEFAULT_OPTS finufftf_default_opts
 #define FINUFFT_MAKEPLAN finufftf_makeplan

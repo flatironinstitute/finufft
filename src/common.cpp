@@ -3,8 +3,13 @@
 
 #include <common.h>
 #include <dataTypes.h>
+#include <nufft_opts.h>
+#include <spread_opts.h>
+#include <fftw_defs.h>
 #include <defs.h>
 #include <utils.h>
+#include <utils_precindep.h>
+#include <spreadinterp.h>
 
 #include <fftw3.h>
 #include <math.h>
@@ -18,7 +23,7 @@ extern "C" {
   #include "../contrib/legendre_rule_fast.h"
 }
 
-// We macro this because it implicitly contains FLTs in the structs.
+// We macro this because it implicitly contains FLTs in the structs:
 int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
@@ -36,7 +41,7 @@ int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
 }
 
 void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
-// Sets default nufft opts. See finufft.h for definition of opts.
+// Sets default nufft opts. See nufft_opts.h for meanings.
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX. Barnett 10/30/17 onwards.
 {

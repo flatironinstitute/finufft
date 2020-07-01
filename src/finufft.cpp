@@ -1,9 +1,12 @@
 #include <finufft.h>
+#include <defs.h>
+#include <dataTypes.h>
+#include <nufft_opts.h>
+#include <finufft_plan.h>
+#include <common.h>
 #include <utils.h>
 #include <utils_precindep.h>
-#include <dataTypes.h>
-#include <defs.h>
-#include <common.h>
+#include <spreadinterp.h>
 
 #include <iostream>
 #include <iomanip>

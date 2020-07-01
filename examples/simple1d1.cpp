@@ -10,14 +10,14 @@ using namespace std;
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C++, using plain
    arrays of C++ complex numbers, with a math test. Barnett 3/10/17
-   Double-precision version (see example1d1f for single-precision)
+   Double-precision version (see simple1d1f for single-precision)
 
    Compile with:
-   g++ -fopenmp example1d1.cpp -I../include ../lib-static/libfinufft.a -o example1d1 -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1 -lfftw3 -lfftw3_omp -lm
    or if you have built a single-core version:
-   g++ example1d1.cpp -I../include ../lib-static/libfinufft.a -o example1d1 -lfftw3 -lm
+   g++ simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1 -lfftw3 -lm
 
-   Usage: ./example1d1
+   Usage: ./simple1d1
 */
 {
   int M = 1e6;            // number of nonuniform points
