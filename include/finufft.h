@@ -65,7 +65,7 @@ extern "C"
 #endif
 
 // ------------------ the guru interface ------------------------------------
-
+  
 void FINUFFT_DEFAULT_OPTS(nufft_opts *o);
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag, int n_transf, FLT tol, finufft_plan* plan, nufft_opts* o);
 int FINUFFT_SETPTS(finufft_plan* plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
@@ -74,7 +74,8 @@ int FINUFFT_DESTROY(finufft_plan* plan);
 
 
 // ----------------- the 18 simple interfaces -------------------------------
-
+// (source is in simpleinterfaces.cpp rather than finufft.cpp)
+  
 int FINUFFT1D1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
 	       CPX* fk, nufft_opts *opts);
 int FINUFFT1D1MANY(int ntransf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,

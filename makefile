@@ -1,4 +1,4 @@
-# Makefile for FINUFFT v1.2
+# Makefile for FINUFFT, v1.2
 
 # For simplicity, this is the only makefile; there are no makefiles in
 # subdirectories. This makefile is useful to show humans how to compile
@@ -104,7 +104,7 @@ SOBJS_PI = src/utils_precindep.o
 SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 
 # double-prec library object files that also need single precision...
-OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o src/common.o fortran/finufft_f.o fortran/finufft_f_legacy.o
+OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufft_f.o fortran/finufft_f_legacy.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # library object files precision-dependent (compiled & linked only once)...
@@ -194,6 +194,7 @@ endif
 # Examples in C++ and C... (single prec codes separate, and not all have one)
 EXAMPLES = $(basename $(wildcard examples/*.*))
 examples: $(EXAMPLES)
+	@echo "Making $(EXAMPLES)..."
 
 examples/%: examples/%.o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) -o $@
