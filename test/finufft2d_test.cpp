@@ -1,7 +1,7 @@
 #include <finufft.h>
 #include <dirft.h>
 #include <utils.h>
-#include <utils_fp.h>
+#include <utils_precindep.h>
 #include <defs.h>
 #include <test_defs.h>
 
