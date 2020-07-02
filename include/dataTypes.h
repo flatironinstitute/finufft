@@ -1,5 +1,11 @@
-#ifndef DATATYPE_H
-#define DATATYPE_H
+#if (!defined(DATATYPES_H) && !defined(SINGLE)) || (!defined(DATATYPESF_H) && defined(SINGLE))
+// Make sure we only include once per precision (see finufft_eitherprec.h).
+#ifndef SINGLE
+#define DATATYPES_H
+#else
+#define DATATYPESF_H
+#endif
+
 
 // ------------ FINUFFT data type definitions ----------------------------------
 
@@ -17,21 +23,24 @@ typedef int64_t BIGINT;
 #include <complex.h>        // C99 type
 #endif
 
+#undef FLT
+#undef CPX
+
 // Precision-independent real and complex types for interfacing...
 #ifdef SINGLE
-  typedef float FLT;
+  #define FLT float
   #ifdef __cplusplus
-    typedef std::complex<float> CPX;
+    #define CPX std::complex<float>
   #else
-    typedef float complex CPX;
+    #define CPX float complex
   #endif
 #else
-  typedef double FLT;
+  #define FLT double
   #ifdef __cplusplus
-    typedef std::complex<double> CPX;
+    #define CPX std::complex<double>
   #else
-    typedef double complex CPX;
+    #define CPX double complex
   #endif
 #endif
 
-#endif  // DATATYPE_H
+#endif  // DATATYPE_H or DATATYPEF_H
