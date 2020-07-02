@@ -1,5 +1,6 @@
-#include <utils.h>
-#include <finufft_j.h>
+#include <dataTypes.h>
+#include <finufft_plan.h>
+#include <finufftjulia.h>
 
 /* C++ layer for calling FINUFFT from Julia.
    The ptr to finufft_plan is passed as an "opaque" pointer.

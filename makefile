@@ -108,7 +108,7 @@ OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufft_j.o
+OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufftjulia.o
 # lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
@@ -194,7 +194,7 @@ endif
 # Examples in C++ and C... (single prec codes separate, and not all have one)
 EXAMPLES = $(basename $(wildcard examples/*.*))
 examples: $(EXAMPLES)
-	@echo "Making $(EXAMPLES)..."
+	@echo "Made: $(EXAMPLES)"
 
 examples/%: examples/%.o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) -o $@
@@ -211,9 +211,7 @@ examples/%cf: examples/%cf.o $(DYNLIB)
 TESTS = test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
 
 # slow FTs in C++, for testing only
-DO1 = test/directft/dirft1d.o
-DO2 = test/directft/dirft2d.o
-DO3 = test/directft/dirft3d.o
+DOS = test/directft/dirft1d.o test/directft/dirft2d.o test/directft/dirft3d.o
 
 test: $(STATICLIB) $(TESTS)
 	test/finufft1d_basicpassfail
@@ -225,18 +223,19 @@ test: $(STATICLIB) $(TESTS)
 	./check_finufft.sh)
 
 # these all link to .o rather than the lib.so, for simplicity...
-test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJS)
+test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJSD)
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
+	$(CXX) $(CXXFLAGS) -DSINGLE test/finufft1d_basicpassfail.cpp $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfailf
 test/testutils: test/testutils.cpp src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
-test/dumbinputs: test/dumbinputs.cpp $(DYNLIB) $(DO1)
-	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJS) $(DO1) $(LIBSFFT) -o test/dumbinputs
-test/finufft1d_test: test/finufft1d_test.cpp $(OBJS) $(DO1)
-	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJS) $(DO1) $(LIBSFFT) -o test/finufft1d_test
-test/finufft2d_test: test/finufft2d_test.cpp $(OBJS) $(DO2)
-	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJS) $(DO2) $(LIBSFFT) -o test/finufft2d_test
-test/finufft3d_test: test/finufft3d_test.cpp $(OBJS) $(DO3)
-	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS) $(DO3) $(LIBSFFT) -o test/finufft3d_test
+test/dumbinputs: test/dumbinputs.cpp $(DYNLIB) $(DOS)
+	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJS) $(DOS) $(LIBSFFT) -o test/dumbinputs
+test/finufft1d_test: test/finufft1d_test.cpp $(OBJS) $(DOS)
+	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJS) $(DOS) $(LIBSFFT) -o test/finufft1d_test
+test/finufft2d_test: test/finufft2d_test.cpp $(OBJS) $(DOS)
+	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJS) $(DOS) $(LIBSFFT) -o test/finufft2d_test
+test/finufft3d_test: test/finufft3d_test.cpp $(OBJS) $(DOS)
+	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS) $(DOS) $(LIBSFFT) -o test/finufft3d_test
 test/finufft1dmany_test: test/finufft1dmany_test.cpp $(OBJS)
 	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(OBJS) $(LIBSFFT) -o test/finufft1dmany_test
 test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS)

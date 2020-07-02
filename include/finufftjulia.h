@@ -1,8 +1,8 @@
-#ifndef FINUFFT_J_H
-#define FINUFFT_J_H
+#ifndef FINUFFTJULIA_H
+#define FINUFFTJULIA_H
 
 #include <dataTypes.h>
-#include <finufft.h>
+#include <finufft_plan.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -32,4 +32,4 @@ BIGINT get_nk(finufft_plan* plan);
 }
 #endif
 
-#endif  // FINUFFT_J_H
+#endif  // FINUFFTJULIA_H

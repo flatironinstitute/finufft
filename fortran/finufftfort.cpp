@@ -1,4 +1,4 @@
-#include <finufft.h>
+#include <finufft_eitherprec.h>
 #include <dataTypes.h>
 #include <nufft_opts.h>
 #include <finufft_plan.h>
