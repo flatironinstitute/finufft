@@ -19,8 +19,10 @@ typedef int64_t BIGINT;
 // decide which kind of complex numbers to use in interface...
 #ifdef __cplusplus
 #include <complex>          // C++ type
+#define COMPLEXIFY(X) std::complex<X>
 #else
 #include <complex.h>        // C99 type
+#define COMPLEXIFY(X) X complex
 #endif
 
 #undef FLT
@@ -29,18 +31,10 @@ typedef int64_t BIGINT;
 // Precision-independent real and complex types for interfacing...
 #ifdef SINGLE
   #define FLT float
-  #ifdef __cplusplus
-    #define CPX std::complex<float>
-  #else
-    #define CPX float complex
-  #endif
 #else
   #define FLT double
-  #ifdef __cplusplus
-    #define CPX std::complex<double>
-  #else
-    #define CPX double complex
-  #endif
 #endif
+
+#define CPX COMPLEXIFY(FLT)
 
 #endif  // DATATYPE_H or DATATYPEF_H
