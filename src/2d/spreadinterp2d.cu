@@ -71,13 +71,6 @@ void eval_kernel_vec(FLT *ker, const FLT x, const double w, const double es_c,
 }
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ 
-void TrivialGlobalSortIdx_2d(int M, int* index)
-{
-	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
-		index[i] = i;
-	}
-}
 
 __global__
 void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
@@ -210,27 +203,6 @@ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y,
 	}
 }
 
-__global__
-void MapBintoSubProb_2d(int* d_subprob_to_bin,int* d_subprobstartpts, 
-	int* d_numsubprob,int numbins)
-{
-	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; 
-		i+=gridDim.x*blockDim.x){
-		for(int j=0; j<d_numsubprob[i]; j++){
-			d_subprob_to_bin[d_subprobstartpts[i]+j]=i;
-		}
-	}
-}
-
-__global__
-void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, 
-	int numbins)
-{
-	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; 
-		i+=gridDim.x*blockDim.x){
-		num_subprob[i]=ceil(bin_size[i]/(float) maxsubprobsize);
-	}
-}
 
 __global__
 void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
@@ -476,16 +448,6 @@ void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x,
 	}
 }
 
-__global__
-void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
-	int maxsubprobsize, int bin_size_x, int bin_size_y)
-{
-	int binsize = bin_size_x*bin_size_y;
-	int *maxptsinbin = thrust::max_element(thrust::seq,
-			finegridsize+binsize*blockIdx.x, 
-			finegridsize + binsize*(blockIdx.x+1));
-	num_subprob[blockIdx.x] = (int)ceil(*maxptsinbin/(float) maxsubprobsize);
-}
 
 __global__
 void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 

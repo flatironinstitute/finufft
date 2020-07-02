@@ -6,8 +6,6 @@
 //Kernels for 2D codes
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ 
-void TrivialGlobalSortIdx_2d(int M, int* index);
 __global__
 void Spread_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		int nf1, int nf2, FLT es_c, FLT es_beta, int* idxnupts, int pirange);
@@ -25,12 +23,6 @@ __global__
 void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, 
 	int nbinx,int nbiny, int* bin_startpts, int* sortidx,FLT *x, FLT *y, 
 	int* index, int pirange, int nf1, int nf2);
-__global__
-void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, 
-	int* d_numsubprob,int numbins);
-__global__
-void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, 
-	int numbins);
 
 // Main Spreading Kernel
 __global__
@@ -55,9 +47,6 @@ __global__
 void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x, 
 	int bin_size_y, int nbinx,int nbiny, int ns, FLT *x, FLT *y, 
 	int* finegridstartpts, int* sortidx, int* index, int pirange);
-__global__
-void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
-	int maxsubprobsize, int bin_size_x, int bin_size_y);
 __global__
 void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, 
 	const int ns, int nf1, int nf2, FLT es_c, FLT es_beta, FLT sigma, 
@@ -221,42 +210,42 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cufinufft_plan *dplan);
 
 // Functions for calling different methods of spreading & interpolation
-int cuspread2d(cufinufft_plan* d_plan, int blksize);
-int cuinterp2d(cufinufft_plan* d_plan, int blksize);
-int cuspread3d(cufinufft_plan* d_plan, int blksize);
-int cuinterp3d(cufinufft_plan* d_plan, int blksize);
+int CUSPREAD2D(cufinufft_plan* d_plan, int blksize);
+int CUINTERP2D(cufinufft_plan* d_plan, int blksize);
+int CUSPREAD3D(cufinufft_plan* d_plan, int blksize);
+int CUINTERP3D(cufinufft_plan* d_plan, int blksize);
 
 // Wrappers for methods of spreading
-int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
-int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan, 
+int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, cufinufft_plan *d_plan, 
 	int blksize);
-int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
-int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan);
-int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, cufinufft_plan *d_plan);
+int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 	int blksize);
-int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+int CUSPREAD2D_PAUL(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 	int blksize);
 
-int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
+int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
-int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, 
+int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, 
 	cufinufft_plan *d_plan, int blksize);
-int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
+int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
-int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, 
+int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, 
 	cufinufft_plan *d_plan, int blksize);
-int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
+int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M,
 	cufinufft_plan *d_plan);
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
+int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
 	int blksize);
 
 // Wrappers for methods of interpolation
-int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 	int blksize);
-int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 	int blksize);
-int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, 
+int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, 
 	cufinufft_plan *d_plan, int blksize);
-int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
+int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
 	int blksize);
 #endif

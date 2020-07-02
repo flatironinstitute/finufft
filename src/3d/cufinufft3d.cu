@@ -12,7 +12,7 @@
 
 using namespace std;
 
-int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
+int CUFINUFFT3D1_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 /*  
 	3D Type-1 NUFFT
 
@@ -56,7 +56,7 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 #endif
 		// Step 1: Spread
 		cudaEventRecord(start);
-		ier = cuspread3d(d_plan, blksize);
+		ier = CUSPREAD3D(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuspread3d, method(%d)\n", d_plan->opts.gpu_method);
 			return ier;
@@ -80,7 +80,7 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 		// Step 3: deconvolve and shuffle
 		cudaEventRecord(start);
-		cudeconvolve3d(d_plan, blksize);
+		CUDECONVOLVE3D(d_plan, blksize);
 #ifdef TIME
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
@@ -91,7 +91,7 @@ int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
+int CUFINUFFT3D2_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 /*  
 	3D Type-2 NUFFT
 
@@ -125,7 +125,7 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 		// Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
 		cudaEventRecord(start);
-		cudeconvolve3d(d_plan, blksize);
+		CUDECONVOLVE3D(d_plan, blksize);
 #ifdef TIME
 		float milliseconds = 0;
 		cudaEventRecord(stop);
@@ -146,7 +146,7 @@ int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 		// Step 3: deconvolve and shuffle
 		cudaEventRecord(start);
-		ier = cuinterp3d(d_plan, blksize);
+		ier = CUINTERP3D(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuinterp3d, method(%d)\n", d_plan->opts.gpu_method);
 			return ier;

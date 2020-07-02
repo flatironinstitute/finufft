@@ -12,7 +12,7 @@
 
 using namespace std;
 
-void setup_binsize(int type, int dim, cufinufft_opts *opts)
+void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 {
 	switch(dim)
 	{
@@ -62,7 +62,7 @@ void setup_binsize(int type, int dim, cufinufft_opts *opts)
 	}
 }
 
-int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, 
+int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag, 
 	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan)
 /*
 	"plan" stage: 
@@ -105,7 +105,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	d_plan->mt = nmodes[1];
 	d_plan->mu = nmodes[2];
 
-	setup_binsize(type, dim, &d_plan->opts);
+	SETUP_BINSIZE(type, dim, &d_plan->opts);
 	int nf1=1, nf2=1, nf3=1;
 	set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1, 
 				  d_plan->opts.gpu_obinsizex);
@@ -153,17 +153,17 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	{
 		case 1:
 		{
-			ier = allocgpumem1d_plan(d_plan);
+			ier = ALLOCGPUMEM1D_PLAN(d_plan);
 		}
 		break;
 		case 2:
 		{
-			ier = allocgpumem2d_plan(d_plan);
+			ier = ALLOCGPUMEM2D_PLAN(d_plan);
 		}
 		break;
 		case 3:
 		{
-			ier = allocgpumem3d_plan(d_plan);
+			ier = ALLOCGPUMEM3D_PLAN(d_plan);
 		}
 		break;
 	}
@@ -238,7 +238,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	return ier;
 }
 
-int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s, 
+int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s, 
 	FLT *d_t, FLT *d_u, cufinufft_plan *d_plan)
 /*
 	"setNUpts" stage:
@@ -288,17 +288,17 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	{
 		case 1:
 		{
-			ier = allocgpumem1d_nupts(d_plan);
+			ier = ALLOCGPUMEM1D_NUPTS(d_plan);
 		}
 		break;
 		case 2:
 		{
-			ier = allocgpumem2d_nupts(d_plan);
+			ier = ALLOCGPUMEM2D_NUPTS(d_plan);
 		}
 		break;
 		case 3:
 		{
-			ier = allocgpumem3d_nupts(d_plan);
+			ier = ALLOCGPUMEM3D_NUPTS(d_plan);
 		}
 		break;
 	}
@@ -327,7 +327,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 		case 2:
 		{
 			if(d_plan->opts.gpu_method==1){
-				ier = cuspread2d_nuptsdriven_prop(nf1,nf2,M,d_plan);
+				ier = CUSPREAD2D_NUPTSDRIVEN_PROP(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread2d_nupts_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
@@ -335,7 +335,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				}
 			}
 			if(d_plan->opts.gpu_method==2){
-				ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
+				ier = CUSPREAD2D_SUBPROB_PROP(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread2d_subprob_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
@@ -343,7 +343,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				}
 			}
 			if(d_plan->opts.gpu_method==3){
-				int ier = cuspread2d_paul_prop(nf1,nf2,M,d_plan);
+				int ier = CUSPREAD2D_PAUL_PROP(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread2d_paul_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
@@ -355,7 +355,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 		case 3:
 		{
 			if(d_plan->opts.gpu_method==4){
-				int ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,d_plan);
+				int ier = CUSPREAD3D_BLOCKGATHER_PROP(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
@@ -363,7 +363,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				}
 			}
 			if(d_plan->opts.gpu_method==1){
-				ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
+				ier = CUSPREAD3D_NUPTSDRIVEN_PROP(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
@@ -371,7 +371,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				}
 			}
 			if(d_plan->opts.gpu_method==2){
-				int ier = cuspread3d_subprob_prop(nf1,nf2,nf3,M,d_plan);
+				int ier = CUSPREAD3D_SUBPROB_PROP(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
 					printf("error: cuspread3d_subprob_prop, method(%d)\n", 
 						d_plan->opts.gpu_method);
@@ -392,7 +392,7 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	return 0;
 }
 
-int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
+int CUFINUFFT_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 /*
 	"exec" stage:
 	
@@ -425,9 +425,9 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		case 2:
 		{
 			if(type == 1)
-				ier = cufinufft2d1_exec(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT2D1_EXEC(d_c,  d_fk, d_plan);
 			if(type == 2)
-				ier = cufinufft2d2_exec(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT2D2_EXEC(d_c,  d_fk, d_plan);
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
@@ -437,9 +437,9 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		case 3:
 		{
 			if(type == 1)
-				ier = cufinufft3d1_exec(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT3D1_EXEC(d_c,  d_fk, d_plan);
 			if(type == 2)
-				ier = cufinufft3d2_exec(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT3D2_EXEC(d_c,  d_fk, d_plan);
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
@@ -450,7 +450,7 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int cufinufft_destroy(cufinufft_plan *d_plan)
+int CUFINUFFT_DESTROY(cufinufft_plan *d_plan)
 /*
 	"destroy" stage:
 
@@ -470,17 +470,17 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	{
 		case 1:
 		{
-			freegpumemory1d(d_plan);
+			FREEGPUMEMORY1D(d_plan);
 		}
 		break;
 		case 2:
 		{
-			freegpumemory2d(d_plan);
+			FREEGPUMEMORY2D(d_plan);
 		}
 		break;
 		case 3:
 		{
-			freegpumemory3d(d_plan);
+			FREEGPUMEMORY3D(d_plan);
 		}
 		break;
 	}
@@ -494,7 +494,7 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
+int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 /*
 	"default_opts" stage:
 	

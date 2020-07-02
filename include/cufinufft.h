@@ -8,6 +8,119 @@
 #include "../contrib/utils.h"
 #include "../contrib/spreadinterp.h"
 #include "../contrib/common.h"
+#include "../src/precision_independent.h"
+
+#ifdef SINGLE
+
+#define CUFINUFFT_DEFAULT_OPTS cufinufftf_default_opts
+#define CUFINUFFT_MAKEPLAN cufinufftf_makeplan
+#define CUFINUFFT_SETNUPTS cufinufftf_setNUpts
+#define CUFINUFFT_EXEC cufinufftf_exec
+#define CUFINUFFT_DESTROY cufinufftf_destroy
+#define CUFINUFFT2D1_EXEC cufinufftf2d1_exec
+#define CUFINUFFT2D2_EXEC cufinufftf2d2_exec
+#define CUFINUFFT3D1_EXEC cufinufftf3d1_exec
+#define CUFINUFFT3D2_EXEC cufinufftf3d2_exec
+#define SETUP_BINSIZE setup_binsizef
+/* extern c interface */
+#define CUFINUFFTC_DEFAULT_OPTS cufinufftcf_default_opts
+#define CUFINUFFTC_MAKEPLAN cufinufftcf_makeplan
+#define CUFINUFFTC_SETNUPTS cufinufftcf_setnupts
+#define CUFINUFFTC_EXEC cufinufftcf_exec
+#define CUFINUFFTC_DESTROY cufinufftcf_destroy
+/* memtransfer.h */
+#define ALLOCGPUMEM1D_PLAN allocgpumem1df_plan
+#define ALLOCGPUMEM1D_NUPTS allocgpumem1df_nupts
+#define FREEGPUMEMORY1D freegpumemory1df
+#define ALLOCGPUMEM2D_PLAN allocgpumem2df_plan
+#define ALLOCGPUMEM2D_NUPTS allocgpumem2df_nupts
+#define FREEGPUMEMORY2D freegpumemory2df
+#define ALLOCGPUMEM3D_PLAN allocgpumem3df_plan
+#define ALLOCGPUMEM3D_NUPTS allocgpumem3df_nupts
+#define FREEGPUMEMORY3D freegpumemory3df
+/* spreading 2D */
+#define CUSPREAD2D cuspread2df
+#define CUSPREAD2D_NUPTSDRIVEN_PROP cuspread2df_nuptsdriven_prop
+#define CUSPREAD2D_NUPTSDRIVEN cuspread2df_nuptsdriven
+#define CUSPREAD2D_SUBPROB_PROP cuspread2df_subprob_prop
+#define CUSPREAD2D_SUBPROB cuspread2df_subprob
+#define CUSPREAD2D_PAUL cuspread2df_paul
+#define CUSPREAD2D_PAUL_PROP cuspread2df_paul_prop
+/* spreading 3d */
+#define CUSPREAD3D cuspread3df
+#define CUSPREAD3D_NUPTSDRIVEN_PROP cuspread3df_nuptsdriven_prop
+#define CUSPREAD3D_NUPTSDRIVEN cuspread3df_nuptsdriven
+#define CUSPREAD3D_BLOCKGATHER_PROP cuspread3df_blockgather_prop
+#define CUSPREAD3D_BLOCKGATHER cuspread3df_blockgather
+#define CUSPREAD3D_SUBPROB_PROP cuspread3df_subprob_prop
+#define CUSPREAD3D_SUBPROB cuspread3df_subprob
+/* interp */
+#define CUINTERP2D cuinterp2df
+#define CUINTERP3D cuinterp3df
+#define CUINTERP2D_NUPTSDRIVEN cuinterp2df_nuptsdriven
+#define CUINTERP2D_SUBPROB cuinterp2df_subprob
+#define CUINTERP3D_NUPTSDRIVEN cuinterp3df_nuptsdriven
+#define CUINTERP3D_SUBPROB cuinterp3df_subprob
+/* deconvolve */
+#define CUDECONVOLVE2D cudeconvolve2df
+#define CUDECONVOLVE3D cudeconvolve3df
+
+#else
+
+#define CUFINUFFT_DEFAULT_OPTS cufinufft_default_opts
+#define CUFINUFFT_MAKEPLAN cufinufft_makeplan
+#define CUFINUFFT_SETNUPTS cufinufft_setNUpts
+#define CUFINUFFT_EXEC cufinufft_exec
+#define CUFINUFFT_DESTROY cufinufft_destroy
+#define CUFINUFFT2D1_EXEC cufinufft2d1_exec
+#define CUFINUFFT2D2_EXEC cufinufft2d2_exec
+#define CUFINUFFT3D1_EXEC cufinufft3d1_exec
+#define CUFINUFFT3D2_EXEC cufinufft3d2_exec
+#define SETUP_BINSIZE setup_binsize
+/* extern c interface */
+#define CUFINUFFTC_DEFAULT_OPTS cufinufftc_default_opts
+#define CUFINUFFTC_MAKEPLAN cufinufftc_makeplan
+#define CUFINUFFTC_SETNUPTS cufinufftc_setnupts
+#define CUFINUFFTC_EXEC cufinufftc_exec
+#define CUFINUFFTC_DESTROY cufinufftc_destroy
+/* memtransfer.h */
+#define ALLOCGPUMEM1D_PLAN allocgpumem1d_plan
+#define ALLOCGPUMEM1D_NUPTS allocgpumem1d_nupts
+#define FREEGPUMEMORY1D freegpumemory1d
+#define ALLOCGPUMEM2D_PLAN allocgpumem2d_plan
+#define ALLOCGPUMEM2D_NUPTS allocgpumem2d_nupts
+#define FREEGPUMEMORY2D freegpumemory2d
+#define ALLOCGPUMEM3D_PLAN allocgpumem3d_plan
+#define ALLOCGPUMEM3D_NUPTS allocgpumem3d_nupts
+#define FREEGPUMEMORY3D freegpumemory3d
+/* spreading 2D */
+#define CUSPREAD2D cuspread2d
+#define CUSPREAD2D_NUPTSDRIVEN_PROP cuspread2d_nuptsdriven_prop
+#define CUSPREAD2D_NUPTSDRIVEN cuspread2d_nuptsdriven
+#define CUSPREAD2D_SUBPROB_PROP cuspread2d_subprob_prop
+#define CUSPREAD2D_SUBPROB cuspread2d_subprob
+#define CUSPREAD2D_PAUL cuspread2d_paul
+#define CUSPREAD2D_PAUL_PROP cuspread2d_paul_prop
+/* spreading 3d */
+#define CUSPREAD3D cuspread3d
+#define CUSPREAD3D_NUPTSDRIVEN_PROP cuspread3d_nuptsdriven_prop
+#define CUSPREAD3D_NUPTSDRIVEN cuspread3d_nuptsdriven
+#define CUSPREAD3D_BLOCKGATHER_PROP cuspread3d_blockgather_prop
+#define CUSPREAD3D_BLOCKGATHER cuspread3d_blockgather
+#define CUSPREAD3D_SUBPROB_PROP cuspread3d_subprob_prop
+#define CUSPREAD3D_SUBPROB cuspread3d_subprob
+/* interp */
+#define CUINTERP2D cuinterp2d
+#define CUINTERP3D cuinterp3d
+#define CUINTERP2D_NUPTSDRIVEN cuinterp2d_nuptsdriven
+#define CUINTERP2D_SUBPROB cuinterp2d_subprob
+#define CUINTERP3D_NUPTSDRIVEN cuinterp3d_nuptsdriven
+#define CUINTERP3D_SUBPROB cuinterp3d_subprob
+/* deconvolve */
+#define CUDECONVOLVE2D cudeconvolve2d
+#define CUDECONVOLVE3D cudeconvolve3d
+
+#endif
 
 typedef struct cufinufft_opts{   // see cufinufft_default_opts() for defaults
 	FLT upsampfac;   // upsampling ratio sigma, only 2.0 (standard) is implemented
@@ -122,20 +235,23 @@ static const char* _cufftGetErrorEnum(cufftResult_t error)
 	}
 	return "<unknown>";
 }
-#define checkCufftErrors(call)
-int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts);
-int cufinufft_makeplan(int type, int dim, int *n_modes, int iflag, 
-	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan);
-int cufinufft_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
-	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan);
-int cufinufft_exec(CUCPX* h_c, CUCPX* h_fk, cufinufft_plan *d_plan);
-int cufinufft_destroy(cufinufft_plan *d_plan);
 
+#define checkCufftErrors(call)
+
+int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts);
+int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag, 
+	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan);
+int CUFINUFFT_SETNUPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s, 
+	FLT *h_t, FLT *h_u, cufinufft_plan *d_plan);
+int CUFINUFFT_EXEC(CUCPX* h_c, CUCPX* h_fk, cufinufft_plan *d_plan);
+int CUFINUFFT_DESTROY(cufinufft_plan *d_plan);
+ 
 // 2d
-int cufinufft2d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
-int cufinufft2d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
+int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
+int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
 
 // 3d
-int cufinufft3d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
-int cufinufft3d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
+int CUFINUFFT3D1_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
+int CUFINUFFT3D2_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan);
+
 #endif

@@ -3,15 +3,15 @@
 
 #include <cufinufft.h>
 
-int allocgpumem1d_plan(cufinufft_plan *d_plan);
-int allocgpumem1d_nupts(cufinufft_plan *d_plan);
-void freegpumemory1d(cufinufft_plan *d_plan);
+int ALLOCGPUMEM1D_PLAN(cufinufft_plan *d_plan);
+int ALLOCGPUMEM1D_NUPTS(cufinufft_plan *d_plan);
+void FREEGPUMEMORY1D(cufinufft_plan *d_plan);
 
-int allocgpumem2d_plan(cufinufft_plan *d_plan);
-int allocgpumem2d_nupts(cufinufft_plan *d_plan);
-void freegpumemory2d(cufinufft_plan *d_plan);
+int ALLOCGPUMEM2D_PLAN(cufinufft_plan *d_plan);
+int ALLOCGPUMEM2D_NUPTS(cufinufft_plan *d_plan);
+void FREEGPUMEMORY2D(cufinufft_plan *d_plan);
 
-int allocgpumem3d_plan(cufinufft_plan *d_plan);
-int allocgpumem3d_nupts(cufinufft_plan *d_plan);
-void freegpumemory3d(cufinufft_plan *d_plan);
+int ALLOCGPUMEM3D_PLAN(cufinufft_plan *d_plan);
+int ALLOCGPUMEM3D_NUPTS(cufinufft_plan *d_plan);
+void FREEGPUMEMORY3D(cufinufft_plan *d_plan);
 #endif

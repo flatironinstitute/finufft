@@ -13,7 +13,7 @@
 using namespace std;
 
 // only relates to the locations of the nodes, which only needs to be done once
-int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
+int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -285,7 +285,7 @@ int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan *d_plan, int blksize)
+int CUSPREAD2D_PAUL(int nf1, int nf2, int M, cufinufft_plan *d_plan, int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
