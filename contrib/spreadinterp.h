@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "utils.h"
+#include "utils_fp.h"
 
 #define MAX_NSPREAD 16     // upper bound on w, ie nspread, even when padded
                            // (see evaluate_kernel_vector); also for common

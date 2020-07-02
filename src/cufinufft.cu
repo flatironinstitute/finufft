@@ -107,13 +107,13 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 
 	SETUP_BINSIZE(type, dim, &d_plan->opts);
 	int nf1=1, nf2=1, nf3=1;
-	set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1, 
+	SET_NF_TYPE12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1, 
 				  d_plan->opts.gpu_obinsizex);
 	if(dim > 1)
-		set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2, 
+		SET_NF_TYPE12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2, 
                       d_plan->opts.gpu_obinsizey); 
 	if(dim > 2)
-		set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
+		SET_NF_TYPE12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
                       d_plan->opts.gpu_obinsizez);
 	int fftsign = (iflag>=0) ? 1 : -1;
 

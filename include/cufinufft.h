@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <cuda_runtime.h>
 #include "../contrib/utils.h"
+#include "../contrib/utils_fp.h"
 #include "../contrib/spreadinterp.h"
 #include "../contrib/common.h"
 #include "../src/precision_independent.h"

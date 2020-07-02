@@ -2,6 +2,7 @@
 #define DIRFT_H
 
 #include "utils.h"
+#include "utils_fp.h"
 
 void dirft1d1(BIGINT nj,FLT* x,CPX* c,int isign,BIGINT ms, CPX* f);
 void dirft1d2(BIGINT nj,FLT* x,CPX* c,int iflag,BIGINT ms, CPX* f);

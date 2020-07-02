@@ -3,9 +3,15 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-
-#include <cufinufft.h>
 #include <profile.h>
+
+#ifdef SINGLE
+#undef SINGLE
+#include <cufinufftf.h>
+#else
+#include <cufinufft.h>
+#endif
+
 #include "../contrib/utils.h"
 
 using namespace std;
@@ -90,7 +96,7 @@ int main(int argc, char* argv[])
 	cufinufft_plan dplan;
 	int dim = 3;
 	int type = 2;
-	ier=cufinufft_default_opts(type, dim, &dplan.opts);
+	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
 
 	int nmodes[3];
@@ -103,7 +109,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_plan",2);
-		ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
+		ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol, 
 			maxbatchsize, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft_makeplan\n");
@@ -118,7 +124,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft_setNUpts",3);
-		ier=cufinufft_setNUpts(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
+		ier=CUFINUFFT_SETNUPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft_setNUpts\n");
 		}
@@ -132,7 +138,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft_exec",4);
-		ier=cufinufft_exec(d_c, d_fk, &dplan);
+		ier=CUFINUFFT_EXEC(d_c, d_fk, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft_exec\n");
 		}
@@ -146,7 +152,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_destroy",5);
-		ier=cufinufft_destroy(&dplan);
+		ier=CUFINUFFT_DESTROY(&dplan);
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
