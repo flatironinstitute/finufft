@@ -225,9 +225,6 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	dim3 threadsPerBlock;
-	dim3 blocks;
-
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
 	FLT es_c=d_plan->spopts.ES_c;
 	FLT es_beta=d_plan->spopts.ES_beta;

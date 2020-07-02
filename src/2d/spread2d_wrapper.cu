@@ -199,8 +199,6 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	cudaEventCreate(&stop);
 
 	if(d_plan->opts.gpu_sort){
-		dim3 threadsPerBlock;
-		dim3 blocks;
 
 		int bin_size_x=d_plan->opts.gpu_binsizex;
 		int bin_size_y=d_plan->opts.gpu_binsizey;
@@ -419,9 +417,6 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, cufinufft_plan *d_plan)
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	dim3 threadsPerBlock;
-	dim3 blocks;
-
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 	int bin_size_x=d_plan->opts.gpu_binsizex;
 	int bin_size_y=d_plan->opts.gpu_binsizey;
@@ -639,9 +634,6 @@ int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
-
-	dim3 threadsPerBlock;
-	dim3 blocks;
 
 	int ns=d_plan->spopts.nspread;// psi's support in terms of number of cells
 	FLT es_c=d_plan->spopts.ES_c;

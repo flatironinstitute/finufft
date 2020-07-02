@@ -238,9 +238,6 @@ int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	dim3 threadsPerBlock;
-	dim3 blocks;
-
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 
