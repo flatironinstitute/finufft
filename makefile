@@ -211,8 +211,10 @@ TESTS := $(basename $(wildcard test/*.cpp))
 # also need single-prec
 TESTS += $(TESTS:%=%f)
 test: $(TESTS)
+# it will fail if either of these return nonzero exit code...
 	test/basicpassfail
 	test/basicpassfailf
+# accuracy tests done in prec-switchable bash script...
 	(cd test; ./check_finufft.sh; ./check_finufft.sh SINGLE)
 
 
@@ -233,10 +235,19 @@ spreadtest: $(ST) $(STF)
 	$(STF) 1 8e6 8e6 1e-3
 	$(STF) 2 8e6 8e6 1e-3
 	$(STF) 3 8e6 8e6 1e-3
-perftest: $(ST) $(STF) test/finufft1d_test test/finufft2d_test test/finufft3d_test
+
+perftest: $(ST) $(STF) $(wildcard test/finufft?d_test?)
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
 	(cd perftest; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
+
+# This was for a CCQ application; zgemm was 10x faster! double-prec only
+perftest/manysmallprobs: perftest/manysmallprobs.cpp $(STATICLIB)
+	$(CXX) $(CXXFLAGS) $< $(STATICLIB) $(LIBSFFT) -o $@
+	@echo "manysmallprobs: single-thread..."
+	OMP_NUM_THREADS=1 $@
+
+
 
 
 # ======================= LANGUAGE INTERFACES ==============================
@@ -299,25 +310,16 @@ docker-wheel:
 
 
 
-# ------------- Various obscure/devel tests -----------------
-# This was for a CCQ application; zgemm was 10x faster!
-test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
-	$(CXX) $(CXXFLAGS) test/manysmallprobs.cpp $(STATICLIB) -o test/manysmallprobs $(LIBSFFT)
-#	@echo "manysmallprobs: all avail threads..."
-#	test/manysmallprobs
-	@echo "manysmallprobs: single-thread..."
-	OMP_NUM_THREADS=1 test/manysmallprobs
+# =============================== CLEAN UP ==================================
 
-
-
-# ------------- Cleaning up (including *all* versions of lib, and interfaces)...
 clean: objclean pyclean
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
-	rm -f $(TESTS) test/core test/results/*.out
-	rm -f $(EXAMPLES) $(FE64) $(FE32) examples/core perftest/core perftest/results/*.out
+	rm -f $(TESTS) test/results/*.out perftest/results/*.out
+	rm -f $(EXAMPLES) $(FE)
+	rm -f examples/core test/core perftest/core $(FE_DIR)/core
 
-# indiscriminate .o killer (including old ones); needed before changing threading...
+# indiscriminate .o killer; needed before changing threading...
 objclean:
 	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
