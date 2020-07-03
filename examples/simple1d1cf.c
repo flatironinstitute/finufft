@@ -1,5 +1,5 @@
 // this is all you must include...
-#include <finufftf.h>
+#include <finufft.h>
 // also needed for this example...
 #include <stdlib.h>
 #include <math.h>
