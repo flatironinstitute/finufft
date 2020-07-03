@@ -108,6 +108,8 @@
   #define FFTW_INIT()
   #undef FFTW_PLAN_TH
   #define FFTW_PLAN_TH(x)
+  #undef FFTW_CLEANUP_THREADS
+  #define FFTW_CLEANUP_THREADS()
 #endif
 
 #endif  // DEFS_H

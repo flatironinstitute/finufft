@@ -11,7 +11,7 @@
 
 # Barnett 2017-2020. Malleo's expansion for guru interface, summer 2019.
 # Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
-# Garrett Wright dual-prec lib build, June 2020.
+# Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 
 # compilers, and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -60,15 +60,8 @@ CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"...
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
-# double precision tolerances and test errors (`test' target)...
-REQ_TOL = 1e-12
-CHECK_TOL = 1e-11
-# same for single-prec tests...
-REQ_TOL_SINGLE = 1e-6
-CHECK_TOL_SINGLE = 2e-4
-
 # single-thread total list of math and FFTW libs (now both precisions)...
-# (Note: finufft tests use LIBSFFT; lower-level tests only need LIBS)
+# (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
 LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
 
 # multi-threaded libs & flags
@@ -91,7 +84,6 @@ DYNLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
 # absolute path to the .so, useful for linking so executables portable...
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
-# ======================================================================
 
 # spreader is subset of the library with self-contained testing, hence own objs:
 # double-prec spreader object files that also need single precision...
@@ -119,7 +111,7 @@ default: usage
 all: test perftest lib examples fortran matlab octave python
 
 usage:
-	@echo "Makefile for FINUFFT library. Specify what to make:"
+	@echo "Makefile for FINUFFT library. Please specify your task:"
 	@echo " make lib - build the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
@@ -159,6 +151,7 @@ HEADERS = $(wildcard include/*.h)
 
 # included auto-generated code dependency...
 src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
+
 
 # lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
@@ -209,25 +202,20 @@ test/%: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 test/%f: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
-# low-level tests that are cleaner if depend on specific objects...
+# low-level tests that are cleaner if depend on only specific objects...
 test/testutils: test/testutils.cpp src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
 test/testutilsf: test/testutils.cpp src/utils_precindep_32.o
 	$(CXX) $(CXXFLAGS) -DSINGLE test/testutils.cpp src/utils_precindep_32.o $(LIBS) -o test/testutilsf
 
-# all double-prec test executables
+# make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
-# also do single-prec
+# also need single-prec
 TESTS += $(TESTS:%=%f)
 test: $(TESTS)
 	test/basicpassfail
 	test/basicpassfailf
-#	(cd test; \
-	export FINUFFT_REQ_TOL=$(REQ_TOL); \
-	export FINUFFTF_REQ_TOL=$(REQ_TOL_SINGLE); \
-	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
-	export FINUFFTF_CHECK_TOL=$(CHECK_TOL_SINGLE); \
-	./check_finufft.sh)
+	(cd test; ./check_finufft.sh; ./check_finufft.sh SINGLE)
 
 
 # perftest (performance/developer tests) -------------------------------------
@@ -239,11 +227,11 @@ $(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
 $(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
 	$(CXX) $(CXXFLAGS) -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
-	@echo "\nRunning double-precision spreader tests..."
+	@echo "\nRunning double-precision spreader tests, all dims..."
 	$(ST) 1 8e6 8e6 1e-6
 	$(ST) 2 8e6 8e6 1e-6
 	$(ST) 3 8e6 8e6 1e-6
-	@echo "\nRunning single-precision spreader tests..."
+	@echo "\nRunning single-precision spreader tests, all dims..."
 	$(STF) 1 8e6 8e6 1e-3
 	$(STF) 2 8e6 8e6 1e-3
 	$(STF) 3 8e6 8e6 1e-3
