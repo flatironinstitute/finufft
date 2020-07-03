@@ -28,7 +28,7 @@ if type numdiff &> /dev/null; then
 	((N++))
 	echo "Test number $N: $t"
 	rm -f $DIR/$t.out
-	./$t 2>$t.err.out | tee $DIR/$t.out        # stdout only; tee duplicates to screen
+	./$t 2>$DIR/$t.err.out | tee $DIR/$t.out        # stdout only; tee duplicates to screen
 	# $? is exit code of last thing...
 	if [ $? -eq 0 ]; then echo completed; else echo crashed; ((CRASHES++)); fi
 	# since refout contains 0 for each error field, relerr=1 so 2 is for safety:

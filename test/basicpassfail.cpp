@@ -1,16 +1,10 @@
-#include <finufft.h>
-#include <dataTypes.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <complex>
-#include <vector>
+#include <test_defs.h>
 
 // Basic pass-fail test of one routine in library w/ default opts.
 // exit code 0 success, failure otherwise. This is useful for brew recipe.
-// Works for single/double or multi-/single-thread, hence use of FLT and CPX.
+// Works for either single/double, hence use of FLT and CPX.
 // Simplified from Amit Moscovitz and example1d1. Barnett 11/1/18.
-// Using vectors and default opts, 2/29/20.
+// Using vectors and default opts, 2/29/20; dual-prec lib 7/3/20.
 
 int main()
 {
@@ -28,7 +22,7 @@ int main()
     c[j] = 2*((FLT)rand()/RAND_MAX)-1 + I*(2*((FLT)rand()/RAND_MAX)-1);
   }
   // Run it (NULL = default opts) .......................................
-  int ier = finufft1d1(M,&x[0],&c[0],isign,tol,N,&F[0],NULL);
+  int ier = FINUFFT1D1(M,&x[0],&c[0],isign,tol,N,&F[0],NULL);
   if (ier!=0) {
     printf("basicpassfail: finufft1d1 error (ier=%d)!",ier);
     exit(ier);

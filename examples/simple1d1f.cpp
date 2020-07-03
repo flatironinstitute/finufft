@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
    or if you have built a single-core version:
    g++ simple1d1f.cpp -I../include ../lib-static/libfinufft.a -o simple1d1f -lfftw3f -lm
 
-   Usage: ./example1d1f
+   Usage: ./simple1d1f
 */
 {
   int M = 1e5;            // number of nonuniform points
@@ -26,6 +26,7 @@ int main(int argc, char* argv[])
   float acc = 1e-3;       // desired accuracy
   nufft_opts opts; finufftf_default_opts(&opts);  // note finufft "f" suffix
   complex<float> I = complex<float>(0.0,1.0);  // the imaginary unit
+  //opts.debug=1;
   
   // generate some random nonuniform points (x) and complex strengths (c):
   float *x = (float *)malloc(sizeof(float)*M);

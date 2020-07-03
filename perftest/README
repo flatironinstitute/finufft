@@ -1,0 +1,14 @@
+Performance and development test directory for FINUFFT.
+
+Scripts:
+spreadtestnd.sh : performance test of spreader only, in dims 1,2, or 3.
+nuffttestnd.sh : performance test of NUFFT library, in dims 1,2, or 3.
+mycpuinfo.sh : prints info about the CPU
+
+Possibly obsolete scripts (for developers):
+nuffttest?d.sh : simple NUFFT test for each dim
+highaspect3d_test.sh : comparing various pizza-box orientations for speed
+
+
+Also see:
+../test for validation tests

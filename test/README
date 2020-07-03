@@ -1,15 +1,12 @@
-Testing directory for FINUFFT. Barnett 3/14/17
+Testing (validation not performance) directory for FINUFFT.
 
 check_finufft.sh : validates the NUFFT library for correctness.
 results/*.refout : reference outputs that the generated outputs *,out will be compared against.
-spreadtestnd.sh : performance test of spreader only, in dims 1,2, or 3.
-nuffttestnd.sh : performance test of NUFFT library, in dims 1,2, or 3.
-mycpuinfo.sh : prints info about the CPU
 check?d.sh : used by check_finufft.sh
 
 Possibly obsolete scripts (for developers):
-nuffttest?d.sh : simple NUFFT test for each dim
 checkallaccs.sh : spreading and NUFFT at all #s of digits, for a single ndims
-highaspect3d_test.sh : comparing various pizza-box orientations for speed
 
-Also see: ../fortran for the Fortran driver demo scripts.
+
+Also see:
+../perftest for performance tests

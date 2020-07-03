@@ -90,7 +90,7 @@ LIBNAME = libfinufft
 DYNLIB = lib/$(LIBNAME).so
 STATICLIB = lib-static/$(LIBNAME).a
 # absolute path to the .so, useful for linking so executables portable...
-ABSDYNLIB = $(FINUFFT)/$(DYNLIB)
+ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 # ======================================================================
 
 # spreader is subset of the library with self-contained testing, hence own objs:
@@ -112,7 +112,7 @@ OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufftjulia.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
-.PHONY: usage lib examples test perftest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
+.PHONY: usage lib examples test perftest spreadtest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
 
 default: usage
 
@@ -120,21 +120,21 @@ all: test perftest lib examples fortran matlab octave python
 
 usage:
 	@echo "Makefile for FINUFFT library. Specify what to make:"
-	@echo " make lib - compile the main library (in lib/ and lib-static/)"
+	@echo " make lib - build the main library (in lib/ and lib-static/)"
 	@echo " make examples - compile and run codes in examples/"
-	@echo " make test - compile and run quick math validation tests (double only right now)"
-	@echo " make perftest - compile and run performance tests"
+	@echo " make test - compile and run quick math validation tests"
+	@echo " make perftest - compile and run (slower) performance tests"
 	@echo " make fortran - compile and run Fortran tests and examples"
-	@echo " make matlab - compile MATLAB interfaces"
+	@echo " make matlab - compile MATLAB interfaces (no test)"
 	@echo " make octave - compile and test octave interfaces"
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
-	@echo " make spreadtest - compile & run spreader tests only (no FFTW)"
+	@echo " make spreadtest - compile & run spreader-only tests (no FFTW)"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo "For faster (multicore) making, append, for example, -j8"
 	@echo ""
-	@echo "Compile options:"
+	@echo "Make options:"
 	@echo " 'make [task] OMP=OFF' for single-threaded (otherwise OpenMP)"
 	@echo " You must 'make objclean' before changing such options!"
 	@echo ""
@@ -160,16 +160,7 @@ HEADERS = $(wildcard include/*.h)
 # included auto-generated code dependency...
 src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
 
-# spreader only test, double/single (useful for development work on spreader)...
-spreadtest: test/spreadtestnd test/spreadtestnd_32
-	@echo "running double then single precision spreader tests..."
-	test/spreadtestnd 1 8e6 8e6 1e-6
-	test/spreadtestnd 2 8e6 8e6 1e-6
-	test/spreadtestnd 3 8e6 8e6 1e-6
-	test/spreadtestnd_32 1 8e6 8e6 1e-3
-	test/spreadtestnd_32 2 8e6 8e6 1e-3
-	test/spreadtestnd_32 3 8e6 8e6 1e-3
-
+# lib -----------------------------------------------------------------------
 # build library with double/single prec both bundled in...
 lib: $(STATICLIB) $(DYNLIB)
 $(STATICLIB): $(OBJSD)
@@ -191,11 +182,14 @@ endif
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
 # Also note -l libs come after objects, as per modern GCC requirement.
 
-# Examples in C++ and C... (single prec codes separate, and not all have one)
+
+# examples (C++/C) -----------------------------------------------------------
+# single-prec codes separate, and not all have one
 EXAMPLES = $(basename $(wildcard examples/*.*))
 examples: $(EXAMPLES)
-	@echo "Made: $(EXAMPLES)"
+	@echo "Built and run: $(EXAMPLES)"
 
+# notes: gnu make patterns match those with shortest "stem". They also are run:
 examples/%: examples/%.o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) -o $@
 	./$@
@@ -207,54 +201,61 @@ examples/%cf: examples/%cf.o $(DYNLIB)
 	./$@
 
 
-# validation tests... (some link to .o allowing testing pieces separately)
-TESTS = test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
+# test (library validation) --------------------------------------------------
+# build (skipping .o) but don't run. Run with 'test' target
+# Note: both precisions use same sources; single-prec executables get f suffix.
+# generic tests link against lib.so... (other libs needed for fftw_forget...)
+test/%: test/%.cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+test/%f: test/%.cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+# low-level tests that are cleaner if depend on specific objects...
+test/testutils: test/testutils.cpp src/utils_precindep.o
+	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
+test/testutilsf: test/testutils.cpp src/utils_precindep_32.o
+	$(CXX) $(CXXFLAGS) -DSINGLE test/testutils.cpp src/utils_precindep_32.o $(LIBS) -o test/testutilsf
 
-test: $(STATICLIB) $(TESTS)
-	test/finufft1d_basicpassfail
-	(cd test; \
+# all double-prec test executables
+TESTS := $(basename $(wildcard test/*.cpp))
+# also do single-prec
+TESTS += $(TESTS:%=%f)
+test: $(TESTS)
+	test/basicpassfail
+	test/basicpassfailf
+#	(cd test; \
 	export FINUFFT_REQ_TOL=$(REQ_TOL); \
 	export FINUFFTF_REQ_TOL=$(REQ_TOL_SINGLE); \
 	export FINUFFT_CHECK_TOL=$(CHECK_TOL); \
 	export FINUFFTF_CHECK_TOL=$(CHECK_TOL_SINGLE); \
 	./check_finufft.sh)
 
-# these all link to .o rather than the lib.so, allowing partial build tests...
-# *** should they link lib.so?
-# *** automate this make task better:
-test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJSD)
-	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJSD) $(LIBSFFT) -o test/finufft1d_basicpassfail
-test/testutils: test/testutils.cpp src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
-test/dumbinputs: test/dumbinputs.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJSD) $(LIBSFFT) -o test/dumbinputs
-test/finufft1d_test: test/finufft1d_test.cpp $(OBJSD)
-	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft1d_test
-test/finufft2d_test: test/finufft2d_test.cpp $(OBJSD)
-	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft2d_test
-test/finufft3d_test: test/finufft3d_test.cpp $(OBJSD)
-	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft3d_test
-test/finufft1dmany_test: test/finufft1dmany_test.cpp $(OBJSD)
-	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft1dmany_test
-test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJSD)
-	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft2dmany_test
-test/finufft3dmany_test: test/finufft3dmany_test.cpp $(OBJSD)
-	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft3dmany_test
-test/finufftGuru_test: test/finufftGuru_test.cpp $(OBJSD)
-	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufftGuru_test
 
-# performance tests...
-perftest: test/spreadtestnd test/finufft1d_test test/finufft2d_test test/finufft3d_test
+# perftest (performance/developer tests) -------------------------------------
+# spreader only test, double/single (good for self-contained work on spreader)
+ST=perftest/spreadtestnd
+STF=$(ST)f
+$(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
+	$(CXX) $(CXXFLAGS) $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
+$(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
+	$(CXX) $(CXXFLAGS) -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
+spreadtest: $(ST) $(STF)
+	@echo "\nRunning double-precision spreader tests..."
+	$(ST) 1 8e6 8e6 1e-6
+	$(ST) 2 8e6 8e6 1e-6
+	$(ST) 3 8e6 8e6 1e-6
+	@echo "\nRunning single-precision spreader tests..."
+	$(STF) 1 8e6 8e6 1e-3
+	$(STF) 2 8e6 8e6 1e-3
+	$(STF) 3 8e6 8e6 1e-3
+perftest: $(ST) $(STF) test/finufft1d_test test/finufft2d_test test/finufft3d_test
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
-	(cd test; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
-	(cd test; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
-test/spreadtestnd: test/spreadtestnd.cpp $(SOBJSD)
-	$(CXX) $(CXXFLAGS) test/spreadtestnd.cpp $(SOBJSD) $(LIBS) -o test/spreadtestnd
-	$(CXX) $(CXXFLAGS) -DSINGLE test/spreadtestnd.cpp $(SOBJSD) $(LIBS) -o test/spreadtestnd_32
+	(cd perftest; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
+	(cd perftest; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
 
-# --------------- LANGUAGE INTERFACES -----------------------
 
-# fortran interface...
+# ======================= LANGUAGE INTERFACES ==============================
+
+# fortran --------------------------------------------------------------------
 FD = fortran/directft
 # CMCL NUFFT fortran test codes (only needed by the nufft*_demo* codes)
 CMCLOBJS = $(FD)/dirft1d.o $(FD)/dirft2d.o $(FD)/dirft3d.o $(FD)/dirft1df.o $(FD)/dirft2df.o $(FD)/dirft3df.o $(FD)/prini.o
@@ -273,6 +274,7 @@ $(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
 fortran: $(FE64) $(FE32) $(CMCLOBJS) $(DYNLIB)
 
 
+# matlab ----------------------------------------------------------------------
 # matlab .mex* executable... (not worth starting matlab to test it)
 # note various -D defines; INT64_T needed for mwrap 0.33.9.
 matlab: $(STATICLIB)
@@ -321,8 +323,8 @@ test/manysmallprobs: $(STATICLIB)  test/manysmallprobs.cpp
 clean: objclean pyclean
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
-	rm -f $(TESTS) test/results/*.out
-	rm -f $(EXAMPLES) $(FE64) $(FE32)
+	rm -f $(TESTS) test/core test/results/*.out
+	rm -f $(EXAMPLES) $(FE64) $(FE32) examples/core perftest/core perftest/results/*.out
 
 # indiscriminate .o killer (including old ones); needed before changing threading...
 objclean:

@@ -1,19 +1,10 @@
-#include <finufft.h>
-#include <utils.h>
-#include <utils_precindep.h>
-#include <defs.h>
 #include <test_defs.h>
-
-#include <math.h>
-#include <stdlib.h>
-
-#include <cstdio>
-#include <iostream>
-#include <iomanip>
+// this enforces recompilation, responding to SINGLE...
+#include "directft/dirft3d.cpp"
 using namespace std;
 
 int main(int argc, char* argv[])
-/* Test executable for finufft in 3d many interface, types 1,2, and 3.
+/* Test executable for finufft in 3d many interface, types 1,2, and 3, either prec
 
    Usage: finufft3dmany_test ntransf Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug [spread_thread [maxbatchsize [spreadsort [upsampfac]]]]]]
 
@@ -28,7 +19,7 @@ int main(int argc, char* argv[])
   BIGINT M, N1, N2, N3;          // M = # srcs, N1,N2 = # modes
   int ntransf;                   // # of vectors for "many" interface
   double w, tol = 1e-6;          // default
-  nufft_opts opts; finufft_default_opts(&opts);
+  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc<6 || argc>12) {
@@ -76,7 +67,7 @@ int main(int argc, char* argv[])
 
   printf("test 3d1 many vs repeated single: ------------------------------------\n");
   CNTime timer; timer.start();
-  int ier = finufft3d1many(ntransf,M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
+  int ier = FINUFFT3D1MANY(ntransf,M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   double ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -93,10 +84,10 @@ int main(int argc, char* argv[])
   printf("\tone mode: rel err in F[%lld,%lld,%lld] of trans#%d is %.3g\n",
 	 (long long)nt1,(long long)nt2,(long long)nt3,i,abs(Ft-F[it+i*N])/infnorm(N,F+i*N));
 
-  // compare the result with finufft3d1
+  // compare the result with FINUFFT3D1
   FFTW_FORGET_WISDOM();
   nufft_opts simpleopts=opts;
-  simpleopts.debug = 0;       // don't output timing for calls of finufft3d1
+  simpleopts.debug = 0;       // don't output timing for calls of FINUFFT3D1
   simpleopts.spread_debug = 0;
 
   CPX* cstart;
@@ -107,7 +98,7 @@ int main(int argc, char* argv[])
   {
     cstart = c+k*M;
     Fstart = F_3d1+k*N;
-    ier = finufft3d1(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&simpleopts);
+    ier = FINUFFT3D1(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&simpleopts);
   }
   double t=timer.elapsedsec();
   if (ier!=0) {
@@ -115,7 +106,7 @@ int main(int argc, char* argv[])
     return ier;
   } else
     printf("%d of: %lld NU pts to (%lld,%lld,%lld) modes in %.3g s  \t%.3g NU pts/s\n", ntransf,(long long)M,(long long)N1,(long long)N2,(long long)N3,t,ntransf*M/t);
-  printf("\t\t\tspeedup \t T_finufft3d1 / T_finufft3d1many = %.3g\n", t/ti);
+  printf("\t\t\tspeedup \t T_FINUFFT3D1 / T_finufft3d1many = %.3g\n", t/ti);
 
   // Check accuracy (worst over the ntransf)
   FLT maxerror = 0.0;
@@ -134,7 +125,7 @@ int main(int argc, char* argv[])
   }
   FFTW_FORGET_WISDOM();
   timer.restart();
-  ier = finufft3d2many(ntransf,M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
+  ier = FINUFFT3D2MANY(ntransf,M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -156,14 +147,14 @@ int main(int argc, char* argv[])
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n",(long long)jt,i,abs(ct-c[jt+i*M])/infnorm(M,c+i*M));
 
   FFTW_FORGET_WISDOM();
-  // compare the result with finufft3d2...
+  // compare the result with FINUFFT3D2...
   CPX* c_3d2 = (CPX*)malloc(sizeof(CPX)*M*ntransf);
   timer.restart();
   for (int k=0; k<ntransf; ++k)
   {
     cstart = c_3d2+k*M;
     Fstart = F+k*N;
-    ier = finufft3d2(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&simpleopts);
+    ier = FINUFFT3D2(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&simpleopts);
   }
   t = timer.elapsedsec();
   if (ier!=0) {
@@ -171,7 +162,7 @@ int main(int argc, char* argv[])
     return ier;
   } else
     printf("%d of: (%lld,%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)N1,(long long)N2,(long long)N3,(long long)M,t,ntransf*M/t);
-  printf("\t\t\tspeedup \t T_finufft3d2 / T_finufft3d2many = %.3g\n", t/ti);
+  printf("\t\t\tspeedup \t T_FINUFFT3D2 / T_finufft3d2many = %.3g\n", t/ti);
 
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
@@ -212,7 +203,7 @@ int main(int argc, char* argv[])
   }
 
   timer.restart();
-  ier = finufft3d3many(ntransf,M,x,y,z,c,isign,tol,N,s_freq,t_freq,u_freq,F,&opts);
+  ier = FINUFFT3D3MANY(ntransf,M,x,y,z,c,isign,tol,N,s_freq,t_freq,u_freq,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -228,13 +219,13 @@ int main(int argc, char* argv[])
 printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,abs(Ft-F[kt+i*N])/infnorm(N,F+i*N));
 
   FFTW_FORGET_WISDOM();
-// compare the result with finufft3d3...
+// compare the result with FINUFFT3D3...
   CPX* f_3d3 = (CPX*)malloc(sizeof(CPX)*N*ntransf);
   timer.restart();
   for (int k=0; k<ntransf; ++k) {
     Fstart = f_3d3+k*N;
     cstart = c+k*M;
-    ier = finufft3d3(M,x,y,z,cstart,isign,tol,N, s_freq,t_freq,u_freq,Fstart,&simpleopts);
+    ier = FINUFFT3D3(M,x,y,z,cstart,isign,tol,N, s_freq,t_freq,u_freq,Fstart,&simpleopts);
   }
   t = timer.elapsedsec();
   if (ier!=0) {
@@ -242,7 +233,7 @@ printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,a
     return ier;
   } else
     printf("%d of: %lld NU to %lld NU in %.3g s   \t%.3g tot NU pts/s\n",ntransf, (long long)M,(long long)N,t,ntransf*(M+N)/t);
-  printf("\t\t\tspeedup \t T_finufft3d3 / T_finufft3d3many = %.3g\n", t/ti);
+  printf("\t\t\tspeedup \t T_FINUFFT3D3 / T_finufft3d3many = %.3g\n", t/ti);
   
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)

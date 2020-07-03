@@ -1,4 +1,4 @@
-// test-wide definitions and headers for use in ../test/*.cpp
+// test-wide definitions and headers for use in ../test/*.cpp and ../perftest
 
 #ifndef TEST_DEFS_H
 #define TEST_DEFS_H
@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 // how big a problem to check direct DFT for in 1D...
 #define TEST_BIGPROB 1e8

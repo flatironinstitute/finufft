@@ -2,7 +2,7 @@
 
 **Alex H. Barnett and Jeremy F. Magland**, with additional code by
 Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu,
-and Joakim Anden.
+Joakim Anden, and Garrett Wright.
 
 <p>
 <img src="docs/logo.png" width="350"/>

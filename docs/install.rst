@@ -171,11 +171,11 @@ Compile and do a rapid (less than 1-second) test of FINUFFT via::
   make test
 
 This should compile the main libraries then run tests which should report zero crashes and zero fails. (If numdiff is absent, it instead produces output only about crashes; you will have to check by eye that accuracy is as expected.)
-Note that the very first test run is ``test/finufft1d_basicpassfail`` which
+One test is ``test/basicpassfail`` which
 does include a low-accuracy math test, producing the exit code 0 if success,
 nonzero if fail. You can check the exit code thus::
   
-  test/finufft1d_basicpassfail; echo $?
+  test/basicpassfail; echo $?
 
 Use ``make perftest`` for larger spread/interpolation and NUFFT tests taking 10-20 seconds. This writes into ``test/results/`` where you will be able to compare to results from standard CPUs.
 
@@ -187,30 +187,22 @@ The ``examples`` and ``test`` directories are good places to see usage examples.
 
 ``make fortran`` to compile and run the fortran wrappers and examples.
 
-Note that the library includes fortran interfaces
-defined in ``fortran/finufft_f.h``.
-
 If there is an error in testing on a standard set-up,
 please file a bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
 Custom library compilation options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You may want to make the library for other data types. Currently
-library names are distinct for single precision (``libfinufftf``) vs
-double (``libfinufft``). However, single-threaded vs multithreaded are
+*** UPDATE DUAL-PRECISION LIB
+
+Single-threaded vs multithreaded are
 built with the same name, so you will have to move them to other
 locations, or build a 2nd copy of the repo, if you want to keep both
 versions.
 
-You *must* do at least ``make objclean`` before changing precision or openmp options.
-
-**Single precision**: append ``PREC=SINGLE`` to the make task.
-Single-precision saves half the RAM, and increases
-speed slightly (<20%). The C++, C, and fortran demos are all tested in
-single precision. However, it will break matlab, octave, python interfaces.
-
 **Single-threaded**: append ``OMP=OFF`` to the make task.
+
+You *must* do at least ``make objclean`` before changing this option.
 
 
 Building MATLAB/octave wrappers, including in Mac OSX
