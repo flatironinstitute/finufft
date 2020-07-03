@@ -14,11 +14,11 @@ int main(int argc, char *argv[]){
    arrays of C++ complex numbers, with a math test. Double precision version. 
 
    Compile multithreaded with
-   g++ -fopenmp example2d1.cpp -I ../src ../lib-static/libfinufft.a -o example2d1 -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp simple2d1.cpp -I ../src ../lib-static/libfinufft.a -o simple2d1 -lfftw3 -lfftw3_omp -lm
    single core with:
-   g++ example2d1.cpp -I ../src ../lib-static/libfinufft.a -o example2d1 -lfftw3 -lm
+   g++ simple2d1.cpp -I ../src ../lib-static/libfinufft.a -o simple2d1 -lfftw3 -lm
    
-   Usage:  ./example2d1
+   Usage:  ./simple2d1
 */
 
   int M = 1e6; // number of nonuniform points

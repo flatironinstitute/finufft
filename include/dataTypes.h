@@ -1,13 +1,12 @@
+// ------------ FINUFFT data type definitions ----------------------------------
+
 #if (!defined(DATATYPES_H) && !defined(SINGLE)) || (!defined(DATATYPESF_H) && defined(SINGLE))
-// Make sure we only include once per precision (see finufft_eitherprec.h).
+// Make sure we only include once per precision (as in finufft_eitherprec.h).
 #ifndef SINGLE
 #define DATATYPES_H
 #else
 #define DATATYPESF_H
 #endif
-
-
-// ------------ FINUFFT data type definitions ----------------------------------
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <stdint.h>
@@ -29,6 +28,7 @@ typedef int64_t BIGINT;
 #undef CPX
 
 // Precision-independent real and complex types for interfacing...
+// (note these cannot be typedefs since we want dual-precision library)
 #ifdef SINGLE
   #define FLT float
 #else
@@ -37,4 +37,4 @@ typedef int64_t BIGINT;
 
 #define CPX COMPLEXIFY(FLT)
 
-#endif  // DATATYPE_H or DATATYPEF_H
+#endif  // DATATYPES_H or DATATYPESF_H

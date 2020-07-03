@@ -1,4 +1,5 @@
 // Switchable-precision interface template for FINUFFT. Used by finufft.h
+// Internal use only: users should link to finufft.h
 // Barnett 7/1/20
 
 #if (!defined(FINUFFT_H) && !defined(SINGLE)) || (!defined(FINUFFTF_H) && defined(SINGLE))
