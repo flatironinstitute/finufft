@@ -1,4 +1,5 @@
 #include <finufft.h>
+#include <dataTypes.h>
 #include <dirft.h>
 #include <utils.h>
 #include <utils_precindep.h>

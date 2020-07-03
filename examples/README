@@ -3,10 +3,11 @@ and from C (the .c files).
 
 They are compiled by commands in ../makefile via "make examples".
 
-The suffix "f" which distinguishes example1d1f.cpp from example1d1.cpp
-indicates single-precision as opposed to double-precision. Which is
-compiled is controlled by ../makefile.
+The suffix "f" which distinguishes simple1d1f.cpp from simple1d1.cpp
+indicates single-precision as opposed to double-precision.
 
-For calling from Fortran, see the demos in ../fortran/
+The suffix "c" indicates a C (as opposed to C++) demo.
 
-Alex Barnett 12/6/17
+For calling from Fortran, see the demos in ../fortran/examples
+
+Alex Barnett 12/6/17; 7/1/20.

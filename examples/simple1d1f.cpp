@@ -1,5 +1,5 @@
 // this is all you must include...
-#include <finufftf.h>
+#include <finufft.h>
 #include <complex>
 
 // also needed for this example...
@@ -9,15 +9,14 @@ using namespace std;
 
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C++, using plain
-   arrays of C++ complex numbers, with a math test.
-   Single-precision version (must be linked with single-precision libfinufftf.a)
-   See example1d1 for double-precision.
+   arrays of C++ single-precision complex numbers, with a math test.
+   (See simple1d1 for double-precision version.)
    Barnett 4/3/17. Fixed t1 prefac convention; smaller prob size 9/14/18.
 
    Compile with:
-   g++ -fopenmp example1d1f.cpp -I../include ../lib-static/libfinufftf.a -o example1d1f -lfftw3f -lfftw3f_omp -lm -DSINGLE
+   g++ -fopenmp simple1d1f.cpp -I../include ../lib-static/libfinufft.a -o simple1d1f -lfftw3f -lfftw3f_omp -lm
    or if you have built a single-core version:
-   g++ example1d1f.cpp -I../include ../lib-static/libfinufftf.a -o example1d1f -lfftw3f -lm -DSINGLE
+   g++ simple1d1f.cpp -I../include ../lib-static/libfinufft.a -o simple1d1f -lfftw3f -lm
 
    Usage: ./example1d1f
 */
@@ -25,7 +24,7 @@ int main(int argc, char* argv[])
   int M = 1e5;            // number of nonuniform points
   int N = 1e5;            // number of modes (NB if too large lose acc in 1d)
   float acc = 1e-3;       // desired accuracy
-  nufft_opts opts; finufftf_default_opts(&opts);
+  nufft_opts opts; finufftf_default_opts(&opts);  // note finufft "f" suffix
   complex<float> I = complex<float>(0.0,1.0);  // the imaginary unit
   
   // generate some random nonuniform points (x) and complex strengths (c):
@@ -39,7 +38,7 @@ int main(int argc, char* argv[])
   complex<float>* F = (complex<float>*)malloc(sizeof(complex<float>)*N);
 
   // call the NUFFT (with iflag=+1): N,M will be typecast to BIGINT
-  int ier = finufftf1d1(M,x,c,+1,acc,N,F,&opts);
+  int ier = finufftf1d1(M,x,c,+1,acc,N,F,&opts);    // note finufft "f" suffix
 
   int n = 14251;   // check the answer just for this mode...
   complex<float> Ftest = complex<float>(0,0);

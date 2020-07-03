@@ -1,7 +1,12 @@
-#ifndef DATATYPE_H
-#define DATATYPE_H
-
 // ------------ FINUFFT data type definitions ----------------------------------
+
+#if (!defined(DATATYPES_H) && !defined(SINGLE)) || (!defined(DATATYPESF_H) && defined(SINGLE))
+// Make sure we only include once per precision (as in finufft_eitherprec.h).
+#ifndef SINGLE
+#define DATATYPES_H
+#else
+#define DATATYPESF_H
+#endif
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <stdint.h>
@@ -13,25 +18,23 @@ typedef int64_t BIGINT;
 // decide which kind of complex numbers to use in interface...
 #ifdef __cplusplus
 #include <complex>          // C++ type
+#define COMPLEXIFY(X) std::complex<X>
 #else
 #include <complex.h>        // C99 type
+#define COMPLEXIFY(X) X complex
 #endif
+
+#undef FLT
+#undef CPX
 
 // Precision-independent real and complex types for interfacing...
+// (note these cannot be typedefs since we want dual-precision library)
 #ifdef SINGLE
-  typedef float FLT;
-  #ifdef __cplusplus
-    typedef std::complex<float> CPX;
-  #else
-    typedef float complex CPX;
-  #endif
+  #define FLT float
 #else
-  typedef double FLT;
-  #ifdef __cplusplus
-    typedef std::complex<double> CPX;
-  #else
-    typedef double complex CPX;
-  #endif
+  #define FLT double
 #endif
 
-#endif  // DATATYPE_H
+#define CPX COMPLEXIFY(FLT)
+
+#endif  // DATATYPES_H or DATATYPESF_H
