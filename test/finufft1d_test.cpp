@@ -1,21 +1,10 @@
-#include <finufft.h>
-#include <dataTypes.h>
-#include <dirft.h>
-#include <utils.h>
-#include <utils_precindep.h>
-#include <defs.h>
 #include <test_defs.h>
-
-#include <math.h>
-#include <stdlib.h>
-
-#include <cstdio>
-#include <iostream>
-#include <iomanip>
+// this enforces recompilation, responding to SINGLE...
+#include "directft/dirft1d.cpp"
 using namespace std;
 
 int main(int argc, char* argv[])
-/* Test executable for finufft in 1d, all 3 types.
+/* Test executable for finufft in 1d, all 3 types, either precision
 
    Usage: finufft1d_test Nmodes Nsrc [tol [debug [spread_sort [upsampfac]]]]
 
@@ -29,7 +18,7 @@ int main(int argc, char* argv[])
 {
   BIGINT M, N;   // M = # srcs, N = # modes out
   double w, tol = 1e-6;      // default
-  nufft_opts opts; finufft_default_opts(&opts);  // put defaults in opts
+  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);  // put defaults in opts
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;            // choose which exponential sign to test
   if (argc<3 || argc>7) {
@@ -63,7 +52,7 @@ int main(int argc, char* argv[])
 
   printf("test 1d type 1:\n"); // -------------- type 1
   CNTime timer; timer.start();
-  int ier = finufft1d1(M,x,c,isign,tol,N,F,&opts);
+  int ier = FINUFFT1D1(M,x,c,isign,tol,N,F,&opts);
   //for (int j=0;j<N;++j) cout<<F[j]<<endl;
   double t=timer.elapsedsec();
   if (ier!=0) {
@@ -94,7 +83,7 @@ int main(int argc, char* argv[])
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
-  ier = finufft1d2(M,x,c,isign,tol,N,F,&opts);
+  ier = FINUFFT1D2(M,x,c,isign,tol,N,F,&opts);
   //cout<<"c:\n"; for (int j=0;j<M;++j) cout<<c[j]<<endl;
   t=timer.elapsedsec();
   if (ier!=0) {
@@ -135,7 +124,7 @@ int main(int argc, char* argv[])
     for (BIGINT k=0; k<N; ++k) s[k] = S*(1.7 + randm11r(&se)); //S*(1.7 + k/(FLT)N); // offset
   }
   timer.restart();
-  ier = finufft1d3(M,x,c,isign,tol,N,s,F,&opts);
+  ier = FINUFFT1D3(M,x,c,isign,tol,N,s,F,&opts);
   t=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

@@ -210,9 +210,6 @@ examples/%cf: examples/%cf.o $(DYNLIB)
 # validation tests... (some link to .o allowing testing pieces separately)
 TESTS = test/testutils test/finufft1d_test test/finufft2d_test test/finufft3d_test test/dumbinputs test/finufft3dmany_test test/finufft2dmany_test test/finufft1dmany_test test/finufftGuru_test test/finufft1d_basicpassfail
 
-# slow FTs in C++, for testing only
-DOS = test/directft/dirft1d.o test/directft/dirft2d.o test/directft/dirft3d.o
-
 test: $(STATICLIB) $(TESTS)
 	test/finufft1d_basicpassfail
 	(cd test; \
@@ -224,18 +221,19 @@ test: $(STATICLIB) $(TESTS)
 
 # these all link to .o rather than the lib.so, allowing partial build tests...
 # *** should they link lib.so?
+# *** automate this make task better:
 test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJSD)
 	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJSD) $(LIBSFFT) -o test/finufft1d_basicpassfail
 test/testutils: test/testutils.cpp src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
-test/dumbinputs: test/dumbinputs.cpp $(DYNLIB) $(DOS)
-	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJSD) $(DOS) $(LIBSFFT) -o test/dumbinputs
-test/finufft1d_test: test/finufft1d_test.cpp $(OBJSD) $(DOS)
-	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJSD) $(DOS) $(LIBSFFT) -o test/finufft1d_test
-test/finufft2d_test: test/finufft2d_test.cpp $(OBJSD) $(DOS)
-	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJSD) $(DOS) $(LIBSFFT) -o test/finufft2d_test
-test/finufft3d_test: test/finufft3d_test.cpp $(OBJSD) $(DOS)
-	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJSD) $(DOS) $(LIBSFFT) -o test/finufft3d_test
+test/dumbinputs: test/dumbinputs.cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJSD) $(LIBSFFT) -o test/dumbinputs
+test/finufft1d_test: test/finufft1d_test.cpp $(OBJSD)
+	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft1d_test
+test/finufft2d_test: test/finufft2d_test.cpp $(OBJSD)
+	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft2d_test
+test/finufft3d_test: test/finufft3d_test.cpp $(OBJSD)
+	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft3d_test
 test/finufft1dmany_test: test/finufft1dmany_test.cpp $(OBJSD)
 	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft1dmany_test
 test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJSD)

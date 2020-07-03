@@ -1,7 +1,22 @@
-// test-wide definitions for use in ../test/*.cpp
+// test-wide definitions and headers for use in ../test/*.cpp
 
 #ifndef TEST_DEFS_H
 #define TEST_DEFS_H
+
+// responds to SINGLE, and defines FINUFFT?D? used in test/*.cpp
+#include <finufft_eitherprec.h>
+
+// convenient finufft internals
+#include <utils.h>
+#include <utils_precindep.h>
+#include <defs.h>
+
+// std stuff
+#include <math.h>
+#include <stdlib.h>
+#include <cstdio>
+#include <iostream>
+#include <iomanip>
 
 // how big a problem to check direct DFT for in 1D...
 #define TEST_BIGPROB 1e8

@@ -1,20 +1,10 @@
-#include <finufft.h>
-#include <dirft.h>
-#include <utils.h>
-#include <utils_precindep.h>
-#include <defs.h>
 #include <test_defs.h>
-
-#include <math.h>
-#include <stdlib.h>
-
-#include <cstdio>
-#include <iostream>
-#include <iomanip>
+// this enforces recompilation, responding to SINGLE...
+#include "directft/dirft2d.cpp"
 using namespace std;
 
 int main(int argc, char* argv[])
-/* Test executable for finufft in 2d, all 3 types
+/* Test executable for finufft in 2d, all 3 types, either precision
 
    Usage: finufft2d_test Nmodes1 Nmodes2 Nsrc [tol [debug [spread_sort [upsampfac]]]]
 
@@ -28,7 +18,7 @@ int main(int argc, char* argv[])
 {
   BIGINT M, N1, N2;              // M = # srcs, N1,N2 = # modes
   double w, tol = 1e-6;          // default
-  nufft_opts opts; finufft_default_opts(&opts);
+  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc<4 || argc>8) {
@@ -64,7 +54,7 @@ int main(int argc, char* argv[])
 
   printf("test 2d type 1:\n"); // -------------- type 1
   CNTime timer; timer.start();
-  int ier = finufft2d1(M,x,y,c,isign,tol,N1,N2,F,&opts);
+  int ier = FINUFFT2D1(M,x,y,c,isign,tol,N1,N2,F,&opts);
   double ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -93,7 +83,7 @@ int main(int argc, char* argv[])
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
-  ier = finufft2d2(M,x,y,c,isign,tol,N1,N2,F,&opts);
+  ier = FINUFFT2D2(M,x,y,c,isign,tol,N1,N2,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);
@@ -140,7 +130,7 @@ int main(int argc, char* argv[])
     }
   }
   timer.restart();
-  ier = finufft2d3(M,x,y,c,isign,tol,N,s,t,F,&opts);
+  ier = FINUFFT2D3(M,x,y,c,isign,tol,N,s,t,F,&opts);
   ti=timer.elapsedsec();
   if (ier!=0) {
     printf("error (ier=%d)!\n",ier);

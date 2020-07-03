@@ -1,12 +1,4 @@
-#include <finufft.h>
-#include <dirft.h>
-#include <dataTypes.h>
-#include <defs.h>
-#include <utils.h>
-#include <complex>
-
-#include <cstdio>
-#include <stdlib.h>
+#include <test_defs.h>
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -17,6 +9,7 @@ int main(int argc, char* argv[])
    Barnett 3/14/17, updated Andrea Malleo, summer 2019.
    Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
    guru: makeplan followed by immediate destroy. Barnett 5/26/20.
+   Either precision with dual-prec lib funcs 7/2/20
 
    Compile with (better to go up a directory and use: make test/dumbinputs) :
    g++ -std=c++14 -fopenmp dumbinputs.cpp -I ../include directft/dirft1d.o ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
@@ -34,7 +27,7 @@ int main(int argc, char* argv[])
   int M = 100;            // number of nonuniform points
   int N = 10;             // # modes, keep small, also output NU pts in type 3
   FLT acc = 1e-6;         // desired accuracy
-  nufft_opts opts; finufft_default_opts(&opts);
+  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
 
   int NN = N*N*N;         // modes F alloc size since we'll go to 3d
   // generate some "random" nonuniform points (x) and complex strengths (c):

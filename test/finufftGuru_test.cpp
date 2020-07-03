@@ -1,19 +1,7 @@
-#include <finufft.h>
-#include <utils.h>
-#include <utils_precindep.h>
-#include <defs.h>
 #include <test_defs.h>
-
-#include <math.h>
-#include <stdlib.h>
 // for sleep call
 #include <unistd.h>
-
-#include <cstdio>
-#include <iostream>
-#include <iomanip>
 using namespace std;
-
 
 // forward declaration of helper to (repeatedly if needed) call finufft?d?
 double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,finufft_plan *plan);
@@ -21,7 +9,8 @@ double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,finufft_plan *plan);
 
 // --------------------------------------------------------------------------
 int main(int argc, char* argv[])
-/* Test/demo the guru interface, for many transforms with same NU pts.
+/* Test/demo the guru interface, for many transforms with same NU pts, either
+   precisions.
 
    Warning: unlike the finufft?d{many}_test routines, this does *not* perform
    a math test of the library, just consistency of the simple vs guru
@@ -53,7 +42,7 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;
   int isign = +1;             // choose which exponential sign to test
   nufft_opts opts;
-  finufft_default_opts(&opts);   // for guru interface
+  FINUFFT_DEFAULT_OPTS(&opts);   // for guru interface
   
   // Collect command line arguments ------------------------------------------
   if (argc<8 || argc>14) {
@@ -147,7 +136,7 @@ int main(int argc, char* argv[])
   finufft_plan plan;                  // instantiate a finufft_plan
   CNTime timer; timer.start();        // Guru Step 1
   BIGINT n_modes[3] = {N1,N2,N3};     // #modes per dimension (ignored for t3)
-  int ier = finufft_makeplan(type, ndim, n_modes, isign, ntransf, tol, &plan, &opts);
+  int ier = FINUFFT_MAKEPLAN(type, ndim, n_modes, isign, ntransf, tol, &plan, &opts);
   // (NB: the opts struct can no longer be modified with effect!)
   double plan_t = timer.elapsedsec();
   if (ier>1) {
@@ -161,7 +150,7 @@ int main(int argc, char* argv[])
   }
   
   timer.restart();                    // Guru Step 2
-  ier = finufft_setpts(&plan, M, x, y, z, N, s, t, u); //(t1,2: N,s,t,u ignored)
+  ier = FINUFFT_SETPTS(&plan, M, x, y, z, N, s, t, u); //(t1,2: N,s,t,u ignored)
   double sort_t = timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);
@@ -174,7 +163,7 @@ int main(int argc, char* argv[])
   }
   
   timer.restart();                     // Guru Step 3
-  ier = finufft_exec(&plan,c,F);
+  ier = FINUFFT_EXEC(&plan,c,F);
   double exec_t=timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);
@@ -183,7 +172,7 @@ int main(int argc, char* argv[])
     printf("\texec \t\t\t\t\t%.3g s\n", exec_t);
 
   timer.restart();                     // Guru Step 4
-  finufft_destroy(&plan);
+  FINUFFT_DESTROY(&plan);
   double destroy_t = timer.elapsedsec();
   printf("\tdestroy\t\t\t\t\t%.3g s\n", destroy_t);
   
@@ -257,7 +246,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
 
     case 1:
       timer.restart();
-      ier = finufft1d1(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->ms, fStart, popts);
+      ier = FINUFFT1D1(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->ms, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
 	return fail;
@@ -266,7 +255,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
       
     case 2:
       timer.restart();
-      ier = finufft1d2(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->ms, fStart, popts);
+      ier = FINUFFT1D2(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->ms, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
 	return fail;
@@ -275,7 +264,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
       
     case 3:
       timer.restart();
-      ier = finufft1d3(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->nk, plan->S, fStart, popts);
+      ier = FINUFFT1D3(plan->nj, x, cStart, plan->fftSign, plan->tol, plan->nk, plan->S, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
 	return fail;
@@ -291,7 +280,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
       
     case 1:
       timer.restart();
-      ier = finufft2d1(plan->nj, x,y, cStart, plan->fftSign, plan->tol, plan->ms, plan->mt, fStart, popts);
+      ier = FINUFFT2D1(plan->nj, x,y, cStart, plan->fftSign, plan->tol, plan->ms, plan->mt, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
 	return fail;
@@ -300,7 +289,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
       
     case 2:
       timer.restart();
-      ier = finufft2d2(plan->nj, x,y, cStart, plan->fftSign, plan->tol, plan->ms, plan->mt,
+      ier = FINUFFT2D2(plan->nj, x,y, cStart, plan->fftSign, plan->tol, plan->ms, plan->mt,
      		       fStart, popts);
       t = timer.elapsedsec();
       if(ier)
@@ -310,7 +299,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
 
     case 3:
       timer.restart();
-      ier = finufft2d3(plan->nj, x,y, cStart, plan->fftSign, plan->tol, plan->nk, plan->S, plan->T,
+      ier = FINUFFT2D3(plan->nj, x,y, cStart, plan->fftSign, plan->tol, plan->nk, plan->S, plan->T,
                        fStart, popts); 
       t = timer.elapsedsec();
       if(ier)
@@ -327,7 +316,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
 
     case 1:
       timer.restart();
-      ier = finufft3d1(plan->nj, x,y,z, cStart, plan->fftSign, plan->tol,
+      ier = FINUFFT3D1(plan->nj, x,y,z, cStart, plan->fftSign, plan->tol,
                        plan->ms, plan->mt, plan->mu, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
@@ -337,7 +326,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
       
     case 2:
       timer.restart();
-      ier = finufft3d2(plan->nj, x,y,z, cStart, plan->fftSign, plan->tol,
+      ier = FINUFFT3D2(plan->nj, x,y,z, cStart, plan->fftSign, plan->tol,
                        plan->ms, plan->mt, plan->mu, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
@@ -347,7 +336,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
       
     case 3:
       timer.restart();
-      ier = finufft3d3(plan->nj, x,y,z, cStart, plan->fftSign, plan->tol,
+      ier = FINUFFT3D3(plan->nj, x,y,z, cStart, plan->fftSign, plan->tol,
                        plan->nk, plan->S, plan->T, plan->U, fStart, popts);
       t = timer.elapsedsec();
       if(ier)
