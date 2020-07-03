@@ -225,26 +225,26 @@ test: $(STATICLIB) $(TESTS)
 	./check_finufft.sh)
 
 # these all link to .o rather than the lib.so, for simplicity...
-test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJS)
-	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJS) $(LIBSFFT) -o test/finufft1d_basicpassfail
+test/finufft1d_basicpassfail: test/finufft1d_basicpassfail.cpp $(OBJSD)
+	$(CXX) $(CXXFLAGS) test/finufft1d_basicpassfail.cpp $(OBJSD) $(LIBSFFT) -o test/finufft1d_basicpassfail
 test/testutils: test/testutils.cpp src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
 test/dumbinputs: test/dumbinputs.cpp $(DYNLIB) $(DO1)
-	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJS) $(DO1) $(LIBSFFT) -o test/dumbinputs
-test/finufft1d_test: test/finufft1d_test.cpp $(OBJS) $(DO1)
-	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJS) $(DO1) $(LIBSFFT) -o test/finufft1d_test
-test/finufft2d_test: test/finufft2d_test.cpp $(OBJS) $(DO2)
-	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJS) $(DO2) $(LIBSFFT) -o test/finufft2d_test
-test/finufft3d_test: test/finufft3d_test.cpp $(OBJS) $(DO3)
-	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJS) $(DO3) $(LIBSFFT) -o test/finufft3d_test
-test/finufft1dmany_test: test/finufft1dmany_test.cpp $(OBJS)
-	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(OBJS) $(LIBSFFT) -o test/finufft1dmany_test
-test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJS)
-	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJS) $(LIBSFFT) -o test/finufft2dmany_test
-test/finufft3dmany_test: test/finufft3dmany_test.cpp $(OBJS)
-	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(OBJS) $(LIBSFFT) -o test/finufft3dmany_test
-test/finufftGuru_test: test/finufftGuru_test.cpp $(OBJS)
-	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp $(OBJS) $(LIBSFFT) -o test/finufftGuru_test
+	$(CXX) $(CXXFLAGS) test/dumbinputs.cpp $(OBJSD) $(DO1) $(LIBSFFT) -o test/dumbinputs
+test/finufft1d_test: test/finufft1d_test.cpp $(OBJSD) $(DO1)
+	$(CXX) $(CXXFLAGS) test/finufft1d_test.cpp $(OBJSD) $(DO1) $(LIBSFFT) -o test/finufft1d_test
+test/finufft2d_test: test/finufft2d_test.cpp $(OBJSD) $(DO2)
+	$(CXX) $(CXXFLAGS) test/finufft2d_test.cpp $(OBJSD) $(DO2) $(LIBSFFT) -o test/finufft2d_test
+test/finufft3d_test: test/finufft3d_test.cpp $(OBJSD) $(DO3)
+	$(CXX) $(CXXFLAGS) test/finufft3d_test.cpp $(OBJSD) $(DO3) $(LIBSFFT) -o test/finufft3d_test
+test/finufft1dmany_test: test/finufft1dmany_test.cpp $(OBJSD)
+	$(CXX) $(CXXFLAGS) test/finufft1dmany_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft1dmany_test
+test/finufft2dmany_test: test/finufft2dmany_test.cpp $(OBJSD)
+	$(CXX) $(CXXFLAGS) test/finufft2dmany_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft2dmany_test
+test/finufft3dmany_test: test/finufft3dmany_test.cpp $(OBJSD)
+	$(CXX) $(CXXFLAGS) test/finufft3dmany_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufft3dmany_test
+test/finufftGuru_test: test/finufftGuru_test.cpp $(OBJSD)
+	$(CXX) $(CXXFLAGS) test/finufftGuru_test.cpp $(OBJSD) $(LIBSFFT) -o test/finufftGuru_test
 
 
 # performance tests...
