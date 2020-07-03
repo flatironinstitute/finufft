@@ -180,18 +180,16 @@ endif
 # single-prec codes separate, and not all have one
 EXAMPLES = $(basename $(wildcard examples/*.*))
 examples: $(EXAMPLES)
-	@echo "Built and run: $(EXAMPLES)"
-
-# notes: gnu make patterns match those with shortest "stem". They also are run:
+# this task always runs them (note escaped $ to pass to bash)...
+	for i in $(EXAMPLES); do echo $$i...; ./$$i; done
+	@echo "Done running: $(EXAMPLES)"
+# fun fact: gnu make patterns match those with shortest "stem", so this works:
 examples/%: examples/%.o $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) -o $@
-	./$@
 examples/%c: examples/%c.o $(DYNLIB)
 	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
-	./$@
 examples/%cf: examples/%cf.o $(DYNLIB)
 	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
-	./$@
 
 
 # test (library validation) --------------------------------------------------
@@ -250,8 +248,10 @@ CMCLOBJS = $(FD)/dirft1d.o $(FD)/dirft2d.o $(FD)/dirft3d.o $(FD)/dirft1df.o $(FD
 FE_DIR = fortran/examples
 FE64 = $(FE_DIR)/simple1d1 $(FE_DIR)/guru1d1 $(FE_DIR)/nufft1d_demo $(FE_DIR)/nufft2d_demo $(FE_DIR)/nufft3d_demo $(FE_DIR)/nufft2dmany_demo
 FE32 = $(FE64:%=%f)
+# all the fortran examples...
+FE = $(FE64) $(FE32)
 
-#fortran target pattern match
+# fortran target pattern match
 $(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB)
 	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
@@ -259,7 +259,10 @@ $(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
 	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
 
-fortran: $(FE64) $(FE32) $(CMCLOBJS) $(DYNLIB)
+fortran: $(FE)
+# task always runs them (note escaped $ to pass to bash)...
+	for i in $(FE); do echo $$i...; ./$$i; done
+	@echo "Done running: $(FE)"
 
 
 # matlab ----------------------------------------------------------------------

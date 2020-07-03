@@ -1,9 +1,13 @@
 #!/bin/bash
 
 # Main validation tests for FINUFFT library.
+# Usage:
 # To do double-precision tests:   ./check_finufft.sh
 # To do single-precision tests:   ./check_finufft.sh SINGLE
-# In total these tests take about 5 seconds on a modern machine.
+
+# In total these tests take about 5 seconds on a modern machine with the
+# default compile in multithreading, or 2 seconds if built with OMP=OFF.
+# (This sounds backwards, but is true; believed OMP overhead in finufft calls.)
 
 # Also see: check?d.sh
 
