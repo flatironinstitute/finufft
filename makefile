@@ -195,7 +195,7 @@ examples/%cf: examples/%cf.o $(DYNLIB)
 # test (library validation) --------------------------------------------------
 # build (skipping .o) but don't run. Run with 'test' target
 # Note: both precisions use same sources; single-prec executables get f suffix.
-# generic tests link against lib.so... (other libs needed for fftw_forget...)
+# generic tests link against our .so... (other libs needed for fftw_forget...)
 test/%: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 test/%f: test/%.cpp $(DYNLIB)
@@ -236,10 +236,16 @@ spreadtest: $(ST) $(STF)
 	$(STF) 2 8e6 8e6 1e-3
 	$(STF) 3 8e6 8e6 1e-3
 
-perftest: $(ST) $(STF) $(wildcard test/finufft?d_test?)
+PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
+PERFEXECS += $(PERFEXECS:%=%f)
+perftest: $(ST) $(STF) $(PERFEXECS)
+	@echo $(PERFEXECS)
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
-	(cd perftest; ./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt)
-	(cd perftest; ./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
+	(cd perftest ;\
+	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
+	./spreadtestnd.sh SINGLE 2>&1 | tee results/spreadtestndf_results.txt ;\
+	./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt ;\
+	./nuffttestnd.sh SINGLE 2>&1 | tee results/nuffttestndf_results.txt )
 
 # This was for a CCQ application; zgemm was 10x faster! double-prec only
 perftest/manysmallprobs: perftest/manysmallprobs.cpp $(STATICLIB)
