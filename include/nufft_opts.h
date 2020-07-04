@@ -1,10 +1,8 @@
 #ifndef OPTS_H
 #define OPTS_H
 
-#include "dataTypes.h"
-
 // ------------------- Struct for user-controllable options ------------------
-// Deliberately a plain C struct. Needs the FLT typedef from dataTypes.h
+// Deliberately a plain C struct, without special types
 
 typedef struct nufft_opts{      // Note: defaults set in common/finufft_default_opts()
   int debug;          // 0: silent, 1: text basic timing output
@@ -16,7 +14,7 @@ typedef struct nufft_opts{      // Note: defaults set in common/finufft_default_
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan but faster)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
-  FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
+  double upsampfac;   // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
   int spread_thread;  // for ntrans>1 only. 0:auto, 1 sequential multithreaded, 2 parallel singlethreaded
   int maxbatchsize;   // for ntrans>1 only. max blocking size for vectorized, 0 for auto-set
   int showwarn;       // 0: don't print warnings to stderr; 1: do

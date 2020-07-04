@@ -284,25 +284,27 @@ fortran: $(FE)
 
 # matlab ----------------------------------------------------------------------
 # matlab .mex* executable... (not worth starting matlab to test it)
-# note various -D defines; INT64_T needed for mwrap 0.33.9.
-matlab: $(STATICLIB)
-	$(MEX) matlab/finufft.cpp $(STATICLIB) $(INCL) $(MFLAGS) $(LIBSFFT) -output matlab/finufft
+matlab: matlab/finufft.cpp $(STATICLIB)
+	$(MEX) $< $(STATICLIB) $(INCL) $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
 # octave .mex executable... (also creates matlab/finufft.o for some reason)
-octave: $(STATICLIB)
+octave: matlab/finufft.cpp $(STATICLIB)
 	(cd matlab; mkoctfile --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
 	@echo "Running octave interface test; please wait a few seconds..."
 	(cd matlab; octave test/guru1dtest.m)
 
-# for experts: force rebuilds fresh MEX (matlab/octave) gateway via mwrap...
-# (needs mwrap, moreover a recent version, eg 0.33.10)
+# for experts: force rebuilds fresh MEX (matlab/octave) gateway
+# matlab/finufft.cpp via mwrap (needs recent version of mwrap, eg 0.33.10)...
 mex: matlab/finufft.mw
-	(cd matlab;\
+	(cd matlab ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
 
+
+# python ---------------------------------------------------------------------
 # python interfaces (v3 assumed)...
 python: $(STATICLIB) $(DYNLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; pip install .)
+# note to devs: if trouble w/ numpy, use: pip install . --no-deps
 	python python/test/python_guru1d1.py
 	python python/test/demo1d1.py
 	python python/test/run_accuracy_tests.py
@@ -322,7 +324,7 @@ clean: objclean pyclean
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
-	rm -f $(EXAMPLES) $(FE)
+	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) perftest/manysmallprobs
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
 
 # indiscriminate .o killer; needed before changing threading...

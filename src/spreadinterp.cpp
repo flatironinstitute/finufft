@@ -499,8 +499,8 @@ int spreadinterpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 
 ///////////////////////////////////////////////////////////////////////////
 
-int setup_spreader(spread_opts &opts, FLT eps, FLT upsampfac, int kerevalmeth,
-                   int debug, int showwarn)
+int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
+                   int kerevalmeth, int debug, int showwarn)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
    (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
@@ -515,18 +515,18 @@ int setup_spreader(spread_opts &opts, FLT eps, FLT upsampfac, int kerevalmeth,
    Barnett 2017. debug, loosened eps logic 6/14/20.
 */
 {
-  if (upsampfac!=(FLT)2.0 && upsampfac!=(FLT)1.25) {   // nonstandard sigma
+  if (upsampfac!=2.0 && upsampfac!=1.25) {   // nonstandard sigma
     if (kerevalmeth==1) {
-      fprintf(stderr,"FINUFFT setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",(double)upsampfac);
+      fprintf(stderr,"FINUFFT setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",upsampfac);
       return ERR_HORNER_WRONG_BETA;
     }
     if (upsampfac<=1.0) {       // no digits would result
-      fprintf(stderr,"FINUFFT setup_spreader: error, upsampfac=%.3g is <=1.0\n",(double)upsampfac);
+      fprintf(stderr,"FINUFFT setup_spreader: error, upsampfac=%.3g is <=1.0\n",upsampfac);
       return ERR_UPSAMPFAC_TOO_SMALL;
     }
     // calling routine must abort on above errors, since opts is garbage!
     if (showwarn && upsampfac>4.0)
-      fprintf(stderr,"FINUFFT setup_spreader warning: upsampfac=%.3g way too large to be beneficial.\n",(double)upsampfac);
+      fprintf(stderr,"FINUFFT setup_spreader warning: upsampfac=%.3g way too large to be beneficial.\n",upsampfac);
   }
     
   // spread_opts defaults... (some overridden in setup_spreader_for_nufft)
@@ -552,12 +552,12 @@ int setup_spreader(spread_opts &opts, FLT eps, FLT upsampfac, int kerevalmeth,
   if (upsampfac==2.0)           // standard sigma (see SISC paper)
     ns = std::ceil(-log10(eps/(FLT)10.0));          // 1 digit per power of 10
   else                          // custom sigma
-    ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
+    ns = std::ceil(-log(eps) / (PI*sqrt(1.0-1.0/upsampfac)));  // formula, gam=1
   ns = max(2,ns);               // (we don't have ns=1 version yet)
   if (ns>MAX_NSPREAD) {         // clip to fit allocated arrays, Horner rules
     if (showwarn)
       fprintf(stderr,"FINUFFT setup_spreader warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",
-              (double)upsampfac,(double)eps,ns,MAX_NSPREAD);
+              upsampfac,(double)eps,ns,MAX_NSPREAD);
     ns = MAX_NSPREAD;
     ier = WARN_EPS_TOO_SMALL;
   }
@@ -573,7 +573,7 @@ int setup_spreader(spread_opts &opts, FLT eps, FLT upsampfac, int kerevalmeth,
   if (ns==4) betaoverns = 2.38;
   if (upsampfac!=2.0) {          // again, override beta for custom sigma
     FLT gamma=0.97;              // must match devel/gen_all_horner_C_code.m !
-    betaoverns = gamma*PI*(1-1/(2*upsampfac));  // formula based on cutoff
+    betaoverns = gamma*PI*(1.0-1.0/(2*upsampfac));  // formula based on cutoff
   }
   opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
   if (debug)
@@ -663,9 +663,9 @@ static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
     FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
-    if (opts.upsampfac==(FLT)2.0) {     // floating point equality is fine here
+    if (opts.upsampfac==2.0) {     // floating point equality is fine here
 #include "ker_horner_allw_loop.c"
-    } else if (opts.upsampfac==(FLT)1.25) {
+    } else if (opts.upsampfac==1.25) {
 #include "ker_lowupsampfac_horner_allw_loop.c"
     } else
       fprintf(stderr,"eval_kernel_vec_Horner: unknown upsampfac, failed!\n");

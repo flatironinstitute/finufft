@@ -9,9 +9,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <fftw3.h>
-#include "finufft.h"
+// this is double-prec only for now...
+#include "finufft_eitherprec.h"
 #include "utils.h"
-#include "utils_fp.h"
+#include "utils_precindep.h"
 #include "defs.h"
 
 namespace py = pybind11;

@@ -39,7 +39,7 @@ Summary of options and quick advice
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Here is the 1-line summary of each option, with the full specifications below
-(see the header ``include/finufft.h``)::
+(see the header ``include/nufft_opts.h``)::
 
   int debug;          // 0: silent, 1: text basic timing output
   int spread_debug;   // passed to spread_opts, 0 (no text) 1 (some) or 2 (lots)
@@ -50,11 +50,11 @@ Here is the 1-line summary of each option, with the full specifications below
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan, faster run)
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
-  FLT upsampfac;      // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
+  double upsampfac;   // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
   int spread_thread;  // for ntrans>1 only. 0: auto, 1: sequential multithreaded, 2: parallel singlethreaded, 3: nested multithreaded
   int maxbatchsize;   // for ntrans>1 only. max chunk size of data vectors. 0: auto
 
-Here are their default settings (set in ``src/common.cpp:finufft_default_opts``)::
+Here are their default settings (set in ``src/finufft.cpp:finufft_default_opts``)::
 
   debug = 0;
   spread_debug = 0;
@@ -128,7 +128,7 @@ Usage and design notes
   In fortran the interface is still 32-bit integers, limiting to
   array sizes <2^31. The fortran interface needs to be improved.
 
-- C++ is used for all main libraries, almost entirely avoiding object-oriented code. C++ ``std::complex<double>`` (typedef'ed to ``CPX`` and sometimes ``dcomplex``) and FFTW complex types are mixed within the library, since to some extent our library is a glorified driver for FFTW. FFTW was considered universal and essential enough to be a dependency for the whole package.
+- C++ is used for all main libraries, almost entirely avoiding object-oriented code. C++ ``std::complex<double>`` (macroed to ``CPX`` and sometimes ``dcomplex``) and FFTW complex types are mixed within the library, since to some extent our library is a glorified driver for FFTW. FFTW was considered universal and essential enough to be a dependency for the whole package.
 
 - There is a hard-defined limit of ``1e11`` for the size of internal FFT arrays, set in ``defs.h`` as ``MAX_NF``: if your machine has RAM of order 1TB, and you need it, set this larger and recompile. The point of this is to catch ridiculous-sized mallocs and exit gracefully. Note that mallocs smaller than this, but which still exceed available RAM, cause segfaults as usual. For simplicity of code, we do not do error checking on every malloc.
 

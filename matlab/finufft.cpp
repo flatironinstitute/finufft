@@ -38,7 +38,7 @@
        oc->modeord = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
      }
      else if (strcmp(fname[ifield],"upsampfac") == 0) {
-       oc->upsampfac = (FLT)*mxGetPr(mxGetFieldByNumber(om,idx,ifield));
+       oc->upsampfac = (double)*mxGetPr(mxGetFieldByNumber(om,idx,ifield));
      }
      else if (strcmp(fname[ifield],"spread_thread") == 0) {
        oc->spread_thread = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));

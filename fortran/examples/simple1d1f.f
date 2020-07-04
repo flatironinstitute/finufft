@@ -27,8 +27,8 @@ c     note some inputs are int (int*4) but others BIGINT (int*8)
 
 c     this (when unallocated) passes a NULL ptr (0 value) to FINUFFT...
       integer*8, allocatable :: null
-c     must use the single-prec version (f) of options struct here...
-      type(nufft_optsf) opts
+c     this is how you create the options struct in fortran...
+      type(nufft_opts) opts
       
 c     how many nonuniform pts
       M = 200000
@@ -84,7 +84,8 @@ c     do another transform, but now first setting some options...
       call finufftf_default_opts(opts)
 c     fields of derived type opts may be queried/set as usual...
       opts%debug = 2
-      opts%upsampfac = 1.25e0
+c     note upsampfac is real*8 regardless of the transform precision...
+      opts%upsampfac = 1.25d0
       print *,'first list our new set of opts values (cf nufft_opts.h):'
       print *,opts
       call system_clock(t1)

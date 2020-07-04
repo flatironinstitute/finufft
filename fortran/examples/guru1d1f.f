@@ -17,8 +17,6 @@ c     our fortran header, only needed if want to set options...
       include 'finufft.fh'
 c     if you want to use FFTW's modes by name... (hence -I/usr/include)
       include 'fftw3.f'
-c     this purely for wall-clock timer...
-      include 'omp_lib.h'
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)
       integer ier,iflag
@@ -35,8 +33,8 @@ c     this is what you use as the "opaque" ptr to ptr to finufft_plan...
       integer*8 plan
 c     this (since unallocated) used to pass a NULL ptr to FINUFFT...
       integer*8, allocatable :: null
-c     this is how you create the options struct in fortran, single-prec (f)...
-      type(nufft_optsf) opts
+c     this is how you create the options struct in fortran...
+      type(nufft_opts) opts
      
 c     how many nonuniform pts
       M = 200000

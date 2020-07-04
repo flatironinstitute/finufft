@@ -511,7 +511,7 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
   o->spread_kerevalmeth = 1; // 0: direct exp(sqrt()), 1: Horner ppval
   o->spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
   o->fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
-  o->modeord = 0;
+  o->modeord = 0;            // CMCL ordering. *** consider switching to FFT
   o->spread_thread = 0;      // default: auto
   o->maxbatchsize = 0;       // "
   o->showwarn = 1;
@@ -587,7 +587,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
         p->opts.upsampfac=1.25;
     }
     if (p->opts.debug > 1)
-      printf("[finufft_plan] set auto upsampfac=%.2f\n",(double)p->opts.upsampfac);
+      printf("[finufft_plan] set auto upsampfac=%.2f\n",p->opts.upsampfac);
   }
   // use opts to choose and write into plan's spread options...
   int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts);

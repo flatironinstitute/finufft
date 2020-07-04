@@ -25,8 +25,8 @@
     different components of spreading/interp by selectively leaving them out.
     For example, running the following two tests shows the effect of the exp()
     in the kernel evaluation (the last argument is the flag):
-    > test/spreadtestnd 3 8e6 8e6 1e-6 1 0 0 1 0
-    > test/spreadtestnd 3 8e6 8e6 1e-6 1 4 0 1 0
+    > perftest/spreadtestnd 3 8e6 8e6 1e-6 1 0 0 1 0
+    > perftest/spreadtestnd 3 8e6 8e6 1e-6 1 4 0 1 0
     NOTE: non-zero values are for experts only, since
     NUMERICAL OUTPUT MAY BE INCORRECT UNLESS spread_opts.flags=0 !
 */
@@ -54,6 +54,6 @@ int spreadinterpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort);
 FLT evaluate_kernel(FLT x,const spread_opts &opts);
 FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
-int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac,int kerevalmeth, int debug, int showwarn);
+int setup_spreader(spread_opts &opts,FLT eps,double upsampfac,int kerevalmeth, int debug, int showwarn);
 
 #endif  // SPREADINTERP_H
