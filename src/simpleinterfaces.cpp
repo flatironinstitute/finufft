@@ -4,13 +4,17 @@
 #include <cstdio>
 using namespace std;
 
-// ---------------------------------------------------------------------------
-// The 18 simple interfaces (= 3 dims * 3 types * {singlecall,many}) to FINUFFT.
-// As of v1.2 these simply invoke the guru interface, through a helper layer.
-// See ../docs/usage.rst or http://finufft.readthedocs.io for documentation
-// all routines here.
-// Authors: Andrea Malleo and Alex Barnett, 2019-2020.
-// ---------------------------------------------------------------------------
+/* ---------------------------------------------------------------------------
+   The 18 simple interfaces (= 3 dims * 3 types * {singlecall,many}) to FINUFFT.
+   As of v1.2 these simply invoke the guru interface, through a helper layer.
+   See ../docs/usage.rst or http://finufft.readthedocs.io for documentation
+   all routines here.
+   This compiles in either double or single precision (based on -DSINGLE),
+   producing functions finufft?d?{many} or finufftf?1?{many} respectively.
+
+   Authors: Andrea Malleo and Alex Barnett, 2019-2020.
+   ---------------------------------------------------------------------------
+*/
 
 
 // Helper layer ...........................................................
@@ -22,7 +26,7 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
 // Helper layer between simple interfaces (with opts) and the guru functions.
 // Author: Andrea Malleo, 2019.
 {
-  finufft_plan plan;
+  FINUFFT_PLAN plan;
   int ier = FINUFFT_MAKEPLAN(type, n_dims, n_modes, iflag, n_transf, eps,
                              &plan, popts);  // popts (ptr to opts) can be NULL
   if (ier>1) {   // since 1 (a warning) still allows proceeding...

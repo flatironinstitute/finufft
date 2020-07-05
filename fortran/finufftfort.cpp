@@ -1,7 +1,7 @@
 #include <finufft_eitherprec.h>
 #include <dataTypes.h>
 #include <nufft_opts.h>
-#include <finufft_plan.h>
+#include <finufft_plan_eitherprec.h>
 
 /* C++ layer for calling FINUFFT from fortran, in f77 style + derived type
    for the nufft_opts C-struct. The ptr to finufft_plan is passed as an "opaque"
@@ -78,22 +78,22 @@ extern "C" {
 #endif
   
 // --------------------- guru interface from fortran ------------------------
-void FINUFFT_MAKEPLAN_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, finufft_plan **plan, nufft_opts *o, int *ier)
+void FINUFFT_MAKEPLAN_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, FINUFFT_PLAN **plan, nufft_opts *o, int *ier)
 {
   if (!plan)
-    fprintf(stderr,"finufft_makeplan_ fortran interface: plan must be allocated as at least the size of a C pointer (usually 8 bytes)!\n");
+    fprintf(stderr,"%s fortran: plan must be allocated as at least the size of a C pointer (usually 8 bytes)!\n",__func__);
   else {
     // note plan will be ptr to ptr to a nufft_opts. Must allocate the latter:
-    *plan = (finufft_plan *)malloc(sizeof(finufft_plan));
+    *plan = (FINUFFT_PLAN *)malloc(sizeof(FINUFFT_PLAN));
     // pass o whether it's a NULL or pointer to a fortran-allocated nufft_opts:
     *ier = FINUFFT_MAKEPLAN(*type, *n_dims, n_modes, *iflag, *n_transf, *tol, *plan, o);
   }
 }
 
-void FINUFFT_SETPTS_(finufft_plan **plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *nk, FLT *s, FLT *t, FLT *u, int *ier)
+void FINUFFT_SETPTS_(FINUFFT_PLAN **plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *nk, FLT *s, FLT *t, FLT *u, int *ier)
 {
   if (!*plan) {
-    fprintf(stderr,"finufft_setpts_ fortran: finufft_plan unallocated!");
+    fprintf(stderr,"%s fortran: finufft_plan unallocated!",__func__);
     return;
   }
   int nk_safe = 0;           // catches the case where user passes NULL in
@@ -102,18 +102,18 @@ void FINUFFT_SETPTS_(finufft_plan **plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, 
   *ier = FINUFFT_SETPTS(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 
-void FINUFFT_EXEC_(finufft_plan **plan, CPX *weights, CPX *result, int *ier)
+void FINUFFT_EXEC_(FINUFFT_PLAN **plan, CPX *weights, CPX *result, int *ier)
 {
   if (!*plan)
-    fprintf(stderr,"finufft_exec_ fortran: finufft_plan unallocated!");
+    fprintf(stderr,"%s fortran: finufft_plan unallocated!",__func__);
   else
     *ier = FINUFFT_EXEC(*plan, weights, result);
 }
 
-void FINUFFT_DESTROY_(finufft_plan **plan, int *ier)
+void FINUFFT_DESTROY_(FINUFFT_PLAN **plan, int *ier)
 {
   if (!*plan)
-    fprintf(stderr,"finufft_destroy_ fortran: finufft_plan unallocated!");
+    fprintf(stderr,"%s fortran: finufft_plan unallocated!",__func__);
   else
     *ier = FINUFFT_DESTROY(*plan);
 }
@@ -124,7 +124,7 @@ void FINUFFT_DESTROY_(finufft_plan **plan, int *ier)
 void FINUFFT_DEFAULT_OPTS_(nufft_opts* o)
 {
   if (!o)
-    fprintf(stderr,"finufft_default_opts_ fortran: opts must be allocated!\n");
+    fprintf(stderr,"%s fortran: opts must be allocated!\n",__func__);
   else
     // o is a ptr to already-allocated fortran nufft_opts derived type...
     FINUFFT_DEFAULT_OPTS(o);

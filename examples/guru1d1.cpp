@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 
   // rest is math checking and reporting...
   int n = 142519;   // check the answer just for this mode
-  complex<double> Ftest = 0.0;
+  complex<double> Ftest = complex<double>(0,0);
   for (int j=0; j<M; ++j)
     Ftest += c[j] * exp(1i*(double)n*x[j]);
   int nout = n+N/2;        // index in output array for freq mode n
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
     if (aF>Fmax) Fmax=aF;
   }
   double err = abs(F[nout] - Ftest)/Fmax;
-  printf("guru 1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
+  printf("guru 1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",ier,n,err);
 
   return ier;
 }
