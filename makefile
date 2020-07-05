@@ -227,19 +227,20 @@ $(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
 $(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
 	$(CXX) $(CXXFLAGS) -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
-	@echo "\nRunning double-precision spreader tests, all dims..."
-	$(ST) 1 8e6 8e6 1e-6
-	$(ST) 2 8e6 8e6 1e-6
-	$(ST) 3 8e6 8e6 1e-6
-	@echo "\nRunning single-precision spreader tests, all dims..."
-	$(STF) 1 8e6 8e6 1e-3
-	$(STF) 2 8e6 8e6 1e-3
-	$(STF) 3 8e6 8e6 1e-3
+# run one thread per core... (escape the $ to get single $ in bash; one big cmd)
+	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
+	echo "\nRunning makefile double-precision spreader tests, $$OMP_NUM_THREADS threads..." ;\
+	$(ST) 1 8e6 8e6 1e-6 ;\
+	$(ST) 2 8e6 8e6 1e-6 ;\
+	$(ST) 3 8e6 8e6 1e-6 ;\
+	echo "\nRunning makefile single-precision spreader tests, $$OMP_NUM_THREADS threads..." ;\
+	$(STF) 1 8e6 8e6 1e-3 ;\
+	$(STF) 2 8e6 8e6 1e-3 ;\
+	$(STF) 3 8e6 8e6 1e-3 )
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
 perftest: $(ST) $(STF) $(PERFEXECS)
-	@echo $(PERFEXECS)
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
 	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
