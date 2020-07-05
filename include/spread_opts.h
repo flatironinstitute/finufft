@@ -3,10 +3,10 @@
 
 #include <dataTypes.h>
 
-// C-compatible options struct for spreader
+// C-compatible options struct for spreader.
 // (mostly internal to spreadinterp.cpp, with a little bleed to finufft.cpp)
 
-typedef struct spread_opts {    // see cnufftspread:setup_spreader for defaults.
+typedef struct spread_opts {  // see spreadinterp:setup_spreader for defaults.
   int nspread;            // w, the kernel width in grid pts
   int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
   int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
@@ -18,8 +18,8 @@ typedef struct spread_opts {    // see cnufftspread:setup_spreader for defaults.
   BIGINT max_subproblem_size; // sets extra RAM per thread
   int flags;              // binary flags for timing only (may give wrong ans!)
   int debug;              // 0: silent, 1: small text output, 2: verbose
-  FLT upsampfac;          // sigma, upsampling factor, default 2.0
-  // ES kernel specific...
+  double upsampfac;       // sigma, upsampling factor
+  // ES kernel specific consts used in fast eval, depend on precision FLT...
   FLT ES_beta;
   FLT ES_halfwidth;
   FLT ES_c;

@@ -587,7 +587,8 @@ FLT evaluate_kernel(FLT x, const spread_opts &opts)
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
    approximation to prolate spheroidal wavefunction (PSWF) of order 0.
-   This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
+   This is the "reference implementation", used by eg finufft/onedim_* 2/17/17
+*/
 {
   if (abs(x)>=opts.ES_halfwidth)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit

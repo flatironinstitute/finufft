@@ -17,7 +17,7 @@
 		     ((x*M_1_2PI + (x<-PI ? 1.5 : (x>PI ? -0.5 : 0.5)))*N) : \
 		     (x<0 ? x+N : (x>N ? x-N : x)))
 // yuk! But this is *so* much faster than slow std::fmod that we stick to it.
-// todo: replace w/ C++ function; apparently will be as fast
+// *** todo: replace w/ C++ function; apparently will be as fast
 
 
 /* Bitwise debugging timing flag (TF) definitions; see spread_opts.flags.
