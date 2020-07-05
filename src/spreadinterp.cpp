@@ -139,7 +139,7 @@ int spreadinterp(
     return ier;
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   if (!sort_indices) {
-    fprintf(stderr,"failed to allocate sort_indices!\n");
+    fprintf(stderr,"%s failed to allocate sort_indices!\n",__func__);
     return ERR_SPREAD_ALLOC;
   }
   int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
@@ -171,11 +171,11 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
   // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
   int minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
-    fprintf(stderr,"FINUFFT spread error: one or more non-trivial box dims is less than 2.nspread!\n");
+    fprintf(stderr,"%s error: one or more non-trivial box dims is less than 2.nspread!\n",__func__);
     return ERR_SPREAD_BOX_SMALL;
   }
   if (opts.spread_direction!=1 && opts.spread_direction!=2) {
-    fprintf(stderr,"FINUFFT error: opts.spread_direction must be 1 or 2!\n");
+    fprintf(stderr,"%s error: opts.spread_direction must be 1 or 2!\n",__func__);
     return ERR_SPREAD_DIR;
   }
   int ndims = ndims_from_Ns(N1,N2,N3);
@@ -186,7 +186,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
     for (BIGINT i=0; i<M; ++i) {
       FLT x=RESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
       if (x<0 || x>N1 || !isfinite(x)) {     // note isfinite() breaks with -Ofast
-        fprintf(stderr,"FINUFFT: NU pt not in valid range (central three periods): kx=%g, N1=%lld (pirange=%d)\n",x,(long long)N1,opts.pirange);
+        fprintf(stderr,"%s NU pt not in valid range (central three periods): kx=%g, N1=%lld (pirange=%d)\n",__func__,x,(long long)N1,opts.pirange);
         return ERR_SPREAD_PTS_OUT_RANGE;
       }
     }
@@ -194,7 +194,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
       for (BIGINT i=0; i<M; ++i) {
         FLT y=RESCALE(ky[i],N2,opts.pirange);
         if (y<0 || y>N2 || !isfinite(y)) {
-          fprintf(stderr,"FINUFFT: NU pt not in valid range (central three periods): ky=%g, N2=%lld (pirange=%d)\n",y,(long long)N2,opts.pirange);
+          fprintf(stderr,"%s NU pt not in valid range (central three periods): ky=%g, N2=%lld (pirange=%d)\n",__func__,y,(long long)N2,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
@@ -202,7 +202,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
       for (BIGINT i=0; i<M; ++i) {
         FLT z=RESCALE(kz[i],N3,opts.pirange);
         if (z<0 || z>N3 || !isfinite(z)) {
-          fprintf(stderr,"FINUFFT: NU pt not in valid range (central three periods): kz=%g, N3=%lld (pirange=%d)\n",z,(long long)N3,opts.pirange);
+          fprintf(stderr,"%s NU pt not in valid range (central three periods): kz=%g, N3=%lld (pirange=%d)\n",__func__,z,(long long)N3,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
@@ -545,7 +545,7 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   int ns, ier = 0;  // Set kernel width w (aka ns, nspread) then copy to opts...
   if (eps<EPSILON) {            // safety; there's no hope of beating e_mach
     if (showwarn)
-      fprintf(stderr,"FINUFFT setup_spreader warning: increasing tol=%.3g to eps_mach=%.3g.\n",(double)eps,(double)EPSILON);
+      fprintf(stderr,"%s warning: increasing tol=%.3g to eps_mach=%.3g.\n",__func__,(double)eps,(double)EPSILON);
     eps = EPSILON;              // only changes local copy (not any opts)
     ier = WARN_EPS_TOO_SMALL;
   }
@@ -556,7 +556,7 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   ns = max(2,ns);               // (we don't have ns=1 version yet)
   if (ns>MAX_NSPREAD) {         // clip to fit allocated arrays, Horner rules
     if (showwarn)
-      fprintf(stderr,"FINUFFT setup_spreader warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",
+      fprintf(stderr,"%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",__func__,
               upsampfac,(double)eps,ns,MAX_NSPREAD);
     ns = MAX_NSPREAD;
     ier = WARN_EPS_TOO_SMALL;
@@ -577,7 +577,7 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   }
   opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
   if (debug)
-    fprintf(stderr,"FINUFFT setup_spreader (kerevalmeth=0) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n",(double)eps,upsampfac,ns,(double)opts.ES_beta);
+    fprintf(stderr,"%s (kerevalmeth=0) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n",__func__,(double)eps,upsampfac,ns,(double)opts.ES_beta);
   
   return ier;
 }
@@ -669,7 +669,7 @@ static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
     } else if (opts.upsampfac==1.25) {
 #include "ker_lowupsampfac_horner_allw_loop.c"
     } else
-      fprintf(stderr,"eval_kernel_vec_Horner: unknown upsampfac, failed!\n");
+      fprintf(stderr,"%s: unknown upsampfac, failed!\n",__func__);
   }
 }
 
