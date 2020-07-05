@@ -47,6 +47,7 @@ function f = finufft1d1(x,c,isign,eps,ms,o)
 
 if nargin<6, o.dummy=1; end            % make a dummy options struct
 valid_setpts(1,1,x,[],[]);
+% *** use isa(x,'single') to set o.floatprec ...
 n_transf = valid_ntr(x,c);
 p = finufft_plan(1,ms,isign,n_transf,eps,o);
 p.finufft_setpts(x,[],[]);

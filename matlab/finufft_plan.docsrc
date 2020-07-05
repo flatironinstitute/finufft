@@ -7,6 +7,8 @@
 % PROPERTIES
 %   mwptr - opaque pointer to a C++ finufft_plan object (see MWrap manual),
 %           whose properties cannot be accessed directly
+%   floatprec - either 'double' or 'single', tracks what precision of C++
+%           library is being called
 %
 % METHODS
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
@@ -37,6 +39,7 @@
 %                     If type is 3, in contrast, its *value* fixes the dimension
 ISIGNEPS
 OPTS
+%     opts.floatprec: library precision to use, 'double' (default) or 'single'.
 %     for type 1 and 2 only, the following opts fields are also relevant:
 OPTS12
 % Outputs:
@@ -85,6 +88,8 @@ OPTS12
 %  * The matlab vectors xj,... and s,... should not be changed before calling
 %    future finufft_exec calls, because the plan stores only pointers to the
 %    arrays (they are not duplicated internally).
+%  * If the data precision (double/single) does not match opts.floatprec used
+%    in finufft_plan, warning is raised and copies used of the plan precision.
 %
 %
 % 3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
@@ -117,6 +122,10 @@ OPTS12
 %              it is a column vector of length M (the length of xj in type 2),
 %              or nk (the length of s in type 3). If ntrans>1 its is a stack
 %              of such objects, ie, it has an extra last dimension ntrans.
+%
+% Notes:
+%  * If the data precision (double/single) does not match opts.floatprec used
+%    in finufft_plan, warning is raised and copies used of the plan precision.
 %
 %
 % 4) To deallocate (delete) a nonuniform FFT plan, use delete(plan)
