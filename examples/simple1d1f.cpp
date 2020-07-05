@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
     if (aF>Fmax) Fmax=aF;
   }
   float err = abs(F[nout] - Ftest)/Fmax;
-  printf("1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
+  printf("1D type-1 single-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",ier,n,err);
     
   free(x); free(c); free(F);
   return ier;
