@@ -15,7 +15,7 @@ using namespace std::complex_literals;
 
 int main(int argc, char* argv[])
 /* Example calling guru C++ interface to FINUFFT library, single-prec, passing
-   pointers to STL vectors of C++ double complex numbers, with a math check.
+   pointers to STL vectors of C++ float complex numbers, with a math check.
    Barnett 7/5/20
 
    Compile on linux with:
