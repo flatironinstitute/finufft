@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
   ier = finufftf1d1(M,x,c,+1,acc,N,F,popts);
 
   n = 14251;   // check the answer just for this mode...
-  Ftest = 0.0;
+  Ftest = CMPLXF(0.0,0.0);
   for (j=0; j<M; ++j)
     Ftest += c[j] * cexpf(I*(float)n*x[j]);
   nout = n+N/2;       // index in output array for freq mode n

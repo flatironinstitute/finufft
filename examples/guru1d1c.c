@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
   // rest is math checking and reporting...
   int n = 142519;   // check the answer just for this mode
-  Ftest = (0.0,0.0);
+  Ftest = CMPLX(0.0,0.0);
   for (j=0; j<M; ++j)
     Ftest += c[j] * cexp(I*(double)n*x[j]);
   nout = n+N/2;            // index in output array for freq mode n
