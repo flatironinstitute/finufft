@@ -34,12 +34,12 @@ int main(int argc, char* argv[])
   BIGINT Ns[3];              // guru describes mode array by vector [N1,N2..]
   Ns[0] = N;
   int ntransf = 1;           // we want to do a single transform at a time
-  finufft_plan plan;         // creates a plan struct
-  int changeopts = 0;        // do you want to try changing opts? 0 or 1
+  finufftf_plan plan;        // creates single-prec plan struct: note the "f"
+  int changeopts = 1;        // do you want to try changing opts? 0 or 1
   if (changeopts) {          // demo how to change options away from defaults..
     nufft_opts opts;
-    finufftf_default_opts(&opts);
-    opts.debug = 1;          // example options change
+    finufftf_default_opts(&opts);   // note "f" for single-prec, throughout...
+    opts.debug = 2;          // example options change
     finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);
   } else                     // or, NULL here means use default opts...
     finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
   finufftf_destroy(&plan);    // done with transforms of this size
 
   // rest is math checking and reporting...
-  int n = 142519;   // check the answer just for this mode
+  int n = 12519;   // check the answer just for this mode, must be in [-N/2,N/2)
   complex<float> Ftest = complex<float>(0,0);
   for (int j=0; j<M; ++j)
     Ftest += c[j] * exp(1if*(float)n*x[j]);

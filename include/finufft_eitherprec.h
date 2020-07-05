@@ -4,7 +4,7 @@
 
 #if (!defined(FINUFFT_H) && !defined(SINGLE)) || (!defined(FINUFFTF_H) && defined(SINGLE))
 // (note we entered one level of conditional until the end of this header)
-// Make sure we don't include double or single headers more than once...
+// Make sure we don't include double and single headers more than once each...
 #ifndef SINGLE
 #define FINUFFT_H
 #else
@@ -14,7 +14,7 @@
 // Here just what's needed to describe the headers for what finufft provides
 #include <dataTypes.h>
 #include <nufft_opts.h>
-#include <finufft_plan.h>
+#include <finufft_plan_eitherprec.h>
 
 // clear the macros so we can define w/o warnings...
 #undef FINUFFT_DEFAULT_OPTS
@@ -102,10 +102,10 @@ extern "C"
 // (sources in finufft.cpp)
   
 void FINUFFT_DEFAULT_OPTS(nufft_opts *o);
-int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag, int n_transf, FLT tol, finufft_plan* plan, nufft_opts* o);
-int FINUFFT_SETPTS(finufft_plan* plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
-int FINUFFT_EXEC(finufft_plan* plan, CPX* weights, CPX* result);
-int FINUFFT_DESTROY(finufft_plan* plan);
+int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag, int n_transf, FLT tol, FINUFFT_PLAN* plan, nufft_opts* o);
+int FINUFFT_SETPTS(FINUFFT_PLAN* plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
+int FINUFFT_EXEC(FINUFFT_PLAN* plan, CPX* weights, CPX* result);
+int FINUFFT_DESTROY(FINUFFT_PLAN* plan);
 
 
 // ----------------- the 18 simple interfaces -------------------------------

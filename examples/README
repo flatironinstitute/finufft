@@ -1,9 +1,10 @@
-This directory contains simple calling examples from C++ (the .cpp files)
-and from C (the .c files).
+This directory contains examples calling FINUFFT from C++ (the .cpp files)
+and from C (the .c files), in double and in single precision.
 
 They are compiled by commands in ../makefile via "make examples".
 
-The suffix "f" which distinguishes simple1d1f.cpp from simple1d1.cpp
+Single vs double precision source codes are separate:
+the suffix "f" which distinguishes simple1d1f.cpp from simple1d1.cpp
 indicates single-precision as opposed to double-precision.
 
 The suffix "c" indicates a C (as opposed to C++) demo.
