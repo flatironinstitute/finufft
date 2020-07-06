@@ -6,10 +6,10 @@ NVCC=nvcc
 #   http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
 #NVARCH = -arch=sm_70
 CXXFLAGS= -fPIC -O3 -funroll-loops -march=native -g -std=c++11
-#NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
 NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 $(NVARCH) \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
 #DEBUG add "-g -G" for cuda-gdb debugger
+#NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
 
 # CUDA Related build dependencies
 CUDA_ROOT=/usr/local/cuda
@@ -43,7 +43,7 @@ HEADERS = include/cufinufft.h src/cudeconvolve.h src/memtransfer.h include/profi
 	src/cuspreadinterp.h
 CONTRIBOBJS=contrib/dirft2d.o contrib/common.o contrib/spreadinterp.o contrib/utils_fp.o 
 
-# Okay so we create three collections of objects:
+# We create three collections of objects:
 #  Double (_64), Single (_32), and floating point agnostic (no suffix)
 
 CUFINUFFTOBJS=src/precision_independent.o src/profile.o contrib/legendre_rule_fast.o contrib/utils.o 
@@ -71,6 +71,7 @@ CUFINUFFTCOBJS_32=$(CUFINUFFTCOBJS_64:%.o=%_32.o)
 	$(CC) -DSINGLE -c $(CXXFLAGS) $(INC) $< -o $@
 %_32.o: %.cu $(HEADERS)
 	$(NVCC) -DSINGLE --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
+
 
 all: $(BINDIR)/spread2d \
 	$(BINDIR)/interp2d \
@@ -115,36 +116,6 @@ $(BINDIR)/%_32: test/%_32.o $(CUFINUFFTOBJS_32) $(CUFINUFFTOBJS)
 	$(NVCC) -DSINGLE $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 
-# $(BINDIR)/cufinufft2d1_test: test/cufinufft2d1_test.o $(CUFINUFFTOBJS_64) \
-# 	$(CUFINUFFTOBJS)
-# 	mkdir -p $(BINDIR)
-# 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
-
-# $(BINDIR)/cufinufft2d1many_test: test/cufinufft2d1many_test.o $(CUFINUFFTOBJS_64) \
-# 	$(CUFINUFFTOBJS)
-# 	mkdir -p $(BINDIR)
-# 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
-
-# $(BINDIR)/cufinufft2d2_test: test/cufinufft2d2_test.o $(CUFINUFFTOBJS_64) \
-# 	$(CUFINUFFTOBJS)
-# 	mkdir -p $(BINDIR)
-# 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
-
-# $(BINDIR)/cufinufft2d2many_test: test/cufinufft2d2many_test.o $(CUFINUFFTOBJS_64) \
-# 	$(CUFINUFFTOBJS)
-# 	mkdir -p $(BINDIR)
-# 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
-
-# $(BINDIR)/cufinufft3d1_test: test/cufinufft3d1_test.o $(CUFINUFFTOBJS_64) \
-# 	$(CUFINUFFTOBJS)
-# 	mkdir -p $(BINDIR)
-# 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
-
-# $(BINDIR)/cufinufft3d2_test: test/cufinufft3d2_test.o $(CUFINUFFTOBJS_64) \
-# 	$(CUFINUFFTOBJS)
-# 	mkdir -p $(BINDIR)
-# 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) $(LIBS_CUFINUFFT) -o $@
-
 lib: $(STATICLIB) $(DYNAMICLIB)
 
 clib: $(DYNAMICCLIB)
@@ -160,18 +131,12 @@ $(DYNAMICCLIB): $(CUFINUFFTOBJS) $(CUFINUFFTCOBJS_64) $(CUFINUFFTCOBJS_32) $(STA
 	mkdir -p lib
 	gcc -shared -o $(DYNAMICCLIB) $^ $(NVCC_LIBS_PATH) $(LIBS)
 
-clean:
-	rm -f *.o
-	rm -f test/*.o
-	rm -f src/*.o
-	rm -f src/2d/*.o
-	rm -f src/3d/*.o
-	rm -f contrib/*.o
-	rm -f examples/*.o
-	rm -f example2d1
-	rm -rf $(BINDIR)
-	rm -rf lib
-	rm -rf lib-static
+
+# Check targets
+
+check: all
+	$(MAKE) check2D
+	$(MAKE) check3D
 
 check2D: all check2D_64 check2D_32
 
@@ -279,9 +244,22 @@ check3D_32: all
 	bin/cufinufft3d2_test_32 1 1e2 2e2 3e2
 	bin/cufinufft3d2_test_32 2 1e2 2e2 3e2
 
-check: all
-	$(MAKE) check2D
-	$(MAKE) check3D
+
+# Cleanup and phony targets
+
+clean:
+	rm -f *.o
+	rm -f test/*.o
+	rm -f src/*.o
+	rm -f src/2d/*.o
+	rm -f src/3d/*.o
+	rm -f contrib/*.o
+	rm -f examples/*.o
+	rm -f example2d1
+	rm -rf $(BINDIR)
+	rm -rf lib
+	rm -rf lib-static
+
 
 .PHONY: all
 .PHONY: check
