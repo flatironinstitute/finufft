@@ -169,7 +169,7 @@ ifeq ($(OMP),OFF)
 else
 	@echo "$(DYNLIB) built, multithreaded version"
 endif
-	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(DYNLIB) $(LIBSFFT)
+	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
 
 # here $(OMPFLAGS) and $(LIBSFFT) is even needed for linking under mac osx.
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
