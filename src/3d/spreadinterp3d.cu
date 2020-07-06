@@ -3,6 +3,7 @@
 #include <helper_cuda.h>
 #include <cuda.h>
 #include "../../contrib/utils.h"
+#include "../../contrib/utils_fp.h"
 #include "../cuspreadinterp.h"
 #include "../precision_independent.h"
 #include "../../include/utils.h"

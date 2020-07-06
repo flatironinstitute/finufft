@@ -4,7 +4,13 @@
 #include <helper_cuda.h>
 #include <complex>
 
+#ifdef SINGLE
+#undef SINGLE
+#include <cufinufftf.h>
+#else
 #include <cufinufft.h>
+#endif
+
 #include "../contrib/utils.h"
 
 using namespace std;
@@ -83,7 +89,7 @@ int main(int argc, char* argv[])
 	int dim = 2;
 	int type = 1;
 
-	ier=cufinufft_default_opts(type, dim, &dplan.opts);
+	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
 
 	int nmodes[3];
@@ -93,7 +99,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 	cudaEventRecord(start);
-	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
+	ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol, 
 		maxbatchsize, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
@@ -106,7 +112,7 @@ int main(int argc, char* argv[])
 
 
 	cudaEventRecord(start);
-	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=CUFINUFFT_SETNUPTS(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_setNUpts\n");
 	}
@@ -118,7 +124,7 @@ int main(int argc, char* argv[])
 
 	
 	cudaEventRecord(start);
-	ier=cufinufft_exec(d_c, d_fk, &dplan);
+	ier=CUFINUFFT_EXEC(d_c, d_fk, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d1_exec\n");
 	}
@@ -129,7 +135,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft_destroy(&dplan);
+	ier=CUFINUFFT_DESTROY(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	totaltime += milliseconds;

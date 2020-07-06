@@ -78,6 +78,10 @@ all: $(BINDIR)/spread2d \
 	$(BINDIR)/cufinufft2d2_test \
 	$(BINDIR)/cufinufft2d1many_test \
 	$(BINDIR)/cufinufft2d2many_test \
+	$(BINDIR)/cufinufft2d1_test_32 \
+	$(BINDIR)/cufinufft2d2_test_32 \
+	$(BINDIR)/cufinufft2d1many_test_32 \
+	$(BINDIR)/cufinufft2d2many_test_32 \
 	$(BINDIR)/spread3d \
 	$(BINDIR)/interp3d \
 	$(BINDIR)/cufinufft3d1_test \
@@ -169,7 +173,7 @@ clean:
 	rm -rf lib
 	rm -rf lib-static
 
-check2D: all check2D_64
+check2D: all check2D_64 check2D_32
 
 check2D_64:
 	@echo Running 2-D cases
