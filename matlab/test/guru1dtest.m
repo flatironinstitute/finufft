@@ -17,8 +17,8 @@ c = randn(1,M)+1i*randn(1,M);
 
 disp('starting...'), tic
 %opts
-opts.debug=1;
-opts.spread_debug=1;
+opts.debug=2;
+opts.spread_debug=0;
 
 %plan
 plan = finufft_plan(type,n_modes,isign,n_transf,eps,opts);

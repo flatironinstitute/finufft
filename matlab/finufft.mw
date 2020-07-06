@@ -16,9 +16,10 @@
 % mwrap -mex finufft -c finufft.cpp -cppcomplex finufft.mw
 %
 % Then to compile for matlab:
-% mex finufft.cpp ../lib/libfinufft.a -largeArrayDims -DR2008OO -D_INT64_T -lfftw3_omp -lfftw3 -lgomp -lm
+% mex finufft.cpp ../lib/libfinufft.a -largeArrayDims -DR2008OO -lfftw3_omp -lfftw3 -lgomp -lm
+% Although you may have to replace -lgomp w/ Matlab's libiomp5 to prevent crashes.
 % And to compile for octave:
-% mkoctfile --mex finufft.cpp ../lib/libfinufft.a -DR2008OO -D_INT64_T -lfftw3_omp -lfftw3 -lgomp -lm
+% mkoctfile --mex finufft.cpp ../lib/libfinufft.a -DR2008OO -lfftw3_omp -lfftw3 -lgomp -lm
 % Don't forget to add this directory to your matlab/octave path.
 %
 % See also: finufft?d?.m in this directory for the simple/many interfaces which
@@ -27,7 +28,8 @@
 % Notes:
 %  0) see mwrap's documentation for how this type of .mw file works:
 %     https://github.com/zgimbutas/mwrap
-%  1) Double-precision only for now.
+%  1) Double and single precision (floatprec opt). A bit too much repetition
+%     in both prec of low-level routines which query the plan.
 %  2) in the FINUFFT library, BIGINT type must be int64_t, as is default.
 %     Since int64_t is hardwired in the below, MEX will break otherwise.
 %  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
@@ -112,21 +114,27 @@ $ }
 classdef finufft_plan < handle
 
   properties
-    % this is a special property that MWrap uses as an opaque pointer to C++ object
-    % (mwptr = MWrap-pointer, not MathWorks! see MWrap manual)...
+    % this is a special property that MWrap uses as an opaque pointer to C++
+    % object (mwptr = MWrap-pointer, not MathWorks! see MWrap manual)...
     mwptr
-    % tracks what precision of C++library is being called ('single' or 'double')...
+    % tracks what prec C++library is being called ('single' or 'double')...
     floatprec
   end
 
   methods
 
-    function plan = finufft_plan(type, n_modes_or_dim, iflag, n_transf, tol, opts)
+    function plan = finufft_plan(type, n_modes_or_dim, iflag, n_trans, tol, opts)
     % FINUFFT_PLAN   create guru plan object for one/many general nonuniform FFTs.
 
-      # finufft_mex_setup();
-      # finufft_plan* p = new finufft_plan();
-      plan.mwptr = p;       % crucial: save the opaque ptr as in p.12 of MWrap manual
+      plan.floatprec='double';                      % set precision: default
+      if nargin<6, opts = []; end
+      if isfield(opts,'floatprec')                  % a matlab-only option
+        if ~strcmp(opts.floatprec,'single') && ~strcmp(opts.floatprec,'double')
+          error('FINUFFT:badFloatPrec','FINUFFT plan opts.floatprec must be single or double');
+        else
+          plan.floatprec = opts.floatprec;
+        end
+      end
       
       n_modes = ones(3,1);  % dummy for type 3
       if type==3
@@ -135,33 +143,28 @@ classdef finufft_plan < handle
         end
         dim = n_modes_or_dim;      % interpret as dim
       else
-        dim = length(n_modes_or_dim);    % allows any of ms,mt,mu to be 1 (weird)
+        dim = length(n_modes_or_dim);    % allows any ms,mt,mu to be 1 (weird..)
         n_modes(1:dim) = n_modes_or_dim;
       end
-      % (checks of type and dim will occur in the C++ library so omit them above)
+      % (checks of type, dim will occur in the C++ library, so omit them above)
 
-      plan.floatprec='double';                      % default
-      if nargin<6, opts = []; end
-      if isfield(opts,'floatprec')                  % the matlab-special option
-        if ~strcmp(opts.floatprec,'single') && ~strcmp(opts.floatprec,'double')
-          error('FINUFFT:badFloatPrec','FINUFFT plan opts.floatprec must be single or double');
-        else
-          plan.floatprec = opts.floatprec;
-        end
-      end
+      # finufft_mex_setup();
       # nufft_opts* o = new nufft_opts();
-      if strcmp(plan.floatprec,'double')            % default opts for double/single
+      if strcmp(plan.floatprec,'double')
+        # finufft_plan* p = new finufft_plan();
         # finufft_default_opts(nufft_opts* o);
       else
+        # finufftf_plan* p = new finufftf_plan();
         # finufftf_default_opts(nufft_opts* o);
       end
-      % replace whichever fields are in opts
+      plan.mwptr = p;     % crucial: save the opaque ptr (p.12 of MWrap manual)
+
+      % replace in nufft_opts struct whichever fields are in incoming opts...
       # copy_nufft_opts(mxArray opts, nufft_opts* o);
       if strcmp(plan.floatprec,'double')
-        # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_transf, double tol, finufft_plan* plan, nufft_opts* o);
+        # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, nufft_opts* o);
       else
-        %    *** must fail since wrong prec of finufft_plan
-        # int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_transf, float tol, finufft_plan* plan, nufft_opts* o);
+        # int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, finufftf_plan* plan, nufft_opts* o);
       end
       # delete(nufft_opts* o);
       errhandler(ier);             % convert C++ codes to matlab-style errors
@@ -172,29 +175,42 @@ classdef finufft_plan < handle
       if strcmp(plan.floatprec,'double')
         # finufft_destroy(finufft_plan* plan);
       else
-        # finufftf_destroy(finufft_plan* plan);
+        # finufftf_destroy(finufftf_plan* plan);
       end
     end
 
     function finufft_setpts(plan, xj, yj, zj, s, t, u)
     % FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
-      if nargin<5, s=[]; t=[]; u=[]; end
-      
+
+      $ // sadly we need compile versions for both precisions of plans...
       $ int get_type(finufft_plan* plan) {
       $   return plan->type;
       $ }
       $ int get_dim(finufft_plan* plan) {
       $   return plan->dim;
       $ }
-      
-      # int dim = get_dim(finufft_plan* plan);
-      # int type = get_type(finufft_plan* plan);
+      $ int get_typef(finufftf_plan* plan) {
+      $   return plan->type;
+      $ }
+      $ int get_dimf(finufftf_plan* plan) {
+      $   return plan->dim;
+      $ }
+
+      if strcmp(plan.floatprec,'double')
+        # int dim = get_dim(finufft_plan* plan);
+        # int type = get_type(finufft_plan* plan);
+        if nargin<5, s=double.empty; t=double.empty; u=double.empty; end
+      else
+        # int dim = get_dimf(finufftf_plan* plan);
+        # int type = get_typef(finufftf_plan* plan);
+        if nargin<5, s=single.empty; t=single.empty; u=single.empty; end
+      end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
       [nj, nk] = valid_setpts(type, dim, xj, yj, zj, s, t, u);
       if strcmp(plan.floatprec,'double')
         # int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
       else
-        # int ier = finufftf_setpts(finufft_plan* plan, int64_t nj, float[] xj, float[] yj, float[] zj, int64_t nk, float[] s, float[] t, float[] u);
+        # int ier = finufftf_setpts(finufftf_plan* plan, int64_t nj, float[] xj, float[] yj, float[] zj, int64_t nk, float[] s, float[] t, float[] u);
       end
       errhandler(ier);
     end
@@ -202,6 +218,7 @@ classdef finufft_plan < handle
     function result = finufft_exec(plan, data_in)
     % FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
 
+      $ // sadly we need compile versions for both precisions of plans...
       $ int64_t get_nj(finufft_plan* plan) {
       $   return plan->nj;
       $ }
@@ -215,19 +232,46 @@ classdef finufft_plan < handle
       $   if(plan->dim<3) mu=1;
       $   if(plan->dim<2) mt=1;
       $ }
-      $ int get_ntransf(finufft_plan* plan) {
+      $ int get_ntrans(finufft_plan* plan) {
+      $   return plan->ntrans;
+      $ }
+      
+      $ int64_t get_njf(finufftf_plan* plan) {
+      $   return plan->nj;
+      $ }
+      $ int64_t get_nkf(finufftf_plan* plan) {
+      $   return plan->nk;
+      $ }
+      $ void get_nmodesf(finufftf_plan* plan, int64_t& ms, int64_t& mt, int64_t& mu) {
+      $   ms = plan->ms ? plan->ms : 1;
+      $   mt = plan->mt ? plan->mt : 1;
+      $   mu = plan->mu ? plan->mu : 1;
+      $   if(plan->dim<3) mu=1;
+      $   if(plan->dim<2) mt=1;
+      $ }
+      $ int get_ntransf(finufftf_plan* plan) {
       $   return plan->ntrans;
       $ }
 
-      # int type = get_type(finufft_plan* plan);
-      # int n_transf = get_ntransf(finufft_plan* plan);
-      # int64_t nj = get_nj(finufft_plan* plan);
+      if strcmp(plan.floatprec,'double')
+        # int type = get_type(finufft_plan* plan);
+        # int n_trans = get_ntrans(finufft_plan* plan);
+        # int64_t nj = get_nj(finufft_plan* plan);
+      else
+        # int type = get_typef(finufftf_plan* plan);
+        # int n_trans = get_ntransf(finufftf_plan* plan);
+        # int64_t nj = get_njf(finufftf_plan* plan);
+      end
       % check data input length...
       if type==1 || type==2
-        # get_nmodes(finufft_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
-        ncoeffs = ms*mt*mu*n_transf;                  % total Fourier coeffs (out t1, or in t2)
+        if strcmp(plan.floatprec,'double')
+          # get_nmodes(finufft_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
+        else
+          # get_nmodesf(finufftf_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
+        end
+        ncoeffs = ms*mt*mu*n_trans;    % total Fourier coeffs (out t1, or in t2)
       end
-      if type==2, ninputs = ncoeffs; else, ninputs = n_transf*nj; end     % supposed input numel
+      if type==2, ninputs = ncoeffs; else, ninputs = n_trans*nj; end     % supposed input numel
       if numel(data_in)~=ninputs
         error('FINUFFT:badDataInSize','FINUFFT numel(data_in) must be n_trans times number of NU pts (type 1, 3) or Fourier modes (type 2)');
       end
@@ -235,25 +279,26 @@ classdef finufft_plan < handle
         if strcmp(plan.floatprec,'double')
           # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
         else
-          # int ier = finufftf_exec(finufft_plan* plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
+          # int ier = finufftf_exec(finufftf_plan* plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
         end
         % make modes output correct shape; when d<3 squeeze removes unused dims...
-        result = squeeze(reshape(result, [ms mt mu n_transf]));
+        result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif type==2
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_transf] result, dcomplex[] data_in);
+          # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
         else
-          # int ier = finufftf_exec(finufft_plan* plan, output fcomplex[nj, n_transf] result, fcomplex[] data_in);
+          # int ier = finufftf_exec(finufftf_plan* plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
         end
       elseif type==3
-        # int64_t nk = get_nk(finufft_plan* plan);
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_transf] result, dcomplex[] data_in);
+          # int64_t nk = get_nk(finufft_plan* plan);
+          # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
         else
-          # int ier = finufftf_exec(finufft_plan* plan, output fcomplex[nj, n_transf] result, fcomplex[] data_in);
+          # int64_t nk = get_nkf(finufftf_plan* plan);
+          # int ier = finufftf_exec(finufftf_plan* plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
         end
       else
-        ier = 10;        % type must have been corrupted since plan stage - the horror
+        ier = 10;         % type was corrupted since plan stage - the horror
       end
       errhandler(ier);
     end

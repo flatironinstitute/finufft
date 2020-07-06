@@ -44,6 +44,7 @@
   * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
   * Full documentation is given in ../finufft-manual.pdf and online at
     http://finufft.readthedocs.io
+ *** use isa(x,'single') to set o.floatprec ...
 
 ::
 
@@ -441,6 +442,8 @@
  PROPERTIES
    mwptr - opaque pointer to a C++ finufft_plan object (see MWrap manual),
            whose properties cannot be accessed directly
+   floatprec - either 'double' or 'single', tracks what precision of C++
+           library is being called
 
  METHODS
    finufft_plan - create guru plan object for one/many general nonuniform FFTs.
@@ -481,6 +484,7 @@
      opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
      opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
+     opts.floatprec: library precision to use, 'double' (default) or 'single'.
      for type 1 and 2 only, the following opts fields are also relevant:
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
      opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
@@ -530,6 +534,8 @@
   * The matlab vectors xj,... and s,... should not be changed before calling
     future finufft_exec calls, because the plan stores only pointers to the
     arrays (they are not duplicated internally).
+  * If the data precision (double/single) does not match opts.floatprec used
+    in finufft_plan, warning is raised and copies used of the plan precision.
 
 
  3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
@@ -562,6 +568,10 @@
               it is a column vector of length M (the length of xj in type 2),
               or nk (the length of s in type 3). If ntrans>1 its is a stack
               of such objects, ie, it has an extra last dimension ntrans.
+
+ Notes:
+  * If the data precision (double/single) does not match opts.floatprec used
+    in finufft_plan, warning is raised and copies used of the plan precision.
 
 
  4) To deallocate (delete) a nonuniform FFT plan, use delete(plan)

@@ -157,19 +157,19 @@ src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_
 # build library with double/single prec both bundled in...
 lib: $(STATICLIB) $(DYNLIB)
 $(STATICLIB): $(OBJSD)
+	ar rcs $(STATICLIB) $(OBJSD)
 ifeq ($(OMP),OFF)
 	@echo "$(STATICLIB) built, single-thread version"
 else
 	@echo "$(STATICLIB) built, multithreaded version"
 endif
-	ar rcs $(STATICLIB) $(OBJSD)
 $(DYNLIB): $(OBJSD)
+	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(DYNLIB) $(LIBSFFT)
 ifeq ($(OMP),OFF)
 	@echo "$(DYNLIB) built, single-thread version"
 else
 	@echo "$(DYNLIB) built, multithreaded version"
 endif
-	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(DYNLIB) $(LIBSFFT)
 
 # here $(OMPFLAGS) and $(LIBSFFT) is even needed for linking under mac osx.
 # see: http://www.cprogramming.com/tutorial/shared-libraries-linux-gcc.html
