@@ -314,7 +314,7 @@ int main(int argc, char* argv[])
   printf("freed.\n");
   
   // some dumb tests for guru interface to induce free() crash in destroy...
-  finufft_plan plan;
+  FINUFFT_PLAN plan;
   BIGINT Ns[1] = {0};      // since dim=1, don't have to make length 3
   FINUFFT_MAKEPLAN(1, 1, Ns, +1, 1, acc, &plan, NULL);  // type 1, now kill it
   FINUFFT_DESTROY(&plan);
