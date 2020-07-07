@@ -649,7 +649,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
       return ERR_MAXNALLOC;
     }
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // the big workspace
-    if (p->opts.debug) printf("[%s] fwBatch %.2fGB alloc:\t\t%.3g s\n", __func__,(double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
+    if (p->opts.debug) printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,(double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch) {      // we don't catch all such mallocs, just this big one
       fprintf(stderr, "[%s] FFTW malloc failed for fwBatch (working fine grids)!\n",__func__);
       free(p->phiHat1); free(p->phiHat2); free(p->phiHat3);
@@ -857,7 +857,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       }
     }
     free(phiHatk1); free(phiHatk2); free(phiHatk3);  // done w/ deconv fill
-    if (p->opts.debug) printf("[finufft_setpts t3] phase & deconv factors:\t%.3g s\n", timer.elapsedsec());
+    if (p->opts.debug) printf("[%s t3] phase & deconv factors:\t%.3g s\n",__func__,timer.elapsedsec());
 
     // Set up sort for spreading Cp (from primed NU src pts X, Y, Z) to fw...
     timer.restart();

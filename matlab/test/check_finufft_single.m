@@ -9,7 +9,7 @@ isign   = +1;     % sign of imaginary unit in exponential
 eps     = 1e-3;   % requested accuracy
 o.debug = 0;      % choose 1 for timing breakdown text output
 FFTW_ESTIMATE = bitshift(1,6); o.fftw = FFTW_ESTIMATE;       % or see fftw3.h
-o.upsampfac=0;    % 0 (auto) 2.0 (default) or 1.25 (low-RAM, small-FFT)
+o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
 M       = 1e5;    % # of NU pts (in all dims). Kept small to not lose 1d acc.
 N       = 1e5;    % # of modes (approx total, used in all dims).
 
@@ -35,10 +35,12 @@ fprintf('1D type-2: rel err in c[%d] is %.3g\n',j,abs((ce-c(j))/ce))
 
 c = randn(M,1,'single')+1i*randn(M,1,'single');
 s = (N/2)*(2*rand(M,1,'single')-1);             % target freqs of size O(N)
+o.debug=1;
 f = finufft1d3(x,c,isign,eps,s,o);
 fe = sum(c.*exp(1i*isign*s(k)*x));
 fprintf('1D type-3: rel err in f[%d] is %.3g\n',k,abs((fe-f(k))/fe))
 fprintf('total 1D time: %.3f s\n',toc)
+stop
 
 tic; % --------- 2D
 N1=ceil(2.0*sqrt(N)); N2=round(N/N1);           % pick Fourier mode ranges
