@@ -164,7 +164,7 @@ else
 	@echo "$(STATICLIB) built, multithreaded version"
 endif
 $(DYNLIB): $(OBJSD)
-	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(DYNLIB) $(LIBSFFT)
+	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
 ifeq ($(OMP),OFF)
 	@echo "$(DYNLIB) built, single-thread version"
 else

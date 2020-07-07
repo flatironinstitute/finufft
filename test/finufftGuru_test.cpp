@@ -4,7 +4,7 @@
 using namespace std;
 
 // forward declaration of helper to (repeatedly if needed) call finufft?d?
-double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,finufft_plan *plan);
+double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,FINUFFT_PLAN *plan);
 
 
 // --------------------------------------------------------------------------
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
   sleep(tsleep);
 
   printf("FINUFFT %dd%d use guru interface to do %d calls together:-------------------\n",ndim,type,ntransf);
-  finufft_plan plan;                  // instantiate a finufft_plan
+  FINUFFT_PLAN plan;                  // instantiate a finufft_plan
   CNTime timer; timer.start();        // Guru Step 1
   BIGINT n_modes[3] = {N1,N2,N3};     // #modes per dimension (ignored for t3)
   int ier = FINUFFT_MAKEPLAN(type, ndim, n_modes, isign, ntransf, tol, &plan, &opts);
@@ -225,7 +225,7 @@ int main(int argc, char* argv[])
 
 // -------------------------------- HELPER FUNCS ----------------------------
 
-double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_plan *plan)
+double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_PLAN *plan)
 /* Helper to make a simple interface call with parameters pulled out of a
    guru-interface plan. Reads opts from the
    finufft plan, and the pointers to various data vectors that users shouldn't
@@ -353,7 +353,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, finufft_p
   }
 }
 
-double many_simple_calls(CPX *c,CPX *F, FLT* x, FLT* y, FLT* z, finufft_plan *plan)
+double many_simple_calls(CPX *c,CPX *F, FLT* x, FLT* y, FLT* z, FINUFFT_PLAN *plan)
 /* A unified interface to all of the simple interfaces, with a loop over
    many such transforms. Returns total time reported by the transforms.
    (Used to call pre-v1.2 single implementations in finufft, via runOldFinufft.
