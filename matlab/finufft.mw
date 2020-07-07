@@ -161,6 +161,7 @@ classdef finufft_plan < handle
 
       % replace in nufft_opts struct whichever fields are in incoming opts...
       # copy_nufft_opts(mxArray opts, nufft_opts* o);
+      tol = double(tol);   % scalar behavior of mwrap 0.33.11: doubles only!
       if strcmp(plan.floatprec,'double')
         # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, nufft_opts* o);
       else

@@ -164,6 +164,8 @@ else
 	@echo "$(STATICLIB) built, multithreaded version"
 endif
 $(DYNLIB): $(OBJSD)
+# using *absolute* path in the -o here is needed to make portable executables
+# when compiled against it, in mac OSX, strangely...
 	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
 ifeq ($(OMP),OFF)
 	@echo "$(DYNLIB) built, single-thread version"

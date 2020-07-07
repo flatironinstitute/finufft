@@ -200,6 +200,7 @@ finufft(mex_id_, o);
       % replace in nufft_opts struct whichever fields are in incoming opts...
       mex_id_ = 'copy_nufft_opts(i mxArray, i nufft_opts*)';
 finufft(mex_id_, opts, o);
+      tol = double(tol);   % scalar behavior of mwrap 0.33.11: doubles only!
       if strcmp(plan.floatprec,'double')
         mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)';
 [ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_trans, tol, plan, o, 3);

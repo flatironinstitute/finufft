@@ -43,6 +43,8 @@
 %  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
 %    than repeated calls with the same nonuniform points. Note that here the I/O
 %    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
+%  * The class of input x (double vs single) controls whether the double or
+%    single precision library are called; precisions of all data should match.
 %  * For more details about the opts fields, see ../docs/opts.rst
 %  * See ERRHANDLER, VALID_* and FINUFFT_PLAN for possible warning/error IDs.
 %  * Full documentation is given in ../finufft-manual.pdf and online at
@@ -52,6 +54,7 @@ function f = finufft2d1(x,y,c,isign,eps,ms,mt,o)
 
 if nargin<8, o.dummy=1; end
 valid_setpts(1,2,x,y,[]);
+o.floatprec=class(x);                      % should be 'double' or 'single'
 n_transf = valid_ntr(x,c);
 p = finufft_plan(1,[ms;mt],isign,n_transf,eps,o);
 p.finufft_setpts(x,y,[]);
