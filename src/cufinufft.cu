@@ -5,14 +5,14 @@
 #include <complex>
 #include <cufft.h>
 
-#include <cufinufft.h>
+#include <cufinufft_eitherprec.h>
 #include "cuspreadinterp.h"
 #include "cudeconvolve.h"
 #include "memtransfer.h"
 
 using namespace std;
 
-void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
+void SETUP_BINSIZE(int type, int dim, CUFINUFFT_OPTS *opts)
 {
 	switch(dim)
 	{
@@ -63,7 +63,7 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 }
 
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag, 
-	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan)
+	int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan)
 /*
 	"plan" stage: 
 	
@@ -86,7 +86,7 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	        precision)
 	
 	Input/Output:
-	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft.h) 
+	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft_eitherprec.h) 
 			    d_plan.opts is used for plan stage. Variables and arrays 
 	        inside the plan are set and allocated
 	
@@ -106,7 +106,7 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	d_plan->mu = nmodes[2];
 
 	SETUP_BINSIZE(type, dim, &d_plan->opts);
-	int nf1=1, nf2=1, nf3=1;
+	BIGINT nf1=1, nf2=1, nf3=1;
 	SET_NF_TYPE12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1, 
 				  d_plan->opts.gpu_obinsizex);
 	if(dim > 1)
@@ -239,7 +239,7 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 }
 
 int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s, 
-	FLT *d_t, FLT *d_u, cufinufft_plan *d_plan)
+	FLT *d_t, FLT *d_u, CUFINUFFT_PLAN *d_plan)
 /*
 	"setNUpts" stage:
 	
@@ -261,7 +261,7 @@ int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	N, d_s, d_t, d_u  not used for type1, type2. set to 0 and NULL.
 
 	Input/Output:
-	d_plan            pointer to a cufinufft_plan. Variables and arrays inside 
+	d_plan            pointer to a CUFINUFFT_PLAN. Variables and arrays inside 
 	                  the plan are set and allocated.
 
 	Melody Shih 07/25/19
@@ -392,7 +392,7 @@ int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	return 0;
 }
 
-int CUFINUFFT_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
+int CUFINUFFT_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
 /*
 	"exec" stage:
 	
@@ -450,7 +450,7 @@ int CUFINUFFT_EXEC(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int CUFINUFFT_DESTROY(cufinufft_plan *d_plan)
+int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan)
 /*
 	"destroy" stage:
 
@@ -494,11 +494,11 @@ int CUFINUFFT_DESTROY(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
+int CUFINUFFT_DEFAULT_OPTS(int type, int dim, CUFINUFFT_OPTS *opts)
 /*
 	"default_opts" stage:
 	
-	In this stage, the default options in cufinufft_opts are set. 
+	In this stage, the default options in CUFINUFFT_OPTS are set. 
   Options with prefix "gpu_" are used for gpu code. 
 
 	Notes:

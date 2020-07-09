@@ -1,5 +1,5 @@
 #include "common.h"
-#include <cufinufft.h>
+#include <cufinufft_eitherprec.h>
 #include <math.h>
 #include <stdio.h>
 #include <vector>
@@ -12,7 +12,7 @@ extern "C" {
   #include "legendre_rule_fast.h"
 #endif
 
-int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, cufinufft_opts opts)
+int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, CUFINUFFT_OPTS opts)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
@@ -21,7 +21,7 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, cufinufft_opts opts)
   return ier;
 } 
 
-void SET_NF_TYPE12(BIGINT ms, cufinufft_opts opts, spread_opts spopts, 
+void SET_NF_TYPE12(BIGINT ms, CUFINUFFT_OPTS opts, SPREAD_OPTS spopts, 
 				   BIGINT *nf, BIGINT bs)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
@@ -36,7 +36,7 @@ void SET_NF_TYPE12(BIGINT ms, cufinufft_opts opts, spread_opts spopts,
   }
 }
 
-void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
+void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting

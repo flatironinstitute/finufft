@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_plan dplan;
+	CUFINUFFT_PLAN dplan;
 
 	int dim=2;
 	ier = cufinufft_default_opts(2, dim, &dplan.opts);

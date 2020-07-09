@@ -40,7 +40,7 @@ DYNAMICCLIB=lib/$(CLIBNAME).so
 BINDIR=./bin
 
 HEADERS = include/cufinufft.h src/cudeconvolve.h src/memtransfer.h include/profile.h \
-	src/cuspreadinterp.h
+	src/cuspreadinterp.h include/cufinufft_eitherprec.h include/cufinufft_errors.h
 CONTRIBOBJS=contrib/dirft2d.o contrib/common.o contrib/spreadinterp.o contrib/utils_fp.o 
 
 # We create three collections of objects:
@@ -89,7 +89,10 @@ all: $(BINDIR)/spread2d \
 	$(BINDIR)/cufinufft3d2_test \
 	$(BINDIR)/cufinufft3d1_test_32 \
 	$(BINDIR)/cufinufft3d2_test_32 \
+	$(BINDIR)/cufinufft2d2api_test \
+	$(BINDIR)/cufinufft2d2api_test_32 \
 	lib clib
+
 
 $(BINDIR)/spread2d: test/spread_2d.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
 	mkdir -p $(BINDIR)
@@ -115,6 +118,10 @@ $(BINDIR)/%_32: test/%_32.o $(CUFINUFFTOBJS_32) $(CUFINUFFTOBJS)
 	mkdir -p $(BINDIR)
 	$(NVCC) -DSINGLE $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
+$(BINDIR)/cufinufft2d2api_test%: test/cufinufft2d2api_test%.o $(DYNAMICLIB)
+	mkdir -p $(BINDIR)
+	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $< $(DYNAMICLIB)
+
 
 lib: $(STATICLIB) $(DYNAMICLIB)
 
@@ -135,8 +142,13 @@ $(DYNAMICCLIB): $(CUFINUFFTOBJS) $(CUFINUFFTCOBJS_64) $(CUFINUFFTCOBJS_32) $(STA
 # Check targets
 
 check: all
+	$(MAKE) api
 	$(MAKE) check2D
 	$(MAKE) check3D
+
+api: all
+	bin/cufinufft2d2api_test
+	bin/cufinufft2d2api_test_32
 
 check2D: all check2D_64 check2D_32
 

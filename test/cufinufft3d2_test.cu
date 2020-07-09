@@ -5,12 +5,7 @@
 #include <complex>
 #include <profile.h>
 
-#ifdef SINGLE
-#undef SINGLE
-#include <cufinufftf.h>
-#else
-#include <cufinufft.h>
-#endif
+#include <cufinufft_eitherprec.h>
 
 #include "../contrib/utils.h"
 
@@ -93,7 +88,7 @@ int main(int argc, char* argv[])
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	cufinufft_plan dplan;
+	CUFINUFFT_PLAN dplan;
 	int dim = 3;
 	int type = 2;
 	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &dplan.opts);

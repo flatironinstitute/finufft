@@ -4,6 +4,9 @@
 #include <helper_cuda.h>
 #include <complex>
 #include <algorithm>
+
+#include <cufinufft_eitherprec.h>
+
 #include "../src/cuspreadinterp.h"
 #include "../contrib/utils.h"
 
@@ -68,7 +71,7 @@ int main(int argc, char* argv[])
 
 	int dim=2;
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_plan dplan;
+	CUFINUFFT_PLAN dplan;
 	ier = cufinufft_default_opts(1, dim, &dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;

@@ -12,11 +12,11 @@ int main(int argc, char* argv[])
  * example code for 2D Type 1 transformation.
  *
  * To compile the code:
- * 	nvcc -DSINGLE example2d2many.cpp -o example2d2many loc/to/cufinufft/lib-static/libcufinufftf.a -I/loc/to/cufinufft/include -lcudart -lcufft -lnvToolsExt
+ * 	nvcc example2d2many.cpp -o example2d2many loc/to/cufinufft/lib-static/libcufinufft.a -I/loc/to/cufinufft/include -lcudart -lcufft -lnvToolsExt
  * 
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
- * nvcc -DSINGLE example2d2many.cpp -L/loc/to/cufinufft/lib/ -I/loc/to/cufinufft/include -o example2d1 -lcufinufftf
+ * nvcc -DSINGLE example2d2many.cpp -L/loc/to/cufinufft/lib/ -I/loc/to/cufinufft/include -o example2d1 -lcufinufft
  *
  *
  */
@@ -30,21 +30,21 @@ int main(int argc, char* argv[])
 	int ntransf = 4;
 	int maxbatchsize = 4;
 	int iflag=1;
-	float tol=1e-6;
+	double tol=1e-6;
 
-	float *x, *y;
-	complex<float> *c, *fk;
-	cudaMallocHost(&x, M*sizeof(float));
-	cudaMallocHost(&y, M*sizeof(float));
-	cudaMallocHost(&c, M*ntransf*sizeof(complex<float>));
-	cudaMallocHost(&fk,N1*N2*ntransf*sizeof(complex<float>));
+	double *x, *y;
+	complex<double> *c, *fk;
+	cudaMallocHost(&x, M*sizeof(double));
+	cudaMallocHost(&y, M*sizeof(double));
+	cudaMallocHost(&c, M*ntransf*sizeof(complex<double>));
+	cudaMallocHost(&fk,N1*N2*ntransf*sizeof(complex<double>));
 
-	float *d_x, *d_y;
-	cuFloatComplex *d_c, *d_fk;
-	cudaMalloc(&d_x,M*sizeof(float));
-	cudaMalloc(&d_y,M*sizeof(float));
-	cudaMalloc(&d_c,M*ntransf*sizeof(cuFloatComplex));
-	cudaMalloc(&d_fk,N1*N2*ntransf*sizeof(cuFloatComplex));
+	double *d_x, *d_y;
+	cuDoubleComplex *d_c, *d_fk;
+	cudaMalloc(&d_x,M*sizeof(double));
+	cudaMalloc(&d_y,M*sizeof(double));
+	cudaMalloc(&d_c,M*ntransf*sizeof(cuDoubleComplex));
+	cudaMalloc(&d_fk,N1*N2*ntransf*sizeof(cuDoubleComplex));
 
 	for (int i=0; i<M; i++) {
 		x[i] = M_PI*randm11();
@@ -55,9 +55,9 @@ int main(int argc, char* argv[])
 		fk[i].real(randm11());
 		fk[i].imag(randm11());
 	}
-	cudaMemcpy(d_x,x,M*sizeof(float),cudaMemcpyHostToDevice);
-	cudaMemcpy(d_y,y,M*sizeof(float),cudaMemcpyHostToDevice);
-	cudaMemcpy(d_fk,fk,N1*N2*ntransf*sizeof(cuFloatComplex),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_x,x,M*sizeof(double),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_y,y,M*sizeof(double),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_fk,fk,N1*N2*ntransf*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice);
 
 	cufinufft_plan dplan;
 
@@ -80,17 +80,17 @@ int main(int argc, char* argv[])
 
 	ier=cufinufft_destroy(&dplan);
 
-	cudaMemcpy(c,d_c,M*ntransf*sizeof(cuFloatComplex),cudaMemcpyDeviceToHost);
+	cudaMemcpy(c,d_c,M*ntransf*sizeof(cuDoubleComplex),cudaMemcpyDeviceToHost);
 
 	cout<<endl<<"Accuracy check:"<<endl;
-	complex<float>* fkstart; 
-	complex<float>* cstart;
+	complex<double>* fkstart; 
+	complex<double>* cstart;
 	for(int t=0; t<ntransf; t++){
 		fkstart = fk + t*N1*N2;
 		cstart = c + t*M;
 		int jt = M/2;          // check arbitrary choice of one targ pt
-		complex<float> J(0,iflag*1);
-		complex<float> ct(0,0);
+		complex<double> J(0,iflag*1);
+		complex<double> ct(0,0);
 		int m=0;
 		for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
 			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)

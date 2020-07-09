@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 #endif
 
 	int dim=3;
-	cufinufft_plan dplan;
+	CUFINUFFT_PLAN dplan;
 	ier = cufinufft_default_opts(1, dim, &dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;

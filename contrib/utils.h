@@ -10,6 +10,7 @@
 #include <complex>          // C++ type complex
 #include <fftw3.h>          // needed so can typedef FFTW_CPX
 #include <cuComplex.h>
+#include "dataTypes.h"
 
 // fraction growth cut-off in arraywidcen(), to decide if translate in type-3
 #define ARRAYWIDCEN_GROWFRAC 0.1
@@ -23,10 +24,6 @@
 using namespace std;        // means std:: not needed for cout, max, etc
 
 typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
-
-// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
-// This includes all calling arguments (eg M,N) that could be huge someday...
-typedef int BIGINT;
 
 // Global error codes for the library...
 #define ERR_EPS_TOO_SMALL        1
