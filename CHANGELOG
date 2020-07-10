@@ -1,6 +1,6 @@
 List of features / changes made / release notes, in reverse chronological order
 
-V 1.2 (June 2020)
+V 1.2 (July 2020)
 
 * a major change to code, internally, and major improvements to operation and
 language interfaces.
@@ -13,19 +13,26 @@ language interfaces.
 	  was too small, but that a transform *was* done at the best possible
 	  accuracy.
 	- opts.nthreads was removed in language interfaces. Control of the
-	  number of available OpenMP threads is up to the user.
+	  number of available OpenMP threads is now up to the user.
 	- opts.fftw directly controls the FFTW plan mode consistently in all
 	  language interfaces (this changes the meaning of fftw=0 in MATLAB).
 	These changes were deemed necessary to rationalize and improve FINUFFT
 	for the long term.
 
 ...
+* The C++ library is now dual-precision, with distinct function interfaces for
+  double vs single precision operation, that are C and C++ compatible. Under
+the hood this is achieved via simple C macros.
+* completely new (although backward compatible) MATLAB/octave interface,
+  including object-style wrapper around the guru interface, dual precision.
 * completely new Fortran interface, allowing >2^31 sized (int64) arrays,
-  all simple, many-vector and guru interface, with full options control.
+  all simple, many-vector and guru interface, with full options control,
+  and dual precisions.
 * all simple and many-vector interfaces now call guru interface, for much
-  better maintainability and less code repetition.	
+  better maintainability and less code repetition.
 * new guru interface, by Andrea Malleo and Alex Barnett, allowing easier language wrapping and control of point-setting, reuse of sorting and FFTW plans. This finally bypasses the 0.1ms/thread cost of FFTW looking up previous wisdom, which slowed down performance for many small problems.
 * removed obsolete -DNEED_EXTERN_C flag.
+* Major rewrite of documentation, plus tutorial application examples in MATLAB.
 
 V 1.1.2 (1/31/20)
 
