@@ -151,8 +151,8 @@ Documentation contents
    tut
    fortran          
    matlab
-   pythoninterface
-   juliainterface
+   python
+   julia
    related
    users
    ackn
