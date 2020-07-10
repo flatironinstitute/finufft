@@ -1,0 +1,268 @@
+GuruInterface Branch Summary
+
+******Directory Structure*****
+.
+├── include
+├── lib
+├── lib-static
+├── src
+│   ├── direct
+│   ├── legacy
+│   └── old
+└── test
+
+**Header Directory**
+
+All headers are in the include directory. Include statements use #include <header.h> instead of
+#include "header.h" or #include "../header.h" because the latter two are path dependent, whereas
+the makefile line "CFLAGS += -I include" ensures all headers inside of this "include" directory will be
+available to a file if they are referred to with the former syntax.
+
+|nufft_opts.h| : Additional parameter spread_scheme {0:Sequential Multithreaded, 1: Nested Multithreaded}.
+	         The default spread_scheme is set to 0. 
+
+**Src Directory**
+
+|direct| : the direct calculation files have not been touched, just moved
+
+|old| : All of the old implementations have been moved to src/old/finufft?d_old.cpp.
+
+        The one change made to these files was for collection of timing statistics - malloc calls for fftw working arrays moved outside
+	of timing capture. Only in the 1d file were fftw_init() calls also inside of the time capture. Those also moved outside,
+	as neither are included in the new implementations fftw_plan time statistic.
+
+|legacy|: these files maintain backwards compatability with prior release such that the old routines call the new
+          interface/implementation. The common calling code is abstracted into a function inside of invokeGuru.cpp.
+
+          Note that in invokeGuru.cpp, no nufft_opts struct is instantiated and fed into finufft_makeplan, because a nufft_opts
+          comes in from the user in compliance with old interface. This contrasts with test/finufftGuru_test.cpp which correctly
+          exemplifies the correct usages of the guru interface. test/finufftGuru_test.cpp is the proper demo code, not this file.
+
+|finufft.cpp| :
+
+    /************Main Functions************/
+
+              1) finufft_default_opts(): identical to original version + extra spreading_scheme parameter set default to 0 : sequential
+	      	 		         multithreaded scheme. Set to 1 to switch to simultaneous single threaded with nested at
+					 the end. Description of schemes below.
+					 
+              2) finufft_makeplan(): sets the fields of the plan struct.
+
+	      	 		     ==================================Types 1 + 2=============================================
+	      	 		     Allocates the internal fw array that is the workspace for fftw_execute(). For cases where
+				     n_trans > 1, user supplied c and F arrays are stacked arrays of size M*n_transf and N*n_transf
+				     respectively. Because finufft_exec() performs its steps in batches of size threadBlkSize
+				     (a parameter for this function)  Internal arrays like fw (and cpj, see finufft_exec) are still 
+				     stacked, but only threadBlkSize times. I.e. in 1d fw is of size nf1*threadBlkSize.
+				     Sets of weights are spread to the uniform grid threadBlkSize at a time. This holds true for all
+				     n_transf >= threadBlkSize. If n_transf < threadBlkSize, then internal arrays are only stacked
+				     n_transf times, because there will only be a single batch processed, of size n_transf.
+
+				     The fftwPlan is instantiated, using the plan_many fftw interface. Mimicking the pattern
+				     described above, the how_many parameter fed to fftw is only threadBlkSize, and fftw_exec
+				     is contained in a loop in the body of finufft_exec. The exception is when n_transf<threadBlkSize.
+				     Then how_many is set to n_transf. Note that when n_transf > threadBlkSize, but is not divided
+				     evenly by threadBlkSize, the final call to fftw_exec within the final loop of finufft_execution
+				     will still perform threadBlkSize transforms, even though a remainder less than threadBlkSize
+				     remains to be done. This is safe because the fw array allocated is large enough for fftw
+				     to not run into trouble, however the contents of the array at the end are garbage- never filled
+				     in with sets of spread/interpolated weights. They are not read out either, so there is no effect.
+				     This course was chosen instead of creating a new fftw_plan on the last round with a different
+				     "how_many" and calling fftw_exec on the new plan. 
+				     
+              3) finufft_setpts():  sets the coordinate pointers with the provided pts. 
+
+	      	 		     ==================================Type 1 + 2================================================
+
+				    Performs indexSort on the coordinates, storing the sorting order in the internal sortIndices
+				    array, accessed from the plan struct.
+
+				    ======================================Type 3================================================
+				    Because the upsampled grid size is a function of both the number of points and the target
+				    frequencies, only after being supplied the latter can the fw working array be allocated
+				    according to the same batch sizing guidelines described above.
+
+				    The coordinates are rescaled, and then indexSort is called. The scaled coordinates are stored
+				    as X,Y,Z in the plan, (instead of Xp,Yp,Zp) in order to share the spreading/interp functions with
+				    types 1 and 2. A pointer to the originals are also saved for the prephase function. The destroy function
+				    handles type3 pointers specially, only deleting the scaled ones and not the user supplied ones.
+
+				    The target frequencies are scaled, and the spreading kernel fourier weights are computed. PhiHat
+				    is the name of the array in the finufft_plan struct referred to as fwker for type 1+2 and fkker
+				    in type 3 in older code. 
+				  
+	      	 		   
+              4) finufft_exec(): Main body for both types is contained in a loop over the number of batches.
+	      	 		 Inside are calls to spread, interp, deconvolve, prephase as appropriate for type, and fftw_exec.
+	      	                 nBatches = ceil(n_transf/threadBlkSize). The number of sets in a batch is equal to
+				 min(threadBlkSize, n_transf). Where n_transf > threadBlkSize, i.e. nBatches > 1,
+				 for the last batch, the number of sets in the batch is modulus n_transf/threadBlkSize.
+				 The number of sets in a batch is the number times that the spread, interpolated, deconvolve, 
+ 				 and prephase routines execute. Thus there are no extra calls to any of these functions on the
+				 last loop of execution. Recall that this is not the case for fftw_exec - internally it will do
+				 more work than necessary on the last round if nBatches > 1.
+
+				 deconvolveInParallel, type3PrePhaseInParallel, and type3DeconvolveInParallel are all named to
+				 suggest the manner in which they run. All routines have no internal calls to other routines, or
+				 for the case of deconvolveshuffle?d, the internal routine is single threaded. As such, parellelization
+				 occurs at the level of the top loop inside of these three functions. Different iterations of the
+				 loop execute in parallel to the extent of available threads.
+
+				 For example, if there are 20 cores available on the machine, and 50 iterations, then you can expect
+				 20 simultaneous executions of the loop with a different "i" for each thread. As each thread
+				 finishes they grab another uncomputed iteration, repeating until all iterations of the loop
+				 have executed. Note that while the last 10 iterations are executing, you can expect the other 10
+				 threads to sit around doing nothing.
+
+				 spreadAllSetsInBatch and interpAllSetsInBatch work differently than the other three. The internal
+				 spread and interp routines are multithreaded, and configured to use however many threads happen
+				 to be available as they are executing. There was a decision to be made whether to turn off the
+				 multithreading inside of these threads, and execute the loop containing these calls in parallel,
+				 or to sequentially call these routines allowing for maximal multithreading inside. See #4 down below
+				 for a complete discussion.
+
+				  ======================================Type 3================================================
+				  Allocates the scaled weights array cpj of size nj*threadBlkSize, following the same stacked array
+				  paradigm as fw.
+
+				  Creates an internal finufft_plan and sets the coordinate points one time for the
+				  interior type2.
+
+				  The n_transf parameter for the internal type2 plan is min(n_transf, threadBlkSize). In other words
+				  the interior type 2 will, like all the other routines, be called several times, with a constant
+				  batch size. Inside of that type 2 finufft_exec, there will only be a single "interior batch",
+				  because the type 2 n_transf is always less than or equal to the threadBlkSize. On the last
+				  type 3 execute batch, the interior type 2 n_transf field must be set to the modulus of
+				  n_transf/threadBlkSize, because the cj and fk arrays provided by the user are only the
+				  stacked to {M,N}*n_transf, so extra work at the end would try to access outside of allocated memory. 
+
+
+	      5) finnuft_destroy(): releases all memory allocated internally by finufft and calls fftw_destroy on the plan. 
+
+
+**Test Directory**
+
+|make test| : still calls check1d.sh, check2d.sh, check3d.sh, dumpinputs. check?d all call finufft?d_test and finufft?dmany_test
+
+|finufft?d_test| : use the legacy interface to call the new implementations, and check for accuracy against the old/direct/bruteforce
+                   at a random mode/target point, for either the only trial if single transform, or the middle/last if there are many
+
+|dumbinputs| : has been expanded to check bad inputs across the extended legacy interface
+
+|finufftGuru_test| : Main demo code for the guru interface and test program executable. 
+
+                     Note on Usage: spread_scheme parameter after the debug that allows user to choose sequential multithreaded
+                     spread vs simultaneous single threaded+nested last. Default is sequential multithreaded spread/interp.
+
+                     A single run first calls the new interface/implementation, cleans up, and then calls the old. Debug level
+                     determines level of output from inside of the functions, and timing metrics at the level of each finufft_x
+                     call are output, along with calculated speedup ratios.
+
+                     Look to timingBreakdowns.py, checkGuruTiming.sh, and getSpeedup.sh for some automated repeat call drivers
+
+|runOldFinufft.cpp| : contains helper functions finufftFunnel and runOldFinufft. runOldFinufft takes in c and F arrays of size
+                      M*n_transf and N*n_transf respecitivally and calls the old finufft routines in a loop of n_transf iterations
+                      each time, with pointers inside of the large c and F arrays that represent M and N sized c and F arrays for
+                      this single finufft?d? call. FinufftFunnel merely parses the parameters contained in plan- namely dimension and
+                      type to call the appropriate finufft?d?_old routine
+
+|timingBreakdowns.py| :  this script automates running finufftGuru_test with varying dimension, type, and n_transf parameters.
+		         The output is then parsed for raw timing statistics reported for totalTime, spread time, fftw_plan time,
+			 and fftw_execution time. Ratios of (old implementation time)/(new implementation time) are calculated,
+			 and 3D Bar graphs are generated for all four statistics.
+
+			 if n_trials = [1,10,100] at the top of the script
+			 pattern of any given printed array: [dim1_1trial, dim1_10trials, dim1_100trials, dim2_1trial, etc ]
+			 
+			 Run this on a rusty node and you should find total time ratios ~>= 1 for *almost* all of the big problems
+			 defaulted in this script, indicating that the old implementation took longer than the new.
+
+			 Spreading times are printed second, defaulting to sequential multithreaded scheme. See spreadingSchemeStats.py
+			 for a driver that compares the two spreading schemes for a small and large problem.
+
+			 fftw_plan times are printed third, sanity check that for any dimension and type single trial ratios are
+			 at 1, as no difference in implementation for this case. ***Clear pattern of greater time advantage as
+			 n_trials grows, evidence for completion of a primary goal: reduce finufft_plan retrieval overhead time
+			 in repeated executions. ***
+
+			 fftw_exec times are printed last. Same sanity check as above applies. 
+
+|spreadingSchemeStats.py| : this script runs a single small problem and a single large problem for the two spreading schemes.
+			    See #4 of Timing Questions and Conclusions for further information on the schemes. The output of
+			    each run is parsed for raw timing statistics, and ratios of (old implementation time)/(new time)
+			    are reported after each run.
+
+|checkGuruTiming.sh| : a bare bones finufftGuru_test driver shell script. Prints chosen debug level to stdout
+
+|getSpeedup.sh| : this little script calls checkGuruTiming and then only prints lines reporting speedup ratios to stdout
+
+
+**Timing Questions and Conclusions**
+
+1) Speedup due to non fftw_plan retrieval?
+   Evidence exists that a primary goal of this guru interface effort has been achieved for large problems.
+   The file timingResults/timingBreakdowns_largeProblems.out contain stats reported from timingBreakdowns.py for a problem size 1e7.
+   The files timingResults/timingBreakdowns_smallProblems_* contain stats reported for timingBreaddowns.py for a problem of size 1e4.
+   All of these show a decrease in time spent in fftw_plan linearly proportional to the number of transforms computed.
+   
+2) Speedup due to non-repeated sorting?
+   The Spreading results section in timingResults/timingBreakdowns_sortingDominates.out, run with M = 1e7 and N = 1e4,
+   provides good evidence for the guru speedup due to time advantage of single sort over repeated sort. 
+   
+3) FFTW and single vs many plan and execution?
+   Does FFTW do better performing one fftw_execute many times in a loop or a single time over many sets?
+   For large problems, many execution looks better than repeated single, however trials
+   consistently show a few troublesome looking ratios: 2d_10trials, 3d_10trials for type 1 and type 2. However, raw timing values
+   shown just above reveal that the actual differences are < 0.09s. This phenomenon is exacerbated for small problems, as can clearly
+   be seen in the smallProblems timing result files.
+
+4) Speed implications of spreading scheme?
+
+   ===========First an explanation of the spreading schemes===============================================================
+
+   if (finufft_plan.opts.spread_scheme == 0), the sequential, maximum mulithreaded spread/interp pattern will be followed.
+   At the top of {spread/interp}AllSetsInBatch, n_outerThreads will be set to 0, indicating that the #pragma omp parallel
+   for num_threads(0) will spawn ZERO additional threads, and the for loop underneath will proceed sequentially.Inside,
+   the call to {spread/interp}Sorted will be maximally multithreading- grabbing all available threads to do its work.
+
+   if (finufft_plan.opts.spread_scheme == 1), the simultaneous single threaded spread/interp pattern will be followed.
+   All iterations of this top level "for loop" will execute in parallel, because nSetsThisBatch is guaranted <= threadBlkSize. So
+   at best, all threads will be occupied carrying out one iteration of the loop, but at most one thread is allocated per iteration.
+   Therefore, for instances where nSetsThisBatch < threadBlkSize, there are some threads left over- these will be utilized inside
+   of the spread/interpSorted calls. This scheme is therefore simulataneous single threaded until the last batch, when the
+   multithreading becomes nested.
+
+   ========================================================================================================================
+
+   To see hard metrics on whether one scheme is beneficial over the other, perhaps as a function of problem size, type,
+   or n_transforms, look to spreadSchemeStats.py. Running it will spit out speed ratios that only slightly favor sequential,
+   maximally multithreaded over simultaneous single threaded, but the number of parameter sets is very small, and from run to run,
+   the margin of difference over the two schemes is small on average. However- important caveat. In the test/timingResults folder
+   there are three files:
+
+   timingBreakdowns_smallProblems_SequentialMulti.out
+   timingBreadowns_smallProblems_SimultaneousSingle.out
+   timingBreakdowns_smallProblems_SequentialMulti_noSwitch.out.
+
+   I believe that comparison across the three files indicates that
+   the very inclusion of the code that allows for the user configurable switch between the two sorting schemes causes
+   an impactful slow down more significant than anything apparent between the two schemes. This is unintuitive,
+   as the #pragma parallel for num_threads(0) shouldn't perform significant work, but the New raw spreading times between
+   SequentialMulti.out and SequentialMulti_noSwitch.out shows definitively that the former eats up more raw time. This needs more
+   investigation. The code being referred to is identical in spreadAllSetsInBatch and interpAllSetsInBatch in finufft.cpp.
+   The lines beginning at the declaration of the n_outerThreads variable down to #pragma omp parallel before the for-loop, and then
+   the three lines at the bottom that reset nested to 0.
+   
+
+**Testing Gotchas...BEWARE**
+1) |FFTW library clean slate|: Even with fftw_destoy_plan(&plan) [inside of finufft_destroy] and fftw_forget_wisdom()
+between round 1 and round 2 (guru call then old call), close scrutiny of the fftw_plan and fftw_exec times showed a 10x advantage
+between either round 1 and 2 or round 2 and the first round of the next test. These were only straightened out by adding
+fftw_cleanup() and fftw_cleanup_threads() for a total of four calls, at the beginning, middle, and end. AND CRUCIALLY a manual
+1 second sleep, to make sure those routines finish before the next roundstarts up. Sanity check: fftw_plan and fftw_exec ratios
+for types 1,2,3, 1,2,3D should all be ONE for a single trial test, because for this case there is no difference across old and
+new implementation.
+
+2) |Deconvolve and copy out craziness|: Sometimes for single trial runs of finufftGuru_test, the deconvolve_copyout routine would be
+reproducibly twice as fast for the second execution (during the old finufft run). But during tests that run 10 trials of the old
+in a loop, the deconvolve_copyout time will sometimes times flip back and forth: x,2x,x,2x,x,2x between the calls to finufft?d?_old().
