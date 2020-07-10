@@ -52,6 +52,6 @@ o.floatprec=class(x);                      % should be 'double' or 'single'
 [ms,n_transf]=size(f);                     % if f a col vec, n_transf=1, but...
 if ms==1, ms=n_transf; n_transf=1; end     % allow a single row vec as valid f
 p = finufft_plan(2,ms,isign,n_transf,eps,o);
-p.finufft_setpts(x,[],[]);
-c = p.finufft_exec(f);
+p.setpts(x,[],[]);
+c = p.exec(f);
 delete(p);

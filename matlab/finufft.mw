@@ -181,8 +181,8 @@ classdef finufft_plan < handle
       end
     end
 
-    function finufft_setpts(plan, xj, yj, zj, s, t, u)
-    % FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
+    function setpts(plan, xj, yj, zj, s, t, u)
+    % SETPTS   process nonuniform points for general FINUFFT transform(s).
 
       $ // sadly we need compile versions for both precisions of plans...
       $ int get_type(finufft_plan* plan) {
@@ -217,8 +217,8 @@ classdef finufft_plan < handle
       errhandler(ier);
     end
 
-    function result = finufft_exec(plan, data_in)
-    % FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
+    function result = exec(plan, data_in)
+    % EXEC   execute single or many-vector FINUFFT transforms in a plan.
 
       $ // sadly we need compile versions for both precisions of plans...
       $ int64_t get_nj(finufft_plan* plan) {

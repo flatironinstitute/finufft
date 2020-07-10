@@ -12,8 +12,8 @@
 %
 % METHODS
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
-%   finufft_setpts  - process nonuniform points for general NUFFT transform(s).
-%   finufft_exec - execute single or many-vector NUFFT transforms in a plan.
+%   setpts       - process nonuniform points for general FINUFFT transform(s).
+%   exec         - execute single or many-vector FINUFFT transforms in a plan.
 %
 % General notes:
 %  * use delete(plan) to remove a plan after use.
@@ -66,16 +66,15 @@
 %  * For more details about the opts fields, see ../docs/opts.rst
 %
 %
-% 2) FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
+% 2) SETPTS   process nonuniform points for general FINUFFT transform(s).
 %
-% finufft_setpts(plan, xj, yj, zj)
-% finufft_setpts(plan, xj, yj, zj, s, t, u)
-%  or
-% plan.finufft_setpts(xj, yj, zj)
-% plan.finufft_setpts(xj, yj, zj, s, t, u)
+% plan.setpts(xj, yj, zj)
+% plan.setpts(xj, yj, zj, s, t, u)
 %
-% Inputs nonuniform point coordinates (xj,yj,zj) in the case of all types, and
-%  also nonuniform frequency target points (s,t,u) for type 3.
+%  When plan is a finufft_plan MATLAB object, brings in nonuniform point
+%  coordinates (xj,yj,zj), and additionally in the type 3 case,
+%  nonuniform frequency target points (s,t,u). Empty arrays
+%  may be passed in the case of unused xyz dimensions in the case of type 3.
 %  For all types, sorting is done to internally store a reindexing of points,
 %  and for type 3 the spreading and FFTs are planned. The nonuniform points may
 %  be used for multiple transforms.
@@ -97,23 +96,21 @@
 %    than the resulting size of the internal fine grids.
 %  * s (and t and u) are only relevant for type 3, and may be omitted otherwise
 %  * The matlab vectors xj,... and s,... should not be changed before calling
-%    future finufft_exec calls, because the plan stores only pointers to the
+%    future exec calls, because the plan stores only pointers to the
 %    arrays (they are not duplicated internally).
 %  * The precision (double/single) of all inputs must match that chosen at the
 %    plan stage using opts.floatprec, otherwise an error is raised.
 %
 %
-% 3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
+% 3) EXEC   execute single or many-vector FINUFFT transforms in a plan.
 %
-% result = finufft_exec(plan, data_in);
-% or
-% result = plan.finufft_exec(data_in); 
+% result = plan.exec(data_in);
 %
-% Execute a single (or if ntrans>1 in the plan stage, multiple) NUFFT transforms
-%  according to the previously defined plan, using the nonuniform points chosen
-%  previously with finufft_setpts, and with the strengths or Fourier
-%  coefficient inputs vector(s) from data_in, creating result, a new array of
-%  the output vector(s).
+%  For plan a previously created finufft_plan object also containing all
+%  needed nonuniform point coordinates, execute a single (or if ntrans>1 in the
+%  plan stage, multiple) NUFFT transforms, with the strengths or Fourier
+%  coefficient inputs vector(s) from data_in. The result of the transform(s)
+%  is returned as a (possibly multidimensional) array.
 %
 % Inputs:
 %     plan     finufft_plan object
@@ -225,8 +222,8 @@ finufft(mex_id_, plan);
       end
     end
 
-    function finufft_setpts(plan, xj, yj, zj, s, t, u)
-    % FINUFFT_SETPTS   process nonuniform points for general NUFFT transform(s).
+    function setpts(plan, xj, yj, zj, s, t, u)
+    % SETPTS   process nonuniform points for general FINUFFT transform(s).
 
                                                                               
       if strcmp(plan.floatprec,'double')
@@ -254,8 +251,8 @@ finufft(mex_id_, plan);
       errhandler(ier);
     end
 
-    function result = finufft_exec(plan, data_in)
-    % FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
+    function result = exec(plan, data_in)
+    % EXEC   execute single or many-vector FINUFFT transforms in a plan.
 
                                                                                                             
                                                                                                 

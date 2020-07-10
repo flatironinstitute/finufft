@@ -1,5 +1,5 @@
 % FINUFFT: Flatiron Institute Nonuniform Fast Fourier Transform
-% Version 1.2.0 12-Jun-2020
+% Version 1.2.0 10-Jul-2020
 %
 % Basic and many-vector interfaces
 %   finufft1d1 - 1D complex nonuniform FFT of type 1 (nonuniform to uniform).
@@ -14,6 +14,5 @@
 %
 % Guru interface
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
-%   finufft_setpts  - process nonuniform points for general NUFFT transform(s).
-%   finufft_exec - execute single or many-vector NUFFT transforms in a plan.
-%   finufft_destroy - deallocate (delete) a nonuniform FFT plan.
+%   setpts       - process nonuniform points for general FINUFFT transform(s).
+%   exec         - execute single or many-vector FINUFFT transforms in a plan.

@@ -23,7 +23,7 @@ The values in ``f`` are accurate (relative to this vector's 2-norm)
 to roughly 12 digits, as requested by the tolerance argument ``1e-12``.
 Choosing a larger (ie, worse) tolerance leads to faster transforms.
 The ``+1`` controls the sign in the exponential; recall equation
-(1) on the `front page<index>`. All `options<opts>` maybe be changed from
+(1) on the :ref:`front page<index>`. All :ref:`options<opts>` maybe be changed from
 their defaults, for instance:
 
 .. code-block:: matlab
@@ -61,9 +61,9 @@ Here we use the guru interface to repeat the first demo above:
   N = 2e5;                            % how many desired Fourier modes?
   plan = finufft_plan(1,N,+1,ntr,1e-12,o);      % plan for N output modes
   M = 1e5;                            % number of NU source points
-  plan.finufft_setpts(2*pi*rand(M,1),[],[]);    % set some nonuniform points
+  plan.setpts(2*pi*rand(M,1),[],[]);  % set some nonuniform points
   c = randn(M,1)+1i*randn(M,1);       % iid random complex data (row or col vec)
-  f = plan.finufft_exec(c);           % do the transform (0.008 sec)
+  f = plan.exec(c);                   % do the transform (0.008 sec)
   % ...one could now change the points with setpts, and/or do new transforms
   % with new c data...
   delete(plan);                       % don't forget to clean up
@@ -79,11 +79,15 @@ y direction. The source points are in the square of side length $2\pi$:
   N1 = 1000; N2 = 500;                % desired Fourier mode array sizes
   f = finufft2d1(x,y,c,+1,1e-9,N1,N2);          % do it (takes around 0.08 sec)
 
-The resulting output `f` is indeed size 1000 by 500. The first dimension
+The resulting output ``f`` is indeed size 1000 by 500. The first dimension
 (number of rows) corresponds to the x input coordinate, and the second to y.
 
 If you need to change the definition of the period from $2\pi$, simply
 rescale your points before sending them to FINUFFT.
+
+.. note::
+
+   Under the hood FINUFFT has double- and single-precision libraries. The simple and vectorized MATLAB/octave interfaces infer which to call by checking the class of its input arrays, which must all match (ie, all must be ``double`` or all must be ``single``). In contrast, precision in the guru interface is set with the ``finufft_plan`` option ``o.floatprec``, with ``double`` the default.
 
 See
 `tests and examples in the repo <https://github.com/flatironinstitute/finufft/tree/master/matlab/>`_ and

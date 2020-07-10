@@ -24,14 +24,15 @@ opts.spread_debug=0;
 plan = finufft_plan(type,n_modes,isign,n_transf,eps,opts);
 
 %set pts
-plan.finufft_setpts(x,[],[]);
+plan.setpts(x,[],[]);
 
 %exec
-f = plan.finufft_exec(c); 
+f = plan.exec(c);
+delete(plan);
 disp('done.'); toc
 
 %error
 nt = ceil(0.37*N);                              % pick a mode index
 fe = sum(c.*exp(1i*isign*nt*x));                % exact
 of1 = floor(N/2)+1;                             % mode index offset
-fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of1))/norm(fe,Inf))
+fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of1))/norm(f,Inf))
