@@ -25,7 +25,11 @@ NVCCFLAGS= -std=c++14 -ccbin=$(CXX) -O3 $(NVARCH) -Wno-deprecated-gpu-targets \
 #NVCCFLAGS+= -DINFO -DDEBUG -DRESULT -DTIME
 
 # CUDA Related build dependencies
-CUDA_ROOT=/usr/local/cuda
+ifeq ($(CUDA_DIR),)
+CUDA_ROOT ?= /usr/local/cuda
+else
+CUDA_ROOT := $(CUDA_DIR)
+endif 
 INC=-I$(CUDA_ROOT)/include \
 	-Icontrib/cuda_samples
 NVCC_LIBS_PATH=-L$(CUDA_ROOT)/lib64
@@ -37,7 +41,12 @@ LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTWNAME) -l$(FFTWNAM
 
 #############################################################
 # Allow the user to override any variable above this point. #
+uname_p := $(shell uname -p)
+ifeq ($(uname_p), ppc64le)
+-include make.inc.power9
+else
 -include make.inc
+endif
 
 # Include header files
 INC += -I include
