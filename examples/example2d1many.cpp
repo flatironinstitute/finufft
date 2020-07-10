@@ -9,8 +9,6 @@
 #include <complex>
 
 #include <cufinufft.h>
-//#define SINGLE
-//#include <cufinufft_eitherprec.h>
 
 using namespace std;
 
