@@ -99,8 +99,8 @@
 %  * The matlab vectors xj,... and s,... should not be changed before calling
 %    future finufft_exec calls, because the plan stores only pointers to the
 %    arrays (they are not duplicated internally).
-%  * If the data precision (double/single) does not match opts.floatprec used
-%    in finufft_plan, warning is raised and copies used of the plan precision.
+%  * The precision (double/single) of all inputs must match that chosen at the
+%    plan stage using opts.floatprec, otherwise an error is raised.
 %
 %
 % 3) FINUFFT_EXEC   execute single or many-vector NUFFT transforms in a plan.
@@ -135,8 +135,8 @@
 %              of such objects, ie, it has an extra last dimension ntrans.
 %
 % Notes:
-%  * If the data precision (double/single) does not match opts.floatprec used
-%    in finufft_plan, warning is raised and copies used of the plan precision.
+%  * The precision (double/single) of all inputs must match that chosen at the
+%    plan stage using opts.floatprec, otherwise an error is raised.
 %
 %
 % 4) To deallocate (delete) a nonuniform FFT plan, use delete(plan)
@@ -200,11 +200,12 @@ finufft(mex_id_, o);
       % replace in nufft_opts struct whichever fields are in incoming opts...
       mex_id_ = 'copy_nufft_opts(i mxArray, i nufft_opts*)';
 finufft(mex_id_, opts, o);
-      tol = double(tol);   % scalar behavior of mwrap 0.33.11: doubles only!
       if strcmp(plan.floatprec,'double')
+        tol = double(tol);   % scalar match for mwrap>=0.33.11
         mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)';
 [ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_trans, tol, plan, o, 3);
       else
+        tol = single(tol);   % scalar match for mwrap>=0.33.11
         mex_id_ = 'o int = finufftf_makeplan(i int, i int, i int64_t[x], i int, i int, i float, i finufftf_plan*, i nufft_opts*)';
 [ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_trans, tol, plan, o, 3);
       end
@@ -310,13 +311,13 @@ finufft(mex_id_, plan);
         if strcmp(plan.floatprec,'double')
           mex_id_ = 'o int64_t = get_nk(i finufft_plan*)';
 [nk] = finufft(mex_id_, plan);
-          mex_id_ = 'o int = finufft_exec(i finufft_plan*, o dcomplex[xx], i dcomplex[])';
-[ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
+          mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[xx])';
+[ier, result] = finufft(mex_id_, plan, data_in, nk, n_trans);
         else
           mex_id_ = 'o int64_t = get_nkf(i finufftf_plan*)';
 [nk] = finufft(mex_id_, plan);
-          mex_id_ = 'o int = finufftf_exec(i finufftf_plan*, o fcomplex[xx], i fcomplex[])';
-[ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
+          mex_id_ = 'o int = finufftf_exec(i finufftf_plan*, i fcomplex[], o fcomplex[xx])';
+[ier, result] = finufft(mex_id_, plan, data_in, nk, n_trans);
         end
       else
         ier = 10;         % type was corrupted since plan stage - the horror

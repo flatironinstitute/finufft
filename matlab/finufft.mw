@@ -28,14 +28,14 @@
 % Notes:
 %  0) see mwrap's documentation for how this type of .mw file works:
 %     https://github.com/zgimbutas/mwrap
-%  1) Double and single precision (floatprec opt). A bit too much repetition
+%  1) Double and single precision (via floatprec opt). A bit too much repetition
 %     in both prec of low-level routines which query the plan.
 %  2) in the FINUFFT library, BIGINT type must be int64_t, as is default.
 %     Since int64_t is hardwired in the below, MEX will break otherwise.
 %  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
 %     interfaces.
 %  4) after mwrap generates finufft_plan.m from this file, documentation is
-%     prepended to finufft_plan.m by running ./addmhelp.sh
+%     prepended to finufft_plan.m (etc) by running ./addmhelp.sh
 %
 % Main author: Libin Lu, started May 2020; edits, ier, docs etc by Alex Barnett.
 
@@ -161,10 +161,11 @@ classdef finufft_plan < handle
 
       % replace in nufft_opts struct whichever fields are in incoming opts...
       # copy_nufft_opts(mxArray opts, nufft_opts* o);
-      tol = double(tol);   % scalar behavior of mwrap 0.33.11: doubles only!
       if strcmp(plan.floatprec,'double')
+        tol = double(tol);   % scalar match for mwrap>=0.33.11
         # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, nufft_opts* o);
       else
+        tol = single(tol);   % scalar match for mwrap>=0.33.11
         # int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, finufftf_plan* plan, nufft_opts* o);
       end
       # delete(nufft_opts* o);
@@ -293,10 +294,10 @@ classdef finufft_plan < handle
       elseif type==3
         if strcmp(plan.floatprec,'double')
           # int64_t nk = get_nk(finufft_plan* plan);
-          # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
+          # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
         else
           # int64_t nk = get_nkf(finufftf_plan* plan);
-          # int ier = finufftf_exec(finufftf_plan* plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
+          # int ier = finufftf_exec(finufftf_plan* plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
         end
       else
         ier = 10;         % type was corrupted since plan stage - the horror

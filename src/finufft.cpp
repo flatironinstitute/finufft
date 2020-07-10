@@ -967,6 +967,8 @@ int FINUFFT_EXEC(FINUFFT_PLAN* p, CPX* cj, CPX* fk){
 
   else {  // ----------------------------- TYPE 3 EXEC ---------------------
 
+    //for (BIGINT j=0;j<10;++j) printf("\tcj[%ld]=%.15g+%.15gi\n",(long int)j,(double)real(cj[j]),(double)imag(cj[j]));  // debug
+    
     double t_pre=0.0, t_spr=0.0, t_t2=0.0, t_deconv=0.0;  // accumulated timings
     if (p->opts.debug)
       printf("[%s t3] start ntrans=%d (%d batches, bsize=%d)...\n",__func__,p->ntrans, p->nbatch, p->batchSize);
@@ -1025,6 +1027,8 @@ int FINUFFT_EXEC(FINUFFT_PLAN* p, CPX* cj, CPX* fk){
       printf("                  tot deconvolve:\t\t%.3g s\n", t_deconv);
     }    
   }
+  //for (BIGINT k=0;k<10;++k) printf("\tfk[%ld]=%.15g+%.15gi\n",(long int)k,(double)real(fk[k]),(double)imag(fk[k]));  // debug
+  
   return 0; 
 }
 
