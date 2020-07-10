@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default N1 * N2 * N3).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_plan",2);
-		ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol, 
+		ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
 			maxbatchsize, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft_makeplan\n");
@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
-	
+
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
 

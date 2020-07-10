@@ -12,11 +12,11 @@
 
 using namespace std;
 
-int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
+int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	const FLT *h_kx, const FLT *h_ky, const CPX *h_c, CUFINUFFT_PLAN* d_plan)
 /*
-	This c function is written for only doing 2D spreading. It includes 
-	allocating, transfering, and freeing the memories on gpu. See 
+	This c function is written for only doing 2D spreading. It includes
+	allocating, transfering, and freeing the memories on gpu. See
 	test/spread_2d.cu for usage.
 
 	Melody Shih 07/25/19
@@ -61,14 +61,14 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory HtoD (%d Bytes) \t%.3g ms\n", 
+	printf("[time  ] Copy memory HtoD (%d Bytes) \t%.3g ms\n",
 		2*M*sizeof(FLT)+M*sizeof(CUCPX), milliseconds);
 #endif
 
 	if(d_plan->opts.gpu_method == 1){
 		ier = CUSPREAD2D_NUPTSDRIVEN_PROP(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread2d_nuptsdriven_prop, method(%d)\n", 
+			printf("error: cuspread2d_nuptsdriven_prop, method(%d)\n",
 				d_plan->opts.gpu_method);
 			return ier;
 		}
@@ -77,7 +77,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	if(d_plan->opts.gpu_method == 2){
 		ier = CUSPREAD2D_SUBPROB_PROP(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
+			printf("error: cuspread2d_subprob_prop, method(%d)\n",
 				d_plan->opts.gpu_method);
 			return ier;
 		}
@@ -86,7 +86,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	if(d_plan->opts.gpu_method == 3){
 		ier = CUSPREAD2D_PAUL_PROP(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
+			printf("error: cuspread2d_subprob_prop, method(%d)\n",
 				d_plan->opts.gpu_method);
 			return ier;
 		}
@@ -98,7 +98,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Spread (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method, 
+	printf("[time  ] Spread (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method,
 		milliseconds);
 #endif
 	cudaEventRecord(start);
@@ -127,7 +127,7 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 
 int CUSPREAD2D(CUFINUFFT_PLAN* d_plan, int blksize)
 /*
-	A wrapper for different spreading methods. 
+	A wrapper for different spreading methods.
 
 	Methods available:
 	(1) Non-uniform points driven
@@ -247,7 +247,7 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan)
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n", 
+		printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n",
 			milliseconds);
 #endif
 #ifdef DEBUG
@@ -280,11 +280,11 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan)
 				cout <<"point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
 				cout<<"[debug ] ";
 				printf("(%10.10f, %10.10f) ", RESCALE(h_kx[i],nf1,pirange),
-                                     RESCALE(h_ky[i],nf1,pirange)); 
+                                     RESCALE(h_ky[i],nf1,pirange));
 				printf("(%10.10f, %10.10f) ", RESCALE(h_kx[i],nf1,pirange)/32,
-                                     RESCALE(h_ky[i],nf1,pirange)/32); 
+                                     RESCALE(h_ky[i],nf1,pirange)/32);
 				printf("(%f, %f)\n", floor(RESCALE(h_kx[i],nf1,pirange)/32),
-                                     floor(RESCALE(h_ky[i],nf1,pirange)/32)); 
+                                     floor(RESCALE(h_ky[i],nf1,pirange)/32));
 			}
 		}
 #endif
@@ -325,7 +325,7 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan)
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel CalcInvertofGlobalSortIdx_2d \t%.3g ms\n", 
+		printf("[time  ] \tKernel CalcInvertofGlobalSortIdx_2d \t%.3g ms\n",
 			milliseconds);
 #endif
 #ifdef DEBUG
@@ -348,7 +348,7 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan)
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tKernel TrivialGlobalSortIDx_2d \t\t%.3g ms\n", 
+		printf("[time  ] \tKernel TrivialGlobalSortIDx_2d \t\t%.3g ms\n",
 			milliseconds);
 #endif
 	}
@@ -384,14 +384,14 @@ int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
 	cudaEventRecord(start);
 	if(d_plan->opts.gpu_kerevalmeth){
 		for(int t=0; t<blksize; t++){
-			Spread_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, 
-				d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma, 
+			Spread_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx,
+				d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, sigma,
 				d_idxnupts, pirange);
 		}
 	}else{
 		for(int t=0; t<blksize; t++){
-			Spread_2d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, 
-				d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, es_beta, 
+			Spread_2d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky,
+				d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, es_c, es_beta,
 				d_idxnupts, pirange);
 		}
 	}
@@ -401,15 +401,15 @@ int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_2d_NUptsdriven (%d)\t%.3g ms\n", 
+	printf("[time  ] \tKernel Spread_2d_NUptsdriven (%d)\t%.3g ms\n",
 		milliseconds, d_plan->opts.gpu_kerevalmeth);
 #endif
 	return 0;
 }
 int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan)
-/* 
+/*
 	This function determines the properties for spreading that are independent
-	of the strength of the nodes,  only relates to the locations of the nodes, 
+	of the strength of the nodes,  only relates to the locations of the nodes,
 	which only needs to be done once.
 */
 {
@@ -465,7 +465,7 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan)
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n", 
+	printf("[time  ] \tKernel CalcBinSize_noghost_2d \t\t%.3g ms\n",
 		milliseconds);
 #endif
 #ifdef DEBUG
@@ -628,7 +628,7 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan)
 	return 0;
 }
 
-int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan, 
+int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;
@@ -681,18 +681,18 @@ int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
 
 	if(d_plan->opts.gpu_kerevalmeth){
 		for(int t=0; t<blksize; t++){
-			Spread_2d_Subprob_Horner<<<totalnumsubprob, 256, 
-				sharedplanorysize>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, 
-				ns, nf1, nf2, sigma, d_binstartpts, d_binsize, bin_size_x, 
-				bin_size_y, d_subprob_to_bin, d_subprobstartpts, 
-				d_numsubprob, maxsubprobsize,numbins[0],numbins[1], 
+			Spread_2d_Subprob_Horner<<<totalnumsubprob, 256,
+				sharedplanorysize>>>(d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M,
+				ns, nf1, nf2, sigma, d_binstartpts, d_binsize, bin_size_x,
+				bin_size_y, d_subprob_to_bin, d_subprobstartpts,
+				d_numsubprob, maxsubprobsize,numbins[0],numbins[1],
 				d_idxnupts, pirange);
 		}
 	}else{
 		for(int t=0; t<blksize; t++){
 			Spread_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
-				d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2, 
-				es_c, es_beta, sigma,d_binstartpts, d_binsize, bin_size_x, 
+				d_kx, d_ky, d_c+t*M, d_fw+t*nf1*nf2, M, ns, nf1, nf2,
+				es_c, es_beta, sigma,d_binstartpts, d_binsize, bin_size_x,
 				bin_size_y, d_subprob_to_bin, d_subprobstartpts,
 				d_numsubprob, maxsubprobsize, numbins[0], numbins[1],
 				d_idxnupts, pirange);
@@ -703,7 +703,7 @@ int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tKernel Spread_2d_Subprob (%d)\t\t%.3g ms\n", 
+	printf("[time  ] \tKernel Spread_2d_Subprob (%d)\t\t%.3g ms\n",
 		milliseconds, d_plan->opts.gpu_kerevalmeth);
 #endif
 	return 0;

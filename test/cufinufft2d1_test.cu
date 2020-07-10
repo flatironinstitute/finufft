@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default N1 * N2).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 	cudaEventRecord(start);
-	ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol, 
+	ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
 		maxbatchsize, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d_plan\n");
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
-	
+
 	cudaEventRecord(start);
 	ier=CUFINUFFT_EXEC(d_c, d_fk, &dplan);
 	if (ier!=0){

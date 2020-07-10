@@ -26,9 +26,9 @@ int main(int argc, char* argv[])
 {
   int method = 1;
   int N1 = 256;
-  int N2 = 256;            
+  int N2 = 256;
   int M = N1*N2;
-        
+
   float tol=1e-6;
 
   int iflag=1;
@@ -129,6 +129,6 @@ int main(int argc, char* argv[])
   checkCudaErrors(cudaFree(d_y));
   checkCudaErrors(cudaFree(d_c));
   checkCudaErrors(cudaFree(d_fk));
-  
+
   return 0;
 }

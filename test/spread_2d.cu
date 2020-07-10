@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 			"     0: Exponential of square root, or\n"
 			"     1: Horner evaluation (default).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
 	char *a;
 	timer.restart();
 	checkCudaErrors(cudaMalloc(&a,1));
-	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() 
+	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec()
 		<<" s"<<endl<<endl;
 
 #ifdef INFO

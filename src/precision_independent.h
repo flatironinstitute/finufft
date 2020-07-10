@@ -13,14 +13,14 @@ __global__
 void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, int numbins);
 
 __global__
-void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts, 
+void MapBintoSubProb_2d(int* d_subprob_to_bin, int* d_subprobstartpts,
 	int* d_numsubprob,int numbins);
 
 __global__
-void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
+void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob,
 	int maxsubprobsize, int bin_size_x, int bin_size_y);
 
-__global__ 
+__global__
 void TrivialGlobalSortIdx_2d(int M, int* index);
 
 /* spreadinterp3d */
@@ -40,7 +40,7 @@ __global__
 void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts,
                            int* d_numsubprob,int numbins);
 
-__global__ 
+__global__
 void TrivialGlobalSortIdx_3d(int M, int* index);
 
 __global__

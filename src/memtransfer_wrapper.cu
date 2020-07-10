@@ -8,7 +8,7 @@
 using namespace std;
 
 int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN *d_plan)
-/* 
+/*
 	wrapper for gpu memory allocation in "plan" stage.
 
 	Melody Shih 07/25/19
@@ -90,7 +90,7 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN *d_plan)
 }
 
 int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN *d_plan)
-/* 
+/*
 	wrapper for gpu memory allocation in "setNUpts" stage.
 
 	Melody Shih 07/25/19
@@ -118,14 +118,14 @@ int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN *d_plan)
 				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
 			}
 			break;
-		default: 
+		default:
 			cerr<<"err: invalid method" << endl;
 	}
 	return 0;
 }
 
 void FREEGPUMEMORY2D(CUFINUFFT_PLAN *d_plan)
-/* 
+/*
 	wrapper for freeing gpu memory.
 
 	Melody Shih 07/25/19
@@ -196,7 +196,7 @@ void FREEGPUMEMORY1D(CUFINUFFT_PLAN *d_plan)
 }
 
 int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN *d_plan)
-/* 
+/*
 	wrapper for gpu memory allocation in "plan" stage.
 
 	Melody Shih 07/25/19
@@ -288,7 +288,7 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN *d_plan)
 }
 
 int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN *d_plan)
-/* 
+/*
 	wrapper for gpu memory allocation in "setNUpts" stage.
 
 	Melody Shih 07/25/19
@@ -325,8 +325,8 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN *d_plan)
 
 	return 0;
 }
-void FREEGPUMEMORY3D(CUFINUFFT_PLAN *d_plan) 
-/* 
+void FREEGPUMEMORY3D(CUFINUFFT_PLAN *d_plan)
+/*
 	wrapper for freeing gpu memory.
 
 	Melody Shih 07/25/19

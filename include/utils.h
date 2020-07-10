@@ -15,7 +15,7 @@ __inline__ __device__ double atomicAdd(double* address, double val)
 				__double_as_longlong(val +
 					__longlong_as_double(assumed)));
 
-		// Note: uses integer comparison to avoid hang in case of NaN 
+		// Note: uses integer comparison to avoid hang in case of NaN
 		// (since NaN != NaN)
 	} while (assumed != old);
 

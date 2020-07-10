@@ -19,9 +19,9 @@ int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, CUFINUFFT_OPTS opts)
   int ier=setup_spreader(spopts, eps, opts.upsampfac, opts.gpu_kerevalmeth);
   spopts.pirange = 1;                 // could allow user control?
   return ier;
-} 
+}
 
-void SET_NF_TYPE12(BIGINT ms, CUFINUFFT_OPTS opts, SPREAD_OPTS spopts, 
+void SET_NF_TYPE12(BIGINT ms, CUFINUFFT_OPTS opts, SPREAD_OPTS spopts,
 				   BIGINT *nf, BIGINT bs)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.

@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 			"     0: Exponential of square root, or\n"
 			"     1: Horner evaluation (default).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);

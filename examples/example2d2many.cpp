@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
  *
  * To compile the code:
  * 	nvcc example2d2many.cpp -o example2d2many loc/to/cufinufft/lib-static/libcufinufft.a -I/loc/to/cufinufft/include -lcudart -lcufft -lnvToolsExt
- * 
+ *
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
  * nvcc -DSINGLE example2d2many.cpp -L/loc/to/cufinufft/lib/ -I/loc/to/cufinufft/include -o example2d1 -lcufinufft
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 
-	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
+	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol,
 		maxbatchsize, &dplan);
 
 	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 	cudaMemcpy(c,d_c,M*ntransf*sizeof(cuDoubleComplex),cudaMemcpyDeviceToHost);
 
 	cout<<endl<<"Accuracy check:"<<endl;
-	complex<double>* fkstart; 
+	complex<double>* fkstart;
 	complex<double>* cstart;
 	for(int t=0; t<ntransf; t++){
 		fkstart = fk + t*N1*N2;
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
 		for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
 			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 				ct += fkstart[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-		
+
 		printf("[gpu %3d] one targ: rel err in c[%ld] is %.3g\n",t,(int)jt,abs(cstart[jt]-ct)/infnorm(M,c));
 	}
 

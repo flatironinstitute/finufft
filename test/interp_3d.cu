@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 			"     0: do not sort the points, or\n"
 			"     1: sort the points (default).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);

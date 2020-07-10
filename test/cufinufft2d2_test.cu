@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default N1 * N2).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	}
 	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(CPX), 
+	checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(CPX),
 		cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d_plan",2);
-		ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol, 
+		ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
 			maxbatchsize, &dplan);
 		if (ier!=0){
 			printf("err: cufinufft2d_plan\n");

@@ -25,14 +25,14 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default N1 * N2 * N3).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
 	sscanf(argv[2],"%lf",&w); N1 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[3],"%lf",&w); N2 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[4],"%lf",&w); N3 = (int)w;  // so can read 1e6 right!
-	
+
 	M = N1*N2*N3;// let density always be 1
 	if(argc>5){
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = N3;
 	cudaEventRecord(start);
-	ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol, 
+	ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
 		maxbatchsize, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_makeplan\n");

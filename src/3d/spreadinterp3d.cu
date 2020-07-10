@@ -79,7 +79,7 @@ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int  bin_size_x,
 __global__
 void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
 	int bin_size_z, int nbinx, int nbiny, int nbinz, int* bin_startpts,
-	int* sortidx, FLT *x, FLT *y, FLT *z, int* index, int pirange, int nf1, 
+	int* sortidx, FLT *x, FLT *y, FLT *z, int* index, int pirange, int nf1,
 	int nf2, int nf3)
 {
 	int binx,biny,binz;
@@ -103,8 +103,8 @@ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y,
 
 /* Kernels for NUptsdriven method */
 __global__
-void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
-	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts, 
+void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
+	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* idxnupts,
 	int pirange)
 {
 	int xx, yy, zz, ix, iy, iz;
@@ -155,7 +155,7 @@ void Spread_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 }
 __global__
 void Spread_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta,
 	int* idxnupts, int pirange)
 {
 	int xx, yy, zz, ix, iy, iz;
@@ -212,8 +212,8 @@ __global__
 void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts,
 	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
-	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
-	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts, 
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob,
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts,
 	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
@@ -245,7 +245,7 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 		FLT ker1[MAX_NSPREAD];
 		FLT ker2[MAX_NSPREAD];
 		FLT ker3[MAX_NSPREAD];
-		
+
 		int nuptsidx = idxnupts[ptstart+i];
 		x_rescaled = RESCALE(x[nuptsidx],nf1,pirange);
 		y_rescaled = RESCALE(y[nuptsidx],nf2,pirange);
@@ -291,7 +291,7 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 	/* write to global memory */
 	for(int n=threadIdx.x; n<N; n+=blockDim.x){
 		int i = n % (int) (bin_size_x+2*ceil(ns/2.0) );
-		int j = (int) (n /(bin_size_x+2*ceil(ns/2.0))) % 
+		int j = (int) (n /(bin_size_x+2*ceil(ns/2.0))) %
 				(int) (bin_size_y+2*ceil(ns/2.0));
 		int k = n / ((bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*ceil(ns/2.0)));
 
@@ -299,8 +299,8 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 		iy = yoffset-ceil(ns/2.0)+j;
 		iz = zoffset-ceil(ns/2.0)+k;
 
-		if(ix<(nf1+ceil(ns/2.0)) && 
-		   iy<(nf2+ceil(ns/2.0)) && 
+		if(ix<(nf1+ceil(ns/2.0)) &&
+		   iy<(nf2+ceil(ns/2.0)) &&
 		   iz<(nf3+ceil(ns/2.0))){
 			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
 			iy = iy < 0 ? iy+nf2 : (iy>nf2-1 ? iy-nf2 : iy);
@@ -684,8 +684,8 @@ void Spread_3d_BlockGather_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, i
 /* ---------------------- 3d Interpolation Kernels ---------------------------*/
 /* Kernels for NUptsdriven Method */
 __global__
-void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
+void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta,
 	int *idxnupts, int pirange)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
@@ -711,9 +711,9 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 					int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 					int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 					int iz = zz < 0 ? zz+nf3 : (zz>nf3-1 ? zz-nf3 : zz);
-					
+
 					int inidx = ix+iy*nf1+iz*nf2*nf1;
-					
+
 					FLT disx=abs(x_rescaled-xx);
 					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
 					cnow.x += fw[inidx].x*kervalue1*kervalue2*kervalue3;
@@ -728,7 +728,7 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 }
 
 __global__
-void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int *idxnupts,
 	int pirange)
 {
@@ -748,7 +748,7 @@ void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		CUCPX cnow;
 		cnow.x = 0.0;
 		cnow.y = 0.0;
-		
+
 		FLT ker1[MAX_NSPREAD];
 		FLT ker2[MAX_NSPREAD];
 		FLT ker3[MAX_NSPREAD];
@@ -780,11 +780,11 @@ void Interp_3d_NUptsdriven_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 
 /* Kernels for SubProb Method */
 __global__
-void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
-	int M, const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta, 
-	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y, 
-	int bin_size_z, int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
-	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts, 
+void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
+	int M, const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta,
+	int* binstartpts, int* bin_size, int bin_size_x, int bin_size_y,
+	int bin_size_z, int* subprob_to_bin, int* subprobstartpts, int* numsubprob,
+	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts,
 	int pirange)
 {
 	extern __shared__ CUCPX fwshared[];
@@ -859,7 +859,7 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
 						iz*(bin_size_x+ceil(ns/2.0)*2)*
 						   (bin_size_y+ceil(ns/2.0)*2);
-					
+
 					FLT disx=abs(x_rescaled-xx);
 					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
 					cnow.x += fwshared[outidx].x*kervalue1*kervalue2*kervalue3;
@@ -872,10 +872,10 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	}
 }
 __global__
-void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, 
+void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	int M, const int ns, int nf1, int nf2, int nf3, FLT sigma, int* binstartpts,
-	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z, 
-	int* subprob_to_bin, int* subprobstartpts, int* numsubprob, 
+	int* bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
+	int* subprob_to_bin, int* subprobstartpts, int* numsubprob,
 	int maxsubprobsize, int nbinx, int nbiny, int nbinz, int* idxnupts,
 	int pirange)
 {

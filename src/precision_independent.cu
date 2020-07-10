@@ -22,20 +22,20 @@ int CalcGlobalIdx_V2(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbi
 
 /* spreadinterp 2d */
 __global__
-void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize, 
+void CalcSubProb_2d(int* bin_size, int* num_subprob, int maxsubprobsize,
 	int numbins)
 {
-	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; 
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins;
 		i+=gridDim.x*blockDim.x){
 		num_subprob[i]=ceil(bin_size[i]/(float) maxsubprobsize);
 	}
 }
 
 __global__
-void MapBintoSubProb_2d(int* d_subprob_to_bin,int* d_subprobstartpts, 
+void MapBintoSubProb_2d(int* d_subprob_to_bin,int* d_subprobstartpts,
 	int* d_numsubprob,int numbins)
 {
-	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins; 
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins;
 		i+=gridDim.x*blockDim.x){
 		for(int j=0; j<d_numsubprob[i]; j++){
 			d_subprob_to_bin[d_subprobstartpts[i]+j]=i;
@@ -44,17 +44,17 @@ void MapBintoSubProb_2d(int* d_subprob_to_bin,int* d_subprobstartpts,
 }
 
 __global__
-void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob, 
+void CalcSubProb_2d_Paul(int* finegridsize, int* num_subprob,
 	int maxsubprobsize, int bin_size_x, int bin_size_y)
 {
 	int binsize = bin_size_x*bin_size_y;
 	int *maxptsinbin = thrust::max_element(thrust::seq,
-			finegridsize+binsize*blockIdx.x, 
+			finegridsize+binsize*blockIdx.x,
 			finegridsize + binsize*(blockIdx.x+1));
 	num_subprob[blockIdx.x] = (int)ceil(*maxptsinbin/(float) maxsubprobsize);
 }
 
-__global__ 
+__global__
 void TrivialGlobalSortIdx_2d(int M, int* index)
 {
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
@@ -112,7 +112,7 @@ void MapBintoSubProb_3d_v1(int* d_subprob_to_obin, int* d_subprobstartpts,
 	}
 }
 
-__global__ 
+__global__
 void TrivialGlobalSortIdx_3d(int M, int* index)
 {
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){

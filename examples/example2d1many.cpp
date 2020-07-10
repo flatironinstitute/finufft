@@ -1,7 +1,7 @@
 /* This is an example of performing 2d1many
    in single precision.
 */
-   
+
 
 #include <iostream>
 #include <iomanip>
@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
  *
  * To compile the code:
  *    nvcc example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include /loc/to/cufinufft/lib-static/libcufinufftf.a -lcudart -lcufft -lnvToolsExt
- * 
+ *
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
  * nvcc example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include -L/loc/to/cufinufft/lib/ -lcufinufft
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 
-	ier=cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
+	ier=cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol,
 		maxbatchsize, &dplan);
 
 	ier=cufinufftf_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
