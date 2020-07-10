@@ -5,7 +5,8 @@ NVCC=nvcc
 # Developer-users are suggested to change this in their make.inc, see:
 #   http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
 #NVARCH = -arch=sm_70
-CXXFLAGS= -fPIC -O3 -funroll-loops -march=native -g -std=c++11
+CFLAGS= -fPIC -O3 -funroll-loops -march=native -g
+CXXFLAGS= $(CFLAGS) -std=c++11
 NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 $(NVARCH) \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
 #DEBUG add "-g -G" for cuda-gdb debugger
@@ -41,12 +42,12 @@ BINDIR=./bin
 
 HEADERS = include/cufinufft.h src/cudeconvolve.h src/memtransfer.h include/profile.h \
 	src/cuspreadinterp.h include/cufinufft_eitherprec.h include/cufinufft_errors.h
-CONTRIBOBJS=contrib/dirft2d.o contrib/common.o contrib/spreadinterp.o contrib/utils_fp.o 
+CONTRIBOBJS=contrib/dirft2d.o contrib/common.o contrib/spreadinterp.o contrib/utils_fp.o
 
 # We create three collections of objects:
 #  Double (_64), Single (_32), and floating point agnostic (no suffix)
 
-CUFINUFFTOBJS=src/precision_independent.o src/profile.o contrib/legendre_rule_fast.o contrib/utils.o 
+CUFINUFFTOBJS=src/precision_independent.o src/profile.o contrib/legendre_rule_fast.o contrib/utils.o
 CUFINUFFTOBJS_64=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	src/2d/spread2d_wrapper.o src/2d/spread2d_wrapper_paul.o \
 	src/2d/interp2d_wrapper.o src/memtransfer_wrapper.o \
@@ -62,13 +63,13 @@ CUFINUFFTCOBJS_32=$(CUFINUFFTCOBJS_64:%.o=%_32.o)
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $(INC) $< -o $@
 %.o: %.c $(HEADERS)
-	$(CC) -c $(CXXFLAGS) $(INC) $< -o $@
+	$(CC) -c $(CFLAGS) $(INC) $< -o $@
 %.o: %.cu $(HEADERS)
 	$(NVCC) --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 %_32.o: %.cpp $(HEADERS)
 	$(CXX) -DSINGLE -c $(CXXFLAGS) $(INC) $< -o $@
 %_32.o: %.c $(HEADERS)
-	$(CC) -DSINGLE -c $(CXXFLAGS) $(INC) $< -o $@
+	$(CC) -DSINGLE -c $(CFLAGS) $(INC) $< -o $@
 %_32.o: %.cu $(HEADERS)
 	$(NVCC) -DSINGLE --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 
