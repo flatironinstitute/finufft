@@ -1,17 +1,14 @@
-Current list of items to do for FINUFFT library that are not in github Issues
-=============================================================================
+Side list of items to do for FINUFFT library that are not in github Issues
+==========================================================================
 
 
-TRACTABLE USER PROJECTS - PLEASE HELP:
+* Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? Extend the C macros we now have for dual-prec.
 
-* Add a real-valued spreader option which will be faster and use half the RAM: but how avoid code duplication? - C++ template the spreader and all inside it?
-(please contact Ludvig af Klinteberg to coordinate). Related: templating for single/double prec living in the same library.
-
-* Professionalize the single-precision version:
- - fix matlab, octave, and python interfaces for single-prec (although there
- is not much speed gain). Related to templating above.
-
-* Get huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
+* Check huge arrays >2^31 working in 2d,3d in C++, and for any d in MATLAB/octave.
+- matlab/MEX used to give zero answers for >=2e31 array sizes (big1dtest.m).
+- test huge arrays >=2^31 2d, 3d in C++.
+- test huge arrays >=2^31 in octave/mex.
+- ditto py.
 
 * Package as RPM and .deb for linux, brew for OSX.
 
@@ -22,16 +19,13 @@ TRACTABLE USER PROJECTS - PLEASE HELP:
 * tutorials, release, outreach, users, NA-Digest
 
 
-LOWER PRIORITY TODO:
+LOWER PRIORITY TODO / DISCUSSIONS:
 
 * Return FFTW's internal state to single-threaded upon exit from finufft (deals with Marina & Andras' problem where fftw was then kicked from single to multi-threaded by an intervening finufft call).  Remind ourselves why?
 * understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
-* Decide if non vs omp get different lib names? (like FFTW) not yet.
+* Decide if non vs omp get different lib names? (like FFTW) -> not yet.
 * Intel MKL FFT interface option instead of FFTW?
-* swap out mallocs for std:vector in finufft?
+* swap out mallocs for std:vector in finufft? Can't since C interface.
 * recoup DFM's PyPI publishing of finufftpy, maybe awkward
-* figure why matlab/MEX gives zero answers for >=2e31 array sizes (big1dtest.m), and then change .mw to use inout with allocation by matlab, to bypass the mwrap reliance on int 32 type.
-* test huge arrays >=2^31 2d, 3d in C++.
-* test huge arrays >=2^31 in octave/mex.
 * make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
 * rewrite fftw3 plans via 64bit guru interface to allow eg 1024^3 type 1 or 2 in 3D. Not sure needed (only for huge 1d transforms). see http://www.fftw.org/fftw3_doc/Guru-Interface.html#Guru-Interface
