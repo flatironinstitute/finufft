@@ -34,19 +34,19 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
     return ier;
   }
 
-  int ier2 = FINUFFT_SETPTS(&plan, nj, xj, yj, zj, nk, s, t, u);
+  int ier2 = FINUFFT_SETPTS(plan, nj, xj, yj, zj, nk, s, t, u);
   if (ier2>1) {
     fprintf(stderr,"FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
     return ier2;
   }
 
-  int ier3 = FINUFFT_EXEC(&plan, cj, fk);
+  int ier3 = FINUFFT_EXEC(plan, cj, fk);
   if (ier3>1) {
     fprintf(stderr,"FINUFFT invokeGuru: exec error (ier=%d)!\n", ier3);
     return ier3;
   }
 
-  FINUFFT_DESTROY(&plan);
+  FINUFFT_DESTROY(plan);
   return max(max(ier,ier2),ier3);   // in case any one gave a warning
 }
 

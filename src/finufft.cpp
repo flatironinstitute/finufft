@@ -394,7 +394,7 @@ void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
 
 // --------- batch helper functions for t1,2 exec: ---------------------------
 
-int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN* p, CPX* cBatch)
+int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX* cBatch)
 /*
   Spreads (or interpolates) a batch of batchSize strength vectors in cBatch
   to (or from) the batch of fine working grids p->fwBatch, using the same set of
@@ -423,7 +423,7 @@ int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN* p, CPX* cBatch)
   return 0;
 }
 
-int deconvolveBatch(int batchSize, FINUFFT_PLAN* p, CPX* fkBatch)
+int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX* fkBatch)
 /*
   Type 1: deconvolves (amplifies) from each interior fw array in p->fwBatch
   into each output array fk in fkBatch.
@@ -467,7 +467,7 @@ int deconvolveBatch(int batchSize, FINUFFT_PLAN* p, CPX* fkBatch)
 #define GRIDSIZE_FOR_FFTW gridsize_for_fftw
 #endif
 
-int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN* p){
+int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN p){
 // local helper func returns a new int array of length dim, extracted from
 // the finufft plan, that fftw_plan_many_dft needs as its 2nd argument.
   int* nf;
@@ -520,13 +520,15 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
 
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
-                     int ntrans, FLT tol, FINUFFT_PLAN* p, nufft_opts* opts)
+                     int ntrans, FLT tol, FINUFFT_PLAN *pp, nufft_opts* opts)
 // Populates the fields of finufft_plan which is pointed to by "p".
 // opts is ptr to a nufft_opts to set options, or NULL to use defaults.
 // For some of the fields, if "auto" selected, choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
 {  
+  FINUFFT_PLAN p;
+
   cout << scientific << setprecision(15);  // for debug outputs
 
   if((type!=1)&&(type!=2)&&(type!=3)) {
@@ -541,6 +543,9 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     fprintf(stderr,"[%s] ntrans (%d) should be at least 1.\n",__func__,ntrans);
     return ERR_NTRANS_NOTVALID;
   }
+
+  p = new FINUFFT_PLAN_S;
+  *pp = p;
 
   if (opts==NULL)                        // use default opts
     FINUFFT_DEFAULT_OPTS(&(p->opts));
@@ -684,7 +689,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
 
 
 // SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
-int FINUFFT_SETPTS(FINUFFT_PLAN* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
+int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
                    BIGINT nk, FLT* s, FLT* t, FLT* u)
 /* For type 1,2: just checks and (possibly) sorts the NU xyz points, in prep for
    spreading. (The last 4 arguments are ignored.)
@@ -871,7 +876,6 @@ int FINUFFT_SETPTS(FINUFFT_PLAN* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
  
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...
     timer.restart();
-    p->innerT2plan = new FINUFFT_PLAN;            // ptr to a plan
     BIGINT t2nmodes[] = {p->nf1,p->nf2,p->nf3};   // t2 input is actually fw
     nufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
     t2opts.debug = max(0,p->opts.debug-1);        // don't print as much detail
@@ -879,7 +883,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     t2opts.showwarn = 0;                          // so don't see warnings 2x
     // (...could vary other t2opts here?)
     int ier = FINUFFT_MAKEPLAN(2, d, t2nmodes, p->fftSign, p->batchSize, p->tol,
-                               p->innerT2plan, &t2opts);
+                               &p->innerT2plan, &t2opts);
     if (ier>1) {     // if merely warning, still proceed
       fprintf(stderr,"[%s t3]: inner type 2 plan creation failed with ier=%d!\n",__func__,ier);
       return ier;
@@ -898,7 +902,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN* p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-int FINUFFT_EXEC(FINUFFT_PLAN* p, CPX* cj, CPX* fk){
+int FINUFFT_EXEC(FINUFFT_PLAN p, CPX* cj, CPX* fk){
 /* For given (batch of) weights cj, performs NUFFTs with existing
    (sorted) NU pts and existing plan.
    Performs spread/interp, pre/post deconvolve, and fftw_exec as appropriate
@@ -1034,7 +1038,7 @@ int FINUFFT_EXEC(FINUFFT_PLAN* p, CPX* cj, CPX* fk){
 
 
 // DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-int FINUFFT_DESTROY(FINUFFT_PLAN* p)
+int FINUFFT_DESTROY(FINUFFT_PLAN p)
 // Free everything we allocated inside of finufft_plan pointed to by p.
 // Also must not crash if called immediately after finufft_makeplan.
 // Thus either each thing free'd here is guaranteed to be NULL or correctly
@@ -1055,5 +1059,6 @@ int FINUFFT_DESTROY(FINUFFT_PLAN* p)
     free(p->prephase);
     free(p->deconv);
   }
+  free(p);
   return 0;
 }

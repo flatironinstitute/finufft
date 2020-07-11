@@ -22,14 +22,20 @@
 // clear macros so can refine
 #undef TYPE3PARAMS
 #undef FINUFFT_PLAN
+#undef FINUFFT_PLAN_S
 #ifdef SINGLE
-#define FINUFFT_PLAN finufftf_plan
+#define FINUFFT_PLAN_S finufftf_plan_s
 #define TYPE3PARAMS type3Paramsf
+#define FINUFFT_PLAN finufftf_plan
 #else
-#define FINUFFT_PLAN finufft_plan
+#define FINUFFT_PLAN_S finufft_plan_s
 #define TYPE3PARAMS type3Params
+#define FINUFFT_PLAN finufft_plan
 #endif
 
+// the plan handle that we pass around is just a pointer to the struct that
+// contains all the info
+typedef struct FINUFFT_PLAN_S * FINUFFT_PLAN;
 
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
 typedef struct {
@@ -39,7 +45,7 @@ typedef struct {
 } TYPE3PARAMS;
 
 
-typedef struct FINUFFT_PLAN {  // the main plan object; note C-compatible struct
+typedef struct FINUFFT_PLAN_S {  // the main plan struct; note C-compatible struct
   
   int type;        // transform type (Rokhlin naming): 1,2 or 3
   int dim;         // overall dimension: 1,2 or 3
@@ -82,13 +88,13 @@ typedef struct FINUFFT_PLAN {  // the main plan object; note C-compatible struct
   CPX* CpBatch;    // working array of prephased strengths
   FLT *Sp, *Tp, *Up;  // internal primed targs (s'_k, etc), allocated
   TYPE3PARAMS t3P; // groups together type 3 shift, scale, phase, parameters
-  struct FINUFFT_PLAN *innerT2plan;   // ptr used for type 2 in step 2 of type 3
+  FINUFFT_PLAN innerT2plan;   // ptr used for type 2 in step 2 of type 3
   
   // other internal structs; each is C-compatible of course
   FFTW_PLAN fftwPlan;   // *** should these 3 be ptrs instead?
   nufft_opts opts;
   spread_opts spopts;
   
-} FINUFFT_PLAN;
+} FINUFFT_PLAN_S;
 
 #endif  // FINUFFT_PLAN_H or FINUFFTF_PLAN_H
