@@ -504,7 +504,7 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
 // when called from MEX, but now is generally used. Barnett 10/30/17 onwards.
 {
   o->upsampfac = 0.0;        // sigma: 0 auto; 2.0; or 1.25 smaller RAM, FFTs
-  o->chkbnds = 1;            // prevents user segfaults, a few% speed hit
+  o->chkbnds = 1;            // prevents user segfaults, but a few% speed hit
   o->debug = 0;
   o->spread_debug = 0;
   o->spread_sort = 2;        // use heuristic rule for whether to sort
