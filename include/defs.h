@@ -58,8 +58,8 @@
 // prec-indep unit imaginary number
 // using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
 #define IMA (std::complex<FLT>(0.0,1.0))
-#define M_1_2PI (FLT)0.159154943091895336
-#define M_2PI   (FLT)6.28318530717958648
+#define M_1_2PI 0.159154943091895336
+#define M_2PI   6.28318530717958648
 // to avoid mixed precision operators in eg i*pi...
 #define PI (FLT)M_PI
 
