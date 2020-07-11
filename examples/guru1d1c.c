@@ -32,23 +32,22 @@ int main(int argc, char* argv[])
   double complex *c,*F,Ftest;
 
   nufft_opts* popts;         // pointer to opts struct
-  finufft_plan* pplan;       // pointer to (also C-compatible) plan struct
-  pplan = (finufft_plan *)malloc(sizeof(finufft_plan));     // allocate it
+  finufft_plan plan;         // pointer to (also C-compatible) plan struct
   Ns[0] = N;                 // mode numbers for plan
   int changeopts = 0;        // do you want to try changing opts? 0 or 1
   if (changeopts) {          // demo how to change options away from defaults..
     popts = (nufft_opts *)malloc(sizeof(nufft_opts));         // allocate it
     finufft_default_opts(popts);
     popts->debug = 1;        // example options change
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, pplan, popts);
+    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
   } else                     // or, NULL here means use default opts...
-    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, pplan, NULL);
+    finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
   
   // generate some random nonuniform points
   x = (double *)malloc(sizeof(double)*M);
   for (j=0; j<M; ++j)
     x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
-  finufft_setpts(pplan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
+  finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
   
   // generate some complex strengths
   c = (double complex*)malloc(sizeof(double complex)*M);
@@ -57,14 +56,14 @@ int main(int argc, char* argv[])
 
   // alloc output array for the Fourier modes, then do the transform
   F = (double complex*)malloc(sizeof(double complex)*N);
-  ier = finufft_exec(pplan, c, F);
+  ier = finufft_exec(plan, c, F);
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (j=0; j<M; ++j)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  ier = finufft_exec(pplan, c, F);
+  ier = finufft_exec(plan, c, F);
 
-  finufft_destroy(pplan);    // done with transforms of this size
+  finufft_destroy(plan);    // done with transforms of this size
 
   // rest is math checking and reporting...
   int n = 142519;   // check the answer just for this mode
@@ -80,6 +79,6 @@ int main(int argc, char* argv[])
   err = cabs(F[nout] - Ftest)/Fmax;
   printf("guru C-interface 1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
 
-  free(x); free(c); free(F); free(popts); free(pplan);
+  free(x); free(c); free(F); free(popts);
   return ier>1;
 }

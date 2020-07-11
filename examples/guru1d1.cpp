@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
   for (int j=0; j<M; ++j)
     x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
-  finufft_setpts(&plan, M, &x[0], NULL, NULL, 0, NULL, NULL, NULL);
+  finufft_setpts(plan, M, &x[0], NULL, NULL, 0, NULL, NULL, NULL);
   
   // generate some complex strengths
   vector<complex<double>> c(M);
@@ -58,14 +58,14 @@ int main(int argc, char* argv[])
 
   // alloc output array for the Fourier modes, then do the transform
   vector<complex<double>> F(N);
-  int ier = finufft_exec(&plan, &c[0], &F[0]);
+  int ier = finufft_exec(plan, &c[0], &F[0]);
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j=0; j<M; ++j)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + 1i*(2*((double)rand()/RAND_MAX)-1);
-  ier = finufft_exec(&plan, &c[0], &F[0]);
+  ier = finufft_exec(plan, &c[0], &F[0]);
 
-  finufft_destroy(&plan);    // done with transforms of this size
+  finufft_destroy(plan);    // done with transforms of this size
 
   // rest is math checking and reporting...
   int n = 142519;   // check the answer just for this mode
