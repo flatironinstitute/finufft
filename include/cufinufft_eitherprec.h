@@ -99,7 +99,7 @@
 /* extern c interface */
 #define CUFINUFFTC_DEFAULT_OPTS cufinufftcf_default_opts
 #define CUFINUFFTC_MAKEPLAN cufinufftcf_makeplan
-#define CUFINUFFTC_SETNUPTS cufinufftcf_setnupts
+#define CUFINUFFTC_SETNUPTS cufinufftcf_setNUpts
 #define CUFINUFFTC_EXEC cufinufftcf_exec
 #define CUFINUFFTC_DESTROY cufinufftcf_destroy
 /* memtransfer.h */
@@ -157,7 +157,7 @@
 /* extern c interface */
 #define CUFINUFFTC_DEFAULT_OPTS cufinufftc_default_opts
 #define CUFINUFFTC_MAKEPLAN cufinufftc_makeplan
-#define CUFINUFFTC_SETNUPTS cufinufftc_setnupts
+#define CUFINUFFTC_SETNUPTS cufinufftc_setNUpts
 #define CUFINUFFTC_EXEC cufinufftc_exec
 #define CUFINUFFTC_DESTROY cufinufftc_destroy
 /* memtransfer.h */

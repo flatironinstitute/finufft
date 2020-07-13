@@ -135,9 +135,13 @@ $(DYNAMICLIB): $(CUFINUFFTOBJS) $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS_32) $(CONTRI
 	mkdir -p lib
 	$(NVCC) -shared $(NVCCFLAGS) $^ -o $(DYNAMICLIB) $(LIBS)
 
-$(DYNAMICCLIB): $(CUFINUFFTOBJS) $(CUFINUFFTCOBJS_64) $(CUFINUFFTCOBJS_32) $(STATICLIB)
+$(DYNAMICCLIB): $(CUFINUFFTCOBJS_64) $(CUFINUFFTCOBJS_32) \
+	$(CUFINUFFTOBJS) $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS_32) $(CONTRIBOBJS)
 	mkdir -p lib
-	gcc -shared -o $(DYNAMICCLIB) $^ $(NVCC_LIBS_PATH) $(LIBS)
+	# We have relocatable device code,
+	#   tell nvcc to help us link them so they not unresolved in the C library.
+	nvcc $(NVCCFLAGS) -dlink -o $(CLIBNAME)_dlinked.o $^
+	gcc -shared -o $(DYNAMICCLIB) $^ $(CLIBNAME)_dlinked.o $(NVCC_LIBS_PATH) $(LIBS)
 
 
 # Check targets
