@@ -3,7 +3,7 @@
 #include <vector>
 #include <math.h>
 
-int setup_spreader(SPREAD_OPTS &opts,FLT eps,FLT upsampfac, int kerevalmeth)
+int setup_spreader(SPREAD_OPTS &opts,FLT eps, FLT upsampfac, int kerevalmeth)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).
