@@ -1,3 +1,7 @@
+/* These are functions that do not rely on FLT.
+   They are organized by originating file.
+*/
+
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
 

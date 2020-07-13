@@ -1,3 +1,7 @@
+/* These are functions that do not rely on FLT.
+   They are organized by originating file.
+*/
+
 #ifndef PRECISION_INDEPENDENT_H
 #define PRECISION_INDEPENDENT_H
 
