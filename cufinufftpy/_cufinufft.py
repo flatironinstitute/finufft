@@ -20,7 +20,6 @@ c_double_p = ctypes.POINTER(c_double)
 
 # TODO: Thinking about how to make this safer and more portable.
 lib = ctypes.cdll.LoadLibrary('libcufinufftc.so')
-libf = ctypes.cdll.LoadLibrary('libcufinufftcf.so')
 
 
 def _get_ctypes(dtype):
@@ -191,7 +190,7 @@ _default_opts = lib.cufinufftc_default_opts
 _default_opts.argtypes = [c_int, c_int, NufftOpts_p]
 _default_opts.restype = c_int
 
-_default_optsf = libf.cufinufftc_default_opts
+_default_optsf = lib.cufinufftcf_default_opts
 _default_optsf.argtypes = [c_int, c_int, NufftOptsf_p]
 _default_optsf.restype = c_int
 
@@ -201,7 +200,7 @@ _make_plan.argtypes = [
     c_int, c_double, c_int, CufinufftPlan_p]
 _make_plan.restypes = c_int
 
-_make_planf = libf.cufinufftc_makeplan
+_make_planf = lib.cufinufftcf_makeplan
 _make_planf.argtypes = [
     c_int, c_int, c_int_p, c_int,
     c_int, c_float, c_int, CufinufftPlanf_p]
@@ -213,7 +212,7 @@ _set_nu_pts.argtypes = [
     c_double_p, c_double_p, CufinufftPlan_p]
 _set_nu_pts.restype = c_int
 
-_set_nu_ptsf = libf.cufinufftc_setNUpts
+_set_nu_ptsf = lib.cufinufftcf_setNUpts
 _set_nu_ptsf.argtypes = [
     c_int, c_void_p, c_void_p, c_void_p, ctypes.c_int, c_float_p,
     c_float_p, c_float_p, CufinufftPlanf_p]
@@ -223,7 +222,7 @@ _exec_plan = lib.cufinufftc_exec
 _exec_plan.argtypes = [c_void_p, c_void_p, CufinufftPlan_p]
 _exec_plan.restype = c_int
 
-_exec_planf = libf.cufinufftc_exec
+_exec_planf = lib.cufinufftcf_exec
 _exec_planf.argtypes = [c_void_p, c_void_p, CufinufftPlanf_p]
 _exec_planf.restype = c_int
 
@@ -231,6 +230,6 @@ _destroy_plan = lib.cufinufftc_destroy
 _destroy_plan.argtypes = [CufinufftPlan_p]
 _destroy_plan.restype = c_int
 
-_destroy_planf = libf.cufinufftc_destroy
+_destroy_planf = lib.cufinufftcf_destroy
 _destroy_planf.argtypes = [CufinufftPlanf_p]
 _destroy_planf.restype = c_int
