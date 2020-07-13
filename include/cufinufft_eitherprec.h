@@ -10,12 +10,14 @@
 #include <cufft.h>
 #include <assert.h>
 #include <cuda_runtime.h>
-#include "../contrib/utils.h"
 #include "../src/precision_independent.h"
 #include "cufinufft_errors.h"
 
+#include "../contrib/utils.h"
 #include "../contrib/dataTypes.h"
 #include "../contrib/spreadinterp.h"
+#include "../contrib/utils_fp.h"
+
 
 #ifndef SINGLE
 #define __CUFINUFFT_H__
@@ -216,7 +218,7 @@ typedef struct CUFINUFFT_OPTS {   // see cufinufft_default_opts() for defaults
 
 	int gpu_maxsubprobsize;
 	int gpu_nstreams;
-	int gpu_kerevalmeth;	// 0: direct exp(sqrt()), 1: Horner ppval
+	int gpu_kerevalmeth; // 0: direct exp(sqrt()), 1: Horner ppval
 } CUFINUFFT_OPTS;
 
 typedef struct {
@@ -269,12 +271,11 @@ typedef struct {
 	cufftHandle fftplan;
 	cudaStream_t *streams;
 
-}CUFINUFFT_PLAN;
+} CUFINUFFT_PLAN;
 
 
-/* include fp dep headers */
-#include "../contrib/utils_fp.h"
-
+/* We include common.h here because it depends on SPREAD_OPTS and
+   CUFINUFFT_PLAN structs being completely defined first. */
 #include "../contrib/common.h"
 
 #define checkCufftErrors(call)
