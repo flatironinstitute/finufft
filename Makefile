@@ -275,9 +275,10 @@ clean:
 
 
 .PHONY: all
+.PHONY: api
 .PHONY: check
-.PHONY: check2D
-.PHONY: check3D
+.PHONY: check2D check2D_32 check2D_64
+.PHONY: check3D check3D_32 check3D_64
 .PHONY: clean
 .PHONY: clib
 .PHONY: lib
