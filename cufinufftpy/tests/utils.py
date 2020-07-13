@@ -1,24 +1,46 @@
 import numpy as np
 
 
-def gen_nu_pts(M, seed=0):
+def _complex_dtype(dtype):
+    if dtype == np.float32:
+        complex_dtype = np.complex64
+    elif dtype == np.float64:
+        complex_dtype = np.complex128
+    else:
+        raise TypeError("dtype should be np.float32 or np.float64.")
+
+    return complex_dtype
+
+
+def _real_dtype(complex_dtype):
+    if dtype == np.complex64:
+        real_dtype = np.float32
+    elif dtype == np.complex128:
+        real_dtype = np.float64
+    else:
+        raise TypeError("dtype should be np.complex64 or np.complex128.")
+
+    return real_dtype
+
+
+def gen_nu_pts(M, dim=3, seed=0):
     np.random.seed(seed)
-    kxyz = np.random.uniform(-np.pi, np.pi, (3, M))
-    kxyz = kxyz.astype(np.float32)
+    kxyz = np.random.uniform(-np.pi, np.pi, (dim, M))
+    kxyz = kxyz.astype(np.float64)
     return kxyz
 
 
 def gen_uniform_data(shape, seed=0):
     np.random.seed(seed)
     fk = np.random.standard_normal(shape + (2,))
-    fk = fk.astype(np.float32).view(np.complex64)[..., 0]
+    fk = fk.astype(np.float64).view(np.complex128)[..., 0]
     return fk
 
 
 def gen_nonuniform_data(M, seed=0):
     np.random.seed(seed)
     c = np.random.standard_normal(2 * M)
-    c = c.astype(np.float32).view(np.complex64)
+    c = c.astype(np.float64).view(np.complex128)
     return c
 
 

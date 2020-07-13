@@ -64,6 +64,7 @@ class cufinufft:
             self._set_nu_pts = _set_nu_pts
             self._exec_plan = _exec_plan
             self._destroy_plan = _destroy_plan
+            self.complex_dtype = np.complex128
         elif self.dtype == np.float32:
             self.Nufft_Opts = NufftOptsf
             self.CufinufftPlan = CufinufftPlanf
@@ -72,6 +73,7 @@ class cufinufft:
             self._set_nu_pts = _set_nu_ptsf
             self._exec_plan = _exec_planf
             self._destroy_plan = _destroy_planf
+            self.complex_dtype = np.complex64
         else:
             raise TypeError("Expected np.float32 or np.float64.")
 
@@ -149,6 +151,10 @@ class cufinufft:
         :param kz: Array of z points.
         """
 
+        if not (kx.dtype == ky.dtype == kz.dtype == self.dtype):
+            raise TypeError("cifinufft plan.dtype and "
+                            "kx, ky, kz dtypes do not match.")
+
         kx = kx.ptr
 
         if ky is not None:
@@ -173,6 +179,11 @@ class cufinufft:
         :param c: Real space array in 1, 2, or 3 dimensions.
         :param fk: Fourier space array in 1, 2, or 3 dimensions.
         """
+
+        if not c.dtype == fk.dtype == self.complex_dtype:
+            raise TypeError("cufinufft execute expects {} dtype arguments "
+                            "for this plan. Check plan and arguments.".format(
+                                self.complex_dtype))
 
         ier = self._exec_plan(c.ptr, fk.ptr, self.plan)
 
