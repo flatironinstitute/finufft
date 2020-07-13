@@ -1,3 +1,7 @@
+/* This is an example of performing 2d2many
+   in double precision.
+*/
+
 #include <iostream>
 #include <iomanip>
 #include <math.h>
@@ -12,7 +16,7 @@ int main(int argc, char* argv[])
  * example code for 2D Type 1 transformation.
  *
  * To compile the code:
- * 	nvcc example2d2many.cpp -o example2d2many loc/to/cufinufft/lib-static/libcufinufft.a -I/loc/to/cufinufft/include -lcudart -lcufft -lnvToolsExt
+ * nvcc example2d2many.cpp -o example2d2many loc/to/cufinufft/lib-static/libcufinufft.a -I/loc/to/cufinufft/include -lcudart -lcufft -lnvToolsExt
  *
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib

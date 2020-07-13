@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
  * example code for 2D Type 1 transformation.
  *
  * To compile the code:
- *    nvcc example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include /loc/to/cufinufft/lib-static/libcufinufftf.a -lcudart -lcufft -lnvToolsExt
+ * nvcc example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include /loc/to/cufinufft/lib-static/libcufinufft.a -lcudart -lcufft -lnvToolsExt
  *
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
