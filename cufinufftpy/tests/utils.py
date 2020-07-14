@@ -13,9 +13,9 @@ def _complex_dtype(dtype):
 
 
 def _real_dtype(complex_dtype):
-    if dtype == np.complex64:
+    if complex_dtype == np.complex64:
         real_dtype = np.float32
-    elif dtype == np.complex128:
+    elif complex_dtype == np.complex128:
         real_dtype = np.float64
     else:
         raise TypeError("dtype should be np.complex64 or np.complex128.")
