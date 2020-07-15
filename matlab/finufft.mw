@@ -38,6 +38,7 @@
 %     prepended to finufft_plan.m (etc) by running ./addmhelp.sh
 %
 % Main author: Libin Lu, started May 2020; edits, ier, docs etc by Alex Barnett.
+% 7/14/20 switched finufft{f}_plan to be ptr to struct.
 
 % both precisions...
 $ #include <finufft.h>
@@ -157,7 +158,7 @@ classdef finufft_plan < handle
         # finufftf_plan* p = new finufftf_plan();
         # finufftf_default_opts(nufft_opts* o);
       end
-      plan.mwptr = p;     % crucial: save the opaque ptr (p.12 of MWrap manual)
+      plan.mwptr = p;   % crucial: save the opaque ptr (p.12 of MWrap manual)
 
       % replace in nufft_opts struct whichever fields are in incoming opts...
       # copy_nufft_opts(mxArray opts, nufft_opts* o);
@@ -173,11 +174,12 @@ classdef finufft_plan < handle
     end
 
     function delete(plan)
-    % This does clean-up (deallocation) of the C++ ptr before the obj deletes.
+    % This does clean-up (deallocation) of the C++ struct before the matlab
+    % object deletes.
       if strcmp(plan.floatprec,'double')
-        # finufft_destroy(finufft_plan* plan);
+        # finufft_destroy(finufft_plan plan);
       else
-        # finufftf_destroy(finufftf_plan* plan);
+        # finufftf_destroy(finufftf_plan plan);
       end
     end
 
@@ -185,34 +187,34 @@ classdef finufft_plan < handle
     % SETPTS   process nonuniform points for general FINUFFT transform(s).
 
       $ // sadly we need compile versions for both precisions of plans...
-      $ int get_type(finufft_plan* plan) {
+      $ int get_type(finufft_plan plan) {
       $   return plan->type;
       $ }
-      $ int get_dim(finufft_plan* plan) {
+      $ int get_dim(finufft_plan plan) {
       $   return plan->dim;
       $ }
-      $ int get_typef(finufftf_plan* plan) {
+      $ int get_typef(finufftf_plan plan) {
       $   return plan->type;
       $ }
-      $ int get_dimf(finufftf_plan* plan) {
+      $ int get_dimf(finufftf_plan plan) {
       $   return plan->dim;
       $ }
 
       if strcmp(plan.floatprec,'double')
-        # int dim = get_dim(finufft_plan* plan);
-        # int type = get_type(finufft_plan* plan);
+        # int dim = get_dim(finufft_plan plan);
+        # int type = get_type(finufft_plan plan);
         if nargin<5, s=double.empty; t=double.empty; u=double.empty; end
       else
-        # int dim = get_dimf(finufftf_plan* plan);
-        # int type = get_typef(finufftf_plan* plan);
+        # int dim = get_dimf(finufftf_plan plan);
+        # int type = get_typef(finufftf_plan plan);
         if nargin<5, s=single.empty; t=single.empty; u=single.empty; end
       end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
       [nj, nk] = valid_setpts(type, dim, xj, yj, zj, s, t, u);
       if strcmp(plan.floatprec,'double')
-        # int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
+        # int ier = finufft_setpts(finufft_plan plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
       else
-        # int ier = finufftf_setpts(finufftf_plan* plan, int64_t nj, float[] xj, float[] yj, float[] zj, int64_t nk, float[] s, float[] t, float[] u);
+        # int ier = finufftf_setpts(finufftf_plan plan, int64_t nj, float[] xj, float[] yj, float[] zj, int64_t nk, float[] s, float[] t, float[] u);
       end
       errhandler(ier);
     end
@@ -221,55 +223,55 @@ classdef finufft_plan < handle
     % EXEC   execute single or many-vector FINUFFT transforms in a plan.
 
       $ // sadly we need compile versions for both precisions of plans...
-      $ int64_t get_nj(finufft_plan* plan) {
+      $ int64_t get_nj(finufft_plan plan) {
       $   return plan->nj;
       $ }
-      $ int64_t get_nk(finufft_plan* plan) {
+      $ int64_t get_nk(finufft_plan plan) {
       $   return plan->nk;
       $ }
-      $ void get_nmodes(finufft_plan* plan, int64_t& ms, int64_t& mt, int64_t& mu) {
+      $ void get_nmodes(finufft_plan plan, int64_t& ms, int64_t& mt, int64_t& mu) {
       $   ms = plan->ms ? plan->ms : 1;
       $   mt = plan->mt ? plan->mt : 1;
       $   mu = plan->mu ? plan->mu : 1;
       $   if(plan->dim<3) mu=1;
       $   if(plan->dim<2) mt=1;
       $ }
-      $ int get_ntrans(finufft_plan* plan) {
+      $ int get_ntrans(finufft_plan plan) {
       $   return plan->ntrans;
       $ }
       
-      $ int64_t get_njf(finufftf_plan* plan) {
+      $ int64_t get_njf(finufftf_plan plan) {
       $   return plan->nj;
       $ }
-      $ int64_t get_nkf(finufftf_plan* plan) {
+      $ int64_t get_nkf(finufftf_plan plan) {
       $   return plan->nk;
       $ }
-      $ void get_nmodesf(finufftf_plan* plan, int64_t& ms, int64_t& mt, int64_t& mu) {
+      $ void get_nmodesf(finufftf_plan plan, int64_t& ms, int64_t& mt, int64_t& mu) {
       $   ms = plan->ms ? plan->ms : 1;
       $   mt = plan->mt ? plan->mt : 1;
       $   mu = plan->mu ? plan->mu : 1;
       $   if(plan->dim<3) mu=1;
       $   if(plan->dim<2) mt=1;
       $ }
-      $ int get_ntransf(finufftf_plan* plan) {
+      $ int get_ntransf(finufftf_plan plan) {
       $   return plan->ntrans;
       $ }
 
       if strcmp(plan.floatprec,'double')
-        # int type = get_type(finufft_plan* plan);
-        # int n_trans = get_ntrans(finufft_plan* plan);
-        # int64_t nj = get_nj(finufft_plan* plan);
+        # int type = get_type(finufft_plan plan);
+        # int n_trans = get_ntrans(finufft_plan plan);
+        # int64_t nj = get_nj(finufft_plan plan);
       else
-        # int type = get_typef(finufftf_plan* plan);
-        # int n_trans = get_ntransf(finufftf_plan* plan);
-        # int64_t nj = get_njf(finufftf_plan* plan);
+        # int type = get_typef(finufftf_plan plan);
+        # int n_trans = get_ntransf(finufftf_plan plan);
+        # int64_t nj = get_njf(finufftf_plan plan);
       end
       % check data input length...
       if type==1 || type==2
         if strcmp(plan.floatprec,'double')
-          # get_nmodes(finufft_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
+          # get_nmodes(finufft_plan plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
         else
-          # get_nmodesf(finufftf_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
+          # get_nmodesf(finufftf_plan plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
         end
         ncoeffs = ms*mt*mu*n_trans;    % total Fourier coeffs (out t1, or in t2)
       end
@@ -279,25 +281,25 @@ classdef finufft_plan < handle
       end
       if type==1
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
+          # int ier = finufft_exec(finufft_plan plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
         else
-          # int ier = finufftf_exec(finufftf_plan* plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
+          # int ier = finufftf_exec(finufftf_plan plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
         end
         % make modes output correct shape; when d<3 squeeze removes unused dims...
         result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif type==2
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
+          # int ier = finufft_exec(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
         else
-          # int ier = finufftf_exec(finufftf_plan* plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
+          # int ier = finufftf_exec(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
         end
       elseif type==3
         if strcmp(plan.floatprec,'double')
-          # int64_t nk = get_nk(finufft_plan* plan);
-          # int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
+          # int64_t nk = get_nk(finufft_plan plan);
+          # int ier = finufft_exec(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
         else
-          # int64_t nk = get_nkf(finufftf_plan* plan);
-          # int ier = finufftf_exec(finufftf_plan* plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
+          # int64_t nk = get_nkf(finufftf_plan plan);
+          # int ier = finufftf_exec(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
         end
       else
         ier = 10;         % type was corrupted since plan stage - the horror

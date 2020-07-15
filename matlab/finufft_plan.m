@@ -192,7 +192,7 @@ finufft(mex_id_, o);
         mex_id_ = 'finufftf_default_opts(i nufft_opts*)';
 finufft(mex_id_, o);
       end
-      plan.mwptr = p;     % crucial: save the opaque ptr (p.12 of MWrap manual)
+      plan.mwptr = p;   % crucial: save the opaque ptr (p.12 of MWrap manual)
 
       % replace in nufft_opts struct whichever fields are in incoming opts...
       mex_id_ = 'copy_nufft_opts(i mxArray, i nufft_opts*)';
@@ -212,12 +212,13 @@ finufft(mex_id_, o);
     end
 
     function delete(plan)
-    % This does clean-up (deallocation) of the C++ ptr before the obj deletes.
+    % This does clean-up (deallocation) of the C++ struct before the matlab
+    % object deletes.
       if strcmp(plan.floatprec,'double')
-        mex_id_ = 'finufft_destroy(i finufft_plan*)';
+        mex_id_ = 'finufft_destroy(i finufft_plan)';
 finufft(mex_id_, plan);
       else
-        mex_id_ = 'finufftf_destroy(i finufftf_plan*)';
+        mex_id_ = 'finufftf_destroy(i finufftf_plan)';
 finufft(mex_id_, plan);
       end
     end
@@ -227,25 +228,25 @@ finufft(mex_id_, plan);
 
                                                                               
       if strcmp(plan.floatprec,'double')
-        mex_id_ = 'o int = get_dim(i finufft_plan*)';
+        mex_id_ = 'o int = get_dim(i finufft_plan)';
 [dim] = finufft(mex_id_, plan);
-        mex_id_ = 'o int = get_type(i finufft_plan*)';
+        mex_id_ = 'o int = get_type(i finufft_plan)';
 [type] = finufft(mex_id_, plan);
         if nargin<5, s=double.empty; t=double.empty; u=double.empty; end
       else
-        mex_id_ = 'o int = get_dimf(i finufftf_plan*)';
+        mex_id_ = 'o int = get_dimf(i finufftf_plan)';
 [dim] = finufft(mex_id_, plan);
-        mex_id_ = 'o int = get_typef(i finufftf_plan*)';
+        mex_id_ = 'o int = get_typef(i finufftf_plan)';
 [type] = finufft(mex_id_, plan);
         if nargin<5, s=single.empty; t=single.empty; u=single.empty; end
       end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
       [nj, nk] = valid_setpts(type, dim, xj, yj, zj, s, t, u);
       if strcmp(plan.floatprec,'double')
-        mex_id_ = 'o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
+        mex_id_ = 'o int = finufft_setpts(i finufft_plan, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
 [ier] = finufft(mex_id_, plan, nj, xj, yj, zj, nk, s, t, u);
       else
-        mex_id_ = 'o int = finufftf_setpts(i finufftf_plan*, i int64_t, i float[], i float[], i float[], i int64_t, i float[], i float[], i float[])';
+        mex_id_ = 'o int = finufftf_setpts(i finufftf_plan, i int64_t, i float[], i float[], i float[], i int64_t, i float[], i float[], i float[])';
 [ier] = finufft(mex_id_, plan, nj, xj, yj, zj, nk, s, t, u);
       end
       errhandler(ier);
@@ -257,27 +258,27 @@ finufft(mex_id_, plan);
                                                                                                             
                                                                                                 
       if strcmp(plan.floatprec,'double')
-        mex_id_ = 'o int = get_type(i finufft_plan*)';
+        mex_id_ = 'o int = get_type(i finufft_plan)';
 [type] = finufft(mex_id_, plan);
-        mex_id_ = 'o int = get_ntrans(i finufft_plan*)';
+        mex_id_ = 'o int = get_ntrans(i finufft_plan)';
 [n_trans] = finufft(mex_id_, plan);
-        mex_id_ = 'o int64_t = get_nj(i finufft_plan*)';
+        mex_id_ = 'o int64_t = get_nj(i finufft_plan)';
 [nj] = finufft(mex_id_, plan);
       else
-        mex_id_ = 'o int = get_typef(i finufftf_plan*)';
+        mex_id_ = 'o int = get_typef(i finufftf_plan)';
 [type] = finufft(mex_id_, plan);
-        mex_id_ = 'o int = get_ntransf(i finufftf_plan*)';
+        mex_id_ = 'o int = get_ntransf(i finufftf_plan)';
 [n_trans] = finufft(mex_id_, plan);
-        mex_id_ = 'o int64_t = get_njf(i finufftf_plan*)';
+        mex_id_ = 'o int64_t = get_njf(i finufftf_plan)';
 [nj] = finufft(mex_id_, plan);
       end
       % check data input length...
       if type==1 || type==2
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'get_nmodes(i finufft_plan*, o int64_t&, o int64_t&, o int64_t&)';
+          mex_id_ = 'get_nmodes(i finufft_plan, o int64_t&, o int64_t&, o int64_t&)';
 [ms, mt, mu] = finufft(mex_id_, plan);
         else
-          mex_id_ = 'get_nmodesf(i finufftf_plan*, o int64_t&, o int64_t&, o int64_t&)';
+          mex_id_ = 'get_nmodesf(i finufftf_plan, o int64_t&, o int64_t&, o int64_t&)';
 [ms, mt, mu] = finufft(mex_id_, plan);
         end
         ncoeffs = ms*mt*mu*n_trans;    % total Fourier coeffs (out t1, or in t2)
@@ -288,32 +289,32 @@ finufft(mex_id_, plan);
       end
       if type==1
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[x])';
+          mex_id_ = 'o int = finufft_exec(i finufft_plan, i dcomplex[], o dcomplex[x])';
 [ier, result] = finufft(mex_id_, plan, data_in, ncoeffs);
         else
-          mex_id_ = 'o int = finufftf_exec(i finufftf_plan*, i fcomplex[], o fcomplex[x])';
+          mex_id_ = 'o int = finufftf_exec(i finufftf_plan, i fcomplex[], o fcomplex[x])';
 [ier, result] = finufft(mex_id_, plan, data_in, ncoeffs);
         end
         % make modes output correct shape; when d<3 squeeze removes unused dims...
         result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif type==2
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int = finufft_exec(i finufft_plan*, o dcomplex[xx], i dcomplex[])';
+          mex_id_ = 'o int = finufft_exec(i finufft_plan, o dcomplex[xx], i dcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
         else
-          mex_id_ = 'o int = finufftf_exec(i finufftf_plan*, o fcomplex[xx], i fcomplex[])';
+          mex_id_ = 'o int = finufftf_exec(i finufftf_plan, o fcomplex[xx], i fcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
         end
       elseif type==3
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int64_t = get_nk(i finufft_plan*)';
+          mex_id_ = 'o int64_t = get_nk(i finufft_plan)';
 [nk] = finufft(mex_id_, plan);
-          mex_id_ = 'o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[xx])';
+          mex_id_ = 'o int = finufft_exec(i finufft_plan, i dcomplex[], o dcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_trans);
         else
-          mex_id_ = 'o int64_t = get_nkf(i finufftf_plan*)';
+          mex_id_ = 'o int64_t = get_nkf(i finufftf_plan)';
 [nk] = finufft(mex_id_, plan);
-          mex_id_ = 'o int = finufftf_exec(i finufftf_plan*, i fcomplex[], o fcomplex[xx])';
+          mex_id_ = 'o int = finufftf_exec(i finufftf_plan, i fcomplex[], o fcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_trans);
         end
       else
