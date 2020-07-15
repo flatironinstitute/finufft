@@ -1,0 +1,71 @@
+
+GCC7
+
+gi_v2_rescale: perftest/spreadtestnd 1 8e6 8e6 1e-6 2 0 1
+(uses foldrescale)
+
+spreadinterp 1D, 8e+06 U pts, dir=1, tol=1e-06: nspread=7
+	sorted (8 threads):	0.263 s
+	spread 1D (M=8000000; N1=8000000,N2=1,N3=1; pir=0), nth_u=8
+	zero output array	0.00616 s
+	t1 fancy spread: 	0.122 s (800 subprobs)
+    8e+06 NU pts in 0.395 s 	2.03e+07 pts/s 	1.42e+08 spread pts/s
+    rel err in total over grid:      8.82e-07
+making more random NU pts...
+spreadinterp 1D, 8e+06 U pts, dir=2, tol=1e-06: nspread=7
+	not sorted (sort=2): 	0.00472 s
+	interp 1D (M=8000000; N1=8000000,N2=1,N3=1; pir=0), nth_u=8
+	t2 spreading loop: 	0.196 s
+    8e+06 NU pts in 0.204 s 	3.92e+07 pts/s 	2.75e+08 spread pts/s
+    max rel err in values at NU pts: 1.13e-06
+
+sorting: 10% slower
+t1 spread: 15% slower
+
+t2 (unsorted): 0% no diff
+
+GCC7 CXXFLAGS += -Ofast -fno-finite-math-only: no effect.
+
+GCC9 gets it to 0.364s, 0.217s,  which is 0% for t1, -5% for t2.
+
+GCC9 CXXFLAGS += -Ofast -fno-finite-math-only: no effect.
+
+----------
+
+master: test/spreadtestnd 1 8e6 8e6 1e-6 2 0 1
+(uses old RESCALE macro)
+
+spreadinterp 1D, 8e+06 U pts, dir=1, tol=1e-06: nspread=7
+starting spread 1D (dir=1. M=8000000; N1=8000000,N2=1,N3=1; pir=0), 8 threads
+	sorted (8 threads):	0.245 s
+	zero output array	0.00622 s
+	t1 fancy spread: 	0.107 s (800 subprobs)
+    8e+06 NU pts in 0.362 s 	2.21e+07 pts/s 	1.55e+08 spread pts/s
+    rel err in total over grid:      8.82e-07
+making more random NU pts...
+spreadinterp 1D, 8e+06 U pts, dir=2, tol=1e-06: nspread=7
+starting spread 1D (dir=2. M=8000000; N1=8000000,N2=1,N3=1; pir=0), 8 threads
+	not sorted (sort=2): 	0.00465 s
+	t2 spreading loop: 	0.199 s
+    8e+06 NU pts in 0.207 s 	3.86e+07 pts/s 	2.71e+08 spread pts/s
+    max rel err in values at NU pts: 1.13e-06
+
+----------
+
+gi_v2: (Joakim+me RESCALE macro tweak)
+
+spreadinterp 1D, 8e+06 U pts, dir=1, tol=1e-06: nspread=7
+	sorted (8 threads):	0.238 s
+	spread 1D (M=8000000; N1=8000000,N2=1,N3=1; pir=0), nth_u=8
+	zero output array	0.00619 s
+	t1 fancy spread: 	0.105 s (800 subprobs)
+    8e+06 NU pts in 0.353 s 	2.27e+07 pts/s 	1.59e+08 spread pts/s
+    rel err in total over grid:      8.82e-07
+making more random NU pts...
+spreadinterp 1D, 8e+06 U pts, dir=2, tol=1e-06: nspread=7
+	not sorted (sort=2): 	0.00422 s
+	interp 1D (M=8000000; N1=8000000,N2=1,N3=1; pir=0), nth_u=8
+	t2 spreading loop: 	0.197 s
+    8e+06 NU pts in 0.205 s 	3.9e+07 pts/s 	2.73e+08 spread pts/s
+    max rel err in values at NU pts: 1.13e-06
+

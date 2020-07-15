@@ -38,24 +38,21 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 FLT* kz0,int ns, int ndims);
 
 
-FLT foldrescale(FLT x, BIGINT N, int pirange)
-// if pirange true, affine transform x so -pi maps to 0 and +pi to N. Then fold
-// [-N,0) and [N,2N) back into [0,N), the range of the output.
-// Replaces the RESCALE macro. Barnett 7/15/20.
-{
-  // affine rescale...
-  FLT z = x;
-  if (pirange)
-    z = (N/(2*PI)) * (x+PI);                  // PI is (FLT)M_PI in defs.h
-  else
-    z = x;
-  // fold...
-  if (z<(FLT)0.0)
-    z += (FLT)N;
-  else if (z>=(FLT)N)
-    z -= (FLT)N;
-  return z;
-} 
+
+/* local NU coord fold&rescale macro: does the following affine transform to x:
+     when p=true:   map [-3pi,-pi) and [-pi,pi) and [pi,3pi)    each to [0,N)
+     otherwise,     map [-N,0) and [0,N) and [N,2N)             each to [0,N)
+   Thus, only one period either side of the principal domain is folded
+   This is *so* much faster than slow std::fmod that we stick to it.
+   This explains FINUFFT's allowed input domain of [-3pi,3pi).
+   Speed comparisons of this macro vs a function are in devel/foldrescale*.
+   The macro wins hands-down on i7, even for modern GCC9.
+*/
+#define FOLDRESCALE(x,N,p) (p ?                                         \
+         (x + (x>=-PI ? (x<PI ? PI : -PI) : 3*PI)) * ((FLT)M_1_2PI*N) : \
+                        (x>=0.0 ? (x<(FLT)N ? x : x-(FLT)N) : x+(FLT)N))
+
+
 
 // ==========================================================================
 int spreadinterp(
@@ -203,7 +200,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
   if (opts.chkbnds) {
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
-      FLT x=foldrescale(kx[i],N1,opts.pirange);  // this includes +-1 box folding
+      FLT x=FOLDRESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
       if (x<0 || x>N1 || !isfinite(x)) {     // note isfinite() breaks with -Ofast
         fprintf(stderr,"%s NU pt not in valid range (central three periods): kx=%g, N1=%lld (pirange=%d)\n",__func__,x,(long long)N1,opts.pirange);
         return ERR_SPREAD_PTS_OUT_RANGE;
@@ -211,7 +208,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
     }
     if (ndims>1)
       for (BIGINT i=0; i<M; ++i) {
-        FLT y=foldrescale(ky[i],N2,opts.pirange);
+        FLT y=FOLDRESCALE(ky[i],N2,opts.pirange);
         if (y<0 || y>N2 || !isfinite(y)) {
           fprintf(stderr,"%s NU pt not in valid range (central three periods): ky=%g, N2=%lld (pirange=%d)\n",__func__,y,(long long)N2,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
@@ -219,7 +216,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
       }
     if (ndims>2)
       for (BIGINT i=0; i<M; ++i) {
-        FLT z=foldrescale(kz[i],N3,opts.pirange);
+        FLT z=FOLDRESCALE(kz[i],N3,opts.pirange);
         if (z<0 || z>N3 || !isfinite(z)) {
           fprintf(stderr,"%s NU pt not in valid range (central three periods): kz=%g, N3=%lld (pirange=%d)\n",__func__,z,(long long)N3,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
@@ -335,9 +332,9 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         FLT *dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
         for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
           BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
-          kx0[j]=foldrescale(kx[kk],N1,opts.pirange);
-          if (N2>1) ky0[j]=foldrescale(ky[kk],N2,opts.pirange);
-          if (N3>1) kz0[j]=foldrescale(kz[kk],N3,opts.pirange);
+          kx0[j]=FOLDRESCALE(kx[kk],N1,opts.pirange);
+          if (N2>1) ky0[j]=FOLDRESCALE(ky[kk],N2,opts.pirange);
+          if (N3>1) kz0[j]=FOLDRESCALE(kz[kk],N3,opts.pirange);
           dd0[j*2]=data_nonuniform[kk*2];     // real part
           dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
         }
@@ -425,11 +422,11 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         for (int ibuf=0; ibuf<bufsize; ibuf++) {
           BIGINT j = sort_indices[i+ibuf];
           jlist[ibuf] = j;
-	  xjlist[ibuf] = foldrescale(kx[j],N1,opts.pirange);
+	  xjlist[ibuf] = FOLDRESCALE(kx[j],N1,opts.pirange);
 	  if(ndims >=2)
-	    yjlist[ibuf] = foldrescale(ky[j],N2,opts.pirange);
+	    yjlist[ibuf] = FOLDRESCALE(ky[j],N2,opts.pirange);
 	  if(ndims == 3)
-	    zjlist[ibuf] = foldrescale(kz[j],N3,opts.pirange);                              
+	    zjlist[ibuf] = FOLDRESCALE(kz[j],N3,opts.pirange);                              
 	}
       
     // Loop over targets in chunk
@@ -1049,7 +1046,7 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * 
  * Inputs: M - number of input NU points.
  *         kx,ky,kz - length-M arrays of real coords of NU pts, in the domain
- *                    for foldrescale, which includes [0,N1], [0,N2], [0,N3]
+ *                    for FOLDRESCALE, which includes [0,N1], [0,N2], [0,N3]
  *                    respectively, if pirange=0; or [-pi,pi] if pirange=1.
  *         N1,N2,N3 - ranges of NU coords (set N2=N3=1 for 1D, N3=1 for 2D)
  *         bin_size_x,y,z - what binning box size to use in each dimension
@@ -1076,9 +1073,9 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
   for (BIGINT i=0; i<M; i++) {
     // find the bin index in however many dims are needed
-    BIGINT i1=foldrescale(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-    if (isky) i2 = foldrescale(ky[i],N2,pirange)/bin_size_y;
-    if (iskz) i3 = foldrescale(kz[i],N3,pirange)/bin_size_z;
+    BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+    if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
+    if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     counts[bin]++;
   }
@@ -1090,9 +1087,9 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   std::vector<BIGINT> inv(M);           // fill inverse map
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
-    BIGINT i1=foldrescale(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-    if (isky) i2 = foldrescale(ky[i],N2,pirange)/bin_size_y;
-    if (iskz) i3 = foldrescale(kz[i],N3,pirange)/bin_size_z;
+    BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+    if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
+    if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     BIGINT offset=offsets[bin];
     offsets[bin]++;
@@ -1136,9 +1133,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	//printf("\tt=%d: [%d,%d]\n",t,jlo[t],jhi[t]);
 	for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
 	  // find the bin index in however many dims are needed
-	  BIGINT i1=foldrescale(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-	  if (isky) i2 = foldrescale(ky[i],N2,pirange)/bin_size_y;
-	  if (iskz) i3 = foldrescale(kz[i],N3,pirange)/bin_size_z;
+	  BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+	  if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
+	  if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
 	  BIGINT bin = i1+nbins1*(i2+nbins2*i3);
 	  ct[t][bin]++;               // no clash btw threads
 	}
@@ -1172,9 +1169,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     if (t<nt) {                      // could be nt < actual # threads
       for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
 	// find the bin index (again! but better than using RAM)
-	BIGINT i1=foldrescale(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-	if (isky) i2 = foldrescale(ky[i],N2,pirange)/bin_size_y;
-	if (iskz) i3 = foldrescale(kz[i],N3,pirange)/bin_size_z;
+	BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+	if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
+	if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
 	BIGINT bin = i1+nbins1*(i2+nbins2*i3);
 	inv[i]=ot[t][bin];   // get the offset for this NU pt and thread
 	ot[t][bin]++;               // no clash

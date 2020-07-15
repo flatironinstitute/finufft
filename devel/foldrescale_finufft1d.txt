@@ -1,0 +1,69 @@
+
+1d tests w/ few modes, to test spreading w/ pirange=1.   Barnett 7/15/20
+
+i7
+
+make clean
+make test/finufft1d_test -j8
+test/finufft1d_test 1e5 1e7 1e-3
+
+VERSION WITH foldrescale FUNCTION in it................................
+
+GCC9 CXXFLAGS = O3 -funroll-loops -march=native -fcx-limited-range
+test 1d type 1:
+	10000000 NU pts to 100000 modes in 0.281 s 	3.56e+07 NU pts/s
+	one mode: rel err in F[37000] is 5.15e-05
+test 1d type 2:
+	100000 modes to 10000000 NU pts in 0.143 s 	6.99e+07 NU pts/s
+	one targ: rel err in c[5000000] is 0.000434
+details on t1: (debug=2)
+	NU bnds check:		0.0378 s
+	sorted (8 threads):	0.0828 s
+	t1 fancy spread: 	0.13 s (1000 subprobs)
+
+GCC9 CXXFLAGS += -Ofast -fno-finite-math-only
+test 1d type 1:
+	10000000 NU pts to 100000 modes in 0.265 s 	3.78e+07 NU pts/s
+	one mode: rel err in F[37000] is 5.17e-05
+test 1d type 2:
+	100000 modes to 10000000 NU pts in 0.13 s 	7.71e+07 NU pts/s
+	one targ: rel err in c[5000000] is 0.000183
+details on t1: (debug=2)
+	NU bnds check:		0.0326 s
+	sorted (8 threads):	0.0781 s
+	t1 fancy spread: 	0.127 s (1000 subprobs)
+
+
+concl: Ofast makes 5-10% faster, but doesn't match macro
+
+
+VERSION WITH FOLDRESCALE MACRO in it................................
+
+GCC9 CXXFLAGS = O3 -funroll-loops -march=native -fcx-limited-range
+test 1d type 1:
+	10000000 NU pts to 100000 modes in 0.211 s 	4.75e+07 NU pts/s
+	one mode: rel err in F[37000] is 3.5e-05
+test 1d type 2:
+	100000 modes to 10000000 NU pts in 0.122 s 	8.18e+07 NU pts/s
+	one targ: rel err in c[5000000] is 0.000408
+details on t1: (debug=2)
+	NU bnds check:		0.0181 s
+	sorted (8 threads):	0.0737 s
+	t1 fancy spread: 	0.094 s (1000 subprobs)
+
+GCC9 CXXFLAGS += -Ofast -fno-finite-math-only
+test 1d type 1:
+	10000000 NU pts to 100000 modes in 0.231 s 	4.32e+07 NU pts/s
+	one mode: rel err in F[37000] is 5.17e-05
+test 1d type 2:
+	100000 modes to 10000000 NU pts in 0.131 s 	7.66e+07 NU pts/s
+	one targ: rel err in c[5000000] is 0.00026
+details on t1: (debug=2)
+	NU bnds check:		0.0207 s
+	sorted (8 threads):	0.072 s
+	t1 fancy spread: 	0.093 s (1000 subprobs)
+
+concl:
+ * chkbnds and spread both faster than with function, giving 20-25% faster
+    in t1.  Less dramatic for t2.
+ * Ofast actually *slows* it down a bit, bizarre. (contrast devel/foldrescale*)
