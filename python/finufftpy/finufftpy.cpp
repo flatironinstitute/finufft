@@ -30,6 +30,16 @@ private:
 
 static int fftwoptslist[] = {FFTW_ESTIMATE,FFTW_MEASURE,FFTW_PATIENT,FFTW_EXHAUSTIVE};
 
+// pyfinufft struct holding finufft_plan
+// this is needed to make sure C++ has the ownership of finufft_plan
+// if we directly expose finufft_plan in pybind11 module def, the ownership is at python side
+typedef struct pyfinufft_plan{
+    finufft_plan fp;
+    pyfinufft_plan(){
+        fp = NULL;
+    }
+} pyfinufft_plan;
+
 // 0, finufft_default_opts(&opts)
 // 1, finufft_makeplane
 // 2, finufft_setpts
@@ -49,7 +59,7 @@ void default_opts(nufft_opts &o){
 }
 
 int makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n_transf, 
-     FLT tol, finufft_plan &plan, nufft_opts &o){
+     FLT tol, pyfinufft_plan &plan, nufft_opts &o){
   /*
    ::
      Populates the fields of finufft_plan.
@@ -69,10 +79,10 @@ int makeplan(int type, int n_dims, py::array_t<BIGINT> n_modes, int iflag, int n
    Example:
      see ``python/tests/python_guru1d1.py``
    */
-    return finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,&plan,&o);
+    return finufft_makeplan(type,n_dims,n_modes.mutable_data(),iflag,n_transf,tol,&(plan.fp),&o);
 }
 
-int setpts(finufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> yj, py::array_t<FLT> zj, 
+int setpts(pyfinufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> yj, py::array_t<FLT> zj,
      BIGINT N, py::array_t<FLT> s, py::array_t<FLT> t, py::array_t<FLT> u){
   /*
    ::
@@ -89,21 +99,21 @@ int setpts(finufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT> y
      t  (float[N]): nonuniform target y-frequencies for type 3
      u  (float[N]): nonuniform target z-frequencies for type 3
    */
-    return finufft_setpts(&plan,M,xj.mutable_data(),yj.mutable_data(),zj.mutable_data(),N,s.mutable_data(),t.mutable_data(),u.mutable_data());
+    return finufft_setpts(plan.fp,M,xj.mutable_data(),yj.mutable_data(),zj.mutable_data(),N,s.mutable_data(),t.mutable_data(),u.mutable_data());
 }
 
-int execute(finufft_plan &plan, py::array_t<CPX> weights, py::array_t<CPX> result){
+int execute(pyfinufft_plan &plan, py::array_t<CPX> weights, py::array_t<CPX> result){
   /*
    ::
    Args:
      weights  : source strengths
      result   : Fourier mode coefficients
    */
-    return finufft_exec(&plan,weights.mutable_data(),result.mutable_data());
+    return finufft_exec(plan.fp,weights.mutable_data(),result.mutable_data());
 }
 
-int destroy(finufft_plan &plan){
-    return finufft_destroy(&plan);
+int destroy(pyfinufft_plan &plan){
+    return finufft_destroy(plan.fp);
 }
 
 int fftwopts(int fftw){
@@ -116,33 +126,33 @@ int get_max_threads(){
     return MY_OMP_GET_MAX_THREADS();
 }
 
-int get_type(finufft_plan &plan){
-    return plan.type;
+int get_type(pyfinufft_plan &plan){
+    return plan.fp->type;
 }
 
-int get_dim(finufft_plan &plan){
-    return plan.dim;
+int get_dim(pyfinufft_plan &plan){
+    return plan.fp->dim;
 }
 
-BIGINT get_nj(finufft_plan &plan){
-    return plan.nj;
+BIGINT get_nj(pyfinufft_plan &plan){
+    return plan.fp->nj;
 }
 
-BIGINT get_nk(finufft_plan &plan){
-    return plan.nk;
+BIGINT get_nk(pyfinufft_plan &plan){
+    return plan.fp->nk;
 }
 
-py::tuple get_nmodes(finufft_plan &plan){
-    BIGINT ms = plan.ms ? plan.ms : 1;
-    BIGINT mt = plan.mt ? plan.mt : 1;
-    BIGINT mu = plan.mu ? plan.mu : 1;
-    if(plan.dim<3) mu = 1;
-    if(plan.dim<2) mt = 1;
+py::tuple get_nmodes(pyfinufft_plan &plan){
+    BIGINT ms = plan.fp->ms ? plan.fp->ms : 1;
+    BIGINT mt = plan.fp->mt ? plan.fp->mt : 1;
+    BIGINT mu = plan.fp->mu ? plan.fp->mu : 1;
+    if(plan.fp->dim<3) mu = 1;
+    if(plan.fp->dim<2) mt = 1;
     return py::make_tuple(ms,mt,mu);
 }
 
-int get_ntransf(finufft_plan &plan){
-    return plan.ntrans;
+int get_ntransf(pyfinufft_plan &plan){
+    return plan.fp->ntrans;
 }
 
 PYBIND11_MODULE(finufftpy_cpp, m) {
@@ -180,6 +190,6 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
           .def_readwrite("showwarn", &nufft_opts::showwarn);
 
       // finufft_plan stuct
-      py::class_<finufft_plan>(m,"finufft_plan")
+      py::class_<pyfinufft_plan>(m,"finufft_plan")
           .def(py::init<>());
 }
