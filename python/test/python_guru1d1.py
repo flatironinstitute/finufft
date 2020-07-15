@@ -19,20 +19,14 @@ n_modes[0] = N
 
 strt = time.time()
 
-#opts
-opts = fp.nufft_opts()
-fp.default_opts(opts)
-opts.debug = 1
-opts.upsampfac = 2.0
-
 #plan
-plan = fp.makeplan(1,n_modes,iflag,1,acc,opts)
+plan = fp.FinufftPlan(1,n_modes,iflag,1,acc,debug=1)
 
 #set pts
-fp.setpts(plan,x,None,None,None,None,None)
+plan.setpts(x,None,None,None,None,None)
 
 #exec
-fp.execute(plan,c,F)
+plan.execute(c,F)
 
 #timing
 print("Finished nufft in {0:.2g} seconds. Checking..."
@@ -47,6 +41,3 @@ for j in range(M):
 Fmax = np.max(np.abs(F))
 err = np.abs((F[n + N // 2] - Ftest) / Fmax)
 print("Error relative to max of F: {0:.2e}".format(err))
-
-#destroy
-fp.destroy(plan)

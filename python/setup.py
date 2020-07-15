@@ -67,19 +67,19 @@ class get_pybind_include(object):
 
 # choose compile flags for finufftpy.cpp (links to finufft lib)...
 if sys.platform == "win32":
-    libraries = [finufft_lib,"fftw3"]
+    libraries = [finufft_lib,"fftw3","fftw3f"]
     extra_compile_args=['-fopenmp']
     extra_link_args=[]
 
 elif sys.platform == "linux" or sys.platform == "linux2":
     # changed from fftw3_threads, since a bit faster, 9/24/18:
-    libraries = [finufft_lib,"fftw3","fftw3_omp","gomp"]
+    libraries = [finufft_lib,"fftw3","fftw3_omp","fftw3f","fftw3f_omp","gomp"]
     extra_compile_args=['-fopenmp']
     extra_link_args=[]
 
 elif sys.platform == "darwin":
     # Mac OSX
-    libraries = [finufft_lib,"fftw3","fftw3_threads"]
+    libraries = [finufft_lib,"fftw3","fftw3_threads","fftw3f","fftw3f_threads"]
     if os.environ["CXX"] == "g++":
         # clang
         extra_compile_args=['-fopenmp']
