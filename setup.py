@@ -37,4 +37,11 @@ setup(
         'docs': ['sphinx', 'sphinx_rtd_theme']
     },
     zip_safe=False,
+    # This explicitly tells python's wheel systems that we're platform specific
+    ext_modules=[
+        Extension(name='cufinufftpy',
+                  sources=[],
+                  libraries=['cufinufftc'],
+                  library_dirs=['lib'])
+        ]
 )

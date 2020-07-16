@@ -63,7 +63,8 @@ RUN yum install -y fftw fftw-devel
 # We need to build the CUDA code now.
 # assume we are building container in the root of the git repo...
 COPY . /io
-RUN make /io
+WORKDIR /io
+RUN make
 # And we need to pack it in our LD path
 ENV LD_LIBRARY_PATH /io/lib:${LD_LIBRARY_PATH}
 
