@@ -39,11 +39,11 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 
 
 
-/* local NU coord fold&rescale macro: does the following affine transform to x:
+/* local NU coord fold+rescale macro: does the following affine transform to x:
      when p=true:   map [-3pi,-pi) and [-pi,pi) and [pi,3pi)    each to [0,N)
      otherwise,     map [-N,0) and [0,N) and [N,2N)             each to [0,N)
-   Thus, only one period either side of the principal domain is folded
-   This is *so* much faster than slow std::fmod that we stick to it.
+   Thus, only one period either side of the principal domain is folded.
+   (It is *so* much faster than slow std::fmod that we stick to it.)
    This explains FINUFFT's allowed input domain of [-3pi,3pi).
    Speed comparisons of this macro vs a function are in devel/foldrescale*.
    The macro wins hands-down on i7, even for modern GCC9.
