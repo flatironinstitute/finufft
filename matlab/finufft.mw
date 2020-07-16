@@ -173,16 +173,6 @@ classdef finufft_plan < handle
       errhandler(ier);             % convert C++ codes to matlab-style errors
     end
 
-    function delete(plan)
-    % This does clean-up (deallocation) of the C++ struct before the matlab
-    % object deletes.
-      if strcmp(plan.floatprec,'double')
-        # finufft_destroy(finufft_plan plan);
-      else
-        # finufftf_destroy(finufftf_plan plan);
-      end
-    end
-
     function setpts(plan, xj, yj, zj, s, t, u)
     % SETPTS   process nonuniform points for general FINUFFT transform(s).
 
@@ -203,11 +193,11 @@ classdef finufft_plan < handle
       if strcmp(plan.floatprec,'double')
         # int dim = get_dim(finufft_plan plan);
         # int type = get_type(finufft_plan plan);
-        if nargin<5, s=double.empty; t=double.empty; u=double.empty; end
+        if nargin<5, s=double([]); t=double([]); u=double([]); end
       else
         # int dim = get_dimf(finufftf_plan plan);
         # int type = get_typef(finufftf_plan plan);
-        if nargin<5, s=single.empty; t=single.empty; u=single.empty; end
+        if nargin<5, s=single([]); t=single([]); u=single([]); end
       end
       % get number(s) of NU pts (also validates the NU pt array sizes)...
       [nj, nk] = valid_setpts(type, dim, xj, yj, zj, s, t, u);
@@ -305,6 +295,20 @@ classdef finufft_plan < handle
         ier = 10;         % type was corrupted since plan stage - the horror
       end
       errhandler(ier);
+    end
+
+    function delete(plan)
+    % This does clean-up (deallocation) of the C++ struct before the matlab
+    % object deletes. It is automatically called by MATLAB and octave if the
+    % plan goes out of scope.
+      if ~isempty(plan.mwptr)    % catch octave's allowance of >1 deletings!
+        if strcmp(plan.floatprec,'double')
+          # finufft_destroy(finufft_plan plan);
+        else
+          # finufftf_destroy(finufftf_plan plan);
+        end
+        plan.mwptr = '';         % we use to mean destroyed on the C++ side
+      end
     end
 
   end

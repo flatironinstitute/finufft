@@ -80,6 +80,18 @@ usage examples. The documentation for all 18 simple interfaces,
 and the more flexible guru interface, follows below.
 
 
+*** GURU example.
+
+.. note::
+  User must destroy a plan before making a new plan using the same
+  plan object,
+  otherwise mem leak.
+
+
+
+
+
+
 Simple interfaces
 -------------------------------- 
 

@@ -55,4 +55,3 @@ o.floatprec=class(x);                      % should be 'double' or 'single'
 p = finufft_plan(2,[ms;mt],isign,n_transf,eps,o);
 p.setpts(x,y,[]);
 c = p.exec(f);
-delete(p);

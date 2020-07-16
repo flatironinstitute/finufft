@@ -40,7 +40,9 @@ OOMPFLAGS =
 MFLAGS := -largeArrayDims -DR2008OO
 # location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
 MEX = mex
-# octave mkoctfile...
+# octave, and its mkoctfile and flags...
+OCTAVE = octave
+MKOCTFILE = mkoctfile
 OFLAGS = -DR2008OO
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
@@ -286,15 +288,19 @@ fortran: $(FE)
 
 
 # matlab ----------------------------------------------------------------------
-# matlab .mex* executable... (not worth starting matlab to test it)
+# matlab .mex* executable... (matlab is so slow to start, not worth testing it)
 matlab: matlab/finufft.cpp $(STATICLIB)
 	$(MEX) $< $(STATICLIB) $(INCL) $(MFLAGS) $(LIBSFFT) -output matlab/finufft
 
-# octave .mex executable... (also creates matlab/finufft.o for some reason)
+# octave .mex executable...
 octave: matlab/finufft.cpp $(STATICLIB)
-	(cd matlab; mkoctfile --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
-	@echo "Running octave interface test; please wait a few seconds..."
-	(cd matlab; octave test/guru1dtest.m)
+	(cd matlab; $(MKOCTFILE) --mex finufft.cpp -I../include ../$(STATICLIB) $(OFLAGS) $(LIBSFFT) -output finufft)
+	@echo "Running octave interface tests; please wait a few seconds..."
+	(cd matlab ;\
+	$(OCTAVE) test/check_finufft.m ;\
+	$(OCTAVE) test/check_finufft_single.m ;\
+	$(OCTAVE) examples/guru1d1.m ;\
+	$(OCTAVE) examples/guru1d1_single.m)
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway
 # matlab/finufft.cpp via mwrap (needs recent version of mwrap, eg 0.33.10)...
