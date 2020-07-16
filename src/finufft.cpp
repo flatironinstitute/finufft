@@ -1043,7 +1043,9 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
 // Also must not crash if called immediately after finufft_makeplan.
 // Thus either each thing free'd here is guaranteed to be NULL or correctly
 // allocated.
-{ 
+{
+  if (!p)
+    return 1;
   FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
   if (p->type==1 || p->type==2) {
     FFTW_DE(p->fftwPlan);
