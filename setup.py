@@ -37,9 +37,14 @@ setup(
         'docs': ['sphinx', 'sphinx_rtd_theme']
     },
     zip_safe=False,
-    # This explicitly tells python's wheel systems that we're platform specific
+    # This explicitly tells the wheel systems that we're platform specific.
+    #   Addiitonally, will create a new cpython library with a decorated name
+    #   that is rpath linked to CUDA library, also decorated (by auditwheel).
+    #   Most importantly, pip will manage to install all this stuff in
+    #   in places python can find it (with a little help).
+    py_modules=['cufinufftc'],
     ext_modules=[
-        Extension(name='cufinufftpy',
+        Extension(name='cufinufftc',
                   sources=[],
                   libraries=['cufinufftc'],
                   library_dirs=['lib'])

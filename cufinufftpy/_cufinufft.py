@@ -6,6 +6,12 @@ differentiated by 'f' suffix.
 """
 
 import ctypes
+# While imp is deprecated, it is currently the inspection solution
+#   that works for all versions of Python 2 and 3.
+# One day if that changes, can be replaced
+#   with importlib.find_spec.
+import imp
+import os
 
 import numpy as np
 
@@ -18,8 +24,33 @@ c_int_p = ctypes.POINTER(c_int)
 c_float_p = ctypes.POINTER(c_float)
 c_double_p = ctypes.POINTER(c_double)
 
-# TODO: Thinking about how to make this safer and more portable.
-lib = ctypes.cdll.LoadLibrary('libcufinufftc.so')
+# TODO: See if there is a way to improve this so it is less hacky.
+lib = None
+# Try to load a local library directly.
+try:
+    lib = ctypes.cdll.LoadLibrary('libcufinufftc.so')
+except OSError as e:
+    pass
+
+# Should that not work, try to find the full path of a packaged lib.
+#   The packaged lib should have a py/platform decorated name,
+#   and be rpath'ed the true CUDA C cufinufftc library through the
+#   Extension and wheel systems.
+try:
+    if lib is None:
+        # Find the library.
+        fh = imp.find_module('cufinufftc')[0]
+        # Get the full path for the ctypes loader.
+        full_lib_path =  os.path.realpath(fh.name)
+        fh.close()    # Be nice and close the open file handle.
+
+        # Load the library,
+        #    which rpaths the libraries we care about.
+        lib = ctypes.cdll.LoadLibrary(full_lib_path)
+
+except Exception as e:
+    raise RuntimeError('Failed to find a suitable cufinufftc library')
+
 
 
 def _get_ctypes(dtype):
