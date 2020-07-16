@@ -4,7 +4,7 @@
 using namespace std;
 
 // forward declaration of helper to (repeatedly if needed) call finufft?d?
-double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,FINUFFT_PLAN *plan);
+double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,FINUFFT_PLAN plan);
 
 
 // --------------------------------------------------------------------------
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
   }
   
   timer.restart();                    // Guru Step 2
-  ier = FINUFFT_SETPTS(&plan, M, x, y, z, N, s, t, u); //(t1,2: N,s,t,u ignored)
+  ier = FINUFFT_SETPTS(plan, M, x, y, z, N, s, t, u); //(t1,2: N,s,t,u ignored)
   double sort_t = timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);
@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
   }
   
   timer.restart();                     // Guru Step 3
-  ier = FINUFFT_EXEC(&plan,c,F);
+  ier = FINUFFT_EXEC(plan,c,F);
   double exec_t=timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);
@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
     printf("\texec \t\t\t\t\t%.3g s\n", exec_t);
 
   timer.restart();                     // Guru Step 4
-  FINUFFT_DESTROY(&plan);
+  FINUFFT_DESTROY(plan);
   double destroy_t = timer.elapsedsec();
   printf("\tdestroy\t\t\t\t\t%.3g s\n", destroy_t);
   
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
   // this used to actually call Alex's old (v1.1) src/finufft?d.cpp routines.
   // Since we don't want to ship those, we now call the simple interfaces.
   
-  double simpleTime = many_simple_calls(c,F, x, y, z, &plan);
+  double simpleTime = many_simple_calls(c,F, x, y, z, plan);
 
   FFTW_CLEANUP();
   FFTW_CLEANUP_THREADS();
@@ -225,7 +225,7 @@ int main(int argc, char* argv[])
 
 // -------------------------------- HELPER FUNCS ----------------------------
 
-double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_PLAN *plan)
+double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_PLAN plan)
 /* Helper to make a simple interface call with parameters pulled out of a
    guru-interface plan. Reads opts from the
    finufft plan, and the pointers to various data vectors that users shouldn't
@@ -353,7 +353,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
   }
 }
 
-double many_simple_calls(CPX *c,CPX *F, FLT* x, FLT* y, FLT* z, FINUFFT_PLAN *plan)
+double many_simple_calls(CPX *c,CPX *F, FLT* x, FLT* y, FLT* z, FINUFFT_PLAN plan)
 /* A unified interface to all of the simple interfaces, with a loop over
    many such transforms. Returns total time reported by the transforms.
    (Used to call pre-v1.2 single implementations in finufft, via runOldFinufft.

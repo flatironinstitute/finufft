@@ -103,9 +103,9 @@ extern "C"
   
 void FINUFFT_DEFAULT_OPTS(nufft_opts *o);
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag, int n_transf, FLT tol, FINUFFT_PLAN* plan, nufft_opts* o);
-int FINUFFT_SETPTS(FINUFFT_PLAN* plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
-int FINUFFT_EXEC(FINUFFT_PLAN* plan, CPX* weights, CPX* result);
-int FINUFFT_DESTROY(FINUFFT_PLAN* plan);
+int FINUFFT_SETPTS(FINUFFT_PLAN plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
+int FINUFFT_EXEC(FINUFFT_PLAN plan, CPX* weights, CPX* result);
+int FINUFFT_DESTROY(FINUFFT_PLAN plan);
 
 
 // ----------------- the 18 simple interfaces -------------------------------

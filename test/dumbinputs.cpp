@@ -317,9 +317,9 @@ int main(int argc, char* argv[])
   FINUFFT_PLAN plan;
   BIGINT Ns[1] = {0};      // since dim=1, don't have to make length 3
   FINUFFT_MAKEPLAN(1, 1, Ns, +1, 1, acc, &plan, NULL);  // type 1, now kill it
-  FINUFFT_DESTROY(&plan);
+  FINUFFT_DESTROY(plan);
   FINUFFT_MAKEPLAN(3, 1, Ns, +1, 1, acc, &plan, NULL);  // type 3, now kill it
-  FINUFFT_DESTROY(&plan);
+  FINUFFT_DESTROY(plan);
   // *** todo: more extensive bad inputs and error catching in guru...
   
   return 0;

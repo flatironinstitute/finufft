@@ -19,14 +19,12 @@ extern "C"
 */
 
 // --------------- plan opaque pointer ------------
-finufft_plan* finufft_plan_alloc();
-void finufft_plan_free(finufft_plan* plan);
-int get_type(finufft_plan* plan);
-int get_ntransf(finufft_plan* plan);
-int get_ndims(finufft_plan* plan);
-void get_nmodes(finufft_plan* plan, BIGINT* n_modes);
-BIGINT get_nj(finufft_plan* plan);
-BIGINT get_nk(finufft_plan* plan);
+int get_type(finufft_plan plan);
+int get_ntransf(finufft_plan plan);
+int get_ndims(finufft_plan plan);
+void get_nmodes(finufft_plan plan, BIGINT* n_modes);
+BIGINT get_nj(finufft_plan plan);
+BIGINT get_nk(finufft_plan plan);
 
 #ifdef __cplusplus
 }

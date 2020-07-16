@@ -78,19 +78,17 @@ extern "C" {
 #endif
   
 // --------------------- guru interface from fortran ------------------------
-void FINUFFT_MAKEPLAN_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, FINUFFT_PLAN **plan, nufft_opts *o, int *ier)
+void FINUFFT_MAKEPLAN_(int *type, int *n_dims, BIGINT *n_modes, int *iflag, int *n_transf, FLT *tol, FINUFFT_PLAN *plan, nufft_opts *o, int *ier)
 {
   if (!plan)
     fprintf(stderr,"%s fortran: plan must be allocated as at least the size of a C pointer (usually 8 bytes)!\n",__func__);
   else {
-    // note plan will be ptr to ptr to a nufft_opts. Must allocate the latter:
-    *plan = (FINUFFT_PLAN *)malloc(sizeof(FINUFFT_PLAN));
     // pass o whether it's a NULL or pointer to a fortran-allocated nufft_opts:
-    *ier = FINUFFT_MAKEPLAN(*type, *n_dims, n_modes, *iflag, *n_transf, *tol, *plan, o);
+    *ier = FINUFFT_MAKEPLAN(*type, *n_dims, n_modes, *iflag, *n_transf, *tol, plan, o);
   }
 }
 
-void FINUFFT_SETPTS_(FINUFFT_PLAN **plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *nk, FLT *s, FLT *t, FLT *u, int *ier)
+void FINUFFT_SETPTS_(FINUFFT_PLAN *plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, BIGINT *nk, FLT *s, FLT *t, FLT *u, int *ier)
 {
   if (!*plan) {
     fprintf(stderr,"%s fortran: finufft_plan unallocated!",__func__);
@@ -102,17 +100,17 @@ void FINUFFT_SETPTS_(FINUFFT_PLAN **plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, 
   *ier = FINUFFT_SETPTS(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 
-void FINUFFT_EXEC_(FINUFFT_PLAN **plan, CPX *weights, CPX *result, int *ier)
+void FINUFFT_EXEC_(FINUFFT_PLAN *plan, CPX *weights, CPX *result, int *ier)
 {
-  if (!*plan)
+  if (!plan)
     fprintf(stderr,"%s fortran: finufft_plan unallocated!",__func__);
   else
     *ier = FINUFFT_EXEC(*plan, weights, result);
 }
 
-void FINUFFT_DESTROY_(FINUFFT_PLAN **plan, int *ier)
+void FINUFFT_DESTROY_(FINUFFT_PLAN *plan, int *ier)
 {
-  if (!*plan)
+  if (!plan)
     fprintf(stderr,"%s fortran: finufft_plan unallocated!",__func__);
   else
     *ier = FINUFFT_DESTROY(*plan);

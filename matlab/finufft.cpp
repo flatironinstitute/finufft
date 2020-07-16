@@ -1054,49 +1054,49 @@ typedef std::complex<float> fcomplex;
    mexEvalString("fft(1:8);");
  }
  // sadly we need compile versions for both precisions of plans...
- int get_type(finufft_plan* plan) {
+ int get_type(finufft_plan plan) {
    return plan->type;
  }
- int get_dim(finufft_plan* plan) {
+ int get_dim(finufft_plan plan) {
    return plan->dim;
  }
- int get_typef(finufftf_plan* plan) {
+ int get_typef(finufftf_plan plan) {
    return plan->type;
  }
- int get_dimf(finufftf_plan* plan) {
+ int get_dimf(finufftf_plan plan) {
    return plan->dim;
  }
  // sadly we need compile versions for both precisions of plans...
- int64_t get_nj(finufft_plan* plan) {
+ int64_t get_nj(finufft_plan plan) {
    return plan->nj;
  }
- int64_t get_nk(finufft_plan* plan) {
+ int64_t get_nk(finufft_plan plan) {
    return plan->nk;
  }
- void get_nmodes(finufft_plan* plan, int64_t& ms, int64_t& mt, int64_t& mu) {
+ void get_nmodes(finufft_plan plan, int64_t& ms, int64_t& mt, int64_t& mu) {
    ms = plan->ms ? plan->ms : 1;
    mt = plan->mt ? plan->mt : 1;
    mu = plan->mu ? plan->mu : 1;
    if(plan->dim<3) mu=1;
    if(plan->dim<2) mt=1;
  }
- int get_ntrans(finufft_plan* plan) {
+ int get_ntrans(finufft_plan plan) {
    return plan->ntrans;
  }
- int64_t get_njf(finufftf_plan* plan) {
+ int64_t get_njf(finufftf_plan plan) {
    return plan->nj;
  }
- int64_t get_nkf(finufftf_plan* plan) {
+ int64_t get_nkf(finufftf_plan plan) {
    return plan->nk;
  }
- void get_nmodesf(finufftf_plan* plan, int64_t& ms, int64_t& mt, int64_t& mu) {
+ void get_nmodesf(finufftf_plan plan, int64_t& ms, int64_t& mt, int64_t& mu) {
    ms = plan->ms ? plan->ms : 1;
    mt = plan->mt ? plan->mt : 1;
    mu = plan->mu ? plan->mu : 1;
    if(plan->dim<3) mu=1;
    if(plan->dim<2) mt=1;
  }
- int get_ntransf(finufftf_plan* plan) {
+ int get_ntransf(finufftf_plan plan) {
    return plan->ntrans;
  }
 
@@ -1565,10 +1565,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 178 ----
- * finufft_destroy(finufft_plan* plan);
+/* ---- finufft.mw: 179 ----
+ * finufft_destroy(finufft_plan plan);
  */
-static const char* stubids11_ = "finufft_destroy(i finufft_plan*)";
+static const char* stubids11_ = "finufft_destroy(i finufft_plan)";
 
 void mexStub11(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1579,19 +1579,23 @@ void mexStub11(int nlhs, mxArray* plhs[],
     in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[11]++;
-    finufft_destroy(in0_);
+    finufft_destroy(*in0_);
 
 mw_err_label:
     if (mw_err_txt_)
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 180 ----
- * finufftf_destroy(finufftf_plan* plan);
+/* ---- finufft.mw: 181 ----
+ * finufftf_destroy(finufftf_plan plan);
  */
-static const char* stubids12_ = "finufftf_destroy(i finufftf_plan*)";
+static const char* stubids12_ = "finufftf_destroy(i finufftf_plan)";
 
 void mexStub12(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1602,19 +1606,23 @@ void mexStub12(int nlhs, mxArray* plhs[],
     in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[12]++;
-    finufftf_destroy(in0_);
+    finufftf_destroy(*in0_);
 
 mw_err_label:
     if (mw_err_txt_)
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 202 ----
- * int dim = get_dim(finufft_plan* plan);
+/* ---- finufft.mw: 203 ----
+ * int dim = get_dim(finufft_plan plan);
  */
-static const char* stubids13_ = "o int = get_dim(i finufft_plan*)";
+static const char* stubids13_ = "o int = get_dim(i finufft_plan)";
 
 void mexStub13(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1626,9 +1634,13 @@ void mexStub13(int nlhs, mxArray* plhs[],
     in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[13]++;
-    out0_ = get_dim(in0_);
+    out0_ = get_dim(*in0_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1642,11 +1654,11 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 203 ----
- * int type = get_type(finufft_plan* plan);
- * Also at finufft.mw: 259
+/* ---- finufft.mw: 204 ----
+ * int type = get_type(finufft_plan plan);
+ * Also at finufft.mw: 260
  */
-static const char* stubids14_ = "o int = get_type(i finufft_plan*)";
+static const char* stubids14_ = "o int = get_type(i finufft_plan)";
 
 void mexStub14(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1658,40 +1670,13 @@ void mexStub14(int nlhs, mxArray* plhs[],
     in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[14]++;
-    out0_ = get_type(in0_);
-#if MX_HAS_INTERLEAVED_COMPLEX
-    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    *mxGetDoubles(plhs[0]) = out0_;
-#else
-    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    *mxGetPr(plhs[0]) = out0_;
-#endif
-
-mw_err_label:
-    if (mw_err_txt_)
-        mexErrMsgTxt(mw_err_txt_);
-}
-
-/* ---- finufft.mw: 206 ----
- * int dim = get_dimf(finufftf_plan* plan);
- */
-static const char* stubids15_ = "o int = get_dimf(i finufftf_plan*)";
-
-void mexStub15(int nlhs, mxArray* plhs[],
-              int nrhs, const mxArray* prhs[])
-{
-    const char* mw_err_txt_ = 0;
-    finufftf_plan*  in0_ =0; /* plan       */
-    int         out0_;   /* dim        */
-
-    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
-    if (mw_err_txt_)
-        goto mw_err_label;
-    if (mexprofrecord_)
-        mexprofrecord_[15]++;
-    out0_ = get_dimf(in0_);
+    out0_ = get_type(*in0_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1706,24 +1691,27 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 207 ----
- * int type = get_typef(finufftf_plan* plan);
- * Also at finufft.mw: 263
+ * int dim = get_dimf(finufftf_plan plan);
  */
-static const char* stubids16_ = "o int = get_typef(i finufftf_plan*)";
+static const char* stubids15_ = "o int = get_dimf(i finufftf_plan)";
 
-void mexStub16(int nlhs, mxArray* plhs[],
+void mexStub15(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
     finufftf_plan*  in0_ =0; /* plan       */
-    int         out0_;   /* type       */
+    int         out0_;   /* dim        */
 
     in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
-        mexprofrecord_[16]++;
-    out0_ = get_typef(in0_);
+        mexprofrecord_[15]++;
+    out0_ = get_dimf(*in0_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1737,10 +1725,46 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 213 ----
- * int ier = finufft_setpts(finufft_plan* plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
+/* ---- finufft.mw: 208 ----
+ * int type = get_typef(finufftf_plan plan);
+ * Also at finufft.mw: 264
  */
-static const char* stubids17_ = "o int = finufft_setpts(i finufft_plan*, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])";
+static const char* stubids16_ = "o int = get_typef(i finufftf_plan)";
+
+void mexStub16(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufftf_plan*  in0_ =0; /* plan       */
+    int         out0_;   /* type       */
+
+    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    if (mexprofrecord_)
+        mexprofrecord_[16]++;
+    out0_ = get_typef(*in0_);
+#if MX_HAS_INTERLEAVED_COMPLEX
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
+#else
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
+#endif
+
+mw_err_label:
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
+}
+
+/* ---- finufft.mw: 214 ----
+ * int ier = finufft_setpts(finufft_plan plan, int64_t nj, double[] xj, double[] yj, double[] zj, int64_t nk, double[] s, double[] t, double[] u);
+ */
+static const char* stubids17_ = "o int = finufft_setpts(i finufft_plan, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])";
 
 void mexStub17(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1838,9 +1862,13 @@ void mexStub17(int nlhs, mxArray* plhs[],
 #endif
     } else
         in8_ = NULL;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[17]++;
-    out0_ = finufft_setpts(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_);
+    out0_ = finufft_setpts(*in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1854,10 +1882,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 215 ----
- * int ier = finufftf_setpts(finufftf_plan* plan, int64_t nj, float[] xj, float[] yj, float[] zj, int64_t nk, float[] s, float[] t, float[] u);
+/* ---- finufft.mw: 216 ----
+ * int ier = finufftf_setpts(finufftf_plan plan, int64_t nj, float[] xj, float[] yj, float[] zj, int64_t nk, float[] s, float[] t, float[] u);
  */
-static const char* stubids18_ = "o int = finufftf_setpts(i finufftf_plan*, i int64_t, i float[], i float[], i float[], i int64_t, i float[], i float[], i float[])";
+static const char* stubids18_ = "o int = finufftf_setpts(i finufftf_plan, i int64_t, i float[], i float[], i float[], i int64_t, i float[], i float[], i float[])";
 
 void mexStub18(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1955,40 +1983,13 @@ void mexStub18(int nlhs, mxArray* plhs[],
 #endif
     } else
         in8_ = NULL;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[18]++;
-    out0_ = finufftf_setpts(in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_);
-#if MX_HAS_INTERLEAVED_COMPLEX
-    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    *mxGetDoubles(plhs[0]) = out0_;
-#else
-    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
-    *mxGetPr(plhs[0]) = out0_;
-#endif
-
-mw_err_label:
-    if (mw_err_txt_)
-        mexErrMsgTxt(mw_err_txt_);
-}
-
-/* ---- finufft.mw: 260 ----
- * int n_trans = get_ntrans(finufft_plan* plan);
- */
-static const char* stubids20_ = "o int = get_ntrans(i finufft_plan*)";
-
-void mexStub20(int nlhs, mxArray* plhs[],
-              int nrhs, const mxArray* prhs[])
-{
-    const char* mw_err_txt_ = 0;
-    finufft_plan*  in0_ =0; /* plan       */
-    int         out0_;   /* n_trans    */
-
-    in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
-    if (mw_err_txt_)
-        goto mw_err_label;
-    if (mexprofrecord_)
-        mexprofrecord_[20]++;
-    out0_ = get_ntrans(in0_);
+    out0_ = finufftf_setpts(*in0_, in1_, in2_, in3_, in4_, in5_, in6_, in7_, in8_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2003,23 +2004,27 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 261 ----
- * int64_t nj = get_nj(finufft_plan* plan);
+ * int n_trans = get_ntrans(finufft_plan plan);
  */
-static const char* stubids21_ = "o int64_t = get_nj(i finufft_plan*)";
+static const char* stubids20_ = "o int = get_ntrans(i finufft_plan)";
 
-void mexStub21(int nlhs, mxArray* plhs[],
+void mexStub20(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
     finufft_plan*  in0_ =0; /* plan       */
-    int64_t     out0_;   /* nj         */
+    int         out0_;   /* n_trans    */
 
     in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
-        mexprofrecord_[21]++;
-    out0_ = get_nj(in0_);
+        mexprofrecord_[20]++;
+    out0_ = get_ntrans(*in0_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2033,24 +2038,28 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 264 ----
- * int n_trans = get_ntransf(finufftf_plan* plan);
+/* ---- finufft.mw: 262 ----
+ * int64_t nj = get_nj(finufft_plan plan);
  */
-static const char* stubids23_ = "o int = get_ntransf(i finufftf_plan*)";
+static const char* stubids21_ = "o int64_t = get_nj(i finufft_plan)";
 
-void mexStub23(int nlhs, mxArray* plhs[],
+void mexStub21(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
-    finufftf_plan*  in0_ =0; /* plan       */
-    int         out0_;   /* n_trans    */
+    finufft_plan*  in0_ =0; /* plan       */
+    int64_t     out0_;   /* nj         */
 
-    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
+    in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
-        mexprofrecord_[23]++;
-    out0_ = get_ntransf(in0_);
+        mexprofrecord_[21]++;
+    out0_ = get_nj(*in0_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2065,23 +2074,27 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 265 ----
- * int64_t nj = get_njf(finufftf_plan* plan);
+ * int n_trans = get_ntransf(finufftf_plan plan);
  */
-static const char* stubids24_ = "o int64_t = get_njf(i finufftf_plan*)";
+static const char* stubids23_ = "o int = get_ntransf(i finufftf_plan)";
 
-void mexStub24(int nlhs, mxArray* plhs[],
+void mexStub23(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
     finufftf_plan*  in0_ =0; /* plan       */
-    int64_t     out0_;   /* nj         */
+    int         out0_;   /* n_trans    */
 
     in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
-        mexprofrecord_[24]++;
-    out0_ = get_njf(in0_);
+        mexprofrecord_[23]++;
+    out0_ = get_ntransf(*in0_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2095,10 +2108,45 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 270 ----
- * get_nmodes(finufft_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
+/* ---- finufft.mw: 266 ----
+ * int64_t nj = get_njf(finufftf_plan plan);
  */
-static const char* stubids25_ = "get_nmodes(i finufft_plan*, o int64_t&, o int64_t&, o int64_t&)";
+static const char* stubids24_ = "o int64_t = get_njf(i finufftf_plan)";
+
+void mexStub24(int nlhs, mxArray* plhs[],
+              int nrhs, const mxArray* prhs[])
+{
+    const char* mw_err_txt_ = 0;
+    finufftf_plan*  in0_ =0; /* plan       */
+    int64_t     out0_;   /* nj         */
+
+    in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
+    if (mw_err_txt_)
+        goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
+    if (mexprofrecord_)
+        mexprofrecord_[24]++;
+    out0_ = get_njf(*in0_);
+#if MX_HAS_INTERLEAVED_COMPLEX
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetDoubles(plhs[0]) = out0_;
+#else
+    plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
+    *mxGetPr(plhs[0]) = out0_;
+#endif
+
+mw_err_label:
+    if (mw_err_txt_)
+        mexErrMsgTxt(mw_err_txt_);
+}
+
+/* ---- finufft.mw: 271 ----
+ * get_nmodes(finufft_plan plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
+ */
+static const char* stubids25_ = "get_nmodes(i finufft_plan, o int64_t&, o int64_t&, o int64_t&)";
 
 void mexStub25(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2112,9 +2160,13 @@ void mexStub25(int nlhs, mxArray* plhs[],
     in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[25]++;
-    get_nmodes(in0_, out0_, out1_, out2_);
+    get_nmodes(*in0_, out0_, out1_, out2_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2142,10 +2194,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 272 ----
- * get_nmodesf(finufftf_plan* plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
+/* ---- finufft.mw: 273 ----
+ * get_nmodesf(finufftf_plan plan, output int64_t& ms, output int64_t& mt, output int64_t& mu);
  */
-static const char* stubids26_ = "get_nmodesf(i finufftf_plan*, o int64_t&, o int64_t&, o int64_t&)";
+static const char* stubids26_ = "get_nmodesf(i finufftf_plan, o int64_t&, o int64_t&, o int64_t&)";
 
 void mexStub26(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2159,9 +2211,13 @@ void mexStub26(int nlhs, mxArray* plhs[],
     in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[26]++;
-    get_nmodesf(in0_, out0_, out1_, out2_);
+    get_nmodesf(*in0_, out0_, out1_, out2_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2189,10 +2245,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 282 ----
- * int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
+/* ---- finufft.mw: 283 ----
+ * int ier = finufft_exec(finufft_plan plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
  */
-static const char* stubids27_ = "o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[x])";
+static const char* stubids27_ = "o int = finufft_exec(i finufft_plan, i dcomplex[], o dcomplex[x])";
 
 void mexStub27(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2218,10 +2274,14 @@ void mexStub27(int nlhs, mxArray* plhs[],
             goto mw_err_label;
     } else
         in1_ = NULL;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     out1_ = (dcomplex*) mxMalloc(dim2_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[27]++;
-    out0_ = finufft_exec(in0_, in1_, out1_);
+    out0_ = finufft_exec(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2239,10 +2299,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 284 ----
- * int ier = finufftf_exec(finufftf_plan* plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
+/* ---- finufft.mw: 285 ----
+ * int ier = finufftf_exec(finufftf_plan plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
  */
-static const char* stubids28_ = "o int = finufftf_exec(i finufftf_plan*, i fcomplex[], o fcomplex[x])";
+static const char* stubids28_ = "o int = finufftf_exec(i finufftf_plan, i fcomplex[], o fcomplex[x])";
 
 void mexStub28(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2268,10 +2328,14 @@ void mexStub28(int nlhs, mxArray* plhs[],
             goto mw_err_label;
     } else
         in1_ = NULL;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     out1_ = (fcomplex*) mxMalloc(dim2_*sizeof(fcomplex));
     if (mexprofrecord_)
         mexprofrecord_[28]++;
-    out0_ = finufftf_exec(in0_, in1_, out1_);
+    out0_ = finufftf_exec(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2289,10 +2353,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 290 ----
- * int ier = finufft_exec(finufft_plan* plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
+/* ---- finufft.mw: 291 ----
+ * int ier = finufft_exec(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
  */
-static const char* stubids29_ = "o int = finufft_exec(i finufft_plan*, o dcomplex[xx], i dcomplex[])";
+static const char* stubids29_ = "o int = finufft_exec(i finufft_plan, o dcomplex[xx], i dcomplex[])";
 
 void mexStub29(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2320,10 +2384,14 @@ void mexStub29(int nlhs, mxArray* plhs[],
             goto mw_err_label;
     } else
         in1_ = NULL;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     out1_ = (dcomplex*) mxMalloc(dim2_*dim3_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[29]++;
-    out0_ = finufft_exec(in0_, out1_, in1_);
+    out0_ = finufft_exec(*in0_, out1_, in1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2341,10 +2409,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 292 ----
- * int ier = finufftf_exec(finufftf_plan* plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
+/* ---- finufft.mw: 293 ----
+ * int ier = finufftf_exec(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
  */
-static const char* stubids30_ = "o int = finufftf_exec(i finufftf_plan*, o fcomplex[xx], i fcomplex[])";
+static const char* stubids30_ = "o int = finufftf_exec(i finufftf_plan, o fcomplex[xx], i fcomplex[])";
 
 void mexStub30(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2372,10 +2440,14 @@ void mexStub30(int nlhs, mxArray* plhs[],
             goto mw_err_label;
     } else
         in1_ = NULL;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     out1_ = (fcomplex*) mxMalloc(dim2_*dim3_*sizeof(fcomplex));
     if (mexprofrecord_)
         mexprofrecord_[30]++;
-    out0_ = finufftf_exec(in0_, out1_, in1_);
+    out0_ = finufftf_exec(*in0_, out1_, in1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2393,10 +2465,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 296 ----
- * int64_t nk = get_nk(finufft_plan* plan);
+/* ---- finufft.mw: 297 ----
+ * int64_t nk = get_nk(finufft_plan plan);
  */
-static const char* stubids31_ = "o int64_t = get_nk(i finufft_plan*)";
+static const char* stubids31_ = "o int64_t = get_nk(i finufft_plan)";
 
 void mexStub31(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2408,9 +2480,13 @@ void mexStub31(int nlhs, mxArray* plhs[],
     in0_ = (finufft_plan*) mxWrapGetP(prhs[0], "finufft_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[31]++;
-    out0_ = get_nk(in0_);
+    out0_ = get_nk(*in0_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2424,10 +2500,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 297 ----
- * int ier = finufft_exec(finufft_plan* plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
+/* ---- finufft.mw: 298 ----
+ * int ier = finufft_exec(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
  */
-static const char* stubids32_ = "o int = finufft_exec(i finufft_plan*, i dcomplex[], o dcomplex[xx])";
+static const char* stubids32_ = "o int = finufft_exec(i finufft_plan, i dcomplex[], o dcomplex[xx])";
 
 void mexStub32(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2455,10 +2531,14 @@ void mexStub32(int nlhs, mxArray* plhs[],
             goto mw_err_label;
     } else
         in1_ = NULL;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     out1_ = (dcomplex*) mxMalloc(dim2_*dim3_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[32]++;
-    out0_ = finufft_exec(in0_, in1_, out1_);
+    out0_ = finufft_exec(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2476,10 +2556,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 299 ----
- * int64_t nk = get_nkf(finufftf_plan* plan);
+/* ---- finufft.mw: 300 ----
+ * int64_t nk = get_nkf(finufftf_plan plan);
  */
-static const char* stubids33_ = "o int64_t = get_nkf(i finufftf_plan*)";
+static const char* stubids33_ = "o int64_t = get_nkf(i finufftf_plan)";
 
 void mexStub33(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2491,9 +2571,13 @@ void mexStub33(int nlhs, mxArray* plhs[],
     in0_ = (finufftf_plan*) mxWrapGetP(prhs[0], "finufftf_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     if (mexprofrecord_)
         mexprofrecord_[33]++;
-    out0_ = get_nkf(in0_);
+    out0_ = get_nkf(*in0_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2507,10 +2591,10 @@ mw_err_label:
         mexErrMsgTxt(mw_err_txt_);
 }
 
-/* ---- finufft.mw: 300 ----
- * int ier = finufftf_exec(finufftf_plan* plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
+/* ---- finufft.mw: 301 ----
+ * int ier = finufftf_exec(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
  */
-static const char* stubids34_ = "o int = finufftf_exec(i finufftf_plan*, i fcomplex[], o fcomplex[xx])";
+static const char* stubids34_ = "o int = finufftf_exec(i finufftf_plan, i fcomplex[], o fcomplex[xx])";
 
 void mexStub34(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2538,10 +2622,14 @@ void mexStub34(int nlhs, mxArray* plhs[],
             goto mw_err_label;
     } else
         in1_ = NULL;
+    if (!in0_) {
+        mw_err_txt_ = "Argument plan cannot be null";
+        goto mw_err_label;
+    }
     out1_ = (fcomplex*) mxMalloc(dim2_*dim3_*sizeof(fcomplex));
     if (mexprofrecord_)
         mexprofrecord_[34]++;
-    out0_ = finufftf_exec(in0_, in1_, out1_);
+    out0_ = finufftf_exec(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -2661,28 +2749,28 @@ void mexFunction(int nlhs, mxArray* plhs[],
         mexPrintf("%d calls to finufft.mw:166\n", mexprofrecord_[8]);
         mexPrintf("%d calls to finufft.mw:169\n", mexprofrecord_[9]);
         mexPrintf("%d calls to finufft.mw:171\n", mexprofrecord_[10]);
-        mexPrintf("%d calls to finufft.mw:178\n", mexprofrecord_[11]);
-        mexPrintf("%d calls to finufft.mw:180\n", mexprofrecord_[12]);
-        mexPrintf("%d calls to finufft.mw:202\n", mexprofrecord_[13]);
-        mexPrintf("%d calls to finufft.mw:203 (finufft.mw:259)\n", mexprofrecord_[14]);
-        mexPrintf("%d calls to finufft.mw:206\n", mexprofrecord_[15]);
-        mexPrintf("%d calls to finufft.mw:207 (finufft.mw:263)\n", mexprofrecord_[16]);
-        mexPrintf("%d calls to finufft.mw:213\n", mexprofrecord_[17]);
-        mexPrintf("%d calls to finufft.mw:215\n", mexprofrecord_[18]);
-        mexPrintf("%d calls to finufft.mw:260\n", mexprofrecord_[20]);
-        mexPrintf("%d calls to finufft.mw:261\n", mexprofrecord_[21]);
-        mexPrintf("%d calls to finufft.mw:264\n", mexprofrecord_[23]);
-        mexPrintf("%d calls to finufft.mw:265\n", mexprofrecord_[24]);
-        mexPrintf("%d calls to finufft.mw:270\n", mexprofrecord_[25]);
-        mexPrintf("%d calls to finufft.mw:272\n", mexprofrecord_[26]);
-        mexPrintf("%d calls to finufft.mw:282\n", mexprofrecord_[27]);
-        mexPrintf("%d calls to finufft.mw:284\n", mexprofrecord_[28]);
-        mexPrintf("%d calls to finufft.mw:290\n", mexprofrecord_[29]);
-        mexPrintf("%d calls to finufft.mw:292\n", mexprofrecord_[30]);
-        mexPrintf("%d calls to finufft.mw:296\n", mexprofrecord_[31]);
-        mexPrintf("%d calls to finufft.mw:297\n", mexprofrecord_[32]);
-        mexPrintf("%d calls to finufft.mw:299\n", mexprofrecord_[33]);
-        mexPrintf("%d calls to finufft.mw:300\n", mexprofrecord_[34]);
+        mexPrintf("%d calls to finufft.mw:179\n", mexprofrecord_[11]);
+        mexPrintf("%d calls to finufft.mw:181\n", mexprofrecord_[12]);
+        mexPrintf("%d calls to finufft.mw:203\n", mexprofrecord_[13]);
+        mexPrintf("%d calls to finufft.mw:204 (finufft.mw:260)\n", mexprofrecord_[14]);
+        mexPrintf("%d calls to finufft.mw:207\n", mexprofrecord_[15]);
+        mexPrintf("%d calls to finufft.mw:208 (finufft.mw:264)\n", mexprofrecord_[16]);
+        mexPrintf("%d calls to finufft.mw:214\n", mexprofrecord_[17]);
+        mexPrintf("%d calls to finufft.mw:216\n", mexprofrecord_[18]);
+        mexPrintf("%d calls to finufft.mw:261\n", mexprofrecord_[20]);
+        mexPrintf("%d calls to finufft.mw:262\n", mexprofrecord_[21]);
+        mexPrintf("%d calls to finufft.mw:265\n", mexprofrecord_[23]);
+        mexPrintf("%d calls to finufft.mw:266\n", mexprofrecord_[24]);
+        mexPrintf("%d calls to finufft.mw:271\n", mexprofrecord_[25]);
+        mexPrintf("%d calls to finufft.mw:273\n", mexprofrecord_[26]);
+        mexPrintf("%d calls to finufft.mw:283\n", mexprofrecord_[27]);
+        mexPrintf("%d calls to finufft.mw:285\n", mexprofrecord_[28]);
+        mexPrintf("%d calls to finufft.mw:291\n", mexprofrecord_[29]);
+        mexPrintf("%d calls to finufft.mw:293\n", mexprofrecord_[30]);
+        mexPrintf("%d calls to finufft.mw:297\n", mexprofrecord_[31]);
+        mexPrintf("%d calls to finufft.mw:298\n", mexprofrecord_[32]);
+        mexPrintf("%d calls to finufft.mw:300\n", mexprofrecord_[33]);
+        mexPrintf("%d calls to finufft.mw:301\n", mexprofrecord_[34]);
     } else if (strcmp(id, "*profile log*") == 0) {
         FILE* logfp;
         if (nrhs != 2 || mxGetString(prhs[1], id, sizeof(id)) != 0)
@@ -2702,28 +2790,28 @@ void mexFunction(int nlhs, mxArray* plhs[],
         fprintf(logfp, "%d calls to finufft.mw:166\n", mexprofrecord_[8]);
         fprintf(logfp, "%d calls to finufft.mw:169\n", mexprofrecord_[9]);
         fprintf(logfp, "%d calls to finufft.mw:171\n", mexprofrecord_[10]);
-        fprintf(logfp, "%d calls to finufft.mw:178\n", mexprofrecord_[11]);
-        fprintf(logfp, "%d calls to finufft.mw:180\n", mexprofrecord_[12]);
-        fprintf(logfp, "%d calls to finufft.mw:202\n", mexprofrecord_[13]);
-        fprintf(logfp, "%d calls to finufft.mw:203 (finufft.mw:259)\n", mexprofrecord_[14]);
-        fprintf(logfp, "%d calls to finufft.mw:206\n", mexprofrecord_[15]);
-        fprintf(logfp, "%d calls to finufft.mw:207 (finufft.mw:263)\n", mexprofrecord_[16]);
-        fprintf(logfp, "%d calls to finufft.mw:213\n", mexprofrecord_[17]);
-        fprintf(logfp, "%d calls to finufft.mw:215\n", mexprofrecord_[18]);
-        fprintf(logfp, "%d calls to finufft.mw:260\n", mexprofrecord_[20]);
-        fprintf(logfp, "%d calls to finufft.mw:261\n", mexprofrecord_[21]);
-        fprintf(logfp, "%d calls to finufft.mw:264\n", mexprofrecord_[23]);
-        fprintf(logfp, "%d calls to finufft.mw:265\n", mexprofrecord_[24]);
-        fprintf(logfp, "%d calls to finufft.mw:270\n", mexprofrecord_[25]);
-        fprintf(logfp, "%d calls to finufft.mw:272\n", mexprofrecord_[26]);
-        fprintf(logfp, "%d calls to finufft.mw:282\n", mexprofrecord_[27]);
-        fprintf(logfp, "%d calls to finufft.mw:284\n", mexprofrecord_[28]);
-        fprintf(logfp, "%d calls to finufft.mw:290\n", mexprofrecord_[29]);
-        fprintf(logfp, "%d calls to finufft.mw:292\n", mexprofrecord_[30]);
-        fprintf(logfp, "%d calls to finufft.mw:296\n", mexprofrecord_[31]);
-        fprintf(logfp, "%d calls to finufft.mw:297\n", mexprofrecord_[32]);
-        fprintf(logfp, "%d calls to finufft.mw:299\n", mexprofrecord_[33]);
-        fprintf(logfp, "%d calls to finufft.mw:300\n", mexprofrecord_[34]);
+        fprintf(logfp, "%d calls to finufft.mw:179\n", mexprofrecord_[11]);
+        fprintf(logfp, "%d calls to finufft.mw:181\n", mexprofrecord_[12]);
+        fprintf(logfp, "%d calls to finufft.mw:203\n", mexprofrecord_[13]);
+        fprintf(logfp, "%d calls to finufft.mw:204 (finufft.mw:260)\n", mexprofrecord_[14]);
+        fprintf(logfp, "%d calls to finufft.mw:207\n", mexprofrecord_[15]);
+        fprintf(logfp, "%d calls to finufft.mw:208 (finufft.mw:264)\n", mexprofrecord_[16]);
+        fprintf(logfp, "%d calls to finufft.mw:214\n", mexprofrecord_[17]);
+        fprintf(logfp, "%d calls to finufft.mw:216\n", mexprofrecord_[18]);
+        fprintf(logfp, "%d calls to finufft.mw:261\n", mexprofrecord_[20]);
+        fprintf(logfp, "%d calls to finufft.mw:262\n", mexprofrecord_[21]);
+        fprintf(logfp, "%d calls to finufft.mw:265\n", mexprofrecord_[23]);
+        fprintf(logfp, "%d calls to finufft.mw:266\n", mexprofrecord_[24]);
+        fprintf(logfp, "%d calls to finufft.mw:271\n", mexprofrecord_[25]);
+        fprintf(logfp, "%d calls to finufft.mw:273\n", mexprofrecord_[26]);
+        fprintf(logfp, "%d calls to finufft.mw:283\n", mexprofrecord_[27]);
+        fprintf(logfp, "%d calls to finufft.mw:285\n", mexprofrecord_[28]);
+        fprintf(logfp, "%d calls to finufft.mw:291\n", mexprofrecord_[29]);
+        fprintf(logfp, "%d calls to finufft.mw:293\n", mexprofrecord_[30]);
+        fprintf(logfp, "%d calls to finufft.mw:297\n", mexprofrecord_[31]);
+        fprintf(logfp, "%d calls to finufft.mw:298\n", mexprofrecord_[32]);
+        fprintf(logfp, "%d calls to finufft.mw:300\n", mexprofrecord_[33]);
+        fprintf(logfp, "%d calls to finufft.mw:301\n", mexprofrecord_[34]);
         fclose(logfp);
     } else
         mexErrMsgTxt("Unknown identifier");
