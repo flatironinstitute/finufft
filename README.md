@@ -11,8 +11,7 @@ This is a work from Melody Shih's internship at Flatiron Institute, advised by C
    - To override the standard CUDA `/usr/local/cuda` location your `make.inc` should contain: ```CUDA_ROOT=/your/path/to/cuda```.
    - Two examples are provided, one for IBM machines (make.inc.power9), and another for the Courant Institute cluster (make.inc.CIMS).
  - Compile - ```make all -j```
- - Run a test code - ``` ./cufinufft2d1_test 2 128 128 10 1e-6```
- - Many checks can be run using `make check`.
+ - Run test codes - ```make check```
 
 ### Library Installation
 
