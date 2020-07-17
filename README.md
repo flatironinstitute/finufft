@@ -50,6 +50,7 @@ common arrangement.  If you have such a system, you may run:
 
 `pip install cufinufftpy`
 
+For other cases, the python wrapper should be able to be built from source.
 We hope to extend this in the future, and have begun work for `manylinux2014`.
  
 ## Interface
