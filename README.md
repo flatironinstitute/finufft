@@ -3,8 +3,11 @@ A GPU implementation of 2, 3 dimension type 1, 2 non-uniform FFT based on [FINUF
 
 This is a work from Melody Shih's internship at Flatiron Institute, advised by CCM project leader Alex Barnett.
 
-
 ## Installation
+
+Note for most Python users, you may skip to the [Python Package](#Python-Package) section first,
+and consider installing from source if that solution is not adequate for your needs.
+
  - Get this code -
  ```git clone https://github.com/flatironinstitute/cufinufft.git```
  - Review the `makefile`. - If you need to customize build settings, create and edit a `make.inc`.  Example:
@@ -30,9 +33,24 @@ If not, please ask, we might be able to help.
 
 ### Python Wrapper
 
-This code comes with a Python wrapper module `cufinufftpy`.
+For those installing from source, this code comes with a Python wrapper module `cufinufftpy`.
 Once you have successfully installed and tested the CUDA library
-you may run `make python` to install the additional Python package.
+you may run `make python` to manually install the additional Python package.
+
+### Python Package
+
+General Python users, or Python software packages which would like to automatically
+depend on cufinufftpy using `setuptools` may use a precompiled binary distribution.
+This totally avoids installing from source and managing libraries for supported systems.
+
+Because binary distributions are specific to both hardware and software,
+we currently only support systems covered by `manylinux2010` that are using
+CUDA 10.1, 10.2, or 11.0-rc with a compatible GPU. This is currently the most
+common arrangement.  If you have such a system, you may run:
+
+`pip install cufinufftpy`
+
+We hope to extend this in the future, and have begun work for `manylinux2014`.
  
 ## Interface
 cuFINUFFT API contains 5 stages:
