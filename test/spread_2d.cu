@@ -4,6 +4,9 @@
 #include <helper_cuda.h>
 #include <complex>
 #include <algorithm>
+
+#include <cufinufft_eitherprec.h>
+
 #include "../src/cuspreadinterp.h"
 #include "../contrib/utils.h"
 
@@ -33,7 +36,7 @@ int main(int argc, char* argv[])
 			"     0: Exponential of square root, or\n"
 			"     1: Horner evaluation (default).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
@@ -68,7 +71,7 @@ int main(int argc, char* argv[])
 
 	int dim=2;
 	int ns=std::ceil(-log10(tol/10.0));
-	cufinufft_plan dplan;
+	CUFINUFFT_PLAN dplan;
 	ier = cufinufft_default_opts(1, dim, &dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
@@ -122,7 +125,7 @@ int main(int argc, char* argv[])
 	char *a;
 	timer.restart();
 	checkCudaErrors(cudaMalloc(&a,1));
-	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() 
+	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec()
 		<<" s"<<endl<<endl;
 
 #ifdef INFO

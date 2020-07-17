@@ -1,3 +1,8 @@
+/* This is an example of performing 2d1many
+   in single precision.
+*/
+
+
 #include <iostream>
 #include <iomanip>
 #include <math.h>
@@ -12,11 +17,11 @@ int main(int argc, char* argv[])
  * example code for 2D Type 1 transformation.
  *
  * To compile the code:
- * 	nvcc -DSINGLE example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include /loc/to/cufinufft/lib-static/libcufinufftf.a -lcudart -lcufft -lnvToolsExt
- * 
+ * nvcc example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include /loc/to/cufinufft/lib-static/libcufinufft.a -lcudart -lcufft -lnvToolsExt
+ *
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
- * nvcc -DSINGLE example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include -L/loc/to/cufinufft/lib/ -lcufinufftf
+ * nvcc example2d1many.cpp -o example2d1many -I/loc/to/cufinufft/include -L/loc/to/cufinufft/lib/ -lcufinufft
  *
  *
  */
@@ -30,21 +35,21 @@ int main(int argc, char* argv[])
 	int ntransf = 2;
 	int maxbatchsize = 1;
 	int iflag=1;
-	FLT tol=1e-6;
+	float tol=1e-6;
 
-	FLT *x, *y;
-	CPX *c, *fk;
-	cudaMallocHost(&x, M*sizeof(FLT));
-	cudaMallocHost(&y, M*sizeof(FLT));
-	cudaMallocHost(&c, M*ntransf*sizeof(CPX));
-	cudaMallocHost(&fk,N1*N2*ntransf*sizeof(CPX));
+	float *x, *y;
+	complex<float> *c, *fk;
+	cudaMallocHost(&x, M*sizeof(float));
+	cudaMallocHost(&y, M*sizeof(float));
+	cudaMallocHost(&c, M*ntransf*sizeof(complex<float>));
+	cudaMallocHost(&fk,N1*N2*ntransf*sizeof(complex<float>));
 
-	FLT *d_x, *d_y;
-	CUCPX *d_c, *d_fk;
-	cudaMalloc(&d_x,M*sizeof(FLT));
-	cudaMalloc(&d_y,M*sizeof(FLT));
-	cudaMalloc(&d_c,M*ntransf*sizeof(CUCPX));
-	cudaMalloc(&d_fk,N1*N2*ntransf*sizeof(CUCPX));
+	float *d_x, *d_y;
+	cuFloatComplex *d_c, *d_fk;
+	cudaMalloc(&d_x,M*sizeof(float));
+	cudaMalloc(&d_y,M*sizeof(float));
+	cudaMalloc(&d_c,M*ntransf*sizeof(cuFloatComplex));
+	cudaMalloc(&d_fk,N1*N2*ntransf*sizeof(cuFloatComplex));
 
 	for (int i=0; i<M; i++) {
 		x[i] = M_PI*randm11();
@@ -55,38 +60,38 @@ int main(int argc, char* argv[])
 		c[i].real(randm11());
 		c[i].imag(randm11());
 	}
-	cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice);
-	cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice);
-	cudaMemcpy(d_c,c,M*ntransf*sizeof(CUCPX),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_x,x,M*sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_y,y,M*sizeof(float),cudaMemcpyHostToDevice);
+	cudaMemcpy(d_c,c,M*ntransf*sizeof(cuFloatComplex),cudaMemcpyHostToDevice);
 
-	cufinufft_plan dplan;
+	cufinufftf_plan dplan;
 
 	int dim = 2;
 	int nmodes[3];
 	int type = 1;
 
-	ier=cufinufft_default_opts(type, dim, &dplan.opts);
+	ier=cufinufftf_default_opts(type, dim, &dplan.opts);
 
 	nmodes[0] = N1;
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 
-	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
+	ier=cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol,
 		maxbatchsize, &dplan);
 
-	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=cufinufftf_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 
-	ier=cufinufft_exec(d_c, d_fk, &dplan);
+	ier=cufinufftf_exec(d_c, d_fk, &dplan);
 
-	ier=cufinufft_destroy(&dplan);
+	ier=cufinufftf_destroy(&dplan);
 
-	cudaMemcpy(fk,d_fk,N1*N2*ntransf*sizeof(CUCPX),cudaMemcpyDeviceToHost);
+	cudaMemcpy(fk,d_fk,N1*N2*ntransf*sizeof(cuFloatComplex),cudaMemcpyDeviceToHost);
 
 	cout<<endl<<"Accuracy check:"<<endl;
 	int N = N1*N2;
 	for(int i=0; i<ntransf; i+=1){
 		int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
-		CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
+		complex<float> Ft = complex<float>(0,0), J = complex<float>(0,1)*(float)iflag;
 		for (BIGINT j=0; j<M; ++j)
 			Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
 		int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array

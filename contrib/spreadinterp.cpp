@@ -3,11 +3,11 @@
 #include <vector>
 #include <math.h>
 
-int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
+int setup_spreader(SPREAD_OPTS &opts,FLT eps, FLT upsampfac, int kerevalmeth)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).
-// Also sets all default options in spread_opts. See cnufftspread.h for opts.
+// Also sets all default options in SPREAD_OPTS. See cnufftspread.h for opts.
 // Must call before any kernel evals done.
 // Returns: 0 success, >0 failure (see error codes in utils.h)
 {
@@ -60,7 +60,7 @@ int setup_spreader(spread_opts &opts,FLT eps,FLT upsampfac, int kerevalmeth)
   return 0;
 }
 
-FLT evaluate_kernel(FLT x, const spread_opts &opts)
+FLT evaluate_kernel(FLT x, const SPREAD_OPTS &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an

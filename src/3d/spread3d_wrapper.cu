@@ -9,27 +9,14 @@
 #include <cuComplex.h>
 #include "../cuspreadinterp.h"
 #include "../memtransfer.h"
+#include "../precision_independent.h"
 
 using namespace std;
-
-#ifdef DEBUG
-static
-int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
-	int bnx, int bny, int bnz){
-	int oix,oiy,oiz;
-	oix = xidx/bnx;
-	oiy = yidx/bny;
-	oiz = zidx/bnz;
-
-	return   (oix+oiy*onx+oiz*onx*ony)*(bnx*bny*bnz) +
-			 (xidx%bnx+yidx%bny*bnx+zidx%bnz*bny*bnx);
-}
-#endif
 
 // This is a function only doing spread includes device memory allocation, transfer, free
 int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	CPX* h_fw, int M, const FLT *h_kx, const FLT *h_ky, const FLT* h_kz,
-	const CPX *h_c, FLT eps, cufinufft_plan* d_plan)
+	const CPX *h_c, FLT eps, CUFINUFFT_PLAN* d_plan)
 /*
 	This c function is written for only doing 3D spreading. It includes 
 	allocating, transfering, and freeing the memories on gpu. See 
@@ -59,8 +46,8 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	checkCudaErrors(cudaMalloc(&d_plan->kz,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
 
-	ier = allocgpumem3d_plan(d_plan);
-	ier = allocgpumem3d_nupts(d_plan);
+	ier = ALLOCGPUMEM3D_PLAN(d_plan);
+	ier = ALLOCGPUMEM3D_NUPTS(d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -85,7 +72,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 #endif
 	cudaEventRecord(start);
 	if(d_plan->opts.gpu_method == 1){
-		ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
+		ier = CUSPREAD3D_NUPTSDRIVEN_PROP(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
@@ -93,7 +80,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 		}
 	}
 	if(d_plan->opts.gpu_method == 2){
-		ier = cuspread3d_subprob_prop(nf1,nf2,nf3,M,d_plan);
+		ier = CUSPREAD3D_SUBPROB_PROP(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_subprob_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
@@ -101,7 +88,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 		}
 	}
 	if(d_plan->opts.gpu_method == 4){
-		ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,d_plan);
+		ier = CUSPREAD3D_BLOCKGATHER_PROP(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
@@ -116,7 +103,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 #endif
 
 	cudaEventRecord(start);
-	ier = cuspread3d(d_plan, 1);
+	ier = CUSPREAD3D(d_plan, 1);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -134,7 +121,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 #endif
 
 	cudaEventRecord(start);
-	freegpumemory3d(d_plan);
+	FREEGPUMEMORY3D(d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -148,7 +135,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	return ier;
 }
 
-int cuspread3d(cufinufft_plan* d_plan, int blksize)
+int CUSPREAD3D(CUFINUFFT_PLAN* d_plan, int blksize)
 /*
 	A wrapper for different spreading methods. 
 
@@ -175,7 +162,7 @@ int cuspread3d(cufinufft_plan* d_plan, int blksize)
 		case 1:
 			{
 				cudaEventRecord(start);
-				ier = cuspread3d_nuptsdriven(nf1, nf2, nf3, M, d_plan, blksize);
+				ier = CUSPREAD3D_NUPTSDRIVEN(nf1, nf2, nf3, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
 					return 1;
@@ -185,7 +172,7 @@ int cuspread3d(cufinufft_plan* d_plan, int blksize)
 		case 2:
 			{
 				cudaEventRecord(start);
-				ier = cuspread3d_subprob(nf1, nf2, nf3, M, d_plan, blksize);
+				ier = CUSPREAD3D_SUBPROB(nf1, nf2, nf3, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
 					return 1;
@@ -195,7 +182,7 @@ int cuspread3d(cufinufft_plan* d_plan, int blksize)
 		case 4:
 			{
 				cudaEventRecord(start);
-				ier = cuspread3d_blockgather(nf1, nf2, nf3, M, d_plan, blksize);
+				ier = CUSPREAD3D_BLOCKGATHER(nf1, nf2, nf3, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
 					return 1;
@@ -209,17 +196,14 @@ int cuspread3d(cufinufft_plan* d_plan, int blksize)
 	return ier;
 }
 
-int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, 
-	cufinufft_plan *d_plan)
+int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, 
+	CUFINUFFT_PLAN *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
 	if(d_plan->opts.gpu_sort){
-		dim3 threadsPerBlock;
-		dim3 blocks;
-
 		int bin_size_x=d_plan->opts.gpu_binsizex;
 		int bin_size_y=d_plan->opts.gpu_binsizey;
 		int bin_size_z=d_plan->opts.gpu_binsizez;
@@ -385,8 +369,8 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, 
-	cufinufft_plan *d_plan, int blksize)
+int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, 
+	CUFINUFFT_PLAN *d_plan, int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -437,8 +421,8 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, 
-	cufinufft_plan *d_plan)
+int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, 
+	CUFINUFFT_PLAN *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -839,15 +823,12 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, 
-	cufinufft_plan *d_plan, int blksize)
+int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, 
+	CUFINUFFT_PLAN *d_plan, int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
-
-	dim3 threadsPerBlock;
-	dim3 blocks;
 
 	int ns=d_plan->spopts.nspread; 
 	FLT es_c=d_plan->spopts.ES_c;
@@ -935,15 +916,12 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, 
-	cufinufft_plan *d_plan)
+int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, 
+	CUFINUFFT_PLAN *d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
-
-	dim3 threadsPerBlock;
-	dim3 blocks;
 
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 	int bin_size_x=d_plan->opts.gpu_binsizex;
@@ -1175,15 +1153,12 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan *d_plan,
+int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN *d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
-
-	dim3 threadsPerBlock;
-	dim3 blocks;
 
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;

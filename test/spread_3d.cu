@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 			"     0: do not sort the points, or\n"
 			"     1: sort the points (default).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 	char *a;
 	timer.restart();
 	checkCudaErrors(cudaMalloc(&a,1));
-	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() 
+	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec()
 		<<" s"<<endl<<endl;
 #ifdef INFO
 	cout<<"[info  ] Spreading  ["<<nf1<<"x"<<nf2<<"x"<<nf3<<
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 #endif
 
 	int dim=3;
-	cufinufft_plan dplan;
+	CUFINUFFT_PLAN dplan;
 	ier = cufinufft_default_opts(1, dim, &dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;
@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
 	}
 
 	timer.restart();
-	ier = cufinufft_spread3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, c, tol, 
+	ier = cufinufft_spread3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, c, tol,
 		&dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftspread3d"<<endl;

@@ -1,32 +1,32 @@
-#include <cufinufft.h>
+#include <cufinufft_eitherprec.h>
 
 extern "C" {
 
-int cufinufftc_default_opts(int type, int dim, cufinufft_opts *opts)
+int CUFINUFFTC_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 {
-    return cufinufft_default_opts(type, dim, opts);
+    return CUFINUFFT_DEFAULT_OPTS(type, dim, opts);
 }
 
-int cufinufftc_makeplan(int type, int dim, int *n_modes, int iflag,
-    int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan)
+int CUFINUFFTC_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
+    int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan)
 {
-    return cufinufft_makeplan(type, dim, n_modes, iflag, ntransf, tol, maxbatchsize, d_plan);
+    return CUFINUFFT_MAKEPLAN(type, dim, n_modes, iflag, ntransf, tol, maxbatchsize, d_plan);
 }
 
-int cufinufftc_setNUpts(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT
-        *h_s, FLT *h_t, FLT *h_u, cufinufft_plan *d_plan)
+int CUFINUFFTC_SETNUPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT
+        *h_s, FLT *h_t, FLT *h_u, CUFINUFFT_PLAN *d_plan)
 {
-    return cufinufft_setNUpts(M, h_kx, h_ky, h_kz, N, h_s, h_t, h_u, d_plan);
+    return CUFINUFFT_SETNUPTS(M, h_kx, h_ky, h_kz, N, h_s, h_t, h_u, d_plan);
 }
 
-int cufinufftc_exec(CUCPX* h_c, CUCPX* h_fk, cufinufft_plan *d_plan)
+int CUFINUFFTC_EXEC(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN *d_plan)
 {
-    return cufinufft_exec(h_c, h_fk, d_plan);
+    return CUFINUFFT_EXEC(h_c, h_fk, d_plan);
 }
 
-int cufinufftc_destroy(cufinufft_plan *d_plan)
+int CUFINUFFTC_DESTROY(CUFINUFFT_PLAN *d_plan)
 {
-    return cufinufft_destroy(d_plan);
+    return CUFINUFFT_DESTROY(d_plan);
 }
 
 }

@@ -5,14 +5,14 @@
 #include <complex>
 #include <cufft.h>
 
-#include <cufinufft.h>
+#include <cufinufft_eitherprec.h>
 #include "../cuspreadinterp.h"
 #include "../cudeconvolve.h"
 #include "../memtransfer.h"
 
 using namespace std;
 
-int cufinufft2d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
+int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
 /*  
 	2D Type-1 NUFFT
 
@@ -56,7 +56,7 @@ int cufinufft2d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 #endif
 		// Step 1: Spread
 		cudaEventRecord(start);
-		ier = cuspread2d(d_plan,blksize);
+		ier = CUSPREAD2D(d_plan,blksize);
 		if(ier != 0 ){
 			printf("error: cuspread2d, method(%d)\n", d_plan->opts.gpu_method);
 			return ier;
@@ -80,7 +80,7 @@ int cufinufft2d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 		// Step 3: deconvolve and shuffle
 		cudaEventRecord(start);
-		cudeconvolve2d(d_plan,blksize);
+		CUDECONVOLVE2D(d_plan,blksize);
 #ifdef TIME
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
@@ -91,7 +91,7 @@ int cufinufft2d1_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int cufinufft2d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
+int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
 /*  
 	2D Type-2 NUFFT
 
@@ -127,7 +127,7 @@ int cufinufft2d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 		// Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
 		cudaEventRecord(start);
-		cudeconvolve2d(d_plan,blksize);
+		CUDECONVOLVE2D(d_plan,blksize);
 #ifdef TIME
 		float milliseconds = 0;
 		cudaEventRecord(stop);
@@ -148,7 +148,7 @@ int cufinufft2d2_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 
 		// Step 3: deconvolve and shuffle
 		cudaEventRecord(start);
-		ier = cuinterp2d(d_plan, blksize);
+		ier = CUINTERP2D(d_plan, blksize);
 		if(ier != 0 ){
 			printf("error: cuinterp2d, method(%d)\n", d_plan->opts.gpu_method);
 			return ier;

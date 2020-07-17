@@ -10,7 +10,7 @@
 using namespace std;
 
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
-	FLT *h_kx, FLT *h_ky, CPX *h_c, cufinufft_plan* d_plan)
+	FLT *h_kx, FLT *h_ky, CPX *h_c, CUFINUFFT_PLAN* d_plan)
 /*
 	This c function is written for only doing 2D interpolation. It includes 
 	allocating, transfering and freeing the memories on gpu. See 
@@ -37,8 +37,8 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
 
 	cudaEventRecord(start);
-	ier = allocgpumem2d_plan(d_plan);
-	ier = allocgpumem2d_nupts(d_plan);
+	ier = ALLOCGPUMEM2D_PLAN(d_plan);
+	ier = ALLOCGPUMEM2D_NUPTS(d_plan);
 #ifdef TIME
 	float milliseconds = 0;
 	cudaEventRecord(stop);
@@ -60,7 +60,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
 #endif
 	if(d_plan->opts.gpu_method == 1){
-		ier = cuspread2d_nuptsdriven_prop(nf1,nf2,M,d_plan);
+		ier = CUSPREAD2D_NUPTSDRIVEN_PROP(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
@@ -68,7 +68,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 		}
 	}
 	if(d_plan->opts.gpu_method == 2){
-		ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
+		ier = CUSPREAD2D_SUBPROB_PROP(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
 			printf("error: cuspread2d_subprob_prop, method(%d)\n", 
 				d_plan->opts.gpu_method);
@@ -76,7 +76,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 		}
 	}
 	cudaEventRecord(start);
-	ier = cuinterp2d(d_plan,1);
+	ier = CUINTERP2D(d_plan,1);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -94,7 +94,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
-	freegpumemory2d(d_plan);
+	FREEGPUMEMORY2D(d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -107,7 +107,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	return ier;
 }
 
-int cuinterp2d(cufinufft_plan* d_plan, int blksize)
+int CUINTERP2D(CUFINUFFT_PLAN* d_plan, int blksize)
 /*
 	A wrapper for different interpolation methods. 
 
@@ -134,7 +134,7 @@ int cuinterp2d(cufinufft_plan* d_plan, int blksize)
 				cudaEventRecord(start);
 				{
 					PROFILE_CUDA_GROUP("Spreading", 6);
-					ier = cuinterp2d_nuptsdriven(nf1, nf2, M, d_plan, blksize);
+					ier = CUINTERP2D_NUPTSDRIVEN(nf1, nf2, M, d_plan, blksize);
 					if(ier != 0 ){
 						cout<<"error: cnufftspread2d_gpu_nuptsdriven"<<endl;
 						return 1;
@@ -145,7 +145,7 @@ int cuinterp2d(cufinufft_plan* d_plan, int blksize)
 		case 2:
 			{
 				cudaEventRecord(start);
-				ier = cuinterp2d_subprob(nf1, nf2, M, d_plan, blksize);
+				ier = CUINTERP2D_SUBPROB(nf1, nf2, M, d_plan, blksize);
 				if(ier != 0 ){
 					cout<<"error: cuinterp2d_subprob"<<endl;
 					return 1;
@@ -166,7 +166,7 @@ int cuinterp2d(cufinufft_plan* d_plan, int blksize)
 	return ier;
 }
 
-int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;
@@ -218,15 +218,12 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan *d_plan,
 	return 0;
 }
 
-int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan *d_plan,
+int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
-
-	dim3 threadsPerBlock;
-	dim3 blocks;
 
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
 	FLT es_c=d_plan->spopts.ES_c;

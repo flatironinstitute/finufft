@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
 			"     0: do not sort the points, or\n"
 			"     1: sort the points (default).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
 	}
 
 	int dim=3;
-	cufinufft_plan dplan;
+	CUFINUFFT_PLAN dplan;
 	ier = cufinufft_default_opts(2, dim, &dplan.opts);
 	if(ier != 0 ){
 		cout<<"error: cufinufft_default_opts"<<endl;

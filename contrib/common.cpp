@@ -1,26 +1,27 @@
 #include "common.h"
-#include <cufinufft.h>
+#include <cufinufft_eitherprec.h>
 #include <math.h>
 #include <stdio.h>
 #include <vector>
 
-#ifdef NEED_EXTERN_C
+#ifdef __cplusplus
 extern "C" {
   #include "legendre_rule_fast.h"
 }
 #else
   #include "legendre_rule_fast.h"
 #endif
-int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, cufinufft_opts opts)
+
+int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, cufinufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
   int ier=setup_spreader(spopts, eps, opts.upsampfac, opts.gpu_kerevalmeth);
   spopts.pirange = 1;                 // could allow user control?
   return ier;
-} 
+}
 
-void set_nf_type12(BIGINT ms, cufinufft_opts opts, spread_opts spopts, 
+void SET_NF_TYPE12(BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,
 				   BIGINT *nf, BIGINT bs)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
@@ -35,7 +36,7 @@ void set_nf_type12(BIGINT ms, cufinufft_opts opts, spread_opts spopts,
   }
 }
 
-void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
+void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting

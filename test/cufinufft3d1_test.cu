@@ -4,7 +4,8 @@
 #include <helper_cuda.h>
 #include <complex>
 
-#include <cufinufft.h>
+#include <cufinufft_eitherprec.h>
+
 #include "../contrib/utils.h"
 
 using namespace std;
@@ -24,14 +25,14 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default N1 * N2 * N3).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n");
 		return 1;
-	}  
+	}
 	double w;
 	int method;
 	sscanf(argv[1],"%d",&method);
 	sscanf(argv[2],"%lf",&w); N1 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[3],"%lf",&w); N2 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[4],"%lf",&w); N3 = (int)w;  // so can read 1e6 right!
-	
+
 	M = N1*N2*N3;// let density always be 1
 	if(argc>5){
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
@@ -84,10 +85,10 @@ int main(int argc, char* argv[])
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	cufinufft_plan dplan;
+	CUFINUFFT_PLAN dplan;
 	int dim = 3;
 	int type = 1;
-	ier=cufinufft_default_opts(type, dim, &dplan.opts);
+	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &dplan.opts);
 	dplan.opts.gpu_method=method;
 	dplan.opts.gpu_kerevalmeth=1;
 
@@ -98,7 +99,7 @@ int main(int argc, char* argv[])
 	nmodes[1] = N2;
 	nmodes[2] = N3;
 	cudaEventRecord(start);
-	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, 
+	ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
 		maxbatchsize, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_makeplan\n");
@@ -110,7 +111,7 @@ int main(int argc, char* argv[])
 
 
 	cudaEventRecord(start);
-	ier=cufinufft_setNUpts(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
+	ier=CUFINUFFT_SETNUPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_setNUpts\n");
 	}
@@ -121,7 +122,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft_exec(d_c, d_fk, &dplan);
+	ier=CUFINUFFT_EXEC(d_c, d_fk, &dplan);
 	if (ier!=0){
 		printf("err: cufinufft_exec\n");
 	}
@@ -132,7 +133,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=cufinufft_destroy(&dplan);
+	ier=CUFINUFFT_DESTROY(&dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

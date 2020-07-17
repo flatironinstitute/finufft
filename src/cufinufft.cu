@@ -5,20 +5,20 @@
 #include <complex>
 #include <cufft.h>
 
-#include <cufinufft.h>
+#include <cufinufft_eitherprec.h>
 #include "cuspreadinterp.h"
 #include "cudeconvolve.h"
 #include "memtransfer.h"
 
 using namespace std;
 
-void setup_binsize(int type, int dim, cufinufft_opts *opts)
+void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 {
 	switch(dim)
 	{
 		case 2:
 		{
-			opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32: 
+			opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32:
 				opts->gpu_binsizex;
 			opts->gpu_binsizey = (opts->gpu_binsizey < 0) ? 32:
 				opts->gpu_binsizey;
@@ -62,34 +62,34 @@ void setup_binsize(int type, int dim, cufinufft_opts *opts)
 	}
 }
 
-int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, 
-	int ntransf, FLT tol, int maxbatchsize, cufinufft_plan *d_plan)
+int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
+	int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan)
 /*
-	"plan" stage: 
-	
+	"plan" stage:
+
 	In this stage, we
 		(1) set up the spread option, d_plan.spopts.
 		(2) calculate the correction factor on cpu, copy the value from cpu to
 		    gpu
-		(3) allocate gpu arrays with size determined by number of fourier modes 
+		(3) allocate gpu arrays with size determined by number of fourier modes
 		    and method related options that had been set in d_plan.opts
 		(4) call cufftPlanMany and save the cufft plan inside cufinufft plan
-		
+
 	Input:
 	type    type of the transform, can be 1, 2, or 3 (3 not implemented yet))
 	dim     dimension of the transform
-	nmodes  a size 3 integer array, nmodes[d] is the number of modes in d 
+	nmodes  a size 3 integer array, nmodes[d] is the number of modes in d
 	        dimension
 	iflag   if >=0, uses + sign in exponential, otherwise - sign (int)
     ntransf number of transforms performed in exec stage
 	tol     precision requested (>1e-16 for double precision, >1e-8 for single
 	        precision)
-	
+
 	Input/Output:
-	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft.h) 
-			    d_plan.opts is used for plan stage. Variables and arrays 
+	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft_eitherprec.h)
+			    d_plan.opts is used for plan stage. Variables and arrays
 	        inside the plan are set and allocated
-	
+
 	Melody Shih 07/25/19
 */
 {
@@ -105,41 +105,41 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	d_plan->mt = nmodes[1];
 	d_plan->mu = nmodes[2];
 
-	setup_binsize(type, dim, &d_plan->opts);
-	int nf1=1, nf2=1, nf3=1;
-	set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1, 
+	SETUP_BINSIZE(type, dim, &d_plan->opts);
+	BIGINT nf1=1, nf2=1, nf3=1;
+	SET_NF_TYPE12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
 				  d_plan->opts.gpu_obinsizex);
 	if(dim > 1)
-		set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2, 
-                      d_plan->opts.gpu_obinsizey); 
+		SET_NF_TYPE12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2,
+                      d_plan->opts.gpu_obinsizey);
 	if(dim > 2)
-		set_nf_type12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
+		SET_NF_TYPE12(d_plan->mu, d_plan->opts, d_plan->spopts, &nf3,
                       d_plan->opts.gpu_obinsizez);
 	int fftsign = (iflag>=0) ? 1 : -1;
 
-	d_plan->nf1 = nf1;	
-	d_plan->nf2 = nf2;	
-	d_plan->nf3 = nf3;	
+	d_plan->nf1 = nf1;
+	d_plan->nf2 = nf2;
+	d_plan->nf3 = nf3;
 	d_plan->iflag = fftsign;
 	d_plan->ntransf = ntransf;
 	d_plan->maxbatchsize = maxbatchsize;
 	d_plan->type = type;
 
 	if(d_plan->type == 1)
-		d_plan->spopts.spread_direction = 1; 
+		d_plan->spopts.spread_direction = 1;
 	if(d_plan->type == 2)
-		d_plan->spopts.spread_direction = 2; 
+		d_plan->spopts.spread_direction = 2;
 	// this may move to gpu
 	CNTime timer; timer.start();
 	FLT *fwkerhalf1, *fwkerhalf2, *fwkerhalf3;
 
 	fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
 	onedim_fseries_kernel(nf1, fwkerhalf1, d_plan->spopts);
-	if(dim > 1){	
+	if(dim > 1){
 		fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
 		onedim_fseries_kernel(nf2, fwkerhalf2, d_plan->spopts);
 	}
-	if(dim > 2){	
+	if(dim > 2){
 		fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
 		onedim_fseries_kernel(nf3, fwkerhalf3, d_plan->spopts);
 	}
@@ -153,17 +153,17 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	{
 		case 1:
 		{
-			ier = allocgpumem1d_plan(d_plan);
+			ier = ALLOCGPUMEM1D_PLAN(d_plan);
 		}
 		break;
 		case 2:
 		{
-			ier = allocgpumem2d_plan(d_plan);
+			ier = ALLOCGPUMEM2D_PLAN(d_plan);
 		}
 		break;
 		case 3:
 		{
-			ier = allocgpumem3d_plan(d_plan);
+			ier = ALLOCGPUMEM3D_PLAN(d_plan);
 		}
 		break;
 	}
@@ -204,7 +204,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 		{
 			int n[] = {nf2, nf1};
 			int inembed[] = {nf2, nf1};
-			
+
 			//cufftCreate(&fftplan);
 			//cufftPlan2d(&fftplan,n[0],n[1],CUFFT_TYPE);
 			cufftPlanMany(&fftplan,dim,n,inembed,1,inembed[0]*inembed[1],
@@ -238,30 +238,30 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag,
 	return ier;
 }
 
-int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s, 
-	FLT *d_t, FLT *d_u, cufinufft_plan *d_plan)
+int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
+	FLT *d_t, FLT *d_u, CUFINUFFT_PLAN *d_plan)
 /*
 	"setNUpts" stage:
-	
+
 	In this stage, we
 		(1) set the number and locations of nonuniform points
 		(2) allocate gpu arrays with size determined by number of nupts
-		(3) rescale x,y,z coordinates for spread/interp (on gpu, rescaled 
+		(3) rescale x,y,z coordinates for spread/interp (on gpu, rescaled
 		    coordinates are stored)
-		(4) determine the spread/interp properties that only relates to the 
-		    locations of nupts (see 2d/spread2d_wrapper.cu, 
-		    3d/spread3d_wrapper.cu for what have been done in 
+		(4) determine the spread/interp properties that only relates to the
+		    locations of nupts (see 2d/spread2d_wrapper.cu,
+		    3d/spread3d_wrapper.cu for what have been done in
 		    function spread<dim>d_<method>_prop() )
-	
-	Input: 
+
+	Input:
 	M                 number of nonuniform points
-	d_kx, d_ky, d_kz  gpu array of x,y,z locations of sources (each a size M 
-	                  FLT array) in [-pi, pi). set h_kz to "NULL" if dimension 
+	d_kx, d_ky, d_kz  gpu array of x,y,z locations of sources (each a size M
+	                  FLT array) in [-pi, pi). set h_kz to "NULL" if dimension
 	                  is less than 3. same for h_ky for dimension 1.
 	N, d_s, d_t, d_u  not used for type1, type2. set to 0 and NULL.
 
 	Input/Output:
-	d_plan            pointer to a cufinufft_plan. Variables and arrays inside 
+	d_plan            pointer to a CUFINUFFT_PLAN. Variables and arrays inside
 	                  the plan are set and allocated.
 
 	Melody Shih 07/25/19
@@ -288,17 +288,17 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	{
 		case 1:
 		{
-			ier = allocgpumem1d_nupts(d_plan);
+			ier = ALLOCGPUMEM1D_NUPTS(d_plan);
 		}
 		break;
 		case 2:
 		{
-			ier = allocgpumem2d_nupts(d_plan);
+			ier = ALLOCGPUMEM2D_NUPTS(d_plan);
 		}
 		break;
 		case 3:
 		{
-			ier = allocgpumem3d_nupts(d_plan);
+			ier = ALLOCGPUMEM3D_NUPTS(d_plan);
 		}
 		break;
 	}
@@ -327,25 +327,25 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 		case 2:
 		{
 			if(d_plan->opts.gpu_method==1){
-				ier = cuspread2d_nuptsdriven_prop(nf1,nf2,M,d_plan);
+				ier = CUSPREAD2D_NUPTSDRIVEN_PROP(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread2d_nupts_prop, method(%d)\n", 
+					printf("error: cuspread2d_nupts_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
 					return 1;
 				}
 			}
 			if(d_plan->opts.gpu_method==2){
-				ier = cuspread2d_subprob_prop(nf1,nf2,M,d_plan);
+				ier = CUSPREAD2D_SUBPROB_PROP(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread2d_subprob_prop, method(%d)\n", 
+					printf("error: cuspread2d_subprob_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
 					return 1;
 				}
 			}
 			if(d_plan->opts.gpu_method==3){
-				int ier = cuspread2d_paul_prop(nf1,nf2,M,d_plan);
+				int ier = CUSPREAD2D_PAUL_PROP(nf1,nf2,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread2d_paul_prop, method(%d)\n", 
+					printf("error: cuspread2d_paul_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
 					return 1;
 				}
@@ -355,54 +355,54 @@ int cufinufft_setNUpts(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 		case 3:
 		{
 			if(d_plan->opts.gpu_method==4){
-				int ier = cuspread3d_blockgather_prop(nf1,nf2,nf3,M,d_plan);
+				int ier = CUSPREAD3D_BLOCKGATHER_PROP(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread3d_blockgather_prop, method(%d)\n", 
+					printf("error: cuspread3d_blockgather_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
 					return ier;
 				}
 			}
 			if(d_plan->opts.gpu_method==1){
-				ier = cuspread3d_nuptsdriven_prop(nf1,nf2,nf3,M,d_plan);
+				ier = CUSPREAD3D_NUPTSDRIVEN_PROP(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", 
+					printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
 					return ier;
 				}
 			}
 			if(d_plan->opts.gpu_method==2){
-				int ier = cuspread3d_subprob_prop(nf1,nf2,nf3,M,d_plan);
+				int ier = CUSPREAD3D_SUBPROB_PROP(nf1,nf2,nf3,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread3d_subprob_prop, method(%d)\n", 
+					printf("error: cuspread3d_subprob_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
 					return ier;
 				}
 			}
 		}
 		break;
-	}	
+	}
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tSetup Subprob properties %.3g s\n", 
+	printf("[time  ] \tSetup Subprob properties %.3g s\n",
 		milliseconds/1000);
 #endif
 
 	return 0;
 }
 
-int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
+int CUFINUFFT_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
 /*
 	"exec" stage:
-	
-	The actual transformation is done in this stage. Type and dimension of the 
-	transformantion are defined in d_plan in previous stages. 
+
+	The actual transformation is done in this stage. Type and dimension of the
+	transformantion are defined in d_plan in previous stages.
 
 	Input/Output:
-	d_c   a size d_plan->M CPX array on gpu (input for Type 1; output for Type 
+	d_c   a size d_plan->M CPX array on gpu (input for Type 1; output for Type
 	      2)
-	d_fk  a size d_plan->ms*d_plan->mt*d_plan->mu CPX array on gpu ((input for 
+	d_fk  a size d_plan->ms*d_plan->mt*d_plan->mu CPX array on gpu ((input for
 	      Type 2; output for Type 1)
 
 	Notes:
@@ -425,9 +425,9 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		case 2:
 		{
 			if(type == 1)
-				ier = cufinufft2d1_exec(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT2D1_EXEC(d_c,  d_fk, d_plan);
 			if(type == 2)
-				ier = cufinufft2d2_exec(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT2D2_EXEC(d_c,  d_fk, d_plan);
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
@@ -437,9 +437,9 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 		case 3:
 		{
 			if(type == 1)
-				ier = cufinufft3d1_exec(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT3D1_EXEC(d_c,  d_fk, d_plan);
 			if(type == 2)
-				ier = cufinufft3d2_exec(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT3D2_EXEC(d_c,  d_fk, d_plan);
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
@@ -450,7 +450,7 @@ int cufinufft_exec(CUCPX* d_c, CUCPX* d_fk, cufinufft_plan *d_plan)
 	return ier;
 }
 
-int cufinufft_destroy(cufinufft_plan *d_plan)
+int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan)
 /*
 	"destroy" stage:
 
@@ -470,17 +470,17 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	{
 		case 1:
 		{
-			freegpumemory1d(d_plan);
+			FREEGPUMEMORY1D(d_plan);
 		}
 		break;
 		case 2:
 		{
-			freegpumemory2d(d_plan);
+			FREEGPUMEMORY2D(d_plan);
 		}
 		break;
 		case 3:
 		{
-			freegpumemory3d(d_plan);
+			FREEGPUMEMORY3D(d_plan);
 		}
 		break;
 	}
@@ -494,16 +494,16 @@ int cufinufft_destroy(cufinufft_plan *d_plan)
 	return 0;
 }
 
-int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
+int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 /*
 	"default_opts" stage:
-	
-	In this stage, the default options in cufinufft_opts are set. 
-  Options with prefix "gpu_" are used for gpu code. 
+
+	In this stage, the default options in cufinufft_opts are set.
+  Options with prefix "gpu_" are used for gpu code.
 
 	Notes:
-	Values set in this function for different type and dimensions are preferable 
-	based on experiments. User can experiement with different settings by 
+	Values set in this function for different type and dimensions are preferable
+	based on experiments. User can experiement with different settings by
 	replacing them after calling this function.
 
 	Melody Shih 07/25/19

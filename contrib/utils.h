@@ -10,6 +10,7 @@
 #include <complex>          // C++ type complex
 #include <fftw3.h>          // needed so can typedef FFTW_CPX
 #include <cuComplex.h>
+#include "dataTypes.h"
 
 // fraction growth cut-off in arraywidcen(), to decide if translate in type-3
 #define ARRAYWIDCEN_GROWFRAC 0.1
@@ -23,34 +24,6 @@
 using namespace std;        // means std:: not needed for cout, max, etc
 
 typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
-
-// Compile-flag choice of single or double (default) precision:
-// (Note in the other codes, FLT is "double" or "float", CPX same but complex)
-#ifdef SINGLE
-  // machine epsilon for rounding
-  #define EPSILON (float)6e-08
-  typedef float FLT;
-  typedef complex<float> CPX;
-  #define IMA complex<float>(0.0,1.0)
-  #define FABS(x) fabs(x)
-  #define CUCPX cuFloatComplex
-  #define CUFFT_TYPE CUFFT_C2C
-  #define CUFFT_EX cufftExecC2C
-#else
-  // machine epsilon for rounding
-  #define EPSILON (double)1.1e-16
-  typedef double FLT;
-  typedef complex<double> CPX;
-  #define IMA complex<double>(0.0,1.0)
-  #define FABS(x) fabsf(x)
-  #define CUCPX cuDoubleComplex
-  #define CUFFT_TYPE CUFFT_Z2Z
-  #define CUFFT_EX cufftExecZ2Z
-#endif
-
-// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
-// This includes all calling arguments (eg M,N) that could be huge someday...
-typedef int BIGINT;
 
 // Global error codes for the library...
 #define ERR_EPS_TOO_SMALL        1
@@ -68,15 +41,7 @@ typedef int BIGINT;
 #define MIN(a,b) (a<b) ? a : b
 
 // ahb math helpers
-FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b);
-FLT errtwonorm(BIGINT n, CPX* a, CPX* b);
-FLT twonorm(BIGINT n, CPX* a);
-FLT infnorm(BIGINT n, CPX* a);
-void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi);
-void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi);
-void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
 BIGINT next235beven(BIGINT n, BIGINT b);
-
 
 // jfm timer class
 #include <sys/time.h>
@@ -88,23 +53,6 @@ class CNTime {
  private:
   struct timeval initial;
 };
-
-
-// Random numbers: crappy unif random number generator in [0,1):
-//#define rand01() (((FLT)(rand()%RAND_MAX))/RAND_MAX)
-#define rand01() ((FLT)rand()/RAND_MAX)
-// unif[-1,1]:
-#define randm11() (2*rand01() - (FLT)1.0)
-// complex unif[-1,1] for Re and Im:
-#define crandm11() (randm11() + IMA*randm11())
-
-// Thread-safe seed-carrying versions of above (x is ptr to seed)...
-#define rand01r(x) ((FLT)rand_r(x)/RAND_MAX)
-// unif[-1,1]:
-#define randm11r(x) (2*rand01r(x) - (FLT)1.0)
-// complex unif[-1,1] for Re and Im:
-#define crandm11r(x) (randm11r(x) + IMA*randm11r(x))
-
 
 // allow compile-time switch off of openmp, so compilation without any openmp
 // is done (Note: _OPENMP is automatically set by -fopenmp compile flag)

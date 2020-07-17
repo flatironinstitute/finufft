@@ -13,14 +13,6 @@ c_float_p = ctypes.POINTER(c_float)
 
 class NufftOpts(ctypes.Structure): pass
 NufftOpts._fields_ = [
-    ('debug', c_int),
-    ('spread_debug', c_int),
-    ('spread_sort', c_int),
-    ('spread_kerevalmeth', c_int),
-    ('spread_kerpad', c_int),
-    ('chkbnds', c_int),
-    ('fftw', c_int),
-    ('modeord', c_int),
     ('upsampfac', c_float),
     ('gpu_method', c_int),
     ('gpu_sort', c_int),
@@ -39,14 +31,6 @@ SpreadOpts._fields_ = [
     ('nspread', c_int),
     ('spread_direction', c_int),
     ('pirange', c_int),
-    ('chkbnds', c_int),
-    ('sort', c_int),
-    ('kerevalmeth', c_int),
-    ('kerpad', c_int),
-    ('sort_threads', c_int),
-    ('max_subproblem_size', c_int),
-    ('flags', c_int),
-    ('debug', c_int),
     ('upsampfac', c_float),
     ('ES_beta', c_float),
     ('ES_halfwidth', c_float),
@@ -54,9 +38,9 @@ SpreadOpts._fields_ = [
 
 class CufinufftPlan(ctypes.Structure): pass
 CufinufftPlan._fields_ = [
-    ('type', c_uint),
     ('opts', NufftOpts),
     ('spopts', SpreadOpts),
+    ('type', c_uint),
     ('dim', c_int),
     ('M', c_int),
     ('nf1', c_int),
@@ -96,9 +80,9 @@ CufinufftPlan._fields_ = [
 CufinufftPlan_p = ctypes.POINTER(CufinufftPlan)
 NufftOpts_p = ctypes.POINTER(NufftOpts)
 
-lib = ctypes.cdll.LoadLibrary('../lib/libcufinufftcf.so')
+lib = ctypes.cdll.LoadLibrary('../lib/libcufinufftc.so')
 
-_default_opts = lib.cufinufftc_default_opts
+_default_opts = lib.cufinufftcf_default_opts
 _default_opts.argtypes = [c_uint, c_int, NufftOpts_p]
 _default_opts.restype = c_int
 
@@ -106,14 +90,14 @@ _default_opts.restype = c_int
 def default_opts(finufft_type, dim):
     nufft_opts = NufftOpts()
 
-    ier = _default_opts(finufft_type - 1, dim, nufft_opts)
+    ier = _default_opts(finufft_type, dim, nufft_opts)
 
     if ier != 0:
         raise RuntimeError('Configuration not yet implemented.')
 
     return nufft_opts
 
-_make_plan = lib.cufinufftc_makeplan
+_make_plan = lib.cufinufftcf_makeplan
 _make_plan.argtypes = [
     c_uint, c_int, c_int_p, c_int,
     c_int, c_float, c_int, CufinufftPlan_p]
@@ -131,14 +115,14 @@ def plan(finufft_type, modes, isign, tol, opts=None):
     plan = CufinufftPlan()
     plan.opts = opts
 
-    ier = _make_plan(finufft_type - 1, dim, modes, isign, 1, float(tol), 1, plan)
+    ier = _make_plan(finufft_type , dim, modes, isign, 1, float(tol), 1, plan)
 
     if ier != 0:
         raise RuntimeError('Error creating plan.')
 
     return plan
 
-_set_nu_pts = lib.cufinufftc_setNUpts
+_set_nu_pts = lib.cufinufftcf_setNUpts
 _set_nu_pts.argtypes = [
     c_int, c_void_p, c_void_p, c_void_p, ctypes.c_int, c_float_p,
     c_float_p, c_float_p, CufinufftPlan_p]
@@ -153,7 +137,7 @@ def set_nu_pts(plan, M, kx, ky=None, kz=None):
     if ier != 0:
         raise RuntimeError('Error setting non-uniform points.')
 
-_exec_plan = lib.cufinufftc_exec
+_exec_plan = lib.cufinufftcf_exec
 _exec_plan.argtypes = [c_void_p, c_void_p, CufinufftPlan_p]
 _exec_plan.restype = c_int
 
@@ -163,7 +147,7 @@ def execute(plan, c, fk):
     if ier != 0:
         raise RuntimeError('Error executing plan.')
 
-_destroy_plan = lib.cufinufftc_destroy
+_destroy_plan = lib.cufinufftcf_destroy
 _destroy_plan.argtypes = [CufinufftPlan_p]
 _destroy_plan.restype = c_int
 
