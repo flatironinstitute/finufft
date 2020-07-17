@@ -6,12 +6,16 @@ differentiated by 'f' suffix.
 """
 
 import ctypes
+import os
+import warnings
+
 # While imp is deprecated, it is currently the inspection solution
 #   that works for all versions of Python 2 and 3.
 # One day if that changes, can be replaced
 #   with importlib.find_spec.
-import imp
-import os
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    import imp
 
 import numpy as np
 
