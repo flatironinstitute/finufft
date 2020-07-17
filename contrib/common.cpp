@@ -12,7 +12,7 @@ extern "C" {
   #include "legendre_rule_fast.h"
 #endif
 
-int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, CUFINUFFT_OPTS opts)
+int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, cufinufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
@@ -21,7 +21,7 @@ int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, CUFINUFFT_OPTS opts)
   return ier;
 }
 
-void SET_NF_TYPE12(BIGINT ms, CUFINUFFT_OPTS opts, SPREAD_OPTS spopts,
+void SET_NF_TYPE12(BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,
 				   BIGINT *nf, BIGINT bs)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.

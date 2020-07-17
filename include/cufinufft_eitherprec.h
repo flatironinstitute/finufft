@@ -10,6 +10,7 @@
 #include <cufft.h>
 #include <assert.h>
 #include <cuda_runtime.h>
+#include "cufinufft_opts.h"
 #include "../src/precision_independent.h"
 #include "cufinufft_errors.h"
 
@@ -80,7 +81,6 @@
 #undef CUDECONVOLVE2D
 #undef CUDECONVOLVE3D
 /* structs */
-#undef CUFINUFFT_OPTS
 #undef CUFINUFFT_PLAN
 
 
@@ -139,7 +139,6 @@
 #define CUDECONVOLVE2D cudeconvolve2df
 #define CUDECONVOLVE3D cudeconvolve3df
 /* structs */
-#define CUFINUFFT_OPTS cufinufftf_opts
 #define CUFINUFFT_PLAN cufinufftf_plan
 
 #else
@@ -197,32 +196,12 @@
 #define CUDECONVOLVE2D cudeconvolve2d
 #define CUDECONVOLVE3D cudeconvolve3d
 /* structs */
-#define CUFINUFFT_OPTS cufinufft_opts
 #define CUFINUFFT_PLAN cufinufft_plan
 
 #endif
 
-typedef struct CUFINUFFT_OPTS {   // see cufinufft_default_opts() for defaults
-	FLT upsampfac;   // upsampling ratio sigma, only 2.0 (standard) is implemented
-	/* following options are for gpu */
-	int gpu_method;
-	int gpu_sort; // used for 3D nupts driven method
-
-	int gpu_binsizex; // used for 2D, 3D subproblem method
-	int gpu_binsizey;
-	int gpu_binsizez;
-
-	int gpu_obinsizex; // used for 3D spread block gather method
-	int gpu_obinsizey;
-	int gpu_obinsizez;
-
-	int gpu_maxsubprobsize;
-	int gpu_nstreams;
-	int gpu_kerevalmeth; // 0: direct exp(sqrt()), 1: Horner ppval
-} CUFINUFFT_OPTS;
-
 typedef struct {
-	CUFINUFFT_OPTS  opts;
+	cufinufft_opts  opts;
 	SPREAD_OPTS     spopts;
 
 	int type;
@@ -280,7 +259,7 @@ typedef struct {
 
 #define checkCufftErrors(call)
 
-int CUFINUFFT_DEFAULT_OPTS(int type, int dim, CUFINUFFT_OPTS *opts);
+int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts);
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
 	int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan);
 int CUFINUFFT_SETNUPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,

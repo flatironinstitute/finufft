@@ -12,7 +12,7 @@
 
 using namespace std;
 
-void SETUP_BINSIZE(int type, int dim, CUFINUFFT_OPTS *opts)
+void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 {
 	switch(dim)
 	{
@@ -494,11 +494,11 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan)
 	return 0;
 }
 
-int CUFINUFFT_DEFAULT_OPTS(int type, int dim, CUFINUFFT_OPTS *opts)
+int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 /*
 	"default_opts" stage:
 
-	In this stage, the default options in CUFINUFFT_OPTS are set.
+	In this stage, the default options in cufinufft_opts are set.
   Options with prefix "gpu_" are used for gpu code.
 
 	Notes:

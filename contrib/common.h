@@ -11,11 +11,11 @@
 // increase this if you need >1TB RAM...
 #define MAX_NF    (BIGINT)1e11     // too big to ever succeed (next235 takes 1s)
 
-struct CUFINUFFT_OPTS;
+struct cufinufft_opts;
 
 // common.cpp provides...
-int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, CUFINUFFT_OPTS opts);
-void SET_NF_TYPE12(BIGINT ms, CUFINUFFT_OPTS opts, SPREAD_OPTS spopts,BIGINT *nf,
+int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, cufinufft_opts opts);
+void SET_NF_TYPE12(BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,BIGINT *nf,
                    BIGINT b);
 void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts);
 #endif  // COMMON_H

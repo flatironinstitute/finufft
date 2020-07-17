@@ -2,7 +2,7 @@
 
 extern "C" {
 
-int CUFINUFFTC_DEFAULT_OPTS(int type, int dim, CUFINUFFT_OPTS *opts)
+int CUFINUFFTC_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 {
     return CUFINUFFT_DEFAULT_OPTS(type, dim, opts);
 }
