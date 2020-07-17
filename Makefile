@@ -2,15 +2,19 @@ CC=gcc
 CXX=g++
 NVCC=nvcc
 
-# Developer-users are suggested to change this in their make.inc, see:
+# HPC-users are suggested to change NVARCH in their own make.inc,
+# for example `NVARCH = -arch=sm_70` see:
 #   http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
-#NVARCH = -arch=sm_70
+
 CFLAGS= -fPIC -O3 -funroll-loops -march=native -g
 CXXFLAGS= $(CFLAGS) -std=c++11
 NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 $(NVARCH) \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
-#DEBUG add "-g -G" for cuda-gdb debugger
-#NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
+
+# For debugging, tell nvcc to add symbols to host and device code respectively,
+#NVCCFLAGS+= -g -G
+# and enable cufinufft internal flags.
+#NVCCFLAGS+= -DINFO -DDEBUG -DRESULT -DTIME
 
 # CUDA Related build dependencies
 CUDA_ROOT=/usr/local/cuda
