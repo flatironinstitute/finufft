@@ -71,10 +71,9 @@ def _get_ctypes(dtype):
     return REAL_t, REAL_ptr
 
 
-def _get_NufftOptsFields(dtype):
-    REAL_t, REAL_ptr = _get_ctypes(dtype)
+def _get_NufftOpts():
     fields = [
-        ('upsampfac', REAL_t),
+        ('upsampfac', c_double),
         ('gpu_method', c_int),
         ('gpu_sort', c_int),
         ('gpu_binsizex', c_int),
@@ -93,25 +92,7 @@ class NufftOpts(ctypes.Structure):
     pass
 
 
-NufftOpts._fields_ = _get_NufftOptsFields(np.float64)
-
-
-class NufftOptsf(ctypes.Structure):
-    pass
-
-
-NufftOptsf._fields_ = _get_NufftOptsFields(np.float32)
-
-
-def _get_NufftOpts(dtype):
-    if dtype == np.float64:
-        s = NufftOpts
-    elif dtype == np.float32:
-        s = NufftOptsf
-    else:
-        raise TypeError("Expected np.float32 or np.float64.")
-
-    return s
+NufftOpts._fields_ = _get_NufftOpts()
 
 
 def _get_SpeadOptsFields(dtype):
@@ -156,7 +137,7 @@ def _get_CufinufftPlan(dtype):
     REAL_t, REAL_ptr = _get_ctypes(dtype)
 
     fields = [
-        ('opts', _get_NufftOpts(dtype)),
+        ('opts', NufftOpts),
         ('spopts', _get_SpreadOpts(dtype)),
         ('type', c_int),
         ('dim', c_int),
@@ -215,15 +196,10 @@ CufinufftPlan_p = ctypes.POINTER(CufinufftPlan)
 CufinufftPlanf_p = ctypes.POINTER(CufinufftPlanf)
 
 NufftOpts_p = ctypes.POINTER(NufftOpts)
-NufftOptsf_p = ctypes.POINTER(NufftOptsf)
 
 _default_opts = lib.cufinufftc_default_opts
 _default_opts.argtypes = [c_int, c_int, NufftOpts_p]
 _default_opts.restype = c_int
-
-_default_optsf = lib.cufinufftcf_default_opts
-_default_optsf.argtypes = [c_int, c_int, NufftOptsf_p]
-_default_optsf.restype = c_int
 
 _make_plan = lib.cufinufftc_makeplan
 _make_plan.argtypes = [

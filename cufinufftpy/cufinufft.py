@@ -9,11 +9,9 @@ import numpy as np
 from ctypes import c_int
 
 from cufinufftpy._cufinufft import NufftOpts
-from cufinufftpy._cufinufft import NufftOptsf
 from cufinufftpy._cufinufft import CufinufftPlan
 from cufinufftpy._cufinufft import CufinufftPlanf
 from cufinufftpy._cufinufft import _default_opts
-from cufinufftpy._cufinufft import _default_optsf
 from cufinufftpy._cufinufft import _make_plan
 from cufinufftpy._cufinufft import _make_planf
 from cufinufftpy._cufinufft import _set_nu_pts
@@ -53,22 +51,21 @@ class cufinufft:
         ready for point setting, and execution.
         """
 
+        self.Nufft_Opts = NufftOpts
+        self._default_opts = _default_opts
+
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
 
         if self.dtype == np.float64:
-            self.Nufft_Opts = NufftOpts
             self.CufinufftPlan = CufinufftPlan
-            self._default_opts = _default_opts
             self._make_plan = _make_plan
             self._set_nu_pts = _set_nu_pts
             self._exec_plan = _exec_plan
             self._destroy_plan = _destroy_plan
             self.complex_dtype = np.complex128
         elif self.dtype == np.float32:
-            self.Nufft_Opts = NufftOptsf
             self.CufinufftPlan = CufinufftPlanf
-            self._default_opts = _default_optsf
             self._make_plan = _make_planf
             self._set_nu_pts = _set_nu_ptsf
             self._exec_plan = _exec_planf
