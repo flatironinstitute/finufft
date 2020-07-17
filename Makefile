@@ -292,7 +292,6 @@ wheels: docker_manylinux2010_x86_64
 
 # Cleanup and phony targets
 
-
 clean:
 	rm -f *.o
 	rm -f test/*.o
