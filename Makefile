@@ -275,11 +275,23 @@ check3D_32: all
 	bin/cufinufft3d2_test_32 1 1e2 2e2 3e2
 	bin/cufinufft3d2_test_32 2 1e2 2e2 3e2
 
+# Python, some users may want to use pip3 here.
+python:
+	pip install .
+
+# Docker, for distribution and generation of PyPI wheels.
+docker: docker_manylinux2010_x86_64 docker_manylinux2014_x86_64
+docker_manylinux2010_x86_64:
+	docker build --no-cache -f ci/docker/cuda10.1/Dockerfile-x86_64 -t test_cufinufft_manylinux2010 .
+docker_manylinux2014_x86_64:
+	docker build --no-cache -f ci/docker/cuda11.0/Dockerfile-x86_64 -t test_cufinufft_manylinux2014 .
+
+wheels: docker_manylinux2010_x86_64
+	docker run --gpus all -it -v ${PWD}/wheelhouse:/io/wheelhouse -e PLAT=manylinux2010_x86_64 test_cufinufft_manylinux2010 /io/ci/build-wheels.sh
+
 
 # Cleanup and phony targets
 
-python:
-	pip install .
 
 clean:
 	rm -f *.o
