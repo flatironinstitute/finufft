@@ -11,9 +11,6 @@
 
 using namespace std;
 
-//typedef complex<double> CPX;
-
-
 int main(int argc, char* argv[])
 {
   int method = 1;
