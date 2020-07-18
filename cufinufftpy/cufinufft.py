@@ -187,7 +187,7 @@ class cufinufft:
         if ier != 0:
             raise RuntimeError('Error executing plan.')
 
-    def destroy(self):
+    def __del__(self):
         """
         Destroy this instance's associated plan and storage.
         """

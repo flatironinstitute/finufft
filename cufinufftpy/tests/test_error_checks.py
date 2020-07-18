@@ -39,8 +39,6 @@ def test_set_nu_raises_on_dtype():
         plan.set_nu_pts(M, kxyz_gpu_wrong_type[0],
                         kxyz_gpu_wrong_type[1], kxyz_gpu_wrong_type[2])
 
-    plan.destroy()
-
 
 def test_exec_raises_on_dtype():
     dtype = np.float32
@@ -72,5 +70,3 @@ def test_exec_raises_on_dtype():
 
     with pytest.raises(TypeError):
         plan.execute(c_gpu_wrong_dtype, fk_gpu)
-
-    plan.destroy()

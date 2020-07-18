@@ -35,8 +35,6 @@ def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     type1_rel_err = np.abs(fk_target - fk_est) / np.abs(fk_target)
 
-    plan.destroy()
-
     print('Type 1 relative error:', type1_rel_err)
 
     assert type1_rel_err < 0.01
@@ -66,8 +64,6 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
     plan.set_nu_pts(M, kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
 
     plan.execute(c_gpu, fk_gpu)
-
-    plan.destroy()
 
     c = c_gpu.get()
 
