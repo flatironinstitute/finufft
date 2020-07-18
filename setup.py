@@ -1,4 +1,4 @@
-# This defines the python module installation.
+# This defines the Python module installation.
 
 import os
 import ctypes
@@ -15,7 +15,7 @@ try:
 except Exception as e:
     print(lib, 'CUDA shared libraries not found in library path.'
           '  Please refer to installation documentation at http://github.com/flatironinstitute/cufinufft'
-          ' and ensure CUDA installation is successful first before attempting to install the python wrappers.')
+          ' and ensure CUDA installation is successful first before attempting to install the Python wrappers.')
     raise(e)
 print('cufinufft CUDA shared libraries found, continuing...')
 
@@ -24,11 +24,11 @@ print('cufinufft CUDA shared libraries found, continuing...')
 setup(
     name='cufinufftpy',
     version='1.0',
-    author='python interfaces by: Melody Shih, Joakim Anden, Garrett Wright',
+    author='Python interfaces by: Melody Shih, Joakim Anden, Garrett Wright',
     author_email='yoyoshih13@gmail.com',
     url='http://github.com/flatironinstitute/cufinufft',
-    description='python interface to cufinufft',
-    long_description='python interface to cufinufft (CUDA Flatiron Institute Nonuniform Fast Fourier Transform) library.',
+    description='Python interface to cufinufft',
+    long_description='Python interface to cufinufft (CUDA Flatiron Institute Nonuniform Fast Fourier Transform) library.',
     license="Apache 2",
     packages=['cufinufftpy'],
     install_requires=requirements,
@@ -38,10 +38,10 @@ setup(
     },
     zip_safe=False,
     # This explicitly tells the wheel systems that we're platform specific.
-    #   Addiitonally, will create a new cpython library with a decorated name
+    #   Addiitonally, will create a new cPython library with a decorated name
     #   that is rpath linked to CUDA library, also decorated (by auditwheel).
     #   Most importantly, pip will manage to install all this stuff in
-    #   in places python can find it (with a little help).
+    #   in places Python can find it (with a little help).
     py_modules=['cufinufftc'],
     ext_modules=[
         Extension(name='cufinufftc',

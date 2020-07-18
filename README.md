@@ -20,7 +20,7 @@ and consider installing from source if that solution is not adequate for your ne
 
 It is up to the user to decide how exactly to link or otherwise install the libraries produced in `lib`.
 If you plan to use the Python wrapper you will minimally need to extend your `LD_LIBRARY_PATH`,
-such as with `export LD_LIBRARY_PATH=${PWD}/lib:${LD_LIBRARY_PATH}` or a more permanant installation
+such as with `export LD_LIBRARY_PATH=${PWD}/lib:${LD_LIBRARY_PATH}` or a more permanent installation
 path of your choosing.
 
 If you would like to always have this installation in your library path, you can add to your shell rc
@@ -50,7 +50,7 @@ common arrangement.  If you have such a system, you may run:
 
 `pip install cufinufftpy`
 
-For other cases, the python wrapper should be able to be built from source.
+For other cases, the Python wrapper should be able to be built from source.
 We hope to extend this in the future, and have begun work for `manylinux2014`.
  
 ## Interface
