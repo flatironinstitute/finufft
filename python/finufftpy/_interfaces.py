@@ -74,38 +74,36 @@ class FinufftPlan:
 
         if is_single:
             # array sanity check
-            global _xjf,_yjf,_zjf,_sf,_tf,_uf
-            _xjf = _rchkf(xj)
-            _yjf = _rchkf(yj)
-            _zjf = _rchkf(zj)
-            _sf = _rchkf(s)
-            _tf = _rchkf(t)
-            _uf = _rchkf(u)
+            self._xjf = _rchkf(xj)
+            self._yjf = _rchkf(yj)
+            self._zjf = _rchkf(zj)
+            self._sf = _rchkf(s)
+            self._tf = _rchkf(t)
+            self._uf = _rchkf(u)
 
             # valid sizes
             dim = finufftpy_cpp.get_dimf(self.inner_plan)
             tp = finufftpy_cpp.get_typef(self.inner_plan)
-            (nj, nk) = valid_setpts(tp, dim, _xjf, _yjf, _zjf, _sf, _tf, _uf)
+            (nj, nk) = valid_setpts(tp, dim, self._xjf, self._yjf, self._zjf, self._sf, self._tf, self._uf)
 
             # call set pts for single prec plan
-            ier = finufftpy_cpp.setptsf(self.inner_plan,nj,_xjf,_yjf,_zjf,nk,_sf,_tf,_uf)
+            ier = finufftpy_cpp.setptsf(self.inner_plan,nj,self._xjf,self._yjf,self._zjf,nk,self._sf,self._tf,self._uf)
         else:
             # array sanity check
-            global _xj,_yj,_zj,_s,_t,_u
-            _xj = _rchk(xj)
-            _yj = _rchk(yj)
-            _zj = _rchk(zj)
-            _s = _rchk(s)
-            _t = _rchk(t)
-            _u = _rchk(u)
+            self._xj = _rchk(xj)
+            self._yj = _rchk(yj)
+            self._zj = _rchk(zj)
+            self._s = _rchk(s)
+            self._t = _rchk(t)
+            self._u = _rchk(u)
 
             # valid sizes
             dim = finufftpy_cpp.get_dim(self.inner_plan)
             tp = finufftpy_cpp.get_type(self.inner_plan)
-            (nj, nk) = valid_setpts(tp, dim, _xj, _yj, _zj, _s, _t, _u)
+            (nj, nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
 
             # call set pts for double prec plan
-            ier = finufftpy_cpp.setpts(self.inner_plan,nj,_xj,_yj,_zj,nk,_s,_t,_u)
+            ier = finufftpy_cpp.setpts(self.inner_plan,nj,self._xj,self._yj,self._zj,nk,self._s,self._t,self._u)
 
         if ier != 0:
             err_handler(ier)
