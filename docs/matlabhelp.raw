@@ -461,6 +461,9 @@
            whose properties cannot be accessed directly
    floatprec - either 'double' or 'single', tracks what precision of C++
            library is being called
+   type, dim, n_modes, n_trans, nj, nk - other plan parameters
+  Note: the user should never alter these plan properties directly! Rather,
+  the below methods should be used to create, use, and destroy plans.
 
  METHODS
    finufft_plan - create guru plan object for one/many general nonuniform FFTs.

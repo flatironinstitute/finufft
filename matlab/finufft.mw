@@ -28,8 +28,7 @@
 % Notes:
 %  0) see mwrap's documentation for how this type of .mw file works:
 %     https://github.com/zgimbutas/mwrap
-%  1) Double and single precision (via floatprec opt). A bit too much repetition
-%     in both prec of low-level routines which query the plan.
+%  1) Double and single precision (via floatprec opt).
 %  2) in the FINUFFT library, BIGINT type must be int64_t, as is default.
 %     Since int64_t is hardwired in the below, MEX will break otherwise.
 %  3) only compatible with FINUFFT version>=1.2; supercedes old simple/many
@@ -39,6 +38,7 @@
 %
 % Main author: Libin Lu, started May 2020; edits, ier, docs etc by Alex Barnett.
 % 7/14/20 switched finufft{f}_plan to be ptr to struct.
+% 7/19/20 Alex made opaque C++ plan version storing param info on matlab side.
 
 % both precisions...
 $ #include <finufft.h>
