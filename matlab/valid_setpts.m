@@ -1,9 +1,10 @@
 function [nj, nk] = valid_setpts(type,dim,x,y,z,s,t,u)
 % VALID_SETPTS   validate guru finufft_setpts input sizes for a type and dim
 %
-% [nj nk] = valid_setpts(type,dim,x,y,z,s,t,u) raises errors if there are incompatible
-% input sizes for transform type (1, 2 or 3) and dimension dim, and returns nj (aka M),
-% and, for type 3, also nk (aka N).
+% [nj nk] = valid_setpts(type,dim,x,y,z,s,t,u) raises errors if there are
+%  incompatible input sizes for transform type (1, 2 or 3) and dimension dim,
+%  and returns nj (aka M), and, for type 3, also nk (aka N). The returned
+%  values are int64 (not the usual double class of numel).
 %
 % nj = valid_setpts(type,dim,x,y,z) is also allowed for types 1, 2.
 
@@ -33,4 +34,4 @@ if dim>2
     if ~isvector(u), error('FINUFFT:badUshape','FINUFFT u must be a vector'); end
     if numel(u)~=nk, error('FINUFFT:badUlen','FINUFFT u must have same length as s'); end
   end
-end              
+end   
