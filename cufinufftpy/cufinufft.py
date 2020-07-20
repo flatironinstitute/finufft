@@ -14,8 +14,8 @@ from cufinufftpy._cufinufft import CufinufftPlanf
 from cufinufftpy._cufinufft import _default_opts
 from cufinufftpy._cufinufft import _make_plan
 from cufinufftpy._cufinufft import _make_planf
-from cufinufftpy._cufinufft import _set_nu_pts
-from cufinufftpy._cufinufft import _set_nu_ptsf
+from cufinufftpy._cufinufft import _set_pts
+from cufinufftpy._cufinufft import _set_ptsf
 from cufinufftpy._cufinufft import _exec_plan
 from cufinufftpy._cufinufft import _exec_planf
 from cufinufftpy._cufinufft import _destroy_plan
@@ -60,14 +60,14 @@ class cufinufft:
         if self.dtype == np.float64:
             self.CufinufftPlan = CufinufftPlan
             self._make_plan = _make_plan
-            self._set_nu_pts = _set_nu_pts
+            self._set_pts = _set_pts
             self._exec_plan = _exec_plan
             self._destroy_plan = _destroy_plan
             self.complex_dtype = np.complex128
         elif self.dtype == np.float32:
             self.CufinufftPlan = CufinufftPlanf
             self._make_plan = _make_planf
-            self._set_nu_pts = _set_nu_ptsf
+            self._set_pts = _set_ptsf
             self._exec_plan = _exec_planf
             self._destroy_plan = _destroy_planf
             self.complex_dtype = np.complex64
@@ -135,7 +135,7 @@ class cufinufft:
 
         self.plan = plan
 
-    def set_nu_pts(self, M, kx, ky=None, kz=None):
+    def set_pts(self, M, kx, ky=None, kz=None):
         """
         Sets non uniform points of the correct dtype.
 
@@ -160,7 +160,7 @@ class cufinufft:
         if kz is not None:
             kz = kz.ptr
 
-        ier = self._set_nu_pts(M, kx, ky, kz, 0, None, None, None, self.plan)
+        ier = self._set_pts(M, kx, ky, kz, 0, None, None, None, self.plan)
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
