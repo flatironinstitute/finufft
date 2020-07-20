@@ -15,8 +15,8 @@ typedef struct spread_opts {  // see spreadinterp:setup_spreader for defaults.
   int kerevalmeth;        // 0: exp(sqrt()), old, or 1: Horner ppval, fastest
   int kerpad;             // 0: no pad to mult of 4, 1: do (helps i7 kereval=0)
   int nthreads;           // # threads for spreadinterp (0: use max avail)
-  int sort_threads;       // # threads for bin sort (0: auto-choice)
-  BIGINT max_subproblem_size; // sets extra RAM per thread
+  int sort_threads;       // # threads for sort (0: auto-choice up to nthreads)
+  BIGINT max_subproblem_size; // # pts per t1 subprob; sets extra RAM per thread
   int flags;              // binary flags for timing only (may give wrong ans!)
   int debug;              // 0: silent, 1: small text output, 2: verbose
   double upsampfac;       // sigma, upsampling factor
