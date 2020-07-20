@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
 
 
   // Set Non uniform points
-  ier=cufinufftf_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+  ier=cufinufftf_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
   if (ier!=0){
     printf("err: cufinufft_setpts\n");
   }

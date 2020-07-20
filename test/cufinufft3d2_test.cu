@@ -91,8 +91,11 @@ int main(int argc, char* argv[])
 	CUFINUFFT_PLAN dplan;
 	int dim = 3;
 	int type = 2;
-	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &dplan.opts);
-	dplan.opts.gpu_method=method;
+
+	// Here we setup our own opts, for gpu_method.
+	cufinufft_opts opts;
+	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &opts);
+	opts.gpu_method=method;
 
 	int nmodes[3];
 	int ntransf = 1;
@@ -105,7 +108,7 @@ int main(int argc, char* argv[])
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_plan",2);
 		ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
-			maxbatchsize, &dplan);
+				       maxbatchsize, &dplan, &opts);
 		if (ier!=0){
 			printf("err: cufinufft_makeplan\n");
 		}
