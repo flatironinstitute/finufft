@@ -24,7 +24,6 @@ typedef std::complex<float> CPX;
 
 int main(int argc, char* argv[])
 {
-  int method = 1;
   int N1 = 256;
   int N2 = 256;
   int M = N1*N2;
@@ -73,8 +72,6 @@ int main(int argc, char* argv[])
   cufinufftf_plan dplan;
   int dim = 2;
   int type = 2;
-  ier=cufinufftf_default_opts(type, dim, &dplan.opts);
-  dplan.opts.gpu_method=method;
 
   int nmodes[3];
   int ntransf = 1;
@@ -84,7 +81,7 @@ int main(int argc, char* argv[])
   nmodes[2] = 1;
 
   ier=cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol,
-                         maxbatchsize, &dplan);
+                         maxbatchsize, &dplan, NULL);
   if (ier!=0){
     printf("err: cufinufft2d_plan\n");
   }
