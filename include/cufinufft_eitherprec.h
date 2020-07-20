@@ -38,12 +38,6 @@
 #undef CUFINUFFT3D1_EXEC
 #undef CUFINUFFT3D2_EXEC
 #undef SETUP_BINSIZE
-/* extern c interface */
-#undef CUFINUFFTC_DEFAULT_OPTS
-#undef CUFINUFFTC_MAKEPLAN
-#undef CUFINUFFTC_SETPTS
-#undef CUFINUFFTC_EXEC
-#undef CUFINUFFTC_DESTROY
 /* memtransfer.h */
 #undef ALLOCGPUMEM1D_PLAN
 #undef ALLOCGPUMEM1D_NUPTS
@@ -96,12 +90,6 @@
 #define CUFINUFFT3D1_EXEC cufinufftf3d1_exec
 #define CUFINUFFT3D2_EXEC cufinufftf3d2_exec
 #define SETUP_BINSIZE setup_binsizef
-/* extern c interface */
-#define CUFINUFFTC_DEFAULT_OPTS cufinufftcf_default_opts
-#define CUFINUFFTC_MAKEPLAN cufinufftcf_makeplan
-#define CUFINUFFTC_SETPTS cufinufftcf_setpts
-#define CUFINUFFTC_EXEC cufinufftcf_exec
-#define CUFINUFFTC_DESTROY cufinufftcf_destroy
 /* memtransfer.h */
 #define ALLOCGPUMEM1D_PLAN allocgpumem1df_plan
 #define ALLOCGPUMEM1D_NUPTS allocgpumem1df_nupts
@@ -153,12 +141,6 @@
 #define CUFINUFFT3D1_EXEC cufinufft3d1_exec
 #define CUFINUFFT3D2_EXEC cufinufft3d2_exec
 #define SETUP_BINSIZE setup_binsize
-/* extern c interface */
-#define CUFINUFFTC_DEFAULT_OPTS cufinufftc_default_opts
-#define CUFINUFFTC_MAKEPLAN cufinufftc_makeplan
-#define CUFINUFFTC_SETPTS cufinufftc_setpts
-#define CUFINUFFTC_EXEC cufinufftc_exec
-#define CUFINUFFTC_DESTROY cufinufftc_destroy
 /* memtransfer.h */
 #define ALLOCGPUMEM1D_PLAN allocgpumem1d_plan
 #define ALLOCGPUMEM1D_NUPTS allocgpumem1d_nupts
