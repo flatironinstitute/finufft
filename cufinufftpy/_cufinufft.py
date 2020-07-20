@@ -217,13 +217,13 @@ _make_planf.argtypes = [
     c_int, c_float, c_int, CufinufftPlanf_p]
 _make_planf.restypes = c_int
 
-_set_nu_pts = lib.cufinufftc_setNUpts
+_set_nu_pts = lib.cufinufftc_setpts
 _set_nu_pts.argtypes = [
     c_int, c_void_p, c_void_p, c_void_p, ctypes.c_int, c_double_p,
     c_double_p, c_double_p, CufinufftPlan_p]
 _set_nu_pts.restype = c_int
 
-_set_nu_ptsf = lib.cufinufftcf_setNUpts
+_set_nu_ptsf = lib.cufinufftcf_setpts
 _set_nu_ptsf.argtypes = [
     c_int, c_void_p, c_void_p, c_void_p, ctypes.c_int, c_float_p,
     c_float_p, c_float_p, CufinufftPlanf_p]

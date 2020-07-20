@@ -238,7 +238,7 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	return ier;
 }
 
-int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
+int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	FLT *d_t, FLT *d_u, CUFINUFFT_PLAN *d_plan)
 /*
 	"setNUpts" stage:

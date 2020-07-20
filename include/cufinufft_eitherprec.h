@@ -30,7 +30,7 @@
 /* Undefine things so we don't get warnings/errors later */
 #undef CUFINUFFT_DEFAULT_OPTS
 #undef CUFINUFFT_MAKEPLAN
-#undef CUFINUFFT_SETNUPTS
+#undef CUFINUFFT_SETPTS
 #undef CUFINUFFT_EXEC
 #undef CUFINUFFT_DESTROY
 #undef CUFINUFFT2D1_EXEC
@@ -41,7 +41,7 @@
 /* extern c interface */
 #undef CUFINUFFTC_DEFAULT_OPTS
 #undef CUFINUFFTC_MAKEPLAN
-#undef CUFINUFFTC_SETNUPTS
+#undef CUFINUFFTC_SETPTS
 #undef CUFINUFFTC_EXEC
 #undef CUFINUFFTC_DESTROY
 /* memtransfer.h */
@@ -88,7 +88,7 @@
 
 #define CUFINUFFT_DEFAULT_OPTS cufinufftf_default_opts
 #define CUFINUFFT_MAKEPLAN cufinufftf_makeplan
-#define CUFINUFFT_SETNUPTS cufinufftf_setNUpts
+#define CUFINUFFT_SETPTS cufinufftf_setpts
 #define CUFINUFFT_EXEC cufinufftf_exec
 #define CUFINUFFT_DESTROY cufinufftf_destroy
 #define CUFINUFFT2D1_EXEC cufinufftf2d1_exec
@@ -99,7 +99,7 @@
 /* extern c interface */
 #define CUFINUFFTC_DEFAULT_OPTS cufinufftcf_default_opts
 #define CUFINUFFTC_MAKEPLAN cufinufftcf_makeplan
-#define CUFINUFFTC_SETNUPTS cufinufftcf_setNUpts
+#define CUFINUFFTC_SETPTS cufinufftcf_setpts
 #define CUFINUFFTC_EXEC cufinufftcf_exec
 #define CUFINUFFTC_DESTROY cufinufftcf_destroy
 /* memtransfer.h */
@@ -145,7 +145,7 @@
 
 #define CUFINUFFT_DEFAULT_OPTS cufinufft_default_opts
 #define CUFINUFFT_MAKEPLAN cufinufft_makeplan
-#define CUFINUFFT_SETNUPTS cufinufft_setNUpts
+#define CUFINUFFT_SETPTS cufinufft_setpts
 #define CUFINUFFT_EXEC cufinufft_exec
 #define CUFINUFFT_DESTROY cufinufft_destroy
 #define CUFINUFFT2D1_EXEC cufinufft2d1_exec
@@ -156,7 +156,7 @@
 /* extern c interface */
 #define CUFINUFFTC_DEFAULT_OPTS cufinufftc_default_opts
 #define CUFINUFFTC_MAKEPLAN cufinufftc_makeplan
-#define CUFINUFFTC_SETNUPTS cufinufftc_setNUpts
+#define CUFINUFFTC_SETPTS cufinufftc_setpts
 #define CUFINUFFTC_EXEC cufinufftc_exec
 #define CUFINUFFTC_DESTROY cufinufftc_destroy
 /* memtransfer.h */
@@ -262,7 +262,7 @@ typedef struct {
 int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts);
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
 	int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT_SETNUPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
+int CUFINUFFT_SETPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
 	FLT *h_t, FLT *h_u, CUFINUFFT_PLAN *d_plan);
 int CUFINUFFT_EXEC(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN *d_plan);
 int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan);

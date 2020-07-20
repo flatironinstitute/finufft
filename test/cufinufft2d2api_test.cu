@@ -80,9 +80,9 @@ int main(int argc, char* argv[])
 
 
   // Set Non uniform points
-  ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+  ier=cufinufft_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
   if (ier!=0){
-    printf("err: cufinufft_setNUpts\n");
+    printf("err: cufinufft_setpts\n");
   }
 
   // Execute the plan on the data

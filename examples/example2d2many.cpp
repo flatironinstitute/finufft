@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol,
 		maxbatchsize, &dplan);
 
-	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=cufinufft_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 
 	ier=cufinufft_exec(d_c, d_fk, &dplan);
 

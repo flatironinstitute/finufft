@@ -13,10 +13,10 @@ int CUFINUFFTC_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
     return CUFINUFFT_MAKEPLAN(type, dim, n_modes, iflag, ntransf, tol, maxbatchsize, d_plan);
 }
 
-int CUFINUFFTC_SETNUPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT
+int CUFINUFFTC_SETPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT
         *h_s, FLT *h_t, FLT *h_u, CUFINUFFT_PLAN *d_plan)
 {
-    return CUFINUFFT_SETNUPTS(M, h_kx, h_ky, h_kz, N, h_s, h_t, h_u, d_plan);
+    return CUFINUFFT_SETPTS(M, h_kx, h_ky, h_kz, N, h_s, h_t, h_u, d_plan);
 }
 
 int CUFINUFFTC_EXEC(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN *d_plan)
