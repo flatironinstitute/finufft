@@ -208,13 +208,13 @@ _default_opts.restype = c_int
 _make_plan = lib.cufinufftc_makeplan
 _make_plan.argtypes = [
     c_int, c_int, c_int_p, c_int,
-    c_int, c_double, c_int, CufinufftPlan_p]
+    c_int, c_double, c_int, CufinufftPlan_p, NufftOpts_p]
 _make_plan.restypes = c_int
 
 _make_planf = lib.cufinufftcf_makeplan
 _make_planf.argtypes = [
     c_int, c_int, c_int_p, c_int,
-    c_int, c_float, c_int, CufinufftPlanf_p]
+    c_int, c_float, c_int, CufinufftPlanf_p, NufftOpts_p]
 _make_planf.restypes = c_int
 
 _set_pts = lib.cufinufftc_setpts

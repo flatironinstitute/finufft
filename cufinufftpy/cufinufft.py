@@ -51,8 +51,12 @@ class cufinufft:
         ready for point setting, and execution.
         """
 
-        self.Nufft_Opts = NufftOpts
-        self._default_opts = _default_opts
+        # Note when None, opts will be populated with defaults by
+        # the library internally.  Advanced users may use
+        # `cufinufft.default_opts` to generate defaults and overload them
+        # before instantiating their cufinufft instances,
+        #  but this is currently undocumented.
+        self.opts = opts
 
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
@@ -81,11 +85,6 @@ class cufinufft:
         self.ntransforms = ntransforms
         self._maxbatch = 1    # TODO: optimize this one day
 
-        # Setup Options
-        if opts is None:
-            opts = self.default_opts(nufft_type, self.dim)
-        self.opts = opts
-
         modes = modes + (1,) * (3 - self.dim)
         modes = (c_int * 3)(*modes)
         self.modes = modes
@@ -93,7 +92,8 @@ class cufinufft:
         # Initialize the plan for this instance
         self._plan()
 
-    def default_opts(self, nufft_type, dim):
+    @staticmethod
+    def default_opts(nufft_type, dim):
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
 
@@ -103,9 +103,9 @@ class cufinufft:
         :return: nufft_opts structure.
         """
 
-        nufft_opts = self.Nufft_Opts()
+        nufft_opts = Nufft_Opts()
 
-        ier = self._default_opts(nufft_type, dim, nufft_opts)
+        ier = _default_opts(nufft_type, dim, nufft_opts)
 
         if ier != 0:
             raise RuntimeError('Configuration not yet implemented.')
@@ -119,7 +119,6 @@ class cufinufft:
 
         # Initialize struct
         plan = self.CufinufftPlan()
-        plan.opts = self.opts
 
         ier = self._make_plan(self._finufft_type,
                               self.dim,
@@ -128,7 +127,8 @@ class cufinufft:
                               self.ntransforms,
                               self.tol,
                               1,
-                              plan)
+                              plan,
+                              self.opts)
 
         if ier != 0:
             raise RuntimeError('Error creating plan.')
