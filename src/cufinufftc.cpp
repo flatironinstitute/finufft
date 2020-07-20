@@ -8,9 +8,10 @@ int CUFINUFFTC_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 }
 
 int CUFINUFFTC_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
-    int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan)
+			int ntransf, FLT tol, int maxbatchsize,
+			CUFINUFFT_PLAN *d_plan, cufinufft_opts *opts)
 {
-    return CUFINUFFT_MAKEPLAN(type, dim, n_modes, iflag, ntransf, tol, maxbatchsize, d_plan);
+  return CUFINUFFT_MAKEPLAN(type, dim, n_modes, iflag, ntransf, tol, maxbatchsize, d_plan, opts);
 }
 
 int CUFINUFFTC_SETPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT

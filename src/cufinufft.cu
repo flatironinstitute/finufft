@@ -63,7 +63,8 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 }
 
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
-	int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan)
+		       int ntransf, FLT tol, int maxbatchsize,
+		       CUFINUFFT_PLAN *d_plan, cufinufft_opts *opts)
 /*
 	"plan" stage:
 
@@ -94,11 +95,25 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 */
 {
 
+
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
+	int ier;
 
-	int ier = setup_spreader_for_nufft(d_plan->spopts,tol,d_plan->opts);
+	/* If a user has not supplied their own options, assign defaults for them. */
+	if (opts==NULL){    // use default opts
+	  ier = CUFINUFFT_DEFAULT_OPTS(type, dim, &(d_plan->opts));
+	  if (ier != 0){
+	    printf("error: CUFINUFFT_DEFAULT_OPTS returned error %d.\n", ier);
+	    return ier;
+	  }
+	} else {    // or read from what's passed in
+	  d_plan->opts = *opts;    // keep a deep copy; changing *opts now has no effect
+	}
+
+	/* Setup Spreader */
+	ier = setup_spreader_for_nufft(d_plan->spopts,tol,d_plan->opts);
 
 	d_plan->dim = dim;
 	d_plan->ms = nmodes[0];
