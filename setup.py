@@ -11,7 +11,7 @@ with open(os.path.join('cufinufftpy', 'requirements.txt'), 'r') as fh:
 
 # Sanity check that we can find the CUDA cufinufft libraries before we get too far.
 try:
-    lib = ctypes.cdll.LoadLibrary('libcufinufftc.so')
+    lib = ctypes.cdll.LoadLibrary('libcufinufft.so')
 except Exception as e:
     print(lib, 'CUDA shared libraries not found in library path.'
           '  Please refer to installation documentation at http://github.com/flatironinstitute/cufinufft'
@@ -42,11 +42,11 @@ setup(
     #   that is rpath linked to CUDA library, also decorated (by auditwheel).
     #   Most importantly, pip will manage to install all this stuff in
     #   in places Python can find it (with a little help).
-    py_modules=['cufinufftc'],
+    py_modules=['cufinufft'],
     ext_modules=[
-        Extension(name='cufinufftc',
+        Extension(name='cufinufft',
                   sources=[],
-                  libraries=['cufinufftc'],
+                  libraries=['cufinufft'],
                   library_dirs=['lib'])
         ]
 )

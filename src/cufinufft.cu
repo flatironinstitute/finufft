@@ -62,6 +62,9 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 	}
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 		       int ntransf, FLT tol, int maxbatchsize,
 		       CUFINUFFT_PLAN *d_plan, cufinufft_opts *opts)
@@ -583,3 +586,6 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 
 	return 0;
 }
+#ifdef __cplusplus
+}
+#endif
