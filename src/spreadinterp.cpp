@@ -32,7 +32,8 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
+              double bin_size_x,double bin_size_y,double bin_size_z, int debug,
+              int nthr);
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,
 		 FLT* kz0,int ns, int ndims);
@@ -229,9 +230,10 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
 
 int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts)
-/* This makes a decision whether to sort the NU pts, and if so, calls either
-   single- or multi-threaded bin sort, writing reordered index list to sort_indices.
-   See spreadinterp() for input arguments, and ../docs/usage.rst for opts.
+/* This makes a decision whether or not to sort the NU pts, and if so, calls
+   either single- or multi-threaded bin sort, writing reordered index list to
+   sort_indices.
+   See spreadinterp() for input arguments, and ../docs/opts.rst for opts.
    Return value is whether a sort was done or not.
    Barnett 2017; split out by Melody Shih, Jun 2018.
 */
@@ -248,21 +250,25 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
 
   timer.start();                 // if needed, sort all the NU pts...
   int did_sort=0;
+  int maxnthr = MY_OMP_GET_MAX_THREADS();
+  if (opts.nthreads>0)           // user override up to max avail
+    maxnthr = min(maxnthr,opts.nthreads);
+  
   if (opts.sort==1 || (opts.sort==2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
     int sort_debug = (opts.debug>=2);    // show timing output?
     int sort_nthr = opts.sort_threads;   // choose # threads for sorting
-    if (sort_nthr==0)   // auto choice: when N>>M, one thread is better!
-      sort_nthr = (10*M>N) ? MY_OMP_GET_MAX_THREADS() : 1;      // heuristic
+    if (sort_nthr==0)   // use auto choice: when N>>M, one thread is better!
+      sort_nthr = (10*M>N) ? maxnthr : 1;      // heuristic (up to maxnthr)
     if (sort_nthr==1)
       bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
     else
-      bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
+      bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug,sort_nthr);
     if (opts.debug) 
       printf("\tsorted (%d threads):\t%.3g s\n",sort_nthr,timer.elapsedsec());
     did_sort=1;
   } else {
-#pragma omp parallel for schedule(static,1000000)
+#pragma omp parallel for num_threads(maxnthr) schedule(static,1000000)
     for (BIGINT i=0; i<M; i++)                // omp helps xeon, hinders i7
       sort_indices[i]=i;                      // the identity permutation
     if (opts.debug)
@@ -299,7 +305,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     timer.start();
     if (spread_single) {    // ------- Basic single-core t1 spreading ------
       for (BIGINT j=0; j<M; j++) {
-        // todo, not urgent
+        // *** todo, not urgent
       }
       if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n",timer.elapsedsec());
 
@@ -553,6 +559,7 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   opts.kerpad = 0;              // affects only evaluate_kernel_vector
   opts.kerevalmeth = kerevalmeth;
   opts.upsampfac = upsampfac;
+  opts.nthreads = 0;            // all avail
   opts.sort_threads = 0;        // 0:auto-choice
   opts.max_subproblem_size = (BIGINT)1e4;   // was larger (1e5 slightly worse)
   opts.flags = 0;               // 0:no timing flags (>0 for experts only)
@@ -1102,12 +1109,14 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z, int debug)
+              double bin_size_x,double bin_size_y,double bin_size_z, int debug,
+              int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
    Barnett 2/8/18
-   Todo: if debug, print timing breakdowns
+   Todo: if debug, print timing breakdowns.
+   Explicit #threads control (if=0 use max avail) 7/20/20.
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
@@ -1115,7 +1124,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   nbins2 = isky ? N2/bin_size_y+1 : 1;
   nbins3 = iskz ? N3/bin_size_z+1 : 1;
   BIGINT nbins = nbins1*nbins2*nbins3;
-  int nt = min(M,(BIGINT)MY_OMP_GET_MAX_THREADS());   // printf("\tnt=%d\n",nt);
+  if (nthr==0)
+    nthr = MY_OMP_GET_MAX_THREADS();
+  int nt = min(M,(BIGINT)nthr);  // handle case of more points than threads
   std::vector<BIGINT> brk(nt+1); // start NU pt indices per thread
 
   // distribute the M NU pts to threads once & for all...
@@ -1126,7 +1137,7 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   {    // scope for ct, the 2d array of counts in bins for each threads's NU pts
     std::vector< std::vector<BIGINT> > ct(nt,counts);   // nt * nbins, init to 0
 
-#pragma omp parallel
+#pragma omp parallel num_threads(nt)
     {
       int t = MY_OMP_GET_THREAD_NUM();
       if (t<nt) {                      // could be nt < actual # threads
@@ -1142,7 +1153,7 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
       }
     }
     for (int t=0; t<nt; ++t)
-#pragma omp parallel for schedule(dynamic,10000)     // probably useless
+#pragma omp parallel for num_threads(nt) schedule(dynamic,10000)  // useless?
       for (BIGINT b=0; b<nbins; ++b)
 	counts[b] += ct[t][b];
     
@@ -1156,14 +1167,14 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     for (BIGINT b=0; b<nbins; ++b)  // now build offsets for each thread & bin:
       ot[0][b] = offsets[b];                       // init
     for (int t=1; t<nt; ++t)
-#pragma omp parallel for schedule(dynamic,10000)     // probably useless
+#pragma omp parallel for num_threads(nt) schedule(dynamic,10000)  // useless?
       for (BIGINT b=0; b<nbins; ++b)
 	ot[t][b] = ot[t-1][b]+ct[t-1][b];        // cumsum along t axis
     
   } // scope frees up ct here
   
   std::vector<BIGINT> inv(M);           // fill inverse map
-#pragma omp parallel
+#pragma omp parallel num_threads(nt)
   {
     int t = MY_OMP_GET_THREAD_NUM();
     if (t<nt) {                      // could be nt < actual # threads
@@ -1179,7 +1190,7 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     }
   }
   // invert the map, writing to output pointer (writing pattern is random)
-#pragma omp parallel for schedule(dynamic,10000)
+#pragma omp parallel for num_threads(nt) schedule(dynamic,10000)
   for (BIGINT i=0; i<M; i++)
     ret[inv[i]]=i;
 }

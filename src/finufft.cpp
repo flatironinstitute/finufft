@@ -83,8 +83,7 @@ Design notes for guru interface implementation:
 
 // ---------- local math routines (were in common.cpp; no need now): --------
 
-// We macro this because it implicitly contains FLTs in the structs:
-// *** or isn't it that it has no FLT args but gets compiled for both prec's?
+// We macro because it has no FLT args but gets compiled for both prec's...
 #ifdef SINGLE
 #define SET_NF_TYPE12 set_nf_type12f
 #else
@@ -515,6 +514,7 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
   o->spread_thread = 0;      // default: auto
   o->maxbatchsize = 0;       // "
   o->showwarn = 1;
+  o->nthreads = 0;           // use all threads up to max_useful_threads
 }
 
 

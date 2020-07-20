@@ -115,6 +115,7 @@ int main(int argc, char* argv[])
   opts.flags = flags;
   opts.kerpad = kerpad;
   opts.upsampfac = upsampfac;
+  //opts.nthreads = 2;
   //opts.max_subproblem_size = 1e4; // default is 1e5; minimal difference
   FLT maxerr, ansmod;
   
