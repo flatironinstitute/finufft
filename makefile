@@ -13,7 +13,12 @@
 # Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 
-# compilers, and linking from C, fortran. We use GCC by default...
+# for debug https://www.cmcrossroads.com/article/tracing-rule-execution-gnu-make
+#OLD_SHELL := $(SHELL)
+#SHELL = $(warning Building $@$(if $<, (from $<))$(if $?, ($? newer)))$(OLD_SHELL) -x
+
+
+# Compilers, and linking from C, fortran. We use GCC by default...
 CXX = g++
 CC = gcc
 FC = gfortran
@@ -146,9 +151,9 @@ HEADERS = $(wildcard include/*.h)
 	$(CC) -c $(CFLAGS) $< -o $@
 %_32.o: %.c $(HEADERS)
 	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
-%.o: %.f $(HEADERS)
+%.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
-%_32.o: %.f $(HEADERS)
+%_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 
 # included auto-generated code dependency...
