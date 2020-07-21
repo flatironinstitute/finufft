@@ -91,8 +91,8 @@ typedef struct FINUFFT_PLAN_S {  // the main plan struct; note C-compatible stru
   FINUFFT_PLAN innerT2plan;   // ptr used for type 2 in step 2 of type 3
   
   // other internal structs; each is C-compatible of course
-  FFTW_PLAN fftwPlan;   // *** should these 3 be ptrs instead?
-  nufft_opts opts;
+  FFTW_PLAN fftwPlan;
+  nufft_opts opts;     // this and spopts could be made ptrs
   spread_opts spopts;
   
 } FINUFFT_PLAN_S;

@@ -28,8 +28,8 @@ using namespace std;
    by Alex Barnett. Many rewrites in early 2020 by Alex Barnett & Libin Lu.
 
    As of v1.2 these replace the old hand-coded separate 9 finufft?d?() functions
-   and the two finufft2d?many() functions.
-   The (now 18) simple C++ interfaces are in simpleinterfaces.cpp
+   and the two finufft2d?many() functions. The (now 18) simple C++ interfaces
+   are in simpleinterfaces.cpp.
 
 Algorithm summaries taken from old finufft?d?() documentation, Feb-Jun 2017:
 
@@ -116,6 +116,7 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
   spopts.sort = opts.spread_sort;     // could make dim or CPU choices here?
   spopts.kerpad = opts.spread_kerpad; // (only applies to kerevalmeth=0)
   spopts.chkbnds = opts.chkbnds;
+  spopts.nthreads = opts.nthreads;    // 0 passed in becomes omp max by here
   return ier;
 } 
 
@@ -178,7 +179,8 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
 
-  Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18
+  Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18.
+  Fixed num_threads 7/20/20
  */
 {
   FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
@@ -194,25 +196,23 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
     a[n] = exp(2*PI*IMA*(FLT)(nf/2-z[n])/(FLT)nf);  // phase winding rates
   }
   BIGINT nout=nf/2+1;                   // how many values we're writing to
-  int nt = min(nout,(BIGINT)MY_OMP_GET_MAX_THREADS());      // how many chunks
+  int nt = min(nout,(BIGINT)opts.nthreads);         // how many chunks
   std::vector<BIGINT> brk(nt+1);        // start indices for each thread
   for (int t=0; t<=nt; ++t)             // split nout mode indices btw threads
     brk[t] = (BIGINT)(0.5 + nout*t/(double)nt);
-#pragma omp parallel
+#pragma omp parallel num_threads(nt)
   {                                     // each thread gets own chunk to do
     int t = MY_OMP_GET_THREAD_NUM();
-    if (t<nt) {                         // could be nt < actual # threads
-      std::complex<FLT> aj[MAX_NQUAD];       // phase rotator for this thread
-      for (int n=0;n<q;++n)
-	aj[n] = pow(a[n],(FLT)brk[t]);       // init phase factors for chunk
-      for (BIGINT j=brk[t];j<brk[t+1];++j) {       // loop along output array
-	FLT x = 0.0;                       // accumulator for answer at this j
-	for (int n=0;n<q;++n) {
-	  x += f[n] * 2*real(aj[n]);       // include the negative freq
-	  aj[n] *= a[n];                   // wind the phases
-	}
-	fwkerhalf[j] = x;
+    std::complex<FLT> aj[MAX_NQUAD];    // phase rotator for this thread
+    for (int n=0;n<q;++n)
+      aj[n] = pow(a[n],(FLT)brk[t]);    // init phase factors for chunk
+    for (BIGINT j=brk[t];j<brk[t+1];++j) {          // loop along output array
+      FLT x = 0.0;                      // accumulator for answer at this j
+      for (int n=0;n<q;++n) {
+        x += f[n] * 2*real(aj[n]);      // include the negative freq
+        aj[n] *= a[n];                  // wind the phases
       }
+      fwkerhalf[j] = x;
     }
   }
 }
@@ -249,7 +249,7 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
     f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // w/ quadr weights
     //    printf("f[%d] = %.3g\n",n,f[n]);
   }
-  #pragma omp parallel for
+#pragma omp parallel for num_threads(opts.nthreads)
   for (BIGINT j=0;j<nk;++j) {          // loop along output array
     FLT x = 0.0;                    // register
     for (int n=0;n<q;++n) x += f[n] * 2*cos(k[j]*z[n]);  // pos & neg freq pair
@@ -407,9 +407,9 @@ int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX* cBatch)
   Barnett 5/19/20, based on Malleo 2019.
 */
 {
-  // spread_thread=1 sequential multithread; 2 parallel single-thread.
+  // opts.spread_thread: 1 sequential multithread, 2 parallel single-thread.
   // omp_sets_nested deprecated, so don't use; assume not nested for 2 to work.
-  // But when nthr_outer=1, omp par inside the loop sees all threads.
+  // But when nthr_outer=1 here, omp par inside the loop sees all threads...
   int nthr_outer = p->opts.spread_thread==1 ? 1 : batchSize;
   
 #pragma omp parallel for num_threads(nthr_outer)
@@ -435,7 +435,7 @@ int deconvolveBatch(int batchSize, FINUFFT_PLAN p, CPX* fkBatch)
 */
 {
   // since deconvolveshuffle?d are single-thread, omp par seems to help here...
-#pragma omp parallel for
+#pragma omp parallel for num_threads(batchSize)
   for (int i=0; i<batchSize; i++) {
     FFTW_CPX *fwi = p->fwBatch + i*p->nf;  // start of i'th fw array in wkspace
     CPX *fki = fkBatch + i*p->N;           // start of i'th fk array in fkBatch
@@ -514,7 +514,7 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
   o->spread_thread = 0;      // default: auto
   o->maxbatchsize = 0;       // "
   o->showwarn = 1;
-  o->nthreads = 0;           // use all threads up to max_useful_threads
+  o->nthreads = 0;           // to reset to omp max
 }
 
 
@@ -559,10 +559,15 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   p->tol = tol;
   p->fftSign = (iflag>=0) ? 1 : -1;         // clean up flag input
 
+  // choose overall # threads...
+  int nthr = min(MY_OMP_GET_MAX_THREADS(), MAX_USEFUL_NTHREADS);   // limit it
+  if (p->opts.nthreads>0)
+    nthr = p->opts.nthreads;                // user override (no limit)
+  p->opts.nthreads = nthr;                  // store actual # thr planned for
+
   // choose batchSize for types 1,2 or 3... (uses int ceil(b/a)=1+(b-1)/a trick)
-  int nth = min(MY_OMP_GET_MAX_THREADS(), MAX_USEFUL_NTHREADS);   // limit it
   if (p->opts.maxbatchsize==0) {            // logic to auto-set best batchsize
-    p->nbatch = 1+(ntrans-1)/nth;           // min # batches poss
+    p->nbatch = 1+(ntrans-1)/nthr;          // min # batches poss
     p->batchSize = 1+(ntrans-1)/p->nbatch;  // then cut # thr in each b
   } else {                                  // batchSize override by user
     p->batchSize = min(p->opts.maxbatchsize,ntrans);
@@ -607,11 +612,11 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type==1 || type==2) {
 
-    int nth_fft = MY_OMP_GET_MAX_THREADS();   // give FFTW all it has access to
+    int nthr_fft = nthr;    // give FFTW same as overall
     // should limit max # threads here too? or set equal to batchsize?
     // *** put in logic for setting FFTW # thr based on o.spread_thread?
     FFTW_INIT();           // only does anything when OMP=ON for >1 threads
-    FFTW_PLAN_TH(nth_fft); // "  (not batchSize since can be 1 but want mul-thr)
+    FFTW_PLAN_TH(nthr_fft); // " (not batchSize since can be 1 but want mul-thr)
     p->spopts.spread_direction = type;
     
     // determine fine grid sizes, sanity check..
@@ -630,10 +635,10 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     }
 
     if (p->opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nth=%d batchSize=%d", __func__,
+      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d batchSize=%d", __func__,
              dim, type, (long long)p->ms,(long long)p->mt,
              (long long) p->mu, (long long)p->nf1,(long long)p->nf2,
-             (long long)p->nf3, ntrans, nth, p->batchSize);
+             (long long)p->nf3, ntrans, nthr, p->batchSize);
       if (p->batchSize==1)          // spread_thread has no effect in this case
         printf("\n");
       else
@@ -666,7 +671,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
     p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
          NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
-    if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nth=%d):\t%.3g s\n", __func__,p->opts.fftw, nth_fft, timer.elapsedsec());
+    if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__,p->opts.fftw, nthr_fft, timer.elapsedsec());
     delete []ns;
 
     p->sortIndices = NULL;
@@ -792,7 +797,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       ig2 = 1.0/p->t3P.gam2;
     if (d>2)
       ig3 = 1.0/p->t3P.gam3;
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
     for (BIGINT j=0;j<nj;++j) {
       p->X[j] = (xj[j] - p->t3P.C1) * ig1;         // rescale x_j
       if (d>1)        // (ok to do inside loop because of branch predict)
@@ -805,7 +810,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     CPX imasign = (p->fftSign>=0) ? IMA : -IMA;             // +-i
     p->prephase = (CPX*)malloc(sizeof(CPX)*nj);
     if (p->t3P.D1!=0.0 || p->t3P.D2!=0.0 || p->t3P.D3!=0.0) {
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
       for (BIGINT j=0;j<nj;++j) {          // ... loop over src NU locs
         FLT phase = p->t3P.D1*xj[j];
         if (d>1)
@@ -819,7 +824,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
         p->prephase[j] = (CPX)1.0;     // *** or keep flag so no mult in exec??
       
     // rescale the target s_k etc to s'_k etc...
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
     for (BIGINT k=0;k<nk;++k) {
       p->Sp[k] = p->t3P.h1*p->t3P.gam1*(s[k]- p->t3P.D1);  // so |s'_k| < pi/R
       if (d>1)
@@ -844,7 +849,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     }
     int Cfinite = isfinite(p->t3P.C1) && isfinite(p->t3P.C2) && isfinite(p->t3P.C3);    // C can be nan or inf if M=0, no input NU pts
     int Cnonzero = p->t3P.C1!=0.0 || p->t3P.C2!=0.0 || p->t3P.C3!=0.0;  // cen
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
     for (BIGINT k=0;k<nk;++k) {         // .... loop over NU targ freqs
       FLT phiHat = phiHatk1[k];
       if (d>1)
@@ -988,7 +993,7 @@ int FINUFFT_EXEC(FINUFFT_PLAN p, CPX* cj, CPX* fk){
       
       // STEP 0: pre-phase (possibly) the c_j input strengths into c'_j batch...
       timer.restart();
-#pragma omp parallel for
+#pragma omp parallel for num_threads(p->opts.nthreads)   // or p->batchSize?
       for (int i=0; i<thisBatchSize; i++) {
         BIGINT ioff = i*p->nj;
         for (BIGINT j=0;j<p->nj;++j)
@@ -1015,7 +1020,7 @@ int FINUFFT_EXEC(FINUFFT_PLAN p, CPX* cj, CPX* fk){
 
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
       timer.restart();
-#pragma omp parallel for
+#pragma omp parallel for num_threads(p->opts.nthreads)
       for (int i=0; i<thisBatchSize; i++) {
         BIGINT ioff = i*p->nk;
         for (BIGINT k=0;k<p->nk;++k)
