@@ -16,7 +16,7 @@ using namespace std;
 // This is a function only doing spread includes device memory allocation, transfer, free
 int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	CPX* h_fw, int M, const FLT *h_kx, const FLT *h_ky, const FLT* h_kz,
-	const CPX *h_c, FLT eps, CUFINUFFT_PLAN_S* d_plan)
+	const CPX *h_c, FLT eps, CUFINUFFT_PLAN d_plan)
 /*
 	This c function is written for only doing 3D spreading. It includes 
 	allocating, transfering, and freeing the memories on gpu. See 
@@ -135,7 +135,7 @@ int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	return ier;
 }
 
-int CUSPREAD3D(CUFINUFFT_PLAN_S* d_plan, int blksize)
+int CUSPREAD3D(CUFINUFFT_PLAN d_plan, int blksize)
 /*
 	A wrapper for different spreading methods. 
 
@@ -197,7 +197,7 @@ int CUSPREAD3D(CUFINUFFT_PLAN_S* d_plan, int blksize)
 }
 
 int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, 
-	CUFINUFFT_PLAN_S *d_plan)
+	CUFINUFFT_PLAN d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -370,7 +370,7 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M,
 }
 
 int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, 
-	CUFINUFFT_PLAN_S *d_plan, int blksize)
+	CUFINUFFT_PLAN d_plan, int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -422,7 +422,7 @@ int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M,
 }
 
 int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, 
-	CUFINUFFT_PLAN_S *d_plan)
+	CUFINUFFT_PLAN d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -824,7 +824,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M,
 }
 
 int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, 
-	CUFINUFFT_PLAN_S *d_plan, int blksize)
+	CUFINUFFT_PLAN d_plan, int blksize)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -917,7 +917,7 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M,
 }
 
 int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, 
-	CUFINUFFT_PLAN_S *d_plan)
+	CUFINUFFT_PLAN d_plan)
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -1153,7 +1153,7 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M,
 	return 0;
 }
 
-int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN_S *d_plan,
+int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;
