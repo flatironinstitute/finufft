@@ -15,8 +15,8 @@ NVARCH = -arch=sm_70 \
 	-gencode=arch=compute_75,code=compute_75
 
 CFLAGS= -fPIC -O3 -funroll-loops -march=native -g
-CXXFLAGS= $(CFLAGS) -std=c++11
-NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 $(NVARCH) -Wno-deprecated-gpu-targets \
+CXXFLAGS= $(CFLAGS) -std=c++14
+NVCCFLAGS= -std=c++14 -ccbin=$(CXX) -O3 $(NVARCH) -Wno-deprecated-gpu-targets \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
 
 # For debugging, tell nvcc to add symbols to host and device code respectively,
@@ -50,7 +50,7 @@ STATICLIB=lib-static/$(LIBNAME).a
 CLIBNAME=libcufinufftc
 DYNAMICCLIB=lib/$(CLIBNAME).so
 
-BINDIR=./bin
+BINDIR=bin
 
 HEADERS = include/cufinufft.h src/cudeconvolve.h src/memtransfer.h include/profile.h \
 	src/cuspreadinterp.h include/cufinufft_eitherprec.h include/cufinufft_errors.h
@@ -68,22 +68,24 @@ CUFINUFFTOBJS_64=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	src/3d/interp3d_wrapper.o src/3d/cufinufft3d.o \
 	$(CONTRIBOBJS)
 CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
+$(info $$CUFINUFFTOBJS_32 is [${CUFINUFFTOBJS_32}])
+
 
 CUFINUFFTCOBJS_64=src/cufinufftc.o
 CUFINUFFTCOBJS_32=$(CUFINUFFTCOBJS_64:%.o=%_32.o)
 
-%.o: %.cpp $(HEADERS)
-	$(CXX) -c $(CXXFLAGS) $(INC) $< -o $@
-%.o: %.c $(HEADERS)
-	$(CC) -c $(CFLAGS) $(INC) $< -o $@
-%.o: %.cu $(HEADERS)
-	$(NVCC) --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 %_32.o: %.cpp $(HEADERS)
 	$(CXX) -DSINGLE -c $(CXXFLAGS) $(INC) $< -o $@
 %_32.o: %.c $(HEADERS)
 	$(CC) -DSINGLE -c $(CFLAGS) $(INC) $< -o $@
 %_32.o: %.cu $(HEADERS)
 	$(NVCC) -DSINGLE --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
+%.o: %.cpp $(HEADERS)
+	$(CXX) -c $(CXXFLAGS) $(INC) $< -o $@
+%.o: %.c $(HEADERS)
+	$(CC) -c $(CFLAGS) $(INC) $< -o $@
+%.o: %.cu $(HEADERS)
+	$(NVCC) --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 
 
 all: $(BINDIR)/spread2d \
@@ -123,17 +125,17 @@ $(BINDIR)/interp3d: test/interp_3d.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
 	mkdir -p $(BINDIR)
 	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
-$(BINDIR)/%: test/%.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
+$(BINDIR)/cufinufft2d2api_test%: test/cufinufft2d2api_test%.o $(DYNAMICLIB)
 	mkdir -p $(BINDIR)
-	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
+	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $< $(DYNAMICLIB)
 
 $(BINDIR)/%_32: test/%_32.o $(CUFINUFFTOBJS_32) $(CUFINUFFTOBJS)
 	mkdir -p $(BINDIR)
 	$(NVCC) -DSINGLE $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-$(BINDIR)/cufinufft2d2api_test%: test/cufinufft2d2api_test%.o $(DYNAMICLIB)
+$(BINDIR)/%: test/%.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
 	mkdir -p $(BINDIR)
-	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $< $(DYNAMICLIB)
+	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 
 lib: $(STATICLIB) $(DYNAMICLIB)
@@ -273,6 +275,20 @@ check3D_32: all
 	bin/cufinufft3d2_test_32 1 1e2 2e2 3e2
 	bin/cufinufft3d2_test_32 2 1e2 2e2 3e2
 
+# Python, some users may want to use pip3 here.
+python:
+	pip install .
+
+# Docker, for distribution and generation of PyPI wheels.
+docker: docker_manylinux2010_x86_64 docker_manylinux2014_x86_64
+docker_manylinux2010_x86_64:
+	docker build --no-cache -f ci/docker/cuda10.1/Dockerfile-x86_64 -t test_cufinufft_manylinux2010 .
+docker_manylinux2014_x86_64:
+	docker build --no-cache -f ci/docker/cuda11.0/Dockerfile-x86_64 -t test_cufinufft_manylinux2014 .
+
+wheels: docker_manylinux2010_x86_64
+	docker run --gpus all -it -v ${PWD}/wheelhouse:/io/wheelhouse -e PLAT=manylinux2010_x86_64 test_cufinufft_manylinux2010 /io/ci/build-wheels.sh
+
 
 # Cleanup and phony targets
 
@@ -298,3 +314,4 @@ clean:
 .PHONY: clean
 .PHONY: clib
 .PHONY: lib
+.PHONY: python

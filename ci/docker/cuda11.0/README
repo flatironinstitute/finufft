@@ -1,0 +1,6 @@
+This configuration is based off of manylinux2014,
+which is iteself based off of centos8.
+
+I have extended manylinux with a compatible CUDA
+toolkit and runtime environment suitable for
+both building and running code inside docker.
