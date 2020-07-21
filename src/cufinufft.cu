@@ -493,7 +493,9 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 	if(!d_plan)
 		return 1;
 
-	cufftDestroy(d_plan->fftplan);
+	if(d_plan->fftplan)
+		cufftDestroy(d_plan->fftplan);
+
 	switch(d_plan->dim)
 	{
 		case 1:

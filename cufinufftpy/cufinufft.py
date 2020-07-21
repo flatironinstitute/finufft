@@ -6,11 +6,11 @@ the cufinufft CUDA libraries.
 
 import numpy as np
 
+from ctypes import byref
 from ctypes import c_int
+from ctypes import c_void_p
 
 from cufinufftpy._cufinufft import NufftOpts
-from cufinufftpy._cufinufft import CufinufftPlan
-from cufinufftpy._cufinufft import CufinufftPlanf
 from cufinufftpy._cufinufft import _default_opts
 from cufinufftpy._cufinufft import _make_plan
 from cufinufftpy._cufinufft import _make_planf
@@ -62,14 +62,12 @@ class cufinufft:
         self.dtype = np.dtype(dtype)
 
         if self.dtype == np.float64:
-            self.CufinufftPlan = CufinufftPlan
             self._make_plan = _make_plan
             self._set_pts = _set_pts
             self._exec_plan = _exec_plan
             self._destroy_plan = _destroy_plan
             self.complex_dtype = np.complex128
         elif self.dtype == np.float32:
-            self.CufinufftPlan = CufinufftPlanf
             self._make_plan = _make_planf
             self._set_pts = _set_ptsf
             self._exec_plan = _exec_planf
@@ -118,7 +116,7 @@ class cufinufft:
         """
 
         # Initialize struct
-        plan = self.CufinufftPlan()
+        self.plan = c_void_p(None)
 
         ier = self._make_plan(self._finufft_type,
                               self.dim,
@@ -127,13 +125,11 @@ class cufinufft:
                               self.ntransforms,
                               self.tol,
                               1,
-                              plan,
+                              byref(self.plan),
                               self.opts)
 
         if ier != 0:
             raise RuntimeError('Error creating plan.')
-
-        self.plan = plan
 
     def set_pts(self, M, kx, ky=None, kz=None):
         """

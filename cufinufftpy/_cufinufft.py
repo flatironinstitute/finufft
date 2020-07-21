@@ -112,89 +112,8 @@ def _get_SpeadOptsFields(dtype):
     return fields
 
 
-class SpreadOpts(ctypes.Structure):
-    pass
-
-
-SpreadOpts._fields_ = _get_SpeadOptsFields(np.float64)
-
-
-class SpreadOptsf(ctypes.Structure):
-    pass
-
-
-SpreadOptsf._fields_ = _get_SpeadOptsFields(np.float32)
-
-
-def _get_SpreadOpts(dtype):
-    if dtype == np.float64:
-        s = SpreadOpts
-    elif dtype == np.float32:
-        s = SpreadOptsf
-    else:
-        raise TypeError("Expected np.float32 or np.float64.")
-
-    return s
-
-
-def _get_CufinufftPlan(dtype):
-    REAL_t, REAL_ptr = _get_ctypes(dtype)
-
-    fields = [
-        ('opts', NufftOpts),
-        ('spopts', _get_SpreadOpts(dtype)),
-        ('type', c_int),
-        ('dim', c_int),
-        ('M', c_int),
-        ('nf1', c_int),
-        ('nf2', c_int),
-        ('nf3', c_int),
-        ('ms', c_int),
-        ('mt', c_int),
-        ('mu', c_int),
-        ('ntransf', c_int),
-        ('maxbatchsize', c_int),
-        ('iflag', c_int),
-        ('totalnumsubprob', c_int),
-        ('byte_now', c_int),
-        ('fwkerhalf1', REAL_ptr),
-        ('fwkerhalf2', REAL_ptr),
-        ('fwkerhalf3', REAL_ptr),
-        ('kx', REAL_ptr),
-        ('ky', REAL_ptr),
-        ('kz', REAL_ptr),
-        ('c', c_void_p),
-        ('fw', c_void_p),
-        ('fk', c_void_p),
-        ('idxnupts', c_int_p),
-        ('sortidx', c_int_p),
-        ('numsubprob', c_int_p),
-        ('binsize', c_int_p),
-        ('binstartpts', c_int_p),
-        ('subprob_to_bin', c_int_p),
-        ('subprobstartpts', c_int_p),
-        ('finegridsize', c_int_p),
-        ('fgstartpts', c_int_p),
-        ('numnupts', c_int_p),
-        ('subprob_to_nupts', c_int_p),
-        ('fftplan', c_int),
-        ('streams', c_void_p)]
-
-    return fields
-
-
-class CufinufftPlan(ctypes.Structure):
-    pass
-
-
-CufinufftPlan._fields_ = _get_CufinufftPlan(np.float64)
-
-
-class CufinufftPlanf(ctypes.Structure):
-    pass
-
-
-CufinufftPlanf._fields_ = _get_CufinufftPlan(np.float32)
+CufinufftPlan = c_void_p
+CufinufftPlanf = c_void_p
 
 CufinufftPlan_p = ctypes.POINTER(CufinufftPlan)
 CufinufftPlanf_p = ctypes.POINTER(CufinufftPlanf)
@@ -220,27 +139,27 @@ _make_planf.restypes = c_int
 _set_pts = lib.cufinufft_setpts
 _set_pts.argtypes = [
     c_int, c_void_p, c_void_p, c_void_p, ctypes.c_int, c_double_p,
-    c_double_p, c_double_p, CufinufftPlan_p]
+    c_double_p, c_double_p, c_void_p]
 _set_pts.restype = c_int
 
 _set_ptsf = lib.cufinufftf_setpts
 _set_ptsf.argtypes = [
     c_int, c_void_p, c_void_p, c_void_p, ctypes.c_int, c_float_p,
-    c_float_p, c_float_p, CufinufftPlanf_p]
+    c_float_p, c_float_p, c_void_p]
 _set_ptsf.restype = c_int
 
 _exec_plan = lib.cufinufft_exec
-_exec_plan.argtypes = [c_void_p, c_void_p, CufinufftPlan_p]
+_exec_plan.argtypes = [c_void_p, c_void_p, c_void_p]
 _exec_plan.restype = c_int
 
 _exec_planf = lib.cufinufftf_exec
-_exec_planf.argtypes = [c_void_p, c_void_p, CufinufftPlanf_p]
+_exec_planf.argtypes = [c_void_p, c_void_p, c_void_p]
 _exec_planf.restype = c_int
 
 _destroy_plan = lib.cufinufft_destroy
-_destroy_plan.argtypes = [CufinufftPlan_p]
+_destroy_plan.argtypes = [c_void_p]
 _destroy_plan.restype = c_int
 
 _destroy_planf = lib.cufinufftf_destroy
-_destroy_planf.argtypes = [CufinufftPlanf_p]
+_destroy_planf.argtypes = [c_void_p]
 _destroy_planf.restype = c_int
