@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=CUFINUFFT_SETPTS(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=CUFINUFFT_SETPTS(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, dplan);
 	if (ier!=0){
 		printf("err: cufinufft_setpts\n");
 	}
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=CUFINUFFT_EXEC(d_c, d_fk, &dplan);
+	ier=CUFINUFFT_EXEC(d_c, d_fk, dplan);
 	if (ier!=0){
 		printf("err: cufinufft2d1_exec\n");
 	}
@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=CUFINUFFT_DESTROY(&dplan);
+	ier=CUFINUFFT_DESTROY(dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);

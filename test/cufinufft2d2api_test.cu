@@ -77,19 +77,19 @@ int main(int argc, char* argv[])
 
 
   // Set Non uniform points
-  ier=cufinufft_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+  ier=cufinufft_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, dplan);
   if (ier!=0){
     printf("err: cufinufft_setpts\n");
   }
 
   // Execute the plan on the data
-  ier=cufinufft_exec(d_c, d_fk, &dplan);
+  ier=cufinufft_exec(d_c, d_fk, dplan);
   if (ier!=0){
     printf("err: cufinufft2d2_exec\n");
   }
 
   // Destroy the plan when done processing
-  ier=cufinufft_destroy(&dplan);
+  ier=cufinufft_destroy(dplan);
   if (ier!=0){
     printf("err: cufinufft_destroyc\n");
   }

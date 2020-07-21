@@ -10,7 +10,7 @@
 using namespace std;
 
 int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
-	FLT *h_kx, FLT *h_ky, CPX *h_c, CUFINUFFT_PLAN* d_plan)
+	FLT *h_kx, FLT *h_ky, CPX *h_c, CUFINUFFT_PLAN_S* d_plan)
 /*
 	This c function is written for only doing 2D interpolation. It includes 
 	allocating, transfering and freeing the memories on gpu. See 
@@ -107,7 +107,7 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	return ier;
 }
 
-int CUINTERP2D(CUFINUFFT_PLAN* d_plan, int blksize)
+int CUINTERP2D(CUFINUFFT_PLAN_S* d_plan, int blksize)
 /*
 	A wrapper for different interpolation methods. 
 
@@ -166,7 +166,7 @@ int CUINTERP2D(CUFINUFFT_PLAN* d_plan, int blksize)
 	return ier;
 }
 
-int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
+int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN_S *d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;
@@ -218,7 +218,7 @@ int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
 	return 0;
 }
 
-int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN *d_plan,
+int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN_S *d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;

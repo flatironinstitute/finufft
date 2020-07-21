@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft_setpts",3);
-		ier=CUFINUFFT_SETPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
+		ier=CUFINUFFT_SETPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, dplan);
 		if (ier!=0){
 			printf("err: cufinufft_setpts\n");
 		}
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft_exec",4);
-		ier=CUFINUFFT_EXEC(d_c, d_fk, &dplan);
+		ier=CUFINUFFT_EXEC(d_c, d_fk, dplan);
 		if (ier!=0){
 			printf("err: cufinufft_exec\n");
 		}
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_destroy",5);
-		ier=CUFINUFFT_DESTROY(&dplan);
+		ier=CUFINUFFT_DESTROY(dplan);
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
+			dplan->opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
 
 	int jt = M/2;          // check arbitrary choice of one targ pt
 	CPX J = IMA*(FLT)iflag;

@@ -75,6 +75,7 @@
 #undef CUDECONVOLVE2D
 #undef CUDECONVOLVE3D
 /* structs */
+#undef CUFINUFFT_PLAN_S
 #undef CUFINUFFT_PLAN
 
 
@@ -127,6 +128,7 @@
 #define CUDECONVOLVE2D cudeconvolve2df
 #define CUDECONVOLVE3D cudeconvolve3df
 /* structs */
+#define CUFINUFFT_PLAN_S cufinufftf_plan_s
 #define CUFINUFFT_PLAN cufinufftf_plan
 
 #else
@@ -178,11 +180,12 @@
 #define CUDECONVOLVE2D cudeconvolve2d
 #define CUDECONVOLVE3D cudeconvolve3d
 /* structs */
+#define CUFINUFFT_PLAN_S cufinufft_plan_s
 #define CUFINUFFT_PLAN cufinufft_plan
 
 #endif
 
-typedef struct {
+typedef struct CUFINUFFT_PLAN_S {
 	cufinufft_opts  opts;
 	SPREAD_OPTS     spopts;
 
@@ -232,11 +235,16 @@ typedef struct {
 	cufftHandle fftplan;
 	cudaStream_t *streams;
 
-} CUFINUFFT_PLAN;
+} CUFINUFFT_PLAN_S;
+
+//The plan that is passed around is a pointer to a struct.
+//makeplan will utilize a double pointer.
+//This encourags bindings to treat the struct as opaque.
+typedef struct CUFINUFFT_PLAN_S * CUFINUFFT_PLAN;
 
 
 /* We include common.h here because it depends on SPREAD_OPTS and
-   CUFINUFFT_PLAN structs being completely defined first. */
+   CUFINUFFT_PLAN_S structs being completely defined first. */
 #include "../contrib/common.h"
 
 #define checkCufftErrors(call)
@@ -247,22 +255,22 @@ extern "C" {
 int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts);
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
 		       int ntransf, FLT tol, int maxbatchsize,
-		       CUFINUFFT_PLAN *d_plan, cufinufft_opts *opts);
+		       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts);
 int CUFINUFFT_SETPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
-	FLT *h_t, FLT *h_u, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT_EXEC(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan);
+	FLT *h_t, FLT *h_u, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_EXEC(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan);
 #ifdef __cplusplus
 }
 #endif
 
 
 // 2d
-int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan);
+int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
 
 // 3d
-int CUFINUFFT3D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT3D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan);
+int CUFINUFFT3D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT3D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
 
 #endif
