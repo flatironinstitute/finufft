@@ -92,6 +92,10 @@ int main(int argc, char* argv[])
 	// Here we setup our own opts, for gpu_method and gpu_kerevalmeth.
 	cufinufft_opts opts;
 	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &opts);
+	if(ier!=0){
+	  printf("err %d: CUFINUFFT_DEFAULT_OPTS\n", ier);
+	  return ier;
+	}
 	opts.gpu_method=method;
 	opts.gpu_kerevalmeth=1;
 
@@ -105,7 +109,8 @@ int main(int argc, char* argv[])
 	ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
 			       maxbatchsize, &dplan, &opts);
 	if (ier!=0){
-		printf("err: cufinufft_makeplan\n");
+	  printf("err: cufinufft_makeplan\n");
+	  return ier;
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -116,7 +121,8 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	ier=CUFINUFFT_SETPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, dplan);
 	if (ier!=0){
-		printf("err: cufinufft_setpts\n");
+	  printf("err: cufinufft_setpts\n");
+	  return ier;
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -127,7 +133,8 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	ier=CUFINUFFT_EXEC(d_c, d_fk, dplan);
 	if (ier!=0){
-		printf("err: cufinufft_exec\n");
+	  printf("err: cufinufft_exec\n");
+	  return ier;
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);

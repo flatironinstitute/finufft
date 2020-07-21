@@ -73,6 +73,7 @@ int main(int argc, char* argv[])
                          maxbatchsize, &dplan, NULL);
   if (ier!=0){
     printf("err: cufinufft2d_plan\n");
+    return ier;
   }
 
 
@@ -80,18 +81,21 @@ int main(int argc, char* argv[])
   ier=cufinufft_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, dplan);
   if (ier!=0){
     printf("err: cufinufft_setpts\n");
+    return ier;
   }
 
   // Execute the plan on the data
   ier=cufinufft_exec(d_c, d_fk, dplan);
   if (ier!=0){
     printf("err: cufinufft2d2_exec\n");
+    return ier;
   }
 
   // Destroy the plan when done processing
   ier=cufinufft_destroy(dplan);
   if (ier!=0){
     printf("err: cufinufft_destroyc\n");
+    return ier;
   }
 
   // Copy test data back to host and compare

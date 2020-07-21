@@ -239,7 +239,7 @@ typedef struct CUFINUFFT_PLAN_S {
 
 //The plan that is passed around is a pointer to a struct.
 //makeplan will utilize a double pointer.
-//This encourags bindings to treat the struct as opaque.
+//This encourages bindings to treat the struct as opaque.
 typedef struct CUFINUFFT_PLAN_S * CUFINUFFT_PLAN;
 
 

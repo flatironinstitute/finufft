@@ -231,7 +231,6 @@ check3D_64: all
 	bin/cufinufft3d1_test 4 15 15 15 2048 1e-3
 	bin/cufinufft3d2_test 1 16 16 16 4096 1e-3
 	bin/cufinufft3d1_test 1 128 128 128
-	bin/cufinufft3d1_test 2 16 16 16
 	bin/cufinufft3d1_test 4 15 15 15
 	bin/cufinufft3d2_test 1 16 16 16
 	bin/cufinufft3d1_test 1 64 64 64 1000
