@@ -22,10 +22,10 @@ n_modes[0] = N
 strt = time.time()
 
 #plan
-plan = fp.Plan(1,n_modes,dtype='single')
+plan = fp.Plan(1,(N,),dtype='single')
 
 #set pts
-plan.setpts(x,None,None,None,None,None)
+plan.setpts(x)
 
 #exec
 plan.execute(c,F)
