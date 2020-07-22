@@ -1,6 +1,11 @@
-CC=gcc
-CXX=g++
-NVCC=nvcc
+# Load site-specific setting -- detected using environment variable `site`
+ifeq ($(site), nersc_cori)
+    -include sites/make.inc.nersc_cori
+endif
+
+CC   ?= gcc
+CXX  ?= g++
+NVCC ?= nvcc
 
 # We'll sacrifice longer compile times for broader compatibility out of the box.
 # Developer-users are suggested to change this in their make.inc, see:
@@ -12,7 +17,7 @@ NVARCH = -arch=sm_70 \
 	-gencode=arch=compute_61,code=sm_61 \
 	-gencode=arch=compute_70,code=sm_70 \
 	-gencode=arch=compute_75,code=sm_75 \
-	-gencode=arch=compute_75,code=compute_75 
+	-gencode=arch=compute_75,code=compute_75
 
 CXXFLAGS= -DNEED_EXTERN_C -fPIC -O3 -funroll-loops -march=native -g -std=c++11
 #NVCCFLAGS=-DINFO -DDEBUG -DRESULT -DTIME
@@ -20,40 +25,68 @@ NVCCFLAGS= -std=c++11 -ccbin=$(CXX) -O3 $(NVARCH) \
 	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
 #DEBUG add "-g -G" for cuda-gdb debugger
 
-# CUDA Related build dependencies
+# CUDA Related build dependencies -- the user can overwrite CUDA_ROOT using the
+# CUDA_DIR environment variable. If neither (CUDA_ROOT, nor CUDA_DIR) is set,
+# CUDA_ROOT defaults to /usr/local/cuda
 ifeq ($(CUDA_DIR),)
-CUDA_ROOT ?= /usr/local/cuda
+    CUDA_ROOT ?= /usr/local/cuda
 else
-CUDA_ROOT := $(CUDA_DIR)
-endif 
-INC=-I$(CUDA_ROOT)/include \
-	-Icontrib/cuda_samples
-NVCC_LIBS_PATH=-L$(CUDA_ROOT)/lib64
+    CUDA_ROOT := $(CUDA_DIR)
+endif
+
+# Common includes
+INC=-I$(CUDA_ROOT)/include -Icontrib/cuda_samples
+ifdef FFTW_INC
+    $(info detected a FFTW_INC variable -- setting FFTW include directory)
+    INC += -I$(FFTW_INC)
+endif
 
 FFTWNAME=fftw3
 FFTW=$(FFTWNAME)$(PRECSUFFIX)
 
+# Common libs
 LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTW)
+ifdef FFTW_DIR
+    $(info detected a FFTW_DIR variable -- setting FFTW library directory)
+    LIBS += -L$(FFTW_DIR)
+endif
+
+# NVCC-specific includes
+NVCC_INC=
+ifdef FFTW_INC
+    NVCC_INC += -I$(FFTW_INC)
+endif
+
+# NVCC-specific libs
+NVCC_LIBS_PATH = -L$(CUDA_ROOT)/lib64
+ifdef FFTW_DIR
+    NVCC_LIBS_PATH += -L$(FFTW_DIR)
+endif
+ifdef NVCC_STUBS
+    $(info detected CUDA_STUBS -- setting CUDA stubs directory)
+    NVCC_LIBS_PATH += -L$(NVCC_STUBS)
+endif
+
 
 
 #############################################################
 # Allow the user to override any variable above this point. #
 uname_p := $(shell uname -p)
 ifeq ($(uname_p), ppc64le)
--include make.inc.power9
+    -include make.inc.power9
 else
--include make.inc
+    -include make.inc
 endif
 
 # Include header files
 INC += -I include
 
 ifeq ($(PREC),SINGLE)
-PRECSUFFIX=f
-CXXFLAGS+=-DSINGLE
-NVCCFLAGS+=-DSINGLE
+    PRECSUFFIX=f
+    CXXFLAGS+=-DSINGLE
+    NVCCFLAGS+=-DSINGLE
 else
-PRECSUFFIX=
+    PRECSUFFIX=
 endif
 
 LIBNAME=libcufinufft$(PRECSUFFIX)
@@ -84,7 +117,7 @@ CUFINUFFTCOBJS=src/cufinufftc.o
 %.o: %.c
 	$(CC) -c $(CXXFLAGS) $(INC) $< -o $@
 %.o: %.cu
-	$(NVCC) -c $(NVCCFLAGS) $(INC) $< -o $@
+	$(NVCC) -c $(NVCCFLAGS) $(INC) $(NVCC_INC) $< -o $@
 
 all: $(BINDIR)/spread2d \
 	$(BINDIR)/interp2d \
@@ -153,7 +186,7 @@ $(DYNAMICLIB): $(CUFINUFFTOBJS) $(CONTRIBOBJS)
 
 $(DYNAMICCLIB): $(CUFINUFFTCOBJS) $(STATICLIB)
 	mkdir -p lib
-	gcc -shared -o $(DYNAMICCLIB) $(CUFINUFFTCOBJS) $(STATICLIB) $(NVCC_LIBS_PATH) $(LIBS)
+	$(CC) -shared -o $(DYNAMICCLIB) $(CUFINUFFTCOBJS) $(STATICLIB) $(NVCC_LIBS_PATH) $(LIBS)
 
 clean:
 	rm -f *.o
