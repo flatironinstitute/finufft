@@ -39,6 +39,7 @@ int main(int argc, char* argv[])
     popts = (nufft_opts *)malloc(sizeof(nufft_opts));         // allocate it
     finufft_default_opts(popts);
     popts->debug = 1;        // example options change
+    popts->nthreads = 4;     // "
     finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, popts);
   } else                     // or, NULL here means use default opts...
     finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
