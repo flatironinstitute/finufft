@@ -24,7 +24,14 @@ from finufftpy.finufftpy_cpp import finufftf_plan
 
 ### FinufftPlan class definition
 class FinufftPlan:
-    def __init__(self,tp,n_modes_or_dim,iflag,n_trans,eps=None,**kwargs):
+    def __init__(self,tp,n_modes_or_dim,iflag=None,n_trans=1,eps=None,**kwargs):
+        # set default iflag based on if iflag is None
+        if iflag==None:
+            if tp==2:
+                iflag = -1
+            else:
+                iflag = 1
+
         # set opts and check precision type
         opts = nufft_opts()
         default_opts(opts)
@@ -67,6 +74,12 @@ class FinufftPlan:
         # set C++ side plan as inner_plan
         self.inner_plan = plan
 
+        # set properties
+        self.type = tp
+        self.dim = dim
+        self.n_modes = n_modes
+        self.n_trans = n_trans
+
 
     ### setpts
     def setpts(self,xj=None,yj=None,zj=None,s=None,t=None,u=None):
@@ -82,12 +95,12 @@ class FinufftPlan:
             self._uf = _rchkf(u)
 
             # valid sizes
-            dim = finufftpy_cpp.get_dimf(self.inner_plan)
-            tp = finufftpy_cpp.get_typef(self.inner_plan)
-            (nj, nk) = valid_setpts(tp, dim, self._xjf, self._yjf, self._zjf, self._sf, self._tf, self._uf)
+            dim = self.dim
+            tp = self.type
+            (self.nj, self.nk) = valid_setpts(tp, dim, self._xjf, self._yjf, self._zjf, self._sf, self._tf, self._uf)
 
             # call set pts for single prec plan
-            ier = finufftpy_cpp.setptsf(self.inner_plan,nj,self._xjf,self._yjf,self._zjf,nk,self._sf,self._tf,self._uf)
+            ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
         else:
             # array sanity check
             self._xj = _rchk(xj)
@@ -98,12 +111,12 @@ class FinufftPlan:
             self._u = _rchk(u)
 
             # valid sizes
-            dim = finufftpy_cpp.get_dim(self.inner_plan)
-            tp = finufftpy_cpp.get_type(self.inner_plan)
-            (nj, nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
+            dim = self.dim
+            tp = self.type
+            (self.nj, self.nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
 
             # call set pts for double prec plan
-            ier = finufftpy_cpp.setpts(self.inner_plan,nj,self._xj,self._yj,self._zj,nk,self._s,self._t,self._u)
+            ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
 
         if ier != 0:
             err_handler(ier)
@@ -116,27 +129,20 @@ class FinufftPlan:
         if is_single:
             _data = _cchkf(data)
             _out = _cchkf(out)
-
-            tp = finufftpy_cpp.get_typef(self.inner_plan)
-            n_trans = finufftpy_cpp.get_ntransf(self.inner_plan)
-            nj = finufftpy_cpp.get_njf(self.inner_plan)
-            nk = finufftpy_cpp.get_nkf(self.inner_plan)
-            dim = finufftpy_cpp.get_dimf(self.inner_plan)
         else:
             _data = _cchk(data)
             _out = _cchk(out)
 
-            tp = finufftpy_cpp.get_type(self.inner_plan)
-            n_trans = finufftpy_cpp.get_ntrans(self.inner_plan)
-            nj = finufftpy_cpp.get_nj(self.inner_plan)
-            nk = finufftpy_cpp.get_nk(self.inner_plan)
-            dim = finufftpy_cpp.get_dim(self.inner_plan)
+        tp = self.type
+        n_trans = self.n_trans
+        nj = self.nj
+        nk = self.nk
+        dim = self.dim
 
         if tp==1 or tp==2:
-            if is_single:
-                (ms, mt, mu) = finufftpy_cpp.get_nmodesf(self.inner_plan)
-            else:
-                (ms, mt, mu) = finufftpy_cpp.get_nmodes(self.inner_plan)
+            ms = self.n_modes[0]
+            mt = self.n_modes[1]
+            mu = self.n_modes[2]
 
         # input shape and size check
         if tp==2:
@@ -194,6 +200,7 @@ class FinufftPlan:
 
     def __del__(self):
         destroy(self.inner_plan)
+        self.inner_plan = None
 ### End of FinufftPlan class definition
 
 
