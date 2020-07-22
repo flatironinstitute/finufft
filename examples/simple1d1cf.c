@@ -6,6 +6,7 @@
 #include <math.h>
 #include <complex.h>
 #include <stdio.h>
+#include <assert.h>
 
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C, using C complex type,
@@ -41,18 +42,19 @@ int main(int argc, char* argv[])
   // call the NUFFT (with iflag=+1), passing pointers...
   int ier = finufftf1d1(M,x,c,+1,tol,N,F,&opts);
 
-  int n = 14251;          // check the answer just for this mode...
+  int k = 14251;          // check the answer just for this mode...
+  assert(k>=-(double)N/2 && k<(double)N/2);
   float complex Ftest = CMPLXF(0.0,0.0);    // defined in complex.h (I too)
   for (int j=0; j<M; ++j)
-    Ftest += c[j] * cexpf(I*(float)n*x[j]);
-  int nout = n+N/2;       // index in output array for freq mode n
+    Ftest += c[j] * cexpf(I*(float)k*x[j]);
   float Fmax = 0.0;       // compute inf norm of F
   for (int m=0; m<N; ++m) {
     float aF = cabsf(F[m]);
     if (aF>Fmax) Fmax=aF;
   }
-  float err = cabsf(F[nout] - Ftest)/Fmax;
-  printf("1D type 1 NUFFT, single-prec. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
+  int kout = k+N/2;       // index in output array for freq mode k
+  float err = cabsf(F[kout] - Ftest)/Fmax;
+  printf("1D type 1 NUFFT, single-prec. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,k,err);
 
   free(x); free(c); free(F);
   return ier;

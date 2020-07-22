@@ -6,6 +6,7 @@
 #include <complex>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cassert>
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -41,17 +42,18 @@ int main(int argc, char* argv[])
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
   int ier = finufftf1d1(M,&x[0],&c[0],+1,acc,N,&F[0],opts);   // note "f"
 
-  int n = 14251;   // check the answer just for this mode...
+  int k = 14251;   // check the answer just for this mode...
+  assert(k>=-(double)N/2 && k<(double)N/2);
   complex<float> Ftest = complex<float>(0,0);
   for (int j=0; j<M; ++j)
-    Ftest += c[j] * exp(I*(float)n*x[j]);
-  int nout = n+N/2;       // index in output array for freq mode n
+    Ftest += c[j] * exp(I*(float)k*x[j]);
   float Fmax = 0.0;       // compute inf norm of F
   for (int m=0; m<N; ++m) {
     float aF = abs(F[m]);
     if (aF>Fmax) Fmax=aF;
   }
-  float err = abs(F[nout] - Ftest)/Fmax;
-  printf("1D type-1 single-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",ier,n,err);
+  int kout = k+N/2;       // index in output array for freq mode k
+  float err = abs(F[kout] - Ftest)/Fmax;
+  printf("1D type-1 single-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",ier,k,err);
   return ier;
 }

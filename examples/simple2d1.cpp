@@ -21,16 +21,15 @@ int main(int argc, char *argv[]){
    Usage:  ./simple2d1
 */
 
-  int M = 1e6; // number of nonuniform points
-  int N = 1e6; // approximate total number of modes (N1*N2)
-  double acc = 1e-9; //desired accuracy
+  int M = 1e6;                 // number of nonuniform points
+  int N = 1e6;                 // approximate total number of modes (N1*N2)
+  double acc = 1e-6;           // desired accuracy
   nufft_opts opts; finufft_default_opts(&opts);
-  complex<double> I(0.0, 1.0); //the imaginary unit
+  complex<double> I(0.0, 1.0); // the imaginary unit
 
   // generate random non-uniform points on (x,y) and complex strengths (c):
-  vector<double> x(M);
-  vector<double> y(M);
-  vector<complex<double> > c(M, complex<double>(0,0));
+  vector<double> x(M), y(M);
+  vector<complex<double> > c(M);
 
   for(int i = 0; i < M; i++){
     x[i] = M_PI*(2*(double)rand()/RAND_MAX-1); //uniform random in [-pi, pi)
@@ -44,23 +43,18 @@ int main(int argc, char *argv[]){
   int N2 = round(N/N1);
   
   // output array for the Fourier modes
-  vector<complex<double> > F(int(N1*N2) + 1, complex<double>(0,0));
+  vector<complex<double> > F(N1*N2);
 
-  // call the NUFFT (with iflag += 1): note N and M are typecast to BIGINT
+  // call the NUFFT (with iflag += 1): note passing in pointers...
+  opts.upsampfac = 1.25;
   int ier = finufft2d1(M,&x[0],&y[0], &c[0], 1, acc, N1, N2, &F[0], &opts);
 
-  double n_x = round(0.45*N1); //check the answer for this arbitrary mode
-  double n_y = round(-0.35*N2);
+  int k1 = round(0.45*N1); //check the answer for this arbitrary mode
+  int k2 = round(-0.35*N2);
   
   complex<double> Ftest(0,0);
-  for(int j = 0; j < M; j++){
-    Ftest += c[j]*exp(I*(n_x*x[j]+n_y*y[j]));
-  }
-  
-  // indices in output array for this frequency pair?
-  int n_out_x = n_x + (int)N1/2; 
-  int n_out_y = n_y + (int)N2/2;
-  int indexOut = n_out_x + n_out_y*(N1);  
+  for(int j = 0; j < M; j++)
+    Ftest += c[j]*exp(I*((double)k1*x[j]+(double)k2*y[j]));
 
   // compute inf norm of F 
   double Fmax = 0.0;
@@ -68,12 +62,14 @@ int main(int argc, char *argv[]){
     double aF = abs(F[m]);
     if (aF>Fmax) Fmax=aF;
   }
+  
+  // indices in output array for this frequency pair?
+  int k1out = k1 + (int)N1/2; 
+  int k2out = k2 + (int)N2/2;
+  int indexOut = k1out + k2out*(N1);
 
   // compute relative error
-  double err = abs(F[indexOut] - Ftest)/Fmax; 
-
+  double err = abs(F[indexOut] - Ftest)/Fmax;
   cout << "2D type-1 NUFFT done. ier=" << ier << ", err in F[" << indexOut << "] rel to max(F) is " << setprecision(2) << err << endl;
-
   return ier;
-
 }

@@ -4,31 +4,31 @@ clear
 
 % set required parameters...
 isign   = +1;     % sign of imaginary unit in exponential
-eps     = 1e-6;   % requested accuracy
-M       = 2e6;
+tol     = 1e-9;   % requested accuracy
+M       = 1e7;
 N       = 1e6;    % # of modes (approx total, used in all dims)
 type = 1;
 n_modes = N;      % n_dims inferred from length of this
-n_transf = 1;
-
-disp('starting...'), tic
-% set options then plan the transform...
-opts.debug=2;
-opts.spread_debug=0;
-plan = finufft_plan(type,n_modes,isign,n_transf,eps,opts);
+ntrans = 10;
 
 x = pi*(2*rand(1,M)-1);                         % choose NU points
+c = randn(1,M*ntrans)+1i*randn(1,M*ntrans);     % choose stack of strengths
+
+disp('starting...'), tic     % just time FINUFFT not the data creation
+opts.debug=1;    % set options then plan the transform...
+plan = finufft_plan(type,n_modes,isign,ntrans,tol,opts);
+
 plan.setpts(x,[],[]);                           % send them in
 
-c = randn(1,M)+1i*randn(1,M);                   % choose strengths
 f = plan.exec(c);                               % do the transform
-
 disp('done.'); toc
+
 % if you do not want to do more transforms of this size, clean up...
 delete(plan);
 
 % check the error of one output...
 nt = ceil(0.37*N);                              % pick a mode index
-fe = sum(c.*exp(1i*isign*nt*x));                % exact
-of1 = floor(N/2)+1;                             % mode index offset
+t = ceil(0.7*ntrans);                           % pick a transform in stack
+fe = sum(c(M*(t-1)+(1:M)).*exp(1i*isign*nt*x));        % exact
+of1 = floor(N/2) + 1 + N*(t-1);                          % mode index offset
 fprintf('rel err in F[%d] is %.3g\n',nt,abs(fe-f(nt+of1))/norm(f,Inf))

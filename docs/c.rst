@@ -37,7 +37,7 @@ allocate their output array:
 
 .. code-block:: C++
   
-  int N = 1e6;            // number of modes
+  int N = 1e6;                                   // number of output modes
   vector<complex<double> > F(N);
 
 Now do the NUFFT (with default options, indicated by the ``NULL`` in the following call). Since the interface is
@@ -49,8 +49,10 @@ C++-style vector objects), and also pass ``N``:
   int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);
 
 This fills ``F`` with the output modes, in increasing ordering
-from frequency index ``-N/2`` up to ``N/2-1``. Doing :math:`10^7` points
+from frequency index ``-N/2`` up to ``N/2-1``. Transforming :math:`10^7` points
 to :math:`10^6` modes takes 1-2 seconds on a laptop.
+The indexing is offset by ``(int)N/2``, so that frequency ``k`` is output in
+``F[(int)N/2 + k]``.
 Here ``+1`` sets the sign of :math:`i` in the exponentials
 (see :ref:`definitions <math>`),
 ``1e-9`` requests 9-digit relative tolerance, and ``ier`` is a status output
@@ -96,8 +98,8 @@ Quick-start example in C
 
 FINUFFT is intentionally C-compatible.
 Thus, to use from C, the above example only needs to replace the C++
-``vector``s with C-style array creation. The above code, choosing options,
-becomes:
+``vector``s with C-style array creation. Using C99 style, the
+above code, with options setting, becomes:
 
 .. code-block:: C
 
@@ -105,24 +107,29 @@ becomes:
 #include <stdlib.h>
 #include <complex.h>
 
-  int j, M = 1e7;            // number of nonuniform points          
+  int M = 1e7;            // number of nonuniform points
   double* x = (double *)malloc(sizeof(double)*M);
   double complex* c = (double complex*)malloc(sizeof(double complex)*M);
-  for (j=0; j<M; ++j) {
+  for (int j=0; j<M; ++j) {
     x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
   }
-  // allocate complex output array for the Fourier modes
-  F = (double complex*)malloc(sizeof(double complex)*N);
-
+  int N = 1e6;            // number of modes
+  double complex* F = (double complex*)malloc(sizeof(double complex)*N);
+  nufft_opts opts;                      // make an opts struct
+  finufft_default_opts(&opts);          // set default opts (must do this)
+  opts.debug = 2;                       // more debug/timing to stdout
+  int ier = finufft1d1(M,x,c,+1,1e-9,N,F,&opts);
+  // (do something with F here!...)
+  free(x); free(c); free(F);
                 
-
 See ``examples/simple1d1c.c`` and ``examples/simple1d1cf.c`` for
-double- and single-precision C examples.
+double- and single-precision C examples, including the math check to insure
+the correct indexing of output modes.
 
 
 Two-dimensional example in C++
---------------------------
+------------------------------
 
 We assume Fortran-style contiguous multidimensional arrays, as opposed
 to C-style arrays of pointers; this allows the widest compatibility with other
@@ -158,19 +165,79 @@ So, the output frequency ``(k1,k2)`` is found in
 See ``opts.modeord`` to instead use FFT-style mode ordering, which
 simply differs an ``fftshift`` (as it is commonly called).
 
-See ``examples/simple2d1.cpp`` for an example with a math check.
+See ``examples/simple2d1.cpp`` for an example with a math check, to
+insure the modes are correctly indexed.
 
 
-Vectorized and guru interface examples
---------------------------------------
+Vectorized interface example
+----------------------------
 
-A common use case is to perform identical transforms with the
+A common use case is to perform a stack of identical transforms with the
 same size and nonuniform points, but for new strength vectors.
 (Applications include interpolating vector-valued data, or processing
-MRI data collected with fixed k-space sample points.)
+MRI images collected with a fixed set of k-space sample points.)
+Because it amortizes sorting, FFTW planning, and FFTW plan lookup,
+it can be faster to use a "vectorized"
+interface (which does the entire stack in one call)
+than to repeatedly call the above "simple" interfaces.
+This is especially true for many small problems.
+Here we show how to do a stack of ``ntrans=10`` 1D type 1 NUFFT transforms, in C++,
+assuming the same headers as in the first example above.
+The strength data vectors are taken to be contiguous (the whole
+first vector, followed by the second, etc, rather than interleaved.)
+Ie, viewed as a matrix in Fortran storage, each column is a strength vector.
+
+.. code-block:: C++
+
+  int ntrans = 10;                               // how many transforms
+  int M = 1e7;                                   // number of nonuniform points
+  vector<double> x(M);
+  vector<complex<double> > c(M*ntrans);          // ntrans strength vectors
+  complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
+  for (int j=0; j<M; ++j)
+    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);
+  for (int j=0; j<M*ntrans; ++j)                 // fill all ntrans vectors...
+    c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
+  int N = 1e6;                                   // number of output modes
+  vector<complex<double> > F(N*trans);           // ntrans output vectors
+  int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);    // default opts
+
+This takes just over 5 seconds on a laptop, which is around 2.5x faster than
+making 10 separate "simple" calls, quite an efficiency gain.
+The frequency index ``k`` in the ``t``th transform (zero-indexing the transforms) is in ``F[k + (int)N/2 + N*t]``.
+
+See ``examples/many1d1.cpp`` and ``test/finufft?dmany_test.cpp``
+for more examples.
 
 
+Guru interface example
+----------------------
 
+More flexible than the above interface is our "guru" interface;
+this is modelled on that of FFTW3, and similar to the main interface of
+`NFFT3 <https://www-user.tu-chemnitz.de/~potts/nfft/>`_.
+This lets you change the nonuniform points while keeping the
+same pointer to an FFTW plan for a particular number of stacked transforms
+with a certain number of modes.
+This avoids the overhead (typically 0.1 ms per thread) of FFTW checking for
+previous wisdom, which can cause a huge slow-down for many small transforms.
+You may also send in a new
+set of stacked strength data (for type 1 and 3, or coefficients for type 2),
+reusing the existing FFTW plan and sorted points.
+Here is a 1D type 1 example in C++.
+
+One first makes a plan giving transform parameters, but no data:
+
+.. code-block:: C++
+
+  ***
+
+
+  finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+
+*** 
+
+  
 
 .. note::
   User must destroy a plan before making a new plan using the same
