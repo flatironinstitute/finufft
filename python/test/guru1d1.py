@@ -7,8 +7,6 @@ import numpy as np
 
 np.random.seed(42)
 
-acc = 1.e-9
-iflag = 1
 N = int(1e6)
 M = int(1e5)
 x = np.random.uniform(-np.pi, np.pi, M)
