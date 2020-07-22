@@ -22,8 +22,8 @@ from finufftpy.finufftpy_cpp import finufft_plan
 from finufftpy.finufftpy_cpp import finufftf_plan
 
 
-### FinufftPlan class definition
-class FinufftPlan:
+### Plan class definition
+class Plan:
     def __init__(self,tp,n_modes_or_dim,iflag=None,n_trans=1,eps=None,**kwargs):
         # set default iflag based on if iflag is None
         if iflag==None:
@@ -201,7 +201,7 @@ class FinufftPlan:
     def __del__(self):
         destroy(self.inner_plan)
         self.inner_plan = None
-### End of FinufftPlan class definition
+### End of Plan class definition
 
 
 
@@ -454,9 +454,9 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
 
     #plan
     if tp==3:
-        plan = FinufftPlan(tp,dim,isign,n_trans,eps,**kwargs)
+        plan = Plan(tp,dim,isign,n_trans,eps,**kwargs)
     else:
-        plan = FinufftPlan(tp,n_modes,isign,n_trans,eps,**kwargs)
+        plan = Plan(tp,n_modes,isign,n_trans,eps,**kwargs)
 
     #setpts
     plan.setpts(x,y,z,s,t,u)
