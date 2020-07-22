@@ -1,0 +1,8 @@
+CC  = $(shell which cc)
+CXX = $(shell which CC)
+
+$(info detected compiler wrappers:)
+$(info CC  = $(CC))
+$(info CXX = $(CXX))
+
+NVCC_STUBS := $(CUDA_ROOT)/lib64/stubs
