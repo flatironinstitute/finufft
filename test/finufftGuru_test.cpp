@@ -10,7 +10,7 @@ double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,FINUFFT_PLAN plan);
 // --------------------------------------------------------------------------
 int main(int argc, char* argv[])
 /* Test/demo the guru interface, for many transforms with same NU pts, either
-   precisions.
+   precisions. This is pretty old clunky code, not amain part of self-test.
 
    Warning: unlike the finufft?d{many}_test routines, this does *not* perform
    a math test of the library, just consistency of the simple vs guru
@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
    spread_scheme = 0: sequential maximally multithreaded spread/interp
                    1: parallel singlethreaded spread/interp, nested last batch
    
-   Example: finufftGuru_test 10 1 2 1000 1000 0 1000000 1e-9 0 0 0 2 2.0
+   Example: finufftGuru_test 100 1 2 100 100 0 1000000 1e-3 1 0 0 2 2.0
 
    The unused dimensions of Nmodes may be left as zero.
    For type 3, Nmodes{1,2,3} controls the spread of NU freq targs in each dim.
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
   
   // Collect command line arguments ------------------------------------------
   if (argc<8 || argc>14) {
-    fprintf(stderr,"Usage: finufftGuru_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]\n\teg:\tfinufftGuru_test 10 1 2 1e3 1e3 0 1e6 1e-9 0 0 0 2 1.25\n");
+    fprintf(stderr,"Usage: finufftGuru_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]\n\teg:\tfinufftGuru_test 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2\n");
     return 1;
   }
   sscanf(argv[1],"%d",&ntransf);
@@ -171,36 +171,28 @@ int main(int argc, char* argv[])
   } else
     printf("\texec \t\t\t\t\t%.3g s\n", exec_t);
 
-  timer.restart();                     // Guru Step 4
-  FINUFFT_DESTROY(plan);
-  double destroy_t = timer.elapsedsec();
-  printf("\tdestroy\t\t\t\t\t%.3g s\n", destroy_t);
-  
-  double totalTime = plan_t + sort_t + exec_t + destroy_t;
+  double totalTime = plan_t + sort_t + exec_t;
   if (type!=3)
     printf("ntr=%d: %lld NU pts to %lld modes in %.3g s \t%.3g NU pts/s\n", ntransf, (long long)M,(long long)N, totalTime, ntransf*M/totalTime);
   else
     printf("ntr=%d: %lld NU pts to %lld NU pts in %.3g s \t%.3g tot NU pts/s\n", ntransf, (long long)M,(long long)N, totalTime, ntransf*(N+M)/totalTime);
 
-  
   // Comparing timing results with repeated calls to corresponding finufft function...
-  FFTW_CLEANUP();
-  FFTW_CLEANUP_THREADS();
-  FFTW_FORGET_WISDOM();
+  //FFTW_CLEANUP();
+  //FFTW_CLEANUP_THREADS();
+  //FFTW_FORGET_WISDOM();
   //std::this_thread::sleep_for(std::chrono::seconds(1)); if c++11 is allowed
   sleep(tsleep); //sleep for one second using linux sleep call
+  // however, they cause segfault if done before destroy, so, removed.
   
   printf("Compare speed of repeated calls to simple interface:------------------------\n");
   // this used to actually call Alex's old (v1.1) src/finufft?d.cpp routines.
   // Since we don't want to ship those, we now call the simple interfaces.
   
   double simpleTime = many_simple_calls(c,F, x, y, z, plan);
-
-  FFTW_CLEANUP();
-  FFTW_CLEANUP_THREADS();
-  FFTW_FORGET_WISDOM();
-  //std::this_thread::sleep_for(std::chrono::seconds(1));
-  sleep(tsleep);
+  if (isnan(simpleTime))
+    return 1;
+  
   if (type!=3)
     printf("%d of:\t%lld NU pts to %lld modes in %.3g s   \t%.3g NU pts/s\n",
            ntransf,(long long)M,(long long)N, simpleTime, ntransf*M/simpleTime);
@@ -209,6 +201,11 @@ int main(int argc, char* argv[])
            ntransf,(long long)M,(long long)N, simpleTime, ntransf*(M+N)/simpleTime);
   printf("\tspeedup \t T_finufft%dd%d_simple / T_finufft%dd%d = %.3g\n",ndim,type,
          ndim, type, simpleTime/totalTime);
+
+  
+  FINUFFT_DESTROY(plan);              // Guru Step 4
+  // (must be done *after* many_simple_calls, which sneaks a look at the plan!)
+  // however, segfaults, maybe because plan->opts.debug changed?
   
   //---------------------------- Free Memory (no need to test if NULL)
   free(F);
@@ -237,12 +234,12 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
   CNTime timer; timer.start();
   int ier = 0;
   double t = 0;
-  double fail = -1.0;                  // dummy code for failure
+  double fail = NAN;                  // dummy code for failure
   nufft_opts* popts = &(plan->opts);   // opts ptr, as v1.2 simple calls need
-  switch(plan->dim){
+  switch (plan->dim){
     
   case 1:                    // 1D
-    switch(plan->type){
+    switch (plan->type){
 
     case 1:
       timer.restart();
@@ -371,16 +368,16 @@ double many_simple_calls(CPX *c,CPX *F, FLT* x, FLT* y, FLT* z, FINUFFT_PLAN pla
       cStart = c + plan->nj*k;
       fStart = F + plan->ms*plan->mt*plan->mu*k;
       
+      //printf("k=%d, debug=%d.................\n",k, plan->opts.debug);      
       if(k != 0) {                     // prevent massive debug output
 	plan->opts.debug = 0;
 	plan->opts.spread_debug = 0;
       }
         
       temp = finufftFunnel(cStart,fStart, x, y,z,plan);
-      if (temp == -1.0) {              // -1.0 is a code here; equality test ok
-	printf("[many_simple_calls] Funnel call to finufft failed!"); 
-	time = -1.0;
-	break;
+      if (isnan(temp)) {
+	fprintf(stderr,"[%s] Funnel call to finufft failed!\n",__func__); 
+        return NAN;
       }
       else
 	time += temp;
