@@ -11,16 +11,18 @@ type = 1;
 n_modes = N;      % n_dims inferred from length of this
 n_transf = 1;
 
-disp('starting...'), tic
+x = pi*(2*rand(1,M)-1);                         % choose NU points
+c = randn(1,M)+1i*randn(1,M);                   % choose strengths
+
 % set options then plan the transform...
 opts.debug=2;
 opts.spread_debug=0;
+
+disp('starting...'), tic
 plan = finufft_plan(type,n_modes,isign,n_transf,eps,opts);
 
-x = pi*(2*rand(1,M)-1);                         % choose NU points
 plan.setpts(x,[],[]);                           % send them in
 
-c = randn(1,M)+1i*randn(1,M);                   % choose strengths
 f = plan.exec(c);                               % do the transform
 
 disp('done.'); toc
