@@ -62,15 +62,17 @@ Crash (segfault) issues and advice
 ****************************************
 
 - The most common problem is passing in pointers to the wrong size of object,
-  eg, single vs double precision, or int32 vs int64. Equivalently, make sure you linked against the correct precision version of the library (``-lfinufft`` vs ``-lfinufftf``). Also make sure, if you changed the precision when compiling FINUFFT, that you did at least ``make objclean`` otherwise you'll get mixed precision object files and a guaranteed segfault!
-
-- Currently you cannot link to both precisions at the same time, because
-  the namespaces will collide. Did you do this?
+eg, single vs double precision, or int32 vs int64.
+The library includes both precisions, so make sure you are calling the
+correct one (commands begin ``finufft`` for double, ``finufftf`` for single).
 
 - If you use C++/C/Fortran and tried to change options, did you forget to call ``finufft_default_opts`` first?
+
+- Maybe you have switched off nonuniform point bounds checking (``opts.chkbnds=0``) for a little extra speed? Try switching it on again to catch illegal coordinates.
   
 - To isolate where a crash is occurring, set ``opts.debug`` to 1 or 2, and check the text output of the various stages. With a debug setting of 2 or above, when ``ntrans>1`` a large amount of text can be generated.
-  To diagnose problems with the spread/interpolation stage, similarly setting ``opts.spread_debug`` to 1 or 2 will print even more output. Here the setting 2 generates a large amount of output even for a single transform.
+    
+- To diagnose problems with the spread/interpolation stage, similarly setting ``opts.spread_debug`` to 1 or 2 will print even more output. Here the setting 2 generates a large amount of output even for a single transform.
 
 
 

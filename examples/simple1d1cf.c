@@ -1,5 +1,6 @@
 // this is all you must include...
 #include <finufft.h>
+
 // also needed for this example...
 #include <stdlib.h>
 #include <math.h>
@@ -8,10 +9,7 @@
 
 int main(int argc, char* argv[])
 /* Simple example of calling the FINUFFT library from C, using C complex type,
-   with a math test.
-   Single-precision version (must be linked with single-precision libfinufft.a)
-   Barnett 4/5/17. opts ctrl, t1 prefac convention, smaller prob size 9/14/18
-   fixed to not pass by ref (!), 6/9/20.
+   with a math test. Single-precision version. C99 style. opts is a struct.
 
    Compile with:
    gcc -fopenmp example1d1cf.c -I../include ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lfftw3f_omp -lm -lstdc++
@@ -23,43 +21,39 @@ int main(int argc, char* argv[])
 {
   int M = 1e5;            // number of nonuniform points
   int N = 1e5;            // number of modes (NB if too large lose acc in 1d)
-  float acc = 1e-3;       // desired accuracy
-  int j,ier,n,m,nout;
-  float *x,err,aF,Fmax;
-  float complex *c,*F,Ftest;
+  float tol = 1e-3;       // desired accuracy
 
   // generate some random nonuniform points (x) and complex strengths (c):
-  x = (float *)malloc(sizeof(float)*M);
-  c = (float complex*)malloc(sizeof(float complex)*M);
-  for (j=0; j<M; ++j) {
+  float* x = (float *)malloc(sizeof(float)*M);
+  float complex* c = (float complex*)malloc(sizeof(float complex)*M);
+  for (int j=0; j<M; ++j) {
     x[j] = M_PI*(2*((float)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
     c[j] = 2*((float)rand()/RAND_MAX)-1 + I*(2*((float)rand()/RAND_MAX)-1);
   }
   // allocate complex output array for the Fourier modes
-  F = (float complex*)malloc(sizeof(float complex)*N);
+  float complex* F = (float complex*)malloc(sizeof(float complex)*N);
 
-  nufft_opts *popts;                       // ptr to opts
-  popts = (nufft_opts *)malloc(sizeof(nufft_opts));  // allocate it
-  finufftf_default_opts(popts);             // set default opts (must do this)
-  popts->debug = 2;                        // show how to override a default
-  //popts->upsampfac =1.25;                // other opts...
+  nufft_opts opts;                         // opts struct (not ptr)
+  finufftf_default_opts(&opts);            // set default opts (must do this)
+  opts.debug = 2;                          // show how to override a default
+  //opts.upsampfac = 1.25;                 // other opts...
   
-  // call the NUFFT (with iflag=+1); this is the same code as from C++:
-  ier = finufftf1d1(M,x,c,+1,acc,N,F,popts);
+  // call the NUFFT (with iflag=+1), passing pointers...
+  int ier = finufftf1d1(M,x,c,+1,tol,N,F,&opts);
 
-  n = 14251;   // check the answer just for this mode...
-  Ftest = CMPLXF(0.0,0.0);
-  for (j=0; j<M; ++j)
+  int n = 14251;          // check the answer just for this mode...
+  float complex Ftest = CMPLXF(0.0,0.0);    // defined in complex.h (I too)
+  for (int j=0; j<M; ++j)
     Ftest += c[j] * cexpf(I*(float)n*x[j]);
-  nout = n+N/2;       // index in output array for freq mode n
-  Fmax = 0.0;       // compute inf norm of F
-  for (m=0; m<N; ++m) {
-    aF = cabsf(F[m]);
+  int nout = n+N/2;       // index in output array for freq mode n
+  float Fmax = 0.0;       // compute inf norm of F
+  for (int m=0; m<N; ++m) {
+    float aF = cabsf(F[m]);
     if (aF>Fmax) Fmax=aF;
   }
-  err = cabsf(F[nout] - Ftest)/Fmax;
-  printf("1D type-1 NUFFT done. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
+  float err = cabsf(F[nout] - Ftest)/Fmax;
+  printf("1D type 1 NUFFT, single-prec. ier=%d, err in F[%d] rel to max(F) is %.3g\n",ier,n,err);
 
-  free(x); free(c); free(F); free(popts);
+  free(x); free(c); free(F);
   return ier;
 }

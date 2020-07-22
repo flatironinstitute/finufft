@@ -1,15 +1,16 @@
 // this is all you must include for the finufft lib...
 #include <finufft.h>
-#include <complex>
 
 // also used in this example...
+#include <vector>
+#include <complex>
 #include <cstdio>
 #include <stdlib.h>
 using namespace std;
 
 int main(int argc, char* argv[])
-/* Simple example of calling the FINUFFT library from C++, using plain
-   arrays of C++ complex numbers, with a math test. Barnett 3/10/17
+/* Example of calling the FINUFFT library from C++, using STL
+   double complex vectors, with a math test.
    Double-precision version (see simple1d1f for single-precision)
 
    Compile with:
@@ -20,24 +21,25 @@ int main(int argc, char* argv[])
    Usage: ./simple1d1
 */
 {
-  int M = 1e6;            // number of nonuniform points
+  int M = 1e7;            // number of nonuniform points
   int N = 1e6;            // number of modes
   double acc = 1e-9;      // desired accuracy
-  nufft_opts opts; finufft_default_opts(&opts);
+  nufft_opts* opts = new nufft_opts;     // opts is pointer to struct
+  finufft_default_opts(opts);
   complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
   
-  // generate some random nonuniform points (x) and complex strengths (c):
-  double *x = (double *)malloc(sizeof(double)*M);
-  complex<double>* c = (complex<double>*)malloc(sizeof(complex<double>)*M);
+  // generate some random nonuniform points (x) and complex strengths (c)...
+  vector<double> x(M);
+  vector<complex<double> > c(M);
   for (int j=0; j<M; ++j) {
     x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
   }
-  // allocate output array for the Fourier modes:
-  complex<double>* F = (complex<double>*)malloc(sizeof(complex<double>)*N);
+  // allocate output array for the Fourier modes...
+  vector<complex<double> > F(N);
 
-  // call the NUFFT (with iflag=+1): note N and M are typecast to BIGINT
-  int ier = finufft1d1(M,x,c,+1,acc,N,F,&opts);
+  // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
+  int ier = finufft1d1(M,&x[0],&c[0],+1,acc,N,&F[0],opts);
 
   int n = 142519;   // check the answer just for this mode...
   complex<double> Ftest = complex<double>(0,0);
@@ -51,7 +53,5 @@ int main(int argc, char* argv[])
   }
   double err = abs(F[nout] - Ftest)/Fmax;
   printf("1D type-1 double-prec NUFFT done. ier=%d, rel err in F[%d] is %.3g\n",ier,n,err);
-
-  free(x); free(c); free(F);
   return ier;
 }

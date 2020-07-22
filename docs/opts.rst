@@ -3,32 +3,31 @@
 Options parameters
 ==================
 
-Aside from the mandatory inputs (dimension, type, sign of the imaginary
-unit, tolerance, nonuniform points, strengths or coefficients),
+Aside from the mandatory inputs (dimension, type,
+nonuniform points, strengths or coefficients, and, in C++/C/Fortran/MATLAB,
+sign of the imaginary unit and tolerance)
 FINUFFT has optional parameters.
-These adjust the workings of the algorithm, but
-still result in the same numerical output, to within tolerance.
-The exception is ``modeord`` which changes the Fourier mode ordering
-in types 1 and 2.
+These adjust the workings of the algorithm, change the output format,
+or provide debug/timing text to stdout.
 Sensible default options are chosen, so that the new user need not worry about
 changing them.
-However, users wanting to try to increase speed or see more debugging output
-will want to change options from their defaults.
-This is usually done by defining a options structure
-(under the hood this is a simple C struct),
-first setting default values, then changing whichever need to be changed,
-then passing the structure to either the simple, vectorized, or guru makeplan
-FINUFFT routines, as here from C++::
+However, users wanting to try to increase speed or see more
+timing breakdowns will want to change options from their defaults.
+See each language doc page for how this is done, but is generally
+by creating an options structure, changing fields from their defaults,
+then passing this (or a pointer to it)
+to the simple, vectorized, or guru makeplan routines.
+Recall how to do this from C++::
 
 .. code-block:: C++
                 
   // (... set up M,x,c,tol,N, and allocate F here...)
-  nufft_opts opts;
-  finufft_default_opts(&opts);
-  opts.upsampfac = 1.25;
-  int ier = finufft1d1(M,x,c,+1,tol,N,F,&opts);
+  nufft_opts* opts;
+  finufft_default_opts(opts);
+  opts->debug = 1;
+  int ier = finufft1d1(M,x,c,+1,tol,N,F,opts);
 
-This example sets a non-default upsampling factor :math:`\sigma`.
+This setting produces more timing output to ``stdout``.
 
   .. warning::
 In C/C++, not forget to call the command which sets default options
@@ -48,27 +47,41 @@ Here is the 1-line summary of each option, with the full specifications below
   int spread_kerpad;  // passed to spread_opts, 0: don't pad to mult of 4, 1: do
   int chkbnds;        // 0: don't check if input NU pts in [-3pi,3pi], 1: do
   int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan, faster run)
-  int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
-                      // 1: FFT-style mode ordering (affects type-1,2 only)
-  double upsampfac;   // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
-  int spread_thread;  // for ntrans>1 only. 0: auto, 1: sequential multithreaded, 2: parallel singlethreaded, 3: nested multithreaded
+  int modeord;        // 0: increasing freqs (neg to pos), or 1: FFT-style order
+  double upsampfac;   // upsampling ratio sigma, either 2.0, or 1.25 (small FFTs)
+  int spread_thread;  // for ntrans>1 only. 0: auto, 1: sequential multithreaded, 2: parallel singlethreaded
   int maxbatchsize;   // for ntrans>1 only. max chunk size of data vectors. 0: auto
+  int showwarn;       // 0: don't print warnings to stderr; 1: do
+  int nthreads;       // number of threads to use, or 0: use all available
 
-Here are their default settings (set in ``src/finufft.cpp:finufft_default_opts``)::
+These options are of course listed in the code, in ``include/nufft_opts.h``.
+Here are their default settings (defined in ``src/finufft.cpp:finufft_default_opts``)::
 
   debug = 0;
   spread_debug = 0;
   spread_sort = 2;
   spread_kerevalmeth = 1;
   spread_kerpad = 1;
-  chkbnds = 0;
+  chkbnds = 1;
   fftw = FFTW_ESTIMATE;
   modeord = 0;
   upsampfac = 2.0;
   spread_thread = 0;
   maxbatchsize = 0;
+  showwarn = 1;
+  nthreads = 0;
   
-To get the fastest run-time, we recommend that you experiment firstly with:
+The main options you'll want to play with are ``fftw`` to try slower plan modes which give faster transforms (look at the FFTW3 docs), ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated or FFT dominated), ``modeord`` to flip the Fourier mode ordering, and ``nthreads`` if you want to try a different number of threads than the current maximum available through OpenMP. See :ref:`Troubleshooting <trouble>` for good advice on trying options.
+
+  .. warning::
+Some of the options are experts-only, and will result in slow or incorrect results. Please test them in a small known test case so you understand the effect.
+
+
+
+
+
+
+  To get the fastest run-time, we recommend that you experiment firstly with:
 ``fftw``, ``upsampfac``, and ``spread_sort``, detailed below.
 If you are having crashes, set ``chkbnds=1`` to see if illegal ``x`` non-uniform point coordinates are being input.
 
