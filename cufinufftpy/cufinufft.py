@@ -101,7 +101,7 @@ class cufinufft:
         :return: nufft_opts structure.
         """
 
-        nufft_opts = Nufft_Opts()
+        nufft_opts = NufftOpts()
 
         ier = _default_opts(nufft_type, dim, nufft_opts)
 

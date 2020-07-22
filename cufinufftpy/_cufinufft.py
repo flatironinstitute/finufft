@@ -14,7 +14,7 @@ import warnings
 # One day if that changes, can be replaced
 #   with importlib.find_spec.
 with warnings.catch_warnings():
-    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
     import imp
 
 import numpy as np
@@ -33,7 +33,7 @@ lib = None
 # Try to load a local library directly.
 try:
     lib = ctypes.cdll.LoadLibrary('libcufinufft.so')
-except OSError as e:
+except OSError:
     pass
 
 # Should that not work, try to find the full path of a packaged lib.
@@ -45,16 +45,15 @@ try:
         # Find the library.
         fh = imp.find_module('cufinufft')[0]
         # Get the full path for the ctypes loader.
-        full_lib_path =  os.path.realpath(fh.name)
+        full_lib_path = os.path.realpath(fh.name)
         fh.close()    # Be nice and close the open file handle.
 
         # Load the library,
         #    which rpaths the libraries we care about.
         lib = ctypes.cdll.LoadLibrary(full_lib_path)
 
-except Exception as e:
+except Exception:
     raise RuntimeError('Failed to find a suitable cufinufft library')
-
 
 
 def _get_ctypes(dtype):
@@ -97,19 +96,6 @@ class NufftOpts(ctypes.Structure):
 
 
 NufftOpts._fields_ = _get_NufftOpts()
-
-
-def _get_SpeadOptsFields(dtype):
-    REAL_t, REAL_ptr = _get_ctypes(dtype)
-    fields = [
-        ('nspread', c_int),
-        ('spread_direction', c_int),
-        ('pirange', c_int),
-        ('upsampfac', REAL_t),
-        ('ES_beta', REAL_t),
-        ('ES_halfwidth', REAL_t),
-        ('ES_c', REAL_t)]
-    return fields
 
 
 CufinufftPlan = c_void_p

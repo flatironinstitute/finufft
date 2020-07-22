@@ -28,16 +28,16 @@ def test_set_nu_raises_on_dtype():
 
     with pytest.raises(TypeError):
         plan.set_pts(M, kxyz_gpu_wrong_type[0],
-                        kxyz_gpu[1], kxyz_gpu[2])
+                     kxyz_gpu[1], kxyz_gpu[2])
     with pytest.raises(TypeError):
         plan.set_pts(M, kxyz_gpu[0],
-                        kxyz_gpu_wrong_type[1], kxyz_gpu[2])
+                     kxyz_gpu_wrong_type[1], kxyz_gpu[2])
     with pytest.raises(TypeError):
         plan.set_pts(M, kxyz_gpu[0],
-                        kxyz_gpu[1], kxyz_gpu_wrong_type[2])
+                     kxyz_gpu[1], kxyz_gpu_wrong_type[2])
     with pytest.raises(TypeError):
         plan.set_pts(M, kxyz_gpu_wrong_type[0],
-                        kxyz_gpu_wrong_type[1], kxyz_gpu_wrong_type[2])
+                     kxyz_gpu_wrong_type[1], kxyz_gpu_wrong_type[2])
 
     plan.set_pts(M, kxyz_gpu[0],
                  kxyz_gpu[1], kxyz_gpu[2])
@@ -66,7 +66,7 @@ def test_exec_raises_on_dtype():
     plan = cufinufft(1, shape, 1, tol, dtype=dtype)
 
     plan.set_pts(M, kxyz_gpu[0],
-                    kxyz_gpu[1], kxyz_gpu[2])
+                 kxyz_gpu[1], kxyz_gpu[2])
 
     with pytest.raises(TypeError):
         plan.execute(c_gpu, fk_gpu_wrong_dtype)
