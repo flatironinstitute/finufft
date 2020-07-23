@@ -56,4 +56,4 @@ o.floatprec=class(x);                      % should be 'double' or 'single'
 [ms,mt,mu,n_transf] = size(f);             % if f 3D array, n_transf=1
 p = finufft_plan(2,[ms;mt;mu],isign,n_transf,eps,o);
 p.setpts(x,y,z);
-c = p.exec(f);
+c = p.execute(f);

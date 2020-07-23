@@ -54,4 +54,4 @@ o.floatprec=class(x);                      % should be 'double' or 'single'
 [ms,mt,n_transf] = size(f);                % if f 2D array, n_transf=1
 p = finufft_plan(2,[ms;mt],isign,n_transf,eps,o);
 p.setpts(x,y,[]);
-c = p.exec(f);
+c = p.execute(f);
