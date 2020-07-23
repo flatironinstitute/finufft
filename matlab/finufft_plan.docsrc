@@ -83,7 +83,7 @@ OPTS12
 %
 % Notes:
 %  * For type 1 and 2, the values in xj (and if nonempty, yj and zj) must
-%    lie in the interval [-3pi,3pi]. For type 1 they are "sources", but for
+%    lie in the interval [-3pi,3pi). For type 1 they are "sources", but for
 %    type 2, "targets". In contrast, for type 3 there are no restrictions other
 %    than the resulting size of the internal fine grids.
 %  * s (and t and u) are only relevant for type 3, and may be omitted otherwise

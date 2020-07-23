@@ -12,7 +12,7 @@
 %                       -mu/2 <= k3 <= (mu-1)/2.
 %
 %  Inputs:
-%     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi]^3,
+%     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi)^3,
 %           each a vector of length nj
 %     f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
 %           (Mode ordering given by opts.modeord, in each dimension.)

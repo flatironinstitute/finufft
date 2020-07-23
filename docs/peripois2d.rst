@@ -125,7 +125,7 @@ To solve on this grid, replace step 1 above by evaluating the Euler-Fourier form
     [kx ky] = ndgrid(k,k);
     kfilter = 1./(kx.^2+ky.^2);  % inverse -Laplacian in k-space (as above)
     kfilter(1,1) = 0; kfilter(Nk/2+1,:) = 0; kfilter(:,Nk/2+1) = 0;
-    u = finufft2d2(xx,yy,-1,tol,kfilter.*fhat,o);  % eval filtered F series @ NU
+    u = finufft2d2(xx(:),yy(:),-1,tol,kfilter.*fhat,o);  % eval filt F series @ NU
     u = reshape(real(u),[n n]);
     fprintf('n=%d:\tNk=%d\tu(0,0) = %.15e\n',n,Nk,u(1,1))  % check conv at same pt
   end

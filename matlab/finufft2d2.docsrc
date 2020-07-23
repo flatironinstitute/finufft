@@ -10,7 +10,7 @@
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 %
 %  Inputs:
-%     x,y   coordinates of nonuniform targets on the square [-3pi,3pi]^2,
+%     x,y   coordinates of nonuniform targets on the square [-3pi,3pi)^2,
 %           each a vector of length nj
 %     f     complex Fourier coefficient matrix, whose size determines (ms,mt).
 %           (Mode ordering given by opts.modeord, in each dimension.)
