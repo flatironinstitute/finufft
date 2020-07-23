@@ -129,7 +129,8 @@ Another scenario is that you wish to evaluate a forward transform such as
 :eq:`1d1` repeatedly with
 the same set of nonuniform points $x_j$, but *fresh* strength vectors
 $\{c_j\}_{j=1}^M$, as in the "many vectors" interface mentioned above.
-In that case it may be even faster to fill an $N$-by-$M$ matrix $A$ with entries
+For small such problems it may be even faster to fill an
+$N$-by-$M$ matrix $A$ with entries
 $a_{kj} = e^{ik x_j}$, then use BLAS3 (eg ``ZGEMM``) to compute $F = AC$,
 where each column of $F$ and $C$ is a new instance of :eq:`1d1`.
 If you have very many columns this can be competitive with a NUFFT

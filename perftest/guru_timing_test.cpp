@@ -21,8 +21,8 @@ int main(int argc, char* argv[])
    a math test of the library, just consistency of the simple vs guru
    interfaces, and measuring their speed ratio.
 
-   Usage: finufftGuru_test ntransf type ndim Nmodes1 Nmodes2 Nmodes3 Nsrc
-                  [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]
+   Usage: guru_timing_test ntransf type ndim Nmodes1 Nmodes2 Nmodes3 Nsrc
+          [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]
 
    debug = 0: rel errors and overall timing
            1: timing breakdowns
@@ -31,14 +31,14 @@ int main(int argc, char* argv[])
    spread_scheme = 0: sequential maximally multithreaded spread/interp
                    1: parallel singlethreaded spread/interp, nested last batch
    
-   Example: finufftGuru_test 100 1 2 100 100 0 1000000 1e-3 1 0 0 2 2.0
+   Example: guru_timing_test 100 1 2 100 100 0 1000000 1e-3 1 0 0 2 2.0
 
    The unused dimensions of Nmodes may be left as zero.
    For type 3, Nmodes{1,2,3} controls the spread of NU freq targs in each dim.
    Example w/ nk = 5000: finufftGuru_test 1 3 2 100 50 0 1000000 1e-12 0
 
    By: Andrea Malleo 2019. Tidied and simplified by Alex Barnett 2020.
-   added 2 extra args, 5/22/20.
+   added 2 extra args, 5/22/20. Moved to perftests 7/23/20.
 */
 {
   double tsleep = 0.1;  // how long wait between tests to let FFTW settle (1.0?)
