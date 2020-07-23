@@ -14,6 +14,7 @@
 import finufftpy.finufftpy_cpp as finufftpy_cpp
 import numpy as np
 import warnings
+import numbers
 
 
 from finufftpy.finufftpy_cpp import default_opts
@@ -324,7 +325,7 @@ def valid_ntr_tp12(dim,shape,n_transin,n_modesin):
         raise RuntimeError('FINUFFT input n_trans and output n_trans do not match')
 
     if n_modesin is not None:
-        if None not in n_modesin and n_modes != n_modesin:
+        if n_modes != n_modesin:
             raise RuntimeError('FINUFFT input n_modes and output n_modes do not match')
 
     return (n_trans,n_modes)
@@ -436,10 +437,24 @@ def destroy(plan):
 
 ### invoke guru interface, this function is used for simple interfaces
 def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
+    # check n_modes type, n_modes must be a tuple or an integer
+    if n_modes is not None:
+        if (not isinstance(n_modes, tuple)) and (not isinstance(n_modes, numbers.Integral)):
+            raise RuntimeError('FINUFFT input n_modes must be a tuple or an integer')
+    # sanity check for n_modes input as tuple
+    if isinstance(n_modes, tuple):
+        if len(n_modes) != dim:
+            raise RuntimeError('FINUFFT input n_modes dimension does not match problem dimension')
+        if (not all(isinstance(elmi, numbers.Integral) for elmi in n_modes)):
+            raise RuntimeError('FINUFFT all elements of input n_modes must be integer')
+    # if n_modes is an integer populate n_modes for all dimensions
+    if isinstance(n_modes, numbers.Integral):
+        n_modes = (n_modes,)*dim
+
     # infer n_modes/n_trans from input/output
     if tp==1:
         n_trans = valid_ntr(x,c)
-        if None in n_modes and f is None:
+        if n_modes is None and f is None:
             raise RuntimeError('FINUFFT type 1 input must supply n_modes or output vector, or both')
         if f is not None:
             (n_trans,n_modes) = valid_ntr_tp12(dim,f.shape,n_trans,n_modes)
@@ -468,7 +483,7 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     
 ### easy interfaces
 ### 1d1
-def nufft1d1(x,c,ms=None,out=None,eps=1e-6,isign=1,**kwargs):
+def nufft1d1(x,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
     """1D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -498,7 +513,7 @@ def nufft1d1(x,c,ms=None,out=None,eps=1e-6,isign=1,**kwargs):
     Example:
       see ``python_tests/demo1d1.py``
     """
-    return invoke_guru(1,1,x,None,None,c,None,None,None,out,isign,eps,(ms,),**kwargs)
+    return invoke_guru(1,1,x,None,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 1d2
@@ -569,7 +584,7 @@ def nufft1d3(x,c,s,out=None,eps=1e-6,isign=1,**kwargs):
 
 
 ### 2d1
-def nufft2d1(x,y,c,ms=None,mt=None,out=None,eps=1e-6,isign=1,**kwargs):
+def nufft2d1(x,y,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
     """2D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -603,7 +618,7 @@ def nufft2d1(x,y,c,ms=None,mt=None,out=None,eps=1e-6,isign=1,**kwargs):
     Example:
       see ``python/tests/accuracy_speed_tests.py``
     """
-    return invoke_guru(2,1,x,y,None,c,None,None,None,out,isign,eps,(ms,mt),**kwargs)
+    return invoke_guru(2,1,x,y,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 2d2
@@ -679,7 +694,7 @@ def nufft2d3(x,y,c,s,t,out=None,eps=1e-6,isign=1,**kwargs):
 
 
 ### 3d1
-def nufft3d1(x,y,z,c,ms=None,mt=None,mu=None,out=None,eps=1e-6,isign=1,**kwargs):
+def nufft3d1(x,y,z,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
     """3D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -717,7 +732,7 @@ def nufft3d1(x,y,z,c,ms=None,mt=None,mu=None,out=None,eps=1e-6,isign=1,**kwargs)
     Example:
       see ``python_tests/accuracy_speed_tests.py``
     """
-    return invoke_guru(3,1,x,y,z,c,None,None,None,out,isign,eps,(ms,mt,mu),**kwargs)
+    return invoke_guru(3,1,x,y,z,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 3d2
