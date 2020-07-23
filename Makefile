@@ -47,9 +47,6 @@ LIBNAME=libcufinufft
 DYNAMICLIB=lib/$(LIBNAME).so
 STATICLIB=lib-static/$(LIBNAME).a
 
-CLIBNAME=libcufinufftc
-DYNAMICCLIB=lib/$(CLIBNAME).so
-
 BINDIR=bin
 
 HEADERS = include/cufinufft.h src/cudeconvolve.h src/memtransfer.h include/profile.h \
@@ -70,9 +67,6 @@ CUFINUFFTOBJS_64=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 $(info $$CUFINUFFTOBJS_32 is [${CUFINUFFTOBJS_32}])
 
-
-CUFINUFFTCOBJS_64=src/cufinufftc.o
-CUFINUFFTCOBJS_32=$(CUFINUFFTCOBJS_64:%.o=%_32.o)
 
 %_32.o: %.cpp $(HEADERS)
 	$(CXX) -DSINGLE -c $(CXXFLAGS) $(INC) $< -o $@
@@ -106,7 +100,7 @@ all: $(BINDIR)/spread2d \
 	$(BINDIR)/cufinufft3d2_test_32 \
 	$(BINDIR)/cufinufft2d2api_test \
 	$(BINDIR)/cufinufft2d2api_test_32 \
-	lib clib
+	lib
 
 
 $(BINDIR)/spread2d: test/spread_2d.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
@@ -140,22 +134,12 @@ $(BINDIR)/%: test/%.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
 
 lib: $(STATICLIB) $(DYNAMICLIB)
 
-clib: $(DYNAMICCLIB)
-
 $(STATICLIB): $(CUFINUFFTOBJS) $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS_32) $(CONTRIBOBJS)
 	mkdir -p lib-static
 	ar rcs $(STATICLIB) $^
 $(DYNAMICLIB): $(CUFINUFFTOBJS) $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS_32) $(CONTRIBOBJS)
 	mkdir -p lib
 	$(NVCC) -shared $(NVCCFLAGS) $^ -o $(DYNAMICLIB) $(LIBS)
-
-$(DYNAMICCLIB): $(CUFINUFFTCOBJS_64) $(CUFINUFFTCOBJS_32) \
-	$(CUFINUFFTOBJS) $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS_32) $(CONTRIBOBJS)
-	mkdir -p lib
-	# We have relocatable device code,
-	#   tell nvcc to help us link them so they not unresolved in the C library.
-	nvcc $(NVCCFLAGS) -dlink -o $(CLIBNAME)_dlinked.o $^
-	gcc -shared -o $(DYNAMICCLIB) $^ $(CLIBNAME)_dlinked.o $(NVCC_LIBS_PATH) $(LIBS)
 
 
 # Check targets
@@ -247,7 +231,6 @@ check3D_64: all
 	bin/cufinufft3d1_test 4 15 15 15 2048 1e-3
 	bin/cufinufft3d2_test 1 16 16 16 4096 1e-3
 	bin/cufinufft3d1_test 1 128 128 128
-	bin/cufinufft3d1_test 2 16 16 16
 	bin/cufinufft3d1_test 4 15 15 15
 	bin/cufinufft3d2_test 1 16 16 16
 	bin/cufinufft3d1_test 1 64 64 64 1000
@@ -312,6 +295,5 @@ clean:
 .PHONY: check2D check2D_32 check2D_64
 .PHONY: check3D check3D_32 check3D_64
 .PHONY: clean
-.PHONY: clib
 .PHONY: lib
 .PHONY: python

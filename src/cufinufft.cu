@@ -62,8 +62,12 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 	}
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
-	int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan)
+		       int ntransf, FLT tol, int maxbatchsize,
+		       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts)
 /*
 	"plan" stage:
 
@@ -94,11 +98,30 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 */
 {
 
+
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
+	int ier;
 
-	int ier = setup_spreader_for_nufft(d_plan->spopts,tol,d_plan->opts);
+	/* allocate the plan structure, assign address to user pointer. */
+	CUFINUFFT_PLAN d_plan = new CUFINUFFT_PLAN_S;
+	*d_plan_ptr = d_plan;
+
+
+	/* If a user has not supplied their own options, assign defaults for them. */
+	if (opts==NULL){    // use default opts
+	  ier = CUFINUFFT_DEFAULT_OPTS(type, dim, &(d_plan->opts));
+	  if (ier != 0){
+	    printf("error: CUFINUFFT_DEFAULT_OPTS returned error %d.\n", ier);
+	    return ier;
+	  }
+	} else {    // or read from what's passed in
+	  d_plan->opts = *opts;    // keep a deep copy; changing *opts now has no effect
+	}
+
+	/* Setup Spreader */
+	ier = setup_spreader_for_nufft(d_plan->spopts,tol,d_plan->opts);
 
 	d_plan->dim = dim;
 	d_plan->ms = nmodes[0];
@@ -238,8 +261,8 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	return ier;
 }
 
-int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
-	FLT *d_t, FLT *d_u, CUFINUFFT_PLAN *d_plan)
+int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
+	FLT *d_t, FLT *d_u, CUFINUFFT_PLAN d_plan)
 /*
 	"setNUpts" stage:
 
@@ -261,7 +284,7 @@ int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	N, d_s, d_t, d_u  not used for type1, type2. set to 0 and NULL.
 
 	Input/Output:
-	d_plan            pointer to a CUFINUFFT_PLAN. Variables and arrays inside
+	d_plan            pointer to a CUFINUFFT_PLAN_S. Variables and arrays inside
 	                  the plan are set and allocated.
 
 	Melody Shih 07/25/19
@@ -392,7 +415,7 @@ int CUFINUFFT_SETNUPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	return 0;
 }
 
-int CUFINUFFT_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
+int CUFINUFFT_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 /*
 	"exec" stage:
 
@@ -450,7 +473,7 @@ int CUFINUFFT_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
 	return ier;
 }
 
-int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan)
+int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 /*
 	"destroy" stage:
 
@@ -465,7 +488,14 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan)
 	cudaEventCreate(&stop);
 
 	cudaEventRecord(start);
-	cufftDestroy(d_plan->fftplan);
+
+	// Can't destroy a Null pointer.
+	if(!d_plan)
+		return 1;
+
+	if(d_plan->fftplan)
+		cufftDestroy(d_plan->fftplan);
+
 	switch(d_plan->dim)
 	{
 		case 1:
@@ -491,6 +521,12 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan)
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tFree gpu memory\t\t %.3g s\n", milliseconds/1000);
 #endif
+
+	/* free/destruct the plan */
+	delete d_plan;
+	/* set pointer to NULL now that we've hopefully free'd the memory. */
+	d_plan = NULL;
+
 	return 0;
 }
 
@@ -568,3 +604,6 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 
 	return 0;
 }
+#ifdef __cplusplus
+}
+#endif

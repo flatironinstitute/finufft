@@ -30,7 +30,7 @@
 /* Undefine things so we don't get warnings/errors later */
 #undef CUFINUFFT_DEFAULT_OPTS
 #undef CUFINUFFT_MAKEPLAN
-#undef CUFINUFFT_SETNUPTS
+#undef CUFINUFFT_SETPTS
 #undef CUFINUFFT_EXEC
 #undef CUFINUFFT_DESTROY
 #undef CUFINUFFT2D1_EXEC
@@ -38,12 +38,6 @@
 #undef CUFINUFFT3D1_EXEC
 #undef CUFINUFFT3D2_EXEC
 #undef SETUP_BINSIZE
-/* extern c interface */
-#undef CUFINUFFTC_DEFAULT_OPTS
-#undef CUFINUFFTC_MAKEPLAN
-#undef CUFINUFFTC_SETNUPTS
-#undef CUFINUFFTC_EXEC
-#undef CUFINUFFTC_DESTROY
 /* memtransfer.h */
 #undef ALLOCGPUMEM1D_PLAN
 #undef ALLOCGPUMEM1D_NUPTS
@@ -81,6 +75,7 @@
 #undef CUDECONVOLVE2D
 #undef CUDECONVOLVE3D
 /* structs */
+#undef CUFINUFFT_PLAN_S
 #undef CUFINUFFT_PLAN
 
 
@@ -88,7 +83,7 @@
 
 #define CUFINUFFT_DEFAULT_OPTS cufinufftf_default_opts
 #define CUFINUFFT_MAKEPLAN cufinufftf_makeplan
-#define CUFINUFFT_SETNUPTS cufinufftf_setNUpts
+#define CUFINUFFT_SETPTS cufinufftf_setpts
 #define CUFINUFFT_EXEC cufinufftf_exec
 #define CUFINUFFT_DESTROY cufinufftf_destroy
 #define CUFINUFFT2D1_EXEC cufinufftf2d1_exec
@@ -96,12 +91,6 @@
 #define CUFINUFFT3D1_EXEC cufinufftf3d1_exec
 #define CUFINUFFT3D2_EXEC cufinufftf3d2_exec
 #define SETUP_BINSIZE setup_binsizef
-/* extern c interface */
-#define CUFINUFFTC_DEFAULT_OPTS cufinufftcf_default_opts
-#define CUFINUFFTC_MAKEPLAN cufinufftcf_makeplan
-#define CUFINUFFTC_SETNUPTS cufinufftcf_setNUpts
-#define CUFINUFFTC_EXEC cufinufftcf_exec
-#define CUFINUFFTC_DESTROY cufinufftcf_destroy
 /* memtransfer.h */
 #define ALLOCGPUMEM1D_PLAN allocgpumem1df_plan
 #define ALLOCGPUMEM1D_NUPTS allocgpumem1df_nupts
@@ -139,13 +128,14 @@
 #define CUDECONVOLVE2D cudeconvolve2df
 #define CUDECONVOLVE3D cudeconvolve3df
 /* structs */
+#define CUFINUFFT_PLAN_S cufinufftf_plan_s
 #define CUFINUFFT_PLAN cufinufftf_plan
 
 #else
 
 #define CUFINUFFT_DEFAULT_OPTS cufinufft_default_opts
 #define CUFINUFFT_MAKEPLAN cufinufft_makeplan
-#define CUFINUFFT_SETNUPTS cufinufft_setNUpts
+#define CUFINUFFT_SETPTS cufinufft_setpts
 #define CUFINUFFT_EXEC cufinufft_exec
 #define CUFINUFFT_DESTROY cufinufft_destroy
 #define CUFINUFFT2D1_EXEC cufinufft2d1_exec
@@ -153,12 +143,6 @@
 #define CUFINUFFT3D1_EXEC cufinufft3d1_exec
 #define CUFINUFFT3D2_EXEC cufinufft3d2_exec
 #define SETUP_BINSIZE setup_binsize
-/* extern c interface */
-#define CUFINUFFTC_DEFAULT_OPTS cufinufftc_default_opts
-#define CUFINUFFTC_MAKEPLAN cufinufftc_makeplan
-#define CUFINUFFTC_SETNUPTS cufinufftc_setNUpts
-#define CUFINUFFTC_EXEC cufinufftc_exec
-#define CUFINUFFTC_DESTROY cufinufftc_destroy
 /* memtransfer.h */
 #define ALLOCGPUMEM1D_PLAN allocgpumem1d_plan
 #define ALLOCGPUMEM1D_NUPTS allocgpumem1d_nupts
@@ -196,11 +180,12 @@
 #define CUDECONVOLVE2D cudeconvolve2d
 #define CUDECONVOLVE3D cudeconvolve3d
 /* structs */
+#define CUFINUFFT_PLAN_S cufinufft_plan_s
 #define CUFINUFFT_PLAN cufinufft_plan
 
 #endif
 
-typedef struct {
+typedef struct CUFINUFFT_PLAN_S {
 	cufinufft_opts  opts;
 	SPREAD_OPTS     spopts;
 
@@ -250,29 +235,42 @@ typedef struct {
 	cufftHandle fftplan;
 	cudaStream_t *streams;
 
-} CUFINUFFT_PLAN;
+} CUFINUFFT_PLAN_S;
+
+//The plan that is passed around is a pointer to a struct.
+//makeplan will utilize a double pointer.
+//This encourages bindings to treat the struct as opaque.
+typedef struct CUFINUFFT_PLAN_S * CUFINUFFT_PLAN;
 
 
 /* We include common.h here because it depends on SPREAD_OPTS and
-   CUFINUFFT_PLAN structs being completely defined first. */
+   CUFINUFFT_PLAN_S structs being completely defined first. */
 #include "../contrib/common.h"
 
 #define checkCufftErrors(call)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts);
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
-	int ntransf, FLT tol, int maxbatchsize, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT_SETNUPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
-	FLT *h_t, FLT *h_u, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT_EXEC(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT_DESTROY(CUFINUFFT_PLAN *d_plan);
+		       int ntransf, FLT tol, int maxbatchsize,
+		       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts);
+int CUFINUFFT_SETPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
+	FLT *h_t, FLT *h_u, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_EXEC(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan);
+#ifdef __cplusplus
+}
+#endif
+
 
 // 2d
-int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan);
+int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
 
 // 3d
-int CUFINUFFT3D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan);
-int CUFINUFFT3D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan);
+int CUFINUFFT3D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT3D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
 
 #endif

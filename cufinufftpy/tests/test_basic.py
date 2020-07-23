@@ -22,7 +22,7 @@ def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     plan = cufinufft(1, shape, 1, tol, dtype=dtype)
 
-    plan.set_nu_pts(M, kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
+    plan.set_pts(M, kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
 
     plan.execute(c_gpu, fk_gpu)
 
@@ -61,7 +61,7 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     plan = cufinufft(2, shape, -1, tol, dtype=dtype)
 
-    plan.set_nu_pts(M, kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
+    plan.set_pts(M, kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2])
 
     plan.execute(c_gpu, fk_gpu)
 

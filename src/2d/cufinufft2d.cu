@@ -12,7 +12,7 @@
 
 using namespace std;
 
-int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
+int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 /*  
 	2D Type-1 NUFFT
 
@@ -91,7 +91,7 @@ int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
 	return ier;
 }
 
-int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN *d_plan)
+int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 /*  
 	2D Type-2 NUFFT
 

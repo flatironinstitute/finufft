@@ -6,16 +6,16 @@ the cufinufft CUDA libraries.
 
 import numpy as np
 
+from ctypes import byref
 from ctypes import c_int
+from ctypes import c_void_p
 
 from cufinufftpy._cufinufft import NufftOpts
-from cufinufftpy._cufinufft import CufinufftPlan
-from cufinufftpy._cufinufft import CufinufftPlanf
 from cufinufftpy._cufinufft import _default_opts
 from cufinufftpy._cufinufft import _make_plan
 from cufinufftpy._cufinufft import _make_planf
-from cufinufftpy._cufinufft import _set_nu_pts
-from cufinufftpy._cufinufft import _set_nu_ptsf
+from cufinufftpy._cufinufft import _set_pts
+from cufinufftpy._cufinufft import _set_ptsf
 from cufinufftpy._cufinufft import _exec_plan
 from cufinufftpy._cufinufft import _exec_planf
 from cufinufftpy._cufinufft import _destroy_plan
@@ -51,23 +51,25 @@ class cufinufft:
         ready for point setting, and execution.
         """
 
-        self.Nufft_Opts = NufftOpts
-        self._default_opts = _default_opts
+        # Note when None, opts will be populated with defaults by
+        # the library internally.  Advanced users may use
+        # `cufinufft.default_opts` to generate defaults and overload them
+        # before instantiating their cufinufft instances,
+        #  but this is currently undocumented.
+        self.opts = opts
 
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
 
         if self.dtype == np.float64:
-            self.CufinufftPlan = CufinufftPlan
             self._make_plan = _make_plan
-            self._set_nu_pts = _set_nu_pts
+            self._set_pts = _set_pts
             self._exec_plan = _exec_plan
             self._destroy_plan = _destroy_plan
             self.complex_dtype = np.complex128
         elif self.dtype == np.float32:
-            self.CufinufftPlan = CufinufftPlanf
             self._make_plan = _make_planf
-            self._set_nu_pts = _set_nu_ptsf
+            self._set_pts = _set_ptsf
             self._exec_plan = _exec_planf
             self._destroy_plan = _destroy_planf
             self.complex_dtype = np.complex64
@@ -81,11 +83,6 @@ class cufinufft:
         self.ntransforms = ntransforms
         self._maxbatch = 1    # TODO: optimize this one day
 
-        # Setup Options
-        if opts is None:
-            opts = self.default_opts(nufft_type, self.dim)
-        self.opts = opts
-
         modes = modes + (1,) * (3 - self.dim)
         modes = (c_int * 3)(*modes)
         self.modes = modes
@@ -93,7 +90,8 @@ class cufinufft:
         # Initialize the plan for this instance
         self._plan()
 
-    def default_opts(self, nufft_type, dim):
+    @staticmethod
+    def default_opts(nufft_type, dim):
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
 
@@ -103,9 +101,9 @@ class cufinufft:
         :return: nufft_opts structure.
         """
 
-        nufft_opts = self.Nufft_Opts()
+        nufft_opts = NufftOpts()
 
-        ier = self._default_opts(nufft_type, dim, nufft_opts)
+        ier = _default_opts(nufft_type, dim, nufft_opts)
 
         if ier != 0:
             raise RuntimeError('Configuration not yet implemented.')
@@ -118,8 +116,7 @@ class cufinufft:
         """
 
         # Initialize struct
-        plan = self.CufinufftPlan()
-        plan.opts = self.opts
+        self.plan = c_void_p(None)
 
         ier = self._make_plan(self._finufft_type,
                               self.dim,
@@ -128,14 +125,13 @@ class cufinufft:
                               self.ntransforms,
                               self.tol,
                               1,
-                              plan)
+                              byref(self.plan),
+                              self.opts)
 
         if ier != 0:
             raise RuntimeError('Error creating plan.')
 
-        self.plan = plan
-
-    def set_nu_pts(self, M, kx, ky=None, kz=None):
+    def set_pts(self, M, kx, ky=None, kz=None):
         """
         Sets non uniform points of the correct dtype.
 
@@ -160,7 +156,7 @@ class cufinufft:
         if kz is not None:
             kz = kz.ptr
 
-        ier = self._set_nu_pts(M, kx, ky, kz, 0, None, None, None, self.plan)
+        ier = self._set_pts(M, kx, ky, kz, 0, None, None, None, self.plan)
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
