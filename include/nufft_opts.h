@@ -1,10 +1,11 @@
 #ifndef OPTS_H
 #define OPTS_H
 
-// ------------------- Struct for user-controllable options ------------------
-// Deliberately a plain C struct, without special types
+// ------------- Struct for user-controllable FINUFFT options -----------------
+// Deliberately a plain C struct, without special types.
+// When changing this, don't forget to sync: finufft.fh, matlab/finufft.mw
 
-typedef struct nufft_opts{      // Note: defaults set in common/finufft_default_opts()
+typedef struct nufft_opts{    // defaults see finufft.cpp:finufft_default_opts()
   int debug;          // 0: silent, 1: text basic timing output
   int spread_debug;   // passed to spread_opts, 0 (no text) 1 (some) or 2 (lots)
   int spread_sort;    // passed to spread_opts, 0 (don't sort) 1 (do) or 2 (heuristic)
@@ -15,9 +16,10 @@ typedef struct nufft_opts{      // Note: defaults set in common/finufft_default_
   int modeord;        // 0: CMCL-style increasing mode ordering (neg to pos), or
                       // 1: FFT-style mode ordering (affects type-1,2 only)
   double upsampfac;   // upsampling ratio sigma, either 2.0 (standard) or 1.25 (small FFT)
-  int spread_thread;  // for ntrans>1 only. 0:auto, 1 sequential multithreaded, 2 parallel singlethreaded
+  int spread_thread;  // mode for ntrans>1 only. 0:auto, 1 sequential multithreaded, 2 parallel singlethreaded
   int maxbatchsize;   // for ntrans>1 only. max blocking size for vectorized, 0 for auto-set
   int showwarn;       // 0: don't print warnings to stderr; 1: do
+  int nthreads;       // number of threads to use, or 0: use all available
 } nufft_opts;
 
 #endif  // OPTS_H

@@ -15,10 +15,10 @@ ntrans = 3;
 x = pi*(2*rand(1,M,'single')-1);                % choose NU points
 c = randn(1,M*ntrans,'single')+1i*randn(1,M*ntrans,'single');     % strengths
 
-disp('starting...'), tic
 % set options then plan the transform...
 opts.debug=2;
 opts.floatprec = 'single';   % tells it to make a single-precision plan
+disp('starting...'), tic
 plan = finufft_plan(type,n_modes,isign,ntrans,tol,opts);
 
 plan.setpts(x);                                 % send in NU pts

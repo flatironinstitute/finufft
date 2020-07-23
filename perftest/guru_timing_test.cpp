@@ -9,15 +9,20 @@ double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,FINUFFT_PLAN plan);
 
 // --------------------------------------------------------------------------
 int main(int argc, char* argv[])
-/* Test/demo the guru interface, for many transforms with same NU pts, either
-   precisions. This is pretty old clunky code, not amain part of self-test.
+/* Timing-only tester for the guru interface, allowing control of many params
+   and opts from the command line.
+   It compares doing many transforms with same NU pts, with repeated calls to
+   the simple interface.
+
+   This is pretty old clunky code, not a main part of self-test, and
+   need not be maintained.
 
    Warning: unlike the finufft?d{many}_test routines, this does *not* perform
    a math test of the library, just consistency of the simple vs guru
    interfaces, and measuring their speed ratio.
 
-   Usage: finufftGuru_test ntransf type ndim Nmodes1 Nmodes2 Nmodes3 Nsrc
-                  [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]
+   Usage: guru_timing_test ntransf type ndim Nmodes1 Nmodes2 Nmodes3 Nsrc
+          [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]
 
    debug = 0: rel errors and overall timing
            1: timing breakdowns
@@ -26,14 +31,14 @@ int main(int argc, char* argv[])
    spread_scheme = 0: sequential maximally multithreaded spread/interp
                    1: parallel singlethreaded spread/interp, nested last batch
    
-   Example: finufftGuru_test 100 1 2 100 100 0 1000000 1e-3 1 0 0 2 2.0
+   Example: guru_timing_test 100 1 2 100 100 0 1000000 1e-3 1 0 0 2 2.0
 
    The unused dimensions of Nmodes may be left as zero.
    For type 3, Nmodes{1,2,3} controls the spread of NU freq targs in each dim.
    Example w/ nk = 5000: finufftGuru_test 1 3 2 100 50 0 1000000 1e-12 0
 
    By: Andrea Malleo 2019. Tidied and simplified by Alex Barnett 2020.
-   added 2 extra args, 5/22/20.
+   added 2 extra args, 5/22/20. Moved to perftests 7/23/20.
 */
 {
   double tsleep = 0.1;  // how long wait between tests to let FFTW settle (1.0?)
@@ -178,12 +183,18 @@ int main(int argc, char* argv[])
     printf("ntr=%d: %lld NU pts to %lld NU pts in %.3g s \t%.3g tot NU pts/s\n", ntransf, (long long)M,(long long)N, totalTime, ntransf*(N+M)/totalTime);
 
   // Comparing timing results with repeated calls to corresponding finufft function...
+
+  // The following would normally be done between independent timings, as found
+  // by Andrea Malleo, but in this case we need to access the plan later
+  // for many_simple_calls() to work, so we cannot do FFTW cleanup without
+  // apparently causing segfault :(. So we skip them.
   //FFTW_CLEANUP();
   //FFTW_CLEANUP_THREADS();
   //FFTW_FORGET_WISDOM();
+  
   //std::this_thread::sleep_for(std::chrono::seconds(1)); if c++11 is allowed
   sleep(tsleep); //sleep for one second using linux sleep call
-  // however, they cause segfault if done before destroy, so, removed.
+  
   
   printf("Compare speed of repeated calls to simple interface:------------------------\n");
   // this used to actually call Alex's old (v1.1) src/finufft?d.cpp routines.

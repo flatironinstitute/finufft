@@ -115,7 +115,9 @@ int main(int argc, char* argv[])
   opts.flags = flags;
   opts.kerpad = kerpad;
   opts.upsampfac = upsampfac;
-  //opts.max_subproblem_size = 1e4; // default is 1e5; minimal difference
+  opts.nthreads = 0;  // max # threads used, or 0 to use what's avail
+  opts.sort_threads = 0;
+  //opts.max_subproblem_size = 1e5; // default is 1e5; minimal difference
   FLT maxerr, ansmod;
   
   // spread a single source, only for reference accuracy check...

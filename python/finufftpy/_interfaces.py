@@ -14,6 +14,7 @@
 import finufftpy.finufftpy_cpp as finufftpy_cpp
 import numpy as np
 import warnings
+import numbers
 
 
 from finufftpy.finufftpy_cpp import default_opts
@@ -22,9 +23,16 @@ from finufftpy.finufftpy_cpp import finufft_plan
 from finufftpy.finufftpy_cpp import finufftf_plan
 
 
-### FinufftPlan class definition
-class FinufftPlan:
-    def __init__(self,tp,n_modes_or_dim,iflag,n_trans,eps=None,**kwargs):
+### Plan class definition
+class Plan:
+    def __init__(self,tp,n_modes_or_dim,eps=1e-6,iflag=None,n_trans=1,**kwargs):
+        # set default iflag based on if iflag is None
+        if iflag==None:
+            if tp==2:
+                iflag = -1
+            else:
+                iflag = 1
+
         # set opts and check precision type
         opts = nufft_opts()
         default_opts(opts)
@@ -33,12 +41,8 @@ class FinufftPlan:
         # construct plan based on precision type and eps default value
         if is_single:
             plan = finufftf_plan()
-            if eps is None:
-                eps = 1e-6
         else:
             plan = finufft_plan()
-            if eps is None:
-                eps = 1e-14
 
         # setting n_modes and dim for makeplan
         n_modes = np.ones([3], dtype=np.int64)
@@ -67,6 +71,12 @@ class FinufftPlan:
         # set C++ side plan as inner_plan
         self.inner_plan = plan
 
+        # set properties
+        self.type = tp
+        self.dim = dim
+        self.n_modes = n_modes
+        self.n_trans = n_trans
+
 
     ### setpts
     def setpts(self,xj=None,yj=None,zj=None,s=None,t=None,u=None):
@@ -82,12 +92,12 @@ class FinufftPlan:
             self._uf = _rchkf(u)
 
             # valid sizes
-            dim = finufftpy_cpp.get_dimf(self.inner_plan)
-            tp = finufftpy_cpp.get_typef(self.inner_plan)
-            (nj, nk) = valid_setpts(tp, dim, self._xjf, self._yjf, self._zjf, self._sf, self._tf, self._uf)
+            dim = self.dim
+            tp = self.type
+            (self.nj, self.nk) = valid_setpts(tp, dim, self._xjf, self._yjf, self._zjf, self._sf, self._tf, self._uf)
 
             # call set pts for single prec plan
-            ier = finufftpy_cpp.setptsf(self.inner_plan,nj,self._xjf,self._yjf,self._zjf,nk,self._sf,self._tf,self._uf)
+            ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
         else:
             # array sanity check
             self._xj = _rchk(xj)
@@ -98,12 +108,12 @@ class FinufftPlan:
             self._u = _rchk(u)
 
             # valid sizes
-            dim = finufftpy_cpp.get_dim(self.inner_plan)
-            tp = finufftpy_cpp.get_type(self.inner_plan)
-            (nj, nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
+            dim = self.dim
+            tp = self.type
+            (self.nj, self.nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
 
             # call set pts for double prec plan
-            ier = finufftpy_cpp.setpts(self.inner_plan,nj,self._xj,self._yj,self._zj,nk,self._s,self._t,self._u)
+            ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
 
         if ier != 0:
             err_handler(ier)
@@ -116,27 +126,20 @@ class FinufftPlan:
         if is_single:
             _data = _cchkf(data)
             _out = _cchkf(out)
-
-            tp = finufftpy_cpp.get_typef(self.inner_plan)
-            n_trans = finufftpy_cpp.get_ntransf(self.inner_plan)
-            nj = finufftpy_cpp.get_njf(self.inner_plan)
-            nk = finufftpy_cpp.get_nkf(self.inner_plan)
-            dim = finufftpy_cpp.get_dimf(self.inner_plan)
         else:
             _data = _cchk(data)
             _out = _cchk(out)
 
-            tp = finufftpy_cpp.get_type(self.inner_plan)
-            n_trans = finufftpy_cpp.get_ntrans(self.inner_plan)
-            nj = finufftpy_cpp.get_nj(self.inner_plan)
-            nk = finufftpy_cpp.get_nk(self.inner_plan)
-            dim = finufftpy_cpp.get_dim(self.inner_plan)
+        tp = self.type
+        n_trans = self.n_trans
+        nj = self.nj
+        nk = self.nk
+        dim = self.dim
 
         if tp==1 or tp==2:
-            if is_single:
-                (ms, mt, mu) = finufftpy_cpp.get_nmodesf(self.inner_plan)
-            else:
-                (ms, mt, mu) = finufftpy_cpp.get_nmodes(self.inner_plan)
+            ms = self.n_modes[0]
+            mt = self.n_modes[1]
+            mu = self.n_modes[2]
 
         # input shape and size check
         if tp==2:
@@ -194,7 +197,8 @@ class FinufftPlan:
 
     def __del__(self):
         destroy(self.inner_plan)
-### End of FinufftPlan class definition
+        self.inner_plan = None
+### End of Plan class definition
 
 
 
@@ -206,7 +210,7 @@ def _rchk(x):
     If not, produce a copy
     """
     if x is not None and x.dtype is not np.dtype('float64'):
-        raise RuntimeError('FINUFFT data type must be float64 for double precision float')
+        raise RuntimeError('FINUFFT data type must be float64 for double precision, data may have mixed precision types')
     return np.array(x, dtype=np.float64, order='F', copy=False)
 def _cchk(x):
     """
@@ -214,8 +218,8 @@ def _cchk(x):
     (complex128, F-contiguous in memory)
     If not, produce a copy
     """
-    if x is not None and x.dtype is not np.dtype('complex128'):
-        raise RuntimeError('FINUFFT data type must be complex128 for double precision complex')
+    if x is not None and (x.dtype is not np.dtype('complex128') and x.dtype is not np.dtype('float64')):
+        raise RuntimeError('FINUFFT data type must be complex128 for double precision, data may have mixed precision types')
     return np.array(x, dtype=np.complex128, order='F', copy=False)
 def _rchkf(x):
     """
@@ -224,7 +228,7 @@ def _rchkf(x):
     If not, produce a copy
     """
     if x is not None and x.dtype is not np.dtype('float32'):
-        raise RuntimeError('FINUFFT data type must be float32 for single precision float')
+        raise RuntimeError('FINUFFT data type must be float32 for single precision, data may have mixed precision types')
     return np.array(x, dtype=np.float32, order='F', copy=False)
 def _cchkf(x):
     """
@@ -232,8 +236,8 @@ def _cchkf(x):
     (complex128, F-contiguous in memory)
     If not, produce a copy
     """
-    if x is not None and x.dtype  is not np.dtype('complex64'):
-        raise RuntimeError('FINUFFT data type must be complex64 for single precision complex')
+    if x is not None and (x.dtype is not np.dtype('complex64') and x.dtype is not np.dtype('float32')):
+        raise RuntimeError('FINUFFT data type must be complex64 for single precision, data may have mixed precision types')
     return np.array(x, dtype=np.complex64, order='F', copy=False)
 def _copy(_x, x):
     """
@@ -321,7 +325,7 @@ def valid_ntr_tp12(dim,shape,n_transin,n_modesin):
         raise RuntimeError('FINUFFT input n_trans and output n_trans do not match')
 
     if n_modesin is not None:
-        if None not in n_modesin and n_modes != n_modesin:
+        if n_modes != n_modesin:
             raise RuntimeError('FINUFFT input n_modes and output n_modes do not match')
 
     return (n_trans,n_modes)
@@ -433,10 +437,31 @@ def destroy(plan):
 
 ### invoke guru interface, this function is used for simple interfaces
 def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
+    # infer dtype from x
+    if x.dtype is np.dtype('float64'):
+        pdtype = 'double'
+    elif x.dtype is np.dtype('float32'):
+        pdtype = 'single'
+    else:
+        raise RuntimeError('FINUFFT x dtype should be float64 for double precision or float32 for single precision')
+    # check n_modes type, n_modes must be a tuple or an integer
+    if n_modes is not None:
+        if (not isinstance(n_modes, tuple)) and (not isinstance(n_modes, numbers.Integral)):
+            raise RuntimeError('FINUFFT input n_modes must be a tuple or an integer')
+    # sanity check for n_modes input as tuple
+    if isinstance(n_modes, tuple):
+        if len(n_modes) != dim:
+            raise RuntimeError('FINUFFT input n_modes dimension does not match problem dimension')
+        if (not all(isinstance(elmi, numbers.Integral) for elmi in n_modes)):
+            raise RuntimeError('FINUFFT all elements of input n_modes must be integer')
+    # if n_modes is an integer populate n_modes for all dimensions
+    if isinstance(n_modes, numbers.Integral):
+        n_modes = (n_modes,)*dim
+
     # infer n_modes/n_trans from input/output
     if tp==1:
         n_trans = valid_ntr(x,c)
-        if None in n_modes and f is None:
+        if n_modes is None and f is None:
             raise RuntimeError('FINUFFT type 1 input must supply n_modes or output vector, or both')
         if f is not None:
             (n_trans,n_modes) = valid_ntr_tp12(dim,f.shape,n_trans,n_modes)
@@ -447,9 +472,9 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
 
     #plan
     if tp==3:
-        plan = FinufftPlan(tp,dim,isign,n_trans,eps,**kwargs)
+        plan = Plan(tp,dim,eps,isign,n_trans,**dict(kwargs,dtype=pdtype))
     else:
-        plan = FinufftPlan(tp,n_modes,isign,n_trans,eps,**kwargs)
+        plan = Plan(tp,n_modes,eps,isign,n_trans,**dict(kwargs,dtype=pdtype))
 
     #setpts
     plan.setpts(x,y,z,s,t,u)
@@ -465,7 +490,7 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     
 ### easy interfaces
 ### 1d1
-def nufft1d1(x,c,ms=None,out=None,eps=None,isign=1,**kwargs):
+def nufft1d1(x,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
     """1D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -495,11 +520,11 @@ def nufft1d1(x,c,ms=None,out=None,eps=None,isign=1,**kwargs):
     Example:
       see ``python_tests/demo1d1.py``
     """
-    return invoke_guru(1,1,x,None,None,c,None,None,None,out,isign,eps,(ms,),**kwargs)
+    return invoke_guru(1,1,x,None,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 1d2
-def nufft1d2(x,f,out=None,eps=None,isign=-1,**kwargs):
+def nufft1d2(x,f,out=None,eps=1e-6,isign=-1,**kwargs):
     """1D type-2 (aka forward) complex nonuniform fast Fourier transform
   
     ::
@@ -533,7 +558,7 @@ def nufft1d2(x,f,out=None,eps=None,isign=-1,**kwargs):
 
 
 ### 1d3
-def nufft1d3(x,c,s,out=None,eps=None,isign=1,**kwargs):
+def nufft1d3(x,c,s,out=None,eps=1e-6,isign=1,**kwargs):
     """1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
   
     ::
@@ -566,7 +591,7 @@ def nufft1d3(x,c,s,out=None,eps=None,isign=1,**kwargs):
 
 
 ### 2d1
-def nufft2d1(x,y,c,ms=None,mt=None,out=None,eps=None,isign=1,**kwargs):
+def nufft2d1(x,y,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
     """2D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -600,11 +625,11 @@ def nufft2d1(x,y,c,ms=None,mt=None,out=None,eps=None,isign=1,**kwargs):
     Example:
       see ``python/tests/accuracy_speed_tests.py``
     """
-    return invoke_guru(2,1,x,y,None,c,None,None,None,out,isign,eps,(ms,mt),**kwargs)
+    return invoke_guru(2,1,x,y,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 2d2
-def nufft2d2(x,y,f,out=None,eps=None,isign=-1,**kwargs):
+def nufft2d2(x,y,f,out=None,eps=1e-6,isign=-1,**kwargs):
     """2D type-2 (aka forward) complex nonuniform fast Fourier transform
   
     ::
@@ -641,7 +666,7 @@ def nufft2d2(x,y,f,out=None,eps=None,isign=-1,**kwargs):
 
 
 ### 2d3
-def nufft2d3(x,y,c,s,t,out=None,eps=None,isign=1,**kwargs):
+def nufft2d3(x,y,c,s,t,out=None,eps=1e-6,isign=1,**kwargs):
     """2D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
   
     ::
@@ -676,7 +701,7 @@ def nufft2d3(x,y,c,s,t,out=None,eps=None,isign=1,**kwargs):
 
 
 ### 3d1
-def nufft3d1(x,y,z,c,ms=None,mt=None,mu=None,out=None,eps=None,isign=1,**kwargs):
+def nufft3d1(x,y,z,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
     """3D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -714,11 +739,11 @@ def nufft3d1(x,y,z,c,ms=None,mt=None,mu=None,out=None,eps=None,isign=1,**kwargs)
     Example:
       see ``python_tests/accuracy_speed_tests.py``
     """
-    return invoke_guru(3,1,x,y,z,c,None,None,None,out,isign,eps,(ms,mt,mu),**kwargs)
+    return invoke_guru(3,1,x,y,z,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 3d2
-def nufft3d2(x,y,z,f,out=None,eps=None,isign=-1,**kwargs):
+def nufft3d2(x,y,z,f,out=None,eps=1e-6,isign=-1,**kwargs):
     """3D type-2 (aka forward) complex nonuniform fast Fourier transform
   
     ::
@@ -756,7 +781,7 @@ def nufft3d2(x,y,z,f,out=None,eps=None,isign=-1,**kwargs):
 
 
 ### 3d3
-def nufft3d3(x,y,z,c,s,t,u,out=None,eps=None,isign=1,**kwargs):
+def nufft3d3(x,y,z,c,s,t,u,out=None,eps=1e-6,isign=1,**kwargs):
     """3D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
   
     ::

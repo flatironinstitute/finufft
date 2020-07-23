@@ -97,68 +97,6 @@ int destroyf(pyfinufftf_plan &plan){
 }
 
 
-// help funcs
-// double precision help funcs
-int get_type(pyfinufft_plan &plan){
-    return plan.fp->type;
-}
-
-int get_dim(pyfinufft_plan &plan){
-    return plan.fp->dim;
-}
-
-BIGINT get_nj(pyfinufft_plan &plan){
-    return plan.fp->nj;
-}
-
-BIGINT get_nk(pyfinufft_plan &plan){
-    return plan.fp->nk;
-}
-
-py::tuple get_nmodes(pyfinufft_plan &plan){
-    BIGINT ms = plan.fp->ms ? plan.fp->ms : 1;
-    BIGINT mt = plan.fp->mt ? plan.fp->mt : 1;
-    BIGINT mu = plan.fp->mu ? plan.fp->mu : 1;
-    if(plan.fp->dim<3) mu = 1;
-    if(plan.fp->dim<2) mt = 1;
-    return py::make_tuple(ms,mt,mu);
-}
-
-int get_ntrans(pyfinufft_plan &plan){
-    return plan.fp->ntrans;
-}
-
-
-// single precision help funcs
-int get_typef(pyfinufftf_plan &plan){
-    return plan.fp->type;
-}
-
-int get_dimf(pyfinufftf_plan &plan){
-    return plan.fp->dim;
-}
-
-BIGINT get_njf(pyfinufftf_plan &plan){
-    return plan.fp->nj;
-}
-
-BIGINT get_nkf(pyfinufftf_plan &plan){
-    return plan.fp->nk;
-}
-
-py::tuple get_nmodesf(pyfinufftf_plan &plan){
-    BIGINT ms = plan.fp->ms ? plan.fp->ms : 1;
-    BIGINT mt = plan.fp->mt ? plan.fp->mt : 1;
-    BIGINT mu = plan.fp->mu ? plan.fp->mu : 1;
-    if(plan.fp->dim<3) mu = 1;
-    if(plan.fp->dim<2) mt = 1;
-    return py::make_tuple(ms,mt,mu);
-}
-
-int get_ntransf(pyfinufftf_plan &plan){
-    return plan.fp->ntrans;
-}
-
 PYBIND11_MODULE(finufftpy_cpp, m) {
     m.doc() = "pybind11 finufft plugin"; // optional module docstring
 
@@ -172,19 +110,6 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
     m.def("setptsf", &setptsf, "Set points for single precision");
     m.def("executef", &executef, "Execute for single precision");
     m.def("destroyf", &destroyf, "Destroy for single precision");
-    m.def("get_type", &get_type, "Get FINUFFT transfer type");
-    m.def("get_dim", &get_dim, "Get FINUFFT dimension");
-    m.def("get_nj", &get_nj, "Get FINUFFT number of nu points");
-    m.def("get_nk", &get_nk, "Get FINUFFT number of nu modes for type 3");
-    m.def("get_nmodes", &get_nmodes, "Get FINUFFT nmodes for type 1 and type 2");
-    m.def("get_ntrans", &get_ntrans, "Get FINUFFT ntrans");
-    m.def("get_typef", &get_typef, "Get FINUFFT transfer type");
-    m.def("get_dimf", &get_dimf, "Get FINUFFT dimension");
-    m.def("get_njf", &get_njf, "Get FINUFFT number of nu points");
-    m.def("get_nkf", &get_nkf, "Get FINUFFT number of nu modes for type 3");
-    m.def("get_nmodesf", &get_nmodesf, "Get FINUFFT nmodes for type 1 and type 2");
-    m.def("get_ntransf", &get_ntransf, "Get FINUFFT ntrans");
-
 
     // nufft_opts struct
     py::class_<nufft_opts>(m,"nufft_opts")
@@ -200,7 +125,8 @@ PYBIND11_MODULE(finufftpy_cpp, m) {
         .def_readwrite("upsampfac", &nufft_opts::upsampfac)
         .def_readwrite("spread_thread", &nufft_opts::spread_thread)
         .def_readwrite("maxbatchsize", &nufft_opts::maxbatchsize)
-        .def_readwrite("showwarn", &nufft_opts::showwarn);
+        .def_readwrite("showwarn", &nufft_opts::showwarn)
+        .def_readwrite("nthreads", &nufft_opts::nthreads);
 
     // finufft_plan stuct for double precision
     py::class_<pyfinufft_plan>(m,"finufft_plan")

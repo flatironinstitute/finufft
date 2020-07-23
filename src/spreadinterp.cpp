@@ -32,7 +32,8 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
+              double bin_size_x,double bin_size_y,double bin_size_z, int debug,
+              int nthr);
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,
 		 FLT* kz0,int ns, int ndims);
@@ -229,9 +230,10 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
 
 int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts)
-/* This makes a decision whether to sort the NU pts, and if so, calls either
-   single- or multi-threaded bin sort, writing reordered index list to sort_indices.
-   See spreadinterp() for input arguments, and ../docs/usage.rst for opts.
+/* This makes a decision whether or not to sort the NU pts, and if so, calls
+   either single- or multi-threaded bin sort, writing reordered index list to
+   sort_indices.
+   See spreadinterp() for input arguments, and ../docs/opts.rst for opts.
    Return value is whether a sort was done or not.
    Barnett 2017; split out by Melody Shih, Jun 2018.
 */
@@ -248,21 +250,25 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
 
   timer.start();                 // if needed, sort all the NU pts...
   int did_sort=0;
+  int maxnthr = MY_OMP_GET_MAX_THREADS();
+  if (opts.nthreads>0)           // user override up to max avail
+    maxnthr = min(maxnthr,opts.nthreads);
+  
   if (opts.sort==1 || (opts.sort==2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
     int sort_debug = (opts.debug>=2);    // show timing output?
     int sort_nthr = opts.sort_threads;   // choose # threads for sorting
-    if (sort_nthr==0)   // auto choice: when N>>M, one thread is better!
-      sort_nthr = (10*M>N) ? MY_OMP_GET_MAX_THREADS() : 1;      // heuristic
+    if (sort_nthr==0)   // use auto choice: when N>>M, one thread is better!
+      sort_nthr = (10*M>N) ? maxnthr : 1;      // heuristic
     if (sort_nthr==1)
       bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
-    else
-      bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
+    else                                      // sort_nthr>1, sets # threads
+      bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug,sort_nthr);
     if (opts.debug) 
       printf("\tsorted (%d threads):\t%.3g s\n",sort_nthr,timer.elapsedsec());
     did_sort=1;
   } else {
-#pragma omp parallel for schedule(static,1000000)
+#pragma omp parallel for num_threads(maxnthr) schedule(static,1000000)
     for (BIGINT i=0; i<M; i++)                // omp helps xeon, hinders i7
       sort_indices[i]=i;                      // the identity permutation
     if (opts.debug)
@@ -277,52 +283,53 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort)
 {
-    CNTime timer;
-    int ndims = ndims_from_Ns(N1,N2,N3);
-    BIGINT N=N1*N2*N3;            // output array size
-    int ns=opts.nspread;          // abbrev. for w, kernel width
-    // figure out how many threads would *actually* be used in omp parallel...
-    int nth_used = get_num_threads_parallel_block();
-    if (opts.debug)
-      printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nth_u=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nth_used);
-
-    timer.start();
-    for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
-      data_uniform[i]=0.0;
-    if (opts.debug) printf("\tzero output array\t%.3g s\n",timer.elapsedsec());
-    if (M==0)                     // no NU pts, we're done
-      return 0;
-
-    int spread_single = (M*100<N);     // low-density heuristic?
-    // *** should check if nth_used==1 and if so use single
-    spread_single = 0;                 // for now
-    timer.start();
-    if (spread_single) {    // ------- Basic single-core t1 spreading ------
-      for (BIGINT j=0; j<M; j++) {
-        // todo, not urgent
-      }
-      if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n",timer.elapsedsec());
-
-    } else {               // ------- Fancy multi-core blocked t1 spreading ----
-      // Split sorted inds (jfm's advanced2), could double RAM
-      int nb = min(4*(BIGINT)nth_used,M);  // choose # subprobs via nthreads to be used
-      if (nb*opts.max_subproblem_size<M)
-        nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
-      if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
-        nb = M;
-        if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
-      }
-      if (!did_sort && nth_used==1) {
-        nb = 1;
-        if (opts.debug) printf("\tunsorted nth_u=1: forcing single subproblem...\n");
-      }
-      std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining subproblems
-      for (int p=0;p<=nb;++p)
-        brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
-
-#pragma omp parallel for schedule(dynamic,1)
-      for (int isub=0; isub<nb; isub++) {    // Main loop through the subproblems
-        BIGINT M0 = brk[isub+1]-brk[isub];   // # NU pts in this subproblem
+  CNTime timer;
+  int ndims = ndims_from_Ns(N1,N2,N3);
+  BIGINT N=N1*N2*N3;            // output array size
+  int ns=opts.nspread;          // abbrev. for w, kernel width
+  int nthr = MY_OMP_GET_MAX_THREADS();  // # threads to use to spread
+  if (opts.nthreads>0)
+    nthr = min(nthr,opts.nthreads);     // user override up to max avail
+  if (opts.debug)
+    printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nthr);
+  
+  timer.start();
+  for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
+    data_uniform[i]=0.0;
+  if (opts.debug) printf("\tzero output array\t%.3g s\n",timer.elapsedsec());
+  if (M==0)                     // no NU pts, we're done
+    return 0;
+  
+  int spread_single = (nthr==1) || (M*100<N);     // low-density heuristic?
+  spread_single = 0;                 // for now
+  timer.start();
+  if (spread_single) {    // ------- Basic single-core t1 spreading ------
+    for (BIGINT j=0; j<M; j++) {
+      // *** todo, not urgent
+      // ... (question is: will the index wrapping per NU pt slow it down?)
+    }
+    if (opts.debug) printf("\tt1 simple spreading:\t%.3g s\n",timer.elapsedsec());
+    
+  } else {           // ------- Fancy multi-core blocked t1 spreading ----
+                     // Splits sorted inds (jfm's advanced2), could double RAM.
+    int nb = min(4*(BIGINT)nthr,M);  // choose nb (# subprobs) via used nthreads
+    if (nb*opts.max_subproblem_size<M)
+      nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
+    if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
+      nb = M;
+      if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
+    }
+    if (!did_sort && nthr==1) {
+      nb = 1;
+      if (opts.debug) printf("\tunsorted nthr=1: forcing single subproblem...\n");
+    }
+    std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining nb subproblems
+    for (int p=0;p<=nb;++p)
+      brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
+    
+#pragma omp parallel for num_threads(nthr) schedule(dynamic,1)  // each is big
+      for (int isub=0; isub<nb; isub++) {   // Main loop through the subproblems
+        BIGINT M0 = brk[isub+1]-brk[isub];  // # NU pts in this subproblem
         // copy the location and data vectors for the nonuniform points
         FLT *kx0=(FLT*)malloc(sizeof(FLT)*M0), *ky0=NULL, *kz0=NULL;
         if (N2>1)
@@ -394,13 +401,14 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   int ndims = ndims_from_Ns(N1,N2,N3);
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
-  // figure out how many threads would *actually* be used in omp parallel...
-  int nth_used = get_num_threads_parallel_block();
+  int nthr = MY_OMP_GET_MAX_THREADS();   // # threads to use to interp
+  if (opts.nthreads>0)
+    nthr = min(nthr,opts.nthreads);      // user override up to max avail
   if (opts.debug)
-    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nth_u=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nth_used);
+    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nthr);
 
   timer.start();  
-#pragma omp parallel
+#pragma omp parallel num_threads(nthr)
   {
 #define CHUNKSIZE 16     // Chunks of Type 2 targets (Ludvig found by expt)
     BIGINT jlist[CHUNKSIZE];
@@ -414,7 +422,7 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     FLT *ker3 = kernel_values + 2*ns;       
 
     // Loop over interpolation chunks
-#pragma omp for schedule(dynamic) // assign threads to NU targ pts:
+#pragma omp for schedule (dynamic,1000)  // assign threads to NU targ pts:
     for (BIGINT i=0; i<M; i+=CHUNKSIZE)  // main loop over NU targs, interp each from U
       {
         // Setup buffers for this chunk
@@ -553,8 +561,9 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   opts.kerpad = 0;              // affects only evaluate_kernel_vector
   opts.kerevalmeth = kerevalmeth;
   opts.upsampfac = upsampfac;
+  opts.nthreads = 0;            // all avail
   opts.sort_threads = 0;        // 0:auto-choice
-  opts.max_subproblem_size = (BIGINT)1e4;   // was larger (1e5 slightly worse)
+  opts.max_subproblem_size = (BIGINT)1e4;   // was larger (1e5 bit worse in 1D)
   opts.flags = 0;               // 0:no timing flags (>0 for experts only)
   opts.debug = 0;               // 0:no debug output
 
@@ -1102,12 +1111,14 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
-	      double bin_size_x,double bin_size_y,double bin_size_z, int debug)
+              double bin_size_x,double bin_size_y,double bin_size_z, int debug,
+              int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
    Barnett 2/8/18
-   Todo: if debug, print timing breakdowns
+   Todo: if debug, print timing breakdowns.
+   Explicit #threads control 7/20/20.
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
@@ -1115,7 +1126,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   nbins2 = isky ? N2/bin_size_y+1 : 1;
   nbins3 = iskz ? N3/bin_size_z+1 : 1;
   BIGINT nbins = nbins1*nbins2*nbins3;
-  int nt = min(M,(BIGINT)MY_OMP_GET_MAX_THREADS());   // printf("\tnt=%d\n",nt);
+  if (nthr==0)
+    fprintf(stderr,"[%s] nthr (%d) must be positive!\n",__func__,nthr);
+  int nt = min(M,(BIGINT)nthr);  // handle case of more points than threads
   std::vector<BIGINT> brk(nt+1); // start NU pt indices per thread
 
   // distribute the M NU pts to threads once & for all...
@@ -1125,24 +1138,22 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   std::vector< std::vector<BIGINT> > ot(nt,counts); // offsets per thread, nt * nbins
   {    // scope for ct, the 2d array of counts in bins for each threads's NU pts
     std::vector< std::vector<BIGINT> > ct(nt,counts);   // nt * nbins, init to 0
-
-#pragma omp parallel
-    {
-      int t = MY_OMP_GET_THREAD_NUM();
-      if (t<nt) {                      // could be nt < actual # threads
-	//printf("\tt=%d: [%d,%d]\n",t,jlo[t],jhi[t]);
-	for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
-	  // find the bin index in however many dims are needed
-	  BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-	  if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
-	  if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
-	  BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-	  ct[t][bin]++;               // no clash btw threads
-	}
+    
+#pragma omp parallel num_threads(nt)
+    {                                    // block done once per thread;
+      int t = MY_OMP_GET_THREAD_NUM();   // we assume all nt threads created
+      //printf("\tt=%d: [%d,%d]\n",t,jlo[t],jhi[t]);
+      for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+        // find the bin index in however many dims are needed
+        BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+        if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
+        if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
+        BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+        ct[t][bin]++;               // no clash btw threads
       }
     }
+#pragma omp parallel for num_threads(nt) schedule(dynamic,10000) // matters
     for (int t=0; t<nt; ++t)
-#pragma omp parallel for schedule(dynamic,10000)     // probably useless
       for (BIGINT b=0; b<nbins; ++b)
 	counts[b] += ct[t][b];
     
@@ -1155,31 +1166,29 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     
     for (BIGINT b=0; b<nbins; ++b)  // now build offsets for each thread & bin:
       ot[0][b] = offsets[b];                       // init
+#pragma omp parallel for num_threads(nt) schedule(dynamic,10000)
     for (int t=1; t<nt; ++t)
-#pragma omp parallel for schedule(dynamic,10000)     // probably useless
       for (BIGINT b=0; b<nbins; ++b)
 	ot[t][b] = ot[t-1][b]+ct[t-1][b];        // cumsum along t axis
     
   } // scope frees up ct here
   
   std::vector<BIGINT> inv(M);           // fill inverse map
-#pragma omp parallel
+#pragma omp parallel num_threads(nt)
   {
     int t = MY_OMP_GET_THREAD_NUM();
-    if (t<nt) {                      // could be nt < actual # threads
-      for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
-	// find the bin index (again! but better than using RAM)
-	BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-	if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
-	if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
-	BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-	inv[i]=ot[t][bin];   // get the offset for this NU pt and thread
-	ot[t][bin]++;               // no clash
-      }
+    for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+      // find the bin index (again! but better than using RAM)
+      BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+      if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
+      if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
+      BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+      inv[i]=ot[t][bin];   // get the offset for this NU pt and thread
+      ot[t][bin]++;               // no clash
     }
   }
   // invert the map, writing to output pointer (writing pattern is random)
-#pragma omp parallel for schedule(dynamic,10000)
+#pragma omp parallel for num_threads(nt) schedule(dynamic,10000)
   for (BIGINT i=0; i<M; i++)
     ret[inv[i]]=i;
 }
