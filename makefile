@@ -218,8 +218,6 @@ test: $(TESTS)
 # it will fail if either of these return nonzero exit code...
 	test/basicpassfail
 	test/basicpassfailf
-# add small guru test in to make sure exits with 0, but has no math test...
-	test/finufftGuru_test 10 1 2 1e2 1e2 0 1e4 1e-3
 # accuracy tests done in prec-switchable bash script...
 	(cd test; ./check_finufft.sh; ./check_finufft.sh SINGLE)
 
@@ -348,7 +346,8 @@ clean: objclean pyclean
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
-	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) perftest/manysmallprobs
+	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(GTT) $(GTTF)
+	rm -f perftest/manysmallprobs
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
 
 # indiscriminate .o killer; needed before changing threading...
