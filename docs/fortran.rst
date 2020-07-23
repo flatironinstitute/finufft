@@ -14,7 +14,7 @@ changed from default values.
 Simple example
 ~~~~~~~~~~~~~~
 
-To perform a 1D type 1 transform from ``M`` nonuniform points ``xj``
+To perform a double-precision 1D type 1 transform from ``M`` nonuniform points ``xj``
 with strengths ``cj``, to ``N`` output modes whose coefficients will be written
 into the ``fk`` array, using 9-digit tolerance, the $+i$ imaginary sign,
 and default options, the declarations and call are
@@ -44,7 +44,7 @@ For a minimally complete test code demonstrating the above see
 ``fortran/examples/simple1d1.f``.
 
 To compile (eg using GCC/linux) and link such a program against the FINUFFT
-dynamic (.so) library (which links all dependent libraries)::
+dynamic (``.so``) library (which links all dependent libraries)::
 
   gfortran -I $(FINUFFT)/include simple1d1.f -o simple1d1 -L$(FINUFFT)/lib -lfinufft
 
@@ -87,13 +87,15 @@ Summary of Fortran interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The naming of routines is as in C/C++.
-Eg, ``finufft2d3`` means 2D transform of type 3.
-``finufft2d3many`` means applying 2D transforms of type 3 to a stack of many
+Eg, ``finufft2d3`` means double-precision 2D transform of type 3.
+``finufft2d3many`` means applying double-precision
+2D transforms of type 3 to a stack of many
 strength vectors (vectorized interface).
+``finufft2d3f`` means single-precision 2D type 3.
 The guru interface has very similar arguments to its C/C++ version.
 Compared to C/C++, all argument lists have ``ier`` appended at the end,
 to which the status is written.
-Assuming a double-precision build of FINUFFT, these routines and arguments are
+These routines and arguments are, in double-precision:
 
 .. code-block:: fortran
 
@@ -132,20 +134,19 @@ Assuming a double-precision build of FINUFFT, these routines and arguments are
  !    guru interface
       call finufft_makeplan(type,dim,n_modes,iflag,ntrans,tol,plan,opts,ier)
       call finufft_setpts(plan,M,xj,yj,zj,Nk,sk,yk,uk,ier)
-      call finufft_exec(plan,cj,fk,ier)
+      call finufft_execute(plan,cj,fk,ier)
       call finufft_destroy(plan,ier)
 
-These are defined (from the C++ side) in ``fortran/finufft_f.cpp``.
-Currently the single-precision subroutines have the same name, but instead
-of linking with ``-lfinufft`` one uses ``-lfinufftf`` (after having built
-a single-precision FINUFFT). This means that they
-cannot be used together in the same executable.
+The single-precision routines are identical except with the replacement
+of finufft with finufft.
+They are defined (from the C++ side) in ``fortran/finufftfort.cpp``.
 
 
 Code examples
 ~~~~~~~~~~~~~
 
-The ``fortran/examples`` directory contains the following demos.
+The ``fortran/examples`` directory contains the following demos,
+in both precisions.
 Each has a math test to check the correctness of some or all outputs::
 
   simple1d1.f        - 1D type 1, simple interface, default and various opts
@@ -155,6 +156,8 @@ Each has a math test to check the correctness of some or all outputs::
   nufft3d_demo.f     - 3D "
   nufft2dmany_demo.f - 2D types 1,2,3, vectorized (many strengths) interface
   
+These are the double-precision file names; the single precision have a
+trailing f before the .f.
 The last four here are modified from demos in the
 `CMCL NUFFT libraries <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_.
 The first three of these have been changed only to use FINUFFT,
@@ -164,9 +167,6 @@ merely around $10^{-14}$.
 The last four demos require direct summation (slow) reference implementations
 of the transforms in ``fortran/directft``, modified from their CMCL
 counterparts only to remove the $1/M$ prefactor for type 1 transforms.
-
-.. note ::
- The above demos are double precision. Single-precision versions also exist and have an extra ``f`` after the name, ie, as listed by: ``ls fortran/examples/*f.f``. Remember to use ``-lfinufftf`` and ``type(nufft_optsf)`` for single precision, otherwise it will segfault!
 
 All demos have self-contained example GCC
 compilation/linking commands in their comment headers.

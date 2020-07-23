@@ -40,14 +40,14 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
     return ier2;
   }
 
-  int ier3 = FINUFFT_EXEC(plan, cj, fk);
+  int ier3 = FINUFFT_EXECUTE(plan, cj, fk);
   if (ier3>1) {
-    fprintf(stderr,"FINUFFT invokeGuru: exec error (ier=%d)!\n", ier3);
+    fprintf(stderr,"FINUFFT invokeGuru: execute error (ier=%d)!\n", ier3);
     return ier3;
   }
 
   FINUFFT_DESTROY(plan);
-  return max(max(ier,ier2),ier3);   // in case any one gave a warning
+  return max(max(ier,ier2),ier3);  // in case any one gave a (positive!) warning
 }
 
 

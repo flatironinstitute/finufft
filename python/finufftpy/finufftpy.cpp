@@ -70,7 +70,7 @@ int setpts(pyfinufft_plan &plan, BIGINT M, py::array_t<FLT> xj, py::array_t<FLT>
 }
 
 int execute(pyfinufft_plan &plan, py::array_t<CPX> weights, py::array_t<CPX> result){
-    return finufft_exec(plan.fp,weights.mutable_data(),result.mutable_data());
+    return finufft_execute(plan.fp,weights.mutable_data(),result.mutable_data());
 }
 
 int destroy(pyfinufft_plan &plan){
@@ -89,7 +89,7 @@ int setptsf(pyfinufftf_plan &plan, BIGINT M, py::array_t<FLTf> xj, py::array_t<F
 }
 
 int executef(pyfinufftf_plan &plan, py::array_t<CPXf> weights, py::array_t<CPXf> result){
-    return finufftf_exec(plan.fp,weights.mutable_data(),result.mutable_data());
+    return finufftf_execute(plan.fp,weights.mutable_data(),result.mutable_data());
 }
 
 int destroyf(pyfinufftf_plan &plan){

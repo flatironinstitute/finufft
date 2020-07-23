@@ -23,7 +23,7 @@ using namespace std;
 /* Computational core for FINUFFT.
 
    Based on Barnett 2017-2018 finufft?d.cpp containing nine drivers, plus
-   2d1/2d2 many-vector drivers by Meldy Shih, summer 2018.
+   2d1/2d2 many-vector drivers by Melody Shih, summer 2018.
    Original guru interface written by Andrea Malleo, summer 2019, mentored
    by Alex Barnett. Many rewrites in early 2020 by Alex Barnett & Libin Lu.
 
@@ -75,7 +75,7 @@ Design notes for guru interface implementation:
 
 * Since finufft_plan is C-compatible, we need to use malloc/free for its
   allocatable arrays, keeping it quite low-level. We can't use std::vector
-  since that would  only survive in the scope of each function.
+  since that would only survive in the scope of each function.
 
 */
 
@@ -907,14 +907,14 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
-int FINUFFT_EXEC(FINUFFT_PLAN p, CPX* cj, CPX* fk){
+int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX* cj, CPX* fk){
 /* For given (batch of) weights cj, performs NUFFTs with existing
    (sorted) NU pts and existing plan.
-   Performs spread/interp, pre/post deconvolve, and fftw_exec as appropriate
+   Performs spread/interp, pre/post deconvolve, and fftw_execute as appropriate
    for each of the 3 types.
    For cases of ntrans>1, performs work in blocks of size up to batchSize.
    Return value 0, no error reporting yet.
-   Barnett 5/20/20 based on Malleo 2019.
+   Barnett 5/20/20, based on Malleo 2019.
 */
   CNTime timer; timer.start();
   
@@ -1015,7 +1015,7 @@ int FINUFFT_EXEC(FINUFFT_PLAN p, CPX* cj, CPX* fk){
       p->innerT2plan->ntrans = thisBatchSize;      // do not try this at home!
       /* (alarming that FFTW not shrunk, but safe, because t2's fwBatch array
          still the same size, as Andrea explained; just wastes a few flops) */
-      FINUFFT_EXEC(p->innerT2plan, fkb, (CPX*)(p->fwBatch));
+      FINUFFT_EXECUTE(p->innerT2plan, fkb, (CPX*)(p->fwBatch));
       t_t2 += timer.elapsedsec();
 
       // STEP 3: apply deconvolve (precomputed 1/phiHat(targ_k), phasing too)...
