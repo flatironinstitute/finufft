@@ -88,9 +88,16 @@ int main(int argc, char* argv[])
 	CUFINUFFT_PLAN dplan;
 	int dim = 3;
 	int type = 1;
-	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &dplan.opts);
-	dplan.opts.gpu_method=method;
-	dplan.opts.gpu_kerevalmeth=1;
+
+	// Here we setup our own opts, for gpu_method and gpu_kerevalmeth.
+	cufinufft_opts opts;
+	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &opts);
+	if(ier!=0){
+	  printf("err %d: CUFINUFFT_DEFAULT_OPTS\n", ier);
+	  return ier;
+	}
+	opts.gpu_method=method;
+	opts.gpu_kerevalmeth=1;
 
 	int nmodes[3];
 	int ntransf = 1;
@@ -100,9 +107,10 @@ int main(int argc, char* argv[])
 	nmodes[2] = N3;
 	cudaEventRecord(start);
 	ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
-		maxbatchsize, &dplan);
+			       maxbatchsize, &dplan, &opts);
 	if (ier!=0){
-		printf("err: cufinufft_makeplan\n");
+	  printf("err: cufinufft_makeplan\n");
+	  return ier;
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -111,9 +119,10 @@ int main(int argc, char* argv[])
 
 
 	cudaEventRecord(start);
-	ier=CUFINUFFT_SETNUPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
+	ier=CUFINUFFT_SETPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, dplan);
 	if (ier!=0){
-		printf("err: cufinufft_setNUpts\n");
+	  printf("err: cufinufft_setpts\n");
+	  return ier;
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -122,9 +131,10 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=CUFINUFFT_EXEC(d_c, d_fk, &dplan);
+	ier=CUFINUFFT_EXECUTE(d_c, d_fk, dplan);
 	if (ier!=0){
-		printf("err: cufinufft_exec\n");
+	  printf("err: cufinufft_execute\n");
+	  return ier;
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -133,7 +143,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=CUFINUFFT_DESTROY(&dplan);
+	ier=CUFINUFFT_DESTROY(dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
@@ -144,7 +154,7 @@ int main(int argc, char* argv[])
 		cudaMemcpyDeviceToHost));
 
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
+			opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
 
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2), nt3 = (int) (0.13*N3);  // choose some mode index to check
 	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;

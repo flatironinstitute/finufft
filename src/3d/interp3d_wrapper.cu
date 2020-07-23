@@ -11,7 +11,7 @@ using namespace std;
 
 int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, 
 	CPX* h_fw, int M, FLT *h_kx, FLT *h_ky, FLT *h_kz, CPX *h_c, FLT eps, 
-	CUFINUFFT_PLAN* d_plan)
+	CUFINUFFT_PLAN d_plan)
 /*
 	This c function is written for only doing 3D interpolation. It includes 
 	allocating, transfering and freeing the memories on gpu. See 
@@ -112,7 +112,7 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	return ier;
 }
 
-int CUINTERP3D(CUFINUFFT_PLAN* d_plan, int blksize)
+int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize)
 /*
 	A wrapper for different interpolation methods. 
 
@@ -176,7 +176,7 @@ int CUINTERP3D(CUFINUFFT_PLAN* d_plan, int blksize)
 }
 
 
-int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN *d_plan,
+int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;
@@ -231,7 +231,7 @@ int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN *d_p
 	return 0;
 }
 
-int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN *d_plan,
+int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan,
 	int blksize)
 {
 	cudaEvent_t start, stop;

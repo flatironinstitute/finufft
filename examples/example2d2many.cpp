@@ -69,18 +69,16 @@ int main(int argc, char* argv[])
 	int nmodes[3];
 	int type = 2;
 
-	ier=cufinufft_default_opts(type, dim, &dplan.opts);
-
 	nmodes[0] = N1;
 	nmodes[1] = N2;
 	nmodes[2] = 1;
 
 	ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol,
-		maxbatchsize, &dplan);
+			       maxbatchsize, &dplan, NULL);
 
-	ier=cufinufft_setNUpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=cufinufft_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 
-	ier=cufinufft_exec(d_c, d_fk, &dplan);
+	ier=cufinufft_execute(d_c, d_fk, &dplan);
 
 	ier=cufinufft_destroy(&dplan);
 

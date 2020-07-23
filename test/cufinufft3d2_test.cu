@@ -91,8 +91,15 @@ int main(int argc, char* argv[])
 	CUFINUFFT_PLAN dplan;
 	int dim = 3;
 	int type = 2;
-	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &dplan.opts);
-	dplan.opts.gpu_method=method;
+
+	// Here we setup our own opts, for gpu_method.
+	cufinufft_opts opts;
+	ier=CUFINUFFT_DEFAULT_OPTS(type, dim, &opts);
+	if(ier!=0){
+	  printf("err %d: CUFINUFFT_DEFAULT_OPTS\n", ier);
+	  return ier;
+	}
+	opts.gpu_method=method;
 
 	int nmodes[3];
 	int ntransf = 1;
@@ -105,7 +112,7 @@ int main(int argc, char* argv[])
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_plan",2);
 		ier=CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol,
-			maxbatchsize, &dplan);
+				       maxbatchsize, &dplan, &opts);
 		if (ier!=0){
 			printf("err: cufinufft_makeplan\n");
 		}
@@ -118,10 +125,11 @@ int main(int argc, char* argv[])
 
 	cudaEventRecord(start);
 	{
-		PROFILE_CUDA_GROUP("cufinufft_setNUpts",3);
-		ier=CUFINUFFT_SETNUPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, &dplan);
+		PROFILE_CUDA_GROUP("cufinufft_setpts",3);
+		ier=CUFINUFFT_SETPTS(M, d_x, d_y, d_z, 0, NULL, NULL, NULL, dplan);
 		if (ier!=0){
-			printf("err: cufinufft_setNUpts\n");
+		  printf("err: cufinufft_setpts\n");
+		  return ier;
 		}
 	}
 	cudaEventRecord(stop);
@@ -132,10 +140,11 @@ int main(int argc, char* argv[])
 
 	cudaEventRecord(start);
 	{
-		PROFILE_CUDA_GROUP("cufinufft_exec",4);
-		ier=CUFINUFFT_EXEC(d_c, d_fk, &dplan);
+		PROFILE_CUDA_GROUP("cufinufft_execute",4);
+		ier=CUFINUFFT_EXECUTE(d_c, d_fk, dplan);
 		if (ier!=0){
-			printf("err: cufinufft_exec\n");
+		  printf("err: cufinufft_execute\n");
+		  return ier;
 		}
 	}
 	cudaEventRecord(stop);
@@ -147,7 +156,8 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft3d_destroy",5);
-		ier=CUFINUFFT_DESTROY(&dplan);
+		ier=CUFINUFFT_DESTROY(dplan);
+		return ier;
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -158,7 +168,7 @@ int main(int argc, char* argv[])
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (\t%.3g NU pts/s)\n",
-			dplan.opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
+			opts.gpu_method,M,N1*N2*N3,totaltime/1000,M/totaltime*1000);
 
 	int jt = M/2;          // check arbitrary choice of one targ pt
 	CPX J = IMA*(FLT)iflag;
