@@ -140,10 +140,10 @@ int main(int argc, char* argv[])
 
 	cudaEventRecord(start);
 	{
-		PROFILE_CUDA_GROUP("cufinufft_exec",4);
-		ier=CUFINUFFT_EXEC(d_c, d_fk, dplan);
+		PROFILE_CUDA_GROUP("cufinufft_execute",4);
+		ier=CUFINUFFT_EXECUTE(d_c, d_fk, dplan);
 		if (ier!=0){
-		  printf("err: cufinufft_exec\n");
+		  printf("err: cufinufft_execute\n");
 		  return ier;
 		}
 	}

@@ -58,7 +58,7 @@ cuFINUFFT API contains 5 stages:
  - Set cufinufft default options - ```int ier=cufinufft_default_opts(type1, dim, &opts);```
  - Make cufinufft plan - ``` ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan); ```
  - Set the locations of non-uniform points x,y,z - ```ier=cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, dplan);```
- - Apply the transformation with data c,fk - ```ier=cufinufft_exec(c, fk, dplan); ```
+ - Apply the transformation with data c,fk - ```ier=cufinufft_execute(c, fk, dplan); ```
  - Destroy cufinufft plan - ```ier=cufinufft_destroy(dplan);```
  
 ## Preprocessors

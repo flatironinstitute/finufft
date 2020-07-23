@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(start);
 	{
 		PROFILE_CUDA_GROUP("cufinufft2d2_exec",4);
-		ier=CUFINUFFT_EXEC(d_c, d_fk, dplan);
+		ier=CUFINUFFT_EXECUTE(d_c, d_fk, dplan);
 		if (ier!=0){
 			printf("err: cufinufft2d2_exec\n");
 			return ier;
