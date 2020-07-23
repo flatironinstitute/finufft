@@ -21,7 +21,8 @@ has the following meanings (see ``include/defs.h``):
   10 transform type invalid
   11 general allocation failure
   12 dimension invalid
-
+  13 spread_thread option invalid
+  
 When ``ier=1`` the transform(s) is/are still completed, at the smallest epsilon achievable, so the answer should be usable. For any other nonzero values of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help narrow down the problem.
 
 FINUFFT sometimes also sends error reports to ``stderr`` if it detects faulty input parameters.

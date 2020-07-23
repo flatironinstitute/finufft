@@ -23,7 +23,7 @@ int main(int argc, char *argv[]){
 
   int M = 1e6;                 // number of nonuniform points
   int N = 1e6;                 // approximate total number of modes (N1*N2)
-  double acc = 1e-6;           // desired accuracy
+  double tol = 1e-6;           // desired accuracy
   nufft_opts opts; finufft_default_opts(&opts);
   complex<double> I(0.0, 1.0); // the imaginary unit
 
@@ -39,6 +39,7 @@ int main(int argc, char *argv[]){
     c[i] = 2*((double)rand()/RAND_MAX-1) + I*(2*((double)rand()/RAND_MAX)-1); 
   }
 
+  // choose numbers of output Fourier coefficients in each dimension
   int N1 = round(2.0*sqrt(N));
   int N2 = round(N/N1);
   
@@ -47,9 +48,9 @@ int main(int argc, char *argv[]){
 
   // call the NUFFT (with iflag += 1): note passing in pointers...
   opts.upsampfac = 1.25;
-  int ier = finufft2d1(M,&x[0],&y[0], &c[0], 1, acc, N1, N2, &F[0], &opts);
+  int ier = finufft2d1(M,&x[0],&y[0], &c[0], 1, tol, N1, N2, &F[0], &opts);
 
-  int k1 = round(0.45*N1); //check the answer for this arbitrary mode
+  int k1 = round(0.45*N1);    // check the answer for mode frequency (k1,k2)
   int k2 = round(-0.35*N2);
   
   complex<double> Ftest(0,0);
@@ -63,7 +64,7 @@ int main(int argc, char *argv[]){
     if (aF>Fmax) Fmax=aF;
   }
   
-  // indices in output array for this frequency pair?
+  // indices in output array for this frequency pair (k1,k2)
   int k1out = k1 + (int)N1/2; 
   int k2out = k2 + (int)N2/2;
   int indexOut = k1out + k2out*(N1);

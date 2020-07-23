@@ -49,8 +49,7 @@ C++-style vector objects), and also pass ``N``:
   int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);
 
 This fills ``F`` with the output modes, in increasing ordering
-from frequency index ``-N/2`` up to ``N/2-1``. Transforming :math:`10^7` points
-to :math:`10^6` modes takes 0.4 seconds on a laptop.
+from frequency index ``-N/2`` up to ``N/2-1``. The transform (:math:`10^7` points to :math:`10^6` modes) takes 0.4 seconds on a laptop.
 The indexing is offset by ``(int)N/2``, so that frequency ``k`` is output in
 ``F[(int)N/2 + k]``.
 Here ``+1`` sets the sign of :math:`i` in the exponentials
@@ -60,7 +59,7 @@ which is zero if successful (otherwise see :ref:`error codes <error>`).
 
 .. note::
 
-   FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. Points must lie in the input domain :math:`[-3\pi,3\pi)`, which allows the user to assume a convenient periodic domain such as  :math:`[-\pi,\pi)` or :math:`[0,2\pi)`. To handle points outside this input domain, the user must fold them back into the input domain (FINUFFT does not do this for reasons of speed). To use a different periodicity, linearly rescale your coordinates.
+   FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. Points must lie in the input domain :math:`[-3\pi,3\pi)`, which allows the user to assume a convenient periodic domain such as  :math:`[-\pi,\pi)` or :math:`[0,2\pi)`. To handle points outside of :math:`[-3\pi,3\pi)` the user must fold them back into this domain before passing to FINUFFT. FINUFFT does not handle this case, for speed reasons. To use a different periodicity, linearly rescale your coordinates.
 
 If instead you want to change some options, first
 put default values in a ``nufft_opts`` struct,
@@ -75,7 +74,7 @@ make your changes, then pass the pointer to FINUFFT:
   
 .. warning::
    - Without the ``finufft_default_opts`` call, options may take on arbitrary values which may cause a crash.
-   - This usage is new as of version 1.2: `opts` is a pointer that is passed in both places.
+   - This usage is new as of version 1.2: ``opts`` is passed as a pointer in both places.
 
 See ``examples/simple1d1.cpp`` for a simple full working demo of the above, including a test of the math. If you instead use single-precision arrays,
 replace the tag ``finufft`` by ``finufftf`` in each command; see ``examples/simple1d1f.cpp``.
@@ -96,16 +95,16 @@ and the more flexible guru interface, follows below.
 Quick-start example in C
 -----------------------
 
-FINUFFT is intentionally C-compatible.
+The FINUFFT C++ interface is intentionally also C-compatible, for simplity.
 Thus, to use from C, the above example only needs to replace the C++
-``vector``s with C-style array creation. Using C99 style, the
+``vector`` with C-style array creation. Using C99 style, the
 above code, with options setting, becomes:
 
 .. code-block:: C
 
-#include <finufft.h>
-#include <stdlib.h>
-#include <complex.h>
+  #include <finufft.h>
+  #include <stdlib.h>
+  #include <complex.h>
 
   int M = 1e7;            // number of nonuniform points
   double* x = (double *)malloc(sizeof(double)*M);
@@ -120,7 +119,9 @@ above code, with options setting, becomes:
   finufft_default_opts(&opts);          // set default opts (must do this)
   opts.debug = 2;                       // more debug/timing to stdout
   int ier = finufft1d1(M,x,c,+1,1e-9,N,F,&opts);
-  // (do something with F here!...)
+                
+  // (now do something with F here!...)
+                
   free(x); free(c); free(F);
                 
 See ``examples/simple1d1c.c`` and ``examples/simple1d1cf.c`` for
@@ -128,13 +129,13 @@ double- and single-precision C examples, including the math check to insure
 the correct indexing of output modes.
 
 
-Two-dimensional example in C++
-------------------------------
+2D example in C++
+-----------------
 
 We assume Fortran-style contiguous multidimensional arrays, as opposed
 to C-style arrays of pointers; this allows the widest compatibility with other
-languages. Assuming the same ``include``s as above, we first create points
-:math:`(x_j,y_j)` in the square :math:`[-\pi,pi)^2`, and strengths as before:
+languages. Assuming the same headers as above, we first create points
+:math:`(x_j,y_j)` in the square :math:`[-\pi,\pi)^2`, and strengths as before:
 
 .. code-block:: C++
 
@@ -205,7 +206,7 @@ Ie, viewed as a matrix in Fortran storage, each column is a strength vector.
 
 This takes 2.6 seconds on a laptop, around 1.4x faster than
 making 10 separate "simple" calls.
-The frequency index ``k`` in the ``t``th transform (zero-indexing the transforms) is in ``F[k + (int)N/2 + N*t]``.
+The frequency index ``k`` in transform number ``t`` (zero-indexing the transforms) is in ``F[k + (int)N/2 + N*t]``.
 
 See ``examples/many1d1.cpp`` and ``test/finufft?dmany_test.cpp``
 for more examples.
@@ -214,14 +215,14 @@ for more examples.
 Guru interface example
 ----------------------
 
-More flexible than the above interface is our "guru" interface;
-this is modelled on that of FFTW3, and similar to the main interface of
+If you want more flexibility than the above, use the "guru" interface:
+this is similar to that of FFTW3, and to the main interface of
 `NFFT3 <https://www-user.tu-chemnitz.de/~potts/nfft/>`_.
-This lets you change the nonuniform points while keeping the
+It lets you change the nonuniform points while keeping the
 same pointer to an FFTW plan for a particular number of stacked transforms
 with a certain number of modes.
 This avoids the overhead (typically 0.1 ms per thread) of FFTW checking for
-previous wisdom, which can cause a huge slow-down for many small transforms.
+previous wisdom which would be significant when doing many small transforms.
 You may also send in a new
 set of stacked strength data (for type 1 and 3, or coefficients for type 2),
 reusing the existing FFTW plan and sorted points.
@@ -231,89 +232,45 @@ One first makes a plan giving transform parameters, but no data:
 
 .. code-block:: C++
 
-  ***
+  // (assume x, y, c are filled, and F allocated, as in the 2D code above...)
+  int type=1, dim=2, ntrans=1;
+  int64_t Ns[] = {1000,2000};                    // N1,N2 as 64-bit int array
+  // step 1: make a plan...
+  finufft_plan plan;
+  int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, 1e-6, &plan, NULL);
+  // step 2: send in M nonuniform points (just x, y in this case)...
+  finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  // step 3: do the planned transform to the c strength data, output to F...
+  finufft_exec(plan, &c[0], &F[0]);
+  // ... you could now send in new points, and/or do transforms with new c data
+  // ...
+  // step 4: free the memory used by the plan...
+  finufft_destroy(plan);
+
+This writes the Fourier coefficients to ``F`` just as in the earlier 2D example.
+One difference from the above simple and vectorized interfaces
+is that the ``int64_t`` type (aka ``long long int``)
+is needed since the Fourier coefficient dimensions are passed as an array.
+
+  .. warning::
+  You must destroy a plan before making a new plan using the same
+  plan object, otherwise a memory leak results.
+
+The complete code with a math test is in ``examples/guru2d1.cpp``, and for
+more examples see ``examples/guru1d1*.c*``
 
 
-  finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, NULL);
+Documentation of individual functions
+*************************************
 
 *** 
 
-  
+define FLT, CPX, and BIGINT just for the below.
 
-.. note::
-  User must destroy a plan before making a new plan using the same
-  plan object,
-  otherwise mem leak.
+*** cut the repetition of the below. list the 18 funcs,
+then the arguments which are common to all of them.
 
 
-
-
-
-
-Simple interfaces
--------------------------------- 
-
-FIX THE BELOW - REMOVE REPETITIONS:
-(don't have to have each 18 interfaces listed out in full).
-
-
- .. _datatypes:
- 
-Data types
-~~~~~~~~~~
-
-We define data types that are convenient to unify the interfaces.
-These are used throughout the below.
-
-- ``FLT`` : this means ``double`` if compiled in
-  the default double-precision, or ``float`` if compiled in single precision.
-  This is used for all real-valued input and output arrays.
-
-- ``CPX`` : means ``complex<double>`` in double precision,
-  or ``complex<float>`` in single precision.
-  This is used for all complex-valued input and output arrays.
-  In the documentation this is often referred to as ``complex FLT``.
-
-- ``BIGINT`` : this is the signed integer type used for all potentially-large input arguments, such as ``M`` and ``N`` in the example above. It is defined to the signed 64-bit integer type ``int64_t``, allowing the number of input points and/or output modes to exceed 2^31 (around 2 billion). Internally, the ``BIGINT`` type is also used for all relevant indexing; we have not noticed a slow-down relative to using 32-bit integers (the advanced user could explore this by changing its definition in ``finufft.h`` and recompiling).
-  This is also referred to as ``int64`` in the documentation.
-
-- ``int`` : (in contrast to the above)
-  is the usual 32-bit signed integer, and is used for
-  flags (such as the value ``+1`` used above) and the output error code.
-
-
-  
-Here we describe the simple interfaces to call FINUFFT from C++, C.
-
-We provide Type 1 (nonuniform to uniform), Type 2 (uniform to
-nonuniform), and Type 3 (nonuniform to nonuniform), in dimensions 1,
-2, and 3.  This gives nine basic routines.
-There are also two :ref:`advanced interfaces <advinterface>`
-for multiple 2d1 and 2d2 transforms with the same point locations.
-
-         *** TO DISCUSS! UPDATE ! ********
-
-         
-Using the library is a matter of filling your input arrays,
-allocating the correct output array size, possibly setting fields in
-the options struct, then calling one of the transform routines below.
-
-.. warning::
-   FINUFFT (when compiled with OpenMP) by default uses all available threads,
-   which is often twice the number of cores (full hyperthreading).
-   We have observed that a large thread
-   count can lead to *reduced* performance, presumably because RAM access is the limiting factor. We recommend that one limit the
-   number of threads at most around 24. This can be done in linux via
-   the shell environment, eg ``OMP_NUM_THREADS=16``, or using OpenMP
-   commands in the various languages.
-
-   
-
-Interfaces from C++
-*******************
-
-
-  
 
 1D transforms, simple interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
