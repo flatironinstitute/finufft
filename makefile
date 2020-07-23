@@ -13,11 +13,6 @@
 # Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 
-# for debug https://www.cmcrossroads.com/article/tracing-rule-execution-gnu-make
-#OLD_SHELL := $(SHELL)
-#SHELL = $(warning Building $@$(if $<, (from $<))$(if $?, ($? newer)))$(OLD_SHELL) -x
-
-
 # Compilers, and linking from C, fortran. We use GCC by default...
 CXX = g++
 CC = gcc
@@ -111,7 +106,7 @@ OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufftjulia.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
-.PHONY: usage lib examples test perftest spreadtest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel
+.PHONY: usage lib examples test perftest spreadtest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime
 
 default: usage
 
@@ -228,6 +223,12 @@ test: $(TESTS)
 
 
 # perftest (performance/developer tests) -------------------------------------
+# generic perf test rules...
+perftest/%: perftest/%.cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+perftest/%f: perftest/%.cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+
 # spreader only test, double/single (good for self-contained work on spreader)
 ST=perftest/spreadtestnd
 STF=$(ST)f
@@ -257,7 +258,13 @@ perftest: $(ST) $(STF) $(PERFEXECS)
 	./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt ;\
 	./nuffttestnd.sh SINGLE 2>&1 | tee results/nuffttestndf_results.txt )
 
-# This was for a CCQ application; zgemm was 10x faster! double-prec only
+# speed ratio of many-vector guru vs repeated single calls... (Andrea)
+GTT=perftest/guru_timing_test
+GTTF=$(GTT)f
+gurutime: $(GTT) $(GTTF)
+	for i in $(GTT) $(GTTF); do $$i 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2; done
+
+# This was for a CCQ application... (zgemm was 10x faster! double-prec only)
 perftest/manysmallprobs: perftest/manysmallprobs.cpp $(STATICLIB)
 	$(CXX) $(CXXFLAGS) $< $(STATICLIB) $(LIBSFFT) -o $@
 	@echo "manysmallprobs: single-thread..."

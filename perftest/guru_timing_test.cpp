@@ -9,8 +9,13 @@ double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,FINUFFT_PLAN plan);
 
 // --------------------------------------------------------------------------
 int main(int argc, char* argv[])
-/* Test/demo the guru interface, for many transforms with same NU pts, either
-   precisions. This is pretty old clunky code, not amain part of self-test.
+/* Timing-only tester for the guru interface, allowing control of many params
+   and opts from the command line.
+   It compares doing many transforms with same NU pts, with repeated calls to
+   the simple interface.
+
+   This is pretty old clunky code, not a main part of self-test, and
+   need not be maintained.
 
    Warning: unlike the finufft?d{many}_test routines, this does *not* perform
    a math test of the library, just consistency of the simple vs guru
@@ -178,12 +183,18 @@ int main(int argc, char* argv[])
     printf("ntr=%d: %lld NU pts to %lld NU pts in %.3g s \t%.3g tot NU pts/s\n", ntransf, (long long)M,(long long)N, totalTime, ntransf*(N+M)/totalTime);
 
   // Comparing timing results with repeated calls to corresponding finufft function...
+
+  // The following would normally be done between independent timings, as found
+  // by Andrea Malleo, but in this case we need to access the plan later
+  // for many_simple_calls() to work, so we cannot do FFTW cleanup without
+  // apparently causing segfault :(. So we skip them.
   //FFTW_CLEANUP();
   //FFTW_CLEANUP_THREADS();
   //FFTW_FORGET_WISDOM();
+  
   //std::this_thread::sleep_for(std::chrono::seconds(1)); if c++11 is allowed
   sleep(tsleep); //sleep for one second using linux sleep call
-  // however, they cause segfault if done before destroy, so, removed.
+  
   
   printf("Compare speed of repeated calls to simple interface:------------------------\n");
   // this used to actually call Alex's old (v1.1) src/finufft?d.cpp routines.

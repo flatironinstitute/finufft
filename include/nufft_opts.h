@@ -5,7 +5,7 @@
 // Deliberately a plain C struct, without special types.
 // When changing this, don't forget to sync: finufft.fh, matlab/finufft.mw
 
-typedef struct nufft_opts{    // defaults see finufft.ccp:finufft_default_opts()
+typedef struct nufft_opts{    // defaults see finufft.cpp:finufft_default_opts()
   int debug;          // 0: silent, 1: text basic timing output
   int spread_debug;   // passed to spread_opts, 0 (no text) 1 (some) or 2 (lots)
   int spread_sort;    // passed to spread_opts, 0 (don't sort) 1 (do) or 2 (heuristic)
