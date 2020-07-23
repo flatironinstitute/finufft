@@ -227,6 +227,7 @@ These settings are copied from the ``glnxa64`` case. Here you will want to repla
 For pre-2016 MATLAB Mac OSX versions you'll instead want to edit the ``maci64``
 section of ``mexopts.sh``.
 
+.. _install-python:
 
 Building the python wrappers
 ----------------------------
