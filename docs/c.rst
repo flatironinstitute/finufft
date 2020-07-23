@@ -50,7 +50,7 @@ C++-style vector objects), and also pass ``N``:
 
 This fills ``F`` with the output modes, in increasing ordering
 from frequency index ``-N/2`` up to ``N/2-1``. Transforming :math:`10^7` points
-to :math:`10^6` modes takes 1-2 seconds on a laptop.
+to :math:`10^6` modes takes 0.4 seconds on a laptop.
 The indexing is offset by ``(int)N/2``, so that frequency ``k`` is output in
 ``F[(int)N/2 + k]``.
 Here ``+1`` sets the sign of :math:`i` in the exponentials
@@ -147,15 +147,16 @@ languages. Assuming the same ``include``s as above, we first create points
     c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
   }
 
-Let's say we want ``N1=1000`` by ``N2=500`` 2D Fourier coefficients.
+Let's say we want ``N1=1000`` by ``N2=2000`` 2D Fourier coefficients.
 We allocate and do the (default options) transform thus:
 
 .. code-block:: C++
 
-  int N1=1000, N2=500;
+  int N1=1000, N2=2000;
   vector<complex<double> > F(N1*N2);
   int ier = finufft2d1(M,&x[0],&y[0], &c[0], +1, 1e-6, N1, N2, &F[0], NULL);
 
+This transform takes 0.6 seconds on a laptop.
 The modes have increasing ordering
 from frequency index ``-N1/2`` to ``N1/2-1`` in the fast (``x``) dimension,
 then ordering ``-N2/2`` up to ``N2/2-1`` in the slow (``y``) dimension.
@@ -202,8 +203,8 @@ Ie, viewed as a matrix in Fortran storage, each column is a strength vector.
   vector<complex<double> > F(N*trans);           // ntrans output vectors
   int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);    // default opts
 
-This takes just over 5 seconds on a laptop, which is around 2.5x faster than
-making 10 separate "simple" calls, quite an efficiency gain.
+This takes 2.6 seconds on a laptop, around 1.4x faster than
+making 10 separate "simple" calls.
 The frequency index ``k`` in the ``t``th transform (zero-indexing the transforms) is in ``F[k + (int)N/2 + N*t]``.
 
 See ``examples/many1d1.cpp`` and ``test/finufft?dmany_test.cpp``
@@ -224,7 +225,7 @@ previous wisdom, which can cause a huge slow-down for many small transforms.
 You may also send in a new
 set of stacked strength data (for type 1 and 3, or coefficients for type 2),
 reusing the existing FFTW plan and sorted points.
-Here is a 1D type 1 example in C++.
+Now we redo the above 2D type 1 C++ example with the guru interface.
 
 One first makes a plan giving transform parameters, but no data:
 
