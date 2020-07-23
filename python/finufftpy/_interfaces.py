@@ -221,7 +221,7 @@ def _cchk(x):
     (complex128, F-contiguous in memory)
     If not, produce a copy
     """
-    if x is not None and x.dtype is not np.dtype('complex128'):
+    if x is not None and (x.dtype is not np.dtype('complex128') and x.dtype is not np.dtype('float64')):
         raise RuntimeError('FINUFFT data type must be complex128 for double precision complex')
     return np.array(x, dtype=np.complex128, order='F', copy=False)
 def _rchkf(x):
@@ -239,7 +239,7 @@ def _cchkf(x):
     (complex128, F-contiguous in memory)
     If not, produce a copy
     """
-    if x is not None and x.dtype  is not np.dtype('complex64'):
+    if x is not None and (x.dtype is not np.dtype('complex64') and x.dtype is not np.dtype('float32')):
         raise RuntimeError('FINUFFT data type must be complex64 for single precision complex')
     return np.array(x, dtype=np.complex64, order='F', copy=False)
 def _copy(_x, x):
