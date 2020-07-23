@@ -210,7 +210,7 @@ def _rchk(x):
     If not, produce a copy
     """
     if x is not None and x.dtype is not np.dtype('float64'):
-        raise RuntimeError('FINUFFT data type must be float64 for double precision float')
+        raise RuntimeError('FINUFFT data type must be float64 for double precision, data may have mixed precision types')
     return np.array(x, dtype=np.float64, order='F', copy=False)
 def _cchk(x):
     """
@@ -219,7 +219,7 @@ def _cchk(x):
     If not, produce a copy
     """
     if x is not None and (x.dtype is not np.dtype('complex128') and x.dtype is not np.dtype('float64')):
-        raise RuntimeError('FINUFFT data type must be complex128 for double precision complex')
+        raise RuntimeError('FINUFFT data type must be complex128 for double precision, data may have mixed precision types')
     return np.array(x, dtype=np.complex128, order='F', copy=False)
 def _rchkf(x):
     """
@@ -228,7 +228,7 @@ def _rchkf(x):
     If not, produce a copy
     """
     if x is not None and x.dtype is not np.dtype('float32'):
-        raise RuntimeError('FINUFFT data type must be float32 for single precision float')
+        raise RuntimeError('FINUFFT data type must be float32 for single precision, data may have mixed precision types')
     return np.array(x, dtype=np.float32, order='F', copy=False)
 def _cchkf(x):
     """
@@ -237,7 +237,7 @@ def _cchkf(x):
     If not, produce a copy
     """
     if x is not None and (x.dtype is not np.dtype('complex64') and x.dtype is not np.dtype('float32')):
-        raise RuntimeError('FINUFFT data type must be complex64 for single precision complex')
+        raise RuntimeError('FINUFFT data type must be complex64 for single precision, data may have mixed precision types')
     return np.array(x, dtype=np.complex64, order='F', copy=False)
 def _copy(_x, x):
     """
@@ -437,6 +437,13 @@ def destroy(plan):
 
 ### invoke guru interface, this function is used for simple interfaces
 def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
+    # infer dtype from x
+    if x.dtype is np.dtype('float64'):
+        pdtype = 'double'
+    elif x.dtype is np.dtype('float32'):
+        pdtype = 'single'
+    else:
+        raise RuntimeError('FINUFFT x dtype should be float64 for double precision or float32 for single precision')
     # check n_modes type, n_modes must be a tuple or an integer
     if n_modes is not None:
         if (not isinstance(n_modes, tuple)) and (not isinstance(n_modes, numbers.Integral)):
@@ -465,9 +472,9 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
 
     #plan
     if tp==3:
-        plan = Plan(tp,dim,eps,isign,n_trans,**kwargs)
+        plan = Plan(tp,dim,eps,isign,n_trans,**dict(kwargs,dtype=pdtype))
     else:
-        plan = Plan(tp,n_modes,eps,isign,n_trans,**kwargs)
+        plan = Plan(tp,n_modes,eps,isign,n_trans,**dict(kwargs,dtype=pdtype))
 
     #setpts
     plan.setpts(x,y,z,s,t,u)
