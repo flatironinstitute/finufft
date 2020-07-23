@@ -28,3 +28,5 @@ test/dumbinputs
 test/finufft1d_basicpassfail
 test/testutils
 __pycache__*
+
+docs/_build
