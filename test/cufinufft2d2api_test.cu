@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
   }
 
   // Execute the plan on the data
-  ier=cufinufft_exec(d_c, d_fk, dplan);
+  ier=cufinufft_execute(d_c, d_fk, dplan);
   if (ier!=0){
     printf("err: cufinufft2d2_exec\n");
     return ier;

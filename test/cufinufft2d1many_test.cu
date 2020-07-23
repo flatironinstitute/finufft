@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
-	ier=CUFINUFFT_EXEC(d_c, d_fk, dplan);
+	ier=CUFINUFFT_EXECUTE(d_c, d_fk, dplan);
 	if (ier!=0){
 	  printf("err: cufinufft2d1_exec\n");
 	  return ier;

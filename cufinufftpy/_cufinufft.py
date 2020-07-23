@@ -134,11 +134,11 @@ _set_ptsf.argtypes = [
     c_float_p, c_float_p, c_void_p]
 _set_ptsf.restype = c_int
 
-_exec_plan = lib.cufinufft_exec
+_exec_plan = lib.cufinufft_execute
 _exec_plan.argtypes = [c_void_p, c_void_p, c_void_p]
 _exec_plan.restype = c_int
 
-_exec_planf = lib.cufinufftf_exec
+_exec_planf = lib.cufinufftf_execute
 _exec_planf.argtypes = [c_void_p, c_void_p, c_void_p]
 _exec_planf.restype = c_int
 

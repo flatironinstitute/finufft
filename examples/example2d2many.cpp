@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 
 	ier=cufinufft_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
 
-	ier=cufinufft_exec(d_c, d_fk, &dplan);
+	ier=cufinufft_execute(d_c, d_fk, &dplan);
 
 	ier=cufinufft_destroy(&dplan);
 
