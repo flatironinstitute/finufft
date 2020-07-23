@@ -131,6 +131,7 @@ int main(int argc, char* argv[])
 	c[i] = crandm11r(&se);
   }
 
+  // Andrea found the following are needed to get reliable independent timings:
   FFTW_CLEANUP();
   FFTW_CLEANUP_THREADS();
   FFTW_FORGET_WISDOM();
@@ -168,7 +169,7 @@ int main(int argc, char* argv[])
   }
   
   timer.restart();                     // Guru Step 3
-  ier = FINUFFT_EXEC(plan,c,F);
+  ier = FINUFFT_EXECUTE(plan,c,F);
   double exec_t=timer.elapsedsec();
   if (ier) {
     printf("error (ier=%d)!\n",ier);

@@ -58,12 +58,12 @@ int main(int argc, char* argv[])
 
   // alloc output array for the Fourier modes, then do the transform
   vector<complex<double>> F(N);
-  int ier = finufft_exec(plan, &c[0], &F[0]);
+  int ier = finufft_execute(plan, &c[0], &F[0]);
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j=0; j<M; ++j)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + 1i*(2*((double)rand()/RAND_MAX)-1);
-  ier = finufft_exec(plan, &c[0], &F[0]);
+  ier = finufft_execute(plan, &c[0], &F[0]);
 
   finufft_destroy(plan);    // done with transforms of this size
 

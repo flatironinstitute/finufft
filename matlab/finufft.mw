@@ -213,8 +213,8 @@ classdef finufft_plan < handle
       errhandler(ier);
     end
 
-    function result = exec(plan, data_in)
-    % EXEC   execute single or many-vector FINUFFT transforms in a plan.
+    function result = execute(plan, data_in)
+    % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...
@@ -235,23 +235,23 @@ classdef finufft_plan < handle
       end
       if plan.type == 1
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_exec(finufft_plan plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
+          # int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
         else
-          # int ier = finufftf_exec(finufftf_plan plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
+          # int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
         end
         % make modes output correct shape; when d<3 squeeze removes unused dims...
         result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif plan.type == 2
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_exec(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
+          # int ier = finufft_execute(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
         else
-          # int ier = finufftf_exec(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
+          # int ier = finufftf_execute(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
         end
       elseif plan.type == 3
         if strcmp(plan.floatprec,'double')
-          # int ier = finufft_exec(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
+          # int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
         else
-          # int ier = finufftf_exec(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
+          # int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
         end
       end
       errhandler(ier);

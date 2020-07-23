@@ -1716,9 +1716,9 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 238 ----
- * int ier = finufft_exec(finufft_plan plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
+ * int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[ncoeffs] result);
  */
-static const char* stubids13_ = "o int = finufft_exec(i finufft_plan, i dcomplex[], o dcomplex[x])";
+static const char* stubids13_ = "o int = finufft_execute(i finufft_plan, i dcomplex[], o dcomplex[x])";
 
 void mexStub13(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1751,7 +1751,7 @@ void mexStub13(int nlhs, mxArray* plhs[],
     out1_ = (dcomplex*) mxMalloc(dim2_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[13]++;
-    out0_ = finufft_exec(*in0_, in1_, out1_);
+    out0_ = finufft_execute(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1770,9 +1770,9 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 240 ----
- * int ier = finufftf_exec(finufftf_plan plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
+ * int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[ncoeffs] result);
  */
-static const char* stubids14_ = "o int = finufftf_exec(i finufftf_plan, i fcomplex[], o fcomplex[x])";
+static const char* stubids14_ = "o int = finufftf_execute(i finufftf_plan, i fcomplex[], o fcomplex[x])";
 
 void mexStub14(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1805,7 +1805,7 @@ void mexStub14(int nlhs, mxArray* plhs[],
     out1_ = (fcomplex*) mxMalloc(dim2_*sizeof(fcomplex));
     if (mexprofrecord_)
         mexprofrecord_[14]++;
-    out0_ = finufftf_exec(*in0_, in1_, out1_);
+    out0_ = finufftf_execute(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1824,9 +1824,9 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 246 ----
- * int ier = finufft_exec(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
+ * int ier = finufft_execute(finufft_plan plan, output dcomplex[nj, n_trans] result, dcomplex[] data_in);
  */
-static const char* stubids15_ = "o int = finufft_exec(i finufft_plan, o dcomplex[xx], i dcomplex[])";
+static const char* stubids15_ = "o int = finufft_execute(i finufft_plan, o dcomplex[xx], i dcomplex[])";
 
 void mexStub15(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1861,7 +1861,7 @@ void mexStub15(int nlhs, mxArray* plhs[],
     out1_ = (dcomplex*) mxMalloc(dim2_*dim3_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[15]++;
-    out0_ = finufft_exec(*in0_, out1_, in1_);
+    out0_ = finufft_execute(*in0_, out1_, in1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1880,9 +1880,9 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 248 ----
- * int ier = finufftf_exec(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
+ * int ier = finufftf_execute(finufftf_plan plan, output fcomplex[nj, n_trans] result, fcomplex[] data_in);
  */
-static const char* stubids16_ = "o int = finufftf_exec(i finufftf_plan, o fcomplex[xx], i fcomplex[])";
+static const char* stubids16_ = "o int = finufftf_execute(i finufftf_plan, o fcomplex[xx], i fcomplex[])";
 
 void mexStub16(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1917,7 +1917,7 @@ void mexStub16(int nlhs, mxArray* plhs[],
     out1_ = (fcomplex*) mxMalloc(dim2_*dim3_*sizeof(fcomplex));
     if (mexprofrecord_)
         mexprofrecord_[16]++;
-    out0_ = finufftf_exec(*in0_, out1_, in1_);
+    out0_ = finufftf_execute(*in0_, out1_, in1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1936,9 +1936,9 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 252 ----
- * int ier = finufft_exec(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
+ * int ier = finufft_execute(finufft_plan plan, dcomplex[] data_in, output dcomplex[nk, n_trans] result);
  */
-static const char* stubids17_ = "o int = finufft_exec(i finufft_plan, i dcomplex[], o dcomplex[xx])";
+static const char* stubids17_ = "o int = finufft_execute(i finufft_plan, i dcomplex[], o dcomplex[xx])";
 
 void mexStub17(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1973,7 +1973,7 @@ void mexStub17(int nlhs, mxArray* plhs[],
     out1_ = (dcomplex*) mxMalloc(dim2_*dim3_*sizeof(dcomplex));
     if (mexprofrecord_)
         mexprofrecord_[17]++;
-    out0_ = finufft_exec(*in0_, in1_, out1_);
+    out0_ = finufft_execute(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;
@@ -1992,9 +1992,9 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 254 ----
- * int ier = finufftf_exec(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
+ * int ier = finufftf_execute(finufftf_plan plan, fcomplex[] data_in, output fcomplex[nk, n_trans] result);
  */
-static const char* stubids18_ = "o int = finufftf_exec(i finufftf_plan, i fcomplex[], o fcomplex[xx])";
+static const char* stubids18_ = "o int = finufftf_execute(i finufftf_plan, i fcomplex[], o fcomplex[xx])";
 
 void mexStub18(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -2029,7 +2029,7 @@ void mexStub18(int nlhs, mxArray* plhs[],
     out1_ = (fcomplex*) mxMalloc(dim2_*dim3_*sizeof(fcomplex));
     if (mexprofrecord_)
         mexprofrecord_[18]++;
-    out0_ = finufftf_exec(*in0_, in1_, out1_);
+    out0_ = finufftf_execute(*in0_, in1_, out1_);
 #if MX_HAS_INTERLEAVED_COMPLEX
     plhs[0] = mxCreateDoubleMatrix(1, 1, mxREAL);
     *mxGetDoubles(plhs[0]) = out0_;

@@ -70,7 +70,7 @@ c     note for type 1 or 2, arguments 6-9 ignored...
       call finufftf_setpts(plan,M,xj,null,null,null,
      $     null,null,null,ier)
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
-      call finufftf_exec(plan,cj,fk,ier)
+      call finufftf_execute(plan,cj,fk,ier)
       call system_clock(t2,crate)
       t = (t2-t1)/float(crate)
       if (ier.eq.0) then
@@ -110,20 +110,20 @@ c     note you need a fresh plan if change opts
       call finufftf_setpts(plan,M,xj,null,null,null,
      $     null,null,null,ier)
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
-      call finufftf_exec(plan,cj,fk,ier)
+      call finufftf_execute(plan,cj,fk,ier)
 c     change the strengths
       do j = 1,M
          cj(j) = cmplx( sin((10e0*j)/M), cos(2.0+(20e0*j)/M))
       enddo
 c     do another transform using same NU pts
-      call finufftf_exec(plan,cj,fk,ier)
+      call finufftf_execute(plan,cj,fk,ier)
 c     change the NU pts then do another transform w/ existing strengths...
       do j = 1,M
          xj(j) = pi/2.0 * cos(pi*j/M)
       enddo
       call finufftf_setpts(plan,M,xj,null,null,null,
      $     null,null,null,ier)
-      call finufftf_exec(plan,cj,fk,ier)
+      call finufftf_execute(plan,cj,fk,ier)
       if (ier.eq.0) then
          print *,'done.'
       else

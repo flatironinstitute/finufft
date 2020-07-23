@@ -16,7 +16,7 @@
 % METHODS
 %   finufft_plan - create guru plan object for one/many general nonuniform FFTs.
 %   setpts       - process nonuniform points for general FINUFFT transform(s).
-%   exec         - execute single or many-vector FINUFFT transforms in a plan.
+%   execute      - execute single or many-vector FINUFFT transforms in a plan.
 %
 % General notes:
 %  * use delete(plan) to remove a plan after use.
@@ -99,19 +99,19 @@
 %    than the resulting size of the internal fine grids.
 %  * s (and t and u) are only relevant for type 3, and may be omitted otherwise
 %  * The matlab vectors xj,... and s,... should not be changed before calling
-%    future exec calls, because the plan stores only pointers to the
+%    future execute calls, because the plan stores only pointers to the
 %    arrays (they are not duplicated internally).
 %  * The precision (double/single) of all inputs must match that chosen at the
 %    plan stage using opts.floatprec, otherwise an error is raised.
 %
 %
-% 3) EXEC   execute single or many-vector FINUFFT transforms in a plan.
+% 3) EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
 %
-% result = plan.exec(data_in);
+% result = plan.execute(data_in);
 %
 %  For plan a previously created finufft_plan object also containing all
-%  needed nonuniform point coordinates, execute a single (or if ntrans>1 in the
-%  plan stage, multiple) NUFFT transforms, with the strengths or Fourier
+%  needed nonuniform point coordinates, do a single (or if ntrans>1 in the
+%  plan stage, multiple) NUFFT transform(s), with the strengths or Fourier
 %  coefficient inputs vector(s) from data_in. The result of the transform(s)
 %  is returned as a (possibly multidimensional) array.
 %
@@ -255,8 +255,8 @@ finufft(mex_id_, o);
       errhandler(ier);
     end
 
-    function result = exec(plan, data_in)
-    % EXEC   execute single or many-vector FINUFFT transforms in a plan.
+    function result = execute(plan, data_in)
+    % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...
@@ -277,28 +277,28 @@ finufft(mex_id_, o);
       end
       if plan.type == 1
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int = finufft_exec(i finufft_plan, i dcomplex[], o dcomplex[x])';
+          mex_id_ = 'o int = finufft_execute(i finufft_plan, i dcomplex[], o dcomplex[x])';
 [ier, result] = finufft(mex_id_, plan, data_in, ncoeffs);
         else
-          mex_id_ = 'o int = finufftf_exec(i finufftf_plan, i fcomplex[], o fcomplex[x])';
+          mex_id_ = 'o int = finufftf_execute(i finufftf_plan, i fcomplex[], o fcomplex[x])';
 [ier, result] = finufft(mex_id_, plan, data_in, ncoeffs);
         end
         % make modes output correct shape; when d<3 squeeze removes unused dims...
         result = squeeze(reshape(result, [ms mt mu n_trans]));
       elseif plan.type == 2
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int = finufft_exec(i finufft_plan, o dcomplex[xx], i dcomplex[])';
+          mex_id_ = 'o int = finufft_execute(i finufft_plan, o dcomplex[xx], i dcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
         else
-          mex_id_ = 'o int = finufftf_exec(i finufftf_plan, o fcomplex[xx], i fcomplex[])';
+          mex_id_ = 'o int = finufftf_execute(i finufftf_plan, o fcomplex[xx], i fcomplex[])';
 [ier, result] = finufft(mex_id_, plan, data_in, nj, n_trans);
         end
       elseif plan.type == 3
         if strcmp(plan.floatprec,'double')
-          mex_id_ = 'o int = finufft_exec(i finufft_plan, i dcomplex[], o dcomplex[xx])';
+          mex_id_ = 'o int = finufft_execute(i finufft_plan, i dcomplex[], o dcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_trans);
         else
-          mex_id_ = 'o int = finufftf_exec(i finufftf_plan, i fcomplex[], o fcomplex[xx])';
+          mex_id_ = 'o int = finufftf_execute(i finufftf_plan, i fcomplex[], o fcomplex[xx])';
 [ier, result] = finufft(mex_id_, plan, data_in, nk, n_trans);
         end
       end

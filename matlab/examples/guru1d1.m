@@ -20,7 +20,7 @@ plan = finufft_plan(type,n_modes,isign,ntrans,tol,opts);
 
 plan.setpts(x);                                 % send in NU pts
 
-f = plan.exec(c);                               % do the transform
+f = plan.execute(c);                               % do the transform
 disp('done.'); toc
 
 % if you do not want to do more transforms of this size, clean up...

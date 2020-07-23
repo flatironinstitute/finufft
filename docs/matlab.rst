@@ -63,7 +63,7 @@ Here we use the guru interface to repeat the first demo above:
   M = 1e5;                            % number of NU source points
   plan.setpts(2*pi*rand(M,1),[],[]);  % set some nonuniform points
   c = randn(M,1)+1i*randn(M,1);       % iid random complex data (row or col vec)
-  f = plan.exec(c);                   % do the transform (0.008 sec)
+  f = plan.execute(c);                % do the transform (0.008 sec)
   % ...one could now change the points with setpts, and/or do new transforms
   % with new c data...
   delete(plan);                       % don't forget to clean up

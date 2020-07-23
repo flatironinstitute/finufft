@@ -57,12 +57,12 @@ int main(int argc, char* argv[])
 
   // alloc output array for the Fourier modes, then do the transform
   F = (double complex*)malloc(sizeof(double complex)*N);
-  ier = finufft_exec(plan, c, F);
+  ier = finufft_execute(plan, c, F);
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (j=0; j<M; ++j)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-  ier = finufft_exec(plan, c, F);
+  ier = finufft_execute(plan, c, F);
 
   finufft_destroy(plan);    // done with transforms of this size
 

@@ -25,7 +25,7 @@
 #ifdef SINGLE
 #define FINUFFT_MAKEPLAN_ finufftf_makeplan_
 #define FINUFFT_SETPTS_ finufftf_setpts_
-#define FINUFFT_EXEC_ finufftf_exec_
+#define FINUFFT_EXECUTE_ finufftf_execute_
 #define FINUFFT_DESTROY_ finufftf_destroy_
 #define FINUFFT_DEFAULT_OPTS_ finufftf_default_opts_
 #define FINUFFT1D1_ finufftf1d1_
@@ -49,7 +49,7 @@
 #else
 #define FINUFFT_MAKEPLAN_ finufft_makeplan_
 #define FINUFFT_SETPTS_ finufft_setpts_
-#define FINUFFT_EXEC_ finufft_exec_
+#define FINUFFT_EXECUTE_ finufft_execute_
 #define FINUFFT_DESTROY_ finufft_destroy_
 #define FINUFFT_DEFAULT_OPTS_ finufft_default_opts_
 #define FINUFFT1D1_ finufft1d1_
@@ -100,12 +100,12 @@ void FINUFFT_SETPTS_(FINUFFT_PLAN *plan, BIGINT *M, FLT *xj, FLT *yj, FLT *zj, B
   *ier = FINUFFT_SETPTS(*plan, *M, xj, yj, zj, nk_safe, s, t, u);
 }
 
-void FINUFFT_EXEC_(FINUFFT_PLAN *plan, CPX *weights, CPX *result, int *ier)
+void FINUFFT_EXECUTE_(FINUFFT_PLAN *plan, CPX *weights, CPX *result, int *ier)
 {
   if (!plan)
     fprintf(stderr,"%s fortran: finufft_plan unallocated!",__func__);
   else
-    *ier = FINUFFT_EXEC(*plan, weights, result);
+    *ier = FINUFFT_EXECUTE(*plan, weights, result);
 }
 
 void FINUFFT_DESTROY_(FINUFFT_PLAN *plan, int *ier)

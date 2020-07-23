@@ -25,7 +25,6 @@ LOWER PRIORITY TODO / DISCUSSIONS:
 * understand why two modeords not give bit-wise same answers in check_modeords.m (really why it's stochastic either exactly zero or around 1e-13)
 * Decide if non vs omp get different lib names? (like FFTW) -> not yet.
 * Intel MKL FFT interface option instead of FFTW?
-* swap out mallocs for std:vector in finufft? Can't since C interface.
 * recoup DFM's PyPI publishing of finufftpy, maybe awkward
-* make common.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now). Fix the calling from finufft?d?
+* make finufft.cpp shuffle routines dcomplex interface and native dcomplex arith (remove a bunch of 2* in indexing, and have no fftw_complex refs in them. However, need first to make sure using complex divide isn't slower than real divide used now).
 * rewrite fftw3 plans via 64bit guru interface to allow eg 1024^3 type 1 or 2 in 3D. Not sure needed (only for huge 1d transforms). see http://www.fftw.org/fftw3_doc/Guru-Interface.html#Guru-Interface
