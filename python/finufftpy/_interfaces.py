@@ -24,7 +24,7 @@ from finufftpy.finufftpy_cpp import finufftf_plan
 
 ### Plan class definition
 class Plan:
-    def __init__(self,tp,n_modes_or_dim,iflag=None,n_trans=1,eps=None,**kwargs):
+    def __init__(self,tp,n_modes_or_dim,eps=1e-6,iflag=None,n_trans=1,**kwargs):
         # set default iflag based on if iflag is None
         if iflag==None:
             if tp==2:
@@ -40,12 +40,8 @@ class Plan:
         # construct plan based on precision type and eps default value
         if is_single:
             plan = finufftf_plan()
-            if eps is None:
-                eps = 1e-6
         else:
             plan = finufft_plan()
-            if eps is None:
-                eps = 1e-14
 
         # setting n_modes and dim for makeplan
         n_modes = np.ones([3], dtype=np.int64)
@@ -454,9 +450,9 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
 
     #plan
     if tp==3:
-        plan = Plan(tp,dim,isign,n_trans,eps,**kwargs)
+        plan = Plan(tp,dim,eps,isign,n_trans,**kwargs)
     else:
-        plan = Plan(tp,n_modes,isign,n_trans,eps,**kwargs)
+        plan = Plan(tp,n_modes,eps,isign,n_trans,**kwargs)
 
     #setpts
     plan.setpts(x,y,z,s,t,u)
@@ -472,7 +468,7 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     
 ### easy interfaces
 ### 1d1
-def nufft1d1(x,c,ms=None,out=None,eps=None,isign=1,**kwargs):
+def nufft1d1(x,c,ms=None,out=None,eps=1e-6,isign=1,**kwargs):
     """1D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -506,7 +502,7 @@ def nufft1d1(x,c,ms=None,out=None,eps=None,isign=1,**kwargs):
 
 
 ### 1d2
-def nufft1d2(x,f,out=None,eps=None,isign=-1,**kwargs):
+def nufft1d2(x,f,out=None,eps=1e-6,isign=-1,**kwargs):
     """1D type-2 (aka forward) complex nonuniform fast Fourier transform
   
     ::
@@ -540,7 +536,7 @@ def nufft1d2(x,f,out=None,eps=None,isign=-1,**kwargs):
 
 
 ### 1d3
-def nufft1d3(x,c,s,out=None,eps=None,isign=1,**kwargs):
+def nufft1d3(x,c,s,out=None,eps=1e-6,isign=1,**kwargs):
     """1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
   
     ::
@@ -573,7 +569,7 @@ def nufft1d3(x,c,s,out=None,eps=None,isign=1,**kwargs):
 
 
 ### 2d1
-def nufft2d1(x,y,c,ms=None,mt=None,out=None,eps=None,isign=1,**kwargs):
+def nufft2d1(x,y,c,ms=None,mt=None,out=None,eps=1e-6,isign=1,**kwargs):
     """2D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -611,7 +607,7 @@ def nufft2d1(x,y,c,ms=None,mt=None,out=None,eps=None,isign=1,**kwargs):
 
 
 ### 2d2
-def nufft2d2(x,y,f,out=None,eps=None,isign=-1,**kwargs):
+def nufft2d2(x,y,f,out=None,eps=1e-6,isign=-1,**kwargs):
     """2D type-2 (aka forward) complex nonuniform fast Fourier transform
   
     ::
@@ -648,7 +644,7 @@ def nufft2d2(x,y,f,out=None,eps=None,isign=-1,**kwargs):
 
 
 ### 2d3
-def nufft2d3(x,y,c,s,t,out=None,eps=None,isign=1,**kwargs):
+def nufft2d3(x,y,c,s,t,out=None,eps=1e-6,isign=1,**kwargs):
     """2D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
   
     ::
@@ -683,7 +679,7 @@ def nufft2d3(x,y,c,s,t,out=None,eps=None,isign=1,**kwargs):
 
 
 ### 3d1
-def nufft3d1(x,y,z,c,ms=None,mt=None,mu=None,out=None,eps=None,isign=1,**kwargs):
+def nufft3d1(x,y,z,c,ms=None,mt=None,mu=None,out=None,eps=1e-6,isign=1,**kwargs):
     """3D type-1 (aka adjoint) complex nonuniform fast Fourier transform
   
     ::
@@ -725,7 +721,7 @@ def nufft3d1(x,y,z,c,ms=None,mt=None,mu=None,out=None,eps=None,isign=1,**kwargs)
 
 
 ### 3d2
-def nufft3d2(x,y,z,f,out=None,eps=None,isign=-1,**kwargs):
+def nufft3d2(x,y,z,f,out=None,eps=1e-6,isign=-1,**kwargs):
     """3D type-2 (aka forward) complex nonuniform fast Fourier transform
   
     ::
@@ -763,7 +759,7 @@ def nufft3d2(x,y,z,f,out=None,eps=None,isign=-1,**kwargs):
 
 
 ### 3d3
-def nufft3d3(x,y,z,c,s,t,u,out=None,eps=None,isign=1,**kwargs):
+def nufft3d3(x,y,z,c,s,t,u,out=None,eps=1e-6,isign=1,**kwargs):
     """3D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
   
     ::
