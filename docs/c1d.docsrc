@@ -1,55 +1,73 @@
-@F1d1(int64_t M, double* x, complex<double>* c, int iflag, double eps, int64_t N1, complex<double>* f, nufft_opts* opts)
+int @F1d1(int64_t M, double* x, complex<double>* c, int iflag, double eps, int64_t N1, complex<double>* f, nufft_opts* opts)
 
   1D complex nonuniform FFT of type 1 (nonuniform to uniform).
 @t
               M-1
      f[k1] =  SUM c[j] exp(+/-i k1 x(j))  for -N1/2 <= k1 <= (N1-1)/2
               j=0            
-@i
+
+  Inputs:
+@nt
 @mi
 @x
 @ci
-@fe
+@f
+@e
     N1     number of output Fourier modes to be computed
 @o
+
+  Outputs:
     f      Fourier mode coefficients (size N1*ntr complex array)
 @r
+@no
 @notes12
 
 
-@F1d2(int64_t M, double* x, complex<double>* c, int iflag, double eps, int64_t N1, complex<double>* f, nufft_opts* opts)
+int @F1d2(int64_t M, double* x, complex<double>* c, int iflag, double eps, int64_t N1, complex<double>* f, nufft_opts* opts)
 
   1D complex nonuniform FFT of type 2 (uniform to nonuniform).
 @t
      c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 0,...,M-1
              k1 
      where the sum is over integers -N1/2 <= k1 <= (N1-1)/2.
-@i
+
+  Inputs:
+@nt
 @mo
 @x
-@fe
+@f
+@e
     N1     number of input Fourier modes
     f      Fourier mode coefficients (size N1*ntr complex array)
 @o
+
+  Outputs:
 @co
 @r
+@no
 @notes12
 
 
-@F1d3(int64_t M, double* x, complex<double>* c, int iflag, double eps, int64_t N, double* s, complex<double>* f, nufft_opts* opts)
+int @F1d3(int64_t M, double* x, complex<double>* c, int iflag, double eps, int64_t N, double* s, complex<double>* f, nufft_opts* opts)
 
   1D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
 @t
               M-1
      f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 0,...,N-1
               j=0
-@i
+
+  Inputs:
+@nt
 @mi
-@x
+@xr
 @ci
-@fe
+@f
+@e
 @n
 @s
 @o
+
+  Outputs:
     f     Fourier transform values at targets (size N*ntr complex array)
 @r
+@no

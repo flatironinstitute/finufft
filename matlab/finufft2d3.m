@@ -19,7 +19,7 @@
 %           each a length-nk vector.
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+%     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
 %     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
 %     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
@@ -27,12 +27,12 @@
 %     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
 %     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
+%     opts.nthreads:   number of threads, or 0: use all available (default)
 %   Outputs:
 %     f     length-nk complex vector of values at targets, or, if ntrans>1,
 %           a matrix of size (nk,ntrans)
 %
 % Notes:
-%  * All available threads are used; control how many with maxNumCompThreads.
 %  * The vectorized (many vector) interface, ie ntrans>1, can be much faster
 %    than repeated calls with the same nonuniform points. Note that here the I/O
 %    data ordering is stacked rather than interleaved. See ../docs/matlab.rst

@@ -1,0 +1,135 @@
+::
+ 
+ int finufft3d1(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, 
+ double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, nufft_opts* opts)
+ int finufftf3d1(int64_t M, float* x, float* y, float* z, complex<float>* c, int iflag, 
+ float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, nufft_opts* opts)
+ 
+ int finufft3d1many(int ntr, int64_t M, double* x, double* y, double* z, complex<double>* 
+ c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, 
+ nufft_opts* opts)
+ int finufftf3d1many(int ntr, int64_t M, float* x, float* y, float* z, complex<float>* c, 
+ int iflag, float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, nufft_opts* 
+ opts)
+ 
+   3D complex nonuniform FFT of type 1 (nonuniform to uniform).
+ 
+   Computes to precision eps, via a fast algorithm, one or more transforms of the form:
+ 
+                  M-1
+      f[k1,k2] =  SUM c[j] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
+                  j=0
+ 
+  for -N1/2 <= k1 <= (N1-1)/2,  -N2/2 <= k2 <= (N2-1)/2,  -N3/2 <= k3 <= (N3-1)/2
+ 
+   Inputs:
+     ntr    how many transforms (only for vectorized "many" functions, else ntr=1)
+     M      number of nonuniform point sources
+     x,y,z  nonuniform point coordinates in [-3pi,3pi)^3 (length M real arrays)
+     c      source strengths (size M*ntr complex array)
+     iflag  if >=0, uses +i in complex exponential, otherwise -i
+     eps    desired relative precision; smaller is slower. This can be chosen
+            from 1e-1 down to ~ 1e-14 (in double precision) or 1e-6 (in single)
+     N1     number of output Fourier modes to be computed (x direction)
+     N2     number of output Fourier modes to be computed (y direction)
+     N3     number of output Fourier modes to be computed (z direction)
+     opts   pointer to options struct (see opts.rst), or NULL for defaults
+ 
+   Outputs:
+     f      Fourier mode coefficients (size N1*N2*N3*ntr complex array)
+     return value  0: success, 1: success but warning, >1: error (see error.rst)
+ 
+   Notes:
+     * complex arrays interleave Re, Im values, and their size is stated with
+       dimensions ordered fastest to slowest.
+     * Fourier frequency indices in each dimension i are the integers lying
+       in [-Ni/2, (Ni-1)/2]. See above, and modeord in opts.rst for possible orderings.
+ 
+ 
+::
+ 
+ int finufft3d2(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, 
+ double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, nufft_opts* opts)
+ int finufftf3d2(int64_t M, float* x, float* y, float* z, complex<float>* c, int iflag, 
+ float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, nufft_opts* opts)
+ 
+ int finufft3d2many(int ntr, int64_t M, double* x, double* y, double* z, complex<double>* 
+ c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, 
+ nufft_opts* opts)
+ int finufftf3d2many(int ntr, int64_t M, float* x, float* y, float* z, complex<float>* c, 
+ int iflag, float eps, int64_t N1, int64_t N2, int64_t N3, complex<float>* f, nufft_opts* 
+ opts)
+ 
+   3D complex nonuniform FFT of type 2 (uniform to nonuniform).
+ 
+   Computes to precision eps, via a fast algorithm, one or more transforms of the form:
+ 
+      c[j] =   SUM    f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
+             k1,k2,k3
+ 
+      for j = 0,...,M-1,
+      where the sum is over integers -N1/2 <= k1 <= (N1-1)/2,
+                                     -N2/2 <= k2 <= (N2-1)/2,
+                                     -N3/2 <= k3 <= (N3-1)/2.
+   Inputs:
+     ntr    how many transforms (only for vectorized "many" functions, else ntr=1)
+     M      number of nonuniform point targets
+     x,y,z  nonuniform point coordinates in [-3pi,3pi)^3 (length M real arrays)
+     iflag  if >=0, uses +i in complex exponential, otherwise -i
+     eps    desired relative precision; smaller is slower. This can be chosen
+            from 1e-1 down to ~ 1e-14 (in double precision) or 1e-6 (in single)
+     N1     number of input Fourier modes (x direction)
+     N2     number of input Fourier modes (y direction)
+     N3     number of input Fourier modes (z direction)
+     f      Fourier mode coefficients (size N1*N2*N3*ntr complex array)
+     opts   pointer to options struct (see opts.rst), or NULL for defaults
+ 
+   Outputs:
+     c      values at nonuniform point targets (size M*ntr complex array)
+     return value  0: success, 1: success but warning, >1: error (see error.rst)
+ 
+   Notes:
+     * complex arrays interleave Re, Im values, and their size is stated with
+       dimensions ordered fastest to slowest.
+     * Fourier frequency indices in each dimension i are the integers lying
+       in [-Ni/2, (Ni-1)/2]. See above, and modeord in opts.rst for possible orderings.
+ 
+ 
+::
+ 
+ int finufft3d3(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, 
+ double eps, int64_t N, double* s, double* t, double* u, complex<double>* f, nufft_opts* 
+ opts)
+ int finufftf3d3(int64_t M, float* x, float* y, float* z, complex<float>* c, int iflag, 
+ float eps, int64_t N, float* s, float* t, float* u, complex<float>* f, nufft_opts* opts)
+ 
+ int finufft3d3many(int ntr, int64_t M, double* x, double* y, double* z, complex<double>* 
+ c, int iflag, double eps, int64_t N, double* s, double* t, double* u, complex<double>* f, 
+ nufft_opts* opts)
+ int finufftf3d3many(int ntr, int64_t M, float* x, float* y, float* z, complex<float>* c, 
+ int iflag, float eps, int64_t N, float* s, float* t, float* u, complex<float>* f, 
+ nufft_opts* opts)
+ 
+   3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
+ 
+   Computes to precision eps, via a fast algorithm, one or more transforms of the form:
+ 
+               M-1
+      f[k]  =  SUM  c[j] exp(+-i (s[k] x[j] + t[k] y[j] + u[k] z[j])),
+               j=0
+                           for k = 0,...,N-1.
+   Inputs:
+     ntr    how many transforms (only for vectorized "many" functions, else ntr=1)
+     M      number of nonuniform point sources
+     x,y,z  nonuniform point coordinates in R^3 (length M real arrays)
+     c      source strengths (size M*ntr complex array)
+     iflag  if >=0, uses +i in complex exponential, otherwise -i
+     eps    desired relative precision; smaller is slower. This can be chosen
+            from 1e-1 down to ~ 1e-14 (in double precision) or 1e-6 (in single)
+     N      number of nonuniform frequency targets
+     s,t,u  nonuniform frequency target coordinates in R^3 (length N real arrays)
+     opts   pointer to options struct (see opts.rst), or NULL for defaults
+ 
+   Outputs:
+     f     Fourier transform values at targets (size N*ntr complex array)
+     return value  0: success, 1: success but warning, >1: error (see error.rst)

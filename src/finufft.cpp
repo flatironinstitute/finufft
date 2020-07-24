@@ -908,12 +908,16 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
 // EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
 int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX* cj, CPX* fk){
-/* For given (batch of) weights cj, performs NUFFTs with existing
-   (sorted) NU pts and existing plan.
+/* See ../docs/cguru.doc for current documentation.
+
+   For given (stack of) weights cj or coefficients fk, performs NUFFTs with
+   existing (sorted) NU pts and existing plan.
+   For type 1 and 3: cj is input, fk is output.
+   For type 2: fk is input, cj is output.
    Performs spread/interp, pre/post deconvolve, and fftw_execute as appropriate
    for each of the 3 types.
    For cases of ntrans>1, performs work in blocks of size up to batchSize.
-   Return value 0, no error reporting yet.
+   Return value 0 (no error diagnosis yet).
    Barnett 5/20/20, based on Malleo 2019.
 */
   CNTime timer; timer.start();

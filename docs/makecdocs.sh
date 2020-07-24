@@ -9,6 +9,7 @@ NF="nonuniform frequency target"
 CO=coordinates
 LM="length M real array"
 LN="length N real array"
+PI="in [-3pi,3pi)"
 
 # stage 1: flesh out *.docsrc (input i) to *.docexp (output o)...
 for i in *.docsrc
@@ -19,30 +20,35 @@ do
     while IFS= read -r line; do
         # define all tags (case-sens) and their actions here:
         case $line in
-            @F*)      # declarations: bash string replacement gets 4 combos...
-                simp=${line//@F/ finufft}
+            *@F*)      # declarations: bash string replacement gets 4 combos...
+                simp=${line//@F/finufft}
                 many=${simp//\(/many\(int ntr, }     # insert new 1st arg; esc (
-                echo "::"
+                echo "::"                            # parsed-literal not good
                 echo ""
                 echo "$simp"
                 simp=${simp//finufft/finufftf}
-                echo "${simp//double/single}"
+                echo "${simp//double/float}"
                 echo ""
                 echo "$many"
                 many=${many//finufft/finufftf}
-                echo "${many//double/single}"
-                # *** how fold it nicely to 80 chars somehow?
+                echo "${many//double/float}"
+                ;;
+            *@G*)      # guru declarations:
+                line=${line//@G/finufft}
+                echo "::"
+                echo ""
+                echo "$line"
+                line=${line//finufft/finufftf}        # catches both instances
+                echo "${line//double/float}"
                 ;;
             # rest are exact matches for whole line...
             @t)
                 echo ""
-                echo "  Computes via a fast algorithm, to precision eps, one or more transforms:"
+                echo "  Computes to precision eps, via a fast algorithm, one or more transforms of the form:"
                 echo ""
                 ;;
-            @i)
-                echo ""
-                echo "  Inputs:"
-                echo "    ntr    how many transforms (vectorized \"many\" functions only, else ntr=1)"
+            @nt)
+                echo "    ntr    how many transforms (only for vectorized \"many\" functions, else ntr=1)"
                 ;;
             @mi)
                 echo "    M      number of $NU sources"
@@ -53,14 +59,23 @@ do
             @n)
                 echo "    N      number of $NF""s"
                 ;;
+            @xr)
+                echo "    x      $NU""s in R ($LM)"
+                ;;
+            @x2r)
+                echo "    x,y    $NU $CO in R^2 ($LM""s)"
+                ;;
+            @x3r)
+                echo "    x,y,z  $NU $CO in R^3 ($LM""s)"
+                ;;
             @x)
-                echo "    x      $NU""s ($LM)"
+                echo "    x      $NU""s $PI ($LM)"
                 ;;
             @x2)
-                echo "    x,y    $NU $CO ($LM""s)"
+                echo "    x,y    $NU $CO $PI""^2 ($LM""s)"
                 ;;
             @x3)
-                echo "    x,y,z  $NU $CO ($LM""s)"
+                echo "    x,y,z  $NU $CO $PI""^3 ($LM""s)"
                 ;;
             @s)
                 echo "    s      $NF""s in R ($LN)"
@@ -77,18 +92,20 @@ do
             @co)
                 echo "    c      values at $NU targets (size M*ntr complex array)"
                 ;;
-            @fe)        # flag and eps
+            @f)
                 echo "    iflag  if >=0, uses +i in complex exponential, otherwise -i"
+                ;;
+            @e)
                 echo "    eps    desired relative precision; smaller is slower. This can be chosen"
                 echo "           from 1e-1 down to ~ 1e-14 (in double precision) or 1e-6 (in single)"
                 ;;
-            @o)        # opts and Outputs
+            @o)
                 echo "    opts   pointer to options struct (see opts.rst), or NULL for defaults"
-                echo ""
-                echo "  Outputs:"
                 ;;
-            @r)        # ier and notes start
+            @r)
                 echo "    return value  0: success, 1: success but warning, >1: error (see error.rst)"
+                ;;
+            @no)
                 echo ""
                 echo "  Notes:"
                 echo "    * complex arrays interleave Re, Im values, and their size is stated with"
@@ -96,16 +113,17 @@ do
                 ;;
             @notes12)   # specific to type 1 & 2
                 echo "    * Fourier frequency indices in each dimension i are the integers lying"
-                echo "      in [-Ni/2, (Ni-1)/2]. See modeord in opts.rst for their ordering."
-                echo "    * all $NU $CO must lie in [-3pi,3pi)."
+                echo "      in [-Ni/2, (Ni-1)/2]. See above, and modeord in opts.rst for possible orderings."
                 ;;
             *)
                 # all else is passed through
                 echo "$line"
                 ;;
         esac
-    done < $i > $o
-    # (note sneaky use of pipes above, filters lines from $i, output to $o)
+    done < $i | fold -s -w 90 | sed -e '/::/! s/^/ /' > $o
+    # (note sneaky use of pipes above, filters lines from $i, output to $o,
+    # also wraps and adds initial space unless line has ::, to get .rst right)
+    # sed -e '/../!s/^/ /'
 done
 
 # debug note: to debug, best to echo "$stuff" 1>&2   so it goes to stderr.

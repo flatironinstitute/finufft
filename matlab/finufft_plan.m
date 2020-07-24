@@ -44,7 +44,7 @@
 %     eps   relative precision requested (generally between 1e-15 and 1e-1)
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
-%     opts.spread_debug: spreader, (no text) 1 (some) or 2 (lots)
+%     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
 %     opts.spread_sort:  0 (don't sort NU pts), 1 (do), 2 (auto, default)
 %     opts.spread_kerevalmeth:  0: exp(sqrt()), 1: Horner ppval (faster)
 %     opts.spread_kerpad: (iff kerevalmeth=0)  0: don't pad to mult of 4, 1: do
@@ -52,6 +52,7 @@
 %     opts.upsampfac:   sigma.  2.0 (default), or 1.25 (low RAM, smaller FFT)
 %     opts.spread_thread:   for ntrans>1 only. 0:auto, 1:seq multi, 2:par, etc
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
+%     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.floatprec: library precision to use, 'double' (default) or 'single'.
 %     for type 1 and 2 only, the following opts fields are also relevant:
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
@@ -62,7 +63,7 @@
 % Notes:
 %  * For type 1 and 2, this does the FFTW planning and kernel-FT precomputation.
 %  * For type 3, this does very little, since the FFT sizes are not yet known.
-%  * All available threads are planned; control how many with maxNumCompThreads.
+%  * Be default all threads are planned; control how many with opts.nthreads.
 %  * The vectorized (many vector) plan, ie ntrans>1, can be much faster
 %    than repeated calls with the same nonuniform points. Note that here the I/O
 %    data ordering is stacked rather than interleaved. See ../docs/matlab.rst
@@ -71,16 +72,19 @@
 %
 % 2) SETPTS   process nonuniform points for general FINUFFT transform(s).
 %
+% plan.setpts(xj)
+% plan.setpts(xj, yj)
 % plan.setpts(xj, yj, zj)
+% plan.setpts(xj, [], [], s)
+% plan.setpts(xj, yj, [], s, t)
 % plan.setpts(xj, yj, zj, s, t, u)
 %
 %  When plan is a finufft_plan MATLAB object, brings in nonuniform point
-%  coordinates (xj,yj,zj), and additionally in the type 3 case,
-%  nonuniform frequency target points (s,t,u). Empty arrays
-%  may be passed in the case of unused xyz dimensions in the case of type 3.
-%  For all types, sorting is done to internally store a reindexing of points,
-%  and for type 3 the spreading and FFTs are planned. The nonuniform points may
-%  be used for multiple transforms.
+%  coordinates (xj,yj,zj), and additionally in the type 3 case, nonuniform
+%  frequency target points (s,t,u). Empty arrays may be passed in the case of
+%  unused dimensions. For all types, sorting is done to internally store a
+%  reindexing of points, and for type 3 the spreading and FFTs are planned.
+%  The nonuniform points may be used for multiple transforms.
 %
 % Inputs:
 %     xj     vector of x-coords of all nonuniform points

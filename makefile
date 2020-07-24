@@ -342,7 +342,7 @@ docker-wheel:
 # =============================== DOCUMENTATION =============================
 
 docs: finufft-manual.pdf
-finufft-manual.pdf: docs/*.doc docs/*.sh
+finufft-manual.pdf: docs/*.doc docs/*.sh docs/*.rst
 # also builds a local html for local browser check too...
 	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m

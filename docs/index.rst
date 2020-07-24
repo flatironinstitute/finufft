@@ -145,6 +145,7 @@ Documentation contents
    install
    dirs
    math
+   cex           
    c
    opts
    error
