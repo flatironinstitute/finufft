@@ -144,9 +144,17 @@ class cufinufft:
         :param kz: Array of z points.
         """
 
-        if not (kx.dtype == ky.dtype == kz.dtype == self.dtype):
-            raise TypeError("cifinufft plan.dtype and "
-                            "kx, ky, kz dtypes do not match.")
+        if kx.dtype != self.dtype:
+            raise TypeError("cufinufft plan.dtype and "
+                            "kx dtypes do not match.")
+
+        if ky and ky.dtype != self.dtype:
+            raise TypeError("cufinufft plan.dtype and "
+                            "ky dtypes do not match.")
+
+        if kz and kz.dtype != self.dtype:
+            raise TypeError("cufinufft plan.dtype and "
+                            "kz dtypes do not match.")
 
         kx = kx.ptr
 
