@@ -107,6 +107,8 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	/* allocate the plan structure, assign address to user pointer. */
 	CUFINUFFT_PLAN d_plan = new CUFINUFFT_PLAN_S;
 	*d_plan_ptr = d_plan;
+        // Zero out your struct, (sets all pointers to NULL)
+	memset(d_plan, 0, sizeof(*d_plan));
 
 
 	/* If a user has not supplied their own options, assign defaults for them. */
