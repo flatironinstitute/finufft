@@ -13,6 +13,7 @@ addons:
         packages:
             - ccache
             - fftw
+            - libomp
         update: true
 cache: ccache
 matrix:
@@ -32,6 +33,7 @@ matrix:
         - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export PATH="/usr/local/opt/ccache/libexec:$PATH"; fi
         - ccache --max-size=5.0G
         - ccache -V && ccache --show-stats && ccache --zero-stats
+        - make test
         - make python
     - os: linux
       dist: xenial

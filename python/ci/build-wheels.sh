@@ -24,6 +24,7 @@ make install
 cd /io/
 export FINUFFT_DIR=$(pwd)
 make lib
+make test
 
 pys=(/opt/python/*/bin)
 
