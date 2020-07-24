@@ -1,6 +1,8 @@
 # Load site-specific setting -- detected using environment variable `site`
 ifeq ($(site), nersc_cori)
     -include sites/make.inc.nersc_cori
+else ifeq ($(site), nersc_cgpu)
+    -include sites/make.inc.nersc_cgpu
 endif
 
 CC   ?= gcc
