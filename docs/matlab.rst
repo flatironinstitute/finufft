@@ -31,7 +31,7 @@ their defaults, for instance:
   o.modeord = 1;                      % choose FFT-style output mode ordering  
   f = finufft1d1(x,c,+1,1e-12,N,o);   % do it
 
-The above usage we call the "simple interface". There is also a "vectorized"
+The above usage we call the "simple" interface. There is also a "vectorized"
 interface which does the transform for multiple stacked strength vectors,
 using the same nonuniform points each time.
 We demo this, reusing ``x`` and ``N`` from above:
@@ -83,11 +83,15 @@ The resulting output ``f`` is indeed size 1000 by 500. The first dimension
 (number of rows) corresponds to the x input coordinate, and the second to y.
 
 If you need to change the definition of the period from $2\pi$, simply
-rescale your points before sending them to FINUFFT.
+linearly rescale your points before sending them to FINUFFT.
 
 .. note::
 
-   Under the hood FINUFFT has double- and single-precision libraries. The simple and vectorized MATLAB/octave interfaces infer which to call by checking the class of its input arrays, which must all match (ie, all must be ``double`` or all must be ``single``). In contrast, precision in the guru interface is set with the ``finufft_plan`` option ``o.floatprec``, with ``double`` the default.
+   Under the hood FINUFFT has double- and single-precision libraries.
+   The simple and vectorized MATLAB/octave interfaces infer which to call by checking the class of its input arrays, which must all match (ie, all must be ``double`` or all must be ``single``).
+   Since by default MATLAB arrays are double-precision, this is the precision that all of the above examples run in.
+   To perform single-precision transforms, send in single-precision data.
+   In contrast, precision in the guru interface is set with the ``finufft_plan`` option string ``o.floatprec``, either ``'double'`` (the default), or ``'single'``.
 
 See
 `tests and examples in the repo <https://github.com/flatironinstitute/finufft/tree/master/matlab/>`_ and

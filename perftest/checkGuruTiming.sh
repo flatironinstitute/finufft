@@ -1,4 +1,5 @@
 #!/bin/bash
+# by Andrea Malleo, summer 2019.
 
 srcpts=1e7
 tolerance=1e-6
@@ -30,8 +31,8 @@ do
 	    modeNum2=${modes[index+1]}
 	    modeNum3=${modes[index+2]}
 
-	    echo "./finufftGuru_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}"				 
-	    ./finufftGuru_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}
+	    echo "./guru_timing_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}"				 
+	    ./guru_timing_test ${n_trials} ${type} ${dimension} ${modeNum1} ${modeNum2} ${modeNum3} ${srcpts} ${tolerance} ${debug}
 	done
     done
 done

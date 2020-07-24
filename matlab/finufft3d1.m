@@ -13,7 +13,7 @@
 %         -mu/2 <= k3 <= (mu-1)/2.
 %
 %   Inputs:
-%     x,y,z  coordinates of nonuniform sources on the cube [-3pi,3pi]^3,
+%     x,y,z  coordinates of nonuniform sources on the cube [-3pi,3pi)^3,
 %            each a length-nj vector
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is

@@ -11,7 +11,7 @@
      f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
               j=1
    Inputs:
-     x     locations of nonuniform sources on interval [-3pi,3pi], length nj
+     x     locations of nonuniform sources on interval [-3pi,3pi), length nj
      c     length-nj complex vector of source strengths. If numel(c)>nj,
            expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
            transformed with the same source locations.
@@ -61,7 +61,7 @@
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
   Inputs:
-     x     location of nonuniform targets on interval [-3pi,3pi], length nj
+     x     location of nonuniform targets on interval [-3pi,3pi), length nj
      f     complex Fourier coefficients. If a vector, length sets ms
            (with mode ordering given by opts.modeord). If a matrix, each
            of ntrans columns is transformed with the same nonuniform targets.
@@ -157,7 +157,7 @@
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
    Inputs:
-     x,y   coordinates of nonuniform sources on the square [-3pi,3pi]^2,
+     x,y   coordinates of nonuniform sources on the square [-3pi,3pi)^2,
            each a length-nj vector
      c     length-nj complex vector of source strengths. If numel(c)>nj,
            expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
@@ -209,7 +209,7 @@
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
   Inputs:
-     x,y   coordinates of nonuniform targets on the square [-3pi,3pi]^2,
+     x,y   coordinates of nonuniform targets on the square [-3pi,3pi)^2,
            each a vector of length nj
      f     complex Fourier coefficient matrix, whose size determines (ms,mt).
            (Mode ordering given by opts.modeord, in each dimension.)
@@ -309,7 +309,7 @@
          -mu/2 <= k3 <= (mu-1)/2.
 
    Inputs:
-     x,y,z  coordinates of nonuniform sources on the cube [-3pi,3pi]^3,
+     x,y,z  coordinates of nonuniform sources on the cube [-3pi,3pi)^3,
             each a length-nj vector
      c     length-nj complex vector of source strengths. If numel(c)>nj,
            expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
@@ -364,7 +364,7 @@
                        -mu/2 <= k3 <= (mu-1)/2.
 
   Inputs:
-     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi]^3,
+     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi)^3,
            each a vector of length nj
      f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
            (Mode ordering given by opts.modeord, in each dimension.)
@@ -546,7 +546,7 @@
 
  Notes:
   * For type 1 and 2, the values in xj (and if nonempty, yj and zj) must
-    lie in the interval [-3pi,3pi]. For type 1 they are "sources", but for
+    lie in the interval [-3pi,3pi). For type 1 they are "sources", but for
     type 2, "targets". In contrast, for type 3 there are no restrictions other
     than the resulting size of the internal fine grids.
   * s (and t and u) are only relevant for type 3, and may be omitted otherwise

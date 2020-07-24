@@ -10,7 +10,7 @@
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2.
 %
 %  Inputs:
-%     x     location of nonuniform targets on interval [-3pi,3pi], length nj
+%     x     location of nonuniform targets on interval [-3pi,3pi), length nj
 %     f     complex Fourier coefficients. If a vector, length sets ms
 %           (with mode ordering given by opts.modeord). If a matrix, each
 %           of ntrans columns is transformed with the same nonuniform targets.

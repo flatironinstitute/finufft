@@ -1,3 +1,4 @@
 #!/bin/bash
+# by Andrea Malleo, summer 2019.
 
-./checkGuruTiming.sh | grep -E 'finufftGuru_test|speedup'
+./checkGuruTiming.sh | grep -E 'guru_timing_test|speedup'

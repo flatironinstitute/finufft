@@ -9,20 +9,22 @@ a tar ball, you will get the following. (Please see :ref:`installation <install>
 - ``README.md`` : github-facing (and human text-reader) doc info
 - ``LICENSE`` : how you may use this software
 - ``CHANGELOG`` : list of changes, release notes
-- ``TODO`` : list of things needed to fix or extend (hackers please help)
-- ``makefile`` : GNU makefile (there are no makefiles in subdirectories)
-- ``src`` : main library C++ sources. Compiled objects will be built here
+- ``TODO`` : list of things needed to fix or extend (also see git Issues)
+- ``makefile`` : the GNU makefile (there are no makefiles in subdirectories)
+- ``src`` : main library C++ sources
 - ``include`` : header files including those for users to compile against
 - ``lib`` : dynamic (.so) library will be built here
 - ``lib-static`` : static (.a) library will be built here
-- ``test`` : C++/bash validation and basic performance tests
-
+- ``test`` : C++/bash validation tests, including:
+  - ``test/basicpassfail{f}`` simple smoke test with exit code
   - ``test/check_finufft.sh`` is the main pass-fail validation bash script
-  - ``test/nuffttestnd.sh`` is a simple uniform-point performance test bash script
-  - ``test/results`` : validation comparison outputs (\*.refout; do not remove these), and local test and performance outputs (\*.out; you may remove these)  
-
+  - ``test/results`` : validation comparison outputs (\*.refout; do not remove these), and local test outputs (\*.out; you may remove these)  
+- ``perftest`` : C++/bash performance and developer tests, including:
+  - ``test/spreadtestnd.sh`` spread/interp performance test bash script
+  - ``test/nuffttestnd.sh`` NUFFT performance test bash script
 - ``examples`` : simple example codes for calling the library from C++ and C
-- ``fortran`` : wrappers and drivers for Fortran (see ``fortran/README``)
-- ``matlab`` : wrappers and examples for MATLAB/octave
+- ``fortran`` : wrappers and example drivers for Fortran (see ``fortran/README``)
+- ``matlab`` : wrappers, tests, examples for MATLAB/octave wrappers
 - ``python`` : python wrappers (the ``finufftpy`` package), examples, and tests
 - ``contrib`` : any 3rd-party codes
+

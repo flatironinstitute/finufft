@@ -1,0 +1,66 @@
+@F3d1(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, nufft_opts* opts)
+
+  3D complex nonuniform FFT of type 1 (nonuniform to uniform).
+@t
+                 M-1
+     f[k1,k2] =  SUM c[j] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
+                 j=0
+
+ for -N1/2 <= k1 <= (N1-1)/2,  -N2/2 <= k2 <= (N2-1)/2,  -N3/2 <= k3 <= (N3-1)/2
+@i
+@mi
+@x3
+@ci
+@fe
+    N1     number of output Fourier modes to be computed (x direction)
+    N2     number of output Fourier modes to be computed (y direction)
+    N3     number of output Fourier modes to be computed (z direction)
+@o
+    f      Fourier mode coefficients (size N1*N2*N3*ntr complex array)
+@r
+@notes12
+
+
+@F3d2(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, nufft_opts* opts)
+
+  3D complex nonuniform FFT of type 2 (uniform to nonuniform).
+@t
+     c[j] =   SUM    f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j]))
+            k1,k2,k3
+
+     for j = 0,...,M-1,
+     where the sum is over integers -N1/2 <= k1 <= (N1-1)/2,
+                                    -N2/2 <= k2 <= (N2-1)/2,
+                                    -N3/2 <= k3 <= (N3-1)/2.
+@i
+@mo
+@x3
+@fe
+    N1     number of input Fourier modes (x direction)
+    N2     number of input Fourier modes (y direction)
+    N3     number of input Fourier modes (z direction)
+    f      Fourier mode coefficients (size N1*N2*N3*ntr complex array)
+@o
+@co
+@r
+@notes12
+
+
+@F3d3(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N, double* s, double* t, double* u, complex<double>* f, nufft_opts* opts)
+
+  3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
+@t
+              M-1
+     f[k]  =  SUM  c[j] exp(+-i (s[k] x[j] + t[k] y[j] + u[k] z[j])),
+              j=0
+                          for k = 0,...,N-1.
+@i
+@mi
+@x3
+@ci
+@fe
+@n
+@s3
+@o
+    f     Fourier transform values at targets (size N*ntr complex array)
+@r

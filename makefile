@@ -106,7 +106,7 @@ OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufftjulia.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
-.PHONY: usage lib examples test perftest spreadtest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime
+.PHONY: usage lib examples test perftest spreadtest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs
 
 default: usage
 
@@ -338,6 +338,16 @@ wheel: $(STATICLIB) $(DYNLIB)
 docker-wheel:
 	docker run --rm -e package_name=finufftpy -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/python/ci/build-wheels.sh
 
+
+# =============================== DOCUMENTATION =============================
+
+docs: finufft-manual.pdf
+finufft-manual.pdf: docs/*.doc docs/*.sh
+# also builds a local html for local browser check too...
+	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
+docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
+	(cd matlab; ./addmhelp.sh)
+	(cd docs; ./genmatlabhelp.sh)
 
 
 # =============================== CLEAN UP ==================================
