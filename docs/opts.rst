@@ -35,7 +35,7 @@ In C/C++, not forget to call the command which sets default options
 before you start changing them or passing them to FINUFFT.
 
 Summary of options and quick advice
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 Here is the 1-line summary of each option, with the full specifications below
 (see the header ``include/nufft_opts.h``)::
@@ -54,7 +54,6 @@ Here is the 1-line summary of each option, with the full specifications below
   int showwarn;       // 0: don't print warnings to stderr; 1: do
   int nthreads;       // number of threads to use, or 0: use all available
 
-These options are of course listed in the code, in ``include/nufft_opts.h``.
 Here are their default settings (defined in ``src/finufft.cpp:finufft_default_opts``)::
 
   debug = 0;
@@ -71,13 +70,26 @@ Here are their default settings (defined in ``src/finufft.cpp:finufft_default_op
   showwarn = 1;
   nthreads = 0;
   
-The main options you'll want to play with are ``fftw`` to try slower plan modes which give faster transforms (look at the FFTW3 docs), ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated or FFT dominated), ``modeord`` to flip the Fourier mode ordering, and ``nthreads`` if you want to try a different number of threads than the current maximum available through OpenMP. See :ref:`Troubleshooting <trouble>` for good advice on trying options.
+As for quick advice, the main options you'll want to play with are:
+  
+- ``fftw`` to try slower plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
+- ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated, vs FFT dominated)
+- ``modeord`` to flip the Fourier mode ordering
+- ``nthreads`` to run with a different number of threads than the current maximum available through OpenMP.
+
+See :ref:`Troubleshooting <trouble>` for good advice on trying options, and read the full options docs below.
 
   .. warning::
 Some of the options are experts-only, and will result in slow or incorrect results. Please test them in a small known test case so you understand the effect.
 
+Documentation of options
+--------------------------
 
+``debug``: Controls the amount of debug/timing output to stdout. 0 is silent, 1 prints some information, and 2 more.
 
+``spread_debug``: Controls the amount of debug/timing output from the spreader/interpolator. 0 is silent, 1 prints some timing information, and 2 can print thousands of lines since it includes one line per subproblem.
+
+``spread_sort``: Sorting mode within the spreader/interpolator. 0 never sorts, 1 always sorts, and 2 uses a heuristic to decide whether to sort or not. Generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
 
 
 
