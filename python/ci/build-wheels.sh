@@ -16,6 +16,10 @@ cd fftw-3.3.8
 CFLAGS=-fPIC ./configure --enable-threads --enable-openmp
 make
 make install
+make clean
+CFLAGS=-fPIC ./configure --enable-threads --enable-openmp --enable-float
+make
+make install
 
 cd /io/
 export FINUFFT_DIR=$(pwd)
@@ -27,7 +31,7 @@ pys=(/opt/python/*/bin)
 pys=(${pys[@]//*34*/})
 
 for PYBIN in "${pys[@]}"; do
-    "${PYBIN}/pip" install wheel auditwheel twine pybind11 python-dotenv
+    "${PYBIN}/pip" install auditwheel wheel twine pybind11 python-dotenv numpy
     "${PYBIN}/pip" wheel /io/python -w python/wheelhouse    
 done
 
