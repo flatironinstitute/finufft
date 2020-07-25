@@ -17,7 +17,7 @@ See each language doc page for how this is done, but is generally
 by creating an options structure, changing fields from their defaults,
 then passing this (or a pointer to it)
 to the simple, vectorized, or guru makeplan routines.
-Recall how to do this from C++::
+Recall how to do this from C++:
 
 .. code-block:: C++
                 
@@ -29,55 +29,37 @@ Recall how to do this from C++::
 
 This setting produces more timing output to ``stdout``.
 
-  .. warning::
-In C/C++, not forget to call the command which sets default options
-(``finufft_default_opts``)
-before you start changing them or passing them to FINUFFT.
+.. warning::
+   
+ In C/C++, not forget to call the command which sets default options
+ (``finufft_default_opts``)
+ before you start changing them or passing them to FINUFFT.
 
-Summary of options and quick advice
+
+Summary and quick advice
 -------------------------------------
 
-Here is the 1-line summary of each option, with the full specifications below
-(see the header ``include/nufft_opts.h``)::
+Here is a 1-line summary of each option, taken from the code
+(the header ``include/nufft_opts.h``):
 
-  int debug;          // 0: silent, 1: text basic timing output
-  int spread_debug;   // passed to spread_opts, 0 (no text) 1 (some) or 2 (lots)
-  int spread_sort;    // passed to spread_opts, 0 (don't sort) 1 (do) or 2 (heuristic)
-  int spread_kerevalmeth; // "     spread_opts, 0: exp(sqrt()), 1: Horner ppval (faster)
-  int spread_kerpad;  // passed to spread_opts, 0: don't pad to mult of 4, 1: do
-  int chkbnds;        // 0: don't check if input NU pts in [-3pi,3pi], 1: do
-  int fftw;           // 0:FFTW_ESTIMATE, or 1:FFTW_MEASURE (slow plan, faster run)
-  int modeord;        // 0: increasing freqs (neg to pos), or 1: FFT-style order
-  double upsampfac;   // upsampling ratio sigma, either 2.0, or 1.25 (small FFTs)
-  int spread_thread;  // for ntrans>1 only. 0: auto, 1: sequential multithreaded, 2: parallel singlethreaded
-  int maxbatchsize;   // for ntrans>1 only. max chunk size of data vectors. 0: auto
-  int showwarn;       // 0: don't print warnings to stderr; 1: do
-  int nthreads;       // number of threads to use, or 0: use all available
+.. literalinclude:: ../include/nufft_opts.h
+   :start-after: @opts_start
+   :end-before: @opts_end
 
-Here are their default settings (defined in ``src/finufft.cpp:finufft_default_opts``)::
+Here are their default settings (from ``src/finufft.cpp:finufft_default_opts``):
 
-  debug = 0;
-  spread_debug = 0;
-  spread_sort = 2;
-  spread_kerevalmeth = 1;
-  spread_kerpad = 1;
-  chkbnds = 1;
-  fftw = FFTW_ESTIMATE;
-  modeord = 0;
-  upsampfac = 2.0;
-  spread_thread = 0;
-  maxbatchsize = 0;
-  showwarn = 1;
-  nthreads = 0;
+.. literalinclude:: ../src/finufft.cpp
+   :start-after: @defopts_start
+   :end-before: @defopts_end
   
 As for quick advice, the main options you'll want to play with are:
   
-- ``fftw`` to try slower plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
-- ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated, vs FFT dominated)
 - ``modeord`` to flip the Fourier mode ordering
-- ``nthreads`` to run with a different number of threads than the current maximum available through OpenMP.
+- ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated, vs FFT dominated)
+- ``nthreads`` to run with a different number of threads than the current maximum available through OpenMP (a large number can sometimes be detrimental, and very small problems can sometimes run faster on 1 thread)
+- ``fftw`` to try slower plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
 
-See :ref:`Troubleshooting <trouble>` for good advice on trying options, and read the full options docs below.
+See :ref:`Troubleshooting <trouble>` for good advice on trying options, and read the full options descriptions below.
 
   .. warning::
 Some of the options are experts-only, and will result in slow or incorrect results. Please test them in a small known test case so you understand the effect.
@@ -85,13 +67,38 @@ Some of the options are experts-only, and will result in slow or incorrect resul
 Documentation of options
 --------------------------
 
+Data handling options
+~~~~~~~~~~~~~~~~~~~~~
+
+``modeord``: Fourier coefficient frequency index ordering in each dimension. For type 1, this is for the output; for type 2 the input. It has no effect in type 3.
+For example, if ``N1=8`` in a 1D type 1 or type 2 transform:
+
+* if ``opts.modeord=0``: frequency indices are ordered ``-4,-3,-2,-1,0,1,2,3`` (CMCL ordering)
+
+* if ``opts.modeord=1``: frequency indices are ordered ``0,1,2,3,-4,-3,-2,-1`` (FFT ordering)
+
+``chkbnds``: if 0, input nonuniform points x, y, z, are fed straight into the spreader which assumes (for speed) that they lie in :math:`[-3\pi,3\pi)`. Points outside will cause a segfault. If 1, the nonuniform points are checked to lie in this interval, and the library exits with an error code and message to stderr. The trade-off is that this checking can lose several % in overall speed, especially in low-precision 3D transforms.
+  
+
+Diagnostic options
+~~~~~~~~~~~~~~~~~~~~~~~
+
 ``debug``: Controls the amount of debug/timing output to stdout. 0 is silent, 1 prints some information, and 2 more.
 
 ``spread_debug``: Controls the amount of debug/timing output from the spreader/interpolator. 0 is silent, 1 prints some timing information, and 2 can print thousands of lines since it includes one line per subproblem.
 
+``showwarn``: if
+
+***
+
+
+Algorithm performance options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 ``spread_sort``: Sorting mode within the spreader/interpolator. 0 never sorts, 1 always sorts, and 2 uses a heuristic to decide whether to sort or not. Generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
 
-
+***
 
   To get the fastest run-time, we recommend that you experiment firstly with:
 ``fftw``, ``upsampfac``, and ``spread_sort``, detailed below.

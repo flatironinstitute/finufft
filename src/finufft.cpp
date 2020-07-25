@@ -501,20 +501,25 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
 // See nufft_opts.h for meanings.
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX, but now is generally used. Barnett 10/30/17 onwards.
+// Sphinx sucks the below code block into the web docs, hence keep it clean...
 {
-  o->upsampfac = 0.0;        // sigma: 0 auto; 2.0; or 1.25 smaller RAM, FFTs
-  o->chkbnds = 1;            // prevents user segfaults, but a few% speed hit
+  // sphinx tag (don't remove): @defopts_start
+  o->modeord = 0;
+  o->chkbnds = 1;
+
   o->debug = 0;
   o->spread_debug = 0;
-  o->spread_sort = 2;        // use heuristic rule for whether to sort
-  o->spread_kerevalmeth = 1; // 0: direct exp(sqrt()), 1: Horner ppval
-  o->spread_kerpad = 1;      // (relevant iff kerevalmeth=0)
-  o->fftw = FFTW_ESTIMATE;   // use FFTW_MEASURE for slow first call, fast rerun
-  o->modeord = 0;            // CMCL ordering. *** consider switching to FFT
-  o->spread_thread = 0;      // default: auto
-  o->maxbatchsize = 0;       // "
   o->showwarn = 1;
-  o->nthreads = 0;           // to reset to omp max
+
+  o->nthreads = 0;
+  o->fftw = FFTW_ESTIMATE;
+  o->spread_sort = 2;
+  o->spread_kerevalmeth = 1;
+  o->spread_kerpad = 1;
+  o->upsampfac = 0.0;
+  o->spread_thread = 0;
+  o->maxbatchsize = 0;
+  // sphinx tag (don't remove): @defopts_end
 }
 
 

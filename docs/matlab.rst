@@ -115,4 +115,4 @@ MATLAB path via something like ``addpath FINUFFT/matlab``, then
 
 The individual commands have the following help documentation:
                     
-.. include:: matlabhelp.raw
+.. include:: matlabhelp.doc
