@@ -26,6 +26,6 @@ done
 
 # Install packages and test
 for PYBIN in /opt/python/*/bin/; do
-    "${PYBIN}/pip" install cufinufftpy -f /io/wheelhouse
+    "${PYBIN}/pip" install cufinufft -f /io/wheelhouse
     pytest /io/
 done

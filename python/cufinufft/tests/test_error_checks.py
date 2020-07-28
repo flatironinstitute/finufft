@@ -4,7 +4,7 @@ import pytest
 import pycuda.autoinit # NOQA:401
 import pycuda.gpuarray as gpuarray
 
-from cufinufftpy import cufinufft
+from cufinufft import cufinufft
 
 import utils
 
