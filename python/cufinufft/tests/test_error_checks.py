@@ -4,7 +4,7 @@ import pytest
 import pycuda.autoinit # NOQA:401
 import pycuda.gpuarray as gpuarray
 
-from cufinufftpy import cufinufft
+from cufinufft import cufinufft
 
 import utils
 
@@ -38,9 +38,6 @@ def test_set_nu_raises_on_dtype():
     with pytest.raises(TypeError):
         plan.set_pts(M, kxyz_gpu_wrong_type[0],
                      kxyz_gpu_wrong_type[1], kxyz_gpu_wrong_type[2])
-
-    plan.set_pts(M, kxyz_gpu[0],
-                 kxyz_gpu[1], kxyz_gpu[2])
 
 
 def test_exec_raises_on_dtype():

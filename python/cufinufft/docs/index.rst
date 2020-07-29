@@ -1,5 +1,5 @@
-Welcome to cufinufftpy's documentation!
-=======================================
+Welcome to cufinufft's Python documentation!
+==============================================
 
 .. automodule:: cufinufft
    :members:
