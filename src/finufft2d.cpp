@@ -74,6 +74,7 @@ int finufft2d1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
+  FFTW_PLAN_SF();
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
@@ -172,6 +173,7 @@ int finufft2d1many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
+  FFTW_PLAN_SF();
 
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // nthreads copies of upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
@@ -317,6 +319,7 @@ int finufft2d2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
+  FFTW_PLAN_SF();
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
@@ -414,6 +417,7 @@ int finufft2d2many(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
+  FFTW_PLAN_SF();
 
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nth);  // nthreads copies of upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;

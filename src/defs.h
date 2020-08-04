@@ -87,6 +87,7 @@ using namespace std;        // means std:: not needed for cout, max, etc
   typedef fftwf_plan FFTW_PLAN;
   #define FFTW_INIT fftwf_init_threads
   #define FFTW_PLAN_TH fftwf_plan_with_nthreads
+  #define FFTW_PLAN_SF fftwf_make_planner_thread_safe
   #define FFTW_ALLOC_RE fftwf_alloc_real
   #define FFTW_ALLOC_CPX fftwf_alloc_complex
   #define FFTW_PLAN_1D fftwf_plan_dft_1d
@@ -105,6 +106,7 @@ using namespace std;        // means std:: not needed for cout, max, etc
   typedef fftw_plan FFTW_PLAN;
   #define FFTW_INIT fftw_init_threads
   #define FFTW_PLAN_TH fftw_plan_with_nthreads
+  #define FFTW_PLAN_SF fftw_make_planner_thread_safe
   #define FFTW_ALLOC_RE fftw_alloc_real
   #define FFTW_ALLOC_CPX fftw_alloc_complex
   #define FFTW_PLAN_1D fftw_plan_dft_1d
@@ -142,6 +144,8 @@ using namespace std;        // means std:: not needed for cout, max, etc
   #define FFTW_INIT()
   #undef FFTW_PLAN_TH
   #define FFTW_PLAN_TH(x)
+  #undef FFTW_PLAN_SF
+  #define FFTW_PLAN_SF()
 #endif
 
 #endif  // DEFS_H

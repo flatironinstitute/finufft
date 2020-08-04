@@ -58,6 +58,7 @@ int finufft1d1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
     FFTW_INIT();           // (these do nothing anyway when OMP=OFF)
     FFTW_PLAN_TH(nth);
   }
+  FFTW_PLAN_SF();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
   FFTW_PLAN p = FFTW_PLAN_1D(nf1,fw,fw,fftsign, opts.fftw);  // in-place
@@ -153,6 +154,7 @@ int finufft1d2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
+  FFTW_PLAN_SF();
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1);    // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;

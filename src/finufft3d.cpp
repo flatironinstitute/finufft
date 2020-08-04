@@ -79,6 +79,7 @@ int finufft3d1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
+  FFTW_PLAN_SF();
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3);  // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
@@ -177,6 +178,7 @@ int finufft3d2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,
     FFTW_INIT();
     FFTW_PLAN_TH(nth);
   }
+  FFTW_PLAN_SF();
   timer.restart();
   FFTW_CPX *fw = FFTW_ALLOC_CPX(nf1*nf2*nf3); // working upsampled array
   int fftsign = (iflag>=0) ? 1 : -1;
