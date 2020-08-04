@@ -144,8 +144,6 @@ using namespace std;        // means std:: not needed for cout, max, etc
   #define FFTW_INIT()
   #undef FFTW_PLAN_TH
   #define FFTW_PLAN_TH(x)
-  #undef FFTW_PLAN_SF
-  #define FFTW_PLAN_SF()
 #endif
 
 #endif  // DEFS_H
