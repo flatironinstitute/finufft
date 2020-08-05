@@ -1,9 +1,19 @@
-# Load site-specific setting -- detected using environment variable `site`
+# Load site-specific setting -- controlled using environment variable `site`:
+# eg.  make site=nersc_cori
 ifeq ($(site), nersc_cori)
     -include sites/make.inc.nersc_cori
 else ifeq ($(site), nersc_cgpu)
     -include sites/make.inc.nersc_cgpu
 endif
+
+# Load architecture-specific settings -- controlled using the environment
+# variable `target`: eg. make arch=power9
+ifeq ($(target), power9)
+    -include make.inc.power9
+else ifeq ($(target), CIMS)
+    -include make.inc.CIMS
+endif
+
 
 CC   ?= gcc
 CXX  ?= g++
@@ -43,16 +53,22 @@ endif
 # Common includes
 INC=-I$(CUDA_ROOT)/include -Icontrib/cuda_samples
 ifdef FFTW_INC
-    $(info detected a FFTW_INC variable -- setting FFTW include directory)
+    $(info detected FFTW_INC -- setting FFTW include directory)
     INC += -I$(FFTW_INC)
 endif
 
 FFTWNAME=fftw3
 
 # Common libs
-LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTWNAME) -l$(FFTWNAME)f
+LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTWNAME)
+
+# Figure out the specifics of the FFTW install
+ifneq ("$(wildcard $(FFTW_DIR)/*$(FFTWNAME)f*)","")
+    $(info detected $(FFTWNAME)f library -- building with lib$(FFTWNAME)f)
+    LIBS += -l$(FFTWNAME)f
+endif
 ifdef FFTW_DIR
-    $(info detected a FFTW_DIR variable -- setting FFTW library directory)
+    $(info detected FFTW_DIR -- setting FFTW library directory)
     LIBS += -L$(FFTW_DIR)
 endif
 
@@ -70,12 +86,7 @@ endif
 
 #############################################################
 # Allow the user to override any variable above this point. #
-uname_p := $(shell uname -p)
-ifeq ($(uname_p), ppc64le)
-    -include make.inc.power9
-else
-    -include make.inc
-endif
+-include make.inc
 
 # Include header files
 INC += -I include
