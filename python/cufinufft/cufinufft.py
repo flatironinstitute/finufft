@@ -10,16 +10,16 @@ from ctypes import byref
 from ctypes import c_int
 from ctypes import c_void_p
 
-from cufinufftpy._cufinufft import NufftOpts
-from cufinufftpy._cufinufft import _default_opts
-from cufinufftpy._cufinufft import _make_plan
-from cufinufftpy._cufinufft import _make_planf
-from cufinufftpy._cufinufft import _set_pts
-from cufinufftpy._cufinufft import _set_ptsf
-from cufinufftpy._cufinufft import _exec_plan
-from cufinufftpy._cufinufft import _exec_planf
-from cufinufftpy._cufinufft import _destroy_plan
-from cufinufftpy._cufinufft import _destroy_planf
+from cufinufft._cufinufft import NufftOpts
+from cufinufft._cufinufft import _default_opts
+from cufinufft._cufinufft import _make_plan
+from cufinufft._cufinufft import _make_planf
+from cufinufft._cufinufft import _set_pts
+from cufinufft._cufinufft import _set_ptsf
+from cufinufft._cufinufft import _exec_plan
+from cufinufft._cufinufft import _exec_planf
+from cufinufft._cufinufft import _destroy_plan
+from cufinufft._cufinufft import _destroy_planf
 
 
 class cufinufft:
@@ -144,9 +144,17 @@ class cufinufft:
         :param kz: Array of z points.
         """
 
-        if not (kx.dtype == ky.dtype == kz.dtype == self.dtype):
-            raise TypeError("cifinufft plan.dtype and "
-                            "kx, ky, kz dtypes do not match.")
+        if kx.dtype != self.dtype:
+            raise TypeError("cufinufft plan.dtype and "
+                            "kx dtypes do not match.")
+
+        if ky and ky.dtype != self.dtype:
+            raise TypeError("cufinufft plan.dtype and "
+                            "ky dtypes do not match.")
+
+        if kz and kz.dtype != self.dtype:
+            raise TypeError("cufinufft plan.dtype and "
+                            "kz dtypes do not match.")
 
         kx = kx.ptr
 

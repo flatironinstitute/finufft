@@ -6,7 +6,7 @@ import ctypes
 from setuptools import setup, Extension
 
 # Parse the requirements
-with open(os.path.join('cufinufftpy', 'requirements.txt'), 'r') as fh:
+with open(os.path.join('python/cufinufft', 'requirements.txt'), 'r') as fh:
     requirements = [item.strip() for item in fh.readlines()]
 
 # Sanity check that we can find the CUDA cufinufft libraries before we get too far.
@@ -22,7 +22,7 @@ print('cufinufft CUDA shared libraries found, continuing...')
 
 # Python Package Setup
 setup(
-    name='cufinufftpy',
+    name='cufinufft',
     version='1.0',
     author='Python interfaces by: Melody Shih, Joakim Anden, Garrett Wright',
     author_email='yoyoshih13@gmail.com',
@@ -30,7 +30,8 @@ setup(
     description='Python interface to cufinufft',
     long_description='Python interface to cufinufft (CUDA Flatiron Institute Nonuniform Fast Fourier Transform) library.',
     license="Apache 2",
-    packages=['cufinufftpy'],
+    packages=['cufinufft'],
+    package_dir={'': 'python'},
     install_requires=requirements,
     # If you'd like to build or alter the docs you may additionally require these.
     extras_require={
@@ -42,9 +43,9 @@ setup(
     #   that is rpath linked to CUDA library, also decorated (by auditwheel).
     #   Most importantly, pip will manage to install all this stuff in
     #   in places Python can find it (with a little help).
-    py_modules=['cufinufft'],
+    py_modules=['cufinufftc'],
     ext_modules=[
-        Extension(name='cufinufft',
+        Extension(name='cufinufftc',
                   sources=[],
                   libraries=['cufinufft'],
                   library_dirs=['lib'])

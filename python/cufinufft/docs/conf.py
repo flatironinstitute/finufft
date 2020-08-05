@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'cufinufftpy'
+project = 'cufinufft'
 copyright = ('2020 The Simons Foundation, '
              'Melody Shih, Joakim Anden, Garrett Wright.')
 author = 'Melody Shih, Joakim Anden, Garrett Wright'

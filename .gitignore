@@ -4,6 +4,6 @@ bin
 lib
 lib-static
 
-cufinufftpy/docs/_build
-cufinufftpy/docs/_static
-cufinufftpy/docs/_templates
+python/cufinufft/docs/_build
+python/cufinufft/docs/_static
+python/cufinufft/docs/_templates

@@ -108,7 +108,6 @@ CUFINUFFTOBJS_64=src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	src/3d/interp3d_wrapper.o src/3d/cufinufft3d.o \
 	$(CONTRIBOBJS)
 CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
-$(info $$CUFINUFFTOBJS_32 is [${CUFINUFFTOBJS_32}])
 
 
 %_32.o: %.cpp $(HEADERS)
