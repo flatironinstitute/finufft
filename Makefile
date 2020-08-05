@@ -4,12 +4,13 @@ ifeq ($(site), nersc_cori)
     -include sites/make.inc.nersc_cori
 else ifeq ($(site), nersc_cgpu)
     -include sites/make.inc.nersc_cgpu
+else ifeq ($(site), olcf_summit)
+    -include sites/make.inc.olcf_summit
 endif
 
 # Load architecture-specific settings -- controlled using the environment
 # variable `target`: eg. make target=power9
 ifeq ($(target), power9)
-    $(info "asdf")
     -include make.inc.power9
 else ifeq ($(target), CIMS)
     -include make.inc.CIMS
