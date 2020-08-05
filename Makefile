@@ -56,12 +56,6 @@ ifdef FFTW_DIR
     LIBS += -L$(FFTW_DIR)
 endif
 
-# NVCC-specific includes
-NVCC_INC=
-ifdef FFTW_INC
-    NVCC_INC += -I$(FFTW_INC)
-endif
-
 # NVCC-specific libs
 NVCC_LIBS_PATH = -L$(CUDA_ROOT)/lib64
 ifdef FFTW_DIR
