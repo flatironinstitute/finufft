@@ -102,8 +102,9 @@ Algorithm performance options
 
 ``nthreads``: Number of threads to use. This sets the number of threads FINUFFT will use in FFTW, bin-sorting, and spreading/interpolation steps. This number of threads also controls the batch size for vectorized transforms (ie ``ntr>1`` :ref:`here <c>`). Setting ``opts.nthreads=0`` uses all threads available (up to an internal maximum that has been chosen based on performance; see ``MAX_USEFUL_NTHREADS`` in ``include/defs.h``). For repeated small problems it can be advantageous to use a small number, such as 1.
 
-``fftw``: FFTW planning mode.
-The default FFTW plan is ``FFTW_ESTIMATE``; however if you will be making multiple calls, consider ``fftw=FFTW_MEASURE``, which could spend many seconds planning, but will give a faster run-time when called again from the same process. Note that FFTW plans are saved (by FFTW's library)
+``fftw``: FFTW planner flags. This number is simply passed to FFTW's planner;
+the flags are documented `here <http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags>`_.
+A good first choice is ``FFTW_ESTIMATE``; however if you will be making multiple calls, consider ``FFTW_MEASURE``, which could spend many seconds planning, but will give a faster run-time when called again from the same process. These macros are bit-wise flags defined in ``/usr/include/fftw3.h`` on a linux system; they currently have the values ``FFTW_ESTIMATE=64`` and ``FFTW_MEASURE=0``. Note that FFTW plans are saved (by FFTW's library)
 automatically from call to call in the same executable (incidentally, also in the same MATLAB/octave or python session); there is a small overhead for lookup of such plans, which with many repeated small problems can motivate use of the :ref:`guru interface <guru>`.
 
 ``spread_sort``: Sorting mode within the spreader/interpolator. 0 never sorts, 1 always sorts, and 2 uses a heuristic to decide whether to sort or not. Generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
