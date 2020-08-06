@@ -137,8 +137,9 @@ These routines and arguments are, in double-precision:
       call finufft_execute(plan,cj,fk,ier)
       call finufft_destroy(plan,ier)
 
-The single-precision routines are identical except with the replacement
-of finufft with finufft.
+The single-precision (ie, ``real*4`` and ``complex*8``)
+functions are identical except with the replacement
+of ``finufft`` with ``finufftf`` in the function names.
 They are defined (from the C++ side) in ``fortran/finufftfort.cpp``.
 
 
@@ -160,7 +161,7 @@ These are the double-precision file names; the single precision have a
 trailing f before the .f.
 The last four here are modified from demos in the
 `CMCL NUFFT libraries <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_.
-The first three of these have been changed only to use FINUFFT,
+The first three of these have only been changed to use FINUFFT.
 The final tolerance they request is ``tol=1d-16``. For this case FINUFFT
 will report a warning that it cannot achieve it, and gets
 merely around $10^{-14}$.
