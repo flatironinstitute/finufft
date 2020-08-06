@@ -76,6 +76,9 @@ Thus we created the vectorized interfaces (and the guru interface; see below).
 
 .. include:: c3d.doc
 
+
+.. _guru:
+             
 Guru plan interface
 -------------------                   
 

@@ -64,8 +64,9 @@ See :ref:`Troubleshooting <trouble>` for good advice on trying options, and read
   .. warning::
 Some of the options are experts-only, and will result in slow or incorrect results. Please test them in a small known test case so you understand the effect.
 
-Documentation of options
---------------------------
+
+Documentation of all options
+-----------------------------
 
 Data handling options
 ~~~~~~~~~~~~~~~~~~~~~
@@ -77,42 +78,40 @@ For example, if ``N1=8`` in a 1D type 1 or type 2 transform:
 
 * if ``opts.modeord=1``: frequency indices are ordered ``0,1,2,3,-4,-3,-2,-1`` (FFT ordering)
 
-``chkbnds``: if 0, input nonuniform points x, y, z, are fed straight into the spreader which assumes (for speed) that they lie in :math:`[-3\pi,3\pi)`. Points outside will cause a segfault. If 1, the nonuniform points are checked to lie in this interval, and the library exits with an error code and message to stderr. The trade-off is that this checking can lose several % in overall speed, especially in low-precision 3D transforms.
+``chkbnds``: whether to check the nonuniform points lie in the correct bounds.
+
+*  ``opts.chkbnd=0``: input nonuniform points in the arrays `x`, `y`, `z`, are fed straight into the spreader which assumes (for speed) that they lie in :math:`[-3\pi,3\pi)`. Points outside of this will then cause a segfault.
+
+*  ``opts.chkbnd=1``: the nonuniform points are checked to lie in this interval, and if any are found not to, the library exits with an error code and message to stderr. The trade-off is that simply doing this checking can lose several % in overall speed, especially in low-precision 3D transforms.
   
 
 Diagnostic options
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-``debug``: Controls the amount of debug/timing output to stdout. 0 is silent, 1 prints some information, and 2 more.
+``debug``: Controls the amount of debug/timing output to stdout.
+0 is silent, 1 prints some information, and 2 more.
 
-``spread_debug``: Controls the amount of debug/timing output from the spreader/interpolator. 0 is silent, 1 prints some timing information, and 2 can print thousands of lines since it includes one line per subproblem.
+``spread_debug``: Controls the amount of debug/timing output from the spreader/interpolator. 0 is silent, 1 prints some timing information, and 2 can print thousands of lines since it includes one line per `subproblem'.
 
-``showwarn``: if
-
-***
+``showwarn``: Whether to print warnings (which go to stderr).
+0 suppresses such warnings, while 1 prints them.
 
 
 Algorithm performance options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+``nthreads``: Number of threads to use. This sets the number of threads FINUFFT will use in FFTW, bin-sorting, and spreading/interpolation steps. This number of threads also controls the batch size for vectorized transforms (ie ``ntr>1`` :ref:`here <c>`). Setting ``opts.nthreads=0`` uses all threads available (up to an internal maximum that has been chosen based on performance; see ``MAX_USEFUL_NTHREADS`` in ``include/defs.h``). For repeated small problems it can be advantageous to use a small number, such as 1.
+
+``fftw``: FFTW planning mode.
+The default FFTW plan is ``FFTW_ESTIMATE``; however if you will be making multiple calls, consider ``fftw=FFTW_MEASURE``, which could spend many seconds planning, but will give a faster run-time when called again from the same process. Note that FFTW plans are saved (by FFTW's library)
+automatically from call to call in the same executable (incidentally, also in the same MATLAB/octave or python session); there is a small overhead for lookup of such plans, which with many repeated small problems can motivate use of the :ref:`guru interface <guru>`.
 
 ``spread_sort``: Sorting mode within the spreader/interpolator. 0 never sorts, 1 always sorts, and 2 uses a heuristic to decide whether to sort or not. Generally it is not worth sorting in 1D type 2 transforms, or when the number of nonuniform points is small.
 
+
 ***
 
-  To get the fastest run-time, we recommend that you experiment firstly with:
-``fftw``, ``upsampfac``, and ``spread_sort``, detailed below.
-If you are having crashes, set ``chkbnds=1`` to see if illegal ``x`` non-uniform point coordinates are being input.
 
-Notes on various options:
-
-``spread_sort``: the default setting is ``spread_sort=2``
-which applies the following heuristic rule: in 2D or 3D always sort, but in 1D,
-only sort if N (number of modes) > M/10 (where M is number of nonuniform pts).
-
-``fftw``:
-The default FFTW plan is ``FFTW_ESTIMATE``; however if you will be making multiple calls, consider ``fftw=FFTW_MEASURE``, which could spend many seconds planning, but will give a faster run-time when called again. Note that FFTW plans are saved (by FFTW's library)
-automatically from call to call in the same executable (incidentally, also in the same MATLAB/octave or python session).
 
 ``upsampfac``: This is the internal factor by which the FFT is larger than
 the number of requested modes in each dimension. We have built efficient kernels
