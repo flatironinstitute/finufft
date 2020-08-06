@@ -1,19 +1,15 @@
 # Load site-specific setting -- controlled using environment variable `site`:
 # eg.  make site=nersc_cori
-ifeq ($(site), nersc_cori)
-    -include sites/make.inc.nersc_cori
-else ifeq ($(site), nersc_cgpu)
-    -include sites/make.inc.nersc_cgpu
-else ifeq ($(site), olcf_summit)
-    -include sites/make.inc.olcf_summit
+ifdef site
+    $(info detected site: $(site))
+    -include sites/make.inc.$(site)
 endif
 
 # Load architecture-specific settings -- controlled using the environment
 # variable `target`: eg. make target=power9
-ifeq ($(target), power9)
-    -include make.inc.power9
-else ifeq ($(target), CIMS)
-    -include make.inc.CIMS
+ifdef target
+    $(info detected target: $(target))
+    -include targets/make.inc.$(target)
 endif
 
 
