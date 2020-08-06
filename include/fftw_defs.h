@@ -24,6 +24,11 @@
   #define FFTW_FORGET_WISDOM fftwf_forget_wisdom
   #define FFTW_CLEANUP fftwf_cleanup
   #define FFTW_CLEANUP_THREADS fftwf_cleanup_threads
+  #ifdef FFTW_PLAN_SAFE
+    #define FFTW_PLAN_SF() fftwf_make_planner_thread_safe()
+  #else
+    #define FFTW_PLAN_SF()
+  #endif
 #else
   typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
   typedef fftw_plan FFTW_PLAN;
@@ -41,6 +46,11 @@
   #define FFTW_FORGET_WISDOM fftw_forget_wisdom
   #define FFTW_CLEANUP fftw_cleanup
   #define FFTW_CLEANUP_THREADS fftw_cleanup_threads
+  #ifdef FFTW_PLAN_SAFE
+    #define FFTW_PLAN_SF() fftw_make_planner_thread_safe()
+  #else
+    #define FFTW_PLAN_SF()
+  #endif
 #endif
 
 #endif

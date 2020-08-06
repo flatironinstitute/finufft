@@ -622,6 +622,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     // *** put in logic for setting FFTW # thr based on o.spread_thread?
     FFTW_INIT();           // only does anything when OMP=ON for >1 threads
     FFTW_PLAN_TH(nthr_fft); // " (not batchSize since can be 1 but want mul-thr)
+    FFTW_PLAN_SF();         // make planner thread-safe
     p->spopts.spread_direction = type;
     
     // determine fine grid sizes, sanity check..
