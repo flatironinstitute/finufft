@@ -1,8 +1,9 @@
-# Flatiron Institute Nonuniform Fast Fourier Transform libraries: FINUFFT
+# Flatiron Institute Nonuniform Fast Fourier Transform library: FINUFFT
 
-**Alex H. Barnett and Jeremy F. Magland**, with additional code by
-Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu,
-Joakim Anden, and Garrett Wright.
+Principal author **Alex H. Barnett**,
+main co-developers Jeremy F. Magland,
+Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu.
+see `docs/ackn.rst` for details and full list of contributors.
 
 <p>
 <img src="docs/logo.png" width="350"/>
@@ -22,19 +23,20 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/install.rst` : installation and compilation instructions
 - `docs/dirs.rst`    : explanation of directories and files in the package
 - `docs/math.rst`    : mathematical definitions
-- `docs/c.rst`       : usage from C++/C
-- `docs/opts.rst`    : details of options settings
-- `docs/error.rst`   : error codes from C++/C/Fortran
+- `docs/cex.rst`     : example usage from C++/C
+- `docs/c.rst`       : documentation of C++/C functions
+- `docs/opts.rst`    : optional parameters
+- `docs/error.rst`   : error codes
 - `docs/trouble.rst` : troubleshooting
 - `docs/tut.rst`     : tutorial application examples
-- `docs/fortran.rst` : using the Fortran interface
+- `docs/fortran.rst` : usage examples from Fortran, documentation of interface
 - `docs/matlab.rst` and `docs/matlabhelp.raw` : using the MATLAB/octave interface
 - `docs/python.rst` and `python/*/_interfaces.py` : using the python interface
 - `docs/julia.rst`   : using the Julia interface
-- `docs/related.rst` : other NUFFT packages
+- `docs/related.rst` : other recommended NUFFT packages
 - `docs/users.rst`   : users of FINUFFT and dependent packages
 - `docs/ackn.rst`    : authors and acknowledgments
-- `docs/refs.rst`    : journal article references
+- `docs/refs.rst`    : journal article references (ours and others)
 
 
 If you find FINUFFT useful in your work, please cite this repository and
