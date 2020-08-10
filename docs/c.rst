@@ -50,15 +50,18 @@ The "simple" interfaces (the first two listed in each block) perform
 a single transform, whereas the "vectorized" (the last two listed in each block,
 with the word "many" in the function name) perform ``ntr`` transforms with the same set of nonuniform points but stacked complex strengths or coefficients vectors.
 
-The need for the vectorized interface is as follows.
-For large problems, performing sequential plain calls is efficient
-(although there would be a slight benefit to sorting only once),
-but when the problem size is smaller, certain start-up costs cause
-repeated calls to the simple interface to be slower than necessary.
-In particular, we note that FFTW takes around 0.1 ms per thread to
-look up stored wisdom, which for small problems (of order 10000
-or less input and output data) can, sadly, dominate the runtime.
-Thus we created the vectorized interfaces (and the guru interface; see below).
+.. note::
+
+   The need for the vectorized interface is as follows. For large
+   problems, performing sequential plain calls is efficient (although
+   there would be a slight benefit to sorting only once), but when the
+   problem size is smaller, certain start-up costs cause repeated
+   calls to the simple interface to be slower than necessary.  In
+   particular, we note that FFTW takes around 0.1 ms per thread to
+   look up stored wisdom, which for small problems (of order 10000 or
+   less input and output data) can, sadly, dominate the runtime.  Thus
+   we created the vectorized interfaces (and the guru interface; see
+   below).
 
 
 1D transforms
