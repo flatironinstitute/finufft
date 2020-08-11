@@ -8,7 +8,6 @@
 #include <stdint.h>
 
 #include <complex>          // C++ type complex
-#include <fftw3.h>          // needed so can typedef FFTW_CPX
 #include <cuComplex.h>
 #include "dataTypes.h"
 
@@ -65,15 +64,11 @@ class CNTime {
   #define MY_OMP_SET_NUM_THREADS(x) omp_set_num_threads(x)
   #define MY_OMP_SET_NESTED(x) omp_set_nested(x)
 #else
-  // non-omp safe dummy versions of omp utils, and dummy fftw threads calls...
+  // non-omp safe dummy versions of omp utils
   #define MY_OMP_GET_NUM_THREADS() 1
   #define MY_OMP_GET_MAX_THREADS() 1
   #define MY_OMP_GET_THREAD_NUM() 0
   #define MY_OMP_SET_NUM_THREADS(x)
-  #undef FFTW_INIT
-  #define FFTW_INIT()
-  #undef FFTW_PLAN_TH
-  #define FFTW_PLAN_TH(x)
   #define MY_OMP_SET_NESTED(x)
 #endif
 

@@ -57,9 +57,6 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 # Okay, so now we can begin cufinufft
 
-# Requires FFTW
-RUN yum install -y fftw fftw-devel
-
 # We need to build the CUDA code now.
 # assume we are building container in the root of the git repo...
 COPY . /io
