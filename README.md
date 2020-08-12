@@ -38,6 +38,13 @@ The currently supported targets and sites are:
     1. Default (`x86_64`) -- do not specify `target` variable
     2. IBM `power9` (`target=power9`)
 
+A general note about expanding the platform support: _targets_ should contain
+settings that are specific to a compiler/hardware architecture, whereas _sites_
+should contain settings that are specific to a HPC facility's software
+environment. The `site`-specific script is loaded __before__ the
+`target`-specific settings, hence it is possible to specify a target in a site
+`make.inc.*` (but not the other way around).
+
 ### Library Installation
 
 It is up to the user to decide how exactly to link or otherwise install the libraries produced in `lib`.
