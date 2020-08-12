@@ -8,13 +8,35 @@ This is a work from Melody Shih's internship at Flatiron Institute, advised by C
 Note for most Python users, you may skip to the [Python Package](#Python-Package) section first,
 and consider installing from source if that solution is not adequate for your needs.
 
- - Get this code -
- ```git clone https://github.com/flatironinstitute/cufinufft.git```
+ - Get this code - `git clone https://github.com/flatironinstitute/cufinufft.git`
  - Review the `makefile`. - If you need to customize build settings, create and edit a `make.inc`.  Example:
-   - To override the standard CUDA `/usr/local/cuda` location your `make.inc` should contain: ```CUDA_ROOT=/your/path/to/cuda```.
-   - Two examples are provided, one for IBM machines (make.inc.power9), and another for the Courant Institute cluster (make.inc.CIMS).
- - Compile - ```make all -j```
- - Run test codes - ```make check```
+   - To override the standard CUDA `/usr/local/cuda` location your `make.inc` should contain: `CUDA_ROOT=/your/path/to/cuda`.
+   - Two examples are provided, one for IBM machines (`targets/make.inc.power9`), and another for the Courant Institute cluster (`targets/make.inc.CIMS`).
+ - Compile - `make all -j`
+ - Run test codes - `make check`
+
+### Advanced Makefile Usage
+
+It's possible to specify the target architecture using the `target` variable, eg:
+```
+make target=power9 -j
+```
+By default, the makefile assumes the `x86_64` architecture. We've included
+site-specific configurations -- such as Cori at NERSC, or Summit at OLCF --
+which can be accessed using the `site` variable, eg:
+```
+make site=olcf_summit
+```
+
+The currently supported targets and sites are:
+1. Sites
+    1. NERSC Cori (`site=nersc_cori`)
+    2. NERSC Cori GPU (`site=nersc_cgpu`)
+    3. OLCF Summit (`site=olcf_summit`) -- automatically sets `target=power9`
+    4. CIMS (`target=CIMS`)
+2. Targets
+    1. Default (`x86_64`) -- do not specify `target` variable
+    2. IBM `power9` (`target=power9`)
 
 ### Library Installation
 
