@@ -163,11 +163,11 @@ class Plan:
             else:
                 pdtype=np.complex128
             if tp==1:
-                _out = np.squeeze(np.zeros([ms, mt, mu, n_trans], dtype=pdtype, order='F'))
+                _out = np.squeeze(np.zeros([n_trans, mu, mt, ms], dtype=pdtype, order='C'))
             if tp==2:
-                _out = np.squeeze(np.zeros([nj, n_trans], dtype=pdtype, order='F'))
+                _out = np.squeeze(np.zeros([n_trans, nj], dtype=pdtype, order='C'))
             if tp==3:
-                _out = np.squeeze(np.zeros([nk, n_trans], dtype=pdtype, order='F'))
+                _out = np.squeeze(np.zeros([n_trans, nk], dtype=pdtype, order='C'))
 
         # call execute based on type and precision type
         if tp==1 or tp==3:
@@ -206,39 +206,39 @@ class Plan:
 def _rchk(x):
     """
     Check if array x is of the appropriate type
-    (float64, F-contiguous in memory)
+    (float64, C-contiguous in memory)
     If not, produce a copy
     """
     if x is not None and x.dtype is not np.dtype('float64'):
         raise RuntimeError('FINUFFT data type must be float64 for double precision, data may have mixed precision types')
-    return np.array(x, dtype=np.float64, order='F', copy=False)
+    return np.array(x, dtype=np.float64, order='C', copy=False)
 def _cchk(x):
     """
     Check if array x is of the appropriate type
-    (complex128, F-contiguous in memory)
+    (complex128, C-contiguous in memory)
     If not, produce a copy
     """
     if x is not None and (x.dtype is not np.dtype('complex128') and x.dtype is not np.dtype('float64')):
         raise RuntimeError('FINUFFT data type must be complex128 for double precision, data may have mixed precision types')
-    return np.array(x, dtype=np.complex128, order='F', copy=False)
+    return np.array(x, dtype=np.complex128, order='C', copy=False)
 def _rchkf(x):
     """
     Check if array x is of the appropriate type
-    (float64, F-contiguous in memory)
+    (float64, C-contiguous in memory)
     If not, produce a copy
     """
     if x is not None and x.dtype is not np.dtype('float32'):
         raise RuntimeError('FINUFFT data type must be float32 for single precision, data may have mixed precision types')
-    return np.array(x, dtype=np.float32, order='F', copy=False)
+    return np.array(x, dtype=np.float32, order='C', copy=False)
 def _cchkf(x):
     """
     Check if array x is of the appropriate type
-    (complex128, F-contiguous in memory)
+    (complex128, C-contiguous in memory)
     If not, produce a copy
     """
     if x is not None and (x.dtype is not np.dtype('complex64') and x.dtype is not np.dtype('float32')):
         raise RuntimeError('FINUFFT data type must be complex64 for single precision, data may have mixed precision types')
-    return np.array(x, dtype=np.complex64, order='F', copy=False)
+    return np.array(x, dtype=np.complex64, order='C', copy=False)
 def _copy(_x, x):
     """
     Copy _x to x, only if the underlying data of _x differs from that of x
@@ -313,11 +313,11 @@ def valid_setpts(tp,dim,x,y,z,s,t,u):
 ### ntransf for type 1 and type 2
 def valid_ntr_tp12(dim,shape,n_transin,n_modesin):
     if len(shape) == dim+1:
-        n_trans = shape[dim]
-        n_modes = shape[0:dim]
+        n_trans = shape[0]
+        n_modes = shape[1:dim+1][::-1]
     elif len(shape) == dim:
         n_trans = 1
-        n_modes = shape
+        n_modes = shape[::-1]
     else:
         raise RuntimeError('FINUFFT type 1 output dimension or type 2 input dimension must be either dim or dim+1(n_trans>1)')
 
@@ -350,8 +350,8 @@ def valid_cshape(cshape,xsize,n_trans):
     if n_trans > 1:
         if len(cshape) != 2:
             raise RuntimeError('FINUFFT c.ndim must be 2 if n_trans > 1')
-        if cshape[0] != xsize or cshape[1] != n_trans:
-            raise RuntimeError('FINUFFT c.shape must be (x.size, n_trans) if n_trans > 1')
+        if cshape[1] != xsize or cshape[0] != n_trans:
+            raise RuntimeError('FINUFFT c.shape must be (n_trans, x.size) if n_trans > 1')
 
 
 ### valid shape of f
@@ -365,8 +365,8 @@ def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
         if n_trans > 1:
             if len(fshape) != 2:
                 raise RuntimeError('FINUFFT f.ndim must be 2 for type 3 if n_trans > 1')
-            if fshape[0] != nk or fshape[1] != n_trans:
-                raise RuntimeError('FINUFFT f.shape must be (nk, n_trans) if n_trans > 1')
+            if fshape[1] != nk or fshape[0] != n_trans:
+                raise RuntimeError('FINUFFT f.shape must be (n_trans, nk) if n_trans > 1')
     else:
         if n_trans == 1:
             if len(fshape) != dim:
@@ -374,16 +374,16 @@ def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
         if n_trans > 1:
             if len(fshape) != dim+1:
                 raise RuntimeError('FINUFFT f.ndim must be same as the problem dimension + 1 for type 1 or 2 if n_trans > 1')
-            if fshape[dim] != n_trans:
-                raise RuntimeError('FINUFFT f.shape[dim] mush be n_trans for type 1 or 2 if n_trans > 1')
-        if fshape[0] != ms:
-            raise RuntimeError('FINUFFT f.shape[0] mush be ms for type 1 or 2')
+            if fshape[0] != n_trans:
+                raise RuntimeError('FINUFFT f.shape[0] must be n_trans for type 1 or 2 if n_trans > 1')
+        if fshape[-1] != ms:
+            raise RuntimeError('FINUFFT f.shape[-1] must be ms for type 1 or 2')
         if dim>1:
-            if fshape[1] != mt:
-                raise RuntimeError('FINUFFT f.shape[1] mush be mt for type 1 or 2')
+            if fshape[-2] != mt:
+                raise RuntimeError('FINUFFT f.shape[-2] must be mt for type 1 or 2')
         if dim>2:
-            if fshape[2] != mu:
-                raise RuntimeError('FINUFFT f.shape[2] mush be mu for type 1 or 2')
+            if fshape[-3] != mu:
+                raise RuntimeError('FINUFFT f.shape[-3] must be mu for type 1 or 2')
 
 
 ### check if it's a single precision plan
