@@ -117,6 +117,23 @@ To perform the call above using the plan interface, we would write
     # execute the plan
     f = plan.execute(c)
 
+All interfaces support both single and double precision, but for the plan, this must be specified at initialization time using the ``dtype`` argument
+
+.. code-block:: python
+
+    # convert to single precision
+    x = x.astype('float32')
+    y = y.astype('float32')
+
+    c = c.astype('complex64')
+
+    # instantiate the plan and set the points
+    plan = finufftpy.Plan(nufft_type, (N, N), n_trans=n_trans, dtype='float32')
+    plan.setpts(x, y)
+
+    # execute the plan
+    f = plan.execute(c)
+
 Full documentation
 ------------------
 
