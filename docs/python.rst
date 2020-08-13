@@ -4,7 +4,6 @@ Python interface
 Quick-start examples
 --------------------
 
-These Python interfaces are written by Libin Lu, with help from David Stein, Alex Barnett, and Joakim Andén.
 The easiest way to install is to run ``pip install finufftpy``, which downloads and installs the latest precompiled binaries from PyPI.
 If you would like to compile from source, see :ref:`the Python installation instructions <install-python>`.
 
