@@ -400,9 +400,9 @@ def is_single_plan(plan):
 def is_single_dtype(dtype):
     dtype = np.dtype(dtype)
 
-    if dtype == np.dtype('float64'):
+    if dtype == np.dtype('float64') or dtype == np.dtype('complex128'):
         return False
-    elif dtype == np.dtype('float32'):
+    elif dtype == np.dtype('float32') or dtype == np.dtype('complex64'):
         return True
     else:
         raise RuntimeError('FINUFFT dtype(precision type) must be single or double')
