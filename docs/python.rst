@@ -54,7 +54,7 @@ For higher dimensions, we would specify frequencies in more than one dimension:
     N = 2000
 
     # calculate the 2D transform
-    f = finufftpy.nufft2d1(x, y, c, N, N)
+    f = finufftpy.nufft2d1(x, y, c, (N, N))
 
 
 We can also go the other way, from uniform to non-uniform points, using a type 2 transform:
@@ -76,7 +76,7 @@ For example, to change the mode ordering to FFT style (that is, from ``0`` to ``
 
 .. code-block:: python
 
-    f = finufftpy.nufft2d1(x, y, c, N, N, modeord=1)
+    f = finufftpy.nufft2d1(x, y, c, (N, N), modeord=1)
 
 Note that the above functions are all vectorized, which means that they can take multiple inputs stacked along the last dimension (that is, in column-major order) and process them simultaneously.
 This can bring significant speedups for small inputs by avoiding multiple short calls to FINUFFT.
@@ -88,13 +88,13 @@ For the 2D type 1 interface, we would call
     K = 4
 
     # generate K separate coefficient arrays
-    c = (np.random.standard_normal(size=(M, K))
-         + 1J * np.random.standard_normal(size=(M, K)))
+    c = (np.random.standard_normal(size=(K, M))
+         + 1J * np.random.standard_normal(size=(K, M)))
 
     # calculate the K transforms simultaneously
-    f = finufftpy.nufft2d1(x, y, c, N, N)
+    f = finufftpy.nufft2d1(x, y, c, (N, N))
 
-The output array ``f`` would then have the shape ``(N, N, K)``.
+The output array ``f`` would then have the shape ``(K, N, N)``.
 
 More fine-grained control can be obtained using the plan (or `guru`) interface.
 Instead of preparing the transform, setting the nonuniform points, and executing the transform all at once, these steps are seperated into different function calls.
