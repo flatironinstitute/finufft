@@ -398,9 +398,11 @@ def is_single_plan(plan):
 
 ### check if dtype is single or double
 def is_single_dtype(dtype):
-    if str(dtype).lower() == 'double':
+    dtype = np.dtype(dtype)
+
+    if dtype == np.dtype('float64'):
         return False
-    elif str(dtype).lower() == 'single':
+    elif dtype == np.dtype('float32'):
         return True
     else:
         raise RuntimeError('FINUFFT dtype(precision type) must be single or double')
