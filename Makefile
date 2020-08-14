@@ -30,9 +30,7 @@ INC=-I$(CUDA_ROOT)/include \
 	-Icontrib/cuda_samples
 NVCC_LIBS_PATH=-L$(CUDA_ROOT)/lib64
 
-FFTWNAME=fftw3
-
-LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTWNAME) -l$(FFTWNAME)f
+LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda
 
 
 #############################################################

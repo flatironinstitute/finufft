@@ -15,7 +15,6 @@
 #include <stdint.h>
 
 #include <complex>          // C++ type complex
-#include <fftw3.h>          // needed so can typedef FFTW_CPX
 #include <cuComplex.h>
 #include "dataTypes.h"
 
