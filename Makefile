@@ -49,29 +49,10 @@ else
 endif
 
 # Common includes
-INC=-I$(CUDA_ROOT)/include -Icontrib/cuda_samples
-ifdef FFTW_INC
-    $(info detected FFTW_INC -- setting FFTW include directory)
-    INC += -I$(FFTW_INC)
-endif
-
-FFTWNAME=fftw3
-
-# Common libs
-LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda -l$(FFTWNAME)
-
-# Figure out the specifics of the FFTW install
-ifneq ("$(wildcard $(FFTW_DIR)/*$(FFTWNAME)f*)","")
-    $(info detected $(FFTWNAME)f library -- building with lib$(FFTWNAME)f)
-    LIBS += -l$(FFTWNAME)f
-endif
-ifdef FFTW_DIR
-    $(info detected FFTW_DIR -- setting FFTW library directory)
-    LIBS += -L$(FFTW_DIR)
-endif
+INC += -I$(CUDA_ROOT)/include -Icontrib/cuda_samples
 
 # NVCC-specific libs
-NVCC_LIBS_PATH = -L$(CUDA_ROOT)/lib64
+NVCC_LIBS_PATH += -L$(CUDA_ROOT)/lib64
 ifdef FFTW_DIR
     NVCC_LIBS_PATH += -L$(FFTW_DIR)
 endif
@@ -80,6 +61,7 @@ ifdef NVCC_STUBS
     NVCC_LIBS_PATH += -L$(NVCC_STUBS)
 endif
 
+LIBS += -lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda
 
 
 #############################################################
