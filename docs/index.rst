@@ -155,6 +155,7 @@ Documentation contents
    matlab
    python
    julia
+   devnotes           
    related
    users
    ackn

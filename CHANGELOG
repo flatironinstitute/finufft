@@ -1,10 +1,10 @@
 List of features / changes made / release notes, in reverse chronological order
 
-V 1.2 (July 2020)
+V 2.0.0 (Aug 2020)
 
 * a major change to code, internally, and major improvements to operation and
 language interfaces.
-	WARNING: Here are all the interface changes from 1.1.2:
+	WARNING: Here are all the interface compatibility changes from 1.1.2:
 	- opts (nufft_opts) is always passed as a pointer in C++/C, not
 	  pass-by-reference as in v1.1.2 or earlier.
 	- Fortran simple calls are now finufft?d?(..) not finufft?d?_f(..), and
@@ -12,17 +12,17 @@ language interfaces.
 	- ier=1 is now a warning not an error; this indicates requested tol
 	  was too small, but that a transform *was* done at the best possible
 	  accuracy.
-	- opts.nthreads was removed in language interfaces. Control of the
-	  number of available OpenMP threads is now up to the user.
 	- opts.fftw directly controls the FFTW plan mode consistently in all
 	  language interfaces (this changes the meaning of fftw=0 in MATLAB).
+	- python interfaces have changed.
 	These changes were deemed necessary to rationalize and improve FINUFFT
 	for the long term.
-
-...
+	There are also many other new interface options (many-vector, guru)
+	added; see docs.
 * The C++ library is now dual-precision, with distinct function interfaces for
   double vs single precision operation, that are C and C++ compatible. Under
-the hood this is achieved via simple C macros.
+  the hood this is achieved via simple C macros. All language interfaces now
+  have dual precision options.
 * completely new (although backward compatible) MATLAB/octave interface,
   including object-style wrapper around the guru interface, dual precision.
 * completely new Fortran interface, allowing >2^31 sized (int64) arrays,

@@ -16,15 +16,16 @@ Major code contributions by:
 * Yu-Hsuan ("Melody") Shih - 2d1many, 2d2many vectorized interface, GPU version
 * Andrea Malleo - guru interface prototype and tests
 * Libin Lu - guru Fortran, python, MATLAB/octave, julia interfaces
-  
+* Joakim Andén - python, MATLAB/FFTW issues, performance tests
+
 Other significant code contributions by:
 
-* Joakim Andén - catching bugs, MATLAB/FFTW issues, performance tests, python
 * Leslie Greengard and June-Yub Lee - CMCL Fortran test drivers
 * Dan Foreman-Mackey - early python wrappers
 * David Stein - python wrappers
-* Vineet Bansal - pypy packaging
-  
+* Vineet Bansal - py packaging
+* Garrett Wright - py packaging
+
 Testing, bug reports, helpful discussions:
 
 * Hannah Lawrence - user testing and finding bugs

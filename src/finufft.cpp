@@ -531,32 +531,34 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
 // For some of the fields, if "auto" selected, choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
-{  
+{
   FINUFFT_PLAN p;
-
-  cout << scientific << setprecision(15);  // for debug outputs
-
-  if((type!=1)&&(type!=2)&&(type!=3)) {
-    fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.",__func__,type);
-    return ERR_TYPE_NOTVALID;
-  }
-  if((dim!=1)&&(dim!=2)&&(dim!=3)) {
-    fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.",__func__,dim);
-    return ERR_DIM_NOTVALID;
-  }
-  if (ntrans<1) {
-    fprintf(stderr,"[%s] ntrans (%d) should be at least 1.\n",__func__,ntrans);
-    return ERR_NTRANS_NOTVALID;
-  }
+  cout << scientific << setprecision(15);  // for commented-out low-lev debug
 
   p = new FINUFFT_PLAN_S;
-  *pp = p;
+  *pp = p;                               // pass out plan as ptr to plan struct
 
   if (opts==NULL)                        // use default opts
     FINUFFT_DEFAULT_OPTS(&(p->opts));
   else                                   // or read from what's passed in
     p->opts = *opts;    // keep a deep copy; changing *opts now has no effect
 
+  if (p->opts.debug)    // do a hello world
+    fprintf(stderr,"[%s] new plan: FINUFFT version " FINUFFT_VER "\n",__func__);
+  
+  if((type!=1)&&(type!=2)&&(type!=3)) {
+    fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n",__func__,type);
+    return ERR_TYPE_NOTVALID;
+  }
+  if((dim!=1)&&(dim!=2)&&(dim!=3)) {
+    fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n",__func__,dim);
+    return ERR_DIM_NOTVALID;
+  }
+  if (ntrans<1) {
+    fprintf(stderr,"[%s] ntrans (%d) should be at least 1.\n",__func__,ntrans);
+    return ERR_NTRANS_NOTVALID;
+  }
+  
   // get stuff from args...
   p->type = type;
   p->dim = dim;
@@ -641,7 +643,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     }
 
     if (p->opts.debug) { // "long long" here is to avoid warnings with printf...
-      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d batchSize=%d", __func__,
+      printf("[%s] %dd%d: (ms,mt,mu)=(%lld,%lld,%lld) (nf1,nf2,nf3)=(%lld,%lld,%lld)\n               ntrans=%d nthr=%d batchSize=%d ", __func__,
              dim, type, (long long)p->ms,(long long)p->mt,
              (long long) p->mu, (long long)p->nf1,(long long)p->nf2,
              (long long)p->nf3, ntrans, nthr, p->batchSize);

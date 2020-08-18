@@ -1,6 +1,8 @@
-Copyright (C) 2017-2018 The Simons Foundation, Inc. - All Rights Reserved.
+Copyright (C) 2017-2020 The Simons Foundation, Inc. - All Rights Reserved.
 
-Main authors: Alex Barnett and Jeremy Magland
+Lead developer: Alex Barnett
+Main other authors: Jeremy Magland, Ludvig af Klinteberg, Yu-Hsuan (Melody)
+ Shih, Andrea Malleo, Libin Lu, Joakim Andén.
 
 FINUFFT is licensed under the Apache License, Version 2.0 (the
 "License"); you may not use this file except in compliance with the
