@@ -56,7 +56,7 @@ class Plan:
             if npmodes.size>3 or npmodes.size<1:
                 raise RuntimeError("FINUFFT n_modes dimension must be 1, 2, or 3")
             dim = int(npmodes.size)
-            n_modes[0:dim] = npmodes
+            n_modes[0:dim] = npmodes[::-1]
 
         # call makeplan based on precision type
         if is_single:
@@ -97,7 +97,14 @@ class Plan:
             (self.nj, self.nk) = valid_setpts(tp, dim, self._xjf, self._yjf, self._zjf, self._sf, self._tf, self._uf)
 
             # call set pts for single prec plan
-            ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
+            if self.dim == 1:
+                ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
+            elif self.dim == 2:
+                ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._yjf,self._xjf,self._zjf,self.nk,self._tf,self._sf,self._uf)
+            elif self.dim == 3:
+                ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._zjf,self._yjf,self._xjf,self.nk,self._uf,self._tf,self._sf)
+            else:
+                raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
         else:
             # array sanity check
             self._xj = _rchk(xj)
@@ -113,7 +120,14 @@ class Plan:
             (self.nj, self.nk) = valid_setpts(tp, dim, self._xj, self._yj, self._zj, self._s, self._t, self._u)
 
             # call set pts for double prec plan
-            ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
+            if self.dim == 1:
+                ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
+            elif self.dim == 2:
+                ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._yj,self._xj,self._zj,self.nk,self._t,self._s,self._u)
+            elif self.dim == 3:
+                ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._zj,self._yj,self._xj,self.nk,self._u,self._t,self._s)
+            else:
+                raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
 
         if ier != 0:
             err_handler(ier)
@@ -314,10 +328,10 @@ def valid_setpts(tp,dim,x,y,z,s,t,u):
 def valid_ntr_tp12(dim,shape,n_transin,n_modesin):
     if len(shape) == dim+1:
         n_trans = shape[0]
-        n_modes = shape[1:dim+1][::-1]
+        n_modes = shape[1:dim+1]
     elif len(shape) == dim:
         n_trans = 1
-        n_modes = shape[::-1]
+        n_modes = shape
     else:
         raise RuntimeError('FINUFFT type 1 output dimension or type 2 input dimension must be either dim or dim+1(n_trans>1)')
 
@@ -377,13 +391,13 @@ def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
             if fshape[0] != n_trans:
                 raise RuntimeError('FINUFFT f.shape[0] must be n_trans for type 1 or 2 if n_trans > 1')
         if fshape[-1] != ms:
-            raise RuntimeError('FINUFFT f.shape[-1] must be ms for type 1 or 2')
+            raise RuntimeError('FINUFFT f.shape is not consistent with n_modes')
         if dim>1:
             if fshape[-2] != mt:
-                raise RuntimeError('FINUFFT f.shape[-2] must be mt for type 1 or 2')
+                raise RuntimeError('FINUFFT f.shape is not consistent with n_modes')
         if dim>2:
             if fshape[-3] != mu:
-                raise RuntimeError('FINUFFT f.shape[-3] must be mu for type 1 or 2')
+                raise RuntimeError('FINUFFT f.shape is not consistent with n_modes')
 
 
 ### check if it's a single precision plan
