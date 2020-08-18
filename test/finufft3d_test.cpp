@@ -3,27 +3,27 @@
 #include "directft/dirft3d.cpp"
 using namespace std;
 
+const char* help[]={
+  "Tester for FINUFFT in 3d, all 3 types, either precision.",
+  "",
+  "Usage: finufft3d_test Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug [spread_sort [upsampfac [errfail]]]]]",
+  "\teg:\tfinufft3d_test 100 200 50 1e6 1e-12 0 2 0.0 1e-11",
+  "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
+  NULL};
+// Barnett 2/2/17 onwards.
+
 int main(int argc, char* argv[])
-/* Test executable for finufft in 3d, all 3 types, either precision
-
-   Usage: finufft3d_test Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug [spread_sort [upsampfac]]]]
-
-   debug = 0: rel errors and overall timing, 1: timing breakdowns
-           2: also spreading output
-
-   Example: finufft3d_test 100 200 50 1e6 1e-12
-
-   Barnett 2/2/17
-*/
 {
   BIGINT M, N1, N2, N3;       // M = # srcs, N1,N2,N3 = # modes
   double w, tol = 1e-6;       // default
+  double err, errfail = INFINITY, errmax = 0;
   nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   //opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
-  if (argc<5 || argc>9) {
-    fprintf(stderr,"Usage: finufft3d_test N1 N2 N3 Nsrc [tol [debug [spread_sort [upsampfac]]]]\n\teg:\tfinufft3d_test 200 200 200 1e7 1e-6 0 2 1.25\n");
-    return 1;
+  if (argc<5 || argc>10) {
+    for (int i=0; help[i]; ++i)
+      fprintf(stderr,"%s\n",help[i]);
+    return -1;
   }
   sscanf(argv[1],"%lf",&w); N1 = (BIGINT)w;
   sscanf(argv[2],"%lf",&w); N2 = (BIGINT)w;
@@ -34,7 +34,8 @@ int main(int argc, char* argv[])
   opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
   if (argc>7) sscanf(argv[7],"%d",&opts.spread_sort);
   if (argc>8) { sscanf(argv[8],"%lf",&w); opts.upsampfac=(FLT)w; }
-
+  if (argc>9) sscanf(argv[9],"%lf",&errfail);
+  
   cout << scientific << setprecision(15);
   BIGINT N = N1*N2*N3;
 
@@ -59,9 +60,9 @@ int main(int argc, char* argv[])
   CNTime timer; timer.start();
   int ier = FINUFFT3D1(M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   double ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
-    exit(ier);
+    return ier;
   } else
     printf("     %lld NU pts to (%lld,%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n",
 	   (long long)M,(long long)N1,(long long)N2,(long long)N3,ti,M/ti);
@@ -72,12 +73,15 @@ int main(int argc, char* argv[])
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
   // index in complex F as 1d array...
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);
-  printf("\tone mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,(long long)nt3,
-	 abs(Ft-F[it])/infnorm(N,F));
+  err = abs(Ft-F[it])/infnorm(N,F);
+  errmax = max(err,errmax);
+  printf("\tone mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,(long long)nt3,err);
   if ((int64_t)M*N<=TEST_BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft3d1(M,x,y,z,c,isign,N1,N2,N3,Ft);
-    printf("\tdirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    err = relerrtwonorm(N,Ft,F);
+    errmax = max(err,errmax);
+    printf("\tdirft3d: rel l2-err of result F is %.3g\n",err);
     free(Ft);
   }
   
@@ -91,9 +95,9 @@ int main(int argc, char* argv[])
   timer.restart();
   ier = FINUFFT3D2(M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
-    exit(ier);
+    return ier;
   } else
     printf("     (%lld,%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n",
 	   (long long)N1,(long long)N2,(long long)N3,(long long)M,ti,M/ti);
@@ -105,11 +109,15 @@ int main(int argc, char* argv[])
     for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)
       for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 	ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt] + m3*z[jt]));   // direct
-  printf("\tone targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
+  err = abs(ct-c[jt])/infnorm(M,c);
+  errmax = max(err,errmax);
+  printf("\tone targ: rel err in c[%lld] is %.3g\n",(long long)jt,err);
   if ((int64_t)M*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft3d2(M,x,y,z,ct,isign,N1,N2,N3,F);
-    printf("\tdirft3d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
+    err = relerrtwonorm(M,ct,c);
+    errmax = max(err,errmax);
+    printf("\tdirft3d: rel l2-err of result c is %.3g\n",err);
     free(ct);
   }
 
@@ -144,9 +152,9 @@ int main(int argc, char* argv[])
   timer.restart();
   ier = FINUFFT3D3(M,x,y,z,c,isign,tol,N,s,t,u,F,&opts);
   ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
-    exit(ier);
+    return ier;
   } else
     printf("\t%lld NU to %lld NU in %.3g s         \t%.3g tot NU pts/s\n",(long long)M,(long long)N,ti,(M+N)/ti);
 
@@ -154,15 +162,19 @@ int main(int argc, char* argv[])
   Ft = CPX(0,0);
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j] + u[kt]*z[j]));
-  printf("\tone targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
+  err = abs(Ft-F[kt])/infnorm(N,F);
+  errmax = max(err,errmax);
+  printf("\tone targ: rel err in F[%lld] is %.3g\n",(long long)kt,err);
   if (((int64_t)M)*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft3d3(M,x,y,z,c,isign,N,s,t,u,Ft);       // writes to F
-    printf("\tdirft3d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    err = relerrtwonorm(N,Ft,F);
+    errmax = max(err,errmax);
+    printf("\tdirft3d: rel l2-err of result F is %.3g\n",err);
     //cout<<"s t u, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<" "<<u[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   }
 
   free(x); free(y); free(z); free(c); free(F); free(s); free(t); free(u);
-  return ier;
+  return (errmax>errfail);
 }

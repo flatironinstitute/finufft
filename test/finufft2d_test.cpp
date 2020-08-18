@@ -3,27 +3,27 @@
 #include "directft/dirft2d.cpp"
 using namespace std;
 
+const char* help[]={
+  "Tester for FINUFFT in 2d, all 3 types, either precision.",
+  "",
+  "Usage: finufft2d_test Nmodes1 Nmodes2 Nsrc [tol [debug [spread_sort [upsampfac [errfail]]]]]",
+  "\teg:\tfinufft2d_test 1000 1000 1000000 1e-12 1 2 2.0 1e-11",
+  "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
+  NULL};
+// Barnett 2/1/17 onwards
+
 int main(int argc, char* argv[])
-/* Test executable for finufft in 2d, all 3 types, either precision
-
-   Usage: finufft2d_test Nmodes1 Nmodes2 Nsrc [tol [debug [spread_sort [upsampfac]]]]
-
-   debug = 0: rel errors and overall timing, 1: timing breakdowns
-           2: also spreading output
-
-   Example: finufft2d_test 1000 1000 1000000 1e-12 1 2 2.0
-
-   Barnett 2/1/17
-*/
 {
   BIGINT M, N1, N2;              // M = # srcs, N1,N2 = # modes
   double w, tol = 1e-6;          // default
+  double err, errfail = INFINITY, errmax = 0;
   nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
-  if (argc<4 || argc>8) {
-    fprintf(stderr,"Usage: finufft2d_test [N1 N2 [Nsrc [tol [debug [spread_sort [upsampfac]]]]]]\n\teg:\tfinufft2d_test 1e3 1e3 1e6 1e-9 0 2 1.25\n");
-    return 1;
+  if (argc<4 || argc>9) {
+    for (int i=0; help[i]; ++i)
+      fprintf(stderr,"%s\n",help[i]);
+    return -1;
   }
   sscanf(argv[1],"%lf",&w); N1 = (BIGINT)w;
   sscanf(argv[2],"%lf",&w); N2 = (BIGINT)w;
@@ -33,7 +33,8 @@ int main(int argc, char* argv[])
   opts.spread_debug = (opts.debug>1) ? 1 : 0;  // see output from spreader
   if (argc>6) sscanf(argv[6],"%d",&opts.spread_sort);
   if (argc>7) { sscanf(argv[7],"%lf",&w); opts.upsampfac=(FLT)w; }
-
+  if (argc>8) sscanf(argv[8],"%lf",&errfail);
+  
   cout << scientific << setprecision(15);
   BIGINT N = N1*N2;
 
@@ -56,8 +57,9 @@ int main(int argc, char* argv[])
   CNTime timer; timer.start();
   int ier = FINUFFT2D1(M,x,y,c,isign,tol,N1,N2,F,&opts);
   double ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
+    return ier;
   } else
     printf("\t%lld NU pts to (%lld,%lld) modes in %.3g s \t%.3g NU pts/s\n",
 	   (long long)M,(long long)N1,(long long)N2,ti,M/ti);
@@ -67,11 +69,15 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-  printf("\tone mode: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,abs(Ft-F[it])/infnorm(N,F));
+  err = abs(Ft-F[it])/infnorm(N,F);
+  errmax = max(err,errmax);
+  printf("\tone mode: rel err in F[%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,err);
   if ((int64_t)M*N<=TEST_BIGPROB) {                   // also check vs full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft2d1(M,x,y,c,isign,N1,N2,Ft);
-    printf("\tdirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    err = relerrtwonorm(N,Ft,F);
+    errmax = max(err,errmax);
+    printf("\tdirft2d: rel l2-err of result F is %.3g\n",err);
     free(Ft);
   }
 
@@ -85,8 +91,9 @@ int main(int argc, char* argv[])
   timer.restart();
   ier = FINUFFT2D2(M,x,y,c,isign,tol,N1,N2,F,&opts);
   ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
+    return ier;
   } else
     printf("\t(%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n",(long long)N1,(long long)N2,(long long)M,ti,M/ti);
 
@@ -96,11 +103,15 @@ int main(int argc, char* argv[])
   for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
       ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
-  printf("\tone targ: rel err in c[%lld] is %.3g\n",(long long)jt,abs(ct-c[jt])/infnorm(M,c));
+  err = abs(ct-c[jt])/infnorm(M,c);
+  errmax = max(err,errmax);
+  printf("\tone targ: rel err in c[%lld] is %.3g\n",(long long)jt,err);
   if ((int64_t)M*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* ct = (CPX*)malloc(sizeof(CPX)*M);
     dirft2d2(M,x,y,ct,isign,N1,N2,F);
-    printf("\tdirft2d: rel l2-err of result c is %.3g\n",relerrtwonorm(M,ct,c));
+    err = relerrtwonorm(M,ct,c);
+    errmax = max(err,errmax);
+    printf("\tdirft2d: rel l2-err of result c is %.3g\n",err);
     //cout<<"c,ct:\n"; for (int j=0;j<M;++j) cout<<c[j]<<"\t"<<ct[j]<<endl;
     free(ct);
   }
@@ -132,8 +143,9 @@ int main(int argc, char* argv[])
   timer.restart();
   ier = FINUFFT2D3(M,x,y,c,isign,tol,N,s,t,F,&opts);
   ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
+    return ier;
   } else
     printf("\t%lld NU to %lld NU in %.3g s         \t%.3g tot NU pts/s\n",(long long)M,(long long)N,ti,(M+N)/ti);
 
@@ -141,15 +153,19 @@ int main(int argc, char* argv[])
   Ft = CPX(0,0);
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j]));
-  printf("\tone targ: rel err in F[%lld] is %.3g\n",(long long)kt,abs(Ft-F[kt])/infnorm(N,F));
+  err = abs(Ft-F[kt])/infnorm(N,F);
+  errmax = max(err,errmax);
+  printf("\tone targ: rel err in F[%lld] is %.3g\n",(long long)kt,err);
   if (((int64_t)M)*N<=TEST_BIGPROB) {                  // also full direct eval
     CPX* Ft = (CPX*)malloc(sizeof(CPX)*N);
     dirft2d3(M,x,y,c,isign,N,s,t,Ft);       // writes to F
-    printf("\tdirft2d: rel l2-err of result F is %.3g\n",relerrtwonorm(N,Ft,F));
+    err = relerrtwonorm(N,Ft,F);
+    errmax = max(err,errmax);
+    printf("\tdirft2d: rel l2-err of result F is %.3g\n",err);
     //cout<<"s t, F, Ft, F/Ft:\n"; for (int k=0;k<N;++k) cout<<s[k]<<" "<<t[k]<<", "<<F[k]<<",\t"<<Ft[k]<<",\t"<<F[k]/Ft[k]<<endl;
     free(Ft);
   }
 
   free(x); free(y); free(c); free(F); free(s); free(t);
-  return ier;
+  return (errmax>errfail);
 }

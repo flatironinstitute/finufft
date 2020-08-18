@@ -3,12 +3,11 @@
 #include "directft/dirft1d.cpp"
 using namespace std;
 
-
 const char* help[]={
   "Tester for FINUFFT in 1d, vectorized, all 3 types, either precision.",
   "",
   "Usage: finufft1dmany_test ntrans Nmodes Nsrc [tol [debug [spread_thread [maxbatchsize [spreadsort [upsampfac [errfail]]]]]]]",
-  "\teg:\tfinufft1dmany_test 100 1e3 1e4 1e-6 1 0 0 2 2.0 1e-5",
+  "\teg:\tfinufft1dmany_test 100 1e3 1e4 1e-6 1 0 0 2 0.0 1e-5",
   "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
   NULL};
 // Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20 onwards
@@ -63,7 +62,7 @@ int main(int argc, char* argv[])
   CNTime timer; timer.start();
   int ier = FINUFFT1D1MANY(ntransf,M,x,c,isign,tol,N,F,&opts);
   double ti=timer.elapsedsec();
-  if (ier>0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else

@@ -3,28 +3,28 @@
 #include "directft/dirft3d.cpp"
 using namespace std;
 
+const char* help[]={
+  "Tester for FINUFFT in 3d, vectorized, all 3 types, either precision.",
+  "",
+  "Usage: finufft3dmany_test ntrans Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug [spread_thread [maxbatchsize [spreadsort [upsampfac [errfail]]]]]]]",
+  "\teg:\tfinufft3dmany_test 100 50 50 50 1e5 1e-3 1 0 0 2 0.0 1e-2",
+  "\tnotes:\tif errfail present, exit code 1 if any error > errfail",
+  NULL};
+// Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20.
+
 int main(int argc, char* argv[])
-/* Test executable for finufft in 3d many interface, types 1,2, and 3, either prec
-
-   Usage: finufft3dmany_test ntransf Nmodes1 Nmodes2 Nmodes3 Nsrc [tol [debug [spread_thread [maxbatchsize [spreadsort [upsampfac]]]]]]
-
-   debug = 0: rel errors and overall timing, 1: timing breakdowns
-           2: also spreading output
-
-   Example: finufft3dmany_test 100 50 50 50 1e5 1e-3
-
-   Malleo 2019 based on Shih 2018. Tidied, extra args, Barnett 5/25/20.
-*/
 {
   BIGINT M, N1, N2, N3;          // M = # srcs, N1,N2 = # modes
   int ntransf;                   // # of vectors for "many" interface
   double w, tol = 1e-6;          // default
+  double err, errfail = INFINITY, errmax = 0;
   nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
-  if (argc<6 || argc>12) {
-    fprintf(stderr,"Usage: finufft3dmany_test ntransf N1 N2 N3 Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]\n");
-    return 1;
+  if (argc<6 || argc>13) {
+    for (int i=0; help[i]; ++i)
+      fprintf(stderr,"%s\n",help[i]);
+    return -1;
   }
   sscanf(argv[1],"%lf",&w); ntransf = (int)w;
   sscanf(argv[2],"%lf",&w); N1 = (BIGINT)w;
@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
   if (argc>9) sscanf(argv[9],"%d",&opts.maxbatchsize);  
   if (argc>10) sscanf(argv[10],"%d",&opts.spread_sort);
   if (argc>11) { sscanf(argv[11],"%lf",&w); opts.upsampfac = (FLT)w; }
+  if (argc>12) sscanf(argv[12],"%lf",&errfail);
 
   cout << scientific << setprecision(15);
   BIGINT N = N1*N2*N3;
@@ -69,7 +70,7 @@ int main(int argc, char* argv[])
   CNTime timer; timer.start();
   int ier = FINUFFT3D1MANY(ntransf,M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   double ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
@@ -81,8 +82,10 @@ int main(int argc, char* argv[])
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);   // index in complex F as 1d array
-  printf("\tone mode: rel err in F[%lld,%lld,%lld] of trans#%d is %.3g\n",
-	 (long long)nt1,(long long)nt2,(long long)nt3,i,abs(Ft-F[it+i*N])/infnorm(N,F+i*N));
+  err = abs(Ft-F[it+i*N])/infnorm(N,F+i*N);
+  errmax = max(err,errmax);
+    printf("\tone mode: rel err in F[%lld,%lld,%lld] of trans#%d is %.3g\n",
+	 (long long)nt1,(long long)nt2,(long long)nt3,i,err);
 
   // compare the result with FINUFFT3D1
   FFTW_FORGET_WISDOM();
@@ -101,7 +104,7 @@ int main(int argc, char* argv[])
     ier = FINUFFT3D1(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&simpleopts);
   }
   double t=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
@@ -112,6 +115,7 @@ int main(int argc, char* argv[])
   FLT maxerror = 0.0;
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(N,F_3d1+k*N,F+k*N));
+  errmax = max(maxerror,errmax);
   printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
   free(F_3d1);
 
@@ -127,7 +131,7 @@ int main(int argc, char* argv[])
   timer.restart();
   ier = FINUFFT3D2MANY(ntransf,M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
@@ -144,7 +148,9 @@ int main(int argc, char* argv[])
       }
     }
   }
-  printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n",(long long)jt,i,abs(ct-c[jt+i*M])/infnorm(M,c+i*M));
+  err = abs(ct-c[jt+i*M])/infnorm(M,c+i*M);
+  errmax = max(err,errmax);
+  printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n",(long long)jt,i,err);
 
   FFTW_FORGET_WISDOM();
   // compare the result with FINUFFT3D2...
@@ -157,7 +163,7 @@ int main(int argc, char* argv[])
     ier = FINUFFT3D2(M,x,y,z,cstart,isign,tol,N1,N2,N3,Fstart,&simpleopts);
   }
   t = timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
@@ -167,6 +173,7 @@ int main(int argc, char* argv[])
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(M,c_3d2+k*M,c+k*M));
+  errmax = max(maxerror,errmax);
   printf("\tconsistency check: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n",maxerror);
   free(c_3d2);
 
@@ -205,7 +212,7 @@ int main(int argc, char* argv[])
   timer.restart();
   ier = FINUFFT3D3MANY(ntransf,M,x,y,z,c,isign,tol,N,s_freq,t_freq,u_freq,F,&opts);
   ti=timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
@@ -216,7 +223,9 @@ int main(int argc, char* argv[])
   Ft = CPX(0,0);
   for (BIGINT j=0;j<M;++j)
     Ft += c[i*M + j] * exp(J*(s_freq[kt]*x[j] + t_freq[kt]*y[j]+ u_freq[kt]*z[j]));
-printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,abs(Ft-F[kt+i*N])/infnorm(N,F+i*N));
+  err = abs(Ft-F[kt+i*N])/infnorm(N,F+i*N);
+  errmax = max(err,errmax);
+  printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,err);
 
   FFTW_FORGET_WISDOM();
 // compare the result with FINUFFT3D3...
@@ -228,7 +237,7 @@ printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,a
     ier = FINUFFT3D3(M,x,y,z,cstart,isign,tol,N, s_freq,t_freq,u_freq,Fstart,&simpleopts);
   }
   t = timer.elapsedsec();
-  if (ier!=0) {
+  if (ier>1) {
     printf("error (ier=%d)!\n",ier);
     return ier;
   } else
@@ -238,9 +247,10 @@ printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,a
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
     maxerror = max(maxerror, relerrtwonorm(N,f_3d3+k*N,F+k*N));
+  errmax = max(maxerror,errmax);
   printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
   free(f_3d3);
   
   free(x); free(y); free(c); free(F); free(s_freq); free(t_freq);
-  return 0;
+  return (errmax>errfail);
 }
