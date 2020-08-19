@@ -50,8 +50,8 @@ C++-style vector objects), and also pass ``N``:
 
 This fills ``F`` with the output modes, in increasing ordering
 from frequency index ``-N/2`` up to ``N/2-1``. The transform (:math:`10^7` points to :math:`10^6` modes) takes 0.4 seconds on a laptop.
-The indexing is offset by ``(int)N/2``, so that frequency ``k`` is output in
-``F[(int)N/2 + k]``.
+The indexing is offset by ``N/2`` (recalling that this is integer division), so that frequency ``k`` is output in
+``F[N/2 + k]``.
 Here ``+1`` sets the sign of :math:`i` in the exponentials
 (see :ref:`definitions <math>`),
 ``1e-9`` requests 9-digit relative tolerance, and ``ier`` is a status output
@@ -74,7 +74,7 @@ make your changes, then pass the pointer to FINUFFT:
   
 .. warning::
    - Without the ``finufft_default_opts`` call, options may take on arbitrary values which may cause a crash.
-   - This usage is new as of version 1.2: ``opts`` is passed as a pointer in both places.
+   - Note that, as of version 2.0, ``opts`` is passed as a pointer in both places.
 
 See ``examples/simple1d1.cpp`` for a simple full working demo of the above, including a test of the math. If you instead use single-precision arrays,
 replace the tag ``finufft`` by ``finufftf`` in each command; see ``examples/simple1d1f.cpp``.
@@ -162,7 +162,7 @@ The modes have increasing ordering
 from frequency index ``-N1/2`` to ``N1/2-1`` in the fast (``x``) dimension,
 then ordering ``-N2/2`` up to ``N2/2-1`` in the slow (``y``) dimension.
 So, the output frequency ``(k1,k2)`` is found in
-``F[(int)N1/2 + k1 + ((int)N2/2 + k2)*N1]``.
+``F[N1/2 + k1 + (N2/2 + k2)*N1]``.
 
 See ``opts.modeord`` in :ref:`Options<opts>`
 to instead use FFT-style mode ordering, which

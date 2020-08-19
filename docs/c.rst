@@ -25,7 +25,7 @@ Multidimensional arrays are passed by a pointer to
 a contiguous Fortran-style array, with the
 "fastest" dimension x, then y (if present), then z (if present), then
 transform number (if ``ntr>1``).
-We do not use C or C++ style multidimensional arrays; this gives the most
+We do not use C/C++-style multidimensional arrays; this gives us the most
 flexibility from several languages without loss of speed or memory
 due to unnecessary array copying.
 

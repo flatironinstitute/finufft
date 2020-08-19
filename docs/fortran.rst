@@ -97,6 +97,11 @@ See ``fortran/examples/simple1d1.f`` for the complete code,
 and below for the complete list of Fortran subroutines available,
 and more complicated examples.
 
+See ``modeord`` in :ref:`Options<opts>`
+to instead use FFT-style mode ordering, which
+simply differs by an ``fftshift`` (as it is commonly called).
+
+
 Summary of Fortran interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

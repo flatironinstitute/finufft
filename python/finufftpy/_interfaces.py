@@ -534,7 +534,7 @@ def nufft1d1(x,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
       ndarray of the result
   
     Example:
-      see ``python_tests/demo1d1.py``
+      see ``python/examples/simple1d1.py``
     """
     return invoke_guru(1,1,x,None,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
@@ -601,7 +601,7 @@ def nufft1d3(x,c,s,out=None,eps=1e-6,isign=1,**kwargs):
       ndarray of the result
   
     Example:
-      see ``python_tests/accuracy_speed_tests.py``
+      see ``python/tests/accuracy_speed_tests.py``
     """
     return invoke_guru(1,3,x,None,None,c,s,None,None,out,isign,eps,None,**kwargs)
 

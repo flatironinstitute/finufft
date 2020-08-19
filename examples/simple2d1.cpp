@@ -65,8 +65,8 @@ int main(int argc, char *argv[]){
   }
   
   // indices in output array for this frequency pair (k1,k2)
-  int k1out = k1 + (int)N1/2; 
-  int k2out = k2 + (int)N2/2;
+  int k1out = k1 + N1/2; 
+  int k2out = k2 + N2/2;
   int indexOut = k1out + k2out*(N1);
 
   // compute relative error

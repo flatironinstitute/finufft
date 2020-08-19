@@ -17,14 +17,14 @@ To calculate a 1D type 1 transform, from nonuniform to uniform points, we import
     # number of nonuniform points
     M = 100000
 
-    # frequencies
+    # the nonuniform points
     x = 2 * np.pi * np.random.uniform(size=M)
 
-    # coefficients
+    # their complex strengths
     c = (np.random.standard_normal(size=M)
          + 1J * np.random.standard_normal(size=M))
 
-    # number of Fourier modes
+    # desired number of Fourier modes
     N = 200000
 
     # calculate the transform
@@ -40,7 +40,7 @@ It can be modified using the ``eps`` argument
     # calculate the transform to higher accuracy
     f = finufftpy.nufft1d1(x, c, N, eps=1e-12)
 
-Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform.
+Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform. See ``python/examples/simple1d1.py`` for the full demo code that includes a basic math test (useful to check both the math and the indexing).
 
 For higher dimensions, we would specify frequencies in more than one dimension:
 

@@ -249,9 +249,7 @@ section of ``mexopts.sh``.
 Building the python wrappers
 ----------------------------
 
-First make sure you have python3 and pip3 (or python and pip) installed and that you can already compile the C++ library (eg via ``make lib``).
-Python links to this compiled library. You will get an error unless you first
-compile the static library.
+First make sure you have python3 and pip3 (or python and pip) installed, and that you can already compile the C++ library (eg via ``make test``).
 Next make sure you have NumPy and pybind11 installed::
   
   pip install numpy pybind11
@@ -274,23 +272,3 @@ There can be confusion and conflicts between various versions of python and inst
   . env1/bin/activate
 
 Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the env1 directory. (You can get out of the environment by typing ``deactivate``). Also see documentation for ``conda``. In both cases ``python`` will call the version of python you set up, which these days should be v3.
-
-
-Tips for installing optional dependencies
------------------------------------------
-
-Installing MWrap
-~~~~~~~~~~~~~~~~
-
-This is not needed for most users.
-`MWrap <https://github.com/zgimbutas/mwrap>`_
-is a very useful MEX interface generator by Dave Bindel, now maintained
-and expanded by Zydrunas Gimbutas.
-Make sure you have ``flex`` and ``bison`` installed to build it.
-As of FINUFFT v.2.0 you will need a recent (>=0.33.10) version of MWrap.
-Make sure to override the location of MWrap by adding a line such as::
-
-  MWRAP = your-path-to-mwrap-executable
-  
-to your ``make.inc``.
-

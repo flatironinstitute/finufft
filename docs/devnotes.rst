@@ -4,6 +4,7 @@ Developer notes
 ===============
 
 * To update the version number, this needs to be done by hand in the following places:
+
   - ``docs/conf.py`` for sphinx
   - ``python/setup.py`` for the python pkg version
   - ``include/defs.h``
@@ -18,5 +19,17 @@ Developer notes
 * If you change any of the doc sources, which includes any of the above four items, the easiest way to regenerate everything needed is via ``make docs``. See ``makefile`` for what's going on here. Also, do not edit files ``docs/*.doc`` since these are machine-generated; your changes will be overwritten. Instead edit files ``*.docsrc`` once you have understood how the bash scripts act on them. 
   
 * For testing and performance measuring routines see ``test/REAME`` and ``perftest/README``. We need more of the latter, eg, something making performance graphs that enable rapid eyeball comparison of various settings/machines.
+
+* **Installing MWrap**. This is needed to rebuild the matlab/octave interfaces.
+  `MWrap <https://github.com/zgimbutas/mwrap>`_
+  is a very useful MEX interface generator by Dave Bindel, now maintained
+  and expanded by Zydrunas Gimbutas.
+  Make sure you have ``flex`` and ``bison`` installed to build it.
+  As of FINUFFT v.2.0 you will need a recent (>=0.33.10) version of MWrap.
+  Make sure to override the location of MWrap by adding a line such as::
+
+    MWRAP = your-path-to-mwrap-executable
+  
+  to your ``make.inc``, and then you can use the ``make mex`` task.
 
 
