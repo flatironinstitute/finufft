@@ -14,7 +14,9 @@ Developer notes
 * Developers changing MATLAB/octave interfaces or docs, see ``matlab/README``
 
 * Developers changing overall web docs, see ``docs/README``
-      
-* For testing and performance measuring routines see ``test/REAME`` and ``perftest/README``
+
+* If you change any of the doc sources, which includes any of the above four items, the easiest way to regenerate everything needed is via ``make docs``. See ``makefile`` for what's going on here. Also, do not edit files ``docs/*.doc`` since these are machine-generated; your changes will be overwritten. Instead edit files ``*.docsrc`` once you have understood how the bash scripts act on them. 
+  
+* For testing and performance measuring routines see ``test/REAME`` and ``perftest/README``. We need more of the latter, eg, something making performance graphs that enable rapid eyeball comparison of various settings/machines.
 
 

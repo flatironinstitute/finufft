@@ -31,9 +31,9 @@ This setting produces more timing output to ``stdout``.
 
 .. warning::
    
- In C/C++, not forget to call the command which sets default options
- (``finufft_default_opts``)
- before you start changing them or passing them to FINUFFT.
+ In C/C++ and Fortran, don't forget to call the command which sets default options
+ (``finufft_default_opts`` or ``finufftf_default_opts``)
+ before you start changing them and passing them to FINUFFT.
 
 
 Summary and quick advice

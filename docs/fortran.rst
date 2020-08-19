@@ -35,13 +35,27 @@ and default options, the declarations and call are
       call finufft1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
 
 which writes the output to ``fk``, and the status to the integer ``ier``.
-A status 0 indicates success, otherwise error codes are
-in :ref:`here <error>`.
+Since the default is CMCL mode ordering, the output for frequency index ``k``
+is found in ``fk(k+N/2+1)``.
+``ier=0`` indicates success, otherwise error codes are
+as in :ref:`here <error>`.
 All available OMP threads are used, unless FINUFFT was built single-threaded.
 (Note that here the unallocated ``null`` is simply a way to pass
 a NULL pointer to our C++ wrapper; another would be ``%val(0_8)``.)
 For a minimally complete test code demonstrating the above see
 ``fortran/examples/simple1d1.f``.
+
+.. note::
+   
+   Higher-dimensional arrays are stored in Fortran ordering
+   with $x$ (``N1``) the fastest direction, and, in the vectorized
+   ("many") calls, the transform number is slowest (transforms are
+   stacked not interleaved).
+   For instance, for the 2D type 1 vectorized transform
+   ``finufft2d1many(ntrans,M,xj,yj,cj,iflag,tol,N1,N2,fk,opts,ier)``
+   with CMCL mode-ordering,
+   the ``(k1,k2)`` frequency coefficient from transform number ``t`` is
+   to be found at ``fk(k1+N1/2+1 + (k2+N2/2)*N1 + t*N1*N2)``.
 
 To compile (eg using GCC/linux) and link such a program against the FINUFFT
 dynamic (``.so``) library (which links all dependent libraries)::
@@ -139,8 +153,8 @@ These routines and arguments are, in double-precision:
 
 The single-precision (ie, ``real*4`` and ``complex*8``)
 functions are identical except with the replacement
-of ``finufft`` with ``finufftf`` in the function names.
-They are defined (from the C++ side) in ``fortran/finufftfort.cpp``.
+of ``finufft`` with ``finufftf`` in each function name.
+All are defined (from the C++ side) in ``fortran/finufftfort.cpp``.
 
 
 Code examples
@@ -158,10 +172,10 @@ Each has a math test to check the correctness of some or all outputs::
   nufft2dmany_demo.f - 2D types 1,2,3, vectorized (many strengths) interface
   
 These are the double-precision file names; the single precision have a
-trailing f before the .f.
+suffix ``f`` before the ``.f``.
 The last four here are modified from demos in the
 `CMCL NUFFT libraries <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_.
-The first three of these have only been changed to use FINUFFT.
+The first three of these have been changed only to use FINUFFT.
 The final tolerance they request is ``tol=1d-16``. For this case FINUFFT
 will report a warning that it cannot achieve it, and gets
 merely around $10^{-14}$.
@@ -175,4 +189,4 @@ For dynamic linking so that execution works from any directory, bake in an
 absolute path via the compile flag ``-Wl,-rpath,$(FINUFFT)/lib``.
 
 For authorship and licensing of the Fortran wrappers, see
-the directory `README <https://github.com/flatironinstitute/finufft/blob/master/fortran/README>`_
+the `README <https://github.com/flatironinstitute/finufft/blob/master/fortran/README>`_ in the fortran directory.
