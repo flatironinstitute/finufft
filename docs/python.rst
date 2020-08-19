@@ -107,10 +107,9 @@ To perform the call above using the plan interface, we would write
 
     # specify type 1 transform
     nufft_type = 1
-    n_trans = K
 
-    # instantiate the plan
-    plan = finufftpy.Plan(nufft_type, (N, N), n_trans=n_trans)
+    # instantiate the plan (note ntrans must be set here)
+    plan = finufftpy.Plan(nufft_type, (N1,N2), n_trans=K)
 
     # set the nonuniform points
     plan.setpts(x, y)
@@ -123,20 +122,19 @@ All interfaces support both single and double precision, but for the plan, this 
 
 .. code-block:: python
 
-    # convert to single precision
+    # convert input data to single precision
     x = x.astype('float32')
     y = y.astype('float32')
-
     c = c.astype('complex64')
 
     # instantiate the plan and set the points
-    plan = finufftpy.Plan(nufft_type, (N, N), n_trans=n_trans, dtype='float32')
+    plan = finufftpy.Plan(nufft_type, (N1,N2), n_trans=K, dtype='float32')
     plan.setpts(x, y)
 
-    # execute the plan
+    # execute the plan, giving single-precision output
     f = plan.execute(c)
 
-See the complete demo in ``python/examples/guru2d1f.py``.
+See the complete demo, with math test, in ``python/examples/guru2d1f.py``.
 
 
 Full documentation
