@@ -7,7 +7,7 @@ Quick-start examples
 The easiest way to install is to run ``pip install finufftpy``, which downloads and installs the latest precompiled binaries from PyPI.
 If you would like to compile from source, see :ref:`the Python installation instructions <install-python>`.
 
-To calculate a 1D type 1 transform, from nonuniform to uniform points, we import ``finufftpy``, specify the frequencies ``x``, the coefficients ``c``, and call ``nufft1d1``:
+To calculate a 1D type 1 transform, from nonuniform to uniform points, we import ``finufftpy``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:
 
 .. code-block:: python
 
@@ -22,18 +22,18 @@ To calculate a 1D type 1 transform, from nonuniform to uniform points, we import
 
     # their complex strengths
     c = (np.random.standard_normal(size=M)
-         + 1J * np.random.standard_normal(size=M))
+        + 1J * np.random.standard_normal(size=M))
 
-    # desired number of Fourier modes
+    # desired number of Fourier modes (uniform outputs)
     N = 200000
 
     # calculate the transform
     f = finufftpy.nufft1d1(x, c, N)
 
-The input here is a set of complex coefficients ``c``, which are used to approximate (1) in :ref:`math`.
-That approximation is stored in ``f``, which is indexed from ``-N // 2`` to ``N // 2 - 1``.
+The input here is a set of complex strengths ``c``, which are used to approximate (1) in :ref:`math`.
+That approximation is stored in ``f``, which is indexed from ``-N/2`` up to ``N/2-1`` (since ``N`` is even; if odd it would be ``-(N-1)/2`` up to ``(N-1)/2``).
 The approximation is accurate to a tolerance of ``1e-6``, which is the default tolerance of ``nufft1d1``.
-It can be modified using the ``eps`` argument
+It can be modified using the ``eps`` argument:
 
 .. code-block:: python
 
@@ -42,45 +42,45 @@ It can be modified using the ``eps`` argument
 
 Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform. See ``python/examples/simple1d1.py`` for the full demo code that includes a basic math test (useful to check both the math and the indexing).
 
-For higher dimensions, we would specify frequencies in more than one dimension:
+For higher dimensions, we would specify point locations in more than one dimension:
 
 .. code-block:: python
 
-    # frequencies
+    # 2D nonuniform points (x,y coords)
     x = 2 * np.pi * np.random.uniform(size=M)
     y = 2 * np.pi * np.random.uniform(size=M)
 
-    # number of Fourier modes
-    N = 2000
+    # desired number of Fourier modes (in x,y directions respectively)
+    N1 = 1000
+    N2 = 2000
 
-    # calculate the 2D transform
-    f = finufftpy.nufft2d1(x, y, c, (N, N))
-
+    # the 2D transform outputs f array of shape (N1,N2)
+    f = finufftpy.nufft2d1(x, y, c, (N1,N2))
 
 We can also go the other way, from uniform to non-uniform points, using a type 2 transform:
 
 .. code-block:: python
 
     # coefficients
-    f = (np.random.standard_normal(size=(N, N))
-         + 1J * np.random.standard_normal(size=(N, N)))
+    f = (np.random.standard_normal(size=(N1,N2))
+         + 1J * np.random.standard_normal(size=(N1,N2)))
 
     # calcualate the 2D type 2 transform
     c = finufftpy.nufft2d2(x, y, f)
 
-Now the output is a complex vector of length ``M`` approximating (2) in :ref:`math`, that is the adjoint of (1).
+Now the output is a complex vector of length ``M`` approximating (2) in :ref:`math`, that is the adjoint (but not inverse) of (1). (Note that the default in the python interface is that sign in the exponential is negative for type 2.)
 
 In addition to tolerance ``eps``, we can adjust other options for the transform.
 These are listed in :ref:`opts` and are specified as keyword arguments in the Python interface.
-For example, to change the mode ordering to FFT style (that is, from ``0`` to ``N // 2 - 1``, then from ``- N // 2`` to ``-1``), we call
+For example, to change the mode ordering to FFT style (that is, in each dimension ``Ni=N1`` or ``N2``, the indices go from ``0`` to ``Ni/2-1``, then from ``-Ni/2`` to ``-1``, since each ``Ni`` is even), we call
 
 .. code-block:: python
 
-    f = finufftpy.nufft2d1(x, y, c, (N, N), modeord=1)
+    f = finufftpy.nufft2d1(x, y, c, (N1,N2), modeord=1)
 
 Note that the above functions are all vectorized, which means that they can take multiple inputs stacked along the last dimension (that is, in column-major order) and process them simultaneously.
 This can bring significant speedups for small inputs by avoiding multiple short calls to FINUFFT.
-For the 2D type 1 interface, we would call
+For the 2D type 1 vectorized interface, we would call
 
 .. code-block:: python
 

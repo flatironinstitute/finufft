@@ -12,7 +12,7 @@ M = 100000
 # input nonuniform points
 x = 2 * np.pi * np.random.uniform(size=M)
 
-# input complex coefficients
+# their complex strengths
 c = (np.random.standard_normal(size=M)
      + 1J * np.random.standard_normal(size=M))
 

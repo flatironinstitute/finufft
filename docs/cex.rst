@@ -49,8 +49,10 @@ C++-style vector objects), and also pass ``N``:
   int ier = finufft1d1(M,&x[0],&c[0],+1,1e-9,N,&F[0],NULL);
 
 This fills ``F`` with the output modes, in increasing ordering
-from frequency index ``-N/2`` up to ``N/2-1``. The transform (:math:`10^7` points to :math:`10^6` modes) takes 0.4 seconds on a laptop.
-The indexing is offset by ``N/2`` (recalling that this is integer division), so that frequency ``k`` is output in
+with the integer frequency indices from ``-N/2`` up to ``N/2-1``
+(since ``N`` is even; for odd is would be ``-(N-1)/2`` up to ``(N-1)/2``).
+The transform (:math:`10^7` points to :math:`10^6` modes) takes 0.4 seconds on a laptop.
+The index is thus offset by ``N/2`` (this is integer division in the odd case), so that frequency ``k`` is output in
 ``F[N/2 + k]``.
 Here ``+1`` sets the sign of :math:`i` in the exponentials
 (see :ref:`definitions <math>`),
@@ -84,7 +86,7 @@ Then to compile on a linux/GCC system, linking to the double-precision static li
   g++ simple1d1.cpp -o simple1d1 -I$FINUFFT/include $FINUFFT/lib-static/libfinufft.a -fopenmp -lfftw3_omp -lfftw3 -lm
 
 where ``$FINUFFT`` denotes the absolute path of your FINUFFT installation.
-Better is instead link to dynamic shared (``.so``) libraries, via eg::
+Better is instead link to the dynamic shared (``.so``) library, via eg::
 
   g++ simple1d1.cpp -o simple1d1 -I$FINUFFT/include -L$FINUFFT/lib -lfinufft -lm
   
@@ -159,17 +161,19 @@ We allocate and do the (default options) transform thus:
 
 This transform takes 0.6 seconds on a laptop.
 The modes have increasing ordering
-from frequency index ``-N1/2`` to ``N1/2-1`` in the fast (``x``) dimension,
-then ordering ``-N2/2`` up to ``N2/2-1`` in the slow (``y``) dimension.
+of integer frequency indices from ``-N1/2`` up to ``N1/2-1``
+in the fast (``x``) dimension,
+then indices from ``-N2/2`` up to ``N2/2-1`` in the slow (``y``) dimension
+(since both ``N1`` and ``N2`` are even).
 So, the output frequency ``(k1,k2)`` is found in
 ``F[N1/2 + k1 + (N2/2 + k2)*N1]``.
 
 See ``opts.modeord`` in :ref:`Options<opts>`
 to instead use FFT-style mode ordering, which
-simply differs by an ``fftshift`` (as it is commonly called).
+simply differs by an "fftshift" (as it is commonly called).
 
 See ``examples/simple2d1.cpp`` for an example with a math check, to
-insure the modes are correctly indexed.
+insure that the mode indexing is correctly understood.
 
 
 Vectorized interface example

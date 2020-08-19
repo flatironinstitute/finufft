@@ -11,7 +11,7 @@ The main developer and maintainer is:
 
 Major code contributions by:
 
-* Jeremy Magland - early multithreaded spreader, benchmark vs other libraries
+* Jeremy Magland - early multithreaded spreader, benchmark vs other libraries, py wrapper
 * Ludvig af Klinteberg - SIMD vectorization/acceleration of spreader, julia wrapper
 * Yu-Hsuan ("Melody") Shih - 2d1many, 2d2many vectorized interface, GPU version
 * Andrea Malleo - guru interface prototype and tests
@@ -33,7 +33,7 @@ Testing, bug reports, helpful discussions:
 * Hugo Strand - python bugs
 * Amit Moscovich - Mac OSX build
 * Dylan Simon - sphinx help
-* Zydrunas Gimbutas - explanation that NFFT uses Kaiser-Bessel backwards
+* Zydrunas Gimbutas - MWrap extension, explanation that NFFT uses Kaiser-Bessel backwards
 * Charlie Epstein - help with analysis of kernel Fourier transform sums
 * Christian Muller - optimization (CMA-ES) for early kernel design
 * Andras Pataki - complex number speed in C++

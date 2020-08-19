@@ -329,10 +329,11 @@ python: $(STATICLIB) $(DYNLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; pip install .)
 # note to devs: if trouble w/ numpy, use: pip install . --no-deps
 	python python/test/run_accuracy_tests.py
-	python python/test/guru1d1.py
-	python python/test/guru1d1f.py
 	python python/examples/simple1d1.py
 	python python/examples/simpleopts1d1.py
+	python python/examples/simple2d1.py
+	python python/examples/guru1d1.py
+	python python/examples/guru1d1f.py
 
 
 # python packaging: *** please document these in make tasks echo above...

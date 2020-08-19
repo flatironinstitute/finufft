@@ -12,14 +12,15 @@ You will also want to refer to the :ref:`options<opts>`
 and :ref:`error codes<error>`
 which apply to all 46 routines.
 
-A reminder on Fourier mode ordering.
+A reminder on Fourier mode ordering;
+see :ref:`modeord<modeord>`.
 For example, if ``N1=8`` in a 1D type 1 or type 2 transform:
 
 * if ``opts.modeord=0``: frequency indices are ordered ``-4,-3,-2,-1,0,1,2,3`` (CMCL ordering)
 
 * if ``opts.modeord=1``: frequency indices are ordered ``0,1,2,3,-4,-3,-2,-1`` (FFT ordering)
 
-The orderings are related by a ``fftshift``.
+The orderings are related by a "fftshift".
 This holds for each dimension.
 Multidimensional arrays are passed by a pointer to
 a contiguous Fortran-style array, with the
@@ -52,16 +53,7 @@ with the word "many" in the function name) perform ``ntr`` transforms with the s
 
 .. note::
 
-   The need for the vectorized interface is as follows. For large
-   problems, performing sequential plain calls is efficient (although
-   there would be a slight benefit to sorting only once), but when the
-   problem size is smaller, certain start-up costs cause repeated
-   calls to the simple interface to be slower than necessary.  In
-   particular, we note that FFTW takes around 0.1 ms per thread to
-   look up stored wisdom, which for small problems (of order 10000 or
-   less input and output data) can, sadly, dominate the runtime.  Thus
-   we created the vectorized interfaces (and the guru interface; see
-   below).
+  The motivations for the vectorized interface (and guru interface, see below) are as follows. 1) It is more efficient to bin-sort the nonuniform points only once if there are not to change between transforms. 2) For small problems, certain start-up costs cause repeated calls to the simple interface to be slower than necessary.  In particular, we note that FFTW takes around 0.1 ms per thread to look up stored wisdom, which for small problems (of order 10000 or less input and output data) can, sadly, dominate the runtime.
 
 
 1D transforms
@@ -87,7 +79,10 @@ Guru plan interface
 
 This provides more flexibility than the simple or vectorized interfaces.
 Any transform requires (at least)
-calling the following four functions in this order.
+calling the following four functions in order. However, within this
+sequence one may insert repeated ``execute`` calls, or another ``setpts``
+followed by more ``execute`` calls, as long as the transform sizes (and number of transforms ``ntr``) are
+consistent with those that have been set in the ``plan`` and in ``setpts``.
 
 .. include:: cguru.doc
                     

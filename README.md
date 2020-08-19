@@ -33,6 +33,7 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/matlab.rst` and `docs/matlabhelp.raw` : using the MATLAB/octave interface
 - `docs/python.rst` and `python/*/_interfaces.py` : using the python interface
 - `docs/julia.rst`   : using the Julia interface
+- `docs/devnotes.rst`: notes/guide for developers
 - `docs/related.rst` : other recommended NUFFT packages
 - `docs/users.rst`   : users of FINUFFT and dependent packages
 - `docs/ackn.rst`    : authors and acknowledgments

@@ -54,7 +54,7 @@ Here are their default settings (from ``src/finufft.cpp:finufft_default_opts``):
   
 As for quick advice, the main options you'll want to play with are:
   
-- ``modeord`` to flip the Fourier mode ordering
+- ``modeord`` to flip ("fftshift") the Fourier mode ordering
 - ``debug`` to look at timing output (to determine if your problem is spread/interpolation dominated, vs FFT dominated)
 - ``nthreads`` to run with a different number of threads than the current maximum available through OpenMP (a large number can sometimes be detrimental, and very small problems can sometimes run faster on 1 thread)
 - ``fftw`` to try slower plan modes which give faster transforms. The next natural one to try is ``FFTW_MEASURE`` (look at the FFTW3 docs)
@@ -71,12 +71,25 @@ Documentation of all options
 Data handling options
 ~~~~~~~~~~~~~~~~~~~~~
 
-**modeord**: Fourier coefficient frequency index ordering in each dimension. For type 1, this is for the output; for type 2 the input. It has no effect in type 3.
-For example, if ``N1=8`` in a 1D type 1 or type 2 transform:
+.. _modeord:
 
-* if ``modeord=0``: frequency indices are ordered ``-4,-3,-2,-1,0,1,2,3`` (CMCL ordering)
+**modeord**: Fourier coefficient frequency index ordering in every dimension. For type 1, this is for the output; for type 2 the input. It has no effect in type 3. Here we use ``N`` to denote the size in any of the relevant dimensions:
 
-* if ``modeord=1``: frequency indices are ordered ``0,1,2,3,-4,-3,-2,-1`` (FFT ordering)
+* if ``modeord=0``: frequency indices are in increasing ordering,
+  namely $\{-N/2,-N/2+1,\dots,N/2-1\}$ if $N$ is even, or
+  $\{-(N-1)/2,\dots,(N-1)/2\}$ if $N$ is odd.
+  For example, if ``N=6`` the indices are ``-3,-2,-1,0,1,2``,
+  whereas if ``N=7`` they are ``-3,-2,-1,0,1,2,3``.
+  This is called "CMCL ordering" since it is that of the CMCL NUFFT.
+
+* if ``modeord=1``: frequency indices are ordered as in the usual FFT,
+  increasing from zero then jumping to negative indices half way along,
+  namely $\{0,1,\dots,N/2-1,-N/2,-N/2+1,\dots,-1\}$ if $N$ is even, or
+  $\{0,1,\dots,(N-1)/2,-(N-1)/2,\dots,-1\}$ if $N$ is odd.
+  For example, if ``N=6`` the indices are ``0,1,2,-3,-2,-1``,
+  whereas if ``N=7`` they are ``0,1,2,3,-3,-2,-1``.
+
+  .. note:: The index *sets* are the same in the two ``modeord`` choices; their ordering differs only by a cyclic shift. The FFT ordering cyclically shifts the CMCL indices $\mbox{floor}(N/2)$ to the left (often called an "fftshift").
 
 **chkbnds**: whether to check the nonuniform points lie in the correct bounds.
 
