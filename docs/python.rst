@@ -40,7 +40,7 @@ It can be modified using the ``eps`` argument:
     # calculate the transform to higher accuracy
     f = finufftpy.nufft1d1(x, c, N, eps=1e-12)
 
-Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform. See ``python/examples/simple1d1.py`` for the full demo code that includes a basic math test (useful to check both the math and the indexing).
+Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform. See ``python/examples/simple1d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
 
 For higher dimensions, we would specify point locations in more than one dimension:
 
@@ -57,7 +57,7 @@ For higher dimensions, we would specify point locations in more than one dimensi
     # the 2D transform outputs f array of shape (N1,N2)
     f = finufftpy.nufft2d1(x, y, c, (N1,N2))
 
-We can also go the other way, from uniform to non-uniform points, using a type 2 transform:
+See ``python/examples/simple2d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing). We can also go the other way, from uniform to non-uniform points, using a type 2 transform:
 
 .. code-block:: python
 
@@ -91,10 +91,11 @@ For the 2D type 1 vectorized interface, we would call
     c = (np.random.standard_normal(size=(K, M))
          + 1J * np.random.standard_normal(size=(K, M)))
 
-    # calculate the K transforms simultaneously
-    f = finufftpy.nufft2d1(x, y, c, (N, N))
+    # calculate the K transforms simultaneously (K is inferred from c.shape)
+    f = finufftpy.nufft2d1(x, y, c, (N1,N2))
 
-The output array ``f`` would then have the shape ``(K, N, N)``.
+The output array ``f`` would then have the shape ``(K, N1, N2)``.
+See the complete demo in ``python/examples/many2d1.py``.
 
 More fine-grained control can be obtained using the plan (or `guru`) interface.
 Instead of preparing the transform, setting the nonuniform points, and executing the transform all at once, these steps are seperated into different function calls.
@@ -117,6 +118,7 @@ To perform the call above using the plan interface, we would write
     # execute the plan
     f = plan.execute(c)
 
+See the complete demo in ``python/examples/guru2d1.py``.
 All interfaces support both single and double precision, but for the plan, this must be specified at initialization time using the ``dtype`` argument
 
 .. code-block:: python
@@ -133,6 +135,9 @@ All interfaces support both single and double precision, but for the plan, this 
 
     # execute the plan
     f = plan.execute(c)
+
+See the complete demo in ``python/examples/guru2d1f.py``.
+
 
 Full documentation
 ------------------
