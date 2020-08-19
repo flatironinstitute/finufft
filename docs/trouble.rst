@@ -36,10 +36,9 @@ Speed issues and advice
 
 If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is some advice:
 
-- Try printing debug output to see step-by-step progress by FINUFFT.
-  Set ``opts.debug`` to 1 or 2 and look at the timing information.
+- Try printing debug output to see step-by-step progress by FINUFFT. Do this by setting ``opts.debug`` to 1 or 2 then looking at the timing information.
 
-- Try reducing the number of threads (recall as of v1.2 this is controlled externally to FINUFFT), perhaps down to 1 thread, to make sure you are not having collisions between threads. The latter is possible if large problems are run with a large number of (say more than 30) threads. We added the constant ``MAX_USEFUL_NTHREADS`` in ``include/defs.h`` to catch this case. Another corner case causing slowness is very many repetitions of small problems; see ``test/manysmallprobs`` which exceeds $10^7$ points/sec with one thread via the guru interface, but can get ridiculously slower with many threads; see https://github.com/flatironinstitute/finufft/issues/86
+- Try reducing the number of threads either externally or via ``opts.nthreads``, perhaps down to 1 thread, to make sure you are not having collisions between threads, or slowdown due to thread overheads. The former is possible if large problems are run with a large number of (say more than 30) threads. We added the constant ``MAX_USEFUL_NTHREADS`` in ``include/defs.h`` to catch this case. Another corner case causing slowness is very many repetitions of small problems; see ``test/manysmallprobs`` which exceeds $10^7$ points/sec with one thread via the guru interface, but can get ridiculously slower with many threads; see https://github.com/flatironinstitute/finufft/issues/86
 
 - Try setting a crude tolerance, eg ``tol=1e-3``. How many digits do you actually need? This has a big effect in higher dimensions, since the number of flops scales like $(\log 1/\epsilon)^d$, but not quite as big an effect as this scaling would suggest, because in higher dimensions the flops/RAM ratio is higher.
 

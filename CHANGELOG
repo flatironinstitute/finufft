@@ -33,6 +33,7 @@ language interfaces.
 * new guru interface, by Andrea Malleo and Alex Barnett, allowing easier language wrapping and control of point-setting, reuse of sorting and FFTW plans. This finally bypasses the 0.1ms/thread cost of FFTW looking up previous wisdom, which slowed down performance for many small problems.
 * removed obsolete -DNEED_EXTERN_C flag.
 * Major rewrite of documentation, plus tutorial application examples in MATLAB.
+* numdiff dependency for pass-fail library validation is removed.
 
 V 1.1.2 (1/31/20)
 

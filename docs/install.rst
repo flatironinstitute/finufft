@@ -61,7 +61,8 @@ Alternatively, on Ubuntu linux::
 
   sudo apt-get install make build-essential libfftw3-dev gfortran python3 python3-pip octave liboctave-dev
 
-You should then compile via the various ``make`` tasks.
+You should then compile via the various ``make`` tasks, eg ``make test -j8``
+then checking you got ``0 fails``.  
 
 .. note::
 
@@ -117,8 +118,7 @@ Once you have downloaded FINUFFT, to set up for this, do::
 
   cp make.inc.macosx_clang make.inc
 
-This gives you compile flags that should work with ``make test`` and other tasks. Then
-for python (note that pip is not installed with the default python v2)::
+This gives you compile flags that should work with ``make test`` and other tasks. Please try ``make test`` at this point, and check for ``0 fails``. Then for python (note that pip is not installed with the default python v2)::
 
   brew install python3
   pip3 install numpy pybind11

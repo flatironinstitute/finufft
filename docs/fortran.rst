@@ -37,7 +37,7 @@ and default options, the declarations and call are
 which writes the output to ``fk``, and the status to the integer ``ier``.
 A status 0 indicates success, otherwise error codes are
 in :ref:`here <error>`.
-All available OMP threads are used, unless FINUFFT was built single-thread.
+All available OMP threads are used, unless FINUFFT was built single-threaded.
 (Note that here the unallocated ``null`` is simply a way to pass
 a NULL pointer to our C++ wrapper; another would be ``%val(0_8)``.)
 For a minimally complete test code demonstrating the above see
@@ -58,7 +58,7 @@ In Mac OSX, replace ``fftw3_omp`` by ``fftw3_threads``, and if you use
 clang, ``-lgomp`` by ``-lomp``. See ``makefile`` and ``make.inc.*``.
 
 .. note ::
- Our simple interface is designed to be a near drop-in replacement for the native f90 `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_. The differences are: i) we added a penultimate argument in the list which allows options to be changed, and ii) our normalization differs for type 1 transforms (one divides our output by $M$ to match the CMCL output).
+ Our simple interface is designed to be a near drop-in replacement for the native f90 `CMCL libraries of Greengard-Lee <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_. The differences are: i) we added a penultimate argument in the list which allows options to be changed, and ii) our normalization differs for type 1 transforms (divide FINUFFT output by $M$ to match CMCL output).
 
 Changing options
 ~~~~~~~~~~~~~~~~
