@@ -13,5 +13,7 @@ int main(int argc, char* argv[])
   //BIGINT n=(BIGINT)120573851963;
   //printf("next235even(%ld) =\t%ld\n",n,next235even(n));
 
+  //double* a; printf("%g\n",a[0]);  // do deliberate segfault for bash debug!
+  
   return 0;
 }

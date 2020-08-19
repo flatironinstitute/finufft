@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
   if (argc<5 || argc>12) {
     for (int i=0; help[i]; ++i)
       fprintf(stderr,"%s\n",help[i]);
-    return -1;
+    return 2;
   }
   sscanf(argv[1],"%lf",&w); ntransf = (int)w;
   sscanf(argv[2],"%lf",&w); N1 = (BIGINT)w;
@@ -108,9 +108,9 @@ int main(int argc, char* argv[])
   printf("\t\t\tspeedup \t T_FINUFFT2D1 / T_finufft2d1many = %.3g\n", t/ti);
 
   // Check consistency (worst over the ntransf)
-  FLT maxerror = 0.0;
+  double maxerror = 0.0;
   for (int k = 0; k < ntransf; ++k)
-    maxerror = max(maxerror, relerrtwonorm(N,F_2d1+k*N,F+k*N));
+    maxerror = max(maxerror, (double)relerrtwonorm(N,F_2d1+k*N,F+k*N));
   errmax = max(maxerror,errmax);  
   printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2  ) =  %.3g\n",maxerror);
   free(F_2d1);
@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
 
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
-    maxerror = max(maxerror, relerrtwonorm(M,c_2d2+k*M,c+k*M));
+    maxerror = max(maxerror, (double)relerrtwonorm(M,c_2d2+k*M,c+k*M));
   errmax = max(maxerror,errmax);
   printf("\tconsistency check: sup ( ||c_many-c||_2 / ||c||_2 ) =  %.3g\n",maxerror);
   free(c_2d2);
@@ -238,7 +238,7 @@ int main(int argc, char* argv[])
   //check against the old
   maxerror = 0.0;           // worst error over the ntransf
   for (int k = 0; k < ntransf; ++k)
-    maxerror = max(maxerror, relerrtwonorm(N,f_2d3+k*N,F+k*N));
+    maxerror = max(maxerror, (double)relerrtwonorm(N,f_2d3+k*N,F+k*N));
   errmax = max(maxerror,errmax);
   printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
   free(f_2d3);

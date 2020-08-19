@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
   if (argc<5 || argc>10) {
     for (int i=0; help[i]; ++i)
       fprintf(stderr,"%s\n",help[i]);
-    return -1;
+    return 2;
   }
   sscanf(argv[1],"%lf",&w); N1 = (BIGINT)w;
   sscanf(argv[2],"%lf",&w); N2 = (BIGINT)w;

@@ -9,19 +9,18 @@ Quick linux install instructions
 In brief, go to the github page https://github.com/flatironinstitute/finufft and
 follow instructions to download the source (eg see the green button).
 Make sure you have packages ``fftw3`` and ``fftw3-devel`` installed.
-Then ``cd`` into your FINUFFT directory and ``make test``.
+Then ``cd`` into your FINUFFT directory and ``make test``, or ``make test -j8`` for a faster build.
 This should compile the static
 library in ``lib-static/``, some C++ test drivers in ``test/``, then run them,
 printing some terminal output ending in::
 
-  0 crashes out of 5 tests done
+  0 fails out of 8 tests done
 
 If this fails see the more detailed instructions below.
 If it succeeds, run ``make lib`` and proceed to link to the library.
 Alternatively, try one of our `precompiled linux and OSX binaries <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_.
-Type ``make`` to see a list of other aspects to build (language
-interfaces, etc). Consider installing ``numdiff`` as below to allow
-``make test`` to perform a better accuracy check.
+Type ``make`` to see a list of other aspects to build (examples, language
+interfaces, etc).
 Please read :ref:`Usage <usage>` and look in ``examples/`` and ``test/``
 for other usage examples.
 
@@ -36,16 +35,15 @@ Linux (WSL).
 For the basic libraries you need
 
 * C++ compiler, such as ``g++`` packaged with GCC, or ``clang`` with OSX
-* FFTW3
-* GNU make
+* FFTW3 including its development libraries
+* GNU ``make`` and other standard unix/POSIX tools such as ``bash``
 
 Optional:
 
-* ``numdiff`` (preferred but not essential; enables better pass-fail accuracy validation)
 * for Fortran wrappers: compiler such as ``gfortran``
-* for matlab/octave wrappers: MATLAB, or octave and its development libraries
-* for the python wrappers you will need ``python`` and ``pip`` (it is assumed you have python v3; v2 is unsupported). You will also need ``pybind11``
-* for rebuilding new matlab/octave wrappers (experts only): ``mwrap``
+* for MATLAB/octave wrappers: MATLAB, or octave and its development libraries
+* for the python wrappers you will need ``python`` (it is assumed you have python v3; v2 is unsupported). You will also need the python module ``pybind11``
+* for rebuilding new matlab/octave wrappers (experts only): ``mwrap`` version>=0.33.10
 
 
 Tips for installing dependencies on linux
@@ -61,16 +59,16 @@ On a Fedora/CentOS linux system, dependencies can be installed as follows::
 
 Alternatively, on Ubuntu linux::
 
-  sudo apt-get install make build-essential libfftw3-dev gfortran numdiff python3 python3-pip octave liboctave-dev
+  sudo apt-get install make build-essential libfftw3-dev gfortran python3 python3-pip octave liboctave-dev
 
-For any linux flavor see below for the optional ``numdiff`` (and very optional ``mwrap``). You should then compile via the various ``make`` tasks.
+You should then compile via the various ``make`` tasks.
 
 .. note::
 
    GCC versions on linux.  Rather than using the default GCC which may be as
    old as 4.8 or 5.4 on current linux systems, we **strongly** recommend you
    compile with a recent GCC version such as GCC 7.3 (which we used
-   benchmarks in our SISC paper), or GCC 9.2.1. We do not recommend
+   benchmarks in our SISC paper), or GCC 9+. We do not recommend
    GCC versions prior to 7. We also **do not recommend GCC8** since
    its auto vectorization has worsened, and its kernel evaluation rate
    using the default looped piecewise-polynomial Horner code drops to
@@ -119,14 +117,14 @@ Once you have downloaded FINUFFT, to set up for this, do::
 
   cp make.inc.macosx_clang make.inc
 
-This gives you compile flags that should work with ``make test`` and other tasks. Optionally, install ``numdiff`` as below. Then
+This gives you compile flags that should work with ``make test`` and other tasks. Then
 for python (note that pip is not installed with the default python v2)::
 
   brew install python3
   pip3 install numpy pybind11
   make python
   
-This should generate the ``finufftpy`` module (and ``finufftpy_cpp`` which it depends on).
+This should generate the ``finufftpy`` module.
 However, we have found that it may fail with an error about ``-lstdc++``,
 in which case you should try setting an environment variable::
 
@@ -158,51 +156,70 @@ You must now by hand edit ``python/setup.py``, changing ``gcc`` to ``gcc-8`` and
    problem with octave MEX compilation. Please help if you can!
 
    
-General notes about compilation and tests
+Details about compilation and tests
 -----------------------------------------
 
-We first describe compilation for default options (double precision, openmp) via GCC.
-If you have a nonstandard unix environment (eg a Mac) or want to change the compiler,
+The make tasks (eg ``make lib``) compiles double and single precision functions,
+which live simultaneously in ``libfinufft``, with distinct function names.
+
+The only selectable option at compile time is
+multithreaded (default, using OpenMP) vs single-threaded
+(to achieve this append ``OMP=OFF`` to the make tasks).
+Since you may always set ``opts.nthreads=1`` when calling the multithreaded
+library,
+the point of having a single-threaded library is
+mostly for small repeated problems to avoid any OpenMP overhead, or
+for debugging purposes.
+You *must* do at least ``make objclean`` before changing this threading
+option.
+
+.. note::
+
+   By default, neither the multithreaded or single-threaded library (e.g. made by ``make lib OMP=OFF``) are thread-safe, due to the FFTW3 plan stage. However, see below for the compiler option to fix this if you have a recent FFTW3 version.
+
+If you have a nonstandard unix environment (eg a Mac) or want to change the compiler or its flags,
 then place your compiler and linking options in a new file ``make.inc``.
 For example such files see ``make.inc.*``. See the text of ``makefile`` for discussion of what can be overridden.
 
-Compile and do a rapid (less than 1-second) test of FINUFFT via::
+Compile and do a rapid (few seconds duration) test of FINUFFT via::
 
   make test
 
-This should compile the main libraries then run tests which should report zero crashes and zero fails. (If numdiff is absent, it instead produces output only about crashes; you will have to check by eye that accuracy is as expected.)
-One test is ``test/basicpassfail`` which
-does include a low-accuracy math test, producing the exit code 0 if success,
-nonzero if fail. You can check the exit code thus::
+This should compile the main libraries then run double- and single-precision tests which should report zero segfaults and zero fails.
+Its initial test is ``test/basicpassfail`` which is the most basic smoke test,
+producing the exit code 0 if success, nonzero if fail.
+You can check the exit code thus::
   
   test/basicpassfail; echo $?
 
-Use ``make perftest`` for larger spread/interpolation and NUFFT tests taking 10-20 seconds. This writes into ``test/results/`` where you will be able to compare to results from standard CPUs.
+The make task also runs ``(cd test; ./check_finufft.sh)`` which is the main
+validation of the library in double precision, and
+``(cd test; ./check_finufft.sh SINGLE)`` which does it in single precision.
+Text (and stderr) outputs are written into ``test/results/*.out``.
+
+Use ``make perftest`` for larger spread/interpolation and NUFFT tests taking 10-20 seconds. This writes log files into ``test/results/`` where you will be able to compare to results from standard CPUs.
 
 Run ``make`` without arguments for full list of possible make tasks.
 
 ``make examples`` to compile and run the examples for calling from C++ and from C.
 
-The ``examples`` and ``test`` directories are good places to see usage examples.
-
 ``make fortran`` to compile and run the fortran wrappers and examples.
+
+Here are all the **compile flags** that the FINUFFT source responds to.
+Active them by adding a line of the form ``CFLAGS+=-DMYFLAG`` in your ``make.inc``:
+
+* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. This is only available in FFTW version >=3.3.5; for this reason it is not the default.
+
+* ``-DSINGLE``: This is internally used by our build process to switch
+  (via preprocessor macros) the source from double to single precision.
+  You should not need to use this flag yourself.
+
 
 If there is an error in testing on a standard set-up,
 please file a bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
-Custom library compilation options
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-*** UPDATE DUAL-PRECISION LIB
 
-Single-threaded vs multithreaded are
-built with the same name, so you will have to move them to other
-locations, or build a 2nd copy of the repo, if you want to keep both
-versions.
-
-**Single-threaded**: append ``OMP=OFF`` to the make task.
-
-You *must* do at least ``make objclean`` before changing this option.
 
 
 Building MATLAB/octave wrappers, including in Mac OSX
@@ -261,38 +278,18 @@ Now you are in a virtual environment that starts from scratch. All pip installed
 Tips for installing optional dependencies
 -----------------------------------------
 
-Installing numdiff
-~~~~~~~~~~~~~~~~~~
-
-`numdiff <http://www.nongnu.org/numdiff>`_ by Ivano Primi extends ``diff`` to assess errors in floating-point outputs. It is an optional dependency that provides a better pass-fail test; in particular it allows the accuracy check message
-``0 fails out of 5 tests done`` when ``make test`` is done for FINUFFT.
-To install ``numdiff`` on linux,
-download the latest version from
-http://gnu.mirrors.pair.com/savannah/savannah/numdiff/
-un-tar the package, cd into it, then build via ``./configure; make; sudo make install``.
-
-This compilation fails on Mac OSX, for which we found the following was needed
-in Mojave. Assume you un-tarred into ``/usr/local/numdiff-5.9.0``. Then::
-
-  brew install gettext
-  ./configure 'CFLAGS=-I/usr/local/opt/gettext/include' 'LDFLAGS=-L/usr/local/opt/gettext/lib'
-  make
-  sudo ln /usr/local/numdiff-5.9.0/numdiff /usr/local/bin
-
-You should now be able to run ``make test`` in FINUFFT and get the second
-message about zero fails.
-
 Installing MWrap
 ~~~~~~~~~~~~~~~~
 
 This is not needed for most users.
-`MWrap <http://www.cs.cornell.edu/~bindel/sw/mwrap>`_
-is a very useful MEX interface generator by Dave Bindel.
-Make sure you have ``flex`` and ``bison`` installed.
-Download version 0.33 or later from http://www.cs.cornell.edu/~bindel/sw/mwrap, un-tar the package, cd into it, then::
+`MWrap <https://github.com/zgimbutas/mwrap>`_
+is a very useful MEX interface generator by Dave Bindel, now maintained
+and expanded by Zydrunas Gimbutas.
+Make sure you have ``flex`` and ``bison`` installed to build it.
+As of FINUFFT v.2.0 you will need a recent (>=0.33.10) version of MWrap.
+Make sure to override the location of MWrap by adding a line such as::
+
+  MWRAP = your-path-to-mwrap-executable
   
-  make
-  sudo cp mwrap /usr/local/bin/
-
-
+to your ``make.inc``.
 

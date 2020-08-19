@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
    
    Output file will say "(should complain)" if that ier should be >0.
 
-   Also compare (numdiff) against test/results/dumbinputs.refout
+   Also compare (diff) against test/results/dumbinputs.refout
 */
 {
   int M = 100;            // number of nonuniform points
