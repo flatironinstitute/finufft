@@ -80,6 +80,19 @@ For example, to change the mode ordering to FFT style (that is, in each dimensio
 
     f = finufftpy.nufft2d1(x, y, c, (N1, N2), modeord=1)
 
+We can also specify a preallocated output array using the ``out`` keyword argument.
+This would be done by
+
+.. code-block:: python
+
+    # allocate the output array
+    f = np.empty((N1, N2), dtype='complex128')
+
+    # calculate the transform
+    finufftpy.nufft2d1(x, y, c, out=f)
+
+In this case, we do not need to specify the output shape since it can be inferred from ``f``.
+
 Note that the above functions are all vectorized, which means that they can take multiple inputs stacked along the first dimension (that is, in row-major order) and process them simultaneously.
 This can bring significant speedups for small inputs by avoiding multiple short calls to FINUFFT.
 For the 2D type 1 vectorized interface, we would call
