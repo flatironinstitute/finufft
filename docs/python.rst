@@ -78,7 +78,7 @@ For example, to change the mode ordering to FFT style (that is, in each dimensio
 
     f = finufftpy.nufft2d1(x, y, c, (N1,N2), modeord=1)
 
-Note that the above functions are all vectorized, which means that they can take multiple inputs stacked along the last dimension (that is, in column-major order) and process them simultaneously.
+Note that the above functions are all vectorized, which means that they can take multiple inputs stacked along the first dimension (that is, in row-major order) and process them simultaneously.
 This can bring significant speedups for small inputs by avoiding multiple short calls to FINUFFT.
 For the 2D type 1 vectorized interface, we would call
 
