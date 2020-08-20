@@ -16,7 +16,7 @@ y = 2 * np.pi * np.random.uniform(size=M)
 # number of transforms
 K = 4
 
-# generate K separate strength arrays
+# generate K stacked strength arrays
 c = (np.random.standard_normal(size=(K, M))
      + 1J * np.random.standard_normal(size=(K, M)))
 

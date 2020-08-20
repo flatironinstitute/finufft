@@ -63,7 +63,7 @@ We can also go the other way, from uniform to non-uniform points, using a type 2
 
 .. code-block:: python
 
-    # coefficients
+    # input Fourier coefficients
     f = (np.random.standard_normal(size=(N1, N2))
          + 1J * np.random.standard_normal(size=(N1, N2)))
 
@@ -102,7 +102,7 @@ For the 2D type 1 vectorized interface, we would call
     # number of transforms
     K = 4
 
-    # generate K separate coefficient arrays
+    # generate K stacked coefficient arrays
     c = (np.random.standard_normal(size=(K, M))
          + 1J * np.random.standard_normal(size=(K, M)))
 
