@@ -31,7 +31,7 @@ To calculate a 1D type 1 transform, from nonuniform to uniform points, we import
     f = finufftpy.nufft1d1(x, c, N)
 
 The input here is a set of complex strengths ``c``, which are used to approximate (1) in :ref:`math`.
-That approximation is stored in ``f``, which is indexed from ``-N/2`` up to ``N/2-1`` (since ``N`` is even; if odd it would be ``-(N-1)/2`` up to ``(N-1)/2``).
+That approximation is stored in ``f``, which is indexed from ``-N // 2`` up to ``N // 2 - 1`` (since ``N`` is even; if odd it would be ``-(N - 1) // 2`` up to ``(N - 1) // 2``).
 The approximation is accurate to a tolerance of ``1e-6``, which is the default tolerance of ``nufft1d1``.
 It can be modified using the ``eps`` argument:
 
@@ -50,35 +50,50 @@ For higher dimensions, we would specify point locations in more than one dimensi
     x = 2 * np.pi * np.random.uniform(size=M)
     y = 2 * np.pi * np.random.uniform(size=M)
 
-    # desired number of Fourier modes (in x,y directions respectively)
+    # desired number of Fourier modes (in x, y directions respectively)
     N1 = 1000
     N2 = 2000
 
-    # the 2D transform outputs f array of shape (N1,N2)
-    f = finufftpy.nufft2d1(x, y, c, (N1,N2))
+    # the 2D transform outputs f array of shape (N1, N2)
+    f = finufftpy.nufft2d1(x, y, c, (N1, N2))
 
-See ``python/examples/simple2d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing). We can also go the other way, from uniform to non-uniform points, using a type 2 transform:
+See ``python/examples/simple2d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
+
+We can also go the other way, from uniform to non-uniform points, using a type 2 transform:
 
 .. code-block:: python
 
     # coefficients
-    f = (np.random.standard_normal(size=(N1,N2))
-         + 1J * np.random.standard_normal(size=(N1,N2)))
+    f = (np.random.standard_normal(size=(N1, N2))
+         + 1J * np.random.standard_normal(size=(N1, N2)))
 
-    # calcualate the 2D type 2 transform
+    # calculate the 2D type 2 transform
     c = finufftpy.nufft2d2(x, y, f)
 
-Now the output is a complex vector of length ``M`` approximating (2) in :ref:`math`, that is the adjoint (but not inverse) of (1). (Note that the default in the python interface is that sign in the exponential is negative for type 2.)
+Now the output is a complex vector of length ``M`` approximating (2) in :ref:`math`, that is the adjoint (but not inverse) of (1). (Note that the default sign in the exponential is negative for type 2 in the Python interface.)
 
 In addition to tolerance ``eps``, we can adjust other options for the transform.
 These are listed in :ref:`opts` and are specified as keyword arguments in the Python interface.
-For example, to change the mode ordering to FFT style (that is, in each dimension ``Ni=N1`` or ``N2``, the indices go from ``0`` to ``Ni/2-1``, then from ``-Ni/2`` to ``-1``, since each ``Ni`` is even), we call
+For example, to change the mode ordering to FFT style (that is, in each dimension ``Ni = N1`` or ``N2``, the indices go from ``0`` to ``Ni // 2 - 1``, then from ``-Ni // 2`` to ``-1``, since each ``Ni`` is even), we call
 
 .. code-block:: python
 
-    f = finufftpy.nufft2d1(x, y, c, (N1,N2), modeord=1)
+    f = finufftpy.nufft2d1(x, y, c, (N1, N2), modeord=1)
 
-Note that the above functions are all vectorized, which means that they can take multiple inputs stacked along the last dimension (that is, in column-major order) and process them simultaneously.
+We can also specify a preallocated output array using the ``out`` keyword argument.
+This would be done by
+
+.. code-block:: python
+
+    # allocate the output array
+    f = np.empty((N1, N2), dtype='complex128')
+
+    # calculate the transform
+    finufftpy.nufft2d1(x, y, c, out=f)
+
+In this case, we do not need to specify the output shape since it can be inferred from ``f``.
+
+Note that the above functions are all vectorized, which means that they can take multiple inputs stacked along the first dimension (that is, in row-major order) and process them simultaneously.
 This can bring significant speedups for small inputs by avoiding multiple short calls to FINUFFT.
 For the 2D type 1 vectorized interface, we would call
 
@@ -92,7 +107,7 @@ For the 2D type 1 vectorized interface, we would call
          + 1J * np.random.standard_normal(size=(K, M)))
 
     # calculate the K transforms simultaneously (K is inferred from c.shape)
-    f = finufftpy.nufft2d1(x, y, c, (N1,N2))
+    f = finufftpy.nufft2d1(x, y, c, (N1, N2))
 
 The output array ``f`` would then have the shape ``(K, N1, N2)``.
 See the complete demo in ``python/examples/many2d1.py``.
@@ -109,7 +124,7 @@ To perform the call above using the plan interface, we would write
     nufft_type = 1
 
     # instantiate the plan (note ntrans must be set here)
-    plan = finufftpy.Plan(nufft_type, (N1,N2), n_trans=K)
+    plan = finufftpy.Plan(nufft_type, (N1, N2), n_trans=K)
 
     # set the nonuniform points
     plan.setpts(x, y)
@@ -128,7 +143,7 @@ All interfaces support both single and double precision, but for the plan, this 
     c = c.astype('complex64')
 
     # instantiate the plan and set the points
-    plan = finufftpy.Plan(nufft_type, (N1,N2), n_trans=K, dtype='float32')
+    plan = finufftpy.Plan(nufft_type, (N1, N2), n_trans=K, dtype='float32')
     plan.setpts(x, y)
 
     # execute the plan, giving single-precision output
