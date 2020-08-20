@@ -503,332 +503,193 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
 
     return out
 
-    
+
+def _set_nufft_doc(f, dim, tp, example='python/tests/accuracy_speed_tests.py'):
+    doc_nufft1 = \
+    """{dim}D type-1 (nonuniform to uniform) complex NUFFT
+
+    ::
+
+      {pt_spacing}        M-1
+      f[{pt_idx}] = SUM c[j] exp(+/-i {pt_inner})
+      {pt_spacing}        j=0
+
+          for {pt_constraint}
+
+    Args:
+{pts_doc}
+      c         (complex[M] or complex[ntransf, M]): source strengths.
+      n_modes   (integer or integer tuple of length {dim}, optional): number of
+                uniform Fourier modes requested {modes_tuple}. May be even or odd; in
+                either case, modes {pt_idx} are integers satisfying
+                {pt_constraint}. Must be specified if ``out`` is not given.
+      out       (complex[{modes}] or complex[ntransf, {modes}], optional): output array
+                for Fourier mode values. If ``n_modes`` is specifed, the shape
+                must match, otherwise ``n_modes`` is inferred from ``out``.
+      isign     (int, optional): if non-negative, uses positive sign in
+                exponential, otherwise negative sign.
+      eps       (float, optional): precision requested (>1e-16).
+      **kwargs  (optional): for more options, see :ref:`opts`.
+
+    .. note::
+
+      The output is written into the ``out`` array if supplied.
+
+    Returns:
+      complex[{modes}] or complex[ntransf, {modes}]: The resulting array.
+
+    Example:
+      See ``{example}``.
+    """
+
+    doc_nufft2 = \
+    """{dim}D type-2 (uniform to nonuniform) complex NUFFT
+
+    ::
+
+      c[j] = SUM f[{pt_idx}] exp(+/-i {pt_inner})       for j = 0, ..., M-1
+             {pt_idx}
+
+          where the sum is over {pt_constraint}
+
+    Args:
+{pts_doc}
+      f         (complex[{modes}] or complex[ntransf, {modes}]): Fourier mode
+                coefficients, where {modes} may be even or odd. In either case
+                the mode indices {pt_idx} satisfy {pt_constraint}.
+      out       (complex[M] or complex[ntransf, M], optional): output array
+                at targets.
+      isign     (int, optional): if non-negative, uses positive sign in
+                exponential, otherwise negative sign.
+      eps       (float, optional): precision requested (>1e-16).
+      **kwargs  (optional): for more options, see :ref:`opts`.
+
+    .. note::
+
+      The output is written into the ``out`` array if supplied.
+
+    Returns:
+      complex[M] or complex[ntransf, M]: The resulting array.
+
+    Example:
+      See ``{example}``.
+    """
+
+    doc_nufft3 = \
+    """{dim}D type-3 (nonuniform to nonuniform) complex NUFFT
+
+    ::
+
+               M-1
+      f[k]  =  SUM   c[j] exp(+/-i {pt_inner_type3}),      for k = 0, ..., N-1
+               j=0
+
+
+    Args:
+{src_pts_doc}
+      c         (complex[M] or complex[ntransf, M]): source strengths.
+{target_pts_doc}
+      out       (complex[N] or complex[ntransf, N]): output values at target frequencies.
+      isign     (int, optional): if non-negative, uses positive sign in
+                exponential, otherwise negative sign.
+      eps       (float, optional): precision requested (>1e-16).
+      **kwargs  (optional): for more options, see :ref:`opts`.
+
+    .. note::
+
+      The output is written into the ``out`` array if supplied.
+
+    Returns:
+      complex[M] or complex[ntransf, M]: The resulting array.
+
+    Example:
+      See ``{example}``.
+    """
+
+    doc_nufft = {1: doc_nufft1, 2: doc_nufft2, 3: doc_nufft3}
+
+    pts = ('x', 'y', 'z')
+    target_pts = ('s', 't', 'u')
+
+    dims = range(1, dim + 1)
+
+    v = {}
+
+    v['dim'] = dim
+    v['example'] = example
+
+    v['modes'] = ', '.join('N{}'.format(i) for i in dims)
+    v['modes_tuple'] = '(' + v['modes'] + (', ' if dim == 1 else '') + ')'
+    v['pt_idx'] = ', '.join('k{}'.format(i) for i in dims)
+    v['pt_spacing'] = ' ' * (len(v['pt_idx']) - 2)
+    v['pt_inner'] = ' + '.join('k{0} {1}(j)'.format(i, x) for i, x in zip(dims, pts[:dim]))
+    v['pt_constraint'] = ', '.join('-N{0}/2 <= k{0} <= (N{0}-1)/2'.format(i) for i in dims)
+    v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid only in [-3pi, 3pi].'.format(x) for x in pts[:dim])
+
+    # for type 3 only
+    v['src_pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform source points.'.format(x) for x in pts[:dim])
+    v['target_pts_doc'] = '\n'.join('      {}         (float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
+    v['pt_inner_type3'] = ' + '.join('{0}[k] {1}[j]'.format(s, x) for s, x in zip(target_pts[:dim], pts[:dim]))
+
+    if dim > 1:
+        v['pt_inner'] = '(' + v['pt_inner'] + ')'
+        v['pt_inner_type3'] = '(' + v['pt_inner_type3'] + ')'
+
+    f.__doc__ = doc_nufft[tp].format(**v)
+
+
 ### easy interfaces
 ### 1d1
 def nufft1d1(x,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
-    """1D type-1 (aka adjoint) complex nonuniform fast Fourier transform
-  
-    ::
-  
-               nj-1
-      f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
-               j=0
-  
-    Args:
-      x     (float[nj]): nonuniform source points, valid only in [-3pi,3pi]
-      c     (complex[nj] or complex[nj,ntransf]): source strengths
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      ms    (int): number of Fourier modes requested, may be even or odd;
-            in either case the modes are integers lying in [-ms/2, (ms-1)/2]
-      out   (complex[ms] or complex[ms,ntransf]): output Fourier mode values. Should be initialized as a
-            numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python/examples/simple1d1.py``
-    """
     return invoke_guru(1,1,x,None,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 1d2
 def nufft1d2(x,f,out=None,eps=1e-6,isign=-1,**kwargs):
-    """1D type-2 (aka forward) complex nonuniform fast Fourier transform
-  
-    ::
-  
-      c[j] = SUM   f[k1] exp(+/-i k1 x[j])      for j = 0,...,nj-1
-              k1
-  
-  	where sum is over -ms/2 <= k1 <= (ms-1)/2.
-  
-    Args:
-      x     (float[nj]): nonuniform target points, valid only in [-3pi,3pi]
-      f     (complex[ms] or complex[ms,ntransf]): Fourier mode coefficients, where ms is even or odd
-            In either case the mode indices are integers in [-ms/2, (ms-1)/2]
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      out   (complex[nj] or complex[nj,ntransf]): output values at targets. Should be initialized as a
-            numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python_tests/accuracy_speed_tests.py``
-    """
     return invoke_guru(1,2,x,None,None,out,None,None,None,f,isign,eps,None,**kwargs)
 
 
 ### 1d3
 def nufft1d3(x,c,s,out=None,eps=1e-6,isign=1,**kwargs):
-    """1D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
-  
-    ::
-  
-  	     nj-1
-      f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 0, ..., nk-1
-  	     j=0
-  
-    Args:
-      x     (float[nj]): nonuniform source points, in R
-      c     (complex[nj] or complex[nj,ntransf]): source strengths
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      s     (float[nk]): nonuniform target frequency points, in R
-      out   (complex[nk] or complex[nk,ntransf]): output values at target frequencies.
-            Should be initialized as a numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python/tests/accuracy_speed_tests.py``
-    """
     return invoke_guru(1,3,x,None,None,c,s,None,None,out,isign,eps,None,**kwargs)
 
 
 ### 2d1
 def nufft2d1(x,y,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
-    """2D type-1 (aka adjoint) complex nonuniform fast Fourier transform
-  
-    ::
-  
-  	            nj-1
-  	f(k1,k2) =  SUM c[j] exp(+/-i (k1 x(j) + k2 y[j])),
-  	            j=0
-  	                  for -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2
-  
-    Args:
-      x     (float[nj]): nonuniform source x-coords, valid only in [-3pi,3pi]
-      y     (float[nj]): nonuniform source y-coords, valid only in [-3pi,3pi]
-      c     (complex[nj] or complex[nj,ntransf]): source strengths
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      ms    (int): number of Fourier modes in x-direction, may be even or odd;
-            in either case the modes are integers lying in [-ms/2, (ms-1)/2]
-      mt    (int): number of Fourier modes in y-direction, may be even or odd;
-            in either case the modes are integers lying in [-mt/2, (mt-1)/2]
-      out   (complex[ms,mt] or complex[ms,mt,ntransf]): output Fourier mode values.
-            Should be initialized as a Fortran-ordered (ie ms fast, mt slow) numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python/tests/accuracy_speed_tests.py``
-    """
     return invoke_guru(2,1,x,y,None,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 2d2
 def nufft2d2(x,y,f,out=None,eps=1e-6,isign=-1,**kwargs):
-    """2D type-2 (aka forward) complex nonuniform fast Fourier transform
-  
-    ::
-  
-      c[j] =   SUM   f[k1,k2] exp(+/-i (k1 x[j] + k2 y[j])),  for j = 0,...,nj-1
-  	    k1,k2
-  
-      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2
-  
-    Args:
-      x     (float[nj]): nonuniform target x-coords, valid only in [-3pi,3pi]
-      y     (float[nj]): nonuniform target y-coords, valid only in [-3pi,3pi]
-      f     (complex[ms,mt] or complex[ms,mt,ntransf]): Fourier mode coefficients, where ms and mt are
-            either even or odd; in either case
-  	    their mode range is integers lying in [-m/2, (m-1)/2], with
-  	    mode ordering in all dimensions given by modeord.  Ordering is Fortran-style, ie ms fastest.
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      out   (complex[nj] or complex[nj,ntransf]): output values at targets. Should be initialized as a
-            numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python_tests/accuracy_speed_tests.py``
-    """
     return invoke_guru(2,2,x,y,None,out,None,None,None,f,isign,eps,None,**kwargs)
 
 
 ### 2d3
 def nufft2d3(x,y,c,s,t,out=None,eps=1e-6,isign=1,**kwargs):
-    """2D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
-  
-    ::
-  
-               nj-1
-      f[k]  =  SUM   c[j] exp(+-i s[k] x[j] + t[k] y[j]),  for k = 0,...,nk-1
-               j=0
-  
-    Args:
-      x     (float[nj]): nonuniform source point x-coords, in R
-      y     (float[nj]): nonuniform source point y-coords, in R
-      c     (complex[nj] or complex[nj,ntransf]): source strengths
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      s     (float[nk]): nonuniform target x-frequencies, in R
-      t     (float[nk]): nonuniform target y-frequencies, in R
-      out   (complex[nk] or complex[nk,ntransf]): output values at target frequencies.
-            Should be initialized as a numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python_tests/accuracy_speed_tests.py``
-  """
     return invoke_guru(2,3,x,y,None,c,s,t,None,out,isign,eps,None,**kwargs)
 
 
 ### 3d1
 def nufft3d1(x,y,z,c,n_modes=None,out=None,eps=1e-6,isign=1,**kwargs):
-    """3D type-1 (aka adjoint) complex nonuniform fast Fourier transform
-  
-    ::
-  
-  	           nj-1
-      f(k1,k2,k3) =  SUM c[j] exp(+/-i (k1 x(j) + k2 y[j] + k3 z[j])),
-  	           j=0
-         for -ms/2 <= k1 <= (ms-1)/2,
-  	   -mt/2 <= k2 <= (mt-1)/2,  -mu/2 <= k3 <= (mu-1)/2
-  
-    Args:
-      x     (float[nj]): nonuniform source x-coords, valid only in [-3pi,3pi]
-      y     (float[nj]): nonuniform source y-coords, valid only in [-3pi,3pi]
-      z     (float[nj]): nonuniform source z-coords, valid only in [-3pi,3pi]
-      c     (complex[nj] or complex[nj,ntransf]): source strengths
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      ms    (int): number of Fourier modes in x-direction, may be even or odd;
-            in either case the modes are integers lying in [-ms/2, (ms-1)/2]
-      mt    (int): number of Fourier modes in y-direction, may be even or odd;
-            in either case the modes are integers lying in [-mt/2, (mt-1)/2]
-      mu    (int): number of Fourier modes in z-direction, may be even or odd;
-            in either case the modes are integers lying in [-mu/2, (mu-1)/2]
-      out   (complex[ms,mt,mu] or complex[ms,mt,mu,ntransf]): output Fourier mode values. 
-            Should be initialized as a Fortran-ordered (ie ms fastest) numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python_tests/accuracy_speed_tests.py``
-    """
     return invoke_guru(3,1,x,y,z,c,None,None,None,out,isign,eps,n_modes,**kwargs)
 
 
 ### 3d2
 def nufft3d2(x,y,z,f,out=None,eps=1e-6,isign=-1,**kwargs):
-    """3D type-2 (aka forward) complex nonuniform fast Fourier transform
-  
-    ::
-  
-      c[j] =   SUM   f[k1,k2,k3] exp(+/-i (k1 x[j] + k2 y[j] + k3 z[j])).
-  	   k1,k2,k3
-  	             for j = 0,...,nj-1,  where sum is over
-      -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2, -mu/2 <= k3 <= (mu-1)/2
-  
-    Args:
-      x     (float[nj]): nonuniform target x-coords, valid only in [-3pi,3pi]
-      y     (float[nj]): nonuniform target y-coords, valid only in [-3pi,3pi]
-      z     (float[nj]): nonuniform target z-coords, valid only in [-3pi,3pi]
-      f     (complex[ms,mt,mu] or complex[ms,mt,mu,ntransf]): Fourier mode coefficients, where ms, mt and mu
-            are either even or odd; in either case
-  	    their mode range is integers lying in [-m/2, (m-1)/2], with
-  	    mode ordering in all dimensions given by modeord. Ordering is Fortran-style, ie ms fastest.
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      out   (complex[nj] or complex[nj,ntransf]): output values at targets. Should be initialized as a
-            numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python_tests/accuracy_speed_tests.py``
-    """
     return invoke_guru(3,2,x,y,z,out,None,None,None,f,isign,eps,None,**kwargs)
 
 
 ### 3d3
 def nufft3d3(x,y,z,c,s,t,u,out=None,eps=1e-6,isign=1,**kwargs):
-    """3D type-3 (NU-to-NU) complex nonuniform fast Fourier transform
-  
-    ::
-  
-               nj-1
-      f[k]  =  SUM   c[j] exp(+-i s[k] x[j] + t[k] y[j] + u[k] z[j]),
-               j=0
-  	                                               for k = 0,...,nk-1
-  
-    Args:
-      x     (float[nj]): nonuniform source point x-coords, in R
-      y     (float[nj]): nonuniform source point y-coords, in R
-      z     (float[nj]): nonuniform source point z-coords, in R
-      c     (complex[nj] or complex[nj,ntransf]): source strengths
-      isign (int): if >=0, uses + sign in exponential, otherwise - sign
-      eps   (float): precision requested (>1e-16)
-      s     (float[nk]): nonuniform target x-frequencies, in R
-      t     (float[nk]): nonuniform target y-frequencies, in R
-      u     (float[nk]): nonuniform target z-frequencies, in R
-      out   (complex[nk] or complex[nk,ntransf]): output values at target frequencies.
-            Should be initialized as a numpy array of the correct size
-      **kwargs (nufft_opts + dtype, optional): nufft option fields and precision type as keyword arguments
-  
-    .. note::
-  
-      The output is written into the out array if supplied.
-  
-    Returns:
-      ndarray of the result
-  
-    Example:
-      see ``python_tests/accuracy_speed_tests.py``
-    """
     return invoke_guru(3,3,x,y,z,c,s,t,u,out,isign,eps,None,**kwargs)
+
+
+_set_nufft_doc(nufft1d1, 1, 1, 'python/examples/simple1d1.py')
+_set_nufft_doc(nufft1d2, 1, 2)
+_set_nufft_doc(nufft1d3, 1, 3)
+_set_nufft_doc(nufft2d1, 2, 1)
+_set_nufft_doc(nufft2d2, 2, 2)
+_set_nufft_doc(nufft2d3, 2, 3)
+_set_nufft_doc(nufft3d1, 3, 1)
+_set_nufft_doc(nufft3d2, 3, 2)
+_set_nufft_doc(nufft3d3, 3, 3)
