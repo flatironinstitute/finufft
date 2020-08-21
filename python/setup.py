@@ -92,7 +92,7 @@ elif sys.platform == "darwin":
         libraries.append("omp")
 
 ext_modules = [Extension(
-        'finufftpy/finufftpy_cpp',
+        'finufftpy/finufft',
         ['finufftpy/finufftpy.cpp'],
         include_dirs=[
             # Path to pybind11 headers

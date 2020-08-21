@@ -19,6 +19,8 @@ CC = gcc
 FC = gfortran
 CLINK = -lstdc++
 FLINK = $(CLINK)
+# Python version, we use python3 by default...
+PYTHON = python3
 # baseline compile flags for GCC (no multithreading):
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++.
@@ -326,22 +328,22 @@ mex: matlab/finufft.mw
 # python ---------------------------------------------------------------------
 # python interfaces (v3 assumed)...
 python: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; pip install .)
+	(export FINUFFT_DIR=$(shell pwd); cd python; PYTHON -m pip install .)
 # note to devs: if trouble w/ numpy, use: pip install . --no-deps
-	python python/test/run_accuracy_tests.py
-	python python/examples/simple1d1.py
-	python python/examples/simpleopts1d1.py
-	python python/examples/guru1d1.py
-	python python/examples/guru1d1f.py
-	python python/examples/simple2d1.py
-	python python/examples/many2d1.py
-	python python/examples/guru2d1.py
-	python python/examples/guru2d1f.py
+	PYTHON python/test/run_accuracy_tests.py
+	PYTHON python/examples/simple1d1.py
+	PYTHON python/examples/simpleopts1d1.py
+	PYTHON python/examples/guru1d1.py
+	PYTHON python/examples/guru1d1f.py
+	PYTHON python/examples/simple2d1.py
+	PYTHON python/examples/many2d1.py
+	PYTHON python/examples/guru2d1.py
+	PYTHON python/examples/guru2d1f.py
 
 
 # python packaging: *** please document these in make tasks echo above...
 wheel: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; python -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
+	(export FINUFFT_DIR=$(shell pwd); cd python; PYTHON -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
 
 docker-wheel:
 	docker run --rm -e package_name=finufftpy -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/python/ci/build-wheels.sh

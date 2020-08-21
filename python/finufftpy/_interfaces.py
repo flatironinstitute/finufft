@@ -11,16 +11,16 @@
 # google-style docstrings for napoleon
 
 
-import finufftpy.finufftpy_cpp as finufftpy_cpp
+import finufftpy.finufft as finufft
 import numpy as np
 import warnings
 import numbers
 
 
-from finufftpy.finufftpy_cpp import default_opts
-from finufftpy.finufftpy_cpp import nufft_opts
-from finufftpy.finufftpy_cpp import finufft_plan
-from finufftpy.finufftpy_cpp import finufftf_plan
+from finufftpy.finufft import default_opts
+from finufftpy.finufft import nufft_opts
+from finufftpy.finufft import finufft_plan
+from finufftpy.finufft import finufftf_plan
 
 
 ### Plan class definition
@@ -60,9 +60,9 @@ class Plan:
 
         # call makeplan based on precision type
         if is_single:
-            ier = finufftpy_cpp.makeplanf(tp,dim,n_modes,iflag,n_trans,eps,plan,opts)
+            ier = finufft.makeplanf(tp,dim,n_modes,iflag,n_trans,eps,plan,opts)
         else:
-            ier = finufftpy_cpp.makeplan(tp,dim,n_modes,iflag,n_trans,eps,plan,opts)
+            ier = finufft.makeplan(tp,dim,n_modes,iflag,n_trans,eps,plan,opts)
 
         # check error
         if ier != 0:
@@ -98,11 +98,11 @@ class Plan:
 
             # call set pts for single prec plan
             if self.dim == 1:
-                ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
+                ier = finufft.setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
             elif self.dim == 2:
-                ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._yjf,self._xjf,self._zjf,self.nk,self._tf,self._sf,self._uf)
+                ier = finufft.setptsf(self.inner_plan,self.nj,self._yjf,self._xjf,self._zjf,self.nk,self._tf,self._sf,self._uf)
             elif self.dim == 3:
-                ier = finufftpy_cpp.setptsf(self.inner_plan,self.nj,self._zjf,self._yjf,self._xjf,self.nk,self._uf,self._tf,self._sf)
+                ier = finufft.setptsf(self.inner_plan,self.nj,self._zjf,self._yjf,self._xjf,self.nk,self._uf,self._tf,self._sf)
             else:
                 raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
         else:
@@ -121,11 +121,11 @@ class Plan:
 
             # call set pts for double prec plan
             if self.dim == 1:
-                ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
+                ier = finufft.setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
             elif self.dim == 2:
-                ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._yj,self._xj,self._zj,self.nk,self._t,self._s,self._u)
+                ier = finufft.setpts(self.inner_plan,self.nj,self._yj,self._xj,self._zj,self.nk,self._t,self._s,self._u)
             elif self.dim == 3:
-                ier = finufftpy_cpp.setpts(self.inner_plan,self.nj,self._zj,self._yj,self._xj,self.nk,self._u,self._t,self._s)
+                ier = finufft.setpts(self.inner_plan,self.nj,self._zj,self._yj,self._xj,self.nk,self._u,self._t,self._s)
             else:
                 raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
 
@@ -186,14 +186,14 @@ class Plan:
         # call execute based on type and precision type
         if tp==1 or tp==3:
             if is_single:
-                ier = finufftpy_cpp.executef(self.inner_plan,_data,_out)
+                ier = finufft.executef(self.inner_plan,_data,_out)
             else:
-                ier = finufftpy_cpp.execute(self.inner_plan,_data,_out)
+                ier = finufft.execute(self.inner_plan,_data,_out)
         elif tp==2:
             if is_single:
-                ier = finufftpy_cpp.executef(self.inner_plan,_out,_data)
+                ier = finufft.executef(self.inner_plan,_out,_data)
             else:
-                ier = finufftpy_cpp.execute(self.inner_plan,_out,_data)
+                ier = finufft.execute(self.inner_plan,_out,_data)
         else:
             ier = 10
 
@@ -402,9 +402,9 @@ def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
 
 ### check if it's a single precision plan
 def is_single_plan(plan):
-    if type(plan) is finufftpy_cpp.finufftf_plan:
+    if type(plan) is finufft.finufftf_plan:
         return True
-    elif type(plan) is finufftpy_cpp.finufft_plan:
+    elif type(plan) is finufft.finufft_plan:
         return False
     else:
         raise RuntimeError('FINUFFT invalid plan type')
@@ -443,9 +443,9 @@ def setkwopts(opt,**kwargs):
 ### destroy
 def destroy(plan):
     if is_single_plan(plan):
-        ier = finufftpy_cpp.destroyf(plan)
+        ier = finufft.destroyf(plan)
     else:
-        ier = finufftpy_cpp.destroy(plan)
+        ier = finufft.destroy(plan)
 
     if ier != 0:
         err_handler(ier)
