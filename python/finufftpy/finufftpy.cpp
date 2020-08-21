@@ -2,7 +2,7 @@
 // Dan Foreman-Mackey, Jeremy Magland, and Alex Barnett.
 //
 // Warning: users should not call the below-defined routines
-// finufftpy.finufftpy_cpp.* from python.
+// finufftpy.finufft.* from python.
 // Rather, they should call finufftpy.nufftpy?d?  which are documented in
 // _interfaces.py
 #include <iostream>
@@ -97,7 +97,7 @@ int destroyf(pyfinufftf_plan &plan){
 }
 
 
-PYBIND11_MODULE(finufftpy_cpp, m) {
+PYBIND11_MODULE(finufft, m) {
     m.doc() = "pybind11 finufft plugin"; // optional module docstring
 
     // functions
