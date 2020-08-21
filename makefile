@@ -1,4 +1,4 @@
-# Makefile for FINUFFT, v1.2
+# Makefile for FINUFFT
 
 # For simplicity, this is the only makefile; there are no makefiles in
 # subdirectories. This makefile is useful to show humans how to compile
@@ -19,7 +19,7 @@ CC = gcc
 FC = gfortran
 CLINK = -lstdc++
 FLINK = $(CLINK)
-# Python version, we use python3 by default...
+# Python version: we use python3 by default, but you may need to change...
 PYTHON = python3
 # baseline compile flags for GCC (no multithreading):
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
@@ -326,27 +326,26 @@ mex: matlab/finufft.mw
 
 
 # python ---------------------------------------------------------------------
-# python interfaces (v3 assumed)...
 python: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; PYTHON -m pip install .)
-# note to devs: if trouble w/ numpy, use: pip install . --no-deps
-	PYTHON python/test/run_accuracy_tests.py
-	PYTHON python/examples/simple1d1.py
-	PYTHON python/examples/simpleopts1d1.py
-	PYTHON python/examples/guru1d1.py
-	PYTHON python/examples/guru1d1f.py
-	PYTHON python/examples/simple2d1.py
-	PYTHON python/examples/many2d1.py
-	PYTHON python/examples/guru2d1.py
-	PYTHON python/examples/guru2d1f.py
-
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip install .)
+# note to devs: if trouble w/ NumPy, use: pip install . --no-deps
+	$(PYTHON) python/test/run_accuracy_tests.py
+	$(PYTHON) python/examples/simple1d1.py
+	$(PYTHON) python/examples/simpleopts1d1.py
+	$(PYTHON) python/examples/guru1d1.py
+	$(PYTHON) python/examples/guru1d1f.py
+	$(PYTHON) python/examples/simple2d1.py
+	$(PYTHON) python/examples/many2d1.py
+	$(PYTHON) python/examples/guru2d1.py
+	$(PYTHON) python/examples/guru2d1f.py
 
 # python packaging: *** please document these in make tasks echo above...
 wheel: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; PYTHON -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
 
 docker-wheel:
 	docker run --rm -e package_name=finufftpy -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/python/ci/build-wheels.sh
+
 
 
 # =============================== DOCUMENTATION =============================
@@ -358,6 +357,7 @@ finufft-manual.pdf: docs/*.doc docs/*.sh docs/*.rst
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
 	(cd matlab; ./addmhelp.sh)
 	(cd docs; ./genmatlabhelp.sh)
+
 
 
 # =============================== CLEAN UP ==================================
