@@ -61,7 +61,7 @@ Here we plot the FFT solution:
   subplot(1,2,2); imagesc(x,x,u'); colorbar('southoutside');
   axis xy equal tight; title('FFT solution u'); xlabel('x'); ylabel('y');
 
-.. image:: pics/pois_fft.png
+.. image:: ../pics/pois_fft.png
    :width: 90%
            
 Now let's say you wish to do a similar Poisson solve on a **non-Cartesian grid** covering the same
@@ -100,7 +100,7 @@ noting that it covers the domain when periodically extended:
   f = src(xx,yy);
   figure; mesh(xx,yy,f); view(2); axis equal; axis([0 2*pi 0 2*pi]); title('f on mesh');
 
-.. image:: pics/pois_nugrid.png
+.. image:: ../pics/pois_nugrid.png
    :width: 40%
            
 To solve on this grid, replace step 1 above by evaluating the Euler-Fourier formula using the quadrature scheme, which needs a type-1 NUFFT, and step 3 (evaluation on the nonuniform grid) by a type-2 NUFFT. Step 2 (the frequency filter) remains the same. Here is the demo code:
@@ -143,13 +143,13 @@ and matches the FFT solution at the test point to 12 relative digits::
   n=200:	Nk=100	u(0,0) = 1.549852191076891e-03
   n=240:	Nk=120	u(0,0) = 1.549852191077001e-03
 
-.. image:: pics/pois_nufft.png
+.. image:: ../pics/pois_nufft.png
    :width: 90%
            
 Finally, here is the decay of the modes $\hat{f}_k$ on a log plot, for the
 FFT and NUFFT versions. They are identical down to the level ``tol``:
 
-.. image:: pics/pois_fhat.png
+.. image:: ../pics/pois_fhat.png
    :width: 90%
            
 The full code is at

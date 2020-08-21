@@ -67,7 +67,7 @@ multithreaded summation. (Naive summation with reversed loop order is even worse
   jplot = 1:Mp;           % indices to plot
   plot(x(jplot),real(c(jplot)),'b.'); axis tight; xlabel('x'); ylabel('Re f(x)');
 
-.. image:: pics/fser1d.png
+.. image:: ../pics/fser1d.png
    :width: 90%
  
 See the full code `matlab/examples/serieseval1d.m <https://github.com/flatironinstitute/finufft/blob/master/matlab/examples/serieseval1d.m>`_ which also shows
@@ -127,7 +127,7 @@ Finally we use a colored scatter plot to show the first $10\%$ of the points in 
   scatter(x(jplot),y(jplot),1.0,real(c(jplot)),'filled'); axis tight equal
   xlabel('x'); ylabel('y'); colorbar; title('Re f(x,y)');
                 
-.. image:: pics/fser2d.png
+.. image:: ../pics/fser2d.png
    :width: 70%
  
 See the full code `matlab/examples/serieseval2d.m <https://github.com/flatironinstitute/finufft/blob/master/matlab/examples/serieseval2d.m>`_.
