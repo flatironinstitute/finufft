@@ -1,0 +1,8 @@
+MATLAB/octave example drivers for FINUFFT.
+
+Please also see:
+
+../test/check_finufft.m for examples of eleven types of transform calls in double-precision.
+../test/check_finufft_single.m for examples of eleven types of transform calls in single-precision.
+
+../../tutorial/*.m many of which are in MATLAB.
