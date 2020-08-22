@@ -11,8 +11,8 @@ Namely, we use f77, with two features from f90: dynamic allocation
 and derived types. The latter is only needed if options must be
 changed from default values.
 
-Simple example
-~~~~~~~~~~~~~~
+Quick-start example
+~~~~~~~~~~~~~~~~~~~~~~
 
 To perform a double-precision 1D type 1 transform from ``M`` nonuniform points ``xj``
 with strengths ``cj``, to ``N`` output modes whose coefficients will be written
@@ -105,7 +105,8 @@ simply differs by an ``fftshift`` (as it is commonly called).
 Summary of Fortran interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The naming of routines is as in C/C++.
+The names of routines and the meanings of all arguments is identical
+to the :ref:`C/C++ routines <c>`.
 Eg, ``finufft2d3`` means double-precision 2D transform of type 3.
 ``finufft2d3many`` means applying double-precision
 2D transforms of type 3 to a stack of many
@@ -113,7 +114,8 @@ strength vectors (vectorized interface).
 ``finufft2d3f`` means single-precision 2D type 3.
 The guru interface has very similar arguments to its C/C++ version.
 Compared to C/C++, all argument lists have ``ier`` appended at the end,
-to which the status is written.
+to which the status is written; this is the same as the return value
+in the C/C++ interfaces.
 These routines and arguments are, in double-precision:
 
 .. code-block:: fortran

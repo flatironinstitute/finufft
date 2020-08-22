@@ -33,7 +33,7 @@ figure(2); subplot(1,2,1); imagesc(x,x,f'); colorbar('southoutside');  % show it
 axis xy equal tight; title('source term f'); xlabel('x'); ylabel('y');
 subplot(1,2,2); imagesc(x,x,u'); colorbar('southoutside');
 axis xy equal tight; title('FFT solution u'); xlabel('x'); ylabel('y'); drawnow
-set(gcf,'paperposition',[0 0 10 5]); print -dpng ../../docs/pics/pois_fft.png
+set(gcf,'paperposition',[0 0 10 5]); print -dpng ../docs/pics/pois_fft.png
 
 % B) solve on general nonuniform tensor prod grid............................
 tol = 1e-12;       % precision

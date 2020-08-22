@@ -28,4 +28,4 @@ figure(1); clf;
 jplot = 1:1e5;          % indices to plot
 scatter(x(jplot),y(jplot),1.0,real(c(jplot)),'filled'); axis tight equal
 xlabel('x'); ylabel('y'); colorbar; title('Re f(x,y)');
-%set(gcf,'paperposition',[0 0 8 7]); print -dpng ../../docs/pics/fser2d.png
+set(gcf,'paperposition',[0 0 8 7]); print -dpng ../docs/pics/fser2d.png

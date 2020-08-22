@@ -70,7 +70,7 @@ multithreaded summation. (Naive summation with reversed loop order is even worse
 .. image:: ../pics/fser1d.png
    :width: 90%
  
-See the full code `matlab/examples/serieseval1d.m <https://github.com/flatironinstitute/finufft/blob/master/matlab/examples/serieseval1d.m>`_ which also shows
+See the full code `tutorial/serieseval1d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/serieseval1d.m>`_ which also shows
 how to evaluate the same series on a uniform grid via the plain FFT.
            
 2D Fourier series
@@ -130,7 +130,7 @@ Finally we use a colored scatter plot to show the first $10\%$ of the points in 
 .. image:: ../pics/fser2d.png
    :width: 70%
  
-See the full code `matlab/examples/serieseval2d.m <https://github.com/flatironinstitute/finufft/blob/master/matlab/examples/serieseval2d.m>`_.
+See the full code `tutorial/serieseval2d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/serieseval2d.m>`_.
 
 For background on Gaussian random fields, aka, Gaussian processes,
 see, eg, C. E. Rasmussen & C. K. I. Williams, *Gaussian Processes for Machine Learning*, the MIT Press, 2006. http://www.GaussianProcess.org/gpml

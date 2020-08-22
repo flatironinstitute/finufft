@@ -153,7 +153,7 @@ FFT and NUFFT versions. They are identical down to the level ``tol``:
    :width: 90%
            
 The full code is at
-`matlab/examples/poisson2dnuquad.m <https://github.com/flatironinstitute/finufft/blob/master/matlab/examples/poisson2dnuquad.m>`_.
+`tutorial/poisson2dnuquad.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/poisson2dnuquad.m>`_.
 
 .. note::
    If the non-Cartesian grids were of *tensor product* form,
