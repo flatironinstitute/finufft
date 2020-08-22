@@ -206,7 +206,7 @@ for your function $f$, then apply it to the Fourier integral
    \approx \sum_{j=1}^N f({\bf x}_j) e^{i{\bf k}\cdot{\bf x}_j} w_j
    :label: fint2
 
-for all "target" frequencies $k$ in your domain of interest.
+for all "target" frequencies ${\bf k}$ in your domain of interest.
 We demo the case of $f = \chi_\Omega$, the characteristic function of a
 bounde domain $\Omega \subset \mathbb{R}^2$, that is, $f({\bf x}) = 1$ for
 $x\in\Omega$, and $0$ otherwise. For simplicity, let's take
@@ -257,12 +257,13 @@ become the source strengths. We also image the result:
    :width: 70%
              
 Thus we have computed the 2D FT of a discontinous function on a million-point grid to around 10-digit accuracy in 0.05 sec (the FINUFFT transform time).
+Note that, as with 1D discontinuous functions, the decay with $k:=|{\bf k}|$ is slow (it is like $1/k$).
 See the full code `tutorial/contft2d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/contft2d.m>`_ also for the study that shows that, for the above ``kmax``, convergence to the tolerance has occurred by ``m=90`` and ``n=3*m``, needing $N=24300$ nodes. A more efficient set would vary ``n`` with $\theta$.
 
 .. note::
 
    An application of the above to optics is that $\Omega$ is a planar scatterer
-   (or its complement, via Babinet's principle) upon which a monochromatic
+   (or its complement, an aperture, via Babinet's principle) upon which a monochromatic
    plane wave is incident. The wavelength is small compared to the size
    of $\Omega$, so that a scalar Kirchhoff diffraction model is a good one.
    If a downstream planar detector is very distant (the Fraunhofer diffraction limit),
@@ -285,6 +286,5 @@ be on a regular grid. They also can be useful for known singularities
 
 Kirchhoff approximation and Fraunhofer diffraction in optics:
 
-* Born and Wolf.
+* M. Born and E. Wolf, *Principles of Optics*, 6th edition. Section 8.3.
 
-  
