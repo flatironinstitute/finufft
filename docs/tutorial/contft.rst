@@ -1,9 +1,11 @@
 .. _contft:
 
-Efficient evaluation of continuous Fourier transforms
+Efficient evaluation of (continuous) Fourier transforms
 ======================================================================
 
-Say you want to evaluate the *continuous Fourier transform* (FT) of a
+Say you want to evaluate the
+continous (as opposed to discrete)
+Fourier *transform* (FT) of a
 given function, but you do not know the analytic formula for the FT.
 You need a numerical method.
 It is common to assume that the FFT is the right tool to do this,
@@ -241,7 +243,7 @@ Note that we reduced the numbers of nodes in the plot for clarity.
 Say we want $\hat{f}$ on a 2D square grid of frequency targets.
 We apply the 2D version of the above type 1 scheme.
 The function is identically 1 in the domain, so the weights simply
-become the source strengths. We also image the result:
+become the source strengths. We also image the result on a log scale:
 
 .. code-block:: matlab
 

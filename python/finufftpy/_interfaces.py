@@ -1,14 +1,12 @@
 # finufftpy module, ie python-user-facing access to (no-data-copy) interfaces
 #
-# This is where default opts are stated (in arg list, but not docstring).
+# Some default opts are stated here (in arg list, but not docstring).
 
-# todo: pass opts as python double array, neater?
-# Note: this JFM code is an extra level of wrapping beyond DFM's style.
 # Barnett 10/31/17: changed all type-2 not to have ms,etc as an input but infer
 #                   from size of f.
+# Barnett 2018?: google-style docstrings for napoleon.
 # Lu 03/10/20: added guru interface calls
-
-# google-style docstrings for napoleon
+# Anden 8/18/20: auto-made docstrings for the 9 simple/many routines
 
 
 import finufftpy.finufft as finufft
@@ -504,7 +502,7 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     return out
 
 
-def _set_nufft_doc(f, dim, tp, example='python/tests/accuracy_speed_tests.py'):
+def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
     doc_nufft1 = \
     """{dim}D type-1 (nonuniform to uniform) complex NUFFT
 
@@ -684,10 +682,10 @@ def nufft3d3(x,y,z,c,s,t,u,out=None,eps=1e-6,isign=1,**kwargs):
     return invoke_guru(3,3,x,y,z,c,s,t,u,out,isign,eps,None,**kwargs)
 
 
-_set_nufft_doc(nufft1d1, 1, 1, 'python/examples/simple1d1.py')
+_set_nufft_doc(nufft1d1, 1, 1, 'python/examples/simple1d1.py, python/examples/simpleopts1d1.py')
 _set_nufft_doc(nufft1d2, 1, 2)
 _set_nufft_doc(nufft1d3, 1, 3)
-_set_nufft_doc(nufft2d1, 2, 1)
+_set_nufft_doc(nufft2d1, 2, 1, 'python/examples/simple2d1.py, python/examples/many2d1.py')
 _set_nufft_doc(nufft2d2, 2, 2)
 _set_nufft_doc(nufft2d3, 2, 3)
 _set_nufft_doc(nufft3d1, 3, 1)
