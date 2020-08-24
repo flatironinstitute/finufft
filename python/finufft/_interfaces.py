@@ -77,14 +77,14 @@ class Plan:
 
 
     ### setpts
-    def setpts(self,xj=None,yj=None,zj=None,s=None,t=None,u=None):
+    def setpts(self,x=None,y=None,z=None,s=None,t=None,u=None):
         is_single = is_single_plan(self.inner_plan)
 
         if is_single:
             # array sanity check
-            self._xjf = _rchkf(xj)
-            self._yjf = _rchkf(yj)
-            self._zjf = _rchkf(zj)
+            self._xjf = _rchkf(x)
+            self._yjf = _rchkf(y)
+            self._zjf = _rchkf(z)
             self._sf = _rchkf(s)
             self._tf = _rchkf(t)
             self._uf = _rchkf(u)
