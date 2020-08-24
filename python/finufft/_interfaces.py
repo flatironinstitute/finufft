@@ -23,10 +23,10 @@ from finufft._finufft import finufftf_plan
 
 ### Plan class definition
 class Plan:
-    def __init__(self,tp,n_modes_or_dim,eps=1e-6,isign=None,n_trans=1,**kwargs):
+    def __init__(self,nufft_type,n_modes_or_dim,eps=1e-6,isign=None,n_trans=1,**kwargs):
         # set default iflag based on if iflag is None
         if iflag==None:
-            if tp==2:
+            if nufft_type==2:
                 iflag = -1
             else:
                 iflag = 1
@@ -58,9 +58,9 @@ class Plan:
 
         # call makeplan based on precision type
         if is_single:
-            ier = _finufft.makeplanf(tp,dim,n_modes,iflag,n_trans,eps,plan,opts)
+            ier = _finufft.makeplanf(nufft_type,dim,n_modes,iflag,n_trans,eps,plan,opts)
         else:
-            ier = _finufft.makeplan(tp,dim,n_modes,iflag,n_trans,eps,plan,opts)
+            ier = _finufft.makeplan(nufft_type,dim,n_modes,iflag,n_trans,eps,plan,opts)
 
         # check error
         if ier != 0:
@@ -70,7 +70,7 @@ class Plan:
         self.inner_plan = plan
 
         # set properties
-        self.type = tp
+        self.type = nufft_type
         self.dim = dim
         self.n_modes = n_modes
         self.n_trans = n_trans
