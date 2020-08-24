@@ -4,15 +4,15 @@ Python interface
 Quick-start examples
 --------------------
 
-The easiest way to install is to run ``pip install finufftpy``, which downloads and installs the latest precompiled binaries from PyPI.
+The easiest way to install is to run ``pip install finufft``, which downloads and installs the latest precompiled binaries from PyPI.
 If you would like to compile from source, see :ref:`the Python installation instructions <install-python>`.
 
-To calculate a 1D type 1 transform, from nonuniform to uniform points, we import ``finufftpy``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:
+To calculate a 1D type 1 transform, from nonuniform to uniform points, we import ``finufft``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:
 
 .. code-block:: python
 
     import numpy as np
-    import finufftpy
+    import finufft
 
     # number of nonuniform points
     M = 100000
@@ -28,7 +28,7 @@ To calculate a 1D type 1 transform, from nonuniform to uniform points, we import
     N = 200000
 
     # calculate the transform
-    f = finufftpy.nufft1d1(x, c, N)
+    f = finufft.nufft1d1(x, c, N)
 
 The input here is a set of complex strengths ``c``, which are used to approximate (1) in :ref:`math`.
 That approximation is stored in ``f``, which is indexed from ``-N // 2`` up to ``N // 2 - 1`` (since ``N`` is even; if odd it would be ``-(N - 1) // 2`` up to ``(N - 1) // 2``).
@@ -38,7 +38,7 @@ It can be modified using the ``eps`` argument:
 .. code-block:: python
 
     # calculate the transform to higher accuracy
-    f = finufftpy.nufft1d1(x, c, N, eps=1e-12)
+    f = finufft.nufft1d1(x, c, N, eps=1e-12)
 
 Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform. See ``python/examples/simple1d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
 
@@ -55,7 +55,7 @@ For higher dimensions, we would specify point locations in more than one dimensi
     N2 = 2000
 
     # the 2D transform outputs f array of shape (N1, N2)
-    f = finufftpy.nufft2d1(x, y, c, (N1, N2))
+    f = finufft.nufft2d1(x, y, c, (N1, N2))
 
 See ``python/examples/simple2d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
 
@@ -68,7 +68,7 @@ We can also go the other way, from uniform to non-uniform points, using a type 2
          + 1J * np.random.standard_normal(size=(N1, N2)))
 
     # calculate the 2D type 2 transform
-    c = finufftpy.nufft2d2(x, y, f)
+    c = finufft.nufft2d2(x, y, f)
 
 Now the output is a complex vector of length ``M`` approximating (2) in :ref:`math`, that is the adjoint (but not inverse) of (1). (Note that the default sign in the exponential is negative for type 2 in the Python interface.)
 
@@ -78,7 +78,7 @@ For example, to change the mode ordering to FFT style (that is, in each dimensio
 
 .. code-block:: python
 
-    f = finufftpy.nufft2d1(x, y, c, (N1, N2), modeord=1)
+    f = finufft.nufft2d1(x, y, c, (N1, N2), modeord=1)
 
 We can also specify a preallocated output array using the ``out`` keyword argument.
 This would be done by
@@ -89,7 +89,7 @@ This would be done by
     f = np.empty((N1, N2), dtype='complex128')
 
     # calculate the transform
-    finufftpy.nufft2d1(x, y, c, out=f)
+    finufft.nufft2d1(x, y, c, out=f)
 
 In this case, we do not need to specify the output shape since it can be inferred from ``f``.
 
@@ -107,7 +107,7 @@ For the 2D type 1 vectorized interface, we would call
          + 1J * np.random.standard_normal(size=(K, M)))
 
     # calculate the K transforms simultaneously (K is inferred from c.shape)
-    f = finufftpy.nufft2d1(x, y, c, (N1, N2))
+    f = finufft.nufft2d1(x, y, c, (N1, N2))
 
 The output array ``f`` would then have the shape ``(K, N1, N2)``.
 See the complete demo in ``python/examples/many2d1.py``.
@@ -124,7 +124,7 @@ To perform the call above using the plan interface, we would write
     nufft_type = 1
 
     # instantiate the plan (note ntrans must be set here)
-    plan = finufftpy.Plan(nufft_type, (N1, N2), n_trans=K)
+    plan = finufft.Plan(nufft_type, (N1, N2), n_trans=K)
 
     # set the nonuniform points
     plan.setpts(x, y)
@@ -143,7 +143,7 @@ All interfaces support both single and double precision, but for the plan, this 
     c = c.astype('complex64')
 
     # instantiate the plan and set the points
-    plan = finufftpy.Plan(nufft_type, (N1, N2), n_trans=K, dtype='float32')
+    plan = finufft.Plan(nufft_type, (N1, N2), n_trans=K, dtype='float32')
     plan.setpts(x, y)
 
     # execute the plan, giving single-precision output
@@ -155,12 +155,12 @@ See the complete demo, with math test, in ``python/examples/guru2d1f.py``.
 Full documentation
 ------------------
 
-.. autofunction:: finufftpy.nufft1d1
-.. autofunction:: finufftpy.nufft1d2
-.. autofunction:: finufftpy.nufft1d3
-.. autofunction:: finufftpy.nufft2d1
-.. autofunction:: finufftpy.nufft2d2
-.. autofunction:: finufftpy.nufft2d3
-.. autofunction:: finufftpy.nufft3d1
-.. autofunction:: finufftpy.nufft3d2
-.. autofunction:: finufftpy.nufft3d3
+.. autofunction:: finufft.nufft1d1
+.. autofunction:: finufft.nufft1d2
+.. autofunction:: finufft.nufft1d3
+.. autofunction:: finufft.nufft2d1
+.. autofunction:: finufft.nufft2d2
+.. autofunction:: finufft.nufft2d3
+.. autofunction:: finufft.nufft3d1
+.. autofunction:: finufft.nufft3d2
+.. autofunction:: finufft.nufft3d3

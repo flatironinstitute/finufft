@@ -2,7 +2,7 @@
 # Lu 02/07/20.
 
 import time
-import finufftpy as fp
+import finufft as fp
 import numpy as np
 
 np.random.seed(42)

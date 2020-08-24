@@ -2,7 +2,7 @@
 # Barnett 8/19/20
 
 import numpy as np
-import finufftpy
+import finufft
 import time
 np.random.seed(42)
 
@@ -21,7 +21,7 @@ N = 1000000
 
 # calculate the transform
 t0 = time.time()
-f = finufftpy.nufft1d1(x, c, N, eps=1e-9)
+f = finufft.nufft1d1(x, c, N, eps=1e-9)
 print("finufft1d1 done in {0:.2g} s.".format(time.time()-t0))
 
 n = 142519   # do a math check, for a single output mode index n

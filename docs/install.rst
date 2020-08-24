@@ -124,7 +124,7 @@ This gives you compile flags that should work with ``make test`` and other tasks
   pip3 install numpy pybind11
   make python
   
-This should generate the ``finufftpy`` module.
+This should generate the ``finufft`` module.
 However, we have found that it may fail with an error about ``-lstdc++``,
 in which case you should try setting an environment variable::
 

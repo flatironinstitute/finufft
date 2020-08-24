@@ -2,7 +2,7 @@
 # Lu 8/20/20
 
 import numpy as np
-import finufftpy
+import finufft
 import time
 np.random.seed(42)
 
@@ -29,7 +29,7 @@ nufft_type = 1
 
 # instantiate the plan (note n_trans must be set here), also setting tolerance:
 t0 = time.time()
-plan = finufftpy.Plan(nufft_type, (N1, N2), eps=1e-9, n_trans=K)
+plan = finufft.Plan(nufft_type, (N1, N2), eps=1e-9, n_trans=K)
 
 # set the nonuniform points
 plan.setpts(x, y)
