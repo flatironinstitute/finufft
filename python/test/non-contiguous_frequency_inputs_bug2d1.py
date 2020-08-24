@@ -1,6 +1,6 @@
 import numpy as np
 
-from finufftpy import nufft2d1
+from finufft import nufft2d1
 
 c = np.arange(2)
 

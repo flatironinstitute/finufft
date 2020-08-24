@@ -46,4 +46,4 @@ matrix:
         - make docker-wheel
         - ls -lh python/wheelhouse/
         - mkdir -p dist
-        - cp python/wheelhouse/finufftpy*.whl dist/.
+        - cp python/wheelhouse/finufft*.whl dist/.

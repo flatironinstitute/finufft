@@ -341,10 +341,10 @@ python: $(STATICLIB) $(DYNLIB)
 
 # python packaging: *** please document these in make tasks echo above...
 wheel: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufftpy*.whl)
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufft*.whl)
 
 docker-wheel:
-	docker run --rm -e package_name=finufftpy -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/python/ci/build-wheels.sh
+	docker run --rm -e package_name=finufft -v `pwd`:/io quay.io/pypa/manylinux2010_x86_64 /io/python/ci/build-wheels.sh
 
 
 
@@ -377,7 +377,7 @@ objclean:
 
 # *** need to update this:
 pyclean:
-	rm -f python/finufftpy/*.pyc python/finufftpy/__pycache__/* python/test/*.pyc python/test/__pycache__/*
+	rm -f python/finufft/*.pyc python/finufft/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 	rm -rf python/fixed_wheel python/wheelhouse
 
 # for experts; only run this if you have mwrap to rebuild the interfaces!
