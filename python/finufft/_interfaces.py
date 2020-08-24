@@ -23,7 +23,7 @@ from finufft._finufft import finufftf_plan
 
 ### Plan class definition
 class Plan:
-    def __init__(self,tp,n_modes_or_dim,eps=1e-6,iflag=None,n_trans=1,**kwargs):
+    def __init__(self,tp,n_modes_or_dim,eps=1e-6,isign=None,n_trans=1,**kwargs):
         # set default iflag based on if iflag is None
         if iflag==None:
             if tp==2:
