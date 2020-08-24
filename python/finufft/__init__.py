@@ -3,8 +3,7 @@ interface (through the ``nufft*`` functions) and the more advanced plan
 interface (through the ``Plan`` class). The former allows the user to perform
 an NUFFT in a single call while the latter allows for more efficient reuse of
 resources when the same NUFFT is applied several times to different data by
-saving FFTW plans, sortin the non-uniform points, and so on.
-
+saving FFTW plans, sorting the nonuniform points, and so on.
 """
 
 # that was the docstring for the package finufft.
