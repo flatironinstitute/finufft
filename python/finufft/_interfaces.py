@@ -23,6 +23,68 @@ from finufft._finufft import finufftf_plan
 
 ### Plan class definition
 class Plan:
+    r"""
+    A non-uniform fast Fourier transform (NUFFT) plan
+
+    The ``Plan`` class lets the user exercise more fine-grained control over
+    the execution of an NUFFT. First, the plan is created with a certain set
+    of parameters (type, mode configuration, tolerance, sign, number of
+    simultaneous transforms, and so on). Then the nonuniform points are set
+    (source or target depending on the type). Finally, the plan is executed on
+    some data, yielding the desired output.
+
+    In the simple interface, all these steps are executed in a single call to
+    the ``nufft*`` functions. The benefit of separating plan creation from
+    execution is that it allows for plan reuse when certain parameters (like
+    mode configuration) or nonuniform points remain the same between different
+    NUFFT calls. This becomes especially important for small inputs, where
+    execution time may be dominated by initialization steps such as allocating
+    and FFTW plan and sorting the nonuniform points.
+
+    Example:
+    ::
+        import numpy as np
+        import finufft
+
+        # set up parameters
+        n_modes = (1000, 2000)
+        n_pts = 100000
+        nufft_type = 1
+        n_trans = 4
+
+        # generate nonuniform points
+        x = 2 * np.pi * np.random.uniform(size=n_pts)
+        y = 2 * np.pi * np.random.uniform(size=n_pts)
+
+        # generate source strengths
+        c = (np.random.standard_normal(size=(n_trans, n_pts)),
+             + 1J * np.random.standard_normal(size=(n_trans, n_pts)))
+
+        # initialize the plan
+        plan = finufft.Plan(nufft_type, n_modes, n_trans)
+
+        # set the nonuniform points
+        plan.setpts(x, y)
+
+        # execute the plan
+        f = plan.execute(c)
+
+    Also see ``python/examples/guru1d1.py`` and ``python/examples/guru2d1.py``.
+
+    Args:
+        nufft_type      (int): type of NUFFT (1, 2, or 3).
+        n_modes_or_dim  (int or tuple of ints): if ``nufft_type`` is 1 or 2,
+                        this should be a tuple specifying the number of modes
+                        in each dimension (for example, ``(50, 100)``),
+                        otherwise, if `nufft_type`` is 3, this should be the
+                        number of dimensions (between 1 and 3).
+        eps             (float, optional): precision requested (>1e-16).
+        isign           (int, optional): if non-negative, uses positive sign
+                        exponential, otherwise negative sign.
+        n_trans         (int, optional): number of transforms to compute
+                        simultaneously.
+        **kwargs        (optional): for more options, see :ref:`opts`.
+    """
     def __init__(self,nufft_type,n_modes_or_dim,eps=1e-6,isign=None,n_trans=1,**kwargs):
         # set default iflag based on if iflag is None
         if iflag==None:
@@ -78,6 +140,32 @@ class Plan:
 
     ### setpts
     def setpts(self,x=None,y=None,z=None,s=None,t=None,u=None):
+        r"""
+        Set the nonuniform points
+
+        For type 1, this sets the coordinates of the ``M`` nonuniform source
+        points, for type 2, it sets the coordinates of the ``M`` target
+        points, and for type 3 it sets both the ``M`` source points and the
+        ``N`` target points.
+
+        The dimension of the plan determines the number of arguments supplied.
+        For example, if ``dim == 2``, we provide ``x`` and ``y`` (as well as
+        ``s`` and ``t`` for a type-3 transform).
+
+        Args:
+            x       (float[M]): first coordinate of the nonuniform points
+                    (source for type 1 and 3, target for type 2).
+            y       (float[M], optional): second coordinate of the nonuniform
+                    points (source for type 1 and 3, target for type 2).
+            z       (float[M], optional): third coordinate of the nonuniform
+                    points (source for type 1 and 3, target for type 2).
+            s       (float[N], optional): first coordinate of the nonuniform
+                    points (target for type 3).
+            t       (float[N], optional): second coordinate of the nonuniform
+                    points (target for type 3).
+            u       (float[N], optional): third coordinate of the nonuniform
+                    points (target for type 3).
+        """
         is_single = is_single_plan(self.inner_plan)
 
         if is_single:
@@ -133,6 +221,26 @@ class Plan:
 
     ### execute
     def execute(self,data,out=None):
+        r"""
+        Execute the plan
+
+        Performs the NUFFT specified at plan instantiation with the points set
+        by ``setpts``. For type-1 and type-3 transforms, the input is a set of
+        source strengths, while for a type-2 transform, it consists of an
+        array of size ``n_modes``. If ``n_transf`` is greater than one,
+        ``n_transf`` inputs are expected, stacked along the first axis.
+
+        Args:
+            data    (complex[M], complex[n_transf, M], complex[n_modes], or
+                    complex[n_transf, n_modes]): The input source strengths
+                    (type 1 and 3) or source modes (type 2).
+            out     (complex[n_modes], complex[n_transf, n_modes], complex[M],
+                    or complex[n_transf, M], optional): The array where the
+                    output is stored. Must be of the right size.
+
+        Returns:
+            complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The resulting array.
+        """
         is_single = is_single_plan(self.inner_plan)
 
         if is_single:
