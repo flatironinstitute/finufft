@@ -155,12 +155,6 @@ See the complete demo, with math test, in ``python/examples/guru2d1f.py``.
 Full documentation
 ------------------
 
-.. autofunction:: finufft.nufft1d1
-.. autofunction:: finufft.nufft1d2
-.. autofunction:: finufft.nufft1d3
-.. autofunction:: finufft.nufft2d1
-.. autofunction:: finufft.nufft2d2
-.. autofunction:: finufft.nufft2d3
-.. autofunction:: finufft.nufft3d1
-.. autofunction:: finufft.nufft3d2
-.. autofunction:: finufft.nufft3d3
+.. automodule:: finufft
+    :members:
+    :member-order: bysource
