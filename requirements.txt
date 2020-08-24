@@ -1,3 +1,0 @@
-pybind11
-numpy
-python-dotenv
