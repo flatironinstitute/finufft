@@ -7,7 +7,7 @@ g = @(t) 1 + 0.3*cos(3*t);                             % boundary shape
 n = 300;                                               % # theta nodes
 t = 2*pi*(1:n)/n; wt = (2*pi/n);                       % theta nodes, const weights
 bx = cos(t).*g(t); by = sin(t).*g(t);                  % boundary points
-m = 100;                                               % # r nodes
+m = 70;                                               % # r nodes
 [xr,wr] = lgwt(m,0,1);                                 % rule for (0,1)
 xj = nan(n*m,1); yj = xj; wj = xj;
 for i=1:n                                              % loop over angles
@@ -32,13 +32,14 @@ toc
 
 figure(2); clf; imagesc(k1,k1,log10(abs(fhat))'); axis xy equal tight;
 %set(gca,'ydir','normal');
+caxis([-4 .4]);
 colorbar; xlabel('k_1'); ylabel('k_2'); title('2D Fourier transform $\log_{10} |\hat{f}({\bf k})|$, where ${\bf k}:=(k_1,k_2)$','interpreter','latex');
 set(gcf,'paperposition',[0 0 6 6]); print -dpng ../docs/pics/contft2dans.png
 
-% convergence study... (repeats most of the above)
+% convergence study... (repeats most of the above): n=70, m=280 good for 1e-10
 ms = 50:10:120;
 clear fhats errsup
-for i=1:numel(ms), m = ms(i); n = ceil(3.0*m);
+for i=1:numel(ms), m = ms(i); n=300;
   t = 2*pi*(1:n)/n; wt = (2*pi/n);                       % theta nodes, const weight
   bx = cos(t).*g(t); by = sin(t).*g(t);                  % boundary points
   [xr,wr] = lgwt(m,0,1);                                 % rule for (0,1)

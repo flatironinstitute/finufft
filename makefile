@@ -351,7 +351,7 @@ docker-wheel:
 # =============================== DOCUMENTATION =============================
 
 docs: finufft-manual.pdf
-finufft-manual.pdf: docs/*.doc docs/*.sh docs/*.rst python/finufftpy/_interfaces.py
+finufft-manual.pdf: docs/*.doc docs/*.sh docs/*.rst python/finufft/_interfaces.py
 # first rebuild the python module so autodoc sees the right docstrings there...
 	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip install .)
 # also builds a local html for local browser check too...

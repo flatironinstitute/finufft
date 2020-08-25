@@ -223,10 +223,10 @@ Here is a fresh code to make this quadrature over $\Omega$:
 .. code-block:: matlab
                 
  g = @(t) 1 + 0.3*cos(3*t);                             % boundary shape
- n = 270;                                               % # theta nodes
+ n = 280;                                               % # theta nodes
  t = 2*pi*(1:n)/n; wt = (2*pi/n);                       % theta nodes, const weights
  bx = cos(t).*g(t); by = sin(t).*g(t);                  % boundary points
- m = 90;                                                % # r nodes
+ m = 70;                                                % # r nodes
  [xr,wr] = lgwt(m,0,1);                                 % rule for (0,1)
  xj = nan(n*m,1); yj = xj; wj = xj;
  for i=1:n                                              % loop over angles
@@ -260,7 +260,7 @@ become the source strengths. We also image the result on a log scale:
              
 Thus we have computed the 2D FT of a discontinous function on a million-point grid to around 10-digit accuracy in 0.05 sec (the FINUFFT transform time).
 Note that, as with 1D discontinuous functions, the decay with $k:=|{\bf k}|$ is slow (it is like $1/k$).
-See the full code `tutorial/contft2d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/contft2d.m>`_ also for the study that shows that, for the above ``kmax``, convergence to the tolerance has occurred by ``m=90`` and ``n=3*m``, needing $N=24300$ nodes. A more efficient set would vary ``n`` with $\theta$.
+See the full code `tutorial/contft2d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/contft2d.m>`_ also for the study that shows that, for the above ``kmax``, convergence to the tolerance has occurred by ``n=280`` and ``m=70``, needing $N=19600$ nodes. A more efficient set would vary ``m`` with $\theta$.
 
 .. note::
 
