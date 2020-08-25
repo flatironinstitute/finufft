@@ -78,14 +78,14 @@ class Plan:
                         in each dimension (for example, ``(50, 100)``),
                         otherwise, if `nufft_type`` is 3, this should be the
                         number of dimensions (between 1 and 3).
+        n_trans         (int, optional): number of transforms to compute
+                        simultaneously.
         eps             (float, optional): precision requested (>1e-16).
         isign           (int, optional): if non-negative, uses positive sign
                         exponential, otherwise negative sign.
-        n_trans         (int, optional): number of transforms to compute
-                        simultaneously.
         **kwargs        (optional): for more options, see :ref:`opts`.
     """
-    def __init__(self,nufft_type,n_modes_or_dim,eps=1e-6,isign=None,n_trans=1,**kwargs):
+    def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,**kwargs):
         # set default iflag based on if iflag is None
         if iflag==None:
             if nufft_type==2:
