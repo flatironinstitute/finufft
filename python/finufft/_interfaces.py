@@ -632,9 +632,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       out       (complex[{modes}] or complex[ntransf, {modes}], optional): output array
                 for Fourier mode values. If ``n_modes`` is specifed, the shape
                 must match, otherwise ``n_modes`` is inferred from ``out``.
+      eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
-      eps       (float, optional): precision requested (>1e-16).
       **kwargs  (optional): for more options, see :ref:`opts`.
 
     .. note::
@@ -665,9 +665,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
                 the mode indices {pt_idx} satisfy {pt_constraint}.
       out       (complex[M] or complex[ntransf, M], optional): output array
                 at targets.
+      eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
-      eps       (float, optional): precision requested (>1e-16).
       **kwargs  (optional): for more options, see :ref:`opts`.
 
     .. note::
@@ -696,9 +696,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       c         (complex[M] or complex[ntransf, M]): source strengths.
 {target_pts_doc}
       out       (complex[N] or complex[ntransf, N]): output values at target frequencies.
+      eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
-      eps       (float, optional): precision requested (>1e-16).
       **kwargs  (optional): for more options, see :ref:`opts`.
 
     .. note::
