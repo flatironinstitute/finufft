@@ -231,15 +231,13 @@ class Plan:
         ``n_transf`` inputs are expected, stacked along the first axis.
 
         Args:
-            data    (complex[M], complex[n_transf, M], complex[n_modes], or
-                    complex[n_transf, n_modes]): The input source strengths
+            data    (complex[M], complex[n_transf, M], complex[n_modes], or complex[n_transf, n_modes]): The input source strengths
                     (type 1 and 3) or source modes (type 2).
-            out     (complex[n_modes], complex[n_transf, n_modes], complex[M],
-                    or complex[n_transf, M], optional): The array where the
+            out     (complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M], optional): The array where the
                     output is stored. Must be of the right size.
 
         Returns:
-            complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The resulting array.
+            complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
         """
         is_single = is_single_plan(self.inner_plan)
 
