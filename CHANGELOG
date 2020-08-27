@@ -9,6 +9,8 @@ language interfaces.
 	  pass-by-reference as in v1.1.2 or earlier.
 	- Fortran simple calls are now finufft?d?(..) not finufft?d?_f(..), and
 	  they add a penultimate opts argument.
+	- Python module name is now finufft not finufftpy, and the interface has
+	  been completely changed (allowing major improvements, see below).
 	- ier=1 is now a warning not an error; this indicates requested tol
 	  was too small, but that a transform *was* done at the best possible
 	  accuracy.
@@ -34,6 +36,7 @@ language interfaces.
 * removed obsolete -DNEED_EXTERN_C flag.
 * Major rewrite of documentation, plus tutorial application examples in MATLAB.
 * numdiff dependency for pass-fail library validation is removed.
+* New professional logo for FINUFFT.	
 
 V 1.1.2 (1/31/20)
 

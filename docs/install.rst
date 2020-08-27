@@ -255,12 +255,12 @@ Next make sure you have NumPy and pybind11 installed::
   pip install numpy pybind11
 
 You may then do ``make python`` which calls
-``pip`` for the install then runs some tests.
-An additional test you could do is::
+``pip`` for the install then runs some tests and examples.
+An additional performance test you could then do is::
 
-  python python/run_speed_tests.py
+  python python/test/run_speed_tests.py
 
-See also Dan Foreman-Mackey's earlier repo that also wraps finufft, and from which we have drawn code: `python-finufft <https://github.com/dfm/python-finufft>`_
+Note our new (v2.0) python interface is now quite different from the Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_
 
 A few words about python environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
