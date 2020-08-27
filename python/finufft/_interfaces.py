@@ -86,12 +86,12 @@ class Plan:
         **kwargs        (optional): for more options, see :ref:`opts`.
     """
     def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,**kwargs):
-        # set default iflag based on if iflag is None
-        if iflag==None:
+        # set default isign based on if isign is None
+        if isign==None:
             if nufft_type==2:
-                iflag = -1
+                isign = -1
             else:
-                iflag = 1
+                isign = 1
 
         # set opts and check precision type
         opts = nufft_opts()
@@ -106,7 +106,7 @@ class Plan:
 
         # setting n_modes and dim for makeplan
         n_modes = np.ones([3], dtype=np.int64)
-        if tp==3:
+        if nufft_type==3:
             npdim = np.asarray(n_modes_or_dim, dtype=np.int)
             if npdim.size != 1:
                 raise RuntimeError('FINUFFT type 3 plan n_modes_or_dim must be one number, the dimension')
@@ -120,9 +120,9 @@ class Plan:
 
         # call makeplan based on precision type
         if is_single:
-            ier = _finufft.makeplanf(nufft_type,dim,n_modes,iflag,n_trans,eps,plan,opts)
+            ier = _finufft.makeplanf(nufft_type,dim,n_modes,isign,n_trans,eps,plan,opts)
         else:
-            ier = _finufft.makeplan(nufft_type,dim,n_modes,iflag,n_trans,eps,plan,opts)
+            ier = _finufft.makeplan(nufft_type,dim,n_modes,isign,n_trans,eps,plan,opts)
 
         # check error
         if ier != 0:
@@ -193,9 +193,9 @@ class Plan:
                 raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
         else:
             # array sanity check
-            self._xj = _rchk(xj)
-            self._yj = _rchk(yj)
-            self._zj = _rchk(zj)
+            self._xj = _rchk(x)
+            self._yj = _rchk(y)
+            self._zj = _rchk(z)
             self._s = _rchk(s)
             self._t = _rchk(t)
             self._u = _rchk(u)
@@ -592,9 +592,9 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
 
     #plan
     if tp==3:
-        plan = Plan(tp,dim,eps,isign,n_trans,**dict(kwargs,dtype=pdtype))
+        plan = Plan(tp,dim,n_trans,eps,isign,**dict(kwargs,dtype=pdtype))
     else:
-        plan = Plan(tp,n_modes,eps,isign,n_trans,**dict(kwargs,dtype=pdtype))
+        plan = Plan(tp,n_modes,n_trans,eps,isign,**dict(kwargs,dtype=pdtype))
 
     #setpts
     plan.setpts(x,y,z,s,t,u)
