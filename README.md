@@ -2,8 +2,9 @@
 
 Principal author **Alex H. Barnett**,
 main co-developers Jeremy F. Magland,
-Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu.
-see `docs/ackn.rst` for details and full list of contributors.
+Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu,
+and Joakim Andén;
+see `docs/ackn.rst` for full list of contributors.
 
 <p>
 <img src="docs/logo.png" width="350"/>
@@ -16,7 +17,7 @@ also exists.
 Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html), or its equivalent, the [user manual](finufft-manual.pdf).
 You will also want to see example codes in the directories
 `examples`, `test`, `fortran`, `matlab/test`, and `python/test`.
-If you cannot compile, try our [precompiled binaries](http://users.flatironinstitute.org/~ahb/codes/finufft-binaries).
+If you cannot compile, or pip install, try our [old v1.1.1 precompiled binaries](http://users.flatironinstitute.org/~ahb/codes/finufft-binaries).
 
 If you prefer to read text files, the source to generate the above documentation is in human-readable (mostly .rst) files as follows:
 
@@ -28,7 +29,7 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/opts.rst`    : optional parameters
 - `docs/error.rst`   : error codes
 - `docs/trouble.rst` : troubleshooting
-- `docs/tut.rst`     : tutorial application examples
+- `docs/tut.rst` and `docs/tutorial/*` : tutorial application examples
 - `docs/fortran.rst` : usage examples from Fortran, documentation of interface
 - `docs/matlab.rst` and `docs/matlabhelp.raw` : using the MATLAB/octave interface
 - `docs/python.rst` and `python/*/_interfaces.py` : using the python interface

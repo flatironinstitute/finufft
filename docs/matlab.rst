@@ -105,7 +105,7 @@ They only abbreviate the options (for full documentation see :ref:`opts`).
 Informative warnings and errors are raised in MATLAB style with unique
 codes (see ``../matlab/errhandler.m``, ``../matlab/finufft.mw``, and
 ``../valid_*.m``).
-The low-level :ref:`error number codes <errcodes>` are not used.
+The low-level :ref:`error number codes <error>` are not used.
 
 If you have added the ``matlab`` directory of FINUFFT correctly to your
 MATLAB path via something like ``addpath FINUFFT/matlab``, then

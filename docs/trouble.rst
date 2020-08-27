@@ -6,8 +6,7 @@ Troubleshooting
 If you are having issues (segfaults, slowness, "wrong" answers, etc),
 there is a high probability it is something we already know about, so
 please first read all of the advice below in the section relevant
-to your problem:
-math, speed, or segfaults.
+to your problem: math, speed, or crashing.
 
 
 Mathematical "issues" and advice
@@ -28,7 +27,10 @@ Mathematical "issues" and advice
 - If you request a tolerance that FINUFFT knows it cannot achieve, it will return ``ier=1`` after performing transforms as accurately as it can. However, the status ``ier=0`` does not imply that the requested accuracy *was* achieved, merely that parameters were chosen to give this estimated accuracy, if possible. As our SISC paper shows, for typical situations, relative $\ell_2$ errors match the requested tolerances over a wide range.
   Users should always check *convergence* (by, for instance, varying ``tol`` and measuring any changes in their results); this is generally true in scientific computing.
 
-- The type 1 and type 2 transforms are adjoints but **not inverses of each other** (unlike in the plain FFT case, where, up to a constant $N$, the adjoint is the inverse). Therefore, if you are not getting the expected answers, please check that you have not made this assumption. In the :ref:`tutorials <tut>` we will add examples showing how to invert the NUFFT; also see `NFFT3 inverse transforms <https://www-user.tu-chemnitz.de/~potts/nfft/infft.php>`_.
+- On the above topic, strangely, in single-precision, requesting tolerance
+  of $10^{-7}$ or $10^{-6}$ can give slightly *worse* accuracy than $10^{-5}$ or $10^{-4}$. We are looking into this. It is usually best to request at least 2--3 digits above the respective machine precision, for either single or double precision.
+  
+- The type 1 and type 2 transforms are adjoints but **not inverses of each other** (unlike in the plain FFT case, where, up to a constant factor $N$, the adjoint is the inverse). Therefore, if you are not getting the expected answers, please check that you have not made this assumption. In the :ref:`tutorials <tut>` we will add examples showing how to invert the NUFFT; also see `NFFT3 inverse transforms <https://www-user.tu-chemnitz.de/~potts/nfft/infft.php>`_.
 
 
 Speed issues and advice
@@ -60,10 +62,7 @@ If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is 
 Crash (segfault) issues and advice
 ****************************************
 
-- The most common problem is passing in pointers to the wrong size of object,
-eg, single vs double precision, or int32 vs int64.
-The library includes both precisions, so make sure you are calling the
-correct one (commands begin ``finufft`` for double, ``finufftf`` for single).
+- The most common problem is passing in pointers to the wrong size of object, eg, single vs double precision, or int32 vs int64. The library includes both precisions, so make sure you are calling the correct one (commands begin ``finufft`` for double, ``finufftf`` for single).
 
 - If you use C++/C/Fortran and tried to change options, did you forget to call ``finufft_default_opts`` first?
 
@@ -76,11 +75,11 @@ correct one (commands begin ``finufft`` for double, ``finufftf`` for single).
 
 
   
-Other known issues with library and interfaces
+Other known issues with library or interfaces
 **********************************************
 
 The master list is the github issues for the project page,
-https://github.com/flatironinstitute/finufft/issues
+https://github.com/flatironinstitute/finufft/issues.
 
 A secondary and more speculative list is in the ``TODO`` text file.
 
@@ -94,9 +93,9 @@ Bug reports
   
 If you think you have found a new bug, and have read the above, please
 file a new issue on the github project page,
-https://github.com/flatironinstitute/finufft/issues .
+https://github.com/flatironinstitute/finufft/issues.
 Include a minimal code which reproduces the bug, along with
-details about your machine, operating system, compiler, version of FINUFFT, and output with ``opts.debug`` at least 1.
+details about your machine, operating system, compiler, version of FINUFFT, and output with ``opts.debug=2``.
 If you have a known bug and have ideas, please add to the comments for that issue.
 
 You may also contact Alex Barnett (``abarnett``

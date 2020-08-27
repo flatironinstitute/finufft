@@ -1,8 +1,8 @@
 Copyright (C) 2017-2020 The Simons Foundation, Inc. - All Rights Reserved.
 
-Lead developer: Alex Barnett
-Main other authors: Jeremy Magland, Ludvig af Klinteberg, Yu-Hsuan (Melody)
- Shih, Andrea Malleo, Libin Lu, Joakim Andén.
+Lead developer: Alex H. Barnett; see docs/ackn.rst for other contributors.
+
+------
 
 FINUFFT is licensed under the Apache License, Version 2.0 (the
 "License"); you may not use this file except in compliance with the
@@ -18,7 +18,26 @@ limitations under the License.
 
 ------
 
-Also, if you find this library useful, or it helps you in creating
-software or publications, please acknowledge that fact by citing this
-repository along with the author names, and any corresponding journal
-article.
+Certain parts of this repository are contributed by others.
+For their license info, see:
+
+contrib/legendre_rule_fast.license
+fortran/cmcl_license.txt
+
+------
+
+If you find this library useful, or it helps you in creating software
+or publications, please let us know, and acknowledge that fact by citing our
+repository:
+
+  https://github.com/flatironinstitute/finufft
+
+and the corresponding journal article(s):
+
+  A parallel non-uniform fast Fourier transform library based on an
+  ``exponential of semicircle'' kernel. A. H. Barnett, J. F. Magland,
+  and L. af Klinteberg.  SIAM J. Sci. Comput. 41(5), C479-C504 (2019).
+
+  Aliasing error of the exp$(\beta \sqrt{1-z^2})$ kernel in the
+  nonuniform fast Fourier transform. A. H. Barnett. submitted,
+  Appl. Comput. Harmon. Anal. (2020). https://arxiv.org/abs/2001.09405

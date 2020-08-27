@@ -39,7 +39,7 @@ Testing, bug reports, helpful discussions:
 * Andras Pataki - complex number speed in C++
 * Timo Heister - pass/fail numdiff testing ideas
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
-* Jonas KR - thread safety
+* ``jonas-kr`` - thread safety
 
 We are also indebted to the authors of other NUFFT codes
 such as NFFT3, CMCL NUFFT, MIRT, BART, etc, upon whose interfaces, code,

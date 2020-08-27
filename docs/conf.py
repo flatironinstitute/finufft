@@ -56,7 +56,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'finufft'
 copyright = u'2017-2020 The Simons Foundation, Inc. - All Rights Reserved'
-author = u'Alex Barnett and Jeremy Magland'
+author = u'Alex Barnett, with Ludvig af Klinteberg, Joakim Andén, Libin Lu, Jeremy Magland, Andrea Malleo, Yu-Hsuan Shih, and others.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -243,13 +243,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'finufft.tex', u'finufft Documentation',
-     u'Alex Barnett and Jeremy Magland', 'manual'),
+    (master_doc, 'finufft.tex', u'FINUFFT Documentation',
+     author, 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-#latex_logo = None
+latex_logo = 'logo.png'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
@@ -265,7 +265,10 @@ latex_documents = [
 #latex_appendices = []
 
 # If false, no module index is generated.
-#latex_domain_indices = True
+latex_domain_indices = False
+
+# this doens't stop a latex index... :(
+latex_use_modindex = False
 
 
 # -- Options for manual page output ---------------------------------------
@@ -273,7 +276,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'finufft', u'finufft Documentation',
+    (master_doc, 'finufft', u'FINUFFT Documentation',
      [author], 1)
 ]
 
@@ -287,9 +290,9 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'finufft', u'finufft Documentation',
-     author, 'finufft', 'One line description of project.',
-     'Miscellaneous'),
+    (master_doc, 'finufft', u'FINUFFT Documentation',
+     author, 'FINUFFT nonuniform FFT', 'Nonuniform FFT of types 1,2,3 in dimensions 1,2,3',
+     'Numerical methods'),
 ]
 
 # Documents to append as an appendix to all manuals.

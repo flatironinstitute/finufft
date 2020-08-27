@@ -257,7 +257,7 @@ One difference from the above simple and vectorized interfaces
 is that the ``int64_t`` type (aka ``long long int``)
 is needed since the Fourier coefficient dimensions are passed as an array.
 
-  .. warning::
+.. warning::
   You must destroy a plan before making a new plan using the same
   plan object, otherwise a memory leak results.
 

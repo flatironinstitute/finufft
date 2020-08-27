@@ -61,8 +61,8 @@ As for quick advice, the main options you'll want to play with are:
 
 See :ref:`Troubleshooting <trouble>` for good advice on trying options, and read the full options descriptions below.
 
-  .. warning::
-Some of the options are for experts only, and will result in slow or incorrect results. Please test options in a small known test case so that you understand their effect.
+.. warning::
+  Some of the options are for experts only, and will result in slow or incorrect results. Please test options in a small known test case so that you understand their effect.
 
 
 Documentation of all options
@@ -148,13 +148,9 @@ Do not change this from its default unless you obsever.
 This should not be changed from its default value, unless you are an
 expert wanting to compare against outdated
 
-* ``spread_kerevalmeth=0`` : direct evaluation of ``sqrt(exp(beta(1-x*x)))`` in the ES kernel.
-This is outdated, and it's only possible use could be in exploring
-upsampling factors :math:`\sigma` different from standard (see below).
+* ``spread_kerevalmeth=0`` : direct evaluation of ``sqrt(exp(beta(1-x*x)))`` in the ES kernel. This is outdated, and it's only possible use could be in exploring upsampling factors :math:`\sigma` different from standard (see below).
 
-* ``spread_kerevalmeth=1`` : use Horner's rule applied to piecewise polynomials with precomputed
-coefficients. This is faster, less brittle to compiler/glibc/CPU variations,
-and is the recommended approach. It only works for the standard upsampling factors listed below.
+* ``spread_kerevalmeth=1`` : use Horner's rule applied to piecewise polynomials with precomputed coefficients. This is faster, less brittle to compiler/glibc/CPU variations, and is the recommended approach. It only works for the standard upsampling factors listed below.
 
 **spread_kerpad**: whether to pad the number of direct kernel evaluations per dimension and per nonuniform point to a multiple of four; this can help SIMD vectorization. It only applies to the (outdated) ``spread_kerevalmeth=0`` choice.
 There is thus little reason for the nonexpert to mess with this option.
@@ -174,12 +170,7 @@ for only two settings, as follows. Otherwise, setting it to zero chooses a good 
 
 * ``upsampfac=2.0`` : standard setting of upsampling. This is necessary if you need to exceed 9 digits of accuracy.
 
-* ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel.
-The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms.
-However, the kernel widths :math:`w` are about 50% larger in each dimension,
-which can lead to slower spreading (it can also be faster due to the smaller
-size of the fine grid).
-Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
+* ``upsampfac=1.25`` : low-upsampling option, with lower RAM, smaller FFTs, but wider spreading kernel. The latter can be much faster than the standard when the number of nonuniform points is similar or smaller to the number of modes, and/or if low accuracy is required. It is especially much (2 to 3 times) faster for type 3 transforms. However, the kernel widths :math:`w` are about 50% larger in each dimension, which can lead to slower spreading (it can also be faster due to the smaller size of the fine grid). Because the kernel width is limited to 16, currently, thus only 9-digit accuracy can currently be reached when using ``upsampfac=1.25``.
 
 **spread_thread**: in the case of multiple transforms per call (``ntr>1``, or the "many" interfaces), controls how multithreading is used to spread/interpolate each batch of data.
 
