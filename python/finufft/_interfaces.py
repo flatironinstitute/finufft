@@ -23,10 +23,72 @@ from finufft._finufft import finufftf_plan
 
 ### Plan class definition
 class Plan:
-    def __init__(self,tp,n_modes_or_dim,eps=1e-6,iflag=None,n_trans=1,**kwargs):
+    r"""
+    A non-uniform fast Fourier transform (NUFFT) plan
+
+    The ``Plan`` class lets the user exercise more fine-grained control over
+    the execution of an NUFFT. First, the plan is created with a certain set
+    of parameters (type, mode configuration, tolerance, sign, number of
+    simultaneous transforms, and so on). Then the nonuniform points are set
+    (source or target depending on the type). Finally, the plan is executed on
+    some data, yielding the desired output.
+
+    In the simple interface, all these steps are executed in a single call to
+    the ``nufft*`` functions. The benefit of separating plan creation from
+    execution is that it allows for plan reuse when certain parameters (like
+    mode configuration) or nonuniform points remain the same between different
+    NUFFT calls. This becomes especially important for small inputs, where
+    execution time may be dominated by initialization steps such as allocating
+    and FFTW plan and sorting the nonuniform points.
+
+    Example:
+    ::
+        import numpy as np
+        import finufft
+
+        # set up parameters
+        n_modes = (1000, 2000)
+        n_pts = 100000
+        nufft_type = 1
+        n_trans = 4
+
+        # generate nonuniform points
+        x = 2 * np.pi * np.random.uniform(size=n_pts)
+        y = 2 * np.pi * np.random.uniform(size=n_pts)
+
+        # generate source strengths
+        c = (np.random.standard_normal(size=(n_trans, n_pts)),
+             + 1J * np.random.standard_normal(size=(n_trans, n_pts)))
+
+        # initialize the plan
+        plan = finufft.Plan(nufft_type, n_modes, n_trans)
+
+        # set the nonuniform points
+        plan.setpts(x, y)
+
+        # execute the plan
+        f = plan.execute(c)
+
+    Also see ``python/examples/guru1d1.py`` and ``python/examples/guru2d1.py``.
+
+    Args:
+        nufft_type      (int): type of NUFFT (1, 2, or 3).
+        n_modes_or_dim  (int or tuple of ints): if ``nufft_type`` is 1 or 2,
+                        this should be a tuple specifying the number of modes
+                        in each dimension (for example, ``(50, 100)``),
+                        otherwise, if `nufft_type`` is 3, this should be the
+                        number of dimensions (between 1 and 3).
+        n_trans         (int, optional): number of transforms to compute
+                        simultaneously.
+        eps             (float, optional): precision requested (>1e-16).
+        isign           (int, optional): if non-negative, uses positive sign
+                        exponential, otherwise negative sign.
+        **kwargs        (optional): for more options, see :ref:`opts`.
+    """
+    def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,**kwargs):
         # set default iflag based on if iflag is None
         if iflag==None:
-            if tp==2:
+            if nufft_type==2:
                 iflag = -1
             else:
                 iflag = 1
@@ -58,9 +120,9 @@ class Plan:
 
         # call makeplan based on precision type
         if is_single:
-            ier = _finufft.makeplanf(tp,dim,n_modes,iflag,n_trans,eps,plan,opts)
+            ier = _finufft.makeplanf(nufft_type,dim,n_modes,iflag,n_trans,eps,plan,opts)
         else:
-            ier = _finufft.makeplan(tp,dim,n_modes,iflag,n_trans,eps,plan,opts)
+            ier = _finufft.makeplan(nufft_type,dim,n_modes,iflag,n_trans,eps,plan,opts)
 
         # check error
         if ier != 0:
@@ -70,21 +132,47 @@ class Plan:
         self.inner_plan = plan
 
         # set properties
-        self.type = tp
+        self.type = nufft_type
         self.dim = dim
         self.n_modes = n_modes
         self.n_trans = n_trans
 
 
     ### setpts
-    def setpts(self,xj=None,yj=None,zj=None,s=None,t=None,u=None):
+    def setpts(self,x=None,y=None,z=None,s=None,t=None,u=None):
+        r"""
+        Set the nonuniform points
+
+        For type 1, this sets the coordinates of the ``M`` nonuniform source
+        points, for type 2, it sets the coordinates of the ``M`` target
+        points, and for type 3 it sets both the ``M`` source points and the
+        ``N`` target points.
+
+        The dimension of the plan determines the number of arguments supplied.
+        For example, if ``dim == 2``, we provide ``x`` and ``y`` (as well as
+        ``s`` and ``t`` for a type-3 transform).
+
+        Args:
+            x       (float[M]): first coordinate of the nonuniform points
+                    (source for type 1 and 3, target for type 2).
+            y       (float[M], optional): second coordinate of the nonuniform
+                    points (source for type 1 and 3, target for type 2).
+            z       (float[M], optional): third coordinate of the nonuniform
+                    points (source for type 1 and 3, target for type 2).
+            s       (float[N], optional): first coordinate of the nonuniform
+                    points (target for type 3).
+            t       (float[N], optional): second coordinate of the nonuniform
+                    points (target for type 3).
+            u       (float[N], optional): third coordinate of the nonuniform
+                    points (target for type 3).
+        """
         is_single = is_single_plan(self.inner_plan)
 
         if is_single:
             # array sanity check
-            self._xjf = _rchkf(xj)
-            self._yjf = _rchkf(yj)
-            self._zjf = _rchkf(zj)
+            self._xjf = _rchkf(x)
+            self._yjf = _rchkf(y)
+            self._zjf = _rchkf(z)
             self._sf = _rchkf(s)
             self._tf = _rchkf(t)
             self._uf = _rchkf(u)
@@ -133,6 +221,26 @@ class Plan:
 
     ### execute
     def execute(self,data,out=None):
+        r"""
+        Execute the plan
+
+        Performs the NUFFT specified at plan instantiation with the points set
+        by ``setpts``. For type-1 and type-3 transforms, the input is a set of
+        source strengths, while for a type-2 transform, it consists of an
+        array of size ``n_modes``. If ``n_transf`` is greater than one,
+        ``n_transf`` inputs are expected, stacked along the first axis.
+
+        Args:
+            data    (complex[M], complex[n_transf, M], complex[n_modes], or
+                    complex[n_transf, n_modes]): The input source strengths
+                    (type 1 and 3) or source modes (type 2).
+            out     (complex[n_modes], complex[n_transf, n_modes], complex[M],
+                    or complex[n_transf, M], optional): The array where the
+                    output is stored. Must be of the right size.
+
+        Returns:
+            complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The resulting array.
+        """
         is_single = is_single_plan(self.inner_plan)
 
         if is_single:
@@ -524,9 +632,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       out       (complex[{modes}] or complex[ntransf, {modes}], optional): output array
                 for Fourier mode values. If ``n_modes`` is specifed, the shape
                 must match, otherwise ``n_modes`` is inferred from ``out``.
+      eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
-      eps       (float, optional): precision requested (>1e-16).
       **kwargs  (optional): for more options, see :ref:`opts`.
 
     .. note::
@@ -557,9 +665,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
                 the mode indices {pt_idx} satisfy {pt_constraint}.
       out       (complex[M] or complex[ntransf, M], optional): output array
                 at targets.
+      eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
-      eps       (float, optional): precision requested (>1e-16).
       **kwargs  (optional): for more options, see :ref:`opts`.
 
     .. note::
@@ -588,9 +696,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       c         (complex[M] or complex[ntransf, M]): source strengths.
 {target_pts_doc}
       out       (complex[N] or complex[ntransf, N]): output values at target frequencies.
+      eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
-      eps       (float, optional): precision requested (>1e-16).
       **kwargs  (optional): for more options, see :ref:`opts`.
 
     .. note::
