@@ -48,7 +48,7 @@ spreading, FFT, and deconvolution)
 to approximate the vector of answers :eq:`1d1` to within the user's
 desired relative tolerance with only $O(N \log N +M)$ effort,
 ie, quasi-linear. Thus the speed-up is similar to that of the FFT.
-You may want to jump to :ref:`quickstart <quick>`, or see
+You may now want to jump to :ref:`quickstart <quick>`, or see
 the :ref:`definitions <math>` of the type 2 and 3 transforms,
 and 2D and 3D cases.
 
@@ -56,7 +56,7 @@ One interpretation of :eq:`1d1` is: the returned values $f_k$ are the
 *Fourier series coefficients* of the $2\pi$-periodic
 distribution $f(x) := \sum_{j=1}^M c_j \delta(x-x_j)$,
 a sum of point-masses with arbitrary locations $x_j$ and strengths $c_j$.
-Such exponential sums are needed in many applications in science and engineering, including signal processing (scattered data interpolation, applying convolutional transforms, fast summation), imaging (cryo-EM, CT, MRI gridding, coherent diffraction, VLBI astronomy),
+Such exponential sums are needed in many applications in science and engineering, including signal processing (scattered data interpolation, applying convolutional transforms, fast summation), imaging (cryo-EM, CT, MRI gridding, coherent diffraction, Fresnel aperture modeling, VLBI astronomy),
 and numerical analysis
 (computing Fourier *transforms* of functions,
 moving between non-conforming quadrature grids,
