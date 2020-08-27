@@ -24,7 +24,7 @@ Other significant code contributions by:
 * Dan Foreman-Mackey - early python wrappers
 * David Stein - python wrappers
 * Vineet Bansal - py packaging
-* Garrett Wright - dual-precision build, py packaging
+* Garrett Wright - dual-precision build, py packaging, GPU version
 
 Testing, bug reports, helpful discussions:
 

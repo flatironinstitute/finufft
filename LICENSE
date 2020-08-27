@@ -23,6 +23,7 @@ For their license info, see:
 
 contrib/legendre_rule_fast.license
 fortran/cmcl_license.txt
+tutorial/utils/lgwt.m
 
 ------
 
@@ -32,7 +33,7 @@ repository:
 
   https://github.com/flatironinstitute/finufft
 
-and the corresponding journal article(s):
+and the corresponding journal articles (particularly the first):
 
   A parallel non-uniform fast Fourier transform library based on an
   ``exponential of semicircle'' kernel. A. H. Barnett, J. F. Magland,

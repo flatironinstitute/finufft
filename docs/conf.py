@@ -223,6 +223,9 @@ def setup(app):
     app.add_stylesheet('theme_overrides.css')
 # it doesn't fail if this file not found in _static  :(
 
+# see SO: https://stackoverflow.com/questions/54639192/change-the-favicon-of-the-sphinx-read-the-docs-theme
+html_favicon = 'logo-32x32.png'
+
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
