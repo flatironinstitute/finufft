@@ -61,7 +61,7 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
 INCL = -Iinclude
-CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
+CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=gnu++14
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"...
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
