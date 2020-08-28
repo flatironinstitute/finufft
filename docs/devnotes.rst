@@ -8,7 +8,7 @@ Developer notes
   - ``docs/conf.py`` for sphinx
   - ``python/setup.py`` for the python pkg version
   - ``include/defs.h``
-  - ``CHANGELOG``: don't forget to describe the new features and changes.
+  - ``CHANGELOG``: don't forget to describe the new features and changes, folding lines at 80 chars.
 
 * There are some sphinx tags in the source code, indicated by @ in comments. Please leave these alone since they are needed by the doc generation.
 

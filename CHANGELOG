@@ -17,6 +17,7 @@ V 2.0.0 (8/28/20)
 	  accuracy.
 	- opts.fftw directly controls the FFTW plan mode consistently in all
 	  language interfaces (thus changing the meaning of fftw=0 in MATLAB).
+	- Octave now needs version >= 4.4, since OO features used by guru.
 
 	These changes were deemed necessary to rationalize and improve FINUFFT
 	for the long term.

@@ -34,16 +34,16 @@ Linux (WSL).
 
 For the basic libraries you need
 
-* C++ compiler, such as ``g++`` packaged with GCC, or ``clang`` with OSX
+* C++ compiler supporting C++14, such ``g++`` in GCC (version >=5.0), or ``clang`` (version >=3.4)
 * FFTW3 including its development libraries
 * GNU ``make`` and other standard unix/POSIX tools such as ``bash``
 
 Optional:
 
-* for Fortran wrappers: compiler such as ``gfortran``
-* for MATLAB/octave wrappers: MATLAB, or octave and its development libraries
+* for Fortran wrappers: compiler such as ``gfortran`` in GCC
+* for MATLAB wrappers: MATLAB (versions at least R2016b up to current work)
+* for octave wrappers: recent octave version at least 4.4, and its development libraries
 * for the python wrappers you will need ``python`` (it is assumed you have python v3; v2 is unsupported). You will also need the python module ``pybind11``
-* for rebuilding new matlab/octave wrappers (experts only): ``mwrap`` version>=0.33.10
 
 
 Tips for installing dependencies on linux
@@ -55,21 +55,23 @@ On a Fedora/CentOS linux system, dependencies can be installed as follows::
 
 .. note::
 
-   we are not exactly sure how to install python3 and pip3 using yum
+  We are not exactly sure how to install python3 and pip3 using yum. You may prefer to use conda to set up a python environment (see below).
 
 Alternatively, on Ubuntu linux::
 
   sudo apt-get install make build-essential libfftw3-dev gfortran python3 python3-pip octave liboctave-dev
 
+In older distro you may have to compile octave from source to get a >=4.4 version.
+
 You should then compile via the various ``make`` tasks, eg ``make test -j8``
-then checking you got ``0 fails``.  
+then checking you got ``0 fails``.
 
 .. note::
 
-   GCC versions on linux:  Rather than using the default GCC which may be as
-   old as 4.8 or 5.4 on current linux distros, we **strongly** recommend you
-   compile with a more recent GCC version, at least GCC 7.3 (which we used
-   benchmarks in our SISC paper), or GCC 9+. We do not recommend
+   GCC versions on linux: long-term linux distros ship old GCC versions
+   that may not be C++14 compatible. We recommend that you
+   compile with a recent GCC, at least GCC 7.3 (which we used
+   for benchmarks in 2018 in our SISC paper), or GCC 9+. We do not recommend
    GCC versions prior to 7. We also **do not recommend GCC8** since
    its auto vectorization has worsened, and its kernel evaluation rate
    using the default looped piecewise-polynomial Horner code drops to
