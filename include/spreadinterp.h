@@ -8,10 +8,6 @@
 #include <dataTypes.h>
 #include <spread_opts.h>
 
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 /* Bitwise debugging timing flag (TF) definitions; see spread_opts.flags.
     This is an unobtrusive way to determine the time contributions of the
     different components of spreading/interp by selectively leaving them out.

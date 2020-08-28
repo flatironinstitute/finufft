@@ -8,7 +8,6 @@
 // use types intrinsic to finufft interface (FLT, CPX, BIGINT, etc)
 #include <dataTypes.h>
 
-
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
@@ -57,13 +56,17 @@
 
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
+#include <math.h>
 
-// prec-indep unit imaginary number
-// using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
+// either-precision unit imaginary number...
 #define IMA (std::complex<FLT>(0.0,1.0))
+// using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
+#ifndef M_PI                     // Windows apparently doesn't have this const
+  #define M_PI    3.14159265358979329
+#endif
 #define M_1_2PI 0.159154943091895336
 #define M_2PI   6.28318530717958648
-// to avoid mixed precision operators in eg i*pi...
+// to avoid mixed precision operators in eg i*pi, an either-prec PI...
 #define PI (FLT)M_PI
 
 // machine epsilon for decisions of achievable tolerance...
@@ -75,6 +78,7 @@
 
 // Random numbers: crappy unif random number generator in [0,1):
 // (RAND_MAX is in stdlib.h)
+#include <stdlib.h>
 //#define rand01() (((FLT)(rand()%RAND_MAX))/RAND_MAX)
 #define rand01() ((FLT)rand()/RAND_MAX)
 // unif[-1,1]:

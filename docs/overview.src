@@ -1,5 +1,7 @@
 .. this is the front-page content, minus the header and the "Overview" title
-   needed for latex.
+   needed for latex. Apparently the next label is needed for eq:1d1 to work:
+
+.. _index:
 
 .. image:: logo.png
     :width: 45%
@@ -26,11 +28,11 @@ and is released under an
 What does FINUFFT do?
 -----------------------
 
-As an example, given $M$ arbitrary real numbers $x_j$ and complex
+As an example, given $M$ real numbers $x_j \in [0,2\pi)$, and complex
 numbers $c_j$, with $j=1,\dots,M$, and a requested integer number of
 modes $N$, FINUFFT can efficiently compute
 the 1D "type 1" transform, which means to evaluate
-the $N$ numbers
+the $N$ complex outputs
 
 .. math:: f_k = \sum_{j=1}^M c_j e^{ik x_j}~, \qquad \mbox{ for } \; k\in\mathbb{Z}, \quad -N/2 \le k \le N/2-1 ~.
    :label: 1d1
@@ -40,11 +42,10 @@ sum directly---which would take $O(NM)$ effort---but
 rather uses a sequence of steps (in this case, optimally chosen
 spreading, FFT, and deconvolution)
 to approximate the vector of answers :eq:`1d1` to within the user's
-desired relative tolerance with only $O(N \log N +M)$ effort,
-ie, quasi-linear. Thus the speed-up is similar to that of the FFT.
+desired relative tolerance, with only $O(N \log N +M)$ effort,
+ie, in almost linear time. Thus the speed-up is similar to that of the FFT.
 You may now want to jump to :ref:`quickstart <quick>`, or see
-the :ref:`definitions <math>` of the type 2 and 3 transforms,
-and 2D and 3D cases.
+the :ref:`definitions <math>` of the other transforms in general dimension.
 
 One interpretation of :eq:`1d1` is: the returned values $f_k$ are the
 *Fourier series coefficients* of the $2\pi$-periodic

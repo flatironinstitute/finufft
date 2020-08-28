@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
+#include <stdio.h>
 using namespace std;
 
 // declarations of purely internal functions...

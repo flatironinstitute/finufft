@@ -66,9 +66,9 @@ then checking you got ``0 fails``.
 
 .. note::
 
-   GCC versions on linux.  Rather than using the default GCC which may be as
-   old as 4.8 or 5.4 on current linux systems, we **strongly** recommend you
-   compile with a recent GCC version such as GCC 7.3 (which we used
+   GCC versions on linux:  Rather than using the default GCC which may be as
+   old as 4.8 or 5.4 on current linux distros, we **strongly** recommend you
+   compile with a more recent GCC version, at least GCC 7.3 (which we used
    benchmarks in our SISC paper), or GCC 9+. We do not recommend
    GCC versions prior to 7. We also **do not recommend GCC8** since
    its auto vectorization has worsened, and its kernel evaluation rate
@@ -225,9 +225,9 @@ please file a bug report as a New Issue at https://github.com/flatironinstitute/
 Building MATLAB/octave wrappers, including in Mac OSX
 -----------------------------------------------------
 
-``make matlab`` to build the MEX interface to matlab.
+``make matlab`` to compile the MEX interface to matlab.
 
-``make octave`` to build the MEX-like interface to octave.
+``make octave`` to compile the MEX-like interface to octave.
 
 We have had success in Mac OSX Mojave compiling the octave wrapper out of the box.
 For MATLAB, the MEX settings may need to be
@@ -259,15 +259,14 @@ An additional performance test you could then do is::
 
   python python/test/run_speed_tests.py
 
-Note our new (v2.0) python interface is now quite different from the Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_
+Note our new (v2.0) python interface is quite different from the Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_
 
 A few words about python environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There can be confusion and conflicts between various versions of python and installed packages. It is therefore a very good idea to use virtual environments. Here's a simple way to do it (after installing python-virtualenv)::
+There can be confusion and conflicts between various versions of python and installed packages. It is therefore a very good idea to use virtual environments. Here's a simple way to do it from a shell (after installing ``python-virtualenv``)::
 
-  Open a terminal
   virtualenv -p /usr/bin/python3 env1
   . env1/bin/activate
 
-Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the env1 directory. (You can get out of the environment by typing ``deactivate``). Also see documentation for ``conda``. In both cases ``python`` will call the version of python you set up, which these days should be v3.
+Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the ``env1`` directory. (You can get out of the environment by typing ``deactivate``). Also see documentation for ``conda``. In both cases ``python`` will call the version of python you set up, which these days should be v3.
