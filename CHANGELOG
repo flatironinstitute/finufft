@@ -1,11 +1,12 @@
 List of features / changes made / release notes, in reverse chronological order
 
-V 2.0.0 (Aug 2020)
+V 2.0.0 (8/28/20)
 
-* a major change to code, internally, and major improvements to operation and
-language interfaces.
-	WARNING: Here are all the interface compatibility changes from 1.1.2:
-	- opts (nufft_opts) is always passed as a pointer in C++/C, not
+* major changes to code, internally, and major improvements to operation and
+  language interfaces.
+
+	WARNING!: Here are all the interface compatibility changes from 1.1.2:
+	- opts (nufft_opts) is now always passed as a pointer in C++/C, not
 	  pass-by-reference as in v1.1.2 or earlier.
 	- Fortran simple calls are now finufft?d?(..) not finufft?d?_f(..), and
 	  they add a penultimate opts argument.
@@ -15,13 +16,13 @@ language interfaces.
 	  was too small, but that a transform *was* done at the best possible
 	  accuracy.
 	- opts.fftw directly controls the FFTW plan mode consistently in all
-	  language interfaces (this changes the meaning of fftw=0 in MATLAB).
-	- python interfaces have changed.
+	  language interfaces (thus changing the meaning of fftw=0 in MATLAB).
+
 	These changes were deemed necessary to rationalize and improve FINUFFT
 	for the long term.
 	There are also many other new interface options (many-vector, guru)
 	added; see docs.
-* The C++ library is now dual-precision, with distinct function interfaces for
+* the C++ library is now dual-precision, with distinct function interfaces for
   double vs single precision operation, that are C and C++ compatible. Under
   the hood this is achieved via simple C macros. All language interfaces now
   have dual precision options.
@@ -32,11 +33,14 @@ language interfaces.
   and dual precisions.
 * all simple and many-vector interfaces now call guru interface, for much
   better maintainability and less code repetition.
-* new guru interface, by Andrea Malleo and Alex Barnett, allowing easier language wrapping and control of point-setting, reuse of sorting and FFTW plans. This finally bypasses the 0.1ms/thread cost of FFTW looking up previous wisdom, which slowed down performance for many small problems.
+* new guru interface, by Andrea Malleo and Alex Barnett, allowing easier
+  language wrapping and control of point-setting, reuse of sorting and FFTW
+  plans. This finally bypasses the 0.1ms/thread cost of FFTW looking up previous
+  wisdom, which slowed down performance for many small problems.
 * removed obsolete -DNEED_EXTERN_C flag.
-* Major rewrite of documentation, plus tutorial application examples in MATLAB.
-* numdiff dependency for pass-fail library validation is removed.
-* New professional logo for FINUFFT.	
+* major rewrite of documentation, plus tutorial application examples in MATLAB.
+* numdiff dependency is removed for pass-fail library validation.
+* new (professional!) logo for FINUFFT. Sphinx HTML and PDF aesthetics.
 
 V 1.1.2 (1/31/20)
 
@@ -68,9 +72,10 @@ V 1.0 (8/20/18)
 
 * repo transferred to flatironinstitute
 * usage doc simpler
-* 2d1many and 2d2many interfaces by Melody Shih, for multiple vectors with same nonuniform points. All tests and docs for these interfaces.
+* 2d1many and 2d2many interfaces by Melody Shih, for multiple vectors with same
+  nonuniform points. All tests and docs for these interfaces.
 * horner optimized kernel for sigma=5/4 (low upsampling), to go along with the
-default sigma=2. Cmdline arg to change sigma in finufft?d_test.
+  default sigma=2. Cmdline arg to change sigma in finufft?d_test.
 * simplified various int types: only BIGINT remains.
 * clearer docs.
 * remaining C interfaces, with opts control.
@@ -78,19 +83,23 @@ default sigma=2. Cmdline arg to change sigma in finufft?d_test.
 V 0.99 (4/24/18)
 
 * piecewise polynomial kernel evaluation by Horner, for faster spreading esp at
-low accuracy and 1d or 2d.
+  low accuracy and 1d or 2d.
 * various heuristic decisions re whether to sort, and if sorting is single or
-multi-threaded.
+  multi-threaded.
 * single-precision libs get an "f" suffix so can coexist with double-prec.
 
 V 0.98 (3/1/18)
 
 * makefile includes make.inc for OS-specific defs.
-* decided that, since Legendre nodes code of GLR alg by Hale/Burkhardt is LGPL licensed, our use (not changing source) is not a "derived work", therefore ok under our Apache v2 license. See:
-	https://tldrlegal.com/license/gnu-lesser-general-public-license-v3-(lgpl-3)
-	https://www.apache.org/licenses/GPL-compatibility.html
-	https://softwareengineering.stackexchange.com/questions/233571/open-source-what-is-the-definition-of-derivative-work-and-how-does-it-impact
-* fixed MATLAB FFTW incompat alloc crash, by hack of Joakim, calling fft() first.
+* decided that, since Legendre nodes code of GLR alg by Hale/Burkhardt is LGPL
+  licensed, our use (not changing source) is not a "derived work", therefore
+  ok under our Apache v2 license. See:
+  https://tldrlegal.com/license/gnu-lesser-general-public-license-v3-(lgpl-3)
+  https://www.apache.org/licenses/GPL-compatibility.html
+  https://softwareengineering.stackexchange.com/questions/233571/
+    open-source-what-is-the-definition-of-derivative-work-and-how-does-it-impact
+  * fixed MATLAB FFTW incompat alloc crash, by hack of Joakim, calling fft()
+  first.
 * python tests fixed, brought into makefile.
 * brought in af Klinteberg spreader optimizations & SSE tricks.
 * logo
@@ -103,13 +112,16 @@ V 0.97 (12/6/17)
 * changed name of py routines to nufft* from finufft*
 * python interfaces doc, up-to-date. Removed ms,.. from type-2 interfaces.
 * removed RESCALEs from lower dims in bin_sort, speeds up a few % in 1D.
-* allowed NU pts to be currectly folded from +-1 periods from central box, as per David Stein request. Adds 5% to time at 1e-2 accuracy, less at higher acc.
+* allowed NU pts to be currectly folded from +-1 periods from central box, as
+  per David Stein request. Adds 5% to time at 1e-2 accuracy, less at higher acc.
 * corrected dynamic C++ array allocs in spreader (some made static, 5% speedup)
-* removed all C++11 dependencies, mainly that opts structs are all explicitly initialized.
+* removed all C++11 dependencies, mainly that opts structs are all explicitly
+  initialized.
 * fixed python interface to have chkbnds.
 * tidied MEX interface
 * removed memory leaks (!)
-* opts.modeord implemented and exposed to matlab/python interfaces. Also removes looping backwards in RAM in deconvolveshuffle.
+* opts.modeord implemented and exposed to matlab/python interfaces. Also removes
+  looping backwards in RAM in deconvolveshuffle.
 
 V 0.96 (10/15/17)
 
@@ -117,18 +129,26 @@ V 0.96 (10/15/17)
 
 V 0.95 (10/2/17)
 
-* brought in JFM's in-package python wrapper & doc, create lib-static dir, removed devel dir.
+* brought in JFM's in-package python wrapper & doc, create lib-static dir,
+  removed devel dir.
 
 V 0.9: (6/17/17)
 
-* adapted adv4 into main code, inner loops separate by dim, kill the current spreader. Incorporate old ideas such as: checkerboard per-thread grid cuboids, compare speed in 2d and 3d against current 1d slicing. See cnufftspread:set_thread_index_box()
-* added FFTW_MEAS vs FFTW_EST (set as default) opts flag in nufft_opts, and matlab/python interfaces
+* adapted adv4 into main code, inner loops separate by dim, kill
+  the current spreader. Incorporate old ideas such as: checkerboard
+  per-thread grid cuboids, compare speed in 2d and 3d against
+  current 1d slicing. See cnufftspread:set_thread_index_box()
+* added FFTW_MEAS vs FFTW_EST (set as default) opts flag in nufft_opts, and
+  matlab/python interfaces
 * removed opts.maxnalloc in favor of #defined MAX_NF
-* fixed the 1-target case in type-3, all dims, to avoid nan; clarified logic for handling X=0 and/or S=0. 6/12/17
-* changed arraywidcen to snap to C=0 if relative shift is <0.1, avoids cexps in type-3.
+* fixed the 1-target case in type-3, all dims, to avoid nan; clarified logic
+  for handling X=0 and/or S=0. 6/12/17
+* changed arraywidcen to snap to C=0 if relative shift is <0.1, avoids cexps in
+  type-3.
 * t3: if C1 < X1/10 and D1 < S1/10 then don't rephase. Same for d=2,3.
 * removed the 1/M type-1 prefactor, also in all test routines. 6/6/17
-* removed timestamp-based make decision whether to rebuild matlab/finufft.cpp, since git clone creates files with random timestamp order!
+* removed timestamp-based make decision whether to rebuild matlab/finufft.cpp,
+  since git clone creates files with random timestamp order!
 * theory work on exp(sqrt) being close to PSWF. Analysis.
 * fix issue w/ needing mwrap when do make matlab.
 * makefile has variables customizing openmp and precision, non-omp tested
@@ -137,17 +157,24 @@ V 0.9: (6/17/17)
 * matlab interface control of opts.spread_sort.
 * matlab interface using doubles as big ints w/ correct typecasting.
 * twopispread removed, used flag in spread_opts for [-pi,pi] input instead.
-* testfinufft* use same integer type INT as for interfaces, typecast all %ld in printf warnings, use omp rand array filling
-* INT64 for necessary size-setting arrays, removed all %lf printf warnings in finufft*
-* all internal array indexing is BIGINT, switchable from long long to int via SMALLINT compile flag (default off, see utils.h)
-* all integers in interfaces are type INT, default 64-bit, switchable to 32 bit by INTERGER32 compile flag (see utils.h)
+* testfinufft* use same integer type INT as for interfaces, typecast all %ld in
+  printf warnings, use omp rand array filling
+* INT64 for necessary size-setting arrays, removed all %lf printf warnings in
+  finufft*
+* all internal array indexing is BIGINT, switchable from long long to int via
+  SMALLINT compile flag (default off, see utils.h)
+* all integers in interfaces are type INT, default 64-bit, switchable to 32 bit
+  by INTERGER32 compile flag (see utils.h)
 * test big probs (speed, crashing) and decide if BIGINT is long long or int?
-slows any array access down, or spreading? allows I/O sizes (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by factor 2-3.
+  slows any array access down, or spreading? allows I/O sizes
+  (M, N1*N2*N3) > 2^31. Note June-Yub int*8 in nufft-1.3.x slowed things by
+  factor 2-3.
 * tidy up spreader to be BIGINT = long long compatible and test > 2^31.
 * spreadtest parallel rand()
-* sort flag passed to spreader via finufft, and test scripts check if Xeon (-> sort=0)
+* sort flag passed to spreader via finufft, and test scripts check if Xeon
+  (-> sort=0)
 * opts in the manual
-* removed all xk2, dNU2 sorted arrays, and not-needed dims y,z; halved RAM usage.
+* removed all xk2, dNU2 sorted arrays, and not-needed dims y,z; halved RAM usage
 
 V 0.8: (3/27/17)
 
@@ -155,11 +182,15 @@ V 0.8: (3/27/17)
 * all kx2, dNU2 arrays removed, just done by permutation index when needed.
 * MAC OSX test, makefile, instructions.
 * matlab wrappers in 3D
-* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex executables for linux. Link to .a
-* matlab wrappers need ier output? yes, and internal omp numthreads control (since matlab's is poor)
+* matlab wrappers, mcwrap issue w/ openmp, mex, and subdirs. Ship mex
+  executables for linux. Link to .a
+* matlab wrappers need ier output? yes, and internal omp numthreads control
+  (since matlab's is poor)
 * wrappers for MEX octave, instructions. Ship .mex for octave.
-* python wrappers - Dan Foreman-Mackey starting to add something similar to https://github.com/dfm/python-nufft
-* check is done before attempting to malloc ridiculous array sizes, eg if a large product of x width and k width is requested in type 3 transforms.
+* python wrappers - Dan Foreman-Mackey starting to add something similar to
+	https://github.com/dfm/python-nufft
+* check is done before attempting to malloc ridiculous array sizes, eg if a
+  large product of x width and k width is requested in type 3 transforms.
 * draft make python
 * basic manual (txt)
 
@@ -194,7 +225,9 @@ pre-V. 0.7: (Jan-Feb 2017)
 * removed data-zeroing bug in t-II spreader, slowness of large arrays in t-I.
 * clean dir tree
 * spreader dir=1,2 math tests in 3d, then nd.
-* Jeremy's request re only computing kernel vals needed (actually was vital for efficiency in dir=1 openmp version), Ie fix KB ker eval in spreader so doesn't wdo 3d fill when 1 or 2 will do.
+* Jeremy's request re only computing kernel vals needed (actually
+  was vital for efficiency in dir=1 openmp version), Ie fix KB kereval in
+  spreader so doesn't wdo 3d fill when 1 or 2 will do.
 * spreader removed modulo altogether in favor of ifs
 * OpenMP spreader, all dims
 * multidim spreader test, command line args and bash driver
@@ -203,7 +236,8 @@ pre-V. 0.7: (Jan-Feb 2017)
 * moved wrappers to own directories so the basic lib is clean
 * fortran wrapper added ier argument
 * types 1,2 in all dims, using 1d kernel for all dims.
-* fix twopispread so doesn't create dummy ky,kz, and fix sort so doesn't ever access unused ky,kz dims.
+* fix twopispread so doesn't create dummy ky,kz, and fix sort so doesn't ever
+  access unused ky,kz dims.
 * cleaner spread and nufft test scripts
 * build universal ndim Fourier coeff copiers in C and use for finufft
 * makefile opts and compiler directives to link against FFTW.
@@ -214,17 +248,22 @@ pre-V. 0.7: (Jan-Feb 2017)
 * understand origin of dfftpack (netlib fftpack is real*4) - not needed
 * [spreader: make compute_sort_indices sensible for 1d and 2d. not needed]
 * next235even for nf's
-* switched pre/post-amp correction from DFT of kernel to F series (FT) of kernel, more accurate
+* switched pre/post-amp correction from DFT of kernel to F series (FT) of
+  kernel, more accurate
 * Gauss-Legendre quadrature for direct eval of kernel FT, openmp since cexp slow
-* optimize q (# G-L nodes) for kernel FT eval on reg and irreg grids (common.cpp). Needs q a bit bigger than like (2-3x the PTR, when 1.57x is expected). Why?
+* optimize q (# G-L nodes) for kernel FT eval on reg and irreg grids
+  (common.cpp). Needs q a bit bigger than like (2-3x the PTR, when 1.57x is
+  expected). Why?
 * type 3 segfault in dumb case of nj=1 (SX product = 0). By keeping gam>1/S
-* optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you only use nspread-1 pts in the support. Could gain several % speed for same acc.
+* optimize that phi(z) kernel support is only +-(nspread-1)/2, so w/ prob 1 you
+  only use nspread-1 pts in the support. Could gain several % speed for same acc
 * new simpler kernel entirely
 * cleaned up set_nf calls and removed params from within core libs
 * test isign=-1 works
 * type 3 in 2d, 3d
-* style: headers should only include other headers needed to compile the .h; all other headers go in .cpp, even if that involves repetition I guess.
+* style: headers should only include other headers needed to compile the .h;
+  all other headers go in .cpp, even if that involves repetition I guess.
 * changed library interface and twopispread to dcomplex
 * fortran wrappers (rmdir greengard_work, merge needed into fortran)
 
-Started mid-January 2017
+Started: mid-January 2017.

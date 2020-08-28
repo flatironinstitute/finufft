@@ -1,7 +1,7 @@
+.. _index:
+
 .. this is the front-page content, minus the header and the "Overview" title
    needed for latex. Apparently the next label is needed for eq:1d1 to work:
-
-.. _index:
 
 .. image:: logo.png
     :width: 45%

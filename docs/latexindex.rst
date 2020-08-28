@@ -1,3 +1,5 @@
+.. _index:
+
 .. finufft documentation master file - latex only.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -5,6 +7,7 @@
    Also see latex section of conf.py for tocdepth override, etc.
 
 :orphan:
+
    
 Flatiron Institute Nonuniform Fast Fourier Transform
 =====================================================
@@ -28,6 +31,7 @@ Flatiron Institute Nonuniform Fast Fourier Transform
    matlab
    python
    julia
+   changelog
    devnotes           
    related
    users

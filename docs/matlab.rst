@@ -23,7 +23,7 @@ The values in ``f`` are accurate (relative to this vector's 2-norm)
 to roughly 12 digits, as requested by the tolerance argument ``1e-12``.
 Choosing a larger (ie, worse) tolerance leads to faster transforms.
 The ``+1`` controls the sign in the exponential; recall equation
-(1) on the :ref:`front page<index>`. All :ref:`options<opts>` maybe be changed from
+:eq:`1d1`. All :ref:`options<opts>` maybe be changed from
 their defaults, for instance:
 
 .. code-block:: matlab

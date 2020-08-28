@@ -31,7 +31,8 @@ Documentation contents
    matlab
    python
    julia
-   devnotes           
+   changelog
+   devnotes
    related
    users
    ackn
