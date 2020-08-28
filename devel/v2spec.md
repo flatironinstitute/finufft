@@ -1,4 +1,4 @@
-# FINUFFT v1.2 specifications
+# FINUFFT v1.2 specifications -> now v2.0.
 
 We will write the docs for v1.2 first, then fill out implementation in a
 fresh branch.
@@ -195,6 +195,7 @@ No: copy Joakim's GPU interface plan?
 ]
 
 
+
 Use of out=None to write to returned array or to pre-alloc array in arg
 list. See above.
 
@@ -202,6 +203,15 @@ pythonic error reporting
 
 Joakim: if ordering is C not F, simply flip kx and ky pointers to NU locs.
 (t1, t2 only, d=2 or d=3).
+
+
+Old decisions:
+
+* Decided not to detect whether "many" is called in guru (ie, n_transf>1)
+via shape of input U array. This won't work for t3 many.
+Instead force guru py user to give n_transf up front, in C++ guru.
+
+
 
 
 Old decisions:
