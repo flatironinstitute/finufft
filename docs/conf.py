@@ -252,6 +252,11 @@ latex_elements = {
     
 # Latex figure (float) alignment
 #'figure_align': 'htbp',
+
+# prevent any index from being made (Komiya):
+# https://groups.google.com/g/sphinx-users/c/Pn3uHevtR28
+'makeindex': '',
+'printindex': '',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
