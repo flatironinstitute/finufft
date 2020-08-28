@@ -56,7 +56,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'finufft'
 copyright = u'2017-2020 The Simons Foundation, Inc. - All Rights Reserved'
-author = u'Alex Barnett, with Ludvig af Klinteberg, Joakim Andén, Libin Lu, Jeremy Magland, Andrea Malleo, Yu-Hsuan Shih, and others.'
+author = u'Alex Barnett, Ludvig af Klinteberg, Joakim Andén, Libin Lu, Jeremy Magland, Andrea Malleo, Yu-Hsuan Shih, and others.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -85,8 +85,8 @@ highlight_language = 'none'
 #today_fmt = '%B %d, %Y'
 
 # List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+# directories to ignore when looking for source files (.rst only)
+exclude_patterns = ['_build', 'overview_meat']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -142,12 +142,13 @@ html_theme = 'classic'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = 'logo-small.png'
 
 # The name of an image file (relative to this directory) to use as a favicon of
 # the docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-#html_favicon = None
+# web browser icon. see SO: https://stackoverflow.com/questions/54639192/change-the-favicon-of-the-sphinx-read-the-docs-theme
+html_favicon = 'logo-32x32.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -168,17 +169,17 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {'**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
 #html_additional_pages = {}
 
 # If false, no module index is generated.
-#html_domain_indices = True
+html_domain_indices = False
 
 # If false, no index is generated.
-#html_use_index = True
+html_use_index = False
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False
@@ -220,24 +221,35 @@ htmlhelp_basename = 'finufftdoc'
 # To fix location of equation numbering. Barnett tried 6/19/18
 # see https://samnicholls.net/2016/06/15/how-to-sphinx-readthedocs/
 def setup(app):
-    app.add_stylesheet('theme_overrides.css')
+    app.add_css_file('theme_overrides.css')
 # it doesn't fail if this file not found in _static  :(
 
-# see SO: https://stackoverflow.com/questions/54639192/change-the-favicon-of-the-sphinx-read-the-docs-theme
-html_favicon = 'logo-32x32.png'
+
+
 
 # -- Options for LaTeX output ---------------------------------------------
 
+# My problem with chapters wrongly numbered:
+# https://stackoverflow.com/questions/60877841/how-can-i-force-sphinx-to-end-a-chapter-when-making-a-pdf
+# .. ?
+
 latex_elements = {
 # The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+'papersize': 'letterpaper',
 
 # The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+'pointsize': '11pt',
 
+# removes blank pages:
+'classoptions': ',openany,oneside',
+    
 # Additional stuff for the LaTeX preamble.
 #'preamble': '',
-
+'preamble': r'''
+  \usepackage{hyperref}
+  \setcounter{tocdepth}{3}
+''',
+    
 # Latex figure (float) alignment
 #'figure_align': 'htbp',
 }
@@ -246,8 +258,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'finufft.tex', u'FINUFFT Documentation',
-     author, 'manual'),
+    ('latexindex', 'finufft.tex', u'FINUFFT Documentation',
+     'Alex Barnett and the FINUFFT team', 'manual',False),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -256,7 +268,7 @@ latex_logo = 'logo.png'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
-#latex_use_parts = False
+latex_use_parts = False
 
 # If true, show page references after internal links.
 #latex_show_pagerefs = False
@@ -272,6 +284,8 @@ latex_domain_indices = False
 
 # this doens't stop a latex index... :(
 latex_use_modindex = False
+
+
 
 
 # -- Options for manual page output ---------------------------------------

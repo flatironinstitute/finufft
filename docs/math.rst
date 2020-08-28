@@ -33,7 +33,7 @@ in 2D it is
 a rectangle of $N_1N_2$ index pairs, and in 3D it is a cuboid of $N_1N_2N_3$
 index triplets.
 
-Then the type 1 (nonuniform to uniform, aka "adjoint") NUFFT evaluates
+Then the **type 1** (nonuniform to uniform, aka "adjoint") NUFFT evaluates
 
 .. math::
   :label: 1
@@ -47,7 +47,7 @@ Fourier series coefficients due to sources
 with strengths $c_j$ at the arbitrary locations $\mathbf{x}_j$.	  
 Either sign of the imaginary unit in the exponential can be chosen in the interface. Note that our normalization differs from that of references [DR,GL].
 
-The type 2 (U to NU, aka "forward") NUFFT evaluates
+The **type 2** (U to NU, aka "forward") NUFFT evaluates
 
 .. math::
    :label: 2
@@ -72,7 +72,7 @@ touch this three-times-bigger box.
 However, there may be a slight speed increase if most points fall in
 $[-\pi,\pi)^d$.
 
-Finally, the type 3 (NU to NU) transform does not have restrictions on
+Finally, the **type 3** (NU to NU) transform does not have restrictions on
 the NU points, and there is no periodicity.
 Let $\mathbf{x}_j\in\mathbb{R}^d$, $j=1,\ldots,M$, be NU locations, with strengths $c_j \in \mathbb{C}$,
 and let $\mathbf{s}_k$, $k=1,\ldots,N$ be NU frequencies.
