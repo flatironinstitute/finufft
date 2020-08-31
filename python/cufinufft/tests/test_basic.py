@@ -90,6 +90,8 @@ def test_type2_64(shape=(16, 16, 16), M=4096, tol=1e-3):
 def main():
     test_type1_32()
     test_type2_32()
+    test_type1_64()
+    test_type2_64()
 
 
 if __name__ == '__main__':
