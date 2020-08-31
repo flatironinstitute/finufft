@@ -4,6 +4,8 @@ This module contains the high level python wrapper for
 the cufinufft CUDA libraries.
 """
 
+import atexit
+
 import numpy as np
 
 from ctypes import byref
@@ -88,7 +90,12 @@ class cufinufft:
         self.modes = modes
 
         # Initialize the plan for this instance
+        self.plan = None
         self._plan()
+
+        # If we exit, intentionally destroy our plan
+        #   before underlying memory is cleaned up.
+        atexit.register(self.__del__)
 
     @staticmethod
     def default_opts(nufft_type, dim):
@@ -196,7 +203,16 @@ class cufinufft:
         Destroy this instance's associated plan and storage.
         """
 
+        if self.plan is None:
+            return
+
         ier = self._destroy_plan(self.plan)
 
         if ier != 0:
             raise RuntimeError('Error destroying plan.')
+
+        # Reset plan to avoid double destroy.
+        self.plan = None
+
+        # We'll no longer need to handle atexit
+        atexit.unregister(self.__del__)
