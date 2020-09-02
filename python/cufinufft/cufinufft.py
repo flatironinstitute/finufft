@@ -5,6 +5,7 @@ the cufinufft CUDA libraries.
 """
 
 import atexit
+import sys
 
 import numpy as np
 
@@ -22,6 +23,12 @@ from cufinufft._cufinufft import _exec_plan
 from cufinufft._cufinufft import _exec_planf
 from cufinufft._cufinufft import _destroy_plan
 from cufinufft._cufinufft import _destroy_planf
+
+
+# If we are shutting down python, we don't need to run __del__
+#   This will avoid any shutdown gc ordering problems.
+exiting = False
+atexit.register(setattr, sys.modules[__name__], 'exiting', True)
 
 
 class cufinufft:
@@ -92,10 +99,6 @@ class cufinufft:
         # Initialize the plan for this instance
         self.plan = None
         self._plan()
-
-        # If we exit, intentionally destroy our plan
-        #   before underlying memory is cleaned up.
-        atexit.register(self.__del__)
 
     @staticmethod
     def default_opts(nufft_type, dim):
@@ -203,7 +206,8 @@ class cufinufft:
         Destroy this instance's associated plan and storage.
         """
 
-        if self.plan is None:
+        # If the process is exiting or we've already cleaned up plan, return.
+        if exiting or self.plan is None:
             return
 
         ier = self._destroy_plan(self.plan)
@@ -213,6 +217,3 @@ class cufinufft:
 
         # Reset plan to avoid double destroy.
         self.plan = None
-
-        # We'll no longer need to handle atexit
-        atexit.unregister(self.__del__)
