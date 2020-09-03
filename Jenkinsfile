@@ -21,9 +21,8 @@ pipeline {
     sh '${PYBIN}/python3 -m venv --system-site-packages --without-pip $HOME'
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
-      export LD_LIBRARY_PATH=${PWD}/lib:${LD_LIBRARY_PATH}
+      LIBRARY_PATH=/io/lib python3 setup.py develop
       python3 -m pip install pytest
-      python3 setup.py develop
       python3 -m pytest
     '''
       }
