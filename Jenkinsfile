@@ -14,7 +14,7 @@ pipeline {
       }
       environment {
     HOME = "$WORKSPACE/build"
-    PYBIN = "/opt/python/cp38/bin"
+    PYBIN = "/opt/python/cp38-cp38/bin"
       }
       steps {
     sh '${PYBIN}/python3 -m venv --system-site-packages --without-pip $HOME'
