@@ -14,9 +14,10 @@ pipeline {
       }
       environment {
     HOME = "$WORKSPACE/build"
+    PYBIN = "/opt/python/cp38/bin"
       }
       steps {
-    sh 'python3 -m venv --system-site-packages --without-pip $HOME'
+    sh '${PYBIN}/python3 -m venv --system-site-packages --without-pip $HOME'
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
       export LD_LIBRARY_PATH=${PWD}/lib:${LD_LIBRARY_PATH}
