@@ -8,7 +8,10 @@ pipeline {
   stages {
     stage('main') {
       agent {
-         docker { image 'ci/docker/cuda10.1/Dockerfile-x86_64' }
+         dockerfile {
+            dir 'ci/docker/cuda10.1'
+            filename 'Dockerfile-x86_64'
+         }
       }
       environment {
     HOME = "$WORKSPACE/build"
