@@ -9,8 +9,7 @@ pipeline {
     stage('main') {
       agent {
          dockerfile {
-            dir 'ci/docker/cuda10.1'
-            filename 'Dockerfile-x86_64'
+            filename 'ci/docker/cuda10.1/Dockerfile-x86_64'
          }
       }
       environment {
