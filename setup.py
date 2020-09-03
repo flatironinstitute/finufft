@@ -13,7 +13,7 @@ with open(os.path.join('python/cufinufft', 'requirements.txt'), 'r') as fh:
 try:
     lib = ctypes.cdll.LoadLibrary('libcufinufft.so')
 except Exception as e:
-    print(lib, 'CUDA shared libraries not found in library path.'
+    print('CUDA shared libraries not found in library path.'
           '  Please refer to installation documentation at http://github.com/flatironinstitute/cufinufft'
           ' and ensure CUDA installation is successful first before attempting to install the Python wrappers.')
     raise(e)
