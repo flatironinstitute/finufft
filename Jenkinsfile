@@ -16,7 +16,6 @@ pipeline {
     HOME = "$WORKSPACE/build"
       }
       steps {
-    sh 'make lib'
     sh 'python3 -m venv --system-site-packages --without-pip $HOME'
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
