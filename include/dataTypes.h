@@ -17,6 +17,7 @@ typedef int64_t BIGINT;
 
 // decide which kind of complex numbers to use in interface...
 #ifdef __cplusplus
+#define _USE_MATH_DEFINES
 #include <complex>          // C++ type
 #define COMPLEXIFY(X) std::complex<X>
 #else
