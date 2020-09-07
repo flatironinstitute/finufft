@@ -219,11 +219,21 @@ TESTS := $(basename $(wildcard test/*.cpp))
 # also need single-prec
 TESTS += $(TESTS:%=%f)
 test: $(TESTS)
+ifneq ($(MINGW),ON)
 # it will fail if either of these return nonzero exit code...
 	test/basicpassfail
 	test/basicpassfailf
 # accuracy tests done in prec-switchable bash script...
 	(cd test; ./check_finufft.sh; ./check_finufft.sh SINGLE)
+else
+# it will fail if either of these return nonzero exit code... Windows does not find the dynamic libraries, so we make a temporary copy
+	copy $(DYNLIB).so test
+	test/basicpassfail
+	test/basicpassfailf
+# accuracy tests done in prec-switchable bash script... Windows does not feature a bash shell so we use WSL. Since gnu-make is a 32bit executable and WSL runs only in x64 environments, we have to refer to 64bit powershell explicitly
+	$(windir)\Sysnative\WindowsPowerShell\v1.0\powershell.exe "cd ./test; bash check_finufft.sh DOUBLE $(MINGW); bash check_finufft.sh SINGLE $(MINGW)"
+	del test\$(LIBNAME).so
+endif
 
 
 # perftest (performance/developer tests) -------------------------------------
