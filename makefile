@@ -188,8 +188,15 @@ endif
 # single-prec codes separate, and not all have one
 EXAMPLES = $(basename $(wildcard examples/*.*))
 examples: $(EXAMPLES)
+ifneq ($(MINGW),ON)
 # this task always runs them (note escaped $ to pass to bash)...
 	for i in $(EXAMPLES); do echo $$i...; ./$$i; done
+else
+# Windows does not find the dynamic libraries, so we make a temporary copy
+	copy $(DYNLIB) examples
+	for /f "delims= " %%i in ("$(subst /,\,$(EXAMPLES))") do (echo %%i & %%i.exe)
+	del examples\$(LIBNAME).so
+endif
 	@echo "Done running: $(EXAMPLES)"
 # fun fact: gnu make patterns match those with shortest "stem", so this works:
 examples/%: examples/%.o $(DYNLIB)
@@ -227,7 +234,7 @@ ifneq ($(MINGW),ON)
 	(cd test; ./check_finufft.sh; ./check_finufft.sh SINGLE)
 else
 # it will fail if either of these return nonzero exit code... Windows does not find the dynamic libraries, so we make a temporary copy
-	copy $(DYNLIB).so test
+	copy $(DYNLIB) test
 	test/basicpassfail
 	test/basicpassfailf
 # accuracy tests done in prec-switchable bash script... Windows does not feature a bash shell so we use WSL. Since gnu-make is a 32bit executable and WSL runs only in x64 environments, we have to refer to 64bit powershell explicitly
@@ -331,8 +338,12 @@ octave: matlab/finufft.cpp $(STATICLIB)
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway
 # matlab/finufft.cpp via mwrap (needs recent version of mwrap, eg 0.33.10)...
 mex: matlab/finufft.mw
+ifneq ($(MINGW),ON)
 	(cd matlab ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
+else
+	(cd matlab & $(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
+endif
 
 
 # python ---------------------------------------------------------------------
@@ -375,23 +386,48 @@ docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.
 # =============================== CLEAN UP ==================================
 
 clean: objclean pyclean
+ifneq ($(MINGW),ON)
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
 	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(GTT) $(GTTF)
 	rm -f perftest/manysmallprobs
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
+else
+	del $(subst /,\,$(STATICLIB)), $(subst /,\,$(DYNLIB))
+	del matlab\*.mex*
+	for %%f in ($(subst /,\, $(TESTS))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
+	del test\results\*.out perftest\results\*.out
+	for %%f in ($(subst /,\, $(EXAMPLES)), $(subst /,\,$(FE)), $(subst /,\,$(ST)), $(subst /,\,$(STF)), $(subst /,\,$(GTT)), $(subst /,\,$(GTTF))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
+	del perftest\manysmallprobs
+	del examples\core, test\core, perftest\core, $(subst /,\, $(FE_DIR))\core
+endif
 
 # indiscriminate .o killer; needed before changing threading...
 objclean:
-	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o
+ifneq ($(MINGW),ON)
+	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o julia/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
+else
+	for /d %%d in (src,test\directfttest,examples,matlab,contrib,julia) do (for %%f in (%%d\*.o) do (del %%f))
+	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
+endif
 
 # *** need to update this:
 pyclean:
+ifneq ($(MINGW),ON)
 	rm -f python/finufft/*.pyc python/finufft/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 	rm -rf python/fixed_wheel python/wheelhouse
+else
+	for /d %%d in (python\finufft,python\test) do (for %%f in (%%d\*.pyc) do (del %%f))
+	for /d %%d in (python\finufft\__pycache__,python\test\__pycache__) do (for %%f in (%%d\*) do (del %%f))
+	for /d %%d in (python\fixed_wheel,python\wheelhouse) do (if exist %%d (rmdir /s /q %%d))
+endif
 
 # for experts; only run this if you have mwrap to rebuild the interfaces!
 mexclean:
+ifneq ($(MINGW),ON)
 	rm -f matlab/finufft_plan.m matlab/finufft.cpp matlab/finufft.mex*
+else
+	del matlab\finufft_plan.m matlab\finufft.cpp matlab\finufft.mex*
+endif
