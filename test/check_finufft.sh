@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Main validation tests for FINUFFT library.
+# Main validation tests for FINUFFT library. On Windows, we append .exe to the names of the executables.
 # Usage:   To do double-precision tests:   ./check_finufft.sh
 #          To do single-precision tests:   ./check_finufft.sh SINGLE
+#          To run test on Windows (WSL):   ./check_finufft.sh (DUMMY or SINGLE) ON
 # Exit code is 0 for success, otherwise failure
 
 # In total these tests take about 5 seconds on a modern machine with the
@@ -52,6 +53,7 @@ T=testutils$PRECSUF
 ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}          # exit code of the tested cmd (not the tee cmd!)
 if [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); fi
+# Disregard the OS-dependent line endings with --strip-trailing-cr
 diff --strip-trailing-cr $DIR/$T.out $DIR/$T.refout
 if [[ $? -eq 0 ]]; then echo passed; else echo failed; ((FAILS++)); fi
 
