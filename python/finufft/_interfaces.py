@@ -608,6 +608,30 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     return out
 
 
+def _wrap_docstring(docstring, tw=80, min_spacing=2):
+    lines = docstring.expandtabs().splitlines()
+
+    for k, line in enumerate(lines):
+        if len(line) > tw:
+            last_space = line[:tw].rfind(' ')
+            indent_level = line.rfind(' ' * min_spacing) + min_spacing
+
+            lines[k] = line[:last_space]
+
+            new_line = (' ' * indent_level) + line[last_space + 1:]
+
+            # Check if the indentation level continues on next line. If so,
+            # concatenate, otherwise insert new line.
+            if lines[k + 1][:indent_level].lstrip() == '':
+                lines[k + 1] = new_line + ' ' + lines[k + 1].lstrip()
+            else:
+                lines.insert(k + 1, new_line)
+
+    docstring = '\n'.join(lines)
+
+    return docstring
+
+
 def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
     doc_nufft1 = \
     """{dim}D type-1 (nonuniform to uniform) complex NUFFT
@@ -740,7 +764,7 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
         v['pt_inner'] = '(' + v['pt_inner'] + ')'
         v['pt_inner_type3'] = '(' + v['pt_inner_type3'] + ')'
 
-    f.__doc__ = doc_nufft[tp].format(**v)
+    f.__doc__ = _wrap_docstring(doc_nufft[tp].format(**v))
 
 
 ### easy interfaces
