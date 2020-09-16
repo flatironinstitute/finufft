@@ -625,8 +625,8 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       c         (complex[M] or complex[ntransf, M]): source strengths.
       n_modes   (integer or integer tuple of length {dim}, optional): number of
                 uniform Fourier modes requested {modes_tuple}. May be even or odd; in
-                either case, modes {pt_idx} are integers satisfying
-                {pt_constraint}. Must be specified if ``out`` is not given.
+                either case, modes {pt_idx} are integers satisfying {pt_constraint}.
+                Must be specified if ``out`` is not given.
       out       (complex[{modes}] or complex[ntransf, {modes}], optional): output array
                 for Fourier mode values. If ``n_modes`` is specifed, the shape
                 must match, otherwise ``n_modes`` is inferred from ``out``.
@@ -651,10 +651,10 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
 
     ::
 
-      c[j] = SUM f[{pt_idx}] exp(+/-i {pt_inner})       for j = 0, ..., M-1
+      c[j] = SUM f[{pt_idx}] exp(+/-i {pt_inner})
              {pt_idx}
 
-          where the sum is over {pt_constraint}
+          for j = 0, ..., M-1, where the sum is over {pt_constraint}
 
     Args:
 {pts_doc}
@@ -684,10 +684,11 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
 
     ::
 
-               M-1
-      f[k]  =  SUM   c[j] exp(+/-i {pt_inner_type3}),      for k = 0, ..., N-1
-               j=0
+             M-1
+      f[k] = SUM c[j] exp(+/-i {pt_inner_type3}),
+             j=0
 
+          for k = 0, ..., N-1
 
     Args:
 {src_pts_doc}
