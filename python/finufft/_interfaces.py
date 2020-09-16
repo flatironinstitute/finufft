@@ -667,7 +667,26 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[{modes}] or complex[ntransf, {modes}]: The resulting array.
 
     Example:
-      See ``{example}``.
+
+    ::
+
+      # number of nonuniform points
+      M = 100
+
+      # the nonuniform points
+{pts_generate}
+
+      # their complex strengths
+      c = (np.random.standard_normal(size=M)
+           + 1J * np.random.standard_normal(size=M))
+
+      # desired number of Fourier modes
+      {modes} = {sample_modes}
+
+      # calculate the type-1 NUFFT
+      f = finufft.nufft{dim}d1({pts}, c, {modes_tuple})
+
+    See also ``{example}``.
     """
 
     doc_nufft2 = \
@@ -700,7 +719,27 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[M] or complex[ntransf, M]: The resulting array.
 
     Example:
-      See ``{example}``.
+
+    ::
+
+      # number of nonuniform points
+      M = 100
+
+      # the nonuniform points
+{pts_generate}
+
+      # number of Fourier modes
+      {modes} = {sample_modes}
+
+      # the Fourier mode coefficients
+      f = (np.random.standard_normal(size={modes_tuple})
+           + 1J * np.random.standard_normal(size={modes_tuple}))
+
+      # calculate the type-2 NUFFT
+      c = finufft.nufft{dim}d2({pts}, f)
+
+
+    See also ``{example}``.
     """
 
     doc_nufft3 = \
@@ -732,20 +771,42 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[M] or complex[ntransf, M]: The resulting array.
 
     Example:
-      See ``{example}``.
+
+    ::
+
+      # number of source points
+      M = 100
+
+      # number of target points
+      N = 200
+
+      # the source points
+{pts_generate}
+
+      # the target points
+{target_pts_generate}
+
+      # their complex strengths
+      c = (np.random.standard_normal(size=M)
+           + 1J * np.random.standard_normal(size=M))
+
+      # calcuate the type-3 NUFFT
+      f = finufft.nufft{dim}d3({pts}, c, {target_pts})
+
+    See also ``{example}``.
     """
 
     doc_nufft = {1: doc_nufft1, 2: doc_nufft2, 3: doc_nufft3}
 
     pts = ('x', 'y', 'z')
     target_pts = ('s', 't', 'u')
+    sample_modes = (50, 75, 100)
 
     dims = range(1, dim + 1)
 
     v = {}
 
     v['dim'] = dim
-    v['example'] = example
 
     v['modes'] = ', '.join('N{}'.format(i) for i in dims)
     v['modes_tuple'] = '(' + v['modes'] + (', ' if dim == 1 else '') + ')'
@@ -755,10 +816,20 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
     v['pt_constraint'] = ', '.join('-N{0}/2 <= k{0} <= (N{0}-1)/2'.format(i) for i in dims)
     v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid only in [-3pi, 3pi].'.format(x) for x in pts[:dim])
 
+    # for example
+    v['pts'] = ', '.join(str(x) for x in pts[:dim])
+    v['pts_generate'] = '\n'.join('      {} = 2 * np.pi * np.random.uniform(size=M)'.format(x) for x in pts[:dim])
+    v['sample_modes'] = ', '.join(str(n) for n in sample_modes[:dim])
+    v['example'] = example
+
     # for type 3 only
     v['src_pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform source points.'.format(x) for x in pts[:dim])
     v['target_pts_doc'] = '\n'.join('      {}         (float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
     v['pt_inner_type3'] = ' + '.join('{0}[k] {1}[j]'.format(s, x) for s, x in zip(target_pts[:dim], pts[:dim]))
+
+    # for type 3 example only
+    v['target_pts'] = ', '.join(str(x) for x in target_pts[:dim])
+    v['target_pts_generate'] = '\n'.join('      {} = 2 * np.pi * np.random.uniform(size=N)'.format(x) for x in target_pts[:dim])
 
     if dim > 1:
         v['pt_inner'] = '(' + v['pt_inner'] + ')'
