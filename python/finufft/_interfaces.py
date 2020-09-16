@@ -608,6 +608,30 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     return out
 
 
+def _wrap_docstring(docstring, tw=80, min_spacing=2):
+    lines = docstring.expandtabs().splitlines()
+
+    for k, line in enumerate(lines):
+        if len(line) > tw:
+            last_space = line[:tw].rfind(' ')
+            indent_level = line.rfind(' ' * min_spacing) + min_spacing
+
+            lines[k] = line[:last_space]
+
+            new_line = (' ' * indent_level) + line[last_space + 1:]
+
+            # Check if the indentation level continues on next line. If so,
+            # concatenate, otherwise insert new line.
+            if lines[k + 1][:indent_level].lstrip() == '':
+                lines[k + 1] = new_line + ' ' + lines[k + 1].lstrip()
+            else:
+                lines.insert(k + 1, new_line)
+
+    docstring = '\n'.join(lines)
+
+    return docstring
+
+
 def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
     doc_nufft1 = \
     """{dim}D type-1 (nonuniform to uniform) complex NUFFT
@@ -625,8 +649,8 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       c         (complex[M] or complex[ntransf, M]): source strengths.
       n_modes   (integer or integer tuple of length {dim}, optional): number of
                 uniform Fourier modes requested {modes_tuple}. May be even or odd; in
-                either case, modes {pt_idx} are integers satisfying
-                {pt_constraint}. Must be specified if ``out`` is not given.
+                either case, modes {pt_idx} are integers satisfying {pt_constraint}.
+                Must be specified if ``out`` is not given.
       out       (complex[{modes}] or complex[ntransf, {modes}], optional): output array
                 for Fourier mode values. If ``n_modes`` is specifed, the shape
                 must match, otherwise ``n_modes`` is inferred from ``out``.
@@ -643,7 +667,26 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[{modes}] or complex[ntransf, {modes}]: The resulting array.
 
     Example:
-      See ``{example}``.
+
+    ::
+
+      # number of nonuniform points
+      M = 100
+
+      # the nonuniform points
+{pts_generate}
+
+      # their complex strengths
+      c = (np.random.standard_normal(size=M)
+           + 1J * np.random.standard_normal(size=M))
+
+      # desired number of Fourier modes
+      {modes} = {sample_modes}
+
+      # calculate the type-1 NUFFT
+      f = finufft.nufft{dim}d1({pts}, c, {modes_tuple})
+
+    See also ``{example}``.
     """
 
     doc_nufft2 = \
@@ -651,10 +694,10 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
 
     ::
 
-      c[j] = SUM f[{pt_idx}] exp(+/-i {pt_inner})       for j = 0, ..., M-1
+      c[j] = SUM f[{pt_idx}] exp(+/-i {pt_inner})
              {pt_idx}
 
-          where the sum is over {pt_constraint}
+          for j = 0, ..., M-1, where the sum is over {pt_constraint}
 
     Args:
 {pts_doc}
@@ -676,7 +719,27 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[M] or complex[ntransf, M]: The resulting array.
 
     Example:
-      See ``{example}``.
+
+    ::
+
+      # number of nonuniform points
+      M = 100
+
+      # the nonuniform points
+{pts_generate}
+
+      # number of Fourier modes
+      {modes} = {sample_modes}
+
+      # the Fourier mode coefficients
+      f = (np.random.standard_normal(size={modes_tuple})
+           + 1J * np.random.standard_normal(size={modes_tuple}))
+
+      # calculate the type-2 NUFFT
+      c = finufft.nufft{dim}d2({pts}, f)
+
+
+    See also ``{example}``.
     """
 
     doc_nufft3 = \
@@ -684,10 +747,11 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
 
     ::
 
-               M-1
-      f[k]  =  SUM   c[j] exp(+/-i {pt_inner_type3}),      for k = 0, ..., N-1
-               j=0
+             M-1
+      f[k] = SUM c[j] exp(+/-i {pt_inner_type3}),
+             j=0
 
+          for k = 0, ..., N-1
 
     Args:
 {src_pts_doc}
@@ -707,20 +771,42 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[M] or complex[ntransf, M]: The resulting array.
 
     Example:
-      See ``{example}``.
+
+    ::
+
+      # number of source points
+      M = 100
+
+      # number of target points
+      N = 200
+
+      # the source points
+{pts_generate}
+
+      # the target points
+{target_pts_generate}
+
+      # their complex strengths
+      c = (np.random.standard_normal(size=M)
+           + 1J * np.random.standard_normal(size=M))
+
+      # calcuate the type-3 NUFFT
+      f = finufft.nufft{dim}d3({pts}, c, {target_pts})
+
+    See also ``{example}``.
     """
 
     doc_nufft = {1: doc_nufft1, 2: doc_nufft2, 3: doc_nufft3}
 
     pts = ('x', 'y', 'z')
     target_pts = ('s', 't', 'u')
+    sample_modes = (50, 75, 100)
 
     dims = range(1, dim + 1)
 
     v = {}
 
     v['dim'] = dim
-    v['example'] = example
 
     v['modes'] = ', '.join('N{}'.format(i) for i in dims)
     v['modes_tuple'] = '(' + v['modes'] + (', ' if dim == 1 else '') + ')'
@@ -730,16 +816,26 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
     v['pt_constraint'] = ', '.join('-N{0}/2 <= k{0} <= (N{0}-1)/2'.format(i) for i in dims)
     v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid only in [-3pi, 3pi].'.format(x) for x in pts[:dim])
 
+    # for example
+    v['pts'] = ', '.join(str(x) for x in pts[:dim])
+    v['pts_generate'] = '\n'.join('      {} = 2 * np.pi * np.random.uniform(size=M)'.format(x) for x in pts[:dim])
+    v['sample_modes'] = ', '.join(str(n) for n in sample_modes[:dim])
+    v['example'] = example
+
     # for type 3 only
     v['src_pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform source points.'.format(x) for x in pts[:dim])
     v['target_pts_doc'] = '\n'.join('      {}         (float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
     v['pt_inner_type3'] = ' + '.join('{0}[k] {1}[j]'.format(s, x) for s, x in zip(target_pts[:dim], pts[:dim]))
 
+    # for type 3 example only
+    v['target_pts'] = ', '.join(str(x) for x in target_pts[:dim])
+    v['target_pts_generate'] = '\n'.join('      {} = 2 * np.pi * np.random.uniform(size=N)'.format(x) for x in target_pts[:dim])
+
     if dim > 1:
         v['pt_inner'] = '(' + v['pt_inner'] + ')'
         v['pt_inner_type3'] = '(' + v['pt_inner_type3'] + ')'
 
-    f.__doc__ = doc_nufft[tp].format(**v)
+    f.__doc__ = _wrap_docstring(doc_nufft[tp].format(**v))
 
 
 ### easy interfaces
