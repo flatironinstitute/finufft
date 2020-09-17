@@ -622,7 +622,7 @@ def _wrap_docstring(docstring, tw=80, min_spacing=2):
 
             # Check if the indentation level continues on next line. If so,
             # concatenate, otherwise insert new line.
-            if lines[k + 1][:indent_level].lstrip() == '':
+            if len(lines[k + 1]) - len(lines[k + 1].lstrip()) >= indent_level:
                 lines[k + 1] = new_line + ' ' + lines[k + 1].lstrip()
             else:
                 lines.insert(k + 1, new_line)
