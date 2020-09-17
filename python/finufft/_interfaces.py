@@ -9,17 +9,24 @@
 # Anden 8/18/20: auto-made docstrings for the 9 simple/many routines
 
 
-import finufft._finufft as _finufft
 import numpy as np
 import warnings
 import numbers
 
+from ctypes import byref
+from ctypes import c_longlong
+from ctypes import c_void_p
 
-from finufft._finufft import default_opts
-from finufft._finufft import nufft_opts
-from finufft._finufft import finufft_plan
-from finufft._finufft import finufftf_plan
-
+from finufft._finufft import NufftOpts
+from finufft._finufft import _default_opts
+from finufft._finufft import _makeplan
+from finufft._finufft import _makeplanf
+from finufft._finufft import _setpts
+from finufft._finufft import _setptsf
+from finufft._finufft import _execute
+from finufft._finufft import _executef
+from finufft._finufft import _destroy
+from finufft._finufft import _destroyf
 
 ### Plan class definition
 class Plan:
@@ -94,15 +101,12 @@ class Plan:
                 isign = 1
 
         # set opts and check precision type
-        opts = nufft_opts()
-        default_opts(opts)
+        opts = NufftOpts()
+        _default_opts(opts)
         is_single = setkwopts(opts,**kwargs)
 
         # construct plan based on precision type and eps default value
-        if is_single:
-            plan = finufftf_plan()
-        else:
-            plan = finufft_plan()
+        plan = c_void_p(None)
 
         # setting n_modes and dim for makeplan
         n_modes = np.ones([3], dtype=np.int64)
@@ -118,11 +122,13 @@ class Plan:
             dim = int(npmodes.size)
             n_modes[0:dim] = npmodes[::-1]
 
+        n_modes = (c_longlong * 3)(*n_modes)
+
         # call makeplan based on precision type
         if is_single:
-            ier = _finufft.makeplanf(nufft_type,dim,n_modes,isign,n_trans,eps,plan,opts)
+            ier = _makeplanf(nufft_type,dim,n_modes,isign,n_trans,eps,byref(plan),opts)
         else:
-            ier = _finufft.makeplan(nufft_type,dim,n_modes,isign,n_trans,eps,plan,opts)
+            ier = _makeplan(nufft_type,dim,n_modes,isign,n_trans,eps,byref(plan),opts)
 
         # check error
         if ier != 0:
@@ -136,6 +142,7 @@ class Plan:
         self.dim = dim
         self.n_modes = n_modes
         self.n_trans = n_trans
+        self.is_single = is_single
 
 
     ### setpts
@@ -166,9 +173,7 @@ class Plan:
             u       (float[N], optional): third coordinate of the nonuniform
                     points (target for type 3).
         """
-        is_single = is_single_plan(self.inner_plan)
-
-        if is_single:
+        if self.is_single:
             # array sanity check
             self._xjf = _rchkf(x)
             self._yjf = _rchkf(y)
@@ -184,11 +189,11 @@ class Plan:
 
             # call set pts for single prec plan
             if self.dim == 1:
-                ier = _finufft.setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
+                ier = _setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
             elif self.dim == 2:
-                ier = _finufft.setptsf(self.inner_plan,self.nj,self._yjf,self._xjf,self._zjf,self.nk,self._tf,self._sf,self._uf)
+                ier = _setptsf(self.inner_plan,self.nj,self._yjf,self._xjf,self._zjf,self.nk,self._tf,self._sf,self._uf)
             elif self.dim == 3:
-                ier = _finufft.setptsf(self.inner_plan,self.nj,self._zjf,self._yjf,self._xjf,self.nk,self._uf,self._tf,self._sf)
+                ier = _setptsf(self.inner_plan,self.nj,self._zjf,self._yjf,self._xjf,self.nk,self._uf,self._tf,self._sf)
             else:
                 raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
         else:
@@ -207,11 +212,11 @@ class Plan:
 
             # call set pts for double prec plan
             if self.dim == 1:
-                ier = _finufft.setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
+                ier = _setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
             elif self.dim == 2:
-                ier = _finufft.setpts(self.inner_plan,self.nj,self._yj,self._xj,self._zj,self.nk,self._t,self._s,self._u)
+                ier = _setpts(self.inner_plan,self.nj,self._yj,self._xj,self._zj,self.nk,self._t,self._s,self._u)
             elif self.dim == 3:
-                ier = _finufft.setpts(self.inner_plan,self.nj,self._zj,self._yj,self._xj,self.nk,self._u,self._t,self._s)
+                ier = _setpts(self.inner_plan,self.nj,self._zj,self._yj,self._xj,self.nk,self._u,self._t,self._s)
             else:
                 raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
 
@@ -239,9 +244,7 @@ class Plan:
         Returns:
             complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
         """
-        is_single = is_single_plan(self.inner_plan)
-
-        if is_single:
+        if self.is_single:
             _data = _cchkf(data)
             _out = _cchkf(out)
         else:
@@ -276,7 +279,7 @@ class Plan:
 
         # allocate out if None
         if out is None:
-            if is_single:
+            if self.is_single:
                 pdtype=np.complex64
             else:
                 pdtype=np.complex128
@@ -289,15 +292,15 @@ class Plan:
 
         # call execute based on type and precision type
         if tp==1 or tp==3:
-            if is_single:
-                ier = _finufft.executef(self.inner_plan,_data,_out)
+            if self.is_single:
+                ier = _executef(self.inner_plan,_data.ctypes.data_as(c_void_p),_out.ctypes.data_as(c_void_p))
             else:
-                ier = _finufft.execute(self.inner_plan,_data,_out)
+                ier = _execute(self.inner_plan,_data.ctypes.data_as(c_void_p),_out.ctypes.data_as(c_void_p))
         elif tp==2:
-            if is_single:
-                ier = _finufft.executef(self.inner_plan,_out,_data)
+            if self.is_single:
+                ier = _executef(self.inner_plan,_out.ctypes.data_as(c_void_p),_data.ctypes.data_as(c_void_p))
             else:
-                ier = _finufft.execute(self.inner_plan,_out,_data)
+                ier = _execute(self.inner_plan,_out.ctypes.data_as(c_void_p),_data.ctypes.data_as(c_void_p))
         else:
             ier = 10
 
@@ -314,7 +317,7 @@ class Plan:
 
 
     def __del__(self):
-        destroy(self.inner_plan)
+        destroy(self)
         self.inner_plan = None
 ### End of Plan class definition
 
@@ -504,16 +507,6 @@ def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
                 raise RuntimeError('FINUFFT f.shape is not consistent with n_modes')
 
 
-### check if it's a single precision plan
-def is_single_plan(plan):
-    if type(plan) is _finufft.finufftf_plan:
-        return True
-    elif type(plan) is _finufft.finufft_plan:
-        return False
-    else:
-        raise RuntimeError('FINUFFT invalid plan type')
-
-
 ### check if dtype is single or double
 def is_single_dtype(dtype):
     dtype = np.dtype(dtype)
@@ -546,10 +539,12 @@ def setkwopts(opt,**kwargs):
 
 ### destroy
 def destroy(plan):
-    if is_single_plan(plan):
-        ier = _finufft.destroyf(plan)
+    if plan is None:
+        return
+    if plan.is_single:
+        ier = _destroyf(plan.inner_plan)
     else:
-        ier = _finufft.destroy(plan)
+        ier = _destroy(plan.inner_plan)
 
     if ier != 0:
         err_handler(ier)
