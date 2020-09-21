@@ -12,17 +12,21 @@ Garrett Wright (Princeton), Joakim Andén (KTH/Flatiron). See github for
 full list of contributors.
 This project came out of Melody's 2018 and 2019 summer internships at the Flatiron Institute, advised by CCM project leader Alex Barnett.
 
+
 ## Installation
 
 Note for most Python users, you may skip to the [Python Package](#Python-Package) section first,
 and consider installing from source if that solution is not adequate for your needs.
 
- - Get this code - `git clone https://github.com/flatironinstitute/cufinufft.git`
- - Review the `Makefile`. - If you need to customize build settings, create and edit a `make.inc`.  Example:
+ - Make sure you have the prerequisites: a C++ compiler (eg `g++`) and a recent CUDA installation (`nvcc`).
+ - Get the code: `git clone https://github.com/flatironinstitute/cufinufft.git`
+ - Review the `Makefile`: If you need to customize build settings, create and edit a `make.inc`.  Example:
    - To override the standard CUDA `/usr/local/cuda` location your `make.inc` should contain: `CUDA_ROOT=/your/path/to/cuda`.
-   - Two examples are provided, one for IBM machines (`targets/make.inc.power9`), and another for the Courant Institute cluster (`targets/make.inc.CIMS`).
- - Compile - `make all -j`
- - Run test codes - `make check`
+   - For examples, see one for IBM machines (`targets/make.inc.power9`), and another for the Courant Institute cluster (`sites/make.inc.CIMS`).
+ - Compile: `make all -j`
+ - Run test codes: `make check` which should complete in less than a minute without error.
+ - You may then want to try individual test drivers, such as `bin/cufinufft2d1_test 2 1e3 1e3 1e7 1e-3` which tests the 2D type 1. Most such executables document their usage when called with no arguments.
+
 
 ### Advanced Makefile Usage
 
@@ -91,8 +95,11 @@ common arrangement.  If you have such a system, you may run:
 For other cases, the Python wrapper should be able to be built from source.
 We hope to extend this in the future, and have begun work for `manylinux2014`.
  
-## Interface
-cuFINUFFT API contains 5 stages:
+## Usage and interface
+
+Please see the codes in `examples/` to see how to call cuFINUFFT from C++.
+
+In short, cuFINUFFT API contains 5 stages:
  - Set cufinufft default options - ```int ier=cufinufft_default_opts(type1, dim, &opts);```
  - Make cufinufft plan - ``` ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan); ```
  - Set the locations of non-uniform points x,y,z - ```ier=cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, dplan);```
