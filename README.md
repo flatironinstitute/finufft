@@ -2,9 +2,13 @@
 A GPU implementation of the 2- and 3-dimensional non-uniform FFT of types 1 and 2, based on the CPU code [FINUFFT][1].
 In short, type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
 and type 2 does the reverse (it is the adjoint but not inverse of type 1).
-See the [documenation for FINUFFT][3] for a full description of the transforms and their applications to signal processing, imaging, and scientific computing.
+See the [documentation for FINUFFT][3] for a full description of the transforms and their applications to signal processing, imaging, and scientific computing.
 
-Main developer: Yu-hsuan Melody Shih (NYU). Main other contributors:
+<p>
+<img src="docs/logo.png" width="350"/>
+</p>
+
+Main developer: **Yu-hsuan Melody Shih** (NYU). Main other contributors:
 Garrett Wright (Princeton), Joakim Andén (KTH/Flatiron). See github for
 full list of contributors.
 This project came out of Melody's 2018 and 2019 summer internships at the Flatiron Institute, advised by CCM project leader Alex Barnett.
