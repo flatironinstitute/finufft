@@ -76,6 +76,7 @@ int main(int argc, char* argv[])
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
+        float totaltime = 0;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
@@ -111,6 +112,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
@@ -125,6 +127,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
@@ -139,6 +142,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
@@ -153,7 +157,11 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
+
+        printf("[Method %d] %d U pts to %d NU pts in %.3g s (\t%.3g NU pts/s)\n", opts.gpu_method,N1*N2,M,totaltime/1000,M/totaltime*1000);
+
 
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 	int jt = M/2;          // check arbitrary choice of one targ pt
