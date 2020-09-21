@@ -2,9 +2,9 @@
 
 <img align="right" src="docs/logo.png" width="350">
 
-A GPU implementation of the 2- and 3-dimensional non-uniform FFT of types 1 and 2, based on the CPU code [FINUFFT][1].
+A GPU implementation of the 2- and 3-dimensional non-uniform FFT of types 1 and 2, in single and double precisions, based on the CPU code [FINUFFT][1].
 In short, type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
-and type 2 does the reverse (it is the adjoint but not inverse of type 1).
+and type 2 does the reverse (it is the adjoint, but not inverse, of type 1).
 See the [documentation for FINUFFT][3] for a full description of the transforms and their applications to signal processing, imaging, and scientific computing.
 
 Main developer: **Yu-hsuan Melody Shih** (NYU). Main other contributors:
@@ -25,7 +25,7 @@ and consider installing from source if that solution is not adequate for your ne
    - For examples, see one for IBM machines (`targets/make.inc.power9`), and another for the Courant Institute cluster (`sites/make.inc.CIMS`).
  - Compile: `make all -j`
  - Run test codes: `make check` which should complete in less than a minute without error.
- - You may then want to try individual test drivers, such as `bin/cufinufft2d1_test 2 1e3 1e3 1e7 1e-3` which tests the 2D type 1. Most such executables document their usage when called with no arguments.
+ - You may then want to try individual test drivers, such as `bin/cufinufft2d1_test_32 2 1e3 1e3 1e7 1e-3` which tests the single-precision 2D type 1. Most such executables document their usage when called with no arguments.
 
 
 ### Advanced Makefile Usage
@@ -97,7 +97,8 @@ We hope to extend this in the future, and have begun work for `manylinux2014`.
  
 ## Usage and interface
 
-Please see the codes in `examples/` to see how to call cuFINUFFT from C++.
+Please see the codes in `examples/` to see how to call cuFINUFFT
+and link to from C++.
 
 In short, cuFINUFFT API contains 5 stages:
  - Set cufinufft default options - ```int ier=cufinufft_default_opts(type1, dim, &opts);```
