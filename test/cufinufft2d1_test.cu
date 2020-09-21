@@ -109,8 +109,8 @@ int main(int argc, char* argv[])
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
-	totaltime += milliseconds;
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds/1000);
 
 
@@ -122,8 +122,8 @@ int main(int argc, char* argv[])
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
-	totaltime += milliseconds;
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds/1000);
 
 
@@ -135,16 +135,16 @@ int main(int argc, char* argv[])
 	}
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
-	totaltime += milliseconds;
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
 	ier=CUFINUFFT_DESTROY(dplan);
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
-	totaltime += milliseconds;
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 
 	checkCudaErrors(cudaMemcpy(fk,d_fk,N1*N2*sizeof(CUCPX),
