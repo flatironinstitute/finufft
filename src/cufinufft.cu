@@ -124,6 +124,8 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 
 	/* Setup Spreader */
 	ier = setup_spreader_for_nufft(d_plan->spopts,tol,d_plan->opts);
+	if (ier>1)                           // proceed if success or warning
+	  return ier;
 
 	d_plan->dim = dim;
 	d_plan->ms = nmodes[0];

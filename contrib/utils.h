@@ -25,7 +25,7 @@ using namespace std;        // means std:: not needed for cout, max, etc
 typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 
 // Global error codes for the library...
-#define ERR_EPS_TOO_SMALL        1
+#define WARN_EPS_TOO_SMALL       1
 #define ERR_MAXNALLOC            2
 #define ERR_SPREAD_BOX_SMALL     3
 #define ERR_SPREAD_PTS_OUT_RANGE 4
