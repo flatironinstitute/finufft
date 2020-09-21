@@ -167,7 +167,7 @@ int main(int argc, char* argv[])
 	for (BIGINT j=0; j<M; ++j)
 		Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
 	int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-	printf("[gpu   ] %dth data one mode: abs err in F[%ld,%ld] is %.3g\n",(int)i, (int)nt1,(int)nt2,abs(Ft-fk[it+i*N]));
+//	printf("[gpu   ] %dth data one mode: abs err in F[%ld,%ld] is %.3g\n",(int)i, (int)nt1,(int)nt2,abs(Ft-fk[it+i*N]));
 	printf("[gpu   ] %dth data one mode: rel err in F[%ld,%ld] is %.3g\n",(int)i, (int)nt1,(int)nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
 
 	printf("[totaltime] %.3g us, speed %.3g NUpts/s\n", totaltime*1000, M*ntransf/totaltime*1000);
