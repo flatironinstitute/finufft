@@ -1,36 +1,67 @@
-CC=gcc
-CXX=g++
-NVCC=nvcc
+# Load site-specific setting -- controlled using environment variable `site`:
+# eg.  make site=nersc_cori
+ifdef site
+    $(info detected site: $(site))
+    -include sites/make.inc.$(site)
+endif
+
+# Load architecture-specific settings -- controlled using the environment
+# variable `target`: eg. make target=power9
+ifdef target
+    $(info detected target: $(target))
+    -include targets/make.inc.$(target)
+endif
+
+
+CC   ?= gcc
+CXX  ?= g++
+NVCC ?= nvcc
 
 # Developer-users are suggested to optimize NVARCH in their own make.inc, see:
 #   http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
-NVARCH = -arch=sm_70 \
-	-gencode=arch=compute_35,code=sm_35 \
-	-gencode=arch=compute_50,code=sm_50 \
-	-gencode=arch=compute_52,code=sm_52 \
-	-gencode=arch=compute_60,code=sm_60 \
-	-gencode=arch=compute_61,code=sm_61 \
-	-gencode=arch=compute_70,code=sm_70 \
-	-gencode=arch=compute_75,code=sm_75 \
-	-gencode=arch=compute_75,code=compute_75
+NVARCH ?= -arch=sm_70 \
+	  -gencode=arch=compute_35,code=sm_35 \
+	  -gencode=arch=compute_50,code=sm_50 \
+	  -gencode=arch=compute_52,code=sm_52 \
+	  -gencode=arch=compute_60,code=sm_60 \
+	  -gencode=arch=compute_61,code=sm_61 \
+	  -gencode=arch=compute_70,code=sm_70 \
+	  -gencode=arch=compute_75,code=sm_75 \
+	  -gencode=arch=compute_75,code=compute_75
 
-CFLAGS= -fPIC -O3 -funroll-loops -march=native -g
-CXXFLAGS= $(CFLAGS) -std=c++14
-NVCCFLAGS= -std=c++14 -ccbin=$(CXX) -O3 $(NVARCH) -Wno-deprecated-gpu-targets \
-	--default-stream per-thread -Xcompiler "$(CXXFLAGS)"
+CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native -g
+CXXFLAGS  ?= $(CFLAGS) -std=c++14
+NVCCFLAGS ?= -std=c++14 -ccbin=$(CXX) -O3 $(NVARCH) -Wno-deprecated-gpu-targets \
+	     --default-stream per-thread -Xcompiler "$(CXXFLAGS)"
 
 # For debugging, tell nvcc to add symbols to host and device code respectively,
 #NVCCFLAGS+= -g -G
 # and enable cufinufft internal flags.
 #NVCCFLAGS+= -DINFO -DDEBUG -DRESULT -DTIME
 
-# CUDA Related build dependencies
-CUDA_ROOT=/usr/local/cuda
-INC=-I$(CUDA_ROOT)/include \
-	-Icontrib/cuda_samples
-NVCC_LIBS_PATH=-L$(CUDA_ROOT)/lib64
+# CUDA Related build dependencies -- the user can overwrite CUDA_ROOT using the
+# CUDA_DIR environment variable. If neither (CUDA_ROOT, nor CUDA_DIR) is set,
+# CUDA_ROOT defaults to /usr/local/cuda
+ifeq ($(CUDA_DIR),)
+    CUDA_ROOT ?= /usr/local/cuda
+else
+    CUDA_ROOT := $(CUDA_DIR)
+endif
 
-LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda
+# Common includes
+INC += -I$(CUDA_ROOT)/include -Icontrib/cuda_samples
+
+# NVCC-specific libs
+NVCC_LIBS_PATH += -L$(CUDA_ROOT)/lib64
+ifdef FFTW_DIR
+    NVCC_LIBS_PATH += -L$(FFTW_DIR)
+endif
+ifdef NVCC_STUBS
+    $(info detected CUDA_STUBS -- setting CUDA stubs directory)
+    NVCC_LIBS_PATH += -L$(NVCC_STUBS)
+endif
+
+LIBS += -lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda
 
 
 #############################################################
@@ -39,7 +70,6 @@ LIBS=-lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda
 
 # Include header files
 INC += -I include
-
 
 LIBNAME=libcufinufft
 DYNAMICLIB=lib/$(LIBNAME).so
@@ -77,7 +107,6 @@ CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 	$(CC) -c $(CFLAGS) $(INC) $< -o $@
 %.o: %.cu $(HEADERS)
 	$(NVCC) --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
-
 
 all: $(BINDIR)/spread2d \
 	$(BINDIR)/interp2d \
