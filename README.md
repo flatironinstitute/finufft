@@ -1,7 +1,13 @@
 # cuFINUFFT
-A GPU implementation of 2, 3 dimension type 1, 2 non-uniform FFT based on [FINUFFT][1].
+A GPU implementation of the 2- and 3-dimensional non-uniform FFT of types 1 and 2, based on the CPU code [FINUFFT][1].
+In short, type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
+and type 2 does the reverse (it is the adjoint but not inverse of type 1).
+See the [documenation for FINUFFT][3] for a full description of the transforms and their applications to signal processing, imaging, and scientific computing.
 
-This is a work from Melody Shih's internship at Flatiron Institute, advised by CCM project leader Alex Barnett.
+Main developer: Yu-hsuan Melody Shih (NYU). Main other contributors:
+Garrett Wright (Princeton), Joakim Andén (KTH/Flatiron). See github for
+full list of contributors.
+This project came out of Melody's 2018 and 2019 summer internships at the Flatiron Institute, advised by CCM project leader Alex Barnett.
 
 ## Installation
 
@@ -9,7 +15,7 @@ Note for most Python users, you may skip to the [Python Package](#Python-Package
 and consider installing from source if that solution is not adequate for your needs.
 
  - Get this code - `git clone https://github.com/flatironinstitute/cufinufft.git`
- - Review the `makefile`. - If you need to customize build settings, create and edit a `make.inc`.  Example:
+ - Review the `Makefile`. - If you need to customize build settings, create and edit a `make.inc`.  Example:
    - To override the standard CUDA `/usr/local/cuda` location your `make.inc` should contain: `CUDA_ROOT=/your/path/to/cuda`.
    - Two examples are provided, one for IBM machines (`targets/make.inc.power9`), and another for the Courant Institute cluster (`targets/make.inc.CIMS`).
  - Compile - `make all -j`
@@ -102,3 +108,4 @@ cuFINUFFT API contains 5 stages:
 
 [1]: https://github.com/flatironinstitute/finufft
 [2]: http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+[3]: https://finufft.readthedocs.io
