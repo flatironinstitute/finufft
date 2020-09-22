@@ -24,6 +24,9 @@ finufftdir = os.environ.get('FINUFFT_DIR')
 if finufftdir==None or finufftdir=='':
     finufftdir = os.path.dirname(os.path.dirname(__file__))
 
+# need this on ubuntu with python3.8
+os.system("export LDFLAGS=-wl,--no-as-needed")
+
 # alex debugging - please remove when debugged:
 print("finufftdir: ", finufftdir)
 print("pathname of __file__: ",os.path.dirname(__file__))   # ok, fails why?
