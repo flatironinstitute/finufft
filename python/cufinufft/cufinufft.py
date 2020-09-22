@@ -48,7 +48,7 @@ class cufinufft:
 
         :param finufft_type: integer 1, 2, or 3.
         :param modes: Array describing the shape of the transform \
-        in 1, 2, or 3 dimensions.
+        in 1, 2, or 3 dimensions. (ZYX order, same as ndarray.shape)
         :param isign: 1 or -1, controls sign of imaginary component output.
         :param tol: Floating point tolerance.
         :param ntransforms: Number of transforms, defaults to 1.
@@ -92,9 +92,13 @@ class cufinufft:
         self.ntransforms = ntransforms
         self._maxbatch = 1    # TODO: optimize this one day
 
+        # First we extend the mode tuple to 3D as needed.
         modes = modes + (1,) * (3 - self.dim)
-        modes = (c_int * 3)(*modes)
-        self.modes = modes
+        # Then reorder from python user ndarray.shape style input (nZ, nY, nX)
+        #   to the order expected by the underlying call (Nx, Ny, Nz).
+        # The underlying C++ args are labeled (..., X, Y, Z, ...)
+        #   and (...., N1, N2, N3, ....) so no convention is needed there.
+        self.modes = (c_int * 3)(*modes[::-1])
 
         # Initialize the plan for this instance
         self.plan = None
