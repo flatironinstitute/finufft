@@ -92,13 +92,13 @@ class cufinufft:
         self.ntransforms = ntransforms
         self._maxbatch = 1    # TODO: optimize this one day
 
-        # First we extend the mode tuple to 3D as needed.
-        modes = modes + (1,) * (3 - self.dim)
-        # Then reorder from python user ndarray.shape style input (nZ, nY, nX)
+        # We extend the mode tuple to 3D as needed,
+        #   and reorder from python ndarray.shape style input (nZ, nY, nX)
         #   to the order expected by the underlying call (Nx, Ny, Nz).
         # The underlying C++ args are labeled (..., X, Y, Z, ...)
         #   and (...., N1, N2, N3, ....) so no convention is needed there.
-        self.modes = (c_int * 3)(*modes[::-1])
+        modes = modes[::-1] + (1,) * (3 - self.dim)
+        self.modes = (c_int * 3)(*modes)
 
         # Initialize the plan for this instance
         self.plan = None
