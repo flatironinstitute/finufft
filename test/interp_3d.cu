@@ -153,7 +153,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
-	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
+	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g NU pts/s)\n",
 			dplan.opts.gpu_method,nf1*nf2*nf3,M,t,M/t);
 #ifdef RESULT
 	cout<<"[result-input]"<<endl;
