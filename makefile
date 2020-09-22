@@ -376,6 +376,8 @@ clean: objclean pyclean
 objclean:
 	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
+	rm -f contrib/*.o
+	rm -f julia/*.o
 
 # *** need to update this:
 pyclean:

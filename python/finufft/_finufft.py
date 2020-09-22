@@ -47,7 +47,7 @@ except OSError:
 try:
     if lib is None:
         # Find the library.
-        fh = imp.find_module('finufftc')[0]
+        fh = imp.find_module('finufft/finufftc')[0]
         # Get the full path for the ctypes loader.
         full_lib_path = os.path.realpath(fh.name)
         fh.close()    # Be nice and close the open file handle.

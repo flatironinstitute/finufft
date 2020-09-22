@@ -51,6 +51,7 @@ print(os.environ['CXX'])  # check - doesn't read correctly from ../make.inc  :(
 inc_dir = finufftdir+"/include"
 src_dir = finufftdir+"/src"
 lib_dir = finufftdir+"/lib"
+finufft_dlib = finufftdir+"/lib/finufft"
 finufft_lib = finufftdir+"/lib-static/finufft"
 
 ########## SETUP ###########
@@ -66,12 +67,11 @@ setup(
     packages=['finufft'],
     install_requires=['numpy','python-dotenv'],
     zip_safe=False,
-    py_modules=['finufftc'],
+    py_modules=['finufft/finufftc'],
     ext_modules=[
-        Extension(name='finufftc',
+        Extension(name='finufft/finufftc',
                   sources=[],
-                  libraries=['finufft'],
-                  library_dirs=[lib_dir])
+                  libraries=[finufft_dlib])
         ]
 )
 
