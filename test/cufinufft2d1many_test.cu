@@ -96,6 +96,23 @@ int main(int argc, char* argv[])
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
+        // warm up CUFFT (is slow, takes around 0.2 sec... )
+        cudaEventRecord(start);
+        {
+                cufftHandle fftplan;
+                int nf2=1;
+                int nf1=1;
+                int n[] = {nf2, nf1};
+                int inembed[] = {nf2, nf1};
+                cufftPlanMany(&fftplan,2,n,inembed,1,inembed[0]*inembed[1],
+                        inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,1);
+        }
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds/1000);
+
+        // now to the test...
 	CUFINUFFT_PLAN dplan;
 	int dim = 2;
 	int type = 1;
@@ -147,6 +164,7 @@ int main(int argc, char* argv[])
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
+	float exec_ms = milliseconds;
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
@@ -171,6 +189,8 @@ int main(int argc, char* argv[])
 	printf("[gpu   ] %dth data one mode: rel err in F[%ld,%ld] is %.3g\n",(int)i, (int)nt1,(int)nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
 
 	printf("[totaltime] %.3g us, speed %.3g NUpts/s\n", totaltime*1000, M*ntransf/totaltime*1000);
+        printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n",M*ntransf/exec_ms*1000);
+
 	cudaFreeHost(x);
 	cudaFreeHost(y);
 	cudaFreeHost(c);

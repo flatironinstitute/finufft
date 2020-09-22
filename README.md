@@ -23,7 +23,7 @@ and consider installing from source if that solution is not adequate for your ne
  - Review the `Makefile`: If you need to customize build settings, create and edit a `make.inc`.  Example:
    - To override the standard CUDA `/usr/local/cuda` location your `make.inc` should contain: `CUDA_ROOT=/your/path/to/cuda`.
    - For examples, see one for IBM machines (`targets/make.inc.power9`), and another for the Courant Institute cluster (`sites/make.inc.CIMS`).
- - Compile: `make all -j`
+ - Compile: `make all -j` (this takes several minutes)
  - Run test codes: `make check` which should complete in less than a minute without error.
  - You may then want to try individual test drivers, such as `bin/cufinufft2d1_test_32 2 1e3 1e3 1e7 1e-3` which tests the single-precision 2D type 1. Most such executables document their usage when called with no arguments.
 

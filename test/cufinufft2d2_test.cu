@@ -80,6 +80,23 @@ int main(int argc, char* argv[])
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
+        // warm up CUFFT (is slow, takes around 0.2 sec... )
+        cudaEventRecord(start);
+        {
+                cufftHandle fftplan;
+                int nf2=1;
+                int nf1=1;
+                int n[] = {nf2, nf1};
+                int inembed[] = {nf2, nf1};
+                cufftPlanMany(&fftplan,2,n,inembed,1,inembed[0]*inembed[1],
+                        inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,1);
+        }
+        cudaEventRecord(stop);
+        cudaEventSynchronize(stop);
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds/1000);
+
+        // now to the test...
 	CUFINUFFT_PLAN dplan;
 	int dim = 2;
 	int type = 2;
@@ -143,6 +160,7 @@ int main(int argc, char* argv[])
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	totaltime += milliseconds;
+	float exec_ms = milliseconds;
 	printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds/1000);
 
 	cudaEventRecord(start);
@@ -160,7 +178,8 @@ int main(int argc, char* argv[])
 	totaltime += milliseconds;
 	printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds/1000);
 
-        printf("[Method %d] %d U pts to %d NU pts in %.3g s (\t%.3g NU pts/s)\n", opts.gpu_method,N1*N2,M,totaltime/1000,M/totaltime*1000);
+        printf("[Method %d] %d U pts to %d NU pts in %.3g s:      %.3g NU pts/s\n", opts.gpu_method,N1*N2,M,totaltime/1000,M/totaltime*1000);
+        printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n",M/exec_ms*1000);
 
 
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
