@@ -327,7 +327,7 @@ mex: matlab/finufft.mw
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); export LDFLAGS=-Wl,--no-as-needed; cd python; $(PYTHON) -m pip -v install .)
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip -v install .)
 # note to devs: if trouble w/ NumPy, use: pip install . --no-deps
 	$(PYTHON) python/test/run_accuracy_tests.py
 	$(PYTHON) python/examples/simple1d1.py
