@@ -122,8 +122,8 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
-	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g U pts/s)\n",
-			dplan.opts.gpu_method,nf1*nf2,M,t,nf1*nf2/t);
+	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g NU pts/s)\n",
+			dplan.opts.gpu_method,nf1*nf2,M,t,M/t);
 #ifdef RESULT
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<M; j++){
