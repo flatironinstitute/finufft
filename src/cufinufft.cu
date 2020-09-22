@@ -88,6 +88,8 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
     ntransf number of transforms performed in exec stage
 	tol     precision requested (>1e-16 for double precision, >1e-8 for single
 	        precision)
+	maxbatchsize	when ntransf>1, size of batch of data vectors to perform
+			cuFFT on. (default is 0, which chooses a heuristic.)
 
 	Input/Output:
 	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft_eitherprec.h)
@@ -95,6 +97,7 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	        inside the plan are set and allocated
 
 	Melody Shih 07/25/19
+	doc updated, Barnett, 9/22/20.
 */
 {
 
@@ -149,6 +152,8 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	d_plan->nf3 = nf3;
 	d_plan->iflag = fftsign;
 	d_plan->ntransf = ntransf;
+	if (maxbatchsize==0)                    // implies: use a heuristic.
+	   maxbatchsize = min(ntransf, 8);      // heuristic from test codes
 	d_plan->maxbatchsize = maxbatchsize;
 	d_plan->type = type;
 

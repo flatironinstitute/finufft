@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
 			"    3: sub-problem with Paul's idea.\n"
 			"  N1, N2: The size of the 2D array.\n"
 			"  ntransf: Number of inputs (default 2 ^ 27 / (N1 * N2)).\n"
-			"  maxbatchsize: Number of simultaneous transforms (default min(8, ntransf)).\n"
+			"  maxbatchsize: Number of simultaneous transforms (or 0 for default).\n"
 			"  M: The number of non-uniform points (default N1 * N2).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n");
 		return 1;
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 	if(argc>4){
 		sscanf(argv[4],"%d",&ntransf);
 	}
-	maxbatchsize = min(8, ntransf);
+	maxbatchsize = 0;    // default (cufinufft chooses)
 	if(argc>5){
 		sscanf(argv[5],"%d",&maxbatchsize);
 	}
