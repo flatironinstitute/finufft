@@ -9,56 +9,34 @@
 
 using namespace std;
 
-int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M, 
-	FLT *h_kx, FLT *h_ky, CPX *h_c, CUFINUFFT_PLAN d_plan)
+int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX* d_fw, int M, 
+	FLT *d_kx, FLT *d_ky, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*
-	This c function is written for only doing 2D interpolation. It includes 
-	allocating, transfering and freeing the memories on gpu. See 
-	test/interp_2d.cu for usage.
+	This c function is written for only doing 2D interpolation. See 
+	test/interp2d_test.cu for usage.
 
 	Melody Shih 07/25/19
+	not allocate,transfer and free memories on gpu. Shih 09/24/20
 */
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	d_plan->ms = ms;
-	d_plan->mt = mt;
 	d_plan->nf1 = nf1;
 	d_plan->nf2 = nf2;
 	d_plan->M = M;
 	d_plan->maxbatchsize = 1;
 
-	int ier;
-	//int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
-	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
+	d_plan->kx = d_kx;
+	d_plan->ky = d_ky;
+	d_plan->c  = d_c;
+	d_plan->fw = d_fw;
 
+	int ier;
 	cudaEventRecord(start);
 	ier = ALLOCGPUMEM2D_PLAN(d_plan);
 	ier = ALLOCGPUMEM2D_NUPTS(d_plan);
-#ifdef TIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
-#endif
-	cudaEventRecord(start);
-	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),
-		cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),
-		cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->fw,h_fw,nf1*nf2*sizeof(CUCPX),
-		cudaMemcpyHostToDevice));
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
-#endif
 	if(d_plan->opts.gpu_method == 1){
 		ier = CUSPREAD2D_NUPTSDRIVEN_PROP(nf1,nf2,M,d_plan);
 		if(ier != 0 ){
@@ -75,6 +53,14 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 			return ier;
 		}
 	}
+#ifdef TIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] Obtain Interp prop\t %.3g ms\n", d_plan->opts.gpu_method, 
+		milliseconds);
+#endif
 	cudaEventRecord(start);
 	ier = CUINTERP2D(d_plan,1);
 #ifdef TIME
@@ -85,15 +71,6 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 		milliseconds);
 #endif
 	cudaEventRecord(start);
-	checkCudaErrors(cudaMemcpy(h_c,d_plan->c,M*sizeof(CUCPX),
-		cudaMemcpyDeviceToHost));
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
-#endif
-	cudaEventRecord(start);
 	FREEGPUMEMORY2D(d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
@@ -101,9 +78,6 @@ int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
 #endif
-	cudaFree(d_plan->kx);
-	cudaFree(d_plan->ky);
-	cudaFree(d_plan->c);
 	return ier;
 }
 

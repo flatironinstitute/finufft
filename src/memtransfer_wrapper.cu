@@ -74,12 +74,14 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 			cerr << "err: invalid method " << endl;
 	}
 
-	checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*
-			sizeof(CUCPX)));
+	if(!d_plan->opts.gpu_spreadinterponly){
+		checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*
+				sizeof(CUCPX)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
+	}
 	//checkCudaErrors(cudaMalloc(&d_plan->fk,maxbatchsize*ms*mt*
 	//	sizeof(CUCPX)));
-	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 
 	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->opts.gpu_nstreams*
 		sizeof(cudaStream_t));
@@ -131,12 +133,11 @@ void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
-	checkCudaErrors(cudaFree(d_plan->fw));
-	//cudaFree(d_plan->kx);
-	//cudaFree(d_plan->ky);
-	//cudaFree(d_plan->c);
-	checkCudaErrors(cudaFree(d_plan->fwkerhalf1));
-	checkCudaErrors(cudaFree(d_plan->fwkerhalf2));
+	if(!d_plan->opts.gpu_spreadinterponly){
+		checkCudaErrors(cudaFree(d_plan->fw));
+		checkCudaErrors(cudaFree(d_plan->fwkerhalf1));
+		checkCudaErrors(cudaFree(d_plan->fwkerhalf2));
+	}
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -278,12 +279,14 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 		default:
 			cerr << "err: invalid method" << endl;
 	}
-	checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*nf3*
-		sizeof(CUCPX)));
+	if(!d_plan->opts.gpu_spreadinterponly){
+		checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*nf3*
+			sizeof(CUCPX)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3,(nf3/2+1)*sizeof(FLT)));
+	}
 
-	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3,(nf3/2+1)*sizeof(FLT)));
 	return 0;
 }
 
@@ -332,14 +335,16 @@ void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
-	cudaFree(d_plan->fw);
+	if(!d_plan->opts.gpu_spreadinterponly){
+		cudaFree(d_plan->fw);
+		cudaFree(d_plan->fwkerhalf1);
+		cudaFree(d_plan->fwkerhalf2);
+		cudaFree(d_plan->fwkerhalf3);
+	}
 	//cudaFree(d_plan->kx);
 	//cudaFree(d_plan->ky);
 	//cudaFree(d_plan->kz);
 	//cudaFree(d_plan->c);
-	cudaFree(d_plan->fwkerhalf1);
-	cudaFree(d_plan->fwkerhalf2);
-	cudaFree(d_plan->fwkerhalf3);
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:

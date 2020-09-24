@@ -108,8 +108,10 @@ CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 %.o: %.cu $(HEADERS)
 	$(NVCC) --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 
-all: $(BINDIR)/spread2d \
-	$(BINDIR)/interp2d \
+all: $(BINDIR)/spread2d_test \
+    $(BINDIR)/spread2d_test_32 \
+	$(BINDIR)/interp2d_test \
+	$(BINDIR)/interp2d_test_32 \
 	$(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft2d2_test \
 	$(BINDIR)/cufinufft2d1many_test \
@@ -118,8 +120,10 @@ all: $(BINDIR)/spread2d \
 	$(BINDIR)/cufinufft2d2_test_32 \
 	$(BINDIR)/cufinufft2d1many_test_32 \
 	$(BINDIR)/cufinufft2d2many_test_32 \
-	$(BINDIR)/spread3d \
-	$(BINDIR)/interp3d \
+	$(BINDIR)/spread3d_test \
+	$(BINDIR)/spread3d_test_32 \
+	$(BINDIR)/interp3d_test \
+	$(BINDIR)/interp3d_test_32 \
 	$(BINDIR)/cufinufft3d1_test \
 	$(BINDIR)/cufinufft3d2_test \
 	$(BINDIR)/cufinufft3d1_test_32 \
@@ -128,22 +132,6 @@ all: $(BINDIR)/spread2d \
 	$(BINDIR)/cufinufft2d2api_test_32 \
 	lib
 
-
-$(BINDIR)/spread2d: test/spread_2d.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
-	mkdir -p $(BINDIR)
-	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
-
-$(BINDIR)/interp2d: test/interp_2d.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
-	mkdir -p $(BINDIR)
-	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
-
-$(BINDIR)/spread3d: test/spread_3d.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
-	mkdir -p $(BINDIR)
-	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
-
-$(BINDIR)/interp3d: test/interp_3d.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
-	mkdir -p $(BINDIR)
-	$(NVCC) $(NVCCFLAGS) $(LIBS) -o $@ $^
 
 $(BINDIR)/cufinufft2d2api_test%: test/cufinufft2d2api_test%.o $(DYNAMICLIB)
 	mkdir -p $(BINDIR)

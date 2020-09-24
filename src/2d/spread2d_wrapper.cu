@@ -12,28 +12,26 @@
 
 using namespace std;
 
-int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
-	const FLT *h_kx, const FLT *h_ky, const CPX *h_c, CUFINUFFT_PLAN d_plan)
+int CUFINUFFT_SPREAD2D(int nf1, int nf2, CUCPX* d_fw, int M,
+	FLT *d_kx, FLT *d_ky, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*
-	This c function is written for only doing 2D spreading. It includes
-	allocating, transfering, and freeing the memories on gpu. See
-	test/spread_2d.cu for usage.
+	This c function is written for only doing 2D spreading. See
+	test/spread2d_test.cu for usage.
 
 	Melody Shih 07/25/19
+	not allocate,transfer and free memories on gpu. Shih 09/24/20
 */
 {
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
-	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
+	d_plan->kx = d_kx;
+	d_plan->ky = d_ky;
+	d_plan->c  = d_c;
+	d_plan->fw = d_fw;
 
 	int ier;
-	//int ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
-	d_plan->ms = ms;
-	d_plan->mt = mt;
 	d_plan->nf1 = nf1;
 	d_plan->nf2 = nf2;
 	d_plan->M = M;
@@ -42,28 +40,6 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventRecord(start);
 	ier = ALLOCGPUMEM2D_PLAN(d_plan);
 	ier = ALLOCGPUMEM2D_NUPTS(d_plan);
-#ifdef TIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
-#endif
-
-	cudaEventRecord(start);
-	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),
-		cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),
-		cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->c, h_c, M*sizeof(CUCPX),
-		cudaMemcpyHostToDevice));
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory HtoD (%d Bytes) \t%.3g ms\n",
-		2*M*sizeof(FLT)+M*sizeof(CUCPX), milliseconds);
-#endif
 
 	if(d_plan->opts.gpu_method == 1){
 		ier = CUSPREAD2D_NUPTSDRIVEN_PROP(nf1,nf2,M,d_plan);
@@ -91,6 +67,13 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 			return ier;
 		}
 	}
+#ifdef TIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] Obtain Spread Prop\t %.3g ms\n", milliseconds);
+#endif
 
 	cudaEventRecord(start);
 	ier = CUSPREAD2D(d_plan,1);
@@ -98,19 +81,10 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Spread (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method,
+	printf("[time  ] Spread (%d)\t\t %5.3f ms\n", d_plan->opts.gpu_method,
 		milliseconds);
 #endif
-	cudaEventRecord(start);
-	checkCudaErrors(cudaMemcpy(h_fw,d_plan->fw,nf1*nf2*sizeof(CUCPX),
-		cudaMemcpyDeviceToHost));
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory DtoH (%d Bytes) \t %.3g ms\n",
-		nf1*nf2*sizeof(CUCPX),  milliseconds);
-#endif
+
 	cudaEventRecord(start);
 	FREEGPUMEMORY2D(d_plan);
 #ifdef TIME
@@ -119,9 +93,6 @@ int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
 #endif
-	cudaFree(d_plan->kx);
-	cudaFree(d_plan->ky);
-	cudaFree(d_plan->c);
 	return ier;
 }
 
@@ -202,6 +173,12 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
 
 		int bin_size_x=d_plan->opts.gpu_binsizex;
 		int bin_size_y=d_plan->opts.gpu_binsizey;
+		if(bin_size_x < 0 || bin_size_y < 0){
+			cout<<"error: invalid binsize (binsizex, binsizey) = (";
+			cout<<bin_size_x<<","<<bin_size_y<<")"<<endl;
+			return 1; 
+		}
+
 		int numbins[2];
 		numbins[0] = ceil((FLT) nf1/bin_size_x);
 		numbins[1] = ceil((FLT) nf2/bin_size_y);
@@ -420,6 +397,11 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 	int bin_size_x=d_plan->opts.gpu_binsizex;
 	int bin_size_y=d_plan->opts.gpu_binsizey;
+	if(bin_size_x < 0 || bin_size_y < 0){
+		cout<<"error: invalid binsize (binsizex, binsizey) = (";
+		cout<<bin_size_x<<","<<bin_size_y<<")"<<endl;
+		return 1; 
+	}
 	int numbins[2];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
