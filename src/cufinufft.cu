@@ -571,6 +571,8 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 	opts->gpu_binsizey = -1;
 	opts->gpu_binsizez = -1;
 
+	opts->gpu_spreadinterponly = 0; // default to do the whole nufft
+
 	switch(dim)
 	{
 		case 1:
