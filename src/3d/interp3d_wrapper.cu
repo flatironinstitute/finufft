@@ -9,15 +9,14 @@
 
 using namespace std;
 
-int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, 
-	CPX* h_fw, int M, FLT *h_kx, FLT *h_ky, FLT *h_kz, CPX *h_c, FLT eps, 
-	CUFINUFFT_PLAN d_plan)
+int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX* d_fw, int M, FLT *d_kx, 
+	FLT *d_ky, FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*
-	This c function is written for only doing 3D interpolation. It includes 
-	allocating, transfering and freeing the memories on gpu. See 
-	test/interp_3d.cu for usage.
+	This c function is written for only doing 3D interpolation. See 
+	test/interp3d_test.cu for usage.
 
 	Melody Shih 07/25/19
+	not allocate,transfer and free memories on gpu. Shih 09/24/20
 */
 {
 	cudaEvent_t start, stop;
@@ -25,11 +24,12 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventCreate(&stop);
 
 	int ier;
-	//ier = setup_spreader_for_nufft(d_plan->spopts, eps, d_plan->opts);
+	d_plan->kx = d_kx;
+	d_plan->ky = d_ky;
+	d_plan->kz = d_kz;
+	d_plan->c  = d_c;
+	d_plan->fw = d_fw;
 
-	d_plan->ms = ms;
-	d_plan->mt = mt;
-	d_plan->mu = mu;
 	d_plan->nf1 = nf1;
 	d_plan->nf2 = nf2;
 	d_plan->nf3 = nf3;
@@ -39,33 +39,7 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventRecord(start);
 	ier = ALLOCGPUMEM3D_PLAN(d_plan);
 	ier = ALLOCGPUMEM3D_NUPTS(d_plan);
-#ifdef TIME
-	float milliseconds = 0;
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Allocate GPU memory\t %.3g ms\n", milliseconds);
-#endif
-	cudaEventRecord(start);
-	checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->kz,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_plan->c,M*sizeof(CUCPX)));
 
-	checkCudaErrors(cudaMemcpy(d_plan->kx,h_kx,M*sizeof(FLT),
-		cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->ky,h_ky,M*sizeof(FLT),
-		cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->kz,h_kz,M*sizeof(FLT),
-		cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_plan->fw,h_fw,nf1*nf2*nf3*sizeof(CUCPX),
-		cudaMemcpyHostToDevice));
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory HtoD\t %.3g ms\n", milliseconds);
-#endif
 	if(d_plan->opts.gpu_method == 1){
 		ier = CUSPREAD3D_NUPTSDRIVEN_PROP(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
@@ -77,10 +51,20 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	if(d_plan->opts.gpu_method == 2){
 		ier = CUSPREAD3D_SUBPROB_PROP(nf1,nf2,nf3,M,d_plan);
 		if(ier != 0 ){
-			printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
+			printf("error: cuspread3d_subprob_prop, method(%d)\n", 
+													  d_plan->opts.gpu_method);
 			return ier;
 		}
 	}
+#ifdef TIME
+	float milliseconds = 0;
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] Obtain Interp prop\t %.3g ms\n", d_plan->opts.gpu_method, 
+		milliseconds);
+#endif
+
 	cudaEventRecord(start);
 	ier = CUINTERP3D(d_plan, 1);
 #ifdef TIME
@@ -90,14 +74,6 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	printf("[time  ] Interp (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method, milliseconds);
 #endif
 	cudaEventRecord(start);
-	checkCudaErrors(cudaMemcpy(h_c,d_plan->c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
-#ifdef TIME
-	cudaEventRecord(stop);
-	cudaEventSynchronize(stop);
-	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Copy memory DtoH\t %.3g ms\n", milliseconds);
-#endif
-	cudaEventRecord(start);
 	FREEGPUMEMORY3D(d_plan);
 #ifdef TIME
 	cudaEventRecord(stop);
@@ -105,9 +81,6 @@ int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
 #endif
-	cudaFree(d_plan->kx);
-	cudaFree(d_plan->ky);
-	cudaFree(d_plan->kz);
 	cudaFree(d_plan->c);
 	return ier;
 }
