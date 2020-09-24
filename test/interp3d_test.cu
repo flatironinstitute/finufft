@@ -61,7 +61,6 @@ int main(int argc, char* argv[])
 	int ier;
 
 	int ns=std::ceil(-log10(tol/10.0));
-	int maxsubprobsize;
 
 	cout<<scientific<<setprecision(3);
 
@@ -74,31 +73,60 @@ int main(int argc, char* argv[])
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*nf3*sizeof(CPX));
 
+	FLT *d_x, *d_y, *d_z;
+	CUCPX *d_c, *d_fw;
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_z,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(CUCPX)));
+
+
+	int dim=3;
+	CUFINUFFT_PLAN dplan = new CUFINUFFT_PLAN_S;
+	ier = CUFINUFFT_DEFAULT_OPTS(2, dim, &(dplan->opts));
+	dplan->opts.gpu_method           = method;
+	dplan->opts.gpu_maxsubprobsize   = 1024;
+	dplan->opts.gpu_kerevalmeth      = 1;
+	dplan->opts.gpu_sort             = sort;
+	dplan->opts.gpu_spreadinterponly = 1;
+	if(dplan->opts.gpu_method == 1)
+	{
+		dplan->opts.gpu_binsizex=16;
+		dplan->opts.gpu_binsizey=8;
+		dplan->opts.gpu_binsizez=4;
+	}
+	if(dplan->opts.gpu_method == 2)
+	{
+		dplan->opts.gpu_binsizex=16;
+		dplan->opts.gpu_binsizey=16;
+		dplan->opts.gpu_binsizez=2;
+	}
+	ier = setup_spreader_for_nufft(dplan->spopts, tol, dplan->opts);
+
 	switch(nupts_distribute){
 		// Making data
 		case 0: //uniform
 			{
 				for (int i = 0; i < M; i++) {
-					x[i] = RESCALE(M_PI*randm11(), nf1, 1);// x in [-pi,pi)
-					y[i] = RESCALE(M_PI*randm11(), nf2, 1);
-					z[i] = RESCALE(M_PI*randm11(), nf3, 1);
+					x[i] = M_PI*randm11();// x in [-pi,pi)
+					y[i] = M_PI*randm11();
+					z[i] = M_PI*randm11();
 					//cout << x[i] << "," << y[i] << "," << z[i] << endl;
 				}
-				maxsubprobsize = 65536;
 			}
 			break;
 		case 1: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
-					x[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf1, 1);// x in [-pi,pi)
-					y[i] = RESCALE(M_PI*rand01()/(nf1*2/32), nf2, 1);
-					z[i] = RESCALE(M_PI*rand01()/(nf3*2/32), nf3, 1);
+					x[i] = M_PI*rand01()/(nf1*2/32);// x in [-pi,pi)
+					y[i] = M_PI*rand01()/(nf1*2/32);
+					z[i] = M_PI*rand01()/(nf3*2/32);
 				}
-				maxsubprobsize = 1024;
 			}
 			break;
 		default:
-			cerr<<"error: nupts distr should be 1,2" << endl;
+			cerr<<"error: nupts distr should be 0,1" << endl;
 			return 1;
 	}
 	for(int i=0; i<nf1*nf2*nf3; i++){
@@ -106,55 +134,22 @@ int main(int argc, char* argv[])
 		fw[i].imag(0.0);
 	}
 
-	int dim=3;
-	CUFINUFFT_PLAN_S dplan;
-	ier = cufinufft_default_opts(2, dim, &dplan.opts);
-	if(ier != 0 ){
-		cout<<"error: cufinufft_default_opts"<<endl;
-		return 0;
-	}
-	ier = setup_spreader_for_nufft(dplan.spopts, tol, dplan.opts);
-
-	dplan.opts.upsampfac=sigma;
-	dplan.opts.gpu_method=method;
-	dplan.opts.gpu_kerevalmeth=1;
-	dplan.opts.gpu_sort=sort;
-	dplan.spopts.pirange=0;
-	if(dplan.opts.gpu_method == 2)
-	{
-		dplan.opts.gpu_binsizex=16;
-		dplan.opts.gpu_binsizey=16;
-		dplan.opts.gpu_binsizez=2;
-		dplan.opts.gpu_maxsubprobsize=maxsubprobsize;
-	}
-	if(dplan.opts.gpu_method == 1)
-	{
-		dplan.opts.gpu_binsizex=16;
-		dplan.opts.gpu_binsizey=8;
-		dplan.opts.gpu_binsizez=4;
-	}
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_z,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_fw,fw,nf1*nf2*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	CNTime timer;
-	/*warm up gpu*/
-	char *a;
 	timer.restart();
-	checkCudaErrors(cudaMalloc(&a,1));
-	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec() <<" s"<<endl<<endl;
-
-#ifdef INFO
-	cout<<"[info  ] Interpolating  ["<<nf1<<"x"<<nf2<<"x"<<nf3<<
-		"] uniform points to "<<M<<"nupts"<<endl;
-#endif
-	timer.restart();
-	ier = cufinufft_interp3d(N1, N2, N3, nf1, nf2, nf3, fw, M, x, y, z, c, tol,
-		&dplan);
+	ier = CUFINUFFT_INTERP3D(nf1, nf2, nf3, d_fw, M, d_x, d_y, d_z, d_c, dplan);
 	if(ier != 0 ){
 		cout<<"error: cnufftinterp3d"<<endl;
 		return 0;
 	}
 	FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g NU pts/s)\n",
-			dplan.opts.gpu_method,nf1*nf2*nf3,M,t,M/t);
+			dplan->opts.gpu_method,nf1*nf2*nf3,M,t,M/t);
+	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 #ifdef RESULT
 	cout<<"[result-input]"<<endl;
 	for(int j=0; j<10; j++){
@@ -169,5 +164,10 @@ int main(int argc, char* argv[])
 	cudaFreeHost(z);
 	cudaFreeHost(c);
 	cudaFreeHost(fw);
+	cudaFree(d_x);
+	cudaFree(d_y);
+	cudaFree(d_z);
+	cudaFree(d_c);
+	cudaFree(d_fw);
 	return 0;
 }

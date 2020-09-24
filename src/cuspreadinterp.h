@@ -198,16 +198,16 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 
 /* C wrapper for calling CUDA kernels */
 // Wrapper for testing spread, interpolation only
-int cufinufft_spread2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
-	const FLT *h_kx, const FLT *h_ky, const CPX* h_c, CUFINUFFT_PLAN d_plan);
-int cufinufft_interp2d(int ms, int mt, int nf1, int nf2, CPX* h_fw, int M,
-	FLT *h_kx, FLT *h_ky, CPX* h_c, CUFINUFFT_PLAN d_plan);
-int cufinufft_spread3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
-	CPX* h_fw, int M, const FLT *h_kx, const FLT *h_ky, const FLT* h_z,
-	const CPX* h_c, FLT eps, CUFINUFFT_PLAN dplan);
-int cufinufft_interp3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
-	CPX* h_fw, int M, FLT *h_kx, FLT *h_ky, FLT *hz, CPX* h_c, FLT eps,
-	CUFINUFFT_PLAN dplan);
+int CUFINUFFT_SPREAD2D(int nf1, int nf2, CUCPX* d_fw, int M,
+	FLT *d_kx, FLT *d_ky, CUCPX* d_c, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX* d_fw, int M,
+	FLT *d_kx, FLT *d_ky, CUCPX* d_c, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_SPREAD3D(int nf1, int nf2, int nf3,
+	CUCPX* d_fw, int M, FLT *d_kx, FLT *d_ky, FLT* d_kz,
+	CUCPX* d_c, CUFINUFFT_PLAN dplan);
+int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3,
+	CUCPX* d_fw, int M, FLT *d_kx, FLT *d_ky, FLT *d_kz, 
+    CUCPX* d_c, CUFINUFFT_PLAN dplan);
 
 // Functions for calling different methods of spreading & interpolation
 int CUSPREAD2D(CUFINUFFT_PLAN d_plan, int blksize);
