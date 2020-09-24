@@ -169,6 +169,12 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M,
 		int bin_size_x=d_plan->opts.gpu_binsizex;
 		int bin_size_y=d_plan->opts.gpu_binsizey;
 		int bin_size_z=d_plan->opts.gpu_binsizez;
+		if(bin_size_x < 0 || bin_size_y < 0 || bin_size_z < 0){
+			cout<<"error: invalid binsize (binsizex, binsizey, binsizez) = (";
+			cout<<bin_size_x<<","<<bin_size_y<<","<<bin_size_z<<")"<<endl;
+			return 1; 
+		}
+
 		int numbins[3];
 		numbins[0] = ceil((FLT) nf1/bin_size_x);
 		numbins[1] = ceil((FLT) nf2/bin_size_y);
@@ -889,6 +895,12 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M,
 	int bin_size_x=d_plan->opts.gpu_binsizex;
 	int bin_size_y=d_plan->opts.gpu_binsizey;
 	int bin_size_z=d_plan->opts.gpu_binsizez;
+	if(bin_size_x < 0 || bin_size_y < 0 || bin_size_z < 0){
+		cout<<"error: invalid binsize (binsizex, binsizey, binsizez) = (";
+		cout<<bin_size_x<<","<<bin_size_y<<","<<bin_size_z<<")"<<endl;
+		return 1; 
+	}
+
 	int numbins[3];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);

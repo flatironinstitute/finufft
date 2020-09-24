@@ -173,6 +173,12 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
 
 		int bin_size_x=d_plan->opts.gpu_binsizex;
 		int bin_size_y=d_plan->opts.gpu_binsizey;
+		if(bin_size_x < 0 || bin_size_y < 0){
+			cout<<"error: invalid binsize (binsizex, binsizey) = (";
+			cout<<bin_size_x<<","<<bin_size_y<<")"<<endl;
+			return 1; 
+		}
+
 		int numbins[2];
 		numbins[0] = ceil((FLT) nf1/bin_size_x);
 		numbins[1] = ceil((FLT) nf2/bin_size_y);
@@ -391,6 +397,11 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 	int bin_size_x=d_plan->opts.gpu_binsizex;
 	int bin_size_y=d_plan->opts.gpu_binsizey;
+	if(bin_size_x < 0 || bin_size_y < 0){
+		cout<<"error: invalid binsize (binsizex, binsizey) = (";
+		cout<<bin_size_x<<","<<bin_size_y<<")"<<endl;
+		return 1; 
+	}
 	int numbins[2];
 	numbins[0] = ceil((FLT) nf1/bin_size_x);
 	numbins[1] = ceil((FLT) nf2/bin_size_y);
