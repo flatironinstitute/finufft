@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Main validation tests for FINUFFT library.
+# Main validation tests for FINUFFT library. On Windows, we append .exe to the names of the executables.
 # Usage:   To do double-precision tests:   ./check_finufft.sh
 #          To do single-precision tests:   ./check_finufft.sh SINGLE
+#          To run test on Windows (WSL):   ./check_finufft.sh (DUMMY or SINGLE) ON
 # Exit code is 0 for success, otherwise failure
 
 # In total these tests take about 5 seconds on a modern machine with the
@@ -27,6 +28,11 @@ else
     CHECK_TOL=1e-11
     export PRECSUF=
 fi
+if [[ $2 == "ON" ]]; then
+    export FEX=".exe"
+else
+    export FEX=
+fi
 # Note that bash cannot handle floating-point arithmetic, and bc cannot read
 # exponent notation. Thus the exponent notation above is purely string in nature
 
@@ -44,54 +50,55 @@ echo "pass-fail FINUFFT library $PREC-precision check with tol=$FINUFFT_REQ_TOL 
 ((N++))
 T=testutils$PRECSUF
 # stdout to screen and file; stderr to different file
-./$T 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}          # exit code of the tested cmd (not the tee cmd!)
 if [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); fi
-diff $DIR/$T.out $DIR/$T.refout
+# Disregard the OS-dependent line endings with --strip-trailing-cr
+diff --strip-trailing-cr $DIR/$T.out $DIR/$T.refout
 if [[ $? -eq 0 ]]; then echo passed; else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=finufft1d_test$PRECSUF
-./$T 1e2 2e2 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 1e2 2e2 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=finufft1dmany_test$PRECSUF
-./$T 3 1e2 1e3 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 3 1e2 1e3 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=finufft2d_test$PRECSUF
-./$T 1e2 1e1 1e3 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 1e2 1e1 1e3 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=finufft2dmany_test$PRECSUF
-./$T 3 1e2 1e1 1e3 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 3 1e2 1e1 1e3 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=finufft3d_test$PRECSUF
-./$T 5 10 20 1e2 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 5 10 20 1e2 $FINUFFT_REQ_TOL 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=finufft3dmany_test$PRECSUF
-./$T 2 10 50 20 1e2 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 2 10 50 20 1e2 $FINUFFT_REQ_TOL 0 0 0 2 0.0 $CHECK_TOL 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=dumbinputs$PRECSUF
-./$T 2>$DIR/$T.err.out | tee $DIR/$T.out
+./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
 if [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); fi
-diff $DIR/$T.out $DIR/$T.refout
+diff --strip-trailing-cr $DIR/$T.out $DIR/$T.refout
 if [[ $? -eq 0 ]]; then echo passed; else echo failed; ((FAILS++)); fi
 
 # END TESTS ---------------------------------------------------------
