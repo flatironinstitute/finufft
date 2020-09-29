@@ -3,26 +3,33 @@
 Installation
 ============
 
+.. note::
+   
+   If the below fails in any operating system, try the relevant version of our `precompiled linux, OSX, and Windows binaries <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_, place it (or them) in your linking path, and try ``make test``. We will be adding to these as needed; please email us to contribute or request one.
+
+
+
 Quick linux install instructions
 --------------------------------
 
 In brief, go to the github page https://github.com/flatironinstitute/finufft and
 follow instructions to download the source (eg see the green button).
 Make sure you have packages ``fftw3`` and ``fftw3-devel`` installed.
-Then ``cd`` into your FINUFFT directory and ``make test``, or ``make test -j8`` for a faster build.
+Then ``cd`` into your FINUFFT directory and ``make test``, or ``make test -j`` for a faster build.
 This should compile the static
 library in ``lib-static/``, some C++ test drivers in ``test/``, then run them,
 printing some terminal output ending in::
 
+  0 segfaults out of 8 tests done
   0 fails out of 8 tests done
 
-If this fails see the more detailed instructions below.
+If this fails, see the more detailed instructions below.
 If it succeeds, run ``make lib`` and proceed to link to the library.
-Alternatively, try one of our `precompiled linux and OSX binaries <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_.
+Please look in ``examples/``, ``test/``, and the rest of this manual,
+for examples of how to call and link to the library.
 Type ``make`` to see a list of other aspects to build (examples, language
 interfaces, etc).
-Please look in ``examples/``, ``test/``, and the rest of this manual,
-for other usage examples.
+
 
 Dependencies
 ------------
@@ -261,7 +268,8 @@ An additional performance test you could then do is::
 
   python python/test/run_speed_tests.py
 
-Note our new (v2.0) python interface is quite different from the Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_
+Note that our new (v2.0) python interface is quite different from the Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_. We now use `ctypes`.
+  
 
 A few words about python environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

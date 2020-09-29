@@ -40,14 +40,14 @@ OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
 MOMPFLAGS = -D_OPENMP
 OOMPFLAGS =
-# MATLAB MEX compilation (OO for new interface)...
-MFLAGS := -largeArrayDims -DR2008OO
+# MATLAB MEX compilation (also see below +=)...
+MFLAGS := -largeArrayDims
 # location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
 MEX = mex
-# octave, and its mkoctfile and flags...
+# octave, and its mkoctfile and flags (also see below +=)...
 OCTAVE = octave
 MKOCTFILE = mkoctfile
-OFLAGS = -DR2008OO
+OFLAGS = 
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 # absolute path of this makefile, ie FINUFFT's top-level directory...
@@ -70,13 +70,13 @@ FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
 LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
 
-# multi-threaded libs & flags
+# multi-threaded libs & flags, and req'd flags (OO for new interface)...
 ifneq ($(OMP),OFF)
 CXXFLAGS += $(OMPFLAGS)
 CFLAGS += $(OMPFLAGS)
 FFLAGS += $(OMPFLAGS)
-MFLAGS += $(MOMPFLAGS)
-OFLAGS += $(OOMPFLAGS)
+MFLAGS += $(MOMPFLAGS) -DR2008OO
+OFLAGS += $(OOMPFLAGS) -DR2008OO
 LIBS += $(OMPLIBS)
 ifneq ($(MINGW),ON)
 # omp override for total list of math and FFTW libs (now both precisions)...
