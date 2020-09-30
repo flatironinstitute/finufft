@@ -22,9 +22,13 @@ make
 make install
 
 cd /io/
-export FINUFFT_DIR=$(pwd)
 make lib
 make test
+
+# Needed for pip install to work
+export FINUFFT_DIR=$(pwd)
+# Needed for auditwheel to find the dynamic libraries
+export LD_LIBRARY_PATH=${FINUFFT_DIR}/lib:${LD_LIBRARY_PATH}
 
 pys=(/opt/python/*/bin)
 
