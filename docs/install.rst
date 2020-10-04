@@ -94,11 +94,12 @@ Tips for installing dependencies and compiling on Mac OSX
 
 .. note::
 
-   Improved Mac OSX instructions, and possibly a brew package, will come shortly. Stay tuned. The below has been tested on 10.14 (Mojave) with both clang and gcc-8.
+   A brew package will come shortly; stay tuned. The below has been tested on 10.14 (Mojave) with both clang and gcc-8, and 10.15 (Catalina) with clang.
 
 First you'll want to set up Homebrew, as follows.
 If you don't have Xcode, install Command Line Tools
-(this is only around 130 MB in contrast to the full 6 GB size of Xcode),
+(which is a few hundred MB download, much smaller than the now
+10 GB size of Xcode),
 by opening a terminal (from ``/Applications/Utilities/``) and typing::
 
   xcode-select --install
@@ -112,7 +113,8 @@ Then do::
 
   brew install libomp fftw
 
-This happens to also install the latest GCC, which is 8.2.0 in our tests.
+This happens to also install the latest GCC (which was 8.2.0 in Mojave,
+and 10.2.0 in Catalina, in our tests).
 
 .. note::
    
@@ -122,42 +124,64 @@ This happens to also install the latest GCC, which is 8.2.0 in our tests.
    will allow fortran linking with ``gfortran``, but currently fails with
    octave.
 
-First the **clang route**, which is the default.
-Once you have downloaded FINUFFT, to set up for this, do::
+First the **clang route**, which is our default.
+Once you have downloaded FINUFFT from github, go to its top directory.
+You now need to decide if you will be wanting to call FINUFFT from
+MATLAB (and currently have MATLAB installed). If so, do::
+
+  cp make.inc.macosx_clang_matlab make.inc
+
+Else if you don't have MATLAB, do::
 
   cp make.inc.macosx_clang make.inc
 
-This gives you compile flags that should work with ``make test`` and other tasks. Please try ``make test`` at this point, and check for ``0 fails``. Then for python (note that pip is not installed with the default python v2)::
+.. note::
 
-  brew install python3
-  pip3 install numpy pybind11
-  make python
-  
-This should generate the ``finufft`` module.
-However, we have found that it may fail with an error about ``-lstdc++``,
-in which case you should try setting an environment variable::
+  The difference here is the version of OpenMP linked: MATLAB crashes when ``gomp`` is linked, so for MATLAB users the OpenMP version used by MATLAB must be linked against (``iomp5``), not ``gomp``.
 
-  export MACOSX_DEPLOYMENT_TARGET=10.14
+Whichever you picked, now try ``make test -j``, and clang should compile and you should get ``0 fails``.
 
-We have also found that running::
+**clang MATLAB setup**. Assuming you chose the MATLAB clang variant above,
+you should now ``make matlab``. To test, open MATLAB, ``addpath matlab``,
+``cd matlab/test``, and ``check_finufft``, which should complete in around 5 seconds.
 
-  pip3 install .
+.. note::
 
-in the command line can work even when ``make python`` does not (probably
-to do with environment variables).
-Octave interfaces work out of the box::
+   Unfortunately OSX+MATLAB+mex is notoriously poorly supported, and you may need to search the web for help on that, then `check you are able to compile a simple mex file first <https://www.mathworks.com/help/matlab/matlab_external/getting-started.html>`_.
+   For instance, on Catalina (10.15.6), ``make matlab`` fails with a warning involving Xcode ``license has not been accepted``, and then an error with ``no supported compiler was found``. Eventually `this property file hack worked <https://www.mathworks.com/matlabcentral/answers/307362-mex-on-macosx-without-xcode>`_, which simply requires typing ``/usr/libexec/PlistBuddy -c 'Add :IDEXcodeVersionForAgreedToGMLicense string 10.0' ~/Library/Preferences/com.apple.dt.Xcode.plist``
+   Please also read our https://github.com/flatironinstitute/finufft/issues and if you *are* able to mex compile, but ``make matlab`` fails, post a new Issue.
+   
+Octave interfaces work out of the box (this also runs a self-test)::
 
   brew install octave
   make octave
 
-Look in ``make.inc.macosx_*``, and see below,
-for ideas for building MATLAB MEX interfaces.
+Then for python (note that pip is not installed with the default python v2)::
 
-Alternatively, here's the **GCC route**, which we have also tested on Movaje::
+  brew install python3
+  pip3 install numpy pybind11 python-dotenv
+  make python
+  
+This should generate the ``finufft`` module and run some python test outputs.
+
+.. note::
+
+   If trouble with python with clang: 1) we have found that the above may fail with an error about ``-lstdc++``, in which case you should try setting an environment variable like::
+
+     export MACOSX_DEPLOYMENT_TARGET=10.14
+
+  We have also found that running::
+
+    pip3 install .
+
+  in the command line can work even when ``make python`` does not (probably to do with environment variables).
+
+Alternatively, here's the **GCC route**, which is less recommended, unless you want to link from gfortan. We have also tested on Movaje::
 
   cp make.inc.macosx_gcc-8 make.inc
 
 You must now by hand edit ``python/setup.py``, changing ``gcc`` to ``gcc-8`` and ``g++`` to ``g++-8``. Then proceed as above with python3. ``make fortran`` in addition to the above (apart from octave) should now work.
+In Catalina you'll probably need to replace with ``g++-10``.
 
 .. note::
 

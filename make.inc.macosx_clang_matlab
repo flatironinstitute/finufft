@@ -1,0 +1,43 @@
+# Makefile variable overrides for Mac OSX compilation with CLANG + MATLAB
+#
+# Note that we have not been able to link against gfortran, so if you need
+# fortran interfaces, use make.inc.macosx_gcc-* instead.
+#
+# Copy this file to make.inc, and if needed edit for your setup.
+# Barnett 10/3/20
+
+# compile flags for use with clang: (note absence of -march, etc)
+CFLAGS = -O3
+
+# If you're getting warning messages of the form:
+#    ld: warning: object file (lib-static/libfinufft.a(finufft1d.o)) was built for
+#    newer OSX version (10.13) than being linked (10.9)
+# Then you can uncomment the following two lines with the older version number
+# (in this example -mmacosx-version-min=10.9)
+#
+#CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
+
+CXX=clang++
+CC=clang
+
+# taken from makefile...
+CFLAGS   += -I include -I/usr/local/include
+FFLAGS   = $(CFLAGS)
+CXXFLAGS = $(CFLAGS)
+LIBS += -L/usr/local/lib
+
+# Use MATLAB's shipped OpenMP (not gomp otherwise segfaults), with clang...
+MOMPFLAGS = -D_OPENMP
+OMPFLAGS = -Xpreprocessor -fopenmp
+OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib
+# since fftw3_omp doesn't work in OSX, we need...
+FFTWOMPSUFFIX=threads
+
+# MATLAB interface:
+# some of these will depend on your FFTW library location, but this is where
+# brew should put things...
+MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
+# should work, or edit for your MATLAB version location...
+MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
+
+# Also see docs/install.rst or github Issues, for possible edits to MATLAB's MEX XML file.
