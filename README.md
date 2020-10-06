@@ -17,7 +17,7 @@ also exists.
 Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html), or its equivalent, the [user manual](finufft-manual.pdf).
 You will also want to see example codes in the directories
 `examples`, `test`, `fortran`, `matlab/test`, and `python/test`.
-If you cannot compile, or pip install, try our [old v1.1.1 precompiled binaries](http://users.flatironinstitute.org/~ahb/codes/finufft-binaries).
+If you cannot compile, or pip install, try our [precompiled binaries](http://users.flatironinstitute.org/~ahb/codes/finufft-binaries).
 
 If you prefer to read text files, the source to generate the above documentation is in human-readable (mostly .rst) files as follows:
 
