@@ -23,6 +23,7 @@ printing some terminal output ending in::
   0 segfaults out of 8 tests done
   0 fails out of 8 tests done
 
+This output repeats for double then single precision (hence, scroll up to check the double also gave no fails).
 If this fails, see the more detailed instructions below.
 If it succeeds, run ``make lib`` and proceed to link to the library.
 Please look in ``examples/``, ``test/``, and the rest of this manual,
@@ -50,7 +51,7 @@ Optional:
 * for Fortran wrappers: compiler such as ``gfortran`` in GCC
 * for MATLAB wrappers: MATLAB (versions at least R2016b up to current work)
 * for octave wrappers: recent octave version at least 4.4, and its development libraries
-* for the python wrappers you will need ``python`` (it is assumed you have python v3; v2 is unsupported). You will also need the python module ``pybind11``
+* for the python wrappers you will need ``python`` (it is assumed you have python v3; v2 is unsupported), and ``numpy`` and ``python-dotenv``.
 
 
 Tips for installing dependencies on linux
@@ -58,19 +59,19 @@ Tips for installing dependencies on linux
 
 On a Fedora/CentOS linux system, dependencies can be installed as follows::
 
-  sudo yum install make gcc gcc-c++ gcc-gfortran fftw3 fftw3-devel libgomp octave octave-devel
+  sudo yum install make gcc gcc-c++ gcc-gfortran fftw-devel libgomp octave octave-devel
 
 .. note::
 
-  We are not exactly sure how to install python3 and pip3 using yum. You may prefer to use conda to set up a python environment (see below).
+  We are not exactly sure how to install ``python3`` and ``pip3`` using ``yum``. You may prefer to use ``conda`` or ``virtualenv`` to set up a python environment anyway (see bottom).
 
 Alternatively, on Ubuntu linux::
 
   sudo apt-get install make build-essential libfftw3-dev gfortran python3 python3-pip octave liboctave-dev
 
-In older distro you may have to compile octave from source to get a >=4.4 version.
+In older distros you may have to compile ``octave`` from source to get a >=4.4 version.
 
-You should then compile via the various ``make`` tasks, eg ``make test -j8``
+You should then compile via the various ``make`` tasks, eg ``make test -j``,
 then checking you got ``0 fails``.
 
 .. note::
@@ -159,7 +160,7 @@ Octave interfaces work out of the box (this also runs a self-test)::
 Then for python (note that pip is not installed with the default python v2)::
 
   brew install python3
-  pip3 install numpy pybind11 python-dotenv
+  pip3 install numpy python-dotenv
   make python
   
 This should generate the ``finufft`` module and run some python test outputs.
@@ -185,7 +186,7 @@ In Catalina you'll probably need to replace with ``g++-10``.
 
 .. note::
 
-   Choosing GCC-8 in OSX there is a
+   Choosing GCC-8 in OSX Mojave there is a
    problem with octave MEX compilation. Please help if you can!
 
    
@@ -201,7 +202,7 @@ multithreaded (default, using OpenMP) vs single-threaded
 Since you may always set ``opts.nthreads=1`` when calling the multithreaded
 library,
 the point of having a single-threaded library is
-mostly for small repeated problems to avoid any OpenMP overhead, or
+mostly for small repeated problems to avoid *any* OpenMP overhead, or
 for debugging purposes.
 You *must* do at least ``make objclean`` before changing this threading
 option.
@@ -210,13 +211,13 @@ option.
 
    By default, neither the multithreaded or single-threaded library (e.g. made by ``make lib OMP=OFF``) are thread-safe, due to the FFTW3 plan stage. However, see below for the compiler option to fix this if you have a recent FFTW3 version.
 
-If you have a nonstandard unix environment (eg a Mac) or want to change the compiler or its flags,
+If you have a nonstandard unix environment (eg OSX) or want to change the compiler or its flags,
 then place your compiler and linking options in a new file ``make.inc``.
 For example such files see ``make.inc.*``. See the text of ``makefile`` for discussion of what can be overridden.
 
 Compile and do a rapid (few seconds duration) test of FINUFFT via::
 
-  make test
+  make test -j
 
 This should compile the main libraries then run double- and single-precision tests which should report zero segfaults and zero fails.
 Its initial test is ``test/basicpassfail`` which is the most basic smoke test,
@@ -225,9 +226,11 @@ You can check the exit code thus::
   
   test/basicpassfail; echo $?
 
-The make task also runs ``(cd test; ./check_finufft.sh)`` which is the main
+The make task also runs ``(cd test; OMP_NUM_THREADS=4 ./check_finufft.sh)`` which is the main
 validation of the library in double precision, and
-``(cd test; ./check_finufft.sh SINGLE)`` which does it in single precision.
+``(cd test; OMP_NUM_THREADS=4 ./check_finufft.sh SINGLE)`` which does it in single precision.
+Since these call many tiny problem sizes, they will (due to openmp and fftw thread-wise overheads)
+run much faster with less than the full thread count, explaining our use of 4 threads.
 Text (and stderr) outputs are written into ``test/results/*.out``.
 
 Use ``make perftest`` for larger spread/interpolation and NUFFT tests taking 10-20 seconds. This writes log files into ``test/results/`` where you will be able to compare to results from standard CPUs.
@@ -241,7 +244,7 @@ Run ``make`` without arguments for full list of possible make tasks.
 Here are all the **compile flags** that the FINUFFT source responds to.
 Active them by adding a line of the form ``CFLAGS+=-DMYFLAG`` in your ``make.inc``:
 
-* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. This is only available in FFTW version >=3.3.5; for this reason it is not the default.
+* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. This is only available in FFTW version >=3.3.5; for this reason it is not yet the default.
 
 * ``-DSINGLE``: This is internally used by our build process to switch
   (via preprocessor macros) the source from double to single precision.
@@ -262,8 +265,8 @@ Building MATLAB/octave wrappers, including in Mac OSX
 
 ``make octave`` to compile the MEX-like interface to octave.
 
-We have had success in Mac OSX Mojave compiling the octave wrapper out of the box.
-For MATLAB, the MEX settings may need to be
+We have had success in Mac OSX Mojave at Catalina compiling the octave wrapper out of the box, as described above.
+For MATLAB when using GCC not clang, the MEX settings may need to be
 overridden: edit the file ``mex_C++_maci64.xml`` in the MATLAB distro,
 to read, for instance::
 
@@ -282,9 +285,9 @@ Building the python wrappers
 ----------------------------
 
 First make sure you have python3 and pip3 (or python and pip) installed, and that you can already compile the C++ library (eg via ``make test``).
-Next make sure you have NumPy and pybind11 installed::
+Next make sure you have the required python packages::
   
-  pip install numpy pybind11
+  pip install numpy python-dotenv
 
 You may then do ``make python`` which calls
 ``pip`` for the install then runs some tests and examples.
@@ -292,15 +295,19 @@ An additional performance test you could then do is::
 
   python python/test/run_speed_tests.py
 
-Note that our new (v2.0) python interface is quite different from the Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_. We now use `ctypes`.
+Note that our new (v2.0.1) python interface is quite different from the Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_. We now use `ctypes` instead of `pybind11`.
   
 
 A few words about python environments
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There can be confusion and conflicts between various versions of python and installed packages. It is therefore a very good idea to use virtual environments. Here's a simple way to do it from a shell (after installing ``python-virtualenv``)::
+There can be confusion and conflicts between various versions of python and installed packages. It is therefore a very good idea to use virtual environments. Here's a simple way to do it from a shell in the FINUFFT top directory (after installing ``python-virtualenv``)::
 
   virtualenv -p /usr/bin/python3 env1
-  . env1/bin/activate
+  source env1/bin/activate
 
-Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the ``env1`` directory. (You can get out of the environment by typing ``deactivate``). Also see documentation for ``conda``. In both cases ``python`` will call the version of python you set up, which these days should be v3.
+Now you are in a virtual environment that starts from scratch. All pip installed packages will go inside the ``env1`` directory. (You can get out of the environment by typing ``deactivate``). Also see documentation for ``conda``. In both cases ``python`` will call the version of python you set up. To get the packages FINUFFT needs and test the python interfaces::
+
+  pip install -r python/requirements.txt
+  make python
+

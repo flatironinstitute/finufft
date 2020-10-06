@@ -4,6 +4,8 @@ V 2.0.1 (10/6/20)
 
 * python (under-the-hood) interfacing changed from pybind11 to cleaner ctypes.
 * non-stochastic test/*.cpp routines, zeroing small chance of incorrect failure
+* Windows compatible makefile
+* mac OSX improved installation instructions and make.inc.*
 
 V 2.0.0 (8/28/20)
 
