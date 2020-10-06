@@ -12,6 +12,7 @@
 # Barnett 2017-2020. Malleo's expansion for guru interface, summer 2019.
 # Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
+# Windows compatibility, jonas-kr, Sep '20.
 
 # Compilers, and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -189,7 +190,7 @@ endif
 EXAMPLES = $(basename $(wildcard examples/*.*))
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
-# this task always runs them (note escaped $ to pass to bash)...
+# non-Windows: this task always runs them (note escaped $ to pass to bash)...
 	for i in $(EXAMPLES); do echo $$i...; ./$$i; done
 else
 # Windows does not find the dynamic libraries, so we make a temporary copy

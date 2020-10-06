@@ -15,6 +15,7 @@ int main()
   std::vector<CPX> F(N);     // alloc output mode coeffs
 
   // Make the input data....................................
+  srand(42);                 // seed
   std::vector<FLT> x(M);     // NU pts locs
   std::vector<CPX> c(M);     // strengths 
   for (BIGINT j=0; j<M; ++j) {
