@@ -12,6 +12,7 @@
 # Barnett 2017-2020. Malleo's expansion for guru interface, summer 2019.
 # Barnett tidying Feb, May 2020. Libin Lu edits, 2020.
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
+# Windows compatibility, jonas-kr, Sep '20.
 
 # Compilers, and linking from C, fortran. We use GCC by default...
 CXX = g++
@@ -47,7 +48,7 @@ MEX = mex
 # octave, and its mkoctfile and flags (also see below +=)...
 OCTAVE = octave
 MKOCTFILE = mkoctfile
-OFLAGS = 
+OFLAGS =
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 # absolute path of this makefile, ie FINUFFT's top-level directory...
@@ -188,8 +189,15 @@ endif
 # single-prec codes separate, and not all have one
 EXAMPLES = $(basename $(wildcard examples/*.*))
 examples: $(EXAMPLES)
-# this task always runs them (note escaped $ to pass to bash)...
+ifneq ($(MINGW),ON)
+# non-Windows: this task always runs them (note escaped $ to pass to bash)...
 	for i in $(EXAMPLES); do echo $$i...; ./$$i; done
+else
+# Windows does not find the dynamic libraries, so we make a temporary copy
+	copy $(DYNLIB) examples
+	for /f "delims= " %%i in ("$(subst /,\,$(EXAMPLES))") do (echo %%i & %%i.exe)
+	del examples\$(LIBNAME).so
+endif
 	@echo "Done running: $(EXAMPLES)"
 # fun fact: gnu make patterns match those with shortest "stem", so this works:
 examples/%: examples/%.o $(DYNLIB)
@@ -219,11 +227,23 @@ TESTS := $(basename $(wildcard test/*.cpp))
 # also need single-prec
 TESTS += $(TESTS:%=%f)
 test: $(TESTS)
-# it will fail if either of these return nonzero exit code...
+ifneq ($(MINGW),ON)
+# non-Windows: it will fail if either of these return nonzero exit code...
 	test/basicpassfail
 	test/basicpassfailf
-# accuracy tests done in prec-switchable bash script...
-	(cd test; ./check_finufft.sh; ./check_finufft.sh SINGLE)
+# accuracy tests done in prec-switchable bash script... (small prob -> few thr)
+	(cd test; export OMP_NUM_THREADS=4; ./check_finufft.sh; ./check_finufft.sh SINGLE)
+else
+# Windows does not find the dynamic libraries, so we make a temporary copy...
+	copy $(DYNLIB) test
+	test/basicpassfail
+	test/basicpassfailf
+# Windows does not feature a bash shell so we use WSL. Since gnu-make is a
+# 32bit executable and WSL runs only in x64 environments, we have to refer to
+# 64bit powershell explicitly...
+	$(windir)\Sysnative\WindowsPowerShell\v1.0\powershell.exe "cd ./test; bash check_finufft.sh DOUBLE $(MINGW); bash check_finufft.sh SINGLE $(MINGW)"
+	del test\$(LIBNAME).so
+endif
 
 
 # perftest (performance/developer tests) -------------------------------------
@@ -321,8 +341,12 @@ octave: matlab/finufft.cpp $(STATICLIB)
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway
 # matlab/finufft.cpp via mwrap (needs recent version of mwrap, eg 0.33.10)...
 mex: matlab/finufft.mw
+ifneq ($(MINGW),ON)
 	(cd matlab ;\
 	$(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
+else
+	(cd matlab & $(MWRAP) -mex finufft -c finufft.cpp -mb -cppcomplex finufft.mw)
+endif
 
 
 # python ---------------------------------------------------------------------
@@ -353,7 +377,7 @@ docker-wheel:
 docs: finufft-manual.pdf
 finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src
 # rebuild python module so autodoc updates code-generated docstrings there...
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip install .)
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip -v install .)
 # also builds a local html for local browser check too...
 	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
@@ -365,25 +389,55 @@ docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.
 # =============================== CLEAN UP ==================================
 
 clean: objclean pyclean
+ifneq ($(MINGW),ON)
+# non-Windows clean up...
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
 	rm -f $(EXAMPLES) $(FE) $(ST) $(STF) $(GTT) $(GTTF)
 	rm -f perftest/manysmallprobs
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
+else
+# Windows clean up...
+	del $(subst /,\,$(STATICLIB)), $(subst /,\,$(DYNLIB))
+	del matlab\*.mex*
+	for %%f in ($(subst /,\, $(TESTS))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
+	del test\results\*.out perftest\results\*.out
+	for %%f in ($(subst /,\, $(EXAMPLES)), $(subst /,\,$(FE)), $(subst /,\,$(ST)), $(subst /,\,$(STF)), $(subst /,\,$(GTT)), $(subst /,\,$(GTTF))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
+	del perftest\manysmallprobs
+	del examples\core, test\core, perftest\core, $(subst /,\, $(FE_DIR))\core
+endif
 
 # indiscriminate .o killer; needed before changing threading...
 objclean:
-	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o
+ifneq ($(MINGW),ON)
+# non-Windows...
+	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o julia/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
-	rm -f contrib/*.o
-	rm -f julia/*.o
+else
+# Windows...
+	for /d %%d in (src,test\directfttest,examples,matlab,contrib,julia) do (for %%f in (%%d\*.o) do (del %%f))
+	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
+endif
 
-# *** need to update this:
 pyclean:
+ifneq ($(MINGW),ON)
+# non-Windows...
 	rm -f python/finufft/*.pyc python/finufft/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 	rm -rf python/fixed_wheel python/wheelhouse
+else
+# Windows...
+	for /d %%d in (python\finufft,python\test) do (for %%f in (%%d\*.pyc) do (del %%f))
+	for /d %%d in (python\finufft\__pycache__,python\test\__pycache__) do (for %%f in (%%d\*) do (del %%f))
+	for /d %%d in (python\fixed_wheel,python\wheelhouse) do (if exist %%d (rmdir /s /q %%d))
+endif
 
-# for experts; only run this if you have mwrap to rebuild the interfaces!
+# for experts; only run this if you possess mwrap to rebuild the interfaces!
 mexclean:
+ifneq ($(MINGW),ON)
+# non-Windows...
 	rm -f matlab/finufft_plan.m matlab/finufft.cpp matlab/finufft.mex*
+else
+# Windows...
+	del matlab\finufft_plan.m matlab\finufft.cpp matlab\finufft.mex*
+endif

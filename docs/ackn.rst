@@ -41,6 +41,9 @@ Testing, bug reports, helpful discussions:
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
 * ``jonas-kr`` - thread safety
 
+Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
+from Alex Barnett and Lucy Reading-Ikkanda.
+  
 We are also indebted to the authors of other NUFFT codes
 such as NFFT3, CMCL NUFFT, MIRT, BART, etc, upon whose interfaces, code,
 and algorithms we have built.

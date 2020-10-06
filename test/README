@@ -4,12 +4,20 @@ All source codes in here are dual precision (ie, depending on the -DSINGLE
 compilation flag presence, they build double or single precision and link
 against the appropriate FINUFFT library functions).
 
+For a fixed number of threads (the make task fixes OMP_NUM_THREADS=4), the
+OpenMP static scheduling for rand-# generation means that the test data should
+be reproducible (non-stochastic). Reordering of thread ops in FINUFFT itself
+leads to rounding-error variations only.
+
+up to reordering
+
 basicpassfail{f} : basic double and single-prec smoke tests
                    (exit code 0 is a pass).
 check_finufft.sh : validates the FINUFFT library for correctness
                    (exit code 0 is a pass). See docs in that script.
 results/*.out : outputs written by check_finufft.sh for the record.
-results/*.refout : reference outputs that the generated outputs *,out will be compared against.
+results/*.refout : reference outputs that the generated outputs *.out will be
+                   compared against.
 
 Possibly obsolete scripts (for developers):
 checkallaccs.sh : spreading and NUFFT at all #s of digits, for a single ndims

@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 
   int k = 142519;            // check the answer just for this mode...
   assert(k>=-(double)N/2 && k<(double)N/2);
-  double complex Ftest = CMPLX(0.0,0.0);   // defined in complex.h (I too)
+  double complex Ftest = 0.0 + 0.0*I;   // defined in complex.h (I too)
   for (int j=0; j<M; ++j)
     Ftest += c[j] * cexp(I*(double)k*x[j]);
   double Fmax = 0.0;         // compute inf norm of F

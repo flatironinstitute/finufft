@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
+#pragma omp for schedule(static,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = M_PI*randm11r(&se);
       y[j] = M_PI*randm11r(&se);
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
+#pragma omp for schedule(static,TEST_RANDCHUNK)
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
+#pragma omp for schedule(static,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) {
       x[j] = 2.0 + M_PI*randm11r(&se);      // new x_j srcs, offset from origin
       y[j] = -3.0 + M_PI*randm11r(&se);     // " y_j
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
+#pragma omp for schedule(static,TEST_RANDCHUNK)
     for (BIGINT k=0; k<N; ++k) {
       s[k] = S1*(1.7 + randm11r(&se));  //S*(1.7 + k/(FLT)N); // offset the freqs
       t[k] = S2*(-0.5 + randm11r(&se));

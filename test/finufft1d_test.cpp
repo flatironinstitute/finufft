@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
+#pragma omp for schedule(static,TEST_RANDCHUNK)   // static => non-stochastic
     for (BIGINT j=0; j<M; ++j) {
       x[j] = PI*randm11r(&se);   // fills [-pi,pi)
       c[j] = crandm11r(&se);
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
   BIGINT nt = (BIGINT)(0.37*N);   // check arb choice of mode near the top (N/2)
   CPX Ft = CPX(0,0);
   //#pragma omp declare reduction (cmplxadd:CPX:omp_out=omp_out+omp_in) initializer(omp_priv={0.0,0.0})  // only for openmp v 4.0!
-  //#pragma omp parallel for schedule(dynamic,TEST_RANDCHUNK) reduction(cmplxadd:Ft)
+  //#pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0; j<M; ++j)
     Ft += c[j] * exp(IMA*((FLT)(isign*nt))*x[j]);
   err = abs(Ft-F[N/2+nt])/infnorm(N,F);
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
  #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
+#pragma omp for schedule(static,TEST_RANDCHUNK)
     for (BIGINT m=0; m<N; ++m) F[m] = crandm11r(&se);
   }
   timer.restart();
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
   BIGINT jt = M/2;          // check arbitrary choice of one targ pt
   CPX ct = CPX(0,0);
   BIGINT m=0, k0 = N/2;          // index shift in fk's = mag of most neg freq
-  //#pragma omp parallel for schedule(dynamic,TEST_RANDCHUNK) reduction(cmplxadd:ct)
+  //#pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(cmplxadd:ct)
   for (BIGINT m1=-k0; m1<=(N-1)/2; ++m1)
     ct += F[m++] * exp(IMA*((FLT)(isign*m1))*x[jt]);   // crude direct
   err = abs(ct-c[jt])/infnorm(M,c);
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
+#pragma omp for schedule(static,TEST_RANDCHUNK)
     for (BIGINT j=0; j<M; ++j) x[j] = 2.0 + PI*randm11r(&se);  // new x_j srcs
   }
   FLT* s = (FLT*)malloc(sizeof(FLT)*N);    // targ freqs
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();
-#pragma omp for schedule(dynamic,TEST_RANDCHUNK)
+#pragma omp for schedule(static,TEST_RANDCHUNK)
     for (BIGINT k=0; k<N; ++k) s[k] = S*(1.7 + randm11r(&se)); //S*(1.7 + k/(FLT)N); // offset
   }
   timer.restart();
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
 
   BIGINT kt = N/2;          // check arbitrary choice of one targ pt
   Ft = CPX(0,0);
-  //#pragma omp parallel for schedule(dynamic,TEST_RANDCHUNK) reduction(cmplxadd:Ft)
+  //#pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(cmplxadd:Ft)
   for (BIGINT j=0;j<M;++j)
     Ft += c[j] * exp(IMA*(FLT)isign*s[kt]*x[j]);
   err = abs(Ft-F[kt])/infnorm(N,F);

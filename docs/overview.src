@@ -79,7 +79,7 @@ Our main features are:
 
   1. a simple new `"exponential of semicircle" kernel <https://arxiv.org/abs/2001.09405>`_ that is provably close to optimal
   #. quadrature approximation for this kernel's Fourier transform
-  #. load-balanced multithreaded spreading/interpolation (see left figure above)
+  #. load-balanced multithreaded spreading/interpolation
   #. bin-sorting of points to improve cache reuse
   #. a low upsampling option for smaller FFTs, especially in type 3 transforms
   #. piecewise polynomial kernel evaluation (additions and multiplications only) that SIMD-vectorizes reliably on open-source compilers
@@ -116,7 +116,7 @@ If you need to fit off-grid data to a Fourier representation
 but you
 do not have *quadrature weights* for the off-grid points, you may
 need to *invert* the NUFFT, which actually means solving a large linear system;
-see the :ref:`tutorials and demos<tut>` and :ref:`references<refs>` [GLI] [KKP].
+see :ref:`references<refs>` [GLI] [KKP], and, soon, our :ref:`tutorials and demos<tut>`.
 Poor coverage of the nonuniform point set leads to ill-conditioning and
 a heavy reliance on regularization.
 
