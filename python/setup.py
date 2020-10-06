@@ -10,8 +10,18 @@
 __version__ = '2.0.1'
 
 import os
+import ctypes
 
 from setuptools import setup, Extension
+
+# Sanity check that we can find the finufft library before we get too far.
+try:
+    lib = ctypes.cdll.LoadLibrary('libfinufft.so')
+except Exception as e:
+    print('FINUFFT shared libraries not found in library path.')
+    raise(e)
+print('FINUFFT shared libraries found, continuing...')
+
 
 finufft_dir = os.environ.get('FINUFFT_DIR')
 
