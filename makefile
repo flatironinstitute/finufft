@@ -228,17 +228,19 @@ TESTS := $(basename $(wildcard test/*.cpp))
 TESTS += $(TESTS:%=%f)
 test: $(TESTS)
 ifneq ($(MINGW),ON)
-# it will fail if either of these return nonzero exit code...
+# non-Windows: it will fail if either of these return nonzero exit code...
 	test/basicpassfail
 	test/basicpassfailf
-# accuracy tests done in prec-switchable bash script...
-	(cd test; ./check_finufft.sh; ./check_finufft.sh SINGLE)
+# accuracy tests done in prec-switchable bash script... (small prob -> few thr)
+	(cd test; export OMP_NUM_THREADS=4; ./check_finufft.sh; ./check_finufft.sh SINGLE)
 else
-# it will fail if either of these return nonzero exit code... Windows does not find the dynamic libraries, so we make a temporary copy
+# Windows does not find the dynamic libraries, so we make a temporary copy...
 	copy $(DYNLIB) test
 	test/basicpassfail
 	test/basicpassfailf
-# accuracy tests done in prec-switchable bash script... Windows does not feature a bash shell so we use WSL. Since gnu-make is a 32bit executable and WSL runs only in x64 environments, we have to refer to 64bit powershell explicitly
+# Windows does not feature a bash shell so we use WSL. Since gnu-make is a
+# 32bit executable and WSL runs only in x64 environments, we have to refer to
+# 64bit powershell explicitly...
 	$(windir)\Sysnative\WindowsPowerShell\v1.0\powershell.exe "cd ./test; bash check_finufft.sh DOUBLE $(MINGW); bash check_finufft.sh SINGLE $(MINGW)"
 	del test\$(LIBNAME).so
 endif
@@ -388,6 +390,7 @@ docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.
 
 clean: objclean pyclean
 ifneq ($(MINGW),ON)
+# non-Windows clean up...
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
@@ -395,6 +398,7 @@ ifneq ($(MINGW),ON)
 	rm -f perftest/manysmallprobs
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
 else
+# Windows clean up...
 	del $(subst /,\,$(STATICLIB)), $(subst /,\,$(DYNLIB))
 	del matlab\*.mex*
 	for %%f in ($(subst /,\, $(TESTS))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
@@ -407,28 +411,33 @@ endif
 # indiscriminate .o killer; needed before changing threading...
 objclean:
 ifneq ($(MINGW),ON)
+# non-Windows...
 	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o julia/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
 else
+# Windows...
 	for /d %%d in (src,test\directfttest,examples,matlab,contrib,julia) do (for %%f in (%%d\*.o) do (del %%f))
 	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
 endif
 
-# *** need to update this:
 pyclean:
 ifneq ($(MINGW),ON)
+# non-Windows...
 	rm -f python/finufft/*.pyc python/finufft/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 	rm -rf python/fixed_wheel python/wheelhouse
 else
+# Windows...
 	for /d %%d in (python\finufft,python\test) do (for %%f in (%%d\*.pyc) do (del %%f))
 	for /d %%d in (python\finufft\__pycache__,python\test\__pycache__) do (for %%f in (%%d\*) do (del %%f))
 	for /d %%d in (python\fixed_wheel,python\wheelhouse) do (if exist %%d (rmdir /s /q %%d))
 endif
 
-# for experts; only run this if you have mwrap to rebuild the interfaces!
+# for experts; only run this if you possess mwrap to rebuild the interfaces!
 mexclean:
 ifneq ($(MINGW),ON)
+# non-Windows...
 	rm -f matlab/finufft_plan.m matlab/finufft.cpp matlab/finufft.mex*
 else
+# Windows...
 	del matlab\finufft_plan.m matlab\finufft.cpp matlab\finufft.mex*
 endif
