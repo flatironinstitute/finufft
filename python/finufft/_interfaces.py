@@ -17,16 +17,7 @@ from ctypes import byref
 from ctypes import c_longlong
 from ctypes import c_void_p
 
-from finufft._finufft import NufftOpts
-from finufft._finufft import _default_opts
-from finufft._finufft import _makeplan
-from finufft._finufft import _makeplanf
-from finufft._finufft import _setpts
-from finufft._finufft import _setptsf
-from finufft._finufft import _execute
-from finufft._finufft import _executef
-from finufft._finufft import _destroy
-from finufft._finufft import _destroyf
+import finufft._finufft as _finufft
 
 ### Plan class definition
 class Plan:
@@ -101,8 +92,8 @@ class Plan:
                 isign = 1
 
         # set opts and check precision type
-        opts = NufftOpts()
-        _default_opts(opts)
+        opts = _finufft.NufftOpts()
+        _finufft._default_opts(opts)
         is_single = setkwopts(opts,**kwargs)
 
         # construct plan based on precision type and eps default value
@@ -126,9 +117,9 @@ class Plan:
 
         # call makeplan based on precision type
         if is_single:
-            ier = _makeplanf(nufft_type,dim,n_modes,isign,n_trans,eps,byref(plan),opts)
+            ier = _finufft._makeplanf(nufft_type,dim,n_modes,isign,n_trans,eps,byref(plan),opts)
         else:
-            ier = _makeplan(nufft_type,dim,n_modes,isign,n_trans,eps,byref(plan),opts)
+            ier = _finufft._makeplan(nufft_type,dim,n_modes,isign,n_trans,eps,byref(plan),opts)
 
         # check error
         if ier != 0:
@@ -189,11 +180,11 @@ class Plan:
 
             # call set pts for single prec plan
             if self.dim == 1:
-                ier = _setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
+                ier = _finufft._setptsf(self.inner_plan,self.nj,self._xjf,self._yjf,self._zjf,self.nk,self._sf,self._tf,self._uf)
             elif self.dim == 2:
-                ier = _setptsf(self.inner_plan,self.nj,self._yjf,self._xjf,self._zjf,self.nk,self._tf,self._sf,self._uf)
+                ier = _finufft._setptsf(self.inner_plan,self.nj,self._yjf,self._xjf,self._zjf,self.nk,self._tf,self._sf,self._uf)
             elif self.dim == 3:
-                ier = _setptsf(self.inner_plan,self.nj,self._zjf,self._yjf,self._xjf,self.nk,self._uf,self._tf,self._sf)
+                ier = _finufft._setptsf(self.inner_plan,self.nj,self._zjf,self._yjf,self._xjf,self.nk,self._uf,self._tf,self._sf)
             else:
                 raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
         else:
@@ -212,11 +203,11 @@ class Plan:
 
             # call set pts for double prec plan
             if self.dim == 1:
-                ier = _setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
+                ier = _finufft._setpts(self.inner_plan,self.nj,self._xj,self._yj,self._zj,self.nk,self._s,self._t,self._u)
             elif self.dim == 2:
-                ier = _setpts(self.inner_plan,self.nj,self._yj,self._xj,self._zj,self.nk,self._t,self._s,self._u)
+                ier = _finufft._setpts(self.inner_plan,self.nj,self._yj,self._xj,self._zj,self.nk,self._t,self._s,self._u)
             elif self.dim == 3:
-                ier = _setpts(self.inner_plan,self.nj,self._zj,self._yj,self._xj,self.nk,self._u,self._t,self._s)
+                ier = _finufft._setpts(self.inner_plan,self.nj,self._zj,self._yj,self._xj,self.nk,self._u,self._t,self._s)
             else:
                 raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
 
@@ -293,14 +284,14 @@ class Plan:
         # call execute based on type and precision type
         if tp==1 or tp==3:
             if self.is_single:
-                ier = _executef(self.inner_plan,_data.ctypes.data_as(c_void_p),_out.ctypes.data_as(c_void_p))
+                ier = _finufft._executef(self.inner_plan,_data.ctypes.data_as(c_void_p),_out.ctypes.data_as(c_void_p))
             else:
-                ier = _execute(self.inner_plan,_data.ctypes.data_as(c_void_p),_out.ctypes.data_as(c_void_p))
+                ier = _finufft._execute(self.inner_plan,_data.ctypes.data_as(c_void_p),_out.ctypes.data_as(c_void_p))
         elif tp==2:
             if self.is_single:
-                ier = _executef(self.inner_plan,_out.ctypes.data_as(c_void_p),_data.ctypes.data_as(c_void_p))
+                ier = _finufft._executef(self.inner_plan,_out.ctypes.data_as(c_void_p),_data.ctypes.data_as(c_void_p))
             else:
-                ier = _execute(self.inner_plan,_out.ctypes.data_as(c_void_p),_data.ctypes.data_as(c_void_p))
+                ier = _finufft._execute(self.inner_plan,_out.ctypes.data_as(c_void_p),_data.ctypes.data_as(c_void_p))
         else:
             ier = 10
 
@@ -542,9 +533,9 @@ def destroy(plan):
     if plan is None:
         return
     if plan.is_single:
-        ier = _destroyf(plan.inner_plan)
+        ier = _finufft._destroyf(plan.inner_plan)
     else:
-        ier = _destroy(plan.inner_plan)
+        ier = _finufft._destroy(plan.inner_plan)
 
     if ier != 0:
         err_handler(ier)
