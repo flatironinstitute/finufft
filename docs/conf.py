@@ -21,13 +21,10 @@ import sphinx.ext.autodoc
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('../python'))
 
-# since _finufft extension is mocked, shouldn't need this...
-os.environ['FINUFFT_DIR'] = os.path.abspath('..')
 
-autodoc_mock_imports = ['_finufft', 'numpy']
+autodoc_mock_imports = ['finufft._finufft', 'numpy']
 # The above is not enough for nested import -- forcibly mock them out ahead of time:
 #for name in autodoc_mock_imports:
 #    sys.modules[name] = sphinx.ext.autodoc._MockModule(name, None)
