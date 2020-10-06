@@ -16,11 +16,13 @@ import sys
 import os
 import sphinx.ext.autodoc
 
+# autodoc py module stuff...
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath('../python'))
 sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../python'))
 
 # since _finufft extension is mocked, shouldn't need this...
 os.environ['FINUFFT_DIR'] = os.path.abspath('..')
