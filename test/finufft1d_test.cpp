@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel
   {
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
-#pragma omp for schedule(static,TEST_RANDCHUNK)   // static = non-stochastic
+#pragma omp for schedule(static,TEST_RANDCHUNK)   // static => non-stochastic
     for (BIGINT j=0; j<M; ++j) {
       x[j] = PI*randm11r(&se);   // fills [-pi,pi)
       c[j] = crandm11r(&se);
