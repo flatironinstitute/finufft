@@ -20,6 +20,18 @@ import sphinx.ext.autodoc
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('../python'))
+sys.path.insert(0, os.path.abspath('..'))
+
+# since _finufft extension is mocked, shouldn't need this...
+os.environ['FINUFFT_DIR'] = os.path.abspath('..')
+
+autodoc_mock_imports = ['_finufft', 'numpy']
+# The above is not enough for nested import -- forcibly mock them out ahead of time:
+#for name in autodoc_mock_imports:
+#    sys.modules[name] = sphinx.ext.autodoc._MockModule(name, None)
+# (removed the above since broke in sphinx 1.6 -> 1.7.4). Thanks Dylan.
+
+
 
 # -- General configuration ------------------------------------------------
 
@@ -328,10 +340,3 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
-
-autodoc_mock_imports = ['_finufft', 'numpy']
-
-# The above is not enough for nested import -- forcibly mock them out ahead of time:
-#for name in autodoc_mock_imports:
-#    sys.modules[name] = sphinx.ext.autodoc._MockModule(name, None)
-# (removed the above since broke in sphinx 1.6 -> 1.7.4). Thanks Dylan.
