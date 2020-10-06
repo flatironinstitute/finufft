@@ -9,10 +9,12 @@
 # Barnett 10/27/18. Input from Yu-Hsuan Shih, Amit Moskovich.
 
 # By default we use clang/LLVM (which is aliased to /usr/lib/gcc, etc).
-# If you want to override this, get gcc from brew then use, eg:
+# This make.inc is if you want to override this.
+# Get gcc from brew then use, eg:
 CXX=g++-8
 CC=gcc-8
 FC=gfortran
+# For Catalina, you may need to edit the above to g++-10, etc.
 
 # (compile flags for use with GCC are as in linux makefile)
 CFLAGS +=
@@ -43,3 +45,9 @@ MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
 # edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 # Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
+
+# If you have segfault of MATLAB then please try the following:
+#MOMPFLAGS = -D_OPENMP
+#OMPFLAGS = -Xpreprocessor -fopenmp
+#OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib
+# This links to MATLAB's omp not gomp.

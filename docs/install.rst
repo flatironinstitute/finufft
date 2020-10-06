@@ -167,22 +167,22 @@ This should generate the ``finufft`` module and run some python test outputs.
 
 .. note::
 
-   If trouble with python with clang: 1) we have found that the above may fail with an error about ``-lstdc++``, in which case you should try setting an environment variable like::
+   If trouble with python with clang: we have found that the above may fail with an error about ``-lstdc++``, in which case you should try setting an environment variable like::
 
      export MACOSX_DEPLOYMENT_TARGET=10.14
 
-  We have also found that running::
+   We have also found that running::
 
-    pip3 install .
+     pip3 install .
 
-  in the command line can work even when ``make python`` does not (probably to do with environment variables).
+   in the command line can work even when ``make python`` does not (probably to do with environment variables).
 
-Alternatively, here's the **GCC route**, which is less recommended, unless you want to link from gfortan. We have also tested on Movaje::
+Alternatively, here's the **GCC route**, which is less recommended, unless you want to link from ``gfortran``. We have also tested on Movaje::
 
   cp make.inc.macosx_gcc-8 make.inc
 
-You must now by hand edit ``python/setup.py``, changing ``gcc`` to ``gcc-8`` and ``g++`` to ``g++-8``. Then proceed as above with python3. ``make fortran`` in addition to the above (apart from octave) should now work.
-In Catalina you'll probably need to replace with ``g++-10``.
+Then proceed as above with python3. ``make fortran`` in addition to the above (apart from octave) should now work.
+In Catalina you'll probably need to edit to ``g++-10`` in your ``make.inc``.
 
 .. note::
 
