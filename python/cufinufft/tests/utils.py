@@ -50,7 +50,7 @@ def make_grid(shape):
 
     grids = [np.arange(-(N // 2), (N + 1) // 2) for N in shape]
     x, y, z = np.meshgrid(*grids, indexing='ij')
-    return np.stack((z, y, x))
+    return np.stack((x, y, z))
 
 
 def direct_type1(c, k, shape, ind):
