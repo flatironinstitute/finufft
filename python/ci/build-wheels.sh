@@ -36,7 +36,7 @@ pys=(/opt/python/*/bin)
 pys=(${pys[@]//*34*/})
 
 for PYBIN in "${pys[@]}"; do
-    "${PYBIN}/pip" install auditwheel wheel twine pybind11 python-dotenv numpy
+    "${PYBIN}/pip" install auditwheel wheel twine numpy
     "${PYBIN}/pip" wheel /io/python -w python/wheelhouse    
 done
 
