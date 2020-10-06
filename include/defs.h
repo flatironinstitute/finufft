@@ -11,7 +11,7 @@
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER "2.0.0"
+#define FINUFFT_VER "2.0.1"
 
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)

@@ -8,7 +8,7 @@
 
 # Max OSX users: please edit as per below comments, and docs/install.rst
 
-__version__ = '2.0.0'
+__version__ = '2.0.1'
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -25,7 +25,7 @@ finufftdir = os.environ.get('FINUFFT_DIR')
 # since people might not set it, set to the parent of this script's dir...
 #if finufftdir==None or finufftdir=='':
 #    finufftdir = os.path.dirname(os.path.dirname(__file__))
-# removed: this fails because pip copies this file to /tmp/pip-req-build-***
+# removed: this fails because pip copies this file to /tmp/pip-req-build-*** !
 
 # default compiler choice (note g++ = clang in mac-osx):
 os.environ['CC'] = 'gcc'
@@ -34,9 +34,7 @@ os.environ['CXX'] = 'g++'
 # attempt override compiler choice using ../make.inc to match your C++ build
 makeinc = finufftdir+"/make.inc"
 dotenv.load_dotenv(makeinc, override=True)   # modifies os.environ
-# debug, remove when done:
 print('checking CXX var supposedly read from ../make.inc: '+os.environ['CXX'])
-# checked: doesn't read correctly from ../make.inc  :(
 
 # in the end avoided code from https://stackoverflow.com/questions/3503719/emulating-bash-source-in-python
 #if os.path.isfile(makeinc):

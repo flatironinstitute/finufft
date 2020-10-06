@@ -1,5 +1,10 @@
 List of features / changes made / release notes, in reverse chronological order
 
+V 2.0.1 (10/6/20)
+
+* python (under-the-hood) interfacing changed from pybind11 to cleaner ctypes.
+* non-stochastic test/*.cpp routines, zeroing small chance of incorrect failure
+
 V 2.0.0 (8/28/20)
 
 * major changes to code, internally, and major improvements to operation and
