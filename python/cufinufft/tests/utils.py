@@ -25,9 +25,9 @@ def _real_dtype(complex_dtype):
 
 def gen_nu_pts(M, dim=3, seed=0):
     np.random.seed(seed)
-    kxyz = np.random.uniform(-np.pi, np.pi, (dim, M))
-    kxyz = kxyz.astype(np.float64)
-    return kxyz
+    k = np.random.uniform(-np.pi, np.pi, (dim, M))
+    k = k.astype(np.float64)
+    return k
 
 
 def gen_uniform_data(shape, seed=0):
@@ -49,23 +49,23 @@ def make_grid(shape):
     shape = (1,) * (3 - dim) + shape
 
     grids = [np.arange(-(N // 2), (N + 1) // 2) for N in shape]
-    z, y, x = np.meshgrid(*grids, indexing='ij')
+    x, y, z = np.meshgrid(*grids, indexing='ij')
     return np.stack((x, y, z))
 
 
-def direct_type1(c, kxyz, shape, ind):
-    xyz = make_grid(shape)
+def direct_type1(c, k, shape, ind):
+    grid = make_grid(shape)
 
-    phase = kxyz.T @ xyz.reshape((3, -1))[:, ind]
+    phase = k.T @ grid.reshape((3, -1))[:, ind]
     fk = np.sum(c * np.exp(1j * phase))
 
     return fk
 
 
-def direct_type2(fk, kxyz):
-    xyz = make_grid(fk.shape)
+def direct_type2(fk, k):
+    grid = make_grid(fk.shape)
 
-    phase = kxyz @ xyz.reshape((3, -1))
+    phase = k @ grid.reshape((3, -1))
     c = np.sum(fk.ravel() * np.exp(-1j * phase))
 
     return c

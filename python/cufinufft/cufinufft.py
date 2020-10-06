@@ -92,9 +92,11 @@ class cufinufft:
         self.ntransforms = ntransforms
         self._maxbatch = 1    # TODO: optimize this one day
 
-        modes = modes + (1,) * (3 - self.dim)
-        modes = (c_int * 3)(*modes)
-        self.modes = modes
+        # We extend the mode tuple to 3D as needed,
+        #   and reorder from C/python ndarray.shape style input (nZ, nY, nX)
+        #   to the (F) order expected by the low level library (nX, nY, nZ).
+        modes = modes[::-1] + (1,) * (3 - self.dim)
+        self.modes = (c_int * 3)(*modes)
 
         # Initialize the plan for this instance
         self.plan = None
@@ -166,15 +168,25 @@ class cufinufft:
             raise TypeError("cufinufft plan.dtype and "
                             "kz dtypes do not match.")
 
-        kx = kx.ptr
+        # Because FINUFFT/cufinufft are internally column major,
+        #   we will reorder the pts axes. Reordering references
+        #   save us from having to actually transpose signal data
+        #   from row major (Python default) to column major.
+        #   We do this by following translation:
+        #     (x, None, None) ~>  (x, None, None)
+        #     (x, y, None)    ~>  (y, x, None)
+        #     (x, y, z)       ~>  (z, y, x)
+        # Via code, we push each dimension onto a stack of axis
+        fpts_axes = [kx.ptr, None, None]
 
         if ky is not None:
-            ky = ky.ptr
+            fpts_axes.insert(0, ky.ptr)
 
         if kz is not None:
-            kz = kz.ptr
+            fpts_axes.insert(0, kz.ptr)
 
-        ier = self._set_pts(M, kx, ky, kz, 0, None, None, None, self.plan)
+        # Then take three items off the stack as our reordered axis.
+        ier = self._set_pts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
