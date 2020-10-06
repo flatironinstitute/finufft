@@ -41,14 +41,14 @@ OMPFLAGS = -fopenmp
 OMPLIBS = -lgomp
 MOMPFLAGS = -D_OPENMP
 OOMPFLAGS =
-# MATLAB MEX compilation (OO for new interface)...
-MFLAGS := -largeArrayDims -DR2008OO
+# MATLAB MEX compilation (also see below +=)...
+MFLAGS := -largeArrayDims
 # location of MATLAB's mex compiler (could add flags to switch GCC, etc)...
 MEX = mex
-# octave, and its mkoctfile and flags...
+# octave, and its mkoctfile and flags (also see below +=)...
 OCTAVE = octave
 MKOCTFILE = mkoctfile
-OFLAGS = -DR2008OO
+OFLAGS =
 # For experts only, location of MWrap executable (see docs/install.rst):
 MWRAP = mwrap
 # absolute path of this makefile, ie FINUFFT's top-level directory...
@@ -71,13 +71,13 @@ FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
 LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
 
-# multi-threaded libs & flags
+# multi-threaded libs & flags, and req'd flags (OO for new interface)...
 ifneq ($(OMP),OFF)
 CXXFLAGS += $(OMPFLAGS)
 CFLAGS += $(OMPFLAGS)
 FFLAGS += $(OMPFLAGS)
-MFLAGS += $(MOMPFLAGS)
-OFLAGS += $(OOMPFLAGS)
+MFLAGS += $(MOMPFLAGS) -DR2008OO
+OFLAGS += $(OOMPFLAGS) -DR2008OO
 LIBS += $(OMPLIBS)
 ifneq ($(MINGW),ON)
 # omp override for total list of math and FFTW libs (now both precisions)...
@@ -349,7 +349,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip install .)
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip -v install .)
 # note to devs: if trouble w/ NumPy, use: pip install . --no-deps
 	$(PYTHON) python/test/run_accuracy_tests.py
 	$(PYTHON) python/examples/simple1d1.py
@@ -375,7 +375,7 @@ docker-wheel:
 docs: finufft-manual.pdf
 finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src
 # rebuild python module so autodoc updates code-generated docstrings there...
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip install .)
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip -v install .)
 # also builds a local html for local browser check too...
 	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
