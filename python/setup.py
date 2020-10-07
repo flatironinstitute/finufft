@@ -72,6 +72,7 @@ setup(
     license="Apache 2",
     packages=['finufft'],
     install_requires=['numpy'],
+    python_requires='>=3.6',
     zip_safe=False,
     py_modules=['finufft/finufftc'],
     ext_modules=[
