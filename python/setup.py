@@ -24,7 +24,7 @@ finufftdir = os.environ.get('FINUFFT_DIR')
 
 # since people might not set it, set to the parent of this script's dir...
 if finufftdir==None or finufftdir=='':
-    finufftdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    finufftdir = os.path.dirname(os.path.dirname(__file__))
 # removed: this fails because pip copies this file to /tmp/pip-req-build-*** !
 
 # default compiler choice (note g++ = clang in mac-osx):
@@ -34,7 +34,7 @@ os.environ['CXX'] = 'g++'
 # attempt override compiler choice using ../make.inc to match your C++ build
 makeinc = finufftdir+"/make.inc"
 dotenv.load_dotenv(makeinc, override=True)   # modifies os.environ
-print('checking CXX var supposedly read from ../make.inc: '+os.environ['CXX'])
+print('checking CXX var supposedly read from ../make.inc: ',os.environ['CXX'])
 
 # in the end avoided code from https://stackoverflow.com/questions/3503719/emulating-bash-source-in-python
 #if os.path.isfile(makeinc):
@@ -48,10 +48,8 @@ print('checking CXX var supposedly read from ../make.inc: '+os.environ['CXX'])
 inc_dir = finufftdir+"/include"
 src_dir = finufftdir+"/src"
 lib_dir = finufftdir+"/lib"
-finufft_dlib = finufftdir+"/lib/libfinufft.so"
+finufft_dlib = finufftdir+"/lib/finufft"
 finufft_lib = finufftdir+"/lib-static/finufft"
-
-print('*********************',finufft_dlib)
 
 ########## SETUP ###########
 setup(
