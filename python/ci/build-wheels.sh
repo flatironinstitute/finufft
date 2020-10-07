@@ -11,6 +11,7 @@
 set -e -x
 
 cd /io/
+make clean
 make lib
 make test
 
