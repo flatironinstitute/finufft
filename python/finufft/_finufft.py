@@ -42,8 +42,8 @@ except OSError:
 
 # Should that not work, try to find the full path of a packaged lib.
 #   The packaged lib should have a py/platform decorated name,
-#   and be rpath'ed the true CUDA C cufinufft library through the
-#   Extension and wheel systems.
+#   and be rpath'ed the true FINUFFT library through the Extension and wheel
+#   systems.
 try:
     if lib is None:
         # Find the library.
@@ -59,29 +59,23 @@ except Exception:
     raise RuntimeError('Failed to find a suitable finufft library')
 
 
-def _get_NufftOpts():
-    fields = [
-        ('modeord', c_int),
-        ('chkbnds', c_int),
-        ('debug', c_int),
-        ('spread_debug', c_int),
-        ('showwarn', c_int),
-        ('nthreads', c_int),
-        ('fftw', c_int),
-        ('spread_sort', c_int),
-        ('spread_kerevalmeth', c_int),
-        ('spread_kerpad', c_int),
-        ('upsampfac', c_double),
-        ('spread_thread', c_int),
-        ('maxbatchsize', c_int)]
-    return fields
-
-
 class NufftOpts(ctypes.Structure):
     pass
 
 
-NufftOpts._fields_ = _get_NufftOpts()
+NufftOpts._fields_ = [('modeord', c_int),
+                      ('chkbnds', c_int),
+                      ('debug', c_int),
+                      ('spread_debug', c_int),
+                      ('showwarn', c_int),
+                      ('nthreads', c_int),
+                      ('fftw', c_int),
+                      ('spread_sort', c_int),
+                      ('spread_kerevalmeth', c_int),
+                      ('spread_kerpad', c_int),
+                      ('upsampfac', c_double),
+                      ('spread_thread', c_int),
+                      ('maxbatchsize', c_int)]
 
 
 FinufftPlan = c_void_p
