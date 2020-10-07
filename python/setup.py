@@ -17,6 +17,8 @@ import setuptools
 import os
 import ctypes
 
+from tempfile import mkstemp
+
 # libin to change to python-dotenv or whatever's simplest:
 import dotenv   # is this part of standard python? (install_requires fails) ?
 
@@ -51,6 +53,29 @@ lib_dir = finufftdir+"/lib"
 finufft_dlib = finufftdir+"/lib/finufft"
 finufft_lib = finufftdir+"/lib-static/finufft"
 
+# For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
+# that calls one of the functions in the FINUFFT dynamic library. The reason
+# is that these platforms override the default --no-as-needed flag for ld,
+# which means that the linker will only link to those dynamic libraries for
+# which there are unresolved symbols in the object files. Since we do not have
+# a real source, the result is that no dynamic libraries are linked. To
+# prevent this, we create a dummy source so that the library will link as
+# expected.
+fd, source_filename = mkstemp(suffix='.c', text=True)
+
+with open(fd, 'w') as f:
+    f.write( \
+"""
+#include <finufft.h>
+
+void _dummy() {
+    nufft_opts opt;
+
+    finufft_default_opts(&opt);
+}
+""")
+
+
 ########## SETUP ###########
 setup(
     name='finufft',
@@ -67,8 +92,10 @@ setup(
     py_modules=['finufft/finufftc'],
     ext_modules=[
         Extension(name='finufft/finufftc',
-                  sources=[],
+                  sources=[source_filename],
+                  include_dirs=[inc_dir],
                   libraries=[finufft_dlib])
         ]
 )
 
+os.unlink(source_filename)
