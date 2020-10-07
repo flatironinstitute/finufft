@@ -351,7 +351,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip -v install .)
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install ./python
 # note to devs: if trouble w/ NumPy, use: pip install . --no-deps
 	$(PYTHON) python/test/run_accuracy_tests.py
 	$(PYTHON) python/examples/simple1d1.py
