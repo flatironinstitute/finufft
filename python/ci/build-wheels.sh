@@ -11,9 +11,11 @@
 set -e -x
 
 cd /io/
+cp make.inc.manylinux make.inc
 make clean
 make lib
 make test
+rm make.inc
 
 # Needed for pip install to work
 export FINUFFT_DIR=$(pwd)
