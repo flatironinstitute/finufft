@@ -23,8 +23,8 @@ import dotenv   # is this part of standard python? (install_requires fails) ?
 finufftdir = os.environ.get('FINUFFT_DIR')
 
 # since people might not set it, set to the parent of this script's dir...
-#if finufftdir==None or finufftdir=='':
-#    finufftdir = os.path.dirname(os.path.dirname(__file__))
+if finufftdir==None or finufftdir=='':
+    finufftdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # removed: this fails because pip copies this file to /tmp/pip-req-build-*** !
 
 # default compiler choice (note g++ = clang in mac-osx):
@@ -48,8 +48,10 @@ print('checking CXX var supposedly read from ../make.inc: '+os.environ['CXX'])
 inc_dir = finufftdir+"/include"
 src_dir = finufftdir+"/src"
 lib_dir = finufftdir+"/lib"
-finufft_dlib = finufftdir+"/lib/finufft"
+finufft_dlib = finufftdir+"/lib/libfinufft.so"
 finufft_lib = finufftdir+"/lib-static/finufft"
+
+print('*********************',finufft_dlib)
 
 ########## SETUP ###########
 setup(
