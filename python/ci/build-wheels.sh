@@ -11,10 +11,18 @@
 set -e -x
 
 cd /io/
+
+# Replace native compilation flags with more generic ones.
 cp make.inc.manylinux make.inc
+
+# Clean up the build and make the library.
 make clean
 make lib
+
+# Test to make sure everything is ok.
 make test
+
+# Remove make.inc now that we're done.
 rm make.inc
 
 # Needed for pip install to work
