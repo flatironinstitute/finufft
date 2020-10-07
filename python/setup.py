@@ -24,6 +24,10 @@ if finufft_dir == None or finufft_dir == '':
 inc_dir = os.path.join(finufft_dir, 'include')
 lib_dir = os.path.join(finufft_dir, 'lib')
 
+# Read in long description from README.md.
+with open(os.path.join(finufft_dir, 'python', 'README.md'), 'r') as f:
+        long_description = f.read()
+
 # We specifically link to the dynamic library here through its absolute path
 # (that is not through -lfinufft) to ensure that the absolute path of the
 # library is encoded in the DT_NEEDED tag. This way, we won't need to have
@@ -63,7 +67,8 @@ setup(
     author_email='abarnett@flatironinstitute.org',
     url='https://github.com/flatironinstitute/finufft',
     description='Python interface to FINUFFT',
-    long_description='Python interface to FINUFFT (Flatiron Institute Nonuniform Fast Fourier Transform) library.',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     license="Apache 2",
     packages=['finufft'],
     install_requires=['numpy'],
