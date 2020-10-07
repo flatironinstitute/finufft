@@ -71,7 +71,7 @@ setup(
     long_description_content_type='text/markdown',
     license="Apache 2",
     packages=['finufft'],
-    install_requires=['numpy'],
+    install_requires=['numpy>=1.12.0'],
     python_requires='>=3.6',
     zip_safe=False,
     py_modules=['finufft/finufftc'],
