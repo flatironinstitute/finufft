@@ -24,7 +24,7 @@ export LD_LIBRARY_PATH=${FINUFFT_DIR}/lib:${LD_LIBRARY_PATH}
 
 pys=(/opt/python/*/bin)
 
-# Filter out Python 3.4
+# Filter out old Python versions
 pys=(${pys[@]//*27*/})
 pys=(${pys[@]//*34*/})
 pys=(${pys[@]//*35*/})
