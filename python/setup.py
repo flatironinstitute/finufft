@@ -71,6 +71,13 @@ setup(
     long_description_content_type='text/markdown',
     license="Apache 2",
     packages=['finufft'],
+    classifiers=[
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: C++',
+        'Operating System :: POSIX :: Linux',
+        'Operating System :: MacOS :: MacOS X',
+    ],
     install_requires=['numpy>=1.12.0'],
     python_requires='>=3.6',
     zip_safe=False,
