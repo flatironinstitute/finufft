@@ -68,12 +68,16 @@ int main(int argc, char* argv[])
 	   (long long)M,(long long)N1,(long long)N2,(long long)N3,ti,M/ti);
 
   BIGINT nt1 = (BIGINT)(0.37*N1), nt2 = (BIGINT)(0.26*N2), nt3 = (BIGINT)(-0.39*N3);  // choose mode to check
-  CPX Ft = CPX(0,0), J = IMA*(FLT)isign;
-  for (BIGINT j=0; j<M; ++j)
-    Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]));   // crude direct
+  FLT Ftr=0, Fti=0;               // crude direct...
+#pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(+:Ftr,Fti)
+  for (BIGINT j=0; j<M; ++j) {    // Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]+nt3*z[j]))
+    FLT w=(FLT)isign*(nt1*x[j]+nt2*y[j]+nt3*z[j]), co=cos(w), si=sin(w);
+    Ftr += real(c[j])*co - imag(c[j])*si;  // cpx arith by hand
+    Fti += imag(c[j])*co + real(c[j])*si;
+  }
   // index in complex F as 1d array...
   BIGINT it = N1/2+nt1 + N1*(N2/2+nt2) + N1*N2*(N3/2+nt3);
-  err = abs(Ft-F[it])/infnorm(N,F);
+  err = abs(Ftr+IMA*Fti - F[it])/infnorm(N,F);
   errmax = max(err,errmax);
   printf("\tone mode: rel err in F[%lld,%lld,%lld] is %.3g\n",(long long)nt1,(long long)nt2,(long long)nt3,err);
   if ((int64_t)M*N<=TEST_BIGPROB) {                   // also check vs full direct eval
@@ -108,7 +112,7 @@ int main(int argc, char* argv[])
   for (BIGINT m3=-(N3/2); m3<=(N3-1)/2; ++m3)   // loop in F order
     for (BIGINT m2=-(N2/2); m2<=(N2-1)/2; ++m2)
       for (BIGINT m1=-(N1/2); m1<=(N1-1)/2; ++m1)
-	ct += F[m++] * exp(J*(m1*x[jt] + m2*y[jt] + m3*z[jt]));   // direct
+	ct += F[m++] * exp(IMA*(FLT)isign*(m1*x[jt] + m2*y[jt] + m3*z[jt]));
   err = abs(ct-c[jt])/infnorm(M,c);
   errmax = max(err,errmax);
   printf("\tone targ: rel err in c[%lld] is %.3g\n",(long long)jt,err);
@@ -159,10 +163,14 @@ int main(int argc, char* argv[])
     printf("\t%lld NU to %lld NU in %.3g s         \t%.3g tot NU pts/s\n",(long long)M,(long long)N,ti,(M+N)/ti);
 
   BIGINT kt = N/2;          // check arbitrary choice of one targ pt
-  Ft = CPX(0,0);
-  for (BIGINT j=0;j<M;++j)
-    Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j] + u[kt]*z[j]));
-  err = abs(Ft-F[kt])/infnorm(N,F);
+  Ftr=0, Fti=0;                 // crude direct...
+#pragma omp parallel for schedule(static,TEST_RANDCHUNK) reduction(+:Ftr,Fti)
+  for (BIGINT j=0; j<M; ++j) {  // Ft += c[j] * exp(IMA*(FLT)isign*(s[kt]*x[j] + t[kt]*y[j] + u[kt]*z[j]))
+    FLT w=(FLT)isign*(s[kt]*x[j]+t[kt]*y[j]+u[kt]*z[j]), co=cos(w), si=sin(w);
+    Ftr += real(c[j])*co - imag(c[j])*si;  // cpx arith by hand
+    Fti += imag(c[j])*co + real(c[j])*si;
+  }
+  err = abs(Ftr+IMA*Fti - F[kt])/infnorm(N,F);
   errmax = max(err,errmax);
   printf("\tone targ: rel err in F[%lld] is %.3g\n",(long long)kt,err);
   if (((int64_t)M)*N<=TEST_BIGPROB) {                  // also full direct eval
