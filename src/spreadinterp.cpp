@@ -554,8 +554,8 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
       fprintf(stderr,"FINUFFT setup_spreader warning: upsampfac=%.3g way too large to be beneficial.\n",upsampfac);
   }
     
-  // spread_opts defaults... (some overridden in setup_spreader_for_nufft)
-  opts.spread_direction = 1;    // user should always set to 1 or 2 as desired
+  // write out default spread_opts (some overridden in setup_spreader_for_nufft)
+  opts.spread_direction = 0;    // user should always set to 1 or 2 as desired
   opts.pirange = 1;             // user also should always set this
   opts.chkbnds = 0;
   opts.sort = 2;                // 2:auto-choice
@@ -603,7 +603,7 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   }
   opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
   if (debug)
-    fprintf(stderr,"%s (kerevalmeth=0) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n",__func__,(double)eps,upsampfac,ns,(double)opts.ES_beta);
+    fprintf(stderr,"%s (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n",__func__,kerevalmeth,(double)eps,upsampfac,ns,(double)opts.ES_beta);
   
   return ier;
 }

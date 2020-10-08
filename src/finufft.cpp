@@ -544,7 +544,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     p->opts = *opts;    // keep a deep copy; changing *opts now has no effect
 
   if (p->opts.debug)    // do a hello world
-    fprintf(stderr,"[%s] new plan: FINUFFT version " FINUFFT_VER "\n",__func__);
+    printf("[%s] new plan: FINUFFT version " FINUFFT_VER " .................\n",__func__);
   
   if((type!=1)&&(type!=2)&&(type!=3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n",__func__,type);
