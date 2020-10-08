@@ -351,7 +351,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip -v install .)
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install ./python
 # note to devs: if trouble w/ NumPy, use: pip install . --no-deps
 	$(PYTHON) python/test/run_accuracy_tests.py
 	$(PYTHON) python/examples/simple1d1.py
@@ -376,8 +376,6 @@ docker-wheel:
 
 docs: finufft-manual.pdf
 finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src
-# rebuild python module so autodoc updates code-generated docstrings there...
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip -v install .)
 # also builds a local html for local browser check too...
 	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
