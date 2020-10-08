@@ -1,5 +1,8 @@
 List of features / changes made / release notes, in reverse chronological order
 
+
+* multithreaded one-mode accuracy test in C++ tests, t1 & t3.
+
 V 2.0.1 (10/6/20)
 
 * python (under-the-hood) interfacing changed from pybind11 to cleaner ctypes.
