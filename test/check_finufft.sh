@@ -3,11 +3,11 @@
 # Main validation tests for FINUFFT library. On Windows, we append .exe to the names of the executables.
 # Usage:   To do double-precision tests:   ./check_finufft.sh
 #          To do single-precision tests:   ./check_finufft.sh SINGLE
-#          To run test on Windows (WSL):   ./check_finufft.sh (DUMMY or SINGLE) ON
+#          To run test on Windows (WSL):   ./check_finufft.sh {DUMMY or SINGLE} ON
 # Exit code is 0 for success, otherwise failure
 
 # In total these tests take about 5 seconds on a modern machine with the
-# default compile in multithreading, or 2 seconds if built with OMP=OFF.
+# default compile, threads=2*#cores (hyperthreading), or <1 second w/ less thr.
 # (This sounds backwards, but is true; believed OMP overhead in FINUFFT calls.)
 
 # Barnett 3/14/17. numdiff-free option 3/16/17. simpler, dual-prec 7/3/20,
@@ -18,8 +18,8 @@ if [[ $1 == "SINGLE" ]]; then
     PREC=single
     # what's weird is that tol=1e-6 here gives *worse* single-prec errs >2e-4 :(
     export FINUFFT_REQ_TOL=1e-5
-    # acceptable error one digit above requested tol...
-    CHECK_TOL=1e-4
+    # acceptable error one digit above requested tol... (& rounding accum)
+    CHECK_TOL=2e-4
     # modifier for executables, exported so that check?d.sh can also access...
     export PRECSUF=f
 else
