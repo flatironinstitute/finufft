@@ -5,11 +5,9 @@ main co-developers Jeremy F. Magland,
 Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Andrea Malleo, Libin Lu,
 and Joakim Andén;
 see `docs/ackn.rst` for full list of contributors.
-
-<p>
-<img src="docs/logo.png" width="350"/>
-<img src="docs/spreadpic.png" width="400"/>
-</p>
+​
+<img align="right" src="docs/logo.png" width="350">
+<img align="left" src="docs/spreadpic.png" width="400"/>
 
 This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, and python. A julia interface
 also exists.
