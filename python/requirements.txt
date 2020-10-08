@@ -1,2 +1,1 @@
-numpy
-python-dotenv
+numpy >= 1.12.0
