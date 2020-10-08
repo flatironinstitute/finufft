@@ -65,7 +65,7 @@ Optional:
 * for Fortran wrappers: compiler such as ``gfortran`` in GCC
 * for MATLAB wrappers: MATLAB (versions at least R2016b up to current work)
 * for octave wrappers: recent octave version at least 4.4, and its development libraries
-* for the python wrappers you will need ``python3`` (it is assumed you have python v3; v2 is unsupported), with the ``numpy`` and ``python-dotenv`` modules.
+* for the python wrappers you will need ``python3`` (it is assumed you have python v3; v2 is unsupported), with ``numpy``.
 
 
 1) Linux: tips for installing dependencies and compiling, and flags
@@ -208,7 +208,7 @@ and 10.2.0 in Catalina, in our tests).
 If you are python-only, use::
 
      brew install python3
-     pip3 install numpy finufft
+     pip3 install finufft
      
 Or, for experts to compile python interfaces locally using either clang or gcc,
 see :ref:`below<install-python>`.
@@ -296,8 +296,7 @@ try::
   cp make.inc.windows_mingw make.inc
   make test -j
 
-Please see https://github.com/flatironinstitute/finufft/issues
-  
+We seek help with Windows support. Also see https://github.com/flatironinstitute/finufft/issues
 
 
 
@@ -310,7 +309,7 @@ Building a python interface to a locally compiled library
 Recall that the basic user may simply ``pip install finufft``,
 then check it worked via::
 
-  python/test/run_accuracy_tests.py
+  python3 python/test/run_accuracy_tests.py
 
 However, a user or developer may want to build a python wrapper to their locally
 compiled FINUFFT library, perhaps for more speed. We now describe this,
@@ -320,7 +319,7 @@ First make sure you have pip
 installed, and that you can already compile the C++ library (eg via ``make test``).
 Next make sure you have the required python packages::
 
-  pip install numpy
+  pip3 install numpy
 
 You may then::
 
@@ -330,7 +329,7 @@ which builds the ``finufft`` module,
 installs via pip, then runs some tests and examples.
 An additional performance test you could then do is::
 
-  python python/test/run_speed_tests.py
+  python3 python/test/run_speed_tests.py
 
 .. note::
 
@@ -338,15 +337,15 @@ An additional performance test you could then do is::
 
      export MACOSX_DEPLOYMENT_TARGET=10.14
 
-   where you should replace 10.14 by your OSX number. We have also found that running::
+   where you should replace 10.14 by your OSX number. We have also in the past found that running::
 
-     pip3 install .
+     pip3 install ./python
 
    in the command line can work even when ``make python`` does not (probably to do with environment variables).
 
 .. note::
 
-   Our new (v2.0.1) python interface is quite different from the Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_. The interface is simpler. Under the hood we now use ``ctypes`` instead of ``pybind11``.
+   Our new (v2.0.1) python interface is quite different from Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_, or Jeremy Magland's. The interface is simpler, and the existing library is linked to. Under the hood we now use ``ctypes`` instead of ``pybind11``.
   
 
 A few words about python environments

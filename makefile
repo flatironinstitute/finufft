@@ -14,7 +14,7 @@
 # Garrett Wright, Joakim Anden, Barnett: dual-prec lib build, Jun-Jul'20.
 # Windows compatibility, jonas-kr, Sep '20.
 
-# Compilers, and linking from C, fortran. We use GCC by default...
+# Compiler (CXX), and linking from C, fortran. We use GCC by default...
 CXX = g++
 CC = gcc
 FC = gfortran
@@ -24,8 +24,8 @@ FLINK = $(CLINK)
 PYTHON = python3
 # baseline compile flags for GCC (no multithreading):
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
-#        2) -fcx-limited-range for fortran-speed complex arith in C++.
-#        3) we use simply-expanded makefile variables, otherwise confusing.
+#        2) -fcx-limited-range for fortran-speed complex arith in C++
+#        3) we use simply-expanded (:=) makefile variables, otherwise confusing
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range
 FFLAGS := $(CFLAGS)
 CXXFLAGS := $(CFLAGS)
@@ -339,7 +339,7 @@ octave: matlab/finufft.cpp $(STATICLIB)
 	$(OCTAVE) examples/guru1d1_single.m)
 
 # for experts: force rebuilds fresh MEX (matlab/octave) gateway
-# matlab/finufft.cpp via mwrap (needs recent version of mwrap, eg 0.33.10)...
+# matlab/finufft.cpp via mwrap (needs recent version of mwrap >= 0.33.10)...
 mex: matlab/finufft.mw
 ifneq ($(MINGW),ON)
 	(cd matlab ;\
@@ -352,7 +352,7 @@ endif
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
 	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install ./python
-# note to devs: if trouble w/ NumPy, use: pip install . --no-deps
+# note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/test/run_accuracy_tests.py
 	$(PYTHON) python/examples/simple1d1.py
 	$(PYTHON) python/examples/simpleopts1d1.py
