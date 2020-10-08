@@ -7,7 +7,8 @@ and Joakim Andén;
 see `docs/ackn.rst` for full list of contributors.
 ​
 <img align="right" src="docs/logo.png" width="350">
-<img align="left" src="docs/spreadpic.png" width="400"/>
+
+<img align="right" src="docs/spreadpic.png" width="400"/>
 
 This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, and python. A julia interface
 also exists.
