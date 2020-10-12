@@ -22,7 +22,9 @@ export LD_LIBRARY_PATH=${FINUFFT_DIR}/lib:${LD_LIBRARY_PATH}
 pys=(/opt/python/*/bin)
 
 # Filter out Python 3.4
+pys=(${pys[@]//*27*/})
 pys=(${pys[@]//*34*/})
+pys=(${pys[@]//*35*/})
 
 for PYBIN in "${pys[@]}"; do
     "${PYBIN}/pip" install auditwheel wheel twine numpy
