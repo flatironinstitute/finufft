@@ -10,17 +10,6 @@
 
 set -e -x
 
-curl http://www.fftw.org/fftw-3.3.8.tar.gz --output fftw-3.3.8.tar.gz
-tar -xvzf fftw-3.3.8.tar.gz
-cd fftw-3.3.8
-CFLAGS=-fPIC ./configure --enable-threads --enable-openmp
-make
-make install
-make clean
-CFLAGS=-fPIC ./configure --enable-threads --enable-openmp --enable-float
-make
-make install
-
 cd /io/
 make lib
 make test
@@ -33,7 +22,9 @@ export LD_LIBRARY_PATH=${FINUFFT_DIR}/lib:${LD_LIBRARY_PATH}
 pys=(/opt/python/*/bin)
 
 # Filter out Python 3.4
+pys=(${pys[@]//*27*/})
 pys=(${pys[@]//*34*/})
+pys=(${pys[@]//*35*/})
 
 for PYBIN in "${pys[@]}"; do
     "${PYBIN}/pip" install auditwheel wheel twine numpy
