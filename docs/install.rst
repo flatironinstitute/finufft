@@ -65,7 +65,7 @@ Optional:
 * for Fortran wrappers: compiler such as ``gfortran`` in GCC
 * for MATLAB wrappers: MATLAB (versions at least R2016b up to current work)
 * for octave wrappers: recent octave version at least 4.4, and its development libraries
-* for the python wrappers you will need ``python3`` (it is assumed you have python v3; v2 is unsupported), with ``numpy``.
+* for the python wrappers you will need ``python`` version at least 3.6 (python 2 is unsupported), with ``numpy``.
 
 
 1) Linux: tips for installing dependencies and compiling, and flags
