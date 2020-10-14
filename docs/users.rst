@@ -67,3 +67,5 @@ Citations to FINUFFT that do not appear to be actual users
 
 #. https://arxiv.org/abs/1912.09746
 
+#. https://arxiv.org/abs/2010.05295
+      
