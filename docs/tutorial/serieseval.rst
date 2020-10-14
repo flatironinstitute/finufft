@@ -8,7 +8,7 @@ This is a simple demo of using type 2 NUFFTs to evaluate a given
 at arbitrary points.
 For conciseness of code, we use the MATLAB interface.
 The series we use are vaguely boring random ones relating
-to Gaussian random fields---please
+to :ref:`Gaussian random fields<grf>`---please
 insert Fourier series coefficient vectors you care about.
 
 1D Fourier series
@@ -132,5 +132,3 @@ Finally we use a colored scatter plot to show the first $10\%$ of the points in 
  
 See the full code `tutorial/serieseval2d.m <https://github.com/flatironinstitute/finufft/blob/master/tutorial/serieseval2d.m>`_.
 
-For background on Gaussian random fields, aka, Gaussian processes,
-see, eg, C. E. Rasmussen & C. K. I. Williams, *Gaussian Processes for Machine Learning*, the MIT Press, 2006. http://www.GaussianProcess.org/gpml
