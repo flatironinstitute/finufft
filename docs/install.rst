@@ -64,18 +64,18 @@ Optional:
 
 * for Fortran wrappers: compiler such as ``gfortran`` in GCC
 * for MATLAB wrappers: MATLAB (versions at least R2016b up to current work)
-* for octave wrappers: recent octave version at least 4.4, and its development libraries
+* for Octave wrappers: recent Octave version at least 4.4, and its development libraries
 * for the python wrappers you will need ``python`` version at least 3.6 (python 2 is unsupported), with ``numpy``.
 
 
-1) Linux: tips for installing dependencies and compiling, and flags
+1) Linux: tips for installing dependencies and compiling
 -------------------------------------------------------------------
 
 On a Fedora/CentOS linux system, the base dependencies can be installed by::
 
   sudo yum install make gcc gcc-c++ fftw-devel libgomp
   
-To add all language interfaces also do::
+To add Fortran and Octave language interfaces also do::
 
   sudo yum install gcc-gfortran octave octave-devel
 
@@ -87,13 +87,13 @@ Alternatively, on Ubuntu linux, base dependencies are::
 
   sudo apt-get install make build-essential libfftw3-dev
 
-and for language interfaces also do::
+and for Fortran, Python, and Octave language interfaces also do::
 
   sudo apt-get gfortran python3 python3-pip octave liboctave-dev
 
 In older distros you may have to compile ``octave`` from source to get the needed >=4.4 version.
 
-You should then compile via the various ``make`` tasks, eg::
+You should then compile and test the library via various ``make`` tasks, eg::
 
   make test -j
   
@@ -157,9 +157,23 @@ Run ``make`` without arguments for full list of possible make tasks.
 **High-level interfaces**.
 See :ref:`below<install-python>` for python compilation.
 
-``make matlab`` to compile the MEX interface to matlab.
+``make matlab`` to compile the MEX interface to matlab,
+then within MATLAB add the ``matlab`` directory to your path,
+cd to ``matlab/test`` and run ``check_finufft`` which should run for 5 secs
+and print a bunch of errors around ``1e-6``.
 
-``make octave`` to compile the MEX-like interface to octave.
+.. note::
+
+   If this MATLAB test crashes, it is most likely to do with incompatible versions of OpemMP. Thus, you will want to make (or add to) a file ``make.inc`` the line::
+
+      OMPLIBS=/usr/local/MATLAB/R2020a/sys/os/glnxa64/libiomp5.so
+
+   or appropriate to your MATLAB version. You'll want to check this shared
+   object exists. Then ``make clean`` and ``make test -j``, finally
+   ``make matlab`` again.
+  
+``make octave`` to compile and test the MEX-like interface to Octave.
+
 
 
 Compilation flags
