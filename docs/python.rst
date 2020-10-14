@@ -5,6 +5,7 @@ Quick-start examples
 --------------------
 
 The easiest way to install is to run ``pip install finufft``, which downloads and installs the latest precompiled binaries from PyPI.
+Please note that the ``finufftpy`` package is obsolete.
 If you would like to compile from source, see :ref:`the Python installation instructions <install-python>`.
 
 To calculate a 1D type 1 transform, from nonuniform to uniform points, we import ``finufft``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:

@@ -24,8 +24,6 @@ and also add them to github's Used By feature):
       
 #. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg (SFU), now using pure julia rather than python.
 
-#. Vineet Bansal's pypi package https://pypi.org/project/finufftpy/. This will be updated soon.
-
 
 
 Research output using FINUFFT
@@ -68,4 +66,4 @@ Citations to FINUFFT that do not appear to be actual users
 #. https://arxiv.org/abs/1908.00574
 
 #. https://arxiv.org/abs/1912.09746
-      
+

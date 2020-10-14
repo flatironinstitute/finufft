@@ -42,6 +42,9 @@ J. A. Fessler and B. P. Sutton. IEEE Trans. Sig. Proc., 51(2):560-74, (Feb. 2003
 
 The appendix of the last of the above contains the first known published proof
 of the Kaiser--Bessel Fourier transform pair.
+This next paper proves an error estimate for a related sinh-type kernel:
+
+[PT] Uniform error estimates for the NFFT. D. Potts and M. Tasche. (2020). `arxiv <https://arxiv.org/abs/1912.09746>`_
 
 FINUFFT builds upon the CMCL NUFFT, and the Fortran wrappers are very similar to its interfaces. For that, the following are references:
 
