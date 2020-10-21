@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	int N1, N2, M;
 	if (argc<5) {
 		fprintf(stderr,
-			"Usage: interp2d method nupts_distr nf1 nf2 [M [tol [kerevalmeth]]]\n"
+			"Usage: interp2d method nupts_distr nf1 nf2 [M [tol [kerevalmeth [sort]]]]\n"
 			"Arguments:\n"
 			"  method: One of\n"
 			"    1: nupts driven, or\n"
@@ -28,7 +28,10 @@ int main(int argc, char* argv[])
 			"  tol: NUFFT tolerance (default 1e-6).\n"
 			"  kerevalmeth: Kernel evaluation method; one of\n"
 			"     0: Exponential of square root, or\n"
-			"     1: Horner evaluation (default).\n");
+			"     1: Horner evaluation (default).\n"
+			"  sort: One of\n"
+			"     0: do not sort the points, or\n"
+			"     1: sort the points (default).\n");
 		return 1;
 	}
 	double w;
