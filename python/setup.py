@@ -81,9 +81,9 @@ setup(
     install_requires=['numpy>=1.12.0'],
     python_requires='>=3.6',
     zip_safe=False,
-    py_modules=['finufft/finufftc'],
+    py_modules=['finufft.finufftc'],
     ext_modules=[
-        Extension(name='finufft/finufftc',
+        Extension(name='finufft.finufftc',
                   sources=[source_filename],
                   include_dirs=[inc_dir],
                   libraries=[finufft_dlib])
