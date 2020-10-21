@@ -111,8 +111,8 @@ int main(int argc, char* argv[])
 		case 1: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
-					x[i] = M_PI*rand01()/(nf1*2/32);// x in [-pi,pi)
-					y[i] = M_PI*rand01()/(nf1*2/32);
+					x[i] = M_PI*rand01()/(nf1*2/32);
+					y[i] = M_PI*rand01()/(nf2*2/32);
 					c[i].real(randm11());
 					c[i].imag(randm11());
 				}

@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
 			{
 				for (int i = 0; i < M; i++) {
 					x[i] = M_PI*rand01()/(nf1*2/32);// x in [-pi,pi)
-					y[i] = M_PI*rand01()/(nf1*2/32);
+					y[i] = M_PI*rand01()/(nf2*2/32);
 				}
 			}
 			break;

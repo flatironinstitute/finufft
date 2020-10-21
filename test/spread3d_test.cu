@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 	sscanf(argv[4],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
 	sscanf(argv[5],"%lf",&w); nf3 = (int)w;  // so can read 1e6 right!
 
-	int maxsubprobsize=65536;
+	int maxsubprobsize=1024;
 	if(argc>6){
 		sscanf(argv[6],"%d",&maxsubprobsize);
 	}
@@ -97,7 +97,7 @@ int main(int argc, char* argv[])
 	dplan->opts.gpu_method          =method;
 	dplan->opts.gpu_maxsubprobsize  =maxsubprobsize;
 	dplan->opts.gpu_kerevalmeth     =kerevalmeth;
-	dplan->opts.gpu_sort            =0;
+	dplan->opts.gpu_sort            =sort;
 	dplan->opts.gpu_spreadinterponly=1;
 	ier = setup_spreader_for_nufft(dplan->spopts, tol, dplan->opts);
 
@@ -114,15 +114,15 @@ int main(int argc, char* argv[])
 	if(dplan->opts.gpu_method == 2)
 	{
 		dplan->opts.gpu_binsizex=16;
-		dplan->opts.gpu_binsizey=8;
-		dplan->opts.gpu_binsizez=4;
+		dplan->opts.gpu_binsizey=16;
+		dplan->opts.gpu_binsizez=2;
 		dplan->opts.gpu_maxsubprobsize=maxsubprobsize;
 	}
 	if(dplan->opts.gpu_method == 1)
 	{
 		dplan->opts.gpu_binsizex=16;
-		dplan->opts.gpu_binsizey=8;
-		dplan->opts.gpu_binsizez=4;
+		dplan->opts.gpu_binsizey=16;
+		dplan->opts.gpu_binsizez=2;
 	}
 
 	cout<<scientific<<setprecision(3);
@@ -143,9 +143,9 @@ int main(int argc, char* argv[])
 		case 1: // concentrate on a small region
 			{
 				for (int i = 0; i < M; i++) {
-					x[i] = M_PI*rand01()/(nf1*2/32);
-					y[i] = M_PI*rand01()/(nf2*2/32);
-					z[i] = M_PI*rand01()/(nf3*2/32);
+					x[i] = M_PI*rand01()/nf1*16;
+					y[i] = M_PI*rand01()/nf2*16;
+					z[i] = M_PI*rand01()/nf3*16;
 					c[i].real(randm11());
 					c[i].imag(randm11());
 				}
