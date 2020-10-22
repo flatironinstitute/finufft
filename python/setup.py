@@ -51,7 +51,7 @@ with open(fd, 'w') as f:
 """
 #include <finufft.h>
 
-void _dummy() {
+void _dummy(void) {
     nufft_opts opt;
 
     finufft_default_opts(&opt);
