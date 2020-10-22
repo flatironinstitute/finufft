@@ -77,7 +77,7 @@ int spreadinterp(
    In each case phi is the spreading kernel, which has support
    [-opts.nspread/2,opts.nspread/2]. In 2D or 3D, the generalization with
    product of 1D kernels is performed.
-   For 1D set N2=N3=1; for 2D set N3=1; for 3D set N1,N2,N3>0.
+   For 1D set N2=N3=1; for 2D set N3=1; for 3D set N1,N2,N3>1.
 
    Notes:
    No particular normalization of the spreading kernel is assumed.
@@ -85,11 +85,12 @@ int spreadinterp(
    [0,1,...,N1-1] in 1D, analogously in 2D and 3D. They are stored in x
    fastest, y medium, z slowest ordering, up to however many
    dimensions are relevant; note that this is Fortran-style ordering for an
-   array f(x,y,z), but C style for f[z][y][x]. This is to match the fortran
+   array f(x,y,z), but C style for f[z][y][x]. This is to match the Fortran
    interface of the original CMCL libraries.
-   Non-uniform (NU) points kx,ky,kz are real.
-   If pirange=0, should be in the range [0,N1] in 1D, analogously in 2D and 3D.
-   If pirange=1, the range is instead [-pi,pi] for each coord.
+   Non-uniform (NU) points kx,ky,kz are real, and may lie in the central three
+   periods in each coordinate (these are folded into the central period).
+   If pirange=0, the periodic domain for kx is [0,N1], ky [0,N2], kz [0,N3].
+   If pirange=1, the periodic domain is instead [-pi,pi] for each coord.
    The spread_opts struct must have been set up already by calling setup_kernel.
    It is assumed that 2*opts.nspread < min(N1,N2,N3), so that the kernel
    only ever wraps once when falls below 0 or off the top of a uniform grid
@@ -97,50 +98,30 @@ int spreadinterp(
 
    Inputs:
    N1,N2,N3 - grid sizes in x (fastest), y (medium), z (slowest) respectively.
-              If N2==0, 1D spreading is done. If N3==0, 2D spreading.
+              If N2==1, 1D spreading is done. If N3==1, 2D spreading.
 	      Otherwise, 3D.
    M - number of NU pts.
-   kx, ky, kz - length-M real arrays of NU point coordinates (only kz used in
-                1D, only kx and ky used in 2D).
+   kx, ky, kz - length-M real arrays of NU point coordinates (only kx read in
+                1D, only kx and ky read in 2D).
+
 		These should lie in the box 0<=kx<=N1 etc (if pirange=0),
                 or -pi<=kx<=pi (if pirange=1). However, points up to +-1 period
                 outside this domain are also correctly folded back into this
                 domain, but pts beyond this either raise an error (if chkbnds=1)
                 or a crash (if chkbnds=0).
-   opts - object controlling spreading method and text output, has fields
-          including:
-        spread_direction=1, spreads from nonuniform input to uniform output, or
-        spread_direction=2, interpolates ("spread transpose") from uniform input
-                            to nonuniform output.
-	pirange = 0: kx,ky,kz coords in [0,N]. 1: coords in [-pi,pi].
-                (due to +-1 box folding these can be out to [-N,2N] and
-                [-3pi/2,3pi/2] respectively).
-	sort = 0,1,2: whether to sort NU points using natural yz-grid
-	       ordering. 0: don't, 1: do, 2: use heuristic choice (default)
-        sort_threads = 0, 1,... : if >0, set # sorting threads; if 0
-                   allow heuristic choice (either single or all avail).
-	kerpad = 0,1: whether pad to next mult of 4, helps SIMD (kerevalmeth=0).
-	kerevalmeth = 0: direct exp(sqrt(..)) eval; 1: Horner piecewise poly.
-	debug = 0: no text output, 1: some openmp output, 2: mega output
-	           (each NU pt)
-	chkbnds = 0: don't check incoming NU pts for bounds (but still fold +-1)
-                  1: do, and stop with error if any found outside valid bnds
-	flags = integer with binary bits determining various timing options
-                (set to 0 unless expert; see cnufftspread.h)
+   opts - spread/interp options struct, documented in ../include/spread_opts.h
 
    Inputs/Outputs:
    data_uniform - output values on grid (dir=1) OR input grid data (dir=2)
    data_nonuniform - input strengths of the sources (dir=1)
                      OR output values at targets (dir=2)
    Returned value:
-   0 indicates success; other values as follows (see spreadcheck below and
-   see utils.h and ../docs/usage.rst for error codes):
+   0 indicates success; other values have meanings in ../docs/error.rst, with
+   following modifications:
       3 : one or more non-trivial box dimensions is less than 2.nspread.
       4 : nonuniform points outside [-Nm,2*Nm] or [-3pi,3pi] in at least one
           dimension m=1,2,3.
       5 : failed allocate sort indices
-      6 : invalid opts.spread_direction
-
 
    Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
    error codes 3/13/17. pirange 3/28/17. Rewritten 6/15/17. parallel sort 2/9/18
@@ -149,7 +130,7 @@ int spreadinterp(
    kereval, kerpad 4/24/18
    Melody Shih split into 3 routines: check, sort, spread. Jun 2018, making
    this routine just a caller to them. Name change, Barnett 7/27/18
-   Tidy, Barnett 5/20/20.
+   Tidy, Barnett 5/20/20. Tidy doc, Barnett 10/22/20.
 */
 {
   int ier = spreadcheck(N1, N2, N3, M, kx, ky, kz, opts);
@@ -229,6 +210,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
   return 0; 
 }
 
+
 int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts)
 /* This makes a decision whether or not to sort the NU pts (influenced by
@@ -297,10 +279,30 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
 }
 
 
+int spreadinterpSorted(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, 
+		      FLT *data_uniform, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
+		      FLT *data_nonuniform, spread_opts opts, int did_sort)
+/* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
+   See spreadinterp() above for inputs arguments and definitions.
+   Return value should always be 0 (no error reporting).
+   Split out by Melody Shih, Jun 2018; renamed Barnett 5/20/20.
+*/
+{
+  if (opts.spread_direction==1)  // ========= direction 1 (spreading) =======
+    spreadSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
+  
+  else           // ================= direction 2 (interpolation) ===========
+    interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
+  
+  return 0;
+}
+
+
 // --------------------------------------------------------------------------
 int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 		      FLT *data_nonuniform, spread_opts opts, int did_sort)
+// Spread NU pts in sorted order to a uniform grid. See spreadinterp() for doc.
 {
   CNTime timer;
   int ndims = ndims_from_Ns(N1,N2,N3);
@@ -415,7 +417,10 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 // --------------------------------------------------------------------------
 int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		      FLT *data_nonuniform, spread_opts opts, int did_sort){
+		      FLT *data_nonuniform, spread_opts opts, int did_sort)
+// Interpolate to NU pts in sorted order from a uniform grid.
+// See spreadinterp() for doc.
+{
   CNTime timer;
   int ndims = ndims_from_Ns(N1,N2,N3);
   int ns=opts.nspread;          // abbrev. for w, kernel width
@@ -520,24 +525,6 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   return 0;
 };
 
-
-int spreadinterpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
-		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		      FLT *data_nonuniform, spread_opts opts, int did_sort)
-/* Logic to select the main spreading (dir=1) vs interpolation (dir=2) routine.
-   See spreadinterp() above for inputs arguments and definitions.
-   Return value should always be 0 (no error reporting).
-   Split out by Melody Shih, Jun 2018; renamed Barnett 5/20/20.
-*/
-{
-  if (opts.spread_direction==1)  // ========= direction 1 (spreading) =======
-    spreadSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
-  
-  else           // ================= direction 2 (interpolation) ===========
-    interpSorted(sort_indices, N1, N2, N3, data_uniform, M, kx, ky, kz, data_nonuniform, opts, did_sort);
-  
-  return 0;
-}
 
 
 ///////////////////////////////////////////////////////////////////////////
