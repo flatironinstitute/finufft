@@ -1,3 +1,12 @@
+# We currently use manylinux2010 based on CentOS6, which has very old
+# fftw 3.2.1, too old for FINUFFT. We thus here compile FFTW from source (slow).
+#
+# Soon (11/30/2020) we'll want to update to manylinux2014 which has fftw
+# 3.3.3 (still old,
+# but functions with FINUFFT), and switch to: yum install fft3-devel
+# instead of building from source.
+
+
 FROM quay.io/pypa/manylinux2010_x86_64
 LABEL maintainer "Libin Lu"
 
