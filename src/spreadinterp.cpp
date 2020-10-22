@@ -231,17 +231,35 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
 
 int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
                FLT *kx, FLT *ky, FLT *kz, spread_opts opts)
-/* This makes a decision whether or not to sort the NU pts, and if so, calls
-   either single- or multi-threaded bin sort, writing reordered index list to
-   sort_indices.
-   See spreadinterp() for input arguments, and ../docs/opts.rst for opts.
-   Return value is whether a sort was done or not.
+/* This makes a decision whether or not to sort the NU pts (influenced by
+   opts.sort), and if yes, calls either single- or multi-threaded bin sort,
+   writing reordered index list to sort_indices. If decided not to sort, the
+   identity permutation is written to sort_indices.
+   The permutation is designed to make RAM access close to contiguous, to
+   speed up spreading/interpolation, in the case of disordered NU points.
+
+   Inputs:
+    M        - number of input NU points.
+    kx,ky,kz - length-M arrays of real coords of NU pts, in the domain
+               for FOLDRESCALE, which includes [0,N1], [0,N2], [0,N3]
+               respectively, if opts.pirange=0; or [-pi,pi] if opts.pirange=1.
+               (only kz used in 1D, only kx and ky used in 2D.)
+               These must have been bounds-checked already; see spreadcheck.
+    N1,N2,N3 - integer sizes of overall box (set N2=N3=1 for 1D, N3=1 for 2D).
+               1 = x (fastest), 2 = y (medium), 3 = z (slowest).
+    opts     - spreading options struct, documented in ../include/spread_opts.h
+   Outputs:
+    sort_indices - a good permutation of NU points. (User must preallocate
+                   to length M.) Ie, kx[sort_indices[j]], j=0,..,M-1, is a good
+                   ordering for the x-coords of NU pts, etc.
+    returned value - whether a sort was done (1) or not (0).
+
    Barnett 2017; split out by Melody Shih, Jun 2018.
 */
 {
   CNTime timer;
   int ndims = ndims_from_Ns(N1,N2,N3);
-  BIGINT N=N1*N2*N3;            // output array size
+  BIGINT N=N1*N2*N3;            // U grid (periodic box) sizes
   
   // heuristic binning box size for U grid... affects performance:
   double bin_size_x = 16, bin_size_y = 4, bin_size_z = 4;
@@ -270,7 +288,7 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
     did_sort=1;
   } else {
 #pragma omp parallel for num_threads(maxnthr) schedule(static,1000000)
-    for (BIGINT i=0; i<M; i++)                // omp helps xeon, hinders i7
+    for (BIGINT i=0; i<M; i++)                // here omp helps xeon, hinders i7
       sort_indices[i]=i;                      // the identity permutation
     if (opts.debug)
       printf("\tnot sorted (sort=%d): \t%.3g s\n",(int)opts.sort,timer.elapsedsec());
@@ -1047,31 +1065,32 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
 	      double bin_size_x,double bin_size_y,double bin_size_z, int debug)
 /* Returns permutation of all nonuniform points with good RAM access,
- * ie less cache misses for spreading, in 1D, 2D, or 3D. Singe-threaded version.
+ * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
  *
- * This is achieved by binning into cuboids (of given bin_size)
- * then reading out the indices within
- * these boxes in the natural box order (x fastest, y med, z slowest).
- * Finally the permutation is inverted.
+ * This is achieved by binning into cuboids (of given bin_size within the
+ * overall box domain), then reading out the indices within
+ * these bins in a Cartesian cuboid ordering (x fastest, y med, z slowest).
+ * Finally the permutation is inverted, so that the good ordering is: the
+ * NU pt of index ret[0], the NU pt of index ret[1],..., NU pt of index ret[M-1]
  * 
  * Inputs: M - number of input NU points.
  *         kx,ky,kz - length-M arrays of real coords of NU pts, in the domain
  *                    for FOLDRESCALE, which includes [0,N1], [0,N2], [0,N3]
  *                    respectively, if pirange=0; or [-pi,pi] if pirange=1.
- *         N1,N2,N3 - ranges of NU coords (set N2=N3=1 for 1D, N3=1 for 2D)
+ *         N1,N2,N3 - integer sizes of overall box (N2=N3=1 for 1D, N3=1 for 2D)
  *         bin_size_x,y,z - what binning box size to use in each dimension
  *                    (in rescaled coords where ranges are [0,Ni] ).
- *                    For 1D, only bin_size_x is used; for 2D, it and bin_size_y
+ *                    For 1D, only bin_size_x is used; for 2D, it & bin_size_y.
  * Output:
  *         writes to ret a vector list of indices, each in the range 0,..,M-1.
- *         Thus, ret must have been allocated for M BIGINTs.
+ *         Thus, ret must have been preallocated for M BIGINTs.
  *
  * Notes: I compared RAM usage against declaring an internal vector and passing
  * back; the latter used more RAM and was slower.
  * Avoided the bins array, as in JFM's spreader of 2016,
  * tidied up, early 2017, Barnett.
  *
- * Timings: 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
+ * Timings (2017): 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
