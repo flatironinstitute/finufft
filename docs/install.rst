@@ -340,7 +340,9 @@ You may then::
   make python
 
 which builds the ``finufft`` module,
-installs via pip, then runs some tests and examples.
+installs (in editable mode) via pip, then runs some tests and examples.
+You will see that the ``finufftc`` shared object appears in the ``python``
+directory.
 An additional performance test you could then do is::
 
   python3 python/test/run_speed_tests.py
