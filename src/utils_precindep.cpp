@@ -1,8 +1,8 @@
 // Low-level array manipulations, timer, and OMP helpers, that are precision-
-// independent (no FLT allowed in argument lists). Others are in utils
+// independent (no FLT allowed in argument lists). Others are in utils.cpp
 
-// For its embryonic self-test see ../test/testutils.cpp, which only tests
-// the next235 for now.  Barnett 2017-2020.
+// For self-test see ../test/testutils.cpp.      Barnett 2017-2020.
+
 
 #include "utils_precindep.h"
 #include "dataTypes.h"

@@ -8,3 +8,7 @@ next235even(96) =	96
 next235even(97) =	100
 next235even(98) =	100
 next235even(99) =	100
+relerrtwonorm: 0.01
+errtwonorm: 1
+twonorm: 100
+infnorm: 1

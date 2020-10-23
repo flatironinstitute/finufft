@@ -217,10 +217,10 @@ test/%: test/%.cpp $(DYNLIB)
 test/%f: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
-test/testutils: test/testutils.cpp src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils_precindep.o $(LIBS) -o test/testutils
-test/testutilsf: test/testutils.cpp src/utils_precindep_32.o
-	$(CXX) $(CXXFLAGS) -DSINGLE test/testutils.cpp src/utils_precindep_32.o $(LIBS) -o test/testutilsf
+test/testutils: test/testutils.cpp src/utils.o src/utils_precindep.o
+	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
+test/testutilsf: test/testutils.cpp src/utils_32.o src/utils_precindep.o
+	$(CXX) $(CXXFLAGS) -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
