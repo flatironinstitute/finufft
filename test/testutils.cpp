@@ -16,10 +16,10 @@ int main(int argc, char* argv[])
   for (BIGINT n=90;n<100;++n)
     printf("next235even(%lld) =\t%lld\n",(long long)n,(long long)next235even(n));
 
+  // various devel expts and comments...
   //printf("starting huge next235even...\n");   // 1e11 takes 1 sec
   //BIGINT n=(BIGINT)120573851963;
   //printf("next235even(%ld) =\t%ld\n",n,next235even(n));
-
   //double* a; printf("%g\n",a[0]);  // do deliberate segfault for bash debug!
 
   // test the vector norms and norm difference routines...
@@ -34,6 +34,12 @@ int main(int argc, char* argv[])
   printf("errtwonorm: %.6g\n", errtwonorm(M,&a[0],&b[0]));      // should be 1
   printf("twonorm: %.6g\n", twonorm(M,&a[0]));      // should be sqrt(M)
   printf("infnorm: %.6g\n", infnorm(M,&a[0]));      // should be 1
+
+  // test omp helper which ended up not being used in v2.0 since OMP nested
+  // not in the end used...
+  int nth_used = get_num_threads_parallel_block();
+  // don't report to stdout since won't match testutils{f}.refout
+  if (nth_used==0) ier = 1;                         // v crude validation
   
   return ier;
 }
