@@ -1,8 +1,7 @@
 // Low-level array manipulations, timer, and OMP helpers, that need separate
 // single/double routines (FLT must be an arg). Others are in utils_precindep
 
-// For its embryonic self-test see ../test/testutils.cpp, which only tests
-// the next235 for now.  Barnett 2017-2020.
+// For self-test see ../test/testutils.cpp        Barnett 2017-2020.
 
 #include "utils.h"
 #include "dataTypes.h"
@@ -50,6 +49,8 @@ FLT infnorm(BIGINT n, CPX* a)
   }
   return sqrt(nrm);
 }
+
+// ------------ real array utils ---------------------------------
 
 void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi)
 // With a a length-n array, writes out min(a) to lo and max(a) to hi,
