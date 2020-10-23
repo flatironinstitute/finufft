@@ -111,7 +111,7 @@ OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufftjulia.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
-.PHONY: usage lib examples test perftest spreadtest fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs
+.PHONY: usage lib examples test perftest spreadtest spreadtestall fortran matlab octave all mex python clean objclean pyclean mexclean wheel docker-wheel gurutime docs
 
 default: usage
 
@@ -129,6 +129,7 @@ usage:
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
 	@echo " make spreadtest - compile & run spreader-only tests (no FFTW)"
+	@echo " make spreadtestall - set of spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo "For faster (multicore) making, append, for example, -j8"
@@ -271,6 +272,8 @@ spreadtest: $(ST) $(STF)
 	$(STF) 1 8e6 8e6 1e-3 ;\
 	$(STF) 2 8e6 8e6 1e-3 ;\
 	$(STF) 3 8e6 8e6 1e-3 )
+spreadtestall: $(ST) $(STF)
+	(cd perftest; ./spreadtestall.sh)
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
