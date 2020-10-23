@@ -1113,7 +1113,7 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
    Barnett 2/8/18
    Todo: if debug, print timing breakdowns.
-   Explicit #threads control 7/20/20.
+   Explicit #threads control argument 7/20/20.
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
@@ -1123,20 +1123,22 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   BIGINT nbins = nbins1*nbins2*nbins3;
   if (nthr==0)
     fprintf(stderr,"[%s] nthr (%d) must be positive!\n",__func__,nthr);
-  int nt = min(M,(BIGINT)nthr);  // handle case of more points than threads
-  std::vector<BIGINT> brk(nt+1); // start NU pt indices per thread
+  int nt = min(M,(BIGINT)nthr);     // handle case of less points than threads
+  std::vector<BIGINT> brk(nt+1);    // list of start NU pt indices per thread
 
-  // distribute the M NU pts to threads once & for all...
+  // distribute the NU pts to threads once & for all...
   for (int t=0; t<=nt; ++t)
     brk[t] = (BIGINT)(0.5 + M*t/(double)nt);   // start index for t'th chunk
-  std::vector<BIGINT> counts(nbins,0);  // counts of how many pts in each bin
-  std::vector< std::vector<BIGINT> > ot(nt,counts); // offsets per thread, nt * nbins
-  {    // scope for ct, the 2d array of counts in bins for each threads's NU pts
+  
+  std::vector<BIGINT> counts(nbins,0);     // global counts: # pts in each bin
+  // offsets per thread, size nt * nbins, init to 0 by copying the counts vec...
+  std::vector< std::vector<BIGINT> > ot(nt,counts);
+  {    // scope for ct, the 2d array of counts in bins for each thread's NU pts
     std::vector< std::vector<BIGINT> > ct(nt,counts);   // nt * nbins, init to 0
     
 #pragma omp parallel num_threads(nt)
-    {                                    // block done once per thread;
-      int t = MY_OMP_GET_THREAD_NUM();   // we assume all nt threads created
+    {  // parallel binning to each thread's count. Block done once per thread
+      int t = MY_OMP_GET_THREAD_NUM();     // (we assume all nt threads created)
       //printf("\tt=%d: [%d,%d]\n",t,jlo[t],jhi[t]);
       for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
         // find the bin index in however many dims are needed
@@ -1147,28 +1149,26 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
         ct[t][bin]++;               // no clash btw threads
       }
     }
-#pragma omp parallel for num_threads(nt) schedule(dynamic,10000) // matters
-    for (int t=0; t<nt; ++t)
-      for (BIGINT b=0; b<nbins; ++b)
+    // sum along thread axis to get global counts
+    for (BIGINT b=0; b<nbins; ++b)   // (not worth omp. Either loop order is ok)
+      for (int t=0; t<nt; ++t)
 	counts[b] += ct[t][b];
     
     std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
-    offsets[0]=0;
-    // do: offsets = [0 cumsum(counts(1:end-1))].
-    // multithread? (do chunks in 2 pass) but not many bins; don't bother...
+    // do: offsets = [0 cumsum(counts(1:end-1))] ...
+    offsets[0] = 0;
     for (BIGINT i=1; i<nbins; i++)
       offsets[i]=offsets[i-1]+counts[i-1];
     
     for (BIGINT b=0; b<nbins; ++b)  // now build offsets for each thread & bin:
-      ot[0][b] = offsets[b];                       // init
-#pragma omp parallel for num_threads(nt) schedule(dynamic,10000)
-    for (int t=1; t<nt; ++t)
+      ot[0][b] = offsets[b];                     // init
+    for (int t=1; t<nt; ++t)   // (again not worth omp. Either loop order is ok)
       for (BIGINT b=0; b<nbins; ++b)
 	ot[t][b] = ot[t-1][b]+ct[t-1][b];        // cumsum along t axis
     
-  } // scope frees up ct here
+  }  // scope frees up ct here, before inv alloc
   
-  std::vector<BIGINT> inv(M);           // fill inverse map
+  std::vector<BIGINT> inv(M);           // fill inverse map, in parallel
 #pragma omp parallel num_threads(nt)
   {
     int t = MY_OMP_GET_THREAD_NUM();
