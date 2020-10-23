@@ -628,18 +628,6 @@ FLT evaluate_kernel(FLT x, const spread_opts &opts)
     return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
 }
 
-FLT evaluate_kernel_noexp(FLT x, const spread_opts &opts)
-// Version of the above just for timing purposes - gives wrong answer!!!
-{
-  if (abs(x)>=opts.ES_halfwidth)
-    return 0.0;
-  else {
-    FLT s = sqrt(1.0 - opts.ES_c*x*x);
-    //  return sinh(opts.ES_beta * s)/s; // roughly, backward K-B kernel of NFFT
-        return opts.ES_beta * s;
-  }
-}
-
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts)
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
 // needed for the vectorized kernel eval of Ludvig af K.
