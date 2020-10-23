@@ -63,19 +63,6 @@ void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi)
   }
 }
 
-void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi)
-// With i a list of n indices, and a an array of length max(i), writes out
-// min(a(i)) to lo and max(a(i)) to hi, so that all a(i) values lie in [lo,hi].
-// This is not currently used in FINUFFT v1.2.
-{
-  *lo = INFINITY; *hi = -INFINITY;
-  for (BIGINT m=0; m<n; ++m) {
-    FLT A=a[i[m]];
-    if (A<*lo) *lo = A;
-    if (A>*hi) *hi = A;
-  }
-}
-
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
