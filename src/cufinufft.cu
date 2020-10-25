@@ -100,7 +100,14 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	doc updated, Barnett, 9/22/20.
 */
 {
-
+        // Mult-GPU support: set the CUDA Device ID:
+        if (opts == NULL) {
+            // options might not be supplied to this function => assume device
+            // 0 by default
+            cudaSetDevice(0);
+        } else {
+            cudaSetDevice(opts->gpu_device_id);
+        }
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -299,6 +306,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	Melody Shih 07/25/19
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
+
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int nf3 = d_plan->nf3;
@@ -444,6 +455,9 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
 	int ier;
 	int type=d_plan->type;
 	switch(d_plan->dim)
@@ -492,6 +506,9 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -612,6 +629,9 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 		}
 		break;
 	}
+
+        // By default, only use device 0
+        opts->gpu_device_id = 0;
 
 	return 0;
 }

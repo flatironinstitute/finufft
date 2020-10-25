@@ -14,6 +14,9 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int maxbatchsize = d_plan->maxbatchsize;
@@ -97,6 +100,9 @@ int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
 	int M = d_plan->M;
 	//int maxbatchsize = d_plan->maxbatchsize;
 
@@ -132,6 +138,9 @@ void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
 	if(!d_plan->opts.gpu_spreadinterponly){
 		checkCudaErrors(cudaFree(d_plan->fw));
 		checkCudaErrors(cudaFree(d_plan->fwkerhalf1));
@@ -202,6 +211,9 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
 	//int ms = d_plan->ms;
 	//int mt = d_plan->mt;
 	//int mu = d_plan->mu;
@@ -276,6 +288,7 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 		default:
 			cerr << "err: invalid method" << endl;
 	}
+
 	if(!d_plan->opts.gpu_spreadinterponly){
 		checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*nf3*
 			sizeof(CUCPX)));
@@ -294,6 +307,9 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
 	int M = d_plan->M;
 	// int maxbatchsize = d_plan->maxbatchsize;
 
@@ -333,16 +349,17 @@ void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
 	Melody Shih 07/25/19
 */
 {
+        // Mult-GPU support: set the CUDA Device ID:
+        cudaSetDevice(d_plan->opts.gpu_device_id);
+
+
 	if(!d_plan->opts.gpu_spreadinterponly){
 		cudaFree(d_plan->fw);
 		cudaFree(d_plan->fwkerhalf1);
 		cudaFree(d_plan->fwkerhalf2);
 		cudaFree(d_plan->fwkerhalf3);
 	}
-	//cudaFree(d_plan->kx);
-	//cudaFree(d_plan->ky);
-	//cudaFree(d_plan->kz);
-	//cudaFree(d_plan->c);
+
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
