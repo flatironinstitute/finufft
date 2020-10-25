@@ -83,18 +83,14 @@ int main(int argc, char* argv[])
 	// warm up CUFFT (is slow, takes around 0.2 sec... )
 	cudaEventRecord(start);
  	{
+		int nf1=1;
 		cufftHandle fftplan;
-	        int nf2=1;
-        	int nf1=1;
-        	int n[] = {nf2, nf1};
-        	int inembed[] = {nf2, nf1};
-        	cufftPlanMany(&fftplan,2,n,inembed,1,inembed[0]*inembed[1],
-			inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,1);
+		cufftPlan1d(&fftplan,nf1,CUFFT_TYPE,1);
 	}
-    	cudaEventRecord(stop);
-    	cudaEventSynchronize(stop);
-    	cudaEventElapsedTime(&milliseconds, start, stop);
-    	printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds/1000);
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds/1000);
 
 	// now to our tests...
 	CUFINUFFT_PLAN dplan;
