@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	int N1, N2, M;
 	if (argc<5) {
 		fprintf(stderr,
-			"Usage: interp2d method nupts_distr nf1 nf2 [M [tol [kerevalmeth]]]\n"
+			"Usage: interp2d method nupts_distr nf1 nf2 [M [tol [kerevalmeth [sort]]]]\n"
 			"Arguments:\n"
 			"  method: One of\n"
 			"    1: nupts driven, or\n"
@@ -28,7 +28,10 @@ int main(int argc, char* argv[])
 			"  tol: NUFFT tolerance (default 1e-6).\n"
 			"  kerevalmeth: Kernel evaluation method; one of\n"
 			"     0: Exponential of square root, or\n"
-			"     1: Horner evaluation (default).\n");
+			"     1: Horner evaluation (default).\n"
+			"  sort: One of\n"
+			"     0: do not sort the points, or\n"
+			"     1: sort the points (default).\n");
 		return 1;
 	}
 	double w;
@@ -87,7 +90,9 @@ int main(int argc, char* argv[])
 	dplan->opts.gpu_kerevalmeth      = kerevalmeth;
 	dplan->opts.gpu_sort             = sort;
 	dplan->opts.gpu_spreadinterponly = 1;
-	dplan->opts.gpu_binsizex         = 32;
+	dplan->opts.gpu_binsizex         = 32; //binsize needs to be set here, since
+                                           //SETUP_BINSIZE() is not called in 
+                                           //spread, interp only wrappers.
 	dplan->opts.gpu_binsizey         = 32;
 	ier = setup_spreader_for_nufft(dplan->spopts, tol, dplan->opts);
 
@@ -104,7 +109,7 @@ int main(int argc, char* argv[])
 			{
 				for (int i = 0; i < M; i++) {
 					x[i] = M_PI*rand01()/(nf1*2/32);// x in [-pi,pi)
-					y[i] = M_PI*rand01()/(nf1*2/32);
+					y[i] = M_PI*rand01()/(nf2*2/32);
 				}
 			}
 			break;

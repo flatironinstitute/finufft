@@ -71,10 +71,11 @@ int CUFINUFFT_SPREAD3D(int nf1, int nf2, int nf3,
 		}
 	}
 #ifdef TIME
+	float milliseconds;
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Obtain SubProb prop\t %.3g ms\n", milliseconds);
+	printf("[time  ] Obtain Spread Prop\t %.3g ms\n", milliseconds);
 #endif
 
 	cudaEventRecord(start);

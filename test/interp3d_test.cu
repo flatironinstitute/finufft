@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_z,M*sizeof(FLT)));
 	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
-	checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(CUCPX)));
+	checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*nf3*sizeof(CUCPX)));
 
 
 	int dim=3;
@@ -90,11 +90,14 @@ int main(int argc, char* argv[])
 	dplan->opts.gpu_kerevalmeth      = 1;
 	dplan->opts.gpu_sort             = sort;
 	dplan->opts.gpu_spreadinterponly = 1;
+
+	//binsize needs to be set here, since SETUP_BINSIZE() is not called in spread, 
+	//interp only wrappers.
 	if(dplan->opts.gpu_method == 1)
 	{
 		dplan->opts.gpu_binsizex=16;
-		dplan->opts.gpu_binsizey=8;
-		dplan->opts.gpu_binsizez=4;
+		dplan->opts.gpu_binsizey=16;
+		dplan->opts.gpu_binsizez=2;
 	}
 	if(dplan->opts.gpu_method == 2)
 	{
@@ -120,7 +123,7 @@ int main(int argc, char* argv[])
 			{
 				for (int i = 0; i < M; i++) {
 					x[i] = M_PI*rand01()/(nf1*2/32);// x in [-pi,pi)
-					y[i] = M_PI*rand01()/(nf1*2/32);
+					y[i] = M_PI*rand01()/(nf2*2/32);
 					z[i] = M_PI*rand01()/(nf3*2/32);
 				}
 			}
@@ -137,7 +140,7 @@ int main(int argc, char* argv[])
 	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_z,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_fw,fw,nf1*nf2*sizeof(CUCPX),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_fw,fw,nf1*nf2*nf3*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	CNTime timer;
 	timer.restart();
