@@ -90,6 +90,9 @@ int main(int argc, char* argv[])
 	dplan->opts.gpu_kerevalmeth      = 1;
 	dplan->opts.gpu_sort             = sort;
 	dplan->opts.gpu_spreadinterponly = 1;
+
+	//binsize needs to be set here, since SETUP_BINSIZE() is not called in spread, 
+	//interp only wrappers.
 	if(dplan->opts.gpu_method == 1)
 	{
 		dplan->opts.gpu_binsizex=16;

@@ -101,6 +101,8 @@ int main(int argc, char* argv[])
 	dplan->opts.gpu_spreadinterponly=1;
 	ier = setup_spreader_for_nufft(dplan->spopts, tol, dplan->opts);
 
+	//binsize, obinsize need to be set here, since SETUP_BINSIZE() is not 
+	//called in spread, interp only wrappers.
 	if(dplan->opts.gpu_method == 4)
 	{
 		dplan->opts.gpu_binsizex=4;
