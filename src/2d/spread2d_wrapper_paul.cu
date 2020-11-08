@@ -252,6 +252,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
 	cudaEventRecord(start);
 	checkCudaErrors(cudaMemcpy(&totalnumsubprob,&d_subprobstartpts[n],
 				sizeof(int),cudaMemcpyDeviceToHost));
+        // TODO: Warning! This gets malloc'ed but not freed
 	checkCudaErrors(cudaMalloc(&d_subprob_to_bin,totalnumsubprob*sizeof(int)));
 	MapBintoSubProb_2d<<<(numbins[0]*numbins[1]+1024-1)/1024, 1024>>>(
 			d_subprob_to_bin,d_subprobstartpts,d_numsubprob,numbins[0]*

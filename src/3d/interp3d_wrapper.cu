@@ -81,7 +81,7 @@ int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX* d_fw, int M, FLT *d_kx,
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
 #endif
-	cudaFree(d_plan->c);
+	// cudaFree(d_plan->c);
 	return ier;
 }
 

@@ -660,6 +660,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M,
 	GhostBinPtsIdx<<<blocks, threadsPerBlock>>>(binsperobinx, binsperobiny,
 		binsperobinz, numobins[0], numobins[1], numobins[2], d_binsize,
 		d_idxnupts, d_binstartpts, M);
+        if (d_plan->idxnupts != NULL) cudaFree(d_plan->idxnupts);
 	d_plan->idxnupts = d_idxnupts;
 #ifdef SPREADTIME
 	cudaEventRecord(stop);
@@ -767,6 +768,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M,
 	MapBintoSubProb_3d_v1<<<(n+1024-1)/1024, 1024>>>(d_subprob_to_bin,
 		d_subprobstartpts,d_numsubprob,n);
 	assert(d_subprob_to_bin != NULL);
+        if (d_plan->subprob_to_bin != NULL) cudaFree(d_plan->subprob_to_bin);
 	d_plan->subprob_to_bin   = d_subprob_to_bin;
 	d_plan->totalnumsubprob  = totalnumsubprob;
 #ifdef SPREADTIME
@@ -789,6 +791,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M,
 	free(h_subprob_to_bin);
 #endif
 	cudaFree(d_temp_storage);
+
 	return 0;
 }
 
@@ -1101,6 +1104,7 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M,
 		d_subprob_to_bin,d_subprobstartpts,d_numsubprob,numbins[0]*numbins[1]*
 		numbins[2]);
 	assert(d_subprob_to_bin != NULL);
+        if (d_plan->subprob_to_bin != NULL) cudaFree(d_plan->subprob_to_bin);
 	d_plan->subprob_to_bin = d_subprob_to_bin;
 	assert(d_plan->subprob_to_bin != NULL);
 	d_plan->totalnumsubprob = totalnumsubprob;
@@ -1125,6 +1129,7 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M,
 	printf("[time  ] \tKernel Subproblem to Bin map\t\t%.3g ms\n", milliseconds);
 #endif
 	cudaFree(d_temp_storage);
+
 	return 0;
 }
 
