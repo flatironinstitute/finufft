@@ -1045,8 +1045,8 @@ void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
 }
 
 void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-                                    BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-                                    BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0)
+                                     BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
+                                     BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0)
 /* Add a large subgrid (du0) to output grid (data_uniform),
    with periodic wrapping to N1,N2,N3 box.
    offset1,2,3 give the offset of the subgrid from the lowest corner of output.
