@@ -177,6 +177,8 @@ void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan)
 			break;
 	}
 
+        // checkCudaErrors(cudaFree(d_plan->c));
+
 	for(int i=0; i<d_plan->opts.gpu_nstreams; i++)
 		checkCudaErrors(cudaStreamDestroy(d_plan->streams[i]));
 }
@@ -298,7 +300,7 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
 */
 {
 	int M = d_plan->M;
-	int maxbatchsize = d_plan->maxbatchsize;
+	// int maxbatchsize = d_plan->maxbatchsize;
 
 	d_plan->byte_now=0;
 	switch(d_plan->opts.gpu_method)
@@ -324,7 +326,8 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
 		default:
 			cerr << "err: invalid method" << endl;
 	}
-	checkCudaErrors(cudaMalloc(&d_plan->c,maxbatchsize*M*sizeof(CUCPX)));
+
+	// checkCudaErrors(cudaMalloc(&d_plan->c,maxbatchsize*M*sizeof(CUCPX)));
 
 	return 0;
 }
@@ -382,6 +385,9 @@ void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
 			}
 			break;
 	}
+
+        // checkCudaErrors(cudaFree(d_plan->c));
+
 	for(int i=0; i<d_plan->opts.gpu_nstreams; i++)
 		checkCudaErrors(cudaStreamDestroy(d_plan->streams[i]));
 }

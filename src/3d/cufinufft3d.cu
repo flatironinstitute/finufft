@@ -159,5 +159,6 @@ int CUFINUFFT3D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 			d_plan->opts.gpu_method);
 #endif
 	}
+
 	return ier;
 }
