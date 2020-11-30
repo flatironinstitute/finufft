@@ -18,7 +18,7 @@ void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
 void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 		 BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns);
-void spread_subproblem_1d(BIGINT N1,FLT *du0,BIGINT M0,FLT *kx0,FLT *dd0,
+void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du0,BIGINT M0,FLT *kx0,FLT *dd0,
 			  const spread_opts& opts);
 void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du0,BIGINT M0,
 			  FLT *kx0,FLT *ky0,FLT *dd0,const spread_opts& opts);
@@ -377,18 +377,18 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
           else
             printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",(long long)offset1,(long long)offset2,(long long)offset3,(long long)size1,(long long)size2,(long long)size3,(long long)M0);
 	}
-        for (BIGINT j=0; j<M0; j++) {
-          kx0[j]-=offset1;  // now kx0 coords are relative to corner of subgrid
-          if (N2>1) ky0[j]-=offset2;  // only accessed if 2D or 3D
-          if (N3>1) kz0[j]-=offset3;  // only access if 3D
-        }
+        //   for (BIGINT j=0; j<M0; j++) {  // make k{x,y,z}0 rel to subgrid corner
+    //kx0[j]-=(FLT)offset1;
+        //    if (N2>1) ky0[j]-=(FLT)offset2;  // only accessed if 2D or 3D
+        // if (N3>1) kz0[j]-=(FLT)offset3;  // only access if 3D
+        // }
         // allocate output data for this subgrid
         FLT *du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
         
         // Spread to subgrid without need for bounds checking or wrapping
         if (!(opts.flags & TF_OMIT_SPREADING)) {
           if (ndims==1)
-            spread_subproblem_1d(size1,du0,M0,kx0,dd0,opts);
+            spread_subproblem_1d(offset1,size1,du0,M0,kx0,dd0,opts);
           else if (ndims==2)
             spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
           else
@@ -843,35 +843,48 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
   target[1] = out[1];  
 }
 
-void spread_subproblem_1d(BIGINT N1,FLT *du,BIGINT M,
+void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
 			  FLT *kx,FLT *dd,
 			  const spread_opts& opts)
-/* spreader from dd (NU) to du (uniform) in 1D without wrapping.
-   kx (size M) are NU locations in [0,N1]
-   dd (size M complex) are source strengths
-   du (size N1) is uniform output array.
+/* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
+   Inputs:
+   off1 - integer offset of left end of du subgrid from that of overall fine
+          periodized output grid {0,1,..N-1}.
+   size1 - integer length of output subgrid du
+   M - number of NU pts in subproblem
+   kx (length M) - are rescaled NU source locations, should lie in
+                   [off1+ns/2,off1+size1-ns/2] so as kernels stay in bounds
+   dd (length M complex, interleaved) - source strengths
+   Outputs:
+   du (length size1) - preallocated uniform subgrid output array
 
-   This a naive loop w/ Ludvig's eval_ker_vec.
+   The reason periodic wrapping is avoided in subproblems is speed: avoids
+   conditionals, indirection (pointers), and integer mod. Originally 2017.
+   Fixed so rounding to integer grid consistent w/ get_subgrid, 11/28/20
 */
 {
   int ns=opts.nspread;
   FLT ns2 = (FLT)ns/2;          // half spread width
-  for (BIGINT i=0;i<2*N1;++i)
+  for (BIGINT i=0;i<2*size1;++i)         // zero output
     du[i] = 0.0;
   FLT kernel_args[MAX_NSPREAD];
   FLT ker[MAX_NSPREAD];
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
-    FLT x1 = (FLT)i1 - kx[i];            // x1 in [-w/2,-w/2+1]
+    // ceil offset, hence rounding, must match that in get_subgrid...
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);    // fine grid start index
+    FLT x1 = (FLT)i1 - kx[i];            // x1 in [-w/2,-w/2+1], up to rounding
+    //  *** danger, if x1 falls >>1 outside interval, ppoly's will be huge!
+    // *** hence clip x1 in range? reduces rounding garbage to O(N*epsmach)
     if (opts.kerevalmeth==0) {
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     } else
       eval_kernel_vec_Horner(ker,x1,ns,opts);
-    // critical inner loop: 
-    BIGINT j=i1;
+    // critical inner loop:
+    BIGINT j = i1-off1;      // offset rel to subgrid, starting the output loop
+    if (j<0 || j+ns-1>=size1) printf("\t%s: off1=%ld, size1=%ld: kx[%ld]=%.16g, j=%ld, x1=%.16g\n",__func__,off1,size1,i,kx[i],j,x1);  // ***
     for (int dx=0; dx<ns; ++dx) {
       FLT k = ker[dx];
       du[2*j] += re0*k;
@@ -1202,8 +1215,10 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
   // compute the min/max of the k-space locations of the nonuniform points
   FLT min_kx,max_kx;
   arrayrange(M,kx,&min_kx,&max_kx);
+  printf("%s: minkx=%.16g,maxkx=%.16g\n",__func__,min_kx,max_kx); // ***
   BIGINT a1=std::ceil(min_kx-ns2);
-  BIGINT a2=std::ceil(max_kx-ns2)+ns-1;
+  BIGINT a2=(BIGINT)std::ceil(max_kx-ns2) +ns-1;    // to int *before* pad up!
+  printf("%s: offset1=%ld,size1=%ld\n",__func__,a1,a2-a1+1);  // ***
   offset1=a1;
   size1=a2-a1+1;
   if (ndims>1) {
