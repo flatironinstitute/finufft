@@ -18,11 +18,13 @@ void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
 void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 		 BIGINT i1,BIGINT i2,BIGINT i3,BIGINT N1,BIGINT N2,BIGINT N3,int ns);
-void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du0,BIGINT M0,FLT *kx0,FLT *dd0,
-			  const spread_opts& opts);
-void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du0,BIGINT M0,
+void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du0,BIGINT M0,FLT *kx0,
+                          FLT *dd0,const spread_opts& opts);
+void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1,BIGINT size2,
+                          FLT *du0,BIGINT M0,
 			  FLT *kx0,FLT *ky0,FLT *dd0,const spread_opts& opts);
-void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du0,BIGINT M0,
+void spread_subproblem_3d(BIGINT off1,BIGINT off2, BIGINT off3, BIGINT size1,
+                          BIGINT size2,BIGINT size3,FLT *du0,BIGINT M0,
 			  FLT *kx0,FLT *ky0,FLT *kz0,FLT *dd0,
 			  const spread_opts& opts);
 void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
@@ -1203,44 +1205,69 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 
 
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,BIGINT &size2,BIGINT &size3,BIGINT M,FLT* kx,FLT* ky,FLT* kz,int ns,int ndims)
-/* Writes out the offsets and sizes of the subgrid defined by the
-   nonuniform points and the spreading diameter approx ns/2.
-   Requires O(M) effort to find the k array bnds. Works in all dims 1,2,3.
-   Must return offset 0 and size 1 for each unused dimension.
-   Grid has been made tight to the kernel point choice using identical ceil
-   operations.  6/16/17
+/* Writes out the integer offsets and sizes of a "subgrid" (cuboid subset of
+   Z^ndims) large enough to enclose all of the nonuniform points with
+   (non-periodic) padding of half the kernel width ns to each side in
+   each relevant dimension.
+
+ Inputs:
+   M - number of nonuniform points, ie, length of kx array (and ky if ndims>1,
+       and kz if ndims>2)
+   kx,ky,kz - coords of nonuniform points (ky only read if ndims>1,
+              kz only read if ndims>2). To be useful for spreading, they are
+              assumed to be in [0,Nj] for dimension j=1,..,ndims.
+   ns - (positive integer) spreading kernel width.
+   ndims - space dimension (1,2, or 3).
+   
+ Outputs:
+   offset1,2,3 - left-most coord of cuboid in each dimension (up to ndims)
+   size1,2,3   - size of cuboid in each dimension.
+                 Thus the right-most coord of cuboid is offset+size-1.
+   Returns offset 0 and size 1 for each unused dimension (ie when ndims<3);
+   this is required by the calling code.
+
+ Example:
+      inputs:
+          ndims=1, M=2, kx[0]=3.2, ks[1]=7.9, ns=3
+      outputs:
+          offset1=2 (since kx[0] spreads to {2,3,4}, and 2 is the min)
+          size1=8 (since kx[1] spreads to {7,8,9}, so subgrid is {2,..,9}
+                   hence length 8).
+ Notes:
+   1) Works in all dims 1,2,3.
+   2) Rounding of the kx (and ky, kz) to the grid is tricky and must match the
+   rounding step used in spread_subproblem_{1,2,3}d. Namely, the ceil of
+   (the NU pt coord minus ns/2) gives the left-most index, in each dimension.
+   This being done consistently is crucial to prevent segfaults in subproblem
+   spreading.
+   Originally by J Magland, 2017. AHB realised the rounding issue in
+   6/16/17, but only fixed a rounding bug affecting (highly
+   inaccurate) single-precision with N1>>1e7 in 11/30/20.
+   3) Requires O(M) RAM reads to find the k array bnds. Almost negligible in
+   tests.
 */
 {
   FLT ns2 = (FLT)ns/2;
-  // compute the min/max of the k-space locations of the nonuniform points
-  FLT min_kx,max_kx;
+  FLT min_kx,max_kx;   // 1st (x) dimension: get min/max of nonuniform points
   arrayrange(M,kx,&min_kx,&max_kx);
-  printf("%s: minkx=%.16g,maxkx=%.16g\n",__func__,min_kx,max_kx); // ***
-  BIGINT a1=std::ceil(min_kx-ns2);
-  BIGINT a2=(BIGINT)std::ceil(max_kx-ns2) +ns-1;    // to int *before* pad up!
-  printf("%s: offset1=%ld,size1=%ld\n",__func__,a1,a2-a1+1);  // ***
-  offset1=a1;
-  size1=a2-a1+1;
+  offset1 = (BIGINT)std::ceil(min_kx-ns2);   // min index touched by kernel
+  size1 = (BIGINT)std::ceil(max_kx-ns2) - offset1 + ns;  // int(ceil) first!
   if (ndims>1) {
-    FLT min_ky,max_ky;
+    FLT min_ky,max_ky;   // 2nd (y) dimension: get min/max of nonuniform points
     arrayrange(M,ky,&min_ky,&max_ky);
-    BIGINT b1=std::ceil(min_ky-ns2);
-    BIGINT b2=std::ceil(max_ky-ns2)+ns-1;
-    offset2=b1;
-    size2=b2-b1+1;
+    offset2 = (BIGINT)std::ceil(min_ky-ns2);
+    size2 = (BIGINT)std::ceil(max_ky-ns2) - offset2 + ns;
   } else {
-    offset2=0;
-    size2=1;
+    offset2 = 0;
+    size2 = 1;
   }
   if (ndims>2) {
-    FLT min_kz,max_kz;
+    FLT min_kz,max_kz;   // 3rd (z) dimension: get min/max of nonuniform points
     arrayrange(M,kz,&min_kz,&max_kz);
-    BIGINT c1=std::ceil(min_kz-ns2);
-    BIGINT c2=std::ceil(max_kz-ns2)+ns-1;
-    offset3=c1;
-    size3=c2-c1+1;
+    offset3 = (BIGINT)std::ceil(min_kz-ns2);
+    size3 = (BIGINT)std::ceil(max_kz-ns2) - offset3 + ns;
   } else {
-    offset3=0;
-    size3=1;
+    offset3 = 0;
+    size3 = 1;
   }
 }
