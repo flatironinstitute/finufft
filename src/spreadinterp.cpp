@@ -392,9 +392,9 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
           if (ndims==1)
             spread_subproblem_1d(offset1,size1,du0,M0,kx0,dd0,opts);
           else if (ndims==2)
-            spread_subproblem_2d(size1,size2,du0,M0,kx0,ky0,dd0,opts);
+            spread_subproblem_2d(offset1,offset2,size1,size2,du0,M0,kx0,ky0,dd0,opts);
           else
-            spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
+            spread_subproblem_3d(offset1,offset2,offset3,size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
 	}
         
 #pragma omp critical
@@ -846,8 +846,7 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 }
 
 void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
-			  FLT *kx,FLT *dd,
-			  const spread_opts& opts)
+			  FLT *kx,FLT *dd, const spread_opts& opts)
 /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
    Inputs:
    off1 - integer offset of left end of du subgrid from that of overall fine
@@ -855,14 +854,17 @@ void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
    size1 - integer length of output subgrid du
    M - number of NU pts in subproblem
    kx (length M) - are rescaled NU source locations, should lie in
-                   [off1+ns/2,off1+size1-ns/2] so as kernels stay in bounds
+                   [off1+ns/2,off1+size1-1-ns/2] so as kernels stay in bounds
    dd (length M complex, interleaved) - source strengths
    Outputs:
-   du (length size1) - preallocated uniform subgrid output array
+   du (length size1 complex, interleaved) - preallocated uniform subgrid array
 
    The reason periodic wrapping is avoided in subproblems is speed: avoids
    conditionals, indirection (pointers), and integer mod. Originally 2017.
-   Fixed so rounding to integer grid consistent w/ get_subgrid, 11/28/20
+   Kernel eval mods by Ludvig al Klinteberg.
+   Fixed so rounding to integer grid consistent w/ get_subgrid, prevents
+   chance of segfault when epsmach*N1>O(1), assuming max() and ceil() commute.
+   This needed off1 as extra arg. AHB 11/30/20.
 */
 {
   int ns=opts.nspread;
@@ -877,16 +879,16 @@ void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
     // ceil offset, hence rounding, must match that in get_subgrid...
     BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);    // fine grid start index
     FLT x1 = (FLT)i1 - kx[i];            // x1 in [-w/2,-w/2+1], up to rounding
-    //  *** danger, if x1 falls >>1 outside interval, ppoly's will be huge!
-    // *** hence clip x1 in range? reduces rounding garbage to O(N*epsmach)
-    if (opts.kerevalmeth==0) {
+    // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
+    // kernel evaluation will fall outside their designed domains, >>1 errors.
+    // This can only happen if the overall error would be O(1) anyway. Clip x1??
+    if (opts.kerevalmeth==0) {          // faster Horner poly method
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     } else
       eval_kernel_vec_Horner(ker,x1,ns,opts);
+    BIGINT j = i1-off1;    // offset rel to subgrid, starts the output indices
     // critical inner loop:
-    BIGINT j = i1-off1;      // offset rel to subgrid, starting the output loop
-    if (j<0 || j+ns-1>=size1) printf("\t%s: off1=%ld, size1=%ld: kx[%ld]=%.16g, j=%ld, x1=%.16g\n",__func__,off1,size1,i,kx[i],j,x1);  // ***
     for (int dx=0; dx<ns; ++dx) {
       FLT k = ker[dx];
       du[2*j] += re0*k;
@@ -896,31 +898,35 @@ void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
   }
 }
 
-void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
-			  FLT *kx,FLT *ky,FLT *dd,
+void spread_subproblem_2d(BIGINT off1,BIGINT off2,BIGINT size1,BIGINT size2,
+                          FLT *du,BIGINT M, FLT *kx,FLT *ky,FLT *dd,
 			  const spread_opts& opts)
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
-   kx,ky (size M) are NU locations in [0,N1],[0,N2]
-   dd (size M complex) are source strengths
-   du (size N1*N2) is uniform output array
+   See above docs/notes for spread_subproblem_2d.
+   kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
+   dd (size M complex) are complex source strengths
+   du (size size1*size2) is complex uniform output array
  */
 {
   int ns=opts.nspread;
   FLT ns2 = (FLT)ns/2;          // half spread width
-  for (BIGINT i=0;i<2*N1*N2;++i)
+  for (BIGINT i=0;i<2*size1*size2;++i)
     du[i] = 0.0;
   FLT kernel_args[2*MAX_NSPREAD];
+  // Kernel values stored in consecutive memory. This allows us to compute
+  // values in two directions in a single kernel evaluation call.
   FLT kernel_values[2*MAX_NSPREAD];
   FLT *ker1 = kernel_values;
   FLT *ker2 = kernel_values + ns;  
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
+    // ceil offset, hence rounding, must match that in get_subgrid...
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);   // fine grid start indices
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
-    if (opts.kerevalmeth==0) {
+    if (opts.kerevalmeth==0) {          // faster Horner poly method
       set_kernel_args(kernel_args, x1, opts);
       set_kernel_args(kernel_args+ns, x2, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 2*ns);
@@ -929,14 +935,14 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
       eval_kernel_vec_Horner(ker2,x2,ns,opts);
     }
     // Combine kernel with complex source value to simplify inner loop
-    FLT ker1val[2*MAX_NSPREAD];
+    FLT ker1val[2*MAX_NSPREAD];    // here 2* is because of complex
     for (int i = 0; i < ns; i++) {
       ker1val[2*i] = re0*ker1[i];
-      ker1val[2*i+1] = im0*ker1[i];	
+      ker1val[2*i+1] = im0*ker1[i];
     }    
     // critical inner loop:
     for (int dy=0; dy<ns; ++dy) {
-      BIGINT j = N1*(i2+dy) + i1;
+      BIGINT j = size1*(i2-off2+dy) + i1-off1;   // should be in subgrid
       FLT kerval = ker2[dy];
       FLT *trg = du+2*j;
       for (int dx=0; dx<2*ns; ++dx) {
@@ -946,18 +952,20 @@ void spread_subproblem_2d(BIGINT N1,BIGINT N2,FLT *du,BIGINT M,
   }
 }
 
-void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
+void spread_subproblem_3d(BIGINT off1,BIGINT off2,BIGINT off3,BIGINT size1,
+                          BIGINT size2,BIGINT size3,FLT *du,BIGINT M,
 			  FLT *kx,FLT *ky,FLT *kz,FLT *dd,
 			  const spread_opts& opts)
 /* spreader from dd (NU) to du (uniform) in 3D without wrapping.
-   kx,ky,kz (size M) are NU locations in [0,N1],[0,N2],[0,N3]
-   dd (size M complex) are source strengths
-   du (size N1*N2*N3) is uniform output array
+   See above docs/notes for spread_subproblem_2d.
+   kx,ky,kz (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in each dim.
+   dd (size M complex) are complex source strengths
+   du (size size1*size2*size3) is uniform complex output array
  */
 {
   int ns=opts.nspread;
   FLT ns2 = (FLT)ns/2;          // half spread width
-  for (BIGINT i=0;i<2*N1*N2*N3;++i)
+  for (BIGINT i=0;i<2*size1*size2*size3;++i)
     du[i] = 0.0;
   FLT kernel_args[3*MAX_NSPREAD];
   // Kernel values stored in consecutive memory. This allows us to compute
@@ -969,13 +977,14 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
-    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);
+    // ceil offset, hence rounding, must match that in get_subgrid...
+    BIGINT i1 = (BIGINT)std::ceil(kx[i] - ns2);   // fine grid start indices
     BIGINT i2 = (BIGINT)std::ceil(ky[i] - ns2);
     BIGINT i3 = (BIGINT)std::ceil(kz[i] - ns2);
     FLT x1 = (FLT)i1 - kx[i];
     FLT x2 = (FLT)i2 - ky[i];
     FLT x3 = (FLT)i3 - kz[i];
-    if (opts.kerevalmeth==0) {
+    if (opts.kerevalmeth==0) {          // faster Horner poly method
       set_kernel_args(kernel_args, x1, opts);
       set_kernel_args(kernel_args+ns, x2, opts);
       set_kernel_args(kernel_args+2*ns, x3, opts);
@@ -986,16 +995,16 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du,BIGINT M,
       eval_kernel_vec_Horner(ker3,x3,ns,opts);
     }
     // Combine kernel with complex source value to simplify inner loop
-    FLT ker1val[2*MAX_NSPREAD];
+    FLT ker1val[2*MAX_NSPREAD];    // here 2* is because of complex
     for (int i = 0; i < ns; i++) {
       ker1val[2*i] = re0*ker1[i];
       ker1val[2*i+1] = im0*ker1[i];	
     }    
     // critical inner loop:
     for (int dz=0; dz<ns; ++dz) {
-      BIGINT oz = N1*N2*(i3+dz);        // offset due to z
+      BIGINT oz = size1*size2*(i3-off3+dz);        // offset due to z
       for (int dy=0; dy<ns; ++dy) {
-	BIGINT j = oz + N1*(i2+dy) + i1;
+	BIGINT j = oz + size1*(i2-off2+dy) + i1-off1;   // should be in subgrid
 	FLT kerval = ker2[dy]*ker3[dz];
 	FLT *trg = du+2*j;
 	for (int dx=0; dx<2*ns; ++dx) {
@@ -1228,21 +1237,22 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
 
  Example:
       inputs:
-          ndims=1, M=2, kx[0]=3.2, ks[1]=7.9, ns=3
+          ndims=1, M=2, kx[0]=0.2, ks[1]=4.9, ns=3
       outputs:
-          offset1=2 (since kx[0] spreads to {2,3,4}, and 2 is the min)
-          size1=8 (since kx[1] spreads to {7,8,9}, so subgrid is {2,..,9}
-                   hence length 8).
+          offset1=-1 (since kx[0] spreads to {-1,0,1}, and -1 is the min)
+          size1=8 (since kx[1] spreads to {4,5,6}, so subgrid is {-1,..,6}
+                   hence 8 grid points).
  Notes:
    1) Works in all dims 1,2,3.
    2) Rounding of the kx (and ky, kz) to the grid is tricky and must match the
    rounding step used in spread_subproblem_{1,2,3}d. Namely, the ceil of
    (the NU pt coord minus ns/2) gives the left-most index, in each dimension.
    This being done consistently is crucial to prevent segfaults in subproblem
-   spreading.
+   spreading. This assumes that max() and ceil() commute in the floating pt
+   implementation.
    Originally by J Magland, 2017. AHB realised the rounding issue in
-   6/16/17, but only fixed a rounding bug affecting (highly
-   inaccurate) single-precision with N1>>1e7 in 11/30/20.
+   6/16/17, but only fixed a rounding bug causing segfault in (highly
+   inaccurate) single-precision with N1>>1e7 on 11/30/20.
    3) Requires O(M) RAM reads to find the k array bnds. Almost negligible in
    tests.
 */
