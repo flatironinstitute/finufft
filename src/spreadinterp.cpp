@@ -379,11 +379,6 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
           else
             printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",(long long)offset1,(long long)offset2,(long long)offset3,(long long)size1,(long long)size2,(long long)size3,(long long)M0);
 	}
-        //   for (BIGINT j=0; j<M0; j++) {  // make k{x,y,z}0 rel to subgrid corner
-    //kx0[j]-=(FLT)offset1;
-        //    if (N2>1) ky0[j]-=(FLT)offset2;  // only accessed if 2D or 3D
-        // if (N3>1) kz0[j]-=(FLT)offset3;  // only access if 3D
-        // }
         // allocate output data for this subgrid
         FLT *du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
         
