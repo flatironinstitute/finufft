@@ -99,6 +99,12 @@ $     }
 $     else if (strcmp(fname[ifield],"nthreads") == 0) {
 $       oc->nthreads = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
+$     else if (strcmp(fname[ifield],"spread_nthr_atomic") == 0) {
+$       oc->spread_nthr_atomic = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     }
+$     else if (strcmp(fname[ifield],"spread_max_sp_size") == 0) {
+$       oc->spread_max_sp_size = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
+$     }
 $     else
 $       continue;
 $   }

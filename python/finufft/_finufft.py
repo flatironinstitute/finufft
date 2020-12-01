@@ -75,7 +75,9 @@ NufftOpts._fields_ = [('modeord', c_int),
                       ('spread_kerpad', c_int),
                       ('upsampfac', c_double),
                       ('spread_thread', c_int),
-                      ('maxbatchsize', c_int)]
+                      ('maxbatchsize', c_int),
+                      ('spread_nthr_atomic', c_int),
+                      ('spread_max_sp_size', c_int)]
 
 
 FinufftPlan = c_void_p
