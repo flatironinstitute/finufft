@@ -118,6 +118,10 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts, int 
   spopts.kerpad = opts.spread_kerpad; // (only applies to kerevalmeth=0)
   spopts.chkbnds = opts.chkbnds;
   spopts.nthreads = opts.nthreads;    // 0 passed in becomes omp max by here
+  if (opts.spread_nthr_atomic>=0)     // overrides
+    spopts.atomic_threshold = opts.spread_nthr_atomic;
+  if (opts.spread_max_sp_size>0)      // overrides
+    spopts.max_subproblem_size = opts.spread_max_sp_size;
   return ier;
 } 
 
@@ -520,6 +524,7 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
   o->upsampfac = 0.0;
   o->spread_thread = 0;
   o->maxbatchsize = 0;
+  o->spread_nthr_atomic = -1;
   // sphinx tag (don't remove): @defopts_end
 }
 

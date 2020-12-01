@@ -52,7 +52,7 @@ If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is 
   `FFTW planner flag usage <http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags>`_ question.
   Such issues are known, and modes benchmarked in other documentation, eg for 2D in `poppy <https://poppy-optics.readthedocs.io/en/stable/fft_optimization.html>`_. In short, using more expensive FFTW planning modes like ``FFTW_MEASURE`` can give better performance for repeated FFTW calls, but be **much** more expensive in the first (planning) call. This is why we choose ``FFTW_ESTIMATE`` as our default ``opts.fftw`` option.
 
-- Check that you are not using too much RAM, hence swapping to hard disk or SSD. The multithreaded type-1 spreader can use up to another fine grid's worth of storage in the form of subgrids. If RAM is too large, try reducing ``opts.max_subproblem_size`` to reduce RAM; however, note that this may slow it down, because we have built in a decent heuristic for this value.
+- Check that you are not using too much RAM, hence swapping to hard disk or SSD. The multithreaded type-1 spreader can use up to another fine grid's worth of storage in the form of subgrids. If RAM is too large, try overriding ``opts.spread_max_sp_size`` to a nonzero value smaller than the default value set in ``src/spreadinterp.cpp:setup_spreader()``, to reduce RAM. However, note that this may slow it down, because we have built in a decent heuristic for the default.
     
 - Make sure you did not override ``opts.spread_sort``, which if set to zero
   does no sorting, which can give very slow RAM access if the nonuniform points

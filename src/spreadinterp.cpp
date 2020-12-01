@@ -340,7 +340,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     int nb = min((BIGINT)nthr,M);         // simply split one subprob per thr...
     if (nb*opts.max_subproblem_size<M) {  // ...or more subprobs to cap size
       nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
-      if (opts.debug) printf("\tcapping subproblem sizes to max of %d...\n",(int)opts.max_subproblem_size);
+      if (opts.debug) printf("\tcapping subproblem sizes to max of %d\n",(int)opts.max_subproblem_size);
     }
     if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
       nb = M;
@@ -350,6 +350,9 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       nb = 1;
       if (opts.debug) printf("\tunsorted nthr=1: forcing single subproblem...\n");
     }
+    if (opts.debug && nthr > opts.atomic_threshold)
+      printf("\tnthr big: switching add_wrapped OMP from critical to atomic (!)\n");
+      
     std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining nb subproblems
     for (int p=0;p<=nb;++p)
       brk[p] = (BIGINT)(0.5 + M*p/(double)nb);
@@ -403,12 +406,12 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         
         // do the adding of subgrid to output
         if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
-            if (nthr > opts.atomic_threshold)
-              add_wrapped_subgrid_thread_safe(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
-            else {
+          if (nthr > opts.atomic_threshold)   // see above for debug reporting
+            add_wrapped_subgrid_thread_safe(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);   // R Blackwell's atomic version
+          else {
 #pragma omp critical
-              add_wrapped_subgrid(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
-            }
+            add_wrapped_subgrid(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
+          }
         }
 
         // free up stuff from this subprob... (that was malloc'ed by hand)
@@ -585,7 +588,7 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   opts.flags = 0;               // 0:no timing flags (>0 for experts only)
   opts.debug = 0;               // 0:no debug output
   // heuristic nthr above which switch OMP critical to atomic (add_wrapped...):
-  opts.atomic_threshold = 10;
+  opts.atomic_threshold = 10;   // R Blackwell's value
 
   int ns, ier = 0;  // Set kernel width w (aka ns, nspread) then copy to opts...
   if (eps<EPSILON) {            // safety; there's no hope of beating e_mach
@@ -1057,7 +1060,8 @@ void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset
    with periodic wrapping to N1,N2,N3 box.
    offset1,2,3 give the offset of the subgrid from the lowest corner of output.
    size1,2,3 give the size of subgrid.
-   Works in all dims. Thread-safe variant
+   Works in all dims. Thread-safe variant of the above routine,
+   using atomic writes (R Blackwell, Nov 2020).
 */
 {
   std::vector<BIGINT> o2(size2), o3(size3);

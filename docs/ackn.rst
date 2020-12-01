@@ -20,6 +20,7 @@ Major code contributions by:
 
 Other significant code contributions by:
 
+* Robert Blackwell - atomic OMP add_wrapped_subgrid
 * Leslie Greengard and June-Yub Lee - CMCL Fortran test drivers
 * Dan Foreman-Mackey - early python wrappers
 * David Stein - python wrappers
