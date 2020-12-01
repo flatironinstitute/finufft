@@ -28,6 +28,9 @@ void spread_subproblem_3d(BIGINT N1,BIGINT N2,BIGINT N3,FLT *du0,BIGINT M0,
 void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
 			 BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
 			 BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
+void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset3,
+                                     BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
+                                     BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
 void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
 	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
@@ -395,11 +398,15 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
             spread_subproblem_3d(size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
 	}
         
+        // do the adding of subgrid to output
+        if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
+            if (nthr > opts.atomic_threshold)
+              add_wrapped_subgrid_thread_safe(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
+            else {
 #pragma omp critical
-        {  // do the adding of subgrid to output; only here threads cannot clash
-          if (!(opts.flags & TF_OMIT_WRITE_TO_GRID))
-            add_wrapped_subgrid(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
-        }  // end critical block
+              add_wrapped_subgrid(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
+            }
+        }
 
         // free up stuff from this subprob... (that was malloc'ed by hand)
         free(dd0);
@@ -572,6 +579,7 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   opts.max_subproblem_size = (BIGINT)1e4;   // was larger (1e5 bit worse in 1D)
   opts.flags = 0;               // 0:no timing flags (>0 for experts only)
   opts.debug = 0;               // 0:no debug output
+  opts.atomic_threshold = 10;   // heuristic for when performance degrades using critical to add back subgrids
 
   int ns, ier = 0;  // Set kernel width w (aka ns, nspread) then copy to opts...
   if (eps<EPSILON) {            // safety; there's no hope of beating e_mach
@@ -998,7 +1006,7 @@ void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
    with periodic wrapping to N1,N2,N3 box.
    offset1,2,3 give the offset of the subgrid from the lowest corner of output.
    size1,2,3 give the size of subgrid.
-   Works in all dims. Thread-safe since must be called inside omp critical.
+   Works in all dims. Not thread-safe and must be called inside omp critical.
    Barnett 3/27/18 made separate routine, tried to speed up inner loop.
 */
 {
@@ -1035,6 +1043,57 @@ void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
     }
   }
 }
+
+void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset3,
+                                     BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
+                                     BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0)
+/* Add a large subgrid (du0) to output grid (data_uniform),
+   with periodic wrapping to N1,N2,N3 box.
+   offset1,2,3 give the offset of the subgrid from the lowest corner of output.
+   size1,2,3 give the size of subgrid.
+   Works in all dims. Thread-safe variant
+*/
+{
+  std::vector<BIGINT> o2(size2), o3(size3);
+  BIGINT y=offset2, z=offset3;    // fill wrapped ptr lists in slower dims y,z...
+  for (int i=0; i<size2; ++i) {
+    if (y<0) y+=N2;
+    if (y>=N2) y-=N2;
+    o2[i] = y++;
+  }
+  for (int i=0; i<size3; ++i) {
+    if (z<0) z+=N3;
+    if (z>=N3) z-=N3;
+    o3[i] = z++;
+  }
+  BIGINT nlo = (offset1<0) ? -offset1 : 0;          // # wrapping below in x
+  BIGINT nhi = (offset1+size1>N1) ? offset1+size1-N1 : 0;    // " above in x
+  // this triple loop works in all dims
+  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
+    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
+    for (int dy=0; dy<size2; dy++) {
+      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
+      FLT *out = data_uniform + 2*oy;
+      FLT *in  = du0 + 2*size1*(dy + size2*dz);   // ptr to subgrid array
+      BIGINT o = 2*(offset1+N1);         // 1d offset for output
+      for (int j=0; j<2*nlo; j++) { // j is really dx/2 (since re,im parts)
+#pragma omp atomic
+        out[j + o] += in[j];
+      }
+      o = 2*offset1;
+      for (int j=2*nlo; j<2*(size1-nhi); j++) {
+#pragma omp atomic
+        out[j + o] += in[j];
+      }
+      o = 2*(offset1-N1);
+      for (int j=2*(size1-nhi); j<2*size1; j++) {
+#pragma omp atomic
+        out[j+o] += in[j];
+      }
+    }
+  }
+}
+
 
 void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,

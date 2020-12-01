@@ -22,6 +22,7 @@ typedef struct spread_opts {  // see spreadinterp:setup_spreader for defaults.
   int flags;              // binary flags for timing only (may give wrong ans
                           // if changed from 0!). See spreadinterp.h
   int debug;              // 0: silent, 1: small text output, 2: verbose
+  int atomic_threshold;   // num threads before switching spreadSorted to using atomic ops
   double upsampfac;       // sigma, upsampling factor
   // ES kernel specific consts used in fast eval, depend on precision FLT...
   FLT ES_beta;
