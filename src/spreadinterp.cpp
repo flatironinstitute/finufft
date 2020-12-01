@@ -338,9 +338,9 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
                      // Splits sorted inds (jfm's advanced2), could double RAM.
     // choose nb (# subprobs) via used nthreads:
     int nb = min((BIGINT)nthr,M);         // simply split one subprob per thr...
-    if (nb*opts.max_subproblem_size<M) {  // ...or more subprobs to cap size
+    if (nb*(BIGINT)opts.max_subproblem_size<M) {  // ...or more subprobs to cap size
       nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
-      if (opts.debug) printf("\tcapping subproblem sizes to max of %d\n",(int)opts.max_subproblem_size);
+      if (opts.debug) printf("\tcapping subproblem sizes to max of %d\n",opts.max_subproblem_size);
     }
     if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
       nb = M;
@@ -350,7 +350,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       nb = 1;
       if (opts.debug) printf("\tunsorted nthr=1: forcing single subproblem...\n");
     }
-    if (opts.debug && nthr > opts.atomic_threshold)
+    if (opts.debug && nthr>opts.atomic_threshold)
       printf("\tnthr big: switching add_wrapped OMP from critical to atomic (!)\n");
       
     std::vector<BIGINT> brk(nb+1); // NU index breakpoints defining nb subproblems
@@ -584,7 +584,7 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   opts.nthreads = 0;            // all avail
   opts.sort_threads = 0;        // 0:auto-choice
   // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
-  opts.max_subproblem_size = (dim==1) ? (BIGINT)1e4 : (BIGINT)1e5;
+  opts.max_subproblem_size = (dim==1) ? 10000 : 100000;
   opts.flags = 0;               // 0:no timing flags (>0 for experts only)
   opts.debug = 0;               // 0:no debug output
   // heuristic nthr above which switch OMP critical to atomic (add_wrapped...):

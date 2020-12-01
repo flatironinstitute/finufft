@@ -525,6 +525,7 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
   o->spread_thread = 0;
   o->maxbatchsize = 0;
   o->spread_nthr_atomic = -1;
+  o->spread_max_sp_size = 0;
   // sphinx tag (don't remove): @defopts_end
 }
 

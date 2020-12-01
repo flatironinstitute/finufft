@@ -18,7 +18,7 @@ typedef struct spread_opts {  // see spreadinterp:setup_spreader for defaults.
                           // (this helps SIMD for kerevalmeth=0, eg on i7).
   int nthreads;           // # threads for spreadinterp (0: use max avail)
   int sort_threads;       // # threads for sort (0: auto-choice up to nthreads)
-  BIGINT max_subproblem_size; // # pts per t1 subprob; sets extra RAM per thread
+  int max_subproblem_size; // # pts per t1 subprob; sets extra RAM per thread
   int flags;              // binary flags for timing only (may give wrong ans
                           // if changed from 0!). See spreadinterp.h
   int debug;              // 0: silent, 1: small text output, 2: verbose
