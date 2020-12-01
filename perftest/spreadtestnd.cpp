@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
   std::vector<FLT> d_uniform(2*Ng);                        // Re and Im
 
   spread_opts opts;
-  int ier_set = setup_spreader(opts,(FLT)tol,upsampfac,kerevalmeth,debug,1);
+  int ier_set = setup_spreader(opts,(FLT)tol,upsampfac,kerevalmeth,debug,1,d);
   if (ier_set>1) {       // exit gracefully if can't set up.
     printf("error when setting up spreader (ier_set=%d)!\n",ier_set);
     return ier_set;
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
   opts.upsampfac = upsampfac;
   opts.nthreads = 0;  // max # threads used, or 0 to use what's avail
   opts.sort_threads = 0;
-  //opts.max_subproblem_size = 1e5; // default is 1e5; minimal difference
+  //opts.max_subproblem_size = 1e5;
   FLT maxerr, ansmod;
   
   // spread a single source, only for reference accuracy check...

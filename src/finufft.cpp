@@ -105,12 +105,13 @@ int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
   }
 }
 
-int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts)
+int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts, int dim)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
+  // this calls spreadinterp.cpp...
   int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.spread_kerevalmeth,
-                   opts.spread_debug, opts.showwarn);   // --> spreadinterp.cpp
+                           opts.spread_debug, opts.showwarn, dim);
   // override various spread opts from their defaults...
   spopts.debug = opts.spread_debug;
   spopts.sort = opts.spread_sort;     // could make dim or CPU choices here?
@@ -607,7 +608,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
       printf("[%s] set auto upsampfac=%.2f\n",__func__,p->opts.upsampfac);
   }
   // use opts to choose and write into plan's spread options...
-  int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts);
+  int ier = setup_spreader_for_nufft(p->spopts, tol, p->opts, dim);
   if (ier>1)                                 // proceed if success or warning
     return ier;
 

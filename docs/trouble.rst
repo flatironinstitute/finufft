@@ -40,7 +40,7 @@ If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is 
 
 - Try printing debug output to see step-by-step progress by FINUFFT. Do this by setting ``opts.debug`` to 1 or 2 then looking at the timing information.
 
-- Try reducing the number of threads either externally or via ``opts.nthreads``, perhaps down to 1 thread, to make sure you are not having collisions between threads, or slowdown due to thread overheads. The former is possible if large problems are run with a large number of (say more than 30) threads. We added the constant ``MAX_USEFUL_NTHREADS`` in ``include/defs.h`` to catch this case. Another corner case causing slowness is very many repetitions of small problems; see ``test/manysmallprobs`` which exceeds $10^7$ points/sec with one thread via the guru interface, but can get ridiculously slower with many threads; see https://github.com/flatironinstitute/finufft/issues/86
+- Try reducing the number of threads either externally or via ``opts.nthreads``, perhaps down to 1 thread, to make sure you are not having collisions between threads, or slowdown due to thread overheads. Hyperthreading (more threads than physical cores) rarely helps much. Thread collisions are possible if large problems are run with a large number of (say more than 64) threads. We added the constant ``MAX_USEFUL_NTHREADS`` in ``include/defs.h`` to address this in the vectorized (stacked) inputs case. Another ase causing slowness is very many repetitions of small problems; see ``test/manysmallprobs`` which exceeds $10^7$ points/sec with one thread via the guru interface, but can get ridiculously slower with many threads; see https://github.com/flatironinstitute/finufft/issues/86
 
 - Try setting a crude tolerance, eg ``tol=1e-3``. How many digits do you actually need? This has a big effect in higher dimensions, since the number of flops scales like $(\log 1/\epsilon)^d$, but not quite as big an effect as this scaling would suggest, because in higher dimensions the flops/RAM ratio is higher.
 
@@ -52,6 +52,8 @@ If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is 
   `FFTW planner flag usage <http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags>`_ question.
   Such issues are known, and modes benchmarked in other documentation, eg for 2D in `poppy <https://poppy-optics.readthedocs.io/en/stable/fft_optimization.html>`_. In short, using more expensive FFTW planning modes like ``FFTW_MEASURE`` can give better performance for repeated FFTW calls, but be **much** more expensive in the first (planning) call. This is why we choose ``FFTW_ESTIMATE`` as our default ``opts.fftw`` option.
 
+- Check that you are not using too much RAM, hence swapping to hard disk or SSD. The multithreaded type-1 spreader can use up to another fine grid's worth of storage in the form of subgrids. If RAM is too large, try reducing ``opts.max_subproblem_size`` to reduce RAM; however, note that this may slow it down, because we have built in a decent heuristic for this value.
+    
 - Make sure you did not override ``opts.spread_sort``, which if set to zero
   does no sorting, which can give very slow RAM access if the nonuniform points
   are ordered poorly (eg randomly) in larger 2D or 3D problems.

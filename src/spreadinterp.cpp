@@ -336,9 +336,12 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
     
   } else {           // ------- Fancy multi-core blocked t1 spreading ----
                      // Splits sorted inds (jfm's advanced2), could double RAM.
-    int nb = min(4*(BIGINT)nthr,M);  // choose nb (# subprobs) via used nthreads
-    if (nb*opts.max_subproblem_size<M)
+    // choose nb (# subprobs) via used nthreads:
+    int nb = min((BIGINT)nthr,M);         // simply split one subprob per thr...
+    if (nb*opts.max_subproblem_size<M) {  // ...or more subprobs to cap size
       nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
+      if (opts.debug) printf("\tcapping subproblem sizes to max of %d...\n",(int)opts.max_subproblem_size);
+    }
     if (M*1000<N) {         // low-density heuristic: one thread per NU pt!
       nb = M;
       if (opts.debug) printf("\tusing low-density speed rescue nb=M...\n");
@@ -537,11 +540,12 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
 ///////////////////////////////////////////////////////////////////////////
 
 int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
-                   int kerevalmeth, int debug, int showwarn)
+                   int kerevalmeth, int debug, int showwarn, int dim)
 /* Initializes spreader kernel parameters given desired NUFFT tolerance eps,
    upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), ker eval meth
    (either 0:exp(sqrt()), 1: Horner ppval), and some debug-level flags.
    Also sets all default options in spread_opts. See spread_opts.h for opts.
+   dim is spatial dimension (1,2, or 3).
    See finufft.cpp:finufft_plan() for where upsampfac is set.
    Must call this before any kernel evals done, otherwise segfault likely.
    Returns:
@@ -576,10 +580,12 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
   opts.upsampfac = upsampfac;
   opts.nthreads = 0;            // all avail
   opts.sort_threads = 0;        // 0:auto-choice
-  opts.max_subproblem_size = (BIGINT)1e4;   // was larger (1e5 bit worse in 1D)
+  // heuristic dir=1 chunking for nthr>>1, typical for intel i7 and skylake...
+  opts.max_subproblem_size = (dim==1) ? (BIGINT)1e4 : (BIGINT)1e5;
   opts.flags = 0;               // 0:no timing flags (>0 for experts only)
   opts.debug = 0;               // 0:no debug output
-  opts.atomic_threshold = 10;   // heuristic for when performance degrades using critical to add back subgrids
+  // heuristic nthr above which switch OMP critical to atomic (add_wrapped...):
+  opts.atomic_threshold = 10;
 
   int ns, ier = 0;  // Set kernel width w (aka ns, nspread) then copy to opts...
   if (eps<EPSILON) {            // safety; there's no hope of beating e_mach
