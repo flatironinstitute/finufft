@@ -862,7 +862,7 @@ void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
    This needed off1 as extra arg. AHB 11/30/20.
 */
 {
-  int ns=opts.nspread;
+  int ns=opts.nspread;          // a.k.a. w
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*size1;++i)         // zero output
     du[i] = 0.0;
@@ -877,6 +877,8 @@ void spread_subproblem_1d(BIGINT off1, BIGINT size1,FLT *du,BIGINT M,
     // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
     // kernel evaluation will fall outside their designed domains, >>1 errors.
     // This can only happen if the overall error would be O(1) anyway. Clip x1??
+    if (x1<-ns2) x1=-ns2;
+    if (x1>-ns2+1) x1=-ns2+1;   // ***
     if (opts.kerevalmeth==0) {          // faster Horner poly method
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
