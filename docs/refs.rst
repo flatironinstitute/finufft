@@ -12,7 +12,7 @@ SIAM J. Sci. Comput. 41(5), C479-C504 (2019). `arxiv version <https://arxiv.org/
 
 [B20]
 Aliasing error of the exp$(\beta \sqrt{1-z^2})$ kernel in the nonuniform fast Fourier transform.
-A. H. Barnett. submitted, Appl. Comput. Harmon. Anal. (2020).
+A. H. Barnett. Appl. Comput. Harmon. Anal. 51, 1-16 (2021).
 `arxiv version <https://arxiv.org/abs/2001.09405>`_
 
 Background references
@@ -42,9 +42,15 @@ J. A. Fessler and B. P. Sutton. IEEE Trans. Sig. Proc., 51(2):560-74, (Feb. 2003
 
 The appendix of the last of the above contains the first known published proof
 of the Kaiser--Bessel Fourier transform pair.
-This next paper proves an error estimate for a related sinh-type kernel:
+This next two papers prove error estimates for sinh-type and other kernels closely related (and possibly slightly more optimal) than ours:
 
-[PT] Uniform error estimates for the NFFT. D. Potts and M. Tasche. (2020). `arxiv <https://arxiv.org/abs/1912.09746>`_
+[PT] Uniform error estimates for the NFFT. D. Potts and M. Tasche. (2020). `arxiv <https://arxiv.org/abs/1912.09746v2>`_
+
+[PT2] Continuous window functions for NFFT.  D. Potts and M. Tasche. (2020). `arxiv <https://arxiv.org/abs/2010.06894>`_. In revision, Adv. Comput. Math.
+
+In late 2020 it was pointed out to us by Piero Angeletti that the exponential of semicircle kernel developed for FINUFFT had in fact been independently proposed:
+
+[AN] A new window based on exponential function. K. Avci and A. Nacaroğlu. 2008 Ph.D. Research in Microelectronics and Electronics, Istanbul. 69-72 (2008). doi:10.1109/RME.2008.4595727.
 
 FINUFFT builds upon the CMCL NUFFT, and the Fortran wrappers are very similar to its interfaces. For that, the following are references:
 
@@ -52,12 +58,12 @@ FINUFFT builds upon the CMCL NUFFT, and the Fortran wrappers are very similar to
 
 [LG] The type 3 nonuniform FFT and its applications. J.-Y. Lee and L. Greengard. J. Comput. Phys. 206, 1 (2005).
 
-Inversion of the NUFFT is covered in [KKP] above and in:
+Inversion of the NUFFT is covered in [KKP] above, and in:
 
 [GLI] The fast sinc transform and image reconstruction from nonuniform samples in $\mathbf{k}$-space. L. Greengard, J.-Y. Lee and S. Inati, Commun. Appl. Math. Comput. Sci (CAMCOS) 1(1) 121-131 (2006).
 
 The original NUFFT analysis using truncated Gaussians is (the second
-improving upon the first):
+improving upon the convergence rate of the first):
 
 [DR] Fast Fourier Transforms for Nonequispaced data. A. Dutt and V. Rokhlin. SIAM J. Sci. Comput. 14, 1368 (1993).
 
