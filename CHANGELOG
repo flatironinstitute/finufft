@@ -1,13 +1,13 @@
 List of features / changes made / release notes, in reverse chronological order
 
-V 2.0.2 (12/1/20)
+V 2.0.2 (12/5/20)
 
 * fixed spreader segfault in obscure use case: single-precision N1>1e7, where
   rounding error is O(1) anyway. Now uses consistent int(ceil()) grid index.
 * Improved large-thread scaling of type-1 (spreading) via transition from OMP
-  critical to atomic add_wrapped_subgrid() operations; thanks R Blackwell.
+  critical to atomic add_wrapped_subgrid() operations; thanks Rob Blackwell.
 * Increased heuristic t1 spreader max_subproblem_size, faster in 2D, 3D, and
-  allowed this and above atomic threshold to be controlled as nufft_opts.
+  allowed this and the above atomic threshold to be controlled as nufft_opts.
 * multithreaded one-mode accuracy test in C++ tests, t1 & t3, for faster tests.
 
 V 2.0.1 (10/6/20)

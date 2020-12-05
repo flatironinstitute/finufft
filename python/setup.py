@@ -5,7 +5,7 @@
 # attempt ../make.inc reading (failed) and default finufftdir. 2/25/20
 # Barnett trying to get sphinx.ext.autodoc to work w/ this, 10/5/20
 
-__version__ = '2.0.1'
+__version__ = '2.0.2'
 
 from setuptools import setup, Extension
 import os
