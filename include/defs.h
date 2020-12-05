@@ -8,6 +8,7 @@
 // use types intrinsic to finufft interface (FLT, CPX, BIGINT, etc)
 #include <dataTypes.h>
 
+
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
@@ -27,9 +28,6 @@
 // (Note: next235 takes 1s for this size, so it is also to prevent hang here.)
 // Increase this if you need >1TB RAM... (used only in common.cpp)
 #define MAX_NF    (BIGINT)1e11
-
-// Max number of useful threads for setting default blksize (depends on NUMA)
-#define MAX_USEFUL_NTHREADS 24
 
 
 

@@ -8,6 +8,8 @@ V 2.0.2 (12/5/20)
   critical to atomic add_wrapped_subgrid() operations; thanks Rob Blackwell.
 * Increased heuristic t1 spreader max_subproblem_size, faster in 2D, 3D, and
   allowed this and the above atomic threshold to be controlled as nufft_opts.
+* Removed MAX_USEFUL_NTHREADS from defs.h and all code, for simplicity, since
+  large thread number now scales better.
 * multithreaded one-mode accuracy test in C++ tests, t1 & t3, for faster tests.
 
 V 2.0.1 (10/6/20)
