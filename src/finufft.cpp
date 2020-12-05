@@ -633,6 +633,15 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     FFTW_PLAN_TH(nthr_fft); // " (not batchSize since can be 1 but want mul-thr)
     FFTW_PLAN_SF();         // make planner thread-safe
     p->spopts.spread_direction = type;
+
+    if (p->opts.showwarn) {  // user warn round-off error...
+      if (EPSILON*p->ms>1.0)
+        fprintf(stderr,"%s warning: rounding err predicted eps_mach*N1 = %.3g > 1 !\n",__func__,(double)(EPSILON*p->ms));
+      if (EPSILON*p->mt>1.0)
+        fprintf(stderr,"%s warning: rounding err predicted eps_mach*N2 = %.3g > 1 !\n",__func__,(double)(EPSILON*p->mt));
+      if (EPSILON*p->mu>1.0)
+        fprintf(stderr,"%s warning: rounding err predicted eps_mach*N3 = %.3g > 1 !\n",__func__,(double)(EPSILON*p->mu));
+    }
     
     // determine fine grid sizes, sanity check..
     int nfier = SET_NF_TYPE12(p->ms, p->opts, p->spopts, &(p->nf1));
