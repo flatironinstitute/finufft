@@ -6,7 +6,7 @@ References
 Please cite the following two papers if you use this software:
 
 [FIN]
-A parallel non-uniform fast Fourier transform library based on an ``exponential of semicircle'' kernel.
+A parallel non-uniform fast Fourier transform library based on an "exponential of semicircle" kernel.
 A. H. Barnett, J. F. Magland, and L. af Klinteberg.
 SIAM J. Sci. Comput. 41(5), C479-C504 (2019). `arxiv version <https://arxiv.org/abs/1808.06736>`_
 
