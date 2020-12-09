@@ -80,8 +80,10 @@ MFLAGS += $(MOMPFLAGS) -DR2008OO
 OFLAGS += $(OOMPFLAGS) -DR2008OO
 LIBS += $(OMPLIBS)
 ifneq ($(MINGW),ON)
+ifneq ($(MSYS),ON)
 # omp override for total list of math and FFTW libs (now both precisions)...
 LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
+endif
 endif
 endif
 
@@ -191,6 +193,9 @@ endif
 EXAMPLES = $(basename $(wildcard examples/*.*))
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
+    ifeq ($(MSYS),ON)
+	    cp $(DYNLIB) test
+    endif
 # non-Windows: this task always runs them (note escaped $ to pass to bash)...
 	for i in $(EXAMPLES); do echo $$i...; ./$$i; done
 else
@@ -230,6 +235,9 @@ TESTS += $(TESTS:%=%f)
 test: $(TESTS)
 ifneq ($(MINGW),ON)
 # non-Windows: it will fail if either of these return nonzero exit code...
+    ifeq ($(MSYS),ON)
+	    cp $(DYNLIB) test
+    endif
 	test/basicpassfail
 	test/basicpassfailf
 # accuracy tests done in prec-switchable bash script... (small prob -> few thr)
