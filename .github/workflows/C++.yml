@@ -3,12 +3,12 @@ name: C++ Build
 on:
   push:
     branches:
-      - github_workflows_cpp
+      - master
     tags:
       - v*
   pull_request:
     branches:
-      - github_workflows_cpp
+      - master
 
 jobs:
   Linux:
