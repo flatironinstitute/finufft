@@ -4,8 +4,6 @@
 #
 # Copy this file to make.inc, and if needed edit for your setup.
 #
-# Don't forget also to adjust g++ to g++-8 at start of setup.py
-#
 # Barnett 10/27/18. Input from Yu-Hsuan Shih, Amit Moskovich.
 
 # By default we use clang/LLVM (which is aliased to /usr/lib/gcc, etc).
@@ -14,7 +12,6 @@
 CXX=g++-8
 CC=gcc-8
 FC=gfortran
-# For Catalina, you may need to edit the above to g++-10, etc.
 
 # (compile flags for use with GCC are as in linux makefile)
 CFLAGS +=
