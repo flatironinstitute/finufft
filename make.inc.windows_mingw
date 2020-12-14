@@ -1,1 +1,2 @@
 MINGW=ON
+LIBS= # required to build MATLAB mex file. Does not interfere with library build
