@@ -28,8 +28,6 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 					int numbins[2];
 					numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
 					numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
-					checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
-						numbins[1]*sizeof(int)));
 					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
 						numbins[1]*sizeof(int)));
 					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
@@ -51,6 +49,7 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,
 						(numbins[0]*numbins[1]+1)*sizeof(int)));
 			}
+			break;
 		case 3:
 			{
 				int numbins[2];
@@ -177,8 +176,6 @@ void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan)
 			break;
 	}
 
-        // checkCudaErrors(cudaFree(d_plan->c));
-
 	for(int i=0; i<d_plan->opts.gpu_nstreams; i++)
 		checkCudaErrors(cudaStreamDestroy(d_plan->streams[i]));
 }
@@ -224,8 +221,6 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 					numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
 					numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
 					numbins[2] = ceil((FLT) nf3/d_plan->opts.gpu_binsizez);
-					checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
-						numbins[1]*numbins[2]*sizeof(int)));
 					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
 						numbins[1]*numbins[2]*sizeof(int)));
 					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
