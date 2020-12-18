@@ -52,7 +52,7 @@ Dependencies
 ------------
 
 This library is fully supported for unix/linux, and partially for
-Mac OSX for Windows (eg MinGW or WSL).
+Mac OSX for Windows (eg under MSYS or WSL using MinGW compilers).
 
 For the basic libraries you need
 
@@ -304,10 +304,16 @@ section of ``mexopts.sh``.
 3) Windows: tips for compiling
 -------------------------------   
    
-We have users who have adjusted the makefile to work with Windows. Please
+We have users who have adjusted the makefile to work with Windows WSL and MinGW compilers. Please
 try::
 
   cp make.inc.windows_mingw make.inc
+  make test -j
+
+For users who work with Windows using MSYS and MinGW compilers. Please
+try::
+
+  cp make.inc.windows_msys make.inc
   make test -j
 
 We seek help with Windows support. Also see https://github.com/flatironinstitute/finufft/issues

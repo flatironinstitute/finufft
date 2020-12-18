@@ -2,12 +2,8 @@
 #
 # Use this if you'll need to link against gfortran.
 #
-# Copy this file to make.inc, and if needed edit for your setup.
-#
-# Don't forget also to adjust g++ to g++-10 at start of setup.py
-#
 # Barnett 10/27/18. Input from Yu-Hsuan Shih, Amit Moskovich.
-# modified 12/06/2020
+# Lu minor modification for gcc-10 12/06/2020
 
 # By default we use clang/LLVM (which is aliased to /usr/lib/gcc, etc).
 # This make.inc is if you want to override this.
@@ -15,7 +11,6 @@
 CXX=g++-10
 CC=gcc-10
 FC=gfortran
-# For Catalina, you may need to edit the above to g++-10, etc.
 
 # (compile flags for use with GCC are as in linux makefile)
 CFLAGS +=

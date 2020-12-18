@@ -24,8 +24,8 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make lib
         make spreadtestall
+        make lib
         make test
 
   MacOS_clang:
@@ -43,8 +43,8 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make lib
         make spreadtestall
+        make lib
         make test
 
   MacOS_gcc:
@@ -62,8 +62,8 @@ jobs:
 
     - name: Compile C++ code
       run: |
-        make lib
         make spreadtestall
+        make lib
         make test
 
   Windows:
