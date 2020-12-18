@@ -1,2 +1,3 @@
 numpy
 pycuda
+six
