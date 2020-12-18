@@ -231,7 +231,7 @@ typedef struct CUFINUFFT_PLAN_S {
 	CUCPX *fk;
 
 	// Arrays that used in subprob method
-	int *idxnupts;//lenght: #nupts, index of the nupts in the bin-sorted order
+	int *idxnupts;//length: #nupts, index of the nupts in the bin-sorted order
 	int *sortidx; //length: #nupts, order inside the bin the nupt belongs to
 	int *numsubprob; //length: #bins,  number of subproblems in each bin
 	int *binsize; //length: #bins, number of nonuniform ponits in each bin
