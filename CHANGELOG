@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* fixed memory leak in type 3.
+
 V 2.0.2 (12/5/20)
 
 * fixed spreader segfault in obscure use case: single-precision N1>1e7, where
