@@ -542,7 +542,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   FINUFFT_PLAN p;
   cout << scientific << setprecision(15);  // for commented-out low-lev debug
 
-  p = new FINUFFT_PLAN_S;
+  p = new FINUFFT_PLAN_S;                // allocate fresh plan struct
   *pp = p;                               // pass out plan as ptr to plan struct
 
   if (opts==NULL)                        // use default opts
@@ -622,7 +622,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   p->X = NULL; p->Y = NULL; p->Z = NULL;
   p->phiHat1 = NULL; p->phiHat2 = NULL; p->phiHat3 = NULL;
   p->nf1 = 1; p->nf2 = 1; p->nf3 = 1;  // crucial to leave as 1 for unused dims
-
+  p->sortIndices = NULL;               // used in all three types
+  
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type==1 || type==2) {
 
@@ -697,8 +698,6 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
          NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
     if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__,p->opts.fftw, nthr_fft, timer.elapsedsec());
     delete []ns;
-
-    p->sortIndices = NULL;
     
   } else {  // -------------------------- type 3 (no planning) ------------
 
@@ -1077,23 +1076,23 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
 // Thus either each thing free'd here is guaranteed to be NULL or correctly
 // allocated.
 {
-  if (!p)                // don't free a NULL
+  if (!p)                // NULL ptr, so not a ptr to a plan, report error
     return 1;
   FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
+  free(p->sortIndices);
   if (p->type==1 || p->type==2) {
     FFTW_DE(p->fftwPlan);
     free(p->phiHat1);
     free(p->phiHat2);
     free(p->phiHat3);
-    free(p->sortIndices);
-  } else {          // free the stuff alloc for type 3
-    if (p->innerT2plan)
-      FINUFFT_DESTROY(p->innerT2plan);
+  } else {               // free the stuff alloc for type 3 only
+    FINUFFT_DESTROY(p->innerT2plan);   // if NULL, ignore its error code
     free(p->CpBatch);
     free(p->Sp); free(p->Tp); free(p->Up);
+    free(p->X); free(p->Y); free(p->Z);
     free(p->prephase);
     free(p->deconv);
   }
   free(p);
-  return 0;
+  return 0;              // success
 }
