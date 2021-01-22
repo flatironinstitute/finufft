@@ -143,14 +143,13 @@ class cufinufft:
         if ier != 0:
             raise RuntimeError('Error creating plan.')
 
-    def set_pts(self, M, kx, ky=None, kz=None):
+    def set_pts(self, kx, ky=None, kz=None):
         """
         Sets non uniform points of the correct dtype.
 
         Note kx, ky, kz are required for 1, 2, and 3
         dimensional cases respectively.
 
-        :param M: Number of points
         :param kx: Array of x points.
         :param ky: Array of y points.
         :param kz: Array of z points.
@@ -167,6 +166,14 @@ class cufinufft:
         if kz and kz.dtype != self.dtype:
             raise TypeError("cufinufft plan.dtype and "
                             "kz dtypes do not match.")
+
+        M = kx.size
+
+        if ky and ky.size != M:
+            raise TypeError("Number of elements in kx and ky must be equal")
+
+        if kz and kz.size != M:
+            raise TypeError("Number of elements in kx and kz must be equal")
 
         # Because FINUFFT/cufinufft are internally column major,
         #   we will reorder the pts axes. Reordering references
