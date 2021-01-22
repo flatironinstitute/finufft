@@ -101,6 +101,8 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
+        int orig_gpu_device_id;
+        cudaGetDevice(& orig_gpu_device_id);
         if (opts == NULL) {
             // options might not be supplied to this function => assume device
             // 0 by default
@@ -274,6 +276,10 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 		free(fwkerhalf2);
 	if(dim > 2)
 		free(fwkerhalf3);
+
+        // Multi-GPU support: reset the device ID
+        cudaSetDevice(orig_gpu_device_id);
+
 	return ier;
 }
 
@@ -307,6 +313,8 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
+        int orig_gpu_device_id;
+        cudaGetDevice(& orig_gpu_device_id);
         cudaSetDevice(d_plan->opts.gpu_device_id);
 
 
@@ -374,6 +382,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread2d_nupts_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
+
+                                        // Multi-GPU support: reset the device ID
+                                        cudaSetDevice(orig_gpu_device_id);
+
 					return 1;
 				}
 			}
@@ -382,6 +394,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread2d_subprob_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
+
+                                        // Multi-GPU support: reset the device ID
+                                        cudaSetDevice(orig_gpu_device_id);
+
 					return 1;
 				}
 			}
@@ -390,6 +406,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread2d_paul_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
+
+                                        // Multi-GPU support: reset the device ID
+                                        cudaSetDevice(orig_gpu_device_id);
+
 					return 1;
 				}
 			}
@@ -402,6 +422,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread3d_blockgather_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
+
+                                        // Multi-GPU support: reset the device ID
+                                        cudaSetDevice(orig_gpu_device_id);
+
 					return ier;
 				}
 			}
@@ -410,6 +434,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
+
+                                        // Multi-GPU support: reset the device ID
+                                        cudaSetDevice(orig_gpu_device_id);
+
 					return ier;
 				}
 			}
@@ -418,6 +446,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 				if(ier != 0 ){
 					printf("error: cuspread3d_subprob_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
+
+                                        // Multi-GPU support: reset the device ID
+                                        cudaSetDevice(orig_gpu_device_id);
+
 					return ier;
 				}
 			}
@@ -431,6 +463,9 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	printf("[time  ] \tSetup Subprob properties %.3g s\n",
 		milliseconds/1000);
 #endif
+
+        // Multi-GPU support: reset the device ID
+        cudaSetDevice(orig_gpu_device_id);
 
 	return 0;
 }
@@ -456,6 +491,8 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
+        int orig_gpu_device_id;
+        cudaGetDevice(& orig_gpu_device_id);
         cudaSetDevice(d_plan->opts.gpu_device_id);
 
 	int ier;
@@ -493,6 +530,10 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 		}
 		break;
 	}
+
+        // Multi-GPU support: reset the device ID
+        cudaSetDevice(orig_gpu_device_id);
+
 	return ier;
 }
 
@@ -507,6 +548,8 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
+        int orig_gpu_device_id;
+        cudaGetDevice(& orig_gpu_device_id);
         cudaSetDevice(d_plan->opts.gpu_device_id);
 
 	cudaEvent_t start, stop;
@@ -516,8 +559,11 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 	cudaEventRecord(start);
 
 	// Can't destroy a Null pointer.
-	if(!d_plan)
+	if(!d_plan) {
+                // Multi-GPU support: reset the device ID
+                cudaSetDevice(orig_gpu_device_id);
 		return 1;
+        }
 
 	if(d_plan->fftplan)
 		cufftDestroy(d_plan->fftplan);
@@ -553,6 +599,8 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 	/* set pointer to NULL now that we've hopefully free'd the memory. */
 	d_plan = NULL;
 
+        // Multi-GPU support: reset the device ID
+        cudaSetDevice(orig_gpu_device_id);
 	return 0;
 }
 
