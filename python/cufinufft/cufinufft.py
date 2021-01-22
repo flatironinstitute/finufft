@@ -38,7 +38,7 @@ class cufinufft:
     The wrapper performs a few very basic conversions,
     and calls the low level library with runtime python error checking.
     """
-    def __init__(self, nufft_type, modes, isign, tol,
+    def __init__(self, nufft_type, modes, isign, eps,
                  ntransforms=1, opts=None, dtype=np.float32):
         """
         Initialize a dtype bound cufinufft python wrapper.
@@ -50,7 +50,7 @@ class cufinufft:
         :param modes: Array describing the shape of the transform \
         in 1, 2, or 3 dimensions.
         :param isign: 1 or -1, controls sign of imaginary component output.
-        :param tol: Floating point tolerance.
+        :param eps: Precision requested (>1e-16).
         :param ntransforms: Number of transforms, defaults to 1.
         :param opts: Optionally, supply opts struct (untested).
         :param dtype: Datatype for this plan (np.float32 or np.float64). \
@@ -88,7 +88,7 @@ class cufinufft:
         self.dim = len(modes)
         self._finufft_type = nufft_type
         self.isign = isign
-        self.tol = float(tol)
+        self.eps = float(eps)
         self.ntransforms = ntransforms
         self._maxbatch = 1    # TODO: optimize this one day
 
@@ -135,7 +135,7 @@ class cufinufft:
                               self.modes,
                               self.isign,
                               self.ntransforms,
-                              self.tol,
+                              self.eps,
                               1,
                               byref(self.plan),
                               self.opts)
