@@ -20,7 +20,7 @@ def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
     c_gpu = gpuarray.to_gpu(c)
     fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
 
-    plan = cufinufft(1, shape, 1, tol, dtype=dtype)
+    plan = cufinufft(1, shape, eps=tol, dtype=dtype)
 
     plan.set_pts(k_gpu[0], k_gpu[1], k_gpu[2])
 
@@ -59,7 +59,7 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     c_gpu = gpuarray.GPUArray(shape=(M,), dtype=complex_dtype)
 
-    plan = cufinufft(2, shape, -1, tol, dtype=dtype)
+    plan = cufinufft(2, shape, eps=tol, dtype=dtype)
 
     plan.set_pts(k_gpu[0], k_gpu[1], k_gpu[2])
 

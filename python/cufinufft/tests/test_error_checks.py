@@ -24,7 +24,7 @@ def test_set_nu_raises_on_dtype():
     # Here we'll intentionally contruct an incorrect array dtype.
     kxyz_gpu_wrong_type = gpuarray.to_gpu(kxyz.astype(np.float64))
 
-    plan = cufinufft(1, shape, 1, tol, dtype=dtype)
+    plan = cufinufft(1, shape, eps=tol, dtype=dtype)
 
     with pytest.raises(TypeError):
         plan.set_pts(kxyz_gpu_wrong_type[0],
@@ -83,7 +83,7 @@ def test_exec_raises_on_dtype():
     # Here we'll intentionally contruct an incorrect array dtype.
     fk_gpu_wrong_dtype = gpuarray.GPUArray(shape, dtype=np.complex128)
 
-    plan = cufinufft(1, shape, 1, tol, dtype=dtype)
+    plan = cufinufft(1, shape, eps=tol, dtype=dtype)
 
     plan.set_pts(kxyz_gpu[0],
                  kxyz_gpu[1], kxyz_gpu[2])

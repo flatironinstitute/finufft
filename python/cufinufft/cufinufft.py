@@ -38,8 +38,8 @@ class cufinufft:
     The wrapper performs a few very basic conversions,
     and calls the low level library with runtime python error checking.
     """
-    def __init__(self, nufft_type, modes, isign, eps,
-                 ntransforms=1, opts=None, dtype=np.float32):
+    def __init__(self, nufft_type, modes, ntransforms=1, eps=1e-6, isign=None,
+                 opts=None, dtype=np.float32):
         """
         Initialize a dtype bound cufinufft python wrapper.
         This will bind variables/methods
@@ -49,9 +49,9 @@ class cufinufft:
         :param finufft_type: integer 1, 2, or 3.
         :param modes: Array describing the shape of the transform \
         in 1, 2, or 3 dimensions.
-        :param isign: 1 or -1, controls sign of imaginary component output.
-        :param eps: Precision requested (>1e-16).
         :param ntransforms: Number of transforms, defaults to 1.
+        :param eps: Precision requested (>1e-16).
+        :param isign: 1 or -1, controls sign of imaginary component output.
         :param opts: Optionally, supply opts struct (untested).
         :param dtype: Datatype for this plan (np.float32 or np.float64). \
         Defaults np.float32.
@@ -59,6 +59,12 @@ class cufinufft:
         :return: cufinufft instance of the correct dtype, \
         ready for point setting, and execution.
         """
+
+        if isign is None:
+            if nufft_type == 2:
+                isign = -1
+            else:
+                isign = +1
 
         # Note when None, opts will be populated with defaults by
         # the library internally.  Advanced users may use
