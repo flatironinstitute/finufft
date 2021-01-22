@@ -39,7 +39,7 @@ class cufinufft:
     and calls the low level library with runtime python error checking.
     """
     def __init__(self, nufft_type, modes, n_trans=1, eps=1e-6, isign=None,
-                 opts=None, dtype=np.float32):
+                 dtype=np.float32, **kwargs):
         """
         Initialize a dtype bound cufinufft python wrapper.
         This will bind variables/methods
@@ -66,12 +66,6 @@ class cufinufft:
             else:
                 isign = +1
 
-        # Note when None, opts will be populated with defaults by
-        # the library internally.  Advanced users may use
-        # `cufinufft.default_opts` to generate defaults and overload them
-        # before instantiating their cufinufft instances,
-        #  but this is currently undocumented.
-        self.opts = opts
 
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
@@ -103,6 +97,13 @@ class cufinufft:
         #   to the (F) order expected by the low level library (nX, nY, nZ).
         modes = modes[::-1] + (1,) * (3 - self.dim)
         self.modes = (c_int * 3)(*modes)
+
+        self.opts = self.default_opts(nufft_type, self.dim)
+        for k, v in kwargs.items():
+            try:
+                setattr(self.opts, k, v)
+            except AttributeError:
+                raise TypeError(f"Invalid option '{k}'")
 
         # Initialize the plan for this instance
         self.plan = None
