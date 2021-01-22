@@ -87,6 +87,39 @@ def test_type2_64(shape=(16, 16, 16), M=4096, tol=1e-3):
     return _test_type2(dtype=np.float64, shape=shape, M=M, tol=tol)
 
 
+def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
+    dtype = np.float32
+
+    complex_dtype = utils._complex_dtype(dtype)
+
+    dim = len(shape)
+
+    k = utils.gen_nu_pts(M, dim=dim).astype(dtype)
+    c = utils.gen_nonuniform_data(M).astype(complex_dtype)
+
+    k_gpu = gpuarray.to_gpu(k)
+    c_gpu = gpuarray.to_gpu(c)
+    fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
+
+    plan = cufinufft(1, shape, eps=tol, dtype=dtype, gpu_sort=False,
+                     gpu_maxsubprobsize=10)
+
+    plan.set_pts(k_gpu[0], k_gpu[1], k_gpu[2])
+
+    plan.execute(c_gpu, fk_gpu)
+
+    fk = fk_gpu.get()
+
+    ind = int(0.1789 * np.prod(shape))
+
+    fk_est = fk.ravel()[ind]
+    fk_target = utils.direct_type1(c, k, shape, ind)
+
+    type1_rel_err = np.abs(fk_target - fk_est) / np.abs(fk_target)
+
+    assert type1_rel_err < 0.01
+
+
 def main():
     test_type1_32()
     test_type2_32()
