@@ -66,6 +66,9 @@ class cufinufft:
             else:
                 isign = +1
 
+        # Need to set the plan here in case something goes wrong later on,
+        # otherwise we error during __del__.
+        self.plan = None
 
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
@@ -105,8 +108,7 @@ class cufinufft:
             except AttributeError:
                 raise TypeError(f"Invalid option '{k}'")
 
-        # Initialize the plan for this instance
-        self.plan = None
+        # Initialize the plan.
         self._plan()
 
     @staticmethod
