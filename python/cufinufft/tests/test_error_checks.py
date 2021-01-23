@@ -52,7 +52,7 @@ def test_set_pts_raises_on_size():
 
     kxyz_gpu = gpuarray.to_gpu(kxyz)
 
-    plan = cufinufft(1, shape, 1, tol, dtype=dtype)
+    plan = cufinufft(1, shape, eps=tol, dtype=dtype)
 
     with pytest.raises(TypeError) as err:
         plan.set_pts(kxyz_gpu[0], kxyz_gpu[1][:4])
