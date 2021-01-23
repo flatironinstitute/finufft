@@ -101,11 +101,17 @@ class cufinufft:
         modes = modes[::-1] + (1,) * (3 - self.dim)
         self.modes = (c_int * 3)(*modes)
 
+        # Get the default option values.
         self.opts = self.default_opts(nufft_type, self.dim)
+
+        # Extract list of valid field names.
+        field_names = [name for name, _ in self.opts._fields_]
+
+        # Assign field names from kwargs if they match up, otherwise error.
         for k, v in kwargs.items():
-            try:
+            if k in field_names:
                 setattr(self.opts, k, v)
-            except AttributeError:
+            else:
                 raise TypeError(f"Invalid option '{k}'")
 
         # Initialize the plan.
