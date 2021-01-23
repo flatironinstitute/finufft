@@ -63,6 +63,12 @@ def test_set_pts_raises_on_size():
     assert 'kx and kz must be equal' in err.value.args[0]
 
 
+def test_wrong_field_names():
+    with pytest.raises(TypeError) as err:
+        plan = cufinufft(1, (8, 8), foo="bar")
+    assert "Invalid option 'foo'" in err.value.args[0]
+
+
 def test_exec_raises_on_dtype():
     dtype = np.float32
     complex_dtype = np.complex64
