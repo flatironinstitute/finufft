@@ -84,8 +84,6 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 	}
-	//checkCudaErrors(cudaMalloc(&d_plan->fk,maxbatchsize*ms*mt*
-	//	sizeof(CUCPX)));
 
 	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->opts.gpu_nstreams*
 		sizeof(cudaStream_t));
@@ -111,6 +109,9 @@ int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan)
         cudaSetDevice(d_plan->opts.gpu_device_id);
 
 	int M = d_plan->M;
+
+        if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
+        if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
 
 	switch(d_plan->opts.gpu_method)
 	{
@@ -329,6 +330,10 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
 	int M = d_plan->M;
 
 	d_plan->byte_now=0;
+
+        if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
+        if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
+
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
