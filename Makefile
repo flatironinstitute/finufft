@@ -116,10 +116,12 @@ all: $(BINDIR)/spread2d_test \
 	$(BINDIR)/cufinufft2d2_test \
 	$(BINDIR)/cufinufft2d1many_test \
 	$(BINDIR)/cufinufft2d2many_test \
+	$(BINDIR)/cufinufft2d1nupts_test \
 	$(BINDIR)/cufinufft2d1_test_32 \
 	$(BINDIR)/cufinufft2d2_test_32 \
 	$(BINDIR)/cufinufft2d1many_test_32 \
 	$(BINDIR)/cufinufft2d2many_test_32 \
+	$(BINDIR)/cufinufft2d1nupts_test_32 \
 	$(BINDIR)/spread3d_test \
 	$(BINDIR)/spread3d_test_32 \
 	$(BINDIR)/interp3d_test \

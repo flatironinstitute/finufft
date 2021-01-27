@@ -110,8 +110,8 @@ int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan)
 
 	int M = d_plan->M;
 
-        if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
-        if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
+	if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
+	if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
 
 	switch(d_plan->opts.gpu_method)
 	{
@@ -331,8 +331,8 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
 
 	d_plan->byte_now=0;
 
-        if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
-        if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
+	if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
+	if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
 
 	switch(d_plan->opts.gpu_method)
 	{
