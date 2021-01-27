@@ -624,7 +624,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 
 	/* following options are for gpu */
 	opts->gpu_nstreams = 0;
-	opts->gpu_kerevalmeth = 1; // using Horner ppval
+	opts->gpu_kerevalmeth = 0; // using exp(sqrt())
 	opts->gpu_sort = 1; // access nupts in an ordered way for nupts driven method
 
 	opts->gpu_maxsubprobsize = 1024;
