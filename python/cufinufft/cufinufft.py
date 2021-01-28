@@ -51,13 +51,15 @@ class cufinufft:
         in 1, 2, or 3 dimensions.
         :param n_trans: Number of transforms, defaults to 1.
         :param eps: Precision requested (>1e-16).
-        :param isign: 1 or -1, controls sign of imaginary component output.
-        :param opts: Optionally, supply opts struct (untested).
+        :param isign: +1 or -1, controls sign of imaginary component in
+        complex exponential. Default is -1 for type 1 and +1 for type 2.
         :param dtype: Datatype for this plan (np.float32 or np.float64). \
         Defaults np.float32.
+        :param **kwargs: Additional options corresponding to the entries in \
+        the nufft_opts structure may be specified as keyword-only arguments.
 
         :return: cufinufft instance of the correct dtype, \
-        ready for point setting, and execution.
+        ready for point setting and execution.
         """
 
         if isign is None:
