@@ -170,6 +170,7 @@ check: all
 	$(MAKE) api
 	$(MAKE) check2D
 	$(MAKE) check3D
+	$(MAKE) check_examples
 
 api: all
 	bin/cufinufft2d2api_test
