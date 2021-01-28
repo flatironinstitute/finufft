@@ -77,11 +77,11 @@ int main(int argc, char* argv[])
 	ier=cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol,
 				maxbatchsize, &dplan, NULL);
 
-	ier=cufinufftf_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=cufinufftf_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, dplan);
 
-	ier=cufinufftf_execute(d_c, d_fk, &dplan);
+	ier=cufinufftf_execute(d_c, d_fk, dplan);
 
-	ier=cufinufftf_destroy(&dplan);
+	ier=cufinufftf_destroy(dplan);
 
 	cudaMemcpy(fk,d_fk,N1*N2*ntransf*sizeof(cuFloatComplex),cudaMemcpyDeviceToHost);
 
