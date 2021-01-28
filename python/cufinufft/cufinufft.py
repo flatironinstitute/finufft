@@ -104,7 +104,7 @@ class cufinufft:
         self.modes = (c_int * 3)(*modes)
 
         # Get the default option values.
-        self.opts = self.default_opts(nufft_type, self.dim)
+        self.opts = self._default_opts(nufft_type, self.dim)
 
         # Extract list of valid field names.
         field_names = [name for name, _ in self.opts._fields_]
@@ -120,7 +120,7 @@ class cufinufft:
         self._plan()
 
     @staticmethod
-    def default_opts(nufft_type, dim):
+    def _default_opts(nufft_type, dim):
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
 
