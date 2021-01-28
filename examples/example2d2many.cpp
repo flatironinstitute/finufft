@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)
 				ct += fkstart[m++] * exp(J*(m1*x[jt] + m2*y[jt]));   // crude direct
 
-		printf("[gpu %3d] one targ: rel err in c[%ld] is %.3g\n",t,(int)jt,abs(cstart[jt]-ct)/infnorm(M,c));
+		printf("[gpu %3d] one targ: rel err in c[%d] is %.3g\n",t,jt,abs(cstart[jt]-ct)/infnorm(M,c));
 	}
 
 	cudaFreeHost(x);
