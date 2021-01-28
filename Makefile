@@ -134,6 +134,12 @@ all: $(BINDIR)/spread2d_test \
 	$(BINDIR)/cufinufft2d2api_test_32 \
 	lib
 
+examples: $(BINDIR)/example2d1many \
+	$(BINDIR)/example2d2many
+
+$(BINDIR)/example%: examples/example%.cpp $(DYNAMICLIB) $(HEADERS)
+	mkdir -p $(BINDIR)
+	$(NVCC) $(NVCCFLAGS) $(INC) $(LIBS) -o $@ $< $(DYNAMICLIB)
 
 $(BINDIR)/cufinufft2d2api_test%: test/cufinufft2d2api_test%.o $(DYNAMICLIB)
 	mkdir -p $(BINDIR)
@@ -295,6 +301,10 @@ check3D_32: all
 	bin/cufinufft3d1_test_32 4 1e2 2e2 3e2 1e4
 	bin/cufinufft3d2_test_32 1 1e2 2e2 3e2
 	bin/cufinufft3d2_test_32 2 1e2 2e2 3e2
+
+check_examples: examples
+	$(BINDIR)/example2d1many
+	$(BINDIR)/example2d2many
 
 # Python, some users may want to use pip3 here.
 python:
