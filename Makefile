@@ -29,7 +29,7 @@ NVARCH ?= -arch=sm_70 \
 	  -gencode=arch=compute_75,code=sm_75 \
 	  -gencode=arch=compute_75,code=compute_75
 
-CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native -g
+CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native
 CXXFLAGS  ?= $(CFLAGS) -std=c++14
 NVCCFLAGS ?= -std=c++14 -ccbin=$(CXX) -O3 $(NVARCH) -Wno-deprecated-gpu-targets \
 	     --default-stream per-thread -Xcompiler "$(CXXFLAGS)"
