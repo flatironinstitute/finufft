@@ -84,8 +84,6 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
 		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
 	}
-	//checkCudaErrors(cudaMalloc(&d_plan->fk,maxbatchsize*ms*mt*
-	//	sizeof(CUCPX)));
 
 	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->opts.gpu_nstreams*
 		sizeof(cudaStream_t));
@@ -111,11 +109,10 @@ int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan)
         cudaSetDevice(d_plan->opts.gpu_device_id);
 
 	int M = d_plan->M;
-	//int maxbatchsize = d_plan->maxbatchsize;
 
-	//checkCudaErrors(cudaMalloc(&d_plan->kx,M*sizeof(FLT)));
-	//checkCudaErrors(cudaMalloc(&d_plan->ky,M*sizeof(FLT)));
-	//checkCudaErrors(cudaMalloc(&d_plan->c,maxbatchsize*M*sizeof(CUCPX)));
+	if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
+	if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
+
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -232,16 +229,13 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
         cudaGetDevice(& orig_gpu_device_id);
         cudaSetDevice(d_plan->opts.gpu_device_id);
 
-	//int ms = d_plan->ms;
-	//int mt = d_plan->mt;
-	//int mu = d_plan->mu;
 	int nf1 = d_plan->nf1;
 	int nf2 = d_plan->nf2;
 	int nf3 = d_plan->nf3;
 	int maxbatchsize = d_plan->maxbatchsize;
 
 	d_plan->byte_now=0;
-	// No extra memory is needed in nuptsdriven method;
+
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -334,9 +328,12 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
         cudaSetDevice(d_plan->opts.gpu_device_id);
 
 	int M = d_plan->M;
-	// int maxbatchsize = d_plan->maxbatchsize;
 
 	d_plan->byte_now=0;
+
+	if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
+	if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
+
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -360,8 +357,6 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
 		default:
 			cerr << "err: invalid method" << endl;
 	}
-
-	// checkCudaErrors(cudaMalloc(&d_plan->c,maxbatchsize*M*sizeof(CUCPX)));
 
         // Multi-GPU support: reset the device ID
         cudaSetDevice(orig_gpu_device_id);
@@ -425,8 +420,6 @@ void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
 			}
 			break;
 	}
-
-        // checkCudaErrors(cudaFree(d_plan->c));
 
 	for(int i=0; i<d_plan->opts.gpu_nstreams; i++)
 		checkCudaErrors(cudaStreamDestroy(d_plan->streams[i]));
