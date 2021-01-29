@@ -1,7 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
 * Warning: Following are Python interface changes -- not backwards compatible
-  with v 1.1 (See python/cufinufft/example for updated usage)
+  with v 1.1 (See examples/example2d1,2many.py for updated usage)
 
     - Made opts a kwarg dict instead of an object:
          def __init__(self, ... , opts=None, dtype=np.float32)
@@ -10,7 +10,7 @@ List of features / changes made / release notes, in reverse chronological order
          ntransforms => n_trans, tol => eps
     - Changed order of arguments in plan creation `__init__`:
          def __init__(self, ... ,isign, eps, ntransforms, opts, dtype)
-      => def __init__(self, ,,, ,ntransforms, eps, isign, opts, dtype)
+      => def __init__(self, ... ,ntransforms, eps, isign, opts, dtype)
     - Removed M in `set_pts` arguments:
          def set_pts(self, M, kx, ky=None, kz=None)
       => def set_pts(self, kx, ky=None, kz=None)
