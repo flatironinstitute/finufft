@@ -108,11 +108,18 @@ CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 %.o: %.cu $(HEADERS)
 	$(NVCC) --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 
-all: $(BINDIR)/spread2d_test \
-    $(BINDIR)/spread2d_test_32 \
+spreadtest: $(BINDIR)/spread2d_test \
+	$(BINDIR)/spread2d_test_32 \
 	$(BINDIR)/interp2d_test \
 	$(BINDIR)/interp2d_test_32 \
-	$(BINDIR)/cufinufft2d1_test \
+	$(BINDIR)/spread3d_test \
+	$(BINDIR)/spread3d_test_32 \
+	$(BINDIR)/interp3d_test \
+	$(BINDIR)/interp3d_test_32
+	@echo "Running spread/interp only tests..."
+	(cd test; ./spreadperf.sh)
+
+all:	$(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft2d2_test \
 	$(BINDIR)/cufinufft2d1many_test \
 	$(BINDIR)/cufinufft2d2many_test \
@@ -120,10 +127,6 @@ all: $(BINDIR)/spread2d_test \
 	$(BINDIR)/cufinufft2d2_test_32 \
 	$(BINDIR)/cufinufft2d1many_test_32 \
 	$(BINDIR)/cufinufft2d2many_test_32 \
-	$(BINDIR)/spread3d_test \
-	$(BINDIR)/spread3d_test_32 \
-	$(BINDIR)/interp3d_test \
-	$(BINDIR)/interp3d_test_32 \
 	$(BINDIR)/cufinufft3d1_test \
 	$(BINDIR)/cufinufft3d2_test \
 	$(BINDIR)/cufinufft3d1_test_32 \
@@ -131,7 +134,6 @@ all: $(BINDIR)/spread2d_test \
 	$(BINDIR)/cufinufft2d2api_test \
 	$(BINDIR)/cufinufft2d2api_test_32 \
 	lib
-
 
 $(BINDIR)/cufinufft2d2api_test%: test/cufinufft2d2api_test%.o $(DYNAMICLIB)
 	mkdir -p $(BINDIR)
@@ -311,3 +313,4 @@ clean:
 .PHONY: clean
 .PHONY: lib
 .PHONY: python
+.PHONY: spreadtest

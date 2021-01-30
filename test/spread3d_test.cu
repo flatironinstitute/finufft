@@ -29,8 +29,8 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default nf1 * nf2 * nf3 / 8).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n"
 			"  kerevalmeth: Kernel evaluation method; one of\n"
-			"     0: Exponential of square root, or\n"
-			"     1: Horner evaluation (default).\n"
+			"     0: Exponential of square root (default), or\n"
+			"     1: Horner evaluation.\n"
 			"  sort: One of\n"
 			"     0: do not sort the points, or\n"
 			"     1: sort the points (default).\n");
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 		sscanf(argv[8],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int kerevalmeth=1;
+	int kerevalmeth=0;
 	if(argc>9){
 		sscanf(argv[9],"%d",&kerevalmeth);
 	}
@@ -166,8 +166,8 @@ int main(int argc, char* argv[])
 	char *a;
 	timer.restart();
 	checkCudaErrors(cudaMalloc(&a,1));
-	cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec()
-		<<" s"<<endl<<endl;
+	// cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec()
+	//	<<" s"<<endl<<endl;
 
 
 

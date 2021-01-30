@@ -30,8 +30,8 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default nf1 * nf2 / 4).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n"
 			"  kerevalmeth: Kernel evaluation method; one of\n"
-			"     0: Exponential of square root, or\n"
-			"     1: Horner evaluation (default).\n");
+			"     0: Exponential of square root (default), or\n"
+			"     1: Horner evaluation.\n");
 		return 1;
 	}
 	double w;
@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int kerevalmeth=1;
+	int kerevalmeth=0;
 	if(argc>8){
 		sscanf(argv[8],"%d",&kerevalmeth);
 	}
