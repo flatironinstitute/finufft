@@ -108,16 +108,7 @@ CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 %.o: %.cu $(HEADERS)
 	$(NVCC) --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 
-spreadtest: $(BINDIR)/spread2d_test \
-	$(BINDIR)/spread2d_test_32 \
-	$(BINDIR)/interp2d_test \
-	$(BINDIR)/interp2d_test_32 \
-	$(BINDIR)/spread3d_test \
-	$(BINDIR)/spread3d_test_32 \
-	$(BINDIR)/interp3d_test \
-	$(BINDIR)/interp3d_test_32
-	@echo "Running spread/interp only tests..."
-	(cd test; ./spreadperf.sh)
+default: all
 
 all:	$(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft2d2_test \
@@ -135,7 +126,18 @@ all:	$(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft3d2_test_32 \
 	$(BINDIR)/cufinufft2d2api_test \
 	$(BINDIR)/cufinufft2d2api_test_32 \
-	lib
+	lib spreadtest
+
+spreadtest: $(BINDIR)/spread2d_test \
+	$(BINDIR)/spread2d_test_32 \
+	$(BINDIR)/interp2d_test \
+	$(BINDIR)/interp2d_test_32 \
+	$(BINDIR)/spread3d_test \
+	$(BINDIR)/spread3d_test_32 \
+	$(BINDIR)/interp3d_test \
+	$(BINDIR)/interp3d_test_32
+	@echo "Running spread/interp only tests..."
+	(cd test; ./spreadperf.sh)
 
 examples: $(BINDIR)/example2d1many \
 	$(BINDIR)/example2d2many
