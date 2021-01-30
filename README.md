@@ -8,8 +8,8 @@ and type 2 does the reverse (it is the adjoint, but not inverse, of type 1).
 See the [documentation for FINUFFT][3] for a full description of the transforms and their applications to signal processing, imaging, and scientific computing.
 
 Main developer: **Yu-hsuan Melody Shih** (NYU). Main other contributors:
-Garrett Wright (Princeton), Joakim Andén (KTH/Flatiron). See github for
-full list of contributors.
+Garrett Wright (Princeton), Joakim Andén (KTH/Flatiron), Johannes Blashcke (LBNL).
+See github for full list of contributors.
 This project came out of Melody's 2018 and 2019 summer internships at the Flatiron Institute, advised by CCM project leader Alex Barnett.
 
 
@@ -30,7 +30,12 @@ and consider installing from source if that solution is not adequate for your ne
 
 ### Advanced Makefile Usage
 
-It's possible to specify the target architecture using the `target` variable, eg:
+If you want to test/benchmark the spreader and interpolator
+(the performance-critical components of the NUFFT algorithm),
+without building the whole library, do this with `make spreadtest`.
+
+In general for make tasks,
+it's possible to specify the target architecture using the `target` variable, eg:
 ```
 make target=power9 -j
 ```
