@@ -69,12 +69,14 @@ int main(int argc, char* argv[])
 	int dim=2;
 
 	CUFINUFFT_PLAN dplan = new CUFINUFFT_PLAN_S;
+        // Zero out your struct, (sets all pointers to NULL, crucial)
+        memset(dplan, 0, sizeof(*dplan));
 	ier = CUFINUFFT_DEFAULT_OPTS(2, dim, &(dplan->opts));
 
 	dplan->opts.gpu_method           = method;
 	dplan->opts.gpu_maxsubprobsize   = maxsubprobsize;
 	dplan->opts.gpu_kerevalmeth      = kerevalmeth;
-	dplan->opts.gpu_sort             = 0;
+	dplan->opts.gpu_sort             = 1;   // ahb changed from 0
 	dplan->opts.gpu_spreadinterponly = 1;
 	dplan->opts.gpu_binsizex         = 32; //binsize needs to be set here, since
                                            //SETUP_BINSIZE() is not called in 
