@@ -24,20 +24,49 @@ def test_set_nu_raises_on_dtype():
     # Here we'll intentionally contruct an incorrect array dtype.
     kxyz_gpu_wrong_type = gpuarray.to_gpu(kxyz.astype(np.float64))
 
-    plan = cufinufft(1, shape, 1, tol, dtype=dtype)
+    plan = cufinufft(1, shape, eps=tol, dtype=dtype)
 
     with pytest.raises(TypeError):
-        plan.set_pts(M, kxyz_gpu_wrong_type[0],
+        plan.set_pts(kxyz_gpu_wrong_type[0],
                      kxyz_gpu[1], kxyz_gpu[2])
     with pytest.raises(TypeError):
-        plan.set_pts(M, kxyz_gpu[0],
+        plan.set_pts(kxyz_gpu[0],
                      kxyz_gpu_wrong_type[1], kxyz_gpu[2])
     with pytest.raises(TypeError):
-        plan.set_pts(M, kxyz_gpu[0],
+        plan.set_pts(kxyz_gpu[0],
                      kxyz_gpu[1], kxyz_gpu_wrong_type[2])
     with pytest.raises(TypeError):
-        plan.set_pts(M, kxyz_gpu_wrong_type[0],
+        plan.set_pts(kxyz_gpu_wrong_type[0],
                      kxyz_gpu_wrong_type[1], kxyz_gpu_wrong_type[2])
+
+
+def test_set_pts_raises_on_size():
+    dtype = np.float32
+
+    M = 8
+    tol = 1e-3
+    shape = (16, 16, 16)
+    dim = len(shape)
+
+    kxyz = utils.gen_nu_pts(M, dim=dim).astype(dtype)
+
+    kxyz_gpu = gpuarray.to_gpu(kxyz)
+
+    plan = cufinufft(1, shape, eps=tol, dtype=dtype)
+
+    with pytest.raises(TypeError) as err:
+        plan.set_pts(kxyz_gpu[0], kxyz_gpu[1][:4])
+    assert 'kx and ky must be equal' in err.value.args[0]
+
+    with pytest.raises(TypeError) as err:
+        plan.set_pts(kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2][:4])
+    assert 'kx and kz must be equal' in err.value.args[0]
+
+
+def test_wrong_field_names():
+    with pytest.raises(TypeError) as err:
+        plan = cufinufft(1, (8, 8), foo="bar")
+    assert "Invalid option 'foo'" in err.value.args[0]
 
 
 def test_exec_raises_on_dtype():
@@ -60,9 +89,9 @@ def test_exec_raises_on_dtype():
     # Here we'll intentionally contruct an incorrect array dtype.
     fk_gpu_wrong_dtype = gpuarray.GPUArray(shape, dtype=np.complex128)
 
-    plan = cufinufft(1, shape, 1, tol, dtype=dtype)
+    plan = cufinufft(1, shape, eps=tol, dtype=dtype)
 
-    plan.set_pts(M, kxyz_gpu[0],
+    plan.set_pts(kxyz_gpu[0],
                  kxyz_gpu[1], kxyz_gpu[2])
 
     with pytest.raises(TypeError):

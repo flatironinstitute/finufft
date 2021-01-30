@@ -39,7 +39,7 @@ int setup_spreader(SPREAD_OPTS &opts,FLT eps, FLT upsampfac, int kerevalmeth)
   }
 
   // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
-  int ns = std::ceil(-log10(eps/10.0));   // 1 digit per power of ten
+  int ns = std::ceil(-log10(eps/(FLT)10.0));   // 1 digit per power of ten
   if (upsampfac!=2.0)           // override ns for custom sigma
     ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
   ns = max(2,ns);               // we don't have ns=1 version yet

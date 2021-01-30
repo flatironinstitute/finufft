@@ -77,11 +77,11 @@ int main(int argc, char* argv[])
 	ier=cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol,
 				maxbatchsize, &dplan, NULL);
 
-	ier=cufinufftf_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, &dplan);
+	ier=cufinufftf_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, dplan);
 
-	ier=cufinufftf_execute(d_c, d_fk, &dplan);
+	ier=cufinufftf_execute(d_c, d_fk, dplan);
 
-	ier=cufinufftf_destroy(&dplan);
+	ier=cufinufftf_destroy(dplan);
 
 	cudaMemcpy(fk,d_fk,N1*N2*ntransf*sizeof(cuFloatComplex),cudaMemcpyDeviceToHost);
 
@@ -93,10 +93,10 @@ int main(int argc, char* argv[])
 		for (BIGINT j=0; j<M; ++j)
 			Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
 		int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
-		printf("[gpu %3d] one mode: abs err in F[%ld,%ld] is %.3g\n",i,(int)nt1,
-			(int)nt2,abs(Ft-fk[it+i*N]));
-		printf("[gpu %3d] one mode: rel err in F[%ld,%ld] is %.3g\n",i,(int)nt1,
-			(int)nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
+		printf("[gpu %3d] one mode: abs err in F[%d,%d] is %.3g\n",i,nt1,
+			nt2,abs(Ft-fk[it+i*N]));
+		printf("[gpu %3d] one mode: rel err in F[%d,%d] is %.3g\n",i,nt1,
+			nt2,abs(Ft-fk[it+i*N])/infnorm(N,fk+i*N));
 	}
 
 	cudaFreeHost(x);

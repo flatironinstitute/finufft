@@ -234,17 +234,16 @@ void Spread_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 		eval_kernel_vec(ker2,y1,ns,es_c,es_beta);
 
 		for(int yy=ystart; yy<=yend; yy++){
+			iy = yy+ceil(ns/2.0);
+			if(iy >= (bin_size_y + (int) ceil(ns/2.0)*2) || iy<0) break;
 			for(int xx=xstart; xx<=xend; xx++){
 				ix = xx+ceil(ns/2.0);
-				iy = yy+ceil(ns/2.0);
-				if(ix < (bin_size_x + (int) ceil(ns/2.0)*2) && 
-				   iy < (bin_size_y + (int) ceil(ns/2.0)*2)){
-					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
-					FLT kervalue1 = ker1[xx-xstart];
-					FLT kervalue2 = ker2[yy-ystart];
-					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
-					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
-				}
+				if(ix >= (bin_size_x + (int) ceil(ns/2.0)*2) || ix<0) break;
+				outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
+				FLT kervalue1 = ker1[xx-xstart];
+				FLT kervalue2 = ker2[yy-ystart];
+				atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
+				atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
 			}
 		}
 	}
@@ -315,17 +314,16 @@ void Spread_2d_Subprob_Horner(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 		eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
 
 		for(int yy=ystart; yy<=yend; yy++){
+			iy = yy+ceil(ns/2.0);
+			if(iy >= (bin_size_y + (int) ceil(ns/2.0)*2) || iy<0) break;
 			FLT kervalue2 = ker2[yy-ystart];
 			for(int xx=xstart; xx<=xend; xx++){
-				ix = xx+ (int) ceil(ns/2.0);
-				iy = yy+ (int) ceil(ns/2.0);
-				if(ix < (bin_size_x + (int) ceil(ns/2.0)*2) && 
-				   iy < (bin_size_y + (int) ceil(ns/2.0)*2)){
-					outidx = ix+iy*(bin_size_x+ (int) ceil(ns/2.0)*2);
-					FLT kervalue1 = ker1[xx-xstart];
-					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
-					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
-				}
+				ix = xx+ceil(ns/2.0);
+				if(ix >= (bin_size_x + (int) ceil(ns/2.0)*2) || ix<0) break;
+				outidx = ix+iy*(bin_size_x+ (int) ceil(ns/2.0)*2);
+				FLT kervalue1 = ker1[xx-xstart];
+				atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2);
+				atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2);
 			}
 		}
 	}

@@ -29,7 +29,7 @@ NVARCH ?= -arch=sm_70 \
 	  -gencode=arch=compute_75,code=sm_75 \
 	  -gencode=arch=compute_75,code=compute_75
 
-CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native -g
+CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native
 CXXFLAGS  ?= $(CFLAGS) -std=c++14
 NVCCFLAGS ?= -std=c++14 -ccbin=$(CXX) -O3 $(NVARCH) -Wno-deprecated-gpu-targets \
 	     --default-stream per-thread -Xcompiler "$(CXXFLAGS)"
@@ -123,10 +123,12 @@ all:	$(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft2d2_test \
 	$(BINDIR)/cufinufft2d1many_test \
 	$(BINDIR)/cufinufft2d2many_test \
+	$(BINDIR)/cufinufft2d1nupts_test \
 	$(BINDIR)/cufinufft2d1_test_32 \
 	$(BINDIR)/cufinufft2d2_test_32 \
 	$(BINDIR)/cufinufft2d1many_test_32 \
 	$(BINDIR)/cufinufft2d2many_test_32 \
+	$(BINDIR)/cufinufft2d1nupts_test_32 \
 	$(BINDIR)/cufinufft3d1_test \
 	$(BINDIR)/cufinufft3d2_test \
 	$(BINDIR)/cufinufft3d1_test_32 \
@@ -134,6 +136,13 @@ all:	$(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft2d2api_test \
 	$(BINDIR)/cufinufft2d2api_test_32 \
 	lib
+
+examples: $(BINDIR)/example2d1many \
+	$(BINDIR)/example2d2many
+
+$(BINDIR)/example%: examples/example%.cpp $(DYNAMICLIB) $(HEADERS)
+	mkdir -p $(BINDIR)
+	$(NVCC) $(NVCCFLAGS) $(INC) $(LIBS) -o $@ $< $(DYNAMICLIB)
 
 $(BINDIR)/cufinufft2d2api_test%: test/cufinufft2d2api_test%.o $(DYNAMICLIB)
 	mkdir -p $(BINDIR)
@@ -164,6 +173,7 @@ check: all
 	$(MAKE) api
 	$(MAKE) check2D
 	$(MAKE) check3D
+	$(MAKE) check_examples
 
 api: all
 	bin/cufinufft2d2api_test
@@ -173,6 +183,12 @@ check2D: all check2D_64 check2D_32
 
 check2D_64:
 	@echo Running 2-D cases
+	bin/spread2d_test 1 1 16 16
+	bin/spread2d_test 2 1 16 16
+	bin/spread2d_test 1 1 1024 1024
+	bin/spread2d_test 2 1 1024 1024
+	bin/interp2d_test 1 1 16 16
+	bin/interp2d_test 1 1 1024 1024
 	bin/cufinufft2d1_test 1 8 8
 	bin/cufinufft2d1_test 2 8 8
 	bin/cufinufft2d1_test 1 256 256
@@ -206,6 +222,12 @@ check2D_64:
 
 check2D_32:
 	@echo Running 2-D Single Precision cases
+	bin/spread2d_test_32 1 1 16 16
+	bin/spread2d_test_32 2 1 16 16
+	bin/spread2d_test_32 1 1 1024 1024
+	bin/spread2d_test_32 2 1 1024 1024
+	bin/interp2d_test_32 1 1 16 16
+	bin/interp2d_test_32 1 1 1024 1024
 	bin/cufinufft2d1_test_32 1 8 8
 	bin/cufinufft2d1_test_32 2 8 8
 	bin/cufinufft2d1_test_32 1 256 256
@@ -243,6 +265,10 @@ check3D: all check3D_32 check3D_64
 check3D_64: all
 	@echo Running 3-D Single Precision cases
 	# note test method 2 will fail due to shmem limits
+	bin/spread3d_test 1 1 16 16 16
+	bin/spread3d_test 1 1 512 512 512
+	bin/interp3d_test 1 1 16 16 16
+	bin/interp3d_test 1 1 512 512 512
 	bin/cufinufft3d1_test 1 16 16 16 4096 1e-3
 	bin/cufinufft3d1_test 4 15 15 15 2048 1e-3
 	bin/cufinufft3d2_test 1 16 16 16 4096 1e-3
@@ -256,6 +282,12 @@ check3D_64: all
 
 check3D_32: all
 	@echo Running 3-D Single Precision cases
+	bin/spread3d_test_32 1 1 16 16 16
+	bin/spread3d_test_32 2 1 16 16 16
+	bin/spread3d_test_32 1 1 512 512 512
+	bin/spread3d_test_32 2 1 512 512 512
+	bin/interp3d_test_32 1 1 16 16 16
+	bin/interp3d_test_32 1 1 512 512 512
 	bin/cufinufft3d1_test_32 1 16 16 16 4096 1e-3
 	bin/cufinufft3d1_test_32 2 16 16 16 8192 1e-3
 	bin/cufinufft3d1_test_32 4 15 15 15 2048 1e-3
@@ -273,6 +305,10 @@ check3D_32: all
 	bin/cufinufft3d1_test_32 4 1e2 2e2 3e2 1e4
 	bin/cufinufft3d2_test_32 1 1e2 2e2 3e2
 	bin/cufinufft3d2_test_32 2 1e2 2e2 3e2
+
+check_examples: examples
+	$(BINDIR)/example2d1many
+	$(BINDIR)/example2d2many
 
 # Python, some users may want to use pip3 here.
 python:

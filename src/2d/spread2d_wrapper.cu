@@ -475,7 +475,7 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
 		cudaMemcpyDeviceToHost));
 	cout<<"[debug ]";
 	for(int i=0; i<M; i++){
-		cout <<"point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
+		cout <<"[debug] point["<<setw(3)<<i<<"]="<<setw(3)<<h_sortidx[i]<<endl;
 	}
 
 #endif
@@ -578,6 +578,7 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
 	printf("[debug ] Total number of subproblems = %d\n", h_subprobstartpts[n]);
 	free(h_subprobstartpts);
 #endif
+	cudaEventRecord(start);
 	int totalnumsubprob;
 	checkCudaErrors(cudaMemcpy(&totalnumsubprob,&d_subprobstartpts[n],
 		sizeof(int),cudaMemcpyDeviceToHost));
@@ -585,6 +586,7 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
 	MapBintoSubProb_2d<<<(numbins[0]*numbins[1]+1024-1)/1024, 1024>>>(
 			d_subprob_to_bin,d_subprobstartpts,d_numsubprob,numbins[0]*numbins[1]);
 	assert(d_subprob_to_bin != NULL);
+        if (d_plan->subprob_to_bin != NULL) cudaFree(d_plan->subprob_to_bin);
 	d_plan->subprob_to_bin = d_subprob_to_bin;
 	assert(d_plan->subprob_to_bin != NULL);
 	d_plan->totalnumsubprob = totalnumsubprob;

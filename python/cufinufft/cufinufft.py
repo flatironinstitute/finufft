@@ -38,8 +38,8 @@ class cufinufft:
     The wrapper performs a few very basic conversions,
     and calls the low level library with runtime python error checking.
     """
-    def __init__(self, nufft_type, modes, isign, tol,
-                 ntransforms=1, opts=None, dtype=np.float32):
+    def __init__(self, nufft_type, modes, n_trans=1, eps=1e-6, isign=None,
+                 dtype=np.float32, **kwargs):
         """
         Initialize a dtype bound cufinufft python wrapper.
         This will bind variables/methods
@@ -49,23 +49,28 @@ class cufinufft:
         :param finufft_type: integer 1, 2, or 3.
         :param modes: Array describing the shape of the transform \
         in 1, 2, or 3 dimensions.
-        :param isign: 1 or -1, controls sign of imaginary component output.
-        :param tol: Floating point tolerance.
-        :param ntransforms: Number of transforms, defaults to 1.
-        :param opts: Optionally, supply opts struct (untested).
+        :param n_trans: Number of transforms, defaults to 1.
+        :param eps: Precision requested (>1e-16).
+        :param isign: +1 or -1, controls sign of imaginary component in
+        complex exponential. Default is -1 for type 1 and +1 for type 2.
         :param dtype: Datatype for this plan (np.float32 or np.float64). \
         Defaults np.float32.
+        :param **kwargs: Additional options corresponding to the entries in \
+        the nufft_opts structure may be specified as keyword-only arguments.
 
         :return: cufinufft instance of the correct dtype, \
-        ready for point setting, and execution.
+        ready for point setting and execution.
         """
 
-        # Note when None, opts will be populated with defaults by
-        # the library internally.  Advanced users may use
-        # `cufinufft.default_opts` to generate defaults and overload them
-        # before instantiating their cufinufft instances,
-        #  but this is currently undocumented.
-        self.opts = opts
+        if isign is None:
+            if nufft_type == 2:
+                isign = -1
+            else:
+                isign = +1
+
+        # Need to set the plan here in case something goes wrong later on,
+        # otherwise we error during __del__.
+        self.plan = None
 
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
@@ -88,20 +93,34 @@ class cufinufft:
         self.dim = len(modes)
         self._finufft_type = nufft_type
         self.isign = isign
-        self.tol = float(tol)
-        self.ntransforms = ntransforms
+        self.eps = float(eps)
+        self.n_trans = n_trans
         self._maxbatch = 1    # TODO: optimize this one day
 
-        modes = modes + (1,) * (3 - self.dim)
-        modes = (c_int * 3)(*modes)
-        self.modes = modes
+        # We extend the mode tuple to 3D as needed,
+        #   and reorder from C/python ndarray.shape style input (nZ, nY, nX)
+        #   to the (F) order expected by the low level library (nX, nY, nZ).
+        modes = modes[::-1] + (1,) * (3 - self.dim)
+        self.modes = (c_int * 3)(*modes)
 
-        # Initialize the plan for this instance
-        self.plan = None
+        # Get the default option values.
+        self.opts = self._default_opts(nufft_type, self.dim)
+
+        # Extract list of valid field names.
+        field_names = [name for name, _ in self.opts._fields_]
+
+        # Assign field names from kwargs if they match up, otherwise error.
+        for k, v in kwargs.items():
+            if k in field_names:
+                setattr(self.opts, k, v)
+            else:
+                raise TypeError(f"Invalid option '{k}'")
+
+        # Initialize the plan.
         self._plan()
 
     @staticmethod
-    def default_opts(nufft_type, dim):
+    def _default_opts(nufft_type, dim):
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
 
@@ -132,8 +151,8 @@ class cufinufft:
                               self.dim,
                               self.modes,
                               self.isign,
-                              self.ntransforms,
-                              self.tol,
+                              self.n_trans,
+                              self.eps,
                               1,
                               byref(self.plan),
                               self.opts)
@@ -141,14 +160,13 @@ class cufinufft:
         if ier != 0:
             raise RuntimeError('Error creating plan.')
 
-    def set_pts(self, M, kx, ky=None, kz=None):
+    def set_pts(self, kx, ky=None, kz=None):
         """
         Sets non uniform points of the correct dtype.
 
         Note kx, ky, kz are required for 1, 2, and 3
         dimensional cases respectively.
 
-        :param M: Number of points
         :param kx: Array of x points.
         :param ky: Array of y points.
         :param kz: Array of z points.
@@ -166,15 +184,33 @@ class cufinufft:
             raise TypeError("cufinufft plan.dtype and "
                             "kz dtypes do not match.")
 
-        kx = kx.ptr
+        M = kx.size
+
+        if ky and ky.size != M:
+            raise TypeError("Number of elements in kx and ky must be equal")
+
+        if kz and kz.size != M:
+            raise TypeError("Number of elements in kx and kz must be equal")
+
+        # Because FINUFFT/cufinufft are internally column major,
+        #   we will reorder the pts axes. Reordering references
+        #   save us from having to actually transpose signal data
+        #   from row major (Python default) to column major.
+        #   We do this by following translation:
+        #     (x, None, None) ~>  (x, None, None)
+        #     (x, y, None)    ~>  (y, x, None)
+        #     (x, y, z)       ~>  (z, y, x)
+        # Via code, we push each dimension onto a stack of axis
+        fpts_axes = [kx.ptr, None, None]
 
         if ky is not None:
-            ky = ky.ptr
+            fpts_axes.insert(0, ky.ptr)
 
         if kz is not None:
-            kz = kz.ptr
+            fpts_axes.insert(0, kz.ptr)
 
-        ier = self._set_pts(M, kx, ky, kz, 0, None, None, None, self.plan)
+        # Then take three items off the stack as our reordered axis.
+        ier = self._set_pts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')

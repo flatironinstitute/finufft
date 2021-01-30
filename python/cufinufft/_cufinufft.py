@@ -87,7 +87,9 @@ def _get_NufftOpts():
         ('gpu_obinsizez', c_int),
         ('gpu_maxsubprobsize', c_int),
         ('gpu_nstreams', c_int),
-        ('gpu_kerevalmeth', c_int)]
+        ('gpu_kerevalmeth', c_int),
+        ('gpu_spreadinterponly', c_int),
+        ('gpu_device_id', c_int)]
     return fields
 
 
