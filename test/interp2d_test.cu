@@ -27,16 +27,11 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default nf1 * nf2 / 4).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n"
 			"  kerevalmeth: Kernel evaluation method; one of\n"
-<<<<<<< HEAD
 			"     0: Exponential of square root (default), or\n"
-			"     1: Horner evaluation.\n");
-=======
-			"     0: Exponential of square root, or\n"
-			"     1: Horner evaluation (default).\n"
+			"     1: Horner evaluation.\n"
 			"  sort: One of\n"
 			"     0: do not sort the points, or\n"
 			"     1: sort the points (default).\n");
->>>>>>> master
 		return 1;
 	}
 	double w;
