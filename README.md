@@ -30,7 +30,12 @@ and consider installing from source if that solution is not adequate for your ne
 
 ### Advanced Makefile Usage
 
-It's possible to specify the target architecture using the `target` variable, eg:
+If you want to test/benchmark the spreader and interpolator
+(the performance-critical components of the NUFFT algorithm),
+without building the whole library, do this with `make checkspread`.
+
+In general for make tasks,
+it's possible to specify the target architecture using the `target` variable, eg:
 ```
 make target=power9 -j
 ```
