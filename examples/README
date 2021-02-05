@@ -1,0 +1,15 @@
+Examples of cuFINUFFT usage in C++ and Python
+
+Here we show 2D transforms of type 1 and 2, being performed, and tested,
+in C++, and in Python. In each case, a batch of transforms is done with
+new coefficients or weights, but the same set of nonuniform points; this
+explains the suffix "many" in the code names. You may set ntransf=1 to
+perform a single transform. Default options are used. In each case the
+four steps (plan, setpts, execute, destroy) are used. A math test is also
+performed; see the FINUFFT documentation for the definitions of the
+transforms: https://finufft.readthedocs.io/en/latest/math.html
+
+For more usage examples see:
+
+../test/cufinufft*.cu
+../python/cufinufft/tests/*.py
