@@ -90,6 +90,8 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	        precision)
 	maxbatchsize	when ntransf>1, size of batch of data vectors to perform
 			cuFFT on. (default is 0, which chooses a heuristic.)
+	opts	pointer to optional advanced options struct. If NULL, use defaults.
+		See cufinufft_default_opts for the non-NULL case.
 
 	Input/Output:
 	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft_eitherprec.h)
@@ -97,7 +99,7 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 	        inside the plan are set and allocated
 
 	Melody Shih 07/25/19
-	doc updated, Barnett, 9/22/20.
+	doc updated, Barnett, 9/22/20, 2/5/21.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
@@ -309,7 +311,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	d_plan            pointer to a CUFINUFFT_PLAN_S. Variables and arrays inside
 	                  the plan are set and allocated.
 
-	Melody Shih 07/25/19
+	Notes: the type FLT means either single or double, matching the
+	precision of the library version called.
+
+	Melody Shih 07/25/19; Barnett 2/5/21.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
@@ -484,10 +489,12 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 	      Type 2; output for Type 1)
 
 	Notes:
-	For now, we assume both h_c, h_fk arrays are on cpu so this stage includes
+	i) For now, we assume both h_c, h_fk arrays are on cpu so this stage includes
     copying the arrays from/to cpu to/from gpu.
+        ii) Here CPX is a defined type meaning either complex<float> or complex<double>
+	    to match the precision of the library called.
 
-	Melody Shih 07/25/19
+	Melody Shih 07/25/19; Barnett 2/5/21.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
@@ -606,17 +613,19 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 
 int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 /*
-	"default_opts" stage:
+	Sets the default options in cufinufft_opts. This must be called
+	before the user changes any options from default values.
+	The resulting struct may then be passed (instead of NULL) to the last
+	argument of cufinufft_plan().
 
-	In this stage, the default options in cufinufft_opts are set.
-  Options with prefix "gpu_" are used for gpu code.
+	Options with prefix "gpu_" are used for gpu code.
 
 	Notes:
 	Values set in this function for different type and dimensions are preferable
 	based on experiments. User can experiement with different settings by
 	replacing them after calling this function.
 
-	Melody Shih 07/25/19
+	Melody Shih 07/25/19; Barnett 2/5/21.
 */
 {
 	int ier;
