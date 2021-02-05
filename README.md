@@ -38,10 +38,10 @@ Please see the codes in `examples/` to see how to call cuFINUFFT
 and link to from C++, and to call from Python.
 
 The standard use of the cuFINUFFT API has four stages:
- - Planning one or more transforms - ```ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, NULL); ```
- - Set the locations of non-uniform points `x`, `y`, and possibly `z` - ```ier=cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, dplan);```
- - Apply the transformation (input `c` to output `fk` for type 1, or vice versa for type 2) - ```ier=cufinufft_execute(c, fk, dplan); ```
- - Destroy the plan (clean up) - ```ier=cufinufft_destroy(dplan);```
+1. Planning one or more transforms - ```ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, NULL); ```
+1. Set the locations of non-uniform points `x`, `y`, and possibly `z` - ```ier=cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, dplan);```
+1. Apply the transformation (input `c` to output `fk` for type 1, or vice versa for type 2) - ```ier=cufinufft_execute(c, fk, dplan); ```
+1. Destroy the plan (clean up) - ```ier=cufinufft_destroy(dplan);```
 
 It is also possible to change advanced options by changing the last `NULL`
 argument of the above `cufinufft_makeplan` call to a pointer
