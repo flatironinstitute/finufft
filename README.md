@@ -40,10 +40,7 @@ and link to from C++, and to call from Python.
 The default use of the cuFINUFFT API has four stages, that match
 those of the plan interface to FINUFFT (in turn modeled on those of,
 eg, FFTW or NFFT):
-1. Plan one transform, or a set of transforms sharing nonuniform points: 
-```
-ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, NULL);
-```
+1. Plan one transform, or a set of transforms sharing nonuniform points: ```ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, NULL); ```
 1. Set the locations of nonuniform points `x`, `y`, and possibly `z`: 
 ```
 ier=cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, dplan);
