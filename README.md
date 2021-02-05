@@ -37,14 +37,30 @@ and consider installing from source if that solution is not adequate for your ne
 Please see the codes in `examples/` to see how to call cuFINUFFT
 and link to from C++, and to call from Python.
 
-The standard use of the cuFINUFFT API has four stages:
-1. Planning one or more transforms - ```ier=cufinufft_makeplan(type1, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, NULL); ```
-1. Set the locations of non-uniform points `x`, `y`, and possibly `z` - ```ier=cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, dplan);```
-1. Apply the transformation (input `c` to output `fk` for type 1, or vice versa for type 2) - ```ier=cufinufft_execute(c, fk, dplan); ```
-1. Destroy the plan (clean up) - ```ier=cufinufft_destroy(dplan);```
+The default use of the cuFINUFFT API has four stages, that match
+those of the plan interface to FINUFFT (in turn modeled on those of,
+eg, FFTW or NFFT):
+1. Plan one transform, or a set of transforms sharing nonuniform points: 
+```
+ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, NULL);
+```
+1. Set the locations of nonuniform points `x`, `y`, and possibly `z`: 
+```
+ier=cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, dplan);
+```
+(Here arguments 5-8 are reserved for future type 3 implementation, to
+match the FINUFFT interface).
+1. Perform the transform(s), taking input `c` to output 'fk` for type 1, or vice versa for type 2:
+```
+ier=cufinufft_execute(c, fk, dplan);
+```
+1. Destroy the plan (clean up):
+```
+ier=cufinufft_destroy(dplan);
+```
 
 It is also possible to change advanced options by changing the last `NULL`
-argument of the above `cufinufft_makeplan` call to a pointer
+argument of the `cufinufft_makeplan` call to a pointer
 to an options struct, `opts`.
 This struct should first be initialized via
 ```cufinufft_default_opts(type, dim, &opts);```
