@@ -1,6 +1,12 @@
 FROM quay.io/pypa/manylinux2010_x86_64
 LABEL maintainer "Garrett Wright"
 
+# ---- CentOS 6 has been deprecated.
+# We'll need to patch the repo links to point to the CentOS 6 Vault
+COPY ci/docker/cuda10.1/vault.repo /etc/yum.repos.d/CentOS-Base.repo
+COPY ci/docker/cuda10.1/CentOS-SCLo-scl-rh.repo /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo
+COPY ci/docker/cuda10.1/CentOS-SCLo-scl.repo  /etc/yum.repos.d/CentOS-SCLo-scl.repo 
+
 # ---- The following block adds layers for CUDA --- #
 # base
 RUN NVIDIA_GPGKEY_SUM=d1be581509378368edeec8c1eb2958702feedf3bc3d17011adbf24efacce4ab5 && \
