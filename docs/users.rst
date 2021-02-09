@@ -57,7 +57,7 @@ Papers or codes using our new ES window (spreading) function but not the whole F
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
 
-#. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/ift/nifty_gridder
+#. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
 
 
    
