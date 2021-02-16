@@ -1,7 +1,6 @@
 # cuFINUFFT documentation for C++/CUDA usage
 
-There are four steps needed to call cuFINUFFT from C++:
-1) making a plan, 2) setting the nonuniform points in this plan, 3) executing one or more transforms using the current nonuniform points,
+There are four steps needed to call cuFINUFFT from C++: 1) making a plan, 2) setting the nonuniform points in this plan, 3) executing one or more transforms using the current nonuniform points,
 then when all is done 4) destroying the plan.
 The simplest case is to call them in order, ie, 1234. However, it is possible to repeat 3 with
 new strength/coefficient data, or to repeat 2 to choose new nonuniform points
@@ -31,6 +30,8 @@ and (possibly) an options struct, this creates a new plan object.
 ```c++
 int cufinufft_makeplan(int type, int dim, int* nmodes, int iflag, int ntransf, double tol,
         int maxbatchsize, cufinufft_plan *plan, cufinufft_opts *opts)
+```
+```c++
 int cufinufftf_makeplan(int type, int dim, int* nmodes, int iflag, int ntransf, single tol,
         int maxbatchsize, cufinufftf_plan *plan, cufinufft_opts *opts)
 ```
@@ -64,9 +65,12 @@ int cufinufftf_makeplan(int type, int dim, int* nmodes, int iflag, int ntransf, 
         status flag, 0 if success, otherwise an error occurred
 ```
 
-Note: under the hood, a plan is simply a pointer to a `cufinufft_plan_s` struct (in double
-precision, or `cufinufftf_plan_s` struct in single). This struct contains the actual
-planning arrays. This extra level of indirection leads to a simpler interface, and
+Note: under the hood, in double precision,
+a `cufinufft_plan` object is simply a pointer to a `cufinufft_plan_s`
+struct (or in single precision, a `cufinufftf_plan` is a pointer to a
+`cufinufftf_plan_s` struct). The struct contains the actual
+planning arrays, some of which live on the GPU.
+This extra level of indirection leads to a simpler interface, and
 follows the approach of FFTW and FINUFFT.
 See definitions in `include/cufinufft_eitherprec.h`
 
@@ -81,6 +85,8 @@ through these points.
 ```c++
 int cufinufft_setpts(int M, double* x, double* y, double* z, int N, double* s,
 	double* t, double *u, cufinufft_plan plan)
+```
+```c++
 int cufinufftf_setpts(int M, single* x, single* y, single* z, int N, single* s,
 	single* t, single *u, cufinufftf_plan plan)
 ```
@@ -98,7 +104,7 @@ int cufinufftf_setpts(int M, single* x, single* y, single* z, int N, single* s,
 
 	Input/Output:
         
-        plan     cufinufft_plan object (if double prec), or cufinufftf_plan (if single)
+        plan     the actual cufinufft plan object from the above plan stage
 
         Returned value:
         
@@ -106,7 +112,8 @@ int cufinufftf_setpts(int M, single* x, single* y, single* z, int N, single* s,
 ```
 
 Note: The user must not change the contents of the GPU arrays `x`, `y`, or `z` (in 3D case)
-between this step and the below execution step. They are needed in the execution step also.
+between this step and the below execution step. They are read in the execution step also.
+(Not creating local copies of these saves RAM.)
 
 Note: new GPU arrays are allocated and filled in the internal
 plan struct that the plan points to.
