@@ -110,15 +110,11 @@ General Python users, or Python software packages which would like to automatica
 depend on cufinufft using `setuptools` may use a precompiled binary distribution.
 This totally avoids installing from source and managing libraries for supported systems.
 
-Because binary distributions are specific to both hardware and software,
-we currently only support systems covered by `manylinux2010` that are using
-CUDA 10.1, 10.2, or 11.0-rc with a compatible GPU. This is currently the most
-common arrangement.  If you have such a system, you may run:
+Binary distributions are specific to both hardware and software. We currently provide binary wheels targeting Linux systems covered by `manylinux2010` for CUDA 10 and `manylinux2014` for CUDA 11 systems with compatible GPUS. These are currently the most common arrangements.  If you have such a system, you may run:
 
 `pip install cufinufft`
 
 For other cases, the Python wrapper should be able to be built from source.
-We hope to extend this in the future, and have begun work for `manylinux2014`.
  
 ## Advanced topics
 
