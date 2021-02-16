@@ -12,7 +12,7 @@ function repair_wheel {
 
 
 # Compile wheels
-for PYBIN in /opt/python/cp3*/bin; do
+for PYBIN in /opt/python/cp3[6789]*/bin; do
     "${PYBIN}/pip" install -r /io/python/cufinufft/requirements.txt
     "${PYBIN}/pip" install auditwheel pytest
     "${PYBIN}/pip" wheel /io/ --no-deps -w wheelhouse/
@@ -26,7 +26,7 @@ done
 
 
 # Install packages and test
-for PYBIN in /opt/python/cp3*/bin/; do
+for PYBIN in /opt/python/cp3[6789]*/bin/; do
     "${PYBIN}/pip" install cufinufft -f /io/wheelhouse
     "${PYBIN}/python" -m pytest /io/python/cufinufft/tests
 done
