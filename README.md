@@ -6,7 +6,7 @@ cuFINUFFT is a very efficient GPU implementation of the 2- and 3-dimensional non
 
 We are at **version 1.1** (see [CHANGELOG](CHANGELOG)).
 
-We introduce several algorithmic innovations, including load-balancing, bin-sorting for cache-aware access, and use of fast shared memory.
+cuFINUFFT introduces several algorithmic innovations, including load-balancing, bin-sorting for cache-aware access, and use of fast shared memory.
 Our tests show an acceleration over FINUFFT of up to 10x on modern hardware,
 and up to 100x faster than other established GPU NUFFT codes.
 The transforms it performs may be summarized as follows: type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
