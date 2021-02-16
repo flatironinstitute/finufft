@@ -1,6 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
-
+v 1.2beta:
+	
 * Warning: Following are Python interface changes -- not backwards compatible
   with v 1.1 (See examples/example2d1,2many.py for updated usage)
 
@@ -16,9 +17,9 @@ List of features / changes made / release notes, in reverse chronological order
          def set_pts(self, M, kx, ky=None, kz=None)
       => def set_pts(self, kx, ky=None, kz=None)
 
-* Python: added multi-gpu support
+* Python: added multi-gpu support (in beta)
 * Python: added more unit tests (wrong input, kwarg args, multi-gpu)
-* Fixed various memory leak.
+* Fixed various memory leaks
 * Added index bound check in 2D spread kernels (Spread_2d_Subprob(_Horner))
 * Added spread/interp tests to `make check`
 * Fixed user request tolerance (eps) to kernel width (w) calculation
