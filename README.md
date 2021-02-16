@@ -79,7 +79,7 @@ to an options struct, `opts`.
 This struct should first be initialized via
 ```cufinufft_default_opts(type, dim, &opts);```
 before the user changes any fields.
-For examples of such advanced usage, see `test/cufinufft*.cu`
+For examples of this advanced usage, see `test/cufinufft*.cu`
 
 
 ## Library installation

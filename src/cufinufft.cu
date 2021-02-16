@@ -470,10 +470,12 @@ Notes: the type FLT means either single or double, matching the
 
 int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 /*
-	"exec" stage:
+	"exec" stage (single and double precision versions).
 
-	The actual transformation is done in this stage. Type and dimension of the
-	transformantion are defined in d_plan in previous stages.
+	The actual transformation is done here. Type and dimension of the
+	transformation are defined in d_plan in previous stages.
+
+        See ../docs/cppdoc.md for main user-facing documentation.
 
 	Input/Output:
 	d_c   a size d_plan->M CPX array on gpu (input for Type 1; output for Type
@@ -482,12 +484,11 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 	      Type 2; output for Type 1)
 
 	Notes:
-	i) For now, we assume both h_c, h_fk arrays are on cpu so this stage includes
-    copying the arrays from/to cpu to/from gpu.
-        ii) Here CPX is a defined type meaning either complex<float> or complex<double>
+        i) Here CPX is a defined type meaning either complex<float> or complex<double>
 	    to match the precision of the library called.
+        ii) All operations are done on the GPU device (hence the d_* names)
 
-	Melody Shih 07/25/19; Barnett 2/5/21.
+	Melody Shih 07/25/19; Barnett 2/16/21.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
@@ -539,12 +540,13 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 
 int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 /*
-	"destroy" stage:
+	"destroy" stage (single and double precision versions).
 
 	In this stage, we
 		(1) free all the memories that have been allocated on gpu
 		(2) delete the cuFFT plan
 
+        Also see ../docs/cppdoc.md for main user-facing documentation.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
