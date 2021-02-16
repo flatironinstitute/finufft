@@ -37,7 +37,7 @@ and consider installing from source if that solution is not adequate for your ne
  - You may then want to try individual test drivers, such as `bin/cufinufft2d1_test_32 2 1e3 1e3 1e7 1e-3` which tests the single-precision 2D type 1. Most such executables document their usage when called with no arguments.
 
 
-## Usage and interface
+## Basic usage and interface
 
 Please see the codes in `examples/` to see how to call cuFINUFFT
 and link to from C++/CUDA, and to call from Python.
@@ -58,7 +58,7 @@ eg, FFTW or NFFT). Here they are from C++:
     ```
 
    (Note that here arguments 5-8 are reserved for future type 3 implementation, to match the FINUFFT interface).
-1. Perform the transform(s), which reads strengths `c` and writes into modes `fk` for type 1, or vice versa for type 2:
+1. Perform the transform(s) using these nonuniform point arrays, which reads strengths `c` and writes into modes `fk` for type 1, or vice versa for type 2:
 
     ```c++
     ier = cufinufft_execute(c, fk, plan);
@@ -71,8 +71,7 @@ eg, FFTW or NFFT). Here they are from C++:
     ```
 
 In each case the returned integer `ier` is a status indicator.
-For the full documentation, please see the source for these four functions
-at [`src/cufinufft.cu`](https://github.com/flatironinstitute/cufinufft/blob/master/src/cufinufft.cu)
+Here is [the full C++ documentation](docs/cppdoc.md).
 
 It is also possible to change advanced options by changing the last `NULL`
 argument of the `cufinufft_makeplan` call to a pointer
