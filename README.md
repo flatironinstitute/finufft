@@ -1,11 +1,13 @@
-# cuFINUFFT v1.1
+# cuFINUFFT
 
 <img align="right" src="docs/logo.png" width="350">
 
 cuFINUFFT is a very efficient GPU implementation of the 2- and 3-dimensional nonuniform FFT of types 1 and 2, in single and double precision, based on the CPU code [FINUFFT][1].
 
+We are at _version 1.1_.
+
 We introduce several algorithmic innovations, including load-balancing, bin-sorting for cache-aware access, and use of fast shared memory.
-Our tests show an acceleration above FINUFFT of up to 10x on modern hardware,
+Our tests show an acceleration over FINUFFT of up to 10x on modern hardware,
 and up to 100x faster than other established GPU NUFFT codes.
 The transforms it performs may be summarized as follows: type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
 whereas type 2 does the adjoint operation (which is not generally the inverse of type 1).
@@ -43,31 +45,32 @@ and link to from C++/CUDA, and to call from Python.
 The default use of the cuFINUFFT API has four stages, that match
 those of the plan interface to FINUFFT (in turn modeled on those of,
 eg, FFTW or NFFT). Here they are from C++:
-1. Plan one transform, or a set of transforms sharing nonuniform points:
+1. Plan one transform, or a set of transforms sharing nonuniform points, specifying overall dimension, numbers of Fourier modes, etc:
 
     ```c++
-    ier=cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &plan, NULL);
+    ier = cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &plan, NULL);
     ```
 
-1. Set the locations of nonuniform points `x`, `y`, and possibly `z`: 
+1. Set the locations of nonuniform points from the arrays `x`, `y`, and possibly `z`: 
 
     ```c++
-    ier=cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, plan);
+    ier = cufinufft_setpts(M, x, y, z, 0, NULL, NULL, NULL, plan);
     ```
 
    (Note that here arguments 5-8 are reserved for future type 3 implementation, to match the FINUFFT interface).
-1. Perform the transform(s), which take input `c` to output `fk` for type 1, or vice versa for type 2:
+1. Perform the transform(s), which reads strengths `c` and writes into modes `fk` for type 1, or vice versa for type 2:
 
     ```c++
-    ier=cufinufft_execute(c, fk, plan);
+    ier = cufinufft_execute(c, fk, plan);
     ```
 
 1. Destroy the plan (clean up):
 
     ```c++
-    ier=cufinufft_destroy(plan);
+    ier = cufinufft_destroy(plan);
     ```
 
+In each case the returned integer `ier` is a status indicator.
 For the full documentation, please see the source for these four functions
 at [`src/cufinufft.cu`](https://github.com/flatironinstitute/cufinufft/blob/master/src/cufinufft.cu)
 
