@@ -84,22 +84,28 @@ int @G_execute(finufft_plan plan, complex<double>* c, complex<double>* f)
        plan   plan object
 
   Input/Outputs:
-       c      for types 1 and 3, the input strengths (size N1*ntr or N1*N2*ntr
-              or N1*N2*N3*ntr complex array, when dim = 1, 2, or 3 respectively)
-              For type 2, the output values at the nonuniform points (size
-              M*ntr complex array).
-       f      for type 1, the output Fourier mode coefficients (size N1*ntr or
+       c      For types 1 and 3, the input strengths at the nonuniform point
+              sources (size M*ntr complex array).
+              If type 2, the output values at the nonuniform point targets
+              (size M*ntr complex array).
+       f      If type 1, the output Fourier mode coefficients (size N1*ntr or
               N1*N2*ntr or N1*N2*N3*ntr complex array, when dim = 1, 2, or 3
-              respectively). For type 2, the input Fourier mode coefficients
-              (of the same size as for type 1). For type 3, the output values
-              at the nonuniform frequency targets (size N*ntr complex array).
+              respectively).
+              If type 2, the input Fourier mode coefficients (size N1*ntr or
+              N1*N2*ntr or N1*N2*N3*ntr complex array, when dim = 1, 2, or 3
+              respectively).
+              If type 3, the output values at the nonuniform frequency targets
+              (size N*ntr complex array).
               
   Outputs:
 @r
 
   Notes:
-    * The coordinates pointed to by any used arrays x, y, z, s, t, u must
-      not have changed since the finufft_setpts call that inputted them.
+    * The contents of the arrays x, y, z, s, t, u must not have changed since
+      the finufft_setpts call that read them. The execution rereads them
+      (this way of doing business saves RAM).
+    * f and c are contiguous Fortran-style arrays with the transform number,
+      if ntr>1, being the "slowest" (outer) dimension.
 
 
 int @G_destroy(finufft_plan plan)
