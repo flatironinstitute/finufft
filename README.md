@@ -164,6 +164,15 @@ environment. The `site`-specific script is loaded __before__ the
  you may want to specicfy ```NVARCH=-arch=sm_XX``` in your make.inc to reduce compile times,
  or for other performance reasons. See [Matching SM Architectures][2].
 
+## Tasks for developers
+
+- We could use some help to implement 1D versions, and type 3 transforms (which are quite tricky), as in [FINUFFT][1]
+- We need some more tutorial examples in C++ and Python
+- Please help us to write MATLAB (gpuArray) and Julia interfaces
+- Please see Issues for other things you can help fix
+
+
 [1]: https://github.com/flatironinstitute/finufft
 [2]: http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
 [3]: https://finufft.readthedocs.io
+
