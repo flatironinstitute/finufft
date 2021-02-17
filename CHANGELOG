@@ -1,7 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
-v 1.2beta:
-	
+v 1.2 (02/17/21)
+
 * Warning: Following are Python interface changes -- not backwards compatible
   with v 1.1 (See examples/example2d1,2many.py for updated usage)
 
