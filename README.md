@@ -1,10 +1,10 @@
-# cuFINUFFT v1.1
+# cuFINUFFT v1.2
 
 <img align="right" src="docs/logo.png" width="350">
 
 cuFINUFFT is a very efficient GPU implementation of the 2- and 3-dimensional nonuniform FFT of types 1 and 2, in single and double precision, based on the CPU code [FINUFFT][1].
 
-Note that the interface has relative to v1.1. Please see [CHANGELOG](CHANGELOG) for details.
+Note that the interface has relative to v1.2. Please see [CHANGELOG](CHANGELOG) for details.
 
 cuFINUFFT introduces several algorithmic innovations, including load-balancing, bin-sorting for cache-aware access, and use of fast shared memory.
 Our tests show an acceleration over FINUFFT of up to 10x on modern hardware,
