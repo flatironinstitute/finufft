@@ -18,7 +18,7 @@ docker run --gpus all -it -v `pwd`/wheelhouse:/io/wheelhouse -e PLAT=${manylinux
 
 echo "# Create a source distribution (requires a build, so we'll make here)."
 make clean
-make -j
+make target=manylinux -j
 LD_LIBRARY_PATH=lib/:${LD_LIBRARY_PATH} python setup.py sdist
 
 
