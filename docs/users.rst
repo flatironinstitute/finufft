@@ -31,7 +31,7 @@ Research output using FINUFFT
 
 #. "Cryo-EM reconstruction of continuous heterogeneity by Laplacian spectral volumes", Amit Moscovich, Amit Halevi, Joakim Andén, and Amit Singer. To appear, Inv. Prob. (2020), https://arxiv.org/abs/1907.01898
 
-#. "A Fast Integral Equation Method for the Two-Dimensional Navier-Stokes Equations", Ludvig af Klinteberg, Travis Askham, and Mary Catherine Kropinski (2019), use FINUFFT 2D type 2. https://arxiv.org/abs/1908.07392
+#. "A Fast Integral Equation Method for the Two-Dimensional Navier-Stokes Equations", Ludvig af Klinteberg, Travis Askham, and Mary Catherine Kropinski, J. Comput. Phys., 409 (2020) 109353; uses FINUFFT 2D type 2. https://arxiv.org/abs/1908.07392
 
 #. "MR-MOTUS: model-based non-rigid motion estimation for MR-guided radiotherapy using a reference image and minimal k-space data", Niek R F Huttinga, Cornelis A T van den Berg, Peter R Luijten and Alessandro Sbrizzi, Phys. Med. Biol. 65(1), 015004. https://arxiv.org/abs/1902.05776
 
@@ -48,11 +48,15 @@ Research output using FINUFFT
 
 #. Aleks Donev's group at NYU; ongoing
 
+#. Efficient wide-field radio interferometry response. P. Arras, M. Reinecke, R. Westermann, T.A. Ensslin, Astron. Astrophys. (2020).   https://doi.org/10.1051/0004-6361/202039723
+
+#. Johannes Blaschke, Jeff Donatelli, and collaborators at NSERC/LBNL use FINUFFT and cuFINUFFT for single-particle X-ray imaging.
+
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
 
-#. Martin Reinecke, codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/ift/nifty_gridder
+#. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
 
 
    

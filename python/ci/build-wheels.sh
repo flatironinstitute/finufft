@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# Copyright (c) 2019, Henry Schreiner.
-#
-# Distributed under the 3-clause BSD license, see accompanying file LICENSE
-# or https://github.com/scikit-hep/azure-wheel-helpers for details.
-
-# Based on https://github.com/pypa/python-manylinux-demo/blob/master/travis/build-wheels.sh
-# with CC0 license here: https://github.com/pypa/python-manylinux-demo/blob/master/LICENSE
-
 set -e -x
 
 cd /io/
+
+# Replace native compilation flags with more generic ones.
+cp make.inc.manylinux make.inc
+
+# Clean up the build and make the library.
+make clean
 make lib
+
+# Test to make sure everything is ok.
 make test
+
+# Remove make.inc now that we're done.
+rm make.inc
 
 # Needed for pip install to work
 export FINUFFT_DIR=$(pwd)
@@ -21,7 +24,7 @@ export LD_LIBRARY_PATH=${FINUFFT_DIR}/lib:${LD_LIBRARY_PATH}
 
 pys=(/opt/python/*/bin)
 
-# Filter out Python 3.4
+# Filter out old Python versions
 pys=(${pys[@]//*27*/})
 pys=(${pys[@]//*34*/})
 pys=(${pys[@]//*35*/})

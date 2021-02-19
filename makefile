@@ -251,10 +251,12 @@ else
 	copy $(DYNLIB) test
 	test/basicpassfail
 	test/basicpassfailf
-# For Windows-WSL users. Since gnu-make is a
-# 32bit executable and WSL runs only in x64 environments, we have to refer to
-# 64bit powershell explicitly...
-	$(windir)\Sysnative\WindowsPowerShell\v1.0\powershell.exe "cd ./test; bash check_finufft.sh DOUBLE $(MINGW); bash check_finufft.sh SINGLE $(MINGW)"
+# Windows does not feature a bash shell so we use WSL. Since most supplied gnu-make variants are 32bit executables and WSL runs only in 64bit environments, we have to refer to 64bit powershell explicitly on 32bit make...
+#	$(windir)\Sysnative\WindowsPowerShell\v1.0\powershell.exe "cd ./test; bash check_finufft.sh DOUBLE $(MINGW); bash check_finufft.sh SINGLE $(MINGW)"
+# with a recent version of gnu-make for Windows built for 64bit as it is part of the WinLibs standalone build of GCC and MinGW-w64 we can avoid these circumstances
+	cd test
+	bash -c "cd test; ./check_finufft.sh DOUBLE $(MINGW)"
+	bash -c "cd test; ./check_finufft.sh SINGLE $(MINGW)"
 	del test\$(LIBNAME).so
 endif
 

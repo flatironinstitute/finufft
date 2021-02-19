@@ -304,11 +304,21 @@ section of ``mexopts.sh``.
 3) Windows: tips for compiling
 -------------------------------   
    
-We have users who have adjusted the makefile to work with Windows WSL and MinGW compilers. Please
-try::
+We have users who have adjusted the makefile to work - at least to some extent - on Windows 10. Please make sure to have a recent version of Mingw at hand, preferably with a 64bit version of gnu-make like the WinLibs standalone build of GCC and MinGW-w64 for Windows. Note that most MinGW-w64 distributions, such as TDM-GCC, do not feature the 64bit gnu-make. Fortunately, this limitation is only relevant to run the tests. To prepare the build of the static and dynamic libraries run::
 
-  cp make.inc.windows_mingw make.inc
-  make test -j
+  copy make.inc.windows_mingw make.inc
+
+Subsequently, open this ``make.inc`` file with the text editor of your choice and assign the parent directories of the FFTW header file to ``FFTW_H_DIR``, of the FFTW libraries to ``FFTW_LIB_DIR``, and of the GCC OpenMP library lgomp.dll to ``LGOMP_DIR``. Note that you need the last-mentioned only if you plan to build the MEX-interface for MATLAB. Now, you should be able to run::
+
+  make lib 
+
+If the command ``make`` cannot be found and the MinGW binaries are part of your system PATH: Keep in mind that the MinGW installation contains only a file called mingw32-make.exe, not make.exe. Create a copy of this file, call it make.exe, and make sure the corresponding parent folder is part of your system PATH. If the library is compiled successfully, you can try to run the tests. Note that your system has to fulfill the following prerequisites to this end: A Linux distribution set up via WSL (has been tested with Ubuntu 20.04 LTS from the Windows Store) and the 64bit gnu-make mentioned before. Further, make sure that the directory containing the FFTW-DLLs is part of your system PATH. Otherwise the executables built will not run. As soon as you have everything set up, run the following command::
+
+  make test
+
+In a similar fashion, the examples can now be build with ``make examples``. This rule of the makefile does neither require WSL nor the 64bit gnu-make and should hopefully work out-of-the-box. Finally, it is also possible to build the MEX file needed to call FINUFFT from MATLAB. Since the MinGW support of MATLAB is somewhat limited, you will probably have to define the environment variable ``MW_MINGW64_LOC`` and assign the path of your MinGW installation. Hint to avoid misunderstandings: The last-mentioned directory contains folders named ``bin``, ``include``, and ``lib`` among others. Then, the following command should generate the required MEX-file::
+
+  make matlab
 
 For users who work with Windows using MSYS and MinGW compilers. Please
 try::
