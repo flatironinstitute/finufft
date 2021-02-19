@@ -52,7 +52,7 @@ Dependencies
 ------------
 
 This library is fully supported for unix/linux, and partially for
-Mac OSX for Windows (eg MinGW or WSL).
+Mac OSX for Windows (eg under MSYS or WSL using MinGW compilers).
 
 For the basic libraries you need
 
@@ -319,6 +319,12 @@ If the command ``make`` cannot be found and the MinGW binaries are part of your 
 In a similar fashion, the examples can now be build with ``make examples``. This rule of the makefile does neither require WSL nor the 64bit gnu-make and should hopefully work out-of-the-box. Finally, it is also possible to build the MEX file needed to call FINUFFT from MATLAB. Since the MinGW support of MATLAB is somewhat limited, you will probably have to define the environment variable ``MW_MINGW64_LOC`` and assign the path of your MinGW installation. Hint to avoid misunderstandings: The last-mentioned directory contains folders named ``bin``, ``include``, and ``lib`` among others. Then, the following command should generate the required MEX-file::
 
   make matlab
+
+For users who work with Windows using MSYS and MinGW compilers. Please
+try::
+
+  cp make.inc.windows_msys make.inc
+  make test -j
 
 We seek help with Windows support. Also see https://github.com/flatironinstitute/finufft/issues
 

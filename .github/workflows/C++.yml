@@ -1,0 +1,79 @@
+name: C++ Build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  Linux:
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64:latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install fftw
+      run: |
+        yum install -y fftw3-devel
+
+    - name: Compile C++ code
+      run: |
+        make spreadtestall
+        make lib
+        make test
+
+  MacOS_clang:
+    runs-on: macos-latest
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.15
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install omp and fftw
+      run: |
+        brew install libomp fftw
+        cp make.inc.macosx_clang make.inc
+
+    - name: Compile C++ code
+      run: |
+        make spreadtestall
+        make lib
+        make test
+
+  MacOS_gcc:
+    runs-on: macos-latest
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.15
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install gcc and fftw
+      run: |
+        brew install gcc@10 fftw
+        cp make.inc.macosx_gcc-10 make.inc
+
+    - name: Compile C++ code
+      run: |
+        make spreadtestall
+        make lib
+        make test
+
+  Windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install GCC and make
+      run: C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm make mingw-w64-x86_64-toolchain mingw-w64-x86_64-fftw"
+
+    - name: Compile C++ code
+      run: .\.github\workflows\C++_build_win.ps1
