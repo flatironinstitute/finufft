@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# Copyright (c) 2019, Henry Schreiner.
-#
-# Distributed under the 3-clause BSD license, see accompanying file LICENSE
-# or https://github.com/scikit-hep/azure-wheel-helpers for details.
-
-# Based on https://github.com/pypa/python-manylinux-demo/blob/master/travis/build-wheels.sh
-# with CC0 license here: https://github.com/pypa/python-manylinux-demo/blob/master/LICENSE
-
 set -e -x
 
 cd /io/
