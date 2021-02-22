@@ -5,6 +5,23 @@ import ctypes
 
 from setuptools import setup, Extension
 
+# Description
+DESCRIPTION = "Non-uniform fast Fourier transforms on the GPU"
+LONG_DESCRIPTION = """
+The cuFINUFFT package is an efficient GPU implementation of the 2- and
+3-dimensional nonuniform fast Fourier transform (NUFFT). It includes both type
+1 (nonuniform to uniform) and type 2 (uniform to nonuniform) transforms.
+It is based on the [FINUFFT](https://github.com/flatironinstitute/finufft)
+implementation for the CPU.
+
+For a mathematical description of the NUFFT and applications to signal
+processing, imaging, and scientific computing, see [the FINUFFT
+documentation](https://finufft.readthedocs.io).
+
+Usage examples can be found
+[here](https://github.com/flatironinstitute/cufinufft/tree/v1.2/examples).
+"""[1:]
+
 # Parse the requirements
 with open(os.path.join('python/cufinufft', 'requirements.txt'), 'r') as fh:
     requirements = [item.strip() for item in fh.readlines()]
@@ -27,8 +44,9 @@ setup(
     author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='yoyoshih13@gmail.com',
     url='https://github.com/flatironinstitute/cufinufft',
-    description='Python interface to cufinufft',
-    long_description='Python interface to cufinufft (CUDA Flatiron Institute Nonuniform Fast Fourier Transform) library.',
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type="text/markdown",
     license="Apache 2",
     packages=['cufinufft'],
     package_dir={'': 'python'},
