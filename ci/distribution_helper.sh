@@ -15,14 +15,8 @@ docker build -f ci/docker/cuda${cuda_version}/Dockerfile-x86_64 -t ${dockerhub}/
 echo "# Run the container, invoking the build-wheels script to generate the wheels"
 docker run --gpus all -it -v `pwd`/wheelhouse:/io/wheelhouse -e PLAT=${manylinux_version}_x86_64  ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version} /io/ci/build-wheels.sh
 
-
-echo "# Create a source distribution (requires a build, so we'll make here)."
-make clean
-make target=manylinux -j
-LD_LIBRARY_PATH=lib/:${LD_LIBRARY_PATH} python setup.py sdist
-
-
 echo "# Copy the wheels we care about to the dist folder"
+mkdir -p dist
 cp -v wheelhouse/cufinufft-${cufinufft_version}-cp3*${manylinux_version}* dist
 
 
