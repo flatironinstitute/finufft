@@ -24,9 +24,9 @@ print('cufinufft CUDA shared libraries found, continuing...')
 setup(
     name='cufinufft',
     version='1.2',
-    author='Python interfaces by: Melody Shih, Joakim Anden, Garrett Wright',
+    author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='yoyoshih13@gmail.com',
-    url='http://github.com/flatironinstitute/cufinufft',
+    url='https://github.com/flatironinstitute/cufinufft',
     description='Python interface to cufinufft',
     long_description='Python interface to cufinufft (CUDA Flatiron Institute Nonuniform Fast Fourier Transform) library.',
     license="Apache 2",
