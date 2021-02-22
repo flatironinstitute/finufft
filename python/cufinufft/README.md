@@ -9,9 +9,7 @@ cuFINUFFT library, which is written in C++ and CUDA.
 
 For a mathematical description of the NUFFT and applications to signal
 processing, imaging, and scientific computing, see [the FINUFFT
-documentation](https://finufft.readthedocs.io).
-
-Usage examples can be found
+documentation](https://finufft.readthedocs.io). Usage examples can be found
 [here](https://github.com/flatironinstitute/cufinufft/tree/v1.2/examples).
 
 If you use this package, please cite our paper:
