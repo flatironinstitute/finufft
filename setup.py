@@ -9,8 +9,7 @@ from setuptools import setup, Extension
 DESCRIPTION = "Non-uniform fast Fourier transforms on the GPU"
 
 with open('python/cufinufft/README.md', encoding='utf8') as fh:
-    README = fh.read().split('\n')
-    LONG_DESCRIPTION = '\n'.join([x for x in README if not x[:3] == '[!['])
+    LONG_DESCRIPTION = fh.read()
 
 # Parse the requirements
 with open(os.path.join('python/cufinufft', 'requirements.txt'), 'r') as fh:
