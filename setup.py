@@ -44,6 +44,7 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Environment :: GPU',
         'Topic :: Scientific/Engineering :: Mathematics'],
+    python_requires='>=3.6',
     zip_safe=False,
     # This explicitly tells the wheel systems that we're platform specific.
     #   Addiitonally, will create a new cPython library with a decorated name
