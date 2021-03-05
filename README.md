@@ -10,7 +10,9 @@ cuFINUFFT introduces several algorithmic innovations, including load-balancing, 
 Our tests show an acceleration over FINUFFT of up to 10x on modern hardware,
 and up to 100x faster than other established GPU NUFFT codes:
 
-<img align="left" src="docs/cufinufft_announce.png" width="600">
+<p align="center">
+<img src="docs/cufinufft_announce.png" width="550">
+</p>
 
 The transforms it performs may be summarized as follows: type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
 whereas type 2 does the adjoint operation (which is not generally the inverse of type 1).
