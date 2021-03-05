@@ -8,7 +8,10 @@ Note that the Python interface has changed relative to v1.1. Please see [CHANGEL
 
 cuFINUFFT introduces several algorithmic innovations, including load-balancing, bin-sorting for cache-aware access, and use of fast shared memory.
 Our tests show an acceleration over FINUFFT of up to 10x on modern hardware,
-and up to 100x faster than other established GPU NUFFT codes.
+and up to 100x faster than other established GPU NUFFT codes:
+
+<img align="center" src="docs/cufinufft_announce.png" width="450">
+
 The transforms it performs may be summarized as follows: type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
 whereas type 2 does the adjoint operation (which is not generally the inverse of type 1).
 These transforms are performed to a user-presribed tolerance,
@@ -20,7 +23,6 @@ Main developer: **Yu-hsuan Melody Shih** (NYU). Main other contributors:
 Garrett Wright (Princeton), Joakim Andén (KTH/Flatiron), Johannes Blaschke (LBNL), Alex Barnett (Flatiron).
 See github for full list of contributors.
 This project came out of Melody's 2018 and 2019 summer internships at the Flatiron Institute, advised by CCM project leader Alex Barnett.
-
 
 ## Installation
 
@@ -170,6 +172,13 @@ environment. The `site`-specific script is loaded __before__ the
 - We need some more tutorial examples in C++ and Python
 - Please help us to write MATLAB (gpuArray) and Julia interfaces
 - Please see Issues for other things you can help fix
+
+
+## References
+
+* cuFINUFFT: a load-balanced GPU library for general-purpose nonuniform FFTs,
+Yu-hsuan Shih, Garrett Wright, Joakim Andén, Johannes Blaschke, Alex H. Barnett,
+*accepted*, PDSEC2021. https://arxiv.org/abs/2102.08463
 
 
 [1]: https://github.com/flatironinstitute/finufft
