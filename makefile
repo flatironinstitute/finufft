@@ -69,7 +69,12 @@ FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
 # single-thread total list of math and FFTW libs (now both precisions)...
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
-LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
+LIBSFFT := -l$(FFTWNAME) $(LIBS)
+# Detect single-precision library (not available on all systems)
+ifneq ("$(wildcard $(FFTW_DIR)/*$(FFTWNAME)f*)","")
+    $(info detected $(FFTWNAME)f library -- building with lib$(FFTWNAME)f support)
+    LIBSFFT += -l$(FFTWNAME)f
+endif
 
 # multi-threaded libs & flags, and req'd flags (OO for new interface)...
 ifneq ($(OMP),OFF)
@@ -81,8 +86,13 @@ OFLAGS += $(OOMPFLAGS) -DR2008OO
 LIBS += $(OMPLIBS)
 ifneq ($(MINGW),ON)
 ifneq ($(MSYS),ON)
-# omp override for total list of math and FFTW libs (now both precisions)...
-LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
+# omp override for total list of math and FFTW libs (possibly both precisions)...
+LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX)  $(LIBS)
+# Detect single-precision library (not available on all systems)
+ifneq ("$(wildcard $(FFTW_DIR)/*$(FFTWNAME)f*)","")
+    $(info detected $(FFTWNAME)f library -- building with lib$(FFTWNAME)f support)
+    LIBSFFT += -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX)
+endif
 endif
 endif
 endif
