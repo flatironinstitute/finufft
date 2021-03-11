@@ -84,10 +84,12 @@ int main(int argc, char* argv[])
 
 	int dim=3;
 	CUFINUFFT_PLAN dplan = new CUFINUFFT_PLAN_S;
+	// Zero out your struct, (sets all pointers to NULL, crucial)
+        memset(dplan, 0, sizeof(*dplan));
 	ier = CUFINUFFT_DEFAULT_OPTS(2, dim, &(dplan->opts));
 	dplan->opts.gpu_method           = method;
 	dplan->opts.gpu_maxsubprobsize   = 1024;
-	dplan->opts.gpu_kerevalmeth      = 1;
+	dplan->opts.gpu_kerevalmeth      = 0;      // not in cmd-line args
 	dplan->opts.gpu_sort             = sort;
 	dplan->opts.gpu_spreadinterponly = 1;
 

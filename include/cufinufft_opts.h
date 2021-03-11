@@ -4,8 +4,8 @@
 typedef struct cufinufft_opts {   // see cufinufft_default_opts() for defaults
 	double upsampfac;   // upsampling ratio sigma, only 2.0 (standard) is implemented
 	/* following options are for gpu */
-	int gpu_method;
-	int gpu_sort; // used for 3D nupts driven method
+        int gpu_method;  // 1: nonuniform-pts driven, 2: shared mem (SM)
+	int gpu_sort;    // when NU-pts driven: 0: no sort (GM), 1: sort (GM-sort)
 
 	int gpu_binsizex; // used for 2D, 3D subproblem method
 	int gpu_binsizey;

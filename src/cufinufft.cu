@@ -69,35 +69,23 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 		       int ntransf, FLT tol, int maxbatchsize,
 		       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts)
 /*
-	"plan" stage:
+	"plan" stage (in single or double precision).
+        See ../docs/cppdoc.md for main user-facing documentation.
+        Note that *d_plan_ptr in the args list was called simply *plan there.
+        This is the remaining dev-facing doc:
 
-	In this stage, we
-		(1) set up the spread option, d_plan.spopts.
+This performs:
+                (0) creating a new plan struct (d_plan), a pointer to which is passed
+                    back by writing that pointer into *d_plan_ptr.
+              	(1) set up the spread option, d_plan.spopts.
 		(2) calculate the correction factor on cpu, copy the value from cpu to
 		    gpu
 		(3) allocate gpu arrays with size determined by number of fourier modes
 		    and method related options that had been set in d_plan.opts
 		(4) call cufftPlanMany and save the cufft plan inside cufinufft plan
+        Variables and arrays inside the plan struct are set and allocated.
 
-	Input:
-	type    type of the transform, can be 1, 2, or 3 (3 not implemented yet))
-	dim     dimension of the transform
-	nmodes  a size 3 integer array, nmodes[d] is the number of modes in d
-	        dimension
-	iflag   if >=0, uses + sign in exponential, otherwise - sign (int)
-    ntransf number of transforms performed in exec stage
-	tol     precision requested (>1e-16 for double precision, >1e-8 for single
-	        precision)
-	maxbatchsize	when ntransf>1, size of batch of data vectors to perform
-			cuFFT on. (default is 0, which chooses a heuristic.)
-
-	Input/Output:
-	d_plan  a pointer to an instant of cufinuff_plan (definition in cufinufft_eitherprec.h)
-			    d_plan.opts is used for plan stage. Variables and arrays
-	        inside the plan are set and allocated
-
-	Melody Shih 07/25/19
-	doc updated, Barnett, 9/22/20.
+	Melody Shih 07/25/19. Use-facing moved to markdown, Barnett 2/16/21.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
@@ -286,7 +274,7 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
 int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	FLT *d_t, FLT *d_u, CUFINUFFT_PLAN d_plan)
 /*
-	"setNUpts" stage:
+	"setNUpts" stage (in single or double precision).
 
 	In this stage, we
 		(1) set the number and locations of nonuniform points
@@ -298,6 +286,10 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 		    3d/spread3d_wrapper.cu for what have been done in
 		    function spread<dim>d_<method>_prop() )
 
+        See ../docs/cppdoc.md for main user-facing documentation.
+        Here is the old developer docs, which are useful only to translate
+        the argument names from the user-facing ones:
+        
 	Input:
 	M                 number of nonuniform points
 	d_kx, d_ky, d_kz  gpu array of x,y,z locations of sources (each a size M
@@ -309,7 +301,13 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	d_plan            pointer to a CUFINUFFT_PLAN_S. Variables and arrays inside
 	                  the plan are set and allocated.
 
-	Melody Shih 07/25/19
+        Returned value:
+        a status flag: 0 if success, otherwise an error occurred
+
+Notes: the type FLT means either single or double, matching the
+	precision of the library version called.
+
+	Melody Shih 07/25/19; Barnett 2/16/21 moved out docs.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
@@ -472,10 +470,12 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 
 int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 /*
-	"exec" stage:
+	"exec" stage (single and double precision versions).
 
-	The actual transformation is done in this stage. Type and dimension of the
-	transformantion are defined in d_plan in previous stages.
+	The actual transformation is done here. Type and dimension of the
+	transformation are defined in d_plan in previous stages.
+
+        See ../docs/cppdoc.md for main user-facing documentation.
 
 	Input/Output:
 	d_c   a size d_plan->M CPX array on gpu (input for Type 1; output for Type
@@ -484,10 +484,11 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 	      Type 2; output for Type 1)
 
 	Notes:
-	For now, we assume both h_c, h_fk arrays are on cpu so this stage includes
-    copying the arrays from/to cpu to/from gpu.
+        i) Here CPX is a defined type meaning either complex<float> or complex<double>
+	    to match the precision of the library called.
+        ii) All operations are done on the GPU device (hence the d_* names)
 
-	Melody Shih 07/25/19
+	Melody Shih 07/25/19; Barnett 2/16/21.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
@@ -539,12 +540,13 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 
 int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 /*
-	"destroy" stage:
+	"destroy" stage (single and double precision versions).
 
 	In this stage, we
 		(1) free all the memories that have been allocated on gpu
 		(2) delete the cuFFT plan
 
+        Also see ../docs/cppdoc.md for main user-facing documentation.
 */
 {
         // Mult-GPU support: set the CUDA Device ID:
@@ -606,17 +608,19 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
 
 int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 /*
-	"default_opts" stage:
+	Sets the default options in cufinufft_opts. This must be called
+	before the user changes any options from default values.
+	The resulting struct may then be passed (instead of NULL) to the last
+	argument of cufinufft_plan().
 
-	In this stage, the default options in cufinufft_opts are set.
-  Options with prefix "gpu_" are used for gpu code.
+	Options with prefix "gpu_" are used for gpu code.
 
 	Notes:
 	Values set in this function for different type and dimensions are preferable
 	based on experiments. User can experiement with different settings by
 	replacing them after calling this function.
 
-	Melody Shih 07/25/19
+	Melody Shih 07/25/19; Barnett 2/5/21.
 */
 {
 	int ier;
@@ -624,7 +628,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 
 	/* following options are for gpu */
 	opts->gpu_nstreams = 0;
-	opts->gpu_kerevalmeth = 1; // using Horner ppval
+	opts->gpu_kerevalmeth = 0; // using exp(sqrt())
 	opts->gpu_sort = 1; // access nupts in an ordered way for nupts driven method
 
 	opts->gpu_maxsubprobsize = 1024;

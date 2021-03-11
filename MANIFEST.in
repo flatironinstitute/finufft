@@ -1,0 +1,2 @@
+include python/cufinufft/README.md
+include python/cufinufft/requirements.txt

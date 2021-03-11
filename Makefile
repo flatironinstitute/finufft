@@ -1,3 +1,5 @@
+# CUFINUFFT Makefile
+
 # Load site-specific setting -- controlled using environment variable `site`:
 # eg.  make site=nersc_cori
 ifdef site
@@ -29,7 +31,7 @@ NVARCH ?= -arch=sm_70 \
 	  -gencode=arch=compute_75,code=sm_75 \
 	  -gencode=arch=compute_75,code=compute_75
 
-CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native -g
+CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native
 CXXFLAGS  ?= $(CFLAGS) -std=c++14
 NVCCFLAGS ?= -std=c++14 -ccbin=$(CXX) -O3 $(NVARCH) -Wno-deprecated-gpu-targets \
 	     --default-stream per-thread -Xcompiler "$(CXXFLAGS)"
@@ -108,11 +110,13 @@ CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 %.o: %.cu $(HEADERS)
 	$(NVCC) --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 
-all: $(BINDIR)/spread2d_test \
-    $(BINDIR)/spread2d_test_32 \
-	$(BINDIR)/interp2d_test \
-	$(BINDIR)/interp2d_test_32 \
-	$(BINDIR)/cufinufft2d1_test \
+default: all
+
+# Build all, but run no tests. Note: CI currently uses this default...
+all: libtest spreadtest examples
+
+# testers for the lib (does not execute)
+libtest: lib $(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft2d2_test \
 	$(BINDIR)/cufinufft2d1many_test \
 	$(BINDIR)/cufinufft2d2many_test \
@@ -122,17 +126,22 @@ all: $(BINDIR)/spread2d_test \
 	$(BINDIR)/cufinufft2d1many_test_32 \
 	$(BINDIR)/cufinufft2d2many_test_32 \
 	$(BINDIR)/cufinufft2d1nupts_test_32 \
-	$(BINDIR)/spread3d_test \
-	$(BINDIR)/spread3d_test_32 \
-	$(BINDIR)/interp3d_test \
-	$(BINDIR)/interp3d_test_32 \
 	$(BINDIR)/cufinufft3d1_test \
 	$(BINDIR)/cufinufft3d2_test \
 	$(BINDIR)/cufinufft3d1_test_32 \
 	$(BINDIR)/cufinufft3d2_test_32 \
 	$(BINDIR)/cufinufft2d2api_test \
-	$(BINDIR)/cufinufft2d2api_test_32 \
-	lib
+	$(BINDIR)/cufinufft2d2api_test_32
+
+# low-level (not-library) testers (does not execute)
+spreadtest: $(BINDIR)/spread2d_test \
+	$(BINDIR)/spread2d_test_32 \
+	$(BINDIR)/interp2d_test \
+	$(BINDIR)/interp2d_test_32 \
+	$(BINDIR)/spread3d_test \
+	$(BINDIR)/spread3d_test_32 \
+	$(BINDIR)/interp3d_test \
+	$(BINDIR)/interp3d_test_32
 
 examples: $(BINDIR)/example2d1many \
 	$(BINDIR)/example2d2many
@@ -153,7 +162,7 @@ $(BINDIR)/%: test/%.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
 	mkdir -p $(BINDIR)
 	$(NVCC) $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
-
+# user-facing library...
 lib: $(STATICLIB) $(DYNAMICLIB)
 
 $(STATICLIB): $(CUFINUFFTOBJS) $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS_32) $(CONTRIBOBJS)
@@ -164,21 +173,29 @@ $(DYNAMICLIB): $(CUFINUFFTOBJS) $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS_32) $(CONTRI
 	$(NVCC) -shared $(NVCCFLAGS) $^ -o $(DYNAMICLIB) $(LIBS)
 
 
-# Check targets
-
-check: all
-	$(MAKE) api
+# --------------------------------------------- start of check tasks ---------
+# Check targets: in contrast to the above, these tasks just execute things:
+check:
+	@echo "Building lib, all testers, and running all tests..."
+	$(MAKE) checkspread
+	$(MAKE) checkapi
 	$(MAKE) check2D
 	$(MAKE) check3D
-	$(MAKE) check_examples
+	$(MAKE) checkexamples
 
-api: all
+checkspread: spreadtest
+	@echo "Running spread/interp only tests..."
+	(cd test; ./spreadperf.sh)
+
+checkapi: libtest
+	@echo "Running API tests..."
 	bin/cufinufft2d2api_test
 	bin/cufinufft2d2api_test_32
 
-check2D: all check2D_64 check2D_32
+check2D: check2D_64 check2D_32
 
-check2D_64:
+# Note: we could kill the low-level spread/interp tests from here...
+check2D_64: spreadtest libtest
 	@echo Running 2-D cases
 	bin/spread2d_test 1 1 16 16
 	bin/spread2d_test 2 1 16 16
@@ -217,7 +234,7 @@ check2D_64:
 	bin/cufinufft2d2many_test 1 1e2 2e2 3e2 16 1e4
 	bin/cufinufft2d2many_test 2 1e2 2e2 3e2 16 1e4
 
-check2D_32:
+check2D_32: spreadtest libtest
 	@echo Running 2-D Single Precision cases
 	bin/spread2d_test_32 1 1 16 16
 	bin/spread2d_test_32 2 1 16 16
@@ -256,10 +273,9 @@ check2D_32:
 	bin/cufinufft2d2many_test_32 1 1e2 2e2 3e2 16 1e4
 	bin/cufinufft2d2many_test_32 2 1e2 2e2 3e2 16 1e4
 
+check3D: check3D_32 check3D_64
 
-check3D: all check3D_32 check3D_64
-
-check3D_64: all
+check3D_64: spreadtest libtest
 	@echo Running 3-D Single Precision cases
 	# note test method 2 will fail due to shmem limits
 	bin/spread3d_test 1 1 16 16 16
@@ -277,7 +293,7 @@ check3D_64: all
 	bin/cufinufft3d1_test 4 1e2 2e2 3e2 1e4
 	bin/cufinufft3d2_test 1 1e2 2e2 3e2
 
-check3D_32: all
+check3D_32: spreadtest libtest
 	@echo Running 3-D Single Precision cases
 	bin/spread3d_test_32 1 1 16 16 16
 	bin/spread3d_test_32 2 1 16 16 16
@@ -303,9 +319,11 @@ check3D_32: all
 	bin/cufinufft3d2_test_32 1 1e2 2e2 3e2
 	bin/cufinufft3d2_test_32 2 1e2 2e2 3e2
 
-check_examples: examples
+checkexamples: examples
 	$(BINDIR)/example2d1many
 	$(BINDIR)/example2d2many
+# --------------------------------------------- end of check tasks ---------
+
 
 # Python, some users may want to use pip3 here.
 python:
@@ -337,12 +355,8 @@ clean:
 	rm -rf lib
 	rm -rf lib-static
 
-
-.PHONY: all
-.PHONY: api
-.PHONY: check
+.PHONY: default all libtest spreadtest check checkspread checkapi checkexamples
 .PHONY: check2D check2D_32 check2D_64
 .PHONY: check3D check3D_32 check3D_64
-.PHONY: clean
-.PHONY: lib
-.PHONY: python
+.PHONY: python docker docker_manylinux2010_x86_64 docker_manylinux2014_x86_64
+.PHONY: wheels clean

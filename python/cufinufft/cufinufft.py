@@ -119,6 +119,10 @@ class cufinufft:
         # Initialize the plan.
         self._plan()
 
+        # Initialize a list for references to objects
+        #   we want to keep around for life of instance.
+        self.references = []
+
     @staticmethod
     def _default_opts(nufft_type, dim):
         """
@@ -203,11 +207,16 @@ class cufinufft:
         # Via code, we push each dimension onto a stack of axis
         fpts_axes = [kx.ptr, None, None]
 
+        # We will also store references to these arrays.
+        #   This keeps python from prematurely cleaning them up.
+        self.references.append(kx)
         if ky is not None:
             fpts_axes.insert(0, ky.ptr)
+            self.references.append(ky)
 
         if kz is not None:
             fpts_axes.insert(0, kz.ptr)
+            self.references.append(kz)
 
         # Then take three items off the stack as our reordered axis.
         ier = self._set_pts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
@@ -253,3 +262,6 @@ class cufinufft:
 
         # Reset plan to avoid double destroy.
         self.plan = None
+
+        # Reset our reference.
+        self.references = []

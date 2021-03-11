@@ -5,8 +5,14 @@ import ctypes
 
 from setuptools import setup, Extension
 
+# Description
+DESCRIPTION = "Non-uniform fast Fourier transforms on the GPU"
+
+with open(os.path.join('python', 'cufinufft', 'README.md'), encoding='utf8') as fh:
+    LONG_DESCRIPTION = fh.read()
+
 # Parse the requirements
-with open(os.path.join('python/cufinufft', 'requirements.txt'), 'r') as fh:
+with open(os.path.join('python', 'cufinufft', 'requirements.txt'), 'r') as fh:
     requirements = [item.strip() for item in fh.readlines()]
 
 # Sanity check that we can find the CUDA cufinufft libraries before we get too far.
@@ -23,12 +29,13 @@ print('cufinufft CUDA shared libraries found, continuing...')
 # Python Package Setup
 setup(
     name='cufinufft',
-    version='1.1',
-    author='Python interfaces by: Melody Shih, Joakim Anden, Garrett Wright',
+    version='1.2',
+    author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='yoyoshih13@gmail.com',
-    url='http://github.com/flatironinstitute/cufinufft',
-    description='Python interface to cufinufft',
-    long_description='Python interface to cufinufft (CUDA Flatiron Institute Nonuniform Fast Fourier Transform) library.',
+    url='https://github.com/flatironinstitute/cufinufft',
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    long_description_content_type="text/markdown",
     license="Apache 2",
     packages=['cufinufft'],
     package_dir={'': 'python'},
@@ -37,6 +44,14 @@ setup(
     extras_require={
         'docs': ['sphinx', 'sphinx_rtd_theme']
     },
+    classifiers=['Intended Audience :: Science/Research',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: C++',
+        'Operating System :: POSIX :: Linux',
+        'Environment :: GPU',
+        'Topic :: Scientific/Engineering :: Mathematics'],
+    python_requires='>=3.6',
     zip_safe=False,
     # This explicitly tells the wheel systems that we're platform specific.
     #   Addiitonally, will create a new cPython library with a decorated name

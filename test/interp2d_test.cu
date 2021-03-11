@@ -27,8 +27,8 @@ int main(int argc, char* argv[])
 			"  M: The number of non-uniform points (default nf1 * nf2 / 4).\n"
 			"  tol: NUFFT tolerance (default 1e-6).\n"
 			"  kerevalmeth: Kernel evaluation method; one of\n"
-			"     0: Exponential of square root, or\n"
-			"     1: Horner evaluation (default).\n"
+			"     0: Exponential of square root (default), or\n"
+			"     1: Horner evaluation.\n"
 			"  sort: One of\n"
 			"     0: do not sort the points, or\n"
 			"     1: sort the points (default).\n");
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
 	}
 
-	int kerevalmeth=1;
+	int kerevalmeth=0;
 	if(argc>7){
 		sscanf(argv[7],"%d",&kerevalmeth);
 	}
@@ -84,6 +84,8 @@ int main(int argc, char* argv[])
 
 	int dim=2;
 	CUFINUFFT_PLAN dplan = new CUFINUFFT_PLAN_S;
+        // Zero out your struct, (sets all pointers to NULL, crucial)
+	memset(dplan, 0, sizeof(*dplan));
 	ier = CUFINUFFT_DEFAULT_OPTS(2, dim, &(dplan->opts));
 	dplan->opts.gpu_method           = method;
 	dplan->opts.gpu_maxsubprobsize   = 1024;

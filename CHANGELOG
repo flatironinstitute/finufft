@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
+v 1.2 (02/17/21)
+
 * Warning: Following are Python interface changes -- not backwards compatible
   with v 1.1 (See examples/example2d1,2many.py for updated usage)
 
@@ -15,18 +17,19 @@ List of features / changes made / release notes, in reverse chronological order
          def set_pts(self, M, kx, ky=None, kz=None)
       => def set_pts(self, kx, ky=None, kz=None)
 
-* Python: added multi-gpu support
+* Python: added multi-gpu support (in beta)
 * Python: added more unit tests (wrong input, kwarg args, multi-gpu)
-* Fixed various memory leak.
+* Fixed various memory leaks
 * Added index bound check in 2D spread kernels (Spread_2d_Subprob(_Horner))
 * Added spread/interp tests to `make check`
 * Fixed user request tolerance (eps) to kernel width (w) calculation
-* Removed outdated benchmark codes
+* Default kernel evaluation method set to 0, ie exp(sqrt()), since faster
+* Removed outdated benchmark codes, cleaner spread/interp tests
 
 v 1.1 (09/22/20)
 
 * Python: extended the mode tuple to 3D and reorder from C/python
-  ndarray.shape style input (nZ, nY, nX) to to the (F) order expected by the 
+  ndarray.shape style input (nZ, nY, nX) to to the (F) order expected by the
   low level library (nX, nY, nZ).
 * Added bound checking on the bin size
 * Dual-precision support of spread/interp tests
