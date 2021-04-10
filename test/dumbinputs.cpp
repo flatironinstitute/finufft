@@ -14,6 +14,7 @@ int main(int argc, char* argv[])
    Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
    guru: makeplan followed by immediate destroy. Barnett 5/26/20.
    Either precision with dual-prec lib funcs 7/3/20.
+   Added a chkbnds case to 1d1, 4/9/21.
 
    Compile with (better to go up a directory and use: make test/dumbinputs) :
    g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
@@ -66,7 +67,12 @@ int main(int argc, char* argv[])
   printf("1d1 N=0:\tier=%d\n",ier);
   ier = FINUFFT1D1(0,x,c,+1,acc,N,F,&opts);
   printf("1d1 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
-
+  FLT xsave = x[0];
+  x[0] = 3*PI*(1 + 2*EPSILON);   // works in either prec, just outside valid
+  ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
+  printf("1d1 x>3pi:\tier=%d (should complain)\n",ier);
+  x[0] = xsave;
+  
   for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
   ier = FINUFFT1D2(M,x,c,+1,0,N,F,&opts);
   printf("1d2 tol=0:\tier=%d (should complain)\n",ier);

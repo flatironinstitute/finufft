@@ -1,5 +1,8 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* fixed bug in checkbounds that falsely reported NU pt as invalid if 1 ULP
+  below +pi, for certain N values only (Issue 181).
+* GH workflows continuous integration (CI) in four setups (linux, osx, mingw)
 * fixed memory leak in type 3.
 * corrected C guru execute documentation
 
