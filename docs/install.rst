@@ -13,16 +13,20 @@ Installation
 
 Below we deal with the three standard OSes in order: 1) **linux**, 2) **Mac OSX**, 3) **Windows**.
 We have some users contributing settings for other OSes, for instance
-PowerPC. The general procedure to download, then compile for a specific setup is, illustrating with the PowerPC case::
+PowerPC. The general procedure to download, then compile for such a special setup is, illustrating with the PowerPC case::
 
   git clone https://github.com/flatironinstitute/finufft.git
   cd finufft
   cp make.inc.powerpc make.inc
   make test -j
 
-Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup.
+Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup. As of 2021, we have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific setup files::
 
-If there is an error in testing on a standard set-up,
+  make.inc.macosx_clang
+  make.inc.macosx_gcc-10
+  make.inc.windows_msys
+  
+If there is an error in testing on what you consider a standard set-up,
 please file a detailed bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
   

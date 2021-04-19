@@ -1,10 +1,11 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* new demo example/threadsafe1d1.cpp, needs FFTW>=3.3.6 (Issue #183).
 * fixed bug in checkbounds that falsely reported NU pt as invalid if 1 ULP
-  below +pi, for certain N values only (Issue 181).
+  below +pi, for certain N values only (Issue #181).
 * GH workflows continuous integration (CI) in four setups (linux, osx, mingw)
 * fixed memory leak in type 3.
-* corrected C guru execute documentation
+* corrected C guru execute documentation.
 
 V 2.0.2 (12/5/20)
 
