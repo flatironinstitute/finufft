@@ -109,7 +109,7 @@ OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufftjulia.o
+OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
@@ -190,15 +190,13 @@ endif
 
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
-EXAMPLES := $(basename $(wildcard examples/*.*))
 # ...except only build threadsafe1d1 if user tests that (implying FFTW>=3.3.6):
-ifneq ($(MINGW),ON)
-  # non-Windows-WSL logic
-  ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
-    TMP := $(filter-out examples/threadsafe1d1,$(EXAMPLES))
-    EXAMPLES := $(TMP)
-  endif
-  # Windows-WSL logic *** to do
+ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
+  EXAMPLES = $(filter-out examples/threadsafe1d1,$(basename $(wildcard examples/*.*)))
+  # (apparently that logic works in non-Windows-WSL, eg in GH workflows)
+  # *** Still need to add Windows-WSL case here!
+else
+  EXAMPLES = $(basename $(wildcard examples/*.*))
 endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
@@ -436,11 +434,11 @@ endif
 objclean:
 ifneq ($(MINGW),ON)
   # non-Windows-WSL...
-	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o julia/*.o
+	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
 else
   # Windows-WSL...
-	for /d %%d in (src,test\directfttest,examples,matlab,contrib,julia) do (for %%f in (%%d\*.o) do (del %%f))
+	for /d %%d in (src,test\directfttest,examples,matlab,contrib) do (for %%f in (%%d\*.o) do (del %%f))
 	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
 endif
 
