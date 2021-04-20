@@ -190,16 +190,11 @@ endif
 
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
-EXAMPLES := $(basename $(wildcard examples/*.*))
 # ...except only build threadsafe1d1 if user tests that (implying FFTW>=3.3.6):
-ifneq ($(MINGW),ON)
-  # non-Windows logic
-  ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
-    TMP := $(filter-out examples/threadsafe1d1,$(EXAMPLES))
-    EXAMPLES := $(TMP)
-  endif
+ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
+  EXAMPLES = $(filter-out examples/threadsafe1d1,$(basename $(wildcard examples/*.*)))
 else
-  # Windows logic, to do
+  EXAMPLES = $(basename $(wildcard examples/*.*))
 endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
