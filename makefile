@@ -193,13 +193,12 @@ endif
 EXAMPLES := $(basename $(wildcard examples/*.*))
 # ...except only build threadsafe1d1 if user tests that (implying FFTW>=3.3.6):
 ifneq ($(MINGW),ON)
-  # non-Windows logic
+  # non-Windows-WSL logic
   ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
     TMP := $(filter-out examples/threadsafe1d1,$(EXAMPLES))
     EXAMPLES := $(TMP)
   endif
-else
-  # Windows logic, to do
+  # Windows-WSL logic *** to do
 endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
