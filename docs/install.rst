@@ -180,18 +180,25 @@ and print a bunch of errors around ``1e-6``.
 
 
 
-Compilation flags
-~~~~~~~~~~~~~~~~~~
+Compilation flags and make.inc settings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is for experts.
 Here are all the flags that the FINUFFT source responds to.
-Active them by adding a line of the form ``CFLAGS+=-DMYFLAG`` in your ``make.inc``:
+Activate them by adding a line of the form ``CXXFLAGS+=-DMYFLAG`` in your ``make.inc``:
 
-* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. This is only available in FFTW version >=3.3.5; for this reason it is not yet the default.
+* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. See ``examples/threadsafe1d1.cpp``. This is only available in FFTW version >=3.3.6; for this reason it is not yet the default.
 
 * ``-DSINGLE``: This is internally used by our build process to switch
   (via preprocessor macros) the source from double to single precision.
   You should not need to use this flag yourself.
+
+Here are some other settings that you may need to adjust in ``make.inc``:
+
+
+* Switching to linking tests, examples, etc, with PTHREADS instead of the default OMP version of FFTW, is achieved by inserting into ``make.inc`` the line
+``FFTWOMPSUFFIX = threads``.
+
 
 
 
