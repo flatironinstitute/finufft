@@ -192,8 +192,8 @@ endif
 # build all examples (single-prec codes separate, and not all have one)...
 # ...except only build threadsafe1d1 if user tests that (implying FFTW>=3.3.6):
 ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
-  EXAMPLES = $(filter-out examples/threadsafe1d1,$(basename $(wildcard examples/*.*)))
-  # (apparently that logic works in non-Windows-WSL, eg in GH workflows)
+  EXAMPLES = $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(basename $(wildcard examples/*.*)))
+  # (apparently that logic works in non-WSL Windows, eg in GH workflows)
   # *** Still need to add Windows-WSL case here!
 else
   EXAMPLES = $(basename $(wildcard examples/*.*))

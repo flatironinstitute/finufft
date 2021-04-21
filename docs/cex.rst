@@ -263,3 +263,26 @@ is needed since the Fourier coefficient dimensions are passed as an array.
 
 The complete code with a math test is in ``examples/guru2d1.cpp``, and for
 more examples see ``examples/guru1d1*.c*``
+
+
+Thread safety and global state
+------------------------------
+
+It is possible to call FINUFFT from within multithreaded code, e.g. in an
+OpenMP parallel block. In this case ``opts.nthreads=1`` should be set,
+and FINUFFT must have been compiled with the ``-DFFTW_PLAN_SAFE`` flag,
+making it thread-safe.
+For demos of this, see
+
+* ``examples/threadsafe1d1`` which runs a 1D type-1 separately on each thread, checking the math, and
+
+* ``examples/threadsafe2d2f`` which runs a 2D type-2 on each slice, which are parallelized over via an OpenMP parallel for loop (without any math check, just dummy inputs)
+
+which are both built by ``make examples`` if the above flag has been set.
+
+Note: A design decision of FFTW is to have a global state which stores
+wisdom and settings. Such global state can cause unforeseen effects on other routines that also use FFTW. In contrast, FINUFFT uses pointers to plans to store
+its state, and does not have a global state (other than one ``static``
+flag used as a lock on FFTW initialization in the FINUFFT plan
+stage). This means different FINUFFT calls should not affect each other,
+although they may affect other codes that use FFTW via FFTW's global state.

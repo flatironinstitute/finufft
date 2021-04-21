@@ -23,7 +23,7 @@ Developer notes
 * For testing and performance measuring routines see ``test/README`` and ``perftest/README``. We need more of the latter, eg, something making performance graphs that enable rapid eyeball comparison of various settings/machines.
 
 * Continuous Integration (CI). See files for this in ``.github/workflows/``. It currently tests the default ``makefile`` settings in linux, and three other ``make.inc.*`` files covering OSX and Windows (MinGW).
-  
+
 * **Installing MWrap**. This is needed only to rebuild the matlab/octave interfaces.
   `MWrap <https://github.com/zgimbutas/mwrap>`_
   is a very useful MEX interface generator by Dave Bindel, now maintained

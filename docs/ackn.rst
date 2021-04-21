@@ -23,7 +23,7 @@ Other significant code contributions by:
 * Robert Blackwell - atomic OMP add_wrapped_subgrid
 * Leslie Greengard and June-Yub Lee - CMCL Fortran test drivers
 * Dan Foreman-Mackey - early python wrappers
-* David Stein - python wrappers
+* David Stein - python wrappers, finding "pi-1ULP" spreadcheck error
 * Vineet Bansal - py packaging
 * Garrett Wright - dual-precision build, py packaging, GPU version
 
@@ -37,10 +37,10 @@ Testing, bug reports, helpful discussions:
 * Zydrunas Gimbutas - MWrap extension, explanation that NFFT uses Kaiser-Bessel backwards
 * Charlie Epstein - help with analysis of kernel Fourier transform sums
 * Christian Muller - optimization (CMA-ES) for early kernel design
-* Andras Pataki - complex number speed in C++
+* Andras Pataki - complex number speed in C++, thread-safety of FFTW
+* Jonas Krimmer - thread safety of FFTW, Windows makefile
 * Timo Heister - pass/fail numdiff testing ideas
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
-* ``jonas-kr`` - thread safety
 
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.
