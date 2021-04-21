@@ -1,6 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
-* new demo example/threadsafe1d1.cpp, needs FFTW>=3.3.6 (Issue #183).
+* finufft_plan now thread-safe (if nthr=1, -DFFTW_PLAN_SAFE, via omp lock).
+* new demos: example/threadsafe*.cpp, needs FFTW>=3.3.6 (Issue #183, #72)
 * fixed bug in checkbounds that falsely reported NU pt as invalid if 1 ULP
   below +pi, for certain N values only (Issue #181).
 * GH workflows continuous integration (CI) in four setups (linux, osx, mingw)
