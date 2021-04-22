@@ -1,10 +1,12 @@
 List of features / changes made / release notes, in reverse chronological order
 
-* finufft_plan now thread-safe (if nthr=1, -DFFTW_PLAN_SAFE, via omp lock).
-* new demos: example/threadsafe*.cpp, needs FFTW>=3.3.6 (Issue #183, #72)
-* fixed bug in checkbounds that falsely reported NU pt as invalid if 1 ULP
-  below +pi, for certain N values only (Issue #181).
-* GH workflows continuous integration (CI) in four setups (linux, osx, mingw)
+V 2.0.3 (4/22/20)
+	
+* finufft (plan) now thread-safe via OMP lock (if nthr=1 and -DFFTW_PLAN_SAFE)
+  + new example/threadsafe*.cpp demos. Needs FFTW>=3.3.6 (Issues #72 #180 #183)
+* fixed bug in checkbounds that falsely reported NU pt as invalid if exactly 1
+  ULP below +pi, for certain N values only, egad! (Issue #181)
+* GH workflows continuous integration (CI) in four setups (linux, osx*2, mingw)
 * fixed memory leak in type 3.
 * corrected C guru execute documentation.
 
