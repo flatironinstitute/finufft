@@ -243,8 +243,9 @@ One first makes a plan giving transform parameters, but no data:
   // step 1: make a plan...
   finufft_plan plan;
   int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, 1e-6, &plan, NULL);
-  // step 2: send in M nonuniform points (just x, y in this case)...
+  // step 2: send in pointers to M nonuniform points (just x, y in this case)...
   finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  // (user should not change x, y nonuniform point arrays here!)
   // step 3: do the planned transform to the c strength data, output to F...
   finufft_execute(plan, &c[0], &F[0]);
   // ... you could now send in new points, and/or do transforms with new c data
@@ -256,6 +257,9 @@ This writes the Fourier coefficients to ``F`` just as in the earlier 2D example.
 One difference from the above simple and vectorized interfaces
 is that the ``int64_t`` type (aka ``long long int``)
 is needed since the Fourier coefficient dimensions are passed as an array.
+
+.. warning::
+  You must not change the nonuniform point arrays (here ``x``, ``y``) between passing them to ``finufft_setpts`` and performing ``finufft_execute``. The latter call expects these arrays to be unchanged. We chose this style of interface since it saves RAM and time (by avoiding unnecessary duplication), allowing the largest possible problems to be solved.
 
 .. warning::
   You must destroy a plan before making a new plan using the same
