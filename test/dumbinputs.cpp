@@ -71,6 +71,12 @@ int main(int argc, char* argv[])
   x[0] = 3*PI*(1 + 2*EPSILON);   // works in either prec, just outside valid
   ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
   printf("1d1 x>3pi:\tier=%d (should complain)\n",ier);
+  x[0] = INFINITY;
+  ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
+  printf("1d1 x=Inf:\tier=%d (should complain)\n",ier);
+  x[0] = NAN;
+  ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
+  printf("1d1 x=NaN:\tier=%d (should complain)\n",ier);
   x[0] = xsave;
   
   for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2

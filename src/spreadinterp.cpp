@@ -192,22 +192,22 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
   if (opts.chkbnds) {
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
-      if (opts.pirange ? (abs(kx[i])>3.0*PI) : (kx[i]<-N1 || kx[i]>2*N1) || !isfinite(kx[i])) {
-        fprintf(stderr,"%s NU pt not in valid range (central three periods): kx=%.16g, N1=%lld (pirange=%d)\n",__func__,kx[i],(long long)N1,opts.pirange);
+      if ((opts.pirange ? (abs(kx[i])>3.0*PI) : (kx[i]<-N1 || kx[i]>2*N1)) || !isfinite(kx[i])) {
+        fprintf(stderr,"%s NU pt not in valid range (central three periods): kx[%lld]=%.16g, N1=%lld (pirange=%d)\n",__func__, (long long)i, kx[i], (long long)N1,opts.pirange);
         return ERR_SPREAD_PTS_OUT_RANGE;
       }
     }
     if (ndims>1)
       for (BIGINT i=0; i<M; ++i) {
-        if (opts.pirange ? (abs(ky[i])>3.0*PI) : (ky[i]<-N2 || ky[i]>2*N2) || !isfinite(ky[i])) {
-          fprintf(stderr,"%s NU pt not in valid range (central three periods): ky=%.16g, N2=%lld (pirange=%d)\n",__func__,ky[i],(long long)N2,opts.pirange);
+        if ((opts.pirange ? (abs(ky[i])>3.0*PI) : (ky[i]<-N2 || ky[i]>2*N2)) || !isfinite(ky[i])) {
+          fprintf(stderr,"%s NU pt not in valid range (central three periods): ky[%lld]=%.16g, N2=%lld (pirange=%d)\n",__func__, (long long)i, ky[i], (long long)N2,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
     if (ndims>2)
       for (BIGINT i=0; i<M; ++i) {
-        if (opts.pirange ? (abs(kz[i])>3.0*PI) : (kz[i]<-N3 || kz[i]>2*N3) || !isfinite(kz[i])) {
-          fprintf(stderr,"%s NU pt not in valid range (central three periods): kz=%.16g, N3=%lld (pirange=%d)\n",__func__,kz[i],(long long)N3,opts.pirange);
+        if ((opts.pirange ? (abs(kz[i])>3.0*PI) : (kz[i]<-N3 || kz[i]>2*N3)) || !isfinite(kz[i])) {
+          fprintf(stderr,"%s NU pt not in valid range (central three periods): kz[%lld]=%.16g, N3=%lld (pirange=%d)\n",__func__, (long long)i, kz[i], (long long)N3,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
