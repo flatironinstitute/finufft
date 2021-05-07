@@ -65,8 +65,8 @@ Here we use the guru interface to repeat the first demo above:
   N = 2e5;                            % how many desired Fourier modes?
   plan = finufft_plan(1,N,+1,ntr,1e-12,o);      % plan for N output modes
   M = 1e5;                            % number of NU source points
-  x = 2*pi*rand(M,1);                 % you must assign the NU points an array
-  plan.setpts(x,[],[]);               % pass pointer to this (unadorned) array
+  x = 2*pi*rand(M,1);                 % array of NU source points
+  plan.setpts(x,[],[]);               % pass pointer to this array (M inferred)
   % (note: the x array should now not be altered until all executes are done!)
   c = randn(M,1)+1i*randn(M,1);       % iid random complex data (row or col vec)
   f = plan.execute(c);                % do the transform (0.008 sec, ie, faster)
@@ -76,8 +76,8 @@ Here we use the guru interface to repeat the first demo above:
 
 .. warning::
      
-  ``setpts`` expects an *existing* array ``x`` of nonuniform points, and (unlike the simple and vectorized interfaces above) will not perform correctly if passed an *expression* such as ``-x``, ``x+2``, or ``2*pi*rand(M,1)``. This is because the ``plan`` object retains only a *pointer* to the user array of nonuniform points, in order to avoid unnecessary duplication (saving both RAM and time). Between ``setpts`` and ``execute`` the array thus must not be altered! We are working on possible interface change that would allow expressions to be correctly handled via duplication; see https://github.com/flatironinstitute/finufft/issues/185
-   
+   If an existing array is passed to ``setpts``, then this array must not be altered before ``execute`` is called! This is because, in order to save RAM (allowing larger problems to be solved), internally FINUFFT stores only *pointers* to ``x`` (etc), rather than unnecessarily duplicating this data. This is not true if an *expression* such as ``-x`` or ``2*pi*rand(M,1)`` is passed to ``setpts``, since in those cases the ``plan`` object does make internal copies, as per MATLAB's usual shallow-copy argument passing.
+
 Finally, we demo a 2D type 1 transform using the simple interface. Let's
 request a rectangular Fourier mode array of 1000 modes in the x direction but 500 in the
 y direction. The source points are in the square of side length $2\pi$:

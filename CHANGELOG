@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* Dan Fortunato found and fixed MATLAB setpts temporary array loss, issue #185.
+
 V 2.0.3 (4/22/20)
 	
 * finufft (plan) now thread-safe via OMP lock (if nthr=1 and -DFFTW_PLAN_SAFE)

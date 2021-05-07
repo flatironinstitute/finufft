@@ -29,6 +29,7 @@ Other significant code contributions by:
 
 Testing, bug reports, helpful discussions:
 
+* Dan Fortunato - MATLAB setpts temp array bug and fix
 * Hannah Lawrence - user testing and finding bugs
 * Marina Spivak - Fortran testing
 * Hugo Strand - python bugs
