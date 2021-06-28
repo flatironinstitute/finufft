@@ -340,7 +340,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   } else {           // ------- Fancy multi-core blocked t1 spreading ----
                      // Splits sorted inds (jfm's advanced2), could double RAM.
     // choose nb (# subprobs) via used nthreads:
-    int nb = min((BIGINT)nthr,M);         // simply split one subprob per thr...
+    BIGINT nb = min((BIGINT)nthr,M);         // simply split one subprob per thr...
     if (nb*(BIGINT)opts.max_subproblem_size<M) {  // ...or more subprobs to cap size
       nb = 1 + (M-1)/opts.max_subproblem_size;  // int div does ceil(M/opts.max_subproblem_size)
       if (opts.debug) printf("\tcapping subproblem sizes to max of %d\n",opts.max_subproblem_size);
@@ -419,7 +419,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         if (N2>1) free(ky0);
         if (N3>1) free(kz0); 
       }     // end main loop over subprobs
-      if (opts.debug) printf("\tt1 fancy spread: \t%.3g s (%d subprobs)\n",timer.elapsedsec(), nb);
+      if (opts.debug) printf("\tt1 fancy spread: \t%.3g s (%lld subprobs)\n",timer.elapsedsec(), nb);
     }   // end of choice of which t1 spread type to use
     return 0;
 };
@@ -1217,11 +1217,11 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   BIGINT nbins = nbins1*nbins2*nbins3;
   if (nthr==0)
     fprintf(stderr,"[%s] nthr (%d) must be positive!\n",__func__,nthr);
-  int nt = min(M,(BIGINT)nthr);     // handle case of less points than threads
+  BIGINT nt = min(M,(BIGINT)nthr);     // handle case of less points than threads
   std::vector<BIGINT> brk(nt+1);    // list of start NU pt indices per thread
 
   // distribute the NU pts to threads once & for all...
-  for (int t=0; t<=nt; ++t)
+  for (BIGINT t=0; t<=nt; ++t)
     brk[t] = (BIGINT)(0.5 + M*t/(double)nt);   // start index for t'th chunk
   
   std::vector<BIGINT> counts(nbins,0);     // global counts: # pts in each bin
