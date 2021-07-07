@@ -46,7 +46,7 @@ void eval_kernel_vec(FLT *ker, const FLT x, const double w, const double es_c,
 					 const double es_beta)
 {
 	for(int i=0; i<w; i++){
-		ker[i] = evaluate_kernel(abs(x+i), es_c, es_beta);		
+		ker[i] = abs(x+i)<w/2.0 ? evaluate_kernel(abs(x+i), es_c, es_beta):0.0;		
 	}
 }
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
@@ -151,8 +151,10 @@ void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int  bin_size_x,
 		y_rescaled=RESCALE(y[i], nf2, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		binx = binx >= nbinx ? binx-1 : binx;
+		binx = binx < 0 ? 0 : binx;
 		biny = floor(y_rescaled/bin_size_y);
 		biny = biny >= nbiny ? biny-1 : biny;
+		biny = biny < 0 ? 0 : biny;
 		binidx = binx+biny*nbinx;
 		oldidx = atomicAdd(&bin_size[binidx], 1);
 		sortidx[i] = oldidx;
@@ -175,8 +177,10 @@ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y,
 		y_rescaled=RESCALE(y[i], nf2, pirange);
 		binx = floor(x_rescaled/bin_size_x);
 		binx = binx >= nbinx ? binx-1 : binx;
+		binx = binx < 0 ? 0 : binx;
 		biny = floor(y_rescaled/bin_size_y);
 		biny = biny >= nbiny ? biny-1 : biny;
+		biny = biny < 0 ? 0 : biny;
 		binidx = binx+biny*nbinx;
 
 		index[bin_startpts[binidx]+sortidx[i]] = i;
@@ -491,7 +495,7 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 #if 1 
 					y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
 					FLT disy = abs(y_rescaled-(yy+yoffset));
-					kervalue2[m] = evaluate_kernel(disy, es_c, es_beta);
+					kervalue2[m] = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0.0;
 #else
 					kervalue2[m] = ker2[m*MAX_NSPREAD+yy-ystart];
 #endif
@@ -508,7 +512,7 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 #if 1
 						x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
 						FLT disx = abs(x_rescaled-(xx+xoffset));
-						FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+						FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0.0;
 
 						updatevalue.x += kervalue2[m]*kervalue1*
 										 c[idxnupts[idx]].x;
@@ -556,6 +560,7 @@ void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 
 		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
 		FLT y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
+        
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int ystart = ceil(y_rescaled - ns/2.0);
 		int xend = floor(x_rescaled + ns/2.0);
@@ -565,13 +570,13 @@ void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 		cnow.y = 0.0;
 		for(int yy=ystart; yy<=yend; yy++){
 			FLT disy=abs(y_rescaled-yy);
-			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+			FLT kervalue2 = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0;
 			for(int xx=xstart; xx<=xend; xx++){
 				int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 				int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 				int inidx = ix+iy*nf1;
 				FLT disx=abs(x_rescaled-xx);
-				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+				FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0;
 				cnow.x += fw[inidx].x*kervalue1*kervalue2;
 				cnow.y += fw[inidx].y*kervalue1*kervalue2;
 			}
@@ -678,14 +683,13 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 
 		for(int yy=ystart; yy<=yend; yy++){
 			FLT disy=abs(y_rescaled-(yy+yoffset));
-			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta);
+			FLT kervalue2 = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0.0;
 			for(int xx=xstart; xx<=xend; xx++){
 				ix = xx+ceil(ns/2.0);
 				iy = yy+ceil(ns/2.0);
 				outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
 				FLT disx=abs(x_rescaled-(xx+xoffset));
-				//FLT kervalue1 = ker1[xx-xstart];
-				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta);
+				FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0.0;
 				cnow.x += fwshared[outidx].x*kervalue1*kervalue2;
 				cnow.y += fwshared[outidx].y*kervalue1*kervalue2;
 			}
