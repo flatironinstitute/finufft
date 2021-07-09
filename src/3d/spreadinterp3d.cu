@@ -11,16 +11,14 @@
 using namespace std;
 
 static __forceinline__ __device__
-FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
+FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta, int ns)
 	/* ES ("exp sqrt") kernel evaluation at single real argument:
 	   phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
 	   related to an asymptotic approximation to the Kaiser--Bessel, itself an
 	   approximation to prolate spheroidal wavefunction (PSWF) of order 0.
 	   This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
 {
-	return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
-	//return x;
-	//return 1.0;
+	return abs(x) < ns/2.0 ? exp(es_beta * (sqrt(1.0 - es_c*x*x))) : 0.0;
 }
 
 static __inline__ __device__
@@ -43,7 +41,7 @@ void eval_kernel_vec(FLT *ker, const FLT x, const double w, const double es_c,
                      const double es_beta)
 {
     for(int i=0; i<w; i++){
-        ker[i] = abs(x+i) < w/2.0 ? evaluate_kernel(abs(x+i), es_c, es_beta):0.0;
+        ker[i] = evaluate_kernel(abs(x+i), es_c, es_beta, w);
     }
 }
 
@@ -549,14 +547,14 @@ void Spread_3d_BlockGather(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 
 		for(int zz=zstart; zz<=zend; zz++){
 			FLT disz=abs(z_rescaled-(zz+zoffset));
-			FLT kervalue3 = disz<ns/2.0 ? evaluate_kernel(disz, es_c, es_beta):0.0;
+			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta, ns);
 			for(int yy=ystart; yy<=yend; yy++){
 				FLT disy=abs(y_rescaled-(yy+yoffset));
-				FLT kervalue2 = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0.0;
+				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
 				for(int xx=xstart; xx<=xend; xx++){
 					outidx = xx+yy*obin_size_x+zz*obin_size_y*obin_size_x;
 					FLT disx=abs(x_rescaled-(xx+xoffset));
-					FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0.0;
+					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
 					atomicAdd(&fwshared[outidx].x, cnow.x*kervalue1*kervalue2*
 						kervalue3);
 					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
@@ -709,10 +707,10 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		cnow.y = 0.0;
 		for(int zz=zstart; zz<=zend; zz++){
 			FLT disz=abs(z_rescaled-zz);
-			FLT kervalue3 = disz<ns/2.0 ? evaluate_kernel(disz, es_c, es_beta):0.0;
+			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta, ns);
 			for(int yy=ystart; yy<=yend; yy++){
 				FLT disy=abs(y_rescaled-yy);
-				FLT kervalue2 = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0.0;
+				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
 				for(int xx=xstart; xx<=xend; xx++){
 					int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 					int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
@@ -721,7 +719,7 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 					int inidx = ix+iy*nf1+iz*nf2*nf1;
 
 					FLT disx=abs(x_rescaled-xx);
-					FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0.0;
+					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
 					cnow.x += fw[inidx].x*kervalue1*kervalue2*kervalue3;
 					cnow.y += fw[inidx].y*kervalue1*kervalue2*kervalue3;
 				}
@@ -854,11 +852,11 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 
     	for (int zz=zstart; zz<=zend; zz++){
 			FLT disz=abs(z_rescaled-zz);
-			FLT kervalue3 = disz<ns/2.0 ? evaluate_kernel(disz, es_c, es_beta):0.0;
+			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta, ns);
 			iz = zz+ceil(ns/2.0);
 			for(int yy=ystart; yy<=yend; yy++){
 				FLT disy=abs(y_rescaled-yy);
-				FLT kervalue2 = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0.0;
+				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
 				iy = yy+ceil(ns/2.0);
 				for(int xx=xstart; xx<=xend; xx++){
 					ix = xx+ceil(ns/2.0);
@@ -867,7 +865,7 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 						   (bin_size_y+ceil(ns/2.0)*2);
 
 					FLT disx=abs(x_rescaled-xx);
-					FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0.0;
+					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
 					cnow.x += fwshared[outidx].x*kervalue1*kervalue2*kervalue3;
 					cnow.y += fwshared[outidx].y*kervalue1*kervalue2*kervalue3;
         		}

@@ -13,7 +13,7 @@ using namespace std;
 #define MAXBINSIZE 1024
 
 static __forceinline__ __device__
-FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
+FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta, int ns)
 	/* ES ("exp sqrt") kernel evaluation at single real argument:
 	   phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
 	   related to an asymptotic approximation to the Kaiser--Bessel, itself an
@@ -21,9 +21,7 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta)
 	   This is the "reference implementation", used by eg common/onedim_* 
 	    2/17/17 */
 {
-	return exp(es_beta * (sqrt(1.0 - es_c*x*x)));
-	//return x;
-	//return 1.0;
+	return abs(x) < ns/2.0 ? exp(es_beta * (sqrt(1.0 - es_c*x*x))) : 0.0;
 }
 
 static __inline__ __device__
@@ -46,7 +44,7 @@ void eval_kernel_vec(FLT *ker, const FLT x, const double w, const double es_c,
 					 const double es_beta)
 {
 	for(int i=0; i<w; i++){
-		ker[i] = abs(x+i)<w/2.0 ? evaluate_kernel(abs(x+i), es_c, es_beta):0.0;		
+		ker[i] = evaluate_kernel(abs(x+i), es_c, es_beta, w);		
 	}
 }
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
@@ -495,7 +493,7 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 #if 1 
 					y_rescaled=RESCALE(y[idxnupts[idx]], nf2, pirange);
 					FLT disy = abs(y_rescaled-(yy+yoffset));
-					kervalue2[m] = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0.0;
+					kervalue2[m] = evaluate_kernel(disy, es_c, es_beta, ns);
 #else
 					kervalue2[m] = ker2[m*MAX_NSPREAD+yy-ystart];
 #endif
@@ -512,7 +510,7 @@ void Spread_2d_Subprob_Paul(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M,
 #if 1
 						x_rescaled=RESCALE(x[idxnupts[idx]], nf1, pirange);
 						FLT disx = abs(x_rescaled-(xx+xoffset));
-						FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0.0;
+						FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
 
 						updatevalue.x += kervalue2[m]*kervalue1*
 										 c[idxnupts[idx]].x;
@@ -570,13 +568,13 @@ void Interp_2d_NUptsdriven(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int
 		cnow.y = 0.0;
 		for(int yy=ystart; yy<=yend; yy++){
 			FLT disy=abs(y_rescaled-yy);
-			FLT kervalue2 = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0;
+			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
 			for(int xx=xstart; xx<=xend; xx++){
 				int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 				int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
 				int inidx = ix+iy*nf1;
 				FLT disx=abs(x_rescaled-xx);
-				FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0;
+				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
 				cnow.x += fw[inidx].x*kervalue1*kervalue2;
 				cnow.y += fw[inidx].y*kervalue1*kervalue2;
 			}
@@ -683,13 +681,13 @@ void Interp_2d_Subprob(FLT *x, FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
 
 		for(int yy=ystart; yy<=yend; yy++){
 			FLT disy=abs(y_rescaled-(yy+yoffset));
-			FLT kervalue2 = disy<ns/2.0 ? evaluate_kernel(disy, es_c, es_beta):0.0;
+			FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
 			for(int xx=xstart; xx<=xend; xx++){
 				ix = xx+ceil(ns/2.0);
 				iy = yy+ceil(ns/2.0);
 				outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2);
 				FLT disx=abs(x_rescaled-(xx+xoffset));
-				FLT kervalue1 = disx<ns/2.0 ? evaluate_kernel(disx, es_c, es_beta):0.0;
+				FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
 				cnow.x += fwshared[outidx].x*kervalue1*kervalue2;
 				cnow.y += fwshared[outidx].y*kervalue1*kervalue2;
 			}
