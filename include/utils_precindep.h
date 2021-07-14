@@ -9,14 +9,14 @@
 BIGINT next235even(BIGINT n);
 
 // jfm's timer class
-#include <sys/time.h>
+#include <chrono>
 class CNTime {
  public:
   void start();
   double restart();
   double elapsedsec();
  private:
-  struct timeval initial;
+  std::chrono::time_point<std::chrono::steady_clock> initial;
 };
 
 // openmp helpers

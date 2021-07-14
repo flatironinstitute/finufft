@@ -34,6 +34,10 @@ else ()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif ()
 
+if(MSVC)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    set(BUILD_SHARED_LIBS FALSE)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
@@ -42,7 +46,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/contrib)
 file(GLOB_RECURSE SOURCES "${CMAKE_SOURCE_DIR}/src/*.cpp")
 list(APPEND SOURCES ${CMAKE_SOURCE_DIR}/contrib/legendre_rule_fast.c)
 
-find_package(FFTW REQUIRED FLOAT_THREADS_LIB FLOAT_THREADS_LIB)
+find_package(FFTW REQUIRED FLOAT_THREADS_LIB DOUBLE_THREADS_LIB)
 
 message("FFTW_FOUND            ${FFTW_FOUND}")
 message("FFTW_INCLUDE_DIRS     ${FFTW_INCLUDE_DIRS}")
@@ -55,19 +59,18 @@ find_package(Threads REQUIRED)
 list(APPEND LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
 
-add_library(finufft_static STATIC ${SOURCES})
-target_link_libraries(finufft_static ${LIBRARIES})
-set_target_properties(finufft_static PROPERTIES OUTPUT_NAME finufft)
-install(TARGETS finufft_static DESTINATION ${CMAKE_SOURCE_DIR}/lib-static)
-
-
-add_library(finufft_shared SHARED ${SOURCES})
-target_link_libraries(finufft_shared ${LIBRARIES})
-set_target_properties(finufft_shared PROPERTIES OUTPUT_NAME finufft)
-
-install(TARGETS finufft_shared DESTINATION ${CMAKE_SOURCE_DIR}/lib)
-
-list(APPEND LIBRARIES finufft_shared)
+add_library(finufft STATIC ${SOURCES})
+target_link_libraries(finufft ${LIBRARIES})
+install(TARGETS finufft DESTINATION ${CMAKE_SOURCE_DIR}/lib)
+if(MSVC)
+	include (GenerateExportHeader)      
+	generate_export_header(finufft)
+	if (MSVC AND NOT (CMAKE_C_COMPILER_ID STREQUAL "Intel"))
+		target_compile_definitions (finufft PRIVATE /bigobj)
+	endif ()
+	install(FILES ${PROJECT_BINARY_DIR}/finufft_export.h DESTINATION ${CMAKE_SOURCE_DIR}/lib )
+endif()
+list(APPEND LIBRARIES finufft)
 
 add_executable(basicpassfail test/basicpassfail.cpp)
 target_link_libraries(basicpassfail ${LIBRARIES})
