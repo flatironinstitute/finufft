@@ -48,8 +48,9 @@ endif ()
 
 if(MSVC)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-    set(BUILD_SHARED_LIBS FALSE)
+    set(BUILD_SHARED_LIBS TRUE)
 endif()
+
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
@@ -71,17 +72,32 @@ find_package(Threads REQUIRED)
 list(APPEND LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
 
-add_library(finufft STATIC ${SOURCES})
-target_link_libraries(finufft ${LIBRARIES})
-install(TARGETS finufft DESTINATION ${CMAKE_SOURCE_DIR}/lib)
+
+add_library(finufft OBJECT ${SOURCES})
+set_property(TARGET finufft PROPERTY POSITION_INDEPENDENT_CODE 1)
+
+add_library(finufft_static STATIC $<TARGET_OBJECTS:finufft>)
+target_link_libraries(finufft_static PUBLIC ${LIBRARIES})
+add_library(finufft_shared SHARED $<TARGET_OBJECTS:finufft>)
+target_link_libraries(finufft_shared PUBLIC ${LIBRARIES})
+
+
+install(TARGETS finufft_static DESTINATION ${CMAKE_SOURCE_DIR}/lib-static)
+install(TARGETS finufft_shared DESTINATION ${CMAKE_SOURCE_DIR}/lib)
 if(MSVC)
 	include (GenerateExportHeader)      
-	generate_export_header(finufft)
+	generate_export_header(finufft_shared)
+    generate_export_header(finufft_static)
 	if (MSVC AND NOT (CMAKE_C_COMPILER_ID STREQUAL "Intel"))
 		target_compile_definitions (finufft PRIVATE /bigobj)
 	endif ()
-	install(FILES ${PROJECT_BINARY_DIR}/finufft_export.h DESTINATION ${CMAKE_SOURCE_DIR}/lib )
+	install(FILES ${PROJECT_BINARY_DIR}/finufft_shared_export.h DESTINATION ${CMAKE_SOURCE_DIR}/lib)
+    install(FILES ${PROJECT_BINARY_DIR}/finufft_static_export.h DESTINATION ${CMAKE_SOURCE_DIR}/lib-static)
 endif()
+
+
+
+
 list(APPEND LIBRARIES finufft)
 
 add_executable(basicpassfail test/basicpassfail.cpp)
