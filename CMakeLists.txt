@@ -98,24 +98,26 @@ if (MSVC)
     generate_export_header(finufft_shared)
     generate_export_header(finufft_static)
     if (MSVC AND NOT (CMAKE_C_COMPILER_ID STREQUAL "Intel"))
-        target_compile_definitions(finufft PRIVATE /bigobj)
+        target_compile_definitions(finufft32 PRIVATE /bigobj)
+        target_compile_definitions(finufft64 PRIVATE /bigobj)
     endif ()
     install(FILES ${PROJECT_BINARY_DIR}/finufft_shared_export.h DESTINATION ${CMAKE_SOURCE_DIR}/lib)
     install(FILES ${PROJECT_BINARY_DIR}/finufft_static_export.h DESTINATION ${CMAKE_SOURCE_DIR}/lib-static)
 endif ()
 
 
-set(LIBRARIES finufft32 finufft64)
+list(APPEND LIBRARIES finufft32 finufft64)
+list(REVERSE LIBRARIES)
 message("TEST LIBRARIES: ${LIBRARIES}")
 
 add_executable(basicpassfail test/basicpassfail.cpp)
-target_link_libraries(basicpassfail finufft_static)
+target_link_libraries(basicpassfail ${LIBRARIES})
 
 add_executable(dumbinputs test/dumbinputs.cpp)
-target_link_libraries(dumbinputs finufft_static)
+target_link_libraries(dumbinputs  ${LIBRARIES})
 
 add_executable(finufft1d_test test/finufft1d_test.cpp)
-target_link_libraries(finufft1d_test finufft_static)
+target_link_libraries(finufft1d_test  ${LIBRARIES})
 
 add_executable(simple1d1f examples/simple1d1f.cpp)
-target_link_libraries(simple1d1f finufft_static)
+target_link_libraries(simple1d1f  ${LIBRARIES})
