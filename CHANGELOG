@@ -1,5 +1,6 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* fixed spreadcheck NaN failure to detect bug introduced in 2.0.3 (9566511).
 * Dan Fortunato found and fixed MATLAB setpts temporary array loss, issue #185.
 
 V 2.0.3 (4/22/20)
