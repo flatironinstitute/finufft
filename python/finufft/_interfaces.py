@@ -102,7 +102,7 @@ class Plan:
         # setting n_modes and dim for makeplan
         n_modes = np.ones([3], dtype=np.int64)
         if nufft_type==3:
-            npdim = np.asarray(n_modes_or_dim, dtype=np.int)
+            npdim = np.asarray(n_modes_or_dim, dtype=np.int64)
             if npdim.size != 1:
                 raise RuntimeError('FINUFFT type 3 plan n_modes_or_dim must be one number, the dimension')
             dim = int(npdim)
