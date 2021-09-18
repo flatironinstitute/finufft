@@ -9,6 +9,7 @@ __version__ = '2.0.3'
 
 from setuptools import setup, Extension
 import os
+import platform
 
 from tempfile import mkstemp
 
@@ -34,7 +35,10 @@ with open(os.path.join(finufft_dir, 'python', 'README.md'), 'r') as f:
 # libfinufft.so in the LD_LIBRARY_PATH at runtime. The risk with this is that
 # if the libfinufft.so is deleted or moved, the Python module will break
 # unless LD_LIBRARY_PATH is updated.
-finufft_dlib = os.path.join(lib_dir, 'finufft')
+if platform.system() == 'Windows':
+    finufft_dlib = 'finufft'
+else:
+    finufft_dlib = os.path.join(lib_dir, 'finufft')
 
 # For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
 # that calls one of the functions in the FINUFFT dynamic library. The reason
@@ -51,7 +55,7 @@ with open(fd, 'w') as f:
 """
 #include <finufft.h>
 
-void _dummy(void) {
+void PyInit_finufftc(void) {
     nufft_opts opt;
 
     finufft_default_opts(&opt);
@@ -86,6 +90,7 @@ setup(
         Extension(name='finufft.finufftc',
                   sources=[source_filename],
                   include_dirs=[inc_dir],
+                  library_dirs=[lib_dir],
                   libraries=[finufft_dlib])
         ]
 )

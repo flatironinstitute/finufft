@@ -112,3 +112,50 @@ jobs:
       with:
         name: macos-wheels
         path: python/fixed_wheel/*.whl
+
+  Windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install GCC and make
+      run: C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm make mingw-w64-x86_64-toolchain mingw-w64-x86_64-fftw"
+
+    - name: Build and Test Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.6'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+
+    - name: Build and Test Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.7'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+
+    - name: Build and Test Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+
+    - name: Build and Test Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-wheels
+        path: wheelhouse\*.whl
