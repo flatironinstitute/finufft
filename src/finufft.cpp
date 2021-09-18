@@ -917,6 +917,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     timer.restart();
     BIGINT t2nmodes[] = {p->nf1,p->nf2,p->nf3};   // t2 input is actually fw
     nufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
+    t2opts.modeord = 0;                           // needed for correct t3!
     t2opts.debug = max(0,p->opts.debug-1);        // don't print as much detail
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);
     t2opts.showwarn = 0;                          // so don't see warnings 2x
