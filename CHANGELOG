@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* fixed modeord=1 failure for type 3 even though should never be used anyway
+  (issue #194).
 * fixed spreadcheck NaN failure to detect bug introduced in 2.0.3 (9566511).
 * Dan Fortunato found and fixed MATLAB setpts temporary array loss, issue #185.
 
