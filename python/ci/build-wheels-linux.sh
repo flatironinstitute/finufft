@@ -24,11 +24,19 @@ pys=(${pys[@]//*27*/})
 pys=(${pys[@]//*34*/})
 pys=(${pys[@]//*35*/})
 
+# build wheel
 for PYBIN in "${pys[@]}"; do
     "${PYBIN}/pip" install auditwheel wheel twine numpy
     "${PYBIN}/pip" wheel ./python -w python/wheelhouse
 done
 
+# fix wheel
 for whl in python/wheelhouse/finufft-*.whl; do
     auditwheel repair "$whl" -w python/wheelhouse/
+done
+
+# test wheel
+for PYBIN in "${pys[@]}"; do
+    "${PYBIN}/pip" install finufft -f ./python/wheelhouse/
+    "${PYBIN}/python" ./python/test/run_accuracy_tests.py
 done
