@@ -5,7 +5,7 @@
 # attempt ../make.inc reading (failed) and default finufftdir. 2/25/20
 # Barnett trying to get sphinx.ext.autodoc to work w/ this, 10/5/20
 
-__version__ = '2.0.3'
+__version__ = '2.0.3.post1'
 
 from setuptools import setup, Extension
 import os
@@ -81,6 +81,7 @@ setup(
         'Programming Language :: C++',
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows',
     ],
     install_requires=['numpy>=1.12.0'],
     python_requires='>=3.6',
