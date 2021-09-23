@@ -81,7 +81,7 @@ Then the type 3 transform evaluates:
 .. math::
   :label: 3
    
-  f_\mathbf{k} := \sum_{j=1}^M c_j e^{\pm i \mathbf{s}_k\cdot \mathbf{x}_j}
+  f_k := \sum_{j=1}^M c_j e^{\pm i \mathbf{s}_k\cdot \mathbf{x}_j}
    \qquad \mbox{for } k=1,\ldots,N
 
 For all three transforms, the computational effort scales like the
