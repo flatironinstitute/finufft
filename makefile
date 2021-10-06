@@ -64,7 +64,7 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 INCL = -Iinclude
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
-# here /usr/include needed for fftw3.f "fortran header"...
+# here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
 # single-thread total list of math and FFTW libs (now both precisions)...
