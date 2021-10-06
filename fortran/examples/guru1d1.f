@@ -8,7 +8,7 @@ c     To compile (linux/GCC) from this directory, use eg (paste to one line):
 c     gfortran -fopenmp -I../../include -I/usr/include guru1d1.f
 c     ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++ -o guru1d1
 
-c     Alex Barnett and Libin Lu 5/29/20
+c     Alex Barnett and Libin Lu 5/29/20. ptr fixes 10/6/21
 
       program guru1d1
       implicit none
@@ -66,7 +66,7 @@ c     mandatory parameters to FINUFFT guru interface...
       n_modes(1) = N
 c     (note since dim=1, unused entries on n_modes are never read)
       call system_clock(t1)
-c     null here uses default options
+c     use default options
       call finufft_makeplan(ttype,dim,n_modes,iflag,ntrans,
      $     tol,plan,defopts,ier)
 c     note for ttype 1 or 2, arguments 6-9 ignored...
