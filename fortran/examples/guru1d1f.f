@@ -55,7 +55,7 @@ c     create some quasi-random NU pts in [-pi,pi], complex strengths
       enddo
 
 c     ---- SIMPLEST GURU DEMO WITH DEFAULT OPTS (as in simple1d1) ---------
-c     mandatory parameters to FINUFFT guru interface...
+c     mandatory parameters to FINUFFT guru interface... (ttype = trans type)
       ttype = 1
       dim = 1
       ntrans = 1
