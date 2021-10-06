@@ -13,7 +13,7 @@ c     Alex Barnett and Libin Lu 5/29/20. ptr fixes 10/6/21
       program guru1d1
       implicit none
 
-c     our fortran header, only needed if want to set options...
+c     our fortran header, always needed
       include 'finufft.fh'
 c     if you want to use FFTW's modes by name...
       include 'fftw3.f'

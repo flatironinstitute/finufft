@@ -13,7 +13,7 @@ c     Alex Barnett and Libin Lu 5/28/20, fix ptrs 10/6/21
       program simple1d1
       implicit none
       
-c     our fortran-header, only needed if want to set options...
+c     our fortran-header, always needed
       include 'finufft.fh'
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)

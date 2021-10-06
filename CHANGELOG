@@ -1,14 +1,14 @@
 List of features / changes made / release notes, in reverse chronological order
 
-* fortran examples: avoided clash with keywords "type" and "null" (issues
-  #195-196, Jiri Kulda).
+* fortran examples: avoided clash with keywords "type" and "null", and correct
+  creation of null ptr for default opts (issues #195-196, Jiri Kulda).
 * fixed modeord=1 failure for type 3 even though should never be used anyway
   (issue #194).
 * fixed spreadcheck NaN failure to detect bug introduced in 2.0.3 (9566511).
 * Dan Fortunato found and fixed MATLAB setpts temporary array loss, issue #185.
 
 V 2.0.3 (4/22/20)
-	
+
 * finufft (plan) now thread-safe via OMP lock (if nthr=1 and -DFFTW_PLAN_SAFE)
   + new example/threadsafe*.cpp demos. Needs FFTW>=3.3.6 (Issues #72 #180 #183)
 * fixed bug in checkbounds that falsely reported NU pt as invalid if exactly 1
