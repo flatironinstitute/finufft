@@ -180,7 +180,7 @@ environment. The `site`-specific script is loaded __before__ the
 
 * cuFINUFFT: a load-balanced GPU library for general-purpose nonuniform FFTs,
 Yu-hsuan Shih, Garrett Wright, Joakim Andén, Johannes Blaschke, Alex H. Barnett,
-*accepted*, PDSEC2021. https://arxiv.org/abs/2102.08463
+PDSEC2021 conference (*best paper prize*). https://arxiv.org/abs/2102.08463
 
 
 [1]: https://github.com/flatironinstitute/finufft
