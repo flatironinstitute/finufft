@@ -350,11 +350,11 @@ def _copy(_x, x):
         x[:] = _x
 
 
-### error handler
+### error handler (keep up to date with FINUFFT/include/defs.h)
 def err_handler(ier):
     switcher = {
         1: 'FINUFFT eps tolerance too small to achieve',
-        2: 'FINUFFT malloc size requested greater than MAXNF',
+        2: 'FINUFFT malloc size requested greater than MAX_NF',
         3: 'FINUFFT spreader fine grid too small compared to kernel width',
         4: 'FINUFFT spreader nonuniform point out of range [-3pi,3pi]^d in type 1 or 2',
         5: 'FINUFFT spreader malloc error',
@@ -364,7 +364,8 @@ def err_handler(ier):
         9: 'FINUFFT number of transforms ntrans invalid',
         10: 'FINUFFT transform type invalid',
         11: 'FINUFFT general malloc failure',
-        12: 'FINUFFT number of dimensions dim invalid'
+        12: 'FINUFFT number of dimensions dim invalid',
+        13: 'FINUFFT spread_thread option invalid',
     }
     err_msg = switcher.get(ier,'Unknown error')
 
