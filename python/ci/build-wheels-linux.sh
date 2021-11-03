@@ -23,9 +23,11 @@ pys=(/opt/python/*/bin)
 pys=(${pys[@]//*27*/})
 pys=(${pys[@]//*34*/})
 pys=(${pys[@]//*35*/})
+pys=(${pys[@]//*pp38-pypy38_pp73*/})
 
 # build wheel
 for PYBIN in "${pys[@]}"; do
+    "${PYBIN}/pip" install --upgrade pip
     "${PYBIN}/pip" install auditwheel wheel twine numpy
     "${PYBIN}/pip" wheel ./python -w python/wheelhouse
 done
