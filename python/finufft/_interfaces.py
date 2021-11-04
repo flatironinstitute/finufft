@@ -358,7 +358,7 @@ def _copy(_x, x):
     """
     Copy _x to x, only if the underlying data of _x differs from that of x
     """
-    if _x.data is not x.data:
+    if _x is not x:
         x[:] = _x
 
 
