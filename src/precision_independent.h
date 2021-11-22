@@ -6,7 +6,7 @@
 #define PRECISION_INDEPENDENT_H
 
 /* Common Kernels from spreadinterp3d */
-__device__
+__host__ __device__
 int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
                   int bnx, int bny, int bnz);
 __device__

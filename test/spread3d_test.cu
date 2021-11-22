@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
 	for(int k=0; k<nf3; k++){
 		for(int j=0; j<nf2; j++){
 			for (int i=0; i<nf1; i++){
-				if( i % dplan.opts.gpu_binsizex == 0 && i!=0)
+				if( i % dplan->opts.gpu_binsizex == 0 && i!=0)
 					printf(" |");
 				printf(" (%2.3g,%2.3g)",fw[i+j*nf1+k*nf2*nf1].real(),
 					fw[i+j*nf1+k*nf2*nf1].imag() );

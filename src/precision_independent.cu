@@ -9,7 +9,7 @@
 #include "precision_independent.h"
 
 /* Common Kernels from spreadinterp3d */
-__device__
+__host__ __device__
 int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 	int bnx, int bny, int bnz){
 	int oix,oiy,oiz;
