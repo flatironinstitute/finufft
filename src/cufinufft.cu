@@ -16,6 +16,14 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 {
 	switch(dim)
 	{
+		case 1:
+		{
+			opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32:
+				opts->gpu_binsizex;
+			opts->gpu_binsizey = 1;
+			opts->gpu_binsizez = 1;
+		}
+		break;
 		case 2:
 		{
 			opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32:
@@ -226,7 +234,11 @@ This performs:
 	{
 		case 1:
 		{
-			cerr<<"Not implemented yet"<<endl;
+			int n[] = {nf1};
+			int inembed[] = {nf1};
+
+			cufftPlanMany(&fftplan,1,n,inembed,1,inembed[0],
+				inembed,1,inembed[0],CUFFT_TYPE,maxbatchsize);
 		}
 		break;
 		case 2:
@@ -234,20 +246,17 @@ This performs:
 			int n[] = {nf2, nf1};
 			int inembed[] = {nf2, nf1};
 
-			//cufftCreate(&fftplan);
-			//cufftPlan2d(&fftplan,n[0],n[1],CUFFT_TYPE);
-			cufftPlanMany(&fftplan,dim,n,inembed,1,inembed[0]*inembed[1],
+			cufftPlanMany(&fftplan,2,n,inembed,1,inembed[0]*inembed[1],
 				inembed,1,inembed[0]*inembed[1],CUFFT_TYPE,maxbatchsize);
 		}
 		break;
 		case 3:
 		{
-			int dim = 3;
 			int n[] = {nf3, nf2, nf1};
 			int inembed[] = {nf3, nf2, nf1};
-			int istride = 1;
-			cufftPlanMany(&fftplan,dim,n,inembed,istride,inembed[0]*inembed[1]*
-				inembed[2],inembed,istride,inembed[0]*inembed[1]*inembed[2],
+
+			cufftPlanMany(&fftplan,3,n,inembed,1,inembed[0]*inembed[1]*
+				inembed[2],inembed,1,inembed[0]*inembed[1]*inembed[2],
 				CUFFT_TYPE,maxbatchsize);
 		}
 		break;
@@ -370,7 +379,30 @@ Notes: the type FLT means either single or double, matching the
 	{
 		case 1:
 		{
-			cerr<<"Not implemented yet"<<endl;
+			if(d_plan->opts.gpu_method==1){
+				ier = CUSPREAD1D_NUPTSDRIVEN_PROP(nf1,M,d_plan);
+				if(ier != 0 ){
+					printf("error: cuspread2d_nupts_prop, method(%d)\n",
+						d_plan->opts.gpu_method);
+
+					// Multi-GPU support: reset the device ID
+					cudaSetDevice(orig_gpu_device_id);
+
+					return 1;
+				}
+			}
+			if(d_plan->opts.gpu_method==2){
+				ier = CUSPREAD1D_SUBPROB_PROP(nf1,M,d_plan);
+				if(ier != 0 ){
+					printf("error: cuspread2d_subprob_prop, method(%d)\n",
+						d_plan->opts.gpu_method);
+
+					// Multi-GPU support: reset the device ID
+					cudaSetDevice(orig_gpu_device_id);
+
+					return 1;
+				}
+			}
 		}
 		break;
 		case 2:
@@ -502,16 +534,22 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 	{
 		case 1:
 		{
-			cerr<<"Not Implemented yet"<<endl;
-			ier = 1;
+			if(type == 1)
+				ier = CUFINUFFT1D1_EXEC(d_c, d_fk, d_plan);
+			if(type == 2)
+				ier = CUFINUFFT1D2_EXEC(d_c, d_fk, d_plan);
+			if(type == 3){
+				cerr<<"Not Implemented yet"<<endl;
+				ier = 1;
+			}
 		}
 		break;
 		case 2:
 		{
 			if(type == 1)
-				ier = CUFINUFFT2D1_EXEC(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT2D1_EXEC(d_c, d_fk, d_plan);
 			if(type == 2)
-				ier = CUFINUFFT2D2_EXEC(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT2D2_EXEC(d_c, d_fk, d_plan);
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
@@ -521,9 +559,9 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 		case 3:
 		{
 			if(type == 1)
-				ier = CUFINUFFT3D1_EXEC(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT3D1_EXEC(d_c, d_fk, d_plan);
 			if(type == 2)
-				ier = CUFINUFFT3D2_EXEC(d_c,  d_fk, d_plan);
+				ier = CUFINUFFT3D2_EXEC(d_c, d_fk, d_plan);
 			if(type == 3){
 				cerr<<"Not Implemented yet"<<endl;
 				ier = 1;
@@ -646,10 +684,19 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 	{
 		case 1:
 		{
-			cerr<<"Not Implemented yet"<<endl;
-			ier = 1;
-			return ier;
+			if(type == 1){
+				opts->gpu_method = 2;
+			}
+			if(type == 2){
+				opts->gpu_method = 1;
+			}
+			if(type == 3){
+				cerr<<"Not Implemented yet"<<endl;
+				ier = 1;
+				return ier;
+			}
 		}
+		break;
 		case 2:
 		{
 			if(type == 1){

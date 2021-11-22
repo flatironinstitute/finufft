@@ -33,6 +33,8 @@
 #undef CUFINUFFT_SETPTS
 #undef CUFINUFFT_EXECUTE
 #undef CUFINUFFT_DESTROY
+#undef CUFINUFFT1D1_EXEC
+#undef CUFINUFFT1D2_EXEC
 #undef CUFINUFFT2D1_EXEC
 #undef CUFINUFFT2D2_EXEC
 #undef CUFINUFFT3D1_EXEC
@@ -49,10 +51,18 @@
 #undef ALLOCGPUMEM3D_NUPTS
 #undef FREEGPUMEMORY3D
 /* spreading and interp only*/
+#undef CUFINUFFT_SPREAD1D
 #undef CUFINUFFT_SPREAD2D
 #undef CUFINUFFT_SPREAD3D
+#undef CUFINUFFT_INTERP1D
 #undef CUFINUFFT_INTERP2D
 #undef CUFINUFFT_INTERP3D
+/* spreading 1D */
+#undef CUSPREAD1D
+#undef CUSPREAD1D_NUPTSDRIVEN_PROP
+#undef CUSPREAD1D_NUPTSDRIVEN
+#undef CUSPREAD1D_SUBPROB_PROP
+#undef CUSPREAD1D_SUBPROB
 /* spreading 2D */
 #undef CUSPREAD2D
 #undef CUSPREAD2D_NUPTSDRIVEN_PROP
@@ -70,13 +80,16 @@
 #undef CUSPREAD3D_SUBPROB_PROP
 #undef CUSPREAD3D_SUBPROB
 /* interp */
+#undef CUINTERP1D
 #undef CUINTERP2D
 #undef CUINTERP3D
+#undef CUINTERP1D_NUPTSDRIVEN
 #undef CUINTERP2D_NUPTSDRIVEN
 #undef CUINTERP2D_SUBPROB
 #undef CUINTERP3D_NUPTSDRIVEN
 #undef CUINTERP3D_SUBPROB
 /* deconvolve */
+#undef CUDECONVOLVE1D
 #undef CUDECONVOLVE2D
 #undef CUDECONVOLVE3D
 /* structs */
@@ -91,6 +104,8 @@
 #define CUFINUFFT_SETPTS cufinufftf_setpts
 #define CUFINUFFT_EXECUTE cufinufftf_execute
 #define CUFINUFFT_DESTROY cufinufftf_destroy
+#define CUFINUFFT1D1_EXEC cufinufftf1d1_exec
+#define CUFINUFFT1D2_EXEC cufinufftf1d2_exec
 #define CUFINUFFT2D1_EXEC cufinufftf2d1_exec
 #define CUFINUFFT2D2_EXEC cufinufftf2d2_exec
 #define CUFINUFFT3D1_EXEC cufinufftf3d1_exec
@@ -107,10 +122,18 @@
 #define ALLOCGPUMEM3D_NUPTS allocgpumem3df_nupts
 #define FREEGPUMEMORY3D freegpumemory3df
 /* spreading and interp only*/
+#define CUFINUFFT_SPREAD1D cufinufft_spread1df
 #define CUFINUFFT_SPREAD2D cufinufft_spread2df
 #define CUFINUFFT_SPREAD3D cufinufft_spread3df
+#define CUFINUFFT_INTERP1D cufinufft_interp1df
 #define CUFINUFFT_INTERP2D cufinufft_interp2df
 #define CUFINUFFT_INTERP3D cufinufft_interp3df
+/* spreading 1D */
+#define CUSPREAD1D cuspread1df
+#define CUSPREAD1D_NUPTSDRIVEN_PROP cuspread1df_nuptsdriven_prop
+#define CUSPREAD1D_NUPTSDRIVEN cuspread1df_nuptsdriven
+#define CUSPREAD1D_SUBPROB_PROP cuspread1df_subprob_prop
+#define CUSPREAD1D_SUBPROB cuspread1df_subprob
 /* spreading 2D */
 #define CUSPREAD2D cuspread2df
 #define CUSPREAD2D_NUPTSDRIVEN_PROP cuspread2df_nuptsdriven_prop
@@ -128,13 +151,16 @@
 #define CUSPREAD3D_SUBPROB_PROP cuspread3df_subprob_prop
 #define CUSPREAD3D_SUBPROB cuspread3df_subprob
 /* interp */
+#define CUINTERP1D cuinterp1df
 #define CUINTERP2D cuinterp2df
 #define CUINTERP3D cuinterp3df
+#define CUINTERP1D_NUPTSDRIVEN cuinterp1df_nuptsdriven
 #define CUINTERP2D_NUPTSDRIVEN cuinterp2df_nuptsdriven
 #define CUINTERP2D_SUBPROB cuinterp2df_subprob
 #define CUINTERP3D_NUPTSDRIVEN cuinterp3df_nuptsdriven
 #define CUINTERP3D_SUBPROB cuinterp3df_subprob
 /* deconvolve */
+#define CUDECONVOLVE1D cudeconvolve1df
 #define CUDECONVOLVE2D cudeconvolve2df
 #define CUDECONVOLVE3D cudeconvolve3df
 /* structs */
@@ -148,6 +174,8 @@
 #define CUFINUFFT_SETPTS cufinufft_setpts
 #define CUFINUFFT_EXECUTE cufinufft_execute
 #define CUFINUFFT_DESTROY cufinufft_destroy
+#define CUFINUFFT1D1_EXEC cufinufft1d1_exec
+#define CUFINUFFT1D2_EXEC cufinufft1d2_exec
 #define CUFINUFFT2D1_EXEC cufinufft2d1_exec
 #define CUFINUFFT2D2_EXEC cufinufft2d2_exec
 #define CUFINUFFT3D1_EXEC cufinufft3d1_exec
@@ -164,10 +192,18 @@
 #define ALLOCGPUMEM3D_NUPTS allocgpumem3d_nupts
 #define FREEGPUMEMORY3D freegpumemory3d
 /* spreading and interp only*/
+#define CUFINUFFT_SPREAD1D cufinufft_spread1d
 #define CUFINUFFT_SPREAD2D cufinufft_spread2d
 #define CUFINUFFT_SPREAD3D cufinufft_spread3d
+#define CUFINUFFT_INTERP1D cufinufft_interp1d
 #define CUFINUFFT_INTERP2D cufinufft_interp2d
 #define CUFINUFFT_INTERP3D cufinufft_interp3d
+/* spreading 1D */
+#define CUSPREAD1D cuspread1d
+#define CUSPREAD1D_NUPTSDRIVEN_PROP cuspread1d_nuptsdriven_prop
+#define CUSPREAD1D_NUPTSDRIVEN cuspread1d_nuptsdriven
+#define CUSPREAD1D_SUBPROB_PROP cuspread1d_subprob_prop
+#define CUSPREAD1D_SUBPROB cuspread1d_subprob
 /* spreading 2D */
 #define CUSPREAD2D cuspread2d
 #define CUSPREAD2D_NUPTSDRIVEN_PROP cuspread2d_nuptsdriven_prop
@@ -185,13 +221,16 @@
 #define CUSPREAD3D_SUBPROB_PROP cuspread3d_subprob_prop
 #define CUSPREAD3D_SUBPROB cuspread3d_subprob
 /* interp */
+#define CUINTERP1D cuinterp1d
 #define CUINTERP2D cuinterp2d
 #define CUINTERP3D cuinterp3d
+#define CUINTERP1D_NUPTSDRIVEN cuinterp1d_nuptsdriven
 #define CUINTERP2D_NUPTSDRIVEN cuinterp2d_nuptsdriven
 #define CUINTERP2D_SUBPROB cuinterp2d_subprob
 #define CUINTERP3D_NUPTSDRIVEN cuinterp3d_nuptsdriven
 #define CUINTERP3D_SUBPROB cuinterp3d_subprob
 /* deconvolve */
+#define CUDECONVOLVE1D cudeconvolve1d
 #define CUDECONVOLVE2D cudeconvolve2d
 #define CUDECONVOLVE3D cudeconvolve3d
 /* structs */
@@ -279,6 +318,9 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan);
 }
 #endif
 
+// 1d
+int CUFINUFFT1D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT1D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
 
 // 2d
 int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);

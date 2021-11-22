@@ -12,6 +12,18 @@ using namespace std;
 // Note: assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up 
 // to N/2-1)
 __global__
+void Deconvolve_1d(int ms, int nf1, CUCPX* fw, CUCPX *fk, FLT *fwkerhalf1)
+{
+	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms; i+=blockDim.x*gridDim.x){
+		int w1 = i-ms/2 >= 0 ? i-ms/2 : nf1+i-ms/2;
+
+		FLT kervalue = fwkerhalf1[abs(i-ms/2)];
+		fk[i].x = fw[w1].x/kervalue;
+		fk[i].y = fw[w1].y/kervalue;
+	}
+}
+
+__global__
 void Deconvolve_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk, 
 	FLT *fwkerhalf1, FLT *fwkerhalf2)
 {
@@ -55,6 +67,18 @@ void Deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 
 /* Kernel for copying fk to fw with same amplication */
 __global__
+void Amplify_1d(int ms, int nf1, CUCPX* fw, CUCPX *fk, FLT *fwkerhalf1)
+{
+	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms; i+=blockDim.x*gridDim.x){
+		int w1 = i-ms/2 >= 0 ? i-ms/2 : nf1+i-ms/2;
+
+		FLT kervalue = fwkerhalf1[abs(i-ms/2)];
+		fw[w1].x = fk[i].x/kervalue;
+		fw[w1].y = fk[i].y/kervalue;
+	}
+}
+
+__global__
 void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk, 
 	FLT *fwkerhalf1, FLT *fwkerhalf2)
 {
@@ -96,6 +120,42 @@ void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 	}
 }
 
+int CUDECONVOLVE1D(CUFINUFFT_PLAN d_plan, int blksize)
+/* 
+	wrapper for deconvolution & amplication in 1D.
+
+	Melody Shih 11/21/21
+*/
+{
+	int ms=d_plan->ms;
+	int nf1=d_plan->nf1;
+	int nmodes=ms;
+	int maxbatchsize=d_plan->maxbatchsize;
+
+	if(d_plan->spopts.spread_direction == 1){
+		for(int t=0; t<blksize; t++){
+			Deconvolve_1d<<<(nmodes+256-1)/256, 256>>>(ms, nf1, 
+				d_plan->fw+t*nf1,d_plan->fk+t*nmodes,d_plan->fwkerhalf1);
+		}
+	}else{
+		checkCudaErrors(cudaMemset(d_plan->fw,0,maxbatchsize*nf1*sizeof(CUCPX)));
+		for(int t=0; t<blksize; t++){
+			Amplify_1d<<<(nmodes+256-1)/256, 256>>>(ms, nf1, d_plan->fw+t*nf1, 
+				d_plan->fk+t*nmodes, d_plan->fwkerhalf1);
+#ifdef DEBUG
+			CPX* h_fw;
+			h_fw = (CPX*) malloc(nf1*sizeof(CPX));
+			checkCudaErrors(cudaMemcpy(h_fw,d_plan->fw,nf1*sizeof(CUCPX),
+				cudaMemcpyDeviceToHost));
+			for(int i=0; i<nf1; i++){
+				printf("(%g,%g)",h_fw[i].real(),h_fw[i].imag());
+			}
+			free(h_fw);
+#endif
+		}
+	}
+	return 0;
+}
 
 int CUDECONVOLVE2D(CUFINUFFT_PLAN d_plan, int blksize)
 /* 

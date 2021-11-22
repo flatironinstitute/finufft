@@ -1,0 +1,14 @@
+- cufinufft1d.cu
+  This file contains the execution functions 1d type 1,2 that are called in ../cufinufft.cu
+
+- spreadinterp1d.cu
+  This file contains all the GPU kernels for 1d spreading, interpolation.
+
+- interp1d_wrapper.cu
+  Wrappers for 1d interpolations. One method is implemented: 
+    (1) nonuniform driven, 
+    
+- spread1d_wrapper.cu
+  Wrappers for 1d spreading. Two methods are implemented: 
+    (1) nonuniform driven, 
+    (2) subproblem 

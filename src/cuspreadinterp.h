@@ -3,6 +3,47 @@
 
 #include <cufinufft_eitherprec.h>
 
+//Kernels for 1D codes
+/* -----------------------------Spreading Kernels-----------------------------*/
+/* Kernels for NUptsdriven Method */
+__global__
+void Spread_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+		int nf1, FLT es_c, FLT es_beta, int* idxnupts, int pirange);
+__global__
+void Spread_1d_NUptsdriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf1, FLT sigma, int* idxnupts, int pirange);
+
+/* Kernels for SubProb Method */
+// SubProb properties
+__global__
+void CalcBinSize_noghost_1d(int M, int nf1, int  bin_size_x,
+	int nbinx, int* bin_size, FLT *x, int* sortidx, int pirange);
+__global__
+void CalcInvertofGlobalSortIdx_1d(int M, int bin_size_x, int nbinx, 
+	int* bin_startpts, int* sortidx,FLT *x, int* index, int pirange, int nf1);
+
+// Main Spreading Kernel
+__global__
+void Spread_1d_Subprob(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+		int nf1, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
+		int* bin_size, int bin_size_x, int* subprob_to_bin,
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx,
+		int* idxnupts, int pirange);
+__global__
+void Spread_1d_Subprob_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
+		const int ns, int nf1, FLT sigma, int* binstartpts,
+		int* bin_size, int bin_size_x, int* subprob_to_bin,
+		int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx,
+		int* idxnupts, int pirange);
+/* ---------------------------Interpolation Kernels---------------------------*/
+/* Kernels for NUptsdriven Method */
+__global__
+void Interp_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+	int nf2, FLT es_c, FLT es_beta, int *idxnupts, int pirange);
+__global__
+void Interp_1d_NUptsdriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
+	const int ns, int nf2, FLT sigma, int *idxnupts, int pirange);
+
 //Kernels for 2D codes
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
@@ -198,6 +239,10 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 
 /* C wrapper for calling CUDA kernels */
 // Wrapper for testing spread, interpolation only
+int CUFINUFFT_SPREAD1D(int nf1, CUCPX* d_fw, int M,
+	FLT *d_kx, CUCPX* d_c, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_INTERP1D(int nf1, CUCPX* d_fw, int M,
+	FLT *d_kx, CUCPX* d_c, CUFINUFFT_PLAN d_plan);
 int CUFINUFFT_SPREAD2D(int nf1, int nf2, CUCPX* d_fw, int M,
 	FLT *d_kx, FLT *d_ky, CUCPX* d_c, CUFINUFFT_PLAN d_plan);
 int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX* d_fw, int M,
@@ -210,12 +255,19 @@ int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3,
     CUCPX* d_c, CUFINUFFT_PLAN dplan);
 
 // Functions for calling different methods of spreading & interpolation
+int CUSPREAD1D(CUFINUFFT_PLAN d_plan, int blksize);
+int CUINTERP1D(CUFINUFFT_PLAN d_plan, int blksize);
 int CUSPREAD2D(CUFINUFFT_PLAN d_plan, int blksize);
 int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize);
 int CUSPREAD3D(CUFINUFFT_PLAN d_plan, int blksize);
 int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize);
 
 // Wrappers for methods of spreading
+int CUSPREAD1D_NUPTSDRIVEN_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan);
+int CUSPREAD1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize);
+int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan);
+int CUSPREAD1D_SUBPROB(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize);
+
 int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan);
 int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan,
 	int blksize);
@@ -240,6 +292,7 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan,
 	int blksize);
 
 // Wrappers for methods of interpolation
+int CUINTERP1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize);
 int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan,
 	int blksize);
 int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan,
