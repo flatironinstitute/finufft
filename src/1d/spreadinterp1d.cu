@@ -190,17 +190,17 @@ void Spread_1d_Subprob(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 			ix = xx+ceil(ns/2.0);
 			if(ix >= (bin_size_x + (int) ceil(ns/2.0)*2) || ix<0) break;
 			atomicAdd(&fwshared[ix].x, cnow.x*ker1[xx-xstart]);
+			atomicAdd(&fwshared[ix].y, cnow.y*ker1[xx-xstart]);
 		}
 	}
 	__syncthreads();
 	/* write to global memory */
 	for(int k=threadIdx.x; k<N; k+=blockDim.x){
-		int i = k % (int) (bin_size_x+2*ceil(ns/2.0) );
-		ix = xoffset-ceil(ns/2.0)+i;
+		ix = xoffset-ceil(ns/2.0)+k;
 		if(ix < (nf1+ceil(ns/2.0))){
 			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
-			atomicAdd(&fw[ix].x, fwshared[i].x);
-			atomicAdd(&fw[ix].y, fwshared[i].y);
+			atomicAdd(&fw[ix].x, fwshared[k].x);
+			atomicAdd(&fw[ix].y, fwshared[k].y);
 		}
 	}
 }
@@ -241,7 +241,7 @@ void Spread_1d_Subprob_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
 		cnow = c[idxnupts[idx]];
 
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
-		xend   = floor(x_rescaled + ns/2.0)-xoffset;
+		xend  = floor(x_rescaled + ns/2.0)-xoffset;
 
 		eval_kernel_vec_Horner(ker1,xstart+xoffset-x_rescaled,ns,sigma);
 
@@ -256,12 +256,11 @@ void Spread_1d_Subprob_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
 
 	/* write to global memory */
 	for(int k=threadIdx.x; k<N; k+=blockDim.x){
-		int i = k % (int) (bin_size_x+2*ceil(ns/2.0) );
-		ix = xoffset-ceil(ns/2.0)+i;
+		ix = xoffset-ceil(ns/2.0)+k;
 		if(ix < (nf1+ceil(ns/2.0))){
 			ix = ix < 0 ? ix+nf1 : (ix>nf1-1 ? ix-nf1 : ix);
-			atomicAdd(&fw[ix].x, fwshared[i].x);
-			atomicAdd(&fw[ix].y, fwshared[i].y);
+			atomicAdd(&fw[ix].x, fwshared[k].x);
+			atomicAdd(&fw[ix].y, fwshared[k].y);
 		}
 	}
 }

@@ -477,6 +477,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
 		if(i!=0) cout<<" ";
 		cout <<"nsub["<<setw(3)<<i<<"] = "<<setw(2)<<h_numsubprob[i];
 	}
+	cout << endl;
 	free(h_numsubprob);
 #endif
 	d_ptr    = thrust::device_pointer_cast(d_numsubprob);
@@ -501,6 +502,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
 		if(i!=0) cout<<" ";
 		cout <<"nsub["<<setw(3)<<i<<"] = "<<setw(2)<<h_subprobstartpts[i];
 	}
+	cout << endl;
 	printf("[debug ] Total number of subproblems = %d\n", h_subprobstartpts[n]);
 	free(h_subprobstartpts);
 #endif
@@ -512,7 +514,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
 	MapBintoSubProb_1d<<<(numbins+1024-1)/1024, 1024>>>(
 			d_subprob_to_bin,d_subprobstartpts,d_numsubprob,numbins);
 	assert(d_subprob_to_bin != NULL);
-        if (d_plan->subprob_to_bin != NULL) cudaFree(d_plan->subprob_to_bin);
+	if (d_plan->subprob_to_bin != NULL) cudaFree(d_plan->subprob_to_bin);
 	d_plan->subprob_to_bin = d_subprob_to_bin;
 	assert(d_plan->subprob_to_bin != NULL);
 	d_plan->totalnumsubprob = totalnumsubprob;
