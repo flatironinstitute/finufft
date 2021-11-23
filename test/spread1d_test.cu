@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 	dplan->opts.gpu_kerevalmeth      = kerevalmeth;
 	dplan->opts.gpu_sort             = 1;  // ahb changed from 0
 	dplan->opts.gpu_spreadinterponly = 1;
-	dplan->opts.gpu_binsizex         = 32; //binsize needs to be set here, since
+	dplan->opts.gpu_binsizex         = 1024; //binsize needs to be set here, since
                                            //SETUP_BINSIZE() is not called in 
                                            //spread, interp only wrappers.
 	ier = setup_spreader_for_nufft(dplan->spopts, tol, dplan->opts);

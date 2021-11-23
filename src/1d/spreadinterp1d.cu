@@ -14,12 +14,12 @@ using namespace std;
 
 static __forceinline__ __device__
 FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta, int ns)
-	/* ES ("exp sqrt") kernel evaluation at single real argument:
-	   phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
-	   related to an asymptotic approximation to the Kaiser--Bessel, itself an
-	   approximation to prolate spheroidal wavefunction (PSWF) of order 0.
-	   This is the "reference implementation", used by eg common/onedim_* 
-	    2/17/17 */
+/* ES ("exp sqrt") kernel evaluation at single real argument:
+   phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
+   related to an asymptotic approximation to the Kaiser--Bessel, itself an
+   approximation to prolate spheroidal wavefunction (PSWF) of order 0.
+   This is the "reference implementation", used by eg common/onedim_* 
+    2/17/17 */
 {
 	return abs(x) < ns/2.0 ? exp(es_beta * (sqrt(1.0 - es_c*x*x))) : 0.0;
 }
@@ -27,10 +27,10 @@ FLT evaluate_kernel(FLT x, FLT es_c, FLT es_beta, int ns)
 static __inline__ __device__
 void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w, 
 	const double upsampfac)
-	/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
-	   x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
-	   This is the current evaluation method, since it's faster (except i7 w=16).
-	   Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
+   x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
+   This is the current evaluation method, since it's faster (except i7 w=16).
+   Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
 	FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
 	// insert the auto-generated code which expects z, w args, writes to ker...

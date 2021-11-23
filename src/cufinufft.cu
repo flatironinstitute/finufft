@@ -18,7 +18,7 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 	{
 		case 1:
 		{
-			opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 32:
+			opts->gpu_binsizex = (opts->gpu_binsizex < 0) ? 1024:
 				opts->gpu_binsizex;
 			opts->gpu_binsizey = 1;
 			opts->gpu_binsizez = 1;
@@ -83,9 +83,9 @@ int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
         This is the remaining dev-facing doc:
 
 This performs:
-                (0) creating a new plan struct (d_plan), a pointer to which is passed
-                    back by writing that pointer into *d_plan_ptr.
-              	(1) set up the spread option, d_plan.spopts.
+		(0) creating a new plan struct (d_plan), a pointer to which is passed
+		    back by writing that pointer into *d_plan_ptr.
+		(1) set up the spread option, d_plan.spopts.
 		(2) calculate the correction factor on cpu, copy the value from cpu to
 		    gpu
 		(3) allocate gpu arrays with size determined by number of fourier modes
@@ -666,7 +666,6 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 
 	/* following options are for gpu */
 	opts->gpu_nstreams = 0;
-	opts->gpu_kerevalmeth = 0; // using exp(sqrt())
 	opts->gpu_sort = 1; // access nupts in an ordered way for nupts driven method
 
 	opts->gpu_maxsubprobsize = 1024;
@@ -684,6 +683,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 	{
 		case 1:
 		{
+			opts->gpu_kerevalmeth = 0; // using Horner
 			if(type == 1){
 				opts->gpu_method = 2;
 			}
@@ -699,6 +699,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 		break;
 		case 2:
 		{
+			opts->gpu_kerevalmeth = 0; // using exp(sqrt())
 			if(type == 1){
 				opts->gpu_method = 2;
 			}
@@ -714,6 +715,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 		break;
 		case 3:
 		{
+			opts->gpu_kerevalmeth = 0; // using exp(sqrt())
 			if(type == 1){
 				opts->gpu_method = 2;
 			}
