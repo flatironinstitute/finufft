@@ -265,7 +265,9 @@ Else if you don't have MATLAB, do::
 Whichever you picked, now try ``make test -j``, and clang should compile and you should get ``0 fails``.
 
 **clang MATLAB setup**. Assuming you chose the MATLAB clang variant above,
-you should now ``make matlab``. To test, open MATLAB, ``addpath matlab``,
+you should now ``make matlab``. You may need to do ``make matlab -j``; see
+https://github.com/flatironinstitute/finufft/issues/157 which needs attention.
+To test, open MATLAB, ``addpath matlab``,
 ``cd matlab/test``, and ``check_finufft``, which should complete in around 5 seconds.
 
 .. note::
