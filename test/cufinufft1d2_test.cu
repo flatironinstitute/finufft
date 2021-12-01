@@ -61,8 +61,8 @@ int main(int argc, char* argv[])
 		x[i] = M_PI*randm11();// x in [-pi,pi)
 	}
 	for(int i=0; i<N1; i++){
-		fk[i].real(1.0);
-		fk[i].imag(1.0);
+		fk[i].real(randm11());
+		fk[i].imag(randm11());
 	}
 	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_fk,fk,N1*sizeof(CPX),cudaMemcpyHostToDevice));
