@@ -382,7 +382,7 @@ Notes: the type FLT means either single or double, matching the
 			if(d_plan->opts.gpu_method==1){
 				ier = CUSPREAD1D_NUPTSDRIVEN_PROP(nf1,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread2d_nupts_prop, method(%d)\n",
+					printf("error: cuspread1d_nupts_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
 
 					// Multi-GPU support: reset the device ID
@@ -394,7 +394,7 @@ Notes: the type FLT means either single or double, matching the
 			if(d_plan->opts.gpu_method==2){
 				ier = CUSPREAD1D_SUBPROB_PROP(nf1,M,d_plan);
 				if(ier != 0 ){
-					printf("error: cuspread2d_subprob_prop, method(%d)\n",
+					printf("error: cuspread1d_subprob_prop, method(%d)\n",
 						d_plan->opts.gpu_method);
 
 					// Multi-GPU support: reset the device ID
