@@ -1,6 +1,7 @@
 /* These are functions that do not rely on FLT.
    They are organized by originating file.
 */
+//TODO: remove kernels that do not depend on dimension
 
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
@@ -22,6 +23,37 @@ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,
 __device__
 int CalcGlobalIdx_V2(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbinz){
 	return xidx + yidx*nbinx + zidx*nbinx*nbiny;
+}
+
+/* spreadinterp 1d */
+__global__
+void CalcSubProb_1d(int* bin_size, int* num_subprob, int maxsubprobsize,
+	int numbins)
+{
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins;
+		i+=gridDim.x*blockDim.x){
+		num_subprob[i]=ceil(bin_size[i]/(float) maxsubprobsize);
+	}
+}
+
+__global__
+void MapBintoSubProb_1d(int* d_subprob_to_bin,int* d_subprobstartpts,
+	int* d_numsubprob,int numbins)
+{
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<numbins;
+		i+=gridDim.x*blockDim.x){
+		for(int j=0; j<d_numsubprob[i]; j++){
+			d_subprob_to_bin[d_subprobstartpts[i]+j]=i;
+		}
+	}
+}
+
+__global__
+void TrivialGlobalSortIdx_1d(int M, int* index)
+{
+	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
+		index[i] = i;
+	}
 }
 
 /* spreadinterp 2d */

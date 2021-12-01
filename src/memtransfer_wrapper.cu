@@ -7,6 +7,146 @@
 
 using namespace std;
 
+int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
+/*
+	wrapper for gpu memory allocation in "plan" stage.
+
+	Melody Shih 11/21/21
+*/
+{
+	// Mult-GPU support: set the CUDA Device ID:
+	int orig_gpu_device_id;
+	cudaGetDevice(& orig_gpu_device_id);
+	cudaSetDevice(d_plan->opts.gpu_device_id);
+
+	int nf1 = d_plan->nf1;
+	int maxbatchsize = d_plan->maxbatchsize;
+
+	d_plan->byte_now=0;
+	switch(d_plan->opts.gpu_method)
+	{
+		case 1:
+			{
+				if(d_plan->opts.gpu_sort){
+					int numbins = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
+					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins*sizeof(int)));
+					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins*sizeof(int)));
+				}
+			}
+			break;
+		case 2:
+			{
+				int numbins = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
+				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts,(numbins+1)*sizeof(int)));
+			}
+			break;
+		default:
+			cerr << "err: invalid method " << endl;
+	}
+
+	if(!d_plan->opts.gpu_spreadinterponly){
+		checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*sizeof(CUCPX)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
+	}
+
+	// Multi-GPU support: reset the device ID
+	cudaSetDevice(orig_gpu_device_id);
+	return 0;
+}
+
+int ALLOCGPUMEM1D_NUPTS(CUFINUFFT_PLAN d_plan)
+/*
+	wrapper for gpu memory allocation in "setNUpts" stage.
+
+	Melody Shih 11/21/21
+*/
+{
+	// Mult-GPU support: set the CUDA Device ID:
+	int orig_gpu_device_id;
+	cudaGetDevice(& orig_gpu_device_id);
+	cudaSetDevice(d_plan->opts.gpu_device_id);
+
+	int M = d_plan->M;
+
+	if(d_plan->sortidx ) checkCudaErrors(cudaFree(d_plan->sortidx));
+	if(d_plan->idxnupts) checkCudaErrors(cudaFree(d_plan->idxnupts));
+
+	switch(d_plan->opts.gpu_method)
+	{
+		case 1:
+			{
+				if(d_plan->opts.gpu_sort)
+					checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
+			}
+			break;
+		case 2:
+		case 3:
+			{
+				checkCudaErrors(cudaMalloc(&d_plan->idxnupts,M*sizeof(int)));
+				checkCudaErrors(cudaMalloc(&d_plan->sortidx, M*sizeof(int)));
+			}
+			break;
+		default:
+			cerr<<"err: invalid method" << endl;
+	}
+
+	// Multi-GPU support: reset the device ID
+	cudaSetDevice(orig_gpu_device_id);
+
+	return 0;
+}
+
+void FREEGPUMEMORY1D(CUFINUFFT_PLAN d_plan)
+/*
+	wrapper for freeing gpu memory.
+
+	Melody Shih 11/21/21
+*/
+{
+	// Mult-GPU support: set the CUDA Device ID:
+	int orig_gpu_device_id;
+	cudaGetDevice(& orig_gpu_device_id);
+	cudaSetDevice(d_plan->opts.gpu_device_id);
+
+	if(!d_plan->opts.gpu_spreadinterponly){
+		checkCudaErrors(cudaFree(d_plan->fw));
+		checkCudaErrors(cudaFree(d_plan->fwkerhalf1));
+	}
+	switch(d_plan->opts.gpu_method)
+	{
+		case 1:
+			{
+				if(d_plan->opts.gpu_sort){
+					checkCudaErrors(cudaFree(d_plan->idxnupts));
+					checkCudaErrors(cudaFree(d_plan->sortidx));
+					checkCudaErrors(cudaFree(d_plan->binsize));
+					checkCudaErrors(cudaFree(d_plan->binstartpts));
+				}else{
+					checkCudaErrors(cudaFree(d_plan->idxnupts));
+				}
+			}
+			break;
+		case 2:
+			{
+				checkCudaErrors(cudaFree(d_plan->idxnupts));
+				checkCudaErrors(cudaFree(d_plan->sortidx));
+				checkCudaErrors(cudaFree(d_plan->numsubprob));
+				checkCudaErrors(cudaFree(d_plan->binsize));
+				checkCudaErrors(cudaFree(d_plan->binstartpts));
+				checkCudaErrors(cudaFree(d_plan->subprobstartpts));
+				checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
+			}
+			break;
+	}
+
+	// Multi-GPU support: reset the device ID
+	cudaSetDevice(orig_gpu_device_id);
+}
+
 int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 /*
 	wrapper for gpu memory allocation in "plan" stage.
@@ -24,7 +164,6 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 	int maxbatchsize = d_plan->maxbatchsize;
 
 	d_plan->byte_now=0;
-	// No extra memory is needed in nuptsdriven method (case 1)
 	switch(d_plan->opts.gpu_method)
 	{
 		case 1:
@@ -200,21 +339,6 @@ void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan)
 
         // Multi-GPU support: reset the device ID
         cudaSetDevice(orig_gpu_device_id);
-}
-
-int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
-{
-	cerr<<"Not yet implemented"<<endl;
-	return 1;
-}
-int ALLOCGPUMEM1D_NUPTS(CUFINUFFT_PLAN d_plan)
-{
-	cerr<<"Not yet implemented"<<endl;
-	return 1;
-}
-void FREEGPUMEMORY1D(CUFINUFFT_PLAN d_plan)
-{
-	cerr<<"Not yet implemented"<<endl;
 }
 
 int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
