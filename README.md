@@ -1,4 +1,4 @@
-# cuFINUFFT v1.2.1
+# cuFINUFFT v1.2
 
 <img align="right" src="docs/logo.png" width="350">
 
@@ -165,15 +165,17 @@ environment. The `site`-specific script is loaded __before__ the
  
 ### Other notes
  - If you are interested in optimizing for GPU Compute Capability,
- you may want to specicfy ```NVARCH=-arch=sm_XX``` in your make.inc to reduce compile times,
+ you may want to specify ```NVARCH=-arch=sm_XX``` in your make.inc to reduce compile times,
  or for other performance reasons. See [Matching SM Architectures][2].
 
 ## Tasks for developers
 
-- We could use some help to implement 1D versions, and type 3 transforms (which are quite tricky), as in [FINUFFT][1]
+- 1D version is close to finished (needs vectorized testers and Py interfaces)
+- Type 3 transforms (which are quite tricky) as in [FINUFFT][1] are in progress (at least in 3D) on a PR, thanks to Simon Frasch; please go and test!
 - We need some more tutorial examples in C++ and Python
 - Please help us to write MATLAB (gpuArray) and Julia interfaces
-- Please see Issues for other things you can help fix
+- There are various Tensorflow and related interfaces in progress (please help with them or test them): https://github.com/mrphys/tensorflow-nufft  https://github.com/dfm/jax-finufft
+- Please see Issues and PRs for other things you can help fix or test
 
 
 ## References
