@@ -396,7 +396,6 @@ clean:
 	rm -f src/3d/*.o
 	rm -f contrib/*.o
 	rm -f examples/*.o
-	rm -f example2d1
 	rm -rf $(BINDIR)
 	rm -rf lib
 	rm -rf lib-static
