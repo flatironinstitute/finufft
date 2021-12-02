@@ -1,8 +1,8 @@
-# cuFINUFFT v1.2
+# cuFINUFFT v1.2.1
 
 <img align="right" src="docs/logo.png" width="350">
 
-cuFINUFFT is a very efficient GPU implementation of the 2- and 3-dimensional nonuniform FFT of types 1 and 2, in single and double precision, based on the CPU code [FINUFFT][1].
+cuFINUFFT is a very efficient GPU implementation of the 1-, 2-, and 3-dimensional nonuniform FFT of types 1 and 2, in single and double precision, based on the CPU code [FINUFFT][1].
 
 Note that the Python interface has changed relative to v1.1. Please see [CHANGELOG](CHANGELOG) for details.
 
@@ -29,7 +29,7 @@ This project came out of Melody's 2018 and 2019 summer internships at the Flatir
 ## Installation
 
 Note for most Python users, you may skip to the [Python Package](#Python-Package) section first,
-and consider installing from source if that solution is not adequate for your needs. Here's the C++ install process:
+and consider installing from source if that solution is not adequate for your needs. Note that 1D is not available in Python yet. Here's the C++ install process:
 
  - Make sure you have the prerequisites: a C++ compiler (eg `g++`) and a recent CUDA installation (`nvcc`).
  - Get the code: `git clone https://github.com/flatironinstitute/cufinufft.git`

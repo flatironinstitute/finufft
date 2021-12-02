@@ -21,7 +21,7 @@ NVCC ?= nvcc
 
 # Developer-users are suggested to optimize NVARCH in their own make.inc, see:
 #   http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
-NVARCH ?= -arch=sm_80 \
+NVARCH ?= -arch=sm_70 \
 	  -gencode=arch=compute_35,code=sm_35 \
 	  -gencode=arch=compute_50,code=sm_50 \
 	  -gencode=arch=compute_52,code=sm_52 \
@@ -29,9 +29,7 @@ NVARCH ?= -arch=sm_80 \
 	  -gencode=arch=compute_61,code=sm_61 \
 	  -gencode=arch=compute_70,code=sm_70 \
 	  -gencode=arch=compute_75,code=sm_75 \
-	  -gencode=arch=compute_80,code=sm_80 \
-	  -gencode=arch=compute_86,code=sm_86 \
-	  -gencode=arch=compute_86,code=compute_86
+	  -gencode=arch=compute_75,code=compute_75
 
 CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native
 CXXFLAGS  ?= $(CFLAGS) -std=c++14
@@ -191,7 +189,6 @@ check:
 	@echo "Building lib, all testers, and running all tests..."
 	$(MAKE) checkspread
 	$(MAKE) checkapi
-	$(MAKE) check1D
 	$(MAKE) check2D
 	$(MAKE) check3D
 	$(MAKE) checkexamples
@@ -205,40 +202,9 @@ checkapi: libtest
 	bin/cufinufft2d2api_test
 	bin/cufinufft2d2api_test_32
 
-##### 1D
-check1D: check1D_64 check1D_32
-
-# Note: we could remove the low-level spread/interp tests from here...
-check1D_64: spreadtest libtest
-# (some basic 1D tests by Barnett; different style from 2D and 3D, no "many")
-	@echo Running 1-D cases
-	bin/spread1d_test 1 0 1e6 65536 1e7
-	bin/spread1d_test 2 0 1e6 65536 1e7
-	bin/spread1d_test 1 1 1e6 65536 1e7
-	bin/spread1d_test 2 1 1e6 65536 1e7
-	bin/interp1d_test 1 0 1e6 65536 1e7
-	bin/interp1d_test 1 1 1e6 65536 1e7
-	bin/cufinufft1d1_test 1 1e6 1e7
-	bin/cufinufft1d1_test 2 1e6 1e7
-	bin/cufinufft1d2_test 1 1e6 1e7
-
-check1D_32: spreadtest libtest
-	@echo Running 1-D Single Precision cases
-	bin/spread1d_test_32 1 0 1e6 65536 1e7 1e-3
-	bin/spread1d_test_32 2 0 1e6 65536 1e7 1e-3
-	bin/spread1d_test_32 1 1 1e6 65536 1e7 1e-3
-	bin/spread1d_test_32 2 1 1e6 65536 1e7 1e-3
-	bin/interp1d_test_32 1 0 1e6 65536 1e7 1e-3
-	bin/interp1d_test_32 1 1 1e6 65536 1e7 1e-3
-	bin/cufinufft1d1_test_32 1 1e6 1e7 1e-3
-	bin/cufinufft1d1_test_32 2 1e6 1e7 1e-3
-	bin/cufinufft1d2_test_32 1 1e6 1e7 1e-3
-
-
-##### 2D
 check2D: check2D_64 check2D_32
 
-# Note: we could remove the low-level spread/interp tests from here...
+# Note: we could kill the low-level spread/interp tests from here...
 check2D_64: spreadtest libtest
 	@echo Running 2-D cases
 	bin/spread2d_test 1 1 16 16
@@ -317,7 +283,6 @@ check2D_32: spreadtest libtest
 	bin/cufinufft2d2many_test_32 1 1e2 2e2 3e2 16 1e4
 	bin/cufinufft2d2many_test_32 2 1e2 2e2 3e2 16 1e4
 
-##### 3D
 check3D: check3D_32 check3D_64
 
 check3D_64: spreadtest libtest
@@ -396,6 +361,7 @@ clean:
 	rm -f src/3d/*.o
 	rm -f contrib/*.o
 	rm -f examples/*.o
+	rm -f example2d1
 	rm -rf $(BINDIR)
 	rm -rf lib
 	rm -rf lib-static
