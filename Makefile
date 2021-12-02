@@ -191,6 +191,7 @@ check:
 	@echo "Building lib, all testers, and running all tests..."
 	$(MAKE) checkspread
 	$(MAKE) checkapi
+	$(MAKE) check1D
 	$(MAKE) check2D
 	$(MAKE) check3D
 	$(MAKE) checkexamples
@@ -204,9 +205,92 @@ checkapi: libtest
 	bin/cufinufft2d2api_test
 	bin/cufinufft2d2api_test_32
 
+##### 1D
+check1D: check1D_64 check1D_32
+
+# Note: we could remove the low-level spread/interp tests from here...
+check2D_64: spreadtest libtest
+	@echo Running 1-D cases
+	bin/spread1d_test 1 1 16 16
+	bin/spread2d_test 2 1 16 16
+	bin/spread2d_test 1 1 1024 1024
+	bin/spread2d_test 2 1 1024 1024
+	bin/interp2d_test 1 1 16 16
+	bin/interp2d_test 1 1 1024 1024
+	bin/cufinufft2d1_test 1 8 8
+	bin/cufinufft2d1_test 2 8 8
+	bin/cufinufft2d1_test 1 256 256
+	bin/cufinufft2d1_test 2 512 512
+	bin/cufinufft2d2_test 1 8 8
+	bin/cufinufft2d2_test 2 8 8
+	bin/cufinufft2d2_test 1 256 256
+	bin/cufinufft2d2_test 2 512 512
+	@echo Running 2-D High Density cases
+	bin/cufinufft2d1_test 1 64 64 8192
+	bin/cufinufft2d1_test 2 64 64 8192
+	bin/cufinufft2d2_test 1 64 64 8192
+	bin/cufinufft2d2_test 2 64 64 8192
+	@echo Running 2-D Low Density cases
+	bin/cufinufft2d1_test 1 64 64 1024
+	bin/cufinufft2d1_test 2 64 64 1024
+	bin/cufinufft2d2_test 1 64 64 1024
+	bin/cufinufft2d2_test 2 64 64 1024
+	@echo Running 2-D-Many cases
+	bin/cufinufft2d1many_test 1 64 64 128 1e-3
+	bin/cufinufft2d1many_test 1 256 256 1024
+	bin/cufinufft2d1many_test 2 512 512 256
+	bin/cufinufft2d1many_test 1 1e2 2e2 3e2 16 1e4
+	bin/cufinufft2d1many_test 2 1e2 2e2 3e2 16 1e4
+	bin/cufinufft2d2many_test 1 64 64 128 1e-3
+	bin/cufinufft2d2many_test 1 256 256 1024
+	bin/cufinufft2d2many_test 2 512 512 256
+	bin/cufinufft2d2many_test 1 256 256 1024
+	bin/cufinufft2d2many_test 1 1e2 2e2 3e2 16 1e4
+	bin/cufinufft2d2many_test 2 1e2 2e2 3e2 16 1e4
+
+check2D_32: spreadtest libtest
+	@echo Running 2-D Single Precision cases
+	bin/spread2d_test_32 1 1 16 16
+	bin/spread2d_test_32 2 1 16 16
+	bin/spread2d_test_32 1 1 1024 1024
+	bin/spread2d_test_32 2 1 1024 1024
+	bin/interp2d_test_32 1 1 16 16
+	bin/interp2d_test_32 1 1 1024 1024
+	bin/cufinufft2d1_test_32 1 8 8
+	bin/cufinufft2d1_test_32 2 8 8
+	bin/cufinufft2d1_test_32 1 256 256
+	bin/cufinufft2d1_test_32 2 512 512
+	bin/cufinufft2d2_test_32 1 8 8
+	bin/cufinufft2d2_test_32 2 8 8
+	bin/cufinufft2d2_test_32 1 256 256
+	bin/cufinufft2d2_test_32 2 512 512
+	@echo Running 2-D High Density Single Precision cases
+	bin/cufinufft2d1_test_32 1 64 64 8192
+	bin/cufinufft2d1_test_32 2 64 64 8192
+	bin/cufinufft2d2_test_32 1 64 64 8192
+	bin/cufinufft2d2_test_32 2 64 64 8192
+	@echo Running 2-D Low Density Single Precision cases
+	bin/cufinufft2d1_test_32 1 64 64 1024
+	bin/cufinufft2d1_test_32 2 64 64 1024
+	bin/cufinufft2d2_test_32 1 64 64 1024
+	bin/cufinufft2d2_test_32 2 64 64 1024
+	@echo Running 2-D-Many Single Precision cases
+	bin/cufinufft2d1many_test_32 1 64 64 128 1e-3
+	bin/cufinufft2d1many_test_32 1 256 256 1024
+	bin/cufinufft2d1many_test_32 2 512 512 256
+	bin/cufinufft2d1many_test_32 1 1e2 2e2 3e2 16 1e4
+	bin/cufinufft2d1many_test_32 2 1e2 2e2 3e2 16 1e4
+	bin/cufinufft2d2many_test_32 1 64 64 128 1e-3
+	bin/cufinufft2d2many_test_32 1 256 256 1024
+	bin/cufinufft2d2many_test_32 2 512 512 256
+	bin/cufinufft2d2many_test_32 1 256 256 1024
+	bin/cufinufft2d2many_test_32 1 1e2 2e2 3e2 16 1e4
+	bin/cufinufft2d2many_test_32 2 1e2 2e2 3e2 16 1e4
+
+##### 2D
 check2D: check2D_64 check2D_32
 
-# Note: we could kill the low-level spread/interp tests from here...
+# Note: we could remove the low-level spread/interp tests from here...
 check2D_64: spreadtest libtest
 	@echo Running 2-D cases
 	bin/spread2d_test 1 1 16 16
@@ -285,6 +369,7 @@ check2D_32: spreadtest libtest
 	bin/cufinufft2d2many_test_32 1 1e2 2e2 3e2 16 1e4
 	bin/cufinufft2d2many_test_32 2 1e2 2e2 3e2 16 1e4
 
+##### 3D
 check3D: check3D_32 check3D_64
 
 check3D_64: spreadtest libtest

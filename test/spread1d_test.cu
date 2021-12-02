@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	FLT upsampfac=2.0;
 	if (argc<4) {
 		fprintf(stderr,
-			"Usage: spread1d method nupts_distr nf1 [maxsubprobsize [M [tol [kerevalmeth]]]]\n"
+			"Usage: spread1d_test method nupts_distr nf1 [maxsubprobsize [M [tol [kerevalmeth]]]]\n"
 			"Arguments:\n"
 			"  method: One of\n"
 			"    1: nupts driven, or\n"
