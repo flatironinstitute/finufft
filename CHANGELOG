@@ -1,5 +1,8 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* Melody added 1D support for both types 1 (GM-sort and SM methods) 2 (GM-sort),
+  in C++/CUDA and their test executables (but not Python interface).
+
 v 1.2 (02/17/21)
 
 * Warning: Following are Python interface changes -- not backwards compatible
