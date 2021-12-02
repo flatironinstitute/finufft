@@ -21,7 +21,7 @@ NVCC ?= nvcc
 
 # Developer-users are suggested to optimize NVARCH in their own make.inc, see:
 #   http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
-NVARCH ?= -arch=sm_70 \
+NVARCH ?= -arch=sm_80 \
 	  -gencode=arch=compute_35,code=sm_35 \
 	  -gencode=arch=compute_50,code=sm_50 \
 	  -gencode=arch=compute_52,code=sm_52 \
@@ -29,7 +29,9 @@ NVARCH ?= -arch=sm_70 \
 	  -gencode=arch=compute_61,code=sm_61 \
 	  -gencode=arch=compute_70,code=sm_70 \
 	  -gencode=arch=compute_75,code=sm_75 \
-	  -gencode=arch=compute_75,code=compute_75
+	  -gencode=arch=compute_80,code=sm_80 \
+	  -gencode=arch=compute_86,code=sm_86 \
+	  -gencode=arch=compute_86,code=compute_86
 
 CFLAGS    ?= -fPIC -O3 -funroll-loops -march=native
 CXXFLAGS  ?= $(CFLAGS) -std=c++14
