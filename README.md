@@ -143,12 +143,13 @@ make site=olcf_summit
 The currently supported targets and sites are:
 1. Sites
     1. NERSC Cori (`site=nersc_cori`)
-    2. NERSC Cori GPU (`site=nersc_cgpu`)
-    3. OLCF Summit (`site=olcf_summit`) -- automatically sets `target=power9`
-    4. CIMS (`target=CIMS`)
-2. Targets
+    1. NERSC Cori GPU (`site=nersc_cgpu`)
+    1. OLCF Summit (`site=olcf_summit`) -- automatically sets `target=power9`
+    1. CIMS (`site=CIMS`)
+    1. Flatiron Institute, rusty cluster GPU node (`site=FI`)
+1. Targets
     1. Default (`x86_64`) -- do not specify `target` variable
-    2. IBM `power9` (`target=power9`)
+    1. IBM `power9` (`target=power9`)
 
 A general note about expanding the platform support: _targets_ should contain
 settings that are specific to a compiler/hardware architecture, whereas _sites_

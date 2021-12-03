@@ -1,0 +1,30 @@
+# FI: Flatiron Institute, rusty cluster, running on Cuda 11.4.2, up to A100
+# devices. The A100 seems to need SM80 arch code.
+# Barnett 12/2/21
+
+# Here's some cmds to run experiments on rusty:
+
+# log into rusty, some node, then...
+#module load slurm
+#srun -p gpu -N1 --gpus=1 -c 1 --constraint=a100 --exclusive --pty bash -i
+# to check the GPU...  seems device has cuda 11.2 not 11.4
+#nvidia-smi
+#module load cuda/11.4.2
+#module load gcc/7.5.0  
+# (cuda seems not to be able to use later gcc!)
+#make all -j
+# compile takes <1min with -j.
+#bin/cufinufft1d1_test 2 1e6 1e7
+#make check
+
+# see http://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/
+NVARCH = -arch=sm_80 \
+       -gencode=arch=compute_50,code=sm_50 \
+       -gencode=arch=compute_52,code=sm_52 \
+       -gencode=arch=compute_60,code=sm_60 \
+       -gencode=arch=compute_61,code=sm_61 \
+       -gencode=arch=compute_70,code=sm_70 \
+       -gencode=arch=compute_75,code=sm_75 \
+       -gencode=arch=compute_80,code=sm_80 \
+       -gencode=arch=compute_86,code=sm_86 \
+       -gencode=arch=compute_86,code=compute_86
