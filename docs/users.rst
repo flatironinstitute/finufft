@@ -61,12 +61,7 @@ Research output using FINUFFT
 
 #. Johannes Blaschke, Jeff Donatelli, and collaborators at NSERC/LBNL use FINUFFT and cuFINUFFT for single-particle X-ray imaging.
 
-#. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K.
-Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S.
-Vuong, M. Galvin, "Optical experiments and model validation of
-perturbed starshade designs," Proc. SPIE 11823, Techniques and
-Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021);
-doi: 10.1117/12.2595409
+#. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin, "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); doi: 10.1117/12.2595409
 
 
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
