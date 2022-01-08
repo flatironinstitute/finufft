@@ -39,7 +39,7 @@ in which the list of tokens is defined.
 Note that the f*.m files should have no % comment block after the function
 definitions; the script adds the help comments at the start of each m-file.
 
-Once *.m contains the updated help comments, and Contents.m is to your liking,
-one should run
+Once *.m contains the updated help comments, and you have edited Contents.m
+by hand (it is not auto-generated), one should then run
   ../docs/genmatlabhelp.sh
 to update .rst web doc source.

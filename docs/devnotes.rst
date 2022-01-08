@@ -10,6 +10,7 @@ Developer notes
   - ``docs/conf.py`` for sphinx
   - ``python/setup.py`` for the python pkg version
   - ``include/defs.h``
+  - ``matlab/Contents.m``
   - ``CHANGELOG``: don't forget to describe the new features and changes, folding lines at 80 chars.
 
   You will then need to update the docs as in ``docs/README``.
