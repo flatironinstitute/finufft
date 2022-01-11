@@ -26,9 +26,9 @@ PYTHON = python3
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range
-FFLAGS := $(CFLAGS)
-CXXFLAGS := $(CFLAGS)
+CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range $(CFLAGS)
+FFLAGS := $(CFLAGS) $(FFLAGS)
+CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # put this in your make.inc if you have FFTW>=3.3.5 and want thread-safe use...
 #CXXFLAGS += -DFFTW_PLAN_SAFE
 # FFTW base name, and math linking...
