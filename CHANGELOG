@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* makefile now appends (not replaces by) environment {C,F,CXX}FLAGS (PR #199).
+* fixed MATLAB Contents.m and guru help strings.
 * fortran examples: avoided clash with keywords "type" and "null", and correct
   creation of null ptr for default opts (issues #195-196, Jiri Kulda).
 * fixed modeord=1 failure for type 3 even though should never be used anyway
