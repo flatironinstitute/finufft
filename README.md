@@ -11,8 +11,7 @@ see `docs/ackn.rst` for full list of contributors.
 
 <img align="right" src="docs/spreadpic.png" width="400"/>
 
-This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, and Python. A Julia interface
-also exists.
+This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, Python, and (in a separate [repository](https://github.com/ludvigak/FINUFFT.jl)) Julia.
 
 Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html), or its local PDF equivalent, the [user manual](finufft-manual.pdf).
 You will also want to see example codes in the directories
