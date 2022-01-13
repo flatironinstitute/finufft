@@ -1,15 +1,19 @@
 List of features / changes made / release notes, in reverse chronological order
 
+V 2.0.4 (1/13/22)
+	
 * makefile now appends (not replaces by) environment {C,F,CXX}FLAGS (PR #199).
 * fixed MATLAB Contents.m and guru help strings.
 * fortran examples: avoided clash with keywords "type" and "null", and correct
   creation of null ptr for default opts (issues #195-196, Jiri Kulda).
+* various fixes to python wheels CI.
+* various docs improvements.	
 * fixed modeord=1 failure for type 3 even though should never be used anyway
   (issue #194).
 * fixed spreadcheck NaN failure to detect bug introduced in 2.0.3 (9566511).
 * Dan Fortunato found and fixed MATLAB setpts temporary array loss, issue #185.
 
-V 2.0.3 (4/22/20)
+V 2.0.3 (4/22/21)
 
 * finufft (plan) now thread-safe via OMP lock (if nthr=1 and -DFFTW_PLAN_SAFE)
   + new example/threadsafe*.cpp demos. Needs FFTW>=3.3.6 (Issues #72 #180 #183)
