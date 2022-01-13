@@ -22,7 +22,7 @@ Copy-Item -Path .\.github\workflows\libvcruntime140.a -Destination $libvcruntime
 # Setup the distutils.cfg file
 Set-Variable distutils_cfg -Value ([IO.Path]::Combine((Split-Path -Path $PYTHON), "Lib", 'distutils', 'distutils.cfg'))
 Set-Content -Path $distutils_cfg -Value "[build]`r`ncompiler=mingw32`r`n[build_ext]`r`ncompiler=mingw32"
-python -m pip install --upgrade setuptools wheel numpy pip delvewheel
+python -m pip install --upgrade setuptools wheel numpy pip
 if (-not $?) {throw "Failed pip install"}
 
 # call make

@@ -51,8 +51,8 @@ try:
         fh = imp.find_module('finufft/finufftc')[0]
         # Get the full path for the ctypes loader.
         if platform.system() == 'Windows':
-            os.environ["PATH"] += os.pathsep + os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(fh.name))),'finufft.libs')
-            full_lib_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(fh.name))),'finufft.libs','libfinufft.dll')
+            os.environ["PATH"] += os.pathsep + os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(fh.name))),'finufft')
+            full_lib_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(fh.name))),'finufft','libfinufft.dll')
         else:
             full_lib_path = os.path.realpath(fh.name)
         fh.close()    # Be nice and close the open file handle.
