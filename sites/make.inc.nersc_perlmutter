@@ -1,0 +1,17 @@
+CC  := $(shell which cc)
+CXX := $(shell which CC)
+
+$(info detected compiler wrappers:)
+$(info CC  = $(CC))
+$(info CXX = $(CXX))
+
+
+CUDA_ROOT := $(CUDATOOLKIT_HOME)
+NVARCH := -arch=sm_80 \
+          -gencode=arch=compute_70,code=sm_70 \
+          -gencode=arch=compute_75,code=sm_75 \
+          -gencode=arch=compute_80,code=sm_80 \
+          -gencode=arch=compute_80,code=sm_80 \
+          -gencode=arch=compute_86,code=compute_86
+
+NVCC_STUBS := $(CUDA_ROOT)/lib64/stubs
