@@ -1,0 +1,198 @@
+/**
+@page CBRNG Counter Based RNGs (CBRNGs).
+
+The counter-based random number generators (CBRNGs)
+in the Random123 library are described in more detail in
+<a href="http://dl.acm.org/citation.cfm?doid=2063405"><i>Parallel Random Numbers:  As Easy as 1, 2, 3</i> </a>,
+which was named the Best Paper at the ACM SC'11 International Conference on High Performance Computing, Networking,
+Storage, and Analysis.
+All the CBRNGs in the library conform to a  consistent
+interface.  Basically:
+\verbatim
+    value = CBRNGname(counter, key)
+\endverbatim
+
+Thus, with some care, they can be used
+interchangeably in applications. (Since code
+compiled with AES-NI instructions will result
+in an illegal instruction exception on processors
+without those instructions, Random123 provides a
+@ref haveAESNI function that can be used
+to detect the existence of AES at run-time;
+user code could use it to either report an
+error or substitute an alternative compatible
+CBRNG.)
+
+The API descriptions below are generic, but apply to
+all the different @ref families "families" of 
+Random123 CBRNGs.
+
+\section arrays Fixed-size Array Types
+
+Data is passed into and back from the Random123 functions as
+@ref arrayNxW "r123arrayNxW"
+types; these types
+contain fixed-size arrays of W-bit types (\c uintW_t for the
+most part, but also a special r123m128i wrapper for the @ref
+AESNI "ARS and AESNI" CBRNGs). The counter argument
+and the return value have the same type, 
+referred to as \c ctr_type in C++, and \c ctr_t in C.  The
+type of the key argument is referred to as \c key_type in C++,
+and \c key_t in C.
+For an  @ref arrayNxW "r123arrayNxW", \c r, the data member \c r.v is an array of N elements,
+each of width W (each element is
+type \c uintW_t or an r123m128i wrapper object).
+C programs can access these elements as \c r.v[0], ... \c r.v[N-1] for
+the \c uintW_t types.
+
+In C++, these array types closely resemble the C++0x std::array<N, uintW_t> template, but do not
+require C++11 libraries or compiler features. 
+C++ programs can access array elements via operator[]
+\c r[0], ... \c r[N-1], or via most of the capabilities
+of a C++ "Container" e.g. \c at(), \c begin(), \c end(),
+\c size() and others.  In addition, containers have <c> incr() </c> and <c> incr(unsigned long long)</c>
+member function that do increment-with-carry, which facilitate
+using r123arrays as very-long-period counters.
+
+If the compiler environment supports it,
+\c Random123/array.h also declares \c r123array1xm128i, which contains an array of one
+\c r123m128i, which in turn is a class wrapping a single element
+of \c __m128i SSE type, which can be accessed as \c r.v[0].m.
+The @ref r123::ARS1xm128i_R RNGs
+use \c r123array1xm128i for both \c ctr_type and \c key_type.
+For the @ref AESNI "AESNI" RNG, \c ctr_type is an \c r123array1xm128i, but 
+\c key_type is an opaque type, which must be initialized
+by assignment from a <c>userkey_type</c> (an r123array1xm128i).
+
+\section aliasing A note on aliasing and type-punning
+It is easiest (though not necessarily fastest) to choose a CBRNG whose
+\c ctr_type matches the width of the random data needed by the
+application, e.g., Philox4x32 for applications that need random data in
+32-bit words.  If the application's needs don't match the counter's value_type,
+it is tempting to use "type punning" and pointer casts to interconvert between
+types.  Such conversions require great care and are very difficult to do
+safely without use of unions or memcpy.  
+See <a
+href="http://blog.worldofcoding.com/2010/02/solving-gcc-44-strict-aliasing-problems.html">
+here</a>
+and 
+<a href="http://dbp-consulting.com/tutorials/StrictAliasing.html">
+here</a>
+for discussions of the pitfalls related to aliasing.
+The C++
+@ref r123::ReinterpretCtr template is a safe way to reinterpret \c CBRNG
+counter types.
+Gcc's \c
+-Wstrict-aliasing=2 warning level will warn if strict aliasing
+violations are detected.  If you find yourself ignoring or disabling
+warnings about strict aliasing, you should strongly consider adding something
+like gcc's \c -fnostrict-aliasing option to your compiler
+flags.
+
+\section cxxapi C++ API
+
+There are four families of CBRNGs in the library:
+<ul>
+<li> @ref ThreefryNxW "Threefry": @ref r123::Threefry2x32, @ref r123::Threefry4x32, @ref r123::Threefry2x64, @ref r123::Threefry4x64
+<li> @ref PhiloxNxW "Philox": @ref r123::Philox2x32, @ref r123::Philox4x32, @ref r123::Philox2x64, @ref r123::Philox4x64
+<li> @ref r123::AESNI4x32, r123::AESNI1xm128i
+<li> @ref r123::ARS4x32_R
+</ul>
+
+A <i> counter based RNG </i> (CBRNG) with a name of the form
+<i>FamilynameN</i>x<i>W</i> is a type G
+with the three member typedefs:
+
+<ul>
+<li> G::ctr_type, which is an @ref arrayNxW "r123arrayNxW" container class.
+<li> G::ukey_type, which is an @ref arrayNxW "r123arrayMxV" container class.
+Note that the width, \c MxV of the key
+may not be the same as the width \c NxW of
+the ctr_type (@ref PhiloxNxW "Philox" keys are half as wide as the counter,
+and future CBRNGs may well have different widths).
+<li> G::key_type, which in most cases is identical to
+G::ukey_type, but is different for the @ref AESNI "AESNI" types.
+In all cases, there is a G::key_type(G::ukey_type) constructor
+and a G::key_type assignment operator for a G::ukey_type
+right-hand-side.  In general, one can always write:
+@code
+  G::ukey_type uk1, uk2;
+  // user code initializes uk1 and uk2
+  G::key_type  k1(uk1), k2;
+  k2 = uk2;
+@endcode
+</ul>
+For most CBRNG's, i.e., any one not in the @ref AESNI "AESNI" family, it is also
+perfectly acceptable to set the elements of a G::key_type directly from application variables.
+The quality of the results will not be compromised by using highly correlated
+or "non-random" keys.
+
+A value \c g of type \c G can be invoked as <c>g(c,k)</c>, where \c c
+is a value of type \c G::ctr_type and \c k is a value of type \c G::key_type,
+and <c>g(c,k)</c> returns a value of type \c G::ctr_type.
+
+<ul>
+<li> g() is a stateless, pure function.  That is, g(c,k) may be called
+any number of times in any context and always returns the same result
+for the same inputs.  In particular, c1==c2 and k1==k2 implies that g(c1,k1)
+== g(c2,k2).  
+<li> For constant k, g(*,k) is a bijection.  That is, 
+g(c1,k) == g(c2,k) if and only if c1 == c2.
+<li> g "randomizes" its inputs.  That is,
+for most sequences of inputs (c1,k1),
+(c2, k2), ...  (including those obtained by following highly
+regular patterns of incrementing and striding 
+through the counter and user key spaces) the output sequence, g(c1, k1),
+g(c2, k2), ...  looks like a a sequence of uniformly distributed
+random variables drawn from the set of all ctr_types.
+</ul>
+
+All the CBRNGs in the library work by iterating a randomization function for a specific number of \e rounds.
+Too few rounds and the CBRNG is a poor (perhaps
+catastrophically poor) random number generator.  Too many rounds and time is wasted
+with little or no improvement in the randomness of the output.  Each of the CBRNGs
+has a specific number of rounds which the authors believe is a reasonable compromise
+between speed and quality.  In all cases, the default number of rounds includes a margin
+of safety above the minimum number of rounds that have passed all of the SmallCrush, Crush and BigCrush 
+tests in the <a href="http://www.iro.umontreal.ca/~simardr/testu01/tu01.html"> TestU01</a> suite.
+
+Users may, however wish to employ a different numbers of rounds.  Each of the above
+classes is actually a typedef of a more general class with a template parameter that
+specifies the number of rounds as <i>name</i>_rounds.  The template classes all end in \c _R:
+
+<ul>
+<li> @ref ThreefryNxW "Threefry": @ref r123::Threefry2x32_R, @ref r123::Threefry4x32_R, @ref r123::Threefry2x64_R, @ref r123::Threefry4x64_R
+<li> @ref PhiloxNxW "Philox": @ref r123::Philox2x32_R, @ref r123::Philox4x32_R, @ref r123::Philox2x64_R, @ref r123::Philox4x64_R
+<li> @ref r123::AESNI4x32_R, r123::AESNI1xm128i_R
+<li> @ref r123::ARS4x32_R
+</ul>
+
+\section capi C API
+
+A subset of the C++ interface
+is also directly usable by C programs.  All header files may be
+safely included in C files.  The C API to each of the
+supported RNGs consists of two typedefs, <i>name</i>_ctr_t,
+<i>name</i>_key_t, two functions <i>name</i>() and <i>name</i>_R(), and
+the enum <i>name</i>_rounds which specifies the recommended number of rounds.
+<ul>
+<li> <i>name</i>(c, k), performs the recommended number of rounds of the <i>name</i> CBRNG.
+<li> <i>name_R</i>(R,c,k), performs an R-round version of the <i>name</i> CBRNG.
+<i>name</i>(c,k) is equivalent to
+<i>name</i>_R(<i>name</i>_rounds, c, k).
+</ul>
+
+The \c _R functions are designed and implemented so that an optimizing compiler can achieve good performance
+when the number of rounds is a compile-time constant.  It is likely that <c>philox4x32_R(10,c,k) </c>
+will perform much better than <c>philox4x32_R(r,c,k)</c> if \c r cannot be
+evaluated at compile-time.
+
+The supported names for the C API are
+<ul>
+<li> @ref ThreefryNxW "threefry": @ref threefry2x32, @ref threefry4x32, @ref threefry2x64, @ref threefry4x64.
+<li> @ref PhiloxNxW "philox": @ref philox2x32, @ref philox4x32, @ref philox2x64, @ref philox4x64.
+<li> @ref ars4x32_R, @ref ars1xm128i_R
+<li> @ref aesni4x32, @ref aesni1xm128i
+</ul>
+
+*/

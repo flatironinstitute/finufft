@@ -1,0 +1,25 @@
+---
+version: ~> 1.0
+language: cpp
+os: linux
+dist: focal 
+compiler: 
+        - gcc
+        - clang
+
+before_install:
+        - sudo apt-get update -y
+        - sudo DEBIAN_FRONTEND=noninteractive apt-get install -y doxygen graphviz
+
+script:
+        - make check
+        - make prefix=/tmp install-html
+
+deploy:
+        edge: true  # opt into deployment v2
+        provider: pages:git
+        local_dir: /tmp/share/doc/Random123/html
+        token:
+                secure: "p16xEv9Aeny8UkXVLjhL1mIT32PqikuJtidHEUIUE7fHqw7HVfBOLi++o1/FYupQD7E//c4oGTpyswycIjd8z7yGKcyiOgKtkgxc3Gigp+I8sUwFRVp6t21tGMjbrWQKWPQyOsCZv5fl+EwZNNGzzRT8SEQ70ylxotjD9ZOFT3lX3c0btuk7kxA00c4GtX3JWlR9o7kB0KV7Tm1VzdjUJ78tp9GENj1Y9qffLCJb5h+DbR1ESM3hhJMVU9ImzCfX8xohm0hhpbUqXaE6OUy5PPutYoEq97RjsdHy/efKY+jDqZwKNDQpDqwuQZ/+G/cSh+Kypqy7qMVnp4zmapI2VbYjdCHUtvjVr8j2LHL1lD9a66+dunEi9SZjTa7lqLY+3aLFGQSnrCtmd6UMaow++EXOKVTa0CnMU693AD1E+rOetB4JEWNsOsJYaz4yrHhUJMnT/1JYtGfFxOyojgn/eIYwdVCTmZwWf4PMuZ4IaYV/4wniRLmTlHa4E+P2ab3V0AgAdI+l9wEkO/MZBYmjUkHQ3tyO7INJXGBLocatjrvRZOc4qLLpNslCb8/36ZvODERSmlboRB0lGeA3Nn7sW604x9NgN39Gy9sXe8xGYX8UB50AHd7XiPfp6+2AW9uEa8YBQxWB8gwlzwLyWQt8gKPZfzdJOHvY0/feCHGxdrA="
+        on:
+                branch: main

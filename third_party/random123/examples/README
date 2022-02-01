@@ -1,0 +1,83 @@
+This file is examples/README and is also linked to from the doxygen main page.
+
+/**
+@page ExamplesREADME Examples
+
+The examples/ directory contains usage examples 
+for the components of the Random123 library.
+
+@section building Compiling and Running the code
+
+Installing and using Random123 requires only the use
+of the header files, and  has no prerequisites other than
+a reasonable C99 or C++98 compiler.
+
+With a modern GNU make (3.80 or newer), building and running the core tests
+and examples can be as easy as running gmake with no arguments.
+Note, though, that the provided examples/GNUmakefile intentionally avoids setting
+any of the standard make variables:  CC, CXX, CPPFLAGS, CFLAGS,
+CXXFLAGS, TARGET_ARCH, LDFLAGS,  LOADLIBES, LDLIBS.  GNU make
+will inherit settings for these variables from the environment,
+or they may be set on the command line.  If none  are set,
+compilation will proceed using system-wide default flags, generally
+without advanced optimization, architectural tuning, warnings, or other
+common options.  
+
+Before putting the Random123 library to use in an application,
+it is important to test it using the same compiler flags and
+features that the application will use.  In other words,
+the conventional make variables should be set
+the same way when testing the library as they will be set when the
+library is actually compiled into your application.
+Something like:
+@code
+gmake CFLAGS="-std=c99" CXXFLAGS="-std=c++0x" CPPFLAGS="/alternate/location/include -O3 -Wall -Wstrict-aliasing=2" TARGET_ARCH="-march=native"
+@endcode
+would confirm that all is well with optimization on, and output targeted at
+an architecture with the same capabilities as the machine running the compilation.
+
+Very old versions of GNU make (pre-2002) or non-GNU
+make will not work with examples/GNUmakefile.. Lacking a suitably modern GNU make,
+our advice is to invoke the
+C or C++ compiler directly on the source files in the examples/ directory.
+
+@section examples Examples
+
+@subsection simple Simple examples in C and C++
+
+There are two extremely short examples that show all the code necessary to
+obtain and print a few random numbers in C and C++:
+<ul>
+<li> simple.c 
+<li> simplepp.cpp
+</ul>
+
+@subsection pi Estimating pi using different APIs
+
+Using random numbers to estimate pi is a classic example.  The idea
+is to choose points at random in a square and to count how many of
+them lie within the inscribed circle.  Since the area of the square
+is 4*r^2 and the area of the circle is pi*r^2, the ratio of the
+number of points in the circle to the total number of points should
+approach pi/4 as the number of points grows.
+
+We give several examples of pi estimation, each of
+which illustrates a slightly different API
+
+<ul>
+<li> pi_capi - using only the basic C API
+<li> pi_cppapi - using only the basic C++ API
+<li> pi_u01 - using the C++ API and uniform.hpp
+<li> pi_gsl - using a Random123 generator, but a gsl distribution to obtain real-valued random numbers.  <b>Requires the GNU Scientific Library</b>
+<li> pi_microurng - using a Random123 generator, but a C++11 \<random\> distribution to obtain real-valued random numbers
+<li> pi_cuda - using the Random123  library with CUDA, runnable on an NVIDIA GPU
+<li> pi_cudapp - using the C++ API with CUDA, runnable on an NVIDIA GPU
+<li> pi_opencl - using the Random123 library with OpenCL, runnable on any OpenCL platform: e.g. NVIDIA or ATI GPUs or Intel or AMD CPUs.  The actual
+compute kernel lives in the \c pi_opencl_kernel.ocl file and is transformed by \c gencl.sh into strings that get included in \c pi_opencl.c, since
+the OpenCL kernels get compiled for the target OpenCL platform at run-time.  Note that Apple deprecated OpenCL in MacOS 10.14 (2018).  See pi_metal.
+<li> pi_aes - uses the AESNI4x32 Random123 generator
+<li> pi_metal - uses Apple's Metal framework (replacement for OpenCL).
+</ul>
+
+
+*/

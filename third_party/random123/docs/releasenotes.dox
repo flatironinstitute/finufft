@@ -1,0 +1,215 @@
+/**
+@page "Release Notes"
+<dl>
+<dt>1.14.0 - Jan 29, 2021 </dt>
+<dd><ul>
+<li> Correctly identify newer versions (16+) of IBM's XL compiler
+<li> Better support for MS Visual Studio 2015 (and hopefully later)
+<li> Allow compilation on s390x.
+<li> Don't use arrays internally in the threefry implementations.
+     This seems to avoid register spills when compiled with icc, and
+     has no apparent effect on gcc's code generation.
+<li> Remove error-prone code to discover CPU clockspeed.  Don't report cpB in timing tests.
+<li> Remove error-prone code to "clean" device names and parse hex float strings.
+<li> Suppress some warnings from gcc10:
+          - don't use size_t if stddef hasn't been included
+          - declare default copy-assignment and move-assignment operators in Engine.
+<li> CUDA should work better with non-gcc host compilers now.
+<li> Use currently recommended compile-time options to build with Metal.
+<li> Support clang on powerpc.
+</ul></dd>
+
+<dt>1.13 - Mar 22, 2019 </dt>
+<dd><ul>
+<li>       Don't try to declare reverse iterators for r123array in cuda.
+<li>       Add support for Apple's Metal Shading Language (2.1) - contributed by Tom Schoonjans.
+           - Implementation of 32-bit threefry and philox.
+           - metalfeatures.h, plus new macros in compilerfeatures.h,
+             used in threefry.h, philox.h and kat infrastructure.
+	   - tests/kat_metal and examples/pi_metal.
+<li>       Small tweaks to silence warnings from newer gcc, clang, cuda and opencl.
+<li>       Cosmetic changes to doxygen markup, including fixes to work with newer releases of doxygen.
+</ul></dd>
+
+<dt>1.12 - not publicly released</dt>
+<dd>
+</dd>
+
+<dt>1.11 - Mar 30, 2017 (not publicly released)</dt>
+<dd><ul>
+<li>       Changes to conventional/Engine.hpp:
+           - The sequence of generated randoms is unchanged.
+           - shrink the memory footprint by not keeping a copy of the ukey in the Engine and storing the 'elem' counter in v.back().
+           - insertion and extraction operators have changed incompatibly.  I.e.,
+           engines serialized with 1.10 or earlier cannot be deserialized
+           with 1.11, and vice versa.
+           - getkey returns a key_type and setkey takes a key_type.
+           - when ukey_type is not the same as key_type, provide a constructor
+             and a seed method that takes a const key_type& argument.
+           - the getseed method is eliminated.
+<li>       Move uniform.hpp, boxmuller.hpp and u01fixedpt.h into
+           include/Random123.  I.e., make them available in exactly
+           the same way as threefry.h, et al.  It is no longer necessary
+           to copy them from the examples directory to user code.
+<li>       Incorporate ua.hpp into uniform.hpp.
+<li>       Provide insertion, extraction and comparison operators to the
+           aesopenssl16x8_key_t and aesni1xm128_key_t.
+<li>       Separate tests and benchmarks (which are absurdly complicated)
+           from examples (which are meant to be short and simple) in
+           the source tree.  We still test and time the same things, but all
+           that code is in tests/, while the code remaining in examples/
+           really tries to be exemplary. 
+<li>       More careful use cl_uint and elimination of uint from opencl code.
+<li>       Better (but not reliable) support for OpenCL on MacOS.
+<li>       Fix documentation for examples/uniform.hpp.
+</ul></dd>
+
+<dt>1.10 - Apr 12, 2016 </dt>
+<dd><ul>
+<li>       R123EXAMPLE_ENVCONF_SEED environment variable provides seed to most pi_* examples
+<li>       R123EXAMPLE_ENVCONF_CUDA_DEVICE and R123EXAMPLE_ENVCONF_OPENCL_DEVICE allow selection of non-default
+               GPUs, e.g. R123EXAMPLE_ENVCONF_CUDA_DEVICE=980&nbsp;pi_cuda
+               or R123EXAMPLE_ENVCONF_OPENCL_DEVICE=680&nbsp;pi_opencl
+<li>       Updated hardcoded device core detection with newer GPUs (Kepler, Maxwell)
+           and changed default cores from 1 to 384 to run more sensible number of
+           iterations on unrecognized devices.
+<li>       moved lots of arbitrary, funny, irrelevant constants into example_seeds.h so that they do
+           not confuse the punters.
+<li>       Tested on ARMv7 (32bit) and `ARM A53 (64bit) with Freescale/Linaro toolchain gcc 4.8.
+           Needed workaround for -O3 compiler bug on ARMv7.
+</ul></dd>
+<dt>1.09 - Mar 6, 2016 </dt>
+<dd><ul>
+<li> add \#define R123_USE_U01_DOUBLE to u10fixedpt.h
+<li> fix definition of const char *srcstr[] in util_opencl.h
+<li> improve nvccfeatures.h so that 64-bit philox can be used
+both on the host and on the cuda device.
+<li> add _Pragmas so R123_STATIC_ASSERT doesn't warn with clang-3.6.
+<li> boxmuller.hpp doesn't look for sincos when __APPLE__ is true.
+</ul></dd>
+<dt>1.08 - Aug 20, 2013 </dt>
+<dd><ul>
+<li> Fix a bug in threefry2xW whereby rotation constants were
+chosen incorrectly after the 20th round.  There is no reason to
+suspect that the incorrectly chosen rotation constants were "bad"
+or "deficient" so there is no reason to suspect the quality of the
+random numbers produced.  Using threefry with R>20 would have been
+rare in any case.  The fix simply makes the implementation correspond 
+correctly to the description in the paper.
+<li> Add examples/uniform.hpp, examples/boxmuller.hpp and
+     examples/ua.hpp, containing example code to generate uniformly
+     and gaussian distributed floats and doubles.  Also add unit tests
+     (ut_uniform.cpp, ut_uniform_IEEEkat.cpp) and timing harnesses
+     (time_boxmuller.cpp and time_boxmuller_cuda.cpp).
+<li> overhaul u01_closed_closed and u01_open_open so they produce
+     equally spaced/probable values except for endpoints.
+<li> Demote u01.h from the include/Random123/ to examples/ufixed01.h, but
+     examples/uniform.hpp is preferred.
+<li> Add kat_vectors for threefry2xW_32 and threefry4xW_72, i.e., the
+largest number of supported rounds in each case.
+<li> Mention ukey on the first page of docs.
+<li> Fix typos in documentation and comments and in gccfeatures.h.
+<li> Don't \#include &lt;x86intrin.h&gt; unless (defined(__x86_64__)||defined(__i386__)).
+<li> Use __clang__ rather than __llvm__ in the predicate that decides whether to
+     include clangfeatures.h.
+<li> Add support for Portland Group compilers.
+<li> Add support for gcc and IBM XL compilers on powerpc64, e.g. BlueGene/Q.
+<li> Port to PPC. (BG/L)
+<li> Refuse to build with CUDA before 4.1 to avoid namespace bug.
+<li> Update/fix core count hackery NVIDIA Tesla K20c
+</ul></dd>
+
+<dt>1.07 - Nov 7, 2012 </dt>
+<dd><ul>
+<li> Provide const static data members:  _Min and _Max in Engine and MicroURNG, which
+work around a non-standard requirement imposed by the MacOS Xcode 4.5.2 &lt;random&gt; library.
+<li> Fine-grained test macros for specific features of C++11 rather than
+an all-or-none USE_CXX0X macro.  Features tested:
+constexpr, unrestricted unions, explicit conversions, &lt;random&gt; and &lt;type_traits&gt;.
+<li> Declare max() and min() methods with the R123_CONSTEXPR attribute
+in Engine and MicroURNG.
+<li> Improved clang support
+<li> Works with Solaris Sun CC now (requires -library=stlport4)
+<li> NVIDIA GTX6x0 should report correct core count
+<li> ut_features prints the list of features that compile on the build platform
+<li> Compiles cleanly with -Wall -Wextra (implying -Wunused-parameter -Wsign-compare)
+</ul></dd>
+
+<dt>1.06 - Apr 5, 2012 </dt>
+<dd><ul>
+<li> Added a known answer test for the u01 functions (kat_u01).
+<li> Defend headers against possible max and min macros in "system" header files.
+</ul></dd>
+
+<dt>1.05 - Mar 20, 2012 </dt><dd>
+<ul><li>
+MicroURNG and GSL_MICROURNG no longer give the programmer control
+over the number bits in the internal counter via a template or macro argument.
+Such flexibility is too easy to misuse, with the possible consequence
+of repeating random values.  Now, all MicroURNGs have a period in
+excess of 2^32, and MicroURNG&lt;CBRNG&gt;(c1, k1)
+and MicroURNG&lt;CBRNG&gt;(c2, k2) "collide" if and only if c1==c2 and k1==k2.</li>
+<li>Added &lt;Random123/u01.h&gt; header file with static functions for conversion
+of integers to uniformly distributed floating point values.</li>
+<li>Make operator&lt;&lt;(ostream&amp;, const r123array&amp;) and operator&gt;&gt;(ostream&amp;, r123array&amp;)
+inline.  This should work around ODR violations when the header files are
+included in more than one file in a project.</li>
+<li>Recognize that icpc has an _mm_set_epi64x intrinsic as of version 12.1.</li>
+<li>The gsl adapters always return 32-bits of random data, regardless of the
+width of counter type.</li>
+<li>Works around lack of anonymous enums in Intel OpenCL 1.5</li>
+<li>gencl.sh works on MacOS and systems with "classic" BSD indent.</li>
+<li>Tests run on AMD Radeon 7970 (Tahiti).</li>
+</ul>
+
+</dd>
+
+<dt>1.04 - Dec 5, 2011</dt><dd>
+<ul><li>
+new kat_vectors - there are now three tests for each tested generator: gen(ctr=0, key=0), gen(ctr=fff, key=0xfff),
+    and gen(ctr=digits-of-pi, key=more-digits-of-pi).  There are fewer tests overall, but they provide
+    better coverage, especially of non-zero keys.</li>
+</ul>
+</dd>
+
+<dt>1.03 - Nov 30, 2011</dt><dd>
+<ul>
+<li> overhaul known answer tests (kat)
+   <ul>
+   <li> common source for serial C, C++, cuda and opencl replaces katc and katpp </li>
+   <li> add missing kat_vectors for threefry2x32 </li>
+   </ul></li>
+<li> make keyinit functions device/kernel functions in CUDA/OpenCL </li>
+<li> replace r123array::assemble methods with r123array::seed(SeedSeq) template </li>
+<li> cleanup of signatures of Engine and MicroURNG methods: 
+   <ul>
+      <li> Engine(ukey_type&amp;) and MicroURNG(ctr_type, ukey_type) constructors.</li>
+      <li> Engine(SeedSeq&amp;) takes a reference argument, and, when C++0x &lt;type_traits&gt;
+           are available the SeedSeq templates don't participate in "surprising" overloads. </li>
+   </ul>
+</li>
+</ul>
+</dd>
+
+<dt>1.02 - Nov 21, 2011</dt><dd>
+<ul>
+<li>
+<b> BUG FIXED </b> in threefry2xW_R(R&lt;20, ...).  Earlier implementations of
+threefry2x32_R and threfry2x64_R produced incorrect
+results when called with the number of rounds less than 20.
+The bug caused extra work to be done in every call, possibly resulting in <i>more</i>
+mixing than the correct implementation delivers.  Both old (buggy, more mixing) and new (bug-fixed, less mixing)
+implementations have been rechecked and are fully "Crush-Resistant". </li>
+<li>worked around problems with argument marshalling in version 2.4 of the AMDAPPSDK OpenCL implementation</li>
+</ul>
+</dd>
+
+<dt>1.01 - Nov 11, 2011</dt><dd>
+<ul>
+<li>allow the user to define __STDC_CONSTANT_MACROS</li>
+<li>allow r123arrayNxW::incr(larger_than_largest_value_type)</li>
+</ul>
+
+<dt>1.00 - Sep 26, 2011</dt><dd>Initial release</dd>
+</dl>
+*/

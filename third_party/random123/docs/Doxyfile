@@ -1,0 +1,44 @@
+# generated with doxygen -g and edited
+# Doxyfile 1.8.11
+
+PROJECT_NAME           = "Random123"
+STRIP_FROM_PATH        = ../include ..
+STRIP_FROM_INC_PATH    = ../include/
+TAB_SIZE               = 8
+EXTENSION_MAPPING      = .h=C++
+MARKDOWN_SUPPORT       = NO
+AUTOLINK_SUPPORT       = NO
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+INPUT                  = main.md cbrng.dox releasenotes.dox \
+		../include/Random123 \
+		../include/Random123/conventional \
+		../include/Random123/features/sse.h \
+		../include/Random123/features/compilerfeatures.h \
+		../tests/README \
+                ../examples/README \
+                ../LICENSE
+
+#USE_MDFILE_AS_MAINPAGE =
+
+#HTML_HEADER            = header.html
+HTML_TIMESTAMP         = YES
+GENERATE_LATEX         = NO
+MACRO_EXPANSION        = YES
+
+PREDEFINED             = \
+  "R123_STATIC_ASSERT(e,m)= " \
+  "R123_FORCE_INLINE(decl)= decl " \
+  "R123_STATIC_INLINE= static inline " \
+  "R123_CUDA_DEVICE= " \
+  "__cplusplus " \
+  "R123_USE_SSE= 1" \
+  "R123_USE_AES_NI= 1" \
+  "R123_USE_U01_DOUBLE= 1" \
+  "R123_USE_PHILOX_64BIT= 1" \
+  "R123_USE_64BIT= 1" \
+  "R123_USE_CXX11_STD_ARRAY= 1"
+EXPAND_AS_DEFINED      = \
+    R123_ULONG_LONG \
+    R123_STATIC_INLINE \
+    R123_CUDA_DEVICE

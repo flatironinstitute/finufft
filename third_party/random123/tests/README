@@ -1,0 +1,145 @@
+This file is examples/README and is also linked to from the doxygen main page.
+
+/**
+@page TestsREADME Tests and Benchmarks
+
+The tests/ directory contains tests and timing
+harnesses for the components of the Random123 library.
+
+<b>See @ref ExamplesREADME "../examples" for examples</b> of how to
+use the Random123 APIs in different contexts.
+
+The code in this directory (tests/) is not exemplary because it
+sacrifices readability to support many different generators (philox,
+threefry, ARS), programming models (C, C++, CUDA, OpenCL, Metal),
+compilers (gcc, clang, icc), hardware (Intel, ARM, NVidia), and
+operating systems (Linux, Windows, OSX).
+
+@section building Compiling and Running the code
+
+Installing and using Random123 requires only the use
+of the header files, and  has no prerequisites other than
+a reasonable C99 or C++98 compiler.
+
+With a modern GNU make (3.80 or newer), building and running the core tests
+and examples can be as easy as running gmake with no arguments.
+Note, though, that the provided tests/GNUmakefile intentionally avoids setting
+any of the standard make variables:  CC, CXX, CPPFLAGS, CFLAGS,
+CXXFLAGS, TARGET_ARCH, LDFLAGS,  LOADLIBES, LDLIBS.  GNU make
+will inherit settings for these variables from the environment,
+or they may be set on the command line.  If none  are set,
+compilation will proceed using system-wide default flags, generally
+without advanced optimization, architectural tuning, warnings, or other
+common options.  
+
+Before putting the Random123 library to use in an application,
+it is important to test it using the same compiler flags and
+features that the application will use.  In other words,
+the conventional make variables should be set
+the same way when testing the library as they will be set when the
+library is actually compiled into your application.
+Something like:
+@code
+gmake CFLAGS="-std=c99" CXXFLAGS="-std=c++0x" CPPFLAGS="/alternate/location/include -O3 -Wall -Wstrict-aliasing=2" TARGET_ARCH="-march=native"
+@endcode
+would confirm that all is well with optimization on, and output targeted at
+an architecture with the same capabilities as the machine running the compilation.
+
+Very old versions of GNU make (pre-2002) or non-GNU
+make will not work with tests/GNUmakefile.. Lacking a suitably modern GNU make,
+our advice is to invoke the
+C or C++ compiler directly on the source files in the tests/ directory.
+The file tests/BUILD.LOG contains a list of sample build commands.  They
+will almost certainly need to be adapted to the target system.
+For Windows users, BUILDVC.BAT invokes the Microsoft
+Visual Studio compiler.  Edit it as needed for your platform.
+
+
+@section tests Tests
+
+It is recommended that Random123 be tested <b> on the target system,
+with the target compiler, intended optimization levels, options,
+target architectures, etc.</b>
+before relying it.  The library
+uses architecture- and compiler-specific intrinsics,
+features and assembly language.  We have seen  cases where
+one compiler (open64 version 4.2.4) masquerades as another compiler (it defines __GNUC__) accepts extensions
+specific to the other compiler (__uint128_t)
+without error or warning, and then silently produces incorrect code.
+The only way to guard against this kind of misbehavior is to
+compile and run the tests with the compiler and options that you intend to use and
+the platform that you intend to run on.
+
+@subsection kat Known Answer Tests
+
+Testing that your compiled code computes the same "Known Answers" as the
+reference implementation which has been subjected to the Crush batteries of
+statistical tests is critically important.
+
+The file \c tests/kat_vectors contains a few dozen "Known Answer
+Test" vectors, i.e., tuples of (method, counter, key, answer).  The
+source file katc.c is incorporated into kat_c.c (C),
+kat_cpp.cpp (C++), kat_cuda.cu (CUDA) and kat_opencl.c
+(OpenCL), which are compiled into kat_c, kat_cpp, kat_cuda
+and kat_opencl, respectively.  Each of these will read kat_vectors
+and verify that the compiled code obtains the same "known answers".
+
+The kat vectors are not language-specific.  Implementations of CBRNGs in
+other languages could also be validated against \c kat_vectors.  The
+kat vectors are also byte-order independent.  In other
+words, the CBRNGs in the library should produce the same numerical
+results on little-endian and big-endian hardware, but this behavior
+is largely untested.
+
+@subsection ut Unit Tests
+
+tests/ also contains tests of specific components of the library.  While not
+exhaustive, these tests verify that a variety of invariants are satisfied
+by the public methods (e.g., that incr(N) is the same as incr() N times).  They
+also serve to verify some of the compile-time feature-test logic which, if incorrect can
+lead to mysterious errors (e.g., is it necessary to <c>#include <smmintrin.h></c>).
+Unit tests include:
+
+<ul>
+<li> ut_features - verifies compile-time feature-test logic.
+<li> ut_carray - verifies the capabilities of the @ref arrayNxW "r123arrayNxW" types.
+<li> ut_M128 - verifies the capabilities of the r123m128i type (only when SSE2 is available).
+<li> ut_ReinterpretCtr - verifies the r123::ReinterpretCtr wrapper template.
+<li> ut_Engine - verifies the capabilities of the r123::Engine wrapper template.
+<li> ut_aes - verifies that the @ref AESNI "AESNI" cbrngs match known answers from FIPS-197.
+<li> ut_gsl - tests the @ref GSL_CBRNG adapter <b>Requires the GNU Scientific Library</b>.
+</ul>
+
+@section timers Measuring performance
+
+We include some timing harnesses that can be used to measure
+the performance of these CBRNGs on various platforms. They report aggregate throughput
+in GB/sec:  a direct
+measure of performance, but one that depends on clock speed
+and number of cores being used.  They also report cpB (cycles-per-byte)
+if they are invoked with an environment variable.  For example, 
+<pre>
+<code>
+   env TIME_SERIAL_CPU_GHZ=3.2 ./time_serial
+</code>
+</pre>
+will report cpB assuming a 3.2GHz clock.
+
+<ul>
+<li> time_serial - uses the C API and reports performance for a
+single core.
+<li> timers - uses the C++ API, and is the only tool that reports
+AESNI1xm128i and ARS1xm128i performance (if your CPU supports the AES-NI instruction
+extensions).
+<li> time_thread - uses the C API and pthreads to report
+multithreaded performance.  Uses TIME_THREAD_NTHREADS (or 12 if unset) threads.
+<li> time_cuda - uses the C API within NVIDIA CUDA to run on NVIDIA GPUs.
+<li> time_opencl - uses the C API within OpenCL to run on GPUs or CPUs.
+</ul>
+
+time_serial, time_thread, time_cuda, time_opencl all use a common 
+kernel defined in time_random123.h.  They all use various 
+util_* header files for utility functions and platform-related
+boilerplate (also used by the pi_* examples).
+
+*/
