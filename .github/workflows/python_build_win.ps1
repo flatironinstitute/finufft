@@ -22,7 +22,7 @@ Copy-Item -Path .\.github\workflows\libvcruntime140.a -Destination $libvcruntime
 # Setup the distutils.cfg file
 Set-Variable distutils_cfg -Value ([IO.Path]::Combine((Split-Path -Path $PYTHON), "Lib", 'distutils', 'distutils.cfg'))
 Set-Content -Path $distutils_cfg -Value "[build]`r`ncompiler=mingw32`r`n[build_ext]`r`ncompiler=mingw32"
-python -m pip install --upgrade setuptools wheel numpy pip delvewheel
+python -m pip install --upgrade setuptools wheel numpy pip
 if (-not $?) {throw "Failed pip install"}
 
 # call make
@@ -31,10 +31,20 @@ c:\msys64\usr\bin\env MSYSTEM=MINGW64 c:\msys64\usr\bin\bash.exe -lc "cd '$repo_
 if (-not $?) {throw "Failed make python-dist"}
 
 # Move the required DLLs inside the wheel
-$env:Path += ";C:\msys64\mingw64\bin"
-Set-Variable packed_wheel -Value (get-item .\python\wheelhouse\finufft-*.whl).FullName
-delvewheel repair $packed_wheel -w .\wheelhouse --add-path .\lib --no-mangle-all
-if (-not $?) {throw "Failed repair wheel"}
+wheel.exe unpack (get-item .\python\wheelhouse\finufft*.whl).FullName -d .\tpm
+if (-not $?) {throw "Failed unpack wheel"}
+Set-Variable unpacked_wheel -Value (get-item .\tpm\finufft-*).FullName
+Copy-Item -Path .\lib\libfinufft.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+Copy-Item -Path C:\msys64\mingw64\bin\libstdc++-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+Copy-Item -Path C:\msys64\mingw64\bin\libgcc_s_seh-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+Copy-Item -Path C:\msys64\mingw64\bin\libgomp-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+Copy-Item -Path C:\msys64\mingw64\bin\libwinpthread-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+Copy-Item -Path C:\msys64\mingw64\bin\libfftw3-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+Copy-Item -Path C:\msys64\mingw64\bin\libfftw3f-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+New-Item -Path .\wheelhouse -ItemType Directory -Force
+wheel.exe pack $unpacked_wheel -d .\wheelhouse
+if (-not $?) {throw "Failed pack wheel"}
 
 # Cleanup
 Remove-Item -Path .\python\wheelhouse -Force -Recurse
+Remove-Item -Path $unpacked_wheel -Force -Recurse

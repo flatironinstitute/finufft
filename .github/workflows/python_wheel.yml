@@ -86,6 +86,11 @@ jobs:
           --output python_installer.pkg
         sudo installer -pkg python_installer.pkg -target /
 
+        curl \
+          https://www.python.org/ftp/python/3.10.1/python-3.10.1-macos11.pkg \
+          --output python_installer.pkg
+        sudo installer -pkg python_installer.pkg -target /
+
     - name: Compile python bindings
       run: |
         make lib
@@ -103,7 +108,10 @@ jobs:
         /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
         /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install -U wheel --user
         /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip wheel . -w wheelhouse
-        PYTHON_BIN=/Library/Frameworks/Python.framework/Versions/3.9/bin/
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install -U wheel --user
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip wheel . -w wheelhouse
+        PYTHON_BIN=/Library/Frameworks/Python.framework/Versions/3.10/bin/
         $PYTHON_BIN/python3 -m pip install delocate
         ls wheelhouse/finufft*.whl | xargs -n1 $PYTHON_BIN/delocate-wheel -w fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install finufft -f fixed_wheel/
@@ -114,6 +122,8 @@ jobs:
         /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 test/run_accuracy_tests.py
         /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 test/run_accuracy_tests.py
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install finufft -f fixed_wheel/
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 test/run_accuracy_tests.py
 
     - name: Upload wheels
       uses: actions/upload-artifact@v2
@@ -130,24 +140,6 @@ jobs:
     - name: Install GCC and make
       run: C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm make mingw-w64-x86_64-toolchain mingw-w64-x86_64-fftw"
 
-    - name: Build and Test Python 3.6
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.6'
-        architecture: 'x64'
-    - run: |
-        .\.github\workflows\python_build_win.ps1
-        .\.github\workflows\python_test_win.ps1
-
-    - name: Build and Test Python 3.7
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.7'
-        architecture: 'x64'
-    - run: |
-        .\.github\workflows\python_build_win.ps1
-        .\.github\workflows\python_test_win.ps1
-
     - name: Build and Test Python 3.8
       uses: actions/setup-python@v2
       with:
@@ -161,6 +153,15 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.9'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+        .\.github\workflows\python_test_win.ps1
+
+    - name: Build and Test Python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
         architecture: 'x64'
     - run: |
         .\.github\workflows\python_build_win.ps1
