@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
   }
   // allocate output array for the Fourier modes...
   vector<complex<double> > F(N);
-
+  
   // call the NUFFT (with iflag=+1): note pointers (not STL vecs) passed...
   int ier = finufft1d1(M,&x[0],&c[0],+1,acc,N,&F[0],opts);
 

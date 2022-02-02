@@ -147,6 +147,9 @@
 %
 % This deallocates all stored FFTW plans, nonuniform point sorting arrays,
 %  kernel Fourier transforms arrays, etc.
+%
+%
+
 classdef finufft_plan < handle
 
   properties
@@ -162,6 +165,9 @@ classdef finufft_plan < handle
     n_trans
     nj              % number of NU pts (type 1,2), or input NU pts (type 3)
     nk              % number of output NU pts (type 3)
+    xj
+    yj
+    zj
   end
 
   methods
@@ -233,6 +239,8 @@ finufft(mex_id_, o);
 
     function setpts(plan, xj, yj, zj, s, t, u)
     % SETPTS   process nonuniform points for general FINUFFT transform(s).
+    %
+    % For documentation, see: FINUFFT_PLAN
 
       % fill missing inputs with empties of correct type
       if strcmp(plan.floatprec,'double')
@@ -249,6 +257,13 @@ finufft(mex_id_, o);
       [nj, nk] = valid_setpts(plan.type, plan.dim, xj, yj, zj, s, t, u);
       plan.nj = nj;            % save to avoid having to query the C++ plan
       plan.nk = nk;            % "
+      % Force MATLAB to preserve the memory of xj/yj/zj by storing them as class
+      % properties (see issue #185). Ideally, we would pass plan.xj/yj/zj to the
+      % MWrap call below, but MWrap fails to parse the "." syntax. However,
+      % simply storing xj/yj/zj ensures that the memory will be preserved.
+      plan.xj = xj;
+      plan.yj = yj;
+      plan.zj = zj;
       if strcmp(plan.floatprec,'double')
         mex_id_ = 'o int = finufft_setpts(i finufft_plan, i int64_t, i double[], i double[], i double[], i int64_t, i double[], i double[], i double[])';
 [ier] = finufft(mex_id_, plan, nj, xj, yj, zj, nk, s, t, u);
@@ -261,6 +276,8 @@ finufft(mex_id_, o);
 
     function result = execute(plan, data_in)
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
+    %
+    % For documentation, see: FINUFFT_PLAN
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...
@@ -310,6 +327,10 @@ finufft(mex_id_, o);
     end
 
     function delete(plan)
+    % DELETE   deallocate and destroy a FINUFFT plan object.
+    %
+    % For documentation, see: FINUFFT_PLAN
+      
     % This does clean-up (deallocation) of the C++ struct before the matlab
     % object deletes. It is automatically called by MATLAB and octave if the
     % plan goes out of scope.

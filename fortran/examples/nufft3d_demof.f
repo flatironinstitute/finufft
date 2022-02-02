@@ -16,16 +16,20 @@ c     ../../lib-static/libfinufftf.a -lstdc++ -lfftw3f -lfftw3f_omp -lm -fopenmp
 c
       program nufft3d_demof
       implicit none
-c
+      
+c     our fortran-header, always needed
+      include 'finufft.fh'
+
       integer i,ier,iflag,j,k1,k2,k3,mx,n1,n2,n3
       integer*8 ms,mt,mu,nj,nk
       real*4, allocatable :: xj(:),yj(:),zj(:),sk(:),tk(:),uk(:)
       real*4 err,pi,eps,salg,ealg
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*8, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
-c     this (since unallocated) used to pass a NULL ptr to FINUFFT...
-      integer*8, allocatable :: null
-c
+c     for default opts, make a null pointer...
+      type(nufft_opts), pointer :: defopts => null()
+
+c     
 c     --------------------------------------------------
 c     create some test data
 c     --------------------------------------------------
@@ -83,7 +87,7 @@ c     -----------------------
 c
          call dirft3d1f(nj,xj,yj,zj,cj,iflag,ms,mt,mu,fk0)
          call finufftf3d1(nj,xj,yj,zj,cj,iflag,
-     1        eps,ms,mt,mu,fk1,null,ier)
+     1        eps,ms,mt,mu,fk1,defopts,ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 1 error = ',err
@@ -92,8 +96,8 @@ c     -----------------------
 c      call 3D Type 2 method
 c     -----------------------
          call dirft3d2f(nj,xj,yj,zj,cj0,iflag,ms,mt,mu,fk0)
-         call finufftf3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,null,
-     1        ier)
+         call finufftf3d2(nj,xj,yj,zj,cj1,iflag,eps,ms,mt,mu,fk0,
+     1        defopts,ier)
          print *, ' ier = ',ier
          call errcomp(cj0,cj1,nj,err)
          print *, ' type 2 error = ',err
@@ -108,8 +112,8 @@ c     -----------------------
          enddo
 
          call dirft3d3f(nj,xj,yj,zj,cj,iflag,nk,sk,tk,uk,fk0)
-         call finufftf3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,null,
-     1        ier)
+         call finufftf3d3(nj,xj,yj,zj,cj,iflag,eps,nk,sk,tk,uk,fk1,
+     1        defopts,ier)
          print *, ' ier = ',ier
          call errcomp(fk0,fk1,nk,err)
          print *, ' type 3 error = ',err

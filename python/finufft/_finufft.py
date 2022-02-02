@@ -9,6 +9,7 @@ differentiated by 'f' suffix.
 import ctypes
 import os
 import warnings
+import platform
 
 # While imp is deprecated, it is currently the inspection solution
 #   that works for all versions of Python 2 and 3.
@@ -49,7 +50,11 @@ try:
         # Find the library.
         fh = imp.find_module('finufft/finufftc')[0]
         # Get the full path for the ctypes loader.
-        full_lib_path = os.path.realpath(fh.name)
+        if platform.system() == 'Windows':
+            os.environ["PATH"] += os.pathsep + os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(fh.name))),'finufft')
+            full_lib_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(fh.name))),'finufft','libfinufft.dll')
+        else:
+            full_lib_path = os.path.realpath(fh.name)
         fh.close()    # Be nice and close the open file handle.
 
         # Load the library,

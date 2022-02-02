@@ -83,6 +83,7 @@ calling the following four functions in order. However, within this
 sequence one may insert repeated ``execute`` calls, or another ``setpts``
 followed by more ``execute`` calls, as long as the transform sizes (and number of transforms ``ntr``) are
 consistent with those that have been set in the ``plan`` and in ``setpts``.
+Keep in mind that ``setpts`` retains *pointers* to the user's list of nonuniform points, rather than copying these points; thus the user must not change their nonuniform point arrays until after any ``execute`` calls that use them.
 
 .. include:: cguru.doc
                     

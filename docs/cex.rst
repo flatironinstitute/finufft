@@ -243,8 +243,9 @@ One first makes a plan giving transform parameters, but no data:
   // step 1: make a plan...
   finufft_plan plan;
   int ier = finufft_makeplan(type, dim, Ns, +1, ntrans, 1e-6, &plan, NULL);
-  // step 2: send in M nonuniform points (just x, y in this case)...
+  // step 2: send in pointers to M nonuniform points (just x, y in this case)...
   finufft_setpts(plan, M, &x[0], &y[0], NULL, 0, NULL, NULL, NULL);
+  // (user should not change x, y nonuniform point arrays here!)
   // step 3: do the planned transform to the c strength data, output to F...
   finufft_execute(plan, &c[0], &F[0]);
   // ... you could now send in new points, and/or do transforms with new c data
@@ -258,8 +259,34 @@ is that the ``int64_t`` type (aka ``long long int``)
 is needed since the Fourier coefficient dimensions are passed as an array.
 
 .. warning::
+  You must not change the nonuniform point arrays (here ``x``, ``y``) between passing them to ``finufft_setpts`` and performing ``finufft_execute``. The latter call expects these arrays to be unchanged. We chose this style of interface since it saves RAM and time (by avoiding unnecessary duplication), allowing the largest possible problems to be solved.
+
+.. warning::
   You must destroy a plan before making a new plan using the same
   plan object, otherwise a memory leak results.
 
 The complete code with a math test is in ``examples/guru2d1.cpp``, and for
 more examples see ``examples/guru1d1*.c*``
+
+
+Thread safety and global state
+------------------------------
+
+It is possible to call FINUFFT from within multithreaded code, e.g. in an
+OpenMP parallel block. In this case ``opts.nthreads=1`` should be set,
+and FINUFFT must have been compiled with the ``-DFFTW_PLAN_SAFE`` flag,
+making it thread-safe.
+For demos of this, see
+
+* ``examples/threadsafe1d1`` which runs a 1D type-1 separately on each thread, checking the math, and
+
+* ``examples/threadsafe2d2f`` which runs a 2D type-2 on each slice, which are parallelized over via an OpenMP parallel for loop (without any math check, just dummy inputs)
+
+which are both built by ``make examples`` if the above flag has been set.
+
+Note: A design decision of FFTW is to have a global state which stores
+wisdom and settings. Such global state can cause unforeseen effects on other routines that also use FFTW. In contrast, FINUFFT uses pointers to plans to store
+its state, and does not have a global state (other than one ``static``
+flag used as a lock on FFTW initialization in the FINUFFT plan
+stage). This means different FINUFFT calls should not affect each other,
+although they may affect other codes that use FFTW via FFTW's global state.

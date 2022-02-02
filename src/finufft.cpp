@@ -77,6 +77,8 @@ Design notes for guru interface implementation:
   allocatable arrays, keeping it quite low-level. We can't use std::vector
   since that would only survive in the scope of each function.
 
+* Thread-safety: FINUFFT plans are passed as pointers, so it has no global
+  state apart from that associated with FFTW (and the did_fftw_init).
 */
 
 
@@ -627,12 +629,21 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type==1 || type==2) {
 
-    int nthr_fft = nthr;    // give FFTW same as overall
-    // *** should set equal to batchsize?
-    // *** put in logic for setting FFTW # thr based on o.spread_thread?
-    FFTW_INIT();           // only does anything when OMP=ON for >1 threads
-    FFTW_PLAN_TH(nthr_fft); // " (not batchSize since can be 1 but want mul-thr)
-    FFTW_PLAN_SF();         // make planner thread-safe
+    int nthr_fft = nthr;    // give FFTW all threads (or use o.spread_thread?)
+                            // Note: batchSize not used since might be only 1.
+    // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
+    // thread-safe (can be called inside OMP) if -DFFTW_PLAN_SAFE used...
+#pragma omp critical
+    {
+      static bool did_fftw_init = 0;    // the only global state of FINUFFT
+      if (!did_fftw_init) {
+	FFTW_INIT();            // setup FFTW global state; should only do once
+	FFTW_PLAN_TH(nthr_fft); // ditto
+	FFTW_PLAN_SF();         // if -DFFTW_PLAN_SAFE, make FFTW thread-safe
+	did_fftw_init = 1;      // insure other FINUFFT threads don't clash
+      }
+    } 
+
     p->spopts.spread_direction = type;
 
     if (p->opts.showwarn) {  // user warn round-off error...
@@ -906,6 +917,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     timer.restart();
     BIGINT t2nmodes[] = {p->nf1,p->nf2,p->nf3};   // t2 input is actually fw
     nufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
+    t2opts.modeord = 0;                           // needed for correct t3!
     t2opts.debug = max(0,p->opts.debug-1);        // don't print as much detail
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);
     t2opts.showwarn = 0;                          // so don't see warnings 2x

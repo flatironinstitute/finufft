@@ -26,9 +26,9 @@ PYTHON = python3
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range
-FFLAGS := $(CFLAGS)
-CXXFLAGS := $(CFLAGS)
+CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range $(CFLAGS)
+FFLAGS := $(CFLAGS) $(FFLAGS)
+CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # put this in your make.inc if you have FFTW>=3.3.5 and want thread-safe use...
 #CXXFLAGS += -DFFTW_PLAN_SAFE
 # FFTW base name, and math linking...
@@ -62,50 +62,64 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
 INCL = -Iinclude
+
+# Check if a FFTW location is provided
+ifdef FFTW_INC
+  INCL += -I$(FFTW_INC)
+endif
+
+ifdef FFTW_DIR
+  LIBS += -L$(FFTW_DIR)
+endif
+
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
-# here /usr/include needed for fftw3.f "fortran header"...
+# here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
 # single-thread total list of math and FFTW libs (now both precisions)...
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
 LIBSFFT := -l$(FFTWNAME) $(LIBS)
-# Detect single-precision library (not available on all systems)
-ALLOW_SINGLE := 0
-ifneq ("$(wildcard $(FFTW_DIR)/*$(FFTWNAME)f*)","")
-    $(info detected $(FFTWNAME)f library -- building with lib$(FFTWNAME)f support)
-    LIBSFFT += -l$(FFTWNAME)f
-    ALLOW_SINGLE := 1
+
+ENABLE_SINGLE ?= ON
+ifeq ($(ENABLE_SINGLE),ON)
+  $(info Building with lib$(FFTWNAME)f support)
+  LIBSFFT += -l$(FFTWNAME)f
+else
+  $(info Building WITHOUT lib$(FFTWNAME)f support)
 endif
 
 
 
 # multi-threaded libs & flags, and req'd flags (OO for new interface)...
 ifneq ($(OMP),OFF)
-CXXFLAGS += $(OMPFLAGS)
-CFLAGS += $(OMPFLAGS)
-FFLAGS += $(OMPFLAGS)
-MFLAGS += $(MOMPFLAGS) -DR2008OO
-OFLAGS += $(OOMPFLAGS) -DR2008OO
-LIBS += $(OMPLIBS)
-ifneq ($(MINGW),ON)
-ifneq ($(MSYS),ON)
-# omp override for total list of math and FFTW libs (possibly both precisions)...
-LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX)  $(LIBS)
-# Detect single-precision library (not available on all systems)
-ALLOW_SINGLE := 0
-ifneq ("$(wildcard $(FFTW_DIR)/*$(FFTWNAME)f*)","")
-    $(info detected $(FFTWNAME)f library -- building with lib$(FFTWNAME)f support)
-    LIBSFFT += -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX)
-    ALLOW_SINGLE := 1
+  CXXFLAGS += $(OMPFLAGS)
+  CFLAGS += $(OMPFLAGS)
+  FFLAGS += $(OMPFLAGS)
+  MFLAGS += $(MOMPFLAGS) -DR2008OO
+  OFLAGS += $(OOMPFLAGS) -DR2008OO
+  LIBS += $(OMPLIBS)
+  ifneq ($(MINGW),ON)
+    ifneq ($(MSYS),ON)
+      # omp override for total list of math and FFTW libs (double precision)...
+      LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) $(LIBS)
+      # omp override for total list of math and FFTW libs (single precision)...
+      ifeq ($(ENABLE_SINGLE),ON)
+        LIBSFFT += -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX)
+      endif
+    endif
+  endif
 endif
-endif
-endif
-endif
+
 
 # name & location of library we're building...
 LIBNAME = libfinufft
-DYNLIB = lib/$(LIBNAME).so
+ifeq ($(MINGW),ON)
+  DYNLIB = lib/$(LIBNAME).dll
+else
+  DYNLIB = lib/$(LIBNAME).so
+endif
+
 STATICLIB = lib-static/$(LIBNAME).a
 # absolute path to the .so, useful for linking so executables portable...
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
@@ -114,8 +128,8 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 # double-prec spreader object files that also need single precision...
 SOBJS = src/spreadinterp.o src/utils.o
 # their single-prec versions
-ifeq ($(ALLOW_SINGLE),1)
-    SOBJSF = $(SOBJS:%.o=%_32.o)
+ifeq ($(ENABLE_SINGLE),ON)
+  SOBJSF = $(SOBJS:%.o=%_32.o)
 endif
 # precision-dependent spreader object files (compiled & linked only once)...
 SOBJS_PI = src/utils_precindep.o
@@ -125,11 +139,11 @@ SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 # double-prec library object files that also need single precision...
 OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
 # their single-prec versions
-ifeq ($(ALLOW_SINGLE),1)
-    OBJSF = $(OBJS:%.o=%_32.o)
+ifeq ($(ENABLE_SINGLE),ON)
+  OBJSF = $(OBJS:%.o=%_32.o)
 endif
 # precision-dependent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o julia/finufftjulia.o
+OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
@@ -166,21 +180,20 @@ usage:
 HEADERS = $(wildcard include/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
+
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-ifeq ($(ALLOW_SINGLE),1)
-%_32.o: %.cpp $(HEADERS)
-	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
-endif
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
-ifeq ($(ALLOW_SINGLE),1)
-%_32.o: %.c $(HEADERS)
-	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
-endif
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
-ifeq ($(ALLOW_SINGLE),1)
+
+# single-precision version of rules for objects
+ifeq ($(ENABLE_SINGLE),ON)
+%_32.o: %.cpp $(HEADERS)
+	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
+%_32.o: %.c $(HEADERS)
+	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
 %_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
 endif
@@ -215,19 +228,24 @@ endif
 
 
 # examples (C++/C) -----------------------------------------------------------
-# single-prec codes separate, and not all have one
-EXAMPLES = $(basename $(wildcard examples/*.*))
+# build all examples (single-prec codes separate, and not all have one)...
+# ...except only build threadsafe ones if user switch on (thus FFTW>=3.3.6):
+ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
+  EXAMPLES = $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(basename $(wildcard examples/*.*)))
+else
+  EXAMPLES = $(basename $(wildcard examples/*.*))
+endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
-    # Windows-MSYS does not find the dynamic libraries, so we make a temporary copy
-	# Windows-MSYS has same commands as Linux/OSX
-    ifeq ($(MSYS),ON)
-	    cp $(DYNLIB) test
-    endif
-# non-Windows-WSL: this task always runs them (note escaped $ to pass to bash)...
+  # Windows-MSYS does not find the dynamic libraries, so we make a temporary copy
+  # Windows-MSYS has same commands as Linux/OSX
+  ifeq ($(MSYS),ON)
+	cp $(DYNLIB) test
+  endif
+  # non-Windows-WSL: this task always runs them (note escaped $ to pass to bash)...
 	for i in $(EXAMPLES); do echo $$i...; ./$$i; done
 else
-# Windows-WSL does not find the dynamic libraries, so we make a temporary copy
+  # Windows-WSL does not find the dynamic libraries, so we make a temporary copy
 	copy $(DYNLIB) examples
 	for /f "delims= " %%i in ("$(subst /,\,$(EXAMPLES))") do (echo %%i & %%i.exe)
 	del examples\$(LIBNAME).so
@@ -248,12 +266,16 @@ examples/%cf: examples/%cf.o $(DYNLIB)
 # generic tests link against our .so... (other libs needed for fftw_forget...)
 test/%: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
-test/%f: test/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+
 # low-level tests that are cleaner if depend on only specific objects...
 test/testutils: test/testutils.cpp src/utils.o src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
-ifeq ($(ALLOW_SINGLE),1)
+
+# single-precision version
+ifeq ($(ENABLE_SINGLE),ON)
+test/%f: test/%.cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+
 test/testutilsf: test/testutils.cpp src/utils_32.o src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
 endif
@@ -261,30 +283,40 @@ endif
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
 # also need single-prec
-TESTS += $(TESTS:%=%f)
+ifeq ($(ENABLE_SINGLE),ON)
+  TESTS += $(TESTS:%=%f)
+endif
+
 test: $(TESTS)
 ifneq ($(MINGW),ON)
-# non-Windows-WSL: it will fail if either of these return nonzero exit code...
-    # Windows-MSYS does not find the dynamic libraries, so we make a temporary copy
-	# Windows-MSYS has same commands as Linux/OSX
-    ifeq ($(MSYS),ON)
-	    cp $(DYNLIB) test
-    endif
+  # non-Windows-WSL: it will fail if either of these return nonzero exit code...
+  # Windows-MSYS does not find the dynamic libraries, so we make a temporary copy
+  # Windows-MSYS has same commands as Linux/OSX
+  ifeq ($(MSYS),ON)
+	cp $(DYNLIB) test
+  endif
 	test/basicpassfail
+	(cd test; export OMP_NUM_THREADS=4; ./check_finufft.sh; ./check_finufft.sh DOUBLE)
+  ifeq ($(ENABLE_SINGLE),ON)
 	test/basicpassfailf
-# accuracy tests done in prec-switchable bash script... (small prob -> few thr)
+  # accuracy tests done in prec-switchable bash script... (small prob -> few thr)
 	(cd test; export OMP_NUM_THREADS=4; ./check_finufft.sh; ./check_finufft.sh SINGLE)
+  endif
 else
-# Windows-WSL does not find the dynamic libraries, so we make a temporary copy...
+  # Windows-WSL does not find the dynamic libraries, so we make a temporary copy...
 	copy $(DYNLIB) test
 	test/basicpassfail
+  ifeq ($(ENABLE_SINGLE),ON)
 	test/basicpassfailf
-# Windows does not feature a bash shell so we use WSL. Since most supplied gnu-make variants are 32bit executables and WSL runs only in 64bit environments, we have to refer to 64bit powershell explicitly on 32bit make...
-#	$(windir)\Sysnative\WindowsPowerShell\v1.0\powershell.exe "cd ./test; bash check_finufft.sh DOUBLE $(MINGW); bash check_finufft.sh SINGLE $(MINGW)"
-# with a recent version of gnu-make for Windows built for 64bit as it is part of the WinLibs standalone build of GCC and MinGW-w64 we can avoid these circumstances
+  endif
+  # Windows does not feature a bash shell so we use WSL. Since most supplied gnu-make variants are 32bit executables and WSL runs only in 64bit environments, we have to refer to 64bit powershell explicitly on 32bit make...
+  #	$(windir)\Sysnative\WindowsPowerShell\v1.0\powershell.exe "cd ./test; bash check_finufft.sh DOUBLE $(MINGW); bash check_finufft.sh SINGLE $(MINGW)"
+  # with a recent version of gnu-make for Windows built for 64bit as it is part of the WinLibs standalone build of GCC and MinGW-w64 we can avoid these circumstances
 	cd test
 	bash -c "cd test; ./check_finufft.sh DOUBLE $(MINGW)"
+  ifeq ($(ENABLE_SINGLE),ON)
 	bash -c "cd test; ./check_finufft.sh SINGLE $(MINGW)"
+  endif
 	del test\$(LIBNAME).so
 endif
 
@@ -293,7 +325,8 @@ endif
 # generic perf test rules...
 perftest/%: perftest/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
-ifeq ($(ALLOW_SINGLE),1)
+
+ifeq ($(ENABLE_SINGLE),ON)
 perftest/%f: perftest/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 endif
@@ -303,10 +336,11 @@ ST=perftest/spreadtestnd
 STF=$(ST)f
 $(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
 	$(CXX) $(CXXFLAGS) $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
-ifeq ($(ALLOW_SINGLE),1)
+
+ifeq ($(ENABLE_SINGLE),ON)
 $(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
 	$(CXX) $(CXXFLAGS) -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
-endif
+
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
@@ -318,11 +352,25 @@ spreadtest: $(ST) $(STF)
 	$(STF) 1 8e6 8e6 1e-3 ;\
 	$(STF) 2 8e6 8e6 1e-3 ;\
 	$(STF) 3 8e6 8e6 1e-3 )
+
 spreadtestall: $(ST) $(STF)
+	(cd perftest; ENABLE_SINGLE=ON ./spreadtestall.sh)
+else
+spreadtest: $(ST)
+# run one thread per core... (escape the $ to get single $ in bash; one big cmd)
+	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
+	echo "\nRunning makefile double-precision spreader tests, $$OMP_NUM_THREADS threads..." ;\
+	$(ST) 1 8e6 8e6 1e-6 ;\
+	$(ST) 2 8e6 8e6 1e-6 ;\
+	$(ST) 3 8e6 8e6 1e-6)
+
+spreadtestall: $(ST)
 	(cd perftest; ./spreadtestall.sh)
+endif
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
+ifeq ($(ENABLE_SINGLE),ON)
 perftest: $(ST) $(STF) $(PERFEXECS)
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
@@ -330,6 +378,13 @@ perftest: $(ST) $(STF) $(PERFEXECS)
 	./spreadtestnd.sh SINGLE 2>&1 | tee results/spreadtestndf_results.txt ;\
 	./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt ;\
 	./nuffttestnd.sh SINGLE 2>&1 | tee results/nuffttestndf_results.txt )
+else
+perftest: $(ST) $(PERFEXECS)
+# here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
+	(cd perftest ;\
+	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
+	./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
+endif
 
 # speed ratio of many-vector guru vs repeated single calls... (Andrea)
 GTT=perftest/guru_timing_test
@@ -362,9 +417,12 @@ FE = $(FE64) $(FE32)
 $(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB)
 	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
+
+ifeq ($(ENABLE_SINGLE),ON)
 $(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
 	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
+endif
 
 fortran: $(FE)
 # task always runs them (note escaped $ to pass to bash)...
@@ -412,7 +470,11 @@ python: $(STATICLIB) $(DYNLIB)
 	$(PYTHON) python/examples/guru2d1.py
 	$(PYTHON) python/examples/guru2d1f.py
 
-# python packaging: *** please document these in make tasks echo above...
+# general python packaging wheel for all OSs without wheel being fixed(required shared libs are not included in wheel)
+python-dist: $(STATICLIB) $(DYNLIB)
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse)
+
+# python packaging wheel for macosx with wheel being fixed(all required shared libs are included in wheel)
 wheel: $(STATICLIB) $(DYNLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufft*.whl)
 
@@ -437,7 +499,7 @@ docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.
 
 clean: objclean pyclean
 ifneq ($(MINGW),ON)
-# non-Windows-WSL clean up...
+  # non-Windows-WSL clean up...
 	rm -f $(STATICLIB) $(DYNLIB)
 	rm -f matlab/*.mex*
 	rm -f $(TESTS) test/results/*.out perftest/results/*.out
@@ -445,7 +507,7 @@ ifneq ($(MINGW),ON)
 	rm -f perftest/manysmallprobs
 	rm -f examples/core test/core perftest/core $(FE_DIR)/core
 else
-# Windows-WSL clean up...
+  # Windows-WSL clean up...
 	del $(subst /,\,$(STATICLIB)), $(subst /,\,$(DYNLIB))
 	del matlab\*.mex*
 	for %%f in ($(subst /,\, $(TESTS))) do ((if exist %%f del %%f) & (if exist %%f.exe del %%f.exe))
@@ -458,22 +520,22 @@ endif
 # indiscriminate .o killer; needed before changing threading...
 objclean:
 ifneq ($(MINGW),ON)
-# non-Windows-WSL...
-	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o julia/*.o
+  # non-Windows-WSL...
+	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o
 	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
 else
-# Windows-WSL...
-	for /d %%d in (src,test\directfttest,examples,matlab,contrib,julia) do (for %%f in (%%d\*.o) do (del %%f))
+  # Windows-WSL...
+	for /d %%d in (src,test\directfttest,examples,matlab,contrib) do (for %%f in (%%d\*.o) do (del %%f))
 	for /d %%d in (fortran,$(subst /,\, $(FE_DIR)),$(subst /,\, $(FD))) do (for %%f in (%%d\*.o) do (del %%f))
 endif
 
 pyclean:
 ifneq ($(MINGW),ON)
-# non-Windows-WSL...
+  # non-Windows-WSL...
 	rm -f python/finufft/*.pyc python/finufft/__pycache__/* python/test/*.pyc python/test/__pycache__/*
 	rm -rf python/fixed_wheel python/wheelhouse
 else
-# Windows-WSL...
+  # Windows-WSL...
 	for /d %%d in (python\finufft,python\test) do (for %%f in (%%d\*.pyc) do (del %%f))
 	for /d %%d in (python\finufft\__pycache__,python\test\__pycache__) do (for %%f in (%%d\*) do (del %%f))
 	for /d %%d in (python\fixed_wheel,python\wheelhouse) do (if exist %%d (rmdir /s /q %%d))
@@ -482,9 +544,9 @@ endif
 # for experts; only run this if you possess mwrap to rebuild the interfaces!
 mexclean:
 ifneq ($(MINGW),ON)
-# non-Windows-WSL...
+  # non-Windows-WSL...
 	rm -f matlab/finufft_plan.m matlab/finufft.cpp matlab/finufft.mex*
 else
-# Windows-WSL...
+  # Windows-WSL...
 	del matlab\finufft_plan.m matlab\finufft.cpp matlab\finufft.mex*
 endif

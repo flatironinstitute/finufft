@@ -2,6 +2,9 @@
 1d1 tol=0:	ier=1 (should complain)
 1d1 N=0:	ier=0
 1d1 M=0:	ier=0	nrm(F)=0 (should vanish)
+1d1 x>3pi:	ier=4 (should complain)
+1d1 x=Inf:	ier=4 (should complain)
+1d1 x=NaN:	ier=4 (should complain)
 1d2 tol=0:	ier=1 (should complain)
 1d2 N=0:	ier=0	nrm(c)=0 (should vanish)
 1d2 M=0:	ier=0

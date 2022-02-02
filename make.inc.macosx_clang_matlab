@@ -29,7 +29,7 @@ LIBS += -L/usr/local/lib
 # Use MATLAB's shipped OpenMP (not gomp otherwise segfaults), with clang...
 MOMPFLAGS = -D_OPENMP
 OMPFLAGS = -Xpreprocessor -fopenmp
-OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib
+OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/
 # since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
 

@@ -169,6 +169,8 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
 /* This does just the input checking and reporting for the spreader.
    See spreadinterp() for input arguments and meaning of returned value.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
+   Bypass FOLDRESCALE macro which has inevitable rounding err even nr +pi,
+   giving fake invalids well inside the [-3pi,3pi] domain, 4/9/21.
 */
 {
   CNTime timer;
@@ -184,29 +186,28 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
   }
   int ndims = ndims_from_Ns(N1,N2,N3);
   
-  // BOUNDS CHECKING .... check NU pts are valid (incl +-1 box), exit gracefully
+  // BOUNDS CHECKING .... check NU pts are valid (+-3pi if pirange, or [-N,2N])
+  // exit gracefully as soon as invalid is found.
+  // Note: isfinite() breaks with -Ofast
   if (opts.chkbnds) {
     timer.start();
     for (BIGINT i=0; i<M; ++i) {
-      FLT x=FOLDRESCALE(kx[i],N1,opts.pirange);  // this includes +-1 box folding
-      if (x<0 || x>N1 || !isfinite(x)) {     // note isfinite() breaks with -Ofast
-        fprintf(stderr,"%s NU pt not in valid range (central three periods): kx=%g, N1=%lld (pirange=%d)\n",__func__,x,(long long)N1,opts.pirange);
+      if ((opts.pirange ? (abs(kx[i])>3.0*PI) : (kx[i]<-N1 || kx[i]>2*N1)) || !isfinite(kx[i])) {
+        fprintf(stderr,"%s NU pt not in valid range (central three periods): kx[%lld]=%.16g, N1=%lld (pirange=%d)\n",__func__, (long long)i, kx[i], (long long)N1,opts.pirange);
         return ERR_SPREAD_PTS_OUT_RANGE;
       }
     }
     if (ndims>1)
       for (BIGINT i=0; i<M; ++i) {
-        FLT y=FOLDRESCALE(ky[i],N2,opts.pirange);
-        if (y<0 || y>N2 || !isfinite(y)) {
-          fprintf(stderr,"%s NU pt not in valid range (central three periods): ky=%g, N2=%lld (pirange=%d)\n",__func__,y,(long long)N2,opts.pirange);
+        if ((opts.pirange ? (abs(ky[i])>3.0*PI) : (ky[i]<-N2 || ky[i]>2*N2)) || !isfinite(ky[i])) {
+          fprintf(stderr,"%s NU pt not in valid range (central three periods): ky[%lld]=%.16g, N2=%lld (pirange=%d)\n",__func__, (long long)i, ky[i], (long long)N2,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
     if (ndims>2)
       for (BIGINT i=0; i<M; ++i) {
-        FLT z=FOLDRESCALE(kz[i],N3,opts.pirange);
-        if (z<0 || z>N3 || !isfinite(z)) {
-          fprintf(stderr,"%s NU pt not in valid range (central three periods): kz=%g, N3=%lld (pirange=%d)\n",__func__,z,(long long)N3,opts.pirange);
+        if ((opts.pirange ? (abs(kz[i])>3.0*PI) : (kz[i]<-N3 || kz[i]>2*N3)) || !isfinite(kz[i])) {
+          fprintf(stderr,"%s NU pt not in valid range (central three periods): kz[%lld]=%.16g, N3=%lld (pirange=%d)\n",__func__, (long long)i, kz[i], (long long)N3,opts.pirange);
           return ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
@@ -482,7 +483,7 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       BIGINT i2= (ndims > 1) ? (BIGINT)std::ceil(yj-ns2) : 0; // min y grid index
-      BIGINT i3= (ndims > 1) ? (BIGINT)std::ceil(zj-ns2) : 0; // min z grid index
+      BIGINT i3= (ndims > 2) ? (BIGINT)std::ceil(zj-ns2) : 0; // min z grid index
      
       FLT x1=(FLT)i1-xj;           // shift of ker center, in [-w/2,-w/2+1]
       FLT x2= (ndims > 1) ? (FLT)i2-yj : 0 ;
@@ -1159,6 +1160,9 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
+  // here the +1 is needed to allow round-off error causing i1=N1/bin_size_x,
+  // for kx near +pi, ie foldrescale gives N1 (exact arith would be 0 to N1-1).
+  // Note that round-off near kx=-pi stably rounds negative to i1=0.
   BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;
   nbins2 = isky ? N2/bin_size_y+1 : 1;
   nbins3 = iskz ? N3/bin_size_z+1 : 1;
@@ -1202,12 +1206,12 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
    Barnett 2/8/18
-   Todo: if debug, print timing breakdowns.
    Explicit #threads control argument 7/20/20.
+   Todo: if debug, print timing breakdowns.
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
-  BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;
+  BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;  // see above note on why +1
   nbins2 = isky ? N2/bin_size_y+1 : 1;
   nbins3 = iskz ? N3/bin_size_z+1 : 1;
   BIGINT nbins = nbins1*nbins2*nbins3;

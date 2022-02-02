@@ -29,6 +29,9 @@ DEB=1
 ./spreadtestnd 2 $M $N $TOL 2 0 $DEB 0 0 $UP
 ./spreadtestnd 3 $M $N $TOL 2 0 $DEB 0 0 $UP
 
+if [[ ${ENABLE_SINGLE} == "ON" ]]
+then
+
 echo ""
 echo "Single-prec spread/interp tests --------------------------------------"
 echo "=========== default kernel choice ============"
@@ -40,3 +43,5 @@ echo "=========== kerevalmeth=0 nonstandard upsampfac + debug ============"
 ./spreadtestndf 1 $M $N $TOL 2 0 $DEB 0 0 $UP
 ./spreadtestndf 2 $M $N $TOL 2 0 $DEB 0 0 $UP
 ./spreadtestndf 3 $M $N $TOL 2 0 $DEB 0 0 $UP
+
+fi

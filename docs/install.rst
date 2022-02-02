@@ -13,16 +13,20 @@ Installation
 
 Below we deal with the three standard OSes in order: 1) **linux**, 2) **Mac OSX**, 3) **Windows**.
 We have some users contributing settings for other OSes, for instance
-PowerPC. The general procedure to download, then compile for a specific setup is, illustrating with the PowerPC case::
+PowerPC. The general procedure to download, then compile for such a special setup is, illustrating with the PowerPC case::
 
   git clone https://github.com/flatironinstitute/finufft.git
   cd finufft
   cp make.inc.powerpc make.inc
   make test -j
 
-Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup.
+Have a look for ``make.inc.*`` to see what is available, and/or edit your ``make.inc`` based on looking in the ``makefile`` and quirks of your local setup. As of 2021, we have continuous integration which tests the default (linux) settings in this ``makefile``, plus those in three OS-specific setup files::
 
-If there is an error in testing on a standard set-up,
+  make.inc.macosx_clang
+  make.inc.macosx_gcc-10
+  make.inc.windows_msys
+  
+If there is an error in testing on what you consider a standard set-up,
 please file a detailed bug report as a New Issue at https://github.com/flatironinstitute/finufft/issues
 
   
@@ -176,18 +180,25 @@ and print a bunch of errors around ``1e-6``.
 
 
 
-Compilation flags
-~~~~~~~~~~~~~~~~~~
+Compilation flags and make.inc settings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is for experts.
 Here are all the flags that the FINUFFT source responds to.
-Active them by adding a line of the form ``CFLAGS+=-DMYFLAG`` in your ``make.inc``:
+Activate them by adding a line of the form ``CXXFLAGS+=-DMYFLAG`` in your ``make.inc``:
 
-* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. This is only available in FFTW version >=3.3.5; for this reason it is not yet the default.
+* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. See ``examples/threadsafe1d1.cpp``. This is only available in FFTW version >=3.3.6; for this reason it is not yet the default.
 
 * ``-DSINGLE``: This is internally used by our build process to switch
   (via preprocessor macros) the source from double to single precision.
   You should not need to use this flag yourself.
+
+Here are some other settings that you may need to adjust in ``make.inc``:
+
+
+* Switching to linking tests, examples, etc, with PTHREADS instead of the default OMP version of FFTW, is achieved by inserting into ``make.inc`` the line
+``FFTWOMPSUFFIX = threads``.
+
 
 
 
@@ -254,7 +265,9 @@ Else if you don't have MATLAB, do::
 Whichever you picked, now try ``make test -j``, and clang should compile and you should get ``0 fails``.
 
 **clang MATLAB setup**. Assuming you chose the MATLAB clang variant above,
-you should now ``make matlab``. To test, open MATLAB, ``addpath matlab``,
+you should now ``make matlab``. You may need to do ``make matlab -j``; see
+https://github.com/flatironinstitute/finufft/issues/157 which needs attention.
+To test, open MATLAB, ``addpath matlab``,
 ``cd matlab/test``, and ``check_finufft``, which should complete in around 5 seconds.
 
 .. note::
@@ -304,7 +317,9 @@ section of ``mexopts.sh``.
 3) Windows: tips for compiling
 -------------------------------   
    
-We have users who have adjusted the makefile to work - at least to some extent - on Windows 10. Please make sure to have a recent version of Mingw at hand, preferably with a 64bit version of gnu-make like the WinLibs standalone build of GCC and MinGW-w64 for Windows. Note that most MinGW-w64 distributions, such as TDM-GCC, do not feature the 64bit gnu-make. Fortunately, this limitation is only relevant to run the tests. To prepare the build of the static and dynamic libraries run::
+We have users who have adjusted the makefile to work - at least to some extent - on Windows 10. If you are only interested in calling from Octave (which already comes with MinGW-w64 and FFTW), then we have been told this can be done very simply: from within Octave, go to the ``finufft`` directory and do ``system('make octave')``. You may have to tweak ``OCTAVE`` in your ``make.inc`` in a similar fashion to below.
+
+More generally, please make sure to have a recent version of Mingw at hand, preferably with a 64bit version of gnu-make like the WinLibs standalone build of GCC and MinGW-w64 for Windows. Note that most MinGW-w64 distributions, such as TDM-GCC, do not feature the 64bit gnu-make. Fortunately, this limitation is only relevant to run the tests. To prepare the build of the static and dynamic libraries run::
 
   copy make.inc.windows_mingw make.inc
 
