@@ -7,10 +7,26 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(FFTW REQUIRED)
 find_package(OpenMP REQUIRED)
 
+include(FetchContent)
+
+# Install google benchmark from git
+set(BENCHMARK_ENABLE_TESTING OFF)
+set(BENCHMARK_ENABLE_INSTALL OFF)
+FetchContent_Declare(
+    googlebenchmark
+    URL https://github.com/google/benchmark/archive/v1.6.0.zip
+)
+FetchContent_MakeAvailable(googlebenchmark)
+
 
 # This set of sources is compiled twice, once in single precision and once in double precision
 # The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp)
+
+function(enable_asan target)
+    target_compile_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
+    target_link_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
+endfunction()
 
 function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -34,7 +50,11 @@ add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.c)
 set_property(TARGET finufft PROPERTY CMAKE_CXX_STANDARD 14)
 target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64 m)
 target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+enable_asan(finufft)
 
+# Custom random123 interface definition
+add_library(random123 INTERFACE)
+target_include_directories(random123 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/random123/include)
 
 # Spreader perf test executable
 add_executable(spreadtestnd perftest/spreadtestnd.cpp)
@@ -43,6 +63,13 @@ target_link_libraries(spreadtestnd PUBLIC finufft)
 add_executable(spreadtestndf perftest/spreadtestnd.cpp)
 target_compile_definitions(spreadtestndf PRIVATE SINGLE)
 target_link_libraries(spreadtestndf PUBLIC finufft)
+
+# Spreader perf benchmark
+add_executable(spreadbenchmark perftest/spread_benchmark.cpp)
+target_link_libraries(spreadbenchmark PRIVATE finufft random123 benchmark::benchmark_main)
+set_property(TARGET spreadbenchmark PROPERTY CMAKE_CXX_STANDARD 14)
+target_compile_options(spreadbenchmark PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
+enable_asan(spreadbenchmark)
 
 # Add tests defined in their own directory
 add_subdirectory(test)
