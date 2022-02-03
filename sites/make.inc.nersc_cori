@@ -1,5 +1,5 @@
-CC  = $(shell which cc)
-CXX = $(shell which CC)
+CC  := $(shell which cc)
+CXX := $(shell which CC)
 
 $(info detected compiler wrappers:)
 $(info CC  = $(CC))
