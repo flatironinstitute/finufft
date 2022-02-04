@@ -683,7 +683,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 	{
 		case 1:
 		{
-			opts->gpu_kerevalmeth = 0; // using Horner
+			opts->gpu_kerevalmeth = 0; // using exp(sqrt())
 			if(type == 1){
 				opts->gpu_method = 2;
 			}
