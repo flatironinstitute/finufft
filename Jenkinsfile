@@ -18,10 +18,10 @@ pipeline {
     PYBIN = "/opt/python/cp38-cp38/bin"
       }
       steps {
-    sh '${PYBIN}/python3 -m venv --system-site-packages --without-pip $HOME'
+    sh '${PYBIN}/python3 -m venv $HOME'
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
-      LIBRARY_PATH=/io/lib python3 setup.py develop
+      LIBRARY_PATH=/io/lib python3 -m pip install -e .
       python3 -m pip install pytest
       python3 -m pytest
     '''
