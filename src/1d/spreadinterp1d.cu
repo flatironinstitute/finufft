@@ -234,6 +234,7 @@ __global__
 void Interp_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 		       int nf1, FLT es_c, FLT es_beta, int* idxnupts, int pirange)
 {
+	FLT ker1[MAX_NSPREAD];
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
         
@@ -242,10 +243,12 @@ void Interp_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 		CUCPX cnow;
 		cnow.x = 0.0;
 		cnow.y = 0.0;
+
+		FLT x1=(FLT)xstart-x_rescaled;
+		eval_kernel_vec(ker1,x1,ns,es_c,es_beta);
 		for(int xx=xstart; xx<=xend; xx++){
 			int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
-			FLT disx=abs(x_rescaled-xx);
-			FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
+			FLT kervalue1 = ker1[xx-xstart];
 			cnow.x += fw[ix].x*kervalue1;
 			cnow.y += fw[ix].y*kervalue1;
 		}
