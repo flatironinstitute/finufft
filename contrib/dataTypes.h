@@ -13,6 +13,7 @@
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday...
+// Note: BIGINT is modified to have ``int'' data type for cufinufft.
 typedef int BIGINT;
 
 // decide which kind of complex numbers to use in interface...

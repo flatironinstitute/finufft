@@ -141,7 +141,7 @@ This performs:
 	d_plan->mu = nmodes[2];
 
 	SETUP_BINSIZE(type, dim, &d_plan->opts);
-	BIGINT nf1=1, nf2=1, nf3=1;
+	int nf1=1, nf2=1, nf3=1;
 	SET_NF_TYPE12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1,
 				  d_plan->opts.gpu_obinsizex);
 	if(dim > 1)
