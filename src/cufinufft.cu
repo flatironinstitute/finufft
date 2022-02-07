@@ -9,6 +9,8 @@
 #include "cuspreadinterp.h"
 #include "cudeconvolve.h"
 #include "memtransfer.h"
+#include "common.h"
+
 
 using namespace std;
 
@@ -166,25 +168,6 @@ This performs:
 		d_plan->spopts.spread_direction = 1;
 	if(d_plan->type == 2)
 		d_plan->spopts.spread_direction = 2;
-	// this may move to gpu
-	CNTime timer; timer.start();
-	FLT *fwkerhalf1, *fwkerhalf2, *fwkerhalf3;
-
-	fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
-	onedim_fseries_kernel(nf1, fwkerhalf1, d_plan->spopts);
-	if(dim > 1){
-		fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
-		onedim_fseries_kernel(nf2, fwkerhalf2, d_plan->spopts);
-	}
-	if(dim > 2){
-		fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
-		onedim_fseries_kernel(nf3, fwkerhalf3, d_plan->spopts);
-	}
-#ifdef TIME
-	printf("[time  ] \tkernel fser (ns=%d):\t %.3g s\n", d_plan->spopts.nspread,
-		timer.elapsedsec());
-#endif
-
 	cudaEventRecord(start);
 	switch(d_plan->dim)
 	{
@@ -212,22 +195,64 @@ This performs:
 	printf("[time  ] \tAllocate GPU memory plan %.3g s\n", milliseconds/1000);
 #endif
 
-	cudaEventRecord(start);
+	// this may move to gpu
+	CNTime timer; timer.start();
+	complex<double> a[3*MAX_NQUAD];
+	FLT             f[3*MAX_NQUAD];
+	onedim_fseries_kernel_1sthalf(nf1, f, a, d_plan->spopts);
+	if(dim > 1){
+		onedim_fseries_kernel_1sthalf(nf2, &f[MAX_NQUAD], &a[MAX_NQUAD], d_plan->spopts);
+	}
+	if(dim > 2){
+		onedim_fseries_kernel_1sthalf(nf3, &f[2*MAX_NQUAD], &a[2*MAX_NQUAD], d_plan->spopts);
+	}
+#ifdef TIME
+	printf("[time  ] \tkernel fser (ns=%d) (1st half):\t %.3g s\n", d_plan->spopts.nspread,
+		timer.elapsedsec());
+#endif
+
+#if 0
+	timer.start();
+	FLT *fwkerhalf1, *fwkerhalf2, *fwkerhalf3;
+	fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+	onedim_fseries_kernel_2ndhalf(nf1, f, a, fwkerhalf1, d_plan->spopts);
 	checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf1,fwkerhalf1,(nf1/2+1)*
-		sizeof(FLT),cudaMemcpyHostToDevice));
-	if(dim > 1)
+				sizeof(FLT),cudaMemcpyHostToDevice));
+	if(dim > 1){
+		fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+		onedim_fseries_kernel_2ndhalf(nf2, &f[MAX_NQUAD], &a[MAX_NQUAD],
+				fwkerhalf2, d_plan->spopts);
 		checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf2,fwkerhalf2,(nf2/2+1)*
-			sizeof(FLT),cudaMemcpyHostToDevice));
-	if(dim > 2)
-		checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf3,fwkerhalf3,(nf3/2+1)*
-			sizeof(FLT),cudaMemcpyHostToDevice));
+					sizeof(FLT),cudaMemcpyHostToDevice));
+	}
+	if(dim > 2){
+		fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
+		onedim_fseries_kernel_2ndhalf(nf3, &f[2*MAX_NQUAD], &a[2*MAX_NQUAD],
+				fwkerhalf3, d_plan->spopts);
+		checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf3,fwkerhalf3,(nf3/2+1)
+					*sizeof(FLT),cudaMemcpyHostToDevice));
+	}
+#ifdef TIME
+	printf("[time  ] \tkernel fser (ns=%d) (2nd half):\t %.3g s\n", d_plan->spopts.nspread,
+		timer.elapsedsec());
+#endif
+#endif
+	cudaEventRecord(start);
+	cuDoubleComplex *d_a;
+	FLT   *d_f;
+	checkCudaErrors(cudaMalloc(&d_a, 3*MAX_NQUAD*sizeof(cuDoubleComplex)));
+	checkCudaErrors(cudaMalloc(&d_f, 3*MAX_NQUAD*sizeof(FLT)));
+	checkCudaErrors(cudaMemcpy(d_a,a,3*MAX_NQUAD*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_f,f,3*MAX_NQUAD*sizeof(FLT),cudaMemcpyHostToDevice));
+	ier = CUONEDIMFSERIESKERNEL(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1,
+		d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->spopts.nspread);
 #ifdef TIME
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] \tCopy fwkerhalf1,2 HtoD\t %.3g s\n", milliseconds/1000);
+	printf("[time  ] \tkernel fser (ns=%d) (2nd half)\t %.3g s\n", d_plan->spopts.nspread, 
+		milliseconds/1000);
 #endif
-
 	cudaEventRecord(start);
 	cufftHandle fftplan;
 	switch(d_plan->dim)
@@ -268,13 +293,16 @@ This performs:
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tCUFFT Plan\t\t %.3g s\n", milliseconds/1000);
 #endif
+#if 0
 	free(fwkerhalf1);
 	if(dim > 1)
 		free(fwkerhalf2);
 	if(dim > 2)
 		free(fwkerhalf3);
-
-        // Multi-GPU support: reset the device ID
+#endif
+	cudaFree(d_a);
+	cudaFree(d_f);
+	// Multi-GPU support: reset the device ID
         cudaSetDevice(orig_gpu_device_id);
 
 	return ier;

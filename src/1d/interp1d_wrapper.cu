@@ -56,8 +56,7 @@ int CUFINUFFT_INTERP1D(int nf1, CUCPX* d_fw, int M, FLT *d_kx, CUCPX *d_c,
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	printf("[time  ] Obtain Interp Prop\t %.3g ms\n", d_plan->opts.gpu_method, 
-		milliseconds);
+	printf("[time  ] Obtain Interp Prop\t %.3g ms\n", milliseconds);
 #endif
 	cudaEventRecord(start);
 	ier = CUINTERP1D(d_plan,1);
