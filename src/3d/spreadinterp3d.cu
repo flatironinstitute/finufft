@@ -232,7 +232,7 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 		eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
 		eval_kernel_vec_Horner(ker3,zstart+zoffset-z_rescaled,ns,sigma);
 
-    	for (int zz=zstart; zz<=zend; zz++){
+		for (int zz=zstart; zz<=zend; zz++){
 			FLT kervalue3 = ker3[zz-zstart];
 			iz = zz+ceil(ns/2.0);
 			if(iz >= (bin_size_z + (int) ceil(ns/2.0)*2) || iz<0) break;
@@ -251,8 +251,8 @@ void Spread_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M
 						kervalue3);
 					atomicAdd(&fwshared[outidx].y, cnow.y*kervalue1*kervalue2*
 						kervalue3);
-        		}
-      		}
+				}
+			}
 		}
 	}
 	__syncthreads();
@@ -656,6 +656,11 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 	const int ns, int nf1, int nf2, int nf3, FLT es_c, FLT es_beta,
 	int *idxnupts, int pirange)
 {
+	FLT ker1[MAX_NSPREAD];
+	FLT ker2[MAX_NSPREAD];
+	FLT ker3[MAX_NSPREAD];
+
+	FLT ker1val, ker2val, ker3val;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
 		FLT y_rescaled=RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -669,12 +674,17 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 		CUCPX cnow;
 		cnow.x = 0.0;
 		cnow.y = 0.0;
+		FLT x1=(FLT)xstart-x_rescaled;
+		FLT y1=(FLT)ystart-y_rescaled;
+		FLT z1=(FLT)zstart-z_rescaled;
+
+		eval_kernel_vec(ker1,x1,ns,es_c,es_beta);
+		eval_kernel_vec(ker2,y1,ns,es_c,es_beta);
+		eval_kernel_vec(ker3,z1,ns,es_c,es_beta);
 		for(int zz=zstart; zz<=zend; zz++){
-			FLT disz=abs(z_rescaled-zz);
-			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta, ns);
+			ker3val=ker3[zz-zstart];
 			for(int yy=ystart; yy<=yend; yy++){
-				FLT disy=abs(y_rescaled-yy);
-				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
+				ker2val=ker2[yy-ystart];
 				for(int xx=xstart; xx<=xend; xx++){
 					int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
 					int iy = yy < 0 ? yy+nf2 : (yy>nf2-1 ? yy-nf2 : yy);
@@ -682,10 +692,9 @@ void Interp_3d_NUptsdriven(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw, int M,
 
 					int inidx = ix+iy*nf1+iz*nf2*nf1;
 
-					FLT disx=abs(x_rescaled-xx);
-					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
-					cnow.x += fw[inidx].x*kervalue1*kervalue2*kervalue3;
-					cnow.y += fw[inidx].y*kervalue1*kervalue2*kervalue3;
+					ker1val=ker1[xx-xstart];
+					cnow.x += fw[inidx].x*ker1val*ker2val*ker3val;
+					cnow.y += fw[inidx].y*ker1val*ker2val*ker3val;
 				}
 			}
 		}
@@ -795,6 +804,9 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 	}
 #endif
 	__syncthreads();
+	FLT ker1[MAX_NSPREAD];
+	FLT ker2[MAX_NSPREAD];
+	FLT ker3[MAX_NSPREAD];
 
 	FLT x_rescaled, y_rescaled, z_rescaled;
 	CUCPX cnow;
@@ -805,35 +817,39 @@ void Interp_3d_Subprob(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		z_rescaled=RESCALE(z[idxnupts[idx]], nf3, pirange);
 		cnow.x = 0.0;
 		cnow.y = 0.0;
-
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
 		ystart = ceil(y_rescaled - ns/2.0)-yoffset;
 		zstart = ceil(z_rescaled - ns/2.0)-zoffset;
+
 		xend   = floor(x_rescaled + ns/2.0)-xoffset;
 		yend   = floor(y_rescaled + ns/2.0)-yoffset;
 		zend   = floor(z_rescaled + ns/2.0)-zoffset;
 
+		FLT x1=(FLT)xstart+xoffset-x_rescaled;
+		FLT y1=(FLT)ystart+yoffset-y_rescaled;
+		FLT z1=(FLT)zstart+zoffset-z_rescaled;
 
-    	for (int zz=zstart; zz<=zend; zz++){
-			FLT disz=abs(z_rescaled-zz);
-			FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta, ns);
+		eval_kernel_vec(ker1,x1,ns,es_c,es_beta);
+		eval_kernel_vec(ker2,y1,ns,es_c,es_beta);
+		eval_kernel_vec(ker3,z1,ns,es_c,es_beta);
+
+		for (int zz=zstart; zz<=zend; zz++){
+			FLT kervalue3 = ker3[zz-zstart];
 			iz = zz+ceil(ns/2.0);
 			for(int yy=ystart; yy<=yend; yy++){
-				FLT disy=abs(y_rescaled-yy);
-				FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
+				FLT kervalue2 = ker2[yy-ystart];
 				iy = yy+ceil(ns/2.0);
 				for(int xx=xstart; xx<=xend; xx++){
 					ix = xx+ceil(ns/2.0);
 					outidx = ix+iy*(bin_size_x+ceil(ns/2.0)*2)+
-						iz*(bin_size_x+ceil(ns/2.0)*2)*
-						   (bin_size_y+ceil(ns/2.0)*2);
+						    iz*(bin_size_x+ceil(ns/2.0)*2)*
+						       (bin_size_y+ceil(ns/2.0)*2);
 
-					FLT disx=abs(x_rescaled-xx);
-					FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
+					FLT kervalue1 = ker1[xx-xstart];
 					cnow.x += fwshared[outidx].x*kervalue1*kervalue2*kervalue3;
 					cnow.y += fwshared[outidx].y*kervalue1*kervalue2*kervalue3;
-        		}
-      		}
+				}
+			}
 		}
 		c[idxnupts[idx]].x = cnow.x;
 		c[idxnupts[idx]].y = cnow.y;
@@ -909,7 +925,7 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 		eval_kernel_vec_Horner(ker1,xstart+xoffset-x_rescaled,ns,sigma);
 		eval_kernel_vec_Horner(ker2,ystart+yoffset-y_rescaled,ns,sigma);
 		eval_kernel_vec_Horner(ker3,zstart+zoffset-z_rescaled,ns,sigma);
-    	for (int zz=zstart; zz<=zend; zz++){
+		for (int zz=zstart; zz<=zend; zz++){
 			FLT kervalue3 = ker3[zz-zstart];
 			iz = zz+ceil(ns/2.0);
 			for(int yy=ystart; yy<=yend; yy++){
@@ -923,8 +939,8 @@ void Interp_3d_Subprob_Horner(FLT *x, FLT *y, FLT *z, CUCPX *c, CUCPX *fw,
 					FLT kervalue1 = ker1[xx-xstart];
 					cnow.x += fwshared[outidx].x*kervalue1*kervalue2*kervalue3;
 					cnow.y += fwshared[outidx].y*kervalue1*kervalue2*kervalue3;
-        		}
-      		}
+				}
+			}
 		}
 		c[idxnupts[idx]].x = cnow.x;
 		c[idxnupts[idx]].y = cnow.y;
