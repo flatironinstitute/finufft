@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
 
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
 	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
-	for (BIGINT j=0; j<M; ++j)
+	for (int j=0; j<M; ++j)
 		Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
 	int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
 //	printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it]));
