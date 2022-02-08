@@ -1,5 +1,9 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* Melody fixed bug in MAX_NF being 0 due to typecasting 1e11 to int (thanks
+  Elliot Slaughter for catching that).
+* Melody fixed kernel eval so done w*d not w^d times, speeds up 2d a little, 3d
+  quite a lot! (PR#130)
 * Melody added 1D support for both types 1 (GM-sort and SM methods) 2 (GM-sort),
   in C++/CUDA and their test executables (but not Python interface).
 
