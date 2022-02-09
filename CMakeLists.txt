@@ -62,19 +62,26 @@ target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 enable_asan(finufft)
 
 # Finufft kernels
-function(set_finufft_kernel_options target)
+
+# Utility function to define a new set of objects for the given kernels
+# These need to be compiled with architecture flags which vary across the different libraries,
+# hence the need to define separate object libraries for each of them.
+function(add_finufft_kernel target)
+    cmake_parse_arguments(PARSE_ARGV 1 FINUFFT_KERNEL "" "" "SOURCES;FLAGS")
+
+    add_library(${target} OBJECT ${FINUFFT_KERNEL_SOURCES})
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
     set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
     target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -fcx-limited-range>)
     target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    target_link_libraries(${target} PRIVATE SCTL)
+    target_compile_options(${target} PRIVATE ${FINUFFT_KERNEL_FLAGS})
+    target_link_libraries(finufft PUBLIC ${target})
 endfunction()
 
-add_library(finufft_avx2 OBJECT src/kernels/onedim_nuft_avx2.cpp)
-set_finufft_kernel_options(finufft_avx2)
-target_compile_options(finufft_avx2 PRIVATE -mavx2 -mfma)
-target_link_libraries(finufft_avx2 PRIVATE SCTL)
-
-target_link_libraries(finufft PUBLIC finufft_avx2)
+add_finufft_kernel(finufft_sse4 SOURCES src/kernels/onedim_nuft_sse4.cpp FLAGS -msse4.1)
+add_finufft_kernel(finufft_avx2 SOURCES src/kernels/onedim_nuft_avx2.cpp FLAGS -mavx2 -mfma)
+add_finufft_kernel(finufft_avx512 SOURCES src/kernels/onedim_nuft_avx512.cpp FLAGS -mavx512f -mavx512vl -mavx512dq)
 
 
 # Spreader perf test executable

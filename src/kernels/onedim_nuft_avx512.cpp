@@ -3,6 +3,6 @@
 
 namespace finufft {
 
-INSTANTIATE_NUFT_IMPLEMENTATIONS_WITH_WIDTH(onedim_nuft_kernel_avx2, 8);
+INSTANTIATE_NUFT_IMPLEMENTATIONS_WITH_WIDTH(onedim_nuft_kernel_avx512, 16);
 
 }
