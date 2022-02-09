@@ -19,6 +19,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googlebenchmark)
 
 
+# Custom random123 interface definition
+add_library(random123 INTERFACE)
+target_include_directories(random123 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/random123/include)
+
+# Custom SCTL interface definition
+add_library(SCTL INTERFACE)
+target_include_directories(SCTL INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/SCTL/include)
+
+
 # This set of sources is compiled twice, once in single precision and once in double precision
 # The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp)
@@ -46,15 +55,27 @@ add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
 set_finufft_options(finufft_f64)
 target_link_libraries(finufft_f64 PUBLIC FFTW::Double FFTW::DoubleOpenMP)
 
-add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.c)
+add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.c src/kernels/onedim_nuft.cpp)
 set_property(TARGET finufft PROPERTY CMAKE_CXX_STANDARD 14)
 target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64 m)
 target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 enable_asan(finufft)
 
-# Custom random123 interface definition
-add_library(random123 INTERFACE)
-target_include_directories(random123 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/random123/include)
+# Finufft kernels
+function(set_finufft_kernel_options target)
+    set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
+    set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
+    target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -fcx-limited-range>)
+    target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+endfunction()
+
+add_library(finufft_avx2 OBJECT src/kernels/onedim_nuft_avx2.cpp)
+set_finufft_kernel_options(finufft_avx2)
+target_compile_options(finufft_avx2 PRIVATE -mavx2 -mfma)
+target_link_libraries(finufft_avx2 PRIVATE SCTL)
+
+target_link_libraries(finufft PUBLIC finufft_avx2)
+
 
 # Spreader perf test executable
 add_executable(spreadtestnd perftest/spreadtestnd.cpp)

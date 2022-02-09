@@ -79,7 +79,8 @@ void onedim_nuft_with_kernel(size_t nk, FT const *k, FT *phihat, Fn &&fn) {
     fn(nk, q, f, zf, k, phihat);
 }
 
-void benchmark_1d_nuft_scalar(benchmark::State& state) {
+template<typename Fn>
+void benchmark_1d_nuft_kernel(benchmark::State& state, Fn&& fn) {
     auto num_points = state.range(0);
     auto input = generate_random_data(num_points, 0);
     auto output = std::vector<float>(num_points);
@@ -87,7 +88,7 @@ void benchmark_1d_nuft_scalar(benchmark::State& state) {
     for(auto _ : state) {
         benchmark::ClobberMemory();
 
-        onedim_nuft_with_kernel<8>(num_points, input.data(), output.data(), finufft::onedim_nuft_kernel_scalar<float>);
+        onedim_nuft_with_kernel<8>(num_points, input.data(), output.data(), std::forward<Fn>(fn));
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(output);
     }
@@ -95,7 +96,17 @@ void benchmark_1d_nuft_scalar(benchmark::State& state) {
     state.SetItemsProcessed(state.iterations() * num_points);
 }
 
+void benchmark_1d_nuft_scalar(benchmark::State& state) {
+    benchmark_1d_nuft_kernel(state, finufft::onedim_nuft_kernel_scalar<float>);
+}
+
+void benchmark_1d_nuft_avx2(benchmark::State& state) {
+    benchmark_1d_nuft_kernel(state, finufft::onedim_nuft_kernel_avx2);
+}
+
+
 } // namespace
 
 BENCHMARK(benchmark_1d_nuft_scalar)->RangeMultiplier(4)->Range(1024, 2 << 14);
+BENCHMARK(benchmark_1d_nuft_avx2)->RangeMultiplier(4)->Range(1024, 2 << 14);
 
