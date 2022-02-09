@@ -2,6 +2,7 @@
 // This implements micro-benchmarks using the google benchmark framework to evaluate the performance
 // of 1-d type-3 kernels.
 
+#include "../src/kernels/dispatch.h"
 #include "../src/kernels/onedim_nuft.h"
 
 #include <benchmark/benchmark.h>
@@ -10,7 +11,15 @@
 
 namespace {
 
-template <typename T, typename Fn> void benchmark_1d_nuft_kernel(benchmark::State &state, Fn &&fn) {
+template <typename T, typename Fn>
+void benchmark_1d_nuft_kernel(
+    benchmark::State &state, Fn &&fn,
+    finufft::Dispatch::Type required = finufft::Dispatch::Scalar) {
+    if (finufft::get_current_capability() < required) {
+        state.SkipWithError("Instruction set not supported");
+        return;
+    }
+
     auto num_points = state.range(0);
     auto input = finufft::testing::generate_random_data<T>(num_points, 0);
     auto output = std::vector<T>(num_points, 0.0f);
@@ -18,7 +27,8 @@ template <typename T, typename Fn> void benchmark_1d_nuft_kernel(benchmark::Stat
     for (auto _ : state) {
         benchmark::ClobberMemory();
 
-        finufft::testing::onedim_nuft_with_method<8>(num_points, input.data(), output.data(), std::forward<Fn>(fn));
+        finufft::testing::onedim_nuft_with_method<8>(
+            num_points, input.data(), output.data(), std::forward<Fn>(fn));
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(output);
     }
@@ -32,18 +42,18 @@ template <typename T, typename Fn> void benchmark_1d_nuft_kernel(benchmark::Stat
         name(nk, q, f, zf, k, phihat);                                                             \
     }
 
-#define FINUFFT_DEFINE_BENCHMARK(suffix, kernel)                                                   \
+#define FINUFFT_DEFINE_BENCHMARK(suffix, kernel, dispatch)                                         \
     void benchmark_1d_nuft_f32_##suffix(benchmark::State &state) {                                 \
-        benchmark_1d_nuft_kernel<float>(state, FINUFFT_INVOKE_KERNEL(kernel, float));              \
+        benchmark_1d_nuft_kernel<float>(state, FINUFFT_INVOKE_KERNEL(kernel, float), dispatch);    \
     }                                                                                              \
     void benchmark_1d_nuft_f64_##suffix(benchmark::State &state) {                                 \
-        benchmark_1d_nuft_kernel<double>(state, FINUFFT_INVOKE_KERNEL(kernel, double));            \
+        benchmark_1d_nuft_kernel<double>(state, FINUFFT_INVOKE_KERNEL(kernel, double), dispatch);  \
     }
 
-FINUFFT_DEFINE_BENCHMARK(scalar, finufft::onedim_nuft_kernel_scalar)
-FINUFFT_DEFINE_BENCHMARK(sse4, finufft::onedim_nuft_kernel_sse4)
-FINUFFT_DEFINE_BENCHMARK(avx2, finufft::onedim_nuft_kernel_avx2)
-FINUFFT_DEFINE_BENCHMARK(avx512, finufft::onedim_nuft_kernel_avx512)
+FINUFFT_DEFINE_BENCHMARK(scalar, finufft::onedim_nuft_kernel_scalar, finufft::Dispatch::Scalar)
+FINUFFT_DEFINE_BENCHMARK(sse4, finufft::onedim_nuft_kernel_sse4, finufft::Dispatch::SSE4)
+FINUFFT_DEFINE_BENCHMARK(avx2, finufft::onedim_nuft_kernel_avx2, finufft::Dispatch::AVX2)
+FINUFFT_DEFINE_BENCHMARK(avx512, finufft::onedim_nuft_kernel_avx512, finufft::Dispatch::AVX512)
 
 } // namespace
 

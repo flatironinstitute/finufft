@@ -14,10 +14,11 @@ namespace detail {
 
 // This is the implementation for the main loop of the 1-d type 3 NUFT kernel.
 // It is vectorized using a given type T and to a given width N.
-// It is crucial that this template be instantiated with a combination of T and N that is supported, in order
-// to leverage the corresponding intrinsics.
+// It is crucial that this template be instantiated with a combination of T and N that is supported,
+// in order to leverage the corresponding intrinsics.
 template <typename T, int N>
-void onedim_nuft_kernel_main(size_t nk, int q, T const *f, T const *z, T const *k, T *phihat) {
+void onedim_nuft_kernel_main(
+    size_t nk, int q, T const *f, T const *z, T const *k, T *phihat) noexcept {
     typedef sctl::Vec<T, N> Vec;
 
     for (size_t j = 0; j < nk - N + 1; j += N) {
@@ -41,7 +42,8 @@ void onedim_nuft_kernel_main(size_t nk, int q, T const *f, T const *z, T const *
 }
 
 template <typename T, int N>
-void onedim_nuft_kernel_impl(size_t nk, int q, T const *f, T const *z, T const *k, T *phihat) {
+void onedim_nuft_kernel_impl(
+    size_t nk, int q, T const *f, T const *z, T const *k, T *phihat) noexcept {
     DisableDenormals disable_denormals;
 
     onedim_nuft_kernel_main<T, N>(nk, q, f, z, k, phihat);
@@ -56,7 +58,8 @@ void onedim_nuft_kernel_impl(size_t nk, int q, T const *f, T const *z, T const *
 
 // Define a function calling the given implementation of the kernel
 #define INSTANTIATE_NUFT_IMPLEMENTATION_FOR_TYPE(NAME, N, TYPE)                                    \
-    void NAME(size_t nk, int q, TYPE const *f, TYPE const *z, TYPE const *k, TYPE *phihat) {       \
+    void NAME(                                                                                     \
+        size_t nk, int q, TYPE const *f, TYPE const *z, TYPE const *k, TYPE *phihat) noexcept {    \
         finufft::detail::onedim_nuft_kernel_impl<TYPE, N>(nk, q, f, z, k, phihat);                 \
     }
 

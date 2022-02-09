@@ -7,6 +7,7 @@
 #include "../perftest/testing_utils.h"
 #include <gtest/gtest.h>
 
+#include "../src/kernels/dispatch.h"
 #include "../src/kernels/onedim_nuft.h"
 
 // Utility macro to correctly invoke the kernel (disambiguates overloads and function objects)
@@ -36,8 +37,12 @@ run_nuft_random(size_t num_points, int seed, Fn &&kernel) {
 
 } // namespace
 
-#define MAKE_TEST(SUFFIX, TYPE)                                                                    \
+#define MAKE_TEST(SUFFIX, TYPE, DISPATCH)                                                          \
     TEST(OneDimKernel, SUFFIX##_##TYPE) {                                                          \
+        if (finufft::get_current_capability() < DISPATCH) {                                        \
+            GTEST_SKIP() << "Instruction set " << #SUFFIX << " not supported";                     \
+            return;                                                                                \
+        }                                                                                          \
         auto num_points = 123;                                                                     \
         auto input = finufft::testing::generate_random_data<TYPE>(num_points, 0);                  \
         std::vector<TYPE> output_expected;                                                         \
@@ -49,12 +54,12 @@ run_nuft_random(size_t num_points, int seed, Fn &&kernel) {
         }                                                                                          \
     }
 
-MAKE_TEST(sse4, float)
-MAKE_TEST(avx2, float)
-MAKE_TEST(avx512, float)
+MAKE_TEST(sse4, float, finufft::Dispatch::SSE4)
+MAKE_TEST(avx2, float, finufft::Dispatch::AVX2)
+MAKE_TEST(avx512, float, finufft::Dispatch::AVX512)
 
-MAKE_TEST(sse4, double)
-MAKE_TEST(avx2, double)
-MAKE_TEST(avx512, double)
+MAKE_TEST(sse4, double, finufft::Dispatch::SSE4)
+MAKE_TEST(avx2, double, finufft::Dispatch::AVX2)
+MAKE_TEST(avx512, double, finufft::Dispatch::AVX512)
 
 #undef MAKE_TEST
