@@ -1,3 +1,6 @@
+// Micro-benchmark for 1-d spread operations.
+// This implements micro-benchmarks using the google benchmark framework to evaluate the performance of 1-d spreading kernels.
+
 #include <vector>
 
 #include <benchmark/benchmark.h>
