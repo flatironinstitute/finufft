@@ -16,7 +16,7 @@ void onedim_nuft_kernel_scalar(
     for (size_t j = 0; j < nk; ++j) { // loop along output array
         FT x = 0.0;                   // register
         for (int n = 0; n < q; ++n)
-            x += f[n] * 2 * std::cos(k[j] * z[n]); // pos & neg freq pair.  use FLT cos!
+            x += f[n] * 2 * std::cos(k[j] * z[n]); // pos & neg freq pair.
         phihat[j] = x;
     }
 }

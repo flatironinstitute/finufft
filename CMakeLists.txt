@@ -9,6 +9,14 @@ find_package(OpenMP REQUIRED)
 
 include(FetchContent)
 
+# Install google test
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/6b74da4757a549563d7c37c8fae3e704662a043b.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 # Install google benchmark from git
 set(BENCHMARK_ENABLE_TESTING OFF)
 set(BENCHMARK_ENABLE_INSTALL OFF)
@@ -77,6 +85,7 @@ function(add_finufft_kernel target)
     target_link_libraries(${target} PRIVATE SCTL)
     target_compile_options(${target} PRIVATE ${FINUFFT_KERNEL_FLAGS})
     target_link_libraries(finufft PUBLIC ${target})
+    enable_asan(${target})
 endfunction()
 
 add_finufft_kernel(finufft_sse4 SOURCES src/kernels/onedim_nuft_sse4.cpp FLAGS -msse4.1)
