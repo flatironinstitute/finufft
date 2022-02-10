@@ -39,6 +39,11 @@ NUFT_DECLARE_KERNEL_INSTRUCTION(avx512)
 
 #undef NUFT_DECLARE_KERNEL_INSTRUCTION
 
+// Define dispatched version of the kernel
+// This version automatically selects the desired instruction set
+void onedim_nuft_kernel(size_t nk, int q, float const *f, float const *z, float const *k, float *phihat) noexcept;
+void onedim_nuft_kernel(size_t nk, int q, double const *f, double const *z, double const *k, double *phihat) noexcept;
+
 // RAII class to disable handling of denormals within the scope.
 // Constructing this class will cache the current value of the FTZ and DAZ flags,
 // and will restore them when the object is destroyed.

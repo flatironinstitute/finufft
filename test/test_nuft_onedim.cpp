@@ -63,3 +63,29 @@ MAKE_TEST(avx2, double, finufft::Dispatch::AVX2)
 MAKE_TEST(avx512, double, finufft::Dispatch::AVX512)
 
 #undef MAKE_TEST
+
+TEST(OneDimKernel, dispatched_float) {
+    auto num_points = 123;
+    auto input = finufft::testing::generate_random_data<float>(num_points, 0);
+    std::vector<float> output_expected;
+    std::vector<float> output_actual;
+    std::tie(output_expected, output_actual) = run_nuft_random<float>(
+        num_points, 0, FINUFFT_INVOKE_KERNEL(finufft::onedim_nuft_kernel, float));
+
+    for (size_t i = 0; i < num_points; i++) {
+        EXPECT_FLOAT_EQ(output_expected[i], output_actual[i]) << "i = " << i;
+    }
+}
+
+TEST(OneDimKernel, dispatched_double) {
+    auto num_points = 123;
+    auto input = finufft::testing::generate_random_data<double>(num_points, 0);
+    std::vector<double> output_expected;
+    std::vector<double> output_actual;
+    std::tie(output_expected, output_actual) = run_nuft_random<double>(
+        num_points, 0, FINUFFT_INVOKE_KERNEL(finufft::onedim_nuft_kernel, double));
+
+    for (size_t i = 0; i < num_points; i++) {
+        EXPECT_DOUBLE_EQ(output_expected[i], output_actual[i]) << "i = " << i;
+    }
+}
