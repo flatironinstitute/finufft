@@ -15,19 +15,23 @@ void OnedimFseriesKernel(int nf1, int nf2, int nf3, FLT *f, cuDoubleComplex *a, 
 {
 	FLT J2 = ns/2.0;
 	int q=(int)(2 + 3.0*J2);
+	int nf;
 	//cuDoubleComplex aj[MAX_NQUAD];
 	cuDoubleComplex *at = a + threadIdx.y*MAX_NQUAD;
 	FLT *ft = f + threadIdx.y*MAX_NQUAD;
 	FLT *oarr; 
 	if (threadIdx.y == 0){
 		oarr = fwkerhalf1;
+		nf = nf1;
 	}else if (threadIdx.y == 1){
 		oarr = fwkerhalf2;
+		nf = nf2;
 	}else{
 		oarr = fwkerhalf3;
+		nf = nf3;
 	}
 
-	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<nf1/2+1; i+=blockDim.x*gridDim.x){
+	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<nf/2+1; i+=blockDim.x*gridDim.x){
 		int brk = 0.5 + i;
 		FLT x = 0.0;
 		for(int n=0; n<q; n++){
