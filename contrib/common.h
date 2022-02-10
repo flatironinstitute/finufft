@@ -9,7 +9,9 @@
 // constants needed within common
 #define MAX_NQUAD 100              // max number of positive quadr nodes
 // increase this if you need >1TB RAM...
-#define MAX_NF    (BIGINT)1e11     // too big to ever succeed (next235 takes 1s)
+#define MAX_NF    (BIGINT)INT_MAX  // In cufinufft we limit array sizes to 2^31
+                                   // which is about 2 billion, since we set
+                                   // BIGINT to int. (Differs from FINUFFT)
 
 struct cufinufft_opts;
 
