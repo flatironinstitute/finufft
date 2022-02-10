@@ -8,6 +8,8 @@
 #include <spreadinterp.h>
 #include <fftw_defs.h>
 
+#include "kernels/onedim_nuft.h"
+
 #include <iostream>
 #include <iomanip>
 #include <math.h>
@@ -251,17 +253,25 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
   if (opts.debug) printf("q (# ker FT quadr pts) = %d\n",q);
   FLT f[MAX_NQUAD]; double z[2*MAX_NQUAD],w[2*MAX_NQUAD];   // glr needs double
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
+
+  // convert z from double to current floating point type.
+  FLT zf[2 * MAX_NQUAD];
+
+  // TODO: fold factor of 2 into f values.
   for (int n=0;n<q;++n) {
-    z[n] *= (FLT)J2;                    // quadr nodes for [0,J/2]
+    zf[n] = (FLT)J2 * z[n];                    // quadr nodes for [0,J/2]
     f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // w/ quadr weights
     //printf("f[%d] = %.3g\n",n,f[n]);
   }
+
+  // block to amortize threading + dispatching overhead
+  const BIGINT block_size = 1 << 16;
+
 #pragma omp parallel for num_threads(opts.nthreads)
-  for (BIGINT j=0;j<nk;++j) {          // loop along output array
-    FLT x = 0.0;                       // register
-    for (int n=0;n<q;++n)
-      x += f[n] * 2*cos(k[j]*(FLT)z[n]);  // pos & neg freq pair.  use FLT cos!
-    phihat[j] = x;
+  for (BIGINT j = 0; j < nk; j += block_size) {
+      BIGINT jend = min(j + block_size, nk);
+      BIGINT size = jend - j;
+      finufft::onedim_nuft_kernel(size, q, f, zf, k + j, phihat + j);
   }
 }  
 
