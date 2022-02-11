@@ -251,8 +251,7 @@ This performs:
 			onedim_fseries_kernel(nf3, fwkerhalf3, d_plan->spopts);
 		}
 #ifdef TIME
-		printf("[time  ] \tkernel fser (ns=%d) (on CPU):\t %.3g s\n", d_plan->spopts.nspread,
-			timer.elapsedsec());
+		printf("[time  ] \tkernel fser (on CPU):\t %.3g s\n", timer.elapsedsec());
 #endif
 		cudaEventRecord(start);
 		checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf1,fwkerhalf1,(nf1/2+1)*
@@ -286,8 +285,7 @@ This performs:
 			onedim_fseries_kernel_1sthalf(nf3, f+2*MAX_NQUAD, a+2*MAX_NQUAD, d_plan->spopts);
 		}
 #ifdef TIME
-		printf("[time  ] \tkernel fser (ns=%d) (1st half on CPU):\t %.3g s\n", d_plan->spopts.nspread,
-			timer.elapsedsec());
+		printf("[time  ] \tkernel fser (1st half on CPU):\t %.3g s\n", timer.elapsedsec());
 #endif
 
 		cudaEventRecord(start);
@@ -303,8 +301,7 @@ This performs:
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tkernel fser (ns=%d) (2nd half on GPU)\t %.3g s\n", d_plan->spopts.nspread, 
-			milliseconds/1000);
+		printf("[time  ] \tkernel fser (2nd half on GPU)\t %.3g s\n", milliseconds/1000);
 #endif
 		cudaFree(d_a);
 		cudaFree(d_f);
