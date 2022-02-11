@@ -34,17 +34,17 @@ int main(int argc, char* argv[])
 		sscanf(argv[2],"%d",&dim);
 	FLT eps = 1e-6;
 	if (argc > 3) 
-		sscanf(argv[3],"%lf",&w); eps = (FLT)w;  // so can read 1e6 right!
+		sscanf(argv[3],"%lf",&w); eps = (FLT)w;
 	int gpu = 1;
 	if (argc > 4) 
 		sscanf(argv[4],"%d",&gpu);
 
 	int nf2=nf1;
 	if (argc > 5) 
-		sscanf(argv[5],"%lf",&w); nf2 = (int)w;  // so can read 1e6 right!
+		sscanf(argv[5],"%lf",&w); nf2 = (int)w;
 	int nf3=nf1;
 	if (argc > 6) 
-		sscanf(argv[6],"%lf",&w); nf3 = (int)w;  // so can read 1e6 right!
+		sscanf(argv[6],"%lf",&w); nf3 = (int)w;
 
 	SPREAD_OPTS opts;
 	FLT *fwkerhalf1, *fwkerhalf2, *fwkerhalf3;
@@ -82,20 +82,26 @@ int main(int argc, char* argv[])
 		cputime = timer.elapsedsec();
 		cudaEventRecord(start);
  		{
-			checkCudaErrors(cudaMemcpy(d_fwkerhalf1,fwkerhalf1,sizeof(FLT)*(nf1/2+1),cudaMemcpyHostToDevice));
+			checkCudaErrors(cudaMemcpy(d_fwkerhalf1,fwkerhalf1,
+				sizeof(FLT)*(nf1/2+1),cudaMemcpyHostToDevice));
 			if(dim > 1)
-				checkCudaErrors(cudaMemcpy(d_fwkerhalf2,fwkerhalf2,sizeof(FLT)*(nf2/2+1),cudaMemcpyHostToDevice));
+				checkCudaErrors(cudaMemcpy(d_fwkerhalf2,fwkerhalf2,
+					sizeof(FLT)*(nf2/2+1),cudaMemcpyHostToDevice));
 			if(dim > 2)
-				checkCudaErrors(cudaMemcpy(d_fwkerhalf3,fwkerhalf3,sizeof(FLT)*(nf3/2+1),cudaMemcpyHostToDevice));
+				checkCudaErrors(cudaMemcpy(d_fwkerhalf3,fwkerhalf3,
+					sizeof(FLT)*(nf3/2+1),cudaMemcpyHostToDevice));
 		}
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
 		gputime = milliseconds;
-		printf("[time  ] dim=%d, nf1=%8d, ns=%2d, CPU: %6.2f ms\n",dim, nf1, opts.nspread, gputime+cputime*1000);
+		printf("[time  ] dim=%d, nf1=%8d, ns=%2d, CPU: %6.2f ms\n",
+				dim, nf1, opts.nspread, gputime+cputime*1000);
 		free(fwkerhalf1);
-		free(fwkerhalf2);
-		free(fwkerhalf3);
+		if(dim > 1)
+			free(fwkerhalf2);
+		if(dim > 2)
+			free(fwkerhalf3);
 	} else {
 		timer.start();
 		complex<double> a[dim*MAX_NQUAD];
@@ -113,8 +119,10 @@ int main(int argc, char* argv[])
  		{
 			checkCudaErrors(cudaMalloc(&d_a, dim*MAX_NQUAD*sizeof(cuDoubleComplex)));
 			checkCudaErrors(cudaMalloc(&d_f, dim*MAX_NQUAD*sizeof(FLT)));
-			checkCudaErrors(cudaMemcpy(d_a,a,dim*MAX_NQUAD*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice));
-			checkCudaErrors(cudaMemcpy(d_f,f,dim*MAX_NQUAD*sizeof(FLT),cudaMemcpyHostToDevice));
+			checkCudaErrors(cudaMemcpy(d_a,a,
+				dim*MAX_NQUAD*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice));
+			checkCudaErrors(cudaMemcpy(d_f,f,
+				dim*MAX_NQUAD*sizeof(FLT),cudaMemcpyHostToDevice));
 			ier = CUONEDIMFSERIESKERNEL(dim, nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1,
 				d_fwkerhalf2, d_fwkerhalf3, opts.nspread);
 		}
@@ -122,7 +130,8 @@ int main(int argc, char* argv[])
 		cudaEventSynchronize(stop);
 		cudaEventElapsedTime(&milliseconds, start, stop);
 		gputime = milliseconds;
-		printf("[time  ] dim=%d, nf1=%8d, ns=%2d, GPU: %6.2f ms\n",dim, nf1, opts.nspread, gputime+cputime*1000);
+		printf("[time  ] dim=%d, nf1=%8d, ns=%2d, GPU: %6.2f ms\n",
+				dim, nf1, opts.nspread, gputime+cputime*1000);
 		cudaFree(d_a);
 		cudaFree(d_f);
 	}

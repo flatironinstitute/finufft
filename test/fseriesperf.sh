@@ -6,7 +6,7 @@ BIN=../bin/fseries_kernel_test
 DIM=1
 
 echo "Double.............................................."
-for N in 1e2 5e2 1e3 5e3 1e4 5e4 1e5 5e5
+for N in 1e2 5e2 1e3 2e3 5e3 1e4 5e4 1e5 5e5
 do
 	for TOL in 1e-8
 	do
@@ -17,7 +17,7 @@ done
 
 BIN=../bin/fseries_kernel_test_32
 echo "Single.............................................."
-for N in 1e2 5e2 1e3 5e3 1e4 5e4 1e5 5e5
+for N in 1e2 5e2 1e3 2e3 5e3 1e4 5e4 1e5 5e5
 do
 	for TOL in 1e-6
 	do
