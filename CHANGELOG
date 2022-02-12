@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* Move second half of onedim_fseries_kernel() to GPU (with a simple heuristic 
+  basing on nf1 to switch between the CPU and the GPU version).
 * Melody fixed bug in MAX_NF being 0 due to typecasting 1e11 to int (thanks
   Elliot Slaughter for catching that).
 * Melody fixed kernel eval so done w*d not w^d times, speeds up 2d a little, 3d
