@@ -10,7 +10,7 @@
 using namespace std;
 
 void strengths(vector<complex<double>>& c) {    // fill random complex array
-  for (int j=0; j<c.size(); ++j)
+  for (long unsigned int j=0; j<c.size(); ++j)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + 1i*(2*((double)rand()/RAND_MAX)-1);
 }
 
@@ -21,7 +21,7 @@ double chk1d1(int n, vector<double>& x, vector<complex<double>>& c,
   int N = F.size();
   if (n>=N/2 || n<-N/2) { printf("n out of bounds!\n"); return NAN; }
   complex<double> Ftest = complex<double>(0,0);
-  for (int j=0; j<x.size(); ++j)
+  for (long unsigned int j=0; j<x.size(); ++j)
     Ftest += c[j] * exp(1i*(double)n*x[j]);
   int nout = n+N/2;        // index in output array for freq mode n
   double Fmax = 0.0;       // compute inf norm of F
