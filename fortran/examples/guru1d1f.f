@@ -8,14 +8,14 @@ c     To compile (linux/GCC) from this directory, use eg (paste to one line):
 c     gfortran-9 -fopenmp -I../../include -I/usr/include guru1d1f.f
 c     -L../../lib -lfinufftf -o guru1d1f
 
-c     Alex Barnett and Libin Lu 5/29/20
+c     Alex Barnett and Libin Lu 5/29/20. Ptr fixes 10/6/21
 
       program guru1d1f
       implicit none
 
-c     our fortran header, only needed if want to set options...
+c     our fortran-header, always needed
       include 'finufft.fh'
-c     if you want to use FFTW's modes by name... (hence -I/usr/include)
+c     if you want to use FFTW's modes by name...
       include 'fftw3.f'
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)
@@ -27,15 +27,17 @@ c     note some inputs are int (int*4) but others BIGINT (int*8)
       complex*8, allocatable :: cj(:),fk(:)
       complex*8 fktest
       integer*8, allocatable :: n_modes(:)
-      integer type,dim,ntrans
+      integer ttype,dim,ntrans
+c     to pass null pointers to unused arguments...
+      real*4, pointer :: dummy => null()
 
 c     this is what you use as the "opaque" ptr to ptr to finufft_plan...
       integer*8 plan
-c     this (since unallocated) used to pass a NULL ptr to FINUFFT...
-      integer*8, allocatable :: null
 c     this is how you create the options struct in fortran...
       type(nufft_opts) opts
-     
+c     or this is if you want default opts, make a null pointer...
+      type(nufft_opts), pointer :: defopts => null()
+   
 c     how many nonuniform pts
       M = 200000
 c     how many modes (not too much since FFTW_MEASURE slow later)
@@ -53,8 +55,8 @@ c     create some quasi-random NU pts in [-pi,pi], complex strengths
       enddo
 
 c     ---- SIMPLEST GURU DEMO WITH DEFAULT OPTS (as in simple1d1) ---------
-c     mandatory parameters to FINUFFT guru interface...
-      type = 1
+c     mandatory parameters to FINUFFT guru interface... (ttype = trans type)
+      ttype = 1
       dim = 1
       ntrans = 1
       iflag = 1
@@ -63,12 +65,12 @@ c     mandatory parameters to FINUFFT guru interface...
       n_modes(1) = N
 c     (note since dim=1, unused entries on n_modes are never read)
       call system_clock(t1)
-c     null here uses default options
-      call finufftf_makeplan(type,dim,n_modes,iflag,ntrans,
-     $     tol,plan,null,ier)
+c     use default options
+      call finufftf_makeplan(ttype,dim,n_modes,iflag,ntrans,
+     $     tol,plan,defopts,ier)
 c     note for type 1 or 2, arguments 6-9 ignored...
-      call finufftf_setpts(plan,M,xj,null,null,null,
-     $     null,null,null,ier)
+      call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
+     $     dummy,dummy,dummy,ier)
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufftf_execute(plan,cj,fk,ier)
       call system_clock(t2,crate)
@@ -105,10 +107,10 @@ c     refer to fftw3.f to set various FFTW plan modes...
       opts%fftw = FFTW_ESTIMATE_PATIENT
       opts%debug = 1
 c     note you need a fresh plan if change opts
-      call finufftf_makeplan(type,dim,n_modes,iflag,ntrans,
+      call finufftf_makeplan(ttype,dim,n_modes,iflag,ntrans,
      $     tol,plan,opts,ier)
-      call finufftf_setpts(plan,M,xj,null,null,null,
-     $     null,null,null,ier)
+      call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
+     $     dummy,dummy,dummy,ier)
 c     Do it: reads cj (strengths), writes fk (mode coeffs) and ier (status)
       call finufftf_execute(plan,cj,fk,ier)
 c     change the strengths
@@ -121,8 +123,8 @@ c     change the NU pts then do another transform w/ existing strengths...
       do j = 1,M
          xj(j) = pi/2.0 * cos(pi*j/M)
       enddo
-      call finufftf_setpts(plan,M,xj,null,null,null,
-     $     null,null,null,ier)
+      call finufftf_setpts(plan,M,xj,dummy,dummy,dummy,
+     $     dummy,dummy,dummy,ier)
       call finufftf_execute(plan,cj,fk,ier)
       if (ier.eq.0) then
          print *,'done.'

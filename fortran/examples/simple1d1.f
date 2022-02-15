@@ -5,15 +5,15 @@ c     Legacy-style: f77, plus dynamic allocation & derived types from f90.
 
 c     To compile (linux/GCC) from this directory, use eg (paste to one line):
       
-c     gfortran-9 -fopenmp -I../../include simple1d1.f -o simple1d1
+c     gfortran -fopenmp -I../../include simple1d1.f -o simple1d1
 c     ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++
 
-c     Alex Barnett and Libin Lu 5/28/20
+c     Alex Barnett and Libin Lu 5/28/20, fix ptrs 10/6/21
 
       program simple1d1
       implicit none
       
-c     our fortran-header, only needed if want to set options...
+c     our fortran-header, always needed
       include 'finufft.fh'
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)
@@ -25,10 +25,10 @@ c     note some inputs are int (int*4) but others BIGINT (int*8)
       complex*16, allocatable :: cj(:),fk(:)
       complex*16 fktest
 
-c     this (when unallocated) passes a NULL ptr (0 value) to FINUFFT...
-      integer*8, allocatable :: null
 c     this is how you create the options struct in fortran...
       type(nufft_opts) opts
+c     or this is if you want default opts, make a null pointer...
+      type(nufft_opts), pointer :: defopts => null()
       
 c     how many nonuniform pts
       M = 2000000
@@ -52,8 +52,8 @@ c     mandatory parameters to FINUFFT: sign of +-i in NUFFT
 c     tolerance
       tol = 1d-9
 c     Do transform: writes to fk (mode coeffs), and ier (status flag).
-c     here unallocated "null" tells it to use default options:
-      call finufft1d1(M,xj,cj,iflag,tol,N,fk,null,ier)
+c     use default options:
+      call finufft1d1(M,xj,cj,iflag,tol,N,fk,defopts,ier)
       call system_clock(t2,crate)
       t = (t2-t1)/float(crate)
       if (ier.eq.0) then

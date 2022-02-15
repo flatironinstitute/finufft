@@ -26,9 +26,9 @@ PYTHON = python3
 # Notes: 1) -Ofast breaks isfinite() & isnan(), so use -O3 which now is as fast
 #        2) -fcx-limited-range for fortran-speed complex arith in C++
 #        3) we use simply-expanded (:=) makefile variables, otherwise confusing
-CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range
-FFLAGS := $(CFLAGS)
-CXXFLAGS := $(CFLAGS)
+CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range $(CFLAGS)
+FFLAGS := $(CFLAGS) $(FFLAGS)
+CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
 # put this in your make.inc if you have FFTW>=3.3.5 and want thread-safe use...
 #CXXFLAGS += -DFFTW_PLAN_SAFE
 # FFTW base name, and math linking...
@@ -64,7 +64,7 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 INCL = -Iinclude
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
-# here /usr/include needed for fftw3.f "fortran header"...
+# here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
 # single-thread total list of math and FFTW libs (now both precisions)...
@@ -89,7 +89,12 @@ endif
 
 # name & location of library we're building...
 LIBNAME = libfinufft
-DYNLIB = lib/$(LIBNAME).so
+ifeq ($(MINGW),ON)
+  DYNLIB = lib/$(LIBNAME).dll
+else
+  DYNLIB = lib/$(LIBNAME).so
+endif
+
 STATICLIB = lib-static/$(LIBNAME).a
 # absolute path to the .so, useful for linking so executables portable...
 ABSDYNLIB = $(FINUFFT)$(DYNLIB)
@@ -385,7 +390,11 @@ python: $(STATICLIB) $(DYNLIB)
 	$(PYTHON) python/examples/guru2d1.py
 	$(PYTHON) python/examples/guru2d1f.py
 
-# python packaging: *** please document these in make tasks echo above...
+# general python packaging wheel for all OSs without wheel being fixed(required shared libs are not included in wheel)
+python-dist: $(STATICLIB) $(DYNLIB)
+	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse)
+
+# python packaging wheel for macosx with wheel being fixed(all required shared libs are included in wheel)
 wheel: $(STATICLIB) $(DYNLIB)
 	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufft*.whl)
 

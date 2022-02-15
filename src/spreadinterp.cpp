@@ -483,7 +483,7 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
       // coords (x,y,z), spread block corner index (i1,i2,i3) of current NU targ
       BIGINT i1=(BIGINT)std::ceil(xj-ns2); // leftmost grid index
       BIGINT i2= (ndims > 1) ? (BIGINT)std::ceil(yj-ns2) : 0; // min y grid index
-      BIGINT i3= (ndims > 1) ? (BIGINT)std::ceil(zj-ns2) : 0; // min z grid index
+      BIGINT i3= (ndims > 2) ? (BIGINT)std::ceil(zj-ns2) : 0; // min z grid index
      
       FLT x1=(FLT)i1-xj;           // shift of ker center, in [-w/2,-w/2+1]
       FLT x2= (ndims > 1) ? (FLT)i2-yj : 0 ;

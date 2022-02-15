@@ -11,13 +11,12 @@ see `docs/ackn.rst` for full list of contributors.
 
 <img align="right" src="docs/spreadpic.png" width="400"/>
 
-This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, and python. A julia interface
-also exists.
+This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, Python, and (in a separate [repository](https://github.com/ludvigak/FINUFFT.jl)) Julia.
 
-Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html), or its equivalent, the [user manual](finufft-manual.pdf).
+Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html), or its local PDF equivalent, the [user manual](finufft-manual.pdf).
 You will also want to see example codes in the directories
 `examples`, `test`, `fortran`, `matlab/test`, and `python/test`.
-If you cannot compile, or pip install, try our [precompiled binaries](http://users.flatironinstitute.org/~ahb/codes/finufft-binaries).
+If you cannot compile, or `pip install`, try our [precompiled binaries](http://users.flatironinstitute.org/~ahb/codes/finufft-binaries).
 
 If you prefer to read text files, the source to generate the above documentation is in human-readable (mostly .rst) files as follows:
 
@@ -31,8 +30,8 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/trouble.rst` : troubleshooting
 - `docs/tut.rst` and `docs/tutorial/*` : tutorial application examples
 - `docs/fortran.rst` : usage examples from Fortran, documentation of interface
-- `docs/matlab.rst` and `docs/matlabhelp.raw` : using the MATLAB/octave interface
-- `docs/python.rst` and `python/*/_interfaces.py` : using the python interface
+- `docs/matlab.rst` and `docs/matlabhelp.raw` : using the MATLAB/Octave interface
+- `docs/python.rst` and `python/*/_interfaces.py` : using the Python interface
 - `docs/julia.rst`   : using the Julia interface
 - `docs/devnotes.rst`: notes/guide for developers
 - `docs/related.rst` : other recommended NUFFT packages

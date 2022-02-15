@@ -135,3 +135,6 @@ OPTS12
 %
 % This deallocates all stored FFTW plans, nonuniform point sorting arrays,
 %  kernel Fourier transforms arrays, etc.
+%
+%
+

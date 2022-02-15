@@ -1,10 +1,11 @@
 .. _users:
 
-Dependent packages, users, and citations
-========================================
+Dependent packages, wrappers, users, and citations
+==================================================
 
-Here we list packages that depend on FINUFFT, and papers or groups using it.
+Here we list packages that depend on or wrap FINUFFT, and papers or groups using it.
 Papers that merely cite our work are listed separately at the bottom. Please let us know (and use github's dependent package link) if you are a user or package maintainer but not listed.
+
 
 Packages relying on FINUFFT
 ---------------------------
@@ -21,10 +22,18 @@ and also add them to github's Used By feature):
 #. `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation python package.
 
 #. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
-      
-#. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg (SFU), now using pure julia rather than python.
 
 
+Other wrappers to (cu)FINUFFT
+------------------------------
+   
+#. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg, Libin Lu, and others, now using pure Julia, and fully featured (rather than via Python).
+
+#. `TensorFlow NUFFT <https://github.com/mrphys/tensorflow-nufft>`_: a wrapper to the differentiable machine learning Python tool TensorFlow, for the CPU (via FINUFFT) and GPU (via cuFINUFFT). By Javier Montalt Tordera (UCL).
+
+#. `JAX bindings to FINUFFT <https://github.com/dfm/jax-finufft>`_: a wrapper to the differentiable machine learning Python tool JAX. Directly exposes the FINUFFT library to JAX's XLA backend, as well as implementing differentiation rules for the transforms. By Dan Foreman-Mackey (CCA).
+   
+   
 
 Research output using FINUFFT
 -----------------------------
@@ -46,11 +55,16 @@ Research output using FINUFFT
    Inverse Problems 36 (2), 024001 (2020).
    https://arxiv.org/abs/1905.12317
 
-#. Aleks Donev's group at NYU; ongoing
+#. Aleks Donev's group at NYU; ongoing.
 
 #. Efficient wide-field radio interferometry response. P. Arras, M. Reinecke, R. Westermann, T.A. Ensslin, Astron. Astrophys. (2020).   https://doi.org/10.1051/0004-6361/202039723
 
 #. Johannes Blaschke, Jeff Donatelli, and collaborators at NSERC/LBNL use FINUFFT and cuFINUFFT for single-particle X-ray imaging.
+
+#. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin, "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); doi: 10.1117/12.2595409
+
+#. Chang, P., Pienaar, E., & Gebbie, T. (2020). "Malliavin--Mancino Estimators Implemented with Nonuniform Fast Fourier Transforms." SIAM J. Sci. Comput. 42(6), B1378–B1403. https://doi.org/10.1137/20m1325903 
+
 
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
 

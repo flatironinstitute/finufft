@@ -147,6 +147,9 @@
 %
 % This deallocates all stored FFTW plans, nonuniform point sorting arrays,
 %  kernel Fourier transforms arrays, etc.
+%
+%
+
 classdef finufft_plan < handle
 
   properties
@@ -236,6 +239,8 @@ finufft(mex_id_, o);
 
     function setpts(plan, xj, yj, zj, s, t, u)
     % SETPTS   process nonuniform points for general FINUFFT transform(s).
+    %
+    % For documentation, see: FINUFFT_PLAN
 
       % fill missing inputs with empties of correct type
       if strcmp(plan.floatprec,'double')
@@ -271,6 +276,8 @@ finufft(mex_id_, o);
 
     function result = execute(plan, data_in)
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
+    %
+    % For documentation, see: FINUFFT_PLAN
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...
@@ -320,6 +327,10 @@ finufft(mex_id_, o);
     end
 
     function delete(plan)
+    % DELETE   deallocate and destroy a FINUFFT plan object.
+    %
+    % For documentation, see: FINUFFT_PLAN
+      
     % This does clean-up (deallocation) of the C++ struct before the matlab
     % object deletes. It is automatically called by MATLAB and octave if the
     % plan goes out of scope.

@@ -1,0 +1,174 @@
+name: Python Wheel Build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  Linux:
+    runs-on: ubuntu-latest
+    container: quay.io/pypa/manylinux2014_x86_64:latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install fftw
+      run: |
+        yum install -y fftw3-devel
+
+    - name: Install ffi
+      run: |
+        yum install -y libffi-devel
+
+    - name: Compile python bindings
+      run: |
+        python/ci/build-wheels-linux.sh
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: linux-wheels
+        path: python/wheelhouse/finufft*manylinux*.whl
+
+  MacOS:
+    runs-on: macos-10.15
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 10.15
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install gcc and fftw
+      run: |
+        brew install gcc fftw
+        cp make.inc.macosx_gcc-8 make.inc
+        echo "FC=gfortran-11" >> make.inc
+        echo "CC=gcc-11" >> make.inc
+        echo "CXX=g++-11" >> make.inc
+        echo "FFLAGS += -march=x86-64" >> make.inc
+        echo "CFLAGS += -march=x86-64" >> make.inc
+        echo "CXXFLAGS += -march=x86-64" >> make.inc
+        # link statically to libgcc, libgfortran and libquadmath
+        # otherwise binaries are incompatible with older systems
+        echo "LIBS += -static-libgfortran -static-libgcc -static-libstdc++" >> make.inc
+        # hack to make libquadmath link statically
+        sudo rm /usr/local/opt/gcc@11/lib/gcc/11/libquadmath.*dylib
+
+    # Download and install Python instead of using the setup_python
+    # as the python interpreters in the Github machines
+    # were compiled in 10.14, the wheels built with them
+    # are incompatible with older MacOS versions
+    - name: Download and install Python
+      run: |
+        curl \
+          https://www.python.org/ftp/python/3.6.8/python-3.6.8-macosx10.9.pkg \
+          --output python_installer.pkg
+        sudo installer -pkg python_installer.pkg -target /
+
+        curl \
+          https://www.python.org/ftp/python/3.7.9/python-3.7.9-macosx10.9.pkg \
+          --output python_installer.pkg
+        sudo installer -pkg python_installer.pkg -target /
+
+        curl \
+          https://www.python.org/ftp/python/3.8.3/python-3.8.3-macosx10.9.pkg \
+          --output python_installer.pkg
+        sudo installer -pkg python_installer.pkg -target /
+
+        curl \
+          https://www.python.org/ftp/python/3.9.7/python-3.9.7-macos11.pkg \
+          --output python_installer.pkg
+        sudo installer -pkg python_installer.pkg -target /
+
+        curl \
+          https://www.python.org/ftp/python/3.10.1/python-3.10.1-macos11.pkg \
+          --output python_installer.pkg
+        sudo installer -pkg python_installer.pkg -target /
+
+    - name: Compile python bindings
+      run: |
+        make lib
+        export FINUFFT_DIR=`pwd`
+        cd python
+        /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
+        /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install -U wheel --user
+        /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip wheel . -w wheelhouse
+        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
+        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install -U wheel --user
+        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip wheel . -w wheelhouse
+        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
+        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install -U wheel --user
+        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip wheel . -w wheelhouse
+        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
+        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install -U wheel --user
+        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip wheel . -w wheelhouse
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install -U wheel --user
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip wheel . -w wheelhouse
+        PYTHON_BIN=/Library/Frameworks/Python.framework/Versions/3.10/bin/
+        $PYTHON_BIN/python3 -m pip install delocate
+        ls wheelhouse/finufft*.whl | xargs -n1 $PYTHON_BIN/delocate-wheel -w fixed_wheel/
+        /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install finufft -f fixed_wheel/
+        /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 test/run_accuracy_tests.py
+        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install finufft -f fixed_wheel/
+        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 test/run_accuracy_tests.py
+        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install finufft -f fixed_wheel/
+        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 test/run_accuracy_tests.py
+        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install finufft -f fixed_wheel/
+        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 test/run_accuracy_tests.py
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install finufft -f fixed_wheel/
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 test/run_accuracy_tests.py
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: macos-wheels
+        path: python/fixed_wheel/*.whl
+
+  Windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install GCC and make
+      run: C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm make mingw-w64-x86_64-toolchain mingw-w64-x86_64-fftw"
+
+    - name: Build and Test Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+        .\.github\workflows\python_test_win.ps1
+
+    - name: Build and Test Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+        .\.github\workflows\python_test_win.ps1
+
+    - name: Build and Test Python 3.10
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+        .\.github\workflows\python_test_win.ps1
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-wheels
+        path: wheelhouse\*.whl

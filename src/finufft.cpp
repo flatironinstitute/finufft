@@ -249,17 +249,18 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 2.0*J2);     // > pi/2 ratio.  cannot exceed MAX_NQUAD
   if (opts.debug) printf("q (# ker FT quadr pts) = %d\n",q);
-  FLT f[MAX_NQUAD]; double z[2*MAX_NQUAD],w[2*MAX_NQUAD];
+  FLT f[MAX_NQUAD]; double z[2*MAX_NQUAD],w[2*MAX_NQUAD];   // glr needs double
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
   for (int n=0;n<q;++n) {
-    z[n] *= J2;                                    // quadr nodes for [0,J/2]
+    z[n] *= (FLT)J2;                    // quadr nodes for [0,J/2]
     f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts);  // w/ quadr weights
-    //    printf("f[%d] = %.3g\n",n,f[n]);
+    //printf("f[%d] = %.3g\n",n,f[n]);
   }
 #pragma omp parallel for num_threads(opts.nthreads)
   for (BIGINT j=0;j<nk;++j) {          // loop along output array
-    FLT x = 0.0;                    // register
-    for (int n=0;n<q;++n) x += f[n] * 2*cos(k[j]*z[n]);  // pos & neg freq pair
+    FLT x = 0.0;                       // register
+    for (int n=0;n<q;++n)
+      x += f[n] * 2*cos(k[j]*(FLT)z[n]);  // pos & neg freq pair.  use FLT cos!
     phihat[j] = x;
   }
 }  
@@ -917,6 +918,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     timer.restart();
     BIGINT t2nmodes[] = {p->nf1,p->nf2,p->nf3};   // t2 input is actually fw
     nufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
+    t2opts.modeord = 0;                           // needed for correct t3!
     t2opts.debug = max(0,p->opts.debug-1);        // don't print as much detail
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);
     t2opts.showwarn = 0;                          // so don't see warnings 2x
