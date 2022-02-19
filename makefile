@@ -62,6 +62,16 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
 INCL = -Iinclude
+
+# Check if a FFTW location is provided
+ifdef FFTW_INC
+  INCL += -I$(FFTW_INC)
+endif
+
+ifdef FFTW_DIR
+  LIBS += -L$(FFTW_DIR)
+endif
+
 CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
@@ -69,7 +79,17 @@ FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
 
 # single-thread total list of math and FFTW libs (now both precisions)...
 # (Note: finufft tests use LIBSFFT; spread & util tests only need LIBS)
-LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)f $(LIBS)
+LIBSFFT := -l$(FFTWNAME) $(LIBS)
+
+ENABLE_SINGLE ?= ON
+ifeq ($(ENABLE_SINGLE),ON)
+  $(info Building with lib$(FFTWNAME)f support)
+  LIBSFFT += -l$(FFTWNAME)f
+else
+  $(info Building WITHOUT lib$(FFTWNAME)f support)
+endif
+
+
 
 # multi-threaded libs & flags, and req'd flags (OO for new interface)...
 ifneq ($(OMP),OFF)
@@ -81,11 +101,16 @@ ifneq ($(OMP),OFF)
   LIBS += $(OMPLIBS)
   ifneq ($(MINGW),ON)
     ifneq ($(MSYS),ON)
-# omp override for total list of math and FFTW libs (now both precisions)...
-      LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
+      # omp override for total list of math and FFTW libs (double precision)...
+      LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) $(LIBS)
+      # omp override for total list of math and FFTW libs (single precision)...
+      ifeq ($(ENABLE_SINGLE),ON)
+        LIBSFFT += -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX)
+      endif
     endif
   endif
 endif
+
 
 # name & location of library we're building...
 LIBNAME = libfinufft
@@ -103,7 +128,9 @@ ABSDYNLIB = $(FINUFFT)$(DYNLIB)
 # double-prec spreader object files that also need single precision...
 SOBJS = src/spreadinterp.o src/utils.o
 # their single-prec versions
-SOBJSF = $(SOBJS:%.o=%_32.o)
+ifeq ($(ENABLE_SINGLE),ON)
+  SOBJSF = $(SOBJS:%.o=%_32.o)
+endif
 # precision-dependent spreader object files (compiled & linked only once)...
 SOBJS_PI = src/utils_precindep.o
 # spreader dual-precision objs
@@ -112,7 +139,9 @@ SOBJSD = $(SOBJS) $(SOBJSF) $(SOBJS_PI)
 # double-prec library object files that also need single precision...
 OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
 # their single-prec versions
-OBJSF = $(OBJS:%.o=%_32.o)
+ifeq ($(ENABLE_SINGLE),ON)
+  OBJSF = $(OBJS:%.o=%_32.o)
+endif
 # precision-dependent library object files (compiled & linked only once)...
 OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
 # all lib dual-precision objs
@@ -151,18 +180,23 @@ usage:
 HEADERS = $(wildcard include/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
+
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
-%_32.o: %.cpp $(HEADERS)
-	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
 %.o: %.c $(HEADERS)
 	$(CC) -c $(CFLAGS) $< -o $@
-%_32.o: %.c $(HEADERS)
-	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
 %.o: %.f
 	$(FC) -c $(FFLAGS) $< -o $@
+
+# single-precision version of rules for objects
+ifeq ($(ENABLE_SINGLE),ON)
+%_32.o: %.cpp $(HEADERS)
+	$(CXX) -DSINGLE -c $(CXXFLAGS) $< -o $@
+%_32.o: %.c $(HEADERS)
+	$(CC) -DSINGLE -c $(CFLAGS) $< -o $@
 %_32.o: %.f
 	$(FC) -DSINGLE -c $(FFLAGS) $< -o $@
+endif
 
 # included auto-generated code dependency...
 src/spreadinterp.o: src/ker_horner_allw_loop.c src/ker_lowupsampfac_horner_allw_loop.c
@@ -232,18 +266,27 @@ examples/%cf: examples/%cf.o $(DYNLIB)
 # generic tests link against our .so... (other libs needed for fftw_forget...)
 test/%: test/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
-test/%f: test/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+
 # low-level tests that are cleaner if depend on only specific objects...
 test/testutils: test/testutils.cpp src/utils.o src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
+
+# single-precision version
+ifeq ($(ENABLE_SINGLE),ON)
+test/%f: test/%.cpp $(DYNLIB)
+	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+
 test/testutilsf: test/testutils.cpp src/utils_32.o src/utils_precindep.o
 	$(CXX) $(CXXFLAGS) -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
+endif
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
 # also need single-prec
-TESTS += $(TESTS:%=%f)
+ifeq ($(ENABLE_SINGLE),ON)
+  TESTS += $(TESTS:%=%f)
+endif
+
 test: $(TESTS)
 ifneq ($(MINGW),ON)
   # non-Windows-WSL: it will fail if either of these return nonzero exit code...
@@ -253,20 +296,27 @@ ifneq ($(MINGW),ON)
 	cp $(DYNLIB) test
   endif
 	test/basicpassfail
+	(cd test; export OMP_NUM_THREADS=4; ./check_finufft.sh; ./check_finufft.sh DOUBLE)
+  ifeq ($(ENABLE_SINGLE),ON)
 	test/basicpassfailf
   # accuracy tests done in prec-switchable bash script... (small prob -> few thr)
 	(cd test; export OMP_NUM_THREADS=4; ./check_finufft.sh; ./check_finufft.sh SINGLE)
+  endif
 else
   # Windows-WSL does not find the dynamic libraries, so we make a temporary copy...
 	copy $(DYNLIB) test
 	test/basicpassfail
+  ifeq ($(ENABLE_SINGLE),ON)
 	test/basicpassfailf
+  endif
   # Windows does not feature a bash shell so we use WSL. Since most supplied gnu-make variants are 32bit executables and WSL runs only in 64bit environments, we have to refer to 64bit powershell explicitly on 32bit make...
   #	$(windir)\Sysnative\WindowsPowerShell\v1.0\powershell.exe "cd ./test; bash check_finufft.sh DOUBLE $(MINGW); bash check_finufft.sh SINGLE $(MINGW)"
   # with a recent version of gnu-make for Windows built for 64bit as it is part of the WinLibs standalone build of GCC and MinGW-w64 we can avoid these circumstances
 	cd test
 	bash -c "cd test; ./check_finufft.sh DOUBLE $(MINGW)"
+  ifeq ($(ENABLE_SINGLE),ON)
 	bash -c "cd test; ./check_finufft.sh SINGLE $(MINGW)"
+  endif
 	del test\$(LIBNAME).so
 endif
 
@@ -275,16 +325,22 @@ endif
 # generic perf test rules...
 perftest/%: perftest/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+
+ifeq ($(ENABLE_SINGLE),ON)
 perftest/%f: perftest/%.cpp $(DYNLIB)
 	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+endif
 
 # spreader only test, double/single (good for self-contained work on spreader)
 ST=perftest/spreadtestnd
 STF=$(ST)f
 $(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
 	$(CXX) $(CXXFLAGS) $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
+
+ifeq ($(ENABLE_SINGLE),ON)
 $(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
 	$(CXX) $(CXXFLAGS) -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
+
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
@@ -296,11 +352,25 @@ spreadtest: $(ST) $(STF)
 	$(STF) 1 8e6 8e6 1e-3 ;\
 	$(STF) 2 8e6 8e6 1e-3 ;\
 	$(STF) 3 8e6 8e6 1e-3 )
+
 spreadtestall: $(ST) $(STF)
+	(cd perftest; ENABLE_SINGLE=ON ./spreadtestall.sh)
+else
+spreadtest: $(ST)
+# run one thread per core... (escape the $ to get single $ in bash; one big cmd)
+	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
+	echo "\nRunning makefile double-precision spreader tests, $$OMP_NUM_THREADS threads..." ;\
+	$(ST) 1 8e6 8e6 1e-6 ;\
+	$(ST) 2 8e6 8e6 1e-6 ;\
+	$(ST) 3 8e6 8e6 1e-6)
+
+spreadtestall: $(ST)
 	(cd perftest; ./spreadtestall.sh)
+endif
 
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
+ifeq ($(ENABLE_SINGLE),ON)
 perftest: $(ST) $(STF) $(PERFEXECS)
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
@@ -308,6 +378,13 @@ perftest: $(ST) $(STF) $(PERFEXECS)
 	./spreadtestnd.sh SINGLE 2>&1 | tee results/spreadtestndf_results.txt ;\
 	./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt ;\
 	./nuffttestnd.sh SINGLE 2>&1 | tee results/nuffttestndf_results.txt )
+else
+perftest: $(ST) $(PERFEXECS)
+# here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
+	(cd perftest ;\
+	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
+	./nuffttestnd.sh 2>&1 | tee results/nuffttestnd_results.txt)
+endif
 
 # speed ratio of many-vector guru vs repeated single calls... (Andrea)
 GTT=perftest/guru_timing_test
@@ -340,9 +417,12 @@ FE = $(FE64) $(FE32)
 $(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB)
 	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
+
+ifeq ($(ENABLE_SINGLE),ON)
 $(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
 	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
+endif
 
 fortran: $(FE)
 # task always runs them (note escaped $ to pass to bash)...
