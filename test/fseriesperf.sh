@@ -1,6 +1,6 @@
 #!/bin/bash
-# basic perf test of spread/interp for 2/3d, single/double
-# Barnett 1/29/21, some 1D added 12/2/21.
+# basic perf test of compute fseries for 1d, single/double
+# Melody 02/20/22
 
 BIN=../bin/fseries_kernel_test
 DIM=1

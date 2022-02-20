@@ -235,77 +235,37 @@ This performs:
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	printf("[time  ] \tCUFFT Plan\t\t %.3g s\n", milliseconds/1000);
 #endif
-	CNTime timer; 
-	if (max(nf1, max(nf2, nf3)) < 2e3) {
-		timer.start();
-		FLT *fwkerhalf1, *fwkerhalf2, *fwkerhalf3;
-
-		fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
-		onedim_fseries_kernel(nf1, fwkerhalf1, d_plan->spopts);
-		if(dim > 1){
-			fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
-			onedim_fseries_kernel(nf2, fwkerhalf2, d_plan->spopts);
-		}
-		if(dim > 2){
-			fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
-			onedim_fseries_kernel(nf3, fwkerhalf3, d_plan->spopts);
-		}
-#ifdef TIME
-		printf("[time  ] \tkernel fser (on CPU):\t %.3g s\n", timer.elapsedsec());
-#endif
-		cudaEventRecord(start);
-		checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf1,fwkerhalf1,(nf1/2+1)*
-			sizeof(FLT),cudaMemcpyHostToDevice));
-		if(dim > 1)
-			checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf2,fwkerhalf2,(nf2/2+1)*
-				sizeof(FLT),cudaMemcpyHostToDevice));
-		if(dim > 2)
-			checkCudaErrors(cudaMemcpy(d_plan->fwkerhalf3,fwkerhalf3,(nf3/2+1)*
-				sizeof(FLT),cudaMemcpyHostToDevice));
-#ifdef TIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tCopy fwkerhalf HtoD\t %.3g s\n", milliseconds/1000);
-#endif
-		free(fwkerhalf1);
-		if(dim > 1)
-			free(fwkerhalf2);
-		if(dim > 2)
-			free(fwkerhalf3);
-	} else {
-		timer.start();
-		complex<double> a[3*MAX_NQUAD];
-		FLT             f[3*MAX_NQUAD];
-		onedim_fseries_kernel_1sthalf(nf1, f, a, d_plan->spopts);
-		if(dim > 1){
-			onedim_fseries_kernel_1sthalf(nf2, f+MAX_NQUAD, a+MAX_NQUAD, d_plan->spopts);
-		}
-		if(dim > 2){
-			onedim_fseries_kernel_1sthalf(nf3, f+2*MAX_NQUAD, a+2*MAX_NQUAD, d_plan->spopts);
-		}
-#ifdef TIME
-		printf("[time  ] \tkernel fser (1st half on CPU):\t %.3g s\n", timer.elapsedsec());
-#endif
-
-		cudaEventRecord(start);
-		cuDoubleComplex *d_a;
-		FLT   *d_f;
-		checkCudaErrors(cudaMalloc(&d_a, dim*MAX_NQUAD*sizeof(cuDoubleComplex)));
-		checkCudaErrors(cudaMalloc(&d_f, dim*MAX_NQUAD*sizeof(FLT)));
-		checkCudaErrors(cudaMemcpy(d_a,a,dim*MAX_NQUAD*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice));
-		checkCudaErrors(cudaMemcpy(d_f,f,dim*MAX_NQUAD*sizeof(FLT),cudaMemcpyHostToDevice));
-		ier = CUONEDIMFSERIESKERNEL(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1,
-			d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->spopts.nspread);
-#ifdef TIME
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		cudaEventElapsedTime(&milliseconds, start, stop);
-		printf("[time  ] \tkernel fser (2nd half on GPU)\t %.3g s\n", milliseconds/1000);
-#endif
-		cudaFree(d_a);
-		cudaFree(d_f);
+	CNTime timer; timer.start();
+	complex<double> a[3*MAX_NQUAD];
+	FLT             f[3*MAX_NQUAD];
+	onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
+	if(dim > 1){
+		onedim_fseries_kernel_precomp(nf2, f+MAX_NQUAD, a+MAX_NQUAD, d_plan->spopts);
 	}
+	if(dim > 2){
+		onedim_fseries_kernel_precomp(nf3, f+2*MAX_NQUAD, a+2*MAX_NQUAD, d_plan->spopts);
+	}
+#ifdef TIME
+	printf("[time  ] \tkernel fser (1st half on CPU):\t %.3g s\n", timer.elapsedsec());
+#endif
+
+	cudaEventRecord(start);
+	cuDoubleComplex *d_a;
+	FLT   *d_f;
+	checkCudaErrors(cudaMalloc(&d_a, dim*MAX_NQUAD*sizeof(cuDoubleComplex)));
+	checkCudaErrors(cudaMalloc(&d_f, dim*MAX_NQUAD*sizeof(FLT)));
+	checkCudaErrors(cudaMemcpy(d_a,a,dim*MAX_NQUAD*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_f,f,dim*MAX_NQUAD*sizeof(FLT),cudaMemcpyHostToDevice));
+	ier = CUFSERIESKERNELCOMPUTE(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1,
+		d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->spopts.nspread);
+#ifdef TIME
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	printf("[time  ] \tkernel fser (2nd half on GPU)\t %.3g s\n", milliseconds/1000);
+#endif
+	cudaFree(d_a);
+	cudaFree(d_f);
 	// Multi-GPU support: reset the device ID
         cudaSetDevice(orig_gpu_device_id);
 

@@ -116,7 +116,9 @@ CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 default: all
 
 # Build all, but run no tests. Note: CI currently uses this default...
-all: libtest spreadtest examples fserieskertest
+all: libtest internaltest examples
+
+internaltest: spreadtest fserieskertest
 
 # testers for the lib (does not execute)
 libtest: lib $(BINDIR)/cufinufft2d1_test \
@@ -138,7 +140,7 @@ libtest: lib $(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft1d1_test \
 	$(BINDIR)/cufinufft1d2_test \
 	$(BINDIR)/cufinufft1d1_test_32 \
-	$(BINDIR)/cufinufft1d2_test_32 \
+	$(BINDIR)/cufinufft1d2_test_32
 
 # low-level (not-library) testers (does not execute)
 spreadtest: $(BINDIR)/spread2d_test \

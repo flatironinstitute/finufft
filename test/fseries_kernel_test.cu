@@ -106,11 +106,11 @@ int main(int argc, char* argv[])
 		timer.start();
 		complex<double> a[dim*MAX_NQUAD];
 		FLT             f[dim*MAX_NQUAD];
-		onedim_fseries_kernel_1sthalf(nf1, f, a, opts);
+		onedim_fseries_kernel_precomp(nf1, f, a, opts);
 		if(dim > 1)
-			onedim_fseries_kernel_1sthalf(nf2, f+MAX_NQUAD, a+MAX_NQUAD, opts);
+			onedim_fseries_kernel_precomp(nf2, f+MAX_NQUAD, a+MAX_NQUAD, opts);
 		if(dim > 2)
-			onedim_fseries_kernel_1sthalf(nf3, f+2*MAX_NQUAD, a+2*MAX_NQUAD, opts);
+			onedim_fseries_kernel_precomp(nf3, f+2*MAX_NQUAD, a+2*MAX_NQUAD, opts);
 		cputime = timer.elapsedsec();
 
 		cuDoubleComplex *d_a;
@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
 				dim*MAX_NQUAD*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice));
 			checkCudaErrors(cudaMemcpy(d_f,f,
 				dim*MAX_NQUAD*sizeof(FLT),cudaMemcpyHostToDevice));
-			ier = CUONEDIMFSERIESKERNEL(dim, nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1,
+			ier = CUFSERIESKERNELCOMPUTE(dim, nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1,
 				d_fwkerhalf2, d_fwkerhalf3, opts.nspread);
 		}
 		cudaEventRecord(stop);
@@ -151,12 +151,14 @@ int main(int argc, char* argv[])
 	for(int i=0; i<nf1/2+1; i++)
 		printf("%10.8e ", fwkerhalf1[i]);
 	printf("\n");
-	for(int i=0; i<nf2/2+1; i++)
-		printf("%10.8e ", fwkerhalf2[i]);
-	printf("\n");
-	for(int i=0; i<nf3/2+1; i++)
-		printf("%10.8e ", fwkerhalf3[i]);
-	printf("\n");
+	if(dim > 1)
+		for(int i=0; i<nf2/2+1; i++)
+			printf("%10.8e ", fwkerhalf2[i]);
+		printf("\n");
+	if(dim > 2)
+		for(int i=0; i<nf3/2+1; i++)
+			printf("%10.8e ", fwkerhalf3[i]);
+		printf("\n");
 #endif
 
 	return 0;

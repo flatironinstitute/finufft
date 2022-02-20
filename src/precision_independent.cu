@@ -12,10 +12,6 @@
 /* Auxiliary func to compute power of complex number */
 __device__ RT carg(const CT& z) {return (RT)atan2(ipart(z), rpart(z));} // polar angle
 __device__ RT cabs(const CT& z) {return (RT)cuCabs(z);}
-__device__ CT cpow(const CT& z, const int &n) {
-	RT abs_z_n = pow(cabs(z), n);
-	return cmplx(abs_z_n*cos(n*carg(z)), abs_z_n*sin(n*carg(z)));
-}
 
 /* Common Kernels from spreadinterp3d */
 __host__ __device__
