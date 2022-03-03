@@ -1,5 +1,6 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* examples/simulplans1d1 demos ability to to wield independent plans.
 * sped up float32 1d type 3 by 20% by using float32 cos()... thanks Wenda Zhou.
 
 V 2.0.4 (1/13/22)

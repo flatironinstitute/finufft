@@ -323,8 +323,10 @@ def _cchk(x):
     Check if array x is of the appropriate type
     (complex128, C-contiguous in memory)
     If not, produce a copy
+
+    Will raise if provided a real input array.
     """
-    if x is not None and (x.dtype is not np.dtype('complex128') and x.dtype is not np.dtype('float64')):
+    if x is not None and x.dtype is not np.dtype('complex128'):
         raise RuntimeError('FINUFFT data type must be complex128 for double precision, data may have mixed precision types')
     if x is not None and x.flags['C_CONTIGUOUS']:
         return x
@@ -333,7 +335,7 @@ def _cchk(x):
 def _rchkf(x):
     """
     Check if array x is of the appropriate type
-    (float64, C-contiguous in memory)
+    (float32, C-contiguous in memory)
     If not, produce a copy
     """
     if x is not None and x.dtype is not np.dtype('float32'):
@@ -345,10 +347,12 @@ def _rchkf(x):
 def _cchkf(x):
     """
     Check if array x is of the appropriate type
-    (complex128, C-contiguous in memory)
+    (complex64, C-contiguous in memory)
     If not, produce a copy
+
+    Will raise if provided a real input array.
     """
-    if x is not None and (x.dtype is not np.dtype('complex64') and x.dtype is not np.dtype('float32')):
+    if x is not None and x.dtype is not np.dtype('complex64'):
         raise RuntimeError('FINUFFT data type must be complex64 for single precision, data may have mixed precision types')
     if x is not None and x.flags['C_CONTIGUOUS']:
         return x
