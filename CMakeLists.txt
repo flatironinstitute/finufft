@@ -45,10 +45,18 @@ function(enable_asan target)
     target_link_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
 endfunction()
 
+function(set_optimization_flags target)
+    target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native>)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # cx-limited-range only works with GCC
+        target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-fcx-limited-range>)
+    endif()
+endfunction()
+
 function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
     set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
-    target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
+    set_optimization_flags(${target})
     target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
     target_link_libraries(${target} PUBLIC OpenMP::OpenMP_CXX)
 endfunction()
@@ -78,10 +86,7 @@ function(add_finufft_kernel target)
     cmake_parse_arguments(PARSE_ARGV 1 FINUFFT_KERNEL "" "" "SOURCES;FLAGS")
 
     add_library(${target} OBJECT ${FINUFFT_KERNEL_SOURCES})
-    set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
-    set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
-    target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -fcx-limited-range>)
-    target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    set_finufft_options(${target})
     target_link_libraries(${target} PRIVATE SCTL)
     target_compile_options(${target} PRIVATE ${FINUFFT_KERNEL_FLAGS})
     target_link_libraries(finufft PUBLIC ${target})
@@ -101,26 +106,25 @@ add_executable(spreadtestndf perftest/spreadtestnd.cpp)
 target_compile_definitions(spreadtestndf PRIVATE SINGLE)
 target_link_libraries(spreadtestndf PUBLIC finufft)
 
+# Utility function for defining a new google benchmark
+function (set_gbench_benchmark target)
+    target_link_libraries(${target} PRIVATE finufft random123 benchmark::benchmark_main)
+    set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
+    set_optimization_flags(${target})
+    enable_asan(${target})
+endfunction()
+
 # Spreader perf benchmark
 add_executable(bench_spread perftest/benchmark_spread.cpp)
-target_link_libraries(bench_spread PRIVATE finufft random123 benchmark::benchmark_main)
-set_property(TARGET bench_spread PROPERTY CMAKE_CXX_STANDARD 14)
-target_compile_options(bench_spread PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
-enable_asan(bench_spread)
+set_gbench_benchmark(bench_spread)
 
 # One-dim type-1 perf benchmark
 add_executable(bench_1d_type1 perftest/benchmark_1d_type1.cpp)
-target_link_libraries(bench_1d_type1 PRIVATE finufft random123 benchmark::benchmark_main)
-set_property(TARGET bench_1d_type1 PROPERTY CMAKE_CXX_STANDARD 14)
-target_compile_options(bench_1d_type1 PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
-enable_asan(bench_1d_type1)
+set_gbench_benchmark(bench_1d_type1)
 
 # One-dim type-3 perf benchmark
 add_executable(bench_1d_type3 perftest/benchmark_1d_type3.cpp)
-target_link_libraries(bench_1d_type3 PRIVATE finufft random123 benchmark::benchmark_main)
-set_property(TARGET bench_1d_type3 PROPERTY CMAKE_CXX_STANDARD 14)
-target_compile_options(bench_1d_type3 PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
-enable_asan(bench_1d_type3)
+set_gbench_benchmark(bench_1d_type3)
 
 # Add tests defined in their own directory
 add_subdirectory(test)

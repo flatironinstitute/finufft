@@ -44,6 +44,7 @@ class LazyDispatchedFunctor<R(Args...), FnScalar, FnSse, FnAvx2, FnAvx512> {
         : fn_scalar_(fn_scalar), fn_sse_(fn_sse), fn_avx2_(fn_avx2), fn_avx512_(fn_avx512),
           dispatch_target_(get_current_dispatch_target()) {}
     LazyDispatchedFunctor(const LazyDispatchedFunctor &) = delete;
+    LazyDispatchedFunctor(LazyDispatchedFunctor &&) = default;
 
     R operator()(Args... args) const noexcept {
         switch (dispatch_target_) {
