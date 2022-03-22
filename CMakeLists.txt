@@ -108,12 +108,19 @@ set_property(TARGET bench_spread PROPERTY CMAKE_CXX_STANDARD 14)
 target_compile_options(bench_spread PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
 enable_asan(bench_spread)
 
+# One-dim type-1 perf benchmark
+add_executable(bench_1d_type1 perftest/benchmark_1d_type1.cpp)
+target_link_libraries(bench_1d_type1 PRIVATE finufft random123 benchmark::benchmark_main)
+set_property(TARGET bench_1d_type1 PROPERTY CMAKE_CXX_STANDARD 14)
+target_compile_options(bench_1d_type1 PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
+enable_asan(bench_1d_type1)
+
 # One-dim type-3 perf benchmark
 add_executable(bench_1d_type3 perftest/benchmark_1d_type3.cpp)
 target_link_libraries(bench_1d_type3 PRIVATE finufft random123 benchmark::benchmark_main)
 set_property(TARGET bench_1d_type3 PROPERTY CMAKE_CXX_STANDARD 14)
-target_compile_options(bench_spread PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
-enable_asan(bench_spread)
+target_compile_options(bench_1d_type3 PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native -fcx-limited-range>)
+enable_asan(bench_1d_type3)
 
 # Add tests defined in their own directory
 add_subdirectory(test)
