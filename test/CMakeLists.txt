@@ -7,8 +7,8 @@ foreach(TEST ${TESTS})
   add_executable(${TEST}_f32 ${TEST}.cpp)
   target_compile_definitions(${TEST}_f32 PRIVATE -DSINGLE)
 
-  target_link_libraries(${TEST}_f64 PRIVATE finufft)
-  target_link_libraries(${TEST}_f32 PRIVATE finufft)
+  target_link_libraries(${TEST}_f64 PRIVATE finufft random123)
+  target_link_libraries(${TEST}_f32 PRIVATE finufft random123)
 endforeach()
 
 

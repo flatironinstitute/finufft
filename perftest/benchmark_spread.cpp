@@ -10,6 +10,8 @@
 
 #include <spreadinterp.h>
 
+#include "../test/testing_utilities.h"
+
 
 void spread_subproblem_1d(BIGINT off1, BIGINT size1, float *du, BIGINT M, float *kx, float  *dd, const spread_opts& opts);
 
@@ -49,21 +51,8 @@ __attribute__((always_inline)) inline void accumulate_kernel_vec_horner(float* o
 #undef FLT
 
 std::vector<float> generate_random_data(int n, int seed) {
-    typedef r123::Philox2x32 RNG;
-    RNG rng;
-
-    RNG::ctr_type ctr = {{}};
-    RNG::ukey_type key = {{}};
-    key[0] = seed;
-
     std::vector<float> result(n);
-    float scale = 0.8 * n;
-
-    for(int i = 0; i < n; i++) {
-        ctr[0] = i;
-        auto r = rng(ctr, key);
-        result[i] = r123::u01<float>(r[0]) * scale + 0.1 * n;
-    }
+    finufft::fill_random(result.data(), n, seed, 0.1f * n, 0.8f * n);
 
     return result;
 }
