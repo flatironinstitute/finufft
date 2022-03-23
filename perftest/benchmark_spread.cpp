@@ -8,12 +8,14 @@
 #include <Random123/philox.h>
 #include <Random123/uniform.hpp>
 
+#define SINGLE
 #include <spreadinterp.h>
+#undef SINGLE
 
 #include "../test/testing_utilities.h"
 
 
-void spread_subproblem_1d(BIGINT off1, BIGINT size1, float *du, BIGINT M, float *kx, float  *dd, const spread_opts& opts);
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, float *du, BIGINT M, float *kx, float  *dd, const SPREAD_OPTS& opts);
 
 namespace {
 
@@ -63,7 +65,7 @@ void benchmark_spread_subproblem_1d(benchmark::State& state) {
     auto positions = generate_random_data(num_points, 0);
     auto strengths = generate_random_data(num_points * 2, 1);
 
-    spread_opts opts;
+    SPREAD_OPTS opts;
     setup_spreader(opts, 1e-6f, 2.0, 1, 0, 1, 1);
 
     for(auto _ : state) {

@@ -26,22 +26,22 @@
 // things external (spreadinterp) interface needs...
 int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
 		 BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		 FLT *data_nonuniform, spread_opts opts);
+		 FLT *data_nonuniform, SPREAD_OPTS opts);
 int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3,
-                 BIGINT M, FLT *kx, FLT *ky, FLT *kz, spread_opts opts);
+                 BIGINT M, FLT *kx, FLT *ky, FLT *kz, SPREAD_OPTS opts);
 int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, 
-               FLT *kx, FLT *ky, FLT *kz, spread_opts opts);
+               FLT *kx, FLT *ky, FLT *kz, SPREAD_OPTS opts);
 int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		 FLT *data_nonuniform, spread_opts opts, int did_sort);
+		 FLT *data_nonuniform, SPREAD_OPTS opts, int did_sort);
 int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		 FLT *data_nonuniform, spread_opts opts, int did_sort);
+		 FLT *data_nonuniform, SPREAD_OPTS opts, int did_sort);
 int spreadinterpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3, 
 		      FLT *data_uniform,BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-		      FLT *data_nonuniform, spread_opts opts, int did_sort);
-FLT evaluate_kernel(FLT x,const spread_opts &opts);
-FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
-int setup_spreader(spread_opts &opts,FLT eps,double upsampfac,int kerevalmeth, int debug, int showwarn, int dim);
+		      FLT *data_nonuniform, SPREAD_OPTS opts, int did_sort);
+FLT evaluate_kernel(FLT x,const SPREAD_OPTS &opts);
+FLT evaluate_kernel_noexp(FLT x,const SPREAD_OPTS &opts);
+int setup_spreader(SPREAD_OPTS &opts,FLT eps,double upsampfac,int kerevalmeth, int debug, int showwarn, int dim);
 
 #endif  // SPREADINTERP_H

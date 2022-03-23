@@ -7,16 +7,12 @@
 #include "testing_utilities.h"
 #include <gtest/gtest.h>
 
-#include <finufft.h>
-
 // Warning: this header does not really correctly handle dual precision
 // TODO: fix type handling
-#define SINGLE
 #include <spreadinterp.h>
-#undef SINGLE
 
 // Forward declare current implementation
-void spread_subproblem_1d(BIGINT off1, BIGINT size1, float *du, BIGINT M, float *kx, float  *dd, const spread_opts& opts);
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, double *du, BIGINT M, double *kx, double  *dd, const SPREAD_OPTS& opts);
 
 namespace {
 
@@ -44,9 +40,9 @@ SpreaderConfig configure_spreader(double eps, double upsample_fraction) {
     int ns;
 
     if (upsample_fraction == 2.0)           // standard sigma (see SISC paper)
-        ns = std::ceil(-log10(eps / 10.0)); // 1 digit per power of 10
+        ns = std::ceil(-std::log10(eps / 10.0)); // 1 digit per power of 10
     else                                    // custom sigma
-        ns = std::ceil(-log(eps) / (M_PI * sqrt(1.0 - 1.0 / upsample_fraction))); // formula, gam=1
+        ns = std::ceil(-std::log(eps) / (M_PI * sqrt(1.0 - 1.0 / upsample_fraction))); // formula, gam=1
 
     ns = std::max(2, ns); // (we don't have ns=1 version yet)
 
@@ -80,16 +76,16 @@ TEST(OneDimSpread, Baseline) {
     auto num_result = 32;
     auto config = configure_spreader(1e-5, 2.0);
 
-    std::vector<float> kx;
-    std::vector<float> dd;
+    std::vector<double> kx;
+    std::vector<double> dd;
 
-    std::tie(kx, dd) = make_spread_data<float>(num_points, config.width, num_result, 0);
+    std::tie(kx, dd) = make_spread_data<double>(num_points, config.width, num_result, 0);
 
-    std::vector<float> result(2 * num_result);
-    std::vector<float> result_expected(2 * num_result);
+    std::vector<double> result(2 * num_result);
+    std::vector<double> result_expected(2 * num_result);
 
-    auto accumulator = finufft::ScalarKernelAccumulator<float>{
-        config.width, static_cast<float>(config.beta), static_cast<float>(config.c)};
+    auto accumulator = finufft::ScalarKernelAccumulator<double>{
+        config.width, static_cast<double>(config.beta), static_cast<double>(config.c)};
 
     finufft::spread_subproblem_1d_impl(
         0,
@@ -101,8 +97,8 @@ TEST(OneDimSpread, Baseline) {
         config.width,
         accumulator);
 
-    spread_opts opts;
-    setup_spreader(opts, 1e-5f, 2.0, 0, 0, 1, 1);
+    SPREAD_OPTS opts;
+    setup_spreader(opts, 1e-5, 2.0, 0, 0, 1, 1);
 
     spread_subproblem_1d(
         0,
@@ -114,6 +110,6 @@ TEST(OneDimSpread, Baseline) {
         opts);
 
     for(int i = 0; i < 2 * num_result; i++) {
-        EXPECT_NEAR(result[i], result_expected[i], 1e-4 * std::abs(result_expected[i]));
+        EXPECT_DOUBLE_EQ(result[i], result_expected[i]);
     }
 }
