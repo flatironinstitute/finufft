@@ -33,6 +33,9 @@ template <typename T> struct ScalarKernelAccumulator {
  *
  */
 template <typename K, int out_width> struct VectorKernelAccumulator {
+    static constexpr int width = K::width;
+    static constexpr double beta = K::beta;
+
     template <typename T> void __attribute__((always_inline)) operator()(T *output, T x1, T re, T im) const noexcept {
         K kernel;
         T ker[out_width];

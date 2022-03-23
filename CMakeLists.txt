@@ -95,7 +95,7 @@ function(add_finufft_kernel target)
 endfunction()
 
 add_finufft_kernel(finufft_sse4 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_sse4.cpp FLAGS -msse4.1)
-add_finufft_kernel(finufft_avx2 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_avx2.cpp FLAGS -mavx2 -mfma)
+add_finufft_kernel(finufft_avx2 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_avx2.cpp src/kernels/spread/spread_kernel_avx2.cpp FLAGS -mavx2 -mfma)
 add_finufft_kernel(finufft_avx512 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_avx512.cpp FLAGS -mavx512f -mavx512vl -mavx512dq)
 
 

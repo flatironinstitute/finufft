@@ -78,6 +78,25 @@ void bench_spread_scalar_with_width(
     state.SetBytesProcessed(state.iterations() * num_points * width * sizeof(T));
 }
 
+template <typename T>
+void bench_spread_avx2_with_width(
+    benchmark::State &state, std::size_t num_points, std::size_t num_output, int width) {
+    double beta = beta_from_width(width);
+    double c = 4.0 / (width * width);
+
+    auto [kx, dd] = make_spread_data<T>(num_points, width, num_output, 0);
+    std::vector<T> du(2 * num_output);
+
+    for (auto _ : state) {
+        benchmark::ClobberMemory();
+        finufft::detail::spread_subproblem_1d_avx2(
+            0, num_output, du.data(), num_output, kx.data(), dd.data(), width, beta, c);
+        benchmark::DoNotOptimize(du[du.size() - 1]);
+    }
+
+    state.SetBytesProcessed(state.iterations() * num_points * width * sizeof(T));
+}
+
 template <typename T> void bench_spread_current_with_width(benchmark::State &state, int width) {
     auto num_points = state.range(0);
     auto num_output = num_points;
@@ -113,16 +132,23 @@ MAKE_BENCHMARK_CURRENT(7, double);
 
 #undef MAKE_BENCHMARK_CURRENT
 
-#define MAKE_BENCHMARK_SCALAR(width, type)                                                         \
-    static void bench_spread_scalar_w##width##_##type(benchmark::State &state) {                   \
+#define MAKE_BENCHMARK(width, instr, type)                                                         \
+    static void bench_spread_##instr##_w##width##_##type(benchmark::State &state) {                \
         auto num_points = state.range(0);                                                          \
-        bench_spread_scalar_with_width<type>(state, num_points, num_points, width);                \
+        bench_spread_##instr##_with_width<type>(state, num_points, num_points, width);             \
     }                                                                                              \
-    BENCHMARK(bench_spread_scalar_w##width##_##type)->Arg(2 << 14)->Unit(benchmark::kMicrosecond);
+    BENCHMARK(bench_spread_##instr##_w##width##_##type)                                            \
+        ->Arg(2 << 14)                                                                             \
+        ->Unit(benchmark::kMicrosecond);
 
-MAKE_BENCHMARK_SCALAR(5, float);
-MAKE_BENCHMARK_SCALAR(5, double);
-MAKE_BENCHMARK_SCALAR(7, float);
-MAKE_BENCHMARK_SCALAR(7, double);
+MAKE_BENCHMARK(5, scalar, float);
+MAKE_BENCHMARK(5, scalar, double);
+MAKE_BENCHMARK(7, scalar, float);
+MAKE_BENCHMARK(7, scalar, double);
 
-#undef MAKE_BENCHMARK_SCALAR
+MAKE_BENCHMARK(5, avx2, float);
+MAKE_BENCHMARK(5, avx2, double);
+MAKE_BENCHMARK(7, avx2, float);
+MAKE_BENCHMARK(7, avx2, double);
+
+#undef MAKE_BENCHMARK

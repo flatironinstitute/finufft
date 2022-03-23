@@ -150,3 +150,54 @@ TEST(OneDimSpread, Scalar) {
         EXPECT_NEAR(result[i], result_expected[i], tol);
     }
 }
+
+namespace {
+    class SpreadTest : public ::testing::TestWithParam<int> {};
+
+    double tolerance_from_width(int width) {
+        return std::pow(10.0, -width + 1.5);
+    }
+}
+
+TEST_P(SpreadTest, AVX2) {
+    auto num_points = 100;
+    auto num_result = 320;
+    auto config = configure_spreader(tolerance_from_width(GetParam()), 2.0);
+    auto width_padded = (config.width + 3) / 4 * 4;
+
+    std::vector<double> kx;
+    std::vector<double> dd;
+
+    std::tie(kx, dd) = make_spread_data<double>(num_points, width_padded, num_result, 0);
+
+    std::vector<double> result(2 * num_result);
+    std::vector<double> result_expected(2 * num_result);
+
+    finufft::detail::spread_subproblem_1d_avx2(
+        0,
+        num_result,
+        result_expected.data(),
+        num_points,
+        kx.data(),
+        dd.data(),
+        config.width,
+        config.beta,
+        config.c);
+
+    finufft::detail::spread_subproblem_1d_scalar(
+        0,
+        num_result,
+        result.data(),
+        num_points,
+        kx.data(),
+        dd.data(),
+        config.width,
+        config.beta,
+        config.c);
+
+    for (int i = 0; i < 2 * num_result; i++) {
+        EXPECT_DOUBLE_EQ(result[i], result_expected[i]);
+    }
+}
+
+INSTANTIATE_TEST_SUITE_P(OneDimSpread, SpreadTest, ::testing::Range(2, 16));
