@@ -29,8 +29,7 @@ struct ScalarKernelAccumulator {
 };
 
 
-// Define dispatched version of the kernel
-// This version automatically selects the desired instruction set
+// Helper to implement generic spreading kernels.
 template <typename T, typename Fn>
 void spread_subproblem_1d_impl(
     std::size_t off1, std::size_t size1, T *du, std::size_t M, const T *kx, const T *dd, int width,

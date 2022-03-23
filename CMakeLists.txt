@@ -71,7 +71,7 @@ add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
 set_finufft_options(finufft_f64)
 target_link_libraries(finufft_f64 PUBLIC FFTW::Double FFTW::DoubleOpenMP)
 
-add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.c src/kernels/onedim_nuft_type3/onedim_nuft.cpp src/kernels/dispatch.cpp)
+add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.c src/kernels/onedim_nuft_type3/onedim_nuft.cpp src/kernels/dispatch.cpp src/kernels/spread/spread_kernel.cpp)
 set_property(TARGET finufft PROPERTY CMAKE_CXX_STANDARD 14)
 target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64 m)
 target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
