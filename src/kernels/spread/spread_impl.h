@@ -42,7 +42,7 @@ template <typename K, int out_width> struct VectorKernelAccumulator {
 
         kernel(x1, ker);
 
-        for (int i = 0; i < out_width; ++i) {
+        for (int i = 0; i < width; ++i) {
             output[2 * i] += re * ker[i];
             output[2 * i + 1] += im * ker[i];
         }

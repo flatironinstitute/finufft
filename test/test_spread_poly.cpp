@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "../src/kernels/spread/spread_poly_scalar_impl.h"
+#include "../src/kernels/spread/spread_poly_avx2_impl.h"
 
 namespace {
     void evaluate_kernel_allw(double x, double* ker, int w) {
@@ -112,3 +113,29 @@ namespace {
 }
 
 INSTANTIATE_TYPED_TEST_SUITE_P(Poly, PolyKernelTest, KernelTypes);
+
+TEST(PolyKernelTests, AVX2_W7) {
+    finufft::detail::ker_horner_avx2_w7 ker_avx2;
+    finufft::detail::ker_horner_scalar_5 ker_scalar;
+
+    ASSERT_EQ(ker_avx2.width, ker_scalar.width);
+    ASSERT_EQ(ker_avx2.beta, ker_scalar.beta);
+
+    float x = -ker_scalar.width / 2.0f + 0.5f;
+
+    float ker_scalar_v[ker_scalar.out_width];
+    float acc_scalar[2 * 8] = {0};
+    ker_scalar(x, ker_scalar_v);
+    for(int i = 0; i < ker_scalar.width; ++i) {
+        acc_scalar[2 * i] += ker_scalar_v[i];
+        acc_scalar[2 * i + 1] += ker_scalar_v[i];
+    }
+
+    float acc_avx2_v[2 * 8] = {0};
+    ker_avx2(acc_avx2_v, x, 1.0, 1.0);
+
+    for(int i = 0; i < 8; ++i) {
+        EXPECT_FLOAT_EQ(acc_scalar[2 * i], acc_avx2_v[2 * i]);
+        EXPECT_FLOAT_EQ(acc_scalar[2 * i + 1], acc_avx2_v[2 * i + 1]);
+    }
+}

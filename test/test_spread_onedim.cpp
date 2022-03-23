@@ -160,18 +160,18 @@ namespace {
 }
 
 TEST_P(SpreadTest, AVX2) {
-    auto num_points = 100;
-    auto num_result = 320;
+    auto num_points = 10;
+    auto num_result = 128;
     auto config = configure_spreader(tolerance_from_width(GetParam()), 2.0);
-    auto width_padded = (config.width + 3) / 4 * 4;
+    auto width_padded = (config.width + 7) / 8 * 8;
 
-    std::vector<double> kx;
-    std::vector<double> dd;
+    std::vector<float> kx;
+    std::vector<float> dd;
 
-    std::tie(kx, dd) = make_spread_data<double>(num_points, width_padded, num_result, 0);
+    std::tie(kx, dd) = make_spread_data<float>(num_points, width_padded, num_result, 0);
 
-    std::vector<double> result(2 * num_result);
-    std::vector<double> result_expected(2 * num_result);
+    std::vector<float> result(2 * num_result);
+    std::vector<float> result_expected(2 * num_result);
 
     finufft::detail::spread_subproblem_1d_avx2(
         0,
@@ -196,7 +196,7 @@ TEST_P(SpreadTest, AVX2) {
         config.c);
 
     for (int i = 0; i < 2 * num_result; i++) {
-        EXPECT_DOUBLE_EQ(result[i], result_expected[i]);
+        EXPECT_NEAR(result[i], result_expected[i], std::max(1e-5 * std::abs(result_expected[i]), 1e-4));
     }
 }
 
