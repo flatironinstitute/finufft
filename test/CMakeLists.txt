@@ -15,6 +15,6 @@ endforeach()
 add_executable(testutils testutils.cpp)
 target_link_libraries(testutils PRIVATE finufft)
 
-add_executable(test_onedim test_nuft_onedim.cpp test_spread_onedim.cpp)
+add_executable(test_onedim test_nuft_onedim.cpp test_spread_onedim.cpp test_spread_poly.cpp)
 enable_asan(test_onedim)
 target_link_libraries(test_onedim PRIVATE finufft gtest_main random123)

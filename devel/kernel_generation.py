@@ -69,7 +69,7 @@ def _generate_poly_eval(v, elements):
 
     return f'{elements[0]} + {v} * ({_generate_poly_eval(v, elements[1:])})'
 
-def generate_c_source_poly_eval_scalar(coefficients: np.ndarray, config: CodeGenConfig=CodeGenConfig()):
+def generate_c_source_poly_eval_scalar(coefficients: np.ndarray, config: CodeGenConfig=CodeGenConfig(), indent: int=0):
     """Generates a C function body corresponding to the evaluation of the given polynomial
     """
     degree, width = coefficients.shape
@@ -79,10 +79,11 @@ def generate_c_source_poly_eval_scalar(coefficients: np.ndarray, config: CodeGen
         elements = ', '.join(f'{coefficients[i, j]:+.16e}' for j in range(width))
         result.append(f'{config.floating_type} c{i}[] = {{ {elements} }};')
 
-    result.append(f'for (int i = 0; i < {config.width_name}; i++) {{')
+    result.append(f'for (int i = 0; i < sizeof(c0) / sizeof(c0[0]); i++) {{')
     result.append(f'  {config.output_name}[i] = ' + _generate_poly_eval(config.input_name, [f'c{i}[i]' for i in range(degree)]) + ';')
     result.append('}')
 
+    result = [' ' * indent + line for line in result]
     return '\n'.join(result)
 
 
@@ -92,7 +93,7 @@ def write_scalar_source(path, degrees: Iterable[int], betas: Iterable[float], wi
     with open(path, 'w') as f:
         codegen_config = CodeGenConfig(floating_type='FLT', width_name='w')
 
-        for i, d, b, w in zip(range(len(degrees)), degrees, betas, widths):
+        for i, d, b, w in zip(range(len(degrees)), 20, betas, widths)[:d, :]:
             coeffs = fit_polynomial(functools.partial(kernel, beta=b), d, w)
             w_padded = ((w + 3) // 4) * 4
 
@@ -128,8 +129,47 @@ def write_matlab_code():
     write_scalar_source('../src/ker_horner_allw_loop.c', *standard_configuration)
     write_scalar_source('../src/ker_lowupsampfrac_horner_allw_loop.c', *generic_configuration(1.25))
 
+
+def write_scalar_kernels_structs(path, degrees: Iterable[int], betas: Iterable[float], widths: Iterable[int]):
+    with open(path, 'w') as f:
+        codegen_config = CodeGenConfig(width_name='width')
+
+        all_kernel_names = []
+
+        f.write('#pragma once\n\n')
+        f.write('#include <tuple>\n\n')
+        f.write('namespace finufft {\n')
+        f.write('namespace detail {\n')
+
+        for i, d, b, w in zip(range(len(degrees)), degrees, betas, widths):
+            coeffs = fit_polynomial(functools.partial(kernel, beta=b), 20, w, 7)[:d, :]
+            w_padded = ((w + 3) // 4) * 4
+
+            coeffs = np.concatenate((coeffs, np.zeros((coeffs.shape[0], w_padded - w))), axis=-1)
+
+            kernel_name = f'ker_horner_scalar_{i}'
+            all_kernel_names.append(kernel_name)
+
+            f.write(f'struct {kernel_name} {{\n')
+            f.write(f'  constexpr static const int width = {w};\n')
+            f.write(f'  constexpr static const int degree = {d};\n')
+            f.write(f'  constexpr static const double beta = {b};\n')
+            f.write(f'  constexpr static const int out_width = {coeffs.shape[-1]};\n')
+            f.write(f'  template<typename FT> void operator()({codegen_config.floating_type} x, {codegen_config.floating_type}* {codegen_config.output_name}) const {{\n')
+            f.write(f'    FT {codegen_config.input_name} = 2 * x + width - 1;\n')
+            f.write(generate_c_source_poly_eval_scalar(coeffs, codegen_config, indent=4))
+            f.write(f'  }};\n')
+            f.write(f'}};\n')
+
+        f.write('typedef std::tuple<')
+        f.write(', '.join(all_kernel_names))
+        f.write('> all_scalar_kernels_tuple;\n')
+
+        f.write('} // namespace detail\n')
+        f.write('} // namespace finufft\n')
+
 def main():
-    pass
+    write_scalar_kernels_structs('../src/kernels/spread/spread_poly_scalar_impl.h', *standard_configuration())
 
 if __name__ == '__main__':
     main()

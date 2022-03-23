@@ -6,20 +6,19 @@
 
 namespace finufft {
 
-
+namespace detail {
 /**! Baseline standard scalar implementation of the 1-d spread kernel.
- * 
+ *
  * Note that this is very slow compared to the vectorized kernels.
- * 
+ *
  */
-template<typename T>
-struct ScalarKernelAccumulator {
+template <typename T> struct ScalarKernelAccumulator {
     int width;
     T beta;
     T c;
 
-    void operator()(T* output, T x1, T re, T im) const noexcept {
-        for(int i = 0; i < width; ++i) {
+    void operator()(T *output, T x1, T re, T im) const noexcept {
+        for (int i = 0; i < width; ++i) {
             T xi = x1 + i;
             T k_val = std::exp(beta * std::sqrt(1 - c * xi * xi));
             output[2 * i] += re * k_val;
@@ -27,7 +26,6 @@ struct ScalarKernelAccumulator {
         }
     }
 };
-
 
 // Helper to implement generic spreading kernels.
 template <typename T, typename Fn>
@@ -45,7 +43,7 @@ void spread_subproblem_1d_impl(
 
         // ceil offset, hence rounding, must match that in get_subgrid...
         std::size_t i1 = (std::size_t)std::ceil(kx[i] - ns2); // fine grid start index
-        T x1 = (T)i1 - kx[i]; // x1 in [-w/2,-w/2+1], up to rounding
+        T x1 = (T)i1 - kx[i];                                 // x1 in [-w/2,-w/2+1], up to rounding
         // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
         // kernel evaluation will fall outside their designed domains, >>1 errors.
         // This can only happen if the overall error would be O(1) anyway. Clip x1??
@@ -60,4 +58,5 @@ void spread_subproblem_1d_impl(
     }
 }
 
+} // namespace detail
 } // namespace finufft

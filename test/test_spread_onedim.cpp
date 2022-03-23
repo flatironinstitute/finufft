@@ -89,10 +89,10 @@ TEST(OneDimSpread, Baseline) {
     std::vector<double> result(2 * num_result);
     std::vector<double> result_expected(2 * num_result);
 
-    auto accumulator = finufft::ScalarKernelAccumulator<double>{
+    auto accumulator = finufft::detail::ScalarKernelAccumulator<double>{
         config.width, static_cast<double>(config.beta), static_cast<double>(config.c)};
 
-    finufft::spread_subproblem_1d_impl(
+    finufft::detail::spread_subproblem_1d_impl(
         0, num_result, result.data(), num_points, kx.data(), dd.data(), config.width, accumulator);
 
     SPREAD_OPTS opts;
@@ -110,19 +110,20 @@ TEST(OneDimSpread, Scalar) {
     auto num_points = 10;
     auto num_result = 32;
     auto config = configure_spreader(1e-5, 2.0);
+    auto width_padded = (config.width + 3) / 4 * 4;
 
     std::vector<double> kx;
     std::vector<double> dd;
 
-    std::tie(kx, dd) = make_spread_data<double>(num_points, config.width, num_result, 0);
+    std::tie(kx, dd) = make_spread_data<double>(num_points, width_padded, num_result, 0);
 
     std::vector<double> result(2 * num_result);
     std::vector<double> result_expected(2 * num_result);
 
-    auto accumulator = finufft::ScalarKernelAccumulator<double>{
+    auto accumulator = finufft::detail::ScalarKernelAccumulator<double>{
         config.width, static_cast<double>(config.beta), static_cast<double>(config.c)};
 
-    finufft::spread_subproblem_1d_impl(
+    finufft::detail::spread_subproblem_1d_impl(
         0,
         num_result,
         result_expected.data(),
@@ -143,7 +144,9 @@ TEST(OneDimSpread, Scalar) {
         config.beta,
         config.c);
 
+    double tol = 1e-5 * std::exp(config.beta);
+
     for (int i = 0; i < 2 * num_result; i++) {
-        EXPECT_DOUBLE_EQ(result[i], result_expected[i]);
+        EXPECT_NEAR(result[i], result_expected[i], tol);
     }
 }
