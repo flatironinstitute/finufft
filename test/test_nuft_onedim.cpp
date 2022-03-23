@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "../src/kernels/dispatch.h"
-#include "../src/kernels/onedim_nuft.h"
+#include "../src/kernels/onedim_nuft_type3/onedim_nuft.h"
 
 // Utility macro to correctly invoke the kernel (disambiguates overloads and function objects)
 #define FINUFFT_INVOKE_KERNEL(name, T)                                                             \

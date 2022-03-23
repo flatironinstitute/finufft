@@ -8,7 +8,7 @@
 #include <spreadinterp.h>
 #include <fftw_defs.h>
 
-#include "kernels/onedim_nuft.h"
+#include "kernels/onedim_nuft_type3/onedim_nuft.h"
 
 #include <iostream>
 #include <iomanip>

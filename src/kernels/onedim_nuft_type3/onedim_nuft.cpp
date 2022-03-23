@@ -1,5 +1,5 @@
 #include "onedim_nuft.h"
-#include "dispatch.h"
+#include "../dispatch.h"
 
 #include <pmmintrin.h>
 #include <xmmintrin.h>

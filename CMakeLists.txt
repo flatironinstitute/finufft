@@ -71,7 +71,7 @@ add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
 set_finufft_options(finufft_f64)
 target_link_libraries(finufft_f64 PUBLIC FFTW::Double FFTW::DoubleOpenMP)
 
-add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.c src/kernels/onedim_nuft.cpp src/kernels/dispatch.cpp)
+add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.c src/kernels/onedim_nuft_type3/onedim_nuft.cpp src/kernels/dispatch.cpp)
 set_property(TARGET finufft PROPERTY CMAKE_CXX_STANDARD 14)
 target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64 m)
 target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -93,9 +93,9 @@ function(add_finufft_kernel target)
     enable_asan(${target})
 endfunction()
 
-add_finufft_kernel(finufft_sse4 SOURCES src/kernels/onedim_nuft_sse4.cpp FLAGS -msse4.1)
-add_finufft_kernel(finufft_avx2 SOURCES src/kernels/onedim_nuft_avx2.cpp FLAGS -mavx2 -mfma)
-add_finufft_kernel(finufft_avx512 SOURCES src/kernels/onedim_nuft_avx512.cpp FLAGS -mavx512f -mavx512vl -mavx512dq)
+add_finufft_kernel(finufft_sse4 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_sse4.cpp FLAGS -msse4.1)
+add_finufft_kernel(finufft_avx2 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_avx2.cpp FLAGS -mavx2 -mfma)
+add_finufft_kernel(finufft_avx512 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_avx512.cpp FLAGS -mavx512f -mavx512vl -mavx512dq)
 
 
 # Spreader perf test executable

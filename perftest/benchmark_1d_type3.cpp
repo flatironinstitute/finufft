@@ -3,7 +3,7 @@
 // of 1-d type-3 kernels.
 
 #include "../src/kernels/dispatch.h"
-#include "../src/kernels/onedim_nuft.h"
+#include "../src/kernels/onedim_nuft_type3/onedim_nuft.h"
 
 #include <benchmark/benchmark.h>
 
