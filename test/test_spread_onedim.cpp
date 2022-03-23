@@ -195,8 +195,25 @@ TEST_P(SpreadTest, AVX2) {
         config.beta,
         config.c);
 
+    double tol = 1e-5;
+    switch(config.width) {
+        case 2:
+            tol = 5e-2;
+            break;
+        case 3:
+            tol = 1e-2;
+            break;
+        case 4:
+            tol = 1e-3;
+            break;
+        case 5:
+            tol = 1e-4;
+            break;
+    }
+    tol *= std::exp(config.beta);
+
     for (int i = 0; i < 2 * num_result; i++) {
-        EXPECT_NEAR(result[i], result_expected[i], std::max(1e-5 * std::abs(result_expected[i]), 1e-4));
+        EXPECT_NEAR(result[i], result_expected[i], tol);
     }
 }
 

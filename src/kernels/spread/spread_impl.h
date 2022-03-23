@@ -27,7 +27,6 @@ template <typename T> struct ScalarKernelAccumulator {
     }
 };
 
-
 /**! Adapter to transform a vector kernel evaluator into an accumulator
  * by separately evaluating into a temporary buffer then accumulating into the output.
  *
@@ -36,7 +35,7 @@ template <typename K, int out_width> struct VectorKernelAccumulator {
     static constexpr int width = K::width;
     static constexpr double beta = K::beta;
 
-    template <typename T> void __attribute__((always_inline)) operator()(T *output, T x1, T re, T im) const noexcept {
+    template <typename T> void operator()(T *output, T x1, T re, T im) const noexcept {
         K kernel;
         T ker[out_width];
 
@@ -49,15 +48,12 @@ template <typename K, int out_width> struct VectorKernelAccumulator {
     }
 };
 
-// Helper to implement generic spreading kernels.
 template <typename T, typename Fn>
-void spread_subproblem_1d_impl(
-    std::size_t off1, std::size_t size1, T *__restrict du, std::size_t M, const T *__restrict kx,
-    const T *__restrict dd, int width, Fn &&eval_and_accumulate) noexcept {
+void spread_subproblem_1d_impl_mainloop(
+    std::size_t size, T *__restrict du, std::size_t M, const T *__restrict kx,
+    const T *__restrict dd, int width, Fn &&eval_and_accumulate) {
 
-    T ns2 = static_cast<T>(width / 2); // half spread width
-
-    std::fill_n(du, 2 * size1, static_cast<T>(0.0));
+    T ns2 = static_cast<T>(width / 2.0);
 
     for (std::size_t i = 0; i < M; i++) { // loop over NU pts
         auto re0 = dd[2 * i];
@@ -76,8 +72,46 @@ void spread_subproblem_1d_impl(
         if (x1 > -ns2 + 1)
             x1 = -ns2 + 1;
 
-        eval_and_accumulate(du + 2 * (i1 - off1), x1, re0, im0);
+        eval_and_accumulate(du + 2 * i1, x1, re0, im0);
     }
+}
+
+// Helper to implement generic spreading kernels.
+template <typename T, typename Fn>
+void spread_subproblem_1d_impl(
+    std::size_t offset, std::size_t size, T *__restrict du, std::size_t M, const T *__restrict kx,
+    const T *__restrict dd, int width, Fn &&eval_and_accumulate) noexcept {
+
+    T ns2 = static_cast<T>(width / 2.0); // half spread width
+
+    std::fill_n(du, 2 * size, static_cast<T>(0.0));
+    spread_subproblem_1d_impl_mainloop(
+        size, du - 2 * offset, M, kx, dd, width, std::forward<Fn>(eval_and_accumulate));
+}
+
+template <typename T, typename FnV, typename Fn>
+void spread_subproblem_1d_multi_impl(
+    std::size_t offset, std::size_t size, T *__restrict du, std::size_t M, const T *__restrict kx,
+    const T *__restrict dd, int width, FnV &&do_main, Fn &&eval_and_accumulate_scalar) noexcept {
+    std::fill_n(du, 2 * size, static_cast<T>(0.0));
+    std::size_t i = 0;
+
+    // Main loop.
+    for (; i < M - do_main.required_elements + 1; i += do_main.stride) {
+        do_main(du - 2 * offset, kx, dd, i);
+    }
+
+    i -= do_main.stride;
+
+    // Handle tail loop.
+    spread_subproblem_1d_impl_mainloop(
+        size,
+        du - 2 * offset,
+        M - i,
+        kx + i,
+        dd + 2 * i,
+        width,
+        std::forward<Fn>(eval_and_accumulate_scalar));
 }
 
 } // namespace detail

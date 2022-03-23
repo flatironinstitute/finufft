@@ -84,7 +84,7 @@ void bench_spread_avx2_with_width(
     double beta = beta_from_width(width);
     double c = 4.0 / (width * width);
 
-    auto [kx, dd] = make_spread_data<T>(num_points, width, num_output, 0);
+    auto [kx, dd] = make_spread_data<T>(num_points, 100, num_output, 0);
     std::vector<T> du(2 * num_output);
 
     for (auto _ : state) {
