@@ -173,7 +173,7 @@ TEST_P(SpreadTest, AVX2) {
     std::vector<float> result(2 * num_result);
     std::vector<float> result_expected(2 * num_result);
 
-    finufft::detail::spread_subproblem_1d_avx2(
+    finufft::detail::spread_subproblem_1d_scalar(
         0,
         num_result,
         result_expected.data(),
@@ -184,7 +184,7 @@ TEST_P(SpreadTest, AVX2) {
         config.beta,
         config.c);
 
-    finufft::detail::spread_subproblem_1d_scalar(
+    finufft::detail::spread_subproblem_1d_avx2(
         0,
         num_result,
         result.data(),
@@ -213,7 +213,7 @@ TEST_P(SpreadTest, AVX2) {
     tol *= std::exp(config.beta);
 
     for (int i = 0; i < 2 * num_result; i++) {
-        EXPECT_NEAR(result[i], result_expected[i], tol);
+        EXPECT_NEAR(result[i], result_expected[i], tol) << "i = " << i;
     }
 }
 

@@ -37,7 +37,7 @@ template <typename VAcc, typename SAcc> struct MultiSubproblemFunctor {
     static_assert(VAcc::width == SAcc::width, "VAcc and SAcc must have the same width");
     static_assert(VAcc::beta == SAcc::beta, "VAcc and SAcc must have the same beta");
 
-    template<typename T>
+    template <typename T>
     void operator()(
         std::size_t offset, std::size_t size, T *__restrict du, std::size_t M,
         const T *__restrict kx, const T *__restrict dd) const {
@@ -56,8 +56,16 @@ using all_scalar_kernel_functors =
 
 using base_vector_float_kernel_functors =
     typename make_functors_tuple<all_vector_float_kernel_accumulators>::type;
-using multi_vector_float_kernel_functors = std::tuple<MultiSubproblemFunctor<
-    finufft::detail::ker_horner_avx2_w5_x3, finufft::detail::VectorKernelAccumulator<finufft::detail::ker_horner_scalar_3, finufft::detail::ker_horner_scalar_3::out_width>>>;
+using multi_vector_float_kernel_functors = std::tuple<
+    MultiSubproblemFunctor<
+        finufft::detail::ker_horner_avx2_w5_x3,
+        finufft::detail::VectorKernelAccumulator<
+            finufft::detail::ker_horner_scalar_3, finufft::detail::ker_horner_scalar_3::out_width>>,
+    MultiSubproblemFunctor<
+        finufft::detail::ker_horner_avx2_w4_x2,
+        finufft::detail::VectorKernelAccumulator<
+            finufft::detail::ker_horner_scalar_2,
+            finufft::detail::ker_horner_scalar_2::out_width>>>;
 
 using all_vector_float_kernel_functors = decltype(std::tuple_cat(
     std::declval<multi_vector_float_kernel_functors>(),

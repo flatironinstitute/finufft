@@ -47,6 +47,70 @@ template <typename... Ts> __m256 evaluate_polynomial_horner_avx2_memory(__m256 z
     return evaluate_polynomial_horner_avx2(z, _mm256_load_ps(mem_c)...);
 }
 
+struct ker_horner_avx2_w4_x2 {
+    // This kernel packs the computation of two elements (requiring 8 locations) into a single AVX2 lane.
+
+    constexpr static const int width = 4;
+    constexpr static const int stride = 2;
+    constexpr static const int required_elements = 2;
+
+    constexpr static const int degree = 7;
+    constexpr static const double beta = 9.52;
+
+    static constexpr float c0[] = { +5.4284366850212916e+02, +1.0073871433088410e+04, +1.0073871433088414e+04, +5.4284366850212893e+02, +5.4284366850212916e+02, +1.0073871433088410e+04, +1.0073871433088414e+04, +5.4284366850212893e+02 };
+    static constexpr float c1[] = { +1.4650917259256960e+03, +6.1905285583602945e+03, -6.1905285583602945e+03, -1.4650917259256962e+03, +1.4650917259256960e+03, +6.1905285583602945e+03, -6.1905285583602945e+03, -1.4650917259256962e+03 };
+    static constexpr float c2[] = { +1.4186910680718358e+03, -1.3995339862725548e+03, -1.3995339862725618e+03, +1.4186910680718338e+03, +1.4186910680718358e+03, -1.3995339862725548e+03, -1.3995339862725618e+03, +1.4186910680718338e+03 };
+    static constexpr float c3[] = { +5.1133995502497521e+02, -1.4191608683682964e+03, +1.4191608683682950e+03, -5.1133995502497589e+02, +5.1133995502497521e+02, -1.4191608683682964e+03, +1.4191608683682950e+03, -5.1133995502497589e+02 };
+    static constexpr float c4[] = { -4.8293622641173734e+01, +3.9393732546129058e+01, +3.9393732546122692e+01, -4.8293622641175475e+01, -4.8293622641173734e+01, +3.9393732546129058e+01, +3.9393732546122692e+01, -4.8293622641175475e+01 };
+    static constexpr float c5[] = { -7.8386867802392629e+01, +1.4918904800408814e+02, -1.4918904800408717e+02, +7.8386867802392331e+01, -7.8386867802392629e+01, +1.4918904800408814e+02, -1.4918904800408717e+02, +7.8386867802392331e+01 };
+    static constexpr float c6[] = { -1.0039212571700405e+01, +5.0626747735619313e+00, +5.0626747735626703e+00, -1.0039212571700107e+01, -1.0039212571700405e+01, +5.0626747735619313e+00, +5.0626747735626703e+00, -1.0039212571700107e+01 };
+
+    void operator()(float* __restrict du, float const* __restrict kx, float const* __restrict dd, std::size_t i) {
+        float x1 = kx[i];
+        float x2 = kx[i + 1];
+
+        float i1f = std::ceil(x1 - 0.5f * width);
+        float i2f = std::ceil(x2 - 0.5f * width);
+
+        std::size_t i1 = static_cast<std::size_t>(i1f);
+        std::size_t i2 = static_cast<std::size_t>(i2f);
+
+        float xi1 = i1f - x1;
+        float xi2 = i2f - x2;
+
+        __m256 x = _mm256_setr_ps(xi1, xi1, xi1, xi1, xi2, xi2, xi2, xi2);
+        __m256 z = _mm256_add_ps(_mm256_add_ps(x, x), _mm256_set1_ps(width - 1.0f));
+        __m256 k = evaluate_polynomial_horner_avx2_memory(z, c0, c1, c2, c3, c4, c5, c6);
+
+        __m256 w_re = _mm256_set_m128(_mm_set1_ps(dd[2 * i]), _mm_set1_ps(dd[2 * i + 2]));
+        __m256 w_im = _mm256_set_m128(_mm_set1_ps(dd[2 * i + 1]), _mm_set1_ps(dd[2 * i + 3]));
+
+        __m256 k_re = _mm256_mul_ps(k, w_re);
+        __m256 k_im = _mm256_mul_ps(k, w_im);
+
+        // First interleave in lane
+        __m256 lo_in = _mm256_unpacklo_ps(k_re, k_im);
+        __m256 hi_in = _mm256_unpackhi_ps(k_re, k_im);
+
+        // Then interleave between-lanes
+        __m256 lo_full = _mm256_permute2f128_ps(lo_in, hi_in, 0x20);
+        __m256 hi_full = _mm256_permute2f128_ps(lo_in, hi_in, 0x31);
+
+        float* out_1 = du + 2 * i1;
+        float* out_2 = du + 2 * i2;
+
+        // Load output and accumulate
+        // Note: must do them in series, as they may alias.
+        __m256 out_lo = _mm256_loadu_ps(out_1);
+        out_lo = _mm256_add_ps(out_lo, lo_full);
+        _mm256_storeu_ps(out_1, out_lo);
+
+        __m256 out_hi = _mm256_loadu_ps(out_2);
+        out_hi = _mm256_add_ps(out_hi, hi_full);
+        _mm256_storeu_ps(out_2, out_hi);
+    }
+};
+
 struct ker_horner_avx2_w5_x3 {
     // This kernel packs the computation of three elements (requiring 15 locations)
     // into two AVX2 lanes (16 locations) to avoid extraneous padding.
@@ -83,7 +147,7 @@ struct ker_horner_avx2_w5_x3 {
 
         __m128 x = _mm_loadu_ps(kx + i);
         __m128 i1f = _mm_ceil_ps(_mm_add_ps(x, neg_ns2));
-        __m128 xi = _mm_sub_ps(x, i1f);
+        __m128 xi = _mm_sub_ps(i1f, x);
 
         xi = _mm_min_ps(xi, neg_ns2);
         xi = _mm_max_ps(xi, _mm_add_ps(neg_ns2, _mm_set1_ps(1.0f)));
