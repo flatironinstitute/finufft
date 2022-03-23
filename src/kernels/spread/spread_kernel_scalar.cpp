@@ -3,30 +3,17 @@
 
 namespace {
 
-template <typename K> struct VectorKernelAccumulator {
-    template <typename T> void operator()(T *output, T x1, T re, T im) const noexcept {
-        K kernel;
-        T ker[K::out_width];
-
-        kernel(x1, ker);
-
-        for (int i = 0; i < K::out_width; ++i) {
-            output[2 * i] += re * ker[i];
-            output[2 * i + 1] += im * ker[i];
-        }
-    }
-};
-
 template <typename... Kernels> struct DispatchSpecialized;
 
 template <typename K, typename... Kernels> struct DispatchSpecialized<K, Kernels...> {
     template <typename T>
     void operator()(
-        std::size_t offset, std::size_t size, T *du, std::size_t M, const T *kx, const T *dd,
-        int width, double es_beta, double es_c) const noexcept {
+        std::size_t offset, std::size_t size, T *__restrict du, std::size_t M,
+        const T *__restrict kx, const T *__restrict dd, int width, double es_beta,
+        double es_c) const noexcept {
         if (K::width == width && std::abs(K::beta - es_beta) < 1e-8) {
-            finufft::detail::spread_subproblem_1d_impl(
-                offset, size, du, M, kx, dd, width, VectorKernelAccumulator<K>{});
+            finufft::detail::VectorKernelAccumulator<K, K::out_width> acc;
+            finufft::detail::spread_subproblem_1d_impl(offset, size, du, M, kx, dd, width, acc);
         } else {
             DispatchSpecialized<Kernels...>{}(offset, size, du, M, kx, dd, width, es_beta, es_c);
         }

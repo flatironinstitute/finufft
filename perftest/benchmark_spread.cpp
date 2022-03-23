@@ -63,6 +63,8 @@ void benchmark_spread_subproblem_1d(benchmark::State& state) {
     int num_points = state.range(0);
 
     auto positions = generate_random_data(num_points, 0);
+    std::sort(positions.begin(), positions.end());
+
     auto strengths = generate_random_data(num_points * 2, 1);
 
     SPREAD_OPTS opts;

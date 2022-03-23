@@ -27,11 +27,30 @@ template <typename T> struct ScalarKernelAccumulator {
     }
 };
 
+
+/**! Adapter to transform a vector kernel evaluator into an accumulator
+ * by separately evaluating into a temporary buffer then accumulating into the output.
+ *
+ */
+template <typename K, int out_width> struct VectorKernelAccumulator {
+    template <typename T> void __attribute__((always_inline)) operator()(T *output, T x1, T re, T im) const noexcept {
+        K kernel;
+        T ker[out_width];
+
+        kernel(x1, ker);
+
+        for (int i = 0; i < out_width; ++i) {
+            output[2 * i] += re * ker[i];
+            output[2 * i + 1] += im * ker[i];
+        }
+    }
+};
+
 // Helper to implement generic spreading kernels.
 template <typename T, typename Fn>
 void spread_subproblem_1d_impl(
-    std::size_t off1, std::size_t size1, T *du, std::size_t M, const T *kx, const T *dd, int width,
-    Fn &&eval_and_accumulate) noexcept {
+    std::size_t off1, std::size_t size1, T *__restrict du, std::size_t M, const T *__restrict kx,
+    const T *__restrict dd, int width, Fn &&eval_and_accumulate) noexcept {
 
     T ns2 = static_cast<T>(width / 2); // half spread width
 

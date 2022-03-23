@@ -79,7 +79,7 @@ def generate_c_source_poly_eval_scalar(coefficients: np.ndarray, config: CodeGen
         elements = ', '.join(f'{coefficients[i, j]:+.16e}' for j in range(width))
         result.append(f'{config.floating_type} c{i}[] = {{ {elements} }};')
 
-    result.append(f'for (int i = 0; i < sizeof(c0) / sizeof(c0[0]); i++) {{')
+    result.append(f'for (int i = 0; i < {width}; i++) {{')
     result.append(f'  {config.output_name}[i] = ' + _generate_poly_eval(config.input_name, [f'c{i}[i]' for i in range(degree)]) + ';')
     result.append('}')
 
@@ -155,7 +155,7 @@ def write_scalar_kernels_structs(path, degrees: Iterable[int], betas: Iterable[f
             f.write(f'  constexpr static const int degree = {d};\n')
             f.write(f'  constexpr static const double beta = {b};\n')
             f.write(f'  constexpr static const int out_width = {coeffs.shape[-1]};\n')
-            f.write(f'  template<typename FT> void operator()({codegen_config.floating_type} x, {codegen_config.floating_type}* {codegen_config.output_name}) const {{\n')
+            f.write(f'  template<typename FT> void __attribute__((always_inline)) operator()({codegen_config.floating_type} x, {codegen_config.floating_type}* {codegen_config.output_name}) const {{\n')
             f.write(f'    FT {codegen_config.input_name} = 2 * x + width - 1;\n')
             f.write(generate_c_source_poly_eval_scalar(coeffs, codegen_config, indent=4))
             f.write(f'  }};\n')

@@ -72,6 +72,7 @@ set_finufft_options(finufft_f64)
 target_link_libraries(finufft_f64 PUBLIC FFTW::Double FFTW::DoubleOpenMP)
 
 add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.c src/kernels/onedim_nuft_type3/onedim_nuft.cpp src/kernels/dispatch.cpp src/kernels/spread/spread_kernel.cpp src/kernels/spread/spread_kernel_scalar.cpp)
+set_optimization_flags(finufft)
 set_property(TARGET finufft PROPERTY CMAKE_CXX_STANDARD 14)
 target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64 m)
 target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -125,6 +126,10 @@ set_gbench_benchmark(bench_1d_type1)
 # One-dim type-3 perf benchmark
 add_executable(bench_1d_type3 perftest/benchmark_1d_type3.cpp)
 set_gbench_benchmark(bench_1d_type3)
+
+# One-dim spreader perf benchmark
+add_executable(bench_1d_spread perftest/benchmark_1d_spread.cpp)
+set_gbench_benchmark(bench_1d_spread)
 
 # Add tests defined in their own directory
 add_subdirectory(test)
