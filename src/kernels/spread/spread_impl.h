@@ -101,8 +101,6 @@ void spread_subproblem_1d_multi_impl(
         do_main(du - 2 * offset, kx, dd, i);
     }
 
-    i -= do_main.stride;
-
     // Handle tail loop.
     spread_subproblem_1d_impl_mainloop(
         size,

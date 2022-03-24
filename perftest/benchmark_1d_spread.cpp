@@ -125,13 +125,6 @@ template <typename T> void bench_spread_current_with_width(benchmark::State &sta
     }                                                                                              \
     BENCHMARK(bench_spread_current_w##width##_##type)->Arg(2 << 14)->Unit(benchmark::kMicrosecond);
 
-MAKE_BENCHMARK_CURRENT(5, float);
-MAKE_BENCHMARK_CURRENT(5, double);
-MAKE_BENCHMARK_CURRENT(7, float);
-MAKE_BENCHMARK_CURRENT(7, double);
-
-#undef MAKE_BENCHMARK_CURRENT
-
 #define MAKE_BENCHMARK(width, instr, type)                                                         \
     static void bench_spread_##instr##_w##width##_##type(benchmark::State &state) {                \
         auto num_points = state.range(0);                                                          \
@@ -141,14 +134,19 @@ MAKE_BENCHMARK_CURRENT(7, double);
         ->Arg(2 << 14)                                                                             \
         ->Unit(benchmark::kMicrosecond);
 
-MAKE_BENCHMARK(5, scalar, float);
-MAKE_BENCHMARK(5, scalar, double);
-MAKE_BENCHMARK(7, scalar, float);
-MAKE_BENCHMARK(7, scalar, double);
+#define MAKE_BENCHMARKS_FOR_WIDTH(width)                                                           \
+    MAKE_BENCHMARK_CURRENT(width, float);                                                          \
+    MAKE_BENCHMARK(width, scalar, float);                                                          \
+    MAKE_BENCHMARK(width, avx2, float);                                                            \
+    MAKE_BENCHMARK_CURRENT(width, double);                                                         \
+    MAKE_BENCHMARK(width, scalar, double);                                                         \
+    MAKE_BENCHMARK(width, avx2, double);
 
-MAKE_BENCHMARK(5, avx2, float);
-MAKE_BENCHMARK(5, avx2, double);
-MAKE_BENCHMARK(7, avx2, float);
-MAKE_BENCHMARK(7, avx2, double);
+MAKE_BENCHMARKS_FOR_WIDTH(4);
+MAKE_BENCHMARKS_FOR_WIDTH(5);
+MAKE_BENCHMARKS_FOR_WIDTH(7);
+MAKE_BENCHMARKS_FOR_WIDTH(8);
 
+#undef MAKE_BENCHMARKS_FOR_WIDTH
+#undef MAKE_BENCHMARK_CURRENT
 #undef MAKE_BENCHMARK

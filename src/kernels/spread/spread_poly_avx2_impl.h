@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cassert>
 #include <immintrin.h>
 
@@ -82,8 +83,8 @@ struct ker_horner_avx2_w4_x2 {
         __m256 z = _mm256_add_ps(_mm256_add_ps(x, x), _mm256_set1_ps(width - 1.0f));
         __m256 k = evaluate_polynomial_horner_avx2_memory(z, c0, c1, c2, c3, c4, c5, c6);
 
-        __m256 w_re = _mm256_set_m128(_mm_set1_ps(dd[2 * i]), _mm_set1_ps(dd[2 * i + 2]));
-        __m256 w_im = _mm256_set_m128(_mm_set1_ps(dd[2 * i + 1]), _mm_set1_ps(dd[2 * i + 3]));
+        __m256 w_re = _mm256_setr_m128(_mm_set1_ps(dd[2 * i]), _mm_set1_ps(dd[2 * i + 2]));
+        __m256 w_im = _mm256_setr_m128(_mm_set1_ps(dd[2 * i + 1]), _mm_set1_ps(dd[2 * i + 3]));
 
         __m256 k_re = _mm256_mul_ps(k, w_re);
         __m256 k_im = _mm256_mul_ps(k, w_im);
@@ -149,15 +150,14 @@ struct ker_horner_avx2_w5_x3 {
         __m128 i1f = _mm_ceil_ps(_mm_add_ps(x, neg_ns2));
         __m128 xi = _mm_sub_ps(i1f, x);
 
-        xi = _mm_min_ps(xi, neg_ns2);
-        xi = _mm_max_ps(xi, _mm_add_ps(neg_ns2, _mm_set1_ps(1.0f)));
-
         __m128i i1 = _mm_cvtps_epi32(i1f);
 
-        __m128 z = _mm_add_ps(_mm_mul_ps(_mm_set1_ps(2.0f), xi), _mm_set1_ps(width - 1.0f));
+        __m128 z = _mm_add_ps(_mm_add_ps(xi, xi), _mm_set1_ps(width - 1.0f));
+        z = _mm_min_ps(z, _mm_set1_ps(1.0f));
+        z = _mm_max_ps(z, _mm_set1_ps(-1.0f));
 
         __m256 z1 = _mm256_setr_ps(z[0], z[0], z[0], z[0], z[0], z[1], z[1], z[1]);
-        __m256 z2 = _mm256_setr_ps(z[2], z[2], z[2], z[3], z[3], z[3], z[3], z[3]);
+        __m256 z2 = _mm256_setr_ps(z[1], z[1], z[2], z[2], z[2], z[2], z[2], z[2]);
 
         __m256 k_l0 = evaluate_polynomial_horner_avx2_memory(z1, c0l0, c1l0, c2l0, c3l0, c4l0, c5l0, c6l0, c7l0);
         __m256 k_l1 = evaluate_polynomial_horner_avx2_memory(z2, c0l1, c1l1, c2l1, c3l1, c4l1, c5l1, c6l1, c7l1);
