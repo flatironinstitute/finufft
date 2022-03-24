@@ -89,6 +89,8 @@ TYPED_TEST_P(PolyKernelTest, Accuracy) {
         case 5:
             tol = 1e-4;
             break;
+        default:
+            break;
     }
 
     double max_difference_float = max_difference_to_kernel<float, TypeParam>();

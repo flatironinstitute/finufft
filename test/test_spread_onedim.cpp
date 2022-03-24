@@ -209,6 +209,8 @@ TEST_P(SpreadTest, AVX2) {
         case 5:
             tol = 1e-4;
             break;
+        default:
+            break;
     }
     tol *= std::exp(config.beta);
 
