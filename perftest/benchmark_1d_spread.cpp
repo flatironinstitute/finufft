@@ -76,6 +76,7 @@ void bench_spread_scalar_with_width(
     }
 
     state.SetBytesProcessed(state.iterations() * num_points * width * sizeof(T));
+    state.SetItemsProcessed(state.iterations() * num_points);
 }
 
 template <typename T>
@@ -95,6 +96,7 @@ void bench_spread_avx2_with_width(
     }
 
     state.SetBytesProcessed(state.iterations() * num_points * width * sizeof(T));
+    state.SetItemsProcessed(state.iterations() * num_points);
 }
 
 template <typename T> void bench_spread_current_with_width(benchmark::State &state, int width) {
@@ -115,6 +117,7 @@ template <typename T> void bench_spread_current_with_width(benchmark::State &sta
     }
 
     state.SetBytesProcessed(state.iterations() * num_points * width * sizeof(T));
+    state.SetItemsProcessed(state.iterations() * num_points);
 }
 
 } // namespace
