@@ -97,13 +97,13 @@ int main(int argc, char* argv[])
   // for type 3 only we do crude accuracy check for 1-NUpt cases...
   ier = FINUFFT1D3(1,x,c,+1,acc,N,s,F,&opts);   // XK prod formally 0
   dirft1d3(1,x,c,+1,N,s,Fe); for (int k=0; k<N; ++k) F[k] -= Fe[k]; // acc chk
-  printf("1d3 M=1:\tier=%d\tnrm(err)=%.3f\n",ier,twonorm(N,F));  // to 5e-4 abs
+  printf("1d3 M=1:\tier=%d\tnrm(err)=%.4f\n",ier,twonorm(N,F)/sqrt((FLT)N));  // rms, to 5e-5 abs
   ier = FINUFFT1D3(M,x,c,+1,acc,1,s,F,&opts);   // "   (for no diff in txt out)
   dirft1d3(M,x,c,+1,1,s,Fe);
-  printf("1d3 N=1:\tier=%d\terr=%.3f\n",ier,abs(F[0]-Fe[0]));
+  printf("1d3 N=1:\tier=%d\terr=%.4f\n",ier,abs(F[0]-Fe[0]));
   ier = FINUFFT1D3(1,x,c,+1,acc,1,s,F,&opts);   // "
   dirft1d3(1,x,c,+1,1,s,Fe);
-  printf("1d3 M=N=1:\tier=%d\terr=%.3f\n",ier,abs(F[0]-Fe[0]));
+  printf("1d3 M=N=1:\tier=%d\terr=%.4f\n",ier,abs(F[0]-Fe[0]));
   ier = FINUFFT1D3(M,x,c,+1,acc,N,shuge,F,&opts);
   printf("1d3 XK prod too big:\tier=%d (should complain)\n",ier);
 
@@ -142,13 +142,13 @@ int main(int argc, char* argv[])
   // again, as above, only crude acc tests for 1-NUpt case...
   ier = FINUFFT1D3MANY(ndata, 1,x,c,+1,acc,N,s,Fm,&opts);   // XK prod formally 0
   dirft1d3(1,x,c,+1,N,s,Fe); for (int k=0; k<N; ++k) Fm[k] -= Fe[k]; // acc chk
-  printf("1d3many M=1:\tier=%d\tnrm(err)=%.3f\n",ier,twonorm(N,Fm));  // to 5e-4 abs; check just first trial
+  printf("1d3many M=1:\tier=%d\tnrm(err)=%.4f\n",ier,twonorm(N,Fm)/sqrt((FLT)N));  // rms, to 5e-5 abs; check just first trial
   ier = FINUFFT1D3MANY(ndata,M,x,c,+1,acc,1,s,Fm,&opts);   // "
   dirft1d3(M,x,c,+1,1,s,Fe);
-  printf("1d3many N=1:\tier=%d\terr=%.3f\n",ier,abs(Fm[0]-Fe[0]));
+  printf("1d3many N=1:\tier=%d\terr=%.4f\n",ier,abs(Fm[0]-Fe[0]));
   ier = FINUFFT1D3MANY(ndata,1,x,c,+1,acc,1,s,Fm,&opts);   // "
   dirft1d3(1,x,c,+1,1,s,Fe);
-  printf("1d3many M=N=1:\tier=%d\terr=%.3f\n",ier,abs(Fm[0]-Fe[0]));
+  printf("1d3many M=N=1:\tier=%d\terr=%.4f\n",ier,abs(Fm[0]-Fe[0]));
   ier = FINUFFT1D3MANY(ndata,M,x,c,+1,acc,N,shuge,F,&opts);
   printf("1d3many XK prod too big:\tier=%d (should complain)\n",ier);
 
