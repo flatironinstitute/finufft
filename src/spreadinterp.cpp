@@ -611,9 +611,9 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
 
   // setup for reference kernel eval (via formula): select beta width param...
   // (even when kerevalmeth=1, this ker eval needed for FTs in onedim_*_kernel)
-  opts.ES_halfwidth=(FLT)ns/2;   // constants to help (see below routines)
-  opts.ES_c = 4.0/(FLT)(ns*ns);
-  FLT betaoverns = 2.30;         // gives decent betas for default sigma=2.0
+  opts.ES_halfwidth=(double)ns/2;   // constants to help (see below routines)
+  opts.ES_c = 4.0/(double)(ns*ns);
+  double betaoverns = 2.30;         // gives decent betas for default sigma=2.0
   if (ns==2) betaoverns = 2.20;  // some small-width tweaks...
   if (ns==3) betaoverns = 2.26;
   if (ns==4) betaoverns = 2.38;
@@ -621,9 +621,9 @@ int setup_spreader(spread_opts &opts, FLT eps, double upsampfac,
     FLT gamma=0.97;              // must match devel/gen_all_horner_C_code.m !
     betaoverns = gamma*PI*(1.0-1.0/(2*upsampfac));  // formula based on cutoff
   }
-  opts.ES_beta = betaoverns * (FLT)ns;    // set the kernel beta parameter
+  opts.ES_beta = betaoverns * ns;   // set the kernel beta parameter
   if (debug)
-    printf("%s (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n",__func__,kerevalmeth,(double)eps,upsampfac,ns,(double)opts.ES_beta);
+    printf("%s (kerevalmeth=%d) eps=%.3g sigma=%.3g: chose ns=%d beta=%.3g\n",__func__,kerevalmeth,(double)eps,upsampfac,ns,opts.ES_beta);
   
   return ier;
 }
@@ -636,11 +636,11 @@ FLT evaluate_kernel(FLT x, const spread_opts &opts)
    This is the "reference implementation", used by eg finufft/onedim_* 2/17/17
 */
 {
-  if (abs(x)>=opts.ES_halfwidth)
+  if (abs(x)>=(FLT)opts.ES_halfwidth)
     // if spreading/FT careful, shouldn't need this if, but causes no speed hit
     return 0.0;
   else
-    return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c*x*x));
+    return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c*x*x));
 }
 
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts)
@@ -661,8 +661,8 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts
    Obsolete (replaced by Horner), but keep around for experimentation since
    works for arbitrary beta. Formula must match reference implementation. */
 {
-  FLT b = opts.ES_beta;
-  FLT c = opts.ES_c;
+  FLT b = (FLT)opts.ES_beta;
+  FLT c = (FLT)opts.ES_c;
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
     // Note (by Ludvig af K): Splitting kernel evaluation into two loops
     // seems to benefit auto-vectorization.
@@ -674,7 +674,7 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts
 	args[i] = 0.0;
     }
     for (int i = 0; i < Npad; i++) { // Loop 1: Compute exponential arguments
-      ker[i] = b * sqrt(1.0 - c*args[i]*args[i]);
+      ker[i] = b * sqrt((FLT)1.0 - c*args[i]*args[i]);  // care! 1.0 is double
     }
     if (!(opts.flags & TF_OMIT_EVALUATE_EXPONENTIAL))
       for (int i = 0; i < Npad; i++) // Loop 2: Compute exponentials
@@ -685,7 +685,7 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts
   }
   // Separate check from arithmetic (Is this really needed? doesn't slow down)
   for (int i = 0; i < N; i++)
-    if (abs(args[i])>=opts.ES_halfwidth) ker[i] = 0.0;
+    if (abs(args[i])>=(FLT)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
 static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
@@ -696,7 +696,7 @@ static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
-    FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
+    FLT z = (FLT)2.0*x + w - (FLT)1.0; // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
     if (opts.upsampfac==2.0) {     // floating point equality is fine here
 #include "ker_horner_allw_loop.c"

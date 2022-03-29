@@ -42,6 +42,7 @@ Testing, bug reports, helpful discussions:
 * Jonas Krimmer - thread safety of FFTW, Windows makefile
 * Timo Heister - pass/fail numdiff testing ideas
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
+* Wenda Zhou - multiple optimizations and improvements
 
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.
