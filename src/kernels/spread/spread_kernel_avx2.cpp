@@ -1,4 +1,5 @@
 #include "spread_impl.h"
+#include "spread_dispatch.h"
 #include "spread_poly_avx2_impl.h"
 #include "spread_poly_scalar_impl.h"
 
@@ -18,17 +19,6 @@ using all_vector_float_kernel_accumulators = decltype(std::tuple_cat(
     std::declval<finufft::detail::all_avx2_float_accumulators_tuple>(),
     std::declval<all_scalar_kernel_accumulators>()));
 
-template <typename Acc> struct SubproblemFunctor {
-    static constexpr int width = Acc::width;
-    static constexpr double beta = Acc::beta;
-
-    template <typename T>
-    void operator()(
-        std::size_t offset, std::size_t size, T *__restrict du, std::size_t M,
-        const T *__restrict kx, const T *__restrict dd) const {
-        finufft::detail::spread_subproblem_1d_impl(offset, size, du, M, kx, dd, width, Acc{});
-    }
-};
 
 template <typename VAcc, typename SAcc> struct MultiSubproblemFunctor {
     static constexpr int width = VAcc::width;
@@ -48,7 +38,7 @@ template <typename VAcc, typename SAcc> struct MultiSubproblemFunctor {
 
 template <typename T> struct make_functors_tuple;
 template <typename... Acc> struct make_functors_tuple<std::tuple<Acc...>> {
-    using type = std::tuple<SubproblemFunctor<Acc>...>;
+    using type = std::tuple<finufft::detail::SubproblemFunctor<Acc>...>;
 };
 
 using all_scalar_kernel_functors =
@@ -71,38 +61,6 @@ using all_vector_float_kernel_functors = decltype(std::tuple_cat(
     std::declval<multi_vector_float_kernel_functors>(),
     std::declval<base_vector_float_kernel_functors>()));
 
-template <typename... Functors> struct DispatchSpecialized;
-
-template <typename Fn, typename... Functors> struct DispatchSpecialized<Fn, Functors...> {
-    template <typename T>
-    void operator()(
-        std::size_t offset, std::size_t size, T *__restrict du, std::size_t M,
-        const T *__restrict kx, const T *__restrict dd, int width, double es_beta,
-        double es_c) const noexcept {
-        if (Fn::width == width && std::abs(Fn::beta - es_beta) < 1e-8) {
-            Fn{}(offset, size, du, M, kx, dd);
-        } else {
-            DispatchSpecialized<Functors...>{}(offset, size, du, M, kx, dd, width, es_beta, es_c);
-        }
-    }
-};
-
-template <> struct DispatchSpecialized<> {
-    template <typename T>
-    void operator()(
-        std::size_t offset, std::size_t size, T *du, std::size_t M, const T *kx, const T *dd,
-        int width, double es_beta, double es_c) const noexcept {
-        auto accumulator = finufft::detail::ScalarKernelAccumulator<T>{
-            width, static_cast<T>(es_beta), static_cast<float>(es_c)};
-        finufft::detail::spread_subproblem_1d_impl(
-            offset, size, du, M, kx, dd, width, std::move(accumulator));
-    }
-};
-
-template <typename T> struct DispatchSpecializedTuple;
-template <typename... Ts>
-struct DispatchSpecializedTuple<std::tuple<Ts...>> : DispatchSpecialized<Ts...> {};
-
 } // namespace
 
 namespace finufft {
@@ -112,14 +70,14 @@ namespace detail {
 void spread_subproblem_1d_avx2(
     std::size_t off1, std::size_t size1, float *du, std::size_t M, const float *kx, const float *dd,
     int width, double es_beta, double es_c) noexcept {
-    DispatchSpecializedTuple<all_vector_float_kernel_functors> dispatch;
+    finufft::detail::DispatchSpecializedFromTuple<all_vector_float_kernel_functors> dispatch;
     dispatch(off1, size1, du, M, kx, dd, width, es_beta, es_c);
 }
 
 void spread_subproblem_1d_avx2(
     std::size_t off1, std::size_t size1, double *du, std::size_t M, const double *kx,
     const double *dd, int width, double es_beta, double es_c) noexcept {
-    DispatchSpecializedTuple<all_scalar_kernel_functors> dispatch;
+    finufft::detail::DispatchSpecializedFromTuple<all_scalar_kernel_functors> dispatch;
     dispatch(off1, size1, du, M, kx, dd, width, es_beta, es_c);
 }
 
