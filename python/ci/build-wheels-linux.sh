@@ -23,7 +23,7 @@ pys=(/opt/python/*/bin)
 pys=(${pys[@]//*27*/})
 pys=(${pys[@]//*34*/})
 pys=(${pys[@]//*35*/})
-pys=(${pys[@]//*pp38-pypy38_pp73*/})
+pys=(${pys[@]//*pp39-pypy39_pp73*/})
 
 # build wheel
 for PYBIN in "${pys[@]}"; do

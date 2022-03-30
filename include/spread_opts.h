@@ -24,10 +24,10 @@ typedef struct spread_opts {  // see spreadinterp:setup_spreader for defaults.
   int debug;              // 0: silent, 1: small text output, 2: verbose
   int atomic_threshold;   // num threads before switching spreadSorted to using atomic ops
   double upsampfac;       // sigma, upsampling factor
-  // ES kernel specific consts used in fast eval, depend on precision FLT...
-  FLT ES_beta;
-  FLT ES_halfwidth;
-  FLT ES_c;
+  // ES kernel specific consts for eval. No longer FLT, to avoid name clash...
+  double ES_beta;
+  double ES_halfwidth;
+  double ES_c;
 } spread_opts;
 
 #endif   // SPREAD_OPTS_H
