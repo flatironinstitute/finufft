@@ -14,6 +14,7 @@ set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifyi
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
 set(FINUFFT_BUILD_EXAMPLES "OFF" CACHE BOOL "Whether to build the FINUFFT examples")
 set(FINUFFT_BUILD_TESTS "OFF" CACHE BOOL "Whether to build the FINUFFT tests")
+set(FINUFFT_BUILD_FORTRAN "OFF" CACHE BOOL "Whether to build the FINUFFT Fortran examples")
 
 # Find required packages
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -24,7 +25,7 @@ set(FINUFFT_FFTW_LIBRARIES "FFTW::Float" "FFTW::Double" "FFTW::Float${FINUFFT_FF
 
 # This set of sources is compiled twice, once in single precision and once in double precision
 # The single precision compilation is done with -DSINGLE
-set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp)
+set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
 
 # Utility function to enable ASAN on debug builds
 function(enable_asan target)
@@ -68,4 +69,9 @@ endif()
 
 if(FINUFFT_BUILD_EXAMPLES)
 add_subdirectory(examples)
+endif()
+
+if(FINUFFT_BUILD_FORTRAN)
+enable_language(Fortran)
+add_subdirectory(fortran)
 endif()
