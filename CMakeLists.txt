@@ -15,6 +15,7 @@ set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. O
 set(FINUFFT_BUILD_EXAMPLES "OFF" CACHE BOOL "Whether to build the FINUFFT examples")
 set(FINUFFT_BUILD_TESTS "OFF" CACHE BOOL "Whether to build the FINUFFT tests")
 set(FINUFFT_BUILD_FORTRAN "OFF" CACHE BOOL "Whether to build the FINUFFT Fortran examples")
+set(FINUFFT_BUILD_MATLAB "OFF" CACHE BOOL "Whether to build the FINUFFT Matlab interface")
 
 # Find required packages
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -61,6 +62,11 @@ set_finufft_options(finufft)
 target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64 m)
 target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.c)
+set_finufft_options(finufft)
+target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64 m)
+target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 # Add tests defined in their own directory
 if(BUILD_TESTING AND FINUFFT_BUILD_TESTS)
 add_subdirectory(test)
@@ -74,4 +80,8 @@ endif()
 if(FINUFFT_BUILD_FORTRAN)
 enable_language(Fortran)
 add_subdirectory(fortran)
+endif()
+
+if(FINUFFT_BUILD_MATLAB)
+add_subdirectory(matlab)
 endif()
