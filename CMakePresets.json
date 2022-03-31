@@ -56,6 +56,16 @@
                 "CMAKE_Fortran_COMPILER": "ifort",
                 "FINUFFT_ARCH_FLAGS": "-xHost"
             }
+        },
+        {
+            "name": "matlab",
+            "binaryDir": "build/matlab",
+            "displayName": "matlab",
+            "description": "Build with the matlab interface",
+            "generator":"Ninja Multi-Config",
+            "cacheVariables": {
+                "FINUFFT_BUILD_MATLAB": "ON"
+            }
         }
     ],
     "buildPresets": [
@@ -81,6 +91,11 @@
             "name": "icc",
             "configurePreset": "icc",
             "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "matlab",
+            "configurePreset": "matlab",
+            "configuration": "Release"
         }
     ],
     "testPresets": [
