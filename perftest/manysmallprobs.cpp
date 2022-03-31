@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 using namespace std;
+using namespace finufft;
 
 int main(int argc, char* argv[])
 /* What is small-problem cost of FINUFFT library from C++, using plain

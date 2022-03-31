@@ -2,6 +2,7 @@
 // for sleep call
 #include <unistd.h>
 using namespace std;
+using namespace finufft;
 
 // forward declaration of helper to (repeatedly if needed) call finufft?d?
 double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,FINUFFT_PLAN plan);
