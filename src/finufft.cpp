@@ -18,7 +18,7 @@ extern "C" {
   #include "../contrib/legendre_rule_fast.h"
 }
 using namespace std;
-
+using namespace finufft;
 
 /* Computational core for FINUFFT.
 

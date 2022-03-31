@@ -9,6 +9,7 @@
 #include <math.h>
 #include <stdio.h>
 using namespace std;
+using namespace finufft;
 
 // declarations of purely internal functions...
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);

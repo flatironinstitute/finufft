@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+using namespace finufft;
+
 void usage()
 {
   printf("usage: spreadtestnd dims [M N [tol [sort [flags [debug [kerpad [kerevalmeth [upsampfac]]]]]]]]\n\twhere dims=1,2 or 3\n\tM=# nonuniform pts\n\tN=# uniform pts\n\ttol=requested accuracy\n\tsort=0 (don't sort NU pts), 1 (do), or 2 (maybe sort; default)\n\tflags: expert timing flags, 0 is default (see spreadinterp.h)\n\tdebug=0 (less text out), 1 (more), 2 (lots)\n\tkerpad=0 (no pad to mult of 4), 1 (do, for kerevalmeth=0 only)\n\tkerevalmeth=0 (direct), 1 (Horner ppval)\n\tupsampfac>1; 2 or 1.25 for Horner\n\nexample: ./spreadtestnd 1 1e6 1e6 1e-6 2 0 1\n");

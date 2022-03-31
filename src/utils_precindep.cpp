@@ -31,6 +31,8 @@ BIGINT next235even(BIGINT n)
 // ----------------------- helpers for timing (always stay double prec) ------
 using namespace std;
 
+namespace finufft
+{
 void CNTime::start()
 {
   gettimeofday(&initial, 0);
@@ -54,6 +56,7 @@ double CNTime::elapsedsec()
   return nowsec - initialsec;
 }
 
+}
 
 // -------------------------- openmp helpers -------------------------------
 int get_num_threads_parallel_block()

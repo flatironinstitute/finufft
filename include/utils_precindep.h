@@ -8,7 +8,9 @@
 
 BIGINT next235even(BIGINT n);
 
-// jfm's timer class
+namespace finufft{
+
+  // jfm's timer class
 #include <sys/time.h>
 class CNTime {
  public:
@@ -19,6 +21,8 @@ class CNTime {
   struct timeval initial;
 };
 
+}
+  
 // openmp helpers
 int get_num_threads_parallel_block();
 
