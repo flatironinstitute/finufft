@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.19)
 
 project(finufft VERSION 2.0.4 LANGUAGES C CXX)
+
+if(CMAKE_CXX_COMPILER_ID IN_LIST "AppleClang;Clang;GNU")
+    # Set custom compiler flags for gcc-compatible compilers
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -funroll-loops -fcx-limited-range")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG -funroll-loops -fcx-limited-range")
+endif()
+
 include(CTest)
 
-set(FINUFFT_OPT_FLAGS "-O3 -march=native -funroll-loops -fcx-limited-range" CACHE STRING "Compiler flags used for compiling finufft release binaries")
+set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifying target architecture.")
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
-set(FINUFFT_BUILD_EXAMPLES "ON" CACHE BOOL "Whether to build the FINUFFT examples")
+set(FINUFFT_BUILD_EXAMPLES "OFF" CACHE BOOL "Whether to build the FINUFFT examples")
 set(FINUFFT_BUILD_TESTS "OFF" CACHE BOOL "Whether to build the FINUFFT tests")
 
 # Find required packages
@@ -21,8 +28,11 @@ set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp
 
 # Utility function to enable ASAN on debug builds
 function(enable_asan target)
-    target_compile_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
-    target_link_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
+    if(CMAKE_CXX_COMPILER_ID IN_LIST "AppleClang;Clang;GNU")
+        # Enable only on clang / gcc compilers.
+        target_compile_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
+        target_link_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
+    endif()
 endfunction()
 
 # Utility function to set finufft compilation options.
@@ -30,7 +40,7 @@ function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
     set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
     enable_asan(${target})
-    target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_OPT_FLAGS}>)
+    target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
     target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
     target_link_libraries(${target} PUBLIC OpenMP::OpenMP_CXX)
 endfunction()

@@ -1,0 +1,81 @@
+{
+    "version": 2,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 19,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "binaryDir": "build/default",
+            "displayName": "Default",
+            "description": "Default release configuration (ninja)",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        },
+        {
+            "name": "ninja-multi",
+            "binaryDir": "build/ninja",
+            "displayName": "Ninja Multi-config",
+            "description": "Multi-configuration build with ninja",
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "dev",
+            "binaryDir": "build/dev",
+            "displayName": "Development",
+            "description": "Development configuration (full tests and examples)",
+            "generator": "Ninja Multi-Config"
+        },
+        {
+            "name": "manylinux",
+            "binaryDir": "build/manylinux",
+            "displayName": "manylinux",
+            "description": "Configuration for maximum binary compatibility",
+            "inherits": "default",
+            "cacheVariables": {
+                "FINUFFT_ARCH_FLAGS": "-march=x86-64 -mtune=generic -msse4"
+            }
+        },
+        {
+            "name": "icc",
+            "binaryDir": "build/icc",
+            "displayName": "Intel Compiler",
+            "description": "Build with Intel Compiler",
+            "generator": "Ninja Multi-Config",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "icc",
+                "CMAKE_CXX_COMPILER": "icpc",
+                "CMAKE_Fortran_COMPILER": "ifort"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "configurePreset": "default"
+        },
+        {
+            "name": "dev",
+            "configurePreset": "dev",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "ninja-multi",
+            "configurePreset": "ninja-multi",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "manylinux",
+            "configurePreset": "manylinux"
+        },
+        {
+            "name": "icc",
+            "configurePreset": "icc",
+            "configuration": "RelWithDebInfo"
+        }
+    ]
+}
