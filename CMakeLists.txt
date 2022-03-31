@@ -16,6 +16,15 @@ set(FINUFFT_BUILD_EXAMPLES "OFF" CACHE BOOL "Whether to build the FINUFFT exampl
 set(FINUFFT_BUILD_TESTS "OFF" CACHE BOOL "Whether to build the FINUFFT tests")
 set(FINUFFT_BUILD_FORTRAN "OFF" CACHE BOOL "Whether to build the FINUFFT Fortran examples")
 set(FINUFFT_BUILD_MATLAB "OFF" CACHE BOOL "Whether to build the FINUFFT Matlab interface")
+set(FINUFFT_ENABLE_SANITIZERS "ON" CACHE BOOL "Whether to enable sanitizers, only effective for Debug configuration.")
+
+if(FINUFFT_BUILD_MATLAB)
+    # When building for matlab, we will fetch the OpenMP library used by matlab
+    # instead of system default for compatibility.
+    find_package(Matlab REQUIRED)
+    find_library(OpenMP_iomp5_LIBRARY NAMES iomp5 HINTS ${Matlab_ROOT_DIR}/sys/os/ PATH_SUFFIXES glnxa64 maci64)
+    find_library(OpenMP_pthreads_LIBRARY NAMES pthread CMAKE_FIND_ROOT_PATH_BOTH)
+endif()
 
 # Find required packages
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -31,6 +40,10 @@ set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp
 # Utility function to enable ASAN on debug builds
 set(FINUFFT_ASAN_SUPPORTED_COMPILERS AppleClang Clang GNU)
 function(enable_asan target)
+    if(NOT FINUFFT_ENABLE_SANITIZERS)
+        return()
+    endif()
+
     if(CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_ASAN_SUPPORTED_COMPILERS)
         # Enable only on clang / gcc compilers.
         target_compile_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
