@@ -28,7 +28,11 @@
             "binaryDir": "build/dev",
             "displayName": "Development",
             "description": "Development configuration (full tests and examples)",
-            "generator": "Ninja Multi-Config"
+            "generator": "Ninja Multi-Config",
+            "cacheVariables": {
+                "FINUFFT_BUILD_TESTS": "ON",
+                "FINUFFT_BUILD_EXAMPLES": "ON"
+            }
         },
         {
             "name": "manylinux",
@@ -49,7 +53,8 @@
             "cacheVariables": {
                 "CMAKE_C_COMPILER": "icc",
                 "CMAKE_CXX_COMPILER": "icpc",
-                "CMAKE_Fortran_COMPILER": "ifort"
+                "CMAKE_Fortran_COMPILER": "ifort",
+                "FINUFFT_ARCH_FLAGS": "-xHost"
             }
         }
     ],
@@ -61,7 +66,7 @@
         {
             "name": "dev",
             "configurePreset": "dev",
-            "configuration": "RelWithDebInfo"
+            "configuration": "Debug"
         },
         {
             "name": "ninja-multi",
@@ -76,6 +81,16 @@
             "name": "icc",
             "configurePreset": "icc",
             "configuration": "RelWithDebInfo"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "dev",
+            "configurePreset": "dev",
+            "configuration": "Debug",
+            "environment": {
+                "OMP_NUM_THREADS": "1"
+            }
         }
     ]
 }

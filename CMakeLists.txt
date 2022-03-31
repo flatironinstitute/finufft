@@ -29,8 +29,9 @@ set(FINUFFT_FFTW_LIBRARIES "FFTW::Float" "FFTW::Double" "FFTW::Float${FINUFFT_FF
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
 
 # Utility function to enable ASAN on debug builds
+set(FINUFFT_ASAN_SUPPORTED_COMPILERS AppleClang Clang GNU)
 function(enable_asan target)
-    if(CMAKE_CXX_COMPILER_ID IN_LIST "AppleClang;Clang;GNU")
+    if(CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_ASAN_SUPPORTED_COMPILERS)
         # Enable only on clang / gcc compilers.
         target_compile_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
         target_link_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
