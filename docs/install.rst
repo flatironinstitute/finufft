@@ -51,6 +51,21 @@ for examples of how to call and link to the library.
 Type ``make`` to see a list of other aspects the user can build
 (examples, language interfaces, etc).
 
+CMake Installation
+------------------
+
+We additionally support a CMake-based installation for those who prefer.
+
+.. code-block:: bash
+
+  mkdir build
+  cd build
+  cmake .. 
+  cmake --build .
+
+To use ``finufft`` as a library, simply add this repository as a subdirectory using
+``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
+
 
 Dependencies
 ------------
