@@ -5,8 +5,13 @@
 
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
+#include <cuComplex.h>
 
 #include "precision_independent.h"
+
+/* Auxiliary func to compute power of complex number */
+__device__ RT carg(const CT& z) {return (RT)atan2(ipart(z), rpart(z));} // polar angle
+__device__ RT cabs(const CT& z) {return (RT)cuCabs(z);}
 
 /* Common Kernels from spreadinterp3d */
 __host__ __device__

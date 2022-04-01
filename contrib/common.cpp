@@ -59,19 +59,46 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
   sampled kernel, not quite the same object.
 
   Barnett 2/7/17. openmp (since slow vs fftw in 1D large-N case) 3/3/18
+  Melody 2/20/22 separate into precomp & comp functions defined below.
  */
+{
+  FLT f[MAX_NQUAD];
+  dcomplex a[MAX_NQUAD];
+  onedim_fseries_kernel_precomp(nf, f, a, opts);
+  onedim_fseries_kernel_compute(nf, f, a, fwkerhalf, opts);
+}
+
+/*
+  Precomputation of approximations of exact Fourier series coeffs of cnufftspread's
+  real symmetric kernel.
+
+  Inputs:
+  nf - size of 1d uniform spread grid, must be even.
+  opts - spreading opts object, needed to eval kernel (must be already set up)
+
+  Outputs:
+  a - phase winding rates
+  f - funciton values at quadrature nodes multiplied with quadrature weights
+  (a, f are provided as the inputs of onedim_fseries_kernel_compute() defined below)
+*/
+void onedim_fseries_kernel_precomp(BIGINT nf, FLT *f, dcomplex *a, SPREAD_OPTS opts)
 {
   FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
-  FLT f[MAX_NQUAD]; double z[2*MAX_NQUAD],w[2*MAX_NQUAD];
+  double z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
-  dcomplex a[MAX_NQUAD];
   for (int n=0;n<q;++n) {               // set up nodes z_n and vals f_n
     z[n] *= J2;                         // rescale nodes
     f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
     a[n] = exp(2*PI*IMA*(FLT)(nf/2-z[n])/(FLT)nf);  // phase winding rates
   }
+}
+
+void onedim_fseries_kernel_compute(BIGINT nf, FLT *f, dcomplex *a, FLT *fwkerhalf, SPREAD_OPTS opts)
+{
+  FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
+  int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
   BIGINT nout=nf/2+1;                   // how many values we're writing to
   int nt = MIN(nout,MY_OMP_GET_MAX_THREADS());  // how many chunks
   std::vector<BIGINT> brk(nt+1);        // start indices for each thread

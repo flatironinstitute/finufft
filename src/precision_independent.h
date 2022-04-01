@@ -5,6 +5,17 @@
 #ifndef PRECISION_INDEPENDENT_H
 #define PRECISION_INDEPENDENT_H
 
+/* Auxiliary var/func to compute power of complex number */
+typedef double     RT;
+typedef cuDoubleComplex CT;
+#define rpart(x)   (cuCreal(x))
+#define ipart(x)   (cuCimag(x))
+#define cmplx(x,y) (make_cuDoubleComplex(x,y))
+
+__device__ RT carg(const CT& z); // polar angle
+__device__ RT cabs(const CT& z);
+__device__ CT cpow(const CT& z, const int &n);
+
 /* Common Kernels from spreadinterp3d */
 __host__ __device__
 int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz,

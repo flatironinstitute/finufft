@@ -79,8 +79,9 @@ STATICLIB=lib-static/$(LIBNAME).a
 
 BINDIR=bin
 
-HEADERS = include/cufinufft.h src/cudeconvolve.h src/memtransfer.h include/profile.h \
-	src/cuspreadinterp.h include/cufinufft_eitherprec.h include/cufinufft_errors.h
+HEADERS = include/cufinufft.h src/cudeconvolve.h src/memtransfer.h src/common.h \
+	  include/profile.h src/cuspreadinterp.h include/cufinufft_eitherprec.h \
+	  include/cufinufft_errors.h
 CONTRIBOBJS=contrib/dirft2d.o contrib/common.o contrib/spreadinterp.o contrib/utils_fp.o
 
 # We create three collections of objects:
@@ -92,7 +93,7 @@ CUFINUFFTOBJS_64=src/1d/spreadinterp1d.o src/1d/cufinufft1d.o \
 	src/2d/spreadinterp2d.o src/2d/cufinufft2d.o \
 	src/2d/spread2d_wrapper.o src/2d/spread2d_wrapper_paul.o \
 	src/2d/interp2d_wrapper.o src/memtransfer_wrapper.o \
-	src/deconvolve_wrapper.o src/cufinufft.o \
+	src/deconvolve_wrapper.o src/cufinufft.o src/common.o \
 	src/3d/spreadinterp3d.o src/3d/spread3d_wrapper.o \
 	src/3d/interp3d_wrapper.o src/3d/cufinufft3d.o \
 	$(CONTRIBOBJS)
@@ -115,7 +116,9 @@ CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 default: all
 
 # Build all, but run no tests. Note: CI currently uses this default...
-all: libtest spreadtest examples
+all: libtest internaltest examples
+
+internaltest: spreadtest fserieskertest
 
 # testers for the lib (does not execute)
 libtest: lib $(BINDIR)/cufinufft2d1_test \
@@ -137,7 +140,7 @@ libtest: lib $(BINDIR)/cufinufft2d1_test \
 	$(BINDIR)/cufinufft1d1_test \
 	$(BINDIR)/cufinufft1d2_test \
 	$(BINDIR)/cufinufft1d1_test_32 \
-	$(BINDIR)/cufinufft1d2_test_32 \
+	$(BINDIR)/cufinufft1d2_test_32
 
 # low-level (not-library) testers (does not execute)
 spreadtest: $(BINDIR)/spread2d_test \
@@ -152,6 +155,9 @@ spreadtest: $(BINDIR)/spread2d_test \
 	$(BINDIR)/spread1d_test_32 \
 	$(BINDIR)/interp1d_test \
 	$(BINDIR)/interp1d_test_32
+
+fserieskertest: $(BINDIR)/fseries_kernel_test \
+	$(BINDIR)/fseries_kernel_test_32
 
 examples: $(BINDIR)/example2d1many \
 	$(BINDIR)/example2d2many

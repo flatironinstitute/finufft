@@ -95,7 +95,8 @@
 /* structs */
 #undef CUFINUFFT_PLAN_S
 #undef CUFINUFFT_PLAN
-
+/* fseries kernel */
+#undef CUFSERIESKERNELCOMPUTE
 
 #ifdef SINGLE
 
@@ -166,6 +167,8 @@
 /* structs */
 #define CUFINUFFT_PLAN_S cufinufftf_plan_s
 #define CUFINUFFT_PLAN cufinufftf_plan
+/* fseries kernel */
+#define CUFSERIESKERNELCOMPUTE cufserieskernelcompute_f
 
 #else
 
@@ -236,6 +239,8 @@
 /* structs */
 #define CUFINUFFT_PLAN_S cufinufft_plan_s
 #define CUFINUFFT_PLAN cufinufft_plan
+/* fseries kernel */
+#define CUFSERIESKERNELCOMPUTE cufserieskernelcompute
 
 #endif
 
