@@ -17,6 +17,7 @@ set(FINUFFT_BUILD_TESTS "OFF" CACHE BOOL "Whether to build the FINUFFT tests")
 set(FINUFFT_BUILD_FORTRAN "OFF" CACHE BOOL "Whether to build the FINUFFT Fortran examples")
 set(FINUFFT_BUILD_MATLAB "OFF" CACHE BOOL "Whether to build the FINUFFT Matlab interface")
 set(FINUFFT_ENABLE_SANITIZERS "ON" CACHE BOOL "Whether to enable sanitizers, only effective for Debug configuration.")
+set(FINUFFT_USE_OPENMP "ON" CACHE BOOL "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library.")
 
 if(FINUFFT_BUILD_MATLAB)
     # When building for matlab, we will fetch the OpenMP library used by matlab
@@ -29,7 +30,10 @@ endif()
 # Find required packages
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(FFTW REQUIRED)
-find_package(OpenMP REQUIRED)
+
+if(FINUFFT_USE_OPENMP)
+    find_package(OpenMP REQUIRED)
+endif()
 
 set(FINUFFT_FFTW_LIBRARIES "FFTW::Float" "FFTW::Double" "FFTW::Float${FINUFFT_FFTW_SUFFIX}" "FFTW::Double${FINUFFT_FFTW_SUFFIX}")
 
@@ -37,17 +41,19 @@ set(FINUFFT_FFTW_LIBRARIES "FFTW::Float" "FFTW::Double" "FFTW::Float${FINUFFT_FF
 # The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
 
+# Set of compilers which behave like gcc
+set(FINUFFT_GNU_LIKE_COMPILERS AppleClang Clang GNU)
+
 # Utility function to enable ASAN on debug builds
-set(FINUFFT_ASAN_SUPPORTED_COMPILERS AppleClang Clang GNU)
 function(enable_asan target)
     if(NOT FINUFFT_ENABLE_SANITIZERS)
         return()
     endif()
 
-    if(CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_ASAN_SUPPORTED_COMPILERS)
+    if(CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_GNU_LIKE_COMPILERS)
         # Enable only on clang / gcc compilers.
-        target_compile_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
-        target_link_options(${target} PUBLIC $<$<CONFIG:DEBUG>:-fsanitize=address>)
+        target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address>)
+        target_link_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address>)
     endif()
 endfunction()
 
@@ -58,7 +64,14 @@ function(set_finufft_options target)
     enable_asan(${target})
     target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
     target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-    target_link_libraries(${target} PUBLIC OpenMP::OpenMP_CXX)
+    if(FINUFFT_USE_OPENMP)
+        target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
+    else()
+        if(CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_GNU_LIKE_COMPILERS)
+            # OpenMP disabled, suppress unknown pragma warnings to avoid spam.
+            target_compile_options(${target} PRIVATE "-Wno-unknown-pragmas")
+        endif()
+    endif()
 endfunction()
 
 # Main finufft libraries

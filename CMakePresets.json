@@ -45,6 +45,17 @@
             }
         },
         {
+            "name": "singlethreaded",
+            "binaryDir": "build/singlethreaded",
+            "displayName": "singlethreaded",
+            "description": "Configuration for single-threaded build. Disables OpenMP for finufft and FFTW",
+            "inherits": "default",
+            "cacheVariables": {
+                "FINUFFT_FFTW_SUFFIX": "",
+                "FINUFFT_USE_OPENMP": "OFF"
+            }
+        },
+        {
             "name": "icc",
             "binaryDir": "build/icc",
             "displayName": "Intel Compiler",
@@ -92,6 +103,10 @@
         {
             "name": "manylinux",
             "configurePreset": "manylinux"
+        },
+        {
+            "name": "singlethreaded",
+            "configurePreset": "singlethreaded"
         },
         {
             "name": "icc",
