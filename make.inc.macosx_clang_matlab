@@ -29,7 +29,11 @@ LIBS += -L/usr/local/lib
 # Use MATLAB's shipped OpenMP (not gomp otherwise segfaults), with clang...
 MOMPFLAGS = -D_OPENMP
 OMPFLAGS = -Xpreprocessor -fopenmp
-OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/
+OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib
+# on mac os with clang compiler, matlab mex should use iomp as omp implementation
+# we need to use -Wl,-rpath to add iomp lib directory to the runtime library search path
+# add iomp runtime search path to linker flags
+LDFLAGS += -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/
 # since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
 

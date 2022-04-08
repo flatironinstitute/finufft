@@ -181,7 +181,7 @@ endif
 $(DYNLIB): $(OBJSD)
 # using *absolute* path in the -o here is needed to make portable executables
 # when compiled against it, in mac OSX, strangely...
-	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
+	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
 ifeq ($(OMP),OFF)
 	@echo "$(DYNLIB) built, single-thread version"
 else
@@ -219,11 +219,11 @@ endif
 	@echo "Done running: $(EXAMPLES)"
 # fun fact: gnu make patterns match those with shortest "stem", so this works:
 examples/%: examples/%.o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) -o $@
 examples/%c: examples/%c.o $(DYNLIB)
-	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
+	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 examples/%cf: examples/%cf.o $(DYNLIB)
-	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
+	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 
 
 # test (library validation) --------------------------------------------------
@@ -231,14 +231,14 @@ examples/%cf: examples/%cf.o $(DYNLIB)
 # Note: both precisions use same sources; single-prec executables get f suffix.
 # generic tests link against our .so... (other libs needed for fftw_forget...)
 test/%: test/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 test/%f: test/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
 test/testutils: test/testutils.cpp src/utils.o src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
 test/testutilsf: test/testutils.cpp src/utils_32.o src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
@@ -274,17 +274,17 @@ endif
 # perftest (performance/developer tests) -------------------------------------
 # generic perf test rules...
 perftest/%: perftest/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 perftest/%f: perftest/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 
 # spreader only test, double/single (good for self-contained work on spreader)
 ST=perftest/spreadtestnd
 STF=$(ST)f
 $(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
 $(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
@@ -317,7 +317,7 @@ gurutime: $(GTT) $(GTTF)
 
 # This was for a CCQ application... (zgemm was 10x faster! double-prec only)
 perftest/manysmallprobs: perftest/manysmallprobs.cpp $(STATICLIB)
-	$(CXX) $(CXXFLAGS) $< $(STATICLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(STATICLIB) $(LIBSFFT) -o $@
 	@echo "manysmallprobs: single-thread..."
 	OMP_NUM_THREADS=1 $@
 
@@ -338,10 +338,10 @@ FE = $(FE64) $(FE32)
 
 # fortran target pattern match
 $(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB)
-	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
+	$(FC) $(FFLAGS) ${LDFLAGS} $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
 $(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
-	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
+	$(FC) $(FFLAGS) ${LDFLAGS} $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
 
 fortran: $(FE)
