@@ -99,6 +99,27 @@ void bench_spread_avx2_with_width(
     state.SetItemsProcessed(state.iterations() * num_points);
 }
 
+
+template <typename T>
+void bench_spread_avx512_with_width(
+    benchmark::State &state, std::size_t num_points, std::size_t num_output, int width) {
+    double beta = beta_from_width(width);
+    double c = 4.0 / (width * width);
+
+    auto [kx, dd] = make_spread_data<T>(num_points, 100, num_output, 0);
+    std::vector<T> du(2 * num_output);
+
+    for (auto _ : state) {
+        benchmark::ClobberMemory();
+        finufft::detail::spread_subproblem_1d_avx512(
+            0, num_output, du.data(), num_output, kx.data(), dd.data(), width, beta, c);
+        benchmark::DoNotOptimize(du[du.size() - 1]);
+    }
+
+    state.SetBytesProcessed(state.iterations() * num_points * width * sizeof(T));
+    state.SetItemsProcessed(state.iterations() * num_points);
+}
+
 template <typename T> void bench_spread_current_with_width(benchmark::State &state, int width) {
     auto num_points = state.range(0);
     auto num_output = num_points;
@@ -134,7 +155,7 @@ template <typename T> void bench_spread_current_with_width(benchmark::State &sta
         bench_spread_##instr##_with_width<type>(state, num_points, num_points, width);             \
     }                                                                                              \
     BENCHMARK(bench_spread_##instr##_w##width##_##type)                                            \
-        ->Arg(2 << 14)                                                                             \
+        ->Arg(2 << 16)                                                                             \
         ->Unit(benchmark::kMicrosecond);
 
 #define MAKE_BENCHMARKS_FOR_WIDTH(width)                                                           \
@@ -149,6 +170,8 @@ MAKE_BENCHMARKS_FOR_WIDTH(4);
 MAKE_BENCHMARKS_FOR_WIDTH(5);
 MAKE_BENCHMARKS_FOR_WIDTH(7);
 MAKE_BENCHMARKS_FOR_WIDTH(8);
+
+MAKE_BENCHMARK(7, avx512, float);
 
 #undef MAKE_BENCHMARKS_FOR_WIDTH
 #undef MAKE_BENCHMARK_CURRENT

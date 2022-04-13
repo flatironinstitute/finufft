@@ -1,9 +1,21 @@
 #pragma once
 
 #include <tuple>
+#include <cmath>
 
 namespace finufft {
 namespace detail {
+
+template<typename T, typename T0>
+T evaluate_polynomial_horner(T z, T0 c0) {
+    return c0;
+}
+
+template<typename T, typename T0, typename... Ts>
+T evaluate_polynomial_horner(T z, T0 c0,  Ts... cs) {
+  return std::fma(z, evaluate_polynomial_horner(z, cs...), c0);
+}
+
 struct ker_horner_scalar_0 {
   constexpr static const int width = 2;
   constexpr static const int degree = 5;
@@ -71,7 +83,7 @@ struct ker_horner_scalar_3 {
     FT c6[] = { -5.5339722671222880e+01, +1.1960590540261835e+02, -1.5249941358312162e+02, +1.1960590540262601e+02, -5.5339722671222347e+01, +0.0000000000000000e+00, +0.0000000000000000e+00, +0.0000000000000000e+00 };
     FT c7[] = { -3.3762488150349141e+00, +2.2839981872915227e+00, +3.5935329765699997e-12, -2.2839981873024771e+00, +3.3762488150345660e+00, +0.0000000000000000e+00, +0.0000000000000000e+00, +0.0000000000000000e+00 };
     for (int i = 0; i < 8; i++) {
-      ker[i] = c0[i] + z * (c1[i] + z * (c2[i] + z * (c3[i] + z * (c4[i] + z * (c5[i] + z * (c6[i] + z * (c7[i])))))));
+      ker[i] = evaluate_polynomial_horner(z, c0[i], c1[i], c2[i], c3[i], c4[i], c5[i], c6[i], c7[i]);
     }  };
 };
 struct ker_horner_scalar_4 {
@@ -112,7 +124,8 @@ struct ker_horner_scalar_5 {
     FT c8[] = { -3.2270164914227294e+01, +9.1892112257324740e+01, -1.6710678096325356e+02, +2.0317049305843574e+02, -1.6710678096044728e+02, +9.1892112258105087e+01, -3.2270164914214298e+01, +0.0000000000000000e+00 };
     FT c9[] = { -1.4761409685256255e-01, -9.1862771302337198e-01, +1.2845147729883215e+00, +9.3195459181156685e-11, -1.2845147734751150e+00, +9.1862771305896052e-01, +1.4761409685935642e-01, +0.0000000000000000e+00 };
     for (int i = 0; i < 8; i++) {
-      ker[i] = c0[i] + z * (c1[i] + z * (c2[i] + z * (c3[i] + z * (c4[i] + z * (c5[i] + z * (c6[i] + z * (c7[i] + z * (c8[i] + z * (c9[i])))))))));
+      ker[i] = evaluate_polynomial_horner(z, c0[i], c1[i], c2[i], c3[i], c4[i], c5[i], c6[i], c7[i], c8[i], c9[i]);
+      //ker[i] = c0[i] + z * (c1[i] + z * (c2[i] + z * (c3[i] + z * (c4[i] + z * (c5[i] + z * (c6[i] + z * (c7[i] + z * (c8[i] + z * (c9[i])))))))));
     }  };
 };
 struct ker_horner_scalar_6 {
