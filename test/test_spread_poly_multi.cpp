@@ -6,6 +6,7 @@
 #include "../src/kernels/spread/spread_poly_avx2_impl.h"
 #include "../src/kernels/spread/spread_poly_avx512_impl.h"
 #include "../src/kernels/spread/spread_poly_scalar_impl.h"
+#include "testing_utilities.h"
 
 TEST(SpreadPolyMulti, w4x2) {
     std::vector<float> output(24, 0.0f);
@@ -63,6 +64,34 @@ TEST(SpreadPolyMulti, w7x2) {
     std::vector<float> dd = {1.0, 2.0, 3.0, 4.0};
 
     auto const &ker = finufft::detail::ker_horner_avx512_w7;
+
+    finufft::detail::spread_subproblem_1d_impl(
+        0,
+        output.size() / 2,
+        output_expected.data(),
+        ker.stride,
+        kx.data(),
+        dd.data(),
+        ker.width,
+        finufft::detail::VectorKernelAccumulator<finufft::detail::ker_horner_scalar_5, 8>{});
+
+    ker(output.data(), kx.data(), dd.data(), 0);
+
+    for (int i = 0; i < output.size(); i++) {
+        EXPECT_FLOAT_EQ(output[i], output_expected[i]) << "i = " << i;
+    }
+}
+
+TEST(SpreadPolyMulti, w7x2r4) {
+    auto const& ker = finufft::detail::ker_horner_avx512_w7_r4;
+
+    std::vector<float> output(26, 0.0f);
+    std::vector<float> output_expected(26, 0.0f);
+    std::vector<float> kx(ker.stride);
+    std::vector<float> dd(ker.stride * 2);
+
+    finufft::fill_random(kx.data(), kx.size(), 123, 4.0f, 8.0f);
+    finufft::fill_random(dd.data(), dd.size(), 456, -1.0f, 1.0f);
 
     finufft::detail::spread_subproblem_1d_impl(
         0,
