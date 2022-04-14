@@ -8,6 +8,7 @@
 #include "../test/testing_utilities.h"
 
 #include "../src/kernels/spread/spread.h"
+#include "../src/kernels/spread/spread_mirounga.h"
 
 #include <spread_opts.h>
 
@@ -141,6 +142,30 @@ template <typename T> void bench_spread_current_with_width(benchmark::State &sta
     state.SetItemsProcessed(state.iterations() * num_points);
 }
 
+void bench_spread_avx512_mirounga_w7_float(benchmark::State &state) {
+    const int width = 7;
+    typedef float T;
+
+    std::size_t num_points = state.range(0);
+    std::size_t num_output = num_points;
+
+    double beta = beta_from_width(width);
+    double c = 4.0 / (width * width);
+
+    auto [kx, dd] = make_spread_data<T>(num_points, 100, num_output, 0);
+    std::vector<T> du(2 * num_output);
+
+    for (auto _ : state) {
+        benchmark::ClobberMemory();
+        mirounga::spread_subproblem_1d(0, num_output, du.data(), num_output, kx.data(), dd.data(), width, beta, c);
+        benchmark::DoNotOptimize(du[du.size() - 1]);
+    }
+
+    state.SetBytesProcessed(state.iterations() * num_points * width * sizeof(T));
+    state.SetItemsProcessed(state.iterations() * num_points);
+}
+
+
 } // namespace
 
 #define MAKE_BENCHMARK_CURRENT(width, type)                                                        \
@@ -176,3 +201,5 @@ MAKE_BENCHMARK(7, avx512, float);
 #undef MAKE_BENCHMARKS_FOR_WIDTH
 #undef MAKE_BENCHMARK_CURRENT
 #undef MAKE_BENCHMARK
+
+BENCHMARK(bench_spread_avx512_mirounga_w7_float)->Arg(2 << 16)->Unit(benchmark::kMicrosecond);

@@ -129,6 +129,7 @@ set_gbench_benchmark(bench_1d_type3)
 # One-dim spreader perf benchmark
 add_executable(bench_1d_spread perftest/benchmark_1d_spread.cpp)
 set_gbench_benchmark(bench_1d_spread)
+target_compile_options(bench_1d_spread PRIVATE -mavx2 -mfma -mavx512f -mavx512vl -mavx512dq)
 
 # Add tests defined in their own directory
 add_subdirectory(test)
