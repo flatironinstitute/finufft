@@ -118,6 +118,21 @@ alignas(64) static constexpr std::array<int, 16 * 8> align_shuffles_high = make_
 // into the lower 16 elements and the upper 16 elements using a shuffle.
 // To avoid branches, the shuffle is produced by a lookup table.
 //
+// We illustrate the operation below for vector width of 4 (complex), accumulating into a zero vector.
+//
+// Given the following:
+//   v = [r0, i0, r1, i1, r2, i2, r3, i3]
+//   idx = 2
+// we wish to store v into result starting at index 2 * idx, hence w would be
+//   w = [0, 0, 0, 0, r0, i0, r1, i1, r2, i2, r3, i3, 0, 0, 0, 0]
+//
+// To do so, we compute:
+//   v_lo = [0, 0, 0, 0, r0, i0, r1, i1]
+//   v_hi = [r2, i2, r3, i3, 0, 0, 0, 0]
+// and store each one separately at w, and w + 8.
+// This ensures that our load / stores are aligned, and
+// may benefit from store-to-load forwarding.
+//
 inline void accumulate_add_complex_interleaved_aligned(float *du, int i, __m512 v) {
     int i_aligned = i & ~7;
     int i_remainder = i - i_aligned;
@@ -331,6 +346,8 @@ struct ker_horner_avx512_w7_r4_op {
     void operator()(
         float *__restrict du, float const *__restrict kx, float const *__restrict dd,
         std::size_t i) const {
+
+        // load positions of non-uniform points, compute integer coordinates and remainder.
         __m256 x = _mm256_loadu_ps(kx + i);
         __m256 x_ceil = _mm256_ceil_ps(_mm256_sub_ps(x, _mm256_set1_ps(0.5f * width)));
         __m256i x_ceili = _mm256_cvtps_epi32(x_ceil);
@@ -345,10 +362,13 @@ struct ker_horner_avx512_w7_r4_op {
         __m512 v2;
         float *out_1, *out_2;
 
+        // Store integer coordinates for accumulation later.
         alignas(16) int indices[8];
         _mm256_store_epi32(indices, x_ceili);
 
         // Unrolled loop to compute 8 values, two at once.
+        // At each stage, we permute from xid into a register
+        // which contains x1 in the lower 256-bit, and x2 in the upper 256-bit.
         compute(_mm512_permute_ps(xid, 0), dd + 2 * i, v1, v2);
         accumulate_add_complex_interleaved_aligned(du, indices[0], v1);
         accumulate_add_complex_interleaved_aligned(du, indices[1], v2);
