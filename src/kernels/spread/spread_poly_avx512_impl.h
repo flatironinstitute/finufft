@@ -320,10 +320,19 @@ struct ker_horner_avx512_w7_r4_op {
         __m512 w_re = _mm512_insertf32x8(_mm512_set1_ps(dd[0]), _mm256_set1_ps(dd[2]), 1);
         __m512 w_im = _mm512_insertf32x8(_mm512_set1_ps(dd[1]), _mm256_set1_ps(dd[3]), 1);
 
+        // Multiply by coefficients in lane.
         __m512 k_re = _mm512_mul_ps(k, w_re);
         __m512 k_im = _mm512_mul_ps(k, w_im);
+        // We now have that:
+        // k_re = (w_re_1 * ker_1, w_re_2 * ker_2)
+        // k_im = (w_im_1 * ker_1, w_im_2 * ker_2)
+        // were ker_1 denotes the 8 values of the kernel for x1 and ker_2 for x2.
 
-        // Write-out the results in interleaved format.
+        // To finish, we need to write out the results in interleaved format
+        // and separate the results for x1 and x2.
+        // We achieve this by using two two-vector shuffles.
+        // The shuffles below fully interleave the lower (v1) or upper (v2)
+        // 256-bit lanes of k_re and k_im.
         const int from_b = (1 << 4);
         const int from_a = (0 << 4);
 
@@ -348,6 +357,7 @@ struct ker_horner_avx512_w7_r4_op {
         std::size_t i) const {
 
         // load positions of non-uniform points, compute integer coordinates and remainder.
+        // Nit: optimize to use aligned load after adjusting callers
         __m256 x = _mm256_loadu_ps(kx + i);
         __m256 x_ceil = _mm256_ceil_ps(_mm256_sub_ps(x, _mm256_set1_ps(0.5f * width)));
         __m256i x_ceili = _mm256_cvtps_epi32(x_ceil);

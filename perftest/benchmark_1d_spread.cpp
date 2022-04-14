@@ -177,7 +177,7 @@ void bench_spread_avx512_mirounga_w7_float(benchmark::State &state) {
     static void bench_spread_current_w##width##_##type(benchmark::State &state) {                  \
         bench_spread_current_with_width<type>(state, width);                                       \
     }                                                                                              \
-    BENCHMARK(bench_spread_current_w##width##_##type)->Arg(2 << 14)->Unit(benchmark::kMicrosecond);
+    BENCHMARK(bench_spread_current_w##width##_##type)->Arg(2 << 16)->Unit(benchmark::kMicrosecond);
 
 #define MAKE_BENCHMARK(width, instr, type)                                                         \
     static void bench_spread_##instr##_w##width##_##type(benchmark::State &state) {                \
