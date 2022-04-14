@@ -1,9 +1,11 @@
 #pragma once
 
-#include "spread_kernel_weights.h"
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <immintrin.h>
+
+#include "spread_kernel_weights.h"
 
 namespace finufft {
 namespace detail {
@@ -40,6 +42,107 @@ template <typename... Ts> __m512 evaluate_polynomial_horner_avx512_memory(__m512
     return evaluate_polynomial_horner_avx512(z, _mm512_load_ps(mem_c)...);
 }
 
+inline void accumulate_add_complex_interleaved(float *du, int i, __m512 v) {
+    float *out = du + 2 * i;
+    __m512 out_v = _mm512_loadu_ps(out);
+    out_v = _mm512_add_ps(out_v, v);
+    _mm512_storeu_ps(out, out_v);
+}
+
+// The next two functions compute the lookup table for shuffles
+// corresponding to element shifts of the given number of elements.
+// Note that this is similar to valignd, except that we are able to
+// specify the shift amount at runtime, whereas valignd uses an immediate value.
+//
+// The constructed table conceptually shifts quadword elements (i.e. two floats at a time)
+// as the values held in the registers conceptually represent interleaved complex numbers.
+//
+// I have reproduced a 4-wide version of the tables below, with a single offset between lines.
+// The true tables are 16-wide, and offset by 2 each line. Note that here, s denotes an index
+// which fetches from the second vector of the shuffle, whereas all other indices fetch from
+// the first vector of the shuffle. We use a zero vector as the second vector, so s denotes zero
+// values.
+//
+// shuffle_low   shuffle_high
+//  0 1 2 3       s s s s
+//  s 0 1 2       3 s s s
+//  s s 0 1       2 3 s s
+//  s s s 0       1 2 3 s
+
+inline constexpr std::array<int, 16 * 8> make_shuffle_low() {
+    std::array<int, 16 * 8> result = {};
+
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < i; ++j) {
+            result[i * 16 + 2 * j] = 0b10000;
+            result[i * 16 + 2 * j + 1] = 0b10000;
+        }
+
+        for (int j = i; j < 8; ++j) {
+            result[i * 16 + 2 * j] = 2 * (j - i);
+            result[i * 16 + 2 * j + 1] = 2 * (j - i) + 1;
+        }
+    }
+
+    return result;
+}
+
+inline constexpr std::array<int, 16 * 8> make_shuffle_high() {
+    std::array<int, 16 * 8> result = {};
+
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < i; ++j) {
+            result[i * 16 + 2 * j] = 2 * (8 - i) + 2 * j;
+            result[i * 16 + 2 * j + 1] = 2 * (8 - i) + 2 * j + 1;
+        }
+
+        for (int j = i; j < 8; ++j) {
+            result[i * 16 + 2 * j] = 0b10000;
+            result[i * 16 + 2 * j + 1] = 0b10000;
+        }
+    }
+
+    return result;
+}
+
+alignas(64) static constexpr std::array<int, 16 * 8> align_shuffles_low = make_shuffle_low();
+alignas(64) static constexpr std::array<int, 16 * 8> align_shuffles_high = make_shuffle_high();
+
+// Accumulates and stores the given vector into du at the given index.
+// This function splits the stores to ensure that they are aligned,
+// and ensuring that store-to-load forwarding may be successful (as all stores
+// operate on aligned addresses, they either coincide exactly or do not alias).
+//
+// Operationally, given the vector of elements v, we conceptually consider its
+// representation offset by 2 * i elements. This representation is then split
+// into the lower 16 elements and the upper 16 elements using a shuffle.
+// To avoid branches, the shuffle is produced by a lookup table.
+//
+inline void accumulate_add_complex_interleaved_aligned(float *du, int i, __m512 v) {
+    int i_aligned = i & ~7;
+    int i_remainder = i - i_aligned;
+
+    float *out = du + 2 * i_aligned;
+
+    __m512 v_lo = _mm512_permutex2var_ps(
+        v, _mm512_load_epi32(align_shuffles_low.data() + i_remainder * 16), _mm512_setzero_ps());
+
+    __m512 v_hi = _mm512_permutex2var_ps(
+        v, _mm512_load_epi32(align_shuffles_high.data() + i_remainder * 16), _mm512_setzero_ps());
+
+    __m512 out_lo = _mm512_load_ps(out);
+    __m512 out_hi = _mm512_load_ps(out + 16);
+
+    out_lo = _mm512_add_ps(out_lo, v_lo);
+    out_hi = _mm512_add_ps(out_hi, v_hi);
+
+    _mm512_store_ps(out, out_lo);
+    _mm512_store_ps(out + 16, out_hi);
+}
+
+// Standard implmentation of kernel computation
+// This is slower than the unrolled implementation below
+// with vectorized index computation.
 struct ker_horner_avx512_w7_op {
     constexpr static const int width = 7;
     constexpr static const int degree = 10;
@@ -59,14 +162,6 @@ struct ker_horner_avx512_w7_op {
     alignas(64) float c9d_[16];
 
     template <typename T> ker_horner_avx512_w7_op(T const &data) {
-        // During construction, we partially swizzle the polynomial
-        // coefficients to save on shuffle instructions during write-out
-        // to interleaved complex output.
-
-        // The current swizzling scheme is as follows
-        // a0 a1 a4 a5 a2 a3 a6 a7 x2
-        // where we have indexed the coefficients by their positions
-        // and the swizzling is repeated analogously for the other half.
         copy_from_source_7_to_16x2(std::get<0>(data), c0d_);
         copy_from_source_7_to_16x2(std::get<1>(data), c1d_);
         copy_from_source_7_to_16x2(std::get<2>(data), c2d_);
@@ -145,21 +240,21 @@ struct ker_horner_avx512_w7_op {
 
         compute(xi, dd_, v1, v2);
 
-        float *out_1 = du + 2 * i1;
-        float *out_2 = du + 2 * i2;
-
-        __m512 out_v1 = _mm512_loadu_ps(out_1);
-        out_v1 = _mm512_add_ps(out_v1, v1);
-        _mm512_storeu_ps(out_1, out_v1);
-
-        __m512 out_v2 = _mm512_loadu_ps(out_2);
-        out_v2 = _mm512_add_ps(out_v2, v2);
-        _mm512_storeu_ps(out_2, out_v2);
+        // accumulate_add_complex_interleaved(du, i1, v1);
+        // accumulate_add_complex_interleaved(du, i2, v2);
+        accumulate_add_complex_interleaved_aligned(du, i1, v1);
+        accumulate_add_complex_interleaved_aligned(du, i2, v2);
     }
 };
 
 static const ker_horner_avx512_w7_op ker_horner_avx512_w7(weights_w7);
 
+// 4-wise unrolled width 7 kernel
+// The unrolling allows us to vectorize the computation of the index,
+// which leads to a big speedup compared to the non-unrolled version (2x).
+// Note that it is essential to use `accumulate_add_complex_interleaved_aligned`
+// instead of the naive implementation, or the latency introduced by failed store-to-load
+// forwarding due to loading at aliased addresses will overwhelm any benefit.
 struct ker_horner_avx512_w7_r4_op {
     constexpr static const int width = 7;
     constexpr static const int degree = 10;
@@ -179,14 +274,6 @@ struct ker_horner_avx512_w7_r4_op {
     alignas(64) float c9d_[16];
 
     template <typename T> ker_horner_avx512_w7_r4_op(T const &data) {
-        // During construction, we partially swizzle the polynomial
-        // coefficients to save on shuffle instructions during write-out
-        // to interleaved complex output.
-
-        // The current swizzling scheme is as follows
-        // a0 a1 a4 a5 a2 a3 a6 a7 x2
-        // where we have indexed the coefficients by their positions
-        // and the swizzling is repeated analogously for the other half.
         copy_from_source_7_to_16x2(std::get<0>(data), c0d_);
         copy_from_source_7_to_16x2(std::get<1>(data), c1d_);
         copy_from_source_7_to_16x2(std::get<2>(data), c2d_);
@@ -255,71 +342,32 @@ struct ker_horner_avx512_w7_r4_op {
         //    processors as vpermt2ps is one-cycle throughput (w/ 3 cycle latency).
         __m512 xid = _mm512_permutex2var_ps(
             _mm512_castps256_ps512(xi),
-            _mm512_setr_epi32(
-                0, 2, 4, 6, 0, 2, 4, 6,
-                1, 3, 5, 7, 1, 3, 5, 7),
+            _mm512_setr_epi32(0, 2, 4, 6, 0, 2, 4, 6, 1, 3, 5, 7, 1, 3, 5, 7),
             _mm512_castps256_ps512(xi));
 
         __m512 v1;
         __m512 v2;
-        __m512 out_v1;
-        __m512 out_v2;
         float *out_1, *out_2;
 
         alignas(16) int indices[8];
         _mm256_store_epi32(indices, x_ceili);
 
+        // Unrolled loop to compute 8 values, two at once.
         compute(_mm512_permute_ps(xid, 0), dd + 2 * i, v1, v2);
-
-        out_1 = du + 2 * indices[0];
-        out_2 = du + 2 * indices[1];
-
-        out_v1 = _mm512_loadu_ps(out_1);
-        out_v1 = _mm512_add_ps(out_v1, v1);
-        _mm512_storeu_ps(out_1, out_v1);
-
-        out_v2 = _mm512_loadu_ps(out_2);
-        out_v2 = _mm512_add_ps(out_v2, v2);
-        _mm512_storeu_ps(out_2, out_v2);
+        accumulate_add_complex_interleaved_aligned(du, indices[0], v1);
+        accumulate_add_complex_interleaved_aligned(du, indices[1], v2);
 
         compute(_mm512_permute_ps(xid, 0b01010101), dd + 2 * i + 4, v1, v2);
-
-        out_1 = du + 2 * indices[2];
-        out_2 = du + 2 * indices[3];
-
-        out_v1 = _mm512_loadu_ps(out_1);
-        out_v1 = _mm512_add_ps(out_v1, v1);
-        _mm512_storeu_ps(out_1, out_v1);
-
-        out_v2 = _mm512_loadu_ps(out_2);
-        out_v2 = _mm512_add_ps(out_v2, v2);
-        _mm512_storeu_ps(out_2, out_v2);
+        accumulate_add_complex_interleaved_aligned(du, indices[2], v1);
+        accumulate_add_complex_interleaved_aligned(du, indices[3], v2);
 
         compute(_mm512_permute_ps(xid, 0b10101010), dd + 2 * i + 8, v1, v2);
-
-        out_1 = du + 2 * indices[4];
-        out_2 = du + 2 * indices[5];
-
-        out_v1 = _mm512_loadu_ps(out_1);
-        out_v1 = _mm512_add_ps(out_v1, v1);
-        _mm512_storeu_ps(out_1, out_v1);
-
-        out_v2 = _mm512_loadu_ps(out_2);
-        out_v2 = _mm512_add_ps(out_v2, v2);
-        _mm512_storeu_ps(out_2, out_v2);
+        accumulate_add_complex_interleaved_aligned(du, indices[4], v1);
+        accumulate_add_complex_interleaved_aligned(du, indices[5], v2);
 
         compute(_mm512_permute_ps(xid, 0b11111111), dd + 2 * i + 12, v1, v2);
-
-        out_1 = du + 2 * indices[6];
-        out_2 = du + 2 * indices[7];
-
-        out_v1 = _mm512_loadu_ps(out_1);
-        out_v1 = _mm512_add_ps(out_v1, v1);
-        _mm512_storeu_ps(out_1, out_v1);
-
-        out_v2 = _mm512_loadu_ps(out_2);
-        out_v2 = _mm512_add_ps(out_v2, v2);
-        _mm512_storeu_ps(out_2, out_v2);
+        accumulate_add_complex_interleaved_aligned(du, indices[6], v1);
+        accumulate_add_complex_interleaved_aligned(du, indices[7], v2);
     }
 };
 

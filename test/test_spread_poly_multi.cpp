@@ -1,5 +1,6 @@
 // Tests for polynomial spreaders with multi-evaluation support.
 
+#include <numeric>
 #include <gtest/gtest.h>
 
 #include "../src/kernels/spread/spread_impl.h"
@@ -57,8 +58,36 @@ TEST(SpreadPolyMulti, w5x3) {
     }
 }
 
+TEST(AccumulateAdd, Aligned) {
+    float* output = static_cast<float*>(std::aligned_alloc(64, sizeof(float) * 32));
+
+    std::vector<float> values(16);
+    std::vector<float> result(32);
+
+    std::iota(values.begin(), values.end(), 1);
+
+    for(int i = 0; i < 8; ++i) {
+        std::fill_n(output, 32, 0.0f);
+        std::fill(result.begin(), result.end(), 0.0f);
+
+        // Copy default
+        std::copy(values.begin(), values.end(), result.begin() + 2 * i);
+
+        // Copy vectorized
+        finufft::detail::accumulate_add_complex_interleaved_aligned(output, i, _mm512_loadu_ps(values.data()));
+
+        for(int j = 0; j < 32; ++j) {
+            EXPECT_FLOAT_EQ(result[j], output[j]) << "i = " << i << ", j = " << j;
+        }
+    }
+
+    free(output);
+}
+
 TEST(SpreadPolyMulti, w7x2) {
-    std::vector<float> output(24, 0.0f);
+    float* output = static_cast<float*>(std::aligned_alloc(64, 32 * sizeof(float)));
+    std::fill_n(output, 32, 0.0f);
+
     std::vector<float> output_expected(24, 0.0f);
     std::vector<float> kx = {5.13, 5.35};
     std::vector<float> dd = {1.0, 2.0, 3.0, 4.0};
@@ -67,7 +96,7 @@ TEST(SpreadPolyMulti, w7x2) {
 
     finufft::detail::spread_subproblem_1d_impl(
         0,
-        output.size() / 2,
+        output_expected.size() / 2,
         output_expected.data(),
         ker.stride,
         kx.data(),
@@ -75,11 +104,13 @@ TEST(SpreadPolyMulti, w7x2) {
         ker.width,
         finufft::detail::VectorKernelAccumulator<finufft::detail::ker_horner_scalar_5, 8>{});
 
-    ker(output.data(), kx.data(), dd.data(), 0);
+    ker(output, kx.data(), dd.data(), 0);
 
-    for (int i = 0; i < output.size(); i++) {
+    for (int i = 0; i < output_expected.size(); i++) {
         EXPECT_FLOAT_EQ(output[i], output_expected[i]) << "i = " << i;
     }
+
+    free(output);
 }
 
 TEST(SpreadPolyMulti, w7x2r4) {

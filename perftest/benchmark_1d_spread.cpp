@@ -108,17 +108,22 @@ void bench_spread_avx512_with_width(
     double c = 4.0 / (width * width);
 
     auto [kx, dd] = make_spread_data<T>(num_points, 100, num_output, 0);
-    std::vector<T> du(2 * num_output);
+
+    const int align = 64;
+    const int align_elem = align / sizeof(T);
+    const int num_output_aligned = (num_output + align_elem - 1) & ~(align_elem - 1);
+    float* du = static_cast<float*>(std::aligned_alloc(64, 2 * num_output * sizeof(T)));
 
     for (auto _ : state) {
         benchmark::ClobberMemory();
         finufft::detail::spread_subproblem_1d_avx512(
-            0, num_output, du.data(), num_output, kx.data(), dd.data(), width, beta, c);
-        benchmark::DoNotOptimize(du[du.size() - 1]);
+            0, num_output, du, num_output, kx.data(), dd.data(), width, beta, c);
+        benchmark::DoNotOptimize(du[2 * num_output_aligned - 1]);
     }
 
     state.SetBytesProcessed(state.iterations() * num_points * width * sizeof(T));
     state.SetItemsProcessed(state.iterations() * num_points);
+    free(du);
 }
 
 template <typename T> void bench_spread_current_with_width(benchmark::State &state, int width) {
