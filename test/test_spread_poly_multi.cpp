@@ -116,7 +116,9 @@ TEST(SpreadPolyMulti, w7x2) {
 TEST(SpreadPolyMulti, w7x2r4) {
     auto const& ker = finufft::detail::ker_horner_avx512_w7_r4;
 
-    std::vector<float> output(26, 0.0f);
+    float* output = static_cast<float*>(std::aligned_alloc(64, 32 * sizeof(float)));
+    std::fill_n(output, 32, 0.0f);
+
     std::vector<float> output_expected(26, 0.0f);
     std::vector<float> kx(ker.stride);
     std::vector<float> dd(ker.stride * 2);
@@ -126,7 +128,7 @@ TEST(SpreadPolyMulti, w7x2r4) {
 
     finufft::detail::spread_subproblem_1d_impl(
         0,
-        output.size() / 2,
+        output_expected.size() / 2,
         output_expected.data(),
         ker.stride,
         kx.data(),
@@ -134,11 +136,13 @@ TEST(SpreadPolyMulti, w7x2r4) {
         ker.width,
         finufft::detail::VectorKernelAccumulator<finufft::detail::ker_horner_scalar_5, 8>{});
 
-    ker(output.data(), kx.data(), dd.data(), 0);
+    ker(output, kx.data(), dd.data(), 0);
 
-    for (int i = 0; i < output.size(); i++) {
+    for (int i = 0; i < output_expected.size(); i++) {
         EXPECT_FLOAT_EQ(output[i], output_expected[i]) << "i = " << i;
     }
+
+    free(output);
 }
 
 namespace {

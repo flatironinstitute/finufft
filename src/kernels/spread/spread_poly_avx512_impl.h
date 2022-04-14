@@ -337,11 +337,7 @@ struct ker_horner_avx512_w7_r4_op {
         __m256 xi = _mm256_sub_ps(x_ceil, x);
 
         // Prepare x register so that we can obtain pairs using vpermilps
-        // Q: Is there a two-register instruction to do this? We need lane-crossing shuffle
-        //    but don't need to blend. Other options exist but are slower on recent intel
-        //    processors as vpermt2ps is one-cycle throughput (w/ 3 cycle latency).
-        __m512 xid = _mm512_permutex2var_ps(
-            _mm512_castps256_ps512(xi),
+        __m512 xid = _mm512_permutexvar_ps(
             _mm512_setr_epi32(0, 2, 4, 6, 0, 2, 4, 6, 1, 3, 5, 7, 1, 3, 5, 7),
             _mm512_castps256_ps512(xi));
 
