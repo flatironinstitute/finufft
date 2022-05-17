@@ -5,31 +5,31 @@
 #define UTILS_PRECINDEP_H
 
 #include "dataTypes.h"
+// for CNTime...
+#include <sys/time.h>
 
-BIGINT next235even(BIGINT n);
-
-namespace finufft{
+namespace finufft::utils {
+  
+  BIGINT next235even(BIGINT n);
 
   // jfm's timer class
-#include <sys/time.h>
-class CNTime {
- public:
-  void start();
-  double restart();
-  double elapsedsec();
- private:
-  struct timeval initial;
-};
+  class CNTime {
+  public:
+    void start();
+    double restart();
+    double elapsedsec();
+  private:
+    struct timeval initial;
+  };
 
+  // openmp helpers
+  int get_num_threads_parallel_block();
 }
   
-// openmp helpers
-int get_num_threads_parallel_block();
-
 // thread-safe rand number generator for Windows platform
 #ifdef _WIN32
 #include <random>
-int rand_r(unsigned int *seedp);
+int finufft::utils::rand_r(unsigned int *seedp);
 #endif
 
 #endif  // UTILS_PRECINDEP_H

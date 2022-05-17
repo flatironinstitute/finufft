@@ -2,7 +2,7 @@
 // this enforces recompilation, responding to SINGLE...
 #include "directft/dirft3d.cpp"
 using namespace std;
-using namespace finufft;
+using namespace finufft::utils;
 
 const char* help[]={
   "Tester for FINUFFT in 3d, all 3 types, either precision.",

@@ -18,7 +18,8 @@ extern "C" {
   #include "../contrib/legendre_rule_fast.h"
 }
 using namespace std;
-using namespace finufft;
+using namespace finufft::utils;
+
 
 /* Computational core for FINUFFT.
 
@@ -84,6 +85,8 @@ Design notes for guru interface implementation:
 
 
 // ---------- local math routines (were in common.cpp; no need now): --------
+
+// *** to do:   namespace finufft::internal {
 
 // We macro because it has no FLT args but gets compiled for both prec's...
 #ifdef SINGLE
@@ -497,10 +500,14 @@ int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN p){
 }
 
 
+//  *** }   // internal namespace
 
 
-// --------------- rest is the 5 user guru (plan) interface drivers: -----------
 
+
+
+// --------------- rest is the 5 user guru (plan) interface drivers: ---------
+// (not namespaced since have safe names finufft{f}_* )
 
 
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
