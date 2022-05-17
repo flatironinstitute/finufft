@@ -4,6 +4,7 @@
 #include "directft/dirft2d.cpp"
 #include "directft/dirft3d.cpp"
 using namespace std;
+using namespace finufft::utils;        // for twonorm, etc
 
 int main(int argc, char* argv[])
 /* calling the FINUFFT library from C++ using all manner of crazy inputs that
