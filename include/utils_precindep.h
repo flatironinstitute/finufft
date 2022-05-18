@@ -29,7 +29,9 @@ namespace finufft::utils {
 // thread-safe rand number generator for Windows platform
 #ifdef _WIN32
 #include <random>
-int finufft::utils::rand_r(unsigned int *seedp);
+namespace finufft::utils {
+  int rand_r(unsigned int *seedp);
+}
 #endif
 
 #endif  // UTILS_PRECINDEP_H
