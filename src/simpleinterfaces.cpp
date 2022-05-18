@@ -19,6 +19,8 @@ using namespace std;
 
 // Helper layer ...........................................................
 
+namespace finufft::common {
+
 int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
                         FLT *yj, FLT *zj, CPX* cj,int iflag, FLT eps,
                         BIGINT *n_modes, BIGINT nk, FLT *s, FLT *t,  FLT *u,
@@ -50,6 +52,9 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
   return max(max(ier,ier2),ier3);  // in case any one gave a (positive!) warning
 }
 
+}       // namespace
+
+using namespace finufft::common;
 
 
 // Dimension 1111111111111111111111111111111111111111111111111111111111111111
