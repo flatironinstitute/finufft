@@ -8,10 +8,28 @@
 #include <vector>
 #include <math.h>
 #include <stdio.h>
-using namespace std;
-using namespace finufft::utils;
 
-// declarations of purely internal functions...
+
+/* local NU coord fold+rescale macro: does the following affine transform to x:
+     when p=true:   map [-3pi,-pi) and [-pi,pi) and [pi,3pi)    each to [0,N)
+     otherwise,     map [-N,0) and [0,N) and [N,2N)             each to [0,N)
+   Thus, only one period either side of the principal domain is folded.
+   (It is *so* much faster than slow std::fmod that we stick to it.)
+   This explains FINUFFT's allowed input domain of [-3pi,3pi).
+   Speed comparisons of this macro vs a function are in devel/foldrescale*.
+   The macro wins hands-down on i7, even for modern GCC9.
+*/
+#define FOLDRESCALE(x,N,p) (p ?                                         \
+         (x + (x>=-PI ? (x<PI ? PI : -PI) : 3*PI)) * ((FLT)M_1_2PI*N) : \
+                        (x>=0.0 ? (x<(FLT)N ? x : x-(FLT)N) : x+(FLT)N))
+
+
+using namespace std;
+using namespace finufft::utils;              // access to timer
+
+namespace finufft::spreadinterp {
+  
+// declarations of purely internal functions... (need not be in .h)
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);
 static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const spread_opts& opts, const int N);
 static inline void eval_kernel_vec_Horner(FLT *ker, const FLT z, const int w, const spread_opts &opts);
@@ -46,21 +64,7 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 FLT* kz0,int ns, int ndims);
 
 
-
-/* local NU coord fold+rescale macro: does the following affine transform to x:
-     when p=true:   map [-3pi,-pi) and [-pi,pi) and [pi,3pi)    each to [0,N)
-     otherwise,     map [-N,0) and [0,N) and [N,2N)             each to [0,N)
-   Thus, only one period either side of the principal domain is folded.
-   (It is *so* much faster than slow std::fmod that we stick to it.)
-   This explains FINUFFT's allowed input domain of [-3pi,3pi).
-   Speed comparisons of this macro vs a function are in devel/foldrescale*.
-   The macro wins hands-down on i7, even for modern GCC9.
-*/
-#define FOLDRESCALE(x,N,p) (p ?                                         \
-         (x + (x>=-PI ? (x<PI ? PI : -PI) : 3*PI)) * ((FLT)M_1_2PI*N) : \
-                        (x>=0.0 ? (x<(FLT)N ? x : x-(FLT)N) : x+(FLT)N))
-
-
+  
 
 // ==========================================================================
 int spreadinterp(
@@ -1352,3 +1356,5 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
     size3 = 1;
   }
 }
+
+}   // namespace

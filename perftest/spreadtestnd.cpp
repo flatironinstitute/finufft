@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-using namespace finufft;
+using namespace finufft::spreadinterp;
+using namespace finufft::utils;              // for timer
 
 void usage()
 {

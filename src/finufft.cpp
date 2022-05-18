@@ -20,6 +20,7 @@ extern "C" {
 using namespace std;
 using namespace finufft;
 using namespace finufft::utils;
+using namespace finufft::spreadinterp;
 
 
 /* Computational core for FINUFFT.
