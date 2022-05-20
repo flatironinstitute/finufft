@@ -14,10 +14,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-extern "C" {
-  #include "../contrib/legendre_rule_fast.h"
-}
+#include "../contrib/legendre_rule_fast.h"
+
 using namespace std;
+using namespace finufft;
+using namespace finufft::utils;
+using namespace finufft::spreadinterp;
+using namespace finufft::quadrature;
 
 
 /* Computational core for FINUFFT.
@@ -85,7 +88,10 @@ Design notes for guru interface implementation:
 
 // ---------- local math routines (were in common.cpp; no need now): --------
 
-// We macro because it has no FLT args but gets compiled for both prec's...
+namespace finufft {
+  namespace common {
+
+  // We macro because it has no FLT args but gets compiled for both prec's...
 #ifdef SINGLE
 #define SET_NF_TYPE12 set_nf_type12f
 #else
@@ -352,9 +358,9 @@ void deconvolveshuffle2d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
       fw[j][0] = fw[j][1] = 0.0;
   for (BIGINT k2=0;k2<=k2max;++k2, pp+=2*ms)          // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
-    deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + pp,nf1,&fw[nf1*k2],modeord);
+    common::deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + pp,nf1,&fw[nf1*k2],modeord);
   for (BIGINT k2=k2min;k2<0;++k2, pn+=2*ms)           // neg y-freqs
-    deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + pn,nf1,&fw[nf1*(nf2+k2)],modeord);
+    common::deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + pn,nf1,&fw[nf1*(nf2+k2)],modeord);
 }
 
 void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
@@ -391,10 +397,10 @@ void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
       fw[j][0] = fw[j][1] = 0.0;
   for (BIGINT k3=0;k3<=k3max;++k3, pp+=2*ms*mt)      // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
-    deconvolveshuffle2d(dir,prefac/ker3[k3],ker1,ker2,ms,mt,
+    common::deconvolveshuffle2d(dir,prefac/ker3[k3],ker1,ker2,ms,mt,
 			fk + pp,nf1,nf2,&fw[np*k3],modeord);
   for (BIGINT k3=k3min;k3<0;++k3, pn+=2*ms*mt)       // neg z-freqs
-    deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
+    common::deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
 			fk + pn,nf1,nf2,&fw[np*(nf3+k3)],modeord);
 }
 
@@ -497,11 +503,15 @@ int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN p){
 }
 
 
+  }   // namespace
+}   // namespace
 
 
-// --------------- rest is the 5 user guru (plan) interface drivers: -----------
 
 
+// --------------- rest is the 5 user guru (plan) interface drivers: ---------
+// (not namespaced since have safe names finufft{f}_* )
+using namespace finufft::common;  // accesses routines defined above
 
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 void FINUFFT_DEFAULT_OPTS(nufft_opts *o)

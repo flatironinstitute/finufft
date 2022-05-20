@@ -7,7 +7,10 @@
 #include "utils_precindep.h"
 #include "dataTypes.h"
 #include "defs.h"
+using namespace std;
 
+namespace finufft {
+  namespace utils {
 
 BIGINT next235even(BIGINT n)
 // finds even integer not less than n, with prime factors no larger than 5
@@ -29,8 +32,7 @@ BIGINT next235even(BIGINT n)
 }
 
 // ----------------------- helpers for timing (always stay double prec) ------
-using namespace std;
-
+  
 void CNTime::start()
 {
   gettimeofday(&initial, 0);
@@ -83,3 +85,6 @@ int rand_r(unsigned int *seedp)
     return distribution(generator);
 }
 #endif
+
+  } // namespace
+} // namespace

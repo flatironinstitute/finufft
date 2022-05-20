@@ -2,6 +2,7 @@
 // this enforces recompilation, responding to SINGLE...
 #include "directft/dirft1d.cpp"
 using namespace std;
+using namespace finufft::utils;
 
 const char* help[]={
   "Tester for FINUFFT in 1d, vectorized, all 3 types, either precision.",
