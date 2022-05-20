@@ -11,7 +11,8 @@
 #include <cmath>
 #include <cstdlib>
 
-namespace finufft::quadrature {
+namespace finufft {
+  namespace quadrature {
   
 void legendre_compute_glr ( int n, double x[], double w[] );
 void legendre_compute_glr0 ( int n, double *p, double *pp );
@@ -507,4 +508,5 @@ double ts_mult ( double *u, double h, int n )
 }
 /******************************************************************************/
 
+  } // namespace
 } // namespace

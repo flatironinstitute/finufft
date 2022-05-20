@@ -88,7 +88,8 @@ Design notes for guru interface implementation:
 
 // ---------- local math routines (were in common.cpp; no need now): --------
 
-namespace finufft::common {
+namespace finufft {
+  namespace common {
 
   // We macro because it has no FLT args but gets compiled for both prec's...
 #ifdef SINGLE
@@ -502,7 +503,8 @@ int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN p){
 }
 
 
-}   // namespace common
+  }   // namespace
+}   // namespace
 
 
 

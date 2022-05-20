@@ -27,7 +27,8 @@
 using namespace std;
 using namespace finufft::utils;              // access to timer
 
-namespace finufft::spreadinterp {
+namespace finufft {
+  namespace spreadinterp {
   
 // declarations of purely internal functions... (need not be in .h)
 static inline void set_kernel_args(FLT *args, FLT x, const spread_opts& opts);
@@ -1357,4 +1358,5 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
   }
 }
 
+  }   // namespace
 }   // namespace
