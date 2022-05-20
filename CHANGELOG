@@ -1,5 +1,6 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* all non-user-facing include files moved safely into include/finufft/
 * library private namespacing via finufft::* of all symbols that do not already
   begin with finufft{f}. This addresses clash with linking against cufinufft
   (their Issue #138).
