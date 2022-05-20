@@ -1,7 +1,7 @@
 #ifndef SPREAD_OPTS_H
 #define SPREAD_OPTS_H
 
-#include <dataTypes.h>
+#include <finufft/dataTypes.h>
 
 // C-compatible options struct for spreader.
 // (mostly internal to spreadinterp.cpp, with a little bleed to finufft.cpp)

@@ -6,7 +6,7 @@
 #define DEFS_H
 
 // use types intrinsic to finufft interface (FLT, CPX, BIGINT, etc)
-#include <dataTypes.h>
+#include <finufft/dataTypes.h>
 
 
 // ------------- Library-wide algorithm parameter settings ----------------

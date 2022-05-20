@@ -5,8 +5,8 @@
 #ifndef SPREADINTERP_H
 #define SPREADINTERP_H
 
-#include <dataTypes.h>
-#include <spread_opts.h>
+#include <finufft/dataTypes.h>
+#include <finufft/spread_opts.h>
 
 /* Bitwise debugging timing flag (TF) definitions; see spread_opts.flags.
     This is an unobtrusive way to determine the time contributions of the

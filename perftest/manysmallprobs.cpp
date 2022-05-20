@@ -1,5 +1,5 @@
 #include "finufft.h"
-#include "utils_precindep.h"
+#include "finufft/utils_precindep.h"
 
 #include <complex>
 #include <stdio.h>

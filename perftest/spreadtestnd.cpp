@@ -1,7 +1,7 @@
-#include <spreadinterp.h>
-#include <defs.h>
-#include <utils.h>
-#include <utils_precindep.h>
+#include <finufft/spreadinterp.h>
+#include <finufft/defs.h>
+#include <finufft/utils.h>
+#include <finufft/utils_precindep.h>
 
 #include <vector>
 #include <math.h>

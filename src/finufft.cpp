@@ -1,12 +1,12 @@
-#include <finufft_eitherprec.h>
-#include <defs.h>
-#include <dataTypes.h>
+#include <finufft/finufft_eitherprec.h>
+#include <finufft/defs.h>
+#include <finufft/dataTypes.h>
 #include <nufft_opts.h>
-#include <finufft_plan_eitherprec.h>
-#include <utils.h>
-#include <utils_precindep.h>
-#include <spreadinterp.h>
-#include <fftw_defs.h>
+#include <finufft/finufft_plan_eitherprec.h>
+#include <finufft/utils.h>
+#include <finufft/utils_precindep.h>
+#include <finufft/spreadinterp.h>
+#include <finufft/fftw_defs.h>
 
 #include <iostream>
 #include <iomanip>
