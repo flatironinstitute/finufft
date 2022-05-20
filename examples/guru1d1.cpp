@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
   finufft_plan plan;         // creates a plan struct
   int changeopts = 0;        // do you want to try changing opts? 0 or 1
   if (changeopts) {          // demo how to change options away from defaults..
-    nufft_opts opts;
+    finufft_opts opts;
     finufft_default_opts(&opts);
     opts.debug = 1;          // example options change
     finufft_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);

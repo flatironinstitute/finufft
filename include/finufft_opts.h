@@ -31,7 +31,7 @@ typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
   int spread_nthr_atomic; // if >=0, threads above which spreader OMP critical goes atomic
   int spread_max_sp_size; // if >0, overrides spreader (dir=1) max subproblem size
   // sphinx tag (don't remove): @opts_end
-} nufft_opts;
+} finufft_opts;
 
 // Those of the above of the form spread_* indicate pass through to spread_opts
 

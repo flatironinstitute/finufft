@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
   finufftf_plan plan;        // creates single-prec plan struct: note the "f"
   int changeopts = 1;        // do you want to try changing opts? 0 or 1
   if (changeopts) {          // demo how to change options away from defaults..
-    nufft_opts opts;
+    finufft_opts opts;
     finufftf_default_opts(&opts);   // note "f" for single-prec, throughout...
     opts.debug = 2;          // example options change
     finufftf_makeplan(type, dim, Ns, +1, ntransf, tol, &plan, &opts);

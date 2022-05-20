@@ -22,7 +22,7 @@
 #include <omp.h>
 using namespace std;
 
-void test_finufft(nufft_opts* opts)
+void test_finufft(finufft_opts* opts)
 // self-contained small test that single-prec FINUFFT2D2 no error nor crash
 {
     size_t n_rows = 8, n_cols = 8;
@@ -40,7 +40,7 @@ void test_finufft(nufft_opts* opts)
 
 int main(int argc, char* argv[])
 {
-  nufft_opts opts;
+  finufft_opts opts;
   finufftf_default_opts(&opts);
   opts.nthreads = 1;     // this is *crucial* so that each call single-thread
 

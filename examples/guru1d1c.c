@@ -31,12 +31,12 @@ int main(int argc, char* argv[])
   double *x,err,Fmax,aF;
   double complex *c,*F,Ftest;
 
-  nufft_opts* popts;         // pointer to opts struct
+  finufft_opts* popts;         // pointer to opts struct
   finufft_plan plan;         // pointer to (also C-compatible) plan struct
   Ns[0] = N;                 // mode numbers for plan
   int changeopts = 0;        // do you want to try changing opts? 0 or 1
   if (changeopts) {          // demo how to change options away from defaults..
-    popts = (nufft_opts *)malloc(sizeof(nufft_opts));         // allocate it
+    popts = (finufft_opts *)malloc(sizeof(finufft_opts));         // allocate it
     finufft_default_opts(popts);
     popts->debug = 1;        // example options change
     popts->nthreads = 4;     // "
