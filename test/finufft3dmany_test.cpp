@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
   int ntransf;                   // # of vectors for "many" interface
   double w, tol = 1e-6;          // default
   double err, errfail = INFINITY, errmax = 0;
-  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
+  finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc<6 || argc>13) {
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 
   // compare the result with FINUFFT3D1
   FFTW_FORGET_WISDOM();
-  nufft_opts simpleopts=opts;
+  finufft_opts simpleopts=opts;
   simpleopts.debug = 0;       // don't output timing for calls of FINUFFT3D1
   simpleopts.spread_debug = 0;
 

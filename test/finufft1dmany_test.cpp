@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
   int ntransf;                   // # of vectors for "many" interface
   double w, tol = 1e-6;          // default
   double err, errfail = INFINITY, errmax = 0;
-  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
+  finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc<4 || argc>11) {
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
   CPX * Fstart;
   CPX * cstart;
   timer.restart();
-  nufft_opts simpleopts = opts;    // opts just for simple interface
+  finufft_opts simpleopts = opts;    // opts just for simple interface
   simpleopts.debug = 0;
   simpleopts.spread_debug = 0; 
   for(BIGINT j = 0; j < ntransf; j++){
