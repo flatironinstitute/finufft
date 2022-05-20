@@ -1,4 +1,4 @@
-#include <test_defs.h>
+#include <finufft/test_defs.h>
 // this enforces recompilation, responding to SINGLE...
 #include "directft/dirft1d.cpp"
 #include "directft/dirft2d.cpp"

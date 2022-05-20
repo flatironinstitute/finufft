@@ -1,4 +1,4 @@
-#include <test_defs.h>
+#include <finufft/test_defs.h>
 // this enforces recompilation, responding to SINGLE...
 #include "directft/dirft3d.cpp"
 using namespace std;

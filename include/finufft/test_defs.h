@@ -1,15 +1,15 @@
-// test-wide definitions and headers for use in ../test/*.cpp and ../perftest
+// test-wide definitions and headers for use in ../test/ and ../perftest/
 
 #ifndef TEST_DEFS_H
 #define TEST_DEFS_H
 
 // responds to SINGLE, and defines FINUFFT?D? used in test/*.cpp
-#include <finufft_eitherprec.h>
+#include <finufft/finufft_eitherprec.h>
 
 // convenient finufft internals
-#include <utils.h>
-#include <utils_precindep.h>
-#include <defs.h>
+#include <finufft/utils.h>
+#include <finufft/utils_precindep.h>
+#include <finufft/defs.h>
 
 // std stuff
 #include <math.h>
