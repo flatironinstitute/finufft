@@ -13,7 +13,7 @@
 
 // Here just what's needed to describe the headers for what finufft provides
 #include <finufft/dataTypes.h>
-#include <nufft_opts.h>
+#include <finufft_opts.h>
 #include <finufft/finufft_plan_eitherprec.h>
 
 // clear the macros so we can define w/o warnings...
@@ -101,8 +101,8 @@ extern "C"
 // ------------------ the guru interface ------------------------------------
 // (sources in finufft.cpp)
   
-void FINUFFT_DEFAULT_OPTS(nufft_opts *o);
-int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag, int n_transf, FLT tol, FINUFFT_PLAN* plan, nufft_opts* o);
+void FINUFFT_DEFAULT_OPTS(finufft_opts *o);
+int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag, int n_transf, FLT tol, FINUFFT_PLAN* plan, finufft_opts* o);
 int FINUFFT_SETPTS(FINUFFT_PLAN plan , BIGINT M, FLT *xj, FLT *yj, FLT *zj, BIGINT N, FLT *s, FLT *t, FLT *u); 
 int FINUFFT_EXECUTE(FINUFFT_PLAN plan, CPX* weights, CPX* result);
 int FINUFFT_DESTROY(FINUFFT_PLAN plan);
@@ -112,43 +112,43 @@ int FINUFFT_DESTROY(FINUFFT_PLAN plan);
 // (sources in simpleinterfaces.cpp)
 
 int FINUFFT1D1(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	       CPX* fk, nufft_opts *opts);
+	       CPX* fk, finufft_opts *opts);
 int FINUFFT1D1MANY(int ntransf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	       CPX* fk, nufft_opts *opts);
+	       CPX* fk, finufft_opts *opts);
 
 int FINUFFT1D2(BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	       CPX* fk, nufft_opts *opts);
+	       CPX* fk, finufft_opts *opts);
 int FINUFFT1D2MANY(int ntransf, BIGINT nj,FLT* xj,CPX* cj,int iflag,FLT eps,BIGINT ms,
-	       CPX* fk, nufft_opts *opts);
-int FINUFFT1D3(BIGINT nj,FLT* x,CPX* c,int iflag,FLT eps,BIGINT nk, FLT* s, CPX* f, nufft_opts *opts);
-int FINUFFT1D3MANY(int ntransf, BIGINT nj,FLT* x,CPX* c,int iflag,FLT eps,BIGINT nk, FLT* s, CPX* f, nufft_opts *opts);
+	       CPX* fk, finufft_opts *opts);
+int FINUFFT1D3(BIGINT nj,FLT* x,CPX* c,int iflag,FLT eps,BIGINT nk, FLT* s, CPX* f, finufft_opts *opts);
+int FINUFFT1D3MANY(int ntransf, BIGINT nj,FLT* x,CPX* c,int iflag,FLT eps,BIGINT nk, FLT* s, CPX* f, finufft_opts *opts);
 int FINUFFT2D1(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
-	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts);
+	       BIGINT ms, BIGINT mt, CPX* fk, finufft_opts *opts);
 int FINUFFT2D1MANY(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
-                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts);
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, finufft_opts *opts);
 int FINUFFT2D2(BIGINT nj,FLT* xj,FLT *yj,CPX* cj,int iflag,FLT eps,
-	       BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts);
+	       BIGINT ms, BIGINT mt, CPX* fk, finufft_opts *opts);
 int FINUFFT2D2MANY(int ndata, BIGINT nj, FLT* xj, FLT *yj, CPX* c, int iflag,
-                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, nufft_opts *opts);
-int FINUFFT2D3(BIGINT nj,FLT* x,FLT *y,CPX* cj,int iflag,FLT eps,BIGINT nk, FLT* s, FLT* t, CPX* fk, nufft_opts *opts);
+                   FLT eps, BIGINT ms, BIGINT mt, CPX* fk, finufft_opts *opts);
+int FINUFFT2D3(BIGINT nj,FLT* x,FLT *y,CPX* cj,int iflag,FLT eps,BIGINT nk, FLT* s, FLT* t, CPX* fk, finufft_opts *opts);
 
-int FINUFFT2D3MANY(int ntransf, BIGINT nj,FLT* x,FLT *y,CPX* cj,int iflag,FLT eps,BIGINT nk, FLT* s, FLT* t, CPX* fk, nufft_opts *opts);
+int FINUFFT2D3MANY(int ntransf, BIGINT nj,FLT* x,FLT *y,CPX* cj,int iflag,FLT eps,BIGINT nk, FLT* s, FLT* t, CPX* fk, finufft_opts *opts);
 
 int FINUFFT3D1(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
-	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts *opts);
+	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, finufft_opts *opts);
 int FINUFFT3D1MANY(int ntransfs, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
-	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts *opts);
+	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, finufft_opts *opts);
 
 int FINUFFT3D2(BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
-	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts *opts);
+	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, finufft_opts *opts);
 int FINUFFT3D2MANY(int ntransf, BIGINT nj,FLT* xj,FLT *yj,FLT *zj,CPX* cj,int iflag,FLT eps,
-	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, nufft_opts *opts);
+	       BIGINT ms, BIGINT mt, BIGINT mu, CPX* fk, finufft_opts *opts);
 int FINUFFT3D3(BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
-	       CPX* fk, nufft_opts *opts);
+	       CPX* fk, finufft_opts *opts);
 int FINUFFT3D3MANY(int ntransf, BIGINT nj,FLT* x,FLT *y,FLT *z, CPX* cj,int iflag,
 	       FLT eps,BIGINT nk,FLT* s, FLT* t, FLT *u,
-	       CPX* fk, nufft_opts *opts);
+	       CPX* fk, finufft_opts *opts);
 
   
 #ifdef __cplusplus

@@ -12,7 +12,7 @@
 #endif
 
 #include <finufft/fftw_defs.h>
-#include <nufft_opts.h>
+#include <finufft_opts.h>
 #include <finufft/spread_opts.h>
 
 #ifndef __cplusplus
@@ -92,7 +92,7 @@ typedef struct FINUFFT_PLAN_S {  // the main plan struct; note C-compatible stru
   
   // other internal structs; each is C-compatible of course
   FFTW_PLAN fftwPlan;
-  nufft_opts opts;     // this and spopts could be made ptrs
+  finufft_opts opts;     // this and spopts could be made ptrs
   spread_opts spopts;
   
 } FINUFFT_PLAN_S;
