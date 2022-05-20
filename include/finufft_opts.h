@@ -5,7 +5,7 @@
 // Deliberately a plain C struct, without special types.
 // See ../docs/devnotes.rst about what else to sync when you change this.
 
-typedef struct nufft_opts{    // defaults see finufft.cpp:finufft_default_opts()
+typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
   // sphinx tag (don't remove): @opts_start
   // FINUFFT options:
   // data handling opts...

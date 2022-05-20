@@ -1,4 +1,4 @@
-int @F3d1(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, nufft_opts* opts)
+int @F3d1(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, finufft_opts* opts)
 
   3D complex nonuniform FFT of type 1 (nonuniform to uniform).
 @t
@@ -27,7 +27,7 @@ int @F3d1(int64_t M, double* x, double* y, double* z, complex<double>* c, int if
 @notes12
 
 
-int @F3d2(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, nufft_opts* opts)
+int @F3d2(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, int64_t N3, complex<double>* f, finufft_opts* opts)
 
   3D complex nonuniform FFT of type 2 (uniform to nonuniform).
 @t
@@ -57,7 +57,7 @@ int @F3d2(int64_t M, double* x, double* y, double* z, complex<double>* c, int if
 @notes12
 
 
-int @F3d3(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N, double* s, double* t, double* u, complex<double>* f, nufft_opts* opts)
+int @F3d3(int64_t M, double* x, double* y, double* z, complex<double>* c, int iflag, double eps, int64_t N, double* s, double* t, double* u, complex<double>* f, finufft_opts* opts)
 
   3D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
 @t

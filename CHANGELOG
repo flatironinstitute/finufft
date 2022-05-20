@@ -1,6 +1,6 @@
 List of features / changes made / release notes, in reverse chronological order
 
-V 2.1.0
+V 2.1.0 beta
 
 * BREAKING INTERFACE CHANGE: nufft_opts is now called finufft_opts.
   This is needed for consistency and fixes a historical problem.

@@ -1,4 +1,4 @@
-int @F2d1(int64_t M, double* x, double* y, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, complex<double>* f, nufft_opts* opts)
+int @F2d1(int64_t M, double* x, double* y, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, complex<double>* f, finufft_opts* opts)
 
   2D complex nonuniform FFT of type 1 (nonuniform to uniform).
 @t
@@ -25,7 +25,7 @@ int @F2d1(int64_t M, double* x, double* y, complex<double>* c, int iflag, double
 @no
 @notes12
 
-int @F2d2(int64_t M, double* x, double* y, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, complex<double>* f, nufft_opts* opts)
+int @F2d2(int64_t M, double* x, double* y, complex<double>* c, int iflag, double eps, int64_t N1, int64_t N2, complex<double>* f, finufft_opts* opts)
 
   2D complex nonuniform FFT of type 2 (uniform to nonuniform).
 @t
@@ -50,7 +50,7 @@ int @F2d2(int64_t M, double* x, double* y, complex<double>* c, int iflag, double
 @no
 @notes12
 
-int @F2d3(int64_t M, double* x, double* y, complex<double>* c, int iflag, double eps, int64_t N, double* s, double* t, complex<double>* f, nufft_opts* opts)
+int @F2d3(int64_t M, double* x, double* y, complex<double>* c, int iflag, double eps, int64_t N, double* s, double* t, complex<double>* f, finufft_opts* opts)
 
   2D complex nonuniform FFT of type 3 (nonuniform to nonuniform).
 @t
