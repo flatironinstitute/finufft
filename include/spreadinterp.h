@@ -23,7 +23,8 @@
 #define TF_OMIT_EVALUATE_EXPONENTIAL 4 // omit exp() in kernel (kereval=0 only)
 #define TF_OMIT_SPREADING            8 // don't interp/spread (dir=1: to subgrids)
 
-namespace finufft::spreadinterp {
+namespace finufft {
+  namespace spreadinterp {
 
 // things external (spreadinterp) interface needs...
 int spreadinterp(BIGINT N1, BIGINT N2, BIGINT N3, FLT *data_uniform,
@@ -46,6 +47,7 @@ FLT evaluate_kernel(FLT x,const spread_opts &opts);
 FLT evaluate_kernel_noexp(FLT x,const spread_opts &opts);
 int setup_spreader(spread_opts &opts,FLT eps,double upsampfac,int kerevalmeth, int debug, int showwarn, int dim);
 
+  }    // namespace
 }    // namespace
  
 #endif  // SPREADINTERP_H

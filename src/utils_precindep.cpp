@@ -9,7 +9,8 @@
 #include "defs.h"
 using namespace std;
 
-namespace finufft::utils {
+namespace finufft {
+  namespace utils {
 
 BIGINT next235even(BIGINT n)
 // finds even integer not less than n, with prime factors no larger than 5
@@ -85,4 +86,5 @@ int rand_r(unsigned int *seedp)
 }
 #endif
 
+  } // namespace
 } // namespace

@@ -6,7 +6,8 @@
 
 #include "dataTypes.h"
 
-namespace finufft::utils {
+namespace finufft {
+  namespace utils {
 
 // ahb's low-level array helpers
 FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b);
@@ -17,6 +18,7 @@ void arrayrange(BIGINT n, FLT* a, FLT *lo, FLT *hi);
 void indexedarrayrange(BIGINT n, BIGINT* i, FLT* a, FLT *lo, FLT *hi);
 void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c);
 
+  }    // namespace
 }    // namespace
  
 #endif  // UTILS_H
