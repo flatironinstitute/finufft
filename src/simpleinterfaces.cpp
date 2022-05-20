@@ -1,5 +1,5 @@
-#include <finufft_eitherprec.h>
-#include <dataTypes.h>
+#include <finufft/finufft_eitherprec.h>
+#include <finufft/dataTypes.h>
 
 #include <cstdio>
 using namespace std;

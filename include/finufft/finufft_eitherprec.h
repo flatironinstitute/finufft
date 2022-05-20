@@ -12,9 +12,9 @@
 #endif
 
 // Here just what's needed to describe the headers for what finufft provides
-#include <dataTypes.h>
+#include <finufft/dataTypes.h>
 #include <nufft_opts.h>
-#include <finufft_plan_eitherprec.h>
+#include <finufft/finufft_plan_eitherprec.h>
 
 // clear the macros so we can define w/o warnings...
 #undef FINUFFT_DEFAULT_OPTS

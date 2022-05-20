@@ -1,7 +1,7 @@
-#include <finufft_eitherprec.h>
-#include <dataTypes.h>
+#include <finufft/finufft_eitherprec.h>
+#include <finufft/dataTypes.h>
 #include <nufft_opts.h>
-#include <finufft_plan_eitherprec.h>
+#include <finufft/finufft_plan_eitherprec.h>
 
 /* C++ layer for calling FINUFFT from fortran, in f77 style + derived type
    for the nufft_opts C-struct. The ptr to finufft_plan is passed as an "opaque"

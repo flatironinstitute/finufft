@@ -11,9 +11,9 @@
 #define FINUFFTF_PLAN_H
 #endif
 
-#include <fftw_defs.h>
+#include <finufft/fftw_defs.h>
 #include <nufft_opts.h>
-#include <spread_opts.h>
+#include <finufft/spread_opts.h>
 
 #ifndef __cplusplus
 #include <stdbool.h>     // for bools in C

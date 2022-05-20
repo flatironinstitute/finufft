@@ -14,9 +14,9 @@
 #endif
 
 #undef SINGLE
-#include <finufft_eitherprec.h>
+#include <finufft/finufft_eitherprec.h>
 #define SINGLE
-#include <finufft_eitherprec.h>
+#include <finufft/finufft_eitherprec.h>
 #undef SINGLE
 
 // ... and reconstruct it. (We still clobber the unlikely WAS_SINGLE symbol)
