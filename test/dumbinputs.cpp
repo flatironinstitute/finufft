@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
   int M = 100;            // number of nonuniform points
   int N = 10;             // # modes, keep small, also output NU pts in type 3
   FLT acc = 1e-6;         // desired accuracy
-  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
+  finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
 
   int NN = N*N*N;         // modes F alloc size since we'll go to 3d
   // generate some "random" nonuniform points (x) and complex strengths (c):
