@@ -84,7 +84,7 @@ it to FINUFFT, for instance
 .. code-block:: fortran
 
       include 'finufft.fh'
-      type(nufft_opts) opts
+      type(finufft_opts) opts
  
  !    (...declare, allocate, and fill stuff as above...)
 
@@ -128,7 +128,7 @@ These routines and arguments are, in double-precision:
       real*8, allocatable :: xj(:),yj(:),zj(:), sk(:),tk(:),uk(:)
       real*8 tol
       complex*16, allocatable :: cj(:), fk(:)
-      type(nufft_opts) opts
+      type(finufft_opts) opts
 
  !    simple interface   
       call finufft1d1(M,xj,cj,iflag,tol,N1,fk,opts,ier)

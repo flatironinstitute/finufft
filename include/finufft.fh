@@ -1,8 +1,8 @@
-c     Fortran header recreating nufft_opts struct in fortran (f90 style).
-c     This must be kept synchronized with nufft_opts.h, matching its order.
+c     Fortran header recreating finufft_opts struct in fortran (f90 style).
+c     This must be kept synchronized with finufft_opts.h, matching its order.
 c     Also see ../fortran/finufftfort.cpp.  Barnett 5/29/20. One prec 7/2/20.
 
-      type nufft_opts
+      type finufft_opts
          integer debug, spread_debug,spread_sort,spread_kerevalmeth,
      $        spread_kerpad,chkbnds,fftw,modeord
          real*8 upsampfac
