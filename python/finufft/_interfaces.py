@@ -92,7 +92,7 @@ class Plan:
                 isign = 1
 
         # set opts and check precision type
-        opts = _finufft.NufftOpts()
+        opts = _finufft.FinufftOpts()
         _finufft._default_opts(opts)
         is_single = setkwopts(opts,**kwargs)
 
