@@ -529,7 +529,7 @@ def setkwopts(opt,**kwargs):
         elif key == 'dtype':
             dtype = value
         else:
-            warnings.warn('Warning: nufft_opts does not have attribute "' + key + '"', Warning)
+            warnings.warn('Warning: finufft_opts does not have attribute "' + key + '"', Warning)
 
     warnings.simplefilter('default')
 

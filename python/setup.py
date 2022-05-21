@@ -56,7 +56,7 @@ with open(fd, 'w') as f:
 #include <finufft.h>
 
 void PyInit_finufftc(void) {
-    nufft_opts opt;
+    finufft_opts opt;
 
     finufft_default_opts(&opt);
 }
