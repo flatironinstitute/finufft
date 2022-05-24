@@ -7,6 +7,8 @@
 #include "dataTypes.h"
 #include "defs.h"
 
+namespace finufft {
+  namespace utils {
 
 // ------------ complex array utils ---------------------------------
 
@@ -80,3 +82,6 @@ void arraywidcen(BIGINT n, FLT* a, FLT *w, FLT *c)
     *c = 0.0;
   }
 }
+
+  }  // namespace
+}  // namespace

@@ -1,5 +1,8 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* library private namespacing via finufft::* of all symbols that do not already
+  begin with finufft{f}. This addresses clash with linking against cufinufft
+  (their Issue #138).
 * spreadinterp evaluate_kernel_vector uses single arith when FLT=single.
 * spread_opts.h fix duplication for FLT=single/double by making FLT->double.
 * examples/simulplans1d1 demos ability to to wield independent plans.

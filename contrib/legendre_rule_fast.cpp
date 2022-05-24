@@ -1,10 +1,19 @@
-/* edited down to be a library func for Gauss-Legendre nodes & weights
-   on [-1,1], by Alex Barnett 2/7/17
+/* Burkardt's implementation of GLR method.
+
+   Edited down to be a library func for Gauss-Legendre nodes & weights
+   on [-1,1], by Alex Barnett 2/7/17.
+
+   Repackaged as .cpp to allow namespacing, Barnett 5/18/22.
+   (Note: could equally well have used Burkardt's C++ version:
+   https://people.math.sc.edu/Burkardt/cpp_src/legendre_rule_fast/legendre_rule_fast.cpp
 */
 
-#include <math.h>
-#include <stdlib.h>
+#include <cmath>
+#include <cstdlib>
 
+namespace finufft {
+  namespace quadrature {
+  
 void legendre_compute_glr ( int n, double x[], double w[] );
 void legendre_compute_glr0 ( int n, double *p, double *pp );
 void legendre_compute_glr1 ( int n, double *roots, double *ders );
@@ -498,3 +507,6 @@ double ts_mult ( double *u, double h, int n )
   return ts;
 }
 /******************************************************************************/
+
+  } // namespace
+} // namespace
