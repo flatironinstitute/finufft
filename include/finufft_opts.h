@@ -1,9 +1,9 @@
-#ifndef OPTS_H
-#define OPTS_H
-
-// ------------- Struct for user-controllable FINUFFT options -----------------
-// Deliberately a plain C struct, without special types.
+// -------- Public header for user-controllable FINUFFT options struct ---------
+// Deliberately a plain C struct, without special types, or switchable prec's.
 // See ../docs/devnotes.rst about what else to sync when you change this.
+
+#ifndef FINUFFT_OPTS_H
+#define FINUFFT_OPTS_H
 
 typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
   // sphinx tag (don't remove): @opts_start
@@ -35,4 +35,4 @@ typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
 
 // Those of the above of the form spread_* indicate pass through to spread_opts
 
-#endif  // OPTS_H
+#endif  // FINUFFT_OPTS_H

@@ -1,25 +1,21 @@
-// Defines the C++/C user interface to FINUFFT library.
+// Defines the public C-compatible C++/C user interface to FINUFFT library.
 
-// It simply combines single and double precision headers, by flipping a flag
-// in the main macros which are in finufft_eitherprec.h
-// No usual #ifndef testing is needed; it's done in finufft_eitherprec.h
-// Internal FINUFFT routines that are compiled separately for
-// each precision should include finufft_eitherprec.h and not finufft.h
+// This contains both single and double precision user-facing commands.
+// This is achieved by including the "either precision" headers twice.
+// Barnett 5/21/22
 
-// Barnett 7/1/20
+#ifndef FINUFFT_H
+#define FINUFFT_H
 
-// save whether SINGLE defined or not...
-#ifdef SINGLE
-#define WAS_SINGLE
-#endif
+// octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
+#include <stdint.h>
+#define FINUFFT_BIGINT int64_t
 
-#undef SINGLE
+// this macro name has to be safe since exposed to user
+#define FINUFFT_SINGLE
 #include <finufft/finufft_eitherprec.h>
-#define SINGLE
+#undef FINUFFT_SINGLE
+// do it again for double-prec...
 #include <finufft/finufft_eitherprec.h>
-#undef SINGLE
 
-// ... and reconstruct it. (We still clobber the unlikely WAS_SINGLE symbol)
-#ifdef WAS_SINGLE
-#define SINGLE
-#endif
+#endif  // FINUFFT_H
