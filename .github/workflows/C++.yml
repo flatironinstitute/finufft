@@ -68,12 +68,26 @@ jobs:
 
   Windows:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
 
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install GCC and make
-      run: C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm make diffutils mingw-w64-x86_64-toolchain mingw-w64-x86_64-fftw"
-
+    - name: 'Setup MSYS2'
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: false
+        install: >-
+          git
+          make
+          diffutils
+        pacboy: >-
+          toolchain:p
+          fftw:p
     - name: Compile C++ code
-      run: .\.github\workflows\C++_build_win.ps1
+      run: |
+        cp make.inc.windows_msys make.inc
+        make spreadtestall && make lib && make test
