@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
 
   printf("FINUFFT %dd%d use guru interface to do %d calls together:-------------------\n",ndim,type,ntransf);
   FINUFFT_PLAN plan;                  // instantiate a finufft_plan
-  CNTime timer; timer.start();        // Guru Step 1
+  finufft::utils::CNTime timer; timer.start();        // Guru Step 1
   BIGINT n_modes[3] = {N1,N2,N3};     // #modes per dimension (ignored for t3)
   int ier = FINUFFT_MAKEPLAN(type, ndim, n_modes, isign, ntransf, tol, &plan, &opts);
   // (NB: the opts struct can no longer be modified with effect!)
@@ -245,7 +245,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
    Malleo 2019; xyz passed in by Barnett 5/26/20 to prevent X_orig fields.
 */
 {
-  CNTime timer; timer.start();
+  finufft::utils::CNTime timer; timer.start();
   int ier = 0;
   double t = 0;
   double fail = NAN;                  // dummy code for failure
