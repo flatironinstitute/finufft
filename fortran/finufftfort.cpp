@@ -1,8 +1,3 @@
-#include <finufft/finufft_eitherprec.h>
-#include <finufft/dataTypes.h>
-#include <finufft_opts.h>
-#include <finufft/finufft_plan_eitherprec.h>
-
 /* C++ layer for calling FINUFFT from fortran, in f77 style + derived type
    for the finufft_opts C-struct. The ptr to finufft_plan is passed as an "opaque"
    pointer (as in FFTW3 legacy fortran interface).
@@ -19,59 +14,40 @@
 
    Barnett 2/17/17. Single prec 4/5/17. Libin Lu & Alex Barnett, May 2020.
    Garrett Wright dual-prec 6/28/20.
+   Barnett safe-header, cleaned up, 6/7/22.
 */
 
-// macros to set distinct names for each precision...
-#ifdef SINGLE
-#define FINUFFT_MAKEPLAN_ finufftf_makeplan_
-#define FINUFFT_SETPTS_ finufftf_setpts_
-#define FINUFFT_EXECUTE_ finufftf_execute_
-#define FINUFFT_DESTROY_ finufftf_destroy_
-#define FINUFFT_DEFAULT_OPTS_ finufftf_default_opts_
-#define FINUFFT1D1_ finufftf1d1_
-#define FINUFFT1D1MANY_ finufftf1d1many_
-#define FINUFFT1D2_ finufftf1d2_
-#define FINUFFT1D2MANY_ finufftf1d2many_
-#define FINUFFT1D3_ finufftf1d3_
-#define FINUFFT1D3MANY_ finufftf1d3many_
-#define FINUFFT2D1_ finufftf2d1_
-#define FINUFFT2D1MANY_ finufftf2d1many_
-#define FINUFFT2D2_ finufftf2d2_
-#define FINUFFT2D2MANY_ finufftf2d2many_
-#define FINUFFT2D3_ finufftf2d3_
-#define FINUFFT2D3MANY_ finufftf2d3many_
-#define FINUFFT3D1_ finufftf3d1_
-#define FINUFFT3D1MANY_ finufftf3d1many_
-#define FINUFFT3D2_ finufftf3d2_
-#define FINUFFT3D2MANY_ finufftf3d2many_
-#define FINUFFT3D3_ finufftf3d3_
-#define FINUFFT3D3MANY_ finufftf3d3many_
-#else
-#define FINUFFT_MAKEPLAN_ finufft_makeplan_
-#define FINUFFT_SETPTS_ finufft_setpts_
-#define FINUFFT_EXECUTE_ finufft_execute_
-#define FINUFFT_DESTROY_ finufft_destroy_
-#define FINUFFT_DEFAULT_OPTS_ finufft_default_opts_
-#define FINUFFT1D1_ finufft1d1_
-#define FINUFFT1D1MANY_ finufft1d1many_
-#define FINUFFT1D2_ finufft1d2_
-#define FINUFFT1D2MANY_ finufft1d2many_
-#define FINUFFT1D3_ finufft1d3_
-#define FINUFFT1D3MANY_ finufft1d3many_
-#define FINUFFT2D1_ finufft2d1_
-#define FINUFFT2D1MANY_ finufft2d1many_
-#define FINUFFT2D2_ finufft2d2_
-#define FINUFFT2D2MANY_ finufft2d2many_
-#define FINUFFT2D3_ finufft2d3_
-#define FINUFFT2D3MANY_ finufft2d3many_
-#define FINUFFT3D1_ finufft3d1_
-#define FINUFFT3D1MANY_ finufft3d1many_
-#define FINUFFT3D2_ finufft3d2_
-#define FINUFFT3D2MANY_ finufft3d2many_
-#define FINUFFT3D3_ finufft3d3_
-#define FINUFFT3D3MANY_ finufft3d3many_
-#endif
+// public header
+#include <finufft.h>
 
+// private headers needed...
+#include <finufft/defs.h>
+
+// local prec-switching macros for fortran names...
+// (underscore-suffixed versions of those at end of defs.h)
+#define FINUFFT_DEFAULT_OPTS_ FINUFFTIFY(_default_opts_)
+#define FINUFFT_MAKEPLAN_ FINUFFTIFY(_makeplan_)
+#define FINUFFT_SETPTS_ FINUFFTIFY(_setpts_)
+#define FINUFFT_EXECUTE_ FINUFFTIFY(_execute_)
+#define FINUFFT_DESTROY_ FINUFFTIFY(_destroy_)
+#define FINUFFT1D1_ FINUFFTIFY(1d1_)
+#define FINUFFT1D2_ FINUFFTIFY(1d2_)
+#define FINUFFT1D3_ FINUFFTIFY(1d3_)
+#define FINUFFT2D1_ FINUFFTIFY(2d1_)
+#define FINUFFT2D2_ FINUFFTIFY(2d2_)
+#define FINUFFT2D3_ FINUFFTIFY(2d3_)
+#define FINUFFT3D1_ FINUFFTIFY(3d1_)
+#define FINUFFT3D2_ FINUFFTIFY(3d2_)
+#define FINUFFT3D3_ FINUFFTIFY(3d3_)
+#define FINUFFT1D1MANY_ FINUFFTIFY(1d1many_)
+#define FINUFFT1D2MANY_ FINUFFTIFY(1d2many_)
+#define FINUFFT1D3MANY_ FINUFFTIFY(1d3many_)
+#define FINUFFT2D1MANY_ FINUFFTIFY(2d1many_)
+#define FINUFFT2D2MANY_ FINUFFTIFY(2d2many_)
+#define FINUFFT2D3MANY_ FINUFFTIFY(2d3many_)
+#define FINUFFT3D1MANY_ FINUFFTIFY(3d1many_)
+#define FINUFFT3D2MANY_ FINUFFTIFY(3d2many_)
+#define FINUFFT3D3MANY_ FINUFFTIFY(3d3many_)
 
 #ifdef __cplusplus
 extern "C" {

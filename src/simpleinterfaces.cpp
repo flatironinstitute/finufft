@@ -1,6 +1,7 @@
-#include <finufft/finufft_eitherprec.h>
-#include <finufft/dataTypes.h>
-
+// public header
+#include <finufft.h>
+// private headers
+#include <finufft/defs.h>
 #include <cstdio>
 using namespace std;
 
@@ -13,6 +14,7 @@ using namespace std;
    producing functions finufft?d?{many} or finufftf?1?{many} respectively.
 
    Authors: Andrea Malleo and Alex Barnett, 2019-2020.
+   Safe namespacing, Barnett, May 2022.
    ---------------------------------------------------------------------------
 */
 

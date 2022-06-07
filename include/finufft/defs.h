@@ -54,7 +54,7 @@
 
 
 // --------------- Private data types for compilation in either prec ---------
-// (devnote: must match those in relevant prec of public finufft.h interface)
+// Devnote: must match those in relevant prec of public finufft.h interface!
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday.
@@ -92,6 +92,7 @@
   #define EPSILON (double)1.1e-16
 #endif
 
+
 // Random numbers: crappy unif random number generator in [0,1).
 // These macros should probably be replaced by modern C++ std lib or random123.
 // (RAND_MAX is in stdlib.h)
@@ -109,7 +110,6 @@
 #define randm11r(x) (2*rand01r(x) - (FLT)1.0)
 // complex unif[-1,1] for Re and Im:
 #define crandm11r(x) (randm11r(x) + IMA*randm11r(x))
-
 
 
 // ----- OpenMP (and FFTW omp) macros which also work when omp not present -----
@@ -135,5 +135,48 @@
   #undef FFTW_CLEANUP_THREADS
   #define FFTW_CLEANUP_THREADS()
 #endif
+
+
+// Prec-switching name macros (respond to SINGLE), used in lib & test sources:
+// Note: crucially, these are now indep of macros used to gen public finufft.h!
+#ifndef FINUFFT_UNSAFE
+#ifdef SINGLE
+// macro to prepend finufft or finufftf to a string without a space.
+// The 2nd level of indirection is needed for safety, see:
+// https://isocpp.org/wiki/faq/misc-technical-issues#macros-with-token-pasting
+#define FINUFFTIFY_UNSAFE(x) finufftf##x
+#else
+#define FINUFFTIFY_UNSAFE(x) finufft##x
+#endif
+#define FINUFFTIFY(x) FINUFFTIFY_UNSAFE(x)
+#endif
+// The following set up 2020-style macros needed for testers...
+#define FINUFFT_PLAN FINUFFTIFY(_plan)
+#define FINUFFT_DEFAULT_OPTS FINUFFTIFY(_default_opts)
+#define FINUFFT_MAKEPLAN FINUFFTIFY(_makeplan)
+#define FINUFFT_SETPTS FINUFFTIFY(_setpts)
+#define FINUFFT_EXECUTE FINUFFTIFY(_execute)
+#define FINUFFT_DESTROY FINUFFTIFY(_destroy)
+#define FINUFFT1D1 FINUFFTIFY(1d1)
+#define FINUFFT1D2 FINUFFTIFY(1d2)
+#define FINUFFT1D3 FINUFFTIFY(1d3)
+#define FINUFFT2D1 FINUFFTIFY(2d1)
+#define FINUFFT2D2 FINUFFTIFY(2d2)
+#define FINUFFT2D3 FINUFFTIFY(2d3)
+#define FINUFFT3D1 FINUFFTIFY(3d1)
+#define FINUFFT3D2 FINUFFTIFY(3d2)
+#define FINUFFT3D3 FINUFFTIFY(3d3)
+#define FINUFFT1D1MANY FINUFFTIFY(1d1many)
+#define FINUFFT1D2MANY FINUFFTIFY(1d2many)
+#define FINUFFT1D3MANY FINUFFTIFY(1d3many)
+#define FINUFFT2D1MANY FINUFFTIFY(2d1many)
+#define FINUFFT2D2MANY FINUFFTIFY(2d2many)
+#define FINUFFT2D3MANY FINUFFTIFY(2d3many)
+#define FINUFFT3D1MANY FINUFFTIFY(3d1many)
+#define FINUFFT3D2MANY FINUFFTIFY(3d2many)
+#define FINUFFT3D3MANY FINUFFTIFY(3d3many)
+#define FINUFFT_PLAN FINUFFTIFY(_plan)
+#define FINUFFT_PLAN_S FINUFFTIFY(_plan_s)
+
 
 #endif  // DEFS_H

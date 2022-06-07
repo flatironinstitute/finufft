@@ -2,55 +2,44 @@
 #define FFTW_DEFS_H
 
 // Here we define typedefs and MACROS to switch between single and double
-// precision library compilation, which need different FFTW commands.
+// precision library compilation, which need different FFTW command symbols.
+// Barnett simplified via FFTWIFY, 6/7/22.
 
 #include <fftw3.h>          // (after complex.h) needed so can typedef FFTW_CPX
 
-// prec-indep interfaces to FFTW and other math utilities...
+// precision-switching for names of interfaces of FFTW...
 #ifdef SINGLE
-  typedef fftwf_complex FFTW_CPX;           //  single-prec has fftwf_*
-  typedef fftwf_plan FFTW_PLAN;
-  #define FFTW_INIT fftwf_init_threads
-  #define FFTW_PLAN_TH fftwf_plan_with_nthreads
-  #define FFTW_ALLOC_RE fftwf_alloc_real
-  #define FFTW_ALLOC_CPX fftwf_alloc_complex
-  #define FFTW_PLAN_1D fftwf_plan_dft_1d
-  #define FFTW_PLAN_2D fftwf_plan_dft_2d
-  #define FFTW_PLAN_3D fftwf_plan_dft_3d
-  #define FFTW_PLAN_MANY_DFT fftwf_plan_many_dft
-  #define FFTW_EX fftwf_execute
-  #define FFTW_DE fftwf_destroy_plan
-  #define FFTW_FR fftwf_free
-  #define FFTW_FORGET_WISDOM fftwf_forget_wisdom
-  #define FFTW_CLEANUP fftwf_cleanup
-  #define FFTW_CLEANUP_THREADS fftwf_cleanup_threads
-  #ifdef FFTW_PLAN_SAFE
-    #define FFTW_PLAN_SF() fftwf_make_planner_thread_safe()
-  #else
-    #define FFTW_PLAN_SF()
-  #endif
+// macro to prepend fftw_ (for doulbe) or fftwf_ (for single) to a string
+// without a space. The 2nd level of indirection is needed for safety, see:
+// https://isocpp.org/wiki/faq/misc-technical-issues#macros-with-token-pasting
+#define FFTWIFY_UNSAFE(x) fftwf_##x
 #else
-  typedef fftw_complex FFTW_CPX;           // double-prec has fftw_*
-  typedef fftw_plan FFTW_PLAN;
-  #define FFTW_INIT fftw_init_threads
-  #define FFTW_PLAN_TH fftw_plan_with_nthreads
-  #define FFTW_ALLOC_RE fftw_alloc_real
-  #define FFTW_ALLOC_CPX fftw_alloc_complex
-  #define FFTW_PLAN_1D fftw_plan_dft_1d
-  #define FFTW_PLAN_2D fftw_plan_dft_2d
-  #define FFTW_PLAN_3D fftw_plan_dft_3d
-  #define FFTW_PLAN_MANY_DFT fftw_plan_many_dft
-  #define FFTW_EX fftw_execute
-  #define FFTW_DE fftw_destroy_plan
-  #define FFTW_FR fftw_free
-  #define FFTW_FORGET_WISDOM fftw_forget_wisdom
-  #define FFTW_CLEANUP fftw_cleanup
-  #define FFTW_CLEANUP_THREADS fftw_cleanup_threads
-  #ifdef FFTW_PLAN_SAFE
-    #define FFTW_PLAN_SF() fftw_make_planner_thread_safe()
-  #else
-    #define FFTW_PLAN_SF()
-  #endif
+#define FFTWIFY_UNSAFE(x) fftw_##x
 #endif
 
+#define FFTWIFY(x) FFTWIFY_UNSAFE(x)
+// now use this tool (note we removed any typedefs in favor of macros):
+#define FFTW_CPX FFTWIFY(complex)
+#define FFTW_PLAN FFTWIFY(plan)
+#define FFTW_INIT FFTWIFY(init_threads)
+#define FFTW_PLAN_TH FFTWIFY(plan_with_nthreads)
+#define FFTW_ALLOC_RE FFTWIFY(alloc_real)
+#define FFTW_ALLOC_CPX FFTWIFY(alloc_complex)
+#define FFTW_PLAN_1D FFTWIFY(plan_dft_1d)
+#define FFTW_PLAN_2D FFTWIFY(plan_dft_2d)
+#define FFTW_PLAN_3D FFTWIFY(plan_dft_3d)
+#define FFTW_PLAN_MANY_DFT FFTWIFY(plan_many_dft)
+#define FFTW_EX FFTWIFY(execute)
+#define FFTW_DE FFTWIFY(destroy_plan)
+#define FFTW_FR FFTWIFY(free)
+#define FFTW_FORGET_WISDOM FFTWIFY(forget_wisdom)
+#define FFTW_CLEANUP FFTWIFY(cleanup)
+#define FFTW_CLEANUP_THREADS FFTWIFY(cleanup_threads)
+
+#ifdef FFTW_PLAN_SAFE
+#define FFTW_PLAN_SF() FFTWIFY(make_planner_thread_safe())
+#else
+#define FFTW_PLAN_SF()
 #endif
+
+#endif  // FFTW_DEFS_H
