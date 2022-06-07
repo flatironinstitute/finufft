@@ -65,8 +65,9 @@
 #else
   #define FLT double
 #endif
-// #define _USE_MATH_DEFINES  ** why
-#include <complex>          // C++ type
+// next line possibly obsolete...
+#define _USE_MATH_DEFINES
+#include <complex>          // we define C++ complex type only
 #define CPX std::complex<FLT>
 
 
@@ -91,7 +92,8 @@
   #define EPSILON (double)1.1e-16
 #endif
 
-// Random numbers: crappy unif random number generator in [0,1):
+// Random numbers: crappy unif random number generator in [0,1).
+// These macros should probably be replaced by modern C++ std lib or random123.
 // (RAND_MAX is in stdlib.h)
 #include <stdlib.h>
 //#define rand01() (((FLT)(rand()%RAND_MAX))/RAND_MAX)

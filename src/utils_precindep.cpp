@@ -5,7 +5,6 @@
 
 
 #include "finufft/utils_precindep.h"
-#include "finufft/dataTypes.h"
 #include "finufft/defs.h"
 using namespace std;
 

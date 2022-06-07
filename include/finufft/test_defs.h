@@ -1,15 +1,18 @@
 // test-wide definitions and headers for use in ../test/ and ../perftest/
+// Private to library; not for user use.
+// These switch precision based on if SINGLE is defined.
 
 #ifndef TEST_DEFS_H
 #define TEST_DEFS_H
-
-// responds to SINGLE, and defines FINUFFT?D? used in test/*.cpp
-#include <finufft/finufft_eitherprec.h>
 
 // convenient finufft internals
 #include <finufft/utils.h>
 #include <finufft/utils_precindep.h>
 #include <finufft/defs.h>
+
+// responds to SINGLE, and defines FINUFFT?D? used in test/*.cpp
+// *** to do
+
 
 // std stuff
 #include <math.h>
