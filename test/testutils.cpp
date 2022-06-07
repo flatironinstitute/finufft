@@ -3,11 +3,7 @@
 // No pass/fail tests are actually done here; check_finufft.sh will check the
 // std output against its reference text file.
 
-#include <finufft/utils.h>
-#include <finufft/utils_precindep.h>
 #include <finufft/test_defs.h>
-#include <stdio.h>
-#include <vector>
 using namespace finufft::utils;
 
 int main(int argc, char* argv[])

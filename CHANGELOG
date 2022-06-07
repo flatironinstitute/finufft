@@ -4,9 +4,16 @@ V 2.1.0 beta
 
 * BREAKING INTERFACE CHANGE: nufft_opts is now called finufft_opts.
   This is needed for consistency and fixes a historical problem.
-* library private namespacing via finufft::* of all symbols that do not already
-  begin with finufft{f}. This addresses clash with linking against cufinufft
-  (their Issue #138).
+  We will insert a compile-time warning and backwards-compatibility for now.
+* Professionalized the public-facing interface:
+  - safe lib (.so, .a) symbols via hierarchical namespacing of private funcs
+    that do not already begin with finufft{f}, in finufft:: namespace.
+    This fixes, eg, clash with linking against cufinufft (their Issue #138).
+  - public headers (finufft.h) has all macro names safe (ie FINUFFT suffix).
+    Headers both public and private rationalized/simplified.
+  - private headers are in include/finufft/, so not exposed by -Iinclude
+  - spread_opts renamed finufft_spread_opts, since publicly exposed and name
+    must respect library naming.
 * spreadinterp evaluate_kernel_vector uses single arith when FLT=single.
 * spread_opts.h fix duplication for FLT=single/double by making FLT->double.
 * examples/simulplans1d1 demos ability to to wield independent plans.

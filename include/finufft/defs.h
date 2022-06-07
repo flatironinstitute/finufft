@@ -1,35 +1,18 @@
 // Library private definitions & macros; also used by some test routines.
-// Only need work in C++ since that's how compiled.
-// (But we use C-style templating, following fftw, etc.)
 // If SINGLE defined, chooses single prec, otherwise double prec.
-// Note: must be #included *after* finufft.h which clobbers FINUFFT* macros.
+// Must be #included *after* finufft.h which clobbers FINUFFT* macros
+// (see discussion at end of this file).
 
 // Split out by Joakim Anden, Alex Barnett 9/20/18-9/24/18.
 // Merged in dataTypes, private/public header split, clean. Barnett 6/7/22.
 
+/* Devnotes:
+   1) Only need work in C++ since that's how compiled.
+   (But we use C-style templating, following fftw, etc.)
+*/
+
 #ifndef DEFS_H
 #define DEFS_H
-
-
-// ------------- Library-wide algorithm parameter settings ----------------
-
-// Library version (is a string)
-#define FINUFFT_VER "2.0.4"
-
-// Largest possible kernel spread width per dimension, in fine grid points
-// (used only in spreadinterp.cpp)
-#define MAX_NSPREAD 16
-
-// Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
-#define ARRAYWIDCEN_GROWFRAC 0.1
-
-// Max number of positive quadr nodes for kernel FT (used only in common.cpp)
-#define MAX_NQUAD 100
-
-// Internal (nf1 etc) array allocation size that immediately raises error.
-// (Note: next235 takes 1s for this size, so it is also to prevent hang here.)
-// Increase this if you need >1TB RAM... (used only in common.cpp)
-#define MAX_NF    (BIGINT)1e11
 
 
 
@@ -70,6 +53,29 @@
 #define _USE_MATH_DEFINES
 #include <complex>          // we define C++ complex type only
 #define CPX std::complex<FLT>
+
+
+
+// ------------- Library-wide algorithm parameter settings ----------------
+
+// Library version (is a string)
+#define FINUFFT_VER "2.0.4"
+
+// Largest possible kernel spread width per dimension, in fine grid points
+// (used only in spreadinterp.cpp)
+#define MAX_NSPREAD 16
+
+// Fraction growth cut-off in utils:arraywidcen, sets when translate in type-3
+#define ARRAYWIDCEN_GROWFRAC 0.1
+
+// Max number of positive quadr nodes for kernel FT (used only in common.cpp)
+#define MAX_NQUAD 100
+
+// Internal (nf1 etc) array allocation size that immediately raises error.
+// (Note: next235 takes 1s for this size, so it is also to prevent hang here.)
+// Increase this if you need >1TB RAM... (used only in common.cpp)
+#define MAX_NF    (BIGINT)1e11
+
 
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
