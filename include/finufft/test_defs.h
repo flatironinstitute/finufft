@@ -11,15 +11,16 @@
 // for omp rand filling
 #define TEST_RANDCHUNK 1000000
 
-// the public interface
+// the public interface: since this clobbers FINUFFT* macros, must be included
+// *before* private defs.h...
 #include <finufft.h>
 
-// convenient private finufft internals
+// convenient private finufft internals (must come after finufft.h)
 #include <finufft/utils.h>
 #include <finufft/utils_precindep.h>
 // prec-switching (via SINGLE) to set up FLT, CPX, BIGINT, FINUFFT1D1, etc...
 #include <finufft/defs.h>
-// since "many" tests need direct access to FFTW commands...
+// since "many" (vector) tests need direct access to FFTW commands...
 #include <finufft/fftw_defs.h>
 
 // std stuff for tester src

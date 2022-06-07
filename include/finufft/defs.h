@@ -1,7 +1,8 @@
-// Library private definitions & macros.
+// Library private definitions & macros; also used by some test routines.
 // Only need work in C++ since that's how compiled.
 // (But we use C-style templating, following fftw, etc.)
 // If SINGLE defined, chooses single prec, otherwise double prec.
+// Note: must be #included *after* finufft.h which clobbers FINUFFT* macros.
 
 // Split out by Joakim Anden, Alex Barnett 9/20/18-9/24/18.
 // Merged in dataTypes, private/public header split, clean. Barnett 6/7/22.
@@ -139,7 +140,8 @@
 
 // Prec-switching name macros (respond to SINGLE), used in lib & test sources:
 // Note: crucially, these are now indep of macros used to gen public finufft.h!
-#ifndef FINUFFT_UNSAFE
+// However, some overlap in name (FINUFFTIFY*, FINUFFT_PLAN*), meaning
+// finufft.h cannot be included after defs.h since it undefs these overlaps :(
 #ifdef SINGLE
 // macro to prepend finufft or finufftf to a string without a space.
 // The 2nd level of indirection is needed for safety, see:
@@ -149,9 +151,9 @@
 #define FINUFFTIFY_UNSAFE(x) finufft##x
 #endif
 #define FINUFFTIFY(x) FINUFFTIFY_UNSAFE(x)
-#endif
-// The following set up 2020-style macros needed for testers...
+// Now use the tool to set up 2020-style macros used in tester source...
 #define FINUFFT_PLAN FINUFFTIFY(_plan)
+#define FINUFFT_PLAN_S FINUFFTIFY(_plan_s)
 #define FINUFFT_DEFAULT_OPTS FINUFFTIFY(_default_opts)
 #define FINUFFT_MAKEPLAN FINUFFTIFY(_makeplan)
 #define FINUFFT_SETPTS FINUFFTIFY(_setpts)
@@ -175,8 +177,6 @@
 #define FINUFFT3D1MANY FINUFFTIFY(3d1many)
 #define FINUFFT3D2MANY FINUFFTIFY(3d2many)
 #define FINUFFT3D3MANY FINUFFTIFY(3d3many)
-#define FINUFFT_PLAN FINUFFTIFY(_plan)
-#define FINUFFT_PLAN_S FINUFFTIFY(_plan_s)
 
 
 #endif  // DEFS_H

@@ -20,11 +20,11 @@
 // public header
 #include <finufft.h>
 
-// private headers needed...
+// private headers needed... (must come after finufft.h which clobbers FINUFFT*)
 #include <finufft/defs.h>
 
-// local prec-switching macros for fortran names...
-// (underscore-suffixed versions of those at end of defs.h)
+// local prec-switching macros for fortran names, ie
+// underscore-suffixed versions of those at end of defs.h
 #define FINUFFT_DEFAULT_OPTS_ FINUFFTIFY(_default_opts_)
 #define FINUFFT_MAKEPLAN_ FINUFFTIFY(_makeplan_)
 #define FINUFFT_SETPTS_ FINUFFTIFY(_setpts_)

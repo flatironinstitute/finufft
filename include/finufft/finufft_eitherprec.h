@@ -2,9 +2,11 @@
 // (Not for public/direct use: users should include only the header finufft.h)
 
 /* Devnotes.
-   * Since everything here is exposed to the public interface, macros must be
-   safe, eg FINUFFTsomething.
-   * for debug, see finufft.h
+ 1)  Since everything here is exposed to the public interface, macros must be
+ safe, eg FINUFFTsomething.
+ 2)  They will clobber any prior macros starting FINUFFT*, so in the lib/test
+ sources finufft.h must be included before defs.h
+ 3) for debug, see finufft.h
 */
 
 // Local precision-switching macros to make the public interface...

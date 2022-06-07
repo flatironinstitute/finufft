@@ -2,6 +2,7 @@
 #include <finufft.h>
 
 // private headers for lib build
+// (must come after finufft.h which clobbers FINUFFT* macros)
 #include <finufft/defs.h>
 #include <finufft/utils.h>
 #include <finufft/utils_precindep.h>
