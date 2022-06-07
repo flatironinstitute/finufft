@@ -4,7 +4,7 @@
 #ifndef UTILS_PRECINDEP_H
 #define UTILS_PRECINDEP_H
 
-#include "dataTypes.h"
+#include "defs.h"
 // for CNTime...
 #include <sys/time.h>
 

@@ -1,8 +1,23 @@
-// Defines the public C-compatible C++/C user interface to FINUFFT library.
+// Defines the public C++ and C compatible user interface to FINUFFT library.
 
 // This contains both single and double precision user-facing commands.
-// This is achieved by including the "either precision" headers twice.
-// Barnett 5/21/22
+// "macro-safe" rewrite, Barnett 5/21/22-6/7/22.
+
+/* Devnotes.
+   A) Two precisions done by including the "either precision" headers twice.
+   No use of the private headers for lib/test/example compilation is made.
+
+   B) Good ways to debug this header ---
+   1) preprocessor output (gets the general idea the macros worked):
+   cpp include/finufft.h -Iinclude
+   cpp -dD include/finufft.h -Iinclude
+   then https://gcc.gnu.org/onlinedocs/cpp/Preprocessor-Output.html
+   2) compile examples in both precs and C/C++, needed to catch typos:
+   g++ examples/simple1d1.cpp -Iinclude -c
+   g++ examples/simple1d1f.cpp -Iinclude -c
+   gcc examples/simple1d1c.c -Iinclude -c
+   gcc examples/simple1d1cf.c -Iinclude -c
+*/
 
 #ifndef FINUFFT_H
 #define FINUFFT_H

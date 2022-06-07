@@ -1,12 +1,13 @@
-// Library internal definitions. Eg, prec switch, complex type, various macros.
-// Only need work in C++.
+// Library private definitions & macros.
+// Only need work in C++ since that's how compiled.
+// (But we use C-style templating, following fftw, etc.)
+// If SINGLE defined, chooses single prec, otherwise double prec.
+
 // Split out by Joakim Anden, Alex Barnett 9/20/18-9/24/18.
+// Merged in dataTypes, private/public header split, clean. Barnett 6/7/22.
 
 #ifndef DEFS_H
 #define DEFS_H
-
-// use types intrinsic to finufft interface (FLT, CPX, BIGINT, etc)
-#include <finufft/dataTypes.h>
 
 
 // ------------- Library-wide algorithm parameter settings ----------------
@@ -52,12 +53,28 @@
 #define ERR_SPREAD_THREAD_NOTVALID 13
 
 
+// --------------- Private data types for compilation in either prec ---------
+// (devnote: must match those in relevant prec of public finufft.h interface)
+
+// All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
+// This includes all calling arguments (eg M,N) that could be huge someday.
+#define BIGINT int64_t
+// Precision-independent real and complex types, for private lib/test compile
+#ifdef SINGLE
+  #define FLT float
+#else
+  #define FLT double
+#endif
+// #define _USE_MATH_DEFINES  ** why
+#include <complex>          // C++ type
+#define CPX std::complex<FLT>
+
 
 // -------------- Math consts (not in math.h) and useful math macros ----------
 #include <math.h>
 
 // either-precision unit imaginary number...
-#define IMA (std::complex<FLT>(0.0,1.0))
+#define IMA (CPX(0.0,1.0))
 // using namespace std::complex_literals;  // needs C++14, provides 1i, 1if
 #ifndef M_PI                     // Windows apparently doesn't have this const
   #define M_PI    3.14159265358979329

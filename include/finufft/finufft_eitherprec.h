@@ -1,7 +1,11 @@
 // Switchable-precision interface template for FINUFFT. Used by finufft.h
-// (Not for public use: users should include only the header finufft.h)
-// Since everything here is exposed to the public interface, macros must be
-// safe, eg FINUFFTsomething.
+// (Not for public/direct use: users should include only the header finufft.h)
+
+/* Devnotes.
+   * Since everything here is exposed to the public interface, macros must be
+   safe, eg FINUFFTsomething.
+   * for debug, see finufft.h
+*/
 
 // Local precision-switching macros to make the public interface...
 #ifdef FINUFFT_SINGLE
@@ -63,19 +67,19 @@ typedef struct FINUFFT_PLAN_S {  // the main plan struct; note C-compatible stru
   int ntrans;      // how many transforms to do at once (vector or "many" mode)
   int nj;          // number of NU pts in type 1,2 (for type 3, num input x pts)
   int nk;          // number of NU freq pts (type 3 only)
-  FLT tol;         // relative user tolerance
+  FINUFFT_FLT tol; // relative user tolerance
   int batchSize;   // # strength vectors to group together for FFTW, etc
   int nbatch;      // how many batches done to cover all ntrans vectors
   
-  FINUFFT_BIGINT ms;       // number of modes in x (1) dir (historical CMCL name) = N1
-  FINUFFT_BIGINT mt;       // number of modes in y (2) direction = N2
-  FINUFFT_BIGINT mu;       // number of modes in z (3) direction = N3
-  FINUFFT_BIGINT N;        // total # modes (prod of above three)
+  FINUFFT_BIGINT ms; // number of modes in x (1) dir (historical CMCL name) = N1
+  FINUFFT_BIGINT mt; // number of modes in y (2) direction = N2
+  FINUFFT_BIGINT mu; // number of modes in z (3) direction = N3
+  FINUFFT_BIGINT N;  // total # modes (prod of above three)
   
-  FINUFFT_BIGINT nf1;      // size of internal fine grid in x (1) direction
-  FINUFFT_BIGINT nf2;      // " y
-  FINUFFT_BIGINT nf3;      // " z
-  FINUFFT_BIGINT nf;       // total # fine grid points (product of the above three)
+  FINUFFT_BIGINT nf1;   // size of internal fine grid in x (1) direction
+  FINUFFT_BIGINT nf2;   // " y
+  FINUFFT_BIGINT nf3;   // " z
+  FINUFFT_BIGINT nf;    // total # fine grid points (product of the above three)
   
   int fftSign;     // sign in exponential for NUFFT defn, guaranteed to be +-1
 
@@ -83,8 +87,8 @@ typedef struct FINUFFT_PLAN_S {  // the main plan struct; note C-compatible stru
   FINUFFT_FLT* phiHat2;    // " y-axis.
   FINUFFT_FLT* phiHat3;    // " z-axis.
   
-  FINUFFT_FFTW_CPX* fwBatch;    // (batches of) fine grid(s) for FFTW to plan & act on.
-  // Usually the largest working array
+  FINUFFT_FFTW_CPX* fwBatch;    // (batches of) fine grid(s) for FFTW to plan
+                                // & act on. Usually the largest working array
   
   FINUFFT_BIGINT *sortIndices;  // precomputed NU pt permutation, speeds spread/interp
   bool didSort;         // whether binsorting used (false: identity perm used)
@@ -132,7 +136,7 @@ extern "C"
 
   int FINUFFTIFY(1d1)(FINUFFT_BIGINT nj,FINUFFT_FLT* xj,FINUFFT_CPX* cj,int iflag,FINUFFT_FLT eps,FINUFFT_BIGINT ms,
                       FINUFFT_CPX* fk, finufft_opts *opts);
-  int FINUFFTIF(1d1many)(int ntransf, FINUFFT_BIGINT nj,FINUFFT_FLT* xj,FINUFFT_CPX* cj,int iflag,FINUFFT_FLT eps,FINUFFT_BIGINT ms,
+  int FINUFFTIFY(1d1many)(int ntransf, FINUFFT_BIGINT nj,FINUFFT_FLT* xj,FINUFFT_CPX* cj,int iflag,FINUFFT_FLT eps,FINUFFT_BIGINT ms,
                          FINUFFT_CPX* fk, finufft_opts *opts);
 
   int FINUFFTIFY(1d2)(FINUFFT_BIGINT nj,FINUFFT_FLT* xj,FINUFFT_CPX* cj,int iflag,FINUFFT_FLT eps,FINUFFT_BIGINT ms,
@@ -174,7 +178,7 @@ extern "C"
 #endif
 
 
-// clean up things that were purely local to this precision
+// clean up things that were purely local to this file
 #undef FINUFFT_COMPLEXIFY
 #undef FINUFFTIFY_UNSAFE
 #undef FINUFFTIFY
