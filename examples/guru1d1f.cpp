@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
   float tol = 1e-5;       // desired accuracy
 
   int type = 1, dim = 1;     // 1d1
-  BIGINT Ns[3];              // guru describes mode array by vector [N1,N2..]
+  int64_t Ns[3];              // guru describes mode array by vector [N1,N2..]
   Ns[0] = N;
   int ntransf = 1;           // we want to do a single transform at a time
   finufftf_plan plan;        // creates single-prec plan struct: note the "f"

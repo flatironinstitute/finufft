@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 {
   double tol = 1e-9;      // desired accuracy for both plans
   int type = 1, dim = 1;     // 1d1
-  BIGINT Ns[3];           // guru describes mode array by vector [N1,N2..]
+  int64_t Ns[3];           // guru describes mode array by vector [N1,N2..]
   int ntransf = 1;           // we want to do a single transform at a time
   
   int MA = 3e6;            // number of nonuniform points    PLAN A

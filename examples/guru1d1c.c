@@ -24,9 +24,9 @@ int main(int argc, char* argv[])
   double tol = 1e-9;      // desired accuracy
 
   int type = 1, dim = 1;     // 1d1
-  BIGINT Ns[3];              // guru describes mode array by vector [N1,N2..]
+  int64_t Ns[3];              // guru describes mode array by vector [N1,N2..]
   int ntransf = 1;           // we want to do a single transform at a time
-  BIGINT j,m,nout;
+  int64_t j,m,nout;
   int ier;
   double *x,err,Fmax,aF;
   double complex *c,*F,Ftest;
