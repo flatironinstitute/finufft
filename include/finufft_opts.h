@@ -33,6 +33,9 @@ typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
   // sphinx tag (don't remove): @opts_end
 } finufft_opts;
 
-// Those of the above of the form spread_* indicate pass through to spread_opts
+// Those of the above of the form spread_* indicate pass through to finufft_spread_opts
+
+// Backwards-compatibility, with a warning in C (officially C23) or C++14...
+[[deprecated ("as of v2.1.0, nufft_opts is obsolete and renamed finufft_opts; please use this instead.")]] typedef finufft_opts nufft_opts;
 
 #endif  // FINUFFT_OPTS_H
