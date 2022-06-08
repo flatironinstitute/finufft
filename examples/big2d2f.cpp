@@ -1,8 +1,5 @@
 /* This is a 2D type-2 demo calling FINUFFT for big number of transforms
    Then to compile (note uses threads rather than omp version of FFTW3):
-
-   g++ -fopenmp threadsafe2d2f.cpp -I../include ../lib/libfinufft.so -o threadsafe2d2f -lfftw3 -lfftw3_threads -lm -g -Wall
-
 */
 
 // this is all you must include for the finufft lib...
@@ -16,7 +13,6 @@
 using namespace std;
 
 void test_finufft(nufft_opts* opts)
-// self-contained small test that single-prec FINUFFT2D2 no error nor crash
 {
     size_t nj = 129*129*2;
     size_t ms = 129, mt = 129;
