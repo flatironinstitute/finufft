@@ -79,8 +79,9 @@ class Plan:
         n_trans         (int, optional): number of transforms to compute
                         simultaneously.
         eps             (float, optional): precision requested (>1e-16).
-        isign           (int, optional): if non-negative, uses positive sign
-                        exponential, otherwise negative sign.
+        isign           (int, optional): if +1, uses the positive sign
+                        exponential, otherwise the negative sign exponential;
+                        defaults to +1 for types 1 and 3 and to -1 for type 2.
         dtype           (string, optional): the precision of the transform,
                         'complex64' or 'complex128'.
         **kwargs        (optional): for more options, see :ref:`opts`.
