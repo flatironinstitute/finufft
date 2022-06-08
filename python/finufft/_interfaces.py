@@ -74,7 +74,7 @@ class Plan:
         n_modes_or_dim  (int or tuple of ints): if ``nufft_type`` is 1 or 2,
                         this should be a tuple specifying the number of modes
                         in each dimension (for example, ``(50, 100)``),
-                        otherwise, if `nufft_type`` is 3, this should be the
+                        otherwise, if ``nufft_type`` is 3, this should be the
                         number of dimensions (between 1 and 3).
         n_trans         (int, optional): number of transforms to compute
                         simultaneously.
