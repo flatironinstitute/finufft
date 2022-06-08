@@ -60,11 +60,24 @@ jobs:
         # hack to make libquadmath link statically
         sudo rm /usr/local/opt/gcc@11/lib/gcc/11/libquadmath.*dylib
 
+    - name: Cache macOS Python binaries
+      id: cache-python
+      uses: actions/cache@v3
+      with:
+        path: |
+          /Library/Frameworks/Python.framework/Versions/3.6
+          /Library/Frameworks/Python.framework/Versions/3.7
+          /Library/Frameworks/Python.framework/Versions/3.8
+          /Library/Frameworks/Python.framework/Versions/3.9
+          /Library/Frameworks/Python.framework/Versions/3.10
+        key: macos-python-3.6.8-macosx10.9-python3.7.9-macosx10.9-python3.8.3-macosx10.9-python3.9.7-macos11-python3.10.1-macos11
+
     # Download and install Python instead of using the setup_python
     # as the python interpreters in the Github machines
     # were compiled in 10.14, the wheels built with them
     # are incompatible with older MacOS versions
-    - name: Download and install Python
+    - if: steps.cache-python.outputs.cache-hit != 'true'
+      name: Download and install Python
       run: |
         curl \
           https://www.python.org/ftp/python/3.6.8/python-3.6.8-macosx10.9.pkg \
