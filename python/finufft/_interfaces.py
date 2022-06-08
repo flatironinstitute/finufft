@@ -86,7 +86,7 @@ class Plan:
                         'complex64' or 'complex128'.
         **kwargs        (optional): for more options, see :ref:`opts`.
     """
-    def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,**kwargs):
+    def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,dtype='complex128',**kwargs):
         # set default isign based on if isign is None
         if isign==None:
             if nufft_type==2:
@@ -97,7 +97,9 @@ class Plan:
         # set opts and check precision type
         opts = _finufft.NufftOpts()
         _finufft._default_opts(opts)
-        is_single = setkwopts(opts,**kwargs)
+        setkwopts(opts,**kwargs)
+
+        is_single = is_single_dtype(dtype)
 
         # construct plan based on precision type and eps default value
         plan = c_void_p(None)
@@ -525,18 +527,13 @@ def is_single_dtype(dtype):
 def setkwopts(opt,**kwargs):
     warnings.simplefilter('always')
 
-    dtype = 'double'
     for key,value in kwargs.items():
         if hasattr(opt,key):
             setattr(opt,key,value)
-        elif key == 'dtype':
-            dtype = value
         else:
             warnings.warn('Warning: nufft_opts does not have attribute "' + key + '"', Warning)
 
     warnings.simplefilter('default')
-
-    return is_single_dtype(dtype)
 
 
 ### destroy
