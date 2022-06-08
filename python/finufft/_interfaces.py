@@ -660,7 +660,6 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[{modes}] or complex[ntransf, {modes}]: The resulting array.
 
     Example:
-
     ::
 
       # number of nonuniform points
@@ -712,7 +711,6 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[M] or complex[ntransf, M]: The resulting array.
 
     Example:
-
     ::
 
       # number of nonuniform points
@@ -764,7 +762,6 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[M] or complex[ntransf, M]: The resulting array.
 
     Example:
-
     ::
 
       # number of source points
