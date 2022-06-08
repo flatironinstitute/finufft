@@ -32,10 +32,10 @@ for version in "${versions[@]}"; do
 done
 
 # build wheel
-for PYBIN in "${pys[@]}"; do
-    "${PYBIN}/pip" install --upgrade pip
-    "${PYBIN}/pip" install auditwheel wheel twine numpy
-    "${PYBIN}/pip" wheel ./python -w python/wheelhouse
+for pybin in "${pys[@]}"; do
+    "${pybin}/pip" install --upgrade pip
+    "${pybin}/pip" install auditwheel wheel twine numpy
+    "${pybin}/pip" wheel ./python -w python/wheelhouse
 done
 
 # fix wheel
@@ -44,7 +44,7 @@ for whl in python/wheelhouse/finufft-*.whl; do
 done
 
 # test wheel
-for PYBIN in "${pys[@]}"; do
-    "${PYBIN}/pip" install finufft -f ./python/wheelhouse/
-    "${PYBIN}/python" ./python/test/run_accuracy_tests.py
+for pybin in "${pys[@]}"; do
+    "${pybin}/pip" install finufft -f ./python/wheelhouse/
+    "${pybin}/python" ./python/test/run_accuracy_tests.py
 done
