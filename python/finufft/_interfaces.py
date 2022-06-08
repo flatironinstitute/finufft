@@ -585,9 +585,9 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
 
     #plan
     if tp==3:
-        plan = Plan(tp,dim,n_trans,eps,isign,**dict(kwargs,dtype=pdtype))
+        plan = Plan(tp,dim,n_trans,eps,isign,pdtype,**kwargs)
     else:
-        plan = Plan(tp,n_modes,n_trans,eps,isign,**dict(kwargs,dtype=pdtype))
+        plan = Plan(tp,n_modes,n_trans,eps,isign,pdtype,*kwargs)
 
     #setpts
     plan.setpts(x,y,z,s,t,u)
