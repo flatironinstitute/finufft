@@ -41,6 +41,7 @@ class Plan:
 
     Example:
     ::
+
         import numpy as np
         import finufft
 
@@ -55,7 +56,7 @@ class Plan:
         y = 2 * np.pi * np.random.uniform(size=n_pts)
 
         # generate source strengths
-        c = (np.random.standard_normal(size=(n_trans, n_pts)),
+        c = (np.random.standard_normal(size=(n_trans, n_pts))
              + 1J * np.random.standard_normal(size=(n_trans, n_pts)))
 
         # initialize the plan
