@@ -81,6 +81,8 @@ class Plan:
         eps             (float, optional): precision requested (>1e-16).
         isign           (int, optional): if non-negative, uses positive sign
                         exponential, otherwise negative sign.
+        dtype           (string, optional): the precision of the transform,
+                        'complex64' or 'complex128'.
         **kwargs        (optional): for more options, see :ref:`opts`.
     """
     def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,**kwargs):
