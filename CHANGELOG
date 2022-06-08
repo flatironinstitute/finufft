@@ -7,6 +7,7 @@ List of features / changes made / release notes, in reverse chronological order
 * spread_opts.h fix duplication for FLT=single/double by making FLT->double.
 * examples/simulplans1d1 demos ability to to wield independent plans.
 * sped up float32 1d type 3 by 20% by using float32 cos()... thanks Wenda Zhou.
+* change nj and nk in plan to BIGINT.
 
 V 2.0.4 (1/13/22)
 	

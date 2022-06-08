@@ -50,8 +50,8 @@ typedef struct FINUFFT_PLAN_S {  // the main plan struct; note C-compatible stru
   int type;        // transform type (Rokhlin naming): 1,2 or 3
   int dim;         // overall dimension: 1,2 or 3
   int ntrans;      // how many transforms to do at once (vector or "many" mode)
-  int nj;          // number of NU pts in type 1,2 (for type 3, num input x pts)
-  int nk;          // number of NU freq pts (type 3 only)
+  BIGINT nj;          // number of NU pts in type 1,2 (for type 3, num input x pts)
+  BIGINT nk;          // number of NU freq pts (type 3 only)
   FLT tol;         // relative user tolerance
   int batchSize;   // # strength vectors to group together for FFTW, etc
   int nbatch;      // how many batches done to cover all ntrans vectors
