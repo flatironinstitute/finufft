@@ -1117,6 +1117,6 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
     free(p->prephase);
     free(p->deconv);
   }
-  free(p);
+  delete p;
   return 0;              // success
 }

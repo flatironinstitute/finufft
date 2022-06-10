@@ -127,7 +127,7 @@ all: test perftest lib examples fortran matlab octave python
 usage:
 	@echo "Makefile for FINUFFT library. Please specify your task:"
 	@echo " make lib - build the main library (in lib/ and lib-static/)"
-	@echo " make examples - compile and run codes in examples/"
+	@echo " make examples - compile and run all codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
 	@echo " make perftest - compile and run (slower) performance tests"
 	@echo " make fortran - compile and run Fortran tests and examples"
@@ -181,7 +181,7 @@ endif
 $(DYNLIB): $(OBJSD)
 # using *absolute* path in the -o here is needed to make portable executables
 # when compiled against it, in mac OSX, strangely...
-	$(CXX) -shared $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
+	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBSFFT)
 ifeq ($(OMP),OFF)
 	@echo "$(DYNLIB) built, single-thread version"
 else
@@ -195,11 +195,10 @@ endif
 
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
+EXAMPLES = $(basename $(wildcard examples/*.*))
 # ...except only build threadsafe ones if user switch on (thus FFTW>=3.3.6):
 ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
-  EXAMPLES = $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(basename $(wildcard examples/*.*)))
-else
-  EXAMPLES = $(basename $(wildcard examples/*.*))
+  EXAMPLES := $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(EXAMPLES))
 endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
@@ -219,11 +218,11 @@ endif
 	@echo "Done running: $(EXAMPLES)"
 # fun fact: gnu make patterns match those with shortest "stem", so this works:
 examples/%: examples/%.o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) -o $@
 examples/%c: examples/%c.o $(DYNLIB)
-	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
+	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 examples/%cf: examples/%cf.o $(DYNLIB)
-	$(CC) $(CFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
+	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 
 
 # test (library validation) --------------------------------------------------
@@ -231,14 +230,14 @@ examples/%cf: examples/%cf.o $(DYNLIB)
 # Note: both precisions use same sources; single-prec executables get f suffix.
 # generic tests link against our .so... (other libs needed for fftw_forget...)
 test/%: test/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 test/%f: test/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 # low-level tests that are cleaner if depend on only specific objects...
 test/testutils: test/testutils.cpp src/utils.o src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} test/testutils.cpp src/utils.o src/utils_precindep.o $(LIBS) -o test/testutils
 test/testutilsf: test/testutils.cpp src/utils_32.o src/utils_precindep.o
-	$(CXX) $(CXXFLAGS) -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE test/testutils.cpp src/utils_32.o src/utils_precindep.o $(LIBS) -o test/testutilsf
 
 # make sure all double-prec test executables ready for testing
 TESTS := $(basename $(wildcard test/*.cpp))
@@ -274,17 +273,17 @@ endif
 # perftest (performance/developer tests) -------------------------------------
 # generic perf test rules...
 perftest/%: perftest/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 perftest/%f: perftest/%.cpp $(DYNLIB)
-	$(CXX) $(CXXFLAGS) -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 
 # spreader only test, double/single (good for self-contained work on spreader)
 ST=perftest/spreadtestnd
 STF=$(ST)f
 $(ST): $(ST).cpp $(SOBJS) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(SOBJS) $(SOBJS_PI) $(LIBS) -o $@
 $(STF): $(ST).cpp $(SOBJSF) $(SOBJS_PI)
-	$(CXX) $(CXXFLAGS) -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} -DSINGLE $< $(SOBJSF) $(SOBJS_PI) $(LIBS) -o $@
 spreadtest: $(ST) $(STF)
 # run one thread per core... (escape the $ to get single $ in bash; one big cmd)
 	(export OMP_NUM_THREADS=$$(perftest/mynumcores.sh) ;\
@@ -299,9 +298,13 @@ spreadtest: $(ST) $(STF)
 spreadtestall: $(ST) $(STF)
 	(cd perftest; ./spreadtestall.sh)
 
+bigtest: perftest/big2d2f
+	@echo "\nRunning >2^31 size example (takes 30 s and 30 GB RAM)..."
+	perftest/big2d2f
+
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
-perftest: $(ST) $(STF) $(PERFEXECS)
+perftest: $(ST) $(STF) $(PERFEXECS) bigtest
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
 	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
@@ -317,7 +320,7 @@ gurutime: $(GTT) $(GTTF)
 
 # This was for a CCQ application... (zgemm was 10x faster! double-prec only)
 perftest/manysmallprobs: perftest/manysmallprobs.cpp $(STATICLIB)
-	$(CXX) $(CXXFLAGS) $< $(STATICLIB) $(LIBSFFT) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(STATICLIB) $(LIBSFFT) -o $@
 	@echo "manysmallprobs: single-thread..."
 	OMP_NUM_THREADS=1 $@
 
@@ -338,10 +341,10 @@ FE = $(FE64) $(FE32)
 
 # fortran target pattern match
 $(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB)
-	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
+	$(FC) $(FFLAGS) ${LDFLAGS} $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
 $(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
-	$(FC) $(FFLAGS) $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
+	$(FC) $(FFLAGS) ${LDFLAGS} $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 	./$@
 
 fortran: $(FE)
@@ -406,7 +409,7 @@ docker-wheel:
 # =============================== DOCUMENTATION =============================
 
 docs: finufft-manual.pdf
-finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src
+finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src python/finufft/*.py
 # also builds a local html for local browser check too...
 	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m

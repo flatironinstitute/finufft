@@ -74,5 +74,5 @@ Talk slides
 ~~~~~~~~~~~
 
 These
-`PDF slides <http://users.flatironinstitute.org/~ahb/notes/wam19.pdf>`_
+`PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`_
 may be a useful introduction.
