@@ -1,5 +1,6 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* change nj and nk in plan to BIGINT (int64_t), fixing Issue #215.
 * library private namespacing via finufft::* of all symbols that do not already
   begin with finufft{f}. This addresses clash with linking against cufinufft
   (their Issue #138).
