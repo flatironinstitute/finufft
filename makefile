@@ -409,7 +409,7 @@ docker-wheel:
 # =============================== DOCUMENTATION =============================
 
 docs: finufft-manual.pdf
-finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src
+finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src python/finufft/*.py
 # also builds a local html for local browser check too...
 	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m

@@ -144,7 +144,7 @@ All interfaces support both single and double precision, but for the plan, this 
     c = c.astype('complex64')
 
     # instantiate the plan and set the points
-    plan = finufft.Plan(nufft_type, (N1, N2), n_trans=K, dtype='float32')
+    plan = finufft.Plan(nufft_type, (N1, N2), n_trans=K, dtype='complex64')
     plan.setpts(x, y)
 
     # execute the plan, giving single-precision output
