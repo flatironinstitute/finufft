@@ -95,8 +95,6 @@ jobs:
       run: |
         make lib
         export FINUFFT_DIR=`pwd`
-        export CC=gcc-11
-        export CXX=g++-11
         cd python
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install -U wheel --user
