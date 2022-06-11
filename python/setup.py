@@ -90,8 +90,8 @@ setup(
     ext_modules=[
         Extension(name='finufft.finufftc',
                   sources=[source_filename],
-                  include_dirs=[inc_dir],
-                  library_dirs=[lib_dir],
+                  include_dirs=[inc_dir, '/usr/local/include'],
+                  library_dirs=[lib_dir, '/usr/local/lib'],
                   libraries=[finufft_dlib])
         ]
 )
