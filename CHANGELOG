@@ -1,21 +1,36 @@
 List of features / changes made / release notes, in reverse chronological order
 
-* library private namespacing via finufft::* of all symbols that do not already
-  begin with finufft{f}. This addresses clash with linking against cufinufft
-  (their Issue #138).
+V 2.1.0 (6/10/22)
+
+* BREAKING INTERFACE CHANGE: nufft_opts is now called finufft_opts.
+  This is needed for consistency and fixes a historical problem.
+  We have compile-time warning, and backwards-compatibility for now.
+* Professionalized the public-facing interface:
+  - safe lib (.so, .a) symbols via hierarchical namespacing of private funcs
+    that do not already begin with finufft{f}, in finufft:: namespace.
+    This fixes, eg, clash with linking against cufinufft (their Issue #138).
+  - public headers (finufft.h) has all macro names safe (ie FINUFFT suffix).
+    Headers both public and private rationalized/simplified.
+  - private headers are in include/finufft/, so not exposed by -Iinclude
+  - spread_opts renamed finufft_spread_opts, since publicly exposed and name
+    must respect library naming.
+* change nj and nk in plan to BIGINT (int64_t), new big2d2f perftest, fixing
+  Issue #215.
+* PDF manual moved from local to readthedocs.io hosting, Issue #221.
+* Py doc for dtype fixed, Issue #216.
 * spreadinterp evaluate_kernel_vector uses single arith when FLT=single.
 * spread_opts.h fix duplication for FLT=single/double by making FLT->double.
 * examples/simulplans1d1 demos ability to to wield independent plans.
 * sped up float32 1d type 3 by 20% by using float32 cos()... thanks Wenda Zhou.
 
 V 2.0.4 (1/13/22)
-	
+
 * makefile now appends (not replaces by) environment {C,F,CXX}FLAGS (PR #199).
 * fixed MATLAB Contents.m and guru help strings.
 * fortran examples: avoided clash with keywords "type" and "null", and correct
   creation of null ptr for default opts (issues #195-196, Jiri Kulda).
 * various fixes to python wheels CI.
-* various docs improvements.	
+* various docs improvements.
 * fixed modeord=1 failure for type 3 even though should never be used anyway
   (issue #194).
 * fixed spreadcheck NaN failure to detect bug introduced in 2.0.3 (9566511).

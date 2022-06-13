@@ -1,42 +1,73 @@
 README for developers on FINUFFT documentation.
 
-The .rst files in this directory are designed for sphinx to auto-generate
-documentation in HTML (including from the readthedocs.io website), and in PDF.
-
-The main procedure to regenerate the documentation from source is
-``make docs`` from the top-level directory. See ``../makefile`` for
-what's going on here. This does some custom bash scripts for the various
-language interface docs, then uses sphinx to make latex and html
-versions of the entire manual. The readthedocs.io website is triggered
-to update when github master branch changes. The idea is:
-
-*.docsrc ---(bash)---> *.doc ----(included in)----> *.rst -----(sphinx)-->
-
-/  PDF (sits in the repo)
-\  HTML ---(readthedocs trigger)--->   finufft.readthedocs.io
-
-Do not edit files ``docs/*.doc`` since these are machine-generated; your changes will be overwritten. Instead edit files ``*.docsrc`` once you have understood how the bash scripts act on them.
-
-There are also separate MATLAB/Octave (bash) and Python (autodoc) doc
-generations going on.
-
-To perform doc-generation, you need to set up the following environment
-(we have only ever done this on linux):
-
-python3
-sphinx  - (at least v1.3), can conda install. Needs latex and latexmk
-          (for ubuntu 20.04: sudo apt install texlive-base latexmk)
-texext  - a small sphinx helper for math, seems only to be pip-installable:
-          https://github.com/matthew-brett/texext
-
-Then to check the local build of the HTML docs, useful for debugging before you
-wait for a git push origin to be detected by RTD, point your browser to the
-local file _build/html/index.html
+The .rst files (and files they include such as .doc)
+in this directory are designed for sphinx to auto-generate
+documentation, specifically that hosted at the readthedocs.io website
+(HTML and PDF versions).
 
 finufft.readthedocs.io should have been set up to be triggered by
-pushes to the git repo to regenerate HTML documentation identical to the
-local copy, hosted there for the world to see.
+pushes to the git repo master branch to generate HTML/PDF
+documentation, hosted there for the world to see.  Which formats are
+built at that website is controlled by .readthedocs.yml
+
+However we autogenerate several parts of this sphinx source, and this
+is done by ``make docs``, called from the top-level directory. See
+``../makefile`` for what's going on here. It calls some custom bash
+scripts to generate various language interface docs (.rst and files
+that they include). The results are tracked by git, so don't forget to
+commit them and push to master.
+
+Our docs dependency graph is, in broad strokes:
+
+{*.docsrc, ../matlab/*.docsrc, etc}  ----(bash, via ``make docs'')---->
+{*.doc, *.m}   ----(which are included in)---->   *.rst
+
+Then {*.rst, *.doc, *.m, *.py, CHANGELOG, certain source codes, etc}
+  ----(triggered by push to github master)---->
+finufft.readthedocs.io (generates then hosts HTML/PDF)
+
+As of v2.1.0, the local PDF manual is no longer tracked by
+git, due to its dominant and growing contribution to the size of the repo.
 
 Note that ../README.md also should be considered part of the docs, since
 it contains a precis for text-loving and github-facing humans.
 
+
+1) Details for running ``make docs''
+
+Do not edit files ``docs/*.doc`` since these are machine-generated;
+your changes will be overwritten!  Instead edit files ``*.docsrc``,
+once you have understood how the bash scripts act on them.  The same
+applies to the separate MATLAB/Octave doc gen (which is in bash).  The
+python doc gen is *not* done by make docs, instead it is done by
+sphinx through its autodoc extension.  To run ``make docs'' locally,
+you only need bash.
+
+Note that ``make docs`` no longer builds a local copy of the docs in
+either HTML or PDF; to do this keep reading.
+
+
+2) How to do a local sphinx doc build for devs to check them quickly
+
+The github trigger plus readthedocs.io build can take several minutes,
+annoying for debugging. For faster doc build checking you'll want to work
+locally (we have only ever tried this on linux).  For this you'll need
+to install:
+
+  * sphinx  - (at least v1.3), can conda install. Needs latex and latexmk
+              (for ubuntu 20.04: sudo apt install texlive-base latexmk)
+  * texext  - a small sphinx helper for math, seems only to be pip-installable:
+              https://github.com/matthew-brett/texext
+  * python3 - since sphinx autodoc actually runs py to gen docstrings.
+
+Then (from this docs directory), run ``make latexpdf``
+and look in _build/latex/finufft.pdf for the PDF.
+
+Or, run ``make html`` then point your browser to
+the local file _build/html/index.html
+
+Note that there are some sphinx tags indicated by @ in the source codes;
+do not remove them.
+
+
+Alex Barnett, 2022/6/13.

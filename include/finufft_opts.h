@@ -1,11 +1,11 @@
-#ifndef OPTS_H
-#define OPTS_H
-
-// ------------- Struct for user-controllable FINUFFT options -----------------
-// Deliberately a plain C struct, without special types.
+// -------- Public header for user-controllable FINUFFT options struct ---------
+// Deliberately a plain C struct, without special types, or switchable prec's.
 // See ../docs/devnotes.rst about what else to sync when you change this.
 
-typedef struct nufft_opts{    // defaults see finufft.cpp:finufft_default_opts()
+#ifndef FINUFFT_OPTS_H
+#define FINUFFT_OPTS_H
+
+typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
   // sphinx tag (don't remove): @opts_start
   // FINUFFT options:
   // data handling opts...
@@ -31,8 +31,11 @@ typedef struct nufft_opts{    // defaults see finufft.cpp:finufft_default_opts()
   int spread_nthr_atomic; // if >=0, threads above which spreader OMP critical goes atomic
   int spread_max_sp_size; // if >0, overrides spreader (dir=1) max subproblem size
   // sphinx tag (don't remove): @opts_end
-} nufft_opts;
+} finufft_opts;
 
-// Those of the above of the form spread_* indicate pass through to spread_opts
+// Those of the above of the form spread_* indicate pass through to finufft_spread_opts
 
-#endif  // OPTS_H
+// Backwards-compatibility, with a warning in C (officially C23) or C++14...
+[[deprecated ("as of v2.1.0, nufft_opts is obsolete and renamed finufft_opts; please use this instead.")]] typedef finufft_opts nufft_opts;
+
+#endif  // FINUFFT_OPTS_H

@@ -64,11 +64,11 @@ except Exception:
     raise RuntimeError('Failed to find a suitable finufft library')
 
 
-class NufftOpts(ctypes.Structure):
+class FinufftOpts(ctypes.Structure):
     pass
 
 
-NufftOpts._fields_ = [('modeord', c_int),
+FinufftOpts._fields_ = [('modeord', c_int),
                       ('chkbnds', c_int),
                       ('debug', c_int),
                       ('spread_debug', c_int),
@@ -91,22 +91,22 @@ FinufftPlanf = c_void_p
 FinufftPlan_p = ctypes.POINTER(FinufftPlan)
 FinufftPlanf_p = ctypes.POINTER(FinufftPlanf)
 
-NufftOpts_p = ctypes.POINTER(NufftOpts)
+FinufftOpts_p = ctypes.POINTER(FinufftOpts)
 
 _default_opts = lib.finufft_default_opts
-_default_opts.argtypes = [NufftOpts_p]
+_default_opts.argtypes = [FinufftOpts_p]
 _default_opts.restype = None
 
 _makeplan = lib.finufft_makeplan
 _makeplan.argtypes = [
     c_int, c_int, c_longlong_p, c_int,
-    c_int, c_double, FinufftPlan_p, NufftOpts_p]
+    c_int, c_double, FinufftPlan_p, FinufftOpts_p]
 _makeplan.restypes = c_int
 
 _makeplanf = lib.finufftf_makeplan
 _makeplanf.argtypes = [
     c_int, c_int, c_longlong_p, c_int,
-    c_int, c_float, FinufftPlanf_p, NufftOpts_p]
+    c_int, c_float, FinufftPlanf_p, FinufftOpts_p]
 _makeplanf.restypes = c_int
 
 _setpts = lib.finufft_setpts

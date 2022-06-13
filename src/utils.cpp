@@ -3,9 +3,8 @@
 
 // For self-test see ../test/testutils.cpp        Barnett 2017-2020.
 
-#include "utils.h"
-#include "dataTypes.h"
-#include "defs.h"
+#include "finufft/utils.h"
+#include "finufft/defs.h"
 
 namespace finufft {
   namespace utils {

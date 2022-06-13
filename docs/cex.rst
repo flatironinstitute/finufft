@@ -64,12 +64,12 @@ which is zero if successful (otherwise see :ref:`error codes <error>`).
    FINUFFT works with a periodicity of :math:`2\pi` for type 1 and 2 transforms; see :ref:`definitions <math>`. For example, nonuniform points :math:`x=\pm\pi` are equivalent. Points must lie in the input domain :math:`[-3\pi,3\pi)`, which allows the user to assume a convenient periodic domain such as  :math:`[-\pi,\pi)` or :math:`[0,2\pi)`. To handle points outside of :math:`[-3\pi,3\pi)` the user must fold them back into this domain before passing to FINUFFT. FINUFFT does not handle this case, for speed reasons. To use a different periodicity, linearly rescale your coordinates.
 
 If instead you want to change some options, first
-put default values in a ``nufft_opts`` struct,
+put default values in a ``finufft_opts`` struct,
 make your changes, then pass the pointer to FINUFFT:
 
 .. code-block:: C++
   
-  nufft_opts* opts = new nufft_opts;
+  finufft_opts* opts = new finufft_opts;
   finufft_default_opts(opts);
   opts->debug = 1;                                // prints timing/debug info
   int ier = finufft1d1(M,&x[0],&c[0],+1,tol,N,&F[0],opts);
@@ -117,7 +117,7 @@ above code, with options setting, becomes:
   }
   int N = 1e6;            // number of modes
   double complex* F = (double complex*)malloc(sizeof(double complex)*N);
-  nufft_opts opts;                      // make an opts struct
+  finufft_opts opts;                      // make an opts struct
   finufft_default_opts(&opts);          // set default opts (must do this)
   opts.debug = 2;                       // more debug/timing to stdout
   int ier = finufft1d1(M,x,c,+1,1e-9,N,F,&opts);

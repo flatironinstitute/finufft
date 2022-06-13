@@ -26,9 +26,9 @@ c     note some inputs are int (int*4) but others BIGINT (int*8)
       complex*8 fktest
 
 c     this is how you create the options struct in fortran...
-      type(nufft_opts) opts
+      type(finufft_opts) opts
 c     or this is if you want default opts, make a null pointer...
-      type(nufft_opts), pointer :: defopts => null()
+      type(finufft_opts), pointer :: defopts => null()
      
 c     how many nonuniform pts
       M = 200000
@@ -86,7 +86,7 @@ c     fields of derived type opts may be queried/set as usual...
       opts%debug = 2
 c     note upsampfac is real*8 regardless of the transform precision...
       opts%upsampfac = 1.25d0
-      print *,'first list our new set of opts values (cf nufft_opts.h):'
+      print *,'first list our new set of opts vals (cf finufft_opts.h):'
       print *,opts
       call system_clock(t1)
       call finufftf1d1(M,xj,cj,iflag,tol,N,fk,opts,ier)

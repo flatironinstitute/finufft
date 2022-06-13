@@ -32,12 +32,12 @@ due to unnecessary array copying.
 
 
 In all of the simple, vectorized, and plan functions below you may either pass ``NULL`` as the last options
-argument to use default options, or a pointer to a valid ``nufft_opts`` struct.
+argument to use default options, or a pointer to a valid ``finufft_opts`` struct.
 In this latter case you will first need to create an options struct
 then set default values by passing a pointer (here ``opts``) to the following::
 
- void finufft_default_opts(nufft_opts* opts)
- void finufftf_default_opts(nufft_opts* opts)
+ void finufft_default_opts(finufft_opts* opts)
+ void finufftf_default_opts(finufft_opts* opts)
    
   Set values in a NUFFT options struct to their default values.
 

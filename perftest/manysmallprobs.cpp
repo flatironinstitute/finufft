@@ -1,16 +1,20 @@
+// public header
 #include "finufft.h"
-#include "utils_precindep.h"
+
+// private access to timer
+#include "finufft/utils_precindep.h"
+using namespace finufft::utils;
 
 #include <complex>
 #include <stdio.h>
 #include <stdlib.h>
 using namespace std;
-using namespace finufft;
 
 int main(int argc, char* argv[])
 /* What is small-problem cost of FINUFFT library from C++, using plain
    arrays of C++ complex numbers?  Barnett 10/31/17.
    for Xi Chen question. Updated to also demo guru interface and compare speed.
+   6/7/22 made deterministic changes so check answer matches both ways.
 
    g++ -fopenmp manysmallprobs.cpp ../lib-static/libfinufft.a -o manysmallprobs  -lfftw3 -lfftw3_omp -lm
    # multithreaded is much slower, due to overhead of starting threads?...
@@ -20,7 +24,7 @@ int main(int argc, char* argv[])
    simple interface: about 1.2s on single core. Ie, throughput 3.3e6 NU pts/sec.
    guru interface: about 0.24s on single core. Ie, throughput 1.7e7 NU pts/sec.
 
-   But why is multi-thread so much slower?
+   But why is multi-thread so much slower? (thread start-up time?)
 */
 {  
   int M = 2e2;            // number of nonuniform points
@@ -45,8 +49,8 @@ int main(int argc, char* argv[])
   CNTime timer; timer.start();
   for (int r=0;r<reps;++r) {    // call the NUFFT (with iflag=+1):
     //printf("rep %d\n",r);
-    x[0] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // one source jiggles around
-    c[1] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1); // one coeff also jiggles
+    x[0] = M_PI*(-1.0 + 2*(double)r/(double)reps);   // one source jiggles around
+    c[0] = (1.0 + I) * (double)r/(double)reps;       // one coeff also jiggles
     ier = finufft1d1(M,x,c,+1,acc,N,F,NULL);
   }
   // (note this can't use the many-vectors interface since the NU change)
@@ -55,16 +59,16 @@ int main(int argc, char* argv[])
 
   printf("repeatedly executing via the guru interface: -------------------\n");
   timer.restart();
-  finufft_plan plan; nufft_opts opts; finufft_default_opts(&opts);
+  finufft_plan plan; finufft_opts opts; finufft_default_opts(&opts);
   opts.debug = 0;
-  BIGINT Ns[]={N,1,1};
+  int64_t Ns[]={N,1,1};
   int ntransf = 1;    // since we do one at a time (neq reps)
   finufft_makeplan(1,1,Ns,+1,ntransf,acc,&plan,&opts);
   for (int r=0;r<reps;++r) {    // set the pts and execute
-    x[0] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // one source jiggles around.
+    x[0] = M_PI*(-1.0 + 2*(double)r/(double)reps);   // one source jiggles around
     // (of course if most sources *were* in fact fixed, use ZGEMM for them!)
     finufft_setpts(plan, M, x, NULL, NULL, 0, NULL, NULL, NULL);
-    c[1] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1); // one coeff also jiggles
+    c[0] = (1.0 + I) * (double)r/(double)reps;       // one coeff also jiggles
     ier = finufft_execute(plan, c, F);
   }
   finufft_destroy(plan);

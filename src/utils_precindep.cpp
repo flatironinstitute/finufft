@@ -4,9 +4,8 @@
 // For self-test see ../test/testutils.cpp.      Barnett 2017-2020.
 
 
-#include "utils_precindep.h"
-#include "dataTypes.h"
-#include "defs.h"
+#include "finufft/utils_precindep.h"
+#include "finufft/defs.h"
 using namespace std;
 
 namespace finufft {

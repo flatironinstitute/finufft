@@ -5,7 +5,7 @@
 # attempt ../make.inc reading (failed) and default finufftdir. 2/25/20
 # Barnett trying to get sphinx.ext.autodoc to work w/ this, 10/5/20
 
-__version__ = '2.0.4.post1'
+__version__ = '2.1.0'
 
 from setuptools import setup, Extension
 import os
@@ -56,7 +56,7 @@ with open(fd, 'w') as f:
 #include <finufft.h>
 
 void PyInit_finufftc(void) {
-    nufft_opts opt;
+    finufft_opts opt;
 
     finufft_default_opts(&opt);
 }
@@ -90,8 +90,8 @@ setup(
     ext_modules=[
         Extension(name='finufft.finufftc',
                   sources=[source_filename],
-                  include_dirs=[inc_dir],
-                  library_dirs=[lib_dir],
+                  include_dirs=[inc_dir, '/usr/local/include'],
+                  library_dirs=[lib_dir, '/usr/local/lib'],
                   libraries=[finufft_dlib])
         ]
 )

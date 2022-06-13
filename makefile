@@ -127,7 +127,7 @@ all: test perftest lib examples fortran matlab octave python
 usage:
 	@echo "Makefile for FINUFFT library. Please specify your task:"
 	@echo " make lib - build the main library (in lib/ and lib-static/)"
-	@echo " make examples - compile and run codes in examples/"
+	@echo " make examples - compile and run all codes in examples/"
 	@echo " make test - compile and run quick math validation tests"
 	@echo " make perftest - compile and run (slower) performance tests"
 	@echo " make fortran - compile and run Fortran tests and examples"
@@ -145,10 +145,10 @@ usage:
 	@echo " 'make [task] OMP=OFF' for single-threaded (otherwise OpenMP)"
 	@echo " You must 'make objclean' before changing such options!"
 	@echo ""
-	@echo "Also see docs/install.rst"
+	@echo "Also see docs/install.rst and docs/README"
 
-# collect headers for implicit depends
-HEADERS = $(wildcard include/*.h)
+# collect headers for implicit depends (we don't separate public from private)
+HEADERS = $(wildcard include/*.h include/finufft/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
@@ -195,11 +195,10 @@ endif
 
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
+EXAMPLES = $(basename $(wildcard examples/*.*))
 # ...except only build threadsafe ones if user switch on (thus FFTW>=3.3.6):
 ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
-  EXAMPLES = $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(basename $(wildcard examples/*.*)))
-else
-  EXAMPLES = $(basename $(wildcard examples/*.*))
+  EXAMPLES := $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(EXAMPLES))
 endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
@@ -299,9 +298,13 @@ spreadtest: $(ST) $(STF)
 spreadtestall: $(ST) $(STF)
 	(cd perftest; ./spreadtestall.sh)
 
+bigtest: perftest/big2d2f
+	@echo "\nRunning >2^31 size example (takes 30 s and 30 GB RAM)..."
+	perftest/big2d2f
+
 PERFEXECS := $(basename $(wildcard test/finufft?d_test.cpp))
 PERFEXECS += $(PERFEXECS:%=%f)
-perftest: $(ST) $(STF) $(PERFEXECS)
+perftest: $(ST) $(STF) $(PERFEXECS) bigtest
 # here the tee cmd copies output to screen. 2>&1 grabs both stdout and stderr...
 	(cd perftest ;\
 	./spreadtestnd.sh 2>&1 | tee results/spreadtestnd_results.txt ;\
@@ -405,10 +408,8 @@ docker-wheel:
 
 # =============================== DOCUMENTATION =============================
 
-docs: finufft-manual.pdf
-finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src
-# also builds a local html for local browser check too...
-	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
+docs: docs/*.docsrc docs/matlabhelp.doc docs/makecdocs.sh
+	(cd docs; ./makecdocs.sh)
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
 	(cd matlab; ./addmhelp.sh)
 	(cd docs; ./genmatlabhelp.sh)

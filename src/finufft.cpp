@@ -1,12 +1,13 @@
-#include <finufft_eitherprec.h>
-#include <defs.h>
-#include <dataTypes.h>
-#include <nufft_opts.h>
-#include <finufft_plan_eitherprec.h>
-#include <utils.h>
-#include <utils_precindep.h>
-#include <spreadinterp.h>
-#include <fftw_defs.h>
+// public header
+#include <finufft.h>
+
+// private headers for lib build
+// (must come after finufft.h which clobbers FINUFFT* macros)
+#include <finufft/defs.h>
+#include <finufft/utils.h>
+#include <finufft/utils_precindep.h>
+#include <finufft/spreadinterp.h>
+#include <finufft/fftw_defs.h>
 
 #include <iostream>
 #include <iomanip>
@@ -97,7 +98,7 @@ namespace finufft {
 #else
 #define SET_NF_TYPE12 set_nf_type12
 #endif
-int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
+int SET_NF_TYPE12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts, BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
@@ -113,7 +114,7 @@ int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, spread_opts spopts, BIGINT *nf)
   }
 }
 
-int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts, int dim)
+int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps, finufft_opts opts, int dim)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
@@ -133,7 +134,7 @@ int setup_spreader_for_nufft(spread_opts &spopts, FLT eps, nufft_opts opts, int 
   return ier;
 } 
 
-void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
+void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts spopts,
 		     BIGINT *nf, FLT *h, FLT *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
@@ -170,7 +171,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, spread_opts spopts,
   *gam = (FLT)*nf / (2.0*opts.upsampfac*Ssafe);  // x scale fac to x'
 }
 
-void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
+void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -230,7 +231,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, spread_opts opts)
   }
 }
 
-void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, spread_opts opts)
+void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -514,9 +515,9 @@ int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN p){
 using namespace finufft::common;  // accesses routines defined above
 
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
+void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
 // Sets default nufft opts (referenced by all language interfaces too).
-// See nufft_opts.h for meanings.
+// See finufft_opts.h for meanings.
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX, but now is generally used. Barnett 10/30/17 onwards.
 // Sphinx sucks the below code block into the web docs, hence keep it clean...
@@ -545,9 +546,9 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
 
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
-                     int ntrans, FLT tol, FINUFFT_PLAN *pp, nufft_opts* opts)
+                     int ntrans, FLT tol, FINUFFT_PLAN *pp, finufft_opts* opts)
 // Populates the fields of finufft_plan which is pointed to by "p".
-// opts is ptr to a nufft_opts to set options, or NULL to use defaults.
+// opts is ptr to a finufft_opts to set options, or NULL to use defaults.
 // For some of the fields, if "auto" selected, choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
@@ -927,7 +928,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...
     timer.restart();
     BIGINT t2nmodes[] = {p->nf1,p->nf2,p->nf3};   // t2 input is actually fw
-    nufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
+    finufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
     t2opts.modeord = 0;                           // needed for correct t3!
     t2opts.debug = max(0,p->opts.debug-1);        // don't print as much detail
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);

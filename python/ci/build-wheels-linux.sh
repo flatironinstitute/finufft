@@ -47,4 +47,5 @@ done
 for pybin in "${pys[@]}"; do
     "${pybin}/pip" install finufft -f ./python/wheelhouse/
     "${pybin}/python" ./python/test/run_accuracy_tests.py
+    "${pybin}/python" ./python/examples/simple1d1.py
 done

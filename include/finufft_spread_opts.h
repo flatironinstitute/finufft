@@ -1,12 +1,14 @@
-#ifndef SPREAD_OPTS_H
-#define SPREAD_OPTS_H
+#ifndef FINUFFT_SPREAD_OPTS_H
+#define FINUFFT_SPREAD_OPTS_H
 
-#include <dataTypes.h>
+// C-compatible options struct for spread/interpolation within FINUFFT
 
-// C-compatible options struct for spreader.
-// (mostly internal to spreadinterp.cpp, with a little bleed to finufft.cpp)
+// Notes: 1) Has to be part of public-facing
+// headers since finufft_plan has an instance of this spread_opts struct.
+// 2) Deliberately uses fixed types (no macro precision-switching).
 
-typedef struct spread_opts {  // see spreadinterp:setup_spreader for defaults.
+typedef struct finufft_spread_opts {
+  // See spreadinterp:setup_spreader for default values of the following fields.
   // This is the main documentation for these options...
   int nspread;            // w, the kernel width in grid pts
   int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
@@ -28,6 +30,6 @@ typedef struct spread_opts {  // see spreadinterp:setup_spreader for defaults.
   double ES_beta;
   double ES_halfwidth;
   double ES_c;
-} spread_opts;
+} finufft_spread_opts;
 
-#endif   // SPREAD_OPTS_H
+#endif   // FINUFFT_SPREAD_OPTS_H

@@ -41,6 +41,7 @@ class Plan:
 
     Example:
     ::
+
         import numpy as np
         import finufft
 
@@ -55,7 +56,7 @@ class Plan:
         y = 2 * np.pi * np.random.uniform(size=n_pts)
 
         # generate source strengths
-        c = (np.random.standard_normal(size=(n_trans, n_pts)),
+        c = (np.random.standard_normal(size=(n_trans, n_pts))
              + 1J * np.random.standard_normal(size=(n_trans, n_pts)))
 
         # initialize the plan
@@ -74,16 +75,19 @@ class Plan:
         n_modes_or_dim  (int or tuple of ints): if ``nufft_type`` is 1 or 2,
                         this should be a tuple specifying the number of modes
                         in each dimension (for example, ``(50, 100)``),
-                        otherwise, if `nufft_type`` is 3, this should be the
+                        otherwise, if ``nufft_type`` is 3, this should be the
                         number of dimensions (between 1 and 3).
         n_trans         (int, optional): number of transforms to compute
                         simultaneously.
         eps             (float, optional): precision requested (>1e-16).
-        isign           (int, optional): if non-negative, uses positive sign
-                        exponential, otherwise negative sign.
+        isign           (int, optional): if +1, uses the positive sign
+                        exponential, otherwise the negative sign exponential;
+                        defaults to +1 for types 1 and 3 and to -1 for type 2.
+        dtype           (string, optional): the precision of the transform,
+                        'complex64' or 'complex128'.
         **kwargs        (optional): for more options, see :ref:`opts`.
     """
-    def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,**kwargs):
+    def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,dtype='complex128',**kwargs):
         # set default isign based on if isign is None
         if isign==None:
             if nufft_type==2:
@@ -92,9 +96,11 @@ class Plan:
                 isign = 1
 
         # set opts and check precision type
-        opts = _finufft.NufftOpts()
+        opts = _finufft.FinufftOpts()
         _finufft._default_opts(opts)
-        is_single = setkwopts(opts,**kwargs)
+        setkwopts(opts,**kwargs)
+
+        is_single = is_single_dtype(dtype)
 
         # construct plan based on precision type and eps default value
         plan = c_void_p(None)
@@ -522,18 +528,13 @@ def is_single_dtype(dtype):
 def setkwopts(opt,**kwargs):
     warnings.simplefilter('always')
 
-    dtype = 'double'
     for key,value in kwargs.items():
         if hasattr(opt,key):
             setattr(opt,key,value)
-        elif key == 'dtype':
-            dtype = value
         else:
-            warnings.warn('Warning: nufft_opts does not have attribute "' + key + '"', Warning)
+            warnings.warn('Warning: finufft_opts does not have attribute "' + key + '"', Warning)
 
     warnings.simplefilter('default')
-
-    return is_single_dtype(dtype)
 
 
 ### destroy
@@ -584,9 +585,9 @@ def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
 
     #plan
     if tp==3:
-        plan = Plan(tp,dim,n_trans,eps,isign,**dict(kwargs,dtype=pdtype))
+        plan = Plan(tp,dim,n_trans,eps,isign,pdtype,**kwargs)
     else:
-        plan = Plan(tp,n_modes,n_trans,eps,isign,**dict(kwargs,dtype=pdtype))
+        plan = Plan(tp,n_modes,n_trans,eps,isign,pdtype,**kwargs)
 
     #setpts
     plan.setpts(x,y,z,s,t,u)
@@ -659,7 +660,6 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[{modes}] or complex[ntransf, {modes}]: The resulting array.
 
     Example:
-
     ::
 
       # number of nonuniform points
@@ -711,7 +711,6 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[M] or complex[ntransf, M]: The resulting array.
 
     Example:
-
     ::
 
       # number of nonuniform points
@@ -763,7 +762,6 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       complex[M] or complex[ntransf, M]: The resulting array.
 
     Example:
-
     ::
 
       # number of source points
