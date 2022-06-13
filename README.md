@@ -13,10 +13,10 @@ see `docs/ackn.rst` for full list of contributors.
 
 This is a lightweight library to compute the three standard types of nonuniform FFT to a specified precision, in one, two, or three dimensions. It is written in C++ with interfaces to C, Fortran, MATLAB/octave, Python, and (in a separate [repository](https://github.com/ludvigak/FINUFFT.jl)) Julia.
 
-Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html), or its local PDF equivalent, the [user manual](finufft-manual.pdf).
+Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html) which can also be downloaded as a [PDF manual](https://finufft.readthedocs.io/_/downloads/en/latest/pdf).
 You will also want to see example codes in the directories
 `examples`, `test`, `fortran`, `matlab/test`, and `python/test`.
-If you cannot compile, or `pip install`, try our [precompiled binaries](http://users.flatironinstitute.org/~ahb/codes/finufft-binaries).
+If you cannot compile, or `pip install`, try our rather outdated [precompiled binaries](http://users.flatironinstitute.org/~ahb/codes/finufft-binaries).
 
 If you prefer to read text files, the source to generate the above documentation is in human-readable (mostly .rst) files as follows:
 

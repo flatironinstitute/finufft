@@ -145,7 +145,7 @@ usage:
 	@echo " 'make [task] OMP=OFF' for single-threaded (otherwise OpenMP)"
 	@echo " You must 'make objclean' before changing such options!"
 	@echo ""
-	@echo "Also see docs/install.rst"
+	@echo "Also see docs/install.rst and docs/README"
 
 # collect headers for implicit depends (we don't separate public from private)
 HEADERS = $(wildcard include/*.h include/finufft/*.h)
@@ -408,10 +408,8 @@ docker-wheel:
 
 # =============================== DOCUMENTATION =============================
 
-docs: finufft-manual.pdf
-finufft-manual.pdf: docs/conf.py docs/*.doc docs/*.sh docs/*.rst docs/tutorial/*.rst $(STATICLIB) $(DYNLIB) CHANGELOG docs/*.src python/finufft/*.py
-# also builds a local html for local browser check too...
-	(cd docs; ./makecdocs.sh; make html && ./genpdfmanual.sh)
+docs: docs/*.docsrc docs/matlabhelp.doc docs/makecdocs.sh
+	(cd docs; ./makecdocs.sh)
 docs/matlabhelp.doc: docs/genmatlabhelp.sh matlab/*.sh matlab/*.docsrc matlab/*.docbit matlab/*.m
 	(cd matlab; ./addmhelp.sh)
 	(cd docs; ./genmatlabhelp.sh)
