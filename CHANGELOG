@@ -16,6 +16,7 @@ V 2.1.0 (6/10/22)
     must respect library naming.
 * change nj and nk in plan to BIGINT (int64_t), new big2d2f perftest, fixing
   Issue #215.
+* PDF manual moved from local to readthedocs.io hosting, Issue #221.
 * Py doc for dtype fixed, Issue #216.
 * spreadinterp evaluate_kernel_vector uses single arith when FLT=single.
 * spread_opts.h fix duplication for FLT=single/double by making FLT->double.
