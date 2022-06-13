@@ -16,7 +16,7 @@
 #include <omp.h>
 using namespace std;
 
-int test_finufft(nufft_opts* opts)
+int test_finufft(finufft_opts* opts)
 {
     size_t nj = 129*129*2;
     size_t ms = 129, mt = 129;
@@ -35,7 +35,7 @@ int test_finufft(nufft_opts* opts)
 
 int main(int argc, char* argv[])
 {
-  nufft_opts opts;
+  finufft_opts opts;
   finufftf_default_opts(&opts);
   return test_finufft(&opts);
 }

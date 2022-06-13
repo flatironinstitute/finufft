@@ -96,7 +96,7 @@ class Plan:
                 isign = 1
 
         # set opts and check precision type
-        opts = _finufft.NufftOpts()
+        opts = _finufft.FinufftOpts()
         _finufft._default_opts(opts)
         setkwopts(opts,**kwargs)
 
@@ -532,7 +532,7 @@ def setkwopts(opt,**kwargs):
         if hasattr(opt,key):
             setattr(opt,key,value)
         else:
-            warnings.warn('Warning: nufft_opts does not have attribute "' + key + '"', Warning)
+            warnings.warn('Warning: finufft_opts does not have attribute "' + key + '"', Warning)
 
     warnings.simplefilter('default')
 

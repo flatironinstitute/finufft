@@ -9,7 +9,7 @@ Developer notes
 
   - ``docs/conf.py`` for sphinx
   - ``python/setup.py`` for the python pkg version
-  - ``include/defs.h``
+  - ``include/finufft/defs.h``
   - ``matlab/Contents.m``
   - ``CHANGELOG``: don't forget to describe the new features and changes, folding lines at 80 chars.
 
@@ -17,7 +17,7 @@ Developer notes
 
 * There are some sphinx tags in the source code, indicated by @ in comments. Please leave these alone since they are needed by the doc generation.
 
-* If you add a new option field (recall it must be plain C style only, no special types) to ``include/nufft_opts.h``, don't forget to add it to ``include/finufft.fh``, ``matlab/finufft.mw``, ``python/finufft/_finufft.py``, and the julia interface, as well a paragraph describing its use in the docs. Also to set its default value in ``src/finufft.cpp``. You will then need to regenerate the docs as in ``docs/README``.
+* If you add a new option field (recall it must be plain C style only, no special types) to ``include/finufft_opts.h``, don't forget to add it to ``include/finufft.fh``, ``matlab/finufft.mw``, ``python/finufft/_finufft.py``, and the julia interface, as well a paragraph describing its use in the docs. Also to set its default value in ``src/finufft.cpp``. You will then need to regenerate the docs as in ``docs/README``.
 
 * Developers changing MATLAB/octave interfaces or docs, also see ``matlab/README``.
 

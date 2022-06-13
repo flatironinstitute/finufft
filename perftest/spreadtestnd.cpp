@@ -1,7 +1,7 @@
-#include <spreadinterp.h>
-#include <defs.h>
-#include <utils.h>
-#include <utils_precindep.h>
+#include <finufft/spreadinterp.h>
+#include <finufft/defs.h>
+#include <finufft/utils.h>
+#include <finufft/utils_precindep.h>
 
 #include <vector>
 #include <math.h>
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
   if (d>2) kz.resize(M);
   std::vector<FLT> d_uniform(2*Ng);                        // Re and Im
 
-  spread_opts opts;
+  finufft_spread_opts opts;
   int ier_set = setup_spreader(opts,(FLT)tol,upsampfac,kerevalmeth,debug,1,d);
   if (ier_set>1) {       // exit gracefully if can't set up.
     printf("error when setting up spreader (ier_set=%d)!\n",ier_set);

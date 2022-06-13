@@ -22,7 +22,7 @@ Recall how to do this from C++:
 .. code-block:: C++
                 
   // (... set up M,x,c,tol,N, and allocate F here...)
-  nufft_opts* opts;
+  finufft_opts* opts;
   finufft_default_opts(opts);
   opts->debug = 1;
   int ier = finufft1d1(M,x,c,+1,tol,N,F,opts);
@@ -40,9 +40,9 @@ Summary and quick advice
 -------------------------------------
 
 Here is a 1-line summary of each option, taken from the code
-(the header ``include/nufft_opts.h``):
+(the header ``include/finufft_opts.h``):
 
-.. literalinclude:: ../include/nufft_opts.h
+.. literalinclude:: ../include/finufft_opts.h
    :start-after: @opts_start
    :end-before: @opts_end
 

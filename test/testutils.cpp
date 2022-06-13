@@ -1,13 +1,9 @@
-// tests for utils/utils_precindep module.
+// tests for utils & utils_precindep modules.
 
 // No pass/fail tests are actually done here; check_finufft.sh will check the
 // std output against its reference text file.
 
-#include <finufft_eitherprec.h>
-#include <utils.h>
-#include <utils_precindep.h>
-#include <stdio.h>
-#include <vector>
+#include <finufft/test_defs.h>
 using namespace finufft::utils;
 
 int main(int argc, char* argv[])

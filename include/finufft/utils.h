@@ -4,7 +4,7 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "dataTypes.h"
+#include "finufft/defs.h"
 
 namespace finufft {
   namespace utils {

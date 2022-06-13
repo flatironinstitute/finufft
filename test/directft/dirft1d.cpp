@@ -1,5 +1,5 @@
-#include "dirft.h"
-#include "defs.h"
+#include <finufft/dirft.h>
+#include <finufft/defs.h>
 #include <iostream>
 
 // This is basically a port of dirft1d.f from CMCL package, except with

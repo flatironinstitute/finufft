@@ -1,7 +1,7 @@
 #ifndef DIRFT_H
 #define DIRFT_H
 
-#include <dataTypes.h>
+#include <finufft/defs.h>
 
 void dirft1d1(BIGINT nj,FLT* x,CPX* c,int isign,BIGINT ms, CPX* f);
 void dirft1d2(BIGINT nj,FLT* x,CPX* c,int iflag,BIGINT ms, CPX* f);

@@ -1,8 +1,9 @@
-#include <test_defs.h>
+#include <finufft/test_defs.h>
 // for sleep call
 #include <unistd.h>
 using namespace std;
 using namespace finufft;
+using namespace finufft::utils;
 
 // forward declaration of helper to (repeatedly if needed) call finufft?d?
 double many_simple_calls(CPX *c,CPX *F,FLT*x, FLT*y, FLT*z,FINUFFT_PLAN plan);
@@ -47,12 +48,12 @@ int main(int argc, char* argv[])
   BIGINT M, N1, N2, N3; // M = # srcs, N1,N2,N3= # modes in each dim
   double w, tol = 1e-6;
   int isign = +1;             // choose which exponential sign to test
-  nufft_opts opts;
+  finufft_opts opts;
   FINUFFT_DEFAULT_OPTS(&opts);   // for guru interface
   
   // Collect command line arguments ------------------------------------------
   if (argc<8 || argc>14) {
-    fprintf(stderr,"Usage: finufftGuru_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]\n\teg:\tfinufftGuru_test 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2\n");
+    fprintf(stderr,"Usage: guru_timing_test ntransf type ndim N1 N2 N3 Nsrc [tol [debug [spread_thread [maxbatchsize [spread_sort [upsampfac]]]]]]\n\teg:\tguru_timing_test 100 1 2 1e2 1e2 0 1e6 1e-3 1 0 0 2\n");
     return 1;
   }
   sscanf(argv[1],"%d",&ntransf);
@@ -248,7 +249,7 @@ double finufftFunnel(CPX *cStart, CPX *fStart, FLT *x, FLT *y, FLT *z, FINUFFT_P
   int ier = 0;
   double t = 0;
   double fail = NAN;                  // dummy code for failure
-  nufft_opts* popts = &(plan->opts);   // opts ptr, as v1.2 simple calls need
+  finufft_opts* popts = &(plan->opts);   // opts ptr, as v1.2 simple calls need
   switch (plan->dim){
     
   case 1:                    // 1D

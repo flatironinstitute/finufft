@@ -50,10 +50,10 @@ $ #include <math.h>
 
 
 % .........................................................................
-% This C++ code overwrites any properties of nufft_opts *oc with any valid
+% This C++ code overwrites any properties of finufft_opts *oc with any valid
 % fields in the matlab struct *om.
 %
-$ void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
+$ void copy_finufft_opts(const mxArray* om, finufft_opts *oc) {
 $   if(!mxIsStruct(om))
 $     mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
 $   mwIndex idx = 0;
@@ -167,13 +167,13 @@ classdef finufft_plan < handle
       % (checks of type, dim will occur in the C++ library, so omit them above)
 
       # finufft_mex_setup();
-      # nufft_opts* o = new nufft_opts();
+      # finufft_opts* o = new finufft_opts();
       if strcmp(plan.floatprec,'double')
         # finufft_plan* p = new finufft_plan();
-        # finufft_default_opts(nufft_opts* o);
+        # finufft_default_opts(finufft_opts* o);
       else
         # finufftf_plan* p = new finufftf_plan();
-        # finufftf_default_opts(nufft_opts* o);
+        # finufftf_default_opts(finufft_opts* o);
       end
       plan.mwptr = p;   % crucial: save the opaque ptr (p.12 of MWrap manual)
       plan.dim = dim;   % save other stuff to avoid having to access via C++...
@@ -183,16 +183,16 @@ classdef finufft_plan < handle
       % Note the peculiarity that mwrap only accepts a double for n_trans, even
       % though it's declared int. It complains, also with int64 for nj, etc :(
       
-      % replace in nufft_opts struct whichever fields are in incoming opts...
-      # copy_nufft_opts(mxArray opts, nufft_opts* o);
+      % replace in finufft_opts struct whichever fields are in incoming opts...
+      # copy_finufft_opts(mxArray opts, finufft_opts* o);
       if strcmp(plan.floatprec,'double')
         tol = double(tol);   % scalar type must match for mwrap>=0.33.11
-        # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, nufft_opts* o);
+        # int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, finufft_opts* o);
       else
         tol = single(tol);   % ditto
-        # int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, finufftf_plan* plan, nufft_opts* o);
+        # int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, finufftf_plan* plan, finufft_opts* o);
       end
-      # delete(nufft_opts* o);
+      # delete(finufft_opts* o);
       errhandler(ier);             % convert C++ codes to matlab-style errors
     end
 

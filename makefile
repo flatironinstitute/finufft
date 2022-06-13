@@ -147,8 +147,8 @@ usage:
 	@echo ""
 	@echo "Also see docs/install.rst"
 
-# collect headers for implicit depends
-HEADERS = $(wildcard include/*.h)
+# collect headers for implicit depends (we don't separate public from private)
+HEADERS = $(wildcard include/*.h include/finufft/*.h)
 
 # implicit rules for objects (note -o ensures writes to correct dir)
 %.o: %.cpp $(HEADERS)
