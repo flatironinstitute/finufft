@@ -119,7 +119,7 @@
 #define crandm11r(x) (randm11r(x) + IMA*randm11r(x))
 
 
-// ----- OpenMP (and FFTW omp) macros which also work when omp not present -----
+// ----- OpenMP macros which also work when omp not present -----
 // Allows compile-time switch off of openmp, so compilation without any openmp
 // is done (Note: _OPENMP is automatically set by -fopenmp compile flag)
 #ifdef _OPENMP
@@ -135,12 +135,6 @@
   #define MY_OMP_GET_MAX_THREADS() 1
   #define MY_OMP_GET_THREAD_NUM() 0
   #define MY_OMP_SET_NUM_THREADS(x)
-  #undef FFTW_INIT
-  #define FFTW_INIT()
-  #undef FFTW_PLAN_TH
-  #define FFTW_PLAN_TH(x)
-  #undef FFTW_CLEANUP_THREADS
-  #define FFTW_CLEANUP_THREADS()
 #endif
 
 

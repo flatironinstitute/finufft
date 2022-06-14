@@ -9,20 +9,17 @@
 
 // precision-switching for names of interfaces of FFTW...
 #ifdef SINGLE
-// macro to prepend fftw_ (for doulbe) or fftwf_ (for single) to a string
-// without a space. The 2nd level of indirection is needed for safety, see:
-// https://isocpp.org/wiki/faq/misc-technical-issues#macros-with-token-pasting
-#define FFTWIFY_UNSAFE(x) fftwf_##x
+  // macro to prepend fftw_ (for double) or fftwf_ (for single) to a string
+  // without a space. The 2nd level of indirection is needed for safety, see:
+  // https://isocpp.org/wiki/faq/misc-technical-issues#macros-with-token-pasting
+  #define FFTWIFY_UNSAFE(x) fftwf_##x
 #else
-#define FFTWIFY_UNSAFE(x) fftw_##x
+  #define FFTWIFY_UNSAFE(x) fftw_##x
 #endif
-
 #define FFTWIFY(x) FFTWIFY_UNSAFE(x)
 // now use this tool (note we removed any typedefs in favor of macros):
 #define FFTW_CPX FFTWIFY(complex)
 #define FFTW_PLAN FFTWIFY(plan)
-#define FFTW_INIT FFTWIFY(init_threads)
-#define FFTW_PLAN_TH FFTWIFY(plan_with_nthreads)
 #define FFTW_ALLOC_RE FFTWIFY(alloc_real)
 #define FFTW_ALLOC_CPX FFTWIFY(alloc_complex)
 #define FFTW_PLAN_1D FFTWIFY(plan_dft_1d)
@@ -34,12 +31,21 @@
 #define FFTW_FR FFTWIFY(free)
 #define FFTW_FORGET_WISDOM FFTWIFY(forget_wisdom)
 #define FFTW_CLEANUP FFTWIFY(cleanup)
-#define FFTW_CLEANUP_THREADS FFTWIFY(cleanup_threads)
+#ifdef _OPENMP
+  #define FFTW_INIT FFTWIFY(init_threads)
+  #define FFTW_PLAN_TH FFTWIFY(plan_with_nthreads)
+  #define FFTW_CLEANUP_THREADS FFTWIFY(cleanup_threads)
+#else
+  // no OMP (no fftw{f}_threads or _omp), need dummy fftw threads calls...
+  #define FFTW_INIT()
+  #define FFTW_PLAN_TH(x)
+  #define FFTW_CLEANUP_THREADS()
+#endif
 
 #ifdef FFTW_PLAN_SAFE
-#define FFTW_PLAN_SF() FFTWIFY(make_planner_thread_safe())
+  #define FFTW_PLAN_SF() FFTWIFY(make_planner_thread_safe())
 #else
-#define FFTW_PLAN_SF()
+  #define FFTW_PLAN_SF()
 #endif
 
 #endif  // FFTW_DEFS_H
