@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* fixed single-thread (OMP=OFF) build which failed due to fftw_defs.h/defs.h
+
 V 2.1.0 (6/10/22)
 
 * BREAKING INTERFACE CHANGE: nufft_opts is now called finufft_opts.

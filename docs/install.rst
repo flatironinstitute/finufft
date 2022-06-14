@@ -187,7 +187,7 @@ This is for experts.
 Here are all the flags that the FINUFFT source responds to.
 Activate them by adding a line of the form ``CXXFLAGS+=-DMYFLAG`` in your ``make.inc``:
 
-* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. See ``examples/threadsafe1d1.cpp``. This is only available in FFTW version >=3.3.6; for this reason it is not yet the default.
+* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. See ``examples/threadsafe1d1.cpp`` and ``examples/threadsafe2d2f.cpp``. This is only available in FFTW version >=3.3.6; for this reason it is not yet the default. If you get segfault on these examples, try ``FFTWOMPSUFFIX = threads`` as explained below.
 
 * ``-DSINGLE``: This is internally used by our build process to switch
   (via preprocessor macros) the source from double to single precision.
@@ -195,9 +195,7 @@ Activate them by adding a line of the form ``CXXFLAGS+=-DMYFLAG`` in your ``make
 
 Here are some other settings that you may need to adjust in ``make.inc``:
 
-
-* Switching to linking tests, examples, etc, with PTHREADS instead of the default OMP version of FFTW, is achieved by inserting into ``make.inc`` the line
-``FFTWOMPSUFFIX = threads``.
+* Switching to linking tests, examples, etc, with PTHREADS instead of the default OMP version of FFTW, is achieved by inserting into ``make.inc`` the line ``FFTWOMPSUFFIX = threads``.
 
 
 
