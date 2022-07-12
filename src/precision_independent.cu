@@ -4,6 +4,7 @@
 //TODO: remove kernels that do not depend on dimension
 
 #include <thrust/device_ptr.h>
+#include <thrust/extrema.h>
 #include <thrust/scan.h>
 #include <cuComplex.h>
 
