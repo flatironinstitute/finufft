@@ -19,11 +19,10 @@
 #include "cufinufft/contrib/utils.h"
 
 using namespace std;
-
-typedef std::complex<float> CPX;
-
 int main(int argc, char* argv[])
 {
+  using complex_float = std::complex<float>;
+
   int N1 = 256;
   int N2 = 256;
   int M = N1*N2;
@@ -37,11 +36,11 @@ int main(int argc, char* argv[])
 
   // malloc host arrays
   float *x, *y;
-  CPX *c, *fk;
+  complex_float *c, *fk;
   checkCudaErrors(cudaMallocHost(&x, M*sizeof(float)));
   checkCudaErrors(cudaMallocHost(&y, M*sizeof(float)));
-  checkCudaErrors(cudaMallocHost(&c, M*sizeof(CPX)));
-  checkCudaErrors(cudaMallocHost(&fk,N1*N2*sizeof(CPX)));
+  checkCudaErrors(cudaMallocHost(&c, M*sizeof(complex_float)));
+  checkCudaErrors(cudaMallocHost(&fk,N1*N2*sizeof(complex_float)));
 
   // malloc device arrays
   float *d_x, *d_y;
@@ -64,7 +63,7 @@ int main(int argc, char* argv[])
   // Copy data to device memory, real users might just populate in memory.
   checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(float),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(float),cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(CPX),
+  checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(complex_float),
                              cudaMemcpyHostToDevice));
 
 
@@ -112,8 +111,8 @@ int main(int argc, char* argv[])
   // Copy test data back to host and compare
   checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(cuFloatComplex),cudaMemcpyDeviceToHost));
   int jt = M/2;          // check arbitrary choice of one targ pt
-  CPX J = IMA*(float)iflag;
-  CPX ct = CPX(0,0);
+  complex_float J = IMA*(float)iflag;
+  complex_float ct = complex_float(0,0);
   int m=0;
   for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)

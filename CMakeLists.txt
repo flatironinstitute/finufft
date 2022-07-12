@@ -5,10 +5,12 @@ project(
   LANGUAGES C CXX CUDA
 )
 
+find_package(CUDAToolkit REQUIRED)
+
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
-set(PRECISION_INDEPENDENT_SRC src/precision_independent.cu src/profile.o contrib/legendre_rule_fast.c contrib/utils.cpp)
+set(PRECISION_INDEPENDENT_SRC src/precision_independent.cu src/profile.cu contrib/legendre_rule_fast.c contrib/utils.cpp)
 set(PRECISION_DEPENDENT_SRC
   contrib/dirft2d.cpp contrib/common.cpp
   contrib/spreadinterp.cpp contrib/utils_fp.cpp
@@ -45,9 +47,13 @@ add_library(cufinufft SHARED
   $<TARGET_OBJECTS:cufinufft_32_objects>
   $<TARGET_OBJECTS:cufinufft_64_objects>
 )
+target_link_libraries(cufinufft CUDA::cudart CUDA::cufft CUDA::nvToolsExt)
 add_library(cufinufft_static STATIC
   $<TARGET_OBJECTS:cufinufft_common_objects>
   $<TARGET_OBJECTS:cufinufft_32_objects>
   $<TARGET_OBJECTS:cufinufft_64_objects>
 )
+target_link_libraries(cufinufft_static CUDA::cudart_static CUDA::cufft_static CUDA::nvToolsExt)
 set_property(TARGET cufinufft_static PROPERTY OUTPUT_NAME cufinufft)
+
+add_subdirectory(test)
