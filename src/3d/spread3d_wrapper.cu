@@ -7,9 +7,9 @@
 #include <thrust/scan.h>
 
 #include <cuComplex.h>
-#include "../cuspreadinterp.h"
-#include "../memtransfer.h"
-#include "../precision_independent.h"
+#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/memtransfer.h"
+#include "cufinufft/precision_independent.h"
 
 using namespace std;
 

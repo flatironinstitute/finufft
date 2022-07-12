@@ -4,8 +4,8 @@
 #include <iomanip>
 
 #include <cuComplex.h>
-#include "precision_independent.h"
-#include "common.h"
+#include "cufinufft/precision_independent.h"
+#include "cufinufft/common.h"
 
 using namespace std;
 

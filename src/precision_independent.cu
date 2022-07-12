@@ -8,7 +8,7 @@
 #include <thrust/scan.h>
 #include <cuComplex.h>
 
-#include "precision_independent.h"
+#include "cufinufft/precision_independent.h"
 
 /* Auxiliary func to compute power of complex number */
 __device__ RT carg(const CT& z) {return (RT)atan2(ipart(z), rpart(z));} // polar angle

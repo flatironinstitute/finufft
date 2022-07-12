@@ -6,10 +6,10 @@
 #include <cufft.h>
 
 #include <cufinufft_eitherprec.h>
-#include "cuspreadinterp.h"
-#include "cudeconvolve.h"
-#include "memtransfer.h"
-#include "common.h"
+#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/cudeconvolve.h"
+#include "cufinufft/memtransfer.h"
+#include "cufinufft/common.h"
 
 
 using namespace std;

@@ -6,9 +6,9 @@
 #include <cufft.h>
 
 #include <cufinufft_eitherprec.h>
-#include "../cuspreadinterp.h"
-#include "../cudeconvolve.h"
-#include "../memtransfer.h"
+#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/cudeconvolve.h"
+#include "cufinufft/memtransfer.h"
 
 using namespace std;
 

@@ -4,8 +4,8 @@
 #include <cuda.h>
 #include "../../contrib/utils.h"
 #include "../../contrib/utils_fp.h"
-#include "../cuspreadinterp.h"
-#include "../precision_independent.h"
+#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/precision_independent.h"
 #include "../../include/utils.h"
 
 using namespace std;

@@ -7,7 +7,7 @@
 #include <cufinufft_eitherprec.h>
 
 #include "../contrib/utils.h"
-#include "../src/common.h"
+#include "cufinufft/common.h"
 
 using namespace std;
 

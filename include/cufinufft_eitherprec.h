@@ -11,13 +11,10 @@
 #include <assert.h>
 #include <cuda_runtime.h>
 #include "cufinufft_opts.h"
-#include "../src/precision_independent.h"
+#include "cufinufft/precision_independent.h"
 #include "cufinufft_errors.h"
 
-#include "../contrib/utils.h"
-#include "../contrib/dataTypes.h"
 #include "../contrib/spreadinterp.h"
-#include "../contrib/utils_fp.h"
 
 
 #ifndef SINGLE

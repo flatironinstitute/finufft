@@ -3,7 +3,7 @@
 #include <iomanip>
 
 #include <cuComplex.h>
-#include "memtransfer.h"
+#include "cufinufft/memtransfer.h"
 
 using namespace std;
 

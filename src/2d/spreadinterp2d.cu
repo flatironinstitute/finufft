@@ -5,7 +5,7 @@
 #include <thrust/extrema.h>
 #include "../../contrib/utils.h"
 #include "../../contrib/utils_fp.h"
-#include "../cuspreadinterp.h"
+#include "cufinufft/cuspreadinterp.h"
 #include "../../include/utils.h"
 
 using namespace std;

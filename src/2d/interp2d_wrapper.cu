@@ -3,8 +3,8 @@
 #include <iomanip>
 
 #include <cuComplex.h>
-#include "../cuspreadinterp.h"
-#include "../memtransfer.h"
+#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/memtransfer.h"
 #include <profile.h>
 
 using namespace std;
