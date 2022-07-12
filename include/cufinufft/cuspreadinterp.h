@@ -26,7 +26,7 @@ void eval_kernel_vec_Horner(CUFINUFFT_FLT *ker, const CUFINUFFT_FLT x, const int
 	CUFINUFFT_FLT z = 2*x + w - 1.0;         // scale so local grid offset z in [-1,1]
 	// insert the auto-generated code which expects z, w args, writes to ker...
 	if (upsampfac==2.0) {     // floating point equality is fine here
-#include "../contrib/ker_horner_allw_loop.c"
+#include "cufinufft/contrib/ker_horner_allw_loop.inc"
 	}
 }
 

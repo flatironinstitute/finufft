@@ -4,7 +4,7 @@
 #include <helper_cuda.h>
 #include <complex>
 #include "cufinufft/cuspreadinterp.h"
-#include "../contrib/utils.h"
+#include "cufinufft/contrib/utils.h"
 
 using namespace std;
 

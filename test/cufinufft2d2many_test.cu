@@ -7,7 +7,7 @@
 #include <cufinufft_eitherprec.h>
 
 #include <profile.h>
-#include "../contrib/utils.h"
+#include "cufinufft/contrib/utils.h"
 
 using namespace std;
 

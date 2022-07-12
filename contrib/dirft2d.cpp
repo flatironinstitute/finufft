@@ -1,4 +1,4 @@
-#include "dirft.h"
+#include "cufinufft/contrib/dirft.h"
 #include <iostream>
 
 // This is basically a port of dirft2d.f from CMCL package, except with

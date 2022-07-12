@@ -3,10 +3,10 @@
 #include <helper_cuda.h>
 #include <cuda.h>
 #include <thrust/extrema.h>
-#include "../../contrib/utils.h"
-#include "../../contrib/utils_fp.h"
+#include "cufinufft/contrib/utils.h"
+#include "cufinufft/contrib/utils_fp.h"
 #include "cufinufft/cuspreadinterp.h"
-#include "../../include/utils.h"
+#include "utils.h"
 
 using namespace std;
 

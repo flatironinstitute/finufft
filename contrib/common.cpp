@@ -1,4 +1,4 @@
-#include "common.h"
+#include "cufinufft/contrib/common.h"
 #include <cufinufft_eitherprec.h>
 #include <math.h>
 #include <stdio.h>
@@ -6,10 +6,10 @@
 
 #ifdef __cplusplus
 extern "C" {
-  #include "legendre_rule_fast.h"
+  #include "cufinufft/contrib/legendre_rule_fast.h"
 }
 #else
-  #include "legendre_rule_fast.h"
+  #include "cufinufft/contrib/legendre_rule_fast.h"
 #endif
 
 int setup_spreader_for_nufft(SPREAD_OPTS &spopts, CUFINUFFT_FLT eps, cufinufft_opts opts)

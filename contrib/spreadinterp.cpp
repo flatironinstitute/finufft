@@ -1,4 +1,4 @@
-#include "spreadinterp.h"
+#include "cufinufft/contrib/spreadinterp.h"
 #include <stdlib.h>
 #include <vector>
 #include <math.h>

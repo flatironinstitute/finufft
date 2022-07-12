@@ -2,11 +2,11 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <cuda.h>
-#include "../../contrib/utils.h"
-#include "../../contrib/utils_fp.h"
+#include "cufinufft/contrib/utils.h"
+#include "cufinufft/contrib/utils_fp.h"
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/precision_independent.h"
-#include "../../include/utils.h"
+#include "utils.h"
 
 using namespace std;
 

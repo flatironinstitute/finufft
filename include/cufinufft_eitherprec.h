@@ -14,7 +14,7 @@
 #include "cufinufft/precision_independent.h"
 #include "cufinufft_errors.h"
 
-#include "../contrib/spreadinterp.h"
+#include "cufinufft/contrib/spreadinterp.h"
 
 
 #ifndef SINGLE
@@ -301,7 +301,7 @@ typedef struct CUFINUFFT_PLAN_S * CUFINUFFT_PLAN;
 
 /* We include common.h here because it depends on SPREAD_OPTS and
    CUFINUFFT_PLAN_S structs being completely defined first. */
-#include "../contrib/common.h"
+#include "cufinufft/contrib/common.h"
 
 #define checkCufftErrors(call)
 

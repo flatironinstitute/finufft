@@ -1,5 +1,5 @@
-#include "utils.h"
-#include "utils_fp.h"
+#include "cufinufft/contrib/utils.h"
+#include "cufinufft/contrib/utils_fp.h"
 
 
 // ------------ complex array utils ---------------------------------

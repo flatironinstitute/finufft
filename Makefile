@@ -51,7 +51,7 @@ else
 endif
 
 # Common includes
-INC += -I$(CUDA_ROOT)/include -Icontrib/cuda_samples
+INC += -I$(CUDA_ROOT)/include -Iinclude/cufinufft/contrib/cuda_samples
 
 # NVCC-specific libs
 NVCC_LIBS_PATH += -L$(CUDA_ROOT)/lib64
