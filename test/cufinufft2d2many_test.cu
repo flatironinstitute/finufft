@@ -49,9 +49,9 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 	}
 
-	FLT tol=1e-6;
+	CUFINUFFT_FLT tol=1e-6;
 	if(argc>7){
-		sscanf(argv[7],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+		sscanf(argv[7],"%lf",&w); tol  = (CUFINUFFT_FLT)w;  // so can read 1e6 right!
 	}
 	int iflag=1;
 
@@ -62,23 +62,23 @@ int main(int argc, char* argv[])
 
 	printf("#modes = %d, #inputs = %d, #NUpts = %d\n", N1*N2, ntransf, M);
 
-	FLT *x, *y;
+	CUFINUFFT_FLT *x, *y;
 	CPX *c, *fk;
 #if 1
-	cudaMallocHost(&x, M*sizeof(FLT));
-	cudaMallocHost(&y, M*sizeof(FLT));
+	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&c, ntransf*M*sizeof(CPX));
 	cudaMallocHost(&fk,ntransf*N1*N2*sizeof(CPX));
 #else
-	x = (FLT*) malloc(M*sizeof(FLT));
-	y = (FLT*) malloc(M*sizeof(FLT));
+	x = (CUFINUFFT_FLT*) malloc(M*sizeof(CUFINUFFT_FLT));
+	y = (CUFINUFFT_FLT*) malloc(M*sizeof(CUFINUFFT_FLT));
 	c = (CPX*) malloc(ntransf*M*sizeof(CPX));
 	fk = (CPX*) malloc(ntransf*N1*N2*sizeof(CPX));
 #endif
-	FLT *d_x, *d_y;
+	CUFINUFFT_FLT *d_x, *d_y;
 	CUCPX *d_c, *d_fk;
-	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMalloc(&d_c,ntransf*M*sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_fk,ntransf*N1*N2*sizeof(CUCPX)));
 
@@ -93,8 +93,8 @@ int main(int argc, char* argv[])
 		fk[i].imag(randm11());
 	}
 
-	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_fk,fk,N1*N2*ntransf*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
@@ -202,7 +202,7 @@ int main(int argc, char* argv[])
 	fkstart = fk + t*N1*N2;
 	cstart = c + t*M;
 	int jt = M/2;          // check arbitrary choice of one targ pt
-	CPX J = IMA*(FLT)iflag;
+	CPX J = IMA*(CUFINUFFT_FLT)iflag;
 	CPX ct = CPX(0,0);
 	int m=0;
 	for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F

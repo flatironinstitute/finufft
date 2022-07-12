@@ -12,7 +12,7 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	int nf1, N1, M;
-	FLT upsampfac=2.0;
+	CUFINUFFT_FLT upsampfac=2.0;
 	if (argc<4) {
 		fprintf(stderr,
 			"Usage: spread1d_test method nupts_distr nf1 [maxsubprobsize [M [tol [kerevalmeth]]]]\n"
@@ -51,9 +51,9 @@ int main(int argc, char* argv[])
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 	}
 
-	FLT tol=1e-6;
+	CUFINUFFT_FLT tol=1e-6;
 	if(argc>6){
-		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+		sscanf(argv[6],"%lf",&w); tol  = (CUFINUFFT_FLT)w;  // so can read 1e6 right!
 	}
 
 	int kerevalmeth=0;
@@ -81,15 +81,15 @@ int main(int argc, char* argv[])
 
 	cout<<scientific<<setprecision(3);
 
-	FLT *x;
+	CUFINUFFT_FLT *x;
 	CPX *c, *fw;
-	cudaMallocHost(&x, M*sizeof(FLT));
+	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*sizeof(CPX));
 
-	FLT *d_x;
+	CUFINUFFT_FLT *d_x;
 	CUCPX *d_c, *d_fw;
-	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_fw,nf1*sizeof(CUCPX)));
 
@@ -117,7 +117,7 @@ int main(int argc, char* argv[])
 			cerr << "not valid nupts distr" << endl;
 	}
 
-	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_c,c,M*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	CNTime timer;
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
 		cout<<"error: cnufftspread2d"<<endl;
 		return 0;
 	}
-	FLT t=timer.elapsedsec();
+	CUFINUFFT_FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (%.3g NU pts/s)\n",
 			dplan->opts.gpu_method,M,nf1,t,M/t);
 

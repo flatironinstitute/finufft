@@ -12,12 +12,12 @@ using namespace std;
 // Note: assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up 
 // to N/2-1)
 __global__
-void Deconvolve_1d(int ms, int nf1, CUCPX* fw, CUCPX *fk, FLT *fwkerhalf1)
+void Deconvolve_1d(int ms, int nf1, CUCPX* fw, CUCPX *fk, CUFINUFFT_FLT *fwkerhalf1)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms; i+=blockDim.x*gridDim.x){
 		int w1 = i-ms/2 >= 0 ? i-ms/2 : nf1+i-ms/2;
 
-		FLT kervalue = fwkerhalf1[abs(i-ms/2)];
+		CUFINUFFT_FLT kervalue = fwkerhalf1[abs(i-ms/2)];
 		fk[i].x = fw[w1].x/kervalue;
 		fk[i].y = fw[w1].y/kervalue;
 	}
@@ -25,7 +25,7 @@ void Deconvolve_1d(int ms, int nf1, CUCPX* fw, CUCPX *fk, FLT *fwkerhalf1)
 
 __global__
 void Deconvolve_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk, 
-	FLT *fwkerhalf1, FLT *fwkerhalf2)
+	CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt; i+=blockDim.x*gridDim.x){
 		int k1 = i % ms;
@@ -35,7 +35,7 @@ void Deconvolve_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk,
 		int w2 = k2-mt/2 >= 0 ? k2-mt/2 : nf2+k2-mt/2;
 		int inidx = w1 + w2*nf1;
 
-		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
+		CUFINUFFT_FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
 		fk[outidx].x = fw[inidx].x/kervalue;
 		fk[outidx].y = fw[inidx].y/kervalue;
 	}
@@ -43,7 +43,7 @@ void Deconvolve_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk,
 
 __global__
 void Deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw, 
-	CUCPX *fk, FLT *fwkerhalf1, FLT *fwkerhalf2, FLT *fwkerhalf3)
+	CUCPX *fk, CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2, CUFINUFFT_FLT *fwkerhalf3)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt*mu; i+=blockDim.x*
 		gridDim.x){
@@ -56,7 +56,7 @@ void Deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 		int w3 = k3-mu/2 >= 0 ? k3-mu/2 : nf3+k3-mu/2;
 		int inidx = w1 + w2*nf1 + w3*nf1*nf2;
 
-		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)]*
+		CUFINUFFT_FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)]*
 			fwkerhalf3[abs(k3-mu/2)];
 		fk[outidx].x = fw[inidx].x/kervalue;
 		fk[outidx].y = fw[inidx].y/kervalue;
@@ -67,12 +67,12 @@ void Deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 
 /* Kernel for copying fk to fw with same amplication */
 __global__
-void Amplify_1d(int ms, int nf1, CUCPX* fw, CUCPX *fk, FLT *fwkerhalf1)
+void Amplify_1d(int ms, int nf1, CUCPX* fw, CUCPX *fk, CUFINUFFT_FLT *fwkerhalf1)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms; i+=blockDim.x*gridDim.x){
 		int w1 = i-ms/2 >= 0 ? i-ms/2 : nf1+i-ms/2;
 
-		FLT kervalue = fwkerhalf1[abs(i-ms/2)];
+		CUFINUFFT_FLT kervalue = fwkerhalf1[abs(i-ms/2)];
 		fw[w1].x = fk[i].x/kervalue;
 		fw[w1].y = fk[i].y/kervalue;
 	}
@@ -80,7 +80,7 @@ void Amplify_1d(int ms, int nf1, CUCPX* fw, CUCPX *fk, FLT *fwkerhalf1)
 
 __global__
 void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk, 
-	FLT *fwkerhalf1, FLT *fwkerhalf2)
+	CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt; i+=blockDim.x*gridDim.x){
 		int k1 = i % ms;
@@ -90,7 +90,7 @@ void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk,
 		int w2 = k2-mt/2 >= 0 ? k2-mt/2 : nf2+k2-mt/2;
 		int outidx = w1 + w2*nf1;
 
-		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
+		CUFINUFFT_FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)];
 		fw[outidx].x = fk[inidx].x/kervalue;
 		fw[outidx].y = fk[inidx].y/kervalue;
 	}
@@ -98,7 +98,7 @@ void Amplify_2d(int ms, int mt, int nf1, int nf2, CUCPX* fw, CUCPX *fk,
 
 __global__
 void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw, 
-	CUCPX *fk, FLT *fwkerhalf1, FLT *fwkerhalf2, FLT *fwkerhalf3)
+	CUCPX *fk, CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2, CUFINUFFT_FLT *fwkerhalf3)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<ms*mt*mu; 
 		i+=blockDim.x*gridDim.x){
@@ -111,7 +111,7 @@ void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, CUCPX* fw,
 		int w3 = k3-mu/2 >= 0 ? k3-mu/2 : nf3+k3-mu/2;
 		int outidx = w1 + w2*nf1 + w3*nf1*nf2;
 
-		FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)]*
+		CUFINUFFT_FLT kervalue = fwkerhalf1[abs(k1-ms/2)]*fwkerhalf2[abs(k2-mt/2)]*
 			fwkerhalf3[abs(k3-mu/2)];
 		fw[outidx].x = fk[inidx].x/kervalue;
 		fw[outidx].y = fk[inidx].y/kervalue;

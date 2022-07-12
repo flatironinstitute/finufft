@@ -32,9 +32,9 @@ int main(int argc, char* argv[])
 	int dim = 1;
 	if (argc > 2) 
 		sscanf(argv[2],"%d",&dim);
-	FLT eps = 1e-6;
+	CUFINUFFT_FLT eps = 1e-6;
 	if (argc > 3) 
-		sscanf(argv[3],"%lf",&w); eps = (FLT)w;
+		sscanf(argv[3],"%lf",&w); eps = (CUFINUFFT_FLT)w;
 	int gpu = 1;
 	if (argc > 4) 
 		sscanf(argv[4],"%d",&gpu);
@@ -47,13 +47,13 @@ int main(int argc, char* argv[])
 		sscanf(argv[6],"%lf",&w); nf3 = (int)w;
 
 	SPREAD_OPTS opts;
-	FLT *fwkerhalf1, *fwkerhalf2, *fwkerhalf3;
-	FLT *d_fwkerhalf1, *d_fwkerhalf2, *d_fwkerhalf3;
-	checkCudaErrors(cudaMalloc(&d_fwkerhalf1, sizeof(FLT)*(nf1/2+1)));
+	CUFINUFFT_FLT *fwkerhalf1, *fwkerhalf2, *fwkerhalf3;
+	CUFINUFFT_FLT *d_fwkerhalf1, *d_fwkerhalf2, *d_fwkerhalf3;
+	checkCudaErrors(cudaMalloc(&d_fwkerhalf1, sizeof(CUFINUFFT_FLT)*(nf1/2+1)));
 	if(dim > 1)
-		checkCudaErrors(cudaMalloc(&d_fwkerhalf2, sizeof(FLT)*(nf2/2+1)));
+		checkCudaErrors(cudaMalloc(&d_fwkerhalf2, sizeof(CUFINUFFT_FLT)*(nf2/2+1)));
 	if(dim > 2)
-		checkCudaErrors(cudaMalloc(&d_fwkerhalf3, sizeof(FLT)*(nf3/2+1)));
+		checkCudaErrors(cudaMalloc(&d_fwkerhalf3, sizeof(CUFINUFFT_FLT)*(nf3/2+1)));
 
 	int ier = setup_spreader(opts, eps, 2.0, 0);
 
@@ -68,11 +68,11 @@ int main(int argc, char* argv[])
 	CNTime timer;
 	if( !gpu ) {
 		timer.start();
-		fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+		fwkerhalf1 = (CUFINUFFT_FLT*)malloc(sizeof(CUFINUFFT_FLT)*(nf1/2+1));
 		if(dim > 1)
-			fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+			fwkerhalf2 = (CUFINUFFT_FLT*)malloc(sizeof(CUFINUFFT_FLT)*(nf2/2+1));
 		if(dim > 2)
-			fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
+			fwkerhalf3 = (CUFINUFFT_FLT*)malloc(sizeof(CUFINUFFT_FLT)*(nf3/2+1));
 
 		onedim_fseries_kernel(nf1, fwkerhalf1, opts);
 		if(dim > 1)
@@ -83,13 +83,13 @@ int main(int argc, char* argv[])
 		cudaEventRecord(start);
  		{
 			checkCudaErrors(cudaMemcpy(d_fwkerhalf1,fwkerhalf1,
-				sizeof(FLT)*(nf1/2+1),cudaMemcpyHostToDevice));
+				sizeof(CUFINUFFT_FLT)*(nf1/2+1),cudaMemcpyHostToDevice));
 			if(dim > 1)
 				checkCudaErrors(cudaMemcpy(d_fwkerhalf2,fwkerhalf2,
-					sizeof(FLT)*(nf2/2+1),cudaMemcpyHostToDevice));
+					sizeof(CUFINUFFT_FLT)*(nf2/2+1),cudaMemcpyHostToDevice));
 			if(dim > 2)
 				checkCudaErrors(cudaMemcpy(d_fwkerhalf3,fwkerhalf3,
-					sizeof(FLT)*(nf3/2+1),cudaMemcpyHostToDevice));
+					sizeof(CUFINUFFT_FLT)*(nf3/2+1),cudaMemcpyHostToDevice));
 		}
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
 	} else {
 		timer.start();
 		complex<double> a[dim*MAX_NQUAD];
-		FLT             f[dim*MAX_NQUAD];
+		CUFINUFFT_FLT             f[dim*MAX_NQUAD];
 		onedim_fseries_kernel_precomp(nf1, f, a, opts);
 		if(dim > 1)
 			onedim_fseries_kernel_precomp(nf2, f+MAX_NQUAD, a+MAX_NQUAD, opts);
@@ -114,15 +114,15 @@ int main(int argc, char* argv[])
 		cputime = timer.elapsedsec();
 
 		cuDoubleComplex *d_a;
-		FLT   *d_f;
+		CUFINUFFT_FLT   *d_f;
 		cudaEventRecord(start);
  		{
 			checkCudaErrors(cudaMalloc(&d_a, dim*MAX_NQUAD*sizeof(cuDoubleComplex)));
-			checkCudaErrors(cudaMalloc(&d_f, dim*MAX_NQUAD*sizeof(FLT)));
+			checkCudaErrors(cudaMalloc(&d_f, dim*MAX_NQUAD*sizeof(CUFINUFFT_FLT)));
 			checkCudaErrors(cudaMemcpy(d_a,a,
 				dim*MAX_NQUAD*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice));
 			checkCudaErrors(cudaMemcpy(d_f,f,
-				dim*MAX_NQUAD*sizeof(FLT),cudaMemcpyHostToDevice));
+				dim*MAX_NQUAD*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 			ier = CUFSERIESKERNELCOMPUTE(dim, nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1,
 				d_fwkerhalf2, d_fwkerhalf3, opts.nspread);
 		}
@@ -137,17 +137,17 @@ int main(int argc, char* argv[])
 	}
 
 #ifdef RESULT
-	fwkerhalf1 = (FLT*)malloc(sizeof(FLT)*(nf1/2+1));
+	fwkerhalf1 = (CUFINUFFT_FLT*)malloc(sizeof(CUFINUFFT_FLT)*(nf1/2+1));
 	if(dim > 1)
-		fwkerhalf2 = (FLT*)malloc(sizeof(FLT)*(nf2/2+1));
+		fwkerhalf2 = (CUFINUFFT_FLT*)malloc(sizeof(CUFINUFFT_FLT)*(nf2/2+1));
 	if(dim > 2)
-		fwkerhalf3 = (FLT*)malloc(sizeof(FLT)*(nf3/2+1));
+		fwkerhalf3 = (CUFINUFFT_FLT*)malloc(sizeof(CUFINUFFT_FLT)*(nf3/2+1));
 
-	checkCudaErrors(cudaMemcpy(fwkerhalf1,d_fwkerhalf1,sizeof(FLT)*(nf1/2+1),cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(fwkerhalf1,d_fwkerhalf1,sizeof(CUFINUFFT_FLT)*(nf1/2+1),cudaMemcpyDeviceToHost));
 	if(dim > 1)
-		checkCudaErrors(cudaMemcpy(fwkerhalf2,d_fwkerhalf2,sizeof(FLT)*(nf2/2+1),cudaMemcpyDeviceToHost));
+		checkCudaErrors(cudaMemcpy(fwkerhalf2,d_fwkerhalf2,sizeof(CUFINUFFT_FLT)*(nf2/2+1),cudaMemcpyDeviceToHost));
 	if(dim > 2)
-		checkCudaErrors(cudaMemcpy(fwkerhalf3,d_fwkerhalf3,sizeof(FLT)*(nf3/2+1),cudaMemcpyDeviceToHost));
+		checkCudaErrors(cudaMemcpy(fwkerhalf3,d_fwkerhalf3,sizeof(CUFINUFFT_FLT)*(nf3/2+1),cudaMemcpyDeviceToHost));
 	for(int i=0; i<nf1/2+1; i++)
 		printf("%10.8e ", fwkerhalf1[i]);
 	printf("\n");

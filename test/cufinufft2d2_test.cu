@@ -36,9 +36,9 @@ int main(int argc, char* argv[])
 		sscanf(argv[4],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 	}
 
-	FLT tol=1e-6;
+	CUFINUFFT_FLT tol=1e-6;
 	if(argc>5){
-		sscanf(argv[5],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+		sscanf(argv[5],"%lf",&w); tol  = (CUFINUFFT_FLT)w;  // so can read 1e6 right!
 	}
 	int iflag=1;
 
@@ -47,17 +47,17 @@ int main(int argc, char* argv[])
 	int ier;
 
 
-	FLT *x, *y;
+	CUFINUFFT_FLT *x, *y;
 	CPX *c, *fk;
-	cudaMallocHost(&x, M*sizeof(FLT));
-	cudaMallocHost(&y, M*sizeof(FLT));
+	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fk,N1*N2*sizeof(CPX));
 
-	FLT *d_x, *d_y;
+	CUFINUFFT_FLT *d_x, *d_y;
 	CUCPX *d_c, *d_fk;
-	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_fk,N1*N2*sizeof(CUCPX)));
 	// Making data
@@ -69,8 +69,8 @@ int main(int argc, char* argv[])
 		fk[i].real(randm11());
 		fk[i].imag(randm11());
 	}
-	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(CPX),
 		cudaMemcpyHostToDevice));
 
@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
 
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 	int jt = M/2;          // check arbitrary choice of one targ pt
-	CPX J = IMA*(FLT)iflag;
+	CPX J = IMA*(CUFINUFFT_FLT)iflag;
 	CPX ct = CPX(0,0);
 	int m=0;
 	for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F

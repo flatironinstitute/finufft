@@ -4,7 +4,7 @@
 // This is basically a port of dirft2d.f from CMCL package, except with
 // the 1/nj prefactors for type-1 removed.
 
-void dirft2d1(BIGINT nj,FLT* x,FLT *y,CPX* c,int iflag,BIGINT ms, BIGINT mt, CPX* f)
+void dirft2d1(BIGINT nj,CUFINUFFT_FLT* x,CUFINUFFT_FLT *y,CPX* c,int iflag,BIGINT ms, BIGINT mt, CPX* f)
 /* Direct computation of 2D type-1 nonuniform FFT. Interface same as finufft2d1.
 c                  nj-1
 c     f[k1,k2] =   SUM  c[j] exp(+-i (k1 x[j] + k2 y[j]))
@@ -23,8 +23,8 @@ c     used, otherwise the - sign is used, in the exponential.
   for (BIGINT j=0;j<nj;++j) {            // src pts
     CPX a1 = (iflag>0) ? exp(IMA*x[j]) : exp(-IMA*x[j]);
     CPX a2 = (iflag>0) ? exp(IMA*y[j]) : exp(-IMA*y[j]);
-    CPX sp1 = pow(a1,(FLT)k1min);  // starting phase for most neg k1 freq  
-    CPX p2 = pow(a2,(FLT)k2min);
+    CPX sp1 = pow(a1,(CUFINUFFT_FLT)k1min);  // starting phase for most neg k1 freq  
+    CPX p2 = pow(a2,(CUFINUFFT_FLT)k2min);
     CPX cc = c[j];                 // no 1/nj norm
     BIGINT m=0;      // output pointer
     for (BIGINT m2=0;m2<mt;++m2) {
@@ -38,7 +38,7 @@ c     used, otherwise the - sign is used, in the exponential.
   }
 }
 
-void dirft2d2(BIGINT nj,FLT* x,FLT *y,CPX* c,int iflag,BIGINT ms, BIGINT mt, CPX* f)
+void dirft2d2(BIGINT nj,CUFINUFFT_FLT* x,CUFINUFFT_FLT *y,CPX* c,int iflag,BIGINT ms, BIGINT mt, CPX* f)
 /* Direct computation of 2D type-2 nonuniform FFT. Interface same as finufft2d2
 
      c[j] = SUM   f[k1,k2] exp(+-i (k1 x[j] + k2 y[j])) 
@@ -57,8 +57,8 @@ void dirft2d2(BIGINT nj,FLT* x,FLT *y,CPX* c,int iflag,BIGINT ms, BIGINT mt, CPX
   for (BIGINT j=0;j<nj;++j) {
     CPX a1 = (iflag>0) ? exp(IMA*x[j]) : exp(-IMA*x[j]);
     CPX a2 = (iflag>0) ? exp(IMA*y[j]) : exp(-IMA*y[j]);
-    CPX sp1 = pow(a1,(FLT)k1min);
-    CPX p2 = pow(a2,(FLT)k2min);
+    CPX sp1 = pow(a1,(CUFINUFFT_FLT)k1min);
+    CPX p2 = pow(a2,(CUFINUFFT_FLT)k2min);
     CPX cc = CPX(0,0);
     BIGINT m=0;      // input pointer
     for (BIGINT m2=0;m2<mt;++m2) {
@@ -73,7 +73,7 @@ void dirft2d2(BIGINT nj,FLT* x,FLT *y,CPX* c,int iflag,BIGINT ms, BIGINT mt, CPX
   }
 }
 
-void dirft2d3(BIGINT nj,FLT* x,FLT *y,CPX* c,int iflag,BIGINT nk, FLT* s, FLT* t, CPX* f)
+void dirft2d3(BIGINT nj,CUFINUFFT_FLT* x,CUFINUFFT_FLT *y,CPX* c,int iflag,BIGINT nk, CUFINUFFT_FLT* s, CUFINUFFT_FLT* t, CPX* f)
 /* Direct computation of 2D type-3 nonuniform FFT. Interface same as finufft2d3
 c               nj-1
 c     f[k]  =   SUM   c[j] exp(+-i (s[k] x[j] + t[k] y[j]))

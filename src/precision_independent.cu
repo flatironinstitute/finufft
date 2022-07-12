@@ -1,4 +1,4 @@
-/* These are functions that do not rely on FLT.
+/* These are functions that do not rely on CUFINUFFT_FLT.
    They are organized by originating file.
 */
 //TODO: remove kernels that do not depend on dimension

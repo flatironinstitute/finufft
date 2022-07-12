@@ -28,7 +28,7 @@ int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
 		case 1:
 			{
 				if(d_plan->opts.gpu_sort){
-					int numbins = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
+					int numbins = ceil((CUFINUFFT_FLT) nf1/d_plan->opts.gpu_binsizex);
 					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins*sizeof(int)));
 					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins*sizeof(int)));
 				}
@@ -36,7 +36,7 @@ int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
 			break;
 		case 2:
 			{
-				int numbins = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
+				int numbins = ceil((CUFINUFFT_FLT) nf1/d_plan->opts.gpu_binsizex);
 				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins*sizeof(int)));
@@ -49,7 +49,7 @@ int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
 
 	if(!d_plan->opts.gpu_spreadinterponly){
 		checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*sizeof(CUCPX)));
-		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(CUFINUFFT_FLT)));
 	}
 
 	// Multi-GPU support: reset the device ID
@@ -170,8 +170,8 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 			{
 				if(d_plan->opts.gpu_sort){
 					int numbins[2];
-					numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
-					numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
+					numbins[0] = ceil((CUFINUFFT_FLT) nf1/d_plan->opts.gpu_binsizex);
+					numbins[1] = ceil((CUFINUFFT_FLT) nf2/d_plan->opts.gpu_binsizey);
 					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
 						numbins[1]*sizeof(int)));
 					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
@@ -182,8 +182,8 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 		case 2:
 			{
 				int numbins[2];
-				numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
-				numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
+				numbins[0] = ceil((CUFINUFFT_FLT) nf1/d_plan->opts.gpu_binsizex);
+				numbins[1] = ceil((CUFINUFFT_FLT) nf2/d_plan->opts.gpu_binsizey);
 				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
 						numbins[1]*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
@@ -197,8 +197,8 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 		case 3:
 			{
 				int numbins[2];
-				numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
-				numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
+				numbins[0] = ceil((CUFINUFFT_FLT) nf1/d_plan->opts.gpu_binsizex);
+				numbins[1] = ceil((CUFINUFFT_FLT) nf2/d_plan->opts.gpu_binsizey);
 				checkCudaErrors(cudaMalloc(&d_plan->finegridsize,nf1*nf2*
 						sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->fgstartpts,nf1*nf2*
@@ -220,8 +220,8 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 	if(!d_plan->opts.gpu_spreadinterponly){
 		checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*
 				sizeof(CUCPX)));
-		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
-		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(CUFINUFFT_FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(CUFINUFFT_FLT)));
 	}
 
 	cudaStream_t* streams =(cudaStream_t*) malloc(d_plan->opts.gpu_nstreams*
@@ -366,9 +366,9 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 			{
 				if(d_plan->opts.gpu_sort){
 					int numbins[3];
-					numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
-					numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
-					numbins[2] = ceil((FLT) nf3/d_plan->opts.gpu_binsizez);
+					numbins[0] = ceil((CUFINUFFT_FLT) nf1/d_plan->opts.gpu_binsizex);
+					numbins[1] = ceil((CUFINUFFT_FLT) nf2/d_plan->opts.gpu_binsizey);
+					numbins[2] = ceil((CUFINUFFT_FLT) nf3/d_plan->opts.gpu_binsizez);
 					checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
 						numbins[1]*numbins[2]*sizeof(int)));
 					checkCudaErrors(cudaMalloc(&d_plan->binstartpts,numbins[0]*
@@ -379,9 +379,9 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 		case 2:
 			{
 				int numbins[3];
-				numbins[0] = ceil((FLT) nf1/d_plan->opts.gpu_binsizex);
-				numbins[1] = ceil((FLT) nf2/d_plan->opts.gpu_binsizey);
-				numbins[2] = ceil((FLT) nf3/d_plan->opts.gpu_binsizez);
+				numbins[0] = ceil((CUFINUFFT_FLT) nf1/d_plan->opts.gpu_binsizex);
+				numbins[1] = ceil((CUFINUFFT_FLT) nf2/d_plan->opts.gpu_binsizey);
+				numbins[2] = ceil((CUFINUFFT_FLT) nf3/d_plan->opts.gpu_binsizez);
 				checkCudaErrors(cudaMalloc(&d_plan->numsubprob,numbins[0]*
 					numbins[1]*numbins[2]*sizeof(int)));
 				checkCudaErrors(cudaMalloc(&d_plan->binsize,numbins[0]*
@@ -396,9 +396,9 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 			{
 				int numobins[3], numbins[3];
 				int binsperobins[3];
-				numobins[0] = ceil((FLT) nf1/d_plan->opts.gpu_obinsizex);
-				numobins[1] = ceil((FLT) nf2/d_plan->opts.gpu_obinsizey);
-				numobins[2] = ceil((FLT) nf3/d_plan->opts.gpu_obinsizez);
+				numobins[0] = ceil((CUFINUFFT_FLT) nf1/d_plan->opts.gpu_obinsizex);
+				numobins[1] = ceil((CUFINUFFT_FLT) nf2/d_plan->opts.gpu_obinsizey);
+				numobins[2] = ceil((CUFINUFFT_FLT) nf3/d_plan->opts.gpu_obinsizez);
 
 				binsperobins[0] = d_plan->opts.gpu_obinsizex/
 					d_plan->opts.gpu_binsizex;
@@ -428,9 +428,9 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 	if(!d_plan->opts.gpu_spreadinterponly){
 		checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize*nf1*nf2*nf3*
 			sizeof(CUCPX)));
-		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(FLT)));
-		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(FLT)));
-		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3,(nf3/2+1)*sizeof(FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1,(nf1/2+1)*sizeof(CUFINUFFT_FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2,(nf2/2+1)*sizeof(CUFINUFFT_FLT)));
+		checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3,(nf3/2+1)*sizeof(CUFINUFFT_FLT)));
 	}
 
         // Multi-GPU support: reset the device ID

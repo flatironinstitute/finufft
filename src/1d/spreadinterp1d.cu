@@ -14,15 +14,15 @@ using namespace std;
 /* Kernels for NUptsdriven Method */
 
 __global__
-void Spread_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, 
-	int nf1, FLT es_c, FLT es_beta, int *idxnupts, int pirange)
+void Spread_1d_NUptsdriven(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, 
+	int nf1, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts, int pirange)
 {
 	int xstart,xend;
 	int xx, ix;
-	FLT ker1[MAX_NSPREAD];
+	CUFINUFFT_FLT ker1[MAX_NSPREAD];
 
-	FLT x_rescaled;
-	FLT kervalue1;
+	CUFINUFFT_FLT x_rescaled;
+	CUFINUFFT_FLT kervalue1;
 	CUCPX cnow;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
@@ -31,7 +31,7 @@ void Spread_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 		xstart = ceil(x_rescaled - ns/2.0);
 		xend  = floor(x_rescaled + ns/2.0);
 
-		FLT x1=(FLT)xstart-x_rescaled;
+		CUFINUFFT_FLT x1=(CUFINUFFT_FLT)xstart-x_rescaled;
 		eval_kernel_vec(ker1,x1,ns,es_c,es_beta);
 		for(xx=xstart; xx<=xend; xx++){
 			ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
@@ -44,13 +44,13 @@ void Spread_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 }
 
 __global__
-void Spread_1d_NUptsdriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, FLT sigma, int* idxnupts, int pirange)
+void Spread_1d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, CUFINUFFT_FLT sigma, int* idxnupts, int pirange)
 {
 	int xx, ix;
-	FLT ker1[MAX_NSPREAD];
+	CUFINUFFT_FLT ker1[MAX_NSPREAD];
 
-	FLT x_rescaled;
+	CUFINUFFT_FLT x_rescaled;
 	CUCPX cnow;
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
 		x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
@@ -58,11 +58,11 @@ void Spread_1d_NUptsdriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int xend  = floor(x_rescaled + ns/2.0);
 
-		FLT x1=(FLT)xstart-x_rescaled;
+		CUFINUFFT_FLT x1=(CUFINUFFT_FLT)xstart-x_rescaled;
 		eval_kernel_vec_Horner(ker1,x1,ns,sigma);
 		for(xx=xstart; xx<=xend; xx++){
 			ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
-			FLT kervalue=ker1[xx-xstart];
+			CUFINUFFT_FLT kervalue=ker1[xx-xstart];
 			atomicAdd(&fw[ix].x, cnow.x*kervalue);
 			atomicAdd(&fw[ix].y, cnow.y*kervalue);
 		}
@@ -73,11 +73,11 @@ void Spread_1d_NUptsdriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
 // SubProb properties
 __global__
 void CalcBinSize_noghost_1d(int M, int nf1, int  bin_size_x, int nbinx, 
-	int* bin_size, FLT *x, int* sortidx, int pirange)
+	int* bin_size, CUFINUFFT_FLT *x, int* sortidx, int pirange)
 {
 	int binx;
 	int oldidx;
-	FLT x_rescaled;
+	CUFINUFFT_FLT x_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
 		x_rescaled=RESCALE(x[i], nf1, pirange);
 		binx = floor(x_rescaled/bin_size_x);
@@ -93,10 +93,10 @@ void CalcBinSize_noghost_1d(int M, int nf1, int  bin_size_x, int nbinx,
 
 __global__
 void CalcInvertofGlobalSortIdx_1d(int M, int bin_size_x, int nbinx, 
-	int* bin_startpts, int* sortidx, FLT *x, int* index, int pirange, int nf1)
+	int* bin_startpts, int* sortidx, CUFINUFFT_FLT *x, int* index, int pirange, int nf1)
 {
 	int binx;
-	FLT x_rescaled;
+	CUFINUFFT_FLT x_rescaled;
 	for(int i=threadIdx.x+blockIdx.x*blockDim.x; i<M; i+=gridDim.x*blockDim.x){
 		x_rescaled=RESCALE(x[i], nf1, pirange);
 		binx = floor(x_rescaled/bin_size_x);
@@ -109,8 +109,8 @@ void CalcInvertofGlobalSortIdx_1d(int M, int bin_size_x, int nbinx,
 
 
 __global__
-void Spread_1d_Subprob(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
-	int nf1, FLT es_c, FLT es_beta, FLT sigma, int* binstartpts,
+void Spread_1d_Subprob(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+	int nf1, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int* binstartpts,
 	int* bin_size, int bin_size_x, int* subprob_to_bin,
 	int* subprobstartpts, int* numsubprob, int maxsubprobsize, int nbinx, 
 	int* idxnupts, int pirange)
@@ -128,7 +128,7 @@ void Spread_1d_Subprob(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 	int xoffset=(bidx % nbinx)*bin_size_x;
 
 	int N = (bin_size_x+2*ceil(ns/2.0));
-	FLT ker1[MAX_NSPREAD];
+	CUFINUFFT_FLT ker1[MAX_NSPREAD];
 	
 	for(int i=threadIdx.x; i<N; i+=blockDim.x){
 		fwshared[i].x = 0.0;
@@ -136,7 +136,7 @@ void Spread_1d_Subprob(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 	}
 	__syncthreads();
 
-	FLT x_rescaled;
+	CUFINUFFT_FLT x_rescaled;
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
@@ -146,7 +146,7 @@ void Spread_1d_Subprob(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 		xstart = ceil(x_rescaled - ns/2.0)-xoffset;
 		xend   = floor(x_rescaled + ns/2.0)-xoffset;
 
-		FLT x1=(FLT)xstart+xoffset - x_rescaled;
+		CUFINUFFT_FLT x1=(CUFINUFFT_FLT)xstart+xoffset - x_rescaled;
 		eval_kernel_vec(ker1,x1,ns,es_c,es_beta);
 
 		for(int xx=xstart; xx<=xend; xx++){
@@ -169,8 +169,8 @@ void Spread_1d_Subprob(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 }
 
 __global__
-void Spread_1d_Subprob_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, FLT sigma, int* binstartpts, int* bin_size, 
+void Spread_1d_Subprob_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, CUFINUFFT_FLT sigma, int* binstartpts, int* bin_size, 
 	int bin_size_x, int* subprob_to_bin, int* subprobstartpts, 
 	int* numsubprob, int maxsubprobsize, int nbinx, int* idxnupts, int pirange)
 {
@@ -188,7 +188,7 @@ void Spread_1d_Subprob_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
 
 	int N = (bin_size_x+2*ceil(ns/2.0));
 	
-	FLT ker1[MAX_NSPREAD];
+	CUFINUFFT_FLT ker1[MAX_NSPREAD];
 
 	for(int i=threadIdx.x; i<N; i+=blockDim.x){
 		fwshared[i].x = 0.0;
@@ -196,7 +196,7 @@ void Spread_1d_Subprob_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
 	}
 	__syncthreads();
 
-	FLT x_rescaled;
+	CUFINUFFT_FLT x_rescaled;
 	CUCPX cnow;
 	for(int i=threadIdx.x; i<nupts; i+=blockDim.x){
 		int idx = ptstart+i;
@@ -231,12 +231,12 @@ void Spread_1d_Subprob_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
 /* --------------------- 1d Interpolation Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
 __global__
-void Interp_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
-		       int nf1, FLT es_c, FLT es_beta, int* idxnupts, int pirange)
+void Interp_1d_NUptsdriven(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
+		       int nf1, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int* idxnupts, int pirange)
 {
-	FLT ker1[MAX_NSPREAD];
+	CUFINUFFT_FLT ker1[MAX_NSPREAD];
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		CUFINUFFT_FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
         
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int xend  = floor(x_rescaled + ns/2.0);
@@ -244,11 +244,11 @@ void Interp_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 		cnow.x = 0.0;
 		cnow.y = 0.0;
 
-		FLT x1=(FLT)xstart-x_rescaled;
+		CUFINUFFT_FLT x1=(CUFINUFFT_FLT)xstart-x_rescaled;
 		eval_kernel_vec(ker1,x1,ns,es_c,es_beta);
 		for(int xx=xstart; xx<=xend; xx++){
 			int ix = xx < 0 ? xx+nf1 : (xx>nf1-1 ? xx-nf1 : xx);
-			FLT kervalue1 = ker1[xx-xstart];
+			CUFINUFFT_FLT kervalue1 = ker1[xx-xstart];
 			cnow.x += fw[ix].x*kervalue1;
 			cnow.y += fw[ix].y*kervalue1;
 		}
@@ -258,11 +258,11 @@ void Interp_1d_NUptsdriven(FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns,
 }
 
 __global__
-void Interp_1d_NUptsdriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M, 
-	const int ns, int nf1, FLT sigma, int* idxnupts, int pirange)
+void Interp_1d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, 
+	const int ns, int nf1, CUFINUFFT_FLT sigma, int* idxnupts, int pirange)
 {
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<M; i+=blockDim.x*gridDim.x){
-		FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
+		CUFINUFFT_FLT x_rescaled=RESCALE(x[idxnupts[i]], nf1, pirange);
 
 		int xstart = ceil(x_rescaled - ns/2.0);
 		int xend  = floor(x_rescaled + ns/2.0);
@@ -270,7 +270,7 @@ void Interp_1d_NUptsdriven_Horner(FLT *x, CUCPX *c, CUCPX *fw, int M,
 		CUCPX cnow;
 		cnow.x = 0.0;
 		cnow.y = 0.0;
-		FLT ker1[MAX_NSPREAD];
+		CUFINUFFT_FLT ker1[MAX_NSPREAD];
 
 		eval_kernel_vec_Horner(ker1,xstart-x_rescaled,ns,sigma);
 

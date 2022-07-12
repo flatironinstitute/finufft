@@ -76,7 +76,7 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 extern "C" {
 #endif
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *nmodes, int iflag,
-		       int ntransf, FLT tol, int maxbatchsize,
+		       int ntransf, CUFINUFFT_FLT tol, int maxbatchsize,
 		       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts)
 /*
 	"plan" stage (in single or double precision).
@@ -237,7 +237,7 @@ This performs:
 #endif
 	CNTime timer; timer.start();
 	complex<double> a[3*MAX_NQUAD];
-	FLT             f[3*MAX_NQUAD];
+	CUFINUFFT_FLT             f[3*MAX_NQUAD];
 	onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
 	if(dim > 1){
 		onedim_fseries_kernel_precomp(nf2, f+MAX_NQUAD, a+MAX_NQUAD, d_plan->spopts);
@@ -251,11 +251,11 @@ This performs:
 
 	cudaEventRecord(start);
 	cuDoubleComplex *d_a;
-	FLT   *d_f;
+	CUFINUFFT_FLT   *d_f;
 	checkCudaErrors(cudaMalloc(&d_a, dim*MAX_NQUAD*sizeof(cuDoubleComplex)));
-	checkCudaErrors(cudaMalloc(&d_f, dim*MAX_NQUAD*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_f, dim*MAX_NQUAD*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMemcpy(d_a,a,dim*MAX_NQUAD*sizeof(cuDoubleComplex),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_f,f,dim*MAX_NQUAD*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_f,f,dim*MAX_NQUAD*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	ier = CUFSERIESKERNELCOMPUTE(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1,
 		d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->spopts.nspread);
 #ifdef TIME
@@ -272,8 +272,8 @@ This performs:
 	return ier;
 }
 
-int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
-	FLT *d_t, FLT *d_u, CUFINUFFT_PLAN d_plan)
+int CUFINUFFT_SETPTS(int M, CUFINUFFT_FLT* d_kx, CUFINUFFT_FLT* d_ky, CUFINUFFT_FLT* d_kz, int N, CUFINUFFT_FLT *d_s,
+	CUFINUFFT_FLT *d_t, CUFINUFFT_FLT *d_u, CUFINUFFT_PLAN d_plan)
 /*
 	"setNUpts" stage (in single or double precision).
 
@@ -294,7 +294,7 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
 	Input:
 	M                 number of nonuniform points
 	d_kx, d_ky, d_kz  gpu array of x,y,z locations of sources (each a size M
-	                  FLT array) in [-pi, pi). set h_kz to "NULL" if dimension
+	                  CUFINUFFT_FLT array) in [-pi, pi). set h_kz to "NULL" if dimension
 	                  is less than 3. same for h_ky for dimension 1.
 	N, d_s, d_t, d_u  not used for type1, type2. set to 0 and NULL.
 
@@ -305,7 +305,7 @@ int CUFINUFFT_SETPTS(int M, FLT* d_kx, FLT* d_ky, FLT* d_kz, int N, FLT *d_s,
         Returned value:
         a status flag: 0 if success, otherwise an error occurred
 
-Notes: the type FLT means either single or double, matching the
+Notes: the type CUFINUFFT_FLT means either single or double, matching the
 	precision of the library version called.
 
 	Melody Shih 07/25/19; Barnett 2/16/21 moved out docs.
@@ -654,7 +654,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 */
 {
 	int ier;
-	opts->upsampfac = (FLT)2.0;
+	opts->upsampfac = (CUFINUFFT_FLT)2.0;
 
 	/* following options are for gpu */
 	opts->gpu_nstreams = 0;

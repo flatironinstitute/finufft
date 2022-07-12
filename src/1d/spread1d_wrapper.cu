@@ -12,7 +12,7 @@
 
 using namespace std;
 
-int CUFINUFFT_SPREAD1D(int nf1, CUCPX* d_fw, int M, FLT *d_kx, CUCPX *d_c, 
+int CUFINUFFT_SPREAD1D(int nf1, CUCPX* d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, 
 	CUFINUFFT_PLAN d_plan)
 /*
 	This c function is written for only doing 1D spreading. See
@@ -155,19 +155,19 @@ int CUSPREAD1D_NUPTSDRIVEN_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
 			return 1; 
 		}
 
-		int numbins = ceil((FLT) nf1/bin_size_x);
+		int numbins = ceil((CUFINUFFT_FLT) nf1/bin_size_x);
 #ifdef DEBUG
 		cout<<"[debug ] Dividing the uniform grids to bin size["
 			<<d_plan->opts.gpu_binsizex<<"]"<<endl;
 		cout<<"[debug ] numbins = ["<<numbins<<"]"<<endl;
 #endif
 
-		FLT*   d_kx = d_plan->kx;
+		CUFINUFFT_FLT*   d_kx = d_plan->kx;
 #ifdef DEBUG
-		FLT *h_kx;
-		h_kx = (FLT*)malloc(M*sizeof(FLT));
+		CUFINUFFT_FLT *h_kx;
+		h_kx = (CUFINUFFT_FLT*)malloc(M*sizeof(CUFINUFFT_FLT));
 
-		checkCudaErrors(cudaMemcpy(h_kx,d_kx,M*sizeof(FLT),
+		checkCudaErrors(cudaMemcpy(h_kx,d_kx,M*sizeof(CUFINUFFT_FLT),
 			cudaMemcpyDeviceToHost));
 		for(int i=0; i<M; i++){
 			cout<<"[debug ] ";
@@ -300,11 +300,11 @@ int CUSPREAD1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize)
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
 	int pirange=d_plan->spopts.pirange;
 	int *d_idxnupts=d_plan->idxnupts;
-	FLT es_c=d_plan->spopts.ES_c;
-	FLT es_beta=d_plan->spopts.ES_beta;
-	FLT sigma=d_plan->spopts.upsampfac;
+	CUFINUFFT_FLT es_c=d_plan->spopts.ES_c;
+	CUFINUFFT_FLT es_beta=d_plan->spopts.ES_beta;
+	CUFINUFFT_FLT sigma=d_plan->spopts.upsampfac;
 
-	FLT* d_kx = d_plan->kx;
+	CUFINUFFT_FLT* d_kx = d_plan->kx;
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
@@ -353,20 +353,20 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
 		cout<<bin_size_x<<")"<<endl;
 		return 1; 
 	}
-	int numbins = ceil((FLT) nf1/bin_size_x);
+	int numbins = ceil((CUFINUFFT_FLT) nf1/bin_size_x);
 #ifdef DEBUG
 	cout<<"[debug  ] Dividing the uniform grids to bin size["
 		<<d_plan->opts.gpu_binsizex<<"]"<<endl;
 	cout<<"[debug  ] numbins = ["<<numbins<<"]"<<endl;
 #endif
 
-	FLT*   d_kx = d_plan->kx;
+	CUFINUFFT_FLT*   d_kx = d_plan->kx;
 
 #ifdef DEBUG
-	FLT *h_kx;
-	h_kx = (FLT*)malloc(M*sizeof(FLT));
+	CUFINUFFT_FLT *h_kx;
+	h_kx = (CUFINUFFT_FLT*)malloc(M*sizeof(CUFINUFFT_FLT));
 
-	checkCudaErrors(cudaMemcpy(h_kx,d_kx,M*sizeof(FLT),cudaMemcpyDeviceToHost));
+	checkCudaErrors(cudaMemcpy(h_kx,d_kx,M*sizeof(CUFINUFFT_FLT),cudaMemcpyDeviceToHost));
 	for(int i=0; i<M; i++){
 		cout<<"[debug ]";
 		cout <<"("<<setw(3)<<h_kx[i]<<")"<<endl;
@@ -547,15 +547,15 @@ int CUSPREAD1D_SUBPROB(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize)
 	cudaEventCreate(&stop);
 
 	int ns=d_plan->spopts.nspread;// psi's support in terms of number of cells
-	FLT es_c=d_plan->spopts.ES_c;
-	FLT es_beta=d_plan->spopts.ES_beta;
+	CUFINUFFT_FLT es_c=d_plan->spopts.ES_c;
+	CUFINUFFT_FLT es_beta=d_plan->spopts.ES_beta;
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 
 	// assume that bin_size_x > ns/2;
 	int bin_size_x=d_plan->opts.gpu_binsizex;
-	int numbins = ceil((FLT) nf1/bin_size_x);
+	int numbins = ceil((CUFINUFFT_FLT) nf1/bin_size_x);
 
-	FLT* d_kx = d_plan->kx;
+	CUFINUFFT_FLT* d_kx = d_plan->kx;
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
@@ -570,7 +570,7 @@ int CUSPREAD1D_SUBPROB(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize)
 
 	int pirange=d_plan->spopts.pirange;
 
-	FLT sigma=d_plan->opts.upsampfac;
+	CUFINUFFT_FLT sigma=d_plan->opts.upsampfac;
 	cudaEventRecord(start);
 
 	size_t sharedplanorysize = (bin_size_x+2*(int)ceil(ns/2.0))*sizeof(CUCPX);

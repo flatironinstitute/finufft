@@ -25,17 +25,17 @@ typedef int BIGINT;
 #define COMPLEXIFY(X) X complex
 #endif
 
-#undef FLT
+#undef CUFINUFFT_FLT
 #undef CPX
 
 // Precision-independent real and complex types for interfacing...
 // (note these cannot be typedefs since we want dual-precision library)
 #ifdef SINGLE
-  #define FLT float
+  #define CUFINUFFT_FLT float
 #else
-  #define FLT double
+  #define CUFINUFFT_FLT double
 #endif
 
-#define CPX COMPLEXIFY(FLT)
+#define CPX COMPLEXIFY(CUFINUFFT_FLT)
 
 #endif  // DATATYPES_H or DATATYPESF_H

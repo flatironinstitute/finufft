@@ -18,7 +18,7 @@
 #define M_1_2PI 0.159154943091895336
 #define M_2PI   6.28318530717958648
 // to avoid mixed precision operators in eg i*pi...
-#define PI (FLT)M_PI
+#define PI (CUFINUFFT_FLT)M_PI
 
 using namespace std;        // means std:: not needed for cout, max, etc
 

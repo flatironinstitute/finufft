@@ -11,7 +11,7 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	int nf1, nf2;
-	FLT upsampfac=2.0;
+	CUFINUFFT_FLT upsampfac=2.0;
 	int N1, N2, M;
 	if (argc<5) {
 		fprintf(stderr,
@@ -50,9 +50,9 @@ int main(int argc, char* argv[])
 		if(M == 0) M=N1*N2;
 	}
 
-	FLT tol=1e-6;
+	CUFINUFFT_FLT tol=1e-6;
 	if(argc>6){
-		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+		sscanf(argv[6],"%lf",&w); tol  = (CUFINUFFT_FLT)w;  // so can read 1e6 right!
 	}
 
 	int kerevalmeth=0;
@@ -68,17 +68,17 @@ int main(int argc, char* argv[])
 	int ier;
 	cout<<scientific<<setprecision(3);
 
-	FLT *x, *y;
+	CUFINUFFT_FLT *x, *y;
 	CPX *c, *fw;
-	cudaMallocHost(&x, M*sizeof(FLT));
-	cudaMallocHost(&y, M*sizeof(FLT));
+	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*sizeof(CPX));
 
-	FLT *d_x, *d_y;
+	CUFINUFFT_FLT *d_x, *d_y;
 	CUCPX *d_c, *d_fw;
-	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*sizeof(CUCPX)));
 
@@ -121,8 +121,8 @@ int main(int argc, char* argv[])
 		fw[i].imag(0.0);
 	}
 
-	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_fw,fw,nf1*nf2*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	CNTime timer;
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 		cout<<"error: cnufftinterp2d"<<endl;
 		return 0;
 	}
-	FLT t=timer.elapsedsec();
+	CUFINUFFT_FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld U pts to #%d NU pts in %.3g s (\t%.3g NU pts/s)\n",
 			dplan->opts.gpu_method,nf1*nf2,M,t,M/t);
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));

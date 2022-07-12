@@ -263,13 +263,13 @@ typedef struct CUFINUFFT_PLAN_S {
 
 	int totalnumsubprob;
 	int byte_now;
-	FLT *fwkerhalf1;
-	FLT *fwkerhalf2;
-	FLT *fwkerhalf3;
+	CUFINUFFT_FLT *fwkerhalf1;
+	CUFINUFFT_FLT *fwkerhalf2;
+	CUFINUFFT_FLT *fwkerhalf3;
 
-	FLT *kx;
-	FLT *ky;
-	FLT *kz;
+	CUFINUFFT_FLT *kx;
+	CUFINUFFT_FLT *ky;
+	CUFINUFFT_FLT *kz;
 	CUCPX *c;
 	CUCPX *fw;
 	CUCPX *fk;
@@ -313,10 +313,10 @@ extern "C" {
 #endif
 int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts);
 int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
-		       int ntransf, FLT tol, int maxbatchsize,
+		       int ntransf, CUFINUFFT_FLT tol, int maxbatchsize,
 		       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts);
-int CUFINUFFT_SETPTS(int M, FLT* h_kx, FLT* h_ky, FLT* h_kz, int N, FLT *h_s,
-	FLT *h_t, FLT *h_u, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_SETPTS(int M, CUFINUFFT_FLT* h_kx, CUFINUFFT_FLT* h_ky, CUFINUFFT_FLT* h_kz, int N, CUFINUFFT_FLT *h_s,
+	CUFINUFFT_FLT *h_t, CUFINUFFT_FLT *h_u, CUFINUFFT_PLAN d_plan);
 int CUFINUFFT_EXECUTE(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN d_plan);
 int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan);
 #ifdef __cplusplus

@@ -12,7 +12,7 @@ extern "C" {
   #include "legendre_rule_fast.h"
 #endif
 
-int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, cufinufft_opts opts)
+int setup_spreader_for_nufft(SPREAD_OPTS &spopts, CUFINUFFT_FLT eps, cufinufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
@@ -36,7 +36,7 @@ void SET_NF_TYPE12(BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,
   }
 }
 
-void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
+void onedim_fseries_kernel(BIGINT nf, CUFINUFFT_FLT *fwkerhalf, SPREAD_OPTS opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -53,7 +53,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
   Outputs:
   fwkerhalf - real Fourier series coeffs from indices 0 to nf/2 inclusive,
               divided by h = 2pi/n.
-              (should be allocated for at least nf/2+1 FLTs)
+              (should be allocated for at least nf/2+1 CUFINUFFT_FLTs)
 
   Compare onedim_dct_kernel which has same interface, but computes DFT of
   sampled kernel, not quite the same object.
@@ -62,7 +62,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
   Melody 2/20/22 separate into precomp & comp functions defined below.
  */
 {
-  FLT f[MAX_NQUAD];
+  CUFINUFFT_FLT f[MAX_NQUAD];
   dcomplex a[MAX_NQUAD];
   onedim_fseries_kernel_precomp(nf, f, a, opts);
   onedim_fseries_kernel_compute(nf, f, a, fwkerhalf, opts);
@@ -81,23 +81,23 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
   f - funciton values at quadrature nodes multiplied with quadrature weights
   (a, f are provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
-void onedim_fseries_kernel_precomp(BIGINT nf, FLT *f, dcomplex *a, SPREAD_OPTS opts)
+void onedim_fseries_kernel_precomp(BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, SPREAD_OPTS opts)
 {
-  FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
+  CUFINUFFT_FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
   double z[2*MAX_NQUAD],w[2*MAX_NQUAD];
   legendre_compute_glr(2*q,z,w);        // only half the nodes used, eg on (0,1)
   for (int n=0;n<q;++n) {               // set up nodes z_n and vals f_n
     z[n] *= J2;                         // rescale nodes
-    f[n] = J2*(FLT)w[n] * evaluate_kernel((FLT)z[n], opts); // vals & quadr wei
-    a[n] = exp(2*PI*IMA*(FLT)(nf/2-z[n])/(FLT)nf);  // phase winding rates
+    f[n] = J2*(CUFINUFFT_FLT)w[n] * evaluate_kernel((CUFINUFFT_FLT)z[n], opts); // vals & quadr wei
+    a[n] = exp(2*PI*IMA*(CUFINUFFT_FLT)(nf/2-z[n])/(CUFINUFFT_FLT)nf);  // phase winding rates
   }
 }
 
-void onedim_fseries_kernel_compute(BIGINT nf, FLT *f, dcomplex *a, FLT *fwkerhalf, SPREAD_OPTS opts)
+void onedim_fseries_kernel_compute(BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, CUFINUFFT_FLT *fwkerhalf, SPREAD_OPTS opts)
 {
-  FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
+  CUFINUFFT_FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
   BIGINT nout=nf/2+1;                   // how many values we're writing to
   int nt = MIN(nout,MY_OMP_GET_MAX_THREADS());  // how many chunks
@@ -110,9 +110,9 @@ void onedim_fseries_kernel_compute(BIGINT nf, FLT *f, dcomplex *a, FLT *fwkerhal
     if (t<nt) {                         // could be nt < actual # threads
       dcomplex aj[MAX_NQUAD];           // phase rotator for this thread
       for (int n=0;n<q;++n)
-	aj[n] = pow(a[n],(FLT)brk[t]);       // init phase factors for chunk
+	aj[n] = pow(a[n],(CUFINUFFT_FLT)brk[t]);       // init phase factors for chunk
       for (BIGINT j=brk[t];j<brk[t+1];++j) {       // loop along output array
-	FLT x = 0.0;                       // accumulator for answer at this j
+	CUFINUFFT_FLT x = 0.0;                       // accumulator for answer at this j
 	for (int n=0;n<q;++n) {
 	  x += f[n] * 2*real(aj[n]);       // include the negative freq
 	  aj[n] *= a[n];                   // wind the phases

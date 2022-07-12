@@ -10,7 +10,7 @@
 using namespace std;
 
 int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX* d_fw, int M, 
-	FLT *d_kx, FLT *d_ky, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
+	CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*
 	This c function is written for only doing 2D interpolation. See 
 	test/interp2d_test.cu for usage.
@@ -150,14 +150,14 @@ int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan,
 	dim3 blocks;
 
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=d_plan->spopts.ES_c;
-	FLT es_beta=d_plan->spopts.ES_beta;
-	FLT sigma=d_plan->opts.upsampfac;
+	CUFINUFFT_FLT es_c=d_plan->spopts.ES_c;
+	CUFINUFFT_FLT es_beta=d_plan->spopts.ES_beta;
+	CUFINUFFT_FLT sigma=d_plan->opts.upsampfac;
 	int pirange=d_plan->spopts.pirange;
 	int *d_idxnupts=d_plan->idxnupts;
 
-	FLT* d_kx = d_plan->kx;
-	FLT* d_ky = d_plan->ky;
+	CUFINUFFT_FLT* d_kx = d_plan->kx;
+	CUFINUFFT_FLT* d_ky = d_plan->ky;
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
@@ -199,24 +199,24 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan,
 	cudaEventCreate(&stop);
 
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=d_plan->spopts.ES_c;
-	FLT es_beta=d_plan->spopts.ES_beta;
+	CUFINUFFT_FLT es_c=d_plan->spopts.ES_c;
+	CUFINUFFT_FLT es_beta=d_plan->spopts.ES_beta;
 	int maxsubprobsize=d_plan->opts.gpu_maxsubprobsize;
 
 	// assume that bin_size_x > ns/2;
 	int bin_size_x=d_plan->opts.gpu_binsizex;
 	int bin_size_y=d_plan->opts.gpu_binsizey;
 	int numbins[2];
-	numbins[0] = ceil((FLT) nf1/bin_size_x);
-	numbins[1] = ceil((FLT) nf2/bin_size_y);
+	numbins[0] = ceil((CUFINUFFT_FLT) nf1/bin_size_x);
+	numbins[1] = ceil((CUFINUFFT_FLT) nf2/bin_size_y);
 #ifdef INFO
 	cout<<"[info  ] Dividing the uniform grids to bin size["
 		<<d_plan->opts.gpu_binsizex<<"x"<<d_plan->opts.gpu_binsizey<<"]"<<endl;
 	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
 #endif
 
-	FLT* d_kx = d_plan->kx;
-	FLT* d_ky = d_plan->ky;
+	CUFINUFFT_FLT* d_kx = d_plan->kx;
+	CUFINUFFT_FLT* d_ky = d_plan->ky;
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 
@@ -229,7 +229,7 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan,
 	int totalnumsubprob=d_plan->totalnumsubprob;
 	int pirange=d_plan->spopts.pirange;
 
-	FLT sigma=d_plan->opts.upsampfac;
+	CUFINUFFT_FLT sigma=d_plan->opts.upsampfac;
 	cudaEventRecord(start);
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*
 		ceil(ns/2.0))*sizeof(CUCPX);

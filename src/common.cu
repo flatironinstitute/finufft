@@ -14,15 +14,15 @@ using namespace std;
 // a , f are intermediate results from function onedim_fseries_kernel_precomp()
 // (see cufinufft/contrib/common.cpp for description)
 __global__
-void FseriesKernelCompute(int nf1, int nf2, int nf3, FLT *f, cuDoubleComplex *a,
-	FLT *fwkerhalf1, FLT *fwkerhalf2, FLT *fwkerhalf3, int ns)
+void FseriesKernelCompute(int nf1, int nf2, int nf3, CUFINUFFT_FLT *f, cuDoubleComplex *a,
+	CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2, CUFINUFFT_FLT *fwkerhalf3, int ns)
 {
-	FLT J2 = ns/2.0;
+	CUFINUFFT_FLT J2 = ns/2.0;
 	int q=(int)(2 + 3.0*J2);
 	int nf;
 	cuDoubleComplex *at = a + threadIdx.y*MAX_NQUAD;
-	FLT *ft = f + threadIdx.y*MAX_NQUAD;
-	FLT *oarr;
+	CUFINUFFT_FLT *ft = f + threadIdx.y*MAX_NQUAD;
+	CUFINUFFT_FLT *oarr;
 	if (threadIdx.y == 0){
 		oarr = fwkerhalf1;
 		nf = nf1;
@@ -36,7 +36,7 @@ void FseriesKernelCompute(int nf1, int nf2, int nf3, FLT *f, cuDoubleComplex *a,
 
 	for(int i=blockDim.x*blockIdx.x+threadIdx.x; i<nf/2+1; i+=blockDim.x*gridDim.x){
 		int brk = 0.5 + i;
-		FLT x = 0.0;
+		CUFINUFFT_FLT x = 0.0;
 		for(int n=0; n<q; n++){
 			x += ft[n] * 2*(pow(cabs(at[n]), brk)*cos(brk*carg(at[n])));
 		}
@@ -44,9 +44,9 @@ void FseriesKernelCompute(int nf1, int nf2, int nf3, FLT *f, cuDoubleComplex *a,
 	}
 }
 
-int CUFSERIESKERNELCOMPUTE(int dim, int nf1, int nf2, int nf3, FLT *d_f,
-	cuDoubleComplex *d_a, FLT *d_fwkerhalf1, FLT *d_fwkerhalf2,
-	FLT *d_fwkerhalf3, int ns)
+int CUFSERIESKERNELCOMPUTE(int dim, int nf1, int nf2, int nf3, CUFINUFFT_FLT *d_f,
+	cuDoubleComplex *d_a, CUFINUFFT_FLT *d_fwkerhalf1, CUFINUFFT_FLT *d_fwkerhalf2,
+	CUFINUFFT_FLT *d_fwkerhalf3, int ns)
 /*
 	wrapper for approximation of Fourier series of real symmetric spreading 
 	kernel.

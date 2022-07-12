@@ -11,7 +11,7 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	int nf1, nf2, nf3;
-	FLT sigma = 2.0;
+	CUFINUFFT_FLT sigma = 2.0;
 	int N1, N2, N3, M;
 	if (argc<6) {
 		fprintf(stderr,
@@ -58,9 +58,9 @@ int main(int argc, char* argv[])
 		//if(M == 0) M=N1*N2;
 	}
 
-	FLT tol=1e-6;
+	CUFINUFFT_FLT tol=1e-6;
 	if(argc>8){
-		sscanf(argv[8],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+		sscanf(argv[8],"%lf",&w); tol  = (CUFINUFFT_FLT)w;  // so can read 1e6 right!
 	}
 
 	int kerevalmeth=0;
@@ -74,19 +74,19 @@ int main(int argc, char* argv[])
 	}
 
 	int ier;
-	FLT *x, *y, *z;
+	CUFINUFFT_FLT *x, *y, *z;
 	CPX *c, *fw;
-	cudaMallocHost(&x, M*sizeof(FLT));
-	cudaMallocHost(&y, M*sizeof(FLT));
-	cudaMallocHost(&z, M*sizeof(FLT));
+	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&z, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fw,nf1*nf2*nf3*sizeof(CPX));
 
-	FLT *d_x, *d_y, *d_z;
+	CUFINUFFT_FLT *d_x, *d_y, *d_z;
 	CUCPX *d_c, *d_fw;
-	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_z,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_z,M*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_fw,nf1*nf2*nf3*sizeof(CUCPX)));
 
@@ -160,9 +160,9 @@ int main(int argc, char* argv[])
 			return 1;
 	}
 
-	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_z,z,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_z,z,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_c,c,M*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	CNTime timer;
@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
 		cout<<"error: cnufftspread3d"<<endl;
 		return 0;
 	}
-	FLT t=timer.elapsedsec();
+	CUFINUFFT_FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (%.3g NU pts/s)\n",
 			dplan->opts.gpu_method,M,nf1*nf2*nf3,t,M/t);
 #ifdef RESULT

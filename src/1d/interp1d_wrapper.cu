@@ -9,7 +9,7 @@
 
 using namespace std;
 
-int CUFINUFFT_INTERP1D(int nf1, CUCPX* d_fw, int M, FLT *d_kx, CUCPX *d_c, 
+int CUFINUFFT_INTERP1D(int nf1, CUCPX* d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, 
 	CUFINUFFT_PLAN d_plan)
 /*
 	This c function is written for only doing 1D interpolation. See 
@@ -135,13 +135,13 @@ int CUINTERP1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize)
 	dim3 blocks;
 
 	int ns=d_plan->spopts.nspread;   // psi's support in terms of number of cells
-	FLT es_c=d_plan->spopts.ES_c;
-	FLT es_beta=d_plan->spopts.ES_beta;
-	FLT sigma=d_plan->opts.upsampfac;
+	CUFINUFFT_FLT es_c=d_plan->spopts.ES_c;
+	CUFINUFFT_FLT es_beta=d_plan->spopts.ES_beta;
+	CUFINUFFT_FLT sigma=d_plan->opts.upsampfac;
 	int pirange=d_plan->spopts.pirange;
 	int *d_idxnupts=d_plan->idxnupts;
 
-	FLT* d_kx = d_plan->kx;
+	CUFINUFFT_FLT* d_kx = d_plan->kx;
 	CUCPX* d_c = d_plan->c;
 	CUCPX* d_fw = d_plan->fw;
 

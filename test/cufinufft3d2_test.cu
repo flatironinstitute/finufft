@@ -37,9 +37,9 @@ int main(int argc, char* argv[])
 		sscanf(argv[5],"%lf",&w); M  = (int)w;  // so can read 1e6 right!
 	}
 
-	FLT tol=1e-6;
+	CUFINUFFT_FLT tol=1e-6;
 	if(argc>6){
-		sscanf(argv[6],"%lf",&w); tol  = (FLT)w;  // so can read 1e6 right!
+		sscanf(argv[6],"%lf",&w); tol  = (CUFINUFFT_FLT)w;  // so can read 1e6 right!
 	}
 	int iflag=1;
 
@@ -48,19 +48,19 @@ int main(int argc, char* argv[])
 	int ier;
 
 
-	FLT *x, *y, *z;
+	CUFINUFFT_FLT *x, *y, *z;
 	CPX *c, *fk;
-	cudaMallocHost(&x, M*sizeof(FLT));
-	cudaMallocHost(&y, M*sizeof(FLT));
-	cudaMallocHost(&z, M*sizeof(FLT));
+	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&z, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&c, M*sizeof(CPX));
 	cudaMallocHost(&fk,N1*N2*N3*sizeof(CPX));
 
-	FLT *d_x, *d_y, *d_z;
+	CUFINUFFT_FLT *d_x, *d_y, *d_z;
 	CUCPX *d_c, *d_fk;
-	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_z,M*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_x,M*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_y,M*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_z,M*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMalloc(&d_c,M*sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_fk,N1*N2*N3*sizeof(CUCPX)));
 
@@ -76,9 +76,9 @@ int main(int argc, char* argv[])
 		fk[i].imag(randm11());
 	}
 
-	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_z,z,M*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_z,z,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_fk,fk,N1*N2*N3*sizeof(CPX),
 		cudaMemcpyHostToDevice));
 
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
         printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n",M/exec_ms*1000);
 
 	int jt = M/2;          // check arbitrary choice of one targ pt
-	CPX J = IMA*(FLT)iflag;
+	CPX J = IMA*(CUFINUFFT_FLT)iflag;
 	CPX ct = CPX(0,0);
 	int m=0;
 	for (int m3=-(N3/2); m3<=(N3-1)/2; ++m3)  // loop in correct order over F

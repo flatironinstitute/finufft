@@ -32,37 +32,37 @@ int main(int argc, char* argv[])
 	M1 = N1*N2;
 	M2 = 2*N1*N2;
 
-	FLT tol=1e-5;
+	CUFINUFFT_FLT tol=1e-5;
 	int iflag=1;
 
 	cout<<scientific<<setprecision(3);
 	int ier;
 
-	FLT *x1, *y1;
+	CUFINUFFT_FLT *x1, *y1;
 	CPX *c1, *fk1;
-	cudaMallocHost(&x1, M1*sizeof(FLT));
-	cudaMallocHost(&y1, M1*sizeof(FLT));
+	cudaMallocHost(&x1, M1*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&y1, M1*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&c1, M1*sizeof(CPX));
 	cudaMallocHost(&fk1,N1*N2*sizeof(CPX));
 
-	FLT *d_x1, *d_y1;
+	CUFINUFFT_FLT *d_x1, *d_y1;
 	CUCPX *d_c1, *d_fk1;
-	checkCudaErrors(cudaMalloc(&d_x1,M1*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_y1,M1*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_x1,M1*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_y1,M1*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMalloc(&d_c1,M1*sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_fk1,N1*N2*sizeof(CUCPX)));
 
-	FLT *x2, *y2;
+	CUFINUFFT_FLT *x2, *y2;
 	CPX *c2, *fk2;
-	cudaMallocHost(&x2, M2*sizeof(FLT));
-	cudaMallocHost(&y2, M2*sizeof(FLT));
+	cudaMallocHost(&x2, M2*sizeof(CUFINUFFT_FLT));
+	cudaMallocHost(&y2, M2*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&c2, M2*sizeof(CPX));
 	cudaMallocHost(&fk2,N1*N2*sizeof(CPX));
 
-	FLT *d_x2, *d_y2;
+	CUFINUFFT_FLT *d_x2, *d_y2;
 	CUCPX *d_c2, *d_fk2;
-	checkCudaErrors(cudaMalloc(&d_x2,M2*sizeof(FLT)));
-	checkCudaErrors(cudaMalloc(&d_y2,M2*sizeof(FLT)));
+	checkCudaErrors(cudaMalloc(&d_x2,M2*sizeof(CUFINUFFT_FLT)));
+	checkCudaErrors(cudaMalloc(&d_y2,M2*sizeof(CUFINUFFT_FLT)));
 	checkCudaErrors(cudaMalloc(&d_c2,M2*sizeof(CUCPX)));
 	checkCudaErrors(cudaMalloc(&d_fk2,N1*N2*sizeof(CUCPX)));
 
@@ -81,11 +81,11 @@ int main(int argc, char* argv[])
 		c2[i].imag(randm11());
 	}
 
-	checkCudaErrors(cudaMemcpy(d_x1,x1,M1*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_y1,y1,M1*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_x1,x1,M1*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y1,y1,M1*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_c1,c1,M1*sizeof(CUCPX),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_x2,x2,M2*sizeof(FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_y2,y2,M2*sizeof(FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_x2,x2,M2*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_y2,y2,M2*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_c2,c2,M2*sizeof(CUCPX),cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
@@ -211,7 +211,7 @@ int main(int argc, char* argv[])
 	printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n",(M1+M2)/exec_ms*1000);
 
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
-	CPX Ft = CPX(0,0), J = IMA*(FLT)iflag;
+	CPX Ft = CPX(0,0), J = IMA*(CUFINUFFT_FLT)iflag;
 	for (int j=0; j<M1; ++j)
 		Ft += c1[j] * exp(J*(nt1*x1[j]+nt2*y1[j]));   // crude direct
 	int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
