@@ -80,7 +80,7 @@ STATICLIB=lib-static/$(LIBNAME).a
 BINDIR=bin
 
 HEADERS = include/cufinufft.h include/cufinufft/cudeconvolve.h include/cufinufft/memtransfer.h include/cufinufft/common.h \
-	  include/profile.h include/cufinufft/cuspreadinterp.h include/cufinufft_eitherprec.h \
+	  include/cufinufft/profile.h include/cufinufft/cuspreadinterp.h include/cufinufft_eitherprec.h \
 	  include/cufinufft_errors.h
 CONTRIBOBJS=contrib/dirft2d.o contrib/common.o contrib/spreadinterp.o contrib/utils_fp.o
 
