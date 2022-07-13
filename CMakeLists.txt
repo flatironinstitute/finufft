@@ -57,3 +57,4 @@ target_link_libraries(cufinufft_static CUDA::cudart_static CUDA::cufft_static CU
 set_property(TARGET cufinufft_static PROPERTY OUTPUT_NAME cufinufft)
 
 add_subdirectory(test)
+add_subdirectory(examples)
