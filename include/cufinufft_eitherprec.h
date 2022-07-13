@@ -1,27 +1,25 @@
 // Switchable-precision interface template for cufinufft. Used by cufinufft.h
 // Internal use only: users should link to cufinufft.h
 
-#if (!defined(__CUFINUFFT_H__) && !defined(CUFINUFFT_SINGLE)) || \
-  (!defined(__CUFINUFFTF_H__) && defined(CUFINUFFT_SINGLE))
+#if (!defined(__CUFINUFFT_H__) && !defined(CUFINUFFT_SINGLE)) ||                                                       \
+    (!defined(__CUFINUFFTF_H__) && defined(CUFINUFFT_SINGLE))
 // (note we entered one level of conditional until the end of this header)
 // Make sure we don't include double or single headers more than once...
 
-#include <cstdlib>
-#include <cufft.h>
 #include <assert.h>
+#include <cstdlib>
 #include <cuda_runtime.h>
+#include <cufft.h>
 
 #include <cufinufft_errors.h>
 #include <cufinufft_opts.h>
 #include <cufinufft_types.h>
-
 
 #ifndef CUFINUFFT_SINGLE
 #define __CUFINUFFT_H__
 #else
 #define __CUFINUFFTF_H__
 #endif
-
 
 /* Undefine things so we don't get warnings/errors later */
 #undef CUFINUFFT_DEFAULT_OPTS
@@ -241,62 +239,61 @@
 #endif
 
 typedef struct CUFINUFFT_PLAN_S {
-	cufinufft_opts  opts;
-	SPREAD_OPTS     spopts;
+    cufinufft_opts opts;
+    SPREAD_OPTS spopts;
 
-	int type;
-	int dim;
-	int M;
-	int nf1;
-	int nf2;
-	int nf3;
-	int ms;
-	int mt;
-	int mu;
-	int ntransf;
-	int maxbatchsize;
-	int iflag;
+    int type;
+    int dim;
+    int M;
+    int nf1;
+    int nf2;
+    int nf3;
+    int ms;
+    int mt;
+    int mu;
+    int ntransf;
+    int maxbatchsize;
+    int iflag;
 
-	int totalnumsubprob;
-	int byte_now;
-	CUFINUFFT_FLT *fwkerhalf1;
-	CUFINUFFT_FLT *fwkerhalf2;
-	CUFINUFFT_FLT *fwkerhalf3;
+    int totalnumsubprob;
+    int byte_now;
+    CUFINUFFT_FLT *fwkerhalf1;
+    CUFINUFFT_FLT *fwkerhalf2;
+    CUFINUFFT_FLT *fwkerhalf3;
 
-	CUFINUFFT_FLT *kx;
-	CUFINUFFT_FLT *ky;
-	CUFINUFFT_FLT *kz;
-	CUCPX *c;
-	CUCPX *fw;
-	CUCPX *fk;
+    CUFINUFFT_FLT *kx;
+    CUFINUFFT_FLT *ky;
+    CUFINUFFT_FLT *kz;
+    CUCPX *c;
+    CUCPX *fw;
+    CUCPX *fk;
 
-	// Arrays that used in subprob method
-	int *idxnupts;//length: #nupts, index of the nupts in the bin-sorted order
-	int *sortidx; //length: #nupts, order inside the bin the nupt belongs to
-	int *numsubprob; //length: #bins,  number of subproblems in each bin
-	int *binsize; //length: #bins, number of nonuniform ponits in each bin
-	int *binstartpts; //length: #bins, exclusive scan of array binsize
-	int *subprob_to_bin;//length: #subproblems, the bin the subproblem works on 
-	int *subprobstartpts;//length: #bins, exclusive scan of array numsubprob
+    // Arrays that used in subprob method
+    int *idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
+    int *sortidx;         // length: #nupts, order inside the bin the nupt belongs to
+    int *numsubprob;      // length: #bins,  number of subproblems in each bin
+    int *binsize;         // length: #bins, number of nonuniform ponits in each bin
+    int *binstartpts;     // length: #bins, exclusive scan of array binsize
+    int *subprob_to_bin;  // length: #subproblems, the bin the subproblem works on
+    int *subprobstartpts; // length: #bins, exclusive scan of array numsubprob
 
-	// Extra arrays for Paul's method
-	int *finegridsize;
-	int *fgstartpts;
+    // Extra arrays for Paul's method
+    int *finegridsize;
+    int *fgstartpts;
 
-	// Arrays for 3d (need to sort out)
-	int *numnupts;
-	int *subprob_to_nupts;
+    // Arrays for 3d (need to sort out)
+    int *numnupts;
+    int *subprob_to_nupts;
 
-	cufftHandle fftplan;
-	cudaStream_t *streams;
+    cufftHandle fftplan;
+    cudaStream_t *streams;
 
 } CUFINUFFT_PLAN_S;
 
-//The plan that is passed around is a pointer to a struct.
-//makeplan will utilize a double pointer.
-//This encourages bindings to treat the struct as opaque.
-typedef struct CUFINUFFT_PLAN_S * CUFINUFFT_PLAN;
-
+// The plan that is passed around is a pointer to a struct.
+// makeplan will utilize a double pointer.
+// This encourages bindings to treat the struct as opaque.
+typedef struct CUFINUFFT_PLAN_S *CUFINUFFT_PLAN;
 
 #define checkCufftErrors(call)
 
@@ -304,27 +301,26 @@ typedef struct CUFINUFFT_PLAN_S * CUFINUFFT_PLAN;
 extern "C" {
 #endif
 int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts);
-int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag,
-		       int ntransf, CUFINUFFT_FLT tol, int maxbatchsize,
-		       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts);
-int CUFINUFFT_SETPTS(int M, CUFINUFFT_FLT* h_kx, CUFINUFFT_FLT* h_ky, CUFINUFFT_FLT* h_kz, int N, CUFINUFFT_FLT *h_s,
-	CUFINUFFT_FLT *h_t, CUFINUFFT_FLT *h_u, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT_EXECUTE(CUCPX* h_c, CUCPX* h_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag, int ntransf, CUFINUFFT_FLT tol, int maxbatchsize,
+                       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts);
+int CUFINUFFT_SETPTS(int M, CUFINUFFT_FLT *h_kx, CUFINUFFT_FLT *h_ky, CUFINUFFT_FLT *h_kz, int N, CUFINUFFT_FLT *h_s,
+                     CUFINUFFT_FLT *h_t, CUFINUFFT_FLT *h_u, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT_EXECUTE(CUCPX *h_c, CUCPX *h_fk, CUFINUFFT_PLAN d_plan);
 int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan);
 #ifdef __cplusplus
 }
 #endif
 
 // 1d
-int CUFINUFFT1D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT1D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT1D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT1D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
 
 // 2d
-int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT2D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT2D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT2D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
 
 // 3d
-int CUFINUFFT3D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT3D2_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT3D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
+int CUFINUFFT3D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
 
 #endif

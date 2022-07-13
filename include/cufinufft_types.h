@@ -19,10 +19,10 @@ typedef int CUFINUFFT_BIGINT;
 
 // decide which kind of complex numbers to use in interface...
 #ifdef __cplusplus
-#include <complex>          // C++ type
+#include <complex> // C++ type
 #define COMPLEXIFY(X) std::complex<X>
 #else
-#include <complex.h>        // C99 type
+#include <complex.h> // C99 type
 #define COMPLEXIFY(X) X complex
 #endif
 
@@ -32,13 +32,13 @@ typedef int CUFINUFFT_BIGINT;
 // Precision-independent real and complex types for interfacing...
 // (note these cannot be typedefs since we want dual-precision library)
 #ifdef CUFINUFFT_SINGLE
-  #define CUFINUFFT_FLT float
+#define CUFINUFFT_FLT float
 #else
-  #define CUFINUFFT_FLT double
+#define CUFINUFFT_FLT double
 #endif
 
 #define CUFINUFFT_CPX COMPLEXIFY(CUFINUFFT_FLT)
-typedef std::complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
+typedef std::complex<double> dcomplex; // slightly sneaky since duplicated by mwrap
 
 #undef SPREAD_OPTS
 
@@ -48,17 +48,16 @@ typedef std::complex<double> dcomplex;  // slightly sneaky since duplicated by m
 #define SPREAD_OPTS spread_opts
 #endif
 
-struct SPREAD_OPTS {      // see cnufftspread:setup_spreader for defaults.
-  int nspread;            // w, the kernel width in grid pts
-  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
-  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
-  CUFINUFFT_FLT upsampfac;          // sigma, upsampling factor, default 2.0
-  // ES kernel specific...
-  CUFINUFFT_FLT ES_beta;
-  CUFINUFFT_FLT ES_halfwidth;
-  CUFINUFFT_FLT ES_c;
+struct SPREAD_OPTS {         // see cnufftspread:setup_spreader for defaults.
+    int nspread;             // w, the kernel width in grid pts
+    int spread_direction;    // 1 means spread NU->U, 2 means interpolate U->NU
+    int pirange;             // 0: coords in [0,N), 1 coords in [-pi,pi)
+    CUFINUFFT_FLT upsampfac; // sigma, upsampling factor, default 2.0
+    // ES kernel specific...
+    CUFINUFFT_FLT ES_beta;
+    CUFINUFFT_FLT ES_halfwidth;
+    CUFINUFFT_FLT ES_c;
 };
-
 
 #undef EPSILON
 #undef IMA
@@ -71,24 +70,23 @@ struct SPREAD_OPTS {      // see cnufftspread:setup_spreader for defaults.
 // Compile-flag choice of single or double (default) precision:
 // (Note in the other codes, CUFINUFFT_FLT is "double" or "float", CUFINUFFT_CPX same but complex)
 #ifdef CUFINUFFT_SINGLE
-  // machine epsilon for rounding
-  #define EPSILON (float)6e-08
-  #define IMA std::complex<float>(0.0,1.0)
-  #define FABS(x) fabs(x)
-  #define CUCPX cuFloatComplex
-  #define CUFFT_TYPE CUFFT_C2C
-  #define CUFFT_EX cufftExecC2C
-  #define SET_NF_TYPE12 set_nf_type12f
+// machine epsilon for rounding
+#define EPSILON (float)6e-08
+#define IMA std::complex<float>(0.0, 1.0)
+#define FABS(x) fabs(x)
+#define CUCPX cuFloatComplex
+#define CUFFT_TYPE CUFFT_C2C
+#define CUFFT_EX cufftExecC2C
+#define SET_NF_TYPE12 set_nf_type12f
 #else
-  // machine epsilon for rounding
-  #define EPSILON (double)1.1e-16
-  #define IMA std::complex<double>(0.0,1.0)
-  #define FABS(x) fabsf(x)
-  #define CUCPX cuDoubleComplex
-  #define CUFFT_TYPE CUFFT_Z2Z
-  #define CUFFT_EX cufftExecZ2Z
-  #define SET_NF_TYPE12 set_nf_type12
+// machine epsilon for rounding
+#define EPSILON (double)1.1e-16
+#define IMA std::complex<double>(0.0, 1.0)
+#define FABS(x) fabsf(x)
+#define CUCPX cuDoubleComplex
+#define CUFFT_TYPE CUFFT_Z2Z
+#define CUFFT_EX cufftExecZ2Z
+#define SET_NF_TYPE12 set_nf_type12
 #endif
 
-
-#endif  // DATATYPES_H or DATATYPESF_H
+#endif // DATATYPES_H or DATATYPESF_H
