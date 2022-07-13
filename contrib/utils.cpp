@@ -1,6 +1,6 @@
 #include "cufinufft/contrib/utils.h"
 
-BIGINT next235beven(BIGINT n, BIGINT b)
+CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth") and is a multiple of b (b is a number that the only prime 
 // factors are 2,3,5). Adapted from fortran in hellskitchen. Barnett 2/9/17
@@ -9,8 +9,8 @@ BIGINT next235beven(BIGINT n, BIGINT b)
 {
   if (n<=2) return 2;
   if (n%2 == 1) n+=1;   // even
-  BIGINT nplus = n-2;   // to cancel out the +=2 at start of loop
-  BIGINT numdiv = 2;    // a dummy that is >1
+  CUFINUFFT_BIGINT nplus = n-2;   // to cancel out the +=2 at start of loop
+  CUFINUFFT_BIGINT numdiv = 2;    // a dummy that is >1
   while ((numdiv>1) || (nplus%b != 0)) {
     nplus += 2;         // stays even
     numdiv = nplus;

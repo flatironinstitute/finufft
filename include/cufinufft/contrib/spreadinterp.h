@@ -1,5 +1,5 @@
-#if (!defined(SPREADINTERP_H) && !defined(SINGLE)) || \
-  (!defined(SPREADINTERPF_H) && defined(SINGLE))
+#if (!defined(SPREADINTERP_H) && !defined(CUFINUFFT_SINGLE)) || \
+  (!defined(SPREADINTERPF_H) && defined(CUFINUFFT_SINGLE))
 
 #include <math.h>
 #include <stdlib.h>
@@ -12,7 +12,7 @@
 
 #undef SPREAD_OPTS
 
-#ifdef SINGLE
+#ifdef CUFINUFFT_SINGLE
 #define SPREAD_OPTS spread_optsf
 #define SPREADINTERPF_H
 #else

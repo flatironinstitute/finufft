@@ -6,8 +6,8 @@
 // Internal cufinufft routines that are compiled separately for
 // each precision should include cufinufft_eitherprec.h directly, and not cufinufft.h.
 
-#undef SINGLE
+#undef CUFINUFFT_SINGLE
 #include <cufinufft_eitherprec.h>
-#define SINGLE
+#define CUFINUFFT_SINGLE
 #include <cufinufft_eitherprec.h>
-#undef SINGLE
+#undef CUFINUFFT_SINGLE

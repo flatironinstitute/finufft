@@ -2,9 +2,9 @@
 // These are functions which depend on single/double precision.
 // (rest of finufft defs and types are now in defs.h)
 
-#if (!defined(UTILS_FP_H) && !defined(SINGLE)) || (!defined(UTILS_FPF_H) && defined(SINGLE))
+#if (!defined(UTILS_FP_H) && !defined(CUFINUFFT_SINGLE)) || (!defined(UTILS_FPF_H) && defined(CUFINUFFT_SINGLE))
 // Make sure we only include once per precision (as in finufft_eitherprec.h).
-#ifndef SINGLE
+#ifndef CUFINUFFT_SINGLE
 #define UTILS_FP_H
 #else
 #define UTILS_FPF_H
@@ -29,7 +29,7 @@
 
 // Compile-flag choice of single or double (default) precision:
 // (Note in the other codes, CUFINUFFT_FLT is "double" or "float", CPX same but complex)
-#ifdef SINGLE
+#ifdef CUFINUFFT_SINGLE
   // machine epsilon for rounding
   #define EPSILON (float)6e-08
   #define IMA complex<float>(0.0,1.0)
@@ -51,13 +51,13 @@
 
 
 // ahb's low-level array helpers
-CUFINUFFT_FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b);
-CUFINUFFT_FLT errtwonorm(BIGINT n, CPX* a, CPX* b);
-CUFINUFFT_FLT twonorm(BIGINT n, CPX* a);
-CUFINUFFT_FLT infnorm(BIGINT n, CPX* a);
-void arrayrange(BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi);
-void indexedarrayrange(BIGINT n, BIGINT* i, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi);
-void arraywidcen(BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *w, CUFINUFFT_FLT *c);
+CUFINUFFT_FLT relerrtwonorm(CUFINUFFT_BIGINT n, CPX* a, CPX* b);
+CUFINUFFT_FLT errtwonorm(CUFINUFFT_BIGINT n, CPX* a, CPX* b);
+CUFINUFFT_FLT twonorm(CUFINUFFT_BIGINT n, CPX* a);
+CUFINUFFT_FLT infnorm(CUFINUFFT_BIGINT n, CPX* a);
+void arrayrange(CUFINUFFT_BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi);
+void indexedarrayrange(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT* i, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi);
+void arraywidcen(CUFINUFFT_BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *w, CUFINUFFT_FLT *c);
 
 // Random numbers: crappy unif random number generator in [0,1):
 //#define rand01() (((CUFINUFFT_FLT)(rand()%RAND_MAX))/RAND_MAX)

@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
 	for(int i=0; i<ntransf; i+=1){
 		int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
 		complex<float> Ft = complex<float>(0,0), J = complex<float>(0,1)*(float)iflag;
-		for (BIGINT j=0; j<M; ++j)
+		for (CUFINUFFT_BIGINT j=0; j<M; ++j)
 			Ft += c[j+i*M] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
 		int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
 		printf("[gpu %3d] one mode: abs err in F[%d,%d] is %.3g\n",i,nt1,

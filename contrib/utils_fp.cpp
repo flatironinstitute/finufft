@@ -4,11 +4,11 @@
 
 // ------------ complex array utils ---------------------------------
 
-CUFINUFFT_FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b)
+CUFINUFFT_FLT relerrtwonorm(CUFINUFFT_BIGINT n, CPX* a, CPX* b)
 // ||a-b||_2 / ||a||_2
 {
   CUFINUFFT_FLT err = 0.0, nrm = 0.0;
-  for (BIGINT m=0; m<n; ++m) {
+  for (CUFINUFFT_BIGINT m=0; m<n; ++m) {
     nrm += real(conj(a[m])*a[m]);
     CPX diff = a[m]-b[m];
     err += real(conj(diff)*diff);
@@ -16,63 +16,63 @@ CUFINUFFT_FLT relerrtwonorm(BIGINT n, CPX* a, CPX* b)
   return sqrt(err/nrm);
 }
 
-CUFINUFFT_FLT errtwonorm(BIGINT n, CPX* a, CPX* b)
+CUFINUFFT_FLT errtwonorm(CUFINUFFT_BIGINT n, CPX* a, CPX* b)
 // ||a-b||_2
 {
   CUFINUFFT_FLT err = 0.0;   // compute error 2-norm
-  for (BIGINT m=0; m<n; ++m) {
+  for (CUFINUFFT_BIGINT m=0; m<n; ++m) {
     CPX diff = a[m]-b[m];
     err += real(conj(diff)*diff);
   }
   return sqrt(err);
 }
 
-CUFINUFFT_FLT twonorm(BIGINT n, CPX* a)
+CUFINUFFT_FLT twonorm(CUFINUFFT_BIGINT n, CPX* a)
 // ||a||_2
 {
   CUFINUFFT_FLT nrm = 0.0;
-  for (BIGINT m=0; m<n; ++m)
+  for (CUFINUFFT_BIGINT m=0; m<n; ++m)
     nrm += real(conj(a[m])*a[m]);
   return sqrt(nrm);
 }
 
-CUFINUFFT_FLT infnorm(BIGINT n, CPX* a)
+CUFINUFFT_FLT infnorm(CUFINUFFT_BIGINT n, CPX* a)
 // ||a||_infty
 {
   CUFINUFFT_FLT nrm = 0.0;
-  for (BIGINT m=0; m<n; ++m) {
+  for (CUFINUFFT_BIGINT m=0; m<n; ++m) {
     CUFINUFFT_FLT aa = real(conj(a[m])*a[m]);
     if (aa>nrm) nrm = aa;
   }
   return sqrt(nrm);
 }
 
-void arrayrange(BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi)
+void arrayrange(CUFINUFFT_BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi)
 // With a a length-n array, writes out min(a) to lo and max(a) to hi,
 // so that all a values lie in [lo,hi].
 // If n==0, lo and hi are not finite.
 {
   *lo = INFINITY; *hi = -INFINITY;
-  for (BIGINT m=0; m<n; ++m) {
+  for (CUFINUFFT_BIGINT m=0; m<n; ++m) {
     if (a[m]<*lo) *lo = a[m];
     if (a[m]>*hi) *hi = a[m];
   }
 }
 
-void indexedarrayrange(BIGINT n, BIGINT* i, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi)
+void indexedarrayrange(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT* i, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi)
 // With i a list of n indices, and a an array of length max(i), writes out
 // min(a(i)) to lo and max(a(i)) to hi, so that all a(i) values lie in [lo,hi].
 // This is not currently used in FINUFFT v1.2.
 {
   *lo = INFINITY; *hi = -INFINITY;
-  for (BIGINT m=0; m<n; ++m) {
+  for (CUFINUFFT_BIGINT m=0; m<n; ++m) {
     CUFINUFFT_FLT A=a[i[m]];
     if (A<*lo) *lo = A;
     if (A>*hi) *hi = A;
   }
 }
 
-void arraywidcen(BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *w, CUFINUFFT_FLT *c)
+void arraywidcen(CUFINUFFT_BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *w, CUFINUFFT_FLT *c)
 // Writes out w = half-width and c = center of an interval enclosing all a[n]'s
 // Only chooses a nonzero center if this increases w by less than fraction
 // ARRAYWIDCEN_GROWFRAC defined in defs.h.

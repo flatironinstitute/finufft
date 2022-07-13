@@ -1,8 +1,8 @@
 // Switchable-precision interface template for cufinufft. Used by cufinufft.h
 // Internal use only: users should link to cufinufft.h
 
-#if (!defined(__CUFINUFFT_H__) && !defined(SINGLE)) || \
-  (!defined(__CUFINUFFTF_H__) && defined(SINGLE))
+#if (!defined(__CUFINUFFT_H__) && !defined(CUFINUFFT_SINGLE)) || \
+  (!defined(__CUFINUFFTF_H__) && defined(CUFINUFFT_SINGLE))
 // (note we entered one level of conditional until the end of this header)
 // Make sure we don't include double or single headers more than once...
 
@@ -11,13 +11,13 @@
 #include <assert.h>
 #include <cuda_runtime.h>
 #include "cufinufft_opts.h"
-#include "cufinufft/precision_independent.h"
 #include "cufinufft_errors.h"
 
+#include "cufinufft/precision_independent.h"
 #include "cufinufft/contrib/spreadinterp.h"
 
 
-#ifndef SINGLE
+#ifndef CUFINUFFT_SINGLE
 #define __CUFINUFFT_H__
 #else
 #define __CUFINUFFTF_H__
@@ -95,7 +95,7 @@
 /* fseries kernel */
 #undef CUFSERIESKERNELCOMPUTE
 
-#ifdef SINGLE
+#ifdef CUFINUFFT_SINGLE
 
 #define CUFINUFFT_DEFAULT_OPTS cufinufftf_default_opts
 #define CUFINUFFT_MAKEPLAN cufinufftf_makeplan

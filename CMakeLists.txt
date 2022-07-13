@@ -35,7 +35,7 @@ set_property(TARGET cufinufft_common_objects PROPERTY POSITION_INDEPENDENT_CODE 
 
 add_library(cufinufft_32_objects OBJECT ${PRECISION_DEPENDENT_SRC})
 target_include_directories(cufinufft_32_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-target_compile_definitions(cufinufft_32_objects PUBLIC SINGLE)
+target_compile_definitions(cufinufft_32_objects PUBLIC CUFINUFFT_SINGLE)
 set_property(TARGET cufinufft_32_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(cufinufft_64_objects OBJECT ${PRECISION_DEPENDENT_SRC})

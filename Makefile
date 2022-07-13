@@ -101,11 +101,11 @@ CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 
 
 %_32.o: %.cpp $(HEADERS)
-	$(CXX) -DSINGLE -c $(CXXFLAGS) $(INC) $< -o $@
+	$(CXX) -DCUFINUFFT_SINGLE -c $(CXXFLAGS) $(INC) $< -o $@
 %_32.o: %.c $(HEADERS)
-	$(CC) -DSINGLE -c $(CFLAGS) $(INC) $< -o $@
+	$(CC) -DCUFINUFFT_SINGLE -c $(CFLAGS) $(INC) $< -o $@
 %_32.o: %.cu $(HEADERS)
-	$(NVCC) -DSINGLE --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
+	$(NVCC) -DCUFINUFFT_SINGLE --device-c -c $(NVCCFLAGS) $(INC) $< -o $@
 %.o: %.cpp $(HEADERS)
 	$(CXX) -c $(CXXFLAGS) $(INC) $< -o $@
 %.o: %.c $(HEADERS)
@@ -172,7 +172,7 @@ $(BINDIR)/cufinufft2d2api_test%: test/cufinufft2d2api_test%.o $(DYNAMICLIB)
 
 $(BINDIR)/%_32: test/%_32.o $(CUFINUFFTOBJS_32) $(CUFINUFFTOBJS)
 	mkdir -p $(BINDIR)
-	$(NVCC) -DSINGLE $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
+	$(NVCC) -DCUFINUFFT_SINGLE $^ $(NVCCFLAGS) $(NVCC_LIBS_PATH) $(LIBS) -o $@
 
 $(BINDIR)/%: test/%.o $(CUFINUFFTOBJS_64) $(CUFINUFFTOBJS)
 	mkdir -p $(BINDIR)

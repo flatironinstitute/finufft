@@ -40,7 +40,7 @@ typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 #define MIN(a,b) (a<b) ? a : b
 
 // ahb math helpers
-BIGINT next235beven(BIGINT n, BIGINT b);
+CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
 
 // jfm timer class
 #include <sys/time.h>

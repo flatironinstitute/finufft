@@ -21,12 +21,12 @@ int setup_spreader_for_nufft(SPREAD_OPTS &spopts, CUFINUFFT_FLT eps, cufinufft_o
   return ier;
 }
 
-void SET_NF_TYPE12(BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,
-				   BIGINT *nf, BIGINT bs)
+void SET_NF_TYPE12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,
+				   CUFINUFFT_BIGINT *nf, CUFINUFFT_BIGINT bs)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
 {
-  *nf = (BIGINT)(opts.upsampfac*ms);
+  *nf = (CUFINUFFT_BIGINT)(opts.upsampfac*ms);
   if (*nf<2*spopts.nspread) *nf=2*spopts.nspread; // otherwise spread fails
   if (*nf<MAX_NF){                                // otherwise will fail anyway
     if (opts.gpu_method == 4)                     // expensive at huge nf
@@ -36,7 +36,7 @@ void SET_NF_TYPE12(BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,
   }
 }
 
-void onedim_fseries_kernel(BIGINT nf, CUFINUFFT_FLT *fwkerhalf, SPREAD_OPTS opts)
+void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *fwkerhalf, SPREAD_OPTS opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -81,7 +81,7 @@ void onedim_fseries_kernel(BIGINT nf, CUFINUFFT_FLT *fwkerhalf, SPREAD_OPTS opts
   f - funciton values at quadrature nodes multiplied with quadrature weights
   (a, f are provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
-void onedim_fseries_kernel_precomp(BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, SPREAD_OPTS opts)
+void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, SPREAD_OPTS opts)
 {
   CUFINUFFT_FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
   // # quadr nodes in z (from 0 to J/2; reflections will be added)...
@@ -95,15 +95,15 @@ void onedim_fseries_kernel_precomp(BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, SPR
   }
 }
 
-void onedim_fseries_kernel_compute(BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, CUFINUFFT_FLT *fwkerhalf, SPREAD_OPTS opts)
+void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, CUFINUFFT_FLT *fwkerhalf, SPREAD_OPTS opts)
 {
   CUFINUFFT_FLT J2 = opts.nspread/2.0;            // J/2, half-width of ker z-support
   int q=(int)(2 + 3.0*J2);  // not sure why so large? cannot exceed MAX_NQUAD
-  BIGINT nout=nf/2+1;                   // how many values we're writing to
+  CUFINUFFT_BIGINT nout=nf/2+1;                   // how many values we're writing to
   int nt = MIN(nout,MY_OMP_GET_MAX_THREADS());  // how many chunks
-  std::vector<BIGINT> brk(nt+1);        // start indices for each thread
+  std::vector<CUFINUFFT_BIGINT> brk(nt+1);        // start indices for each thread
   for (int t=0; t<=nt; ++t)             // split nout mode indices btw threads
-    brk[t] = (BIGINT)(0.5 + nout*t/(double)nt);
+    brk[t] = (CUFINUFFT_BIGINT)(0.5 + nout*t/(double)nt);
 #pragma omp parallel
   {
     int t = MY_OMP_GET_THREAD_NUM();
@@ -111,7 +111,7 @@ void onedim_fseries_kernel_compute(BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, CUF
       dcomplex aj[MAX_NQUAD];           // phase rotator for this thread
       for (int n=0;n<q;++n)
 	aj[n] = pow(a[n],(CUFINUFFT_FLT)brk[t]);       // init phase factors for chunk
-      for (BIGINT j=brk[t];j<brk[t+1];++j) {       // loop along output array
+      for (CUFINUFFT_BIGINT j=brk[t];j<brk[t+1];++j) {       // loop along output array
 	CUFINUFFT_FLT x = 0.0;                       // accumulator for answer at this j
 	for (int n=0;n<q;++n) {
 	  x += f[n] * 2*real(aj[n]);       // include the negative freq
