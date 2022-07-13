@@ -502,13 +502,13 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
         See ../docs/cppdoc.md for main user-facing documentation.
 
 	Input/Output:
-	d_c   a size d_plan->M CPX array on gpu (input for Type 1; output for Type
+	d_c   a size d_plan->M CUFINUFFT_CPX array on gpu (input for Type 1; output for Type
 	      2)
-	d_fk  a size d_plan->ms*d_plan->mt*d_plan->mu CPX array on gpu ((input for
+	d_fk  a size d_plan->ms*d_plan->mt*d_plan->mu CUFINUFFT_CPX array on gpu ((input for
 	      Type 2; output for Type 1)
 
 	Notes:
-        i) Here CPX is a defined type meaning either complex<float> or complex<double>
+        i) Here CUFINUFFT_CPX is a defined type meaning either complex<float> or complex<double>
 	    to match the precision of the library called.
         ii) All operations are done on the GPU device (hence the d_* names)
 

@@ -26,7 +26,7 @@ typedef int CUFINUFFT_BIGINT;
 #endif
 
 #undef CUFINUFFT_FLT
-#undef CPX
+#undef CUFINUFFT_CPX
 
 // Precision-independent real and complex types for interfacing...
 // (note these cannot be typedefs since we want dual-precision library)
@@ -36,6 +36,6 @@ typedef int CUFINUFFT_BIGINT;
   #define CUFINUFFT_FLT double
 #endif
 
-#define CPX COMPLEXIFY(CUFINUFFT_FLT)
+#define CUFINUFFT_CPX COMPLEXIFY(CUFINUFFT_FLT)
 
 #endif  // DATATYPES_H or DATATYPESF_H

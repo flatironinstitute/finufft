@@ -39,11 +39,11 @@ int main(int argc, char* argv[])
 	int ier;
 
 	CUFINUFFT_FLT *x1, *y1;
-	CPX *c1, *fk1;
+	CUFINUFFT_CPX *c1, *fk1;
 	cudaMallocHost(&x1, M1*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&y1, M1*sizeof(CUFINUFFT_FLT));
-	cudaMallocHost(&c1, M1*sizeof(CPX));
-	cudaMallocHost(&fk1,N1*N2*sizeof(CPX));
+	cudaMallocHost(&c1, M1*sizeof(CUFINUFFT_CPX));
+	cudaMallocHost(&fk1,N1*N2*sizeof(CUFINUFFT_CPX));
 
 	CUFINUFFT_FLT *d_x1, *d_y1;
 	CUCPX *d_c1, *d_fk1;
@@ -53,11 +53,11 @@ int main(int argc, char* argv[])
 	checkCudaErrors(cudaMalloc(&d_fk1,N1*N2*sizeof(CUCPX)));
 
 	CUFINUFFT_FLT *x2, *y2;
-	CPX *c2, *fk2;
+	CUFINUFFT_CPX *c2, *fk2;
 	cudaMallocHost(&x2, M2*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&y2, M2*sizeof(CUFINUFFT_FLT));
-	cudaMallocHost(&c2, M2*sizeof(CPX));
-	cudaMallocHost(&fk2,N1*N2*sizeof(CPX));
+	cudaMallocHost(&c2, M2*sizeof(CUFINUFFT_CPX));
+	cudaMallocHost(&fk2,N1*N2*sizeof(CUFINUFFT_CPX));
 
 	CUFINUFFT_FLT *d_x2, *d_y2;
 	CUCPX *d_c2, *d_fk2;
@@ -211,13 +211,13 @@ int main(int argc, char* argv[])
 	printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n",(M1+M2)/exec_ms*1000);
 
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
-	CPX Ft = CPX(0,0), J = IMA*(CUFINUFFT_FLT)iflag;
+	CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0,0), J = IMA*(CUFINUFFT_FLT)iflag;
 	for (int j=0; j<M1; ++j)
 		Ft += c1[j] * exp(J*(nt1*x1[j]+nt2*y1[j]));   // crude direct
 	int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array
 //	printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it]));
 	printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g (set 1)\n",(int)nt1,(int)nt2,abs(Ft-fk1[it])/infnorm(N,fk1));
-	Ft = CPX(0,0);
+	Ft = CUFINUFFT_CPX(0,0);
 	for (int j=0; j<M2; ++j)
 		Ft += c2[j] * exp(J*(nt1*x2[j]+nt2*y2[j]));   // crude direct
 	printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g (set 2)\n",(int)nt1,(int)nt2,abs(Ft-fk2[it])/infnorm(N,fk2));

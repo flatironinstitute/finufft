@@ -82,10 +82,10 @@ int main(int argc, char* argv[])
 	cout<<scientific<<setprecision(3);
 
 	CUFINUFFT_FLT *x;
-	CPX *c, *fw;
+	CUFINUFFT_CPX *c, *fw;
 	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
-	cudaMallocHost(&c, M*sizeof(CPX));
-	cudaMallocHost(&fw,nf1*sizeof(CPX));
+	cudaMallocHost(&c, M*sizeof(CUFINUFFT_CPX));
+	cudaMallocHost(&fw,nf1*sizeof(CUFINUFFT_CPX));
 
 	CUFINUFFT_FLT *d_x;
 	CUCPX *d_c, *d_fw;

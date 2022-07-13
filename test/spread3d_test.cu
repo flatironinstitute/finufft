@@ -75,12 +75,12 @@ int main(int argc, char* argv[])
 
 	int ier;
 	CUFINUFFT_FLT *x, *y, *z;
-	CPX *c, *fw;
+	CUFINUFFT_CPX *c, *fw;
 	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&z, M*sizeof(CUFINUFFT_FLT));
-	cudaMallocHost(&c, M*sizeof(CPX));
-	cudaMallocHost(&fw,nf1*nf2*nf3*sizeof(CPX));
+	cudaMallocHost(&c, M*sizeof(CUFINUFFT_CPX));
+	cudaMallocHost(&fw,nf1*nf2*nf3*sizeof(CUFINUFFT_CPX));
 
 	CUFINUFFT_FLT *d_x, *d_y, *d_z;
 	CUCPX *d_c, *d_fw;

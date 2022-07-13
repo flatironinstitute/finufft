@@ -4,30 +4,30 @@
 
 // ------------ complex array utils ---------------------------------
 
-CUFINUFFT_FLT relerrtwonorm(CUFINUFFT_BIGINT n, CPX* a, CPX* b)
+CUFINUFFT_FLT relerrtwonorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a, CUFINUFFT_CPX* b)
 // ||a-b||_2 / ||a||_2
 {
   CUFINUFFT_FLT err = 0.0, nrm = 0.0;
   for (CUFINUFFT_BIGINT m=0; m<n; ++m) {
     nrm += real(conj(a[m])*a[m]);
-    CPX diff = a[m]-b[m];
+    CUFINUFFT_CPX diff = a[m]-b[m];
     err += real(conj(diff)*diff);
   }
   return sqrt(err/nrm);
 }
 
-CUFINUFFT_FLT errtwonorm(CUFINUFFT_BIGINT n, CPX* a, CPX* b)
+CUFINUFFT_FLT errtwonorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a, CUFINUFFT_CPX* b)
 // ||a-b||_2
 {
   CUFINUFFT_FLT err = 0.0;   // compute error 2-norm
   for (CUFINUFFT_BIGINT m=0; m<n; ++m) {
-    CPX diff = a[m]-b[m];
+    CUFINUFFT_CPX diff = a[m]-b[m];
     err += real(conj(diff)*diff);
   }
   return sqrt(err);
 }
 
-CUFINUFFT_FLT twonorm(CUFINUFFT_BIGINT n, CPX* a)
+CUFINUFFT_FLT twonorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a)
 // ||a||_2
 {
   CUFINUFFT_FLT nrm = 0.0;
@@ -36,7 +36,7 @@ CUFINUFFT_FLT twonorm(CUFINUFFT_BIGINT n, CPX* a)
   return sqrt(nrm);
 }
 
-CUFINUFFT_FLT infnorm(CUFINUFFT_BIGINT n, CPX* a)
+CUFINUFFT_FLT infnorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a)
 // ||a||_infty
 {
   CUFINUFFT_FLT nrm = 0.0;

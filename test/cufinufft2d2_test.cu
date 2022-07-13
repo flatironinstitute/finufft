@@ -48,11 +48,11 @@ int main(int argc, char* argv[])
 
 
 	CUFINUFFT_FLT *x, *y;
-	CPX *c, *fk;
+	CUFINUFFT_CPX *c, *fk;
 	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
-	cudaMallocHost(&c, M*sizeof(CPX));
-	cudaMallocHost(&fk,N1*N2*sizeof(CPX));
+	cudaMallocHost(&c, M*sizeof(CUFINUFFT_CPX));
+	cudaMallocHost(&fk,N1*N2*sizeof(CUFINUFFT_CPX));
 
 	CUFINUFFT_FLT *d_x, *d_y;
 	CUCPX *d_c, *d_fk;
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	}
 	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
 	checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(CPX),
+	checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(CUFINUFFT_CPX),
 		cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
@@ -180,8 +180,8 @@ int main(int argc, char* argv[])
 
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 	int jt = M/2;          // check arbitrary choice of one targ pt
-	CPX J = IMA*(CUFINUFFT_FLT)iflag;
-	CPX ct = CPX(0,0);
+	CUFINUFFT_CPX J = IMA*(CUFINUFFT_FLT)iflag;
+	CUFINUFFT_CPX ct = CUFINUFFT_CPX(0,0);
 	int m=0;
 	for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
 		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)

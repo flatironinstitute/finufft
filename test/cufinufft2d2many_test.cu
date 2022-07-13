@@ -63,17 +63,17 @@ int main(int argc, char* argv[])
 	printf("#modes = %d, #inputs = %d, #NUpts = %d\n", N1*N2, ntransf, M);
 
 	CUFINUFFT_FLT *x, *y;
-	CPX *c, *fk;
+	CUFINUFFT_CPX *c, *fk;
 #if 1
 	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
-	cudaMallocHost(&c, ntransf*M*sizeof(CPX));
-	cudaMallocHost(&fk,ntransf*N1*N2*sizeof(CPX));
+	cudaMallocHost(&c, ntransf*M*sizeof(CUFINUFFT_CPX));
+	cudaMallocHost(&fk,ntransf*N1*N2*sizeof(CUFINUFFT_CPX));
 #else
 	x = (CUFINUFFT_FLT*) malloc(M*sizeof(CUFINUFFT_FLT));
 	y = (CUFINUFFT_FLT*) malloc(M*sizeof(CUFINUFFT_FLT));
-	c = (CPX*) malloc(ntransf*M*sizeof(CPX));
-	fk = (CPX*) malloc(ntransf*N1*N2*sizeof(CPX));
+	c = (CUFINUFFT_CPX*) malloc(ntransf*M*sizeof(CUFINUFFT_CPX));
+	fk = (CUFINUFFT_CPX*) malloc(ntransf*N1*N2*sizeof(CUFINUFFT_CPX));
 #endif
 	CUFINUFFT_FLT *d_x, *d_y;
 	CUCPX *d_c, *d_fk;
@@ -196,14 +196,14 @@ int main(int argc, char* argv[])
 
 	checkCudaErrors(cudaMemcpy(c,d_c,M*ntransf*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 
-	CPX* fkstart;
-	CPX* cstart;
+	CUFINUFFT_CPX* fkstart;
+	CUFINUFFT_CPX* cstart;
 	int t = ntransf-1;
 	fkstart = fk + t*N1*N2;
 	cstart = c + t*M;
 	int jt = M/2;          // check arbitrary choice of one targ pt
-	CPX J = IMA*(CUFINUFFT_FLT)iflag;
-	CPX ct = CPX(0,0);
+	CUFINUFFT_CPX J = IMA*(CUFINUFFT_FLT)iflag;
+	CUFINUFFT_CPX ct = CUFINUFFT_CPX(0,0);
 	int m=0;
 	for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
 		for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)

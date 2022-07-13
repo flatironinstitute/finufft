@@ -47,10 +47,10 @@ int main(int argc, char* argv[])
 
 
 	CUFINUFFT_FLT *x;
-	CPX *c, *fk;
+	CUFINUFFT_CPX *c, *fk;
 	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
-	cudaMallocHost(&c, M*sizeof(CPX));
-	cudaMallocHost(&fk,N1*sizeof(CPX));
+	cudaMallocHost(&c, M*sizeof(CUFINUFFT_CPX));
+	cudaMallocHost(&fk,N1*sizeof(CUFINUFFT_CPX));
 
 	CUFINUFFT_FLT *d_x;
 	CUCPX *d_c, *d_fk;
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 	}
 
 	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
-	checkCudaErrors(cudaMemcpy(d_c,c,M*sizeof(CPX),cudaMemcpyHostToDevice));
+	checkCudaErrors(cudaMemcpy(d_c,c,M*sizeof(CUFINUFFT_CPX),cudaMemcpyHostToDevice));
 
 	cudaEvent_t start, stop;
 	float milliseconds = 0;
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
 	printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n",M/exec_ms*1000);
 
 	int nt1 = (int)(0.37*N1);  // choose some mode index to check
-	CPX Ft = CPX(0,0), J = IMA*(CUFINUFFT_FLT)iflag;
+	CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0,0), J = IMA*(CUFINUFFT_FLT)iflag;
 	for (int j=0; j<M; ++j)
 		Ft += c[j] * exp(J*(nt1*x[j]));   // crude direct
 	int it = N1/2+nt1;   // index in complex F as 1d array

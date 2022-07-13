@@ -49,11 +49,11 @@ int main(int argc, char* argv[])
 
 
 	CUFINUFFT_FLT *x, *y;
-	CPX *c, *fk;
+	CUFINUFFT_CPX *c, *fk;
 	cudaMallocHost(&x, M*sizeof(CUFINUFFT_FLT));
 	cudaMallocHost(&y, M*sizeof(CUFINUFFT_FLT));
-	cudaMallocHost(&c, M*sizeof(CPX));
-	cudaMallocHost(&fk,N1*N2*sizeof(CPX));
+	cudaMallocHost(&c, M*sizeof(CUFINUFFT_CPX));
+	cudaMallocHost(&fk,N1*N2*sizeof(CUFINUFFT_CPX));
 
 	CUFINUFFT_FLT *d_x, *d_y;
 	CUCPX *d_c, *d_fk;
@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
 	printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n",M/exec_ms*1000);
 
 	int nt1 = (int)(0.37*N1), nt2 = (int)(0.26*N2);  // choose some mode index to check
-	CPX Ft = CPX(0,0), J = IMA*(CUFINUFFT_FLT)iflag;
+	CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0,0), J = IMA*(CUFINUFFT_FLT)iflag;
 	for (int j=0; j<M; ++j)
 		Ft += c[j] * exp(J*(nt1*x[j]+nt2*y[j]));   // crude direct
 	int it = N1/2+nt1 + N1*(N2/2+nt2);   // index in complex F as 1d array

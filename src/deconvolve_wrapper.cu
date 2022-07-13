@@ -143,8 +143,8 @@ int CUDECONVOLVE1D(CUFINUFFT_PLAN d_plan, int blksize)
 			Amplify_1d<<<(nmodes+256-1)/256, 256>>>(ms, nf1, d_plan->fw+t*nf1, 
 				d_plan->fk+t*nmodes, d_plan->fwkerhalf1);
 #ifdef DEBUG
-			CPX* h_fw;
-			h_fw = (CPX*) malloc(nf1*sizeof(CPX));
+			CUFINUFFT_CPX* h_fw;
+			h_fw = (CUFINUFFT_CPX*) malloc(nf1*sizeof(CUFINUFFT_CPX));
 			checkCudaErrors(cudaMemcpy(h_fw,d_plan->fw,nf1*sizeof(CUCPX),
 				cudaMemcpyDeviceToHost));
 			for(int i=0; i<nf1; i++){
@@ -185,8 +185,8 @@ int CUDECONVOLVE2D(CUFINUFFT_PLAN d_plan, int blksize)
 				mt, nf1, nf2, d_plan->fw+t*nf1*nf2, d_plan->fk+t*nmodes,
 				d_plan->fwkerhalf1, d_plan->fwkerhalf2);
 #ifdef DEBUG
-			CPX* h_fw;
-			h_fw = (CPX*) malloc(nf1*nf2*sizeof(CPX));
+			CUFINUFFT_CPX* h_fw;
+			h_fw = (CUFINUFFT_CPX*) malloc(nf1*nf2*sizeof(CUFINUFFT_CPX));
 			checkCudaErrors(cudaMemcpy2D(h_fw,nf1*sizeof(CUCPX),d_plan->fw,
 				nf1*sizeof(CUCPX),nf1*sizeof(CUCPX),nf2,
 				cudaMemcpyDeviceToHost));
@@ -232,8 +232,8 @@ int CUDECONVOLVE3D(CUFINUFFT_PLAN d_plan, int blksize)
 				d_plan->fw+t*nf1*nf2*nf3, d_plan->fk+t*nmodes, 
 				d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);
 #ifdef DEBUG
-			CPX* h_fw;
-			h_fw = (CPX*) malloc(nf1*nf2*nf3*sizeof(CPX));
+			CUFINUFFT_CPX* h_fw;
+			h_fw = (CUFINUFFT_CPX*) malloc(nf1*nf2*nf3*sizeof(CUFINUFFT_CPX));
 			checkCudaErrors(cudaMemcpy(h_fw,d_plan->fw,nf1*nf2*nf3*sizeof(CUCPX),
 				cudaMemcpyDeviceToHost));
 			for(int k=0; k<nf3; k++){

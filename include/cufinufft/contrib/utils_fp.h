@@ -28,7 +28,7 @@
 #undef SET_NF_TYPE12
 
 // Compile-flag choice of single or double (default) precision:
-// (Note in the other codes, CUFINUFFT_FLT is "double" or "float", CPX same but complex)
+// (Note in the other codes, CUFINUFFT_FLT is "double" or "float", CUFINUFFT_CPX same but complex)
 #ifdef CUFINUFFT_SINGLE
   // machine epsilon for rounding
   #define EPSILON (float)6e-08
@@ -51,10 +51,10 @@
 
 
 // ahb's low-level array helpers
-CUFINUFFT_FLT relerrtwonorm(CUFINUFFT_BIGINT n, CPX* a, CPX* b);
-CUFINUFFT_FLT errtwonorm(CUFINUFFT_BIGINT n, CPX* a, CPX* b);
-CUFINUFFT_FLT twonorm(CUFINUFFT_BIGINT n, CPX* a);
-CUFINUFFT_FLT infnorm(CUFINUFFT_BIGINT n, CPX* a);
+CUFINUFFT_FLT relerrtwonorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a, CUFINUFFT_CPX* b);
+CUFINUFFT_FLT errtwonorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a, CUFINUFFT_CPX* b);
+CUFINUFFT_FLT twonorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a);
+CUFINUFFT_FLT infnorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a);
 void arrayrange(CUFINUFFT_BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi);
 void indexedarrayrange(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT* i, CUFINUFFT_FLT* a, CUFINUFFT_FLT *lo, CUFINUFFT_FLT *hi);
 void arraywidcen(CUFINUFFT_BIGINT n, CUFINUFFT_FLT* a, CUFINUFFT_FLT *w, CUFINUFFT_FLT *c);
