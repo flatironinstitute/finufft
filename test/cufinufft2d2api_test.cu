@@ -5,10 +5,10 @@
 #include <iomanip>
 #include <math.h>
 #include <helper_cuda.h>
-#include <complex>
 
-#include <cufinufft.h>
-
+#undef CUFINUFFT_SINGLE
+#include <cufinufft_eitherprec.h>
+#include "cufinufft/contrib/utils_fp.h"
 
 int main(int argc, char* argv[])
 {

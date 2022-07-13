@@ -9,7 +9,7 @@
 #include <cuComplex.h>
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/memtransfer.h"
-
+#include "cufinufft/precision_independent.h"
 
 int CUFINUFFT_SPREAD2D(int nf1, int nf2, CUCPX* d_fw, int M,
 	CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky, CUCPX *d_c, CUFINUFFT_PLAN d_plan)

@@ -2,8 +2,6 @@
 #define COMMON_H
 
 #include <cufinufft_types.h>
-#include "utils.h"
-#include "spreadinterp.h"
 
 // constants needed within common
 #define MAX_NQUAD 100              // max number of positive quadr nodes

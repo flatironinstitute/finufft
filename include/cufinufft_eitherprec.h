@@ -15,10 +15,6 @@
 #include <cufinufft_opts.h>
 #include <cufinufft_types.h>
 
-#include "cufinufft/precision_independent.h"
-#include "cufinufft/contrib/utils_fp.h"
-#include "cufinufft/contrib/spreadinterp.h"
-
 
 #ifndef CUFINUFFT_SINGLE
 #define __CUFINUFFT_H__
@@ -301,10 +297,6 @@ typedef struct CUFINUFFT_PLAN_S {
 //This encourages bindings to treat the struct as opaque.
 typedef struct CUFINUFFT_PLAN_S * CUFINUFFT_PLAN;
 
-
-/* We include common.h here because it depends on SPREAD_OPTS and
-   CUFINUFFT_PLAN_S structs being completely defined first. */
-#include "cufinufft/contrib/common.h"
 
 #define checkCufftErrors(call)
 

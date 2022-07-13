@@ -9,6 +9,7 @@
 #include <cuComplex.h>
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/memtransfer.h"
+#include "cufinufft/precision_independent.h"
 
 
 // only relates to the locations of the nodes, which only needs to be done once

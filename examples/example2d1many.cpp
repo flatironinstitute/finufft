@@ -5,11 +5,20 @@
 
 #include <iostream>
 #include <iomanip>
-#include <math.h>
+#include <cmath>
 #include <complex>
+#include <random>
 
 #include <cufinufft.h>
 
+float infnorm(int n, std::complex<float>* a) {
+  double nrm = 0.0;
+  for (int m=0; m<n; ++m) {
+    double aa = real(conj(a[m])*a[m]);
+    if (aa>nrm) nrm = aa;
+  }
+  return sqrt(nrm);
+}
 
 int main(int argc, char* argv[])
 /*
@@ -50,14 +59,17 @@ int main(int argc, char* argv[])
 	cudaMalloc(&d_c,M*ntransf*sizeof(cuFloatComplex));
 	cudaMalloc(&d_fk,N1*N2*ntransf*sizeof(cuFloatComplex));
 
+        std::default_random_engine eng(1);
+        std::uniform_real_distribution<float> distr(0, 1);
+
 	for (int i=0; i<M; i++) {
-		x[i] = M_PI*randm11();
-		y[i] = M_PI*randm11();
+		x[i] = M_PI*distr(eng);
+		y[i] = M_PI*distr(eng);
 	}
 
 	for(int i=0; i<M*ntransf; i++){
-		c[i].real(randm11());
-		c[i].imag(randm11());
+		c[i].real(distr(eng));
+		c[i].imag(distr(eng));
 	}
 	cudaMemcpy(d_x,x,M*sizeof(float),cudaMemcpyHostToDevice);
 	cudaMemcpy(d_y,y,M*sizeof(float),cudaMemcpyHostToDevice);

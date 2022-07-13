@@ -5,9 +5,11 @@
 #include <complex>
 
 #include <cufinufft_eitherprec.h>
-
+#include "cufinufft/contrib/common.h"
+#include "cufinufft/contrib/spreadinterp.h"
 #include "cufinufft/contrib/utils.h"
 #include "cufinufft/common.h"
+
 
 
 int main(int argc, char* argv[])

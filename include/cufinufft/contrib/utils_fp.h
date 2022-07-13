@@ -14,40 +14,7 @@
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <cstdint>
 
-#include <complex>          // C++ type complex
-#include <cuComplex.h>
 #include <cufinufft_types.h>
-
-#undef EPSILON
-#undef IMA
-#undef FABS
-#undef CUCPX
-#undef CUFFT_TYPE
-#undef CUFFT_EX
-#undef SET_NF_TYPE12
-
-// Compile-flag choice of single or double (default) precision:
-// (Note in the other codes, CUFINUFFT_FLT is "double" or "float", CUFINUFFT_CPX same but complex)
-#ifdef CUFINUFFT_SINGLE
-  // machine epsilon for rounding
-  #define EPSILON (float)6e-08
-  #define IMA std::complex<float>(0.0,1.0)
-  #define FABS(x) fabs(x)
-  #define CUCPX cuFloatComplex
-  #define CUFFT_TYPE CUFFT_C2C
-  #define CUFFT_EX cufftExecC2C
-  #define SET_NF_TYPE12 set_nf_type12f
-#else
-  // machine epsilon for rounding
-  #define EPSILON (double)1.1e-16
-  #define IMA std::complex<double>(0.0,1.0)
-  #define FABS(x) fabsf(x)
-  #define CUCPX cuDoubleComplex
-  #define CUFFT_TYPE CUFFT_Z2Z
-  #define CUFFT_EX cufftExecZ2Z
-  #define SET_NF_TYPE12 set_nf_type12
-#endif
-
 
 // ahb's low-level array helpers
 CUFINUFFT_FLT relerrtwonorm(CUFINUFFT_BIGINT n, CUFINUFFT_CPX* a, CUFINUFFT_CPX* b);

@@ -17,6 +17,7 @@
 
 #include <profile.h>
 #include "cufinufft/contrib/utils.h"
+#include "cufinufft/contrib/utils_fp.h"
 
 int main(int argc, char* argv[])
 {

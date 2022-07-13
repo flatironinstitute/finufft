@@ -6,6 +6,7 @@
 #include <cuComplex.h>
 #include "cufinufft/precision_independent.h"
 #include "cufinufft/common.h"
+#include "cufinufft/contrib/common.h"
 
 
 /* Kernel for computing approximations of exact Fourier series coeffs of

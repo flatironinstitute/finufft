@@ -10,6 +10,8 @@
 #include "cufinufft/cudeconvolve.h"
 #include "cufinufft/memtransfer.h"
 #include "cufinufft/common.h"
+#include "cufinufft/contrib/common.h"
+#include "cufinufft/contrib/utils.h"
 
 
 

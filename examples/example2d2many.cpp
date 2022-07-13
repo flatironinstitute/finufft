@@ -6,8 +6,18 @@
 #include <iomanip>
 #include <math.h>
 #include <complex>
+#include <random>
 
 #include <cufinufft.h>
+
+double infnorm(int n, std::complex<double>* a) {
+  double nrm = 0.0;
+  for (int m=0; m<n; ++m) {
+    double aa = real(conj(a[m])*a[m]);
+    if (aa>nrm) nrm = aa;
+  }
+  return sqrt(nrm);
+}
 
 
 int main(int argc, char* argv[])
@@ -49,14 +59,17 @@ int main(int argc, char* argv[])
 	cudaMalloc(&d_c,M*ntransf*sizeof(cuDoubleComplex));
 	cudaMalloc(&d_fk,N1*N2*ntransf*sizeof(cuDoubleComplex));
 
+        std::default_random_engine eng(1);
+        std::uniform_real_distribution<double> distr(0, 1);
+
 	for (int i=0; i<M; i++) {
-		x[i] = M_PI*randm11();
-		y[i] = M_PI*randm11();
+		x[i] = M_PI*distr(eng);
+		y[i] = M_PI*distr(eng);
 	}
 
 	for(int i=0; i<N1*N2*ntransf; i++){
-		fk[i].real(randm11());
-		fk[i].imag(randm11());
+                fk[i].real(distr(eng));
+                fk[i].imag(distr(eng));
 	}
 	cudaMemcpy(d_x,x,M*sizeof(double),cudaMemcpyHostToDevice);
 	cudaMemcpy(d_y,y,M*sizeof(double),cudaMemcpyHostToDevice);

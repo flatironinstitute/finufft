@@ -5,6 +5,7 @@
 #include <complex>
 #include <algorithm>
 #include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/contrib/common.h"
 #include "cufinufft/contrib/utils.h"
 
 
