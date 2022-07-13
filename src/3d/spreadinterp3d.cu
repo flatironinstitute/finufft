@@ -6,7 +6,7 @@
 #include "cufinufft/contrib/utils_fp.h"
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/precision_independent.h"
-#include "utils.h"
+#include "cufinufft/utils.h"
 
 using namespace std;
 

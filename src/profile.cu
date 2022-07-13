@@ -1,4 +1,4 @@
-#include <profile.h>
+#include "cufinufft/profile.h"
 #include <nvToolsExt.h>
 #include <cstdio>
 

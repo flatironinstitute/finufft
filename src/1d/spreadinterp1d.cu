@@ -6,7 +6,7 @@
 #include "cufinufft/contrib/utils.h"
 #include "cufinufft/contrib/utils_fp.h"
 #include "cufinufft/cuspreadinterp.h"
-#include "utils.h"
+#include "cufinufft/utils.h"
 
 using namespace std;
 

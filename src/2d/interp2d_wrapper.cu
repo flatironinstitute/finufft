@@ -5,7 +5,7 @@
 #include <cuComplex.h>
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/memtransfer.h"
-#include <profile.h>
+#include "cufinufft/profile.h"
 
 using namespace std;
 

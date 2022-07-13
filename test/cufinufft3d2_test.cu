@@ -3,7 +3,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <complex>
-#include <profile.h>
+#include "cufinufft/profile.h"
 
 #include <cufinufft_eitherprec.h>
 
