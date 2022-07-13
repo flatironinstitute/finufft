@@ -8,7 +8,6 @@
 #include "cufinufft/precision_independent.h"
 #include "cufinufft/utils.h"
 
-using namespace std;
 
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */

@@ -22,7 +22,6 @@ CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b)
 }
 
 // ----------------------- helpers for timing (always stay double prec)...
-using namespace std;
 
 void CNTime::start()
 {

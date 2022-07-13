@@ -9,7 +9,6 @@
 
 #include <cufinufft.h>
 
-using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -21,16 +20,16 @@ int main(int argc, char* argv[])
 
   int iflag=1;
 
-  cout<<scientific<<setprecision(3);
+  std::cout<<std::scientific<<std::setprecision(3);
   int ier;
 
   // malloc host arrays
   double *x, *y;
-  complex<double> *c, *fk;
+  std::complex<double> *c, *fk;
   checkCudaErrors(cudaMallocHost(&x, M*sizeof(double)));
   checkCudaErrors(cudaMallocHost(&y, M*sizeof(double)));
-  checkCudaErrors(cudaMallocHost(&c, M*sizeof(complex<double>)));
-  checkCudaErrors(cudaMallocHost(&fk,N1*N2*sizeof(complex<double>)));
+  checkCudaErrors(cudaMallocHost(&c, M*sizeof(std::complex<double>)));
+  checkCudaErrors(cudaMallocHost(&fk,N1*N2*sizeof(std::complex<double>)));
 
   // malloc device arrays
   double *d_x, *d_y;
@@ -53,7 +52,7 @@ int main(int argc, char* argv[])
   // Copy data to device memory, real users might just populate in memory.
   checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(double),cudaMemcpyHostToDevice));
   checkCudaErrors(cudaMemcpy(d_y,y,M*sizeof(double),cudaMemcpyHostToDevice));
-  checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(complex<double>),
+  checkCudaErrors(cudaMemcpy(d_fk, fk, N1*N2*sizeof(std::complex<double>),
                              cudaMemcpyHostToDevice));
 
 
@@ -101,8 +100,8 @@ int main(int argc, char* argv[])
   // Copy test data back to host and compare
   checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(cuDoubleComplex),cudaMemcpyDeviceToHost));
   int jt = M/2;          // check arbitrary choice of one targ pt
-  complex<double> J = complex<double>(0,1)*(double)iflag;
-  complex<double> ct = complex<double>(0,0);
+  std::complex<double> J = std::complex<double>(0,1)*(double)iflag;
+  std::complex<double> ct = std::complex<double>(0,0);
   int m=0;
   for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
     for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)

@@ -8,7 +8,6 @@
 
 #include "cufinufft/contrib/utils.h"
 
-using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -35,7 +34,7 @@ int main(int argc, char* argv[])
 	CUFINUFFT_FLT tol=1e-5;
 	int iflag=1;
 
-	cout<<scientific<<setprecision(3);
+	std::cout<<std::scientific<<std::setprecision(3);
 	int ier;
 
 	CUFINUFFT_FLT *x1, *y1;

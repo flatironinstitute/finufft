@@ -8,7 +8,6 @@
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/utils.h"
 
-using namespace std;
 
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */

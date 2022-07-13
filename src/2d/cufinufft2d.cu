@@ -10,7 +10,6 @@
 #include "cufinufft/cudeconvolve.h"
 #include "cufinufft/memtransfer.h"
 
-using namespace std;
 
 int CUFINUFFT2D1_EXEC(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 /*  

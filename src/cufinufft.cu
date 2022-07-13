@@ -12,7 +12,6 @@
 #include "cufinufft/common.h"
 
 
-using namespace std;
 
 void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts)
 {
@@ -236,7 +235,7 @@ This performs:
 	printf("[time  ] \tCUFFT Plan\t\t %.3g s\n", milliseconds/1000);
 #endif
 	CNTime timer; timer.start();
-	complex<double> a[3*MAX_NQUAD];
+        std::complex<double> a[3*MAX_NQUAD];
 	CUFINUFFT_FLT             f[3*MAX_NQUAD];
 	onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
 	if(dim > 1){
@@ -531,7 +530,7 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 			if(type == 2)
 				ier = CUFINUFFT1D2_EXEC(d_c, d_fk, d_plan);
 			if(type == 3){
-				cerr<<"Not Implemented yet"<<endl;
+				std::cerr<<"Not Implemented yet"<<std::endl;
 				ier = 1;
 			}
 		}
@@ -543,7 +542,7 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 			if(type == 2)
 				ier = CUFINUFFT2D2_EXEC(d_c, d_fk, d_plan);
 			if(type == 3){
-				cerr<<"Not Implemented yet"<<endl;
+				std::cerr<<"Not Implemented yet"<<std::endl;
 				ier = 1;
 			}
 		}
@@ -555,7 +554,7 @@ int CUFINUFFT_EXECUTE(CUCPX* d_c, CUCPX* d_fk, CUFINUFFT_PLAN d_plan)
 			if(type == 2)
 				ier = CUFINUFFT3D2_EXEC(d_c, d_fk, d_plan);
 			if(type == 3){
-				cerr<<"Not Implemented yet"<<endl;
+				std::cerr<<"Not Implemented yet"<<std::endl;
 				ier = 1;
 			}
 		}
@@ -683,7 +682,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 				opts->gpu_method = 1;
 			}
 			if(type == 3){
-				cerr<<"Not Implemented yet"<<endl;
+				std::cerr<<"Not Implemented yet"<<std::endl;
 				ier = 1;
 				return ier;
 			}
@@ -699,7 +698,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 				opts->gpu_method = 1;
 			}
 			if(type == 3){
-				cerr<<"Not Implemented yet"<<endl;
+				std::cerr<<"Not Implemented yet"<<std::endl;
 				ier = 1;
 				return ier;
 			}
@@ -715,7 +714,7 @@ int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts)
 				opts->gpu_method = 1;
 			}
 			if(type == 3){
-				cerr<<"Not Implemented yet"<<endl;
+				std::cerr<<"Not Implemented yet"<<std::endl;
 				ier = 1;
 				return ier;
 			}

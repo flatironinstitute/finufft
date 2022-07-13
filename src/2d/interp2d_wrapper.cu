@@ -7,7 +7,6 @@
 #include "cufinufft/memtransfer.h"
 #include "cufinufft/profile.h"
 
-using namespace std;
 
 int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX* d_fw, int M, 
 	CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
@@ -109,7 +108,7 @@ int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize)
 					PROFILE_CUDA_GROUP("Spreading", 6);
 					ier = CUINTERP2D_NUPTSDRIVEN(nf1, nf2, M, d_plan, blksize);
 					if(ier != 0 ){
-						cout<<"error: cnufftspread2d_gpu_nuptsdriven"<<endl;
+						std::cout<<"error: cnufftspread2d_gpu_nuptsdriven"<<std::endl;
 						return 1;
 					}
 				}
@@ -120,13 +119,13 @@ int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize)
 				cudaEventRecord(start);
 				ier = CUINTERP2D_SUBPROB(nf1, nf2, M, d_plan, blksize);
 				if(ier != 0 ){
-					cout<<"error: cuinterp2d_subprob"<<endl;
+					std::cout<<"error: cuinterp2d_subprob"<<std::endl;
 					return 1;
 				}
 			}
 			break;
 		default:
-			cout<<"error: incorrect method, should be 1 or 2"<<endl;
+			std::cout<<"error: incorrect method, should be 1 or 2"<<std::endl;
 			return 2;
 	}
 #ifdef SPREADTIME
@@ -134,7 +133,7 @@ int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize)
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Interp " << milliseconds <<" ms"<<endl;
+	std::cout<<"[time  ]"<< " Interp " << milliseconds <<" ms"<<std::endl;
 #endif
 	return ier;
 }
@@ -210,9 +209,9 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan,
 	numbins[0] = ceil((CUFINUFFT_FLT) nf1/bin_size_x);
 	numbins[1] = ceil((CUFINUFFT_FLT) nf2/bin_size_y);
 #ifdef INFO
-	cout<<"[info  ] Dividing the uniform grids to bin size["
-		<<d_plan->opts.gpu_binsizex<<"x"<<d_plan->opts.gpu_binsizey<<"]"<<endl;
-	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<endl;
+	std::cout<<"[info  ] Dividing the uniform grids to bin size["
+		<<d_plan->opts.gpu_binsizex<<"x"<<d_plan->opts.gpu_binsizey<<"]"<<std::endl;
+	std::cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"]"<<std::endl;
 #endif
 
 	CUFINUFFT_FLT* d_kx = d_plan->kx;
@@ -234,7 +233,7 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan,
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*(bin_size_y+2*
 		ceil(ns/2.0))*sizeof(CUCPX);
 	if(sharedplanorysize > 49152){
-		cout<<"error: not enough shared memory"<<endl;
+		std::cout<<"error: not enough shared memory"<<std::endl;
 		return 1;
 	}
 

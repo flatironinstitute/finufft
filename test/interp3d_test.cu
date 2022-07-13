@@ -6,7 +6,6 @@
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/contrib/utils.h"
 
-using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -62,7 +61,7 @@ int main(int argc, char* argv[])
 
 	int ns=std::ceil(-log10(tol/10.0));
 
-	cout<<scientific<<setprecision(3);
+	std::cout<<std::scientific<<std::setprecision(3);
 
 
 	CUFINUFFT_FLT *x, *y, *z;
@@ -117,7 +116,7 @@ int main(int argc, char* argv[])
 					x[i] = M_PI*randm11();// x in [-pi,pi)
 					y[i] = M_PI*randm11();
 					z[i] = M_PI*randm11();
-					//cout << x[i] << "," << y[i] << "," << z[i] << endl;
+					//std::cout << x[i] << "," << y[i] << "," << z[i] << std::endl;
 				}
 			}
 			break;
@@ -131,7 +130,7 @@ int main(int argc, char* argv[])
 			}
 			break;
 		default:
-			cerr<<"error: nupts distr should be 0,1" << endl;
+			std::cerr<<"error: nupts distr should be 0,1" << std::endl;
 			return 1;
 	}
 	for(int i=0; i<nf1*nf2*nf3; i++){
@@ -148,7 +147,7 @@ int main(int argc, char* argv[])
 	timer.restart();
 	ier = CUFINUFFT_INTERP3D(nf1, nf2, nf3, d_fw, M, d_x, d_y, d_z, d_c, dplan);
 	if(ier != 0 ){
-		cout<<"error: cnufftinterp3d"<<endl;
+		std::cout<<"error: cnufftinterp3d"<<std::endl;
 		return 0;
 	}
 	CUFINUFFT_FLT t=timer.elapsedsec();
@@ -156,12 +155,12 @@ int main(int argc, char* argv[])
 			dplan->opts.gpu_method,nf1*nf2*nf3,M,t,M/t);
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 #ifdef RESULT
-	cout<<"[result-input]"<<endl;
+	std::cout<<"[result-input]"<<std::endl;
 	for(int j=0; j<10; j++){
 		printf(" (%2.3g,%2.3g)",c[j].real(),c[j].imag() );
-		cout<<endl;
+		std::cout<<std::endl;
 	}
-	cout<<endl;
+	std::cout<<std::endl;
 #endif
 
 	cudaFreeHost(x);

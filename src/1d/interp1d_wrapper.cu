@@ -7,7 +7,6 @@
 #include "cufinufft/memtransfer.h"
 #include "cufinufft/profile.h"
 
-using namespace std;
 
 int CUFINUFFT_INTERP1D(int nf1, CUCPX* d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, 
 	CUFINUFFT_PLAN d_plan)
@@ -105,14 +104,14 @@ int CUINTERP1D(CUFINUFFT_PLAN d_plan, int blksize)
 				{
 					ier = CUINTERP1D_NUPTSDRIVEN(nf1, M, d_plan, blksize);
 					if(ier != 0 ){
-						cout<<"error: cnufftspread1d_gpu_nuptsdriven"<<endl;
+						std::cout<<"error: cnufftspread1d_gpu_nuptsdriven"<<std::endl;
 						return 1;
 					}
 				}
 			}
 			break;
 		default:
-			cout<<"error: incorrect method, should be 1"<<endl;
+			std::cout<<"error: incorrect method, should be 1"<<std::endl;
 			return 2;
 	}
 #ifdef SPREADTIME
@@ -120,7 +119,7 @@ int CUINTERP1D(CUFINUFFT_PLAN d_plan, int blksize)
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Interp " << milliseconds <<" ms"<<endl;
+	std::cout<<"[time  ]"<< " Interp " << milliseconds <<" ms"<<std::endl;
 #endif
 	return ier;
 }

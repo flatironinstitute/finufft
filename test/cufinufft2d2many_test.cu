@@ -9,7 +9,6 @@
 #include "cufinufft/profile.h"
 #include "cufinufft/contrib/utils.h"
 
-using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -57,7 +56,7 @@ int main(int argc, char* argv[])
 
 
 
-	cout<<scientific<<setprecision(3);
+	std::cout<<std::scientific<<std::setprecision(3);
 	int ier;
 
 	printf("#modes = %d, #inputs = %d, #NUpts = %d\n", N1*N2, ntransf, M);

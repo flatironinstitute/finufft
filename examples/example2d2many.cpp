@@ -9,7 +9,6 @@
 
 #include <cufinufft.h>
 
-using namespace std;
 
 int main(int argc, char* argv[])
 /*
@@ -25,7 +24,7 @@ int main(int argc, char* argv[])
  *
  */
 {
-	cout<<scientific<<setprecision(3);
+	std::cout<<std::scientific<<std::setprecision(3);
 
 	int ier;
 	int N1 = 128;
@@ -37,11 +36,11 @@ int main(int argc, char* argv[])
 	double tol=1e-6;
 
 	double *x, *y;
-	complex<double> *c, *fk;
+	std::complex<double> *c, *fk;
 	cudaMallocHost(&x, M*sizeof(double));
 	cudaMallocHost(&y, M*sizeof(double));
-	cudaMallocHost(&c, M*ntransf*sizeof(complex<double>));
-	cudaMallocHost(&fk,N1*N2*ntransf*sizeof(complex<double>));
+	cudaMallocHost(&c, M*ntransf*sizeof(std::complex<double>));
+	cudaMallocHost(&fk,N1*N2*ntransf*sizeof(std::complex<double>));
 
 	double *d_x, *d_y;
 	cuDoubleComplex *d_c, *d_fk;
@@ -84,15 +83,15 @@ int main(int argc, char* argv[])
 
 	cudaMemcpy(c,d_c,M*ntransf*sizeof(cuDoubleComplex),cudaMemcpyDeviceToHost);
 
-	cout<<endl<<"Accuracy check:"<<endl;
-	complex<double>* fkstart;
-	complex<double>* cstart;
+	std::cout<<std::endl<<"Accuracy check:"<<std::endl;
+	std::complex<double>* fkstart;
+	std::complex<double>* cstart;
 	for(int t=0; t<ntransf; t++){
 		fkstart = fk + t*N1*N2;
 		cstart = c + t*M;
 		int jt = M/2;          // check arbitrary choice of one targ pt
-		complex<double> J(0,iflag*1);
-		complex<double> ct(0,0);
+		std::complex<double> J(0,iflag*1);
+		std::complex<double> ct(0,0);
 		int m=0;
 		for (int m2=-(N2/2); m2<=(N2-1)/2; ++m2)  // loop in correct order over F
 			for (int m1=-(N1/2); m1<=(N1-1)/2; ++m1)

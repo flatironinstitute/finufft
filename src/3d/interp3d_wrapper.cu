@@ -7,7 +7,6 @@
 #include "cufinufft/memtransfer.h"
 #include "cufinufft/profile.h"
 
-using namespace std;
 
 int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX* d_fw, int M, CUFINUFFT_FLT *d_kx, 
 	CUFINUFFT_FLT *d_ky, CUFINUFFT_FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
@@ -114,7 +113,7 @@ int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize)
 					PROFILE_CUDA_GROUP("Interpolation", 6);
 					ier = CUINTERP3D_NUPTSDRIVEN(nf1, nf2, nf3, M, d_plan, blksize);
 					if(ier != 0 ){
-						cout<<"error: cnufftspread3d_gpu_nuptsdriven"<<endl;
+						std::cout<<"error: cnufftspread3d_gpu_nuptsdriven"<<std::endl;
 						return 1;
 					}
 				}
@@ -127,14 +126,14 @@ int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize)
 					PROFILE_CUDA_GROUP("Interpolation", 6);
 					ier = CUINTERP3D_SUBPROB(nf1, nf2, nf3, M, d_plan, blksize);
 					if(ier != 0 ){
-						cout<<"error: cnufftspread3d_gpu_subprob"<<endl;
+						std::cout<<"error: cnufftspread3d_gpu_subprob"<<std::endl;
 						return 1;
 					}
 				}
 			}
 			break;
 		default:
-			cout<<"error: incorrect method, should be 1,2"<<endl;
+			std::cout<<"error: incorrect method, should be 1,2"<<std::endl;
 			return 2;
 	}
 #ifdef SPREADTIME
@@ -142,7 +141,7 @@ int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize)
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
-	cout<<"[time  ]"<< " Interp " << milliseconds <<" ms"<<endl;
+	std::cout<<"[time  ]"<< " Interp " << milliseconds <<" ms"<<std::endl;
 #endif
 	return ier;
 }
@@ -222,10 +221,10 @@ int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan,
 	numbins[1] = ceil((CUFINUFFT_FLT) nf2/bin_size_y);
 	numbins[2] = ceil((CUFINUFFT_FLT) nf3/bin_size_z);
 #ifdef INFO
-	cout<<"[info  ] Dividing the uniform grids to bin size["
-		<<d_plan->opts.gpu_binsizex<<"x"<<d_plan->opts.gpu_binsizey<<"x"<<d_plan->opts.gpu_binsizez<<"]"<<endl;
-	cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"x"<<numbins[2]
-	<<"]"<<endl;
+	std::cout<<"[info  ] Dividing the uniform grids to bin size["
+		<<d_plan->opts.gpu_binsizex<<"x"<<d_plan->opts.gpu_binsizey<<"x"<<d_plan->opts.gpu_binsizez<<"]"<<std::endl;
+	std::cout<<"[info  ] numbins = ["<<numbins[0]<<"x"<<numbins[1]<<"x"<<numbins[2]
+	<<"]"<<std::endl;
 #endif
 
 	CUFINUFFT_FLT* d_kx = d_plan->kx;
@@ -250,7 +249,7 @@ int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan,
 	size_t sharedplanorysize = (bin_size_x+2*ceil(ns/2.0))*
 		(bin_size_y+2*ceil(ns/2.0))*(bin_size_z+2*ceil(ns/2.0))*sizeof(CUCPX);
 	if(sharedplanorysize > 49152){
-		cout<<"error: not enough shared memory"<<endl;
+		std::cout<<"error: not enough shared memory"<<std::endl;
 		return 1;
 	}
 

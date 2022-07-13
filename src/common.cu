@@ -7,7 +7,6 @@
 #include "cufinufft/precision_independent.h"
 #include "cufinufft/common.h"
 
-using namespace std;
 
 /* Kernel for computing approximations of exact Fourier series coeffs of
    cnufftspread's real symmetric kernel. */

@@ -6,7 +6,6 @@
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/contrib/utils.h"
 
-using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -129,7 +128,7 @@ int main(int argc, char* argv[])
 		dplan->opts.gpu_binsizez=2;
 	}
 
-	cout<<scientific<<setprecision(3);
+	std::cout<<std::scientific<<std::setprecision(3);
 
 	switch(nupts_distribute){
 		// Making data
@@ -156,7 +155,7 @@ int main(int argc, char* argv[])
 			}
 			break;
 		default:
-			cerr << "not valid nupts distr" << endl;
+			std::cerr << "not valid nupts distr" << std::endl;
 			return 1;
 	}
 
@@ -170,22 +169,22 @@ int main(int argc, char* argv[])
 	char *a;
 	timer.restart();
 	checkCudaErrors(cudaMalloc(&a,1));
-	// cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec()
-	//	<<" s"<<endl<<endl;
+	// std::cout<<"[time  ]"<< " (warm up) First cudamalloc call " << timer.elapsedsec()
+	//	<<" s"<<std::endl<<std::endl;
 
 
 
 	timer.restart();
 	ier = CUFINUFFT_SPREAD3D(nf1, nf2, nf3, d_fw, M, d_x, d_y, d_z, d_c, dplan);
 	if(ier != 0 ){
-		cout<<"error: cnufftspread3d"<<endl;
+		std::cout<<"error: cnufftspread3d"<<std::endl;
 		return 0;
 	}
 	CUFINUFFT_FLT t=timer.elapsedsec();
 	printf("[Method %d] %ld NU pts to #%d U pts in %.3g s (%.3g NU pts/s)\n",
 			dplan->opts.gpu_method,M,nf1*nf2*nf3,t,M/t);
 #ifdef RESULT
-	cout<<"[result-input]"<<endl;
+	std::cout<<"[result-input]"<<std::endl;
 	for(int k=0; k<nf3; k++){
 		for(int j=0; j<nf2; j++){
 			for (int i=0; i<nf1; i++){
@@ -194,9 +193,9 @@ int main(int argc, char* argv[])
 				printf(" (%2.3g,%2.3g)",fw[i+j*nf1+k*nf2*nf1].real(),
 					fw[i+j*nf1+k*nf2*nf1].imag() );
 			}
-			cout<<endl;
+			std::cout<<std::endl;
 		}
-		cout<<"----------------------------------------------------------------"<<endl;
+		std::cout<<"----------------------------------------------------------------"<<std::endl;
 	}
 #endif
 

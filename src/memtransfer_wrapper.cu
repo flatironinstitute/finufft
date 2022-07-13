@@ -5,7 +5,6 @@
 #include <cuComplex.h>
 #include "cufinufft/memtransfer.h"
 
-using namespace std;
 
 int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
 /*
@@ -44,7 +43,7 @@ int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
 			}
 			break;
 		default:
-			cerr << "err: invalid method " << endl;
+			std::cerr << "err: invalid method " << std::endl;
 	}
 
 	if(!d_plan->opts.gpu_spreadinterponly){
@@ -91,7 +90,7 @@ int ALLOCGPUMEM1D_NUPTS(CUFINUFFT_PLAN d_plan)
 			}
 			break;
 		default:
-			cerr<<"err: invalid method" << endl;
+			std::cerr<<"err: invalid method" << std::endl;
 	}
 
 	// Multi-GPU support: reset the device ID
@@ -214,7 +213,7 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 			}
 			break;
 		default:
-			cerr << "err: invalid method " << endl;
+			std::cerr << "err: invalid method " << std::endl;
 	}
 
 	if(!d_plan->opts.gpu_spreadinterponly){
@@ -269,7 +268,7 @@ int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan)
 			}
 			break;
 		default:
-			cerr<<"err: invalid method" << endl;
+			std::cerr<<"err: invalid method" << std::endl;
 	}
 
         // Multi-GPU support: reset the device ID
@@ -422,7 +421,7 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
 			}
 			break;
 		default:
-			cerr << "err: invalid method" << endl;
+			std::cerr << "err: invalid method" << std::endl;
 	}
 
 	if(!d_plan->opts.gpu_spreadinterponly){
@@ -479,7 +478,7 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
 			}
 			break;
 		default:
-			cerr << "err: invalid method" << endl;
+			std::cerr << "err: invalid method" << std::endl;
 	}
 
         // Multi-GPU support: reset the device ID

@@ -9,7 +9,6 @@
 #include "cufinufft/contrib/utils.h"
 #include "cufinufft/common.h"
 
-using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -104,7 +103,7 @@ int main(int argc, char* argv[])
 			free(fwkerhalf3);
 	} else {
 		timer.start();
-		complex<double> a[dim*MAX_NQUAD];
+                std::complex<double> a[dim*MAX_NQUAD];
 		CUFINUFFT_FLT             f[dim*MAX_NQUAD];
 		onedim_fseries_kernel_precomp(nf1, f, a, opts);
 		if(dim > 1)

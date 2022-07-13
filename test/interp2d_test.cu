@@ -6,7 +6,6 @@
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/contrib/utils.h"
 
-using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -66,7 +65,7 @@ int main(int argc, char* argv[])
 	}
 
 	int ier;
-	cout<<scientific<<setprecision(3);
+	std::cout<<std::scientific<<std::setprecision(3);
 
 	CUFINUFFT_FLT *x, *y;
 	CUFINUFFT_CPX *c, *fw;
@@ -129,7 +128,7 @@ int main(int argc, char* argv[])
 	timer.restart();
 	ier = CUFINUFFT_INTERP2D(nf1, nf2, d_fw, M, d_x, d_y, d_c, dplan);
 	if(ier != 0 ){
-		cout<<"error: cnufftinterp2d"<<endl;
+		std::cout<<"error: cnufftinterp2d"<<std::endl;
 		return 0;
 	}
 	CUFINUFFT_FLT t=timer.elapsedsec();
@@ -137,12 +136,12 @@ int main(int argc, char* argv[])
 			dplan->opts.gpu_method,nf1*nf2,M,t,M/t);
 	checkCudaErrors(cudaMemcpy(c,d_c,M*sizeof(CUCPX),cudaMemcpyDeviceToHost));
 #ifdef RESULT
-	cout<<"[result-input]"<<endl;
+	std::cout<<"[result-input]"<<std::endl;
 	for(int j=0; j<M; j++){
 		printf(" (%2.3g,%2.3g)",c[j].real(),c[j].imag() );
-		cout<<endl;
+		std::cout<<std::endl;
 	}
-	cout<<endl;
+	std::cout<<std::endl;
 #endif
 
 	cudaFreeHost(x);

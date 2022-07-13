@@ -7,7 +7,6 @@
 #include "cufinufft/cuspreadinterp.h"
 #include "cufinufft/contrib/utils.h"
 
-using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -84,7 +83,7 @@ int main(int argc, char* argv[])
 	dplan->opts.gpu_binsizey         = 32;
 	ier = setup_spreader_for_nufft(dplan->spopts, tol, dplan->opts);
 
-	cout<<scientific<<setprecision(3);
+	std::cout<<std::scientific<<std::setprecision(3);
 
 	CUFINUFFT_FLT *x, *y;
 	CUFINUFFT_CPX *c, *fw;
@@ -123,7 +122,7 @@ int main(int argc, char* argv[])
 			}
 			break;
 		default:
-			cerr << "not valid nupts distr" << endl;
+			std::cerr << "not valid nupts distr" << std::endl;
 	}
 
 	checkCudaErrors(cudaMemcpy(d_x,x,M*sizeof(CUFINUFFT_FLT),cudaMemcpyHostToDevice));
@@ -135,7 +134,7 @@ int main(int argc, char* argv[])
 	timer.restart();
 	ier = CUFINUFFT_SPREAD2D(nf1, nf2, d_fw, M, d_x, d_y, d_c, dplan);
 	if(ier != 0 ){
-		cout<<"error: cnufftspread2d"<<endl;
+		std::cout<<"error: cnufftspread2d"<<std::endl;
 		return 0;
 	}
 	CUFINUFFT_FLT t=timer.elapsedsec();
@@ -145,7 +144,7 @@ int main(int argc, char* argv[])
 	checkCudaErrors(cudaMemcpy(fw,d_fw,nf1*nf2*sizeof(CUCPX),
 		cudaMemcpyDeviceToHost));
 #ifdef RESULT
-	cout<<"[result-input]"<<endl;
+	std::cout<<"[result-input]"<<std::endl;
 	for(int j=0; j<nf2; j++){
 		if( j % dplan->opts.gpu_binsizey == 0)
 			printf("\n");
@@ -154,9 +153,9 @@ int main(int argc, char* argv[])
 				printf(" |");
 			printf(" (%2.3g,%2.3g)",fw[i+j*nf1].real(),fw[i+j*nf1].imag() );
 		}
-		cout<<endl;
+		std::cout<<std::endl;
 	}
-	cout<<endl;
+	std::cout<<std::endl;
 #endif
 
 	cudaFreeHost(x);

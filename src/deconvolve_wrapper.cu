@@ -6,7 +6,6 @@
 #include <cuComplex.h>
 #include "cufinufft/cudeconvolve.h"
 
-using namespace std;
 
 /* Kernel for copying fw to fk with amplication by prefac/ker */
 // Note: assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up 
