@@ -82,7 +82,7 @@ BINDIR=bin
 HEADERS = include/cufinufft.h include/cufinufft/cudeconvolve.h include/cufinufft/memtransfer.h include/cufinufft/common.h \
 	  include/cufinufft/profile.h include/cufinufft/spreadinterp.h include/cufinufft_eitherprec.h \
 	  include/cufinufft_errors.h
-CONTRIBOBJS=contrib/dirft2d.o contrib/utils_fp.o
+CONTRIBOBJS=contrib/utils_fp.o
 
 # We create three collections of objects:
 #  Double (_64), Single (_32), and floating point agnostic (no suffix)
