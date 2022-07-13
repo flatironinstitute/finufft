@@ -1,4 +1,6 @@
 #include "cufinufft/contrib/spreadinterp.h"
+#include "cufinufft/contrib/utils.h"
+#include "cufinufft/contrib/utils_fp.h"
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
@@ -42,7 +44,7 @@ int setup_spreader(SPREAD_OPTS &opts,CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac,
   int ns = std::ceil(-log10(eps/(CUFINUFFT_FLT)10.0));   // 1 digit per power of ten
   if (upsampfac!=2.0)           // override ns for custom sigma
     ns = std::ceil(-log(eps) / (PI*sqrt(1-1/upsampfac)));  // formula, gamma=1
-  ns = max(2,ns);               // we don't have ns=1 version yet
+  ns = std::max(2,ns);               // we don't have ns=1 version yet
   if (ns>MAX_NSPREAD) {         // clip to match allocated arrays
     fprintf(stderr,"%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",__func__,
 	    upsampfac,(double)eps,ns,MAX_NSPREAD);

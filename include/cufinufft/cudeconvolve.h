@@ -2,6 +2,7 @@
 #define __CUDECONVOLVE_H__
 
 #include <cufinufft_eitherprec.h>
+#include "cufinufft/contrib/utils_fp.h"
 
 __global__
 void Deconvolve_1d(int ms, int nf1, int fw_width, CUCPX* fw, CUCPX *fk, 

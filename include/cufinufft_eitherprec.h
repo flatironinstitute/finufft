@@ -14,6 +14,7 @@
 #include "cufinufft_errors.h"
 
 #include "cufinufft/precision_independent.h"
+#include "cufinufft/contrib/utils_fp.h"
 #include "cufinufft/contrib/spreadinterp.h"
 
 

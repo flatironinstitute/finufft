@@ -32,7 +32,7 @@
 #ifdef CUFINUFFT_SINGLE
   // machine epsilon for rounding
   #define EPSILON (float)6e-08
-  #define IMA complex<float>(0.0,1.0)
+  #define IMA std::complex<float>(0.0,1.0)
   #define FABS(x) fabs(x)
   #define CUCPX cuFloatComplex
   #define CUFFT_TYPE CUFFT_C2C
@@ -41,7 +41,7 @@
 #else
   // machine epsilon for rounding
   #define EPSILON (double)1.1e-16
-  #define IMA complex<double>(0.0,1.0)
+  #define IMA std::complex<double>(0.0,1.0)
   #define FABS(x) fabsf(x)
   #define CUCPX cuDoubleComplex
   #define CUFFT_TYPE CUFFT_Z2Z

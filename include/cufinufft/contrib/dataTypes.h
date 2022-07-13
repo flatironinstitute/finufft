@@ -9,7 +9,8 @@
 #endif
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
-#include <stdint.h>
+#include <complex>
+#include <cstdint>
 
 // All indexing in library that potentially can exceed 2^31 uses 64-bit signed.
 // This includes all calling arguments (eg M,N) that could be huge someday...
@@ -37,5 +38,6 @@ typedef int CUFINUFFT_BIGINT;
 #endif
 
 #define CUFINUFFT_CPX COMPLEXIFY(CUFINUFFT_FLT)
+typedef std::complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 
 #endif  // DATATYPES_H or DATATYPESF_H

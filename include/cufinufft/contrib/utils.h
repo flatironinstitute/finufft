@@ -20,10 +20,6 @@
 // to avoid mixed precision operators in eg i*pi...
 #define PI (CUFINUFFT_FLT)M_PI
 
-using namespace std;        // means std:: not needed for cout, max, etc
-
-typedef complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
-
 // Global error codes for the library...
 #define WARN_EPS_TOO_SMALL       1
 #define ERR_MAXNALLOC            2

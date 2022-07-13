@@ -2,6 +2,7 @@
 #define __CUSPREADINTERP_H__
 
 #include <cufinufft_eitherprec.h>
+#include "cufinufft/contrib/utils_fp.h"
 
 static __forceinline__ __device__
 CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int ns)

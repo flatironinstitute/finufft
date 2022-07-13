@@ -1,7 +1,7 @@
 #include "cufinufft/contrib/common.h"
+#include "cufinufft/contrib/utils_fp.h"
 #include <cufinufft_eitherprec.h>
-#include <math.h>
-#include <stdio.h>
+
 #include <vector>
 
 #ifdef __cplusplus

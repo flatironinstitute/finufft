@@ -3,7 +3,6 @@
 
 #include "dataTypes.h"
 #include "utils.h"
-#include "utils_fp.h"
 #include "spreadinterp.h"
 
 // constants needed within common
