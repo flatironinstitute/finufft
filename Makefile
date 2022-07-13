@@ -71,7 +71,7 @@ LIBS += -lm -lcudart -lstdc++ -lnvToolsExt -lcufft -lcuda
 -include make.inc
 
 # Include header files
-INC += -I include
+INC += -Iinclude
 
 LIBNAME=libcufinufft
 DYNAMICLIB=lib/$(LIBNAME).so
@@ -96,7 +96,7 @@ CUFINUFFTOBJS_64=src/1d/spreadinterp1d.o src/1d/cufinufft1d.o \
 	src/deconvolve_wrapper.o src/cufinufft.o src/common.o \
 	src/3d/spreadinterp3d.o src/3d/spread3d_wrapper.o \
 	src/3d/interp3d_wrapper.o src/3d/cufinufft3d.o \
-	src/spreadinterp.cpp $(CONTRIBOBJS)
+	src/spreadinterp.o $(CONTRIBOBJS)
 CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 
 
