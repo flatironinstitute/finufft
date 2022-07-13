@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <iostream>
 
-#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/spreadinterp.h"
 #include "cufinufft/memtransfer.h"
 #include "cufinufft/profile.h"
 #include <cuComplex.h>

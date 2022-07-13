@@ -6,7 +6,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
 
-#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/spreadinterp.h"
 #include "cufinufft/memtransfer.h"
 #include "cufinufft/precision_independent.h"
 #include <cuComplex.h>

@@ -1,6 +1,6 @@
 #include "cufinufft/common.h"
 #include "cufinufft/contrib/utils.h"
-#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/spreadinterp.h"
 #include <complex>
 #include <helper_cuda.h>
 #include <iomanip>

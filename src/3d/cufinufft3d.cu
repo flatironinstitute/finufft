@@ -6,7 +6,7 @@
 #include <math.h>
 
 #include "cufinufft/cudeconvolve.h"
-#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/spreadinterp.h"
 #include "cufinufft/memtransfer.h"
 #include <cufinufft_eitherprec.h>
 

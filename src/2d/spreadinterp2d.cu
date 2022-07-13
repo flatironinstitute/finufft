@@ -1,7 +1,6 @@
-#include "cufinufft/contrib/spreadinterp.h"
 #include "cufinufft/contrib/utils.h"
 #include "cufinufft/contrib/utils_fp.h"
-#include "cufinufft/cuspreadinterp.h"
+#include "cufinufft/spreadinterp.h"
 #include "cufinufft/utils.h"
 #include <cuda.h>
 #include <helper_cuda.h>

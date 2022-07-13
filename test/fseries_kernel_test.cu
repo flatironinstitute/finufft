@@ -5,8 +5,8 @@
 #include <math.h>
 
 #include "cufinufft/common.h"
-#include "cufinufft/contrib/spreadinterp.h"
 #include "cufinufft/contrib/utils.h"
+#include "cufinufft/spreadinterp.h"
 #include <cufinufft_eitherprec.h>
 
 int main(int argc, char *argv[]) {

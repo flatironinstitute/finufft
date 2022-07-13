@@ -13,7 +13,7 @@ set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(PRECISION_INDEPENDENT_SRC src/precision_independent.cu src/profile.cu contrib/legendre_rule_fast.c contrib/utils.cpp)
 set(PRECISION_DEPENDENT_SRC
   contrib/dirft2d.cpp
-  contrib/spreadinterp.cpp contrib/utils_fp.cpp
+  src/spreadinterp.cpp contrib/utils_fp.cpp
   src/1d/spreadinterp1d.cu src/1d/cufinufft1d.cu
   src/1d/spread1d_wrapper.cu src/1d/interp1d_wrapper.cu
   src/2d/spreadinterp2d.cu src/2d/cufinufft2d.cu

@@ -80,9 +80,9 @@ STATICLIB=lib-static/$(LIBNAME).a
 BINDIR=bin
 
 HEADERS = include/cufinufft.h include/cufinufft/cudeconvolve.h include/cufinufft/memtransfer.h include/cufinufft/common.h \
-	  include/cufinufft/profile.h include/cufinufft/cuspreadinterp.h include/cufinufft_eitherprec.h \
+	  include/cufinufft/profile.h include/cufinufft/spreadinterp.h include/cufinufft_eitherprec.h \
 	  include/cufinufft_errors.h
-CONTRIBOBJS=contrib/dirft2d.o contrib/spreadinterp.o contrib/utils_fp.o
+CONTRIBOBJS=contrib/dirft2d.o contrib/utils_fp.o
 
 # We create three collections of objects:
 #  Double (_64), Single (_32), and floating point agnostic (no suffix)
@@ -96,7 +96,7 @@ CUFINUFFTOBJS_64=src/1d/spreadinterp1d.o src/1d/cufinufft1d.o \
 	src/deconvolve_wrapper.o src/cufinufft.o src/common.o \
 	src/3d/spreadinterp3d.o src/3d/spread3d_wrapper.o \
 	src/3d/interp3d_wrapper.o src/3d/cufinufft3d.o \
-	$(CONTRIBOBJS)
+	src/spreadinterp.cpp $(CONTRIBOBJS)
 CUFINUFFTOBJS_32=$(CUFINUFFTOBJS_64:%.o=%_32.o)
 
 

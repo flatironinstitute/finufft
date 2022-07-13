@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "cufinufft/common.h"
-#include "cufinufft/contrib/spreadinterp.h"
 #include "cufinufft/contrib/utils.h"
+#include "cufinufft/spreadinterp.h"
 #include "cufinufft/precision_independent.h"
 #include <cuComplex.h>
 
