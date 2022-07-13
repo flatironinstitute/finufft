@@ -12,7 +12,7 @@
 
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
-#include <stdint.h>
+#include <cstdint>
 
 #include <complex>          // C++ type complex
 #include <cuComplex.h>
