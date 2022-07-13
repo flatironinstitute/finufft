@@ -2,6 +2,7 @@
 #include <math.h>
 #include <helper_cuda.h>
 #include <cuda.h>
+#include "cufinufft/contrib/spreadinterp.h"
 #include "cufinufft/contrib/utils.h"
 #include "cufinufft/contrib/utils_fp.h"
 #include "cufinufft/cuspreadinterp.h"

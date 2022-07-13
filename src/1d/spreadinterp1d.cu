@@ -3,6 +3,7 @@
 #include <helper_cuda.h>
 #include <cuda.h>
 #include <thrust/extrema.h>
+#include "cufinufft/contrib/spreadinterp.h"
 #include "cufinufft/contrib/utils.h"
 #include "cufinufft/contrib/utils_fp.h"
 #include "cufinufft/cuspreadinterp.h"

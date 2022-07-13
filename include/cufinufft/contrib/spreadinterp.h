@@ -2,31 +2,10 @@
   (!defined(SPREADINTERPF_H) && defined(CUFINUFFT_SINGLE))
 
 #include <cmath>
-#include "dataTypes.h"
+#include <cufinufft_types.h>
 
 #define MAX_NSPREAD 16     // upper bound on w, ie nspread, even when padded
                            // (see evaluate_kernel_vector); also for common
-
-#undef SPREAD_OPTS
-
-#ifdef CUFINUFFT_SINGLE
-#define SPREAD_OPTS spread_optsf
-#define SPREADINTERPF_H
-#else
-#define SPREAD_OPTS spread_opts
-#define SPREADINTERP_H
-#endif
-
-struct SPREAD_OPTS {      // see cnufftspread:setup_spreader for defaults.
-  int nspread;            // w, the kernel width in grid pts
-  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
-  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
-  CUFINUFFT_FLT upsampfac;          // sigma, upsampling factor, default 2.0
-  // ES kernel specific...
-  CUFINUFFT_FLT ES_beta;
-  CUFINUFFT_FLT ES_halfwidth;
-  CUFINUFFT_FLT ES_c;
-};
 
 // NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
 // folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...

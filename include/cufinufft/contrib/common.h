@@ -1,7 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#include "dataTypes.h"
+#include <cufinufft_types.h>
 #include "utils.h"
 #include "spreadinterp.h"
 

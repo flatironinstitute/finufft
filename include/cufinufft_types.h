@@ -40,4 +40,23 @@ typedef int CUFINUFFT_BIGINT;
 #define CUFINUFFT_CPX COMPLEXIFY(CUFINUFFT_FLT)
 typedef std::complex<double> dcomplex;  // slightly sneaky since duplicated by mwrap
 
+#undef SPREAD_OPTS
+
+#ifdef CUFINUFFT_SINGLE
+#define SPREAD_OPTS spread_optsf
+#else
+#define SPREAD_OPTS spread_opts
+#endif
+
+struct SPREAD_OPTS {      // see cnufftspread:setup_spreader for defaults.
+  int nspread;            // w, the kernel width in grid pts
+  int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
+  int pirange;            // 0: coords in [0,N), 1 coords in [-pi,pi)
+  CUFINUFFT_FLT upsampfac;          // sigma, upsampling factor, default 2.0
+  // ES kernel specific...
+  CUFINUFFT_FLT ES_beta;
+  CUFINUFFT_FLT ES_halfwidth;
+  CUFINUFFT_FLT ES_c;
+};
+
 #endif  // DATATYPES_H or DATATYPESF_H

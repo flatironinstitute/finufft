@@ -9,7 +9,8 @@
 
 #include <complex>          // C++ type complex
 #include <cuComplex.h>
-#include "dataTypes.h"
+
+#include <cufinufft_types.h>
 
 // fraction growth cut-off in arraywidcen(), to decide if translate in type-3
 #define ARRAYWIDCEN_GROWFRAC 0.1

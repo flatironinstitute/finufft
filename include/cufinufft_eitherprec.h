@@ -10,8 +10,10 @@
 #include <cufft.h>
 #include <assert.h>
 #include <cuda_runtime.h>
-#include "cufinufft_opts.h"
-#include "cufinufft_errors.h"
+
+#include <cufinufft_errors.h>
+#include <cufinufft_opts.h>
+#include <cufinufft_types.h>
 
 #include "cufinufft/precision_independent.h"
 #include "cufinufft/contrib/utils_fp.h"

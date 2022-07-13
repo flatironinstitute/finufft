@@ -1,6 +1,8 @@
-#include "cufinufft/contrib/common.h"
-#include "cufinufft/contrib/utils_fp.h"
 #include <cufinufft_eitherprec.h>
+
+#include "cufinufft/contrib/common.h"
+#include "cufinufft/contrib/spreadinterp.h"
+#include "cufinufft/contrib/utils_fp.h"
 
 #include <vector>
 

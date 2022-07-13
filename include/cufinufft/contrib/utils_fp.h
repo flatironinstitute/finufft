@@ -16,8 +16,7 @@
 
 #include <complex>          // C++ type complex
 #include <cuComplex.h>
-#include "dataTypes.h"
-
+#include <cufinufft_types.h>
 
 #undef EPSILON
 #undef IMA
