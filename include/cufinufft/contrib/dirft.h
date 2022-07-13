@@ -1,8 +1,7 @@
 #ifndef DIRFT_H
 #define DIRFT_H
 
-#include "utils.h"
-#include "utils_fp.h"
+#include "dataTypes.h"
 
 void dirft1d1(CUFINUFFT_BIGINT nj,CUFINUFFT_FLT* x,CUFINUFFT_CPX* c,int isign,CUFINUFFT_BIGINT ms, CUFINUFFT_CPX* f);
 void dirft1d2(CUFINUFFT_BIGINT nj,CUFINUFFT_FLT* x,CUFINUFFT_CPX* c,int iflag,CUFINUFFT_BIGINT ms, CUFINUFFT_CPX* f);
