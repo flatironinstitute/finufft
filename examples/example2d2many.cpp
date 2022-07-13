@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
  *
  * or
  * export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/loc/to/cufinufft/lib
- * nvcc -DCUFINUFFT_SINGLE example2d2many.cpp -L/loc/to/cufinufft/lib/ -I/loc/to/cufinufft/include -o example2d1 -lcufinufft
+ * nvcc example2d2many.cpp -L/loc/to/cufinufft/lib/ -I/loc/to/cufinufft/include -o example2d1 -lcufinufft
  *
  *
  */
