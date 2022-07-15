@@ -7,6 +7,8 @@
 
 #include <cufinufft/cudeconvolve.h>
 
+namespace cufinufft {
+namespace deconvolve {
 /* Kernel for copying fw to fk with amplication by prefac/ker */
 // Note: assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up
 // to N/2-1)
@@ -232,3 +234,6 @@ int CUDECONVOLVE3D(CUFINUFFT_PLAN d_plan, int blksize)
     }
     return 0;
 }
+
+} // namespace deconvolve
+} // namespace cufinufft
