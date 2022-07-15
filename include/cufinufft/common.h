@@ -2,6 +2,8 @@
 #define __COMMON_H__
 #include <cufinufft_eitherprec.h>
 
+namespace cufinufft {
+namespace common {
 __global__ void FseriesKernelCompute(int nf1, int nf2, int nf3, CUFINUFFT_FLT *f, cuDoubleComplex *a,
                                      CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2, CUFINUFFT_FLT *fwkerhalf3,
                                      int ns);
@@ -17,4 +19,7 @@ void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *fwkerhalf, SPREAD
 void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, SPREAD_OPTS opts);
 void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, CUFINUFFT_FLT *fwkerhalf,
                                    SPREAD_OPTS opts);
+
+} // namespace common
+} // namespace cufinufft
 #endif

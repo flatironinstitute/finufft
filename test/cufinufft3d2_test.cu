@@ -7,6 +7,7 @@
 #include <cufinufft_eitherprec.h>
 #include <cufinufft/utils.h>
 #include <cufinufft/profile.h>
+using cufinufft::utils::infnorm;
 
 
 int main(int argc, char *argv[]) {

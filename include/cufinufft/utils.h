@@ -4,11 +4,15 @@
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <cstdint>
 
-#include <cufinufft_types.h>
 #include <cuComplex.h>
+#include <cufinufft_types.h>
+
+#include <sys/time.h>
+
+namespace cufinufft {
+namespace utils {
 
 // jfm timer class
-#include <sys/time.h>
 class CNTime {
   public:
     void start();
@@ -50,6 +54,7 @@ T infnorm(int n, std::complex<T> *a) {
     }
     return sqrt(nrm);
 }
-
+} // namespace utils
+} // namespace cufinufft
 
 #endif

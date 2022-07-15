@@ -9,6 +9,7 @@
 
 #include <cufinufft.h>
 #include <cufinufft/utils.h>
+using namespace cufinufft::utils;
 
 int main(int argc, char *argv[]) {
     int N1 = 256;

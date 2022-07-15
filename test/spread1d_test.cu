@@ -10,6 +10,9 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
+using namespace cufinufft::common;
+using namespace cufinufft::utils;
+
 int main(int argc, char *argv[]) {
     int nf1, N1, M;
     CUFINUFFT_FLT upsampfac = 2.0;

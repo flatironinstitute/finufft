@@ -10,6 +10,10 @@
 #include <cufinufft/utils.h>
 #include <cufinufft_eitherprec.h>
 
+using namespace cufinufft::common;
+using namespace cufinufft::utils;
+
+
 int main(int argc, char *argv[]) {
     int nf1;
     if (argc < 2) {

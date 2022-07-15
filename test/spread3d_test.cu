@@ -9,6 +9,9 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
+using namespace cufinufft::common;
+using namespace cufinufft::utils;
+
 int main(int argc, char *argv[]) {
     int nf1, nf2, nf3;
     CUFINUFFT_FLT sigma = 2.0;

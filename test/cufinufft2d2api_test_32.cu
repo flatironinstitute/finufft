@@ -17,6 +17,8 @@
 #include <cufinufft.h>
 #include <cufinufft/utils.h>
 #include <cufinufft/profile.h>
+using cufinufft::utils::infnorm;
+
 
 int main(int argc, char *argv[]) {
     using complex_float = std::complex<float>;

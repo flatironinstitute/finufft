@@ -1,5 +1,7 @@
 #include <cufinufft/utils.h>
 
+namespace cufinufft {
+namespace utils {
 CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b)
 // finds even integer not less than n, with prime factors no larger than 5
 // (ie, "smooth") and is a multiple of b (b is a number that the only prime
@@ -47,3 +49,6 @@ double CNTime::elapsedsec()
     double initialsec = (double)initial.tv_sec + 1e-6 * initial.tv_usec;
     return nowsec - initialsec;
 }
+
+} // namespace utils
+} // namespace cufinufft

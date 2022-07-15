@@ -7,6 +7,7 @@
 #include <cufinufft/defs.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
+using namespace cufinufft::utils;
 
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */

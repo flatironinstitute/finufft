@@ -16,6 +16,9 @@ extern "C" {
 #include "cufinufft/contrib/legendre_rule_fast.h"
 }
 
+namespace cufinufft {
+namespace common {
+
 /* Kernel for computing approximations of exact Fourier series coeffs of
    cnufftspread's real symmetric kernel. */
 // a , f are intermediate results from function onedim_fseries_kernel_precomp()
@@ -89,9 +92,9 @@ void SET_NF_TYPE12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,
         *nf = 2 * spopts.nspread; // otherwise spread fails
     if (*nf < MAX_NF) {           // otherwise will fail anyway
         if (opts.gpu_method == 4) // expensive at huge nf
-            *nf = next235beven(*nf, bs);
+            *nf = utils::next235beven(*nf, bs);
         else
-            *nf = next235beven(*nf, 1);
+            *nf = utils::next235beven(*nf, 1);
     }
 }
 
@@ -180,3 +183,6 @@ void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcompl
         }
     }
 }
+
+} // namespace common
+} // namespace cufinufft
