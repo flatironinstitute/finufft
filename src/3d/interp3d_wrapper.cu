@@ -10,6 +10,7 @@
 
 namespace cufinufft {
 namespace spreadinterp {
+
 int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky,
                        CUFINUFFT_FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*

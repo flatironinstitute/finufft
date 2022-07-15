@@ -6,13 +6,14 @@
 #define PRECISION_INDEPENDENT_H
 
 #include <cuComplex.h>
-
-/* Auxiliary var/func to compute power of complex number */
-typedef double RT;
-typedef cuDoubleComplex CT;
 #define rpart(x) (cuCreal(x))
 #define ipart(x) (cuCimag(x))
 #define cmplx(x, y) (make_cuDoubleComplex(x, y))
+namespace cufinufft {
+namespace common {
+/* Auxiliary var/func to compute power of complex number */
+typedef double RT;
+typedef cuDoubleComplex CT;
 
 __device__ RT carg(const CT &z); // polar angle
 __device__ RT cabs(const CT &z);
@@ -60,5 +61,6 @@ __global__ void Temp(int binsperobinx, int binsperobiny, int binsperobinz, int n
 
 __global__ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz, int nobinx, int nobiny, int nobinz,
                                int *binsize, int *index, int *binstartpts, int M);
-
+} // namespace common
+} // namespace cufinufft
 #endif

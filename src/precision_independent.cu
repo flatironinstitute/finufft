@@ -10,6 +10,9 @@
 
 #include <cufinufft/precision_independent.h>
 
+namespace cufinufft {
+namespace common {
+
 /* Auxiliary func to compute power of complex number */
 __device__ RT carg(const CT &z) { return (RT)atan2(ipart(z), rpart(z)); } // polar angle
 __device__ RT cabs(const CT &z) { return (RT)cuCabs(z); }
@@ -244,3 +247,6 @@ __global__ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperob
         }
     }
 }
+
+} // namespace common
+} // namespace cufinufft

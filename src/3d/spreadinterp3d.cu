@@ -8,6 +8,7 @@
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
+using namespace cufinufft::common;
 using namespace cufinufft::utils;
 
 namespace cufinufft {
