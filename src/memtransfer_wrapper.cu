@@ -2,9 +2,8 @@
 #include <iostream>
 
 #include <cuComplex.h>
-#include <helper_cuda.h>
 #include <cufinufft/memtransfer.h>
-
+#include <helper_cuda.h>
 
 int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
 /*
@@ -417,6 +416,7 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
 
     return 0;
 }
+
 void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
 /*
     wrapper for freeing gpu memory.
