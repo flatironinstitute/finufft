@@ -2,14 +2,6 @@
 #define __COMMON_H__
 #include <cufinufft_eitherprec.h>
 
-// constants needed within common
-#define MAX_NQUAD 100 // max number of positive quadr nodes
-// increase this if you need >1TB RAM...
-#define MAX_NF                                                                                                         \
-    (CUFINUFFT_BIGINT) INT_MAX // In cufinufft we limit array sizes to 2^31
-                               // which is about 2 billion, since we set
-                               // CUFINUFFT_BIGINT to int. (Differs from FINUFFT)
-
 __global__ void FseriesKernelCompute(int nf1, int nf2, int nf3, CUFINUFFT_FLT *f, cuDoubleComplex *a,
                                      CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2, CUFINUFFT_FLT *fwkerhalf3,
                                      int ns);

@@ -3,6 +3,7 @@
 #include <helper_cuda.h>
 #include <iostream>
 
+#include <cufinufft/defs.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>

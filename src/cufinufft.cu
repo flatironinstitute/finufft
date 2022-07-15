@@ -7,6 +7,7 @@
 
 #include <cufinufft/common.h>
 #include <cufinufft/cudeconvolve.h>
+#include <cufinufft/defs.h>
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>

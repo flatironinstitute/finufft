@@ -1,10 +1,11 @@
+#include <cmath>
 #include <complex>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
 
 #include <cufinufft/common.h>
+#include <cufinufft/defs.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 #include <cufinufft_eitherprec.h>

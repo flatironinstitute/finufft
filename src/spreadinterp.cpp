@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <vector>
 
+#include <cufinufft/defs.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
