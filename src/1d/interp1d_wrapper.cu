@@ -1,11 +1,11 @@
+#include <cuComplex.h>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/memtransfer.h"
-#include "cufinufft/profile.h"
-#include <cuComplex.h>
+#include <cufinufft/memtransfer.h>
+#include <cufinufft/profile.h>
+#include <cufinufft/spreadinterp.h>
 
 int CUFINUFFT_INTERP1D(int nf1, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*

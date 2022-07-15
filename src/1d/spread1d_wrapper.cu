@@ -1,15 +1,15 @@
-#include <assert.h>
+#include <cassert>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 
+#include <cuComplex.h>
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
 
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/memtransfer.h"
-#include "cufinufft/precision_independent.h"
-#include <cuComplex.h>
+#include <cufinufft/memtransfer.h>
+#include <cufinufft/precision_independent.h>
+#include <cufinufft/spreadinterp.h>
 
 int CUFINUFFT_SPREAD1D(int nf1, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*

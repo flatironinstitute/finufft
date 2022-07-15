@@ -1,9 +1,10 @@
-#include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 
-#include "cufinufft/memtransfer.h"
 #include <cuComplex.h>
+#include <helper_cuda.h>
+#include <cufinufft/memtransfer.h>
+
 
 int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
 /*

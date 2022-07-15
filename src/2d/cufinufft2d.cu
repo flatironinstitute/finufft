@@ -1,13 +1,14 @@
+#include <cmath>
 #include <complex>
-#include <cufft.h>
-#include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
 
-#include "cufinufft/cudeconvolve.h"
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/memtransfer.h"
+#include <cufft.h>
+#include <helper_cuda.h>
+
+#include <cufinufft/cudeconvolve.h>
+#include <cufinufft/memtransfer.h>
+#include <cufinufft/spreadinterp.h>
 #include <cufinufft_eitherprec.h>
 
 int CUFINUFFT2D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)

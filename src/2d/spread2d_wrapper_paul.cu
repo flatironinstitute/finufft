@@ -1,15 +1,15 @@
-#include <assert.h>
-#include <helper_cuda.h>
+#include <cassert>
 #include <iomanip>
 #include <iostream>
 
+#include <cuComplex.h>
+#include <helper_cuda.h>
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
 
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/memtransfer.h"
-#include "cufinufft/precision_independent.h"
-#include <cuComplex.h>
+#include <cufinufft/memtransfer.h>
+#include <cufinufft/precision_independent.h>
+#include <cufinufft/spreadinterp.h>
 
 // only relates to the locations of the nodes, which only needs to be done once
 int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {

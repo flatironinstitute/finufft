@@ -1,10 +1,11 @@
-#include <cuda.h>
-#include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 #include <vector>
 
 #include <cuComplex.h>
+#include <cuda.h>
+#include <helper_cuda.h>
+
 #include <cufinufft/common.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
