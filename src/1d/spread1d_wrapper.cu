@@ -11,6 +11,7 @@
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 using namespace cufinufft::common;
+using namespace cufinufft::memtransfer;
 
 namespace cufinufft {
 namespace spreadinterp {

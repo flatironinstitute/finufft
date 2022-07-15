@@ -5,6 +5,9 @@
 #include <cufinufft/memtransfer.h>
 #include <helper_cuda.h>
 
+namespace cufinufft {
+namespace memtransfer {
+
 int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
@@ -473,3 +476,6 @@ void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
     // Multi-GPU support: reset the device ID
     cudaSetDevice(orig_gpu_device_id);
 }
+
+} // namespace mem
+} // namespace cufinufft
