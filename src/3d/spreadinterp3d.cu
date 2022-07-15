@@ -1,12 +1,11 @@
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/contrib/utils_fp.h"
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/precision_independent.h"
-#include "cufinufft/utils.h"
+#include <cmath>
 #include <cuda.h>
 #include <helper_cuda.h>
 #include <iostream>
-#include <math.h>
+
+#include <cufinufft/precision_independent.h>
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
 
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */

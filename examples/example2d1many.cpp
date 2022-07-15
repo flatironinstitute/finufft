@@ -9,16 +9,7 @@
 #include <random>
 
 #include <cufinufft.h>
-
-float infnorm(int n, std::complex<float> *a) {
-    double nrm = 0.0;
-    for (int m = 0; m < n; ++m) {
-        double aa = real(conj(a[m]) * a[m]);
-        if (aa > nrm)
-            nrm = aa;
-    }
-    return sqrt(nrm);
-}
+#include <cufinufft/utils.h>
 
 int main(int argc, char *argv[])
 /*
@@ -61,7 +52,7 @@ int main(int argc, char *argv[])
     cudaMalloc(&d_fk, N1 * N2 * ntransf * sizeof(cuFloatComplex));
 
     std::default_random_engine eng(1);
-    std::uniform_real_distribution<float> distr(0, 1);
+    std::uniform_real_distribution<float> distr(-1, 1);
 
     for (int i = 0; i < M; i++) {
         x[i] = M_PI * distr(eng);

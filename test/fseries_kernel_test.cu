@@ -4,9 +4,9 @@
 #include <iostream>
 #include <math.h>
 
-#include "cufinufft/common.h"
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/spreadinterp.h"
+#include <cufinufft/common.h>
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
 #include <cufinufft_eitherprec.h>
 
 int main(int argc, char *argv[]) {

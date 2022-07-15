@@ -1,14 +1,14 @@
 /* This test should excercise the API
    close to how a user might use the code */
 
+#include <cmath>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
+#include <random>
 
-#undef CUFINUFFT_SINGLE
-#include "cufinufft/contrib/utils_fp.h"
-#include <cufinufft_eitherprec.h>
+#include <cufinufft.h>
+#include <cufinufft/utils.h>
 
 int main(int argc, char *argv[]) {
     int N1 = 256;
@@ -38,6 +38,10 @@ int main(int argc, char *argv[]) {
     checkCudaErrors(cudaMalloc(&d_c, M * sizeof(cuDoubleComplex)));
     checkCudaErrors(cudaMalloc(&d_fk, N1 * N2 * sizeof(cuDoubleComplex)));
 
+    std::default_random_engine eng(1);
+    std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
+    auto randm11 = [&eng, &dist11]() { return dist11(eng); };
+    
     // Making data
     for (int i = 0; i < M; i++) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)

@@ -5,6 +5,8 @@
 #ifndef PRECISION_INDEPENDENT_H
 #define PRECISION_INDEPENDENT_H
 
+#include <cuComplex.h>
+
 /* Auxiliary var/func to compute power of complex number */
 typedef double RT;
 typedef cuDoubleComplex CT;

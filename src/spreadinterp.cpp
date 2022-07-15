@@ -1,9 +1,9 @@
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/contrib/utils_fp.h"
 #include <cmath>
 #include <cstdlib>
 #include <vector>
+
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
 
 int setup_spreader(SPREAD_OPTS &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,

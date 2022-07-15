@@ -1,4 +1,4 @@
-#include "cufinufft/contrib/utils.h"
+#include <cufinufft/utils.h>
 
 CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b)
 // finds even integer not less than n, with prime factors no larger than 5

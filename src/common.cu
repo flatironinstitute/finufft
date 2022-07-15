@@ -4,11 +4,11 @@
 #include <iostream>
 #include <vector>
 
-#include "cufinufft/common.h"
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/precision_independent.h"
 #include <cuComplex.h>
+#include <cufinufft/common.h>
+#include <cufinufft/precision_independent.h>
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
 
 extern "C" {
 #include "cufinufft/contrib/legendre_rule_fast.h"

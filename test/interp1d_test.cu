@@ -1,11 +1,13 @@
-#include "cufinufft/common.h"
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/spreadinterp.h"
+#include <cmath>
 #include <complex>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
+#include <random>
+
+#include <cufinufft/common.h>
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
 
 int main(int argc, char *argv[]) {
     int nf1;
@@ -92,6 +94,12 @@ int main(int argc, char *argv[]) {
                                      // SETUP_BINSIZE() is not called in
                                      // spread, interp only wrappers.
     ier = setup_spreader_for_nufft(dplan->spopts, tol, dplan->opts);
+
+    std::default_random_engine eng(1);
+    std::uniform_real_distribution<CUFINUFFT_FLT> dist01(0, 1);
+    std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
+    auto rand01 = [&eng, &dist01]() { return dist01(eng); };
+    auto randm11 = [&eng, &dist11]() { return dist11(eng); };
 
     switch (nupts_distribute) {
     case 0: // uniform

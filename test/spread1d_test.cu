@@ -1,12 +1,14 @@
-#include "cufinufft/common.h"
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/spreadinterp.h"
 #include <algorithm>
+#include <cmath>
 #include <complex>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
+#include <random>
+
+#include <cufinufft/common.h>
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
 
 int main(int argc, char *argv[]) {
     int nf1, N1, M;
@@ -92,6 +94,12 @@ int main(int argc, char *argv[]) {
     checkCudaErrors(cudaMalloc(&d_x, M * sizeof(CUFINUFFT_FLT)));
     checkCudaErrors(cudaMalloc(&d_c, M * sizeof(CUCPX)));
     checkCudaErrors(cudaMalloc(&d_fw, nf1 * sizeof(CUCPX)));
+
+    std::default_random_engine eng(1);
+    std::uniform_real_distribution<CUFINUFFT_FLT> dist01(0, 1);
+    std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
+    auto rand01 = [&eng, &dist01]() { return dist01(eng); };
+    auto randm11 = [&eng, &dist11]() { return dist11(eng); };
 
     switch (nupts_distribute) {
     // Making data

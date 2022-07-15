@@ -1,9 +1,7 @@
 #ifndef __CUSPREADINTERP_H__
 #define __CUSPREADINTERP_H__
 
-#include "cufinufft/contrib/utils_fp.h"
 #include <cufinufft_eitherprec.h>
-
 
 #define MAX_NSPREAD                                                                                                    \
     16 // upper bound on w, ie nspread, even when padded

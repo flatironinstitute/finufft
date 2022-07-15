@@ -5,11 +5,11 @@
 #include <iostream>
 #include <math.h>
 
-#include "cufinufft/common.h"
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/cudeconvolve.h"
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/memtransfer.h"
+#include <cufinufft/common.h>
+#include <cufinufft/cudeconvolve.h>
+#include <cufinufft/memtransfer.h>
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
 #include <cufinufft_eitherprec.h>
 
 void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts) {

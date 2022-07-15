@@ -1,13 +1,12 @@
+#include <cmath>
 #include <complex>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
+#include <random>
 
 #include <cufinufft_eitherprec.h>
-
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/contrib/utils_fp.h"
+#include <cufinufft/utils.h>
 
 int main(int argc, char *argv[]) {
     int N1, M, N;
@@ -55,6 +54,10 @@ int main(int argc, char *argv[]) {
     checkCudaErrors(cudaMalloc(&d_x, M * sizeof(CUFINUFFT_FLT)));
     checkCudaErrors(cudaMalloc(&d_c, M * sizeof(CUCPX)));
     checkCudaErrors(cudaMalloc(&d_fk, N1 * sizeof(CUCPX)));
+
+    std::default_random_engine eng(1);
+    std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
+    auto randm11 = [&eng, &dist11]() { return dist11(eng); };
 
     // Making data
     for (int i = 0; i < M; i++) {

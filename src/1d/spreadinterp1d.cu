@@ -1,12 +1,11 @@
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/contrib/utils_fp.h"
-#include "cufinufft/spreadinterp.h"
-#include "cufinufft/utils.h"
 #include <cuda.h>
 #include <helper_cuda.h>
 #include <iostream>
 #include <math.h>
 #include <thrust/extrema.h>
+
+#include <cufinufft/spreadinterp.h>
+#include <cufinufft/utils.h>
 
 /* ------------------------ 1d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */

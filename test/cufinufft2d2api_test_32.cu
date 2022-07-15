@@ -7,17 +7,16 @@
 
 */
 
+#include <cmath>
 #include <complex>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
-#include <math.h>
+#include <random>
 
 #include <cufinufft.h>
-
-#include "cufinufft/contrib/utils.h"
-#include "cufinufft/contrib/utils_fp.h"
-#include <profile.h>
+#include <cufinufft/utils.h>
+#include <cufinufft/profile.h>
 
 int main(int argc, char *argv[]) {
     using complex_float = std::complex<float>;
@@ -49,6 +48,10 @@ int main(int argc, char *argv[]) {
     checkCudaErrors(cudaMalloc(&d_c, M * sizeof(cuFloatComplex)));
     checkCudaErrors(cudaMalloc(&d_fk, N1 * N2 * sizeof(cuFloatComplex)));
 
+    std::default_random_engine eng(1);
+    std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
+    auto randm11 = [&eng, &dist11]() { return dist11(eng); };
+    
     // Making data
     for (int i = 0; i < M; i++) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)
