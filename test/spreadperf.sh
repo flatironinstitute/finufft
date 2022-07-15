@@ -2,7 +2,11 @@
 # basic perf test of spread/interp for 2/3d, single/double
 # Barnett 1/29/21, some 1D added 12/2/21.
 
-BINDIR=../bin
+if [ -z "$1" ]; then
+    BINDIR=../bin
+else
+    BINDIR=$(realpath $1)
+fi
 
 n=1000000
 M=1000000
