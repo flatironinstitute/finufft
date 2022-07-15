@@ -11,6 +11,8 @@
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 
+namespace cufinufft {
+namespace spreadinterp {
 // only relates to the locations of the nodes, which only needs to be done once
 int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
     cudaEvent_t start, stop;
@@ -336,3 +338,6 @@ int CUSPREAD2D_PAUL(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize)
 #endif
     return 0;
 }
+
+} // namespace spreadinterp
+} // namespace cufinufft

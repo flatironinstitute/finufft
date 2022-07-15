@@ -7,6 +7,9 @@
 #include <cufinufft/profile.h>
 #include <cufinufft/spreadinterp.h>
 
+namespace cufinufft {
+namespace spreadinterp {
+
 int CUFINUFFT_INTERP1D(int nf1, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*
     This c function is written for only doing 1D interpolation. See
@@ -162,3 +165,6 @@ int CUINTERP1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize) {
 #endif
     return 0;
 }
+
+} // namespace spreadinterp
+} // namespace cufinufft

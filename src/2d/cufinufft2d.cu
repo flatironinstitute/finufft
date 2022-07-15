@@ -11,6 +11,8 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft_eitherprec.h>
 
+using namespace cufinufft::spreadinterp;
+
 int CUFINUFFT2D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
 /*
     2D Type-1 NUFFT

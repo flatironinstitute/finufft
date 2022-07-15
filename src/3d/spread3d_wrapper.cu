@@ -11,6 +11,9 @@
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
 
+namespace cufinufft {
+namespace spreadinterp {
+
 int CUFINUFFT_SPREAD3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky,
                        CUFINUFFT_FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
 /*
@@ -1140,3 +1143,6 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
 #endif
     return 0;
 }
+
+} // namespace spreadinterp
+} // namespace cufinufft

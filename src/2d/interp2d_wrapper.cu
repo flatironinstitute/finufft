@@ -8,6 +8,9 @@
 #include <cufinufft/profile.h>
 #include <cufinufft/spreadinterp.h>
 
+namespace cufinufft {
+namespace spreadinterp {
+
 int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky, CUCPX *d_c,
                        CUFINUFFT_PLAN d_plan)
 /*
@@ -246,3 +249,6 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
 #endif
     return 0;
 }
+
+} // namespace spreadinterp
+} // namespace cufinufft

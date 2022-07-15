@@ -6,6 +6,9 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
+namespace cufinufft {
+namespace spreadinterp {
+
 int setup_spreader(SPREAD_OPTS &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
@@ -89,3 +92,6 @@ CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const SPREAD_OPTS &opts)
     else
         return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c * x * x));
 }
+
+} // namespace spreadinterp
+} // namespace cufinufft

@@ -1,15 +1,17 @@
 #include <cmath>
 #include <complex>
-#include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 #include <random>
+
+#include <helper_cuda.h>
 
 #include <cufinufft/common.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
 using namespace cufinufft::common;
+using namespace cufinufft::spreadinterp;
 using namespace cufinufft::utils;
 
 int main(int argc, char *argv[]) {

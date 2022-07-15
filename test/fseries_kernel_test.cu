@@ -11,6 +11,7 @@
 #include <cufinufft_eitherprec.h>
 
 using namespace cufinufft::common;
+using namespace cufinufft::spreadinterp;
 using namespace cufinufft::utils;
 
 

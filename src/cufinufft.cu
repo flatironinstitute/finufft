@@ -14,6 +14,7 @@
 #include <cufinufft_eitherprec.h>
 
 using namespace cufinufft::common;
+using namespace cufinufft::spreadinterp;
 using namespace cufinufft::utils;
 
 void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts) {

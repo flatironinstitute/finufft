@@ -10,6 +10,8 @@
 #include <cufinufft/utils.h>
 using namespace cufinufft::utils;
 
+namespace cufinufft {
+namespace spreadinterp {
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
 
@@ -710,3 +712,6 @@ __global__ void Interp_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUC
         c[idxnupts[idx]] = cnow;
     }
 }
+
+} // namespace spreadinterp
+} // namespace cufinufft

@@ -10,8 +10,11 @@
 #include <cufinufft/utils.h>
 using namespace cufinufft::utils;
 
+namespace cufinufft {
+namespace spreadinterp {
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */
+
 __global__ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y, int bin_size_z,
                                        int nbinx, int nbiny, int nbinz, int *bin_size, CUFINUFFT_FLT *x,
                                        CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *sortidx, int pirange) {
@@ -900,3 +903,6 @@ __global__ void Interp_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
         c[idxnupts[idx]].y = cnow.y;
     }
 }
+
+} // namespace spreadinterp
+} // namespace cufinufft

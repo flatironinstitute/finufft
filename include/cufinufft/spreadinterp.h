@@ -8,11 +8,13 @@
 // FIXME: SO MUCH BRANCHING
 #define RESCALE(x, N, p)                                                                                               \
     (p ? ((x * M_1_2PI + (x < -PI ? 1.5 : (x >= PI ? -0.5 : 0.5))) * N) : (x < 0 ? x + N : (x >= N ? x - N : x)))
-// yuk! But this is *so* much faster than slow std::fmod that we stick to it. 
+// yuk! But this is *so* much faster than slow std::fmod that we stick to it.
+
+namespace cufinufft {
+namespace spreadinterp {
 
 CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const SPREAD_OPTS &opts);
 int setup_spreader(SPREAD_OPTS &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth);
-
 
 static __forceinline__ __device__ CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, CUFINUFFT_FLT es_c,
                                                                 CUFINUFFT_FLT es_beta, int ns)
@@ -152,7 +154,6 @@ __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size
                                              int nbiny, int nbinz, int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
                                              CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index, int pirange, int nf1,
                                              int nf2, int nf3);
-__global__ void TrivialGlobalSortIdx_3d(int M, int *index);
 
 /* Kernels for NUptsdriven Method */
 __global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
@@ -163,8 +164,6 @@ __global__ void Spread_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
                                       CUFINUFFT_FLT es_beta, int *idxnupts, int pirange);
 
 /* Kernels for Subprob Method */
-__global__ void CalcSubProb_3d_v2(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins);
-__global__ void MapBintoSubProb_3d_v2(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
 __global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
                                          int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
                                          int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
@@ -184,18 +183,11 @@ __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, i
                                         int nf1, int nf2, int nf3);
 __global__ void Temp(int binsperobinx, int binsperobiny, int binsperobinz, int nbinx, int nbiny, int nbinz,
                      int *binsize);
-__global__ void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz, int nbinx, int nbiny, int nbinz,
-                              int *binsize);
 __global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
                                                 int nbiny, int nbinz, int binsperobinx, int binsperobiny,
                                                 int binsperobinz, int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
                                                 CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index, int pirange, int nf1,
                                                 int nf2, int nf3);
-__global__ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz, int nbinx, int nbiny, int nbinz,
-                               int *binsize, int *index, int *bin_startpts, int M);
-__global__ void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, int *bin_size, int *num_subprob,
-                                  int maxsubprobsize, int numbins);
-__global__ void MapBintoSubProb_3d_v1(int *d_subprob_to_obin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
 __global__ void Spread_3d_BlockGather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
                                       const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
                                       CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts, int obin_size_x,
@@ -278,4 +270,7 @@ int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int b
 int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
 int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);
 int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);
+
+} // namespace spreadinterp
+} // namespace finufft
 #endif
