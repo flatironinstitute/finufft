@@ -1,7 +1,8 @@
+#include <cmath>
+#include <iostream>
+
 #include <cuda.h>
 #include <helper_cuda.h>
-#include <iostream>
-#include <math.h>
 #include <thrust/extrema.h>
 
 #include <cufinufft/defs.h>

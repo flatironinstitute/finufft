@@ -1,7 +1,8 @@
 #include <cmath>
+#include <iostream>
+
 #include <cuda.h>
 #include <helper_cuda.h>
-#include <iostream>
 
 #include <cufinufft/defs.h>
 #include <cufinufft/precision_independent.h>
