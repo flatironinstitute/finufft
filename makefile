@@ -136,7 +136,7 @@ usage:
 	@echo " make python - compile and test python interfaces"
 	@echo " make all - do all the above (around 1 minute; assumes you have MATLAB, etc)"
 	@echo " make spreadtest - compile & run spreader-only tests (no FFTW)"
-	@echo " make spreadtestall - set of spreader-only tests for CI use"
+	@echo " make spreadtestall - small set spreader-only tests for CI use"
 	@echo " make objclean - remove all object files, preserving libs & MEX"
 	@echo " make clean - also remove all lib, MEX, py, and demo executables"
 	@echo "For faster (multicore) making, append, for example, -j8"
