@@ -21,6 +21,7 @@
 // prec-switching (via SINGLE) to set up FLT, CPX, BIGINT, FINUFFT1D1, etc...
 #include <finufft/defs.h>
 // since "many" (vector) tests need direct access to FFTW commands...
+// (although this now happens to be included in defs.h too)
 #include <finufft/fftw_defs.h>
 
 // std stuff for tester src

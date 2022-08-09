@@ -85,5 +85,9 @@ followed by more ``execute`` calls, as long as the transform sizes (and number o
 consistent with those that have been set in the ``plan`` and in ``setpts``.
 Keep in mind that ``setpts`` retains *pointers* to the user's list of nonuniform points, rather than copying these points; thus the user must not change their nonuniform point arrays until after any ``execute`` calls that use them.
 
+.. note::
+
+  The ``plan`` object (type ``finufft{f}_plan``) is an opaque pointer; the public interface specifies no more details that that. Under the hood in our library the plan happens to point to a C++ object of type ``finufft{f}_plan_s``, whose internal details the library user should not attempt to access, nor to rely on.
+
 .. include:: cguru.doc
                     

@@ -1,5 +1,7 @@
 List of features / changes made / release notes, in reverse chronological order
 
+* made the C++ plan object (finufft_plan_s) private; only opaque pointer
+  remains public, as should be (PR #233). Allows plan to have C++ constructs.
 * fixed single-thread (OMP=OFF) build which failed due to fftw_defs.h/defs.h
 
 V 2.1.0 (6/10/22)

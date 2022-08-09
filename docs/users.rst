@@ -27,7 +27,7 @@ and also add them to github's Used By feature):
 Other wrappers to (cu)FINUFFT
 ------------------------------
    
-#. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg, Libin Lu, and others, now using pure Julia, and fully featured (rather than via Python).
+#. `FINUFFT.jl <https://github.com/ludvigak/FINUFFT.jl>`_: a `julia <https://julialang.org/>`_ language wrapper by Ludvig af Klinteberg, Libin Lu, and others, now using pure Julia, and fully featured (rather than via Python). This is itself wrapped by `AbstractNFFTs.jl` in `NFFT.jl <https://juliamath.github.io/NFFT.jl/dev/performance/>`_.
 
 #. `TensorFlow NUFFT <https://github.com/mrphys/tensorflow-nufft>`_: a wrapper to the differentiable machine learning Python tool TensorFlow, for the CPU (via FINUFFT) and GPU (via cuFINUFFT). By Javier Montalt Tordera (UCL).
 
@@ -72,7 +72,12 @@ Papers or codes using our new ES window (spreading) function but not the whole F
 
 #. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
 
+   
+Papers influenced by other aspects of FINUFFT:
 
+1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our type 1 and 2 performance by a factor of 1-2 in some cases.
+
+   
    
 Citations to FINUFFT that do not appear to be actual users
 ----------------------------------------------------------

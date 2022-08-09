@@ -1,19 +1,23 @@
 // Library private definitions & macros; also used by some test routines.
 // If SINGLE defined, chooses single prec, otherwise double prec.
 // Must be #included *after* finufft.h which clobbers FINUFFT* macros
-// (see discussion at end of this file).
+// (see discussion near line 145 of this file).
 
 // Split out by Joakim Anden, Alex Barnett 9/20/18-9/24/18.
 // Merged in dataTypes, private/public header split, clean. Barnett 6/7/22.
+// finufft_plan_s made private, Wenda's idea.  Barnett 8/8/22.
 
 /* Devnotes:
-   1) Only need work in C++ since that's how compiled.
+   1) Only need work for C++ since that's how compiled, including f_plan_s.
    (But we use C-style templating, following fftw, etc.)
 */
 
 #ifndef DEFS_H
 #define DEFS_H
 
+// public header gives access to f_opts, f_spread_opts, f_plan...
+// (and clobbers FINUFFT* macros; watch out!)
+#include <finufft.h>
 
 
 // ---------- Global error/warning output codes for the library ---------------
@@ -130,7 +134,7 @@
   #define MY_OMP_GET_THREAD_NUM() omp_get_thread_num()
   #define MY_OMP_SET_NUM_THREADS(x) omp_set_num_threads(x)
 #else
-  // non-omp safe dummy versions of omp utils, and dummy fftw threads calls...
+  // non-omp safe dummy versions of omp utils...
   #define MY_OMP_GET_NUM_THREADS() 1
   #define MY_OMP_GET_MAX_THREADS() 1
   #define MY_OMP_GET_THREAD_NUM() 0
@@ -138,12 +142,13 @@
 #endif
 
 
-// Prec-switching name macros (respond to SINGLE), used in lib & test sources:
+// Prec-switching name macros (respond to SINGLE), used in lib & test sources
+// and the plan object below.
 // Note: crucially, these are now indep of macros used to gen public finufft.h!
 // However, some overlap in name (FINUFFTIFY*, FINUFFT_PLAN*), meaning
 // finufft.h cannot be included after defs.h since it undefs these overlaps :(
 #ifdef SINGLE
-// macro to prepend finufft or finufftf to a string without a space.
+// a macro to prepend finufft or finufftf to a string without a space.
 // The 2nd level of indirection is needed for safety, see:
 // https://isocpp.org/wiki/faq/misc-technical-issues#macros-with-token-pasting
 #define FINUFFTIFY_UNSAFE(x) finufftf##x
@@ -151,7 +156,7 @@
 #define FINUFFTIFY_UNSAFE(x) finufft##x
 #endif
 #define FINUFFTIFY(x) FINUFFTIFY_UNSAFE(x)
-// Now use the tool to set up 2020-style macros used in tester source...
+// Now use the above tool to set up 2020-style macros used in tester source...
 #define FINUFFT_PLAN FINUFFTIFY(_plan)
 #define FINUFFT_PLAN_S FINUFFTIFY(_plan_s)
 #define FINUFFT_DEFAULT_OPTS FINUFFTIFY(_default_opts)
@@ -177,6 +182,76 @@
 #define FINUFFT3D1MANY FINUFFTIFY(3d1many)
 #define FINUFFT3D2MANY FINUFFTIFY(3d2many)
 #define FINUFFT3D3MANY FINUFFTIFY(3d3many)
+
+
+// --------  FINUFFT's plan object, prec-switching version ------------------
+// NB: now private (the public C++ or C etc user sees an opaque pointer to it)
+
+// FFTW is needed since we include a FFTW plan in the FINUFFT plan...
+#include <finufft/fftw_defs.h>          // (must come after complex.h)
+// (other FFT lib headers eg MKL could be here...)
+
+// group together a bunch of type 3 rescaling/centering/phasing parameters:
+#define TYPE3PARAMS FINUFFTIFY(_type3Params)
+typedef struct {
+  FLT X1,C1,D1,h1,gam1;  // x dim: X=halfwid C=center D=freqcen h,gam=rescale
+  FLT X2,C2,D2,h2,gam2;  // y
+  FLT X3,C3,D3,h3,gam3;  // z
+} TYPE3PARAMS;
+
+typedef struct FINUFFT_PLAN_S {  // the main plan object, fully C++
+  
+  int type;        // transform type (Rokhlin naming): 1,2 or 3
+  int dim;         // overall dimension: 1,2 or 3
+  int ntrans;      // how many transforms to do at once (vector or "many" mode)
+  BIGINT nj;       // num of NU pts in type 1,2 (for type 3, num input x pts)
+  BIGINT nk;       // number of NU freq pts (type 3 only)
+  FLT tol;         // relative user tolerance
+  int batchSize;   // # strength vectors to group together for FFTW, etc
+  int nbatch;      // how many batches done to cover all ntrans vectors
+  
+  BIGINT ms;       // number of modes in x (1) dir (historical CMCL name) = N1
+  BIGINT mt;       // number of modes in y (2) direction = N2
+  BIGINT mu;       // number of modes in z (3) direction = N3
+  BIGINT N;        // total # modes (prod of above three)
+  
+  BIGINT nf1;      // size of internal fine grid in x (1) direction
+  BIGINT nf2;      // " y (2)
+  BIGINT nf3;      // " z (3)
+  BIGINT nf;       // total # fine grid points (product of the above three)
+  
+  int fftSign;     // sign in exponential for NUFFT defn, guaranteed to be +-1
+
+  FLT* phiHat1;    // FT of kernel in t1,2, on x-axis mode grid
+  FLT* phiHat2;    // " y-axis.
+  FLT* phiHat3;    // " z-axis.
+  
+  FFTW_CPX* fwBatch;    // (batches of) fine grid(s) for FFTW to plan
+                        // & act on. Usually the largest working array
+  
+  BIGINT *sortIndices;  // precomputed NU pt permutation, speeds spread/interp
+  bool didSort;         // whether binsorting used (false: identity perm used)
+
+  FLT *X, *Y, *Z;  // for t1,2: ptr to user-supplied NU pts (no new allocs).
+                   // for t3: allocated as "primed" (scaled) src pts x'_j, etc
+
+  // type 3 specific
+  FLT *S, *T, *U;  // pointers to user's target NU pts arrays (no new allocs)
+  CPX* prephase;   // pre-phase, for all input NU pts
+  CPX* deconv;     // reciprocal of kernel FT, phase, all output NU pts
+  CPX* CpBatch;    // working array of prephased strengths
+  FLT *Sp, *Tp, *Up;    // internal primed targs (s'_k, etc), allocated
+  TYPE3PARAMS t3P; // groups together type 3 shift, scale, phase, parameters
+  FINUFFT_PLAN innerT2plan;   // ptr used for type 2 in step 2 of type 3
+  
+  // other internal structs; each is C-compatible of course
+  FFTW_PLAN fftwPlan;
+  finufft_opts opts;    // this and spopts could be made ptrs
+  finufft_spread_opts spopts;
+  
+} FINUFFT_PLAN_S;
+
+#undef TYPE3PARAMS
 
 
 #endif  // DEFS_H
