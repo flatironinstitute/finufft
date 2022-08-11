@@ -24,17 +24,30 @@ if(FINUFFT_BUILD_MATLAB)
     # When building for matlab, we will fetch the OpenMP library used by matlab
     # instead of system default for compatibility.
     find_package(Matlab REQUIRED)
-    find_library(OpenMP_iomp5_LIBRARY NAMES iomp5 HINTS ${Matlab_ROOT_DIR}/sys/os/ PATH_SUFFIXES glnxa64 maci64)
-    find_library(OpenMP_pthreads_LIBRARY NAMES pthread CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(matlab_iomp5_lib NAMES iomp5 HINTS ${Matlab_ROOT_DIR}/sys/os/ PATH_SUFFIXES glnxa64 maci64)
+    find_library(pthreads_lib NAMES pthread CMAKE_FIND_ROOT_PATH_BOTH)
+
+    # Create a "fake" imported library pointing to the matlab openmp implementation
+    add_library(OpenMP::OpenMP_CXX SHARED IMPORTED)
+    set_target_properties(OpenMP::OpenMP_CXX PROPERTIES IMPORTED_LOCATION ${matlab_iomp5_lib})
+    target_link_libraries(OpenMP::OpenMP_CXX INTERFACE ${pthreads_lib})
+    # Set the OpenMP flag.
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+        target_compile_options(OpenMP::OpenMP_CXX INTERFACE -Xclang -fopenmp)
+    else()
+        target_compile_options(OpenMP::OpenMP_CXX INTERFACE -fopenmp)
+    endif()
+else()
+    # For non-matlab builds, find system OpenMP
+    if(FINUFFT_USE_OPENMP)
+        find_package(OpenMP REQUIRED)
+    endif()
 endif()
 
 # Find required packages
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(FFTW REQUIRED)
 
-if(FINUFFT_USE_OPENMP)
-    find_package(OpenMP REQUIRED)
-endif()
 
 set(FINUFFT_FFTW_LIBRARIES "FFTW::Float" "FFTW::Double" "FFTW::Float${FINUFFT_FFTW_SUFFIX}" "FFTW::Double${FINUFFT_FFTW_SUFFIX}")
 
