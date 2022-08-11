@@ -2,10 +2,11 @@ cmake_minimum_required(VERSION 3.19)
 
 project(finufft VERSION 2.0.4 LANGUAGES C CXX)
 
-if(CMAKE_CXX_COMPILER_ID IN_LIST "AppleClang;Clang;GNU")
+set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
+if(CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     # Set custom compiler flags for gcc-compatible compilers
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -funroll-loops -fcx-limited-range")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG -funroll-loops -fcx-limited-range")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -funroll-loops")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG -funroll-loops")
 endif()
 
 include(CTest)
@@ -62,7 +63,13 @@ function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
     set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
     enable_asan(${target})
+
     target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # Enable cx-limited-range on supported compilers
+        target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInf>:-fcx-limited-range)
+    endif()
+
     target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
     if(FINUFFT_USE_OPENMP)
         target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
