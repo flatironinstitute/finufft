@@ -3,13 +3,11 @@ matlab_add_mex(NAME finufft_mex SRC finufft.cpp LINK_TO finufft OUTPUT_NAME finu
 target_compile_definitions(finufft_mex PRIVATE -DR2008OO)
 
 file(GLOB FINUFFT_MATLAB_M_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.m)
-file(GLOB FINUFFT_MATLAB_DOC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.docsrc)
 
 add_custom_command(
     TARGET finufft_mex
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
     ${FINUFFT_MATLAB_M_SOURCES}
-    ${FINUFFT_MATLAB_DOC_SOURCES}
     ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>
     VERBATIM)
