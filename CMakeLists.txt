@@ -67,7 +67,7 @@ function(set_finufft_options target)
     target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         # Enable cx-limited-range on supported compilers
-        target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInf>:-fcx-limited-range)
+        target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-fcx-limited-range>)
     endif()
 
     target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
