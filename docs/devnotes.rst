@@ -9,6 +9,7 @@ Developer notes
 
   - ``docs/conf.py`` for sphinx
   - ``python/setup.py`` for the python pkg version
+  - ``python/finufft/__init__.py``
   - ``include/finufft/defs.h``
   - ``matlab/Contents.m``
   - ``CHANGELOG``: don't forget to describe the new features and changes, folding lines at 80 chars.
