@@ -80,7 +80,13 @@ def test_nufft1(n_modes, n_pts, dtype):
     coefs = _gen_coefs(n_pts, dtype)
     idx = _gen_sig_idx(n_modes)
 
-    sig = fun(*pts, coefs, n_modes)
+    # See if it can handle square sizes from ints
+    if all(n == n_modes[0] for n in n_modes):
+        _n_modes = n_modes[0]
+    else:
+        _n_modes = n_modes
+
+    sig = fun(*pts, coefs, _n_modes)
 
     sig0 = _nudft1(pts, coefs, n_modes, idx)
 
