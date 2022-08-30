@@ -65,7 +65,8 @@ def _nudft3(source_pts, source_coef, target_pts, ind):
 @pytest.mark.parametrize("n_modes", [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)])
 @pytest.mark.parametrize("n_pts", [10, 11])
 @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-def test_nufft1(n_modes, n_pts, dtype):
+@pytest.mark.parametrize("use_out", [False, True])
+def test_nufft1(n_modes, n_pts, dtype, use_out):
     dim = len(n_modes)
 
     funs = {1: finufft.nufft1d1,
@@ -86,7 +87,11 @@ def test_nufft1(n_modes, n_pts, dtype):
     else:
         _n_modes = n_modes
 
-    sig = fun(*pts, coefs, _n_modes)
+    if not use_out:
+        sig = fun(*pts, coefs, _n_modes)
+    else:
+        sig = np.empty(n_modes, dtype=dtype)
+        fun(*pts, coefs, out=sig)
 
     sig0 = _nudft1(pts, coefs, n_modes, idx)
 
@@ -96,7 +101,8 @@ def test_nufft1(n_modes, n_pts, dtype):
 @pytest.mark.parametrize("n_modes", [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)])
 @pytest.mark.parametrize("n_pts", [10, 11])
 @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-def test_nufft2(n_modes, n_pts, dtype):
+@pytest.mark.parametrize("use_out", [False, True])
+def test_nufft2(n_modes, n_pts, dtype, use_out):
     dim = len(n_modes)
 
     funs = {1: finufft.nufft1d2,
@@ -111,7 +117,11 @@ def test_nufft2(n_modes, n_pts, dtype):
     sig = _gen_sig(n_modes, dtype)
     ind = _gen_coef_ind(n_pts)
 
-    coef = fun(*pts, sig)
+    if not use_out:
+        coef = fun(*pts, sig)
+    else:
+        coef = np.empty(n_pts, dtype=dtype)
+        fun(*pts, sig, out=coef)
 
     coef0 = _nudft2(pts, sig, ind)
 
@@ -122,7 +132,8 @@ def test_nufft2(n_modes, n_pts, dtype):
 @pytest.mark.parametrize("n_source_pts", [10, 11])
 @pytest.mark.parametrize("n_target_pts", [10, 11])
 @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-def test_nufft3(dim, n_source_pts, n_target_pts, dtype):
+@pytest.mark.parametrize("use_out", [False, True])
+def test_nufft3(dim, n_source_pts, n_target_pts, dtype, use_out):
     funs = {1: finufft.nufft1d3,
             2: finufft.nufft2d3,
             3: finufft.nufft3d3}
@@ -136,7 +147,11 @@ def test_nufft3(dim, n_source_pts, n_target_pts, dtype):
     source_coefs = _gen_coefs(n_source_pts, dtype)
     ind = _gen_coef_ind(n_target_pts)
 
-    target_coef = fun(*source_pts, source_coefs, *target_pts)
+    if not use_out:
+        target_coef = fun(*source_pts, source_coefs, *target_pts)
+    else:
+        target_coef = np.empty(n_target_pts, dtype=dtype)
+        fun(*source_pts, source_coefs, *target_pts, out=target_coef)
 
     target_coef0 = _nudft3(source_pts, source_coefs, target_pts, ind)
 
