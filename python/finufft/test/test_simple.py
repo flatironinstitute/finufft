@@ -142,3 +142,19 @@ def test_nufft3(dim, n_source_pts, n_target_pts, dtype):
 
     assert target_coef.shape == (n_target_pts,)
     assert np.isclose(target_coef[ind], target_coef0, rtol=1e-4)
+
+def test_errors():
+    with pytest.raises(RuntimeError, match="x dtype should be"):
+        finufft.nufft1d1(np.zeros(1, "int64"), np.zeros(1), (4,))
+
+    with pytest.raises(RuntimeError, match="n_modes must be"):
+        finufft.nufft1d1(np.zeros(1), np.zeros(1), "")
+
+    with pytest.raises(RuntimeError, match="n_modes dimension does not match"):
+        finufft.nufft1d1(np.zeros(1), np.zeros(1), (2, 2))
+
+    with pytest.raises(RuntimeError, match="elements of input n_modes must"):
+        finufft.nufft1d1(np.zeros(1), np.zeros(1), (2.5,))
+
+    with pytest.raises(RuntimeError, match="type 1 input must supply n_modes"):
+        finufft.nufft1d1(np.zeros(1), np.zeros(1))
