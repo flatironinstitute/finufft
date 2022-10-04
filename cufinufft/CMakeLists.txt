@@ -60,5 +60,10 @@ add_library(cufinufft_static STATIC
 target_link_libraries(cufinufft_static CUDA::cudart_static CUDA::cufft_static CUDA::nvToolsExt)
 set_property(TARGET cufinufft_static PROPERTY OUTPUT_NAME cufinufft)
 
-add_subdirectory(test)
+if(FINUFFT_BUILD_EXAMPLES)
 add_subdirectory(examples)
+endif()
+
+if(FINUFFT_BUILD_TESTS)
+add_subdirectory(test)
+endif()
