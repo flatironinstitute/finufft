@@ -1,0 +1,6 @@
+# -march is not always supported when compiling power9 targets, we use `mcpu` and `mtune` instead.
+CFLAGS   := -fPIC -O3 -funroll-loops -g
+CXXFLAGS := -fPIC -O3 -funroll-loops -mcpu=native -mtune=native -g -std=c++11
+
+# All power9 systems so far have had recent GPU hardware.
+NVARCH := -arch=sm_70

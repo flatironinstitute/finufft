@@ -33,3 +33,7 @@ docs/_build
 
 build/
 .vscode/
+
+cufinufft/python/cufinufft/docs/_build
+cufinufft/python/cufinufft/docs/_static
+cufinufft/python/cufinufft/docs/_templates

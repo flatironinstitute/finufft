@@ -1,0 +1,5 @@
+CUDA_ROOT=/usr/local/stow/cuda-10.0
+INC=-I$(CUDA_ROOT)/include \
+    -I$(CUDA_ROOT)/samples/common/inc
+NVCC_LIBS_PATH=-L$(CUDA_ROOT)/lib64
+NVARCH=-arch=sm_70
