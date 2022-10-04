@@ -13,6 +13,7 @@
 
 using namespace cufinufft::deconvolve;
 using namespace cufinufft::spreadinterp;
+using std::min;
 
 int CUFINUFFT2D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
 /*

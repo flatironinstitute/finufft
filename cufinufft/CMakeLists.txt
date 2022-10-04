@@ -12,6 +12,7 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
 endif()
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
 set(PRECISION_INDEPENDENT_SRC src/precision_independent.cu src/profile.cu contrib/legendre_rule_fast.c contrib/utils.cpp)

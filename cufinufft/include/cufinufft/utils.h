@@ -26,7 +26,7 @@ class CNTime {
 // ahb math helpers
 CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
 
-#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
 __inline__ __device__ double atomicAdd(double *address, double val) {
     unsigned long long int *address_as_ull = (unsigned long long int *)address;

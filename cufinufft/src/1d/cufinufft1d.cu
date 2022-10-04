@@ -12,6 +12,7 @@
 
 using namespace cufinufft::deconvolve;
 using namespace cufinufft::spreadinterp;
+using std::min;
 
 int CUFINUFFT1D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
 /*
@@ -38,7 +39,7 @@ int CUFINUFFT1D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
     CUCPX *d_fkstart;
     CUCPX *d_cstart;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-        blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
+        blksize = std::min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;
         d_fkstart = d_fk + i * d_plan->maxbatchsize * d_plan->ms;
         d_plan->c = d_cstart;
@@ -115,7 +116,7 @@ int CUFINUFFT1D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
     CUCPX *d_fkstart;
     CUCPX *d_cstart;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-        blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
+        blksize = std::min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;
         d_fkstart = d_fk + i * d_plan->maxbatchsize * d_plan->ms;
 

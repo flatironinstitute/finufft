@@ -17,6 +17,7 @@ using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
 using namespace cufinufft::spreadinterp;
 using namespace cufinufft::utils;
+using std::min;
 
 void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts) {
     switch (dim) {

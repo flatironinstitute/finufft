@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <vector>
@@ -19,6 +20,8 @@ extern "C" {
 namespace cufinufft {
 namespace common {
 using namespace cufinufft::spreadinterp;
+using std::max;
+using std::min;
 /* Kernel for computing approximations of exact Fourier series coeffs of
    cnufftspread's real symmetric kernel. */
 // a , f are intermediate results from function onedim_fseries_kernel_precomp()
