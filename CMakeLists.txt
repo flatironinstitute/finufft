@@ -19,6 +19,7 @@ set(FINUFFT_BUILD_FORTRAN "OFF" CACHE BOOL "Whether to build the FINUFFT Fortran
 set(FINUFFT_BUILD_MATLAB "OFF" CACHE BOOL "Whether to build the FINUFFT Matlab interface")
 set(FINUFFT_ENABLE_SANITIZERS "ON" CACHE BOOL "Whether to enable sanitizers, only effective for Debug configuration.")
 set(FINUFFT_USE_OPENMP "ON" CACHE BOOL "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library.")
+set(FINUFFT_USE_CUDA "OFF" CACHE BOOL "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library")
 
 if(FINUFFT_BUILD_MATLAB)
     # When building for matlab, we will fetch the OpenMP library used by matlab
@@ -131,4 +132,8 @@ endif()
 
 if(FINUFFT_BUILD_MATLAB)
 add_subdirectory(matlab)
+endif()
+
+if(FINUFFT_USE_CUDA)
+add_subdirectory(cufinufft)
 endif()
