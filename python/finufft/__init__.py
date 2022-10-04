@@ -16,3 +16,5 @@ from finufft._interfaces import Plan
 from finufft._interfaces import nufft1d1,nufft1d2,nufft1d3
 from finufft._interfaces import nufft2d1,nufft2d2,nufft2d3
 from finufft._interfaces import nufft3d1,nufft3d2,nufft3d3
+
+__version__ = '2.1.0'

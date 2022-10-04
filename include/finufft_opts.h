@@ -35,7 +35,16 @@ typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
 
 // Those of the above of the form spread_* indicate pass through to finufft_spread_opts
 
-// Backwards-compatibility, with a warning in C (officially C23) or C++14...
-[[deprecated ("as of v2.1.0, nufft_opts is obsolete and renamed finufft_opts; please use this instead.")]] typedef finufft_opts nufft_opts;
+// define deprecated opts macro
+#if defined(__cplusplus) && (__cplusplus >= 201402L)
+#define DEPRECATED_OPTS [[deprecated ("as of v2.1.0, nufft_opts is obsolete and renamed finufft_opts; please use this instead.")]]
+#elif defined(_MSC_VER)
+#define DEPRECATED_OPTS __declspec(deprecated("as of v2.1.0, nufft_opts is obsolete and renamed finufft_opts; please use this instead."))
+#else
+#define DEPRECATED_OPTS __attribute__((deprecated("as of v2.1.0, nufft_opts is obsolete and renamed finufft_opts; please use this instead.")))
+#endif
+
+// Backwards-compatibility
+DEPRECATED_OPTS typedef finufft_opts nufft_opts;
 
 #endif  // FINUFFT_OPTS_H
