@@ -135,5 +135,5 @@ add_subdirectory(matlab)
 endif()
 
 if(FINUFFT_USE_CUDA)
-add_subdirectory(cufinufft)
+add_subdirectory(src/cuda)
 endif()

@@ -1,1 +1,0 @@
-NVCC_STUBS := $(CUDA_ROOT)/lib64/stubs

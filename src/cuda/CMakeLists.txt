@@ -10,7 +10,8 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
-set(PRECISION_INDEPENDENT_SRC precision_independent.cu profile.cu ../../contrib/legendre_rule_fast.cpp utils.cpp)
+set(PRECISION_INDEPENDENT_SRC precision_independent.cu profile.cu utils.cpp
+  ${PROJECT_SOURCE_DIR}/contrib/legendre_rule_fast.cpp)
 set(PRECISION_DEPENDENT_SRC
   spreadinterp.cpp
   1d/spreadinterp1d.cu 1d/cufinufft1d.cu
