@@ -48,13 +48,21 @@ add_library(cufinufft SHARED
   $<TARGET_OBJECTS:cufinufft_64_objects>
 )
 target_link_libraries(cufinufft CUDA::cudart CUDA::cufft CUDA::nvToolsExt)
+set_target_properties(
+  cufinufft PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
+
 add_library(cufinufft_static STATIC
   $<TARGET_OBJECTS:cufinufft_common_objects>
   $<TARGET_OBJECTS:cufinufft_32_objects>
   $<TARGET_OBJECTS:cufinufft_64_objects>
 )
 target_link_libraries(cufinufft_static CUDA::cudart_static CUDA::cufft_static CUDA::nvToolsExt)
-set_property(TARGET cufinufft_static PROPERTY OUTPUT_NAME cufinufft)
+set_target_properties(
+  cufinufft_static PROPERTIES
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
 
 # if(FINUFFT_BUILD_EXAMPLES)
 # add_subdirectory(examples)
