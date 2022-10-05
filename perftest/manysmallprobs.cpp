@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
   complex<double>* F = (complex<double>*)malloc(sizeof(complex<double>)*N);
 
   printf("repeatedly calling the simple interface: --------------------- \n");
-  CNTime timer; timer.start();
+  finufft::utils::CNTime timer; timer.start();
   for (int r=0;r<reps;++r) {    // call the NUFFT (with iflag=+1):
     //printf("rep %d\n",r);
     x[0] = M_PI*(-1.0 + 2*(double)r/(double)reps);   // one source jiggles around

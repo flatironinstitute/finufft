@@ -30,3 +30,6 @@ test/testutils
 __pycache__*
 
 docs/_build
+
+build/
+.vscode/
