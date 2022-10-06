@@ -2,11 +2,7 @@
 # basic perf test of compute fseries for 1d, single/double
 # Melody 02/20/22
 
-if [ -z "$1" ]; then
-    BINDIR=../bin
-else
-    BINDIR=$(realpath $1)
-fi
+BINDIR=./
 
 BIN=$BINDIR/fseries_kernel_test
 DIM=1

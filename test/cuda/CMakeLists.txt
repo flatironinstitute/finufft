@@ -18,5 +18,5 @@ foreach(basename spread1d_test spread2d_test spread3d_test interp1d_test interp2
   target_compile_definitions(${executable} PUBLIC CUFINUFFT_SINGLE)
 endforeach()
 
-configure_file(spreadperf.sh ${CMAKE_BINARY_DIR}/test/spreadperf.sh COPYONLY)
-configure_file(fseriesperf.sh ${CMAKE_BINARY_DIR}/test/fseriesperf.sh COPYONLY)
+configure_file(spreadperf.sh ${CMAKE_BINARY_DIR}/test/cuda/spreadperf.sh COPYONLY)
+configure_file(fseriesperf.sh ${CMAKE_BINARY_DIR}/test/cuda/fseriesperf.sh COPYONLY)
