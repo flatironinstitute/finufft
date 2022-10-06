@@ -1,10 +1,10 @@
 
-file(GLOB test_src "*.cpp")
+file(GLOB example_src "*.cpp")
 
-foreach(srcfile ${test_src})
+foreach(srcfile ${example_src})
   string(REPLACE ".cpp" "" executable ${srcfile})
   get_filename_component(executable ${executable} NAME)
   add_executable(${executable} ${srcfile})
   target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-  target_link_libraries(${executable} PUBLIC cufinufft_static)
+  target_link_libraries(${executable} cufinufft_static)
 endforeach()

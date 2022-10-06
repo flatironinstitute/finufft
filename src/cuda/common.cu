@@ -5,7 +5,6 @@
 
 #include <cuComplex.h>
 #include <cuda.h>
-#include <helper_cuda.h>
 
 #include <cufinufft/common.h>
 #include <cufinufft/defs.h>
@@ -13,9 +12,7 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
-extern "C" {
-#include "cufinufft/contrib/legendre_rule_fast.h"
-}
+#include <legendre_rule_fast.h>
 
 namespace cufinufft {
 namespace common {
@@ -151,9 +148,10 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcompl
     // # quadr nodes in z (from 0 to J/2; reflections will be added)...
     int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
     double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
-    legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
-    for (int n = 0; n < q; ++n) {      // set up nodes z_n and vals f_n
-        z[n] *= J2;                    // rescale nodes
+
+    finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
+    for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
+        z[n] *= J2;                                         // rescale nodes
         f[n] = J2 * (CUFINUFFT_FLT)w[n] * evaluate_kernel((CUFINUFFT_FLT)z[n], opts);  // vals & quadr wei
         a[n] = exp(2 * PI * IMA * (CUFINUFFT_FLT)(nf / 2 - z[n]) / (CUFINUFFT_FLT)nf); // phase winding rates
     }

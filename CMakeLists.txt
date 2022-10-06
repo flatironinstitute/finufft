@@ -115,6 +115,15 @@ set_finufft_options(finufft)
 target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64 m)
 target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+if(FINUFFT_USE_CUDA)
+enable_language(CUDA)
+find_package(CUDAToolkit REQUIRED)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES 60;61;70;75)
+endif()
+add_subdirectory(src/cuda)
+endif()
+
 # Add tests defined in their own directory
 if(BUILD_TESTING AND FINUFFT_BUILD_TESTS)
 add_subdirectory(test)
@@ -132,8 +141,4 @@ endif()
 
 if(FINUFFT_BUILD_MATLAB)
 add_subdirectory(matlab)
-endif()
-
-if(FINUFFT_USE_CUDA)
-add_subdirectory(src/cuda)
 endif()

@@ -10,3 +10,7 @@ foreach(EXAMPLE ${EXAMPLES_C})
     add_executable(${EXAMPLE} ${EXAMPLE}.c)
     target_link_libraries(${EXAMPLE} PRIVATE finufft)
 endforeach()
+
+if (FINUFFT_USE_CUDA)
+  add_subdirectory(cuda)
+endif()
