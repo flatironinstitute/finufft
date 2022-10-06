@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
         sscanf(argv[6], "%lf", &w);
     nf3 = (int)w;
 
-    SPREAD_OPTS opts;
+    finufft_spread_opts opts;
     CUFINUFFT_FLT *fwkerhalf1, *fwkerhalf2, *fwkerhalf3;
     CUFINUFFT_FLT *d_fwkerhalf1, *d_fwkerhalf2, *d_fwkerhalf3;
     checkCudaErrors(cudaMalloc(&d_fwkerhalf1, sizeof(CUFINUFFT_FLT) * (nf1 / 2 + 1)));

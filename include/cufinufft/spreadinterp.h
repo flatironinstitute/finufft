@@ -2,6 +2,7 @@
 #define __CUSPREADINTERP_H__
 
 #include <cufinufft_eitherprec.h>
+#include <finufft_spread_opts.h>
 
 // NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
 // folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
@@ -13,8 +14,8 @@
 namespace cufinufft {
 namespace spreadinterp {
 
-CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const SPREAD_OPTS &opts);
-int setup_spreader(SPREAD_OPTS &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth);
+CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const finufft_spread_opts &opts);
+int setup_spreader(finufft_spread_opts &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth);
 
 static __forceinline__ __device__ CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, CUFINUFFT_FLT es_c,
                                                                 CUFINUFFT_FLT es_beta, int ns)

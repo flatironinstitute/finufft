@@ -9,11 +9,11 @@
 namespace cufinufft {
 namespace spreadinterp {
 
-int setup_spreader(SPREAD_OPTS &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth)
+int setup_spreader(finufft_spread_opts &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).
-// Also sets all default options in SPREAD_OPTS. See cnufftspread.h for opts.
+// Also sets all default options in finufft_spread_opts. See cnufftspread.h for opts.
 // Must call before any kernel evals done.
 // Returns: 0 success, 1, warning, >1 failure (see error codes in utils.h)
 {
@@ -79,7 +79,7 @@ int setup_spreader(SPREAD_OPTS &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac
     return ier;
 }
 
-CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const SPREAD_OPTS &opts)
+CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const finufft_spread_opts &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an

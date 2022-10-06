@@ -73,7 +73,7 @@ int CUFSERIESKERNELCOMPUTE(int dim, int nf1, int nf2, int nf3, CUFINUFFT_FLT *d_
     return 0;
 }
 
-int setup_spreader_for_nufft(SPREAD_OPTS &spopts, CUFINUFFT_FLT eps, cufinufft_opts opts)
+int setup_spreader_for_nufft(finufft_spread_opts &spopts, CUFINUFFT_FLT eps, cufinufft_opts opts)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
@@ -82,7 +82,7 @@ int setup_spreader_for_nufft(SPREAD_OPTS &spopts, CUFINUFFT_FLT eps, cufinufft_o
     return ier;
 }
 
-void SET_NF_TYPE12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts, CUFINUFFT_BIGINT *nf,
+void SET_NF_TYPE12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts, CUFINUFFT_BIGINT *nf,
                    CUFINUFFT_BIGINT bs)
 // type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms.
@@ -98,7 +98,7 @@ void SET_NF_TYPE12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, SPREAD_OPTS spopts,
     }
 }
 
-void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *fwkerhalf, SPREAD_OPTS opts)
+void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *fwkerhalf, finufft_spread_opts opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -143,7 +143,7 @@ void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *fwkerhalf, SPREAD
   f - funciton values at quadrature nodes multiplied with quadrature weights
   (a, f are provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, SPREAD_OPTS opts) {
+void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, finufft_spread_opts opts) {
     CUFINUFFT_FLT J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
     // # quadr nodes in z (from 0 to J/2; reflections will be added)...
     int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
@@ -158,7 +158,7 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcompl
 }
 
 void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, CUFINUFFT_FLT *fwkerhalf,
-                                   SPREAD_OPTS opts) {
+                                   finufft_spread_opts opts) {
     CUFINUFFT_FLT J2 = opts.nspread / 2.0;        // J/2, half-width of ker z-support
     int q = (int)(2 + 3.0 * J2);                  // not sure why so large? cannot exceed MAX_NQUAD
     CUFINUFFT_BIGINT nout = nf / 2 + 1;           // how many values we're writing to

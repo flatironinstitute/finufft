@@ -11,6 +11,8 @@
 #include <cuda_runtime.h>
 #include <cufft.h>
 
+#include <finufft_spread_opts.h>
+
 #include <cufinufft_errors.h>
 #include <cufinufft_opts.h>
 #include <cufinufft_types.h>
@@ -240,7 +242,7 @@
 
 typedef struct CUFINUFFT_PLAN_S {
     cufinufft_opts opts;
-    SPREAD_OPTS spopts;
+    finufft_spread_opts spopts;
 
     int type;
     int dim;
