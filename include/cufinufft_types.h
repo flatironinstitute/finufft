@@ -40,6 +40,7 @@ typedef int CUFINUFFT_BIGINT;
 #define CUFINUFFT_CPX COMPLEXIFY(CUFINUFFT_FLT)
 typedef std::complex<double> dcomplex; // slightly sneaky since duplicated by mwrap
 
+// FIXME: possible macro collisions here. Make sure this is even necessary...
 #undef EPSILON
 #undef IMA
 #undef FABS

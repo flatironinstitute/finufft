@@ -1,5 +1,6 @@
 #ifndef __CUFINUFFT_ERRORS_H__
 #define __CUFINUFFT_ERRORS_H__
+#include <cufft.h>
 
 // For error checking
 static const char *_cufftGetErrorEnum(cufftResult_t error) {
