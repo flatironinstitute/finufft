@@ -12,11 +12,11 @@ one could restrict to the periodic box $[-\pi,\pi)^d$.
 For type 1 and type 3, each such NU point carries a given associated strength
 $c_j\in\mathbb{C}$.
 Type 1 and type 2 involve the Fourier "modes" (Fourier series coefficients)
-with integer indices lying in the set
+with integer frequency indices lying in the Cartesian product set
 
 .. math::
    
-   K = K_{N_1,\dots,N_d} := K_{N_1} K_{N_2} \dots K_{N_d}~,
+   K = K_{N_1,\dots,N_d} := K_{N_1} \times K_{N_2} \times \dots \times K_{N_d}~,
 
 where
 
@@ -27,11 +27,14 @@ where
   \end{array}\right.
 
 For instance, $K_{10} = \{-5,-4,\dots,4\}$,
-whereas $K_{11} = \{-5,-4,\dots,5\}$.
+whereas $K_{11} = \{-5,-4,\dots,5\}$,
+and so $K_{10,11} = \{(-5,-5),(-4,-5),\dots,(4,-5),(-5,-4),(-4,-4),\dots,(3,5),(4,5)\}$.
+Note that the ordering in the last case is with the first index "fast", second
+"slow"; this matches the storage ordering in the library interface.
 Thus, in the 1D case $K$ is an interval containing $N_1$ integer indices,
 in 2D it is
-a rectangle of $N_1N_2$ index pairs, and in 3D it is a cuboid of $N_1N_2N_3$
-index triplets.
+a list of $N_1N_2$ index pairs (which may be thought of as a rectangle of frequencies), and in 3D it is a list of $N_1N_2N_3$
+index triplets (which may be thought of as a cuboid).
 
 Then the **type 1** (nonuniform to uniform, aka "adjoint") NUFFT evaluates
 
