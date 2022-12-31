@@ -198,3 +198,18 @@ def test_errors():
 
     with pytest.raises(RuntimeError, match="type 1 input must supply n_modes"):
         finufft.nufft1d1(np.zeros(1), np.zeros(1))
+
+    with pytest.raises(RuntimeError, match="c.size must be divisible by x.size"):
+        finufft.nufft1d1(np.zeros(2), np.zeros(3, np.complex128), 4)
+
+    with pytest.raises(RuntimeError, match="type 2 input dimension must be either dim"):
+        finufft.nufft1d2(np.zeros(1), np.zeros((2, 2, 2), np.complex128))
+
+    with pytest.raises(RuntimeError, match="type 2 input dimension must be either dim"):
+        finufft.nufft1d1(np.zeros(1), np.zeros(1, np.complex128), 4, out=np.zeros((2, 2, 4), np.complex128))
+
+    with pytest.raises(RuntimeError, match="input n_trans and output n_trans do not match"):
+        finufft.nufft1d1(np.zeros(1), np.zeros((3, 1), np.complex128), 4, out=np.zeros((2, 4), np.complex128))
+
+    with pytest.raises(RuntimeError, match="input n_modes and output n_modes do not match"):
+        finufft.nufft1d1(np.zeros(1), np.zeros(1, np.complex128), 4, out=np.zeros((3), np.complex128))
