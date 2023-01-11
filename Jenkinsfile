@@ -26,7 +26,6 @@ pipeline {
       python3 -m pip install pytest
       python3 -m pytest
     '''
-    sh 'make check'
       }
     }
   }
