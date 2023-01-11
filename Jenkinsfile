@@ -22,7 +22,7 @@ pipeline {
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
       python3 -m pip install --upgrade pip
-      LIBRARY_PATH=/io/lib python3 -m pip install -e cupython
+      LIBRARY_PATH=/io/build python3 -m pip install -e cupython
       python3 -m pip install pytest
       python3 -m pytest
     '''
