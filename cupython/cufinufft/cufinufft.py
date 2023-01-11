@@ -180,20 +180,20 @@ class cufinufft:
             raise TypeError("cufinufft plan.dtype and "
                             "kx dtypes do not match.")
 
-        if ky and ky.dtype != self.dtype:
+        if ky is not None and ky.dtype != self.dtype:
             raise TypeError("cufinufft plan.dtype and "
                             "ky dtypes do not match.")
 
-        if kz and kz.dtype != self.dtype:
+        if kz is not None and kz.dtype != self.dtype:
             raise TypeError("cufinufft plan.dtype and "
                             "kz dtypes do not match.")
 
         M = kx.size
 
-        if ky and ky.size != M:
+        if ky is not None and ky.size != M:
             raise TypeError("Number of elements in kx and ky must be equal")
 
-        if kz and kz.size != M:
+        if kz is not None and kz.size != M:
             raise TypeError("Number of elements in kx and kz must be equal")
 
         # Because FINUFFT/cufinufft are internally column major,
