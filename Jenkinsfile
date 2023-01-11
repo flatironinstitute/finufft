@@ -21,7 +21,8 @@ pipeline {
     sh '${PYBIN}/python3 -m venv $HOME'
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
-      LIBRARY_PATH=/io/lib python3 -m pip install -e .
+      python3 -m pip install --upgrade pip
+      LIBRARY_PATH=/io/lib python3 -m pip install -e cupython
       python3 -m pip install pytest
       python3 -m pytest
     '''
