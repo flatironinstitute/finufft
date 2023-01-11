@@ -3,9 +3,9 @@ LABEL maintainer "Garrett Wright"
 
 # ---- CentOS 6 has been deprecated.
 # We'll need to patch the repo links to point to the CentOS 6 Vault
-COPY ci/docker/cuda10.1/vault.repo /etc/yum.repos.d/CentOS-Base.repo
-COPY ci/docker/cuda10.1/CentOS-SCLo-scl-rh.repo /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo
-COPY ci/docker/cuda10.1/CentOS-SCLo-scl.repo  /etc/yum.repos.d/CentOS-SCLo-scl.repo 
+COPY cufinufft/ci/docker/cuda10.1/vault.repo /etc/yum.repos.d/CentOS-Base.repo
+COPY cufinufft/ci/docker/cuda10.1/CentOS-SCLo-scl-rh.repo /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo
+COPY cufinufft/ci/docker/cuda10.1/CentOS-SCLo-scl.repo  /etc/yum.repos.d/CentOS-SCLo-scl.repo 
 
 # ---- The following block adds layers for CUDA --- #
 # base
@@ -13,7 +13,7 @@ RUN NVIDIA_GPGKEY_SUM=d1be581509378368edeec8c1eb2958702feedf3bc3d17011adbf24efac
 curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/rhel6/x86_64/7fa2af80.pub | sed '/^Version/d' > /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA && \
     echo "$NVIDIA_GPGKEY_SUM  /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA" | sha256sum -c -
 
-COPY ci/docker/cuda10.1/cuda.repo /etc/yum.repos.d/cuda.repo
+COPY cufinufft/ci/docker/cuda10.1/cuda.repo /etc/yum.repos.d/cuda.repo
 
 ENV CUDA_VERSION 10.1.243
 
@@ -56,20 +56,39 @@ cuda-libraries-dev-$CUDA_PKG_VERSION \
         && \
     rm -rf /var/cache/yum/*
 
+RUN find /usr/local/cuda-10.2/include -name "*.h" | xargs -I{} ln -s {} /usr/local/cuda-10.1/include/ \
+    && find /usr/local/cuda-10.2/lib64 -name "*.so*" | xargs -I{} ln -s {} /usr/local/cuda-10.1/lib64/ \
+    && find /usr/local/cuda-10.2/lib64 -name "*.a" | xargs -I{} ln -s {} /usr/local/cuda-10.1/lib64/
+
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 # /CUDA #
 
+# finufft reqs
+RUN yum install -y \
+    cmake
+
+# default FFTW is too old (3.2.1) so download and compile the latest
+RUN curl -fsSLO "http://www.fftw.org/fftw-3.3.10.tar.gz" \
+    && tar -zxf fftw-3.3.10.tar.gz \
+    && cd fftw-3.3.10 \
+    && ./configure --enable-shared --enable-openmp --enable-threads \
+    && make \
+    && make install \
+    && ./configure --enable-shared --enable-single --enable-openmp --enable-threads \
+    && make \
+    && make install
 
 # Okay, so now we can begin cufinufft
 
 # We need to build the CUDA code now.
 # assume we are building container in the root of the git repo...
 COPY . /io
-WORKDIR /io
-RUN make target=manylinux
+RUN mkdir /io/build
+WORKDIR /io/build
+RUN cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES=50 ..
+RUN cmake --build .
 # And we need to pack it in our LD path
-ENV LD_LIBRARY_PATH /io/lib:${LD_LIBRARY_PATH}
-
+ENV LD_LIBRARY_PATH /io/build:${LD_LIBRARY_PATH}
 
 CMD ["/bin/bash"]
