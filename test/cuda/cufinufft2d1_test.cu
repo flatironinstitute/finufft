@@ -5,47 +5,34 @@
 #include <iostream>
 #include <random>
 
-#include <cufinufft_eitherprec.h>
 #include <cufinufft/utils.h>
+#include <cufinufft_eitherprec.h>
 using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[]) {
-    int N1, N2, M, N;
-    if (argc < 4) {
-        fprintf(stderr, "Usage: cufinufft2d1_test method N1 N2 [M [tol]]\n"
+    if (argc != 7) {
+        fprintf(stderr, "Usage: cufinufft2d1_test method N1 N2 M tol checktol\n"
                         "Arguments:\n"
                         "  method: One of\n"
                         "    1: nupts driven,\n"
                         "    2: sub-problem, or\n"
-                        "    3: sub-problem with Paul's idea.\n"
-                        "  N1, N2: The size of the 2D array.\n"
-                        "  M: The number of non-uniform points (default N1 * N2).\n"
-                        "  tol: NUFFT tolerance (default 1e-6).\n");
+                        "    3: sub-problem with Paul's idea\n"
+                        "  N1, N2: The size of the 2D array\n"
+                        "  M: The number of non-uniform points\n"
+                        "  tol: NUFFT tolerance\n"
+                        "  checktol: relative error to pass test\n");
         return 1;
     }
-    double w;
-    int method;
-    sscanf(argv[1], "%d", &method);
-    sscanf(argv[2], "%lf", &w);
-    N1 = (int)w; // so can read 1e6 right!
-    sscanf(argv[3], "%lf", &w);
-    N2 = (int)w; // so can read 1e6 right!
-    N = N1 * N2;
-    M = N1 * N2; // let density always be 1
-    if (argc > 4) {
-        sscanf(argv[4], "%lf", &w);
-        M = (int)w; // so can read 1e6 right!
-    }
-
-    CUFINUFFT_FLT tol = 1e-6;
-    if (argc > 5) {
-        sscanf(argv[5], "%lf", &w);
-        tol = (CUFINUFFT_FLT)w; // so can read 1e6 right!
-    }
-    int iflag = 1;
+    const int method = atoi(argv[1]);
+    const int N1 = atof(argv[2]);
+    const int N2 = atof(argv[3]);
+    const int M = atof(argv[4]);
+    const int N = N1 * N2;
+    const CUFINUFFT_FLT tol = atof(argv[5]);
+    const CUFINUFFT_FLT checktol = atof(argv[6]);
+    const int iflag = 1;
 
     std::cout << std::scientific << std::setprecision(3);
-    int ier;
 
     CUFINUFFT_FLT *x, *y;
     CUFINUFFT_CPX *c, *fk;
@@ -64,7 +51,7 @@ int main(int argc, char *argv[]) {
     std::default_random_engine eng(1);
     std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
     auto randm11 = [&eng, &dist11]() { return dist11(eng); };
-    
+
     // Making data
     for (int i = 0; i < M; i++) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)
@@ -97,12 +84,12 @@ int main(int argc, char *argv[]) {
 
     // now to our tests...
     CUFINUFFT_PLAN dplan;
-    int dim = 2;
-    int type = 1;
+    const int dim = 2;
+    const int type = 1;
 
     // Here we setup our own opts, for gpu_method.
     cufinufft_opts opts;
-    ier = CUFINUFFT_DEFAULT_OPTS(type, dim, &opts);
+    int ier = CUFINUFFT_DEFAULT_OPTS(type, dim, &opts);
     if (ier != 0) {
         printf("err %d: CUFINUFFT_DEFAULT_OPTS\n", ier);
         return ier;
@@ -167,13 +154,16 @@ int main(int argc, char *argv[]) {
            totaltime / 1000, M / totaltime * 1000);
     printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
 
-    int nt1 = (int)(0.37 * N1), nt2 = (int)(0.26 * N2); // choose some mode index to check
+    const int nt1 = 0.37 * N1;
+    const int nt2 = 0.26 * N2; // choose some mode index to check
+
     CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0, 0), J = IMA * (CUFINUFFT_FLT)iflag;
     for (int j = 0; j < M; ++j)
         Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
-    int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);         // index in complex F as 1d array
+    const int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);   // index in complex F as 1d array
     //	printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it]));
-    printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g\n", (int)nt1, (int)nt2, abs(Ft - fk[it]) / infnorm(N, fk));
+    const CUFINUFFT_FLT rel_error = abs(Ft - fk[it]) / infnorm(N, fk);
+    printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g\n", nt1, nt2, rel_error);
 
     cudaFreeHost(x);
     cudaFreeHost(y);
@@ -183,5 +173,5 @@ int main(int argc, char *argv[]) {
     cudaFree(d_y);
     cudaFree(d_c);
     cudaFree(d_fk);
-    return 0;
+    return rel_error > checktol;
 }

@@ -5,58 +5,40 @@
 #include <iostream>
 #include <random>
 
-#include <cufinufft_eitherprec.h>
 #include <cufinufft/utils.h>
+#include <cufinufft_eitherprec.h>
 using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[]) {
-    int N1, N2, M, N, ntransf, maxbatchsize;
-    if (argc < 4) {
+    if (argc != 9) {
         fprintf(stderr, "Usage: cufinufft2d1many_test method N1 N2 [ntransf [maxbatchsize [M [tol]]]]\n"
                         "Arguments:\n"
                         "  method: One of\n"
                         "    1: nupts driven,\n"
                         "    2: sub-problem, or\n"
-                        "    3: sub-problem with Paul's idea.\n"
+                        "    3: sub-problem with Paul's idea\n"
                         "  N1, N2: The size of the 2D array.\n"
-                        "  ntransf: Number of inputs (default 2 ^ 27 / (N1 * N2)).\n"
-                        "  maxbatchsize: Number of simultaneous transforms (or 0 for default).\n"
-                        "  M: The number of non-uniform points (default N1 * N2).\n"
-                        "  tol: NUFFT tolerance (default 1e-6).\n");
+                        "  ntransf: Number of inputs (default 2 ^ 27 / (N1 * N2))\n"
+                        "  maxbatchsize: Number of simultaneous transforms (or 0 for default)\n"
+                        "  M: The number of non-uniform points (default N1 * N2)\n"
+                        "  tol: NUFFT tolerance (default 1e-6).\n"
+                        "  checktol: relative error to pass test\n");
         return 1;
     }
-    double w;
-    int method;
-    sscanf(argv[1], "%d", &method);
-    sscanf(argv[2], "%lf", &w);
-    N1 = (int)w; // so can read 1e6 right!
-    sscanf(argv[3], "%lf", &w);
-    N2 = (int)w; // so can read 1e6 right!
-    N = N1 * N2;
-    M = N1 * N2 * 2; // let density always be 2
-    ntransf = pow(2, 28) / M;
-    if (argc > 4) {
-        sscanf(argv[4], "%d", &ntransf);
-    }
-    maxbatchsize = 0; // default (cufinufft chooses)
-    if (argc > 5) {
-        sscanf(argv[5], "%d", &maxbatchsize);
-    }
+    const int method = atoi(argv[1]);
+    const int N1 = atof(argv[2]);
+    const int N2 = atof(argv[3]);
+    const int ntransf = atof(argv[4]);
+    const int maxbatchsize = atoi(argv[5]);
+    const int M = atoi(argv[6]);
+    const CUFINUFFT_FLT tol = atof(argv[7]);
+    const CUFINUFFT_FLT checktol = atof(argv[8]);
 
-    if (argc > 6) {
-        sscanf(argv[6], "%lf", &w);
-        M = (int)w; // so can read 1e6 right!
-    }
-
-    CUFINUFFT_FLT tol = 1e-6;
-    if (argc > 7) {
-        sscanf(argv[7], "%lf", &w);
-        tol = (CUFINUFFT_FLT)w; // so can read 1e6 right!
-    }
-    int iflag = 1;
+    const int N = N1 * N2;
+    const int iflag = 1;
+    int ier;
 
     std::cout << std::scientific << std::setprecision(3);
-    int ier;
 
     printf("#modes = %d, #inputs = %d, #NUpts = %d\n", N, ntransf, M);
 
@@ -77,7 +59,7 @@ int main(int argc, char *argv[]) {
     std::default_random_engine eng(1);
     std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
     auto randm11 = [&eng, &dist11]() { return dist11(eng); };
-    
+
     // Making data
     for (int i = 0; i < M; i++) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)
@@ -182,10 +164,8 @@ int main(int argc, char *argv[]) {
     for (int j = 0; j < M; ++j)
         Ft += c[j + i * M] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
     int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);                 // index in complex F as 1d array
-    //	printf("[gpu   ] %dth data one mode: abs err in F[%ld,%ld] is %.3g\n",(int)i,
-    //(int)nt1,(int)nt2,abs(Ft-fk[it+i*N]));
-    printf("[gpu   ] %dth data one mode: rel err in F[%ld,%ld] is %.3g\n", (int)i, (int)nt1, (int)nt2,
-           abs(Ft - fk[it + i * N]) / infnorm(N, fk + i * N));
+    const CUFINUFFT_FLT rel_error = abs(Ft - fk[it + i * N]) / infnorm(N, fk + i * N);
+    printf("[gpu   ] %dth data one mode: rel err in F[%d,%d] is %.3g\n", i, nt1, nt2, rel_error);
 
     printf("[totaltime] %.3g us, speed %.3g NUpts/s\n", totaltime * 1000, M * ntransf / totaltime * 1000);
     printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M * ntransf / exec_ms * 1000);
@@ -194,5 +174,5 @@ int main(int argc, char *argv[]) {
     cudaFreeHost(y);
     cudaFreeHost(c);
     cudaFreeHost(fk);
-    return 0;
+    return rel_error > checktol;    
 }
