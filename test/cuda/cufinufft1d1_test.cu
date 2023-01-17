@@ -5,40 +5,29 @@
 #include <iostream>
 #include <random>
 
-#include <cufinufft_eitherprec.h>
 #include <cufinufft/utils.h>
+#include <cufinufft_eitherprec.h>
 using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[]) {
-    int N1, M, N;
-    if (argc < 3) {
-        fprintf(stderr, "Usage: cufinufft1d1_test method N1 [M [tol]]\n"
+    if (argc != 6) {
+        fprintf(stderr, "Usage: cufinufft1d1_test method N M tol checktol\n"
                         "Arguments:\n"
                         "  method: One of\n"
                         "    1: nupts driven, or\n"
                         "    2: sub-problem\n"
-                        "  N1: The size of the 1D array.\n"
-                        "  M: The number of non-uniform points (default N1).\n"
-                        "  tol: NUFFT tolerance (default 1e-6).\n");
+                        "  N: The size of the 1D array\n"
+                        "  M: The number of non-uniform points\n"
+                        "  tol: NUFFT tolerance.\n"
+                        "  checktol: relative error to pass test\n");
         return 1;
     }
-    double w;
-    int method;
-    sscanf(argv[1], "%d", &method);
-    sscanf(argv[2], "%lf", &w);
-    N1 = (int)w; // so can read 1e6 right!
-    N = N1;
-    M = N1; // let density always be 1
-    if (argc > 3) {
-        sscanf(argv[3], "%lf", &w);
-        M = (int)w; // so can read 1e6 right!
-    }
+    int method = atoi(argv[1]);
+    int N = atof(argv[2]);
+    int M = atof(argv[3]);
+    CUFINUFFT_FLT tol = atof(argv[4]);
+    CUFINUFFT_FLT checktol = atof(argv[5]);
 
-    CUFINUFFT_FLT tol = 1e-6;
-    if (argc > 4) {
-        sscanf(argv[4], "%lf", &w);
-        tol = (CUFINUFFT_FLT)w; // so can read 1e6 right!
-    }
     int iflag = 1;
 
     std::cout << std::scientific << std::setprecision(3);
@@ -48,13 +37,13 @@ int main(int argc, char *argv[]) {
     CUFINUFFT_CPX *c, *fk;
     cudaMallocHost(&x, M * sizeof(CUFINUFFT_FLT));
     cudaMallocHost(&c, M * sizeof(CUFINUFFT_CPX));
-    cudaMallocHost(&fk, N1 * sizeof(CUFINUFFT_CPX));
+    cudaMallocHost(&fk, N * sizeof(CUFINUFFT_CPX));
 
     CUFINUFFT_FLT *d_x;
     CUCPX *d_c, *d_fk;
     checkCudaErrors(cudaMalloc(&d_x, M * sizeof(CUFINUFFT_FLT)));
     checkCudaErrors(cudaMalloc(&d_c, M * sizeof(CUCPX)));
-    checkCudaErrors(cudaMalloc(&d_fk, N1 * sizeof(CUCPX)));
+    checkCudaErrors(cudaMalloc(&d_fk, N * sizeof(CUCPX)));
 
     std::default_random_engine eng(1);
     std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
@@ -106,7 +95,7 @@ int main(int argc, char *argv[]) {
     int nmodes[3];
     int ntransf = 1;
     int maxbatchsize = 1;
-    nmodes[0] = N1;
+    nmodes[0] = N;
     nmodes[1] = 1;
     nmodes[2] = 1;
     cudaEventRecord(start);
@@ -154,19 +143,20 @@ int main(int argc, char *argv[]) {
     totaltime += milliseconds;
     printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds / 1000);
 
-    checkCudaErrors(cudaMemcpy(fk, d_fk, N1 * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(fk, d_fk, N * sizeof(CUCPX), cudaMemcpyDeviceToHost));
 
-    printf("[Method %d] %d NU pts to %d U pts in %.3g s:      %.3g NU pts/s\n", opts.gpu_method, M, N1,
+    printf("[Method %d] %d NU pts to %d U pts in %.3g s:      %.3g NU pts/s\n", opts.gpu_method, M, N,
            totaltime / 1000, M / totaltime * 1000);
     printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
 
-    int nt1 = (int)(0.37 * N1); // choose some mode index to check
+    int nt1 = (int)(0.37 * N); // choose some mode index to check
     CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0, 0), J = IMA * (CUFINUFFT_FLT)iflag;
     for (int j = 0; j < M; ++j)
         Ft += c[j] * exp(J * (nt1 * x[j])); // crude direct
-    int it = N1 / 2 + nt1;                  // index in complex F as 1d array
-    //	printf("[gpu   ] one mode: abs err in F[%ld is %.3g\n",(int)nt1,abs(Ft-fk[it]));
-    printf("[gpu   ] one mode: rel err in F[%ld] is %.3g\n", (int)nt1, abs(Ft - fk[it]) / infnorm(N, fk));
+    int it = N / 2 + nt1;                  // index in complex F as 1d array
+
+    CUFINUFFT_FLT rel_error = abs(Ft - fk[it]) / infnorm(N, fk);
+    printf("[gpu   ] one mode: rel err in F[%ld] is %.3g\n", (long)nt1, rel_error);
 
     cudaFreeHost(x);
     cudaFreeHost(c);
@@ -174,5 +164,6 @@ int main(int argc, char *argv[]) {
     cudaFree(d_x);
     cudaFree(d_c);
     cudaFree(d_fk);
-    return 0;
+
+    return rel_error > checktol;
 }

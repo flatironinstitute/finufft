@@ -20,3 +20,19 @@ endforeach()
 
 configure_file(spreadperf.sh ${CMAKE_BINARY_DIR}/test/cuda/spreadperf.sh COPYONLY)
 configure_file(fseriesperf.sh ${CMAKE_BINARY_DIR}/test/cuda/fseriesperf.sh COPYONLY)
+
+function(add_tests REQ_TOL CHECK_TOL)
+  add_test(
+    NAME run_cufinufft1d1_test_nupts
+    COMMAND cufinufft1d1_test 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+
+  add_test(
+    NAME run_cufinufft1d1_test_sub_problem
+    COMMAND cufinufft1d1_test 2 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+
+  add_test(
+    NAME run_cufinufft1d2_test_nupts
+    COMMAND cufinufft1d2_test 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+endfunction()
+
+add_tests(1e-5 2e-4)
