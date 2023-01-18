@@ -27,7 +27,8 @@ pipeline {
       python3 -m pytest
     '''
     sh '''#!/bin/bash -ex
-      cd /io/build/test/cuda
+      cp -r /io/build/test/cuda cuda_tests
+      cd cuda_tests
       ctest
     '''
       }
