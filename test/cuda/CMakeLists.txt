@@ -23,16 +23,16 @@ configure_file(fseriesperf.sh ${CMAKE_BINARY_DIR}/test/cuda/fseriesperf.sh COPYO
 
 function(add_tests REQ_TOL CHECK_TOL)
   add_test(
-    NAME run_cufinufft1d1_test_nupts
-    COMMAND cufinufft1d1_test 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+    NAME run_cufinufft1d_test_nupts
+    COMMAND cufinufft1d_test 1 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME run_cufinufft1d1_test_subproblem
-    COMMAND cufinufft1d1_test 2 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+    NAME run_cufinufft1d_test_subproblem
+    COMMAND cufinufft1d_test 2 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME run_cufinufft1d2_test_nupts
-    COMMAND cufinufft1d2_test 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+    NAME run_cufinufft1d2_test
+    COMMAND cufinufft1d_test 1 2 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
     NAME run_cufinufft2d1_test_nupts
