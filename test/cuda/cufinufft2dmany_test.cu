@@ -118,10 +118,7 @@ int main(int argc, char *argv[]) {
     }
     opts.gpu_method = method;
 
-    int nmodes[3];
-    nmodes[0] = N1;
-    nmodes[1] = N2;
-    nmodes[2] = 1;
+    int nmodes[3] = {N1, N2, 1};
     cudaEventRecord(start);
     ier = CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, &opts);
     if (ier != 0) {
@@ -180,13 +177,11 @@ int main(int argc, char *argv[]) {
         rel_error = abs(Ft - fk[it + i * N]) / infnorm(N, fk + i * N);
         printf("[gpu   ] %dth data one mode: rel err in F[%d,%d] is %.3g\n", i, nt1, nt2, rel_error);
     } else if (type == 2) {
-        CUFINUFFT_CPX *fkstart;
-        CUFINUFFT_CPX *cstart;
-        int t = ntransf - 1;
-        fkstart = fk + t * N1 * N2;
-        cstart = c + t * M;
-        int jt = M / 2; // check arbitrary choice of one targ pt
-        CUFINUFFT_CPX J = IMA * (CUFINUFFT_FLT)iflag;
+        const int t = ntransf - 1;
+        CUFINUFFT_CPX *fkstart = fk + t * N1 * N2;
+        const CUFINUFFT_CPX *cstart = c + t * M;
+        const int jt = M / 2; // check arbitrary choice of one targ pt
+        const CUFINUFFT_CPX J = IMA * (CUFINUFFT_FLT)iflag;
         CUFINUFFT_CPX ct = CUFINUFFT_CPX(0, 0);
         int m = 0;
         for (int m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
