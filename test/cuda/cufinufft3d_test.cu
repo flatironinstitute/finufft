@@ -10,43 +10,34 @@
 using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[]) {
-    int N1, N2, N3, M, N;
-    if (argc < 4) {
-        fprintf(stderr, "Usage: cufinufft3d1_test method N1 N2 N3 [M [tol]]\n"
+
+    if (argc < 9) {
+        fprintf(stderr, "Usage: cufinufft3d1_test method type N1 N2 N3 M tol checktol\n"
                         "Arguments:\n"
                         "  method: One of\n"
                         "    1: nupts driven,\n"
                         "    2: sub-problem, or\n"
                         "    4: block gather.\n"
-                        "  N1, N2, N3: The size of the 3D array.\n"
-                        "  M: The number of non-uniform points (default N1 * N2 * N3).\n"
-                        "  tol: NUFFT tolerance (default 1e-6).\n");
+                        "  type: Type of transform (1, 2)"
+                        "  N1, N2, N3: The size of the 3D array\n"
+                        "  M: The number of non-uniform points\n"
+                        "  tol: NUFFT tolerance\n"
+                        "  checktol:  relative error to pass test\n");
         return 1;
     }
-    double w;
-    int method;
-    sscanf(argv[1], "%d", &method);
-    sscanf(argv[2], "%lf", &w);
-    N1 = (int)w; // so can read 1e6 right!
-    sscanf(argv[3], "%lf", &w);
-    N2 = (int)w; // so can read 1e6 right!
-    sscanf(argv[4], "%lf", &w);
-    N3 = (int)w; // so can read 1e6 right!
-
-    M = N1 * N2 * N3; // let density always be 1
-    if (argc > 5) {
-        sscanf(argv[5], "%lf", &w);
-        M = (int)w; // so can read 1e6 right!
-    }
-
-    CUFINUFFT_FLT tol = 1e-6;
-    if (argc > 6) {
-        sscanf(argv[6], "%lf", &w);
-        tol = (CUFINUFFT_FLT)w; // so can read 1e6 right!
-    }
-    int iflag = 1;
+    const int method = atoi(argv[1]);
+    const int type = atoi(argv[2]);
+    const int N1 = atof(argv[3]);
+    const int N2 = atof(argv[4]);
+    const int N3 = atof(argv[5]);
+    const int M = atof(argv[6]);
+    const int N = N1 * N2;
+    const CUFINUFFT_FLT tol = atof(argv[7]);
+    const CUFINUFFT_FLT checktol = atof(argv[8]);    
 
     std::cout << std::scientific << std::setprecision(3);
+
+    int iflag = 1;
     int ier;
 
     CUFINUFFT_FLT *x, *y, *z;
@@ -74,8 +65,21 @@ int main(int argc, char *argv[]) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)
         y[i] = M_PI * randm11();
         z[i] = M_PI * randm11();
-        c[i].real(randm11());
-        c[i].imag(randm11());
+    }
+    if (type == 1) {
+        for (int i = 0; i < M; i++) {
+            c[i].real(randm11());
+            c[i].imag(randm11());
+        }
+    }
+    else if (type == 2) {
+        for (int i = 0; i < N1 * N2 * N3; i++) {
+            fk[i].real(randm11());
+            fk[i].imag(randm11());
+        }
+    } else {
+        std::cerr << "Invalid type " << type << " supplied\n";
+        return 1;
     }
 
     checkCudaErrors(cudaMemcpy(d_x, x, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
@@ -104,7 +108,6 @@ int main(int argc, char *argv[]) {
     // now to the test...
     CUFINUFFT_PLAN dplan;
     int dim = 3;
-    int type = 1;
 
     // Here we setup our own opts, for gpu_method and gpu_kerevalmeth.
     cufinufft_opts opts;
@@ -116,12 +119,9 @@ int main(int argc, char *argv[]) {
     opts.gpu_method = method;
     opts.gpu_kerevalmeth = 1;
 
-    int nmodes[3];
+    int nmodes[3] = {N1, N2, N3};
     int ntransf = 1;
     int maxbatchsize = 1;
-    nmodes[0] = N1;
-    nmodes[1] = N2;
-    nmodes[2] = N3;
     cudaEventRecord(start);
     ier = CUFINUFFT_MAKEPLAN(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, &opts);
     if (ier != 0) {
@@ -169,20 +169,34 @@ int main(int argc, char *argv[]) {
 
     checkCudaErrors(cudaMemcpy(fk, d_fk, N1 * N2 * N3 * sizeof(CUCPX), cudaMemcpyDeviceToHost));
 
-    printf("[Method %d] %ld NU pts to %d U pts in %.3g s:\t%.3g NU pts/s\n", opts.gpu_method, M, N1 * N2 * N3,
+    printf("[Method %d] %d NU pts to %d U pts in %.3g s:\t%.3g NU pts/s\n", opts.gpu_method, M, N1 * N2 * N3,
            totaltime / 1000, M / totaltime * 1000);
     printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
 
-    int nt1 = (int)(0.37 * N1), nt2 = (int)(0.26 * N2), nt3 = (int)(0.13 * N3); // choose some mode index to check
-    CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0, 0), J = IMA * (CUFINUFFT_FLT)iflag;
-    for (int j = 0; j < M; ++j)
-        Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j]));       // crude direct
-    int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3); // index in complex F as 1d array
-    N = N1 * N2 * N3;
-    //	printf("[gpu   ] one mode: abs err in F[%ld,%ld,%ld] is %.3g\n",(int)nt1,
-    //		(int)nt2, (int)nt3, (abs(Ft-fk[it])));
-    printf("[gpu   ] one mode: rel err in F[%ld,%ld,%ld] is %.3g\n", (int)nt1, (int)nt2, (int)nt3,
-           abs(Ft - fk[it]) / infnorm(N, fk));
+    CUFINUFFT_FLT rel_error = std::numeric_limits<CUFINUFFT_FLT>::max();
+    if (type == 1) {
+        int nt1 = (int)(0.37 * N1), nt2 = (int)(0.26 * N2), nt3 = (int)(0.13 * N3); // choose some mode index to check
+        CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0, 0), J = IMA * (CUFINUFFT_FLT)iflag;
+        for (int j = 0; j < M; ++j)
+            Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j] + nt3 * z[j]));       // crude direct
+
+        int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2) + N1 * N2 * (N3 / 2 + nt3); // index in complex F as 1d array
+        rel_error = abs(Ft - fk[it]) / infnorm(N, fk);
+        printf("[gpu   ] one mode: rel err in F[%d,%d,%d] is %.3g\n", nt1, nt2, nt3, rel_error);
+    }
+    else if (type == 2) {
+        int jt = M / 2; // check arbitrary choice of one targ pt
+        CUFINUFFT_CPX J = IMA * (CUFINUFFT_FLT)iflag;
+        CUFINUFFT_CPX ct = CUFINUFFT_CPX(0, 0);
+        int m = 0;
+        for (int m3 = -(N3 / 2); m3 <= (N3 - 1) / 2; ++m3)     // loop in correct order over F
+            for (int m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
+                for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
+                    ct += fk[m++] * exp(J * (m1 * x[jt] + m2 * y[jt] + m3 * z[jt])); // crude direct
+
+        rel_error = abs(c[jt] - ct) / infnorm(M, c);
+        printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n", (int64_t)jt, rel_error);
+    }
 
     cudaFreeHost(x);
     cudaFreeHost(y);
@@ -195,5 +209,5 @@ int main(int argc, char *argv[]) {
     cudaFree(d_c);
     cudaFree(d_fk);
 
-    return 0;
+    return rel_error > checktol;
 }

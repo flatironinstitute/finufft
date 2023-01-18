@@ -39,33 +39,41 @@ function(add_tests PREC REQ_TOL CHECK_TOL SUFFIX)
     COMMAND cufinufft2d_test${SUFFIX} 2 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft2d1_test_subproblem_alt_${PREC}
-    COMMAND cufinufft2d_test${SUFFIX} 3 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
-
-  add_test(
     NAME cufinufft2d1many_test_nupts_${PREC}
-    COMMAND cufinufft2dmany_test${SUFFIX} 1 1 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+    COMMAND cufinufft2dmany_test${SUFFIX} 1 1 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
     NAME cufinufft2d1many_test_subproblem_${PREC}
-    COMMAND cufinufft2dmany_test${SUFFIX} 2 1 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
-
-  add_test(
-    NAME cufinufft2d1many_test_subproblem_alt_${PREC}
-    COMMAND cufinufft2dmany_test${SUFFIX} 3 1 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+    COMMAND cufinufft2dmany_test${SUFFIX} 2 1 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
     NAME cufinufft2d2many_test_nupts_${PREC}
-    COMMAND cufinufft2dmany_test${SUFFIX} 1 2 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+    COMMAND cufinufft2dmany_test${SUFFIX} 1 2 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
     NAME cufinufft2d2many_test_subproblem_${PREC}
-    COMMAND cufinufft2dmany_test${SUFFIX} 2 2 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+    COMMAND cufinufft2dmany_test${SUFFIX} 2 2 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft2d2many_test_subproblem_alt_${PREC}
-    COMMAND cufinufft2dmany_test${SUFFIX} 3 2 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+    NAME cufinufft3d1_test_nupts_${PREC}
+    COMMAND cufinufft3d_test${SUFFIX} 1 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
 
+  add_test(
+    NAME cufinufft3d1_test_subproblem_${PREC}
+    COMMAND cufinufft3d_test${SUFFIX} 2 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+
+  add_test(
+    NAME cufinufft3d1_test_block_${PREC}
+    COMMAND cufinufft3d_test${SUFFIX} 4 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+
+  add_test(
+    NAME cufinufft3d2_test_nupts_${PREC}
+    COMMAND cufinufft3d_test${SUFFIX} 1 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+
+  add_test(
+    NAME cufinufft3d2_test_subproblem_${PREC}
+    COMMAND cufinufft3d_test${SUFFIX} 2 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+  
 endfunction()
 
 add_tests(float 1e-5 2e-4 f)

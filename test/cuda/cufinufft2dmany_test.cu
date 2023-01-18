@@ -19,11 +19,11 @@ int main(int argc, char *argv[]) {
                         "    2: sub-problem, or\n"
                         "    3: sub-problem with Paul's idea\n"
                         "  type: Type of transform (1, 2)"
-                        "  N1, N2: The size of the 2D array.\n"
-                        "  ntransf: Number of inputs (default 2 ^ 27 / (N1 * N2))\n"
+                        "  N1, N2: The size of the 2D array\n"
+                        "  ntransf: Number of inputs\n"
                         "  maxbatchsize: Number of simultaneous transforms (or 0 for default)\n"
-                        "  M: The number of non-uniform points (default N1 * N2)\n"
-                        "  tol: NUFFT tolerance (default 1e-6).\n"
+                        "  M: The number of non-uniform points\n"
+                        "  tol: NUFFT tolerance\n"
                         "  checktol: relative error to pass test\n");
         return 1;
     }
