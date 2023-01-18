@@ -24,8 +24,8 @@ versions=("cp36-cp36m"
           "cp39-cp39"
           "cp310-cp310"
           "cp311-cp311"
-          "pp37-pypy37_pp73"
-          "pp38-pypy38_pp73")
+          "pp38-pypy38_pp73"
+          "pp39-pypy39_pp73")
 
 pys=()
 for version in "${versions[@]}"; do
