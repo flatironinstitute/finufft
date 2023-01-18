@@ -3,6 +3,7 @@
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <random>
 
 #include <cufinufft/utils.h>
@@ -10,13 +11,14 @@
 using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[]) {
-    if (argc != 7) {
+    if (argc != 8) {
         fprintf(stderr, "Usage: cufinufft2d1_test method N1 N2 M tol checktol\n"
                         "Arguments:\n"
                         "  method: One of\n"
                         "    1: nupts driven,\n"
                         "    2: sub-problem, or\n"
                         "    3: sub-problem with Paul's idea\n"
+                        "  type: Type of transform (1, 2)"
                         "  N1, N2: The size of the 2D array\n"
                         "  M: The number of non-uniform points\n"
                         "  tol: NUFFT tolerance\n"
@@ -24,12 +26,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     const int method = atoi(argv[1]);
-    const int N1 = atof(argv[2]);
-    const int N2 = atof(argv[3]);
-    const int M = atof(argv[4]);
+    const int type = atoi(argv[2]);
+    const int N1 = atof(argv[3]);
+    const int N2 = atof(argv[4]);
+    const int M = atof(argv[5]);
     const int N = N1 * N2;
-    const CUFINUFFT_FLT tol = atof(argv[5]);
-    const CUFINUFFT_FLT checktol = atof(argv[6]);
+    const CUFINUFFT_FLT tol = atof(argv[6]);
+    const CUFINUFFT_FLT checktol = atof(argv[7]);
     const int iflag = 1;
 
     std::cout << std::scientific << std::setprecision(3);
@@ -56,8 +59,20 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < M; i++) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)
         y[i] = M_PI * randm11();
-        c[i].real(randm11());
-        c[i].imag(randm11());
+    }
+    if (type == 1) {
+        for (int i = 0; i < M; i++) {
+            c[i].real(randm11());
+            c[i].imag(randm11());
+        }
+    } else if (type == 2) {
+        for (int i = 0; i < N1 * N2; i++) {
+            fk[i].real(randm11());
+            fk[i].imag(randm11());
+        }
+    } else {
+        std::cerr << "Invalid type " << type << " supplied\n";
+        return 1;
     }
 
     checkCudaErrors(cudaMemcpy(d_x, x, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
@@ -85,7 +100,6 @@ int main(int argc, char *argv[]) {
     // now to our tests...
     CUFINUFFT_PLAN dplan;
     const int dim = 2;
-    const int type = 1;
 
     // Here we setup our own opts, for gpu_method.
     cufinufft_opts opts;
@@ -154,17 +168,27 @@ int main(int argc, char *argv[]) {
            totaltime / 1000, M / totaltime * 1000);
     printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
 
-    const int nt1 = 0.37 * N1;
-    const int nt2 = 0.26 * N2; // choose some mode index to check
-
-    CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0, 0), J = IMA * (CUFINUFFT_FLT)iflag;
-    for (int j = 0; j < M; ++j)
-        Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
-    const int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);   // index in complex F as 1d array
-    //	printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it]));
-    const CUFINUFFT_FLT rel_error = abs(Ft - fk[it]) / infnorm(N, fk);
-    printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g\n", nt1, nt2, rel_error);
-
+    CUFINUFFT_FLT rel_error = std::numeric_limits<CUFINUFFT_FLT>::max();
+    if (type == 1) {
+        const int nt1 = 0.37 * N1;
+        const int nt2 = 0.26 * N2; // choose some mode index to check
+        CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0, 0), J = IMA * (CUFINUFFT_FLT)iflag;
+        for (int j = 0; j < M; ++j)
+            Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
+        const int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);   // index in complex F as 1d array
+        //	printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it]));
+        rel_error = abs(Ft - fk[it]) / infnorm(N, fk);
+        printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g\n", nt1, nt2, rel_error);
+    } else if (type == 2) {
+        int jt = M / 2; // check arbitrary choice of one targ pt
+        CUFINUFFT_CPX J = IMA * (CUFINUFFT_FLT)iflag;
+        CUFINUFFT_CPX ct = CUFINUFFT_CPX(0, 0);
+        int m = 0;
+        for (int m2 = -(N2 / 2); m2 <= (N2 - 1) / 2; ++m2) // loop in correct order over F
+            for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
+                ct += fk[m++] * exp(J * (m1 * x[jt] + m2 * y[jt])); // crude direct
+        printf("[gpu   ] one targ: rel err in c[%ld] is %.3g\n", (int64_t)jt, abs(c[jt] - ct) / infnorm(M, c));
+    }
     cudaFreeHost(x);
     cudaFreeHost(y);
     cudaFreeHost(c);
@@ -173,5 +197,6 @@ int main(int argc, char *argv[]) {
     cudaFree(d_y);
     cudaFree(d_c);
     cudaFree(d_fk);
+
     return rel_error > checktol;
 }
