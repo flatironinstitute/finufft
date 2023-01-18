@@ -73,10 +73,10 @@ RUN curl -fsSLO "http://www.fftw.org/fftw-3.3.10.tar.gz" \
     && tar -zxf fftw-3.3.10.tar.gz \
     && cd fftw-3.3.10 \
     && ./configure --enable-shared --enable-openmp --enable-threads \
-    && make \
+    && make -j4 \
     && make install \
     && ./configure --enable-shared --enable-single --enable-openmp --enable-threads \
-    && make \
+    && make -j4 \
     && make install
 
 # Okay, so now we can begin cufinufft
@@ -86,8 +86,8 @@ RUN curl -fsSLO "http://www.fftw.org/fftw-3.3.10.tar.gz" \
 COPY . /io
 RUN mkdir /io/build
 WORKDIR /io/build
-RUN cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES=50 ..
-RUN cmake --build .
+RUN cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES="50;70" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
+RUN make -j4
 # And we need to pack it in our LD path
 ENV LD_LIBRARY_PATH /io/build:${LD_LIBRARY_PATH}
 
