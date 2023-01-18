@@ -17,7 +17,7 @@ do
 	done
 done
 
-BIN=$BINDIR/fseries_kernel_test_32
+BIN=$BINDIR/fseries_kernel_testf
 echo "Single.............................................."
 for N in 1e2 5e2 1e3 2e3 5e3 1e4 5e4 1e5 5e5
 do

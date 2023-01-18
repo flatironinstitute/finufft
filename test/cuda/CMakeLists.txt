@@ -7,57 +7,54 @@ foreach(srcfile ${test_src})
   add_executable(${executable} ${srcfile})
   target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
   target_link_libraries(${executable} PUBLIC cufinufft)
-endforeach()
 
-foreach(basename spread1d_test spread2d_test spread3d_test interp1d_test interp2d_test interp3d_test fseries_kernel_test)
-  set(executable "${basename}_32")
-  set(srcfile "${basename}.cu")
-  add_executable(${executable} ${srcfile})
-  target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-  target_link_libraries(${executable} PUBLIC cufinufft)
-  target_compile_definitions(${executable} PUBLIC CUFINUFFT_SINGLE)
+  add_executable(${executable}f ${srcfile})
+  target_include_directories(${executable}f PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
+  target_link_libraries(${executable}f PUBLIC cufinufft)
+  target_compile_options(${executable}f PUBLIC PRIVATE -DCUFINUFFT_SINGLE)
 endforeach()
 
 configure_file(spreadperf.sh ${CMAKE_BINARY_DIR}/test/cuda/spreadperf.sh COPYONLY)
 configure_file(fseriesperf.sh ${CMAKE_BINARY_DIR}/test/cuda/fseriesperf.sh COPYONLY)
 
-function(add_tests REQ_TOL CHECK_TOL)
+function(add_tests PREC REQ_TOL CHECK_TOL SUFFIX)
   add_test(
-    NAME run_cufinufft1d_test_nupts
-    COMMAND cufinufft1d_test 1 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+    NAME cufinufft1d_test_nupts_${PREC}
+    COMMAND cufinufft1d_test${SUFFIX} 1 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME run_cufinufft1d_test_subproblem
-    COMMAND cufinufft1d_test 2 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+    NAME cufinufft1d_test_subproblem_${PREC}
+    COMMAND cufinufft1d_test${SUFFIX} 2 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME run_cufinufft1d2_test
-    COMMAND cufinufft1d_test 1 2 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
+    NAME cufinufft1d2_test_${PREC}
+    COMMAND cufinufft1d_test${SUFFIX} 1 2 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME run_cufinufft2d1_test_nupts
-    COMMAND cufinufft2d_test 1 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
+    NAME cufinufft2d1_test_nupts_${PREC}
+    COMMAND cufinufft2d_test${SUFFIX} 1 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME run_cufinufft2d1_test_subproblem
-    COMMAND cufinufft2d_test 2 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
+    NAME cufinufft2d1_test_subproblem_${PREC}
+    COMMAND cufinufft2d_test${SUFFIX} 2 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME run_cufinufft2d1_test_subproblem_alt
-    COMMAND cufinufft2d_test 3 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
+    NAME cufinufft2d1_test_subproblem_alt_${PREC}
+    COMMAND cufinufft2d_test${SUFFIX} 3 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   # add_test(
-  #   NAME run_cufinufft2d1many_test_nupts
+  #   NAME cufinufft2d1many_test_nupts
   #   COMMAND cufinufft2d1many_test 1 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   # add_test(
-  #   NAME run_cufinufft2d1many_test_subproblem
+  #   NAME cufinufft2d1many_test_subproblem
   #   COMMAND cufinufft2d1many_test 2 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   # add_test(
-  #   NAME run_cufinufft2d1many_test_subproblem_alt
+  #   NAME cufinufft2d1many_test_subproblem_alt
   #   COMMAND cufinufft2d1many_test 3 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
 endfunction()
 
-add_tests(1e-5 2e-4)
+add_tests(float 1e-5 2e-4 f)
+add_tests(double 1e-12 1e-11 "")
