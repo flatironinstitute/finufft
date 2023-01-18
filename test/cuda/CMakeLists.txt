@@ -42,17 +42,29 @@ function(add_tests PREC REQ_TOL CHECK_TOL SUFFIX)
     NAME cufinufft2d1_test_subproblem_alt_${PREC}
     COMMAND cufinufft2d_test${SUFFIX} 3 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
 
-  # add_test(
-  #   NAME cufinufft2d1many_test_nupts
-  #   COMMAND cufinufft2d1many_test 1 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+  add_test(
+    NAME cufinufft2d1many_test_nupts_${PREC}
+    COMMAND cufinufft2dmany_test${SUFFIX} 1 1 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
-  # add_test(
-  #   NAME cufinufft2d1many_test_subproblem
-  #   COMMAND cufinufft2d1many_test 2 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+  add_test(
+    NAME cufinufft2d1many_test_subproblem_${PREC}
+    COMMAND cufinufft2dmany_test${SUFFIX} 2 1 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
-  # add_test(
-  #   NAME cufinufft2d1many_test_subproblem_alt
-  #   COMMAND cufinufft2d1many_test 3 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+  add_test(
+    NAME cufinufft2d1many_test_subproblem_alt_${PREC}
+    COMMAND cufinufft2dmany_test${SUFFIX} 3 1 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+
+  add_test(
+    NAME cufinufft2d2many_test_nupts_${PREC}
+    COMMAND cufinufft2dmany_test${SUFFIX} 1 2 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+
+  add_test(
+    NAME cufinufft2d2many_test_subproblem_${PREC}
+    COMMAND cufinufft2dmany_test${SUFFIX} 2 2 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
+
+  add_test(
+    NAME cufinufft2d2many_test_subproblem_alt_${PREC}
+    COMMAND cufinufft2dmany_test${SUFFIX} 3 2 1e2 2e2 13421 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
 endfunction()
 
