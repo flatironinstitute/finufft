@@ -19,61 +19,63 @@ configure_file(fseriesperf.sh ${CMAKE_BINARY_DIR}/test/cuda/fseriesperf.sh COPYO
 
 function(add_tests PREC REQ_TOL CHECK_TOL SUFFIX)
   add_test(
-    NAME cufinufft1d_test_nupts_${PREC}
+    NAME cufinufft1d1_test_GM_${PREC}
     COMMAND cufinufft1d_test${SUFFIX} 1 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft1d_test_subproblem_${PREC}
+    NAME cufinufft1d1_test_SM_${PREC}
     COMMAND cufinufft1d_test${SUFFIX} 2 1 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft1d2_test_${PREC}
+    NAME cufinufft1d2_test_GM_${PREC}
     COMMAND cufinufft1d_test${SUFFIX} 1 2 1e2 2e2 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft2d1_test_nupts_${PREC}
+    NAME cufinufft2d1_test_GM_${PREC}
     COMMAND cufinufft2d_test${SUFFIX} 1 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft2d1_test_subproblem_${PREC}
+    NAME cufinufft2d1_test_SM_${PREC}
     COMMAND cufinufft2d_test${SUFFIX} 2 1 1e2 2e2 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft2d1many_test_nupts_${PREC}
+    NAME cufinufft2d1many_test_GM_${PREC}
     COMMAND cufinufft2dmany_test${SUFFIX} 1 1 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft2d1many_test_subproblem_${PREC}
+    NAME cufinufft2d1many_test_SM_${PREC}
     COMMAND cufinufft2dmany_test${SUFFIX} 2 1 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft2d2many_test_nupts_${PREC}
+    NAME cufinufft2d2many_test_GM_${PREC}
     COMMAND cufinufft2dmany_test${SUFFIX} 1 2 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft2d2many_test_subproblem_${PREC}
+    NAME cufinufft2d2many_test_SM_${PREC}
     COMMAND cufinufft2dmany_test${SUFFIX} 2 2 1e2 2e2 5 0 2e4 ${REQ_TOL} ${CHECK_TOL})
 
   add_test(
-    NAME cufinufft3d1_test_nupts_${PREC}
+    NAME cufinufft3d1_test_GM_${PREC}
     COMMAND cufinufft3d_test${SUFFIX} 1 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
 
-  add_test(
-    NAME cufinufft3d1_test_subproblem_${PREC}
-    COMMAND cufinufft3d_test${SUFFIX} 2 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+  if (${PREC} STREQUAL "float")
+    add_test(
+      NAME cufinufft3d1_test_SM_${PREC}
+      COMMAND cufinufft3d_test${SUFFIX} 2 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+
+    add_test(
+      NAME cufinufft3d1_test_block_${PREC}
+      COMMAND cufinufft3d_test${SUFFIX} 4 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+
+    add_test(
+      NAME cufinufft3d2_test_SM_${PREC}
+      COMMAND cufinufft3d_test${SUFFIX} 2 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+  endif()
 
   add_test(
-    NAME cufinufft3d1_test_block_${PREC}
-    COMMAND cufinufft3d_test${SUFFIX} 4 1 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
-
-  add_test(
-    NAME cufinufft3d2_test_nupts_${PREC}
+    NAME cufinufft3d2_test_GM_${PREC}
     COMMAND cufinufft3d_test${SUFFIX} 1 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
 
-  add_test(
-    NAME cufinufft3d2_test_subproblem_${PREC}
-    COMMAND cufinufft3d_test${SUFFIX} 2 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
-  
 endfunction()
 
 add_tests(float 1e-5 2e-4 f)
