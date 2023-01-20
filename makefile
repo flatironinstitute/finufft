@@ -195,7 +195,7 @@ endif
 
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
-EXAMPLES = $(basename $(wildcard examples/*.*))
+EXAMPLES = $(basename $(wildcard examples/*.c examples/*.cpp))
 # ...except only build threadsafe ones if user switch on (thus FFTW>=3.3.6):
 ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
   EXAMPLES := $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(EXAMPLES))
