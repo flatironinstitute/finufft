@@ -10,7 +10,7 @@ later Fortran features.
 Namely, we use f77, with two features from f90: dynamic allocation
 and derived types. The latter is only needed if options must be
 changed from default values.
-We also include, listed the bottom below, a "modern" f90 demo using a module.
+We also include, listed at the bottom below, a "modern" f90 demo using a module.
 
 Quick-start example
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -122,7 +122,7 @@ These routines and arguments are, in double-precision:
 .. code-block:: fortran
 
       include 'finufft.fh'
-!     or in F90 one may instead "use finufft_mod"
+ !    (or in F90 one may instead "use finufft_mod")
 
       integer ier,iflag,ntrans,type,dim
       integer*8 M,N1,N2,N3,Nk
