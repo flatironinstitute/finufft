@@ -21,10 +21,10 @@ CXX=clang++
 CC=clang
 
 # taken from makefile...
-CFLAGS   += -I include -I/usr/local/include
+CFLAGS   += -I include -I/usr/local/include -I/opt/homebrew/include
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS)
-LIBS += -L/usr/local/lib
+LIBS += -L/usr/local/lib -L/opt/homebrew/lib
 
 # Use MATLAB's shipped OpenMP (not gomp otherwise segfaults), with clang...
 MOMPFLAGS = -D_OPENMP
@@ -40,7 +40,7 @@ FFTWOMPSUFFIX=threads
 # MATLAB interface:
 # some of these will depend on your FFTW library location, but this is where
 # brew should put things...
-MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
+MFLAGS += -I/usr/local/include -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
 # should work, or edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 

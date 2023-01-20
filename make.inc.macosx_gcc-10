@@ -24,10 +24,10 @@ CFLAGS +=
 #CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
 
 # as in makefile, but with the brew /usr/local/ stuff...
-CFLAGS   += -I src -I/usr/local/include
+CFLAGS   += -I src -I/usr/local/include -I/opt/homebrew/include
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS)
-LIBS += -L/usr/local/lib
+LIBS += -L/usr/local/lib -L/opt/homebrew/lib
 
 # OpenMP with GCC on OSX needs following...
 OMPFLAGS = -fopenmp
@@ -37,7 +37,7 @@ FFTWOMPSUFFIX=threads
 
 # MATLAB interface:
 # some of these will depend on your FFTW library location...
-MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
+MFLAGS += -I/usr/local/include  -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
 # edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 # Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
