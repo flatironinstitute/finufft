@@ -26,7 +26,8 @@ Other significant code contributions by:
 * David Stein - python wrappers, finding "pi-1ULP" spreadcheck error
 * Vineet Bansal - py packaging
 * Garrett Wright - dual-precision build, py packaging, GPU version
-
+* Wenda Zhou - Cmake build, SIMD optims, suggested professionalizations
+  
 Testing, bug reports, helpful discussions:
 
 * Dan Fortunato - MATLAB setpts temp array bug and fix
@@ -42,8 +43,8 @@ Testing, bug reports, helpful discussions:
 * Jonas Krimmer - thread safety of FFTW, Windows makefile
 * Timo Heister - pass/fail numdiff testing ideas
 * Vladimir Rokhlin - piecewise polynomial approximation on complex boxes
-* Wenda Zhou - multiple optimizations and improvements
-
+* Reinhard Neder - fortran90 demo using finufft as module, OSX build
+  
 Logo design: `Sherry Choi <http://www.sherrychoi.com>`_ with input
 from Alex Barnett and Lucy Reading-Ikkanda.
   
