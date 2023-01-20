@@ -23,6 +23,8 @@ and also add them to github's Used By feature):
 
 #. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
 
+#. `DISCUS <https://github.com/tproffen/DiffuseCode>`_: Fraunhofer diffraction from atomic clusters, nanomaterials and powders, by Reinhard Neder and others.
+
 
 Other wrappers to (cu)FINUFFT
 ------------------------------
