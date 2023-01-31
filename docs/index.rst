@@ -19,6 +19,7 @@ Documentation contents
    :maxdepth: 3
 
    install
+   install_gpu
    dirs
    math
    cex           
