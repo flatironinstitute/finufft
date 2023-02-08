@@ -32,6 +32,7 @@ Documentation contents
    fortran          
    matlab
    python
+   python_gpu
    julia
    changelog
    devnotes
