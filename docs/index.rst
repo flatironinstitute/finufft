@@ -24,6 +24,7 @@ Documentation contents
    math
    cex           
    c
+   c_gpu
    opts
    error
    trouble
