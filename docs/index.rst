@@ -19,10 +19,12 @@ Documentation contents
    :maxdepth: 3
 
    install
+   install_gpu
    dirs
    math
    cex           
    c
+   c_gpu
    opts
    error
    trouble
@@ -30,6 +32,7 @@ Documentation contents
    fortran          
    matlab
    python
+   python_gpu
    julia
    changelog
    devnotes
