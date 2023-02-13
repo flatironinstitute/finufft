@@ -51,6 +51,8 @@ Note that these tests only checks if the compiled code executes – it does not 
 Python interface
 ----------------
 
+.. _install-python-gpu:
+
 In addition to the C interface, cuFINUFFT also comes with a Python interface. As mentioned above, this can be most easily installed by running ``pip install cufinufft``, but it can also be installed from source. The Python interface code is located in the ``cupython`` subdirectory, so to install it, you run
 
 .. code-block:: bash
