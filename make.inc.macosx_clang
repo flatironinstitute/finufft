@@ -23,14 +23,14 @@ CXX=clang++
 CC=clang
 
 # taken from makefile...
-CFLAGS   += -I include -I/usr/local/include
+CFLAGS   += -I include -I/usr/local/include -I/usr/local/opt/libomp/include -I/opt/homebrew/include
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS)
-LIBS += -L/usr/local/lib
+LIBS += -L/usr/local/lib -L/opt/homebrew/lib
 
 # OpenMP with clang needs following...
 OMPFLAGS = -Xpreprocessor -fopenmp
-OMPLIBS = -L/usr/local/lib -lomp
+OMPLIBS = -L/usr/local/lib -L/usr/local/opt/libomp/lib -lomp
 # since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
 
