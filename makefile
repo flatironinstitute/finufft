@@ -195,7 +195,7 @@ endif
 
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
-EXAMPLES = $(basename $(wildcard examples/*.*))
+EXAMPLES = $(basename $(wildcard examples/*.c examples/*.cpp))
 # ...except only build threadsafe ones if user switch on (thus FFTW>=3.3.6):
 ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
   EXAMPLES := $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(EXAMPLES))
@@ -333,22 +333,25 @@ perftest/manysmallprobs: perftest/manysmallprobs.cpp $(STATICLIB)
 FD = fortran/directft
 # CMCL NUFFT fortran test codes (only needed by the nufft*_demo* codes)
 CMCLOBJS = $(FD)/dirft1d.o $(FD)/dirft2d.o $(FD)/dirft3d.o $(FD)/dirft1df.o $(FD)/dirft2df.o $(FD)/dirft3df.o $(FD)/prini.o
+# build examples list...
 FE_DIR = fortran/examples
-FE64 = $(FE_DIR)/simple1d1 $(FE_DIR)/guru1d1 $(FE_DIR)/nufft1d_demo $(FE_DIR)/nufft2d_demo $(FE_DIR)/nufft3d_demo $(FE_DIR)/nufft2dmany_demo
-FE32 = $(FE64:%=%f)
-# all the fortran examples...
+FE64 = $(FE_DIR)/simple1d1 $(FE_DIR)/simple1d1_f90 $(FE_DIR)/guru1d1 $(FE_DIR)/nufft1d_demo $(FE_DIR)/nufft2d_demo $(FE_DIR)/nufft3d_demo $(FE_DIR)/nufft2dmany_demo
+# add the "f" single-prec suffix to all examples except the f90 one...
+FE32 := $(filter-out %/simple1d1_f90f, $(FE64:%=%f))
+# list of all fortran examples
 FE = $(FE64) $(FE32)
 
-# fortran target pattern match
+# fortran target pattern match (no longer runs executables)
 $(FE_DIR)/%: $(FE_DIR)/%.f $(CMCLOBJS) $(DYNLIB)
 	$(FC) $(FFLAGS) ${LDFLAGS} $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
-	./$@
 $(FE_DIR)/%f: $(FE_DIR)/%f.f $(CMCLOBJS) $(DYNLIB)
 	$(FC) $(FFLAGS) ${LDFLAGS} $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
-	./$@
+# fortran90 lone demo
+$(FE_DIR)/simple1d1_f90: $(FE_DIR)/simple1d1.f90 include/finufft_mod.f90 $(CMCLOBJS) $(DYNLIB)
+	$(FC) $(FFLAGS) ${LDFLAGS} include/finufft_mod.f90 $< $(CMCLOBJS) $(ABSDYNLIB) $(FLINK) -o $@
 
 fortran: $(FE)
-# task always runs them (note escaped $ to pass to bash)...
+# this task runs them (note escaped $ to pass to bash)...
 	for i in $(FE); do echo $$i...; ./$$i; done
 	@echo "Done running: $(FE)"
 

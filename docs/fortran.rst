@@ -10,6 +10,7 @@ later Fortran features.
 Namely, we use f77, with two features from f90: dynamic allocation
 and derived types. The latter is only needed if options must be
 changed from default values.
+We also include, listed at the bottom below, a "modern" f90 demo using a module.
 
 Quick-start example
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -121,6 +122,7 @@ These routines and arguments are, in double-precision:
 .. code-block:: fortran
 
       include 'finufft.fh'
+ !    (or in F90 one may instead "use finufft_mod")
 
       integer ier,iflag,ntrans,type,dim
       integer*8 M,N1,N2,N3,Nk
@@ -168,7 +170,7 @@ Code examples
 ~~~~~~~~~~~~~
 
 The ``fortran/examples`` directory contains the following demos,
-in both precisions.
+mostly in both precisions.
 Each has a math test to check the correctness of some or all outputs::
 
   simple1d1.f        - 1D type 1, simple interface, default and various opts
@@ -177,9 +179,11 @@ Each has a math test to check the correctness of some or all outputs::
   nufft2d_demo.f     - 2D "
   nufft3d_demo.f     - 3D "
   nufft2dmany_demo.f - 2D types 1,2,3, vectorized (many strengths) interface
-  
+  simple1d1.f90      - modern Fortran90 version of simple1d1 using module
+
 These are the double-precision file names; the single precision have a
-suffix ``f`` before the ``.f``.
+suffix ``f`` before the ``.f`` (apart from the f90 which has no single-precision
+version).
 The last four here are modified from demos in the
 `CMCL NUFFT libraries <http://www.cims.nyu.edu/cmcl/nufft/nufft.html>`_.
 The first three of these have been changed only to use FINUFFT.

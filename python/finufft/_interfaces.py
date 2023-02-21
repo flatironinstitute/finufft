@@ -147,7 +147,11 @@ class Plan:
         self.dim = dim
         self.n_modes = n_modes
         self.n_trans = n_trans
-        self.is_single = is_single
+
+        if is_single:
+            self.dtype = np.dtype("complex64")
+        else:
+            self.dtype = np.dtype("complex128")
 
 
     ### setpts
@@ -178,22 +182,15 @@ class Plan:
             u       (float[N], optional): third coordinate of the nonuniform
                     points (target for type 3).
         """
-        if self.is_single:
-            # array sanity check
-            self._xj = _rchkf(x)
-            self._yj = _rchkf(y)
-            self._zj = _rchkf(z)
-            self._s = _rchkf(s)
-            self._t = _rchkf(t)
-            self._u = _rchkf(u)
-        else:
-            # array sanity check
-            self._xj = _rchk(x)
-            self._yj = _rchk(y)
-            self._zj = _rchk(z)
-            self._s = _rchk(s)
-            self._t = _rchk(t)
-            self._u = _rchk(u)
+
+        real_dtype = _get_real_dtype(self.dtype)
+
+        self._xj = _ensure_array_type(x, "x", real_dtype)
+        self._yj = _ensure_array_type(y, "y", real_dtype)
+        self._zj = _ensure_array_type(z, "z", real_dtype)
+        self._s = _ensure_array_type(s, "s", real_dtype)
+        self._t = _ensure_array_type(t, "t", real_dtype)
+        self._u = _ensure_array_type(u, "u", real_dtype)
 
         # valid sizes
         dim = self.dim
@@ -234,12 +231,9 @@ class Plan:
         Returns:
             complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
         """
-        if self.is_single:
-            _data = _cchkf(data)
-            _out = _cchkf(out)
-        else:
-            _data = _cchk(data)
-            _out = _cchk(out)
+
+        _data = _ensure_array_type(data, "data", self.dtype)
+        _out = _ensure_array_type(out, "out", self.dtype, output=True)
 
         tp = self.type
         n_trans = self.n_trans
@@ -269,16 +263,12 @@ class Plan:
 
         # allocate out if None
         if out is None:
-            if self.is_single:
-                pdtype=np.complex64
-            else:
-                pdtype=np.complex128
             if tp==1:
-                _out = np.squeeze(np.zeros([n_trans, mu, mt, ms], dtype=pdtype, order='C'))
+                _out = np.squeeze(np.zeros([n_trans, mu, mt, ms], dtype=self.dtype, order='C'))
             if tp==2:
-                _out = np.squeeze(np.zeros([n_trans, nj], dtype=pdtype, order='C'))
+                _out = np.squeeze(np.zeros([n_trans, nj], dtype=self.dtype, order='C'))
             if tp==3:
-                _out = np.squeeze(np.zeros([n_trans, nk], dtype=pdtype, order='C'))
+                _out = np.squeeze(np.zeros([n_trans, nk], dtype=self.dtype, order='C'))
 
         # call execute based on type and precision type
         if tp==1 or tp==3:
@@ -310,60 +300,34 @@ class Plan:
 ### End of Plan class definition
 
 
+def _get_real_dtype(dtype):
+    return np.array(0, dtype=dtype).real.dtype
+
+
+def _ensure_array_type(x, name, dtype, output=False):
+    if x is None:
+        return np.array(0, dtype=dtype, order="C")
+
+    if x.dtype != dtype:
+        raise TypeError(f"Argument `{name}` does not have the correct dtype: {x.dtype} was given, but {dtype} was expected.")
+
+    if not output:
+        reqs = ["C"]
+    else:
+        reqs = ["C", "W"]
+
+    for prop in reqs:
+        if not x.flags[prop]:
+            if output:
+                raise TypeError(f"Argument `{name}` does not satisfy the following requirement: {prop}")
+            else:
+                warnings.warn(f"Argument `{name}` does not satisfy the following requirement: {prop}. Copying array (this may reduce performance)")
+                x = np.array(x, dtype=dtype, order="C")
+
+    return x
+
 
 ### David Stein's functions for checking input and output variables
-def _rchk(x):
-    """
-    Check if array x is of the appropriate type
-    (float64, C-contiguous in memory)
-    If not, produce a copy
-    """
-    if x is not None and x.dtype is not np.dtype('float64'):
-        raise RuntimeError('FINUFFT data type must be float64 for double precision, data may have mixed precision types')
-    if x is not None and x.flags['C_CONTIGUOUS']:
-        return x
-    else:
-        return np.array(x, dtype=np.float64, order='C')
-def _cchk(x):
-    """
-    Check if array x is of the appropriate type
-    (complex128, C-contiguous in memory)
-    If not, produce a copy
-
-    Will raise if provided a real input array.
-    """
-    if x is not None and x.dtype is not np.dtype('complex128'):
-        raise RuntimeError('FINUFFT data type must be complex128 for double precision, data may have mixed precision types')
-    if x is not None and x.flags['C_CONTIGUOUS']:
-        return x
-    else:
-        return np.array(x, dtype=np.complex128, order='C')
-def _rchkf(x):
-    """
-    Check if array x is of the appropriate type
-    (float32, C-contiguous in memory)
-    If not, produce a copy
-    """
-    if x is not None and x.dtype is not np.dtype('float32'):
-        raise RuntimeError('FINUFFT data type must be float32 for single precision, data may have mixed precision types')
-    if x is not None and x.flags['C_CONTIGUOUS']:
-        return x
-    else:
-        return np.array(x, dtype=np.float32, order='C')
-def _cchkf(x):
-    """
-    Check if array x is of the appropriate type
-    (complex64, C-contiguous in memory)
-    If not, produce a copy
-
-    Will raise if provided a real input array.
-    """
-    if x is not None and x.dtype is not np.dtype('complex64'):
-        raise RuntimeError('FINUFFT data type must be complex64 for single precision, data may have mixed precision types')
-    if x is not None and x.flags['C_CONTIGUOUS']:
-        return x
-    else:
-        return np.array(x, dtype=np.complex64, order='C')
 def _copy(_x, x):
     """
     Copy _x to x, only if the underlying data of _x differs from that of x

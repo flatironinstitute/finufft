@@ -4,10 +4,13 @@
 # fortran interfaces, use make.inc.macosx_gcc-* instead.
 #
 # Copy this file to make.inc, and if needed edit for your setup.
-# Barnett 10/3/20
+#
+# ARM64 + MATLAB R2022b-beta specific native-arm64 binary,
+# overrides version thanks to Wallace Chen, 12/3/22.
+# See: https://github.com/flatironinstitute/finufft/issues/246
 
 # compile flags for use with clang: (note absence of -march, etc)
-CFLAGS = -O3
+CFLAGS = -O3 -arch arm64
 
 # If you're getting warning messages of the form:
 #    ld: warning: object file (lib-static/libfinufft.a(finufft1d.o)) was built for
@@ -29,11 +32,11 @@ LIBS += -L/usr/local/lib -L/opt/homebrew/lib
 # Use MATLAB's shipped OpenMP (not gomp otherwise segfaults), with clang...
 MOMPFLAGS = -D_OPENMP
 OMPFLAGS = -Xpreprocessor -fopenmp
-OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib
+OMPLIBS = $(shell ls -d /Applications/MATLAB_R2022b_Beta.app)/toolbox/eml/externalDependency/omp/maca64/lib/libomp.dylib
 # on mac os with clang compiler, matlab mex should use iomp as omp implementation
 # we need to use -Wl,-rpath to add iomp lib directory to the runtime library search path
 # add iomp runtime search path to linker flags
-LDFLAGS += -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/
+LDFLAGS += -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R2022b_Beta.app)/toolbox/eml/externalDependency/omp/maca64/lib/
 # since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
 
@@ -42,6 +45,12 @@ FFTWOMPSUFFIX=threads
 # brew should put things...
 MFLAGS += -I/usr/local/include -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
 # should work, or edit for your MATLAB version location...
-MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
+MEX = $(shell ls -d /Applications/MATLAB_R2022b_Beta.app)/bin/mex
 
 # Also see docs/install.rst or github Issues, for possible edits to MATLAB's MEX XML file.
+
+# extras by Wallace Chen:
+LDFLAGS += -L/opt/homebrew/opt/libomp/lib
+CXXFLAGS += -I/opt/homebrew/opt/libomp/include
+LDFLAGS += -L/opt/homebrew/opt/fftw/lib
+CXXFLAGS += -I/opt/homebrew/opt/fftw/include
