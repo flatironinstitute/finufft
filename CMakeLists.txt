@@ -11,15 +11,23 @@ endif ()
 
 include(CTest)
 
-option(FINUFFT_ARCH_FLAGS "Compiler flags for specifying target architecture." -march=native)
-option(FINUFFT_FFTW_SUFFIX "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)" OpenMP)
+set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifying target architecture.")
+set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
+set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
+
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
 option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
 option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples" OFF)
 option(FINUFFT_BUILD_MATLAB "Whether to build the FINUFFT Matlab interface" OFF)
-option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." ON)
+option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective or Debug configuration." ON)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
-option(FINUFFT_FFTW_LIBRARIES "Specify a custom FFTW library" DEFAULT)
+
+
+set(CPM_DOWNLOAD_VERSION 0.37.0)
+include(cmake/setupCPM.cmake)
+
+set(FFTW_VERSION 3.3.10)
+include(cmake/setupFFTW.cmake)
 
 if (FINUFFT_BUILD_MATLAB)
     # When building for matlab, we will fetch the OpenMP library used by matlab
@@ -45,70 +53,6 @@ else ()
     endif ()
 endif ()
 
-# Find required packages
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-if (NOT FINUFFT_FFTW_LIBRARIES STREQUAL DEFAULT)
-    find_package(FFTW)
-    if (NOT FFTW_FOUND)
-        # USING CPM TO HANDLE DEPENDENCIES
-        set(CPM_DOWNLOAD_VERSION 0.34.0)
-        if (CPM_SOURCE_CACHE)
-            set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-        elseif (DEFINED ENV{CPM_SOURCE_CACHE})
-            set(CPM_DOWNLOAD_LOCATION "$ENV{CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-        else ()
-            set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
-        endif ()
-
-        if (NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
-            message(STATUS "Downloading CPM.cmake to ${CPM_DOWNLOAD_LOCATION}")
-            file(DOWNLOAD
-                    https://github.com/TheLartians/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
-                    ${CPM_DOWNLOAD_LOCATION}
-                    )
-        endif ()
-
-        include(${CPM_DOWNLOAD_LOCATION})
-
-        set(FFTW_VERSION 3.3.10)
-        if (FINUFFT_FFTW_SUFFIX STREQUAL THREADS)
-            set(FINUFFT_USE_THREADS ON)
-        else ()
-            set(FINUFFT_USE_THREADS OFF)
-        endif ()
-        CPMAddPackage(
-                NAME fftw3
-                OPTIONS "ENABLE_AVX2 ON" "BUILD_TESTS OFF" "BUILD_SHARED_LIBS OFF" "ENABLE_THREADS ${FINUFFT_USE_THREADS}" "ENABLE_OPENMP ${FINUFFT_USE_OPENMP}"
-                URL "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
-                URL_HASH "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
-                EXCLUDE_FROM_ALL YES
-                GIT_SHALLOW YES
-        )
-
-        CPMAddPackage(
-                NAME fftw3f
-                OPTIONS "ENABLE_AVX2 ON" "BUILD_TESTS OFF" "BUILD_SHARED_LIBS OFF" "ENABLE_FLOAT ON" "ENABLE_THREADS ${FINUFFT_USE_THREADS}" "ENABLE_OPENMP ${FINUFFT_USE_OPENMP}"
-                URL "http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz"
-                URL_HASH "MD5=8ccbf6a5ea78a16dbc3e1306e234cc5c"
-                EXCLUDE_FROM_ALL YES
-                GIT_SHALLOW YES
-        )
-        set(FINUFFT_FFTW_LIBRARIES fftw3 fftw3f)
-        if (FINUFFT_USE_THREADS)
-            list(APPEND FINUFFT_FFTW_LIBRARIES fftw3_threads fftw3f_threads)
-        elseif (FINUFFT_USE_OPENMP)
-            list(APPEND FINUFFT_FFTW_LIBRARIES fftw3_omp fftw3f_omp)
-        endif ()
-
-        foreach (element IN LISTS FINUFFT_FFTW_LIBRARIES)
-            set_property(TARGET ${element} PROPERTY POSITION_INDEPENDENT_CODE ON)
-        endforeach ()
-
-    else ()
-        set(FINUFFT_FFTW_LIBRARIES "FFTW::Float" "FFTW::Double" "FFTW::Float${FINUFFT_FFTW_SUFFIX}" "FFTW::Double${FINUFFT_FFTW_SUFFIX}")
-    endif ()
-endif ()
 # This set of sources is compiled twice, once in single precision and once in double precision
 # The single precision compilation is done with -DSINGLE
 set(FINUFFT_PRECISION_DEPENDENT_SOURCES src/finufft.cpp src/simpleinterfaces.cpp src/spreadinterp.cpp src/utils.cpp fortran/finufftfort.cpp)
@@ -150,15 +94,11 @@ function(set_finufft_options target)
             target_compile_options(${target} PRIVATE "-Wno-unknown-pragmas")
         endif ()
     endif ()
-    if (NOT FFTW_FOUND)
-        target_include_directories(${target} PRIVATE ${fftw3_SOURCE_DIR}/api)
-
-    endif()
 endfunction()
 
 # Main finufft libraries
 add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
-target_compile_definitions(finufft_f32 PRIVATE SINGLE)
+target_compile_definitions(finufft_f32 PRIVATE -DSINGLE=1)
 set_finufft_options(finufft_f32)
 target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 
