@@ -35,7 +35,7 @@ done
 # build wheel
 for pybin in "${pys[@]}"; do
     "${pybin}/pip" install --upgrade pip
-    "${pybin}/pip" install auditwheel wheel twine numpy
+    "${pybin}/pip" install auditwheel wheel numpy
     "${pybin}/pip" wheel ./python -w python/wheelhouse
 done
 
