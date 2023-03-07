@@ -79,12 +79,9 @@ ifneq ($(OMP),OFF)
   MFLAGS += $(MOMPFLAGS) -DR2008OO
   OFLAGS += $(OOMPFLAGS) -DR2008OO
   LIBS += $(OMPLIBS)
-  ifneq ($(MINGW),ON)
-    ifneq ($(MSYS),ON)
+
 # omp override for total list of math and FFTW libs (now both precisions)...
-      LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
-    endif
-  endif
+  LIBSFFT := -l$(FFTWNAME) -l$(FFTWNAME)_$(FFTWOMPSUFFIX) -l$(FFTWNAME)f -l$(FFTWNAME)f_$(FFTWOMPSUFFIX) $(LIBS)
 endif
 
 # name & location of library we're building...
