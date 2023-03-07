@@ -88,6 +88,11 @@ function(set_finufft_options target)
     target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
     if (FINUFFT_USE_OPENMP)
         target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
+        # there are issues on windows with OpenMP and CMake, so we need to manually add the flags
+        # otherwise there are link errors
+        if(WIN32)
+            target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
+        endif()
     else ()
         if (CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_GNU_LIKE_COMPILERS)
             # OpenMP disabled, suppress unknown pragma warnings to avoid spam.
@@ -120,12 +125,20 @@ target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 
 add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
 set_finufft_options(finufft)
-target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64 m)
+target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
+# windows does not have a math library, so we need to exclude it
+if(NOT WIN32)
+    target_link_libraries(finufft PUBLIC m)
+endif()
 target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
 set_finufft_options(finufft)
-target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64 m)
+target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
+# windows does not have a math library, so we need to exclude it
+if(NOT WIN32)
+    target_link_libraries(finufft_static PUBLIC m)
+endif()
 target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # Add tests defined in their own directory
