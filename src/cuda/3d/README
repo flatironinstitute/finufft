@@ -1,0 +1,16 @@
+- cufinufft3d.cu
+  This file contains the execution functions for 3d type1,2 that are called in ../cufinufft.cu
+
+- spreadinterp3d.cu
+  This file contains all the GPU kernels for 3d spreading, interpolation.
+
+- interp3d_wrapper.cu
+  Wrappers for 3d interpolations. Two methods are implemented: 
+    (1) nonuniform driven, 
+    (2) subproblem
+    
+- spread3d_wrapper.cu
+  Wrappers for 3d spreading. Three methods are implemented: 
+    (1) nonuniform points driven, 
+    (2) subproblem, 
+    (4) block gather 

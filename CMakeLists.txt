@@ -3,11 +3,11 @@ cmake_minimum_required(VERSION 3.19)
 project(finufft VERSION 2.1.0 LANGUAGES C CXX)
 
 set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
-if (CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
+if(CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     # Set custom compiler flags for gcc-compatible compilers
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -funroll-loops")
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG -funroll-loops")
-endif ()
+endif()
 
 include(CTest)
 
@@ -21,7 +21,7 @@ option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples" OFF
 option(FINUFFT_BUILD_MATLAB "Whether to build the FINUFFT Matlab interface" OFF)
 option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective or Debug configuration." ON)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
-
+option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 
 set(CPM_DOWNLOAD_VERSION 0.38.0)
 include(cmake/setupCPM.cmake)
@@ -127,6 +127,17 @@ add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_
 set_finufft_options(finufft)
 target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64 m)
 target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+if(FINUFFT_USE_CUDA)
+  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    message("FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to '60;70;75;'")
+    message("See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply.")
+    set(CMAKE_CUDA_ARCHITECTURES "60;70;75" CACHE STRING "" FORCE)
+  endif()
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+  add_subdirectory(src/cuda)
+endif()
 
 # Add tests defined in their own directory
 if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
