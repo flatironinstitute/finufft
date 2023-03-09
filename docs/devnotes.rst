@@ -7,6 +7,7 @@ Developer notes
 
 * To update the version number, this needs to be done by hand in the following places:
 
+  - ``CMakeLists.txt`` for cmake
   - ``docs/conf.py`` for sphinx
   - ``python/setup.py`` for the python pkg version
   - ``python/finufft/__init__.py``
