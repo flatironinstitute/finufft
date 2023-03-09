@@ -4,13 +4,58 @@ Installation
 ============
 
 .. note::
-   
-   If the below instructions fail in any operating system, try the relevant version of our `precompiled linux, OSX, and Windows binaries <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_, place it (or them) in your linking path, and try ``make test``. We will be adding to these as needed; please email us to contribute or request one.
+
+   We are transitioning to a modern CMake build system, for easier compilation on a variety of platforms. We will in the coming months stop supporting the GNU ``makefile`` route, although it is still explained in detail below, after the following CMake instructions. If neither of those work for you, try the (old and even less supported) relevant `precompiled linux, OSX, and Windows binary <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_, place it (or them) in your linking path, and try ``make test``.
 
 .. note::
 
    Python-only users can simply install via ``pip install finufft`` which downloads a generic binary from PyPI. Only if you prefer a custom compilation, see :ref:`below<install-python>`.
 
+
+CMake Based Installation
+------------------------
+
+These instructions are in draft form.
+Make sure you have ``cmake`` version at least 3.19.
+The basic quick download, building, and test is then:
+
+.. code-block:: bash
+
+  git clone https://github.com/flatironinstitute/finufft.git
+  cd finufft
+  mkdir build
+  cd build
+  cmake .. -DFINUFFT_BUILD_TESTS=ON
+  cmake --build . -j
+  ctest
+  
+In ``build``, this creates ``libfinufft_static.a`` and ``libfinufft.so``, and runs a test that should take a few seconds and report ``100% tests passed, 0 tests failed out of 17``.
+To use the library, link against either the static or dynamic library in ``build``, for now.
+
+Here are all our build options, pulled from the ``CMakeLists.txt`` file:
+
+.. literalinclude:: ../CMakeLists.txt
+   :start-after: @cmake_opts_start
+   :end-before: @cmake_opts_end
+ 
+
+For convenience we also provide a number of `cmake presets <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
+for various options and compilers, in ``CMakePresets.json`` (this will grow to replace the old ``make.inc.*`` site files).
+For example, to configure, build and test the development preset (which builds tests and examples), from ``build`` do:
+
+.. code-block:: bash
+
+  cmake --preset dev ..
+  cmake --build . -j
+  ctest
+
+From other CMake projects, to use ``finufft`` as a library, simply add this repository as a subdirectory using
+``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
+
+
+Old GNU make based route
+========================
+   
 Below we deal with the three standard OSes in order: 1) **linux**, 2) **Mac OSX**, 3) **Windows**.
 We have some users contributing settings for other OSes, for instance
 PowerPC. The general procedure to download, then compile for such a special setup is, illustrating with the PowerPC case::
@@ -50,30 +95,6 @@ please look in ``examples/``, ``test/``, and the rest of this manual,
 for examples of how to call and link to the library.
 Type ``make`` to see a list of other aspects the user can build
 (examples, language interfaces, etc).
-
-CMake Installation
-------------------
-
-We additionally support a CMake-based installation for those who prefer.
-
-.. code-block:: bash
-
-  mkdir build
-  cd build
-  cmake .. 
-  cmake --build .
-
-To use ``finufft`` as a library, simply add this repository as a subdirectory using
-``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
-Additionally, we provide a number of `cmake presets <https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html>`_
-for setting flags on various compilers.
-For example, to configure, build and test the development preset, you may run:
-
-.. code-block:: bash
-  cmake --preset dev
-  cmake --build --preset dev
-  ctest --preset dev
-
 
 Dependencies
 ------------

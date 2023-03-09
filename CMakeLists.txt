@@ -15,13 +15,16 @@ set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifyi
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 
+# All options go here
+# sphinx tag (don't remove): @cmake_opts_start
 option(FINUFFT_BUILD_EXAMPLES "Whether to build the FINUFFT examples" OFF)
 option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
 option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples" OFF)
 option(FINUFFT_BUILD_MATLAB "Whether to build the FINUFFT Matlab interface" OFF)
-option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective or Debug configuration." ON)
+option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." ON)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
+# sphinx tag (don't remove): @cmake_opts_end
 
 set(CPM_DOWNLOAD_VERSION 0.38.0)
 include(cmake/setupCPM.cmake)
