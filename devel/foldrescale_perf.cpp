@@ -4,7 +4,8 @@
 
    Compile with, eg on linux, double-prec:
 
-   g++-7 -O3 -funroll-loops -march=native -I../include foldrescale_perf.cpp -o foldrescale_perf
+   g++ -O3 -funroll-loops -march=native -I../include foldrescale_perf.cpp -o foldrescale_perf
+
    Use -DSINGLE for single-prec
 
    Usage:
@@ -19,7 +20,7 @@
    Barnett 7/15/20
 */
 
-#include "defs.h"
+#include "finufft/defs.h"
 #include <math.h>
 #include <stdio.h>
 // let's try the "modern" C++ way to time... yuk...

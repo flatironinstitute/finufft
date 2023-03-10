@@ -25,16 +25,17 @@ The basic quick download, building, and test is then:
   cd finufft
   mkdir build
   cd build
-  cmake .. -DFINUFFT_BUILD_TESTS=ON
+  cmake .. -D FINUFFT_BUILD_TESTS=ON
   cmake --build . -j
   ctest
   
 In ``build``, this creates ``libfinufft_static.a`` and ``libfinufft.so``, and runs a test that should take a few seconds and report ``100% tests passed, 0 tests failed out of 17``.
 To use the library, link against either the static or dynamic library in ``build``, for now.
 
-Here are all our build options, pulled from the ``CMakeLists.txt`` file:
+Here are all our build options, showing name, explanatory text, and default value, straight from the ``CMakeLists.txt`` file:
 
 .. literalinclude:: ../CMakeLists.txt
+   :language: cmake
    :start-after: @cmake_opts_start
    :end-before: @cmake_opts_end
  
@@ -54,7 +55,7 @@ From other CMake projects, to use ``finufft`` as a library, simply add this repo
 
 
 Old GNU make based route
-========================
+------------------------
    
 Below we deal with the three standard OSes in order: 1) **linux**, 2) **Mac OSX**, 3) **Windows**.
 We have some users contributing settings for other OSes, for instance
