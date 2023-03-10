@@ -31,19 +31,13 @@ add_library(cufinufft_common_objects OBJECT ${PRECISION_INDEPENDENT_SRC})
 target_include_directories(cufinufft_common_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
 set_property(TARGET cufinufft_common_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
 
-add_library(cufinufft_32_objects OBJECT ${PRECISION_DEPENDENT_SRC})
-target_include_directories(cufinufft_32_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-target_compile_definitions(cufinufft_32_objects PUBLIC CUFINUFFT_SINGLE)
-set_property(TARGET cufinufft_32_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-add_library(cufinufft_64_objects OBJECT ${PRECISION_DEPENDENT_SRC})
-target_include_directories(cufinufft_64_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-set_property(TARGET cufinufft_64_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
+add_library(cufinufft_objects OBJECT ${PRECISION_DEPENDENT_SRC})
+target_include_directories(cufinufft_objects PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
+set_property(TARGET cufinufft_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_library(cufinufft SHARED
   $<TARGET_OBJECTS:cufinufft_common_objects>
-  $<TARGET_OBJECTS:cufinufft_32_objects>
-  $<TARGET_OBJECTS:cufinufft_64_objects>
+  $<TARGET_OBJECTS:cufinufft_objects>
 )
 target_link_libraries(cufinufft CUDA::cudart CUDA::cufft CUDA::nvToolsExt)
 set_target_properties(
@@ -53,8 +47,7 @@ set_target_properties(
 
 add_library(cufinufft_static STATIC
   $<TARGET_OBJECTS:cufinufft_common_objects>
-  $<TARGET_OBJECTS:cufinufft_32_objects>
-  $<TARGET_OBJECTS:cufinufft_64_objects>
+  $<TARGET_OBJECTS:cufinufft_objects>
 )
 target_link_libraries(cufinufft_static PUBLIC CUDA::cudart_static CUDA::cufft_static CUDA::nvToolsExt)
 set_target_properties(

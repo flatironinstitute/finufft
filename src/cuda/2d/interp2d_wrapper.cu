@@ -12,8 +12,9 @@ using namespace cufinufft::memtransfer;
 namespace cufinufft {
 namespace spreadinterp {
 
-int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky, CUCPX *d_c,
-                       CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
+                       cufinufft_plan_template<T> *d_plan)
 /*
     This c function is written for only doing 2D interpolation. See
     test/interp2d_test.cu for usage.
@@ -80,7 +81,8 @@ int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx
     return ier;
 }
 
-int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize)
+template <typename T>
+int cuinterp2d(cufinufft_plan_template<T> *d_plan, int blksize)
 /*
     A wrapper for different interpolation methods.
 
@@ -135,7 +137,8 @@ int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize)
     return ier;
 }
 
-int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -144,16 +147,16 @@ int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int b
     dim3 blocks;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
-    CUFINUFFT_FLT sigma = d_plan->opts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->opts.upsampfac;
     int pirange = d_plan->spopts.pirange;
     int *d_idxnupts = d_plan->idxnupts;
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     threadsPerBlock.x = 32;
     threadsPerBlock.y = 1;
@@ -182,32 +185,33 @@ int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int b
     return 0;
 }
 
-int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
     // assume that bin_size_x > ns/2;
     int bin_size_x = d_plan->opts.gpu_binsizex;
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int numbins[2];
-    numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-    numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
+    numbins[0] = ceil((T)nf1 / bin_size_x);
+    numbins[1] = ceil((T)nf2 / bin_size_y);
 #ifdef INFO
     std::cout << "[info  ] Dividing the uniform grids to bin size[" << d_plan->opts.gpu_binsizex << "x"
               << d_plan->opts.gpu_binsizey << "]" << std::endl;
     std::cout << "[info  ] numbins = [" << numbins[0] << "x" << numbins[1] << "]" << std::endl;
 #endif
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     int *d_binsize = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -218,9 +222,9 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
     int totalnumsubprob = d_plan->totalnumsubprob;
     int pirange = d_plan->spopts.pirange;
 
-    CUFINUFFT_FLT sigma = d_plan->opts.upsampfac;
+    T sigma = d_plan->opts.upsampfac;
     cudaEventRecord(start);
-    size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) * sizeof(CUCPX);
+    size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory" << std::endl;
         return 1;

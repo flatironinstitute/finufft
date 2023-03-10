@@ -15,7 +15,8 @@ using namespace cufinufft::deconvolve;
 using namespace cufinufft::spreadinterp;
 using std::min;
 
-int CUFINUFFT3D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan)
 /*
     3D Type-1 NUFFT
 
@@ -36,8 +37,8 @@ int CUFINUFFT3D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
     cudaEventRecord(start);
     int blksize;
     int ier;
-    CUCPX *d_fkstart;
-    CUCPX *d_cstart;
+    cuda_complex<T> *d_fkstart;
+    cuda_complex<T> *d_cstart;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
         blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;
@@ -47,7 +48,7 @@ int CUFINUFFT3D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
         d_plan->fk = d_fkstart;
 
         checkCudaErrors(
-            cudaMemset(d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * d_plan->nf3 * sizeof(CUCPX)));
+            cudaMemset(d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * d_plan->nf3 * sizeof(cuda_complex<T>)));
 #ifdef TIME
         float milliseconds = 0;
         cudaEventRecord(stop);
@@ -91,7 +92,8 @@ int CUFINUFFT3D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
     return ier;
 }
 
-int CUFINUFFT3D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan)
 /*
     3D Type-2 NUFFT
 
@@ -111,8 +113,8 @@ int CUFINUFFT3D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
 
     int blksize;
     int ier;
-    CUCPX *d_fkstart;
-    CUCPX *d_cstart;
+    cuda_complex<T> *d_fkstart;
+    cuda_complex<T> *d_cstart;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
         blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;

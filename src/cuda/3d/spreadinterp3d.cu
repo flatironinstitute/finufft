@@ -16,12 +16,13 @@ namespace spreadinterp {
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */
 
+template <typename T>
 __global__ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y, int bin_size_z,
-                                       int nbinx, int nbiny, int nbinz, int *bin_size, CUFINUFFT_FLT *x,
-                                       CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *sortidx, int pirange) {
+                                       int nbinx, int nbiny, int nbinz, int *bin_size, T *x,
+                                       T *y, T *z, int *sortidx, int pirange) {
     int binidx, binx, biny, binz;
     int oldidx;
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
+    T x_rescaled, y_rescaled, z_rescaled;
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
@@ -43,13 +44,14 @@ __global__ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int bin
     }
 }
 
+template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
-                                             int nbiny, int nbinz, int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
-                                             CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index, int pirange, int nf1,
+                                             int nbiny, int nbinz, int *bin_startpts, int *sortidx, T *x,
+                                             T *y, T *z, int *index, int pirange, int nf1,
                                              int nf2, int nf3) {
     int binx, biny, binz;
     int binidx;
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
+    T x_rescaled, y_rescaled, z_rescaled;
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
@@ -70,18 +72,19 @@ __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size
 }
 
 /* Kernels for NUptsdriven method */
-__global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Spread_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                             int M, const int ns, int nf1, int nf2, int nf3, T sigma,
                                              int *idxnupts, int pirange) {
     int xx, yy, zz, ix, iy, iz;
     int outidx;
-    CUFINUFFT_FLT ker1[MAX_NSPREAD];
-    CUFINUFFT_FLT ker2[MAX_NSPREAD];
-    CUFINUFFT_FLT ker3[MAX_NSPREAD];
+    T ker1[MAX_NSPREAD];
+    T ker2[MAX_NSPREAD];
+    T ker3[MAX_NSPREAD];
 
-    CUFINUFFT_FLT ker1val, ker2val, ker3val;
+    T ker1val, ker2val, ker3val;
 
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
+    T x_rescaled, y_rescaled, z_rescaled;
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -94,9 +97,9 @@ __global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         int yend = floor(y_rescaled + ns / 2.0);
         int zend = floor(z_rescaled + ns / 2.0);
 
-        CUFINUFFT_FLT x1 = (CUFINUFFT_FLT)xstart - x_rescaled;
-        CUFINUFFT_FLT y1 = (CUFINUFFT_FLT)ystart - y_rescaled;
-        CUFINUFFT_FLT z1 = (CUFINUFFT_FLT)zstart - z_rescaled;
+        T x1 = (T)xstart - x_rescaled;
+        T y1 = (T)ystart - y_rescaled;
+        T z1 = (T)zstart - z_rescaled;
 
         eval_kernel_vec_Horner(ker1, x1, ns, sigma);
         eval_kernel_vec_Horner(ker2, y1, ns, sigma);
@@ -111,7 +114,7 @@ __global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
                     iz = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
                     outidx = ix + iy * nf1 + iz * nf1 * nf2;
                     ker1val = ker1[xx - xstart];
-                    CUFINUFFT_FLT kervalue = ker1val * ker2val * ker3val;
+                    T kervalue = ker1val * ker2val * ker3val;
                     atomicAdd(&fw[outidx].x, c[idxnupts[i]].x * kervalue);
                     atomicAdd(&fw[outidx].y, c[idxnupts[i]].y * kervalue);
                 }
@@ -119,17 +122,18 @@ __global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         }
     }
 }
-__global__ void Spread_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, int *idxnupts, int pirange) {
+template <typename T>
+__global__ void Spread_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                      const int ns, int nf1, int nf2, int nf3, T es_c,
+                                      T es_beta, int *idxnupts, int pirange) {
     int xx, yy, zz, ix, iy, iz;
     int outidx;
-    CUFINUFFT_FLT ker1[MAX_NSPREAD];
-    CUFINUFFT_FLT ker2[MAX_NSPREAD];
-    CUFINUFFT_FLT ker3[MAX_NSPREAD];
+    T ker1[MAX_NSPREAD];
+    T ker2[MAX_NSPREAD];
+    T ker3[MAX_NSPREAD];
 
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
-    CUFINUFFT_FLT ker1val, ker2val, ker3val;
+    T x_rescaled, y_rescaled, z_rescaled;
+    T ker1val, ker2val, ker3val;
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -142,9 +146,9 @@ __global__ void Spread_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
         int yend = floor(y_rescaled + ns / 2.0);
         int zend = floor(z_rescaled + ns / 2.0);
 
-        CUFINUFFT_FLT x1 = (CUFINUFFT_FLT)xstart - x_rescaled;
-        CUFINUFFT_FLT y1 = (CUFINUFFT_FLT)ystart - y_rescaled;
-        CUFINUFFT_FLT z1 = (CUFINUFFT_FLT)zstart - z_rescaled;
+        T x1 = (T)xstart - x_rescaled;
+        T y1 = (T)ystart - y_rescaled;
+        T z1 = (T)zstart - z_rescaled;
 
         eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
         eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
@@ -160,7 +164,7 @@ __global__ void Spread_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
                     outidx = ix + iy * nf1 + iz * nf1 * nf2;
 
                     ker1val = ker1[xx - xstart];
-                    CUFINUFFT_FLT kervalue = ker1val * ker2val * ker3val;
+                    T kervalue = ker1val * ker2val * ker3val;
 
                     atomicAdd(&fw[outidx].x, c[idxnupts[i]].x * kervalue);
                     atomicAdd(&fw[outidx].y, c[idxnupts[i]].y * kervalue);
@@ -172,13 +176,14 @@ __global__ void Spread_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
 
 /* Kernels for Subprob method */
 
-__global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                         int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Spread_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                         int M, const int ns, int nf1, int nf2, int nf3, T sigma,
                                          int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
                                          int bin_size_z, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
                                          int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
                                          int pirange) {
-    extern __shared__ CUCPX fwshared[];
+    extern __shared__ cuda_complex<T> fwshared[];
 
     int xstart, ystart, xend, yend, zstart, zend;
     int bidx = subprob_to_bin[blockIdx.x];
@@ -198,13 +203,13 @@ __global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
         fwshared[i].y = 0.0;
     }
     __syncthreads();
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
-    CUCPX cnow;
+    T x_rescaled, y_rescaled, z_rescaled;
+    cuda_complex<T> cnow;
 
     for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
-        CUFINUFFT_FLT ker1[MAX_NSPREAD];
-        CUFINUFFT_FLT ker2[MAX_NSPREAD];
-        CUFINUFFT_FLT ker3[MAX_NSPREAD];
+        T ker1[MAX_NSPREAD];
+        T ker2[MAX_NSPREAD];
+        T ker3[MAX_NSPREAD];
 
         int nuptsidx = idxnupts[ptstart + i];
         x_rescaled = RESCALE(x[nuptsidx], nf1, pirange);
@@ -225,12 +230,12 @@ __global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
         eval_kernel_vec_Horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
 
         for (int zz = zstart; zz <= zend; zz++) {
-            CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
+            T kervalue3 = ker3[zz - zstart];
             iz = zz + ceil(ns / 2.0);
             if (iz >= (bin_size_z + (int)ceil(ns / 2.0) * 2) || iz < 0)
                 break;
             for (int yy = ystart; yy <= yend; yy++) {
-                CUFINUFFT_FLT kervalue2 = ker2[yy - ystart];
+                T kervalue2 = ker2[yy - ystart];
                 iy = yy + ceil(ns / 2.0);
                 if (iy >= (bin_size_y + (int)ceil(ns / 2.0) * 2) || iy < 0)
                     break;
@@ -240,7 +245,7 @@ __global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
                         break;
                     outidx = ix + iy * (bin_size_x + ceil(ns / 2.0) * 2) +
                              iz * (bin_size_x + ceil(ns / 2.0) * 2) * (bin_size_y + ceil(ns / 2.0) * 2);
-                    CUFINUFFT_FLT kervalue1 = ker1[xx - xstart];
+                    T kervalue1 = ker1[xx - xstart];
                     atomicAdd(&fwshared[outidx].x, cnow.x * kervalue1 * kervalue2 * kervalue3);
                     atomicAdd(&fwshared[outidx].y, cnow.y * kervalue1 * kervalue2 * kervalue3);
                 }
@@ -271,12 +276,13 @@ __global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
     }
 }
 
-__global__ void Spread_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                  const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta,
+template <typename T>
+__global__ void Spread_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                  const int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
                                   int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
                                   int nbinx, int nbiny, int nbinz, int *idxnupts, int pirange) {
-    extern __shared__ CUCPX fwshared[];
+    extern __shared__ cuda_complex<T> fwshared[];
 
     int xstart, ystart, xend, yend, zstart, zend;
     int subpidx = blockIdx.x;
@@ -297,12 +303,12 @@ __global__ void Spread_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_
         fwshared[i].y = 0.0;
     }
     __syncthreads();
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
-    CUCPX cnow;
+    T x_rescaled, y_rescaled, z_rescaled;
+    cuda_complex<T> cnow;
     for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
-        CUFINUFFT_FLT ker1[MAX_NSPREAD];
-        CUFINUFFT_FLT ker2[MAX_NSPREAD];
-        CUFINUFFT_FLT ker3[MAX_NSPREAD];
+        T ker1[MAX_NSPREAD];
+        T ker2[MAX_NSPREAD];
+        T ker3[MAX_NSPREAD];
         int idx = ptstart + i;
         x_rescaled = RESCALE(x[idxnupts[idx]], nf1, pirange);
         y_rescaled = RESCALE(y[idxnupts[idx]], nf2, pirange);
@@ -317,26 +323,26 @@ __global__ void Spread_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_
         yend = floor(y_rescaled + ns / 2.0) - yoffset;
         zend = floor(z_rescaled + ns / 2.0) - zoffset;
 
-        CUFINUFFT_FLT x1 = (CUFINUFFT_FLT)xstart + xoffset - x_rescaled;
-        CUFINUFFT_FLT y1 = (CUFINUFFT_FLT)ystart + yoffset - y_rescaled;
-        CUFINUFFT_FLT z1 = (CUFINUFFT_FLT)zstart + zoffset - z_rescaled;
+        T x1 = (T)xstart + xoffset - x_rescaled;
+        T y1 = (T)ystart + yoffset - y_rescaled;
+        T z1 = (T)zstart + zoffset - z_rescaled;
 
         eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
         eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
         eval_kernel_vec(ker3, z1, ns, es_c, es_beta);
 #if 1
         for (int zz = zstart; zz <= zend; zz++) {
-            CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
+            T kervalue3 = ker3[zz - zstart];
             iz = zz + ceil(ns / 2.0);
             if (iz >= (bin_size_z + (int)ceil(ns / 2.0) * 2) || iz < 0)
                 break;
             for (int yy = ystart; yy <= yend; yy++) {
-                CUFINUFFT_FLT kervalue2 = ker2[yy - ystart];
+                T kervalue2 = ker2[yy - ystart];
                 iy = yy + ceil(ns / 2.0);
                 if (iy >= (bin_size_y + (int)ceil(ns / 2.0) * 2) || iy < 0)
                     break;
                 for (int xx = xstart; xx <= xend; xx++) {
-                    CUFINUFFT_FLT kervalue1 = ker1[xx - xstart];
+                    T kervalue1 = ker1[xx - xstart];
                     ix = xx + ceil(ns / 2.0);
                     if (ix >= (bin_size_x + (int)ceil(ns / 2.0) * 2) || ix < 0)
                         break;
@@ -374,13 +380,14 @@ __global__ void Spread_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_
     }
 }
 /* Kernels for Block BlockGather Method */
+template <typename T>
 __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx, int nobiny,
                                         int nobinz, int binsperobinx, int binsperobiny, int binsperobinz, int *bin_size,
-                                        CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *sortidx, int pirange,
+                                        T *x, T *y, T *z, int *sortidx, int pirange,
                                         int nf1, int nf2, int nf3) {
     int binidx, binx, biny, binz;
     int oldidx;
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
+    T x_rescaled, y_rescaled, z_rescaled;
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
@@ -398,14 +405,15 @@ __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, i
     }
 }
 
+template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx,
                                                 int nobiny, int nobinz, int binsperobinx, int binsperobiny,
-                                                int binsperobinz, int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
-                                                CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index, int pirange, int nf1,
+                                                int binsperobinz, int *bin_startpts, int *sortidx, T *x,
+                                                T *y, T *z, int *index, int pirange, int nf1,
                                                 int nf2, int nf3) {
     int binx, biny, binz;
     int binidx;
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
+    T x_rescaled, y_rescaled, z_rescaled;
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
@@ -422,13 +430,14 @@ __global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_s
     }
 }
 
-__global__ void Spread_3d_BlockGather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts, int obin_size_x,
+template <typename T>
+__global__ void Spread_3d_BlockGather(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                      const int ns, int nf1, int nf2, int nf3, T es_c,
+                                      T es_beta, T sigma, int *binstartpts, int obin_size_x,
                                       int obin_size_y, int obin_size_z, int binsperobin, int *subprob_to_bin,
                                       int *subprobstartpts, int maxsubprobsize, int nobinx, int nobiny, int nobinz,
                                       int *idxnupts, int pirange) {
-    extern __shared__ CUCPX fwshared[];
+    extern __shared__ cuda_complex<T> fwshared[];
 
     int xstart, ystart, zstart, xend, yend, zend;
     int subpidx = blockIdx.x;
@@ -453,8 +462,8 @@ __global__ void Spread_3d_BlockGather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
         fwshared[i].y = 0.0;
     }
     __syncthreads();
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
-    CUCPX cnow;
+    T x_rescaled, y_rescaled, z_rescaled;
+    cuda_complex<T> cnow;
     for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
         int idx = ptstart + i;
         int b = idxnupts[idx] / M;
@@ -487,15 +496,15 @@ __global__ void Spread_3d_BlockGather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
         zend = zend >= obin_size_z ? obin_size_z - 1 : zend;
 
         for (int zz = zstart; zz <= zend; zz++) {
-            CUFINUFFT_FLT disz = abs(z_rescaled - (zz + zoffset));
-            CUFINUFFT_FLT kervalue3 = evaluate_kernel(disz, es_c, es_beta, ns);
+            T disz = abs(z_rescaled - (zz + zoffset));
+            T kervalue3 = evaluate_kernel(disz, es_c, es_beta, ns);
             for (int yy = ystart; yy <= yend; yy++) {
-                CUFINUFFT_FLT disy = abs(y_rescaled - (yy + yoffset));
-                CUFINUFFT_FLT kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
+                T disy = abs(y_rescaled - (yy + yoffset));
+                T kervalue2 = evaluate_kernel(disy, es_c, es_beta, ns);
                 for (int xx = xstart; xx <= xend; xx++) {
                     outidx = xx + yy * obin_size_x + zz * obin_size_y * obin_size_x;
-                    CUFINUFFT_FLT disx = abs(x_rescaled - (xx + xoffset));
-                    CUFINUFFT_FLT kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
+                    T disx = abs(x_rescaled - (xx + xoffset));
+                    T kervalue1 = evaluate_kernel(disx, es_c, es_beta, ns);
                     atomicAdd(&fwshared[outidx].x, cnow.x * kervalue1 * kervalue2 * kervalue3);
                     atomicAdd(&fwshared[outidx].y, cnow.y * kervalue1 * kervalue2 * kervalue3);
                 }
@@ -518,13 +527,14 @@ __global__ void Spread_3d_BlockGather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
     }
 }
 
-__global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                             CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts,
+template <typename T>
+__global__ void Spread_3d_BlockGather_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                             int M, const int ns, int nf1, int nf2, int nf3, T es_c,
+                                             T es_beta, T sigma, int *binstartpts,
                                              int obin_size_x, int obin_size_y, int obin_size_z, int binsperobin,
                                              int *subprob_to_bin, int *subprobstartpts, int maxsubprobsize, int nobinx,
                                              int nobiny, int nobinz, int *idxnupts, int pirange) {
-    extern __shared__ CUCPX fwshared[];
+    extern __shared__ cuda_complex<T> fwshared[];
 
     int xstart, ystart, zstart, xend, yend, zend;
     int xstartnew, ystartnew, zstartnew, xendnew, yendnew, zendnew;
@@ -545,9 +555,9 @@ __global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
 
     int N = obin_size_x * obin_size_y * obin_size_z;
 
-    CUFINUFFT_FLT ker1[MAX_NSPREAD];
-    CUFINUFFT_FLT ker2[MAX_NSPREAD];
-    CUFINUFFT_FLT ker3[MAX_NSPREAD];
+    T ker1[MAX_NSPREAD];
+    T ker2[MAX_NSPREAD];
+    T ker3[MAX_NSPREAD];
 
     for (int i = threadIdx.x; i < N; i += blockDim.x) {
         fwshared[i].x = 0.0;
@@ -555,8 +565,8 @@ __global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
     }
     __syncthreads();
 
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
-    CUCPX cnow;
+    T x_rescaled, y_rescaled, z_rescaled;
+    cuda_complex<T> cnow;
     for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
         int nidx = idxnupts[ptstart + i];
         int b = nidx / M;
@@ -594,12 +604,12 @@ __global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         zendnew = zend >= obin_size_z ? obin_size_z - 1 : zend;
 
         for (int zz = zstartnew; zz <= zendnew; zz++) {
-            CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
+            T kervalue3 = ker3[zz - zstart];
             for (int yy = ystartnew; yy <= yendnew; yy++) {
-                CUFINUFFT_FLT kervalue2 = ker2[yy - ystart];
+                T kervalue2 = ker2[yy - ystart];
                 for (int xx = xstartnew; xx <= xendnew; xx++) {
                     outidx = xx + yy * obin_size_x + zz * obin_size_y * obin_size_x;
-                    CUFINUFFT_FLT kervalue1 = ker1[xx - xstart];
+                    T kervalue1 = ker1[xx - xstart];
                     atomicAdd(&fwshared[outidx].x, cnow.x * kervalue1 * kervalue2 * kervalue3);
                     atomicAdd(&fwshared[outidx].y, cnow.y * kervalue1 * kervalue2 * kervalue3);
                 }
@@ -624,30 +634,31 @@ __global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
 
 /* ---------------------- 3d Interpolation Kernels ---------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Interp_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, int *idxnupts, int pirange) {
-    CUFINUFFT_FLT ker1[MAX_NSPREAD];
-    CUFINUFFT_FLT ker2[MAX_NSPREAD];
-    CUFINUFFT_FLT ker3[MAX_NSPREAD];
+template <typename T>
+__global__ void Interp_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                      const int ns, int nf1, int nf2, int nf3, T es_c,
+                                      T es_beta, int *idxnupts, int pirange) {
+    T ker1[MAX_NSPREAD];
+    T ker2[MAX_NSPREAD];
+    T ker3[MAX_NSPREAD];
 
-    CUFINUFFT_FLT ker1val, ker2val, ker3val;
+    T ker1val, ker2val, ker3val;
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
-        CUFINUFFT_FLT x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
-        CUFINUFFT_FLT y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
-        CUFINUFFT_FLT z_rescaled = RESCALE(z[idxnupts[i]], nf3, pirange);
+        T x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
+        T y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
+        T z_rescaled = RESCALE(z[idxnupts[i]], nf3, pirange);
         int xstart = ceil(x_rescaled - ns / 2.0);
         int ystart = ceil(y_rescaled - ns / 2.0);
         int zstart = ceil(z_rescaled - ns / 2.0);
         int xend = floor(x_rescaled + ns / 2.0);
         int yend = floor(y_rescaled + ns / 2.0);
         int zend = floor(z_rescaled + ns / 2.0);
-        CUCPX cnow;
+        cuda_complex<T> cnow;
         cnow.x = 0.0;
         cnow.y = 0.0;
-        CUFINUFFT_FLT x1 = (CUFINUFFT_FLT)xstart - x_rescaled;
-        CUFINUFFT_FLT y1 = (CUFINUFFT_FLT)ystart - y_rescaled;
-        CUFINUFFT_FLT z1 = (CUFINUFFT_FLT)zstart - z_rescaled;
+        T x1 = (T)xstart - x_rescaled;
+        T y1 = (T)ystart - y_rescaled;
+        T z1 = (T)zstart - z_rescaled;
 
         eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
         eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
@@ -674,13 +685,14 @@ __global__ void Interp_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
     }
 }
 
-__global__ void Interp_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Interp_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                             int M, const int ns, int nf1, int nf2, int nf3, T sigma,
                                              int *idxnupts, int pirange) {
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
-        CUFINUFFT_FLT x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
-        CUFINUFFT_FLT y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
-        CUFINUFFT_FLT z_rescaled = RESCALE(z[idxnupts[i]], nf3, pirange);
+        T x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
+        T y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
+        T z_rescaled = RESCALE(z[idxnupts[i]], nf3, pirange);
 
         int xstart = ceil(x_rescaled - ns / 2.0);
         int ystart = ceil(y_rescaled - ns / 2.0);
@@ -690,28 +702,28 @@ __global__ void Interp_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         int yend = floor(y_rescaled + ns / 2.0);
         int zend = floor(z_rescaled + ns / 2.0);
 
-        CUCPX cnow;
+        cuda_complex<T> cnow;
         cnow.x = 0.0;
         cnow.y = 0.0;
 
-        CUFINUFFT_FLT ker1[MAX_NSPREAD];
-        CUFINUFFT_FLT ker2[MAX_NSPREAD];
-        CUFINUFFT_FLT ker3[MAX_NSPREAD];
+        T ker1[MAX_NSPREAD];
+        T ker2[MAX_NSPREAD];
+        T ker3[MAX_NSPREAD];
 
         eval_kernel_vec_Horner(ker1, xstart - x_rescaled, ns, sigma);
         eval_kernel_vec_Horner(ker2, ystart - y_rescaled, ns, sigma);
         eval_kernel_vec_Horner(ker3, zstart - z_rescaled, ns, sigma);
 
         for (int zz = zstart; zz <= zend; zz++) {
-            CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
+            T kervalue3 = ker3[zz - zstart];
             int iz = zz < 0 ? zz + nf3 : (zz > nf3 - 1 ? zz - nf3 : zz);
             for (int yy = ystart; yy <= yend; yy++) {
-                CUFINUFFT_FLT kervalue2 = ker2[yy - ystart];
+                T kervalue2 = ker2[yy - ystart];
                 int iy = yy < 0 ? yy + nf2 : (yy > nf2 - 1 ? yy - nf2 : yy);
                 for (int xx = xstart; xx <= xend; xx++) {
                     int ix = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
                     int inidx = ix + iy * nf1 + iz * nf2 * nf1;
-                    CUFINUFFT_FLT kervalue1 = ker1[xx - xstart];
+                    T kervalue1 = ker1[xx - xstart];
                     cnow.x += fw[inidx].x * kervalue1 * kervalue2 * kervalue3;
                     cnow.y += fw[inidx].y * kervalue1 * kervalue2 * kervalue3;
                 }
@@ -723,12 +735,13 @@ __global__ void Interp_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
 }
 
 /* Kernels for SubProb Method */
-__global__ void Interp_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                  const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta,
+template <typename T>
+__global__ void Interp_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                  const int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
                                   int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
                                   int nbinx, int nbiny, int nbinz, int *idxnupts, int pirange) {
-    extern __shared__ CUCPX fwshared[];
+    extern __shared__ cuda_complex<T> fwshared[];
 
     int xstart, ystart, xend, yend, zstart, zend;
     int subpidx = blockIdx.x;
@@ -767,12 +780,12 @@ __global__ void Interp_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_
     }
 #endif
     __syncthreads();
-    CUFINUFFT_FLT ker1[MAX_NSPREAD];
-    CUFINUFFT_FLT ker2[MAX_NSPREAD];
-    CUFINUFFT_FLT ker3[MAX_NSPREAD];
+    T ker1[MAX_NSPREAD];
+    T ker2[MAX_NSPREAD];
+    T ker3[MAX_NSPREAD];
 
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
-    CUCPX cnow;
+    T x_rescaled, y_rescaled, z_rescaled;
+    cuda_complex<T> cnow;
     for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
         int idx = ptstart + i;
         x_rescaled = RESCALE(x[idxnupts[idx]], nf1, pirange);
@@ -788,26 +801,26 @@ __global__ void Interp_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_
         yend = floor(y_rescaled + ns / 2.0) - yoffset;
         zend = floor(z_rescaled + ns / 2.0) - zoffset;
 
-        CUFINUFFT_FLT x1 = (CUFINUFFT_FLT)xstart + xoffset - x_rescaled;
-        CUFINUFFT_FLT y1 = (CUFINUFFT_FLT)ystart + yoffset - y_rescaled;
-        CUFINUFFT_FLT z1 = (CUFINUFFT_FLT)zstart + zoffset - z_rescaled;
+        T x1 = (T)xstart + xoffset - x_rescaled;
+        T y1 = (T)ystart + yoffset - y_rescaled;
+        T z1 = (T)zstart + zoffset - z_rescaled;
 
         eval_kernel_vec(ker1, x1, ns, es_c, es_beta);
         eval_kernel_vec(ker2, y1, ns, es_c, es_beta);
         eval_kernel_vec(ker3, z1, ns, es_c, es_beta);
 
         for (int zz = zstart; zz <= zend; zz++) {
-            CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
+            T kervalue3 = ker3[zz - zstart];
             iz = zz + ceil(ns / 2.0);
             for (int yy = ystart; yy <= yend; yy++) {
-                CUFINUFFT_FLT kervalue2 = ker2[yy - ystart];
+                T kervalue2 = ker2[yy - ystart];
                 iy = yy + ceil(ns / 2.0);
                 for (int xx = xstart; xx <= xend; xx++) {
                     ix = xx + ceil(ns / 2.0);
                     outidx = ix + iy * (bin_size_x + ceil(ns / 2.0) * 2) +
                              iz * (bin_size_x + ceil(ns / 2.0) * 2) * (bin_size_y + ceil(ns / 2.0) * 2);
 
-                    CUFINUFFT_FLT kervalue1 = ker1[xx - xstart];
+                    T kervalue1 = ker1[xx - xstart];
                     cnow.x += fwshared[outidx].x * kervalue1 * kervalue2 * kervalue3;
                     cnow.y += fwshared[outidx].y * kervalue1 * kervalue2 * kervalue3;
                 }
@@ -817,13 +830,14 @@ __global__ void Interp_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_
         c[idxnupts[idx]].y = cnow.y;
     }
 }
-__global__ void Interp_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                         int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Interp_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                         int M, const int ns, int nf1, int nf2, int nf3, T sigma,
                                          int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
                                          int bin_size_z, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
                                          int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
                                          int pirange) {
-    extern __shared__ CUCPX fwshared[];
+    extern __shared__ cuda_complex<T> fwshared[];
 
     int xstart, ystart, xend, yend, zstart, zend;
     int subpidx = blockIdx.x;
@@ -860,11 +874,11 @@ __global__ void Interp_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
         }
     }
     __syncthreads();
-    CUFINUFFT_FLT ker1[MAX_NSPREAD];
-    CUFINUFFT_FLT ker2[MAX_NSPREAD];
-    CUFINUFFT_FLT ker3[MAX_NSPREAD];
-    CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
-    CUCPX cnow;
+    T ker1[MAX_NSPREAD];
+    T ker2[MAX_NSPREAD];
+    T ker3[MAX_NSPREAD];
+    T x_rescaled, y_rescaled, z_rescaled;
+    cuda_complex<T> cnow;
     for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
         int idx = ptstart + i;
         x_rescaled = RESCALE(x[idxnupts[idx]], nf1, pirange);
@@ -885,16 +899,16 @@ __global__ void Interp_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
         eval_kernel_vec_Horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
         eval_kernel_vec_Horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
         for (int zz = zstart; zz <= zend; zz++) {
-            CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
+            T kervalue3 = ker3[zz - zstart];
             iz = zz + ceil(ns / 2.0);
             for (int yy = ystart; yy <= yend; yy++) {
-                CUFINUFFT_FLT kervalue2 = ker2[yy - ystart];
+                T kervalue2 = ker2[yy - ystart];
                 iy = yy + ceil(ns / 2.0);
                 for (int xx = xstart; xx <= xend; xx++) {
                     ix = xx + ceil(ns / 2.0);
                     outidx = ix + iy * (bin_size_x + ceil(ns / 2.0) * 2) +
                              iz * (bin_size_x + ceil(ns / 2.0) * 2) * (bin_size_y + ceil(ns / 2.0) * 2);
-                    CUFINUFFT_FLT kervalue1 = ker1[xx - xstart];
+                    T kervalue1 = ker1[xx - xstart];
                     cnow.x += fwshared[outidx].x * kervalue1 * kervalue2 * kervalue3;
                     cnow.y += fwshared[outidx].y * kervalue1 * kervalue2 * kervalue3;
                 }

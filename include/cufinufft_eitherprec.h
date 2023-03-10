@@ -1,7 +1,8 @@
 // Switchable-precision interface template for cufinufft. Used by cufinufft.h
 // Internal use only: users should link to cufinufft.h
 
-#if (!defined(__CUFINUFFT_H__) && !defined(CUFINUFFT_SINGLE)) ||                                                       \
+#include "cufinufft/types.h"
+#if 0 && (!defined(__CUFINUFFT_H__) && !defined(CUFINUFFT_SINGLE)) ||                                                  \
     (!defined(__CUFINUFFTF_H__) && defined(CUFINUFFT_SINGLE))
 // (note we entered one level of conditional until the end of this header)
 // Make sure we don't include double or single headers more than once...
@@ -12,7 +13,6 @@
 #include <cufft.h>
 
 #include <finufft_spread_opts.h>
-
 #include <cufinufft_errors.h>
 #include <cufinufft_opts.h>
 #include <cufinufft_types.h>
@@ -302,27 +302,42 @@ typedef struct CUFINUFFT_PLAN_S *CUFINUFFT_PLAN;
 #ifdef __cplusplus
 extern "C" {
 #endif
-int CUFINUFFT_DEFAULT_OPTS(int type, int dim, cufinufft_opts *opts);
-int CUFINUFFT_MAKEPLAN(int type, int dim, int *n_modes, int iflag, int ntransf, CUFINUFFT_FLT tol, int maxbatchsize,
-                       CUFINUFFT_PLAN *d_plan_ptr, cufinufft_opts *opts);
-int CUFINUFFT_SETPTS(int M, CUFINUFFT_FLT *h_kx, CUFINUFFT_FLT *h_ky, CUFINUFFT_FLT *h_kz, int N, CUFINUFFT_FLT *h_s,
-                     CUFINUFFT_FLT *h_t, CUFINUFFT_FLT *h_u, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT_EXECUTE(CUCPX *h_c, CUCPX *h_fk, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan);
+int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts);
+
+int cufinufft_makeplan(int type, int dim, int *n_modes, int iflag, int ntransf, double tol, int maxbatchsize,
+                       cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts);
+int cufinufft_setpts(int M, double *h_kx, double *h_ky, double *h_kz, int N, double *h_s,
+                     double *h_t, double *h_u, cufinufftf_plan d_plan);
+int cufinufft_execute(cuDoubleComplex *h_c, cuDoubleComplex *h_fk, cufinufftf_plan d_plan);
+int cufinufft_destroy(cufinufftf_plan d_plan);
+
+    
+int cufinufft_makeplanf(int type, int dim, int *n_modes, int iflag, int ntransf, double tol, int maxbatchsize,
+                        cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts);
+int cufinufft_setptsf(int M, float *h_kx, float *h_ky, float *h_kz, int N, float *h_s,
+                      float *h_t, float *h_u, cufinufftf_plan d_plan);
+int cufinufft_executef(cuFloatComplex *h_c, cuFloatComplex *h_fk, cufinufftf_plan d_plan);
+int cufinufft_destroyf(cufinufftf_plan d_plan);
 #ifdef __cplusplus
 }
 #endif
 
 // 1d
-int CUFINUFFT1D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT1D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
+template <typename T>
+int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, CUFINUFFT_PLAN d_plan);
+template <typename T>
+int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, CUFINUFFT_PLAN d_plan);
 
 // 2d
-int CUFINUFFT2D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT2D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
+template <typename T>
+int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, CUFINUFFT_PLAN d_plan);
+template <typename T>
+int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, CUFINUFFT_PLAN d_plan);
 
 // 3d
-int CUFINUFFT3D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT3D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan);
+template <typename T>
+int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, CUFINUFFT_PLAN d_plan);
+template <typename T>
+int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, CUFINUFFT_PLAN d_plan);
 
 #endif

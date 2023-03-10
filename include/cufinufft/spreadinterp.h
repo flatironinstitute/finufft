@@ -1,6 +1,7 @@
 #ifndef __CUSPREADINTERP_H__
 #define __CUSPREADINTERP_H__
 
+#include <cufinufft/types.h>
 #include <cufinufft_eitherprec.h>
 #include <finufft_spread_opts.h>
 
@@ -14,11 +15,14 @@
 namespace cufinufft {
 namespace spreadinterp {
 
-CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const finufft_spread_opts &opts);
-int setup_spreader(finufft_spread_opts &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth);
+template <typename T>
+inline T evaluate_kernel(T x, const finufft_spread_opts &opts);
 
-static __forceinline__ __device__ CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, CUFINUFFT_FLT es_c,
-                                                                CUFINUFFT_FLT es_beta, int ns)
+template <typename T>
+inline int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth);
+
+template <typename T>
+static __forceinline__ __device__ T evaluate_kernel(T x, T es_c, T es_beta, int ns)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
    phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
@@ -29,22 +33,23 @@ static __forceinline__ __device__ CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x,
     return abs(x) < ns / 2.0 ? exp(es_beta * (sqrt(1.0 - es_c * x * x))) : 0.0;
 }
 
-static __inline__ __device__ void eval_kernel_vec_Horner(CUFINUFFT_FLT *ker, const CUFINUFFT_FLT x, const int w,
-                                                         const double upsampfac)
+template <typename T>
+static __inline__ __device__ void eval_kernel_vec_Horner(T *ker, const T x, const int w, const double upsampfac)
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
-    CUFINUFFT_FLT z = 2 * x + w - 1.0; // scale so local grid offset z in [-1,1]
+    T z = 2 * x + w - 1.0; // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
     if (upsampfac == 2.0) { // floating point equality is fine here
 #include "cufinufft/contrib/ker_horner_allw_loop.inc"
     }
 }
 
-static __inline__ __device__ void eval_kernel_vec(CUFINUFFT_FLT *ker, const CUFINUFFT_FLT x, const double w,
-                                                  const double es_c, const double es_beta) {
+template <typename T>
+static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const double w, const double es_c,
+                                                  const double es_beta) {
     for (int i = 0; i < w; i++) {
         ker[i] = evaluate_kernel(abs(x + i), es_c, es_beta, w);
     }
@@ -53,73 +58,90 @@ static __inline__ __device__ void eval_kernel_vec(CUFINUFFT_FLT *ker, const CUFI
 // Kernels for 1D codes
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Spread_1d_NUptsdriven(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
-                                      CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts, int pirange);
-__global__ void Spread_1d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
-                                             CUFINUFFT_FLT sigma, int *idxnupts, int pirange);
+template <typename T>
+__global__ void Spread_1d_NUptsdriven(T *x, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf1,
+                                      T es_c, T es_beta, int *idxnupts, int pirange);
+template <typename T>
+__global__ void Spread_1d_NUptsdriven_Horner(T *x, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                             int nf1, T sigma, int *idxnupts, int pirange);
 
 /* Kernels for SubProb Method */
 // SubProb properties
-__global__ void CalcBinSize_noghost_1d(int M, int nf1, int bin_size_x, int nbinx, int *bin_size, CUFINUFFT_FLT *x,
+template <typename T>
+__global__ void CalcBinSize_noghost_1d(int M, int nf1, int bin_size_x, int nbinx, int *bin_size, T *x,
                                        int *sortidx, int pirange);
+template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_1d(int M, int bin_size_x, int nbinx, int *bin_startpts, int *sortidx,
-                                             CUFINUFFT_FLT *x, int *index, int pirange, int nf1);
+                                             T *x, int *index, int pirange, int nf1);
 
 // Main Spreading Kernel
-__global__ void Spread_1d_Subprob(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
-                                  CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts,
+template <typename T>
+__global__ void Spread_1d_Subprob(T *x, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf1,
+                                  T es_c, T es_beta, T sigma, int *binstartpts,
                                   int *bin_size, int bin_size_x, int *subprob_to_bin, int *subprobstartpts,
                                   int *numsubprob, int maxsubprobsize, int nbinx, int *idxnupts, int pirange);
-__global__ void Spread_1d_Subprob_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
-                                         CUFINUFFT_FLT sigma, int *binstartpts, int *bin_size, int bin_size_x,
+template <typename T>
+__global__ void Spread_1d_Subprob_Horner(T *x, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf1,
+                                         T sigma, int *binstartpts, int *bin_size, int bin_size_x,
                                          int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
                                          int nbinx, int *idxnupts, int pirange);
 /* ---------------------------Interpolation Kernels---------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Interp_1d_NUptsdriven(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf2,
-                                      CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts, int pirange);
-__global__ void Interp_1d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf2,
-                                             CUFINUFFT_FLT sigma, int *idxnupts, int pirange);
+template <typename T>
+__global__ void Interp_1d_NUptsdriven(T *x, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf2,
+                                      T es_c, T es_beta, int *idxnupts, int pirange);
+template <typename T>
+__global__ void Interp_1d_NUptsdriven_Horner(T *x, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf2,
+                                             T sigma, int *idxnupts, int pirange);
 
 // Kernels for 2D codes
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Spread_2d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                      int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
+template <typename T>
+__global__ void Spread_2d_NUptsdriven(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                      int nf1, int nf2, T es_c, T es_beta, int *idxnupts,
                                       int pirange);
-__global__ void Spread_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
-                                             const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
+template <typename T>
+__global__ void Spread_2d_NUptsdriven_Horner(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                             const int ns, int nf1, int nf2, T sigma, int *idxnupts,
                                              int pirange);
 
 /* Kernels for SubProb Method */
 // SubProb properties
+template <typename T>
 __global__ void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                       int *bin_size, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, int *sortidx, int pirange);
+                                       int *bin_size, T *x, T *y, int *sortidx, int pirange);
+template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                             int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
+                                             int *bin_startpts, int *sortidx, T *x, T *y,
                                              int *index, int pirange, int nf1, int nf2);
 
 // Main Spreading Kernel
-__global__ void Spread_2d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
-                                  int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Spread_2d_Subprob(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf1,
+                                  int nf2, T es_c, T es_beta, T sigma,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                                   int *idxnupts, int pirange);
-__global__ void Spread_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                         int nf1, int nf2, CUFINUFFT_FLT sigma, int *binstartpts, int *bin_size,
+template <typename T>
+__global__ void Spread_2d_Subprob_Horner(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                         int nf1, int nf2, T sigma, int *binstartpts, int *bin_size,
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,
                                          int pirange);
 
 /* Kernels for Paul's Method */
+template <typename T>
 __global__ void LocateFineGridPos_Paul(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                       int *bin_size, int ns, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, int *sortidx,
+                                       int *bin_size, int ns, T *x, T *y, int *sortidx,
                                        int *finegridsize, int pirange);
+template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x, int bin_size_y, int nbinx,
-                                               int nbiny, int ns, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
+                                               int nbiny, int ns, T *x, T *y,
                                                int *finegridstartpts, int *sortidx, int *index, int pirange);
-__global__ void Spread_2d_Subprob_Paul(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                       int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Spread_2d_Subprob_Paul(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                       int nf1, int nf2, T es_c, T es_beta, T sigma,
                                        int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
                                        int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
                                        int nbinx, int nbiny, int *idxnupts, int *fgstartpts, int *finegridsize,
@@ -127,20 +149,24 @@ __global__ void Spread_2d_Subprob_Paul(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX
 
 /* ---------------------------Interpolation Kernels---------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Interp_2d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                      int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
+template <typename T>
+__global__ void Interp_2d_NUptsdriven(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                      int nf1, int nf2, T es_c, T es_beta, int *idxnupts,
                                       int pirange);
-__global__ void Interp_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
-                                             const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
+template <typename T>
+__global__ void Interp_2d_NUptsdriven_Horner(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                             const int ns, int nf1, int nf2, T sigma, int *idxnupts,
                                              int pirange);
 /* Kernels for Subprob Method */
-__global__ void Interp_2d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
-                                  int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Interp_2d_Subprob(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf1,
+                                  int nf2, T es_c, T es_beta, T sigma,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                                   int *idxnupts, int pirange);
-__global__ void Interp_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                         int nf1, int nf2, CUFINUFFT_FLT sigma, int *binstartpts, int *bin_size,
+template <typename T>
+__global__ void Interp_2d_Subprob_Horner(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                         int nf1, int nf2, T sigma, int *binstartpts, int *bin_size,
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,
                                          int pirange);
@@ -148,130 +174,180 @@ __global__ void Interp_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUC
 // Kernels for 3D codes
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for Bin Sort NUpts */
+template <typename T>
 __global__ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y, int bin_size_z,
-                                       int nbinx, int nbiny, int nbinz, int *bin_size, CUFINUFFT_FLT *x,
-                                       CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *sortidx, int pirange);
+                                       int nbinx, int nbiny, int nbinz, int *bin_size, T *x,
+                                       T *y, T *z, int *sortidx, int pirange);
+template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
-                                             int nbiny, int nbinz, int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
-                                             CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index, int pirange, int nf1,
+                                             int nbiny, int nbinz, int *bin_startpts, int *sortidx, T *x,
+                                             T *y, T *z, int *index, int pirange, int nf1,
                                              int nf2, int nf3);
 
 /* Kernels for NUptsdriven Method */
-__global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Spread_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                             int M, const int ns, int nf1, int nf2, int nf3, T sigma,
                                              int *idxnupts, int pirange);
-__global__ void Spread_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, int *idxnupts, int pirange);
+template <typename T>
+__global__ void Spread_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                      const int ns, int nf1, int nf2, int nf3, T es_c,
+                                      T es_beta, int *idxnupts, int pirange);
 
 /* Kernels for Subprob Method */
-__global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                         int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Spread_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                         int M, const int ns, int nf1, int nf2, int nf3, T sigma,
                                          int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
                                          int bin_size_z, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
                                          int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
                                          int pirange);
-__global__ void Spread_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                  const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta,
+template <typename T>
+__global__ void Spread_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                  const int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
                                   int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
                                   int nbinx, int nbiny, int nbinz, int *idxnupts, int pirange);
 
 /* Kernels for Block BlockGather Method */
+template <typename T>
 __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx, int nbiny,
                                         int nbinz, int binsperobinx, int binsperobiny, int binsperobinz, int *bin_size,
-                                        CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *sortidx, int pirange,
+                                        T *x, T *y, T *z, int *sortidx, int pirange,
                                         int nf1, int nf2, int nf3);
+template <typename T>
 __global__ void Temp(int binsperobinx, int binsperobiny, int binsperobinz, int nbinx, int nbiny, int nbinz,
                      int *binsize);
+template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
                                                 int nbiny, int nbinz, int binsperobinx, int binsperobiny,
-                                                int binsperobinz, int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
-                                                CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index, int pirange, int nf1,
+                                                int binsperobinz, int *bin_startpts, int *sortidx, T *x,
+                                                T *y, T *z, int *index, int pirange, int nf1,
                                                 int nf2, int nf3);
-__global__ void Spread_3d_BlockGather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts, int obin_size_x,
+template <typename T>
+__global__ void Spread_3d_BlockGather(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                      const int ns, int nf1, int nf2, int nf3, T es_c,
+                                      T es_beta, T sigma, int *binstartpts, int obin_size_x,
                                       int obin_size_y, int obin_size_z, int binsperobin, int *subprob_to_bin,
                                       int *subprobstartpts, int maxsubprobsize, int nobinx, int nobiny, int nobinz,
                                       int *idxnupts, int pirange);
-__global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                             CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts,
+template <typename T>
+__global__ void Spread_3d_BlockGather_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                             int M, const int ns, int nf1, int nf2, int nf3, T es_c,
+                                             T es_beta, T sigma, int *binstartpts,
                                              int obin_size_x, int obin_size_y, int obin_size_z, int binsperobin,
                                              int *subprob_to_bin, int *subprobstartpts, int maxsubprobsize, int nobinx,
                                              int nobiny, int nobinz, int *idxnupts, int pirange);
 
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Interp_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Interp_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                             int M, const int ns, int nf1, int nf2, int nf3, T sigma,
                                              int *idxnupts, int pirange);
-__global__ void Interp_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, int *idxnupts, int pirange);
+template <typename T>
+__global__ void Interp_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                      const int ns, int nf1, int nf2, int nf3, T es_c,
+                                      T es_beta, int *idxnupts, int pirange);
 
 /* Kernels for Subprob Method */
-__global__ void Interp_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                         int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+template <typename T>
+__global__ void Interp_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
+                                         int M, const int ns, int nf1, int nf2, int nf3, T sigma,
                                          int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
                                          int bin_size_z, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
                                          int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
                                          int pirange);
-__global__ void Interp_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                  const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta,
+template <typename T>
+__global__ void Interp_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                  const int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
                                   int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
                                   int nbinx, int nbiny, int nbinz, int *idxnupts, int pirange);
 
 /* C wrapper for calling CUDA kernels */
 // Wrapper for testing spread, interpolation only
-int CUFINUFFT_SPREAD1D(int nf1, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT_INTERP1D(int nf1, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, CUFINUFFT_PLAN d_plan);
-int CUFINUFFT_SPREAD2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky, CUCPX *d_c,
-                       CUFINUFFT_PLAN d_plan);
-int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky, CUCPX *d_c,
-                       CUFINUFFT_PLAN d_plan);
-int CUFINUFFT_SPREAD3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky,
-                       CUFINUFFT_FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN dplan);
-int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky,
-                       CUFINUFFT_FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN dplan);
+template <typename T>
+int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
+                       cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
+                       cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cufinufft_spread2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
+                       cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
+                       cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
+                       cuda_complex<T> *d_c, cufinufft_plan_template<T> *dplan);
+template <typename T>
+int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
+                       cuda_complex<T> *d_c, cufinufft_plan_template<T> *dplan);
 
 // Functions for calling different methods of spreading & interpolation
-int CUSPREAD1D(CUFINUFFT_PLAN d_plan, int blksize);
-int CUINTERP1D(CUFINUFFT_PLAN d_plan, int blksize);
-int CUSPREAD2D(CUFINUFFT_PLAN d_plan, int blksize);
-int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize);
-int CUSPREAD3D(CUFINUFFT_PLAN d_plan, int blksize);
-int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize);
+template <typename T>
+int cuspread1d(cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuinterp1d(cufinufft_plan_template<T> *d_plan, int blksize);
+
+template <typename T>
+int cuspread2d(cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuinterp2d(cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuspread3d(cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuinterp3d(cufinufft_plan_template<T> *d_plan, int blksize);
 
 // Wrappers for methods of spreading
-int CUSPREAD1D_NUPTSDRIVEN_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD1D_SUBPROB(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize);
+template <typename T>
+int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cuspread1d_subprob(int nf1, int M, cufinufft_plan_template<T> *d_plan, int blksize);
 
-int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUSPREAD2D_PAUL(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
-
-int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);
+template <typename T>
+int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cuspread2d_paul_prop(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cuspread2d_subprob(int nf1, int nf2, int m, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuspread2d_paul(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan);
+template <typename T>
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize);
 
 // Wrappers for methods of interpolation
-int CUINTERP1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);
+template <typename T>
+int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize);
+template <typename T>
+int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize);
 
 } // namespace spreadinterp
-} // namespace finufft
+} // namespace cufinufft
 #endif

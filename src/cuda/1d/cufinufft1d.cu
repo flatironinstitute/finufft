@@ -1,3 +1,4 @@
+#include "cufinufft/types.h"
 #include <complex>
 #include <cufft.h>
 #include <helper_cuda.h>
@@ -14,7 +15,8 @@ using namespace cufinufft::deconvolve;
 using namespace cufinufft::spreadinterp;
 using std::min;
 
-int CUFINUFFT1D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan)
 /*
     1D Type-1 NUFFT
 
@@ -90,7 +92,8 @@ int CUFINUFFT1D1_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
     return ier;
 }
 
-int CUFINUFFT1D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan)
 /*
     1D Type-2 NUFFT
 
@@ -113,8 +116,8 @@ int CUFINUFFT1D2_EXEC(CUCPX *d_c, CUCPX *d_fk, CUFINUFFT_PLAN d_plan)
     cudaEventRecord(start);
     int blksize;
     int ier;
-    CUCPX *d_fkstart;
-    CUCPX *d_cstart;
+    cuda_complex<T> *d_fkstart;
+    cuda_complex<T> *d_cstart;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
         blksize = std::min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;

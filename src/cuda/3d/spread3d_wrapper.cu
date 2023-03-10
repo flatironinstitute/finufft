@@ -16,8 +16,9 @@ using namespace cufinufft::memtransfer;
 namespace cufinufft {
 namespace spreadinterp {
 
-int CUFINUFFT_SPREAD3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky,
-                       CUFINUFFT_FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
+                       cuda_complex<T> *d_c, cufinufft_plan_template<T> *d_plan)
 /*
     This c function is written for only doing 3D spreading. See
     test/spread3d_test.cu for usage.
@@ -97,7 +98,8 @@ int CUFINUFFT_SPREAD3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_
     return ier;
 }
 
-int CUSPREAD3D(CUFINUFFT_PLAN d_plan, int blksize)
+template <typename T>
+int cuspread3d(cufinufft_plan_template<T> *d_plan, int blksize)
 /*
     A wrapper for different spreading methods.
 
@@ -151,7 +153,8 @@ int CUSPREAD3D(CUFINUFFT_PLAN d_plan, int blksize)
     return ier;
 }
 
-int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan) {
+template <typename T>
+int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -167,9 +170,9 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         }
 
         int numbins[3];
-        numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-        numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
-        numbins[2] = ceil((CUFINUFFT_FLT)nf3 / bin_size_z);
+        numbins[0] = ceil((T)nf1 / bin_size_x);
+        numbins[1] = ceil((T)nf2 / bin_size_y);
+        numbins[2] = ceil((T)nf3 / bin_size_z);
 
 #ifdef DEBUG
         std::cout << "[debug ] Dividing the uniform grids to bin size[" << d_plan->opts.gpu_binsizex << "x"
@@ -177,20 +180,20 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         std::cout << "[debug ] numbins = [" << numbins[0] << "x" << numbins[1] << "x" << numbins[2] << "]" << std::endl;
 #endif
 
-        CUFINUFFT_FLT *d_kx = d_plan->kx;
-        CUFINUFFT_FLT *d_ky = d_plan->ky;
-        CUFINUFFT_FLT *d_kz = d_plan->kz;
+        T *d_kx = d_plan->kx;
+        T *d_ky = d_plan->ky;
+        T *d_kz = d_plan->kz;
 #ifdef DEBUG
-        CUFINUFFT_FLT *h_kx;
-        CUFINUFFT_FLT *h_ky;
-        CUFINUFFT_FLT *h_kz;
-        h_kx = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
-        h_ky = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
-        h_kz = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
+        T *h_kx;
+        T *h_ky;
+        T *h_kz;
+        h_kx = (T *)malloc(M * sizeof(T));
+        h_ky = (T *)malloc(M * sizeof(T));
+        h_kz = (T *)malloc(M * sizeof(T));
 
-        checkCudaErrors(cudaMemcpy(h_kx, d_kx, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(h_ky, d_ky, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
-        checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(h_kx, d_kx, M * sizeof(T), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(h_ky, d_ky, M * sizeof(T), cudaMemcpyDeviceToHost));
+        checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(T), cudaMemcpyDeviceToHost));
         for (int i = 0; i < 10; i++) {
             std::cout << "[debug ] ";
             std::cout << "(" << setw(3) << h_kx[i] << "," << setw(3) << h_ky[i] << "," << setw(3) << h_kz[i] << ")"
@@ -316,7 +319,8 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
     return 0;
 }
 
-int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -325,17 +329,17 @@ int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     dim3 blocks;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
     int pirange = d_plan->spopts.pirange;
 
     int *d_idxnupts = d_plan->idxnupts;
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     threadsPerBlock.x = 16;
     threadsPerBlock.y = 1;
@@ -365,7 +369,8 @@ int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     return 0;
 }
 
-int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan) {
+template <typename T>
+int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -391,9 +396,9 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         return 1;
     }
 
-    numobins[0] = ceil((CUFINUFFT_FLT)nf1 / o_bin_size_x);
-    numobins[1] = ceil((CUFINUFFT_FLT)nf2 / o_bin_size_y);
-    numobins[2] = ceil((CUFINUFFT_FLT)nf3 / o_bin_size_z);
+    numobins[0] = ceil((T)nf1 / o_bin_size_x);
+    numobins[1] = ceil((T)nf2 / o_bin_size_y);
+    numobins[2] = ceil((T)nf3 / o_bin_size_z);
 
     int bin_size_x = d_plan->opts.gpu_binsizex;
     int bin_size_y = d_plan->opts.gpu_binsizey;
@@ -424,19 +429,19 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
     std::cout << "[debug ] numbins = [" << numbins[0] << "x" << numbins[1] << "x" << numbins[2] << "]" << std::endl;
 #endif
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
 
 #ifdef DEBUG
-    CUFINUFFT_FLT *h_kx, *h_ky, *h_kz;
-    h_kx = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
-    h_ky = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
-    h_kz = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
+    T *h_kx, *h_ky, *h_kz;
+    h_kx = (T *)malloc(M * sizeof(T));
+    h_ky = (T *)malloc(M * sizeof(T));
+    h_kz = (T *)malloc(M * sizeof(T));
 
-    checkCudaErrors(cudaMemcpy(h_kx, d_kx, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(h_ky, d_ky, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(h_kx, d_kx, M * sizeof(T), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(h_ky, d_ky, M * sizeof(T), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(T), cudaMemcpyDeviceToHost));
     for (int i = 0; i < M; i++) {
         std::cout << "[debug ] ";
         std::cout << "(" << setw(3) << h_kx[i] << "," << setw(3) << h_ky[i] << "," << h_kz[i] << ")" << std::endl;
@@ -749,15 +754,16 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
     return 0;
 }
 
-int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
 
     int ns = d_plan->spopts.nspread;
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
     int pirange = d_plan->spopts.pirange;
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
@@ -768,9 +774,9 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int bin_size_z = d_plan->opts.gpu_binsizez;
     int numobins[3];
-    numobins[0] = ceil((CUFINUFFT_FLT)nf1 / obin_size_x);
-    numobins[1] = ceil((CUFINUFFT_FLT)nf2 / obin_size_y);
-    numobins[2] = ceil((CUFINUFFT_FLT)nf3 / obin_size_z);
+    numobins[0] = ceil((T)nf1 / obin_size_x);
+    numobins[1] = ceil((T)nf2 / obin_size_y);
+    numobins[2] = ceil((T)nf3 / obin_size_z);
 
     int binsperobinx, binsperobiny, binsperobinz;
     binsperobinx = obin_size_x / bin_size_x + 2;
@@ -783,11 +789,11 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     std::cout << "[info  ] ns = " << ns << std::endl;
 #endif
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     int *d_binstartpts = d_plan->binstartpts;
     int *d_subprobstartpts = d_plan->subprobstartpts;
@@ -799,7 +805,7 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     cudaEventRecord(start);
     for (int t = 0; t < blksize; t++) {
         if (d_plan->opts.gpu_kerevalmeth == 1) {
-            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(CUCPX);
+            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
             if (sharedplanorysize > 49152) {
                 std::cout << "error: not enough shared memory" << std::endl;
                 return 1;
@@ -810,7 +816,7 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
                 d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts,
                 pirange);
         } else {
-            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(CUCPX);
+            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
             if (sharedplanorysize > 49152) {
                 std::cout << "error: not enough shared memory" << std::endl;
                 return 1;
@@ -832,7 +838,8 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     return 0;
 }
 
-int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan) {
+template <typename T>
+int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -848,30 +855,30 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     }
 
     int numbins[3];
-    numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-    numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
-    numbins[2] = ceil((CUFINUFFT_FLT)nf3 / bin_size_z);
+    numbins[0] = ceil((T)nf1 / bin_size_x);
+    numbins[1] = ceil((T)nf2 / bin_size_y);
+    numbins[2] = ceil((T)nf3 / bin_size_z);
 #ifdef DEBUG
     std::cout << "[debug ] Dividing the uniform grids to bin size[" << d_plan->opts.gpu_binsizex << "x"
               << d_plan->opts.gpu_binsizey << "x" << d_plan->opts.gpu_binsizez << "]" << std::endl;
     std::cout << "[debug ] numbins = [" << numbins[0] << "x" << numbins[1] << "x" << numbins[2] << "]" << std::endl;
 #endif
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
 
 #ifdef DEBUG
-    CUFINUFFT_FLT *h_kx;
-    CUFINUFFT_FLT *h_ky;
-    CUFINUFFT_FLT *h_kz;
-    h_kx = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
-    h_ky = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
-    h_kz = (CUFINUFFT_FLT *)malloc(M * sizeof(CUFINUFFT_FLT));
+    T *h_kx;
+    T *h_ky;
+    T *h_kz;
+    h_kx = (T *)malloc(M * sizeof(T));
+    h_ky = (T *)malloc(M * sizeof(T));
+    h_kz = (T *)malloc(M * sizeof(T));
 
-    checkCudaErrors(cudaMemcpy(h_kx, d_kx, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(h_ky, d_ky, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(h_kx, d_kx, M * sizeof(T), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(h_ky, d_ky, M * sizeof(T), cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(T), cudaMemcpyDeviceToHost));
     for (int i = M - 10; i < M; i++) {
         std::cout << "[debug ] ";
         std::cout << "(" << setw(3) << h_kx[i] << "," << setw(3) << h_ky[i] << "," << setw(3) << h_kz[i] << ")"
@@ -1073,7 +1080,8 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     return 0;
 }
 
-int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -1086,9 +1094,9 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int bin_size_z = d_plan->opts.gpu_binsizez;
     int numbins[3];
-    numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-    numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
-    numbins[2] = ceil((CUFINUFFT_FLT)nf3 / bin_size_z);
+    numbins[0] = ceil((T)nf1 / bin_size_x);
+    numbins[1] = ceil((T)nf2 / bin_size_y);
+    numbins[2] = ceil((T)nf3 / bin_size_z);
 #ifdef INFO
     std::cout << "[info  ] Dividing the uniform grids to bin size[" << d_plan->opts.gpu_binsizex << "x"
               << d_plan->opts.gpu_binsizey << "x" << d_plan->opts.gpu_binsizez << "]" << std::endl;
@@ -1096,11 +1104,11 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     std::cout << ns << std::endl;
 #endif
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     int *d_binsize = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -1111,13 +1119,13 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     int totalnumsubprob = d_plan->totalnumsubprob;
     int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
     int pirange = d_plan->spopts.pirange;
     cudaEventRecord(start);
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) *
-                               (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(CUCPX);
+                               (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory (" << sharedplanorysize << ")" << std::endl;
         return 1;
