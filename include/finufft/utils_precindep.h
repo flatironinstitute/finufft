@@ -6,7 +6,8 @@
 
 #include "defs.h"
 // for CNTime...
-#include <sys/time.h>
+// using chrono since the interface is portable between linux and windows
+#include <chrono>
 
 namespace finufft {
   namespace utils {
@@ -20,7 +21,7 @@ namespace finufft {
     double restart();
     double elapsedsec();
   private:
-    struct timeval initial;
+    double initial;
   };
 
   // openmp helpers
