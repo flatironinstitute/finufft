@@ -18,6 +18,8 @@ jobs:
           # - { name: "MacOS clang", os: macos-latest, cc: "clang", cxx: "clang++" }
         
     steps:
+      - uses: actions/checkout@v3
+
       - name: Setup Ninja
         uses: ashutoshvarma/setup-ninja@master
         with:
@@ -33,5 +35,5 @@ jobs:
           configure-options: -G Ninja -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_BUILD_EXAMPLES=ON
           build-type: Debug
           run-test: true
-          ctest-options: -R mytest
+          ctest-options: --test-dir test  --output-on-failure 
           parallel: 14
