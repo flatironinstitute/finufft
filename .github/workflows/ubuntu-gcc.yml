@@ -1,0 +1,36 @@
+# this test build the app using cmake and tests it with ctest
+name: CMake Ubuntu GCC
+
+on: [push]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_PRESET: dev
+
+jobs:
+  build:
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      matrix:
+        config:
+          - { name: "Ubuntu gcc", os: ubuntu-latest, cc: "gcc", cxx: "g++" }        
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@master
+        with:
+          # ninja version to download. Default: 1.10.0
+          version: 1.10.0
+
+      - name: Build with CMake
+        uses: ashutoshvarma/action-cmake-build@master
+        with:
+          build-dir: ${{ runner.workspace }}/build
+          cc: ${{ matrix.config.cc }}
+          cxx: ${{ matrix.config.cxx }}
+          configure-options: -G Ninja -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_BUILD_EXAMPLES=ON
+          build-type: Debug
+          run-test: true
+          ctest-options: --test-dir test  --output-on-failure 
+          parallel: 14
