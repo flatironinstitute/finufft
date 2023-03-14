@@ -13,11 +13,13 @@
 using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
 
+#include "spreadinterp1d.cuh"
+
 namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
-int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c, cufinufft_plan_template<T> *d_plan)
+int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c, cufinufft_plan_template<T> d_plan)
 /*
     This c function is written for only doing 1D spreading. See
     test/spread1d_test.cu for usage.
@@ -40,11 +42,11 @@ int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_comp
     d_plan->maxbatchsize = 1;
 
     cudaEventRecord(start);
-    ier = ALLOCGPUMEM1D_PLAN(d_plan);
-    ier = ALLOCGPUMEM1D_NUPTS(d_plan);
+    ier = allocgpumem1d_plan<T>(d_plan);
+    ier = allocgpumem1d_nupts<T>(d_plan);
 
     if (d_plan->opts.gpu_method == 1) {
-        ier = CUSPREAD1D_NUPTSDRIVEN_PROP(nf1, M, d_plan);
+        ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread1d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
@@ -52,7 +54,7 @@ int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_comp
     }
 
     if (d_plan->opts.gpu_method == 2) {
-        ier = CUSPREAD1D_SUBPROB_PROP(nf1, M, d_plan);
+        ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
@@ -68,7 +70,7 @@ int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_comp
 #endif
 
     cudaEventRecord(start);
-    ier = CUSPREAD1D(d_plan, 1);
+    ier = cuspread1d<T>(d_plan, 1);
 #ifdef TIME
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -77,7 +79,7 @@ int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_comp
 #endif
 
     cudaEventRecord(start);
-    FREEGPUMEMORY1D(d_plan);
+    freegpumemory1d<T>(d_plan);
 #ifdef TIME
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -88,7 +90,7 @@ int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_comp
 }
 
 template <typename T>
-int cuspread1d(cufinufft_plan_template<T> *d_plan, int blksize)
+int cuspread1d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     A wrapper for different spreading methods.
 
@@ -110,7 +112,7 @@ int cuspread1d(cufinufft_plan_template<T> *d_plan, int blksize)
     switch (d_plan->opts.gpu_method) {
     case 1: {
         cudaEventRecord(start);
-        ier = CUSPREAD1D_NUPTSDRIVEN(nf1, M, d_plan, blksize);
+        ier = cuspread1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread1d_gpu_nuptsdriven" << std::endl;
             return 1;
@@ -118,7 +120,7 @@ int cuspread1d(cufinufft_plan_template<T> *d_plan, int blksize)
     } break;
     case 2: {
         cudaEventRecord(start);
-        ier = CUSPREAD1D_SUBPROB(nf1, M, d_plan, blksize);
+        ier = cuspread1d_subprob<T>(nf1, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread1d_gpu_subprob" << std::endl;
             return 1;
@@ -140,7 +142,7 @@ int cuspread1d(cufinufft_plan_template<T> *d_plan, int blksize)
 }
 
 template <typename T>
-int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_template<T> *d_plan) {
+int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_template<T> d_plan) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -281,7 +283,7 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_template<T> *d_pl
 }
 
 template <typename T>
-int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
+int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -328,7 +330,7 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> *d_plan, i
 }
 
 template <typename T>
-int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_template<T> *d_plan)
+int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_template<T> d_plan)
 /*
     This function determines the properties for spreading that are independent
     of the strength of the nodes,  only relates to the locations of the nodes,
@@ -530,7 +532,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_template<T> *d_plan)
 }
 
 template <typename T>
-int cuspread1d_subprob(int nf1, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
+int cuspread1d_subprob(int nf1, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -592,5 +594,9 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_template<T> *d_plan, int b
     return 0;
 }
 
+template int cufinufft_spread1d<float>(int nf1, cuda_complex<float> *d_fw, int M, float *d_kx, cuda_complex<float> *d_c,
+                                       cufinufft_plan_template<float> d_plan);
+template int cufinufft_spread1d<double>(int nf1, cuda_complex<double> *d_fw, int M, double *d_kx, cuda_complex<double> *d_c,
+                                        cufinufft_plan_template<double> d_plan);
 } // namespace spreadinterp
 } // namespace cufinufft

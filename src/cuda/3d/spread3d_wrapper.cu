@@ -13,12 +13,14 @@
 using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
 
+#include "spreadinterp3d.cuh"
+
 namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
 int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_template<T> *d_plan)
+                       cuda_complex<T> *d_c, cufinufft_plan_template<T> d_plan)
 /*
     This c function is written for only doing 3D spreading. See
     test/spread3d_test.cu for usage.
@@ -45,26 +47,26 @@ int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, 
     d_plan->maxbatchsize = 1;
 
     cudaEventRecord(start);
-    ier = ALLOCGPUMEM3D_PLAN(d_plan);
-    ier = ALLOCGPUMEM3D_NUPTS(d_plan);
+    ier = allocgpumem3d_plan<T>(d_plan);
+    ier = allocgpumem3d_nupts<T>(d_plan);
 
     cudaEventRecord(start);
     if (d_plan->opts.gpu_method == 1) {
-        ier = CUSPREAD3D_NUPTSDRIVEN_PROP(nf1, nf2, nf3, M, d_plan);
+        ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
     if (d_plan->opts.gpu_method == 2) {
-        ier = CUSPREAD3D_SUBPROB_PROP(nf1, nf2, nf3, M, d_plan);
+        ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
     if (d_plan->opts.gpu_method == 4) {
-        ier = CUSPREAD3D_BLOCKGATHER_PROP(nf1, nf2, nf3, M, d_plan);
+        ier = cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread3d_blockgather_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
@@ -79,7 +81,7 @@ int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, 
 #endif
 
     cudaEventRecord(start);
-    ier = CUSPREAD3D(d_plan, 1);
+    ier = cuspread3d<T>(d_plan, 1);
 #ifdef TIME
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -88,7 +90,7 @@ int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, 
 #endif
 
     cudaEventRecord(start);
-    FREEGPUMEMORY3D(d_plan);
+    freegpumemory3d<T>(d_plan);
 #ifdef TIME
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -99,7 +101,7 @@ int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, 
 }
 
 template <typename T>
-int cuspread3d(cufinufft_plan_template<T> *d_plan, int blksize)
+int cuspread3d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     A wrapper for different spreading methods.
 
@@ -124,7 +126,7 @@ int cuspread3d(cufinufft_plan_template<T> *d_plan, int blksize)
     switch (d_plan->opts.gpu_method) {
     case 1: {
         cudaEventRecord(start);
-        ier = CUSPREAD3D_NUPTSDRIVEN(nf1, nf2, nf3, M, d_plan, blksize);
+        ier = cuspread3d_nuptsdriven<T>(nf1, nf2, nf3, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
             return 1;
@@ -132,7 +134,7 @@ int cuspread3d(cufinufft_plan_template<T> *d_plan, int blksize)
     } break;
     case 2: {
         cudaEventRecord(start);
-        ier = CUSPREAD3D_SUBPROB(nf1, nf2, nf3, M, d_plan, blksize);
+        ier = cuspread3d_subprob<T>(nf1, nf2, nf3, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
             return 1;
@@ -140,7 +142,7 @@ int cuspread3d(cufinufft_plan_template<T> *d_plan, int blksize)
     } break;
     case 4: {
         cudaEventRecord(start);
-        ier = CUSPREAD3D_BLOCKGATHER(nf1, nf2, nf3, M, d_plan, blksize);
+        ier = cuspread3d_blockgather<T>(nf1, nf2, nf3, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
             return 1;
@@ -154,7 +156,7 @@ int cuspread3d(cufinufft_plan_template<T> *d_plan, int blksize)
 }
 
 template <typename T>
-int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan) {
+int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -320,7 +322,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 }
 
 template <typename T>
-int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -370,7 +372,7 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_temp
 }
 
 template <typename T>
-int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan) {
+int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -755,7 +757,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 }
 
 template <typename T>
-int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -839,7 +841,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_temp
 }
 
 template <typename T>
-int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan) {
+int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -1081,7 +1083,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_tem
 }
 
 template <typename T>
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -1154,5 +1156,14 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template
     return 0;
 }
 
+template int cuspread3d<float>(cufinufft_plan_template<float> d_plan, int blksize);
+template int cuspread3d<double>(cufinufft_plan_template<double> d_plan, int blksize);
+
+template int cufinufft_spread3d<float>(int nf1, int nf2, int nf3, cuda_complex<float> *d_fw, int M, float *d_kx,
+                                       float *d_ky, float *d_kz, cuda_complex<float> *d_c,
+                                       cufinufft_plan_template<float> d_plan);
+template int cufinufft_spread3d<double>(int nf1, int nf2, int nf3, cuda_complex<double> *d_fw, int M, double *d_kx,
+                                        double *d_ky, double *d_kz, cuda_complex<double> *d_c,
+                                        cufinufft_plan_template<double> d_plan);
 } // namespace spreadinterp
 } // namespace cufinufft

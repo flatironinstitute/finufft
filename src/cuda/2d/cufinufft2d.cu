@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <cmath>
 #include <complex>
 #include <iomanip>
@@ -9,14 +10,13 @@
 #include <cufinufft/cudeconvolve.h>
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
-#include <cufinufft_eitherprec.h>
 
 using namespace cufinufft::deconvolve;
 using namespace cufinufft::spreadinterp;
 using std::min;
 
 template <typename T>
-int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan)
+int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan)
 /*
     2D Type-1 NUFFT
 
@@ -58,7 +58,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 #endif
         // Step 1: Spread
         cudaEventRecord(start);
-        ier = CUSPREAD2D(d_plan, blksize);
+        ier = cuspread2d<T>(d_plan, blksize);
         if (ier != 0) {
             printf("error: cuspread2d, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
@@ -71,7 +71,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 #endif
         // Step 2: FFT
         cudaEventRecord(start);
-        CUFFT_EX(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
 #ifdef TIME
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
@@ -81,7 +81,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 
         // Step 3: deconvolve and shuffle
         cudaEventRecord(start);
-        CUDECONVOLVE2D(d_plan, blksize);
+        cudeconvolve2d<T>(d_plan, blksize);
 #ifdef TIME
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
@@ -93,7 +93,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 }
 
 template <typename T>
-int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan)
+int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan)
 /*
     2D Type-2 NUFFT
 
@@ -128,7 +128,7 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 
         // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
         cudaEventRecord(start);
-        CUDECONVOLVE2D(d_plan, blksize);
+        cudeconvolve2d<T>(d_plan, blksize);
 #ifdef TIME
         float milliseconds = 0;
         cudaEventRecord(stop);
@@ -139,7 +139,7 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         // Step 2: FFT
         cudaDeviceSynchronize();
         cudaEventRecord(start);
-        CUFFT_EX(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
 #ifdef TIME
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
@@ -149,7 +149,7 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 
         // Step 3: deconvolve and shuffle
         cudaEventRecord(start);
-        ier = CUINTERP2D(d_plan, blksize);
+        ier = cuinterp2d<T>(d_plan, blksize);
         if (ier != 0) {
             printf("error: cuinterp2d, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
@@ -163,3 +163,12 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
     }
     return ier;
 }
+
+template int cufinufft2d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
+                                      cufinufft_plan_template<float> d_plan);
+template int cufinufft2d1_exec<double>(cuda_complex<double> *d_c, cuda_complex<double> *d_fk,
+                                       cufinufft_plan_template<double> d_plan);
+template int cufinufft2d2_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
+                                      cufinufft_plan_template<float> d_plan);
+template int cufinufft2d2_exec<double>(cuda_complex<double> *d_c, cuda_complex<double> *d_fk,
+                                       cufinufft_plan_template<double> d_plan);

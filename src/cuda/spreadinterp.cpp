@@ -9,7 +9,8 @@
 namespace cufinufft {
 namespace spreadinterp {
 
-int setup_spreader(finufft_spread_opts &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT upsampfac, int kerevalmeth)
+template <typename T>
+int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth)
 // Initializes spreader kernel parameters given desired NUFFT tolerance eps,
 // upsampling factor (=sigma in paper, or R in Dutt-Rokhlin), and ker eval meth
 // (etiher 0:exp(sqrt()), 1: Horner ppval).
@@ -48,7 +49,7 @@ int setup_spreader(finufft_spread_opts &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT u
     }
 
     // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
-    int ns = std::ceil(-log10(eps / (CUFINUFFT_FLT)10.0));          // 1 digit per power of ten
+    int ns = std::ceil(-log10(eps / (T)10.0));          // 1 digit per power of ten
     if (upsampfac != 2.0)                                           // override ns for custom sigma
         ns = std::ceil(-log(eps) / (PI * sqrt(1 - 1 / upsampfac))); // formula, gamma=1
     ns = std::max(2, ns);                                           // we don't have ns=1 version yet
@@ -59,10 +60,10 @@ int setup_spreader(finufft_spread_opts &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT u
         ier = WARN_EPS_TOO_SMALL;
     }
     opts.nspread = ns;
-    opts.ES_halfwidth = (CUFINUFFT_FLT)ns / 2; // constants to help ker eval (except Horner)
-    opts.ES_c = 4.0 / (CUFINUFFT_FLT)(ns * ns);
+    opts.ES_halfwidth = (T)ns / 2; // constants to help ker eval (except Horner)
+    opts.ES_c = 4.0 / (T)(ns * ns);
 
-    CUFINUFFT_FLT betaoverns = 2.30; // gives decent betas for default sigma=2.0
+    T betaoverns = 2.30; // gives decent betas for default sigma=2.0
     if (ns == 2)
         betaoverns = 2.20; // some small-width tweaks...
     if (ns == 3)
@@ -70,16 +71,17 @@ int setup_spreader(finufft_spread_opts &opts, CUFINUFFT_FLT eps, CUFINUFFT_FLT u
     if (ns == 4)
         betaoverns = 2.38;
     if (upsampfac != 2.0) {                                  // again, override beta for custom sigma
-        CUFINUFFT_FLT gamma = 0.97;                          // must match devel/gen_all_horner_C_code.m
+        T gamma = 0.97;                          // must match devel/gen_all_horner_C_code.m
         betaoverns = gamma * PI * (1 - 1 / (2 * upsampfac)); // formula based on cutoff
     }
-    opts.ES_beta = betaoverns * (CUFINUFFT_FLT)ns; // set the kernel beta parameter
+    opts.ES_beta = betaoverns * (T)ns; // set the kernel beta parameter
     // fprintf(stderr,"setup_spreader: sigma=%.6f, chose ns=%d beta=%.6f\n",(double)upsampfac,ns,(double)opts.ES_beta);
     // // user hasn't set debug yet
     return ier;
 }
 
-CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const finufft_spread_opts &opts)
+template <typename T>
+T evaluate_kernel(T x, const finufft_spread_opts &opts)
 /* ES ("exp sqrt") kernel evaluation at single real argument:
       phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
    related to an asymptotic approximation to the Kaiser--Bessel, itself an
@@ -92,6 +94,11 @@ CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x, const finufft_spread_opts &opts)
     else
         return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c * x * x));
 }
+
+template int setup_spreader(finufft_spread_opts &opts, float eps, float upsampfac, int kerevalmeth);
+template int setup_spreader(finufft_spread_opts &opts, double eps, double upsampfac, int kerevalmeth);
+template float evaluate_kernel(float x, const finufft_spread_opts &opts);
+template double evaluate_kernel(double x, const finufft_spread_opts &opts);
 
 } // namespace spreadinterp
 } // namespace cufinufft

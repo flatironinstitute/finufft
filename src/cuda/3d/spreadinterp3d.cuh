@@ -7,9 +7,8 @@
 #include <cufinufft/defs.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
+#include <cufinufft/types.h>
 #include <cufinufft/utils.h>
-using namespace cufinufft::common;
-using namespace cufinufft::utils;
 
 namespace cufinufft {
 namespace spreadinterp {
@@ -18,8 +17,8 @@ namespace spreadinterp {
 
 template <typename T>
 __global__ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y, int bin_size_z,
-                                       int nbinx, int nbiny, int nbinz, int *bin_size, T *x,
-                                       T *y, T *z, int *sortidx, int pirange) {
+                                       int nbinx, int nbiny, int nbinz, int *bin_size, T *x, T *y, T *z, int *sortidx,
+                                       int pirange) {
     int binidx, binx, biny, binz;
     int oldidx;
     T x_rescaled, y_rescaled, z_rescaled;
@@ -46,9 +45,8 @@ __global__ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int bin
 
 template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
-                                             int nbiny, int nbinz, int *bin_startpts, int *sortidx, T *x,
-                                             T *y, T *z, int *index, int pirange, int nf1,
-                                             int nf2, int nf3) {
+                                             int nbiny, int nbinz, int *bin_startpts, int *sortidx, T *x, T *y, T *z,
+                                             int *index, int pirange, int nf1, int nf2, int nf3) {
     int binx, biny, binz;
     int binidx;
     T x_rescaled, y_rescaled, z_rescaled;
@@ -65,7 +63,7 @@ __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size
         binz = floor(z_rescaled / bin_size_z);
         binz = binz >= nbinz ? binz - 1 : binz;
         binz = binz < 0 ? 0 : binz;
-        binidx = CalcGlobalIdx_V2(binx, biny, binz, nbinx, nbiny, nbinz);
+        binidx = common::CalcGlobalIdx_V2(binx, biny, binz, nbinx, nbiny, nbinz);
 
         index[bin_startpts[binidx] + sortidx[i]] = i;
     }
@@ -73,9 +71,9 @@ __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size
 
 /* Kernels for NUptsdriven method */
 template <typename T>
-__global__ void Spread_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, T sigma,
-                                             int *idxnupts, int pirange) {
+__global__ void Spread_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                             const int ns, int nf1, int nf2, int nf3, T sigma, int *idxnupts,
+                                             int pirange) {
     int xx, yy, zz, ix, iy, iz;
     int outidx;
     T ker1[MAX_NSPREAD];
@@ -123,9 +121,8 @@ __global__ void Spread_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *
     }
 }
 template <typename T>
-__global__ void Spread_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, T es_c,
-                                      T es_beta, int *idxnupts, int pirange) {
+__global__ void Spread_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                      int nf1, int nf2, int nf3, T es_c, T es_beta, int *idxnupts, int pirange) {
     int xx, yy, zz, ix, iy, iz;
     int outidx;
     T ker1[MAX_NSPREAD];
@@ -177,13 +174,13 @@ __global__ void Spread_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda
 /* Kernels for Subprob method */
 
 template <typename T>
-__global__ void Spread_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
-                                         int M, const int ns, int nf1, int nf2, int nf3, T sigma,
-                                         int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
-                                         int bin_size_z, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
-                                         int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
-                                         int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+__global__ void Spread_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                         int nf1, int nf2, int nf3, T sigma, int *binstartpts, int *bin_size,
+                                         int bin_size_x, int bin_size_y, int bin_size_z, int *subprob_to_bin,
+                                         int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx,
+                                         int nbiny, int nbinz, int *idxnupts, int pirange) {
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
     int xstart, ystart, xend, yend, zstart, zend;
     int bidx = subprob_to_bin[blockIdx.x];
@@ -277,12 +274,13 @@ __global__ void Spread_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, c
 }
 
 template <typename T>
-__global__ void Spread_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
-                                  const int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
-                                  int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
-                                  int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
-                                  int nbinx, int nbiny, int nbinz, int *idxnupts, int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+__global__ void Spread_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                  int nf1, int nf2, int nf3, T es_c, T es_beta, int *binstartpts, int *bin_size,
+                                  int bin_size_x, int bin_size_y, int bin_size_z, int *subprob_to_bin,
+                                  int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
+                                  int nbinz, int *idxnupts, int pirange) {
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
     int xstart, ystart, xend, yend, zstart, zend;
     int subpidx = blockIdx.x;
@@ -383,8 +381,7 @@ __global__ void Spread_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_com
 template <typename T>
 __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx, int nobiny,
                                         int nobinz, int binsperobinx, int binsperobiny, int binsperobinz, int *bin_size,
-                                        T *x, T *y, T *z, int *sortidx, int pirange,
-                                        int nf1, int nf2, int nf3) {
+                                        T *x, T *y, T *z, int *sortidx, int pirange, int nf1, int nf2, int nf3) {
     int binidx, binx, biny, binz;
     int oldidx;
     T x_rescaled, y_rescaled, z_rescaled;
@@ -399,7 +396,7 @@ __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, i
         biny = biny / (binsperobiny - 2) * binsperobiny + (biny % (binsperobiny - 2) + 1);
         binz = binz / (binsperobinz - 2) * binsperobinz + (binz % (binsperobinz - 2) + 1);
 
-        binidx = CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+        binidx = common::CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
         oldidx = atomicAdd(&bin_size[binidx], 1);
         sortidx[i] = oldidx;
     }
@@ -408,9 +405,8 @@ __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, i
 template <typename T>
 __global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx,
                                                 int nobiny, int nobinz, int binsperobinx, int binsperobiny,
-                                                int binsperobinz, int *bin_startpts, int *sortidx, T *x,
-                                                T *y, T *z, int *index, int pirange, int nf1,
-                                                int nf2, int nf3) {
+                                                int binsperobinz, int *bin_startpts, int *sortidx, T *x, T *y, T *z,
+                                                int *index, int pirange, int nf1, int nf2, int nf3) {
     int binx, biny, binz;
     int binidx;
     T x_rescaled, y_rescaled, z_rescaled;
@@ -425,19 +421,19 @@ __global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_s
         biny = biny / (binsperobiny - 2) * binsperobiny + (biny % (binsperobiny - 2) + 1);
         binz = binz / (binsperobinz - 2) * binsperobinz + (binz % (binsperobinz - 2) + 1);
 
-        binidx = CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+        binidx = common::CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
         index[bin_startpts[binidx] + sortidx[i]] = i;
     }
 }
 
 template <typename T>
-__global__ void Spread_3d_BlockGather(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, T es_c,
-                                      T es_beta, T sigma, int *binstartpts, int obin_size_x,
-                                      int obin_size_y, int obin_size_z, int binsperobin, int *subprob_to_bin,
-                                      int *subprobstartpts, int maxsubprobsize, int nobinx, int nobiny, int nobinz,
-                                      int *idxnupts, int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+__global__ void Spread_3d_BlockGather(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                      int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma, int *binstartpts,
+                                      int obin_size_x, int obin_size_y, int obin_size_z, int binsperobin,
+                                      int *subprob_to_bin, int *subprobstartpts, int maxsubprobsize, int nobinx,
+                                      int nobiny, int nobinz, int *idxnupts, int pirange) {
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
     int xstart, ystart, zstart, xend, yend, zend;
     int subpidx = blockIdx.x;
@@ -528,13 +524,14 @@ __global__ void Spread_3d_BlockGather(T *x, T *y, T *z, cuda_complex<T> *c, cuda
 }
 
 template <typename T>
-__global__ void Spread_3d_BlockGather_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, T es_c,
-                                             T es_beta, T sigma, int *binstartpts,
-                                             int obin_size_x, int obin_size_y, int obin_size_z, int binsperobin,
-                                             int *subprob_to_bin, int *subprobstartpts, int maxsubprobsize, int nobinx,
-                                             int nobiny, int nobinz, int *idxnupts, int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+__global__ void Spread_3d_BlockGather_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                             const int ns, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma,
+                                             int *binstartpts, int obin_size_x, int obin_size_y, int obin_size_z,
+                                             int binsperobin, int *subprob_to_bin, int *subprobstartpts,
+                                             int maxsubprobsize, int nobinx, int nobiny, int nobinz, int *idxnupts,
+                                             int pirange) {
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
     int xstart, ystart, zstart, xend, yend, zend;
     int xstartnew, ystartnew, zstartnew, xendnew, yendnew, zendnew;
@@ -635,9 +632,8 @@ __global__ void Spread_3d_BlockGather_Horner(T *x, T *y, T *z, cuda_complex<T> *
 /* ---------------------- 3d Interpolation Kernels ---------------------------*/
 /* Kernels for NUptsdriven Method */
 template <typename T>
-__global__ void Interp_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, T es_c,
-                                      T es_beta, int *idxnupts, int pirange) {
+__global__ void Interp_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                      int nf1, int nf2, int nf3, T es_c, T es_beta, int *idxnupts, int pirange) {
     T ker1[MAX_NSPREAD];
     T ker2[MAX_NSPREAD];
     T ker3[MAX_NSPREAD];
@@ -686,9 +682,9 @@ __global__ void Interp_3d_NUptsdriven(T *x, T *y, T *z, cuda_complex<T> *c, cuda
 }
 
 template <typename T>
-__global__ void Interp_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, T sigma,
-                                             int *idxnupts, int pirange) {
+__global__ void Interp_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                             const int ns, int nf1, int nf2, int nf3, T sigma, int *idxnupts,
+                                             int pirange) {
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         T x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         T y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -736,12 +732,13 @@ __global__ void Interp_3d_NUptsdriven_Horner(T *x, T *y, T *z, cuda_complex<T> *
 
 /* Kernels for SubProb Method */
 template <typename T>
-__global__ void Interp_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M,
-                                  const int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
-                                  int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
-                                  int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
-                                  int nbinx, int nbiny, int nbinz, int *idxnupts, int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+__global__ void Interp_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                  int nf1, int nf2, int nf3, T es_c, T es_beta, int *binstartpts, int *bin_size,
+                                  int bin_size_x, int bin_size_y, int bin_size_z, int *subprob_to_bin,
+                                  int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
+                                  int nbinz, int *idxnupts, int pirange) {
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
     int xstart, ystart, xend, yend, zstart, zend;
     int subpidx = blockIdx.x;
@@ -830,14 +827,15 @@ __global__ void Interp_3d_Subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_com
         c[idxnupts[idx]].y = cnow.y;
     }
 }
+
 template <typename T>
-__global__ void Interp_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw,
-                                         int M, const int ns, int nf1, int nf2, int nf3, T sigma,
-                                         int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
-                                         int bin_size_z, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
-                                         int maxsubprobsize, int nbinx, int nbiny, int nbinz, int *idxnupts,
-                                         int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+__global__ void Interp_3d_Subprob_Horner(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
+                                         int nf1, int nf2, int nf3, T sigma, int *binstartpts, int *bin_size,
+                                         int bin_size_x, int bin_size_y, int bin_size_z, int *subprob_to_bin,
+                                         int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx,
+                                         int nbiny, int nbinz, int *idxnupts, int pirange) {
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
     int xstart, ystart, xend, yend, zstart, zend;
     int subpidx = blockIdx.x;

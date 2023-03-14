@@ -114,7 +114,7 @@ __global__ void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, cu
 }
 
 template <typename T>
-int cudeconvolve1d(cufinufft_plan_template<T> *d_plan, int blksize)
+int cudeconvolve1d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     wrapper for deconvolution & amplication in 1D.
 
@@ -151,7 +151,7 @@ int cudeconvolve1d(cufinufft_plan_template<T> *d_plan, int blksize)
 }
 
 template <typename T>
-int cudeconvolve2d(cufinufft_plan_template<T> *d_plan, int blksize)
+int cudeconvolve2d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     wrapper for deconvolution & amplication in 2D.
 
@@ -196,7 +196,7 @@ int cudeconvolve2d(cufinufft_plan_template<T> *d_plan, int blksize)
 }
 
 template <typename T>
-int cudeconvolve3d(cufinufft_plan_template<T> *d_plan, int blksize)
+int cudeconvolve3d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     wrapper for deconvolution & amplication in 3D.
 
@@ -243,6 +243,13 @@ int cudeconvolve3d(cufinufft_plan_template<T> *d_plan, int blksize)
     }
     return 0;
 }
+
+template int cudeconvolve1d<float>(cufinufft_plan_template<float> d_plan, int blksize);
+template int cudeconvolve1d<double>(cufinufft_plan_template<double> d_plan, int blksize);
+template int cudeconvolve2d<float>(cufinufft_plan_template<float> d_plan, int blksize);
+template int cudeconvolve2d<double>(cufinufft_plan_template<double> d_plan, int blksize);
+template int cudeconvolve3d<float>(cufinufft_plan_template<float> d_plan, int blksize);
+template int cudeconvolve3d<double>(cufinufft_plan_template<double> d_plan, int blksize);
 
 } // namespace deconvolve
 } // namespace cufinufft

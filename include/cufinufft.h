@@ -1,17 +1,5 @@
 // Defines the C++/C user interface to FINUFFT library.
 
-// It simply combines single and double precision headers, by flipping a flag
-// in the main macros which are in cufinufft_eitherprec.h
-// No usual #ifndef testing is needed; it's done in cufinufft_eitherprec.h
-// Internal cufinufft routines that are compiled separately for
-// each precision should include cufinufft_eitherprec.h directly, and not cufinufft.h.
-
-/* #undef CUFINUFFT_SINGLE */
-/* #include <cufinufft_eitherprec.h> */
-/* #define CUFINUFFT_SINGLE */
-/* #include <cufinufft_eitherprec.h> */
-/* #undef CUFINUFFT_SINGLE */
-
 #include <assert.h>
 #include <cstdlib>
 #include <cuda_runtime.h>
@@ -28,8 +16,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-typedef cufinufft_plan_template<float> *cufinufftf_plan;
-typedef cufinufft_plan_template<double> *cufinufft_plan;
 
 int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts);
 
@@ -50,20 +36,35 @@ int cufinufft_destroyf(cufinufftf_plan d_plan);
 }
 #endif
 
+#ifdef __cplusplus
+template <typename T>
+int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol, int maxbatchsize,
+                            cufinufft_plan_template<T> *d_plan_ptr, cufinufft_opts *opts);
+template <typename T>
+int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u,
+                          cufinufft_plan_template<T> d_plan);
+template <typename T>
+int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan);
+
+template <typename T>
+int cufinufft_destroy_impl(cufinufft_plan_template<T> d_plan);
+
 // 1d
 template <typename T>
-int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan);
+int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan);
 template <typename T>
-int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan);
+int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan);
 
 // 2d
 template <typename T>
-int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan);
+int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan);
 template <typename T>
-int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan);
+int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan);
 
 // 3d
 template <typename T>
-int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan);
+int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan);
 template <typename T>
-int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> *d_plan);
+int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan);
+
+#endif

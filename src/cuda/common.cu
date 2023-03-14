@@ -80,7 +80,7 @@ int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts 
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
-    int ier = setup_spreader(spopts, eps, opts.upsampfac, opts.gpu_kerevalmeth);
+    int ier = setup_spreader(spopts, eps, (T)opts.upsampfac, opts.gpu_kerevalmeth);
     spopts.pirange = 1; // could allow user control?
     return ier;
 }
@@ -152,13 +152,14 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, finuf
     T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
     // # quadr nodes in z (from 0 to J/2; reflections will be added)...
     int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
-    double z[2 * MAX_NQUAD], w[2 * MAX_NQUAD];
+    double z[2 * MAX_NQUAD];
+    double w[2 * MAX_NQUAD];
 
     finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
     for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
         z[n] *= J2;                                         // rescale nodes
-        f[n] = J2 * (T)w[n] * evaluate_kernel((T)z[n], opts);  // vals & quadr wei
-        a[n] = exp(2 * PI * IMA * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
+        f[n] = J2 * w[n] * evaluate_kernel((T)z[n], opts);     // vals & quadr wei
+        a[n] = exp((T)(2.0 * M_PI) * std::complex<T>(0.0, 1.0) * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
     }
 }
 
@@ -191,5 +192,18 @@ void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, T *fw
     }
 }
 
+template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, float *f, dcomplex *a, float *fwkerhalf,
+                                            finufft_spread_opts opts);
+template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, double *f, dcomplex *a, double *fwkerhalf,
+                                            finufft_spread_opts opts);
+
+template int setup_spreader_for_nufft(finufft_spread_opts &spopts, float eps, cufinufft_opts opts);
+template int setup_spreader_for_nufft(finufft_spread_opts &spopts, double eps, cufinufft_opts opts);
+template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, float *f, dcomplex *a, finufft_spread_opts opts);
+template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, double *f, dcomplex *a, finufft_spread_opts opts);
+template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, float *d_f, cuDoubleComplex *d_a,
+                                    float *d_fwkerhalf1, float *d_fwkerhalf2, float *d_fwkerhalf3, int ns);
+template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, double *d_f, cuDoubleComplex *d_a,
+                                    double *d_fwkerhalf1, double *d_fwkerhalf2, double *d_fwkerhalf3, int ns);
 } // namespace common
 } // namespace cufinufft

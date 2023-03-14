@@ -1,7 +1,6 @@
 #ifndef __CUDECONVOLVE_H__
 #define __CUDECONVOLVE_H__
 
-#include <cufinufft_eitherprec.h>
 #include <cufinufft/types.h>
 
 namespace cufinufft {
@@ -26,11 +25,11 @@ __global__ void Amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, in
                            T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3);
 
 template <typename T>
-int cudeconvolve1d(cufinufft_plan_template<T> *d_mem, int blksize);
+int cudeconvolve1d(cufinufft_plan_template<T> d_mem, int blksize);
 template <typename T>
-int cudeconvolve2d(cufinufft_plan_template<T> *d_mem, int blksize);
+int cudeconvolve2d(cufinufft_plan_template<T> d_mem, int blksize);
 template <typename T>
-int cudeconvolve3d(cufinufft_plan_template<T> *d_mem, int blksize);
+int cudeconvolve3d(cufinufft_plan_template<T> d_mem, int blksize);
 } // namespace convolve
 } // namespace cufinufft
 #endif

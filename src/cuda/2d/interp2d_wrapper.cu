@@ -9,12 +9,14 @@
 #include <cufinufft/spreadinterp.h>
 using namespace cufinufft::memtransfer;
 
+#include "spreadinterp2d.cuh"
+
 namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
 int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
-                       cufinufft_plan_template<T> *d_plan)
+                       cufinufft_plan_template<T> d_plan)
 /*
     This c function is written for only doing 2D interpolation. See
     test/interp2d_test.cu for usage.
@@ -39,17 +41,17 @@ int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
 
     int ier;
     cudaEventRecord(start);
-    ier = ALLOCGPUMEM2D_PLAN(d_plan);
-    ier = ALLOCGPUMEM2D_NUPTS(d_plan);
+    ier = allocgpumem2d_plan<T>(d_plan);
+    ier = allocgpumem2d_nupts<T>(d_plan);
     if (d_plan->opts.gpu_method == 1) {
-        ier = CUSPREAD2D_NUPTSDRIVEN_PROP(nf1, nf2, M, d_plan);
+        ier = cuspread2d_nuptsdriven_prop<T>(nf1, nf2, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread2d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
     if (d_plan->opts.gpu_method == 2) {
-        ier = CUSPREAD2D_SUBPROB_PROP(nf1, nf2, M, d_plan);
+        ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread2d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
@@ -63,7 +65,7 @@ int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
     printf("[time  ] Obtain Interp Prop\t %.3g ms\n", milliseconds);
 #endif
     cudaEventRecord(start);
-    ier = CUINTERP2D(d_plan, 1);
+    ier = cuinterp2d<T>(d_plan, 1);
 #ifdef TIME
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -71,7 +73,7 @@ int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
     printf("[time  ] Interp (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method, milliseconds);
 #endif
     cudaEventRecord(start);
-    FREEGPUMEMORY2D(d_plan);
+    freegpumemory2d<T>(d_plan);
 #ifdef TIME
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -82,7 +84,7 @@ int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
 }
 
 template <typename T>
-int cuinterp2d(cufinufft_plan_template<T> *d_plan, int blksize)
+int cuinterp2d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     A wrapper for different interpolation methods.
 
@@ -107,7 +109,7 @@ int cuinterp2d(cufinufft_plan_template<T> *d_plan, int blksize)
         cudaEventRecord(start);
         {
             PROFILE_CUDA_GROUP("Spreading", 6);
-            ier = CUINTERP2D_NUPTSDRIVEN(nf1, nf2, M, d_plan, blksize);
+            ier = cuinterp2d_nuptsdriven<T>(nf1, nf2, M, d_plan, blksize);
             if (ier != 0) {
                 std::cout << "error: cnufftspread2d_gpu_nuptsdriven" << std::endl;
                 return 1;
@@ -116,7 +118,7 @@ int cuinterp2d(cufinufft_plan_template<T> *d_plan, int blksize)
     } break;
     case 2: {
         cudaEventRecord(start);
-        ier = CUINTERP2D_SUBPROB(nf1, nf2, M, d_plan, blksize);
+        ier = cuinterp2d_subprob<T>(nf1, nf2, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cuinterp2d_subprob" << std::endl;
             return 1;
@@ -138,7 +140,7 @@ int cuinterp2d(cufinufft_plan_template<T> *d_plan, int blksize)
 }
 
 template <typename T>
-int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -186,7 +188,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> *
 }
 
 template <typename T>
-int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_plan, int blksize) {
+int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
@@ -254,6 +256,14 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> *d_pl
 #endif
     return 0;
 }
+
+template int cufinufft_interp2d(int nf1, int nf2, cuda_complex<float> *d_fw, int M, float *d_kx, float *d_ky,
+                                cuda_complex<float> *d_c, cufinufft_plan_template<float> d_plan);
+template int cufinufft_interp2d(int nf1, int nf2, cuda_complex<double> *d_fw, int M, double *d_kx, double *d_ky,
+                                cuda_complex<double> *d_c, cufinufft_plan_template<double> d_plan);
+
+template int cuinterp2d<float>(cufinufft_plan_template<float> d_plan, int blksize);
+template int cuinterp2d<double>(cufinufft_plan_template<double> d_plan, int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

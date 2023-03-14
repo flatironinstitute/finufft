@@ -150,7 +150,9 @@ __global__ void Spread_2d_Subprob(T *x, T *y, cuda_complex<T> *c, cuda_complex<T
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                                   int *idxnupts, int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
+
 
     int xstart, ystart, xend, yend;
     int subpidx = blockIdx.x;
@@ -232,7 +234,9 @@ __global__ void Spread_2d_Subprob_Horner(T *x, T *y, cuda_complex<T> *c, cuda_co
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,
                                          int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
+
 
     int xstart, ystart, xend, yend;
     int subpidx = blockIdx.x;
@@ -392,7 +396,9 @@ __global__ void Spread_2d_Subprob_Paul(T *x, T *y, cuda_complex<T> *c, cuda_comp
                                        int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
                                        int nbinx, int nbiny, int *idxnupts, int *fgstartpts, int *finegridsize,
                                        int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
+
 
     int xstart, ystart, xend, yend;
     int subpidx = blockIdx.x;
@@ -584,7 +590,9 @@ __global__ void Interp_2d_Subprob(T *x, T *y, cuda_complex<T> *c, cuda_complex<T
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                                   int *idxnupts, int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
+
 
     int xstart, ystart, xend, yend;
     int subpidx = blockIdx.x;
@@ -658,7 +666,8 @@ __global__ void Interp_2d_Subprob_Horner(T *x, T *y, cuda_complex<T> *c, cuda_co
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,
                                          int pirange) {
-    extern __shared__ cuda_complex<T> fwshared[];
+    extern __shared__ char sharedbuf[];
+    cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
     int xstart, ystart, xend, yend;
     int subpidx = blockIdx.x;

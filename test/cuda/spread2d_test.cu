@@ -25,7 +25,6 @@ int main(int argc, char *argv[]) {
                         "  method: One of\n"
                         "    1: nupts driven,\n"
                         "    2: sub-problem, or\n"
-                        "    3: sub-problem with Paul's idea.\n"
                         "  nupts_distr: The distribution of the points; one of\n"
                         "    0: uniform, or\n"
                         "    1: concentrated in a small region.\n"

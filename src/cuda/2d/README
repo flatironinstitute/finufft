@@ -13,4 +13,3 @@
   Wrappers for 2d spreading. Three methods are implemented: 
     (1) nonuniform driven, 
     (2) subproblem, 
-    (3) paul's idea 

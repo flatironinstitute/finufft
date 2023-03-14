@@ -10,12 +10,14 @@
 
 using namespace cufinufft::memtransfer;
 
+#include "spreadinterp1d.cuh"
+
 namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
 inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
-                              cufinufft_plan_template<T> *d_plan)
+                              cufinufft_plan_template<T> d_plan)
 /*
     This c function is written for only doing 1D interpolation. See
     test/interp1d_test.cu for usage.
@@ -38,17 +40,17 @@ inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cu
 
     int ier;
     cudaEventRecord(start);
-    ier = allocgpumem1d_plan(d_plan);
-    ier = allocgpumem1d_nupts(d_plan);
+    ier = allocgpumem1d_plan<T>(d_plan);
+    ier = allocgpumem1d_nupts<T>(d_plan);
     if (d_plan->opts.gpu_method == 1) {
-        ier = cuspread1d_nuptsdriven_prop(nf1, M, d_plan);
+        ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
     if (d_plan->opts.gpu_method == 2) {
-        ier = cuspread1d_subprob_prop(nf1, M, d_plan);
+        ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
@@ -62,7 +64,7 @@ inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cu
     printf("[time  ] Obtain Interp Prop\t %.3g ms\n", milliseconds);
 #endif
     cudaEventRecord(start);
-    ier = cuinterp1d(d_plan, 1);
+    ier = cuinterp1d<T>(d_plan, 1);
 #ifdef TIME
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -70,7 +72,7 @@ inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cu
     printf("[time  ] Interp (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method, milliseconds);
 #endif
     cudaEventRecord(start);
-    freegpumemory1d(d_plan);
+    freegpumemory1d<T>(d_plan);
 #ifdef TIME
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -81,9 +83,9 @@ inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cu
 }
 
 template int cufinufft_interp1d(int nf1, cuda_complex<float> *d_fw, int M, float *d_kx, cuda_complex<float> *d_c,
-                                cufinufft_plan_template<float> *d_plan);
+                                cufinufft_plan_template<float> d_plan);
 template int cufinufft_interp1d(int nf1, cuda_complex<double> *d_fw, int M, double *d_kx, cuda_complex<double> *d_c,
-                                cufinufft_plan_template<double> *d_plan);
+                                cufinufft_plan_template<double> d_plan);
 
 template <typename T>
 int cuinterp1d(cufinufft_plan_template<T> d_plan, int blksize)
@@ -109,7 +111,7 @@ int cuinterp1d(cufinufft_plan_template<T> d_plan, int blksize)
     case 1: {
         cudaEventRecord(start);
         {
-            ier = CUINTERP1D_NUPTSDRIVEN(nf1, M, d_plan, blksize);
+            ier = cuinterp1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
             if (ier != 0) {
                 std::cout << "error: cnufftspread1d_gpu_nuptsdriven" << std::endl;
                 return 1;
