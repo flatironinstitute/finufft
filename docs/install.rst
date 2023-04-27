@@ -15,7 +15,7 @@ CMake CPM Based Installation
 ----------------------------
 
 This is the easiest way to install ``finufft`` if you are using CMake in your own project.
-First include `CPM <https://github.com/cpm-cmake/CPM.cmake>`_ to yout project.
+First include `CPM <https://github.com/cpm-cmake/CPM.cmake>`_ to your project.
 
 The easiest way is to follow the `instructions <https://github.com/cpm-cmake/CPM.cmake/wiki/Downloading-CPM.cmake-in-CMake>`_ to automatically add CPM to cmake.
   

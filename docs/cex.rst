@@ -302,6 +302,7 @@ In particular:
 All the other functions are thread safe. With OpenMP is possible to use:
   
 .. code-block:: C++
+                
   #pragma omp critical
   finufft_makeplan(...args...) // not thread safe
 
