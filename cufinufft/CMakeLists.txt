@@ -52,7 +52,13 @@ add_library(cufinufft_static STATIC
   $<TARGET_OBJECTS:cufinufft_32_objects>
   $<TARGET_OBJECTS:cufinufft_64_objects>
 )
+
+if(WIN32)
+target_link_libraries(cufinufft_static CUDA::cudart CUDA::cufft CUDA::nvToolsExt)
+else()
 target_link_libraries(cufinufft_static CUDA::cudart_static CUDA::cufft_static CUDA::nvToolsExt)
+endif()
+
 set_property(TARGET cufinufft_static PROPERTY OUTPUT_NAME cufinufft)
 
 # if(FINUFFT_BUILD_EXAMPLES)
