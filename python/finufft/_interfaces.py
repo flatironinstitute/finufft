@@ -490,15 +490,17 @@ def is_single_dtype(dtype):
 
 ### kwargs opt set
 def setkwopts(opt,**kwargs):
-    warnings.simplefilter('always')
 
-    for key,value in kwargs.items():
-        if hasattr(opt,key):
-            setattr(opt,key,value)
-        else:
-            warnings.warn('Warning: finufft_opts does not have attribute "' + key + '"', Warning)
+    # Use context manager to mutate `warnings` filter stack
+    # This will restore the state of the `warnings` stack on exit from the context.
+    with warnings.catch_warnings():
+        warnings.simplefilter('always')
 
-    warnings.simplefilter('default')
+        for key,value in kwargs.items():
+            if hasattr(opt,key):
+                setattr(opt,key,value)
+            else:
+                warnings.warn('Warning: finufft_opts does not have attribute "' + key + '"', Warning)
 
 
 ### destroy
