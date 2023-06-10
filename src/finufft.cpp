@@ -918,6 +918,9 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
     // Set up sort for spreading Cp (from primed NU src pts X, Y, Z) to fw...
     timer.restart();
+    // Free sortIndices if it has been allocated before in case of repeated setpts calls causing memory leak.
+    // We don't know it is the same size as before, so we have to malloc each time.
+    if (p->sortIndices) free(p->sortIndices);
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*p->nj);
     if (!p->sortIndices) {
       fprintf(stderr,"[%s t3] failed to allocate sortIndices!\n",__func__);
