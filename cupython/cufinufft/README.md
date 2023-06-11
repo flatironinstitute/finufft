@@ -19,3 +19,9 @@ cuFINUFFT: a load-balanced GPU library for general-purpose nonuniform FFTs.
 arXiv preprint arXiv:2102.08463.
 [(paper)](https://arxiv.org/abs/2102.08463)
 [(bibtex)](https://arxiv.org/bibtex/2102.08463)
+
+**Note**: We are currently in the process of adapting the cuFINUFFT interface to
+closer match that of FINUFFT. This will likely break code depending on the
+current interface once the next release is published. At this point we will
+publish a migration guide that will detail the exact changes to the
+interfaces.
