@@ -10,7 +10,7 @@ pipeline {
       agent {
          dockerfile {
             filename 'cufinufft/ci/docker/cuda11.0/Dockerfile-x86_64'
-            args '--gpus 1'
+            args '--gpus 2'
          }
       }
       environment {
