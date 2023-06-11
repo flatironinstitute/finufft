@@ -21,7 +21,7 @@ pipeline {
     sh '''#!/bin/bash -ex
       cp -r /io/build/test/cuda cuda_tests
       cd cuda_tests
-      ctest
+      ctest --output-on-failure
     '''
     sh '${PYBIN}/python3 -m venv $HOME'
     sh '''#!/bin/bash -ex
