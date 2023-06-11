@@ -19,6 +19,9 @@ at close-to-FFT speeds;
 under the hood, this involves detailed kernel design, custom spreading/interpolation stages, and plain FFTs performed by cuFFT.
 See the [documentation for FINUFFT][3] for a full mathematical description of the transforms and their applications to signal processing, imaging, and scientific computing.
 
+**Note**: We are currently in the process of adapting the cuFINUFFT interface to closer match that of FINUFFT. This will likely break code depending on the current interface once the next re
+lease is published. At this point we will publish a migration guide that will detail the exact changes to the interfaces.
+
 Main developer: **Yu-hsuan Melody Shih** (NYU). Main other contributors:
 Garrett Wright (Princeton), Joakim Andén (KTH/Flatiron), Johannes Blaschke (LBNL), Alex Barnett (Flatiron).
 See github for full list of contributors.
