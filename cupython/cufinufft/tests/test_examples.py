@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-examples_dir = os.path.join(Path(__file__).resolve().parents[3], "examples")
+examples_dir = os.path.join(Path(__file__).resolve().parents[3], "examples", "cuda")
 
 scripts = []
 for filename in os.listdir(examples_dir):
