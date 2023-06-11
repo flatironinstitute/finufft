@@ -31,7 +31,7 @@ setup(
     name='cufinufft',
     version='1.3',
     author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
-    author_email='yoyoshih13@gmail.com',
+    author_email='janden-vscholar@flatironinstitute.org',
     url='https://github.com/flatironinstitute/cufinufft',
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
