@@ -1,4 +1,4 @@
 from cufinufft.cufinufft import cufinufft
 
 __all__ = ['cufinufft']
-__version__ = '1.2'
+__version__ = '1.3'

@@ -1,4 +1,4 @@
-# cuFINUFFT v1.2
+# cuFINUFFT v1.3
 
 <img align="right" src="docs/logo.png" width="350">
 
