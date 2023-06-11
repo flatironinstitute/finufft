@@ -1,6 +1,6 @@
 List of features / changes made / release notes, in reverse chronological order
 
-V 2.2.0 (not yet released... planning April 2023):
+V 2.2.0 (not yet released... planning summer 2023):
 
 * MERGE OF CUFINUFFT (GPU CODE) INTO FINUFFT SOURCE TREE:
   - combined cmake build system via FINUFFT_USE_CUDA flag
@@ -12,7 +12,8 @@ V 2.2.0 (not yet released... planning April 2023):
   - cufinufft repo will be obsoleted.
   - coding leads on this: Robert Blackwell and Joakim Anden
 * cmake build structure (thanks: Wenda Zhou, Marco Barbone, Libin Lu)
-  - Note: the plan is to make the makefiles/make.inc.* obsolete this year.
+  - Note: the plan is to make the makefiles/make.inc.* obsolete by 2023 end.
+* Fix memleak in repeated setpts (Issue #269); thanks Aaron Shih & Libin Lu.
 * Fortran90 example via a new FINUFFT fortran module, thanks Reinhard Neder.
 * Better Python interface type checking (PR #237).
 * made the C++ plan object (finufft_plan_s) private; only opaque pointer
