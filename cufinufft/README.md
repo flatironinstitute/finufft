@@ -4,8 +4,6 @@
 
 cuFINUFFT is a very efficient GPU implementation of the 1-, 2-, and 3-dimensional nonuniform FFT of types 1 and 2, in single and double precision, based on the CPU code [FINUFFT][1].
 
-Note that the Python interface has changed relative to v1.1. Please see [CHANGELOG](CHANGELOG) for details.
-
 cuFINUFFT introduces several algorithmic innovations, including load-balancing, bin-sorting for cache-aware access, and use of fast shared memory.
 Our tests show an acceleration over FINUFFT of up to 10x on modern hardware,
 and up to 100x faster than other established GPU NUFFT codes:
