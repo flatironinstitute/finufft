@@ -763,6 +763,9 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     if (ier)         // no warnings allowed here
       return ier;    
     timer.restart();
+    // Free sortIndices if it has been allocated before in case of repeated setpts calls causing memory leak.
+    // We don't know it is the same size as before, so we have to malloc each time.
+    if (p->sortIndices) free(p->sortIndices);
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*p->nj);
     if (!p->sortIndices) {
       fprintf(stderr,"[%s] failed to allocate sortIndices!\n",__func__);
