@@ -44,7 +44,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
     checkCudaErrors(cudaMemcpy(h_ky, d_ky, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
     for (int i = 0; i < M; i++) {
         std::cout << "[debug ]";
-        std::cout << " (" << setw(3) << h_kx[i] << "," << setw(3) << h_ky[i] << ")" << std::endl;
+        std::cout << " (" << std::setw(3) << h_kx[i] << "," << std::setw(3) << h_ky[i] << ")" << std::endl;
     }
 #endif
     int *d_binsize = d_plan->binsize;
@@ -89,7 +89,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
             binidx = binx + biny * numbins[0];
             if (i != 0)
                 std::cout << " ";
-            std::cout << setw(2)
+            std::cout << std::setw(2)
                       << h_finegridsize[binidx * bin_size_x * bin_size_y + (i - binx * bin_size_x) +
                                         (j - bin_size_y * biny) * bin_size_x];
         }
@@ -109,7 +109,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
         for (int i = 0; i < numbins[0]; i++) {
             if (i != 0)
                 std::cout << " ";
-            std::cout << " bin[" << setw(3) << i << "," << setw(3) << j << "]=" << h_binsize[i + j * numbins[0]];
+            std::cout << " bin[" << std::setw(3) << i << "," << std::setw(3) << j << "]=" << h_binsize[i + j * numbins[0]];
         }
         std::cout << std::endl;
     }
@@ -123,7 +123,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
     checkCudaErrors(cudaMemcpy(h_sortidx, d_sortidx, M * sizeof(int), cudaMemcpyDeviceToHost));
     std::cout << "[debug ]";
     for (int i = 0; i < M; i++) {
-        std::cout << "point[" << setw(3) << i << "]=" << setw(3) << h_sortidx[i] << std::endl;
+        std::cout << "point[" << std::setw(3) << i << "]=" << std::setw(3) << h_sortidx[i] << std::endl;
     }
 #endif
     int n = nf1 * nf2;
@@ -154,7 +154,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
             binidx = binx + biny * numbins[0];
             if (i != 0)
                 std::cout << " ";
-            std::cout << setw(2)
+            std::cout << std::setw(2)
                       << h_fgstartpts[binidx * bin_size_x * bin_size_y + (i - binx * bin_size_x) +
                                       (j - bin_size_y * biny) * bin_size_x];
         }
@@ -205,7 +205,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
         for (int i = 0; i < numbins[0]; i++) {
             if (i != 0)
                 std::cout << " ";
-            std::cout << "nsub[" << setw(3) << i << "," << setw(3) << j << "] = " << setw(2)
+            std::cout << "nsub[" << std::setw(3) << i << "," << std::setw(3) << j << "] = " << std::setw(2)
                       << h_numsubprob[i + j * numbins[0]];
         }
         std::cout << std::endl;
@@ -236,7 +236,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
         for (int i = 0; i < numbins[0]; i++) {
             if (i != 0)
                 std::cout << " ";
-            std::cout << "nsub[" << setw(3) << i << "," << setw(3) << j << "] = " << setw(2)
+            std::cout << "nsub[" << std::setw(3) << i << "," << std::setw(3) << j << "] = " << std::setw(2)
                       << h_subprobstartpts[i + j * numbins[0]];
         }
         std::cout << std::endl;
@@ -270,7 +270,7 @@ int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
         cudaMemcpy(h_subprob_to_bin, d_subprob_to_bin, (totalnumsubprob) * sizeof(int), cudaMemcpyDeviceToHost));
     for (int j = 0; j < totalnumsubprob; j++) {
         std::cout << "[debug ] ";
-        std::cout << "nsub[" << j << "] = " << setw(2) << h_subprob_to_bin[j];
+        std::cout << "nsub[" << j << "] = " << std::setw(2) << h_subprob_to_bin[j];
         std::cout << std::endl;
     }
 #endif

@@ -7,8 +7,11 @@
 // NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
 // folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
 // FIXME: SO MUCH BRANCHING
+#ifndef M_1_2PI
+#define M_1_2PI 0.159154943091895336
+#endif
 #define RESCALE(x, N, p)                                                                                               \
-    (p ? ((x * M_1_2PI + (x < -PI ? 1.5 : (x >= PI ? -0.5 : 0.5))) * N) : (x < 0 ? x + N : (x >= N ? x - N : x)))
+    (p ? ((x * M_1_2PI + (x < -M_PI ? 1.5 : (x >= M_PI ? -0.5 : 0.5))) * N) : (x < 0 ? x + N : (x >= N ? x - N : x)))
 // yuk! But this is *so* much faster than slow std::fmod that we stick to it.
 
 namespace cufinufft {
