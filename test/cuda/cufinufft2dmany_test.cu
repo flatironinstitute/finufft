@@ -69,12 +69,12 @@ int main(int argc, char *argv[]) {
         y[i] = M_PI * randm11();
     }
     if (type == 1) {
-        for (int i = 0; i < M; i++) {
+        for (int i = 0; i < ntransf * M; i++) {
             c[i].real(randm11());
             c[i].imag(randm11());
         }
     } else if (type == 2) {
-        for (int i = 0; i < N1 * N2; i++) {
+        for (int i = 0; i < ntransf * N1 * N2; i++) {
             fk[i].real(randm11());
             fk[i].imag(randm11());
         }
@@ -85,7 +85,10 @@ int main(int argc, char *argv[]) {
 
     checkCudaErrors(cudaMemcpy(d_x, x, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_y, y, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_c, c, M * ntransf * sizeof(CUCPX), cudaMemcpyHostToDevice));
+    if (type == 1)
+        checkCudaErrors(cudaMemcpy(d_c, c, M * ntransf * sizeof(CUCPX), cudaMemcpyHostToDevice));
+    else if (type == 2)
+        checkCudaErrors(cudaMemcpy(d_fk, fk, N1 * N2 * ntransf * sizeof(CUCPX), cudaMemcpyHostToDevice));
 
     cudaEvent_t start, stop;
     float milliseconds = 0;
@@ -164,7 +167,10 @@ int main(int argc, char *argv[]) {
     totaltime += milliseconds;
     printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds / 1000);
 
-    checkCudaErrors(cudaMemcpy(fk, d_fk, N1 * N2 * ntransf * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+    if (type == 1)
+        checkCudaErrors(cudaMemcpy(fk, d_fk, N1 * N2 * ntransf * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+    else if (type == 2)
+        checkCudaErrors(cudaMemcpy(c, d_c, M * ntransf * sizeof(CUCPX), cudaMemcpyDeviceToHost));
 
     CUFINUFFT_FLT rel_error = std::numeric_limits<CUFINUFFT_FLT>::max();
     if (type == 1) {
