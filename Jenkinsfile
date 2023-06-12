@@ -19,6 +19,9 @@ pipeline {
       }
       steps {
     sh '''#!/bin/bash -ex
+      nvidia-smi
+    '''
+    sh '''#!/bin/bash -ex
       cp -r /io/build/test/cuda cuda_tests
       cd cuda_tests
       ctest --output-on-failure
