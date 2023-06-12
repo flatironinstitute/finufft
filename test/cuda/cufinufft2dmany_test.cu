@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
     cudaEventRecord(start);
     ier = CUFINUFFT_EXECUTE(d_c, d_fk, dplan);
     if (ier != 0) {
-        printf("err: cufinufft2d1_exec\n");
+        printf("err: cufinufft2d_exec\n");
         return ier;
     }
     cudaEventRecord(stop);
