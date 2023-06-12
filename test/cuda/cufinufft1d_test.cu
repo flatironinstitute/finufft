@@ -192,5 +192,5 @@ int main(int argc, char *argv[]) {
     cudaFree(d_x);
     cudaFree(d_c);
     cudaFree(d_fk);
-    return rel_error > checktol;
+    return std::isnan(rel_error) || rel_error > checktol;
 }
