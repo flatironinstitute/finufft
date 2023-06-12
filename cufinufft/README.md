@@ -12,8 +12,8 @@ and up to 100x faster than other established GPU NUFFT codes:
 <img src="docs/cufinufft_announce.png" width="550">
 </p>
 
-The transforms it performs may be summarized as follows: type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
-whereas type 2 does the adjoint operation (which is not generally the inverse of type 1).
+The linear transforms it can perform may be summarized as follows: type 1 maps nonuniform data (locations and corresponding strengths) to the uniformly spaced coefficients of a Fourier series (or its bi- or tri-variate generalization, according to dimension). Type 2 does the adjoint operation of type 1, ie maps in the reverse order.
+However, note that type 2 and type 1 are *not* generally each other's inverse, unlike for the FFT case!
 These transforms are performed to a user-presribed tolerance,
 at close-to-FFT speeds;
 under the hood, this involves detailed kernel design, custom spreading/interpolation stages, and plain FFTs performed by cuFFT.
