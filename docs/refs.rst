@@ -3,7 +3,7 @@
 References
 ==========
 
-Please cite the first two papers if you use the CPU library FINUFFT, and the last if you use the GPU library cuFINUFFT:
+Please cite the first two papers if you use the CPU library FINUFFT, and the third if you use the GPU library cuFINUFFT:
 
 [FIN]
 A parallel non-uniform fast Fourier transform library based on an "exponential of semicircle" kernel.
