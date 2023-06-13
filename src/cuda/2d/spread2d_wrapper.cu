@@ -141,7 +141,7 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) 
     } else {
         int *d_idxnupts = d_plan->idxnupts;
 
-        TrivialGlobalSortIdx_2d<<<(M + 1024 - 1) / 1024, 1024>>>(M, d_idxnupts);
+        trivial_global_sort_index_2d<<<(M + 1024 - 1) / 1024, 1024>>>(M, d_idxnupts);
     }
 
     return 0;
@@ -227,7 +227,7 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
                                                                           numbins[1], d_binstartpts, d_sortidx, d_kx,
                                                                           d_ky, d_idxnupts, pirange, nf1, nf2);
 
-    CalcSubProb_2d<<<(M + 1024 - 1) / 1024, 1024>>>(d_binsize, d_numsubprob, maxsubprobsize, numbins[0] * numbins[1]);
+    calc_subprob_2d<<<(M + 1024 - 1) / 1024, 1024>>>(d_binsize, d_numsubprob, maxsubprobsize, numbins[0] * numbins[1]);
 
     d_ptr = thrust::device_pointer_cast(d_numsubprob);
     d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
@@ -237,8 +237,8 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
     int totalnumsubprob;
     checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMalloc(&d_subprob_to_bin, totalnumsubprob * sizeof(int)));
-    MapBintoSubProb_2d<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024>>>(d_subprob_to_bin, d_subprobstartpts,
-                                                                              d_numsubprob, numbins[0] * numbins[1]);
+    map_b_into_subprob_2d<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024>>>(d_subprob_to_bin, d_subprobstartpts,
+                                                                                 d_numsubprob, numbins[0] * numbins[1]);
     assert(d_subprob_to_bin != NULL);
     if (d_plan->subprob_to_bin != NULL)
         cudaFree(d_plan->subprob_to_bin);

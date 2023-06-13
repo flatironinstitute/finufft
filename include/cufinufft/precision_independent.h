@@ -25,39 +25,37 @@ __host__ __device__ int calc_global_index(int xidx, int yidx, int zidx, int onx,
 __device__ int calc_global_index_v2(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbinz);
 
 /* spreadinterp 1d */
-__global__ void calc_sub_prob_1d(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins);
+__global__ void calc_subprob_1d(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins);
 
-__global__ void map_b_into_sub_prob_1d(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
+__global__ void map_b_into_subprob_1d(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
 
 __global__ void trivial_global_sort_index_1d(int M, int *index);
 
 /* spreadinterp 2d */
-__global__ void CalcSubProb_2d(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins);
+__global__ void calc_subprob_2d(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins);
 
-__global__ void MapBintoSubProb_2d(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
+__global__ void map_b_into_subprob_2d(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
 
-__global__ void TrivialGlobalSortIdx_2d(int M, int *index);
+__global__ void trivial_global_sort_index_2d(int M, int *index);
 
 /* spreadinterp3d */
-__global__ void CalcSubProb_3d_v2(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins);
+__global__ void calc_subprob_3d_v2(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins);
 
-__global__ void MapBintoSubProb_3d_v2(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
+__global__ void map_b_into_subprob_3d_v2(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
 
-__global__ void CalcSubProb_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, int *bin_size, int *num_subprob,
-                                  int maxsubprobsize, int numbins);
+__global__ void calc_subprob_3d_v1(int binsperobinx, int binsperobiny, int binsperobinz, int *bin_size,
+                                   int *num_subprob, int maxsubprobsize, int numbins);
 
-__global__ void MapBintoSubProb_3d_v1(int *d_subprob_to_obin, int *d_subprobstartpts, int *d_numsubprob, int numbins);
+__global__ void map_b_into_subprob_3d_v1(int *d_subprob_to_obin, int *d_subprobstartpts, int *d_numsubprob,
+                                         int numbins);
 
-__global__ void TrivialGlobalSortIdx_3d(int M, int *index);
+__global__ void trivial_global_sort_index_3d(int M, int *index);
 
-__global__ void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobinz, int nobinx, int nobiny, int nobinz,
-                              int *binsize);
+__global__ void fill_ghost_bins(int binsperobinx, int binsperobiny, int binsperobinz, int nobinx, int nobiny,
+                                int nobinz, int *binsize);
 
-__global__ void Temp(int binsperobinx, int binsperobiny, int binsperobinz, int nobinx, int nobiny, int nobinz,
-                     int *binsize);
-
-__global__ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperobinz, int nobinx, int nobiny, int nobinz,
-                               int *binsize, int *index, int *binstartpts, int M);
+__global__ void ghost_bin_pts_index(int binsperobinx, int binsperobiny, int binsperobinz, int nobinx, int nobiny,
+                                    int nobinz, int *binsize, int *index, int *binstartpts, int M);
 } // namespace common
 } // namespace cufinufft
 #endif

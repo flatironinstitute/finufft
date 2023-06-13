@@ -16,9 +16,10 @@ namespace spreadinterp {
 /* ---------------------- 3d Spreading Kernels -------------------------------*/
 /* Kernels for bin sort NUpts */
 
-__global__ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y, int bin_size_z,
-                                       int nbinx, int nbiny, int nbinz, int *bin_size, CUFINUFFT_FLT *x,
-                                       CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *sortidx, int pirange) {
+__global__ void calc_bin_size_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y,
+                                         int bin_size_z, int nbinx, int nbiny, int nbinz, int *bin_size,
+                                         CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *sortidx,
+                                         int pirange) {
     int binidx, binx, biny, binz;
     int oldidx;
     CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
@@ -43,10 +44,10 @@ __global__ void CalcBinSize_noghost_3d(int M, int nf1, int nf2, int nf3, int bin
     }
 }
 
-__global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
-                                             int nbiny, int nbinz, int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
-                                             CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index, int pirange, int nf1,
-                                             int nf2, int nf3) {
+__global__ void calc_inverse_of_global_sort_index_3d(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
+                                                     int nbiny, int nbinz, int *bin_startpts, int *sortidx,
+                                                     CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index,
+                                                     int pirange, int nf1, int nf2, int nf3) {
     int binx, biny, binz;
     int binidx;
     CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
@@ -70,9 +71,9 @@ __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size
 }
 
 /* Kernels for NUptsdriven method */
-__global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
-                                             int *idxnupts, int pirange) {
+__global__ void spread_3d_nupts_driven_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
+                                              int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+                                              int *idxnupts, int pirange) {
     int xx, yy, zz, ix, iy, iz;
     int outidx;
     CUFINUFFT_FLT ker1[MAX_NSPREAD];
@@ -119,9 +120,10 @@ __global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         }
     }
 }
-__global__ void Spread_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, int *idxnupts, int pirange) {
+
+__global__ void spread_3d_nupts_driven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
+                                       const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
+                                       CUFINUFFT_FLT es_beta, int *idxnupts, int pirange) {
     int xx, yy, zz, ix, iy, iz;
     int outidx;
     CUFINUFFT_FLT ker1[MAX_NSPREAD];
@@ -172,7 +174,7 @@ __global__ void Spread_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
 
 /* Kernels for Subprob method */
 
-__global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
+__global__ void spread_3d_subprob_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
                                          int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
                                          int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
                                          int bin_size_z, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
@@ -271,7 +273,7 @@ __global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
     }
 }
 
-__global__ void Spread_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
+__global__ void spread_3d_subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
                                   const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
                                   int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
@@ -373,11 +375,12 @@ __global__ void Spread_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_
         }
     }
 }
+
 /* Kernels for Block BlockGather Method */
-__global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx, int nobiny,
-                                        int nobinz, int binsperobinx, int binsperobiny, int binsperobinz, int *bin_size,
-                                        CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *sortidx, int pirange,
-                                        int nf1, int nf2, int nf3) {
+__global__ void locate_nupts_to_bins_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx,
+                                           int nobiny, int nobinz, int binsperobinx, int binsperobiny, int binsperobinz,
+                                           int *bin_size, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z,
+                                           int *sortidx, int pirange, int nf1, int nf2, int nf3) {
     int binidx, binx, biny, binz;
     int oldidx;
     CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
@@ -398,11 +401,12 @@ __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, i
     }
 }
 
-__global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx,
-                                                int nobiny, int nobinz, int binsperobinx, int binsperobiny,
-                                                int binsperobinz, int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
-                                                CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, int *index, int pirange, int nf1,
-                                                int nf2, int nf3) {
+__global__ void calc_inverse_of_global_sort_index_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z,
+                                                        int nobinx, int nobiny, int nobinz, int binsperobinx,
+                                                        int binsperobiny, int binsperobinz, int *bin_startpts,
+                                                        int *sortidx, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
+                                                        CUFINUFFT_FLT *z, int *index, int pirange, int nf1, int nf2,
+                                                        int nf3) {
     int binx, biny, binz;
     int binidx;
     CUFINUFFT_FLT x_rescaled, y_rescaled, z_rescaled;
@@ -422,12 +426,12 @@ __global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_s
     }
 }
 
-__global__ void Spread_3d_BlockGather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts, int obin_size_x,
-                                      int obin_size_y, int obin_size_z, int binsperobin, int *subprob_to_bin,
-                                      int *subprobstartpts, int maxsubprobsize, int nobinx, int nobiny, int nobinz,
-                                      int *idxnupts, int pirange) {
+__global__ void spread_3d_block_gather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
+                                       const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
+                                       CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts, int obin_size_x,
+                                       int obin_size_y, int obin_size_z, int binsperobin, int *subprob_to_bin,
+                                       int *subprobstartpts, int maxsubprobsize, int nobinx, int nobiny, int nobinz,
+                                       int *idxnupts, int pirange) {
     extern __shared__ CUCPX fwshared[];
 
     int xstart, ystart, zstart, xend, yend, zend;
@@ -518,12 +522,12 @@ __global__ void Spread_3d_BlockGather(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
     }
 }
 
-__global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                             CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts,
-                                             int obin_size_x, int obin_size_y, int obin_size_z, int binsperobin,
-                                             int *subprob_to_bin, int *subprobstartpts, int maxsubprobsize, int nobinx,
-                                             int nobiny, int nobinz, int *idxnupts, int pirange) {
+__global__ void spread_3d_block_gather_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
+                                              int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
+                                              CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts,
+                                              int obin_size_x, int obin_size_y, int obin_size_z, int binsperobin,
+                                              int *subprob_to_bin, int *subprobstartpts, int maxsubprobsize, int nobinx,
+                                              int nobiny, int nobinz, int *idxnupts, int pirange) {
     extern __shared__ CUCPX fwshared[];
 
     int xstart, ystart, zstart, xend, yend, zend;
@@ -624,9 +628,9 @@ __global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
 
 /* ---------------------- 3d Interpolation Kernels ---------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Interp_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
-                                      const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
-                                      CUFINUFFT_FLT es_beta, int *idxnupts, int pirange) {
+__global__ void interp_3d_nupts_driven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
+                                       const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c,
+                                       CUFINUFFT_FLT es_beta, int *idxnupts, int pirange) {
     CUFINUFFT_FLT ker1[MAX_NSPREAD];
     CUFINUFFT_FLT ker2[MAX_NSPREAD];
     CUFINUFFT_FLT ker3[MAX_NSPREAD];
@@ -674,9 +678,9 @@ __global__ void Interp_3d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINU
     }
 }
 
-__global__ void Interp_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
-                                             int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
-                                             int *idxnupts, int pirange) {
+__global__ void interp_3d_nupts_driven_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
+                                              int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
+                                              int *idxnupts, int pirange) {
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         CUFINUFFT_FLT x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         CUFINUFFT_FLT y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -723,7 +727,7 @@ __global__ void Interp_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
 }
 
 /* Kernels for SubProb Method */
-__global__ void Interp_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
+__global__ void interp_3d_subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw, int M,
                                   const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int bin_size_z,
                                   int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
@@ -817,7 +821,8 @@ __global__ void Interp_3d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_
         c[idxnupts[idx]].y = cnow.y;
     }
 }
-__global__ void Interp_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
+
+__global__ void interp_3d_subprob_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUFINUFFT_FLT *z, CUCPX *c, CUCPX *fw,
                                          int M, const int ns, int nf1, int nf2, int nf3, CUFINUFFT_FLT sigma,
                                          int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
                                          int bin_size_z, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
