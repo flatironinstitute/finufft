@@ -8,16 +8,17 @@
 .. image:: spreadpic.png
     :width: 54%
 	    
-`FINUFFT <https://github.com/flatironinstitute/finufft>`_ is a multi-threaded library to compute efficiently the three most common types of nonuniform fast Fourier transform
+`FINUFFT <https://github.com/flatironinstitute/finufft>`_ is a library to compute efficiently the three most common types of nonuniform fast Fourier transform
 (NUFFT) to a specified precision, in one, two, or three dimensions,
-on a multi-core shared-memory machine.
+either on a multi-core shared-memory machine, or on a GPU.
 It is extremely fast (typically achieving $10^6$ to $10^8$ points
-per second),
+per second on a CPU, or up to $10^9$ points per second on a GPU),
 has very simple interfaces to most major numerical languages
 (C/C++, Fortran, MATLAB, octave, python, and julia),
 but also has more advanced (vectorized and "guru") interfaces that
 allow multiple strength vectors and the reuse of FFT plans.
-It is written in C++ (with limited use of ++ features), OpenMP, and uses
+The CPU library
+is written in C++ (with limited use of ++ features), OpenMP, and calls
 `FFTW <http://www.fftw.org>`_.
 It has been developed at the `Center for Computational Mathematics
 <https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/>`_ at the `Flatiron Institute <https://www.simonsfoundation.org/flatiron>`_,
@@ -63,11 +64,12 @@ In fact, there are several application areas where it has been overlooked
 that the needed computation is simply a NUFFT
 (eg, particle-mesh Ewald in molecular dynamics).
 
-Why FINUFFT? Features and comparison against other NUFFT libraries
---------------------------------------------------------------------
+Why FINUFFT? Features and comparison against other CPU NUFFT libraries
+----------------------------------------------------------------------
 
 The basic scheme used by FINUFFT is not new, but there are many
-mathematical and software engineering improvements over other libraries.
+mathematical and software engineering improvements over other CPU libraries
+(see below for :ref:`GPU features<gpu>`).
 As is common in NUFFT algorithms, under the hood is an FFT on a
 regular "fine" (upsampled) grid---the user
 has no need to access this directly. Nonuniform points are either spread to,
@@ -93,6 +95,32 @@ Our main features are:
 For technical details on much of the above see our :ref:`papers <refs>`.
 Note that there are other tasks (eg, transforms on spheres, inverse NUFFTs)
 provided by other libraries, such as NFFT3, that FINUFFT does not provide.
+
+.. _gpu:
+
+GPU version: cuFINUFFT
+-----------------------
+
+.. image:: logo_gpu.png
+    :width: 30%
+.. image:: pics/cufinufft_announce.png
+    :width: 69%
+
+In 2021 we released cuFINUFFT, a CUDA implementation of
+type 1 and 2 transforms in dimensions 2 and 3,
+developed mostly by Yu-Hsuan (Melody) Shih as a CCM summer intern and NYU graduate student (in 2022 she moved to NVidia).
+It is often 10x faster than the CPU code, and up to 100x
+faster than other established GPU NUFFT codes,
+as the above graph indicates (see [S21] in our :ref:`references<refs>`).
+This is achieved in part by developing a type 1 algorithm that exploits
+fast GPU shared memory, which
+requires hand-tuned choices of bin-sizes due to the small memory size
+(49kB per thread block).
+Both double and single precision are supported.
+Please see sections of this documentation labeled "GPU".
+In 2023 we added dimension 1, and merged cuFINUFFT into the FINUFFT repository.
+Further unification of the interfaces, underlying algorithm, and
+completion of type 3 on the GPU are still in progress.
 
 
 .. _need:
