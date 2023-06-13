@@ -68,7 +68,7 @@ RUN yum install -y \
 COPY . /io
 RUN mkdir -p /io/build
 WORKDIR /io/build
-RUN scl enable devtoolset-9 -- cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES="35" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
+RUN scl enable devtoolset-9 -- cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES="35;50;60;70;75;80" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
 RUN scl enable devtoolset-9 -- make -j4
 
 # And we need to pack it in our LD path
