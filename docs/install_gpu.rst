@@ -31,6 +31,17 @@ In order to configure cuFINUFFT for a specific compute capability, use the ``CMA
 
 The ``libcufinufft.so`` (along with ``libfinufft.so``) will now be present in your ``build`` directory.
 
+
+To find out your own device's compute capability without having to look it up on the web, use:
+
+.. code-block:: bash
+                
+    nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+
+This will return a text string such as ``8.6`` which would incidate
+``sm_86`` architecture, thus to use ``CMAKE_CUDA_ARCHITECTURES=86``.
+    
+
 Testing
 -------
 

@@ -1,6 +1,6 @@
 cufinufft meeting 6-13-23.    Robert, Joakim, Libin, Alex
 
-[Feel free to annotate w/ DONE, etc}
+[Feel free to annotate w/ DONE, etc, and update CHANGELOG]
 
 
 UPDATES AT MTG:
@@ -83,6 +83,7 @@ DLpack interoperates ptrs (CPU/GPU). (jax/pytorch/FT).]
 Discussed finufft.torch style interfaces.
 
 3) Refactor GPU code to look like CPU code, be smaller/maintainable.
+Robert starting in PR #278
 Depends on first deciding Thrust or other refactor.
 Alex thinks restruct main driver like finufft.cpp (all dims handled together)
 is cleaner, eg for type 3.
