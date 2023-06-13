@@ -85,7 +85,10 @@ int main(int argc, char *argv[]) {
     checkCudaErrors(cudaMemcpy(d_x, x, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_y, y, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_z, z, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_c, c, M * sizeof(CUCPX), cudaMemcpyHostToDevice));
+    if (type == 1)
+        checkCudaErrors(cudaMemcpy(d_c, c, M * sizeof(CUCPX), cudaMemcpyHostToDevice));
+    else if (type == 2)
+        checkCudaErrors(cudaMemcpy(d_fk, fk, N1 * N2 * N3 * sizeof(CUCPX), cudaMemcpyHostToDevice));
 
     cudaEvent_t start, stop;
     float milliseconds = 0;
@@ -167,7 +170,10 @@ int main(int argc, char *argv[]) {
     totaltime += milliseconds;
     printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds / 1000);
 
-    checkCudaErrors(cudaMemcpy(fk, d_fk, N1 * N2 * N3 * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+    if (type == 1)
+        checkCudaErrors(cudaMemcpy(fk, d_fk, N1 * N2 * N3 * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+    else if (type == 2)
+        checkCudaErrors(cudaMemcpy(c, d_c, M * sizeof(CUCPX), cudaMemcpyDeviceToHost));
 
     printf("[Method %d] %d NU pts to %d U pts in %.3g s:\t%.3g NU pts/s\n", opts.gpu_method, M, N1 * N2 * N3,
            totaltime / 1000, M / totaltime * 1000);
@@ -209,5 +215,5 @@ int main(int argc, char *argv[]) {
     cudaFree(d_c);
     cudaFree(d_fk);
 
-    return rel_error > checktol;
+    return std::isnan(rel_error) || rel_error > checktol;
 }

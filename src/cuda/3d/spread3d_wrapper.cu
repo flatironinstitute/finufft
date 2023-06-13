@@ -193,7 +193,7 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
         for (int i = 0; i < 10; i++) {
             std::cout << "[debug ] ";
-            std::cout << "(" << setw(3) << h_kx[i] << "," << setw(3) << h_ky[i] << "," << setw(3) << h_kz[i] << ")"
+            std::cout << "(" << std::setw(3) << h_kx[i] << "," << std::setw(3) << h_ky[i] << "," << std::setw(3) << h_kz[i] << ")"
                       << std::endl;
         }
 #endif
@@ -229,7 +229,7 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
                 for (int i = 0; i < numbins[0]; i++) {
                     if (i != 0)
                         std::cout << " ";
-                    std::cout << " bin[" << setw(1) << i << "," << setw(1) << j << "," << setw(1) << k
+                    std::cout << " bin[" << std::setw(1) << i << "," << std::setw(1) << j << "," << std::setw(1) << k
                               << "]=" << h_binsize[i + j * numbins[0] + k * numbins[0] * numbins[1]];
                 }
                 std::cout << std::endl;
@@ -245,7 +245,7 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         checkCudaErrors(cudaMemcpy(h_sortidx, d_sortidx, M * sizeof(int), cudaMemcpyDeviceToHost));
         for (int i = 0; i < M; i++) {
             std::cout << "[debug ] ";
-            std::cout << "point[" << setw(3) << i << "]=" << setw(3) << h_sortidx[i] << std::endl;
+            std::cout << "point[" << std::setw(3) << i << "]=" << std::setw(3) << h_sortidx[i] << std::endl;
         }
 #endif
 
@@ -272,7 +272,7 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
                 for (int i = 0; i < numbins[0]; i++) {
                     if (i != 0)
                         std::cout << " ";
-                    std::cout << " bin[" << setw(1) << i << "," << setw(1) << j << "," << setw(1) << k
+                    std::cout << " bin[" << std::setw(1) << i << "," << std::setw(1) << j << "," << std::setw(1) << k
                               << "]=" << h_binstartpts[i + j * numbins[0] + k * numbins[0] * numbins[1]];
                 }
                 std::cout << std::endl;
@@ -439,7 +439,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
     checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
     for (int i = 0; i < M; i++) {
         std::cout << "[debug ] ";
-        std::cout << "(" << setw(3) << h_kx[i] << "," << setw(3) << h_ky[i] << "," << h_kz[i] << ")" << std::endl;
+        std::cout << "(" << std::setw(3) << h_kx[i] << "," << std::setw(3) << h_ky[i] << "," << h_kz[i] << ")" << std::endl;
     }
 #endif
     int *d_binsize = d_plan->binsize;
@@ -496,7 +496,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
 
     checkCudaErrors(cudaMemcpy(h_sortidx, d_sortidx, M * sizeof(int), cudaMemcpyDeviceToHost));
     for (int i = 0; i < M; i++) {
-        std::cout << "[debug ] point[" << setw(3) << i << "]=" << setw(3) << h_sortidx[i] << std::endl;
+        std::cout << "[debug ] point[" << std::setw(3) << i << "]=" << std::setw(3) << h_sortidx[i] << std::endl;
     }
 #endif
     cudaEventRecord(start);
@@ -671,7 +671,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
             for (int i = 0; i < numobins[0]; i++) {
                 if (i != 0)
                     std::cout << " ";
-                std::cout << "s[" << setw(1) << i << "," << setw(1) << j << "," << setw(1) << k << "]= " << setw(3)
+                std::cout << "s[" << std::setw(1) << i << "," << std::setw(1) << j << "," << std::setw(1) << k << "]= " << std::setw(3)
                           << h_numsubprob[i + j * numobins[0] + k * numobins[1] * numobins[2]];
             }
             std::cout << std::endl;
@@ -705,7 +705,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
             for (int i = 0; i < numobins[0]; i++) {
                 if (i != 0)
                     std::cout << " ";
-                std::cout << "s[" << setw(1) << i << "," << setw(1) << j << "," << setw(1) << k << "]= " << setw(3)
+                std::cout << "s[" << std::setw(1) << i << "," << std::setw(1) << j << "," << std::setw(1) << k << "]= " << std::setw(3)
                           << h_subprobstartpts[i + j * numobins[0] + k * numobins[1] * numobins[2]];
             }
             std::cout << std::endl;
@@ -739,7 +739,7 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         cudaMemcpy(h_subprob_to_bin, d_subprob_to_bin, (totalnumsubprob) * sizeof(int), cudaMemcpyDeviceToHost));
     for (int j = 0; j < totalnumsubprob; j++) {
         std::cout << "[debug ] ";
-        std::cout << "s[" << j << "] = " << setw(2) << "b[" << h_subprob_to_bin[j] << "]";
+        std::cout << "s[" << j << "] = " << std::setw(2) << "b[" << h_subprob_to_bin[j] << "]";
         std::cout << std::endl;
     }
     free(h_subprob_to_bin);
@@ -874,7 +874,7 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     checkCudaErrors(cudaMemcpy(h_kz, d_kz, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
     for (int i = M - 10; i < M; i++) {
         std::cout << "[debug ] ";
-        std::cout << "(" << setw(3) << h_kx[i] << "," << setw(3) << h_ky[i] << "," << setw(3) << h_kz[i] << ")"
+        std::cout << "(" << std::setw(3) << h_kx[i] << "," << std::setw(3) << h_ky[i] << "," << std::setw(3) << h_kz[i] << ")"
                   << std::endl;
     }
 #endif
@@ -929,7 +929,7 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     checkCudaErrors(cudaMemcpy(h_sortidx, d_sortidx, M * sizeof(int), cudaMemcpyDeviceToHost));
     for (int i = 0; i < 10; i++) {
         std::cout << "[debug ] ";
-        std::cout << "point[" << setw(3) << i << "]=" << setw(3) << h_sortidx[i] << std::endl;
+        std::cout << "point[" << std::setw(3) << i << "]=" << std::setw(3) << h_sortidx[i] << std::endl;
     }
 #endif
 
@@ -1057,7 +1057,7 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     std::cout << totalnumsubprob << std::endl;
     for (int j = 0; j < min(totalnumsubprob, 10); j++) {
         std::cout << "[debug ] ";
-        std::cout << "nsub[" << j << "] = " << setw(2) << h_subprob_to_bin[j];
+        std::cout << "nsub[" << j << "] = " << std::setw(2) << h_subprob_to_bin[j];
         std::cout << std::endl;
     }
     free(h_subprob_to_bin);
