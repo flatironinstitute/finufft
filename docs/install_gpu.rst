@@ -27,7 +27,7 @@ In order to configure cuFINUFFT for a specific compute capability, use the ``CMA
 
 .. code-block:: bash
 
-    cmake -D FINUFFT_USE_CUDA=ON CMAKE_CUDA_ARCHITECTURES=80 .
+    cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES=80 .
 
 The ``libcufinufft.so`` (along with ``libfinufft.so``) will now be present in your ``build`` directory.
 
