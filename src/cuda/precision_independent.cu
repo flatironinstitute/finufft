@@ -68,14 +68,6 @@ __global__ void MapBintoSubProb_2d(int *d_subprob_to_bin, int *d_subprobstartpts
     }
 }
 
-__global__ void CalcSubProb_2d_Paul(int *finegridsize, int *num_subprob, int maxsubprobsize, int bin_size_x,
-                                    int bin_size_y) {
-    int binsize = bin_size_x * bin_size_y;
-    int *maxptsinbin = thrust::max_element(thrust::seq, finegridsize + binsize * blockIdx.x,
-                                           finegridsize + binsize * (blockIdx.x + 1));
-    num_subprob[blockIdx.x] = (int)ceil(*maxptsinbin / (float)maxsubprobsize);
-}
-
 __global__ void TrivialGlobalSortIdx_2d(int M, int *index) {
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         index[i] = i;
