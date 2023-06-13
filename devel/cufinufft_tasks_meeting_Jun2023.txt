@@ -6,12 +6,12 @@ cufinufft meeting 6-13-23.    Robert, Joakim, Libin, Alex
 UPDATES AT MTG:
 
 CI stochastic fail: Jenkins was selecting K40 (needed sm35).
-Will add other archs.
+Will add other archs. J DONE.
 
-Paul's method (3) has been removed.
+Paul's method (3) has been removed. DONE.
 
 Alex's A6000 needs sm_86 cuda arch... explains why few-second wait each
-runtime (it JIT recompiles for new arch).
+runtime (it JIT recompiles for new arch). Now arch=86 fixes.
 
 
 
@@ -19,7 +19,7 @@ TASKS IMMEDIATE:
 
 1) Folder struct (whiteboard). Do this first.
 goal is kill cufinufft/  -> docs can move (PNG advert for GPU should go
-into top-level RST docs (Alex will do). then 
+into top-level RST docs (Alex DONE). then:
    -> ci move to ci/cuda/
 * python -> merge cupython into python/cuda/    - J can do, first
 We dediced docs/ was fine.
@@ -49,12 +49,12 @@ Marco Barbone
 
 SMALL TASKS IMMEDIATE:
 
-* DOCS: (Alex will update RST docs for cuda, incl its PNG)
+* DOCS: (Alex will update RST docs for cuda, incl its PNG). DONE.
  -INSTALL: add how to find SM_?? cuda arch [DONE]
 
 * test issue #276 re meth=1,2 - Alex will update
 
-* cufinufft has C and C++ - J make issue  <- Alex forgot what this was.
+* cufinufft has C and C++ - J make issue  <- Alex forgot what this meant??
 
 * see if gpu error codes can be merged into cpu - the only new one
   could be cudaMalloc failed.
@@ -65,6 +65,7 @@ to diff dumbinputs and testutils.
 
 * Libin will switch CI to cmake not classic makefiles (as right now)
 Libin will make CI for CPU use cmake/ctest.
+Marco is involved in CI+cmake too.
 [J already using GPU CI Jenkins.]
 
 
