@@ -15,9 +15,9 @@ namespace spreadinterp {
 /* ------------------------ 2d Spreading Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
 
-__global__ void Spread_2d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                      int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
-                                      int pirange) {
+__global__ void spread_2d_nupts_driven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+                                       int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
+                                       int pirange) {
     int xstart, ystart, xend, yend;
     int xx, yy, ix, iy;
     int outidx;
@@ -55,9 +55,9 @@ __global__ void Spread_2d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX 
     }
 }
 
-__global__ void Spread_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
-                                             const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
-                                             int pirange) {
+__global__ void spread_2d_nupts_driven_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
+                                              const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
+                                              int pirange) {
     int xx, yy, ix, iy;
     int outidx;
     CUFINUFFT_FLT ker1[MAX_NSPREAD];
@@ -77,8 +77,8 @@ __global__ void Spread_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
 
         CUFINUFFT_FLT x1 = (CUFINUFFT_FLT)xstart - x_rescaled;
         CUFINUFFT_FLT y1 = (CUFINUFFT_FLT)ystart - y_rescaled;
-        eval_kernel_vec_Horner(ker1, x1, ns, sigma);
-        eval_kernel_vec_Horner(ker2, y1, ns, sigma);
+        eval_kernel_vec_horner(ker1, x1, ns, sigma);
+        eval_kernel_vec_horner(ker2, y1, ns, sigma);
         for (yy = ystart; yy <= yend; yy++) {
             for (xx = xstart; xx <= xend; xx++) {
                 ix = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
@@ -96,8 +96,8 @@ __global__ void Spread_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
 
 /* Kernels for SubProb Method */
 // SubProb properties
-__global__ void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                       int *bin_size, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, int *sortidx, int pirange) {
+__global__ void calc_bin_size_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
+                                         int *bin_size, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, int *sortidx, int pirange) {
     int binidx, binx, biny;
     int oldidx;
     CUFINUFFT_FLT x_rescaled, y_rescaled;
@@ -119,9 +119,9 @@ __global__ void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int bin_size_x, 
     }
 }
 
-__global__ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                             int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
-                                             int *index, int pirange, int nf1, int nf2) {
+__global__ void calc_inverse_of_global_sort_index_2d(int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
+                                                     int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
+                                                     CUFINUFFT_FLT *y, int *index, int pirange, int nf1, int nf2) {
     int binx, biny;
     int binidx;
     CUFINUFFT_FLT x_rescaled, y_rescaled;
@@ -140,7 +140,7 @@ __global__ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size
     }
 }
 
-__global__ void Spread_2d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
+__global__ void spread_2d_subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
                                   int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
@@ -221,7 +221,7 @@ __global__ void Spread_2d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, 
     }
 }
 
-__global__ void Spread_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+__global__ void spread_2d_subprob_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                                          int nf1, int nf2, CUFINUFFT_FLT sigma, int *binstartpts, int *bin_size,
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,
@@ -263,8 +263,8 @@ __global__ void Spread_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUC
         xend = floor(x_rescaled + ns / 2.0) - xoffset;
         yend = floor(y_rescaled + ns / 2.0) - yoffset;
 
-        eval_kernel_vec_Horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
 
         for (int yy = ystart; yy <= yend; yy++) {
             iy = yy + ceil(ns / 2.0);
@@ -303,9 +303,9 @@ __global__ void Spread_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUC
 
 /* --------------------- 2d Interpolation Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Interp_2d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                      int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
-                                      int pirange) {
+__global__ void interp_2d_nupts_driven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+                                       int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
+                                       int pirange) {
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         CUFINUFFT_FLT x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         CUFINUFFT_FLT y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -341,9 +341,9 @@ __global__ void Interp_2d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX 
     }
 }
 
-__global__ void Interp_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
-                                             const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
-                                             int pirange) {
+__global__ void interp_2d_nupts_driven_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
+                                              const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
+                                              int pirange) {
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         CUFINUFFT_FLT x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         CUFINUFFT_FLT y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -359,8 +359,8 @@ __global__ void Interp_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         CUFINUFFT_FLT ker1[MAX_NSPREAD];
         CUFINUFFT_FLT ker2[MAX_NSPREAD];
 
-        eval_kernel_vec_Horner(ker1, xstart - x_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker2, ystart - y_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker2, ystart - y_rescaled, ns, sigma);
 
         for (int yy = ystart; yy <= yend; yy++) {
             CUFINUFFT_FLT kervalue2 = ker2[yy - ystart];
@@ -379,7 +379,7 @@ __global__ void Interp_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
 }
 
 /* Kernels for Subprob Method */
-__global__ void Interp_2d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
+__global__ void interp_2d_subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
                                   int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
@@ -452,7 +452,7 @@ __global__ void Interp_2d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, 
     }
 }
 
-__global__ void Interp_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+__global__ void interp_2d_subprob_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                                          int nf1, int nf2, CUFINUFFT_FLT sigma, int *binstartpts, int *bin_size,
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,
@@ -506,8 +506,8 @@ __global__ void Interp_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUC
         xend = floor(x_rescaled + ns / 2.0) - xoffset;
         yend = floor(y_rescaled + ns / 2.0) - yoffset;
 
-        eval_kernel_vec_Horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
 
         for (int yy = ystart; yy <= yend; yy++) {
             CUFINUFFT_FLT kervalue2 = ker2[yy - ystart];

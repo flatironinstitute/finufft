@@ -119,13 +119,13 @@ int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int b
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            Interp_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M,
-                                                                      ns, nf1, nf2, sigma, d_idxnupts, pirange);
+            interp_2d_nupts_driven_horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M,
+                                                                       ns, nf1, nf2, sigma, d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            Interp_2d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns,
-                                                               nf1, nf2, es_c, es_beta, d_idxnupts, pirange);
+            interp_2d_nupts_driven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns,
+                                                                nf1, nf2, es_c, es_beta, d_idxnupts, pirange);
         }
     }
 
@@ -168,14 +168,14 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            Interp_2d_Subprob_Horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            interp_2d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, sigma, d_binstartpts, d_binsize,
                 bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0],
                 numbins[1], d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            Interp_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            interp_2d_subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta, sigma, d_binstartpts,
                 d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
                 numbins[0], numbins[1], d_idxnupts, pirange);

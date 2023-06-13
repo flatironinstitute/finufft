@@ -56,7 +56,7 @@ __global__ void spread_1d_nuptsdriven_horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *
         int xend = floor(x_rescaled + ns / 2.0);
 
         CUFINUFFT_FLT x1 = (CUFINUFFT_FLT)xstart - x_rescaled;
-        eval_kernel_vec_Horner(ker1, x1, ns, sigma);
+        eval_kernel_vec_horner(ker1, x1, ns, sigma);
         for (xx = xstart; xx <= xend; xx++) {
             ix = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);
             CUFINUFFT_FLT kervalue = ker1[xx - xstart];
@@ -194,7 +194,7 @@ __global__ void spread_1d_subprob_horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, 
         xstart = ceil(x_rescaled - ns / 2.0) - xoffset;
         xend = floor(x_rescaled + ns / 2.0) - xoffset;
 
-        eval_kernel_vec_Horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
 
         for (int xx = xstart; xx <= xend; xx++) {
             ix = xx + ceil(ns / 2.0);
@@ -257,7 +257,7 @@ __global__ void interp_1d_nuptsdriven_horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *
         cnow.y = 0.0;
         CUFINUFFT_FLT ker1[MAX_NSPREAD];
 
-        eval_kernel_vec_Horner(ker1, xstart - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart - x_rescaled, ns, sigma);
 
         for (int xx = xstart; xx <= xend; xx++) {
             int ix = xx < 0 ? xx + nf1 : (xx > nf1 - 1 ? xx - nf1 : xx);

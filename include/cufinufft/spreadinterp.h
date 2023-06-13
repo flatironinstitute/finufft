@@ -32,7 +32,7 @@ static __forceinline__ __device__ CUFINUFFT_FLT evaluate_kernel(CUFINUFFT_FLT x,
     return abs(x) < ns / 2.0 ? exp(es_beta * (sqrt(1.0 - es_c * x * x))) : 0.0;
 }
 
-static __inline__ __device__ void eval_kernel_vec_Horner(CUFINUFFT_FLT *ker, const CUFINUFFT_FLT x, const int w,
+static __inline__ __device__ void eval_kernel_vec_horner(CUFINUFFT_FLT *ker, const CUFINUFFT_FLT x, const int w,
                                                          const double upsampfac)
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
@@ -87,28 +87,28 @@ __global__ void interp_1d_nuptsdriven_horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *
 // Kernels for 2D codes
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Spread_2d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                      int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
-                                      int pirange);
-__global__ void Spread_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
-                                             const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
-                                             int pirange);
+__global__ void spread_2d_nupts_driven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+                                       int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
+                                       int pirange);
+__global__ void spread_2d_nupts_driven_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
+                                              const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
+                                              int pirange);
 
 /* Kernels for SubProb Method */
 // SubProb properties
-__global__ void CalcBinSize_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                       int *bin_size, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, int *sortidx, int pirange);
-__global__ void CalcInvertofGlobalSortIdx_2d(int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                             int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
-                                             int *index, int pirange, int nf1, int nf2);
+__global__ void calc_bin_size_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
+                                         int *bin_size, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, int *sortidx, int pirange);
+__global__ void calc_inverse_of_global_sort_index_2d(int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
+                                                     int *bin_startpts, int *sortidx, CUFINUFFT_FLT *x,
+                                                     CUFINUFFT_FLT *y, int *index, int pirange, int nf1, int nf2);
 
 // Main Spreading Kernel
-__global__ void Spread_2d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
+__global__ void spread_2d_subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
                                   int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                                   int *idxnupts, int pirange);
-__global__ void Spread_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+__global__ void spread_2d_subprob_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                                          int nf1, int nf2, CUFINUFFT_FLT sigma, int *binstartpts, int *bin_size,
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,
@@ -116,19 +116,19 @@ __global__ void Spread_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUC
 
 /* ---------------------------Interpolation Kernels---------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Interp_2d_NUptsdriven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                      int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
-                                      int pirange);
-__global__ void Interp_2d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
-                                             const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
-                                             int pirange);
+__global__ void interp_2d_nupts_driven(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+                                       int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts,
+                                       int pirange);
+__global__ void interp_2d_nupts_driven_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M,
+                                              const int ns, int nf1, int nf2, CUFINUFFT_FLT sigma, int *idxnupts,
+                                              int pirange);
 /* Kernels for Subprob Method */
-__global__ void Interp_2d_Subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
+__global__ void interp_2d_subprob(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
                                   int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma,
                                   int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
                                   int *idxnupts, int pirange);
-__global__ void Interp_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
+__global__ void interp_2d_subprob_horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
                                          int nf1, int nf2, CUFINUFFT_FLT sigma, int *binstartpts, int *bin_size,
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,

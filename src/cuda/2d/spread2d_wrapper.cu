@@ -128,16 +128,16 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) 
         int pirange = d_plan->spopts.pirange;
 
         checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * sizeof(int)));
-        CalcBinSize_noghost_2d<<<(M + 1024 - 1) / 1024, 1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
-                                                                numbins[1], d_binsize, d_kx, d_ky, d_sortidx, pirange);
+        calc_bin_size_noghost_2d<<<(M + 1024 - 1) / 1024, 1024>>>(
+            M, nf1, nf2, bin_size_x, bin_size_y, numbins[0], numbins[1], d_binsize, d_kx, d_ky, d_sortidx, pirange);
         int n = numbins[0] * numbins[1];
         thrust::device_ptr<int> d_ptr(d_binsize);
         thrust::device_ptr<int> d_result(d_binstartpts);
         thrust::exclusive_scan(d_ptr, d_ptr + n, d_result);
 
-        CalcInvertofGlobalSortIdx_2d<<<(M + 1024 - 1) / 1024, 1024>>>(M, bin_size_x, bin_size_y, numbins[0], numbins[1],
-                                                                      d_binstartpts, d_sortidx, d_kx, d_ky, d_idxnupts,
-                                                                      pirange, nf1, nf2);
+        calc_inverse_of_global_sort_index_2d<<<(M + 1024 - 1) / 1024, 1024>>>(
+            M, bin_size_x, bin_size_y, numbins[0], numbins[1], d_binstartpts, d_sortidx, d_kx, d_ky, d_idxnupts,
+            pirange, nf1, nf2);
     } else {
         int *d_idxnupts = d_plan->idxnupts;
 
@@ -169,13 +169,13 @@ int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int b
     blocks.y = 1;
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            Spread_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M,
-                                                                      ns, nf1, nf2, sigma, d_idxnupts, pirange);
+            spread_2d_nupts_driven_horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M,
+                                                                       ns, nf1, nf2, sigma, d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            Spread_2d_NUptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns,
-                                                               nf1, nf2, es_c, es_beta, d_idxnupts, pirange);
+            spread_2d_nupts_driven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns,
+                                                                nf1, nf2, es_c, es_beta, d_idxnupts, pirange);
         }
     }
 
@@ -215,17 +215,17 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
     int pirange = d_plan->spopts.pirange;
 
     checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * sizeof(int)));
-    CalcBinSize_noghost_2d<<<(M + 1024 - 1) / 1024, 1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0], numbins[1],
-                                                            d_binsize, d_kx, d_ky, d_sortidx, pirange);
+    calc_bin_size_noghost_2d<<<(M + 1024 - 1) / 1024, 1024>>>(M, nf1, nf2, bin_size_x, bin_size_y, numbins[0],
+                                                              numbins[1], d_binsize, d_kx, d_ky, d_sortidx, pirange);
 
     int n = numbins[0] * numbins[1];
     thrust::device_ptr<int> d_ptr(d_binsize);
     thrust::device_ptr<int> d_result(d_binstartpts);
     thrust::exclusive_scan(d_ptr, d_ptr + n, d_result);
 
-    CalcInvertofGlobalSortIdx_2d<<<(M + 1024 - 1) / 1024, 1024>>>(M, bin_size_x, bin_size_y, numbins[0], numbins[1],
-                                                                  d_binstartpts, d_sortidx, d_kx, d_ky, d_idxnupts,
-                                                                  pirange, nf1, nf2);
+    calc_inverse_of_global_sort_index_2d<<<(M + 1024 - 1) / 1024, 1024>>>(M, bin_size_x, bin_size_y, numbins[0],
+                                                                          numbins[1], d_binstartpts, d_sortidx, d_kx,
+                                                                          d_ky, d_idxnupts, pirange, nf1, nf2);
 
     CalcSubProb_2d<<<(M + 1024 - 1) / 1024, 1024>>>(d_binsize, d_numsubprob, maxsubprobsize, numbins[0] * numbins[1]);
 
@@ -289,14 +289,14 @@ int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            Spread_2d_Subprob_Horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            spread_2d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, sigma, d_binstartpts, d_binsize,
                 bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0],
                 numbins[1], d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            Spread_2d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            spread_2d_subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta, sigma, d_binstartpts,
                 d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
                 numbins[0], numbins[1], d_idxnupts, pirange);

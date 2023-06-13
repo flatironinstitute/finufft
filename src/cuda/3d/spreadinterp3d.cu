@@ -98,9 +98,9 @@ __global__ void Spread_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         CUFINUFFT_FLT y1 = (CUFINUFFT_FLT)ystart - y_rescaled;
         CUFINUFFT_FLT z1 = (CUFINUFFT_FLT)zstart - z_rescaled;
 
-        eval_kernel_vec_Horner(ker1, x1, ns, sigma);
-        eval_kernel_vec_Horner(ker2, y1, ns, sigma);
-        eval_kernel_vec_Horner(ker3, z1, ns, sigma);
+        eval_kernel_vec_horner(ker1, x1, ns, sigma);
+        eval_kernel_vec_horner(ker2, y1, ns, sigma);
+        eval_kernel_vec_horner(ker3, z1, ns, sigma);
         for (zz = zstart; zz <= zend; zz++) {
             ker3val = ker3[zz - zstart];
             for (yy = ystart; yy <= yend; yy++) {
@@ -220,9 +220,9 @@ __global__ void Spread_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
         yend = floor(y_rescaled + ns / 2.0) - yoffset;
         zend = floor(z_rescaled + ns / 2.0) - zoffset;
 
-        eval_kernel_vec_Horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
 
         for (int zz = zstart; zz <= zend; zz++) {
             CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
@@ -582,9 +582,9 @@ __global__ void Spread_3d_BlockGather_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         yend = floor(y_rescaled + ns / 2.0) - yoffset;
         zend = floor(z_rescaled + ns / 2.0) - zoffset;
 
-        eval_kernel_vec_Horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
 
         xstartnew = xstart < 0 ? 0 : xstart;
         ystartnew = ystart < 0 ? 0 : ystart;
@@ -698,9 +698,9 @@ __global__ void Interp_3d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
         CUFINUFFT_FLT ker2[MAX_NSPREAD];
         CUFINUFFT_FLT ker3[MAX_NSPREAD];
 
-        eval_kernel_vec_Horner(ker1, xstart - x_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker2, ystart - y_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker3, zstart - z_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker2, ystart - y_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker3, zstart - z_rescaled, ns, sigma);
 
         for (int zz = zstart; zz <= zend; zz++) {
             CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
@@ -881,9 +881,9 @@ __global__ void Interp_3d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUF
         yend = floor(y_rescaled + ns / 2.0) - yoffset;
         zend = floor(z_rescaled + ns / 2.0) - zoffset;
 
-        eval_kernel_vec_Horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
-        eval_kernel_vec_Horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker1, xstart + xoffset - x_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker2, ystart + yoffset - y_rescaled, ns, sigma);
+        eval_kernel_vec_horner(ker3, zstart + zoffset - z_rescaled, ns, sigma);
         for (int zz = zstart; zz <= zend; zz++) {
             CUFINUFFT_FLT kervalue3 = ker3[zz - zstart];
             iz = zz + ceil(ns / 2.0);
