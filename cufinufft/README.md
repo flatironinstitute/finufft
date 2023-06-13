@@ -1,10 +1,8 @@
-# cuFINUFFT v1.2
+# cuFINUFFT v1.3
 
 <img align="right" src="docs/logo.png" width="350">
 
 cuFINUFFT is a very efficient GPU implementation of the 1-, 2-, and 3-dimensional nonuniform FFT of types 1 and 2, in single and double precision, based on the CPU code [FINUFFT][1].
-
-Note that the Python interface has changed relative to v1.1. Please see [CHANGELOG](CHANGELOG) for details.
 
 cuFINUFFT introduces several algorithmic innovations, including load-balancing, bin-sorting for cache-aware access, and use of fast shared memory.
 Our tests show an acceleration over FINUFFT of up to 10x on modern hardware,
@@ -14,12 +12,15 @@ and up to 100x faster than other established GPU NUFFT codes:
 <img src="docs/cufinufft_announce.png" width="550">
 </p>
 
-The transforms it performs may be summarized as follows: type 1 maps nonuniform data to a bi- or tri-variate Fourier series,
-whereas type 2 does the adjoint operation (which is not generally the inverse of type 1).
+The linear transforms it can perform may be summarized as follows: type 1 maps nonuniform data (locations and corresponding strengths) to the uniformly spaced coefficients of a Fourier series (or its bi- or tri-variate generalization, according to dimension). Type 2 does the adjoint operation of type 1, ie maps in the reverse order.
+However, note that type 2 and type 1 are *not* generally each other's inverse, unlike for the FFT case!
 These transforms are performed to a user-presribed tolerance,
 at close-to-FFT speeds;
 under the hood, this involves detailed kernel design, custom spreading/interpolation stages, and plain FFTs performed by cuFFT.
 See the [documentation for FINUFFT][3] for a full mathematical description of the transforms and their applications to signal processing, imaging, and scientific computing.
+
+**Note**: We are currently in the process of adapting the cuFINUFFT interface to closer match that of FINUFFT. This will likely break code depending on the current interface once the next re
+lease is published. At this point we will publish a migration guide that will detail the exact changes to the interfaces.
 
 Main developer: **Yu-hsuan Melody Shih** (NYU). Main other contributors:
 Garrett Wright (Princeton), Joakim Andén (KTH/Flatiron), Johannes Blaschke (LBNL), Alex Barnett (Flatiron).

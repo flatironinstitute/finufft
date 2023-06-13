@@ -1,4 +1,4 @@
-List of features / changes made / release notes, in reverse chronological order
+v 1.3 (06/10/23)
 
 * Move second half of onedim_fseries_kernel() to GPU (with a simple heuristic 
   basing on nf1 to switch between the CPU and the GPU version).
@@ -8,6 +8,8 @@ List of features / changes made / release notes, in reverse chronological order
   quite a lot! (PR#130)
 * Melody added 1D support for both types 1 (GM-sort and SM methods) 2 (GM-sort),
   in C++/CUDA and their test executables (but not Python interface).
+* Various fixes to package config.
+* Miscellaneous bug fixes.
 
 v 1.2 (02/17/21)
 

@@ -23,7 +23,7 @@ copyright = ('2020 The Simons Foundation, '
 author = 'Melody Shih, Joakim Anden, Garrett Wright'
 
 # The full version, including alpha/beta/rc tags
-release = '1.2'
+release = '1.3'
 
 
 # -- General configuration ---------------------------------------------------
