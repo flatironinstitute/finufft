@@ -16,8 +16,7 @@ int main(int argc, char *argv[]) {
                         "Arguments:\n"
                         "  method: One of\n"
                         "    1: nupts driven,\n"
-                        "    2: sub-problem, or\n"
-                        "    3: sub-problem with Paul's idea.\n");
+                        "    2: sub-problem, or\n");
         return 1;
     }
     int method;

@@ -10,8 +10,8 @@ set(PRECISION_DEPENDENT_SRC
   1d/spreadinterp1d.cu 1d/cufinufft1d.cu
   1d/spread1d_wrapper.cu 1d/interp1d_wrapper.cu
   2d/spreadinterp2d.cu 2d/cufinufft2d.cu
-  2d/spread2d_wrapper.cu 2d/spread2d_wrapper_paul.cu
-  2d/interp2d_wrapper.cu memtransfer_wrapper.cu
+  2d/spread2d_wrapper.cu  2d/interp2d_wrapper.cu
+  memtransfer_wrapper.cu
   deconvolve_wrapper.cu cufinufft.cu common.cu
   3d/spreadinterp3d.cu 3d/spread3d_wrapper.cu
   3d/interp3d_wrapper.cu 3d/cufinufft3d.cu

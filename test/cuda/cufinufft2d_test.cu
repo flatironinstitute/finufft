@@ -17,7 +17,6 @@ int main(int argc, char *argv[]) {
                         "  method: One of\n"
                         "    1: nupts driven,\n"
                         "    2: sub-problem, or\n"
-                        "    3: sub-problem with Paul's idea\n"
                         "  type: Type of transform (1, 2)"
                         "  N1, N2: The size of the 2D array\n"
                         "  M: The number of non-uniform points\n"

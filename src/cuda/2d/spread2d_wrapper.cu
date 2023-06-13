@@ -61,13 +61,6 @@ int CUFINUFFT_SPREAD2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx
         }
     }
 
-    if (d_plan->opts.gpu_method == 3) {
-        ier = CUSPREAD2D_PAUL_PROP(nf1, nf2, M, d_plan);
-        if (ier != 0) {
-            printf("error: cuspread2d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-            return ier;
-        }
-    }
 #ifdef TIME
     float milliseconds = 0;
     cudaEventRecord(stop);
@@ -103,7 +96,6 @@ int CUSPREAD2D(CUFINUFFT_PLAN d_plan, int blksize)
     Methods available:
     (1) Non-uniform points driven
     (2) Subproblem
-    (3) Paul
 
     Melody Shih 07/25/19
 */
@@ -131,14 +123,6 @@ int CUSPREAD2D(CUFINUFFT_PLAN d_plan, int blksize)
         ier = CUSPREAD2D_SUBPROB(nf1, nf2, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread2d_gpu_subprob" << std::endl;
-            return 1;
-        }
-    } break;
-    case 3: {
-        cudaEventRecord(start);
-        ier = CUSPREAD2D_PAUL(nf1, nf2, M, d_plan, blksize);
-        if (ier != 0) {
-            std::cout << "error: cnufftspread2d_gpu_paul" << std::endl;
             return 1;
         }
     } break;
