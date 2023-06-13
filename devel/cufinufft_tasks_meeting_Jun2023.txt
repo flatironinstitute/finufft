@@ -50,7 +50,7 @@ Marco Barbone
 SMALL TASKS IMMEDIATE:
 
 * DOCS: (Alex will update RST docs for cuda, incl its PNG)
- -INSTALL: add how to find SM_?? cuda arch
+ -INSTALL: add how to find SM_?? cuda arch [DONE]
 
 * test issue #276 re meth=1,2 - Alex will update
 
@@ -58,6 +58,7 @@ SMALL TASKS IMMEDIATE:
 
 * see if gpu error codes can be merged into cpu - the only new one
   could be cudaMalloc failed.
+  Overlaps with better err msg for cufinufft Issue #273
 
 * ctest is inadequate -> Alex will use cmake -E compare_files f1 f2
 to diff dumbinputs and testutils.
@@ -65,7 +66,6 @@ to diff dumbinputs and testutils.
 * Libin will switch CI to cmake not classic makefiles (as right now)
 Libin will make CI for CPU use cmake/ctest.
 [J already using GPU CI Jenkins.]
-
 
 
 FUTURE TASKS
