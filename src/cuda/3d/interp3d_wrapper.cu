@@ -22,10 +22,6 @@ int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_
     not allocate,transfer and free memories on gpu. Shih 09/24/20
 */
 {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     int ier;
     d_plan->kx = d_kx;
     d_plan->ky = d_ky;
@@ -39,7 +35,6 @@ int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_
     d_plan->M = M;
     d_plan->maxbatchsize = 1;
 
-    cudaEventRecord(start);
     ier = ALLOCGPUMEM3D_PLAN(d_plan);
     ier = ALLOCGPUMEM3D_NUPTS(d_plan);
 
@@ -57,31 +52,11 @@ int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_
             return ier;
         }
     }
-#ifdef TIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Obtain Interp Prop\t %.3g ms\n", milliseconds);
-#endif
 
-    cudaEventRecord(start);
     ier = CUINTERP3D(d_plan, 1);
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Interp (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method, milliseconds);
-#endif
-    cudaEventRecord(start);
+
     FREEGPUMEMORY3D(d_plan);
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
-#endif
-    // cudaFree(d_plan->c);
+
     return ier;
 }
 
@@ -101,54 +76,31 @@ int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize)
     int nf3 = d_plan->nf3;
     int M = d_plan->M;
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        cudaEventRecord(start);
-        {
-            PROFILE_CUDA_GROUP("Interpolation", 6);
-            ier = CUINTERP3D_NUPTSDRIVEN(nf1, nf2, nf3, M, d_plan, blksize);
-            if (ier != 0) {
-                std::cout << "error: cnufftspread3d_gpu_nuptsdriven" << std::endl;
-                return 1;
-            }
+        ier = CUINTERP3D_NUPTSDRIVEN(nf1, nf2, nf3, M, d_plan, blksize);
+        if (ier != 0) {
+            std::cout << "error: cnufftspread3d_gpu_nuptsdriven" << std::endl;
+            return 1;
         }
     } break;
     case 2: {
-        cudaEventRecord(start);
-        {
-            PROFILE_CUDA_GROUP("Interpolation", 6);
-            ier = CUINTERP3D_SUBPROB(nf1, nf2, nf3, M, d_plan, blksize);
-            if (ier != 0) {
-                std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
-                return 1;
-            }
+        ier = CUINTERP3D_SUBPROB(nf1, nf2, nf3, M, d_plan, blksize);
+        if (ier != 0) {
+            std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
+            return 1;
         }
     } break;
     default:
         std::cout << "error: incorrect method, should be 1,2" << std::endl;
         return 2;
     }
-#ifdef SPREADTIME
-    float milliseconds;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    std::cout << "[time  ]"
-              << " Interp " << milliseconds << " ms" << std::endl;
-#endif
+
     return ier;
 }
 
 int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -171,7 +123,6 @@ int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     blocks.x = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
     blocks.y = 1;
 
-    cudaEventRecord(start);
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
             Interp_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
@@ -185,13 +136,7 @@ int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
                                                                      es_c, es_beta, d_idxnupts, pirange);
         }
     }
-#ifdef SPREADTIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tKernel Interp_3d_NUptsdriven (%d) \t%.3g ms\n", milliseconds, d_plan->opts.gpu_kerevalmeth);
-#endif
+
     return 0;
 }
 
@@ -211,11 +156,6 @@ int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
     numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
     numbins[2] = ceil((CUFINUFFT_FLT)nf3 / bin_size_z);
-#ifdef INFO
-    std::cout << "[info  ] Dividing the uniform grids to bin size[" << d_plan->opts.gpu_binsizex << "x"
-              << d_plan->opts.gpu_binsizey << "x" << d_plan->opts.gpu_binsizez << "]" << std::endl;
-    std::cout << "[info  ] numbins = [" << numbins[0] << "x" << numbins[1] << "x" << numbins[2] << "]" << std::endl;
-#endif
 
     CUFINUFFT_FLT *d_kx = d_plan->kx;
     CUFINUFFT_FLT *d_ky = d_plan->ky;
@@ -256,13 +196,7 @@ int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
         }
     }
-#ifdef SPREADTIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tKernel Interp_3d_Subprob (%d) \t%.3g ms\n", milliseconds, d_plan->opts.gpu_kerevalmeth);
-#endif
+
     return 0;
 }
 
