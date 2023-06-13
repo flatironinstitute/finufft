@@ -5,9 +5,12 @@
 #include <iostream>
 #include <random>
 
-#include <cufinufft_eitherprec.h>
-#include <cufinufft/utils.h>
 #include <cufinufft/profile.h>
+#include <cufinufft/utils.h>
+#include <cufinufft_eitherprec.h>
+
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 
 using cufinufft::utils::infnorm;
 
@@ -35,17 +38,13 @@ int main(int argc, char *argv[]) {
     std::cout << std::scientific << std::setprecision(3);
     int ier;
 
-    CUFINUFFT_FLT *x;
-    CUFINUFFT_CPX *c, *fk;
-    cudaMallocHost(&x, M * sizeof(CUFINUFFT_FLT));
-    cudaMallocHost(&c, M * sizeof(CUFINUFFT_CPX));
-    cudaMallocHost(&fk, N1 * sizeof(CUFINUFFT_CPX));
+    thrust::host_vector<CUFINUFFT_FLT> x(M);
+    thrust::host_vector<CUFINUFFT_CPX> c(M);
+    thrust::host_vector<CUFINUFFT_CPX> fk(N1);
 
-    CUFINUFFT_FLT *d_x;
-    CUCPX *d_c, *d_fk;
-    checkCudaErrors(cudaMalloc(&d_x, M * sizeof(CUFINUFFT_FLT)));
-    checkCudaErrors(cudaMalloc(&d_c, M * sizeof(CUCPX)));
-    checkCudaErrors(cudaMalloc(&d_fk, N1 * sizeof(CUCPX)));
+    thrust::device_vector<CUFINUFFT_FLT> d_x(M);
+    thrust::device_vector<CUFINUFFT_CPX> d_c(M);
+    thrust::device_vector<CUFINUFFT_CPX> d_fk(N1);
 
     std::default_random_engine eng(1);
     std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
@@ -66,14 +65,15 @@ int main(int argc, char *argv[]) {
             fk[i].imag(randm11());
         }
     } else {
-        std::cerr << "Invalid type " << type << " supplied\n" ;
+        std::cerr << "Invalid type " << type << " supplied\n";
         return 1;
     }
-    checkCudaErrors(cudaMemcpy(d_x, x, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
+
+    d_x = x;
     if (type == 1)
-        checkCudaErrors(cudaMemcpy(d_c, c, M * sizeof(CUFINUFFT_CPX), cudaMemcpyHostToDevice));
+        d_c = c;
     else if (type == 2)
-        checkCudaErrors(cudaMemcpy(d_fk, fk, N1 * sizeof(CUFINUFFT_CPX), cudaMemcpyHostToDevice));
+        d_fk = fk;
 
     cudaEvent_t start, stop;
     float milliseconds = 0;
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
 
     cudaEventRecord(start);
-    ier = CUFINUFFT_SETPTS(M, d_x, NULL, NULL, 0, NULL, NULL, NULL, dplan);
+    ier = CUFINUFFT_SETPTS(M, d_x.data().get(), NULL, NULL, 0, NULL, NULL, NULL, dplan);
     if (ier != 0) {
         printf("err: cufinufft_setpts\n");
         return ier;
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
     printf("[time  ] cufinufft setNUpts:\t\t %.3g s\n", milliseconds / 1000);
 
     cudaEventRecord(start);
-    ier = CUFINUFFT_EXECUTE(d_c, d_fk, dplan);
+    ier = CUFINUFFT_EXECUTE((CUCPX *)d_c.data().get(), (CUCPX *)d_fk.data().get(), dplan);
     if (ier != 0) {
         printf("err: cufinufft1d_exec\n");
         return ier;
@@ -167,18 +167,17 @@ int main(int argc, char *argv[]) {
 
     CUFINUFFT_FLT rel_error = std::numeric_limits<CUFINUFFT_FLT>::max();
     if (type == 1) {
-        checkCudaErrors(cudaMemcpy(fk, d_fk, N1 * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+        fk = d_fk;
         int nt1 = 0.37 * N1; // choose some mode index to check
         CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0, 0), J = IMA * (CUFINUFFT_FLT)iflag;
         for (int j = 0; j < M; ++j)
             Ft += c[j] * exp(J * (nt1 * x[j])); // crude direct
-        int it = N1 / 2 + nt1;                   // index in complex F as 1d array
+        int it = N1 / 2 + nt1;                  // index in complex F as 1d array
 
-        rel_error = abs(Ft - fk[it]) / infnorm(N1, fk);
+        rel_error = abs(Ft - fk[it]) / infnorm(N1, fk.data());
         printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", nt1, rel_error);
-    }
-    else if (type == 2) {
-        checkCudaErrors(cudaMemcpy(c, d_c, M * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+    } else if (type == 2) {
+        c = d_c;
 
         int jt = M / 2; // check arbitrary choice of one targ pt
         CUFINUFFT_CPX J = IMA * (CUFINUFFT_FLT)iflag;
@@ -186,15 +185,9 @@ int main(int argc, char *argv[]) {
         int m = 0;
         for (int m1 = -(N1 / 2); m1 <= (N1 - 1) / 2; ++m1)
             ct += fk[m++] * exp(J * (m1 * x[jt])); // crude direct
-        rel_error = abs(c[jt] - ct) / infnorm(M, c);
+        rel_error = abs(c[jt] - ct) / infnorm(M, c.data());
         printf("[gpu   ] one targ: rel err in c[%d] is %.3g\n", jt, rel_error);
     }
-    
-    cudaFreeHost(x);
-    cudaFreeHost(c);
-    cudaFreeHost(fk);
-    cudaFree(d_x);
-    cudaFree(d_c);
-    cudaFree(d_fk);
+
     return std::isnan(rel_error) || rel_error > checktol;
 }

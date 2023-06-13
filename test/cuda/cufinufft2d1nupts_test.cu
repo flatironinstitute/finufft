@@ -5,8 +5,12 @@
 #include <iostream>
 #include <random>
 
-#include <cufinufft_eitherprec.h>
 #include <cufinufft/utils.h>
+#include <cufinufft_eitherprec.h>
+
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+
 using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[]) {
@@ -19,11 +23,10 @@ int main(int argc, char *argv[]) {
                         "    2: sub-problem, or\n");
         return 1;
     }
-    int method;
-    sscanf(argv[1], "%d", &method);
+    int method = std::atoi(argv[1]);
+    N1 = std::atof(argv[2]);
+    N2 = std::atof(argv[3]);
 
-    N1 = 100;
-    N2 = 100;
     N = N1 * N2;
     M1 = N1 * N2;
     M2 = 2 * N1 * N2;
@@ -34,38 +37,20 @@ int main(int argc, char *argv[]) {
     std::cout << std::scientific << std::setprecision(3);
     int ier;
 
-    CUFINUFFT_FLT *x1, *y1;
-    CUFINUFFT_CPX *c1, *fk1;
-    cudaMallocHost(&x1, M1 * sizeof(CUFINUFFT_FLT));
-    cudaMallocHost(&y1, M1 * sizeof(CUFINUFFT_FLT));
-    cudaMallocHost(&c1, M1 * sizeof(CUFINUFFT_CPX));
-    cudaMallocHost(&fk1, N1 * N2 * sizeof(CUFINUFFT_CPX));
+    thrust::host_vector<CUFINUFFT_FLT> x1(M1), y1(M1);
+    thrust::host_vector<CUFINUFFT_CPX> c1(M1), fk1(N1 * N2);
+    thrust::device_vector<CUFINUFFT_FLT> d_x1(M1), d_y1(M1);
+    thrust::device_vector<CUFINUFFT_CPX> d_c1(M1), d_fk1(N1 * N2);
 
-    CUFINUFFT_FLT *d_x1, *d_y1;
-    CUCPX *d_c1, *d_fk1;
-    checkCudaErrors(cudaMalloc(&d_x1, M1 * sizeof(CUFINUFFT_FLT)));
-    checkCudaErrors(cudaMalloc(&d_y1, M1 * sizeof(CUFINUFFT_FLT)));
-    checkCudaErrors(cudaMalloc(&d_c1, M1 * sizeof(CUCPX)));
-    checkCudaErrors(cudaMalloc(&d_fk1, N1 * N2 * sizeof(CUCPX)));
-
-    CUFINUFFT_FLT *x2, *y2;
-    CUFINUFFT_CPX *c2, *fk2;
-    cudaMallocHost(&x2, M2 * sizeof(CUFINUFFT_FLT));
-    cudaMallocHost(&y2, M2 * sizeof(CUFINUFFT_FLT));
-    cudaMallocHost(&c2, M2 * sizeof(CUFINUFFT_CPX));
-    cudaMallocHost(&fk2, N1 * N2 * sizeof(CUFINUFFT_CPX));
-
-    CUFINUFFT_FLT *d_x2, *d_y2;
-    CUCPX *d_c2, *d_fk2;
-    checkCudaErrors(cudaMalloc(&d_x2, M2 * sizeof(CUFINUFFT_FLT)));
-    checkCudaErrors(cudaMalloc(&d_y2, M2 * sizeof(CUFINUFFT_FLT)));
-    checkCudaErrors(cudaMalloc(&d_c2, M2 * sizeof(CUCPX)));
-    checkCudaErrors(cudaMalloc(&d_fk2, N1 * N2 * sizeof(CUCPX)));
+    thrust::host_vector<CUFINUFFT_FLT> x2(M2), y2(M2);
+    thrust::host_vector<CUFINUFFT_CPX> c2(M2), fk2(N1 * N2);
+    thrust::device_vector<CUFINUFFT_FLT> d_x2(M2), d_y2(M2);
+    thrust::device_vector<CUFINUFFT_CPX> d_c2(M2), d_fk2(N1 * N2);
 
     std::default_random_engine eng(1);
     std::uniform_real_distribution<CUFINUFFT_FLT> dist11(-1, 1);
     auto randm11 = [&eng, &dist11]() { return dist11(eng); };
-    
+
     // Making data
     for (int i = 0; i < M1; i++) {
         x1[i] = M_PI * randm11(); // x in [-pi,pi)
@@ -81,12 +66,12 @@ int main(int argc, char *argv[]) {
         c2[i].imag(randm11());
     }
 
-    checkCudaErrors(cudaMemcpy(d_x1, x1, M1 * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_y1, y1, M1 * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_c1, c1, M1 * sizeof(CUCPX), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_x2, x2, M2 * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_y2, y2, M2 * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_c2, c2, M2 * sizeof(CUCPX), cudaMemcpyHostToDevice));
+    d_x1 = x1;
+    d_y1 = y1;
+    d_c1 = c1;
+    d_x2 = x2;
+    d_y2 = y2;
+    d_c2 = c2;
 
     cudaEvent_t start, stop;
     float milliseconds = 0;
@@ -140,7 +125,7 @@ int main(int argc, char *argv[]) {
     printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
 
     cudaEventRecord(start);
-    ier = CUFINUFFT_SETPTS(M1, d_x1, d_y1, NULL, 0, NULL, NULL, NULL, dplan);
+    ier = CUFINUFFT_SETPTS(M1, d_x1.data().get(), d_y1.data().get(), NULL, 0, NULL, NULL, NULL, dplan);
     if (ier != 0) {
         printf("err: cufinufft_setpts (set 1)\n");
         return ier;
@@ -152,7 +137,7 @@ int main(int argc, char *argv[]) {
     printf("[time  ] cufinufft setNUpts (set 1):\t %.3g s\n", milliseconds / 1000);
 
     cudaEventRecord(start);
-    ier = CUFINUFFT_EXECUTE(d_c1, d_fk1, dplan);
+    ier = CUFINUFFT_EXECUTE((CUCPX *)d_c1.data().get(), (CUCPX *)d_fk1.data().get(), dplan);
     if (ier != 0) {
         printf("err: cufinufft2d1_exec (set 1)\n");
         return ier;
@@ -165,7 +150,7 @@ int main(int argc, char *argv[]) {
     printf("[time  ] cufinufft exec (set 1):\t %.3g s\n", milliseconds / 1000);
 
     cudaEventRecord(start);
-    ier = CUFINUFFT_SETPTS(M2, d_x2, d_y2, NULL, 0, NULL, NULL, NULL, dplan);
+    ier = CUFINUFFT_SETPTS(M2, d_x2.data().get(), d_y2.data().get(), NULL, 0, NULL, NULL, NULL, dplan);
     if (ier != 0) {
         printf("err: cufinufft_setpts (set 2)\n");
         return ier;
@@ -177,7 +162,7 @@ int main(int argc, char *argv[]) {
     printf("[time  ] cufinufft setNUpts (set 2):\t %.3g s\n", milliseconds / 1000);
 
     cudaEventRecord(start);
-    ier = CUFINUFFT_EXECUTE(d_c2, d_fk2, dplan);
+    ier = CUFINUFFT_EXECUTE((CUCPX *)d_c2.data().get(), (CUCPX *)d_fk2.data().get(), dplan);
     if (ier != 0) {
         printf("err: cufinufft2d1_exec (set 2)\n");
         return ier;
@@ -197,8 +182,8 @@ int main(int argc, char *argv[]) {
     totaltime += milliseconds;
     printf("[time  ] cufinufft destroy:\t\t %.3g s\n", milliseconds / 1000);
 
-    checkCudaErrors(cudaMemcpy(fk1, d_fk1, N1 * N2 * sizeof(CUCPX), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(fk2, d_fk2, N1 * N2 * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+    fk1 = d_fk1;
+    fk2 = d_fk2;
 
     printf("[Method %d] (%d+%d) NU pts to %d U pts in %.3g s:      %.3g NU pts/s\n", opts.gpu_method, M1, M2, N1 * N2,
            totaltime / 1000, (M1 + M2) / totaltime * 1000);
@@ -209,34 +194,14 @@ int main(int argc, char *argv[]) {
     for (int j = 0; j < M1; ++j)
         Ft += c1[j] * exp(J * (nt1 * x1[j] + nt2 * y1[j])); // crude direct
     int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);            // index in complex F as 1d array
-    //	printf("[gpu   ] one mode: abs err in F[%ld,%ld] is %.3g\n",(int)nt1,(int)nt2,abs(Ft-fk[it]));
-    printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g (set 1)\n", (int)nt1, (int)nt2,
-           abs(Ft - fk1[it]) / infnorm(N, fk1));
+
+    printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g (set 1)\n", (int)nt1, (int)nt2,
+           abs(Ft - fk1[it]) / infnorm(N, fk1.data()));
     Ft = CUFINUFFT_CPX(0, 0);
     for (int j = 0; j < M2; ++j)
         Ft += c2[j] * exp(J * (nt1 * x2[j] + nt2 * y2[j])); // crude direct
-    printf("[gpu   ] one mode: rel err in F[%ld,%ld] is %.3g (set 2)\n", (int)nt1, (int)nt2,
-           abs(Ft - fk2[it]) / infnorm(N, fk2));
-
-    cudaFreeHost(x1);
-    cudaFreeHost(y1);
-    cudaFreeHost(c1);
-    cudaFreeHost(fk1);
-    cudaFreeHost(x2);
-    cudaFreeHost(y2);
-    cudaFreeHost(c2);
-    cudaFreeHost(fk2);
-    cudaFree(d_x1);
-    cudaFree(d_y1);
-    cudaFree(d_c1);
-    cudaFree(d_fk1);
-    cudaFree(d_x2);
-    cudaFree(d_y2);
-    cudaFree(d_c2);
-    cudaFree(d_fk2);
-
-    // for cuda-memcheck to work
-    cudaDeviceReset();
+    printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g (set 2)\n", (int)nt1, (int)nt2,
+           abs(Ft - fk2[it]) / infnorm(N, fk2.data()));
 
     return 0;
 }
