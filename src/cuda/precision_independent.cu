@@ -18,8 +18,8 @@ __device__ RT carg(const CT &z) { return (RT)atan2(ipart(z), rpart(z)); } // pol
 __device__ RT cabs(const CT &z) { return (RT)cuCabs(z); }
 
 /* Common Kernels from spreadinterp3d */
-__host__ __device__ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int ony, int onz, int bnx, int bny,
-                                      int bnz) {
+__host__ __device__ int calc_global_index(int xidx, int yidx, int zidx, int onx, int ony, int onz, int bnx, int bny,
+                                          int bnz) {
     int oix, oiy, oiz;
     oix = xidx / bnx;
     oiy = yidx / bny;
@@ -28,18 +28,18 @@ __host__ __device__ int CalcGlobalIdx(int xidx, int yidx, int zidx, int onx, int
            (xidx % bnx + yidx % bny * bnx + zidx % bnz * bny * bnx);
 }
 
-__device__ int CalcGlobalIdx_V2(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbinz) {
+__device__ int calc_global_index_v2(int xidx, int yidx, int zidx, int nbinx, int nbiny, int nbinz) {
     return xidx + yidx * nbinx + zidx * nbinx * nbiny;
 }
 
 /* spreadinterp 1d */
-__global__ void CalcSubProb_1d(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins) {
+__global__ void calc_sub_prob_1d(int *bin_size, int *num_subprob, int maxsubprobsize, int numbins) {
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins; i += gridDim.x * blockDim.x) {
         num_subprob[i] = ceil(bin_size[i] / (float)maxsubprobsize);
     }
 }
 
-__global__ void MapBintoSubProb_1d(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins) {
+__global__ void map_b_into_sub_prob_1d(int *d_subprob_to_bin, int *d_subprobstartpts, int *d_numsubprob, int numbins) {
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < numbins; i += gridDim.x * blockDim.x) {
         for (int j = 0; j < d_numsubprob[i]; j++) {
             d_subprob_to_bin[d_subprobstartpts[i] + j] = i;
@@ -47,7 +47,7 @@ __global__ void MapBintoSubProb_1d(int *d_subprob_to_bin, int *d_subprobstartpts
     }
 }
 
-__global__ void TrivialGlobalSortIdx_1d(int M, int *index) {
+__global__ void trivial_global_sort_index_1d(int M, int *index) {
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         index[i] = i;
     }
@@ -126,7 +126,8 @@ __global__ void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobi
     int nbinz = nobinz * binsperobinz;
 
     if (binx < nbinx && biny < nbiny && binz < nbinz) {
-        int binidx = CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+        int binidx =
+            calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
         int i, j, k;
         i = binx;
         j = biny;
@@ -155,7 +156,7 @@ __global__ void FillGhostBins(int binsperobinx, int binsperobiny, int binsperobi
             k = binz + 2;
             k = (k >= nbinz) ? k - nbinz : k;
         }
-        int idxtoupdate = CalcGlobalIdx(i, j, k, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+        int idxtoupdate = calc_global_index(i, j, k, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
         if (idxtoupdate != binidx) {
             binsize[binidx] = binsize[idxtoupdate];
         }
@@ -167,7 +168,7 @@ __global__ void Temp(int binsperobinx, int binsperobiny, int binsperobinz, int n
     int binx = threadIdx.x + blockIdx.x * blockDim.x;
     int biny = threadIdx.y + blockIdx.y * blockDim.y;
     int binz = threadIdx.z + blockIdx.z * blockDim.z;
-    int binidx = CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+    int binidx = calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
 
     if (binx < nobinx * binsperobinx && biny < nobiny * binsperobiny && binz < nobinz * binsperobinz)
         if (binx % binsperobinx > 0 && binx % binsperobinx < binsperobinx - 1)
@@ -193,7 +194,8 @@ __global__ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperob
         i = binx;
         j = biny;
         k = binz;
-        int binidx = CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+        int binidx =
+            calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
         if (binx % binsperobinx == 0) {
             i = binx - 2;
             box[0] = (i < 0);
@@ -230,7 +232,7 @@ __global__ void GhostBinPtsIdx(int binsperobinx, int binsperobiny, int binsperob
             k = (k > nbinz) ? k - nbinz : k;
             w = 1;
         }
-        int corbinidx = CalcGlobalIdx(i, j, k, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+        int corbinidx = calc_global_index(i, j, k, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
         if (w == 1) {
             for (int n = 0; n < binsize[binidx]; n++) {
                 index[binstartpts[binidx] + n] =

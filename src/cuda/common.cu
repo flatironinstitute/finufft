@@ -23,9 +23,9 @@ using std::max;
    cnufftspread's real symmetric kernel. */
 // a , f are intermediate results from function onedim_fseries_kernel_precomp()
 // (see cufinufft/contrib/common.cpp for description)
-__global__ void FseriesKernelCompute(int nf1, int nf2, int nf3, CUFINUFFT_FLT *f, cuDoubleComplex *a,
-                                     CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2, CUFINUFFT_FLT *fwkerhalf3,
-                                     int ns) {
+__global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, CUFINUFFT_FLT *f, cuDoubleComplex *a,
+                                       CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2, CUFINUFFT_FLT *fwkerhalf3,
+                                       int ns) {
     CUFINUFFT_FLT J2 = ns / 2.0;
     int q = (int)(2 + 3.0 * J2);
     int nf;
@@ -68,8 +68,8 @@ int CUFSERIESKERNELCOMPUTE(int dim, int nf1, int nf2, int nf3, CUFINUFFT_FLT *d_
     dim3 threadsPerBlock(16, dim);
     dim3 numBlocks((nout + 16 - 1) / 16, 1);
 
-    FseriesKernelCompute<<<numBlocks, threadsPerBlock>>>(nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1, d_fwkerhalf2,
-                                                         d_fwkerhalf3, ns);
+    fseries_kernel_compute<<<numBlocks, threadsPerBlock>>>(nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1, d_fwkerhalf2,
+                                                           d_fwkerhalf3, ns);
     return 0;
 }
 

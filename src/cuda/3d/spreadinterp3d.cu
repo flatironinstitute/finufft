@@ -63,7 +63,7 @@ __global__ void CalcInvertofGlobalSortIdx_3d(int M, int bin_size_x, int bin_size
         binz = floor(z_rescaled / bin_size_z);
         binz = binz >= nbinz ? binz - 1 : binz;
         binz = binz < 0 ? 0 : binz;
-        binidx = CalcGlobalIdx_V2(binx, biny, binz, nbinx, nbiny, nbinz);
+        binidx = calc_global_index_v2(binx, biny, binz, nbinx, nbiny, nbinz);
 
         index[bin_startpts[binidx] + sortidx[i]] = i;
     }
@@ -392,7 +392,7 @@ __global__ void LocateNUptstoBins_ghost(int M, int bin_size_x, int bin_size_y, i
         biny = biny / (binsperobiny - 2) * binsperobiny + (biny % (binsperobiny - 2) + 1);
         binz = binz / (binsperobinz - 2) * binsperobinz + (binz % (binsperobinz - 2) + 1);
 
-        binidx = CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+        binidx = calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
         oldidx = atomicAdd(&bin_size[binidx], 1);
         sortidx[i] = oldidx;
     }
@@ -417,7 +417,7 @@ __global__ void CalcInvertofGlobalSortIdx_ghost(int M, int bin_size_x, int bin_s
         biny = biny / (binsperobiny - 2) * binsperobiny + (biny % (binsperobiny - 2) + 1);
         binz = binz / (binsperobinz - 2) * binsperobinz + (binz % (binsperobinz - 2) + 1);
 
-        binidx = CalcGlobalIdx(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
+        binidx = calc_global_index(binx, biny, binz, nobinx, nobiny, nobinz, binsperobinx, binsperobiny, binsperobinz);
         index[bin_startpts[binidx] + sortidx[i]] = i;
     }
 }

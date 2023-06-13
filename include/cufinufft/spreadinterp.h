@@ -56,32 +56,32 @@ static __inline__ __device__ void eval_kernel_vec(CUFINUFFT_FLT *ker, const CUFI
 // Kernels for 1D codes
 /* -----------------------------Spreading Kernels-----------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Spread_1d_NUptsdriven(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
+__global__ void spread_1d_nuptsdriven(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
                                       CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts, int pirange);
-__global__ void Spread_1d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
+__global__ void spread_1d_nuptsdriven_horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
                                              CUFINUFFT_FLT sigma, int *idxnupts, int pirange);
 
 /* Kernels for SubProb Method */
 // SubProb properties
-__global__ void CalcBinSize_noghost_1d(int M, int nf1, int bin_size_x, int nbinx, int *bin_size, CUFINUFFT_FLT *x,
-                                       int *sortidx, int pirange);
-__global__ void CalcInvertofGlobalSortIdx_1d(int M, int bin_size_x, int nbinx, int *bin_startpts, int *sortidx,
-                                             CUFINUFFT_FLT *x, int *index, int pirange, int nf1);
+__global__ void calc_bin_size_noghost_1d(int M, int nf1, int bin_size_x, int nbinx, int *bin_size, CUFINUFFT_FLT *x,
+                                         int *sortidx, int pirange);
+__global__ void calc_inverse_of_global_sort_idx_1d(int M, int bin_size_x, int nbinx, int *bin_startpts, int *sortidx,
+                                                   CUFINUFFT_FLT *x, int *index, int pirange, int nf1);
 
 // Main Spreading Kernel
-__global__ void Spread_1d_Subprob(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
+__global__ void spread_1d_subprob(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
                                   CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma, int *binstartpts,
                                   int *bin_size, int bin_size_x, int *subprob_to_bin, int *subprobstartpts,
                                   int *numsubprob, int maxsubprobsize, int nbinx, int *idxnupts, int pirange);
-__global__ void Spread_1d_Subprob_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
+__global__ void spread_1d_subprob_horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf1,
                                          CUFINUFFT_FLT sigma, int *binstartpts, int *bin_size, int bin_size_x,
                                          int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
                                          int nbinx, int *idxnupts, int pirange);
 /* ---------------------------Interpolation Kernels---------------------------*/
 /* Kernels for NUptsdriven Method */
-__global__ void Interp_1d_NUptsdriven(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf2,
+__global__ void interp_1d_nuptsdriven(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf2,
                                       CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, int *idxnupts, int pirange);
-__global__ void Interp_1d_NUptsdriven_Horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf2,
+__global__ void interp_1d_nuptsdriven_horner(CUFINUFFT_FLT *x, CUCPX *c, CUCPX *fw, int M, const int ns, int nf2,
                                              CUFINUFFT_FLT sigma, int *idxnupts, int pirange);
 
 // Kernels for 2D codes
@@ -260,5 +260,5 @@ int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
 int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);
 
 } // namespace spreadinterp
-} // namespace finufft
+} // namespace cufinufft
 #endif
