@@ -22,10 +22,6 @@ int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx
     not allocate,transfer and free memories on gpu. Shih 09/24/20
 */
 {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     d_plan->nf1 = nf1;
     d_plan->nf2 = nf2;
     d_plan->M = M;
@@ -37,7 +33,6 @@ int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx
     d_plan->fw = d_fw;
 
     int ier;
-    cudaEventRecord(start);
     ier = ALLOCGPUMEM2D_PLAN(d_plan);
     ier = ALLOCGPUMEM2D_NUPTS(d_plan);
     if (d_plan->opts.gpu_method == 1) {
@@ -54,29 +49,11 @@ int CUFINUFFT_INTERP2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx
             return ier;
         }
     }
-#ifdef TIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Obtain Interp Prop\t %.3g ms\n", milliseconds);
-#endif
-    cudaEventRecord(start);
+
     ier = CUINTERP2D(d_plan, 1);
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Interp (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method, milliseconds);
-#endif
-    cudaEventRecord(start);
+
     FREEGPUMEMORY2D(d_plan);
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
-#endif
+
     return ier;
 }
 
@@ -95,25 +72,16 @@ int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize)
     int nf2 = d_plan->nf2;
     int M = d_plan->M;
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        cudaEventRecord(start);
-        {
-            PROFILE_CUDA_GROUP("Spreading", 6);
-            ier = CUINTERP2D_NUPTSDRIVEN(nf1, nf2, M, d_plan, blksize);
-            if (ier != 0) {
-                std::cout << "error: cnufftspread2d_gpu_nuptsdriven" << std::endl;
-                return 1;
-            }
+        ier = CUINTERP2D_NUPTSDRIVEN(nf1, nf2, M, d_plan, blksize);
+        if (ier != 0) {
+            std::cout << "error: cnufftspread2d_gpu_nuptsdriven" << std::endl;
+            return 1;
         }
     } break;
     case 2: {
-        cudaEventRecord(start);
         ier = CUINTERP2D_SUBPROB(nf1, nf2, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cuinterp2d_subprob" << std::endl;
@@ -124,22 +92,11 @@ int CUINTERP2D(CUFINUFFT_PLAN d_plan, int blksize)
         std::cout << "error: incorrect method, should be 1 or 2" << std::endl;
         return 2;
     }
-#ifdef SPREADTIME
-    float milliseconds;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    std::cout << "[time  ]"
-              << " Interp " << milliseconds << " ms" << std::endl;
-#endif
+
     return ier;
 }
 
 int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize) {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -160,7 +117,6 @@ int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int b
     blocks.x = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
     blocks.y = 1;
 
-    cudaEventRecord(start);
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
             Interp_2d_NUptsdriven_Horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M,
@@ -172,21 +128,11 @@ int CUINTERP2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int b
                                                                nf1, nf2, es_c, es_beta, d_idxnupts, pirange);
         }
     }
-#ifdef SPREADTIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tKernel Interp_2d_NUptsdriven (%d)\t%.3g ms\n", milliseconds, d_plan->opts.gpu_kerevalmeth);
-#endif
+
     return 0;
 }
 
 int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize) {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
     CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
@@ -198,11 +144,6 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
     int numbins[2];
     numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
     numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
-#ifdef INFO
-    std::cout << "[info  ] Dividing the uniform grids to bin size[" << d_plan->opts.gpu_binsizex << "x"
-              << d_plan->opts.gpu_binsizey << "]" << std::endl;
-    std::cout << "[info  ] numbins = [" << numbins[0] << "x" << numbins[1] << "]" << std::endl;
-#endif
 
     CUFINUFFT_FLT *d_kx = d_plan->kx;
     CUFINUFFT_FLT *d_ky = d_plan->ky;
@@ -219,7 +160,6 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
     int pirange = d_plan->spopts.pirange;
 
     CUFINUFFT_FLT sigma = d_plan->opts.upsampfac;
-    cudaEventRecord(start);
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) * sizeof(CUCPX);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory" << std::endl;
@@ -241,13 +181,7 @@ int CUINTERP2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
                 numbins[0], numbins[1], d_idxnupts, pirange);
         }
     }
-#ifdef SPREADTIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tKernel Interp_2d_Subprob (%d)\t\t%.3g ms\n", milliseconds, d_plan->opts.gpu_kerevalmeth);
-#endif
+
     return 0;
 }
 
