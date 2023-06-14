@@ -88,9 +88,6 @@ This performs:
         cudaSetDevice(opts->gpu_device_id);
     }
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
     int ier;
 
     /* allocate the plan structure, assign address to user pointer. */
@@ -143,7 +140,7 @@ This performs:
         d_plan->spopts.spread_direction = 1;
     if (d_plan->type == 2)
         d_plan->spopts.spread_direction = 2;
-    cudaEventRecord(start);
+
     switch (d_plan->dim) {
     case 1: {
         ier = ALLOCGPUMEM1D_PLAN(d_plan);
@@ -155,15 +152,7 @@ This performs:
         ier = ALLOCGPUMEM3D_PLAN(d_plan);
     } break;
     }
-#ifdef TIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tAllocate GPU memory plan %.3g s\n", milliseconds / 1000);
-#endif
 
-    cudaEventRecord(start);
     cufftHandle fftplan;
     switch (d_plan->dim) {
     case 1: {
@@ -188,14 +177,7 @@ This performs:
     } break;
     }
     d_plan->fftplan = fftplan;
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tCUFFT Plan\t\t %.3g s\n", milliseconds / 1000);
-#endif
-    CNTime timer;
-    timer.start();
+
     std::complex<double> a[3 * MAX_NQUAD];
     CUFINUFFT_FLT f[3 * MAX_NQUAD];
     onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
@@ -205,11 +187,7 @@ This performs:
     if (dim > 2) {
         onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD, d_plan->spopts);
     }
-#ifdef TIME
-    printf("[time  ] \tkernel fser (1st half on CPU):\t %.3g s\n", timer.elapsedsec());
-#endif
 
-    cudaEventRecord(start);
     cuDoubleComplex *d_a;
     CUFINUFFT_FLT *d_f;
     checkCudaErrors(cudaMalloc(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex)));
@@ -218,12 +196,7 @@ This performs:
     checkCudaErrors(cudaMemcpy(d_f, f, dim * MAX_NQUAD * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
     ier = CUFSERIESKERNELCOMPUTE(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
                                  d_plan->fwkerhalf3, d_plan->spopts.nspread);
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tkernel fser (2nd half on GPU)\t %.3g s\n", milliseconds / 1000);
-#endif
+
     cudaFree(d_a);
     cudaFree(d_f);
     // Multi-GPU support: reset the device ID
@@ -282,16 +255,8 @@ Notes: the type CUFINUFFT_FLT means either single or double, matching the
     int dim = d_plan->dim;
 
     d_plan->M = M;
-#ifdef INFO
-    printf("[info  ] 2d1: (ms,mt)=(%d,%d) (nf1, nf2, nf3)=(%d,%d,%d) nj=%d, ntransform = %d\n", d_plan->ms, d_plan->mt,
-           d_plan->nf1, d_plan->nf2, nf3, d_plan->M, d_plan->ntransf);
-#endif
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
 
     int ier;
-    cudaEventRecord(start);
     switch (d_plan->dim) {
     case 1: {
         ier = ALLOCGPUMEM1D_NUPTS(d_plan);
@@ -303,13 +268,6 @@ Notes: the type CUFINUFFT_FLT means either single or double, matching the
         ier = ALLOCGPUMEM3D_NUPTS(d_plan);
     } break;
     }
-#ifdef TIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tAllocate GPU memory NUpts%.3g s\n", milliseconds / 1000);
-#endif
 
     d_plan->kx = d_kx;
     if (dim > 1)
@@ -317,7 +275,6 @@ Notes: the type CUFINUFFT_FLT means either single or double, matching the
     if (dim > 2)
         d_plan->kz = d_kz;
 
-    cudaEventRecord(start);
     switch (d_plan->dim) {
     case 1: {
         if (d_plan->opts.gpu_method == 1) {
@@ -403,12 +360,6 @@ Notes: the type CUFINUFFT_FLT means either single or double, matching the
         }
     } break;
     }
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tSetup Subprob properties %.3g s\n", milliseconds / 1000);
-#endif
 
     // Multi-GPU support: reset the device ID
     cudaSetDevice(orig_gpu_device_id);
@@ -501,12 +452,6 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
-    cudaEventRecord(start);
-
     // Can't destroy a Null pointer.
     if (!d_plan) {
         // Multi-GPU support: reset the device ID
@@ -528,13 +473,6 @@ int CUFINUFFT_DESTROY(CUFINUFFT_PLAN d_plan)
         FREEGPUMEMORY3D(d_plan);
     } break;
     }
-#ifdef TIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tFree gpu memory\t\t %.3g s\n", milliseconds / 1000);
-#endif
 
     /* free/destruct the plan */
     delete d_plan;

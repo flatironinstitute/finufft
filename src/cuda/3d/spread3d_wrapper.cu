@@ -479,10 +479,6 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
 }
 
 int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
@@ -514,7 +510,6 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
     CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
     int pirange = d_plan->spopts.pirange;
-    cudaEventRecord(start);
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) *
                                (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(CUCPX);
     if (sharedplanorysize > 49152) {

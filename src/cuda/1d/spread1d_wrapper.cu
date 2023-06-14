@@ -74,14 +74,9 @@ int CUSPREAD1D(CUFINUFFT_PLAN d_plan, int blksize)
     int nf1 = d_plan->nf1;
     int M = d_plan->M;
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        cudaEventRecord(start);
         ier = CUSPREAD1D_NUPTSDRIVEN(nf1, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread1d_gpu_nuptsdriven" << std::endl;
@@ -89,7 +84,6 @@ int CUSPREAD1D(CUFINUFFT_PLAN d_plan, int blksize)
         }
     } break;
     case 2: {
-        cudaEventRecord(start);
         ier = CUSPREAD1D_SUBPROB(nf1, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread1d_gpu_subprob" << std::endl;
