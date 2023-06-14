@@ -14,13 +14,13 @@ either on a multi-core shared-memory machine, or on a GPU.
 It is extremely fast (typically achieving $10^6$ to $10^8$ points
 per second on a CPU, or up to $10^9$ points per second on a GPU),
 has very simple interfaces to most major numerical languages
-(C/C++, Fortran, MATLAB, octave, python, and julia),
+(C/C++, Fortran, MATLAB, octave, Python, and Julia),
 but also has more advanced (vectorized and "guru") interfaces that
 allow multiple strength vectors and the reuse of FFT plans.
 The CPU library
 is written in C++ (with limited use of ++ features), OpenMP, and calls
 `FFTW <http://www.fftw.org>`_.
-It has been developed at the `Center for Computational Mathematics
+It has been developed since 2017 at the `Center for Computational Mathematics
 <https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/>`_ at the `Flatiron Institute <https://www.simonsfoundation.org/flatiron>`_,
 by :ref:`Alex Barnett and others<ackn>`,
 and is released under an
@@ -116,7 +116,7 @@ This is achieved in part by developing a type 1 algorithm that exploits
 fast GPU shared memory, which
 requires hand-tuned choices of bin-sizes due to the small memory size
 (49kB per thread block).
-Both double and single precision are supported.
+Both double and single precision are supported, and a Python interface.
 Please see sections of this documentation labeled "GPU".
 In 2023 we added dimension 1, and merged cuFINUFFT into the FINUFFT repository.
 Further unification of the interfaces, underlying algorithm, and
