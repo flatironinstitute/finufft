@@ -79,7 +79,7 @@ endfunction()
 # Utility function to set finufft compilation options.
 function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
-    set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
+    set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 17)
     enable_asan(${target})
 
     target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
@@ -88,7 +88,7 @@ function(set_finufft_options target)
         target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-fcx-limited-range>)
     endif ()
 
-    target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/contrib")
     if (FINUFFT_USE_OPENMP)
         target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
         # there are issues on windows with OpenMP and CMake, so we need to manually add the flags
@@ -126,7 +126,7 @@ add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
 set_finufft_options(finufft_f64)
 target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 
-add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
 set_finufft_options(finufft)
 target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
 # windows does not have a math library, so we need to exclude it
