@@ -61,8 +61,8 @@ FINUFFT = $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 # Now come flags that should be added, whatever user overrode in make.inc.
 # -fPIC (position-indep code) needed to build dyn lib (.so)
 # Also, we force return (via :=) to the land of simply-expanded variables...
-INCL = -Iinclude
-CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++14
+INCL = -Iinclude -Icontrib
+CXXFLAGS := $(CXXFLAGS) $(INCL) -fPIC -std=c++17
 CFLAGS := $(CFLAGS) $(INCL) -fPIC
 # here /usr/include needed for fftw3.f "fortran header"... (JiriK: no longer)
 FFLAGS := $(FFLAGS) $(INCL) -I/usr/include -fPIC
@@ -110,7 +110,7 @@ OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o
+OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o contrib/ducc0/infra/threading.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 

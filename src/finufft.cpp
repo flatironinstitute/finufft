@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <vector>
 #include "../contrib/legendre_rule_fast.h"
+#include "ducc0/fft/fft.h"
 
 using namespace std;
 using namespace finufft;
@@ -1003,7 +1004,18 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX* cj, CPX* fk){
              
       // STEP 2: call the pre-planned FFT on this batch
       timer.restart();
-      FFTW_EX(p->fftwPlan);   // if thisBatchSize<batchSize it wastes some flops
+{
+int *ns = GRIDSIZE_FOR_FFTW(p);
+auto dataptr = reinterpret_cast<std::complex<FLT> *>(p->fwBatch);
+vector<size_t> arrdims, axes;
+arrdims.push_back(size_t(p->batchSize));
+arrdims.push_back(size_t(ns[0])); axes.push_back(1);
+if (p->dim>=2) { arrdims.push_back(size_t(ns[1])); axes.push_back(2); }
+if (p->dim>=3) { arrdims.push_back(size_t(ns[2])); axes.push_back(3); }
+ducc0::vfmav<std::complex<FLT>> data(dataptr, arrdims);
+ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
+}
+//      FFTW_EX(p->fftwPlan);   // if thisBatchSize<batchSize it wastes some flops
       t_fft += timer.elapsedsec();
       if (p->opts.debug>1)
         printf("\tFFTW exec:\t\t%.3g s\n", timer.elapsedsec());
