@@ -8,7 +8,6 @@
 #include <cufinufft/defs.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
-#include <cufinufft_eitherprec.h>
 
 using namespace cufinufft::common;
 using namespace cufinufft::spreadinterp;

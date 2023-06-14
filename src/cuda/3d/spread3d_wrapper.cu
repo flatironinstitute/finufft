@@ -13,11 +13,14 @@
 using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
 
+#include "spreadinterp3d.cuh"
+
 namespace cufinufft {
 namespace spreadinterp {
 
-int CUFINUFFT_SPREAD3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky,
-                       CUFINUFFT_FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
+                       cuda_complex<T> *d_c, cufinufft_plan_template<T> d_plan)
 /*
     This c function is written for only doing 3D spreading. See
     test/spread3d_test.cu for usage.
@@ -38,39 +41,39 @@ int CUFINUFFT_SPREAD3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_
     d_plan->M = M;
     d_plan->maxbatchsize = 1;
 
-    ier = ALLOCGPUMEM3D_PLAN(d_plan);
-    ier = ALLOCGPUMEM3D_NUPTS(d_plan);
+    ier = allocgpumem3d_plan<T>(d_plan);
+    ier = allocgpumem3d_nupts<T>(d_plan);
 
     if (d_plan->opts.gpu_method == 1) {
-        ier = CUSPREAD3D_NUPTSDRIVEN_PROP(nf1, nf2, nf3, M, d_plan);
+        ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
     if (d_plan->opts.gpu_method == 2) {
-        ier = CUSPREAD3D_SUBPROB_PROP(nf1, nf2, nf3, M, d_plan);
+        ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
     if (d_plan->opts.gpu_method == 4) {
-        ier = CUSPREAD3D_BLOCKGATHER_PROP(nf1, nf2, nf3, M, d_plan);
+        ier = cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread3d_blockgather_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
 
-    ier = CUSPREAD3D(d_plan, 1);
-
-    FREEGPUMEMORY3D(d_plan);
+    ier = cuspread3d<T>(d_plan, 1);
+    freegpumemory3d<T>(d_plan);
 
     return ier;
 }
 
-int CUSPREAD3D(CUFINUFFT_PLAN d_plan, int blksize)
+template <typename T>
+int cuspread3d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     A wrapper for different spreading methods.
 
@@ -90,21 +93,24 @@ int CUSPREAD3D(CUFINUFFT_PLAN d_plan, int blksize)
     int ier = 0;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        ier = CUSPREAD3D_NUPTSDRIVEN(nf1, nf2, nf3, M, d_plan, blksize);
+        ier = cuspread3d_nuptsdriven<T>(nf1, nf2, nf3, M, d_plan, blksize);
+
         if (ier != 0) {
             std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
             return 1;
         }
     } break;
     case 2: {
-        ier = CUSPREAD3D_SUBPROB(nf1, nf2, nf3, M, d_plan, blksize);
+        ier = cuspread3d_subprob<T>(nf1, nf2, nf3, M, d_plan, blksize);
+
         if (ier != 0) {
             std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
             return 1;
         }
     } break;
     case 4: {
-        ier = CUSPREAD3D_BLOCKGATHER(nf1, nf2, nf3, M, d_plan, blksize);
+        ier = cuspread3d_blockgather<T>(nf1, nf2, nf3, M, d_plan, blksize);
+
         if (ier != 0) {
             std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
             return 1;
@@ -117,7 +123,8 @@ int CUSPREAD3D(CUFINUFFT_PLAN d_plan, int blksize)
     return ier;
 }
 
-int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan) {
+template <typename T>
+int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
     if (d_plan->opts.gpu_sort) {
         int bin_size_x = d_plan->opts.gpu_binsizex;
         int bin_size_y = d_plan->opts.gpu_binsizey;
@@ -129,13 +136,13 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         }
 
         int numbins[3];
-        numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-        numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
-        numbins[2] = ceil((CUFINUFFT_FLT)nf3 / bin_size_z);
+        numbins[0] = ceil((T)nf1 / bin_size_x);
+        numbins[1] = ceil((T)nf2 / bin_size_y);
+        numbins[2] = ceil((T)nf3 / bin_size_z);
 
-        CUFINUFFT_FLT *d_kx = d_plan->kx;
-        CUFINUFFT_FLT *d_ky = d_plan->ky;
-        CUFINUFFT_FLT *d_kz = d_plan->kz;
+        T *d_kx = d_plan->kx;
+        T *d_ky = d_plan->ky;
+        T *d_kz = d_plan->kz;
 
         int *d_binsize = d_plan->binsize;
         int *d_binstartpts = d_plan->binstartpts;
@@ -166,22 +173,23 @@ int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
     return 0;
 }
 
-int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
     int pirange = d_plan->spopts.pirange;
 
     int *d_idxnupts = d_plan->idxnupts;
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     threadsPerBlock.x = 16;
     threadsPerBlock.y = 1;
@@ -205,7 +213,8 @@ int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     return 0;
 }
 
-int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan) {
+template <typename T>
+int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -227,9 +236,9 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         return 1;
     }
 
-    numobins[0] = ceil((CUFINUFFT_FLT)nf1 / o_bin_size_x);
-    numobins[1] = ceil((CUFINUFFT_FLT)nf2 / o_bin_size_y);
-    numobins[2] = ceil((CUFINUFFT_FLT)nf3 / o_bin_size_z);
+    numobins[0] = ceil((T)nf1 / o_bin_size_x);
+    numobins[1] = ceil((T)nf2 / o_bin_size_y);
+    numobins[2] = ceil((T)nf3 / o_bin_size_z);
 
     int bin_size_x = d_plan->opts.gpu_binsizex;
     int bin_size_y = d_plan->opts.gpu_binsizey;
@@ -254,9 +263,9 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
     numbins[1] = numobins[1] * (binsperobiny);
     numbins[2] = numobins[2] * (binsperobinz);
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
 
     int *d_binsize = d_plan->binsize;
     int *d_sortidx = d_plan->sortidx;
@@ -337,11 +346,12 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
     return 0;
 }
 
-int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     int ns = d_plan->spopts.nspread;
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
     int pirange = d_plan->spopts.pirange;
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
@@ -352,20 +362,20 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int bin_size_z = d_plan->opts.gpu_binsizez;
     int numobins[3];
-    numobins[0] = ceil((CUFINUFFT_FLT)nf1 / obin_size_x);
-    numobins[1] = ceil((CUFINUFFT_FLT)nf2 / obin_size_y);
-    numobins[2] = ceil((CUFINUFFT_FLT)nf3 / obin_size_z);
+    numobins[0] = ceil((T)nf1 / obin_size_x);
+    numobins[1] = ceil((T)nf2 / obin_size_y);
+    numobins[2] = ceil((T)nf3 / obin_size_z);
 
     int binsperobinx, binsperobiny, binsperobinz;
     binsperobinx = obin_size_x / bin_size_x + 2;
     binsperobiny = obin_size_y / bin_size_y + 2;
     binsperobinz = obin_size_z / bin_size_z + 2;
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     int *d_binstartpts = d_plan->binstartpts;
     int *d_subprobstartpts = d_plan->subprobstartpts;
@@ -376,7 +386,7 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
 
     for (int t = 0; t < blksize; t++) {
         if (d_plan->opts.gpu_kerevalmeth == 1) {
-            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(CUCPX);
+            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
             if (sharedplanorysize > 49152) {
                 std::cout << "error: not enough shared memory" << std::endl;
                 return 1;
@@ -387,7 +397,7 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
                 d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts,
                 pirange);
         } else {
-            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(CUCPX);
+            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
             if (sharedplanorysize > 49152) {
                 std::cout << "error: not enough shared memory" << std::endl;
                 return 1;
@@ -403,7 +413,8 @@ int CUSPREAD3D_BLOCKGATHER(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_pl
     return 0;
 }
 
-int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan) {
+template <typename T>
+int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
     int bin_size_x = d_plan->opts.gpu_binsizex;
     int bin_size_y = d_plan->opts.gpu_binsizey;
@@ -415,14 +426,14 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     }
 
     int numbins[3];
-    numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-    numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
-    numbins[2] = ceil((CUFINUFFT_FLT)nf3 / bin_size_z);
+    numbins[0] = ceil((T)nf1 / bin_size_x);
+    numbins[1] = ceil((T)nf2 / bin_size_y);
+    numbins[2] = ceil((T)nf3 / bin_size_z);
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+ 
     int *d_binsize = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
     int *d_sortidx = d_plan->sortidx;
@@ -472,7 +483,8 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     return 0;
 }
 
-int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
@@ -481,15 +493,15 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int bin_size_z = d_plan->opts.gpu_binsizez;
     int numbins[3];
-    numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-    numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
-    numbins[2] = ceil((CUFINUFFT_FLT)nf3 / bin_size_z);
+    numbins[0] = ceil((T)nf1 / bin_size_x);
+    numbins[1] = ceil((T)nf2 / bin_size_y);
+    numbins[2] = ceil((T)nf3 / bin_size_z);
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     int *d_binsize = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -500,12 +512,12 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     int totalnumsubprob = d_plan->totalnumsubprob;
     int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
     int pirange = d_plan->spopts.pirange;
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) *
-                               (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(CUCPX);
+                               (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory (" << sharedplanorysize << ")" << std::endl;
         return 1;
@@ -528,5 +540,14 @@ int CUSPREAD3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     return 0;
 }
 
+template int cuspread3d<float>(cufinufft_plan_template<float> d_plan, int blksize);
+template int cuspread3d<double>(cufinufft_plan_template<double> d_plan, int blksize);
+
+template int cufinufft_spread3d<float>(int nf1, int nf2, int nf3, cuda_complex<float> *d_fw, int M, float *d_kx,
+                                       float *d_ky, float *d_kz, cuda_complex<float> *d_c,
+                                       cufinufft_plan_template<float> d_plan);
+template int cufinufft_spread3d<double>(int nf1, int nf2, int nf3, cuda_complex<double> *d_fw, int M, double *d_kx,
+                                        double *d_ky, double *d_kz, cuda_complex<double> *d_c,
+                                        cufinufft_plan_template<double> d_plan);
 } // namespace spreadinterp
 } // namespace cufinufft

@@ -6,12 +6,18 @@
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/profile.h>
 #include <cufinufft/spreadinterp.h>
+#include <cufinufft/types.h>
+
 using namespace cufinufft::memtransfer;
+
+#include "spreadinterp1d.cuh"
 
 namespace cufinufft {
 namespace spreadinterp {
 
-int CUFINUFFT_INTERP1D(int nf1, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
+template <typename T>
+inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
+                              cufinufft_plan_template<T> d_plan)
 /*
     This c function is written for only doing 1D interpolation. See
     test/interp1d_test.cu for usage.
@@ -30,31 +36,37 @@ int CUFINUFFT_INTERP1D(int nf1, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUCPX *
 
     int ier;
 
-    ier = ALLOCGPUMEM1D_PLAN(d_plan);
-    ier = ALLOCGPUMEM1D_NUPTS(d_plan);
+    ier = allocgpumem1d_plan<T>(d_plan);
+    ier = allocgpumem1d_nupts<T>(d_plan);
 
     if (d_plan->opts.gpu_method == 1) {
-        ier = CUSPREAD1D_NUPTSDRIVEN_PROP(nf1, M, d_plan);
+        ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
     if (d_plan->opts.gpu_method == 2) {
-        ier = CUSPREAD1D_SUBPROB_PROP(nf1, M, d_plan);
+        ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
 
-    ier = CUINTERP1D(d_plan, 1);
-    FREEGPUMEMORY1D(d_plan);
+    ier = cuinterp1d<T>(d_plan, 1);
+    freegpumemory1d<T>(d_plan);
 
     return ier;
 }
 
-int CUINTERP1D(CUFINUFFT_PLAN d_plan, int blksize)
+template int cufinufft_interp1d(int nf1, cuda_complex<float> *d_fw, int M, float *d_kx, cuda_complex<float> *d_c,
+                                cufinufft_plan_template<float> d_plan);
+template int cufinufft_interp1d(int nf1, cuda_complex<double> *d_fw, int M, double *d_kx, cuda_complex<double> *d_c,
+                                cufinufft_plan_template<double> d_plan);
+
+template <typename T>
+int cuinterp1d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     A wrapper for different interpolation methods.
 
@@ -71,7 +83,7 @@ int CUINTERP1D(CUFINUFFT_PLAN d_plan, int blksize)
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        ier = CUINTERP1D_NUPTSDRIVEN(nf1, M, d_plan, blksize);
+        ier = cuinterp1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread1d_gpu_nuptsdriven" << std::endl;
             return 1;
@@ -85,20 +97,21 @@ int CUINTERP1D(CUFINUFFT_PLAN d_plan, int blksize)
     return ier;
 }
 
-int CUINTERP1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
-    CUFINUFFT_FLT sigma = d_plan->opts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->opts.upsampfac;
     int pirange = d_plan->spopts.pirange;
     int *d_idxnupts = d_plan->idxnupts;
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     threadsPerBlock.x = 32;
     threadsPerBlock.y = 1;
@@ -120,5 +133,7 @@ int CUINTERP1D_NUPTSDRIVEN(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize) {
     return 0;
 }
 
+template int cuinterp1d<float>(cufinufft_plan_template<float> d_plan, int blksize);
+template int cuinterp1d<double>(cufinufft_plan_template<double> d_plan, int blksize);
 } // namespace spreadinterp
 } // namespace cufinufft

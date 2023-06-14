@@ -10,14 +10,18 @@
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
+
+#include "spreadinterp2d.cuh"
+
 using namespace cufinufft::common;
 using namespace cufinufft::memtransfer;
 
 namespace cufinufft {
 namespace spreadinterp {
 
-int CUFINUFFT_SPREAD2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky, CUCPX *d_c,
-                       CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft_spread2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
+                       cufinufft_plan_template<T> d_plan)
 /*
     This c function is written for only doing 2D spreading. See
     test/spread2d_test.cu for usage.
@@ -56,14 +60,15 @@ int CUFINUFFT_SPREAD2D(int nf1, int nf2, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx
         }
     }
 
-    ier = CUSPREAD2D(d_plan, 1);
+    ier = cuspread2d<T>(d_plan, 1);
 
-    FREEGPUMEMORY2D(d_plan);
+    freegpumemory2d<T>(d_plan);
 
     return ier;
 }
 
-int CUSPREAD2D(CUFINUFFT_PLAN d_plan, int blksize)
+template <typename T>
+int cuspread2d(cufinufft_plan_template<T> d_plan, int blksize)
 /*
     A wrapper for different spreading methods.
 
@@ -81,14 +86,14 @@ int CUSPREAD2D(CUFINUFFT_PLAN d_plan, int blksize)
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        ier = CUSPREAD2D_NUPTSDRIVEN(nf1, nf2, M, d_plan, blksize);
+        ier = cuspread2d_nuptsdriven<T>(nf1, nf2, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread2d_gpu_nuptsdriven" << std::endl;
             return 1;
         }
     } break;
     case 2: {
-        ier = CUSPREAD2D_SUBPROB(nf1, nf2, M, d_plan, blksize);
+        ier = cuspread2d_subprob<T>(nf1, nf2, M, d_plan, blksize);
         if (ier != 0) {
             std::cout << "error: cnufftspread2d_gpu_subprob" << std::endl;
             return 1;
@@ -102,7 +107,8 @@ int CUSPREAD2D(CUFINUFFT_PLAN d_plan, int blksize)
     return ier;
 }
 
-int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) {
+template <typename T>
+int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan) {
     if (d_plan->opts.gpu_sort) {
 
         int bin_size_x = d_plan->opts.gpu_binsizex;
@@ -114,11 +120,11 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) 
         }
 
         int numbins[2];
-        numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-        numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
+        numbins[0] = ceil((T)nf1 / bin_size_x);
+        numbins[1] = ceil((T)nf2 / bin_size_y);
 
-        CUFINUFFT_FLT *d_kx = d_plan->kx;
-        CUFINUFFT_FLT *d_ky = d_plan->ky;
+        T *d_kx = d_plan->kx;
+        T *d_ky = d_plan->ky;
 
         int *d_binsize = d_plan->binsize;
         int *d_binstartpts = d_plan->binstartpts;
@@ -147,21 +153,22 @@ int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan) 
     return 0;
 }
 
-int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     int pirange = d_plan->spopts.pirange;
     int *d_idxnupts = d_plan->idxnupts;
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     threadsPerBlock.x = 16;
     threadsPerBlock.y = 1;
@@ -181,7 +188,9 @@ int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int b
 
     return 0;
 }
-int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
+
+template <typename T>
+int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan)
 /*
     This function determines the properties for spreading that are independent
     of the strength of the nodes,  only relates to the locations of the nodes,
@@ -197,11 +206,11 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
         return 1;
     }
     int numbins[2];
-    numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-    numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
+    numbins[0] = ceil((T)nf1 / bin_size_x);
+    numbins[1] = ceil((T)nf2 / bin_size_y);
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
 
     int *d_binsize = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -249,23 +258,24 @@ int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan)
     return 0;
 }
 
-int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize) {
+template <typename T>
+int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize) {
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
     // assume that bin_size_x > ns/2;
     int bin_size_x = d_plan->opts.gpu_binsizex;
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int numbins[2];
-    numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-    numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
+    numbins[0] = ceil((T)nf1 / bin_size_x);
+    numbins[1] = ceil((T)nf2 / bin_size_y);
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     int *d_binsize = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -278,10 +288,10 @@ int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
 
     int pirange = d_plan->spopts.pirange;
 
-    CUFINUFFT_FLT sigma = d_plan->opts.upsampfac;
+    T sigma = d_plan->opts.upsampfac;
 
     size_t sharedplanorysize =
-        (bin_size_x + 2 * (int)ceil(ns / 2.0)) * (bin_size_y + 2 * (int)ceil(ns / 2.0)) * sizeof(CUCPX);
+        (bin_size_x + 2 * (int)ceil(ns / 2.0)) * (bin_size_y + 2 * (int)ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory" << std::endl;
         return 1;
@@ -305,6 +315,12 @@ int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksi
 
     return 0;
 }
+template int cuspread2d<float>(cufinufft_plan_template<float> d_plan, int blksize);
+template int cuspread2d<double>(cufinufft_plan_template<double> d_plan, int blksize);
+template int cuspread2d_subprob_prop<float>(int nf1, int nf2, int M, cufinufft_plan_template<float> d_plan);
+template int cuspread2d_subprob_prop<double>(int nf1, int nf2, int M, cufinufft_plan_template<double> d_plan);
+template int cuspread2d_nuptsdriven_prop<float>(int nf1, int nf2, int M, cufinufft_plan_template<float> d_plan);
+template int cuspread2d_nuptsdriven_prop<double>(int nf1, int nf2, int M, cufinufft_plan_template<double> d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

@@ -1,23 +1,30 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
-#include <cufinufft_eitherprec.h>
+
+#include <finufft_spread_opts.h>
+#include <cufinufft_types.h>
+#include <cufinufft_opts.h>
+#include <cufft.h>
 
 namespace cufinufft {
 namespace common {
-__global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, CUFINUFFT_FLT *f, cuDoubleComplex *a,
-                                       CUFINUFFT_FLT *fwkerhalf1, CUFINUFFT_FLT *fwkerhalf2, CUFINUFFT_FLT *fwkerhalf3,
-                                       int ns);
+template <typename T>
+__global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, cuDoubleComplex *a, T *fwkerhalf1,
+                                       T *fwkerhalf2, T *fwkerhalf3, int ns);
+template <typename T>
+int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, cuDoubleComplex *d_a, T *d_fwkerhalf1,
+                           T *d_fwkerhalf2, T *d_fwkerhalf3, int ns);
+template <typename T>
+int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts opts);
 
-int CUFSERIESKERNELCOMPUTE(int dim, int nf1, int nf2, int nf3, CUFINUFFT_FLT *d_f, cuDoubleComplex *d_a,
-                           CUFINUFFT_FLT *d_fwkerhalf1, CUFINUFFT_FLT *d_fwkerhalf2, CUFINUFFT_FLT *d_fwkerhalf3,
-                           int ns);
-
-int setup_spreader_for_nufft(finufft_spread_opts &spopts, CUFINUFFT_FLT eps, cufinufft_opts opts);
-void SET_NF_TYPE12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts, CUFINUFFT_BIGINT *nf,
+void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts spopts, CUFINUFFT_BIGINT *nf,
                    CUFINUFFT_BIGINT b);
-void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *fwkerhalf, finufft_spread_opts opts);
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, finufft_spread_opts opts);
-void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, CUFINUFFT_FLT *f, dcomplex *a, CUFINUFFT_FLT *fwkerhalf,
+template <typename T>
+void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, T *fwkerhalf, finufft_spread_opts opts);
+template <typename T>
+void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, finufft_spread_opts opts);
+template <typename T>
+void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, T *fwkerhalf,
                                    finufft_spread_opts opts);
 
 } // namespace common

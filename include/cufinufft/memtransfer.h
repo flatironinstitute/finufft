@@ -1,20 +1,30 @@
 #ifndef __MEMTRANSFER_H__
 #define __MEMTRANSFER_H__
 
-#include <cufinufft_eitherprec.h>
+#include "cufinufft/types.h"
+
 namespace cufinufft {
 namespace memtransfer {
-int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan);
-int ALLOCGPUMEM1D_NUPTS(CUFINUFFT_PLAN d_plan);
-void FREEGPUMEMORY1D(CUFINUFFT_PLAN d_plan);
 
-int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan);
-int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan);
-void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan);
+template <typename T>
+int allocgpumem1d_plan(cufinufft_plan_template<T> d_plan);
+template <typename T>
+int allocgpumem1d_nupts(cufinufft_plan_template<T> d_plan);
+template <typename T>
+void freegpumemory1d(cufinufft_plan_template<T> d_plan);
+template <typename T>
+int allocgpumem2d_plan(cufinufft_plan_template<T> d_plan);
+template <typename T>
+int allocgpumem2d_nupts(cufinufft_plan_template<T> d_plan);
+template <typename T>
+void freegpumemory2d(cufinufft_plan_template<T> d_plan);
+template <typename T>
+int allocgpumem3d_plan(cufinufft_plan_template<T> d_plan);
+template <typename T>
+int allocgpumem3d_nupts(cufinufft_plan_template<T> d_plan);
+template <typename T>
+void freegpumemory3d(cufinufft_plan_template<T> d_plan);
 
-int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan);
-int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan);
-void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan);
 } // namespace mem
 } // namespace cufinufft
 #endif

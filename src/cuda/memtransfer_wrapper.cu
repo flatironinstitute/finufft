@@ -1,3 +1,4 @@
+#include <cufinufft/types.h>
 #include <iomanip>
 #include <iostream>
 
@@ -8,7 +9,8 @@
 namespace cufinufft {
 namespace memtransfer {
 
-int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
+template <typename T>
+int allocgpumem1d_plan(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -27,13 +29,13 @@ int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
     switch (d_plan->opts.gpu_method) {
     case 1: {
         if (d_plan->opts.gpu_sort) {
-            int numbins = ceil((CUFINUFFT_FLT)nf1 / d_plan->opts.gpu_binsizex);
+            int numbins = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
             checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins * sizeof(int)));
             checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins * sizeof(int)));
         }
     } break;
     case 2: {
-        int numbins = ceil((CUFINUFFT_FLT)nf1 / d_plan->opts.gpu_binsizex);
+        int numbins = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
         checkCudaErrors(cudaMalloc(&d_plan->numsubprob, numbins * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins * sizeof(int)));
@@ -44,8 +46,8 @@ int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
     }
 
     if (!d_plan->opts.gpu_spreadinterponly) {
-        checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize * nf1 * sizeof(CUCPX)));
-        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(CUFINUFFT_FLT)));
+        checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize * nf1 * sizeof(cuda_complex<T>)));
+        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(T)));
     }
 
     // Multi-GPU support: reset the device ID
@@ -53,7 +55,8 @@ int ALLOCGPUMEM1D_PLAN(CUFINUFFT_PLAN d_plan)
     return 0;
 }
 
-int ALLOCGPUMEM1D_NUPTS(CUFINUFFT_PLAN d_plan)
+template <typename T>
+int allocgpumem1d_nupts(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -93,7 +96,8 @@ int ALLOCGPUMEM1D_NUPTS(CUFINUFFT_PLAN d_plan)
     return 0;
 }
 
-void FREEGPUMEMORY1D(CUFINUFFT_PLAN d_plan)
+template <typename T>
+void freegpumemory1d(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for freeing gpu memory.
 
@@ -135,7 +139,8 @@ void FREEGPUMEMORY1D(CUFINUFFT_PLAN d_plan)
     cudaSetDevice(orig_gpu_device_id);
 }
 
-int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
+template <typename T>
+int allocgpumem2d_plan(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -156,16 +161,16 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
     case 1: {
         if (d_plan->opts.gpu_sort) {
             int numbins[2];
-            numbins[0] = ceil((CUFINUFFT_FLT)nf1 / d_plan->opts.gpu_binsizex);
-            numbins[1] = ceil((CUFINUFFT_FLT)nf2 / d_plan->opts.gpu_binsizey);
+            numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
+            numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
             checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins[0] * numbins[1] * sizeof(int)));
             checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins[0] * numbins[1] * sizeof(int)));
         }
     } break;
     case 2: {
         int numbins[2];
-        numbins[0] = ceil((CUFINUFFT_FLT)nf1 / d_plan->opts.gpu_binsizex);
-        numbins[1] = ceil((CUFINUFFT_FLT)nf2 / d_plan->opts.gpu_binsizey);
+        numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
+        numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
         checkCudaErrors(cudaMalloc(&d_plan->numsubprob, numbins[0] * numbins[1] * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins[0] * numbins[1] * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins[0] * numbins[1] * sizeof(int)));
@@ -177,8 +182,8 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
 
     if (!d_plan->opts.gpu_spreadinterponly) {
         checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize * nf1 * nf2 * sizeof(CUCPX)));
-        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(CUFINUFFT_FLT)));
-        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2, (nf2 / 2 + 1) * sizeof(CUFINUFFT_FLT)));
+        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(T)));
+        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2, (nf2 / 2 + 1) * sizeof(T)));
     }
 
     cudaStream_t *streams = (cudaStream_t *)malloc(d_plan->opts.gpu_nstreams * sizeof(cudaStream_t));
@@ -191,7 +196,8 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
     return 0;
 }
 
-int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan)
+template <typename T>
+int allocgpumem2d_nupts(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -230,7 +236,8 @@ int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan)
     return 0;
 }
 
-void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan)
+template <typename T>
+void freegpumemory2d(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for freeing gpu memory.
 
@@ -276,7 +283,8 @@ void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan)
     cudaSetDevice(orig_gpu_device_id);
 }
 
-int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
+template <typename T>
+int allocgpumem3d_plan(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -299,18 +307,18 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
     case 1: {
         if (d_plan->opts.gpu_sort) {
             int numbins[3];
-            numbins[0] = ceil((CUFINUFFT_FLT)nf1 / d_plan->opts.gpu_binsizex);
-            numbins[1] = ceil((CUFINUFFT_FLT)nf2 / d_plan->opts.gpu_binsizey);
-            numbins[2] = ceil((CUFINUFFT_FLT)nf3 / d_plan->opts.gpu_binsizez);
+            numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
+            numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
+            numbins[2] = ceil((T)nf3 / d_plan->opts.gpu_binsizez);
             checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
             checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
         }
     } break;
     case 2: {
         int numbins[3];
-        numbins[0] = ceil((CUFINUFFT_FLT)nf1 / d_plan->opts.gpu_binsizex);
-        numbins[1] = ceil((CUFINUFFT_FLT)nf2 / d_plan->opts.gpu_binsizey);
-        numbins[2] = ceil((CUFINUFFT_FLT)nf3 / d_plan->opts.gpu_binsizez);
+        numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
+        numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
+        numbins[2] = ceil((T)nf3 / d_plan->opts.gpu_binsizez);
         checkCudaErrors(cudaMalloc(&d_plan->numsubprob, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
@@ -319,9 +327,9 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
     case 4: {
         int numobins[3], numbins[3];
         int binsperobins[3];
-        numobins[0] = ceil((CUFINUFFT_FLT)nf1 / d_plan->opts.gpu_obinsizex);
-        numobins[1] = ceil((CUFINUFFT_FLT)nf2 / d_plan->opts.gpu_obinsizey);
-        numobins[2] = ceil((CUFINUFFT_FLT)nf3 / d_plan->opts.gpu_obinsizez);
+        numobins[0] = ceil((T)nf1 / d_plan->opts.gpu_obinsizex);
+        numobins[1] = ceil((T)nf2 / d_plan->opts.gpu_obinsizey);
+        numobins[2] = ceil((T)nf3 / d_plan->opts.gpu_obinsizez);
 
         binsperobins[0] = d_plan->opts.gpu_obinsizex / d_plan->opts.gpu_binsizex;
         binsperobins[1] = d_plan->opts.gpu_obinsizey / d_plan->opts.gpu_binsizey;
@@ -342,10 +350,10 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
     }
 
     if (!d_plan->opts.gpu_spreadinterponly) {
-        checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize * nf1 * nf2 * nf3 * sizeof(CUCPX)));
-        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(CUFINUFFT_FLT)));
-        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2, (nf2 / 2 + 1) * sizeof(CUFINUFFT_FLT)));
-        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3, (nf3 / 2 + 1) * sizeof(CUFINUFFT_FLT)));
+        checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize * nf1 * nf2 * nf3 * sizeof(cuda_complex<T>)));
+        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(T)));
+        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2, (nf2 / 2 + 1) * sizeof(T)));
+        checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf3, (nf3 / 2 + 1) * sizeof(T)));
     }
 
     // Multi-GPU support: reset the device ID
@@ -354,7 +362,8 @@ int ALLOCGPUMEM3D_PLAN(CUFINUFFT_PLAN d_plan)
     return 0;
 }
 
-int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
+template <typename T>
+int allocgpumem3d_nupts(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -398,7 +407,8 @@ int ALLOCGPUMEM3D_NUPTS(CUFINUFFT_PLAN d_plan)
     return 0;
 }
 
-void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
+template <typename T>
+void freegpumemory3d(cufinufft_plan_template<T> d_plan)
 /*
     wrapper for freeing gpu memory.
 
@@ -455,5 +465,26 @@ void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
     cudaSetDevice(orig_gpu_device_id);
 }
 
-} // namespace memtransfer
+template int allocgpumem1d_plan<float>(cufinufft_plan_template<float> d_plan);
+template int allocgpumem1d_plan<double>(cufinufft_plan_template<double> d_plan);
+template int allocgpumem1d_nupts<float>(cufinufft_plan_template<float> d_plan);
+template int allocgpumem1d_nupts<double>(cufinufft_plan_template<double> d_plan);
+template void freegpumemory1d<float>(cufinufft_plan_template<float> d_plan);
+template void freegpumemory1d<double>(cufinufft_plan_template<double> d_plan);
+
+template int allocgpumem2d_plan<float>(cufinufft_plan_template<float> d_plan);
+template int allocgpumem2d_plan<double>(cufinufft_plan_template<double> d_plan);
+template int allocgpumem2d_nupts<float>(cufinufft_plan_template<float> d_plan);
+template int allocgpumem2d_nupts<double>(cufinufft_plan_template<double> d_plan);
+template void freegpumemory2d<float>(cufinufft_plan_template<float> d_plan);
+template void freegpumemory2d<double>(cufinufft_plan_template<double> d_plan);
+
+template int allocgpumem3d_plan<float>(cufinufft_plan_template<float> d_plan);
+template int allocgpumem3d_plan<double>(cufinufft_plan_template<double> d_plan);
+template int allocgpumem3d_nupts<float>(cufinufft_plan_template<float> d_plan);
+template int allocgpumem3d_nupts<double>(cufinufft_plan_template<double> d_plan);
+template void freegpumemory3d<float>(cufinufft_plan_template<float> d_plan);
+template void freegpumemory3d<double>(cufinufft_plan_template<double> d_plan);
+
+} // namespace mem
 } // namespace cufinufft
