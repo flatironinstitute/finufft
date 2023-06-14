@@ -80,6 +80,7 @@ endfunction()
 function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
     set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 17)
+    set_property(TARGET ${target} PROPERTY CMAKE_CUDA_STANDARD 17)
     enable_asan(${target})
 
     target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)
