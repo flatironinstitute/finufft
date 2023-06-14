@@ -26,7 +26,7 @@ inc_dir = os.path.join(finufft_dir, 'include')
 lib_dir = os.path.join(finufft_dir, 'lib')
 
 # Read in long description from README.md.
-with open(os.path.join(finufft_dir, 'python', 'README.md'), 'r') as f:
+with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f:
         long_description = f.read()
 
 # We specifically link to the dynamic library here through its absolute path

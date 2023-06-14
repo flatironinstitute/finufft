@@ -28,7 +28,7 @@ jobs:
 
     - name: Compile python bindings
       run: |
-        python/ci/build-wheels-linux.sh
+        tools/finufft/build-wheels-linux.sh
 
     - name: Upload wheels
       uses: actions/upload-artifact@v2
@@ -116,7 +116,7 @@ jobs:
         export FINUFFT_DIR=`pwd`
         export CC=gcc-11
         export CXX=g++-11
-        cd python
+        cd python/finufft
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install -U wheel --user
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip wheel . -w wheelhouse

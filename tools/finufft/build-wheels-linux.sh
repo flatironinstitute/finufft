@@ -36,17 +36,17 @@ done
 for pybin in "${pys[@]}"; do
     "${pybin}/pip" install --upgrade pip
     "${pybin}/pip" install auditwheel wheel numpy
-    "${pybin}/pip" wheel ./python -w python/wheelhouse
+    "${pybin}/pip" wheel ./python/finufft -w python/finufft/wheelhouse
 done
 
 # fix wheel
-for whl in python/wheelhouse/finufft-*.whl; do
-    auditwheel repair "$whl" -w python/wheelhouse/
+for whl in python/finufft/wheelhouse/finufft-*.whl; do
+    auditwheel repair "$whl" -w python/finufft/wheelhouse/
 done
 
 # test wheel
 for pybin in "${pys[@]}"; do
-    "${pybin}/pip" install finufft -f ./python/wheelhouse/
-    "${pybin}/python" ./python/test/run_accuracy_tests.py
-    "${pybin}/python" ./python/examples/simple1d1.py
+    "${pybin}/pip" install finufft -f ./python/finufft/wheelhouse/
+    "${pybin}/python" ./python/finufft/test/run_accuracy_tests.py
+    "${pybin}/python" ./python/finufft/examples/simple1d1.py
 done
