@@ -181,7 +181,7 @@ int allocgpumem2d_plan(cufinufft_plan_template<T> d_plan)
     }
 
     if (!d_plan->opts.gpu_spreadinterponly) {
-        checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize * nf1 * nf2 * sizeof(CUCPX)));
+        checkCudaErrors(cudaMalloc(&d_plan->fw, maxbatchsize * nf1 * nf2 * sizeof(cuda_complex<T>)));
         checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf1, (nf1 / 2 + 1) * sizeof(T)));
         checkCudaErrors(cudaMalloc(&d_plan->fwkerhalf2, (nf2 / 2 + 1) * sizeof(T)));
     }

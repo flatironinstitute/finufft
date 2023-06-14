@@ -204,5 +204,8 @@ template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, float *d
                                     float *d_fwkerhalf1, float *d_fwkerhalf2, float *d_fwkerhalf3, int ns);
 template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, double *d_f, cuDoubleComplex *d_a,
                                     double *d_fwkerhalf1, double *d_fwkerhalf2, double *d_fwkerhalf3, int ns);
+
+template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, float *fwkerhalf, finufft_spread_opts opts);
+template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, double *fwkerhalf, finufft_spread_opts opts);
 } // namespace common
 } // namespace cufinufft
