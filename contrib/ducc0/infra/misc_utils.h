@@ -113,7 +113,7 @@ inline bool preallocate_memory(double gbytes)
   return true;
   }
 #else
-bool preallocate_memory(double /*gbytes*/)
+inline bool preallocate_memory(double /*gbytes*/)
   { return false; }
 #endif
 
