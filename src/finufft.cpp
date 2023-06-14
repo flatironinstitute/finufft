@@ -715,15 +715,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
       free(p->phiHat1); free(p->phiHat2); free(p->phiHat3);
       return ERR_ALLOC;
     }
-   
-    timer.restart();            // plan the FFTW
-    int *ns = GRIDSIZE_FOR_FFTW(p);
-    // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-    p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
-         NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
-    if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__,p->opts.fftw, nthr_fft, timer.elapsedsec());
-    delete []ns;
-    
+
   } else {  // -------------------------- type 3 (no planning) ------------
 
     if (p->opts.debug) printf("[%s] %dd%d: ntrans=%d\n",__func__,dim,type,ntrans);
@@ -1014,6 +1006,7 @@ if (p->dim>=2) { arrdims.push_back(size_t(ns[1])); axes.push_back(2); }
 if (p->dim>=3) { arrdims.push_back(size_t(ns[2])); axes.push_back(3); }
 ducc0::vfmav<std::complex<FLT>> data(dataptr, arrdims);
 ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
+delete[] ns;
 }
 //      FFTW_EX(p->fftwPlan);   // if thisBatchSize<batchSize it wastes some flops
       t_fft += timer.elapsedsec();
@@ -1124,7 +1117,6 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
   FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type==1 || p->type==2) {
-    FFTW_DE(p->fftwPlan);
     free(p->phiHat1);
     free(p->phiHat2);
     free(p->phiHat3);

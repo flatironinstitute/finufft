@@ -245,7 +245,6 @@ typedef struct FINUFFT_PLAN_S {  // the main plan object, fully C++
   FINUFFT_PLAN innerT2plan;   // ptr used for type 2 in step 2 of type 3
   
   // other internal structs; each is C-compatible of course
-  FFTW_PLAN fftwPlan;
   finufft_opts opts;    // this and spopts could be made ptrs
   finufft_spread_opts spopts;
   
