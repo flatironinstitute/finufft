@@ -262,7 +262,6 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
     int *d_sortidx = d_plan->sortidx;
     int *d_binstartpts = d_plan->binstartpts;
     int *d_numsubprob = d_plan->numsubprob;
-    void *d_temp_storage = NULL;
     int *d_idxnupts = NULL;
     int *d_subprobstartpts = d_plan->subprobstartpts;
     int *d_subprob_to_bin = NULL;
@@ -334,8 +333,6 @@ int CUSPREAD3D_BLOCKGATHER_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN
         cudaFree(d_plan->subprob_to_bin);
     d_plan->subprob_to_bin = d_subprob_to_bin;
     d_plan->totalnumsubprob = totalnumsubprob;
-
-    cudaFree(d_temp_storage);
 
     return 0;
 }
@@ -434,7 +431,6 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     int *d_idxnupts = d_plan->idxnupts;
 
     int *d_subprob_to_bin = NULL;
-    void *d_temp_storage = NULL;
     int pirange = d_plan->spopts.pirange;
 
     checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
@@ -472,8 +468,6 @@ int CUSPREAD3D_SUBPROB_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_p
     d_plan->subprob_to_bin = d_subprob_to_bin;
     assert(d_plan->subprob_to_bin != NULL);
     d_plan->totalnumsubprob = totalnumsubprob;
-
-    cudaFree(d_temp_storage);
 
     return 0;
 }
