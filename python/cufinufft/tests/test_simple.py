@@ -30,8 +30,7 @@ def test_simple_type1(dtype, shape, M, tol, output_arg):
            2: cufinufft.nufft2d1,
            3: cufinufft.nufft3d1}[dim]
 
-    k = utils.gen_nu_pts(M, dim=dim).astype(real_dtype)
-    c = utils.gen_nonuniform_data(M).astype(complex_dtype)
+    k, c = utils.type1_problem(dtype, shape, M)
 
     k_gpu = gpuarray.to_gpu(k)
     c_gpu = gpuarray.to_gpu(c)
@@ -69,8 +68,7 @@ def test_simple_type2(dtype, shape, M, tol, output_arg):
            2: cufinufft.nufft2d2,
            3: cufinufft.nufft3d2}[dim]
 
-    k = utils.gen_nu_pts(M, dim=dim).astype(real_dtype)
-    fk = utils.gen_uniform_data(shape).astype(complex_dtype)
+    k, fk = utils.type2_problem(dtype, shape, M)
 
     k_gpu = gpuarray.to_gpu(k)
     fk_gpu = gpuarray.to_gpu(fk)

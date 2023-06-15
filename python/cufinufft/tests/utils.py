@@ -44,6 +44,26 @@ def gen_nonuniform_data(M, seed=0):
     return c
 
 
+def type1_problem(dtype, shape, M):
+    complex_dtype = _complex_dtype(dtype)
+    dim = len(shape)
+
+    k = gen_nu_pts(M, dim=dim).astype(dtype)
+    c = gen_nonuniform_data(M).astype(complex_dtype)
+
+    return k, c
+
+
+def type2_problem(dtype, shape, M):
+    complex_dtype = _complex_dtype(dtype)
+    dim = len(shape)
+
+    k = gen_nu_pts(M, dim=dim).astype(dtype)
+    fk = gen_uniform_data(shape).astype(complex_dtype)
+
+    return k, fk
+
+
 def make_grid(shape):
     dim = len(shape)
     shape = shape
