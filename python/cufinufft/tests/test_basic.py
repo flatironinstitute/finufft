@@ -25,10 +25,7 @@ OUTPUT_ARGS = [False, True]
 def test_type1(dtype, shape, M, tol, output_arg):
     complex_dtype = utils._complex_dtype(dtype)
 
-    dim = len(shape)
-
-    k = utils.gen_nu_pts(M, dim=dim).astype(dtype)
-    c = utils.gen_nonuniform_data(M).astype(complex_dtype)
+    k, c = utils.type1_problem(dtype, shape, M)
 
     k_gpu = gpuarray.to_gpu(k)
     c_gpu = gpuarray.to_gpu(c)
@@ -65,10 +62,7 @@ def test_type1(dtype, shape, M, tol, output_arg):
 def test_type2(dtype, shape, M, tol, output_arg):
     complex_dtype = utils._complex_dtype(dtype)
 
-    dim = len(shape)
-
-    k = utils.gen_nu_pts(M, dim=dim).astype(dtype)
-    fk = utils.gen_uniform_data(shape).astype(complex_dtype)
+    k, fk = utils.type2_problem(dtype, shape, M)
 
     k_gpu = gpuarray.to_gpu(k)
     fk_gpu = gpuarray.to_gpu(fk)
@@ -102,10 +96,7 @@ def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
 
     complex_dtype = utils._complex_dtype(dtype)
 
-    dim = len(shape)
-
-    k = utils.gen_nu_pts(M, dim=dim).astype(dtype)
-    c = utils.gen_nonuniform_data(M).astype(complex_dtype)
+    k, c = utils.type1_problem(dtype, shape, M)
 
     k_gpu = gpuarray.to_gpu(k)
     c_gpu = gpuarray.to_gpu(c)
