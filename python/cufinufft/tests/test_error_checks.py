@@ -100,3 +100,13 @@ def test_exec_raises_on_dtype():
 
     with pytest.raises(TypeError):
         plan.execute(c_gpu_wrong_dtype, fk_gpu)
+
+
+def test_dtype_warnings():
+    with pytest.warns(DeprecationWarning) as record:
+        Plan(1, (8, 8), dtype="float32")
+    assert "Converting to complex64" in record[0].message.args[0]
+
+    with pytest.warns(DeprecationWarning) as record:
+        Plan(1, (8, 8), dtype="float64")
+    assert "Converting to complex128" in record[0].message.args[0]
