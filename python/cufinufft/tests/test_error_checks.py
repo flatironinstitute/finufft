@@ -22,7 +22,7 @@ def test_set_nu_raises_on_dtype():
     kxyz_gpu = gpuarray.to_gpu(kxyz)
 
     # Here we'll intentionally contruct an incorrect array dtype.
-    kxyz_gpu_wrong_type = gpuarray.to_gpu(kxyz.astype(np.float64))
+    kxyz_gpu_wrong_type = gpuarray.to_gpu(kxyz.real.astype(np.float64))
 
     plan = Plan(1, shape, eps=tol, dtype=dtype)
 
