@@ -9,7 +9,7 @@ pipeline {
     stage('main') {
       agent {
          dockerfile {
-            filename 'cufinufft/ci/docker/cuda11.0/Dockerfile-x86_64'
+            filename 'tools/cufinufft/docker/cuda11.0/Dockerfile-x86_64'
             args '--gpus 2'
          }
       }
@@ -30,7 +30,7 @@ pipeline {
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
       python3 -m pip install --upgrade pip
-      LIBRARY_PATH=/io/build python3 -m pip install -e cupython
+      LIBRARY_PATH=/io/build python3 -m pip install -e python/cufinufft
       python3 -m pip install pytest
       python3 -m pytest
     '''

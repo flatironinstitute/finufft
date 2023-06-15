@@ -3,7 +3,7 @@ Set-Variable -Name PYTHON -Value (Get-Command python).definition
 Set-Variable -Name MSYSTEM -Value MINGW64
 
 # setup setup.cfg
-New-Item -Force -Path .\python -Name "setup.cfg" -ItemType "file" -Value "[build]`r`ncompiler=mingw32`r`n[build_ext]`r`ncompiler=mingw32"
+New-Item -Force -Path .\python\finufft -Name "setup.cfg" -ItemType "file" -Value "[build]`r`ncompiler=mingw32`r`n[build_ext]`r`ncompiler=mingw32"
 
 # Setup the make.inc file
 Copy-Item -Path make.inc.windows_mingw -Destination make.inc
@@ -31,7 +31,7 @@ c:\msys64\usr\bin\env MSYSTEM=MINGW64 c:\msys64\usr\bin\bash.exe -lc "cd '$repo_
 if (-not $?) {throw "Failed make python-dist"}
 
 # Move the required DLLs inside the wheel
-wheel.exe unpack (get-item .\python\wheelhouse\finufft*.whl).FullName -d .\tpm
+wheel.exe unpack (get-item .\python\finufft\wheelhouse\finufft*.whl).FullName -d .\tpm
 if (-not $?) {throw "Failed unpack wheel"}
 Set-Variable unpacked_wheel -Value (get-item .\tpm\finufft-*).FullName
 Copy-Item -Path .\lib\libfinufft.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
@@ -44,5 +44,5 @@ wheel.exe pack $unpacked_wheel -d .\wheelhouse
 if (-not $?) {throw "Failed pack wheel"}
 
 # Cleanup
-Remove-Item -Path .\python\wheelhouse -Force -Recurse
+Remove-Item -Path .\python\finufft\wheelhouse -Force -Recurse
 Remove-Item -Path $unpacked_wheel -Force -Recurse

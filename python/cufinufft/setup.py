@@ -8,11 +8,11 @@ from setuptools import setup, Extension
 # Description
 DESCRIPTION = "Non-uniform fast Fourier transforms on the GPU"
 
-with open(os.path.join('cufinufft', 'README.md'), encoding='utf8') as fh:
+with open('README.md', encoding='utf8') as fh:
     LONG_DESCRIPTION = fh.read()
 
 # Parse the requirements
-with open(os.path.join('cufinufft', 'requirements.txt'), 'r') as fh:
+with open('requirements.txt', 'r') as fh:
     requirements = [item.strip() for item in fh.readlines()]
 
 # Sanity check that we can find the CUDA cufinufft libraries before we get too far.

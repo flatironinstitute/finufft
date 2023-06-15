@@ -363,25 +363,25 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install -e ./python
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install -e ./python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
-	$(PYTHON) python/test/run_accuracy_tests.py
-	$(PYTHON) python/examples/simple1d1.py
-	$(PYTHON) python/examples/simpleopts1d1.py
-	$(PYTHON) python/examples/guru1d1.py
-	$(PYTHON) python/examples/guru1d1f.py
-	$(PYTHON) python/examples/simple2d1.py
-	$(PYTHON) python/examples/many2d1.py
-	$(PYTHON) python/examples/guru2d1.py
-	$(PYTHON) python/examples/guru2d1f.py
+	$(PYTHON) python/finufft/test/run_accuracy_tests.py
+	$(PYTHON) python/finufft/examples/simple1d1.py
+	$(PYTHON) python/finufft/examples/simpleopts1d1.py
+	$(PYTHON) python/finufft/examples/guru1d1.py
+	$(PYTHON) python/finufft/examples/guru1d1f.py
+	$(PYTHON) python/finufft/examples/simple2d1.py
+	$(PYTHON) python/finufft/examples/many2d1.py
+	$(PYTHON) python/finufft/examples/guru2d1.py
+	$(PYTHON) python/finufft/examples/guru2d1f.py
 
 # general python packaging wheel for all OSs without wheel being fixed(required shared libs are not included in wheel)
 python-dist: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse)
+	(export FINUFFT_DIR=$(shell pwd); cd python/finufft; $(PYTHON) -m pip wheel . -w wheelhouse)
 
 # python packaging wheel for macosx with wheel being fixed(all required shared libs are included in wheel)
 wheel: $(STATICLIB) $(DYNLIB)
-	(export FINUFFT_DIR=$(shell pwd); cd python; $(PYTHON) -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufft*.whl)
+	(export FINUFFT_DIR=$(shell pwd); cd python/finufft; $(PYTHON) -m pip wheel . -w wheelhouse; delocate-wheel -w fixed_wheel -v wheelhouse/finufft*.whl)
 
 docker-wheel:
 	docker run --rm -e package_name=finufft -v `pwd`:/io libinlu/manylinux2010_x86_64_fftw /io/python/ci/build-wheels.sh
