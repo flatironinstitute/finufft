@@ -268,23 +268,14 @@ class Plan:
             complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
         """
 
-        if data.dtype != self.dtype:
-            raise TypeError("execute expects {} dtype arguments for this "
-                            "plan. Check plan and arguments.".format(
-                                self.dtype))
-
-        if out is not None and out.dtype != self.dtype:
-            raise TypeError("execute expects {} dtype arguments for this "
-                            "plan. Check plan and arguments.".format(
-                                self.dtype))
+        _data = _ensure_array_type(data, "data", self.dtype)
+        _out = _ensure_array_type(out, "out", self.dtype, output=True)
 
         if out is None:
             if self.type == 1:
                 _out = GPUArray((self.n_trans, *self.n_modes), dtype=self.dtype)
             elif self.type == 2:
                 _out = GPUArray((self.n_trans, self.nj), dtype=self.dtype)
-        else:
-            _out = out
 
         if self.type == 1:
             ier = self._exec_plan(data.ptr, _out.ptr, self._plan)
@@ -315,3 +306,30 @@ class Plan:
 
         # Reset our reference.
         self.references = []
+
+
+def _ensure_array_type(x, name, dtype, output=False):
+    if x is None:
+        return GPUArray(0, dtype=dtype, order="C")
+
+    if x.dtype != dtype:
+        raise TypeError(f"Argument `{name}` does not have the correct dtype: "
+                        f"{x.dtype} was given, but {dtype} was expected.")
+
+    if not x.flags.c_contiguous:
+        if output:
+            raise TypeError(f"Argument `{name}` does not satisfy the "
+                            f"following requirement: C")
+        else:
+            raise TypeError(f"Argument `{name}` does not satisfy the "
+                            f"following requirement: C")
+
+            # Ideally we'd copy the array into the correct ordering here, but
+            # this does not seem possible as of pycuda 2022.2.2.
+
+            # warnings.warn(f"Argument `{name}` does not satisfy the "
+            #               f"following requirement: C. Copying array (this may
+            #               reduce performance)")
+            # x = gpuarray.GPUArray(x, dtype=dtype, order="C")
+
+    return x
