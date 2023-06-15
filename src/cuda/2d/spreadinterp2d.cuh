@@ -16,8 +16,8 @@ namespace spreadinterp {
 /* Kernels for NUptsdriven Method */
 
 template <typename T>
-__global__ void spread_2d_nupts_driven(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
-                                       int nf1, int nf2, T es_c, T es_beta, int *idxnupts, int pirange) {
+__global__ void spread_2d_nupts_driven(const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                       int ns, int nf1, int nf2, T es_c, T es_beta, const int *idxnupts, int pirange) {
     int xstart, ystart, xend, yend;
     int xx, yy, ix, iy;
     int outidx;
@@ -56,8 +56,9 @@ __global__ void spread_2d_nupts_driven(T *x, T *y, cuda_complex<T> *c, cuda_comp
 }
 
 template <typename T>
-__global__ void spread_2d_nupts_driven_horner(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
-                                              int nf1, int nf2, T sigma, int *idxnupts, int pirange) {
+__global__ void spread_2d_nupts_driven_horner(const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw,
+                                              int M, int ns, int nf1, int nf2, T sigma, const int *idxnupts,
+                                              int pirange) {
     int xx, yy, ix, iy;
     int outidx;
     T ker1[MAX_NSPREAD];
@@ -123,8 +124,8 @@ __global__ void calc_bin_size_noghost_2d(int M, int nf1, int nf2, int bin_size_x
 
 template <typename T>
 __global__ void calc_inverse_of_global_sort_index_2d(int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                                     int *bin_startpts, int *sortidx, T *x, T *y, int *index,
-                                                     int pirange, int nf1, int nf2) {
+                                                     const int *bin_startpts, const int *sortidx, const T *x,
+                                                     const T *y, int *index, int pirange, int nf1, int nf2) {
     int binx, biny;
     int binidx;
     T x_rescaled, y_rescaled;
@@ -144,10 +145,11 @@ __global__ void calc_inverse_of_global_sort_index_2d(int M, int bin_size_x, int 
 }
 
 template <typename T>
-__global__ void spread_2d_subprob(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf1,
-                                  int nf2, T es_c, T es_beta, T sigma, int *binstartpts, int *bin_size, int bin_size_x,
-                                  int bin_size_y, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
-                                  int maxsubprobsize, int nbinx, int nbiny, int *idxnupts, int pirange) {
+__global__ void spread_2d_subprob(const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int ns,
+                                  int nf1, int nf2, T es_c, T es_beta, T sigma, int *binstartpts, const int *bin_size,
+                                  int bin_size_x, int bin_size_y, int *subprob_to_bin, const int *subprobstartpts,
+                                  const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, const int *idxnupts,
+                                  int pirange) {
     extern __shared__ char sharedbuf[];
     cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
@@ -226,10 +228,11 @@ __global__ void spread_2d_subprob(T *x, T *y, cuda_complex<T> *c, cuda_complex<T
 }
 
 template <typename T>
-__global__ void spread_2d_subprob_horner(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
-                                         int nf1, int nf2, T sigma, int *binstartpts, int *bin_size, int bin_size_x,
-                                         int bin_size_y, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
-                                         int maxsubprobsize, int nbinx, int nbiny, int *idxnupts, int pirange) {
+__global__ void spread_2d_subprob_horner(const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+                                         int ns, int nf1, int nf2, T sigma, const int *binstartpts, const int *bin_size,
+                                         int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
+                                         const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
+                                         const int *idxnupts, int pirange) {
     extern __shared__ char sharedbuf[];
     cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
@@ -309,8 +312,8 @@ __global__ void spread_2d_subprob_horner(T *x, T *y, cuda_complex<T> *c, cuda_co
 /* --------------------- 2d Interpolation Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
 template <typename T>
-__global__ void interp_2d_nupts_driven(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
-                                       int nf1, int nf2, T es_c, T es_beta, int *idxnupts, int pirange) {
+__global__ void interp_2d_nupts_driven(const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M,
+                                       int ns, int nf1, int nf2, T es_c, T es_beta, const int *idxnupts, int pirange) {
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         T x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         T y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -347,8 +350,9 @@ __global__ void interp_2d_nupts_driven(T *x, T *y, cuda_complex<T> *c, cuda_comp
 }
 
 template <typename T>
-__global__ void interp_2d_nupts_driven_horner(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
-                                              int nf1, int nf2, T sigma, int *idxnupts, int pirange) {
+__global__ void interp_2d_nupts_driven_horner(const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw,
+                                              int M, int ns, int nf1, int nf2, T sigma, const int *idxnupts,
+                                              int pirange) {
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         T x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         T y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
@@ -385,10 +389,11 @@ __global__ void interp_2d_nupts_driven_horner(T *x, T *y, cuda_complex<T> *c, cu
 
 /* Kernels for Subprob Method */
 template <typename T>
-__global__ void interp_2d_subprob(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns, int nf1,
-                                  int nf2, T es_c, T es_beta, T sigma, int *binstartpts, int *bin_size, int bin_size_x,
-                                  int bin_size_y, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
-                                  int maxsubprobsize, int nbinx, int nbiny, int *idxnupts, int pirange) {
+__global__ void interp_2d_subprob(const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M, int ns,
+                                  int nf1, int nf2, T es_c, T es_beta, T sigma, int *binstartpts, const int *bin_size,
+                                  int bin_size_x, int bin_size_y, int *subprob_to_bin, const int *subprobstartpts,
+                                  const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, const int *idxnupts,
+                                  int pirange) {
     extern __shared__ char sharedbuf[];
     cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
@@ -459,10 +464,11 @@ __global__ void interp_2d_subprob(T *x, T *y, cuda_complex<T> *c, cuda_complex<T
 }
 
 template <typename T>
-__global__ void interp_2d_subprob_horner(T *x, T *y, cuda_complex<T> *c, cuda_complex<T> *fw, int M, const int ns,
-                                         int nf1, int nf2, T sigma, int *binstartpts, int *bin_size, int bin_size_x,
-                                         int bin_size_y, int *subprob_to_bin, int *subprobstartpts, int *numsubprob,
-                                         int maxsubprobsize, int nbinx, int nbiny, int *idxnupts, int pirange) {
+__global__ void interp_2d_subprob_horner(const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M,
+                                         int ns, int nf1, int nf2, T sigma, const int *binstartpts, const int *bin_size,
+                                         int bin_size_x, int bin_size_y, const int *subprob_to_bin,
+                                         const int *subprobstartpts, const int *numsubprob, int maxsubprobsize,
+                                         int nbinx, int nbiny, int *idxnupts, int pirange) {
     extern __shared__ char sharedbuf[];
     cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
