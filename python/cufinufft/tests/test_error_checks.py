@@ -57,11 +57,11 @@ def test_set_pts_raises_on_size():
 
     with pytest.raises(TypeError) as err:
         plan.setpts(kxyz_gpu[0], kxyz_gpu[1][:4])
-    assert 'x and y must be equal' in err.value.args[0]
+    assert '`y` must be of shape' in err.value.args[0]
 
     with pytest.raises(TypeError) as err:
         plan.setpts(kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2][:4])
-    assert 'x and z must be equal' in err.value.args[0]
+    assert '`z` must be of shape' in err.value.args[0]
 
 
 def test_wrong_field_names():

@@ -198,25 +198,13 @@ class Plan:
                     points (source for type 1, target for type 2).
         """
 
-        if x.dtype != self.real_dtype:
-            raise TypeError("cufinufft plan.real_dtype and "
-                            "x dtypes do not match.")
+        _x = _ensure_array_type(x, "x", self.real_dtype)
+        _y = _ensure_array_type(y, "y", self.real_dtype)
+        _z = _ensure_array_type(z, "z", self.real_dtype)
 
-        if y is not None and y.dtype != self.real_dtype:
-            raise TypeError("cufinufft plan.real_dtype and "
-                            "y dtypes do not match.")
+        _x, _y, _z = _ensure_valid_pts(_x, _y, _z, self.dim)
 
-        if z is not None and z.dtype != self.real_dtype:
-            raise TypeError("cufinufft plan.real_dtype and "
-                            "z dtypes do not match.")
-
-        M = x.size
-
-        if y is not None and y.size != M:
-            raise TypeError("Number of elements in x and y must be equal")
-
-        if z is not None and z.size != M:
-            raise TypeError("Number of elements in x and z must be equal")
+        M = _x.size
 
         # Because FINUFFT/cufinufft are internally column major,
         #   we will reorder the pts axes. Reordering references
@@ -227,18 +215,18 @@ class Plan:
         #     (x, y, None)    ~>  (y, x, None)
         #     (x, y, z)       ~>  (z, y, x)
         # Via code, we push each dimension onto a stack of axis
-        fpts_axes = [x.ptr, None, None]
+        fpts_axes = [_x.ptr, None, None]
 
         # We will also store references to these arrays.
         #   This keeps python from prematurely cleaning them up.
-        self._references.append(x)
-        if y is not None:
-            fpts_axes.insert(0, y.ptr)
-            self._references.append(y)
+        self._references.append(_x)
+        if self.dim >= 2:
+            fpts_axes.insert(0, _y.ptr)
+            self._references.append(_y)
 
-        if z is not None:
-            fpts_axes.insert(0, z.ptr)
-            self._references.append(z)
+        if self.dim >= 3:
+            fpts_axes.insert(0, _z.ptr)
+            self._references.append(_z)
 
         # Then take three items off the stack as our reordered axis.
         ier = self._setpts(M, *fpts_axes[:3], 0, None, None, None, self._plan)
@@ -333,3 +321,38 @@ def _ensure_array_type(x, name, dtype, output=False):
             # x = gpuarray.GPUArray(x, dtype=dtype, order="C")
 
     return x
+
+
+def _ensure_array_shape(x, name, shape, allow_reshape=False):
+    orig_shape = x.shape
+
+    if x.shape != shape:
+        if not allow_reshape or np.prod(x.shape) != shape:
+            raise TypeError(f"Argument `{name}` must be of shape {shape}")
+        else:
+            x = x.reshape(shape)
+
+    if allow_reshape:
+        return x, orig_shape
+    else:
+        return x
+
+def _ensure_valid_pts(x, y, z, dim):
+    if x.ndim != 1:
+        raise TypeError(f"Argument `x` must be a vector")
+
+    M = x.size
+
+    if dim >= 2:
+        y = _ensure_array_shape(y, "y", x.shape)
+
+    if dim >= 3:
+        z = _ensure_array_shape(z, "z", x.shape)
+
+    if dim < 3 and z.size > 0:
+        raise TypeError(f"Plan dimension is {dim}, but `z` was specified")
+
+    if dim < 2 and y.size > 0:
+        raise TypeError(f"Plan dimension is {dim}, but `y` was specified")
+
+    return x, y, z
