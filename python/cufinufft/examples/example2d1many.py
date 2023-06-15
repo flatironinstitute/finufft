@@ -39,7 +39,7 @@ plan.setpts(to_gpu(x), to_gpu(y))
 
 # Execute the plan, reading from the strengths array c and storing the
 # result in fk_gpu.
-plan.execute(to_gpu(c), fk_gpu)
+plan.execute(to_gpu(c), out=fk_gpu)
 
 # Retreive the result from the GPU.
 fk = fk_gpu.get()
