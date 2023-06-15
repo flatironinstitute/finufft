@@ -47,7 +47,7 @@ class Plan:
 
     Args:
         nufft_type      (int): type of NUFFT (1 or 2).
-        modes           (tuple of ints): the number of modes in each
+        n_modes         (tuple of ints): the number of modes in each
                         dimension (for example `(50, 100)`).
         n_trans         (int, optional): number of transforms to compute.
         eps             (float, optional): precision requested (>1e-16).
@@ -61,7 +61,7 @@ class Plan:
                         as keyword-only arguments.
     """
 
-    def __init__(self, nufft_type, modes, n_trans=1, eps=1e-6, isign=None,
+    def __init__(self, nufft_type, n_modes, n_trans=1, eps=1e-6, isign=None,
                  dtype="complex64", **kwargs):
         if isign is None:
             if nufft_type == 2:
@@ -103,13 +103,13 @@ class Plan:
         else:
             raise TypeError("Expected complex64 or complex128.")
 
-        self.dim = len(modes)
-        self._finufft_type = nufft_type
+        self.dim = len(n_modes)
+        self.type = nufft_type
         self.isign = isign
         self.eps = float(eps)
+        self.n_modes = n_modes
         self.n_trans = n_trans
         self._maxbatch = 1    # TODO: optimize this one day
-        self.modes = modes
 
         # Get the default option values.
         self.opts = self._default_opts(nufft_type, self.dim)
@@ -136,7 +136,7 @@ class Plan:
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
 
-        :param finufft_type: integer 1, 2, or 3.
+        :param nufft_type: integer 1, 2, or 3.
         :param dim: Integer dimension.
 
         :return: nufft_opts structure.
@@ -162,12 +162,12 @@ class Plan:
         # We extend the mode tuple to 3D as needed,
         #   and reorder from C/python ndarray.shape style input (nZ, nY, nX)
         #   to the (F) order expected by the low level library (nX, nY, nZ).
-        _modes = self.modes[::-1] + (1,) * (3 - self.dim)
-        _modes = (c_int * 3)(*_modes)
+        _n_modes = self.n_modes[::-1] + (1,) * (3 - self.dim)
+        _n_modes = (c_int * 3)(*_n_modes)
 
-        ier = self._make_plan(self._finufft_type,
+        ier = self._make_plan(self.type,
                               self.dim,
-                              _modes,
+                              _n_modes,
                               self.isign,
                               self.n_trans,
                               self.eps,
@@ -243,7 +243,7 @@ class Plan:
         # Then take three items off the stack as our reordered axis.
         ier = self._setpts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
 
-        self.n_pts = M
+        self.nj = M
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
@@ -279,16 +279,16 @@ class Plan:
                                 self.dtype))
 
         if out is None:
-            if self._finufft_type == 1:
-                _out = GPUArray((self.n_trans, *self.modes), dtype=self.dtype)
-            elif self._finufft_type == 2:
-                _out = GPUArray((self.n_trans, self.n_pts), dtype=self.dtype)
+            if self.type == 1:
+                _out = GPUArray((self.n_trans, *self.n_modes), dtype=self.dtype)
+            elif self.type == 2:
+                _out = GPUArray((self.n_trans, self.nj), dtype=self.dtype)
         else:
             _out = out
 
-        if self._finufft_type == 1:
+        if self.type == 1:
             ier = self._exec_plan(data.ptr, _out.ptr, self.plan)
-        elif self._finufft_type == 2:
+        elif self.type == 2:
             ier = self._exec_plan(_out.ptr, data.ptr, self.plan)
 
         if ier != 0:
