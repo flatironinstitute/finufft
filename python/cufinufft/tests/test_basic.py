@@ -8,7 +8,7 @@ from cufinufft import Plan
 import utils
 
 
-def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
+def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3, output_arg=True):
     complex_dtype = utils._complex_dtype(dtype)
 
     dim = len(shape)
@@ -18,13 +18,16 @@ def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     k_gpu = gpuarray.to_gpu(k)
     c_gpu = gpuarray.to_gpu(c)
-    fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
     plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
-    plan.execute(c_gpu, out=fk_gpu)
+    if output_arg:
+        fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
+        plan.execute(c_gpu, out=fk_gpu)
+    else:
+        fk_gpu = plan.execute(c_gpu)
 
     fk = fk_gpu.get()
 
@@ -41,14 +44,20 @@ def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
 
 def test_type1_32(shape=(16, 16, 16), M=4096, tol=1e-3):
-    return _test_type1(dtype=np.float32, shape=shape, M=M, tol=tol)
+    _test_type1(dtype=np.float32, shape=shape, M=M, tol=tol,
+        output_arg=True)
+    _test_type1(dtype=np.float32, shape=shape, M=M, tol=tol,
+        output_arg=False)
 
 
 def test_type1_64(shape=(16, 16, 16), M=4096, tol=1e-3):
-    return _test_type1(dtype=np.float64, shape=shape, M=M, tol=tol)
+    _test_type1(dtype=np.float64, shape=shape, M=M, tol=tol,
+        output_arg=True)
+    _test_type1(dtype=np.float64, shape=shape, M=M, tol=tol,
+        output_arg=False)
 
 
-def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
+def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3, output_arg=True):
     complex_dtype = utils._complex_dtype(dtype)
 
     k = utils.gen_nu_pts(M).astype(dtype)
@@ -57,19 +66,21 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
     k_gpu = gpuarray.to_gpu(k)
     fk_gpu = gpuarray.to_gpu(fk)
 
-    c_gpu = gpuarray.GPUArray(shape=(M,), dtype=complex_dtype)
-
     plan = Plan(2, shape, eps=tol, dtype=complex_dtype)
 
     plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
-    plan.execute(fk_gpu, out=c_gpu)
+    if output_arg:
+        c_gpu = gpuarray.GPUArray(shape=(1, M), dtype=complex_dtype)
+        plan.execute(fk_gpu, out=c_gpu)
+    else:
+        c_gpu = plan.execute(fk_gpu)
 
     c = c_gpu.get()
 
     ind = M // 2
 
-    c_est = c[ind]
+    c_est = c[0, ind]
     c_target = utils.direct_type2(fk, k[:, ind])
 
     type2_rel_err = np.abs(c_target - c_est) / np.abs(c_target)
@@ -80,11 +91,13 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
 
 def test_type2_32(shape=(16, 16, 16), M=4096, tol=1e-3):
-    return _test_type2(dtype=np.float32, shape=shape, M=M, tol=tol)
+    _test_type2(dtype=np.float32, shape=shape, M=M, tol=tol, output_arg=True)
+    _test_type2(dtype=np.float32, shape=shape, M=M, tol=tol, output_arg=False)
 
 
 def test_type2_64(shape=(16, 16, 16), M=4096, tol=1e-3):
-    return _test_type2(dtype=np.float64, shape=shape, M=M, tol=tol)
+    _test_type2(dtype=np.float64, shape=shape, M=M, tol=tol, output_arg=True)
+    _test_type2(dtype=np.float64, shape=shape, M=M, tol=tol, output_arg=False)
 
 
 def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
