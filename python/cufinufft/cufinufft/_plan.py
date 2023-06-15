@@ -31,7 +31,7 @@ exiting = False
 atexit.register(setattr, sys.modules[__name__], 'exiting', True)
 
 
-class cufinufft:
+class Plan:
     """
     Upon instantiation of a cufinufft instance, dtype of `modes` is detected.
     This dtype selects which of the low level libraries to bind for this plan.
@@ -45,8 +45,8 @@ class cufinufft:
     :param eps: Precision requested (>1e-16).
     :param isign: +1 or -1, controls sign of imaginary component in
         complex exponential. Default is +1 for type 1 and -1 for type 2.
-    :param dtype: Datatype for this plan (`np.float32` or `np.float64`).
-        Defaults `np.float32`.
+    :param dtype: Datatype for this plan (`complex64` or `complex128`).
+        Default `complex64`.
     :param **kwargs: Additional options corresponding to the entries in
         the `nufft_opts` structure may be specified as keyword-only arguments.
 
@@ -55,7 +55,7 @@ class cufinufft:
     """
 
     def __init__(self, nufft_type, modes, n_trans=1, eps=1e-6, isign=None,
-                 dtype=np.float32, **kwargs):
+                 dtype="complex64", **kwargs):
         if isign is None:
             if nufft_type == 2:
                 isign = -1
@@ -69,20 +69,20 @@ class cufinufft:
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
 
-        if self.dtype == np.float64:
+        if self.dtype == np.complex128:
             self._make_plan = _make_plan
-            self._set_pts = _set_pts
+            self._setpts = _set_pts
             self._exec_plan = _exec_plan
             self._destroy_plan = _destroy_plan
-            self.complex_dtype = np.complex128
-        elif self.dtype == np.float32:
+            self.real_dtype = np.float64
+        elif self.dtype == np.complex64:
             self._make_plan = _make_planf
-            self._set_pts = _set_ptsf
+            self._setpts = _set_ptsf
             self._exec_plan = _exec_planf
             self._destroy_plan = _destroy_planf
-            self.complex_dtype = np.complex64
+            self.real_dtype = np.float32
         else:
-            raise TypeError("Expected np.float32 or np.float64.")
+            raise TypeError("Expected complex64 or complex128.")
 
         self.dim = len(modes)
         self._finufft_type = nufft_type
@@ -158,37 +158,40 @@ class cufinufft:
         if ier != 0:
             raise RuntimeError('Error creating plan.')
 
-    def set_pts(self, kx, ky=None, kz=None):
+    def setpts(self, x, y=None, z=None, s=None, t=None, u=None):
         """
         Sets non uniform points of the correct dtype.
 
         Note kx, ky, kz are required for 1, 2, and 3
         dimensional cases respectively.
 
-        :param kx: Array of x points.
-        :param ky: Array of y points.
-        :param kz: Array of z points.
+        :param x: Array of x points.
+        :param y: Array of y points.
+        :param z: Array of z points.
+        :param s: Array of s points.
+        :param t: Array of t points.
+        :param u: Array of u points.
         """
 
-        if kx.dtype != self.dtype:
-            raise TypeError("cufinufft plan.dtype and "
-                            "kx dtypes do not match.")
+        if x.dtype != self.real_dtype:
+            raise TypeError("cufinufft plan.real_dtype and "
+                            "x dtypes do not match.")
 
-        if ky is not None and ky.dtype != self.dtype:
-            raise TypeError("cufinufft plan.dtype and "
-                            "ky dtypes do not match.")
+        if y is not None and y.dtype != self.real_dtype:
+            raise TypeError("cufinufft plan.real_dtype and "
+                            "y dtypes do not match.")
 
-        if kz is not None and kz.dtype != self.dtype:
-            raise TypeError("cufinufft plan.dtype and "
-                            "kz dtypes do not match.")
+        if z is not None and z.dtype != self.real_dtype:
+            raise TypeError("cufinufft plan.real_dtype and "
+                            "z dtypes do not match.")
 
-        M = kx.size
+        M = x.size
 
-        if ky is not None and ky.size != M:
-            raise TypeError("Number of elements in kx and ky must be equal")
+        if y is not None and y.size != M:
+            raise TypeError("Number of elements in x and y must be equal")
 
-        if kz is not None and kz.size != M:
-            raise TypeError("Number of elements in kx and kz must be equal")
+        if z is not None and z.size != M:
+            raise TypeError("Number of elements in x and z must be equal")
 
         # Because FINUFFT/cufinufft are internally column major,
         #   we will reorder the pts axes. Reordering references
@@ -199,21 +202,21 @@ class cufinufft:
         #     (x, y, None)    ~>  (y, x, None)
         #     (x, y, z)       ~>  (z, y, x)
         # Via code, we push each dimension onto a stack of axis
-        fpts_axes = [kx.ptr, None, None]
+        fpts_axes = [x.ptr, None, None]
 
         # We will also store references to these arrays.
         #   This keeps python from prematurely cleaning them up.
-        self.references.append(kx)
-        if ky is not None:
-            fpts_axes.insert(0, ky.ptr)
-            self.references.append(ky)
+        self.references.append(x)
+        if y is not None:
+            fpts_axes.insert(0, y.ptr)
+            self.references.append(y)
 
-        if kz is not None:
-            fpts_axes.insert(0, kz.ptr)
-            self.references.append(kz)
+        if z is not None:
+            fpts_axes.insert(0, z.ptr)
+            self.references.append(z)
 
         # Then take three items off the stack as our reordered axis.
-        ier = self._set_pts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
+        ier = self._setpts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
@@ -230,10 +233,10 @@ class cufinufft:
         :param fk: Fourier space array in 1, 2, or 3 dimensions.
         """
 
-        if not c.dtype == fk.dtype == self.complex_dtype:
+        if not c.dtype == fk.dtype == self.dtype:
             raise TypeError("cufinufft execute expects {} dtype arguments "
                             "for this plan. Check plan and arguments.".format(
-                                self.complex_dtype))
+                                self.dtype))
 
         ier = self._exec_plan(c.ptr, fk.ptr, self.plan)
 

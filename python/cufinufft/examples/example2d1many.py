@@ -7,7 +7,7 @@ import numpy as np
 import pycuda.autoinit
 from pycuda.gpuarray import GPUArray, to_gpu
 
-from cufinufft import cufinufft
+from cufinufft import Plan
 
 # Set up parameters for problem.
 N1, N2 = 59, 61                 # Size of uniform grid
@@ -18,24 +18,24 @@ dtype = np.float32              # Datatype (real)
 complex_dtype = np.complex64    # Datatype (complex)
 
 # Generate coordinates of non-uniform points.
-kx = np.random.uniform(-np.pi, np.pi, size=M)
-ky = np.random.uniform(-np.pi, np.pi, size=M)
+x = np.random.uniform(-np.pi, np.pi, size=M)
+y = np.random.uniform(-np.pi, np.pi, size=M)
 
 # Generate source strengths.
 c = (np.random.standard_normal((n_transf, M))
      + 1j * np.random.standard_normal((n_transf, M)))
 
 # Cast to desired datatype.
-kx = kx.astype(dtype)
-ky = ky.astype(dtype)
+x = x.astype(dtype)
+y = y.astype(dtype)
 c = c.astype(complex_dtype)
 
 # Allocate memory for the uniform grid on the GPU.
 fk_gpu = GPUArray((n_transf, N1, N2), dtype=complex_dtype)
 
 # Initialize the plan and set the points.
-plan = cufinufft(1, (N1, N2), n_transf, eps=eps, dtype=dtype)
-plan.set_pts(to_gpu(kx), to_gpu(ky))
+plan = Plan(1, (N1, N2), n_transf, eps=eps, dtype=complex_dtype)
+plan.setpts(to_gpu(x), to_gpu(y))
 
 # Execute the plan, reading from the strengths array c and storing the
 # result in fk_gpu.
@@ -52,8 +52,8 @@ for i in range(n_transf):
     # Calculate the true value of the type 1 transform at the uniform grid
     # point (nt1, nt2), which corresponds to the coordinate nt1 - N1 // 2 and
     # nt2 - N2 // 2.
-    x, y = nt1 - N1 // 2, nt2 - N2 // 2
-    fk_true = np.sum(c[i] * np.exp(1j * (x * kx + y * ky)))
+    m, n = nt1 - N1 // 2, nt2 - N2 // 2
+    fk_true = np.sum(c[i] * np.exp(1j * (m * x + n * y)))
 
     # Calculate the absolute and relative error.
     err = np.abs(fk[i, nt1, nt2] - fk_true)

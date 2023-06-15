@@ -3,7 +3,7 @@ import numpy as np
 import pycuda.autoinit
 from pycuda.gpuarray import GPUArray, to_gpu
 
-from cufinufft import cufinufft
+from cufinufft import Plan
 
 # number of nonuniform points
 M = 100000
@@ -17,10 +17,10 @@ c = (np.random.standard_normal(size=M)
      + 1J * np.random.standard_normal(size=M))
 
 # create plan
-plan = cufinufft(1, (N,), dtype=np.float64)
+plan = Plan(1, (N,), dtype=np.complex128)
 
 # set the nonuniform points
-plan.set_pts(to_gpu(x))
+plan.setpts(to_gpu(x))
 
 # allocate output array
 f_gpu = GPUArray((N,), dtype=np.complex128)
