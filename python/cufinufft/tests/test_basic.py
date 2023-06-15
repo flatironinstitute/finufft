@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 import pycuda.autoinit # NOQA:401
@@ -7,8 +9,12 @@ from cufinufft import Plan
 
 import utils
 
+DTYPES = [np.float32, np.float64]
+OUTPUT_ARGS = [False, True]
 
-def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3, output_arg=True):
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
+def test_type1(dtype, output_arg, shape=(16, 16, 16), M=4096, tol=1e-3):
     complex_dtype = utils._complex_dtype(dtype)
 
     dim = len(shape)
@@ -43,21 +49,9 @@ def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3, output_arg=True):
     assert type1_rel_err < 0.01
 
 
-def test_type1_32(shape=(16, 16, 16), M=4096, tol=1e-3):
-    _test_type1(dtype=np.float32, shape=shape, M=M, tol=tol,
-        output_arg=True)
-    _test_type1(dtype=np.float32, shape=shape, M=M, tol=tol,
-        output_arg=False)
-
-
-def test_type1_64(shape=(16, 16, 16), M=4096, tol=1e-3):
-    _test_type1(dtype=np.float64, shape=shape, M=M, tol=tol,
-        output_arg=True)
-    _test_type1(dtype=np.float64, shape=shape, M=M, tol=tol,
-        output_arg=False)
-
-
-def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3, output_arg=True):
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
+def test_type2(dtype, output_arg, shape=(16, 16, 16), M=4096, tol=1e-3):
     complex_dtype = utils._complex_dtype(dtype)
 
     k = utils.gen_nu_pts(M).astype(dtype)
@@ -88,16 +82,6 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3, output_arg=True):
     print('Type 2 relative error:', type2_rel_err)
 
     assert type2_rel_err < 0.01
-
-
-def test_type2_32(shape=(16, 16, 16), M=4096, tol=1e-3):
-    _test_type2(dtype=np.float32, shape=shape, M=M, tol=tol, output_arg=True)
-    _test_type2(dtype=np.float32, shape=shape, M=M, tol=tol, output_arg=False)
-
-
-def test_type2_64(shape=(16, 16, 16), M=4096, tol=1e-3):
-    _test_type2(dtype=np.float64, shape=shape, M=M, tol=tol, output_arg=True)
-    _test_type2(dtype=np.float64, shape=shape, M=M, tol=tol, output_arg=False)
 
 
 def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
