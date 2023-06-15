@@ -35,25 +35,29 @@ atexit.register(setattr, sys.modules[__name__], 'exiting', True)
 
 class Plan:
     """
-    Upon instantiation of a cufinufft instance, dtype of `modes` is detected.
-    This dtype selects which of the low level libraries to bind for this plan.
-    The wrapper performs a few very basic conversions, and calls the low level
-    library with runtime python error checking.
+    A non-uniform fast Fourier transform (NUFFT) plan
 
-    :param finufft_type: integer 1, 2, or 3.
-    :param modes: Array describing the shape of the transform
-        in 1, 2, or 3 dimensions.
-    :param n_trans: Number of transforms, defaults to 1.
-    :param eps: Precision requested (>1e-16).
-    :param isign: +1 or -1, controls sign of imaginary component in
-        complex exponential. Default is +1 for type 1 and -1 for type 2.
-    :param dtype: Datatype for this plan (`complex64` or `complex128`).
-        Default `complex64`.
-    :param **kwargs: Additional options corresponding to the entries in
-        the `nufft_opts` structure may be specified as keyword-only arguments.
+    The ``Plan`` class lets the user exercise more fine-grained control over
+    the execution of an NUFFT. First, the plan is created with a certain set
+    of parameters (type, mode configuration, tolerance, sign, number of
+    simultaneous transforms, and so on). Then the nonuniform points are set
+    (source or target depending on the type). Finally, the plan is executed on
+    some data, yielding the desired output.
 
-    :return: cufinufft instance of the correct dtype,
-        ready for point setting and execution.
+    Args:
+        nufft_type      (int): type of NUFFT (1 or 2).
+        modes           (tuple of ints): the number of modes in each
+                        dimension (for example `(50, 100)`).
+        n_trans         (int, optional): number of transforms to compute.
+        eps             (float, optional): precision requested (>1e-16).
+        isign           (int, optional): if +1, uses the positive sign
+                        exponential, otherwise the negative sign; defaults to
+                        +1 for type 1 and to -1 for type 2.
+        dtype           (string, optional): the precision of the transofrm,
+                        'complex64' or 'complex128'.
+        **kwargs        (optional): additional options corresponding to the
+                        entries in the `nufft_opts` structure may be specified
+                        as keyword-only arguments.
     """
 
     def __init__(self, nufft_type, modes, n_trans=1, eps=1e-6, isign=None,
@@ -163,17 +167,22 @@ class Plan:
 
     def setpts(self, x, y=None, z=None, s=None, t=None, u=None):
         """
-        Sets non uniform points of the correct dtype.
+        Set the nonuniform points
 
-        Note kx, ky, kz are required for 1, 2, and 3
-        dimensional cases respectively.
+        For type 1, this sets the coordinates of the ``M`` nonuniform source
+        points and for type 2, it sets the coordinates of the ``M`` target
+        points.
 
-        :param x: Array of x points.
-        :param y: Array of y points.
-        :param z: Array of z points.
-        :param s: Array of s points.
-        :param t: Array of t points.
-        :param u: Array of u points.
+        The dimension of the plan determines the number of arguments supplied.
+        For example, if ``dim == 2``, we provide ``x`` and ``y``.
+
+        Args:
+            x       (float[M]): first coordinate of the nonuniform points
+                    (source for type 1, target for type 2).
+            y       (float[M], optional): second coordinate of the nonuniform
+                    points (source for type 1, target for type 2).
+            z       (float[M], optional): third coordinate of the nonuniform
+                    points (source for type 1, target for type 2).
         """
 
         if x.dtype != self.real_dtype:
@@ -233,14 +242,17 @@ class Plan:
         Performs the NUFFT specified at plan instantiation with the points set
         by ``setpts``. For type-1 and type-3 transforms, the input is a set of
         source strengths, while for a type-2 transform, it consists of an
-        array of size ``n_modes``. If ``n_transf`` is greater than one,
-        ``n_transf`` inputs are expected, stacked along the first axis.
+        array of size ``n_modes``. If ``n_trans`` is greater than one,
+        ``n_trans`` inputs are expected, stacked along the first axis.
 
-        :param data: Input source strengths (type 2) or source modes (type 2).
-        :param out: The array where the output is stored. Must be of the right
-        size.
+        Args:
+            data    (complex[M], complex[n_transf, M], complex[n_modes], or complex[n_transf, n_modes]): The input source strengths
+                    (type 1) or source modes (type 2).
+            out     (complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M], optional): The array where the
+                    output is stored. Must be of the right size.
 
-        :return: The output array of the transform.
+        Returns:
+            complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
         """
 
         if data.dtype != self.dtype:
