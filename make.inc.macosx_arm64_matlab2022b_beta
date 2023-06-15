@@ -37,12 +37,9 @@ OMPLIBS = $(shell ls -d /Applications/MATLAB_R2022b_Beta.app)/toolbox/eml/extern
 # we need to use -Wl,-rpath to add iomp lib directory to the runtime library search path
 # add iomp runtime search path to linker flags
 LDFLAGS += -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R2022b_Beta.app)/toolbox/eml/externalDependency/omp/maca64/lib/
-# since fftw3_omp doesn't work in OSX, we need...
-FFTWOMPSUFFIX=threads
 
 # MATLAB interface:
-# some of these will depend on your FFTW library location, but this is where
-# brew should put things...
+# this is where brew should put things...
 MFLAGS += -I/usr/local/include -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
 # should work, or edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R2022b_Beta.app)/bin/mex
@@ -52,5 +49,3 @@ MEX = $(shell ls -d /Applications/MATLAB_R2022b_Beta.app)/bin/mex
 # extras by Wallace Chen:
 LDFLAGS += -L/opt/homebrew/opt/libomp/lib
 CXXFLAGS += -I/opt/homebrew/opt/libomp/include
-LDFLAGS += -L/opt/homebrew/opt/fftw/lib
-CXXFLAGS += -I/opt/homebrew/opt/fftw/include

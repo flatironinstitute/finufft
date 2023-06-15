@@ -68,17 +68,6 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 RUN yum install -y \
     cmake
 
-# default FFTW is too old (3.2.1) so download and compile the latest
-RUN curl -fsSLO "http://www.fftw.org/fftw-3.3.10.tar.gz" \
-    && tar -zxf fftw-3.3.10.tar.gz \
-    && cd fftw-3.3.10 \
-    && ./configure --enable-shared --enable-openmp --enable-threads \
-    && make -j4 \
-    && make install \
-    && ./configure --enable-shared --enable-single --enable-openmp --enable-threads \
-    && make -j4 \
-    && make install
-
 # Okay, so now we can begin cufinufft
 
 # We need to build the CUDA code now.

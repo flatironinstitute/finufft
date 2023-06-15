@@ -203,7 +203,7 @@ typedef struct FINUFFT_PLAN_S {  // the main plan object, fully C++
   BIGINT nj;       // num of NU pts in type 1,2 (for type 3, num input x pts)
   BIGINT nk;       // number of NU freq pts (type 3 only)
   FLT tol;         // relative user tolerance
-  int batchSize;   // # strength vectors to group together for FFTW, etc
+  int batchSize;   // # strength vectors to group together for FFT, etc
   int nbatch;      // how many batches done to cover all ntrans vectors
   
   BIGINT ms;       // number of modes in x (1) dir (historical CMCL name) = N1
@@ -222,8 +222,8 @@ typedef struct FINUFFT_PLAN_S {  // the main plan object, fully C++
   FLT* phiHat2;    // " y-axis.
   FLT* phiHat3;    // " z-axis.
   
-  CPX* fwBatch;    // (batches of) fine grid(s) for FFTW to plan
-                        // & act on. Usually the largest working array
+  CPX* fwBatch;    // (batches of) fine grid(s).
+                   // Usually the largest working array
   
   BIGINT *sortIndices;  // precomputed NU pt permutation, speeds spread/interp
   bool didSort;         // whether binsorting used (false: identity perm used)

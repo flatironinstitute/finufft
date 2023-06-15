@@ -48,10 +48,9 @@
             "name": "singlethreaded",
             "binaryDir": "build/singlethreaded",
             "displayName": "singlethreaded",
-            "description": "Configuration for single-threaded build. Disables OpenMP for finufft and FFTW",
+            "description": "Configuration for single-threaded build. Disables OpenMP for finufft and FFT",
             "inherits": "default",
             "cacheVariables": {
-                "FINUFFT_FFTW_SUFFIX": "",
                 "FINUFFT_USE_OPENMP": "OFF"
             }
         },
@@ -75,7 +74,6 @@
             "description": "Build with the matlab interface",
             "generator": "Ninja Multi-Config",
             "cacheVariables": {
-                "FINUFFT_FFTW_SUFFIX": "Threads",
                 "FINUFFT_BUILD_MATLAB": "ON",
                 "FINUFFT_ENABLE_SANITIZERS": "OFF"
             }

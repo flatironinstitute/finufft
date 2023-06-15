@@ -31,14 +31,11 @@ LIBS += -L/usr/local/lib -L/opt/homebrew/lib
 # OpenMP with clang needs following...
 OMPFLAGS = -Xpreprocessor -fopenmp
 OMPLIBS = -L/usr/local/lib -L/opt/homebrew/lib -lomp
-# since fftw3_omp doesn't work in OSX, we need...
-FFTWOMPSUFFIX=threads
 
 
 # MATLAB interface: this will probably segfault. Instead we suggest you use
 # make.inc.macosx_clang_matlab
 
-# Some of these will depend on your FFTW library location...
 MFLAGS += -I/usr/local/include -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
 # may need to edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
