@@ -2,10 +2,11 @@
 #define FINUFFT_UTILS_H
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
+#include <complex>
 #include <cstdint>
 
 #include <cuComplex.h>
-#include <cufinufft_types.h>
+#include <cufinufft/types.h>
 
 #include <sys/time.h>
 

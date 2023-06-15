@@ -9,9 +9,9 @@
 #include <cufinufft.h>
 #include <cufinufft/utils.h>
 
+#include <thrust/complex.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
-#include <thrust/complex.h>
 
 using cufinufft::utils::infnorm;
 
@@ -67,7 +67,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     {
         int nf1 = 1;
         cufftHandle fftplan;
-        cufftPlan1d(&fftplan, nf1, CUFFT_TYPE, 1);
+        cufftPlan1d(&fftplan, nf1, cufft_type<T>(), 1);
     }
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);

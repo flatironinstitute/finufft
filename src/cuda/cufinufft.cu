@@ -117,7 +117,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->mu = nmodes[2];
 
     SETUP_BINSIZE(type, dim, &d_plan->opts);
-    int nf1 = 1, nf2 = 1, nf3 = 1;
+    CUFINUFFT_BIGINT nf1 = 1, nf2 = 1, nf3 = 1;
     set_nf_type12(d_plan->ms, d_plan->opts, d_plan->spopts, &nf1, d_plan->opts.gpu_obinsizex);
     if (dim > 1)
         set_nf_type12(d_plan->mt, d_plan->opts, d_plan->spopts, &nf2, d_plan->opts.gpu_obinsizey);
@@ -155,24 +155,24 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     cufftHandle fftplan;
     switch (d_plan->dim) {
     case 1: {
-        int n[] = {nf1};
-        int inembed[] = {nf1};
+        int n[] = {(int)nf1};
+        int inembed[] = {(int)nf1};
 
-        cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1, inembed[0], CUFFT_TYPE, maxbatchsize);
+        cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1, inembed[0], cufft_type<T>(), maxbatchsize);
     } break;
     case 2: {
-        int n[] = {nf2, nf1};
-        int inembed[] = {nf2, nf1};
+        int n[] = {(int)nf2, (int)nf1};
+        int inembed[] = {(int)nf2, (int)nf1};
 
         cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1, inembed[0] * inembed[1],
-                      CUFFT_TYPE, maxbatchsize);
+                      cufft_type<T>(), maxbatchsize);
     } break;
     case 3: {
-        int n[] = {nf3, nf2, nf1};
-        int inembed[] = {nf3, nf2, nf1};
+        int n[] = {(int)nf3, (int)nf2, (int)nf1};
+        int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
 
         cufftPlanMany(&fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
-                      inembed[0] * inembed[1] * inembed[2], CUFFT_TYPE, maxbatchsize);
+                      inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
     } break;
     }
     d_plan->fftplan = fftplan;
@@ -486,7 +486,6 @@ int cufinufft_destroy_impl(cufinufft_plan_template<T> d_plan)
     return 0;
 }
 
-
 int cufinufft_makeplanf(int type, int dim, int *nmodes, int iflag, int ntransf, float tol, int maxbatchsize,
                         cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
     return cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, d_plan_ptr, opts);
@@ -608,10 +607,10 @@ template int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, 
                                      int maxbatchsize, cufinufft_plan_template<double> *d_plan_ptr,
                                      cufinufft_opts *opts);
 
-template int cufinufft_setpts_impl(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t, float *d_u,
-                                   cufinufft_plan_template<float> d_plan);
-template int cufinufft_setpts_impl(int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s, double *d_t, double *d_u,
-                                   cufinufft_plan_template<double> d_plan);
+template int cufinufft_setpts_impl(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t,
+                                   float *d_u, cufinufft_plan_template<float> d_plan);
+template int cufinufft_setpts_impl(int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s, double *d_t,
+                                   double *d_u, cufinufft_plan_template<double> d_plan);
 
 template int cufinufft_destroy_impl<float>(cufinufft_plan_template<float> d_plan);
 template int cufinufft_destroy_impl<double>(cufinufft_plan_template<double> d_plan);

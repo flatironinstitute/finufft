@@ -1,10 +1,12 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__
 
-#include <finufft_spread_opts.h>
-#include <cufinufft_types.h>
-#include <cufinufft_opts.h>
 #include <cufft.h>
+#include <cufinufft/types.h>
+#include <cufinufft_opts.h>
+#include <finufft_spread_opts.h>
+
+#include <complex.h>
 
 namespace cufinufft {
 namespace common {
@@ -22,9 +24,9 @@ void set_nf_type12(CUFINUFFT_BIGINT ms, cufinufft_opts opts, finufft_spread_opts
 template <typename T>
 void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, T *fwkerhalf, finufft_spread_opts opts);
 template <typename T>
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, finufft_spread_opts opts);
+void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a, finufft_spread_opts opts);
 template <typename T>
-void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, T *fwkerhalf,
+void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a, T *fwkerhalf,
                                    finufft_spread_opts opts);
 
 } // namespace common

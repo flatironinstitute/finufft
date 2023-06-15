@@ -1,5 +1,7 @@
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
+#include <limits>
 #include <vector>
 
 #include <cufinufft/defs.h>
@@ -41,6 +43,8 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
 
     // as in FINUFFT v2.0, allow too-small-eps by truncating to eps_mach...
     int ier = 0;
+
+    constexpr T EPSILON = std::numeric_limits<T>::epsilon();
     if (eps < EPSILON) {
         fprintf(stderr, "setup_spreader: warning, increasing tol=%.3g to eps_mach=%.3g.\n", (double)eps,
                 (double)EPSILON);
@@ -49,11 +53,11 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
     }
 
     // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
-    int ns = std::ceil(-log10(eps / (T)10.0));          // 1 digit per power of ten
-    if (upsampfac != 2.0)                                           // override ns for custom sigma
-        ns = std::ceil(-log(eps) / (PI * sqrt(1 - 1 / upsampfac))); // formula, gamma=1
-    ns = std::max(2, ns);                                           // we don't have ns=1 version yet
-    if (ns > MAX_NSPREAD) {                                         // clip to match allocated arrays
+    int ns = std::ceil(-log10(eps / (T)10.0));                           // 1 digit per power of ten
+    if (upsampfac != 2.0)                                                // override ns for custom sigma
+        ns = std::ceil(-log(eps) / (T(M_PI) * sqrt(1 - 1 / upsampfac))); // formula, gamma=1
+    ns = std::max(2, ns);                                                // we don't have ns=1 version yet
+    if (ns > MAX_NSPREAD) {                                              // clip to match allocated arrays
         fprintf(stderr, "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",
                 __func__, upsampfac, (double)eps, ns, MAX_NSPREAD);
         ns = MAX_NSPREAD;
@@ -70,9 +74,9 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
         betaoverns = 2.26;
     if (ns == 4)
         betaoverns = 2.38;
-    if (upsampfac != 2.0) {                                  // again, override beta for custom sigma
-        T gamma = 0.97;                          // must match devel/gen_all_horner_C_code.m
-        betaoverns = gamma * PI * (1 - 1 / (2 * upsampfac)); // formula based on cutoff
+    if (upsampfac != 2.0) {                                       // again, override beta for custom sigma
+        T gamma = 0.97;                                           // must match devel/gen_all_horner_C_code.m
+        betaoverns = gamma * T(M_PI) * (1 - 1 / (2 * upsampfac)); // formula based on cutoff
     }
     opts.ES_beta = betaoverns * (T)ns; // set the kernel beta parameter
     // fprintf(stderr,"setup_spreader: sigma=%.6f, chose ns=%d beta=%.6f\n",(double)upsampfac,ns,(double)opts.ES_beta);

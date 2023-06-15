@@ -9,9 +9,9 @@
 #include <cufinufft.h>
 #include <cufinufft/utils.h>
 
+#include <thrust/complex.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
-#include <thrust/complex.h>
 
 using cufinufft::utils::infnorm;
 
@@ -71,7 +71,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
     {
         int nf1 = 1;
         cufftHandle fftplan;
-        cufftPlan1d(&fftplan, nf1, CUFFT_TYPE, 1);
+        cufftPlan1d(&fftplan, nf1, cufft_type<T>(), 1);
     }
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -108,7 +108,8 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
     printf("[time  ] cufinufft plan:\t\t %.3g s\n", milliseconds / 1000);
 
     cudaEventRecord(start);
-    ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), d_z.data().get(), 0, nullptr, nullptr, nullptr, dplan);
+    ier = cufinufft_setpts_impl<T>(M, d_x.data().get(), d_y.data().get(), d_z.data().get(), 0, nullptr, nullptr,
+                                   nullptr, dplan);
     if (ier != 0) {
         printf("err: cufinufft_setpts\n");
         return ier;

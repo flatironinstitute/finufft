@@ -54,9 +54,8 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, cuDouble
 }
 
 template <typename T>
-int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, cuDoubleComplex *d_a,
-                           T *d_fwkerhalf1, T *d_fwkerhalf2, T *d_fwkerhalf3,
-                           int ns)
+int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, cuDoubleComplex *d_a, T *d_fwkerhalf1,
+                           T *d_fwkerhalf2, T *d_fwkerhalf3, int ns)
 /*
     wrapper for approximation of Fourier series of real symmetric spreading
     kernel.
@@ -128,7 +127,7 @@ void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, T *fwkerhalf, finufft_spread_opt
  */
 {
     T f[MAX_NQUAD];
-    dcomplex a[MAX_NQUAD];
+    std::complex<double> a[MAX_NQUAD];
     onedim_fseries_kernel_precomp(nf, f, a, opts);
     onedim_fseries_kernel_compute(nf, f, a, fwkerhalf, opts);
 }
@@ -147,7 +146,7 @@ void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, T *fwkerhalf, finufft_spread_opt
   (a, f are provided as the inputs of onedim_fseries_kernel_compute() defined below)
 */
 template <typename T>
-void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, finufft_spread_opts opts) {
+void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a, finufft_spread_opts opts) {
     T J2 = opts.nspread / 2.0; // J/2, half-width of ker z-support
     // # quadr nodes in z (from 0 to J/2; reflections will be added)...
     int q = (int)(2 + 3.0 * J2); // not sure why so large? cannot exceed MAX_NQUAD
@@ -157,15 +156,15 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, finuf
     finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
     for (int n = 0; n < q; ++n) {                           // set up nodes z_n and vals f_n
         z[n] *= J2;                                         // rescale nodes
-        f[n] = J2 * w[n] * evaluate_kernel((T)z[n], opts);     // vals & quadr wei
+        f[n] = J2 * w[n] * evaluate_kernel((T)z[n], opts);  // vals & quadr wei
         a[n] = exp((T)(2.0 * M_PI) * std::complex<T>(0.0, 1.0) * (T)(nf / 2 - z[n]) / (T)nf); // phase winding rates
     }
 }
 
 template <typename T>
-void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, T *fwkerhalf,
+void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a, T *fwkerhalf,
                                    finufft_spread_opts opts) {
-    T J2 = opts.nspread / 2.0;        // J/2, half-width of ker z-support
+    T J2 = opts.nspread / 2.0;                    // J/2, half-width of ker z-support
     int q = (int)(2 + 3.0 * J2);                  // not sure why so large? cannot exceed MAX_NQUAD
     CUFINUFFT_BIGINT nout = nf / 2 + 1;           // how many values we're writing to
     int nt = MIN(nout, MY_OMP_GET_MAX_THREADS()); // how many chunks
@@ -175,12 +174,12 @@ void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, T *fw
 #pragma omp parallel
     {
         int t = MY_OMP_GET_THREAD_NUM();
-        if (t < nt) {               // could be nt < actual # threads
-            dcomplex aj[MAX_NQUAD]; // phase rotator for this thread
+        if (t < nt) {                           // could be nt < actual # threads
+            std::complex<double> aj[MAX_NQUAD]; // phase rotator for this thread
             for (int n = 0; n < q; ++n)
-                aj[n] = pow(a[n], (T)brk[t]);            // init phase factors for chunk
+                aj[n] = pow(a[n], (T)brk[t]);                        // init phase factors for chunk
             for (CUFINUFFT_BIGINT j = brk[t]; j < brk[t + 1]; ++j) { // loop along output array
-                T x = 0.0;                               // accumulator for answer at this j
+                T x = 0.0;                                           // accumulator for answer at this j
                 for (int n = 0; n < q; ++n) {
                     x += f[n] * 2 * real(aj[n]); // include the negative freq
                     aj[n] *= a[n];               // wind the phases
@@ -191,15 +190,17 @@ void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, dcomplex *a, T *fw
     }
 }
 
-template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, float *f, dcomplex *a, float *fwkerhalf,
+template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, float *f, std::complex<double> *a, float *fwkerhalf,
                                             finufft_spread_opts opts);
-template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, double *f, dcomplex *a, double *fwkerhalf,
+template void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, double *f, std::complex<double> *a, double *fwkerhalf,
                                             finufft_spread_opts opts);
 
 template int setup_spreader_for_nufft(finufft_spread_opts &spopts, float eps, cufinufft_opts opts);
 template int setup_spreader_for_nufft(finufft_spread_opts &spopts, double eps, cufinufft_opts opts);
-template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, float *f, dcomplex *a, finufft_spread_opts opts);
-template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, double *f, dcomplex *a, finufft_spread_opts opts);
+template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, float *f, std::complex<double> *a,
+                                            finufft_spread_opts opts);
+template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, double *f, std::complex<double> *a,
+                                            finufft_spread_opts opts);
 template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, float *d_f, cuDoubleComplex *d_a,
                                     float *d_fwkerhalf1, float *d_fwkerhalf2, float *d_fwkerhalf3, int ns);
 template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, double *d_f, cuDoubleComplex *d_a,

@@ -71,7 +71,7 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
     {
         int nf1 = 1;
         cufftHandle fftplan;
-        cufftPlan1d(&fftplan, nf1, CUFFT_TYPE, 1);
+        cufftPlan1d(&fftplan, nf1, cufft_type<T>(), 1);
     }
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);

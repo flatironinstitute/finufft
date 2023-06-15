@@ -45,13 +45,14 @@ static __inline__ __device__ void eval_kernel_vec_horner(T *ker, const T x, cons
     T z = 2 * x + w - 1.0; // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
     if (upsampfac == 2.0) { // floating point equality is fine here
+        using FLT = T;
+        using CUFINUFFT_FLT = T;
 #include "cufinufft/contrib/ker_horner_allw_loop.inc"
     }
 }
 
 template <typename T>
-static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const int w, const T es_c,
-                                                  const T es_beta) {
+static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const int w, const T es_c, const T es_beta) {
     for (int i = 0; i < w; i++) {
         ker[i] = evaluate_kernel(abs(x + i), es_c, es_beta, w);
     }

@@ -1,14 +1,12 @@
 #ifndef CUFINUFFT_DEFS_H
 #define CUFINUFFT_DEFS_H
 
-#include <cufinufft_types.h>
-
 // constants needed within common
 // upper bound on w, ie nspread, even when padded (see evaluate_kernel_vector); also for common
 #define MAX_NSPREAD 16
 
 // max number of positive quadr nodes
-#define MAX_NQUAD 100 
+#define MAX_NQUAD 100
 
 // In cufinufft we limit array sizes to 2^31 which is about 2 billion, since we set
 // CUFINUFFT_BIGINT to int. (Differs from FINUFFT)
@@ -21,7 +19,6 @@
 #define M_1_2PI 0.159154943091895336
 #define M_2PI 6.28318530717958648
 // to avoid mixed precision operators in eg i*pi...
-#define PI (CUFINUFFT_FLT) M_PI
 
 // Global error codes for the library...
 #define WARN_EPS_TOO_SMALL 1
@@ -55,6 +52,5 @@
 #define MY_OMP_SET_NUM_THREADS(x)
 #define MY_OMP_SET_NESTED(x)
 #endif
-
 
 #endif

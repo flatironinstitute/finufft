@@ -9,8 +9,6 @@
 
 #include <cufinufft_errors.h>
 #include <cufinufft_opts.h>
-#include <cufinufft_types.h>
-
 #include <cufinufft/types.h>
 
 #ifdef __cplusplus

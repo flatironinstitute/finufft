@@ -3,9 +3,12 @@
 
 #include <cufft.h>
 
-#include <finufft_spread_opts.h>
-#include <cufinufft_types.h>
 #include <cufinufft_opts.h>
+#include <finufft_spread_opts.h>
+
+#include <complex>
+
+#define CUFINUFFT_BIGINT int
 
 struct cufinufft_plan_s {
     cufinufft_opts opts;
@@ -13,13 +16,13 @@ struct cufinufft_plan_s {
 
     int type;
     int dim;
-    int M;
-    int nf1;
-    int nf2;
-    int nf3;
-    int ms;
-    int mt;
-    int mu;
+    CUFINUFFT_BIGINT M;
+    CUFINUFFT_BIGINT nf1;
+    CUFINUFFT_BIGINT nf2;
+    CUFINUFFT_BIGINT nf3;
+    CUFINUFFT_BIGINT ms;
+    CUFINUFFT_BIGINT mt;
+    CUFINUFFT_BIGINT mu;
     int ntransf;
     int maxbatchsize;
     int iflag;
@@ -60,13 +63,13 @@ struct cufinufftf_plan_s {
 
     int type;
     int dim;
-    int M;
-    int nf1;
-    int nf2;
-    int nf3;
-    int ms;
-    int mt;
-    int mu;
+    CUFINUFFT_BIGINT M;
+    CUFINUFFT_BIGINT nf1;
+    CUFINUFFT_BIGINT nf2;
+    CUFINUFFT_BIGINT nf3;
+    CUFINUFFT_BIGINT ms;
+    CUFINUFFT_BIGINT mt;
+    CUFINUFFT_BIGINT mu;
     int ntransf;
     int maxbatchsize;
     int iflag;
@@ -109,13 +112,20 @@ typedef struct cufinufft_plan_s *cufinufft_plan;
 
 template <typename T>
 struct cuda_complex_impl;
-template <> struct cuda_complex_impl<float> { using type = cuFloatComplex; };
-template <> struct cuda_complex_impl<double> { using type = cuDoubleComplex; };
+template <>
+struct cuda_complex_impl<float> {
+    using type = cuFloatComplex;
+};
+template <>
+struct cuda_complex_impl<double> {
+    using type = cuDoubleComplex;
+};
 
 template <typename T>
 using cuda_complex = typename cuda_complex_impl<T>::type;
 
-template <typename T> struct cufinufft_plan_template_impl;
+template <typename T>
+struct cufinufft_plan_template_impl;
 template <>
 struct cufinufft_plan_template_impl<float> {
     using type = cufinufftf_plan;
@@ -134,10 +144,23 @@ using cufinufft_plan_template = typename cufinufft_plan_template_impl<T>::type;
 template <typename T>
 using cufinufft_plan_template_s = typename cufinufft_plan_template_impl<T>::s_type;
 
+template <typename T>
+static cufftType_t cufft_type();
+template <>
+inline cufftType_t cufft_type<float>() {
+    return CUFFT_C2C;
+}
+
+template <>
+inline cufftType_t cufft_type<double>() {
+    return CUFFT_Z2Z;
+}
+
 static inline cufftResult cufft_ex(cufftHandle plan, cufftComplex *idata, cufftComplex *odata, int direction) {
     return cufftExecC2C(plan, idata, odata, direction);
 }
-static inline cufftResult cufft_ex(cufftHandle plan, cufftDoubleComplex *idata, cufftDoubleComplex *odata, int direction) {
+static inline cufftResult cufft_ex(cufftHandle plan, cufftDoubleComplex *idata, cufftDoubleComplex *odata,
+                                   int direction) {
     return cufftExecZ2Z(plan, idata, odata, direction);
 }
 

@@ -10,9 +10,9 @@
 #include <cufinufft/profile.h>
 #include <cufinufft/utils.h>
 
+#include <thrust/complex.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
-#include <thrust/complex.h>
 
 using cufinufft::utils::infnorm;
 
@@ -69,7 +69,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) 
     {
         int nf1 = 1;
         cufftHandle fftplan;
-        cufftPlan1d(&fftplan, nf1, CUFFT_TYPE, 1);
+        cufftPlan1d(&fftplan, nf1, cufft_type<T>(), 1);
     }
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -94,7 +94,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) 
     int maxbatchsize = 1;
     cudaEventRecord(start);
 
-    ier = cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, &opts);
+    ier = cufinufft_makeplan_impl<T>(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, &opts);
     if (ier != 0) {
         printf("err: cufinufft1d_plan\n");
         return ier;
@@ -150,7 +150,6 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) 
     printf("[Method %d] %d U pts to %d NU pts in %.3g s:      %.3g NU pts/s\n", opts.gpu_method, N1, M,
            totaltime / 1000, M / totaltime * 1000);
     printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
-
 
     T rel_error = std::numeric_limits<T>::max();
     if (type == 1) {
