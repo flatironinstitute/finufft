@@ -3,7 +3,7 @@ import numpy as np
 import pycuda.autoinit # NOQA:401
 import pycuda.gpuarray as gpuarray
 
-from cufinufft import cufinufft
+from cufinufft import Plan
 
 import utils
 
@@ -20,9 +20,9 @@ def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
     c_gpu = gpuarray.to_gpu(c)
     fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
 
-    plan = cufinufft(1, shape, eps=tol, dtype=dtype)
+    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
-    plan.set_pts(k_gpu[0], k_gpu[1], k_gpu[2])
+    plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
     plan.execute(c_gpu, fk_gpu)
 
@@ -59,9 +59,9 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     c_gpu = gpuarray.GPUArray(shape=(M,), dtype=complex_dtype)
 
-    plan = cufinufft(2, shape, eps=tol, dtype=dtype)
+    plan = Plan(2, shape, eps=tol, dtype=complex_dtype)
 
-    plan.set_pts(k_gpu[0], k_gpu[1], k_gpu[2])
+    plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
     plan.execute(c_gpu, fk_gpu)
 
@@ -101,10 +101,10 @@ def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
     c_gpu = gpuarray.to_gpu(c)
     fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
 
-    plan = cufinufft(1, shape, eps=tol, dtype=dtype, gpu_sort=False,
+    plan = Plan(1, shape, eps=tol, dtype=complex_dtype, gpu_sort=False,
                      gpu_maxsubprobsize=10)
 
-    plan.set_pts(k_gpu[0], k_gpu[1], k_gpu[2])
+    plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
     plan.execute(c_gpu, fk_gpu)
 
