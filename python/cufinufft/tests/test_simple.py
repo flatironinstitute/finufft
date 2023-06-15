@@ -16,16 +16,19 @@ TOLS = [1e-2, 1e-3]
 OUTPUT_ARGS = [False, True]
 
 @pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("M", MS)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_nufft3d1(dtype, M, tol, output_arg):
-    shape = (64, 64, 64)
-
+def test_simple_type1(dtype, shape, M, tol, output_arg):
     real_dtype = dtype
     complex_dtype = utils._complex_dtype(dtype)
 
     dim = len(shape)
+
+    fun = {1: cufinufft.nufft1d1,
+           2: cufinufft.nufft2d1,
+           3: cufinufft.nufft3d1}[dim]
 
     k = utils.gen_nu_pts(M, dim=dim).astype(real_dtype)
     c = utils.gen_nonuniform_data(M).astype(complex_dtype)
@@ -35,9 +38,9 @@ def test_nufft3d1(dtype, M, tol, output_arg):
 
     if output_arg:
         fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
-        cufinufft.nufft3d1(*k_gpu, c_gpu, out=fk_gpu, eps=tol)
+        fun(*k_gpu, c_gpu, out=fk_gpu, eps=tol)
     else:
-        fk_gpu = cufinufft.nufft3d1(*k_gpu, c_gpu, shape, eps=tol)
+        fk_gpu = fun(*k_gpu, c_gpu, shape, eps=tol)
 
     fk = fk_gpu.get()
 
@@ -52,16 +55,19 @@ def test_nufft3d1(dtype, M, tol, output_arg):
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("M", MS)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_nufft3d2(dtype, M, tol, output_arg):
-    shape = (64, 64, 64)
-
+def test_simple_type2(dtype, shape, M, tol, output_arg):
     real_dtype = dtype
     complex_dtype = utils._complex_dtype(dtype)
 
     dim = len(shape)
+
+    fun = {1: cufinufft.nufft1d2,
+           2: cufinufft.nufft2d2,
+           3: cufinufft.nufft3d2}[dim]
 
     k = utils.gen_nu_pts(M, dim=dim).astype(real_dtype)
     fk = utils.gen_uniform_data(shape).astype(complex_dtype)
@@ -71,9 +77,9 @@ def test_nufft3d2(dtype, M, tol, output_arg):
 
     if output_arg:
         c_gpu = gpuarray.GPUArray((M,), dtype=complex_dtype)
-        cufinufft.nufft3d2(*k_gpu, fk_gpu, out=c_gpu)
+        fun(*k_gpu, fk_gpu, out=c_gpu)
     else:
-        c_gpu = cufinufft.nufft3d2(*k_gpu, fk_gpu)
+        c_gpu = fun(*k_gpu, fk_gpu)
 
     c = c_gpu.get()
 
