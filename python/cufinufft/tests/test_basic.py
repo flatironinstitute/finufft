@@ -42,16 +42,7 @@ def test_type1(dtype, shape, M, tol, output_arg):
 
     fk = fk_gpu.get()
 
-    ind = int(0.1789 * np.prod(shape))
-
-    fk_est = fk.ravel()[ind]
-    fk_target = utils.direct_type1(c, k, shape, ind)
-
-    type1_rel_err = np.abs(fk_target - fk_est) / np.abs(fk_target)
-
-    print('Type 1 relative error:', type1_rel_err)
-
-    assert type1_rel_err < 10 * tol
+    utils.verify_type1(k, c, fk, tol)
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
@@ -79,16 +70,7 @@ def test_type2(dtype, shape, M, tol, output_arg):
 
     c = c_gpu.get()
 
-    ind = M // 2
-
-    c_est = c[ind]
-    c_target = utils.direct_type2(fk, k[:, ind])
-
-    type2_rel_err = np.abs(c_target - c_est) / np.abs(c_target)
-
-    print('Type 2 relative error:', type2_rel_err)
-
-    assert type2_rel_err < 10 * tol
+    utils.verify_type2(k, fk, c, tol)
 
 
 def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
@@ -111,11 +93,5 @@ def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
 
     fk = fk_gpu.get()
 
-    ind = int(0.1789 * np.prod(shape))
+    utils.verify_type1(k, c, fk, tol)
 
-    fk_est = fk.ravel()[ind]
-    fk_target = utils.direct_type1(c, k, shape, ind)
-
-    type1_rel_err = np.abs(fk_target - fk_est) / np.abs(fk_target)
-
-    assert type1_rel_err < 0.01

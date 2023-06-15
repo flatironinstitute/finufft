@@ -93,3 +93,29 @@ def direct_type2(fk, k):
     c = np.sum(fk.ravel() * np.exp(-1j * phase))
 
     return c
+
+
+def verify_type1(k, c, fk, tol):
+    shape = fk.shape
+
+    ind = int(0.1789 * np.prod(shape))
+
+    fk_est = fk.ravel()[ind]
+    fk_target = direct_type1(c, k, shape, ind)
+
+    type1_rel_err = np.abs(fk_target - fk_est) / np.abs(fk_target)
+
+    assert type1_rel_err < 10 * tol
+
+
+def verify_type2(k, fk, c, tol):
+    M = c.shape[-1]
+
+    ind = M // 2
+
+    c_est = c[ind]
+    c_target = direct_type2(fk, k[:, ind])
+
+    type2_rel_err = np.abs(c_target - c_est) / np.abs(c_target)
+
+    assert type2_rel_err < 10 * tol
