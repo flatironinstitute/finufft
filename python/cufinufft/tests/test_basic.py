@@ -71,7 +71,7 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3, output_arg=True):
     plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
     if output_arg:
-        c_gpu = gpuarray.GPUArray(shape=(1, M), dtype=complex_dtype)
+        c_gpu = gpuarray.GPUArray(shape=(M,), dtype=complex_dtype)
         plan.execute(fk_gpu, out=c_gpu)
     else:
         c_gpu = plan.execute(fk_gpu)
@@ -80,7 +80,7 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3, output_arg=True):
 
     ind = M // 2
 
-    c_est = c[0, ind]
+    c_est = c[ind]
     c_target = utils.direct_type2(fk, k[:, ind])
 
     type2_rel_err = np.abs(c_target - c_est) / np.abs(c_target)
