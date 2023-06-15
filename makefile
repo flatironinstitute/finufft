@@ -164,7 +164,7 @@ endif
 $(DYNLIB): $(OBJSD)
 # using *absolute* path in the -o here is needed to make portable executables
 # when compiled against it, in mac OSX, strangely...
-	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB)
+	$(CXX) -shared ${LDFLAGS} $(OMPFLAGS) $(OBJSD) -o $(ABSDYNLIB) $(LIBS)
 ifeq ($(OMP),OFF)
 	@echo "$(DYNLIB) built, single-thread version"
 else
