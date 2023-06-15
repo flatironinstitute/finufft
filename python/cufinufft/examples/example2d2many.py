@@ -39,7 +39,7 @@ plan.setpts(to_gpu(x), to_gpu(y))
 
 # Execute the plan, reading from the uniform grid fk c and storing the result
 # in c_gpu.
-plan.execute(c_gpu, to_gpu(fk))
+plan.execute(to_gpu(fk), out=c_gpu)
 
 # Retreive the result from the GPU.
 c = c_gpu.get()

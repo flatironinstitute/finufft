@@ -24,7 +24,7 @@ def _test_type1(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
-    plan.execute(c_gpu, fk_gpu)
+    plan.execute(c_gpu, out=fk_gpu)
 
     fk = fk_gpu.get()
 
@@ -63,7 +63,7 @@ def _test_type2(dtype, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
-    plan.execute(c_gpu, fk_gpu)
+    plan.execute(fk_gpu, out=c_gpu)
 
     c = c_gpu.get()
 

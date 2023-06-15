@@ -24,6 +24,8 @@ from cufinufft._cufinufft import _exec_planf
 from cufinufft._cufinufft import _destroy_plan
 from cufinufft._cufinufft import _destroy_planf
 
+from pycuda.gpuarray import GPUArray
+
 
 # If we are shutting down python, we don't need to run __del__
 #   This will avoid any shutdown gc ordering problems.
@@ -90,12 +92,7 @@ class Plan:
         self.eps = float(eps)
         self.n_trans = n_trans
         self._maxbatch = 1    # TODO: optimize this one day
-
-        # We extend the mode tuple to 3D as needed,
-        #   and reorder from C/python ndarray.shape style input (nZ, nY, nX)
-        #   to the (F) order expected by the low level library (nX, nY, nZ).
-        modes = modes[::-1] + (1,) * (3 - self.dim)
-        self.modes = (c_int * 3)(*modes)
+        self.modes = modes
 
         # Get the default option values.
         self.opts = self._default_opts(nufft_type, self.dim)
@@ -145,9 +142,15 @@ class Plan:
         # Initialize struct
         self.plan = c_void_p(None)
 
+        # We extend the mode tuple to 3D as needed,
+        #   and reorder from C/python ndarray.shape style input (nZ, nY, nX)
+        #   to the (F) order expected by the low level library (nX, nY, nZ).
+        _modes = self.modes[::-1] + (1,) * (3 - self.dim)
+        _modes = (c_int * 3)(*_modes)
+
         ier = self._make_plan(self._finufft_type,
                               self.dim,
-                              self.modes,
+                              _modes,
                               self.isign,
                               self.n_trans,
                               self.eps,
@@ -218,30 +221,55 @@ class Plan:
         # Then take three items off the stack as our reordered axis.
         ier = self._setpts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
 
+        self.n_pts = M
+
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
 
-    def execute(self, c, fk):
+    def execute(self, data, out=None):
         """
-        Executes plan. Note the IO orientation of `c` and `fk` are
-        determined by plan type.
+        Execute the plan
 
-        In type 1, `c` is input, `fk` is output, while
-        in type 2, 'fk' in input, `c` is output.
+        Performs the NUFFT specified at plan instantiation with the points set
+        by ``setpts``. For type-1 and type-3 transforms, the input is a set of
+        source strengths, while for a type-2 transform, it consists of an
+        array of size ``n_modes``. If ``n_transf`` is greater than one,
+        ``n_transf`` inputs are expected, stacked along the first axis.
 
-        :param c: Real space array in 1, 2, or 3 dimensions.
-        :param fk: Fourier space array in 1, 2, or 3 dimensions.
+        :param data: Input source strengths (type 2) or source modes (type 2).
+        :param out: The array where the output is stored. Must be of the right
+        size.
+
+        :return: The output array of the transform.
         """
 
-        if not c.dtype == fk.dtype == self.dtype:
-            raise TypeError("cufinufft execute expects {} dtype arguments "
-                            "for this plan. Check plan and arguments.".format(
+        if data.dtype != self.dtype:
+            raise TypeError("execute expects {} dtype arguments for this "
+                            "plan. Check plan and arguments.".format(
                                 self.dtype))
 
-        ier = self._exec_plan(c.ptr, fk.ptr, self.plan)
+        if out is not None and out.dtype != self.dtype:
+            raise TypeError("execute expects {} dtype arguments for this "
+                            "plan. Check plan and arguments.".format(
+                                self.dtype))
+
+        if out is None:
+            if self._finufft_type == 1:
+                _out = GPUArray((self.n_trans, *self.modes), dtype=self.dtype)
+            elif self._finufft_type == 2:
+                _out = GPUArray((self.n_trans, self.n_pts), dtype=self.dtype)
+        else:
+            _out = out
+
+        if self._finufft_type == 1:
+            ier = self._exec_plan(data.ptr, _out.ptr, self.plan)
+        elif self._finufft_type == 2:
+            ier = self._exec_plan(_out.ptr, data.ptr, self.plan)
 
         if ier != 0:
             raise RuntimeError('Error executing plan.')
+
+        return _out
 
     def __del__(self):
         """
