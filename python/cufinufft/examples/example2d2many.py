@@ -5,7 +5,7 @@ Demonstrate the type 2 NUFFT using cuFINUFFT
 import numpy as np
 
 import pycuda.autoinit
-from pycuda.gpuarray import GPUArray, to_gpu
+from pycuda.gpuarray import to_gpu
 
 from cufinufft import Plan
 
@@ -30,16 +30,13 @@ x = x.astype(dtype)
 y = y.astype(dtype)
 fk = fk.astype(complex_dtype)
 
-# Allocate memory for the nonuniform coefficients on the GPU.
-c_gpu = GPUArray((n_transf, M), dtype=complex_dtype)
-
 # Initialize the plan and set the points.
 plan = Plan(2, (N1, N2), n_transf, eps=eps, dtype=complex_dtype)
 plan.setpts(to_gpu(x), to_gpu(y))
 
-# Execute the plan, reading from the uniform grid fk c and storing the result
+# Execute the plan, reading from the uniform grid fk and storing the result
 # in c_gpu.
-plan.execute(to_gpu(fk), out=c_gpu)
+c_gpu = plan.execute(to_gpu(fk))
 
 # Retreive the result from the GPU.
 c = c_gpu.get()
