@@ -7,6 +7,7 @@
 #include <random>
 
 #include <cufinufft.h>
+#include <cufinufft/impl.h>
 #include <cufinufft/utils.h>
 
 #include <thrust/complex.h>

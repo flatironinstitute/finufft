@@ -1,4 +1,3 @@
-#include "cufinufft/types.h"
 #include <complex>
 #include <cufft.h>
 #include <helper_cuda.h>
@@ -6,13 +5,13 @@
 #include <iostream>
 #include <math.h>
 
-#include <cufinufft.h>
-
 #include <cufinufft/common.h>
 #include <cufinufft/cudeconvolve.h>
 #include <cufinufft/defs.h>
+#include <cufinufft/impl.h>
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
+#include <cufinufft/types.h>
 #include <cufinufft/utils.h>
 
 using namespace cufinufft::common;
@@ -514,6 +513,7 @@ int cufinufft_execute(cuda_complex<double> *d_c, cuda_complex<double> *d_fk, cuf
 int cufinufft_destroyf(cufinufft_plan_template<float> d_plan) { return cufinufft_destroy_impl<float>(d_plan); }
 int cufinufft_destroy(cufinufft_plan_template<double> d_plan) { return cufinufft_destroy_impl<double>(d_plan); }
 
+extern "C" {
 int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 /*
     Sets the default options in cufinufft_opts. This must be called
@@ -598,6 +598,7 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
     opts->gpu_device_id = 0;
 
     return 0;
+}
 }
 
 template int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, float tol,

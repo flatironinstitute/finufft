@@ -6,7 +6,10 @@
 #include <iostream>
 #include <random>
 
+
 #include <cufinufft.h>
+
+#include <cufinufft/impl.h>
 #include <cufinufft/profile.h>
 #include <cufinufft/utils.h>
 
