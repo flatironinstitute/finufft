@@ -131,14 +131,3 @@ def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
     type1_rel_err = np.abs(fk_target - fk_est) / np.abs(fk_target)
 
     assert type1_rel_err < 0.01
-
-
-def main():
-    test_type1_32()
-    test_type2_32()
-    test_type1_64()
-    test_type2_64()
-
-
-if __name__ == '__main__':
-    main()

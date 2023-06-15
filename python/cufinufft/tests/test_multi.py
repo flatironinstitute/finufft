@@ -59,11 +59,3 @@ def test_multi_type1(dtype=np.float32, shape=(16, 16, 16), M=4096, tol=1e-3):
         errs.append(type1_rel_err)
 
     assert all(err < 0.01 for err in errs)
-
-
-def main():
-    test_multi_type1()
-
-
-if __name__ == '__main__':
-    main()
