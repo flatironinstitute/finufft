@@ -19,11 +19,13 @@ in MATLAB (they should work on versions at least back to R2017a).
 
 For further applications, see :ref:`references <refs>`, and:
 
-   * `Fast Fresnel diffraction <https://github.com/ahbarnett/fresnaq>`_ for optics and acoustics applications.
+* `Fast Fresnel diffraction <https://github.com/ahbarnett/fresnaq>`_ for optics and acoustics applications.
 
-   * Tutorials for PyNUFFT with 1D and 2D reconstruction examples `here <http://jyhmiinlin.github.io/pynufft/tutor/init.html>`_.
+* `Equispaced Fourier methods for Gaussian process regression <https://github.com/flatironinstitute/gp-shootout>`_ as described in https://arxiv.org/abs/2210.10210 and https://arxiv.org/abs/2305.11065
+  
+* Tutorials for PyNUFFT with 1D and 2D reconstruction examples `here <http://jyhmiinlin.github.io/pynufft/tutor/init.html>`_.
      
-   * The numerical sampling of `random plane waves <https://users.flatironinstitute.org/~ahb/rpws/>`_.
+* The numerical sampling of `random plane waves <https://users.flatironinstitute.org/~ahb/rpws/>`_.
    
-   * These seminar `PDF slides <http://users.flatironinstitute.org/~ahb/notes/wam19.pdf>`_.
+* These seminar `PDF slides <http://users.flatironinstitute.org/~ahb/notes/wam19.pdf>`_.
 

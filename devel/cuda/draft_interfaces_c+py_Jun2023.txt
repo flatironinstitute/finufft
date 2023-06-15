@@ -1,0 +1,41 @@
+int finufft_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, finufft_plan* plan, nufft_opts* opts)
+int cufinufft_makeplan(int type, int dim, int* nmodes, int iflag, int ntransf, double tol, int maxbatchsize, cufinufft_plan *plan, cufinufft_opts *opts)
+// Remove maxbatchsize (-> opts), use int64_t.   Rename ntransf to ntr, tol to eps.
+
+int finufft_setpts(finufft_plan plan, int64_t m, double* x, double* y, double* z, int64_t n, double* s, double* t, double* z)
+int cufinufft_setpts(int m, double* x, double* y, double* z, int n, double* s, double* t, double *u, cufinufft_plan plan)
+// Move plan to the beginning, use int64_t.
+
+int finufft_execute(finufft_plan plan, complex double* c, complex double* f)
+int cufinufft_execute(cuDoubleComplex* c, cuDoubleComplex* f, cufinufft_plan plan)
+// Move plan to beginning.
+
+int finufft_destroy(finufft_plan plan)
+int cufinufft_destroy(cufinufft_plan plan)
+
+void finufft_default_opts(finufft_opts* opts)
+int cufinufft_default_opts(int type, int dim, cufinufft_opts* opts);
+// Return type make void. Can we avoid specifying type and dim when calling? Allow "default" values for various parameters in opts struct? Yes, use meth=0 for auto.
+
+
+// & do same for float32 versions.
+
+
+-------------- PYTHON ----------
+
+Plan.__init__(nufft_type, n_modes_or_dim, n_trans=1, eps=1e-06,
+isign=None, dtype='complex128', **kwargs)
+
+cufinufft.__init__(nufft_type, modes, n_trans=1, eps=1e-06, isign=None,
+dtype=numpy.float32, **kwargs)
+
+# avoid reliance on np?  use dtype = 'complex64' or 'complex128'
+(and deprecate the float dtype options, and in FINUFFT).
+
+Plan.setpts(x=None, y=None, z=None, s=None, t=None, u=None)
+cufinufft.set_pts(kx, ky=None, kz=None)
+# Why not kx=None? What about type 3?
+
+Plan.execute(data, out=None)
+cufinufft.execute(c, fk)
+# Allow returning output array. Specify in/out order.

@@ -7,7 +7,7 @@ RUN NVIDIA_GPGKEY_SUM=d0664fbbdb8c32356d45de36c5984617217b2d0bef41b93ccecd326ba3
     curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/D42D0685.pub | sed '/^Version/d' > /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA && \
     echo "$NVIDIA_GPGKEY_SUM  /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA" | sha256sum -c --strict -
 
-COPY cufinufft/ci/docker/cuda11.0/cuda.repo /etc/yum.repos.d/cuda.repo
+COPY tools/cufinufft/docker/cuda11.0/cuda.repo /etc/yum.repos.d/cuda.repo
 
 # For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
 RUN yum install -y \
@@ -68,7 +68,7 @@ RUN yum install -y \
 COPY . /io
 RUN mkdir -p /io/build
 WORKDIR /io/build
-RUN scl enable devtoolset-9 -- cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES="35" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
+RUN scl enable devtoolset-9 -- cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES="35;50;60;70;75;80" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
 RUN scl enable devtoolset-9 -- make -j4
 
 # And we need to pack it in our LD path
