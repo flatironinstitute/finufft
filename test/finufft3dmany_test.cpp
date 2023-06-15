@@ -20,7 +20,6 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;          // default
   double err, errfail = INFINITY, errmax = 0;
   finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
-  // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;             // choose which exponential sign to test
   if (argc<6 || argc>13) {
     for (int i=0; help[i]; ++i)
@@ -89,7 +88,6 @@ int main(int argc, char* argv[])
 	 (long long)nt1,(long long)nt2,(long long)nt3,i,err);
 
   // compare the result with FINUFFT3D1
-  FFTW_FORGET_WISDOM();
   finufft_opts simpleopts=opts;
   simpleopts.debug = 0;       // don't output timing for calls of FINUFFT3D1
   simpleopts.spread_debug = 0;
@@ -128,7 +126,6 @@ int main(int argc, char* argv[])
 #pragma omp for schedule(static,TEST_RANDCHUNK)
     for (BIGINT m=0; m<N*ntransf; ++m) F[m] = crandm11r(&se);
   }
-  FFTW_FORGET_WISDOM();
   timer.restart();
   ier = FINUFFT3D2MANY(ntransf,M,x,y,z,c,isign,tol,N1,N2,N3,F,&opts);
   ti=timer.elapsedsec();
@@ -153,7 +150,6 @@ int main(int argc, char* argv[])
   errmax = max(err,errmax);
   printf("\tone targ: rel err in c[%lld] of trans#%d is %.3g\n",(long long)jt,i,err);
 
-  FFTW_FORGET_WISDOM();
   // compare the result with FINUFFT3D2...
   CPX* c_3d2 = (CPX*)malloc(sizeof(CPX)*M*ntransf);
   timer.restart();
@@ -180,7 +176,6 @@ int main(int argc, char* argv[])
 
 
   printf("test 3d3 many vs repeated single: ------------------------------------\n");
-  FFTW_FORGET_WISDOM();
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
   {
@@ -228,7 +223,6 @@ int main(int argc, char* argv[])
   errmax = max(err,errmax);
   printf("\t one targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,err);
 
-  FFTW_FORGET_WISDOM();
 // compare the result with FINUFFT3D3...
   CPX* f_3d3 = (CPX*)malloc(sizeof(CPX)*N*ntransf);
   timer.restart();

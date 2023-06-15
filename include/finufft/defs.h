@@ -187,10 +187,6 @@
 // --------  FINUFFT's plan object, prec-switching version ------------------
 // NB: now private (the public C++ or C etc user sees an opaque pointer to it)
 
-// FFTW is needed since we include a FFTW plan in the FINUFFT plan...
-#include <finufft/fftw_defs.h>          // (must come after complex.h)
-// (other FFT lib headers eg MKL could be here...)
-
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
 #define TYPE3PARAMS FINUFFTIFY(_type3Params)
 typedef struct {
@@ -226,7 +222,7 @@ typedef struct FINUFFT_PLAN_S {  // the main plan object, fully C++
   FLT* phiHat2;    // " y-axis.
   FLT* phiHat3;    // " z-axis.
   
-  FFTW_CPX* fwBatch;    // (batches of) fine grid(s) for FFTW to plan
+  CPX* fwBatch;    // (batches of) fine grid(s) for FFTW to plan
                         // & act on. Usually the largest working array
   
   BIGINT *sortIndices;  // precomputed NU pt permutation, speeds spread/interp

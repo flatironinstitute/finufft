@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.19)
 
 project(finufft VERSION 2.1.0 LANGUAGES C CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD 17)
+
 set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
 if(CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     # Set custom compiler flags for gcc-compatible compilers
@@ -12,8 +15,6 @@ endif()
 include(CTest)
 
 set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifying target architecture.")
-set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
-set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 
 # All options go here
 # sphinx tag (don't remove): @cmake_opts_start
@@ -22,15 +23,12 @@ option(FINUFFT_BUILD_TESTS "Whether to build the FINUFFT tests" OFF)
 option(FINUFFT_BUILD_FORTRAN "Whether to build the FINUFFT Fortran examples" OFF)
 option(FINUFFT_BUILD_MATLAB "Whether to build the FINUFFT Matlab interface" OFF)
 option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." ON)
-option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
+option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 # sphinx tag (don't remove): @cmake_opts_end
 
 set(CPM_DOWNLOAD_VERSION 0.38.0)
 include(cmake/setupCPM.cmake)
-
-set(FFTW_VERSION 3.3.10)
-include(cmake/setupFFTW.cmake)
 
 if (FINUFFT_BUILD_MATLAB)
     # When building for matlab, we will fetch the OpenMP library used by matlab
@@ -104,28 +102,15 @@ function(set_finufft_options target)
         endif ()
     endif ()
 
-    # FFTW CMAKE file includes the APIs only as an install target, so we need to manually
-    # include them since we need them for build not for install
-    # trying to include them directly into the fftw and fftwf targets causes issues with
-    # the latest version of cmake, so we do it here instead.
-    if ( (NOT FFTW_FOUND ) OR (FINUFFT_FFTW_LIBRARIES STREQUAL DOWNLOAD))
-        list (GET FINUFFT_FFTW_LIBRARIES 0 element)
-        get_property(FFTW_SOURCE_DIR TARGET ${element} PROPERTY SOURCE_DIR)
-        set(FFTW_INCLUDE_DIR ${FFTW_SOURCE_DIR}/api)
-        target_include_directories(${target} PUBLIC ${FFTW_INCLUDE_DIR})
-    endif()
-
 endfunction()
 
 # Main finufft libraries
 add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
 target_compile_definitions(finufft_f32 PRIVATE SINGLE)
 set_finufft_options(finufft_f32)
-target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 
 add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
 set_finufft_options(finufft_f64)
-target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 
 add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
 set_finufft_options(finufft)
@@ -136,7 +121,7 @@ if(NOT WIN32)
 endif()
 target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
 set_finufft_options(finufft)
 target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
 # windows does not have a math library, so we need to exclude it
@@ -152,6 +137,7 @@ if(FINUFFT_USE_CUDA)
     set(CMAKE_CUDA_ARCHITECTURES "60;70;75" CACHE STRING "" FORCE)
   endif()
   enable_language(CUDA)
+  set(CMAKE_CUDA_STANDARD 17)
   find_package(CUDAToolkit REQUIRED)
   add_subdirectory(src/cuda)
 endif()
