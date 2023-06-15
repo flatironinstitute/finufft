@@ -46,26 +46,30 @@ def gen_nonuniform_data(M, seed=0):
 
 def make_grid(shape):
     dim = len(shape)
-    shape = (1,) * (3 - dim) + shape
+    shape = shape
 
     grids = [np.arange(-(N // 2), (N + 1) // 2) for N in shape]
-    x, y, z = np.meshgrid(*grids, indexing='ij')
-    return np.stack((x, y, z))
+    grids = np.meshgrid(*grids, indexing='ij')
+    return np.stack(grids)
 
 
 def direct_type1(c, k, shape, ind):
+    dim = len(shape)
+
     grid = make_grid(shape)
 
-    phase = k.T @ grid.reshape((3, -1))[:, ind]
+    phase = k.T @ grid.reshape((dim, -1))[:, ind]
     fk = np.sum(c * np.exp(1j * phase))
 
     return fk
 
 
 def direct_type2(fk, k):
+    dim = fk.ndim
+
     grid = make_grid(fk.shape)
 
-    phase = k @ grid.reshape((3, -1))
+    phase = k @ grid.reshape((dim, -1))
     c = np.sum(fk.ravel() * np.exp(-1j * phase))
 
     return c

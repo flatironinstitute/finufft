@@ -9,12 +9,20 @@ from cufinufft import Plan
 
 import utils
 
+# NOTE: Tests below fail for shapes of size (16, 16) and tolerances 1e-4.
+
 DTYPES = [np.float32, np.float64]
+SHAPES = [(64,), (64, 64), (64, 64, 64)]
+MS = [256, 1024, 4096]
+TOLS = [1e-2, 1e-3]
 OUTPUT_ARGS = [False, True]
 
 @pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", SHAPES)
+@pytest.mark.parametrize("M", MS)
+@pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_type1(dtype, output_arg, shape=(16, 16, 16), M=4096, tol=1e-3):
+def test_type1(dtype, shape, M, tol, output_arg):
     complex_dtype = utils._complex_dtype(dtype)
 
     dim = len(shape)
@@ -27,7 +35,7 @@ def test_type1(dtype, output_arg, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
-    plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
+    plan.setpts(*k_gpu)
 
     if output_arg:
         fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
@@ -46,15 +54,20 @@ def test_type1(dtype, output_arg, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     print('Type 1 relative error:', type1_rel_err)
 
-    assert type1_rel_err < 0.01
+    assert type1_rel_err < 10 * tol
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", SHAPES)
+@pytest.mark.parametrize("M", MS)
+@pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_type2(dtype, output_arg, shape=(16, 16, 16), M=4096, tol=1e-3):
+def test_type2(dtype, shape, M, tol, output_arg):
     complex_dtype = utils._complex_dtype(dtype)
 
-    k = utils.gen_nu_pts(M).astype(dtype)
+    dim = len(shape)
+
+    k = utils.gen_nu_pts(M, dim=dim).astype(dtype)
     fk = utils.gen_uniform_data(shape).astype(complex_dtype)
 
     k_gpu = gpuarray.to_gpu(k)
@@ -62,7 +75,7 @@ def test_type2(dtype, output_arg, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     plan = Plan(2, shape, eps=tol, dtype=complex_dtype)
 
-    plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
+    plan.setpts(*k_gpu)
 
     if output_arg:
         c_gpu = gpuarray.GPUArray(shape=(M,), dtype=complex_dtype)
@@ -81,7 +94,7 @@ def test_type2(dtype, output_arg, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     print('Type 2 relative error:', type2_rel_err)
 
-    assert type2_rel_err < 0.01
+    assert type2_rel_err < 10 * tol
 
 
 def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
