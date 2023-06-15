@@ -259,11 +259,26 @@ class Plan:
         _data = _ensure_array_type(data, "data", self.dtype)
         _out = _ensure_array_type(out, "out", self.dtype, output=True)
 
+        if self.type == 1:
+            req_data_shape = (self.n_trans, self.nj)
+            req_out_shape = self.n_modes
+        elif self.type == 2:
+            req_data_shape = (self.n_trans, *self.n_modes)
+            req_out_shape = (self.nj,)
+
+        _data, data_shape = _ensure_array_shape(_data, "data", req_data_shape,
+                                                allow_reshape=True)
+        if self.type == 1:
+            batch_shape = data_shape[:-1]
+        else:
+            batch_shape = data_shape[:-self.dim]
+
+        req_out_shape = batch_shape + req_out_shape
+
         if out is None:
-            if self.type == 1:
-                _out = GPUArray((self.n_trans, *self.n_modes), dtype=self.dtype)
-            elif self.type == 2:
-                _out = GPUArray((self.n_trans, self.nj), dtype=self.dtype)
+            _out = GPUArray(req_out_shape, dtype=self.dtype)
+        else:
+            _out = _ensure_array_shape(_out, "out", req_out_shape)
 
         if self.type == 1:
             ier = self._exec_plan(data.ptr, _out.ptr, self._plan)
@@ -327,7 +342,7 @@ def _ensure_array_shape(x, name, shape, allow_reshape=False):
     orig_shape = x.shape
 
     if x.shape != shape:
-        if not allow_reshape or np.prod(x.shape) != shape:
+        if not allow_reshape or np.prod(x.shape) != np.prod(shape):
             raise TypeError(f"Argument `{name}` must be of shape {shape}")
         else:
             x = x.reshape(shape)
