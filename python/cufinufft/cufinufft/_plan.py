@@ -71,7 +71,7 @@ class Plan:
 
         # Need to set the plan here in case something goes wrong later on,
         # otherwise we error during __del__.
-        self.plan = None
+        self._plan = None
 
         # Setup type bound methods
         self.dtype = np.dtype(dtype)
@@ -112,24 +112,24 @@ class Plan:
         self._maxbatch = 1    # TODO: optimize this one day
 
         # Get the default option values.
-        self.opts = self._default_opts(nufft_type, self.dim)
+        self._opts = self._default_opts(nufft_type, self.dim)
 
         # Extract list of valid field names.
-        field_names = [name for name, _ in self.opts._fields_]
+        field_names = [name for name, _ in self._opts._fields_]
 
         # Assign field names from kwargs if they match up, otherwise error.
         for k, v in kwargs.items():
             if k in field_names:
-                setattr(self.opts, k, v)
+                setattr(self._opts, k, v)
             else:
                 raise TypeError(f"Invalid option '{k}'")
 
         # Initialize the plan.
-        self._plan()
+        self._init_plan()
 
         # Initialize a list for references to objects
         #   we want to keep around for life of instance.
-        self.references = []
+        self._references = []
 
     @staticmethod
     def _default_opts(nufft_type, dim):
@@ -151,13 +151,13 @@ class Plan:
 
         return nufft_opts
 
-    def _plan(self):
+    def _init_plan(self):
         """
         Internal method to initialize plan struct and call low level make_plan.
         """
 
         # Initialize struct
-        self.plan = c_void_p(None)
+        self._plan = c_void_p(None)
 
         # We extend the mode tuple to 3D as needed,
         #   and reorder from C/python ndarray.shape style input (nZ, nY, nX)
@@ -172,8 +172,8 @@ class Plan:
                               self.n_trans,
                               self.eps,
                               1,
-                              byref(self.plan),
-                              self.opts)
+                              byref(self._plan),
+                              self._opts)
 
         if ier != 0:
             raise RuntimeError('Error creating plan.')
@@ -231,17 +231,17 @@ class Plan:
 
         # We will also store references to these arrays.
         #   This keeps python from prematurely cleaning them up.
-        self.references.append(x)
+        self._references.append(x)
         if y is not None:
             fpts_axes.insert(0, y.ptr)
-            self.references.append(y)
+            self._references.append(y)
 
         if z is not None:
             fpts_axes.insert(0, z.ptr)
-            self.references.append(z)
+            self._references.append(z)
 
         # Then take three items off the stack as our reordered axis.
-        ier = self._setpts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
+        ier = self._setpts(M, *fpts_axes[:3], 0, None, None, None, self._plan)
 
         self.nj = M
 
@@ -287,9 +287,9 @@ class Plan:
             _out = out
 
         if self.type == 1:
-            ier = self._exec_plan(data.ptr, _out.ptr, self.plan)
+            ier = self._exec_plan(data.ptr, _out.ptr, self._plan)
         elif self.type == 2:
-            ier = self._exec_plan(_out.ptr, data.ptr, self.plan)
+            ier = self._exec_plan(_out.ptr, data.ptr, self._plan)
 
         if ier != 0:
             raise RuntimeError('Error executing plan.')
@@ -302,16 +302,16 @@ class Plan:
         """
 
         # If the process is exiting or we've already cleaned up plan, return.
-        if exiting or self.plan is None:
+        if exiting or self._plan is None:
             return
 
-        ier = self._destroy_plan(self.plan)
+        ier = self._destroy_plan(self._plan)
 
         if ier != 0:
             raise RuntimeError('Error destroying plan.')
 
         # Reset plan to avoid double destroy.
-        self.plan = None
+        self._plan = None
 
         # Reset our reference.
         self.references = []
