@@ -1,5 +1,33 @@
+/* Tester calling FINUFFT library from C++ using all manner of crazy inputs and
+   edge cases that might cause errors, and to check those errors give the right
+   error codes gracefully.
+
+   Simple and "many" interfaces mostly, with guru cases at the end (need more).
+
+   Usage: ./dumbinputs{f}
+   
+   Pass: exit code 0. (Stdout should indicate passed; msgs will go to stderr).
+   Fail: exit code>0. (msgs will go to stderr; stderr may indicate what failed)
+
+   Notes: due to large number of FINUFFT calls, running OMP_NUM_THREADS<=4 is
+   usually much faster than a large number of threads.
+
+   Barnett 3/14/17, updated Andrea Malleo, summer 2019.
+   Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
+   guru: makeplan followed by immediate destroy. Barnett 5/26/20.
+   Either precision with dual-prec lib funcs 7/3/20.
+   Added a chkbnds case to 1d1, 4/9/21.
+   Made pass-fail, obviating results/dumbinputs.refout. Barnett 6/16/23.
+
+   Suggested compile:
+   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
+
+   or if you have built a single-core version:
+   g++ -std=c++14 dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs -lfftw3 -lm
+*/
+
+// This switches FLT macro from double to float if SINGLE is defined, etc...
 #include <finufft/test_defs.h>
-// this enforces recompilation, responding to SINGLE...
 #include "directft/dirft1d.cpp"
 #include "directft/dirft2d.cpp"
 #include "directft/dirft3d.cpp"
@@ -7,32 +35,10 @@ using namespace std;
 using namespace finufft::utils;        // for twonorm, etc
 
 int main(int argc, char* argv[])
-/* calling the FINUFFT library from C++ using all manner of crazy inputs that
-   might cause errors. Simple and "many" interfaces mostly, with 2 guru cases
-   at the end (need more). All bad inputs should be caught gracefully.
-   (It also checks accuracy for 1D type 3, for some reason - could be killed.)
-   Barnett 3/14/17, updated Andrea Malleo, summer 2019.
-   Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
-   guru: makeplan followed by immediate destroy. Barnett 5/26/20.
-   Either precision with dual-prec lib funcs 7/3/20.
-   Added a chkbnds case to 1d1, 4/9/21.
-
-   Compile with (better to go up a directory and use: make test/dumbinputs) :
-   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
-
-   or if you have built a single-core version:
-   g++ -std=c++14 dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs -lfftw3 -lm
-
-   Usage: ./dumbinputs
-   
-   Output file will say "(should complain)" if that ier should be >0.
-
-   Also compare (diff) against test/results/dumbinputs.refout
-*/
 {
   int M = 100;            // number of nonuniform points
   int N = 10;             // # modes, keep small, also output NU pts in type 3
-  FLT acc = 1e-6;         // desired accuracy
+  FLT acc = 1e-6;         // desired accuracy for NUFFTs
   finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
 
   int NN = N*N*N;         // modes F alloc size since we'll go to 3d

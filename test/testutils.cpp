@@ -1,8 +1,15 @@
-// unit tests for utils & utils_precindep modules.
+/* unit tests for utils & utils_precindep modules.
 
-// June 2023: switched to pass-fail tests within the executable (more clear,
-// and platform-indep, than having to compare the text output)
+   Usage: ./testutils{f}
 
+   Pass: exit code 0. (Stdout should indicate passed)
+   Fail: exit code>0. (Stderr may indicate what failed)
+
+   June 2023: switched to pass-fail tests within the executable (more clear,
+   and platform-indep, than having to compare the text output)
+*/
+
+// This switches FLT macro from double to float if SINGLE is defined, etc...
 #include <finufft/test_defs.h>
 using namespace finufft::utils;
 
@@ -27,18 +34,19 @@ int main(int argc, char* argv[])
   //printf("next235even(%ld) =\t%ld\n",n,next235even(n));
   //double* a; printf("%g\n",a[0]);  // do deliberate segfault for bash debug!
 
-  // test the vector norms and norm difference routines... pass-fail 6/16/23
+  // test vector norms and norm difference routines... now pass-fail 6/16/23
   BIGINT M = 1e4;
   std::vector<CPX> a(M), b(M);
   for (BIGINT j=0; j<M; ++j) {
     a[j] = CPX(1.0,0.0);
     b[j] = a[j];
   }
-  if (abs(infnorm(M,&a[0]) - 1.0) > EPSILON) return 1;
-  if (abs(twonorm(M,&a[0]) - sqrt((FLT)M)) > EPSILON) return 1;
+  FLT relerr=2.0*EPSILON;    // 1 ULP, fine since 1.0 rep exactly
+  if (abs(infnorm(M,&a[0]) - 1.0) > relerr) return 1;
+  if (abs(twonorm(M,&a[0]) - sqrt((FLT)M)) > relerr*sqrt((FLT)M)) return 1;
   b[0] = CPX(0.0,0.0);  // perturb b from a
-  if (abs(errtwonorm(M,&a[0],&b[0]) - 1.0) > EPSILON) return 1;
-  if (abs(relerrtwonorm(M,&a[0],&b[0]) - 1.0/sqrt((FLT)M)) > EPSILON) return 1;
+  if (abs(errtwonorm(M,&a[0],&b[0]) - 1.0) > relerr) return 1;
+  if (abs(sqrt((FLT)M)* relerrtwonorm(M,&a[0],&b[0]) - 1.0) > relerr) return 1;
 
 #ifdef SINGLE
   printf("testutilsf passed.\n");

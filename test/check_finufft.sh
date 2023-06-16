@@ -53,9 +53,6 @@ T=testutils$PRECSUF
 ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}          # exit code of the tested cmd (not the tee cmd!)
 if [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); fi
-# Disregard the OS-dependent line endings with --strip-trailing-cr
-diff --strip-trailing-cr $DIR/$T.out $DIR/$T.refout
-if [[ $? -eq 0 ]]; then echo passed; else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=finufft1d_test$PRECSUF
