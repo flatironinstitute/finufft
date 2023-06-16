@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include <cufinufft/memtransfer.h>
-#include <cufinufft/profile.h>
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
 

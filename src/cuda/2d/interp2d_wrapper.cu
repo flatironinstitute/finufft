@@ -5,8 +5,8 @@
 #include <helper_cuda.h>
 
 #include <cufinufft/memtransfer.h>
-#include <cufinufft/profile.h>
 #include <cufinufft/spreadinterp.h>
+
 using namespace cufinufft::memtransfer;
 
 #include "spreadinterp2d.cuh"

@@ -8,7 +8,6 @@
 #include <cufinufft.h>
 
 #include <cufinufft/impl.h>
-#include <cufinufft/profile.h>
 #include <cufinufft/utils.h>
 
 #include <thrust/complex.h>
@@ -136,7 +135,6 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) 
     printf("[time  ] cufinufft exec:\t\t %.3g s\n", milliseconds / 1000);
 
     cudaEventRecord(start);
-    PROFILE_CUDA_GROUP("cufinufft1d_destroy", 5);
     ier = cufinufft_destroy_impl<T>(dplan);
     if (ier != 0) {
         printf("err %d: cufinufft1d_destroy\n", ier);
