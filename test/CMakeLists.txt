@@ -52,6 +52,7 @@ add_test(
   NAME run_finufft3dmany_test_${PREC}
   COMMAND finufft3dmany_test${SUFFIX} 2 5 10 20 1e2 ${REQ_TOL} 0 0 0 2 0.0 ${CHECK_TOL})
 
+if(0)
 # Here's where to save output of dumbinputs for later diff
 set(tempout
   "${CMAKE_CURRENT_BINARY_DIR}/dumbinputs${SUFFIX}.out"
@@ -75,6 +76,14 @@ add_custom_target(
 add_test(
   NAME check_dumbinputs_${PREC}
   COMMAND ${CMAKE_COMMAND} -E compare_files ${tempout} ${CMAKE_CURRENT_SOURCE_DIR}/results/dumbinputs${SUFFIX}.refout
+  )
+endif()
+
+# another way of using add_test, remove add_custom_target by calling the devel/check_dumbinputs.cmake
+# if move check_dumbinputs.cmake to test directory, ${CMAKE_SOURCE_DIR} should be changed to ${CMAKE_CURRENT_SOURCE_DIR}
+add_test(
+  NAME check_dumbinputs_${PREC}
+  COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/devel/check_dumbinputs.cmake ${SUFFIX}
   )
 
 endfunction()
