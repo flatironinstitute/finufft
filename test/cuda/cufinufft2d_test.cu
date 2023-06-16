@@ -7,6 +7,7 @@
 #include <random>
 
 #include <cufinufft.h>
+
 #include <cufinufft/impl.h>
 #include <cufinufft/utils.h>
 
@@ -76,7 +77,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds / 1000);
 
     // now to our tests...
-    cufinufft_plan_template<T> dplan;
+    cufinufft_plan_t<T> *dplan;
     const int dim = 2;
 
     // Here we setup our own opts, for gpu_method.

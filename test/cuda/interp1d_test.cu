@@ -6,8 +6,10 @@
 #include <random>
 
 #include <cufinufft.h>
+
 #include <cufinufft/common.h>
 #include <cufinufft/spreadinterp.h>
+#include <cufinufft/types.h>
 #include <cufinufft/utils.h>
 
 using namespace cufinufft::common;
@@ -35,8 +37,8 @@ int run_test(int method, int nupts_distribute, int nf1, int M, T tol, int kereva
     checkCudaErrors(cudaMalloc(&d_fw, nf1 * sizeof(complex_t)));
 
     int dim = 1;
-    cufinufft_plan_template<real_t> dplan;
-    dplan = (cufinufft_plan_template<real_t>)malloc(sizeof(*dplan));
+    cufinufft_plan_t<real_t> *dplan;
+    dplan = new cufinufft_plan_t<real_t>;
     // Zero out your struct, (sets all pointers to NULL, crucial)
     memset(dplan, 0, sizeof(*dplan));
     ier = cufinufft_default_opts(2, dim, &(dplan->opts));
@@ -104,6 +106,8 @@ int run_test(int method, int nupts_distribute, int nf1, int M, T tol, int kereva
     cudaFree(d_x);
     cudaFree(d_c);
     cudaFree(d_fw);
+
+    return 0;
 }
 
 int main(int argc, char *argv[]) {

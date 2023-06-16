@@ -16,7 +16,7 @@ namespace spreadinterp {
 
 template <typename T>
 int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
-                       cufinufft_plan_template<T> d_plan)
+                       cufinufft_plan_t<T> *d_plan)
 /*
     This c function is written for only doing 2D interpolation. See
     test/interp2d_test.cu for usage.
@@ -61,7 +61,7 @@ int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
 }
 
 template <typename T>
-int cuinterp2d(cufinufft_plan_template<T> d_plan, int blksize)
+int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     A wrapper for different interpolation methods.
 
@@ -101,7 +101,7 @@ int cuinterp2d(cufinufft_plan_template<T> d_plan, int blksize)
 }
 
 template <typename T>
-int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize) {
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -138,7 +138,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> d
 }
 
 template <typename T>
-int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize) {
+int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     T es_c = d_plan->spopts.ES_c;
     T es_beta = d_plan->spopts.ES_beta;
@@ -166,7 +166,8 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> d_pla
     int pirange = d_plan->spopts.pirange;
 
     T sigma = d_plan->opts.upsampfac;
-    size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
+    size_t sharedplanorysize =
+        (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
 
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory" << std::endl;
@@ -193,12 +194,12 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> d_pla
 }
 
 template int cufinufft_interp2d(int nf1, int nf2, cuda_complex<float> *d_fw, int M, float *d_kx, float *d_ky,
-                                cuda_complex<float> *d_c, cufinufft_plan_template<float> d_plan);
+                                cuda_complex<float> *d_c, cufinufft_plan_t<float> *d_plan);
 template int cufinufft_interp2d(int nf1, int nf2, cuda_complex<double> *d_fw, int M, double *d_kx, double *d_ky,
-                                cuda_complex<double> *d_c, cufinufft_plan_template<double> d_plan);
+                                cuda_complex<double> *d_c, cufinufft_plan_t<double> *d_plan);
 
-template int cuinterp2d<float>(cufinufft_plan_template<float> d_plan, int blksize);
-template int cuinterp2d<double>(cufinufft_plan_template<double> d_plan, int blksize);
+template int cuinterp2d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
+template int cuinterp2d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

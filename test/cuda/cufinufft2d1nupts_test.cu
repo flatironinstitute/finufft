@@ -8,6 +8,8 @@
 #include <random>
 
 #include <cufinufft.h>
+
+#include <cufinufft/impl.h>
 #include <cufinufft/utils.h>
 
 #include <thrust/complex.h>
@@ -77,7 +79,7 @@ int run_test(int method) {
     {
         int nf1 = 1;
         cufftHandle fftplan;
-        cufftPlan1d(&fftplan, nf1, CUFFT_TYPE, 1);
+        cufftPlan1d(&fftplan, nf1, cufft_type<T>(), 1);
     }
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
@@ -85,7 +87,7 @@ int run_test(int method) {
     printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds / 1000);
 
     // now to our tests...
-    cufinufft_plan_template<T> dplan;
+    cufinufft_plan_t<T> *dplan;
     int dim = 2;
     int type = 1;
 

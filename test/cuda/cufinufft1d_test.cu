@@ -1,11 +1,9 @@
-#include "cufinufft/types.h"
 #include <cmath>
 #include <complex>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 #include <random>
-
 
 #include <cufinufft.h>
 
@@ -80,7 +78,7 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) 
     printf("[time  ] dummy warmup call to CUFFT\t %.3g s\n", milliseconds / 1000);
 
     // now to the test...
-    cufinufft_plan_template<T> dplan;
+    cufinufft_plan_t<T> *dplan;
     const int dim = 1;
 
     // Here we setup our own opts, for gpu_method.

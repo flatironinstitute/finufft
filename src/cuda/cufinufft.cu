@@ -5,6 +5,8 @@
 #include <iostream>
 #include <math.h>
 
+#include <cufinufft.h>
+
 #include <cufinufft/common.h>
 #include <cufinufft/cudeconvolve.h>
 #include <cufinufft/defs.h>
@@ -55,7 +57,7 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts) {
 
 template <typename T>
 int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol, int maxbatchsize,
-                            cufinufft_plan_template<T> *d_plan_ptr, cufinufft_opts *opts) {
+                            cufinufft_plan_t<T> **d_plan_ptr, cufinufft_opts *opts) {
     /*
         "plan" stage (in single or double precision).
             See ../docs/cppdoc.md for main user-facing documentation.
@@ -89,7 +91,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     int ier;
 
     /* allocate the plan structure, assign address to user pointer. */
-    cufinufft_plan_template<T> d_plan = new cufinufft_plan_template_s<T>;
+    cufinufft_plan_t<T> *d_plan = new cufinufft_plan_t<T>;
     *d_plan_ptr = d_plan;
     // Zero out your struct, (sets all pointers to NULL)
     memset(d_plan, 0, sizeof(*d_plan));
@@ -204,8 +206,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 }
 
 template <typename T>
-int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u,
-                          cufinufft_plan_template<T> d_plan)
+int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u, cufinufft_plan_t<T> *d_plan)
 /*
     "setNUpts" stage (in single or double precision).
 
@@ -367,7 +368,7 @@ Notes: the type T means either single or double, matching the
 }
 
 template <typename T>
-int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan)
+int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_t<T> *d_plan)
 /*
     "exec" stage (single and double precision versions).
 
@@ -437,7 +438,7 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinuff
 }
 
 template <typename T>
-int cufinufft_destroy_impl(cufinufft_plan_template<T> d_plan)
+int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
 /*
     "destroy" stage (single and double precision versions).
 
@@ -485,35 +486,41 @@ int cufinufft_destroy_impl(cufinufft_plan_template<T> d_plan)
     return 0;
 }
 
+extern "C" {
 int cufinufft_makeplanf(int type, int dim, int *nmodes, int iflag, int ntransf, float tol, int maxbatchsize,
                         cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
-    return cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, d_plan_ptr, opts);
+    return cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize,
+                                   (cufinufft_plan_t<float> **)d_plan_ptr, opts);
 }
 int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, int ntransf, double tol, int maxbatchsize,
                        cufinufft_plan *d_plan_ptr, cufinufft_opts *opts) {
-    return cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, d_plan_ptr, opts);
+    return cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize,
+                                   (cufinufft_plan_t<double> **)d_plan_ptr, opts);
 }
 
 int cufinufft_setptsf(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t, float *d_u,
                       cufinufftf_plan d_plan) {
-    return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, d_plan);
+    return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, (cufinufft_plan_t<float> *)d_plan);
 }
 int cufinufft_setpts(int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s, double *d_t, double *d_u,
                      cufinufft_plan d_plan) {
-    return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, d_plan);
+    return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, (cufinufft_plan_t<double> *)d_plan);
 }
 
-int cufinufft_executef(cuda_complex<float> *d_c, cuda_complex<float> *d_fk, cufinufftf_plan d_plan) {
-    return cufinufft_execute_impl<float>(d_c, d_fk, d_plan);
+int cufinufft_executef(cuFloatComplex *d_c, cuFloatComplex *d_fk, cufinufftf_plan d_plan) {
+    return cufinufft_execute_impl<float>(d_c, d_fk, (cufinufft_plan_t<float> *)d_plan);
 }
-int cufinufft_execute(cuda_complex<double> *d_c, cuda_complex<double> *d_fk, cufinufft_plan d_plan) {
-    return cufinufft_execute_impl<double>(d_c, d_fk, d_plan);
+int cufinufft_execute(cuDoubleComplex *d_c, cuda_complex<double> *d_fk, cufinufft_plan d_plan) {
+    return cufinufft_execute_impl<double>(d_c, d_fk, (cufinufft_plan_t<double> *)d_plan);
 }
 
-int cufinufft_destroyf(cufinufft_plan_template<float> d_plan) { return cufinufft_destroy_impl<float>(d_plan); }
-int cufinufft_destroy(cufinufft_plan_template<double> d_plan) { return cufinufft_destroy_impl<double>(d_plan); }
+int cufinufft_destroyf(cufinufftf_plan *d_plan) {
+    return cufinufft_destroy_impl<float>((cufinufft_plan_t<float> *)d_plan);
+}
+int cufinufft_destroy(cufinufft_plan *d_plan) {
+    return cufinufft_destroy_impl<double>((cufinufft_plan_t<double> *)d_plan);
+}
 
-extern "C" {
 int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 /*
     Sets the default options in cufinufft_opts. This must be called
@@ -602,16 +609,14 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 }
 
 template int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, float tol,
-                                     int maxbatchsize, cufinufft_plan_template<float> *d_plan_ptr,
-                                     cufinufft_opts *opts);
+                                     int maxbatchsize, cufinufft_plan_t<float> **d_plan_ptr, cufinufft_opts *opts);
 template int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, double tol,
-                                     int maxbatchsize, cufinufft_plan_template<double> *d_plan_ptr,
-                                     cufinufft_opts *opts);
+                                     int maxbatchsize, cufinufft_plan_t<double> **d_plan_ptr, cufinufft_opts *opts);
 
 template int cufinufft_setpts_impl(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t,
-                                   float *d_u, cufinufft_plan_template<float> d_plan);
+                                   float *d_u, cufinufft_plan_t<float> *d_plan);
 template int cufinufft_setpts_impl(int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s, double *d_t,
-                                   double *d_u, cufinufft_plan_template<double> d_plan);
+                                   double *d_u, cufinufft_plan_t<double> *d_plan);
 
-template int cufinufft_destroy_impl<float>(cufinufft_plan_template<float> d_plan);
-template int cufinufft_destroy_impl<double>(cufinufft_plan_template<double> d_plan);
+template int cufinufft_destroy_impl<float>(cufinufft_plan_t<float> *d_plan_ptr);
+template int cufinufft_destroy_impl<double>(cufinufft_plan_t<double> *d_plan_ptr);

@@ -16,7 +16,7 @@ using namespace cufinufft::spreadinterp;
 using std::min;
 
 template <typename T>
-int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan)
+int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_t<T> *d_plan)
 /*
     2D Type-1 NUFFT
 
@@ -43,8 +43,9 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         d_plan->c = d_cstart;
         d_plan->fk = d_fkstart;
 
-        checkCudaErrors(cudaMemset(d_plan->fw, 0,
-                                   d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * sizeof(cuda_complex<T>))); // this is needed
+        checkCudaErrors(
+            cudaMemset(d_plan->fw, 0,
+                       d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * sizeof(cuda_complex<T>))); // this is needed
 
         // Step 1: Spread
         ier = cuspread2d<T>(d_plan, blksize);
@@ -65,7 +66,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 }
 
 template <typename T>
-int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan)
+int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_t<T> *d_plan)
 /*
     2D Type-2 NUFFT
 
@@ -111,10 +112,10 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 }
 
 template int cufinufft2d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
-                                      cufinufft_plan_template<float> d_plan);
+                                      cufinufft_plan_t<float> *d_plan);
 template int cufinufft2d1_exec<double>(cuda_complex<double> *d_c, cuda_complex<double> *d_fk,
-                                       cufinufft_plan_template<double> d_plan);
+                                       cufinufft_plan_t<double> *d_plan);
 template int cufinufft2d2_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
-                                      cufinufft_plan_template<float> d_plan);
+                                      cufinufft_plan_t<float> *d_plan);
 template int cufinufft2d2_exec<double>(cuda_complex<double> *d_c, cuda_complex<double> *d_fk,
-                                       cufinufft_plan_template<double> d_plan);
+                                       cufinufft_plan_t<double> *d_plan);

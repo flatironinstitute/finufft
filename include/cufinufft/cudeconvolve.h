@@ -24,11 +24,11 @@ __global__ void amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, in
                            cuda_complex<T> *fk, T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3);
 
 template <typename T>
-int cudeconvolve1d(cufinufft_plan_template<T> d_mem, int blksize);
+int cudeconvolve1d(cufinufft_plan_t<T> *d_mem, int blksize);
 template <typename T>
-int cudeconvolve2d(cufinufft_plan_template<T> d_mem, int blksize);
+int cudeconvolve2d(cufinufft_plan_t<T> *d_mem, int blksize);
 template <typename T>
-int cudeconvolve3d(cufinufft_plan_template<T> d_mem, int blksize);
+int cudeconvolve3d(cufinufft_plan_t<T> *d_mem, int blksize);
 } // namespace deconvolve
 } // namespace cufinufft
 #endif

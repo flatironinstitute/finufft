@@ -17,7 +17,7 @@ namespace spreadinterp {
 
 template <typename T>
 inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
-                              cufinufft_plan_template<T> d_plan)
+                              cufinufft_plan_t<T> *d_plan)
 /*
     This c function is written for only doing 1D interpolation. See
     test/interp1d_test.cu for usage.
@@ -61,12 +61,12 @@ inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cu
 }
 
 template int cufinufft_interp1d(int nf1, cuda_complex<float> *d_fw, int M, float *d_kx, cuda_complex<float> *d_c,
-                                cufinufft_plan_template<float> d_plan);
+                                cufinufft_plan_t<float> *d_plan);
 template int cufinufft_interp1d(int nf1, cuda_complex<double> *d_fw, int M, double *d_kx, cuda_complex<double> *d_c,
-                                cufinufft_plan_template<double> d_plan);
+                                cufinufft_plan_t<double> *d_plan);
 
 template <typename T>
-int cuinterp1d(cufinufft_plan_template<T> d_plan, int blksize)
+int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     A wrapper for different interpolation methods.
 
@@ -98,7 +98,7 @@ int cuinterp1d(cufinufft_plan_template<T> d_plan, int blksize)
 }
 
 template <typename T>
-int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> d_plan, int blksize) {
+int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -133,7 +133,7 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> d_plan, in
     return 0;
 }
 
-template int cuinterp1d<float>(cufinufft_plan_template<float> d_plan, int blksize);
-template int cuinterp1d<double>(cufinufft_plan_template<double> d_plan, int blksize);
+template int cuinterp1d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
+template int cuinterp1d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
 } // namespace spreadinterp
 } // namespace cufinufft

@@ -62,80 +62,80 @@ static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const int w
 // Wrapper for testing spread, interpolation only
 template <typename T>
 int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
-                       cufinufft_plan_template<T> d_plan);
+                       cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
-                       cufinufft_plan_template<T> d_plan);
+                       cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int cufinufft_spread2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
-                       cufinufft_plan_template<T> d_plan);
+                       cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
-                       cufinufft_plan_template<T> d_plan);
+                       cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_template<T> *dplan);
+                       cuda_complex<T> *d_c, cufinufft_plan_t<T> **dplan);
 template <typename T>
 int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_template<T> *dplan);
+                       cuda_complex<T> *d_c, cufinufft_plan_t<T> **dplan);
 
 // Functions for calling different methods of spreading & interpolation
 template <typename T>
-int cuspread1d(cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuinterp1d(cufinufft_plan_template<T> d_plan, int blksize);
+int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize);
 
 template <typename T>
-int cuspread2d(cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuinterp2d(cufinufft_plan_template<T> d_plan, int blksize);
+int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuspread3d(cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuinterp3d(cufinufft_plan_template<T> d_plan, int blksize);
+int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize);
 
 // Wrappers for methods of spreading
 template <typename T>
-int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_template<T> d_plan);
+int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
 template <typename T>
-int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_template<T> d_plan);
+int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan);
 template <typename T>
-int cuspread1d_subprob(int nf1, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 
 template <typename T>
-int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan);
+int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
 template <typename T>
-int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan);
+int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan);
 template <typename T>
-int cuspread2d_subprob(int nf1, int nf2, int m, cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread2d_subprob(int nf1, int nf2, int m, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan);
+int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan);
 template <typename T>
-int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan);
+int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan);
 template <typename T>
-int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan);
+int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan);
 template <typename T>
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 
 // Wrappers for methods of interpolation
 template <typename T>
-int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 template <typename T>
-int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize);
+int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

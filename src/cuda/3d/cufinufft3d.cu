@@ -16,7 +16,7 @@ using namespace cufinufft::spreadinterp;
 using std::min;
 
 template <typename T>
-int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan)
+int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_t<T> *d_plan)
 /*
     3D Type-1 NUFFT
 
@@ -64,7 +64,7 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 }
 
 template <typename T>
-int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_template<T> d_plan)
+int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_t<T> *d_plan)
 /*
     3D Type-2 NUFFT
 
@@ -110,11 +110,11 @@ int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 }
 
 template int cufinufft3d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
-                                      cufinufft_plan_template<float> d_plan);
+                                      cufinufft_plan_t<float> *d_plan);
 template int cufinufft3d1_exec<double>(cuda_complex<double> *d_c, cuda_complex<double> *d_fk,
-                                       cufinufft_plan_template<double> d_plan);
+                                       cufinufft_plan_t<double> *d_plan);
 
 template int cufinufft3d2_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,
-                                      cufinufft_plan_template<float> d_plan);
+                                      cufinufft_plan_t<float> *d_plan);
 template int cufinufft3d2_exec<double>(cuda_complex<double> *d_c, cuda_complex<double> *d_fk,
-                                       cufinufft_plan_template<double> d_plan);
+                                       cufinufft_plan_t<double> *d_plan);

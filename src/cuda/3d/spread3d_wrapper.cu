@@ -20,7 +20,7 @@ namespace spreadinterp {
 
 template <typename T>
 int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_template<T> d_plan)
+                       cuda_complex<T> *d_c, cufinufft_plan_t<T> *d_plan)
 /*
     This c function is written for only doing 3D spreading. See
     test/spread3d_test.cu for usage.
@@ -73,7 +73,7 @@ int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, 
 }
 
 template <typename T>
-int cuspread3d(cufinufft_plan_template<T> d_plan, int blksize)
+int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     A wrapper for different spreading methods.
 
@@ -124,7 +124,7 @@ int cuspread3d(cufinufft_plan_template<T> d_plan, int blksize)
 }
 
 template <typename T>
-int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
+int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan) {
     if (d_plan->opts.gpu_sort) {
         int bin_size_x = d_plan->opts.gpu_binsizex;
         int bin_size_y = d_plan->opts.gpu_binsizey;
@@ -174,7 +174,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 }
 
 template <typename T>
-int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
+int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -214,7 +214,7 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_temp
 }
 
 template <typename T>
-int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
+int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -347,7 +347,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 }
 
 template <typename T>
-int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
+int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
     int ns = d_plan->spopts.nspread;
     T es_c = d_plan->spopts.ES_c;
     T es_beta = d_plan->spopts.ES_beta;
@@ -414,7 +414,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_temp
 }
 
 template <typename T>
-int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan) {
+int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan) {
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
     int bin_size_x = d_plan->opts.gpu_binsizex;
     int bin_size_y = d_plan->opts.gpu_binsizey;
@@ -433,7 +433,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_tem
     T *d_kx = d_plan->kx;
     T *d_ky = d_plan->ky;
     T *d_kz = d_plan->kz;
- 
+
     int *d_binsize = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
     int *d_sortidx = d_plan->sortidx;
@@ -484,7 +484,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_tem
 }
 
 template <typename T>
-int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template<T> d_plan, int blksize) {
+int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
@@ -540,14 +540,14 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_template
     return 0;
 }
 
-template int cuspread3d<float>(cufinufft_plan_template<float> d_plan, int blksize);
-template int cuspread3d<double>(cufinufft_plan_template<double> d_plan, int blksize);
+template int cuspread3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
+template int cuspread3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
 
 template int cufinufft_spread3d<float>(int nf1, int nf2, int nf3, cuda_complex<float> *d_fw, int M, float *d_kx,
                                        float *d_ky, float *d_kz, cuda_complex<float> *d_c,
-                                       cufinufft_plan_template<float> d_plan);
+                                       cufinufft_plan_t<float> *d_plan);
 template int cufinufft_spread3d<double>(int nf1, int nf2, int nf3, cuda_complex<double> *d_fw, int M, double *d_kx,
                                         double *d_ky, double *d_kz, cuda_complex<double> *d_c,
-                                        cufinufft_plan_template<double> d_plan);
+                                        cufinufft_plan_t<double> *d_plan);
 } // namespace spreadinterp
 } // namespace cufinufft

@@ -10,7 +10,7 @@ namespace cufinufft {
 namespace memtransfer {
 
 template <typename T>
-int allocgpumem1d_plan(cufinufft_plan_template<T> d_plan)
+int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -56,7 +56,7 @@ int allocgpumem1d_plan(cufinufft_plan_template<T> d_plan)
 }
 
 template <typename T>
-int allocgpumem1d_nupts(cufinufft_plan_template<T> d_plan)
+int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -97,7 +97,7 @@ int allocgpumem1d_nupts(cufinufft_plan_template<T> d_plan)
 }
 
 template <typename T>
-void freegpumemory1d(cufinufft_plan_template<T> d_plan)
+void freegpumemory1d(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for freeing gpu memory.
 
@@ -140,7 +140,7 @@ void freegpumemory1d(cufinufft_plan_template<T> d_plan)
 }
 
 template <typename T>
-int allocgpumem2d_plan(cufinufft_plan_template<T> d_plan)
+int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -197,7 +197,7 @@ int allocgpumem2d_plan(cufinufft_plan_template<T> d_plan)
 }
 
 template <typename T>
-int allocgpumem2d_nupts(cufinufft_plan_template<T> d_plan)
+int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -237,7 +237,7 @@ int allocgpumem2d_nupts(cufinufft_plan_template<T> d_plan)
 }
 
 template <typename T>
-void freegpumemory2d(cufinufft_plan_template<T> d_plan)
+void freegpumemory2d(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for freeing gpu memory.
 
@@ -284,7 +284,7 @@ void freegpumemory2d(cufinufft_plan_template<T> d_plan)
 }
 
 template <typename T>
-int allocgpumem3d_plan(cufinufft_plan_template<T> d_plan)
+int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "plan" stage.
 
@@ -363,7 +363,7 @@ int allocgpumem3d_plan(cufinufft_plan_template<T> d_plan)
 }
 
 template <typename T>
-int allocgpumem3d_nupts(cufinufft_plan_template<T> d_plan)
+int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for gpu memory allocation in "setNUpts" stage.
 
@@ -408,7 +408,7 @@ int allocgpumem3d_nupts(cufinufft_plan_template<T> d_plan)
 }
 
 template <typename T>
-void freegpumemory3d(cufinufft_plan_template<T> d_plan)
+void freegpumemory3d(cufinufft_plan_t<T> *d_plan)
 /*
     wrapper for freeing gpu memory.
 
@@ -465,26 +465,26 @@ void freegpumemory3d(cufinufft_plan_template<T> d_plan)
     cudaSetDevice(orig_gpu_device_id);
 }
 
-template int allocgpumem1d_plan<float>(cufinufft_plan_template<float> d_plan);
-template int allocgpumem1d_plan<double>(cufinufft_plan_template<double> d_plan);
-template int allocgpumem1d_nupts<float>(cufinufft_plan_template<float> d_plan);
-template int allocgpumem1d_nupts<double>(cufinufft_plan_template<double> d_plan);
-template void freegpumemory1d<float>(cufinufft_plan_template<float> d_plan);
-template void freegpumemory1d<double>(cufinufft_plan_template<double> d_plan);
+template int allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);
+template int allocgpumem1d_plan<double>(cufinufft_plan_t<double> *d_plan);
+template int allocgpumem1d_nupts<float>(cufinufft_plan_t<float> *d_plan);
+template int allocgpumem1d_nupts<double>(cufinufft_plan_t<double> *d_plan);
+template void freegpumemory1d<float>(cufinufft_plan_t<float> *d_plan);
+template void freegpumemory1d<double>(cufinufft_plan_t<double> *d_plan);
 
-template int allocgpumem2d_plan<float>(cufinufft_plan_template<float> d_plan);
-template int allocgpumem2d_plan<double>(cufinufft_plan_template<double> d_plan);
-template int allocgpumem2d_nupts<float>(cufinufft_plan_template<float> d_plan);
-template int allocgpumem2d_nupts<double>(cufinufft_plan_template<double> d_plan);
-template void freegpumemory2d<float>(cufinufft_plan_template<float> d_plan);
-template void freegpumemory2d<double>(cufinufft_plan_template<double> d_plan);
+template int allocgpumem2d_plan<float>(cufinufft_plan_t<float> *d_plan);
+template int allocgpumem2d_plan<double>(cufinufft_plan_t<double> *d_plan);
+template int allocgpumem2d_nupts<float>(cufinufft_plan_t<float> *d_plan);
+template int allocgpumem2d_nupts<double>(cufinufft_plan_t<double> *d_plan);
+template void freegpumemory2d<float>(cufinufft_plan_t<float> *d_plan);
+template void freegpumemory2d<double>(cufinufft_plan_t<double> *d_plan);
 
-template int allocgpumem3d_plan<float>(cufinufft_plan_template<float> d_plan);
-template int allocgpumem3d_plan<double>(cufinufft_plan_template<double> d_plan);
-template int allocgpumem3d_nupts<float>(cufinufft_plan_template<float> d_plan);
-template int allocgpumem3d_nupts<double>(cufinufft_plan_template<double> d_plan);
-template void freegpumemory3d<float>(cufinufft_plan_template<float> d_plan);
-template void freegpumemory3d<double>(cufinufft_plan_template<double> d_plan);
+template int allocgpumem3d_plan<float>(cufinufft_plan_t<float> *d_plan);
+template int allocgpumem3d_plan<double>(cufinufft_plan_t<double> *d_plan);
+template int allocgpumem3d_nupts<float>(cufinufft_plan_t<float> *d_plan);
+template int allocgpumem3d_nupts<double>(cufinufft_plan_t<double> *d_plan);
+template void freegpumemory3d<float>(cufinufft_plan_t<float> *d_plan);
+template void freegpumemory3d<double>(cufinufft_plan_t<double> *d_plan);
 
-} // namespace mem
+} // namespace memtransfer
 } // namespace cufinufft

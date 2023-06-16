@@ -5,59 +5,17 @@
 
 #include <cufinufft_opts.h>
 #include <finufft_spread_opts.h>
+#include <type_traits>
 
-#include <complex>
+#include <complex.h>
 
 #define CUFINUFFT_BIGINT int
 
-struct cufinufft_plan_s {
-    cufinufft_opts opts;
-    finufft_spread_opts spopts;
+template <typename T>
+struct cufinufft_plan_t;
 
-    int type;
-    int dim;
-    CUFINUFFT_BIGINT M;
-    CUFINUFFT_BIGINT nf1;
-    CUFINUFFT_BIGINT nf2;
-    CUFINUFFT_BIGINT nf3;
-    CUFINUFFT_BIGINT ms;
-    CUFINUFFT_BIGINT mt;
-    CUFINUFFT_BIGINT mu;
-    int ntransf;
-    int maxbatchsize;
-    int iflag;
-
-    int totalnumsubprob;
-    int byte_now;
-    double *fwkerhalf1;
-    double *fwkerhalf2;
-    double *fwkerhalf3;
-
-    double *kx;
-    double *ky;
-    double *kz;
-    cuDoubleComplex *c;
-    cuDoubleComplex *fw;
-    cuDoubleComplex *fk;
-
-    // Arrays that used in subprob method
-    int *idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
-    int *sortidx;         // length: #nupts, order inside the bin the nupt belongs to
-    int *numsubprob;      // length: #bins,  number of subproblems in each bin
-    int *binsize;         // length: #bins, number of nonuniform ponits in each bin
-    int *binstartpts;     // length: #bins, exclusive scan of array binsize
-    int *subprob_to_bin;  // length: #subproblems, the bin the subproblem works on
-    int *subprobstartpts; // length: #bins, exclusive scan of array numsubprob
-
-    // Arrays for 3d (need to sort out)
-    int *numnupts;
-    int *subprob_to_nupts;
-
-    cufftHandle fftplan;
-    cudaStream_t *streams;
-};
-
-struct cufinufftf_plan_s {
+template <>
+struct cufinufft_plan_t<float> {
     cufinufft_opts opts;
     finufft_spread_opts spopts;
 
@@ -104,11 +62,53 @@ struct cufinufftf_plan_s {
     cudaStream_t *streams;
 };
 
-typedef struct cufinufftf_plan_s *cufinufftf_plan;
-typedef struct cufinufft_plan_s *cufinufft_plan;
+template <>
+struct cufinufft_plan_t<double> {
+    cufinufft_opts opts;
+    finufft_spread_opts spopts;
 
-#ifdef __cplusplus
-#include <type_traits>
+    int type;
+    int dim;
+    CUFINUFFT_BIGINT M;
+    CUFINUFFT_BIGINT nf1;
+    CUFINUFFT_BIGINT nf2;
+    CUFINUFFT_BIGINT nf3;
+    CUFINUFFT_BIGINT ms;
+    CUFINUFFT_BIGINT mt;
+    CUFINUFFT_BIGINT mu;
+    int ntransf;
+    int maxbatchsize;
+    int iflag;
+
+    int totalnumsubprob;
+    int byte_now;
+    double *fwkerhalf1;
+    double *fwkerhalf2;
+    double *fwkerhalf3;
+
+    double *kx;
+    double *ky;
+    double *kz;
+    cuDoubleComplex *c;
+    cuDoubleComplex *fw;
+    cuDoubleComplex *fk;
+
+    // Arrays that used in subprob method
+    int *idxnupts;        // length: #nupts, index of the nupts in the bin-sorted order
+    int *sortidx;         // length: #nupts, order inside the bin the nupt belongs to
+    int *numsubprob;      // length: #bins,  number of subproblems in each bin
+    int *binsize;         // length: #bins, number of nonuniform ponits in each bin
+    int *binstartpts;     // length: #bins, exclusive scan of array binsize
+    int *subprob_to_bin;  // length: #subproblems, the bin the subproblem works on
+    int *subprobstartpts; // length: #bins, exclusive scan of array numsubprob
+
+    // Arrays for 3d (need to sort out)
+    int *numnupts;
+    int *subprob_to_nupts;
+
+    cufftHandle fftplan;
+    cudaStream_t *streams;
+};
 
 template <typename T>
 struct cuda_complex_impl;
@@ -123,26 +123,6 @@ struct cuda_complex_impl<double> {
 
 template <typename T>
 using cuda_complex = typename cuda_complex_impl<T>::type;
-
-template <typename T>
-struct cufinufft_plan_template_impl;
-template <>
-struct cufinufft_plan_template_impl<float> {
-    using type = cufinufftf_plan;
-    using s_type = cufinufftf_plan_s;
-};
-
-template <>
-struct cufinufft_plan_template_impl<double> {
-    using type = cufinufft_plan;
-    using s_type = cufinufft_plan_s;
-};
-
-template <typename T>
-using cufinufft_plan_template = typename cufinufft_plan_template_impl<T>::type;
-
-template <typename T>
-using cufinufft_plan_template_s = typename cufinufft_plan_template_impl<T>::s_type;
 
 template <typename T>
 static cufftType_t cufft_type();
@@ -163,7 +143,5 @@ static inline cufftResult cufft_ex(cufftHandle plan, cufftDoubleComplex *idata, 
                                    int direction) {
     return cufftExecZ2Z(plan, idata, odata, direction);
 }
-
-#endif
 
 #endif
