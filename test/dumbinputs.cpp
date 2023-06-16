@@ -41,7 +41,11 @@ int main(int argc, char* argv[])
 {
   int M = 100;            // number of nonuniform points
   int N = 10;             // # modes, keep small, also output NU pts in type 3
-  FLT acc = 1e-6;         // desired accuracy for NUFFTs
+#ifdef SINGLE
+  FLT acc = 1e-5;         // desired accuracy for NUFFTs  (prec-dep)
+#else
+  FLT acc = 1e-8;         // desired accuracy for NUFFTs
+#endif
   finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
 
   int NN = N*N*N;         // modes F alloc size since we'll go to 3d
@@ -540,7 +544,7 @@ int main(int argc, char* argv[])
     return ier;
   }
   for (int k=0; k<N; ++k) shuge[k] = pow(huge,1./3)*s[k];  // less huge coords
-  ier = FINUFFT2D3(M,x,x,x,c,+1,acc,N,shuge,shuge,shuge,F,&opts);
+  ier = FINUFFT3D3(M,x,x,x,c,+1,acc,N,shuge,shuge,shuge,F,&opts);
   if (ier==0) {          // any nonzero code accepted here
     printf("3d3 XK prod too big:\twrong error code %d\n",ier);
     return 1;
