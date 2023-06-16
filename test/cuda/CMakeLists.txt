@@ -1,12 +1,12 @@
 
-file(GLOB test_src "*.cu")
+file(GLOB test_src "*.c*")
 
 foreach(srcfile ${test_src})
-  string(REPLACE ".cu" "" executable ${srcfile})
+  string(REGEX REPLACE "\\.c.?" "" executable ${srcfile})
   get_filename_component(executable ${executable} NAME)
   add_executable(${executable} ${srcfile})
   target_include_directories(${executable} PUBLIC ${CUFINUFFT_INCLUDE_DIRS})
-  target_link_libraries(${executable} PUBLIC cufinufft)
+  target_link_libraries(${executable} PUBLIC cufinufft m)
 endforeach()
 
 configure_file(spreadperf.sh ${CMAKE_BINARY_DIR}/test/cuda/spreadperf.sh COPYONLY)

@@ -487,7 +487,7 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
 }
 
 extern "C" {
-int cufinufft_makeplanf(int type, int dim, int *nmodes, int iflag, int ntransf, float tol, int maxbatchsize,
+int cufinufftf_makeplan(int type, int dim, int *nmodes, int iflag, int ntransf, float tol, int maxbatchsize,
                         cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
     return cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize,
                                    (cufinufft_plan_t<float> **)d_plan_ptr, opts);
@@ -498,7 +498,7 @@ int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, int ntransf, d
                                    (cufinufft_plan_t<double> **)d_plan_ptr, opts);
 }
 
-int cufinufft_setptsf(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t, float *d_u,
+int cufinufftf_setpts(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t, float *d_u,
                       cufinufftf_plan d_plan) {
     return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, (cufinufft_plan_t<float> *)d_plan);
 }
@@ -507,17 +507,17 @@ int cufinufft_setpts(int M, double *d_kx, double *d_ky, double *d_kz, int N, dou
     return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, (cufinufft_plan_t<double> *)d_plan);
 }
 
-int cufinufft_executef(cuFloatComplex *d_c, cuFloatComplex *d_fk, cufinufftf_plan d_plan) {
+int cufinufftf_execute(cuFloatComplex *d_c, cuFloatComplex *d_fk, cufinufftf_plan d_plan) {
     return cufinufft_execute_impl<float>(d_c, d_fk, (cufinufft_plan_t<float> *)d_plan);
 }
 int cufinufft_execute(cuDoubleComplex *d_c, cuda_complex<double> *d_fk, cufinufft_plan d_plan) {
     return cufinufft_execute_impl<double>(d_c, d_fk, (cufinufft_plan_t<double> *)d_plan);
 }
 
-int cufinufft_destroyf(cufinufftf_plan *d_plan) {
+int cufinufftf_destroy(cufinufftf_plan d_plan) {
     return cufinufft_destroy_impl<float>((cufinufft_plan_t<float> *)d_plan);
 }
-int cufinufft_destroy(cufinufft_plan *d_plan) {
+int cufinufft_destroy(cufinufft_plan d_plan) {
     return cufinufft_destroy_impl<double>((cufinufft_plan_t<double> *)d_plan);
 }
 
