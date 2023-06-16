@@ -23,6 +23,7 @@
 #include <math.h>
 #include <complex.h>
 #include <cuComplex.h>
+#include <cuda_runtime.h>
 
 int main() {
     // Problem size: number of nonuniform points (M) and grid size (N).

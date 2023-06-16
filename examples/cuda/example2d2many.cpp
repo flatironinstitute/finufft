@@ -10,6 +10,9 @@
 
 #include <cufinufft.h>
 #include <cufinufft/utils.h>
+
+#include <cuda_runtime.h>
+
 // FIXME: This isn't actually public, though maybe it should be?
 using cufinufft::utils::infnorm;
 
