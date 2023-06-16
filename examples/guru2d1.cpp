@@ -13,9 +13,9 @@ int main(int argc, char *argv[]){
    except illustrates the guru interface.
 
    Compile multithreaded with
-   g++ -fopenmp guru2d1.cpp -I ../src ../lib-static/libfinufft.a -o guru2d1 -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp guru2d1.cpp -I ../src ../lib-static/libfinufft.a -o guru2d1
    single core with:
-   g++ guru2d1.cpp -I ../src ../lib-static/libfinufft.a -o guru2d1 -lfftw3 -lm
+   g++ guru2d1.cpp -I ../src ../lib-static/libfinufft.a -o guru2d1
    
    Usage:  ./guru2d1
 */

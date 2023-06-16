@@ -20,7 +20,7 @@ typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
 
   // algorithm performance opts...
   int nthreads;           // number of threads to use, or 0 uses all available
-  int fftw;               // UNUSED
+  int fftw;               // FIXME: UNUSED, kept for layout compatibility
   int spread_sort;        // spreader: 0 don't sort, 1 do, or 2 heuristic choice
   int spread_kerevalmeth; // spreader: 0 exp(sqrt()), 1 Horner piecewise poly (faster)
   int spread_kerpad;      // (exp(sqrt()) only): 0 don't pad kernel to 4n, 1 do

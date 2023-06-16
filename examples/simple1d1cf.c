@@ -13,9 +13,9 @@ int main(int argc, char* argv[])
    with a math test. Single-precision version. C99 style. opts is a struct.
 
    Compile with:
-   gcc -fopenmp example1d1cf.c -I../include ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lfftw3f_omp -lm -lstdc++
+   gcc -fopenmp example1d1cf.c -I../include ../lib-static/libfinufft.a -o example1d1cf -lm -lstdc++
    or if you have built a single-core version:
-   gcc example1d1cf.c -I../include ../lib-static/libfinufft.a -o example1d1cf -lfftw3f -lm -lstdc++
+   gcc example1d1cf.c -I../include ../lib-static/libfinufft.a -o example1d1cf -lm -lstdc++
 
    Usage: ./example1d1cf
 */

@@ -12,9 +12,9 @@ int main(int argc, char* argv[])
    double complex vectors, with a math test.
 
    Compile with:
-   g++ -fopenmp many1d1.cpp -I../include ../lib-static/libfinufft.a -o many1d1 -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp many1d1.cpp -I../include ../lib-static/libfinufft.a -o many1d1
    or if you have built a single-core version:
-   g++ many1d1.cpp -I../include ../lib-static/libfinufft.a -o many1d1 -lfftw3 -lm
+   g++ many1d1.cpp -I../include ../lib-static/libfinufft.a -o many1d1
 
    Usage: ./many1d1
 */

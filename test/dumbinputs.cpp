@@ -18,10 +18,10 @@ int main(int argc, char* argv[])
    Added a chkbnds case to 1d1, 4/9/21.
 
    Compile with (better to go up a directory and use: make test/dumbinputs) :
-   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
+   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs
 
    or if you have built a single-core version:
-   g++ -std=c++14 dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs -lfftw3 -lm
+   g++ -std=c++14 dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs
 
    Usage: ./dumbinputs
    

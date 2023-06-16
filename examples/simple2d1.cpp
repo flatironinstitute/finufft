@@ -14,9 +14,9 @@ int main(int argc, char *argv[]){
    arrays of C++ complex numbers, with a math test. Double precision version. 
 
    Compile multithreaded with
-   g++ -fopenmp simple2d1.cpp -I ../src ../lib-static/libfinufft.a -o simple2d1 -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp simple2d1.cpp -I ../src ../lib-static/libfinufft.a -o simple2d1
    single core with:
-   g++ simple2d1.cpp -I ../src ../lib-static/libfinufft.a -o simple2d1 -lfftw3 -lm
+   g++ simple2d1.cpp -I ../src ../lib-static/libfinufft.a -o simple2d1
    
    Usage:  ./simple2d1
 */

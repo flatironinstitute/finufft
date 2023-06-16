@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
    for Xi Chen question. Updated to also demo guru interface and compare speed.
    6/7/22 made deterministic changes so check answer matches both ways.
 
-   g++ -fopenmp manysmallprobs.cpp ../lib-static/libfinufft.a -o manysmallprobs  -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp manysmallprobs.cpp ../lib-static/libfinufft.a -o manysmallprobs
    # multithreaded is much slower, due to overhead of starting threads?...
    export OMP_NUM_THREADS=1
    time ./manysmallprobs
