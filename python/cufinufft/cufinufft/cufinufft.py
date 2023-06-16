@@ -10,7 +10,7 @@ import sys
 import numpy as np
 
 from ctypes import byref
-from ctypes import c_int
+from ctypes import c_int64
 from ctypes import c_void_p
 
 from cufinufft._cufinufft import NufftOpts
@@ -95,7 +95,7 @@ class cufinufft:
         #   and reorder from C/python ndarray.shape style input (nZ, nY, nX)
         #   to the (F) order expected by the low level library (nX, nY, nZ).
         modes = modes[::-1] + (1,) * (3 - self.dim)
-        self.modes = (c_int * 3)(*modes)
+        self.modes = (c_int64 * 3)(*modes)
 
         # Get the default option values.
         self.opts = self._default_opts(nufft_type, self.dim)
@@ -151,7 +151,6 @@ class cufinufft:
                               self.isign,
                               self.n_trans,
                               self.eps,
-                              1,
                               byref(self.plan),
                               self.opts)
 
@@ -213,7 +212,7 @@ class cufinufft:
             self.references.append(kz)
 
         # Then take three items off the stack as our reordered axis.
-        ier = self._set_pts(M, *fpts_axes[:3], 0, None, None, None, self.plan)
+        ier = self._set_pts(self.plan, M, *fpts_axes[:3], 0, None, None, None)
 
         if ier != 0:
             raise RuntimeError('Error setting non-uniform points.')
@@ -235,7 +234,7 @@ class cufinufft:
                             "for this plan. Check plan and arguments.".format(
                                 self.complex_dtype))
 
-        ier = self._exec_plan(c.ptr, fk.ptr, self.plan)
+        ier = self._exec_plan(self.plan, c.ptr, fk.ptr)
 
         if ier != 0:
             raise RuntimeError('Error executing plan.')

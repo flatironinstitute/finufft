@@ -100,15 +100,16 @@ int run_test(int method) {
     }
 
     opts.gpu_method = method;
+    opts.gpu_maxbatchsize = 1;
 
     int nmodes[3];
     int ntransf = 1;
-    int maxbatchsize = 1;
+
     nmodes[0] = N1;
     nmodes[1] = N2;
     nmodes[2] = 1;
     cudaEventRecord(start);
-    ier = cufinufft_makeplan_impl<T>(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, &opts);
+    ier = cufinufft_makeplan_impl<T>(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
     if (ier != 0) {
         printf("err: cufinufft2d_plan\n");
         return ier;

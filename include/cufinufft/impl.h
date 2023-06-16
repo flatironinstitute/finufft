@@ -4,7 +4,7 @@
 #include <cufinufft/types.h>
 
 template <typename T>
-int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol, int maxbatchsize,
+int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
                             cufinufft_plan_t<T> **d_plan_ptr, cufinufft_opts *opts);
 template <typename T>
 int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u, cufinufft_plan_t<T> *d_plan);

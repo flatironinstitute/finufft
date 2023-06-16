@@ -1,8 +1,9 @@
 #include <complex>
-#include <cufft.h>
+#include <cstdint>
 #include <helper_cuda.h>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <math.h>
 
 #include <cufinufft.h>
@@ -56,7 +57,7 @@ void SETUP_BINSIZE(int type, int dim, cufinufft_opts *opts) {
 }
 
 template <typename T>
-int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol, int maxbatchsize,
+int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, T tol,
                             cufinufft_plan_t<T> **d_plan_ptr, cufinufft_opts *opts) {
     /*
         "plan" stage (in single or double precision).
@@ -131,6 +132,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->nf3 = nf3;
     d_plan->iflag = fftsign;
     d_plan->ntransf = ntransf;
+    int maxbatchsize = opts->gpu_maxbatchsize;
     if (maxbatchsize == 0)              // implies: use a heuristic.
         maxbatchsize = min(ntransf, 8); // heuristic from test codes
     d_plan->maxbatchsize = maxbatchsize;
@@ -486,31 +488,51 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
     return 0;
 }
 
-extern "C" {
-int cufinufftf_makeplan(int type, int dim, int *nmodes, int iflag, int ntransf, float tol, int maxbatchsize,
-                        cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
-    return cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize,
-                                   (cufinufft_plan_t<float> **)d_plan_ptr, opts);
-}
-int cufinufft_makeplan(int type, int dim, int *nmodes, int iflag, int ntransf, double tol, int maxbatchsize,
-                       cufinufft_plan *d_plan_ptr, cufinufft_opts *opts) {
-    return cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize,
-                                   (cufinufft_plan_t<double> **)d_plan_ptr, opts);
+inline int mode_copy_validate(int dim, int64_t *modes64, int32_t modes32[3]) {
+    int64_t tot_size = 1;
+    for (int i = 0; i < dim; ++i) {
+        modes32[i] = modes64[i];
+        tot_size *= modes64[i];
+    }
+    for (int i = dim; i < 3; ++i)
+        modes32[i] = 1;
+
+    return tot_size > std::numeric_limits<int32_t>::max();
 }
 
-int cufinufftf_setpts(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t, float *d_u,
-                      cufinufftf_plan d_plan) {
+extern "C" {
+int cufinufftf_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntransf, float tol,
+                        cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
+    int nmodes32[3];
+    if (mode_copy_validate(dim, nmodes, nmodes32))
+        return -1; // FIXME: need proper error code
+
+    return cufinufft_makeplan_impl(type, dim, nmodes32, iflag, ntransf, tol, (cufinufft_plan_t<float> **)d_plan_ptr,
+                                   opts);
+}
+int cufinufft_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntransf, double tol,
+                       cufinufft_plan *d_plan_ptr, cufinufft_opts *opts) {
+    int nmodes32[3];
+    if (mode_copy_validate(dim, nmodes, nmodes32))
+        return -1; // FIXME: need proper error code
+
+    return cufinufft_makeplan_impl(type, dim, nmodes32, iflag, ntransf, tol, (cufinufft_plan_t<double> **)d_plan_ptr,
+                                   opts);
+}
+
+int cufinufftf_setpts(cufinufftf_plan d_plan, int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s,
+                      float *d_t, float *d_u) {
     return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, (cufinufft_plan_t<float> *)d_plan);
 }
-int cufinufft_setpts(int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s, double *d_t, double *d_u,
-                     cufinufft_plan d_plan) {
+int cufinufft_setpts(cufinufft_plan d_plan, int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s,
+                     double *d_t, double *d_u) {
     return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, (cufinufft_plan_t<double> *)d_plan);
 }
 
-int cufinufftf_execute(cuFloatComplex *d_c, cuFloatComplex *d_fk, cufinufftf_plan d_plan) {
+int cufinufftf_execute(cufinufftf_plan d_plan, cuFloatComplex *d_c, cuFloatComplex *d_fk) {
     return cufinufft_execute_impl<float>(d_c, d_fk, (cufinufft_plan_t<float> *)d_plan);
 }
-int cufinufft_execute(cuDoubleComplex *d_c, cuda_complex<double> *d_fk, cufinufft_plan d_plan) {
+int cufinufft_execute(cufinufft_plan d_plan, cuDoubleComplex *d_c, cuda_complex<double> *d_fk) {
     return cufinufft_execute_impl<double>(d_c, d_fk, (cufinufft_plan_t<double> *)d_plan);
 }
 
@@ -555,6 +577,8 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
     opts->gpu_binsizez = -1;
 
     opts->gpu_spreadinterponly = 0; // default to do the whole nufft
+
+    opts->gpu_maxbatchsize = 0; // Heuristically set
 
     switch (dim) {
     case 1: {
@@ -607,16 +631,3 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
     return 0;
 }
 }
-
-template int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, float tol,
-                                     int maxbatchsize, cufinufft_plan_t<float> **d_plan_ptr, cufinufft_opts *opts);
-template int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntransf, double tol,
-                                     int maxbatchsize, cufinufft_plan_t<double> **d_plan_ptr, cufinufft_opts *opts);
-
-template int cufinufft_setpts_impl(int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s, float *d_t,
-                                   float *d_u, cufinufft_plan_t<float> *d_plan);
-template int cufinufft_setpts_impl(int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s, double *d_t,
-                                   double *d_u, cufinufft_plan_t<double> *d_plan);
-
-template int cufinufft_destroy_impl<float>(cufinufft_plan_t<float> *d_plan_ptr);
-template int cufinufft_destroy_impl<double>(cufinufft_plan_t<double> *d_plan_ptr);
