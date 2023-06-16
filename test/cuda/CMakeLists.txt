@@ -69,7 +69,7 @@ function(add_tests PREC REQ_TOL CHECK_TOL)
 
   add_test(
     NAME cufinufft3d2_test_GM_${PREC}
-    COMMAND cufinufft3d_test 1 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL})
+    COMMAND cufinufft3d_test 1 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC})
 
 endfunction()
 

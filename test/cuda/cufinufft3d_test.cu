@@ -181,7 +181,7 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 9) {
+    if (argc < 10) {
         fprintf(stderr, "Usage: cufinufft3d1_test method type N1 N2 N3 M tol checktol prec\n"
                         "Arguments:\n"
                         "  method: One of\n"
