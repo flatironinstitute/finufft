@@ -9,9 +9,6 @@ foreach(srcfile ${test_src})
   target_link_libraries(${executable} PUBLIC cufinufft m)
 endforeach()
 
-configure_file(spreadperf.sh ${CMAKE_BINARY_DIR}/test/cuda/spreadperf.sh COPYONLY)
-configure_file(fseriesperf.sh ${CMAKE_BINARY_DIR}/test/cuda/fseriesperf.sh COPYONLY)
-
 function(add_tests PREC REQ_TOL CHECK_TOL)
   add_test(
     NAME cufinufft1d1_test_GM_${PREC}
@@ -70,7 +67,6 @@ function(add_tests PREC REQ_TOL CHECK_TOL)
   add_test(
     NAME cufinufft3d2_test_GM_${PREC}
     COMMAND cufinufft3d_test 1 2 2 5 10 20 ${REQ_TOL} ${CHECK_TOL} ${PREC})
-
 endfunction()
 
 add_tests(float 1e-5 2e-4)
