@@ -3,10 +3,14 @@
    Usage: ./testutils{f}
 
    Pass: exit code 0. (Stdout should indicate passed)
-   Fail: exit code>0. (Stderr may indicate what failed)
+   Fail: exit code>0. (Stdout may indicate what failed)
 
    June 2023: switched to pass-fail tests within the executable (more clear,
    and platform-indep, than having to compare the text output)
+
+   Suggested compile (double/float versions):
+   g++ -std=c++14 -fopenmp testutils.cpp -I../include ../src/utils.o ../src/utils_precindep.o -o testutils -lgomp
+   g++ -std=c++14 -fopenmp testutils.cpp -I../include ../src/utils_32.o ../src/utils_precindep.o -o testutilsf -lgomp -DSINGLE
 */
 
 // This switches FLT macro from double to float if SINGLE is defined, etc...
@@ -15,6 +19,12 @@ using namespace finufft::utils;
 
 int main(int argc, char* argv[])
 {
+#ifdef SINGLE
+  printf("testutilsf started...\n");
+#else
+  printf("testutils started...\n");
+#endif
+
   // test next235even...
   // Barnett 2/9/17, made smaller range 3/28/17. pass-fail 6/16/23
   // The true outputs from {0,1,..,99}:
@@ -23,7 +33,7 @@ int main(int argc, char* argv[])
     BIGINT o = next235even(n);
     BIGINT t = next235even_true[n];
     if (o!=t) {
-      fprintf(stderr,"next235even(%lld) =\t%lld, error should be %lld!\n",(long long)n, (long long)o, (long long)t);
+      printf("next235even(%lld) =\t%lld, error should be %lld!\n",(long long)n, (long long)o, (long long)t);
       return 1;
     }
   }

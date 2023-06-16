@@ -1,13 +1,14 @@
 /* Tester calling FINUFFT library from C++ using all manner of crazy inputs and
    edge cases that might cause errors, and to check those errors give the right
-   error codes gracefully.
+   error codes gracefully, and the right answers if relevant.
 
    Simple and "many" interfaces mostly, with guru cases at the end (need more).
 
-   Usage: ./dumbinputs{f}
+   Usage (linux):  ./dumbinputs{f} 2> /dev/null
+   (since FINUFFT will spit msgs to stderr, to be ignored)
    
-   Pass: exit code 0. (Stdout should indicate passed; msgs will go to stderr).
-   Fail: exit code>0. (msgs will go to stderr; stderr may indicate what failed)
+   Pass: exit code 0. (Stdout should indicate passed)
+   Fail: exit code>0. (Stdout may indicate what failed)
 
    Notes: due to large number of FINUFFT calls, running OMP_NUM_THREADS<=4 is
    usually much faster than a large number of threads.
@@ -20,10 +21,12 @@
    Made pass-fail, obviating results/dumbinputs.refout. Barnett 6/16/23.
 
    Suggested compile:
-   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs  -lfftw3 -lfftw3_omp -lm
+   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs -lfftw3 -lfftw3_omp -lm
+   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputsf -lfftw3 -lfftw3_omp -lm -DSINGLE
 
    or if you have built a single-core version:
    g++ -std=c++14 dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs -lfftw3 -lm
+   etc
 */
 
 // This switches FLT macro from double to float if SINGLE is defined, etc...
@@ -64,184 +67,394 @@ int main(int argc, char* argv[])
   //for (int k=0;k<N;++k) printf("F[%d] = %g+%gi\n",k,real(F[k]),imag(F[k]));
   //for (int j=0;j<M;++j) printf("c[%d] = %g+%gi\n",j,real(c[j]),imag(c[j]));
   //printf("%.3g %3g\n",twonorm(N,F),twonorm(M,c));
-  opts.debug = 0;   // set to 1,2, to debug segfaults
+  opts.debug = 0;   // set to 1,2, to debug inside FINUFFT, etc segfaults
   opts.spread_debug = 0;
 
-  printf("1D dumb cases ----------------\n");
+#ifdef SINGLE
+  printf("dumbinputsf test start...\n");
+#else
+  printf("dumbinputs test start...\n");
+#endif
+
+  // 111111111111111111111111111111111111111111111111111111111111111111111111
+  printf("1D dumb cases.\n");
   int ier = FINUFFT1D1(M,x,c,+1,0,N,F,&opts);
-  printf("1d1 tol=0:\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("1d1 tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D1(M,x,c,+1,acc,0,F,&opts);
-  printf("1d1 N=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("1d1 N=0:\tier=%d",ier);
+    return ier;
+  }
   ier = FINUFFT1D1(0,x,c,+1,acc,N,F,&opts);
-  printf("1d1 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
+  FLT t = twonorm(N,F);
+  if (ier || t!=0.0) {
+    printf("1d1 M=0:\tier=%d nrm(F)=%.3g",ier,t);
+    return 1;
+  }
   FLT xsave = x[0];
   x[0] = 3*PI*(1 + 2*EPSILON);   // works in either prec, just outside valid
   ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
-  printf("1d1 x>3pi:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_SPREAD_PTS_OUT_RANGE) {
+    printf("1d1 x>3pi:\twrong err code %d\n",ier);
+    return 1;
+  }
   x[0] = INFINITY;
   ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
-  printf("1d1 x=Inf:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_SPREAD_PTS_OUT_RANGE) {
+    printf("1d1 x=Inf:\twrong err code %d\n",ier);
+    return 1;
+  }
   x[0] = NAN;
   ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
-  printf("1d1 x=NaN:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_SPREAD_PTS_OUT_RANGE) {
+    printf("1d1 x=NaN:\twrong err code %d\n",ier);
+    return 1;
+  }
   x[0] = xsave;
-  
   for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
   ier = FINUFFT1D2(M,x,c,+1,0,N,F,&opts);
-  printf("1d2 tol=0:\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("1d2 tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D2(M,x,c,+1,acc,0,F,&opts);
-  printf("1d2 N=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
+  t = twonorm(M,c);
+  if (ier || t!=0.0) {
+    printf("1d2 N=0:\tier=%d nrm(c)=%.3g",ier,t);
+    return 1;
+  }
   ier = FINUFFT1D2(0,x,c,+1,acc,N,F,&opts);
-  printf("1d2 M=0:\tier=%d\n",ier);
-
+  if (ier) {
+    printf("1d2 M=0:\tier=%d",ier);
+    return ier;
+  }
   for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset c for t3
   ier = FINUFFT1D3(M,x,c,+1,0,N,s,F,&opts);
-  printf("1d3 tol=0:\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("1d3 tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D3(M,x,c,+1,acc,0,s,F,&opts);
-  printf("1d3 nk=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("1d3 nk=0:\tier=%d",ier);
+    return ier;
+  }
   ier = FINUFFT1D3(0,x,c,+1,acc,N,s,F,&opts);
-  printf("1d3 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
-  // for type 3 only we do crude accuracy check for 1-NUpt cases...
+  t = twonorm(N,F);
+  if (ier || t!=0.0) {
+    printf("1d3 M=0:\tier=%d nrm(F)=%.3g",ier,t);
+    return 1;
+  }
+  // for type 3 only we include crude accuracy check for 1-NUpt (I/O) cases...
   ier = FINUFFT1D3(1,x,c,+1,acc,N,s,F,&opts);   // XK prod formally 0
   dirft1d3(1,x,c,+1,N,s,Fe); for (int k=0; k<N; ++k) F[k] -= Fe[k]; // acc chk
-  printf("1d3 M=1:\tier=%d\tnrm(err)=%.4f\n",ier,twonorm(N,F)/sqrt((FLT)N));  // rms, to 5e-5 abs
-  ier = FINUFFT1D3(M,x,c,+1,acc,1,s,F,&opts);   // "   (for no diff in txt out)
+  FLT err = twonorm(N,F)/sqrt((FLT)N);
+  if (ier || err>100*acc) {
+    printf("1d3 M=1:\tier=%d nrm(err)=%.3g",ier,err);
+    return 1;
+  }
+  ier = FINUFFT1D3(M,x,c,+1,acc,1,s,F,&opts);
   dirft1d3(M,x,c,+1,1,s,Fe);
-  printf("1d3 N=1:\tier=%d\terr=%.4f\n",ier,abs(F[0]-Fe[0]));
-  ier = FINUFFT1D3(1,x,c,+1,acc,1,s,F,&opts);   // "
+  err = abs(F[0]-Fe[0]);
+  if (ier || err>10*acc) {
+    printf("1d3 N=1:\tier=%d err=%.3g\n",ier,err);
+    return 1;
+  }
+  ier = FINUFFT1D3(1,x,c,+1,acc,1,s,F,&opts);
   dirft1d3(1,x,c,+1,1,s,Fe);
-  printf("1d3 M=N=1:\tier=%d\terr=%.4f\n",ier,abs(F[0]-Fe[0]));
+  err = abs(F[0]-Fe[0]);
+  if (ier || err>10*acc) {
+    printf("1d3 M=nk=1:\tier=%d err=%.3g\n",ier,err);
+    return 1;
+  }
   ier = FINUFFT1D3(M,x,c,+1,acc,N,shuge,F,&opts);
-  printf("1d3 XK prod too big:\tier=%d (should complain)\n",ier);
-
+  if (ier==0) {          // any nonzero code accepted here
+    printf("1d3 XK prod too big:\twrong error code %d\n",ier);
+    return 1;
+  }
   int ndata = 10;                 // how many multiple vectors to test it on
   CPX* cm = (CPX*)malloc(sizeof(CPX)*M*ndata);
   CPX* Fm = (CPX*)malloc(sizeof(CPX)*NN*ndata);     // the biggest array
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // set cm for 1d1many
   ier = FINUFFT1D1MANY(0,M,x,cm,+1,0,N,Fm,&opts);
-  printf("1d1many ndata=0:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_NTRANS_NOTVALID) {
+    printf("1d1many ndata=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D1MANY(ndata,M,x,cm,+1,0,N,Fm,&opts);
-  printf("1d1many tol=0:\t\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("1d1many tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D1MANY(ndata,M,x,cm,+1,acc,0,Fm,&opts);
-  printf("1d1many Ns=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("1d1many N=0:\tier=%d",ier);
+    return ier;
+  }
   ier = FINUFFT1D1MANY(ndata,0,x,cm,+1,acc,N,Fm,&opts);
-  printf("1d1many M=0:\t\tier=%d\tnrm(Fm)=%.3g (should vanish)\n",ier,twonorm(N*ndata,Fm));
-  
+  t = twonorm(N*ndata,Fm);
+  if (ier || t!=0.0) {
+    printf("1d1many M=0:\tier=%d nrm(Fm)=%.3g\n",ier,t);
+    return 1;
+  }
   for (int k=0; k<NN*ndata; ++k) Fm[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set Fm for 1d2many
   ier = FINUFFT1D2MANY(0,M,x,cm,+1,0,N,Fm,&opts);
-  printf("1d2many ndata=0:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_NTRANS_NOTVALID) {
+    printf("1d2many ndata=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D2MANY(ndata,M,x,cm,+1,0,N,Fm,&opts);
-  printf("1d2many tol=0:\t\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("1d1many tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D2MANY(ndata,M,x,cm,+1,acc,0,Fm,&opts);
-  printf("1d2many Ns=0:\tier=%d\tnrm(cm)=%.3g (should vanish)\n",ier,twonorm(M*ndata,cm));
+  t = twonorm(N*ndata,cm);
+  if (ier || t!=0.0) {
+    printf("1d2many N=0:\tier=%d nrm(cm)=%.3g\n",ier,t);
+    return 1;
+  }
   ier = FINUFFT1D2MANY(ndata,0,x,cm,+1,acc,N,Fm,&opts);
-  printf("1d2many M=0:\t\tier=%d\n",ier);
-
+  if (ier) {
+    printf("1d2many M=0:\tier=%d",ier);
+    return ier;
+  }
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset cm for 1d3many
   ier = FINUFFT1D3MANY(0, M,x,c,+1,acc,N,s,Fm,&opts);
-  printf("1d3many ndata=0:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_NTRANS_NOTVALID) {
+    printf("1d3many ndata=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D3MANY(ndata, M,x,c,+1,0,N,s,Fm,&opts);
-  printf("1d3many tol=0:\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("1d3many tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT1D3MANY(ndata, M,x,c,+1,acc,0,s,Fm,&opts);
-  printf("1d3many nk=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("1d3many nk=0:\tier=%d",ier);
+    return ier;
+  }
   ier = FINUFFT1D3MANY(ndata, 0,x,c,+1,acc,N,s,Fm,&opts);
-  printf("1d3many M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,Fm));
-  // again, as above, only crude acc tests for 1-NUpt case...
+  t = twonorm(N,Fm);
+  // again, as above, only crude acc tests for 1-NUpt (I/O) case...
   ier = FINUFFT1D3MANY(ndata, 1,x,c,+1,acc,N,s,Fm,&opts);   // XK prod formally 0
   dirft1d3(1,x,c,+1,N,s,Fe); for (int k=0; k<N; ++k) Fm[k] -= Fe[k]; // acc chk
-  printf("1d3many M=1:\tier=%d\tnrm(err)=%.4f\n",ier,twonorm(N,Fm)/sqrt((FLT)N));  // rms, to 5e-5 abs; check just first trial
-  ier = FINUFFT1D3MANY(ndata,M,x,c,+1,acc,1,s,Fm,&opts);   // "
+  err = twonorm(N,Fm)/sqrt((FLT)N);  // rms, to 5e-5 abs; check just first trial
+  if (ier || err>100*acc) {
+    printf("1d3many M=1:\tier=%d nrm(err)=%.3g\n",ier,err);
+    return 1;
+  }
+  ier = FINUFFT1D3MANY(ndata,M,x,c,+1,acc,1,s,Fm,&opts);
   dirft1d3(M,x,c,+1,1,s,Fe);
-  printf("1d3many N=1:\tier=%d\terr=%.4f\n",ier,abs(Fm[0]-Fe[0]));
-  ier = FINUFFT1D3MANY(ndata,1,x,c,+1,acc,1,s,Fm,&opts);   // "
+  err = abs(Fm[0]-Fe[0]);
+  if (ier || err>10*acc) {
+    printf("1d3many N=1:\tier=%d err=%.3g\n",ier,err);
+    return 1;
+  }
+  ier = FINUFFT1D3MANY(ndata,1,x,c,+1,acc,1,s,Fm,&opts);
   dirft1d3(1,x,c,+1,1,s,Fe);
-  printf("1d3many M=N=1:\tier=%d\terr=%.4f\n",ier,abs(Fm[0]-Fe[0]));
+  err = abs(Fm[0]-Fe[0]);
+  if (ier || err>10*acc) {
+    printf("1d3many M=N=1:\tier=%d err=%.3g\n",ier,err);
+    return 1;
+  }
   ier = FINUFFT1D3MANY(ndata,M,x,c,+1,acc,N,shuge,F,&opts);
-  printf("1d3many XK prod too big:\tier=%d (should complain)\n",ier);
+  if (ier==0) {          // any nonzero code accepted here
+    printf("1d3many XK prod too big:\twrong error code %d\n",ier);
+    return 1;
+  }
 
-  printf("2D dumb cases ----------------\n"); // (uses y=x, and t=s in type 3)
+  // 2222222222222222222222222222222222222222222222222222222222222222222222222
+  printf("2D dumb cases.\n"); // (uses y=x, and t=s in type 3)
   ier = FINUFFT2D1(M,x,x,c,+1,0,N,N,F,&opts);
-  printf("2d1 tol=0:\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("2d1 tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D1(M,x,x,c,+1,acc,0,0,F,&opts);
-  printf("2d1 Ns=Nt=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("2d1 Ns=Nt=0:\tier=%d\n",ier);
+    return ier;
+  }
   ier = FINUFFT2D1(M,x,x,c,+1,acc,0,N,F,&opts);
-  printf("2d1 Ns=0,Nt>0:\tier=%d\n",ier);
+  if (ier) {
+    printf("2d1 Ns=0,Nt>0:\tier=%d\n",ier);
+    return ier;
+  }
   ier = FINUFFT2D1(M,x,x,c,+1,acc,N,0,F,&opts);
-  printf("2d1 Ns>0,Ns=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("2d1 Ns>0,Nt=0:\tier=%d\n",ier);
+    return ier;
+  }
   ier = FINUFFT2D1(0,x,x,c,+1,acc,N,N,F,&opts);
-  printf("2d1 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
-
+  t = twonorm(N,F);
+  if (ier || t!=0.0) {
+    printf("2d1 M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
+    return 1;
+  }
   for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
   ier = FINUFFT2D2(M,x,x,c,+1,0,N,N,F,&opts);
-  printf("2d2 tol=0:\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("2d2 tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D2(M,x,x,c,+1,acc,0,0,F,&opts);
-  printf("2d2 Ns=Nt=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
+  t = twonorm(M,c);
+  if (ier || t!=0.0) {
+    printf("2d2 Ns=Nt=0:\tier=%d nrm(c)=%.3g\n",ier,t);
+    return 1;
+  }
   ier = FINUFFT2D2(M,x,x,c,+1,acc,0,N,F,&opts);
-  printf("2d2 Ns=0,Nt>0:\tier=%d\tnrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
+  t = twonorm(M,c);
+  if (ier || t!=0.0) {
+    printf("2d2 Ns=0,Nt>0:\tier=%d nrm(c)=%.3g\n",ier,t);
+    return 1;
+  }
   ier = FINUFFT2D2(M,x,x,c,+1,acc,N,0,F,&opts);
-  printf("2d2 Ns>0,Nt=0:\tier=%d\tnrm(c)=%.3g (should vanish)\n",ier,twonorm(M,c));
+  t = twonorm(M,c);
+  if (ier || t!=0.0) {
+    printf("2d2 Ns>0,Nt=0:\tier=%d nrm(c)=%.3g\n",ier,t);
+    return 1;
+  }
   ier = FINUFFT2D2(0,x,x,c,+1,acc,N,N,F,&opts);
-  printf("2d2 M=0:\tier=%d\n",ier);
-
+  if (ier) {
+    printf("2d2 M=0:\tier=%d\n",ier);
+    return ier;
+  }
   for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset c for t3
   ier = FINUFFT2D3(M,x,x,c,+1,0,N,s,s,F,&opts);
-  printf("2d3 tol=0:\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("2d3 tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D3(M,x,x,c,+1,acc,0,s,s,F,&opts);
-  printf("2d3 nk=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("2d3 nk=0:\tier=%d",ier);
+    return ier;
+  }
   ier = FINUFFT2D3(0,x,x,c,+1,acc,N,s,s,F,&opts);
-  printf("2d3 M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,F));
+  t = twonorm(N,F);
+  if (ier || t!=0.0) {
+    printf("2d3 M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
+    return 1;
+  }
   ier = FINUFFT2D3(1,x,x,c,+1,acc,N,s,s,F,&opts);   // XK prod formally 0
-  printf("2d3 M=1:\tier=%d\tnrm(F)=%.3g\n",ier,twonorm(N,F));
+  // we don't check the M=nk=1 case for >1D since guess that 1D would catch it.
+  if (ier) {
+    printf("2d3 M=nk=1:\tier=%d\n",ier);
+    return ier;
+  }  
   for (int k=0; k<N; ++k) shuge[k] = sqrt(huge)*s[k];     // less huge coords
   ier = FINUFFT2D3(M,x,x,c,+1,acc,N,shuge,shuge,F,&opts);
-  printf("2d3 XK prod too big:\tier=%d (should complain)\n",ier);
-
+  if (ier==0) {          // any nonzero code accepted here
+    printf("2d3 XK prod too big:\twrong error code %d\n",ier);
+    return 1;
+  }
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset cm for 2d1many
   ier = FINUFFT2D1MANY(0,M,x,x,cm,+1,0,N,N,Fm,&opts);
-  printf("2d1many ndata=0:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_NTRANS_NOTVALID) {
+    printf("2d1many ndata=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D1MANY(ndata,M,x,x,cm,+1,0,N,N,Fm,&opts);
-  printf("2d1many tol=0:\t\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("2d1many tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D1MANY(ndata,M,x,x,cm,+1,acc,0,0,Fm,&opts);
-  printf("2d1many Ns=Nt=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("2d1many Ns=Nt=0:\tier=%d\n",ier);
+    return ier;
+  }
   ier = FINUFFT2D1MANY(ndata,M,x,x,cm,+1,acc,0,N,Fm,&opts);
-  printf("2d1many Ns=0,Nt>0:\tier=%d\n",ier);
+  if (ier) {
+    printf("2d1many Ns=0,Nt>0:\tier=%d\n",ier);
+    return ier;
+  }
   ier = FINUFFT2D1MANY(ndata,M,x,x,cm,+1,acc,N,0,Fm,&opts);
-  printf("2d1many Ns>0,Ns=0:\tier=%d\n",ier);
+  if (ier) {
+    printf("2d1many Ns>0,Nt=0:\tier=%d\n",ier);
+    return ier;
+  }
   ier = FINUFFT2D1MANY(ndata,0,x,x,cm,+1,acc,N,N,Fm,&opts);
-  printf("2d1many M=0:\t\tier=%d\tnrm(Fm)=%.3g (should vanish)\n",ier,twonorm(N*ndata,Fm));
-
+  t = twonorm(N*ndata,Fm);
+  if (ier || t!=0.0) {
+    printf("2d1many M=0:\tier=%d nrm(Fm)=%.3g\n",ier,t);
+    return 1;
+  }
   for (int k=0; k<NN*ndata; ++k) Fm[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // reset Fm for t2
   ier = FINUFFT2D2MANY(0,M,x,x,cm,+1,0,N,N,Fm,&opts);
-  printf("2d2many ndata=0:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_NTRANS_NOTVALID) {
+    printf("2d2many ndata=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D2MANY(ndata,M,x,x,cm,+1,0,N,N,Fm,&opts);
-  printf("2d2many tol=0:\t\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("2d2many tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D2MANY(ndata,M,x,x,cm,+1,acc,0,0,Fm,&opts);
-  printf("2d2many Ns=Nt=0:\tier=%d\tnrm(cm)=%.3g (should vanish)\n",
-  	      ier,twonorm(M*ndata,cm));
+  t = twonorm(M*ndata,cm);
+  if (ier || t!=0.0) {
+    printf("2d2many Ns=Nt=0:\tier=%d nrm(cm)=%.3g\n", ier,t);
+    return 1;
+  }
   ier = FINUFFT2D2MANY(ndata,M,x,x,cm,+1,acc,0,N,Fm,&opts);
-  printf("2d2many Ns=0,Nt>0:\tier=%d\tnrm(cm)=%.3g (should vanish)\n",
-  	      ier,twonorm(M*ndata,cm));
+  t = twonorm(M*ndata,cm);
+  if (ier || t!=0.0) {
+    printf("2d2many Ns=0,Nt>0:\tier=%d nrm(cm)=%.3g\n", ier,t);
+    return 1;
+  }
   ier = FINUFFT2D2MANY(ndata,M,x,x,cm,+1,acc,N,0,Fm,&opts);
-  printf("2d2many Ns>0,Nt=0:\tier=%d\tnrm(cm)=%.3g (should vanish)\n",
-  	      ier,twonorm(M*ndata,cm));
+  t = twonorm(M*ndata,cm);
+  if (ier || t!=0.0) {
+    printf("2d2many Ns>0,Nt=0:\tier=%d nrm(cm)=%.3g\n", ier,t);
+    return 1;
+  }
   ier = FINUFFT2D2MANY(ndata,0,x,x,cm,+1,acc,N,N,Fm,&opts);
-  printf("2d2many M=0:\t\tier=%d\n",ier);
-
+  if (ier) {
+    printf("2d2many M=0:\tier=%d",ier);
+    return ier;
+  }
   ier = FINUFFT2D3MANY(0,M,x,x,cm,+1,0,N,s,s,Fm,&opts);
-  printf("2d3many ndata=0:\tier=%d (should complain)\n",ier);
+  if (ier != ERR_NTRANS_NOTVALID) {
+    printf("2d3many ndata=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D3MANY(ndata,M,x,x,cm,+1,0,N,s,s,Fm,&opts);
-  printf("2d3many tol=0:\t\tier=%d (should complain)\n",ier);
+  if (ier != WARN_EPS_TOO_SMALL) {
+    printf("2d3many tol=0:\twrong err code %d\n",ier);
+    return 1;
+  }
   ier = FINUFFT2D3MANY(ndata,M,x,x,cm,+1,acc,0,s,s,Fm,&opts);
-  printf("2d3many nk=0:\tier=%d\n", ier);
+  if (ier) {
+    printf("2d3many nk=0:\tier=%d",ier);
+    return ier;
+  }
   ier = FINUFFT2D3MANY(ndata,0,x,x,cm,+1,acc,N,s,s,Fm,&opts);
-  printf("2d3many M=0:\tier=%d\tnrm(F)=%.3g (should vanish)\n",ier,twonorm(N,Fm));
-  ier = FINUFFT2D3MANY(ndata,1,x,x,c,+1,acc,N,s,s,F,&opts);   // XK prod formally 0
-  printf("2d3 M=1:\tier=%d\tnrm(F)=%.3g\n",ier,twonorm(N,Fm));
+  t = twonorm(N,Fm);
+  if (ier | t!=0.0) {
+    printf("2d3many M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
+    return 1;
+  }
+  ier = FINUFFT2D3MANY(ndata,1,x,x,c,+1,acc,N,s,s,F,&opts); // XK prod formally 0
+  // we don't check the M=nk=1 case for >1D since guess that 1D would catch it.
+  if (ier) {
+    printf("2d3many M=nk=1:\tier=%d\n",ier);
+    return ier;
+  }
   ier = FINUFFT2D3MANY(ndata,M,x,x,c,+1,acc,N,shuge,shuge,Fm,&opts);
-  printf("2d3many XK prod too big:\tier=%d (should complain)\n",ier);
-
-
-  printf("3D dumb cases ----------------\n");    // z=y=x, and u=t=s in type 3
+  if (ier==0) {          // any nonzero code accepted here
+    printf("2d3many XK prod too big:\twrong error code %d\n",ier);
+    return 1;
+  }
+  
+  // 3333333333333333333333333333333333333333333333333333333333333333333333333
+  printf("3D dumb cases.\n");    // z=y=x, and u=t=s in type 3
   ier = FINUFFT3D1(M,x,x,x,c,+1,0,N,N,N,F,&opts);
   printf("3d1 tol=0:\tier=%d (should complain)\n",ier);
   ier = FINUFFT3D1(M,x,x,x,c,+1,acc,0,0,0,F,&opts);
@@ -343,5 +556,10 @@ int main(int argc, char* argv[])
   FINUFFT_DESTROY(plan);
   // *** todo: more extensive bad inputs and error catching in guru...
   
+#ifdef SINGLE
+  printf("dumbinputsf passed.\n");
+#else
+  printf("dumbinputs passed.\n");
+#endif
   return 0;
 }

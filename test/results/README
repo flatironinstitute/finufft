@@ -1,4 +1,3 @@
-Results directory for tests.  The *.refout are crucial for validation
-via diff and are not to be adjusted by users.
+Results directory for test outputs, just to tidy them away.
 
 Barnett 3/13/17; 8/18/20

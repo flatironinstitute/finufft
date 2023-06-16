@@ -1,17 +1,20 @@
 #!/bin/bash
 
-# Main validation tests for FINUFFT library. On Windows, we append .exe to the names of the executables.
+# Validation tests for FINUFFT library. On Windows, we append .exe to the names of the executables.
 # Usage:   To do double-precision tests:   ./check_finufft.sh
 #          To do single-precision tests:   ./check_finufft.sh SINGLE
 #          To run test on Windows (WSL):   ./check_finufft.sh {DUMMY or SINGLE} ON
 # Exit code is 0 for success, otherwise failure
+
+# These are supported as of v2.2.0, but will become obsolete in favor of CTest.
 
 # In total these tests take about 5 seconds on a modern machine with the
 # default compile, threads=2*#cores (hyperthreading), or <1 second w/ less thr.
 # (This sounds backwards, but is true; believed OMP overhead in FINUFFT calls.)
 
 # Barnett 3/14/17. numdiff-free option 3/16/17. simpler, dual-prec 7/3/20,
-# execs now have exit codes, removed any numdiff dep 8/18/20.
+# execs now have exit codes, removed any numdiff dep 8/18/20
+# removed diff 6/16/23.
 
 # precision-specific settings
 if [[ $1 == "SINGLE" ]]; then
@@ -52,7 +55,7 @@ T=testutils$PRECSUF
 # stdout to screen and file; stderr to different file
 ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}          # exit code of the tested cmd (not the tee cmd!)
-if [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
 ((N++))
 T=finufft1d_test$PRECSUF
@@ -94,9 +97,7 @@ if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crash
 T=dumbinputs$PRECSUF
 ./$T$FEX 2>$DIR/$T.err.out | tee $DIR/$T.out
 E=${PIPESTATUS[0]}
-if [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); fi
-diff --strip-trailing-cr $DIR/$T.out $DIR/$T.refout
-if [[ $? -eq 0 ]]; then echo passed; else echo failed; ((FAILS++)); fi
+if [[ $E -eq 0 ]]; then echo passed; elif [[ $E -eq $SIGSEGV ]]; then echo crashed; ((CRASHES++)); else echo failed; ((FAILS++)); fi
 
 # END TESTS ---------------------------------------------------------
 
