@@ -11,4 +11,4 @@ set(tempout
 execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dumbinputs OUTPUT_FILE ${tempout})
 
 # diff the output against reference
-execute_process(COMMAND ${CMAKE_COMMAND} -E compare_files ${tempout} ${CMAKE_CURRENT_SOURCE_DIR}/results/dumbinputs${CMAKE_ARGV3}.refout)
+execute_process(COMMAND ${CMAKE_COMMAND} -E compare_files --ignore-eol ${tempout} ${CMAKE_CURRENT_SOURCE_DIR}/results/dumbinputs${CMAKE_ARGV3}.refout)
