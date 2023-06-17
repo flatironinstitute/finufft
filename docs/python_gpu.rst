@@ -17,7 +17,7 @@ Consequently, we start with a few import statements.
     import pycuda.autoinit
     from pycuda.gpuarray import to_gpu
 
-    from cufinufft import Plan
+    import cufinufft
 
 We then proceed to setting up a few parameters.
 
@@ -39,7 +39,7 @@ Now that the data is prepared, we need to set up a cuFINUFFT plan that can be ex
 .. code-block:: python
 
     # create plan
-    plan = Plan(1, (N,), dtype=np.float64)
+    plan = cufinufft.Plan(1, (N,), dtype=np.float64)
 
     # set the nonuniform points
     plan.setpts(to_gpu(x))
