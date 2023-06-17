@@ -7,7 +7,7 @@ import numpy as np
 import pycuda.autoinit
 from pycuda.gpuarray import to_gpu
 
-from cufinufft import Plan
+import cufinufft
 
 # Set up parameters for problem.
 N1, N2 = 59, 61                 # Size of uniform grid
@@ -31,7 +31,7 @@ y = y.astype(dtype)
 c = c.astype(complex_dtype)
 
 # Initialize the plan and set the points.
-plan = Plan(1, (N1, N2), n_transf, eps=eps, dtype=complex_dtype)
+plan = cufinufft.Plan(1, (N1, N2), n_transf, eps=eps, dtype=complex_dtype)
 plan.setpts(to_gpu(x), to_gpu(y))
 
 # Execute the plan, reading from the strengths array c and storing the
