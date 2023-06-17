@@ -246,6 +246,6 @@ int main(int argc, char* argv[])
   printf("\tconsistency check: sup ( ||f_many-f||_2 / ||f||_2 ) =  %.3g\n",maxerror);
   free(f_3d3);
   
-  free(x); free(y); free(c); free(F); free(s_freq); free(t_freq);
+  free(x); free(y); free(z); free(c); free(F); free(s_freq); free(t_freq); free(u_freq);
   return (errmax>errfail);
 }
