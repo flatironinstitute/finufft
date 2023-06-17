@@ -380,7 +380,7 @@ endif
 
 # python ---------------------------------------------------------------------
 python: $(STATICLIB) $(DYNLIB)
-	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install --break-system-packages -e ./python/finufft
+	FINUFFT_DIR=$(FINUFFT) $(PYTHON) -m pip -v install -e ./python/finufft
 # note to devs: if trouble w/ NumPy, use: pip install ./python --no-deps
 	$(PYTHON) python/finufft/test/run_accuracy_tests.py
 	$(PYTHON) python/finufft/examples/simple1d1.py
