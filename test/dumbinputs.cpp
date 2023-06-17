@@ -2,7 +2,7 @@
    edge cases that might cause errors, and to check those errors give the right
    error codes gracefully, and the right answers if relevant.
 
-   Simple and "many" interfaces mostly, with guru cases at the end (need more).
+   Simple and "many" interfaces mostly, with two guru cases at the end.
 
    Usage (linux):  ./dumbinputs{f} 2> /dev/null
    (since FINUFFT will spit msgs to stderr, to be ignored)
@@ -10,8 +10,10 @@
    Pass: exit code 0. (Stdout should indicate passed)
    Fail: exit code>0. (Stdout may indicate what failed)
 
-   Notes: due to large number of FINUFFT calls, running OMP_NUM_THREADS<=4 is
-   usually much faster than a large number of threads.
+   Notes: due to large number of FINUFFT calls, nthreads is set low internally.
+   (usually much faster than a large number of threads)
+
+   To do: add more tests, eg, of invalid opts params.
 
    Barnett 3/14/17, updated Andrea Malleo, summer 2019.
    Libin Lu switch to use ptr-to-opts interfaces, Feb 2020.
@@ -74,6 +76,8 @@ int main(int argc, char* argv[])
   opts.debug = 0;   // set to 1,2, to debug inside FINUFFT, etc segfaults
   opts.spread_debug = 0;
 
+  opts.nthreads = 1;       // to keep them fast (thread-launch is slow)
+  
 #ifdef SINGLE
   printf("dumbinputsf test start...\n");
 #else
