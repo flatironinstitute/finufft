@@ -64,6 +64,54 @@ def test_set_pts_raises_on_size():
     assert '`z` must be of shape' in err.value.args[0]
 
 
+def test_set_pts_raises_on_nonvector():
+    dtype = np.float32
+    complex_dtype = np.complex64
+
+    M = 8
+    tol = 1e-3
+    shape = (16, 16, 16)
+    dim = len(shape)
+
+    kxyz = utils.gen_nu_pts(M, dim=dim).astype(dtype)
+
+    kxyz_gpu = gpuarray.to_gpu(kxyz)
+
+    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+
+    with pytest.raises(TypeError) as err:
+        plan.setpts(kxyz)
+    assert "`x` must be a vector" in err.value.args[0]
+
+
+def test_set_pts_raises_on_number_of_args():
+    dtype = np.float32
+    complex_dtype = np.complex64
+
+    M = 8
+    tol = 1e-3
+    shape = (16,)
+    dim = len(shape)
+
+    kxyz = utils.gen_nu_pts(M, dim=3).astype(dtype)
+
+    kxyz_gpu = gpuarray.to_gpu(kxyz)
+
+    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+
+    with pytest.raises(TypeError) as err:
+        plan.setpts(*kxyz_gpu[:2])
+    assert "is 1, but `y` was specified" in err.value.args[0]
+
+    shape = (16, 16)
+
+    plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
+
+    with pytest.raises(TypeError) as err:
+        plan.setpts(*kxyz_gpu)
+    assert "is 2, but `z` was specified" in err.value.args[0]
+
+
 def test_wrong_field_names():
     with pytest.raises(TypeError) as err:
         plan = Plan(1, (8, 8), foo="bar")
@@ -100,6 +148,12 @@ def test_exec_raises_on_dtype():
 
     with pytest.raises(TypeError):
         plan.execute(c_gpu_wrong_dtype, fk_gpu)
+
+
+def test_dtype_errors():
+    with pytest.raises(TypeError) as err:
+        Plan(1, (8, 8), dtype="uint8")
+    assert "expected complex64 or complex128" in err.value.args[0].lower()
 
 
 def test_dtype_warnings():
