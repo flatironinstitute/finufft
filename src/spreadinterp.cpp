@@ -1191,20 +1191,15 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   for (BIGINT i=1; i<nbins; i++)
     offsets[i]=offsets[i-1]+counts[i-1];
   
-  std::vector<BIGINT> inv(M);           // fill inverse map
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
     BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
     if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
     if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-    BIGINT offset=offsets[bin];
+    ret[offsets[bin]] = i;
     offsets[bin]++;
-    inv[i]=offset;
   }
-  // invert the map, writing to output pointer (writing pattern is random)
-  for (BIGINT i=0; i<M; i++)
-    ret[inv[i]]=i;
 }
 
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
@@ -1271,7 +1266,6 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     
   }  // scope frees up ct here, before inv alloc
   
-  std::vector<BIGINT> inv(M);           // fill inverse map, in parallel
 #pragma omp parallel num_threads(nt)
   {
     int t = MY_OMP_GET_THREAD_NUM();
@@ -1281,14 +1275,10 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
       if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
       if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
       BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-      inv[i]=ot[t][bin];   // get the offset for this NU pt and thread
+      ret[ot[t][bin]] = i;   // get the offset for this NU pt and thread
       ot[t][bin]++;               // no clash
     }
   }
-  // invert the map, writing to output pointer (writing pattern is random)
-#pragma omp parallel for num_threads(nt) schedule(dynamic,10000)
-  for (BIGINT i=0; i<M; i++)
-    ret[inv[i]]=i;
 }
 
 
