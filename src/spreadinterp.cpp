@@ -1186,10 +1186,14 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     counts[bin]++;
   }
-  std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
-  offsets[0]=0;     // do: offsets = [0 cumsum(counts(1:end-1)]
-  for (BIGINT i=1; i<nbins; i++)
-    offsets[i]=offsets[i-1]+counts[i-1];
+
+  // compute the offsets directly in the counts array
+  BIGINT current_offset=0;
+  for (BIGINT i=0; i<nbins; i++) {
+    BIGINT tmp = counts[i];
+    counts[i] = current_offset;
+    current_offset += tmp;
+  }
   
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
@@ -1197,8 +1201,8 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
     if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-    ret[offsets[bin]] = i;
-    offsets[bin]++;
+    ret[counts[bin]] = i;
+    ++counts[bin];
   }
 }
 
@@ -1228,15 +1232,13 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   for (int t=0; t<=nt; ++t)
     brk[t] = (BIGINT)(0.5 + M*t/(double)nt);   // start index for t'th chunk
   
-  std::vector<BIGINT> counts(nbins,0);     // global counts: # pts in each bin
-  // offsets per thread, size nt * nbins, init to 0 by copying the counts vec...
-  std::vector< std::vector<BIGINT> > ot(nt,counts);
-  {    // scope for ct, the 2d array of counts in bins for each thread's NU pts
-    std::vector< std::vector<BIGINT> > ct(nt,counts);   // nt * nbins, init to 0
+  std::vector< std::vector<BIGINT> > counts(nt);   // sub-vectors will be initialized later
     
 #pragma omp parallel num_threads(nt)
     {  // parallel binning to each thread's count. Block done once per thread
       int t = MY_OMP_GET_THREAD_NUM();     // (we assume all nt threads created)
+      auto &my_counts(counts[t]);
+      my_counts.resize(nbins,0);  // move allocation into parallel region
       //printf("\tt=%d: [%d,%d]\n",t,jlo[t],jhi[t]);
       for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
         // find the bin index in however many dims are needed
@@ -1244,39 +1246,30 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
         if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
         if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
         BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-        ct[t][bin]++;               // no clash btw threads
+        ++my_counts[bin];               // no clash btw threads
       }
     }
-    // sum along thread axis to get global counts
-    for (BIGINT b=0; b<nbins; ++b)   // (not worth omp. Either loop order is ok)
-      for (int t=0; t<nt; ++t)
-	counts[b] += ct[t][b];
-    
-    std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
-    // do: offsets = [0 cumsum(counts(1:end-1))] ...
-    offsets[0] = 0;
-    for (BIGINT i=1; i<nbins; i++)
-      offsets[i]=offsets[i-1]+counts[i-1];
-    
-    for (BIGINT b=0; b<nbins; ++b)  // now build offsets for each thread & bin:
-      ot[0][b] = offsets[b];                     // init
-    for (int t=1; t<nt; ++t)   // (again not worth omp. Either loop order is ok)
-      for (BIGINT b=0; b<nbins; ++b)
-	ot[t][b] = ot[t-1][b]+ct[t-1][b];        // cumsum along t axis
-    
-  }  // scope frees up ct here, before inv alloc
+
+    BIGINT current_offset = 0;
+    for (BIGINT b=0; b<nbins; ++b)   // (not worth omp)
+      for (int t=0; t<nt; ++t) {
+        BIGINT tmp = counts[t][b];
+        counts[t][b] = current_offset;
+        current_offset += tmp;
+        }
   
 #pragma omp parallel num_threads(nt)
   {
     int t = MY_OMP_GET_THREAD_NUM();
+    auto &my_counts(counts[t]);
     for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
       // find the bin index (again! but better than using RAM)
       BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
       if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
       if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
       BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-      ret[ot[t][bin]] = i;   // get the offset for this NU pt and thread
-      ot[t][bin]++;               // no clash
+      ret[my_counts[bin]] = i;   // get the offset for this NU pt and thread
+      ++my_counts[bin];               // no clash
     }
   }
 }
