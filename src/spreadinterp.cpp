@@ -843,8 +843,8 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; dy++) {
         const FLT *du2 = du + 2*(oz + N1*(i2+dy) + i1);
-	       FLT ker23 = ker2[dy]*ker3[dz];
-	       for (int dx=0; dx<2*ns; ++dx) {
+        FLT ker23 = ker2[dy]*ker3[dz];
+        for (int dx=0; dx<2*ns; ++dx) {
           out2[dx] += du2[dx]*ker23;
         }
       }
