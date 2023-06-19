@@ -36,8 +36,6 @@ for PYVERSION in ${PYVERSIONS[@]}; do
     PYBIN=$(get_python_binary ${PYVERSION})
 
     "${PYBIN}/pip" install --upgrade pip
-    "${PYBIN}/pip" install -r /io/python/cufinufft/requirements.txt
-    "${PYBIN}/pip" install pytest
     "${PYBIN}/pip" wheel /io/python/cufinufft --no-deps -w wheelhouse/
 done
 
@@ -53,5 +51,6 @@ for PYVERSION in ${PYVERSIONS[@]}; do
     PYBIN=$(get_python_binary ${PYVERSION})
 
     "${PYBIN}/pip" install cufinufft -f /io/wheelhouse
+    "${PYBIN}/pip" install pytest
     "${PYBIN}/python" -m pytest /io/python/cufinufft/tests
 done
