@@ -774,14 +774,25 @@ void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i
 {
   FLT out[] = {0.0, 0.0};
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
-    for (int dy=0; dy<ns; dy++) {
-      BIGINT j = N1*(i2+dy) + i1;
-      for (int dx=0; dx<ns; dx++) {
-	FLT k = ker1[dx]*ker2[dy];
-	out[0] += du[2*j] * k;
-	out[1] += du[2*j+1] * k;
-	++j;
+    FLT out2[2*MAX_NSPREAD];
+    // block for first y line, to avoid explicitly initializing out2 with zeros
+    {
+      const FLT *du2 = du + 2*(N1*i2 + i1);
+      for (int dx=0; dx<2*ns; dx++) {
+        out2[dx] = ker2[0]*du2[dx];
       }
+    }
+    // add remaining y lines
+    for (int dy=1; dy<ns; dy++) {
+      const FLT *du2 = du + 2*(N1*(i2+dy) + i1);
+      for (int dx=0; dx<2*ns; ++dx) {
+        out2[dx] += ker2[dy]*du2[dx];
+      }
+    }
+    // apply x kernel and add together
+    for (int dx=0; dx<ns; dx++) {
+      out[0] += out2[2*dx]*ker1[dx];
+      out[1] += out2[2*dx+1]*ker1[dx];
     }
   } else {                         // wraps somewhere: use ptr list (slower)
     BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD];   // 1d ptr lists
@@ -822,18 +833,26 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
   FLT out[] = {0.0, 0.0};  
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
     // no wrapping: avoid ptrs
+    FLT out2[2*MAX_NSPREAD];
+    // initialize out2 with zeros; hard to avoid here, but overhead is small in 3D
+    for (int dx=0; dx<2*ns; dx++) {
+      out2[dx] = 0;
+    }
+    // co-add y and z contributions in out2, do not apply x kernel yet
     for (int dz=0; dz<ns; dz++) {
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; dy++) {
-	BIGINT j = oz + N1*(i2+dy) + i1;
-	FLT ker23 = ker2[dy]*ker3[dz];
-	for (int dx=0; dx<ns; dx++) {
-	  FLT k = ker1[dx]*ker23;
-	  out[0] += du[2*j] * k;
-	  out[1] += du[2*j+1] * k;
-	  ++j;
-	}
+        const FLT *du2 = du + 2*(oz + N1*(i2+dy) + i1);
+        FLT ker23 = ker2[dy]*ker3[dz];
+        for (int dx=0; dx<2*ns; ++dx) {
+          out2[dx] += du2[dx]*ker23;
+        }
       }
+    }
+    // apply x kernel and add together
+    for (int dx=0; dx<ns; dx++) {
+      out[0] += out2[2*dx]*ker1[dx];
+      out[1] += out2[2*dx+1]*ker1[dx];
     }
   } else {                         // wraps somewhere: use ptr list (slower)
     BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD], j3[MAX_NSPREAD];   // 1d ptr lists
