@@ -161,9 +161,13 @@ if(FINUFFT_USE_CUDA)
 endif()
 
 # Add tests defined in their own directory
-if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
+if (BUILD_TESTING AND FINUFFT_BUILD_TESTS AND FINUFFT_USE_CPU)
     add_subdirectory(test)
     add_subdirectory(perftest)
+endif ()
+
+if (BUILD_TESTING AND FINUFFT_BUILD_TESTS AND FINUFFT_USE_CUDA)
+    add_subdirectory(test/cuda)
 endif ()
 
 if (FINUFFT_BUILD_EXAMPLES)
