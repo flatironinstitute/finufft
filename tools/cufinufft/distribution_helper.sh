@@ -5,15 +5,24 @@
 cufinufft_version=1.3
 manylinux_version=manylinux2014
 cuda_version=11.0
-dockerhub=garrettwrong
+dockerhub=janden
 
 
 echo "# build the wheel"
-docker build -f ci/docker/cuda${cuda_version}/Dockerfile-x86_64 -t ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version} .
+docker build \
+    --file ci/docker/cuda${cuda_version}/Dockerfile-x86_64 \
+    --tag ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version} .
 
 
 echo "# Run the container, invoking the build-wheels script to generate the wheels"
-docker run --gpus all -it -v `pwd`/wheelhouse:/io/wheelhouse -e PLAT=${manylinux_version}_x86_64  ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version} /io/ci/build-wheels.sh
+docker run \
+    --gpus all \
+    --interactive \
+    --tty \
+    --volume $(pwd)/wheelhouse:/io/wheelhouse \
+    --env PLAT=${manylinux_version}_x86_64 \
+    ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version} \
+    /io/ci/build-wheels.sh
 
 echo "# Copy the wheels we care about to the dist folder"
 mkdir -p dist
