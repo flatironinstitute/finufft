@@ -7,7 +7,15 @@ function get_python_binary {
 }
 
 function repair_wheel {
-    wheel="$1"
+    py_version="$1"
+    wheel="$2"
+
+    PYBIN=$(get_python_binary "${py_version}")
+
+    if ! "${PYBIN}/pip" show auditwheel > /dev/null 2>&1; then
+        "${PYBIN}/pip" install auditwheel
+    fi
+
     if ! "${PYBIN}/auditwheel" show "$wheel"; then
         echo "Skipping non-platform wheel $wheel"
     else
@@ -29,14 +37,15 @@ for PYVERSION in ${PYVERSIONS[@]}; do
 
     "${PYBIN}/pip" install --upgrade pip
     "${PYBIN}/pip" install -r /io/python/cufinufft/requirements.txt
-    "${PYBIN}/pip" install auditwheel pytest
+    "${PYBIN}/pip" install pytest
     "${PYBIN}/pip" wheel /io/python/cufinufft --no-deps -w wheelhouse/
 done
 
 
 # Bundle external shared libraries into the wheels
+audit_py_version="cp310-cp310"
 for whl in wheelhouse/*.whl; do
-    repair_wheel "$whl"
+    repair_wheel "$audit_py_version" "$whl"
 done
 
 # Install packages and test
