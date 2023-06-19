@@ -52,5 +52,5 @@ for py_version in ${py_versions[@]}; do
 
     "${py_binary}/pip" install cufinufft -f /io/wheelhouse
     "${py_binary}/pip" install pytest
-    "${py_binary}/python" -m pytest /io/python/cufinufft/tests
+    "${py_binary}/pytest" /io/python/cufinufft/tests
 done
