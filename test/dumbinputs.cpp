@@ -216,7 +216,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT1D2MANY(ndata,M,x,cm,+1,0,N,Fm,&opts);
   if (ier != WARN_EPS_TOO_SMALL) {
-    printf("1d1many tol=0:\twrong err code %d\n",ier);
+    printf("1d2many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT1D2MANY(ndata,M,x,cm,+1,acc,0,Fm,&opts);
@@ -231,46 +231,46 @@ int main(int argc, char* argv[])
     return ier;
   }
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset cm for 1d3many
-  ier = FINUFFT1D3MANY(0, M,x,c,+1,acc,N,s,Fm,&opts);
+  ier = FINUFFT1D3MANY(0, M,x,cm,+1,acc,N,s,Fm,&opts);
   if (ier != ERR_NTRANS_NOTVALID) {
     printf("1d3many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
-  ier = FINUFFT1D3MANY(ndata, M,x,c,+1,0,N,s,Fm,&opts);
+  ier = FINUFFT1D3MANY(ndata, M,x,cm,+1,0,N,s,Fm,&opts);
   if (ier != WARN_EPS_TOO_SMALL) {
     printf("1d3many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
-  ier = FINUFFT1D3MANY(ndata, M,x,c,+1,acc,0,s,Fm,&opts);
+  ier = FINUFFT1D3MANY(ndata, M,x,cm,+1,acc,0,s,Fm,&opts);
   if (ier) {
     printf("1d3many nk=0:\tier=%d",ier);
     return ier;
   }
-  ier = FINUFFT1D3MANY(ndata, 0,x,c,+1,acc,N,s,Fm,&opts);
+  ier = FINUFFT1D3MANY(ndata, 0,x,cm,+1,acc,N,s,Fm,&opts);
   t = twonorm(N,Fm);
   // again, as above, only crude acc tests for 1-NUpt (I/O) case...
-  ier = FINUFFT1D3MANY(ndata, 1,x,c,+1,acc,N,s,Fm,&opts);   // XK prod formally 0
+  ier = FINUFFT1D3MANY(ndata, 1,x,cm,+1,acc,N,s,Fm,&opts);   // XK prod formally 0
   dirft1d3(1,x,c,+1,N,s,Fe); for (int k=0; k<N; ++k) Fm[k] -= Fe[k]; // acc chk
   err = twonorm(N,Fm)/sqrt((FLT)N);  // rms, to 5e-5 abs; check just first trial
   if (ier || err>100*acc) {
     printf("1d3many M=1:\tier=%d nrm(err)=%.3g\n",ier,err);
     return 1;
   }
-  ier = FINUFFT1D3MANY(ndata,M,x,c,+1,acc,1,s,Fm,&opts);
+  ier = FINUFFT1D3MANY(ndata,M,x,cm,+1,acc,1,s,Fm,&opts);
   dirft1d3(M,x,c,+1,1,s,Fe);
   err = abs(Fm[0]-Fe[0]);
   if (ier || err>10*acc) {
     printf("1d3many N=1:\tier=%d err=%.3g\n",ier,err);
     return 1;
   }
-  ier = FINUFFT1D3MANY(ndata,1,x,c,+1,acc,1,s,Fm,&opts);
+  ier = FINUFFT1D3MANY(ndata,1,x,cm,+1,acc,1,s,Fm,&opts);
   dirft1d3(1,x,c,+1,1,s,Fe);
   err = abs(Fm[0]-Fe[0]);
   if (ier || err>10*acc) {
     printf("1d3many M=N=1:\tier=%d err=%.3g\n",ier,err);
     return 1;
   }
-  ier = FINUFFT1D3MANY(ndata,M,x,c,+1,acc,N,shuge,F,&opts);
+  ier = FINUFFT1D3MANY(ndata,M,x,cm,+1,acc,N,shuge,Fm,&opts);
   if (ier==0) {          // any nonzero code accepted here
     printf("1d3many XK prod too big:\twrong error code %d\n",ier);
     return 1;
@@ -445,17 +445,17 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT2D3MANY(ndata,0,x,x,cm,+1,acc,N,s,s,Fm,&opts);
   t = twonorm(N,Fm);
-  if (ier | t!=0.0) {
+  if (ier || t!=0.0) {
     printf("2d3many M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
     return 1;
   }
-  ier = FINUFFT2D3MANY(ndata,1,x,x,c,+1,acc,N,s,s,F,&opts); // XK prod formally 0
+  ier = FINUFFT2D3MANY(ndata,1,x,x,cm,+1,acc,N,s,s,Fm,&opts); // XK prod formally 0
   // we don't check the M=nk=1 case for >1D since guess that 1D would catch it.
   if (ier) {
     printf("2d3many M=nk=1:\tier=%d\n",ier);
     return ier;
   }
-  ier = FINUFFT2D3MANY(ndata,M,x,x,c,+1,acc,N,shuge,shuge,Fm,&opts);
+  ier = FINUFFT2D3MANY(ndata,M,x,x,cm,+1,acc,N,shuge,shuge,Fm,&opts);
   if (ier==0) {          // any nonzero code accepted here
     printf("2d3many XK prod too big:\twrong error code %d\n",ier);
     return 1;
@@ -647,23 +647,23 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT3D3MANY(ndata,0,x,x,x,cm,+1,acc,N,s,s,s,Fm,&opts);
   t = twonorm(N,Fm);
-  if (ier | t!=0.0) {
+  if (ier || t!=0.0) {
     printf("3d3many M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
     return 1;
   }
-  ier = FINUFFT3D3MANY(ndata,1,x,x,x,c,+1,acc,N,s,s,s,F,&opts); // XK prod formally 0
+  ier = FINUFFT3D3MANY(ndata,1,x,x,x,cm,+1,acc,N,s,s,s,Fm,&opts); // XK prod formally 0
   // we don't check the M=nk=1 case for >1D since guess that 1D would catch it.
   if (ier) {
     printf("3d3many M=nk=1:\tier=%d\n",ier);
     return ier;
   }
-  ier = FINUFFT3D3MANY(ndata,M,x,x,x,c,+1,acc,N,shuge,shuge,shuge,Fm,&opts);
+  ier = FINUFFT3D3MANY(ndata,M,x,x,x,cm,+1,acc,N,shuge,shuge,shuge,Fm,&opts);
   if (ier==0) {          // any nonzero code accepted here
     printf("3d3many XK prod too big:\twrong error code %d\n",ier);
     return 1;
   }
   
-  free(x); free(c); free(F); free(s); free(shuge); free(cm); free(Fm);
+  free(x); free(c); free(F); free(s); free(shuge); free(cm); free(Fm); free(Fe);
   
   // GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
   // some dumb tests for guru interface to induce free() crash in destroy...
