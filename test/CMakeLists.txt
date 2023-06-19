@@ -62,7 +62,3 @@ endfunction()
 # use above function to actually add the tests, with certain requested and check tols
 add_tests_with_prec(float 1e-5 2e-4 f)
 add_tests_with_prec(double 1e-12 1e-11 "")
-
-if (FINUFFT_USE_CUDA)
-  add_subdirectory(cuda)
-endif()
