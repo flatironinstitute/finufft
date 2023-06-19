@@ -36,18 +36,21 @@ int invokeGuruInterface(int n_dims, int type, int n_transf, BIGINT nj, FLT* xj,
                              &plan, popts);  // popts (ptr to opts) can be NULL
   if (ier>1) {   // since 1 (a warning) still allows proceeding...
     fprintf(stderr, "FINUFFT invokeGuru: plan error (ier=%d)!\n", ier);
+    delete plan;
     return ier;
   }
 
   int ier2 = FINUFFT_SETPTS(plan, nj, xj, yj, zj, nk, s, t, u);
   if (ier2>1) {
     fprintf(stderr,"FINUFFT invokeGuru: setpts error (ier=%d)!\n", ier2);
+    FINUFFT_DESTROY(plan);
     return ier2;
   }
 
   int ier3 = FINUFFT_EXECUTE(plan, cj, fk);
   if (ier3>1) {
     fprintf(stderr,"FINUFFT invokeGuru: execute error (ier=%d)!\n", ier3);
+    FINUFFT_DESTROY(plan);
     return ier3;
   }
 
