@@ -1,4 +1,4 @@
-Copyright (C) 2017-2020 The Simons Foundation, Inc. - All Rights Reserved.
+Copyright (C) 2017-2023 The Simons Foundation, Inc. - All Rights Reserved.
 
 Lead developer: Alex H. Barnett; see docs/ackn.rst for other contributors.
 
@@ -40,5 +40,5 @@ and the corresponding journal articles (particularly the first):
   and L. af Klinteberg.  SIAM J. Sci. Comput. 41(5), C479-C504 (2019).
 
   Aliasing error of the exp$(\beta \sqrt{1-z^2})$ kernel in the
-  nonuniform fast Fourier transform. A. H. Barnett. submitted,
-  Appl. Comput. Harmon. Anal. (2020). https://arxiv.org/abs/2001.09405
+  nonuniform fast Fourier transform. A. H. Barnett,
+  Appl. Comput. Harmon. Anal. 51, 1-16 (2021).

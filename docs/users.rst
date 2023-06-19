@@ -4,11 +4,11 @@ Dependent packages, wrappers, users, and citations
 ==================================================
 
 Here we list packages that depend on or wrap FINUFFT, and papers or groups using it.
-Papers that merely cite our work are listed separately at the bottom. Please let us know (and use github's dependent package link) if you are a user or package maintainer but not listed.
+Papers that merely cite our work are listed separately at the bottom. Please let us know (and use github's dependent package link) if you are a user or package maintainer but not listed, and please "star" our GitHub repo.
 
 
-Packages relying on FINUFFT
----------------------------
+Packages relying on FINUFFT or cuFINUFFT
+----------------------------------------
 
 Here are some packages dependent on FINUFFT (please let us know of others,
 and also add them to github's Used By feature):
@@ -19,13 +19,15 @@ and also add them to github's Used By feature):
 
 #. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
 
-#. `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation python package.
+#. `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation Python package.
 
-#. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
+#. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast 2D rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
 
-#. `DISCUS <https://github.com/tproffen/DiffuseCode>`_: Fraunhofer diffraction from atomic clusters, nanomaterials and powders, by Reinhard Neder and others.
+#. `DISCUS <https://github.com/tproffen/DiffuseCode>`_: Fraunhofer diffraction from atomic clusters, nanomaterials and powders, by Reinhard Neder and others. Their manual explains that FINUFFT enabled a two orders of magnitude speed-up.
 
+#. `NWelch <https://github.com/sdrastro/NWelch>`_: Code for estimating power spectra and other properties of non-equispaced time-series, by astronomer Sarah Dodson-Robinson and others.
 
+   
 Other wrappers to (cu)FINUFFT
 ------------------------------
    
@@ -37,10 +39,14 @@ Other wrappers to (cu)FINUFFT
    
    
 
-Research output using FINUFFT
------------------------------
+Research output using (cu)FINUFFT
+---------------------------------
 
-#. "Cryo-EM reconstruction of continuous heterogeneity by Laplacian spectral volumes", Amit Moscovich, Amit Halevi, Joakim Andén, and Amit Singer. To appear, Inv. Prob. (2020), https://arxiv.org/abs/1907.01898
+For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=14265215625340229167>`_, and `cuFINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=15739437776774999949>`_. Here are some early highlights we know about:
+
+#. Marco Barbone has used FINUFFT and cuFINUFFT to accelerate 4D MRI reconstruction via the XD-GRASP algorithm by 11x. See their `2021 conference paper <https://ieeexplore.ieee.org/document/9651604>`_.
+
+#. "Cryo-EM reconstruction of continuous heterogeneity by Laplacian spectral volumes", Amit Moscovich, Amit Halevi, Joakim Andén, and Amit Singer. Appeared in Inv. Prob. (2020), https://arxiv.org/abs/1907.01898
 
 #. "A Fast Integral Equation Method for the Two-Dimensional Navier-Stokes Equations", Ludvig af Klinteberg, Travis Askham, and Mary Catherine Kropinski, J. Comput. Phys., 409 (2020) 109353; uses FINUFFT 2D type 2. https://arxiv.org/abs/1908.07392
 
@@ -63,16 +69,20 @@ Research output using FINUFFT
 
 #. Johannes Blaschke, Jeff Donatelli, and collaborators at NSERC/LBNL use FINUFFT and cuFINUFFT for single-particle X-ray imaging.
 
-#. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin, "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); doi: 10.1117/12.2595409
+#. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin,
+   "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); https://doi.org/10.1117/12.2595409
 
 #. Chang, P., Pienaar, E., & Gebbie, T. (2020). "Malliavin--Mancino Estimators Implemented with Nonuniform Fast Fourier Transforms." SIAM J. Sci. Comput. 42(6), B1378–B1403. https://doi.org/10.1137/20m1325903 
 
-
+   
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
 
 #. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
+
+#. S. Jiang and L. Greengard,
+   new multilevel kernel-split faster 3D FMM.
 
    
 Papers influenced by other aspects of FINUFFT:

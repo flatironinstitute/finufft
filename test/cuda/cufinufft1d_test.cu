@@ -13,11 +13,12 @@ using cufinufft::utils::infnorm;
 
 int main(int argc, char *argv[]) {
     if (argc != 7) {
-        fprintf(stderr, "Usage: cufinufft2d2_test method N M tol checktol\n"
+        fprintf(stderr, "Usage: cufinufft1d_test method type N1 M tol checktol\n"
                         "Arguments:\n"
                         "  method: One of\n"
-                        "    1: nupts driven\n"
-                        "  type: Type of transform (1, 2)"
+                        "    1: nupts driven (GM), or\n"
+                        "    2: subproblem (SM; valid for type 1 only). \n"
+                        "  type: Type of transform (1, 2)\n"
                         "  N1: Number of fourier modes\n"
                         "  M: The number of non-uniform points\n"
                         "  tol: NUFFT tolerance\n"
@@ -70,7 +71,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     checkCudaErrors(cudaMemcpy(d_x, x, M * sizeof(CUFINUFFT_FLT), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_fk, fk, N1 * sizeof(CUFINUFFT_CPX), cudaMemcpyHostToDevice));
+    if (type == 1)
+        checkCudaErrors(cudaMemcpy(d_c, c, M * sizeof(CUFINUFFT_CPX), cudaMemcpyHostToDevice));
+    else if (type == 2)
+        checkCudaErrors(cudaMemcpy(d_fk, fk, N1 * sizeof(CUFINUFFT_CPX), cudaMemcpyHostToDevice));
 
     cudaEvent_t start, stop;
     float milliseconds = 0;
@@ -134,7 +138,7 @@ int main(int argc, char *argv[]) {
     cudaEventRecord(start);
     ier = CUFINUFFT_EXECUTE(d_c, d_fk, dplan);
     if (ier != 0) {
-        printf("err: cufinufft1d2_exec\n");
+        printf("err: cufinufft1d_exec\n");
         return ier;
     }
 
@@ -149,7 +153,7 @@ int main(int argc, char *argv[]) {
     PROFILE_CUDA_GROUP("cufinufft1d_destroy", 5);
     ier = CUFINUFFT_DESTROY(dplan);
     if (ier != 0) {
-        printf("err %d: cufinufft1d2_destroy\n", ier);
+        printf("err %d: cufinufft1d_destroy\n", ier);
         return ier;
     }
     cudaEventRecord(stop);
@@ -162,10 +166,9 @@ int main(int argc, char *argv[]) {
            totaltime / 1000, M / totaltime * 1000);
     printf("\t\t\t\t\t(exec-only thoughput: %.3g NU pts/s)\n", M / exec_ms * 1000);
 
-    checkCudaErrors(cudaMemcpy(c, d_c, M * sizeof(CUCPX), cudaMemcpyDeviceToHost));
-
     CUFINUFFT_FLT rel_error = std::numeric_limits<CUFINUFFT_FLT>::max();
     if (type == 1) {
+        checkCudaErrors(cudaMemcpy(fk, d_fk, N1 * sizeof(CUCPX), cudaMemcpyDeviceToHost));
         int nt1 = 0.37 * N1; // choose some mode index to check
         CUFINUFFT_CPX Ft = CUFINUFFT_CPX(0, 0), J = IMA * (CUFINUFFT_FLT)iflag;
         for (int j = 0; j < M; ++j)
@@ -176,6 +179,8 @@ int main(int argc, char *argv[]) {
         printf("[gpu   ] one mode: rel err in F[%d] is %.3g\n", nt1, rel_error);
     }
     else if (type == 2) {
+        checkCudaErrors(cudaMemcpy(c, d_c, M * sizeof(CUCPX), cudaMemcpyDeviceToHost));
+
         int jt = M / 2; // check arbitrary choice of one targ pt
         CUFINUFFT_CPX J = IMA * (CUFINUFFT_FLT)iflag;
         CUFINUFFT_CPX ct = CUFINUFFT_CPX(0, 0);
@@ -192,5 +197,5 @@ int main(int argc, char *argv[]) {
     cudaFree(d_x);
     cudaFree(d_c);
     cudaFree(d_fk);
-    return rel_error > checktol;
+    return std::isnan(rel_error) || rel_error > checktol;
 }

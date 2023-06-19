@@ -65,8 +65,6 @@
 #undef CUSPREAD2D_NUPTSDRIVEN
 #undef CUSPREAD2D_SUBPROB_PROP
 #undef CUSPREAD2D_SUBPROB
-#undef CUSPREAD2D_PAUL
-#undef CUSPREAD2D_PAUL_PROP
 /* spreading 3d */
 #undef CUSPREAD3D
 #undef CUSPREAD3D_NUPTSDRIVEN_PROP
@@ -137,8 +135,6 @@
 #define CUSPREAD2D_NUPTSDRIVEN cuspread2df_nuptsdriven
 #define CUSPREAD2D_SUBPROB_PROP cuspread2df_subprob_prop
 #define CUSPREAD2D_SUBPROB cuspread2df_subprob
-#define CUSPREAD2D_PAUL cuspread2df_paul
-#define CUSPREAD2D_PAUL_PROP cuspread2df_paul_prop
 /* spreading 3d */
 #define CUSPREAD3D cuspread3df
 #define CUSPREAD3D_NUPTSDRIVEN_PROP cuspread3df_nuptsdriven_prop
@@ -209,8 +205,6 @@
 #define CUSPREAD2D_NUPTSDRIVEN cuspread2d_nuptsdriven
 #define CUSPREAD2D_SUBPROB_PROP cuspread2d_subprob_prop
 #define CUSPREAD2D_SUBPROB cuspread2d_subprob
-#define CUSPREAD2D_PAUL cuspread2d_paul
-#define CUSPREAD2D_PAUL_PROP cuspread2d_paul_prop
 /* spreading 3d */
 #define CUSPREAD3D cuspread3d
 #define CUSPREAD3D_NUPTSDRIVEN_PROP cuspread3d_nuptsdriven_prop
@@ -278,10 +272,6 @@ typedef struct CUFINUFFT_PLAN_S {
     int *binstartpts;     // length: #bins, exclusive scan of array binsize
     int *subprob_to_bin;  // length: #subproblems, the bin the subproblem works on
     int *subprobstartpts; // length: #bins, exclusive scan of array numsubprob
-
-    // Extra arrays for Paul's method
-    int *finegridsize;
-    int *fgstartpts;
 
     // Arrays for 3d (need to sort out)
     int *numnupts;

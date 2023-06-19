@@ -65,7 +65,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'finufft'
-copyright = u'2017-2020 The Simons Foundation, Inc. - All Rights Reserved'
+copyright = u'2017-2023 The Simons Foundation, Inc. - All Rights Reserved'
 author = u'Alex Barnett, Ludvig af Klinteberg, Joakim Andén, Libin Lu, Jeremy Magland, Andrea Malleo, Yu-Hsuan Shih, and others.'
 
 # The version info for the project you're documenting, acts as replacement for

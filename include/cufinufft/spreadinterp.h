@@ -7,8 +7,11 @@
 // NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
 // folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
 // FIXME: SO MUCH BRANCHING
+#ifndef M_1_2PI
+#define M_1_2PI 0.159154943091895336
+#endif
 #define RESCALE(x, N, p)                                                                                               \
-    (p ? ((x * M_1_2PI + (x < -PI ? 1.5 : (x >= PI ? -0.5 : 0.5))) * N) : (x < 0 ? x + N : (x >= N ? x - N : x)))
+    (p ? ((x * M_1_2PI + (x < -M_PI ? 1.5 : (x >= M_PI ? -0.5 : 0.5))) * N) : (x < 0 ? x + N : (x >= N ? x - N : x)))
 // yuk! But this is *so* much faster than slow std::fmod that we stick to it.
 
 namespace cufinufft {
@@ -110,20 +113,6 @@ __global__ void Spread_2d_Subprob_Horner(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUC
                                          int bin_size_x, int bin_size_y, int *subprob_to_bin, int *subprobstartpts,
                                          int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int *idxnupts,
                                          int pirange);
-
-/* Kernels for Paul's Method */
-__global__ void LocateFineGridPos_Paul(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
-                                       int *bin_size, int ns, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, int *sortidx,
-                                       int *finegridsize, int pirange);
-__global__ void CalcInvertofGlobalSortIdx_Paul(int nf1, int nf2, int M, int bin_size_x, int bin_size_y, int nbinx,
-                                               int nbiny, int ns, CUFINUFFT_FLT *x, CUFINUFFT_FLT *y,
-                                               int *finegridstartpts, int *sortidx, int *index, int pirange);
-__global__ void Spread_2d_Subprob_Paul(CUFINUFFT_FLT *x, CUFINUFFT_FLT *y, CUCPX *c, CUCPX *fw, int M, const int ns,
-                                       int nf1, int nf2, CUFINUFFT_FLT es_c, CUFINUFFT_FLT es_beta, CUFINUFFT_FLT sigma,
-                                       int *binstartpts, int *bin_size, int bin_size_x, int bin_size_y,
-                                       int *subprob_to_bin, int *subprobstartpts, int *numsubprob, int maxsubprobsize,
-                                       int nbinx, int nbiny, int *idxnupts, int *fgstartpts, int *finegridsize,
-                                       int pirange);
 
 /* ---------------------------Interpolation Kernels---------------------------*/
 /* Kernels for NUptsdriven Method */
@@ -254,9 +243,7 @@ int CUSPREAD1D_SUBPROB(int nf1, int M, CUFINUFFT_PLAN d_plan, int blksize);
 int CUSPREAD2D_NUPTSDRIVEN_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan);
 int CUSPREAD2D_NUPTSDRIVEN(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
 int CUSPREAD2D_SUBPROB_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan);
-int CUSPREAD2D_PAUL_PROP(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan);
 int CUSPREAD2D_SUBPROB(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
-int CUSPREAD2D_PAUL(int nf1, int nf2, int M, CUFINUFFT_PLAN d_plan, int blksize);
 
 int CUSPREAD3D_NUPTSDRIVEN_PROP(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan);
 int CUSPREAD3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize);

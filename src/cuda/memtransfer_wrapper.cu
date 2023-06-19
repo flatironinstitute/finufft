@@ -171,17 +171,6 @@ int ALLOCGPUMEM2D_PLAN(CUFINUFFT_PLAN d_plan)
         checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins[0] * numbins[1] * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts, (numbins[0] * numbins[1] + 1) * sizeof(int)));
     } break;
-    case 3: {
-        int numbins[2];
-        numbins[0] = ceil((CUFINUFFT_FLT)nf1 / d_plan->opts.gpu_binsizex);
-        numbins[1] = ceil((CUFINUFFT_FLT)nf2 / d_plan->opts.gpu_binsizey);
-        checkCudaErrors(cudaMalloc(&d_plan->finegridsize, nf1 * nf2 * sizeof(int)));
-        checkCudaErrors(cudaMalloc(&d_plan->fgstartpts, nf1 * nf2 * sizeof(int)));
-        checkCudaErrors(cudaMalloc(&d_plan->numsubprob, numbins[0] * numbins[1] * sizeof(int)));
-        checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins[0] * numbins[1] * sizeof(int)));
-        checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins[0] * numbins[1] * sizeof(int)));
-        checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts, (numbins[0] * numbins[1] + 1) * sizeof(int)));
-    } break;
     default:
         std::cerr << "err: invalid method " << std::endl;
     }
@@ -227,8 +216,7 @@ int ALLOCGPUMEM2D_NUPTS(CUFINUFFT_PLAN d_plan)
             checkCudaErrors(cudaMalloc(&d_plan->sortidx, M * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->idxnupts, M * sizeof(int)));
     } break;
-    case 2:
-    case 3: {
+    case 2: {
         checkCudaErrors(cudaMalloc(&d_plan->idxnupts, M * sizeof(int)));
         checkCudaErrors(cudaMalloc(&d_plan->sortidx, M * sizeof(int)));
     } break;
@@ -275,16 +263,6 @@ void FREEGPUMEMORY2D(CUFINUFFT_PLAN d_plan)
         checkCudaErrors(cudaFree(d_plan->sortidx));
         checkCudaErrors(cudaFree(d_plan->numsubprob));
         checkCudaErrors(cudaFree(d_plan->binsize));
-        checkCudaErrors(cudaFree(d_plan->binstartpts));
-        checkCudaErrors(cudaFree(d_plan->subprobstartpts));
-        checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
-    } break;
-    case 3: {
-        checkCudaErrors(cudaFree(d_plan->idxnupts));
-        checkCudaErrors(cudaFree(d_plan->sortidx));
-        checkCudaErrors(cudaFree(d_plan->numsubprob));
-        checkCudaErrors(cudaFree(d_plan->binsize));
-        checkCudaErrors(cudaFree(d_plan->finegridsize));
         checkCudaErrors(cudaFree(d_plan->binstartpts));
         checkCudaErrors(cudaFree(d_plan->subprobstartpts));
         checkCudaErrors(cudaFree(d_plan->subprob_to_bin));
@@ -477,5 +455,5 @@ void FREEGPUMEMORY3D(CUFINUFFT_PLAN d_plan)
     cudaSetDevice(orig_gpu_device_id);
 }
 
-} // namespace mem
+} // namespace memtransfer
 } // namespace cufinufft

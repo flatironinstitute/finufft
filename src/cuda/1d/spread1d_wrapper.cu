@@ -165,7 +165,7 @@ int CUSPREAD1D_NUPTSDRIVEN_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan) {
         checkCudaErrors(cudaMemcpy(h_kx, d_kx, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
         for (int i = 0; i < M; i++) {
             std::cout << "[debug ] ";
-            std::cout << "(" << setw(3) << h_kx[i] << ")" << std::endl;
+            std::cout << "(" << std::setw(3) << h_kx[i] << ")" << std::endl;
         }
 #endif
         int *d_binsize = d_plan->binsize;
@@ -195,7 +195,7 @@ int CUSPREAD1D_NUPTSDRIVEN_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan) {
         for (int i = 0; i < numbins; i++) {
             if (i != 0)
                 std::cout << " ";
-            std::cout << "bin[" << setw(1) << i << "]=" << h_binsize[i];
+            std::cout << "bin[" << std::setw(1) << i << "]=" << h_binsize[i];
         }
         std::cout << std::endl;
         free(h_binsize);
@@ -209,7 +209,7 @@ int CUSPREAD1D_NUPTSDRIVEN_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan) {
         for (int i = 0; i < M; i++) {
             if (h_sortidx[i] < 0) {
                 std::cout << "[debug ] ";
-                std::cout << "point[" << setw(3) << i << "]=" << setw(3) << h_sortidx[i] << std::endl;
+                std::cout << "point[" << std::setw(3) << i << "]=" << std::setw(3) << h_sortidx[i] << std::endl;
                 std::cout << "[debug ] ";
                 printf("(%10.10f) ", RESCALE(h_kx[i], nf1, pirange));
                 printf("(%10.10f) ", RESCALE(h_kx[i], nf1, pirange) / 32);
@@ -237,7 +237,7 @@ int CUSPREAD1D_NUPTSDRIVEN_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan) {
         for (int i = 0; i < numbins; i++) {
             if (i != 0)
                 std::cout << " ";
-            std::cout << "bin[" << setw(1) << i << "]=" << h_binstartpts[i];
+            std::cout << "bin[" << std::setw(1) << i << "]=" << h_binstartpts[i];
         }
         std::cout << std::endl;
         free(h_binstartpts);
@@ -355,7 +355,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
     checkCudaErrors(cudaMemcpy(h_kx, d_kx, M * sizeof(CUFINUFFT_FLT), cudaMemcpyDeviceToHost));
     for (int i = 0; i < M; i++) {
         std::cout << "[debug ]";
-        std::cout << "(" << setw(3) << h_kx[i] << ")" << std::endl;
+        std::cout << "(" << std::setw(3) << h_kx[i] << ")" << std::endl;
     }
 #endif
     int *d_binsize = d_plan->binsize;
@@ -389,7 +389,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
     for (int i = 0; i < numbins; i++) {
         if (i != 0)
             std::cout << " ";
-        std::cout << "bin[" << setw(3) << i << "]=" << h_binsize[i];
+        std::cout << "bin[" << std::setw(3) << i << "]=" << h_binsize[i];
     }
     free(h_binsize);
     std::cout << "[debug ] ----------------------------------------------------" << std::endl;
@@ -400,7 +400,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
     checkCudaErrors(cudaMemcpy(h_sortidx, d_sortidx, M * sizeof(int), cudaMemcpyDeviceToHost));
     std::cout << "[debug ]";
     for (int i = 0; i < M; i++) {
-        std::cout << "[debug] point[" << setw(3) << i << "]=" << setw(3) << h_sortidx[i] << std::endl;
+        std::cout << "[debug] point[" << std::setw(3) << i << "]=" << std::setw(3) << h_sortidx[i] << std::endl;
     }
 
 #endif
@@ -425,7 +425,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
     for (int i = 0; i < numbins; i++) {
         if (i != 0)
             std::cout << " ";
-        std::cout << "bin[" << setw(3) << i << "] = " << setw(2) << h_binstartpts[i];
+        std::cout << "bin[" << std::setw(3) << i << "] = " << std::setw(2) << h_binstartpts[i];
     }
     free(h_binstartpts);
     std::cout << "[debug ] ---------------------------------------------------" << std::endl;
@@ -458,7 +458,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
     for (int i = 0; i < numbins; i++) {
         if (i != 0)
             std::cout << " ";
-        std::cout << "nsub[" << setw(3) << i << "] = " << setw(2) << h_numsubprob[i];
+        std::cout << "nsub[" << std::setw(3) << i << "] = " << std::setw(2) << h_numsubprob[i];
     }
     std::cout << std::endl;
     free(h_numsubprob);
@@ -483,7 +483,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
     for (int i = 0; i < numbins; i++) {
         if (i != 0)
             std::cout << " ";
-        std::cout << "nsub[" << setw(3) << i << "] = " << setw(2) << h_subprobstartpts[i];
+        std::cout << "nsub[" << std::setw(3) << i << "] = " << std::setw(2) << h_subprobstartpts[i];
     }
     std::cout << std::endl;
     printf("[debug ] Total number of subproblems = %d\n", h_subprobstartpts[n]);
@@ -509,7 +509,7 @@ int CUSPREAD1D_SUBPROB_PROP(int nf1, int M, CUFINUFFT_PLAN d_plan)
         cudaMemcpy(h_subprob_to_bin, d_subprob_to_bin, (totalnumsubprob) * sizeof(int), cudaMemcpyDeviceToHost));
     for (int j = 0; j < totalnumsubprob; j++) {
         std::cout << "[debug ] ";
-        std::cout << "nsub[" << j << "] = " << setw(2) << h_subprob_to_bin[j];
+        std::cout << "nsub[" << j << "] = " << std::setw(2) << h_subprob_to_bin[j];
         std::cout << std::endl;
     }
     free(h_subprob_to_bin);

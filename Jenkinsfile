@@ -9,8 +9,8 @@ pipeline {
     stage('main') {
       agent {
          dockerfile {
-            filename 'cufinufft/ci/docker/cuda10.1/Dockerfile-x86_64'
-            args '--gpus 1'
+            filename 'tools/cufinufft/docker/cuda11.0/Dockerfile-x86_64'
+            args '--gpus 2'
          }
       }
       environment {
@@ -18,18 +18,21 @@ pipeline {
     PYBIN = "/opt/python/cp38-cp38/bin"
       }
       steps {
-    sh '${PYBIN}/python3 -m venv $HOME'
     sh '''#!/bin/bash -ex
-      source $HOME/bin/activate
-      python3 -m pip install --upgrade pip
-      LIBRARY_PATH=/io/build python3 -m pip install -e cupython
-      python3 -m pip install pytest
-      python3 -m pytest
+      nvidia-smi
     '''
     sh '''#!/bin/bash -ex
       cp -r /io/build/test/cuda cuda_tests
       cd cuda_tests
-      ctest
+      ctest --output-on-failure
+    '''
+    sh '${PYBIN}/python3 -m venv $HOME'
+    sh '''#!/bin/bash -ex
+      source $HOME/bin/activate
+      python3 -m pip install --upgrade pip
+      LIBRARY_PATH=/io/build python3 -m pip install -e python/cufinufft
+      python3 -m pip install pytest
+      python3 -m pytest
     '''
       }
     }

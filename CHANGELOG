@@ -1,6 +1,7 @@
-List of features / changes made / release notes, in reverse chronological order
+List of features / changes made / release notes, in reverse chronological order.
+If not stated, FINUFFT is assumed (up to v 1.3 CUFINUFFT indicated separately).
 
-V 2.2.0 (not yet released... planning April 2023):
+V 2.2.0 (not yet released... planning summer 2023):
 
 * MERGE OF CUFINUFFT (GPU CODE) INTO FINUFFT SOURCE TREE:
   - combined cmake build system via FINUFFT_USE_CUDA flag
@@ -12,12 +13,26 @@ V 2.2.0 (not yet released... planning April 2023):
   - cufinufft repo will be obsoleted.
   - coding leads on this: Robert Blackwell and Joakim Anden
 * cmake build structure (thanks: Wenda Zhou, Marco Barbone, Libin Lu)
-  - Note: the plan is to make the makefiles/make.inc.* obsolete this year.
+  - Note: the plan is to make the makefiles/make.inc.* obsolete by 2023 end.
+* Fix memleak in repeated setpts (Issue #269); thanks Aaron Shih & Libin Lu.
 * Fortran90 example via a new FINUFFT fortran module, thanks Reinhard Neder.
 * Better Python interface type checking (PR #237).
 * made the C++ plan object (finufft_plan_s) private; only opaque pointer
   remains public, as should be (PR #233). Allows plan to have C++ constructs.
 * fixed single-thread (OMP=OFF) build which failed due to fftw_defs.h/defs.h
+
+CUFINUFFT v 1.3 (06/10/23)
+
+* Move second half of onedim_fseries_kernel() to GPU (with a simple heuristic
+  basing on nf1 to switch between the CPU and the GPU version).
+* Melody fixed bug in MAX_NF being 0 due to typecasting 1e11 to int (thanks
+  Elliot Slaughter for catching that).
+* Melody fixed kernel eval so done w*d not w^d times, speeds up 2d a little, 3d
+  quite a lot! (PR#130)
+* Melody added 1D support for both types 1 (GM-sort and SM methods) 2 (GM-sort),
+  in C++/CUDA and their test executables (but not Python interface).
+* Various fixes to package config.
+* Miscellaneous bug fixes.
 
 V 2.1.0 (6/10/22)
 
@@ -65,6 +80,32 @@ V 2.0.3 (4/22/21)
 * fixed memory leak in type 3.
 * corrected C guru execute documentation.
 
+CUFINUFFT v 1.2 (02/17/21)
+
+* Warning: Following are Python interface changes -- not backwards compatible
+  with v 1.1 (See examples/example2d1,2many.py for updated usage)
+
+    - Made opts a kwarg dict instead of an object:
+         def __init__(self, ... , opts=None, dtype=np.float32)
+      => def __init__(self, ... , dtype=np.float32, **kwargs)
+    - Renamed arguments in plan creation `__init__`:
+         ntransforms => n_trans, tol => eps
+    - Changed order of arguments in plan creation `__init__`:
+         def __init__(self, ... ,isign, eps, ntransforms, opts, dtype)
+      => def __init__(self, ... ,ntransforms, eps, isign, opts, dtype)
+    - Removed M in `set_pts` arguments:
+         def set_pts(self, M, kx, ky=None, kz=None)
+      => def set_pts(self, kx, ky=None, kz=None)
+
+* Python: added multi-gpu support (in beta)
+* Python: added more unit tests (wrong input, kwarg args, multi-gpu)
+* Fixed various memory leaks
+* Added index bound check in 2D spread kernels (Spread_2d_Subprob(_Horner))
+* Added spread/interp tests to `make check`
+* Fixed user request tolerance (eps) to kernel width (w) calculation
+* Default kernel evaluation method set to 0, ie exp(sqrt()), since faster
+* Removed outdated benchmark codes, cleaner spread/interp tests
+
 V 2.0.2 (12/5/20)
 
 * fixed spreader segfault in obscure use case: single-precision N1>1e7, where
@@ -83,6 +124,25 @@ V 2.0.1 (10/6/20)
 * non-stochastic test/*.cpp routines, zeroing small chance of incorrect failure
 * Windows compatible makefile
 * mac OSX improved installation instructions and make.inc.*
+
+CUFINUFFT v 1.1 (09/22/20)
+
+* Python: extended the mode tuple to 3D and reorder from C/python
+  ndarray.shape style input (nZ, nY, nX) to to the (F) order expected by the
+  low level library (nX, nY, nZ).
+* Added bound checking on the bin size
+* Dual-precision support of spread/interp tests
+* Improved documentation of spread/interp tests
+* Added dummy call of cuFFTPlan1d to avoid timing the constant cost of cuFFT
+  library.
+* Added heuristic decision of maximum batch size (number of vectors with the
+  same nupts to transform at the same time)
+* Reported execution throughput in the test codes
+* Fixed timing in the tests code
+* Professionalized handling of too-small-eps (requested tolerance)
+* Rewrote README.md and added cuFINUFFT logo.
+* Support of advanced Makefile usage, e.g. make -site=olcf_summit
+* Removed FFTW dependency
 
 V 2.0.0 (8/28/20)
 
@@ -126,6 +186,9 @@ V 2.0.0 (8/28/20)
 * major rewrite of documentation, plus tutorial application examples in MATLAB.
 * numdiff dependency is removed for pass-fail library validation.
 * new (professional!) logo for FINUFFT. Sphinx HTML and PDF aesthetics.
+
+CUFINUFFT v 1.0 (07/29/20)
+* Started by Melody Shih.
 
 V 1.1.2 (1/31/20)
 
@@ -351,4 +414,4 @@ pre-V. 0.7: (Jan-Feb 2017)
 * changed library interface and twopispread to dcomplex
 * fortran wrappers (rmdir greengard_work, merge needed into fortran)
 
-Started: mid-January 2017.
+FINUFFT Started: mid-January 2017.

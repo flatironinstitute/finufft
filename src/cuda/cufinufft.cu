@@ -366,17 +366,6 @@ Notes: the type CUFINUFFT_FLT means either single or double, matching the
                 return 1;
             }
         }
-        if (d_plan->opts.gpu_method == 3) {
-            int ier = CUSPREAD2D_PAUL_PROP(nf1, nf2, M, d_plan);
-            if (ier != 0) {
-                printf("error: cuspread2d_paul_prop, method(%d)\n", d_plan->opts.gpu_method);
-
-                // Multi-GPU support: reset the device ID
-                cudaSetDevice(orig_gpu_device_id);
-
-                return 1;
-            }
-        }
     } break;
     case 3: {
         if (d_plan->opts.gpu_method == 4) {

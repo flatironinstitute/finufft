@@ -2,7 +2,7 @@
 
 # Helper Script For Building Wheels
 
-cufinufft_version=1.2
+cufinufft_version=1.3
 manylinux_version=manylinux2014
 cuda_version=11.0
 dockerhub=garrettwrong

@@ -11,6 +11,34 @@ Installation
 
    Python-only users can simply install via ``pip install finufft`` which downloads a generic binary from PyPI. Only if you prefer a custom compilation, see :ref:`below<install-python>`.
 
+CMake CPM Based Installation
+----------------------------
+
+This is the easiest way to install ``finufft`` if you are using CMake in your own project.
+First include `CPM <https://github.com/cpm-cmake/CPM.cmake>`_ to your project.
+
+The easiest way is to follow the `instructions <https://github.com/cpm-cmake/CPM.cmake/wiki/Downloading-CPM.cmake-in-CMake>`_ to automatically add CPM to cmake.
+  
+Then add the following to your ``CMakeLists.txt``:
+
+.. code-block:: cmake
+
+  CPMAddPackage(
+    NAME             Finufft
+    GIT_REPOSITORY   https://github.com/flatironinstitute/finufft.git    
+    GIT_TAG          v2.1.0 
+    GIT_SHALLOW      Yes
+    GIT_PROGRESS     Yes
+    EXCLUDE_FROM_ALL Yes 
+    SYSTEM
+  )
+
+  target_link_library(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft_static)
+  # or for shared linking 
+  target_link_library(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft_shared)
+
+Then cmake will automatically download the library and link it to your executable.
+
 
 CMake Based Installation
 ------------------------
