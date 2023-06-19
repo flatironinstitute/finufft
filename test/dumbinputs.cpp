@@ -270,7 +270,7 @@ int main(int argc, char* argv[])
     printf("1d3many M=N=1:\tier=%d err=%.3g\n",ier,err);
     return 1;
   }
-  ier = FINUFFT1D3MANY(ndata,M,x,cm,+1,acc,N,shuge,F,&opts);
+  ier = FINUFFT1D3MANY(ndata,M,x,cm,+1,acc,N,shuge,Fm,&opts);
   if (ier==0) {          // any nonzero code accepted here
     printf("1d3many XK prod too big:\twrong error code %d\n",ier);
     return 1;
