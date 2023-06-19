@@ -216,7 +216,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT1D2MANY(ndata,M,x,cm,+1,0,N,Fm,&opts);
   if (ier != WARN_EPS_TOO_SMALL) {
-    printf("1d1many tol=0:\twrong err code %d\n",ier);
+    printf("1d2many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT1D2MANY(ndata,M,x,cm,+1,acc,0,Fm,&opts);
@@ -663,7 +663,7 @@ int main(int argc, char* argv[])
     return 1;
   }
   
-  free(x); free(c); free(F); free(s); free(shuge); free(cm); free(Fm);
+  free(x); free(c); free(F); free(s); free(shuge); free(cm); free(Fm); free(Fe);
   
   // GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
   // some dumb tests for guru interface to induce free() crash in destroy...
