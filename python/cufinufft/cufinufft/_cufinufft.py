@@ -21,10 +21,11 @@ import numpy as np
 
 from ctypes import c_double
 from ctypes import c_int
+from ctypes import c_int64
 from ctypes import c_float
 from ctypes import c_void_p
 
-c_int_p = ctypes.POINTER(c_int)
+c_int64_p = ctypes.POINTER(c_int64)
 c_float_p = ctypes.POINTER(c_float)
 c_double_p = ctypes.POINTER(c_double)
 
@@ -115,13 +116,13 @@ _default_opts.restype = c_int
 
 _make_plan = lib.cufinufft_makeplan
 _make_plan.argtypes = [
-    c_int, c_int, c_int_p, c_int,
+    c_int, c_int, c_int64_p, c_int,
     c_int, c_double, CufinufftPlan_p, NufftOpts_p]
 _make_plan.restypes = c_int
 
 _make_planf = lib.cufinufftf_makeplan
 _make_planf.argtypes = [
-    c_int, c_int, c_int_p, c_int,
+    c_int, c_int, c_int64_p, c_int,
     c_int, c_float, CufinufftPlanf_p, NufftOpts_p]
 _make_planf.restypes = c_int
 
