@@ -488,9 +488,11 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
     return 0;
 }
 
-inline int mode_copy_validate(int dim, int64_t *modes64, int32_t modes32[3]) {
+inline bool mode_copy_validate(int dim, int64_t *modes64, int32_t modes32[3]) {
     int64_t tot_size = 1;
     for (int i = 0; i < dim; ++i) {
+        if (modes64[i] > std::numeric_limits<int32_t>::max())
+            return true;
         modes32[i] = modes64[i];
         tot_size *= modes64[i];
     }
@@ -505,7 +507,7 @@ int cufinufftf_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntran
                         cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
     int nmodes32[3];
     if (mode_copy_validate(dim, nmodes, nmodes32))
-        return -1; // FIXME: need proper error code
+        return ERR_NDATA_NOTVALID;
 
     return cufinufft_makeplan_impl(type, dim, nmodes32, iflag, ntransf, tol, (cufinufft_plan_t<float> **)d_plan_ptr,
                                    opts);
@@ -514,7 +516,7 @@ int cufinufft_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntrans
                        cufinufft_plan *d_plan_ptr, cufinufft_opts *opts) {
     int nmodes32[3];
     if (mode_copy_validate(dim, nmodes, nmodes32))
-        return -1; // FIXME: need proper error code
+        return ERR_NDATA_NOTVALID;
 
     return cufinufft_makeplan_impl(type, dim, nmodes32, iflag, ntransf, tol, (cufinufft_plan_t<double> **)d_plan_ptr,
                                    opts);
