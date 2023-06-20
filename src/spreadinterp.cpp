@@ -763,38 +763,59 @@ void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 }
 
 void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
-// 2D interpolate complex values from du (uniform grid data) array to out value,
-// using ns*ns square of real weights
-// in ker. out must be size 2 (real,imag), and du
-// of size 2*N1*N2 (alternating real,imag). i1 is the left-most index in [0,N1)
-// and i2 the bottom index in [0,N2).
-// Periodic wrapping in the du array is applied, assuming N1,N2>=ns.
-// dx,dy indices into ker array, j index in complex du array.
-// Barnett 6/16/17
+/* 2D interpolate complex values from a ns*ns block of the du (uniform grid
+   data) array to a single complex output value "target", using as weights the
+   ns*ns outer product of the 1d kernel lists ker1 and ker2.
+   Inputs:
+   du : input regular grid of size 2*N1*N2 (alternating real,imag)
+   ker1, ker2 : length-ns real arrays of 1d kernel evaluations
+   i1 : start (left-most) x-coord index to read du from, where the indices
+        of du run from 0 to N1-1, and indices outside that range are wrapped.
+   i2 : start (bottom) y-coord index to read du from.
+   ns : kernel width (must be <=MAX_NSPREAD)
+   Outputs:
+   target : size 2 array (containing real,imag) of interpolated output
+
+   Periodic wrapping in the du array is applied, assuming N1,N2>=ns.
+   Internally, dx,dy indices into ker array, l indices the 2*ns interleaved
+   line array, j is index in complex du array.
+   Barnett 6/16/17.
+   No-wrap case sped up for FMA/SIMD by Reinecke 6/19/23, with this note:
+   "It reduces the number of arithmetic operations per "iteration" in the
+   innermost loop from 2.5 to 2, and these two can be converted easily to a
+   fused multiply-add instruction (potentially vectorized). Also the strides
+   of all invoved arrays in this loop are now 1, instead of the mixed 1 and 2
+   before. Also the accumulation onto a double[2] is limiting the vectorization
+   pretty badly. I think this is now much more analogous to the way the spread
+   operation is implemented, which has always been much faster when I tested
+   it."
+*/
 {
   FLT out[] = {0.0, 0.0};
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
-    FLT out2[2*MAX_NSPREAD];
+    FLT line[2*MAX_NSPREAD];   // store a horiz line (interleaved real,imag)
     // block for first y line, to avoid explicitly initializing out2 with zeros
     {
-      const FLT *du2 = du + 2*(N1*i2 + i1);
-      for (int dx=0; dx<2*ns; dx++) {
-        out2[dx] = ker2[0]*du2[dx];
+      const FLT *lptr = du + 2*(N1*i2 + i1);   // ptr to horiz line start in du
+      for (int l=0; l<2*ns; l++) {    // l is like dx but for ns interleaved
+        line[l] = ker2[0]*lptr[j];
       }
     }
-    // add remaining y lines
+    // add remaining y lines (expensive inner loop)
     for (int dy=1; dy<ns; dy++) {
-      const FLT *du2 = du + 2*(N1*(i2+dy) + i1);
-      for (int dx=0; dx<2*ns; ++dx) {
-        out2[dx] += ker2[dy]*du2[dx];
+      const FLT *lprt = du + 2*(N1*(i2+dy) + i1);  // (see above)
+      for (int l=0; l<2*ns; ++l) {
+        line[l] += ker2[dy]*lptr[l];
       }
     }
-    // apply x kernel and add together
+    // apply x kernel to the (interleaved) line and add together
     for (int dx=0; dx<ns; dx++) {
-      out[0] += out2[2*dx]*ker1[dx];
-      out[1] += out2[2*dx+1]*ker1[dx];
+      out[0] += line[2*dx]   * ker1[dx];
+      out[1] += line[2*dx+1] * ker1[dx];
     }
-  } else {                         // wraps somewhere: use ptr list (slower)
+  } else {                         // wraps somewhere: use ptr list
+    // this is slower than above, but occurs much less often, with fractional
+    // rate O(ns/min(N1,N2)). Thus this code doesn't need to be so optimized.
     BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD];   // 1d ptr lists
     BIGINT x=i1, y=i2;                 // initialize coords
     for (int d=0; d<ns; d++) {         // set up ptr lists
@@ -821,14 +842,29 @@ void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i
 
 void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 		 BIGINT i1,BIGINT i2,BIGINT i3, BIGINT N1,BIGINT N2,BIGINT N3,int ns)
-// 3D interpolate complex values from du (uniform grid data) array to out value,
-// using ns*ns*ns cube of real weights
-// in ker. out must be size 2 (real,imag), and du
-// of size 2*N1*N2*N3 (alternating real,imag). i1 is the left-most index in
-// [0,N1), i2 the bottom index in [0,N2), i3 lowest in [0,N3).
-// Periodic wrapping in the du array is applied, assuming N1,N2,N3>=ns.
-// dx,dy,dz indices into ker array, j index in complex du array.
-// Barnett 6/16/17
+/* 3D interpolate complex values from a ns*ns*ns block of the du (uniform grid
+   data) array to a single complex output value "target", using as weights the
+   ns*ns*ns outer product of the 1d kernel lists ker1, ker2, and ker3.
+   Inputs:
+   du : input regular grid of size 2*N1*N2*N3 (alternating real,imag)
+   ker1, ker2, ker3 : length-ns real arrays of 1d kernel evaluations
+   i1 : start (left-most) x-coord index to read du from, where the indices
+        of du run from 0 to N1-1, and indices outside that range are wrapped.
+   i2 : start (bottom) y-coord index to read du from.
+   i3 : start (lowest) z-coord index to read du from.
+   ns : kernel width (must be <=MAX_NSPREAD)
+   Outputs:
+   target : size 2 array (containing real,imag) of interpolated output
+
+   Periodic wrapping in the du array is applied, assuming N1,N2,N3>=ns.
+   Internally, dx,dy,dz indices into ker array, l indices the 2*ns interleaved
+   line array, j is index in complex du array.
+
+   Internally, dx,dy,dz indices into ker array, j index in complex du array.
+   Barnett 6/16/17.
+   No-wrap case sped up for FMA/SIMD by Reinecke 6/19/23
+   (see note in interp_square)
+*/
 {
   FLT out[] = {0.0, 0.0};  
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
