@@ -132,7 +132,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->nf3 = nf3;
     d_plan->iflag = fftsign;
     d_plan->ntransf = ntransf;
-    int maxbatchsize = opts->gpu_maxbatchsize;
+    int maxbatchsize = opts ? opts->gpu_maxbatchsize : 0;
     if (maxbatchsize == 0)              // implies: use a heuristic.
         maxbatchsize = min(ntransf, 8); // heuristic from test codes
     d_plan->maxbatchsize = maxbatchsize;
