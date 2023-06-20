@@ -780,7 +780,7 @@ void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i
    Internally, dx,dy indices into ker array, l indices the 2*ns interleaved
    line array, j is index in complex du array.
    Barnett 6/16/17.
-   No-wrap case sped up for FMA/SIMD by Reinecke 6/19/23, with this note:
+   No-wrap case sped up for FMA/SIMD by Martin Reinecke 6/19/23, with this note:
    "It reduces the number of arithmetic operations per "iteration" in the
    innermost loop from 2.5 to 2, and these two can be converted easily to a
    fused multiply-add instruction (potentially vectorized). Also the strides
@@ -794,16 +794,16 @@ void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i
   FLT out[] = {0.0, 0.0};
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
     FLT line[2*MAX_NSPREAD];   // store a horiz line (interleaved real,imag)
-    // block for first y line, to avoid explicitly initializing out2 with zeros
+    // block for first y line, to avoid explicitly initializing line with zeros
     {
       const FLT *lptr = du + 2*(N1*i2 + i1);   // ptr to horiz line start in du
       for (int l=0; l<2*ns; l++) {    // l is like dx but for ns interleaved
-        line[l] = ker2[0]*lptr[j];
+        line[l] = ker2[0]*lptr[l];
       }
     }
-    // add remaining y lines (expensive inner loop)
+    // add remaining const-y lines to the line (expensive inner loop)
     for (int dy=1; dy<ns; dy++) {
-      const FLT *lprt = du + 2*(N1*(i2+dy) + i1);  // (see above)
+      const FLT *lptr = du + 2*(N1*(i2+dy) + i1);  // (see above)
       for (int l=0; l<2*ns; ++l) {
         line[l] += ker2[dy]*lptr[l];
       }
@@ -863,34 +863,37 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
    Internally, dx,dy,dz indices into ker array, j index in complex du array.
    Barnett 6/16/17.
    No-wrap case sped up for FMA/SIMD by Reinecke 6/19/23
-   (see note in interp_square)
+   (see above note in interp_square)
 */
 {
   FLT out[] = {0.0, 0.0};  
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
-    // no wrapping: avoid ptrs
-    FLT out2[2*MAX_NSPREAD];
-    // initialize out2 with zeros; hard to avoid here, but overhead is small in 3D
-    for (int dx=0; dx<2*ns; dx++) {
-      out2[dx] = 0;
+    // no wrapping: avoid ptrs (by far the most common case)
+    FLT line[2*MAX_NSPREAD];       // store a horiz line (interleaved real,imag)
+    // initialize line with zeros; hard to avoid here, but overhead small in 3D
+    for (int l=0; l<2*ns; l++) {
+      line[l] = 0;
     }
-    // co-add y and z contributions in out2, do not apply x kernel yet
+    // co-add y and z contributions to line in x; do not apply x kernel yet
+    // This is expensive innermost loop
     for (int dz=0; dz<ns; dz++) {
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; dy++) {
-        const FLT *du2 = du + 2*(oz + N1*(i2+dy) + i1);
+        const FLT *lptr = du + 2*(oz + N1*(i2+dy) + i1);  // ptr start of line
         FLT ker23 = ker2[dy]*ker3[dz];
-        for (int dx=0; dx<2*ns; ++dx) {
-          out2[dx] += du2[dx]*ker23;
+        for (int l=0; l<2*ns; ++l) {    // loop over ns interleaved (R,I) pairs
+          line[l] += lptr[l]*ker23;
         }
       }
     }
-    // apply x kernel and add together
+    // apply x kernel to the (interleaved) line and add together (cheap)
     for (int dx=0; dx<ns; dx++) {
-      out[0] += out2[2*dx]*ker1[dx];
-      out[1] += out2[2*dx+1]*ker1[dx];
+      out[0] += line[2*dx]   * ker1[dx];
+      out[1] += line[2*dx+1] * ker1[dx];
     }
-  } else {                         // wraps somewhere: use ptr list (slower)
+  } else {                         // wraps somewhere: use ptr list
+    // ...can be slower since this case only happens with probability
+    // O(ns/min(N1,N2,N3))
     BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD], j3[MAX_NSPREAD];   // 1d ptr lists
     BIGINT x=i1, y=i2, z=i3;         // initialize coords
     for (int d=0; d<ns; d++) {          // set up ptr lists
