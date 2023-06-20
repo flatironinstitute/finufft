@@ -717,12 +717,22 @@ static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 }
 
 void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
-// 1D interpolate complex values from du array to out, using real weights
-// ker[0] through ker[ns-1]. out must be size 2 (real,imag), and du
-// of size 2*N1 (alternating real,imag). i1 is the left-most index in [0,N1)
-// Periodic wrapping in the du array is applied, assuming N1>=ns.
-// dx is index into ker array, j index in complex du (data_uniform) array.
-// Barnett 6/15/17
+/* 1D interpolate complex values from size-ns block of the du (uniform grid
+   data) array to a single complex output value "target", using as weights the
+   1d kernel evaluation list ker1.
+   Inputs:
+   du : input regular grid of size 2*N1 (alternating real,imag)
+   ker1 : length-ns real array of 1d kernel evaluations
+   i1 : start (left-most) x-coord index to read du from, where the indices
+        of du run from 0 to N1-1, and indices outside that range are wrapped.
+   ns : kernel width (must be <=MAX_NSPREAD)
+   Outputs:
+   target : size 2 array (containing real,imag) of interpolated output
+
+   Periodic wrapping in the du array is applied, assuming N1>=ns.
+   Internally, dx indices into ker array j is index in complex du array.
+   Barnett 6/16/17.
+*/
 {
   FLT out[] = {0.0, 0.0};
   BIGINT j = i1;
