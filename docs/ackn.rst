@@ -26,7 +26,8 @@ Other significant code contributions by:
 * David Stein - python wrappers, finding "pi-1ULP" spreadcheck error
 * Garrett Wright - dual-precision build, py packaging, GPU version
 * Wenda Zhou - Cmake build, SIMD optims, code review, professionalization
-  
+* Martin Reinecke - SIMD acceleration of interpolator, helpful ideas
+
 Testing, bug reports, helpful discussions:
 
 * Dan Fortunato - MATLAB setpts temp array bug and fix
