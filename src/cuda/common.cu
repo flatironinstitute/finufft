@@ -164,12 +164,12 @@ void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, T *f, std::complex<doubl
 template <typename T>
 void onedim_fseries_kernel_compute(CUFINUFFT_BIGINT nf, T *f, std::complex<double> *a, T *fwkerhalf,
                                    finufft_spread_opts opts) {
-    T J2 = opts.nspread / 2.0;                    // J/2, half-width of ker z-support
-    int q = (int)(2 + 3.0 * J2);                  // not sure why so large? cannot exceed MAX_NQUAD
-    CUFINUFFT_BIGINT nout = nf / 2 + 1;           // how many values we're writing to
-    int nt = MIN(nout, MY_OMP_GET_MAX_THREADS()); // how many chunks
-    std::vector<CUFINUFFT_BIGINT> brk(nt + 1);    // start indices for each thread
-    for (int t = 0; t <= nt; ++t)                 // split nout mode indices btw threads
+    T J2 = opts.nspread / 2.0;                         // J/2, half-width of ker z-support
+    int q = (int)(2 + 3.0 * J2);                       // not sure why so large? cannot exceed MAX_NQUAD
+    CUFINUFFT_BIGINT nout = nf / 2 + 1;                // how many values we're writing to
+    int nt = std::min(nout, MY_OMP_GET_MAX_THREADS()); // how many chunks
+    std::vector<CUFINUFFT_BIGINT> brk(nt + 1);         // start indices for each thread
+    for (int t = 0; t <= nt; ++t)                      // split nout mode indices btw threads
         brk[t] = (CUFINUFFT_BIGINT)(0.5 + nout * t / (double)nt);
 #pragma omp parallel
     {

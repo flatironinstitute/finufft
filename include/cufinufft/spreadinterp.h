@@ -7,18 +7,31 @@
 // NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
 // folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
 // FIXME: SO MUCH BRANCHING
-#ifndef M_1_2PI
-#define M_1_2PI 0.159154943091895336
-#endif
-#define RESCALE(x, N, p)                                                                                               \
-    (p ? ((x * M_1_2PI + (x < -M_PI ? 1.5 : (x >= M_PI ? -0.5 : 0.5))) * N) : (x < 0 ? x + N : (x >= N ? x - N : x)))
-// yuk! But this is *so* much faster than slow std::fmod that we stick to it.
 
 namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
-inline T evaluate_kernel(T x, const finufft_spread_opts &opts);
+static __forceinline__ __device__ T RESCALE(T x, int N, int p) {
+    constexpr T M_1_2PI = 1.0 / (2.0 * M_PI);
+    constexpr T pi = M_PI;
+    return p ? (x * M_1_2PI + (x < -pi ? 1.5 : (x >= M_PI ? -0.5 : 0.5))) * N : x < 0 ? x + N : (x >= N ? x - N : x);
+}
+
+template <typename T>
+static inline T evaluate_kernel(T x, const finufft_spread_opts &opts)
+/* ES ("exp sqrt") kernel evaluation at single real argument:
+      phi(x) = exp(beta.sqrt(1 - (2x/n_s)^2)),    for |x| < nspread/2
+   related to an asymptotic approximation to the Kaiser--Bessel, itself an
+   approximation to prolate spheroidal wavefunction (PSWF) of order 0.
+   This is the "reference implementation", used by eg common/onedim_* 2/17/17 */
+{
+    if (abs(x) >= opts.ES_halfwidth)
+        // if spreading/FT careful, shouldn't need this if, but causes no speed hit
+        return 0.0;
+    else
+        return exp(opts.ES_beta * sqrt(1.0 - opts.ES_c * x * x));
+}
 
 template <typename T>
 int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmeth);
