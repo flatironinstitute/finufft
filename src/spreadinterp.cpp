@@ -717,12 +717,22 @@ static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
 }
 
 void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
-// 1D interpolate complex values from du array to out, using real weights
-// ker[0] through ker[ns-1]. out must be size 2 (real,imag), and du
-// of size 2*N1 (alternating real,imag). i1 is the left-most index in [0,N1)
-// Periodic wrapping in the du array is applied, assuming N1>=ns.
-// dx is index into ker array, j index in complex du (data_uniform) array.
-// Barnett 6/15/17
+/* 1D interpolate complex values from size-ns block of the du (uniform grid
+   data) array to a single complex output value "target", using as weights the
+   1d kernel evaluation list ker1.
+   Inputs:
+   du : input regular grid of size 2*N1 (alternating real,imag)
+   ker1 : length-ns real array of 1d kernel evaluations
+   i1 : start (left-most) x-coord index to read du from, where the indices
+        of du run from 0 to N1-1, and indices outside that range are wrapped.
+   ns : kernel width (must be <=MAX_NSPREAD)
+   Outputs:
+   target : size 2 array (containing real,imag) of interpolated output
+
+   Periodic wrapping in the du array is applied, assuming N1>=ns.
+   Internally, dx indices into ker array j is index in complex du array.
+   Barnett 6/16/17.
+*/
 {
   FLT out[] = {0.0, 0.0};
   BIGINT j = i1;
@@ -763,27 +773,59 @@ void interp_line(FLT *target,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns)
 }
 
 void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns)
-// 2D interpolate complex values from du (uniform grid data) array to out value,
-// using ns*ns square of real weights
-// in ker. out must be size 2 (real,imag), and du
-// of size 2*N1*N2 (alternating real,imag). i1 is the left-most index in [0,N1)
-// and i2 the bottom index in [0,N2).
-// Periodic wrapping in the du array is applied, assuming N1,N2>=ns.
-// dx,dy indices into ker array, j index in complex du array.
-// Barnett 6/16/17
+/* 2D interpolate complex values from a ns*ns block of the du (uniform grid
+   data) array to a single complex output value "target", using as weights the
+   ns*ns outer product of the 1d kernel lists ker1 and ker2.
+   Inputs:
+   du : input regular grid of size 2*N1*N2 (alternating real,imag)
+   ker1, ker2 : length-ns real arrays of 1d kernel evaluations
+   i1 : start (left-most) x-coord index to read du from, where the indices
+        of du run from 0 to N1-1, and indices outside that range are wrapped.
+   i2 : start (bottom) y-coord index to read du from.
+   ns : kernel width (must be <=MAX_NSPREAD)
+   Outputs:
+   target : size 2 array (containing real,imag) of interpolated output
+
+   Periodic wrapping in the du array is applied, assuming N1,N2>=ns.
+   Internally, dx,dy indices into ker array, l indices the 2*ns interleaved
+   line array, j is index in complex du array.
+   Barnett 6/16/17.
+   No-wrap case sped up for FMA/SIMD by Martin Reinecke 6/19/23, with this note:
+   "It reduces the number of arithmetic operations per "iteration" in the
+   innermost loop from 2.5 to 2, and these two can be converted easily to a
+   fused multiply-add instruction (potentially vectorized). Also the strides
+   of all invoved arrays in this loop are now 1, instead of the mixed 1 and 2
+   before. Also the accumulation onto a double[2] is limiting the vectorization
+   pretty badly. I think this is now much more analogous to the way the spread
+   operation is implemented, which has always been much faster when I tested
+   it."
+*/
 {
   FLT out[] = {0.0, 0.0};
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2) {  // no wrapping: avoid ptrs
-    for (int dy=0; dy<ns; dy++) {
-      BIGINT j = N1*(i2+dy) + i1;
-      for (int dx=0; dx<ns; dx++) {
-	FLT k = ker1[dx]*ker2[dy];
-	out[0] += du[2*j] * k;
-	out[1] += du[2*j+1] * k;
-	++j;
+    FLT line[2*MAX_NSPREAD];   // store a horiz line (interleaved real,imag)
+    // block for first y line, to avoid explicitly initializing line with zeros
+    {
+      const FLT *lptr = du + 2*(N1*i2 + i1);   // ptr to horiz line start in du
+      for (int l=0; l<2*ns; l++) {    // l is like dx but for ns interleaved
+        line[l] = ker2[0]*lptr[l];
       }
     }
-  } else {                         // wraps somewhere: use ptr list (slower)
+    // add remaining const-y lines to the line (expensive inner loop)
+    for (int dy=1; dy<ns; dy++) {
+      const FLT *lptr = du + 2*(N1*(i2+dy) + i1);  // (see above)
+      for (int l=0; l<2*ns; ++l) {
+        line[l] += ker2[dy]*lptr[l];
+      }
+    }
+    // apply x kernel to the (interleaved) line and add together
+    for (int dx=0; dx<ns; dx++) {
+      out[0] += line[2*dx]   * ker1[dx];
+      out[1] += line[2*dx+1] * ker1[dx];
+    }
+  } else {                         // wraps somewhere: use ptr list
+    // this is slower than above, but occurs much less often, with fractional
+    // rate O(ns/min(N1,N2)). Thus this code doesn't need to be so optimized.
     BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD];   // 1d ptr lists
     BIGINT x=i1, y=i2;                 // initialize coords
     for (int d=0; d<ns; d++) {         // set up ptr lists
@@ -810,32 +852,58 @@ void interp_square(FLT *target,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i
 
 void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 		 BIGINT i1,BIGINT i2,BIGINT i3, BIGINT N1,BIGINT N2,BIGINT N3,int ns)
-// 3D interpolate complex values from du (uniform grid data) array to out value,
-// using ns*ns*ns cube of real weights
-// in ker. out must be size 2 (real,imag), and du
-// of size 2*N1*N2*N3 (alternating real,imag). i1 is the left-most index in
-// [0,N1), i2 the bottom index in [0,N2), i3 lowest in [0,N3).
-// Periodic wrapping in the du array is applied, assuming N1,N2,N3>=ns.
-// dx,dy,dz indices into ker array, j index in complex du array.
-// Barnett 6/16/17
+/* 3D interpolate complex values from a ns*ns*ns block of the du (uniform grid
+   data) array to a single complex output value "target", using as weights the
+   ns*ns*ns outer product of the 1d kernel lists ker1, ker2, and ker3.
+   Inputs:
+   du : input regular grid of size 2*N1*N2*N3 (alternating real,imag)
+   ker1, ker2, ker3 : length-ns real arrays of 1d kernel evaluations
+   i1 : start (left-most) x-coord index to read du from, where the indices
+        of du run from 0 to N1-1, and indices outside that range are wrapped.
+   i2 : start (bottom) y-coord index to read du from.
+   i3 : start (lowest) z-coord index to read du from.
+   ns : kernel width (must be <=MAX_NSPREAD)
+   Outputs:
+   target : size 2 array (containing real,imag) of interpolated output
+
+   Periodic wrapping in the du array is applied, assuming N1,N2,N3>=ns.
+   Internally, dx,dy,dz indices into ker array, l indices the 2*ns interleaved
+   line array, j is index in complex du array.
+
+   Internally, dx,dy,dz indices into ker array, j index in complex du array.
+   Barnett 6/16/17.
+   No-wrap case sped up for FMA/SIMD by Reinecke 6/19/23
+   (see above note in interp_square)
+*/
 {
   FLT out[] = {0.0, 0.0};  
   if (i1>=0 && i1+ns<=N1 && i2>=0 && i2+ns<=N2 && i3>=0 && i3+ns<=N3) {
-    // no wrapping: avoid ptrs
+    // no wrapping: avoid ptrs (by far the most common case)
+    FLT line[2*MAX_NSPREAD];       // store a horiz line (interleaved real,imag)
+    // initialize line with zeros; hard to avoid here, but overhead small in 3D
+    for (int l=0; l<2*ns; l++) {
+      line[l] = 0;
+    }
+    // co-add y and z contributions to line in x; do not apply x kernel yet
+    // This is expensive innermost loop
     for (int dz=0; dz<ns; dz++) {
       BIGINT oz = N1*N2*(i3+dz);        // offset due to z
       for (int dy=0; dy<ns; dy++) {
-	BIGINT j = oz + N1*(i2+dy) + i1;
-	FLT ker23 = ker2[dy]*ker3[dz];
-	for (int dx=0; dx<ns; dx++) {
-	  FLT k = ker1[dx]*ker23;
-	  out[0] += du[2*j] * k;
-	  out[1] += du[2*j+1] * k;
-	  ++j;
-	}
+        const FLT *lptr = du + 2*(oz + N1*(i2+dy) + i1);  // ptr start of line
+        FLT ker23 = ker2[dy]*ker3[dz];
+        for (int l=0; l<2*ns; ++l) {    // loop over ns interleaved (R,I) pairs
+          line[l] += lptr[l]*ker23;
+        }
       }
     }
-  } else {                         // wraps somewhere: use ptr list (slower)
+    // apply x kernel to the (interleaved) line and add together (cheap)
+    for (int dx=0; dx<ns; dx++) {
+      out[0] += line[2*dx]   * ker1[dx];
+      out[1] += line[2*dx+1] * ker1[dx];
+    }
+  } else {                         // wraps somewhere: use ptr list
+    // ...can be slower since this case only happens with probability
+    // O(ns/min(N1,N2,N3))
     BIGINT j1[MAX_NSPREAD], j2[MAX_NSPREAD], j3[MAX_NSPREAD];   // 1d ptr lists
     BIGINT x=i1, y=i2, z=i3;         // initialize coords
     for (int d=0; d<ns; d++) {          // set up ptr lists
@@ -1164,8 +1232,8 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * back; the latter used more RAM and was slower.
  * Avoided the bins array, as in JFM's spreader of 2016,
  * tidied up, early 2017, Barnett.
- *
  * Timings (2017): 3s for M=1e8 NU pts on 1 core of i7; 5s on 1 core of xeon.
+ * Simplified by Martin Reinecke, 6/19/23 (no apparent effect on speed).
  */
 {
   bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
@@ -1186,25 +1254,24 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     counts[bin]++;
   }
-  std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
-  offsets[0]=0;     // do: offsets = [0 cumsum(counts(1:end-1)]
-  for (BIGINT i=1; i<nbins; i++)
-    offsets[i]=offsets[i-1]+counts[i-1];
+
+  // compute the offsets directly in the counts array (no offset array)
+  BIGINT current_offset=0;
+  for (BIGINT i=0; i<nbins; i++) {
+    BIGINT tmp = counts[i];
+    counts[i] = current_offset;   // Reinecke's cute replacement of counts[i]
+    current_offset += tmp;
+  }              // (counts now contains the index offsets for each bin)
   
-  std::vector<BIGINT> inv(M);           // fill inverse map
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
     BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
     if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
     if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-    BIGINT offset=offsets[bin];
-    offsets[bin]++;
-    inv[i]=offset;
+    ret[counts[bin]] = i;      // fill the inverse map on the fly
+    ++counts[bin];             // update the offsets
   }
-  // invert the map, writing to output pointer (writing pattern is random)
-  for (BIGINT i=0; i<M; i++)
-    ret[inv[i]]=i;
 }
 
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
@@ -1214,8 +1281,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 /* Mostly-OpenMP'ed version of bin_sort.
    For documentation see: bin_sort_singlethread.
    Caution: when M (# NU pts) << N (# U pts), is SLOWER than single-thread.
-   Barnett 2/8/18
+   Originally by Barnett 2/8/18
    Explicit #threads control argument 7/20/20.
+   Improved by Martin Reinecke, 6/19/23 (up to 50% faster at 1 thr/core).
    Todo: if debug, print timing breakdowns.
  */
 {
@@ -1232,63 +1300,49 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   // distribute the NU pts to threads once & for all...
   for (int t=0; t<=nt; ++t)
     brk[t] = (BIGINT)(0.5 + M*t/(double)nt);   // start index for t'th chunk
-  
-  std::vector<BIGINT> counts(nbins,0);     // global counts: # pts in each bin
-  // offsets per thread, size nt * nbins, init to 0 by copying the counts vec...
-  std::vector< std::vector<BIGINT> > ot(nt,counts);
-  {    // scope for ct, the 2d array of counts in bins for each thread's NU pts
-    std::vector< std::vector<BIGINT> > ct(nt,counts);   // nt * nbins, init to 0
+
+  // set up 2d array (nthreads * nbins), just its pointers for now
+  // (sub-vectors will be initialized later)
+  std::vector< std::vector<BIGINT> > counts(nt);
     
 #pragma omp parallel num_threads(nt)
-    {  // parallel binning to each thread's count. Block done once per thread
-      int t = MY_OMP_GET_THREAD_NUM();     // (we assume all nt threads created)
-      //printf("\tt=%d: [%d,%d]\n",t,jlo[t],jhi[t]);
-      for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
-        // find the bin index in however many dims are needed
-        BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-        if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
-        if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
-        BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-        ct[t][bin]++;               // no clash btw threads
-      }
+  {  // parallel binning to each thread's count. Block done once per thread
+    int t = MY_OMP_GET_THREAD_NUM();     // (we assume all nt threads created)
+    auto &my_counts(counts[t]);          // name for counts[t]
+    my_counts.resize(nbins,0);  // allocate counts[t], now in parallel region
+    for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
+      // find the bin index in however many dims are needed
+      BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
+      if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
+      if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
+      BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+      ++my_counts[bin];               // no clash btw threads
     }
-    // sum along thread axis to get global counts
-    for (BIGINT b=0; b<nbins; ++b)   // (not worth omp. Either loop order is ok)
-      for (int t=0; t<nt; ++t)
-	counts[b] += ct[t][b];
-    
-    std::vector<BIGINT> offsets(nbins);   // cumulative sum of bin counts
-    // do: offsets = [0 cumsum(counts(1:end-1))] ...
-    offsets[0] = 0;
-    for (BIGINT i=1; i<nbins; i++)
-      offsets[i]=offsets[i-1]+counts[i-1];
-    
-    for (BIGINT b=0; b<nbins; ++b)  // now build offsets for each thread & bin:
-      ot[0][b] = offsets[b];                     // init
-    for (int t=1; t<nt; ++t)   // (again not worth omp. Either loop order is ok)
-      for (BIGINT b=0; b<nbins; ++b)
-	ot[t][b] = ot[t-1][b]+ct[t-1][b];        // cumsum along t axis
-    
-  }  // scope frees up ct here, before inv alloc
+  }
   
-  std::vector<BIGINT> inv(M);           // fill inverse map, in parallel
+  // inner sum along both bin and thread (inner) axes to get global offsets
+  BIGINT current_offset = 0;
+  for (BIGINT b=0; b<nbins; ++b)   // (not worth omp)
+    for (int t=0; t<nt; ++t) {
+      BIGINT tmp = counts[t][b];
+      counts[t][b] = current_offset;
+      current_offset += tmp;
+    }   // counts[t][b] is now the index offset as if t ordered fast, b slow
+  
 #pragma omp parallel num_threads(nt)
   {
     int t = MY_OMP_GET_THREAD_NUM();
+    auto &my_counts(counts[t]);
     for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
       // find the bin index (again! but better than using RAM)
       BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
       if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
       if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
       BIGINT bin = i1+nbins1*(i2+nbins2*i3);
-      inv[i]=ot[t][bin];   // get the offset for this NU pt and thread
-      ot[t][bin]++;               // no clash
+      ret[my_counts[bin]] = i;   // inverse is offset for this NU pt and thread
+      ++my_counts[bin];          // update the offsets; no thread clash
     }
   }
-  // invert the map, writing to output pointer (writing pattern is random)
-#pragma omp parallel for num_threads(nt) schedule(dynamic,10000)
-  for (BIGINT i=0; i<M; i++)
-    ret[inv[i]]=i;
 }
 
 
