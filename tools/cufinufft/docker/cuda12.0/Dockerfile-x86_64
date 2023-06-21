@@ -83,7 +83,7 @@ COPY CMakeLists.txt /io/
 # Set up cmake and build the code.
 RUN mkdir -p /io/build
 WORKDIR /io/build
-RUN cmake -D FINUFFT_USE_CUDA=ON -D FINUFFT_USE_CPU=OFF -D CMAKE_CUDA_ARCHITECTURES="50;60;70;75;80" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
+RUN cmake -D FINUFFT_USE_CUDA=ON -D FINUFFT_USE_CPU=OFF -D CMAKE_CUDA_ARCHITECTURES="50;60;70;75;80;90" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
 RUN make -j4
 
 # Need to pack the compiled library into our path.
