@@ -7,7 +7,7 @@ ENV CUDA_MINOR 0
 ENV CUDART_MICRO 146
 ENV LIBRARIES_MICRO 1
 ENV NVTX_MICRO 140
-ENV MINIMAL_BUILD_MICRO 1
+ENV NVCC_MICRO 140
 
 ENV CUDA_DASH_VERSION ${CUDA_MAJOR}-${CUDA_MINOR}
 ENV CUDA_DOT_VERSION ${CUDA_MAJOR}.${CUDA_MINOR}
@@ -51,7 +51,7 @@ RUN yum install -y \
 RUN yum install -y \
         cuda-cudart-devel-${CUDA_VERSION_PREFIX}.${CUDART_MICRO}-1 \
         cuda-libraries-devel-${CUDA_VERSION_PREFIX}.${LIBRARIES_MICRO}-1 \
-        cuda-minimal-build-${CUDA_VERSION_PREFIX}.${MINIMAL_BUILD_MICRO}-1 && \
+        cuda-nvcc-${CUDA_VERSION_PREFIX}.${NVCC_MICRO}-1 && \
     rm -rf /var/cache/yum/*
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
