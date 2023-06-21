@@ -63,7 +63,8 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 # CUDA 11 doesn't work on gcc/g++ newer than v9
 RUN yum install -y \
-        devtoolset-9 && \
+        devtoolset-9-gcc \
+        devtoolset-9-gcc-c++ && \
     rm -rf /var/cache/yum/*
 
 RUN scl enable devtoolset-9 -- g++ --version
