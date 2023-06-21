@@ -70,10 +70,14 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
 
     int M = d_plan->M;
 
-    if (d_plan->sortidx)
+    if (d_plan->sortidx) {
         checkCudaErrors(cudaFree(d_plan->sortidx));
-    if (d_plan->idxnupts)
+        d_plan->sortidx = nullptr;
+    }
+    if (d_plan->idxnupts) {
         checkCudaErrors(cudaFree(d_plan->idxnupts));
+        d_plan->idxnupts = nullptr;
+    }
 
     switch (d_plan->opts.gpu_method) {
     case 1: {
@@ -211,10 +215,14 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
 
     int M = d_plan->M;
 
-    if (d_plan->sortidx)
+    if (d_plan->sortidx) {
         checkCudaErrors(cudaFree(d_plan->sortidx));
-    if (d_plan->idxnupts)
+        d_plan->sortidx = nullptr;
+    }
+    if (d_plan->idxnupts) {
         checkCudaErrors(cudaFree(d_plan->idxnupts));
+        d_plan->idxnupts = nullptr;
+    }
 
     switch (d_plan->opts.gpu_method) {
     case 1: {
@@ -379,10 +387,14 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
 
     d_plan->byte_now = 0;
 
-    if (d_plan->sortidx)
+    if (d_plan->sortidx) {
         checkCudaErrors(cudaFree(d_plan->sortidx));
-    if (d_plan->idxnupts)
+        d_plan->sortidx = nullptr;
+    }
+    if (d_plan->idxnupts) {
         checkCudaErrors(cudaFree(d_plan->idxnupts));
+        d_plan->idxnupts = nullptr;
+    }
 
     switch (d_plan->opts.gpu_method) {
     case 1: {
