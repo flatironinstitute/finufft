@@ -63,8 +63,7 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 # finufft reqs
 RUN yum install -y \
-        cmake \
-        fftw-devel && \
+        cmake && \
     rm -rf /var/cache/yum/*
 
 # Okay, so now we can begin cufinufft

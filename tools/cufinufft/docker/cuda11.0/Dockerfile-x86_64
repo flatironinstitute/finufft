@@ -71,8 +71,7 @@ RUN scl enable devtoolset-9 -- g++ --version
 
 # finufft reqs
 RUN yum install -y \
-        cmake \
-        fftw-devel && \
+        cmake && \
     rm -rf /var/cache/yum/*
 
 # Okay, so now we can begin cufinufft
