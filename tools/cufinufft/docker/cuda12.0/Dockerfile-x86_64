@@ -4,15 +4,15 @@ LABEL maintainer "Joakim Andén"
 ENV CUDA_MAJOR 12
 ENV CUDA_MINOR 0
 
-ENV CUDART_MICRO 146
-ENV LIBRARIES_MICRO 1
-ENV NVTX_MICRO 140
-ENV NVCC_MICRO 140
+ENV CUDART_VERSION 12.0.146
+ENV CUFFT_VERSION 11.0.1.95
+ENV CURAND_VERSION 10.3.1.124
+ENV PROFILER_VERSION 12.0.140
+ENV NVTX_VERSION 12.0.140
+ENV NVCC_VERSION 12.0.140
 
 ENV CUDA_DASH_VERSION ${CUDA_MAJOR}-${CUDA_MINOR}
 ENV CUDA_DOT_VERSION ${CUDA_MAJOR}.${CUDA_MINOR}
-
-ENV CUDA_VERSION_PREFIX ${CUDA_DASH_VERSION}-${CUDA_DOT_VERSION}
 
 # ---- The following block adds layers for CUDA --- #
 # base
@@ -24,7 +24,7 @@ COPY tools/cufinufft/docker/cuda${CUDA_DOT_VERSION}/cuda.repo /etc/yum.repos.d/c
 
 # For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
 RUN yum install -y \
-        cuda-cudart-${CUDA_VERSION_PREFIX}.${CUDART_MICRO}-1 \
+        cuda-cudart-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
         cuda-compat-${CUDA_DASH_VERSION} && \
     ln -s cuda-${CUDA_DOT_VERSION} /usr/local/cuda && \
     rm -rf /var/cache/yum/*
@@ -43,15 +43,18 @@ ENV NVIDIA_REQUIRE_CUDA "cuda>=${CUDA_DOT_VERSION} brand=tesla,driver>=418,drive
 
 # runtime
 RUN yum install -y \
-        cuda-libraries-${CUDA_VERSION_PREFIX}.${LIBRARIES_MICRO}-1 \
-        cuda-nvtx-${CUDA_VERSION_PREFIX}.${NVTX_MICRO}-1 && \
+        libcufft-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
+        libcurand-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
+        cuda-nvtx-${CUDA_DASH_VERSION}-${NVTX_VERSION}-1 && \
     rm -rf /var/cache/yum/*
 
 # devel
 RUN yum install -y \
-        cuda-cudart-devel-${CUDA_VERSION_PREFIX}.${CUDART_MICRO}-1 \
-        cuda-libraries-devel-${CUDA_VERSION_PREFIX}.${LIBRARIES_MICRO}-1 \
-        cuda-nvcc-${CUDA_VERSION_PREFIX}.${NVCC_MICRO}-1 && \
+        cuda-cudart-devel-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
+        libcufft-devel-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
+        libcurand-devel-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
+        cuda-profiler-api-${CUDA_DASH_VERSION}-${PROFILER_VERSION}-1 \
+        cuda-nvcc-${CUDA_DASH_VERSION}-${NVCC_VERSION}-1 && \
     rm -rf /var/cache/yum/*
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
