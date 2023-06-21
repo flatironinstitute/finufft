@@ -153,6 +153,9 @@ if(FINUFFT_USE_CUDA)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   add_subdirectory(src/cuda)
+  if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
+    add_subdirectory(perftest/cuda)
+  endif ()
 endif()
 
 # Add tests defined in their own directory
