@@ -26,7 +26,7 @@ Other significant code contributions by:
 * David Stein - python wrappers, finding "pi-1ULP" spreadcheck error
 * Garrett Wright - dual-precision build, py packaging, GPU version
 * Wenda Zhou - Cmake build, SIMD optims, code review, professionalization
-* Martin Reinecke - SIMD acceleration of interpolator, helpful ideas
+* Martin Reinecke - SIMD acceleration of interpolator, improved binsort
 
 Testing, bug reports, helpful discussions:
 
