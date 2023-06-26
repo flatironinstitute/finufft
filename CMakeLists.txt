@@ -25,10 +25,12 @@ option(FINUFFT_BUILD_MATLAB "Whether to build the FINUFFT Matlab interface" OFF)
 option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective for Debug configuration." ON)
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
+option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 # sphinx tag (don't remove): @cmake_opts_end
 
-set(CPM_DOWNLOAD_VERSION 0.38.0)
-include(cmake/setupCPM.cmake)
+if(FINUFFT_USE_CPU)
+    set(CPM_DOWNLOAD_VERSION 0.38.0)
+    include(cmake/setupCPM.cmake)
 
 if (FINUFFT_BUILD_MATLAB)
     # When building for matlab, we will fetch the OpenMP library used by matlab
@@ -104,6 +106,7 @@ function(set_finufft_options target)
 
 endfunction()
 
+<<<<<<< HEAD
 # Main finufft libraries
 add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
 target_compile_definitions(finufft_f32 PRIVATE SINGLE)
@@ -129,6 +132,37 @@ if(NOT WIN32)
     target_link_libraries(finufft_static PUBLIC m)
 endif()
 target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+=======
+if(FINUFFT_USE_CPU)
+    # Main finufft libraries
+    add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
+    target_compile_definitions(finufft_f32 PRIVATE SINGLE)
+    set_finufft_options(finufft_f32)
+    target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+
+    add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
+    set_finufft_options(finufft_f64)
+    target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+
+    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    set_finufft_options(finufft)
+    target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
+    # windows does not have a math library, so we need to exclude it
+    if(NOT WIN32)
+        target_link_libraries(finufft PUBLIC m)
+    endif()
+    target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    set_finufft_options(finufft)
+    target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
+    # windows does not have a math library, so we need to exclude it
+    if(NOT WIN32)
+        target_link_libraries(finufft_static PUBLIC m)
+    endif()
+    target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+endif()
+>>>>>>> origin/master
 
 if(FINUFFT_USE_CUDA)
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
@@ -143,9 +177,13 @@ if(FINUFFT_USE_CUDA)
 endif()
 
 # Add tests defined in their own directory
-if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
+if (BUILD_TESTING AND FINUFFT_BUILD_TESTS AND FINUFFT_USE_CPU)
     add_subdirectory(test)
     add_subdirectory(perftest)
+endif ()
+
+if (BUILD_TESTING AND FINUFFT_BUILD_TESTS AND FINUFFT_USE_CUDA)
+    add_subdirectory(test/cuda)
 endif ()
 
 if (FINUFFT_BUILD_EXAMPLES)
