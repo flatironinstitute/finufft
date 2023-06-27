@@ -1796,9 +1796,6 @@ template <size_t vlen, typename Tfs> class cfftp_vecpass: public cfftpass<Tfs>
     Tcpass<Tfs> vpass;
     size_t bufsz;
 
-    static bool sufficiently_aligned(const void *ptr, size_t sz)
-      { return (reinterpret_cast<size_t>(ptr)&(sz-1)) == 0; }
-
     template<bool fwd> Tcs *exec_ (Tcs *cc,
       Tcs * /*ch*/, Tcs *sbuf, size_t nthreads) const
       {

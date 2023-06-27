@@ -115,48 +115,57 @@ static long mystrtol(const char *inp)
   return res;
   }
 
-static size_t get_max_threads_from_env()
+size_t ducc0_max_threads()
   {
+  static const size_t max_threads_ = []()
+    {
 #if __has_include(<pthread.h>) && defined(__linux__) && defined(_GNU_SOURCE)
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  pthread_getaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
-  size_t res=0;
-  for (size_t i=0; i<CPU_SETSIZE; ++i)
-    if (CPU_ISSET(i, &cpuset)) ++res;
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    pthread_getaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+    size_t res=0;
+    for (size_t i=0; i<CPU_SETSIZE; ++i)
+      if (CPU_ISSET(i, &cpuset)) ++res;
 #else
-  size_t res = std::max<size_t>(1, std::thread::hardware_concurrency());
+    size_t res = std::max<size_t>(1, std::thread::hardware_concurrency());
 #endif
-  auto evar=getenv("DUCC0_NUM_THREADS");
-  if (!evar)
-    return res;
-  auto res2 = mystrtol(evar);
-  MR_assert(res2>=0, "invalid value in DUCC0_NUM_THREADS");
-  if (res2==0)
-    return res;
-  return std::min<size_t>(res, res2);
+    auto evar=getenv("DUCC0_NUM_THREADS");
+    if (!evar)
+      return res;
+    auto res2 = mystrtol(evar);
+    MR_assert(res2>=0, "invalid value in DUCC0_NUM_THREADS");
+    if (res2==0)
+      return res;
+    return std::min<size_t>(res, res2);
+    }();
+  return max_threads_;
   }
-static int get_pin_info_from_env()
-  {
-  auto evar=getenv("DUCC0_PIN_DISTANCE");
-  if (!evar)
-    return -1; // do nothing at all
-  auto res = mystrtol(evar);
-  return res;
-  }
-static int get_pin_offset_from_env()
-  {
-  auto evar=getenv("DUCC0_PIN_OFFSET");
-  if (!evar)
-    return 0;
-  auto res = mystrtol(evar);
-  return res;
-  }
-
-static const size_t max_threads_ = get_max_threads_from_env();
+ 
 static thread_local bool in_parallel_region = false;
-static const int pin_info = get_pin_info_from_env();
-static const int pin_offset = get_pin_offset_from_env();
+int pin_info()
+  {
+  static const int pin_info_ = []()
+    {
+    auto evar=getenv("DUCC0_PIN_DISTANCE");
+    if (!evar)
+      return -1; // do nothing at all
+    auto res = mystrtol(evar);
+    return int(res);
+    }();
+  return pin_info_;
+  }
+int pin_offset()
+  {
+  static const int pin_offset_ = []()
+    {
+    auto evar=getenv("DUCC0_PIN_OFFSET");
+    if (!evar)
+      return 0;
+    auto res = mystrtol(evar);
+    return int(res);
+    }();
+  return pin_offset_;
+  }
 
 template <typename T> class concurrent_queue
   {
@@ -192,11 +201,11 @@ template <typename T> class concurrent_queue
 #if __has_include(<pthread.h>) && defined(__linux__) && defined(_GNU_SOURCE)
 static void do_pinning(int ithread)
   {
-  if (pin_info==-1) return;
+  if (pin_info()==-1) return;
   int num_proc = sysconf(_SC_NPROCESSORS_ONLN);
   cpu_set_t cpuset;
   CPU_ZERO(&cpuset);
-  int cpu_wanted = pin_offset + ithread*pin_info;
+  int cpu_wanted = pin_offset() + ithread*pin_info();
   MR_assert((cpu_wanted>=0)&&(cpu_wanted<num_proc), "bad CPU number requested");
   CPU_SET(cpu_wanted, &cpuset);
   pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
@@ -314,7 +323,7 @@ class ducc_thread_pool: public thread_pool
       workers_(nthreads)
       { create_threads(); }
 
-    ducc_thread_pool(): ducc_thread_pool(max_threads_) {}
+    ducc_thread_pool(): ducc_thread_pool(ducc0_max_threads()) {}
 
     //virtual
     ~ducc_thread_pool() { shutdown(); }
@@ -328,8 +337,8 @@ class ducc_thread_pool: public thread_pool
       if (in_parallel_region)
         return 1;
       if (nthreads_in==0)
-        return max_threads_;
-      return std::min(max_threads_, nthreads_in);
+        return ducc0_max_threads();
+      return std::min(ducc0_max_threads(), nthreads_in);
       }
     //virtual
     void submit(std::function<void()> work)
@@ -373,7 +382,7 @@ class ducc_thread_pool: public thread_pool
 // return a pointer to a singleton thread_pool, which is always available
 inline ducc_thread_pool *get_master_pool()
   {
-  static auto master_pool = new ducc_thread_pool();
+  static auto master_pool = new ducc_thread_pool(ducc0_max_threads()-1);
 #if __has_include(<pthread.h>)
   static std::once_flag f;
   call_once(f,
@@ -578,6 +587,40 @@ class MyScheduler: public Scheduler
     virtual Range getNext() { return dist_.getNext(ithread_); }
   };
 
+template<typename T> class ScopedValueChanger
+  {
+  private:
+    T &object;
+    T original_value;
+
+  public:
+    ScopedValueChanger(T &object_, T new_value)
+      : object(object_), original_value(object_) { object=new_value; }
+    ~ScopedValueChanger()
+      { object=original_value; }
+  };
+
+#define DUCC0_HIERARCHICAL_SUBMISSION
+#ifdef DUCC0_HIERARCHICAL_SUBMISSION
+
+// The next two definitions are taken from TensorFlow sources.
+// Copyright 2015 The TensorFlow Authors.
+
+// Basic y-combinator implementation.
+template <class Func> struct YCombinatorImpl {
+  Func func;
+  template <class... Args>
+  decltype(auto) operator()(Args&&... args) const {
+    return func(*this, std::forward<Args>(args)...);
+  }
+};
+
+template <class Func> YCombinatorImpl<std::decay_t<Func>> YCombinator(Func&& func) {
+  return YCombinatorImpl<std::decay_t<Func>>{std::forward<Func>(func)};
+}
+
+#endif
+
 void Distribution::thread_map(std::function<void(Scheduler &)> f)
   {
   if (nthreads_ == 1)
@@ -587,7 +630,6 @@ void Distribution::thread_map(std::function<void(Scheduler &)> f)
     return;
     }
 
-  latch counter(nthreads_);
   std::exception_ptr ex;
   Mutex ex_mut;
   // we "copy" the currently active thread pool to all executing threads
@@ -598,7 +640,39 @@ void Distribution::thread_map(std::function<void(Scheduler &)> f)
   // threads, which executes everything sequentially on its own thread,
   // automatically prohibiting nested parallelism.
   auto pool = get_active_pool();
-  for (size_t i=0; i<nthreads_; ++i)
+
+#ifdef DUCC0_HIERARCHICAL_SUBMISSION
+
+  latch counter(nthreads_);
+  // distribute work to helper threads, in a recursive fashion
+  auto new_f = YCombinator([this, &f, &counter, &ex, &ex_mut, pool](auto &new_f, size_t istart, size_t step) -> void {
+    try
+      {
+      ScopedValueChanger changer(in_parallel_region, true);
+      ScopedUseThreadPool guard(*pool);
+      for(; step>0; step>>=1)
+        if(istart+step<nthreads_)
+          pool->submit([this, &f, &new_f, &counter, &ex, &ex_mut, pool, istart, step]()
+            {new_f(istart+step, step>>1);});
+      MyScheduler sched(*this, istart);
+      f(sched);
+      }
+    catch (...)
+      {
+      LockGuard lock(ex_mut);
+      ex = std::current_exception();
+      }
+    counter.count_down();
+    });
+
+  size_t biggest_step=1;
+  while (biggest_step*2<nthreads_) biggest_step<<=1;
+  new_f(0, biggest_step);
+
+#else  // sequential submission
+
+  latch counter(nthreads_-1);
+  for (size_t i=1; i<nthreads_; ++i)
     {
     pool->submit(
       [this, &f, i, &counter, &ex, &ex_mut, pool] {
@@ -616,6 +690,16 @@ void Distribution::thread_map(std::function<void(Scheduler &)> f)
       counter.count_down();
       });
     }
+  {
+  // do remaining work directly on this thread
+  ScopedValueChanger changer(in_parallel_region, true);
+  MyScheduler sched(*this, 0);
+  f(sched);
+  }
+
+#endif
+#undef DUCC0_HIERARCHICAL_SUBMISSION
+
   counter.wait();
   if (ex)
     std::rethrow_exception(ex);
