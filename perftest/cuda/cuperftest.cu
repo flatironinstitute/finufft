@@ -146,6 +146,8 @@ void run_test(test_options_t &test_opts) {
         y[i] = M_PI * randm11();
         z[i] = M_PI * randm11();
     }
+    d_x = x, d_y = y, d_z = z;
+
     if (type == 1) {
         for (int i = 0; i < M; i++) {
             c[i].real(randm11());
