@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 
 from ctypes import byref
-from ctypes import c_int
+from ctypes import c_int64
 from ctypes import c_void_p
 
 from cufinufft._cufinufft import NufftOpts
@@ -166,7 +166,7 @@ class Plan:
         #   and reorder from C/python ndarray.shape style input (nZ, nY, nX)
         #   to the (F) order expected by the low level library (nX, nY, nZ).
         _n_modes = self.n_modes[::-1] + (1,) * (3 - self.dim)
-        _n_modes = (c_int * 3)(*_n_modes)
+        _n_modes = (c_int64 * 3)(*_n_modes)
 
         ier = self._make_plan(self.type,
                               self.dim,
@@ -174,7 +174,6 @@ class Plan:
                               self.isign,
                               self.n_trans,
                               self.eps,
-                              1,
                               byref(self._plan),
                               self._opts)
 
@@ -232,7 +231,7 @@ class Plan:
             self._references.append(_z)
 
         # Then take three items off the stack as our reordered axis.
-        ier = self._setpts(M, *fpts_axes[:3], 0, None, None, None, self._plan)
+        ier = self._setpts(self._plan, M, *fpts_axes[:3], 0, None, None, None)
 
         self.nj = M
 
@@ -284,9 +283,9 @@ class Plan:
             _out = _ensure_array_shape(_out, "out", req_out_shape)
 
         if self.type == 1:
-            ier = self._exec_plan(data.ptr, _out.ptr, self._plan)
+            ier = self._exec_plan(self._plan, data.ptr, _out.ptr)
         elif self.type == 2:
-            ier = self._exec_plan(_out.ptr, data.ptr, self._plan)
+            ier = self._exec_plan(self._plan, _out.ptr, data.ptr)
 
         if ier != 0:
             raise RuntimeError('Error executing plan.')

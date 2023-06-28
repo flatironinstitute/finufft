@@ -17,19 +17,20 @@
 
  */
 
-#include <cufinufft.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
 #include <complex.h>
 #include <cuComplex.h>
+#include <cuda_runtime.h>
+#include <cufinufft.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int main() {
     // Problem size: number of nonuniform points (M) and grid size (N).
     const int M = 100000, N = 10000;
 
     // Size of the grid as an array.
-    int modes[1] = {N};
+    int64_t modes[1] = {N};
 
     // Host pointers: frequencies (x), coefficients (c), and output (f).
     float *x;
@@ -48,18 +49,17 @@ int main() {
     float _Complex f0;
 
     // Allocate the host arrays.
-    x = (float *) malloc(M * sizeof(float));
-    c = (float _Complex *) malloc(M * sizeof(float _Complex));
-    f = (float _Complex *) malloc(N * sizeof(float _Complex));
+    x = (float *)malloc(M * sizeof(float));
+    c = (float _Complex *)malloc(M * sizeof(float _Complex));
+    f = (float _Complex *)malloc(N * sizeof(float _Complex));
 
     // Fill with random numbers. Frequencies must be in the interval [-pi, pi]
     // while strengths can be any value.
     srand(0);
 
-    for(int j = 0; j < M; ++j) {
-        x[j] = 2 * M_PI * (((float) rand()) / RAND_MAX - 1);
-        c[j] = (2 * ((float) rand()) / RAND_MAX - 1)
-               + I * (2 * ((float) rand()) / RAND_MAX - 1);
+    for (int j = 0; j < M; ++j) {
+        x[j] = 2 * M_PI * (((float)rand()) / RAND_MAX - 1);
+        c[j] = (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
     }
 
     // Allocate the device arrays and copy the x and c arrays.
@@ -72,14 +72,14 @@ int main() {
 
     // Make the cufinufft plan for a 1D type-1 transform with six digits of
     // tolerance.
-    cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, 1, &plan, NULL);
+    cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
 
     // Set the frequencies of the nonuniform points.
-    cufinufftf_setpts(M, d_x, NULL, NULL, 0, NULL, NULL, NULL, plan);
+    cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
 
     // Actually execute the plan on the given coefficients and store the result
     // in the d_f array.
-    cufinufftf_execute(d_c, d_f, plan);
+    cufinufftf_execute(plan, d_c, d_f);
 
     // Copy the result back onto the host.
     cudaMemcpy(f, d_f, N * sizeof(float _Complex), cudaMemcpyDeviceToHost);
@@ -100,7 +100,7 @@ int main() {
     // transform.
     f0 = 0;
 
-    for(int j = 0; j < M; ++j) {
+    for (int j = 0; j < M; ++j) {
         f0 += c[j] * cexp(I * x[j] * (idx - N / 2));
     }
 

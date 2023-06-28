@@ -3,7 +3,7 @@
 #include <cufft.h>
 
 // For error checking
-static const char *_cufftGetErrorEnum(cufftResult_t error) {
+static const char *_cufftGetErrorEnum(cufftResult error) {
     switch (error) {
     case CUFFT_SUCCESS:
         return "cufft_success";
