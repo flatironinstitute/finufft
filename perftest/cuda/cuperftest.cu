@@ -151,11 +151,13 @@ void run_test(test_options_t &test_opts) {
             c[i].real(randm11());
             c[i].imag(randm11());
         }
+        d_c = c;
     } else if (type == 2) {
         for (int i = 0; i < N; i++) {
             fk[i].real(randm11());
             fk[i].imag(randm11());
         }
+        d_fk = fk;
     } else {
         std::cerr << "Invalid type " << type << " supplied\n";
         return;
