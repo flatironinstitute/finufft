@@ -308,7 +308,7 @@ class Plan:
         self._plan = None
 
         # Reset our reference.
-        self.references = []
+        self._references = []
 
 
 def _ensure_array_type(x, name, dtype, output=False):
