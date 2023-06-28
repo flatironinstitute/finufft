@@ -2,6 +2,7 @@
 
 import os
 import ctypes
+from pathlib import Path
 
 from setuptools import setup, Extension
 
@@ -14,6 +15,13 @@ with open('README.md', encoding='utf8') as fh:
 # Parse the requirements
 with open('requirements.txt', 'r') as fh:
     requirements = [item.strip() for item in fh.readlines()]
+
+cufinufft_dir = os.environ.get('CUFINUFFT_DIR')
+
+if cufinufft_dir == None or cufinufft_dir == '':
+    cufinufft_dir = Path(__file__).resolve().parents[2]
+
+library_dir = os.path.join(cufinufft_dir, "build")
 
 # Sanity check that we can find the CUDA cufinufft libraries before we get too far.
 try:
@@ -29,7 +37,7 @@ print('cufinufft CUDA shared libraries found, continuing...')
 # Python Package Setup
 setup(
     name='cufinufft',
-    version='1.3',
+    version='2.2.0dev0',
     author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='janden-vscholar@flatironinstitute.org',
     url='https://github.com/flatironinstitute/cufinufft',
@@ -63,6 +71,6 @@ setup(
         Extension(name='cufinufftc',
                   sources=[],
                   libraries=['cufinufft'],
-                  library_dirs=['lib'])
+                  library_dirs=[library_dir])
         ]
 )

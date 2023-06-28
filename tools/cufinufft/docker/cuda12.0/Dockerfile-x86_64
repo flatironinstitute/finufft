@@ -1,15 +1,15 @@
 FROM quay.io/pypa/manylinux2014_x86_64
 LABEL maintainer "Joakim Andén"
 
-ENV CUDA_MAJOR 11
+ENV CUDA_MAJOR 12
 ENV CUDA_MINOR 0
 
-ENV CUDART_VERSION 11.0.171
-ENV CUFFT_VERSION 10.2.1.245
-ENV CURAND_VERSION 10.2.1.245
-ENV NVPROF_VERSION 11.0.221
-ENV NVTX_VERSION 11.0.167
-ENV NVCC_VERSION 11.0.221
+ENV CUDART_VERSION 12.0.146
+ENV CUFFT_VERSION 11.0.1.95
+ENV CURAND_VERSION 10.3.1.124
+ENV PROFILER_VERSION 12.0.140
+ENV NVTX_VERSION 12.0.140
+ENV NVCC_VERSION 12.0.140
 
 ENV CUDA_DASH_VERSION ${CUDA_MAJOR}-${CUDA_MINOR}
 ENV CUDA_DOT_VERSION ${CUDA_MAJOR}.${CUDA_MINOR}
@@ -53,7 +53,7 @@ RUN yum install -y \
         cuda-cudart-devel-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
         libcufft-devel-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
         libcurand-devel-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
-        cuda-nvprof-${CUDA_DASH_VERSION}-${NVPROF_VERSION}-1 \
+        cuda-profiler-api-${CUDA_DASH_VERSION}-${PROFILER_VERSION}-1 \
         cuda-nvcc-${CUDA_DASH_VERSION}-${NVCC_VERSION}-1 && \
     rm -rf /var/cache/yum/*
 
@@ -61,21 +61,13 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 # /CUDA #
 
-# CUDA 11 doesn't work on gcc/g++ newer than v9
-RUN yum install -y \
-        devtoolset-9-gcc \
-        devtoolset-9-gcc-c++ && \
-    rm -rf /var/cache/yum/*
-
-RUN scl enable devtoolset-9 -- g++ --version
-
 # finufft reqs
 RUN yum install -y \
         cmake && \
     rm -rf /var/cache/yum/*
 
 # Okay, so now we can begin cufinufft
-#
+
 # Only copy the C++/CUDA code (this way the cache is not invalidated by changes
 # to the Python code or to the docs).
 COPY src /io/src
@@ -91,12 +83,10 @@ COPY CMakeLists.txt /io/
 # Set up cmake and build the code.
 RUN mkdir -p /io/build
 WORKDIR /io/build
-RUN scl enable devtoolset-9 -- cmake -D FINUFFT_USE_CUDA=ON -D FINUFFT_USE_CPU=OFF -D CMAKE_CUDA_ARCHITECTURES="35;50;60;70;75;80" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
-RUN scl enable devtoolset-9 -- make -j4
+RUN cmake -D FINUFFT_USE_CUDA=ON -D FINUFFT_USE_CPU=OFF -D CMAKE_CUDA_ARCHITECTURES="50;60;70;75;80;90" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
+RUN make -j4
 
-WORKDIR /io
-
-# And we need to pack it in our LD path
+# Need to pack the compiled library into our path.
 ENV LD_LIBRARY_PATH /io/build:${LD_LIBRARY_PATH}
 
 # Now copy the rest of the repository in.

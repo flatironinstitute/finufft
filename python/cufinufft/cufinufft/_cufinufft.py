@@ -57,24 +57,6 @@ except Exception:
     raise RuntimeError('Failed to find a suitable cufinufft library')
 
 
-def _get_ctypes(dtype):
-    """
-    Checks dtype is float32 or float64.
-    Returns floating point and floating point pointer.
-    """
-
-    if dtype == np.float64:
-        REAL_t = c_double
-    elif dtype == np.float32:
-        REAL_t = c_float
-    else:
-        raise TypeError("Expected np.float32 or np.float64.")
-
-    REAL_ptr = ctypes.POINTER(REAL_t)
-
-    return REAL_t, REAL_ptr
-
-
 def _get_NufftOpts():
     fields = [
         ('upsampfac', c_double),
