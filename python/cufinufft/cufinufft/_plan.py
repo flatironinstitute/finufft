@@ -103,6 +103,9 @@ class Plan:
         else:
             raise TypeError("Expected complex64 or complex128.")
 
+        if isinstance(n_modes, int):
+            n_modes = (n_modes,)
+
         self.dim = len(n_modes)
         self.type = nufft_type
         self.isign = isign
