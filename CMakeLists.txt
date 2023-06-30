@@ -106,45 +106,18 @@ function(set_finufft_options target)
 
 endfunction()
 
-<<<<<<< HEAD
-# Main finufft libraries
-add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
-target_compile_definitions(finufft_f32 PRIVATE SINGLE)
-set_finufft_options(finufft_f32)
-
-add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
-set_finufft_options(finufft_f64)
-
-add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
-set_finufft_options(finufft)
-target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
-# windows does not have a math library, so we need to exclude it
-if(NOT WIN32)
-    target_link_libraries(finufft PUBLIC m)
-endif()
-target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
-set_finufft_options(finufft)
-target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
-# windows does not have a math library, so we need to exclude it
-if(NOT WIN32)
-    target_link_libraries(finufft_static PUBLIC m)
-endif()
-target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-=======
 if(FINUFFT_USE_CPU)
     # Main finufft libraries
     add_library(finufft_f32 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
     target_compile_definitions(finufft_f32 PRIVATE SINGLE)
     set_finufft_options(finufft_f32)
-    target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+    target_link_libraries(finufft_f32 PUBLIC)
 
     add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
     set_finufft_options(finufft_f64)
-    target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+    target_link_libraries(finufft_f64 PUBLIC)
 
-    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
     set_finufft_options(finufft)
     target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it
@@ -153,7 +126,7 @@ if(FINUFFT_USE_CPU)
     endif()
     target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
     set_finufft_options(finufft)
     target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it
@@ -162,7 +135,6 @@ if(FINUFFT_USE_CPU)
     endif()
     target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 endif()
->>>>>>> origin/master
 
 if(FINUFFT_USE_CUDA)
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
