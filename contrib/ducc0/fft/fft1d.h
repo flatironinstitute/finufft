@@ -335,7 +335,7 @@ template <typename Tfs> class cfftp2: public cfftpass<Tfs>
 
     size_t l1, ido;
     static constexpr size_t ip=2;
-    quick_array<Tcs> wa;
+    aligned_array<Tcs> wa;
 
     auto WA(size_t i) const
       { return wa[i-1]; }
@@ -400,7 +400,7 @@ template <typename Tfs> class cfftp3: public cfftpass<Tfs>
 
     size_t l1, ido;
     static constexpr size_t ip=3;
-    quick_array<Tcs> wa;
+    aligned_array<Tcs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[x+(i-1)*(ip-1)]; }
@@ -487,7 +487,7 @@ template <typename Tfs> class cfftp4: public cfftpass<Tfs>
 
     size_t l1, ido;
     static constexpr size_t ip=4;
-    quick_array<Tcs> wa;
+    aligned_array<Tcs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[x+(i-1)*(ip-1)]; }
@@ -570,7 +570,7 @@ template <typename Tfs> class cfftp5: public cfftpass<Tfs>
 
     size_t l1, ido;
     static constexpr size_t ip=5;
-    quick_array<Tcs> wa;
+    aligned_array<Tcs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[x+(i-1)*(ip-1)]; }
@@ -672,7 +672,7 @@ template <typename Tfs> class cfftp7: public cfftpass<Tfs>
 
     size_t l1, ido;
     static constexpr size_t ip=7;
-    quick_array<Tcs> wa;
+    aligned_array<Tcs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[x+(i-1)*(ip-1)]; }
@@ -966,7 +966,7 @@ template <typename Tfs> class cfftp11: public cfftpass<Tfs>
 
     size_t l1, ido;
     static constexpr size_t ip=11;
-    quick_array<Tcs> wa;
+    aligned_array<Tcs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[x+(i-1)*(ip-1)]; }
@@ -1083,8 +1083,8 @@ template <typename Tfs> class cfftpg: public cfftpass<Tfs>
 
     size_t l1, ido;
     size_t ip;
-    quick_array<Tcs> wa;
-    quick_array<Tcs> csarr;
+    aligned_array<Tcs> wa;
+    aligned_array<Tcs> csarr;
 
     auto WA(size_t x, size_t i) const
       { return wa[i-1+x*(ido-1)]; }
@@ -1224,7 +1224,7 @@ template <typename Tfs> class cfftpblue: public cfftpass<Tfs>
     const size_t l1, ido, ip;
     const size_t ip2;
     const Tcpass<Tfs> subplan;
-    quick_array<Tcs> wa, bk, bkf;
+    aligned_array<Tcs> wa, bk, bkf;
     size_t bufsz;
     bool need_cpy;
 
@@ -1331,14 +1331,14 @@ template <typename Tfs> class cfftpblue: public cfftpass<Tfs>
         }
 
       /* initialize the zero-padded, Fourier transformed b_k. Add normalisation. */
-      quick_array<Tcs> tbkf(ip2), tbkf2(ip2);
+      aligned_array<Tcs> tbkf(ip2), tbkf2(ip2);
       Tfs xn2 = Tfs(1)/Tfs(ip2);
       tbkf[0] = bk[0]*xn2;
       for (size_t m=1; m<ip; ++m)
         tbkf[m] = tbkf[ip2-m] = bk[m]*xn2;
       for (size_t m=ip;m<=(ip2-ip);++m)
         tbkf[m].Set(0.,0.);
-      quick_array<Tcs> buf(subplan->bufsize());
+      aligned_array<Tcs> buf(subplan->bufsize());
       static const auto tics=tidx<Tcs *>();
       auto res = static_cast<Tcs *>(subplan->exec(tics, tbkf.data(),
         tbkf2.data(), buf.data(), true));
@@ -1407,10 +1407,10 @@ template <typename Tfs> class cfft_multipass: public cfftpass<Tfs>
 
             execStatic(nvtrans, nthreads, 0, [&](auto &sched)
               {
-              quick_array<Tcv> tbuf(2*ip+bufsize());
+              aligned_array<Tcv> tbuf(2*ip+32+bufsize());
               auto cc2 = &tbuf[0];
-              auto ch2 = &tbuf[ip];
-              auto buf2 = &tbuf[2*ip];
+              auto ch2 = &tbuf[ip+16];
+              auto buf2 = &tbuf[2*ip+32];
 
               while (auto rng=sched.getNext())
                 for(auto itrans=rng.lo; itrans<rng.hi; ++itrans)
@@ -1449,10 +1449,10 @@ template <typename Tfs> class cfft_multipass: public cfftpass<Tfs>
 
             execStatic(nvtrans, nthreads, 0, [&](auto &sched)
               {
-              quick_array<Tcv> tbuf(2*ip+bufsize());
+              aligned_array<Tcv> tbuf(2*ip+32+bufsize());
               auto cc2 = &tbuf[0];
-              auto ch2 = &tbuf[ip];
-              auto buf2 = &tbuf[2*ip];
+              auto ch2 = &tbuf[ip+16];
+              auto buf2 = &tbuf[2*ip+32];
 
               while (auto rng=sched.getNext())
                 for(auto itrans=rng.lo; itrans<rng.hi; ++itrans)
@@ -1496,7 +1496,7 @@ template <typename Tfs> class cfft_multipass: public cfftpass<Tfs>
 MR_fail("must not get here");
 #if 0
 //FIXME this code path is currently unused
-          quick_array<Tcv> tbuf(2*ip+bufsize());
+          aligned_array<Tcv> tbuf(2*ip+bufsize());
           auto cc2 = &tbuf[0];
           auto ch2 = &tbuf[ip];
           auto buf2 = &tbuf[2*ip];
@@ -1954,7 +1954,7 @@ template<typename Tfs> class pocketfft_c
       }
     template<typename Tfd> DUCC0_NOINLINE void exec(Cmplx<Tfd> *in, Tfs fct, bool fwd, size_t nthreads=1) const
       {
-      quick_array<Cmplx<Tfd>> buf(N*plan->needs_copy()+plan->bufsize());
+      aligned_array<Cmplx<Tfd>> buf(N*plan->needs_copy()+plan->bufsize());
       exec_copyback(in, buf.data(), fct, fwd, nthreads);
       }
   };
@@ -2099,7 +2099,7 @@ template <typename Tfs> class rfftp2: public rfftpass<Tfs>
   private:
     size_t l1, ido;
     static constexpr size_t ip=2;
-    quick_array<Tfs> wa;
+    aligned_array<Tfs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[i+x*(ido-1)]; }
@@ -2194,7 +2194,7 @@ template <typename Tfs> class rfftp3: public rfftpass<Tfs>
   private:
     size_t l1, ido;
     static constexpr size_t ip=3;
-    quick_array<Tfs> wa;
+    aligned_array<Tfs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[i+x*(ido-1)]; }
@@ -2301,7 +2301,7 @@ template <typename Tfs> class rfftp4: public rfftpass<Tfs>
   private:
     size_t l1, ido;
     static constexpr size_t ip=4;
-    quick_array<Tfs> wa;
+    aligned_array<Tfs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[i+x*(ido-1)]; }
@@ -2428,7 +2428,7 @@ template <typename Tfs> class rfftp5: public rfftpass<Tfs>
   private:
     size_t l1, ido;
     static constexpr size_t ip=5;
-    quick_array<Tfs> wa;
+    aligned_array<Tfs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[i+x*(ido-1)]; }
@@ -2567,7 +2567,7 @@ template <typename Tfs> class rfftpg: public rfftpass<Tfs>
   private:
     size_t l1, ido;
     size_t ip;
-    quick_array<Tfs> wa, csarr;
+    aligned_array<Tfs> wa, csarr;
 
     template<bool fwd, typename Tfd> Tfd *exec_ (Tfd * DUCC0_RESTRICT cc,
       Tfd * DUCC0_RESTRICT ch, Tfd * /*buf*/, size_t /*nthreads*/) const
@@ -2882,7 +2882,7 @@ template <typename Tfs> class rfftpblue: public rfftpass<Tfs>
   {
   private:
     const size_t l1, ido, ip;
-    quick_array<Tfs> wa;
+    aligned_array<Tfs> wa;
     const Tcpass<Tfs> cplan;
     size_t bufsz;
     bool need_cpy;
@@ -3026,7 +3026,7 @@ template <typename Tfs> class rfft_multipass: public rfftpass<Tfs>
     vector<Trpass<Tfs>> passes;
     size_t bufsz;
     bool need_cpy;
-    quick_array<Tfs> wa;
+    aligned_array<Tfs> wa;
 
     auto WA(size_t x, size_t i) const
       { return wa[(i-1)*(ip-1)+x]; }
@@ -3260,7 +3260,7 @@ template<typename Tfs> class pocketfft_r
     template<typename Tfd> DUCC0_NOINLINE void exec(Tfd *in, Tfs fct, bool fwd,
       size_t nthreads=1) const
       {
-      quick_array<Tfd> buf(N*plan->needs_copy()+plan->bufsize());
+      aligned_array<Tfd> buf(N*plan->needs_copy()+plan->bufsize());
       exec_copyback(in, buf.data(), fct, fwd, nthreads);
       }
   };
@@ -3305,7 +3305,7 @@ template<typename Tfs> class pocketfft_hartley
     template<typename Tfd> DUCC0_NOINLINE void exec(Tfd *in, Tfs fct,
       size_t nthreads=1) const
       {
-      quick_array<Tfd> buf(N+plan->bufsize());
+      aligned_array<Tfd> buf(N+plan->bufsize());
       exec_copyback(in, buf.data(), fct, nthreads);
       }
   };
@@ -3350,7 +3350,7 @@ template<typename Tfs> class pocketfft_fht
     template<typename Tfd> DUCC0_NOINLINE void exec(Tfd *in, Tfs fct,
       size_t nthreads=1) const
       {
-      quick_array<Tfd> buf(N+plan->bufsize());
+      aligned_array<Tfd> buf(N+plan->bufsize());
       exec_copyback(in, buf.data(), fct, nthreads);
       }
   };
@@ -3414,7 +3414,7 @@ template<typename Tfs> class pocketfft_fftw
     template<typename Tfd> DUCC0_NOINLINE void exec(Tfd *in, Tfs fct, bool fwd,
       size_t nthreads=1) const
       {
-      quick_array<Tfd> buf(N+plan->bufsize());
+      aligned_array<Tfd> buf(N+plan->bufsize());
       exec_copyback(in, buf.data(), fct, fwd, nthreads);
       }
   };

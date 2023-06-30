@@ -652,7 +652,7 @@ void Distribution::thread_map(std::function<void(Scheduler &)> f)
       ScopedUseThreadPool guard(*pool);
       for(; step>0; step>>=1)
         if(istart+step<nthreads_)
-          pool->submit([this, &f, &new_f, &counter, &ex, &ex_mut, pool, istart, step]()
+          pool->submit([&new_f, istart, step]()
             {new_f(istart+step, step>>1);});
       MyScheduler sched(*this, istart);
       f(sched);

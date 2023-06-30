@@ -163,9 +163,11 @@ struct util // hack to avoid duplicate symbols
     {
     if (nthreads==1) return 1;
     size_t size = info.size();
+    if (size<4096) return 1;
     size_t parallel = size / (info.shape(axis) * vlen);
     if (info.shape(axis) < 1000)
       parallel /= 4;
+    parallel = min(parallel, size/4096);
     size_t max_threads = ducc0::adjust_nthreads(nthreads);
     return std::max(size_t(1), std::min(parallel, max_threads));
     }
@@ -212,7 +214,7 @@ template<typename T0> class T_dct1
     template<typename T> DUCC0_NOINLINE void exec(T c[], T0 fct, bool ortho,
       int /*type*/, bool /*cosine*/, size_t nthreads=1) const
       {
-      quick_array<T> buf(bufsize());
+      aligned_array<T> buf(bufsize());
       exec_copyback(c, buf.data(), fct, ortho, 1, true, nthreads);
       }
 
@@ -250,7 +252,7 @@ template<typename T0> class T_dst1
     template<typename T> DUCC0_NOINLINE void exec(T c[], T0 fct,
       bool /*ortho*/, int /*type*/, bool /*cosine*/, size_t nthreads) const
       {
-      quick_array<T> buf(bufsize());
+      aligned_array<T> buf(bufsize());
       exec_copyback(c, buf.data(), fct, true, 1, false, nthreads);
       }
 
@@ -344,7 +346,7 @@ template<typename T0> class T_dcst23
     template<typename T> DUCC0_NOINLINE void exec(T c[], T0 fct, bool ortho,
       int type, bool cosine, size_t nthreads=1) const
       {
-      quick_array<T> buf(bufsize());
+      aligned_array<T> buf(bufsize());
       exec(c, &buf[0], fct, ortho, type, cosine, nthreads);
       }
 
@@ -358,7 +360,7 @@ template<typename T0> class T_dcst4
     size_t N;
     std::unique_ptr<pocketfft_c<T0>> fft;
     std::unique_ptr<pocketfft_r<T0>> rfft;
-    quick_array<Cmplx<T0>> C2;
+    aligned_array<Cmplx<T0>> C2;
     size_t bufsz;
 
   public:
@@ -461,7 +463,7 @@ template<typename T0> class T_dcst4
     template<typename T> DUCC0_NOINLINE void exec(T c[], T0 fct,
       bool /*ortho*/, int /*type*/, bool cosine, size_t nthreads=1) const
       {
-      quick_array<T> buf(bufsize());
+      aligned_array<T> buf(bufsize());
       exec(c, &buf[0], fct, true, 4, cosine, nthreads);
       }
 
@@ -690,10 +692,11 @@ template<typename T, typename T0> class TmpStorage
       size_t datafct = std::min(vlen, n_trafo);
       if (n_trafo>=n_simultaneous*vlen) datafct = n_simultaneous*vlen;
       dstride = bufsize_data;
+      dofs = bufsize_trafo;
       // critical stride avoidance
-      if ((dstride&256)==0) dstride+=3;
-      d.resize(buffct*(bufsize_trafo+17) + datafct*dstride);
-      dofs = bufsize_trafo + 17;
+      if ((dstride&256)==0) dstride+=16;
+      if ((dofs&256)==0) dofs += 16;
+      d.resize(buffct*dofs + datafct*dstride);
       }
 
     template<typename T2> T2 *transformBuf()
