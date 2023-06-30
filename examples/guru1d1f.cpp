@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
    Barnett 7/5/20
 
    Compile on linux with:
-   g++-7 -std=c++14 -fopenmp guru1d1f.cpp -I../include ../lib-static/libfinufft.a -o guru1d1f
+   g++-7 -std=c++17 -fopenmp guru1d1f.cpp -I../include ../lib-static/libfinufft.a -o guru1d1f
 
    Or if you have built a single-core library, remove -fopenmp
 

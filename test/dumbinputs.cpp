@@ -23,11 +23,11 @@
    Made pass-fail, obviating results/dumbinputs.refout. Barnett 6/16/23.
 
    Suggested compile:
-   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs -lfftw3 -lfftw3_omp -lm
-   g++ -std=c++14 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputsf -lfftw3 -lfftw3_omp -lm -DSINGLE
+   g++ -std=c++17 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs
+   g++ -std=c++17 -fopenmp dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputsf -DSINGLE
 
    or if you have built a single-core version:
-   g++ -std=c++14 dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs -lfftw3 -lm
+   g++ -std=c++17 dumbinputs.cpp -I../include ../lib/libfinufft.so -o dumbinputs
    etc
 */
 

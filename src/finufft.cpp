@@ -950,7 +950,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX* cj, CPX* fk){
         t_deconv += timer.elapsedsec();
       }
              
-      // STEP 2: call the pre-planned FFT on this batch
+      // STEP 2: call the FFT on this batch
       timer.restart();
       {
       int *ns = GRIDSIZE_FOR_FFT(p);

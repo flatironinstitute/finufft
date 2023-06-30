@@ -6,7 +6,7 @@ c     Legacy-style: f77, plus dynamic allocation & derived types from f90.
 c     To compile (linux/GCC) from this directory, use eg (paste to one line):
       
 c     gfortran -fopenmp -I../../include simple1d1.f -o simple1d1
-c     ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++
+c     ../../lib/libfinufft.so -lgomp -lstdc++
 
 c     Alex Barnett and Libin Lu 5/28/20, fix ptrs 10/6/21
 

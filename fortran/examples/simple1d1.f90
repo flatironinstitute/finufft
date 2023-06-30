@@ -6,7 +6,7 @@
 ! To compile (linux/GCC) from this directory, note the module also has to be
 ! compiled, eg:
       
-! gfortran -fopenmp ../../include/finufft_mod.f90 simple1d1.f90 -o simple1d1_f90 ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++
+! gfortran -fopenmp ../../include/finufft_mod.f90 simple1d1.f90 -o simple1d1_f90 ../../lib/libfinufft.so -lgomp -lstdc++
 
 ! Alex Barnett, to demo Reinhard Neder f90 module, 1/20/23.
 
