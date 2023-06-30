@@ -2,29 +2,13 @@
 #define FINUFFT_UTILS_H
 
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
+#include <complex>
 #include <cstdint>
 
 #include <cuComplex.h>
-#include <cufinufft_types.h>
+#include <cufinufft/types.h>
 
 #include <sys/time.h>
-
-namespace cufinufft {
-namespace utils {
-
-// jfm timer class
-class CNTime {
-  public:
-    void start();
-    double restart();
-    double elapsedsec();
-
-  private:
-    struct timeval initial;
-};
-
-// ahb math helpers
-CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
 
 #if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 600 || defined(__clang__)
 #else
@@ -43,6 +27,23 @@ __inline__ __device__ double atomicAdd(double *address, double val) {
     return __longlong_as_double(old);
 }
 #endif
+
+namespace cufinufft {
+namespace utils {
+
+// jfm timer class
+class CNTime {
+  public:
+    void start();
+    double restart();
+    double elapsedsec();
+
+  private:
+    struct timeval initial;
+};
+
+// ahb math helpers
+CUFINUFFT_BIGINT next235beven(CUFINUFFT_BIGINT n, CUFINUFFT_BIGINT b);
 
 template <typename T>
 T infnorm(int n, std::complex<T> *a) {

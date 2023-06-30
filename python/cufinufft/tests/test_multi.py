@@ -5,7 +5,7 @@ import numpy as np
 import pycuda.driver as drv
 import pycuda.gpuarray as gpuarray
 
-from cufinufft import cufinufft
+from cufinufft import Plan
 
 import utils
 
@@ -36,10 +36,10 @@ def test_multi_type1(dtype=np.float32, shape=(16, 16, 16), M=4096, tol=1e-3):
         c_gpu = gpuarray.to_gpu(c)
         fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
 
-        plan = cufinufft(1, shape, eps=tol, dtype=dtype,
+        plan = Plan(1, shape, eps=tol, dtype=complex_dtype,
                          gpu_device_id=dev_id)
 
-        plan.set_pts(k_gpu[0], k_gpu[1], k_gpu[2])
+        plan.setpts(k_gpu[0], k_gpu[1], k_gpu[2])
 
         plan.execute(c_gpu, fk_gpu)
 

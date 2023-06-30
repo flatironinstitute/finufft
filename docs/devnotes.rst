@@ -35,4 +35,6 @@ Developer notes
   
   to your ``make.inc``, and then you can use the ``make mex`` task.
 
+* The cufinufft Python wheels are generated using Docker based on the manylinux2014 image. For instructions, see ``tools/cufinufft/distribution_helper.sh``. These are binary wheels that are built using CUDA 11 (or optionally CUDA 12, but these are not distributed on PyPI) and bundled with the necessary libraries.
+
 

@@ -174,6 +174,9 @@ if(FINUFFT_USE_CUDA)
   set(CMAKE_CUDA_STANDARD 17)
   find_package(CUDAToolkit REQUIRED)
   add_subdirectory(src/cuda)
+  if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
+    add_subdirectory(perftest/cuda)
+  endif ()
 endif()
 
 # Add tests defined in their own directory

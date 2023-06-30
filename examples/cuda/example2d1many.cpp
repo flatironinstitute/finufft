@@ -4,12 +4,15 @@
 
 #include <cmath>
 #include <complex>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <random>
 
 #include <cufinufft.h>
 #include <cufinufft/utils.h>
+
+#include <cuda_runtime.h>
 // FIXME: This isn't actually public, though maybe it should be?
 using cufinufft::utils::infnorm;
 
@@ -35,7 +38,6 @@ int main(int argc, char *argv[])
     int N2 = 256;
     int M = 65536;
     int ntransf = 2;
-    int maxbatchsize = 1;
     int iflag = 1;
     float tol = 1e-6;
 
@@ -72,18 +74,18 @@ int main(int argc, char *argv[])
     cufinufftf_plan dplan;
 
     int dim = 2;
-    int nmodes[3];
+    int64_t nmodes[3];
     int type = 1;
 
     nmodes[0] = N1;
     nmodes[1] = N2;
     nmodes[2] = 1;
 
-    ier = cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, NULL);
+    ier = cufinufftf_makeplan(type, dim, nmodes, iflag, ntransf, tol, &dplan, NULL);
 
-    ier = cufinufftf_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, dplan);
+    ier = cufinufftf_setpts(dplan, M, d_x, d_y, NULL, 0, NULL, NULL, NULL);
 
-    ier = cufinufftf_execute(d_c, d_fk, dplan);
+    ier = cufinufftf_execute(dplan, d_c, d_fk);
 
     ier = cufinufftf_destroy(dplan);
 

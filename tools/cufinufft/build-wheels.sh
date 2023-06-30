@@ -31,6 +31,9 @@ py_versions=(cp36-cp36m \
             cp310-cp310 \
             cp311-cp311)
 
+# NOTE: For CUDA 12, cp36-cp36m and cp37-cp37m are broken since these force an
+# older version of pycuda (2022.1), which does not build under CUDA 12.
+
 # Compile wheels
 for py_version in ${py_versions[@]}; do
     py_binary=$(get_python_binary ${py_version})

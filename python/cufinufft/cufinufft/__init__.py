@@ -1,4 +1,7 @@
-from cufinufft.cufinufft import cufinufft
+from cufinufft._plan import Plan
+
+from cufinufft._simple import (nufft1d1, nufft1d2, nufft2d1, nufft2d2,
+                               nufft3d1, nufft3d2)
 
 __all__ = ['cufinufft']
-__version__ = '1.3'
+__version__ = '2.2.0dev0'

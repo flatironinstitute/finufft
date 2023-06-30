@@ -10,6 +10,9 @@
 
 #include <cufinufft.h>
 #include <cufinufft/utils.h>
+
+#include <cuda_runtime.h>
+
 // FIXME: This isn't actually public, though maybe it should be?
 using cufinufft::utils::infnorm;
 
@@ -72,18 +75,22 @@ int main(int argc, char *argv[])
     cufinufft_plan dplan;
 
     int dim = 2;
-    int nmodes[3];
+    int64_t nmodes[3];
     int type = 2;
 
     nmodes[0] = N1;
     nmodes[1] = N2;
     nmodes[2] = 1;
 
-    ier = cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, maxbatchsize, &dplan, NULL);
+    cufinufft_opts opts;
+    cufinufft_default_opts(type, dim, &opts);
+    opts.gpu_maxbatchsize = maxbatchsize;
 
-    ier = cufinufft_setpts(M, d_x, d_y, NULL, 0, NULL, NULL, NULL, dplan);
+    ier = cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
 
-    ier = cufinufft_execute(d_c, d_fk, dplan);
+    ier = cufinufft_setpts(dplan, M, d_x, d_y, NULL, 0, NULL, NULL, NULL);
+
+    ier = cufinufft_execute(dplan, d_c, d_fk);
 
     ier = cufinufft_destroy(dplan);
 
