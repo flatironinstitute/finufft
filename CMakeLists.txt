@@ -31,6 +31,7 @@ option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinuff
 if(FINUFFT_USE_CPU)
     set(CPM_DOWNLOAD_VERSION 0.38.0)
     include(cmake/setupCPM.cmake)
+endif()
 
 if (FINUFFT_BUILD_MATLAB)
     # When building for matlab, we will fetch the OpenMP library used by matlab
