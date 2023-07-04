@@ -68,7 +68,7 @@ int cufinufft_spread_interp(int type, int dim, int nf1, int nf2, int nf3, int M,
 int cufinufftf_spread_interp(int type, int dim, int nf1, int nf2, int nf3, int M, float *d_kx, float *d_ky, float *d_kz, 
                             cuda_complex<float> *d_c, cuda_complex<float> *d_fk, cufinufft_opts opts, float tol)
 {
-    return 0;//cufinufft_spread_interp_impl<float>(type, dim, nf1, nf2, nf3, M, d_kx, d_ky, d_kz, d_c, d_fk, opts, tol);
+    return cufinufft_spread_interp_impl<float>(type, dim, nf1, nf2, nf3, M, d_kx, d_ky, d_kz, d_c, d_fk, opts, tol);
 }
 
 int cufinufftf_destroy(cufinufftf_plan d_plan) {
