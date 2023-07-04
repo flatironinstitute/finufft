@@ -451,10 +451,14 @@ int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, i
             else
                 ier = cufinufft_interp3d(nf1, nf2, nf3, d_fk, M, d_kx, d_ky, d_kz, d_c, d_plan);
     }
+    // Scalar multiply using thrust.
     unsigned long int size = nf1*nf2*nf3;
-    if(type == 2)
-        size = M;
     thrust::device_ptr<T> dev_ptr(reinterpret_cast<T*>(d_fk));
+    if(type == 2)
+    {
+        size = M;
+        dev_ptr = reinterpret_cast<T*>(d_c);
+    }
     thrust::transform(dev_ptr, dev_ptr + 2 * size, dev_ptr, 
                     thrust::placeholders::_1 * static_cast<T>(scaling));
     return ier;
