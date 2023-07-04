@@ -4,6 +4,8 @@
 #include <iostream>
 
 #include <helper_cuda.h>
+#include <thrust/device_ptr.h>    
+
 
 #include <cufinufft/common.h>
 #include <cufinufft/cudeconvolve.h>
@@ -377,7 +379,6 @@ Notes: the type T means either single or double, matching the
 
     // Multi-GPU support: reset the device ID
     cudaSetDevice(orig_gpu_device_id);
-
     return 0;
 }
 
@@ -421,8 +422,6 @@ int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, i
     d_plan->opts = opts;
     d_plan->opts.gpu_spreadinterponly = 1;
     cufinufft_setup_binsize(type, dim, &d_plan->opts);
-    
-     
     ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts);
     if(type == 1)
     {
@@ -433,6 +432,7 @@ int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, i
         cuda_check_error(cudaMemset(d_c, 0, M*sizeof(cuda_complex<T>)));
     }
     // Use spopts to get the scaling factor
+    T scaling = calculate_scale_factor(dim, d_plan->spopts);
     switch(dim)
     {
         case 1:
@@ -451,7 +451,34 @@ int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, i
             else
                 ier = cufinufft_interp3d(nf1, nf2, nf3, d_fk, M, d_kx, d_ky, d_kz, d_c, d_plan);
     }
+    unsigned long int size = nf1*nf2*nf3;
+    if(type == 2)
+        size = M;
+    thrust::device_ptr<T> dev_ptr(reinterpret_cast<T*>(d_fk));
+    thrust::transform(dev_ptr, dev_ptr + 2 * size, dev_ptr, 
+                    thrust::placeholders::_1 * static_cast<T>(scaling));
     return ier;
+}
+
+template<typename T>
+T calculate_scale_factor(int rank, const finufft_spread_opts &opts) 
+{
+    // Calculate the additional scalar for multiplying just for spread and interpolate
+    int n = 100;
+    T h = 2.0 / n;
+    T x = -1.0;
+    T sum = 0.0;
+    for(int i = 1; i < n; i++) {
+      x += h;
+      sum += exp(opts.ES_beta * sqrt(1.0 - x * x));
+    }
+    sum += 1.0;
+    sum *= h;
+    sum *= sqrt(1.0 / opts.ES_c);
+    T scale = sum;
+    if (rank > 1) { scale *= sum; }
+    if (rank > 2) { scale *= sum; }
+    return 1.0 / scale;
 }
 
 template <typename T>
