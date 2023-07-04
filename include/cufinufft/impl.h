@@ -382,6 +382,27 @@ Notes: the type T means either single or double, matching the
     return 0;
 }
 
+template<typename T>
+T calculate_scale_factor(int rank, finufft_spread_opts opts) 
+{
+    // Calculate the additional scalar for multiplying just for spread and interpolate
+    int n = 100;
+    T h = 2.0 / n;
+    T x = -1.0;
+    T sum = 0.0;
+    for(int i = 1; i < n; i++) {
+      x += h;
+      sum += exp(opts.ES_beta * sqrt(1.0 - x * x));
+    }
+    sum += 1.0;
+    sum *= h;
+    sum *= sqrt(1.0 / opts.ES_c);
+    T scale = sum;
+    if (rank > 1) { scale *= sum; }
+    if (rank > 2) { scale *= sum; }
+    return scale;
+}
+
 template <typename T>
 int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, int M, T *d_kx, T *d_ky, T *d_kz, 
                             cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_opts opts, float tol)
@@ -422,34 +443,39 @@ int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, i
     d_plan->opts = opts;
     d_plan->opts.gpu_spreadinterponly = 1;
     cufinufft_setup_binsize(type, dim, &d_plan->opts);
+    using namespace cufinufft::common;
+    using namespace cufinufft::spreadinterp;
     ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts);
     if(type == 1)
     {
-        cuda_check_error(cudaMemset(d_fk, 0, nf1*nf2*nf3*sizeof(cuda_complex<T>)));
+        checkCudaErrors(cudaMemset(d_fk, 0, nf1*nf2*nf3*sizeof(cuda_complex<T>)));
     }
     else
     {
-        cuda_check_error(cudaMemset(d_c, 0, M*sizeof(cuda_complex<T>)));
+        checkCudaErrors(cudaMemset(d_c, 0, M*sizeof(cuda_complex<T>)));
     }
     // Use spopts to get the scaling factor
-    T scaling = calculate_scale_factor(dim, d_plan->spopts);
+    T scaling = calculate_scale_factor<T>(dim, d_plan->spopts);
     switch(dim)
     {
         case 1:
             if(type == 1)
-                ier = cufinufft_spread1d(nf1, d_fk, M, d_kx, d_c, d_plan);
+                ier = cufinufft_spread1d<T>(nf1, d_fk, M, d_kx, d_c, d_plan);
             else
-                ier = cufinufft_interp1d(nf1, d_fk, M, d_kx, d_c, d_plan);
+                ier = cufinufft_interp1d<T>(nf1, d_fk, M, d_kx, d_c, d_plan);
+            break;
         case 2:
             if(type == 1)
-                ier = cufinufft_spread2d(nf1, nf2, d_fk, M, d_kx, d_ky, d_c, d_plan);
+                ier = cufinufft_spread2d<T>(nf1, nf2, d_fk, M, d_kx, d_ky, d_c, d_plan);
             else
-                ier = cufinufft_interp2d(nf1, nf2, d_fk, M, d_kx, d_ky, d_c, d_plan);
+                ier = cufinufft_interp2d<T>(nf1, nf2, d_fk, M, d_kx, d_ky, d_c, d_plan);
+            break;
         case 3:
             if(type == 1)
-                ier = cufinufft_spread3d(nf1, nf2, nf3, d_fk, M, d_kx, d_ky, d_kz, d_c, d_plan);
+                ier = cufinufft_spread3d<T>(nf1, nf2, nf3, d_fk, M, d_kx, d_ky, d_kz, d_c, d_plan);
             else
-                ier = cufinufft_interp3d(nf1, nf2, nf3, d_fk, M, d_kx, d_ky, d_kz, d_c, d_plan);
+                ier = cufinufft_interp3d<T>(nf1, nf2, nf3, d_fk, M, d_kx, d_ky, d_kz, d_c, d_plan);
+            break;
     }
     // Scalar multiply using thrust.
     unsigned long int size = nf1*nf2*nf3;
@@ -457,32 +483,11 @@ int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, i
     if(type == 2)
     {
         size = M;
-        dev_ptr = reinterpret_cast<T*>(d_c);
+        dev_ptr = (thrust::device_ptr<T> ) reinterpret_cast<T*>(d_c);
     }
-    thrust::transform(dev_ptr, dev_ptr + 2 * size, dev_ptr, 
+    thrust::transform(dev_ptr, dev_ptr + 2 * size, dev_ptr, // 2 times to handle complex
                     thrust::placeholders::_1 * static_cast<T>(scaling));
     return ier;
-}
-
-template<typename T>
-T calculate_scale_factor(int rank, const finufft_spread_opts &opts) 
-{
-    // Calculate the additional scalar for multiplying just for spread and interpolate
-    int n = 100;
-    T h = 2.0 / n;
-    T x = -1.0;
-    T sum = 0.0;
-    for(int i = 1; i < n; i++) {
-      x += h;
-      sum += exp(opts.ES_beta * sqrt(1.0 - x * x));
-    }
-    sum += 1.0;
-    sum *= h;
-    sum *= sqrt(1.0 / opts.ES_c);
-    T scale = sum;
-    if (rank > 1) { scale *= sum; }
-    if (rank > 2) { scale *= sum; }
-    return 1.0 / scale;
 }
 
 template <typename T>

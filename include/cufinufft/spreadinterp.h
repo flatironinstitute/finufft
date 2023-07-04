@@ -87,10 +87,10 @@ int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
                        cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_t<T> **dplan);
+                       cuda_complex<T> *d_c, cufinufft_plan_t<T> *dplan);
 template <typename T>
 int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_t<T> **dplan);
+                       cuda_complex<T> *d_c, cufinufft_plan_t<T> *dplan);
 
 // Functions for calling different methods of spreading & interpolation
 template <typename T>
