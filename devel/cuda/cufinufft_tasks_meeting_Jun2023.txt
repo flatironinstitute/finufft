@@ -52,9 +52,11 @@ SMALL TASKS IMMEDIATE:
 * DOCS: (Alex will update RST docs for cuda, incl its PNG). DONE.
  -INSTALL: add how to find SM_?? cuda arch [DONE]
 
-* test issue #276 re meth=1,2 - Alex will update
+* test issue #276 re meth=1,2 - Alex will update. DONE
 
-* cufinufft has C and C++ - J make issue  <- Alex forgot what this meant??
+* cufinufft has C and C++ - J make issue  [<- Alex forgot what this meant??]
+[was merely problem with headers in using gcc] - DONE.
+
 
 * see if gpu error codes can be merged into cpu - the only new one
   could be cudaMalloc failed.

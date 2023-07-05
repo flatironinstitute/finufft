@@ -5,7 +5,7 @@ Error (status) codes
 
 In all FINUFFT interfaces, the returned value ``ier`` is a status indicator.
 It is ``0`` if successful, otherwise the error code
-has the following meanings (see ``include/defs.h``):
+has the following meanings (see ``include/finufft/defs.h``):
 
 ::
 
