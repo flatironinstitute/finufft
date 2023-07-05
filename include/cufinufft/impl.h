@@ -400,7 +400,7 @@ T calculate_scale_factor(int rank, finufft_spread_opts opts)
     T scale = sum;
     if (rank > 1) { scale *= sum; }
     if (rank > 2) { scale *= sum; }
-    return scale;
+    return 1/scale;
 }
 
 template <typename T>

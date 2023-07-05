@@ -60,13 +60,13 @@ int cufinufft_execute(cufinufft_plan d_plan, cuDoubleComplex *d_c, cuda_complex<
 }
 
 int cufinufft_spread_interp(int type, int dim, int nf1, int nf2, int nf3, int M, double *d_kx, double *d_ky, double *d_kz, 
-                            cuda_complex<double> *d_c, cuda_complex<double> *d_fk, cufinufft_opts opts, float tol)
+                            cuDoubleComplex *d_c, cuDoubleComplex *d_fk, cufinufft_opts opts, float tol)
 {
     return cufinufft_spread_interp_impl<double>(type, dim, nf1, nf2, nf3, M, d_kx, d_ky, d_kz, d_c, d_fk, opts, tol);
 }
 
 int cufinufftf_spread_interp(int type, int dim, int nf1, int nf2, int nf3, int M, float *d_kx, float *d_ky, float *d_kz, 
-                            cuda_complex<float> *d_c, cuda_complex<float> *d_fk, cufinufft_opts opts, float tol)
+                            cuFloatComplex *d_c, cuFloatComplex *d_fk, cufinufft_opts opts, float tol)
 {
     return cufinufft_spread_interp_impl<float>(type, dim, nf1, nf2, nf3, M, d_kx, d_ky, d_kz, d_c, d_fk, opts, tol);
 }

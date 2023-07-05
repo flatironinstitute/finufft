@@ -131,16 +131,16 @@ _exec_planf.restype = c_int
 _spread_interp = lib.cufinufft_spread_interp
 _spread_interp.argtypes = [
     c_int, c_int, c_int, c_int, c_int, c_int, # type, dim, nf1, nf2, nf3, M
-    c_double_p, c_double_p, c_double_p, # kx, ky, kz
-    c_void_p, c_void_p, NufftOpts_p, c_float # c, f, opts, tol
+    c_void_p, c_void_p, c_void_p, # kx, ky, kz
+    c_void_p, c_void_p, NufftOpts, c_float # c, f, opts, tol
 ]
 _spread_interp.restype = c_int
 
 _spread_interpf = lib.cufinufftf_spread_interp
 _spread_interpf.argtypes = [
     c_int, c_int, c_int, c_int, c_int, c_int, # type, dim, nf1, nf2, nf3, M
-    c_float_p, c_float_p, c_float_p, # kx, ky, kz
-    c_void_p, c_void_p, NufftOpts_p, c_float # c, f, opts, tol
+    c_void_p, c_void_p, c_void_p, # kx, ky, kz
+    c_void_p, c_void_p, NufftOpts, c_float # c, f, opts, tol
 ]
 _spread_interpf.restype = c_int
 
