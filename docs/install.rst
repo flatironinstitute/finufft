@@ -26,7 +26,7 @@ Then add the following to your ``CMakeLists.txt``:
   CPMAddPackage(
     NAME             Finufft
     GIT_REPOSITORY   https://github.com/flatironinstitute/finufft.git    
-    GIT_TAG          v2.1.0 
+    GIT_TAG          master
     GIT_SHALLOW      Yes
     GIT_PROGRESS     Yes
     EXCLUDE_FROM_ALL Yes 
