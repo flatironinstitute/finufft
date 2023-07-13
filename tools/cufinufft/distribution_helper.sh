@@ -10,19 +10,32 @@ dockerhub=janden
 
 echo "# build the wheel"
 docker build \
-    --file ci/docker/cuda${cuda_version}/Dockerfile-x86_64 \
+    --file tools/cufinufft/docker/cuda${cuda_version}/Dockerfile-x86_64 \
     --tag ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version} .
 
 
-echo "# Run the container, invoking the build-wheels script to generate the wheels"
-docker run \
+echo "# Create the container and start it"
+docker create \
     --gpus all \
     --interactive \
     --tty \
     --volume $(pwd)/wheelhouse:/io/wheelhouse \
     --env PLAT=${manylinux_version}_x86_64 \
-    ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version} \
-    /io/ci/build-wheels.sh
+    --name cufinufft \
+    ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version}
+
+docker start cufinufft
+
+echo "# Build the library and install it"
+docker exec cufinufft /io/tools/cufinufft/build-library.sh
+docker exec cufinufft cp /io/build/libcufinufft.so /usr/lib
+
+echo "# Build the wheels"
+docker exec cufinufft /io/tools/cufinufft/build-wheels.sh
+
+echo "# Shut down the container and remove it"
+docker stop cufinufft
+docker rm cufinufft
 
 echo "# Copy the wheels we care about to the dist folder"
 mkdir -p dist
