@@ -22,6 +22,10 @@ pipeline {
       nvidia-smi
     '''
     sh '''#!/bin/bash -ex
+        /io/tools/cufinufft/build-library.sh
+        cp /io/build/libcufinufft.so /usr/lib
+    '''
+    sh '''#!/bin/bash -ex
       cp -r /io/build/test/cuda cuda_tests
       cd cuda_tests
       ctest --output-on-failure
