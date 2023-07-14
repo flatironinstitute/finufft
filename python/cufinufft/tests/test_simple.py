@@ -71,9 +71,9 @@ def test_simple_type2(dtype, shape, n_trans, M, tol, output_arg):
 
     if output_arg:
         c_gpu = gpuarray.GPUArray(n_trans + (M,), dtype=complex_dtype)
-        fun(*k_gpu, fk_gpu, out=c_gpu)
+        fun(*k_gpu, fk_gpu, eps=tol, out=c_gpu)
     else:
-        c_gpu = fun(*k_gpu, fk_gpu)
+        c_gpu = fun(*k_gpu, fk_gpu, eps=tol)
 
     c = c_gpu.get()
 
