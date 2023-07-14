@@ -28,6 +28,7 @@ def test_simple_type1(dtype, shape, n_trans, M, tol, output_arg):
 
     dim = len(shape)
 
+    # Select which function to call based on dimension.
     fun = {1: cufinufft.nufft1d1,
            2: cufinufft.nufft2d1,
            3: cufinufft.nufft3d1}[dim]
@@ -38,7 +39,11 @@ def test_simple_type1(dtype, shape, n_trans, M, tol, output_arg):
     c_gpu = gpuarray.to_gpu(c)
 
     if output_arg:
+        # Ensure that output array has proper shape i.e., (N1, ...) for no
+        # batch, (1, N1, ...) for batch of size one, and (n, N1, ...) for
+        # batch of size n.
         fk_gpu = gpuarray.GPUArray(n_trans + shape, dtype=complex_dtype)
+
         fun(*k_gpu, c_gpu, out=fk_gpu, eps=tol)
     else:
         fk_gpu = fun(*k_gpu, c_gpu, shape, eps=tol)
@@ -71,6 +76,7 @@ def test_simple_type2(dtype, shape, n_trans, M, tol, output_arg):
 
     if output_arg:
         c_gpu = gpuarray.GPUArray(n_trans + (M,), dtype=complex_dtype)
+
         fun(*k_gpu, fk_gpu, eps=tol, out=c_gpu)
     else:
         c_gpu = fun(*k_gpu, fk_gpu, eps=tol)

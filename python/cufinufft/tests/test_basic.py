@@ -32,6 +32,9 @@ def test_type1(dtype, shape, M, tol, output_arg):
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
+    # Since k_gpu is an array of shape (dim, M), this will expand to
+    # plan.setpts(k_gpu[0], ..., k_gpu[dim]), allowing us to handle all
+    # dimensions with the same call.
     plan.setpts(*k_gpu)
 
     if output_arg:
