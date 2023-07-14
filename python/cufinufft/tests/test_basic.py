@@ -9,10 +9,10 @@ from cufinufft import Plan
 
 import utils
 
-# NOTE: Tests below fail for shapes of size (16, 16) and tolerances 1e-4.
+# NOTE: Tests below fail for tolerance 1e-4 (error executing plan).
 
 DTYPES = [np.float32, np.float64]
-SHAPES = [(64,), (64, 64), (64, 64, 64)]
+SHAPES = [(16,), (16, 16), (16, 16, 16)]
 MS = [256, 1024, 4096]
 TOLS = [1e-2, 1e-3]
 OUTPUT_ARGS = [False, True]
