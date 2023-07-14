@@ -22,6 +22,9 @@ pipeline {
       nvidia-smi
     '''
     sh '''#!/bin/bash -ex
+      touch /io/test123
+    '''
+    sh '''#!/bin/bash -ex
         /io/tools/cufinufft/build-library.sh
         cp /io/build/libcufinufft.so /usr/lib
     '''
