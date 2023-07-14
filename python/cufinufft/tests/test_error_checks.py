@@ -55,13 +55,11 @@ def test_set_pts_raises_on_size():
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="`y` must be of shape") as err:
         plan.setpts(kxyz_gpu[0], kxyz_gpu[1][:4])
-    assert '`y` must be of shape' in err.value.args[0]
 
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="`z` must be of shape") as err:
         plan.setpts(kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2][:4])
-    assert '`z` must be of shape' in err.value.args[0]
 
 
 def test_set_pts_raises_on_nonvector():
@@ -79,9 +77,8 @@ def test_set_pts_raises_on_nonvector():
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="`x` must be a vector") as err:
         plan.setpts(kxyz)
-    assert "`x` must be a vector" in err.value.args[0]
 
 
 def test_set_pts_raises_on_number_of_args():
@@ -99,23 +96,20 @@ def test_set_pts_raises_on_number_of_args():
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="is 1, but `y` was specified") as err:
         plan.setpts(*kxyz_gpu[:2])
-    assert "is 1, but `y` was specified" in err.value.args[0]
 
     shape = (16, 16)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="is 2, but `z` was specified") as err:
         plan.setpts(*kxyz_gpu)
-    assert "is 2, but `z` was specified" in err.value.args[0]
 
 
 def test_wrong_field_names():
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="Invalid option 'foo'") as err:
         plan = Plan(1, (8, 8), foo="bar")
-    assert "Invalid option 'foo'" in err.value.args[0]
 
 
 def test_exec_raises_on_dtype():
@@ -151,16 +145,13 @@ def test_exec_raises_on_dtype():
 
 
 def test_dtype_errors():
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="Expected complex64 or complex128") as err:
         Plan(1, (8, 8), dtype="uint8")
-    assert "expected complex64 or complex128" in err.value.args[0].lower()
 
 
 def test_dtype_warnings():
-    with pytest.warns(DeprecationWarning) as record:
+    with pytest.warns(DeprecationWarning, match="Converting to complex64") as record:
         Plan(1, (8, 8), dtype="float32")
-    assert "Converting to complex64" in record[0].message.args[0]
 
-    with pytest.warns(DeprecationWarning) as record:
+    with pytest.warns(DeprecationWarning, match="Converting to complex128") as record:
         Plan(1, (8, 8), dtype="float64")
-    assert "Converting to complex128" in record[0].message.args[0]

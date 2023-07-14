@@ -27,9 +27,8 @@ def test_type2_ordering(dtype=np.float32, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     c_gpu = plan.execute(fk_gpu)
 
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="following requirement: C") as err:
         cTT_gpu = plan.execute(fkTT_gpu)
-    assert "following requirement: C" in err.value.args[0]
 
     # Ideally, it should be possible to get this to align with true output,
     # but corrently does not look like it.
@@ -58,6 +57,5 @@ def test_type1_ordering(dtype=np.float32, shape=(16, 16, 16), M=4096, tol=1e-3):
 
     out_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype, order="F")
 
-    with pytest.raises(TypeError) as err:
+    with pytest.raises(TypeError, match="following requirement: C") as err:
         plan.execute(c_gpu, out=out_gpu)
-    assert "following requirement: C" in err.value.args[0]
