@@ -22,6 +22,8 @@ pipeline {
       nvidia-smi
     '''
     sh '''#!/bin/bash -ex
+      id
+      ls -la /io
       touch /io/test123
     '''
     sh '''#!/bin/bash -ex
