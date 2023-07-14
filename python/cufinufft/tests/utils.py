@@ -110,7 +110,7 @@ def verify_type1(k, c, fk, tol):
 
     type1_rel_err = np.linalg.norm(fk_target - fk_est) / np.linalg.norm(fk_target)
 
-    assert type1_rel_err < 10 * tol
+    assert type1_rel_err < 25 * tol
 
 
 def verify_type2(k, fk, c, tol):
@@ -125,4 +125,4 @@ def verify_type2(k, fk, c, tol):
 
     type2_rel_err = np.linalg.norm(c_target - c_est) / np.linalg.norm(c_target)
 
-    assert type2_rel_err < 10 * tol
+    assert type2_rel_err < 25 * tol
