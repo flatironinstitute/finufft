@@ -10,7 +10,7 @@ pipeline {
       agent {
          dockerfile {
             filename 'tools/cufinufft/docker/cuda11.0/Dockerfile-x86_64'
-            args '--gpus 2 -u root'
+            args '--gpus 2'
          }
       }
       environment {
@@ -22,6 +22,7 @@ pipeline {
       nvidia-smi
     '''
     sh '''#!/bin/bash -ex
+      echo $HOME
       id
       ls -la /io
       touch /io/test123
