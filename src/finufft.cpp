@@ -819,8 +819,10 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       fprintf(stderr, "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
       return ERR_MAXNALLOC;
     }
+    if(p->fwBatch) FFTW_FR(p->fwBatch);
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // maybe big workspace
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
+    if(p->CpBatch) free(p->CpBatch);
     p->CpBatch = (CPX*)malloc(sizeof(CPX) * nj*p->batchSize);  // batch c' work
     if (p->opts.debug) printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__, (double)1E-09*sizeof(CPX)*(p->nf+nj)*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch || !p->CpBatch) {
@@ -830,13 +832,19 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     //printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
+    if(p->X) free(p->X);
+    if(p->Sp) free(p->Sp);
     p->X = (FLT*)malloc(sizeof(FLT)*nj);
     p->Sp = (FLT*)malloc(sizeof(FLT)*nk);
     if (d>1) {
+      if(p->Y) free(p->Y);
+      if(p->Tp) free(p->Tp);
       p->Y = (FLT*)malloc(sizeof(FLT)*nj);
       p->Tp = (FLT*)malloc(sizeof(FLT)*nk);
     }
     if (d>2) {
+      if(p->Z) free(p->Z);
+      if(p->Up) free(p->Up);
       p->Z = (FLT*)malloc(sizeof(FLT)*nj);
       p->Up = (FLT*)malloc(sizeof(FLT)*nk);
     }
@@ -858,6 +866,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
     // set up prephase array...
     CPX imasign = (p->fftSign>=0) ? IMA : -IMA;             // +-i
+    if(p->prephase) free(p->prephase);
     p->prephase = (CPX*)malloc(sizeof(CPX)*nj);
     if (p->t3P.D1!=0.0 || p->t3P.D2!=0.0 || p->t3P.D3!=0.0) {
 #pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
@@ -885,6 +894,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
+    if(p->deconv) free(p->deconv);
     p->deconv = (CPX*)malloc(sizeof(CPX)*nk);
     FLT *phiHatk1 = (FLT*)malloc(sizeof(FLT)*nk);  // don't confuse w/ p->phiHat
     onedim_nuft_kernel(nk, p->Sp, phiHatk1, p->spopts);         // fill phiHat1
@@ -941,6 +951,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);
     t2opts.showwarn = 0;                          // so don't see warnings 2x
     // (...could vary other t2opts here?)
+    if(p->innerT2plan) FINUFFT_DESTROY(p->innerT2plan);
     int ier = FINUFFT_MAKEPLAN(2, d, t2nmodes, p->fftSign, p->batchSize, p->tol,
                                &p->innerT2plan, &t2opts);
     if (ier>1) {     // if merely warning, still proceed
