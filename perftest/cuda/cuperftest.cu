@@ -38,6 +38,7 @@ struct test_options_t {
     int n_runs;
     int N[3];
     int M;
+    int ntransf;
     int kerevalmethod;
     int method;
     int sort;
@@ -58,6 +59,7 @@ struct test_options_t {
                 {"N2", required_argument, 0, 0},
                 {"N3", required_argument, 0, 0},
                 {"M", required_argument, 0, 0},
+                {"ntransf", required_argument, 0, 0},
                 {"tol", required_argument, 0, 0},
                 {"method", required_argument, 0, 0},
                 {"kerevalmethod", required_argument, 0, 0},
@@ -87,6 +89,7 @@ struct test_options_t {
         N[1] = std::stof(get_or(options_map, "N2", "1"));
         N[2] = std::stof(get_or(options_map, "N3", "1"));
         M = std::stof(get_or(options_map, "M", "2E6"));
+        ntransf = std::stoi(get_or(options_map, "ntransf", "1"));
         method = std::stoi(get_or(options_map, "method", "1"));
         kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "0"));
         sort = std::stoi(get_or(options_map, "sort", "1"));
@@ -101,6 +104,7 @@ struct test_options_t {
                     << "N2 = " << opts.N[1] << "\n"
                     << "N3 = " << opts.N[2] << "\n"
                     << "M = " << opts.M << "\n"
+                    << "ntransf = " << opts.ntransf << "\n"
                     << "method = " << opts.method << "\n"
                     << "kerevalmethod = " << opts.kerevalmethod << "\n"
                     << "sort = " << opts.sort << "\n"
@@ -126,23 +130,24 @@ void gpu_warmup() {
 template <typename T>
 void run_test(test_options_t &test_opts) {
     std::cout << test_opts;
+    const int ntransf = test_opts.ntransf;
     const int M = test_opts.M;
     const int N = test_opts.N[0] * test_opts.N[1] * test_opts.N[2];
     const int type = test_opts.type;
     constexpr int iflag = 1;
 
-    thrust::host_vector<T> x(M), y(M), z(M);
-    thrust::host_vector<thrust::complex<T>> c(M), fk(N);
+    thrust::host_vector<T> x(M * ntransf), y(M * ntransf), z(M * ntransf);
+    thrust::host_vector<thrust::complex<T>> c(M * ntransf), fk(N * ntransf);
 
-    thrust::device_vector<T> d_x(M), d_y(M), d_z(M);
-    thrust::device_vector<thrust::complex<T>> d_c(M), d_fk(N);
+    thrust::device_vector<T> d_x(M * ntransf), d_y(M * ntransf), d_z(M * ntransf);
+    thrust::device_vector<thrust::complex<T>> d_c(M * ntransf), d_fk(N * ntransf);
 
     std::default_random_engine eng(1);
     std::uniform_real_distribution<T> dist11(-1, 1);
     auto randm11 = [&eng, &dist11]() { return dist11(eng); };
 
     // Making data
-    for (int i = 0; i < M; i++) {
+    for (int i = 0; i < M * ntransf; i++) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)
         y[i] = M_PI * randm11();
         z[i] = M_PI * randm11();
@@ -150,13 +155,13 @@ void run_test(test_options_t &test_opts) {
     d_x = x, d_y = y, d_z = z;
 
     if (type == 1) {
-        for (int i = 0; i < M; i++) {
+        for (int i = 0; i < M * ntransf; i++) {
             c[i].real(randm11());
             c[i].imag(randm11());
         }
         d_c = c;
     } else if (type == 2) {
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < N * ntransf; i++) {
             fk[i].real(randm11());
             fk[i].imag(randm11());
         }
@@ -181,7 +186,7 @@ void run_test(test_options_t &test_opts) {
     cufinufft_plan_t<T> *dplan;
     double makeplan_time{0}, setpts_time{0}, execute_time{0};
     makeplan_time =
-        timeit(cufinufft_makeplan_impl<T>, test_opts.type, dim, test_opts.N, iflag, 1, test_opts.tol, &dplan, &opts);
+        timeit(cufinufft_makeplan_impl<T>, test_opts.type, dim, test_opts.N, iflag, ntransf, test_opts.tol, &dplan, &opts);
 
     T *d_x_p = dim >= 1 ? d_x.data().get() : nullptr;
     T *d_y_p = dim >= 2 ? d_y.data().get() : nullptr;
@@ -193,8 +198,8 @@ void run_test(test_options_t &test_opts) {
         execute_time += timeit(cufinufft_execute_impl<T>, d_c_p, d_fk_p, dplan);
     }
 
-    setpts_time /= test_opts.n_runs;
-    execute_time /= test_opts.n_runs;
+    setpts_time /= test_opts.n_runs * ntransf;
+    execute_time /= test_opts.n_runs * ntransf;
 
     std::cout << std::endl;
     std::cout << "makeplan: " << makeplan_time << std::endl;
@@ -229,6 +234,9 @@ int main(int argc, char *argv[]) {
                      "    --M <int>\n"
                      "           number of non-uniform points. Scientific notation accepted (i.e. 1E6)\n"
                      "           default: " << default_opts.M << "\n" <<
+                     "    --ntransf <int>\n"
+                     "           number of transforms to do simultaneously\n"
+                     "           default: " << default_opts.ntransf << "\n" <<
                      "    --tol <float>\n"
                      "           NUFFT tolerance. Scientific notation accepted (i.e. 1.2E-7)\n"
                      "           default: " << default_opts.tol << "\n" <<
