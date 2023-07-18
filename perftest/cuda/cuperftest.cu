@@ -57,6 +57,7 @@ struct test_options_t {
                 {"N1", required_argument, 0, 0},
                 {"N2", required_argument, 0, 0},
                 {"N3", required_argument, 0, 0},
+                {"M", required_argument, 0, 0},
                 {"tol", required_argument, 0, 0},
                 {"method", required_argument, 0, 0},
                 {"kerevalmethod", required_argument, 0, 0},
