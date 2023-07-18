@@ -94,7 +94,6 @@ int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         cudeconvolve3d<T>(d_plan, blksize);
 
         // Step 2: FFT
-        cudaDeviceSynchronize();
         cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
 
         // Step 3: deconvolve and shuffle
