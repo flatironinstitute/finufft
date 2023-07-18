@@ -91,7 +91,7 @@ struct test_options_t {
         M = std::stof(get_or(options_map, "M", "2E6"));
         ntransf = std::stoi(get_or(options_map, "ntransf", "1"));
         method = std::stoi(get_or(options_map, "method", "1"));
-        kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "0"));
+        kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
         sort = std::stoi(get_or(options_map, "sort", "1"));
         tol = std::stof(get_or(options_map, "tol", "1E-5"));
     }

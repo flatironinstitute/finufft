@@ -106,7 +106,7 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 
     switch (dim) {
     case 1: {
-        opts->gpu_kerevalmeth = 0; // using exp(sqrt())
+        opts->gpu_kerevalmeth = 1; // using horner
         if (type == 1) {
             opts->gpu_method = 2;
         }
@@ -120,7 +120,7 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
         }
     } break;
     case 2: {
-        opts->gpu_kerevalmeth = 0; // using exp(sqrt())
+        opts->gpu_kerevalmeth = 1; // using horner
         if (type == 1) {
             opts->gpu_method = 2;
         }
@@ -134,7 +134,7 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
         }
     } break;
     case 3: {
-        opts->gpu_kerevalmeth = 0; // using exp(sqrt())
+        opts->gpu_kerevalmeth = 1; // using horner
         if (type == 1) {
             opts->gpu_method = 2;
         }
