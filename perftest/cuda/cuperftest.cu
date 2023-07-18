@@ -13,16 +13,6 @@
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
 
-struct timespec get_wtime() {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts;
-}
-
-double get_wtime_diff(const struct timespec &ts, const struct timespec &tf) {
-    return (tf.tv_sec - ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec) * 1E-9;
-}
-
 std::string get_or(const std::unordered_map<std::string, std::string> &m, const std::string &key,
                    const std::string &default_value) {
     auto it = m.find(key);
@@ -112,19 +102,58 @@ struct test_options_t {
     }
 };
 
+struct CudaTimer {
+    CudaTimer() {}
+
+    ~CudaTimer() {
+        for (auto &event : start_)
+            cudaEventDestroy(event);
+        for (auto &event : stop_)
+            cudaEventDestroy(event);
+    }
+
+    void start() {
+        start_.push_back(cudaEvent_t{});
+        stop_.push_back(cudaEvent_t{});
+
+        cudaEventCreate(&start_.back());
+        cudaEventCreate(&stop_.back());
+
+        cudaEventRecord(start_.back());
+    }
+
+    void stop() { cudaEventRecord(stop_.back()); }
+
+    float elapsed() {
+        float dt_tot = 0.;
+        for (int i = 0; i < start_.size(); ++i) {
+            float dt;
+            cudaEventSynchronize(stop_[i]);
+            cudaEventElapsedTime(&dt, start_[i], stop_[i]);
+            dt_tot += dt;
+        }
+
+        return dt_tot;
+    }
+
+    std::vector<cudaEvent_t> start_;
+    std::vector<cudaEvent_t> stop_;
+};
+
 template <class F, class... Args>
-inline double timeit(F f, Args... args) {
-    auto st = get_wtime();
+inline void timeit(F f, CudaTimer &timer, Args... args) {
+    timer.start();
     f(args...);
-    cudaDeviceSynchronize();
-    auto ft = get_wtime();
-    return get_wtime_diff(st, ft);
+    timer.stop();
 }
 
 void gpu_warmup() {
-    int nf1 = 1;
+    int nf1 = 100;
     cufftHandle fftplan;
     cufftPlan1d(&fftplan, nf1, CUFFT_Z2Z, 1);
+    thrust::device_vector<cufftDoubleComplex> in(nf1), out(nf1);
+    cufftExecZ2Z(fftplan, in.data().get(), out.data().get(), 1);
+    cudaDeviceSynchronize();
 }
 
 template <typename T>
@@ -184,9 +213,9 @@ void run_test(test_options_t &test_opts) {
     opts.gpu_kerevalmeth = test_opts.kerevalmethod;
 
     cufinufft_plan_t<T> *dplan;
-    double makeplan_time{0}, setpts_time{0}, execute_time{0};
-    makeplan_time =
-        timeit(cufinufft_makeplan_impl<T>, test_opts.type, dim, test_opts.N, iflag, ntransf, test_opts.tol, &dplan, &opts);
+    CudaTimer makeplan_timer, setpts_timer, execute_timer;
+    timeit(cufinufft_makeplan_impl<T>, makeplan_timer, test_opts.type, dim, test_opts.N, iflag, ntransf, test_opts.tol,
+           &dplan, &opts);
 
     T *d_x_p = dim >= 1 ? d_x.data().get() : nullptr;
     T *d_y_p = dim >= 2 ? d_y.data().get() : nullptr;
@@ -194,18 +223,19 @@ void run_test(test_options_t &test_opts) {
     cuda_complex<T> *d_c_p = (cuda_complex<T> *)d_c.data().get();
     cuda_complex<T> *d_fk_p = (cuda_complex<T> *)d_fk.data().get();
     for (int i = 0; i < test_opts.n_runs; ++i) {
-        setpts_time += timeit(cufinufft_setpts_impl<T>, M, d_x_p, d_y_p, d_z_p, 0, nullptr, nullptr, nullptr, dplan);
-        execute_time += timeit(cufinufft_execute_impl<T>, d_c_p, d_fk_p, dplan);
+        timeit(cufinufft_setpts_impl<T>, setpts_timer, M, d_x_p, d_y_p, d_z_p, 0, nullptr, nullptr, nullptr, dplan);
+        timeit(cufinufft_execute_impl<T>, execute_timer, d_c_p, d_fk_p, dplan);
     }
 
-    setpts_time /= test_opts.n_runs * ntransf;
-    execute_time /= test_opts.n_runs * ntransf;
+    float scale_factor = 1.0 / (test_opts.n_runs * ntransf);
 
     std::cout << std::endl;
-    std::cout << "makeplan: " << makeplan_time << std::endl;
-    std::cout << "setpts  : " << setpts_time << std::endl;
-    std::cout << "execute : " << execute_time << std::endl;
-    std::cout << "total   : " << makeplan_time + setpts_time + execute_time << std::endl;
+    std::cout << "makeplan: " << makeplan_timer.elapsed() << " ms\n";
+    std::cout << "setpts  : " << scale_factor * setpts_timer.elapsed() << " ms\n";
+    std::cout << "execute : " << scale_factor * execute_timer.elapsed() << " ms\n";
+    std::cout << "total   : "
+              << makeplan_timer.elapsed() + scale_factor * (setpts_timer.elapsed() + execute_timer.elapsed())
+              << " ms\n";
 }
 
 int main(int argc, char *argv[]) {
