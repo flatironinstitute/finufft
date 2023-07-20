@@ -42,8 +42,9 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         d_plan->c = d_cstart;
         d_plan->fk = d_fkstart;
 
-        checkCudaErrors(cudaMemset(
-            d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * d_plan->nf3 * sizeof(cuda_complex<T>)));
+        checkCudaErrors(cudaMemsetAsync(
+            d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * d_plan->nf3 * sizeof(cuda_complex<T>),
+            d_plan->streams[d_plan->curr_stream]));
 
         // Step 1: Spread
         ier = cuspread3d<T>(d_plan, blksize);
@@ -54,11 +55,12 @@ int cufinufft3d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         }
 
         // Step 2: FFT
-        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        cufft_ex(d_plan->fftplans[d_plan->curr_stream], d_plan->fw, d_plan->fw, d_plan->iflag);
 
         // Step 3: deconvolve and shuffle
         cudeconvolve3d<T>(d_plan, blksize);
     }
+    d_plan->curr_stream = 0;
 
     return 0;
 }
@@ -94,7 +96,7 @@ int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         cudeconvolve3d<T>(d_plan, blksize);
 
         // Step 2: FFT
-        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        cufft_ex(d_plan->fftplans[d_plan->curr_stream], d_plan->fw, d_plan->fw, d_plan->iflag);
 
         // Step 3: deconvolve and shuffle
         ier = cuinterp3d<T>(d_plan, blksize);
@@ -104,6 +106,7 @@ int cufinufft3d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
             return ier;
         }
     }
+    d_plan->curr_stream = 0;
 
     return 0;
 }

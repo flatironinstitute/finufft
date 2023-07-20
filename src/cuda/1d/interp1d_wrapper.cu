@@ -98,6 +98,7 @@ int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
 
 template <typename T>
 int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+    auto &stream = d_plan->streams[d_plan->curr_stream];
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -119,13 +120,13 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            interp_1d_nuptsdriven_horner<<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
-                                                                      sigma, d_idxnupts, pirange);
+            interp_1d_nuptsdriven_horner<<<blocks, threadsPerBlock, 0, stream>>>(d_kx, d_c + t * M, d_fw + t * nf1, M,
+                                                                                 ns, nf1, sigma, d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            interp_1d_nuptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c,
-                                                               es_beta, d_idxnupts, pirange);
+            interp_1d_nuptsdriven<<<blocks, threadsPerBlock, 0, stream>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
+                                                                          es_c, es_beta, d_idxnupts, pirange);
         }
     }
 

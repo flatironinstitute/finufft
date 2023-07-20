@@ -102,6 +102,8 @@ int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize)
 
 template <typename T>
 int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+    auto &stream = d_plan->streams[d_plan->curr_stream];
+
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -124,13 +126,13 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            interp_2d_nupts_driven_horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M,
-                                                                       ns, nf1, nf2, sigma, d_idxnupts, pirange);
+            interp_2d_nupts_driven_horner<<<blocks, threadsPerBlock, 0, stream>>>(
+                d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, sigma, d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            interp_2d_nupts_driven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns,
-                                                                nf1, nf2, es_c, es_beta, d_idxnupts, pirange);
+            interp_2d_nupts_driven<<<blocks, threadsPerBlock, 0, stream>>>(
+                d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta, d_idxnupts, pirange);
         }
     }
 
@@ -139,6 +141,8 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
 
 template <typename T>
 int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+    auto &stream = d_plan->streams[d_plan->curr_stream];
+
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     T es_c = d_plan->spopts.ES_c;
     T es_beta = d_plan->spopts.ES_beta;
@@ -176,14 +180,14 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            interp_2d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            interp_2d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, sigma, d_binstartpts, d_binsize,
                 bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins[0],
                 numbins[1], d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            interp_2d_subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            interp_2d_subprob<<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta, sigma, d_binstartpts,
                 d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
                 numbins[0], numbins[1], d_idxnupts, pirange);

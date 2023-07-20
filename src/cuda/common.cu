@@ -55,7 +55,7 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, cuDouble
 
 template <typename T>
 int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, cuDoubleComplex *d_a, T *d_fwkerhalf1,
-                           T *d_fwkerhalf2, T *d_fwkerhalf3, int ns)
+                           T *d_fwkerhalf2, T *d_fwkerhalf3, int ns, cudaStream_t stream)
 /*
     wrapper for approximation of Fourier series of real symmetric spreading
     kernel.
@@ -68,8 +68,8 @@ int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, cuDoubleC
     dim3 threadsPerBlock(16, dim);
     dim3 numBlocks((nout + 16 - 1) / 16, 1);
 
-    fseries_kernel_compute<<<numBlocks, threadsPerBlock>>>(nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1, d_fwkerhalf2,
-                                                           d_fwkerhalf3, ns);
+    fseries_kernel_compute<<<numBlocks, threadsPerBlock, 0, stream>>>(nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1,
+                                                                      d_fwkerhalf2, d_fwkerhalf3, ns);
     return 0;
 }
 
@@ -202,9 +202,11 @@ template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, float *f, std::
 template void onedim_fseries_kernel_precomp(CUFINUFFT_BIGINT nf, double *f, std::complex<double> *a,
                                             finufft_spread_opts opts);
 template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, float *d_f, cuDoubleComplex *d_a,
-                                    float *d_fwkerhalf1, float *d_fwkerhalf2, float *d_fwkerhalf3, int ns);
+                                    float *d_fwkerhalf1, float *d_fwkerhalf2, float *d_fwkerhalf3, int ns,
+                                    cudaStream_t stream);
 template int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, double *d_f, cuDoubleComplex *d_a,
-                                    double *d_fwkerhalf1, double *d_fwkerhalf2, double *d_fwkerhalf3, int ns);
+                                    double *d_fwkerhalf1, double *d_fwkerhalf2, double *d_fwkerhalf3, int ns,
+                                    cudaStream_t stream);
 
 template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, float *fwkerhalf, finufft_spread_opts opts);
 template void onedim_fseries_kernel(CUFINUFFT_BIGINT nf, double *fwkerhalf, finufft_spread_opts opts);

@@ -106,6 +106,8 @@ int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize)
 
 template <typename T>
 int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+    auto &stream = d_plan->streams[d_plan->curr_stream];
+
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -123,22 +125,23 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
     cuda_complex<T> *d_c = d_plan->c;
     cuda_complex<T> *d_fw = d_plan->fw;
 
-    threadsPerBlock.x = 64;
+    const char *tpbstr = getenv("CUFINUFFT_INTERP3D_TPB");
+    threadsPerBlock.x = tpbstr ? std::atoi(tpbstr) : 64;
     threadsPerBlock.y = 1;
     blocks.x = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
     blocks.y = 1;
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            interp_3d_nupts_driven_horner<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
-                                                                             d_fw + t * nf1 * nf2 * nf3, M, ns, nf1,
-                                                                             nf2, nf3, sigma, d_idxnupts, pirange);
+            interp_3d_nupts_driven_horner<<<blocks, threadsPerBlock, 0, stream>>>(
+                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, d_idxnupts,
+                pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            interp_3d_nupts_driven<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
-                                                                      d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
-                                                                      es_c, es_beta, d_idxnupts, pirange);
+            interp_3d_nupts_driven<<<blocks, threadsPerBlock, 0, stream>>>(d_kx, d_ky, d_kz, d_c + t * M,
+                                                                           d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2,
+                                                                           nf3, es_c, es_beta, d_idxnupts, pirange);
         }
     }
 
@@ -147,6 +150,8 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
 
 template <typename T>
 int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+    auto &stream = d_plan->streams[d_plan->curr_stream];
+
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
@@ -186,12 +191,12 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
 
     for (int t = 0; t < blksize; t++) {
         if (d_plan->opts.gpu_kerevalmeth == 1) {
-            interp_3d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            interp_3d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, d_binstartpts,
                 d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
                 maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
         } else {
-            interp_3d_subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            interp_3d_subprob<<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);

@@ -88,7 +88,7 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
     opts->upsampfac = 2.0;
 
     /* following options are for gpu */
-    opts->gpu_nstreams = 0;
+    opts->gpu_nstreams = 1;
     opts->gpu_sort = 1; // access nupts in an ordered way for nupts driven method
 
     opts->gpu_maxsubprobsize = 1024;
