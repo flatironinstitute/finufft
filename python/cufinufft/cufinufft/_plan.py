@@ -125,7 +125,8 @@ class Plan:
             if k in field_names:
                 setattr(self._opts, k, v)
             else:
-                raise TypeError(f"Invalid option '{k}'")
+                print(f"Invalid option '{k}'", file=sys.stderr)
+                raise TypeError("Invalid option")
 
         # Initialize the plan.
         self._init_plan()
@@ -262,9 +263,9 @@ class Plan:
             complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
         """
 
-        _gpu_array_type = _get_array_ctor(data)
-        _data = _ensure_array_type(data, "data", _gpu_array_type, self.dtype)
-        _out = _ensure_array_type(out, "out", _gpu_array_type, self.dtype, output=True)
+        _gpu_array_ctor = _get_array_ctor(data)
+        _data = _ensure_array_type(data, "data", _gpu_array_ctor, self.dtype)
+        _out = _ensure_array_type(out, "out", _gpu_array_ctor, self.dtype, output=True)
 
         if self.type == 1:
             req_data_shape = (self.n_trans, self.nj)
@@ -283,11 +284,7 @@ class Plan:
         req_out_shape = batch_shape + req_out_shape
 
         if out is None:
-            if _gpu_array_type[1] == 'torch':
-                import torch
-                _out = torch.zeros(size=req_out_shape, device=_data.device, dtype=_data.dtype)
-            else:
-                _out = _gpu_array_type[0](req_out_shape, dtype=self.dtype)
+            _out = _gpu_array_ctor[0](req_out_shape, dtype=self.dtype)
         else:
             _out = _ensure_array_shape(_out, "out", req_out_shape)
 
@@ -323,46 +320,34 @@ class Plan:
 
 
 def _ensure_array_type(x, name, gpu_array_ctor, dtype, output=False):
-    constructor, module = gpu_array_ctor
     if x is None:
-        if module == 'numba':
-            return constructor(np.empty(0, dtype=dtype))
-        elif module == 'torch':
-            return constructor(0)
-        else:
-            return constructor(0, dtype=dtype, order="C")
+        return None
 
-    if module == 'torch':
-        import torch
-        if (x.dtype == torch.float32 and dtype != np.float32) or (x.dtype == torch.float64 and dtype != np.float64):
-            raise TypeError(f"Argument `{name}` does not have the correct dtype: "
-                            f"{x.dtype} was given, but {dtype} was expected.")
+    _, gpu_array_module = gpu_array_ctor
+    errstr = f"Argument `{name}` does not have the correct dtype: {x.dtype} was given, but {dtype} was expected."
+    if gpu_array_module == 'torch':
+        if (str(x.dtype) == 'torch.float32' and dtype != np.float32) or (str(x.dtype) == 'torch.float64' and dtype != np.float64):
+            print(errstr, file=sys.stderr)
+            raise TypeError("Unsupported type")
     elif x.dtype != dtype:
-        raise TypeError(f"Argument `{name}` does not have the correct dtype: "
-                        f"{x.dtype} was given, but {dtype} was expected.")
+        print(errstr, file=sys.stderr)
+        raise TypeError("Unsupported type")
 
-    if module == 'numba':
+    if gpu_array_module == 'numba':
         c_contiguous = x.is_c_contiguous()
-    elif module == 'torch':
+    elif gpu_array_module == 'torch':
         c_contiguous = x.is_contiguous()
     else:
         c_contiguous = x.flags.c_contiguous
-        
+
     if not c_contiguous:
+        errstr = f"Argument `{name}` does not satisfy the following requirement: C"
         if output:
-            raise TypeError(f"Argument `{name}` does not satisfy the "
-                            f"following requirement: C")
+            print(errstr, file=sys.stderr)
+            raise TypeError("C-contiguous array required")
         else:
-            raise TypeError(f"Argument `{name}` does not satisfy the "
-                            f"following requirement: C")
-
-            # Ideally we'd copy the array into the correct ordering here, but
-            # this does not seem possible as of pycuda 2022.2.2.
-
-            # warnings.warn(f"Argument `{name}` does not satisfy the "
-            #               f"following requirement: C. Copying array (this may
-            #               reduce performance)")
-            # x = gpuarray.GPUArray(x, dtype=dtype, order="C")
+            print(errstr, file=sys.stderr)
+            raise TypeError("C-contiguous array required")
 
     return x
 
@@ -372,7 +357,8 @@ def _ensure_array_shape(x, name, shape, allow_reshape=False):
 
     if x.shape != shape:
         if not allow_reshape or np.prod(x.shape) != np.prod(shape):
-            raise TypeError(f"Argument `{name}` must be of shape {shape}")
+            print(f"Argument `{name}` must be of shape {shape}", file=sys.stderr)
+            raise TypeError("Invalid shape")
         else:
             x = x.reshape(shape)
 
@@ -392,12 +378,13 @@ def _ensure_valid_pts(x, y, z, dim):
     if dim >= 3:
         z = _ensure_array_shape(z, "z", x.shape)
 
-    # (y|z).shape check necessary because empty arrays give a size of 1 in numba.cuda
-    if dim < 3 and len(z.shape) != 0 and z.size > 0:
-        raise TypeError(f"Plan dimension is {dim}, but `z` was specified")
+    if dim < 3 and z and z.size > 0:
+        print(f"Plan dimension is {dim}, but `z` was specified", file=sys.stderr)
+        raise TypeError("Extraneous dimension supplied")
 
-    if dim < 2 and len(y.shape) != 0 and y.size > 0:
-        raise TypeError(f"Plan dimension is {dim}, but `y` was specified")
+    if dim < 2 and y and y.size > 0:
+        print(f"Plan dimension is {dim}, but `y` was specified", file=sys.stderr)
+        raise TypeError("Extraneous dimension supplied")
 
     return x, y, z
 
@@ -419,6 +406,21 @@ def _get_array_ctor(obj):
         return (numba.cuda.device_array, 'numba')
     elif module_name.startswith('torch'):
         import torch
-        return (lambda *args, **kwargs: torch.asarray(*args, **kwargs, device=obj.device), 'torch')
+        def ctor(*args, **kwargs):
+            if 'shape' in kwargs:
+                kwargs['size'] = kwargs.pop('shape')
+            if 'dtype' in kwargs:
+                dtype = kwargs.pop('dtype')
+                if dtype == np.complex64:
+                    dtype = torch.complex64
+                if dtype == np.complex128:
+                    dtype = torch.complex128
+                kwargs['dtype'] = dtype
+            if 'device' not in kwargs:
+                kwargs['device'] = obj.device
+
+            return torch.empty(*args, **kwargs)
+
+        return (ctor, 'torch')
     else:
         return (type(obj), 'generic')
