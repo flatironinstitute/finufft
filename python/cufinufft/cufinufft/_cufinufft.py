@@ -17,8 +17,6 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import imp
 
-import numpy as np
-
 from ctypes import c_double
 from ctypes import c_int
 from ctypes import c_int64
