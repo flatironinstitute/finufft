@@ -125,8 +125,7 @@ class Plan:
             if k in field_names:
                 setattr(self._opts, k, v)
             else:
-                print(f"Invalid option '{k}'", file=sys.stderr)
-                raise TypeError("Invalid option")
+                raise TypeError(f"Invalid option '{k}'")
 
         # Initialize the plan.
         self._init_plan()
@@ -324,14 +323,13 @@ def _ensure_array_type(x, name, gpu_array_ctor, dtype, output=False):
         return None
 
     _, gpu_array_module = gpu_array_ctor
-    errstr = f"Argument `{name}` does not have the correct dtype: {x.dtype} was given, but {dtype} was expected."
     if gpu_array_module == 'torch':
         if (str(x.dtype) == 'torch.float32' and dtype != np.float32) or (str(x.dtype) == 'torch.float64' and dtype != np.float64):
-            print(errstr, file=sys.stderr)
-            raise TypeError("Unsupported type")
+            raise TypeError(f"Argument `{name}` does not have the correct dtype: "
+                            f"{x.dtype} was given, but {dtype} was expected.")
     elif x.dtype != dtype:
-        print(errstr, file=sys.stderr)
-        raise TypeError("Unsupported type")
+        raise TypeError(f"Argument `{name}` does not have the correct dtype: "
+                        f"{x.dtype} was given, but {dtype} was expected.")
 
     if gpu_array_module == 'numba':
         c_contiguous = x.is_c_contiguous()
@@ -341,13 +339,9 @@ def _ensure_array_type(x, name, gpu_array_ctor, dtype, output=False):
         c_contiguous = x.flags.c_contiguous
 
     if not c_contiguous:
-        errstr = f"Argument `{name}` does not satisfy the following requirement: C"
-        if output:
-            print(errstr, file=sys.stderr)
-            raise TypeError("C-contiguous array required")
-        else:
-            print(errstr, file=sys.stderr)
-            raise TypeError("C-contiguous array required")
+        raise TypeError(f"Argument `{name}` does not satisfy the "
+                        f"following requirement: C")
+
 
     return x
 
@@ -357,8 +351,7 @@ def _ensure_array_shape(x, name, shape, allow_reshape=False):
 
     if x.shape != shape:
         if not allow_reshape or np.prod(x.shape) != np.prod(shape):
-            print(f"Argument `{name}` must be of shape {shape}", file=sys.stderr)
-            raise TypeError("Invalid shape")
+            raise TypeError(f"Argument `{name}` must be of shape {shape}")
         else:
             x = x.reshape(shape)
 
@@ -379,12 +372,10 @@ def _ensure_valid_pts(x, y, z, dim):
         z = _ensure_array_shape(z, "z", x.shape)
 
     if dim < 3 and z and z.size > 0:
-        print(f"Plan dimension is {dim}, but `z` was specified", file=sys.stderr)
-        raise TypeError("Extraneous dimension supplied")
+        raise TypeError(f"Plan dimension is {dim}, but `z` was specified")
 
     if dim < 2 and y and y.size > 0:
-        print(f"Plan dimension is {dim}, but `y` was specified", file=sys.stderr)
-        raise TypeError("Extraneous dimension supplied")
+        raise TypeError(f"Plan dimension is {dim}, but `y` was specified")
 
     return x, y, z
 
