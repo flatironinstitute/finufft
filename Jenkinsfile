@@ -27,8 +27,6 @@ pipeline {
       echo $HOME
     '''
     sh '''#!/bin/bash -ex
-        mkdir build
-        cmake -B build .         
         cmake -B build . -DFINUFFT_USE_CUDA=ON \
                          -DFINUFFT_USE_CPU=OFF \
                          -DFINUFFT_BUILD_TESTS=ON \
