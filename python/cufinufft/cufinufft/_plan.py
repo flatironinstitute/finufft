@@ -5,6 +5,7 @@ the cufinufft CUDA libraries.
 """
 
 import atexit
+import inspect
 import sys
 import warnings
 
@@ -25,7 +26,6 @@ from cufinufft._cufinufft import _exec_planf
 from cufinufft._cufinufft import _destroy_plan
 from cufinufft._cufinufft import _destroy_planf
 
-from pycuda.gpuarray import GPUArray
 
 
 # If we are shutting down python, we don't need to run __del__
@@ -200,13 +200,17 @@ class Plan:
                     points (source for type 1, target for type 2).
         """
 
-        _x = _ensure_array_type(x, "x", self.real_dtype)
-        _y = _ensure_array_type(y, "y", self.real_dtype)
-        _z = _ensure_array_type(z, "z", self.real_dtype)
+        _gpu_array_ctor = _get_array_ctor(x)
+        _x = _ensure_array_type(x, "x", _gpu_array_ctor, self.real_dtype)
+        _y = _ensure_array_type(y, "y", _gpu_array_ctor, self.real_dtype)
+        _z = _ensure_array_type(z, "z", _gpu_array_ctor, self.real_dtype)
 
         _x, _y, _z = _ensure_valid_pts(_x, _y, _z, self.dim)
 
-        M = _x.size
+        if _gpu_array_ctor[1] == 'torch':
+            M = len(_x)
+        else:
+            M = _x.size
 
         # Because FINUFFT/cufinufft are internally column major,
         #   we will reorder the pts axes. Reordering references
@@ -217,17 +221,17 @@ class Plan:
         #     (x, y, None)    ~>  (y, x, None)
         #     (x, y, z)       ~>  (z, y, x)
         # Via code, we push each dimension onto a stack of axis
-        fpts_axes = [_x.ptr, None, None]
+        fpts_axes = [_get_ptr(_x), None, None]
 
         # We will also store references to these arrays.
         #   This keeps python from prematurely cleaning them up.
         self._references.append(_x)
         if self.dim >= 2:
-            fpts_axes.insert(0, _y.ptr)
+            fpts_axes.insert(0, _get_ptr(_y))
             self._references.append(_y)
 
         if self.dim >= 3:
-            fpts_axes.insert(0, _z.ptr)
+            fpts_axes.insert(0, _get_ptr(_z))
             self._references.append(_z)
 
         # Then take three items off the stack as our reordered axis.
@@ -258,8 +262,9 @@ class Plan:
             complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
         """
 
-        _data = _ensure_array_type(data, "data", self.dtype)
-        _out = _ensure_array_type(out, "out", self.dtype, output=True)
+        _gpu_array_ctor = _get_array_ctor(data)
+        _data = _ensure_array_type(data, "data", _gpu_array_ctor, self.dtype)
+        _out = _ensure_array_type(out, "out", _gpu_array_ctor, self.dtype, output=True)
 
         if self.type == 1:
             req_data_shape = (self.n_trans, self.nj)
@@ -278,14 +283,14 @@ class Plan:
         req_out_shape = batch_shape + req_out_shape
 
         if out is None:
-            _out = GPUArray(req_out_shape, dtype=self.dtype)
+            _out = _gpu_array_ctor[0](req_out_shape, dtype=self.dtype)
         else:
             _out = _ensure_array_shape(_out, "out", req_out_shape)
 
         if self.type == 1:
-            ier = self._exec_plan(self._plan, data.ptr, _out.ptr)
+            ier = self._exec_plan(self._plan, _get_ptr(data), _get_ptr(_out))
         elif self.type == 2:
-            ier = self._exec_plan(self._plan, _out.ptr, data.ptr)
+            ier = self._exec_plan(self._plan, _get_ptr(_out), _get_ptr(data))
 
         if ier != 0:
             raise RuntimeError('Error executing plan.')
@@ -313,29 +318,29 @@ class Plan:
         self._references = []
 
 
-def _ensure_array_type(x, name, dtype, output=False):
+def _ensure_array_type(x, name, gpu_array_ctor, dtype, output=False):
     if x is None:
-        return GPUArray(0, dtype=dtype, order="C")
+        return None
 
-    if x.dtype != dtype:
+    _, gpu_array_module = gpu_array_ctor
+    if gpu_array_module == 'torch':
+        if (str(x.dtype) == 'torch.float32' and dtype != np.float32) or (str(x.dtype) == 'torch.float64' and dtype != np.float64):
+            raise TypeError(f"Argument `{name}` does not have the correct dtype: "
+                            f"{x.dtype} was given, but {dtype} was expected.")
+    elif x.dtype != dtype:
         raise TypeError(f"Argument `{name}` does not have the correct dtype: "
                         f"{x.dtype} was given, but {dtype} was expected.")
 
-    if not x.flags.c_contiguous:
-        if output:
-            raise TypeError(f"Argument `{name}` does not satisfy the "
-                            f"following requirement: C")
-        else:
-            raise TypeError(f"Argument `{name}` does not satisfy the "
-                            f"following requirement: C")
+    if gpu_array_module == 'numba':
+        c_contiguous = x.is_c_contiguous()
+    elif gpu_array_module == 'torch':
+        c_contiguous = x.is_contiguous()
+    else:
+        c_contiguous = x.flags.c_contiguous
 
-            # Ideally we'd copy the array into the correct ordering here, but
-            # this does not seem possible as of pycuda 2022.2.2.
-
-            # warnings.warn(f"Argument `{name}` does not satisfy the "
-            #               f"following requirement: C. Copying array (this may
-            #               reduce performance)")
-            # x = gpuarray.GPUArray(x, dtype=dtype, order="C")
+    if not c_contiguous:
+        raise TypeError(f"Argument `{name}` does not satisfy the "
+                        f"following requirement: C")
 
     return x
 
@@ -354,11 +359,10 @@ def _ensure_array_shape(x, name, shape, allow_reshape=False):
     else:
         return x
 
+
 def _ensure_valid_pts(x, y, z, dim):
     if x.ndim != 1:
         raise TypeError(f"Argument `x` must be a vector")
-
-    M = x.size
 
     if dim >= 2:
         y = _ensure_array_shape(y, "y", x.shape)
@@ -366,10 +370,47 @@ def _ensure_valid_pts(x, y, z, dim):
     if dim >= 3:
         z = _ensure_array_shape(z, "z", x.shape)
 
-    if dim < 3 and z.size > 0:
+    if dim < 3 and z is not None and z.size > 0:
         raise TypeError(f"Plan dimension is {dim}, but `z` was specified")
 
-    if dim < 2 and y.size > 0:
+    if dim < 2 and y is not None and y.size > 0:
         raise TypeError(f"Plan dimension is {dim}, but `y` was specified")
 
     return x, y, z
+
+
+def _get_ptr(data):
+    if not hasattr(data, "__cuda_array_interface__"):
+        raise TypeError("Invalid GPU array implementation. Implementation must implement the standard cuda array interface.")
+    return data.__cuda_array_interface__['data'][0]
+
+
+def _get_module(obj):
+    return inspect.getmodule(type(obj)).__name__
+
+
+def _get_array_ctor(obj):
+    module_name = _get_module(obj)
+    if module_name.startswith('numba.cuda'):
+        import numba.cuda
+        return (numba.cuda.device_array, 'numba')
+    elif module_name.startswith('torch'):
+        import torch
+        def ctor(*args, **kwargs):
+            if 'shape' in kwargs:
+                kwargs['size'] = kwargs.pop('shape')
+            if 'dtype' in kwargs:
+                dtype = kwargs.pop('dtype')
+                if dtype == np.complex64:
+                    dtype = torch.complex64
+                if dtype == np.complex128:
+                    dtype = torch.complex128
+                kwargs['dtype'] = dtype
+            if 'device' not in kwargs:
+                kwargs['device'] = obj.device
+
+            return torch.empty(*args, **kwargs)
+
+        return (ctor, 'torch')
+    else:
+        return (type(obj), 'generic')
