@@ -45,7 +45,7 @@ pipeline {
       python3 -m pip install --upgrade pip
       python3 -m pip install -e python/cufinufft
       python3 -m pip install pytest
-      python3 -m pytest
+      python3 -m pytest python/cufinufft
     '''
       }
     }
