@@ -380,9 +380,14 @@ def _ensure_valid_pts(x, y, z, dim):
 
 
 def _get_ptr(data):
-    if not hasattr(data, "__cuda_array_interface__"):
+    try:
+        return data.__cuda_array_interface__['data'][0]
+    except RuntimeError:
+        # Handle torch with gradient enabled
+        # https://github.com/flatironinstitute/finufft/pull/326#issuecomment-1652212770
+        return data.data_ptr()
+    except AttributeError:
         raise TypeError("Invalid GPU array implementation. Implementation must implement the standard cuda array interface.")
-    return data.__cuda_array_interface__['data'][0]
 
 
 def _get_module(obj):
