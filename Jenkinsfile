@@ -14,8 +14,10 @@ pipeline {
          }
       }
       environment {
-    HOME = "$WORKSPACE/build"
+    HOME = "$WORKSPACE"
     PYBIN = "/opt/python/cp38-cp38/bin"
+    LIBRARY_PATH = "$WORKSPACE/build"
+    LD_LIBRARY_PATH = "$WORKSPACE/build"
       }
       steps {
     sh '''#!/bin/bash -ex
@@ -23,24 +25,26 @@ pipeline {
     '''
     sh '''#!/bin/bash -ex
       echo $HOME
-      id
-      ls -la /io
-      touch /io/test123
     '''
     sh '''#!/bin/bash -ex
-        /io/tools/cufinufft/build-library.sh
-        cp /io/build/libcufinufft.so /usr/lib
+        mkdir build
+        cmake -B build .         
+        cmake -B build . -DFINUFFT_USE_CUDA=ON \
+                         -DFINUFFT_USE_CPU=OFF \
+                         -DFINUFFT_BUILD_TESTS=ON \
+                         -DCMAKE_CUDA_ARCHITECTURES="35;50;60;70;75;80" \
+                         -DBUILD_TESTING=ON
+        ninja -C build -j 4
     '''
     sh '''#!/bin/bash -ex
-      cp -r /io/build/test/cuda cuda_tests
-      cd cuda_tests
+      cd build/test/cuda
       ctest --output-on-failure
     '''
     sh '${PYBIN}/python3 -m venv $HOME'
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
       python3 -m pip install --upgrade pip
-      LIBRARY_PATH=/io/build python3 -m pip install -e python/cufinufft
+      python3 -m pip install -e python/cufinufft
       python3 -m pip install pytest
       python3 -m pytest
     '''
