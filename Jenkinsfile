@@ -34,7 +34,8 @@ pipeline {
                          -DFINUFFT_BUILD_TESTS=ON \
                          -DCMAKE_CUDA_ARCHITECTURES="35;50;60;70;75;80" \
                          -DBUILD_TESTING=ON
-        ninja -C build -j 4
+        cd build
+        make -j4
     '''
     sh '''#!/bin/bash -ex
       cd build/test/cuda
