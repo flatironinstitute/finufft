@@ -342,7 +342,6 @@ def _ensure_array_type(x, name, gpu_array_ctor, dtype, output=False):
         raise TypeError(f"Argument `{name}` does not satisfy the "
                         f"following requirement: C")
 
-
     return x
 
 
@@ -371,10 +370,10 @@ def _ensure_valid_pts(x, y, z, dim):
     if dim >= 3:
         z = _ensure_array_shape(z, "z", x.shape)
 
-    if dim < 3 and z and z.size > 0:
+    if dim < 3 and z is not None and z.size > 0:
         raise TypeError(f"Plan dimension is {dim}, but `z` was specified")
 
-    if dim < 2 and y and y.size > 0:
+    if dim < 2 and y is not None and y.size > 0:
         raise TypeError(f"Plan dimension is {dim}, but `y` was specified")
 
     return x, y, z
