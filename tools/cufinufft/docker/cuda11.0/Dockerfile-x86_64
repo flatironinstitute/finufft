@@ -69,30 +69,7 @@ RUN yum install -y \
 
 ENV PATH /opt/rh/devtoolset-9/root/usr/bin:${PATH}
 
-RUN g++ --version
-
 # finufft reqs
 RUN yum install -y \
         cmake && \
     rm -rf /var/cache/yum/*
-
-# Okay, so now we can begin cufinufft
-#
-# Only copy the C++/CUDA code (this way the cache is not invalidated by changes
-# to the Python code or to the docs).
-COPY src /io/src
-COPY fortran /io/fortran
-COPY include /io/include
-COPY test /io/test
-COPY perftest /io/perftest
-COPY examples /io/examples
-COPY cmake /io/cmake
-COPY contrib /io/contrib
-COPY python /io/python
-COPY docs /io/docs
-COPY tools /io/tools
-COPY CMakeLists.txt /io/
-
-WORKDIR /io
-
-CMD ["/bin/bash"]
