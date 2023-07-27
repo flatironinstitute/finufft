@@ -27,10 +27,11 @@ pipeline {
       echo $HOME
     '''
     sh '''#!/bin/bash -ex
+        cuda_arch=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader|head -n 1| sed "s/\\.//")
         cmake -B build . -DFINUFFT_USE_CUDA=ON \
                          -DFINUFFT_USE_CPU=OFF \
                          -DFINUFFT_BUILD_TESTS=ON \
-                         -DCMAKE_CUDA_ARCHITECTURES="35;50;60;70;75;80" \
+                         -DCMAKE_CUDA_ARCHITECTURES="$cuda_arch" \
                          -DBUILD_TESTING=ON
         cd build
         make -j4
