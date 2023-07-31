@@ -1,24 +1,29 @@
 from cufinufft import Plan
 
-def nufft1d1(x, data, n_modes=None, out=None, eps=1e-6, isign=1):
-    return _invoke_plan(1, 1, x, None, None, data, out, isign, eps, n_modes)
+def nufft1d1(x, data, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
+    return _invoke_plan(1, 1, x, None, None, data, out, isign, eps, n_modes,
+            kwargs)
 
-def nufft1d2(x, data, out=None, eps=1e-6, isign=-1):
-    return _invoke_plan(1, 2, x, None, None, data, out, isign, eps)
+def nufft1d2(x, data, out=None, eps=1e-6, isign=-1, **kwargs):
+    return _invoke_plan(1, 2, x, None, None, data, out, isign, eps, None,
+            kwargs)
 
-def nufft2d1(x, y, data, n_modes=None, out=None, eps=1e-6, isign=1):
-    return _invoke_plan(2, 1, x, y, None, data, out, isign, eps, n_modes)
+def nufft2d1(x, y, data, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
+    return _invoke_plan(2, 1, x, y, None, data, out, isign, eps, n_modes,
+            kwargs)
 
-def nufft2d2(x, y, data, out=None, eps=1e-6, isign=-1):
-    return _invoke_plan(2, 2, x, y, None, data, out, isign, eps)
+def nufft2d2(x, y, data, out=None, eps=1e-6, isign=-1, **kwargs):
+    return _invoke_plan(2, 2, x, y, None, data, out, isign, eps, None, kwargs)
 
-def nufft3d1(x, y, z, data, n_modes=None, out=None, eps=1e-6, isign=1):
-    return _invoke_plan(3, 1, x, y, z, data, out, isign, eps, n_modes)
+def nufft3d1(x, y, z, data, n_modes=None, out=None, eps=1e-6, isign=1,
+        **kwargs):
+    return _invoke_plan(3, 1, x, y, z, data, out, isign, eps, n_modes, kwargs)
 
-def nufft3d2(x, y, z, data, out=None, eps=1e-6, isign=-1):
-    return _invoke_plan(3, 2, x, y, z, data, out, isign, eps)
+def nufft3d2(x, y, z, data, out=None, eps=1e-6, isign=-1, **kwargs):
+    return _invoke_plan(3, 2, x, y, z, data, out, isign, eps, None, kwargs)
 
-def _invoke_plan(dim, nufft_type, x, y, z, data, out, isign, eps, n_modes=None):
+def _invoke_plan(dim, nufft_type, x, y, z, data, out, isign, eps,
+        n_modes=None, kwargs=None):
     dtype = data.dtype
 
     n_trans = _get_ntrans(dim, nufft_type, data)
@@ -28,7 +33,7 @@ def _invoke_plan(dim, nufft_type, x, y, z, data, out, isign, eps, n_modes=None):
     if nufft_type == 2:
         n_modes = data.shape[-dim:]
 
-    plan = Plan(nufft_type, n_modes, n_trans, eps, isign, dtype)
+    plan = Plan(nufft_type, n_modes, n_trans, eps, isign, dtype, **kwargs)
 
     plan.setpts(x, y, z)
 
