@@ -1,11 +1,11 @@
 # this test build the app using cmake and tests it with ctest
-name: CMake Ubuntu Clang
+name: CMake Windows msvc
 
 on: [push]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_PRESET: dev
+  BUILD_PRESET: default
 
 jobs:
   build:
@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - { name: "Ubuntu clang", os: ubuntu-latest, cc: "clang", cxx: "clang++" }        
+          - { name: "Windows msvc", os: windows-latest, cc: "cl", cxx: "cl" }        
     steps:
       - uses: actions/checkout@v3
 
@@ -23,14 +23,10 @@ jobs:
           # ninja version to download. Default: 1.10.0
           version: 1.10.0
 
-      - name: Setup Clang
-        uses: egor-tensin/setup-clang@v1
+      - name: Setup Visual Studio shell
+        uses: egor-tensin/vs-shell@v2
         with:
-          version: latest
-          platform: x64
-
-      - name: Setup openmp
-        run: sudo apt-get update; sudo apt-get install -y libomp5 libomp-dev
+          arch: x64
 
       - name: Build with CMake
         uses: ashutoshvarma/action-cmake-build@master
@@ -38,9 +34,13 @@ jobs:
           build-dir: ${{ runner.workspace }}/build
           cc: ${{ matrix.config.cc }}
           cxx: ${{ matrix.config.cxx }}
-          configure-options: -G Ninja -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_BUILD_EXAMPLES=ON
-          build-type: Debug
+          configure-options: -G Ninja -DFINUFFT_BUILD_TESTS=ON
+          build-type: Release
           run-test: true
-          ctest-options: --test-dir test  --output-on-failure 
+          ctest-options: --test-dir test --output-on-failure
           parallel: 14
           build-options: --verbose
+
+#      - name: Setup tmate session
+#        if: ${{ failure() }}
+#        uses: mxschmitt/action-tmate@v3

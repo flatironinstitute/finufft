@@ -4,11 +4,13 @@ set(EXAMPLES_C guru1d1c simple1d1c simple1d1cf)
 foreach(EXAMPLE ${EXAMPLES})
     add_executable(${EXAMPLE} ${EXAMPLE}.cpp)
     target_link_libraries(${EXAMPLE} PRIVATE finufft)
+    enable_asan(${EXAMPLE})
 endforeach()
 
 foreach(EXAMPLE ${EXAMPLES_C})
     add_executable(${EXAMPLE} ${EXAMPLE}.c)
     target_link_libraries(${EXAMPLE} PRIVATE finufft)
+    enable_asan(${EXAMPLE})
 endforeach()
 
 if (FINUFFT_USE_CUDA)

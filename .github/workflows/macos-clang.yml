@@ -1,5 +1,5 @@
 # this test build the app using cmake and tests it with ctest
-name: CMake Ubuntu Clang
+name: CMake MacOS Clang
 
 on: [push]
 
@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - { name: "Ubuntu clang", os: ubuntu-latest, cc: "clang", cxx: "clang++" }        
+          - { name: "MacOS clang", os: macos-latest, cc: "clang-omp", cxx: "clang-omp++" }
     steps:
       - uses: actions/checkout@v3
 
@@ -23,14 +23,11 @@ jobs:
           # ninja version to download. Default: 1.10.0
           version: 1.10.0
 
-      - name: Setup Clang
-        uses: egor-tensin/setup-clang@v1
-        with:
-          version: latest
-          platform: x64
-
-      - name: Setup openmp
-        run: sudo apt-get update; sudo apt-get install -y libomp5 libomp-dev
+      - name: Install clang-omp and fftw
+        run: |
+          brew install llvm fftw
+          ln -s /usr/local/opt/llvm/bin/clang /usr/local/bin/clang-omp
+          ln -s /usr/local/opt/llvm/bin/clang++ /usr/local/bin/clang-omp++
 
       - name: Build with CMake
         uses: ashutoshvarma/action-cmake-build@master
