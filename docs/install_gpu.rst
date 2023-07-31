@@ -27,6 +27,7 @@ To automate the installation process, we use ``cmake``. To use this, run
 
 The ``libcufinufft.so`` (along with ``libfinufft.so``) will now be present in your ``build`` directory. Note that for this to work, you must have the Nvidia CUDA toolchain installed (such as the ``nvcc`` compiler, among others). To speed up the compilation, you could replace the last command by ``cmake --build . -j`` to use all threads,
 or ``cmake --build . -j8`` to specify using 8 threads, for example.
+To avoid building the CPU library (``libfinufft.so``), you can set the ``FINUFFT_USE_CPU`` flag to ``OFF``.
 
 In order to configure cuFINUFFT for a specific compute capability, use the ``CMAKE_CUDA_ARCHITECTURES`` flag. For example, to compile for compute capability 8.0 (supported by NVidia A100), replace the 3rd command above by
 

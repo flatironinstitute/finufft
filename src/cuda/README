@@ -27,6 +27,3 @@ This folder contains the main source files of the GPU implementations.
 
 - deconvolve_wrapper.cu
   GPU kernels and wrappers of deconvolve and amplify the input/output coefficients by correction factor. (Step 3 in Type 1; Step 1 in Type 2)
-
-- profile.cu
-  Codes for using NVProf

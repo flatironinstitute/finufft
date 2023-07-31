@@ -1,19 +1,32 @@
 FROM quay.io/pypa/manylinux2014_x86_64
 LABEL maintainer "Joakim Andén"
 
+ENV CUDA_MAJOR 11
+ENV CUDA_MINOR 0
+
+ENV CUDART_VERSION 11.0.171
+ENV CUFFT_VERSION 10.2.1.245
+ENV CURAND_VERSION 10.2.1.245
+ENV NVPROF_VERSION 11.0.221
+ENV NVTX_VERSION 11.0.167
+ENV NVCC_VERSION 11.0.221
+
+ENV CUDA_DASH_VERSION ${CUDA_MAJOR}-${CUDA_MINOR}
+ENV CUDA_DOT_VERSION ${CUDA_MAJOR}.${CUDA_MINOR}
+
 # ---- The following block adds layers for CUDA --- #
 # base
 RUN NVIDIA_GPGKEY_SUM=d0664fbbdb8c32356d45de36c5984617217b2d0bef41b93ccecd326ba3b80c87 && \
     curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/D42D0685.pub | sed '/^Version/d' > /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA && \
     echo "$NVIDIA_GPGKEY_SUM  /etc/pki/rpm-gpg/RPM-GPG-KEY-NVIDIA" | sha256sum -c --strict -
 
-COPY tools/cufinufft/docker/cuda11.0/cuda.repo /etc/yum.repos.d/cuda.repo
+COPY tools/cufinufft/docker/cuda${CUDA_DOT_VERSION}/cuda.repo /etc/yum.repos.d/cuda.repo
 
 # For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
 RUN yum install -y \
-        cuda-cudart-11-0-11.0.171-1 \
-        cuda-compat-11-0 && \
-    ln -s cuda-11.0 /usr/local/cuda && \
+        cuda-cudart-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
+        cuda-compat-${CUDA_DASH_VERSION} && \
+    ln -s cuda-${CUDA_DOT_VERSION} /usr/local/cuda && \
     rm -rf /var/cache/yum/*
 
 # nvidia-docker 1.0
@@ -26,22 +39,22 @@ ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/usr/local/nvidia/lib:/usr/local/nvidia/l
 # nvidia-container-runtime
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
-ENV NVIDIA_REQUIRE_CUDA "cuda>=11.0 brand=tesla,driver>=418,driver<419 brand=tesla,driver>=440,driver<441"
+ENV NVIDIA_REQUIRE_CUDA "cuda>=${CUDA_DOT_VERSION} brand=tesla,driver>=418,driver<419 brand=tesla,driver>=440,driver<441"
 
 # runtime
 RUN yum install -y \
-        cuda-libraries-11-0-11.0.1-1 \
-        cuda-nvtx-11-0-11.0.167-1 && \
+        libcufft-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
+        libcurand-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
+        cuda-nvtx-${CUDA_DASH_VERSION}-${NVTX_VERSION}-1 && \
     rm -rf /var/cache/yum/*
 
 # devel
 RUN yum install -y \
-        cuda-nvml-devel-11-0-11.0.167-1 \
-        cuda-command-line-tools-11-0-11.0.1-1 \
-        cuda-cudart-devel-11-0-11.0.171-1 \
-        cuda-libraries-devel-11-0-11.0.1-1 \
-        cuda-minimal-build-11-0-11.0.1-1 \
-        libcublas-devel-11-0-11.0.0.191-1 && \
+        cuda-cudart-devel-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
+        libcufft-devel-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
+        libcurand-devel-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
+        cuda-nvprof-${CUDA_DASH_VERSION}-${NVPROF_VERSION}-1 \
+        cuda-nvcc-${CUDA_DASH_VERSION}-${NVCC_VERSION}-1 && \
     rm -rf /var/cache/yum/*
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
@@ -50,28 +63,13 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 # CUDA 11 doesn't work on gcc/g++ newer than v9
 RUN yum install -y \
-        devtoolset-9 && \
+        devtoolset-9-gcc \
+        devtoolset-9-gcc-c++ && \
     rm -rf /var/cache/yum/*
 
-RUN scl enable devtoolset-9 -- g++ --version
+ENV PATH /opt/rh/devtoolset-9/root/usr/bin:${PATH}
 
 # finufft reqs
 RUN yum install -y \
-        cmake \
-        fftw-devel && \
+        cmake && \
     rm -rf /var/cache/yum/*
-
-# Okay, so now we can begin cufinufft
-
-# We need to build the CUDA code now.
-# assume we are building container in the root of the git repo...
-COPY . /io
-RUN mkdir -p /io/build
-WORKDIR /io/build
-RUN scl enable devtoolset-9 -- cmake -D FINUFFT_USE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES="35;50;60;70;75;80" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
-RUN scl enable devtoolset-9 -- make -j4
-
-# And we need to pack it in our LD path
-ENV LD_LIBRARY_PATH /io/build:${LD_LIBRARY_PATH}
-
-CMD ["/bin/bash"]

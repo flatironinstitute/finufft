@@ -270,7 +270,7 @@ int main(int argc, char* argv[])
     printf("1d3many M=N=1:\tier=%d err=%.3g\n",ier,err);
     return 1;
   }
-  ier = FINUFFT1D3MANY(ndata,M,x,cm,+1,acc,N,shuge,F,&opts);
+  ier = FINUFFT1D3MANY(ndata,M,x,cm,+1,acc,N,shuge,Fm,&opts);
   if (ier==0) {          // any nonzero code accepted here
     printf("1d3many XK prod too big:\twrong error code %d\n",ier);
     return 1;
@@ -445,17 +445,17 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT2D3MANY(ndata,0,x,x,cm,+1,acc,N,s,s,Fm,&opts);
   t = twonorm(N,Fm);
-  if (ier | t!=0.0) {
+  if (ier || t!=0.0) {
     printf("2d3many M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
     return 1;
   }
-  ier = FINUFFT2D3MANY(ndata,1,x,x,c,+1,acc,N,s,s,F,&opts); // XK prod formally 0
+  ier = FINUFFT2D3MANY(ndata,1,x,x,cm,+1,acc,N,s,s,Fm,&opts); // XK prod formally 0
   // we don't check the M=nk=1 case for >1D since guess that 1D would catch it.
   if (ier) {
     printf("2d3many M=nk=1:\tier=%d\n",ier);
     return ier;
   }
-  ier = FINUFFT2D3MANY(ndata,M,x,x,c,+1,acc,N,shuge,shuge,Fm,&opts);
+  ier = FINUFFT2D3MANY(ndata,M,x,x,cm,+1,acc,N,shuge,shuge,Fm,&opts);
   if (ier==0) {          // any nonzero code accepted here
     printf("2d3many XK prod too big:\twrong error code %d\n",ier);
     return 1;
@@ -647,17 +647,17 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT3D3MANY(ndata,0,x,x,x,cm,+1,acc,N,s,s,s,Fm,&opts);
   t = twonorm(N,Fm);
-  if (ier | t!=0.0) {
+  if (ier || t!=0.0) {
     printf("3d3many M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
     return 1;
   }
-  ier = FINUFFT3D3MANY(ndata,1,x,x,x,c,+1,acc,N,s,s,s,F,&opts); // XK prod formally 0
+  ier = FINUFFT3D3MANY(ndata,1,x,x,x,cm,+1,acc,N,s,s,s,Fm,&opts); // XK prod formally 0
   // we don't check the M=nk=1 case for >1D since guess that 1D would catch it.
   if (ier) {
     printf("3d3many M=nk=1:\tier=%d\n",ier);
     return ier;
   }
-  ier = FINUFFT3D3MANY(ndata,M,x,x,x,c,+1,acc,N,shuge,shuge,shuge,Fm,&opts);
+  ier = FINUFFT3D3MANY(ndata,M,x,x,x,cm,+1,acc,N,shuge,shuge,shuge,Fm,&opts);
   if (ier==0) {          // any nonzero code accepted here
     printf("3d3many XK prod too big:\twrong error code %d\n",ier);
     return 1;

@@ -27,6 +27,8 @@ and also add them to github's Used By feature):
 
 #. `NWelch <https://github.com/sdrastro/NWelch>`_: Code for estimating power spectra and other properties of non-equispaced time-series, by astronomer Sarah Dodson-Robinson and others.
 
+#. `Picsou <https://github.com/matthieumeo/pycsou>`_: package for solving linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems.
+   
    
 Other wrappers to (cu)FINUFFT
 ------------------------------
@@ -74,7 +76,10 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Chang, P., Pienaar, E., & Gebbie, T. (2020). "Malliavin--Mancino Estimators Implemented with Nonuniform Fast Fourier Transforms." SIAM J. Sci. Comput. 42(6), B1378–B1403. https://doi.org/10.1137/20m1325903 
 
-   
+#. Heisenberg voxelization (HVOX) for inteferometry of spherical sky maps in radio-astronomy, by Kashani, Simeoni, et al. (2023) https://arxiv.org/abs/2306.06007 https://github.com/matthieumeo/hvox
+
+
+
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
@@ -84,15 +89,15 @@ Papers or codes using our new ES window (spreading) function but not the whole F
 #. S. Jiang and L. Greengard,
    new multilevel kernel-split faster 3D FMM.
 
-   
+
 Papers influenced by other aspects of FINUFFT:
 
 1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our type 1 and 2 performance by a factor of 1-2 in some cases.
 
    
    
-Citations to FINUFFT that do not appear to be actual users
-----------------------------------------------------------
+Some citations to FINUFFT that do not appear to be actual users
+---------------------------------------------------------------
 
 1. https://arxiv.org/abs/1903.08365
 
@@ -104,3 +109,4 @@ Citations to FINUFFT that do not appear to be actual users
 
 #. https://arxiv.org/abs/2010.05295
       
+Now too many to track by hand... see Google Scholar search above.

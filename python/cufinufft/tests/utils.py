@@ -37,35 +37,92 @@ def gen_uniform_data(shape, seed=0):
     return fk
 
 
-def gen_nonuniform_data(M, seed=0):
+def gen_nonuniform_data(M, seed=0, n_trans=()):
     np.random.seed(seed)
-    c = np.random.standard_normal(2 * M)
+    c = np.random.standard_normal(2 * M * int(np.prod(n_trans)))
     c = c.astype(np.float64).view(np.complex128)
+    c = c.reshape(n_trans + (M,))
     return c
+
+
+def type1_problem(dtype, shape, M, n_trans=()):
+    complex_dtype = _complex_dtype(dtype)
+    dim = len(shape)
+
+    k = gen_nu_pts(M, dim=dim).astype(dtype)
+    c = gen_nonuniform_data(M, n_trans=n_trans).astype(complex_dtype)
+
+    return k, c
+
+
+def type2_problem(dtype, shape, M, n_trans=()):
+    complex_dtype = _complex_dtype(dtype)
+    dim = len(shape)
+
+    k = gen_nu_pts(M, dim=dim).astype(dtype)
+    fk = gen_uniform_data(n_trans + shape).astype(complex_dtype)
+
+    return k, fk
 
 
 def make_grid(shape):
     dim = len(shape)
-    shape = (1,) * (3 - dim) + shape
+    shape = shape
 
     grids = [np.arange(-(N // 2), (N + 1) // 2) for N in shape]
-    x, y, z = np.meshgrid(*grids, indexing='ij')
-    return np.stack((x, y, z))
+    grids = np.meshgrid(*grids, indexing='ij')
+    return np.stack(grids)
 
 
 def direct_type1(c, k, shape, ind):
+    dim = len(shape)
+
     grid = make_grid(shape)
 
-    phase = k.T @ grid.reshape((3, -1))[:, ind]
-    fk = np.sum(c * np.exp(1j * phase))
+    phase = k.T @ grid.reshape((dim, -1))[:, ind]
+    fk = np.sum(c * np.exp(1j * phase), -1)
 
     return fk
 
 
-def direct_type2(fk, k):
-    grid = make_grid(fk.shape)
+def direct_type2(fk, k, dim):
+    grid = make_grid(fk.shape[-dim:])
 
-    phase = k @ grid.reshape((3, -1))
-    c = np.sum(fk.ravel() * np.exp(-1j * phase))
+    phase = k @ grid.reshape((dim, -1))
+
+    # Ravel the spatial dimensions only.
+    fk = fk.reshape(fk.shape[:-dim] + (np.prod(fk.shape[-dim:]),))
+    c = np.sum(fk * np.exp(-1j * phase), -1)
 
     return c
+
+
+def verify_type1(k, c, fk, tol):
+    dim = fk.ndim - (c.ndim - 1)
+
+    shape = fk.shape[-dim:]
+
+    ind = int(0.1789 * np.prod(shape))
+
+    # Ravel the spatial dimensions only.
+    fk_est = fk.reshape(fk.shape[:-dim] + (np.prod(fk.shape[-dim:]),))[..., ind]
+    fk_target = direct_type1(c, k, shape, ind)
+
+    type1_rel_err = np.linalg.norm(fk_target - fk_est) / np.linalg.norm(fk_target)
+
+    assert type1_rel_err < 25 * tol
+
+
+def verify_type2(k, fk, c, tol):
+    dim = fk.ndim - (c.ndim - 1)
+
+    M = c.shape[-1]
+
+    ind = M // 2
+
+    c_est = c[..., ind]
+    c_target = direct_type2(fk, k[:, ind], dim)
+
+    type2_rel_err = np.linalg.norm(c_target - c_est) / np.linalg.norm(c_target)
+
+    assert type2_rel_err < 25 * tol

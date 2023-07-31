@@ -5,15 +5,18 @@
 #include <helper_cuda.h>
 
 #include <cufinufft/memtransfer.h>
-#include <cufinufft/profile.h>
 #include <cufinufft/spreadinterp.h>
+
+#include "spreadinterp3d.cuh"
+
 using namespace cufinufft::memtransfer;
 
 namespace cufinufft {
 namespace spreadinterp {
 
-int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_FLT *d_kx, CUFINUFFT_FLT *d_ky,
-                       CUFINUFFT_FLT *d_kz, CUCPX *d_c, CUFINUFFT_PLAN d_plan)
+template <typename T>
+int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
+                       cuda_complex<T> *d_c, cufinufft_plan_t<T> *d_plan)
 /*
     This c function is written for only doing 3D interpolation. See
     test/interp3d_test.cu for usage.
@@ -22,10 +25,6 @@ int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_
     not allocate,transfer and free memories on gpu. Shih 09/24/20
 */
 {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     int ier;
     d_plan->kx = d_kx;
     d_plan->ky = d_ky;
@@ -39,53 +38,33 @@ int CUFINUFFT_INTERP3D(int nf1, int nf2, int nf3, CUCPX *d_fw, int M, CUFINUFFT_
     d_plan->M = M;
     d_plan->maxbatchsize = 1;
 
-    cudaEventRecord(start);
-    ier = ALLOCGPUMEM3D_PLAN(d_plan);
-    ier = ALLOCGPUMEM3D_NUPTS(d_plan);
+    ier = allocgpumem3d_plan<T>(d_plan);
+    ier = allocgpumem3d_nupts<T>(d_plan);
 
     if (d_plan->opts.gpu_method == 1) {
-        ier = CUSPREAD3D_NUPTSDRIVEN_PROP(nf1, nf2, nf3, M, d_plan);
+        ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan);
         if (ier != 0) {
             printf("error: cuinterp3d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
     if (d_plan->opts.gpu_method == 2) {
-        ier = CUSPREAD3D_SUBPROB_PROP(nf1, nf2, nf3, M, d_plan);
+        ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
         if (ier != 0) {
             printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
             return ier;
         }
     }
-#ifdef TIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Obtain Interp Prop\t %.3g ms\n", milliseconds);
-#endif
 
-    cudaEventRecord(start);
-    ier = CUINTERP3D(d_plan, 1);
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Interp (%d)\t\t %.3g ms\n", d_plan->opts.gpu_method, milliseconds);
-#endif
-    cudaEventRecord(start);
-    FREEGPUMEMORY3D(d_plan);
-#ifdef TIME
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] Free GPU memory\t %.3g ms\n", milliseconds);
-#endif
-    // cudaFree(d_plan->c);
+    ier = cuinterp3d<T>(d_plan, 1);
+
+    freegpumemory3d<T>(d_plan);
+
     return ier;
 }
 
-int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize)
+template <typename T>
+int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     A wrapper for different interpolation methods.
 
@@ -101,105 +80,73 @@ int CUINTERP3D(CUFINUFFT_PLAN d_plan, int blksize)
     int nf3 = d_plan->nf3;
     int M = d_plan->M;
 
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        cudaEventRecord(start);
-        {
-            PROFILE_CUDA_GROUP("Interpolation", 6);
-            ier = CUINTERP3D_NUPTSDRIVEN(nf1, nf2, nf3, M, d_plan, blksize);
-            if (ier != 0) {
-                std::cout << "error: cnufftspread3d_gpu_nuptsdriven" << std::endl;
-                return 1;
-            }
+        ier = cuinterp3d_nuptsdriven<T>(nf1, nf2, nf3, M, d_plan, blksize);
+        if (ier != 0) {
+            std::cout << "error: cnufftspread3d_gpu_nuptsdriven" << std::endl;
+            return 1;
         }
     } break;
     case 2: {
-        cudaEventRecord(start);
-        {
-            PROFILE_CUDA_GROUP("Interpolation", 6);
-            ier = CUINTERP3D_SUBPROB(nf1, nf2, nf3, M, d_plan, blksize);
-            if (ier != 0) {
-                std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
-                return 1;
-            }
+        ier = cuinterp3d_subprob<T>(nf1, nf2, nf3, M, d_plan, blksize);
+        if (ier != 0) {
+            std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
+            return 1;
         }
     } break;
     default:
         std::cout << "error: incorrect method, should be 1,2" << std::endl;
         return 2;
     }
-#ifdef SPREADTIME
-    float milliseconds;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    std::cout << "[time  ]"
-              << " Interp " << milliseconds << " ms" << std::endl;
-#endif
+
     return ier;
 }
 
-int CUINTERP3D_NUPTSDRIVEN(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
+template <typename T>
+int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
     dim3 threadsPerBlock;
     dim3 blocks;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
     int pirange = d_plan->spopts.pirange;
 
     int *d_idxnupts = d_plan->idxnupts;
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     threadsPerBlock.x = 16;
     threadsPerBlock.y = 1;
     blocks.x = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
     blocks.y = 1;
 
-    cudaEventRecord(start);
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            Interp_3d_NUptsdriven_Horner<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
-                                                                            d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2,
-                                                                            nf3, sigma, d_idxnupts, pirange);
+            interp_3d_nupts_driven_horner<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
+                                                                             d_fw + t * nf1 * nf2 * nf3, M, ns, nf1,
+                                                                             nf2, nf3, sigma, d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            Interp_3d_NUptsdriven<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
-                                                                     d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
-                                                                     es_c, es_beta, d_idxnupts, pirange);
+            interp_3d_nupts_driven<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
+                                                                      d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
+                                                                      es_c, es_beta, d_idxnupts, pirange);
         }
     }
-#ifdef SPREADTIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tKernel Interp_3d_NUptsdriven (%d) \t%.3g ms\n", milliseconds, d_plan->opts.gpu_kerevalmeth);
-#endif
+
     return 0;
 }
 
-int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, int blksize) {
-    cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
+template <typename T>
+int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
@@ -208,20 +155,15 @@ int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int bin_size_z = d_plan->opts.gpu_binsizez;
     int numbins[3];
-    numbins[0] = ceil((CUFINUFFT_FLT)nf1 / bin_size_x);
-    numbins[1] = ceil((CUFINUFFT_FLT)nf2 / bin_size_y);
-    numbins[2] = ceil((CUFINUFFT_FLT)nf3 / bin_size_z);
-#ifdef INFO
-    std::cout << "[info  ] Dividing the uniform grids to bin size[" << d_plan->opts.gpu_binsizex << "x"
-              << d_plan->opts.gpu_binsizey << "x" << d_plan->opts.gpu_binsizez << "]" << std::endl;
-    std::cout << "[info  ] numbins = [" << numbins[0] << "x" << numbins[1] << "x" << numbins[2] << "]" << std::endl;
-#endif
+    numbins[0] = ceil((T)nf1 / bin_size_x);
+    numbins[1] = ceil((T)nf2 / bin_size_y);
+    numbins[2] = ceil((T)nf3 / bin_size_z);
 
-    CUFINUFFT_FLT *d_kx = d_plan->kx;
-    CUFINUFFT_FLT *d_ky = d_plan->ky;
-    CUFINUFFT_FLT *d_kz = d_plan->kz;
-    CUCPX *d_c = d_plan->c;
-    CUCPX *d_fw = d_plan->fw;
+    T *d_kx = d_plan->kx;
+    T *d_ky = d_plan->ky;
+    T *d_kz = d_plan->kz;
+    cuda_complex<T> *d_c = d_plan->c;
+    cuda_complex<T> *d_fw = d_plan->fw;
 
     int *d_binsize = d_plan->binsize;
     int *d_binstartpts = d_plan->binstartpts;
@@ -231,13 +173,12 @@ int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
     int *d_subprob_to_bin = d_plan->subprob_to_bin;
     int totalnumsubprob = d_plan->totalnumsubprob;
 
-    CUFINUFFT_FLT sigma = d_plan->spopts.upsampfac;
-    CUFINUFFT_FLT es_c = d_plan->spopts.ES_c;
-    CUFINUFFT_FLT es_beta = d_plan->spopts.ES_beta;
+    T sigma = d_plan->spopts.upsampfac;
+    T es_c = d_plan->spopts.ES_c;
+    T es_beta = d_plan->spopts.ES_beta;
     int pirange = d_plan->spopts.pirange;
-    cudaEventRecord(start);
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) *
-                               (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(CUCPX);
+                               (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory" << std::endl;
         return 1;
@@ -245,26 +186,38 @@ int CUINTERP3D_SUBPROB(int nf1, int nf2, int nf3, int M, CUFINUFFT_PLAN d_plan, 
 
     for (int t = 0; t < blksize; t++) {
         if (d_plan->opts.gpu_kerevalmeth == 1) {
-            Interp_3d_Subprob_Horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            interp_3d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, d_binstartpts,
                 d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
                 maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
         } else {
-            Interp_3d_Subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            interp_3d_subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
         }
     }
-#ifdef SPREADTIME
-    float milliseconds = 0;
-    cudaEventRecord(stop);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    printf("[time  ] \tKernel Interp_3d_Subprob (%d) \t%.3g ms\n", milliseconds, d_plan->opts.gpu_kerevalmeth);
-#endif
+
     return 0;
 }
+
+template int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<float> *d_fw, int M, float *d_kx, float *d_ky,
+                                float *d_kz, cuda_complex<float> *d_c, cufinufft_plan_t<float> *d_plan);
+template int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<double> *d_fw, int M, double *d_kx,
+                                double *d_ky, double *d_kz, cuda_complex<double> *d_c,
+                                cufinufft_plan_t<double> *d_plan);
+
+template int cuinterp3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
+template int cuinterp3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+
+template int cuinterp3d_nuptsdriven<float>(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<float> *d_plan,
+                                           int blksize);
+template int cuinterp3d_nuptsdriven<double>(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<double> *d_plan,
+                                            int blksize);
+
+template int cuinterp3d_subprob<float>(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<float> *d_plan, int blksize);
+template int cuinterp3d_subprob<double>(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<double> *d_plan,
+                                        int blksize);
 
 } // namespace spreadinterp
 } // namespace cufinufft

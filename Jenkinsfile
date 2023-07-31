@@ -14,25 +14,39 @@ pipeline {
          }
       }
       environment {
-    HOME = "$WORKSPACE/build"
+    HOME = "$WORKSPACE"
     PYBIN = "/opt/python/cp38-cp38/bin"
+    LIBRARY_PATH = "$WORKSPACE/build"
+    LD_LIBRARY_PATH = "$WORKSPACE/build"
       }
       steps {
     sh '''#!/bin/bash -ex
       nvidia-smi
     '''
     sh '''#!/bin/bash -ex
-      cp -r /io/build/test/cuda cuda_tests
-      cd cuda_tests
+      echo $HOME
+    '''
+    sh '''#!/bin/bash -ex
+        cuda_arch=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader|head -n 1| sed "s/\\.//")
+        cmake -B build . -DFINUFFT_USE_CUDA=ON \
+                         -DFINUFFT_USE_CPU=OFF \
+                         -DFINUFFT_BUILD_TESTS=ON \
+                         -DCMAKE_CUDA_ARCHITECTURES="$cuda_arch" \
+                         -DBUILD_TESTING=ON
+        cd build
+        make -j4
+    '''
+    sh '''#!/bin/bash -ex
+      cd build/test/cuda
       ctest --output-on-failure
     '''
     sh '${PYBIN}/python3 -m venv $HOME'
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
       python3 -m pip install --upgrade pip
-      LIBRARY_PATH=/io/build python3 -m pip install -e python/cufinufft
+      python3 -m pip install -e python/cufinufft
       python3 -m pip install pytest
-      python3 -m pytest
+      python3 -m pytest python/cufinufft
     '''
       }
     }
