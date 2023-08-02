@@ -102,7 +102,7 @@ int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize)
 
 template <typename T>
 int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     dim3 threadsPerBlock;
     dim3 blocks;
@@ -141,7 +141,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
 
 template <typename T>
 int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     T es_c = d_plan->spopts.ES_c;

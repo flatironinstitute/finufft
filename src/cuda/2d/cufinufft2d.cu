@@ -37,7 +37,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
     cuda_complex<T> *d_fkstart;
     cuda_complex<T> *d_cstart;
 
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
         blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;
@@ -58,7 +58,7 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         }
 
         // Step 2: FFT
-        cufft_ex(d_plan->fftplans[d_plan->curr_stream], d_plan->fw, d_plan->fw, d_plan->iflag);
+        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
 
         // Step 3: deconvolve and shuffle
         cudeconvolve2d<T>(d_plan, blksize);
@@ -99,7 +99,7 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
         cudeconvolve2d<T>(d_plan, blksize);
         // Step 2: FFT
-        cufft_ex(d_plan->fftplans[d_plan->curr_stream], d_plan->fw, d_plan->fw, d_plan->iflag);
+        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
 
         // Step 3: deconvolve and shuffle
         ier = cuinterp2d<T>(d_plan, blksize);

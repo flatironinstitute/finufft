@@ -106,7 +106,7 @@ int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize)
 
 template <typename T>
 int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     if (d_plan->opts.gpu_sort) {
         int bin_size_x = d_plan->opts.gpu_binsizex;
@@ -147,7 +147,7 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
 
 template <typename T>
 int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -190,7 +190,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
     which only needs to be done once.
 */
 {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
     int bin_size_x = d_plan->opts.gpu_binsizex;
@@ -252,7 +252,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 
 template <typename T>
 int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     T es_c = d_plan->spopts.ES_c;

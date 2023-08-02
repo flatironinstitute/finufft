@@ -115,7 +115,7 @@ int cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
     Melody Shih 11/21/21
 */
 {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int ms = d_plan->ms;
     int nf1 = d_plan->nf1;
@@ -145,7 +145,7 @@ int cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
     Melody Shih 07/25/19
 */
 {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int ms = d_plan->ms;
     int mt = d_plan->mt;
@@ -179,7 +179,7 @@ int cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
     Melody Shih 07/25/19
 */
 {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int ms = d_plan->ms;
     int mt = d_plan->mt;

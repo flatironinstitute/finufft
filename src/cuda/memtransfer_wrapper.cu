@@ -21,7 +21,7 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int nf1 = d_plan->nf1;
     int maxbatchsize = d_plan->maxbatchsize;
@@ -68,7 +68,7 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int M = d_plan->M;
 
@@ -114,7 +114,7 @@ void freegpumemory1d(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     if (!d_plan->opts.gpu_spreadinterponly) {
         checkCudaErrors(cudaFreeAsync(d_plan->fw, stream));
@@ -158,7 +158,7 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int nf1 = d_plan->nf1;
     int nf2 = d_plan->nf2;
@@ -211,7 +211,7 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int M = d_plan->M;
 
@@ -256,7 +256,7 @@ void freegpumemory2d(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
     if (!d_plan->opts.gpu_spreadinterponly) {
         checkCudaErrors(cudaFreeAsync(d_plan->fw, stream));
         checkCudaErrors(cudaFreeAsync(d_plan->fwkerhalf1, stream));
@@ -300,7 +300,7 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int nf1 = d_plan->nf1;
     int nf2 = d_plan->nf2;
@@ -387,7 +387,7 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int M = d_plan->M;
 
@@ -437,7 +437,7 @@ void freegpumemory3d(cufinufft_plan_t<T> *d_plan)
     int orig_gpu_device_id;
     cudaGetDevice(&orig_gpu_device_id);
     cudaSetDevice(d_plan->opts.gpu_device_id);
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     if (!d_plan->opts.gpu_spreadinterponly) {
         cudaFreeAsync(d_plan->fw, stream);

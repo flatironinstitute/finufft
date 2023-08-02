@@ -67,11 +67,12 @@ def _get_NufftOpts():
         ('gpu_obinsizey', c_int),
         ('gpu_obinsizez', c_int),
         ('gpu_maxsubprobsize', c_int),
-        ('gpu_nstreams', c_int),
         ('gpu_kerevalmeth', c_int),
         ('gpu_spreadinterponly', c_int),
         ('gpu_maxbatchsize', c_int),
-        ('gpu_device_id', c_int)]
+        ('gpu_device_id', c_int),
+        ('gpu_stream', c_void_p)
+    ]
     return fields
 
 

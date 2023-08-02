@@ -116,6 +116,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
     }
 
+    d_plan->stream = (cudaStream_t)opts->gpu_stream;
+
     /* Setup Spreader */
     using namespace cufinufft::common;
     ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts);
@@ -147,47 +149,35 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     d_plan->maxbatchsize = maxbatchsize;
     d_plan->type = type;
 
-    d_plan->nstreams = 1;
-    d_plan->curr_stream = 0;
-
     if (d_plan->type == 1)
         d_plan->spopts.spread_direction = 1;
     if (d_plan->type == 2)
         d_plan->spopts.spread_direction = 2;
 
-    d_plan->streams = (cudaStream_t *)malloc(d_plan->nstreams * sizeof(cudaStream_t));
-    d_plan->fftplans = (cufftHandle *)malloc(d_plan->nstreams * sizeof(cufftHandle));
-    for (int i_stream = 0; i_stream < d_plan->nstreams; ++i_stream) {
-        checkCudaErrors(cudaStreamCreate(&d_plan->streams[i_stream]));
+    switch (d_plan->dim) {
+    case 1: {
+        int n[] = {(int)nf1};
+        int inembed[] = {(int)nf1};
 
-        cufftHandle fftplan;
-        switch (d_plan->dim) {
-        case 1: {
-            int n[] = {(int)nf1};
-            int inembed[] = {(int)nf1};
+        cufftPlanMany(&d_plan->fftplan, 1, n, inembed, 1, inembed[0], inembed, 1, inembed[0], cufft_type<T>(),
+                      maxbatchsize);
+    } break;
+    case 2: {
+        int n[] = {(int)nf2, (int)nf1};
+        int inembed[] = {(int)nf2, (int)nf1};
 
-            cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1, inembed[0], cufft_type<T>(),
-                          maxbatchsize);
-        } break;
-        case 2: {
-            int n[] = {(int)nf2, (int)nf1};
-            int inembed[] = {(int)nf2, (int)nf1};
+        cufftPlanMany(&d_plan->fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1, inembed[0] * inembed[1],
+                      cufft_type<T>(), maxbatchsize);
+    } break;
+    case 3: {
+        int n[] = {(int)nf3, (int)nf2, (int)nf1};
+        int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
 
-            cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1, inembed[0] * inembed[1],
-                          cufft_type<T>(), maxbatchsize);
-        } break;
-        case 3: {
-            int n[] = {(int)nf3, (int)nf2, (int)nf1};
-            int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
-
-            cufftPlanMany(&fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
-                          inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
-        } break;
-        }
-
-        cufftSetStream(fftplan, d_plan->streams[i_stream]);
-        d_plan->fftplans[i_stream] = fftplan;
+        cufftPlanMany(&d_plan->fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
+                      inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
+    } break;
     }
+    cufftSetStream(d_plan->fftplan, d_plan->stream);
 
     using namespace cufinufft::memtransfer;
     switch (d_plan->dim) {
@@ -215,7 +205,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     cuDoubleComplex *d_a;
     T *d_f;
 
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
     checkCudaErrors(cudaMallocAsync(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), stream));
     checkCudaErrors(cudaMallocAsync(&d_f, dim * MAX_NQUAD * sizeof(T), stream));
     checkCudaErrors(cudaMemcpyAsync(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice, stream));
@@ -503,10 +493,7 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
     } break;
     }
 
-    for (int i = 0; i < d_plan->nstreams; ++i) {
-        cufftDestroy(d_plan->fftplans[i]);
-        cudaStreamDestroy(d_plan->streams[i]);
-    }
+    cufftDestroy(d_plan->fftplan);
 
     /* free/destruct the plan */
     delete d_plan;

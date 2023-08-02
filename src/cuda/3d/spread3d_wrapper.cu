@@ -125,7 +125,7 @@ int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize)
 
 template <typename T>
 int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     if (d_plan->opts.gpu_sort) {
         int bin_size_x = d_plan->opts.gpu_binsizex;
@@ -177,7 +177,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
 template <typename T>
 int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     dim3 threadsPerBlock;
     dim3 blocks;
@@ -219,7 +219,7 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
 
 template <typename T>
 int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     dim3 threadsPerBlock;
     dim3 blocks;
@@ -357,7 +357,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
 template <typename T>
 int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int ns = d_plan->spopts.nspread;
     T es_c = d_plan->spopts.ES_c;
@@ -426,7 +426,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
 
 template <typename T>
 int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
     int bin_size_x = d_plan->opts.gpu_binsizex;
@@ -499,7 +499,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
 
 template <typename T>
 int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
-    auto &stream = d_plan->streams[d_plan->curr_stream];
+    auto &stream = d_plan->stream;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;

@@ -42,9 +42,7 @@ struct cufinufft_plan_t {
     CUFINUFFT_BIGINT mu;
     int ntransf;
     int maxbatchsize;
-    int nstreams;
     int iflag;
-    int curr_stream;
 
     int totalnumsubprob;
     int byte_now;
@@ -72,8 +70,8 @@ struct cufinufft_plan_t {
     int *numnupts;
     int *subprob_to_nupts;
 
-    cufftHandle *fftplans;
-    cudaStream_t *streams;
+    cufftHandle fftplan;
+    cudaStream_t stream;
 };
 
 template <typename T>
