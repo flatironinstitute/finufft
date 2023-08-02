@@ -116,7 +116,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
     }
 
-    d_plan->stream = (cudaStream_t)opts->gpu_stream;
+    d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
     /* Setup Spreader */
     using namespace cufinufft::common;
