@@ -2,33 +2,62 @@ import pytest
 
 import numpy as np
 
-import pycuda.autoinit # NOQA:401
-import pycuda.gpuarray as gpuarray
-
-from cufinufft import Plan
+from cufinufft import Plan, _compat
 
 import utils
 
 # NOTE: Tests below fail for tolerance 1e-4 (error executing plan).
 
+FRAMEWORKS = ["pycuda", "cupy", "numba", "torch"]
 DTYPES = [np.float32, np.float64]
 SHAPES = [(16,), (16, 16), (16, 16, 16)]
 MS = [256, 1024, 4096]
 TOLS = [1e-2, 1e-3]
 OUTPUT_ARGS = [False, True]
 
+def _transfer_funcs(module_name):
+    if module_name == "pycuda":
+        import pycuda.autoinit # NOQA:401
+        from pycuda.gpuarray import to_gpu
+        def to_cpu(obj):
+            return obj.get()
+    elif module_name == "cupy":
+        import cupy
+        def to_gpu(obj):
+            return cupy.array(obj)
+        def to_cpu(obj):
+            return obj.get()
+    elif module_name == "numba":
+        import numba.cuda
+        to_gpu = numba.cuda.to_device
+        def to_cpu(obj):
+            return obj.copy_to_host()
+    elif module_name == "torch":
+        import torch
+        def to_gpu(obj):
+            return torch.asarray(obj, device=torch.device("cuda"))
+        def to_cpu(obj):
+            return obj.cpu().numpy()
+    else:
+        raise TypeError(f"Unsupported framework: {module_name}")
+
+    return to_gpu, to_cpu
+
+@pytest.mark.parametrize("framework", FRAMEWORKS)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("M", MS)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_type1(dtype, shape, M, tol, output_arg):
+def test_type1(framework, dtype, shape, M, tol, output_arg):
+    to_gpu, to_cpu = _transfer_funcs(framework)
+
     complex_dtype = utils._complex_dtype(dtype)
 
     k, c = utils.type1_problem(dtype, shape, M)
 
-    k_gpu = gpuarray.to_gpu(k)
-    c_gpu = gpuarray.to_gpu(c)
+    k_gpu = to_gpu(k)
+    c_gpu = to_gpu(c)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
@@ -38,54 +67,59 @@ def test_type1(dtype, shape, M, tol, output_arg):
     plan.setpts(*k_gpu)
 
     if output_arg:
-        fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
+        fk_gpu = _compat.array_empty_like(c_gpu, shape, dtype=complex_dtype)
         plan.execute(c_gpu, out=fk_gpu)
     else:
         fk_gpu = plan.execute(c_gpu)
 
-    fk = fk_gpu.get()
+    fk = to_cpu(fk_gpu)
 
     utils.verify_type1(k, c, fk, tol)
 
 
+@pytest.mark.parametrize("framework", FRAMEWORKS)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("M", MS)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_type2(dtype, shape, M, tol, output_arg):
+def test_type2(framework, dtype, shape, M, tol, output_arg):
+    to_gpu, to_cpu = _transfer_funcs(framework)
+
     complex_dtype = utils._complex_dtype(dtype)
 
     k, fk = utils.type2_problem(dtype, shape, M)
 
-    k_gpu = gpuarray.to_gpu(k)
-    fk_gpu = gpuarray.to_gpu(fk)
+    k_gpu = to_gpu(k)
+    fk_gpu = to_gpu(fk)
 
     plan = Plan(2, shape, eps=tol, dtype=complex_dtype)
 
     plan.setpts(*k_gpu)
 
     if output_arg:
-        c_gpu = gpuarray.GPUArray(shape=(M,), dtype=complex_dtype)
+        c_gpu = _compat.array_empty_like(fk_gpu, (M,), dtype=complex_dtype)
         plan.execute(fk_gpu, out=c_gpu)
     else:
         c_gpu = plan.execute(fk_gpu)
 
-    c = c_gpu.get()
+    c = to_cpu(c_gpu)
 
     utils.verify_type2(k, fk, c, tol)
 
 
 def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
+    to_gpu, to_cpu = _transfer_funcs("pycuda")
+
     dtype = np.float32
 
     complex_dtype = utils._complex_dtype(dtype)
 
     k, c = utils.type1_problem(dtype, shape, M)
 
-    k_gpu = gpuarray.to_gpu(k)
-    c_gpu = gpuarray.to_gpu(c)
-    fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
+    k_gpu = to_gpu(k)
+    c_gpu = to_gpu(c)
+    fk_gpu = _compat.array_empty_like(c_gpu, shape, dtype=complex_dtype)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype, gpu_sort=False,
                      gpu_maxsubprobsize=10)
@@ -94,7 +128,7 @@ def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
 
     plan.execute(c_gpu, fk_gpu)
 
-    fk = fk_gpu.get()
+    fk = to_cpu(fk_gpu)
 
     utils.verify_type1(k, c, fk, tol)
 
