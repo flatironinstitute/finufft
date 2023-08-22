@@ -63,6 +63,7 @@ def array_empty_like(obj, *args, **kwargs):
         import numba.cuda
         return numba.cuda.device_array(*args, **kwargs)
     elif module_name == "torch":
+        import torch
         if "shape" in kwargs:
             kwargs["size"] = kwargs.pop("shape")
         if "dtype" in kwargs:
