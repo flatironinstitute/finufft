@@ -53,7 +53,7 @@ done
 for py_version in ${py_versions[@]}; do
     py_binary=$(get_python_binary ${py_version})
 
-    "${py_binary}/pip" install cufinufft -f /io/wheelhouse
+    "${py_binary}/pip" install --pre cufinufft -f /io/wheelhouse
     "${py_binary}/pip" install pytest
     "${py_binary}/pytest" /io/python/cufinufft/tests
 done
