@@ -35,7 +35,7 @@ def _transfer_funcs(module_name):
     elif module_name == "torch":
         import torch
         def to_gpu(obj):
-            return torch.asarray(obj, device=torch.device("cuda"))
+            return torch.as_tensor(obj, device=torch.device("cuda"))
         def to_cpu(obj):
             return obj.cpu().numpy()
     else:
