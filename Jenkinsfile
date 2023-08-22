@@ -27,7 +27,9 @@ pipeline {
       echo $HOME
     '''
     sh '''#!/bin/bash -ex
-        cuda_arch=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader|head -n 1| sed "s/\\.//")
+        # Oldest card in the Jenkins pool is a K40
+        cuda_arch="35"
+
         cmake -B build . -DFINUFFT_USE_CUDA=ON \
                          -DFINUFFT_USE_CPU=OFF \
                          -DFINUFFT_BUILD_TESTS=ON \
