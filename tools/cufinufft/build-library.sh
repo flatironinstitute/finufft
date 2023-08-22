@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -e -u -x
 
-mkdir -p /io/build
+rm -rf /io/build
+mkdir /io/build
 cd /io/build
 
 cmake -D FINUFFT_USE_CUDA=ON \
