@@ -5,8 +5,7 @@ ENV CUDA_MAJOR 11
 ENV CUDA_MINOR 0
 
 ENV CUDART_VERSION 11.0.171
-ENV CUFFT_VERSION 10.2.1.245
-ENV CURAND_VERSION 10.2.1.245
+ENV CUDA_LIBRARIES_VERSION 11.0.3
 ENV NVPROF_VERSION 11.0.221
 ENV NVTX_VERSION 11.0.167
 ENV NVCC_VERSION 11.0.221
@@ -43,16 +42,14 @@ ENV NVIDIA_REQUIRE_CUDA "cuda>=${CUDA_DOT_VERSION} brand=tesla,driver>=418,drive
 
 # runtime
 RUN yum install -y \
-        libcufft-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
-        libcurand-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
+        cuda-libraries-${CUDA_DASH_VERSION}-${CUDA_LIBRARIES_VERSION}-1 \
         cuda-nvtx-${CUDA_DASH_VERSION}-${NVTX_VERSION}-1 && \
     rm -rf /var/cache/yum/*
 
 # devel
 RUN yum install -y \
         cuda-cudart-devel-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
-        libcufft-devel-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
-        libcurand-devel-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
+        cuda-libraries-devel-${CUDA_DASH_VERSION}-${CUDA_LIBRARIES_VERSION}-1 \
         cuda-nvprof-${CUDA_DASH_VERSION}-${NVPROF_VERSION}-1 \
         cuda-nvcc-${CUDA_DASH_VERSION}-${NVCC_VERSION}-1 && \
     rm -rf /var/cache/yum/*
