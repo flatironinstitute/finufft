@@ -21,14 +21,16 @@ docker create \
     --tty \
     --volume $(pwd)/wheelhouse:/io/wheelhouse \
     --env PLAT=${manylinux_version}_x86_64 \
+    --env LIBRARY_PATH="/io/build" \
+    --env LD_LIBRARY_PATH="/io/build" \
     --name cufinufft \
     ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version}
 
 docker start cufinufft
 
-echo "# Build the library and install it"
+echo "# Copy the code and build the library"
+docker cp . cufinufft:/io
 docker exec cufinufft /io/tools/cufinufft/build-library.sh
-docker exec cufinufft cp /io/build/libcufinufft.so /usr/lib
 
 echo "# Build the wheels"
 docker exec cufinufft /io/tools/cufinufft/build-wheels.sh
