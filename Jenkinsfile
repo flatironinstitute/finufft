@@ -46,7 +46,8 @@ pipeline {
     sh '''#!/bin/bash -ex
       source $HOME/bin/activate
       python3 -m pip install --upgrade pip
-      python3 -m pip install --upgrade pycuda cupy-cuda110 numba torch
+      python3 -m pip install --upgrade pycuda cupy-cuda110 numba
+      python3 -m pip install torch==1.7.1+cu110 -f https://download.pytorch.org/whl/torch_stable.html
       python3 -m pip install -e python/cufinufft
       python3 -m pip install pytest
       python3 -m pytest python/cufinufft
