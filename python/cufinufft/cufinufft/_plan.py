@@ -278,16 +278,16 @@ class Plan:
         req_out_shape = batch_shape + req_out_shape
 
         if out is None:
-            _out = _compat.array_empty_like(data, req_out_shape, dtype=self.dtype)
+            _out = _compat.array_empty_like(_data, req_out_shape, dtype=self.dtype)
         else:
             _out = _ensure_array_shape(_out, "out", req_out_shape)
 
         if self.type == 1:
-            ier = self._exec_plan(self._plan, _compat.get_array_ptr(data),
+            ier = self._exec_plan(self._plan, _compat.get_array_ptr(_data),
                     _compat.get_array_ptr(_out))
         elif self.type == 2:
             ier = self._exec_plan(self._plan, _compat.get_array_ptr(_out),
-                    _compat.get_array_ptr(data))
+                    _compat.get_array_ptr(_data))
 
         if ier != 0:
             raise RuntimeError('Error executing plan.')
