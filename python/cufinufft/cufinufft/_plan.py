@@ -324,8 +324,14 @@ def _ensure_array_type(x, name, dtype, output=False):
                         f"{x.dtype} was given, but {dtype} was expected.")
 
     if not _compat.is_array_contiguous(x):
-        raise TypeError(f"Argument `{name}` does not satisfy the "
-                        f"following requirement: C")
+        if output or not _compat.array_can_contiguous(x):
+            raise TypeError(f"Argument `{name}` does not satisfy the "
+                            f"following requirement: C")
+        else:
+            warnings.warn(f"Argument `{name}` does not satisfy the "
+                          f"following requirement: C. Copying array "
+                          f"(this may reduce performance)")
+            x = _compat.array_contiguous(x)
 
     return x
 

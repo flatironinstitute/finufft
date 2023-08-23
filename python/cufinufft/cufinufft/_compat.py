@@ -21,6 +21,8 @@ def get_array_module(obj):
         return "numba"
     elif module_name.startswith("torch"):
         return "torch"
+    elif module_name.startswith("pycuda"):
+        return "pycuda"
     else:
         return "generic"
 
@@ -54,6 +56,29 @@ def is_array_contiguous(obj):
         return obj.is_contiguous()
     else:
         return obj.flags.c_contiguous
+
+
+def array_can_contiguous(obj):
+    array_module = get_array_module(obj)
+
+    if array_module == "pycuda":
+        return False
+    else:
+        return True
+
+
+def array_contiguous(obj):
+    array_module = get_array_module(obj)
+
+    if array_module == "numba":
+        import numba
+        ret = numba.cuda.device_array(obj.shape, obj.dtype, stream=obj.stream)
+        ret[:] = obj[:]
+        return ret
+    if array_module == "torch":
+        return obj.contiguous()
+    else:
+        return obj.copy(order="C")
 
 
 def array_empty_like(obj, *args, **kwargs):
