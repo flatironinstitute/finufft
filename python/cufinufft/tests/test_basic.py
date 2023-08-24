@@ -83,9 +83,6 @@ def test_type1(framework, dtype, shape, M, tol, output_arg):
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 @pytest.mark.parametrize("contiguous", CONTIGUOUS)
 def test_type2(framework, dtype, shape, M, tol, output_arg, contiguous):
-    if framework == "pycuda" and not contiguous:
-        pytest.skip("Pycuda does not support copy to contiguous")
-
     to_gpu, to_cpu = _transfer_funcs(framework)
 
     complex_dtype = utils._complex_dtype(dtype)
@@ -94,12 +91,22 @@ def test_type2(framework, dtype, shape, M, tol, output_arg, contiguous):
 
     plan = Plan(2, shape, eps=tol, dtype=complex_dtype)
 
+    check_result = True
+
     if not contiguous and len(shape) > 1:
         fk = fk.copy(order="F")
 
-        def _execute(*args, **kwargs):
-            with pytest.warns(UserWarning, match="requirement: C. Copying"):
-                return plan.execute(*args, **kwargs)
+        if _compat.array_can_contiguous(to_gpu(np.empty(1))):
+            def _execute(*args, **kwargs):
+                with pytest.warns(UserWarning, match="requirement: C. Copying"):
+                    return plan.execute(*args, **kwargs)
+        else:
+            check_result = False
+
+            def _execute(*args, **kwargs):
+                with pytest.raises(TypeError, match="requirement: C"):
+                    plan.execute(*args, **kwargs)
+
     else:
         def _execute(*args, **kwargs):
             return plan.execute(*args, **kwargs)
@@ -115,9 +122,10 @@ def test_type2(framework, dtype, shape, M, tol, output_arg, contiguous):
     else:
         c_gpu = _execute(fk_gpu)
 
-    c = to_cpu(c_gpu)
+    if check_result:
+        c = to_cpu(c_gpu)
 
-    utils.verify_type2(k, fk, c, tol)
+        utils.verify_type2(k, fk, c, tol)
 
 
 def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
