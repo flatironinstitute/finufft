@@ -15,33 +15,6 @@ TOLS = [1e-2, 1e-3]
 OUTPUT_ARGS = [False, True]
 CONTIGUOUS = [False, True]
 
-def _transfer_funcs(module_name):
-    if module_name == "pycuda":
-        import pycuda.autoinit # NOQA:401
-        from pycuda.gpuarray import to_gpu
-        def to_cpu(obj):
-            return obj.get()
-    elif module_name == "cupy":
-        import cupy
-        def to_gpu(obj):
-            return cupy.array(obj)
-        def to_cpu(obj):
-            return obj.get()
-    elif module_name == "numba":
-        import numba.cuda
-        to_gpu = numba.cuda.to_device
-        def to_cpu(obj):
-            return obj.copy_to_host()
-    elif module_name == "torch":
-        import torch
-        def to_gpu(obj):
-            return torch.as_tensor(obj, device=torch.device("cuda"))
-        def to_cpu(obj):
-            return obj.cpu().numpy()
-    else:
-        raise TypeError(f"Unsupported framework: {module_name}")
-
-    return to_gpu, to_cpu
 
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
@@ -49,7 +22,7 @@ def _transfer_funcs(module_name):
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_type1(framework, dtype, shape, M, tol, output_arg):
-    to_gpu, to_cpu = _transfer_funcs(framework)
+    to_gpu, to_cpu = utils.transfer_funcs(framework)
 
     complex_dtype = utils._complex_dtype(dtype)
 
@@ -83,7 +56,7 @@ def test_type1(framework, dtype, shape, M, tol, output_arg):
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 @pytest.mark.parametrize("contiguous", CONTIGUOUS)
 def test_type2(framework, dtype, shape, M, tol, output_arg, contiguous):
-    to_gpu, to_cpu = _transfer_funcs(framework)
+    to_gpu, to_cpu = utils.transfer_funcs(framework)
 
     complex_dtype = utils._complex_dtype(dtype)
 
@@ -129,7 +102,7 @@ def test_type2(framework, dtype, shape, M, tol, output_arg, contiguous):
 
 
 def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
-    to_gpu, to_cpu = _transfer_funcs("pycuda")
+    to_gpu, to_cpu = utils.transfer_funcs("pycuda")
 
     dtype = np.float32
 
@@ -151,4 +124,3 @@ def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
     fk = to_cpu(fk_gpu)
 
     utils.verify_type1(k, c, fk, tol)
-
