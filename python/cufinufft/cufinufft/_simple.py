@@ -1,4 +1,4 @@
-from cufinufft import Plan
+from cufinufft import Plan, _compat
 
 def nufft1d1(x, data, n_modes=None, out=None, eps=1e-6, isign=1, **kwargs):
     return _invoke_plan(1, 1, x, None, None, data, out, isign, eps, n_modes,
@@ -24,7 +24,7 @@ def nufft3d2(x, y, z, data, out=None, eps=1e-6, isign=-1, **kwargs):
 
 def _invoke_plan(dim, nufft_type, x, y, z, data, out, isign, eps,
         n_modes=None, kwargs=None):
-    dtype = data.dtype
+    dtype = _compat.get_array_dtype(data)
 
     n_trans = _get_ntrans(dim, nufft_type, data)
 
