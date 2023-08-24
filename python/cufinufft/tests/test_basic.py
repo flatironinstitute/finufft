@@ -8,7 +8,6 @@ import utils
 
 # NOTE: Tests below fail for tolerance 1e-4 (error executing plan).
 
-FRAMEWORKS = ["pycuda", "cupy", "numba", "torch"]
 DTYPES = [np.float32, np.float64]
 SHAPES = [(16,), (16, 16), (16, 16, 16)]
 MS = [256, 1024, 4096]
@@ -44,7 +43,6 @@ def _transfer_funcs(module_name):
 
     return to_gpu, to_cpu
 
-@pytest.mark.parametrize("framework", FRAMEWORKS)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("M", MS)
@@ -78,7 +76,6 @@ def test_type1(framework, dtype, shape, M, tol, output_arg):
     utils.verify_type1(k, c, fk, tol)
 
 
-@pytest.mark.parametrize("framework", FRAMEWORKS)
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("shape", SHAPES)
 @pytest.mark.parametrize("M", MS)
