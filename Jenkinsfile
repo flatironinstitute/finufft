@@ -29,7 +29,7 @@ pipeline {
     '''
     sh '''#!/bin/bash -ex
         # Oldest card in the Jenkins pool is a K40
-        cuda_arch="35"
+        cuda_arch="70"
 
         cmake -B build . -DFINUFFT_USE_CUDA=ON \
                          -DFINUFFT_USE_CPU=OFF \
