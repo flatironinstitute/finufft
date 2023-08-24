@@ -21,9 +21,7 @@ CONTIGUOUS = [False, True]
 @pytest.mark.parametrize("M", MS)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_type1(framework, dtype, shape, M, tol, output_arg):
-    to_gpu, to_cpu = utils.transfer_funcs(framework)
-
+def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg):
     complex_dtype = utils._complex_dtype(dtype)
 
     k, c = utils.type1_problem(dtype, shape, M)
@@ -55,9 +53,7 @@ def test_type1(framework, dtype, shape, M, tol, output_arg):
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 @pytest.mark.parametrize("contiguous", CONTIGUOUS)
-def test_type2(framework, dtype, shape, M, tol, output_arg, contiguous):
-    to_gpu, to_cpu = utils.transfer_funcs(framework)
-
+def test_type2(to_gpu, to_cpu, dtype, shape, M, tol, output_arg, contiguous):
     complex_dtype = utils._complex_dtype(dtype)
 
     k, fk = utils.type2_problem(dtype, shape, M)
@@ -101,9 +97,7 @@ def test_type2(framework, dtype, shape, M, tol, output_arg, contiguous):
         utils.verify_type2(k, fk, c, tol)
 
 
-def test_opts(framework, shape=(8, 8, 8), M=32, tol=1e-3):
-    to_gpu, to_cpu = utils.transfer_funcs(framework)
-
+def test_opts(to_gpu, to_cpu, shape=(8, 8, 8), M=32, tol=1e-3):
     dtype = np.float32
 
     complex_dtype = utils._complex_dtype(dtype)
