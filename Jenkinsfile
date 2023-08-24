@@ -50,7 +50,10 @@ pipeline {
       python3 -m pip install torch==1.7.1+cu110 -f https://download.pytorch.org/whl/torch_stable.html
       python3 -m pip install -e python/cufinufft
       python3 -m pip install pytest
-      python3 -m pytest python/cufinufft
+      python3 -m pytest --framework=pycuda python/cufinufft
+      python3 -m pytest --framework=numba python/cufinufft
+      python3 -m pytest --framework=cupy python/cufinufft
+      python3 -m pytest --framework=torch python/cufinufft
     '''
       }
     }
