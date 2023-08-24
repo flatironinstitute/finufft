@@ -1,16 +1,18 @@
 import pytest
 
 import numpy as np
-
-import pycuda.driver as drv
-import pycuda.gpuarray as gpuarray
-
 from cufinufft import Plan
 
 import utils
 
 
-def test_multi_type1(dtype=np.float32, shape=(16, 16, 16), M=4096, tol=1e-3):
+def test_multi_type1(framework, dtype=np.float32, shape=(16, 16, 16), M=4096, tol=1e-3):
+    if framework == "pycuda":
+        import pycuda.driver as drv
+        import pycuda.gpuarray as gpuarray
+    else:
+        pytest.skip("Multi-GPU support only tested for pycuda")
+
     complex_dtype = utils._complex_dtype(dtype)
 
     drv.init()
