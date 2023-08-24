@@ -11,6 +11,7 @@ pipeline {
          dockerfile {
             filename 'tools/cufinufft/docker/cuda11.0/Dockerfile-x86_64'
             args '--gpus 2'
+            label 'v100'
          }
       }
       environment {
