@@ -2,31 +2,28 @@ import pytest
 
 import numpy as np
 
-import pycuda.autoinit # NOQA:401
-import pycuda.gpuarray as gpuarray
-
-from cufinufft import Plan
+from cufinufft import Plan, _compat
 
 import utils
 
 
-def test_type1_ordering(dtype=np.float32, shape=(16, 16, 16), M=4096, tol=1e-3):
+def test_type1_ordering(framework, dtype=np.float32, shape=(16, 16, 16), M=4096, tol=1e-3):
+    to_gpu, to_cpu = utils.transfer_funcs(framework)
+
     complex_dtype = utils._complex_dtype(dtype)
 
     k, c = utils.type1_problem(dtype, shape, M)
 
-    k_gpu = gpuarray.to_gpu(k)
-    c_gpu = gpuarray.to_gpu(c)
+    k_gpu = to_gpu(k)
+    c_gpu = to_gpu(c)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
     plan.setpts(*k_gpu)
 
-    out_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
+    out = np.empty(shape, dtype=complex_dtype, order="F")
 
-    plan.execute(c_gpu, out=out_gpu)
-
-    out_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype, order="F")
+    out_gpu = to_gpu(out)
 
     with pytest.raises(TypeError, match="following requirement: C") as err:
         plan.execute(c_gpu, out=out_gpu)
