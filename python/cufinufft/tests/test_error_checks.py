@@ -121,7 +121,9 @@ def test_exec_raises_on_dtype(to_gpu):
     c = utils.gen_nonuniform_data(M).astype(complex_dtype)
     c_gpu = to_gpu(c)
     # Using c.real gives us wrong dtype here...
-    c_gpu_wrong_dtype = to_gpu(c.real)
+    # Need contiguous here since numba does not allow transfers of
+    # non-contiguous arrays.
+    c_gpu_wrong_dtype = to_gpu(np.ascontiguousarray(c.real))
 
     kxyz_gpu = to_gpu(kxyz)
     fk_gpu = _compat.array_empty_like(kxyz_gpu, shape, dtype=complex_dtype)
