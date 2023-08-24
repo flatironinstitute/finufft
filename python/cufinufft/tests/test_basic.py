@@ -101,8 +101,8 @@ def test_type2(framework, dtype, shape, M, tol, output_arg, contiguous):
         utils.verify_type2(k, fk, c, tol)
 
 
-def test_opts(shape=(8, 8, 8), M=32, tol=1e-3):
-    to_gpu, to_cpu = utils.transfer_funcs("pycuda")
+def test_opts(framework, shape=(8, 8, 8), M=32, tol=1e-3):
+    to_gpu, to_cpu = utils.transfer_funcs(framework)
 
     dtype = np.float32
 
