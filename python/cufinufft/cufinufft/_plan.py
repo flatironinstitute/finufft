@@ -361,10 +361,10 @@ def _ensure_valid_pts(x, y, z, dim):
     if dim >= 3:
         z = _ensure_array_shape(z, "z", x.shape)
 
-    if dim < 3 and z is not None and z.size > 0:
+    if dim < 3 and z is not None and _compat.get_array_size(z) > 0:
         raise TypeError(f"Plan dimension is {dim}, but `z` was specified")
 
-    if dim < 2 and y is not None and y.size > 0:
+    if dim < 2 and y is not None and _compat.get_array_size(y) > 0:
         raise TypeError(f"Plan dimension is {dim}, but `y` was specified")
 
     return x, y, z
