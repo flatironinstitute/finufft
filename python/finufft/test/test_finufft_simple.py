@@ -6,11 +6,18 @@ import finufft
 import utils
 
 
-@pytest.mark.parametrize("shape", [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)])
-@pytest.mark.parametrize("n_pts", [10, 11])
-@pytest.mark.parametrize("n_trans", [(), (2,)])
-@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-@pytest.mark.parametrize("output_arg", [False, True])
+SHAPES = [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)]
+N_PTS = [10, 11]
+N_TRANS = [(), (2,)]
+DTYPES = [np.complex64, np.complex128]
+OUTPUT_ARGS = [False, True]
+
+
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", SHAPES)
+@pytest.mark.parametrize("n_pts", N_PTS)
+@pytest.mark.parametrize("n_trans", N_TRANS)
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_nufft1(dtype, shape, n_pts, n_trans, output_arg):
     real_dtype = utils._real_dtype(dtype)
 
@@ -38,11 +45,11 @@ def test_nufft1(dtype, shape, n_pts, n_trans, output_arg):
 
     utils.verify_type1(pts, coefs, shape, sig, 1e-6)
 
-@pytest.mark.parametrize("shape", [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)])
-@pytest.mark.parametrize("n_pts", [10, 11])
-@pytest.mark.parametrize("n_trans", [(), (2,)])
-@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-@pytest.mark.parametrize("output_arg", [False, True])
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", SHAPES)
+@pytest.mark.parametrize("n_pts", N_PTS)
+@pytest.mark.parametrize("n_trans", N_TRANS)
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_nufft2(dtype, shape, n_pts, n_trans, output_arg):
     real_dtype = utils._real_dtype(dtype)
 
@@ -64,12 +71,12 @@ def test_nufft2(dtype, shape, n_pts, n_trans, output_arg):
 
     utils.verify_type2(pts, sig, coefs, 1e-6)
 
-@pytest.mark.parametrize("dim", [1, 2, 3])
-@pytest.mark.parametrize("n_source_pts", [10, 11])
-@pytest.mark.parametrize("n_target_pts", [10, 11])
-@pytest.mark.parametrize("n_trans", [(), (2,)])
-@pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-@pytest.mark.parametrize("output_arg", [False, True])
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("dim", list(set(len(shape) for shape in SHAPES)))
+@pytest.mark.parametrize("n_source_pts", N_PTS)
+@pytest.mark.parametrize("n_target_pts", N_PTS)
+@pytest.mark.parametrize("n_trans", N_TRANS)
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_nufft3(dtype, dim, n_source_pts, n_target_pts, n_trans, output_arg):
     real_dtype = utils._real_dtype(dtype)
 
