@@ -139,15 +139,15 @@ def direct_type3(source_pts, source_coefs, target_pts, ind):
     return target_coef
 
 
-def verify_type1(pts, coefs, sig_est, tol):
+def verify_type1(pts, coefs, shape, sig_est, tol):
     dim = pts.shape[0]
 
-    n_tr = coefs.shape[:-1]
-    shape = sig_est.shape[-dim:]
+    n_trans = coefs.shape[:-1]
 
-    assert sig_est.shape[:-dim] == n_tr
+    assert sig_est.shape[:-dim] == n_trans
+    assert sig_est.shape[-dim:] == shape
 
-    idx = gen_sig_idx(shape, n_tr)
+    idx = gen_sig_idx(shape, n_trans)
 
     fk_est = sig_est[idx]
     fk_target = direct_type1(pts, coefs, shape, idx)
@@ -160,12 +160,12 @@ def verify_type1(pts, coefs, sig_est, tol):
 def verify_type2(pts, sig, coefs_est, tol):
     dim = pts.shape[0]
 
-    n_tr = sig.shape[:-dim]
-    M = pts.shape[-1]
+    n_trans = sig.shape[:-dim]
+    n_pts = pts.shape[-1]
 
-    assert coefs_est.shape == n_tr + (M,)
+    assert coefs_est.shape == n_trans + (n_pts,)
 
-    ind = gen_coef_ind(M, n_tr)
+    ind = gen_coef_ind(n_pts, n_trans)
 
     c_est = coefs_est[ind]
     c_target = direct_type2(pts, sig, ind)

@@ -6,14 +6,15 @@ import finufft
 import utils
 
 
-@pytest.mark.parametrize("n_modes", [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)])
+@pytest.mark.parametrize("shape", [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)])
 @pytest.mark.parametrize("n_pts", [10, 11])
-@pytest.mark.parametrize("n_tr", [(), (2,)])
+@pytest.mark.parametrize("n_trans", [(), (2,)])
 @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-@pytest.mark.parametrize("use_out", [False, True])
-def test_nufft1(n_modes, n_pts, n_tr, dtype, use_out):
-    dim = len(n_modes)
+@pytest.mark.parametrize("output_arg", [False, True])
+def test_nufft1(dtype, shape, n_pts, n_trans, output_arg):
     real_dtype = utils._real_dtype(dtype)
+
+    dim = len(shape)
 
     funs = {1: finufft.nufft1d1,
             2: finufft.nufft2d1,
@@ -21,30 +22,31 @@ def test_nufft1(n_modes, n_pts, n_tr, dtype, use_out):
 
     fun = funs[dim]
 
-    pts, coefs = utils.type1_problem(real_dtype, n_modes, n_pts, n_trans=n_tr)
+    pts, coefs = utils.type1_problem(real_dtype, shape, n_pts, n_trans)
 
     # See if it can handle square sizes from ints
-    if all(n == n_modes[0] for n in n_modes):
-        _n_modes = n_modes[0]
+    if all(n == shape[0] for n in shape):
+        _shape = shape[0]
     else:
-        _n_modes = n_modes
+        _shape = shape
 
-    if not use_out:
-        sig = fun(*pts, coefs, _n_modes)
+    if not output_arg:
+        sig = fun(*pts, coefs, _shape)
     else:
-        sig = np.empty(n_tr + n_modes, dtype=dtype)
+        sig = np.empty(n_trans + shape, dtype=dtype)
         fun(*pts, coefs, out=sig)
 
-    utils.verify_type1(pts, coefs, sig, 1e-6)
+    utils.verify_type1(pts, coefs, shape, sig, 1e-6)
 
-@pytest.mark.parametrize("n_modes", [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)])
+@pytest.mark.parametrize("shape", [(7,), (8,), (7, 7), (7, 8), (8, 8), (7, 7, 7), (7, 8, 8), (8, 8, 8)])
 @pytest.mark.parametrize("n_pts", [10, 11])
-@pytest.mark.parametrize("n_tr", [(), (2,)])
+@pytest.mark.parametrize("n_trans", [(), (2,)])
 @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-@pytest.mark.parametrize("use_out", [False, True])
-def test_nufft2(n_modes, n_pts, n_tr, dtype, use_out):
-    dim = len(n_modes)
+@pytest.mark.parametrize("output_arg", [False, True])
+def test_nufft2(dtype, shape, n_pts, n_trans, output_arg):
     real_dtype = utils._real_dtype(dtype)
+
+    dim = len(shape)
 
     funs = {1: finufft.nufft1d2,
             2: finufft.nufft2d2,
@@ -52,23 +54,23 @@ def test_nufft2(n_modes, n_pts, n_tr, dtype, use_out):
 
     fun = funs[dim]
 
-    pts, sig = utils.type2_problem(real_dtype, n_modes, n_pts, n_trans=n_tr)
+    pts, sig = utils.type2_problem(real_dtype, shape, n_pts, n_trans)
 
-    if not use_out:
-        coef = fun(*pts, sig)
+    if not output_arg:
+        coefs = fun(*pts, sig)
     else:
-        coef = np.empty(n_tr + (n_pts,), dtype=dtype)
-        fun(*pts, sig, out=coef)
+        coefs = np.empty(n_trans + (n_pts,), dtype=dtype)
+        fun(*pts, sig, out=coefs)
 
-    utils.verify_type2(pts, sig, coef, 1e-6)
+    utils.verify_type2(pts, sig, coefs, 1e-6)
 
 @pytest.mark.parametrize("dim", [1, 2, 3])
 @pytest.mark.parametrize("n_source_pts", [10, 11])
 @pytest.mark.parametrize("n_target_pts", [10, 11])
-@pytest.mark.parametrize("n_tr", [(), (2,)])
+@pytest.mark.parametrize("n_trans", [(), (2,)])
 @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
-@pytest.mark.parametrize("use_out", [False, True])
-def test_nufft3(dim, n_source_pts, n_target_pts, n_tr, dtype, use_out):
+@pytest.mark.parametrize("output_arg", [False, True])
+def test_nufft3(dtype, dim, n_source_pts, n_target_pts, n_trans, output_arg):
     real_dtype = utils._real_dtype(dtype)
 
     funs = {1: finufft.nufft1d3,
@@ -78,15 +80,15 @@ def test_nufft3(dim, n_source_pts, n_target_pts, n_tr, dtype, use_out):
     fun = funs[dim]
 
     source_pts, source_coefs, target_pts = utils.type3_problem(real_dtype,
-            dim, n_source_pts, n_target_pts, n_trans=n_tr)
+            dim, n_source_pts, n_target_pts, n_trans)
 
-    if not use_out:
-        target_coef = fun(*source_pts, source_coefs, *target_pts)
+    if not output_arg:
+        target_coefs = fun(*source_pts, source_coefs, *target_pts)
     else:
-        target_coef = np.empty(n_tr + (n_target_pts,), dtype=dtype)
-        fun(*source_pts, source_coefs, *target_pts, out=target_coef)
+        target_coefs = np.empty(n_trans + (n_target_pts,), dtype=dtype)
+        fun(*source_pts, source_coefs, *target_pts, out=target_coefs)
 
-    utils.verify_type3(source_pts, source_coefs, target_pts, target_coef, 1e-6)
+    utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
 
 def test_errors():
     with pytest.raises(RuntimeError, match="x dtype should be"):
