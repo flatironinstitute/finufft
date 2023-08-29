@@ -21,8 +21,6 @@ def test_nufft1(n_modes, n_pts, n_tr, dtype, use_out):
 
     fun = funs[dim]
 
-    np.random.seed(0)
-
     pts, coefs = utils.type1_problem(real_dtype, n_modes, n_pts, n_trans=n_tr)
 
     # See if it can handle square sizes from ints
@@ -54,8 +52,6 @@ def test_nufft2(n_modes, n_pts, n_tr, dtype, use_out):
 
     fun = funs[dim]
 
-    np.random.seed(0)
-
     pts, sig = utils.type2_problem(real_dtype, n_modes, n_pts, n_trans=n_tr)
 
     if not use_out:
@@ -80,8 +76,6 @@ def test_nufft3(dim, n_source_pts, n_target_pts, n_tr, dtype, use_out):
             3: finufft.nufft3d3}
 
     fun = funs[dim]
-
-    np.random.seed(0)
 
     source_pts, source_coefs, target_pts = utils.type3_problem(real_dtype,
             dim, n_source_pts, n_target_pts, n_trans=n_tr)
