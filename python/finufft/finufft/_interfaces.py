@@ -508,10 +508,11 @@ def destroy(plan):
     if plan is None:
         return
 
-    ier = plan._destroy(plan.inner_plan)
+    if hasattr(plan, "inner_plan"):
+        ier = plan._destroy(plan.inner_plan)
 
-    if ier != 0:
-        err_handler(ier)
+        if ier != 0:
+            err_handler(ier)
 
 
 ### invoke guru interface, this function is used for simple interfaces
