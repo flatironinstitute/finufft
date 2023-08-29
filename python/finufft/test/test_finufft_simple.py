@@ -18,7 +18,7 @@ OUTPUT_ARGS = [False, True]
 @pytest.mark.parametrize("n_pts", N_PTS)
 @pytest.mark.parametrize("n_trans", N_TRANS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_nufft1(dtype, shape, n_pts, n_trans, output_arg):
+def test_finufft1_simple(dtype, shape, n_pts, n_trans, output_arg):
     dim = len(shape)
 
     funs = {1: finufft.nufft1d1,
@@ -48,7 +48,7 @@ def test_nufft1(dtype, shape, n_pts, n_trans, output_arg):
 @pytest.mark.parametrize("n_pts", N_PTS)
 @pytest.mark.parametrize("n_trans", N_TRANS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_nufft2(dtype, shape, n_pts, n_trans, output_arg):
+def test_finufft2_simple(dtype, shape, n_pts, n_trans, output_arg):
     dim = len(shape)
 
     funs = {1: finufft.nufft1d2,
@@ -73,7 +73,7 @@ def test_nufft2(dtype, shape, n_pts, n_trans, output_arg):
 @pytest.mark.parametrize("n_target_pts", N_PTS)
 @pytest.mark.parametrize("n_trans", N_TRANS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_nufft3(dtype, dim, n_source_pts, n_target_pts, n_trans, output_arg):
+def test_finufft3_simple(dtype, dim, n_source_pts, n_target_pts, n_trans, output_arg):
     funs = {1: finufft.nufft1d3,
             2: finufft.nufft2d3,
             3: finufft.nufft3d3}
@@ -91,7 +91,7 @@ def test_nufft3(dtype, dim, n_source_pts, n_target_pts, n_trans, output_arg):
 
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
 
-def test_errors():
+def test_finufft_simple_errors():
     with pytest.raises(RuntimeError, match="x dtype should be"):
         finufft.nufft1d1(np.zeros(1, "int64"), np.zeros(1), (4,))
 
