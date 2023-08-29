@@ -19,8 +19,6 @@ OUTPUT_ARGS = [False, True]
 @pytest.mark.parametrize("n_trans", N_TRANS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_nufft1(dtype, shape, n_pts, n_trans, output_arg):
-    real_dtype = utils._real_dtype(dtype)
-
     dim = len(shape)
 
     funs = {1: finufft.nufft1d1,
@@ -29,7 +27,7 @@ def test_nufft1(dtype, shape, n_pts, n_trans, output_arg):
 
     fun = funs[dim]
 
-    pts, coefs = utils.type1_problem(real_dtype, shape, n_pts, n_trans)
+    pts, coefs = utils.type1_problem(dtype, shape, n_pts, n_trans)
 
     # See if it can handle square sizes from ints
     if all(n == shape[0] for n in shape):
@@ -51,8 +49,6 @@ def test_nufft1(dtype, shape, n_pts, n_trans, output_arg):
 @pytest.mark.parametrize("n_trans", N_TRANS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_nufft2(dtype, shape, n_pts, n_trans, output_arg):
-    real_dtype = utils._real_dtype(dtype)
-
     dim = len(shape)
 
     funs = {1: finufft.nufft1d2,
@@ -61,7 +57,7 @@ def test_nufft2(dtype, shape, n_pts, n_trans, output_arg):
 
     fun = funs[dim]
 
-    pts, sig = utils.type2_problem(real_dtype, shape, n_pts, n_trans)
+    pts, sig = utils.type2_problem(dtype, shape, n_pts, n_trans)
 
     if not output_arg:
         coefs = fun(*pts, sig)
@@ -78,15 +74,13 @@ def test_nufft2(dtype, shape, n_pts, n_trans, output_arg):
 @pytest.mark.parametrize("n_trans", N_TRANS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
 def test_nufft3(dtype, dim, n_source_pts, n_target_pts, n_trans, output_arg):
-    real_dtype = utils._real_dtype(dtype)
-
     funs = {1: finufft.nufft1d3,
             2: finufft.nufft2d3,
             3: finufft.nufft3d3}
 
     fun = funs[dim]
 
-    source_pts, source_coefs, target_pts = utils.type3_problem(real_dtype,
+    source_pts, source_coefs, target_pts = utils.type3_problem(dtype,
             dim, n_source_pts, n_target_pts, n_trans)
 
     if not output_arg:
