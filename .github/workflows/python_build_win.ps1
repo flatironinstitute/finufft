@@ -41,6 +41,8 @@ Copy-Item -Path C:\msys64\mingw64\bin\libgomp-*.dll -Destination ([IO.Path]::Com
 Copy-Item -Path C:\msys64\mingw64\bin\libwinpthread-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
 Copy-Item -Path C:\msys64\mingw64\bin\libfftw3-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
 Copy-Item -Path C:\msys64\mingw64\bin\libfftw3f-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+Copy-Item -Path C:\msys64\mingw64\bin\libfftw3_omp-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
+Copy-Item -Path C:\msys64\mingw64\bin\libfftw3f_omp-*.dll -Destination ([IO.Path]::Combine($unpacked_wheel, 'finufft'))
 New-Item -Path .\wheelhouse -ItemType Directory -Force
 wheel.exe pack $unpacked_wheel -d .\wheelhouse
 if (-not $?) {throw "Failed pack wheel"}
