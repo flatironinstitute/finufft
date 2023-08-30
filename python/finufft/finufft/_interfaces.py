@@ -204,8 +204,6 @@ class Plan:
             ier = self._setpts(self.inner_plan, self.nj, self._yj, self._xj, self._zj, self.nk, self._t, self._s, self._u)
         elif self.dim == 3:
             ier = self._setpts(self.inner_plan, self.nj, self._zj, self._yj, self._xj, self.nk, self._u, self._t, self._s)
-        else:
-            raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
 
         if ier != 0:
             err_handler(ier)
@@ -279,8 +277,6 @@ class Plan:
             ier = self._execute(self.inner_plan,
                                 _out.ctypes.data_as(c_void_p),
                                 _data.ctypes.data_as(c_void_p))
-        else:
-            ier = 10
 
         # check error
         if ier != 0:
@@ -505,9 +501,6 @@ def setkwopts(opt,**kwargs):
 
 ### destroy
 def destroy(plan):
-    if plan is None:
-        return
-
     if hasattr(plan, "inner_plan"):
         ier = plan._destroy(plan.inner_plan)
 
