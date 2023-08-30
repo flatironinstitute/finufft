@@ -34,7 +34,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: linux-wheels
-        path: python/wheelhouse/finufft*manylinux*.whl
+        path: python/finufft/wheelhouse/finufft*manylinux*.whl
 
   MacOS:
     runs-on: macos-latest
@@ -148,7 +148,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: macos-wheels
-        path: python/fixed_wheel/*.whl
+        path: python/finufft/fixed_wheel/*.whl
 
   Windows:
     runs-on: windows-latest
