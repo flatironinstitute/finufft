@@ -76,6 +76,24 @@ def test_finufft3_plan(dtype, dim, n_source_pts, n_target_pts, output_arg):
     utils.verify_type3(source_pts, source_coefs, target_pts, target_coefs, 1e-6)
 
 
+def test_finufft_plan_modeord():
+    dtype = "complex64"
+    shape = (8, 8)
+    n_pts = 17
+
+    plan = Plan(1, shape, dtype=dtype, modeord=1)
+
+    pts, coefs = utils.type1_problem(dtype, shape, n_pts)
+
+    plan.setpts(*pts)
+
+    sig = plan.execute(coefs)
+
+    sig = np.fft.fftshift(sig)
+
+    utils.verify_type1(pts, coefs, shape, sig, 1e-6)
+
+
 def test_finufft_plan_errors():
     with pytest.raises(RuntimeError, match="must be single or double"):
         Plan(1, (8, 8), dtype="uint32")
