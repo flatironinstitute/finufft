@@ -100,6 +100,20 @@ class Plan:
         _finufft._default_opts(opts)
         setkwopts(opts,**kwargs)
 
+        dtype = np.dtype(dtype)
+
+        if dtype == np.float64:
+            warnings.warn("Real dtypes are currently deprecated and will be "
+                          "removed in version 2.3. Converting to complex128.",
+                          DeprecationWarning)
+            dtype = np.complex128
+
+        if dtype == np.float32:
+            warnings.warn("Real dtypes are currently deprecated and will be "
+                          "removed in version 2.3. Converting to complex64.",
+                          DeprecationWarning)
+            dtype = np.complex64
+
         is_single = is_single_dtype(dtype)
 
         # construct plan based on precision type and eps default value
@@ -462,9 +476,9 @@ def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
 def is_single_dtype(dtype):
     dtype = np.dtype(dtype)
 
-    if dtype == np.dtype('float64') or dtype == np.dtype('complex128'):
+    if dtype == np.dtype('complex128'):
         return False
-    elif dtype == np.dtype('float32') or dtype == np.dtype('complex64'):
+    elif dtype == np.dtype('complex64'):
         return True
     else:
         raise RuntimeError('FINUFFT dtype(precision type) must be single or double')
