@@ -67,7 +67,7 @@ int cufinufft_destroy(cufinufft_plan d_plan) {
     return cufinufft_destroy_impl<double>((cufinufft_plan_t<double> *)d_plan);
 }
 
-int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
+void cufinufft_default_opts(cufinufft_opts *opts)
 /*
     Sets the default options in cufinufft_opts. This must be called
     before the user changes any options from default values.
@@ -109,7 +109,5 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 
     // By default, only use device 0
     opts->gpu_device_id = 0;
-
-    return 0;
 }
 }

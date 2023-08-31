@@ -115,7 +115,7 @@ class Plan:
         self._maxbatch = 1    # TODO: optimize this one day
 
         # Get the default option values.
-        self._opts = self._default_opts(nufft_type, self.dim)
+        self._opts = self._default_opts()
 
         # Extract list of valid field names.
         field_names = [name for name, _ in self._opts._fields_]
@@ -135,7 +135,7 @@ class Plan:
         self._references = []
 
     @staticmethod
-    def _default_opts(nufft_type, dim):
+    def _default_opts():
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
 
@@ -147,10 +147,7 @@ class Plan:
 
         nufft_opts = NufftOpts()
 
-        ier = _default_opts(nufft_type, dim, nufft_opts)
-
-        if ier != 0:
-            raise RuntimeError('Configuration not yet implemented.')
+        _default_opts(nufft_opts)
 
         return nufft_opts
 
