@@ -116,6 +116,15 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
     }
 
+    /* Automatically set GPU method. */
+    if(d_plan->opts.gpu_method == 0)
+    {
+        if(type == 1)
+            d_plan->opts.gpu_method = 2;
+        else if(type == 2)
+            d_plan->opts.gpu_method = 1;
+    }
+
     /* Setup Spreader */
     using namespace cufinufft::common;
     ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts);
