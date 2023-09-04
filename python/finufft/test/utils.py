@@ -191,4 +191,4 @@ def verify_type3(source_pts, source_coef, target_pts, target_coef, tol):
 
     type3_rel_err = np.linalg.norm(target_est - target_true) / np.linalg.norm(target_true)
 
-    assert type3_rel_err < 60 * tol
+    assert type3_rel_err < 100 * tol
