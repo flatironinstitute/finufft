@@ -282,12 +282,7 @@ class Plan:
         if ier != 0:
             err_handler(ier)
 
-        # return out
-        if out is None:
-            return _out
-        else:
-            _copy(_out,out)
-            return out
+        return _out
 
 
     def __del__(self):
@@ -321,15 +316,6 @@ def _ensure_array_type(x, name, dtype, output=False):
                 x = np.array(x, dtype=dtype, order="C")
 
     return x
-
-
-### David Stein's functions for checking input and output variables
-def _copy(_x, x):
-    """
-    Copy _x to x, only if the underlying data of _x differs from that of x
-    """
-    if _x is not x:
-        x[:] = _x
 
 
 ### error handler (keep up to date with FINUFFT/include/defs.h)
