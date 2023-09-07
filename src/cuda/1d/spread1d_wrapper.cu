@@ -166,13 +166,13 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            spread_1d_nuptsdriven_horner<<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
-                                                                      sigma, d_idxnupts, pirange);
+            spread_1d_nuptsdriven<T, 1><<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
+                                                                     es_c, es_beta, sigma, d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            spread_1d_nuptsdriven<<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c,
-                                                               es_beta, d_idxnupts, pirange);
+            spread_1d_nuptsdriven<T, 0><<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
+                                                                     es_c, es_beta, sigma, d_idxnupts, pirange);
         }
     }
 
@@ -280,13 +280,14 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            spread_1d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
-                d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, sigma, d_binstartpts, d_binsize, bin_size_x,
-                d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts, pirange);
+            spread_1d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize>>>(
+                d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_binstartpts, d_binsize,
+                bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts,
+                pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            spread_1d_subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
+            spread_1d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_binstartpts, d_binsize,
                 bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts,
                 pirange);
