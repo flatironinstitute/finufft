@@ -525,13 +525,13 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
 
     for (int t = 0; t < blksize; t++) {
         if (d_plan->opts.gpu_kerevalmeth) {
-            spread_3d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
-                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, d_binstartpts,
-                d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-                maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+            spread_3d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize>>>(
+                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, es_c, es_beta,
+                d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
+                d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
         } else {
-            spread_3d_subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
-                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta,
+            spread_3d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize>>>(
+                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, es_c, es_beta,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
         }
