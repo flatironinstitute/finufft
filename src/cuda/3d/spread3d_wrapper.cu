@@ -198,15 +198,15 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
 
     if (d_plan->opts.gpu_kerevalmeth == 1) {
         for (int t = 0; t < blksize; t++) {
-            spread_3d_nupts_driven_horner<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz, d_c + t * M,
-                                                                       d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
-                                                                       sigma, d_idxnupts, pirange);
+            spread_3d_nupts_driven<T, 1><<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz, d_c + t * M,
+                                                                      d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
+                                                                      es_c, es_beta, sigma, d_idxnupts, pirange);
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            spread_3d_nupts_driven<<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz, d_c + t * M,
-                                                                d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c,
-                                                                es_beta, d_idxnupts, pirange);
+            spread_3d_nupts_driven<T, 0><<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz, d_c + t * M,
+                                                                      d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
+                                                                      es_c, es_beta, sigma, d_idxnupts, pirange);
         }
     }
 
@@ -391,7 +391,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
                 std::cout << "error: not enough shared memory" << std::endl;
                 return 1;
             }
-            spread_3d_block_gather_horner<<<totalnumsubprob, 64, sharedplanorysize>>>(
+            spread_3d_block_gather<T, 1><<<totalnumsubprob, 64, sharedplanorysize>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, obin_size_x, obin_size_y, obin_size_z, binsperobinx * binsperobiny * binsperobinz,
                 d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts,
@@ -402,7 +402,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
                 std::cout << "error: not enough shared memory" << std::endl;
                 return 1;
             }
-            spread_3d_block_gather<<<totalnumsubprob, 64, sharedplanorysize>>>(
+            spread_3d_block_gather<T, 0><<<totalnumsubprob, 64, sharedplanorysize>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, obin_size_x, obin_size_y, obin_size_z, binsperobinx * binsperobiny * binsperobinz,
                 d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts,
