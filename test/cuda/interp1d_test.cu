@@ -36,7 +36,6 @@ int run_test(int method, int nupts_distribute, int nf1, int M, T tol, int kereva
     checkCudaErrors(cudaMalloc(&d_c, M * sizeof(complex_t)));
     checkCudaErrors(cudaMalloc(&d_fw, nf1 * sizeof(complex_t)));
 
-    int dim = 1;
     cufinufft_plan_t<real_t> *dplan;
     dplan = new cufinufft_plan_t<real_t>;
     // Zero out your struct, (sets all pointers to NULL, crucial)

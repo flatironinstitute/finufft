@@ -113,11 +113,10 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     }
 
     /* Automatically set GPU method. */
-    if(d_plan->opts.gpu_method == 0)
-    {
-        if(type == 1)
+    if (d_plan->opts.gpu_method == 0) {
+        if (type == 1)
             d_plan->opts.gpu_method = 2;
-        else if(type == 2)
+        else if (type == 2)
             d_plan->opts.gpu_method = 1;
     }
 
