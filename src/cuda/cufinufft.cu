@@ -67,7 +67,7 @@ int cufinufft_destroy(cufinufft_plan d_plan) {
     return cufinufft_destroy_impl<double>((cufinufft_plan_t<double> *)d_plan);
 }
 
-int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
+void cufinufft_default_opts(cufinufft_opts *opts)
 /*
     Sets the default options in cufinufft_opts. This must be called
     before the user changes any options from default values.
@@ -84,7 +84,6 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
     Melody Shih 07/25/19; Barnett 2/5/21.
 */
 {
-    int ier;
     opts->upsampfac = 2.0;
 
     /* following options are for gpu */
@@ -104,54 +103,11 @@ int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts)
 
     opts->gpu_maxbatchsize = 0; // Heuristically set
 
-    switch (dim) {
-    case 1: {
-        opts->gpu_kerevalmeth = 1; // using horner
-        if (type == 1) {
-            opts->gpu_method = 2;
-        }
-        if (type == 2) {
-            opts->gpu_method = 1;
-        }
-        if (type == 3) {
-            std::cerr << "Not Implemented yet" << std::endl;
-            ier = 1;
-            return ier;
-        }
-    } break;
-    case 2: {
-        opts->gpu_kerevalmeth = 1; // using horner
-        if (type == 1) {
-            opts->gpu_method = 2;
-        }
-        if (type == 2) {
-            opts->gpu_method = 1;
-        }
-        if (type == 3) {
-            std::cerr << "Not Implemented yet" << std::endl;
-            ier = 1;
-            return ier;
-        }
-    } break;
-    case 3: {
-        opts->gpu_kerevalmeth = 1; // using horner
-        if (type == 1) {
-            opts->gpu_method = 2;
-        }
-        if (type == 2) {
-            opts->gpu_method = 1;
-        }
-        if (type == 3) {
-            std::cerr << "Not Implemented yet" << std::endl;
-            ier = 1;
-            return ier;
-        }
-    } break;
-    }
+    opts->gpu_kerevalmeth = 1; // Horner
+
+    opts->gpu_method = 0; // Auto method (2 for type 1, 2 for type 2).
 
     // By default, only use device 0
     opts->gpu_device_id = 0;
-
-    return 0;
 }
 }

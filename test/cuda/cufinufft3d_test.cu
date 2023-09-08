@@ -86,11 +86,8 @@ int run_test(int method, int type, int N1, int N2, int N3, int M, T tol, T check
 
     // Here we setup our own opts, for gpu_method and gpu_kerevalmeth.
     cufinufft_opts opts;
-    ier = cufinufft_default_opts(type, dim, &opts);
-    if (ier != 0) {
-        printf("err %d: cufinufft_default_opts\n", ier);
-        return ier;
-    }
+    cufinufft_default_opts(&opts);
+
     opts.gpu_method = method;
     opts.gpu_kerevalmeth = 1;
     opts.gpu_maxbatchsize = 1;

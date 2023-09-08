@@ -36,12 +36,11 @@ int run_test(int method, int nupts_distribute, int nf1, int M, T tol, int kereva
     checkCudaErrors(cudaMalloc(&d_c, M * sizeof(complex_t)));
     checkCudaErrors(cudaMalloc(&d_fw, nf1 * sizeof(complex_t)));
 
-    int dim = 1;
     cufinufft_plan_t<real_t> *dplan;
     dplan = new cufinufft_plan_t<real_t>;
     // Zero out your struct, (sets all pointers to NULL, crucial)
     memset(dplan, 0, sizeof(*dplan));
-    ier = cufinufft_default_opts(2, dim, &(dplan->opts));
+    cufinufft_default_opts(&(dplan->opts));
     dplan->opts.gpu_method = method;
     dplan->opts.gpu_maxsubprobsize = 1024;
     dplan->opts.gpu_kerevalmeth = kerevalmeth;

@@ -91,8 +91,8 @@ CufinufftPlanf_p = ctypes.POINTER(CufinufftPlanf)
 NufftOpts_p = ctypes.POINTER(NufftOpts)
 
 _default_opts = lib.cufinufft_default_opts
-_default_opts.argtypes = [c_int, c_int, NufftOpts_p]
-_default_opts.restype = c_int
+_default_opts.argtypes = [NufftOpts_p]
+_default_opts.restype = None
 
 _make_plan = lib.cufinufft_makeplan
 _make_plan.argtypes = [
