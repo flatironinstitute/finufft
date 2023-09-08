@@ -5,7 +5,6 @@ the cufinufft CUDA libraries.
 """
 
 import atexit
-import inspect
 import sys
 import warnings
 
@@ -198,10 +197,9 @@ class Plan:
                     points (source for type 1, target for type 2).
         """
 
-        _gpu_array_ctor = _get_array_ctor(x)
-        _x = _ensure_array_type(x, "x", _gpu_array_ctor, self.real_dtype)
-        _y = _ensure_array_type(y, "y", _gpu_array_ctor, self.real_dtype)
-        _z = _ensure_array_type(z, "z", _gpu_array_ctor, self.real_dtype)
+        _x = _ensure_array_type(x, "x", self.real_dtype)
+        _y = _ensure_array_type(y, "y", self.real_dtype)
+        _z = _ensure_array_type(z, "z", self.real_dtype)
 
         _x, _y, _z = _ensure_valid_pts(_x, _y, _z, self.dim)
 
@@ -257,9 +255,8 @@ class Plan:
             complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
         """
 
-        _gpu_array_ctor = _get_array_ctor(data)
-        _data = _ensure_array_type(data, "data", _gpu_array_ctor, self.dtype)
-        _out = _ensure_array_type(out, "out", _gpu_array_ctor, self.dtype, output=True)
+        _data = _ensure_array_type(data, "data", self.dtype)
+        _out = _ensure_array_type(out, "out", self.dtype, output=True)
 
         if self.type == 1:
             req_data_shape = (self.n_trans, self.nj)
@@ -315,7 +312,7 @@ class Plan:
         self._references = []
 
 
-def _ensure_array_type(x, name, gpu_array_ctor, dtype, output=False):
+def _ensure_array_type(x, name, dtype, output=False):
     if x is None:
         return None
 
@@ -368,40 +365,3 @@ def _ensure_valid_pts(x, y, z, dim):
         raise TypeError(f"Plan dimension is {dim}, but `y` was specified")
 
     return x, y, z
-
-
-def _get_ptr(data):
-    if not hasattr(data, "__cuda_array_interface__"):
-        raise TypeError("Invalid GPU array implementation. Implementation must implement the standard cuda array interface.")
-    return data.__cuda_array_interface__['data'][0]
-
-
-def _get_module(obj):
-    return inspect.getmodule(type(obj)).__name__
-
-
-def _get_array_ctor(obj):
-    module_name = _get_module(obj)
-    if module_name.startswith('numba.cuda'):
-        import numba.cuda
-        return (numba.cuda.device_array, 'numba')
-    elif module_name.startswith('torch'):
-        import torch
-        def ctor(*args, **kwargs):
-            if 'shape' in kwargs:
-                kwargs['size'] = kwargs.pop('shape')
-            if 'dtype' in kwargs:
-                dtype = kwargs.pop('dtype')
-                if dtype == np.complex64:
-                    dtype = torch.complex64
-                if dtype == np.complex128:
-                    dtype = torch.complex128
-                kwargs['dtype'] = dtype
-            if 'device' not in kwargs:
-                kwargs['device'] = obj.device
-
-            return torch.empty(*args, **kwargs)
-
-        return (ctor, 'torch')
-    else:
-        return (type(obj), 'generic')
