@@ -2,10 +2,8 @@ import pytest
 
 import numpy as np
 
-import pycuda.autoinit
-import pycuda.gpuarray as gpuarray
-
 import cufinufft
+from cufinufft import _compat
 
 import utils
 
@@ -22,7 +20,7 @@ OUTPUT_ARGS = [False, True]
 @pytest.mark.parametrize("M", MS)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_simple_type1(dtype, shape, n_trans, M, tol, output_arg):
+def test_simple_type1(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg):
     real_dtype = dtype
     complex_dtype = utils._complex_dtype(dtype)
 
@@ -35,20 +33,21 @@ def test_simple_type1(dtype, shape, n_trans, M, tol, output_arg):
 
     k, c = utils.type1_problem(dtype, shape, M, n_trans=n_trans)
 
-    k_gpu = gpuarray.to_gpu(k)
-    c_gpu = gpuarray.to_gpu(c)
+    k_gpu = to_gpu(k)
+    c_gpu = to_gpu(c)
 
     if output_arg:
         # Ensure that output array has proper shape i.e., (N1, ...) for no
         # batch, (1, N1, ...) for batch of size one, and (n, N1, ...) for
         # batch of size n.
-        fk_gpu = gpuarray.GPUArray(n_trans + shape, dtype=complex_dtype)
+        fk_gpu = _compat.array_empty_like(c_gpu, n_trans + shape,
+                dtype=complex_dtype)
 
         fun(*k_gpu, c_gpu, out=fk_gpu, eps=tol)
     else:
         fk_gpu = fun(*k_gpu, c_gpu, shape, eps=tol)
 
-    fk = fk_gpu.get()
+    fk = to_cpu(fk_gpu)
 
     utils.verify_type1(k, c, fk, tol)
 
@@ -59,7 +58,7 @@ def test_simple_type1(dtype, shape, n_trans, M, tol, output_arg):
 @pytest.mark.parametrize("M", MS)
 @pytest.mark.parametrize("tol", TOLS)
 @pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
-def test_simple_type2(dtype, shape, n_trans, M, tol, output_arg):
+def test_simple_type2(to_gpu, to_cpu, dtype, shape, n_trans, M, tol, output_arg):
     real_dtype = dtype
     complex_dtype = utils._complex_dtype(dtype)
 
@@ -71,16 +70,17 @@ def test_simple_type2(dtype, shape, n_trans, M, tol, output_arg):
 
     k, fk = utils.type2_problem(dtype, shape, M, n_trans=n_trans)
 
-    k_gpu = gpuarray.to_gpu(k)
-    fk_gpu = gpuarray.to_gpu(fk)
+    k_gpu = to_gpu(k)
+    fk_gpu = to_gpu(fk)
 
     if output_arg:
-        c_gpu = gpuarray.GPUArray(n_trans + (M,), dtype=complex_dtype)
+        c_gpu = _compat.array_empty_like(fk_gpu, n_trans + (M,),
+                dtype=complex_dtype)
 
         fun(*k_gpu, fk_gpu, eps=tol, out=c_gpu)
     else:
         c_gpu = fun(*k_gpu, fk_gpu, eps=tol)
 
-    c = c_gpu.get()
+    c = to_cpu(c_gpu)
 
     utils.verify_type2(k, fk, c, tol)
