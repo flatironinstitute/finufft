@@ -10,7 +10,7 @@ typedef struct cufinufft_fplan_s *cufinufftf_plan;
 #ifdef __cplusplus
 extern "C" {
 #endif
-int cufinufft_default_opts(int type, int dim, cufinufft_opts *opts);
+void cufinufft_default_opts(cufinufft_opts *opts);
 
 int cufinufft_makeplan(int type, int dim, int64_t *n_modes, int iflag, int ntr, double eps, cufinufft_plan *d_plan_ptr,
                        cufinufft_opts *opts);

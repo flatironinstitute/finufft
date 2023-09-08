@@ -26,6 +26,7 @@ from cufinufft._cufinufft import _exec_planf
 from cufinufft._cufinufft import _destroy_plan
 from cufinufft._cufinufft import _destroy_planf
 
+from cufinufft import _compat
 
 
 # If we are shutting down python, we don't need to run __del__
@@ -115,7 +116,7 @@ class Plan:
         self._maxbatch = 1    # TODO: optimize this one day
 
         # Get the default option values.
-        self._opts = self._default_opts(nufft_type, self.dim)
+        self._opts = self._default_opts()
 
         # Extract list of valid field names.
         field_names = [name for name, _ in self._opts._fields_]
@@ -135,7 +136,7 @@ class Plan:
         self._references = []
 
     @staticmethod
-    def _default_opts(nufft_type, dim):
+    def _default_opts():
         """
         Generates a cufinufft opt struct of the dtype coresponding to plan.
 
@@ -147,10 +148,7 @@ class Plan:
 
         nufft_opts = NufftOpts()
 
-        ier = _default_opts(nufft_type, dim, nufft_opts)
-
-        if ier != 0:
-            raise RuntimeError('Configuration not yet implemented.')
+        _default_opts(nufft_opts)
 
         return nufft_opts
 
@@ -207,10 +205,7 @@ class Plan:
 
         _x, _y, _z = _ensure_valid_pts(_x, _y, _z, self.dim)
 
-        if _gpu_array_ctor[1] == 'torch':
-            M = len(_x)
-        else:
-            M = _x.size
+        M = _compat.get_array_size(_x)
 
         # Because FINUFFT/cufinufft are internally column major,
         #   we will reorder the pts axes. Reordering references
@@ -221,17 +216,17 @@ class Plan:
         #     (x, y, None)    ~>  (y, x, None)
         #     (x, y, z)       ~>  (z, y, x)
         # Via code, we push each dimension onto a stack of axis
-        fpts_axes = [_get_ptr(_x), None, None]
+        fpts_axes = [_compat.get_array_ptr(_x), None, None]
 
         # We will also store references to these arrays.
         #   This keeps python from prematurely cleaning them up.
         self._references.append(_x)
         if self.dim >= 2:
-            fpts_axes.insert(0, _get_ptr(_y))
+            fpts_axes.insert(0, _compat.get_array_ptr(_y))
             self._references.append(_y)
 
         if self.dim >= 3:
-            fpts_axes.insert(0, _get_ptr(_z))
+            fpts_axes.insert(0, _compat.get_array_ptr(_z))
             self._references.append(_z)
 
         # Then take three items off the stack as our reordered axis.
@@ -283,14 +278,16 @@ class Plan:
         req_out_shape = batch_shape + req_out_shape
 
         if out is None:
-            _out = _gpu_array_ctor[0](req_out_shape, dtype=self.dtype)
+            _out = _compat.array_empty_like(_data, req_out_shape, dtype=self.dtype)
         else:
             _out = _ensure_array_shape(_out, "out", req_out_shape)
 
         if self.type == 1:
-            ier = self._exec_plan(self._plan, _get_ptr(data), _get_ptr(_out))
+            ier = self._exec_plan(self._plan, _compat.get_array_ptr(_data),
+                    _compat.get_array_ptr(_out))
         elif self.type == 2:
-            ier = self._exec_plan(self._plan, _get_ptr(_out), _get_ptr(data))
+            ier = self._exec_plan(self._plan, _compat.get_array_ptr(_out),
+                    _compat.get_array_ptr(_data))
 
         if ier != 0:
             raise RuntimeError('Error executing plan.')
@@ -322,25 +319,19 @@ def _ensure_array_type(x, name, gpu_array_ctor, dtype, output=False):
     if x is None:
         return None
 
-    _, gpu_array_module = gpu_array_ctor
-    if gpu_array_module == 'torch':
-        if (str(x.dtype) == 'torch.float32' and dtype != np.float32) or (str(x.dtype) == 'torch.float64' and dtype != np.float64):
-            raise TypeError(f"Argument `{name}` does not have the correct dtype: "
-                            f"{x.dtype} was given, but {dtype} was expected.")
-    elif x.dtype != dtype:
+    if _compat.get_array_dtype(x) != dtype:
         raise TypeError(f"Argument `{name}` does not have the correct dtype: "
                         f"{x.dtype} was given, but {dtype} was expected.")
 
-    if gpu_array_module == 'numba':
-        c_contiguous = x.is_c_contiguous()
-    elif gpu_array_module == 'torch':
-        c_contiguous = x.is_contiguous()
-    else:
-        c_contiguous = x.flags.c_contiguous
-
-    if not c_contiguous:
-        raise TypeError(f"Argument `{name}` does not satisfy the "
-                        f"following requirement: C")
+    if not _compat.is_array_contiguous(x):
+        if output or not _compat.array_can_contiguous(x):
+            raise TypeError(f"Argument `{name}` does not satisfy the "
+                            f"following requirement: C")
+        else:
+            warnings.warn(f"Argument `{name}` does not satisfy the "
+                          f"following requirement: C. Copying array "
+                          f"(this may reduce performance)")
+            x = _compat.array_contiguous(x)
 
     return x
 
@@ -370,10 +361,10 @@ def _ensure_valid_pts(x, y, z, dim):
     if dim >= 3:
         z = _ensure_array_shape(z, "z", x.shape)
 
-    if dim < 3 and z is not None and z.size > 0:
+    if dim < 3 and z is not None and _compat.get_array_size(z) > 0:
         raise TypeError(f"Plan dimension is {dim}, but `z` was specified")
 
-    if dim < 2 and y is not None and y.size > 0:
+    if dim < 2 and y is not None and _compat.get_array_size(y) > 0:
         raise TypeError(f"Plan dimension is {dim}, but `y` was specified")
 
     return x, y, z

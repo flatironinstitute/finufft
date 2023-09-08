@@ -234,7 +234,7 @@ void run_test(test_options_t &test_opts) {
     for (int i = 0; i < 3; ++i)
         dim = test_opts.N[i] > 1 ? i + 1 : dim;
 
-    cufinufft_default_opts(test_opts.type, dim, &opts);
+    cufinufft_default_opts(&opts);
     opts.gpu_method = test_opts.method;
     opts.gpu_sort = test_opts.sort;
     opts.gpu_kerevalmeth = test_opts.kerevalmethod;

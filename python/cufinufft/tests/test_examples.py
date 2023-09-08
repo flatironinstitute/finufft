@@ -17,5 +17,11 @@ for filename in os.listdir(examples_dir):
         scripts.append(os.path.join(examples_dir, filename))
 
 @pytest.mark.parametrize("filename", scripts)
-def test_example(filename):
-    subprocess.check_call([sys.executable, filename])
+def test_example(filename, request):
+    # Extract framework from format `example_framework.py`.
+    framework = Path(filename).stem.split("_")[-1]
+
+    if framework in request.config.getoption("framework"):
+        subprocess.check_call([sys.executable, filename])
+    else:
+        pytest.skip("Example not in list of frameworks")

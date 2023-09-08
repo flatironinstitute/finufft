@@ -107,16 +107,20 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
     /* If a user has not supplied their own options, assign defaults for them. */
     if (opts == NULL) { // use default opts
-        ier = cufinufft_default_opts(type, dim, &(d_plan->opts));
-        if (ier != 0) {
-            printf("error: cufinufft_default_opts returned error %d.\n", ier);
-            return ier;
-        }
+        cufinufft_default_opts(&(d_plan->opts));
     } else {                  // or read from what's passed in
         d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
     }
 
     d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
+
+    /* Automatically set GPU method. */
+    if (d_plan->opts.gpu_method == 0) {
+        if (type == 1)
+            d_plan->opts.gpu_method = 2;
+        else if (type == 2)
+            d_plan->opts.gpu_method = 1;
+    }
 
     /* Setup Spreader */
     using namespace cufinufft::common;

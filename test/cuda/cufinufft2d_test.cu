@@ -82,11 +82,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
 
     // Here we setup our own opts, for gpu_method.
     cufinufft_opts opts;
-    int ier = cufinufft_default_opts(type, dim, &opts);
-    if (ier != 0) {
-        printf("err %d: cufinufft_default_opts\n", ier);
-        return ier;
-    }
+    cufinufft_default_opts(&opts);
 
     opts.gpu_method = method;
     opts.gpu_maxbatchsize = 1;
@@ -94,7 +90,7 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     int nmodes[3] = {N1, N2, 1};
     int ntransf = 1;
     cudaEventRecord(start);
-    ier = cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
+    int ier = cufinufft_makeplan_impl(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
     if (ier != 0) {
         printf("err: cufinufft2d_plan\n");
         return ier;

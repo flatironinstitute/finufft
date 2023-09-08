@@ -2,13 +2,13 @@
 
 # Helper Script For Building Wheels
 
-cufinufft_version=1.3
+cufinufft_version=2.2
 manylinux_version=manylinux2014
 cuda_version=11.0
 dockerhub=janden
 
 
-echo "# build the wheel"
+echo "# Build the docker image"
 docker build \
     --file tools/cufinufft/docker/cuda${cuda_version}/Dockerfile-x86_64 \
     --tag ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version} .
@@ -21,14 +21,16 @@ docker create \
     --tty \
     --volume $(pwd)/wheelhouse:/io/wheelhouse \
     --env PLAT=${manylinux_version}_x86_64 \
+    --env LIBRARY_PATH="/io/build" \
+    --env LD_LIBRARY_PATH="/io/build" \
     --name cufinufft \
     ${dockerhub}/cufinufft-${cufinufft_version}-${manylinux_version}
 
 docker start cufinufft
 
-echo "# Build the library and install it"
+echo "# Copy the code and build the library"
+docker cp . cufinufft:/io
 docker exec cufinufft /io/tools/cufinufft/build-library.sh
-docker exec cufinufft cp /io/build/libcufinufft.so /usr/lib
 
 echo "# Build the wheels"
 docker exec cufinufft /io/tools/cufinufft/build-wheels.sh
@@ -41,9 +43,7 @@ echo "# Copy the wheels we care about to the dist folder"
 mkdir -p dist
 cp -v wheelhouse/cufinufft-${cufinufft_version}-cp3*${manylinux_version}* dist
 
-
 echo "The following steps should be performed manually for now.\n"
-
 
 echo "# Push to Test PyPI for review/testing"
 echo "#twine upload -r testpypi dist/*"
