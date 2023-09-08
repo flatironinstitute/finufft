@@ -204,8 +204,6 @@ class Plan:
             ier = self._setpts(self.inner_plan, self.nj, self._yj, self._xj, self._zj, self.nk, self._t, self._s, self._u)
         elif self.dim == 3:
             ier = self._setpts(self.inner_plan, self.nj, self._zj, self._yj, self._xj, self.nk, self._u, self._t, self._s)
-        else:
-            raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
 
         if ier != 0:
             err_handler(ier)
@@ -279,19 +277,12 @@ class Plan:
             ier = self._execute(self.inner_plan,
                                 _out.ctypes.data_as(c_void_p),
                                 _data.ctypes.data_as(c_void_p))
-        else:
-            ier = 10
 
         # check error
         if ier != 0:
             err_handler(ier)
 
-        # return out
-        if out is None:
-            return _out
-        else:
-            _copy(_out,out)
-            return out
+        return _out
 
 
     def __del__(self):
@@ -325,15 +316,6 @@ def _ensure_array_type(x, name, dtype, output=False):
                 x = np.array(x, dtype=dtype, order="C")
 
     return x
-
-
-### David Stein's functions for checking input and output variables
-def _copy(_x, x):
-    """
-    Copy _x to x, only if the underlying data of _x differs from that of x
-    """
-    if _x is not x:
-        x[:] = _x
 
 
 ### error handler (keep up to date with FINUFFT/include/defs.h)
@@ -505,13 +487,11 @@ def setkwopts(opt,**kwargs):
 
 ### destroy
 def destroy(plan):
-    if plan is None:
-        return
+    if hasattr(plan, "inner_plan"):
+        ier = plan._destroy(plan.inner_plan)
 
-    ier = plan._destroy(plan.inner_plan)
-
-    if ier != 0:
-        err_handler(ier)
+        if ier != 0:
+            err_handler(ier)
 
 
 ### invoke guru interface, this function is used for simple interfaces

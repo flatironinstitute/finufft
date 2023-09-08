@@ -128,21 +128,33 @@ jobs:
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install --pre finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 test/run_accuracy_tests.py
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 examples/simple1d1.py
+        /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install pytest
+        /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pytest test
         /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install --pre finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 test/run_accuracy_tests.py
         /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 examples/simple1d1.py
+        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install pytest
+        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pytest test
         /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install --pre finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 test/run_accuracy_tests.py
         /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 examples/simple1d1.py
+        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install pytest
+        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pytest test
         /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install --pre finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 test/run_accuracy_tests.py
         /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 examples/simple1d1.py
+        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install pytest
+        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pytest test
         /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install --pre finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 test/run_accuracy_tests.py
         /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 examples/simple1d1.py
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install pytest
+        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pytest test
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 -m pip install --pre finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 test/run_accuracy_tests.py
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 examples/simple1d1.py
+        /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 -m pip install pytest
+        /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 -m pytest test
 
     - name: Upload wheels
       uses: actions/upload-artifact@v2
