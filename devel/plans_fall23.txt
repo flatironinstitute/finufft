@@ -1,0 +1,27 @@
+FINUFFT (CPU+GPU) plans, Fall 2023:
+
+pick meeting date
+
+* CPU spreader/interp, bring in Wenda's stuff -> Marco?
+
+* GPU type 3   Marco?
+
+* implement Reinecke's sparse sliced FFT, w/ many-vectors too. CPU
+Libin help?
+
+* binaries release with GH Releases feature (Assets?). No crucial.
+
+* CPU perf tests, standardized way to benchmark spread/interp, FFT, H<>D, etc.
+Add to docs/devnotes.rst how to run benchmarks.
+Robert + Joakim
+
+* tutorial in docs: on eg inverse FFT by CG iteration.
+
+* doc for py local install #340
+
+* #340 docs for GPU simple interface
+
+Go through Issues & prioritize.
+
+PRs.
+
