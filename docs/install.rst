@@ -81,6 +81,10 @@ For example, to configure, build and test the development preset (which builds t
 From other CMake projects, to use ``finufft`` as a library, simply add this repository as a subdirectory using
 ``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
 
+.. note::
+
+   CMake compiling on linux at Flatiron Institute (Rusty cluster). We have had a report that if you want to use LLVM, you need to ``module load llvm/16.0.3`` otherwise the default ``llvm/14.0.6`` does not find ``OpenMP_CXX``.
+
 
 Old GNU make based route
 ------------------------
