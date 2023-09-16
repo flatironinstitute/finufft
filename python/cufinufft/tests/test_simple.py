@@ -11,7 +11,7 @@ DTYPES = [np.float32, np.float64]
 SHAPES = [(16,), (16, 16), (16, 16, 16)]
 N_TRANS = [(), (1,), (2,)]
 MS = [256, 1024, 4096]
-TOLS = [1e-2, 1e-3]
+TOLS = [1e-3, 1e-6]
 OUTPUT_ARGS = [False, True]
 
 @pytest.mark.parametrize("dtype", DTYPES)
