@@ -114,8 +114,11 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
     /* Automatically set GPU method. */
     if (d_plan->opts.gpu_method == 0) {
-        if (type == 1)
+        if (type == 1 && (sizeof(T) == 4 || dim < 3 || tol >= 1e-3))
             d_plan->opts.gpu_method = 2;
+        else if (type == 1 && tol < 1e-3)
+            /* For 3D double precision at small epsilon, default to method 1. */
+            d_plan->opts.gpu_method = 1;
         else if (type == 2)
             d_plan->opts.gpu_method = 1;
     }
