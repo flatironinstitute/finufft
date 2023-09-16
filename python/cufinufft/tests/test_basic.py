@@ -11,7 +11,7 @@ import utils
 DTYPES = [np.float32, np.float64]
 SHAPES = [(16,), (16, 16), (16, 16, 16)]
 MS = [256, 1024, 4096]
-TOLS = [1e-2, 1e-3]
+TOLS = [1e-3, 1e-6]
 OUTPUT_ARGS = [False, True]
 CONTIGUOUS = [False, True]
 
