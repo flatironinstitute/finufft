@@ -48,7 +48,7 @@ pipeline {
       source $HOME/bin/activate
       python3 -m pip install --upgrade pip
       python3 -m pip install --upgrade pycuda cupy-cuda112 numba
-      python3 -m pip install torch==1.7.1+cu110 -f https://download.pytorch.org/whl/torch_stable.html
+      python3 -m pip install torch==1.10.2+cu111 -f https://download.pytorch.org/whl/torch_stable.html
       python3 -m pip install -e python/cufinufft
       python3 -m pip install pytest
       python3 -m pytest --framework=pycuda python/cufinufft
