@@ -1,7 +1,6 @@
 // Defines the C++/C user interface to CUFINUFFT library.
 #include <cufft.h>
 
-#include <cufinufft_errors.h>
 #include <cufinufft_opts.h>
 
 typedef struct cufinufft_plan_s *cufinufft_plan;
