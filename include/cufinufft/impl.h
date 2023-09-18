@@ -88,17 +88,16 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
         Melody Shih 07/25/19. Use-facing moved to markdown, Barnett 2/16/21.
     */
+    int ier;
+    cuDoubleComplex *d_a = nullptr; // fseries temp data
+    T *d_f = nullptr;               // fseries temp data
 
     if (type < 1 || type > 2) {
-        fprintf(stderr, "[%s] Invalid type (%d), should be 1 or 2.\n", __func__, type);
+        fprintf(stderr, "[%s] Invalid type (%d): should be 1 or 2.\n", __func__, type);
         return FINUFFT_ERR_TYPE_NOTVALID;
     }
-    if (dim < 1 || dim > 3) {
-        fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
-        return FINUFFT_ERR_DIM_NOTVALID;
-    }
     if (ntransf < 1) {
-        fprintf(stderr,"[%s] ntransf (%d) should be at least 1.\n", __func__, ntransf);
+        fprintf(stderr, "[%s] Invalid ntransf (%d): should be at least 1.\n", __func__, ntransf);
         return FINUFFT_ERR_NTRANS_NOTVALID;
     }
 
@@ -112,8 +111,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     } else {
         cudaSetDevice(opts->gpu_device_id);
     }
-
-    int ier;
 
     /* allocate the plan structure, assign address to user pointer. */
     cufinufft_plan_t<T> *d_plan = new cufinufft_plan_t<T>;
@@ -138,8 +135,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
     /* Setup Spreader */
     using namespace cufinufft::common;
-    ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts);
-    if (ier > 1) // proceed if success or warning
+    if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)))
         return ier;
 
     d_plan->dim = dim;
@@ -175,62 +171,83 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     using namespace cufinufft::memtransfer;
     switch (d_plan->dim) {
     case 1: {
-        ier = allocgpumem1d_plan<T>(d_plan);
+        if ((ier = allocgpumem1d_plan<T>(d_plan)))
+            goto finalize;
     } break;
     case 2: {
-        ier = allocgpumem2d_plan<T>(d_plan);
+        if ((ier = allocgpumem2d_plan<T>(d_plan)))
+            goto finalize;
     } break;
     case 3: {
-        ier = allocgpumem3d_plan<T>(d_plan);
+        if ((ier = allocgpumem3d_plan<T>(d_plan)))
+            goto finalize;
     } break;
     }
 
     cufftHandle fftplan;
+    cufftResult_t cufft_status;
     switch (d_plan->dim) {
     case 1: {
         int n[] = {(int)nf1};
         int inembed[] = {(int)nf1};
 
-        cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1, inembed[0], cufft_type<T>(), maxbatchsize);
+        cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1, inembed[0], cufft_type<T>(),
+                                     maxbatchsize);
     } break;
     case 2: {
         int n[] = {(int)nf2, (int)nf1};
         int inembed[] = {(int)nf2, (int)nf1};
 
-        cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1, inembed[0] * inembed[1],
-                      cufft_type<T>(), maxbatchsize);
+        cufft_status = cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
+                                     inembed[0] * inembed[1], cufft_type<T>(), maxbatchsize);
     } break;
     case 3: {
         int n[] = {(int)nf3, (int)nf2, (int)nf1};
         int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
 
-        cufftPlanMany(&fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
-                      inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
+        cufft_status = cufftPlanMany(&fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
+                                     inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
     } break;
+    }
+
+    if (cufft_status != CUFFT_SUCCESS) {
+        fprintf(stderr, "[%s] cufft makeplan error: %s", __func__, cufftGetErrorString(cufft_status));
+        ier = FINUFFT_ERR_CUDA_FAILURE;
+        goto finalize;
     }
     d_plan->fftplan = fftplan;
 
-    std::complex<double> a[3 * MAX_NQUAD];
-    T f[3 * MAX_NQUAD];
-    onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
-    if (dim > 1) {
-        onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
-    }
-    if (dim > 2) {
-        onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD, d_plan->spopts);
+    {
+        std::complex<double> a[3 * MAX_NQUAD];
+        T f[3 * MAX_NQUAD];
+        onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
+        if (dim > 1)
+            onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
+        if (dim > 2)
+            onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD, d_plan->spopts);
+
+        if ((ier = checkCudaErrors(cudaMalloc(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex)))))
+            goto finalize;
+        if ((ier = checkCudaErrors(cudaMalloc(&d_f, dim * MAX_NQUAD * sizeof(T)))))
+            goto finalize;
+        if ((ier = checkCudaErrors(
+                 cudaMemcpy(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice))))
+            goto finalize;
+        if ((ier = checkCudaErrors(cudaMemcpy(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice))))
+            goto finalize;
+        ier = cufserieskernelcompute(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
+                                     d_plan->fwkerhalf3, d_plan->spopts.nspread);
     }
 
-    cuDoubleComplex *d_a;
-    T *d_f;
-    checkCudaErrors(cudaMalloc(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex)));
-    checkCudaErrors(cudaMalloc(&d_f, dim * MAX_NQUAD * sizeof(T)));
-    checkCudaErrors(cudaMemcpy(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice));
-    ier = cufserieskernelcompute(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
-                                 d_plan->fwkerhalf3, d_plan->spopts.nspread);
-
+finalize:
     cudaFree(d_a);
     cudaFree(d_f);
+
+    if (ier) {
+        delete *d_plan_ptr;
+        *d_plan_ptr = nullptr;
+    }
+
     // Multi-GPU support: reset the device ID
     cudaSetDevice(orig_gpu_device_id);
 
@@ -499,17 +516,7 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
         cufftDestroy(d_plan->fftplan);
 
     using namespace cufinufft::memtransfer;
-    switch (d_plan->dim) {
-    case 1: {
-        freegpumemory1d<T>(d_plan);
-    } break;
-    case 2: {
-        freegpumemory2d<T>(d_plan);
-    } break;
-    case 3: {
-        freegpumemory3d<T>(d_plan);
-    } break;
-    }
+    freegpumemory<T>(d_plan);
 
     /* free/destruct the plan */
     delete d_plan;

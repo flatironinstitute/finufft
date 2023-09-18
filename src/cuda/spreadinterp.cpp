@@ -24,18 +24,17 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
 {
     if (upsampfac != 2.0) { // nonstandard sigma
         if (kerevalmeth == 1) {
-            fprintf(stderr, "setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",
-                    (double)upsampfac);
+            fprintf(stderr, "[%s] nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n", __func__,
+                    upsampfac);
             return FINUFFT_ERR_HORNER_WRONG_BETA;
         }
         if (upsampfac <= 1.0) {
-            fprintf(stderr, "setup_spreader: error, upsampfac=%.3g is <=1.0\n", (double)upsampfac);
+            fprintf(stderr, "[%s] error: upsampfac=%.3g is <=1.0\n", __func__, upsampfac);
             return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
         }
         // calling routine must abort on above errors, since opts is garbage!
         if (upsampfac > 4.0)
-            fprintf(stderr, "setup_spreader: warning, upsampfac=%.3g is too large to be beneficial!\n",
-                    (double)upsampfac);
+            fprintf(stderr, "[%s] warning: upsampfac=%.3g is too large to be beneficial!\n", __func__, upsampfac);
     }
 
     // defaults... (user can change after this function called)

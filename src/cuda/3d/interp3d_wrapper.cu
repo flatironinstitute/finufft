@@ -58,7 +58,7 @@ int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, 
 
     ier = cuinterp3d<T>(d_plan, 1);
 
-    freegpumemory3d<T>(d_plan);
+    freegpumemory<T>(d_plan);
 
     return ier;
 }
