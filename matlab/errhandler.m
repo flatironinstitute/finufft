@@ -6,7 +6,7 @@ function errhandler(ier)
 % Note that there are other matlab-only error types defined in valid_*.m
 
 switch ier
- % These are the ERR_ #defines in ../include/defs.h:
+ % These are the ERR_ #defines in ../include/finufft_errors.h:
  case 1
   warning('FINUFFT:epsTooSmall','FINUFFT eps tolerance too small to achieve');
  case 2

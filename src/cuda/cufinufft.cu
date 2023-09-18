@@ -25,7 +25,7 @@ int cufinufftf_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntran
                         cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
     int nmodes32[3];
     if (is_invalid_mode_array(dim, nmodes, nmodes32))
-        return ERR_NDATA_NOTVALID;
+        return FINUFFT_ERR_NDATA_NOTVALID;
 
     return cufinufft_makeplan_impl(type, dim, nmodes32, iflag, ntransf, tol, (cufinufft_plan_t<float> **)d_plan_ptr,
                                    opts);
@@ -35,7 +35,7 @@ int cufinufft_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntrans
                        cufinufft_plan *d_plan_ptr, cufinufft_opts *opts) {
     int nmodes32[3];
     if (is_invalid_mode_array(dim, nmodes, nmodes32))
-        return ERR_NDATA_NOTVALID;
+        return FINUFFT_ERR_NDATA_NOTVALID;
 
     return cufinufft_makeplan_impl(type, dim, nmodes32, iflag, ntransf, tol, (cufinufft_plan_t<double> **)d_plan_ptr,
                                    opts);

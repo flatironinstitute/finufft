@@ -2,6 +2,7 @@
 #include <cufft.h>
 
 #include <cufinufft_opts.h>
+#include <finufft_errors.h>
 
 typedef struct cufinufft_plan_s *cufinufft_plan;
 typedef struct cufinufft_fplan_s *cufinufftf_plan;
