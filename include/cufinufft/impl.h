@@ -13,6 +13,8 @@
 #include <cufinufft/types.h>
 #include <cufinufft/utils.h>
 
+#include <finufft_errors.h>
+
 // 1d
 template <typename T>
 int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_plan_t<T> *d_plan);
@@ -89,15 +91,15 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
     if (type < 1 || type > 2) {
         fprintf(stderr, "[%s] Invalid type (%d), should be 1 or 2.\n", __func__, type);
-        return 10; // ERR_TYPE_NOTVALID
+        return FINUFFT_ERR_TYPE_NOTVALID;
     }
     if (dim < 1 || dim > 3) {
         fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
-        return 12; // ERR_DIM_NOTVALID
+        return FINUFFT_ERR_DIM_NOTVALID;
     }
     if (ntransf < 1) {
         fprintf(stderr,"[%s] ntransf (%d) should be at least 1.\n", __func__, ntransf);
-        return 9; // ERR_NTRANS_NOTVALID
+        return FINUFFT_ERR_NTRANS_NOTVALID;
     }
 
     // Mult-GPU support: set the CUDA Device ID:
