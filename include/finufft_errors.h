@@ -21,5 +21,6 @@
 #define FINUFFT_ERR_NDATA_NOTVALID         14
 // cuda malloc/memset/etc
 #define FINUFFT_ERR_CUDA_FAILURE           15
+#define FINUFFT_ERR_PLAN_NOTVALID          16
 
 #endif
