@@ -223,60 +223,50 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
     switch (d_plan->opts.gpu_method) {
     case 1: {
         if (d_plan->opts.gpu_sort) {
-            int numbins[3];
-            numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
-            numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
-            numbins[2] = ceil((T)nf3 / d_plan->opts.gpu_binsizez);
-            if ((ier =
-                     checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+            const int64_t nbins_tot = ceil((T)nf1 / d_plan->opts.gpu_binsizex) *
+                                      ceil((T)nf2 / d_plan->opts.gpu_binsizey) *
+                                      ceil((T)nf3 / d_plan->opts.gpu_binsizez);
+            if ((ier = checkCudaErrors(cudaMalloc(&d_plan->binsize, nbins_tot * sizeof(int)))))
                 goto finalize;
-            if ((ier = checkCudaErrors(
-                     cudaMalloc(&d_plan->binstartpts, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+            if ((ier = checkCudaErrors(cudaMalloc(&d_plan->binstartpts, nbins_tot * sizeof(int)))))
                 goto finalize;
         }
     } break;
     case 2: {
-        int numbins[3];
-        numbins[0] = ceil((T)nf1 / d_plan->opts.gpu_binsizex);
-        numbins[1] = ceil((T)nf2 / d_plan->opts.gpu_binsizey);
-        numbins[2] = ceil((T)nf3 / d_plan->opts.gpu_binsizez);
-        if ((ier =
-                 checkCudaErrors(cudaMalloc(&d_plan->numsubprob, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+        const int64_t nbins_tot = ceil((T)nf1 / d_plan->opts.gpu_binsizex) * ceil((T)nf2 / d_plan->opts.gpu_binsizey) *
+                                  ceil((T)nf3 / d_plan->opts.gpu_binsizez);
+
+        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->numsubprob, nbins_tot * sizeof(int)))))
             goto finalize;
-        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->binsize, nbins_tot * sizeof(int)))))
             goto finalize;
-        if ((ier =
-                 checkCudaErrors(cudaMalloc(&d_plan->binstartpts, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->binstartpts, nbins_tot * sizeof(int)))))
             goto finalize;
-        if ((ier = checkCudaErrors(
-                 cudaMalloc(&d_plan->subprobstartpts, (numbins[0] * numbins[1] * numbins[2] + 1) * sizeof(int)))))
+        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts, (nbins_tot + 1) * sizeof(int)))))
             goto finalize;
     } break;
     case 4: {
-        int numobins[3], numbins[3];
-        int binsperobins[3];
-        numobins[0] = ceil((T)nf1 / d_plan->opts.gpu_obinsizex);
-        numobins[1] = ceil((T)nf2 / d_plan->opts.gpu_obinsizey);
-        numobins[2] = ceil((T)nf3 / d_plan->opts.gpu_obinsizez);
+        const int numobins[3] = {(int)ceil((T)nf1 / d_plan->opts.gpu_obinsizex),
+                                 (int)ceil((T)nf2 / d_plan->opts.gpu_obinsizey),
+                                 (int)ceil((T)nf3 / d_plan->opts.gpu_obinsizez)};
 
-        binsperobins[0] = d_plan->opts.gpu_obinsizex / d_plan->opts.gpu_binsizex;
-        binsperobins[1] = d_plan->opts.gpu_obinsizey / d_plan->opts.gpu_binsizey;
-        binsperobins[2] = d_plan->opts.gpu_obinsizez / d_plan->opts.gpu_binsizez;
+        const int binsperobins[3] = {d_plan->opts.gpu_obinsizex / d_plan->opts.gpu_binsizex,
+                                     d_plan->opts.gpu_obinsizey / d_plan->opts.gpu_binsizey,
+                                     d_plan->opts.gpu_obinsizez / d_plan->opts.gpu_binsizez};
 
-        numbins[0] = numobins[0] * (binsperobins[0] + 2);
-        numbins[1] = numobins[1] * (binsperobins[1] + 2);
-        numbins[2] = numobins[2] * (binsperobins[2] + 2);
+        const int numbins[3] = {numobins[0] * (binsperobins[0] + 2), numobins[1] * (binsperobins[1] + 2),
+                                numobins[2] * (binsperobins[2] + 2)};
 
-        if ((ier = checkCudaErrors(
-                 cudaMalloc(&d_plan->numsubprob, numobins[0] * numobins[1] * numobins[2] * sizeof(int)))))
+        const int64_t numobins_tot = numobins[0] * numobins[1] * numobins[2];
+        const int64_t numbins_tot = numbins[0] * numbins[1] * numbins[2];
+
+        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->numsubprob, numobins_tot * sizeof(int)))))
             goto finalize;
-        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->binsize, numbins_tot * sizeof(int)))))
             goto finalize;
-        if ((ier = checkCudaErrors(
-                 cudaMalloc(&d_plan->binstartpts, (numbins[0] * numbins[1] * numbins[2] + 1) * sizeof(int)))))
+        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->binstartpts, (numbins_tot + 1) * sizeof(int)))))
             goto finalize;
-        if ((ier = checkCudaErrors(
-                 cudaMalloc(&d_plan->subprobstartpts, (numobins[0] * numobins[1] * numobins[2] + 1) * sizeof(int)))))
+        if ((ier = checkCudaErrors(cudaMalloc(&d_plan->subprobstartpts, (numobins_tot + 1) * sizeof(int)))))
             goto finalize;
     } break;
     default:
