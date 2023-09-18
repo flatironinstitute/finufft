@@ -62,7 +62,7 @@ int cufinufft_spread2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
 
     ier = cuspread2d<T>(d_plan, 1);
 
-    freegpumemory2d<T>(d_plan);
+    freegpumemory<T>(d_plan);
 
     return ier;
 }
@@ -251,10 +251,8 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan
     map_b_into_subprob_2d<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024>>>(d_subprob_to_bin, d_subprobstartpts,
                                                                                  d_numsubprob, numbins[0] * numbins[1]);
     assert(d_subprob_to_bin != NULL);
-    if (d_plan->subprob_to_bin != NULL)
-        cudaFree(d_plan->subprob_to_bin);
+    cudaFree(d_plan->subprob_to_bin);
     d_plan->subprob_to_bin = d_subprob_to_bin;
-    assert(d_plan->subprob_to_bin != NULL);
     d_plan->totalnumsubprob = totalnumsubprob;
 
     return 0;

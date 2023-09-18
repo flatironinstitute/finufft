@@ -26,7 +26,6 @@ struct cuda_complex_impl<double> {
 template <typename T>
 using cuda_complex = typename cuda_complex_impl<T>::type;
 
-
 template <typename T>
 struct cufinufft_plan_t {
     cufinufft_opts opts;
@@ -46,7 +45,6 @@ struct cufinufft_plan_t {
     int iflag;
 
     int totalnumsubprob;
-    int byte_now;
     T *fwkerhalf1;
     T *fwkerhalf2;
     T *fwkerhalf3;
@@ -72,9 +70,7 @@ struct cufinufft_plan_t {
     int *subprob_to_nupts;
 
     cufftHandle fftplan;
-    cudaStream_t *streams;
 };
-
 
 template <typename T>
 static cufftType_t cufft_type();

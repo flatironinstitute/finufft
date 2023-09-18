@@ -12,10 +12,10 @@ extern "C" {
 #endif
 void cufinufft_default_opts(cufinufft_opts *opts);
 
-int cufinufft_makeplan(int type, int dim, int64_t *n_modes, int iflag, int ntr, double eps, cufinufft_plan *d_plan_ptr,
-                       cufinufft_opts *opts);
-int cufinufftf_makeplan(int type, int dim, int64_t *n_modes, int iflag, int ntr, float eps, cufinufftf_plan *d_plan_ptr,
-                        cufinufft_opts *opts);
+int cufinufft_makeplan(int type, int dim, const int64_t *n_modes, int iflag, int ntr, double eps,
+                       cufinufft_plan *d_plan_ptr, cufinufft_opts *opts);
+int cufinufftf_makeplan(int type, int dim, const int64_t *n_modes, int iflag, int ntr, float eps,
+                        cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts);
 
 int cufinufft_setpts(cufinufft_plan d_plan, int M, double *h_kx, double *h_ky, double *h_kz, int N, double *h_s,
                      double *h_t, double *h_u);

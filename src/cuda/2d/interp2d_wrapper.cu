@@ -55,7 +55,7 @@ int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
     }
 
     ier = cuinterp2d<T>(d_plan, 1);
-    freegpumemory2d<T>(d_plan);
+    freegpumemory<T>(d_plan);
 
     return ier;
 }

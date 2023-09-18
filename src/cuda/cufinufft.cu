@@ -6,10 +6,12 @@
 #include <cufinufft.h>
 #include <cufinufft/impl.h>
 
-inline bool is_invalid_mode_array(int dim, int64_t *modes64, int32_t modes32[3]) {
+inline bool is_invalid_mode_array(int dim, const int64_t *modes64, int32_t modes32[3]) {
     int64_t tot_size = 1;
     for (int i = 0; i < dim; ++i) {
         if (modes64[i] > std::numeric_limits<int32_t>::max())
+            return true;
+        if (modes64[i] <= 0)
             return true;
         modes32[i] = modes64[i];
         tot_size *= modes64[i];
@@ -21,8 +23,13 @@ inline bool is_invalid_mode_array(int dim, int64_t *modes64, int32_t modes32[3])
 }
 
 extern "C" {
-int cufinufftf_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntransf, float tol,
+int cufinufftf_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int ntransf, float tol,
                         cufinufftf_plan *d_plan_ptr, cufinufft_opts *opts) {
+    if (dim < 1 || dim > 3) {
+        fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
+        return FINUFFT_ERR_DIM_NOTVALID;
+    }
+
     int nmodes32[3];
     if (is_invalid_mode_array(dim, nmodes, nmodes32))
         return FINUFFT_ERR_NDATA_NOTVALID;
@@ -31,8 +38,13 @@ int cufinufftf_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntran
                                    opts);
 }
 
-int cufinufft_makeplan(int type, int dim, int64_t *nmodes, int iflag, int ntransf, double tol,
+int cufinufft_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int ntransf, double tol,
                        cufinufft_plan *d_plan_ptr, cufinufft_opts *opts) {
+    if (dim < 1 || dim > 3) {
+        fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n", __func__, dim);
+        return FINUFFT_ERR_DIM_NOTVALID;
+    }
+
     int nmodes32[3];
     if (is_invalid_mode_array(dim, nmodes, nmodes32))
         return FINUFFT_ERR_NDATA_NOTVALID;

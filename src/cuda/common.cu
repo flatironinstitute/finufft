@@ -1,6 +1,9 @@
+#include "cufinufft/types.h"
+#include "finufft_errors.h"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 #include <cuComplex.h>
@@ -70,6 +73,12 @@ int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, cuDoubleC
 
     fseries_kernel_compute<<<numBlocks, threadsPerBlock>>>(nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1, d_fwkerhalf2,
                                                            d_fwkerhalf3, ns);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        return FINUFFT_ERR_CUDA_FAILURE;
+    }
+
     return 0;
 }
 
