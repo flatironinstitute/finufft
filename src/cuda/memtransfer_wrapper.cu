@@ -1,9 +1,11 @@
-#include <cufinufft/types.h>
 #include <iomanip>
 #include <iostream>
 
 #include <cuComplex.h>
 #include <cufinufft/memtransfer.h>
+#include <cufinufft/types.h>
+#include <cufinufft/utils.h>
+
 #include <helper_cuda.h>
 
 namespace cufinufft {
@@ -17,12 +19,9 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan)
     Melody Shih 11/21/21
 */
 {
-    // Multi-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id;
-    int ier = 0;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
+    utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 
+    int ier;
     int nf1 = d_plan->nf1;
     int maxbatchsize = d_plan->maxbatchsize;
 
@@ -62,9 +61,6 @@ finalize:
     if (ier)
         freegpumemory(d_plan);
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
-
     return ier;
 }
 
@@ -76,10 +72,8 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
     Melody Shih 11/21/21
 */
 {
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id, ier;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
+    utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
+    int ier;
 
     int M = d_plan->M;
     CUDA_FREE_AND_NULL(d_plan->sortidx);
@@ -107,9 +101,6 @@ finalize:
     if (ier)
         freegpumemory(d_plan);
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
-
     return ier;
 }
 
@@ -121,10 +112,8 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
     Melody Shih 07/25/19
 */
 {
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id, ier;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
+    utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
+    int ier;
 
     int nf1 = d_plan->nf1;
     int nf2 = d_plan->nf2;
@@ -172,9 +161,6 @@ finalize:
     if (ier)
         freegpumemory(d_plan);
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
-
     return ier;
 }
 
@@ -186,10 +172,8 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
     Melody Shih 07/25/19
 */
 {
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id, ier;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
+    utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
+    int ier;
 
     const int M = d_plan->M;
 
@@ -217,9 +201,6 @@ finalize:
     if (ier)
         freegpumemory(d_plan);
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
-
     return ier;
 }
 
@@ -231,10 +212,8 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
     Melody Shih 07/25/19
 */
 {
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id, ier;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
+    utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
+    int ier;
 
     int nf1 = d_plan->nf1;
     int nf2 = d_plan->nf2;
@@ -319,10 +298,7 @@ finalize:
     if (ier)
         freegpumemory(d_plan);
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
-
-    return 0;
+    return ier;
 }
 
 template <typename T>
@@ -333,11 +309,8 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
     Melody Shih 07/25/19
 */
 {
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id, ier;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
-
+    utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
+    int ier;
     int M = d_plan->M;
 
     CUDA_FREE_AND_NULL(d_plan->sortidx);
@@ -368,10 +341,7 @@ finalize:
     if (ier)
         freegpumemory(d_plan);
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
-
-    return 0;
+    return ier;
 }
 
 template <typename T>
@@ -382,10 +352,7 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
     Melody Shih 11/21/21
 */
 {
-    // Multi-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
+    utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 
     CUDA_FREE_AND_NULL(d_plan->fw);
     CUDA_FREE_AND_NULL(d_plan->fw);
@@ -403,9 +370,6 @@ void freegpumemory(cufinufft_plan_t<T> *d_plan)
 
     CUDA_FREE_AND_NULL(d_plan->numnupts);
     CUDA_FREE_AND_NULL(d_plan->numsubprob);
-
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
 }
 
 template int allocgpumem1d_plan<float>(cufinufft_plan_t<float> *d_plan);
