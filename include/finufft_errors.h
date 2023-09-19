@@ -19,7 +19,7 @@
 #define FINUFFT_ERR_DIM_NOTVALID           12
 #define FINUFFT_ERR_SPREAD_THREAD_NOTVALID 13
 #define FINUFFT_ERR_NDATA_NOTVALID         14
-// cuda malloc/memset/etc
+// cuda malloc/memset/kernel failure/etc
 #define FINUFFT_ERR_CUDA_FAILURE           15
 #define FINUFFT_ERR_PLAN_NOTVALID          16
 
