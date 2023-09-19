@@ -5,7 +5,7 @@ Error (status) codes
 
 In all FINUFFT interfaces, the returned value ``ier`` is a status indicator.
 It is ``0`` if successful, otherwise the error code
-has the following meanings (see ``include/finufft/defs.h``):
+has the following meanings (see ``include/finufft_errors.h``):
 
 ::
 
@@ -22,7 +22,10 @@ has the following meanings (see ``include/finufft/defs.h``):
   11 general allocation failure
   12 dimension invalid
   13 spread_thread option invalid
-  
+  14 invalid mode array (more than ~2^31 modes, dimension with 0 modes, etc)
+  15 cuda failure (failure to call any cuda function/kernel)
+  16 attempt to destroy a null plan
+
 When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
 
 For any other nonzero values of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
