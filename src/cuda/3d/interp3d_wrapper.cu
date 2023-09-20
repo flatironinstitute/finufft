@@ -15,55 +15,6 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
-int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_t<T> *d_plan)
-/*
-    This c function is written for only doing 3D interpolation. See
-    test/interp3d_test.cu for usage.
-
-    Melody Shih 07/25/19
-    not allocate,transfer and free memories on gpu. Shih 09/24/20
-*/
-{
-    int ier;
-    d_plan->kx = d_kx;
-    d_plan->ky = d_ky;
-    d_plan->kz = d_kz;
-    d_plan->c = d_c;
-    d_plan->fw = d_fw;
-
-    d_plan->nf1 = nf1;
-    d_plan->nf2 = nf2;
-    d_plan->nf3 = nf3;
-    d_plan->M = M;
-    d_plan->maxbatchsize = 1;
-
-    ier = allocgpumem3d_plan<T>(d_plan);
-    ier = allocgpumem3d_nupts<T>(d_plan);
-
-    if (d_plan->opts.gpu_method == 1) {
-        ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan);
-        if (ier != 0) {
-            printf("error: cuinterp3d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
-            return ier;
-        }
-    }
-    if (d_plan->opts.gpu_method == 2) {
-        ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
-        if (ier != 0) {
-            printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-            return ier;
-        }
-    }
-
-    ier = cuinterp3d<T>(d_plan, 1);
-
-    freegpumemory<T>(d_plan);
-
-    return ier;
-}
-
-template <typename T>
 int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     A wrapper for different interpolation methods.
@@ -200,12 +151,6 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
 
     return 0;
 }
-
-template int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<float> *d_fw, int M, float *d_kx, float *d_ky,
-                                float *d_kz, cuda_complex<float> *d_c, cufinufft_plan_t<float> *d_plan);
-template int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<double> *d_fw, int M, double *d_kx,
-                                double *d_ky, double *d_kz, cuda_complex<double> *d_c,
-                                cufinufft_plan_t<double> *d_plan);
 
 template int cuinterp3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuinterp3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
