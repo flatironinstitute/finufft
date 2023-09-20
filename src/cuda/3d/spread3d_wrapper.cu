@@ -40,32 +40,18 @@ int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize)
     switch (d_plan->opts.gpu_method) {
     case 1: {
         ier = cuspread3d_nuptsdriven<T>(nf1, nf2, nf3, M, d_plan, blksize);
-
-        if (ier != 0) {
-            std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
-            return 1;
-        }
     } break;
     case 2: {
         ier = cuspread3d_subprob<T>(nf1, nf2, nf3, M, d_plan, blksize);
-
-        if (ier != 0) {
-            std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
-            return 1;
-        }
     } break;
     case 4: {
         ier = cuspread3d_blockgather<T>(nf1, nf2, nf3, M, d_plan, blksize);
-
-        if (ier != 0) {
-            std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
-            return 1;
-        }
     } break;
     default:
         std::cerr << "error: incorrect method, should be 1,2,4" << std::endl;
-        return 2;
+        ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
+
     return ier;
 }
 
@@ -97,10 +83,13 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
         int pirange = d_plan->spopts.pirange;
 
-        checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
+        int ier;
+        if ((ier = checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+            return ier;
         calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024>>>(M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z,
                                                                   numbins[0], numbins[1], numbins[2], d_binsize, d_kx,
                                                                   d_ky, d_kz, d_sortidx, pirange);
+        RETURN_IF_CUDA_ERROR
 
         int n = numbins[0] * numbins[1] * numbins[2];
         thrust::device_ptr<int> d_ptr(d_binsize);
@@ -110,10 +99,11 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
         calc_inverse_of_global_sort_index_3d<<<(M + 1024 - 1) / 1024, 1024>>>(
             M, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1], numbins[2], d_binstartpts, d_sortidx, d_kx,
             d_ky, d_kz, d_idxnupts, pirange, nf1, nf2, nf3);
+        RETURN_IF_CUDA_ERROR
     } else {
         int *d_idxnupts = d_plan->idxnupts;
-
         trivial_global_sort_index_3d<<<(M + 1024 - 1) / 1024, 1024>>>(M, d_idxnupts);
+        RETURN_IF_CUDA_ERROR
     }
 
     return 0;
@@ -147,12 +137,14 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
             spread_3d_nupts_driven<T, 1><<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz, d_c + t * M,
                                                                       d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
                                                                       es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
             spread_3d_nupts_driven<T, 0><<<blocks, threadsPerBlock>>>(d_kx, d_ky, d_kz, d_c + t * M,
                                                                       d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
                                                                       es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 
@@ -179,7 +171,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
         std::cout << "error: (nf1, nf2, nf3) = (" << nf1 << ", " << nf2 << ", " << nf3 << ")" << std::endl;
         std::cout << "error: (obinsizex, obinsizey, obinsizez) = (" << o_bin_size_x << ", " << o_bin_size_y << ", "
                   << o_bin_size_z << ")" << std::endl;
-        return 1;
+        return FINUFFT_ERR_BINSIZE_NOTVALID;
     }
 
     numobins[0] = ceil((T)nf1 / o_bin_size_x);
@@ -197,7 +189,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
                   << bin_size_z << ")" << std::endl;
         std::cout << "error: (obinsizex, obinsizey, obinsizez) = (" << o_bin_size_x << ", " << o_bin_size_y << ", "
                   << o_bin_size_z << ")" << std::endl;
-        return 1;
+        return FINUFFT_ERR_BINSIZE_NOTVALID;
     }
 
     int binsperobinx, binsperobiny, binsperobinz;
@@ -221,10 +213,13 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
     int *d_subprobstartpts = d_plan->subprobstartpts;
     int *d_subprob_to_bin = NULL;
 
-    checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
+    int ier;
+    if ((ier = checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+        return ier;
     locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024>>>(
         M, bin_size_x, bin_size_y, bin_size_z, numobins[0], numobins[1], numobins[2], binsperobinx, binsperobiny,
         binsperobinz, d_binsize, d_kx, d_ky, d_kz, d_sortidx, pirange, nf1, nf2, nf3);
+    RETURN_IF_CUDA_ERROR
 
     threadsPerBlock.x = 8;
     threadsPerBlock.y = 8;
@@ -236,20 +231,30 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
     fill_ghost_bins<<<blocks, threadsPerBlock>>>(binsperobinx, binsperobiny, binsperobinz, numobins[0], numobins[1],
                                                  numobins[2], d_binsize);
+    RETURN_IF_CUDA_ERROR
 
     int n = numbins[0] * numbins[1] * numbins[2];
     thrust::device_ptr<int> d_ptr(d_binsize);
     thrust::device_ptr<int> d_result(d_binstartpts + 1);
     thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
-    checkCudaErrors(cudaMemset(d_binstartpts, 0, sizeof(int)));
+    if ((ier = checkCudaErrors(cudaMemset(d_binstartpts, 0, sizeof(int)))))
+        return ier;
 
     int totalNUpts;
-    checkCudaErrors(cudaMemcpy(&totalNUpts, &d_binstartpts[n], sizeof(int), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMalloc(&d_idxnupts, totalNUpts * sizeof(int)));
+    if ((ier = checkCudaErrors(cudaMemcpy(&totalNUpts, &d_binstartpts[n], sizeof(int), cudaMemcpyDeviceToHost))))
+        return ier;
+    if ((ier = checkCudaErrors(cudaMalloc(&d_idxnupts, totalNUpts * sizeof(int)))))
+        return ier;
 
     calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024>>>(
         M, bin_size_x, bin_size_y, bin_size_z, numobins[0], numobins[1], numobins[2], binsperobinx, binsperobiny,
         binsperobinz, d_binstartpts, d_sortidx, d_kx, d_ky, d_kz, d_idxnupts, pirange, nf1, nf2, nf3);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        cudaFree(d_idxnupts);
+        return FINUFFT_ERR_CUDA_FAILURE;
+    }
 
     threadsPerBlock.x = 2;
     threadsPerBlock.y = 2;
@@ -261,6 +266,13 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
     ghost_bin_pts_index<<<blocks, threadsPerBlock>>>(binsperobinx, binsperobiny, binsperobinz, numobins[0], numobins[1],
                                                      numobins[2], d_binsize, d_idxnupts, d_binstartpts, M);
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        cudaFree(d_idxnupts);
+        return FINUFFT_ERR_CUDA_FAILURE;
+    }
+
     cudaFree(d_plan->idxnupts);
     d_plan->idxnupts = d_idxnupts;
 
@@ -271,17 +283,28 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
     calc_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024>>>(binsperobinx, binsperobiny, binsperobinz, d_binsize,
                                                         d_numsubprob, maxsubprobsize,
                                                         numobins[0] * numobins[1] * numobins[2]);
+    RETURN_IF_CUDA_ERROR
 
     n = numobins[0] * numobins[1] * numobins[2];
     d_ptr = thrust::device_pointer_cast(d_numsubprob);
     d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
     thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
-    checkCudaErrors(cudaMemset(d_subprobstartpts, 0, sizeof(int)));
+    if ((ier = checkCudaErrors(cudaMemset(d_subprobstartpts, 0, sizeof(int)))))
+        return ier;
 
     int totalnumsubprob;
-    checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMalloc(&d_subprob_to_bin, totalnumsubprob * sizeof(int)));
+    if ((ier =
+             checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost))))
+        return ier;
+    if ((ier = checkCudaErrors(cudaMalloc(&d_subprob_to_bin, totalnumsubprob * sizeof(int)))))
+        return ier;
     map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024>>>(d_subprob_to_bin, d_subprobstartpts, d_numsubprob, n);
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        cudaFree(d_subprob_to_bin);
+        return FINUFFT_ERR_CUDA_FAILURE;
+    }
 
     assert(d_subprob_to_bin != NULL);
     cudaFree(d_plan->subprob_to_bin);
@@ -329,29 +352,27 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
     int totalnumsubprob = d_plan->totalnumsubprob;
     int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
+    size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
+    if (sharedplanorysize > 49152) {
+        std::cout << "error: not enough shared memory" << std::endl;
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
+    }
+
     for (int t = 0; t < blksize; t++) {
         if (d_plan->opts.gpu_kerevalmeth == 1) {
-            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
-            if (sharedplanorysize > 49152) {
-                std::cout << "error: not enough shared memory" << std::endl;
-                return 1;
-            }
             spread_3d_block_gather<T, 1><<<totalnumsubprob, 64, sharedplanorysize>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, obin_size_x, obin_size_y, obin_size_z, binsperobinx * binsperobiny * binsperobinz,
                 d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts,
                 pirange);
+            RETURN_IF_CUDA_ERROR
         } else {
-            size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
-            if (sharedplanorysize > 49152) {
-                std::cout << "error: not enough shared memory" << std::endl;
-                return 1;
-            }
             spread_3d_block_gather<T, 0><<<totalnumsubprob, 64, sharedplanorysize>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, obin_size_x, obin_size_y, obin_size_z, binsperobinx * binsperobiny * binsperobinz,
                 d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts,
                 pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 
@@ -389,10 +410,13 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
     int *d_subprob_to_bin = NULL;
     int pirange = d_plan->spopts.pirange;
 
-    checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int)));
+    int ier;
+    if ((ier = checkCudaErrors(cudaMemset(d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int)))))
+        return ier;
     calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024>>>(M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z,
                                                               numbins[0], numbins[1], numbins[2], d_binsize, d_kx, d_ky,
                                                               d_kz, d_sortidx, pirange);
+    RETURN_IF_CUDA_ERROR
 
     int n = numbins[0] * numbins[1] * numbins[2];
     thrust::device_ptr<int> d_ptr(d_binsize);
@@ -402,22 +426,32 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
     calc_inverse_of_global_sort_index_3d<<<(M + 1024 - 1) / 1024, 1024>>>(
         M, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1], numbins[2], d_binstartpts, d_sortidx, d_kx, d_ky,
         d_kz, d_idxnupts, pirange, nf1, nf2, nf3);
+    RETURN_IF_CUDA_ERROR
     /* --------------------------------------------- */
     //        Determining Subproblem properties      //
     /* --------------------------------------------- */
     calc_subprob_3d_v2<<<(M + 1024 - 1) / 1024, 1024>>>(d_binsize, d_numsubprob, maxsubprobsize,
                                                         numbins[0] * numbins[1] * numbins[2]);
+    RETURN_IF_CUDA_ERROR
 
     d_ptr = thrust::device_pointer_cast(d_numsubprob);
     d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
     thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
-    checkCudaErrors(cudaMemset(d_subprobstartpts, 0, sizeof(int)));
-
     int totalnumsubprob;
-    checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMalloc(&d_subprob_to_bin, totalnumsubprob * sizeof(int)));
+    if (checkCudaErrors(cudaMemset(d_subprobstartpts, 0, sizeof(int))) ||
+        checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost)) ||
+        checkCudaErrors(cudaMalloc(&d_subprob_to_bin, totalnumsubprob * sizeof(int))))
+        return FINUFFT_ERR_CUDA_FAILURE;
+
     map_b_into_subprob_3d_v2<<<(numbins[0] * numbins[1] + 1024 - 1) / 1024, 1024>>>(
         d_subprob_to_bin, d_subprobstartpts, d_numsubprob, numbins[0] * numbins[1] * numbins[2]);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        cudaFree(d_subprob_to_bin);
+        return FINUFFT_ERR_CUDA_FAILURE;
+    }
+
     assert(d_subprob_to_bin != NULL);
     if (d_plan->subprob_to_bin != NULL)
         cudaFree(d_plan->subprob_to_bin);
@@ -465,7 +499,7 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
                                (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory (" << sharedplanorysize << ")" << std::endl;
-        return 1;
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 
     for (int t = 0; t < blksize; t++) {
@@ -474,11 +508,13 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, es_c, es_beta,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         } else {
             spread_3d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, es_c, es_beta,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 

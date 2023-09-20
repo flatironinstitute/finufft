@@ -35,21 +35,13 @@ int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize)
     switch (d_plan->opts.gpu_method) {
     case 1: {
         ier = cuinterp3d_nuptsdriven<T>(nf1, nf2, nf3, M, d_plan, blksize);
-        if (ier != 0) {
-            std::cout << "error: cnufftspread3d_gpu_nuptsdriven" << std::endl;
-            return 1;
-        }
     } break;
     case 2: {
         ier = cuinterp3d_subprob<T>(nf1, nf2, nf3, M, d_plan, blksize);
-        if (ier != 0) {
-            std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
-            return 1;
-        }
     } break;
     default:
         std::cout << "error: incorrect method, should be 1,2" << std::endl;
-        return 2;
+        ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
     return ier;
@@ -84,12 +76,14 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
             interp_3d_nupts_driven<T, 1>
                 <<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns,
                                                     nf1, nf2, nf3, es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
             interp_3d_nupts_driven<T, 0>
                 <<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns,
                                                     nf1, nf2, nf3, es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 
@@ -132,7 +126,7 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
                                (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory" << std::endl;
-        return 1;
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 
     for (int t = 0; t < blksize; t++) {
@@ -141,11 +135,13 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         } else {
             interp_3d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 
