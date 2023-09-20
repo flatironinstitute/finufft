@@ -86,15 +86,14 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
         if ((ier = checkCudaErrors(cudaMalloc(&d_plan->idxnupts, M * sizeof(int)))))
             goto finalize;
     } break;
-    case 2:
-    case 3: {
+    case 2: {
         if ((ier = checkCudaErrors(cudaMalloc(&d_plan->idxnupts, M * sizeof(int)))))
             goto finalize;
         if ((ier = checkCudaErrors(cudaMalloc(&d_plan->sortidx, M * sizeof(int)))))
             goto finalize;
     } break;
     default:
-        std::cerr << "err: invalid method" << std::endl;
+        std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
     }
 
 finalize:
@@ -145,7 +144,7 @@ int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan)
             goto finalize;
     } break;
     default:
-        std::cerr << "err: invalid method " << std::endl;
+        std::cerr << "[allocgpumem2d_plan] error: invalid method\n";
     }
 
     if (!d_plan->opts.gpu_spreadinterponly) {
@@ -194,7 +193,7 @@ int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan)
             goto finalize;
     } break;
     default:
-        std::cerr << "err: invalid method" << std::endl;
+        std::cerr << "[allocgpumem2d_nupts] error: invalid method\n";
     }
 
 finalize:
@@ -270,7 +269,7 @@ int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan)
             goto finalize;
     } break;
     default:
-        std::cerr << "err: invalid method" << std::endl;
+        std::cerr << "[allocgpumem3d_plan] error: invalid method\n";
     }
 
     if (!d_plan->opts.gpu_spreadinterponly) {
@@ -324,7 +323,7 @@ int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan)
             goto finalize;
     } break;
     default:
-        std::cerr << "err: invalid method" << std::endl;
+        std::cerr << "[allocgpumem3d_nupts] error: invalid method\n";
     }
 
 finalize:

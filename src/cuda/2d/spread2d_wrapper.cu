@@ -44,7 +44,7 @@ int cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize)
         ier = cuspread2d_subprob<T>(nf1, nf2, M, d_plan, blksize);
     } break;
     default:
-        std::cout << "error: incorrect method, should be 1 or 2\n";
+        std::cerr << "[cuspread2d] error: incorrect method, should be 1 or 2\n";
         ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
@@ -57,8 +57,8 @@ int cuspread2d_nuptsdriven_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_
         int bin_size_x = d_plan->opts.gpu_binsizex;
         int bin_size_y = d_plan->opts.gpu_binsizey;
         if (bin_size_x < 0 || bin_size_y < 0) {
-            std::cout << "error: invalid binsize (binsizex, binsizey) = (";
-            std::cout << bin_size_x << "," << bin_size_y << ")" << std::endl;
+            std::cerr << "[cuspread2d_nuptsdriven_prop] error: invalid binsize (binsizex, binsizey) = (";
+            std::cerr << bin_size_x << "," << bin_size_y << ")" << std::endl;
             return FINUFFT_ERR_BINSIZE_NOTVALID;
         }
 
@@ -154,9 +154,9 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan
     int bin_size_x = d_plan->opts.gpu_binsizex;
     int bin_size_y = d_plan->opts.gpu_binsizey;
     if (bin_size_x < 0 || bin_size_y < 0) {
-        std::cout << "error: invalid binsize (binsizex, binsizey) = (";
-        std::cout << bin_size_x << "," << bin_size_y << ")" << std::endl;
-        return 1;
+        std::cerr << "[cuspread2d_subprob_prop] error: invalid binsize (binsizex, binsizey) = (";
+        std::cerr << bin_size_x << "," << bin_size_y << ")" << std::endl;
+        return FINUFFT_ERR_BINSIZE_NOTVALID;
     }
     int numbins[2];
     numbins[0] = ceil((T)nf1 / bin_size_x);
@@ -211,7 +211,7 @@ int cuspread2d_subprob_prop(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan
                                                                                  d_numsubprob, numbins[0] * numbins[1]);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        fprintf(stderr, "[%s] Error: %s\n", __func__, cudaGetErrorString(err));
         cudaFree(d_subprob_to_bin);
         return FINUFFT_ERR_CUDA_FAILURE;
     }
@@ -259,7 +259,7 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int
     size_t sharedplanorysize =
         (bin_size_x + 2 * (int)ceil(ns / 2.0)) * (bin_size_y + 2 * (int)ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
-        std::cout << "error: not enough shared memory" << std::endl;
+        std::cerr << "[cuspread2d_subprob] error: not enough shared memory\n";
         return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 

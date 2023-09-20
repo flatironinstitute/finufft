@@ -40,7 +40,7 @@ int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize)
         ier = cuinterp3d_subprob<T>(nf1, nf2, nf3, M, d_plan, blksize);
     } break;
     default:
-        std::cout << "error: incorrect method, should be 1,2" << std::endl;
+        std::cerr << "[cuinterp3d] error: incorrect method, should be 1,2\n";
         ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
@@ -125,7 +125,7 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) *
                                (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
-        std::cout << "error: not enough shared memory" << std::endl;
+        std::cerr << "[cuinterp3d_subprob] error: not enough shared memory\n";
         return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 
