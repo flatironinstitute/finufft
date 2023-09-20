@@ -37,15 +37,13 @@ int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize)
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        if ((ier = cuspread1d_nuptsdriven<T>(nf1, M, d_plan, blksize)))
-            std::cout << "error: cuspread1d_nuptsdriven" << std::endl;
+        ier = cuspread1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
     } break;
     case 2: {
-        if ((ier = cuspread1d_subprob<T>(nf1, M, d_plan, blksize)))
-            std::cout << "error: cuspread1d_subprob" << std::endl;
+        ier = cuspread1d_subprob<T>(nf1, M, d_plan, blksize);
     } break;
     default:
-        std::cout << "error: incorrect method, should be 1,2" << std::endl;
+        std::cout << "error: incorrect method, should be 1 or 2\n";
         ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
@@ -189,7 +187,8 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
         return ier;
 
     int totalnumsubprob;
-    if ((ier = checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost))))
+    if ((ier =
+             checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost))))
         return ier;
     if ((ier = checkCudaErrors(cudaMalloc(&d_subprob_to_bin, totalnumsubprob * sizeof(int)))))
         return ier;
@@ -198,7 +197,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
         printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
-        cudaFree(d_plan->subprob_to_bin);
+        cudaFree(d_subprob_to_bin);
         return FINUFFT_ERR_CUDA_FAILURE;
     }
 
