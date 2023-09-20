@@ -20,54 +20,6 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
-int cufinufft_spread2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
-                       cufinufft_plan_t<T> *d_plan)
-/*
-    This c function is written for only doing 2D spreading. See
-    test/spread2d_test.cu for usage.
-
-    Melody Shih 07/25/19
-    not allocate,transfer and free memories on gpu. Shih 09/24/20
-*/
-{
-    d_plan->kx = d_kx;
-    d_plan->ky = d_ky;
-    d_plan->c = d_c;
-    d_plan->fw = d_fw;
-
-    int ier;
-    d_plan->nf1 = nf1;
-    d_plan->nf2 = nf2;
-    d_plan->M = M;
-    d_plan->maxbatchsize = 1;
-
-    ier = ALLOCGPUMEM2D_PLAN(d_plan);
-    ier = ALLOCGPUMEM2D_NUPTS(d_plan);
-
-    if (d_plan->opts.gpu_method == 1) {
-        ier = CUSPREAD2D_NUPTSDRIVEN_PROP(nf1, nf2, M, d_plan);
-        if (ier != 0) {
-            printf("error: cuspread2d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
-            return ier;
-        }
-    }
-
-    if (d_plan->opts.gpu_method == 2) {
-        ier = CUSPREAD2D_SUBPROB_PROP(nf1, nf2, M, d_plan);
-        if (ier != 0) {
-            printf("error: cuspread2d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-            return ier;
-        }
-    }
-
-    ier = cuspread2d<T>(d_plan, 1);
-
-    freegpumemory<T>(d_plan);
-
-    return ier;
-}
-
-template <typename T>
 int cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     A wrapper for different spreading methods.
