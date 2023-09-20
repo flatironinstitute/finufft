@@ -82,25 +82,18 @@ int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize)
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        ier = cuspread1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
-
-        if (ier != 0) {
-            std::cout << "error: cnufftspread1d_gpu_nuptsdriven" << std::endl;
-            return 1;
-        }
+        if ((ier = cuspread1d_nuptsdriven<T>(nf1, M, d_plan, blksize)))
+            std::cout << "error: cuspread1d_nuptsdriven" << std::endl;
     } break;
     case 2: {
-        ier = cuspread1d_subprob<T>(nf1, M, d_plan, blksize);
-
-        if (ier != 0) {
-            std::cout << "error: cnufftspread1d_gpu_subprob" << std::endl;
-            return 1;
-        }
+        if ((ier = cuspread1d_subprob<T>(nf1, M, d_plan, blksize)))
+            std::cout << "error: cuspread1d_subprob" << std::endl;
     } break;
     default:
         std::cout << "error: incorrect method, should be 1,2" << std::endl;
-        return 2;
+        ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
+
     return ier;
 }
 
@@ -110,7 +103,7 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
         int bin_size_x = d_plan->opts.gpu_binsizex;
         if (bin_size_x < 0) {
             std::cout << "error: invalid binsize (binsizex) = (" << bin_size_x << ")" << std::endl;
-            return 1;
+            return FINUFFT_ERR_BINSIZE_NOTVALID;
         }
 
         int numbins = ceil((T)nf1 / bin_size_x);
@@ -123,10 +116,12 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
         int *d_idxnupts = d_plan->idxnupts;
 
         int pirange = d_plan->spopts.pirange;
-
-        checkCudaErrors(cudaMemset(d_binsize, 0, numbins * sizeof(int)));
+        int ier;
+        if ((ier = checkCudaErrors(cudaMemset(d_binsize, 0, numbins * sizeof(int)))))
+            return ier;
         calc_bin_size_noghost_1d<<<(M + 1024 - 1) / 1024, 1024>>>(M, nf1, bin_size_x, numbins, d_binsize, d_kx,
                                                                   d_sortidx, pirange);
+        RETURN_IF_CUDA_ERROR
 
         int n = numbins;
         thrust::device_ptr<int> d_ptr(d_binsize);
@@ -135,9 +130,11 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
 
         calc_inverse_of_global_sort_idx_1d<<<(M + 1024 - 1) / 1024, 1024>>>(M, bin_size_x, numbins, d_binstartpts,
                                                                             d_sortidx, d_kx, d_idxnupts, pirange, nf1);
+        RETURN_IF_CUDA_ERROR
     } else {
         int *d_idxnupts = d_plan->idxnupts;
         trivial_global_sort_index_1d<<<(M + 1024 - 1) / 1024, 1024>>>(M, d_idxnupts);
+        RETURN_IF_CUDA_ERROR
     }
 
     return 0;
@@ -168,11 +165,13 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
         for (int t = 0; t < blksize; t++) {
             spread_1d_nuptsdriven<T, 1><<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
                                                                      es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
             spread_1d_nuptsdriven<T, 0><<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
                                                                      es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 
@@ -187,12 +186,12 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
     which only needs to be done once.
 */
 {
+    int ier;
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
     int bin_size_x = d_plan->opts.gpu_binsizex;
     if (bin_size_x < 0) {
-        std::cout << "error: invalid binsize (binsizex) = (";
-        std::cout << bin_size_x << ")" << std::endl;
-        return 1;
+        std::cout << "error: invalid binsize (binsizex) = (" << bin_size_x << ")\n";
+        return FINUFFT_ERR_BINSIZE_NOTVALID;
     }
 
     int numbins = ceil((T)nf1 / bin_size_x);
@@ -210,9 +209,11 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 
     int pirange = d_plan->spopts.pirange;
 
-    checkCudaErrors(cudaMemset(d_binsize, 0, numbins * sizeof(int)));
+    if ((ier = checkCudaErrors(cudaMemset(d_binsize, 0, numbins * sizeof(int)))))
+        return ier;
     calc_bin_size_noghost_1d<<<(M + 1024 - 1) / 1024, 1024>>>(M, nf1, bin_size_x, numbins, d_binsize, d_kx, d_sortidx,
                                                               pirange);
+    RETURN_IF_CUDA_ERROR
 
     int n = numbins;
     thrust::device_ptr<int> d_ptr(d_binsize);
@@ -221,19 +222,31 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 
     calc_inverse_of_global_sort_idx_1d<<<(M + 1024 - 1) / 1024, 1024>>>(M, bin_size_x, numbins, d_binstartpts,
                                                                         d_sortidx, d_kx, d_idxnupts, pirange, nf1);
+    RETURN_IF_CUDA_ERROR
 
     calc_subprob_1d<<<(M + 1024 - 1) / 1024, 1024>>>(d_binsize, d_numsubprob, maxsubprobsize, numbins);
+    RETURN_IF_CUDA_ERROR
 
     d_ptr = thrust::device_pointer_cast(d_numsubprob);
     d_result = thrust::device_pointer_cast(d_subprobstartpts + 1);
     thrust::inclusive_scan(d_ptr, d_ptr + n, d_result);
-    checkCudaErrors(cudaMemset(d_subprobstartpts, 0, sizeof(int)));
+    if ((ier = checkCudaErrors(cudaMemset(d_subprobstartpts, 0, sizeof(int)))))
+        return ier;
 
     int totalnumsubprob;
-    checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMalloc(&d_subprob_to_bin, totalnumsubprob * sizeof(int)));
+    if ((ier = checkCudaErrors(cudaMemcpy(&totalnumsubprob, &d_subprobstartpts[n], sizeof(int), cudaMemcpyDeviceToHost))))
+        return ier;
+    if ((ier = checkCudaErrors(cudaMalloc(&d_subprob_to_bin, totalnumsubprob * sizeof(int)))))
+        return ier;
     map_b_into_subprob_1d<<<(numbins + 1024 - 1) / 1024, 1024>>>(d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
                                                                  numbins);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        cudaFree(d_plan->subprob_to_bin);
+        return FINUFFT_ERR_CUDA_FAILURE;
+    }
+
     assert(d_subprob_to_bin != NULL);
     cudaFree(d_plan->subprob_to_bin);
     d_plan->subprob_to_bin = d_subprob_to_bin;
@@ -273,7 +286,7 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
     size_t sharedplanorysize = (bin_size_x + 2 * (int)ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
         std::cout << "error: not enough shared memory" << std::endl;
-        return 1;
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 
     if (d_plan->opts.gpu_kerevalmeth) {
@@ -282,6 +295,7 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
                 d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_binstartpts, d_binsize,
                 bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts,
                 pirange);
+            RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
@@ -289,6 +303,7 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
                 d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_binstartpts, d_binsize,
                 bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts,
                 pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 

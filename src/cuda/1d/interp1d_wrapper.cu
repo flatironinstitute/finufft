@@ -1,3 +1,4 @@
+#include "finufft_errors.h"
 #include <cuComplex.h>
 #include <helper_cuda.h>
 #include <iomanip>
@@ -82,15 +83,12 @@ int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        ier = cuinterp1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
-        if (ier != 0) {
+        if ((ier = cuinterp1d_nuptsdriven<T>(nf1, M, d_plan, blksize)))
             std::cout << "error: cnufftspread1d_gpu_nuptsdriven" << std::endl;
-            return 1;
-        }
     } break;
     default:
         std::cout << "error: incorrect method, should be 1" << std::endl;
-        return 2;
+        ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
     return ier;
@@ -121,11 +119,13 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
         for (int t = 0; t < blksize; t++) {
             interp_1d_nuptsdriven<T, 1><<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
                                                                      es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
             interp_1d_nuptsdriven<T, 0><<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
                                                                      es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 

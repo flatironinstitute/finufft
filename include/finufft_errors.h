@@ -22,5 +22,8 @@
 // cuda malloc/memset/kernel failure/etc
 #define FINUFFT_ERR_CUDA_FAILURE           15
 #define FINUFFT_ERR_PLAN_NOTVALID          16
+#define FINUFFT_ERR_METHOD_NOTVALID        17
+#define FINUFFT_ERR_BINSIZE_NOTVALID       18
+#define FINUFFT_ERR_INSUFFICIENT_SHMEM     19
 
 #endif
