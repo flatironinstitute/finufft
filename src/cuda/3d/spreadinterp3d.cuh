@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include <cuda.h>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 
 #include <cufinufft/defs.h>
 #include <cufinufft/precision_independent.h>
