@@ -6,7 +6,7 @@
 #include <cufinufft/types.h>
 #include <cufinufft/utils.h>
 
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 
 namespace cufinufft {
 namespace memtransfer {

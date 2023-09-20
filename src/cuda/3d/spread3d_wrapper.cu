@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include <cuComplex.h>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <thrust/device_ptr.h>
 #include <thrust/scan.h>
 

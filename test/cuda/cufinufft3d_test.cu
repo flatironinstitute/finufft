@@ -1,7 +1,7 @@
 #include <cmath>
 #include <complex.h>
 #include <complex>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 #include <random>

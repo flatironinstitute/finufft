@@ -1,6 +1,6 @@
 #include "finufft_errors.h"
 #include <cuComplex.h>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 

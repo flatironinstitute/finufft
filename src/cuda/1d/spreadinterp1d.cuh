@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include <cuda.h>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <thrust/extrema.h>
 
 #include <cufinufft/defs.h>

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 
 #include <cufinufft/common.h>
 #include <cufinufft/cudeconvolve.h>

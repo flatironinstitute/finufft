@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include <cufft.h>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 
 #include <cufinufft/cudeconvolve.h>
 #include <cufinufft/memtransfer.h>
