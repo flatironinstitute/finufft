@@ -1,6 +1,3 @@
-#include "cufinufft/contrib/helper_cuda.h"
-#include "cufinufft/types.h"
-#include "finufft_errors.h"
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
@@ -11,6 +8,7 @@
 #include <cuda.h>
 
 #include <cufinufft/common.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/defs.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>

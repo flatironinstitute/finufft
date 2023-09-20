@@ -1,4 +1,3 @@
-#include "finufft_errors.h"
 #include <cuComplex.h>
 #include <cufinufft/contrib/helper_cuda.h>
 #include <iomanip>

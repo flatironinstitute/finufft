@@ -430,8 +430,6 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
 
     /* free/destruct the plan */
     delete d_plan;
-    /* set pointer to NULL now that we've hopefully free'd the memory. */
-    d_plan = NULL;
 
     return 0;
 } // namespace cufinufft
