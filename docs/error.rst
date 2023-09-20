@@ -27,7 +27,7 @@ has the following meanings (see ``include/finufft_errors.h``):
   16 attempt to destroy an uninitialized plan
   17 invalid spread/interp method for dim (attempt to blockgather in 1D, e.g.)
   18 size of bins for subprob/blockgather invalid
-  19 GPU shmem too small for blockgather parameters
+  19 GPU shmem too small for subprob/blockgather parameters
 
 When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
 

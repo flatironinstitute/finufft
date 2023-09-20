@@ -43,7 +43,7 @@ int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize)
         ier = cuspread1d_subprob<T>(nf1, M, d_plan, blksize);
     } break;
     default:
-        std::cout << "error: incorrect method, should be 1 or 2\n";
+        std::cerr << "[cuspread1d] error: incorrect method, should be 1 or 2\n";
         ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
@@ -55,7 +55,7 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
     if (d_plan->opts.gpu_sort) {
         int bin_size_x = d_plan->opts.gpu_binsizex;
         if (bin_size_x < 0) {
-            std::cout << "error: invalid binsize (binsizex) = (" << bin_size_x << ")" << std::endl;
+            std::cerr << "[cuspread1d_nuptsdriven_prop] error: invalid binsize (binsizex) = (" << bin_size_x << ")\n";
             return FINUFFT_ERR_BINSIZE_NOTVALID;
         }
 
@@ -143,7 +143,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
     int bin_size_x = d_plan->opts.gpu_binsizex;
     if (bin_size_x < 0) {
-        std::cout << "error: invalid binsize (binsizex) = (" << bin_size_x << ")\n";
+        std::cerr << "[cuspread1d_subprob_prop] error: invalid binsize (binsizex) = (" << bin_size_x << ")\n";
         return FINUFFT_ERR_BINSIZE_NOTVALID;
     }
 
@@ -196,7 +196,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
                                                                  numbins);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        fprintf(stderr, "[%s] Error: %s\n", __func__, cudaGetErrorString(err));
         cudaFree(d_subprob_to_bin);
         return FINUFFT_ERR_CUDA_FAILURE;
     }
@@ -239,7 +239,7 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
 
     size_t sharedplanorysize = (bin_size_x + 2 * (int)ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
-        std::cout << "error: not enough shared memory" << std::endl;
+        std::cerr << "[cuspread1d_subprob] error: not enough shared memory\n";
         return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 

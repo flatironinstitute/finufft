@@ -48,7 +48,7 @@ int cuspread3d(cufinufft_plan_t<T> *d_plan, int blksize)
         ier = cuspread3d_blockgather<T>(nf1, nf2, nf3, M, d_plan, blksize);
     } break;
     default:
-        std::cerr << "error: incorrect method, should be 1,2,4" << std::endl;
+        std::cerr << "[cuspread3d] error: incorrect method, should be 1,2,4" << std::endl;
         ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
@@ -62,8 +62,8 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
         int bin_size_y = d_plan->opts.gpu_binsizey;
         int bin_size_z = d_plan->opts.gpu_binsizez;
         if (bin_size_x < 0 || bin_size_y < 0 || bin_size_z < 0) {
-            std::cout << "error: invalid binsize (binsizex, binsizey, binsizez) = (";
-            std::cout << bin_size_x << "," << bin_size_y << "," << bin_size_z << ")" << std::endl;
+            std::cerr << "[cuspread3d_nuptsdriven_prop] error: invalid binsize (binsizex, binsizey, binsizez) = (";
+            std::cerr << bin_size_x << "," << bin_size_y << "," << bin_size_z << ")" << std::endl;
             return 1;
         }
 
@@ -165,11 +165,10 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
     int numobins[3];
     if (nf1 % o_bin_size_x != 0 || nf2 % o_bin_size_y != 0 || nf3 % o_bin_size_z != 0) {
-        std::cout << "error: mod(nf1, opts.gpu_obinsizex) != 0" << std::endl;
-        std::cout << "       mod(nf2, opts.gpu_obinsizey) != 0" << std::endl;
-        std::cout << "       mod(nf3, opts.gpu_obinsizez) != 0" << std::endl;
-        std::cout << "error: (nf1, nf2, nf3) = (" << nf1 << ", " << nf2 << ", " << nf3 << ")" << std::endl;
-        std::cout << "error: (obinsizex, obinsizey, obinsizez) = (" << o_bin_size_x << ", " << o_bin_size_y << ", "
+        std::cerr << "[cuspread3d_blockgather_prop] error:\n";
+        std::cerr << "       mod(nf(1|2|3), opts.gpu_obinsize(x|y|z)) != 0" << std::endl;
+        std::cerr << "       (nf1, nf2, nf3) = (" << nf1 << ", " << nf2 << ", " << nf3 << ")" << std::endl;
+        std::cerr << "       (obinsizex, obinsizey, obinsizez) = (" << o_bin_size_x << ", " << o_bin_size_y << ", "
                   << o_bin_size_z << ")" << std::endl;
         return FINUFFT_ERR_BINSIZE_NOTVALID;
     }
@@ -182,12 +181,11 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int bin_size_z = d_plan->opts.gpu_binsizez;
     if (o_bin_size_x % bin_size_x != 0 || o_bin_size_y % bin_size_y != 0 || o_bin_size_z % bin_size_z != 0) {
-        std::cout << "error: mod(ops.gpu_obinsizex, opts.gpu_binsizex) != 0" << std::endl;
-        std::cout << "       mod(ops.gpu_obinsizey, opts.gpu_binsizey) != 0" << std::endl;
-        std::cout << "       mod(ops.gpu_obinsizez, opts.gpu_binsizez) != 0" << std::endl;
-        std::cout << "error: (binsizex, binsizey, binsizez) = (" << bin_size_x << ", " << bin_size_y << ", "
+        std::cerr << "[cuspread3d_blockgather_prop] error:\n";
+        std::cerr << "      mod(ops.gpu_obinsize(x|y|z), opts.gpu_binsize(x|y|z)) != 0" << std::endl;
+        std::cerr << "      (binsizex, binsizey, binsizez) = (" << bin_size_x << ", " << bin_size_y << ", "
                   << bin_size_z << ")" << std::endl;
-        std::cout << "error: (obinsizex, obinsizey, obinsizez) = (" << o_bin_size_x << ", " << o_bin_size_y << ", "
+        std::cerr << "      (obinsizex, obinsizey, obinsizez) = (" << o_bin_size_x << ", " << o_bin_size_y << ", "
                   << o_bin_size_z << ")" << std::endl;
         return FINUFFT_ERR_BINSIZE_NOTVALID;
     }
@@ -251,7 +249,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
         binsperobinz, d_binstartpts, d_sortidx, d_kx, d_ky, d_kz, d_idxnupts, pirange, nf1, nf2, nf3);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        fprintf(stderr, "[%s] Error: %s\n", __func__, cudaGetErrorString(err));
         cudaFree(d_idxnupts);
         return FINUFFT_ERR_CUDA_FAILURE;
     }
@@ -268,7 +266,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
                                                      numobins[2], d_binsize, d_idxnupts, d_binstartpts, M);
     err = cudaGetLastError();
     if (err != cudaSuccess) {
-        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        fprintf(stderr, "[%s] Error: %s\n", __func__, cudaGetErrorString(err));
         cudaFree(d_idxnupts);
         return FINUFFT_ERR_CUDA_FAILURE;
     }
@@ -301,7 +299,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
     map_b_into_subprob_3d_v1<<<(n + 1024 - 1) / 1024, 1024>>>(d_subprob_to_bin, d_subprobstartpts, d_numsubprob, n);
     err = cudaGetLastError();
     if (err != cudaSuccess) {
-        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        fprintf(stderr, "[%s] Error: %s\n", __func__, cudaGetErrorString(err));
         cudaFree(d_subprob_to_bin);
         return FINUFFT_ERR_CUDA_FAILURE;
     }
@@ -354,7 +352,7 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
 
     size_t sharedplanorysize = obin_size_x * obin_size_y * obin_size_z * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
-        std::cout << "error: not enough shared memory" << std::endl;
+        std::cerr << "[cuspread3d_blockgather] error: not enough shared memory" << std::endl;
         return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 
@@ -386,8 +384,8 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
     int bin_size_y = d_plan->opts.gpu_binsizey;
     int bin_size_z = d_plan->opts.gpu_binsizez;
     if (bin_size_x < 0 || bin_size_y < 0 || bin_size_z < 0) {
-        std::cout << "error: invalid binsize (binsizex, binsizey, binsizez) = (";
-        std::cout << bin_size_x << "," << bin_size_y << "," << bin_size_z << ")" << std::endl;
+        std::cerr << "error: invalid binsize (binsizex, binsizey, binsizez) = (";
+        std::cerr << bin_size_x << "," << bin_size_y << "," << bin_size_z << ")" << std::endl;
         return 1;
     }
 
@@ -447,7 +445,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
         d_subprob_to_bin, d_subprobstartpts, d_numsubprob, numbins[0] * numbins[1] * numbins[2]);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));
+        fprintf(stderr, "[%s] Error: %s\n", __func__, cudaGetErrorString(err));
         cudaFree(d_subprob_to_bin);
         return FINUFFT_ERR_CUDA_FAILURE;
     }
@@ -498,7 +496,7 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) *
                                (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
-        std::cout << "error: not enough shared memory (" << sharedplanorysize << ")" << std::endl;
+        std::cerr << "[cuspread3d_subprob] error: not enough shared memory (" << sharedplanorysize << ")" << std::endl;
         return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 

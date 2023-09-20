@@ -33,11 +33,10 @@ int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
     int ier;
     switch (d_plan->opts.gpu_method) {
     case 1: {
-        if ((ier = cuinterp1d_nuptsdriven<T>(nf1, M, d_plan, blksize)))
-            std::cout << "error: cnufftspread1d_gpu_nuptsdriven" << std::endl;
+        ier = cuinterp1d_nuptsdriven<T>(nf1, M, d_plan, blksize);
     } break;
     default:
-        std::cout << "error: incorrect method, should be 1" << std::endl;
+        std::cerr << "[cuinterp1d] error: incorrect method, should be 1" << std::endl;
         ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
