@@ -24,7 +24,10 @@ has the following meanings (see ``include/finufft_errors.h``):
   13 spread_thread option invalid
   14 invalid mode array (more than ~2^31 modes, dimension with 0 modes, etc)
   15 cuda failure (failure to call any cuda function/kernel)
-  16 attempt to destroy a null plan
+  16 attempt to destroy an uninitialized plan
+  17 invalid spread/interp method for dim (attempt to blockgather in 1D, e.g.)
+  18 size of bins for subprob/blockgather invalid
+  19 GPU shmem too small for blockgather parameters
 
 When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
 
