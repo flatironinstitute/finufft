@@ -305,6 +305,8 @@ Notes: the type T means either single or double, matching the
         ier = allocgpumem3d_nupts<T>(d_plan);
     } break;
     }
+    if (ier)
+        return ier;
 
     d_plan->kx = d_kx;
     if (dim > 1)

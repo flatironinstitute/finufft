@@ -43,6 +43,15 @@ static const char *_cudaGetErrorEnum(cudaError_t error) { return cudaGetErrorNam
 // that a CUDA host call returns an error
 #define checkCudaErrors(val) check((val), #val, __FILE__, __LINE__)
 
+#define RETURN_IF_CUDA_ERROR                                                                                           \
+    {                                                                                                                  \
+        cudaError_t err = cudaGetLastError();                                                                          \
+        if (err != cudaSuccess) {                                                                                      \
+            printf("[%s] Error: %s\n", __func__, cudaGetErrorString(err));                                             \
+            return FINUFFT_ERR_CUDA_FAILURE;                                                                           \
+        }                                                                                                              \
+    }
+
 #define CUDA_FREE_AND_NULL(val)                                                                                        \
     {                                                                                                                  \
         check(cudaFree(val), #val, __FILE__, __LINE__);                                                                \
