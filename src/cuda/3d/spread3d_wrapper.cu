@@ -64,7 +64,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
         if (bin_size_x < 0 || bin_size_y < 0 || bin_size_z < 0) {
             std::cerr << "[cuspread3d_nuptsdriven_prop] error: invalid binsize (binsizex, binsizey, binsizez) = (";
             std::cerr << bin_size_x << "," << bin_size_y << "," << bin_size_z << ")" << std::endl;
-            return 1;
+            return FINUFFT_ERR_BINSIZE_NOTVALID;
         }
 
         int numbins[3];
@@ -386,7 +386,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
     if (bin_size_x < 0 || bin_size_y < 0 || bin_size_z < 0) {
         std::cerr << "error: invalid binsize (binsizex, binsizey, binsizez) = (";
         std::cerr << bin_size_x << "," << bin_size_y << "," << bin_size_z << ")" << std::endl;
-        return 1;
+        return FINUFFT_ERR_BINSIZE_NOTVALID;
     }
 
     int numbins[3];
