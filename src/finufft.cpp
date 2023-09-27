@@ -707,6 +707,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
       fprintf(stderr, "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
       return ERR_MAXNALLOC;
     }
+#pragma omp critical
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // the big workspace
     if (p->opts.debug) printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,(double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch) {      // we don't catch all such mallocs, just this big one
@@ -718,6 +719,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     timer.restart();            // plan the FFTW
     int *ns = GRIDSIZE_FOR_FFTW(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
+#pragma omp critical
     p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
          NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
     if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__,p->opts.fftw, nthr_fft, timer.elapsedsec());
@@ -819,8 +821,12 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       fprintf(stderr, "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
       return ERR_MAXNALLOC;
     }
-    if(p->fwBatch) FFTW_FR(p->fwBatch);
-    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // maybe big workspace
+#pragma omp critical
+    {
+      if (p->fwBatch)
+        FFTW_FR(p->fwBatch);
+      p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
+    }
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     if(p->CpBatch) free(p->CpBatch);
     p->CpBatch = (CPX*)malloc(sizeof(CPX) * nj*p->batchSize);  // batch c' work
@@ -1120,9 +1126,11 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
 {
   if (!p)                // NULL ptr, so not a ptr to a plan, report error
     return 1;
+#pragma omp critical
   FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type==1 || p->type==2) {
+#pragma omp critical
     FFTW_DE(p->fftwPlan);
     free(p->phiHat1);
     free(p->phiHat2);
