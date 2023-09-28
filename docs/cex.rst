@@ -273,9 +273,7 @@ Thread safety and global state
 ------------------------------
 
 It is possible to call FINUFFT from within multithreaded code, e.g. in an
-OpenMP parallel block. In this case ``opts.nthreads=1`` should be set,
-and FINUFFT must have been compiled with the ``-DFFTW_PLAN_SAFE`` flag,
-making it thread-safe.
+OpenMP parallel block. In this case ``opts.nthreads=1`` should be set.
 For demos of this, see
 
 * ``examples/threadsafe1d1`` which runs a 1D type-1 separately on each thread, checking the math, and
@@ -290,20 +288,3 @@ its state, and does not have a global state (other than one ``static``
 flag used as a lock on FFTW initialization in the FINUFFT plan
 stage). This means different FINUFFT calls should not affect each other,
 although they may affect other codes that use FFTW via FFTW's global state.
-
-Alternatively  it is possible to achieve thread safety without compiling with ``-DFFTW_PLAN_SAFE``. This can lead to higher performance.
-This way to achieve thread safety is to use the guru interface and split initialization and transformation into two steps. The initialization step is not thread safe, but the transformation step is. The initialization step can be parallelized over threads, but the transformation step cannot. See ``examples/threadsafe1d1`` for an example of this.
-In particular:
-
-.. code-block:: C++
-
-  finufft_makeplan(...args...) // not thread safe
-
-All the other functions are thread safe. With OpenMP is possible to use:
-  
-.. code-block:: C++
-                
-  #pragma omp critical
-  finufft_makeplan(...args...) // not thread safe
-
-to achieve thread safety.

@@ -29,8 +29,6 @@ PYTHON = python3
 CFLAGS := -O3 -funroll-loops -march=native -fcx-limited-range $(CFLAGS)
 FFLAGS := $(CFLAGS) $(FFLAGS)
 CXXFLAGS := $(CFLAGS) $(CXXFLAGS)
-# put this in your make.inc if you have FFTW>=3.3.5 and want thread-safe use...
-#CXXFLAGS += -DFFTW_PLAN_SAFE
 # FFTW base name, and math linking...
 FFTWNAME = fftw3
 # linux default is fftw3_omp, since 10% faster than fftw3_threads...
@@ -192,10 +190,6 @@ endif
 # examples (C++/C) -----------------------------------------------------------
 # build all examples (single-prec codes separate, and not all have one)...
 EXAMPLES = $(basename $(wildcard examples/*.c examples/*.cpp))
-# ...except only build threadsafe ones if user switch on (thus FFTW>=3.3.6):
-ifeq (,$(findstring FFTW_PLAN_SAFE,$(CXXFLAGS)))
-  EXAMPLES := $(filter-out %/threadsafe1d1 %/threadsafe2d2f, $(EXAMPLES))
-endif
 examples: $(EXAMPLES)
 ifneq ($(MINGW),ON)
   # Windows-MSYS does not find the dynamic libraries, so we make a temporary copy
