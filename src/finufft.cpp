@@ -711,10 +711,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
       return ERR_MAXNALLOC;
     }
 
-    {
-      std::lock_guard<std::mutex> lock(fftw_lock);
-      p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // the big workspace
-    }
+    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // the big workspace
     if (p->opts.debug) printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,(double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch) {      // we don't catch all such mallocs, just this big one
       fprintf(stderr, "[%s] FFTW malloc failed for fwBatch (working fine grids)!\n",__func__);
@@ -829,12 +826,10 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       fprintf(stderr, "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
       return ERR_MAXNALLOC;
     }
-    {
-      std::lock_guard<std::mutex> lk(fftw_lock);
-      if (p->fwBatch)
-        FFTW_FR(p->fwBatch);
-      p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
-    }
+    if (p->fwBatch)
+      FFTW_FR(p->fwBatch);
+    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
+
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     if(p->CpBatch) free(p->CpBatch);
     p->CpBatch = (CPX*)malloc(sizeof(CPX) * nj*p->batchSize);  // batch c' work
@@ -1135,10 +1130,7 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
   if (!p)                // NULL ptr, so not a ptr to a plan, report error
     return 1;
 
-  {
-    std::lock_guard<std::mutex> lock(fftw_lock);
-    FFTW_FR(p->fwBatch); // free the big FFTW (or t3 spread) working array
-  }
+  FFTW_FR(p->fwBatch); // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type==1 || p->type==2) {
     {
