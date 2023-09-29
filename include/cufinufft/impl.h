@@ -128,8 +128,12 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
     /* Setup Spreader */
     using namespace cufinufft::common;
-    if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)))
+    // can return FINUFFT_WARN_EPS_TOO_SMALL=1, which is OK
+    if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)) > 1) {
+        delete *d_plan_ptr;
+        *d_plan_ptr = nullptr;
         return ier;
+    }
 
     d_plan->dim = dim;
     d_plan->ms = nmodes[0];
@@ -209,7 +213,6 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         goto finalize;
     }
     d_plan->fftplan = fftplan;
-
     {
         std::complex<double> a[3 * MAX_NQUAD];
         T f[3 * MAX_NQUAD];
@@ -228,15 +231,16 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
             goto finalize;
         if ((ier = checkCudaErrors(cudaMemcpy(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice))))
             goto finalize;
-        ier = cufserieskernelcompute(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
-                                     d_plan->fwkerhalf3, d_plan->spopts.nspread);
+        if ((ier = cufserieskernelcompute(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
+                                          d_plan->fwkerhalf3, d_plan->spopts.nspread)))
+            goto finalize;
     }
 
 finalize:
     cudaFree(d_a);
     cudaFree(d_f);
 
-    if (ier) {
+    if (ier > 1) {
         delete *d_plan_ptr;
         *d_plan_ptr = nullptr;
     }

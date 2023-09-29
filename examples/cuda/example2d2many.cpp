@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
     nmodes[2] = 1;
 
     cufinufft_opts opts;
-    cufinufft_default_opts(type, dim, &opts);
+    cufinufft_default_opts(&opts);
     opts.gpu_maxbatchsize = maxbatchsize;
 
     ier = cufinufft_makeplan(type, dim, nmodes, iflag, ntransf, tol, &dplan, &opts);
