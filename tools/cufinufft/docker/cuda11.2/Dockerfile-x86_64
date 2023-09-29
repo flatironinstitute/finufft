@@ -2,14 +2,7 @@ FROM quay.io/pypa/manylinux2014_x86_64
 LABEL maintainer "Joakim Andén"
 
 ENV CUDA_MAJOR 11
-ENV CUDA_MINOR 0
-
-ENV CUDART_VERSION 11.0.171
-ENV CUDA_LIBRARIES_VERSION 11.0.3
-ENV NVPROF_VERSION 11.0.221
-ENV NVTX_VERSION 11.0.167
-ENV NVCC_VERSION 11.0.221
-
+ENV CUDA_MINOR 2
 ENV CUDA_DASH_VERSION ${CUDA_MAJOR}-${CUDA_MINOR}
 ENV CUDA_DOT_VERSION ${CUDA_MAJOR}.${CUDA_MINOR}
 
@@ -23,7 +16,7 @@ COPY tools/cufinufft/docker/cuda${CUDA_DOT_VERSION}/cuda.repo /etc/yum.repos.d/c
 
 # For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
 RUN yum install -y \
-        cuda-cudart-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
+        cuda-cudart-${CUDA_DASH_VERSION} \
         cuda-compat-${CUDA_DASH_VERSION} && \
     ln -s cuda-${CUDA_DOT_VERSION} /usr/local/cuda && \
     rm -rf /var/cache/yum/*
@@ -42,16 +35,16 @@ ENV NVIDIA_REQUIRE_CUDA "cuda>=${CUDA_DOT_VERSION} brand=tesla,driver>=418,drive
 
 # runtime
 RUN yum install -y \
-        cuda-libraries-${CUDA_DASH_VERSION}-${CUDA_LIBRARIES_VERSION}-1 \
-        cuda-nvtx-${CUDA_DASH_VERSION}-${NVTX_VERSION}-1 && \
+        cuda-libraries-${CUDA_DASH_VERSION} \
+        cuda-nvtx-${CUDA_DASH_VERSION} && \
     rm -rf /var/cache/yum/*
 
 # devel
 RUN yum install -y \
-        cuda-cudart-devel-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
-        cuda-libraries-devel-${CUDA_DASH_VERSION}-${CUDA_LIBRARIES_VERSION}-1 \
-        cuda-nvprof-${CUDA_DASH_VERSION}-${NVPROF_VERSION}-1 \
-        cuda-nvcc-${CUDA_DASH_VERSION}-${NVCC_VERSION}-1 && \
+        cuda-cudart-devel-${CUDA_DASH_VERSION} \
+        cuda-libraries-devel-${CUDA_DASH_VERSION} \
+        cuda-nvprof-${CUDA_DASH_VERSION} \
+        cuda-nvcc-${CUDA_DASH_VERSION} && \
     rm -rf /var/cache/yum/*
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
