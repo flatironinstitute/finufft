@@ -151,6 +151,8 @@ int main() {
             cufinufftf_destroy(plan);
         }
 
+        // This technique to cause cuda failures works most of the time, but sometimes would
+        // break following calls and could cause issues with other contexts using the same GPU
         /* { */
         /*     wasteful_pointers p = alloc_remaining_device_mem(); */
         /*     int64_t N[3] = {sqrt(INT32_MAX - 1), sqrt(INT32_MAX) - 1, 1}; */

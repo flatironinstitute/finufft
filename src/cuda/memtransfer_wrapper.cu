@@ -94,6 +94,7 @@ int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan)
     } break;
     default:
         std::cerr << "[allocgpumem1d_nupts] error: invalid method\n";
+        ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
 finalize:
