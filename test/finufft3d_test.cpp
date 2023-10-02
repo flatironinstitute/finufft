@@ -1,7 +1,8 @@
-#include <test_defs.h>
+#include <finufft/test_defs.h>
 // this enforces recompilation, responding to SINGLE...
 #include "directft/dirft3d.cpp"
 using namespace std;
+using namespace finufft::utils;
 
 const char* help[]={
   "Tester for FINUFFT in 3d, all 3 types, either precision.",
@@ -17,7 +18,7 @@ int main(int argc, char* argv[])
   BIGINT M, N1, N2, N3;       // M = # srcs, N1,N2,N3 = # modes
   double w, tol = 1e-6;       // default
   double err, errfail = INFINITY, errmax = 0;
-  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
+  finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   //opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   //opts.spread_max_sp_size = 3e4; // override test
   //opts.spread_nthr_atomic = 15;  // "

@@ -3,11 +3,14 @@
 
 // For self-test see ../test/testutils.cpp.      Barnett 2017-2020.
 
+#include <cstdint>
 
-#include "utils_precindep.h"
-#include "dataTypes.h"
-#include "defs.h"
+#include "finufft/utils_precindep.h"
+#include "finufft/defs.h"
+using namespace std;
 
+namespace finufft {
+  namespace utils {
 
 BIGINT next235even(BIGINT n)
 // finds even integer not less than n, with prime factors no larger than 5
@@ -29,29 +32,28 @@ BIGINT next235even(BIGINT n)
 }
 
 // ----------------------- helpers for timing (always stay double prec) ------
-using namespace std;
-
+  
 void CNTime::start()
 {
-  gettimeofday(&initial, 0);
+  initial = std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count()*1e-6;
 }
 
 double CNTime::restart()
 // Barnett changed to returning in sec
 {
-  double delta = this->elapsedsec();
-  this->start();
+  double delta = elapsedsec();
+  start();
   return delta;
 }
 
 double CNTime::elapsedsec()
 // returns answers as double, in seconds, to microsec accuracy. Barnett 5/22/18
 {
-  struct timeval now;
-  gettimeofday(&now, 0);
-  double nowsec = (double)now.tv_sec + 1e-6*now.tv_usec;
-  double initialsec = (double)initial.tv_sec + 1e-6*initial.tv_usec;
-  return nowsec - initialsec;
+  std::uint64_t now = std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count();
+  const double nowsec = now*1e-6;
+  return nowsec - initial;
 }
 
 
@@ -83,3 +85,6 @@ int rand_r(unsigned int *seedp)
     return distribution(generator);
 }
 #endif
+
+  } // namespace
+} // namespace

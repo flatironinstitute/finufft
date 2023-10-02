@@ -10,9 +10,7 @@
 #include <Random123/uniform.hpp>
 
 
-extern "C" {
 #include "../contrib/legendre_rule_fast.h"
-}
 
 
 namespace finufft {
@@ -67,7 +65,7 @@ void onedim_nuft_with_method(size_t nk, FT const *k, FT *phihat, Fn &&fn) {
 
     FT f[q];
     double z[2 * q], w[2 * q];         // glr needs double
-    legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
+    finufft::quadrature::legendre_compute_glr(2 * q, z, w); // only half the nodes used, eg on (0,1)
 
     FT zf[q];
 

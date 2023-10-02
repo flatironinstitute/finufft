@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
   int M = 1e5;            // number of nonuniform points
   int N = 1e5;            // number of modes
   double acc = 1e-9;      // desired accuracy
-  nufft_opts* opts = new nufft_opts;     // opts is pointer to struct
+  finufft_opts* opts = new finufft_opts;     // opts is pointer to struct
   finufft_default_opts(opts);
   complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
   

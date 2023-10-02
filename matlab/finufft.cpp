@@ -976,7 +976,7 @@ typedef std::complex<float> fcomplex;
  #include <iostream>
  #include <cstring>
  #include <math.h>
- void copy_nufft_opts(const mxArray* om, nufft_opts *oc) {
+ void copy_finufft_opts(const mxArray* om, finufft_opts *oc) {
    if(!mxIsStruct(om))
      mexErrMsgIdAndTxt("FINUFFT:inputNotStruct","opts input must be a structure.");
    mwIndex idx = 0;
@@ -1153,20 +1153,20 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 170 ----
- * nufft_opts* o = new();
+ * finufft_opts* o = new();
  */
-static const char* stubids2_ = "o nufft_opts* = new()";
+static const char* stubids2_ = "o finufft_opts* = new()";
 
 void mexStub2(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
-    nufft_opts*  out0_=0; /* o          */
+    finufft_opts*  out0_=0; /* o          */
 
     if (mexprofrecord_)
         mexprofrecord_[2]++;
-    out0_ = new nufft_opts();
-    plhs[0] = mxWrapCreateP(out0_, "nufft_opts:%p");
+    out0_ = new finufft_opts();
+    plhs[0] = mxWrapCreateP(out0_, "finufft_opts:%p");
 
 mw_err_label:
     if (mw_err_txt_)
@@ -1195,17 +1195,17 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 173 ----
- * finufft_default_opts(nufft_opts* o);
+ * finufft_default_opts(finufft_opts* o);
  */
-static const char* stubids4_ = "finufft_default_opts(i nufft_opts*)";
+static const char* stubids4_ = "finufft_default_opts(i finufft_opts*)";
 
 void mexStub4(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
-    nufft_opts*  in0_ =0; /* o          */
+    finufft_opts*  in0_ =0; /* o          */
 
-    in0_ = (nufft_opts*) mxWrapGetP(prhs[0], "nufft_opts:%p", &mw_err_txt_);
+    in0_ = (finufft_opts*) mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
     if (mexprofrecord_)
@@ -1239,17 +1239,17 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 176 ----
- * finufftf_default_opts(nufft_opts* o);
+ * finufftf_default_opts(finufft_opts* o);
  */
-static const char* stubids6_ = "finufftf_default_opts(i nufft_opts*)";
+static const char* stubids6_ = "finufftf_default_opts(i finufft_opts*)";
 
 void mexStub6(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
-    nufft_opts*  in0_ =0; /* o          */
+    finufft_opts*  in0_ =0; /* o          */
 
-    in0_ = (nufft_opts*) mxWrapGetP(prhs[0], "nufft_opts:%p", &mw_err_txt_);
+    in0_ = (finufft_opts*) mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
     if (mexprofrecord_)
@@ -1262,24 +1262,24 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 187 ----
- * copy_nufft_opts(mxArray opts, nufft_opts* o);
+ * copy_finufft_opts(mxArray opts, finufft_opts* o);
  */
-static const char* stubids7_ = "copy_nufft_opts(i mxArray, i nufft_opts*)";
+static const char* stubids7_ = "copy_finufft_opts(i mxArray, i finufft_opts*)";
 
 void mexStub7(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
     const mxArray*  in0_;    /* opts       */
-    nufft_opts*  in1_ =0; /* o          */
+    finufft_opts*  in1_ =0; /* o          */
 
     in0_ = prhs[0];
-    in1_ = (nufft_opts*) mxWrapGetP(prhs[1], "nufft_opts:%p", &mw_err_txt_);
+    in1_ = (finufft_opts*) mxWrapGetP(prhs[1], "finufft_opts:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
     if (mexprofrecord_)
         mexprofrecord_[7]++;
-    copy_nufft_opts(in0_, in1_);
+    copy_finufft_opts(in0_, in1_);
 
 mw_err_label:
     if (mw_err_txt_)
@@ -1287,9 +1287,9 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 190 ----
- * int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, nufft_opts* o);
+ * int ier = finufft_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, double tol, finufft_plan* plan, finufft_opts* o);
  */
-static const char* stubids8_ = "o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)";
+static const char* stubids8_ = "o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i finufft_opts*)";
 
 void mexStub8(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1302,7 +1302,7 @@ void mexStub8(int nlhs, mxArray* plhs[],
     int         in4_;    /* n_trans    */
     double      in5_;    /* tol        */
     finufft_plan*  in6_ =0; /* plan       */
-    nufft_opts*  in7_ =0; /* o          */
+    finufft_opts*  in7_ =0; /* o          */
     int         out0_;   /* ier        */
     mwSize      dim8_;   /* 3          */
 
@@ -1351,7 +1351,7 @@ void mexStub8(int nlhs, mxArray* plhs[],
     in6_ = (finufft_plan*) mxWrapGetP(prhs[6], "finufft_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
-    in7_ = (nufft_opts*) mxWrapGetP(prhs[7], "nufft_opts:%p", &mw_err_txt_);
+    in7_ = (finufft_opts*) mxWrapGetP(prhs[7], "finufft_opts:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
     if (mexprofrecord_)
@@ -1372,9 +1372,9 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 193 ----
- * int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, finufftf_plan* plan, nufft_opts* o);
+ * int ier = finufftf_makeplan(int type, int dim, int64_t[3] n_modes, int iflag, int n_trans, float tol, finufftf_plan* plan, finufft_opts* o);
  */
-static const char* stubids9_ = "o int = finufftf_makeplan(i int, i int, i int64_t[x], i int, i int, i float, i finufftf_plan*, i nufft_opts*)";
+static const char* stubids9_ = "o int = finufftf_makeplan(i int, i int, i int64_t[x], i int, i int, i float, i finufftf_plan*, i finufft_opts*)";
 
 void mexStub9(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
@@ -1387,7 +1387,7 @@ void mexStub9(int nlhs, mxArray* plhs[],
     int         in4_;    /* n_trans    */
     float       in5_;    /* tol        */
     finufftf_plan*  in6_ =0; /* plan       */
-    nufft_opts*  in7_ =0; /* o          */
+    finufft_opts*  in7_ =0; /* o          */
     int         out0_;   /* ier        */
     mwSize      dim8_;   /* 3          */
 
@@ -1436,7 +1436,7 @@ void mexStub9(int nlhs, mxArray* plhs[],
     in6_ = (finufftf_plan*) mxWrapGetP(prhs[6], "finufftf_plan:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
-    in7_ = (nufft_opts*) mxWrapGetP(prhs[7], "nufft_opts:%p", &mw_err_txt_);
+    in7_ = (finufft_opts*) mxWrapGetP(prhs[7], "finufft_opts:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
     if (mexprofrecord_)
@@ -1457,17 +1457,17 @@ mw_err_label:
 }
 
 /* ---- finufft.mw: 195 ----
- * delete(nufft_opts* o);
+ * delete(finufft_opts* o);
  */
-static const char* stubids10_ = "delete(i nufft_opts*)";
+static const char* stubids10_ = "delete(i finufft_opts*)";
 
 void mexStub10(int nlhs, mxArray* plhs[],
               int nrhs, const mxArray* prhs[])
 {
     const char* mw_err_txt_ = 0;
-    nufft_opts*  in0_ =0; /* o          */
+    finufft_opts*  in0_ =0; /* o          */
 
-    in0_ = (nufft_opts*) mxWrapGetP(prhs[0], "nufft_opts:%p", &mw_err_txt_);
+    in0_ = (finufft_opts*) mxWrapGetP(prhs[0], "finufft_opts:%p", &mw_err_txt_);
     if (mw_err_txt_)
         goto mw_err_label;
     if (mexprofrecord_)

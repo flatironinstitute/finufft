@@ -21,22 +21,26 @@ CXX=clang++
 CC=clang
 
 # taken from makefile...
-CFLAGS   += -I include -I/usr/local/include
+CFLAGS   += -I include -I/usr/local/include -I/opt/homebrew/include
 FFLAGS   = $(CFLAGS)
 CXXFLAGS = $(CFLAGS)
-LIBS += -L/usr/local/lib
+LIBS += -L/usr/local/lib -L/opt/homebrew/lib
 
 # Use MATLAB's shipped OpenMP (not gomp otherwise segfaults), with clang...
 MOMPFLAGS = -D_OPENMP
 OMPFLAGS = -Xpreprocessor -fopenmp
-OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/
+OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib
+# on mac os with clang compiler, matlab mex should use iomp as omp implementation
+# we need to use -Wl,-rpath to add iomp lib directory to the runtime library search path
+# add iomp runtime search path to linker flags
+LDFLAGS += -Wl,-rpath,$(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/
 # since fftw3_omp doesn't work in OSX, we need...
 FFTWOMPSUFFIX=threads
 
 # MATLAB interface:
 # some of these will depend on your FFTW library location, but this is where
 # brew should put things...
-MFLAGS += -I/usr/local/include -L/usr/local/lib -lm
+MFLAGS += -I/usr/local/include -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
 # should work, or edit for your MATLAB version location...
 MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
 

@@ -9,13 +9,17 @@
 #include <Random123/uniform.hpp>
 
 #define SINGLE
-#include <spreadinterp.h>
+#include <finufft/spreadinterp.h>
 #undef SINGLE
 
 #include "../test/testing_utilities.h"
 
-
-void spread_subproblem_1d(BIGINT off1, BIGINT size1, float *du, BIGINT M, float *kx, float  *dd, const SPREAD_OPTS& opts);
+namespace finufft {
+namespace spreadinterp {
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, float *du, BIGINT M, float *kx, float *dd,
+                          const finufft_spread_opts &opts);
+}
+} // namespace finufft
 
 namespace {
 
@@ -67,14 +71,15 @@ void benchmark_spread_subproblem_1d(benchmark::State& state) {
 
     auto strengths = generate_random_data(num_points * 2, 1);
 
-    SPREAD_OPTS opts;
-    setup_spreader(opts, 1e-6f, 2.0, 1, 0, 1, 1);
+    finufft_spread_opts opts;
+    finufft::spreadinterp::setup_spreader(opts, 1e-6f, 2.0, 1, 0, 1, 1);
 
     for(auto _ : state) {
         benchmark::ClobberMemory();
 
         std::vector<float> result(num_points * 2);
-        spread_subproblem_1d(0, result.size() / 2, result.data(), positions.size(), positions.data(), strengths.data(), opts);
+        finufft::spreadinterp::spread_subproblem_1d(0, result.size() / 2, result.data(), positions.size(),
+                                                    positions.data(), strengths.data(), opts);
         benchmark::ClobberMemory();
         benchmark::DoNotOptimize(result);
     }

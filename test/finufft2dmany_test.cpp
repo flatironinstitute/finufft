@@ -1,7 +1,8 @@
-#include <test_defs.h>
+#include <finufft/test_defs.h>
 // this enforces recompilation, responding to SINGLE...
 #include "directft/dirft2d.cpp"
 using namespace std;
+using namespace finufft::utils;
 
 const char* help[]={
   "Tester for FINUFFT in 2d, vectorized, all 3 types, either precision.",
@@ -18,7 +19,7 @@ int main(int argc, char* argv[])
   int ntransf;                   // # of vectors for "many" interface
   double w, tol = 1e-6;          // default
   double err, errfail = INFINITY, errmax = 0;
-  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
+  finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
   //opts.fftw = FFTW_MEASURE;  // change from default FFTW_ESTIMATE
   int isign = +1;                // choose which exponential sign to test
   if (argc<5 || argc>12) {
@@ -85,7 +86,7 @@ int main(int argc, char* argv[])
 
   // compare the result with FINUFFT2D1
   FFTW_FORGET_WISDOM();
-  nufft_opts simpleopts = opts;
+  finufft_opts simpleopts = opts;
   simpleopts.debug = 0;       // don't output timing for calls of FINUFFT2D1
   simpleopts.spread_debug = 0;
 

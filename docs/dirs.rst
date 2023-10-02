@@ -4,6 +4,9 @@ Directories in this package
 When you ``git clone https://github.com/flatironinstitute/finufft``, or unpack
 a tar ball, you will get the following. (Please see :ref:`installation <install>` instructions)
 
+ .. warning:
+    This is obsolete, as of March 2023, since we are transitioning to cmake, plus have a bunch of new directories from the merge in of cufinufft. Stay tuned!
+
 Main library source:
 
 - ``makefile`` : the single GNU makefile (there are no makefiles in subdirectories)

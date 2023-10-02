@@ -1,4 +1,4 @@
-#include <test_defs.h>
+#include <finufft/test_defs.h>
 
 // Basic pass-fail test of one routine in library w/ default opts.
 // exit code 0 success, failure otherwise. This is useful for brew recipe.

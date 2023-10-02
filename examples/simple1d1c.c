@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
   // allocate complex output array for the Fourier modes
   double complex* F = (double complex*)malloc(sizeof(double complex)*N);
 
-  nufft_opts opts;                      // opts struct (not ptr)
+  finufft_opts opts;                      // opts struct (not ptr)
   finufft_default_opts(&opts);          // set default opts (must do this)
   opts.debug = 2;                       // show how to override a default
   //opts.upsampfac = 1.25;              // other opts...

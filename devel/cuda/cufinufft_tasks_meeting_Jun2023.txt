@@ -1,0 +1,121 @@
+cufinufft meeting 6-13-23.    Robert, Joakim, Libin, Alex
+
+[Feel free to annotate w/ DONE, etc, and update CHANGELOG]
+
+
+UPDATES AT MTG:
+
+CI stochastic fail: Jenkins was selecting K40 (needed sm35).
+Will add other archs. J DONE.
+
+Paul's method (3) has been removed. DONE.
+
+Alex's A6000 needs sm_86 cuda arch... explains why few-second wait each
+runtime (it JIT recompiles for new arch). Now arch=86 fixes.
+
+
+
+TASKS IMMEDIATE:
+
+1) Folder struct (whiteboard). Do this first.
+goal is kill cufinufft/  -> docs can move (PNG advert for GPU should go
+into top-level RST docs (Alex DONE). then:
+   -> ci move to ci/cuda/
+* python -> merge cupython into python/cuda/    - J can do, first
+We dediced docs/ was fine.
+Also folders top-level by language, then internally default is cpu,
+with possible cuda subdir.
+
+
+2) Interface -> 2.2 we will change cufinufft calling args interface to match CPU.
+[save for v2.3 to unify].
+See devel/draft_interfaces_c+py_Jun2023.txt doc
+Issue #255 for C, and 256 for Py.
+We only allow 'complex64' and 'complex128' as the dtype for Py guru calls.
+We need more python guru tests.
+
+Also gpu docs need to match.
+
+
+3) Legacy v1.3 repo:
+* put big RED legacy note in readme   -> J
+* recompile wheels  -> J
+* J will ping users
+Users incomplete list:
+Aspire
+LBNL Blaschke
+Marco Barbone
+
+
+SMALL TASKS IMMEDIATE:
+
+* DOCS: (Alex will update RST docs for cuda, incl its PNG). DONE.
+ -INSTALL: add how to find SM_?? cuda arch [DONE]
+
+* test issue #276 re meth=1,2 - Alex will update. DONE
+
+* cufinufft has C and C++ - J make issue  [<- Alex forgot what this meant??]
+[was merely problem with headers in using gcc] - DONE.
+
+
+* see if gpu error codes can be merged into cpu - the only new one
+  could be cudaMalloc failed.
+  Overlaps with better err msg for cufinufft Issue #273
+
+* ctest is inadequate -> Alex will use cmake -E compare_files f1 f2
+to diff dumbinputs and testutils.
+
+* Libin will switch CI to cmake not classic makefiles (as right now)
+Libin will make CI for CPU use cmake/ctest.
+Marco is involved in CI+cmake too.
+[J already using GPU CI Jenkins.]
+
+
+FUTURE TASKS
+
+1) Look into licensing issues.
+LICENCE - binary are GPL'ed since we ship FFTW.
+  The C++ code can stay apache 2, since doesn't contain fftw.
+  Only py wheels (binary distrib) would be GPL.
+  Burkhardt's gauss-leg is LGPL.
+  * run by Leslie & Nick C - ask who else.
+
+2) Merged APIs so that py users call same functions on cpu/gpu arrays.
+[Enhancement - idea for merged APIs:
+DLpack interoperates ptrs (CPU/GPU). (jax/pytorch/FT).]
+Discussed finufft.torch style interfaces.
+
+3) Refactor GPU code to look like CPU code, be smaller/maintainable.
+Robert starting in PR #278
+Depends on first deciding Thrust or other refactor.
+Alex thinks restruct main driver like finufft.cpp (all dims handled together)
+is cleaner, eg for type 3.
+Melody code quite repetitive, each dim in separate folders. Can refactor
+to make more maintainable?
+Viz:
+GPU code = 7k lines       .... needs rationalizing so dim-indep.
+CPU = 3k lines
+
+4) Type 3 cuda - Robert summer plan. Would first benefit from task 4 above.
+
+5) multi-gpu - have user set device ID, and take it out of our src code.
+Low priority, but probably easy & orthog to 3,4 above.
+Do via C interface first.
+Check the py actually tests this (only tests sequentially because of py, now)
+
+6) Templating FINUFFT src, to kill the C-style macro prec-switching.
+[Robert found trying to template the CPU prec-macros / headers too painful
+in spring 23].
+Low priority, unless it helps rewrite gpu code.
+
+7) Switching FFTs? Low priority for us (Marco/Wenda were pushing more).
+   Robert timed in
+   https://github.com/blackwer/fft_bench
+  MKL is faster a bit than FFTW, not worth including.
+   Pocketfft is not as fast (ducc.FFT is better). M Reinecke.
+   kissFFT terrible & inaccurate.
+
+
+
+
+

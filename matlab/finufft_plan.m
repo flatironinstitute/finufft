@@ -199,17 +199,17 @@ classdef finufft_plan < handle
 
       mex_id_ = 'finufft_mex_setup()';
 finufft(mex_id_);
-      mex_id_ = 'o nufft_opts* = new()';
+      mex_id_ = 'o finufft_opts* = new()';
 [o] = finufft(mex_id_);
       if strcmp(plan.floatprec,'double')
         mex_id_ = 'o finufft_plan* = new()';
 [p] = finufft(mex_id_);
-        mex_id_ = 'finufft_default_opts(i nufft_opts*)';
+        mex_id_ = 'finufft_default_opts(i finufft_opts*)';
 finufft(mex_id_, o);
       else
         mex_id_ = 'o finufftf_plan* = new()';
 [p] = finufft(mex_id_);
-        mex_id_ = 'finufftf_default_opts(i nufft_opts*)';
+        mex_id_ = 'finufftf_default_opts(i finufft_opts*)';
 finufft(mex_id_, o);
       end
       plan.mwptr = p;   % crucial: save the opaque ptr (p.12 of MWrap manual)
@@ -220,27 +220,25 @@ finufft(mex_id_, o);
       % Note the peculiarity that mwrap only accepts a double for n_trans, even
       % though it's declared int. It complains, also with int64 for nj, etc :(
       
-      % replace in nufft_opts struct whichever fields are in incoming opts...
-      mex_id_ = 'copy_nufft_opts(i mxArray, i nufft_opts*)';
+      % replace in finufft_opts struct whichever fields are in incoming opts...
+      mex_id_ = 'copy_finufft_opts(i mxArray, i finufft_opts*)';
 finufft(mex_id_, opts, o);
       if strcmp(plan.floatprec,'double')
         tol = double(tol);   % scalar type must match for mwrap>=0.33.11
-        mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i nufft_opts*)';
+        mex_id_ = 'o int = finufft_makeplan(i int, i int, i int64_t[x], i int, i int, i double, i finufft_plan*, i finufft_opts*)';
 [ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_trans, tol, plan, o, 3);
       else
         tol = single(tol);   % ditto
-        mex_id_ = 'o int = finufftf_makeplan(i int, i int, i int64_t[x], i int, i int, i float, i finufftf_plan*, i nufft_opts*)';
+        mex_id_ = 'o int = finufftf_makeplan(i int, i int, i int64_t[x], i int, i int, i float, i finufftf_plan*, i finufft_opts*)';
 [ier] = finufft(mex_id_, type, dim, n_modes, iflag, n_trans, tol, plan, o, 3);
       end
-      mex_id_ = 'delete(i nufft_opts*)';
+      mex_id_ = 'delete(i finufft_opts*)';
 finufft(mex_id_, o);
       errhandler(ier);             % convert C++ codes to matlab-style errors
     end
 
     function setpts(plan, xj, yj, zj, s, t, u)
     % SETPTS   process nonuniform points for general FINUFFT transform(s).
-    %
-    % For documentation, see: FINUFFT_PLAN
 
       % fill missing inputs with empties of correct type
       if strcmp(plan.floatprec,'double')
@@ -276,8 +274,6 @@ finufft(mex_id_, o);
 
     function result = execute(plan, data_in)
     % EXECUTE   execute single or many-vector FINUFFT transforms in a plan.
-    %
-    % For documentation, see: FINUFFT_PLAN
 
       % get shape info from the matlab-side plan (since can't pass "dot"
       % variables like a.b as mwrap sizes, too)...
@@ -327,10 +323,6 @@ finufft(mex_id_, o);
     end
 
     function delete(plan)
-    % DELETE   deallocate and destroy a FINUFFT plan object.
-    %
-    % For documentation, see: FINUFFT_PLAN
-      
     % This does clean-up (deallocation) of the C++ struct before the matlab
     % object deletes. It is automatically called by MATLAB and octave if the
     % plan goes out of scope.

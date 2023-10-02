@@ -1,5 +1,7 @@
 Performance and development test directory for FINUFFT.
 
+big2d2f : tests int64_t (8byte int) indexing, ie data size > 2^31.
+
 Scripts:
 spreadtestnd.sh : performance test of spreader only, in dims 1,2, or 3.
 nuffttestnd.sh : performance test of NUFFT library, in dims 1,2, or 3.

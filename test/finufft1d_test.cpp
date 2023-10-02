@@ -1,10 +1,11 @@
-#include <test_defs.h>
+#include <finufft/test_defs.h>
 // this enforces recompilation, responding to SINGLE...
 #include "directft/dirft1d.cpp"
 
 #include "testing_utilities.h"
 
 using namespace std;
+using namespace finufft::utils;
 
 const char* help[]={
   "Tester for FINUFFT in 1d, all 3 types, either precision.",
@@ -20,7 +21,7 @@ int main(int argc, char* argv[])
   BIGINT M, N;   // M = # srcs, N = # modes out
   double w, tol = 1e-6;         // default
   double err, errfail = INFINITY, errmax = 0;
-  nufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);  // put defaults in opts
+  finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);  // put defaults in opts
   // opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   int isign = +1;            // choose which exponential sign to test
   if (argc<3 || argc>8) {

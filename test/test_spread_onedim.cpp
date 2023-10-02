@@ -10,12 +10,15 @@
 
 // Warning: this header does not really correctly handle dual precision
 // TODO: fix type handling
-#include <spreadinterp.h>
+#include <finufft/spreadinterp.h>
 
 // Forward declare current implementation
-void spread_subproblem_1d(
-    BIGINT off1, BIGINT size1, double *du, BIGINT M, double *kx, double *dd,
-    const SPREAD_OPTS &opts);
+namespace finufft {
+namespace spreadinterp {
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, double *du, BIGINT M, double *kx, double *dd,
+                          const finufft_spread_opts &opts);
+}
+} // namespace finufft
 
 namespace {
 
@@ -95,10 +98,10 @@ TEST(OneDimSpread, Baseline) {
     finufft::detail::spread_subproblem_1d_impl(
         0, num_result, result.data(), num_points, kx.data(), dd.data(), config.width, accumulator);
 
-    SPREAD_OPTS opts;
-    setup_spreader(opts, 1e-5, 2.0, 0, 0, 1, 1);
+    finufft_spread_opts opts;
+    finufft::spreadinterp::setup_spreader(opts, 1e-5, 2.0, 0, 0, 1, 1);
 
-    spread_subproblem_1d(
+    finufft::spreadinterp::spread_subproblem_1d(
         0, num_result, result_expected.data(), num_points, kx.data(), dd.data(), opts);
 
     for (int i = 0; i < 2 * num_result; i++) {

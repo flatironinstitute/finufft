@@ -1,0 +1,29 @@
+Lead developer: Yu-Hsuan Melody Shih (New York University, now at nVidia)
+
+Other developers: (see github site for full list)
+
+Garrett Wright (Princeton)
+Joakim Anden (KTH)
+Johannes Blaschke (LBNL)
+Alex Barnett (CCM, Flatiron Institute)
+Robert Blackwell (SCC, Flatiron Institute)
+
+This project came out of Melody's 2018 and 2019 summer internships at
+the Flatiron Institute, advised by Alex Barnett.
+
+
+
+--------------
+
+This folder contains the main source files of the GPU implementations.
+
+- cufinufft.cu
+  Four main stages of cufinufft API. 
+  (1) cufinufft_makeplan, (2) cufinufft_setpts, (3) cufinufft_execute, (4) cufinufft_destroy.
+  Also, cufinufft_default_opts may precede stage 1.
+
+- memtransfer_wrapper.cu
+  Wrapper of allocation and free GPU memories for different dimensions and methods.
+
+- deconvolve_wrapper.cu
+  GPU kernels and wrappers of deconvolve and amplify the input/output coefficients by correction factor. (Step 3 in Type 1; Step 1 in Type 2)

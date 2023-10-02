@@ -27,7 +27,7 @@ c     our fortran-header, always needed
       parameter (pi=3.141592653589793238462643383279502884197d0)
       complex*8, allocatable :: cj(:),cj0(:),cj1(:),fk0(:),fk1(:)
 c     for default opts, make a null pointer...
-      type(nufft_opts), pointer :: defopts => null()
+      type(finufft_opts), pointer :: defopts => null()
 
 c     
 c     --------------------------------------------------

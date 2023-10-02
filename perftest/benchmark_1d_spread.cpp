@@ -10,29 +10,26 @@
 #include "../src/kernels/spread/spread.h"
 #include "../src/kernels/spread/spread_mirounga.h"
 
-#include <spread_opts.h>
+#include <finufft_spread_opts.h>
+
+#define DOUBLE
+#include <finufft/defs.h>
+#undef DOUBLE
+#define FINUFFT_BIGINT int64_t
 
 // Forward declare manually due to issue with multi-type code.
-int setup_spreader(
-    spreads_optsd &opts, double eps, double upsampfac, int kerevalmeth, int debug, int showwarn,
-    int dim);
-int setup_spreader(
-    spreads_optsf &opts, float eps, double upsampfac, int kerevalmeth, int debug, int showwarn,
-    int dim);
-
-void spread_subproblem_1d(
-    BIGINT off1, BIGINT size1, double *du, BIGINT M, double *kx, double *dd,
-    const spreads_optsd &opts);
-void spread_subproblem_1d(
-    BIGINT off1, BIGINT size1, float *du, BIGINT M, float *kx, float *dd,
-    const spreads_optsf &opts);
+namespace finufft {
+namespace spreadinterp {
+int setup_spreader(finufft_spread_opts &opts, float eps, double upsampfac, int kerevalmeth, int debug, int showwarn,
+                   int dim);
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, float *du, BIGINT M, float *kx, float *dd,
+                          const finufft_spread_opts &opts);
+void spread_subproblem_1d(BIGINT off1, BIGINT size1, double *du, BIGINT M, double *kx, double *dd,
+                          const finufft_spread_opts &opts);
+} // namespace spreadinterp
+} // namespace finufft
 
 namespace {
-
-// Hack to write a templated code for current implementation with both types.
-template <typename T> struct type_to_spread_opts;
-template <> struct type_to_spread_opts<double> { using type = spreads_optsd; };
-template <> struct type_to_spread_opts<float> { using type = spreads_optsf; };
 
 template <typename T>
 std::tuple<std::vector<T>, std::vector<T>>
@@ -130,16 +127,16 @@ template <typename T> void bench_spread_current_with_width(benchmark::State &sta
     auto num_points = state.range(0);
     auto num_output = num_points;
 
-    typename type_to_spread_opts<T>::type opts;
+    finufft_spread_opts opts;
     double tol = std::pow(10.0, -width + 1.5);
-    setup_spreader(opts, static_cast<T>(tol), 2.0, 1, 0, 1, 1);
+    finufft::spreadinterp::setup_spreader(opts, static_cast<T>(tol), 2.0, 1, 0, 1, 1);
 
     auto [kx, dd] = make_spread_data<T>(num_points, width, num_output, 0);
     std::vector<T> du(2 * num_output);
 
     for (auto _ : state) {
         benchmark::ClobberMemory();
-        spread_subproblem_1d(0, num_output, du.data(), num_output, kx.data(), dd.data(), opts);
+        finufft::spreadinterp::spread_subproblem_1d(0, num_output, du.data(), num_output, kx.data(), dd.data(), opts);
         benchmark::DoNotOptimize(du[du.size() - 1]);
     }
 

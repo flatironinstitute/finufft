@@ -1,0 +1,15 @@
+- cufinufft2d.cu
+  This file contains the execution functions 2d type 1,2 that are called in ../cufinufft.cu
+
+- spreadinterp2d.cu
+  This file contains all the GPU kernels for 2d spreading, interpolation.
+
+- interp2d_wrapper.cu
+  Wrappers for 2d interpolations. Two methods are implemented: 
+    (1) nonuniform driven, 
+    (2) subproblem
+    
+- spread2d_wrapper.cu
+  Wrappers for 2d spreading. Three methods are implemented: 
+    (1) nonuniform driven, 
+    (2) subproblem, 

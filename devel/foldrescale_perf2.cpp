@@ -4,8 +4,8 @@
 
    Compile with, eg on linux, double-prec:
 
-   g++-9 -O3 -funroll-loops -march=native -I../include -fopenmp foldrescale_perf2.cpp -o foldrescale_perf2 -lgomp
-   g++-9 -O3 -funroll-loops -march=native -I../include -fopenmp foldrescale_perf2.cpp -o foldrescale_perf2 -lgomp -Ofast -fno-finite-math-only
+   g++ -O3 -funroll-loops -march=native -I../include -fopenmp foldrescale_perf2.cpp -o foldrescale_perf2 -lgomp
+   g++ -O3 -funroll-loops -march=native -I../include -fopenmp foldrescale_perf2.cpp -o foldrescale_perf2 -lgomp -Ofast -fno-finite-math-only
 
    Flags: -DSINGLE for single-prec. OMP only used for random # gen.
           -DNOBIN to skip the binning, leaving just fold&rescale.
@@ -115,7 +115,7 @@ can recover isnan handling with -Ofast -fno-finite-math-only     .. good!
 */
 
 // since defs starts w/ dataTypes, FLT responds to -DSINGLE from compile line
-#include "defs.h"
+#include "finufft/defs.h"
 
 #include <math.h>
 #include <stdio.h>

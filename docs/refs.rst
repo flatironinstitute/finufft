@@ -3,7 +3,7 @@
 References
 ==========
 
-Please cite the following two papers if you use this software:
+Please cite the first two papers if you use the CPU library FINUFFT, and the third if you use the GPU library cuFINUFFT:
 
 [FIN]
 A parallel non-uniform fast Fourier transform library based on an "exponential of semicircle" kernel.
@@ -14,6 +14,11 @@ SIAM J. Sci. Comput. 41(5), C479-C504 (2019). `arxiv version <https://arxiv.org/
 Aliasing error of the exp$(\beta \sqrt{1-z^2})$ kernel in the nonuniform fast Fourier transform.
 A. H. Barnett. Appl. Comput. Harmon. Anal. 51, 1-16 (2021).
 `arxiv version <https://arxiv.org/abs/2001.09405>`_
+
+[S21]
+cuFINUFFT: a load-balanced GPU library for general-purpose nonuniform FFTs.
+Y.-H. Shih, G. Wright, J. Andén, J. Blaschke, and A. H. Barnett.
+PDSEC2021 workshop of the IPDPS2021 conference (*best paper prize* at workshop). `arxiv version <https://arxiv.org/abs/2102.08463>`_
 
 Background references
 ~~~~~~~~~~~~~~~~~~~~~
@@ -74,5 +79,8 @@ Talk slides
 ~~~~~~~~~~~
 
 These
-`PDF slides <http://users.flatironinstitute.org/~ahb/notes/wam19.pdf>`_
-may be a useful introduction.
+`PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`_
+may be a useful introduction to FINUFFT and applications.
+
+Yu-Hsuan (Melody) Shih's PDSEC2021 20-minute presentation video on cuFINUFFT is here: https://www.youtube.com/watch?v=PnW6ehMyHxM
+

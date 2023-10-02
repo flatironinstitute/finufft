@@ -22,7 +22,7 @@ int main(int argc, char *argv[]){
   int M = 1e6;                 // number of nonuniform points
   int N = 1e6;                 // approximate total number of modes (N1*N2)
   double tol = 1e-6;           // desired accuracy
-  nufft_opts opts; finufft_default_opts(&opts);
+  finufft_opts opts; finufft_default_opts(&opts);
   opts.upsampfac = 1.25;
   complex<double> I(0.0, 1.0); // the imaginary unit
 

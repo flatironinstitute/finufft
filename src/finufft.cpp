@@ -1,12 +1,13 @@
-#include <finufft_eitherprec.h>
-#include <defs.h>
-#include <dataTypes.h>
-#include <nufft_opts.h>
-#include <finufft_plan_eitherprec.h>
-#include <utils.h>
-#include <utils_precindep.h>
-#include <spreadinterp.h>
-#include <fftw_defs.h>
+// public header
+#include <finufft.h>
+
+// private headers for lib build
+// (must come after finufft.h which clobbers FINUFFT* macros)
+#include <finufft/defs.h>
+#include <finufft/utils.h>
+#include <finufft/utils_precindep.h>
+#include <finufft/spreadinterp.h>
+#include <finufft/fftw_defs.h>
 
 #include "kernels/onedim_nuft_type3/onedim_nuft.h"
 
@@ -16,10 +17,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
-extern "C" {
-  #include "../contrib/legendre_rule_fast.h"
-}
+#include "../contrib/legendre_rule_fast.h"
+
 using namespace std;
+using namespace finufft;
+using namespace finufft::utils;
+using namespace finufft::spreadinterp;
+using namespace finufft::quadrature;
 
 
 /* Computational core for FINUFFT.
@@ -87,13 +91,16 @@ Design notes for guru interface implementation:
 
 // ---------- local math routines (were in common.cpp; no need now): --------
 
-// We macro because it has no FLT args but gets compiled for both prec's...
+namespace finufft {
+  namespace common {
+
+  // We macro because it has no FLT args but gets compiled for both prec's...
 #ifdef SINGLE
 #define SET_NF_TYPE12 set_nf_type12f
 #else
 #define SET_NF_TYPE12 set_nf_type12
 #endif
-int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, SPREAD_OPTS spopts, BIGINT *nf)
+int SET_NF_TYPE12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts, BIGINT *nf)
 // Type 1 & 2 recipe for how to set 1d size of upsampled array, nf, given opts
 // and requested number of Fourier modes ms. Returns 0 if success, else an
 // error code if nf was unreasonably big (& tell the world).
@@ -105,11 +112,11 @@ int SET_NF_TYPE12(BIGINT ms, nufft_opts opts, SPREAD_OPTS spopts, BIGINT *nf)
     return 0;
   } else {
     fprintf(stderr,"[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting even a malloc\n",__func__,(double)*nf,(double)MAX_NF);
-    return ERR_MAXNALLOC;
+    return FINUFFT_ERR_MAXNALLOC;
   }
 }
 
-int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, nufft_opts opts, int dim)
+int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps, finufft_opts opts, int dim)
 // Set up the spreader parameters given eps, and pass across various nufft
 // options. Return status of setup_spreader. Uses pass-by-ref. Barnett 10/30/17
 {
@@ -129,7 +136,8 @@ int setup_spreader_for_nufft(SPREAD_OPTS &spopts, FLT eps, nufft_opts opts, int 
   return ier;
 } 
 
-void set_nhg_type3(FLT S, FLT X, nufft_opts opts, SPREAD_OPTS spopts,
+
+void set_nhg_type3(FLT S, FLT X, finufft_opts opts, finufft_spread_opts spopts,
 		     BIGINT *nf, FLT *h, FLT *gam)
 /* sets nf, h (upsampled grid spacing), and gamma (x_j rescaling factor),
    for type 3 only.
@@ -166,7 +174,7 @@ void set_nhg_type3(FLT S, FLT X, nufft_opts opts, SPREAD_OPTS spopts,
   *gam = (FLT)*nf / (2.0*opts.upsampfac*Ssafe);  // x scale fac to x'
 }
 
-void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
+void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
 /*
   Approximates exact Fourier series coeffs of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -226,7 +234,7 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, SPREAD_OPTS opts)
   }
 }
 
-void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, SPREAD_OPTS opts)
+void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts)
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
@@ -362,9 +370,9 @@ void deconvolveshuffle2d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
       fw[j][0] = fw[j][1] = 0.0;
   for (BIGINT k2=0;k2<=k2max;++k2, pp+=2*ms)          // non-neg y-freqs
     // point fk and fw to the start of this y value's row (2* is for complex):
-    deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + pp,nf1,&fw[nf1*k2],modeord);
+    common::deconvolveshuffle1d(dir,prefac/ker2[k2],ker1,ms,fk + pp,nf1,&fw[nf1*k2],modeord);
   for (BIGINT k2=k2min;k2<0;++k2, pn+=2*ms)           // neg y-freqs
-    deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + pn,nf1,&fw[nf1*(nf2+k2)],modeord);
+    common::deconvolveshuffle1d(dir,prefac/ker2[-k2],ker1,ms,fk + pn,nf1,&fw[nf1*(nf2+k2)],modeord);
 }
 
 void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
@@ -401,10 +409,10 @@ void deconvolveshuffle3d(int dir,FLT prefac,FLT *ker1, FLT *ker2,
       fw[j][0] = fw[j][1] = 0.0;
   for (BIGINT k3=0;k3<=k3max;++k3, pp+=2*ms*mt)      // non-neg z-freqs
     // point fk and fw to the start of this z value's plane (2* is for complex):
-    deconvolveshuffle2d(dir,prefac/ker3[k3],ker1,ker2,ms,mt,
+    common::deconvolveshuffle2d(dir,prefac/ker3[k3],ker1,ker2,ms,mt,
 			fk + pp,nf1,nf2,&fw[np*k3],modeord);
   for (BIGINT k3=k3min;k3<0;++k3, pn+=2*ms*mt)       // neg z-freqs
-    deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
+    common::deconvolveshuffle2d(dir,prefac/ker3[-k3],ker1,ker2,ms,mt,
 			fk + pn,nf1,nf2,&fw[np*(nf3+k3)],modeord);
 }
 
@@ -428,8 +436,9 @@ int spreadinterpSortedBatch(int batchSize, FINUFFT_PLAN p, CPX* cBatch)
   // opts.spread_thread: 1 sequential multithread, 2 parallel single-thread.
   // omp_sets_nested deprecated, so don't use; assume not nested for 2 to work.
   // But when nthr_outer=1 here, omp par inside the loop sees all threads...
+#ifdef _OPENMP
   int nthr_outer = p->opts.spread_thread==1 ? 1 : batchSize;
-  
+#endif
 #pragma omp parallel for num_threads(nthr_outer)
   for (int i=0; i<batchSize; i++) {
     FFTW_CPX *fwi = p->fwBatch + i*p->nf;  // start of i'th fw array in wkspace
@@ -507,16 +516,20 @@ int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN p){
 }
 
 
+  }   // namespace
+}   // namespace
 
 
-// --------------- rest is the 5 user guru (plan) interface drivers: -----------
 
 
+// --------------- rest is the 5 user guru (plan) interface drivers: ---------
+// (not namespaced since have safe names finufft{f}_* )
+using namespace finufft::common;  // accesses routines defined above
 
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
+void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
 // Sets default nufft opts (referenced by all language interfaces too).
-// See nufft_opts.h for meanings.
+// See finufft_opts.h for meanings.
 // This was created to avoid uncertainty about C++11 style static initialization
 // when called from MEX, but now is generally used. Barnett 10/30/17 onwards.
 // Sphinx sucks the below code block into the web docs, hence keep it clean...
@@ -545,9 +558,9 @@ void FINUFFT_DEFAULT_OPTS(nufft_opts *o)
 
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
-                     int ntrans, FLT tol, FINUFFT_PLAN *pp, nufft_opts* opts)
+                     int ntrans, FLT tol, FINUFFT_PLAN *pp, finufft_opts* opts)
 // Populates the fields of finufft_plan which is pointed to by "p".
-// opts is ptr to a nufft_opts to set options, or NULL to use defaults.
+// opts is ptr to a finufft_opts to set options, or NULL to use defaults.
 // For some of the fields, if "auto" selected, choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
@@ -568,15 +581,15 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   
   if((type!=1)&&(type!=2)&&(type!=3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n",__func__,type);
-    return ERR_TYPE_NOTVALID;
+    return FINUFFT_ERR_TYPE_NOTVALID;
   }
   if((dim!=1)&&(dim!=2)&&(dim!=3)) {
     fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n",__func__,dim);
-    return ERR_DIM_NOTVALID;
+    return FINUFFT_ERR_DIM_NOTVALID;
   }
   if (ntrans<1) {
     fprintf(stderr,"[%s] ntrans (%d) should be at least 1.\n",__func__,ntrans);
-    return ERR_NTRANS_NOTVALID;
+    return FINUFFT_ERR_NTRANS_NOTVALID;
   }
   
   // get stuff from args...
@@ -604,7 +617,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     p->opts.spread_thread=2;                // our auto choice
   if (p->opts.spread_thread!=1 && p->opts.spread_thread!=2) {
     fprintf(stderr,"[%s] illegal opts.spread_thread!\n",__func__);
-    return ERR_SPREAD_THREAD_NOTVALID;
+    return FINUFFT_ERR_SPREAD_THREAD_NOTVALID;
   }
 
   if (type!=3) {    // read in user Fourier mode array sizes...
@@ -703,19 +716,21 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
     if (p->nf * p->batchSize > MAX_NF) {
       fprintf(stderr, "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
-      return ERR_MAXNALLOC;
+      return FINUFFT_ERR_MAXNALLOC;
     }
+#pragma omp critical
     p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // the big workspace
     if (p->opts.debug) printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,(double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch) {      // we don't catch all such mallocs, just this big one
       fprintf(stderr, "[%s] FFTW malloc failed for fwBatch (working fine grids)!\n",__func__);
       free(p->phiHat1); free(p->phiHat2); free(p->phiHat3);
-      return ERR_ALLOC;
+      return FINUFFT_ERR_ALLOC;
     }
    
     timer.restart();            // plan the FFTW
     int *ns = GRIDSIZE_FOR_FFTW(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
+#pragma omp critical
     p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
          NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
     if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__,p->opts.fftw, nthr_fft, timer.elapsedsec());
@@ -761,10 +776,13 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     if (ier)         // no warnings allowed here
       return ier;    
     timer.restart();
+    // Free sortIndices if it has been allocated before in case of repeated setpts calls causing memory leak.
+    // We don't know it is the same size as before, so we have to malloc each time.
+    if (p->sortIndices) free(p->sortIndices);
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*p->nj);
     if (!p->sortIndices) {
       fprintf(stderr,"[%s] failed to allocate sortIndices!\n",__func__);
-      return ERR_SPREAD_ALLOC;
+      return FINUFFT_ERR_SPREAD_ALLOC;
     }
     p->didSort = indexSort(p->sortIndices, p->nf1, p->nf2, p->nf3, p->nj, xj, yj, zj, p->spopts);
     if (p->opts.debug) printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__,p->didSort, timer.elapsedsec());
@@ -812,26 +830,38 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
     if (p->nf * p->batchSize > MAX_NF) {
       fprintf(stderr, "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
-      return ERR_MAXNALLOC;
+      return FINUFFT_ERR_MAXNALLOC;
     }
-    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // maybe big workspace
+#pragma omp critical
+    {
+      if (p->fwBatch)
+        FFTW_FR(p->fwBatch);
+      p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
+    }
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
+    if(p->CpBatch) free(p->CpBatch);
     p->CpBatch = (CPX*)malloc(sizeof(CPX) * nj*p->batchSize);  // batch c' work
     if (p->opts.debug) printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__, (double)1E-09*sizeof(CPX)*(p->nf+nj)*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch || !p->CpBatch) {
       fprintf(stderr, "[%s t3] malloc fail for fwBatch or CpBatch!\n",__func__);
-      return ERR_ALLOC; 
+      return FINUFFT_ERR_ALLOC; 
     }
     //printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
+    if(p->X) free(p->X);
+    if(p->Sp) free(p->Sp);
     p->X = (FLT*)malloc(sizeof(FLT)*nj);
     p->Sp = (FLT*)malloc(sizeof(FLT)*nk);
     if (d>1) {
+      if(p->Y) free(p->Y);
+      if(p->Tp) free(p->Tp);
       p->Y = (FLT*)malloc(sizeof(FLT)*nj);
       p->Tp = (FLT*)malloc(sizeof(FLT)*nk);
     }
     if (d>2) {
+      if(p->Z) free(p->Z);
+      if(p->Up) free(p->Up);
       p->Z = (FLT*)malloc(sizeof(FLT)*nj);
       p->Up = (FLT*)malloc(sizeof(FLT)*nk);
     }
@@ -853,6 +883,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
     // set up prephase array...
     CPX imasign = (p->fftSign>=0) ? IMA : -IMA;             // +-i
+    if(p->prephase) free(p->prephase);
     p->prephase = (CPX*)malloc(sizeof(CPX)*nj);
     if (p->t3P.D1!=0.0 || p->t3P.D2!=0.0 || p->t3P.D3!=0.0) {
 #pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
@@ -880,6 +911,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
+    if(p->deconv) free(p->deconv);
     p->deconv = (CPX*)malloc(sizeof(CPX)*nk);
     FLT *phiHatk1 = (FLT*)malloc(sizeof(FLT)*nk);  // don't confuse w/ p->phiHat
     onedim_nuft_kernel(nk, p->Sp, phiHatk1, p->spopts);         // fill phiHat1
@@ -916,10 +948,13 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
     // Set up sort for spreading Cp (from primed NU src pts X, Y, Z) to fw...
     timer.restart();
+    // Free sortIndices if it has been allocated before in case of repeated setpts calls causing memory leak.
+    // We don't know it is the same size as before, so we have to malloc each time.
+    if (p->sortIndices) free(p->sortIndices);
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*p->nj);
     if (!p->sortIndices) {
       fprintf(stderr,"[%s t3] failed to allocate sortIndices!\n",__func__);
-      return ERR_SPREAD_ALLOC;
+      return FINUFFT_ERR_SPREAD_ALLOC;
     }
     p->didSort = indexSort(p->sortIndices, p->nf1, p->nf2, p->nf3, p->nj, p->X, p->Y, p->Z, p->spopts);
     if (p->opts.debug) printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n",__func__, p->didSort, timer.elapsedsec());
@@ -927,12 +962,13 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     // Plan and setpts once, for the (repeated) inner type 2 finufft call...
     timer.restart();
     BIGINT t2nmodes[] = {p->nf1,p->nf2,p->nf3};   // t2 input is actually fw
-    nufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
+    finufft_opts t2opts = p->opts;                  // deep copy, since not ptrs
     t2opts.modeord = 0;                           // needed for correct t3!
     t2opts.debug = max(0,p->opts.debug-1);        // don't print as much detail
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);
     t2opts.showwarn = 0;                          // so don't see warnings 2x
     // (...could vary other t2opts here?)
+    if(p->innerT2plan) FINUFFT_DESTROY(p->innerT2plan);
     int ier = FINUFFT_MAKEPLAN(2, d, t2nmodes, p->fftSign, p->batchSize, p->tol,
                                &p->innerT2plan, &t2opts);
     if (ier>1) {     // if merely warning, still proceed
@@ -1101,9 +1137,11 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
 {
   if (!p)                // NULL ptr, so not a ptr to a plan, report error
     return 1;
+#pragma omp critical
   FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type==1 || p->type==2) {
+#pragma omp critical
     FFTW_DE(p->fftwPlan);
     free(p->phiHat1);
     free(p->phiHat2);
@@ -1116,6 +1154,6 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
     free(p->prephase);
     free(p->deconv);
   }
-  delete(p);
+  delete p;
   return 0;              // success
 }
