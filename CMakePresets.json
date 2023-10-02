@@ -56,6 +56,20 @@
             }
         },
         {
+            "name": "icx",
+            "binaryDir": "build/icx",
+            "displayName": "Intel Compiler (llvm)",
+            "description": "Build with Intel Compiler",
+            "generator": "Ninja Multi-Config",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "icx",
+                "CMAKE_CXX_COMPILER": "icpx",
+                "CMAKE_Fortran_COMPILER": "ifx",
+                "FINUFFT_ARCH_FLAGS": "-xHost",
+                "CMAKE_CXX_FLAGS": "-fp-model=strict"
+            }
+        },
+        {
             "name": "icc",
             "binaryDir": "build/icc",
             "displayName": "Intel Compiler",
@@ -107,6 +121,11 @@
         {
             "name": "icc",
             "configurePreset": "icc",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "icx",
+            "configurePreset": "icx",
             "configuration": "RelWithDebInfo"
         },
         {
