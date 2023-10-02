@@ -5,9 +5,6 @@
 
 #include <benchmark/benchmark.h>
 
-#include <Random123/philox.h>
-#include <Random123/uniform.hpp>
-
 #define SINGLE
 #include <finufft/spreadinterp.h>
 #undef SINGLE
@@ -159,4 +156,3 @@ void benchmark_eval_kernel_7(benchmark::State& state) {
 BENCHMARK(benchmark_spread_subproblem_1d)->RangeMultiplier(4)->Range(128, 1<<14)->Unit(benchmark::kMicrosecond);
 BENCHMARK(benchmark_eval_kernel)->Arg(4)->Arg(6)->Arg(7)->Arg(8);
 BENCHMARK(benchmark_eval_kernel_7);
-

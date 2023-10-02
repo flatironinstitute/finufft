@@ -4,10 +4,8 @@
 
 #include <cmath>
 #include <cstddef>
+#include <random>
 #include <vector>
-
-#include <Random123/philox.h>
-#include <Random123/uniform.hpp>
 
 
 #include "../contrib/legendre_rule_fast.h"
@@ -29,20 +27,14 @@ template <typename FT> FT eval_kernel(FT x, int width) {
 }
 
 template <typename T> std::vector<T> generate_random_data(int n, int seed) {
-    typedef r123::Philox2x32 RNG;
-    RNG rng;
-
-    RNG::ctr_type ctr = {{}};
-    RNG::ukey_type key = {{}};
-    key[0] = seed;
+    std::random_device rd;
+    std::mt19937 rng;
+    rng.seed(seed);
+    std::uniform_real_distribution<T> dist;
 
     std::vector<T> result(n);
-
-    for (int i = 0; i < n; i++) {
-        ctr[0] = i;
-        auto r = rng(ctr, key);
-        result[i] = r123::u01<T>(r[0]);
-    }
+    for (int i = 0; i < n; i++)
+        result[i] = dist(rng);
 
     return result;
 }
