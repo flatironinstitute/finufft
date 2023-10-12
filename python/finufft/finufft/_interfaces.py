@@ -120,20 +120,21 @@ class Plan:
         plan = c_void_p(None)
 
         # setting n_modes and dim for makeplan
-        n_modes = np.ones([3], dtype=np.int64)
         if nufft_type==3:
             npdim = np.asarray(n_modes_or_dim, dtype=np.int64)
             if npdim.size != 1:
                 raise RuntimeError('FINUFFT type 3 plan n_modes_or_dim must be one number, the dimension')
             dim = int(npdim)
+            n_modes = np.ones([dim], dtype=np.int64)
         else:
             npmodes = np.asarray(n_modes_or_dim, dtype=np.int64)
             if npmodes.size>3 or npmodes.size<1:
                 raise RuntimeError("FINUFFT n_modes dimension must be 1, 2, or 3")
             dim = int(npmodes.size)
+            n_modes = np.ones([dim], dtype=np.int64)
             n_modes[0:dim] = npmodes[::-1]
 
-        n_modes = (c_longlong * 3)(*n_modes)
+        n_modes = (c_longlong * dim)(*n_modes)
 
         if is_single:
             self._makeplan = _finufft._makeplanf
@@ -254,9 +255,7 @@ class Plan:
         dim = self.dim
 
         if tp==1 or tp==2:
-            ms = self.n_modes[0]
-            mt = self.n_modes[1]
-            mu = self.n_modes[2]
+            ms, mt, mu = [*self.n_modes, *([1]*(3-len(self.n_modes)))]
 
         # input shape and size check
         if tp==2:
@@ -276,11 +275,11 @@ class Plan:
         # allocate out if None
         if out is None:
             if tp==1:
-                _out = np.squeeze(np.zeros([n_trans, mu, mt, ms], dtype=self.dtype, order='C'))
+                _out = np.zeros([*data.shape[:-1], *self.n_modes[::-1]], dtype=self.dtype, order='C')
             if tp==2:
-                _out = np.squeeze(np.zeros([n_trans, nj], dtype=self.dtype, order='C'))
+                _out = np.zeros([*data.shape[:-dim], nj], dtype=self.dtype, order='C')
             if tp==3:
-                _out = np.squeeze(np.zeros([n_trans, nk], dtype=self.dtype, order='C'))
+                _out = np.zeros([*data.shape[:-1], nk], dtype=self.dtype, order='C')
 
         # call execute based on type and precision type
         if tp==1 or tp==3:
@@ -512,9 +511,9 @@ def destroy(plan):
 def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     # infer dtype from x
     if x.dtype is np.dtype('float64'):
-        pdtype = 'double'
+        pdtype = 'complex128'
     elif x.dtype is np.dtype('float32'):
-        pdtype = 'single'
+        pdtype = 'complex64'
     else:
         raise RuntimeError('FINUFFT x dtype should be float64 for double precision or float32 for single precision')
     # check n_modes type, n_modes must be a tuple or an integer
