@@ -18,6 +18,7 @@ if(FINUFFT_USE_OPENMP)
   foreach(EXAMPLE ${EXAMPLES_OPENMP})
     add_executable(${EXAMPLE} ${EXAMPLE}.cpp)
     target_link_libraries(${EXAMPLE} PRIVATE finufft)
+    enable_asan(${EXAMPLE})
   endforeach()
 endif()
 
