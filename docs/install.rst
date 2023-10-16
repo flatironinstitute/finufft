@@ -81,6 +81,10 @@ For example, to configure, build and test the development preset (which builds t
 From other CMake projects, to use ``finufft`` as a library, simply add this repository as a subdirectory using
 ``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
 
+.. note::
+
+   CMake compiling on linux at Flatiron Institute (Rusty cluster). We have had a report that if you want to use LLVM, you need to ``module load llvm/16.0.3`` otherwise the default ``llvm/14.0.6`` does not find ``OpenMP_CXX``.
+
 
 Old GNU make based route
 ------------------------
@@ -356,14 +360,20 @@ The GCC route
 ~~~~~~~~~~~~~~
 
 This is less recommended, unless you need to link from ``gfortran``, when it
-appears to be essential. We have tested on Movaje::
+appears to be essential. The basic idea is::
 
-  cp make.inc.macosx_gcc-8 make.inc
+  cp make.inc.macosx_gcc-12 make.inc
   make test -j
   make fortran
 
 which also compiles and tests the fortran interfaces.
-In Catalina you'll probably need to edit to ``g++-10`` in your ``make.inc``.
+You may need to edit to ``g++-11``, or whatever your GCC version is,
+in your ``make.inc``.
+
+.. note::
+
+   A problem between GCC and the new XCode 15 requires a workaround to add ``LDFLAGS+=-ld64`` to force the old linker to be used. See the above file ``make.inc.macosx_gcc-12``.
+
 We find python may be built as :ref:`below<install-python>`.
 We found that octave interfaces do not work with GCC; please help.
 For MATLAB, the MEX settings may need to be

@@ -126,3 +126,32 @@ def verify_type2(k, fk, c, tol):
     type2_rel_err = np.linalg.norm(c_target - c_est) / np.linalg.norm(c_target)
 
     assert type2_rel_err < 25 * tol
+
+
+def transfer_funcs(module_name):
+    if module_name == "pycuda":
+        import pycuda.autoinit # NOQA:401
+        from pycuda.gpuarray import to_gpu
+        def to_cpu(obj):
+            return obj.get()
+    elif module_name == "cupy":
+        import cupy
+        def to_gpu(obj):
+            return cupy.array(obj)
+        def to_cpu(obj):
+            return obj.get()
+    elif module_name == "numba":
+        import numba.cuda
+        to_gpu = numba.cuda.to_device
+        def to_cpu(obj):
+            return obj.copy_to_host()
+    elif module_name == "torch":
+        import torch
+        def to_gpu(obj):
+            return torch.as_tensor(obj, device=torch.device("cuda"))
+        def to_cpu(obj):
+            return obj.cpu().numpy()
+    else:
+        raise TypeError(f"Unsupported framework: {module_name}")
+
+    return to_gpu, to_cpu

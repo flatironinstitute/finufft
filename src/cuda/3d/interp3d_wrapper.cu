@@ -2,7 +2,7 @@
 #include <iostream>
 
 #include <cuComplex.h>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 
 #include <cufinufft/memtransfer.h>
 #include <cufinufft/spreadinterp.h>
@@ -13,55 +13,6 @@ using namespace cufinufft::memtransfer;
 
 namespace cufinufft {
 namespace spreadinterp {
-
-template <typename T>
-int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_t<T> *d_plan)
-/*
-    This c function is written for only doing 3D interpolation. See
-    test/interp3d_test.cu for usage.
-
-    Melody Shih 07/25/19
-    not allocate,transfer and free memories on gpu. Shih 09/24/20
-*/
-{
-    int ier;
-    d_plan->kx = d_kx;
-    d_plan->ky = d_ky;
-    d_plan->kz = d_kz;
-    d_plan->c = d_c;
-    d_plan->fw = d_fw;
-
-    d_plan->nf1 = nf1;
-    d_plan->nf2 = nf2;
-    d_plan->nf3 = nf3;
-    d_plan->M = M;
-    d_plan->maxbatchsize = 1;
-
-    ier = allocgpumem3d_plan<T>(d_plan);
-    ier = allocgpumem3d_nupts<T>(d_plan);
-
-    if (d_plan->opts.gpu_method == 1) {
-        ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan);
-        if (ier != 0) {
-            printf("error: cuinterp3d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
-            return ier;
-        }
-    }
-    if (d_plan->opts.gpu_method == 2) {
-        ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
-        if (ier != 0) {
-            printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-            return ier;
-        }
-    }
-
-    ier = cuinterp3d<T>(d_plan, 1);
-
-    freegpumemory3d<T>(d_plan);
-
-    return ier;
-}
 
 template <typename T>
 int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize)
@@ -84,21 +35,13 @@ int cuinterp3d(cufinufft_plan_t<T> *d_plan, int blksize)
     switch (d_plan->opts.gpu_method) {
     case 1: {
         ier = cuinterp3d_nuptsdriven<T>(nf1, nf2, nf3, M, d_plan, blksize);
-        if (ier != 0) {
-            std::cout << "error: cnufftspread3d_gpu_nuptsdriven" << std::endl;
-            return 1;
-        }
     } break;
     case 2: {
         ier = cuinterp3d_subprob<T>(nf1, nf2, nf3, M, d_plan, blksize);
-        if (ier != 0) {
-            std::cout << "error: cnufftspread3d_gpu_subprob" << std::endl;
-            return 1;
-        }
     } break;
     default:
-        std::cout << "error: incorrect method, should be 1,2" << std::endl;
-        return 2;
+        std::cerr << "[cuinterp3d] error: incorrect method, should be 1,2\n";
+        ier = FINUFFT_ERR_METHOD_NOTVALID;
     }
 
     return ier;
@@ -130,15 +73,17 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            interp_3d_nupts_driven_horner<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
-                                                                             d_fw + t * nf1 * nf2 * nf3, M, ns, nf1,
-                                                                             nf2, nf3, sigma, d_idxnupts, pirange);
+            interp_3d_nupts_driven<T, 1>
+                <<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns,
+                                                    nf1, nf2, nf3, es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            interp_3d_nupts_driven<<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M,
-                                                                      d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3,
-                                                                      es_c, es_beta, d_idxnupts, pirange);
+            interp_3d_nupts_driven<T, 0>
+                <<<blocks, threadsPerBlock, 0, 0>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns,
+                                                    nf1, nf2, nf3, es_c, es_beta, sigma, d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 
@@ -180,32 +125,28 @@ int cuinterp3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) *
                                (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
-        std::cout << "error: not enough shared memory" << std::endl;
-        return 1;
+        std::cerr << "[cuinterp3d_subprob] error: not enough shared memory\n";
+        return FINUFFT_ERR_INSUFFICIENT_SHMEM;
     }
 
     for (int t = 0; t < blksize; t++) {
         if (d_plan->opts.gpu_kerevalmeth == 1) {
-            interp_3d_subprob_horner<<<totalnumsubprob, 256, sharedplanorysize>>>(
-                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, d_binstartpts,
-                d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts, d_numsubprob,
-                maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
-        } else {
-            interp_3d_subprob<<<totalnumsubprob, 256, sharedplanorysize>>>(
-                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta,
+            interp_3d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize>>>(
+                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
                 d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
+        } else {
+            interp_3d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize>>>(
+                d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
+                d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
+                d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+            RETURN_IF_CUDA_ERROR
         }
     }
 
     return 0;
 }
-
-template int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<float> *d_fw, int M, float *d_kx, float *d_ky,
-                                float *d_kz, cuda_complex<float> *d_c, cufinufft_plan_t<float> *d_plan);
-template int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<double> *d_fw, int M, double *d_kx,
-                                double *d_ky, double *d_kz, cuda_complex<double> *d_c,
-                                cufinufft_plan_t<double> *d_plan);
 
 template int cuinterp3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuinterp3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);

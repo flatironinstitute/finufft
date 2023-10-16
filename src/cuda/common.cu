@@ -1,12 +1,14 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 #include <cuComplex.h>
 #include <cuda.h>
 
 #include <cufinufft/common.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/defs.h>
 #include <cufinufft/precision_independent.h>
 #include <cufinufft/spreadinterp.h>
@@ -70,6 +72,8 @@ int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, cuDoubleC
 
     fseries_kernel_compute<<<numBlocks, threadsPerBlock>>>(nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1, d_fwkerhalf2,
                                                            d_fwkerhalf3, ns);
+    RETURN_IF_CUDA_ERROR
+
     return 0;
 }
 

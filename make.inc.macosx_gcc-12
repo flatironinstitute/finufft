@@ -1,0 +1,49 @@
+# Makefile variable overrides for Mac OSX compilation with GCC v.12
+#
+# Use this if you'll need to link against gfortran.
+#
+# Barnett 10/27/18. Input from Yu-Hsuan Shih, Amit Moskovich.
+# Lu minor modification for gcc-10 12/06/2020
+# Leslie and Dan F found XCode linking problem, workaround 10/5/23.
+
+# By default we use clang/LLVM (which is aliased to /usr/lib/gcc, etc).
+# This make.inc is if you want to override this.
+# Get gcc from brew then use, eg:
+CXX=g++-12
+CC=gcc-12
+FC=gfortran
+
+# as in makefile, but with the brew /usr/local/ stuff...
+CFLAGS   += -I src -I/usr/local/include -I/opt/homebrew/include
+FFLAGS   = $(CFLAGS)
+CXXFLAGS = $(CFLAGS)
+LIBS += -L/usr/local/lib -L/opt/homebrew/lib
+# Workaround to force old linker to be used due to XCode15 (Issue #360):
+LDFLAGS+=-ld64
+
+# If you're getting warning messages of the form:
+#    ld: warning: object file (lib-static/libfinufft.a(finufft1d.o)) was built for
+#    newer OSX version (10.13) than being linked (10.9)
+# Then you can uncomment the following two lines with the older version number
+# (in this example -mmacosx-version-min=10.9)
+#
+#CFLAGS += "-mmacosx-version-min=<OLDER OSX VERSION NUMBER>"
+
+# OpenMP with GCC on OSX needs following...
+OMPFLAGS = -fopenmp
+OMPLIBS = -L/usr/local/lib -lgomp
+# since fftw3_omp doesn't work in OSX, we need...
+FFTWOMPSUFFIX=threads
+
+# MATLAB interface:
+# some of these will depend on your FFTW library location...
+MFLAGS += -I/usr/local/include  -I/opt/homebrew/include -L/usr/local/lib -L/opt/homebrew/lib -lm
+# edit for your MATLAB version location...
+MEX = $(shell ls -d /Applications/MATLAB_R20**.app)/bin/mex
+# Also see docs/install.rst for possible edits to MATLAB's MEX XML file.
+
+# If you have segfault of MATLAB then please try the following:
+#MOMPFLAGS = -D_OPENMP
+#OMPFLAGS = -Xpreprocessor -fopenmp
+#OMPLIBS = $(shell ls -d /Applications/MATLAB_R20**.app)/sys/os/maci64/libiomp5.dylib
+# This links to MATLAB's omp not gomp.

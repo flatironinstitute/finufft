@@ -1,15 +1,11 @@
 import numpy as np
 import pytest
 
-import pycuda.autoinit # NOQA:401
-import pycuda.gpuarray as gpuarray
-
-from cufinufft import Plan
+from cufinufft import Plan, _compat
 
 import utils
 
-
-def test_set_nu_raises_on_dtype():
+def test_set_nu_raises_on_dtype(to_gpu):
     dtype = np.complex64
 
     M = 4096
@@ -19,10 +15,10 @@ def test_set_nu_raises_on_dtype():
 
     kxyz = utils.gen_nu_pts(M, dim=dim).astype(dtype)
 
-    kxyz_gpu = gpuarray.to_gpu(kxyz)
+    kxyz_gpu = to_gpu(kxyz)
 
     # Here we'll intentionally contruct an incorrect array dtype.
-    kxyz_gpu_wrong_type = gpuarray.to_gpu(kxyz.real.astype(np.float64))
+    kxyz_gpu_wrong_type = to_gpu(kxyz.real.astype(np.float64))
 
     plan = Plan(1, shape, eps=tol, dtype=dtype)
 
@@ -40,7 +36,7 @@ def test_set_nu_raises_on_dtype():
                      kxyz_gpu_wrong_type[1], kxyz_gpu_wrong_type[2])
 
 
-def test_set_pts_raises_on_size():
+def test_set_pts_raises_on_size(to_gpu):
     dtype = np.float32
     complex_dtype = np.complex64
 
@@ -51,7 +47,7 @@ def test_set_pts_raises_on_size():
 
     kxyz = utils.gen_nu_pts(M, dim=dim).astype(dtype)
 
-    kxyz_gpu = gpuarray.to_gpu(kxyz)
+    kxyz_gpu = to_gpu(kxyz)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
@@ -62,7 +58,7 @@ def test_set_pts_raises_on_size():
         plan.setpts(kxyz_gpu[0], kxyz_gpu[1], kxyz_gpu[2][:4])
 
 
-def test_set_pts_raises_on_nonvector():
+def test_set_pts_raises_on_nonvector(to_gpu):
     dtype = np.float32
     complex_dtype = np.complex64
 
@@ -73,7 +69,7 @@ def test_set_pts_raises_on_nonvector():
 
     kxyz = utils.gen_nu_pts(M, dim=dim).astype(dtype)
 
-    kxyz_gpu = gpuarray.to_gpu(kxyz)
+    kxyz_gpu = to_gpu(kxyz)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
@@ -81,7 +77,7 @@ def test_set_pts_raises_on_nonvector():
         plan.setpts(kxyz)
 
 
-def test_set_pts_raises_on_number_of_args():
+def test_set_pts_raises_on_number_of_args(to_gpu):
     dtype = np.float32
     complex_dtype = np.complex64
 
@@ -92,7 +88,7 @@ def test_set_pts_raises_on_number_of_args():
 
     kxyz = utils.gen_nu_pts(M, dim=3).astype(dtype)
 
-    kxyz_gpu = gpuarray.to_gpu(kxyz)
+    kxyz_gpu = to_gpu(kxyz)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 
@@ -112,7 +108,7 @@ def test_wrong_field_names():
         plan = Plan(1, (8, 8), foo="bar")
 
 
-def test_exec_raises_on_dtype():
+def test_exec_raises_on_dtype(to_gpu):
     dtype = np.float32
     complex_dtype = np.complex64
 
@@ -123,14 +119,17 @@ def test_exec_raises_on_dtype():
 
     kxyz = utils.gen_nu_pts(M, dim=dim).astype(dtype)
     c = utils.gen_nonuniform_data(M).astype(complex_dtype)
-    c_gpu = gpuarray.to_gpu(c)
+    c_gpu = to_gpu(c)
     # Using c.real gives us wrong dtype here...
-    c_gpu_wrong_dtype = gpuarray.to_gpu(c.real)
+    # Need contiguous here since numba does not allow transfers of
+    # non-contiguous arrays.
+    c_gpu_wrong_dtype = to_gpu(np.ascontiguousarray(c.real))
 
-    kxyz_gpu = gpuarray.to_gpu(kxyz)
-    fk_gpu = gpuarray.GPUArray(shape, dtype=complex_dtype)
+    kxyz_gpu = to_gpu(kxyz)
+    fk_gpu = _compat.array_empty_like(kxyz_gpu, shape, dtype=complex_dtype)
     # Here we'll intentionally contruct an incorrect array dtype.
-    fk_gpu_wrong_dtype = gpuarray.GPUArray(shape, dtype=np.complex128)
+    fk_gpu_wrong_dtype = _compat.array_empty_like(fk_gpu, shape,
+            dtype=np.complex128)
 
     plan = Plan(1, shape, eps=tol, dtype=complex_dtype)
 

@@ -71,27 +71,6 @@ static __inline__ __device__ void eval_kernel_vec(T *ker, const T x, const int w
     }
 }
 
-/* C wrapper for calling CUDA kernels */
-// Wrapper for testing spread, interpolation only
-template <typename T>
-int cufinufft_spread1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
-                       cufinufft_plan_t<T> *d_plan);
-template <typename T>
-int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
-                       cufinufft_plan_t<T> *d_plan);
-template <typename T>
-int cufinufft_spread2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
-                       cufinufft_plan_t<T> *d_plan);
-template <typename T>
-int cufinufft_interp2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
-                       cufinufft_plan_t<T> *d_plan);
-template <typename T>
-int cufinufft_spread3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_t<T> **dplan);
-template <typename T>
-int cufinufft_interp3d(int nf1, int nf2, int nf3, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, T *d_kz,
-                       cuda_complex<T> *d_c, cufinufft_plan_t<T> **dplan);
-
 // Functions for calling different methods of spreading & interpolation
 template <typename T>
 int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize);

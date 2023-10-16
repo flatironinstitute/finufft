@@ -153,7 +153,7 @@ int spreadinterp(
   BIGINT* sort_indices = (BIGINT*)malloc(sizeof(BIGINT)*M);
   if (!sort_indices) {
     fprintf(stderr,"%s failed to allocate sort_indices!\n",__func__);
-    return ERR_SPREAD_ALLOC;
+    return FINUFFT_ERR_SPREAD_ALLOC;
   }
   int did_sort = indexSort(sort_indices, N1, N2, N3, M, kx, ky, kz, opts);
   spreadinterpSorted(sort_indices, N1, N2, N3, data_uniform,
@@ -187,11 +187,11 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
   int minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
     fprintf(stderr,"%s error: one or more non-trivial box dims is less than 2.nspread!\n",__func__);
-    return ERR_SPREAD_BOX_SMALL;
+    return FINUFFT_ERR_SPREAD_BOX_SMALL;
   }
   if (opts.spread_direction!=1 && opts.spread_direction!=2) {
     fprintf(stderr,"%s error: opts.spread_direction must be 1 or 2!\n",__func__);
-    return ERR_SPREAD_DIR;
+    return FINUFFT_ERR_SPREAD_DIR;
   }
   int ndims = ndims_from_Ns(N1,N2,N3);
   
@@ -203,21 +203,21 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
     for (BIGINT i=0; i<M; ++i) {
       if ((opts.pirange ? (abs(kx[i])>3.0*PI) : (kx[i]<-N1 || kx[i]>2*N1)) || !isfinite(kx[i])) {
         fprintf(stderr,"%s NU pt not in valid range (central three periods): kx[%lld]=%.16g, N1=%lld (pirange=%d)\n",__func__, (long long)i, kx[i], (long long)N1,opts.pirange);
-        return ERR_SPREAD_PTS_OUT_RANGE;
+        return FINUFFT_ERR_SPREAD_PTS_OUT_RANGE;
       }
     }
     if (ndims>1)
       for (BIGINT i=0; i<M; ++i) {
         if ((opts.pirange ? (abs(ky[i])>3.0*PI) : (ky[i]<-N2 || ky[i]>2*N2)) || !isfinite(ky[i])) {
           fprintf(stderr,"%s NU pt not in valid range (central three periods): ky[%lld]=%.16g, N2=%lld (pirange=%d)\n",__func__, (long long)i, ky[i], (long long)N2,opts.pirange);
-          return ERR_SPREAD_PTS_OUT_RANGE;
+          return FINUFFT_ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
     if (ndims>2)
       for (BIGINT i=0; i<M; ++i) {
         if ((opts.pirange ? (abs(kz[i])>3.0*PI) : (kz[i]<-N3 || kz[i]>2*N3)) || !isfinite(kz[i])) {
           fprintf(stderr,"%s NU pt not in valid range (central three periods): kz[%lld]=%.16g, N3=%lld (pirange=%d)\n",__func__, (long long)i, kz[i], (long long)N3,opts.pirange);
-          return ERR_SPREAD_PTS_OUT_RANGE;
+          return FINUFFT_ERR_SPREAD_PTS_OUT_RANGE;
         }
       }
     if (opts.debug) printf("\tNU bnds check:\t\t%.3g s\n",timer.elapsedsec());
@@ -560,7 +560,7 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac,
    Must call this before any kernel evals done, otherwise segfault likely.
    Returns:
      0  : success
-     WARN_EPS_TOO_SMALL : requested eps cannot be achieved, but proceed with
+     FINUFFT_WARN_EPS_TOO_SMALL : requested eps cannot be achieved, but proceed with
                           best possible eps
      otherwise : failure (see codes in defs.h); spreading must not proceed
    Barnett 2017. debug, loosened eps logic 6/14/20.
@@ -569,11 +569,11 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac,
   if (upsampfac!=2.0 && upsampfac!=1.25) {   // nonstandard sigma
     if (kerevalmeth==1) {
       fprintf(stderr,"FINUFFT setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",upsampfac);
-      return ERR_HORNER_WRONG_BETA;
+      return FINUFFT_ERR_HORNER_WRONG_BETA;
     }
     if (upsampfac<=1.0) {       // no digits would result
       fprintf(stderr,"FINUFFT setup_spreader: error, upsampfac=%.3g is <=1.0\n",upsampfac);
-      return ERR_UPSAMPFAC_TOO_SMALL;
+      return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
     }
     // calling routine must abort on above errors, since opts is garbage!
     if (showwarn && upsampfac>4.0)
@@ -602,7 +602,7 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac,
     if (showwarn)
       fprintf(stderr,"%s warning: increasing tol=%.3g to eps_mach=%.3g.\n",__func__,(double)eps,(double)EPSILON);
     eps = EPSILON;              // only changes local copy (not any opts)
-    ier = WARN_EPS_TOO_SMALL;
+    ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   if (upsampfac==2.0)           // standard sigma (see SISC paper)
     ns = std::ceil(-log10(eps/(FLT)10.0));          // 1 digit per power of 10
@@ -614,7 +614,7 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac,
       fprintf(stderr,"%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",__func__,
               upsampfac,(double)eps,ns,MAX_NSPREAD);
     ns = MAX_NSPREAD;
-    ier = WARN_EPS_TOO_SMALL;
+    ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread = ns;
 
