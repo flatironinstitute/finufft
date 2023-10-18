@@ -41,6 +41,6 @@ jobs:
           parallel: 14
           build-options: --verbose
 
-#      - name: Setup tmate session
+      - name: Setup tmate session
 #        if: ${{ failure() }}
-#        uses: mxschmitt/action-tmate@v3
+        uses: mxschmitt/action-tmate@v3
