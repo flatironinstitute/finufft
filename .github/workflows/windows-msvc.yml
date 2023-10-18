@@ -40,7 +40,13 @@ jobs:
           ctest-options: --test-dir test --output-on-failure
           parallel: 14
           build-options: --verbose
-
-      - name: Setup tmate session
+          
+      - name: Upload wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-dll
+          path: ${{ runner.workspace }}/build/finufft*
+        
+#      - name: Setup tmate session
 #        if: ${{ failure() }}
-        uses: mxschmitt/action-tmate@v3
+#        uses: mxschmitt/action-tmate@v3
