@@ -41,7 +41,7 @@ jobs:
           parallel: 14
           build-options: --verbose
           
-      - name: Upload wheels
+      - name: Upload dll
         uses: actions/upload-artifact@v2
         with:
           name: windows-dll
