@@ -259,6 +259,9 @@ finalize:
         *d_plan_ptr = nullptr;
     }
 
+    // Wait for async copies out of stack buffers
+    cudaStreamSynchronize(stream);
+
     return ier;
 }
 
