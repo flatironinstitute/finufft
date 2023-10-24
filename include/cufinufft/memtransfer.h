@@ -11,19 +11,15 @@ int allocgpumem1d_plan(cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int allocgpumem1d_nupts(cufinufft_plan_t<T> *d_plan);
 template <typename T>
-void freegpumemory1d(cufinufft_plan_t<T> *d_plan);
+void freegpumemory(cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int allocgpumem2d_plan(cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int allocgpumem2d_nupts(cufinufft_plan_t<T> *d_plan);
 template <typename T>
-void freegpumemory2d(cufinufft_plan_t<T> *d_plan);
-template <typename T>
 int allocgpumem3d_plan(cufinufft_plan_t<T> *d_plan);
 template <typename T>
 int allocgpumem3d_nupts(cufinufft_plan_t<T> *d_plan);
-template <typename T>
-void freegpumemory3d(cufinufft_plan_t<T> *d_plan);
 
 } // namespace memtransfer
 } // namespace cufinufft

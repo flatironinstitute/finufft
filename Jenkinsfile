@@ -51,6 +51,7 @@ pipeline {
       python3 -m pip install torch==1.10.2+cu111 -f https://download.pytorch.org/whl/torch_stable.html
       python3 -m pip install -e python/cufinufft
       python3 -m pip install pytest
+      python -c "from numba import cuda; cuda.cudadrv.libs.test()"
       python3 -m pytest --framework=pycuda python/cufinufft
       python3 -m pytest --framework=numba python/cufinufft
       python3 -m pytest --framework=cupy python/cufinufft

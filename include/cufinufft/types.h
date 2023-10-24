@@ -45,7 +45,6 @@ struct cufinufft_plan_t {
     int iflag;
 
     int totalnumsubprob;
-    int byte_now;
     T *fwkerhalf1;
     T *fwkerhalf2;
     T *fwkerhalf3;

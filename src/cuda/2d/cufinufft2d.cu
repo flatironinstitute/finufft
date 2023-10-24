@@ -5,7 +5,7 @@
 #include <iostream>
 
 #include <cufft.h>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 
 #include <cufinufft/cudeconvolve.h>
 #include <cufinufft/memtransfer.h>
@@ -32,39 +32,38 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 {
     assert(d_plan->spopts.spread_direction == 1);
 
-    int blksize;
     int ier;
     cuda_complex<T> *d_fkstart;
     cuda_complex<T> *d_cstart;
 
     auto &stream = d_plan->stream;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-        blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
+        int blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;
         d_fkstart = d_fk + i * d_plan->maxbatchsize * d_plan->ms * d_plan->mt;
         d_plan->c = d_cstart;
         d_plan->fk = d_fkstart;
 
-        checkCudaErrors(cudaMemsetAsync(d_plan->fw, 0,
-                                        d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * sizeof(cuda_complex<T>),
-                                        stream)); // this is needed
+        // this is needed
+        if ((ier = checkCudaErrors(cudaMemsetAsync(
+                 d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * sizeof(cuda_complex<T>), stream))))
+            return ier;
 
         // Step 1: Spread
-        ier = cuspread2d<T>(d_plan, blksize);
-
-        if (ier != 0) {
-            printf("error: cuspread2d, method(%d)\n", d_plan->opts.gpu_method);
+        if ((ier = cuspread2d<T>(d_plan, blksize)))
             return ier;
-        }
 
         // Step 2: FFT
-        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        cufftResult cufft_status = cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        if (cufft_status != CUFFT_SUCCESS)
+            return FINUFFT_ERR_CUDA_FAILURE;
 
         // Step 3: deconvolve and shuffle
-        cudeconvolve2d<T>(d_plan, blksize);
+        if ((ier = cudeconvolve2d<T>(d_plan, blksize)))
+            return ier;
     }
 
-    return ier;
+    return 0;
 }
 
 template <typename T>
@@ -84,12 +83,11 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 {
     assert(d_plan->spopts.spread_direction == 2);
 
-    int blksize;
     int ier;
     cuda_complex<T> *d_fkstart;
     cuda_complex<T> *d_cstart;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
-        blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
+        int blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;
         d_fkstart = d_fk + i * d_plan->maxbatchsize * d_plan->ms * d_plan->mt;
 
@@ -97,19 +95,20 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         d_plan->fk = d_fkstart;
 
         // Step 1: amplify Fourier coeffs fk and copy into upsampled array fw
-        cudeconvolve2d<T>(d_plan, blksize);
+        if ((ier = cudeconvolve2d<T>(d_plan, blksize)))
+            return ier;
+
         // Step 2: FFT
-        cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        cufftResult cufft_status = cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
+        if (cufft_status != CUFFT_SUCCESS)
+            return FINUFFT_ERR_CUDA_FAILURE;
 
         // Step 3: deconvolve and shuffle
-        ier = cuinterp2d<T>(d_plan, blksize);
-        if (ier != 0) {
-            printf("error: cuinterp2d, method(%d)\n", d_plan->opts.gpu_method);
+        if ((ier = cuinterp2d<T>(d_plan, blksize)))
             return ier;
-        }
     }
 
-    return ier;
+    return 0;
 }
 
 template int cufinufft2d1_exec<float>(cuda_complex<float> *d_c, cuda_complex<float> *d_fk,

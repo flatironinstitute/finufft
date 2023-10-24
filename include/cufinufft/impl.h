@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 
 #include <cufinufft/common.h>
 #include <cufinufft/cudeconvolve.h>
@@ -12,6 +12,8 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/types.h>
 #include <cufinufft/utils.h>
+
+#include <finufft_errors.h>
 
 // 1d
 template <typename T>
@@ -86,18 +88,22 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
         Melody Shih 07/25/19. Use-facing moved to markdown, Barnett 2/16/21.
     */
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id;
-    cudaGetDevice(&orig_gpu_device_id);
-    if (opts == NULL) {
-        // options might not be supplied to this function => assume device
-        // 0 by default
-        cudaSetDevice(0);
-    } else {
-        cudaSetDevice(opts->gpu_device_id);
+    int ier;
+    cuDoubleComplex *d_a = nullptr; // fseries temp data
+    T *d_f = nullptr;               // fseries temp data
+
+    if (type < 1 || type > 2) {
+        fprintf(stderr, "[%s] Invalid type (%d): should be 1 or 2.\n", __func__, type);
+        return FINUFFT_ERR_TYPE_NOTVALID;
+    }
+    if (ntransf < 1) {
+        fprintf(stderr, "[%s] Invalid ntransf (%d): should be at least 1.\n", __func__, ntransf);
+        return FINUFFT_ERR_NTRANS_NOTVALID;
     }
 
-    int ier;
+    // Mult-GPU support: set the CUDA Device ID:
+    const int device_id = opts == NULL ? 0 : opts->gpu_device_id;
+    cufinufft::utils::WithCudaDevice device_swapper(device_id);
 
     /* allocate the plan structure, assign address to user pointer. */
     cufinufft_plan_t<T> *d_plan = new cufinufft_plan_t<T>;
@@ -112,21 +118,33 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
     }
 
-    d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
+    auto &stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
 
     /* Automatically set GPU method. */
     if (d_plan->opts.gpu_method == 0) {
-        if (type == 1)
+        /* For type 1, we default to method 2 (SM) since this is generally faster.
+         * However, in the special case of _double precision_ in _three dimensions_
+         * with more than _three digits of precision_, there is note enough shared
+         * memory for this to work. As a result, we will default to method 1 (GM) in
+         * this special case.
+         *
+         * For type 2, we always default to method 1 (GM). */
+        if (type == 1 && (sizeof(T) == 4 || dim < 3 || tol >= 1e-3))
             d_plan->opts.gpu_method = 2;
+        else if (type == 1 && tol < 1e-3)
+            d_plan->opts.gpu_method = 1;
         else if (type == 2)
             d_plan->opts.gpu_method = 1;
     }
 
     /* Setup Spreader */
     using namespace cufinufft::common;
-    ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts);
-    if (ier > 1) // proceed if success or warning
+    // can return FINUFFT_WARN_EPS_TOO_SMALL=1, which is OK
+    if ((ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts)) > 1) {
+        delete *d_plan_ptr;
+        *d_plan_ptr = nullptr;
         return ier;
+    }
 
     d_plan->dim = dim;
     d_plan->ms = nmodes[0];
@@ -158,70 +176,88 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
     if (d_plan->type == 2)
         d_plan->spopts.spread_direction = 2;
 
+    using namespace cufinufft::memtransfer;
+    switch (d_plan->dim) {
+    case 1: {
+        if ((ier = allocgpumem1d_plan<T>(d_plan)))
+            goto finalize;
+    } break;
+    case 2: {
+        if ((ier = allocgpumem2d_plan<T>(d_plan)))
+            goto finalize;
+    } break;
+    case 3: {
+        if ((ier = allocgpumem3d_plan<T>(d_plan)))
+            goto finalize;
+    } break;
+    }
+
+    cufftHandle fftplan;
+    cufftResult_t cufft_status;
     switch (d_plan->dim) {
     case 1: {
         int n[] = {(int)nf1};
         int inembed[] = {(int)nf1};
 
-        cufftPlanMany(&d_plan->fftplan, 1, n, inembed, 1, inembed[0], inembed, 1, inembed[0], cufft_type<T>(),
-                      maxbatchsize);
+        cufft_status = cufftPlanMany(&fftplan, 1, n, inembed, 1, inembed[0], inembed, 1, inembed[0], cufft_type<T>(),
+                                     maxbatchsize);
     } break;
     case 2: {
         int n[] = {(int)nf2, (int)nf1};
         int inembed[] = {(int)nf2, (int)nf1};
 
-        cufftPlanMany(&d_plan->fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1, inembed[0] * inembed[1],
-                      cufft_type<T>(), maxbatchsize);
+        cufft_status = cufftPlanMany(&fftplan, 2, n, inembed, 1, inembed[0] * inembed[1], inembed, 1,
+                                     inembed[0] * inembed[1], cufft_type<T>(), maxbatchsize);
     } break;
     case 3: {
         int n[] = {(int)nf3, (int)nf2, (int)nf1};
         int inembed[] = {(int)nf3, (int)nf2, (int)nf1};
 
-        cufftPlanMany(&d_plan->fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
-                      inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
-    } break;
-    }
-    cufftSetStream(d_plan->fftplan, d_plan->stream);
-
-    using namespace cufinufft::memtransfer;
-    switch (d_plan->dim) {
-    case 1: {
-        ier = allocgpumem1d_plan<T>(d_plan);
-    } break;
-    case 2: {
-        ier = allocgpumem2d_plan<T>(d_plan);
-    } break;
-    case 3: {
-        ier = allocgpumem3d_plan<T>(d_plan);
+        cufft_status = cufftPlanMany(&fftplan, 3, n, inembed, 1, inembed[0] * inembed[1] * inembed[2], inembed, 1,
+                                     inembed[0] * inembed[1] * inembed[2], cufft_type<T>(), maxbatchsize);
     } break;
     }
 
-    std::complex<double> a[3 * MAX_NQUAD];
-    T f[3 * MAX_NQUAD];
-    onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
-    if (dim > 1) {
-        onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
+    if (cufft_status != CUFFT_SUCCESS) {
+        fprintf(stderr, "[%s] cufft makeplan error: %s", __func__, cufftGetErrorString(cufft_status));
+        ier = FINUFFT_ERR_CUDA_FAILURE;
+        goto finalize;
     }
-    if (dim > 2) {
-        onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD, d_plan->spopts);
+    cufftSetStream(d_plan->fftplan, stream);
+
+    d_plan->fftplan = fftplan;
+    {
+        std::complex<double> a[3 * MAX_NQUAD];
+        T f[3 * MAX_NQUAD];
+        onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
+        if (dim > 1)
+            onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
+        if (dim > 2)
+            onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD, d_plan->spopts);
+
+        if ((ier = checkCudaErrors(cudaMallocAsync(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), stream))))
+            goto finalize;
+        if ((ier = checkCudaErrors(cudaMallocAsync(&d_f, dim * MAX_NQUAD * sizeof(T), stream))))
+            goto finalize;
+        if ((ier = checkCudaErrors(
+                 cudaMemcpyAsync(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice, stream))))
+            goto finalize;
+        if ((ier =
+                 checkCudaErrors(cudaMemcpyAsync(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice, stream))))
+            goto finalize;
+        if ((ier = cufserieskernelcompute(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
+                                          d_plan->fwkerhalf3, d_plan->spopts.nspread, stream)))
+            goto finalize;
     }
 
-    cuDoubleComplex *d_a;
-    T *d_f;
-
-    auto &stream = d_plan->stream;
-    checkCudaErrors(cudaMallocAsync(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), stream));
-    checkCudaErrors(cudaMallocAsync(&d_f, dim * MAX_NQUAD * sizeof(T), stream));
-    checkCudaErrors(cudaMemcpyAsync(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice, stream));
-    checkCudaErrors(cudaMemcpyAsync(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice, stream));
-    ier = cufserieskernelcompute(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
-                                 d_plan->fwkerhalf3, d_plan->spopts.nspread, stream);
-
+finalize:
     cudaFreeAsync(d_a, stream);
     cudaFreeAsync(d_f, stream);
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
+    if (ier > 1) {
+        delete *d_plan_ptr;
+        *d_plan_ptr = nullptr;
+    }
 
     return ier;
 }
@@ -265,10 +301,7 @@ Notes: the type T means either single or double, matching the
     Melody Shih 07/25/19; Barnett 2/16/21 moved out docs.
 */
 {
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
+    cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 
     int nf1 = d_plan->nf1;
     int nf2 = d_plan->nf2;
@@ -290,6 +323,8 @@ Notes: the type T means either single or double, matching the
         ier = allocgpumem3d_nupts<T>(d_plan);
     } break;
     }
+    if (ier)
+        return ier;
 
     d_plan->kx = d_kx;
     if (dim > 1)
@@ -300,94 +335,28 @@ Notes: the type T means either single or double, matching the
     using namespace cufinufft::spreadinterp;
     switch (d_plan->dim) {
     case 1: {
-        if (d_plan->opts.gpu_method == 1) {
-            ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan);
-            if (ier != 0) {
-                printf("error: cuspread1d_nupts_prop, method(%d)\n", d_plan->opts.gpu_method);
-
-                // Multi-GPU support: reset the device ID
-                cudaSetDevice(orig_gpu_device_id);
-
-                return 1;
-            }
-        }
-        if (d_plan->opts.gpu_method == 2) {
-            ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan);
-            if (ier != 0) {
-                printf("error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-
-                // Multi-GPU support: reset the device ID
-                cudaSetDevice(orig_gpu_device_id);
-
-                return 1;
-            }
-        }
+        if (d_plan->opts.gpu_method == 1 && (ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan)))
+            fprintf(stderr, "error: cuspread1d_nupts_prop, method(%d)\n", d_plan->opts.gpu_method);
+        if (d_plan->opts.gpu_method == 2 && (ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan)))
+            fprintf(stderr, "error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
     } break;
     case 2: {
-        if (d_plan->opts.gpu_method == 1) {
-            ier = cuspread2d_nuptsdriven_prop<T>(nf1, nf2, M, d_plan);
-            if (ier != 0) {
-                printf("error: cuspread2d_nupts_prop, method(%d)\n", d_plan->opts.gpu_method);
-
-                // Multi-GPU support: reset the device ID
-                cudaSetDevice(orig_gpu_device_id);
-
-                return 1;
-            }
-        }
-        if (d_plan->opts.gpu_method == 2) {
-            ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan);
-            if (ier != 0) {
-                printf("error: cuspread2d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-
-                // Multi-GPU support: reset the device ID
-                cudaSetDevice(orig_gpu_device_id);
-
-                return 1;
-            }
-        }
+        if (d_plan->opts.gpu_method == 1 && (ier = cuspread2d_nuptsdriven_prop<T>(nf1, nf2, M, d_plan)))
+            fprintf(stderr, "error: cuspread2d_nupts_prop, method(%d)\n", d_plan->opts.gpu_method);
+        if (d_plan->opts.gpu_method == 2 && (ier = cuspread2d_subprob_prop<T>(nf1, nf2, M, d_plan)))
+            fprintf(stderr, "error: cuspread2d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
     } break;
     case 3: {
-        if (d_plan->opts.gpu_method == 4) {
-            int ier = cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan);
-            if (ier != 0) {
-                printf("error: cuspread3d_blockgather_prop, method(%d)\n", d_plan->opts.gpu_method);
-
-                // Multi-GPU support: reset the device ID
-                cudaSetDevice(orig_gpu_device_id);
-
-                return ier;
-            }
-        }
-        if (d_plan->opts.gpu_method == 1) {
-            ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan);
-            if (ier != 0) {
-                printf("error: cuspread3d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
-
-                // Multi-GPU support: reset the device ID
-                cudaSetDevice(orig_gpu_device_id);
-
-                return ier;
-            }
-        }
-        if (d_plan->opts.gpu_method == 2) {
-            int ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan);
-            if (ier != 0) {
-                printf("error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
-
-                // Multi-GPU support: reset the device ID
-                cudaSetDevice(orig_gpu_device_id);
-
-                return ier;
-            }
-        }
+        if (d_plan->opts.gpu_method == 1 && (ier = cuspread3d_nuptsdriven_prop<T>(nf1, nf2, nf3, M, d_plan)))
+            fprintf(stderr, "error: cuspread3d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
+        if (d_plan->opts.gpu_method == 2 && (ier = cuspread3d_subprob_prop<T>(nf1, nf2, nf3, M, d_plan)))
+            fprintf(stderr, "error: cuspread3d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
+        if (d_plan->opts.gpu_method == 4 && (ier = cuspread3d_blockgather_prop<T>(nf1, nf2, nf3, M, d_plan)))
+            fprintf(stderr, "error: cuspread3d_blockgather_prop, method(%d)\n", d_plan->opts.gpu_method);
     } break;
     }
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
-
-    return 0;
+    return ier;
 }
 
 template <typename T>
@@ -414,11 +383,7 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinuff
     Melody Shih 07/25/19; Barnett 2/16/21.
 */
 {
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
-
+    cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
     int ier;
     int type = d_plan->type;
     switch (d_plan->dim) {
@@ -429,7 +394,7 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinuff
             ier = cufinufft1d2_exec<T>(d_c, d_fk, d_plan);
         if (type == 3) {
             std::cerr << "Not Implemented yet" << std::endl;
-            ier = 1;
+            ier = FINUFFT_ERR_TYPE_NOTVALID;
         }
     } break;
     case 2: {
@@ -439,7 +404,7 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinuff
             ier = cufinufft2d2_exec<T>(d_c, d_fk, d_plan);
         if (type == 3) {
             std::cerr << "Not Implemented yet" << std::endl;
-            ier = 1;
+            ier = FINUFFT_ERR_TYPE_NOTVALID;
         }
     } break;
     case 3: {
@@ -449,13 +414,10 @@ int cufinufft_execute_impl(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinuff
             ier = cufinufft3d2_exec<T>(d_c, d_fk, d_plan);
         if (type == 3) {
             std::cerr << "Not Implemented yet" << std::endl;
-            ier = 1;
+            ier = FINUFFT_ERR_TYPE_NOTVALID;
         }
     } break;
     }
-
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
 
     return ier;
 }
@@ -472,40 +434,21 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
         Also see ../docs/cppdoc.md for main user-facing documentation.
 */
 {
-    // Mult-GPU support: set the CUDA Device ID:
-    int orig_gpu_device_id;
-    cudaGetDevice(&orig_gpu_device_id);
-    cudaSetDevice(d_plan->opts.gpu_device_id);
+    cufinufft::utils::WithCudaDevice device_swapper(d_plan->opts.gpu_device_id);
 
-    // Can't destroy a Null pointer.
-    if (!d_plan) {
-        // Multi-GPU support: reset the device ID
-        cudaSetDevice(orig_gpu_device_id);
-        return 1;
-    }
+    // Can't destroy a null pointer.
+    if (!d_plan)
+        return FINUFFT_ERR_PLAN_NOTVALID;
 
     using namespace cufinufft::memtransfer;
-    switch (d_plan->dim) {
-    case 1: {
-        freegpumemory1d<T>(d_plan);
-    } break;
-    case 2: {
-        freegpumemory2d<T>(d_plan);
-    } break;
-    case 3: {
-        freegpumemory3d<T>(d_plan);
-    } break;
-    }
+    freegpumemory<T>(d_plan);
 
-    cufftDestroy(d_plan->fftplan);
+    if (d_plan->fftplan)
+        cufftDestroy(d_plan->fftplan);
 
     /* free/destruct the plan */
     delete d_plan;
-    /* set pointer to NULL now that we've hopefully free'd the memory. */
-    d_plan = NULL;
 
-    // Multi-GPU support: reset the device ID
-    cudaSetDevice(orig_gpu_device_id);
     return 0;
 } // namespace cufinufft
 #endif
