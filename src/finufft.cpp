@@ -210,24 +210,11 @@ void onedim_fseries_kernel(BIGINT nf, FLT *fwkerhalf, finufft_spread_opts opts)
     a[n] = exp(2*PI*IMA*(FLT)(nf/2-z[n])/(FLT)nf);  // phase winding rates
   }
   BIGINT nout=nf/2+1;                   // how many values we're writing to
-  int nt = min(nout,(BIGINT)opts.nthreads);         // how many chunks
-  std::vector<BIGINT> brk(nt+1);        // start indices for each thread
-  for (int t=0; t<=nt; ++t)             // split nout mode indices btw threads
-    brk[t] = (BIGINT)(0.5 + nout*t/(double)nt);
-#pragma omp parallel num_threads(nt)
-  {                                     // each thread gets own chunk to do
-    int t = MY_OMP_GET_THREAD_NUM();
-    std::complex<FLT> aj[MAX_NQUAD];    // phase rotator for this thread
+#pragma omp parallel for schedule(static) num_threads(opts.nthreads)
+  for (int j = 0; j < nout; ++j) {
+    fwkerhalf[j] = 0.0;
     for (int n=0;n<q;++n)
-      aj[n] = pow(a[n],(FLT)brk[t]);    // init phase factors for chunk
-    for (BIGINT j=brk[t];j<brk[t+1];++j) {          // loop along output array
-      FLT x = 0.0;                      // accumulator for answer at this j
-      for (int n=0;n<q;++n) {
-        x += f[n] * 2*real(aj[n]);      // include the negative freq
-        aj[n] *= a[n];                  // wind the phases
-      }
-      fwkerhalf[j] = x;
-    }
+      fwkerhalf[j] += f[n] * 2*real(pow(a[n], j));
   }
 }
 
