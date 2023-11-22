@@ -3,10 +3,7 @@
    submitted github Issue #72. Unlike threadsafe1d1, it does not test the math;
    it is the shell of an application from MRI reconstruction.
 
-   FINUFFT lib must be built with (non-default) flag -DFFTW_PLAN_SAFE, and
-   FFTW version >= 3.3.6. See http://www.fftw.org/fftw3_doc/Thread-safety.html
-
-   Then to compile (note uses threads rather than omp version of FFTW3):
+   To compile (note uses threads rather than omp version of FFTW3):
 
    g++ -fopenmp threadsafe2d2f.cpp -I../include ../lib/libfinufft.so -o threadsafe2d2f -lfftw3 -lfftw3_threads -lm -g -Wall
 

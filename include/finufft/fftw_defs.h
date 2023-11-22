@@ -45,10 +45,4 @@
   #define FFTW_CLEANUP_THREADS()
 #endif
 
-#ifdef FFTW_PLAN_SAFE
-  #define FFTW_PLAN_SF() FFTWIFY(make_planner_thread_safe())
-#else
-  #define FFTW_PLAN_SF()
-#endif
-
 #endif  // FFTW_DEFS_H

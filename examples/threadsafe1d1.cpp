@@ -15,8 +15,7 @@ int main(int argc, char* argv[])
    Adapted from simple1d1.cpp: C++, STL double complex vectors, with math test.
    Barnett 4/19/21, eg for Goran Zauhar, issue #183.
 
-   Notes: libfinufft *must* have been built with -DFFTW_PLAN_SAFE, which needs
-   FFTW >= 3.3.6. You also may not have libfftw3_omp, so I have switched to
+   Notes: You may not have libfftw3_omp, so I have switched to
    libfftw3_threads in this suggested compile command:
 
    g++ -fopenmp threadsafe1d1.cpp -I../include ../lib/libfinufft.so -o threadsafe1d1 -lfftw3 -lfftw3_threads -lm
