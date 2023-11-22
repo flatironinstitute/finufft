@@ -3,10 +3,12 @@
    It is based on a test code of Penfe,
    submitted github Issue #72. Unlike threadsafe1d1, it does not test the math;
    it is the shell of an application from multi-coil/slice MRI reconstruction.
+   Note that since the NU pts are the same in each slice, in fact a vectorized
+   multithreaded transform could do all these slices together, and faster.
 
    To compile (note uses threads rather than omp version of FFTW3):
 
-   g++ -fopenmp threadsafe2d2f.cpp -I../include ../lib/libfinufft.so -o threadsafe2d2f -lfftw3 -lfftw3_threads -lm -g -Wall
+   g++ -fopenmp threadsafe2d2f.cpp -I../include ../lib/libfinufft.so -o threadsafe2d2f -g -Wall
 
    ./threadsafe2d2f                                   <-- use all threads
    OMP_NUM_THREADS=1 ./threadsafe2d2f                 <-- sequential, 1 thread

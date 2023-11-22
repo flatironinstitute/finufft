@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
    Notes: You may not have libfftw3_omp, so I have switched to
    libfftw3_threads in this suggested compile command:
 
-   g++ -fopenmp threadsafe1d1.cpp -I../include ../lib/libfinufft.so -o threadsafe1d1 -lfftw3 -lfftw3_threads -lm
+   g++ -fopenmp threadsafe1d1.cpp -I../include ../lib/libfinufft.so -o threadsafe1d1
 
    Usage: ./threadsafe1d1
 

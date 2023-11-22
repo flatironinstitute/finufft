@@ -217,8 +217,8 @@ See ``examples/many1d1.cpp`` and ``test/finufft?dmany_test.cpp``
 for more examples.
 
 
-Guru interface example
-----------------------
+Guru interface examples
+-----------------------
 
 If you want more flexibility than the above, use the "guru" interface:
 this is similar to that of FFTW3, and to the main interface of
@@ -268,23 +268,34 @@ is needed since the Fourier coefficient dimensions are passed as an array.
 The complete code with a math test is in ``examples/guru2d1.cpp``, and for
 more examples see ``examples/guru1d1*.c*``
 
+Using the guru interface to perform a vectorized transform (multiple 1D type 1
+transforms each with the same nonuniform points) is demonstrated in
+``examples.gurumany1d1.cpp``. This is similar to the single-command vectorized
+interface, but allowing more control (changing the nonuniform points without
+re-planning the FFT, etc).
 
-Thread safety and global state
-------------------------------
+
+Thread safety for single-threaded transforms, and global state
+--------------------------------------------------------------
 
 It is possible to call FINUFFT from within multithreaded code, e.g. in an
 OpenMP parallel block. In this case ``opts.nthreads=1`` should be set, otherwise
-a segfault will occur.
+a segfault will occur. This is useful if you don't want to synchronize
+independent transforms.
 For demos of this "parallelize over single-threaded transforms" use case, see
 the following, which are built as part of the ``make examples`` task:
 
 * ``examples/threadsafe1d1`` which runs a 1D type-1 separately on each thread, checking the math, and
 
 * ``examples/threadsafe2d2f`` which runs a 2D type-2 on each "slice" (in the MRI
-  user language), parallelized over slices with an OpenMP parallel for loop.
+  language), parallelized over slices with an OpenMP parallel for loop.
   (In this code there is no math check, just status check.)
 
-However, if you have multiple transforms with the 
+However, if you have multiple transforms with the *same* nonuniform points for
+each transform, it is probably much faster to use the vectorized interface,
+and do all these transforms with a single such multithreaded FINUFFT call
+(see ``examples/many1d1.cpp`` and ``examples/gurumany1d1.cpp``).
+This may be less convenient if you want to leave your slices unsynchronized.
 
 .. note::
    A design decision of FFTW is to have a global state which stores
