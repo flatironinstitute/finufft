@@ -7,8 +7,9 @@ Release (name = v2.3 or v2.2.1?)  ------------------------------------------
 
  - 2.2 = 2.2.0dev0 never tagged. Last release was 2.1 in June 2022.
 
- - binaries available for users (requests eg #362) -> place binaries for
-   3 OSes somewhere on GH. Can automate?  Kill off my old binary webpage.
+ - binaries available for users (requests eg #362 #285) -> place binaries for
+   3 OSes somewhere on GH, eg "Releases" -> Assets.  [ Can automate?]
+   Kill off my old binary webpage.
 
 
 CI ...........
@@ -107,15 +108,29 @@ Notes for team......
 * SIMD spread/interp/sort
   - significant work, but big potential gains
 
+* Overall, consider joining XSDK via conforming to their good policies:
+https://github.com/xsdk-project/xsdk-community-policies
+Mandatory policies: we already conform to
+M2, M4 (need NERSC etc CMake presets...), M7, M9, M10, M11, M14, M17 (I think).
+I don't understand: M12.
+Not relevant: M3.
+Leaves to do:
+M1 - spack installation route
+M5 - reliable contact for dev team - easy
+M8 - runtime API to get version # - easy
+M13 - we don't really have a make install. But local locations correct.
+M16 - our DEBUG is runtime, not a build option. Need add -g in a cmake task.
+CI is not mentioned.
+
 * source code formatting?
 
-* see devel/TODO - and make this file current by thinking re issues there
+* see devel/TODO - and make this file current by thinking/killing issues there
 
 * Marco plan April through Aug 2024
 
 
 
-Random Questions
+========= Random Questions ==========
 
 #569 ? onedim_fseries_kernel  ... was not brought in
 
