@@ -13,7 +13,7 @@ Release (name = v2.3 or v2.2.1?)  ------------------------------------------
 
 CI ...........
 
-Innocuous commit re RTD causes py wheel build and CI fail.
+CI/jenkins/ branch -> failing suddenly 11/22 - why?
 
 CI status runs only CPU tests:
     spreadtestall.sh  (has no math checking, a small perf test)
@@ -29,6 +29,8 @@ PR 254 - CI using cmake(ctest), builds on.
   - can OMP_NUM_THREADS be set in platform-indep way in ctest add_test() ? no
     DD says do in C++: https://github.com/flatironinstitute/finufft/pull/254
     Much easier, but needs a new cmd arg in the test/*.cpp executables
+
+CI py had zero CPU time on windows -> div-by-0 error! (I fixed). why?
 
 
 library.....
@@ -67,6 +69,8 @@ Notes for team......
   We need to keep docs/* and CHANGELOG up to date when make changes!
 
   who tests GPU code and adds more tests, CI?
+
+  Please close an issue after you fix it
 
 
 
