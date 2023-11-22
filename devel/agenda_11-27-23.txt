@@ -13,6 +13,8 @@ Release (name = v2.3 or v2.2.1?)  ------------------------------------------
 
 CI ...........
 
+Innocuous commit re RTD causes py wheel build and CI fail.
+
 CI status runs only CPU tests:
     spreadtestall.sh  (has no math checking, a small perf test)
     basicpassfail{f} (exit code checks math)
@@ -36,7 +38,7 @@ library.....
  - ask Robert: unclear why some fftw_free or alloc are mutexed and not others?
  - ahb tested w/ all make tasks.]
  
-PR 330: deal w/ cuda streams
+GPU: PR 330: deal w/ cuda streams     - difficult for ahb to test
  - jax waiting on this
  - multicoil MRI users have opinions
 
@@ -55,7 +57,8 @@ pr 308 - no
 docs....
 
 RTD missing a Secret for webhook to tell GH; RTD won't give it :)
-I changed repo to FI/finufft from ahbarnett/finufft  ... check RTD triggered!
+I changed repo to FI/finufft from ahbarnett/finufft  ... RTD webhook fails
+(code 400). Resync fails.  Checked build (py 3.11) by hand is ok (1 min).
 ask Dylan.
 
 
@@ -63,7 +66,7 @@ Notes for team......
 
   We need to keep docs/* and CHANGELOG up to date when make changes!
 
-
+  who tests GPU code and adds more tests, CI?
 
 
 
