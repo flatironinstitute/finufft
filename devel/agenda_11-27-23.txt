@@ -82,25 +82,34 @@ Notes for team......
 * CI:
    complete rest of PR 254 for CI via cmake/ctest.
 
-* CPU: allow FFT switching (plus in cmake but not old makefile?)
-  - see Reinecke pr 287
+* CPU:
+ * allow FFT switching (plus in cmake but not old makefile?)
+  - see Reinecke pr 287. Benchmarking needed for us, including batched FFTW.
+  - good: no fft plan needed.
+  - bad: installation complexity :( (makefile and CMake)
 
-* GPU: paquiteau request for multi-coil MRI:
-having multiples plans with shared memory (e.g. for the NUpts locations and others parameters) could be an alternative ?
-https://github.com/flatironinstitute/finufft/pull/330
-  - GPU interface to py
+* GPU:
+ * Type 3 in GPU.
+ * Paquiteau request for multi-coil MRI:
+ having multiples plans with shared memory (e.g. for the NUpts locations and others parameters) could be an alternative ?
+ https://github.com/flatironinstitute/finufft/pull/330
+ * GPU interfaces to py
+ * matlab par-toolbox gpuarray interfaces
 
-* explicit 1D slices for fftw, cuts 2d and 3d fft cost down (Reinecke idea)
-   - issues: work with batching too (batched 1d's?). nontrivial, benchmark.
-   - a couple of days work
+* explicit 1D slices for fftw, cuts 2d and 3d fft cost down (Reinecke idea).
+  - #304 has Robert's start in 2D. Also Reinecke has in #287.
+  - but: must work with batching too (batched 1d's with stride, ugh?).
+   - nontrivial, benchmark -> a couple of days solid work.
 
 * improved window shapes, more upsampfacs, like ducc0
   - several days work
 
 * SIMD spread/interp/sort
-  - significant work
+  - significant work, but big potential gains
 
 * source code formatting?
+
+* see devel/TODO - and make this file current by thinking re issues there
 
 * Marco plan April through Aug 2024
 

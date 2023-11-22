@@ -43,8 +43,8 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/refs.rst`    : journal article references (both ours and others)
 
 
-If you find (cu)FINUFFT useful in your work, please cite this repository and
-the following. For FINUFFT (CPU library):
+If you find (cu)FINUFFT useful in your work, please star this repository and
+cite it and the following. For FINUFFT (CPU library):
 
 A parallel non-uniform fast Fourier transform library based on an ``exponential of semicircle'' kernel.
 A. H. Barnett, J. F. Magland, and L. af Klinteberg.
