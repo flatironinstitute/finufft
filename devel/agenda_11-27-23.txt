@@ -1,7 +1,7 @@
-Goals: release 2.3 with some ok and stable stuff in it
+Goals: make release with some ok and stable stuff in it
 
 
-Release v2.3: ------------------------------------------
+Release (name = v2.3 or v2.2.1?)  ------------------------------------------
 
  - presumably a tag on GH, once done
 
@@ -51,14 +51,13 @@ Libin to fix (1,M) vs (M,) Py issue #367
 
 [Libin did PR for #359, but not closed? I tested py and closed]
 
-
 pr 308 - no
 
 
 
 Notes for team......
 
-We need to keep docs/* and CHANGELOG up to date when make changes!
+  We need to keep docs/* and CHANGELOG up to date when make changes!
 
 
 
