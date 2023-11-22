@@ -21,14 +21,12 @@ CI status runs only CPU tests:
 
 CI improvements:
     run examples?
-    fortran?
+    fortran / other langs ? (complicated in CI...)
 
 PR 254 - CI using cmake(ctest), builds on.
   - can OMP_NUM_THREADS be set in platform-indep way in ctest add_test() ? no
     DD says do in C++: https://github.com/flatironinstitute/finufft/pull/254
     Much easier, but needs a new cmd arg in the test/*.cpp executables
-
-Can I kill .travis.yml ?
 
 
 library.....
@@ -63,7 +61,7 @@ Notes for team......
 
 
 
-FUTURE DECISIONS -------------------------------------------
+========= FUTURE DECISIONS =============
 
 * Build:
   - keep makefile, yes, but slowly deprecate (eg Leslie/Alex rely on it) ?
@@ -77,17 +75,27 @@ FUTURE DECISIONS -------------------------------------------
 * GPU: paquiteau request for multi-coil MRI:
 having multiples plans with shared memory (e.g. for the NUpts locations and others parameters) could be an alternative ?
 https://github.com/flatironinstitute/finufft/pull/330
+  - GPU interface to py
 
 * explicit 1D slices for fftw, cuts 2d and 3d fft cost down (Reinecke idea)
    - issues: work with batching too (batched 1d's?). nontrivial, benchmark.
+   - a couple of days work
 
 * improved window shapes, more upsampfacs, like ducc0
+  - several days work
+
+* SIMD spread/interp/sort
+  - significant work
 
 * source code formatting?
 
+* Marco plan April through Aug 2024
 
 
 
 Random Questions
 
 #569 ? onedim_fseries_kernel  ... was not brought in
+
+Can I kill .travis.yml ? (3 yrs old - what's it for?)
+

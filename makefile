@@ -436,7 +436,7 @@ objclean:
 ifneq ($(MINGW),ON)
   # non-Windows-WSL...
 	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o
-	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
+	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o finufft_mod.mod
 else
   # Windows-WSL...
 	for /d %%d in (src,test\directfttest,examples,matlab,contrib) do (for %%f in (%%d\*.o) do (del %%f))
