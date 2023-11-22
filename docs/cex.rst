@@ -273,18 +273,24 @@ Thread safety and global state
 ------------------------------
 
 It is possible to call FINUFFT from within multithreaded code, e.g. in an
-OpenMP parallel block. In this case ``opts.nthreads=1`` should be set.
-For demos of this, see
+OpenMP parallel block. In this case ``opts.nthreads=1`` should be set, otherwise
+a segfault will occur.
+For demos of this "parallelize over single-threaded transforms" use case, see
+the following, which are built as part of the ``make examples`` task:
 
 * ``examples/threadsafe1d1`` which runs a 1D type-1 separately on each thread, checking the math, and
 
-* ``examples/threadsafe2d2f`` which runs a 2D type-2 on each slice, which are parallelized over via an OpenMP parallel for loop (without any math check, just dummy inputs)
+* ``examples/threadsafe2d2f`` which runs a 2D type-2 on each "slice" (in the MRI
+  user language), parallelized over slices with an OpenMP parallel for loop.
+  (In this code there is no math check, just status check.)
 
-which are both built by ``make examples`` if the above flag has been set.
+However, if you have multiple transforms with the 
 
-Note: A design decision of FFTW is to have a global state which stores
-wisdom and settings. Such global state can cause unforeseen effects on other routines that also use FFTW. In contrast, FINUFFT uses pointers to plans to store
-its state, and does not have a global state (other than one ``static``
-flag used as a lock on FFTW initialization in the FINUFFT plan
-stage). This means different FINUFFT calls should not affect each other,
-although they may affect other codes that use FFTW via FFTW's global state.
+.. note::
+   A design decision of FFTW is to have a global state which stores
+   wisdom and settings. Such global state can cause unforeseen effects on other
+   routines that also use FFTW. In contrast, FINUFFT uses pointers to plans to store
+   its state, and does not have a global state (other than one ``static``
+   flag used as a lock on FFTW initialization in the FINUFFT plan
+   stage). This means different FINUFFT calls should not affect each other,
+   although they may affect other codes that use FFTW via FFTW's global state.
