@@ -1,0 +1,94 @@
+Goals: release 2.3 with some ok and stable stuff in it
+
+
+Release v2.3: ------------------------------------------
+
+ - presumably a tag on GH, once done
+
+ - 2.2 = 2.2.0dev0 never tagged. Last release was 2.1 in June 2022.
+
+ - binaries available for users (requests eg #362) -> place binaries for
+   3 OSes somewhere on GH. Can automate?  Kill off my old binary webpage.
+
+
+CI ...........
+
+CI status runs only CPU tests:
+    spreadtestall.sh  (has no math checking, a small perf test)
+    basicpassfail{f} (exit code checks math)
+    check_finufft.sh (both prec; has math chk + dumbinputs chk)
+    CI doesn't run GPU!
+
+CI improvements:
+    run examples?
+    fortran?
+
+PR 254 - CI using cmake(ctest), builds on.
+  - can OMP_NUM_THREADS be set in platform-indep way in ctest add_test() ? no
+    DD says do in C++: https://github.com/flatironinstitute/finufft/pull/254
+    Much easier, but needs a new cmd arg in the test/*.cpp executables
+
+Can I kill .travis.yml ?
+
+
+library.....
+
+[ahb brought in PR 354 thread safety. Simplifies docs too.
+ - jax waiting on this
+ - ask Robert: unclear why some fftw_free or alloc are mutexed and not others?
+ - ahb tested w/ all make tasks.]
+ 
+PR 330: deal w/ cuda streams
+ - jax waiting on this
+ - multicoil MRI users have opinions
+
+remove obsolete bkw-compat (nufft_opts) ?
+
+
+wrappers....
+
+Libin to fix (1,M) vs (M,) Py issue #367 
+
+[Libin did PR for #359, but not closed? I tested py and closed]
+
+
+pr 308 - no
+
+
+
+Notes for team......
+
+We need to keep docs/* and CHANGELOG up to date when make changes!
+
+
+
+
+
+FUTURE DECISIONS -------------------------------------------
+
+* Build:
+  - keep makefile, yes, but slowly deprecate (eg Leslie/Alex rely on it) ?
+
+* CI:
+   complete rest of PR 254 for CI via cmake/ctest.
+
+* CPU: allow FFT switching (plus in cmake but not old makefile?)
+  - see Reinecke pr 287
+
+* GPU: paquiteau request for multi-coil MRI:
+having multiples plans with shared memory (e.g. for the NUpts locations and others parameters) could be an alternative ?
+https://github.com/flatironinstitute/finufft/pull/330
+
+* explicit 1D slices for fftw, cuts 2d and 3d fft cost down (Reinecke idea)
+   - issues: work with batching too (batched 1d's?). nontrivial, benchmark.
+
+* improved window shapes, more upsampfacs, like ducc0
+
+* source code formatting?
+
+
+
+
+Random Questions
+
+#569 ? onedim_fseries_kernel  ... was not brought in
