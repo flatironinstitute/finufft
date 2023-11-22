@@ -52,6 +52,12 @@ Libin to fix (1,M) vs (M,) Py issue #367
 pr 308 - no
 
 
+docs....
+
+RTD missing a Secret for webhook to tell GH; RTD won't give it :)
+I changed repo to FI/finufft from ahbarnett/finufft  ... check RTD triggered!
+ask Dylan.
+
 
 Notes for team......
 
