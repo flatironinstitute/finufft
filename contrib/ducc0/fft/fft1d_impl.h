@@ -4,6 +4,10 @@ This file is part of the ducc FFT library
 Copyright (C) 2010-2023 Max-Planck-Society
 Copyright (C) 2019 Peter Bell
 
+For the odd-sized DCT-IV transforms:
+  Copyright (C) 2003, 2007-14 Matteo Frigo
+  Copyright (C) 2003, 2007-14 Massachusetts Institute of Technology
+
 Authors: Martin Reinecke, Peter Bell
 */
 
@@ -52,8 +56,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef DUCC0_FFT1D_H
-#define DUCC0_FFT1D_H
+#ifndef DUCC0_FFT1D_IMPL_H
+#define DUCC0_FFT1D_IMPL_H
 
 #include <memory>
 #include <cstddef>
@@ -71,6 +75,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ducc0/infra/simd.h"
 #include "ducc0/infra/threading.h"
 #include "ducc0/math/unity_roots.h"
+#include "ducc0/fft/fft.h"
 
 namespace ducc0 {
 
@@ -95,148 +100,8 @@ template <typename T> T cos(T) = delete;
 template <typename T> T sin(T) = delete;
 template <typename T> T sqrt(T) = delete;
 
-template<typename T> inline void PM(T &a, T &b, T c, T d)
-  { a=c+d; b=c-d; }
-template<typename T> inline void PMINPLACE(T &a, T &b)
-  { T t = a; a+=b; b=t-b; }
-template<typename T> inline void MPINPLACE(T &a, T &b)
-  { T t = a; a-=b; b=t+b; }
-template<bool fwd, typename T, typename T2> void special_mul (const Cmplx<T> &v1, const Cmplx<T2> &v2, Cmplx<T> &res)
-  {
-  res = fwd ? Cmplx<T>(v1.r*v2.r+v1.i*v2.i, v1.i*v2.r-v1.r*v2.i)
-            : Cmplx<T>(v1.r*v2.r-v1.i*v2.i, v1.r*v2.i+v1.i*v2.r);
-  }
-
 template<bool fwd, typename T> void ROTX90(Cmplx<T> &a)
   { auto tmp_= fwd ? -a.r : a.r; a.r = fwd ? a.i : -a.i; a.i=tmp_; }
-
-template<typename T> inline auto tidx() { return type_index(typeid(T)); }
-
-struct util1d // hack to avoid duplicate symbols
-  {
-  /* returns the smallest composite of 2, 3, 5, 7 and 11 which is >= n */
-  DUCC0_NOINLINE static size_t good_size_cmplx(size_t n)
-    {
-    if (n<=12) return n;
-
-    size_t bestfac=2*n;
-    for (size_t f11=1; f11<bestfac; f11*=11)
-      for (size_t f117=f11; f117<bestfac; f117*=7)
-        for (size_t f1175=f117; f1175<bestfac; f1175*=5)
-          {
-          size_t x=f1175;
-          while (x<n) x*=2;
-          for (;;)
-            {
-            if (x<n)
-              x*=3;
-            else if (x>n)
-              {
-              if (x<bestfac) bestfac=x;
-              if (x&1) break;
-              x>>=1;
-              }
-            else
-              return n;
-            }
-          }
-    return bestfac;
-    }
-
-  /* returns the smallest composite of 2, 3, 5 which is >= n */
-  DUCC0_NOINLINE static size_t good_size_real(size_t n)
-    {
-    if (n<=6) return n;
-
-    size_t bestfac=2*n;
-    for (size_t f5=1; f5<bestfac; f5*=5)
-      {
-      size_t x = f5;
-      while (x<n) x *= 2;
-      for (;;)
-        {
-        if (x<n)
-          x*=3;
-        else if (x>n)
-          {
-          if (x<bestfac) bestfac=x;
-          if (x&1) break;
-          x>>=1;
-          }
-        else
-          return n;
-        }
-      }
-    return bestfac;
-    }
-
-  DUCC0_NOINLINE static vector<size_t> prime_factors(size_t N)
-    {
-    MR_assert(N>0, "need a positive number");
-    vector<size_t> factors;
-    while ((N&1)==0)
-      { N>>=1; factors.push_back(2); }
-    for (size_t divisor=3; divisor*divisor<=N; divisor+=2)
-    while ((N%divisor)==0)
-      {
-      factors.push_back(divisor);
-      N/=divisor;
-      }
-    if (N>1) factors.push_back(N);
-    return factors;
-    }
-  };
-
-template<typename T> using Troots = shared_ptr<const UnityRoots<T,Cmplx<T>>>;
-
-// T: "type", f/c: "float/complex", s/v: "scalar/vector"
-template <typename Tfs> class cfftpass
-  {
-  public:
-    virtual ~cfftpass(){}
-    using Tcs = Cmplx<Tfs>;
-
-    // number of Tcd values required as scratch space during "exec"
-    // will be provided in "buf"
-    virtual size_t bufsize() const = 0;
-    virtual bool needs_copy() const = 0;
-    virtual void *exec(const type_index &ti, void *in, void *copy, void *buf,
-      bool fwd, size_t nthreads=1) const = 0;
-
-    static vector<size_t> factorize(size_t N)
-      {
-      MR_assert(N>0, "need a positive number");
-      vector<size_t> factors;
-      factors.reserve(15);
-      while ((N&7)==0)
-        { factors.push_back(8); N>>=3; }
-      while ((N&3)==0)
-        { factors.push_back(4); N>>=2; }
-      if ((N&1)==0)
-        {
-        N>>=1;
-        // factor 2 should be at the front of the factor list
-        factors.push_back(2);
-        swap(factors[0], factors.back());
-        }
-      for (size_t divisor=3; divisor*divisor<=N; divisor+=2)
-      while ((N%divisor)==0)
-        {
-        factors.push_back(divisor);
-        N/=divisor;
-        }
-      if (N>1) factors.push_back(N);
-      return factors;
-      }
-
-    static shared_ptr<cfftpass> make_pass(size_t l1, size_t ido, size_t ip,
-      const Troots<Tfs> &roots, bool vectorize=false);
-    static shared_ptr<cfftpass> make_pass(size_t ip, bool vectorize=false)
-      {
-      return make_pass(1,1,ip,make_shared<UnityRoots<Tfs,Cmplx<Tfs>>>(ip),
-        vectorize);
-      }
-  };
 
 #define POCKETFFT_EXEC_DISPATCH \
     virtual void *exec(const type_index &ti, void *in, void *copy, void *buf, \
@@ -313,8 +178,6 @@ template <typename Tfs> class cfftpass
           } \
       MR_fail("impossible vector length requested"); \
       }
-
-template<typename T> using Tcpass = shared_ptr<cfftpass<T>>;
 
 template <typename Tfs> class cfftp1: public cfftpass<Tfs>
   {
@@ -1910,99 +1773,6 @@ template<typename Tfs> Tcpass<Tfs> cfftpass<Tfs>::make_pass(size_t l1,
     return make_shared<cfft_multipass<Tfs>>(l1, ido, ip, roots, vectorize);
   }
 
-template<typename Tfs> class pocketfft_c
-  {
-  private:
-    size_t N;
-    size_t critbuf;
-    Tcpass<Tfs> plan;
-
-  public:
-    pocketfft_c(size_t n, bool vectorize=false)
-      : N(n), critbuf(((N&1023)==0) ? 16 : 0),
-        plan(cfftpass<Tfs>::make_pass(n,vectorize)) {}
-    size_t length() const { return N; }
-    size_t bufsize() const { return N*plan->needs_copy()+2*critbuf+plan->bufsize(); }
-    template<typename Tfd> DUCC0_NOINLINE Cmplx<Tfd> *exec(Cmplx<Tfd> *in, Cmplx<Tfd> *buf,
-      Tfs fct, bool fwd, size_t nthreads=1) const
-      {
-      static const auto tic = tidx<Cmplx<Tfd> *>();
-      auto res = static_cast<Cmplx<Tfd> *>(plan->exec(tic,
-        in, buf+critbuf+plan->bufsize(), buf+critbuf, fwd, nthreads));
-      if (fct!=Tfs(1))
-        for (size_t i=0; i<N; ++i) res[i]*=fct;
-      return res;
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec_copyback(Cmplx<Tfd> *in, Cmplx<Tfd> *buf,
-      Tfs fct, bool fwd, size_t nthreads=1) const
-      {
-      static const auto tic = tidx<Cmplx<Tfd> *>();
-      auto res = static_cast<Cmplx<Tfd> *>(plan->exec(tic,
-        in, buf, buf+N*plan->needs_copy(), fwd, nthreads));
-      if (res==in)
-        {
-        if (fct!=Tfs(1))
-          for (size_t i=0; i<N; ++i) in[i]*=fct;
-        }
-      else
-        {
-        if (fct!=Tfs(1))
-          for (size_t i=0; i<N; ++i) in[i]=res[i]*fct;
-        else
-          copy_n(res, N, in);
-        }
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec(Cmplx<Tfd> *in, Tfs fct, bool fwd, size_t nthreads=1) const
-      {
-      aligned_array<Cmplx<Tfd>> buf(N*plan->needs_copy()+plan->bufsize());
-      exec_copyback(in, buf.data(), fct, fwd, nthreads);
-      }
-  };
-
-template <typename Tfs> class rfftpass
-  {
-  public:
-    virtual ~rfftpass(){}
-
-    // number of Tfd values required as scratch space during "exec"
-    // will be provided in "buf"
-    virtual size_t bufsize() const = 0;
-    virtual bool needs_copy() const = 0;
-    virtual void *exec(const type_index &ti, void *in, void *copy, void *buf,
-      bool fwd, size_t nthreads=1) const = 0;
-
-    static vector<size_t> factorize(size_t N)
-      {
-      MR_assert(N>0, "need a positive number");
-      vector<size_t> factors;
-      while ((N&3)==0)
-        { factors.push_back(4); N>>=2; }
-      if ((N&1)==0)
-        {
-        N>>=1;
-        // factor 2 should be at the front of the factor list
-        factors.push_back(2);
-        swap(factors[0], factors.back());
-        }
-      for (size_t divisor=3; divisor*divisor<=N; divisor+=2)
-      while ((N%divisor)==0)
-        {
-        factors.push_back(divisor);
-        N/=divisor;
-        }
-      if (N>1) factors.push_back(N);
-      return factors;
-      }
-
-    static shared_ptr<rfftpass> make_pass(size_t l1, size_t ido, size_t ip,
-       const Troots<Tfs> &roots, bool vectorize=false);
-    static shared_ptr<rfftpass> make_pass(size_t ip, bool vectorize=false)
-      {
-      return make_pass(1,1,ip,make_shared<UnityRoots<Tfs,Cmplx<Tfs>>>(ip),
-        vectorize);
-      }
-  };
-
 #define POCKETFFT_EXEC_DISPATCH \
     virtual void *exec(const type_index &ti, void *in, void *copy, void *buf, \
       bool fwd, size_t nthreads) const \
@@ -2074,8 +1844,6 @@ template <typename Tfs> class rfftpass
           } \
       MR_fail("impossible vector length requested"); \
       }
-
-template<typename T> using Trpass = shared_ptr<rfftpass<T>>;
 
 /* (a+ib) = conj(c+id) * (e+if) */
 template<typename T1, typename T2, typename T3> inline void MULPM
@@ -3217,220 +2985,6 @@ template<typename Tfs> Trpass<Tfs> rfftpass<Tfs>::make_pass(size_t l1,
     return make_shared<rfft_multipass<Tfs>>(l1, ido, ip, roots, vectorize);
   }
 
-template<typename Tfs> class pocketfft_r
-  {
-  private:
-    size_t N;
-    Trpass<Tfs> plan;
-
-  public:
-    pocketfft_r(size_t n, bool vectorize=false)
-      : N(n), plan(rfftpass<Tfs>::make_pass(n,vectorize)) {}
-    size_t length() const { return N; }
-    size_t bufsize() const { return N*plan->needs_copy()+plan->bufsize(); }
-    template<typename Tfd> DUCC0_NOINLINE Tfd *exec(Tfd *in, Tfd *buf, Tfs fct,
-      bool fwd, size_t nthreads=1) const
-      {
-      static const auto tifd = tidx<Tfd *>();
-      auto res = static_cast<Tfd *>(plan->exec(tifd, in, buf,
-        buf+N*plan->needs_copy(), fwd, nthreads));
-      if (fct!=Tfs(1))
-        for (size_t i=0; i<N; ++i) res[i]*=fct;
-      return res;
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec_copyback(Tfd *in, Tfd *buf,
-      Tfs fct, bool fwd, size_t nthreads=1) const
-      {
-      static const auto tifd = tidx<Tfd *>();
-      auto res = static_cast<Tfd *>(plan->exec(tifd, in, buf,
-        buf+N*plan->needs_copy(), fwd, nthreads));
-      if (res==in)
-        {
-        if (fct!=Tfs(1))
-          for (size_t i=0; i<N; ++i) in[i]*=fct;
-        }
-      else
-        {
-        if (fct!=Tfs(1))
-          for (size_t i=0; i<N; ++i) in[i]=res[i]*fct;
-        else
-          copy_n(res, N, in);
-        }
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec(Tfd *in, Tfs fct, bool fwd,
-      size_t nthreads=1) const
-      {
-      aligned_array<Tfd> buf(N*plan->needs_copy()+plan->bufsize());
-      exec_copyback(in, buf.data(), fct, fwd, nthreads);
-      }
-  };
-
-template<typename Tfs> class pocketfft_hartley
-  {
-  private:
-    size_t N;
-    Trpass<Tfs> plan;
-
-  public:
-    pocketfft_hartley(size_t n, bool vectorize=false)
-      : N(n), plan(rfftpass<Tfs>::make_pass(n,vectorize)) {}
-    size_t length() const { return N; }
-    size_t bufsize() const { return N+plan->bufsize(); }
-    template<typename Tfd> DUCC0_NOINLINE Tfd *exec(Tfd *in, Tfd *buf, Tfs fct,
-      size_t nthreads=1) const
-      {
-      static const auto tifd = tidx<Tfd *>();
-      auto res = static_cast<Tfd *>(plan->exec(tifd,
-        in, buf, buf+N, true, nthreads));
-      auto res2 = (res==buf) ? in : buf;
-      res2[0] = fct*res[0];
-      size_t i=1, i1=1, i2=N-1;
-      for (i=1; i<N-1; i+=2, ++i1, --i2)
-        {
-        res2[i1] = fct*(res[i]+res[i+1]);
-        res2[i2] = fct*(res[i]-res[i+1]);
-        }
-      if (i<N)
-        res2[i1] = fct*res[i];
-
-      return res2;
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec_copyback(Tfd *in, Tfd *buf,
-      Tfs fct, size_t nthreads=1) const
-      {
-      auto res = exec(in, buf, fct, nthreads);
-      if (res!=in)
-        copy_n(res, N, in);
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec(Tfd *in, Tfs fct,
-      size_t nthreads=1) const
-      {
-      aligned_array<Tfd> buf(N+plan->bufsize());
-      exec_copyback(in, buf.data(), fct, nthreads);
-      }
-  };
-
-template<typename Tfs> class pocketfft_fht
-  {
-  private:
-    size_t N;
-    Trpass<Tfs> plan;
-
-  public:
-    pocketfft_fht(size_t n, bool vectorize=false)
-      : N(n), plan(rfftpass<Tfs>::make_pass(n,vectorize)) {}
-    size_t length() const { return N; }
-    size_t bufsize() const { return N+plan->bufsize(); }
-    template<typename Tfd> DUCC0_NOINLINE Tfd *exec(Tfd *in, Tfd *buf, Tfs fct,
-      size_t nthreads=1) const
-      {
-      static const auto tifd = tidx<Tfd *>();
-      auto res = static_cast<Tfd *>(plan->exec(tifd,
-        in, buf, buf+N, true, nthreads));
-      auto res2 = (res==buf) ? in : buf;
-      res2[0] = fct*res[0];
-      size_t i=1, i1=1, i2=N-1;
-      for (i=1; i<N-1; i+=2, ++i1, --i2)
-        {
-        res2[i1] = fct*(res[i]-res[i+1]);
-        res2[i2] = fct*(res[i]+res[i+1]);
-        }
-      if (i<N)
-        res2[i1] = fct*res[i];
-
-      return res2;
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec_copyback(Tfd *in, Tfd *buf,
-      Tfs fct, size_t nthreads=1) const
-      {
-      auto res = exec(in, buf, fct, nthreads);
-      if (res!=in)
-        copy_n(res, N, in);
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec(Tfd *in, Tfs fct,
-      size_t nthreads=1) const
-      {
-      aligned_array<Tfd> buf(N+plan->bufsize());
-      exec_copyback(in, buf.data(), fct, nthreads);
-      }
-  };
-
-// R2R transforms using FFTW's halfcomplex format
-template<typename Tfs> class pocketfft_fftw
-  {
-  private:
-    size_t N;
-    Trpass<Tfs> plan;
-
-  public:
-    pocketfft_fftw(size_t n, bool vectorize=false)
-      : N(n), plan(rfftpass<Tfs>::make_pass(n,vectorize)) {}
-    size_t length() const { return N; }
-    size_t bufsize() const { return N+plan->bufsize(); }
-    template<typename Tfd> DUCC0_NOINLINE Tfd *exec(Tfd *in, Tfd *buf, Tfs fct,
-      bool fwd, size_t nthreads=1) const
-      {
-      static const auto tifd = tidx<Tfd *>();
-      auto res = in;
-      auto res2 = buf;
-      if (!fwd) // go to FFTPACK halfcomplex order
-        {
-        res2[0] = fct*res[0];
-        size_t i=1, i1=1, i2=N-1;
-        for (i=1; i<N-1; i+=2, ++i1, --i2)
-          {
-          res2[i] = fct*res[i1];
-          res2[i+1] = fct*res[i2];
-          }
-        if (i<N)
-          res2[i] = fct*res[i1];
-        swap(res, res2);
-        }
-      res = static_cast<Tfd *>(plan->exec(tifd,
-        res, res2, buf+N, fwd, nthreads));
-      if (!fwd) return res;
-
-      // go to FFTW halfcomplex order
-      res2 = (res==buf) ? in : buf;
-      res2[0] = fct*res[0];
-      size_t i=1, i1=1, i2=N-1;
-      for (i=1; i<N-1; i+=2, ++i1, --i2)
-        {
-        res2[i1] = fct*res[i];
-        res2[i2] = fct*res[i+1];
-        }
-      if (i<N)
-        res2[i1] = fct*res[i];
-
-      return res2;
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec_copyback(Tfd *in, Tfd *buf,
-      Tfs fct, bool fwd, size_t nthreads=1) const
-      {
-      auto res = exec(in, buf, fct, fwd, nthreads);
-      if (res!=in)
-        copy_n(res, N, in);
-      }
-    template<typename Tfd> DUCC0_NOINLINE void exec(Tfd *in, Tfs fct, bool fwd,
-      size_t nthreads=1) const
-      {
-      aligned_array<Tfd> buf(N+plan->bufsize());
-      exec_copyback(in, buf.data(), fct, fwd, nthreads);
-      }
-  };
-
-}
-
-using detail_fft::pocketfft_c;
-using detail_fft::pocketfft_r;
-using detail_fft::pocketfft_hartley;
-using detail_fft::pocketfft_fht;
-using detail_fft::pocketfft_fftw;
-inline size_t good_size_complex(size_t n)
-  { return detail_fft::util1d::good_size_cmplx(n); }
-inline size_t good_size_real(size_t n)
-  { return detail_fft::util1d::good_size_real(n); }
-
-}
+}}
 
 #endif

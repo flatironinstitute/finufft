@@ -29,6 +29,9 @@
 #include <finufft_opts.h>
 #include <finufft_spread_opts.h>
 
+// Public error numbers
+#include <finufft_errors.h>
+
 // octave (mkoctfile) needs this otherwise it doesn't know what int64_t is!
 #include <stdint.h>
 #define FINUFFT_BIGINT int64_t

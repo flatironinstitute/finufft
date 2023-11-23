@@ -97,7 +97,7 @@ OBJS = $(SOBJS) src/finufft.o src/simpleinterfaces.o fortran/finufftfort.o
 # their single-prec versions
 OBJSF = $(OBJS:%.o=%_32.o)
 # precision-dependent library object files (compiled & linked only once)...
-OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o contrib/ducc0/infra/threading.o
+OBJS_PI = $(SOBJS_PI) contrib/legendre_rule_fast.o contrib/ducc0/infra/string_utils.o contrib/ducc0/infra/threading.o
 # all lib dual-precision objs
 OBJSD = $(OBJS) $(OBJSF) $(OBJS_PI)
 
@@ -425,7 +425,7 @@ objclean:
 ifneq ($(MINGW),ON)
   # non-Windows-WSL...
 	rm -f src/*.o test/directft/*.o test/*.o examples/*.o matlab/*.o contrib/*.o contrib/ducc0/infra/*.o
-	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o
+	rm -f fortran/*.o $(FE_DIR)/*.o $(FD)/*.o finufft_mod.mod
 else
   # Windows-WSL...
 	for /d %%d in (src,test\directfttest,examples,matlab,contrib) do (for %%f in (%%d\*.o) do (del %%f))

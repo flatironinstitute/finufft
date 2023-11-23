@@ -20,27 +20,6 @@
 #include <finufft.h>
 
 
-// ---------- Global error/warning output codes for the library ---------------
-// (it could be argued these belong in finufft.h, but to avoid polluting
-//  user's name space we keep them here)
-// NB: if change these numbers, also must regen test/results/dumbinputs.refout
-#define WARN_EPS_TOO_SMALL       1
-// this means that a fine grid array dim exceeded MAX_NF; no malloc tried...
-#define ERR_MAXNALLOC            2
-#define ERR_SPREAD_BOX_SMALL     3
-#define ERR_SPREAD_PTS_OUT_RANGE 4
-#define ERR_SPREAD_ALLOC         5
-#define ERR_SPREAD_DIR           6
-#define ERR_UPSAMPFAC_TOO_SMALL  7
-#define ERR_HORNER_WRONG_BETA    8
-#define ERR_NTRANS_NOTVALID      9
-#define ERR_TYPE_NOTVALID        10
-// some generic internal allocation failure...
-#define ERR_ALLOC                11
-#define ERR_DIM_NOTVALID         12
-#define ERR_SPREAD_THREAD_NOTVALID 13
-
-
 // --------------- Private data types for compilation in either prec ---------
 // Devnote: must match those in relevant prec of public finufft.h interface!
 
@@ -63,7 +42,7 @@
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER "2.1.0"
+#define FINUFFT_VER "2.2.0.dev0"
 
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)

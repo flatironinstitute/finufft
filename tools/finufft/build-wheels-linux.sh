@@ -46,7 +46,9 @@ done
 
 # test wheel
 for pybin in "${pys[@]}"; do
-    "${pybin}/pip" install finufft -f ./python/finufft/wheelhouse/
+    "${pybin}/pip" install --pre finufft -f ./python/finufft/wheelhouse/
     "${pybin}/python" ./python/finufft/test/run_accuracy_tests.py
     "${pybin}/python" ./python/finufft/examples/simple1d1.py
+    "${pybin}/pip" install pytest
+    "${pybin}/pytest" python/finufft/test
 done

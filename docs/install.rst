@@ -26,7 +26,7 @@ Then add the following to your ``CMakeLists.txt``:
   CPMAddPackage(
     NAME             Finufft
     GIT_REPOSITORY   https://github.com/flatironinstitute/finufft.git    
-    GIT_TAG          v2.1.0 
+    GIT_TAG          master
     GIT_SHALLOW      Yes
     GIT_PROGRESS     Yes
     EXCLUDE_FROM_ALL Yes 
@@ -80,6 +80,10 @@ For example, to configure, build and test the development preset (which builds t
 
 From other CMake projects, to use ``finufft`` as a library, simply add this repository as a subdirectory using
 ``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
+
+.. note::
+
+   CMake compiling on linux at Flatiron Institute (Rusty cluster). We have had a report that if you want to use LLVM, you need to ``module load llvm/16.0.3`` otherwise the default ``llvm/14.0.6`` does not find ``OpenMP_CXX``.
 
 
 Old GNU make based route
@@ -260,8 +264,6 @@ This is for experts.
 Here are all the flags that the FINUFFT source responds to.
 Activate them by adding a line of the form ``CXXFLAGS+=-DMYFLAG`` in your ``make.inc``:
 
-* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. See ``examples/threadsafe1d1.cpp`` and ``examples/threadsafe2d2f.cpp``. This is only available in FFTW version >=3.3.6; for this reason it is not yet the default. If you get segfault on these examples, try ``FFTWOMPSUFFIX = threads`` as explained below.
-
 * ``-DSINGLE``: This is internally used by our build process to switch
   (via preprocessor macros) the source from double to single precision.
   You should not need to use this flag yourself.
@@ -356,14 +358,20 @@ The GCC route
 ~~~~~~~~~~~~~~
 
 This is less recommended, unless you need to link from ``gfortran``, when it
-appears to be essential. We have tested on Movaje::
+appears to be essential. The basic idea is::
 
-  cp make.inc.macosx_gcc-8 make.inc
+  cp make.inc.macosx_gcc-12 make.inc
   make test -j
   make fortran
 
 which also compiles and tests the fortran interfaces.
-In Catalina you'll probably need to edit to ``g++-10`` in your ``make.inc``.
+You may need to edit to ``g++-11``, or whatever your GCC version is,
+in your ``make.inc``.
+
+.. note::
+
+   A problem between GCC and the new XCode 15 requires a workaround to add ``LDFLAGS+=-ld64`` to force the old linker to be used. See the above file ``make.inc.macosx_gcc-12``.
+
 We find python may be built as :ref:`below<install-python>`.
 We found that octave interfaces do not work with GCC; please help.
 For MATLAB, the MEX settings may need to be

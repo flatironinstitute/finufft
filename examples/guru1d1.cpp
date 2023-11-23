@@ -7,6 +7,7 @@
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cassert>
 
 // only good for small projects...
 using namespace std;
@@ -18,7 +19,7 @@ int main(int argc, char* argv[])
    pointers to STL vectors of C++ double complex numbers, with a math check.
    Barnett 2/27/20
 
-   Compile on linux with:
+   Compile on linux with (or see ../makefile):
    g++-7 -std=c++17 -fopenmp guru1d1.cpp -I../include ../lib-static/libfinufft.a -o guru1d1
 
    Or if you have built a single-core library, remove -fopenmp
@@ -49,7 +50,7 @@ int main(int argc, char* argv[])
   for (int j=0; j<M; ++j)
     x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
   // note FINUFFT doesn't use std::vector types, so we need to make a pointer...
-  finufft_setpts(plan, M, &x[0], NULL, NULL, 0, NULL, NULL, NULL);
+  finufft_setpts(plan, M, x.data(), NULL, NULL, 0, NULL, NULL, NULL);
   
   // generate some complex strengths
   vector<complex<double>> c(M);
@@ -58,17 +59,18 @@ int main(int argc, char* argv[])
 
   // alloc output array for the Fourier modes, then do the transform
   vector<complex<double>> F(N);
-  int ier = finufft_execute(plan, &c[0], &F[0]);
+  int ier = finufft_execute(plan, c.data(), F.data());
 
   // for fun, do another with same NU pts (no re-sorting), but new strengths...
   for (int j=0; j<M; ++j)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + 1i*(2*((double)rand()/RAND_MAX)-1);
-  ier = finufft_execute(plan, &c[0], &F[0]);
+  ier = finufft_execute(plan, c.data(), F.data());
 
-  finufft_destroy(plan);    // done with transforms of this size
+  finufft_destroy(plan);    // don't forget! done with transforms of this size
 
   // rest is math checking and reporting...
   int n = 142519;   // check the answer just for this mode
+  assert(n>=-(double)N/2 && n<(double)N/2);     // ensure meaningful test
   complex<double> Ftest = complex<double>(0,0);
   for (int j=0; j<M; ++j)
     Ftest += c[j] * exp(1i*(double)n*x[j]);

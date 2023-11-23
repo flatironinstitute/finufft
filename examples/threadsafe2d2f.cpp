@@ -1,10 +1,22 @@
 /* This is a 2D type-2 demo calling single-threaded FINUFFT inside an OpenMP
-   loop, to show thread-safety. It is closely based on a test code of Penfe,
+   loop, to show thread-safety with independent transforms, one per thread.
+   It is based on a test code of Penfe,
    submitted github Issue #72. Unlike threadsafe1d1, it does not test the math;
-   it is the shell of an application from MRI reconstruction.
+   it is the shell of an application from multi-coil/slice MRI reconstruction.
+   Note that since the NU pts are the same in each slice, in fact a vectorized
+   multithreaded transform could do all these slices together, and faster.
+
+   To compile (note uses threads rather than omp version of FFTW3):
 
    g++ -fopenmp threadsafe2d2f.cpp -I../include ../lib/libfinufft.so -o threadsafe2d2f -g -Wall
 
+   ./threadsafe2d2f                                   <-- use all threads
+   OMP_NUM_THREADS=1 ./threadsafe2d2f                 <-- sequential, 1 thread
+
+   Expected output is 50 lines, each showing exit code 0. It's ok if they're
+   mangled due to threads writing to stdout simultaneously.
+
+   Barnett, tidied 11/22/23
 */
 
 // this is all you must include for the finufft lib...
@@ -17,34 +29,37 @@
 #include <omp.h>
 using namespace std;
 
-void test_finufft(finufft_opts* opts)
-// self-contained small test that single-prec FINUFFT2D2 no error nor crash
+int test_finufft(finufft_opts* opts)
+  // self-contained small test that one single-prec FINUFFT2D2 has no error/crash
 {
-    size_t n_rows = 8, n_cols = 8;
-    size_t n_read = 16, n_spokes = 4;
-    std::vector<float> x(n_read * n_spokes);       // bunch of zero data
-    std::vector<float> y(n_read * n_spokes);
-    std::vector<std::complex<float>> img(n_rows * n_cols);
-    std::vector<std::complex<float>> ksp(n_read * n_spokes);
+  size_t n_rows = 256, n_cols = 256;       // 2d image size
+  size_t n_read = 512, n_spokes = 128;     // some k-space point params
+  size_t M = n_read*n_spokes;              // how many k-space pts; MRI-specific
+  std::vector<float> x(M);                 // bunch of zero input data
+  std::vector<float> y(M);
+  std::vector<std::complex<float>> img(n_rows * n_cols);    // coeffs
+  std::vector<std::complex<float>> ksp(M);     // output array (vals @ k-space pts)
 
-    int ier = finufftf2d2(n_read * n_spokes, x.data(), y.data(), ksp.data(),
-                          -1, 1e-3, n_rows, n_cols, img.data(), opts);
+  int ier = finufftf2d2(M, x.data(), y.data(), ksp.data(),
+                        -1, 1e-3, n_rows, n_cols, img.data(), opts);
 
-    std::cout << "\ttest_finufft: " << ier << ", thread " << omp_get_thread_num() << std::endl;
+  std::cout << "\ttest_finufft: exit code " << ier << ", thread " << omp_get_thread_num() << std::endl;
+  return ier;
 }
 
 int main(int argc, char* argv[])
 {
   finufft_opts opts;
   finufftf_default_opts(&opts);
-  opts.nthreads = 1;     // this is *crucial* so that each call single-thread
+  opts.nthreads = 1;     // *crucial* so each call single-thread; else segfaults
 
-  int n_slices = 50;     // parallelize over slices
-#pragma omp parallel for num_threads(8)
-  for (int i = 0; i < n_slices; i++)
-    {
-      test_finufft(&opts);
-    }
+  int n_slices = 50;     // number of transforms. parallelize over slices
+  int overallstatus=0;
+#pragma omp parallel for
+  for (int i = 0; i < n_slices; i++) {
+    int ier = test_finufft(&opts);
+    if (ier!=0) overallstatus=1;
+  }
   
-  return 0;
+  return overallstatus;
 }

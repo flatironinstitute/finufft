@@ -5,11 +5,12 @@
 # attempt ../make.inc reading (failed) and default finufftdir. 2/25/20
 # Barnett trying to get sphinx.ext.autodoc to work w/ this, 10/5/20
 
-__version__ = '2.1.0'
+__version__ = '2.2.0.dev0'
 
 from setuptools import setup, Extension
 import os
 import platform
+from pathlib import Path
 
 from tempfile import mkstemp
 
@@ -18,8 +19,7 @@ finufft_dir = os.environ.get('FINUFFT_DIR')
 # Note: This will not work if run through pip install since setup.py is copied
 # to a different location.
 if finufft_dir == None or finufft_dir == '':
-    current_path = os.path.abspath(__file__)
-    finufft_dir = os.path.dirname(os.path.dirname(current_path))
+    finufft_dir = Path(__file__).resolve().parents[2]
 
 # Set include and library paths relative to FINUFFT root directory.
 inc_dir = os.path.join(finufft_dir, 'include')

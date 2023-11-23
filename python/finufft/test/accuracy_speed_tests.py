@@ -21,7 +21,8 @@ def print_report(label,elapsed,Xest,Xtrue,npts):
 	print(label+':')
 	print('    Est rel l2 err  %.3g' % (compute_error(Xest,Xtrue)))
 	print('    CPU time (sec)  %.3g' % (elapsed))
-	print('    tot NU pts/sec  %.3g' % (npts/elapsed))
+	if (elapsed>0):
+		print('    tot NU pts/sec  %.3g' % (npts/elapsed))
 	print('')
 
 def accuracy_speed_tests(num_nonuniform_points,num_uniform_points,eps):

@@ -73,3 +73,4 @@ add_tests(float 1e-5 2e-4)
 add_tests(double 1e-12 1e-11)
 
 add_test(NAME cufinufft_public_api COMMAND public_api_test)
+add_test(NAME cufinufft_makeplan COMMAND test_makeplan)

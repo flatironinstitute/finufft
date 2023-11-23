@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(finufft VERSION 2.1.0 LANGUAGES C CXX)
+project(finufft VERSION 2.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CUDA_STANDARD 17)
@@ -14,7 +14,14 @@ endif()
 
 include(CTest)
 
-set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifying target architecture.")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc|ppc64|powerpc|powerpc64" OR (APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc|ppc64"))
+    # PowerPC arch does not have -march flag.
+    set(FINUFFT_ARCH_FLAGS "-mtune=native" CACHE STRING "Compiler flags for specifying target architecture.")
+else()
+    set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifying target architecture.")
+endif()
+set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
+set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 
 # All options go here
 # sphinx tag (don't remove): @cmake_opts_start
@@ -118,7 +125,7 @@ if(FINUFFT_USE_CPU)
     set_finufft_options(finufft_f64)
     target_link_libraries(finufft_f64 PUBLIC)
 
-    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
+    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/string_utils.cc contrib/ducc0/infra/threading.cc)
     set_finufft_options(finufft)
     target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it
@@ -127,7 +134,7 @@ if(FINUFFT_USE_CPU)
     endif()
     target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/threading.cc)
+    add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp contrib/ducc0/infra/string_utils.cc contrib/ducc0/infra/threading.cc)
     set_finufft_options(finufft)
     target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it

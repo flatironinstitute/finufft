@@ -13,17 +13,6 @@
 // FIXME: If cufft ever takes N > INT_MAX...
 constexpr int32_t MAX_NF = std::numeric_limits<int32_t>::max();
 
-// Global error codes for the library...
-#define WARN_EPS_TOO_SMALL 1
-#define ERR_MAXNALLOC 2
-#define ERR_SPREAD_BOX_SMALL 3
-#define ERR_SPREAD_PTS_OUT_RANGE 4
-#define ERR_SPREAD_ALLOC 5
-#define ERR_SPREAD_DIR 6
-#define ERR_UPSAMPFAC_TOO_SMALL 7
-#define HORNER_WRONG_BETA 8
-#define ERR_NDATA_NOTVALID 9
-
 // allow compile-time switch off of openmp, so compilation without any openmp
 // is done (Note: _OPENMP is automatically set by -fopenmp compile flag)
 #ifdef _OPENMP

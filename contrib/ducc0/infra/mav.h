@@ -609,9 +609,9 @@ template<typename T> class vfmav: public cfmav<T>
     using tinfo::size, tinfo::shape, tinfo::stride;
 
   protected:
-    vfmav(const fmav_info &info, tbuf &buf)
+    vfmav(const fmav_info &info, const tbuf &buf)
       : cfmav<T>(info, buf) {}
-    vfmav(const fmav_info &info, T *d_, tbuf &buf)
+    vfmav(const fmav_info &info, T *d_, const tbuf &buf)
       : cfmav<T>(info, d_, buf) {}
 
   public:
@@ -638,16 +638,14 @@ template<typename T> class vfmav: public cfmav<T>
     vfmav(tbuf &buf, const shape_t &shp_, const stride_t &str_)
       : cfmav<T>(buf, shp_, str_) {}
 
-    using cfmav<T>::data;
-    T *data()
+    T *data() const
      { return const_cast<T *>(tbuf::d); }
-    using cfmav<T>::raw;
-    template<typename I> T &raw(I i)
+    template<typename I> T &raw(I i) const
       { return data()[i]; }
 
     // no-op. Needed for template tricks.
     using cfmav<T>::to_fmav;
-    vfmav to_fmav() { return *this; }
+    vfmav to_fmav() const { return *this; }
 
     void assign(const vfmav &other)
       {
@@ -656,15 +654,15 @@ template<typename T> class vfmav: public cfmav<T>
       }
 
     using cfmav<T>::operator();
-    template<typename... Ns> T &operator()(Ns... ns)
+    template<typename... Ns> T &operator()(Ns... ns) const
       { return raw(idx(ns...)); }
-    T &operator()(const shape_t &ns)
+    T &operator()(const shape_t &ns) const
       { return raw(idx(ns)); }
     using cfmav<T>::val;
-    template<typename RAiter> T& val(RAiter beg, RAiter end)
+    template<typename RAiter> T& val(RAiter beg, RAiter end) const
       { return raw(idxval(beg, end)); }
 
-    vfmav subarray(const vector<slice> &slices)
+    vfmav subarray(const vector<slice> &slices) const
       {
       auto [ninfo, nofs] = tinfo::subdata(slices);
       return vfmav(ninfo, data()+nofs, *this);
@@ -698,22 +696,22 @@ template<typename T> class vfmav: public cfmav<T>
       for (size_t i=0; i<ndim; ++i) slc[i] = slice(0, shape[i]);
       return tmp.subarray(slc);
       }
-    vfmav extend_and_broadcast(const shape_t &new_shape, const shape_t &axpos)
+    vfmav extend_and_broadcast(const shape_t &new_shape, const shape_t &axpos) const
       {
       return vfmav(fmav_info::extend_and_broadcast(new_shape, axpos), *this);
       }
-    vfmav extend_and_broadcast(const shape_t &new_shape, size_t firstaxis)
+    vfmav extend_and_broadcast(const shape_t &new_shape, size_t firstaxis) const
       {
       return vfmav(fmav_info::extend_and_broadcast(new_shape, firstaxis), *this);
       }
-    vfmav transpose()
+    vfmav transpose() const
       {
       return vfmav(static_cast<tinfo *>(this)->transpose(), *static_cast<tbuf *>(this));
       }
   };
 
 template<typename T> vfmav<T> subarray
-  (vfmav<T> &arr, const vector<slice> &slices)  
+  (const vfmav<T> &arr, const vector<slice> &slices)  
   { return arr.subarray(slices); }
 
 template<typename T, size_t ndim> class cmav: public mav_info<ndim>, public cmembuf<T>
@@ -819,9 +817,9 @@ template<typename T, size_t ndim> class vmav: public cmav<T, ndim>
     using tinfo::contiguous, tinfo::size, tinfo::idx, tinfo::conformable;
 
   protected:
-    vmav(const tinfo &info, T *d_, tbuf &buf)
+    vmav(const tinfo &info, T *d_, const tbuf &buf)
       : parent(info, d_, buf) {}
-    vmav(const tinfo &info, tbuf &buf)
+    vmav(const tinfo &info, const tbuf &buf)
       : parent(info, buf) {}
     vmav(const tbuf &buf, const shape_t &shp_, const stride_t &str_)
       : parent(buf, shp_, str_){}
@@ -836,7 +834,7 @@ template<typename T, size_t ndim> class vmav: public cmav<T, ndim>
       : parent(shp_) {}
     vmav(const shape_t &shp_, uninitialized_dummy)
       : parent(shp_, UNINITIALIZED) {}
-    vmav(vfmav<T> &inp)
+    vmav(const vfmav<T> &inp)
       : parent(inp) {}
       
     void assign(vmav &other)
@@ -846,30 +844,28 @@ template<typename T, size_t ndim> class vmav: public cmav<T, ndim>
       vmav empty;
       assign(empty);
       }
-    operator vfmav<T>()
+    operator vfmav<T>() const
       {
-      return vfmav<T>(*this, {shp.begin(), shp.end()}, {str.begin(), str.end()});
+      return vfmav<T>(*const_cast<tbuf *>(static_cast<const tbuf *>(this)), {shp.begin(), shp.end()}, {str.begin(), str.end()});
       }
     // Needed for template tricks.
     using cmav<T, ndim>::to_fmav;
-    vfmav<T> to_fmav() { return operator vfmav<T>(); }
+    vfmav<T> to_fmav() const { return operator vfmav<T>(); }
 
     using parent::operator();
-    template<typename... Ns> T &operator()(Ns... ns)
+    template<typename... Ns> T &operator()(Ns... ns) const
       { return const_cast<T &>(parent::operator()(ns...)); }
 
-    template<size_t nd2> vmav<T,nd2> subarray(const vector<slice> &slices)
+    template<size_t nd2> vmav<T,nd2> subarray(const vector<slice> &slices) const
       {
       auto [ninfo, nofs] = tinfo::template subdata<nd2> (slices);
       return vmav<T,nd2> (ninfo, data()+nofs, *this);
       }
 
-    using parent::data;
-    T *data()
+    T *data() const
      { return const_cast<T *>(tbuf::d); }
     // read access to element #i
-    using parent::raw;
-    template<typename I> T &raw(I i)
+    template<typename I> T &raw(I i) const
       { return data()[i]; }
 
     static vmav build_empty()
@@ -896,24 +892,24 @@ template<typename T, size_t ndim> class vmav: public cmav<T, ndim>
       for (size_t i=0; i<ndim; ++i) slc[i] = slice(0, shape[i]);
       return tmp.subarray<ndim>(slc);
       }
-    vmav transpose()
+    vmav transpose() const
       {
-      return vmav(static_cast<tinfo *>(this)->transpose(), *static_cast<tbuf *>(this));
+      return vmav(static_cast<const tinfo *>(this)->transpose(), *static_cast<const tbuf *>(this));
       }
-    vmav<T, ndim+1> prepend_1()
+    vmav<T, ndim+1> prepend_1() const
       {
-      return vmav<T, ndim+1>(static_cast<tinfo *>(this)->prepend_1(), *static_cast<tbuf *>(this));
+      return vmav<T, ndim+1>(static_cast<const tinfo *>(this)->prepend_1(), *static_cast<const tbuf *>(this));
       }
     template<size_t ndim2> vmav<T, ndim2> reinterpret
       (const typename vmav<T, ndim2>::shape_t &newshp,
-       const typename vmav<T, ndim2>::stride_t &newstr)
+       const typename vmav<T, ndim2>::stride_t &newstr) const
       {
-      return vmav<T, ndim2>(*static_cast<tbuf *>(this), newshp, newstr);
+      return vmav<T, ndim2>(*static_cast<const tbuf *>(this), newshp, newstr);
       }
   };
 
 template<size_t nd2, typename T, size_t ndim> vmav<T,nd2> subarray
-  (vmav<T, ndim> &arr, const vector<slice> &slices)  
+  (const vmav<T, ndim> &arr, const vector<slice> &slices)  
   { return arr.template subarray<nd2>(slices); }
 
 // various operations involving fmav objects of the same shape -- experimental

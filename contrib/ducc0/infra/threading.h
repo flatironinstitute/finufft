@@ -79,6 +79,7 @@ static_assert(false, "DUCC0_STDCXX_LOWLEVEL_THREADING must not be defined extern
 #include <cstddef>
 #include <functional>
 #include <optional>
+#include <vector>
 
 // threading-specific headers
 #ifdef DUCC0_STDCXX_LOWLEVEL_THREADING

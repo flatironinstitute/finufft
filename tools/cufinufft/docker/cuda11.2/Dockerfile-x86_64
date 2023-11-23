@@ -2,15 +2,7 @@ FROM quay.io/pypa/manylinux2014_x86_64
 LABEL maintainer "Joakim Andén"
 
 ENV CUDA_MAJOR 11
-ENV CUDA_MINOR 0
-
-ENV CUDART_VERSION 11.0.171
-ENV CUFFT_VERSION 10.2.1.245
-ENV CURAND_VERSION 10.2.1.245
-ENV NVPROF_VERSION 11.0.221
-ENV NVTX_VERSION 11.0.167
-ENV NVCC_VERSION 11.0.221
-
+ENV CUDA_MINOR 2
 ENV CUDA_DASH_VERSION ${CUDA_MAJOR}-${CUDA_MINOR}
 ENV CUDA_DOT_VERSION ${CUDA_MAJOR}.${CUDA_MINOR}
 
@@ -24,7 +16,7 @@ COPY tools/cufinufft/docker/cuda${CUDA_DOT_VERSION}/cuda.repo /etc/yum.repos.d/c
 
 # For libraries in the cuda-compat-* package: https://docs.nvidia.com/cuda/eula/index.html#attachment-a
 RUN yum install -y \
-        cuda-cudart-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
+        cuda-cudart-${CUDA_DASH_VERSION} \
         cuda-compat-${CUDA_DASH_VERSION} && \
     ln -s cuda-${CUDA_DOT_VERSION} /usr/local/cuda && \
     rm -rf /var/cache/yum/*
@@ -43,18 +35,16 @@ ENV NVIDIA_REQUIRE_CUDA "cuda>=${CUDA_DOT_VERSION} brand=tesla,driver>=418,drive
 
 # runtime
 RUN yum install -y \
-        libcufft-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
-        libcurand-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
-        cuda-nvtx-${CUDA_DASH_VERSION}-${NVTX_VERSION}-1 && \
+        cuda-libraries-${CUDA_DASH_VERSION} \
+        cuda-nvtx-${CUDA_DASH_VERSION} && \
     rm -rf /var/cache/yum/*
 
 # devel
 RUN yum install -y \
-        cuda-cudart-devel-${CUDA_DASH_VERSION}-${CUDART_VERSION}-1 \
-        libcufft-devel-${CUDA_DASH_VERSION}-${CUFFT_VERSION}-1 \
-        libcurand-devel-${CUDA_DASH_VERSION}-${CURAND_VERSION}-1 \
-        cuda-nvprof-${CUDA_DASH_VERSION}-${NVPROF_VERSION}-1 \
-        cuda-nvcc-${CUDA_DASH_VERSION}-${NVCC_VERSION}-1 && \
+        cuda-cudart-devel-${CUDA_DASH_VERSION} \
+        cuda-libraries-devel-${CUDA_DASH_VERSION} \
+        cuda-nvprof-${CUDA_DASH_VERSION} \
+        cuda-nvcc-${CUDA_DASH_VERSION} && \
     rm -rf /var/cache/yum/*
 
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
@@ -67,41 +57,9 @@ RUN yum install -y \
         devtoolset-9-gcc-c++ && \
     rm -rf /var/cache/yum/*
 
-RUN scl enable devtoolset-9 -- g++ --version
+ENV PATH /opt/rh/devtoolset-9/root/usr/bin:${PATH}
 
 # finufft reqs
 RUN yum install -y \
         cmake && \
     rm -rf /var/cache/yum/*
-
-# Okay, so now we can begin cufinufft
-#
-# Only copy the C++/CUDA code (this way the cache is not invalidated by changes
-# to the Python code or to the docs).
-COPY src /io/src
-COPY fortran /io/fortran
-COPY include /io/include
-COPY test /io/test
-COPY perftest /io/perftest
-COPY examples /io/examples
-COPY cmake /io/cmake
-COPY contrib /io/contrib
-COPY CMakeLists.txt /io/
-
-# Set up cmake and build the code.
-RUN mkdir -p /io/build
-WORKDIR /io/build
-RUN scl enable devtoolset-9 -- cmake -D FINUFFT_USE_CUDA=ON -D FINUFFT_USE_CPU=OFF -D CMAKE_CUDA_ARCHITECTURES="35;50;60;70;75;80" -DBUILD_TESTING=ON -DFINUFFT_BUILD_TESTS=ON ..
-RUN scl enable devtoolset-9 -- make -j4
-
-WORKDIR /io
-
-# And we need to pack it in our LD path
-ENV LD_LIBRARY_PATH /io/build:${LD_LIBRARY_PATH}
-
-# Now copy the rest of the repository in.
-COPY python /io/python
-COPY docs /io/docs
-COPY tools /io/tools
-
-CMD ["/bin/bash"]

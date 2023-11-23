@@ -200,7 +200,9 @@ template<typename T, size_t len> struct vmask_
     bool any() const { return hlp::mask_any(v); }
     bool all() const { return hlp::mask_all(v); }
     vmask_ operator& (const vmask_ &other) const { return hlp::mask_and(v,other.v); }
+    vmask_ &operator&= (const vmask_ &other) { v=hlp::mask_and(v,other.v); return *this; }
     vmask_ operator| (const vmask_ &other) const { return hlp::mask_or(v,other.v); }
+    vmask_ &operator|= (const vmask_ &other) { v=hlp::mask_or(v,other.v); return *this; }
   };
 struct element_aligned_tag {};
 template<typename T, size_t len> class vtp
@@ -250,12 +252,18 @@ template<typename T, size_t len> class vtp
       { return hlp::sqrt(v); }
     vtp max(const vtp &other) const
       { return hlp::max(v, other.v); }
+    vtp min(const vtp &other) const
+      { return hlp::min(v, other.v); }
     Tm operator>(const vtp &other) const
       { return hlp::gt(v, other.v); }
     Tm operator>=(const vtp &other) const
       { return hlp::ge(v, other.v); }
     Tm operator<(const vtp &other) const
       { return hlp::lt(v, other.v); }
+    Tm operator<=(const vtp &other) const
+      { return hlp::le(v, other.v); }
+    Tm operator==(const vtp &other) const
+      { return hlp::eq(v, other.v); }
     Tm operator!=(const vtp &other) const
       { return hlp::ne(v, other.v); }
     static vtp blend(Tm mask, const vtp &a, const vtp &b)
@@ -310,6 +318,8 @@ template<typename T, size_t len> vtp<T, len> operator-(T a, vtp<T, len> b)
   { return vtp<T, len>(a) - b; }
 template<typename T, size_t len> vtp<T, len> max(vtp<T, len> a, vtp<T, len> b)
   { return a.max(b); }
+template<typename T, size_t len> vtp<T, len> min(vtp<T, len> a, vtp<T, len> b)
+  { return a.min(b); }
 template<typename T, size_t len> vtp<T, len> sqrt(vtp<T, len> v)
   { return v.sqrt(); }
 template<typename T, size_t len> inline bool none_of(const vmask_<T, len> &mask)
@@ -365,6 +375,8 @@ template<typename T> class pseudoscalar
     inline pseudoscalar sqrt() const { return std::sqrt(v); }
     pseudoscalar max(const pseudoscalar &other) const
       { return std::max(v, other.v); }
+    pseudoscalar min(const pseudoscalar &other) const
+      { return std::min(v, other.v); }
 
     bool operator>(const pseudoscalar &other) const
       { return v>other.v; }
@@ -372,6 +384,10 @@ template<typename T> class pseudoscalar
       { return v>=other.v; }
     bool operator<(const pseudoscalar &other) const
       { return v<other.v; }
+    bool operator<=(const pseudoscalar &other) const
+      { return v<=other.v; }
+    bool operator==(const pseudoscalar &other) const
+      { return v==other.v; }
     bool operator!=(const pseudoscalar &other) const
       { return v!=other.v; }
     const T &operator[] (size_t /*i*/) const { return v; }
@@ -392,11 +408,14 @@ template<typename T> class helper_<T,1>
     static Tv from_scalar(T v) { return v; }
     static Tv abs(Tv v) { return v.abs(); }
     static Tv max(Tv v1, Tv v2) { return v1.max(v2); }
+    static Tv min(Tv v1, Tv v2) { return v1.min(v2); }
     static Tv blend(Tm m, Tv v1, Tv v2) { return m ? v1 : v2; }
     static Tv sqrt(Tv v) { return v.sqrt(); }
     static Tm gt (Tv v1, Tv v2) { return v1>v2; }
     static Tm ge (Tv v1, Tv v2) { return v1>=v2; }
     static Tm lt (Tv v1, Tv v2) { return v1<v2; }
+    static Tm le (Tv v1, Tv v2) { return v1<=v2; }
+    static Tm eq (Tv v1, Tv v2) { return v1==v2; }
     static Tm ne (Tv v1, Tv v2) { return v1!=v2; }
     static Tm mask_and (Tm v1, Tm v2) { return v1&&v2; }
     static Tm mask_or (Tm v1, Tm v2) { return v1||v2; }
@@ -425,11 +444,14 @@ template<> class helper_<double,8>
     static Tv from_scalar(T v) { return _mm512_set1_pd(v); }
     static Tv abs(Tv v) { return __m512d(_mm512_andnot_epi64(__m512i(_mm512_set1_pd(-0.)),__m512i(v))); }
     static Tv max(Tv v1, Tv v2) { return _mm512_max_pd(v1, v2); }
+    static Tv min(Tv v1, Tv v2) { return _mm512_min_pd(v1, v2); }
     static Tv blend(Tm m, Tv v1, Tv v2) { return _mm512_mask_blend_pd(m, v2, v1); }
     static Tv sqrt(Tv v) { return _mm512_sqrt_pd(v); }
     static Tm gt (Tv v1, Tv v2) { return _mm512_cmp_pd_mask(v1,v2,_CMP_GT_OQ); }
     static Tm ge (Tv v1, Tv v2) { return _mm512_cmp_pd_mask(v1,v2,_CMP_GE_OQ); }
     static Tm lt (Tv v1, Tv v2) { return _mm512_cmp_pd_mask(v1,v2,_CMP_LT_OQ); }
+    static Tm le (Tv v1, Tv v2) { return _mm512_cmp_pd_mask(v1,v2,_CMP_LE_OQ); }
+    static Tm eq (Tv v1, Tv v2) { return _mm512_cmp_pd_mask(v1,v2,_CMP_EQ_OQ); }
     static Tm ne (Tv v1, Tv v2) { return _mm512_cmp_pd_mask(v1,v2,_CMP_NEQ_OQ); }
     static Tm mask_and (Tm v1, Tm v2) { return v1&v2; }
     static Tm mask_or (Tm v1, Tm v2) { return v1|v2; }
@@ -457,11 +479,14 @@ template<> class helper_<float,16>
     static Tv from_scalar(T v) { return _mm512_set1_ps(v); }
     static Tv abs(Tv v) { return __m512(_mm512_andnot_epi32(__m512i(_mm512_set1_ps(-0.)),__m512i(v))); }
     static Tv max(Tv v1, Tv v2) { return _mm512_max_ps(v1, v2); }
+    static Tv min(Tv v1, Tv v2) { return _mm512_min_ps(v1, v2); }
     static Tv blend(Tm m, Tv v1, Tv v2) { return _mm512_mask_blend_ps(m, v2, v1); }
     static Tv sqrt(Tv v) { return _mm512_sqrt_ps(v); }
     static Tm gt (Tv v1, Tv v2) { return _mm512_cmp_ps_mask(v1,v2,_CMP_GT_OQ); }
     static Tm ge (Tv v1, Tv v2) { return _mm512_cmp_ps_mask(v1,v2,_CMP_GE_OQ); }
     static Tm lt (Tv v1, Tv v2) { return _mm512_cmp_ps_mask(v1,v2,_CMP_LT_OQ); }
+    static Tm le (Tv v1, Tv v2) { return _mm512_cmp_ps_mask(v1,v2,_CMP_LE_OQ); }
+    static Tm eq (Tv v1, Tv v2) { return _mm512_cmp_ps_mask(v1,v2,_CMP_EQ_OQ); }
     static Tm ne (Tv v1, Tv v2) { return _mm512_cmp_ps_mask(v1,v2,_CMP_NEQ_OQ); }
     static Tm mask_and (Tm v1, Tm v2) { return v1&v2; }
     static Tm mask_or (Tm v1, Tm v2) { return v1|v2; }
@@ -491,11 +516,14 @@ template<> class helper_<double,4>
     static Tv from_scalar(T v) { return _mm256_set1_pd(v); }
     static Tv abs(Tv v) { return _mm256_andnot_pd(_mm256_set1_pd(-0.),v); }
     static Tv max(Tv v1, Tv v2) { return _mm256_max_pd(v1, v2); }
+    static Tv min(Tv v1, Tv v2) { return _mm256_min_pd(v1, v2); }
     static Tv blend(Tm m, Tv v1, Tv v2) { return _mm256_blendv_pd(v2, v1, m); }
     static Tv sqrt(Tv v) { return _mm256_sqrt_pd(v); }
     static Tm gt (Tv v1, Tv v2) { return _mm256_cmp_pd(v1,v2,_CMP_GT_OQ); }
     static Tm ge (Tv v1, Tv v2) { return _mm256_cmp_pd(v1,v2,_CMP_GE_OQ); }
     static Tm lt (Tv v1, Tv v2) { return _mm256_cmp_pd(v1,v2,_CMP_LT_OQ); }
+    static Tm le (Tv v1, Tv v2) { return _mm256_cmp_pd(v1,v2,_CMP_LE_OQ); }
+    static Tm eq (Tv v1, Tv v2) { return _mm256_cmp_pd(v1,v2,_CMP_EQ_OQ); }
     static Tm ne (Tv v1, Tv v2) { return _mm256_cmp_pd(v1,v2,_CMP_NEQ_OQ); }
     static Tm mask_and (Tm v1, Tm v2) { return _mm256_and_pd(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return _mm256_or_pd(v1,v2); }
@@ -524,11 +552,14 @@ template<> class helper_<float,8>
     static Tv from_scalar(T v) { return _mm256_set1_ps(v); }
     static Tv abs(Tv v) { return _mm256_andnot_ps(_mm256_set1_ps(-0.),v); }
     static Tv max(Tv v1, Tv v2) { return _mm256_max_ps(v1, v2); }
+    static Tv min(Tv v1, Tv v2) { return _mm256_min_ps(v1, v2); }
     static Tv blend(Tm m, Tv v1, Tv v2) { return _mm256_blendv_ps(v2, v1, m); }
     static Tv sqrt(Tv v) { return _mm256_sqrt_ps(v); }
     static Tm gt (Tv v1, Tv v2) { return _mm256_cmp_ps(v1,v2,_CMP_GT_OQ); }
     static Tm ge (Tv v1, Tv v2) { return _mm256_cmp_ps(v1,v2,_CMP_GE_OQ); }
     static Tm lt (Tv v1, Tv v2) { return _mm256_cmp_ps(v1,v2,_CMP_LT_OQ); }
+    static Tm le (Tv v1, Tv v2) { return _mm256_cmp_ps(v1,v2,_CMP_LE_OQ); }
+    static Tm eq (Tv v1, Tv v2) { return _mm256_cmp_ps(v1,v2,_CMP_EQ_OQ); }
     static Tm ne (Tv v1, Tv v2) { return _mm256_cmp_ps(v1,v2,_CMP_NEQ_OQ); }
     static Tm mask_and (Tm v1, Tm v2) { return _mm256_and_ps(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return _mm256_or_ps(v1,v2); }
@@ -559,6 +590,7 @@ template<> class helper_<double,2>
     static Tv from_scalar(T v) { return _mm_set1_pd(v); }
     static Tv abs(Tv v) { return _mm_andnot_pd(_mm_set1_pd(-0.),v); }
     static Tv max(Tv v1, Tv v2) { return _mm_max_pd(v1, v2); }
+    static Tv min(Tv v1, Tv v2) { return _mm_min_pd(v1, v2); }
     static Tv blend(Tm m, Tv v1, Tv v2)
       {
 #if defined(__SSE4_1__)
@@ -571,6 +603,8 @@ template<> class helper_<double,2>
     static Tm gt (Tv v1, Tv v2) { return _mm_cmpgt_pd(v1,v2); }
     static Tm ge (Tv v1, Tv v2) { return _mm_cmpge_pd(v1,v2); }
     static Tm lt (Tv v1, Tv v2) { return _mm_cmplt_pd(v1,v2); }
+    static Tm le (Tv v1, Tv v2) { return _mm_cmple_pd(v1,v2); }
+    static Tm eq (Tv v1, Tv v2) { return _mm_cmpeq_pd(v1,v2); }
     static Tm ne (Tv v1, Tv v2) { return _mm_cmpneq_pd(v1,v2); }
     static Tm mask_and (Tm v1, Tm v2) { return _mm_and_pd(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return _mm_or_pd(v1,v2); }
@@ -599,6 +633,7 @@ template<> class helper_<float,4>
     static Tv from_scalar(T v) { return _mm_set1_ps(v); }
     static Tv abs(Tv v) { return _mm_andnot_ps(_mm_set1_ps(-0.),v); }
     static Tv max(Tv v1, Tv v2) { return _mm_max_ps(v1, v2); }
+    static Tv min(Tv v1, Tv v2) { return _mm_min_ps(v1, v2); }
     static Tv blend(Tm m, Tv v1, Tv v2)
       {
 #if defined(__SSE4_1__)
@@ -611,6 +646,8 @@ template<> class helper_<float,4>
     static Tm gt (Tv v1, Tv v2) { return _mm_cmpgt_ps(v1,v2); }
     static Tm ge (Tv v1, Tv v2) { return _mm_cmpge_ps(v1,v2); }
     static Tm lt (Tv v1, Tv v2) { return _mm_cmplt_ps(v1,v2); }
+    static Tm le (Tv v1, Tv v2) { return _mm_cmple_ps(v1,v2); }
+    static Tm eq (Tv v1, Tv v2) { return _mm_cmpeq_ps(v1,v2); }
     static Tm ne (Tv v1, Tv v2) { return _mm_cmpneq_ps(v1,v2); }
     static Tm mask_and (Tm v1, Tm v2) { return _mm_and_ps(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return _mm_or_ps(v1,v2); }
@@ -659,6 +696,12 @@ template<typename T, size_t len> class gnuvec_helper
       for (size_t i=0; i<len; ++i) res[i] = std::max(v1[i], v2[i]);
       return res;
       }
+    static Tv min(Tv v1, Tv v2)
+      {
+      Tv res;
+      for (size_t i=0; i<len; ++i) res[i] = std::min(v1[i], v2[i]);
+      return res;
+      }
     static Tv blend(Tm m, Tv v1, Tv v2)
       { return m ? v1 : v2; }
     static Tv sqrt(Tv v)
@@ -670,6 +713,8 @@ template<typename T, size_t len> class gnuvec_helper
     static Tm gt (Tv v1, Tv v2) { return v1>v2; }
     static Tm ge (Tv v1, Tv v2) { return v1>=v2; }
     static Tm lt (Tv v1, Tv v2) { return v1<v2; }
+    static Tm le (Tv v1, Tv v2) { return v1<=v2; }
+    static Tm eq (Tv v1, Tv v2) { return v1==v2; }
     static Tm ne (Tv v1, Tv v2) { return v1!=v2; }
     static Tm mask_and (Tm v1, Tm v2) { return v1&&v2; }
     static Tm mask_or (Tm v1, Tm v2) { return v1||v2; }
@@ -710,12 +755,15 @@ template<> class helper_<double,2>
     static Tv from_scalar(T v) { return vdupq_n_f64(v); }
     static Tv abs(Tv v) { return vabsq_f64(v); }
     static Tv max(Tv v1, Tv v2) { return vmaxq_f64(v1, v2); }
+    static Tv min(Tv v1, Tv v2) { return vminq_f64(v1, v2); }
     static Tv blend(Tm m, Tv v1, Tv v2)
       { return vbslq_f64(m, v1, v2); }
     static Tv sqrt(Tv v) { return vsqrtq_f64(v); }
     static Tm gt (Tv v1, Tv v2) { return vcgtq_f64(v1,v2); }
     static Tm ge (Tv v1, Tv v2) { return vcgeq_f64(v1,v2); }
     static Tm lt (Tv v1, Tv v2) { return vcltq_f64(v1,v2); }
+    static Tm le (Tv v1, Tv v2) { return vcleq_f64(v1,v2); }
+    static Tm eq (Tv v1, Tv v2) { return vceqq_f64(v1,v2); }
     static Tm ne (Tv v1, Tv v2)
       { return vreinterpretq_u64_u32(vmvnq_u32(vreinterpretq_u32_u64(vceqq_f64(v1,v2)))); }
     static Tm mask_and (Tm v1, Tm v2) { return vandq_u64(v1,v2); }
@@ -750,11 +798,14 @@ template<> class helper_<float,4>
     static Tv from_scalar(T v) { return vdupq_n_f32(v); }
     static Tv abs(Tv v) { return vabsq_f32(v); }
     static Tv max(Tv v1, Tv v2) { return vmaxq_f32(v1, v2); }
+    static Tv min(Tv v1, Tv v2) { return vminq_f32(v1, v2); }
     static Tv blend(Tm m, Tv v1, Tv v2) { return vbslq_f32(m, v1, v2); }
     static Tv sqrt(Tv v) { return vsqrtq_f32(v); }
     static Tm gt (Tv v1, Tv v2) { return vcgtq_f32(v1,v2); }
     static Tm ge (Tv v1, Tv v2) { return vcgeq_f32(v1,v2); }
     static Tm lt (Tv v1, Tv v2) { return vcltq_f32(v1,v2); }
+    static Tm le (Tv v1, Tv v2) { return vcleq_f32(v1,v2); }
+    static Tm eq (Tv v1, Tv v2) { return vceqq_f32(v1,v2); }
     static Tm ne (Tv v1, Tv v2) { return vmvnq_u32(vceqq_f32(v1,v2)); }
     static Tm mask_and (Tm v1, Tm v2) { return vandq_u32(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return vorrq_u32(v1,v2); }

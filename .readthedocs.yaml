@@ -1,12 +1,16 @@
 # .readthedocs.yml
 # "Read the Docs" doc-hosting website configuration file
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
-#
-# Barnett 10/5/20.
 
 # Required (for this file format)
 version: 2
 
+# Set the OS, Python version and other tools you might need
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
+    
 # Build all formats
 formats: all
 
@@ -16,6 +20,5 @@ sphinx:
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
-  version: 3.7
   install:
     - requirements: docs/requirements.txt

@@ -217,8 +217,8 @@ See ``examples/many1d1.cpp`` and ``test/finufft?dmany_test.cpp``
 for more examples.
 
 
-Guru interface example
-----------------------
+Guru interface examples
+-----------------------
 
 If you want more flexibility than the above, use the "guru" interface:
 this is similar to that of FFTW3, and to the main interface of
@@ -268,42 +268,40 @@ is needed since the Fourier coefficient dimensions are passed as an array.
 The complete code with a math test is in ``examples/guru2d1.cpp``, and for
 more examples see ``examples/guru1d1*.c*``
 
+Using the guru interface to perform a vectorized transform (multiple 1D type 1
+transforms each with the same nonuniform points) is demonstrated in
+``examples.gurumany1d1.cpp``. This is similar to the single-command vectorized
+interface, but allowing more control (changing the nonuniform points without
+re-planning the FFT, etc).
 
-Thread safety and global state
-------------------------------
+
+Thread safety for single-threaded transforms, and global state
+--------------------------------------------------------------
 
 It is possible to call FINUFFT from within multithreaded code, e.g. in an
-OpenMP parallel block. In this case ``opts.nthreads=1`` should be set,
-and FINUFFT must have been compiled with the ``-DFFTW_PLAN_SAFE`` flag,
-making it thread-safe.
-For demos of this, see
+OpenMP parallel block. In this case ``opts.nthreads=1`` should be set, otherwise
+a segfault will occur. This is useful if you don't want to synchronize
+independent transforms.
+For demos of this "parallelize over single-threaded transforms" use case, see
+the following, which are built as part of the ``make examples`` task:
 
 * ``examples/threadsafe1d1`` which runs a 1D type-1 separately on each thread, checking the math, and
 
-* ``examples/threadsafe2d2f`` which runs a 2D type-2 on each slice, which are parallelized over via an OpenMP parallel for loop (without any math check, just dummy inputs)
+* ``examples/threadsafe2d2f`` which runs a 2D type-2 on each "slice" (in the MRI
+  language), parallelized over slices with an OpenMP parallel for loop.
+  (In this code there is no math check, just status check.)
 
-which are both built by ``make examples`` if the above flag has been set.
+However, if you have multiple transforms with the *same* nonuniform points for
+each transform, it is probably much faster to use the vectorized interface,
+and do all these transforms with a single such multithreaded FINUFFT call
+(see ``examples/many1d1.cpp`` and ``examples/gurumany1d1.cpp``).
+This may be less convenient if you want to leave your slices unsynchronized.
 
-Note: A design decision of FFTW is to have a global state which stores
-wisdom and settings. Such global state can cause unforeseen effects on other routines that also use FFTW. In contrast, FINUFFT uses pointers to plans to store
-its state, and does not have a global state (other than one ``static``
-flag used as a lock on FFTW initialization in the FINUFFT plan
-stage). This means different FINUFFT calls should not affect each other,
-although they may affect other codes that use FFTW via FFTW's global state.
-
-Alternatively  it is possible to achieve thread safety without compiling with ``-DFFTW_PLAN_SAFE``. This can lead to higher performance.
-This way to achieve thread safety is to use the guru interface and split initialization and transformation into two steps. The initialization step is not thread safe, but the transformation step is. The initialization step can be parallelized over threads, but the transformation step cannot. See ``examples/threadsafe1d1`` for an example of this.
-In particular:
-
-.. code-block:: C++
-
-  finufft_makeplan(...args...) // not thread safe
-
-All the other functions are thread safe. With OpenMP is possible to use:
-  
-.. code-block:: C++
-                
-  #pragma omp critical
-  finufft_makeplan(...args...) // not thread safe
-
-to achieve thread safety.
+.. note::
+   A design decision of FFTW is to have a global state which stores
+   wisdom and settings. Such global state can cause unforeseen effects on other
+   routines that also use FFTW. In contrast, FINUFFT uses pointers to plans to store
+   its state, and does not have a global state (other than one ``static``
+   flag used as a lock on FFTW initialization in the FINUFFT plan
+   stage). This means different FINUFFT calls should not affect each other,
+   although they may affect other codes that use FFTW via FFTW's global state.

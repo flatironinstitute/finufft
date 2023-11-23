@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
   // 111111111111111111111111111111111111111111111111111111111111111111111111
   printf("1D dumb cases.\n");
   int ier = FINUFFT1D1(M,x,c,+1,0,N,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("1d1 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -105,26 +105,26 @@ int main(int argc, char* argv[])
   FLT xsave = x[0];
   x[0] = 3*PI*(1 + 2*EPSILON);   // works in either prec, just outside valid
   ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
-  if (ier != ERR_SPREAD_PTS_OUT_RANGE) {
+  if (ier != FINUFFT_ERR_SPREAD_PTS_OUT_RANGE) {
     printf("1d1 x>3pi:\twrong err code %d\n",ier);
     return 1;
   }
   x[0] = INFINITY;
   ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
-  if (ier != ERR_SPREAD_PTS_OUT_RANGE) {
+  if (ier != FINUFFT_ERR_SPREAD_PTS_OUT_RANGE) {
     printf("1d1 x=Inf:\twrong err code %d\n",ier);
     return 1;
   }
   x[0] = NAN;
   ier = FINUFFT1D1(M,x,c,+1,acc,N,F,&opts);
-  if (ier != ERR_SPREAD_PTS_OUT_RANGE) {
+  if (ier != FINUFFT_ERR_SPREAD_PTS_OUT_RANGE) {
     printf("1d1 x=NaN:\twrong err code %d\n",ier);
     return 1;
   }
   x[0] = xsave;
   for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
   ier = FINUFFT1D2(M,x,c,+1,0,N,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("1d2 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
   }
   for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset c for t3
   ier = FINUFFT1D3(M,x,c,+1,0,N,s,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("1d3 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -188,12 +188,12 @@ int main(int argc, char* argv[])
   CPX* Fm = (CPX*)malloc(sizeof(CPX)*NN*ndata);     // the biggest array
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // set cm for 1d1many
   ier = FINUFFT1D1MANY(0,M,x,cm,+1,0,N,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("1d1many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT1D1MANY(ndata,M,x,cm,+1,0,N,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("1d1many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -210,12 +210,12 @@ int main(int argc, char* argv[])
   }
   for (int k=0; k<NN*ndata; ++k) Fm[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set Fm for 1d2many
   ier = FINUFFT1D2MANY(0,M,x,cm,+1,0,N,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("1d2many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT1D2MANY(ndata,M,x,cm,+1,0,N,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("1d2many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -232,12 +232,12 @@ int main(int argc, char* argv[])
   }
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset cm for 1d3many
   ier = FINUFFT1D3MANY(0, M,x,cm,+1,acc,N,s,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("1d3many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT1D3MANY(ndata, M,x,cm,+1,0,N,s,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("1d3many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -279,7 +279,7 @@ int main(int argc, char* argv[])
   // 2222222222222222222222222222222222222222222222222222222222222222222222222
   printf("2D dumb cases.\n"); // (uses y=x, and t=s in type 3)
   ier = FINUFFT2D1(M,x,x,c,+1,0,N,N,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("2d1 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -306,7 +306,7 @@ int main(int argc, char* argv[])
   }
   for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // set F for t2
   ier = FINUFFT2D2(M,x,x,c,+1,0,N,N,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("2d2 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -335,7 +335,7 @@ int main(int argc, char* argv[])
   }
   for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset c for t3
   ier = FINUFFT2D3(M,x,x,c,+1,0,N,s,s,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("2d3 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -364,12 +364,12 @@ int main(int argc, char* argv[])
   }
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset cm for 2d1many
   ier = FINUFFT2D1MANY(0,M,x,x,cm,+1,0,N,N,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("2d1many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT2D1MANY(ndata,M,x,x,cm,+1,0,N,N,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("2d1many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -396,12 +396,12 @@ int main(int argc, char* argv[])
   }
   for (int k=0; k<NN*ndata; ++k) Fm[k] = sin((FLT)0.7*k) + IMA*cos((FLT)0.3*k);  // reset Fm for t2
   ier = FINUFFT2D2MANY(0,M,x,x,cm,+1,0,N,N,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("2d2many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT2D2MANY(ndata,M,x,x,cm,+1,0,N,N,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("2d2many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -429,12 +429,12 @@ int main(int argc, char* argv[])
     return ier;
   }
   ier = FINUFFT2D3MANY(0,M,x,x,cm,+1,0,N,s,s,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("2d3many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT2D3MANY(ndata,M,x,x,cm,+1,0,N,s,s,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("2d3many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -464,7 +464,7 @@ int main(int argc, char* argv[])
   // 3333333333333333333333333333333333333333333333333333333333333333333333333
   printf("3D dumb cases.\n");    // z=y=x, and u=t=s in type 3
   ier = FINUFFT3D1(M,x,x,x,c,+1,0,N,N,N,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("3d1 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -491,7 +491,7 @@ int main(int argc, char* argv[])
   }
   for (int k=0; k<NN; ++k) F[k] = sin((FLT)0.8*k) - IMA*cos((FLT)0.3*k);  // set F for t2
   ier = FINUFFT3D2(M,x,x,x,c,+1,0,N,N,N,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("3d2 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -526,7 +526,7 @@ int main(int argc, char* argv[])
   }
   for (int j=0; j<M; ++j) c[j] = sin((FLT)1.2*j) - IMA*cos((FLT)0.8*j); // reset c for t3
   ier = FINUFFT3D3(M,x,x,x,c,+1,0,N,s,s,s,F,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("3d3 tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -555,12 +555,12 @@ int main(int argc, char* argv[])
   }
   for (int j=0; j<M*ndata; ++j) cm[j] = sin(-(FLT)1.2*j) + IMA*cos((FLT)1.1*j); // reset cm for 3d1many
   ier = FINUFFT3D1MANY(0,M,x,x,x,cm,+1,0,N,N,N,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("3d1many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT3D1MANY(ndata,M,x,x,x,cm,+1,0,N,N,N,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("3d1many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -592,12 +592,12 @@ int main(int argc, char* argv[])
   }
   for (int k=0; k<NN*ndata; ++k) Fm[k] = sin((FLT)0.6*k) - IMA*cos((FLT)0.3*k);  // reset Fm for t2
   ier = FINUFFT3D2MANY(0,M,x,x,x,cm,+1,0,N,N,N,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("3d2many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT3D2MANY(ndata,M,x,x,x,cm,+1,0,N,N,N,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("3d2many tol=0:\twrong err code %d\n",ier);
     return 1;
   }
@@ -631,12 +631,12 @@ int main(int argc, char* argv[])
     return ier;
   }
   ier = FINUFFT3D3MANY(0,M,x,x,x,cm,+1,0,N,s,s,s,Fm,&opts);
-  if (ier != ERR_NTRANS_NOTVALID) {
+  if (ier != FINUFFT_ERR_NTRANS_NOTVALID) {
     printf("3d3many ndata=0:\twrong err code %d\n",ier);
     return 1;
   }
   ier = FINUFFT3D3MANY(ndata,M,x,x,x,cm,+1,0,N,s,s,s,Fm,&opts);
-  if (ier != WARN_EPS_TOO_SMALL) {
+  if (ier != FINUFFT_WARN_EPS_TOO_SMALL) {
     printf("3d3many tol=0:\twrong err code %d\n",ier);
     return 1;
   }

@@ -27,5 +27,5 @@ For further applications, see :ref:`references <refs>`, and:
      
 * The numerical sampling of `random plane waves <https://users.flatironinstitute.org/~ahb/rpws/>`_.
    
-* These seminar `PDF slides <http://users.flatironinstitute.org/~ahb/notes/wam19.pdf>`_.
+* These seminar `PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`_.
 
