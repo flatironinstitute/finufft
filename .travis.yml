@@ -12,7 +12,6 @@ addons:
     homebrew:
         packages:
             - ccache
-            - fftw
             - libomp
         update: true
 cache: ccache

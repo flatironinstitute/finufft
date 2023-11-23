@@ -134,9 +134,6 @@ int main(int argc, char* argv[])
   }
 
   // Andrea found the following are needed to get reliable independent timings:
-  FFTW_CLEANUP();
-  FFTW_CLEANUP_THREADS();
-  FFTW_FORGET_WISDOM();
   //std::this_thread::sleep_for(std::chrono::seconds(1));
   sleep(tsleep);
 
@@ -187,14 +184,6 @@ int main(int argc, char* argv[])
 
   // Comparing timing results with repeated calls to corresponding finufft function...
 
-  // The following would normally be done between independent timings, as found
-  // by Andrea Malleo, but in this case we need to access the plan later
-  // for many_simple_calls() to work, so we cannot do FFTW cleanup without
-  // apparently causing segfault :(. So we skip them.
-  //FFTW_CLEANUP();
-  //FFTW_CLEANUP_THREADS();
-  //FFTW_FORGET_WISDOM();
-  
   //std::this_thread::sleep_for(std::chrono::seconds(1)); if c++11 is allowed
   sleep(tsleep); //sleep for one second using linux sleep call
   

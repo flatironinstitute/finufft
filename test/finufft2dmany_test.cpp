@@ -20,7 +20,6 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;          // default
   double err, errfail = INFINITY, errmax = 0;
   finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
-  //opts.fftw = FFTW_MEASURE;  // change from default FFTW_ESTIMATE
   int isign = +1;                // choose which exponential sign to test
   if (argc<5 || argc>12) {
     for (int i=0; help[i]; ++i)
@@ -85,7 +84,6 @@ int main(int argc, char* argv[])
 	 (long long)nt1,(long long)nt2,i,err);
 
   // compare the result with FINUFFT2D1
-  FFTW_FORGET_WISDOM();
   finufft_opts simpleopts = opts;
   simpleopts.debug = 0;       // don't output timing for calls of FINUFFT2D1
   simpleopts.spread_debug = 0;
@@ -125,7 +123,6 @@ int main(int argc, char* argv[])
     for (BIGINT m=0; m<N*ntransf; ++m) F[m] = crandm11r(&se);
   }
 
-  FFTW_FORGET_WISDOM();
   timer.restart();
   ier = FINUFFT2D2MANY(ntransf,M,x,y,c,isign,tol,N1,N2,F,&opts);
   ti=timer.elapsedsec();
@@ -135,7 +132,6 @@ int main(int argc, char* argv[])
   } else
     printf("ntr=%d: (%lld,%lld) modes to %lld NU pts in %.3g s \t%.3g NU pts/s\n", ntransf,(long long)N1,(long long)N2,(long long)M,ti,ntransf*M/ti);
 
-  FFTW_FORGET_WISDOM();
   i = ntransf-1;   // choose a data to check
   BIGINT jt = M/2;    // check arbitrary choice of one targ pt
   CPX ct = CPX(0,0);
@@ -172,7 +168,6 @@ int main(int argc, char* argv[])
   free(c_2d2);
 
   printf("test 2d3 many vs repeated single: ------------------------------------\n");
-  FFTW_FORGET_WISDOM();
   
   // reuse the strengths c, interpret N as number of targs:
 #pragma omp parallel
@@ -219,7 +214,6 @@ int main(int argc, char* argv[])
   printf("\tone targ: rel err in F[%lld] of trans#%d is %.3g\n",(long long)kt,i,err);
 
 // compare the result with FINUFFT2D3...
-  FFTW_FORGET_WISDOM();
   CPX* f_2d3 = (CPX*)malloc(sizeof(CPX)*N*ntransf);
   timer.restart();
   for (int k=0; k<ntransf; ++k)

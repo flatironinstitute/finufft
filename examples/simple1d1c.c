@@ -13,9 +13,9 @@ int main(int argc, char* argv[])
    with a math test. Double-precision. C99 style. opts is struct not ptr to it.
 
    Compile with:
-   gcc -fopenmp example1d1c.c -I../include ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lfftw3_omp -lm -lstdc++
+   gcc -fopenmp example1d1c.c -I../include ../lib-static/libfinufft.a -o example1d1c -lm -lstdc++
    or if you have built a single-core version:
-   gcc example1d1c.c -I../include ../lib-static/libfinufft.a -o example1d1c -lfftw3 -lm -lstdc++
+   gcc example1d1c.c -I../include ../lib-static/libfinufft.a -o example1d1c -lm -lstdc++
 
    Usage: ./example1d1c
 */

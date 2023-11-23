@@ -15,9 +15,6 @@ int main(int argc, char* argv[])
    Adapted from simple1d1.cpp: C++, STL double complex vectors, with math test.
    Barnett 4/19/21, eg for Goran Zauhar, issue #183. Also see: many1d1.cpp.
 
-   Notes: You may not have libfftw3_omp, so I have switched to
-   libfftw3_threads in this suggested compile command:
-
    g++ -fopenmp threadsafe1d1.cpp -I../include ../lib/libfinufft.so -o threadsafe1d1
 
    Usage: ./threadsafe1d1

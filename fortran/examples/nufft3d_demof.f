@@ -12,7 +12,7 @@ c
 c     Compile with, eg (GCC, multithreaded, static, paste to a single line):
 c
 c     gfortran nufft3d_demof.f ../directft/dirft3df.f -o nufft3d_demof
-c     ../../lib-static/libfinufftf.a -lstdc++ -lfftw3f -lfftw3f_omp -lm -fopenmp
+c     ../../lib-static/libfinufftf.a -lstdc++ -lm -fopenmp
 c
       program nufft3d_demof
       implicit none

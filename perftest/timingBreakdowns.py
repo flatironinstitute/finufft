@@ -123,7 +123,7 @@ for dim in dimensions:
                 totalTimeT3_Old.append(totalOldTime)
 
             #total time speedup
-            totalSpeedup = round(totalOldTime/totalNewTime,5)
+            totalSpeedup = round(totalOldTime/max(1e-19,totalNewTime),5)
 
             if(ftype == 1):
                 totalTimeT1Ratio.append(totalSpeedup)
@@ -201,7 +201,7 @@ for dim in dimensions:
             totalOldfftwPlan = round(totalOldfftwPlan,5)
             
             #These plan ratios include the initial old implementation plan construction!!
-            fftwPlanRatio = round(totalOldfftwPlan/new_fftwPlan,5)
+            fftwPlanRatio = round(totalOldfftwPlan/max(1e-19,new_fftwPlan),5)
             
             if(ftype == 1):
                 fftwPlanT1Ratio.append(fftwPlanRatio)
@@ -228,7 +228,7 @@ for dim in dimensions:
             #collect the fftw_exec timings for each trial of old
             totalOldfft = stm.sumAllTime("(.*fft \(\d+ threads\))(.*)",strOut) 
 
-            fftRatio = round(totalOldfft/new_fft,5)
+            fftRatio = round(totalOldfft/max(1e-19,new_fft),5)
             
             if(ftype == 1):
                 fftT1Ratio.append(fftRatio)
@@ -302,11 +302,11 @@ print("\n")
 ax1 = fig.add_subplot(221,projection='3d')
 
 if(totalTimeT1Ratio):
-    ax1.bar3d(t1x, t1y, zbot, widths, depths, totalTimeT1Ratio, shade=True, color='r', label='type1', alpha='1')
+    ax1.bar3d(t1x, t1y, zbot, widths, depths, totalTimeT1Ratio, shade=True, color='r', label='type1', alpha=1)
 if(totalTimeT2Ratio):
-    ax1.bar3d(t2x, t2y, zbot, widths, depths, totalTimeT2Ratio, shade=True, color='b', label='type2', alpha='1')
+    ax1.bar3d(t2x, t2y, zbot, widths, depths, totalTimeT2Ratio, shade=True, color='b', label='type2', alpha=1)
 if(totalTimeT3Ratio):
-    ax1.bar3d(t3x, t3y, zbot, widths, depths, totalTimeT3Ratio, shade=True, color='g', label='type3', alpha='1')
+    ax1.bar3d(t3x, t3y, zbot, widths, depths, totalTimeT3Ratio, shade=True, color='g', label='type3', alpha=1)
 
 ax1.legend([t1_proxy,t2_proxy,t3_proxy], ['type1','type2','type3'])
 

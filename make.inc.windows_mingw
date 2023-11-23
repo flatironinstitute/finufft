@@ -1,21 +1,8 @@
 MINGW=ON
 # libm not available on Windows? Has to be removed from LIBS to build MATLAB mex file. Does not interfere with library build
 LIBS= 
-# please set these paths
-FFTW_H_DIR=
-FFTW_LIB_DIR=
 # might be needed for MATLAB
 LGOMP_DIR=
-
-# modify FLAGS such that FFTW headers are included
-ifneq ($(FFTW_H_DIR),)
-CFLAGS+=-I$(FFTW_H_DIR)
-CXXFLAGS+=-I$(FFTW_H_DIR)
-endif
-# add FFTW DLL location to LIBS
-ifneq ($(FFTW_LIB_DIR),)
-LIBS+=-L$(FFTW_LIB_DIR)
-endif
 
 # adjust MATLAB flags, add path of lgomp
 ifneq ($(FFTW_H_DIR),)

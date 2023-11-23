@@ -19,7 +19,6 @@ int main(int argc, char* argv[])
   double w, tol = 1e-6;       // default
   double err, errfail = INFINITY, errmax = 0;
   finufft_opts opts; FINUFFT_DEFAULT_OPTS(&opts);
-  //opts.fftw = FFTW_MEASURE;  // change from usual FFTW_ESTIMATE
   //opts.spread_max_sp_size = 3e4; // override test
   //opts.spread_nthr_atomic = 15;  // "
   int isign = +1;             // choose which exponential sign to test

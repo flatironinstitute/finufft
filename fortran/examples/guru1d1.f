@@ -6,7 +6,7 @@ c     Legacy-style: f77, plus dynamic allocation & derived types from f90.
 c     To compile (linux/GCC) from this directory, use eg (paste to one line):
       
 c     gfortran -fopenmp -I../../include -I/usr/include guru1d1.f
-c     ../../lib/libfinufft.so -lfftw3 -lfftw3_omp -lgomp -lstdc++ -o guru1d1
+c     ../../lib/libfinufft.so -lgomp -lstdc++ -o guru1d1
 
 c     Alex Barnett and Libin Lu 5/29/20. ptr fixes 10/6/21
 
@@ -15,8 +15,6 @@ c     Alex Barnett and Libin Lu 5/29/20. ptr fixes 10/6/21
 
 c     our fortran header, always needed
       include 'finufft.fh'
-c     if you want to use FFTW's modes by name...
-      include 'fftw3.f'
 
 c     note some inputs are int (int*4) but others BIGINT (int*8)
       integer ier,iflag
@@ -41,7 +39,7 @@ c     or this is if you want default opts, make a null pointer...
       
 c     how many nonuniform pts
       M = 1000000
-c     how many modes (not too much since FFTW_MEASURE slow later)
+c     how many modes
       N = 100000
 
       allocate(fk(N))
@@ -104,8 +102,6 @@ c     ----------- GURU DEMO WITH NEW OPTIONS, MULTIPLE EXECS ----------
       print *,''
       print *, 'setting new options, rerun guru interface...'
       call finufft_default_opts(opts)
-c     refer to fftw3.f to set various FFTW plan modes...
-      opts%fftw = FFTW_ESTIMATE_PATIENT
       opts%debug = 1
 c     note you need a fresh plan if change opts
       call finufft_makeplan(ttype,dim,n_modes,iflag,ntrans,

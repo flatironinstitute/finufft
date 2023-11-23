@@ -15,9 +15,9 @@ int main(int argc, char* argv[])
    Double-precision version (see simple1d1f for single-precision)
 
    Compile with:
-   g++ -fopenmp simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1 -lfftw3 -lfftw3_omp -lm
+   g++ -fopenmp simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1
    or if you have built a single-core version:
-   g++ simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1 -lfftw3 -lm
+   g++ simple1d1.cpp -I../include ../lib-static/libfinufft.a -o simple1d1
 
    Usage: ./simple1d1
 */

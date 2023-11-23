@@ -18,10 +18,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install fftw
-      run: |
-        yum install -y fftw3-devel
-
     - name: Compile C++ code
       run: |
         make spreadtestall
@@ -36,9 +32,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install omp and fftw
+    - name: Install omp
       run: |
-        brew install libomp fftw
+        brew install libomp
         cp make.inc.macosx_clang make.inc
 
     - name: Compile C++ code
@@ -55,9 +51,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install gcc and fftw
+    - name: Install gcc
       run: |
-        brew install gcc@10 fftw
+        brew install gcc@10
         cp make.inc.macosx_gcc-10 make.inc
 
     - name: Compile C++ code
@@ -86,7 +82,6 @@ jobs:
           diffutils
         pacboy: >-
           toolchain:p
-          fftw:p
     - name: Compile C++ code
       run: |
         cp make.inc.windows_msys make.inc

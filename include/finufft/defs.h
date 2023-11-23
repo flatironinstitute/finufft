@@ -166,10 +166,6 @@
 // --------  FINUFFT's plan object, prec-switching version ------------------
 // NB: now private (the public C++ or C etc user sees an opaque pointer to it)
 
-// FFTW is needed since we include a FFTW plan in the FINUFFT plan...
-#include <finufft/fftw_defs.h>          // (must come after complex.h)
-// (other FFT lib headers eg MKL could be here...)
-
 // group together a bunch of type 3 rescaling/centering/phasing parameters:
 #define TYPE3PARAMS FINUFFTIFY(_type3Params)
 typedef struct {
@@ -186,7 +182,7 @@ typedef struct FINUFFT_PLAN_S {  // the main plan object, fully C++
   BIGINT nj;       // num of NU pts in type 1,2 (for type 3, num input x pts)
   BIGINT nk;       // number of NU freq pts (type 3 only)
   FLT tol;         // relative user tolerance
-  int batchSize;   // # strength vectors to group together for FFTW, etc
+  int batchSize;   // # strength vectors to group together for FFT, etc
   int nbatch;      // how many batches done to cover all ntrans vectors
   
   BIGINT ms;       // number of modes in x (1) dir (historical CMCL name) = N1
@@ -205,8 +201,7 @@ typedef struct FINUFFT_PLAN_S {  // the main plan object, fully C++
   FLT* phiHat2;    // " y-axis.
   FLT* phiHat3;    // " z-axis.
   
-  FFTW_CPX* fwBatch;    // (batches of) fine grid(s) for FFTW to plan
-                        // & act on. Usually the largest working array
+  CPX* fwBatch;    // FIXME: UNUSED, kept for layout compatibility
   
   BIGINT *sortIndices;  // precomputed NU pt permutation, speeds spread/interp
   bool didSort;         // whether binsorting used (false: identity perm used)
@@ -218,13 +213,12 @@ typedef struct FINUFFT_PLAN_S {  // the main plan object, fully C++
   FLT *S, *T, *U;  // pointers to user's target NU pts arrays (no new allocs)
   CPX* prephase;   // pre-phase, for all input NU pts
   CPX* deconv;     // reciprocal of kernel FT, phase, all output NU pts
-  CPX* CpBatch;    // working array of prephased strengths
+  CPX* CpBatch;    // FIXME: UNUSED, kept for layout compatibility
   FLT *Sp, *Tp, *Up;    // internal primed targs (s'_k, etc), allocated
   TYPE3PARAMS t3P; // groups together type 3 shift, scale, phase, parameters
   FINUFFT_PLAN innerT2plan;   // ptr used for type 2 in step 2 of type 3
   
   // other internal structs; each is C-compatible of course
-  FFTW_PLAN fftwPlan;
   finufft_opts opts;    // this and spopts could be made ptrs
   finufft_spread_opts spopts;
   

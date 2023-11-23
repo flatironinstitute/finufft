@@ -1,28 +1,6 @@
-# We currently use manylinux2010 based on CentOS6, which has very old
-# fftw 3.2.1, too old for FINUFFT. We thus here compile FFTW from source (slow).
-#
-# Soon (11/30/2020) we'll want to update to manylinux2014 which has fftw
-# 3.3.3 (still old,
-# but functions with FINUFFT), and switch to: yum install fft3-devel
-# instead of building from source.
-
-
 FROM quay.io/pypa/manylinux2010_x86_64
 LABEL maintainer "Libin Lu"
 
 RUN set -e -x
-RUN cd ~; \
-curl http://www.fftw.org/fftw-3.3.8.tar.gz --output fftw-3.3.8.tar.gz; \
-tar -xvzf fftw-3.3.8.tar.gz; \
-cd fftw-3.3.8; \
-export CFLAGS=-fPIC; \
-./configure --enable-threads --enable-openmp; \
-make; \
-make install; \
-make clean; \
-export CFLAGS=-fPIC; \
-./configure --enable-threads --enable-openmp --enable-float; \
-make; \
-make install;
 
 CMD ["/bin/bash"]
