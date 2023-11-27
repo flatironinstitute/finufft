@@ -5,6 +5,8 @@ V 2.3.0 (expected Dec 2023)
 
 * finally thread-safety for all fftw cases, kill FFTW_PLAN_SAFE (PR 354)
 * python interface fixing edge cases (singleton dims, #395). Awaiting #367
+* fix issue where repeated calls of finufft_makeplan with different numbers of
+  requested threads would always use the first requested number of threads
 
 V 2.2.0 (08/30/23) (untagged; aka 2.2.0.dev0, a name used to bump python pkg)
 
