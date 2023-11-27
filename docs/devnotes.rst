@@ -37,4 +37,40 @@ Developer notes
 
 * The cufinufft Python wheels are generated using Docker based on the manylinux2014 image. For instructions, see ``tools/cufinufft/distribution_helper.sh``. These are binary wheels that are built using CUDA 11 (or optionally CUDA 12, but these are not distributed on PyPI) and bundled with the necessary libraries.
 
+* Testing cufinufft (for FI, mostly)
 
+.. code-block:: sh
+
+    # to grab an interactive GPU shell -- here with 10 cores for building and a v100 for
+    # testing. You could just as easily try this on your workstation
+    srun -p gpu -C v100 -c 10 -n 1 --gpus=1 --pty bash
+    cd path/to/finufft
+
+    # get the local card to this machine's compute capability. If you know it you can obviously type it yourself
+    CUDAARCH=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader|head -n 1| sed 's/\.//')
+
+    # Load modules and build a venv. We typically recommend using venvs that fall back our our
+    # default packages with the python module (--system-site-packages)
+    module -q purge
+    module -q load gcc python cmake fftw cuda
+    python -m venv venv --system-site-packages
+    source venv/bin/activate
+    pip install --upgrade pip
+
+    # building. Feel free to tweak whatever
+    mkdir -p build && cd build
+    cmake -DFINUFFT_BUILD_TESTS=on -DFINUFFT_BUILD_EXAMPLES=on -DFINUFFT_USE_CUDA=on \
+        -DCMAKE_CUDA_ARCHITECTURES=$CUDAARCH -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+    make -j 10
+
+    # for standard tests
+    ctest
+
+    # python install. Needs build from before since installer searches for libcufinufft.so in
+    # LD_LIBRARY_PATH (and default path)
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD pip install -e ../python/cufinufft
+
+    # python tests. we have other GPU framework support, but you need to make sure they're
+    # installed (numba, pycuda, torch, cupy). This LD_LIBRARY_PATH may or may not be necessary,
+    # depending on if an RPATHing issue appears. Fix upstream at time of writing
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD python -m pytest --framework=numba ../python/cufinufft
