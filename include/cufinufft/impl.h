@@ -223,7 +223,7 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         ier = FINUFFT_ERR_CUDA_FAILURE;
         goto finalize;
     }
-    cufftSetStream(d_plan->fftplan, stream);
+    cufftSetStream(fftplan, stream);
 
     d_plan->fftplan = fftplan;
     {
