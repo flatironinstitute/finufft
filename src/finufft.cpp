@@ -645,16 +645,17 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type==1 || type==2) {
-    const int nthr_fft = nthr; // give FFTW all threads (or use o.spread_thread?)
-                               // Note: batchSize not used since might be only 1.
 
-    // Now place FFTW initialization in a lock. Makes FINUFFT
+    int nthr_fft = nthr;    // give FFTW all threads (or use o.spread_thread?)
+                            // Note: batchSize not used since might be only 1.
+    // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
     // thread-safe (can be called inside OMP)
     {
-      static bool did_fftw_init = false;    // the only global state of FINUFFT (this and the lock below)
+      static bool did_fftw_init = false;    // the only global state of FINUFFT
       std::lock_guard<std::mutex> lock(fftw_lock);
       if (!did_fftw_init) {
 	FFTW_INIT();            // setup FFTW global state; should only do once
+	FFTW_PLAN_TH(nthr_fft); // ditto
 	did_fftw_init = true;   // ensure other FINUFFT threads don't clash
       }
     }
@@ -723,14 +724,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
     {
       std::lock_guard<std::mutex> lock(fftw_lock);
-
-      // FFTW_PLAN_TH sets all future fftw plans to use nthr_fft threads. Since this might override what the user wants,
-      // we set it just for our one plan alloc and then revert to the current set value
-      const int nthr_fft_before = FFTW_GET_THR_NUM();
-      FFTW_PLAN_TH(nthr_fft);
       p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch, NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf,
                                        p->fftSign, p->opts.fftw);
-      FFTW_PLAN_TH(nthr_fft_before);
     }
     if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__,p->opts.fftw, nthr_fft, timer.elapsedsec());
     delete []ns;
