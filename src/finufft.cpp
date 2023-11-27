@@ -654,9 +654,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
       static bool did_fftw_init = false;    // the only global state of FINUFFT
       std::lock_guard<std::mutex> lock(fftw_lock);
       if (!did_fftw_init) {
-	FFTW_INIT();            // setup FFTW global state; should only do once
-	FFTW_PLAN_TH(nthr_fft); // ditto
-	did_fftw_init = true;   // ensure other FINUFFT threads don't clash
+        FFTW_INIT();            // setup FFTW global state; should only do once
+        did_fftw_init = true;   // ensure other FINUFFT threads don't clash
       }
     }
 
@@ -724,6 +723,13 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
     {
       std::lock_guard<std::mutex> lock(fftw_lock);
+
+      // FFTW_PLAN_TH sets all future fftw_plan calls to use nthr_fft threads.
+      // FIXME: Since this might override what the user wants for fftw, we'd like to set it
+      // just for our one plan and then revert to the user value. Unfortunately
+      // fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and there isn't a convenient
+      // mechanism to probe the version
+      FFTW_PLAN_TH(nthr_fft);
       p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch, NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf,
                                        p->fftSign, p->opts.fftw);
     }
