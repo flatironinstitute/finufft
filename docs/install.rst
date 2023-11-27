@@ -78,7 +78,7 @@ For example, to configure, build and test the development preset (which builds t
   cmake --build . -j
   ctest
 
-.. note::
+.. warning::
 
   Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isnan`` in our test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag.
 
@@ -142,7 +142,7 @@ Mac OSX for Windows (eg under MSYS or WSL using MinGW compilers).
 For the basic libraries you need
 
 * C++ compiler supporting C++14, such ``g++`` in GCC (version >=5.0), or ``clang`` (version >=3.4)
-* FFTW3 including its development libraries
+* FFTW3 (version at least 3.3.6) including its development libraries
 * GNU ``make`` and other standard unix/POSIX tools such as ``bash``
 
 Optional:
@@ -212,10 +212,6 @@ mostly for small repeated problems to avoid *any* OpenMP overhead, or
 for debugging purposes.
 You *must* do at least ``make objclean`` before changing this threading
 option.
-
-.. note::
-
-   By default, neither the multithreaded or single-threaded library (e.g. made by ``make lib OMP=OFF``) are thread-safe, due to the FFTW3 plan stage. However, keep reading for the compiler option to fix this if you have a recent FFTW3 version.
 
 **Testing**. The initial test is ``test/basicpassfail`` which is the most basic double-precision smoke test,
 producing the exit code 0 if success, nonzero if fail.
