@@ -1,4 +1,4 @@
-int @G_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, finufft_plan* plan, nufft_opts* opts)
+int @G_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, finufft_plan* plan, finufft_opts* opts)
 
   Make a plan to perform one or more general transforms.
 
