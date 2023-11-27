@@ -13,13 +13,12 @@ using namespace std;
 int main(int argc, char* argv[])
 /* Demo single-threaded FINUFFT calls from inside a OMP parallel block.
    Adapted from simple1d1.cpp: C++, STL double complex vectors, with math test.
-   Barnett 4/19/21, eg for Goran Zauhar, issue #183.
+   Barnett 4/19/21, eg for Goran Zauhar, issue #183. Also see: many1d1.cpp.
 
-   Notes: libfinufft *must* have been built with -DFFTW_PLAN_SAFE, which needs
-   FFTW >= 3.3.6. You also may not have libfftw3_omp, so I have switched to
+   Notes: You may not have libfftw3_omp, so I have switched to
    libfftw3_threads in this suggested compile command:
 
-   g++ -fopenmp threadsafe1d1.cpp -I../include ../lib/libfinufft.so -o threadsafe1d1 -lfftw3 -lfftw3_threads -lm
+   g++ -fopenmp threadsafe1d1.cpp -I../include ../lib/libfinufft.so -o threadsafe1d1
 
    Usage: ./threadsafe1d1
 
@@ -34,21 +33,22 @@ int main(int argc, char* argv[])
   finufft_default_opts(opts);
   complex<double> I = complex<double>(0.0,1.0);  // the imaginary unit
   
-  // generate some random nonuniform points (x) and complex strengths (c)...
-  vector<double> x(M);
-  for (int j=0; j<M; ++j)
-    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
-
-  opts->nthreads=1;       // this is *crucial* so that each call single-thread
+  opts->nthreads=1;       // *crucial* so that each call single-thread (otherwise segfaults)
 
   // Now have each thread do independent 1D type 1 on their own data:
 #pragma omp parallel
   {
-  // generate some complex strengths (c)... local to the thread
+  // generate some random nonuniform points (x) and complex strengths (c)...
+  // Note that these are local to the thread (if you have the *same* sets of
+  // NU pts x for each thread, consider instead using one vectorized multithreaded
+  // transform, which would be faster).
+  vector<double> x(M);
   vector<complex<double> > c(M);
-  for (int j=0; j<M; ++j)
+  for (int j=0; j<M; ++j) {
+    x[j] = M_PI*(2*((double)rand()/RAND_MAX)-1);  // uniform random in [-pi,pi)
     c[j] = 2*((double)rand()/RAND_MAX)-1 + I*(2*((double)rand()/RAND_MAX)-1);
-
+  }
+    
   // allocate output array for the Fourier modes... local to the thread
   vector<complex<double> > F(N);
 
@@ -70,5 +70,6 @@ int main(int argc, char* argv[])
   
   printf("[thread %2d] 1D t-1 dbl-prec NUFFT done. ier=%d, rel err in F[%d]: %.3g\n",omp_get_thread_num(),ier,k,err);
   }
+  
   return 0;
 }

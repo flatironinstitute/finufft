@@ -1,0 +1,73 @@
+
+Aiming for v2.2 release late-July 2023.
+(Save cufinufft t3 and FFT-sparsity exploits for v2.3, in Fall '23).
+
+
+TO DO:
+
+* cufinufft_default_opts needs to match finufft - remove dims and type
+Sets defaults: gpu_sort =1, gpu_method=0 (means auto-choose)
+
+gnu_binsize{x,y,z} = 0 amd change later default-setting to
+
+cufinufft_makeplan: don't change user opts struct,
+just change the deep copy sitting in the plan object.
+if gpu_meth = 0, auto-choose it (1,2,4).
+
+Rationalize naming of opts: (enums?)
+
+gpu_meth = 1 is GM    (for type 1 or 2, and best for type 2 only)
+gpu_meth = 2 is SM for spread (best for type-1); gpu_sort then ignored (check?)
+gpu_meth = 4 is block-gather, for spread, only in 3d - experimental
+
+gpu_sort =0 : GM
+gpu_sort =1 : GM-sort    (default)
+
+(Py internal _default_opts needs to be updated to match)
+
+
+* Joakim dtype Py deprecate with attribute error dtype=Float64
+  cufinufft.nufft simple interfaces (only for Py), add to docs, Joakim.
+
+
+* cufinufft tests:
+PR #303, merge.
+Maybe Alex test this.
+
+* gpu error codes merge them into cpu, add GPU ALLOC ERROR.
+Ie add GPU-specific err codes to l.42 include/finufft/defs.h
+Not have cufinufft give ier=1 randomly. Issue #284.
+Test for cuda kernel launch failures? we don't currently. Issue #273.
+
+* bring in as many small PRs as possible and close issues.
+
+
+
+LESS URGENT TO DO:
+
+* alex "answer" discussions.
+* Julia wrapper for gpu code - Ludvig?
+* matlab wrapper to gpu code - gpuArray.
+* py-project.TOML 3.12 obsoleting dist-utils. But can still use setup.py
+  [for 2024]
+* Exploit sparsity of 2d/3d FFT a la Reinecke suggestion, and Robert demo.
+  Esp. important for cuFFT GPU version (upsampfac=2, so nf>=2N in each dim)
+  For CPU code a little tricky to decide ntrans>1, multithreading.
+
+
+
+TO NOT DO:
+
+* PR 306 py expose spread/interp, leave for now
+
+
+DONE:
+
+folder struct reorg
+
+Reinecke perf improvements CPU: binsorting; interp in 2d/3d.
+
+1.3 legacy cuf repo.
+
+docs
+

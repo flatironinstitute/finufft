@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(finufft VERSION 2.1.0 LANGUAGES C CXX)
+project(finufft VERSION 2.2.0 LANGUAGES C CXX)
 
 set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
 if(CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
@@ -11,7 +11,12 @@ endif()
 
 include(CTest)
 
-set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifying target architecture.")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc|ppc64|powerpc|powerpc64" OR (APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc|ppc64"))
+    # PowerPC arch does not have -march flag.
+    set(FINUFFT_ARCH_FLAGS "-mtune=native" CACHE STRING "Compiler flags for specifying target architecture.")
+else()
+    set(FINUFFT_ARCH_FLAGS "-march=native" CACHE STRING "Compiler flags for specifying target architecture.")
+endif()
 set(FINUFFT_FFTW_SUFFIX "OpenMP" CACHE STRING "Suffix for FFTW libraries (e.g. OpenMP, Threads etc.)")
 set(FINUFFT_FFTW_LIBRARIES "DEFAULT" CACHE STRING "Specify a custom FFTW library")
 

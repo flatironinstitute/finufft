@@ -17,8 +17,6 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import imp
 
-import numpy as np
-
 from ctypes import c_double
 from ctypes import c_int
 from ctypes import c_int64
@@ -93,8 +91,8 @@ CufinufftPlanf_p = ctypes.POINTER(CufinufftPlanf)
 NufftOpts_p = ctypes.POINTER(NufftOpts)
 
 _default_opts = lib.cufinufft_default_opts
-_default_opts.argtypes = [c_int, c_int, NufftOpts_p]
-_default_opts.restype = c_int
+_default_opts.argtypes = [NufftOpts_p]
+_default_opts.restype = None
 
 _make_plan = lib.cufinufft_makeplan
 _make_plan.argtypes = [

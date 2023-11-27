@@ -12,6 +12,7 @@
 #include <iostream>
 #include <iomanip>
 #include <math.h>
+#include <mutex>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -92,6 +93,10 @@ Design notes for guru interface implementation:
 namespace finufft {
   namespace common {
 
+  // Technically global state...
+  // Needs to be static to avoid name collision with SINGLE/DOUBLE
+  static std::mutex fftw_lock;
+
   // We macro because it has no FLT args but gets compiled for both prec's...
 #ifdef SINGLE
 #define SET_NF_TYPE12 set_nf_type12f
@@ -110,7 +115,7 @@ int SET_NF_TYPE12(BIGINT ms, finufft_opts opts, finufft_spread_opts spopts, BIGI
     return 0;
   } else {
     fprintf(stderr,"[%s] nf=%.3g exceeds MAX_NF of %.3g, so exit without attempting even a malloc\n",__func__,(double)*nf,(double)MAX_NF);
-    return ERR_MAXNALLOC;
+    return FINUFFT_ERR_MAXNALLOC;
   }
 }
 
@@ -544,7 +549,6 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
   // sphinx tag (don't remove): @defopts_end
 }
 
-
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
                      int ntrans, FLT tol, FINUFFT_PLAN *pp, finufft_opts* opts)
@@ -570,15 +574,15 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   
   if((type!=1)&&(type!=2)&&(type!=3)) {
     fprintf(stderr, "[%s] Invalid type (%d), should be 1, 2 or 3.\n",__func__,type);
-    return ERR_TYPE_NOTVALID;
+    return FINUFFT_ERR_TYPE_NOTVALID;
   }
   if((dim!=1)&&(dim!=2)&&(dim!=3)) {
     fprintf(stderr, "[%s] Invalid dim (%d), should be 1, 2 or 3.\n",__func__,dim);
-    return ERR_DIM_NOTVALID;
+    return FINUFFT_ERR_DIM_NOTVALID;
   }
   if (ntrans<1) {
     fprintf(stderr,"[%s] ntrans (%d) should be at least 1.\n",__func__,ntrans);
-    return ERR_NTRANS_NOTVALID;
+    return FINUFFT_ERR_NTRANS_NOTVALID;
   }
   
   // get stuff from args...
@@ -606,7 +610,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     p->opts.spread_thread=2;                // our auto choice
   if (p->opts.spread_thread!=1 && p->opts.spread_thread!=2) {
     fprintf(stderr,"[%s] illegal opts.spread_thread!\n",__func__);
-    return ERR_SPREAD_THREAD_NOTVALID;
+    return FINUFFT_ERR_SPREAD_THREAD_NOTVALID;
   }
 
   if (type!=3) {    // read in user Fourier mode array sizes...
@@ -645,17 +649,16 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     int nthr_fft = nthr;    // give FFTW all threads (or use o.spread_thread?)
                             // Note: batchSize not used since might be only 1.
     // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
-    // thread-safe (can be called inside OMP) if -DFFTW_PLAN_SAFE used...
-#pragma omp critical
+    // thread-safe (can be called inside OMP)
     {
-      static bool did_fftw_init = 0;    // the only global state of FINUFFT
+      static bool did_fftw_init = false;    // the only global state of FINUFFT
+      std::lock_guard<std::mutex> lock(fftw_lock);
       if (!did_fftw_init) {
 	FFTW_INIT();            // setup FFTW global state; should only do once
 	FFTW_PLAN_TH(nthr_fft); // ditto
-	FFTW_PLAN_SF();         // if -DFFTW_PLAN_SAFE, make FFTW thread-safe
-	did_fftw_init = 1;      // insure other FINUFFT threads don't clash
+	did_fftw_init = true;   // ensure other FINUFFT threads don't clash
       }
-    } 
+    }
 
     p->spopts.spread_direction = type;
 
@@ -705,21 +708,25 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
     if (p->nf * p->batchSize > MAX_NF) {
       fprintf(stderr, "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
-      return ERR_MAXNALLOC;
+      return FINUFFT_ERR_MAXNALLOC;
     }
-    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // the big workspace
+
+    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // the big workspace
     if (p->opts.debug) printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,(double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch) {      // we don't catch all such mallocs, just this big one
       fprintf(stderr, "[%s] FFTW malloc failed for fwBatch (working fine grids)!\n",__func__);
       free(p->phiHat1); free(p->phiHat2); free(p->phiHat3);
-      return ERR_ALLOC;
+      return FINUFFT_ERR_ALLOC;
     }
    
     timer.restart();            // plan the FFTW
     int *ns = GRIDSIZE_FOR_FFTW(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-    p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
-         NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
+    {
+      std::lock_guard<std::mutex> lock(fftw_lock);
+      p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch, NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf,
+                                       p->fftSign, p->opts.fftw);
+    }
     if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__,p->opts.fftw, nthr_fft, timer.elapsedsec());
     delete []ns;
     
@@ -769,7 +776,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*p->nj);
     if (!p->sortIndices) {
       fprintf(stderr,"[%s] failed to allocate sortIndices!\n",__func__);
-      return ERR_SPREAD_ALLOC;
+      return FINUFFT_ERR_SPREAD_ALLOC;
     }
     p->didSort = indexSort(p->sortIndices, p->nf1, p->nf2, p->nf3, p->nj, xj, yj, zj, p->spopts);
     if (p->opts.debug) printf("[%s] sort (didSort=%d):\t\t%.3g s\n", __func__,p->didSort, timer.elapsedsec());
@@ -817,26 +824,36 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->nf = p->nf1*p->nf2*p->nf3;      // fine grid total number of points
     if (p->nf * p->batchSize > MAX_NF) {
       fprintf(stderr, "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
-      return ERR_MAXNALLOC;
+      return FINUFFT_ERR_MAXNALLOC;
     }
-    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // maybe big workspace
+    if (p->fwBatch)
+      FFTW_FR(p->fwBatch);
+    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
+
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
+    if(p->CpBatch) free(p->CpBatch);
     p->CpBatch = (CPX*)malloc(sizeof(CPX) * nj*p->batchSize);  // batch c' work
     if (p->opts.debug) printf("[%s t3] widcen, batch %.2fGB alloc:\t%.3g s\n", __func__, (double)1E-09*sizeof(CPX)*(p->nf+nj)*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch || !p->CpBatch) {
       fprintf(stderr, "[%s t3] malloc fail for fwBatch or CpBatch!\n",__func__);
-      return ERR_ALLOC; 
+      return FINUFFT_ERR_ALLOC; 
     }
     //printf("fwbatch, cpbatch ptrs: %llx %llx\n",p->fwBatch,p->CpBatch);
 
     // alloc rescaled NU src pts x'_j (in X etc), rescaled NU targ pts s'_k ...
+    if(p->X) free(p->X);
+    if(p->Sp) free(p->Sp);
     p->X = (FLT*)malloc(sizeof(FLT)*nj);
     p->Sp = (FLT*)malloc(sizeof(FLT)*nk);
     if (d>1) {
+      if(p->Y) free(p->Y);
+      if(p->Tp) free(p->Tp);
       p->Y = (FLT*)malloc(sizeof(FLT)*nj);
       p->Tp = (FLT*)malloc(sizeof(FLT)*nk);
     }
     if (d>2) {
+      if(p->Z) free(p->Z);
+      if(p->Up) free(p->Up);
       p->Z = (FLT*)malloc(sizeof(FLT)*nj);
       p->Up = (FLT*)malloc(sizeof(FLT)*nk);
     }
@@ -858,6 +875,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
 
     // set up prephase array...
     CPX imasign = (p->fftSign>=0) ? IMA : -IMA;             // +-i
+    if(p->prephase) free(p->prephase);
     p->prephase = (CPX*)malloc(sizeof(CPX)*nj);
     if (p->t3P.D1!=0.0 || p->t3P.D2!=0.0 || p->t3P.D3!=0.0) {
 #pragma omp parallel for num_threads(p->opts.nthreads) schedule(static)
@@ -885,6 +903,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     
     // (old STEP 3a) Compute deconvolution post-factors array (per targ pt)...
     // (exploits that FT separates because kernel is prod of 1D funcs)
+    if(p->deconv) free(p->deconv);
     p->deconv = (CPX*)malloc(sizeof(CPX)*nk);
     FLT *phiHatk1 = (FLT*)malloc(sizeof(FLT)*nk);  // don't confuse w/ p->phiHat
     onedim_nuft_kernel(nk, p->Sp, phiHatk1, p->spopts);         // fill phiHat1
@@ -927,7 +946,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     p->sortIndices = (BIGINT *)malloc(sizeof(BIGINT)*p->nj);
     if (!p->sortIndices) {
       fprintf(stderr,"[%s t3] failed to allocate sortIndices!\n",__func__);
-      return ERR_SPREAD_ALLOC;
+      return FINUFFT_ERR_SPREAD_ALLOC;
     }
     p->didSort = indexSort(p->sortIndices, p->nf1, p->nf2, p->nf3, p->nj, p->X, p->Y, p->Z, p->spopts);
     if (p->opts.debug) printf("[%s t3] sort (didSort=%d):\t\t%.3g s\n",__func__, p->didSort, timer.elapsedsec());
@@ -941,6 +960,7 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
     t2opts.spread_debug = max(0,p->opts.spread_debug-1);
     t2opts.showwarn = 0;                          // so don't see warnings 2x
     // (...could vary other t2opts here?)
+    if(p->innerT2plan) FINUFFT_DESTROY(p->innerT2plan);
     int ier = FINUFFT_MAKEPLAN(2, d, t2nmodes, p->fftSign, p->batchSize, p->tol,
                                &p->innerT2plan, &t2opts);
     if (ier>1) {     // if merely warning, still proceed
@@ -1109,10 +1129,14 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
 {
   if (!p)                // NULL ptr, so not a ptr to a plan, report error
     return 1;
-  FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
+
+  FFTW_FR(p->fwBatch); // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type==1 || p->type==2) {
-    FFTW_DE(p->fftwPlan);
+    {
+      std::lock_guard<std::mutex> lock(fftw_lock);
+      FFTW_DE(p->fftwPlan);
+    }
     free(p->phiHat1);
     free(p->phiHat2);
     free(p->phiHat3);

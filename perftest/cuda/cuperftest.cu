@@ -57,6 +57,7 @@ struct test_options_t {
                 {"N1", required_argument, 0, 0},
                 {"N2", required_argument, 0, 0},
                 {"N3", required_argument, 0, 0},
+                {"M", required_argument, 0, 0},
                 {"tol", required_argument, 0, 0},
                 {"method", required_argument, 0, 0},
                 {"kerevalmethod", required_argument, 0, 0},
@@ -87,7 +88,7 @@ struct test_options_t {
         N[2] = std::stof(get_or(options_map, "N3", "1"));
         M = std::stof(get_or(options_map, "M", "2E6"));
         method = std::stoi(get_or(options_map, "method", "1"));
-        kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "0"));
+        kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
         sort = std::stoi(get_or(options_map, "sort", "1"));
         tol = std::stof(get_or(options_map, "tol", "1E-5"));
     }
@@ -172,7 +173,7 @@ void run_test(test_options_t &test_opts) {
     for (int i = 0; i < 3; ++i)
         dim = test_opts.N[i] > 1 ? i + 1 : dim;
 
-    cufinufft_default_opts(test_opts.type, dim, &opts);
+    cufinufft_default_opts(&opts);
     opts.gpu_method = test_opts.method;
     opts.gpu_sort = test_opts.sort;
     opts.gpu_kerevalmeth = test_opts.kerevalmethod;

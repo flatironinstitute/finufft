@@ -8,6 +8,8 @@
 #include <cufinufft/spreadinterp.h>
 #include <cufinufft/utils.h>
 
+#include <finufft_errors.h>
+
 namespace cufinufft {
 namespace spreadinterp {
 
@@ -22,18 +24,17 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
 {
     if (upsampfac != 2.0) { // nonstandard sigma
         if (kerevalmeth == 1) {
-            fprintf(stderr, "setup_spreader: nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n",
-                    (double)upsampfac);
-            return HORNER_WRONG_BETA;
+            fprintf(stderr, "[%s] nonstandard upsampfac=%.3g cannot be handled by kerevalmeth=1\n", __func__,
+                    upsampfac);
+            return FINUFFT_ERR_HORNER_WRONG_BETA;
         }
         if (upsampfac <= 1.0) {
-            fprintf(stderr, "setup_spreader: error, upsampfac=%.3g is <=1.0\n", (double)upsampfac);
-            return ERR_UPSAMPFAC_TOO_SMALL;
+            fprintf(stderr, "[%s] error: upsampfac=%.3g is <=1.0\n", __func__, upsampfac);
+            return FINUFFT_ERR_UPSAMPFAC_TOO_SMALL;
         }
         // calling routine must abort on above errors, since opts is garbage!
         if (upsampfac > 4.0)
-            fprintf(stderr, "setup_spreader: warning, upsampfac=%.3g is too large to be beneficial!\n",
-                    (double)upsampfac);
+            fprintf(stderr, "[%s] warning: upsampfac=%.3g is too large to be beneficial!\n", __func__, upsampfac);
     }
 
     // defaults... (user can change after this function called)
@@ -49,7 +50,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
         fprintf(stderr, "setup_spreader: warning, increasing tol=%.3g to eps_mach=%.3g.\n", (double)eps,
                 (double)EPSILON);
         eps = EPSILON;
-        ier = WARN_EPS_TOO_SMALL;
+        ier = FINUFFT_WARN_EPS_TOO_SMALL;
     }
 
     // Set kernel width w (aka ns) and ES kernel beta parameter, in opts...
@@ -61,7 +62,7 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
         fprintf(stderr, "%s warning: at upsampfac=%.3g, tol=%.3g would need kernel width ns=%d; clipping to max %d.\n",
                 __func__, upsampfac, (double)eps, ns, MAX_NSPREAD);
         ns = MAX_NSPREAD;
-        ier = WARN_EPS_TOO_SMALL;
+        ier = FINUFFT_WARN_EPS_TOO_SMALL;
     }
     opts.nspread = ns;
     opts.ES_halfwidth = (T)ns / 2; // constants to help ker eval (except Horner)

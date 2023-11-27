@@ -1,6 +1,6 @@
 #include <cmath>
 #include <complex>
-#include <helper_cuda.h>
+#include <cufinufft/contrib/helper_cuda.h>
 #include <iomanip>
 #include <iostream>
 #include <random>
@@ -82,11 +82,8 @@ int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) 
 
     // Here we setup our own opts, for gpu_method.
     cufinufft_opts opts;
-    ier = cufinufft_default_opts(type, dim, &opts);
-    if (ier != 0) {
-        printf("err %d: cufinufft_default_opts\n", ier);
-        return ier;
-    }
+    cufinufft_default_opts(&opts);
+
     opts.gpu_method = method;
     opts.gpu_maxbatchsize = 1;
 

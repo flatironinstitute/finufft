@@ -295,10 +295,8 @@ To create such a structure, use:
 .. code-block:: c
 
     cufinufft_opts opts;
-    ier = cufinufft_default_opts(type, dim, &opts);
+    cufinufft_default_opts(&opts);
 
-where ``type`` and ``dim`` are as above in ``cufinufft_makeplan``.
-As before, the returned value is zero if success, otherwise an error occurred.
 Then you may change fields of ``opts`` by hand, finally pass ``&opts`` in as the last argument to ``cufinufft_makeplan`` or ``cufinufftf_makeplan``.
 The options fields are currently only documented in the ``include/cufinufft_opts.h``.
 

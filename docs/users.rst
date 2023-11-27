@@ -76,7 +76,10 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Chang, P., Pienaar, E., & Gebbie, T. (2020). "Malliavin--Mancino Estimators Implemented with Nonuniform Fast Fourier Transforms." SIAM J. Sci. Comput. 42(6), B1378–B1403. https://doi.org/10.1137/20m1325903 
 
-   
+#. Heisenberg voxelization (HVOX) for inteferometry of spherical sky maps in radio-astronomy, by Kashani, Simeoni, et al. (2023) https://arxiv.org/abs/2306.06007 https://github.com/matthieumeo/hvox
+
+
+
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
@@ -85,9 +88,6 @@ Papers or codes using our new ES window (spreading) function but not the whole F
 
 #. S. Jiang and L. Greengard,
    new multilevel kernel-split faster 3D FMM.
-
-#. Heisenberg voxelization (HVOX) for inteferometry of spherical sky maps in radio-astronomy, by Kashani, Simeoni, et al.  https://arxiv.org/abs/2306.06007
-   https://github.com/matthieumeo/hvox
 
 
 Papers influenced by other aspects of FINUFFT:
@@ -109,4 +109,4 @@ Some citations to FINUFFT that do not appear to be actual users
 
 #. https://arxiv.org/abs/2010.05295
       
-#. now too many to track by hand...
+Now too many to track by hand... see Google Scholar search above.

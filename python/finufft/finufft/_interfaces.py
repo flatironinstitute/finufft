@@ -100,26 +100,41 @@ class Plan:
         _finufft._default_opts(opts)
         setkwopts(opts,**kwargs)
 
+        dtype = np.dtype(dtype)
+
+        if dtype == np.float64:
+            warnings.warn("Real dtypes are currently deprecated and will be "
+                          "removed in version 2.3. Converting to complex128.",
+                          DeprecationWarning)
+            dtype = np.complex128
+
+        if dtype == np.float32:
+            warnings.warn("Real dtypes are currently deprecated and will be "
+                          "removed in version 2.3. Converting to complex64.",
+                          DeprecationWarning)
+            dtype = np.complex64
+
         is_single = is_single_dtype(dtype)
 
         # construct plan based on precision type and eps default value
         plan = c_void_p(None)
 
         # setting n_modes and dim for makeplan
-        n_modes = np.ones([3], dtype=np.int64)
         if nufft_type==3:
             npdim = np.asarray(n_modes_or_dim, dtype=np.int64)
             if npdim.size != 1:
                 raise RuntimeError('FINUFFT type 3 plan n_modes_or_dim must be one number, the dimension')
             dim = int(npdim)
+            n_modes = np.ones([dim], dtype=np.int64)
         else:
             npmodes = np.asarray(n_modes_or_dim, dtype=np.int64)
             if npmodes.size>3 or npmodes.size<1:
                 raise RuntimeError("FINUFFT n_modes dimension must be 1, 2, or 3")
             dim = int(npmodes.size)
+            n_modes = np.ones([dim], dtype=np.int64)
             n_modes[0:dim] = npmodes[::-1]
 
-        n_modes = (c_longlong * 3)(*n_modes)
+        n_modes = (c_longlong * dim)(*n_modes)
 
         if is_single:
             self._makeplan = _finufft._makeplanf
@@ -204,8 +219,6 @@ class Plan:
             ier = self._setpts(self.inner_plan, self.nj, self._yj, self._xj, self._zj, self.nk, self._t, self._s, self._u)
         elif self.dim == 3:
             ier = self._setpts(self.inner_plan, self.nj, self._zj, self._yj, self._xj, self.nk, self._u, self._t, self._s)
-        else:
-            raise RuntimeError("FINUFFT dimension must be 1, 2, or 3")
 
         if ier != 0:
             err_handler(ier)
@@ -242,9 +255,7 @@ class Plan:
         dim = self.dim
 
         if tp==1 or tp==2:
-            ms = self.n_modes[0]
-            mt = self.n_modes[1]
-            mu = self.n_modes[2]
+            ms, mt, mu = [*self.n_modes, *([1]*(3-len(self.n_modes)))]
 
         # input shape and size check
         if tp==2:
@@ -264,11 +275,11 @@ class Plan:
         # allocate out if None
         if out is None:
             if tp==1:
-                _out = np.squeeze(np.zeros([n_trans, mu, mt, ms], dtype=self.dtype, order='C'))
+                _out = np.zeros([*data.shape[:-1], *self.n_modes[::-1]], dtype=self.dtype, order='C')
             if tp==2:
-                _out = np.squeeze(np.zeros([n_trans, nj], dtype=self.dtype, order='C'))
+                _out = np.zeros([*data.shape[:-dim], nj], dtype=self.dtype, order='C')
             if tp==3:
-                _out = np.squeeze(np.zeros([n_trans, nk], dtype=self.dtype, order='C'))
+                _out = np.zeros([*data.shape[:-1], nk], dtype=self.dtype, order='C')
 
         # call execute based on type and precision type
         if tp==1 or tp==3:
@@ -279,19 +290,12 @@ class Plan:
             ier = self._execute(self.inner_plan,
                                 _out.ctypes.data_as(c_void_p),
                                 _data.ctypes.data_as(c_void_p))
-        else:
-            ier = 10
 
         # check error
         if ier != 0:
             err_handler(ier)
 
-        # return out
-        if out is None:
-            return _out
-        else:
-            _copy(_out,out)
-            return out
+        return _out
 
 
     def __del__(self):
@@ -325,15 +329,6 @@ def _ensure_array_type(x, name, dtype, output=False):
                 x = np.array(x, dtype=dtype, order="C")
 
     return x
-
-
-### David Stein's functions for checking input and output variables
-def _copy(_x, x):
-    """
-    Copy _x to x, only if the underlying data of _x differs from that of x
-    """
-    if _x is not x:
-        x[:] = _x
 
 
 ### error handler (keep up to date with FINUFFT/include/defs.h)
@@ -480,9 +475,9 @@ def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
 def is_single_dtype(dtype):
     dtype = np.dtype(dtype)
 
-    if dtype == np.dtype('float64') or dtype == np.dtype('complex128'):
+    if dtype == np.dtype('complex128'):
         return False
-    elif dtype == np.dtype('float32') or dtype == np.dtype('complex64'):
+    elif dtype == np.dtype('complex64'):
         return True
     else:
         raise RuntimeError('FINUFFT dtype(precision type) must be single or double')
@@ -505,22 +500,20 @@ def setkwopts(opt,**kwargs):
 
 ### destroy
 def destroy(plan):
-    if plan is None:
-        return
+    if hasattr(plan, "inner_plan"):
+        ier = plan._destroy(plan.inner_plan)
 
-    ier = plan._destroy(plan.inner_plan)
-
-    if ier != 0:
-        err_handler(ier)
+        if ier != 0:
+            err_handler(ier)
 
 
 ### invoke guru interface, this function is used for simple interfaces
 def invoke_guru(dim,tp,x,y,z,c,s,t,u,f,isign,eps,n_modes,**kwargs):
     # infer dtype from x
     if x.dtype is np.dtype('float64'):
-        pdtype = 'double'
+        pdtype = 'complex128'
     elif x.dtype is np.dtype('float32'):
-        pdtype = 'single'
+        pdtype = 'complex64'
     else:
         raise RuntimeError('FINUFFT x dtype should be float64 for double precision or float32 for single precision')
     # check n_modes type, n_modes must be a tuple or an integer
