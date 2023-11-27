@@ -270,7 +270,7 @@ more examples see ``examples/guru1d1*.c*``
 
 Using the guru interface to perform a vectorized transform (multiple 1D type 1
 transforms each with the same nonuniform points) is demonstrated in
-``examples.gurumany1d1.cpp``. This is similar to the single-command vectorized
+``examples/gurumany1d1.cpp``. This is similar to the single-command vectorized
 interface, but allowing more control (changing the nonuniform points without
 re-planning the FFT, etc).
 
