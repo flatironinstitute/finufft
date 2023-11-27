@@ -1,3 +1,8 @@
+Meeting notes are now at:
+https://docs.google.com/document/d/1KpRGZHCWSMdo6lb6zXnGyK5A-evSoqapwm_ZE-ACK9Y/edit
+Ask Alex to edit doc if you are not already on that list.
+
+
 Goals: make release with some ok and stable stuff in it
 
 
@@ -14,7 +19,7 @@ Release (name = v2.3 or v2.2.1?)  ------------------------------------------
 
 CI ...........
 
-CI/jenkins/ branch -> failing suddenly 11/22 - why?
+[CI/jenkins/ branch -> failing suddenly 11/22 - why? Robert fixed]
 
 CI status runs only CPU tests:
     spreadtestall.sh  (has no math checking, a small perf test)
@@ -96,6 +101,7 @@ Notes for team......
  https://github.com/flatironinstitute/finufft/pull/330
  * GPU interfaces to py
  * matlab par-toolbox gpuarray interfaces
+ * Chaithya wants GPU cuda_array_interface for "scaling" ? PR 308
 
 * explicit 1D slices for fftw, cuts 2d and 3d fft cost down (Reinecke idea).
   - #304 has Robert's start in 2D. Also Reinecke has in #287.
