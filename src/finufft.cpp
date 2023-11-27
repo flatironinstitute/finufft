@@ -645,17 +645,17 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   
   //  ------------------------ types 1,2: planning needed ---------------------
   if (type==1 || type==2) {
-    const int nthr_fft = nthr; // give FFTW all threads (or use o.spread_thread?)
-                               // Note: batchSize not used since might be only 1.
 
-    // Now place FFTW initialization in a lock. Makes FINUFFT
+    int nthr_fft = nthr;    // give FFTW all threads (or use o.spread_thread?)
+                            // Note: batchSize not used since might be only 1.
+    // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
     // thread-safe (can be called inside OMP)
     {
-      static bool did_fftw_init = false;    // the only global state of FINUFFT (this and the lock below)
+      static bool did_fftw_init = false;    // the only global state of FINUFFT
       std::lock_guard<std::mutex> lock(fftw_lock);
       if (!did_fftw_init) {
-	FFTW_INIT();            // setup FFTW global state; should only do once
-	did_fftw_init = true;   // ensure other FINUFFT threads don't clash
+        FFTW_INIT();            // setup FFTW global state; should only do once
+        did_fftw_init = true;   // ensure other FINUFFT threads don't clash
       }
     }
 
