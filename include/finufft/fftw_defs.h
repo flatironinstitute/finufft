@@ -37,13 +37,11 @@
 #ifdef _OPENMP
   #define FFTW_INIT FFTWIFY(init_threads)
   #define FFTW_PLAN_TH FFTWIFY(plan_with_nthreads)
-  #define FFTW_GET_THR_NUM FFTWIFY(planner_nthreads)
   #define FFTW_CLEANUP_THREADS FFTWIFY(cleanup_threads)
 #else
   // no OMP (no fftw{f}_threads or _omp), need dummy fftw threads calls...
   #define FFTW_INIT()
   #define FFTW_PLAN_TH(x)
-  #define FFTW_GET_THR_NUM(x) 1
   #define FFTW_CLEANUP_THREADS()
 #endif
 
