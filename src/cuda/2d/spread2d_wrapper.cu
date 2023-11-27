@@ -62,7 +62,7 @@ int cufinufft_spread2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, 
 
     ier = cuspread2d<T>(d_plan, 1);
 
-    freegpumemory2d<T>(d_plan);
+    freegpumemory<T>(d_plan);
 
     return ier;
 }
@@ -331,8 +331,7 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int
 
     return 0;
 }
-<<<<<<< HEAD
-=======
+
 
 template int cuspread2d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuspread2d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
@@ -340,12 +339,10 @@ template int cuspread2d_subprob_prop<float>(int nf1, int nf2, int M, cufinufft_p
 template int cuspread2d_subprob_prop<double>(int nf1, int nf2, int M, cufinufft_plan_t<double> *d_plan);
 template int cuspread2d_nuptsdriven_prop<float>(int nf1, int nf2, int M, cufinufft_plan_t<float> *d_plan);
 template int cuspread2d_nuptsdriven_prop<double>(int nf1, int nf2, int M, cufinufft_plan_t<double> *d_plan);
->>>>>>> master
-
 template int cufinufft_spread2d<float>(int nf1, int nf2, cuda_complex<float> *d_fw, int M, float *d_kx, float *d_ky, 
                                         cuda_complex<float> *d_c, cufinufft_plan_t<float> *d_plan);
 template int cufinufft_spread2d<double>(int nf1, int nf2, cuda_complex<double> *d_fw, int M, double *d_kx, double *d_ky,
                                         cuda_complex<double> *d_c, cufinufft_plan_t<double> *d_plan);
-                                        
+
 } // namespace spreadinterp
 } // namespace cufinufft

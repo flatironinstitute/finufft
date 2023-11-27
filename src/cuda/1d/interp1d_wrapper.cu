@@ -15,6 +15,52 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
+inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
+                              cufinufft_plan_t<T> *d_plan)
+/*
+    This c function is written for only doing 1D interpolation. See
+    test/interp1d_test.cu for usage.
+
+    note: not allocate,transfer and free memories on gpu.
+    Melody Shih 11/21/21
+*/
+{
+    d_plan->nf1 = nf1;
+    d_plan->M = M;
+    d_plan->maxbatchsize = 1;
+
+    d_plan->kx = d_kx;
+    d_plan->c = d_c;
+    d_plan->fw = d_fw;
+
+    int ier;
+
+    ier = allocgpumem1d_plan<T>(d_plan);
+    ier = allocgpumem1d_nupts<T>(d_plan);
+
+    if (d_plan->opts.gpu_method == 1) {
+        ier = cuspread1d_nuptsdriven_prop<T>(nf1, M, d_plan);
+        if (ier != 0) {
+            printf("error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
+            return ier;
+        }
+    }
+    if (d_plan->opts.gpu_method == 2) {
+        ier = cuspread1d_subprob_prop<T>(nf1, M, d_plan);
+        if (ier != 0) {
+            printf("error: cuspread1d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
+            return ier;
+        }
+    }
+
+    ier = cuinterp1d<T>(d_plan, 1);
+    freegpumemory<T>(d_plan);
+
+    return ier;
+}
+
+
+template <typename T>
 int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     A wrapper for different interpolation methods.
@@ -80,6 +126,10 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
     return 0;
 }
 
+template int cufinufft_interp1d(int nf1, cuda_complex<float> *d_fw, int M, float *d_kx, cuda_complex<float> *d_c,
+                                cufinufft_plan_t<float> *d_plan);
+template int cufinufft_interp1d(int nf1, cuda_complex<double> *d_fw, int M, double *d_kx, cuda_complex<double> *d_c,
+                                cufinufft_plan_t<double> *d_plan);
 template int cuinterp1d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuinterp1d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
 
