@@ -15,7 +15,7 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
-inline int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
+int cufinufft_interp1d(int nf1, cuda_complex<T> *d_fw, int M, T *d_kx, cuda_complex<T> *d_c,
                               cufinufft_plan_t<T> *d_plan)
 /*
     This c function is written for only doing 1D interpolation. See

@@ -4,7 +4,6 @@
 #include <iostream>
 #include <thrust/device_ptr.h>    
 
-
 #include <cufinufft/contrib/helper_cuda.h>
 #include <cufinufft/common.h>
 #include <cufinufft/cudeconvolve.h>
@@ -460,6 +459,7 @@ int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, i
     }
     thrust::transform(dev_ptr, dev_ptr + 2 * size, dev_ptr, // 2 times to handle complex
                     thrust::placeholders::_1 * static_cast<T>(scaling));
+
     return ier;
 }
 

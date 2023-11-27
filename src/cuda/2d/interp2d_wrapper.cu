@@ -192,6 +192,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int
     return 0;
 }
 
+
 template int cufinufft_interp2d(int nf1, int nf2, cuda_complex<float> *d_fw, int M, float *d_kx, float *d_ky,
     cuda_complex<float> *d_c, cufinufft_plan_t<float> *d_plan);
 template int cufinufft_interp2d(int nf1, int nf2, cuda_complex<double> *d_fw, int M, double *d_kx, double *d_ky,

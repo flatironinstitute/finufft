@@ -332,7 +332,6 @@ int cuspread2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int
     return 0;
 }
 
-
 template int cuspread2d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuspread2d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
 template int cuspread2d_subprob_prop<float>(int nf1, int nf2, int M, cufinufft_plan_t<float> *d_plan);
