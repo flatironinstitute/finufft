@@ -16,7 +16,7 @@ This is a lightweight CPU library to compute the three standard types of nonunif
 Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html) which can also be downloaded as a [PDF manual](https://finufft.readthedocs.io/_/downloads/en/latest/pdf/).
 You will also want to see CPU example codes in the directories `examples`, `test`, `fortran`, `matlab/test`, `matlab/examples`, `python/finufft/test`, etc, and GPU examples in `examples/cuda`, `test/cuda`, etc
 
-If you cannot build via cMake, try the old makefile. Python users try `pip install finufft`. See the docs for details. See our GitHub Issues for tips.
+If you cannot build via cMake, try the makefile. Python users try `pip install finufft`. See the docs for details. See our GitHub Issues for tips.
 
 If you prefer to read text files, the source to generate the above documentation is in human-readable (mostly .rst) files as follows:
 

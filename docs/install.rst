@@ -3,9 +3,15 @@
 Installation
 ============
 
-.. note::
-
-   We are transitioning to a modern CMake build system, for easier compilation on a variety of platforms. We will in the coming months stop supporting the GNU ``makefile`` route, although it is still explained in detail below, after the following CMake instructions. If neither of those work for you, try the (old and even less supported) relevant `precompiled linux, OSX, and Windows binary <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_, place it (or them) in your linking path, and try ``make test``.
+There are two main ways to compile this library from source:
+via CMake (the recommended modern way, being more platform-independent),
+or via a GNU ``makefile`` (which has various settings for linux, OSX, Windows).
+We currently support both, and detail them in that order in the text below.
+If you cannot get FINUFFT to compile, as a last resort you might find
+a precompiled binary for your platform under Assets for various
+`releases <https://github.com/flatironinstitute/finufft/releases>`_.
+Please post an `Issue <https://github.com/flatironinstitute/finufft/issues>`_
+to document your installation problem.
 
 .. note::
 
@@ -90,8 +96,8 @@ From other CMake projects, to use ``finufft`` as a library, simply add this repo
    CMake compiling on linux at Flatiron Institute (Rusty cluster). We have had a report that if you want to use LLVM, you need to ``module load llvm/16.0.3`` otherwise the default ``llvm/14.0.6`` does not find ``OpenMP_CXX``.
 
 
-Old GNU make based route
-------------------------
+Classic GNU make based route
+----------------------------
    
 Below we deal with the three standard OSes in order: 1) **linux**, 2) **Mac OSX**, 3) **Windows**.
 We have some users contributing settings for other OSes, for instance
