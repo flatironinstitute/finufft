@@ -78,6 +78,10 @@ For example, to configure, build and test the development preset (which builds t
   cmake --build . -j
   ctest
 
+.. note::
+
+  Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isnan`` in our test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag.
+
 From other CMake projects, to use ``finufft`` as a library, simply add this repository as a subdirectory using
 ``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
 
