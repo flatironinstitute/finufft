@@ -978,7 +978,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX* cj, CPX* fk){
         ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
       else if (p->dim==2)  // 2D: do partial FFTs
         {
-        if (p->ms==0)  // something is weird, do standard FFT
+        if (p->ms<2)  // something is weird, do standard FFT
           ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
         else
           {
@@ -1006,7 +1006,7 @@ int FINUFFT_EXECUTE(FINUFFT_PLAN p, CPX* cj, CPX* fk){
         }
       else // 3D
         {
-        if ((p->ms==0) || (p->mt==0))  // something is weird, do standard FFT
+        if ((p->ms<2) || (p->mt<2))  // something is weird, do standard FFT
           ducc0::c2c(data, data, axes, p->fftSign<0, FLT(1), p->opts.nthreads);
         else
           {
