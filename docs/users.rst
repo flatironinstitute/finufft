@@ -79,7 +79,7 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Heisenberg voxelization (HVOX) for inteferometry of spherical sky maps in radio-astronomy, by Kashani, Simeoni, et al. (2023) https://arxiv.org/abs/2306.06007 https://github.com/matthieumeo/hvox
 
-#. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A-100 GPUs, for a particle-in-Fourier method for plasma simulations. https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154
+#. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NSERC-9 supercomputer), for a particle-in-Fourier method for plasma simulations. https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154
 
 
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
