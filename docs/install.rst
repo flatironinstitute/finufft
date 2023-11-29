@@ -3,9 +3,15 @@
 Installation
 ============
 
-.. note::
-
-   We are transitioning to a modern CMake build system, for easier compilation on a variety of platforms. We will in the coming months stop supporting the GNU ``makefile`` route, although it is still explained in detail below, after the following CMake instructions. If neither of those work for you, try the (old and even less supported) relevant `precompiled linux, OSX, and Windows binary <http://users.flatironinstitute.org/~ahb/codes/finufft-binaries>`_, place it (or them) in your linking path, and try ``make test``.
+There are two main ways to compile this library from source:
+via CMake (the recommended modern way, being more platform-independent),
+or via a GNU ``makefile`` (which has various settings for linux, OSX, Windows).
+We currently support both, and detail them in that order in the text below.
+If you cannot get FINUFFT to compile, as a last resort you might find
+a precompiled binary for your platform under Assets for various
+`releases <https://github.com/flatironinstitute/finufft/releases>`_.
+Please post an `Issue <https://github.com/flatironinstitute/finufft/issues>`_
+to document your installation problem.
 
 .. note::
 
@@ -78,6 +84,10 @@ For example, to configure, build and test the development preset (which builds t
   cmake --build . -j
   ctest
 
+.. warning::
+
+  Intel compilers (unlike GPU compilers) currently engage ``fastmath`` behavior with ``-O2`` or ``-O3``. This may interfere with our use of ``std::isnan`` in our test codes. For this reason in the Intel presets ``icx`` and ``icc`` have set ``-fp-model=strict``. You may get more speed if you remove this flag.
+
 From other CMake projects, to use ``finufft`` as a library, simply add this repository as a subdirectory using
 ``add_subdirectory``, and use ``target_link_library(your_executable finufft)``.
 
@@ -86,8 +96,8 @@ From other CMake projects, to use ``finufft`` as a library, simply add this repo
    CMake compiling on linux at Flatiron Institute (Rusty cluster). We have had a report that if you want to use LLVM, you need to ``module load llvm/16.0.3`` otherwise the default ``llvm/14.0.6`` does not find ``OpenMP_CXX``.
 
 
-Old GNU make based route
-------------------------
+Classic GNU make based route
+----------------------------
    
 Below we deal with the three standard OSes in order: 1) **linux**, 2) **Mac OSX**, 3) **Windows**.
 We have some users contributing settings for other OSes, for instance
@@ -138,7 +148,7 @@ Mac OSX for Windows (eg under MSYS or WSL using MinGW compilers).
 For the basic libraries you need
 
 * C++ compiler supporting C++14, such ``g++`` in GCC (version >=5.0), or ``clang`` (version >=3.4)
-* FFTW3 including its development libraries
+* FFTW3 (version at least 3.3.6) including its development libraries
 * GNU ``make`` and other standard unix/POSIX tools such as ``bash``
 
 Optional:
@@ -209,10 +219,6 @@ for debugging purposes.
 You *must* do at least ``make objclean`` before changing this threading
 option.
 
-.. note::
-
-   By default, neither the multithreaded or single-threaded library (e.g. made by ``make lib OMP=OFF``) are thread-safe, due to the FFTW3 plan stage. However, keep reading for the compiler option to fix this if you have a recent FFTW3 version.
-
 **Testing**. The initial test is ``test/basicpassfail`` which is the most basic double-precision smoke test,
 producing the exit code 0 if success, nonzero if fail.
 You can check the exit code thus::
@@ -263,8 +269,6 @@ Compilation flags and make.inc settings
 This is for experts.
 Here are all the flags that the FINUFFT source responds to.
 Activate them by adding a line of the form ``CXXFLAGS+=-DMYFLAG`` in your ``make.inc``:
-
-* ``-DFFTW_PLAN_SAFE``: This makes FINUFFT call ``fftw_make_planner_thread_safe()`` as part of its FFTW3 planner stage; see http://www.fftw.org/fftw3_doc/Thread-safety.html. This makes FINUFFT thread-safe. See ``examples/threadsafe1d1.cpp`` and ``examples/threadsafe2d2f.cpp``. This is only available in FFTW version >=3.3.6; for this reason it is not yet the default. If you get segfault on these examples, try ``FFTWOMPSUFFIX = threads`` as explained below.
 
 * ``-DSINGLE``: This is internally used by our build process to switch
   (via preprocessor macros) the source from double to single precision.
@@ -360,14 +364,20 @@ The GCC route
 ~~~~~~~~~~~~~~
 
 This is less recommended, unless you need to link from ``gfortran``, when it
-appears to be essential. We have tested on Movaje::
+appears to be essential. The basic idea is::
 
-  cp make.inc.macosx_gcc-8 make.inc
+  cp make.inc.macosx_gcc-12 make.inc
   make test -j
   make fortran
 
 which also compiles and tests the fortran interfaces.
-In Catalina you'll probably need to edit to ``g++-10`` in your ``make.inc``.
+You may need to edit to ``g++-11``, or whatever your GCC version is,
+in your ``make.inc``.
+
+.. note::
+
+   A problem between GCC and the new XCode 15 requires a workaround to add ``LDFLAGS+=-ld64`` to force the old linker to be used. See the above file ``make.inc.macosx_gcc-12``.
+
 We find python may be built as :ref:`below<install-python>`.
 We found that octave interfaces do not work with GCC; please help.
 For MATLAB, the MEX settings may need to be

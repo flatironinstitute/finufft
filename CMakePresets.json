@@ -79,7 +79,8 @@
                 "CMAKE_C_COMPILER": "icc",
                 "CMAKE_CXX_COMPILER": "icpc",
                 "CMAKE_Fortran_COMPILER": "ifort",
-                "FINUFFT_ARCH_FLAGS": "-xHost"
+                "FINUFFT_ARCH_FLAGS": "-xHost",
+                "CMAKE_CXX_FLAGS": "-fp-model=strict"
             }
         },
         {

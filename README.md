@@ -16,7 +16,7 @@ This is a lightweight CPU library to compute the three standard types of nonunif
 Please see the [online documentation](http://finufft.readthedocs.io/en/latest/index.html) which can also be downloaded as a [PDF manual](https://finufft.readthedocs.io/_/downloads/en/latest/pdf/).
 You will also want to see CPU example codes in the directories `examples`, `test`, `fortran`, `matlab/test`, `matlab/examples`, `python/finufft/test`, etc, and GPU examples in `examples/cuda`, `test/cuda`, etc
 
-If you cannot build via cMake, try the old makefile. Python users try `pip install finufft`. See the docs for details. See our GitHub Issues for tips.
+If you cannot build via cMake, try the makefile. Python users try `pip install finufft`. See the docs for details. See our GitHub Issues for tips.
 
 If you prefer to read text files, the source to generate the above documentation is in human-readable (mostly .rst) files as follows:
 
@@ -43,8 +43,8 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/refs.rst`    : journal article references (both ours and others)
 
 
-If you find (cu)FINUFFT useful in your work, please cite this repository and
-the following. For FINUFFT (CPU library):
+If you find (cu)FINUFFT useful in your work, please star this repository and
+cite it and the following. For FINUFFT (CPU library):
 
 A parallel non-uniform fast Fourier transform library based on an ``exponential of semicircle'' kernel.
 A. H. Barnett, J. F. Magland, and L. af Klinteberg.

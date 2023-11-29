@@ -70,7 +70,7 @@ Crash (segfault) issues and advice
 
 - Maybe you have switched off nonuniform point bounds checking (``opts.chkbnds=0``) for a little extra speed? Try switching it on again to catch illegal coordinates.
 
-- Thread-safety: are you calling FINUFFT from inside a multithreaded block of code, without compiling with ``-DFFTW_PLAN_SAFE`` or setting ``opts.nthreads=1``? If ``gdb`` indicates crashes during FFTW calls, this is another sign.
+- Thread-safety: are you calling FINUFFT from inside a multithreaded block of code without setting ``opts.nthreads=1``? If ``gdb`` indicates crashes during FFTW calls, this is another sign.
   
 - To isolate where a crash is occurring, set ``opts.debug`` to 1 or 2, and check the text output of the various stages. With a debug setting of 2 or above, when ``ntrans>1`` a large amount of text can be generated.
     
