@@ -71,6 +71,8 @@ setup(
         Extension(name='cufinufftc',
                   sources=[],
                   libraries=['cufinufft'],
-                  library_dirs=[library_dir])
+                  library_dirs=[library_dir],
+                  runtime_library_dirs=[library_dir],
+                  )
         ]
 )
