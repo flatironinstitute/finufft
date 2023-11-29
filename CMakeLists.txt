@@ -152,6 +152,11 @@ if(FINUFFT_USE_CPU)
         target_link_libraries(finufft_static PUBLIC m)
     endif()
     target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+    file(GLOB FINUFFT_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/finufft*.h")
+    set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
+
+    list(APPEND INSTALL_TARGETS finufft finufft_static)
 endif()
 
 if(FINUFFT_USE_CUDA)
@@ -166,6 +171,8 @@ if(FINUFFT_USE_CUDA)
   if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
     add_subdirectory(perftest/cuda)
   endif ()
+
+  list(APPEND INSTALL_TARGETS cufinufft cufinufft_static)
 endif()
 
 # Add tests defined in their own directory
@@ -190,3 +197,8 @@ endif ()
 if (FINUFFT_BUILD_MATLAB)
     add_subdirectory(matlab)
 endif ()
+
+include(GNUInstallDirs)
+install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
+install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/licenses/finufft)

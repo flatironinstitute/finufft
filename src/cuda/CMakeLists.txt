@@ -50,6 +50,5 @@ set_target_properties(
   ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
-# if(FINUFFT_BUILD_TESTS)
-# add_subdirectory(test)
-# endif()
+file(GLOB CUFINUFFT_PUBLIC_HEADERS "${CMAKE_SOURCE_DIR}/include/cufinufft*.h")
+set_target_properties(cufinufft PROPERTIES PUBLIC_HEADER "${CUFINUFFT_PUBLIC_HEADERS}")
