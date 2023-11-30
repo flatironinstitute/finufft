@@ -61,7 +61,7 @@ try:
         #    which rpaths the libraries we care about.
         lib = ctypes.cdll.LoadLibrary(full_lib_path)
 except Exception:
-    raise RuntimeError('Failed to find a suitable finufft library')
+    raise ImportError('Failed to find a suitable finufft library')
 
 
 class FinufftOpts(ctypes.Structure):

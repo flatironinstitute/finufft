@@ -52,7 +52,7 @@ try:
         lib = ctypes.cdll.LoadLibrary(full_lib_path)
 
 except Exception:
-    raise RuntimeError('Failed to find a suitable cufinufft library')
+    raise ImportError('Failed to find a suitable cufinufft library')
 
 
 def _get_NufftOpts():
