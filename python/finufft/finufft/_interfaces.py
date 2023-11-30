@@ -404,7 +404,7 @@ def valid_ntr_tp12(dim,shape,n_transin,n_modesin):
         n_trans = 1
         n_modes = shape
     else:
-        raise RuntimeError('FINUFFT type 1 output dimension or type 2 input dimension must be either dim(n_trans==1) or dim+1(n_trans>=1)')
+        raise RuntimeError('FINUFFT type 1 output dimension or type 2 input dimension must be either dim (n_trans==1) or dim+1 (n_trans>=1)')
 
     if n_transin is not None and n_trans != n_transin:
         raise RuntimeError('FINUFFT input n_trans and output n_trans do not match')
