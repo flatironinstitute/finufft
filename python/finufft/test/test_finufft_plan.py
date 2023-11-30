@@ -167,10 +167,10 @@ def test_finufft_plan_errors():
     with pytest.raises(RuntimeError, match="u must have same length as s"):
         Plan(3, 3, dtype="complex64").setpts(vec, vec, vec, vec, vec, long_vec)
 
-    with pytest.raises(RuntimeError, match="c.ndim must be 1 if n_trans = 1"):
+    with pytest.raises(RuntimeError, match="c.ndim must be 1 or 2 if n_trans == 1"):
         plan = Plan(1, (8,), dtype="complex64")
         plan.setpts(np.ones(3, dtype="float32"))
-        plan.execute(np.ones((2, 1), dtype="complex64"))
+        plan.execute(np.ones((2, 1, 1), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match="c.size must be same as x.size"):
         plan = Plan(1, (8,), dtype="complex64")
@@ -187,10 +187,10 @@ def test_finufft_plan_errors():
         plan.setpts(np.ones(3, dtype="float32"))
         plan.execute(np.ones((2, 4), dtype="complex64"))
 
-    with pytest.raises(RuntimeError, match="same as the problem dimension for"):
+    with pytest.raises(RuntimeError, match="same as the problem dimension"):
         plan = Plan(2, (8,), dtype="complex64")
         plan.setpts(np.ones(3, dtype="float32"))
-        plan.execute(np.ones((2, 8), dtype="complex64"))
+        plan.execute(np.ones((1, 2, 8), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"same as the problem dimension \+ 1 for"):
         plan = Plan(2, (8,), n_trans=2, dtype="complex64")
@@ -217,10 +217,10 @@ def test_finufft_plan_errors():
         plan.setpts(*np.ones((3, 3), dtype="float32"))
         plan.execute(np.ones((2, 9, 10), dtype="complex64"))
 
-    with pytest.raises(RuntimeError, match=r"f\.ndim must be 1"):
+    with pytest.raises(RuntimeError, match=r"f\.ndim must be 1 or 2"):
         plan = Plan(3, 1, dtype="complex64")
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
-        plan.execute(np.ones(3, dtype="complex64"), out=np.ones((2, 3), dtype="complex64"))
+        plan.execute(np.ones(3, dtype="complex64"), out=np.ones((1, 2, 3), dtype="complex64"))
 
     with pytest.raises(RuntimeError, match=r"f\.size of must be nk"):
         plan = Plan(3, 1, dtype="complex64")
