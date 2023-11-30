@@ -12,6 +12,7 @@
 #include <iostream>
 #include <iomanip>
 #include <math.h>
+#include <mutex>
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
@@ -91,6 +92,10 @@ Design notes for guru interface implementation:
 
 namespace finufft {
   namespace common {
+
+  // Technically global state...
+  // Needs to be static to avoid name collision with SINGLE/DOUBLE
+  static std::mutex fftw_lock;
 
   // We macro because it has no FLT args but gets compiled for both prec's...
 #ifdef SINGLE
@@ -544,7 +549,6 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
   // sphinx tag (don't remove): @defopts_end
 }
 
-
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
                      int ntrans, FLT tol, FINUFFT_PLAN *pp, finufft_opts* opts)
@@ -645,17 +649,15 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     int nthr_fft = nthr;    // give FFTW all threads (or use o.spread_thread?)
                             // Note: batchSize not used since might be only 1.
     // Now place FFTW initialization in a lock, courtesy of OMP. Makes FINUFFT
-    // thread-safe (can be called inside OMP) if -DFFTW_PLAN_SAFE used...
-#pragma omp critical
+    // thread-safe (can be called inside OMP)
     {
-      static bool did_fftw_init = 0;    // the only global state of FINUFFT
+      static bool did_fftw_init = false;    // the only global state of FINUFFT
+      std::lock_guard<std::mutex> lock(fftw_lock);
       if (!did_fftw_init) {
-	FFTW_INIT();            // setup FFTW global state; should only do once
-	FFTW_PLAN_TH(nthr_fft); // ditto
-	FFTW_PLAN_SF();         // if -DFFTW_PLAN_SAFE, make FFTW thread-safe
-	did_fftw_init = 1;      // insure other FINUFFT threads don't clash
+        FFTW_INIT();            // setup FFTW global state; should only do once
+        did_fftw_init = true;   // ensure other FINUFFT threads don't clash
       }
-    } 
+    }
 
     p->spopts.spread_direction = type;
 
@@ -707,8 +709,8 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
       fprintf(stderr, "[%s] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-#pragma omp critical
-    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize);    // the big workspace
+
+    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // the big workspace
     if (p->opts.debug) printf("[%s] fwBatch %.2fGB alloc:   \t%.3g s\n", __func__,(double)1E-09*sizeof(CPX)*p->nf*p->batchSize, timer.elapsedsec());
     if(!p->fwBatch) {      // we don't catch all such mallocs, just this big one
       fprintf(stderr, "[%s] FFTW malloc failed for fwBatch (working fine grids)!\n",__func__);
@@ -719,9 +721,18 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     timer.restart();            // plan the FFTW
     int *ns = GRIDSIZE_FOR_FFTW(p);
     // fftw_plan_many_dft args: rank, gridsize/dim, howmany, in, inembed, istride, idist, ot, onembed, ostride, odist, sign, flags 
-#pragma omp critical
-    p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch,
-         NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf, p->fftSign, p->opts.fftw);
+    {
+      std::lock_guard<std::mutex> lock(fftw_lock);
+
+      // FFTW_PLAN_TH sets all future fftw_plan calls to use nthr_fft threads.
+      // FIXME: Since this might override what the user wants for fftw, we'd like to set it
+      // just for our one plan and then revert to the user value. Unfortunately
+      // fftw_planner_nthreads wasn't introduced until fftw 3.3.9, and there isn't a convenient
+      // mechanism to probe the version
+      FFTW_PLAN_TH(nthr_fft);
+      p->fftwPlan = FFTW_PLAN_MANY_DFT(dim, ns, p->batchSize, p->fwBatch, NULL, 1, p->nf, p->fwBatch, NULL, 1, p->nf,
+                                       p->fftSign, p->opts.fftw);
+    }
     if (p->opts.debug) printf("[%s] FFTW plan (mode %d, nthr=%d):\t%.3g s\n", __func__,p->opts.fftw, nthr_fft, timer.elapsedsec());
     delete []ns;
     
@@ -821,12 +832,10 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
       fprintf(stderr, "[%s t3] fwBatch would be bigger than MAX_NF, not attempting malloc!\n",__func__);
       return FINUFFT_ERR_MAXNALLOC;
     }
-#pragma omp critical
-    {
-      if (p->fwBatch)
-        FFTW_FR(p->fwBatch);
-      p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
-    }
+    if (p->fwBatch)
+      FFTW_FR(p->fwBatch);
+    p->fwBatch = FFTW_ALLOC_CPX(p->nf * p->batchSize); // maybe big workspace
+
     // (note FFTW_ALLOC is not needed over malloc, but matches its type)
     if(p->CpBatch) free(p->CpBatch);
     p->CpBatch = (CPX*)malloc(sizeof(CPX) * nj*p->batchSize);  // batch c' work
@@ -1126,12 +1135,14 @@ int FINUFFT_DESTROY(FINUFFT_PLAN p)
 {
   if (!p)                // NULL ptr, so not a ptr to a plan, report error
     return 1;
-#pragma omp critical
-  FFTW_FR(p->fwBatch);   // free the big FFTW (or t3 spread) working array
+
+  FFTW_FR(p->fwBatch); // free the big FFTW (or t3 spread) working array
   free(p->sortIndices);
   if (p->type==1 || p->type==2) {
-#pragma omp critical
-    FFTW_DE(p->fftwPlan);
+    {
+      std::lock_guard<std::mutex> lock(fftw_lock);
+      FFTW_DE(p->fftwPlan);
+    }
     free(p->phiHat1);
     free(p->phiHat2);
     free(p->phiHat3);

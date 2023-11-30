@@ -1,9 +1,9 @@
 ::
  
  int finufft_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, double eps, 
- finufft_plan* plan, nufft_opts* opts)
+ finufft_plan* plan, finufft_opts* opts)
  int finufftf_makeplan(int type, int dim, int64_t* nmodes, int iflag, int ntr, float eps, 
- finufftf_plan* plan, nufft_opts* opts)
+ finufftf_plan* plan, finufftf_opts* opts)
  
    Make a plan to perform one or more general transforms.
  

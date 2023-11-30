@@ -37,8 +37,9 @@ Other wrappers to (cu)FINUFFT
 
 #. `TensorFlow NUFFT <https://github.com/mrphys/tensorflow-nufft>`_: a wrapper to the differentiable machine learning Python tool TensorFlow, for the CPU (via FINUFFT) and GPU (via cuFINUFFT). By Javier Montalt Tordera (UCL).
 
-#. `JAX bindings to FINUFFT <https://github.com/dfm/jax-finufft>`_: a wrapper to the differentiable machine learning Python tool JAX. Directly exposes the FINUFFT library to JAX's XLA backend, as well as implementing differentiation rules for the transforms. By Dan Foreman-Mackey (CCA).
+#. `JAX bindings to (cu)FINUFFT <https://github.com/dfm/jax-finufft>`_: a wrapper to the differentiable machine learning Python tool JAX. Directly exposes the FINUFFT library to JAX's XLA backend, as well as implementing differentiation rules for the transforms. By Dan Foreman-Mackey (CCA).
    
+#. `PyTorch wrapper to (cu)FINUFFT <https://flatironinstitute.github.io/pytorch-finufft>`_:  a wrapper to the differentiable machine learning Python tool PyTorch. By Michael Eickenberg and Brian Ward (CCM).
    
 
 Research output using (cu)FINUFFT
@@ -65,7 +66,7 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
    Inverse Problems 36 (2), 024001 (2020).
    https://arxiv.org/abs/1905.12317
 
-#. Aleks Donev's group at NYU; ongoing.
+#. The late Aleks Donev's group at NYU (Ondrej Maxian, et al) uses FINUFFT in Stokes viscous hydrodynamics solvers.
 
 #. Efficient wide-field radio interferometry response. P. Arras, M. Reinecke, R. Westermann, T.A. Ensslin, Astron. Astrophys. (2020).   https://doi.org/10.1051/0004-6361/202039723
 
@@ -78,6 +79,7 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Heisenberg voxelization (HVOX) for inteferometry of spherical sky maps in radio-astronomy, by Kashani, Simeoni, et al. (2023) https://arxiv.org/abs/2306.06007 https://github.com/matthieumeo/hvox
 
+#. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NSERC-9 supercomputer), for a particle-in-Fourier method for plasma simulations. https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154
 
 
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
@@ -86,13 +88,11 @@ Papers or codes using our new ES window (spreading) function but not the whole F
 
 #. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
 
-#. S. Jiang and L. Greengard,
-   new multilevel kernel-split faster 3D FMM.
 
 
 Papers influenced by other aspects of FINUFFT:
 
-1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our type 1 and 2 performance by a factor of 1-2 in some cases.
+1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our type 1 and 2 performance by a factor of 1-2 in some cases. Code is dimension-independent but very abstract (two levels of meta-programming, I believe).
 
    
    
@@ -109,4 +109,4 @@ Some citations to FINUFFT that do not appear to be actual users
 
 #. https://arxiv.org/abs/2010.05295
       
-Now too many to track by hand... see Google Scholar search above.
+Now too many to track by hand... please see Google Scholar search linked above.
