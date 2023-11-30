@@ -25,7 +25,7 @@ jobs:
 
       - name: Install clang-omp and fftw
         run: |
-          brew install llvm fftw
+          brew install --overwrite llvm fftw
           ln -s /usr/local/opt/llvm/bin/clang /usr/local/bin/clang-omp
           ln -s /usr/local/opt/llvm/bin/clang++ /usr/local/bin/clang-omp++
 
