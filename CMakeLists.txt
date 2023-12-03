@@ -38,6 +38,10 @@ if(FINUFFT_USE_CPU)
 
     set(FFTW_VERSION 3.3.10)
     include(cmake/setupFFTW.cmake)
+
+    # Custom SCTL interface definition
+    add_library(SCTL INTERFACE)
+    target_include_directories(SCTL INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/SCTL/include)
 endif()
 
 if (FINUFFT_BUILD_MATLAB)
@@ -83,6 +87,7 @@ function(enable_asan target)
         target_link_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address>)
     endif ()
 endfunction()
+
 
 # Utility function to set finufft compilation options.
 function(set_finufft_options target)
@@ -135,7 +140,9 @@ if(FINUFFT_USE_CPU)
     set_finufft_options(finufft_f64)
     target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 
-    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp
+      src/kernels/onedim_nuft_type3/onedim_nuft.cpp src/kernels/dispatch.cpp
+      src/kernels/spread/spread_kernel.cpp src/kernels/spread/spread_kernel_scalar.cpp)
     set_finufft_options(finufft)
     target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it
@@ -152,6 +159,42 @@ if(FINUFFT_USE_CPU)
         target_link_libraries(finufft_static PUBLIC m)
     endif()
     target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+    # Install google test
+    FetchContent_Declare(
+      googletest
+      URL https://github.com/google/googletest/archive/6b74da4757a549563d7c37c8fae3e704662a043b.zip
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+
+    # Install google benchmark from git
+    set(BENCHMARK_ENABLE_TESTING OFF)
+    set(BENCHMARK_ENABLE_INSTALL OFF)
+    FetchContent_Declare(
+      googlebenchmark
+      URL https://github.com/google/benchmark/archive/v1.6.0.zip
+    )
+    FetchContent_MakeAvailable(googlebenchmark)
+
+    # Finufft kernels
+    # Utility function to define a new set of objects for the given kernels
+    # These need to be compiled with architecture flags which vary across the different libraries,
+    # hence the need to define separate object libraries for each of them.
+    function(add_finufft_kernel target)
+      cmake_parse_arguments(PARSE_ARGV 1 FINUFFT_KERNEL "" "" "SOURCES;FLAGS")
+
+      add_library(${target} OBJECT ${FINUFFT_KERNEL_SOURCES})
+      set_finufft_options(${target})
+      target_link_libraries(${target} PRIVATE SCTL)
+      target_compile_options(${target} PRIVATE ${FINUFFT_KERNEL_FLAGS})
+      target_link_libraries(finufft PUBLIC ${target})
+      enable_asan(${target})
+    endfunction()
+
+    add_finufft_kernel(finufft_sse4 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_sse4.cpp FLAGS -msse4.1)
+    add_finufft_kernel(finufft_avx2 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_avx2.cpp src/kernels/spread/spread_kernel_avx2.cpp FLAGS -mavx2 -mfma)
+    add_finufft_kernel(finufft_avx512 SOURCES src/kernels/onedim_nuft_type3/onedim_nuft_avx512.cpp src/kernels/spread/spread_kernel_avx512.cpp  FLAGS -mavx512f -mavx512vl -mavx512dq)
 endif()
 
 if(FINUFFT_USE_CUDA)
@@ -170,8 +213,44 @@ endif()
 
 # Add tests defined in their own directory
 if (BUILD_TESTING AND FINUFFT_BUILD_TESTS AND FINUFFT_USE_CPU)
+    function(set_optimization_flags target)
+      target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-O3 -funroll-loops -march=native>)
+      if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        # cx-limited-range only works with GCC
+        target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-fcx-limited-range>)
+      endif()
+    endfunction()
+
+    function (set_gbench_benchmark target)
+      target_link_libraries(${target} PRIVATE finufft random123 benchmark::benchmark_main)
+      set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
+      set_optimization_flags(${target})
+      enable_asan(${target})
+    endfunction()
+
+    # Custom random123 interface definition
+    add_library(random123 INTERFACE)
+    target_include_directories(random123 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/third_party/random123/include)
+
     add_subdirectory(test)
     add_subdirectory(perftest)
+
+    # Spreader perf benchmark
+    add_executable(bench_spread perftest/benchmark_spread.cpp)
+    set_gbench_benchmark(bench_spread)
+
+    # One-dim type-1 perf benchmark
+    add_executable(bench_1d_type1 perftest/benchmark_1d_type1.cpp)
+    set_gbench_benchmark(bench_1d_type1)
+
+    # One-dim type-3 perf benchmark
+    add_executable(bench_1d_type3 perftest/benchmark_1d_type3.cpp)
+    set_gbench_benchmark(bench_1d_type3)
+
+    # One-dim spreader perf benchmark
+    add_executable(bench_1d_spread perftest/benchmark_1d_spread.cpp)
+    set_gbench_benchmark(bench_1d_spread)
+    target_compile_options(bench_1d_spread PRIVATE -mavx2 -mfma -mavx512f -mavx512vl -mavx512dq)
 endif ()
 
 if (BUILD_TESTING AND FINUFFT_BUILD_TESTS AND FINUFFT_USE_CUDA)
