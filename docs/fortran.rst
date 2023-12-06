@@ -58,16 +58,19 @@ For a minimally complete test code demonstrating the above see
    the ``(k1,k2)`` frequency coefficient from transform number ``t`` is
    to be found at ``fk(k1+N1/2+1 + (k2+N2/2)*N1 + t*N1*N2)``.
 
-To compile (eg using GCC/linux) and link such a program against the FINUFFT
-dynamic (``.so``) library (which links all dependent libraries)::
+From the ``fortran/examples/`` directory, to
+compile (eg using GCC/linux) and link such a program against the FINUFFT
+static library, one must list dependent libraries by hand::
 
-  gfortran -I $(FINUFFT)/include simple1d1.f -o simple1d1 -L$(FINUFFT)/lib -lfinufft
-
-where ``$(FINUFFT)`` indicates the top-level FINUFFT directory.
-Or, using the static library, one must list dependent libraries::
-
-  gfortran -I $(FINUFFT)/include simple1d1.f -o simple1d1 $(FINUFFT)/lib-static/libfinufft.a -lfftw3 -lfftw3_omp -lgomp -lstdc++
+  gfortran -I../../include simple1d1.f -o simple1d1 ../../lib-static/libfinufft.a -lfftw3 -lfftw3_omp -lgomp -lstdc++
   
+Then to execute run ``./simple1d1``. Alternatively, a smaller executable results by
+linking against the dynamic (``.so``) library (which links all dependent libraries)::
+
+  gfortran -I../../include simple1d1.f -o simple1d1 -L../../lib -Wl,-rpath=$FINUFFT/lib -lfinufft
+
+where ``$FINUFFT`` must be replaced by (or be an environment variable set to) the absolute install path for this repository.
+Note the use of ``rpath`` to make an executable that may be run from, or moved to, any directory.
 Alternatively you may want to compile with ``g++`` and use ``-lgfortran`` at the end of the compile statement instead of ``-lstdc++``.
 In Mac OSX, replace ``fftw3_omp`` by ``fftw3_threads``, and if you use
 clang, ``-lgomp`` by ``-lomp``. See ``makefile`` and ``make.inc.*``.

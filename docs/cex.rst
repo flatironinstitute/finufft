@@ -81,18 +81,19 @@ make your changes, then pass the pointer to FINUFFT:
 See ``examples/simple1d1.cpp`` for a simple full working demo of the above, including a test of the math. If you instead use single-precision arrays,
 replace the tag ``finufft`` by ``finufftf`` in each command; see ``examples/simple1d1f.cpp``.
 
-Then to compile on a linux/GCC system, linking to the double-precision static library, use eg::
+From the ``examples/`` directory, to compile on a linux/GCC system, linking to the static library, use eg::
 
-  g++ simple1d1.cpp -o simple1d1 -I$FINUFFT/include $FINUFFT/lib-static/libfinufft.a -fopenmp -lfftw3_omp -lfftw3 -lm
+  g++ simple1d1.cpp -o simple1d1 -I../include ../lib-static/libfinufft.a -lfftw3_omp -lfftw3
 
-where ``$FINUFFT`` denotes the absolute path of your FINUFFT installation.
-Better is instead link to the dynamic shared (``.so``) library, via eg::
+Executing ``./simple1d1`` should now work. Better is instead to link to the dynamic shared (``.so``) library, via eg::
 
-  g++ simple1d1.cpp -o simple1d1 -I$FINUFFT/include -L$FINUFFT/lib -lfinufft -lm
+  g++ simple1d1.cpp -o simple1d1 -I../include -Wl,-rpath,$FINUFFT/lib/ -lfinufft
   
+where ``$FINUFFT`` must be replaced by (or be an environment variable set to) the absolute install path for this repository.
+Notice how ``rpath`` was used to make an executable that may be called from, or moved to, anywhere.
 The ``examples`` and ``test`` directories are good places to see further
 usage examples. The documentation for all 18 simple interfaces,
-and the more flexible guru interface, follows below.
+and the more flexible guru interface, is further down this page.
 
 Quick-start example in C
 --------------------------
