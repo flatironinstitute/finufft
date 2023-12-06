@@ -209,6 +209,14 @@ if (FINUFFT_USE_CPU)
     PATTERN "README" EXCLUDE
     PATTERN "examples/cuda" EXCLUDE
   )
+  if (FINUFFT_BUILD_FORTRAN)
+    install(DIRECTORY ${PROJECT_SOURCE_DIR}/fortran/examples
+      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/fortran
+    )
+    install(FILES ${PROJECT_SOURCE_DIR}/include/finufft.fh
+      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+  endif()
 endif ()
 if (FINUFFT_USE_CUDA)
   install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
