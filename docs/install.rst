@@ -63,9 +63,19 @@ The basic quick download, building, and test is then:
   cmake --build . -j
   ctest
   cmake --install .
-  
-In ``build``, this creates ``libfinufft_static.a`` and ``libfinufft.so``, and runs a test that should take a few seconds and report ``100% tests passed, 0 tests failed out of 17``.
-To use the library, link against either the static or dynamic library in ``build`` or your installed version (i.e. ``/path/to/install/lib64/libfinufft.so`` or ``/path/to/install/lib/libfinufft.so``). If you install anywhere other than standard system wide locations (``/usr/local``), building/linking requires you specify the location of the library. If you link the shared library, you should also tell your compiled binary to store the location of that library in its ``RPATH``. Let's say you installed with the prefix ``$HOME/local``, your system prefers the ``lib64`` library directory, and you're still in the build directory. Then...
+
+
+Note: if you don't supply --install-prefix, it will default to ``/usr/local`` on most systems. If you don't
+have root access, you must supply a prefix you can write to such as ``$HOME/local``. Now...
+
+In ``build``, this creates ``libfinufft_static.a`` and ``libfinufft.so``, and runs a test that should take a
+few seconds and report ``100% tests passed, 0 tests failed out of 17``.  To use the library, link against
+either the static or dynamic library in ``build`` or your installed version
+(i.e. ``/path/to/install/lib64/libfinufft.so`` or ``/path/to/install/lib/libfinufft.so``). If you install
+anywhere other than standard system wide locations (``/usr/local``), building/linking requires you specify the
+location of the library. If you link the shared library, you should also tell your compiled binary to store
+the location of that library in its ``RPATH``. Let's say you installed with the prefix ``$HOME/local``, your
+system prefers the ``lib64`` library directory, and you're still in the build directory. Then...
 
 .. code-block:: bash
 
