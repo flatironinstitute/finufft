@@ -462,7 +462,7 @@ or via::
   cp -f libfinufft.so ../lib/
   cd ..
   
-Next make sure you have the required python packages::
+Notice the placement of the shared library in `lib/`. Next make sure you have the required python packages::
 
   pip3 install numpy
 
