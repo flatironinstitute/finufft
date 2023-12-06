@@ -4,11 +4,24 @@ Python interface
 Quick-start examples
 --------------------
 
-The easiest way to install is to run ``pip install finufft``, which downloads and installs the latest precompiled binaries from PyPI.
-Please note that the ``finufftpy`` package is obsolete.
+The easiest way to install is to run::
+
+  pip install finufft
+
+which downloads and installs the latest precompiled binaries from PyPI.
+If you have ``pytest`` installed, you can test it with::
+
+  pytest python/finufft/test
+  
+or, without having ``pytest`` you can run the older-style eyeball check::
+
+  python3 python/finufft/test/run_accuracy_tests.py
+
+which should report errors around ``1e-6`` and throughputs around 1-10 million points/sec.
+(Please note that the ``finufftpy`` package is obsolete.)
 If you would like to compile from source, see :ref:`the Python installation instructions <install-python>`.
 
-To calculate a 1D type 1 transform, from nonuniform to uniform points, we import ``finufft``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:
+Once installed, to calculate a 1D type 1 transform from nonuniform to uniform points, we import ``finufft``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:
 
 .. code-block:: python
 

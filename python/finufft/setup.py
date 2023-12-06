@@ -24,6 +24,7 @@ if finufft_dir == None or finufft_dir == '':
 # Set include and library paths relative to FINUFFT root directory.
 inc_dir = os.path.join(finufft_dir, 'include')
 lib_dir = os.path.join(finufft_dir, 'lib')
+lib_dir_cmake = os.path.join(finufft_dir, 'build')   # lib may be only here
 
 # Read in long description from README.md.
 with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f:
@@ -39,6 +40,9 @@ if platform.system() == 'Windows':
     finufft_dlib = 'finufft'
 else:
     finufft_dlib = os.path.join(lib_dir, 'finufft')
+# AHB: problem is now we can't search for the lib in build/ and lib/ which
+# is needed since we don't know if CMake or makefile was used to make the .so
+# See: https://setuptools.pypa.io/en/latest/userguide/ext_modules.html
 
 # For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
 # that calls one of the functions in the FINUFFT dynamic library. The reason
@@ -91,8 +95,8 @@ setup(
         Extension(name='finufft.finufftc',
                   sources=[source_filename],
                   include_dirs=[inc_dir, '/usr/local/include'],
-                  library_dirs=[lib_dir, '/usr/local/lib'],
-                  libraries=[finufft_dlib])
+                  library_dirs=[lib_dir, lib_dir_cmake, '/usr/local/lib'],
+                  libraries=[finufft_dlib])    # really shouldn't be a path; see above
         ]
 )
 
