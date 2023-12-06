@@ -201,4 +201,19 @@ endif ()
 include(GNUInstallDirs)
 install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
 install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/share/licenses/finufft)
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
+if (FINUFFT_USE_CPU)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft
+    PATTERN "CMakeLists.txt" EXCLUDE
+    PATTERN "README" EXCLUDE
+    PATTERN "examples/cuda" EXCLUDE
+  )
+endif ()
+if (FINUFFT_USE_CUDA)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/examples
+    PATTERN "README" EXCLUDE
+    PATTERN "CMakeLists.txt" EXCLUDE
+  )
+endif()
