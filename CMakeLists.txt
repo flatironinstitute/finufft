@@ -190,6 +190,11 @@ if(FINUFFT_USE_CPU)
         target_link_libraries(finufft_static PUBLIC m)
     endif()
     target_include_directories(finufft_static PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+    file(GLOB FINUFFT_PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/finufft*.h")
+    set_target_properties(finufft PROPERTIES PUBLIC_HEADER "${FINUFFT_PUBLIC_HEADERS}")
+
+    list(APPEND INSTALL_TARGETS finufft finufft_static)
 endif()
 
 if(FINUFFT_USE_CUDA)
@@ -204,6 +209,8 @@ if(FINUFFT_USE_CUDA)
   if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
     add_subdirectory(perftest/cuda)
   endif ()
+
+  list(APPEND INSTALL_TARGETS cufinufft cufinufft_static)
 endif()
 
 # Add tests defined in their own directory
@@ -228,3 +235,31 @@ endif ()
 if (FINUFFT_BUILD_MATLAB)
     add_subdirectory(matlab)
 endif ()
+
+include(GNUInstallDirs)
+install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
+install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
+  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
+if (FINUFFT_USE_CPU)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft
+    PATTERN "CMakeLists.txt" EXCLUDE
+    PATTERN "README" EXCLUDE
+    PATTERN "examples/cuda" EXCLUDE
+  )
+  if (FINUFFT_BUILD_FORTRAN)
+    install(DIRECTORY ${PROJECT_SOURCE_DIR}/fortran/examples
+      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/fortran
+    )
+    install(FILES ${PROJECT_SOURCE_DIR}/include/finufft.fh
+      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+  endif()
+endif ()
+if (FINUFFT_USE_CUDA)
+  install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/examples
+    PATTERN "README" EXCLUDE
+    PATTERN "CMakeLists.txt" EXCLUDE
+  )
+endif()

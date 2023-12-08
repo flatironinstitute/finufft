@@ -404,7 +404,7 @@ def valid_ntr_tp12(dim,shape,n_transin,n_modesin):
         n_trans = 1
         n_modes = shape
     else:
-        raise RuntimeError('FINUFFT type 1 output dimension or type 2 input dimension must be either dim or dim+1(n_trans>1)')
+        raise RuntimeError('FINUFFT type 1 output dimension or type 2 input dimension must be either dim (n_trans==1) or dim+1 (n_trans>=1)')
 
     if n_transin is not None and n_trans != n_transin:
         raise RuntimeError('FINUFFT input n_trans and output n_trans do not match')
@@ -428,10 +428,10 @@ def valid_ntr(x,c):
 ### valid shape of c
 def valid_cshape(cshape,xsize,n_trans):
     if n_trans == 1:
-        if len(cshape) != 1:
-            raise RuntimeError('FINUFFT c.ndim must be 1 if n_trans = 1')
-        if cshape[0] != xsize:
-            raise RuntimeError('FINUFFT c.size must be same as x.size if n_trans = 1')
+        if len(cshape) != 1 and len(cshape) != 2:
+            raise RuntimeError('FINUFFT c.ndim must be 1 or 2 if n_trans == 1')
+        if cshape[-1] != xsize or np.prod(cshape) != xsize:
+            raise RuntimeError('FINUFFT c.size must be same as x.size if n_trans == 1')
     if n_trans > 1:
         if len(cshape) != 2:
             raise RuntimeError('FINUFFT c.ndim must be 2 if n_trans > 1')
@@ -443,10 +443,10 @@ def valid_cshape(cshape,xsize,n_trans):
 def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
     if tp == 3:
         if n_trans == 1:
-            if len(fshape) != 1:
-                raise RuntimeError('FINUFFT f.ndim must be 1 for type 3 if n_trans = 1')
-            if fshape[0] != nk:
-                raise RuntimeError('FINUFFT f.size of must be nk if n_trans = 1')
+            if len(fshape) != 1 and len(fshape) != 2:
+                raise RuntimeError('FINUFFT f.ndim must be 1 or 2 for type 3 if n_trans == 1')
+            if fshape[-1] != nk or np.prod(fshape) != nk:
+                raise RuntimeError('FINUFFT f.size of must be nk if n_trans == 1')
         if n_trans > 1:
             if len(fshape) != 2:
                 raise RuntimeError('FINUFFT f.ndim must be 2 for type 3 if n_trans > 1')
@@ -454,8 +454,10 @@ def valid_fshape(fshape,n_trans,dim,ms,mt,mu,nk,tp):
                 raise RuntimeError('FINUFFT f.shape must be (n_trans, nk) if n_trans > 1')
     else:
         if n_trans == 1:
-            if len(fshape) != dim:
-                raise RuntimeError('FINUFFT f.ndim must be same as the problem dimension for type 1 or 2 if n_trans = 1')
+            if len(fshape) != dim and len(fshape) != dim+1:
+                raise RuntimeError('FINUFFT f.ndim must be same as the problem dimension or the problem dimension + 1 for type 1 or 2 if n_trans == 1')
+            if len(fshape) == dim+1 and fshape[0] != n_trans:
+                raise RuntimeError('FINUFFT f.shape[0] must be 1 for type 1 or 2 if n_trans == 1 and len(f.shape) == dim+1')
         if n_trans > 1:
             if len(fshape) != dim+1:
                 raise RuntimeError('FINUFFT f.ndim must be same as the problem dimension + 1 for type 1 or 2 if n_trans > 1')

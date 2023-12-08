@@ -16,6 +16,7 @@ in MATLAB (they should work on versions at least back to R2017a).
    tutorial/contft
    tutorial/peripois2d
    tutorial/grf
+   tutorial/inv1d2
 
 For further applications, see :ref:`references <refs>`, and:
 
