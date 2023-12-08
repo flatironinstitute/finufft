@@ -1,5 +1,9 @@
 # Flatiron Institute Nonuniform Fast Fourier Transform library: FINUFFT
+
 [![Actions status](https://github.com/flatironinstitute/finufft/workflows/C++%20Build/badge.svg)](https://github.com/flatironinstitute/finufft/actions)
+![GitHub all releases](https://img.shields.io/github/downloads/flatironinstitute/finufft/total)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/finufft)
+![Read the Docs](https://img.shields.io/readthedocs/finufft)
 
 Principal author **Alex H. Barnett**,
 main co-developers Jeremy F. Magland,
