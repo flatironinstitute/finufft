@@ -30,19 +30,7 @@ lib_dir_cmake = os.path.join(finufft_dir, 'build')   # lib may be only here
 with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f:
         long_description = f.read()
 
-# We specifically link to the dynamic library here through its absolute path
-# (that is not through -lfinufft) to ensure that the absolute path of the
-# library is encoded in the DT_NEEDED tag. This way, we won't need to have
-# libfinufft.so in the LD_LIBRARY_PATH at runtime. The risk with this is that
-# if the libfinufft.so is deleted or moved, the Python module will break
-# unless LD_LIBRARY_PATH is updated.
-if platform.system() == 'Windows':
-    finufft_dlib = 'finufft'
-else:
-    finufft_dlib = os.path.join(lib_dir, 'finufft')
-# AHB: problem is now we can't search for the lib in build/ and lib/ which
-# is needed since we don't know if CMake or makefile was used to make the .so
-# See: https://setuptools.pypa.io/en/latest/userguide/ext_modules.html
+finufft_dlib = 'finufft'
 
 # For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
 # that calls one of the functions in the FINUFFT dynamic library. The reason
@@ -96,7 +84,8 @@ setup(
                   sources=[source_filename],
                   include_dirs=[inc_dir, '/usr/local/include'],
                   library_dirs=[lib_dir, lib_dir_cmake, '/usr/local/lib'],
-                  libraries=[finufft_dlib])    # really shouldn't be a path; see above
+                  libraries=[finufft_dlib],
+                  runtime_library_dirs=[lib_dir, lib_dir_cmake])
         ]
 )
 
