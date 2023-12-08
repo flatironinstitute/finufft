@@ -32,6 +32,13 @@ with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f
 
 finufft_dlib = 'finufft'
 
+# Windows does not have the concept of rpath and as a result, MSVC crashes if
+# supplied with one.
+if platform.system() != "Windows":
+    runtime_library_dirs = [lib_dir, lib_dir_cmake]
+else:
+    runtime_library_dirs = []
+
 # For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
 # that calls one of the functions in the FINUFFT dynamic library. The reason
 # is that these platforms override the default --no-as-needed flag for ld,
@@ -85,7 +92,7 @@ setup(
                   include_dirs=[inc_dir, '/usr/local/include'],
                   library_dirs=[lib_dir, lib_dir_cmake, '/usr/local/lib'],
                   libraries=[finufft_dlib],
-                  runtime_library_dirs=[lib_dir, lib_dir_cmake])
+                  runtime_library_dirs=runtime_library_dirs)
         ]
 )
 
