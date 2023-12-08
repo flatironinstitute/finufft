@@ -35,7 +35,7 @@ jobs:
           build-dir: ${{ runner.workspace }}/build
           cc: ${{ matrix.config.cc }}
           cxx: ${{ matrix.config.cxx }}
-          configure-options: -G Ninja -DFINUFFT_BUILD_TESTS=ON
+          configure-options: -G Ninja -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=OFF
           build-type: Release
           run-test: true
           ctest-options: --test-dir test  --output-on-failure 
