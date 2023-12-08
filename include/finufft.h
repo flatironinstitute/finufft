@@ -42,10 +42,10 @@
 
 // this macro name has to be safe since exposed to user
 #define FINUFFT_SINGLE
-#include <finufft/finufft_eitherprec.h>
+#include <finufft_eitherprec.h>
 #undef FINUFFT_SINGLE
 // do it again for double-prec...
-#include <finufft/finufft_eitherprec.h>
+#include <finufft_eitherprec.h>
 
 // clean up any purely local defs that are not in finufft_eitherprec.h...
 #undef FINUFFT_BIGINT
