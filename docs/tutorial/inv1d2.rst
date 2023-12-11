@@ -1,6 +1,6 @@
 .. _inv1d2:
 
-Fitting a Fourier series to scattered samples: inverse 1D type 2 NUFFT 
+Inverse 1D type 2 NUFFT: fitting a Fourier series to scattered samples
 ======================================================================
 
 This tutorial demonstrates inversion of the NUFFT using an iterative
@@ -29,7 +29,7 @@ test problem of size 600000 by 300000 (way too large to solve directly):
   M = 2*N;                             % overdetermined by a factor 2
   x = 2*pi*rand(M,1);                  % scattered points on the periodic domain
   ftrue = randn(N,1) + 1i*randn(N,1);  % choose known Fourier coeffs at k inds
-  ftrue = ftrue/sqrt(N);               % make signal f(x) variance=1 (Re or Im)
+  ftrue = ftrue/sqrt(N);               % make signal f(x) variance=1, Re or Im part
   y = finufft1d2(x,+1,1e-12,ftrue);    % eval noiseless data at high accuracy
 
 
@@ -66,7 +66,7 @@ We first evaluate the normal equations right-hand side via
 We compare two ways to multiply $A^* A$ to a vector (perform the "matvec")
 in the iterative solver.
 
-I) Matvec via a sequential pair of NUFFTs.
+**1) Matvec via a sequential pair of NUFFTs.** Here the matvec code is
 
 .. code-block:: matlab
 
@@ -75,7 +75,7 @@ I) Matvec via a sequential pair of NUFFTs.
     AHAf = finufft1d1(x,Af,-1,tol,length(f));    % then apply A^*
   end
 
-We target 6 digits from CG using this mat-vec function, then test the
+We target 6 digits from CG using this matvec function, then test the
 residual and actual solution error:
 
 .. code-block:: matlab
@@ -88,7 +88,9 @@ This reaches ``relres<1e-6`` in 1461 iterations
 (a large count indicating poor conditioning),
 taking about 100 seconds on an 8-core laptop.
 The relative residual for the desired system $A{\bf f}={\bf y}$
-is ``2.7e-05``, but the relative coefficient error is a much larger
+is ``2.7e-05``, indicating that *the linear system was solved
+reasonably accurately*,
+but the relative coefficient error is a much larger
 ``2.4e-02``. Their ratio places a lower bound on the condition
 number $\kappa(A)$ of about 900, explaining the large iteration count
 for the normal equations.
@@ -97,20 +99,23 @@ in 2.4% coefficient error.
 
 The error in the signal $f(x)$ is in fact very unequally distributed
 for this problem: it is correct to 4-5 digits almost everywhere,
-but ${\cal O}(1)$ in parts of the domain
-where there are large gaps between the (iid random) sample points:
+including at almost all the data points,
+but errors are ${\cal O}(1)$ in the very largest gaps
+between the (iid random) sample points:
 
 .. image:: ../pics/inv1d2err.png
-   :width: 70%
+   :width: 90%
 
 Notice the large error around 0.9212. However, the problem of
-interpolating a band-limited function at sample points
-is exponentially ill-conditioned with respect to the size of
-any sampling gap measured in wavelengths. The gap around 0.9212 is
-about 0.00009, about two wavelengths at the frequency $N/2$.
+interpolating a band-limited function
+is exponentially ill-conditioned with respect to the length of
+any node-free gap measured in wavelengths. The gap near 0.9212 is
+about 0.00009, ie, two wavelengths at the frequency $N/2$.
+A sampling point distribution without large gaps would improve the conditioning
+and make the reconstruction error in $f$ uniformly closer to the residual
+error.
            
-II) Matvec exploiting Toeplitz structure via a pair of padded FFTs.
-
+**2) Matvec exploiting Toeplitz structure via a pair of padded FFTs.**
 A beautiful realization comes from examining the
 usual matrix-matrix multiplication formula
 for entries of the system matrix for the normal equations,
@@ -126,21 +131,22 @@ thus a discrete convolution with a vector that we call $v$.
 
 ***
 
+CG-Toep relres 9.97e-07 done in 1465 iters, 35 s
+
+
 The solution and plot is essentially identical to that from the
 NUFFT-pair method.
-
-
-
-    CG-Toep relres 9.97e-07 done in 1465 iters, 35 s
 	rel l2 resid of Ax=y: 2.63e-05
 	rel l2 coeff err: 0.0236
+
+
 
 
   
                 
 
 Further reading
-~~~~~~~~~~~~~~~~
+---------------
 
 For the 1D inversion with $M=N$ and no regularization
 there are interpolation methods using
