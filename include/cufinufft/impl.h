@@ -118,6 +118,8 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         d_plan->opts = *opts; // keep a deep copy; changing *opts now has no effect
     }
 
+    auto &stream = d_plan->stream = (cudaStream_t)d_plan->opts.gpu_stream;
+
     /* Automatically set GPU method. */
     if (d_plan->opts.gpu_method == 0) {
         /* For type 1, we default to method 2 (SM) since this is generally faster.
@@ -221,33 +223,37 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
         ier = FINUFFT_ERR_CUDA_FAILURE;
         goto finalize;
     }
+    cufftSetStream(fftplan, stream);
+
     d_plan->fftplan = fftplan;
     {
-        std::complex<double> a[3 * MAX_NQUAD];
-        T f[3 * MAX_NQUAD];
+        std::complex<double> *a = d_plan->fseries_precomp_a;
+        T *f = d_plan->fseries_precomp_f;
+
         onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
         if (dim > 1)
             onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
         if (dim > 2)
             onedim_fseries_kernel_precomp(nf3, f + 2 * MAX_NQUAD, a + 2 * MAX_NQUAD, d_plan->spopts);
 
-        if ((ier = checkCudaErrors(cudaMalloc(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex)))))
+        if ((ier = checkCudaErrors(cudaMallocAsync(&d_a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), stream))))
             goto finalize;
-        if ((ier = checkCudaErrors(cudaMalloc(&d_f, dim * MAX_NQUAD * sizeof(T)))))
+        if ((ier = checkCudaErrors(cudaMallocAsync(&d_f, dim * MAX_NQUAD * sizeof(T), stream))))
             goto finalize;
         if ((ier = checkCudaErrors(
-                 cudaMemcpy(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice))))
+                 cudaMemcpyAsync(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice, stream))))
             goto finalize;
-        if ((ier = checkCudaErrors(cudaMemcpy(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice))))
+        if ((ier =
+                 checkCudaErrors(cudaMemcpyAsync(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice, stream))))
             goto finalize;
         if ((ier = cufserieskernelcompute(d_plan->dim, nf1, nf2, nf3, d_f, d_a, d_plan->fwkerhalf1, d_plan->fwkerhalf2,
-                                          d_plan->fwkerhalf3, d_plan->spopts.nspread)))
+                                          d_plan->fwkerhalf3, d_plan->spopts.nspread, stream)))
             goto finalize;
     }
 
 finalize:
-    cudaFree(d_a);
-    cudaFree(d_f);
+    cudaFreeAsync(d_a, stream);
+    cudaFreeAsync(d_f, stream);
 
     if (ier > 1) {
         delete *d_plan_ptr;
@@ -435,11 +441,11 @@ int cufinufft_destroy_impl(cufinufft_plan_t<T> *d_plan)
     if (!d_plan)
         return FINUFFT_ERR_PLAN_NOTVALID;
 
-    if (d_plan->fftplan)
-        cufftDestroy(d_plan->fftplan);
-
     using namespace cufinufft::memtransfer;
     freegpumemory<T>(d_plan);
+
+    if (d_plan->fftplan)
+        cufftDestroy(d_plan->fftplan);
 
     /* free/destruct the plan */
     delete d_plan;

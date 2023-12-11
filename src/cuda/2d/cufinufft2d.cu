@@ -35,6 +35,8 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
     int ier;
     cuda_complex<T> *d_fkstart;
     cuda_complex<T> *d_cstart;
+
+    auto &stream = d_plan->stream;
     for (int i = 0; i * d_plan->maxbatchsize < d_plan->ntransf; i++) {
         int blksize = min(d_plan->ntransf - i * d_plan->maxbatchsize, d_plan->maxbatchsize);
         d_cstart = d_c + i * d_plan->maxbatchsize * d_plan->M;
@@ -43,8 +45,8 @@ int cufinufft2d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
         d_plan->fk = d_fkstart;
 
         // this is needed
-        if ((ier = checkCudaErrors(cudaMemset(
-                 d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * sizeof(cuda_complex<T>)))))
+        if ((ier = checkCudaErrors(cudaMemsetAsync(
+                 d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * d_plan->nf2 * sizeof(cuda_complex<T>), stream))))
             return ier;
 
         // Step 1: Spread
@@ -97,9 +99,6 @@ int cufinufft2d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
             return ier;
 
         // Step 2: FFT
-        cudaDeviceSynchronize();
-        RETURN_IF_CUDA_ERROR
-
         cufftResult cufft_status = cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
         if (cufft_status != CUFFT_SUCCESS)
             return FINUFFT_ERR_CUDA_FAILURE;
