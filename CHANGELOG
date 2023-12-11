@@ -8,6 +8,8 @@ V 2.3.0 (expected Dec 2023)
 * python interface supports batch dimension of length 1(issue #367).
 * fix issue where repeated calls of finufft_makeplan with different numbers of
   requested threads would always use the first requested number of threads
+* Add support for cuda streams, allowing for concurrent memory transfer and execution
+  streams (PR #330)
 
 V 2.2.0 (08/30/23) (untagged; aka 2.2.0.dev0, a name used to bump python pkg)
 

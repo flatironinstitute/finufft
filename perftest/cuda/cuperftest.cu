@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <getopt.h>
 
 #include <cstdlib>
@@ -12,16 +13,6 @@
 #include <thrust/complex.h>
 #include <thrust/device_vector.h>
 #include <thrust/host_vector.h>
-
-struct timespec get_wtime() {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return ts;
-}
-
-double get_wtime_diff(const struct timespec &ts, const struct timespec &tf) {
-    return (tf.tv_sec - ts.tv_sec) + (tf.tv_nsec - ts.tv_nsec) * 1E-9;
-}
 
 std::string get_or(const std::unordered_map<std::string, std::string> &m, const std::string &key,
                    const std::string &default_value) {
@@ -38,6 +29,7 @@ struct test_options_t {
     int n_runs;
     int N[3];
     int M;
+    int ntransf;
     int kerevalmethod;
     int method;
     int sort;
@@ -58,6 +50,7 @@ struct test_options_t {
                 {"N2", required_argument, 0, 0},
                 {"N3", required_argument, 0, 0},
                 {"M", required_argument, 0, 0},
+                {"ntransf", required_argument, 0, 0},
                 {"tol", required_argument, 0, 0},
                 {"method", required_argument, 0, 0},
                 {"kerevalmethod", required_argument, 0, 0},
@@ -87,6 +80,7 @@ struct test_options_t {
         N[1] = std::stof(get_or(options_map, "N2", "1"));
         N[2] = std::stof(get_or(options_map, "N3", "1"));
         M = std::stof(get_or(options_map, "M", "2E6"));
+        ntransf = std::stoi(get_or(options_map, "ntransf", "1"));
         method = std::stoi(get_or(options_map, "method", "1"));
         kerevalmethod = std::stoi(get_or(options_map, "kerevalmethod", "1"));
         sort = std::stoi(get_or(options_map, "sort", "1"));
@@ -94,73 +88,140 @@ struct test_options_t {
     }
 
     friend std::ostream &operator<<(std::ostream &outs, const test_options_t &opts) {
-        return outs << "prec = " << opts.prec << "\n"
-                    << "type = " << opts.type << "\n"
-                    << "n_runs = " << opts.n_runs << "\n"
-                    << "N1 = " << opts.N[0] << "\n"
-                    << "N2 = " << opts.N[1] << "\n"
-                    << "N3 = " << opts.N[2] << "\n"
-                    << "M = " << opts.M << "\n"
-                    << "method = " << opts.method << "\n"
-                    << "kerevalmethod = " << opts.kerevalmethod << "\n"
-                    << "sort = " << opts.sort << "\n"
-                    << "tol = " << opts.tol << "\n";
+        return outs << "# prec = " << opts.prec << "\n"
+                    << "# type = " << opts.type << "\n"
+                    << "# n_runs = " << opts.n_runs << "\n"
+                    << "# N1 = " << opts.N[0] << "\n"
+                    << "# N2 = " << opts.N[1] << "\n"
+                    << "# N3 = " << opts.N[2] << "\n"
+                    << "# M = " << opts.M << "\n"
+                    << "# ntransf = " << opts.ntransf << "\n"
+                    << "# method = " << opts.method << "\n"
+                    << "# kerevalmethod = " << opts.kerevalmethod << "\n"
+                    << "# sort = " << opts.sort << "\n"
+                    << "# tol = " << opts.tol << "\n";
     }
 };
 
+struct CudaTimer {
+    CudaTimer() {}
+
+    ~CudaTimer() {
+        for (auto &event : start_)
+            cudaEventDestroy(event);
+        for (auto &event : stop_)
+            cudaEventDestroy(event);
+    }
+
+    void start() {
+        start_.push_back(cudaEvent_t{});
+        stop_.push_back(cudaEvent_t{});
+
+        cudaEventCreate(&start_.back());
+        cudaEventCreate(&stop_.back());
+
+        cudaEventRecord(start_.back());
+    }
+
+    void stop() { cudaEventRecord(stop_.back()); }
+
+    void sync() {
+        for (auto &event : stop_)
+            cudaEventSynchronize(event);
+    }
+
+    float mean() { return this->tot() / start_.size(); }
+
+    float std() {
+        float avg = this->mean();
+
+        double var = 0.0;
+        for (int i = 0; i < start_.size(); ++i) {
+            float dt;
+            cudaEventElapsedTime(&dt, start_[i], stop_[i]);
+            var += (dt - avg) * (dt - avg);
+        }
+        var /= start_.size();
+
+        return sqrt(var);
+    }
+
+    float tot() {
+        float dt_tot = 0.;
+        for (int i = 0; i < start_.size(); ++i) {
+            float dt;
+            cudaEventElapsedTime(&dt, start_[i], stop_[i]);
+            dt_tot += dt;
+        }
+
+        return dt_tot;
+    }
+
+    int count() { return start_.size(); }
+
+    std::vector<cudaEvent_t> start_;
+    std::vector<cudaEvent_t> stop_;
+};
+
 template <class F, class... Args>
-inline double timeit(F f, Args... args) {
-    auto st = get_wtime();
+inline void timeit(F f, CudaTimer &timer, Args... args) {
+    timer.start();
     f(args...);
-    cudaDeviceSynchronize();
-    auto ft = get_wtime();
-    return get_wtime_diff(st, ft);
+    timer.stop();
 }
 
 void gpu_warmup() {
-    int nf1 = 1;
+    int nf1 = 100;
     cufftHandle fftplan;
     cufftPlan1d(&fftplan, nf1, CUFFT_Z2Z, 1);
+    thrust::device_vector<cufftDoubleComplex> in(nf1), out(nf1);
+    cufftExecZ2Z(fftplan, in.data().get(), out.data().get(), 1);
+    cudaDeviceSynchronize();
 }
 
 template <typename T>
 void run_test(test_options_t &test_opts) {
     std::cout << test_opts;
-    const int M = test_opts.M;
+    const int ntransf = test_opts.ntransf;
+    const int64_t M = test_opts.M;
     const int N = test_opts.N[0] * test_opts.N[1] * test_opts.N[2];
     const int type = test_opts.type;
     constexpr int iflag = 1;
 
-    thrust::host_vector<T> x(M), y(M), z(M);
-    thrust::host_vector<thrust::complex<T>> c(M), fk(N);
+    thrust::host_vector<T> x(M * ntransf), y(M * ntransf), z(M * ntransf);
+    thrust::host_vector<thrust::complex<T>> c(M * ntransf), fk(N * ntransf);
 
-    thrust::device_vector<T> d_x(M), d_y(M), d_z(M);
-    thrust::device_vector<thrust::complex<T>> d_c(M), d_fk(N);
+    thrust::device_vector<T> d_x(M * ntransf), d_y(M * ntransf), d_z(M * ntransf);
+    thrust::device_vector<thrust::complex<T>> d_c(M * ntransf), d_fk(N * ntransf);
 
     std::default_random_engine eng(1);
     std::uniform_real_distribution<T> dist11(-1, 1);
     auto randm11 = [&eng, &dist11]() { return dist11(eng); };
 
     // Making data
-    for (int i = 0; i < M; i++) {
+    for (int64_t i = 0; i < M; i++) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)
         y[i] = M_PI * randm11();
         z[i] = M_PI * randm11();
     }
-    d_x = x, d_y = y, d_z = z;
+    for (int64_t i = M; i < M * ntransf; ++i) {
+        int64_t j = i % M;
+        x[i] = x[j];
+        y[i] = y[j];
+        z[i] = z[j];
+    }
 
     if (type == 1) {
-        for (int i = 0; i < M; i++) {
+        for (int i = 0; i < M * ntransf; i++) {
             c[i].real(randm11());
             c[i].imag(randm11());
         }
-        d_c = c;
+
     } else if (type == 2) {
-        for (int i = 0; i < N; i++) {
+        for (int i = 0; i < N * ntransf; i++) {
             fk[i].real(randm11());
             fk[i].imag(randm11());
         }
-        d_fk = fk;
     } else {
         std::cerr << "Invalid type " << type << " supplied\n";
         return;
@@ -179,28 +240,62 @@ void run_test(test_options_t &test_opts) {
     opts.gpu_kerevalmeth = test_opts.kerevalmethod;
 
     cufinufft_plan_t<T> *dplan;
-    double makeplan_time{0}, setpts_time{0}, execute_time{0};
-    makeplan_time =
-        timeit(cufinufft_makeplan_impl<T>, test_opts.type, dim, test_opts.N, iflag, 1, test_opts.tol, &dplan, &opts);
+    CudaTimer h2d_timer, makeplan_timer, setpts_timer, execute_timer, d2h_timer, amortized_timer;
+    {
+        amortized_timer.start();
+        h2d_timer.start();
+        d_x = x, d_y = y, d_z = z;
+        if (type == 1)
+            d_c = c;
+        if (type == 2)
+            d_fk = fk;
+        h2d_timer.stop();
 
-    T *d_x_p = dim >= 1 ? d_x.data().get() : nullptr;
-    T *d_y_p = dim >= 2 ? d_y.data().get() : nullptr;
-    T *d_z_p = dim == 3 ? d_z.data().get() : nullptr;
-    cuda_complex<T> *d_c_p = (cuda_complex<T> *)d_c.data().get();
-    cuda_complex<T> *d_fk_p = (cuda_complex<T> *)d_fk.data().get();
-    for (int i = 0; i < test_opts.n_runs; ++i) {
-        setpts_time += timeit(cufinufft_setpts_impl<T>, M, d_x_p, d_y_p, d_z_p, 0, nullptr, nullptr, nullptr, dplan);
-        execute_time += timeit(cufinufft_execute_impl<T>, d_c_p, d_fk_p, dplan);
+        T *d_x_p = dim >= 1 ? d_x.data().get() : nullptr;
+        T *d_y_p = dim >= 2 ? d_y.data().get() : nullptr;
+        T *d_z_p = dim == 3 ? d_z.data().get() : nullptr;
+        cuda_complex<T> *d_c_p = (cuda_complex<T> *)d_c.data().get();
+        cuda_complex<T> *d_fk_p = (cuda_complex<T> *)d_fk.data().get();
+
+        timeit(cufinufft_makeplan_impl<T>, makeplan_timer, test_opts.type, dim, test_opts.N, iflag, ntransf,
+               test_opts.tol, &dplan, &opts);
+        for (int i = 0; i < test_opts.n_runs; ++i) {
+            timeit(cufinufft_setpts_impl<T>, setpts_timer, M, d_x_p, d_y_p, d_z_p, 0, nullptr, nullptr, nullptr, dplan);
+            timeit(cufinufft_execute_impl<T>, execute_timer, d_c_p, d_fk_p, dplan);
+        }
+
+        d2h_timer.start();
+        if (type == 1)
+            fk = d_fk;
+        if (type == 2)
+            c = d_c;
+        d2h_timer.stop();
+        
+        amortized_timer.stop();
+
+        h2d_timer.sync();
+        makeplan_timer.sync();
+        setpts_timer.sync();
+        execute_timer.sync();
+        d2h_timer.sync();
+        amortized_timer.sync();
     }
 
-    setpts_time /= test_opts.n_runs;
-    execute_time /= test_opts.n_runs;
+    const int64_t nupts_tot = M * test_opts.n_runs * ntransf;
 
-    std::cout << std::endl;
-    std::cout << "makeplan: " << makeplan_time << std::endl;
-    std::cout << "setpts  : " << setpts_time << std::endl;
-    std::cout << "execute : " << execute_time << std::endl;
-    std::cout << "total   : " << makeplan_time + setpts_time + execute_time << std::endl;
+    printf("event,count,tot(ms),mean(ms),std(ms),nupts/s,ns/nupt\n");
+    printf("host_to_device,%d,%f,%f,%f,0.0,0.0\n", h2d_timer.count(), h2d_timer.tot(),
+           h2d_timer.mean(), h2d_timer.std());
+    printf("makeplan,%d,%f,%f,%f,0.0,0.0\n", makeplan_timer.count(), makeplan_timer.tot(), makeplan_timer.mean(),
+           makeplan_timer.std());
+    printf("setpts,%d,%f,%f,%f,%g,%f\n", test_opts.n_runs, setpts_timer.tot(), setpts_timer.mean(), setpts_timer.std(),
+           nupts_tot * 1000 / setpts_timer.tot(), setpts_timer.tot() * 1E6 / nupts_tot);
+    printf("execute,%d,%f,%f,%f,%g,%f\n", test_opts.n_runs, execute_timer.tot(), execute_timer.mean(),
+           execute_timer.std(), nupts_tot * 1000 / execute_timer.tot(), execute_timer.tot() * 1E6 / nupts_tot);
+    printf("device_to_host,%d,%f,%f,%f,0.0,0.0\n", d2h_timer.count(), d2h_timer.tot(),
+           d2h_timer.mean(), d2h_timer.std());
+    printf("amortized,%d,%f,%f,%f,%g,%f\n", 1, amortized_timer.tot(), amortized_timer.mean(), amortized_timer.std(),
+           nupts_tot * 1000 / amortized_timer.tot(), amortized_timer.tot() * 1E6 / nupts_tot);
 }
 
 int main(int argc, char *argv[]) {
@@ -229,6 +324,9 @@ int main(int argc, char *argv[]) {
                      "    --M <int>\n"
                      "           number of non-uniform points. Scientific notation accepted (i.e. 1E6)\n"
                      "           default: " << default_opts.M << "\n" <<
+                     "    --ntransf <int>\n"
+                     "           number of transforms to do simultaneously\n"
+                     "           default: " << default_opts.ntransf << "\n" <<
                      "    --tol <float>\n"
                      "           NUFFT tolerance. Scientific notation accepted (i.e. 1.2E-7)\n"
                      "           default: " << default_opts.tol << "\n" <<

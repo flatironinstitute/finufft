@@ -15,7 +15,7 @@ __global__ void fseries_kernel_compute(int nf1, int nf2, int nf3, T *f, cuDouble
                                        T *fwkerhalf2, T *fwkerhalf3, int ns);
 template <typename T>
 int cufserieskernelcompute(int dim, int nf1, int nf2, int nf3, T *d_f, cuDoubleComplex *d_a, T *d_fwkerhalf1,
-                           T *d_fwkerhalf2, T *d_fwkerhalf3, int ns);
+                           T *d_fwkerhalf2, T *d_fwkerhalf3, int ns, cudaStream_t stream);
 template <typename T>
 int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts opts);
 
