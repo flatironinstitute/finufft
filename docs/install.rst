@@ -459,14 +459,9 @@ or via::
   cd build
   cmake ..
   cmake --build . -j
-  cp -f libfinufft.so ../lib/
   cd ..
   
-Notice the placement of the shared library in `lib/`. Next make sure you have the required python packages::
-
-  pip3 install numpy
-
-You may then::
+You may then run::
 
   pip3 install -e python/finufft
 
