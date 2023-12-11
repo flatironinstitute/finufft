@@ -4,11 +4,24 @@ Python interface
 Quick-start examples
 --------------------
 
-The easiest way to install is to run ``pip install finufft``, which downloads and installs the latest precompiled binaries from PyPI.
-Please note that the ``finufftpy`` package is obsolete.
+The easiest way to install is to run::
+
+  pip install finufft
+
+which downloads and installs the latest precompiled binaries from PyPI.
+If you have ``pytest`` installed, you can test it with::
+
+  pytest python/finufft/test
+  
+or, without having ``pytest`` you can run the older-style eyeball check::
+
+  python3 python/finufft/test/run_accuracy_tests.py
+
+which should report errors around ``1e-6`` and throughputs around 1-10 million points/sec.
+(Please note that the ``finufftpy`` package is obsolete.)
 If you would like to compile from source, see :ref:`the Python installation instructions <install-python>`.
 
-To calculate a 1D type 1 transform, from nonuniform to uniform points, we import ``finufft``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:
+Once installed, to calculate a 1D type 1 transform from nonuniform to uniform points, we import ``finufft``, specify the nonuniform points ``x``, their strengths ``c``, and call ``nufft1d1``:
 
 .. code-block:: python
 
@@ -41,7 +54,7 @@ It can be modified using the ``eps`` argument:
     # calculate the transform to higher accuracy
     f = finufft.nufft1d1(x, c, N, eps=1e-12)
 
-Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform. See ``python/examples/simple1d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
+Note, however, that a lower tolerance (that is, a higher accuracy) results in a slower transform. See ``python/finufft/examples/simple1d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
 
 For higher dimensions, we would specify point locations in more than one dimension:
 
@@ -58,7 +71,7 @@ For higher dimensions, we would specify point locations in more than one dimensi
     # the 2D transform outputs f array of shape (N1, N2)
     f = finufft.nufft2d1(x, y, c, (N1, N2))
 
-See ``python/examples/simple2d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
+See ``python/finufft/examples/simple2d1.py`` for the demo code that includes a basic math test (useful to check both the math and the indexing).
 
 We can also go the other way, from uniform to non-uniform points, using a type 2 transform:
 
@@ -111,7 +124,7 @@ For the 2D type 1 vectorized interface, we would call
     f = finufft.nufft2d1(x, y, c, (N1, N2))
 
 The output array ``f`` would then have the shape ``(K, N1, N2)``.
-See the complete demo in ``python/examples/many2d1.py``.
+See the complete demo in ``python/finufft/examples/many2d1.py``.
 
 More fine-grained control can be obtained using the plan (or `guru`) interface.
 Instead of preparing the transform, setting the nonuniform points, and executing the transform all at once, these steps are seperated into different function calls.
@@ -133,7 +146,7 @@ To perform the call above using the plan interface, we would write
     # execute the plan
     f = plan.execute(c)
 
-See the complete demo in ``python/examples/guru2d1.py``.
+See the complete demo in ``python/finufft/examples/guru2d1.py``.
 All interfaces support both single and double precision, but for the plan, this must be specified at initialization time using the ``dtype`` argument
 
 .. code-block:: python
@@ -150,7 +163,7 @@ All interfaces support both single and double precision, but for the plan, this 
     # execute the plan, giving single-precision output
     f = plan.execute(c)
 
-See the complete demo, with math test, in ``python/examples/guru2d1f.py``.
+See the complete demo, with math test, in ``python/finufft/examples/guru2d1f.py``.
 
 
 Full documentation

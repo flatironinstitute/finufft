@@ -24,21 +24,20 @@ if finufft_dir == None or finufft_dir == '':
 # Set include and library paths relative to FINUFFT root directory.
 inc_dir = os.path.join(finufft_dir, 'include')
 lib_dir = os.path.join(finufft_dir, 'lib')
+lib_dir_cmake = os.path.join(finufft_dir, 'build')   # lib may be only here
 
 # Read in long description from README.md.
 with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f:
         long_description = f.read()
 
-# We specifically link to the dynamic library here through its absolute path
-# (that is not through -lfinufft) to ensure that the absolute path of the
-# library is encoded in the DT_NEEDED tag. This way, we won't need to have
-# libfinufft.so in the LD_LIBRARY_PATH at runtime. The risk with this is that
-# if the libfinufft.so is deleted or moved, the Python module will break
-# unless LD_LIBRARY_PATH is updated.
-if platform.system() == 'Windows':
-    finufft_dlib = 'finufft'
+finufft_dlib = 'finufft'
+
+# Windows does not have the concept of rpath and as a result, MSVC crashes if
+# supplied with one.
+if platform.system() != "Windows":
+    runtime_library_dirs = [lib_dir, lib_dir_cmake]
 else:
-    finufft_dlib = os.path.join(lib_dir, 'finufft')
+    runtime_library_dirs = []
 
 # For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
 # that calls one of the functions in the FINUFFT dynamic library. The reason
@@ -91,8 +90,9 @@ setup(
         Extension(name='finufft.finufftc',
                   sources=[source_filename],
                   include_dirs=[inc_dir, '/usr/local/include'],
-                  library_dirs=[lib_dir, '/usr/local/lib'],
-                  libraries=[finufft_dlib])
+                  library_dirs=[lib_dir, lib_dir_cmake, '/usr/local/lib'],
+                  libraries=[finufft_dlib],
+                  runtime_library_dirs=runtime_library_dirs)
         ]
 )
 

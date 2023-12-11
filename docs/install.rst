@@ -455,30 +455,42 @@ Building a python interface to a locally compiled library
 -----------------------------------------------------------------------
 
 Recall that the basic user may simply ``pip install finufft``,
-then check it worked via::
+then check it worked via either (if you have ``pytest`` installed)::
 
-  python3 python/test/run_accuracy_tests.py
+  pytest python/finufft/test
+
+or the older-style eyeball check with::
+
+  python3 python/finufft/test/run_accuracy_tests.py
+
+which should report errors around ``1e-6`` and throughputs around 1-10 million points/sec.
 
 However, a user or developer may want to build a python wrapper to their locally
 compiled FINUFFT library, perhaps for more speed. We now describe this,
 for all OSes.
-We assume python3 (hence pip3).
-First make sure you have pip
-installed, and that you can already compile the C++ library (eg via ``make test``).
-Next make sure you have the required python packages::
+We assume ``python3`` (hence ``pip3``; make sure you have that installed).
 
-  pip3 install numpy
+First, compile the shared C++ library, via, eg ``make lib -j`` (using the old-style ``makefile``),
+or via::
 
-You may then::
+  make -p build
+  cd build
+  cmake ..
+  cmake --build . -j
+  cd ..
+  
+You may then run::
 
-  make python
+  pip3 install -e python/finufft
 
-which builds the ``finufft`` module,
-installs (in editable mode) via pip, then runs some tests and examples.
-You will see that the ``finufftc`` shared object appears in the ``python/finufft`` directory.
+which builds the ``finufft`` Python module, linking to the ``.so``,
+and installs (in editable mode) via pip.
+You will see that the ``finufftc.*.so`` shared object appears in the ``python/finufft/finufft/`` directory.
+You should then run the above tests. You could also run tests and examples via ``make python``.
+
 An additional performance test you could then do is::
 
-  python3 python/test/run_speed_tests.py
+  python3 python/finufft/test/run_speed_tests.py
 
 .. note::
 
@@ -486,15 +498,11 @@ An additional performance test you could then do is::
 
      export MACOSX_DEPLOYMENT_TARGET=10.14
 
-   where you should replace 10.14 by your OSX number. We have also in the past found that running::
-
-     pip3 install ./python
-
-   in the command line can work even when ``make python`` does not (probably to do with environment variables).
+   where you should replace 10.14 by your OSX number.
 
 .. note::
 
-   Our new (v2.0.1) python interface is quite different from Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_, or Jeremy Magland's. The interface is simpler, and the existing library is linked to. Under the hood we now use ``ctypes`` instead of ``pybind11``.
+   As of v2.0.1, our python interface is quite different from Dan Foreman-Mackey's original repo that wrapped finufft: `python-finufft <https://github.com/dfm/python-finufft>`_, or Jeremy Magland's wrapper. The interface is simpler, and the existing shared binary is linked to (no recompilation). Under the hood we achieve this via ``ctypes`` instead of ``pybind11``.
   
 
 A few words about python environments
