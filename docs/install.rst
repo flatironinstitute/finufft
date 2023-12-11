@@ -41,7 +41,7 @@ Then add the following to your ``CMakeLists.txt``:
 
   target_link_library(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft_static)
   # or for shared linking 
-  target_link_library(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft_shared)
+  target_link_library(your_executable [PUBLIC|PRIVATE|INTERFACE] finufft)
 
 Then cmake will automatically download the library and link it to your executable.
 
