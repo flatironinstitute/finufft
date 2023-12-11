@@ -6,6 +6,7 @@
 #include <cufinufft_opts.h>
 #include <finufft_spread_opts.h>
 #include <type_traits>
+#include <cufinufft/defs.h>
 
 #include <complex.h>
 
@@ -68,6 +69,10 @@ struct cufinufft_plan_t {
     // Arrays for 3d (need to sort out)
     int *numnupts;
     int *subprob_to_nupts;
+
+    // Temporary variables to do fseries precomputation
+    std::complex<double> fseries_precomp_a[3 * MAX_NQUAD];
+    T fseries_precomp_f[3 * MAX_NQUAD];
 
     cufftHandle fftplan;
     cudaStream_t stream;

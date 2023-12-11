@@ -227,8 +227,9 @@ int cufinufft_makeplan_impl(int type, int dim, int *nmodes, int iflag, int ntran
 
     d_plan->fftplan = fftplan;
     {
-        std::complex<double> a[3 * MAX_NQUAD];
-        T f[3 * MAX_NQUAD];
+        std::complex<double> *a = d_plan->fseries_precomp_a;
+        T *f = d_plan->fseries_precomp_f;
+
         onedim_fseries_kernel_precomp(nf1, f, a, d_plan->spopts);
         if (dim > 1)
             onedim_fseries_kernel_precomp(nf2, f + MAX_NQUAD, a + MAX_NQUAD, d_plan->spopts);
@@ -258,9 +259,6 @@ finalize:
         delete *d_plan_ptr;
         *d_plan_ptr = nullptr;
     }
-
-    // Wait for async copies out of stack buffers
-    cudaStreamSynchronize(stream);
 
     return ier;
 }
