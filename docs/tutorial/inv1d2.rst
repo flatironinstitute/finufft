@@ -8,7 +8,7 @@ solver and FINUFFT. For convenience it is in MATLAB/Octave.
 The task is to solve for $N$ Fourier series coefficients $f_k$,
 indexed by $-N/2 \le k < N/2$, given
 samples $y_j$, $j=1,\dots,M$ of an unknown
-$2\pi$-periodic function at some given nodes $x_j$, $j=1,\dots,M$.
+$2\pi$-periodic function $f(x)$ at some given nodes $x_j$, $j=1,\dots,M$.
 This has applications in signal analysis, as well
 as being a 1D version of the MRI problem
 (where the roles of real vs Fourier space are flipped).
@@ -19,15 +19,17 @@ in which case, what we describe below is a good starting point.
 We first assume that the samples are noise-free and no regularization is
 needed, then proceed to the noisy regularized case.
 
-Here's code to set up a small random test problem:
+Here's code to set up a random complex-valued
+test problem of size 600000 by 300000 (way too large to solve directly):
 
 .. code-block:: matlab
 
-  N = 1e5;                             % how many unknown coeffs
+  N = 3e5;                             % how many unknown coeffs
   ks = -floor(N/2) + (0:N-1);          % row vec of the frequency k indices
   M = 2*N;                             % overdetermined by a factor 2
   x = 2*pi*rand(M,1);                  % scattered points on the periodic domain
   ftrue = randn(N,1) + 1i*randn(N,1);  % choose known Fourier coeffs at k inds
+  ftrue = ftrue/sqrt(N);               % make signal f(x) variance=1 (Re or Im)
   y = finufft1d2(x,+1,1e-12,ftrue);    % eval noiseless data at high accuracy
 
 
@@ -55,25 +57,84 @@ Left-multiplying by the conjugate $A^*$ gives the normal equations
 
 where the system matrix $A^*A$ is symmetric positive definite,
 so we use conjugate gradients (CG) to solve it iteratively.
-The simplest way to apply $A^* A$ is by a pair of NUFFTs:
+We first evaluate the normal equations right-hand side via
 
 .. code-block:: matlab
 
-  function AHAf = applyAHA(f,x,tol)   % use pair of NUFFTs to apply A^* A to vec
+  rhs = finufft1d1(x,y,-1,tol,N);      % compute A^* y
+
+We compare two ways to multiply $A^* A$ to a vector (perform the "matvec")
+in the iterative solver.
+
+I) Matvec via a sequential pair of NUFFTs.
+
+.. code-block:: matlab
+
+  function AHAf = applyAHA(f,x,tol)   % use pair of NUFFTs to apply A^*A to f
     Af = finufft1d2(x,+1,tol,f);                 % apply A
     AHAf = finufft1d1(x,Af,-1,tol,length(f));    % then apply A^*
   end
 
-  *** bring in
+We target 6 digits from CG using this mat-vec function, then test the
+residual and actual solution error:
 
-  >> inv1d2
-CG-NUFFT relres 9.94e-07 done in 1462 iters, 101 s
-	rel l2 resid of Ax=y: 2.62e-05
-	rel l2 coeff err: 0.0258
-CG-Toep relres 9.97e-07 done in 1465 iters, 115 s
+.. code-block:: matlab
+
+  [f,flag,relres,iter] = pcg(@(f) applyAHA(f,x,1e-6), rhs, 1e-6, N);
+  norm(finufft1d2(x,+1,tol,f)-y)/norm(y)         % rel l2 resid for Af=y
+  norm(f-ftrue)/norm(ftrue)                      % rel l2 coeff error
+  
+This reaches ``relres<1e-6`` in 1461 iterations
+(a large count indicating poor conditioning),
+taking about 100 seconds on an 8-core laptop.
+The relative residual for the desired system $A{\bf f}={\bf y}$
+is ``2.7e-05``, but the relative coefficient error is a much larger
+``2.4e-02``. Their ratio places a lower bound on the condition
+number $\kappa(A)$ of about 900, explaining the large iteration count
+for the normal equations.
+Note that 0.0001% residual error in the normal equations resulted
+in 2.4% coefficient error.
+
+The error in the signal $f(x)$ is in fact very unequally distributed
+for this problem: it is correct to 4-5 digits almost everywhere,
+but ${\cal O}(1)$ in parts of the domain
+where there are large gaps between the (iid random) sample points:
+
+.. image:: ../pics/inv1d2err.png
+   :width: 70%
+
+Notice the large error around 0.9212. However, the problem of
+interpolating a band-limited function at sample points
+is exponentially ill-conditioned with respect to the size of
+any sampling gap measured in wavelengths. The gap around 0.9212 is
+about 0.00009, about two wavelengths at the frequency $N/2$.
+           
+II) Matvec exploiting Toeplitz structure via a pair of padded FFTs.
+
+A beautiful realization comes from examining the
+usual matrix-matrix multiplication formula
+for entries of the system matrix for the normal equations,
+
+.. math:: (A^* A)_{k,k'} = \sum_{j=1}^M e^{i(k-k')x_j}
+  \qquad \mbox{for } -N/2 \le k,k' < N/2.
+
+We see the $k,k'$-entry only depends on $k-k'$, thus $A^*A$ is
+Toeplitz (constant along diagonals). Its action on a vector is
+thus a discrete convolution with a vector that we call $v$.
+
+
+
+***
+
+The solution and plot is essentially identical to that from the
+NUFFT-pair method.
+
+
+
+    CG-Toep relres 9.97e-07 done in 1465 iters, 35 s
 	rel l2 resid of Ax=y: 2.63e-05
-	rel l2 coeff err: 0.0258
->> 
+	rel l2 coeff err: 0.0236
+
 
   
                 
