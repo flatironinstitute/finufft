@@ -90,7 +90,7 @@ int run_test(int nf1, int dim, T eps, int gpu, int nf2, int nf3) {
             checkCudaErrors(cudaMemcpy(d_a, a, dim * MAX_NQUAD * sizeof(cuDoubleComplex), cudaMemcpyHostToDevice));
             checkCudaErrors(cudaMemcpy(d_f, f, dim * MAX_NQUAD * sizeof(T), cudaMemcpyHostToDevice));
             ier = cufserieskernelcompute(dim, nf1, nf2, nf3, d_f, d_a, d_fwkerhalf1, d_fwkerhalf2, d_fwkerhalf3,
-                                         opts.nspread, NULL);
+                                         opts.nspread, cudaStreamDefault);
         }
         cudaEventRecord(stop);
         cudaEventSynchronize(stop);
