@@ -68,8 +68,7 @@ int cuinterp3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
     cuda_complex<T> *d_c = d_plan->c;
     cuda_complex<T> *d_fw = d_plan->fw;
 
-    const char *tpbstr = getenv("CUFINUFFT_INTERP3D_TPB");
-    threadsPerBlock.x = tpbstr ? std::atoi(tpbstr) : 64;
+    threadsPerBlock.x = 16;
     threadsPerBlock.y = 1;
     blocks.x = (M + threadsPerBlock.x - 1) / threadsPerBlock.x;
     blocks.y = 1;
