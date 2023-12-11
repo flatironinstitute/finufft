@@ -27,8 +27,8 @@ Mathematical "issues" and advice
 - If you request a tolerance that FINUFFT knows it cannot achieve, it will return ``ier=1`` after performing transforms as accurately as it can. However, the status ``ier=0`` does not imply that the requested accuracy *was* achieved, merely that parameters were chosen to give this estimated accuracy, if possible. As our SISC paper shows, for typical situations, relative $\ell_2$ errors match the requested tolerances over a wide range.
   Users should always check *convergence* (by, for instance, varying ``tol`` and measuring any changes in their results); this is generally true in scientific computing.
 
-- On the above topic, strangely, in single-precision, requesting tolerance
-  of $10^{-7}$ or $10^{-6}$ can give slightly *worse* accuracy than $10^{-5}$ or $10^{-4}$. We are looking into this. It is usually best to request at least 2--3 digits above the respective machine precision, for either single or double precision.
+- On the above topic: while the tolerance is usually a good upper bound for actual accuracy, strangely, in single-precision requesting tolerance
+  of $10^{-7}$ or $10^{-6}$ can give slightly *worse* accuracy than $10^{-5}$ or $10^{-4}$. We are looking into this. It is usually best to request at least 2--3 digits above the respective machine precision, for either single or double precision. Ie, do not set tolerance below $10^{-5}$ in single or $10^{-13}$ in double.
   
 - The type 1 and type 2 transforms are adjoints but **not inverses of each other** (unlike in the plain FFT case, where, up to a constant factor $N$, the adjoint is the inverse). Therefore, if you are not getting the expected answers, please check that you have not made this assumption. In the :ref:`tutorials <tut>` we will add examples showing how to invert the NUFFT; also see `NFFT3 inverse transforms <https://www-user.tu-chemnitz.de/~potts/nfft/infft.php>`_.
 
@@ -36,9 +36,35 @@ Mathematical "issues" and advice
 Speed issues and advice
 ***********************
 
-If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is some advice:
+CPU library speed
+-----------------
 
-- Try printing debug output to see step-by-step progress by FINUFFT. Do this by setting ``opts.debug`` to 1 or 2 then looking at the timing information.
+If FINUFFT is slow (eg, less than $10^6$ to $10^7$ nonuniform points per second, depending on application), here is some advice:
+
+- Try printing debug output to see step-by-step timings. Do this by setting ``opts.debug`` to 1 or 2 then looking at the timing information in stdout.
+
+- Check that our test codes give similar speeds to what you observe, for a similar problem size. For example, if your application uses a 2D type 1 transform from a million nonuniform points to 500-by-500 modes, at 5-digit accuracy, using 8 threads, then build the tests and run::
+
+    OMP_NUMTHREADS=8 test/finufft2d_test 500 500 1e6 1e-5
+
+  which will give something like (on a laptop)::
+
+    test 2d type 1:
+	1000000 NU pts to (500,500) modes in 0.0403 s 	2.48e+07 NU pts/s
+	one mode: rel err in F[185,130] is 4.38e-07
+    test 2d type 2:
+	(500,500) modes to 1000000 NU pts in 0.0274 s 	3.65e+07 NU pts/s
+	one targ: rel err in c[500000] is 6.1e-07
+    test 2d type 3:
+	1000000 NU to 250000 NU in 0.0626 s         	2e+07 tot NU pts/s
+	one targ: rel err in F[125000] is 2.76e-06
+
+  Extract the relevant transform type (all three types are included), and compare its timing and throughput to your own. Usually the fact that these tests use random NU point distributions does not affect the speed that much compared to typical applications.
+  If you instead use the vectorized ("many") interface for a stack of, say, 50 such transforms, use::
+
+    OMP_NUMTHREADS=8 test/finufft2d_test 500 500 1e6 1e-5
+
+  which compares the stack of transforms to the same transforms performed individually. For single precision tests, append ``f`` to the executable name in both of the above examples. The command line options for each tester can be seen by executing without any options.
 
 - Try reducing the number of threads, either those available via OpenMP, or via ``opts.nthreads``, perhaps down to 1 thread, to make sure you are not having collisions between threads, or slowdown due to thread overheads. Hyperthreading (more threads than physical cores) rarely helps much. Thread collisions are possible if large problems are run with a large number of (say more than 64) threads. Another case causing slowness is very many repetitions of small problems; see ``test/manysmallprobs`` which exceeds $10^7$ points/sec with one thread via the guru interface, but can get ridiculously slower with many threads; see https://github.com/flatironinstitute/finufft/issues/86
 
@@ -58,9 +84,37 @@ If FINUFFT is slow (eg, less than $10^6$ nonuniform points per second), here is 
   does no sorting, which can give very slow RAM access if the nonuniform points
   are ordered poorly (eg randomly) in larger 2D or 3D problems.
 
-- Are you calling the simple interface a huge number of times for small problems, but these tasks have something in common (number of modes, or locations of nonuniform points)? If so, try the "many vector" or guru interface, which removes overheads in repeated FFTW plan look-up, and in bin-sorting. They can be 10-100x faster.
+- Are you calling the simple interface a huge number of times for small problems, but these tasks have something in common (number of modes, or locations of nonuniform points)? If so, try the vectorized or guru interfaces, which remove overheads in repeated FFTW plan look-up, and in bin-sorting. They can be 10-100x faster.
+
+GPU library speed
+-----------------
+
+If cuFINUFFT is slow (eg, less than $10^8$ nonuniform points per second), here is some advice:
+
+- Run our test codes with a similar problem size on your hardware. Build the tests, then, for example (matching the vectorized CPU example above)::
+
+    test/cuda/cufinufft2dmany_test 1 1 500 500 50 0 1000000 1e-5 1e-4 f
+
+  which gives (on my A6000) the output::
+
+    #modes = 250000, #inputs = 50, #NUpts = 1000000
+    [time  ] dummy warmup call to CUFFT	 0.00184 s
+    [time  ] cufinufft plan:		 0.000624 s
+    [time  ] cufinufft setNUpts:         0.000431 s
+    [time  ] cufinufft exec:		 0.0839 s
+    [time  ] cufinufft destroy:		 0.00194 s
+    [gpu   ] 49th data one mode: rel err in F[185,130] is 2.61e-05
+    [totaltime] 8.69e+04 us, speed 5.76e+08 NUpts/s
+					(exec-only thoughput: 5.96e+08 NU pts/s)
+
+  Check if your time is dominated by the plan stage, and if so, try to reuse your plan (often one has repeated transforms with sizes or points in common). Sometimes the CUFFT warm-up call can take as long as 0.2 seconds; make sure you do such a call (or a dummy transform) before your timed usage occurs. See https://github.com/flatironinstitute/finufft/issues/385 for an example of this discovery process. The command line options for each tester can be seen by executing without any options. Note that ``1e6`` for the GPU testers is not interpreted as $10^6$, unlike in the CPU testers.
+
+- Try the different method types. Start with method=1. For instance, for type 1 transforms, method 2 (SM in the paper) is supposed to be faster than method 1 (GM-sort in the paper), but on the above test it is only 2% faster. In the test call, the 1st argument sets the method type and the next argument the transform type.
+
+- There is not currently a ``debug`` option for ``cufinufft``, so the above timing of a test problem on your hardware is a good option. You could place timers around the various ``cufinufft`` calls in your own code, just as in our test codes.
 
 
+  
 Crash (segfault) issues and advice
 ****************************************
 
@@ -76,7 +130,7 @@ Crash (segfault) issues and advice
     
 - To diagnose problems with the spread/interpolation stage, similarly setting ``opts.spread_debug`` to 1 or 2 will print even more output. Here the setting 2 generates a large amount of output even for a single transform.
 
-
+- For the GPU code, did you run out of GPU memory? Keep track of this with ``nvidia-smi``.
 
   
 Other known issues with library or interfaces
