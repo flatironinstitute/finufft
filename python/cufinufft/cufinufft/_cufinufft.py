@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 This file contains low level python bindings for the cufinufft CUDA libraries.
 Seperate bindings are provided for single and double precision libraries,
@@ -7,15 +6,6 @@ differentiated by 'f' suffix.
 
 import ctypes
 import os
-import warnings
-
-# While imp is deprecated, it is currently the inspection solution
-#   that works for all versions of Python 2 and 3.
-# One day if that changes, can be replaced
-#   with importlib.find_spec.
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import imp
 
 from ctypes import c_double
 from ctypes import c_int
@@ -27,30 +17,11 @@ c_int64_p = ctypes.POINTER(c_int64)
 c_float_p = ctypes.POINTER(c_float)
 c_double_p = ctypes.POINTER(c_double)
 
-# TODO: See if there is a way to improve this so it is less hacky.
-lib = None
-# Try to load a local library directly.
 try:
-    lib = ctypes.cdll.LoadLibrary('libcufinufft.so')
-except OSError:
-    pass
-
-# Should that not work, try to find the full path of a packaged lib.
-#   The packaged lib should have a py/platform decorated name,
-#   and be rpath'ed the true CUDA C cufinufft library through the
-#   Extension and wheel systems.
-try:
-    if lib is None:
-        # Find the library.
-        fh = imp.find_module('cufinufft/cufinufftc')[0]
-        # Get the full path for the ctypes loader.
-        full_lib_path = os.path.realpath(fh.name)
-        fh.close()    # Be nice and close the open file handle.
-
-        # Load the library,
-        #    which rpaths the libraries we care about.
-        lib = ctypes.cdll.LoadLibrary(full_lib_path)
-
+    try:
+        lib = ctypes.cdll.LoadLibrary(os.path.join(os.path.dirname(__file__), 'libcufinufft.so'))
+    except:
+        lib = ctypes.cdll.LoadLibrary('libcufinufft.so')
 except Exception:
     raise ImportError('Failed to find a suitable cufinufft library')
 

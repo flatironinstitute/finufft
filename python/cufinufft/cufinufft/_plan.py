@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 This module contains the high level python wrapper for
 the cufinufft CUDA libraries.
