@@ -44,7 +44,12 @@
    in order to do the proper importing/exporting, or
    alternatively compile with -DFINUFFT_DLL or the equivalent
    command-line flag.  This is not necessary under MinGW/Cygwin, where
-   libtool does the imports/exports automatically. */
+   libtool does the imports/exports automatically.
+   Alternatively use include(GenerateExportHeader) and
+   generate_export_header(finufft) to auto generate an header containing
+   these defines.The main reason is that if msvc changes the way it deals
+   with it in the future we just need to update cmake for it to work
+   instead of having a check on the msvc version. */
 #if defined(FINUFFT_DLL) && (defined(_WIN32) || defined(__WIN32__))
 #  if defined(dll_EXPORTS)
 #    define FINUFFT_EXPORT __declspec(dllexport)
