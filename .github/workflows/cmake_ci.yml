@@ -25,7 +25,7 @@ jobs:
           - os: "windows-2022"
             compiler: "msvc"
             generator: "Ninja"
-            build_type: "Debug"
+            build_type: "Release"
             finufft_static_linking: "OFF"
         exclude:
           - os: "windows-2022"
@@ -63,3 +63,10 @@ jobs:
         working-directory: ./build
         run: |
           ctest -C ${{matrix.build_type}}
+
+      # may change to cpack and action-gh-release later
+      - name: Upload static and shared lib
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.os}}-${{matrix.compiler}}-finufft-lib
+          path: ${{runner.workspace}}/finufft/build/*finufft*
