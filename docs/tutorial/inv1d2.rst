@@ -17,7 +17,8 @@ nonequispaced samples, eg high-order local Lagrange interpolation.
 However, often your model for the function is a global Fourier series,
 in which case, what we describe below is a good starting point.
 We first assume that the samples are noise-free and no regularization is
-needed, then proceed to the noisy regularized case.
+needed, then proceed to the noisy regularized case. We also illustrate
+well- and ill-conditioned cases.
 
 Here's code to set up a random complex-valued
 test problem of size 600000 by 300000 (way too large to solve directly):
@@ -27,7 +28,7 @@ test problem of size 600000 by 300000 (way too large to solve directly):
   N = 3e5;                             % how many unknown coeffs
   ks = -floor(N/2) + (0:N-1);          % row vec of the frequency k indices
   M = 2*N;                             % overdetermined by a factor 2
-  x = 2*pi*rand(M,1);                  % scattered points on the periodic domain
+  x = 2*pi*((0:M-1)' + 2*rand(M,1))/M; % jittered-from-uniform points on the periodic domain
   ftrue = randn(N,1) + 1i*randn(N,1);  % choose known Fourier coeffs at k inds
   ftrue = ftrue/sqrt(N);               % make signal f(x) variance=1, Re or Im part
   y = finufft1d2(x,+1,1e-12,ftrue);    % eval noiseless data at high accuracy
@@ -42,11 +43,11 @@ The linear system to solve is
   \qquad \mbox{for } j=1,\dots,M.
   :label: linsys
           
-This is usually formally overdetermined ($M>N$), although even in
-that case it may be ill-conditioned
-when the distribution of sample points $\{x_j\}$ has large gaps.
-It is to be solved in the least-squares sense.
-It is abbreviated by
+This is formally overdetermined ($M>N$), although it may still
+be ill-conditioned when the distribution of sample points $\{x_j\}$ has large gaps.
+The above jittered point choice has no gaps larger than about 0.8 wavelengths
+at the max frequency $N/2$, and will turn out to be well-conditioned.
+It is to be solved in the least-squares sense. It is abbreviated by
 
 .. math:: A{\bf f} = {\bf y}
 
@@ -81,10 +82,63 @@ residual and actual solution error:
 .. code-block:: matlab
 
   [f,flag,relres,iter] = pcg(@(f) applyAHA(f,x,1e-6), rhs, 1e-6, N);
-  norm(finufft1d2(x,+1,tol,f)-y)/norm(y)         % rel l2 resid for Af=y
-  norm(f-ftrue)/norm(ftrue)                      % rel l2 coeff error
-  
-This reaches ``relres<1e-6`` in 1461 iterations
+  fprintf('rel l2 resid of Af=y: %.3g\n', norm(finufft1d2(x,+1,tol,f)-y)/norm(y))
+  fprintf('rel l2 coeff err: %.3g\n', norm(f-ftrue)/norm(ftrue))
+
+This reaches ``relres<1e-6`` in 28 iterations,
+indicating a well-conditioned system.
+This takes 1.6 seconds on an 8-code laptop. The residual of the original
+system and the error from the true coefficients are quite close to the
+normal equation residual::
+
+  rel l2 resid of Ax=y: 1.69e-06
+  rel l2 coeff err: 4.14e-06
+
+Also of interest is the maximum (uniform or $L^\infty$) error, which we can
+estimate on a fine grid:
+
+.. code-block:: matlab
+
+  ng = 10*N; xg = 2*pi*(0:ng)/ng;          % set up fine plot grid
+  ytrueg = finufft1d2(xg,+1,1e-12,ftrue);  % eval true series there
+  yg = finufft1d2(xg,+1,1e-12,f);          % eval recovered series there
+  fprintf('abs max err: %.3g\n', norm(yg-ytrueg,inf))
+
+This returns ``abs max err: 0.00146`` indicating that the conditioning
+is not 
+
+.. image:: ../pics/inv1d2err_wellcond.png
+   :width: 90%
+
+**2) Matvec exploiting Toeplitz structure via a pair of padded FFTs.**
+A beautiful realization comes from examining the
+usual matrix-matrix multiplication formula
+for entries of the system matrix for the normal equations,
+
+.. math:: (A^* A)_{k,k'} = \sum_{j=1}^M e^{i(k-k')x_j}
+  \qquad \mbox{for } -N/2 \le k,k' < N/2.
+
+We see the $k,k'$-entry only depends on $k-k'$, thus $A^*A$ is
+Toeplitz (constant along diagonals). Its action on a vector is
+thus a discrete convolution with a length $2N-1$ vector that we call $v$.
+From the above formula, $v$ may be filled via a type 1 NUFFT with
+unit strengths:
+
+.. code-block:: matlab
+
+  v = finufft1d1(x, ones(size(x)), -1, tol, 2*N-1);  % Toep vec, inds -(N-1):(N+1)
+  vhat = fft([v;0]);                                 % pad to length 2N
+
+We now use a pair of padded FFTs to apply the discrete convolution to
+any vector $f$.
+
+sensible padding
+
+
+
+
+           
+  This reaches ``relres<1e-6`` in 1461 iterations
 (a large count indicating poor conditioning),
 taking about 100 seconds on an 8-core laptop.
 The relative residual for the desired system $A{\bf f}={\bf y}$
@@ -101,7 +155,7 @@ The error in the signal $f(x)$ is in fact very unequally distributed
 for this problem: it is correct to 4-5 digits almost everywhere,
 including at almost all the data points,
 but errors are ${\cal O}(1)$ in the very largest gaps
-between the (iid random) sample points:
+between the (iid random) sample points. Here is such a gap:
 
 .. image:: ../pics/inv1d2err.png
    :width: 90%
@@ -115,21 +169,6 @@ A sampling point distribution without large gaps would improve the conditioning
 and make the reconstruction error in $f$ uniformly closer to the residual
 error.
            
-**2) Matvec exploiting Toeplitz structure via a pair of padded FFTs.**
-A beautiful realization comes from examining the
-usual matrix-matrix multiplication formula
-for entries of the system matrix for the normal equations,
-
-.. math:: (A^* A)_{k,k'} = \sum_{j=1}^M e^{i(k-k')x_j}
-  \qquad \mbox{for } -N/2 \le k,k' < N/2.
-
-We see the $k,k'$-entry only depends on $k-k'$, thus $A^*A$ is
-Toeplitz (constant along diagonals). Its action on a vector is
-thus a discrete convolution with a vector that we call $v$.
-
-
-
-***
 
 CG-Toep relres 9.97e-07 done in 1465 iters, 35 s
 
