@@ -25,11 +25,13 @@ library_dir = os.path.join(cufinufft_dir, "build")
 
 # Sanity check that we can find the CUDA cufinufft libraries before we get too far.
 try:
-    lib = ctypes.cdll.LoadLibrary('libcufinufft.so')
+    lib = ctypes.cdll.LoadLibrary(os.path.join(library_dir, 'libcufinufft.so'))
 except Exception as e:
     print('CUDA shared libraries not found in library path.'
-          '  Please refer to installation documentation at http://github.com/flatironinstitute/cufinufft'
-          ' and ensure CUDA installation is successful first before attempting to install the Python wrappers.')
+           '  Please refer to installation documentation at '
+           'https://finufft.readthedocs.io/en/latest/install_gpu.html '
+           ' and ensure CUDA installation is successful first before '
+           'attempting to install the Python wrappers.')
     raise(e)
 print('cufinufft CUDA shared libraries found, continuing...')
 
