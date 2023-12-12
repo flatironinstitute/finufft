@@ -67,7 +67,7 @@ setup(
     version='2.2.0.dev0',
     author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='janden-vscholar@flatironinstitute.org',
-    url='https://github.com/flatironinstitute/cufinufft',
+    url='https://github.com/flatironinstitute/finufft',
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
