@@ -29,7 +29,7 @@ The ``libcufinufft.so`` (along with ``libfinufft.so``) will now be present in yo
 or ``cmake --build . -j8`` to specify using 8 threads, for example.
 To avoid building the CPU library (``libfinufft.so``), you can set the ``FINUFFT_USE_CPU`` flag to ``OFF``.
 
-In order to configure cuFINUFFT for a specific compute capability, use the ``CMAKE_CUDA_ARCHITECTURES`` flag. For example, to compile for compute capability 8.0 (supported by NVidia A100), replace the 3rd command above by
+In order to configure cuFINUFFT for a specific compute capability, use the ``CMAKE_CUDA_ARCHITECTURES`` flag. For example, to compile for compute capability 8.0 (supported by Nvidia A100), replace the 3rd command above by
 
 .. code-block:: bash
 
@@ -68,19 +68,26 @@ Python interface
 
 .. _install-python-gpu:
 
-In addition to the C interface, cuFINUFFT also comes with a Python interface. As mentioned above, this can be most easily installed by running ``pip install cufinufft``, but it can also be installed from source. The Python interface code is located in the ``cupython`` subdirectory, so to install it, you run
+In addition to the C interface, cuFINUFFT also comes with a Python interface. As mentioned above, this can be most easily installed by running ``pip install cufinufft``, but it can also be installed from source. The Python interface code is located in the ``python/cufinufft`` subdirectory, so to install it, you first build the shared library as seen above, then run
 
 .. code-block:: bash
 
-    cd cupython
-    LD_LIBRARY_PATH="../build" LIBRARY_PATH="../build" pip install .
+    pip install python/cufinufft
 
-Note that the ``LD_LIBRARY_PATH`` and ``LIBRARY_PATH`` environment variables must be set for the Python interpreter to find ``libcufinufft.so`` (assuming it has not been installed in the appropriate system directory).
+Note that since cuFINUFFT supports a number of different GPU frameworks (CuPy, Numba, PyTorch, and PyCuda), it does not install any of these automatically as a dependency.
+You must therefore install one of these manually.
+For example, for CuPy, you would run
 
+.. code-block:: bash
+
+    pip install cupy-cuda11x
+
+for the CUDA 11.2--11.x version of CuPy.
 Assuming ``pytest`` is installed (otherwise, just run ``pip install pytest``), you can now test the installation by running
 
 .. code-block:: bash
 
-    LD_LIBRARY_PATH="../build" pytest
+    pytest --framework=cupy python/cufinufft/tests
 
-Again, ``LD_LIBRARY_PATH`` must be set in order for the interpreter to find the shared library. This applies to any invocation of the Python interpreter when using the ``cufinufft`` package. (``LIBRARY_PATH`` is no longer necessary since there is no compilation at this stage.) In contrast to the C interface tests, these check for correctness, so a successful test run signifies that the library is working correctly.
+In contrast to the C interface tests, these check for correctness, so a successful test run signifies that the library is working correctly.
+Note that you can specify other framework (``pycuda``, ``torch``, or ``numba``) for testing using the ``--framework`` argument.
