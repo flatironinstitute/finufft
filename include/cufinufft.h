@@ -1,6 +1,8 @@
 // Defines the C++/C user interface to CUFINUFFT library.
 #include <cufft.h>
 
+#include <stdint.h>
+
 #include <cufinufft_opts.h>
 #include <finufft_errors.h>
 
