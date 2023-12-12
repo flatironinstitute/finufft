@@ -120,6 +120,7 @@ def _set_nufft_doc(f, dim, tp):
 
     Example (CuPy):
     ::
+
       import cupy as cp
       import cufinufft
 
@@ -172,6 +173,7 @@ def _set_nufft_doc(f, dim, tp):
 
     Example (CuPy):
     ::
+
       import cupy as cp
       import cufinufft
 
