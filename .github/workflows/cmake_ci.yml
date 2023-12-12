@@ -1,0 +1,72 @@
+name: cmake ci linux macos windows
+on: [push]
+
+jobs:
+  Test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+          - ubuntu-22.04
+          - macos-12
+        compiler:
+          - llvm
+          - gcc
+          # you can specify the version after `-` like `llvm-13.0.0`.
+        generator:
+          - "Ninja"
+        build_type:
+          - Release
+        finufft_static_linking:
+          - ON
+        include:
+          - os: "windows-2022"
+            compiler: "msvc"
+            generator: "Ninja"
+            build_type: "Release"
+            finufft_static_linking: "OFF"
+        exclude:
+          - os: "windows-2022"
+            compiler: "gcc"
+            generator: "Ninja"
+            build_type: "Release"
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          vcvarsall: ${{ contains(matrix.os, 'windows') }}
+          cmake: true
+          ninja: true
+          vcpkg: false
+          cppcheck: false
+          clangtidy: false
+
+      - name: Install macOS dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew install fftw
+
+      - name: Configure Cmake
+        run: |
+          cmake -S . -B ./build -G "${{matrix.generator}}" -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -DFINUFFT_BUILD_TESTS=ON -DFINUFFT_STATIC_LINKING=${{matrix.finufft_static_linking}}
+
+      - name: Build
+        run: |
+          cmake --build ./build --config ${{matrix.build_type}}
+
+      - name: Test
+        working-directory: ./build
+        run: |
+          ctest -C ${{matrix.build_type}}
+
+      # may change to cpack and action-gh-release later
+      - name: Upload static and shared lib
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.os}}-${{matrix.compiler}}-finufft-lib
+          path: ${{runner.workspace}}/finufft/build/*finufft*
