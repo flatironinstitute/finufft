@@ -68,9 +68,9 @@ setup(
     #   that is rpath linked to CUDA library, also decorated (by auditwheel).
     #   Most importantly, pip will manage to install all this stuff in
     #   in places Python can find it (with a little help).
-    py_modules=['cufinufftc'],
+    py_modules=['cufinufft.cufinufftc'],
     ext_modules=[
-        Extension(name='cufinufftc',
+        Extension(name='cufinufft.cufinufftc',
                   sources=[],
                   libraries=['cufinufft'],
                   library_dirs=[library_dir],
