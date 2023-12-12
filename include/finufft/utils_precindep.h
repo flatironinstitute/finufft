@@ -12,10 +12,10 @@
 namespace finufft {
   namespace utils {
   
-  BIGINT next235even(BIGINT n);
+  FINUFFT_EXPORT BIGINT FINUFFT_CDECL next235even(BIGINT n);
 
   // jfm's timer class
-  class CNTime {
+  class FINUFFT_EXPORT CNTime {
   public:
     void start();
     double restart();
@@ -35,7 +35,7 @@ namespace finufft {
 #include <random>
 namespace finufft {
   namespace utils {
-  int rand_r(unsigned int *seedp);
+  FINUFFT_EXPORT int FINUFFT_CDECL rand_r(unsigned int *seedp);
   }   // namespace
 }   // namespace
 #endif
