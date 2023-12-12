@@ -4,6 +4,8 @@ import os
 import ctypes
 from pathlib import Path
 
+from tempfile import mkstemp
+
 from setuptools import setup, Extension
 
 # Description
@@ -35,6 +37,28 @@ except Exception as e:
            'attempting to install the Python wrappers.')
     raise(e)
 print('cufinufft CUDA shared libraries found, continuing...')
+
+# For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
+# that calls one of the functions in the FINUFFT dynamic library. The reason
+# is that these platforms override the default --no-as-needed flag for ld,
+# which means that the linker will only link to those dynamic libraries for
+# which there are unresolved symbols in the object files. Since we do not have
+# a real source, the result is that no dynamic libraries are linked. To
+# prevent this, we create a dummy source so that the library will link as
+# expected.
+fd, source_filename = mkstemp(suffix='.c', text=True)
+
+with open(fd, 'w') as f:
+    f.write( \
+"""
+#include <cufinufft.h>
+
+void PyInit_cufinufftc(void) {
+    cufinufft_opts opt;
+
+    cufinufft_default_opts(&opt);
+}
+""")
 
 
 # Python Package Setup
@@ -72,10 +96,13 @@ setup(
     py_modules=['cufinufftc'],
     ext_modules=[
         Extension(name='cufinufftc',
-                  sources=[],
+                  sources=[source_filename],
                   libraries=['cufinufft'],
+                  include_dirs=[include_dir],
                   library_dirs=[library_dir],
                   runtime_library_dirs=[library_dir],
                   )
         ]
 )
+
+os.unlink(source_filename)
