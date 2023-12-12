@@ -120,6 +120,8 @@ def _set_nufft_doc(f, dim, tp):
 
     Example (CuPy):
     ::
+      import cupy as cp
+      import cufinufft
 
       # number of nonuniform points
       M = 100
@@ -170,6 +172,8 @@ def _set_nufft_doc(f, dim, tp):
 
     Example (CuPy):
     ::
+      import cupy as cp
+      import cufinufft
 
       # number of nonuniform points
       M = 100
