@@ -52,10 +52,12 @@ static const char *_cudaGetErrorEnum(cudaError_t error) { return cudaGetErrorNam
         }                                                                                                              \
     }
 
-#define CUDA_FREE_AND_NULL(val)                                                                                        \
+#define CUDA_FREE_AND_NULL(val, stream)                                                                                \
     {                                                                                                                  \
-        check(cudaFree(val), #val, __FILE__, __LINE__);                                                                \
-        val = nullptr;                                                                                                 \
+        if (val != nullptr) {                                                                                          \
+            check(cudaFreeAsync(val, stream), #val, __FILE__, __LINE__);                                               \
+            val = nullptr;                                                                                             \
+        }                                                                                                              \
     }
 
 static const char *cufftGetErrorString(cufftResult error) {

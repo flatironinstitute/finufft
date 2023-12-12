@@ -11,8 +11,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <cufinufft.h>
 #include <cuda_runtime.h>
+#include <cufinufft.h>
 
 typedef struct {
     char *p[2];
@@ -55,6 +55,7 @@ int main() {
     {
         const int dim = 0;
         assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_DIM_NOTVALID);
+        cudaDeviceSynchronize();
     }
 
     // 1D failure modes
@@ -66,39 +67,46 @@ int main() {
         // nice input should succeed
         assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == 0);
         cufinufftf_destroy(plan);
+        cudaDeviceSynchronize();
 
         // Ignore higher dims, even if invalid
         {
             int64_t N[3] = {10, 0, 15};
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == 0);
             cufinufftf_destroy(plan);
+            cudaDeviceSynchronize();
         }
 
         {
             int64_t N[3] = {0, 20, 15};
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NDATA_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         // cufinufft can't handle arrays bigger than INT32_MAX (cufft limitation)
         {
             int64_t N[3] = {(int64_t)INT32_MAX + 1, 1, 1};
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NDATA_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         {
             const int ntransf = 0;
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NTRANS_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         {
             const int type = 4;
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_TYPE_NOTVALID);
+            cudaDeviceSynchronize();
         }
-        
+
         /* { */
         /*     wasteful_pointers p = alloc_remaining_device_mem(); */
         /*     int64_t N[3] = {INT32_MAX, 1, 1}; */
-        /*     assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_CUDA_FAILURE); */
+        /*     assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_CUDA_FAILURE);
+         */
         /*     free_wasteful_pointers(p); */
         /* } */
     }
@@ -106,11 +114,14 @@ int main() {
     {
         const int dim = 2;
         assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == 0);
+        cudaDeviceSynchronize();
+
         cufinufftf_destroy(plan);
 
         {
             int64_t N[3] = {10, 0, 1};
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NDATA_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         // FIXME: nf calculation overflows -- need to handle upsampling mode calculation properly
@@ -122,16 +133,19 @@ int main() {
         {
             int64_t N[3] = {INT32_MAX, 2, 1};
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NDATA_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         {
             const int type = 4;
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_TYPE_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         {
             const int ntransf = 0;
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NTRANS_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         {
@@ -139,7 +153,8 @@ int main() {
             cufinufft_default_opts(&opts);
             opts.upsampfac = 0.9;
             opts.gpu_kerevalmeth = 1;
-            assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, &opts) == FINUFFT_ERR_HORNER_WRONG_BETA);
+            assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, &opts) ==
+                   FINUFFT_ERR_HORNER_WRONG_BETA);
 
             opts.gpu_kerevalmeth = 0;
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, &opts) ==
@@ -149,6 +164,7 @@ int main() {
             opts.upsampfac = 4.5;
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, &opts) == 0);
             cufinufftf_destroy(plan);
+            cudaDeviceSynchronize();
         }
 
         // This technique to cause cuda failures works most of the time, but sometimes would
@@ -156,7 +172,8 @@ int main() {
         /* { */
         /*     wasteful_pointers p = alloc_remaining_device_mem(); */
         /*     int64_t N[3] = {sqrt(INT32_MAX - 1), sqrt(INT32_MAX) - 1, 1}; */
-        /*     assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_CUDA_FAILURE); */
+        /*     assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_CUDA_FAILURE);
+         */
         /*     free_wasteful_pointers(p); */
         /* } */
     }
@@ -165,31 +182,38 @@ int main() {
         const int dim = 3;
         assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == 0);
         cufinufftf_destroy(plan);
+        cudaDeviceSynchronize();
 
         {
             int64_t N[3] = {10, 15, 0};
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NDATA_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         {
             int64_t N[3] = {INT32_MAX / 2, 2, 2};
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NDATA_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         {
             const int type = 4;
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_TYPE_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         {
             const int ntransf = 0;
             assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_NTRANS_NOTVALID);
+            cudaDeviceSynchronize();
         }
 
         /* { */
         /*     wasteful_pointers p = alloc_remaining_device_mem(); */
-        /*     int64_t N[3] = {pow(INT32_MAX - 1, 1.0 / 3), pow(INT32_MAX - 1, 1.0 / 3), pow(INT32_MAX - 1, 1.0 / 3)}; */
-        /*     assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_CUDA_FAILURE); */
+        /*     int64_t N[3] = {pow(INT32_MAX - 1, 1.0 / 3), pow(INT32_MAX - 1, 1.0 / 3), pow(INT32_MAX - 1, 1.0 / 3)};
+         */
+        /*     assert(cufinufftf_makeplan(type, dim, N, iflag, ntransf, tol, &plan, NULL) == FINUFFT_ERR_CUDA_FAILURE);
+         */
         /*     free_wasteful_pointers(p); */
         /* } */
     }

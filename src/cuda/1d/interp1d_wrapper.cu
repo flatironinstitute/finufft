@@ -44,6 +44,7 @@ int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
 
 template <typename T>
 int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+    auto &stream = d_plan->stream;
     dim3 threadsPerBlock;
     dim3 blocks;
 
@@ -65,14 +66,14 @@ int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
 
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
-            interp_1d_nuptsdriven<T, 1><<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
-                                                                     es_c, es_beta, sigma, d_idxnupts, pirange);
+            interp_1d_nuptsdriven<T, 1><<<blocks, threadsPerBlock, 0, stream>>>(
+                d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_idxnupts, pirange);
             RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
-            interp_1d_nuptsdriven<T, 0><<<blocks, threadsPerBlock>>>(d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1,
-                                                                     es_c, es_beta, sigma, d_idxnupts, pirange);
+            interp_1d_nuptsdriven<T, 0><<<blocks, threadsPerBlock, 0, stream>>>(
+                d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_idxnupts, pirange);
             RETURN_IF_CUDA_ERROR
         }
     }

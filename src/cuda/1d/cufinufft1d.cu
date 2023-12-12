@@ -32,6 +32,7 @@ int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 */
 {
     assert(d_plan->spopts.spread_direction == 1);
+    auto &stream = d_plan->stream;
 
     int ier;
     cuda_complex<T> *d_fkstart;
@@ -45,7 +46,7 @@ int cufinufft1d1_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
 
         // this is needed
         if ((ier = checkCudaErrors(
-                 cudaMemset(d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * sizeof(cuda_complex<T>)))))
+                 cudaMemsetAsync(d_plan->fw, 0, d_plan->maxbatchsize * d_plan->nf1 * sizeof(cuda_complex<T>), stream))))
             return ier;
 
         // Step 1: Spread
@@ -98,9 +99,6 @@ int cufinufft1d2_exec(cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_pla
             return ier;
 
         // Step 2: FFT
-        cudaDeviceSynchronize();
-        RETURN_IF_CUDA_ERROR
-
         cufftResult cufft_status = cufft_ex(d_plan->fftplan, d_plan->fw, d_plan->fw, d_plan->iflag);
         if (cufft_status != CUFFT_SUCCESS)
             return FINUFFT_ERR_CUDA_FAILURE;
