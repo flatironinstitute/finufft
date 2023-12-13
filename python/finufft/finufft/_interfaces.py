@@ -623,6 +623,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
     Example:
     ::
 
+      import numpy as np
+      import finufft
+
       # number of nonuniform points
       M = 100
 
@@ -674,6 +677,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
     Example:
     ::
 
+      import numpy as np
+      import finufft
+
       # number of nonuniform points
       M = 100
 
@@ -724,6 +730,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
 
     Example:
     ::
+
+      import numpy as np
+      import finufft
 
       # number of source points
       M = 100
