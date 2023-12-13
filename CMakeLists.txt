@@ -34,6 +34,11 @@ option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfi
 # sphinx tag (don't remove): @cmake_opts_end
 
 if(FINUFFT_USE_CPU)
+    # suppress Windows warnings about "unsafe" functions
+    if(WIN32)
+        add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    endif()
+
     set(CPM_DOWNLOAD_VERSION 0.38.0)
     include(cmake/setupCPM.cmake)
 

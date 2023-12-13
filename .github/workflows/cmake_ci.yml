@@ -2,7 +2,7 @@ name: cmake ci linux macos windows
 on: [push]
 
 jobs:
-  Test:
+  cmake-ci:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
