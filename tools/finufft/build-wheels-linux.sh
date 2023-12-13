@@ -18,14 +18,7 @@ export FINUFFT_DIR=$(pwd)
 export LD_LIBRARY_PATH=${FINUFFT_DIR}/lib:${LD_LIBRARY_PATH}
 
 # Explicitly list Python versions to build
-versions=("cp36-cp36m"
-          "cp37-cp37m"
-          "cp38-cp38"
-          "cp39-cp39"
-          "cp310-cp310"
-          "cp311-cp311"
-          "pp38-pypy38_pp73"
-          "pp39-pypy39_pp73")
+versions=("cp38-cp38")
 
 pys=()
 for version in "${versions[@]}"; do
