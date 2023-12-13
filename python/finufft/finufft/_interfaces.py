@@ -73,10 +73,10 @@ class Plan:
 
     Args:
         nufft_type      (int): type of NUFFT (1, 2, or 3).
-        n_modes_or_dim  (int or tuple of ints): if ``nufft_type`` is 1 or 2,
-                        this should be a tuple specifying the number of modes
-                        in each dimension (for example, ``(50, 100)``),
-                        otherwise, if ``nufft_type`` is 3, this should be the
+        n_modes_or_dim  (int or tuple of ints): for type 1 and type 2, this
+                        should be a tuple specifying the number of modes in
+                        each dimension (for example, ``(50, 100)``),
+                        otherwise, for type 3, this should be the
                         number of dimensions (between 1 and 3).
         n_trans         (int, optional): number of transforms to compute
                         simultaneously.
@@ -85,7 +85,7 @@ class Plan:
                         exponential, otherwise the negative sign exponential;
                         defaults to +1 for types 1 and 3 and to -1 for type 2.
         dtype           (string, optional): the precision of the transform,
-                        'complex64' or 'complex128'.
+                        ``'complex64'`` or ``'complex128'``.
         **kwargs        (optional): for more options, see :ref:`opts`.
     """
     def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,dtype='complex128',**kwargs):
