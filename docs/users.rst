@@ -5,6 +5,9 @@ Dependent packages, wrappers, users, and citations
 
 Here we list packages that depend on or wrap FINUFFT, and papers or groups using it.
 Papers that merely cite our work are listed separately at the bottom. Please let us know (and use github's dependent package link) if you are a user or package maintainer but not listed, and please "star" our GitHub repo.
+It will help us to improve the library if you also
+describe your use case parameters
+[here](https://github.com/flatironinstitute/finufft/discussions/398).
 
 
 Packages relying on FINUFFT or cuFINUFFT
