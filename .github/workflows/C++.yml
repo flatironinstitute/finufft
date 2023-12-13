@@ -16,7 +16,7 @@ jobs:
     container: quay.io/pypa/manylinux2014_x86_64:latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install fftw
       run: |
@@ -34,7 +34,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: 10.15
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Install omp and fftw
       run: |
@@ -53,7 +53,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: 10.15
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Install gcc and fftw
       run: |
@@ -73,7 +73,7 @@ jobs:
         shell: msys2 {0}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: 'Setup MSYS2'
       uses: msys2/setup-msys2@v2

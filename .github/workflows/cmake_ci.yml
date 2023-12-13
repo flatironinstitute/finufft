@@ -2,7 +2,7 @@ name: cmake ci linux macos windows
 on: [push]
 
 jobs:
-  Test:
+  cmake-ci:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -33,7 +33,7 @@ jobs:
             generator: "Ninja"
             build_type: "Release"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1

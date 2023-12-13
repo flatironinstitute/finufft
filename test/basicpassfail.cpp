@@ -19,8 +19,8 @@ int main()
   std::vector<FLT> x(M);     // NU pts locs
   std::vector<CPX> c(M);     // strengths 
   for (BIGINT j=0; j<M; ++j) {
-    x[j] = M_PI*(2*((FLT)rand()/RAND_MAX)-1);     // uniform random in [-pi,pi)
-    c[j] = 2*((FLT)rand()/RAND_MAX)-1 + I*(2*((FLT)rand()/RAND_MAX)-1);
+    x[j] = M_PI*(2*((FLT)rand()/(FLT)RAND_MAX)-1);     // uniform random in [-pi,pi)
+    c[j] = 2*((FLT)rand()/(FLT)RAND_MAX)-1 + I*(2*((FLT)rand()/(FLT)RAND_MAX)-1);
   }
   // Run it (NULL = default opts) .......................................
   int ier = FINUFFT1D1(M,&x[0],&c[0],isign,tol,N,&F[0],NULL);
