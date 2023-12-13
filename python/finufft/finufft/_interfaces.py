@@ -68,7 +68,8 @@ class Plan:
         # execute the plan
         f = plan.execute(c)
 
-    Also see ``python/examples/guru1d1.py`` and ``python/examples/guru2d1.py``.
+    Also see ``python/finufft/examples/guru1d1.py`` and
+    ``python/finufft/examples/guru2d1.py``.
 
     Args:
         nufft_type      (int): type of NUFFT (1, 2, or 3).
@@ -586,7 +587,7 @@ def _wrap_docstring(docstring, tw=80, min_spacing=2):
     return docstring
 
 
-def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
+def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests.py'):
     doc_nufft1 = \
     """{dim}D type-1 (nonuniform to uniform) complex NUFFT
 
@@ -844,10 +845,10 @@ def nufft3d3(x,y,z,c,s,t,u,out=None,eps=1e-6,isign=1,**kwargs):
     return invoke_guru(3,3,x,y,z,c,s,t,u,out,isign,eps,None,**kwargs)
 
 
-_set_nufft_doc(nufft1d1, 1, 1, 'python/examples/simple1d1.py, python/examples/simpleopts1d1.py')
+_set_nufft_doc(nufft1d1, 1, 1, 'python/finufft/examples/simple1d1.py, python/finufft/examples/simpleopts1d1.py')
 _set_nufft_doc(nufft1d2, 1, 2)
 _set_nufft_doc(nufft1d3, 1, 3)
-_set_nufft_doc(nufft2d1, 2, 1, 'python/examples/simple2d1.py, python/examples/many2d1.py')
+_set_nufft_doc(nufft2d1, 2, 1, 'python/finufft/examples/simple2d1.py, python/finufft/examples/many2d1.py')
 _set_nufft_doc(nufft2d2, 2, 2)
 _set_nufft_doc(nufft2d3, 2, 3)
 _set_nufft_doc(nufft3d1, 3, 1)
