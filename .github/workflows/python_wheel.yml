@@ -16,7 +16,7 @@ jobs:
     container: quay.io/pypa/manylinux2014_x86_64:latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
     - name: Install fftw
       run: |
