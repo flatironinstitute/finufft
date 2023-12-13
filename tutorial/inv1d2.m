@@ -6,8 +6,8 @@ clear; close all; addpath utils; addpath ../matlab
 N=3e5;   % num unknown coeffs (ie twice the max frequency)
 ks = -floor(N/2) + (0:N-1);      % row vec of the frequency indices
 M=2*N;           % number of scattered points on the periodic domain
-wellcond=0;
-toep = 1;
+wellcond=true;       % use to choose example
+toep=true;           % use to choose matvec method
 rng(0);                     % fix seed for reproducibility
 if wellcond, x = 2*pi*((0:M-1)' + 2*rand(M,1))/M;   % jittered pts (will be well conditioned)
 else, x = 2*pi*rand(M,1);             % iid random (will be ill conditioned)
@@ -18,8 +18,7 @@ ftrue = (randn(N,1) + 1i*randn(N,1))/sqrt(N);
 
 tol = 1e-12;
 y = finufft1d2(x,+1,tol,ftrue);       % data = eval this Fourier series
-
-%y = y + 1e-6*(randn(M,1) + 1i*randn(M,1));   % add noise
+%y = y + 1e-6*(randn(M,1) + 1i*randn(M,1));   % add noise (6-digit meas acc)
 
 if N*M<1e7          % expensive dense direct solve, to check what it's doing
   A = exp(1i*x(:)*ks);            % outer prod

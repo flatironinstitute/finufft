@@ -203,7 +203,7 @@ Two ways to change the problem to reduce ill-conditioning include:
 The 2nd idea here also fits into the iterative NUFFT or Toeplitz frameworks,
 and we plan to present it in another tutorial shortly.
 
-For the complete code for the above examples and plots, see ``tutorial/inv1d2.m``.
+For the complete code for the above examples and plots, including comparing the naive dense direct solve for small problems (a useful exercise), see ``tutorial/inv1d2.m``.
 
 
 Further reading
