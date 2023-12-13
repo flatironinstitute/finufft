@@ -42,7 +42,7 @@
 // ------------- Library-wide algorithm parameter settings ----------------
 
 // Library version (is a string)
-#define FINUFFT_VER "2.2.0.dev0"
+#define FINUFFT_VER "2.2.0"
 
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
@@ -88,14 +88,14 @@
 // (RAND_MAX is in stdlib.h)
 #include <stdlib.h>
 //#define rand01() (((FLT)(rand()%RAND_MAX))/RAND_MAX)
-#define rand01() ((FLT)rand()/RAND_MAX)
+#define rand01() ((FLT)rand()/(FLT)RAND_MAX)
 // unif[-1,1]:
 #define randm11() (2*rand01() - (FLT)1.0)
 // complex unif[-1,1] for Re and Im:
 #define crandm11() (randm11() + IMA*randm11())
 
 // Thread-safe seed-carrying versions of above (x is ptr to seed)...
-#define rand01r(x) ((FLT)rand_r(x)/RAND_MAX)
+#define rand01r(x) ((FLT)rand_r(x)/(FLT)RAND_MAX)
 // unif[-1,1]:
 #define randm11r(x) (2*rand01r(x) - (FLT)1.0)
 // complex unif[-1,1] for Re and Im:

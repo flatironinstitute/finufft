@@ -30,9 +30,15 @@ option(FINUFFT_ENABLE_SANITIZERS "Whether to enable sanitizers, only effective f
 option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disabled, the finufft library will be single threaded. This does not affect the choice of FFTW library." ON)
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
+option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfinufft_static)." ON)
 # sphinx tag (don't remove): @cmake_opts_end
 
 if(FINUFFT_USE_CPU)
+    # suppress Windows warnings about "unsafe" functions
+    if(WIN32)
+        add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    endif()
+
     set(CPM_DOWNLOAD_VERSION 0.38.0)
     include(cmake/setupCPM.cmake)
 
@@ -84,6 +90,25 @@ function(enable_asan target)
     endif ()
 endfunction()
 
+# Utility function to link static/dynamic lib
+function(finufft_link_test target)
+  if(FINUFFT_STATIC_LINKING)
+      target_link_libraries(${target} PRIVATE finufft_static)
+      if(FINUFFT_USE_OPENMP)
+          target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
+          if(WIN32)
+              target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
+          endif()
+      endif()
+  else()
+      target_link_libraries(${target} PRIVATE finufft)
+      if(WIN32)
+          target_compile_definitions(${target} PRIVATE FINUFFT_DLL)
+      endif()
+  endif()
+  enable_asan(${target})
+endfunction()
+
 # Utility function to set finufft compilation options.
 function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -132,12 +157,30 @@ if(FINUFFT_USE_CPU)
     target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 
     add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
+    target_compile_definitions(finufft_f64 PRIVATE)
     set_finufft_options(finufft_f64)
     target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
 
+    if(WIN32)
+        add_library(finufft_f32_dll OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
+        target_compile_definitions(finufft_f32_dll PRIVATE SINGLE dll_EXPORTS FINUFFT_DLL)
+        set_finufft_options(finufft_f32_dll)
+        target_link_libraries(finufft_f32_dll PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+
+        add_library(finufft_f64_dll OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
+        target_compile_definitions(finufft_f64_dll PRIVATE dll_EXPORTS FINUFFT_DLL)
+        set_finufft_options(finufft_f64_dll)
+        target_link_libraries(finufft_f64_dll PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+    endif()
+
     add_library(finufft SHARED src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
+    target_compile_definitions(finufft PRIVATE dll_EXPORTS FINUFFT_DLL)
     set_finufft_options(finufft)
-    target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
+    if(NOT WIN32)
+        target_link_libraries(finufft PUBLIC finufft_f32 finufft_f64)
+    else()
+        target_link_libraries(finufft PUBLIC finufft_f32_dll finufft_f64_dll)
+    endif()
     # windows does not have a math library, so we need to exclude it
     if(NOT WIN32)
         target_link_libraries(finufft PUBLIC m)
@@ -145,7 +188,7 @@ if(FINUFFT_USE_CPU)
     target_include_directories(finufft PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
     add_library(finufft_static STATIC src/utils_precindep.cpp contrib/legendre_rule_fast.cpp)
-    set_finufft_options(finufft)
+    set_finufft_options(finufft_static)
     target_link_libraries(finufft_static PUBLIC finufft_f32 finufft_f64)
     # windows does not have a math library, so we need to exclude it
     if(NOT WIN32)

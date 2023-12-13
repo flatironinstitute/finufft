@@ -40,7 +40,7 @@ shutil.copy(shared_obj, os.path.join(os.getcwd(), 'cufinufft'))
 # Python Package Setup
 setup(
     name='cufinufft',
-    version='2.2.0.dev0',
+    version='2.2.0beta',
     author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='janden-vscholar@flatironinstitute.org',
     url='https://github.com/flatironinstitute/finufft',

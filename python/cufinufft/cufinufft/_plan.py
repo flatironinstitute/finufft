@@ -39,7 +39,7 @@ class Plan:
 
     The ``Plan`` class lets the user exercise more fine-grained control over
     the execution of an NUFFT. First, the plan is created with a certain set
-    of parameters (type, mode configuration, tolerance, sign, number of
+    of parameters (type, mode configuration, precision, sign, number of
     simultaneous transforms, and so on). Then the nonuniform points are set
     (source or target depending on the type). Finally, the plan is executed on
     some data, yielding the desired output.
@@ -53,11 +53,16 @@ class Plan:
         isign           (int, optional): if +1, uses the positive sign
                         exponential, otherwise the negative sign; defaults to
                         +1 for type 1 and to -1 for type 2.
-        dtype           (string, optional): the precision of the transofrm,
+        dtype           (string, optional): the precision of the transform,
                         'complex64' or 'complex128'.
-        **kwargs        (optional): additional options corresponding to the
-                        entries in the `nufft_opts` structure may be specified
-                        as keyword-only arguments.
+        **kwargs        (optional): additional options corresponding may be
+                        specified as keyword arguments. These include
+                        upsampling ratio ``upsampfac`` (default ``2.0``),
+                        ``gpu_method`` (1: nonuniform points-driven, 2: shared
+                        memory), ``gpu_sort`` (for ``gpu_method == 1``, 0: no
+                        sort, 1: sort), ``gpu_kerevalmeth`` (0: direct
+                        exp(sqrt), Horner evaluation), ``gpu_device_id`` (GPU
+                        ID), and ``gpu_stream`` (CUDA stream pointer).
     """
 
     def __init__(self, nufft_type, n_modes, n_trans=1, eps=1e-6, isign=None,
@@ -245,13 +250,16 @@ class Plan:
         ``n_trans`` inputs are expected, stacked along the first axis.
 
         Args:
-            data    (complex[M], complex[n_transf, M], complex[n_modes], or complex[n_transf, n_modes]): The input source strengths
-                    (type 1) or source modes (type 2).
-            out     (complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M], optional): The array where the
-                    output is stored. Must be of the right size.
+            data    (complex[M], complex[n_tr, M], complex[n_modes], or complex[n_tr, n_modes]):
+                    The input source strengths (type 1) or source modes (type
+                    2).
+            out     (complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M], optional):
+                    The array where the output is stored. Must be of the
+                    correct size.
 
         Returns:
-            complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
+            complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M]:
+            The output array of the transform(s).
         """
 
         _data = _ensure_array_type(data, "data", self.dtype)
