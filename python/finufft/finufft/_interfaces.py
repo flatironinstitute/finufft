@@ -237,13 +237,13 @@ class Plan:
         ``n_transf`` inputs are expected, stacked along the first axis.
 
         Args:
-            data    (complex[M], complex[n_transf, M], complex[n_modes], or complex[n_transf, n_modes]): The input source strengths
+            data    (complex[M], complex[n_tr, M], complex[n_modes], or complex[n_tr, n_modes]): The input source strengths
                     (type 1 and 3) or source modes (type 2).
-            out     (complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M], optional): The array where the
+            out     (complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M], optional): The array where the
                     output is stored. Must be of the right size.
 
         Returns:
-            complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
+            complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M]: The output array of the transform(s).
         """
 
         _data = _ensure_array_type(data, "data", self.dtype)
@@ -601,12 +601,12 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
 
     Args:
 {pts_doc}
-      c         (complex[M] or complex[ntransf, M]): source strengths.
+      c         (complex[M] or complex[n_tr, M]): source strengths.
       n_modes   (integer or integer tuple of length {dim}, optional): number of
                 uniform Fourier modes requested {modes_tuple}. May be even or odd; in
                 either case, modes {pt_idx} are integers satisfying {pt_constraint}.
                 Must be specified if ``out`` is not given.
-      out       (complex[{modes}] or complex[ntransf, {modes}], optional): output array
+      out       (complex[{modes}] or complex[n_tr, {modes}], optional): output array
                 for Fourier mode values. If ``n_modes`` is specifed, the shape
                 must match, otherwise ``n_modes`` is inferred from ``out``.
       eps       (float, optional): precision requested (>1e-16).
@@ -619,7 +619,7 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
       The output is written into the ``out`` array if supplied.
 
     Returns:
-      complex[{modes}] or complex[ntransf, {modes}]: The resulting array.
+      complex[{modes}] or complex[n_tr, {modes}]: The resulting array.
 
     Example:
     ::
@@ -658,10 +658,10 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
 
     Args:
 {pts_doc}
-      f         (complex[{modes}] or complex[ntransf, {modes}]): Fourier mode
+      f         (complex[{modes}] or complex[n_tr, {modes}]): Fourier mode
                 coefficients, where {modes} may be even or odd. In either case
                 the mode indices {pt_idx} satisfy {pt_constraint}.
-      out       (complex[M] or complex[ntransf, M], optional): output array
+      out       (complex[M] or complex[n_tr, M], optional): output array
                 at targets.
       eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
@@ -673,7 +673,7 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
       The output is written into the ``out`` array if supplied.
 
     Returns:
-      complex[M] or complex[ntransf, M]: The resulting array.
+      complex[M] or complex[n_tr, M]: The resulting array.
 
     Example:
     ::
@@ -714,9 +714,9 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
 
     Args:
 {src_pts_doc}
-      c         (complex[M] or complex[ntransf, M]): source strengths.
+      c         (complex[M] or complex[n_tr, M]): source strengths.
 {target_pts_doc}
-      out       (complex[N] or complex[ntransf, N]): output values at target frequencies.
+      out       (complex[N] or complex[n_tr, N]): output values at target frequencies.
       eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
@@ -727,7 +727,7 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
       The output is written into the ``out`` array if supplied.
 
     Returns:
-      complex[M] or complex[ntransf, M]: The resulting array.
+      complex[M] or complex[n_tr, M]: The resulting array.
 
     Example:
     ::
