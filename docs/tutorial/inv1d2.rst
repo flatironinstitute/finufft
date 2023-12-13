@@ -86,7 +86,7 @@ residual and actual solution error:
 
 This reaches ``relres<1e-6`` in 28 iterations,
 indicating a well-conditioned system.
-This takes 1.6 seconds on an 8-code laptop. The residual of the original
+This takes 1.6 seconds on an 8-core laptop. The residual of the original
 system and the error from the true coefficients are quite close to the
 normal equation residual::
 
