@@ -233,8 +233,8 @@ class Plan:
         Performs the NUFFT specified at plan instantiation with the points set
         by ``setpts``. For type-1 and type-3 transforms, the input is a set of
         source strengths, while for a type-2 transform, it consists of an
-        array of size ``n_modes``. If ``n_transf`` is greater than one,
-        ``n_transf`` inputs are expected, stacked along the first axis.
+        array of size ``n_modes``. If ``n_trans`` is greater than one,
+        ``n_trans`` inputs are expected, stacked along the first axis.
 
         Args:
             data    (complex[M], complex[n_tr, M], complex[n_modes], or complex[n_tr, n_modes]): The input source strengths
