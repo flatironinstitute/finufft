@@ -144,7 +144,7 @@ If you need to fit off-grid data to a Fourier representation
 but you
 do not have *quadrature weights* for the off-grid points, you may
 need to *invert* the NUFFT, which actually means solving a large linear system;
-see :ref:`references<refs>` [GLI] [KKP], and, soon, our :ref:`tutorials and demos<tut>`.
+see our :ref:`tutorials and demos<tut>`, and :ref:`references<refs>` [GLI] [KKP].
 Poor coverage by the nonuniform point set will cause ill-conditioning and
 a heavy reliance on regularization.
 
