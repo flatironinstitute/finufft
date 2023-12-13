@@ -152,7 +152,7 @@ As a reminder, this is because the spreading/interpolation operations in the NUF
 Ill-conditioned example
 -----------------------
 
-The conditioning of the inverse NUFFT problem is set by the nonuniform (sample) point distribution. To illustrate, we now switch to iid random points:
+The conditioning of the inverse NUFFT problem is set by the nonuniform (sample) point distribution, as well as $N$. To illustrate, we now keep $N$ and $M$ the same, but switch to iid random points:
 
 .. code-block:: matlab
 
@@ -161,15 +161,16 @@ The conditioning of the inverse NUFFT problem is set by the nonuniform (sample) 
 We use the Toeplitz FFT matvec (method 2 above), and now find that CG
 reaches the requested ``relres<1e-6`` in a huge 1461 iterations
 (the large count implying poor conditioning), taking 35 seconds. The above error
-diagnosis code lines now print::
+diagnosis code lines now give::
 
   rel l2 resid of Af=y: 2.62e-05
   rel l2 coeff err: 0.0236
   abs max err: 2.4
 
-Here the residual shows that *the linear system was solved reasonably accurately*, but that the coefficient error is a much worse.
+Here the residual shows that *the linear system was still solved reasonably accurately*, but that the coefficient error is now much worse.
 This is typical behavior for an ill-conditioned problem.
-Their ratio (both in $\ell_2$ norm) places a lower bound on the condition
+Their ratio of coefficient error to residual (both in $\ell_2$ norms)
+places a lower bound on the condition
 number $\kappa(A)$ of about 900. This explains the large iteration count
 for the normal equations, since their condition number is $\kappa(A^*A) = \kappa(A)^2$.
 
