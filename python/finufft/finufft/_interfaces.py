@@ -68,14 +68,15 @@ class Plan:
         # execute the plan
         f = plan.execute(c)
 
-    Also see ``python/examples/guru1d1.py`` and ``python/examples/guru2d1.py``.
+    Also see ``python/finufft/examples/guru1d1.py`` and
+    ``python/finufft/examples/guru2d1.py``.
 
     Args:
         nufft_type      (int): type of NUFFT (1, 2, or 3).
-        n_modes_or_dim  (int or tuple of ints): if ``nufft_type`` is 1 or 2,
-                        this should be a tuple specifying the number of modes
-                        in each dimension (for example, ``(50, 100)``),
-                        otherwise, if ``nufft_type`` is 3, this should be the
+        n_modes_or_dim  (int or tuple of ints): for type 1 and type 2, this
+                        should be a tuple specifying the number of modes in
+                        each dimension (for example, ``(50, 100)``),
+                        otherwise, for type 3, this should be the
                         number of dimensions (between 1 and 3).
         n_trans         (int, optional): number of transforms to compute
                         simultaneously.
@@ -84,7 +85,7 @@ class Plan:
                         exponential, otherwise the negative sign exponential;
                         defaults to +1 for types 1 and 3 and to -1 for type 2.
         dtype           (string, optional): the precision of the transform,
-                        'complex64' or 'complex128'.
+                        ``'complex64'`` or ``'complex128'``.
         **kwargs        (optional): for more options, see :ref:`opts`.
     """
     def __init__(self,nufft_type,n_modes_or_dim,n_trans=1,eps=1e-6,isign=None,dtype='complex128',**kwargs):
@@ -232,17 +233,17 @@ class Plan:
         Performs the NUFFT specified at plan instantiation with the points set
         by ``setpts``. For type-1 and type-3 transforms, the input is a set of
         source strengths, while for a type-2 transform, it consists of an
-        array of size ``n_modes``. If ``n_transf`` is greater than one,
-        ``n_transf`` inputs are expected, stacked along the first axis.
+        array of size ``n_modes``. If ``n_trans`` is greater than one,
+        ``n_trans`` inputs are expected, stacked along the first axis.
 
         Args:
-            data    (complex[M], complex[n_transf, M], complex[n_modes], or complex[n_transf, n_modes]): The input source strengths
+            data    (complex[M], complex[n_tr, M], complex[n_modes], or complex[n_tr, n_modes]): The input source strengths
                     (type 1 and 3) or source modes (type 2).
-            out     (complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M], optional): The array where the
+            out     (complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M], optional): The array where the
                     output is stored. Must be of the right size.
 
         Returns:
-            complex[n_modes], complex[n_transf, n_modes], complex[M], or complex[n_transf, M]: The output array of the transform(s).
+            complex[n_modes], complex[n_tr, n_modes], complex[M], or complex[n_tr, M]: The output array of the transform(s).
         """
 
         _data = _ensure_array_type(data, "data", self.dtype)
@@ -586,7 +587,7 @@ def _wrap_docstring(docstring, tw=80, min_spacing=2):
     return docstring
 
 
-def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
+def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests.py'):
     doc_nufft1 = \
     """{dim}D type-1 (nonuniform to uniform) complex NUFFT
 
@@ -600,12 +601,12 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
 
     Args:
 {pts_doc}
-      c         (complex[M] or complex[ntransf, M]): source strengths.
+      c         (complex[M] or complex[n_tr, M]): source strengths.
       n_modes   (integer or integer tuple of length {dim}, optional): number of
                 uniform Fourier modes requested {modes_tuple}. May be even or odd; in
                 either case, modes {pt_idx} are integers satisfying {pt_constraint}.
                 Must be specified if ``out`` is not given.
-      out       (complex[{modes}] or complex[ntransf, {modes}], optional): output array
+      out       (complex[{modes}] or complex[n_tr, {modes}], optional): output array
                 for Fourier mode values. If ``n_modes`` is specifed, the shape
                 must match, otherwise ``n_modes`` is inferred from ``out``.
       eps       (float, optional): precision requested (>1e-16).
@@ -618,10 +619,13 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       The output is written into the ``out`` array if supplied.
 
     Returns:
-      complex[{modes}] or complex[ntransf, {modes}]: The resulting array.
+      complex[{modes}] or complex[n_tr, {modes}]: The resulting array.
 
     Example:
     ::
+
+      import numpy as np
+      import finufft
 
       # number of nonuniform points
       M = 100
@@ -654,10 +658,10 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
 
     Args:
 {pts_doc}
-      f         (complex[{modes}] or complex[ntransf, {modes}]): Fourier mode
+      f         (complex[{modes}] or complex[n_tr, {modes}]): Fourier mode
                 coefficients, where {modes} may be even or odd. In either case
                 the mode indices {pt_idx} satisfy {pt_constraint}.
-      out       (complex[M] or complex[ntransf, M], optional): output array
+      out       (complex[M] or complex[n_tr, M], optional): output array
                 at targets.
       eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
@@ -669,10 +673,13 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       The output is written into the ``out`` array if supplied.
 
     Returns:
-      complex[M] or complex[ntransf, M]: The resulting array.
+      complex[M] or complex[n_tr, M]: The resulting array.
 
     Example:
     ::
+
+      import numpy as np
+      import finufft
 
       # number of nonuniform points
       M = 100
@@ -707,9 +714,9 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
 
     Args:
 {src_pts_doc}
-      c         (complex[M] or complex[ntransf, M]): source strengths.
+      c         (complex[M] or complex[n_tr, M]): source strengths.
 {target_pts_doc}
-      out       (complex[N] or complex[ntransf, N]): output values at target frequencies.
+      out       (complex[N] or complex[n_tr, N]): output values at target frequencies.
       eps       (float, optional): precision requested (>1e-16).
       isign     (int, optional): if non-negative, uses positive sign in
                 exponential, otherwise negative sign.
@@ -720,10 +727,13 @@ def _set_nufft_doc(f, dim, tp, example='python/test/accuracy_speed_tests.py'):
       The output is written into the ``out`` array if supplied.
 
     Returns:
-      complex[M] or complex[ntransf, M]: The resulting array.
+      complex[M] or complex[n_tr, M]: The resulting array.
 
     Example:
     ::
+
+      import numpy as np
+      import finufft
 
       # number of source points
       M = 100
@@ -835,10 +845,10 @@ def nufft3d3(x,y,z,c,s,t,u,out=None,eps=1e-6,isign=1,**kwargs):
     return invoke_guru(3,3,x,y,z,c,s,t,u,out,isign,eps,None,**kwargs)
 
 
-_set_nufft_doc(nufft1d1, 1, 1, 'python/examples/simple1d1.py, python/examples/simpleopts1d1.py')
+_set_nufft_doc(nufft1d1, 1, 1, 'python/finufft/examples/simple1d1.py, python/finufft/examples/simpleopts1d1.py')
 _set_nufft_doc(nufft1d2, 1, 2)
 _set_nufft_doc(nufft1d3, 1, 3)
-_set_nufft_doc(nufft2d1, 2, 1, 'python/examples/simple2d1.py, python/examples/many2d1.py')
+_set_nufft_doc(nufft2d1, 2, 1, 'python/finufft/examples/simple2d1.py, python/finufft/examples/many2d1.py')
 _set_nufft_doc(nufft2d2, 2, 2)
 _set_nufft_doc(nufft2d3, 2, 3)
 _set_nufft_doc(nufft3d1, 3, 1)
