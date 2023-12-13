@@ -134,7 +134,7 @@ We now use a pair of padded FFTs in a function (see ``tutorial/applyToep.m`` for
 
 .. code-block:: matlab
 
-  function Tf = applyToep(f,vhat)
+  function Tf = applyToep(f,vhat)          % perform Toeplitz matvec on vector f
     N = numel(f);
     fpadhat = fft(f(:),2*N);               % first zero-pads out to size of vhat
     Tf = ifft(fpadhat .* vhat(:));         % do periodic convolution
@@ -144,6 +144,12 @@ We now use a pair of padded FFTs in a function (see ``tutorial/applyToep.m`` for
 .. note::
 
    Since FFTs are periodic, the minimum length that padded FFTs can be to correctly compute the central $N$ entries of the nonperiodic convolution of a length $N$ vector with a length $2N-1$ vector is $2N-1$. However, for $N=3\times 10^5$, $2N-1=599999$ is prime! Its FFT is several times slower than one of length $2N$. Thus we choose $2N$ as the padded length; a more optimized code might pad to the next 5-smooth even number above $2N-1$, using, eg, `next235even <https://github.com/flatironinstitute/finufft/blob/9a1fae7ab1c2f6b1e51c8907b4d6483d5b55f716/src/utils_precindep.cpp#L15>`_.
+
+The solver command with this matvec is:
+
+.. code-block:: matlab
+
+  [f,flag,relres,iter] = pcg(@(f) applyToep(f,vhat), rhs, 1e-6, N);
 
 The resulting iteration count is identical to that for the NUFFT-based matvec,
 but the CPU time is now 0.65 seconds, ie, 2.5x faster.
@@ -199,12 +205,15 @@ partially explains the ill-conditioning observed above.
 
 Two ways to change the problem to reduce ill-conditioning include:
 1) changing the sampling point distribution to avoid large gaps, and
-2) changing the problem by introducing a regularization term.
+2) changing the problem by introducing a **regularization term**.
 
 The 2nd idea here also fits into the iterative NUFFT or Toeplitz frameworks,
 and we plan to present it in another tutorial shortly.
+We have also not yet discussed the use of **preconditioning** (such as those
+for Toeplitz systems in Raymond Chan's book) to reduce the iteration count
+of CG.
 
-For the complete code for the above examples and plots, including comparing the naive dense direct solve for small problems (a useful exercise), see ``tutorial/inv1d2.m``.
+For the complete code for the above examples and plots, including a naive dense direct solve for small problems (a useful warm-up exercise), see ``tutorial/inv1d2.m``.
 
 
 Further reading

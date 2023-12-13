@@ -20,6 +20,10 @@ in MATLAB (they should work on versions at least back to R2017a).
 
 For further applications, see :ref:`references <refs>`, and:
 
+* These software tutorial `PDF slides <http://users.flatironinstitute.org/~ahb/talks/fwam23.pdf>`_.
+
+* These seminar `PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`_.
+
 * `Fast Fresnel diffraction <https://github.com/ahbarnett/fresnaq>`_ for optics and acoustics applications.
 
 * `Equispaced Fourier methods for Gaussian process regression <https://github.com/flatironinstitute/gp-shootout>`_ as described in https://arxiv.org/abs/2210.10210 and https://arxiv.org/abs/2305.11065
@@ -27,6 +31,4 @@ For further applications, see :ref:`references <refs>`, and:
 * Tutorials for PyNUFFT with 1D and 2D reconstruction examples `here <http://jyhmiinlin.github.io/pynufft/tutor/init.html>`_.
      
 * The numerical sampling of `random plane waves <https://users.flatironinstitute.org/~ahb/rpws/>`_.
-   
-* These seminar `PDF slides <http://users.flatironinstitute.org/~ahb/talks/pacm20.pdf>`_.
 
