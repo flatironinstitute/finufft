@@ -7,12 +7,15 @@
 
 __version__ = '2.2.0beta'
 
-from setuptools import setup, Extension
+from setuptools import setup
 import os
 import platform
 from pathlib import Path
-
-from tempfile import mkstemp
+import shutil
+import glob
+import itertools
+from wheel.bdist_wheel import bdist_wheel
+from distutils.util import get_platform
 
 finufft_dir = os.environ.get('FINUFFT_DIR')
 
@@ -22,44 +25,38 @@ if finufft_dir == None or finufft_dir == '':
     finufft_dir = Path(__file__).resolve().parents[2]
 
 # Set include and library paths relative to FINUFFT root directory.
-inc_dir = os.path.join(finufft_dir, 'include')
-lib_dir = os.path.join(finufft_dir, 'lib')
-lib_dir_cmake = os.path.join(finufft_dir, 'build')   # lib may be only here
 
 # Read in long description from README.md.
 with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f:
-        long_description = f.read()
+    long_description = f.read()
 
-finufft_dlib = 'finufft'
+def get_libname():
+    extensions = ("dll", "lib", "so")
+    lib_dirs = (os.path.join(finufft_dir, 'lib'), os.path.join(finufft_dir, 'build'))
+    for directory, ext in itertools.product(lib_dirs, extensions):
+        path = os.path.join(directory, 'libfinufft.' + ext)
+        if os.path.isfile(path):
+            return directory, ext
 
-# Windows does not have the concept of rpath and as a result, MSVC crashes if
-# supplied with one.
-if platform.system() != "Windows":
-    runtime_library_dirs = [lib_dir, lib_dir_cmake]
-else:
-    runtime_library_dirs = []
+    raise FileNotFoundError("Unable to find suitable finufft library")
 
-# For certain platforms (e.g. Ubuntu 20.04), we need to create a dummy source
-# that calls one of the functions in the FINUFFT dynamic library. The reason
-# is that these platforms override the default --no-as-needed flag for ld,
-# which means that the linker will only link to those dynamic libraries for
-# which there are unresolved symbols in the object files. Since we do not have
-# a real source, the result is that no dynamic libraries are linked. To
-# prevent this, we create a dummy source so that the library will link as
-# expected.
-fd, source_filename = mkstemp(suffix='.c', text=True)
 
-with open(fd, 'w') as f:
-    f.write( \
-"""
-#include <finufft.h>
+class finufft_bdist(bdist_wheel):
+    def finalize_options(self, *args, **kwargs):
+        bdist_wheel.finalize_options(self, *args, **kwargs)
 
-void PyInit_finufftc(void) {
-    finufft_opts opt;
+    def get_tag(self, *args, **kwargs):
+        return "py3", "none", get_platform().replace('-', '_').replace('.', '_')
 
-    finufft_default_opts(&opt);
-}
-""")
+
+lib_dir, ext = get_libname()
+ext_glob = "lib[!c]*" + ext
+
+# setuptools will only copy files from inside package, so put them there
+# use glob to copy supporting libraries in windows
+libfiles = glob.glob(os.path.join(lib_dir, ext_glob))
+for src in libfiles:
+    shutil.copy2(src, 'finufft')
 
 
 ########## SETUP ###########
@@ -74,6 +71,9 @@ setup(
     long_description_content_type='text/markdown',
     license="Apache 2",
     packages=['finufft'],
+    package_dir={'': '.'},
+    package_data={'finufft': [ext_glob]},
+    cmdclass={'bdist_wheel': finufft_bdist},
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
@@ -85,15 +85,4 @@ setup(
     install_requires=['numpy>=1.12.0'],
     python_requires='>=3.6',
     zip_safe=False,
-    py_modules=['finufft.finufftc'],
-    ext_modules=[
-        Extension(name='finufft.finufftc',
-                  sources=[source_filename],
-                  include_dirs=[inc_dir, '/usr/local/include'],
-                  library_dirs=[lib_dir, lib_dir_cmake, '/usr/local/lib'],
-                  libraries=[finufft_dlib],
-                  runtime_library_dirs=runtime_library_dirs)
-        ]
 )
-
-os.unlink(source_filename)

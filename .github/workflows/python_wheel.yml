@@ -73,29 +73,10 @@ jobs:
         sudo installer -pkg python_installer.pkg -target /
 
         curl \
-          https://www.python.org/ftp/python/3.7.9/python-3.7.9-macosx10.9.pkg \
-          --output python_installer.pkg
-        sudo installer -pkg python_installer.pkg -target /
-
-        curl \
-          https://www.python.org/ftp/python/3.8.3/python-3.8.3-macosx10.9.pkg \
-          --output python_installer.pkg
-        sudo installer -pkg python_installer.pkg -target /
-
-        curl \
-          https://www.python.org/ftp/python/3.9.7/python-3.9.7-macos11.pkg \
-          --output python_installer.pkg
-        sudo installer -pkg python_installer.pkg -target /
-
-        curl \
-          https://www.python.org/ftp/python/3.10.1/python-3.10.1-macos11.pkg \
-          --output python_installer.pkg
-        sudo installer -pkg python_installer.pkg -target /
-
-        curl \
           https://www.python.org/ftp/python/3.11.0/python-3.11.0-macos11.pkg \
           --output python_installer.pkg
         sudo installer -pkg python_installer.pkg -target /
+
 
     - name: Compile python bindings
       run: |
@@ -107,18 +88,6 @@ jobs:
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install -U wheel --user
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip wheel . -w wheelhouse
-        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
-        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install -U wheel --user
-        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip wheel . -w wheelhouse
-        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
-        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install -U wheel --user
-        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip wheel . -w wheelhouse
-        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
-        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install -U wheel --user
-        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip wheel . -w wheelhouse
-        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
-        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install -U wheel --user
-        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip wheel . -w wheelhouse
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 -m pip install -U wheel --user
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 -m pip wheel . -w wheelhouse
@@ -130,26 +99,6 @@ jobs:
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 examples/simple1d1.py
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install pytest
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pytest test
-        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install --pre finufft -f fixed_wheel/
-        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 test/run_accuracy_tests.py
-        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 examples/simple1d1.py
-        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pip install pytest
-        /Library/Frameworks/Python.framework/Versions/3.7/bin/python3 -m pytest test
-        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install --pre finufft -f fixed_wheel/
-        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 test/run_accuracy_tests.py
-        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 examples/simple1d1.py
-        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pip install pytest
-        /Library/Frameworks/Python.framework/Versions/3.8/bin/python3 -m pytest test
-        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install --pre finufft -f fixed_wheel/
-        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 test/run_accuracy_tests.py
-        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 examples/simple1d1.py
-        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install pytest
-        /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pytest test
-        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install --pre finufft -f fixed_wheel/
-        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 test/run_accuracy_tests.py
-        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 examples/simple1d1.py
-        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pip install pytest
-        /Library/Frameworks/Python.framework/Versions/3.10/bin/python3 -m pytest test
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 -m pip install --pre finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 test/run_accuracy_tests.py
         /Library/Frameworks/Python.framework/Versions/3.11/bin/python3 examples/simple1d1.py
@@ -175,33 +124,6 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.8'
-        architecture: 'x64'
-    - run: |
-        .\.github\workflows\python_build_win.ps1
-        .\.github\workflows\python_test_win.ps1
-
-    - name: Build and Test Python 3.9
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-        architecture: 'x64'
-    - run: |
-        .\.github\workflows\python_build_win.ps1
-        .\.github\workflows\python_test_win.ps1
-
-    - name: Build and Test Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-        architecture: 'x64'
-    - run: |
-        .\.github\workflows\python_build_win.ps1
-        .\.github\workflows\python_test_win.ps1
-
-    - name: Build and Test Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
         architecture: 'x64'
     - run: |
         .\.github\workflows\python_build_win.ps1

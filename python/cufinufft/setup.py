@@ -3,8 +3,9 @@
 import os
 import ctypes
 from pathlib import Path
+import shutil
 
-from setuptools import setup, Extension
+from setuptools import setup
 
 # Description
 DESCRIPTION = "Non-uniform fast Fourier transforms on the GPU"
@@ -17,22 +18,24 @@ with open('requirements.txt', 'r') as fh:
     requirements = [item.strip() for item in fh.readlines()]
 
 cufinufft_dir = os.environ.get('CUFINUFFT_DIR')
-
-if cufinufft_dir == None or cufinufft_dir == '':
+if not cufinufft_dir:
     cufinufft_dir = Path(__file__).resolve().parents[2]
 
-library_dir = os.path.join(cufinufft_dir, "build")
+shared_obj = os.path.join(cufinufft_dir, 'build', 'libcufinufft.so')
 
-# Sanity check that we can find the CUDA cufinufft libraries before we get too far.
+# Sanity check that we can find and load the CUDA cufinufft libraries before we get too far.
 try:
-    lib = ctypes.cdll.LoadLibrary('libcufinufft.so')
+    lib = ctypes.cdll.LoadLibrary(shared_obj)
 except Exception as e:
     print('CUDA shared libraries not found in library path.'
-          '  Please refer to installation documentation at http://github.com/flatironinstitute/cufinufft'
-          ' and ensure CUDA installation is successful first before attempting to install the Python wrappers.')
+           '  Please refer to installation documentation at '
+           'https://finufft.readthedocs.io/en/latest/install_gpu.html '
+           ' and ensure CUDA installation is successful first before '
+           'attempting to install the Python wrappers.')
     raise(e)
 print('cufinufft CUDA shared libraries found, continuing...')
 
+shutil.copy(shared_obj, os.path.join(os.getcwd(), 'cufinufft'))
 
 # Python Package Setup
 setup(
@@ -40,13 +43,14 @@ setup(
     version='2.2.0beta',
     author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='janden-vscholar@flatironinstitute.org',
-    url='https://github.com/flatironinstitute/cufinufft',
+    url='https://github.com/flatironinstitute/finufft',
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     license="Apache 2",
     packages=['cufinufft'],
     package_dir={'': '.'},
+    package_data={'cufinufft': ['libcufinufft.so']},
     install_requires=requirements,
     # If you'd like to build or alter the docs you may additionally require these.
     extras_require={
@@ -61,18 +65,4 @@ setup(
         'Topic :: Scientific/Engineering :: Mathematics'],
     python_requires='>=3.6',
     zip_safe=False,
-    # This explicitly tells the wheel systems that we're platform specific.
-    #   Addiitonally, will create a new cPython library with a decorated name
-    #   that is rpath linked to CUDA library, also decorated (by auditwheel).
-    #   Most importantly, pip will manage to install all this stuff in
-    #   in places Python can find it (with a little help).
-    py_modules=['cufinufftc'],
-    ext_modules=[
-        Extension(name='cufinufftc',
-                  sources=[],
-                  libraries=['cufinufft'],
-                  library_dirs=[library_dir],
-                  runtime_library_dirs=[library_dir],
-                  )
-        ]
 )
