@@ -13,6 +13,9 @@ import platform
 from pathlib import Path
 import shutil
 import glob
+import itertools
+from wheel.bdist_wheel import bdist_wheel
+from distutils.util import get_platform
 
 finufft_dir = os.environ.get('FINUFFT_DIR')
 
@@ -22,28 +25,32 @@ if finufft_dir == None or finufft_dir == '':
     finufft_dir = Path(__file__).resolve().parents[2]
 
 # Set include and library paths relative to FINUFFT root directory.
-lib_dir = os.path.join(finufft_dir, 'lib')
-lib_dir_cmake = os.path.join(finufft_dir, 'build')   # lib may be only here
 
 # Read in long description from README.md.
 with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f:
     long_description = f.read()
 
-# Capture library and supporting libraries on windows. Ignores libcufinufft
-if platform.system() == "Windows":
-    lib_name = 'libfinufft.dll'
-    ext_glob = "lib[!c]*.dll"
-else:
-    # Mac and linux both build with .so
-    lib_name = 'libfinufft.so'
-    ext_glob = "lib[!c]*.so"
+def get_libname():
+    extensions = ("dll", "lib", "so")
+    lib_dirs = (os.path.join(finufft_dir, 'lib'), os.path.join(finufft_dir, 'build'))
+    for directory, ext in itertools.product(lib_dirs, extensions):
+        path = os.path.join(directory, 'libfinufft.' + ext)
+        if os.path.isfile(path):
+            return directory, ext
 
-if os.path.isfile(os.path.join(lib_dir, lib_name)):
-    lib_dir = lib_dir
-elif os.path.isfile(os.path.join(lib_dir_cmake, lib_name)):
-    lib_dir = lib_dir_cmake
-else:
     raise FileNotFoundError("Unable to find suitable finufft library")
+
+
+class finufft_bdist(bdist_wheel):
+    def finalize_options(self, *args, **kwargs):
+        bdist_wheel.finalize_options(self, *args, **kwargs)
+
+    def get_tag(self, *args, **kwargs):
+        return "py3", "none", get_platform().replace('-', '_').replace('.', '_')
+
+
+lib_dir, ext = get_libname()
+ext_glob = "lib[!c]*" + ext
 
 # setuptools will only copy files from inside package, so put them there
 # use glob to copy supporting libraries in windows
@@ -66,6 +73,7 @@ setup(
     packages=['finufft'],
     package_dir={'': '.'},
     package_data={'finufft': [ext_glob]},
+    cmdclass={'bdist_wheel': finufft_bdist},
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',

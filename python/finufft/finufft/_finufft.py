@@ -8,7 +8,6 @@ differentiated by 'f' suffix.
 
 import ctypes
 import os
-import warnings
 import platform
 
 from ctypes import c_double
@@ -24,21 +23,20 @@ c_double_p = ctypes.POINTER(c_double)
 c_longlong_p = ctypes.POINTER(c_longlong)
 
 # Attempt to load library, first from package install, then from path as fallback
-try:
-    pkgroot = os.path.dirname(__file__)
-    if platform.system() == 'Windows':
-        os.environ["PATH"] += os.pathsep + pkgroot
-        basename = "libfinufft.dll"
-    else:
-        basename = "libfinufft.so"
+pkgroot = os.path.dirname(__file__)
+if platform.system() == 'Windows':
+    os.environ["PATH"] += os.pathsep + pkgroot
 
-    full_lib_path = os.path.join(pkgroot, basename)
-    try:
-        lib = ctypes.cdll.LoadLibrary(full_lib_path)
-    except:
-        lib = ctypes.cdll.LoadLibrary(basename)
+lib = None
+for ext in ("dll", "lib", "so"):
+    full_lib_path = os.path.join(pkgroot, 'libfinufft.' + ext)
+    if os.path.isfile(full_lib_path):
+        try:
+            lib = ctypes.cdll.LoadLibrary(full_lib_path)
+        except:
+            pass
 
-except Exception:
+if lib is None:
     raise ImportError('Failed to find a suitable finufft library')
 
 
