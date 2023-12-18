@@ -10,7 +10,7 @@ import ctypes
 import os
 import warnings
 import platform
-import importlib
+import importlib.util
 
 import numpy as np
 
