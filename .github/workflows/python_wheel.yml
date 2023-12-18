@@ -222,6 +222,15 @@ jobs:
         .\.github\workflows\python_build_win.ps1
         .\.github\workflows\python_test_win.ps1
 
+    - name: Build and Test Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        architecture: 'x64'
+    - run: |
+        .\.github\workflows\python_build_win.ps1
+        .\.github\workflows\python_test_win.ps1
+
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
