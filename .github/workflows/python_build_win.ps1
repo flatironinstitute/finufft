@@ -12,18 +12,20 @@ Add-Content -Path make.inc -Value "FFLAGS+= -fallow-argument-mismatch -march=x86
 Add-Content -Path make.inc -Value "CFLAGS+= -march=x86-64"
 Add-Content -Path make.inc -Value "CXXFLAGS+= -march=x86-64"
 
-# mingw gcc compiler pacth to work with python
-Set-Variable cygwinccompiler_py -Value ([IO.Path]::Combine((Split-Path -Path $PYTHON), "Lib", 'distutils', 'cygwinccompiler.py'))
-Remove-Item -Path $cygwinccompiler_py -Force
-Copy-Item -Path .\.github\workflows\cygwinccompiler.py -Destination $cygwinccompiler_py
 Set-Variable libvcruntime140_a -Value ([IO.Path]::Combine((Split-Path -Path $PYTHON), "libs", 'libvcruntime140.a'))
 Copy-Item -Path .\.github\workflows\libvcruntime140.a -Destination $libvcruntime140_a
 
-# Setup the distutils.cfg file
-Set-Variable distutils_cfg -Value ([IO.Path]::Combine((Split-Path -Path $PYTHON), "Lib", 'distutils', 'distutils.cfg'))
-Set-Content -Path $distutils_cfg -Value "[build]`r`ncompiler=mingw32`r`n[build_ext]`r`ncompiler=mingw32"
 python -m pip install --upgrade setuptools wheel numpy pip
 if (-not $?) {throw "Failed pip install"}
+
+# mingw gcc compiler pacth to work with python
+Set-Variable cygwinccompiler_py -Value ([IO.Path]::Combine((Split-Path -Path $PYTHON), "lib", "site-packages", "setuptools", "_distutils", "cygwinccompiler.py"))
+Remove-Item -Path $cygwinccompiler_py -Force
+Copy-Item -Path .\.github\workflows\cygwinccompiler.py -Destination $cygwinccompiler_py
+
+# Setup the distutils.cfg file
+Set-Variable distutils_cfg -Value ([IO.Path]::Combine((Split-Path -Path $PYTHON), "lib", "site-packages", "setuptools", "_distutils", "distutils.cfg"))
+Set-Content -Path $distutils_cfg -Value "[build]`r`ncompiler=mingw32`r`n[build_ext]`r`ncompiler=mingw32"
 
 # call make
 Set-Variable repo_root -Value ([IO.Path]::Combine($PSScriptRoot, '..', '..'))
