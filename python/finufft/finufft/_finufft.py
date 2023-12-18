@@ -10,14 +10,7 @@ import ctypes
 import os
 import warnings
 import platform
-
-# While imp is deprecated, it is currently the inspection solution
-#   that works for all versions of Python 2 and 3.
-# One day if that changes, can be replaced
-#   with importlib.find_spec.
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import imp
+import importlib
 
 import numpy as np
 
@@ -48,14 +41,13 @@ except OSError:
 try:
     if lib is None:
         # Find the library.
-        fh = imp.find_module('finufft/finufftc')[0]
+        lib_path = importlib.util.find_spec('finufft.finufftc').origin
         # Get the full path for the ctypes loader.
         if platform.system() == 'Windows':
-            os.environ["PATH"] += os.pathsep + os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(fh.name))),'finufft')
-            full_lib_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(fh.name))),'finufft','libfinufft.dll')
+            os.environ["PATH"] += os.pathsep + os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(lib_path))),'finufft')
+            full_lib_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(lib_path))),'finufft','libfinufft.dll')
         else:
-            full_lib_path = os.path.realpath(fh.name)
-        fh.close()    # Be nice and close the open file handle.
+            full_lib_path = os.path.realpath(lib_path)
 
         # Load the library,
         #    which rpaths the libraries we care about.
