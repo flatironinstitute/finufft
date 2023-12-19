@@ -8,6 +8,9 @@
 __version__ = '2.2.0beta'
 
 from setuptools import setup, Extension
+from distutils.command.build_ext import build_ext as _build_ext
+from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
+
 import os
 import platform
 from pathlib import Path
@@ -62,6 +65,39 @@ void PyInit_finufftc(void) {
 """)
 
 
+########## CTYPES CROSS-PLATFORM HACK ##########
+
+
+class CTypesExtension(Extension):
+    pass
+
+
+class build_ext(_build_ext):
+    def build_extension(self, ext):
+        self._ctypes = isinstance(ext, CTypesExtension)
+        return super().build_extension(ext)
+
+    def get_export_symbols(self, ext):
+        if self._ctypes:
+            return ext.export_symbols
+        return super().get_export_symbols(ext)
+
+    def get_ext_filename(self, ext_name):
+        if self._ctypes:
+            return ext_name + ".so"
+        return super().get_ext_filename(ext_name)
+
+
+class bdist_wheel_abi_none(_bdist_wheel):
+    def finalize_options(self):
+        _bdist_wheel.finalize_options(self)
+        self.root_is_pure = False
+
+    def get_tag(self):
+        python, abi, plat = _bdist_wheel.get_tag(self)
+        return "py3", "none", plat
+
+
 ########## SETUP ###########
 setup(
     name='finufft',
@@ -87,13 +123,14 @@ setup(
     zip_safe=False,
     py_modules=['finufft.finufftc'],
     ext_modules=[
-        Extension(name='finufft.finufftc',
+        CTypesExtension(name='finufft.finufftc',
                   sources=[source_filename],
                   include_dirs=[inc_dir, '/usr/local/include'],
                   library_dirs=[lib_dir, lib_dir_cmake, '/usr/local/lib'],
                   libraries=[finufft_dlib],
                   runtime_library_dirs=runtime_library_dirs)
-        ]
+        ],
+    cmd_class={"build_ext": build_ext, "bdist_wheel": bdist_wheel_abi_none}
 )
 
 os.unlink(source_filename)
