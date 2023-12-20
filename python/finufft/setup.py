@@ -130,7 +130,7 @@ setup(
                   libraries=[finufft_dlib],
                   runtime_library_dirs=runtime_library_dirs)
         ],
-    cmd_class={"build_ext": build_ext, "bdist_wheel": bdist_wheel_abi_none}
+    cmdclass={"build_ext": build_ext, "bdist_wheel": bdist_wheel_abi_none}
 )
 
 os.unlink(source_filename)
