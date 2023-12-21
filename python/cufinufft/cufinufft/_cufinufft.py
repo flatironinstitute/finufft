@@ -8,14 +8,7 @@ differentiated by 'f' suffix.
 import ctypes
 import os
 import warnings
-
-# While imp is deprecated, it is currently the inspection solution
-#   that works for all versions of Python 2 and 3.
-# One day if that changes, can be replaced
-#   with importlib.find_spec.
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    import imp
+import importlib.util
 
 from ctypes import c_double
 from ctypes import c_int
@@ -42,10 +35,9 @@ except OSError:
 try:
     if lib is None:
         # Find the library.
-        fh = imp.find_module('cufinufftc')[0]
+        lib_path = importlib.util.find_spec('cufinufft.cufinufftc').origin
         # Get the full path for the ctypes loader.
-        full_lib_path = os.path.realpath(fh.name)
-        fh.close()    # Be nice and close the open file handle.
+        full_lib_path = os.path.realpath(lib_path)
 
         # Load the library,
         #    which rpaths the libraries we care about.

@@ -25,11 +25,13 @@ library_dir = os.path.join(cufinufft_dir, "build")
 
 # Sanity check that we can find the CUDA cufinufft libraries before we get too far.
 try:
-    lib = ctypes.cdll.LoadLibrary('libcufinufft.so')
+    lib = ctypes.cdll.LoadLibrary(os.path.join(library_dir, 'libcufinufft.so'))
 except Exception as e:
     print('CUDA shared libraries not found in library path.'
-          '  Please refer to installation documentation at http://github.com/flatironinstitute/cufinufft'
-          ' and ensure CUDA installation is successful first before attempting to install the Python wrappers.')
+           '  Please refer to installation documentation at '
+           'https://finufft.readthedocs.io/en/latest/install_gpu.html '
+           ' and ensure CUDA installation is successful first before '
+           'attempting to install the Python wrappers.')
     raise(e)
 print('cufinufft CUDA shared libraries found, continuing...')
 
@@ -37,10 +39,10 @@ print('cufinufft CUDA shared libraries found, continuing...')
 # Python Package Setup
 setup(
     name='cufinufft',
-    version='2.2.0beta',
+    version='2.2.0b0',
     author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='janden-vscholar@flatironinstitute.org',
-    url='https://github.com/flatironinstitute/cufinufft',
+    url='https://github.com/flatironinstitute/finufft',
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
@@ -66,9 +68,9 @@ setup(
     #   that is rpath linked to CUDA library, also decorated (by auditwheel).
     #   Most importantly, pip will manage to install all this stuff in
     #   in places Python can find it (with a little help).
-    py_modules=['cufinufftc'],
+    py_modules=['cufinufft.cufinufftc'],
     ext_modules=[
-        Extension(name='cufinufftc',
+        Extension(name='cufinufft.cufinufftc',
                   sources=[],
                   libraries=['cufinufft'],
                   library_dirs=[library_dir],

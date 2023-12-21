@@ -70,3 +70,23 @@ jobs:
         with:
           name: ${{matrix.os}}-${{matrix.compiler}}-finufft-lib
           path: ${{runner.workspace}}/finufft/build/*finufft*
+
+      - name: Pack For Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          cd build
+          if [[ "${{ matrix.os }}" == "windows-2022" ]]
+          then
+            7z a ../${{matrix.os}}-${{matrix.compiler}}-finufft-lib.zip *finufft*
+          else
+            tar czvf ../${{matrix.os}}-${{matrix.compiler}}-finufft-lib.tar.gz *finufft*
+          fi
+          cd -
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            *-finufft-lib*

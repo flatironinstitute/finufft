@@ -1,0 +1,54 @@
+name: Python Wheel Build MacOS Arm64
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  MacOS:
+    runs-on: macos-13
+    env:
+      MACOSX_DEPLOYMENT_TARGET: 11.0
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install libomp and fftw
+      run: |
+        pkg=$(brew fetch --force --bottle-tag=arm64_ventura fftw | grep 'Downloaded to' | cut -d' ' -f3)
+        brew install $pkg
+        pkg=$(brew fetch --force --bottle-tag=arm64_ventura libomp | grep 'Downloaded to' | cut -d' ' -f3)
+        brew install $pkg
+
+    - name: Compile libfinufft
+      run: |
+        cp make.inc.macosx_arm64 make.inc
+        make lib
+
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.16.2
+      env:
+        FINUFFT_DIR: ${{ github.workspace }}
+        CC: Clang
+        CXX: Clang++
+        CIBW_ARCHS_MACOS: arm64
+        CIBW_BUILD: cp38-* cp39-* cp310-* cp311-* cp312-*
+      with:
+        package-dir: ./python/finufft
+        output-dir: wheelhouse
+
+    - name: Upload wheels
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-arm64-wheels
+        path: wheelhouse/*.whl
+
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: mxschmitt/action-tmate@v3
