@@ -46,7 +46,7 @@ jobs:
     - name: Upload wheels
       uses: actions/upload-artifact@v3
       with:
-        name: macos-wheels
+        name: macos-arm64-wheels
         path: wheelhouse/*.whl
 
     - name: Setup tmate session
