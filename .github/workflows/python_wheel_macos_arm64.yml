@@ -28,7 +28,7 @@ jobs:
 
     - name: Compile libfinufft
       run: |
-        cp make.inc.gh_macos_arm64_whl make.inc
+        cp make.inc.macosx_arm64 make.inc
         make lib
 
     - name: Build wheels
