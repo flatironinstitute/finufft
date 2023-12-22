@@ -5,7 +5,7 @@
 # attempt ../make.inc reading (failed) and default finufftdir. 2/25/20
 # Barnett trying to get sphinx.ext.autodoc to work w/ this, 10/5/20
 
-__version__ = '2.2.0beta'
+__version__ = '2.2.0b1'
 
 from setuptools import setup, Extension
 from distutils.command.build_ext import build_ext as _build_ext
@@ -84,7 +84,10 @@ class build_ext(_build_ext):
 
     def get_ext_filename(self, ext_name):
         if self._ctypes:
-            return ext_name + ".so"
+            if platform.system() != "Windows":
+                return ext_name + ".so"
+            else:
+                return ext_name + ".pyd"
         return super().get_ext_filename(ext_name)
 
 
