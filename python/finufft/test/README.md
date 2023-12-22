@@ -1,7 +1,7 @@
-## Accuracy and speed tests using the python wrappers
+## Basic accuracy and speed tests using the python wrappers
 
 To install the python wrappers for finufft
-see ../../docs/install.rst
+see ../../../docs/install.rst
 
 Then you may run the tests as follows
 
