@@ -38,6 +38,8 @@ and also add them to GitHub's Used By feature):
 
 #. `EM-Align <https://github.com/ShkolniskyLab/emalign>`_: Aligning rotation, reflection, and translation between volumes (desntiy maps) in cryo-electron microscopy, from Shkolnisky Lab at Tel Aviv.
 
+#. `spinifel <https://gitlab.osti.gov/mtip/spinifel>`_: Uses the multitiered iterative phasing (M-TIP) algorithm for single particle X-ray diffraction imaging, on CPU/GPU, from LBNL/DOE.
+   
    
 Other wrappers to (cu)FINUFFT
 ------------------------------
@@ -79,7 +81,7 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Efficient wide-field radio interferometry response. P. Arras, M. Reinecke, R. Westermann, T.A. Ensslin, Astron. Astrophys. (2020).   https://doi.org/10.1051/0004-6361/202039723
 
-#. Johannes Blaschke, Jeff Donatelli, and collaborators at the `ExaFEL <https://lcls.slac.stanford.edu/exafel>`_ coherent light source use FINUFFT and cuFINUFFT for single-particle X-ray imaging.
+#. Johannes Blaschke, Jeff Donatelli, Jamie Sethian, and collaborators at the `ExaFEL <https://lcls.slac.stanford.edu/exafel>`_ coherent light source use FINUFFT and cuFINUFFT for single-particle X-ray imaging.
 
 #. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin,
    "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); https://doi.org/10.1117/12.2595409
