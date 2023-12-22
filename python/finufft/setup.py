@@ -84,6 +84,7 @@ class build_ext(_build_ext):
 
     def get_ext_filename(self, ext_name):
         if self._ctypes:
+            # importlib can not recognize .so on Windows
             if platform.system() != "Windows":
                 return ext_name + ".so"
             else:
