@@ -14,7 +14,7 @@ Packages relying on FINUFFT or cuFINUFFT
 ----------------------------------------
 
 Here are some packages dependent on FINUFFT (please let us know of others,
-and also add them to github's Used By feature):
+and also add them to GitHub's Used By feature):
 
 1. `SMILI <https://github.com/astrosmili/smili>`_, very long baseline interferometry reconstruction code by `Kazu Akiyama <http://kazuakiyama.github.io/>`_ and others, uses FINUFFT (2d1, 2d2, Fortran interfaces) as a `key library <https://smili.readthedocs.io/en/latest/install.html#external-libraries>`_. Akiyama used SMILI to reconstruct the `famous black hole image <https://physicstoday.scitation.org/do/10.1063/PT.6.1.20190411a/full/>`_ in 2019 from the Event Horizon Telescope.
 
@@ -30,8 +30,14 @@ and also add them to github's Used By feature):
 
 #. `NWelch <https://github.com/sdrastro/NWelch>`_: Code for estimating power spectra and other properties of non-equispaced time-series, by astronomer Sarah Dodson-Robinson and others.
 
-#. `Picsou <https://github.com/matthieumeo/pycsou>`_: package for solving linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems.
-   
+#. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems.
+
+#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. From INRIA/CEA Paris group.
+
+#. `mri_distortion_toolkit <https://github.com/Image-X-Institute/mri_distortion_toolkit>`_: Characterisation and reporting of geometric distortion in MRI. Uses PyPI pkg.
+
+#. `EM-Align <https://github.com/ShkolniskyLab/emalign>`_: Aligning rotation, reflection, and translation between volumes (desntiy maps) in cryo-electron microscopy, from Shkolnisky Lab at Tel Aviv.
+
    
 Other wrappers to (cu)FINUFFT
 ------------------------------
