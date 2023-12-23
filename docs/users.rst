@@ -30,6 +30,8 @@ and also add them to GitHub's Used By feature):
 
 #. `NWelch <https://github.com/sdrastro/NWelch>`_: Code for estimating power spectra and other properties of non-equispaced time-series, by astronomer Sarah Dodson-Robinson and others.
 
+#. `Multitaper.jl <https://github.com/lootie/Multitaper.jl>`_: estimates power spectra from non-equispaced time series, improving upon Lomb-Scargle and NWelch, by astronomer Sarah Dodson-Robinson and co-workers. Uses Julia wrapper to 1D type 3.
+
 #. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems.
 
 #. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. From INRIA/CEA Paris group.
@@ -58,7 +60,7 @@ Research output using (cu)FINUFFT
 
 For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=14265215625340229167>`_, and `cuFINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=15739437776774999949>`_. Here are some early highlights we know about:
 
-#. Marco Barbone has used FINUFFT and cuFINUFFT to accelerate 4D MRI reconstruction via the XD-GRASP algorithm by 11x. See their `2021 conference paper <https://ieeexplore.ieee.org/document/9651604>`_.
+#. Marco Barbone and colleagues at Imperial have used FINUFFT and multi-GPU cuFINUFFT to accelerate 4D MRI reconstruction via the XD-GRASP algorithm by 10-20x. See their `2021 conference paper <https://ieeexplore.ieee.org/document/9651604>`_ and `2023 article <https://doi.org/10.1016/j.phro.2023.100484>`_.
 
 #. "Cryo-EM reconstruction of continuous heterogeneity by Laplacian spectral volumes", Amit Moscovich, Amit Halevi, Joakim Andén, and Amit Singer. Appeared in Inv. Prob. (2020), https://arxiv.org/abs/1907.01898
 
