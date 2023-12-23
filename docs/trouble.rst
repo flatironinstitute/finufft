@@ -6,7 +6,9 @@ Troubleshooting
 If you are having issues (segfaults, slowness, "wrong" answers, etc),
 there is a high probability it is something we already know about, so
 please first read all of the advice below in the section relevant
-to your problem: math, speed, or crashing.
+to your problem: math, speed, or crashing. Also look for
+similar GitHub `Issues <https://github.com/flatironinstitute/finufft/issues?q=is%3Aissue>`_ or `Discussions <https://github.com/flatironinstitute/finufft/discussions>`_.
+If that fails, post an Issue. The lead developer may also be contacted at abarnett@flatironinstitute.org
 
 
 Mathematical "issues" and advice
