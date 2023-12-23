@@ -52,7 +52,7 @@ One interpretation of :eq:`1d1` is: the returned values $f_k$ are the
 *Fourier series coefficients* of the $2\pi$-periodic
 distribution $f(x) := \sum_{j=1}^M c_j \delta(x-x_j)$,
 a sum of point-masses with arbitrary locations $x_j$ and strengths $c_j$.
-Such exponential sums are needed in many applications in science and engineering, including signal processing (scattered data interpolation, applying convolutional transforms, fast summation), imaging (cryo-EM, CT, MRI gridding, coherent diffraction, Fresnel aperture modeling, VLBI astronomy),
+Such exponential sums are needed in many applications in science and engineering, including signal processing (scattered data interpolation, applying convolutional transforms, fast summation), imaging (cryo-EM, CT, MRI, synthetic aperture radar, coherent diffraction, Fresnel aperture modeling, VLBI astronomy),
 numerical analysis
 (computing Fourier *transforms* of functions,
 moving between non-conforming quadrature grids,

@@ -5,7 +5,7 @@
 &nbsp;
 [Python wrapper: ![PyPI - Downloads](https://img.shields.io/pypi/dm/finufft)](https://pypi.org/project/finufft)
 
-Principal author **Alex H. Barnett**,
+Principal author **Alex H. Barnett** (abarnett@flatironinstitute.org),
 main co-developers Jeremy F. Magland,
 Ludvig af Klinteberg, Yu-hsuan "Melody" Shih, Libin Lu,
 Joakim Andén, and Robert Blackwell;
@@ -39,18 +39,18 @@ If you prefer to read text files, the source to generate the above documentation
 - `docs/matlab.rst` and `docs/matlabhelp.raw` : using the MATLAB/Octave interface
 - `docs/python.rst` and `python/*/_interfaces.py` : using the Python interface
 - `docs/python_gpu.rst` : Python interface to GPU library
-- `docs/julia.rst`   : options for Julia users
+- `docs/julia.rst`   : information for Julia users
 - `docs/devnotes.rst`: notes/guide for developers
 - `docs/related.rst` : other recommended NUFFT packages
 - `docs/users.rst`   : some known users of FINUFFT, dependent packages
 - `docs/ackn.rst`    : authors and acknowledgments
-- `docs/refs.rst`    : journal article references (both ours and others)
+- `docs/refs.rst`    : journal article references (ours and others)
 
 
 If you find (cu)FINUFFT useful in your work, please star this repository and
 cite it and the following. It will help us to improve the library if you also
 describe your use case parameters
-[here](https://github.com/flatironinstitute/finufft/discussions/398)
+[here](https://github.com/flatironinstitute/finufft/discussions/398).
 
 For FINUFFT (CPU library):
 

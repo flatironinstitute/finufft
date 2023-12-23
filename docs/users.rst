@@ -96,7 +96,13 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Pei R, Askham T, Greengard L, Jiang S (2023). "A fast method for imposing periodic boundary conditions on arbitrarily-shaped lattices in two dimensions." J. Comput. Phys. 474, 111792. https://doi.org/10.1016/j.jcp.2022.111792 Uses FINUFFT for plane wave sums.
 
-   
+#. Dylan Green, JR Jamora, and Anne Gelb (2023).
+"Leveraging joint sparsity in 3D synthetic aperture radar imaging,"
+Appl. Math. Modern Chall. 1, 61-86. https://doi.org/10.3934/ammc.2023005
+Uses 3D transforms between N=201<sup>3</sup> modes (voxels) and M=313300
+data points. As they state, "...the computational cost of each method heavily depends on the NUFFT algorithm used."
+
+
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
