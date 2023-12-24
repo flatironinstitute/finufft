@@ -60,8 +60,7 @@ Then after compiling as above with ``cmake --build .``, you execute the tests us
 
     cmake --build . -t test
 
-Note that these tests only checks if the compiled GPU code executes – it currently does not verify accuracy (i.e., whether the code executes *correctly*).
-This will be remedied shortly.
+This runs a suite of GPU accuracy (mathematical correctness) and interface API tests. See the ``test/cuda/`` directory for individual usage and documentation of these tests.
 
 
 Python interface

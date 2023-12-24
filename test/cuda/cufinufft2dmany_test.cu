@@ -175,7 +175,7 @@ int run_test(int method, int type, int N1, int N2, int ntransf, int maxbatchsize
 
 int main(int argc, char *argv[]) {
     if (argc != 11) {
-        fprintf(stderr, "Usage: cufinufft2d1many_test method type N1 N2 ntransf maxbatchsize M tol checktol\n"
+        fprintf(stderr, "Usage: cufinufft2d1many_test method type N1 N2 ntransf maxbatchsize M tol checktol prec\n"
                         "Arguments:\n"
                         "  method: One of\n"
                         "    1: nupts driven,\n"

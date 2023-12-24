@@ -1,0 +1,19 @@
+Testing (validation and performance) directory for GPU FINUFFT.
+
+All codes test either precision (souce is templated to allow switching
+via the final command line argument "f" or "d").
+
+cufinufft{1,2,3}d_test: accuracy/speed tests for single transform
+                   in a given dimension, either type 1 or 2.
+                   (exit code 0 is a pass).
+                   Call with no arguments for argument documentation.
+cufinufft2dmany_test: accuracy/speed tests for vectorized transforms
+                   in 2D only, either type 1 or 2.
+                   (exit code 0 is a pass).
+                   Call with no arguments for argument documentation.
+public_api_test:   tests guru plan C++ interface for GPU on tiny problem.
+                   (exit code 0 is a pass).
+test_makeplan:     test edge cases, illegal inputs in API, and error codes
+                   (exit code 0 is a pass).
+
+CMakeLists.txt : shows the complete set of test (with args) done by CTest.
