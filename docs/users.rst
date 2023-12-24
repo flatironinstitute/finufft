@@ -20,28 +20,28 @@ and also add them to GitHub's Used By feature):
 
 #. `ASPIRE <http://spr.math.princeton.edu>`_: software for cryo-EM, based at Amit Singer's group at Princeton. `github <https://github.com/PrincetonUniversity/ASPIRE-Python>`_
 
+#. `DISCUS <https://github.com/tproffen/DiffuseCode>`_: Fraunhofer diffraction from atomic clusters, nanomaterials and powders, by Reinhard Neder and others. Their manual (p.161) explains that FINUFFT enabled a two orders of magnitude speed-up.
+
+#. `NWelch <https://github.com/sdrastro/NWelch>`_: Code for estimating power spectra and other properties of non-equispaced time-series, by astronomer Sarah Dodson-Robinson and others. Uses Python 1D type 3.
+
+#. `Multitaper.jl <https://github.com/lootie/Multitaper.jl>`_: estimates power spectra from non-equispaced time series, improving upon Lomb-Scargle and NWelch, for exoplanet detection, by Sarah Dodson-Robinson and Charlotte Haley. Uses Julia 1D type 3.
+
+#. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems. (cu)FINUFFT is used for all `NUFFTs <https://pyxu-org.github.io/api/operator/linop.html#pyxu.operator.NUFFT>`_.
+
+#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. From INRIA/CEA Paris Neurospin group.
+
+#. `mri_distortion_toolkit <https://github.com/Image-X-Institute/mri_distortion_toolkit>`_: Characterisation and reporting of geometric distortion in MRI. Uses our PyPI pkg.
+
+#. `EM-Align <https://github.com/ShkolniskyLab/emalign>`_: Aligning rotation, reflection, and translation between volumes (desntiy maps) in cryo-electron microscopy, from Shkolnisky Lab at Tel Aviv.
+
+#. `spinifel <https://gitlab.osti.gov/mtip/spinifel>`_: Uses the multitiered iterative phasing (M-TIP) algorithm for single particle X-ray diffraction imaging, on CPU/GPU, from LBNL/DOE.
+   
 #. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
 
 #. `fsinc <https://github.com/gauteh/fsinc>`_:  Gaute Hope's fast sinc transform and interpolation Python package.
 
 #. `FTK <https://github.com/flatironinstitute/ftk>`_: Factorization of the translation kernel for fast 2D rigid image alignment, by Rangan, Spivak, Andén, and Barnett.
 
-#. `DISCUS <https://github.com/tproffen/DiffuseCode>`_: Fraunhofer diffraction from atomic clusters, nanomaterials and powders, by Reinhard Neder and others. Their manual explains that FINUFFT enabled a two orders of magnitude speed-up.
-
-#. `NWelch <https://github.com/sdrastro/NWelch>`_: Code for estimating power spectra and other properties of non-equispaced time-series, by astronomer Sarah Dodson-Robinson and others.
-
-#. `Multitaper.jl <https://github.com/lootie/Multitaper.jl>`_: estimates power spectra from non-equispaced time series, improving upon Lomb-Scargle and NWelch, by astronomer Sarah Dodson-Robinson and co-workers. Uses Julia wrapper to 1D type 3.
-
-#. `Pyxu <https://github.com/pyxu-org/pyxu>`_: Solves linear inverse problems with convex penalties using proximal optimization algorithms, in Python, by researchers at EPFL. This includes regularized imaging problems.
-
-#. `MRI-NUFFT <https://mind-inria.github.io/mri-nufft/index.html>`_: unified Python interface to various NUFFT implementations for MRI reconstruction, with coil sensitivities, density compensation, and off-resonance corrections. From INRIA/CEA Paris group.
-
-#. `mri_distortion_toolkit <https://github.com/Image-X-Institute/mri_distortion_toolkit>`_: Characterisation and reporting of geometric distortion in MRI. Uses PyPI pkg.
-
-#. `EM-Align <https://github.com/ShkolniskyLab/emalign>`_: Aligning rotation, reflection, and translation between volumes (desntiy maps) in cryo-electron microscopy, from Shkolnisky Lab at Tel Aviv.
-
-#. `spinifel <https://gitlab.osti.gov/mtip/spinifel>`_: Uses the multitiered iterative phasing (M-TIP) algorithm for single particle X-ray diffraction imaging, on CPU/GPU, from LBNL/DOE.
-   
    
 Other wrappers to (cu)FINUFFT
 ------------------------------
