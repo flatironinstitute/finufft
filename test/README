@@ -1,24 +1,35 @@
 Testing (validation not performance) directory for FINUFFT.
 
 All source codes in here are dual precision (ie, depending on the -DSINGLE
-compilation flag presence, they build double or single precision and link
+compilation flag presence, they build in double or single precision and link
 against the appropriate FINUFFT library functions).
 
 For a fixed number of threads (the make task fixes OMP_NUM_THREADS=4), the
 OpenMP static scheduling for rand-# generation means that the test data should
 be reproducible (non-stochastic). Reordering of thread ops in FINUFFT itself
-leads to rounding-error variations only.
+leads to machine-rounding sized variations only.
 
-up to reordering
+These CPU test executables have suffix "f" fior single precision, else double:
 
-basicpassfail{f} : basic double and single-prec smoke tests
+basicpassfail{f} : basic double and single-prec smoke tests of the math.
+                   No arguments needed (exit code 0 is a pass).
+finufft{1,2,3}d_test{f}: accuracy/speed tests for single transforms
                    (exit code 0 is a pass).
+                   Call with no arguments for argument documentation.
+finufft{1,2,3}dmany_test{f}: accuracy/speed tests for vectorized transforms
+                   (exit code 0 is a pass).
+                   Call with no arguments for argument documentation.
+dumbinputs{f} :    test of edge cases and invalid inputs, plan interface.
+                   No arguments needed (exit code 0 is a pass).
+testutils{f} :     test of utils.cpp module.
+                   No arguments needed (exit code 0 is a pass).
+
 check_finufft.sh : validates the FINUFFT library for correctness
                    (exit code 0 is a pass). See docs in that script.
 results/*.out : outputs written by check_finufft.sh, for the record.
 
-Possibly obsolete scripts (for developers):
+Possibly obsolete scripts (for developers only):
 checkallaccs.sh : spreading and NUFFT at all #s of digits, for a single ndims
 
 Also see:
-../perftest for performance tests
+../perftest for basic performance tests
