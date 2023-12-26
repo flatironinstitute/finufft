@@ -35,6 +35,7 @@ Documentation contents
    python_gpu
    julia
    changelog
+   cufinufft_migration
    devnotes
    related
    users
