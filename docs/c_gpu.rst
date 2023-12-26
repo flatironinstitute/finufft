@@ -14,6 +14,9 @@ The mathematical transforms are exactly as performed by FINUFFT, to which we ref
 
 You will also want to read the examples in ``examples/cuda`` and ``test/cuda/cufinufft*.cu``, and may want to read extra documentation in the source at ``src/cuda/cufinufft.cu``.
 
+*Note*: The interface to cuFINUFFT has changed between versions 1.3 and 2.2.
+Please see :ref:`Migration to cuFINUFFT v2.2<cufinufft_migration>` for details.
+
 Getting started
 ---------------
 

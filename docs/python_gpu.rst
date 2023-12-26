@@ -6,6 +6,9 @@ Quick-start examples
 
 As mentioned in the :ref:`Python GPU installation instructions <install-python-gpu>`, the easiest way to install the Python interface for cuFINUFFT is to run ``pip install cufinufft``.
 
+*Note*: The interface to cuFINUFFT has changed between versions 1.3 and 2.2.
+Please see :ref:`Migration to cuFINUFFT v2.2<cufinufft_migration>` for details.
+
 Assuming cuFINUFFT has been installed, we will now consider how to calculate a 1D type 1 transform.
 To manage the GPU and transfer to and from host and device, we will use the ``pycuda`` library.
 Consequently, we start with a few import statements.
