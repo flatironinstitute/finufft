@@ -53,14 +53,14 @@ int cufinufft_makeplan(int type, int dim, const int64_t *nmodes, int iflag, int 
                                    opts);
 }
 
-int cufinufftf_setpts(cufinufftf_plan d_plan, int M, float *d_kx, float *d_ky, float *d_kz, int N, float *d_s,
+int cufinufftf_setpts(cufinufftf_plan d_plan, int M, float *d_x, float *d_y, float *d_z, int N, float *d_s,
                       float *d_t, float *d_u) {
-    return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, (cufinufft_plan_t<float> *)d_plan);
+    return cufinufft_setpts_impl(M, d_x, d_y, d_z, N, d_s, d_t, d_u, (cufinufft_plan_t<float> *)d_plan);
 }
 
-int cufinufft_setpts(cufinufft_plan d_plan, int M, double *d_kx, double *d_ky, double *d_kz, int N, double *d_s,
+int cufinufft_setpts(cufinufft_plan d_plan, int M, double *d_x, double *d_y, double *d_z, int N, double *d_s,
                      double *d_t, double *d_u) {
-    return cufinufft_setpts_impl(M, d_kx, d_ky, d_kz, N, d_s, d_t, d_u, (cufinufft_plan_t<double> *)d_plan);
+    return cufinufft_setpts_impl(M, d_x, d_y, d_z, N, d_s, d_t, d_u, (cufinufft_plan_t<double> *)d_plan);
 }
 
 int cufinufftf_execute(cufinufftf_plan d_plan, cuFloatComplex *d_c, cuFloatComplex *d_fk) {
