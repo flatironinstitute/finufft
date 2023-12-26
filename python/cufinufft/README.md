@@ -20,8 +20,4 @@ arXiv preprint arXiv:2102.08463.
 [(paper)](https://arxiv.org/abs/2102.08463)
 [(bibtex)](https://arxiv.org/bibtex/2102.08463)
 
-**Note**: We are currently in the process of adapting the cuFINUFFT interface to
-closer match that of FINUFFT. This will likely break code depending on the
-current interface once the next release is published. At this point we will
-publish a migration guide that will detail the exact changes to the
-interfaces.
+**Note**: With version 2.2 of cuFINUFFT, we have changed the interfaces slightly to better align with FINUFFT. For an outline of the changes, please see [the migration guide](https://finufft.readthedocs.io/en/latest/cufinufft_migration.html).
