@@ -31,22 +31,11 @@ We then proceed to setting up a few parameters.
     c_gpu = (cp.random.standard_normal(size=M)
              + 1J * cp.random.standard_normal(size=M))
 
-Now that the data is prepared, we need to set up a cuFINUFFT plan that can be executed on that data.
+Now that the data is prepared, we can call cuFINUFFT to compute the transform of the ``M`` source point onto a grid of ``N`` modes
 
 .. code-block:: python
 
-    # create plan
-    plan = cufinufft.Plan(1, (N,), dtype="complex128")
-
-    # set the nonuniform points
-    plan.setpts(x_gpu)
-
-With everything set up, we are now ready to execute the plan.
-
-.. code-block:: python
-
-    # execute the plan
-    f_gpu = plan.execute(c_gpu)
+    f_gpu = cufinufft.nufft1d1(x_gpu, c_gpu, (N,))
 
     # move results off the GPU
     f = f_gpu.get()

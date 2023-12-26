@@ -13,14 +13,8 @@ x_gpu = 2 * cp.pi * cp.random.uniform(size=M)
 c_gpu = (cp.random.standard_normal(size=M)
          + 1J * cp.random.standard_normal(size=M))
 
-# create plan
-plan = cufinufft.Plan(1, (N,), dtype=cp.complex128)
-
-# set the nonuniform points
-plan.setpts(x_gpu)
-
-# execute the plan
-f_gpu = plan.execute(c_gpu)
+# compute the transform
+f_gpu = cufinufft.nufft1d1(x_gpu, c_gpu, (N,))
 
 # move results off the GPU
 f = f_gpu.get()
