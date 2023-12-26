@@ -35,13 +35,16 @@ Inside our ``main`` function, we first define the problem parameters and some po
 
     const int M = 100000, N = 10000;
 
-    int modes[1] = {N};
+    int64_t modes[1] = {N};
 
     float *x;
     float _Complex *c;
     float _Complex *f;
 
 Here ``M`` is the number of nonuniform points, ``N`` is the size of our 1D grid. cuFINUFFT expets the grid size to be given as an array, so we also define the ``modes`` integer array. Finally we have the nonuniform points ``x``, the coefficients (or strengths) ``c`` and the output values ``f`` on the grid.
+
+Note that we are using the ``float _Complex`` type here to remain compatible with both C and C++.
+For the former, we can use ``float complex`` while the latter would accept ``std::complex<float>`` instead.
 
 We also define the corresponding data pointers on the device (GPU) as well as the cuFINUFFT plan:
 
@@ -90,17 +93,17 @@ It's finally time to put cuFINUFFT to work. First, we create a plan using ``cufi
 
 .. code-block:: c
 
-    cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, 1, &plan, NULL);
+    cufinufftf_makeplan(1, 1, modes, 1, 1, 1e-6, &plan, NULL);
 
-The first argument gives the type, while the second gives the number of dimensions. After this, we have the grid size as an integer array, followed by the sign in the complex exponential (here positive) and the number of transforms to compute simultaneously (here just one). Then there's the tolerance (six digits) and the batch size for the FFTs (here just one since we only have one transform overall). Finally, there's a pointer to the plan and an non-mandatory options structure.
+The first argument gives the type, while the second gives the number of dimensions. After this, we have the grid size as an integer array, followed by the sign in the complex exponential (here positive) and the number of transforms to compute simultaneously (here just one). Then there's the tolerance (six digits) and finally there's a pointer to the plan and a non-mandatory options structure.
 
 Once the plan is created, we set the points and execute the plan.
 
 .. code-block:: c
 
-    cufinufftf_setpts(M, d_x, NULL, NULL, 0, NULL, NULL, NULL, plan);
+    cufinufftf_setpts(plan, M, d_x, NULL, NULL, 0, NULL, NULL, NULL);
 
-    cufinufftf_execute(d_c, d_f, plan);
+    cufinufftf_execute(plan, d_c, d_f);
 
 Once the results are calculated, we transfer the data back onto the host, destroy the plan, and free the device arrays.
 
@@ -154,11 +157,11 @@ Given the user's desired dimension, number of Fourier modes in each direction, s
 
 .. code-block:: c
 
-    int cufinufft_makeplan(int type, int dim, int* nmodes, int iflag, int ntransf, double tol,
-            int maxbatchsize, cufinufft_plan *plan, cufinufft_opts *opts)
+    int cufinufft_makeplan(int type, int dim, int64_t* nmodes, int iflag,
+            int ntr, double eps, cufinufft_plan *plan, cufinufft_opts *opts)
 
-    int cufinufftf_makeplan(int type, int dim, int* nmodes, int iflag, int ntransf, float tol,
-            int maxbatchsize, cufinufftf_plan *plan, cufinufft_opts *opts)
+    int cufinufftf_makeplan(int type, int dim, int64_t* nmodes, int iflag,
+            int ntr, float tol, cufinufftf_plan *plan, cufinufft_opts *opts)
 
     Inputs:
 
@@ -174,9 +177,6 @@ Given the user's desired dimension, number of Fourier modes in each direction, s
                     controls the number of input/output data expected for c and fk.
     tol             relative tolerance requested
                     (must be >1e-16 for double precision, >1e-8 for single precision)
-    maxbatchsize    when ntransf>1, size of batch of data vectors to perform
-                    cuFFT on. (default is 0, which chooses a heuristic). Ignored if
-                    ntransf=1.
     opts            optional pointer to options-setting struct. If NULL, uses defaults.
                     See cufinufft_default_opts below for the non-NULL case.
 
@@ -193,7 +193,7 @@ Given the user's desired dimension, number of Fourier modes in each direction, s
 Note: under the hood, in double precision, a ``cufinufft_plan`` object is simply a pointer to a ``cufinufft_plan_s`` struct (or in single precision, a ``cufinufftf_plan`` is a pointer to a ``cufinufftf_plan_s`` struct).
 The struct contains the actual planning arrays, some of which live on the GPU.
 This extra level of indirection leads to a simpler interface, and follows the approach of FFTW and FINUFFT.
-See definitions in ``include/cufinufft_eitherprec.h``
+See definitions in ``include/cufinufft.h``
 
 Set nonuniform points
 ~~~~~~~~~~~~~~~~~~~~~
@@ -203,16 +203,16 @@ For type 1 these points are "sources", but for type 2, "targets".
 
 .. code-block:: c
 
-    int cufinufft_setpts(int M, double* x, double* y, double* z, int N, double* s,
-        double* t, double *u, cufinufft_plan plan)
+    int cufinufft_setpts(cufinufft_plan plan, int M, double* x, double* y,
+            double* z, int N, double* s, double* t, double *u)
 
-    int cufinufftf_setpts(int M, float* x, float* y, float* z, int N, float* s,
-        float* t, float *u, cufinufftf_plan plan)
+    int cufinufftf_setpts(cufinufftf_plan plan, int M, float* x, float* y,
+            float* z, int N, float* s, float* t, float *u)
 
     Input:
 
     M           number of nonuniform points
-    x, y, z     length-M GPU arrays of x,y (in 2D) or x,y,z (in 3D) coordinates of
+    x, y, z     length-M GPU arrays of x (in 1D), x, y (in 2D), or x, y, z (in 3D) coordinates of
                 nonuniform points. In each dimension they refer to a periodic domain
                 [-pi,pi), but values out to [-3pi, 3pi) will be folded back correctly
                 into this domain. Beyond that, they will not, and may result in crash.
@@ -221,15 +221,15 @@ For type 1 these points are "sources", but for type 2, "targets".
 
     Input/Output:
 
-    plan        the cufinufft plan object from the above plan stage
+    plan        the plan object from the above plan stage
 
     Returns:
 
     status      zero if success, otherwise an error occurred
 
-Note: The user must not change the contents of the GPU arrays ``x``, ``y``, or ``z`` (in 3D case) between this step and the below execution step. They are read in the execution step also.
+Note: The user must not change the contents of the GPU arrays ``x``, ``y``, or ``z`` between this step and the below execution step. They are read in the execution step also.
 
-Note: The actual plan (not its pointer is passed in); new GPU arrays are allocated and filled in the internal plan struct that the plan points to.
+Note: The actual plan (not its pointer) is passed in; new GPU arrays are allocated and filled in the internal plan struct that the plan points to.
 
 Execute
 ~~~~~~~
@@ -240,12 +240,13 @@ The result is written into whichever array was not the input (the roles of these
 
 .. code-block:: c
 
-    int cufinufft_execute(cuDoubleComplex* c, cuDoubleComplex* f, cufinufft_plan plan)
+    int cufinufft_execute(cufinufft_plan plan, cuDoubleComplex* c, cuDoubleComplex* f)
 
-    int cufinufftf_execute(cuFloatComplex* c, cuFloatComplex* f, cufinufftf_plan plan)
+    int cufinufftf_execute(cufinufftf_plan plan, cuFloatComplex* c, cuFloatComplex* f)
 
     Input/Output:
 
+    plan     the plan object
     c        If type 1, the input strengths at the nonuniform point sources
              (size M*ntransf complex array).
              If type 2, the output values at the nonuniform point targets
@@ -254,16 +255,15 @@ The result is written into whichever array was not the input (the roles of these
              or N1*N2*N3*ntransf complex array, when dim = 2 or 3 respectively).
              If type 2, the input Fourier mode coefficients (size N1*N2*ntransf
              or N1*N2*N3*ntransf complex array, when dim = 2 or 3 respectively).
-    plan     the cufinufft plan object
 
     Returns:
 
     status   zero if success, otherwise an error occurred
 
-Note: The contents of the arrays ``x``, ``y``, and ``z`` (if relevant) must not have changed since the ``cufinufft_setpts`` call that read them.
+Note: The contents of the arrays ``x``, ``y``, and ``z`` must not have changed since the ``cufinufft_setpts`` call that read them.
 The execution rereads them (this way of doing business saves RAM).
 
-Note: ``f`` and ``c`` are contiguous Fortran-style (row-major) arrays with the transform number being the "slowest" (outer) dimension, if ``ntransf>1``. For the ``f`` array, ``x`` is "fastest", then ``y``, then (if relevant) ``z`` is "slowest".
+Note: ``f`` and ``c`` are contiguous Fortran-style (row-major) arrays with the transform number being the "slowest" (outer) dimension, if ``ntr>1``. For the ``f`` array, ``x`` is "fastest", then ``y``, then (if relevant) ``z`` is "slowest".
 
 Destroy
 ~~~~~~~
