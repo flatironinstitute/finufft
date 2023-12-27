@@ -27,7 +27,8 @@
 
 int main() {
     // Problem size: number of nonuniform points (M) and grid size (N).
-    const int M = 100000, N = 10000;
+    const int64_t M = 100000;
+    const int N = 10000;
 
     // Size of the grid as an array.
     int64_t modes[1] = {N};
@@ -57,7 +58,7 @@ int main() {
     // while strengths can be any value.
     srand(0);
 
-    for (int j = 0; j < M; ++j) {
+    for (int64_t j = 0; j < M; ++j) {
         x[j] = 2 * M_PI * (((float)rand()) / RAND_MAX - 1);
         c[j] = (2 * ((float)rand()) / RAND_MAX - 1) + I * (2 * ((float)rand()) / RAND_MAX - 1);
     }
@@ -100,7 +101,7 @@ int main() {
     // transform.
     f0 = 0;
 
-    for (int j = 0; j < M; ++j) {
+    for (int64_t j = 0; j < M; ++j) {
         f0 += c[j] * cexp(I * x[j] * (idx - N / 2));
     }
 
