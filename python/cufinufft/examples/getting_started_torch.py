@@ -1,6 +1,6 @@
-import torch
-
 import cufinufft
+
+import torch
 
 # number of nonuniform points
 M = 100000
