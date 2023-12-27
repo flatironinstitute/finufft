@@ -31,7 +31,7 @@ We then proceed to setting up a few parameters.
     c_gpu = (cp.random.standard_normal(size=M)
              + 1J * cp.random.standard_normal(size=M))
 
-Now that the data is prepared, we can call cuFINUFFT to compute the transform of the ``M`` source point onto a grid of ``N`` modes
+Now that the data is prepared, we can call cuFINUFFT to compute the transform from the ``M`` source points onto a grid of ``N`` modes
 
 .. code-block:: python
 

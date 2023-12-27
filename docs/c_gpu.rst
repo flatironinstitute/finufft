@@ -229,7 +229,7 @@ For type 1 these points are "sources", but for type 2, "targets".
 
 Note: The user must not change the contents of the GPU arrays ``x``, ``y``, or ``z`` between this step and the below execution step. They are read in the execution step also.
 
-Note: The actual plan (not its pointer) is passed in; new GPU arrays are allocated and filled in the internal plan struct that the plan points to.
+Note: Here we pass in the actual plan handle, not its pointer as in ``cufinufft_makeplan``. The same goes for the other functions below.
 
 Execute
 ~~~~~~~
