@@ -10,6 +10,7 @@ Installation (GPU)
 The GPU version of FINUFFT is called cuFINUFFT,
 and it uses CUDA kernels (often exploiting fast GPU shared memory)
 to speed up spreading/interpolation operations, as well as cuFFT.
+It operates on GPU arrays, which enables low-overhead integration with other GPU processing pipelines, but does requires the user to transfer their data between the host (CPU) and the device (GPU).
 See the main :ref:`overview page<index>` and :ref:`reference<refs>` [S21] for more details.
 It is currently being tested on the Linux platform, but you should be able to adapt the instructions below to work on other platforms, such as Windows and macOS.
 
