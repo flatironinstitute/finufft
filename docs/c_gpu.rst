@@ -36,7 +36,8 @@ Inside our ``main`` function, we first define the problem parameters and some po
 
 .. code-block:: c
 
-    const int M = 100000, N = 10000;
+    const int64_t M = 100000;
+    const int N = 10000;
 
     int64_t modes[1] = {N};
 
@@ -75,7 +76,7 @@ Now the actual work can begin. First, we allocate the host (CPU) arrays and fill
 
     srand(0);
 
-    for(int j = 0; j < M; ++j) {
+    for(int64_t j = 0; j < M; ++j) {
         x[j] = 2 * M_PI * (((float) rand()) / RAND_MAX - 1);
         c[j] = (2 * ((float) rand()) / RAND_MAX - 1)
                + I * (2 * ((float) rand()) / RAND_MAX - 1);
@@ -134,7 +135,7 @@ If we want, we can complare this to the value obtained using the type-1 NUDFT fo
 
     f0 = 0;
 
-    for(int j = 0; j < M; ++j) {
+    for(int64_t j = 0; j < M; ++j) {
         f0 += c[j] * cexp(I * x[j] * (idx - N / 2));
     }
 
@@ -206,10 +207,10 @@ For type 1 these points are "sources", but for type 2, "targets".
 
 .. code-block:: c
 
-    int cufinufft_setpts(cufinufft_plan plan, int M, double* x, double* y,
+    int cufinufft_setpts(cufinufft_plan plan, int64_t M, double* x, double* y,
             double* z, int N, double* s, double* t, double *u)
 
-    int cufinufftf_setpts(cufinufftf_plan plan, int M, float* x, float* y,
+    int cufinufftf_setpts(cufinufftf_plan plan, int64_t M, float* x, float* y,
             float* z, int N, float* s, float* t, float *u)
 
     Input:
