@@ -16,7 +16,7 @@ namespace spreadinterp {
 /* Kernels for NUptsdriven Method */
 
 template <typename T, int KEREVALMETH>
-__global__ void spread_2d_nupts_driven(const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M,
+__global__ void spread_2d_nupts_driven(const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int64_t M,
                                        int ns, int nf1, int nf2, T es_c, T es_beta, T sigma, const int *idxnupts,
                                        int pirange) {
     int xstart, ystart, xend, yend;
@@ -28,7 +28,7 @@ __global__ void spread_2d_nupts_driven(const T *x, const T *y, const cuda_comple
     T x_rescaled, y_rescaled;
     T kervalue1, kervalue2;
     cuda_complex<T> cnow;
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
+    for (int64_t i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
         cnow = c[idxnupts[i]];
@@ -66,12 +66,12 @@ __global__ void spread_2d_nupts_driven(const T *x, const T *y, const cuda_comple
 /* Kernels for SubProb Method */
 // SubProb properties
 template <typename T>
-__global__ void calc_bin_size_noghost_2d(int M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
+__global__ void calc_bin_size_noghost_2d(int64_t M, int nf1, int nf2, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
                                          int *bin_size, T *x, T *y, int *sortidx, int pirange) {
     int binidx, binx, biny;
     int oldidx;
     T x_rescaled, y_rescaled;
-    for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
+    for (int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
         binx = floor(x_rescaled / bin_size_x);
@@ -90,13 +90,13 @@ __global__ void calc_bin_size_noghost_2d(int M, int nf1, int nf2, int bin_size_x
 }
 
 template <typename T>
-__global__ void calc_inverse_of_global_sort_index_2d(int M, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
+__global__ void calc_inverse_of_global_sort_index_2d(int64_t M, int bin_size_x, int bin_size_y, int nbinx, int nbiny,
                                                      const int *bin_startpts, const int *sortidx, const T *x,
                                                      const T *y, int *index, int pirange, int nf1, int nf2) {
     int binx, biny;
     int binidx;
     T x_rescaled, y_rescaled;
-    for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
+    for (int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
         binx = floor(x_rescaled / bin_size_x);
@@ -112,7 +112,7 @@ __global__ void calc_inverse_of_global_sort_index_2d(int M, int bin_size_x, int 
 }
 
 template <typename T, int KEREVALMETH>
-__global__ void spread_2d_subprob(const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int ns,
+__global__ void spread_2d_subprob(const T *x, const T *y, const cuda_complex<T> *c, cuda_complex<T> *fw, int64_t M, int ns,
                                   int nf1, int nf2, T es_c, T es_beta, T sigma, int *binstartpts, const int *bin_size,
                                   int bin_size_x, int bin_size_y, int *subprob_to_bin, const int *subprobstartpts,
                                   const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, const int *idxnupts,
@@ -204,10 +204,10 @@ __global__ void spread_2d_subprob(const T *x, const T *y, const cuda_complex<T> 
 /* --------------------- 2d Interpolation Kernels ----------------------------*/
 /* Kernels for NUptsdriven Method */
 template <typename T, int KEREVALMETH>
-__global__ void interp_2d_nupts_driven(const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M,
+__global__ void interp_2d_nupts_driven(const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int64_t M,
                                        int ns, int nf1, int nf2, T es_c, T es_beta, T sigma, const int *idxnupts,
                                        int pirange) {
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
+    for (int64_t i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         T x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         T y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
 
@@ -249,7 +249,7 @@ __global__ void interp_2d_nupts_driven(const T *x, const T *y, cuda_complex<T> *
 
 /* Kernels for Subprob Method */
 template <typename T, int KEREVALMETH>
-__global__ void interp_2d_subprob(const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int M, int ns,
+__global__ void interp_2d_subprob(const T *x, const T *y, cuda_complex<T> *c, const cuda_complex<T> *fw, int64_t M, int ns,
                                   int nf1, int nf2, T es_c, T es_beta, T sigma, int *binstartpts, const int *bin_size,
                                   int bin_size_x, int bin_size_y, int *subprob_to_bin, const int *subprobstartpts,
                                   const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, const int *idxnupts,

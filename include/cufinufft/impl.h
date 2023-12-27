@@ -264,7 +264,7 @@ finalize:
 }
 
 template <typename T>
-int cufinufft_setpts_impl(int M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u, cufinufft_plan_t<T> *d_plan)
+int cufinufft_setpts_impl(int64_t M, T *d_kx, T *d_ky, T *d_kz, int N, T *d_s, T *d_t, T *d_u, cufinufft_plan_t<T> *d_plan)
 /*
     "setNUpts" stage (in single or double precision).
 

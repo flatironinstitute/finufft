@@ -34,7 +34,7 @@ struct cufinufft_plan_t {
 
     int type;
     int dim;
-    CUFINUFFT_BIGINT M;
+    int64_t M;
     CUFINUFFT_BIGINT nf1;
     CUFINUFFT_BIGINT nf2;
     CUFINUFFT_BIGINT nf3;

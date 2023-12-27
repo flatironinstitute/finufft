@@ -16,13 +16,13 @@ namespace spreadinterp {
 /* Kernels for bin sort NUpts */
 
 template <typename T>
-__global__ void calc_bin_size_noghost_3d(int M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y,
+__global__ void calc_bin_size_noghost_3d(int64_t M, int nf1, int nf2, int nf3, int bin_size_x, int bin_size_y,
                                          int bin_size_z, int nbinx, int nbiny, int nbinz, int *bin_size, const T *x,
                                          const T *y, const T *z, int *sortidx, int pirange) {
     int binidx, binx, biny, binz;
     int oldidx;
     T x_rescaled, y_rescaled, z_rescaled;
-    for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
+    for (int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
         z_rescaled = RESCALE(z[i], nf3, pirange);
@@ -44,14 +44,14 @@ __global__ void calc_bin_size_noghost_3d(int M, int nf1, int nf2, int nf3, int b
 }
 
 template <typename T>
-__global__ void calc_inverse_of_global_sort_index_3d(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
+__global__ void calc_inverse_of_global_sort_index_3d(int64_t M, int bin_size_x, int bin_size_y, int bin_size_z, int nbinx,
                                                      int nbiny, int nbinz, const int *bin_startpts, const int *sortidx,
                                                      const T *x, const T *y, const T *z, int *index, int pirange,
                                                      int nf1, int nf2, int nf3) {
     int binx, biny, binz;
     int binidx;
     T x_rescaled, y_rescaled, z_rescaled;
-    for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
+    for (int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
         z_rescaled = RESCALE(z[i], nf3, pirange);
@@ -73,7 +73,7 @@ __global__ void calc_inverse_of_global_sort_index_3d(int M, int bin_size_x, int 
 /* Kernels for NUptsdriven method */
 template <typename T, int KEREVALMETH>
 __global__ void spread_3d_nupts_driven(const T *x, const T *y, const T *z, const cuda_complex<T> *c,
-                                       cuda_complex<T> *fw, int M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
+                                       cuda_complex<T> *fw, int64_t M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
                                        T sigma, const int *idxnupts, int pirange) {
     int xx, yy, zz, ix, iy, iz;
     int outidx;
@@ -84,7 +84,7 @@ __global__ void spread_3d_nupts_driven(const T *x, const T *y, const T *z, const
     T ker1val, ker2val, ker3val;
 
     T x_rescaled, y_rescaled, z_rescaled;
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
+    for (int64_t i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
         z_rescaled = RESCALE(z[idxnupts[i]], nf3, pirange);
@@ -131,7 +131,7 @@ __global__ void spread_3d_nupts_driven(const T *x, const T *y, const T *z, const
 
 /* Kernels for Subprob method */
 template <typename T, int KEREVALMETH>
-__global__ void spread_3d_subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int M, int ns, int nf1,
+__global__ void spread_3d_subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_complex<T> *fw, int64_t M, int ns, int nf1,
                                   int nf2, int nf3, T sigma, T es_c, T es_beta, int *binstartpts, int *bin_size,
                                   int bin_size_x, int bin_size_y, int bin_size_z, int *subprob_to_bin,
                                   int *subprobstartpts, int *numsubprob, int maxsubprobsize, int nbinx, int nbiny,
@@ -235,14 +235,14 @@ __global__ void spread_3d_subprob(T *x, T *y, T *z, cuda_complex<T> *c, cuda_com
 
 /* Kernels for BlockGather Method */
 template <typename T>
-__global__ void locate_nupts_to_bins_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx,
+__global__ void locate_nupts_to_bins_ghost(int64_t M, int bin_size_x, int bin_size_y, int bin_size_z, int nobinx,
                                            int nobiny, int nobinz, int binsperobinx, int binsperobiny, int binsperobinz,
                                            int *bin_size, const T *x, const T *y, const T *z, int *sortidx, int pirange,
                                            int nf1, int nf2, int nf3) {
     int binidx, binx, biny, binz;
     int oldidx;
     T x_rescaled, y_rescaled, z_rescaled;
-    for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
+    for (int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
         z_rescaled = RESCALE(z[i], nf3, pirange);
@@ -261,7 +261,7 @@ __global__ void locate_nupts_to_bins_ghost(int M, int bin_size_x, int bin_size_y
 }
 
 template <typename T>
-__global__ void calc_inverse_of_global_sort_index_ghost(int M, int bin_size_x, int bin_size_y, int bin_size_z,
+__global__ void calc_inverse_of_global_sort_index_ghost(int64_t M, int bin_size_x, int bin_size_y, int bin_size_z,
                                                         int nobinx, int nobiny, int nobinz, int binsperobinx,
                                                         int binsperobiny, int binsperobinz, int *bin_startpts,
                                                         const int *sortidx, const T *x, const T *y, const T *z,
@@ -269,7 +269,7 @@ __global__ void calc_inverse_of_global_sort_index_ghost(int M, int bin_size_x, i
     int binx, biny, binz;
     int binidx;
     T x_rescaled, y_rescaled, z_rescaled;
-    for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
+    for (int64_t i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
         x_rescaled = RESCALE(x[i], nf1, pirange);
         y_rescaled = RESCALE(y[i], nf2, pirange);
         z_rescaled = RESCALE(z[i], nf3, pirange);
@@ -289,7 +289,7 @@ __global__ void calc_inverse_of_global_sort_index_ghost(int M, int bin_size_x, i
 
 template <typename T, int KEREVALMETH>
 __global__ void spread_3d_block_gather(const T *x, const T *y, const T *z, const cuda_complex<T> *c,
-                                       cuda_complex<T> *fw, int M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
+                                       cuda_complex<T> *fw, int64_t M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta,
                                        T sigma, const int *binstartpts, int obin_size_x, int obin_size_y,
                                        int obin_size_z, int binsperobin, int *subprob_to_bin,
                                        const int *subprobstartpts, int maxsubprobsize, int nobinx, int nobiny,
@@ -403,9 +403,9 @@ __global__ void spread_3d_block_gather(const T *x, const T *y, const T *z, const
 /* Kernels for NUptsdriven Method */
 template <typename T, int KEREVALMETH>
 __global__ void interp_3d_nupts_driven(const T *x, const T *y, const T *z, cuda_complex<T> *c,
-                                       const cuda_complex<T> *fw, int M, int ns, int nf1, int nf2, int nf3, T es_c,
+                                       const cuda_complex<T> *fw, int64_t M, int ns, int nf1, int nf2, int nf3, T es_c,
                                        T es_beta, T sigma, int *idxnupts, int pirange) {
-    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
+    for (int64_t i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
         T x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
         T y_rescaled = RESCALE(y[idxnupts[i]], nf2, pirange);
         T z_rescaled = RESCALE(z[idxnupts[i]], nf3, pirange);
@@ -459,7 +459,7 @@ __global__ void interp_3d_nupts_driven(const T *x, const T *y, const T *z, cuda_
 /* Kernels for SubProb Method */
 template <typename T, int KEREVALMETH>
 __global__ void interp_3d_subprob(const T *x, const T *y, const T *z, cuda_complex<T> *c, const cuda_complex<T> *fw,
-                                  int M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma,
+                                  int64_t M, int ns, int nf1, int nf2, int nf3, T es_c, T es_beta, T sigma,
                                   const int *binstartpts, const int *bin_size, int bin_size_x, int bin_size_y,
                                   int bin_size_z, const int *subprob_to_bin, const int *subprobstartpts,
                                   const int *numsubprob, int maxsubprobsize, int nbinx, int nbiny, int nbinz,
