@@ -39,7 +39,7 @@ print('cufinufft CUDA shared libraries found, continuing...')
 # Python Package Setup
 setup(
     name='cufinufft',
-    version='2.2.0b0',
+    version='2.2.0',
     author='Yu-shuan Melody Shih, Garrett Wright, Joakim Anden, Johannes Blaschke, Alex Barnett',
     author_email='janden-vscholar@flatironinstitute.org',
     url='https://github.com/flatironinstitute/finufft',
