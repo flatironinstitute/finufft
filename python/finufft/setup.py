@@ -27,8 +27,8 @@ lib_dir = os.path.join(finufft_dir, 'lib')
 lib_dir_cmake = os.path.join(finufft_dir, 'build')   # lib may be only here
 
 # Read in long description from README.md.
-with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r') as f:
-        long_description = f.read()
+with open(os.path.join(finufft_dir, 'python', 'finufft', 'README.md'), 'r', encoding='utf8') as f:
+    long_description = f.read()
 
 finufft_dlib = 'finufft'
 
