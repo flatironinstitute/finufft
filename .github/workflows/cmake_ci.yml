@@ -1,5 +1,8 @@
 name: cmake ci linux macos windows
-on: [push]
+on:
+  push:
+  release:
+    types: [published]
 
 jobs:
   cmake-ci:
@@ -72,7 +75,7 @@ jobs:
           path: ${{runner.workspace}}/finufft/build/*finufft*
 
       - name: Pack For Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'release' && github.event.action == 'published'
         shell: bash
         run: |
           cd build
@@ -86,7 +89,7 @@ jobs:
 
       - name: Publish
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') && github.event_name == 'release' && github.event.action == 'published'
         with:
           files: |
             *-finufft-lib*
