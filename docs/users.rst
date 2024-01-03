@@ -7,7 +7,7 @@ Here we list packages that depend on or wrap FINUFFT, and papers or groups using
 Papers that merely cite our work are listed separately at the bottom. Please let us know (and use github's dependent package link) if you are a user or package maintainer but not listed, and please "star" our GitHub repo.
 It will help us to improve the library if you also
 describe your use case parameters
-[here](https://github.com/flatironinstitute/finufft/discussions/398).
+`here <https://github.com/flatironinstitute/finufft/discussions/398>`_.
 
 
 Packages relying on FINUFFT or cuFINUFFT
@@ -34,7 +34,7 @@ and also add them to GitHub's Used By feature):
 
 #. `EM-Align <https://github.com/ShkolniskyLab/emalign>`_: Aligning rotation, reflection, and translation between volumes (desntiy maps) in cryo-electron microscopy, from Shkolnisky Lab at Tel Aviv.
 
-#. `spinifel <https://gitlab.osti.gov/mtip/spinifel>`_: Uses the multitiered iterative phasing (M-TIP) algorithm for single particle X-ray diffraction imaging, on CPU/GPU, from LBNL/DOE.
+#. `spinifel <https://gitlab.osti.gov/mtip/spinifel>`_: Uses the multitiered iterative phasing (M-TIP) algorithm for single particle X-ray diffraction imaging, on CPU/GPU, from the ExaFEL project at LBNL/DOE.
    
 #. `sinctransform <https://github.com/hannahlawrence/sinctransform>`_: C++ and MATLAB codes to evaluate sums of the sinc and sinc^2 kernels between arbitrary nonuniform points in 1,2, or 3 dimensions, by Hannah Lawrence (2017 summer intern at Flatiron).
 
@@ -58,7 +58,7 @@ Other wrappers to (cu)FINUFFT
 Research output using (cu)FINUFFT
 ---------------------------------
 
-For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=14265215625340229167>`_, and `cuFINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=15739437776774999949>`_. Here are some early highlights we know about:
+For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=14265215625340229167>`_, and `cuFINUFFT citations <https://scholar.google.com/scholar?oi=bibs&hl=en&cites=15739437776774999949>`_. Here are some highlights that we know about:
 
 #. Marco Barbone and colleagues at Imperial have used FINUFFT and multi-GPU cuFINUFFT to accelerate 4D MRI reconstruction via the XD-GRASP algorithm by 10-20x. See their `2021 conference paper <https://ieeexplore.ieee.org/document/9651604>`_ and `2023 article <https://doi.org/10.1016/j.phro.2023.100484>`_.
 
@@ -83,7 +83,7 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Efficient wide-field radio interferometry response. P. Arras, M. Reinecke, R. Westermann, T.A. Ensslin, Astron. Astrophys. (2020).   https://doi.org/10.1051/0004-6361/202039723
 
-#. Johannes Blaschke, Jeff Donatelli, Jamie Sethian, and collaborators at the `ExaFEL <https://lcls.slac.stanford.edu/exafel>`_ coherent light source use FINUFFT and cuFINUFFT for single-particle X-ray imaging.
+#. Johannes Blaschke, Jeff Donatelli, Jamie Sethian, and collaborators at the `ExaFEL <https://lcls.slac.stanford.edu/exafel>`_ coherent light source use FINUFFT and cuFINUFFT to accelerate single-particle X-ray imaging.  See preprint by Chang, Slaughter, Donatelli, et al: https://arxiv.org/abs/2109.05339
 
 #. A. Harness, S. Shaklan, P. Willems, N. J. Kasdin, K. Balasubramanian, V. White, K. Yee, P. Dumont, R. Muller, S. Vuong, M. Galvin,
    "Optical experiments and model validation of perturbed starshade designs," Proc. SPIE 11823, Techniques and Instrumentation for Detection of Exoplanets X, 1182312 (1 September 2021); https://doi.org/10.1117/12.2595409
@@ -96,11 +96,7 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Pei R, Askham T, Greengard L, Jiang S (2023). "A fast method for imposing periodic boundary conditions on arbitrarily-shaped lattices in two dimensions." J. Comput. Phys. 474, 111792. https://doi.org/10.1016/j.jcp.2022.111792 Uses FINUFFT for plane wave sums.
 
-#. Dylan Green, JR Jamora, and Anne Gelb (2023).
-"Leveraging joint sparsity in 3D synthetic aperture radar imaging,"
-Appl. Math. Modern Chall. 1, 61-86. https://doi.org/10.3934/ammc.2023005
-Uses 3D transforms between N=201<sup>3</sup> modes (voxels) and M=313300
-data points. As they state, "...the computational cost of each method heavily depends on the NUFFT algorithm used."
+#. Dylan Green, JR Jamora, and Anne Gelb (2023). "Leveraging joint sparsity in 3D synthetic aperture radar imaging," Appl. Math. Modern Chall. 1, 61-86. https://doi.org/10.3934/ammc.2023005 Uses 3D transforms between $N=201^3$ modes (voxels) and $M=313300$ data points. As they state, "...the computational cost of each method heavily depends on the NUFFT algorithm used."
 
 
 Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
@@ -113,7 +109,7 @@ Papers or codes using our new ES window (spreading) function but not the whole F
 
 Papers influenced by other aspects of FINUFFT:
 
-1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our type 1 and 2 performance by a factor of 1-2 in some cases. Code is dimension-independent but very abstract (two levels of meta-programming, I believe).
+1. NFFT.jl: Generic and Fast Julia Implementation of the Nonequidistant Fast Fourier Transform, by Tobias Knopp, Marija Boberg, Mirco Grosser (2022). https://arxiv.org/abs/2208.00049  They use our blocked spreading and piecewise polynomial ideas, and beat our type 1 and 2 performance by a factor of up to 1.7 in multithreaded cases. Code is dimension-independent but very abstract (two levels of meta-programming, I believe).
 
    
    
