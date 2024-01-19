@@ -559,8 +559,6 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
 {
   FINUFFT_PLAN p;
-  cout << scientific << setprecision(15);  // for commented-out low-lev debug
-
   p = new FINUFFT_PLAN_S;                // allocate fresh plan struct
   *pp = p;                               // pass out plan as ptr to plan struct
 
