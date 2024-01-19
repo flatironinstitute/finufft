@@ -552,9 +552,9 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
 // PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
                      int ntrans, FLT tol, FINUFFT_PLAN *pp, finufft_opts* opts)
-// Populates the fields of finufft_plan which is pointed to by "p".
+// Populates the fields of finufft_plan which is pointed to by "pp".
 // opts is ptr to a finufft_opts to set options, or NULL to use defaults.
-// For some of the fields, if "auto" selected, choose the actual setting.
+// For some of the fields (if "auto" selected) here choose the actual setting.
 // For types 1,2 allocates memory for internal working arrays,
 // evaluates spreading kernel coefficients, and instantiates the fftw_plan
 {
