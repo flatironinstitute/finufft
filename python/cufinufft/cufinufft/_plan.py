@@ -125,19 +125,25 @@ class Plan:
         # Extract list of valid field names.
         field_names = [name for name, _ in self._opts._fields_]
 
+        # Initialize a list for references to objects
+        # we want to keep around for life of instance.
+        self._references = []
+
         # Assign field names from kwargs if they match up, otherwise error.
         for k, v in kwargs.items():
             if k in field_names:
-                setattr(self._opts, k, v)
+                if k == 'gpu_stream':
+                    # need reference to stream object to prevent stream cleanup before plan object
+                    self._references.append(v)
+                    stream_ptr = _compat.get_stream_ptr(v)
+                    setattr(self._opts, k, stream_ptr)
+                else:
+                    setattr(self._opts, k, v)
             else:
                 raise TypeError(f"Invalid option '{k}'")
 
         # Initialize the plan.
         self._init_plan()
-
-        # Initialize a list for references to objects
-        #   we want to keep around for life of instance.
-        self._references = []
 
     @staticmethod
     def _default_opts():

@@ -27,6 +27,22 @@ def get_array_module(obj):
         return "generic"
 
 
+def get_stream_ptr(obj):
+    framework = get_array_module(obj)
+    if isinstance(obj, int):
+        return obj
+    if framework == 'numba':
+        return obj.handle.value
+    if framework == 'pycuda':
+        return obj.handle
+    if framework == 'torch':
+        return obj.cuda_stream
+    # Unknown / generic / cupy
+    if hasattr(obj, 'ptr'):
+        return obj.ptr
+    raise TypeError("Unknown cuda stream pointer type")
+
+
 def get_array_size(obj):
     array_module = get_array_module(obj)
 

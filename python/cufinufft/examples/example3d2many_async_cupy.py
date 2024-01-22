@@ -44,7 +44,7 @@ def test():
 
     # Initialize the plan and set the points.
     plan_stream = cupy.cuda.Stream(null=True)
-    plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=plan_stream.ptr)
+    plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=plan_stream)
     plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))
 
     # Using a simple front/back buffer approach. backbuffer is for DtoH transfers, and front for
@@ -54,9 +54,9 @@ def test():
     back_fk_gpu = cupy.empty(fk_all[0].shape, fk_all[0].dtype)
     front_c_gpu = cupy.empty(c_all_async[0].shape, c_all_async[0].dtype)
     back_c_gpu = cupy.empty(c_all_async[0].shape, c_all_async[0].dtype)
-    front_plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=front_stream.ptr)
+    front_plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=front_stream)
     front_plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))
-    back_plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=back_stream.ptr)
+    back_plan = cufinufft.Plan(2, N, n_transf, eps=eps, dtype=complex_dtype, gpu_kerevalmeth=1, gpu_stream=back_stream)
     back_plan.setpts(cupy.array(x), cupy.array(y), cupy.array(z))
 
     # Run with async
@@ -100,11 +100,5 @@ def test():
     print(f"speedup (sync / async): {round(sync_time / async_time, 2)}")
     print(f"speedup (naive / sync): {round(naive_time / sync_time, 2)}")
     print(f"speedup (naive / async): {round(naive_time / async_time, 2)}")
-
-    # Since plans carry raw stream pointers which aren't reference counted, we need to make
-    # sure they're deleted before the stream objects that hold them. Otherwise, the stream
-    # might be deleted before cufinufft can use it in the deletion routines. Manually clear
-    # them out here.
-    del plan, front_plan, back_plan
 
 test()
