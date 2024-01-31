@@ -1,7 +1,7 @@
 function Tx = applyToep(x,vhat)
 % APPLYTOEP   fast matrix-vector multiply with square Toeplitz matrix
 %
-% Tx = applyToep(vhat,a) multiplies vector x by the square N*N (generally
+% Tx = applyToep(x,vhat) multiplies vector x by the square N*N (generally
 %  non-symmetric) Toeplitz matrix T defined by a vector v of length 2N-1
 %  whose 2N-padded DFT vhat = fft([v;0]) the user must supply.
 %  The convention for v (as in Raymond
