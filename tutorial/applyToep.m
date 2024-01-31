@@ -13,12 +13,12 @@ function Tx = applyToep(x,vhat)
 %  larger factors (it is often prime) which slow down the FFT dramatically.
 %
 % Inputs: x    : input column vector length N
-%         vhat : DFT of v after padding to length 2N (eg, by a zero)
+%         vhat : DFT of v after padding to length 2N (eg, by a single zero)
 % Output: Tx   : T*x, col vec length N
 %
 % Without arguments does self-test; see this code for a demo of use
 
-% Barnett 11/7/22. Realized 2N-1 slow for FFT, 12/10/23
+% Barnett 11/7/22. Realized 2N-1 slow for FFT (can be prime!) -> 2N.  12/10/23
 if nargin==0, test_applyToep; return; end
 
 N = numel(x);
@@ -29,11 +29,10 @@ Tx = Tx(N:end-1);              % extract correct chunk of padded output
 
 %%%%%%%
 function test_applyToep
-N = 10;                  % size to compare against direct matvec
+N = 10;                   % size to compare against direct matvec
 x = randn(N,1);
-x = 0*x; x(1)=1;
 t = randn(2*N-1,1);       % define nonsymm Toep: back 1st row then down 1st col
 T = toeplitz(t(N:end),t(N:-1:1));   % munge single toep vec into (C,R) format
-tpad = [t;0]; that = fft(tpad);
+tpad = [t;0]; that = fft(tpad);     % shows user how to pad
 Tx = applyToep(x,that);
 fprintf('test_applyToep: Frob norm of diff btw fast and direct: %.3g\n',norm(T*x - Tx,'fro'))
