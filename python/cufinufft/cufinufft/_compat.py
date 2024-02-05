@@ -1,7 +1,7 @@
 import inspect
 
 import numpy as np
-
+import warnings
 
 def get_array_ptr(data):
     try:
@@ -30,6 +30,10 @@ def get_array_module(obj):
 def get_stream_ptr(obj):
     framework = get_array_module(obj)
     if isinstance(obj, int):
+        warnings.warn("Raw stream pointers are deprecated and will be removed in version 2.4. "
+                      "Please use your python GPU framework's stream object type directly.",
+                      DeprecationWarning)
+
         return obj
     if framework == 'numba':
         return obj.handle.value
