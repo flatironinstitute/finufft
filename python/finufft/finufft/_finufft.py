@@ -30,7 +30,8 @@ c_longlong_p = ctypes.POINTER(c_longlong)
 lib = None
 # Try to load a local library directly.
 try:
-    lib = ctypes.cdll.LoadLibrary('libfinufft.so')
+    path = os.path.dirname(__file__)
+    lib = ctypes.cdll.LoadLibrary(path+'/libfinufft.so')
 except OSError:
     pass
 
