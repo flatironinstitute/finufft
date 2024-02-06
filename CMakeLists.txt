@@ -318,7 +318,7 @@ endif ()
 
 if (FINUFFT_BUILD_PYTHON)
     set(INSTALL_TARGETS "")
-    add_subdirectory(python/pyfinufft)
+    add_subdirectory(python)
 endif ()
 
 include(GNUInstallDirs)

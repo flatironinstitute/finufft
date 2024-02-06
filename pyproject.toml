@@ -9,7 +9,7 @@ requires = [
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "pyfinufft"
+name = "finufft"
 version = "0.0.1"
 description = "Python bindings for the FINUFFT C++ library"
 readme = "README.md"
@@ -18,16 +18,14 @@ requires-python = ">=3.8"
 [tool.scikit-build]
 # Protect the configuration against future changes in scikit-build-core
 minimum-version = "0.4"
-cmake.targets = ["pyfinufft_ext"]
+cmake.targets = ["finufft"]
 cmake.args = ['-DFINUFFT_BUILD_PYTHON=ON', '-DCMAKE_BUILD_TYPE=Release'] # not sure if this is necessary
-wheel.packages = ["python/pyfinufft/pyfinufft"]
+wheel.packages = ["python/finufft/finufft"]
 wheel.exclude = ["**.pyx"]
 # Setuptools-style build caching in a local directory
 build-dir = "build/{wheel_tag}"
-
 # Build stable ABI wheels for CPython 3.8+
 wheel.py-api = "cp38"
-
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
