@@ -1,6 +1,8 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
+* new sanity check on nj and nk (<0 or too big); new err code, tester, doc.
+* MAX_NF increased from 1e11 to 1e12, since machines grow.
 * improved GPU python docs: migration guide; usage from cupy, numba, torch,
   pycuda. PyPI pkg still at 2.2.0beta.
 

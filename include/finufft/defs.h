@@ -55,12 +55,12 @@
 #define MAX_NQUAD 100
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
-// (Note: next235 takes 1s for this size, so it is also to prevent hang here.)
-// Increase this if you need >1TB RAM...
-#define MAX_NF    (BIGINT)1e11
+// (Note: next235 takes 1s for 1e11, so it is also to prevent hang here.)
+// Increase this if you need >10TB (!) RAM...
+#define MAX_NF    (BIGINT)1e12
 
 // Maximum allowed number M of NU points; useful to catch incorrectly cast int32
-// values for M = nj (also ns in type 3)
+// values for M = nj (also nk in type 3)...
 #define MAX_NU_PTS    (BIGINT)1e14
 
 

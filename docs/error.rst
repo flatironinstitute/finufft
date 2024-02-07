@@ -28,7 +28,7 @@ has the following meanings (see ``include/finufft_errors.h``):
   17 invalid spread/interp method for dim (attempt to blockgather in 1D, e.g.)
   18 size of bins for subprob/blockgather invalid
   19 GPU shmem too small for subprob/blockgather parameters
-  20 invalid number of nonuniform points, i.e., nj or nk negative, or too large
+  20 invalid number of nonuniform points: nj or nk negative, or too big (see defs.h)
 
 When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
 
@@ -46,7 +46,7 @@ Large internal arrays
 In case your input parameters demand the allocation of very large arrays, an
 internal check is done to see if their size exceeds a rather generous internal
 limit, set in ``defs.h`` as ``MAX_NF``. The current value in the source code is
-``1e11``, which corresponds to about 1TB for double precision.
+``1e12``, which corresponds to about 10TB for double precision.
 Allocations beyond this cause a graceful exit with error code ``2`` as above.
 Such a large allocation can be due to enormous ``N`` (in types 1 or 2), or ``M``,
 but also large values of the space-bandwidth product (loosely, range of :math:`\mathbf{x}_j` points times range of :math:`\mathbf{k}_j` points) for type 3 transforms; see Remark 5 in :ref:`reference FIN <refs>`.
