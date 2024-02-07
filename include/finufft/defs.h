@@ -56,9 +56,12 @@
 
 // Internal (nf1 etc) array allocation size that immediately raises error.
 // (Note: next235 takes 1s for this size, so it is also to prevent hang here.)
-// Increase this if you need >1TB RAM... (used only in common.cpp)
+// Increase this if you need >1TB RAM...
 #define MAX_NF    (BIGINT)1e11
 
+// Maximum allowed number M of NU points; useful to catch incorrectly cast int32
+// values for M = nj (also ns in type 3)
+#define MAX_NU_PTS    (BIGINT)1e14
 
 
 // -------------- Math consts (not in math.h) and useful math macros ----------

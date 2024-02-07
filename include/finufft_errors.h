@@ -25,5 +25,6 @@
 #define FINUFFT_ERR_METHOD_NOTVALID        17
 #define FINUFFT_ERR_BINSIZE_NOTVALID       18
 #define FINUFFT_ERR_INSUFFICIENT_SHMEM     19
-
+// back to CPU errors
+#define FINUFFT_ERR_NUM_NU_PTS_INVALID     20
 #endif

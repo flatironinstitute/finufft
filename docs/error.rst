@@ -28,12 +28,13 @@ has the following meanings (see ``include/finufft_errors.h``):
   17 invalid spread/interp method for dim (attempt to blockgather in 1D, e.g.)
   18 size of bins for subprob/blockgather invalid
   19 GPU shmem too small for subprob/blockgather parameters
+  20 invalid number of nonuniform points, i.e., nj or nk negative, or too large
 
 When ``ier=1`` (warning only) the transform(s) is/are still completed, at the smallest epsilon achievable, so, with that caveat, the answer should still be usable.
 
 For any other nonzero values of ``ier`` the transform may not have been performed and the output should not be trusted. However, we hope that the value of ``ier`` will help to narrow down the problem.
 
-FINUFFT sometimes also sends error text to ``stderr`` if it detects faulty input parameters.
+FINUFFT sometimes also sends error text to ``stderr`` if it detects faulty input parameters. Please check your terminal output.
 
 If you are getting error codes, please reread the documentation
 for your language, then see our :ref:`troubleshooting advice <trouble>`.
@@ -53,3 +54,7 @@ Note that mallocs smaller than this, but which still exceed available RAM, may c
 If you have a large-RAM machine and want to exceed the above hard-coded limit, you will need
 to edit ``defs.h`` and recompile.
 
+Similar sanity checks are done on the numbers of nonuniform points, and it is
+(barely) conceivable that you could want to
+increase ``MAX_NU_PTS`` beyond its current value
+of ``1e14`` in ``defs.h``, and recompile.

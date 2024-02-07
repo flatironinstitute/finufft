@@ -763,7 +763,14 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
   int d = p->dim;     // abbrev for spatial dim
   CNTime timer; timer.start();
   p->nj = nj;    // the user only now chooses how many NU (x,y,z) pts
-
+  if (nj<0) {
+    fprintf(stderr,"[%s] nj (%lld) cannot be negative!\n",__func__,(long long)nj);
+    return FINUFFT_ERR_NUM_NU_PTS_INVALID;
+  } else if (nj>MAX_NU_PTS) {
+    fprintf(stderr,"[%s] nj (%lld) exceeds MAX_NU_PTS\n",__func__,(long long)nj);
+    return FINUFFT_ERR_NUM_NU_PTS_INVALID;
+  }
+  
   if (p->type!=3) {  // ------------------ TYPE 1,2 SETPTS -------------------
                      // (all we can do is check and maybe bin-sort the NU pts)
     p->X = xj;       // plan must keep pointers to user's fixed NU pts
@@ -789,6 +796,13 @@ int FINUFFT_SETPTS(FINUFFT_PLAN p, BIGINT nj, FLT* xj, FLT* yj, FLT* zj,
   } else {   // ------------------------- TYPE 3 SETPTS -----------------------
              // (here we can precompute pre/post-phase factors and plan the t2)
 
+    if (nk<0) {
+      fprintf(stderr,"[%s] nk (%lld) cannot be negative!\n",__func__,(long long)nk);
+      return FINUFFT_ERR_NUM_NU_PTS_INVALID;
+    } else if (nk>MAX_NU_PTS) {
+      fprintf(stderr,"[%s] nk (%lld) exceeds MAX_NU_PTS\n",__func__,(long long)nk);
+      return FINUFFT_ERR_NUM_NU_PTS_INVALID;
+    }
     p->nk = nk;     // user set # targ freq pts
     p->S = s;       // keep pointers to user's input target pts
     p->T = t;

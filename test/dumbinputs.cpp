@@ -93,13 +93,24 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT1D1(M,x,c,+1,acc,0,F,&opts);
   if (ier) {
-    printf("1d1 N=0:\tier=%d",ier);
+    printf("1d1 N=0:\tier=%d\n",ier);
     return ier;
+  }
+  ier = FINUFFT1D1(-1,x,c,+1,acc,0,F,&opts);
+  if (ier != FINUFFT_ERR_NUM_NU_PTS_INVALID) {
+    printf("1d1 M<0:\twrong err code %d\n",ier);
+    return 1;
+  }
+  int64_t Mhuge = (int64_t)(1e16);   // see defs.h MAX_NU_PTS
+  ier = FINUFFT1D1(Mhuge,x,c,+1,acc,0,F,&opts);
+  if (ier != FINUFFT_ERR_NUM_NU_PTS_INVALID) {
+    printf("1d1 M huge:\twrong err code %d\n",ier);
+    return 1;
   }
   ier = FINUFFT1D1(0,x,c,+1,acc,N,F,&opts);
   FLT t = twonorm(N,F);
   if (ier || t!=0.0) {
-    printf("1d1 M=0:\tier=%d nrm(F)=%.3g",ier,t);
+    printf("1d1 M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
     return 1;
   }
   FLT xsave = x[0];
@@ -131,12 +142,12 @@ int main(int argc, char* argv[])
   ier = FINUFFT1D2(M,x,c,+1,acc,0,F,&opts);
   t = twonorm(M,c);
   if (ier || t!=0.0) {
-    printf("1d2 N=0:\tier=%d nrm(c)=%.3g",ier,t);
+    printf("1d2 N=0:\tier=%d nrm(c)=%.3g\n",ier,t);
     return 1;
   }
   ier = FINUFFT1D2(0,x,c,+1,acc,N,F,&opts);
   if (ier) {
-    printf("1d2 M=0:\tier=%d",ier);
+    printf("1d2 M=0:\tier=%d\n",ier);
     return ier;
   }
   for (int j=0; j<M; ++j) c[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset c for t3
@@ -147,13 +158,23 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT1D3(M,x,c,+1,acc,0,s,F,&opts);
   if (ier) {
-    printf("1d3 nk=0:\tier=%d",ier);
+    printf("1d3 nk=0:\tier=%d\n",ier);
     return ier;
+  }
+  ier = FINUFFT1D3(M,x,c,+1,acc,-1,s,F,&opts);
+  if (ier != FINUFFT_ERR_NUM_NU_PTS_INVALID) {
+    printf("1d3 nk=-1:\twrong err code %d\n",ier);
+    return 1;
+  }
+  ier = FINUFFT1D3(M,x,c,+1,acc,Mhuge,s,F,&opts);
+  if (ier != FINUFFT_ERR_NUM_NU_PTS_INVALID) {
+    printf("1d3 nk huge:\twrong err code %d\n",ier);
+    return 1;
   }
   ier = FINUFFT1D3(0,x,c,+1,acc,N,s,F,&opts);
   t = twonorm(N,F);
   if (ier || t!=0.0) {
-    printf("1d3 M=0:\tier=%d nrm(F)=%.3g",ier,t);
+    printf("1d3 M=0:\tier=%d nrm(F)=%.3g\n",ier,t);
     return 1;
   }
   // for type 3 only we include crude accuracy check for 1-NUpt (I/O) cases...
@@ -161,14 +182,14 @@ int main(int argc, char* argv[])
   dirft1d3(1,x,c,+1,N,s,Fe); for (int k=0; k<N; ++k) F[k] -= Fe[k]; // acc chk
   FLT err = twonorm(N,F)/sqrt((FLT)N);
   if (ier || err>100*acc) {
-    printf("1d3 M=1:\tier=%d nrm(err)=%.3g",ier,err);
+    printf("1d3 M=1:\tier=%d nrm(err)=%.3g\n",ier,err);
     return 1;
   }
   ier = FINUFFT1D3(M,x,c,+1,acc,1,s,F,&opts);
   dirft1d3(M,x,c,+1,1,s,Fe);
   err = abs(F[0]-Fe[0]);
   if (ier || err>10*acc) {
-    printf("1d3 N=1:\tier=%d err=%.3g\n",ier,err);
+    printf("1d3 nk=1:\tier=%d err=%.3g\n",ier,err);
     return 1;
   }
   ier = FINUFFT1D3(1,x,c,+1,acc,1,s,F,&opts);
@@ -199,7 +220,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT1D1MANY(ndata,M,x,cm,+1,acc,0,Fm,&opts);
   if (ier) {
-    printf("1d1many N=0:\tier=%d",ier);
+    printf("1d1many N=0:\tier=%d\n",ier);
     return ier;
   }
   ier = FINUFFT1D1MANY(ndata,0,x,cm,+1,acc,N,Fm,&opts);
@@ -227,7 +248,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT1D2MANY(ndata,0,x,cm,+1,acc,N,Fm,&opts);
   if (ier) {
-    printf("1d2many M=0:\tier=%d",ier);
+    printf("1d2many M=0:\tier=%d\n",ier);
     return ier;
   }
   for (int j=0; j<M*ndata; ++j) cm[j] = sin((FLT)1.3*j) + IMA*cos((FLT)0.9*j); // reset cm for 1d3many
@@ -243,7 +264,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT1D3MANY(ndata, M,x,cm,+1,acc,0,s,Fm,&opts);
   if (ier) {
-    printf("1d3many nk=0:\tier=%d",ier);
+    printf("1d3many nk=0:\tier=%d\n",ier);
     return ier;
   }
   ier = FINUFFT1D3MANY(ndata, 0,x,cm,+1,acc,N,s,Fm,&opts);
@@ -260,14 +281,14 @@ int main(int argc, char* argv[])
   dirft1d3(M,x,c,+1,1,s,Fe);
   err = abs(Fm[0]-Fe[0]);
   if (ier || err>10*acc) {
-    printf("1d3many N=1:\tier=%d err=%.3g\n",ier,err);
+    printf("1d3many nk=1:\tier=%d err=%.3g\n",ier,err);
     return 1;
   }
   ier = FINUFFT1D3MANY(ndata,1,x,cm,+1,acc,1,s,Fm,&opts);
   dirft1d3(1,x,c,+1,1,s,Fe);
   err = abs(Fm[0]-Fe[0]);
   if (ier || err>10*acc) {
-    printf("1d3many M=N=1:\tier=%d err=%.3g\n",ier,err);
+    printf("1d3many M=nk=1:\tier=%d err=%.3g\n",ier,err);
     return 1;
   }
   ier = FINUFFT1D3MANY(ndata,M,x,cm,+1,acc,N,shuge,Fm,&opts);
@@ -341,7 +362,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT2D3(M,x,x,c,+1,acc,0,s,s,F,&opts);
   if (ier) {
-    printf("2d3 nk=0:\tier=%d",ier);
+    printf("2d3 nk=0:\tier=%d\n",ier);
     return ier;
   }
   ier = FINUFFT2D3(0,x,x,c,+1,acc,N,s,s,F,&opts);
@@ -425,7 +446,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT2D2MANY(ndata,0,x,x,cm,+1,acc,N,N,Fm,&opts);
   if (ier) {
-    printf("2d2many M=0:\tier=%d",ier);
+    printf("2d2many M=0:\tier=%d\n",ier);
     return ier;
   }
   ier = FINUFFT2D3MANY(0,M,x,x,cm,+1,0,N,s,s,Fm,&opts);
@@ -440,7 +461,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT2D3MANY(ndata,M,x,x,cm,+1,acc,0,s,s,Fm,&opts);
   if (ier) {
-    printf("2d3many nk=0:\tier=%d",ier);
+    printf("2d3many nk=0:\tier=%d\n",ier);
     return ier;
   }
   ier = FINUFFT2D3MANY(ndata,0,x,x,cm,+1,acc,N,s,s,Fm,&opts);
@@ -532,7 +553,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT3D3(M,x,x,x,c,+1,acc,0,s,s,s,F,&opts);
   if (ier) {
-    printf("3d3 nk=0:\tier=%d",ier);
+    printf("3d3 nk=0:\tier=%d\n",ier);
     return ier;
   }
   ier = FINUFFT3D3(0,x,x,x,c,+1,acc,N,s,s,s,F,&opts);
@@ -627,7 +648,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT3D2MANY(ndata,0,x,x,x,cm,+1,acc,N,N,N,Fm,&opts);
   if (ier) {
-    printf("3d2many M=0:\tier=%d",ier);
+    printf("3d2many M=0:\tier=%d\n",ier);
     return ier;
   }
   ier = FINUFFT3D3MANY(0,M,x,x,x,cm,+1,0,N,s,s,s,Fm,&opts);
@@ -642,7 +663,7 @@ int main(int argc, char* argv[])
   }
   ier = FINUFFT3D3MANY(ndata,M,x,x,x,cm,+1,acc,0,s,s,s,Fm,&opts);
   if (ier) {
-    printf("3d3many nk=0:\tier=%d",ier);
+    printf("3d3many nk=0:\tier=%d\n",ier);
     return ier;
   }
   ier = FINUFFT3D3MANY(ndata,0,x,x,x,cm,+1,acc,N,s,s,s,Fm,&opts);
