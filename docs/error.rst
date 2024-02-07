@@ -5,12 +5,12 @@ Error (status) codes
 
 In all FINUFFT interfaces, the returned value ``ier`` is a status indicator.
 It is ``0`` if successful, otherwise the error code
-has the following meanings (see ``include/finufft_errors.h``):
+has the following meanings (see codes in ``include/finufft_errors.h``):
 
 ::
 
   1  requested tolerance epsilon too small to achieve (warning only)
-  2  attemped to allocate internal array larger than MAX_NF (defined in defs.h)
+  2  stopped due to needing internal array size >MAX_NF (defined in defs.h)
   3  spreader: fine grid too small compared to spread (kernel) width
   4  spreader: if chkbnds=1, a nonuniform point coordinate is out of input range [-3pi,3pi]^d
   5  spreader: array allocation error
@@ -19,11 +19,11 @@ has the following meanings (see ``include/finufft_errors.h``):
   8  upsampfac not a value with known Horner poly eval rule (currently 2.0 or 1.25 only)
   9  ntrans not valid in "many" (vectorized) or guru interface (should be >= 1)
   10 transform type invalid
-  11 general allocation failure
+  11 general internal allocation failure
   12 dimension invalid
   13 spread_thread option invalid
   14 invalid mode array (more than ~2^31 modes, dimension with 0 modes, etc)
-  15 cuda failure (failure to call any cuda function/kernel)
+  15 CUDA failure (failure to call any cuda function/kernel, malloc/memset, etc))
   16 attempt to destroy an uninitialized plan
   17 invalid spread/interp method for dim (attempt to blockgather in 1D, e.g.)
   18 size of bins for subprob/blockgather invalid
