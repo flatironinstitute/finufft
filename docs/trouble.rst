@@ -120,9 +120,11 @@ If cuFINUFFT is slow (eg, less than $10^8$ nonuniform points per second), here i
 Crash (segfault) issues and advice
 ****************************************
 
-- The most common problem is passing in pointers to the wrong size of object, eg, single vs double precision, or int32 vs int64. The library includes both precisions, so make sure you are calling the correct one (commands begin ``finufft`` for double, ``finufftf`` for single).
+- Are you using ``int64`` (``integer*8``) types for sizes ``M``, ``N``, etc? (If you have warnings switched off, you may not notice this until execution.)
 
-- If you use C++/C/Fortran and tried to change options, did you forget to call ``finufft_default_opts`` first?
+- Are you passing in pointers to the wrong size of object, eg, single vs double precision? The library includes both precisions, so make sure you are calling the correct one (commands begin ``finufft`` for double, ``finufftf`` for single).
+
+- If you use C++/C/Fortran and changed the options struct values, did you forget to call ``finufft_default_opts`` first?
 
 - Maybe you have switched off nonuniform point bounds checking (``opts.chkbnds=0``) for a little extra speed? Try switching it on again to catch illegal coordinates.
 
