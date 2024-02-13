@@ -11,28 +11,26 @@ similar GitHub `Issues <https://github.com/flatironinstitute/finufft/issues?q=is
 If that fails, post an Issue. The lead developer may also be contacted at abarnett@flatironinstitute.org
 
 
-Mathematical "issues" and advice
-********************************
+Mathematical "issues" and error size
+************************************
 
-- When requested tolerance is around $10^{-14}$ or less in double-precision,
-  or $10^{-6}$ or less in single-precision, it
-  will most likely be impossible for FINUFFT (or any other NUFFT library)
-  to achieve this, due to inevitable round-off error.
-  Here, "error" is to be understood relative to the norm of the returned vector
-  of values.
-  This is especially true when there is a large number of modes in
-  any single dimension ($N_1$, $N_2$ or $N_3$), since this empirically
-  scales the round-off error (fortunately, round-off does not appear to scale
-  with the total $N$ or $M$).
-  Such round-off error is analysed and measured in Section 4.2 of our `SISC paper <https://arxiv.org/abs/1808.06736>`_.
+- The type 1 and type 2 transforms are adjoints but **not inverses of each other** (unlike in the plain FFT case, where, up to a constant factor $N$, the adjoint is the inverse). Thus you cannot "undo" one transform by applying the other! (Unless the nonuniform points are precisely regularly spaced, and then you should instead be using the plain FFT). Therefore, if you are not getting the expected answers, please check that you have not made this assumption. In the :ref:`tutorials <tut>` we have an example showing how to invert the NUFFT; also see `NFFT3 inverse transforms <https://www-user.tu-chemnitz.de/~potts/nfft/infft.php>`_.
 
-- If you request a tolerance that FINUFFT knows it cannot achieve, it will return ``ier=1`` after performing transforms as accurately as it can. However, the status ``ier=0`` does not imply that the requested accuracy *was* achieved, merely that parameters were chosen to give this estimated accuracy, if possible. As our SISC paper shows, for typical situations, relative $\ell_2$ errors match the requested tolerances over a wide range.
-  Users should always check *convergence* (by, for instance, varying ``tol`` and measuring any changes in their results); this is generally true in scientific computing.
+- If you request a tolerance ``tol`` that FINUFFT knows it cannot achieve, it will return the warning code ``ier=1`` after performing transforms as accurately as it can. Conversely, the status ``ier=0`` does not imply that the requested accuracy *was* achieved, merely that parameters were chosen to attempt this estimated accuracy. As our SISC paper shows, for typical situations, relative $\ell_2$ errors match the requested tolerances over a wide range, barring the caveats below. Users should always check *convergence* (by, for instance, varying ``tol`` and measuring any changes in their results); this is of course generally true in scientific computing.
 
-- On the above topic: while the tolerance is usually a good upper bound for actual accuracy, strangely, in single-precision requesting tolerance
-  of $10^{-7}$ or $10^{-6}$ can give slightly *worse* accuracy than $10^{-5}$ or $10^{-4}$. We are looking into this. It is usually best to request at least 2--3 digits above the respective machine precision, for either single or double precision. Ie, do not set tolerance below $10^{-5}$ in single or $10^{-13}$ in double.
-  
-- The type 1 and type 2 transforms are adjoints but **not inverses of each other** (unlike in the plain FFT case, where, up to a constant factor $N$, the adjoint is the inverse). Therefore, if you are not getting the expected answers, please check that you have not made this assumption. In the :ref:`tutorials <tut>` we will add examples showing how to invert the NUFFT; also see `NFFT3 inverse transforms <https://www-user.tu-chemnitz.de/~potts/nfft/infft.php>`_.
+- When requested tolerance ``tol`` is around $10^{-14}$ or less in double-precision, or $10^{-6}$ or less in single-precision, it will most likely be impossible for FINUFFT (or any other NUFFT library) to achieve this, due to inevitable round-off error. The next point goes into this in more detail.
+
+- The **condition number of the problem** may be the factor limiting the accuracy in your application. In this case, *no NUFFT algorithm nor code could, even in principle, compute it more accurately* given the working precision of the input data! This applies particularly to 1D transforms with large $N$ (number of modes), say $N\ge 10^5$, and especially in single precision. Recall that machine error $\epsilon_{mach}$ is around ``6e-8`` in single and ``1e-16`` in double precision. The rule of thumb here is that one cannot demand that NUFFT relative output errors be smaller than $N_{max} \epsilon_{mach}$, where $N_{max}$ is the largest of the mode sizes $N_1,\dots,N_d$ in the $d$-dimensional case. This applies in the $\ell_2$ or maximum norms. No such dependence on $M$ occurs. In type 3 transforms, the $N_{max}$ should be replaced by the space-bandwidth product (maximum $x$ spread times maximum $k$ spread) in any dimension.
+
+  Let us explain why, recalling the definition :eq:`1d1`. The simple reason is that $(d/dx_j) e^{ikx_j} = ik e^{ikx_j}$, so that the Jacobian derivative of the outputs of a type 1 or type 2 NUFFT, with respect to variation of the input locations $x_j$, grows like the mode index $k$. The magnitude of the latter can be as large as $N/2$, i.e., $O(N)$, or $O(N_{max})$ in the multi-dimensional case. Since the inputs $x_j$ inevitably have a rounding error of $\epsilon_{mach}$, this gets amplified by the above factor to give a lower bound on the error of even the best (most stable) algorithm for the NUFFT.
+
+  In contrast the DFT (e.g., as computed by the FFT) has no growth in condition number vs $N$ (transform size), because it is (up to scaling) an isometry. The crucial difference for the NUFFT is the presence of the new input type (nonuniform point locations), to which it can be highly sensitive.
+
+  For background on condition number of a problem, please read Ch. 12-15 of *Numerical Linear Algebra* by Trefethen and Bau (SIAM, 1997).
+
+  NUFFT error is analysed and measured in Section 4.2 of our `SISC paper <https://arxiv.org/abs/1808.06736>`_, although in that work we omitted attributing the round-off error to the condition number of the problem.
+
+- Finally, re error: while the tolerance ``tol`` is usually a good upper bound for observed accuracy (barring the $\epsilon_{mach}N_{max}$ error above), strangely, in single-precision requesting tolerance of $10^{-7}$ or $10^{-6}$ can give slightly *worse* accuracy than $10^{-5}$ or $10^{-4}$. We are looking into why. It is usually best to request at least 2--3 digits less accurate than the respective machine precision, for either single or double precision. Ie, do not set ``tol`` below $10^{-5}$ in single or $10^{-13}$ in double.
 
 
 Speed issues and advice
