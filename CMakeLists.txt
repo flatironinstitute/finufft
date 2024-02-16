@@ -39,6 +39,11 @@ if(FINUFFT_USE_CPU)
         add_definitions(-D_CRT_SECURE_NO_WARNINGS)
     endif()
 
+    # make apple with gnu use old linker, new linker breaks, see issue #360
+    if((APPLE) AND (CMAKE_CXX_COMPILER_ID STREQUAL "GNU"))
+        add_link_options("-ld64")
+    endif()
+
     set(CPM_DOWNLOAD_VERSION 0.38.0)
     include(cmake/setupCPM.cmake)
 
