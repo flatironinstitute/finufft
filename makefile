@@ -208,7 +208,7 @@ endif
 	@echo "Done running: $(EXAMPLES)"
 # fun fact: gnu make patterns match those with shortest "stem", so this works:
 examples/%: examples/%.o $(DYNLIB)
-	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) -o $@
+	$(CXX) $(CXXFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) -o $@
 examples/%c: examples/%c.o $(DYNLIB)
 	$(CC) $(CFLAGS) ${LDFLAGS} $< $(ABSDYNLIB) $(LIBSFFT) $(CLINK) -o $@
 examples/%cf: examples/%cf.o $(DYNLIB)
