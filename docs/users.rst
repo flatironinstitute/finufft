@@ -94,17 +94,21 @@ For the latest see: Google Scholar `FINUFFT citations <https://scholar.google.co
 
 #. Sriramkrishnan Muralikrishnan at the Jülich Supercomputing Centre is running cufinufft on 6144 A100 GPUs (the NERSC-9 supercomputer), for a particle-in-Fourier method for plasma simulations. https://pasc23.pasc-conference.org/presentation/?id=msa167&sess=sess154
 
+#. Related to that, FINUFFT is being used for a better-converging Fourier approach to the Immersed Boundary method of Peskin and his group at NYU. Zhe Chen and Charles Peskin, https://arxiv.org/abs/2302.08694
+   
 #. Pei R, Askham T, Greengard L, Jiang S (2023). "A fast method for imposing periodic boundary conditions on arbitrarily-shaped lattices in two dimensions." J. Comput. Phys. 474, 111792. https://doi.org/10.1016/j.jcp.2022.111792 Uses FINUFFT for plane wave sums.
 
 #. Dylan Green, JR Jamora, and Anne Gelb (2023). "Leveraging joint sparsity in 3D synthetic aperture radar imaging," Appl. Math. Modern Chall. 1, 61-86. https://doi.org/10.3934/ammc.2023005 Uses 3D transforms between $N=201^3$ modes (voxels) and $M=313300$ data points. As they state, "...the computational cost of each method heavily depends on the NUFFT algorithm used."
 
 
-Papers or codes using our new ES window (spreading) function but not the whole FINUFFT package:
+Papers or codes using our new ES window (kernel spreading) function, but not the whole FINUFFT package:
 
 1. Davood Shamshirgar and Anna-Karin Tornberg, "Fast Ewald summation for electrostatic potentials with arbitrary periodicity", exploit our "Barnett-Magland" (BM), aka exp-sqrt (ES) window function. https://arxiv.org/abs/1712.04732
 
 #. Martin Reinecke: codes for radio astronomy reconstruction including https://gitlab.mpcdf.mpg.de/mtr/ducc
 
+#. Aref Hashemi et al, "Computing hydrodynamic interactions in confined doubly-periodic geometries in linear time," J. Chem. Phys. 158(15): 154101 (2023).
+DOI:10.1063/5.0141371.  https://arxiv.org/abs/2210.01837
 
 
 Papers influenced by other aspects of FINUFFT:
