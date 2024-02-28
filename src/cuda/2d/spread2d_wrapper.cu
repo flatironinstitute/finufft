@@ -20,6 +20,54 @@ namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
+int cufinufft_spread2d(int nf1, int nf2, cuda_complex<T> *d_fw, int M, T *d_kx, T *d_ky, cuda_complex<T> *d_c,
+                       cufinufft_plan_t<T> *d_plan)
+/*
+    This c function is written for only doing 2D spreading. See
+    test/spread2d_test.cu for usage.
+
+    Melody Shih 07/25/19
+    not allocate,transfer and free memories on gpu. Shih 09/24/20
+*/
+{
+    d_plan->kx = d_kx;
+    d_plan->ky = d_ky;
+    d_plan->c = d_c;
+    d_plan->fw = d_fw;
+
+    int ier;
+    d_plan->nf1 = nf1;
+    d_plan->nf2 = nf2;
+    d_plan->M = M;
+    d_plan->maxbatchsize = 1;
+
+    ier = allocgpumem2d_plan<T>(d_plan);
+    ier = allocgpumem2d_nupts<T>(d_plan);
+    
+    if (d_plan->opts.gpu_method == 1) {
+        ier = cuspread2d_nuptsdriven_prop(nf1, nf2, M, d_plan);
+        if (ier != 0) {
+            printf("error: cuspread2d_nuptsdriven_prop, method(%d)\n", d_plan->opts.gpu_method);
+            return ier;
+        }
+    }
+
+    if (d_plan->opts.gpu_method == 2) {
+        ier = cuspread2d_subprob_prop(nf1, nf2, M, d_plan);
+        if (ier != 0) {
+            printf("error: cuspread2d_subprob_prop, method(%d)\n", d_plan->opts.gpu_method);
+            return ier;
+        }
+    }
+
+    ier = cuspread2d<T>(d_plan, 1);
+
+    freegpumemory<T>(d_plan);
+
+    return ier;
+}
+
+template <typename T>
 int cuspread2d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     A wrapper for different spreading methods.
@@ -300,6 +348,10 @@ template int cuspread2d_subprob_prop<float>(int nf1, int nf2, int M, cufinufft_p
 template int cuspread2d_subprob_prop<double>(int nf1, int nf2, int M, cufinufft_plan_t<double> *d_plan);
 template int cuspread2d_nuptsdriven_prop<float>(int nf1, int nf2, int M, cufinufft_plan_t<float> *d_plan);
 template int cuspread2d_nuptsdriven_prop<double>(int nf1, int nf2, int M, cufinufft_plan_t<double> *d_plan);
+template int cufinufft_spread2d<float>(int nf1, int nf2, cuda_complex<float> *d_fw, int M, float *d_kx, float *d_ky, 
+                                        cuda_complex<float> *d_c, cufinufft_plan_t<float> *d_plan);
+template int cufinufft_spread2d<double>(int nf1, int nf2, cuda_complex<double> *d_fw, int M, double *d_kx, double *d_ky,
+                                        cuda_complex<double> *d_c, cufinufft_plan_t<double> *d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

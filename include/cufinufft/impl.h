@@ -2,9 +2,9 @@
 #define CUFINUFFT_IMPL_H
 
 #include <iostream>
+#include <thrust/device_ptr.h>    
 
 #include <cufinufft/contrib/helper_cuda.h>
-
 #include <cufinufft/common.h>
 #include <cufinufft/cudeconvolve.h>
 #include <cufinufft/defs.h>
@@ -356,6 +356,115 @@ Notes: the type T means either single or double, matching the
             fprintf(stderr, "error: cuspread3d_blockgather_prop, method(%d)\n", d_plan->opts.gpu_method);
     } break;
     }
+
+    return ier;
+}
+
+template<typename T>
+T calculate_scale_factor(int rank, finufft_spread_opts opts) 
+{
+    // Calculate the additional scalar for multiplying just for spread and interpolate
+    int n = 100;
+    T h = 2.0 / n;
+    T x = -1.0;
+    T sum = 0.0;
+    for(int i = 1; i < n; i++) {
+      x += h;
+      sum += exp(opts.ES_beta * sqrt(1.0 - x * x));
+    }
+    sum += 1.0;
+    sum *= h;
+    sum *= sqrt(1.0 / opts.ES_c);
+    T scale = sum;
+    if (rank > 1) { scale *= sum; }
+    if (rank > 2) { scale *= sum; }
+    return 1/scale;
+}
+
+template <typename T>
+int cufinufft_spread_interp_impl(int type, int dim, int nf1, int nf2, int nf3, int M, T *d_kx, T *d_ky, T *d_kz, 
+                            cuda_complex<T> *d_c, cuda_complex<T> *d_fk, cufinufft_opts opts, float tol)
+/*
+    "spread" or "interpolate" stage (single and double precision versions).
+
+    The actual spreading or interpolating is exposed here. Type and dimension of the
+    transformation are defined in d_plan in previous stages.
+
+        See ../docs/cppdoc.md for main user-facing documentation.
+
+    Input:
+    dim     dimension of the problem (1, 2 or 3)
+    nf1     number of Fourier modes requested in x (including Hermitian modes)
+    nf2     number of Fourier modes requested in y (including Hermitian modes)
+    nf3     number of Fourier modes requested in z (including Hermitian modes)
+    M       number of nonuniform points
+    d_kx    x locations of NU points (size M)
+    d_ky    y locations of NU points (size M)
+    d_kz    z locations of NU points (size M)
+    d_c     size M array of type CUFINUFFT_CPX
+    d_fk    size nf1*nf2*n2 array of type CUFINUFFT_CPX
+
+    Notes:
+        i) Here CUFINUFFT_CPX is a type defined in ../include/cufinufft.h as either
+           float2 or double2, depending on precision.
+        ii) The type T must be float or double, depending on precision.
+*/
+{
+    int ier = 0;
+    
+    // Setup plan, TODO: use plan directly if it exists
+    cufinufft_plan_t<T> *d_plan;
+    d_plan = new cufinufft_plan_t<T>;
+    // Zero out your struct, (sets all pointers to NULL, crucial)
+    memset(d_plan, 0, sizeof(*d_plan));
+    
+    d_plan->opts = opts;
+    d_plan->opts.gpu_spreadinterponly = 1;
+    cufinufft_setup_binsize(type, dim, &d_plan->opts);
+    using namespace cufinufft::common;
+    using namespace cufinufft::spreadinterp;
+    ier = setup_spreader_for_nufft(d_plan->spopts, tol, d_plan->opts);
+    if(type == 1)
+    {
+        checkCudaErrors(cudaMemset(d_fk, 0, nf1*nf2*nf3*sizeof(cuda_complex<T>)));
+    }
+    else
+    {
+        checkCudaErrors(cudaMemset(d_c, 0, M*sizeof(cuda_complex<T>)));
+    }
+    // Use spopts to get the scaling factor
+    T scaling = calculate_scale_factor<T>(dim, d_plan->spopts);
+    switch(dim)
+    {
+        case 1:
+            if(type == 1)
+                ier = cufinufft_spread1d<T>(nf1, d_fk, M, d_kx, d_c, d_plan);
+            else
+                ier = cufinufft_interp1d<T>(nf1, d_fk, M, d_kx, d_c, d_plan);
+            break;
+        case 2:
+            if(type == 1)
+                ier = cufinufft_spread2d<T>(nf1, nf2, d_fk, M, d_kx, d_ky, d_c, d_plan);
+            else
+                ier = cufinufft_interp2d<T>(nf1, nf2, d_fk, M, d_kx, d_ky, d_c, d_plan);
+            break;
+        case 3:
+            if(type == 1)
+                ier = cufinufft_spread3d<T>(nf1, nf2, nf3, d_fk, M, d_kx, d_ky, d_kz, d_c, d_plan);
+            else
+                ier = cufinufft_interp3d<T>(nf1, nf2, nf3, d_fk, M, d_kx, d_ky, d_kz, d_c, d_plan);
+            break;
+    }
+    // Scalar multiply using thrust.
+    unsigned long int size = nf1*nf2*nf3;
+    thrust::device_ptr<T> dev_ptr(reinterpret_cast<T*>(d_fk));
+    if(type == 2)
+    {
+        size = M;
+        dev_ptr = (thrust::device_ptr<T> ) reinterpret_cast<T*>(d_c);
+    }
+    thrust::transform(dev_ptr, dev_ptr + 2 * size, dev_ptr, // 2 times to handle complex
+                    thrust::placeholders::_1 * static_cast<T>(scaling));
 
     return ier;
 }

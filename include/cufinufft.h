@@ -27,6 +27,11 @@ int cufinufftf_setpts(cufinufftf_plan d_plan, int M, float *d_x, float *d_y, flo
 int cufinufft_execute(cufinufft_plan d_plan, cuDoubleComplex *d_c, cuDoubleComplex *d_fk);
 int cufinufftf_execute(cufinufftf_plan d_plan, cuFloatComplex *d_c, cuFloatComplex *d_fk);
 
+int cufinufft_spread_interp(int type, int dim, int nf1, int nf2, int nf3, int M, double *d_kx, double *d_ky, double *d_kz, 
+                            cuDoubleComplex *d_c, cuDoubleComplex *d_fk, cufinufft_opts opts, float tol);
+int cufinufftf_spread_interp(int type, int dim, int nf1, int nf2, int nf3, int M, float *d_kx, float *d_ky, float *d_kz, 
+                            cuFloatComplex *d_c, cuFloatComplex *d_fk, cufinufft_opts opts, float tol);
+
 int cufinufft_destroy(cufinufft_plan d_plan);
 int cufinufftf_destroy(cufinufftf_plan d_plan);
 #ifdef __cplusplus
