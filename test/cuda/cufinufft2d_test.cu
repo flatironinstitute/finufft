@@ -18,7 +18,7 @@
 using cufinufft::utils::infnorm;
 
 template <typename T>
-int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int iflag) {
+int run_test(int method, int type, int N1, int N2, int64_t M, T tol, T checktol, int iflag) {
     std::cout << std::scientific << std::setprecision(3);
 
     thrust::host_vector<T> x(M), y(M);
@@ -32,12 +32,12 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
     auto randm11 = [&eng, &dist11]() { return dist11(eng); };
 
     // Making data
-    for (int i = 0; i < M; i++) {
+    for (int64_t i = 0; i < M; i++) {
         x[i] = M_PI * randm11(); // x in [-pi,pi)
         y[i] = M_PI * randm11();
     }
     if (type == 1) {
-        for (int i = 0; i < M; i++) {
+        for (int64_t i = 0; i < M; i++) {
             c[i].real(randm11());
             c[i].imag(randm11());
         }
@@ -148,14 +148,14 @@ int run_test(int method, int type, int N1, int N2, int M, T tol, T checktol, int
         const int nt1 = 0.37 * N1;
         const int nt2 = 0.26 * N2; // choose some mode index to check
         thrust::complex<T> Ft = thrust::complex<T>(0, 0), J = thrust::complex<T>(0.0, iflag);
-        for (int j = 0; j < M; ++j)
+        for (int64_t j = 0; j < M; ++j)
             Ft += c[j] * exp(J * (nt1 * x[j] + nt2 * y[j])); // crude direct
         const int it = N1 / 2 + nt1 + N1 * (N2 / 2 + nt2);   // index in complex F as 1d array
 
         rel_error = abs(Ft - fk[it]) / infnorm(N1, (std::complex<T> *)fk.data());
         printf("[gpu   ] one mode: rel err in F[%d,%d] is %.3g\n", nt1, nt2, rel_error);
     } else if (type == 2) {
-        int jt = M / 2; // check arbitrary choice of one targ pt
+        int64_t jt = M / 2; // check arbitrary choice of one targ pt
         thrust::complex<T> J = thrust::complex<T>(0, iflag);
         thrust::complex<T> ct = thrust::complex<T>(0, 0);
 
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
     const int type = atoi(argv[2]);
     const int N1 = atof(argv[3]);
     const int N2 = atof(argv[4]);
-    const int M = atof(argv[5]);
+    const int64_t M = atof(argv[5]);
     const double tol = atof(argv[6]);
     const double checktol = atof(argv[7]);
     const char prec = argv[8][0];

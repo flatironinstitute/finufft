@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     int ier;
     int N1 = 128;
     int N2 = 128;
-    int M = 10;
+    int64_t M = 10;
     int ntransf = 4;
     int maxbatchsize = 4;
     int iflag = 1;
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     std::default_random_engine eng(1);
     std::uniform_real_distribution<double> distr(-1, 1);
 
-    for (int i = 0; i < M; i++) {
+    for (int64_t i = 0; i < M; i++) {
         x[i] = M_PI * distr(eng);
         y[i] = M_PI * distr(eng);
     }
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     for (int t = 0; t < ntransf; t++) {
         fkstart = fk + t * N1 * N2;
         cstart = c + t * M;
-        int jt = M / 2; // check arbitrary choice of one targ pt
+        int64_t jt = M / 2; // check arbitrary choice of one targ pt
         std::complex<double> J(0, iflag * 1);
         std::complex<double> ct(0, 0);
         int m = 0;

@@ -17,7 +17,7 @@
 using cufinufft::utils::infnorm;
 
 template <typename T>
-int run_test(int method, int type, int N1, int M, T tol, T checktol, int iflag) {
+int run_test(int method, int type, int N1, int64_t M, T tol, T checktol, int iflag) {
     std::cout << std::scientific << std::setprecision(3);
     int ier;
 
@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
     const int method = atoi(argv[1]);
     const int type = atoi(argv[2]);
     const int N1 = atof(argv[3]);
-    const int M = atof(argv[4]);
+    const int64_t M = atof(argv[4]);
     const double tol = atof(argv[5]);
     const double checktol = atof(argv[6]);
     const int iflag = 1;

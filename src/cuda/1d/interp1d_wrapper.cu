@@ -27,7 +27,7 @@ int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
 */
 {
     int nf1 = d_plan->nf1;
-    int M = d_plan->M;
+    int64_t M = d_plan->M;
 
     int ier;
     switch (d_plan->opts.gpu_method) {
@@ -43,7 +43,7 @@ int cuinterp1d(cufinufft_plan_t<T> *d_plan, int blksize)
 }
 
 template <typename T>
-int cuinterp1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+int cuinterp1d_nuptsdriven(int nf1, int64_t M, cufinufft_plan_t<T> *d_plan, int blksize) {
     auto &stream = d_plan->stream;
     dim3 threadsPerBlock;
     dim3 blocks;

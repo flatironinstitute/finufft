@@ -28,7 +28,7 @@ int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize)
 {
     int nf1 = d_plan->nf1;
     int nf2 = d_plan->nf2;
-    int M = d_plan->M;
+    int64_t M = d_plan->M;
 
     int ier;
     switch (d_plan->opts.gpu_method) {
@@ -47,7 +47,7 @@ int cuinterp2d(cufinufft_plan_t<T> *d_plan, int blksize)
 }
 
 template <typename T>
-int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+int cuinterp2d_nuptsdriven(int nf1, int nf2, int64_t M, cufinufft_plan_t<T> *d_plan, int blksize) {
     auto &stream = d_plan->stream;
 
     dim3 threadsPerBlock;
@@ -90,7 +90,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
 }
 
 template <typename T>
-int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+int cuinterp2d_subprob(int nf1, int nf2, int64_t M, cufinufft_plan_t<T> *d_plan, int blksize) {
     auto &stream = d_plan->stream;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells

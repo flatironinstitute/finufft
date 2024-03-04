@@ -32,7 +32,7 @@ int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize)
 */
 {
     int nf1 = d_plan->nf1;
-    int M = d_plan->M;
+    int64_t M = d_plan->M;
 
     int ier;
     switch (d_plan->opts.gpu_method) {
@@ -51,7 +51,7 @@ int cuspread1d(cufinufft_plan_t<T> *d_plan, int blksize)
 }
 
 template <typename T>
-int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
+int cuspread1d_nuptsdriven_prop(int nf1, int64_t M, cufinufft_plan_t<T> *d_plan) {
     auto &stream = d_plan->stream;
 
     if (d_plan->opts.gpu_sort) {
@@ -96,7 +96,7 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
 }
 
 template <typename T>
-int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+int cuspread1d_nuptsdriven(int nf1, int64_t M, cufinufft_plan_t<T> *d_plan, int blksize) {
     auto &stream = d_plan->stream;
     dim3 threadsPerBlock;
     dim3 blocks;
@@ -135,7 +135,7 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
 }
 
 template <typename T>
-int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
+int cuspread1d_subprob_prop(int nf1, int64_t M, cufinufft_plan_t<T> *d_plan)
 /*
     This function determines the properties for spreading that are independent
     of the strength of the nodes,  only relates to the locations of the nodes,
@@ -217,7 +217,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 }
 
 template <typename T>
-int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize) {
+int cuspread1d_subprob(int nf1, int64_t M, cufinufft_plan_t<T> *d_plan, int blksize) {
     auto &stream = d_plan->stream;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
@@ -275,10 +275,10 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
 
 template int cuspread1d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
 template int cuspread1d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
-template int cuspread1d_nuptsdriven_prop<float>(int nf1, int M, cufinufft_plan_t<float> *d_plan);
-template int cuspread1d_nuptsdriven_prop<double>(int nf1, int M, cufinufft_plan_t<double> *d_plan);
-template int cuspread1d_subprob_prop<float>(int nf1, int M, cufinufft_plan_t<float> *d_plan);
-template int cuspread1d_subprob_prop<double>(int nf1, int M, cufinufft_plan_t<double> *d_plan);
+template int cuspread1d_nuptsdriven_prop<float>(int nf1, int64_t M, cufinufft_plan_t<float> *d_plan);
+template int cuspread1d_nuptsdriven_prop<double>(int nf1, int64_t M, cufinufft_plan_t<double> *d_plan);
+template int cuspread1d_subprob_prop<float>(int nf1, int64_t M, cufinufft_plan_t<float> *d_plan);
+template int cuspread1d_subprob_prop<double>(int nf1, int64_t M, cufinufft_plan_t<double> *d_plan);
 
 } // namespace spreadinterp
 } // namespace cufinufft

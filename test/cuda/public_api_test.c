@@ -6,7 +6,7 @@
 
 #include <complex.h>
 
-int test_float(int M, int N) {
+int test_float(int64_t M, int N) {
     // Size of the grid as an array.
     int64_t modes[1] = {N};
 
@@ -35,7 +35,7 @@ int test_float(int M, int N) {
     // while strengths can be any value.
     srand(0);
 
-    for(int j = 0; j < M; ++j) {
+    for(int64_t j = 0; j < M; ++j) {
         x[j] = 2 * M_PI * (((float) rand()) / RAND_MAX - 1);
         c[j] = (2 * ((float) rand()) / RAND_MAX - 1)
                + I * (2 * ((float) rand()) / RAND_MAX - 1);
@@ -79,7 +79,7 @@ int test_float(int M, int N) {
     // transform.
     f0 = 0;
 
-    for(int j = 0; j < M; ++j) {
+    for(int64_t j = 0; j < M; ++j) {
         f0 += c[j] * cexp(I * x[j] * (idx - N / 2));
     }
 
@@ -93,7 +93,7 @@ int test_float(int M, int N) {
     return 0;
 }
 
-int test_double(int M, int N) {
+int test_double(int64_t M, int N) {
     // Size of the grid as an array.
     int64_t modes[1] = {N};
 
@@ -122,7 +122,7 @@ int test_double(int M, int N) {
     // while strengths can be any value.
     srand(0);
 
-    for(int j = 0; j < M; ++j) {
+    for(int64_t j = 0; j < M; ++j) {
         x[j] = 2 * M_PI * (((double) rand()) / RAND_MAX - 1);
         c[j] = (2 * ((double) rand()) / RAND_MAX - 1)
                + I * (2 * ((double) rand()) / RAND_MAX - 1);
@@ -166,7 +166,7 @@ int test_double(int M, int N) {
     // transform.
     f0 = 0;
 
-    for(int j = 0; j < M; ++j) {
+    for(int64_t j = 0; j < M; ++j) {
         f0 += c[j] * cexp(I * x[j] * (idx - N / 2));
     }
 
@@ -182,7 +182,8 @@ int test_double(int M, int N) {
 
 int main() {
     // Problem size: number of nonuniform points (M) and grid size (N).
-    const int M = 100, N = 200;
+    const int64_t M = 100;
+    const int N = 200;
     int errf = test_float(M, N);
     int err = test_double(M, N);
 

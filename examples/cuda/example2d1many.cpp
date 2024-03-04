@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     int ier;
     int N1 = 256;
     int N2 = 256;
-    int M = 65536;
+    int64_t M = 65536;
     int ntransf = 2;
     int iflag = 1;
     float tol = 1e-6;
@@ -58,12 +58,12 @@ int main(int argc, char *argv[])
     std::default_random_engine eng(1);
     std::uniform_real_distribution<float> distr(-1, 1);
 
-    for (int i = 0; i < M; i++) {
+    for (int64_t i = 0; i < M; i++) {
         x[i] = M_PI * distr(eng);
         y[i] = M_PI * distr(eng);
     }
 
-    for (int i = 0; i < M * ntransf; i++) {
+    for (int64_t i = 0; i < M * ntransf; i++) {
         c[i].real(distr(eng));
         c[i].imag(distr(eng));
     }
