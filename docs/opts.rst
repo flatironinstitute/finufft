@@ -115,7 +115,7 @@ Diagnostic options
 
   * ``spread_debug=1`` : prints some timing information
 
-  * ``spread_debug=1`` : prints lots. This can print thousands of lines since it includes one line per *subproblem*.
+  * ``spread_debug=2`` : prints lots. This can print thousands of lines since it includes one line per *subproblem*.
 
    
 **showwarn**: Whether to print warnings (these go to stderr).
@@ -157,7 +157,7 @@ There is thus little reason for the nonexpert to mess with this option.
 
 * ``spread_kerpad=0`` : do not pad
 
-* ``spread_kerpad=0`` : pad to next multiple of four
+* ``spread_kerpad=1`` : pad to next multiple of four
 
 
 **upsampfac**: This is the internal real factor by which the FFT (fine grid)
