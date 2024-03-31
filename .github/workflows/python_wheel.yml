@@ -131,7 +131,7 @@ jobs:
         /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 -m pip wheel python/finufft -w wheelhouse
 
         PYTHON_BIN=/Library/Frameworks/Python.framework/Versions/3.12/bin/
-        $PYTHON_BIN/python3 -m pip install delocate
+        $PYTHON_BIN/python3 -m pip install delocate==0.10.7
         ls wheelhouse/finufft*.whl | xargs -n1 $PYTHON_BIN/delocate-wheel -w fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install --pre finufft -f fixed_wheel/
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 python/finufft/test/run_accuracy_tests.py
