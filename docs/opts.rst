@@ -157,7 +157,7 @@ There is thus little reason for the nonexpert to mess with this option.
 
 * ``spread_kerpad=0`` : do not pad
 
-* ``spread_kerpad=0`` : pad to next multiple of four
+* ``spread_kerpad=1`` : pad to next multiple of four
 
 
 **upsampfac**: This is the internal real factor by which the FFT (fine grid)
