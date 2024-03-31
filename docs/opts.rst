@@ -115,7 +115,7 @@ Diagnostic options
 
   * ``spread_debug=1`` : prints some timing information
 
-  * ``spread_debug=1`` : prints lots. This can print thousands of lines since it includes one line per *subproblem*.
+  * ``spread_debug=2`` : prints lots. This can print thousands of lines since it includes one line per *subproblem*.
 
    
 **showwarn**: Whether to print warnings (these go to stderr).
