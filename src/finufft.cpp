@@ -594,6 +594,12 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   int nthr = MY_OMP_GET_MAX_THREADS();      // use as many as OMP gives us
   if (p->opts.nthreads>0)
     nthr = p->opts.nthreads;                // user override (no limit or check)
+#ifndef _OPENMP
+  if(nthr != 1) {
+    nthr = 1
+    fprintf(stderr,"%s warning: Running finufft single threaded lib with nthreads != 1, enforcing nthreads = 1 ! \n",__func__);
+  }
+#endif
   p->opts.nthreads = nthr;                  // store actual # thr planned for
 
   // choose batchSize for types 1,2 or 3... (uses int ceil(b/a)=1+(b-1)/a trick)
