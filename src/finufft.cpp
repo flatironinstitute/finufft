@@ -596,7 +596,7 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
     nthr = p->opts.nthreads;                // user override (no limit or check)
 #ifndef _OPENMP
   if(nthr != 1) {
-    nthr = 1
+    nthr = 1;
     fprintf(stderr,"%s warning: Running finufft single threaded lib with nthreads != 1, enforcing nthreads = 1 ! \n",__func__);
   }
 #endif
