@@ -128,7 +128,7 @@ Diagnostic options
 Algorithm performance options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**nthreads**: Number of threads to use. This sets the number of threads FINUFFT will use in FFTW, bin-sorting, and spreading/interpolation steps. This number of threads also controls the batch size for vectorized transforms (ie ``ntr>1`` :ref:`here <c>`). Setting ``nthreads=0`` uses all threads available. For repeated small problems it can be advantageous to use a small number, such as 1.
+**nthreads**: Number of threads to use. This is capped at the number of available threads (eg, to prevent misuse of a single-threaded code). It then sets the number of threads FINUFFT will use in FFTW, bin-sorting, and spreading/interpolation steps. This number of threads also controls the batch size for vectorized transforms (ie ``ntr>1`` :ref:`here <c>`). Setting ``nthreads=0`` uses all threads available, usually recommended. However, for repeated small problems it can be advantageous to use a small number, even as small as 1.
 
 **fftw**: FFTW planner flags. This number is simply passed to FFTW's planner;
 the flags are documented `here <http://www.fftw.org/fftw3_doc/Planner-Flags.html#Planner-Flags>`_.

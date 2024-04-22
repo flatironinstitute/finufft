@@ -1,6 +1,8 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
+* CPU plan stage prevents now caps # threads at omp_get_max_threads (being 1
+  for single-thread build); warns if this cap was activated (PR 431)
 * new docs troubleshooting accuracy limitations due to condition number of the
   NUFFT problem.
 * new sanity check on nj and nk (<0 or too big); new err code, tester, doc.
