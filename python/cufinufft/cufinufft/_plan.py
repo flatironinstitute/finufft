@@ -5,6 +5,8 @@ the cufinufft CUDA libraries.
 """
 
 import atexit
+import collections.abc
+import numbers
 import sys
 import warnings
 
@@ -108,8 +110,12 @@ class Plan:
         else:
             raise TypeError("Expected complex64 or complex128.")
 
-        if isinstance(n_modes, int):
+        if isinstance(n_modes, numbers.Integral):
             n_modes = (n_modes,)
+        elif isinstance(n_modes, collections.abc.Iterable):
+            n_modes = tuple(n_modes)
+        else:
+            raise ValueError(f"Invalid n_modes '{n_modes}'")
 
         self.dim = len(n_modes)
         self.type = nufft_type
