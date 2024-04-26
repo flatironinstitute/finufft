@@ -13,10 +13,10 @@ on:
 jobs:
   Linux:
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64:latest
+    container: quay.io/pypa/manylinux_2_28_x86_64:latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install fftw
       run: |
@@ -29,7 +29,7 @@ jobs:
         make test
 
   MacOS_clang:
-    runs-on: macos-latest
+    runs-on: macos-13
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
 
@@ -48,7 +48,7 @@ jobs:
         make test
 
   MacOS_gcc:
-    runs-on: macos-latest
+    runs-on: macos-13
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
 
@@ -57,8 +57,8 @@ jobs:
 
     - name: Install gcc and fftw
       run: |
-        brew install gcc@10 fftw
-        cp make.inc.macosx_gcc-10 make.inc
+        brew install gcc@12 fftw
+        cp make.inc.macosx_gcc-12 make.inc
 
     - name: Compile C++ code
       run: |

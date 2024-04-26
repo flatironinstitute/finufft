@@ -69,7 +69,7 @@ jobs:
 
       # may change to cpack and action-gh-release later
       - name: Upload static and shared lib
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{matrix.os}}-${{matrix.compiler}}-finufft-lib
           path: ${{runner.workspace}}/finufft/build/*finufft*

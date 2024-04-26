@@ -13,10 +13,10 @@ on:
 jobs:
   Linux:
     runs-on: ubuntu-latest
-    container: quay.io/pypa/manylinux2014_x86_64:latest
+    container: quay.io/pypa/manylinux_2_28_x86_64:latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Install fftw
       run: |
@@ -31,13 +31,13 @@ jobs:
         tools/finufft/build-wheels-linux.sh
 
     - name: Upload wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: linux-wheels
         path: python/finufft/wheelhouse/finufft*manylinux*.whl
 
   MacOS:
-    runs-on: macos-latest
+    runs-on: macos-13
     env:
       MACOSX_DEPLOYMENT_TARGET: 10.15
 
@@ -47,10 +47,10 @@ jobs:
     - name: Install gcc and fftw
       run: |
         brew install gcc fftw
-        cp make.inc.macosx_gcc-8 make.inc
-        echo "FC=gfortran-11" >> make.inc
-        echo "CC=gcc-11" >> make.inc
-        echo "CXX=g++-11" >> make.inc
+        cp make.inc.macosx_gcc-12 make.inc
+        echo "FC=gfortran-13" >> make.inc
+        echo "CC=gcc-13" >> make.inc
+        echo "CXX=g++-13" >> make.inc
         echo "FFLAGS += -march=x86-64" >> make.inc
         echo "CFLAGS += -march=x86-64" >> make.inc
         echo "CXXFLAGS += -march=x86-64" >> make.inc
@@ -58,7 +58,7 @@ jobs:
         # otherwise binaries are incompatible with older systems
         echo "LIBS += -static-libgfortran -static-libgcc -static-libstdc++" >> make.inc
         # hack to make libquadmath link statically
-        sudo rm /usr/local/opt/gcc@11/lib/gcc/11/libquadmath.*dylib
+        sudo rm /usr/local/opt/gcc@13/lib/gcc/13/libquadmath.*dylib
 
     # Download and install Python instead of using the setup_python
     # as the python interpreters in the Github machines
@@ -106,8 +106,8 @@ jobs:
       run: |
         make lib
         export FINUFFT_DIR=`pwd`
-        export CC=gcc-11
-        export CXX=g++-11
+        export CC=gcc-13
+        export CXX=g++-13
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install --upgrade setuptools wheel numpy pip
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip install -U wheel --user
         /Library/Frameworks/Python.framework/Versions/3.6/bin/python3 -m pip wheel python/finufft -w wheelhouse
@@ -171,7 +171,7 @@ jobs:
 
 
     - name: Upload wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-wheels
         path: fixed_wheel/*.whl
@@ -186,7 +186,7 @@ jobs:
       run: C:\msys64\usr\bin\bash.exe -lc "pacman -Sy --noconfirm make mingw-w64-x86_64-toolchain mingw-w64-x86_64-fftw"
 
     - name: Build and Test Python 3.8
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.8'
         architecture: 'x64'
@@ -195,7 +195,7 @@ jobs:
         .\.github\workflows\python_test_win.ps1
 
     - name: Build and Test Python 3.9
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.9'
         architecture: 'x64'
@@ -204,7 +204,7 @@ jobs:
         .\.github\workflows\python_test_win.ps1
 
     - name: Build and Test Python 3.10
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
         architecture: 'x64'
@@ -213,7 +213,7 @@ jobs:
         .\.github\workflows\python_test_win.ps1
 
     - name: Build and Test Python 3.11
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         architecture: 'x64'
@@ -222,7 +222,7 @@ jobs:
         .\.github\workflows\python_test_win.ps1
 
     - name: Build and Test Python 3.12
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
         architecture: 'x64'
@@ -231,7 +231,7 @@ jobs:
         .\.github\workflows\python_test_win.ps1
 
     - name: Upload wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-wheels
         path: wheelhouse\*.whl

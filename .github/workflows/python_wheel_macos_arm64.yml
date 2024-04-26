@@ -32,7 +32,7 @@ jobs:
         make lib
 
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.16.2
+      uses: pypa/cibuildwheel@v2.17.0
       env:
         FINUFFT_DIR: ${{ github.workspace }}
         CC: Clang
@@ -44,7 +44,7 @@ jobs:
         output-dir: wheelhouse
 
     - name: Upload wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-arm64-wheels
         path: wheelhouse/*.whl
