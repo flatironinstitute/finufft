@@ -9,7 +9,7 @@ import utils
 # NOTE: Tests below fail for tolerance 1e-4 (error executing plan).
 
 DTYPES = [np.float32, np.float64]
-SHAPES = [(16,), (16, 16), (16, 16, 16)]
+SHAPES = [(16,), (16, 16), (16, 16, 16), (19,), (17, 19), (17, 19, 24)]
 MS = [256, 1024, 4096]
 TOLS = [1e-3, 1e-6]
 OUTPUT_ARGS = [False, True]
@@ -43,6 +43,38 @@ def test_type1(to_gpu, to_cpu, dtype, shape, M, tol, output_arg):
         fk_gpu = plan.execute(c_gpu)
 
     fk = to_cpu(fk_gpu)
+
+    utils.verify_type1(k, c, fk, tol)
+
+
+@pytest.mark.parametrize("dtype", DTYPES)
+@pytest.mark.parametrize("shape", SHAPES)
+@pytest.mark.parametrize("M", MS)
+@pytest.mark.parametrize("tol", TOLS)
+@pytest.mark.parametrize("output_arg", OUTPUT_ARGS)
+def test_type1_modeord(to_gpu, to_cpu, dtype, shape, M, tol, output_arg):
+    complex_dtype = utils._complex_dtype(dtype)
+
+    k, c = utils.type1_problem(dtype, shape, M)
+
+    k_gpu = to_gpu(k)
+    c_gpu = to_gpu(c)
+
+    plan = Plan(1, shape, eps=tol, dtype=complex_dtype, modeord=1)
+
+    # Since k_gpu is an array of shape (dim, M), this will expand to
+    # plan.setpts(k_gpu[0], ..., k_gpu[dim]), allowing us to handle all
+    # dimensions with the same call.
+    plan.setpts(*k_gpu)
+
+    if output_arg:
+        fk_gpu = _compat.array_empty_like(c_gpu, shape, dtype=complex_dtype)
+        plan.execute(c_gpu, out=fk_gpu)
+    else:
+        fk_gpu = plan.execute(c_gpu)
+
+    fk = to_cpu(fk_gpu)
+    fk = np.fft.fftshift(fk)
 
     utils.verify_type1(k, c, fk, tol)
 

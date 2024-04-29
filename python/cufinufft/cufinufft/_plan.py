@@ -65,7 +65,9 @@ class Plan:
                         memory), ``gpu_sort`` (for ``gpu_method == 1``, 0: no
                         sort, 1: sort), ``gpu_kerevalmeth`` (0: direct
                         exp(sqrt), Horner evaluation), ``gpu_device_id`` (GPU
-                        ID), and ``gpu_stream`` (CUDA stream pointer).
+                        ID), ``gpu_stream`` (CUDA stream pointer) and
+                        ``modeord`` (0: CMCL-compatible mode ordering,
+                        1: FFT-style mode ordering).
     """
 
     def __init__(self, nufft_type, n_modes, n_trans=1, eps=1e-6, isign=None,
