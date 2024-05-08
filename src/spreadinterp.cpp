@@ -267,14 +267,18 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
   timer.start();                 // if needed, sort all the NU pts...
   int did_sort=0;
   int maxnthr = MY_OMP_GET_MAX_THREADS();
-  if (opts.nthreads>0)           // user override up to max avail
-    maxnthr = min(maxnthr,opts.nthreads);
-  
+  if (opts.sort_threads>0)           // user override, now without limit
+    maxnthr = opts.sort_threads;     // maxnthr = the max threads sorting could use
+  // (we don't print warning here, since: no showwarn in spread_opts, and finufft
+  // already warned about it. spreadinterp-only advanced users will miss a warning)
   if (opts.sort==1 || (opts.sort==2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
     int sort_debug = (opts.debug>=2);    // show timing output?
-    int sort_nthr = opts.sort_threads;   // choose # threads for sorting
-    if (sort_nthr==0)   // use auto choice: when N>>M, one thread is better!
+    int sort_nthr = opts.sort_threads;   // 0, or proposed max # threads for sorting
+#ifndef _OPENMP
+    sort_nthr = 1;                   // if single-threaded lib, override user
+#endif
+    if (sort_nthr==0)   // multithreaded auto choice: when N>>M, one thread is better!
       sort_nthr = (10*M>N) ? maxnthr : 1;      // heuristic
     if (sort_nthr==1)
       bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
@@ -323,9 +327,12 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   int ndims = ndims_from_Ns(N1,N2,N3);
   BIGINT N=N1*N2*N3;            // output array size
   int ns=opts.nspread;          // abbrev. for w, kernel width
-  int nthr = MY_OMP_GET_MAX_THREADS();  // # threads to use to spread
+  int nthr = MY_OMP_GET_MAX_THREADS();  // guess # threads to use to spread
   if (opts.nthreads>0)
-    nthr = min(nthr,opts.nthreads);     // user override up to max avail
+    nthr = opts.nthreads;       // user override, now without limit
+#ifndef _OPENMP
+  nthr = 1;                   // if single-threaded lib, override user
+#endif
   if (opts.debug)
     printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nthr);
   
@@ -445,9 +452,12 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   int ndims = ndims_from_Ns(N1,N2,N3);
   int ns=opts.nspread;          // abbrev. for w, kernel width
   FLT ns2 = (FLT)ns/2;          // half spread width, used as stencil shift
-  int nthr = MY_OMP_GET_MAX_THREADS();   // # threads to use to interp
+  int nthr = MY_OMP_GET_MAX_THREADS();   // guess # threads to use to interp
   if (opts.nthreads>0)
-    nthr = min(nthr,opts.nthreads);      // user override up to max avail
+    nthr = opts.nthreads;       // user override, now without limit
+#ifndef _OPENMP
+  nthr = 1;                   // if single-threaded lib, override user
+#endif
   if (opts.debug)
     printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nthr);
 
@@ -1292,7 +1302,7 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   nbins2 = isky ? N2/bin_size_y+1 : 1;
   nbins3 = iskz ? N3/bin_size_z+1 : 1;
   BIGINT nbins = nbins1*nbins2*nbins3;
-  if (nthr==0)
+  if (nthr==0)                      // should never happen in spreadinterp use
     fprintf(stderr,"[%s] nthr (%d) must be positive!\n",__func__,nthr);
   int nt = min(M,(BIGINT)nthr);     // handle case of less points than threads
   std::vector<BIGINT> brk(nt+1);    // list of start NU pt indices per thread
