@@ -251,7 +251,7 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
                    ordering for the x-coords of NU pts, etc.
     returned value - whether a sort was done (1) or not (0).
 
-   Barnett 2017; split out by Melody Shih, Jun 2018.
+   Barnett 2017; split out by Melody Shih, Jun 2018. Barnett nthr logic 2024.
 */
 {
   CNTime timer;
@@ -266,23 +266,26 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
 
   timer.start();                 // if needed, sort all the NU pts...
   int did_sort=0;
-  int maxnthr = MY_OMP_GET_MAX_THREADS();
-  if (opts.sort_threads>0)           // user override, now without limit
-    maxnthr = opts.sort_threads;     // maxnthr = the max threads sorting could use
+  int maxnthr = MY_OMP_GET_MAX_THREADS();  // used if both below opts default
+  if (opts.nthreads>0)
+    maxnthr = opts.nthreads;         // user nthreads overrides, without limit
+  if (opts.sort_threads>0)
+    maxnthr = opts.sort_threads;     // high-priority override, also no limit
+  // At this point: maxnthr = the max threads sorting could use
   // (we don't print warning here, since: no showwarn in spread_opts, and finufft
   // already warned about it. spreadinterp-only advanced users will miss a warning)
   if (opts.sort==1 || (opts.sort==2 && better_to_sort)) {
     // store a good permutation ordering of all NU pts (dim=1,2 or 3)
     int sort_debug = (opts.debug>=2);    // show timing output?
-    int sort_nthr = opts.sort_threads;   // 0, or proposed max # threads for sorting
+    int sort_nthr = opts.sort_threads;   // 0, or user max # threads for sort
 #ifndef _OPENMP
-    sort_nthr = 1;                   // if single-threaded lib, override user
+    sort_nthr = 1;                       // if single-threaded lib, override user
 #endif
     if (sort_nthr==0)   // multithreaded auto choice: when N>>M, one thread is better!
-      sort_nthr = (10*M>N) ? maxnthr : 1;      // heuristic
+      sort_nthr = (10*M>N) ? maxnthr : 1;     // heuristic
     if (sort_nthr==1)
       bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
-    else                                      // sort_nthr>1, sets # threads
+    else                                      // sort_nthr>1, user fixes # threads (>=2)
       bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug,sort_nthr);
     if (opts.debug) 
       printf("\tsorted (%d threads):\t%.3g s\n",sort_nthr,timer.elapsedsec());
@@ -331,7 +334,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   if (opts.nthreads>0)
     nthr = opts.nthreads;       // user override, now without limit
 #ifndef _OPENMP
-  nthr = 1;                   // if single-threaded lib, override user
+  nthr = 1;                   // single-threaded lib must override user
 #endif
   if (opts.debug)
     printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nthr);
@@ -456,7 +459,7 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   if (opts.nthreads>0)
     nthr = opts.nthreads;       // user override, now without limit
 #ifndef _OPENMP
-  nthr = 1;                   // if single-threaded lib, override user
+  nthr = 1;                   // single-threaded lib must override user
 #endif
   if (opts.debug)
     printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nthr);
