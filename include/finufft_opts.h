@@ -12,7 +12,7 @@ typedef struct finufft_opts{  // defaults see finufft.cpp:finufft_default_opts()
   // data handling opts...
   int modeord;            // (type 1,2 only): 0 CMCL-style increasing mode order
                           //                  1 FFT-style mode order
-  int chkbnds;            // 0 don't check NU pts in [-3pi,3pi), 1 do (<few % slower)
+  int chkbnds;            // [DEPRECATED] 0 don't check NU pts in [-3pi,3pi), 1 do (<few % slower)
   
   // diagnostic opts...
   int debug;              // 0 silent, 1 some timing/debug, or 2 more

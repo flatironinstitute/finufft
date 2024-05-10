@@ -83,15 +83,13 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
         int *d_sortidx = d_plan->sortidx;
         int *d_idxnupts = d_plan->idxnupts;
 
-        int pirange = d_plan->spopts.pirange;
-
         int ier;
         if ((ier = checkCudaErrors(
                  cudaMemsetAsync(d_binsize, 0, numbins[0] * numbins[1] * numbins[2] * sizeof(int), stream))))
             return ier;
         calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
             M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1], numbins[2], d_binsize, d_kx,
-            d_ky, d_kz, d_sortidx, pirange);
+            d_ky, d_kz, d_sortidx);
         RETURN_IF_CUDA_ERROR
 
         int n = numbins[0] * numbins[1] * numbins[2];
@@ -101,7 +99,7 @@ int cuspread3d_nuptsdriven_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
         calc_inverse_of_global_sort_index_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
             M, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1], numbins[2], d_binstartpts, d_sortidx, d_kx,
-            d_ky, d_kz, d_idxnupts, pirange, nf1, nf2, nf3);
+            d_ky, d_kz, d_idxnupts, nf1, nf2, nf3);
         RETURN_IF_CUDA_ERROR
     } else {
         int *d_idxnupts = d_plan->idxnupts;
@@ -124,7 +122,6 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
     T sigma = d_plan->spopts.upsampfac;
     T es_c = d_plan->spopts.ES_c;
     T es_beta = d_plan->spopts.ES_beta;
-    int pirange = d_plan->spopts.pirange;
 
     int *d_idxnupts = d_plan->idxnupts;
     T *d_kx = d_plan->kx;
@@ -142,14 +139,14 @@ int cuspread3d_nuptsdriven(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
         for (int t = 0; t < blksize; t++) {
             spread_3d_nupts_driven<T, 1>
                 <<<blocks, threadsPerBlock, 0, stream>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M,
-                                                         ns, nf1, nf2, nf3, es_c, es_beta, sigma, d_idxnupts, pirange);
+                                                         ns, nf1, nf2, nf3, es_c, es_beta, sigma, d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
             spread_3d_nupts_driven<T, 0>
                 <<<blocks, threadsPerBlock, 0, stream>>>(d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M,
-                                                         ns, nf1, nf2, nf3, es_c, es_beta, sigma, d_idxnupts, pirange);
+                                                         ns, nf1, nf2, nf3, es_c, es_beta, sigma, d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     }
@@ -163,8 +160,6 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
     dim3 threadsPerBlock;
     dim3 blocks;
-
-    int pirange = d_plan->spopts.pirange;
 
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
     int o_bin_size_x = d_plan->opts.gpu_obinsizex;
@@ -226,7 +221,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
     locate_nupts_to_bins_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, bin_size_x, bin_size_y, bin_size_z, numobins[0], numobins[1], numobins[2], binsperobinx, binsperobiny,
-        binsperobinz, d_binsize, d_kx, d_ky, d_kz, d_sortidx, pirange, nf1, nf2, nf3);
+        binsperobinz, d_binsize, d_kx, d_ky, d_kz, d_sortidx, nf1, nf2, nf3);
     RETURN_IF_CUDA_ERROR
 
     threadsPerBlock.x = 8;
@@ -259,7 +254,7 @@ int cuspread3d_blockgather_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan
 
     calc_inverse_of_global_sort_index_ghost<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, bin_size_x, bin_size_y, bin_size_z, numobins[0], numobins[1], numobins[2], binsperobinx, binsperobiny,
-        binsperobinz, d_binstartpts, d_sortidx, d_kx, d_ky, d_kz, d_idxnupts, pirange, nf1, nf2, nf3);
+        binsperobinz, d_binstartpts, d_sortidx, d_kx, d_ky, d_kz, d_idxnupts, nf1, nf2, nf3);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
         fprintf(stderr, "[%s] Error: %s\n", __func__, cudaGetErrorString(err));
@@ -337,7 +332,6 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
     T es_c = d_plan->spopts.ES_c;
     T es_beta = d_plan->spopts.ES_beta;
     T sigma = d_plan->spopts.upsampfac;
-    int pirange = d_plan->spopts.pirange;
     int maxsubprobsize = d_plan->opts.gpu_maxsubprobsize;
 
     int obin_size_x = d_plan->opts.gpu_obinsizex;
@@ -380,15 +374,13 @@ int cuspread3d_blockgather(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T>
             spread_3d_block_gather<T, 1><<<totalnumsubprob, 64, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, obin_size_x, obin_size_y, obin_size_z, binsperobinx * binsperobiny * binsperobinz,
-                d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts,
-                pirange);
+                d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts);
             RETURN_IF_CUDA_ERROR
         } else {
             spread_3d_block_gather<T, 0><<<totalnumsubprob, 64, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, es_c, es_beta, sigma,
                 d_binstartpts, obin_size_x, obin_size_y, obin_size_z, binsperobinx * binsperobiny * binsperobinz,
-                d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts,
-                pirange);
+                d_subprob_to_bin, d_subprobstartpts, maxsubprobsize, numobins[0], numobins[1], numobins[2], d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     }
@@ -427,7 +419,6 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
     int *d_idxnupts = d_plan->idxnupts;
 
     int *d_subprob_to_bin = NULL;
-    int pirange = d_plan->spopts.pirange;
 
     int ier;
     if ((ier = checkCudaErrors(
@@ -435,7 +426,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
         return ier;
     calc_bin_size_noghost_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, nf1, nf2, nf3, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1], numbins[2], d_binsize, d_kx, d_ky,
-        d_kz, d_sortidx, pirange);
+        d_kz, d_sortidx);
     RETURN_IF_CUDA_ERROR
 
     int n = numbins[0] * numbins[1] * numbins[2];
@@ -445,7 +436,7 @@ int cuspread3d_subprob_prop(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T
 
     calc_inverse_of_global_sort_index_3d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
         M, bin_size_x, bin_size_y, bin_size_z, numbins[0], numbins[1], numbins[2], d_binstartpts, d_sortidx, d_kx, d_ky,
-        d_kz, d_idxnupts, pirange, nf1, nf2, nf3);
+        d_kz, d_idxnupts, nf1, nf2, nf3);
     RETURN_IF_CUDA_ERROR
     /* --------------------------------------------- */
     //        Determining Subproblem properties      //
@@ -521,7 +512,6 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
     T sigma = d_plan->spopts.upsampfac;
     T es_c = d_plan->spopts.ES_c;
     T es_beta = d_plan->spopts.ES_beta;
-    int pirange = d_plan->spopts.pirange;
     size_t sharedplanorysize = (bin_size_x + 2 * ceil(ns / 2.0)) * (bin_size_y + 2 * ceil(ns / 2.0)) *
                                (bin_size_z + 2 * ceil(ns / 2.0)) * sizeof(cuda_complex<T>);
     if (sharedplanorysize > 49152) {
@@ -534,13 +524,13 @@ int cuspread3d_subprob(int nf1, int nf2, int nf3, int M, cufinufft_plan_t<T> *d_
             spread_3d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, es_c, es_beta,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
-                d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+                d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts);
             RETURN_IF_CUDA_ERROR
         } else {
             spread_3d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_kz, d_c + t * M, d_fw + t * nf1 * nf2 * nf3, M, ns, nf1, nf2, nf3, sigma, es_c, es_beta,
                 d_binstartpts, d_binsize, bin_size_x, bin_size_y, bin_size_z, d_subprob_to_bin, d_subprobstartpts,
-                d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts, pirange);
+                d_numsubprob, maxsubprobsize, numbins[0], numbins[1], numbins[2], d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     }

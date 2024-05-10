@@ -19,7 +19,7 @@ namespace finufft {
   namespace spreadinterp {
 
 // declarations of purely internal functions... (thus need not be in .h)
-static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N, bool p) noexcept;
+static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts);
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N);
 static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT *ker, FLT z, const int w, const finufft_spread_opts &opts);
@@ -43,10 +43,10 @@ void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset
                                      BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
                                      BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
 void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      BIGINT N1,BIGINT N2,BIGINT N3,
 	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      BIGINT N1,BIGINT N2,BIGINT N3,
               double bin_size_x,double bin_size_y,double bin_size_z, int debug,
               int nthr);
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
@@ -88,8 +88,6 @@ int spreadinterp(
    interface of the original CMCL libraries.
    Non-uniform (NU) points kx,ky,kz are real, and may lie in the central three
    periods in each coordinate (these are folded into the central period).
-   If pirange=0, the periodic domain for kx is [0,N1], ky [0,N2], kz [0,N3].
-   If pirange=1, the periodic domain is instead [-pi,pi] for each coord.
    The finufft_spread_opts struct must have been set up already by calling setup_kernel.
    It is assumed that 2*opts.nspread < min(N1,N2,N3), so that the kernel
    only ever wraps once when falls below 0 or off the top of a uniform grid
@@ -103,10 +101,8 @@ int spreadinterp(
    kx, ky, kz - length-M real arrays of NU point coordinates (only kx read in
                 1D, only kx and ky read in 2D).
 
-		These should lie in the box 0<=kx<=N1 etc (if pirange=0),
-                or -pi<=kx<=pi (if pirange=1). However, points
-                outside this domain are also correctly folded back into this
-                domain
+		These should lie in the box -pi<=kx<=pi. Points outside this domain are also
+		correctly folded back into this domain.
    opts - spread/interp options struct, documented in ../include/finufft_spread_opts.h
 
    Inputs/Outputs:
@@ -188,9 +184,14 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
 
    Inputs:
     M        - number of input NU points.
+<<<<<<< Updated upstream
     kx,ky,kz - length-M arrays of real coords of NU pts, in the domain
                for FOLDRESCALE, which includes [0,N1], [0,N2], [0,N3]
                respectively, if opts.pirange=0; or [-pi,pi] if opts.pirange=1.
+=======
+    kx,ky,kz - length-M arrays of real coords of NU pts. Domain is [-pi, pi],
+                points outside are folded in.
+>>>>>>> Stashed changes
                (only kz used in 1D, only kx and ky used in 2D.)
     N1,N2,N3 - integer sizes of overall box (set N2=N3=1 for 1D, N3=1 for 2D).
                1 = x (fastest), 2 = y (medium), 3 = z (slowest).
@@ -227,9 +228,9 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
     if (sort_nthr==0)   // use auto choice: when N>>M, one thread is better!
       sort_nthr = (10*M>N) ? maxnthr : 1;      // heuristic
     if (sort_nthr==1)
-      bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug);
+      bin_sort_singlethread(sort_indices,M,kx,ky,kz,N1,N2,N3,bin_size_x,bin_size_y,bin_size_z,sort_debug);
     else                                      // sort_nthr>1, sets # threads
-      bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,opts.pirange,bin_size_x,bin_size_y,bin_size_z,sort_debug,sort_nthr);
+      bin_sort_multithread(sort_indices,M,kx,ky,kz,N1,N2,N3,bin_size_x,bin_size_y,bin_size_z,sort_debug,sort_nthr);
     if (opts.debug) 
       printf("\tsorted (%d threads):\t%.3g s\n",sort_nthr,timer.elapsedsec());
     did_sort=1;
@@ -277,7 +278,7 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   if (opts.nthreads>0)
     nthr = min(nthr,opts.nthreads);     // user override up to max avail
   if (opts.debug)
-    printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nthr);
+    printf("\tspread %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,nthr);
   
   timer.start();
   for (BIGINT i=0; i<2*N; i++) // zero the output array. std::fill is no faster
@@ -331,9 +332,9 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         FLT *dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
         for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
           BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
-          kx0[j]= fold_rescale(kx[kk], N1, opts.pirange);
-          if (N2>1) ky0[j]= fold_rescale(ky[kk], N2, opts.pirange);
-          if (N3>1) kz0[j]= fold_rescale(kz[kk], N3, opts.pirange);
+          kx0[j]= fold_rescale(kx[kk], N1);
+          if (N2>1) ky0[j]= fold_rescale(ky[kk], N2);
+          if (N3>1) kz0[j]= fold_rescale(kz[kk], N3);
           dd0[j*2]=data_nonuniform[kk*2];     // real part
           dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
         }
@@ -399,7 +400,7 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
   if (opts.nthreads>0)
     nthr = min(nthr,opts.nthreads);      // user override up to max avail
   if (opts.debug)
-    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld; pir=%d), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,opts.pirange,nthr);
+    printf("\tinterp %dD (M=%lld; N1=%lld,N2=%lld,N3=%lld), nthr=%d\n",ndims,(long long)M,(long long)N1,(long long)N2,(long long)N3,nthr);
 
   timer.start();  
 #pragma omp parallel num_threads(nthr)
@@ -424,11 +425,11 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         for (int ibuf=0; ibuf<bufsize; ibuf++) {
           BIGINT j = sort_indices[i+ibuf];
           jlist[ibuf] = j;
-	  xjlist[ibuf] = fold_rescale(kx[j], N1, opts.pirange);
+	  xjlist[ibuf] = fold_rescale(kx[j], N1);
 	  if(ndims >=2)
-	    yjlist[ibuf] = fold_rescale(ky[j], N2, opts.pirange);
+	    yjlist[ibuf] = fold_rescale(ky[j], N2);
 	  if(ndims == 3)
-	    zjlist[ibuf] = fold_rescale(kz[j], N3, opts.pirange);
+	    zjlist[ibuf] = fold_rescale(kz[j], N3);
 	}
       
     // Loop over targets in chunk
@@ -532,7 +533,6 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac,
     
   // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
   opts.spread_direction = 0;    // user should always set to 1 or 2 as desired
-  opts.pirange = 1;             // user also should always set this
   opts.sort = 2;                // 2:auto-choice
   opts.kerpad = 0;              // affects only evaluate_kernel_vector
   opts.kerevalmeth = kerevalmeth;
@@ -1154,7 +1154,7 @@ void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset
 
 
 void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      BIGINT N1,BIGINT N2,BIGINT N3,
 	      double bin_size_x,double bin_size_y,double bin_size_z, int debug)
 /* Returns permutation of all nonuniform points with good RAM access,
  * ie less cache misses for spreading, in 1D, 2D, or 3D. Single-threaded version
@@ -1166,9 +1166,8 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * NU pt of index ret[0], the NU pt of index ret[1],..., NU pt of index ret[M-1]
  * 
  * Inputs: M - number of input NU points.
- *         kx,ky,kz - length-M arrays of real coords of NU pts, in the domain
- *                    for fold_rescale, which includes [0,N1], [0,N2], [0,N3]
- *                    respectively, if pirange=0; or [-pi,pi] if pirange=1.
+ *         kx,ky,kz - length-M arrays of real coords of NU pts in [-pi,pi].
+ *                    Points outside this range are folded into it.
  *         N1,N2,N3 - integer sizes of overall box (N2=N3=1 for 1D, N3=1 for 2D)
  *         bin_size_x,y,z - what binning box size to use in each dimension
  *                    (in rescaled coords where ranges are [0,Ni] ).
@@ -1197,9 +1196,9 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
   for (BIGINT i=0; i<M; i++) {
     // find the bin index in however many dims are needed
-    BIGINT i1= fold_rescale(kx[i], N1, pirange) / bin_size_x, i2=0, i3=0;
-    if (isky) i2 = fold_rescale(ky[i], N2, pirange) / bin_size_y;
-    if (iskz) i3 = fold_rescale(kz[i], N3, pirange) / bin_size_z;
+    BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
+    if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
+    if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     counts[bin]++;
   }
@@ -1214,9 +1213,9 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
-    BIGINT i1= fold_rescale(kx[i], N1, pirange) / bin_size_x, i2=0, i3=0;
-    if (isky) i2 = fold_rescale(ky[i], N2, pirange) / bin_size_y;
-    if (iskz) i3 = fold_rescale(kz[i], N3, pirange) / bin_size_z;
+    BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
+    if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
+    if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     ret[counts[bin]] = i;      // fill the inverse map on the fly
     ++counts[bin];             // update the offsets
@@ -1224,7 +1223,7 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 }
 
 void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
-	      BIGINT N1,BIGINT N2,BIGINT N3,int pirange,
+	      BIGINT N1,BIGINT N2,BIGINT N3,
               double bin_size_x,double bin_size_y,double bin_size_z, int debug,
               int nthr)
 /* Mostly-OpenMP'ed version of bin_sort.
@@ -1261,9 +1260,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     my_counts.resize(nbins,0);  // allocate counts[t], now in parallel region
     for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
       // find the bin index in however many dims are needed
-      BIGINT i1= fold_rescale(kx[i], N1, pirange) / bin_size_x, i2=0, i3=0;
-      if (isky) i2 = fold_rescale(ky[i], N2, pirange) / bin_size_y;
-      if (iskz) i3 = fold_rescale(kz[i], N3, pirange) / bin_size_z;
+      BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
+      if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
+      if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
       BIGINT bin = i1+nbins1*(i2+nbins2*i3);
       ++my_counts[bin];               // no clash btw threads
     }
@@ -1284,9 +1283,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     auto &my_counts(counts[t]);
     for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
       // find the bin index (again! but better than using RAM)
-      BIGINT i1= fold_rescale(kx[i], N1, pirange) / bin_size_x, i2=0, i3=0;
-      if (isky) i2 = fold_rescale(ky[i], N2, pirange) / bin_size_y;
-      if (iskz) i3 = fold_rescale(kz[i], N3, pirange) / bin_size_z;
+      BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
+      if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
+      if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
       BIGINT bin = i1+nbins1*(i2+nbins2*i3);
       ret[my_counts[bin]] = i;   // inverse is offset for this NU pt and thread
       ++my_counts[bin];          // update the offsets; no thread clash
@@ -1370,19 +1369,10 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
    Martin Reinecke, 8.5.2024 used floor to speedup the function and removed the range limitation
    Marco Barbone, 8.5.2024 Changed it from a Macro to an inline function
 */
-FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N, const bool p) noexcept {
-  FLT result;
-  FLT fN = FLT(N);
-  if (p) {
-    static constexpr FLT x2pi = FLT(M_1_2PI);
-    result = x * x2pi + FLT(0.5);
-    result -= floor(result);
-  } else {
-    const FLT invN = FLT(1.0) / fN;
-    result = x * invN;
-    result -= floor(result);
-  }
-  return result * fN;
+FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
+  static constexpr const FLT x2pi = FLT(M_1_2PI);
+  const FLT result = x * x2pi + FLT(0.5);
+  return (result-floor(result)) * FLT(N);
 }
 }   // namespace
 }   // namespace
