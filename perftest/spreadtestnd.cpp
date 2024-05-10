@@ -111,8 +111,6 @@ int main(int argc, char* argv[])
     return ier_set;
   }
   opts.pirange = 0;  // crucial, since below has NU pts on [0,Nd] in each dim
-  opts.chkbnds = 0;  // only for debug, since below code has correct bounds);
-                     // however, 1 can make a >5% slowdown for low-tol 3D.
   opts.debug = debug;   // print more diagnostics?
   opts.sort = sort;
   opts.flags = flags;

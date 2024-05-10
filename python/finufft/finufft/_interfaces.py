@@ -338,7 +338,7 @@ def err_handler(ier):
         1: 'FINUFFT eps tolerance too small to achieve',
         2: 'FINUFFT malloc size requested greater than MAX_NF',
         3: 'FINUFFT spreader fine grid too small compared to kernel width',
-        4: 'FINUFFT spreader nonuniform point out of range [-3pi,3pi]^d in type 1 or 2',
+        4: 'FINUFFT spreader nonuniform point out of range [-pi, pi)^d [DEPRECATED]', # DEPRECATED
         5: 'FINUFFT spreader malloc error',
         6: 'FINUFFT spreader illegal direction (must be 1 or 2)',
         7: 'FINUFFT opts.upsampfac not > 1.0',
@@ -775,22 +775,22 @@ def _set_nufft_doc(f, dim, tp, example='python/finufft/test/accuracy_speed_tests
     v['pt_spacing'] = ' ' * (len(v['pt_idx']) - 2)
     v['pt_inner'] = ' + '.join('k{0} {1}(j)'.format(i, x) for i, x in zip(dims, pts[:dim]))
     v['pt_constraint'] = ', '.join('-N{0}/2 <= k{0} <= (N{0}-1)/2'.format(i) for i in dims)
-    v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid only in [-3pi, 3pi].'.format(x) for x in pts[:dim])
+    v['pts_doc'] = '\n'.join('{}(float[M]): nonuniform points, in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
 
     # for example
     v['pts'] = ', '.join(str(x) for x in pts[:dim])
-    v['pts_generate'] = '\n'.join('      {} = 2 * np.pi * np.random.uniform(size=M)'.format(x) for x in pts[:dim])
+    v['pts_generate'] = '\n'.join('{} = 2 * np.pi * np.random.uniform(size=M)'.format(x) for x in pts[:dim])
     v['sample_modes'] = ', '.join(str(n) for n in sample_modes[:dim])
     v['example'] = example
 
     # for type 3 only
-    v['src_pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform source points.'.format(x) for x in pts[:dim])
-    v['target_pts_doc'] = '\n'.join('      {}         (float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
+    v['src_pts_doc'] = '\n'.join('{}(float[M]): nonuniform points, valid in [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
+    v['target_pts_doc'] = '\n'.join('{}(float[N]): nonuniform target points.'.format(x) for x in target_pts[:dim])
     v['pt_inner_type3'] = ' + '.join('{0}[k] {1}[j]'.format(s, x) for s, x in zip(target_pts[:dim], pts[:dim]))
 
     # for type 3 example only
     v['target_pts'] = ', '.join(str(x) for x in target_pts[:dim])
-    v['target_pts_generate'] = '\n'.join('      {} = 2 * np.pi * np.random.uniform(size=N)'.format(x) for x in target_pts[:dim])
+    v['target_pts_generate'] = '\n'.join('{} = 2 * np.pi * np.random.uniform(size=N)'.format(x) for x in target_pts[:dim])
 
     if dim > 1:
         v['pt_inner'] = '(' + v['pt_inner'] + ')'

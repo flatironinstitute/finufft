@@ -136,6 +136,13 @@ int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps, finufft_opts 
     spopts.atomic_threshold = opts.spread_nthr_atomic;
   if (opts.spread_max_sp_size>0)      // overrides
     spopts.max_subproblem_size = opts.spread_max_sp_size;
+  if (opts.chkbnds != 1) {
+      fprintf(stderr, "chkbnds options is deprecated, please use the default value\n");
+      // if other error occurred before this, return that error otherwise return a warning
+      if (!ier) {
+        return FINUFFT_WARN_CHKBND_NOT_DEFAULT;
+      }
+  }
   return ier;
 } 
 
@@ -520,6 +527,12 @@ int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN p){
 // (not namespaced since have safe names finufft{f}_* )
 using namespace finufft::common;  // accesses routines defined above
 
+
+// Marco Barbone: 5.8.2024
+// These are user-facing.
+// The various options could be macros to follow c standard library conventions.
+// Question: would these be enums?
+
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
 // Sets default nufft opts (referenced by all language interfaces too).
@@ -537,7 +550,7 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
   o->showwarn = 1;
 
   o->nthreads = 0;
-  o->fftw = FFTW_ESTIMATE;
+  o->fftw = FFTW_ESTIMATE; //
   o->spread_sort = 2;
   o->spread_kerevalmeth = 1;
   o->spread_kerpad = 1;

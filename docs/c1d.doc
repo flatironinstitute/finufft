@@ -21,7 +21,7 @@
    Inputs:
      ntr    how many transforms (only for vectorized "many" functions, else ntr=1)
      M      number of nonuniform point sources
-     x      nonuniform points in [-3pi,3pi) (length M real array)
+     x      nonuniform points (length M real array)
      c      source strengths (size M*ntr complex array)
      iflag  if >=0, uses +i in complex exponential, otherwise -i
      eps    desired relative precision; smaller is slower. This can be chosen
@@ -63,7 +63,7 @@
    Inputs:
      ntr    how many transforms (only for vectorized "many" functions, else ntr=1)
      M      number of nonuniform point targets
-     x      nonuniform points in [-3pi,3pi) (length M real array)
+     x      nonuniform points (length M real array)
      iflag  if >=0, uses +i in complex exponential, otherwise -i
      eps    desired relative precision; smaller is slower. This can be chosen
             from 1e-1 down to ~ 1e-14 (in double precision) or 1e-6 (in single)

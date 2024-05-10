@@ -12,31 +12,17 @@
 #include <stdio.h>
 
 
-/* local NU coord fold+rescale macro: does the following affine transform to x:
-     when p=true:   map [-3pi,-pi) and [-pi,pi) and [pi,3pi)    each to [0,N)
-     otherwise,     map [-N,0) and [0,N) and [N,2N)             each to [0,N)
-   Thus, only one period either side of the principal domain is folded.
-   (It is *so* much faster than slow std::fmod that we stick to it.)
-   This explains FINUFFT's allowed input domain of [-3pi,3pi).
-   Speed comparisons of this macro vs a function are in devel/foldrescale*.
-   The macro wins hands-down on i7, even for modern GCC9.
-   This should be done in C++ not as a macro, someday.
-*/
-#define FOLDRESCALE(x,N,p) (p ?                                         \
-         (x + (x>=-PI ? (x<PI ? PI : -PI) : 3*PI)) * ((FLT)M_1_2PI*N) : \
-                        (x>=0.0 ? (x<(FLT)N ? x : x-(FLT)N) : x+(FLT)N))
-
-
 using namespace std;
 using namespace finufft::utils;              // access to timer
 
 namespace finufft {
   namespace spreadinterp {
-  
+
 // declarations of purely internal functions... (thus need not be in .h)
-static inline void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts);
-static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N);
-static inline void eval_kernel_vec_Horner(FLT *ker, const FLT z, const int w, const finufft_spread_opts &opts);
+static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N, bool p) noexcept;
+static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts);
+static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N);
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT *ker, FLT z, const int w, const finufft_spread_opts &opts);
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
 void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
@@ -68,7 +54,6 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
 		 FLT* kz0,int ns, int ndims);
 
 
-  
 
 // ==========================================================================
 int spreadinterp(
@@ -119,10 +104,9 @@ int spreadinterp(
                 1D, only kx and ky read in 2D).
 
 		These should lie in the box 0<=kx<=N1 etc (if pirange=0),
-                or -pi<=kx<=pi (if pirange=1). However, points up to +-1 period
+                or -pi<=kx<=pi (if pirange=1). However, points
                 outside this domain are also correctly folded back into this
-                domain, but pts beyond this either raise an error (if chkbnds=1)
-                or a crash (if chkbnds=0).
+                domain
    opts - spread/interp options struct, documented in ../include/finufft_spread_opts.h
 
    Inputs/Outputs:
@@ -133,8 +117,6 @@ int spreadinterp(
    0 indicates success; other values have meanings in ../docs/error.rst, with
    following modifications:
       3 : one or more non-trivial box dimensions is less than 2.nspread.
-      4 : nonuniform points outside [-Nm,2*Nm] or [-3pi,3pi] in at least one
-          dimension m=1,2,3.
       5 : failed allocate sort indices
 
    Magland Dec 2016. Barnett openmp version, many speedups 1/16/17-2/16/17
@@ -178,11 +160,9 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
 /* This does just the input checking and reporting for the spreader.
    See spreadinterp() for input arguments and meaning of returned value.
    Split out by Melody Shih, Jun 2018. Finiteness chk Barnett 7/30/18.
-   Bypass FOLDRESCALE macro which has inevitable rounding err even nr +pi,
-   giving fake invalids well inside the [-3pi,3pi] domain, 4/9/21.
+   Marco Barbone 5.8.24 removed bounds check as new foldrescale is not limited to [-3pi,3pi)
 */
 {
-  CNTime timer;
   // INPUT CHECKING & REPORTING .... cuboid not too small for spreading?
   int minN = 2*opts.nspread;
   if (N1<minN || (N2>1 && N2<minN) || (N3>1 && N3<minN)) {
@@ -193,36 +173,7 @@ int spreadcheck(BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M, FLT *kx, FLT *ky,
     fprintf(stderr,"%s error: opts.spread_direction must be 1 or 2!\n",__func__);
     return FINUFFT_ERR_SPREAD_DIR;
   }
-  int ndims = ndims_from_Ns(N1,N2,N3);
-  
-  // BOUNDS CHECKING .... check NU pts are valid (+-3pi if pirange, or [-N,2N])
-  // exit gracefully as soon as invalid is found.
-  // Note: isfinite() breaks with -Ofast
-  if (opts.chkbnds) {
-    timer.start();
-    for (BIGINT i=0; i<M; ++i) {
-      if ((opts.pirange ? (abs(kx[i])>3.0*PI) : (kx[i]<-N1 || kx[i]>2*N1)) || !isfinite(kx[i])) {
-        fprintf(stderr,"%s NU pt not in valid range (central three periods): kx[%lld]=%.16g, N1=%lld (pirange=%d)\n",__func__, (long long)i, kx[i], (long long)N1,opts.pirange);
-        return FINUFFT_ERR_SPREAD_PTS_OUT_RANGE;
-      }
-    }
-    if (ndims>1)
-      for (BIGINT i=0; i<M; ++i) {
-        if ((opts.pirange ? (abs(ky[i])>3.0*PI) : (ky[i]<-N2 || ky[i]>2*N2)) || !isfinite(ky[i])) {
-          fprintf(stderr,"%s NU pt not in valid range (central three periods): ky[%lld]=%.16g, N2=%lld (pirange=%d)\n",__func__, (long long)i, ky[i], (long long)N2,opts.pirange);
-          return FINUFFT_ERR_SPREAD_PTS_OUT_RANGE;
-        }
-      }
-    if (ndims>2)
-      for (BIGINT i=0; i<M; ++i) {
-        if ((opts.pirange ? (abs(kz[i])>3.0*PI) : (kz[i]<-N3 || kz[i]>2*N3)) || !isfinite(kz[i])) {
-          fprintf(stderr,"%s NU pt not in valid range (central three periods): kz[%lld]=%.16g, N3=%lld (pirange=%d)\n",__func__, (long long)i, kz[i], (long long)N3,opts.pirange);
-          return FINUFFT_ERR_SPREAD_PTS_OUT_RANGE;
-        }
-      }
-    if (opts.debug) printf("\tNU bnds check:\t\t%.3g s\n",timer.elapsedsec());
-  }
-  return 0; 
+  return 0;
 }
 
 
@@ -241,7 +192,6 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
                for FOLDRESCALE, which includes [0,N1], [0,N2], [0,N3]
                respectively, if opts.pirange=0; or [-pi,pi] if opts.pirange=1.
                (only kz used in 1D, only kx and ky used in 2D.)
-               These must have been bounds-checked already; see spreadcheck.
     N1,N2,N3 - integer sizes of overall box (set N2=N3=1 for 1D, N3=1 for 2D).
                1 = x (fastest), 2 = y (medium), 3 = z (slowest).
     opts     - spreading options struct, see ../include/finufft_spread_opts.h
@@ -381,9 +331,9 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         FLT *dd0=(FLT*)malloc(sizeof(FLT)*M0*2);    // complex strength data
         for (BIGINT j=0; j<M0; j++) {           // todo: can avoid this copying?
           BIGINT kk=sort_indices[j+brk[isub]];  // NU pt from subprob index list
-          kx0[j]=FOLDRESCALE(kx[kk],N1,opts.pirange);
-          if (N2>1) ky0[j]=FOLDRESCALE(ky[kk],N2,opts.pirange);
-          if (N3>1) kz0[j]=FOLDRESCALE(kz[kk],N3,opts.pirange);
+          kx0[j]= fold_rescale(kx[kk], N1, opts.pirange);
+          if (N2>1) ky0[j]= fold_rescale(ky[kk], N2, opts.pirange);
+          if (N3>1) kz0[j]= fold_rescale(kz[kk], N3, opts.pirange);
           dd0[j*2]=data_nonuniform[kk*2];     // real part
           dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
         }
@@ -474,11 +424,11 @@ int interpSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
         for (int ibuf=0; ibuf<bufsize; ibuf++) {
           BIGINT j = sort_indices[i+ibuf];
           jlist[ibuf] = j;
-	  xjlist[ibuf] = FOLDRESCALE(kx[j],N1,opts.pirange);
+	  xjlist[ibuf] = fold_rescale(kx[j], N1, opts.pirange);
 	  if(ndims >=2)
-	    yjlist[ibuf] = FOLDRESCALE(ky[j],N2,opts.pirange);
+	    yjlist[ibuf] = fold_rescale(ky[j], N2, opts.pirange);
 	  if(ndims == 3)
-	    zjlist[ibuf] = FOLDRESCALE(kz[j],N3,opts.pirange);                              
+	    zjlist[ibuf] = fold_rescale(kz[j], N3, opts.pirange);
 	}
       
     // Loop over targets in chunk
@@ -583,7 +533,6 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac,
   // write out default finufft_spread_opts (some overridden in setup_spreader_for_nufft)
   opts.spread_direction = 0;    // user should always set to 1 or 2 as desired
   opts.pirange = 1;             // user also should always set this
-  opts.chkbnds = 0;
   opts.sort = 2;                // 2:auto-choice
   opts.kerpad = 0;              // affects only evaluate_kernel_vector
   opts.kerevalmeth = kerevalmeth;
@@ -1218,7 +1167,7 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * 
  * Inputs: M - number of input NU points.
  *         kx,ky,kz - length-M arrays of real coords of NU pts, in the domain
- *                    for FOLDRESCALE, which includes [0,N1], [0,N2], [0,N3]
+ *                    for fold_rescale, which includes [0,N1], [0,N2], [0,N3]
  *                    respectively, if pirange=0; or [-pi,pi] if pirange=1.
  *         N1,N2,N3 - integer sizes of overall box (N2=N3=1 for 1D, N3=1 for 2D)
  *         bin_size_x,y,z - what binning box size to use in each dimension
@@ -1248,9 +1197,9 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
   for (BIGINT i=0; i<M; i++) {
     // find the bin index in however many dims are needed
-    BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-    if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
-    if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
+    BIGINT i1= fold_rescale(kx[i], N1, pirange) / bin_size_x, i2=0, i3=0;
+    if (isky) i2 = fold_rescale(ky[i], N2, pirange) / bin_size_y;
+    if (iskz) i3 = fold_rescale(kz[i], N3, pirange) / bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     counts[bin]++;
   }
@@ -1265,9 +1214,9 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   
   for (BIGINT i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
-    BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-    if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
-    if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
+    BIGINT i1= fold_rescale(kx[i], N1, pirange) / bin_size_x, i2=0, i3=0;
+    if (isky) i2 = fold_rescale(ky[i], N2, pirange) / bin_size_y;
+    if (iskz) i3 = fold_rescale(kz[i], N3, pirange) / bin_size_z;
     BIGINT bin = i1+nbins1*(i2+nbins2*i3);
     ret[counts[bin]] = i;      // fill the inverse map on the fly
     ++counts[bin];             // update the offsets
@@ -1312,9 +1261,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     my_counts.resize(nbins,0);  // allocate counts[t], now in parallel region
     for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
       // find the bin index in however many dims are needed
-      BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-      if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
-      if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
+      BIGINT i1= fold_rescale(kx[i], N1, pirange) / bin_size_x, i2=0, i3=0;
+      if (isky) i2 = fold_rescale(ky[i], N2, pirange) / bin_size_y;
+      if (iskz) i3 = fold_rescale(kz[i], N3, pirange) / bin_size_z;
       BIGINT bin = i1+nbins1*(i2+nbins2*i3);
       ++my_counts[bin];               // no clash btw threads
     }
@@ -1335,9 +1284,9 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     auto &my_counts(counts[t]);
     for (BIGINT i=brk[t]; i<brk[t+1]; i++) {
       // find the bin index (again! but better than using RAM)
-      BIGINT i1=FOLDRESCALE(kx[i],N1,pirange)/bin_size_x, i2=0, i3=0;
-      if (isky) i2 = FOLDRESCALE(ky[i],N2,pirange)/bin_size_y;
-      if (iskz) i3 = FOLDRESCALE(kz[i],N3,pirange)/bin_size_z;
+      BIGINT i1= fold_rescale(kx[i], N1, pirange) / bin_size_x, i2=0, i3=0;
+      if (isky) i2 = fold_rescale(ky[i], N2, pirange) / bin_size_y;
+      if (iskz) i3 = fold_rescale(kz[i], N3, pirange) / bin_size_z;
       BIGINT bin = i1+nbins1*(i2+nbins2*i3);
       ret[my_counts[bin]] = i;   // inverse is offset for this NU pt and thread
       ++my_counts[bin];          // update the offsets; no thread clash
@@ -1414,6 +1363,26 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
     size3 = 1;
   }
 }
-
-  }   // namespace
+/* local NU coord fold+rescale macro: does the following affine transform to x:
+     when p=true:   (x+PI) mod PI    each to [0,N)
+     otherwise,     x mod N          each to [0,N)
+   Note: folding big numbers can cause numerical inaccuracies
+   Martin Reinecke, 8.5.2024 used floor to speedup the function and removed the range limitation
+   Marco Barbone, 8.5.2024 Changed it from a Macro to an inline function
+*/
+FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N, const bool p) noexcept {
+  FLT result;
+  FLT fN = FLT(N);
+  if (p) {
+    static constexpr FLT x2pi = FLT(M_1_2PI);
+    result = x * x2pi + FLT(0.5);
+    result -= floor(result);
+  } else {
+    const FLT invN = FLT(1.0) / fN;
+    result = x * invN;
+    result -= floor(result);
+  }
+  return result * fN;
+}
+}   // namespace
 }   // namespace

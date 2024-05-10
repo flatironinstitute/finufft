@@ -217,7 +217,7 @@ For type 1 these points are "sources", but for type 2, "targets".
     M           number of nonuniform points
     x, y, z     length-M GPU arrays of x (in 1D), x, y (in 2D), or x, y, z (in 3D) coordinates of
                 nonuniform points. In each dimension they refer to a periodic domain
-                [-pi,pi), but values out to [-3pi, 3pi) will be folded back correctly
+                [-pi,pi), but values outside will be folded back correctly
                 into this domain. Beyond that, they will not, and may result in crash.
                 In dimension 2, z is ignored.
     N, s, t, u  (unused for types 1 or 2 transforms; reserved for future type 3)

@@ -37,7 +37,15 @@
 #include <complex>          // we define C++ complex type only
 #define CPX std::complex<FLT>
 
-
+// inline macro, to force inlining of small functions
+// this avoids the use of macros to implement functions
+#if defined(_MSC_VER)
+#define FINUFFT_ALWAYS_INLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+#define FINUFFT_ALWAYS_INLINE __attribute__((always_inline)) inline
+#else
+#define FINUFFT_ALWAYS_INLINE inline
+#endif
 
 // ------------- Library-wide algorithm parameter settings ----------------
 

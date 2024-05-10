@@ -12,8 +12,9 @@
 %                       -mu/2 <= k3 <= (mu-1)/2.
 %
 %  Inputs:
-%     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi)^3,
-%           each a vector of length nj
+%     x,y,z coordinates of nonuniform targets on the cube [-pi, pi)^3,
+%           each a vector of length nj. Values outside will be folded.
+%           Note: folding large values can result in a loss of accuracy.
 %     f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
 %           (Mode ordering given by opts.modeord, in each dimension.)
 %           If a 4D array, 4th dimension sets ntrans, and each of ntrans
@@ -32,7 +33,7 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+%     opts.chkbnds: [DEPRECATED] has no effect
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).

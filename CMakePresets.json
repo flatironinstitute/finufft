@@ -31,7 +31,22 @@
             "generator": "Ninja Multi-Config",
             "cacheVariables": {
                 "FINUFFT_BUILD_TESTS": "ON",
-                "FINUFFT_BUILD_EXAMPLES": "ON"
+                "FINUFFT_BUILD_EXAMPLES": "ON",
+                "FINUFFT_BUILD_DEVEL": "ON"
+            }
+        },
+        {
+            "name": "benchmark",
+            "binaryDir": "build/benchmark",
+            "displayName": "Benchmark",
+            "description": "Benchmark release configuration (ninja)",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "FINUFFT_BUILD_TESTS": "ON",
+                "FINUFFT_BUILD_EXAMPLES": "ON",
+                "FINUFFT_FFTW_SUFFIX": "",
+                "FINUFFT_USE_OPENMP": "OFF"
             }
         },
         {
@@ -104,7 +119,7 @@
         {
             "name": "dev",
             "configurePreset": "dev",
-            "configuration": "Debug"
+            "configuration": "RelWithDebInfo"
         },
         {
             "name": "ninja-multi",
