@@ -1,0 +1,986 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.20.1: https://docutils.sourceforge.io/" />
+<title>Example usage from C++ and C</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger (goodger@python.org)
+:Id: $Id: html4css1.css 8954 2022-01-20 10:10:25Z milde $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+
+See https://docutils.sourceforge.io/docs/howto/html-stylesheets.html for how to
+customize this style sheet.
+*/
+
+/* used to remove borders from tables and images */
+.borderless, table.borderless td, table.borderless th {
+  border: 0 }
+
+table.borderless td, table.borderless th {
+  /* Override padding for "table.docutils td" with "! important".
+     The right padding separates the table cells. */
+  padding: 0 0.5em 0 0 ! important }
+
+.first {
+  /* Override more specific margin styles with "! important". */
+  margin-top: 0 ! important }
+
+.last, .with-subtitle {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+.subscript {
+  vertical-align: sub;
+  font-size: smaller }
+
+.superscript {
+  vertical-align: super;
+  font-size: smaller }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+object[type="image/svg+xml"], object[type="application/x-shockwave-flash"] {
+  overflow: hidden;
+}
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title, .code .error {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em ;
+  margin-right: 2em }
+
+div.footer, div.header {
+  clear: both;
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin: 0 0 0.5em 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.section-subtitle, h2.section-subtitle, h3.section-subtitle,
+h4.section-subtitle, h5.section-subtitle, h6.section-subtitle {
+  margin-top: 0.4em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+img.align-left, .figure.align-left, object.align-left, table.align-left {
+  clear: left ;
+  float: left ;
+  margin-right: 1em }
+
+img.align-right, .figure.align-right, object.align-right, table.align-right {
+  clear: right ;
+  float: right ;
+  margin-left: 1em }
+
+img.align-center, .figure.align-center, object.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+table.align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.align-left {
+  text-align: left }
+
+.align-center {
+  clear: both ;
+  text-align: center }
+
+.align-right {
+  text-align: right }
+
+/* reset inner alignment in figures */
+div.align-right {
+  text-align: inherit }
+
+/* div.align-center * { */
+/*   text-align: left } */
+
+.align-top    {
+  vertical-align: top }
+
+.align-middle {
+  vertical-align: middle }
+
+.align-bottom {
+  vertical-align: bottom }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font: inherit }
+
+pre.literal-block, pre.doctest-block, pre.math, pre.code {
+  margin-left: 2em ;
+  margin-right: 2em }
+
+pre.code .ln { color: grey; } /* line numbers */
+pre.code, code { background-color: #eeeeee }
+pre.code .comment, code .comment { color: #5C6576 }
+pre.code .keyword, code .keyword { color: #3B0D06; font-weight: bold }
+pre.code .literal.string, code .literal.string { color: #0C5404 }
+pre.code .name.builtin, code .name.builtin { color: #352B84 }
+pre.code .deleted, code .deleted { background-color: #DEB0A1}
+pre.code .inserted, code .inserted { background-color: #A3D289}
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+span.section-subtitle {
+  /* font-size relative to parent (h1..h6 element) */
+  font-size: 80% }
+
+table.citation {
+  border-left: solid 1px gray;
+  margin-left: 1px }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid 1px black;
+  margin-left: 1px }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+table.docutils th.field-name, table.docinfo th.docinfo-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap ;
+  padding-left: 0 }
+
+/* "booktabs" style (no vertical lines) */
+table.docutils.booktabs {
+  border: 0px;
+  border-top: 2px solid;
+  border-bottom: 2px solid;
+  border-collapse: collapse;
+}
+table.docutils.booktabs * {
+  border: 0px;
+}
+table.docutils.booktabs th {
+  border-bottom: thin solid;
+  text-align: left;
+}
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+ul.auto-toc {
+  list-style-type: none }
+
+</style>
+<style type="text/css">
+
+/*
+*   math2html: convert LaTeX equations to HTML output.
+*
+*   Copyright (C) 2009,2010 Alex Fernández
+*                 2021      Günter Milde
+*
+*   Released under the terms of the `2-Clause BSD license'_, in short:
+*   Copying and distribution of this file, with or without modification,
+*   are permitted in any medium without royalty provided the copyright
+*   notice and this notice are preserved.
+*   This file is offered as-is, without any warranty.
+*
+* .. _2-Clause BSD license: http://www.spdx.org/licenses/BSD-2-Clause
+*
+*   Based on eLyXer: convert LyX source files to HTML output.
+*   http://elyxer.nongnu.org/
+*
+*
+* CSS file for LaTeX formulas.
+*
+* References: http://www.zipcon.net/~swhite/docs/math/math.html
+*             http://www.cs.tut.fi/~jkorpela/math/
+*/
+
+/* Formulas */
+.formula {
+	text-align: center;
+	margin: 1.2em 0;
+	line-height: 1.4;
+}
+span.formula {
+	white-space: nowrap;
+}
+div.formula {
+	padding: 0.5ex;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* Basic features */
+a.eqnumber {
+	display: inline-block;
+	float: right;
+	clear: right;
+	font-weight: bold;
+}
+span.unknown {
+	color: #800000;
+}
+span.ignored, span.arraydef {
+	display: none;
+}
+.phantom {
+	visibility: hidden;
+}
+.formula i {
+	letter-spacing: 0.1ex;
+}
+
+/* Alignment */
+.align-left, .align-l {
+	text-align: left;
+}
+.align-right, .align-r {
+	text-align: right;
+}
+.align-center, .align-c {
+	text-align: center;
+}
+
+/* Structures */
+span.hspace {
+	display: inline-block;
+}
+span.overline, span.bar {
+	text-decoration: overline;
+}
+.fraction, .fullfraction, .textfraction {
+	display: inline-block;
+	vertical-align: middle;
+	text-align: center;
+}
+span.formula .fraction,
+.textfraction,
+span.smallmatrix {
+	font-size: 80%;
+	line-height: 1;
+}
+span.numerator {
+	display: block;
+	line-height: 1;
+}
+span.denominator {
+	display: block;
+	line-height: 1;
+	padding: 0ex;
+	border-top: thin solid;
+}
+.formula sub, .formula sup {
+	font-size: 80%;
+}
+sup.numerator, sup.unit {
+	vertical-align: 80%;
+}
+sub.denominator, sub.unit {
+	vertical-align: -20%;
+}
+span.smallsymbol {
+	font-size: 75%;
+	line-height: 75%;
+}
+span.boldsymbol {
+	font-weight: bold;
+}
+span.sqrt {
+	display: inline-block;
+	vertical-align: middle;
+	padding: 0.1ex;
+}
+sup.root {
+	position: relative;
+	left: 1.4ex;
+}
+span.radical {
+	display: inline-block;
+	padding: 0ex;
+	/* font-size: 160%; for DejaVu, not required with STIX */
+	line-height: 100%;
+	vertical-align: top;
+	vertical-align: middle;
+}
+
+span.root {
+	display: inline-block;
+	border-top: thin solid;
+	padding: 0ex;
+	vertical-align: middle;
+}
+div.formula .bigoperator,
+.displaystyle .bigoperator,
+.displaystyle .bigoperator {
+	line-height: 120%;
+	font-size: 140%;
+	padding-right: 0.2ex;
+}
+span.fraction .bigoperator,
+span.scriptstyle .bigoperator {
+	line-height: inherit;
+	font-size: inherit;
+	padding-right: 0;
+}
+span.bigdelimiter {
+	display: inline-block;
+}
+span.bigdelimiter.size1 {
+	transform: scale(1, 1.2);
+	line-height: 1.2;
+}
+span.bigdelimiter.size2 {
+	transform: scale(1, 1.62);
+	line-height: 1.62%;
+
+}
+span.bigdelimiter.size3 {
+	transform: scale(1, 2.05);
+	line-height: 2.05%;
+}
+span.bigdelimiter.size4 {
+	transform: scale(1, 2.47);
+	line-height: 2.47%;
+}
+/* vertically stacked sub and superscript */
+span.scripts {
+	display: inline-table;
+	vertical-align: middle;
+	padding-right: 0.2ex;
+}
+.script {
+	display: table-row;
+	text-align: left;
+	line-height: 150%;
+}
+span.limits {
+	display: inline-table;
+	vertical-align: middle;
+}
+.limit {
+	display: table-row;
+	line-height: 99%;
+}
+sup.limit, sub.limit {
+	line-height: 100%;
+}
+span.embellished,
+span.embellished > .base {
+	display: inline-block;
+}
+span.embellished > sup,
+span.embellished > sub {
+	display: inline-block;
+	font-size: 100%;
+	position: relative;
+	bottom: 0.3em;
+	width: 0px;
+}
+span.embellished > sub {
+	top: 0.4em;
+}
+
+/* Environments */
+span.array, span.bracketcases, span.binomial, span.environment {
+	display: inline-table;
+	text-align: center;
+	vertical-align: middle;
+}
+span.arrayrow, span.binomrow {
+	display: table-row;
+	padding: 0;
+	border: 0;
+}
+span.arraycell, span.bracket, span.case, span.binomcell, span.environmentcell {
+	display: table-cell;
+	padding: 0ex 0.2ex;
+	line-height: 1; /* 99%; */
+	border: 0ex;
+}
+.environment.align > .arrayrow > .arraycell.align-l {
+	padding-right: 2em;
+}
+
+/* Inline binomials */
+span.binom {
+	display: inline-block;
+	vertical-align: middle;
+	text-align: center;
+	font-size: 80%;
+}
+span.binomstack {
+	display: block;
+	padding: 0em;
+}
+
+/* Over- and underbraces */
+span.overbrace {
+	border-top: 2pt solid;
+}
+span.underbrace {
+	border-bottom: 2pt solid;
+}
+
+/* Stackrel */
+span.stackrel {
+	display: inline-block;
+	text-align: center;
+}
+span.upstackrel {
+	display: block;
+	padding: 0em;
+	font-size: 80%;
+	line-height: 64%;
+	position: relative;
+	top: 0.15em;
+
+}
+span.downstackrel {
+	display: block;
+	vertical-align: bottom;
+	padding: 0em;
+}
+
+/* Fonts */
+.formula {
+	font-family: STIX, "DejaVu Serif", "DejaVu Math TeX Gyre", serif;
+}
+span.radical,   /* ensure correct size of square-root sign */
+span.integral { /* upright integral signs for better alignment of indices */
+	font-family: "STIXIntegralsUp", STIX;
+	/* font-size: 115%; match apparent size with DejaVu */
+}
+span.bracket {
+  /* some "STIX" and "DejaVu Math TeX Gyre" bracket pieces don't fit */
+	font-family: "DejaVu Serif", serif;
+}
+span.mathsf, span.textsf {
+	font-family: sans-serif;
+}
+span.mathrm, span.textrm {
+	font-family: STIX, "DejaVu Serif", "DejaVu Math TeX Gyre", serif;
+}
+span.mathtt, span.texttt {
+	font-family: monospace;
+}
+span.text, span.textnormal,
+span.mathsf, span.mathtt, span.mathrm {
+	font-style: normal;
+}
+span.fraktur {
+	font-family: "Lucida Blackletter", eufm10, blackletter;
+}
+span.blackboard {
+	font-family: Blackboard, msbm10, serif;
+}
+span.scriptfont {
+	font-family: "Monotype Corsiva", "Apple Chancery", "URW Chancery L", cursive;
+	font-style: italic;
+}
+span.mathscr {
+  font-family: MathJax_Script, rsfs10,  cursive;
+  font-style: italic;
+}
+span.textsc {
+	font-variant: small-caps;
+}
+span.textsl {
+	font-style: oblique;
+}
+
+/* Colors */
+span.colorbox {
+	display: inline-block;
+	padding: 5px;
+}
+span.fbox {
+	display: inline-block;
+	border: thin solid black;
+	padding: 2px;
+}
+span.boxed, span.framebox {
+	display: inline-block;
+	border: thin solid black;
+	padding: 5px;
+}
+
+</style>
+</head>
+<body>
+<div class="document" id="example-usage-from-c-and-c">
+<span id="cex"></span>
+<h1 class="title">Example usage from C++ and C</h1>
+
+<div class="section" id="quick-start-example-in-c">
+<span id="quick"></span><h1>Quick-start example in C++</h1>
+<p>Here's how to perform a 1D type-1 transform
+in double precision from C++, using STL complex vectors.
+First include our header, and some others needed for the demo:</p>
+<pre class="code C++ literal-block">
+<span class="comment preproc">#include</span><span class="whitespace"> </span><span class="comment preprocfile">&quot;finufft.h&quot;</span><span class="comment preproc">
+#include</span><span class="whitespace"> </span><span class="comment preprocfile">&lt;vector&gt;</span><span class="comment preproc">
+#include</span><span class="whitespace"> </span><span class="comment preprocfile">&lt;complex&gt;</span><span class="comment preproc">
+#include</span><span class="whitespace"> </span><span class="comment preprocfile">&lt;stdlib.h&gt;</span>
+</pre>
+<p>We need nonuniform points <tt class="docutils literal">x</tt> and complex strengths <tt class="docutils literal">c</tt>. Let's create random ones for now:</p>
+<pre class="code C++ literal-block">
+<span class="keyword type">int</span><span class="whitespace"> </span><span class="name">M</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number float">1e7</span><span class="punctuation">;</span><span class="whitespace">                                   </span><span class="comment single">// number of nonuniform points
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">x</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">c</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">I</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="punctuation">(</span><span class="literal number float">0.0</span><span class="punctuation">,</span><span class="literal number float">1.0</span><span class="punctuation">);</span><span class="whitespace">  </span><span class="comment single">// the imaginary unit
+</span><span class="keyword">for</span><span class="whitespace"> </span><span class="punctuation">(</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">=</span><span class="literal number integer">0</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">&lt;</span><span class="name">M</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="operator">++</span><span class="name">j</span><span class="punctuation">)</span><span class="whitespace"> </span><span class="punctuation">{</span><span class="whitespace">
+  </span><span class="name">x</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">M_PI</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace"> </span><span class="comment single">// uniform random in [-pi,pi)
+</span><span class="whitespace">  </span><span class="name">c</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="whitespace"> </span><span class="operator">+</span><span class="whitespace"> </span><span class="name">I</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="punctuation">}</span>
+</pre>
+<p>With <tt class="docutils literal">N</tt> as the desired number of Fourier mode coefficients,
+allocate their output array:</p>
+<pre class="code C++ literal-block">
+<span class="keyword type">int</span><span class="whitespace"> </span><span class="name">N</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number float">1e6</span><span class="punctuation">;</span><span class="whitespace">                                   </span><span class="comment single">// number of output modes
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">F</span><span class="punctuation">(</span><span class="name">N</span><span class="punctuation">);</span>
+</pre>
+<p>Now do the NUFFT (with default options, indicated by the <tt class="docutils literal">NULL</tt> in the following call). Since the interface is
+C-compatible, we pass pointers to the start of the arrays (rather than
+C++-style vector objects), and also pass <tt class="docutils literal">N</tt>:</p>
+<pre class="code C++ literal-block">
+<span class="keyword type">int</span><span class="whitespace"> </span><span class="name">ier</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">finufft1d1</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">,</span><span class="operator">&amp;</span><span class="name">x</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="operator">&amp;</span><span class="name">c</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="operator">+</span><span class="literal number integer">1</span><span class="punctuation">,</span><span class="literal number float">1e-9</span><span class="punctuation">,</span><span class="name">N</span><span class="punctuation">,</span><span class="operator">&amp;</span><span class="name">F</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="name builtin">NULL</span><span class="punctuation">);</span>
+</pre>
+<p>This fills <tt class="docutils literal">F</tt> with the output modes, in increasing ordering
+with the integer frequency indices from <tt class="docutils literal"><span class="pre">-N/2</span></tt> up to <tt class="docutils literal"><span class="pre">N/2-1</span></tt>
+(since <tt class="docutils literal">N</tt> is even; for odd is would be <tt class="docutils literal"><span class="pre">-(N-1)/2</span></tt> up to <tt class="docutils literal"><span class="pre">(N-1)/2</span></tt>).
+The transform (<span class="formula">10<sup>7</sup></span> points to <span class="formula">10<sup>6</sup></span> modes) takes 0.4 seconds on a laptop.
+The index is thus offset by <tt class="docutils literal">N/2</tt> (this is integer division in the odd case), so that frequency <tt class="docutils literal">k</tt> is output in
+<tt class="docutils literal">F[N/2 + k]</tt>.
+Here <tt class="docutils literal">+1</tt> sets the sign of <span class="formula"><i>i</i></span> in the exponentials
+(see <a href="#system-message-1"><span class="problematic" id="problematic-1">:ref:`definitions &lt;math&gt;`</span></a>),
+<tt class="docutils literal"><span class="pre">1e-9</span></tt> requests 9-digit relative tolerance, and <tt class="docutils literal">ier</tt> is a status output
+which is zero if successful (otherwise see <a href="#system-message-2"><span class="problematic" id="problematic-2">:ref:`error codes &lt;error&gt;`</span></a>).</p>
+<div class="system-message" id="system-message-1">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/mnt/home/mbarbone/repos/finufft/docs/cex.rst</tt>, line 51); <em><a href="#problematic-1">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-2">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/mnt/home/mbarbone/repos/finufft/docs/cex.rst</tt>, line 51); <em><a href="#problematic-2">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>FINUFFT works with a periodicity of <span class="formula">2<i>π</i></span> for type 1 and 2 transforms; see <a href="#system-message-3"><span class="problematic" id="problematic-3">:ref:`definitions &lt;math&gt;`</span></a>. For example, nonuniform points <span class="formula"><i>x</i> = ±<i>π</i></span> are equivalent. Points must lie in the input domain <span class="formula">[ − 3<i>π</i>, 3<i>π</i>)</span>, which allows the user to assume a convenient periodic domain such as  <span class="formula">[ − <i>π</i>, <i>π</i>)</span> or <span class="formula">[0, 2<i>π</i>)</span>. To handle points outside of <span class="formula">[ − 3<i>π</i>, 3<i>π</i>)</span> the user must fold them back into this domain before passing to FINUFFT. FINUFFT does not handle this case, for speed reasons. To use a different periodicity, linearly rescale your coordinates.</p>
+<div class="last system-message" id="system-message-3">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/mnt/home/mbarbone/repos/finufft/docs/cex.rst</tt>, line 64); <em><a href="#problematic-3">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+</div>
+<p>If instead you want to change some options, first
+put default values in a <tt class="docutils literal">finufft_opts</tt> struct,
+make your changes, then pass the pointer to FINUFFT:</p>
+<pre class="code C++ literal-block">
+<span class="name">finufft_opts</span><span class="operator">*</span><span class="whitespace"> </span><span class="name">opts</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="keyword">new</span><span class="whitespace"> </span><span class="name">finufft_opts</span><span class="punctuation">;</span><span class="whitespace">
+</span><span class="name">finufft_default_opts</span><span class="punctuation">(</span><span class="name">opts</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="name">opts</span><span class="operator">-&gt;</span><span class="name">debug</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number integer">1</span><span class="punctuation">;</span><span class="whitespace">                                </span><span class="comment single">// prints timing/debug info
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">ier</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">finufft1d1</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">,</span><span class="operator">&amp;</span><span class="name">x</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="operator">&amp;</span><span class="name">c</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="operator">+</span><span class="literal number integer">1</span><span class="punctuation">,</span><span class="name">tol</span><span class="punctuation">,</span><span class="name">N</span><span class="punctuation">,</span><span class="operator">&amp;</span><span class="name">F</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="name">opts</span><span class="punctuation">);</span>
+</pre>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<ul class="last simple">
+<li>Without the <tt class="docutils literal">finufft_default_opts</tt> call, options may take on arbitrary values which may cause a crash.</li>
+<li>Note that, as of version 2.0, <tt class="docutils literal">opts</tt> is passed as a pointer in both places.</li>
+</ul>
+</div>
+<p>See <tt class="docutils literal">examples/simple1d1.cpp</tt> for a simple full working demo of the above, including a test of the math. If you instead use single-precision arrays,
+replace the tag <tt class="docutils literal">finufft</tt> by <tt class="docutils literal">finufftf</tt> in each command; see <tt class="docutils literal">examples/simple1d1f.cpp</tt>.</p>
+<p>From the <tt class="docutils literal">examples/</tt> directory, to compile on a linux/GCC system, linking to the static library, use eg:</p>
+<pre class="literal-block">
+g++ simple1d1.cpp -o simple1d1 -I../include ../lib-static/libfinufft.a -lfftw3_omp -lfftw3
+</pre>
+<p>Executing <tt class="docutils literal">./simple1d1</tt> should now work. Better is instead to link to the dynamic shared (<tt class="docutils literal">.so</tt>) library, via eg:</p>
+<pre class="literal-block">
+g++ simple1d1.cpp -o simple1d1 -I../include -Wl,-rpath,$FINUFFT/lib/ -lfinufft
+</pre>
+<p>where <tt class="docutils literal">$FINUFFT</tt> must be replaced by (or be an environment variable set to) the absolute install path for this repository.
+Notice how <tt class="docutils literal">rpath</tt> was used to make an executable that may be called from, or moved to, anywhere.
+The <tt class="docutils literal">examples</tt> and <tt class="docutils literal">test</tt> directories are good places to see further
+usage examples. The documentation for all 18 simple interfaces,
+and the more flexible guru interface, is further down this page.</p>
+</div>
+<div class="section" id="quick-start-example-in-c-1">
+<h1>Quick-start example in C</h1>
+<p>The FINUFFT C++ interface is intentionally also C-compatible, for simplity.
+Thus, to use from C, the above example only needs to replace the C++
+<tt class="docutils literal">vector</tt> with C-style array creation. Using C99 style, the
+above code, with options setting, becomes:</p>
+<pre class="code C literal-block">
+<span class="comment preproc">#include</span><span class="whitespace"> </span><span class="comment preprocfile">&lt;finufft.h&gt;</span><span class="comment preproc">
+#include</span><span class="whitespace"> </span><span class="comment preprocfile">&lt;stdlib.h&gt;</span><span class="comment preproc">
+#include</span><span class="whitespace"> </span><span class="comment preprocfile">&lt;complex.h&gt;</span><span class="comment preproc">
+</span><span class="whitespace">
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">M</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number float">1e7</span><span class="punctuation">;</span><span class="whitespace">            </span><span class="comment single">// number of nonuniform points
+</span><span class="keyword type">double</span><span class="operator">*</span><span class="whitespace"> </span><span class="name">x</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="punctuation">(</span><span class="keyword type">double</span><span class="whitespace"> </span><span class="operator">*</span><span class="punctuation">)</span><span class="name">malloc</span><span class="punctuation">(</span><span class="keyword">sizeof</span><span class="punctuation">(</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="operator">*</span><span class="name">M</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="keyword type">double</span><span class="whitespace"> </span><span class="keyword">complex</span><span class="operator">*</span><span class="whitespace"> </span><span class="name">c</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="punctuation">(</span><span class="keyword type">double</span><span class="whitespace"> </span><span class="keyword">complex</span><span class="operator">*</span><span class="punctuation">)</span><span class="name">malloc</span><span class="punctuation">(</span><span class="keyword">sizeof</span><span class="punctuation">(</span><span class="keyword type">double</span><span class="whitespace"> </span><span class="keyword">complex</span><span class="punctuation">)</span><span class="operator">*</span><span class="name">M</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="keyword">for</span><span class="whitespace"> </span><span class="punctuation">(</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">=</span><span class="literal number integer">0</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">&lt;</span><span class="name">M</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="operator">++</span><span class="name">j</span><span class="punctuation">)</span><span class="whitespace"> </span><span class="punctuation">{</span><span class="whitespace">
+  </span><span class="name">x</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">M_PI</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace">  </span><span class="comment single">// uniform random in [-pi,pi)
+</span><span class="whitespace">  </span><span class="name">c</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="whitespace"> </span><span class="operator">+</span><span class="whitespace"> </span><span class="name">I</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="punctuation">}</span><span class="whitespace">
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">N</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number float">1e6</span><span class="punctuation">;</span><span class="whitespace">            </span><span class="comment single">// number of modes
+</span><span class="keyword type">double</span><span class="whitespace"> </span><span class="keyword">complex</span><span class="operator">*</span><span class="whitespace"> </span><span class="name">F</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="punctuation">(</span><span class="keyword type">double</span><span class="whitespace"> </span><span class="keyword">complex</span><span class="operator">*</span><span class="punctuation">)</span><span class="name">malloc</span><span class="punctuation">(</span><span class="keyword">sizeof</span><span class="punctuation">(</span><span class="keyword type">double</span><span class="whitespace"> </span><span class="keyword">complex</span><span class="punctuation">)</span><span class="operator">*</span><span class="name">N</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="name">finufft_opts</span><span class="whitespace"> </span><span class="name">opts</span><span class="punctuation">;</span><span class="whitespace">                      </span><span class="comment single">// make an opts struct
+</span><span class="name">finufft_default_opts</span><span class="punctuation">(</span><span class="operator">&amp;</span><span class="name">opts</span><span class="punctuation">);</span><span class="whitespace">          </span><span class="comment single">// set default opts (must do this)
+</span><span class="name">opts</span><span class="punctuation">.</span><span class="name">debug</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number integer">2</span><span class="punctuation">;</span><span class="whitespace">                       </span><span class="comment single">// more debug/timing to stdout
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">ier</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">finufft1d1</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">,</span><span class="name">x</span><span class="punctuation">,</span><span class="name">c</span><span class="punctuation">,</span><span class="operator">+</span><span class="literal number integer">1</span><span class="punctuation">,</span><span class="literal number float">1e-9</span><span class="punctuation">,</span><span class="name">N</span><span class="punctuation">,</span><span class="name">F</span><span class="punctuation">,</span><span class="operator">&amp;</span><span class="name">opts</span><span class="punctuation">);</span><span class="whitespace">
+
+</span><span class="comment single">// (now do something with F here!...)
+</span><span class="whitespace">
+</span><span class="name">free</span><span class="punctuation">(</span><span class="name">x</span><span class="punctuation">);</span><span class="whitespace"> </span><span class="name">free</span><span class="punctuation">(</span><span class="name">c</span><span class="punctuation">);</span><span class="whitespace"> </span><span class="name">free</span><span class="punctuation">(</span><span class="name">F</span><span class="punctuation">);</span>
+</pre>
+<p>See <tt class="docutils literal">examples/simple1d1c.c</tt> and <tt class="docutils literal">examples/simple1d1cf.c</tt> for
+double- and single-precision C examples, including the math check to insure
+the correct indexing of output modes.</p>
+</div>
+<div class="section" id="d-example-in-c">
+<h1>2D example in C++</h1>
+<p>We assume Fortran-style contiguous multidimensional arrays, as opposed
+to C-style arrays of pointers; this allows the widest compatibility with other
+languages. Assuming the same headers as above, we first create points
+<span class="formula">(<i>x</i><sub><i>j</i></sub>, <i>y</i><sub><i>j</i></sub>)</span> in the square <span class="formula">[ − <i>π</i>, <i>π</i>)<sup>2</sup></span>, and strengths as before:</p>
+<pre class="code C++ literal-block">
+<span class="keyword type">int</span><span class="whitespace"> </span><span class="name">M</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number float">1e7</span><span class="punctuation">;</span><span class="whitespace">                                   </span><span class="comment single">// number of nonuniform points
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">x</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">),</span><span class="whitespace"> </span><span class="name">y</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">c</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="keyword">for</span><span class="whitespace"> </span><span class="punctuation">(</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">=</span><span class="literal number integer">0</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">&lt;</span><span class="name">M</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="operator">++</span><span class="name">j</span><span class="punctuation">)</span><span class="whitespace"> </span><span class="punctuation">{</span><span class="whitespace">
+  </span><span class="name">x</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">M_PI</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace">
+  </span><span class="name">y</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">M_PI</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace">
+  </span><span class="name">c</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="whitespace"> </span><span class="operator">+</span><span class="whitespace"> </span><span class="name">I</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="punctuation">}</span>
+</pre>
+<p>Let's say we want <tt class="docutils literal">N1=1000</tt> by <tt class="docutils literal">N2=2000</tt> 2D Fourier coefficients.
+We allocate and do the (default options) transform thus:</p>
+<pre class="code C++ literal-block">
+<span class="keyword type">int</span><span class="whitespace"> </span><span class="name">N1</span><span class="operator">=</span><span class="literal number integer">1000</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">N2</span><span class="operator">=</span><span class="literal number integer">2000</span><span class="punctuation">;</span><span class="whitespace">
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">F</span><span class="punctuation">(</span><span class="name">N1</span><span class="operator">*</span><span class="name">N2</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">ier</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">finufft2d1</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">,</span><span class="operator">&amp;</span><span class="name">x</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="operator">&amp;</span><span class="name">y</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="whitespace"> </span><span class="operator">&amp;</span><span class="name">c</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="whitespace"> </span><span class="operator">+</span><span class="literal number integer">1</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="literal number float">1e-6</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">N1</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">N2</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="operator">&amp;</span><span class="name">F</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="whitespace"> </span><span class="name builtin">NULL</span><span class="punctuation">);</span>
+</pre>
+<p>This transform takes 0.6 seconds on a laptop.
+The modes have increasing ordering
+of integer frequency indices from <tt class="docutils literal"><span class="pre">-N1/2</span></tt> up to <tt class="docutils literal"><span class="pre">N1/2-1</span></tt>
+in the fast (<tt class="docutils literal">x</tt>) dimension,
+then indices from <tt class="docutils literal"><span class="pre">-N2/2</span></tt> up to <tt class="docutils literal"><span class="pre">N2/2-1</span></tt> in the slow (<tt class="docutils literal">y</tt>) dimension
+(since both <tt class="docutils literal">N1</tt> and <tt class="docutils literal">N2</tt> are even).
+So, the output frequency <tt class="docutils literal">(k1,k2)</tt> is found in
+<tt class="docutils literal">F[N1/2 + k1 + (N2/2 + <span class="pre">k2)*N1]</span></tt>.</p>
+<p>See <tt class="docutils literal">opts.modeord</tt> in <a href="#system-message-4"><span class="problematic" id="problematic-4">:ref:`Options&lt;opts&gt;`</span></a>
+to instead use FFT-style mode ordering, which
+simply differs by an &quot;fftshift&quot; (as it is commonly called).</p>
+<div class="system-message" id="system-message-4">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/mnt/home/mbarbone/repos/finufft/docs/cex.rst</tt>, line 172); <em><a href="#problematic-4">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>See <tt class="docutils literal">examples/simple2d1.cpp</tt> for an example with a math check, to
+insure that the mode indexing is correctly understood.</p>
+</div>
+<div class="section" id="vectorized-interface-example">
+<h1>Vectorized interface example</h1>
+<p>A common use case is to perform a stack of identical transforms with the
+same size and nonuniform points, but for new strength vectors.
+(Applications include interpolating vector-valued data, or processing
+MRI images collected with a fixed set of k-space sample points.)
+Because it amortizes sorting, FFTW planning, and FFTW plan lookup,
+it can be faster to use a &quot;vectorized&quot;
+interface (which does the entire stack in one call)
+than to repeatedly call the above &quot;simple&quot; interfaces.
+This is especially true for many small problems.
+Here we show how to do a stack of <tt class="docutils literal">ntrans=10</tt> 1D type 1 NUFFT transforms, in C++,
+assuming the same headers as in the first example above.
+The strength data vectors are taken to be contiguous (the whole
+first vector, followed by the second, etc, rather than interleaved.)
+Ie, viewed as a matrix in Fortran storage, each column is a strength vector.</p>
+<pre class="code C++ literal-block">
+<span class="keyword type">int</span><span class="whitespace"> </span><span class="name">ntrans</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number integer">10</span><span class="punctuation">;</span><span class="whitespace">                               </span><span class="comment single">// how many transforms
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">M</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number float">1e7</span><span class="punctuation">;</span><span class="whitespace">                                   </span><span class="comment single">// number of nonuniform points
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">x</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">c</span><span class="punctuation">(</span><span class="name">M</span><span class="operator">*</span><span class="name">ntrans</span><span class="punctuation">);</span><span class="whitespace">          </span><span class="comment single">// ntrans strength vectors
+</span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">I</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="punctuation">(</span><span class="literal number float">0.0</span><span class="punctuation">,</span><span class="literal number float">1.0</span><span class="punctuation">);</span><span class="whitespace">  </span><span class="comment single">// the imaginary unit
+</span><span class="keyword">for</span><span class="whitespace"> </span><span class="punctuation">(</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">=</span><span class="literal number integer">0</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">&lt;</span><span class="name">M</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="operator">++</span><span class="name">j</span><span class="punctuation">)</span><span class="whitespace">
+  </span><span class="name">x</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">M_PI</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="keyword">for</span><span class="whitespace"> </span><span class="punctuation">(</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">=</span><span class="literal number integer">0</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="name">j</span><span class="operator">&lt;</span><span class="name">M</span><span class="operator">*</span><span class="name">ntrans</span><span class="punctuation">;</span><span class="whitespace"> </span><span class="operator">++</span><span class="name">j</span><span class="punctuation">)</span><span class="whitespace">                 </span><span class="comment single">// fill all ntrans vectors...
+</span><span class="whitespace">  </span><span class="name">c</span><span class="punctuation">[</span><span class="name">j</span><span class="punctuation">]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="whitespace"> </span><span class="operator">+</span><span class="whitespace"> </span><span class="name">I</span><span class="operator">*</span><span class="punctuation">(</span><span class="literal number integer">2</span><span class="operator">*</span><span class="punctuation">((</span><span class="keyword type">double</span><span class="punctuation">)</span><span class="name">rand</span><span class="punctuation">()</span><span class="operator">/</span><span class="name">RAND_MAX</span><span class="punctuation">)</span><span class="literal number integer">-1</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">N</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="literal number float">1e6</span><span class="punctuation">;</span><span class="whitespace">                                   </span><span class="comment single">// number of output modes
+</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">complex</span><span class="operator">&lt;</span><span class="keyword type">double</span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="operator">&gt;</span><span class="whitespace"> </span><span class="name">F</span><span class="punctuation">(</span><span class="name">N</span><span class="operator">*</span><span class="name">trans</span><span class="punctuation">);</span><span class="whitespace">           </span><span class="comment single">// ntrans output vectors
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">ier</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">finufft1d1</span><span class="punctuation">(</span><span class="name">M</span><span class="punctuation">,</span><span class="operator">&amp;</span><span class="name">x</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="operator">&amp;</span><span class="name">c</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="operator">+</span><span class="literal number integer">1</span><span class="punctuation">,</span><span class="literal number float">1e-9</span><span class="punctuation">,</span><span class="name">N</span><span class="punctuation">,</span><span class="operator">&amp;</span><span class="name">F</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="name builtin">NULL</span><span class="punctuation">);</span><span class="whitespace">    </span><span class="comment single">// default opts</span>
+</pre>
+<p>This takes 2.6 seconds on a laptop, around 1.4x faster than
+making 10 separate &quot;simple&quot; calls.
+The frequency index <tt class="docutils literal">k</tt> in transform number <tt class="docutils literal">t</tt> (zero-indexing the transforms) is in <tt class="docutils literal">F[k + (int)N/2 + N*t]</tt>.</p>
+<p>See <tt class="docutils literal">examples/many1d1.cpp</tt> and <tt class="docutils literal"><span class="pre">test/finufft?dmany_test.cpp</span></tt>
+for more examples.</p>
+</div>
+<div class="section" id="guru-interface-examples">
+<h1>Guru interface examples</h1>
+<p>If you want more flexibility than the above, use the &quot;guru&quot; interface:
+this is similar to that of FFTW3, and to the main interface of
+<a class="reference external" href="https://www-user.tu-chemnitz.de/~potts/nfft/">NFFT3</a>.
+It lets you change the nonuniform points while keeping the
+same pointer to an FFTW plan for a particular number of stacked transforms
+with a certain number of modes.
+This avoids the overhead (typically 0.1 ms per thread) of FFTW checking for
+previous wisdom which would be significant when doing many small transforms.
+You may also send in a new
+set of stacked strength data (for type 1 and 3, or coefficients for type 2),
+reusing the existing FFTW plan and sorted points.
+Now we redo the above 2D type 1 C++ example with the guru interface.</p>
+<p>One first makes a plan giving transform parameters, but no data:</p>
+<pre class="code C++ literal-block">
+<span class="comment single">// (assume x, y, c are filled, and F allocated, as in the 2D code above...)
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">type</span><span class="operator">=</span><span class="literal number integer">1</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">dim</span><span class="operator">=</span><span class="literal number integer">2</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">ntrans</span><span class="operator">=</span><span class="literal number integer">1</span><span class="punctuation">;</span><span class="whitespace">
+</span><span class="keyword type">int64_t</span><span class="whitespace"> </span><span class="name">Ns</span><span class="punctuation">[]</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="punctuation">{</span><span class="literal number integer">1000</span><span class="punctuation">,</span><span class="literal number integer">2000</span><span class="punctuation">};</span><span class="whitespace">                    </span><span class="comment single">// N1,N2 as 64-bit int array
+// step 1: make a plan...
+</span><span class="name">finufft_plan</span><span class="whitespace"> </span><span class="name">plan</span><span class="punctuation">;</span><span class="whitespace">
+</span><span class="keyword type">int</span><span class="whitespace"> </span><span class="name">ier</span><span class="whitespace"> </span><span class="operator">=</span><span class="whitespace"> </span><span class="name">finufft_makeplan</span><span class="punctuation">(</span><span class="name">type</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">dim</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">Ns</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="operator">+</span><span class="literal number integer">1</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">ntrans</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="literal number float">1e-6</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="operator">&amp;</span><span class="name">plan</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name builtin">NULL</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="comment single">// step 2: send in pointers to M nonuniform points (just x, y in this case)...
+</span><span class="name">finufft_setpts</span><span class="punctuation">(</span><span class="name">plan</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name">M</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="operator">&amp;</span><span class="name">x</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="whitespace"> </span><span class="operator">&amp;</span><span class="name">y</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="whitespace"> </span><span class="name builtin">NULL</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="literal number integer">0</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name builtin">NULL</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name builtin">NULL</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="name builtin">NULL</span><span class="punctuation">);</span><span class="whitespace">
+</span><span class="comment single">// (user should not change x, y nonuniform point arrays here!)
+// step 3: do the planned transform to the c strength data, output to F...
+</span><span class="name">finufft_execute</span><span class="punctuation">(</span><span class="name">plan</span><span class="punctuation">,</span><span class="whitespace"> </span><span class="operator">&amp;</span><span class="name">c</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">],</span><span class="whitespace"> </span><span class="operator">&amp;</span><span class="name">F</span><span class="punctuation">[</span><span class="literal number integer">0</span><span class="punctuation">]);</span><span class="whitespace">
+</span><span class="comment single">// ... you could now send in new points, and/or do transforms with new c data
+// ...
+// step 4: when done, free the memory used by the plan...
+</span><span class="name">finufft_destroy</span><span class="punctuation">(</span><span class="name">plan</span><span class="punctuation">);</span>
+</pre>
+<p>This writes the Fourier coefficients to <tt class="docutils literal">F</tt> just as in the earlier 2D example.
+One difference from the above simple and vectorized interfaces
+is that the <tt class="docutils literal">int64_t</tt> type (aka <tt class="docutils literal">long long int</tt>)
+is needed since the Fourier coefficient dimensions are passed as an array.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">You must not change the nonuniform point arrays (here <tt class="docutils literal">x</tt>, <tt class="docutils literal">y</tt>) between passing them to <tt class="docutils literal">finufft_setpts</tt> and performing <tt class="docutils literal">finufft_execute</tt>. The latter call expects these arrays to be unchanged. We chose this style of interface since it saves RAM and time (by avoiding unnecessary duplication), allowing the largest possible problems to be solved.</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">You must destroy a plan before making a new plan using the same
+plan object, otherwise a memory leak results.</p>
+</div>
+<p>The complete code with a math test is in <tt class="docutils literal">examples/guru2d1.cpp</tt>, and for
+more examples see <tt class="docutils literal"><span class="pre">examples/guru1d1*.c*</span></tt></p>
+<p>Using the guru interface to perform a vectorized transform (multiple 1D type 1
+transforms each with the same nonuniform points) is demonstrated in
+<tt class="docutils literal">examples/gurumany1d1.cpp</tt>. This is similar to the single-command vectorized
+interface, but allowing more control (changing the nonuniform points without
+re-planning the FFT, etc).</p>
+</div>
+<div class="section" id="thread-safety-for-single-threaded-transforms-and-global-state">
+<h1>Thread safety for single-threaded transforms, and global state</h1>
+<p>It is possible to call FINUFFT from within multithreaded code, e.g. in an
+OpenMP parallel block. In this case <tt class="docutils literal">opts.nthreads=1</tt> should be set, otherwise
+a segfault will occur. This is useful if you don't want to synchronize
+independent transforms.
+For demos of this &quot;parallelize over single-threaded transforms&quot; use case, see
+the following, which are built as part of the <tt class="docutils literal">make examples</tt> task:</p>
+<ul class="simple">
+<li><tt class="docutils literal">examples/threadsafe1d1</tt> which runs a 1D type-1 separately on each thread, checking the math, and</li>
+<li><tt class="docutils literal">examples/threadsafe2d2f</tt> which runs a 2D type-2 on each &quot;slice&quot; (in the MRI
+language), parallelized over slices with an OpenMP parallel for loop.
+(In this code there is no math check, just status check.)</li>
+</ul>
+<p>However, if you have multiple transforms with the <em>same</em> nonuniform points for
+each transform, it is probably much faster to use the vectorized interface,
+and do all these transforms with a single such multithreaded FINUFFT call
+(see <tt class="docutils literal">examples/many1d1.cpp</tt> and <tt class="docutils literal">examples/gurumany1d1.cpp</tt>).
+This may be less convenient if you want to leave your slices unsynchronized.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">A design decision of FFTW is to have a global state which stores
+wisdom and settings. Such global state can cause unforeseen effects on other
+routines that also use FFTW. In contrast, FINUFFT uses pointers to plans to store
+its state, and does not have a global state (other than one <tt class="docutils literal">static</tt>
+flag used as a lock on FFTW initialization in the FINUFFT plan
+stage). This means different FINUFFT calls should not affect each other,
+although they may affect other codes that use FFTW via FFTW's global state.</p>
+</div>
+</div>
+</div>
+</body>
+</html>
