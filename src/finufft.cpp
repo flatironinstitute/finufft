@@ -247,14 +247,14 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-  narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi,pi],
+  narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
   for a kernel with x measured in grid-spacings. (See previous routine for
   FT definition).
 
   Inputs:
   nk - number of freqs
   k - frequencies, dual to the kernel's natural argument, ie exp(i.k.z)
-       Note, z is in grid-point units, and k values must be in [-pi,pi] for
+       Note, z is in grid-point units, and k values must be in [-pi, pi) for
        accuracy.
   opts - spreading opts object, needed to eval kernel (must be already set up)
 

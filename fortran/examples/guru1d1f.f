@@ -48,7 +48,7 @@ c     how many modes (not too much since FFTW_MEASURE slow later)
       allocate(cj(M))
       print *,''
       print *,'creating data then run guru interface, default opts...'
-c     create some quasi-random NU pts in [-pi,pi], complex strengths
+c     create some quasi-random NU pts in [-pi, pi), complex strengths
       do j = 1,M
          xj(j) = pi * cos(pi*j/M)
          cj(j) = cmplx( sin((100e0*j)/M), cos(1.0+(50e0*j)/M))

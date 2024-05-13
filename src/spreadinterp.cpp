@@ -184,14 +184,8 @@ int indexSort(BIGINT* sort_indices, BIGINT N1, BIGINT N2, BIGINT N3, BIGINT M,
 
    Inputs:
     M        - number of input NU points.
-<<<<<<< Updated upstream
-    kx,ky,kz - length-M arrays of real coords of NU pts, in the domain
-               for FOLDRESCALE, which includes [0,N1], [0,N2], [0,N3]
-               respectively, if opts.pirange=0; or [-pi,pi] if opts.pirange=1.
-=======
-    kx,ky,kz - length-M arrays of real coords of NU pts. Domain is [-pi, pi],
+    kx,ky,kz - length-M arrays of real coords of NU pts. Domain is [-pi, pi),
                 points outside are folded in.
->>>>>>> Stashed changes
                (only kz used in 1D, only kx and ky used in 2D.)
     N1,N2,N3 - integer sizes of overall box (set N2=N3=1 for 1D, N3=1 for 2D).
                1 = x (fastest), 2 = y (medium), 3 = z (slowest).
@@ -1166,7 +1160,7 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * NU pt of index ret[0], the NU pt of index ret[1],..., NU pt of index ret[M-1]
  * 
  * Inputs: M - number of input NU points.
- *         kx,ky,kz - length-M arrays of real coords of NU pts in [-pi,pi].
+ *         kx,ky,kz - length-M arrays of real coords of NU pts in [-pi, pi).
  *                    Points outside this range are folded into it.
  *         N1,N2,N3 - integer sizes of overall box (N2=N3=1 for 1D, N3=1 for 2D)
  *         bin_size_x,y,z - what binning box size to use in each dimension
