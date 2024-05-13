@@ -591,15 +591,22 @@ int FINUFFT_MAKEPLAN(int type, int dim, BIGINT* n_modes, int iflag,
   p->fftSign = (iflag>=0) ? 1 : -1;         // clean up flag input
 
   // choose overall # threads...
-  int maxnthr = MY_OMP_GET_MAX_THREADS();
-  int nthr = maxnthr;                       // use as many as OMP gives us
+#ifdef _OPENMP
+  int ompmaxnthr = MY_OMP_GET_MAX_THREADS();
+  int nthr = ompmaxnthr;                    // default: use as many as OMP gives us
+  // (the above could be set, or suggested set, to 1 for small enough problems...)
   if (p->opts.nthreads>0) {
-    nthr = min(maxnthr,p->opts.nthreads);   // user override up to max avail
-    if (p->opts.nthreads > maxnthr)         // if no OMP, maxnthr=1
-      fprintf(stderr,"%s warning: user requested %d threads, but only %d threads available; enforcing nthreads=%d.\n",__func__,p->opts.nthreads,maxnthr,nthr);
+    nthr = p->opts.nthreads;                // user override, now without limit
+    if (p->opts.showwarn && (nthr > ompmaxnthr))
+      fprintf(stderr,"%s warning: using opts.nthreads=%d, more than the %d OpenMP claims available; note large nthreads can be slower.\n",__func__,nthr,ompmaxnthr);
   }
+#else
+  int nthr = 1;                             // always 1 thread (avoid segfault)
+  if (p->opts.nthreads>1)
+    fprintf(stderr,"%s warning: opts.nthreads=%d but library is single-threaded; ignoring!\n",__func__,p->opts.nthreads);
+#endif
   p->opts.nthreads = nthr;                  // store actual # thr planned for
-  // (this sets all downstream spread/interp, 1dkernel, and FFT thread counts)
+  // (this sets/limits all downstream spread/interp, 1dkernel, and FFT thread counts...)
   
   // choose batchSize for types 1,2 or 3... (uses int ceil(b/a)=1+(b-1)/a trick)
   if (p->opts.maxbatchsize==0) {            // logic to auto-set best batchsize
