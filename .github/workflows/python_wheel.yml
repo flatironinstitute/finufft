@@ -46,7 +46,8 @@ jobs:
 
     - name: Install gcc and fftw
       run: |
-        brew install gcc fftw
+        brew unlink gcc
+        brew install gcc@13 fftw
         cp make.inc.macosx_gcc-12 make.inc
         echo "FC=gfortran-13" >> make.inc
         echo "CC=gcc-13" >> make.inc
