@@ -39,7 +39,6 @@ int setup_spreader(finufft_spread_opts &opts, T eps, T upsampfac, int kerevalmet
 
     // defaults... (user can change after this function called)
     opts.spread_direction = 1; // user should always set to 1 or 2 as desired
-    opts.pirange = 1;          // user also should always set this
     opts.upsampfac = upsampfac;
 
     // as in FINUFFT v2.0, allow too-small-eps by truncating to eps_mach...

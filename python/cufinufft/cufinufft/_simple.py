@@ -211,7 +211,7 @@ def _set_nufft_doc(f, dim, tp):
     v['pt_spacing'] = ' ' * (len(v['pt_idx']) - 2)
     v['pt_inner'] = ' + '.join('k{0} {1}(j)'.format(i, x) for i, x in zip(dims, pts[:dim]))
     v['pt_constraint'] = ', '.join('-N{0}/2 <= k{0} <= (N{0}-1)/2'.format(i) for i in dims)
-    v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, valid only in [-3pi, 3pi].'.format(x) for x in pts[:dim])
+    v['pts_doc'] = '\n'.join('      {}         (float[M]): nonuniform points, in the interval [-pi, pi), values outside will be folded'.format(x) for x in pts[:dim])
 
     # for example
     v['pts'] = ', '.join(str(x) for x in pts[:dim])

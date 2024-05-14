@@ -41,7 +41,7 @@ program simple1d1
   allocate(cj(M))
   print *,''
   print *,'creating data then run simple interface, default opts...'
-  ! create some quasi-random NU pts in [-pi,pi], complex strengths
+  ! create some quasi-random NU pts in [-pi, pi), complex strengths
   do j = 1,M
      xj(j) = pi * dcos(pi*j/M)
      cj(j) = dcmplx( dsin((100d0*j)/M), dcos(1.0+(50d0*j)/M))

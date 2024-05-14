@@ -56,7 +56,7 @@
 %     opts.floatprec: library precision to use, 'double' (default) or 'single'.
 %     for type 1 and 2 only, the following opts fields are also relevant:
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+%     opts.chkbnds: [DEPRECATED] has no effect
 % Outputs:
 %     plan            finufft_plan object (opaque pointer)
 %
@@ -97,8 +97,10 @@
 %     plan   finufft_plan object
 %
 % Notes:
-%  * For type 1 and 2, the values in xj (and if nonempty, yj and zj) must
-%    lie in the interval [-3pi,3pi). For type 1 they are "sources", but for
+%  * For type 1 and 2, the values in xj (and if nonempty, yj and zj) 
+%    lie in the interval [-pi, pi) values outside will be folded.
+%    Note: folding large values can result in a loss of accuracy.
+%    For type 1 they are "sources", but for
 %    type 2, "targets". In contrast, for type 3 there are no restrictions other
 %    than the resulting size of the internal fine grids.
 %  * s (and t and u) are only relevant for type 3, and may be omitted otherwise

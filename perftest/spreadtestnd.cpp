@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
  * indep setting N 3/27/17. parallel rand() & sort flag 3/28/17
  * timing_flags 6/14/17. debug control 2/8/18. sort=2 opt 3/5/18, pad 4/24/18.
  * ier=1 warning not error, upsampfac 6/14/20.
+ * Barbone, removed pirange 05/09/24.
  */
 {
   int d = 3;            // Cmd line args & their defaults:  default #dims
@@ -110,9 +111,6 @@ int main(int argc, char* argv[])
     printf("error when setting up spreader (ier_set=%d)!\n",ier_set);
     return ier_set;
   }
-  opts.pirange = 0;  // crucial, since below has NU pts on [0,Nd] in each dim
-  opts.chkbnds = 0;  // only for debug, since below code has correct bounds);
-                     // however, 1 can make a >5% slowdown for low-tol 3D.
   opts.debug = debug;   // print more diagnostics?
   opts.sort = sort;
   opts.flags = flags;
@@ -126,7 +124,7 @@ int main(int argc, char* argv[])
   // spread a single source, only for reference accuracy check...
   opts.spread_direction=1;
   d_nonuniform[0] = 1.0; d_nonuniform[1] = 0.0;   // unit strength
-  kx[0] = ky[0] = kz[0] = N/2.0;                  // at center
+  kx[0] = ky[0] = kz[0] = M_PI/2.0;                  // at center
   int ier = spreadinterp(N,N2,N3,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);          // vector::data officially C++11 but works
   if (ier!=0) {
     printf("error when spreading M=1 pt for ref acc check (ier=%d)!\n",ier);
@@ -146,10 +144,10 @@ int main(int argc, char* argv[])
     unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
 #pragma omp for schedule(dynamic,1000000) reduction(+:strre,strim)
     for (BIGINT i=0; i<M; ++i) {
-      kx[i]=rand01r(&se)*N;
+      kx[i]=randm11r(&se)*3*M_PI;
       //kx[i]=2.0*kx[i] - 50.0;      //// to test folding within +-1 period
-      if (d>1) ky[i]=rand01r(&se)*N;      // only fill needed coords
-      if (d>2) kz[i]=rand01r(&se)*N;
+      if (d>1) ky[i]=randm11r(&se)*3*M_PI;      // only fill needed coords
+      if (d>2) kz[i]=randm11r(&se)*3*M_PI;
       d_nonuniform[i*2]=randm11r(&se);
       d_nonuniform[i*2+1]=randm11r(&se);
       strre += d_nonuniform[2*i]; 
@@ -192,13 +190,13 @@ int main(int argc, char* argv[])
   }
 #pragma omp parallel
   {
-    unsigned int s=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
+    unsigned int se=MY_OMP_GET_THREAD_NUM();  // needed for parallel random #s
 #pragma omp for schedule(dynamic,1000000)
       for (BIGINT i=0; i<M; ++i) {       // random target pts
         //kx[i]=10+.9*rand01r(&s)*N;   // or if want to keep ns away from edges
-	kx[i]=rand01r(&s)*N;
-	if (d>1) ky[i]=rand01r(&s)*N;
-	if (d>2) kz[i]=rand01r(&s)*N;
+        kx[i]=randm11r(&se)*3*M_PI;
+        if (d>1) ky[i]=randm11r(&se)*3*M_PI;
+        if (d>2) kz[i]=randm11r(&se)*3*M_PI;
       }
   }
 
@@ -225,6 +223,5 @@ int main(int argc, char* argv[])
   // this is stronger test than for dir=1, since it tests sum of kernel for
   // each NU pt. However, it cannot detect reading
   // from wrong grid pts (they are all unity)
-
   return 0;
 }

@@ -83,7 +83,6 @@ int setup_spreader_for_nufft(finufft_spread_opts &spopts, T eps, cufinufft_opts 
 // options. Report status of setup_spreader.  Barnett 10/30/17
 {
     int ier = setup_spreader(spopts, eps, (T)opts.upsampfac, opts.gpu_kerevalmeth);
-    spopts.pirange = 1; // could allow user control?
     return ier;
 }
 

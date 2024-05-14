@@ -70,12 +70,11 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
         int *d_sortidx = d_plan->sortidx;
         int *d_idxnupts = d_plan->idxnupts;
 
-        int pirange = d_plan->spopts.pirange;
-        int ier;
+            int ier;
         if ((ier = checkCudaErrors(cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream))))
             return ier;
         calc_bin_size_noghost_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(M, nf1, bin_size_x, numbins, d_binsize,
-                                                                             d_kx, d_sortidx, pirange);
+                                                                             d_kx, d_sortidx);
         RETURN_IF_CUDA_ERROR
 
         int n = numbins;
@@ -84,7 +83,7 @@ int cuspread1d_nuptsdriven_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan) {
         thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
         calc_inverse_of_global_sort_idx_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-            M, bin_size_x, numbins, d_binstartpts, d_sortidx, d_kx, d_idxnupts, pirange, nf1);
+            M, bin_size_x, numbins, d_binstartpts, d_sortidx, d_kx, d_idxnupts, nf1);
         RETURN_IF_CUDA_ERROR
     } else {
         int *d_idxnupts = d_plan->idxnupts;
@@ -102,7 +101,6 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
     dim3 blocks;
 
     int ns = d_plan->spopts.nspread; // psi's support in terms of number of cells
-    int pirange = d_plan->spopts.pirange;
     int *d_idxnupts = d_plan->idxnupts;
     T es_c = d_plan->spopts.ES_c;
     T es_beta = d_plan->spopts.ES_beta;
@@ -120,13 +118,13 @@ int cuspread1d_nuptsdriven(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blks
     if (d_plan->opts.gpu_kerevalmeth) {
         for (int t = 0; t < blksize; t++) {
             spread_1d_nuptsdriven<T, 1><<<blocks, threadsPerBlock, 0, stream>>>(
-                d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_idxnupts, pirange);
+                d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
             spread_1d_nuptsdriven<T, 0><<<blocks, threadsPerBlock, 0, stream>>>(
-                d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_idxnupts, pirange);
+                d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     }
@@ -165,12 +163,11 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
 
     int *d_subprob_to_bin = nullptr;
 
-    int pirange = d_plan->spopts.pirange;
 
     if ((ier = checkCudaErrors(cudaMemsetAsync(d_binsize, 0, numbins * sizeof(int), stream))))
         return ier;
     calc_bin_size_noghost_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(M, nf1, bin_size_x, numbins, d_binsize, d_kx,
-                                                                         d_sortidx, pirange);
+                                                                         d_sortidx);
     RETURN_IF_CUDA_ERROR
 
     int n = numbins;
@@ -179,7 +176,7 @@ int cuspread1d_subprob_prop(int nf1, int M, cufinufft_plan_t<T> *d_plan)
     thrust::exclusive_scan(thrust::cuda::par.on(stream), d_ptr, d_ptr + n, d_result);
 
     calc_inverse_of_global_sort_idx_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(
-        M, bin_size_x, numbins, d_binstartpts, d_sortidx, d_kx, d_idxnupts, pirange, nf1);
+        M, bin_size_x, numbins, d_binstartpts, d_sortidx, d_kx, d_idxnupts, nf1);
     RETURN_IF_CUDA_ERROR
 
     calc_subprob_1d<<<(M + 1024 - 1) / 1024, 1024, 0, stream>>>(d_binsize, d_numsubprob, maxsubprobsize, numbins);
@@ -242,7 +239,6 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
     int totalnumsubprob = d_plan->totalnumsubprob;
     int *d_subprob_to_bin = d_plan->subprob_to_bin;
 
-    int pirange = d_plan->spopts.pirange;
 
     T sigma = d_plan->opts.upsampfac;
 
@@ -256,16 +252,14 @@ int cuspread1d_subprob(int nf1, int M, cufinufft_plan_t<T> *d_plan, int blksize)
         for (int t = 0; t < blksize; t++) {
             spread_1d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_binstartpts, d_binsize,
-                bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts,
-                pirange);
+                bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
             spread_1d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_c + t * M, d_fw + t * nf1, M, ns, nf1, es_c, es_beta, sigma, d_binstartpts, d_binsize,
-                bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts,
-                pirange);
+                bin_size_x, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize, numbins, d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     }

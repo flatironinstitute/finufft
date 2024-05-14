@@ -17,14 +17,14 @@ namespace spreadinterp {
 
 template <typename T, int KEREVALMETH>
 __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int ns, int nf1,
-                                      T es_c, T es_beta, T sigma, const int *idxnupts, int pirange) {
+                                      T es_c, T es_beta, T sigma, const int *idxnupts) {
     int xx, ix;
     T ker1[MAX_NSPREAD];
 
     T x_rescaled;
     cuda_complex<T> cnow;
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
-        x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
+        x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
         cnow = c[idxnupts[i]];
         int xstart = ceil(x_rescaled - ns / 2.0);
         int xend = floor(x_rescaled + ns / 2.0);
@@ -48,12 +48,12 @@ __global__ void spread_1d_nuptsdriven(const T *x, const cuda_complex<T> *c, cuda
 // SubProb properties
 template <typename T>
 __global__ void calc_bin_size_noghost_1d(int M, int nf1, int bin_size_x, int nbinx, int *bin_size, const T *x,
-                                         int *sortidx, int pirange) {
+                                         int *sortidx) {
     int binx;
     int oldidx;
     T x_rescaled;
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
-        x_rescaled = RESCALE(x[i], nf1, pirange);
+        x_rescaled = fold_rescale(x[i], nf1);
         binx = floor(x_rescaled / bin_size_x);
         binx = binx >= nbinx ? binx - 1 : binx;
         binx = binx < 0 ? 0 : binx;
@@ -67,11 +67,11 @@ __global__ void calc_bin_size_noghost_1d(int M, int nf1, int bin_size_x, int nbi
 
 template <typename T>
 __global__ void calc_inverse_of_global_sort_idx_1d(int M, int bin_size_x, int nbinx, const int *bin_startpts,
-                                                   const int *sortidx, const T *x, int *index, int pirange, int nf1) {
+                                                   const int *sortidx, const T *x, int *index, int nf1) {
     int binx;
     T x_rescaled;
     for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < M; i += gridDim.x * blockDim.x) {
-        x_rescaled = RESCALE(x[i], nf1, pirange);
+        x_rescaled = fold_rescale(x[i], nf1);
         binx = floor(x_rescaled / bin_size_x);
         binx = binx >= nbinx ? binx - 1 : binx;
         binx = binx < 0 ? 0 : binx;
@@ -84,8 +84,7 @@ template <typename T, int KEREVALMETH>
 __global__ void spread_1d_subprob(const T *x, const cuda_complex<T> *c, cuda_complex<T> *fw, int M, int ns, int nf1,
                                   T es_c, T es_beta, T sigma, const int *binstartpts, const int *bin_size,
                                   int bin_size_x, const int *subprob_to_bin, const int *subprobstartpts,
-                                  const int *numsubprob, int maxsubprobsize, int nbinx, const int *idxnupts,
-                                  int pirange) {
+                                  const int *numsubprob, int maxsubprobsize, int nbinx, const int *idxnupts) {
     extern __shared__ char sharedbuf[];
     cuda_complex<T> *fwshared = (cuda_complex<T> *)sharedbuf;
 
@@ -112,7 +111,7 @@ __global__ void spread_1d_subprob(const T *x, const cuda_complex<T> *c, cuda_com
     cuda_complex<T> cnow;
     for (int i = threadIdx.x; i < nupts; i += blockDim.x) {
         int idx = ptstart + i;
-        x_rescaled = RESCALE(x[idxnupts[idx]], nf1, pirange);
+        x_rescaled = fold_rescale(x[idxnupts[idx]], nf1);
         cnow = c[idxnupts[idx]];
 
         xstart = ceil(x_rescaled - ns / 2.0) - xoffset;
@@ -148,10 +147,10 @@ __global__ void spread_1d_subprob(const T *x, const cuda_complex<T> *c, cuda_com
 /* Kernels for NUptsdriven Method */
 template <typename T, int KEREVALMETH>
 __global__ void interp_1d_nuptsdriven(const T *x, cuda_complex<T> *c, const cuda_complex<T> *fw, int M, int ns, int nf1,
-                                      T es_c, T es_beta, T sigma, const int *idxnupts, int pirange) {
+                                      T es_c, T es_beta, T sigma, const int *idxnupts) {
     T ker1[MAX_NSPREAD];
     for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < M; i += blockDim.x * gridDim.x) {
-        T x_rescaled = RESCALE(x[idxnupts[i]], nf1, pirange);
+        T x_rescaled = fold_rescale(x[idxnupts[i]], nf1);
 
         int xstart = ceil(x_rescaled - ns / 2.0);
         int xend = floor(x_rescaled + ns / 2.0);

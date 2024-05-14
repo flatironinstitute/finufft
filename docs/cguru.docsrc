@@ -63,10 +63,12 @@ int @G_setpts(finufft_plan plan, int64_t M, double* x, double* y, double* z, int
 @r
 
   Notes:
-    * For type 1 and 2, the values in x (and if nonempty, y and z) must
-      lie in the interval [-3pi,3pi). For type 1 they are "sources", but for
-      type 2, "targets". In contrast, for type 3 there are no restrictions on
-      them, or on s, t, u, other than the resulting size of the internal fine
+    * For type 1 and 2, the values in x (and if nonempty, y and z) can be in any
+      interval, they will be folded to [-pi, pi). Note: for large numbers outside
+      this range there might be numerical inaccuracies.
+      For type 1 they are "sources", but for type 2, "targets".
+      In contrast, for type 3 there are no restrictions on them,
+      or on s, t, u, other than the resulting size of the internal fine
       grids fitting in memory.
     * The coordinates pointed to by any used arrays x, y, z, s, t, u must
       not be changed between this call and the below execute call!

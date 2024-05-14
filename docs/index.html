@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.20.1: https://docutils.sourceforge.io/" />
+<title>index.rst</title>
+<style type="text/css">
+
+/*
+:Author: David Goodger (goodger@python.org)
+:Id: $Id: html4css1.css 8954 2022-01-20 10:10:25Z milde $
+:Copyright: This stylesheet has been placed in the public domain.
+
+Default cascading style sheet for the HTML output of Docutils.
+
+See https://docutils.sourceforge.io/docs/howto/html-stylesheets.html for how to
+customize this style sheet.
+*/
+
+/* used to remove borders from tables and images */
+.borderless, table.borderless td, table.borderless th {
+  border: 0 }
+
+table.borderless td, table.borderless th {
+  /* Override padding for "table.docutils td" with "! important".
+     The right padding separates the table cells. */
+  padding: 0 0.5em 0 0 ! important }
+
+.first {
+  /* Override more specific margin styles with "! important". */
+  margin-top: 0 ! important }
+
+.last, .with-subtitle {
+  margin-bottom: 0 ! important }
+
+.hidden {
+  display: none }
+
+.subscript {
+  vertical-align: sub;
+  font-size: smaller }
+
+.superscript {
+  vertical-align: super;
+  font-size: smaller }
+
+a.toc-backref {
+  text-decoration: none ;
+  color: black }
+
+blockquote.epigraph {
+  margin: 2em 5em ; }
+
+dl.docutils dd {
+  margin-bottom: 0.5em }
+
+object[type="image/svg+xml"], object[type="application/x-shockwave-flash"] {
+  overflow: hidden;
+}
+
+/* Uncomment (and remove this text!) to get bold-faced definition list terms
+dl.docutils dt {
+  font-weight: bold }
+*/
+
+div.abstract {
+  margin: 2em 5em }
+
+div.abstract p.topic-title {
+  font-weight: bold ;
+  text-align: center }
+
+div.admonition, div.attention, div.caution, div.danger, div.error,
+div.hint, div.important, div.note, div.tip, div.warning {
+  margin: 2em ;
+  border: medium outset ;
+  padding: 1em }
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title {
+  font-weight: bold ;
+  font-family: sans-serif }
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title, .code .error {
+  color: red ;
+  font-weight: bold ;
+  font-family: sans-serif }
+
+/* Uncomment (and remove this text!) to get reduced vertical space in
+   compound paragraphs.
+div.compound .compound-first, div.compound .compound-middle {
+  margin-bottom: 0.5em }
+
+div.compound .compound-last, div.compound .compound-middle {
+  margin-top: 0.5em }
+*/
+
+div.dedication {
+  margin: 2em 5em ;
+  text-align: center ;
+  font-style: italic }
+
+div.dedication p.topic-title {
+  font-weight: bold ;
+  font-style: normal }
+
+div.figure {
+  margin-left: 2em ;
+  margin-right: 2em }
+
+div.footer, div.header {
+  clear: both;
+  font-size: smaller }
+
+div.line-block {
+  display: block ;
+  margin-top: 1em ;
+  margin-bottom: 1em }
+
+div.line-block div.line-block {
+  margin-top: 0 ;
+  margin-bottom: 0 ;
+  margin-left: 1.5em }
+
+div.sidebar {
+  margin: 0 0 0.5em 1em ;
+  border: medium outset ;
+  padding: 1em ;
+  background-color: #ffffee ;
+  width: 40% ;
+  float: right ;
+  clear: right }
+
+div.sidebar p.rubric {
+  font-family: sans-serif ;
+  font-size: medium }
+
+div.system-messages {
+  margin: 5em }
+
+div.system-messages h1 {
+  color: red }
+
+div.system-message {
+  border: medium outset ;
+  padding: 1em }
+
+div.system-message p.system-message-title {
+  color: red ;
+  font-weight: bold }
+
+div.topic {
+  margin: 2em }
+
+h1.section-subtitle, h2.section-subtitle, h3.section-subtitle,
+h4.section-subtitle, h5.section-subtitle, h6.section-subtitle {
+  margin-top: 0.4em }
+
+h1.title {
+  text-align: center }
+
+h2.subtitle {
+  text-align: center }
+
+hr.docutils {
+  width: 75% }
+
+img.align-left, .figure.align-left, object.align-left, table.align-left {
+  clear: left ;
+  float: left ;
+  margin-right: 1em }
+
+img.align-right, .figure.align-right, object.align-right, table.align-right {
+  clear: right ;
+  float: right ;
+  margin-left: 1em }
+
+img.align-center, .figure.align-center, object.align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+table.align-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.align-left {
+  text-align: left }
+
+.align-center {
+  clear: both ;
+  text-align: center }
+
+.align-right {
+  text-align: right }
+
+/* reset inner alignment in figures */
+div.align-right {
+  text-align: inherit }
+
+/* div.align-center * { */
+/*   text-align: left } */
+
+.align-top    {
+  vertical-align: top }
+
+.align-middle {
+  vertical-align: middle }
+
+.align-bottom {
+  vertical-align: bottom }
+
+ol.simple, ul.simple {
+  margin-bottom: 1em }
+
+ol.arabic {
+  list-style: decimal }
+
+ol.loweralpha {
+  list-style: lower-alpha }
+
+ol.upperalpha {
+  list-style: upper-alpha }
+
+ol.lowerroman {
+  list-style: lower-roman }
+
+ol.upperroman {
+  list-style: upper-roman }
+
+p.attribution {
+  text-align: right ;
+  margin-left: 50% }
+
+p.caption {
+  font-style: italic }
+
+p.credits {
+  font-style: italic ;
+  font-size: smaller }
+
+p.label {
+  white-space: nowrap }
+
+p.rubric {
+  font-weight: bold ;
+  font-size: larger ;
+  color: maroon ;
+  text-align: center }
+
+p.sidebar-title {
+  font-family: sans-serif ;
+  font-weight: bold ;
+  font-size: larger }
+
+p.sidebar-subtitle {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+p.topic-title {
+  font-weight: bold }
+
+pre.address {
+  margin-bottom: 0 ;
+  margin-top: 0 ;
+  font: inherit }
+
+pre.literal-block, pre.doctest-block, pre.math, pre.code {
+  margin-left: 2em ;
+  margin-right: 2em }
+
+pre.code .ln { color: grey; } /* line numbers */
+pre.code, code { background-color: #eeeeee }
+pre.code .comment, code .comment { color: #5C6576 }
+pre.code .keyword, code .keyword { color: #3B0D06; font-weight: bold }
+pre.code .literal.string, code .literal.string { color: #0C5404 }
+pre.code .name.builtin, code .name.builtin { color: #352B84 }
+pre.code .deleted, code .deleted { background-color: #DEB0A1}
+pre.code .inserted, code .inserted { background-color: #A3D289}
+
+span.classifier {
+  font-family: sans-serif ;
+  font-style: oblique }
+
+span.classifier-delimiter {
+  font-family: sans-serif ;
+  font-weight: bold }
+
+span.interpreted {
+  font-family: sans-serif }
+
+span.option {
+  white-space: nowrap }
+
+span.pre {
+  white-space: pre }
+
+span.problematic {
+  color: red }
+
+span.section-subtitle {
+  /* font-size relative to parent (h1..h6 element) */
+  font-size: 80% }
+
+table.citation {
+  border-left: solid 1px gray;
+  margin-left: 1px }
+
+table.docinfo {
+  margin: 2em 4em }
+
+table.docutils {
+  margin-top: 0.5em ;
+  margin-bottom: 0.5em }
+
+table.footnote {
+  border-left: solid 1px black;
+  margin-left: 1px }
+
+table.docutils td, table.docutils th,
+table.docinfo td, table.docinfo th {
+  padding-left: 0.5em ;
+  padding-right: 0.5em ;
+  vertical-align: top }
+
+table.docutils th.field-name, table.docinfo th.docinfo-name {
+  font-weight: bold ;
+  text-align: left ;
+  white-space: nowrap ;
+  padding-left: 0 }
+
+/* "booktabs" style (no vertical lines) */
+table.docutils.booktabs {
+  border: 0px;
+  border-top: 2px solid;
+  border-bottom: 2px solid;
+  border-collapse: collapse;
+}
+table.docutils.booktabs * {
+  border: 0px;
+}
+table.docutils.booktabs th {
+  border-bottom: thin solid;
+  text-align: left;
+}
+
+h1 tt.docutils, h2 tt.docutils, h3 tt.docutils,
+h4 tt.docutils, h5 tt.docutils, h6 tt.docutils {
+  font-size: 100% }
+
+ul.auto-toc {
+  list-style-type: none }
+
+</style>
+</head>
+<body>
+<div class="document">
+
+
+<!-- finufft documentation master file. This also contains what appears on the
+front HTML page.
+You can adapt this file completely to your liking, but it should at least
+contain the root `toctree` directive.
+Barnett 8/27/20: this is HTML only; split out separate latexindex.rst -->
+<div class="section" id="flatiron-institute-nonuniform-fast-fourier-transform">
+<span id="index"></span><h1>Flatiron Institute Nonuniform Fast Fourier Transform</h1>
+<span class="target" id="index-1"></span><!-- this is the front-page content, minus the header and the "Overview" title
+needed for latex. Apparently the next label is needed for eq:1d1 to work: -->
+<img alt="logo.png" src="logo.png" style="width: 45%;" />
+<img alt="spreadpic.png" src="spreadpic.png" style="width: 54%;" />
+<p><a class="reference external" href="https://github.com/flatironinstitute/finufft">FINUFFT</a> is a library to compute efficiently the three most common types of nonuniform fast Fourier transform
+(NUFFT) to a specified precision, in one, two, or three dimensions,
+either on a multi-core shared-memory machine, or on a GPU.
+It is extremely fast (typically achieving $10^6$ to $10^8$ points
+per second on a CPU, or up to $10^9$ points per second on a GPU),
+has very simple interfaces to most major numerical languages
+(C/C++, Fortran, MATLAB, octave, Python, and Julia),
+but also has more advanced (vectorized and &quot;guru&quot;) interfaces that
+allow multiple strength vectors and the reuse of FFT plans.
+The CPU library
+is written in C++ (with limited use of ++ features), OpenMP, and calls
+<a class="reference external" href="http://www.fftw.org">FFTW</a>.
+It has been developed since 2017 at the <a class="reference external" href="https://www.simonsfoundation.org/flatiron/center-for-computational-mathematics/">Center for Computational Mathematics</a> at the <a class="reference external" href="https://www.simonsfoundation.org/flatiron">Flatiron Institute</a>,
+by <a href="#system-message-1"><span class="problematic" id="problematic-1">:ref:`Alex Barnett and others&lt;ackn&gt;`</span></a>,
+and is released under an
+<a class="reference external" href="https://github.com/flatironinstitute/finufft/blob/master/LICENSE">Apache v2 license</a>. Here is a <a class="reference external" href="https://users.flatironinstitute.org/~ahb/notes/finufft-project-summary-2023.pdf">project overview</a>.</p>
+<div class="system-message" id="system-message-1">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 11); <em><a href="#problematic-1">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="section" id="what-does-finufft-do">
+<h2>What does FINUFFT do?</h2>
+<p>As an example, given $M$ real numbers $x_j in [0,2pi)$, and complex
+numbers $c_j$, with $j=1,dots,M$, and a requested integer number of
+modes $N$, FINUFFT can efficiently compute
+the 1D &quot;type 1&quot; transform, which means to evaluate
+the $N$ complex outputs</p>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 38)</p>
+<p>Error in &quot;math&quot; directive:
+unknown option: &quot;label&quot;.</p>
+<pre class="literal-block">
+.. math:: f_k = \sum_{j=1}^M c_j e^{ik x_j}~, \qquad \mbox{ for } \; k\in\mathbb{Z}, \quad -N/2 \le k \le N/2-1 ~.
+   :label: 1d1
+
+</pre>
+</div>
+<p>As with other &quot;fast&quot; algorithms, FINUFFT does not evaluate this
+sum directly---which would take $O(NM)$ effort---but
+rather uses a sequence of steps (in this case, optimally chosen
+spreading, FFT, and deconvolution)
+to approximate the vector of answers <a href="#system-message-2"><span class="problematic" id="problematic-2">:eq:`1d1`</span></a> to within the user's
+desired relative tolerance, with only $O(N log N +M)$ effort,
+ie, in almost linear time. Thus the speed-up is similar to that of the FFT.
+You may now want to jump to <a href="#system-message-3"><span class="problematic" id="problematic-3">:ref:`quickstart &lt;quick&gt;`</span></a>, or see
+the <a href="#system-message-4"><span class="problematic" id="problematic-4">:ref:`definitions &lt;math&gt;`</span></a> of the other transforms in general dimension.</p>
+<div class="system-message" id="system-message-2">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 41); <em><a href="#problematic-2">backlink</a></em></p>
+Unknown interpreted text role &quot;eq&quot;.</div>
+<div class="system-message" id="system-message-3">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 41); <em><a href="#problematic-3">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-4">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 41); <em><a href="#problematic-4">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>One interpretation of <a href="#system-message-5"><span class="problematic" id="problematic-5">:eq:`1d1`</span></a> is: the returned values $f_k$ are the
+<em>Fourier series coefficients</em> of the $2pi$-periodic
+distribution $f(x) := sum_{j=1}^M c_j delta(x-x_j)$,
+a sum of point-masses with arbitrary locations $x_j$ and strengths $c_j$.
+Such exponential sums are needed in many applications in science and engineering, including signal processing (scattered data interpolation, applying convolutional transforms, fast summation), imaging (cryo-EM, CT, MRI, synthetic aperture radar, coherent diffraction, Fresnel aperture modeling, VLBI astronomy),
+numerical analysis
+(computing Fourier <em>transforms</em> of functions,
+moving between non-conforming quadrature grids,
+solving partial differential equations, Ewald methods), and finance (correlation estimators).
+See our <a href="#system-message-6"><span class="problematic" id="problematic-6">:ref:`tutorials and demos&lt;tut&gt;`</span></a> pages
+and the <a href="#system-message-7"><span class="problematic" id="problematic-7">:ref:`related works&lt;related&gt;`</span></a>
+for examples of how to use the NUFFT in applications.
+In fact, there are several application areas where it has been overlooked
+that the needed computation is simply a NUFFT
+(eg, particle-mesh Ewald in molecular dynamics).</p>
+<div class="system-message" id="system-message-5">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 51); <em><a href="#problematic-5">backlink</a></em></p>
+Unknown interpreted text role &quot;eq&quot;.</div>
+<div class="system-message" id="system-message-6">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 51); <em><a href="#problematic-6">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-7">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 51); <em><a href="#problematic-7">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+</div>
+<div class="section" id="why-finufft-features-and-comparison-against-other-cpu-nufft-libraries">
+<h2>Why FINUFFT? Features and comparison against other CPU NUFFT libraries</h2>
+<p>The basic scheme used by FINUFFT is not new, but there are many
+mathematical and software engineering improvements over other CPU libraries
+(see below for <a href="#system-message-8"><span class="problematic" id="problematic-8">:ref:`GPU features&lt;gpu&gt;`</span></a>).
+As is common in NUFFT algorithms, under the hood is an FFT on a
+regular &quot;fine&quot; (upsampled) grid---the user
+has no need to access this directly. Nonuniform points are either spread to,
+or interpolated from, this fine grid, using a specially designed kernel
+(see right figure above).
+Our main features are:</p>
+<div class="system-message" id="system-message-8">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 70); <em><a href="#problematic-8">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<ul class="simple">
+<li><strong>High speed</strong>.  For instance, at similar accuracy, FINUFFT is up to 10x faster than the multi-threaded <a class="reference external" href="https://www-user.tu-chemnitz.de/~potts/nfft/">Chemnitz NFFT3 library</a>, and (in single-thread mode) up to 50x faster than the <a class="reference external" href="http://www.cims.nyu.edu/cmcl/nufft/nufft.html">CMCL NUFFT library</a>. This is achieved via:<ol class="arabic">
+<li>a simple new <a class="reference external" href="https://arxiv.org/abs/2001.09405">&quot;exponential of semicircle&quot; kernel</a> that is provably close to optimal</li>
+<li>quadrature approximation for this kernel's Fourier transform</li>
+<li>load-balanced multithreaded spreading/interpolation</li>
+<li>bin-sorting of points to improve cache reuse</li>
+<li>a low upsampling option for smaller FFTs, especially in type 3 transforms</li>
+<li>piecewise polynomial kernel evaluation (additions and multiplications only) that SIMD-vectorizes reliably on open-source compilers</li>
+</ol>
+</li>
+<li><strong>Less RAM</strong>. Our kernel is so fast that there is no point in precomputation; it is always evaluated on the fly. Thus our memory footprint is often an order of magnitude less than the fastest (precomputed) modes of competitors such as NFFT3 and MIRT, especially at high accuracy.</li>
+<li><strong>Automated kernel parameters</strong>. Unlike many competitors, we do not force the user to worry about kernel choice or parameters. The user simply requests a desired relative accuracy, then FINUFFT chooses parameters to target this accuracy as fast as possible.</li>
+<li><strong>Simplicity</strong>. We provide interfaces that perform a NUFFT with a single command---just like an FFT---from seven common languages/environments. For advanced users we also have &quot;many vector&quot; interfaces that can be much faster than repeated calls to the simple interface with the same points. Finally (like NFFT3) we have a &quot;guru&quot; interface for maximum flexibility, in all of these languages.</li>
+</ul>
+<p>For technical details on much of the above see our <a href="#system-message-9"><span class="problematic" id="problematic-9">:ref:`papers &lt;refs&gt;`</span></a>.
+Note that there are other tasks (eg, transforms on spheres, inverse NUFFTs)
+provided by other libraries, such as NFFT3, that FINUFFT does not provide.</p>
+<div class="system-message" id="system-message-9">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 95); <em><a href="#problematic-9">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+</div>
+<div class="section" id="gpu-version-cufinufft">
+<span id="gpu"></span><h2>GPU version: cuFINUFFT</h2>
+<img alt="logo_gpu.png" src="logo_gpu.png" style="width: 30%;" />
+<img alt="pics/cufinufft_announce.png" src="pics/cufinufft_announce.png" style="width: 69%;" />
+<p>In 2021 we released cuFINUFFT, a CUDA implementation of
+type 1 and 2 transforms in dimensions 2 and 3,
+developed mostly by Yu-Hsuan (Melody) Shih as a CCM summer intern and NYU graduate student (in 2022 she moved to NVidia).
+It is often 10x faster than the CPU code, and up to 100x
+faster than other established GPU NUFFT codes,
+as the above graph indicates (see [S21] in our <a href="#system-message-10"><span class="problematic" id="problematic-10">:ref:`references&lt;refs&gt;`</span></a>).
+This is achieved in part by developing a type 1 algorithm that exploits
+fast GPU shared memory, which
+requires hand-tuned choices of bin-sizes due to the small memory size
+(49kB per thread block).
+Both double and single precision are supported, and a Python interface.
+Please see sections of this documentation labeled &quot;GPU&quot;.
+In 2023 we added dimension 1, and merged cuFINUFFT into the FINUFFT repository.
+Further unification of the interfaces, underlying algorithm, and
+completion of type 3 on the GPU are still in progress.</p>
+<div class="system-message" id="system-message-10">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 109); <em><a href="#problematic-10">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+</div>
+<div class="section" id="do-i-even-need-a-nufft">
+<span id="need"></span><h2>Do I even need a NUFFT?</h2>
+<p>A user's need for a nonuniform fast Fourier transform is often obscured
+by the lack of mathematical description in science application areas.
+Therefore, read
+our <a href="#system-message-11"><span class="problematic" id="problematic-11">:ref:`tutorials and demos&lt;tut&gt;`</span></a> to try and match to your task.
+Write the task in terms of one of the
+<a href="#system-message-12"><span class="problematic" id="problematic-12">:ref:`three transform types&lt;math&gt;`</span></a>.
+If both $M$ and $N$ are larger than of order $10^2$, FINUFFT should
+be the ticket.
+However, if $M$ and/or $N$ is small (of order $10$ or less),
+there is no need for a &quot;fast&quot; algorithm: simply evaluate the sums directly.</p>
+<div class="system-message" id="system-message-11">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 131); <em><a href="#problematic-11">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-12">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 131); <em><a href="#problematic-12">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>If you need to fit off-grid data to a Fourier representation
+(eg, if you have off-grid $mathbf{k}$-space samples of an unknown image)
+but you
+do not have <em>quadrature weights</em> for the off-grid points, you may
+need to <em>invert</em> the NUFFT, which actually means solving a large linear system;
+see our <a href="#system-message-13"><span class="problematic" id="problematic-13">:ref:`tutorials and demos&lt;tut&gt;`</span></a>, and <a href="#system-message-14"><span class="problematic" id="problematic-14">:ref:`references&lt;refs&gt;`</span></a> [GLI] [KKP].
+Poor coverage by the nonuniform point set will cause ill-conditioning and
+a heavy reliance on regularization.</p>
+<div class="system-message" id="system-message-13">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 142); <em><a href="#problematic-13">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<div class="system-message" id="system-message-14">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 142); <em><a href="#problematic-14">backlink</a></em></p>
+Unknown interpreted text role &quot;ref&quot;.</div>
+<p>Another scenario is that you wish to evaluate a forward transform such as
+<a href="#system-message-15"><span class="problematic" id="problematic-15">:eq:`1d1`</span></a> repeatedly with
+the same set of nonuniform points $x_j$, but <em>fresh</em> strength vectors
+${c_j}_{j=1}^M$, as in the &quot;many vectors&quot; interface mentioned above.
+For small such problems it may be even faster to fill an
+$N$-by-$M$ matrix $A$ with entries
+$a_{kj} = e^{ik x_j}$, then use BLAS3 (eg <tt class="docutils literal">ZGEMM</tt>) to compute $F = AC$,
+where each column of $F$ and $C$ is a new instance of <a href="#system-message-16"><span class="problematic" id="problematic-16">:eq:`1d1`</span></a>.
+If you have very many columns this can be competitive with a NUFFT
+even for $M$ and $N$ up to $10^4$, because BLAS3 is so fast.</p>
+<div class="system-message" id="system-message-15">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 151); <em><a href="#problematic-15">backlink</a></em></p>
+Unknown interpreted text role &quot;eq&quot;.</div>
+<div class="system-message" id="system-message-16">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">overview.src</tt>, line 151); <em><a href="#problematic-16">backlink</a></em></p>
+Unknown interpreted text role &quot;eq&quot;.</div>
+</div>
+</div>
+<div class="section" id="documentation-contents">
+<h1>Documentation contents</h1>
+<div class="system-message">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">/mnt/home/mbarbone/repos/finufft/docs/index.rst</tt>, line 18)</p>
+<p>Unknown directive type &quot;toctree&quot;.</p>
+<pre class="literal-block">
+.. toctree::
+   :maxdepth: 3
+
+   install
+   install_gpu
+   dirs
+   math
+   cex
+   c
+   c_gpu
+   opts
+   error
+   trouble
+   tut
+   fortran
+   matlab
+   python
+   python_gpu
+   julia
+   changelog
+   cufinufft_migration
+   devnotes
+   related
+   users
+   ackn
+   refs
+
+
+</pre>
+</div>
+</div>
+</div>
+</body>
+</html>

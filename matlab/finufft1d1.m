@@ -9,7 +9,9 @@
 %     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
 %              j=1
 %   Inputs:
-%     x     locations of nonuniform sources on interval [-3pi,3pi), length nj
+%     x     locations of nonuniform sources on interval [-pi, pi) length nj.
+%           Values outside will be folded.
+%           Note: folding large values can result in a loss of accuracy.
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
 %           transformed with the same source locations.
@@ -29,7 +31,7 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+%     opts.chkbnds: [DEPRECATED] has no effect
 %   Outputs:
 %     f     size-ms complex column vector of Fourier coefficients, or, if
 %           ntrans>1, a matrix of size (ms,ntrans).

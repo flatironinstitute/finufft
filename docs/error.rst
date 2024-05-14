@@ -12,7 +12,7 @@ has the following meanings (see codes in ``include/finufft_errors.h``):
   1  requested tolerance epsilon too small to achieve (warning only)
   2  stopped due to needing internal array size >MAX_NF (defined in defs.h)
   3  spreader: fine grid too small compared to spread (kernel) width
-  4  spreader: if chkbnds=1, a nonuniform point coordinate is out of input range [-3pi,3pi]^d
+  4  spreader: [DEPRECATED]
   5  spreader: array allocation error
   6  spreader: illegal direction (should be 1 or 2)
   7  upsampfac too small (should be >1.0)
