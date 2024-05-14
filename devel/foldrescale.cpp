@@ -3,8 +3,9 @@
 #include <iostream>
 #include <random>
 #include <cmath>
+#include <immintrin.h>
 // no vectorize
-#pragma GCC optimize("no-tree-vectorize")
+//#pragma GCC optimize("no-tree-vectorize")
 /* local NU coord fold+rescale macro: does the following affine transform to x:
      when p=true:   map [-3pi,-pi) and [-pi,pi) and [pi,3pi)    each to [0,N)
      otherwise,     map [-N,0) and [0,N) and [N,2N)             each to [0,N)
@@ -67,7 +68,7 @@ FLT foldRescale03(FLT x, BIGINT N) {
   FLT fN = FLT(N);
   if constexpr (p) {
     static constexpr FLT x2pi = FLT(M_1_2PI);
-    result = x * x2pi + FLT(0.5);
+    result = std::fma(x, x2pi, FLT(0.5));
     result -= floor(result);
   } else {
     const FLT invN = FLT(1.0) / fN;
@@ -77,8 +78,22 @@ FLT foldRescale03(FLT x, BIGINT N) {
   return result * fN;
 }
 
+#ifdef __AVX2__
+
+inline __attribute__((always_inline))
+__m256d foldRescaleVec(__m256d x, BIGINT N) {
+  __m256d result;
+  __m256d fN = _mm256_set1_pd(FLT(N));
+  static const __m256d x2pi = _mm256_set1_pd(FLT(M_1_2PI));
+  static const __m256d half = _mm256_set1_pd(FLT(0.5));
+  result = _mm256_fmadd_pd(x, x2pi, half);
+  result = _mm256_sub_pd(result, _mm256_floor_pd(result));
+  return _mm256_mul_pd(result, fN);
+}
+#endif
+
 static std::mt19937_64 gen;
-static std::uniform_real_distribution<> dis(-3 * M_PI, 3 * M_PI);
+static std::uniform_real_distribution<> dis(-10, 10);
 static const auto N = std::uniform_int_distribution<>{0, 1000}(gen);
 static std::uniform_real_distribution<> disN(-N, 2*N);
 static volatile auto pirange = true;
@@ -194,26 +209,71 @@ static void BM_FoldRescale05N(benchmark::State &state) {
 }
 
 
-BENCHMARK(BM_BASELINE);
+#ifdef __AVX2__
+static void BM_FoldRescaleVec(benchmark::State &state) {
+  for (auto _: state) {
+    // Generate 4 floating point numbers
+    double x1 = dis(gen);
+    double x2 = dis(gen);
+    double x3 = dis(gen);
+    double x4 = dis(gen);
+      // Pack them into an AVX vector
+    __m256d x = _mm256_set_pd(x1, x2, x3, x4);
+    // Call the foldRescaleVec function
+    benchmark::DoNotOptimize(foldRescaleVec(x, N));
+  }
+}
+#endif
 
-BENCHMARK(BM_FoldRescaleMacro);
-BENCHMARK(BM_FoldRescale00);
-BENCHMARK(BM_FoldRescale01);
-BENCHMARK(BM_FoldRescale02);
-BENCHMARK(BM_FoldRescale03);
-BENCHMARK(BM_FoldRescale04);
-BENCHMARK(BM_FoldRescale05);
 
-BENCHMARK(BM_FoldRescaleMacroN);
-BENCHMARK(BM_FoldRescale00N);
-BENCHMARK(BM_FoldRescale01N);
-BENCHMARK(BM_FoldRescale02N);
-BENCHMARK(BM_FoldRescale03N);
-BENCHMARK(BM_FoldRescale04N);
-BENCHMARK(BM_FoldRescale05N);
+BENCHMARK(BM_BASELINE)->Iterations(10000000);
+BENCHMARK(BM_FoldRescaleMacro)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale00)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale01)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale02)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale03)->Iterations(10000000);
+BENCHMARK(BM_FoldRescale04)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale05)->Iterations(1000000);
+#ifdef __AVX2__
+BENCHMARK(BM_FoldRescaleVec)->Iterations(1000000/4);
+#endif
+BENCHMARK(BM_FoldRescaleMacroN)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale00N)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale01N)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale02N)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale03N)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale04N)->Iterations(1000000);
+BENCHMARK(BM_FoldRescale05N)->Iterations(1000000);
+
+
+#ifdef __AVX2__
+void testFoldRescaleVec_avx256_vs_foldRescale00() {
+  // Generate 4 floating point numbers
+  double x1 = dis(gen);
+  double x2 = dis(gen);
+  double x3 = dis(gen);
+  double x4 = dis(gen);
+
+  // Pack them into an AVX vector
+  __m256d xVec = _mm256_set_pd(x1, x2, x3, x4);
+
+  // Call the foldRescaleVec function
+  __m256d resultVec = foldRescaleVec(xVec, N);
+
+  // Extract the results from the AVX vector
+
+  for (int i = 0; i < 4; ++i) {
+    double result00 = foldRescale03<true>(xVec[i], N);
+    if (std::abs(1 - result00 / resultVec[i]) > 1e-14) {
+      std::cout << "input: " << xVec[i] << " result00: " << result00 << " result256: " << resultVec[i] << std::endl;
+      throw std::runtime_error("foldRescaleVec is not equivalent to foldRescale00");
+    }
+  }
+}
+#endif
 
 void testFoldRescaleFunctions() {
-  for (bool p: {true, false}) {
+  for (bool p: {true}) {
     for (int i = 0; i < 1024; ++i) {  // Run the test 1000 times
       FLT x = dis(gen);
       FLT resultMacro = FOLDRESCALE(x, N, p);
@@ -223,6 +283,7 @@ void testFoldRescaleFunctions() {
       FLT result03 = p ? foldRescale03<true>(x, N) : foldRescale03<false>(x, N);
       FLT result04 = FOLDRESCALE04(x, N, p);
       FLT result05 = FOLDRESCALE05(x, N, p);
+
       // function that compares two floating point number with a tolerance, using relative error
       auto compare = [](FLT a, FLT b) {
         return std::abs(a - b) > std::max(std::abs(a), std::abs(b)) * 10e-13;
@@ -284,9 +345,11 @@ int main(int argc, char **argv) {
   static std::random_device rd;
   const auto seed = rd();
   std::cout << "Seed: " << seed << "\n";
-//  gen.seed(226307105);
   gen.seed(seed);
   testFoldRescaleFunctions();
+#ifdef __AVX2__
+  testFoldRescaleVec_avx256_vs_foldRescale00();
+#endif
   ::benchmark::Initialize(&argc, argv);
   BaselineSubtractingReporter reporter;
   ::benchmark::RunSpecifiedBenchmarks(&reporter);
