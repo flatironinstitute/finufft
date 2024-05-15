@@ -124,7 +124,7 @@ int main(int argc, char* argv[])
   // spread a single source, only for reference accuracy check...
   opts.spread_direction=1;
   d_nonuniform[0] = 1.0; d_nonuniform[1] = 0.0;   // unit strength
-  kx[0] = ky[0] = kz[0] = M_PI/2.0;                  // at center
+  kx[0] = ky[0] = kz[0] = 0.0;                    // at center (probably doesn't matter); domain is [-pi,pi)^d
   int ier = spreadinterp(N,N2,N3,d_uniform.data(),1,kx.data(),ky.data(),kz.data(),d_nonuniform.data(),opts);          // vector::data officially C++11 but works
   if (ier!=0) {
     printf("error when spreading M=1 pt for ref acc check (ier=%d)!\n",ier);
