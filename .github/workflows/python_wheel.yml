@@ -44,9 +44,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install gcc and fftw
+    - name: Unlink gcc
       run: |
         brew unlink gcc
+      continue-on-error: true
+
+    - name: Install gcc@13 and fftw
+      run: |
         brew install gcc@13 fftw
         cp make.inc.macosx_gcc-12 make.inc
         echo "FC=gfortran-13" >> make.inc
