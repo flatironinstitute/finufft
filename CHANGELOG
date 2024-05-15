@@ -1,6 +1,8 @@
 List of features / changes made / release notes, in reverse chronological order.
 If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
+* New foldrescale, removes [-3pi,3pi) restriction on NU points, and slight
+  speedup at large tols. PR #440 (Marco Barbone + Martin Reinecke)
 * CPU plan stage allows any # threads, warns if > omp_get_max_threads(); or
   if single-threaded fixes nthr=1 and warns opts.nthreads>1 attempt.
   Sort now respects spread_opts.sort_threads not nthreads. Supercedes PR 431.
@@ -10,7 +12,6 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 * MAX_NF increased from 1e11 to 1e12, since machines grow.
 * improved GPU python docs: migration guide; usage from cupy, numba, torch,
   pycuda. PyPI pkg still at 2.2.0beta.
-* Used new foldrescale and removed tests for the range
 
 V 2.2.0 (12/12/23)
 
