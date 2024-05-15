@@ -9,7 +9,7 @@ NF="nonuniform frequency target"
 CO=coordinates
 LM="length M real array"
 LN="length N real array"
-PI="in [-3pi,3pi)"
+
 
 # stage 1: flesh out *.docsrc (input i) to *.docexp (output o)...
 for i in *.docsrc
@@ -69,13 +69,13 @@ do
                 echo "    x,y,z  $NU $CO in R^3 ($LM""s)"
                 ;;
             @x)
-                echo "    x      $NU""s $PI ($LM)"
+                echo "    x      $NU""s ($LM)"
                 ;;
             @x2)
-                echo "    x,y    $NU $CO $PI""^2 ($LM""s)"
+                echo "    x,y    $NU $CO ($LM""s)"
                 ;;
             @x3)
-                echo "    x,y,z  $NU $CO $PI""^3 ($LM""s)"
+                echo "    x,y,z  $NU $CO ($LM""s)"
                 ;;
             @s)
                 echo "    s      $NF""s in R ($LN)"

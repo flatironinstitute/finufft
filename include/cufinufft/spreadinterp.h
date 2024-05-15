@@ -3,19 +3,16 @@
 
 #include <cufinufft/types.h>
 #include <finufft_spread_opts.h>
-
-// NU coord handling macro: if p is true, rescales from [-pi,pi] to [0,N], then
-// folds *only* one period below and above, ie [-N,2N], into the domain [0,N]...
-// FIXME: SO MUCH BRANCHING
+#include <cmath>
 
 namespace cufinufft {
 namespace spreadinterp {
 
 template <typename T>
-static __forceinline__ __device__ T RESCALE(T x, int N, int p) {
-    constexpr T M_1_2PI = 1.0 / (2.0 * M_PI);
-    constexpr T pi = M_PI;
-    return p ? (x * M_1_2PI + (x < -pi ? 1.5 : (x >= M_PI ? -0.5 : 0.5))) * N : x < 0 ? x + N : (x >= N ? x - N : x);
+static __forceinline__ __device__ T fold_rescale(T x, int N) {
+  static constexpr const auto x2pi = T(0.159154943091895345554011992339482617);
+  const T result = x * x2pi + T(0.5);
+  return (result-floor(result)) * T(N);
 }
 
 template <typename T>

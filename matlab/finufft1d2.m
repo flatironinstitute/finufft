@@ -10,7 +10,7 @@
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2.
 %
 %  Inputs:
-%     x     location of nonuniform targets on interval [-3pi,3pi), length nj
+%     x     length-nj vector of real-valued locations of nonuniform sources
 %     f     complex Fourier coefficients. If a vector, length sets ms
 %           (with mode ordering given by opts.modeord). If a matrix, each
 %           of ntrans columns is transformed with the same nonuniform targets.
@@ -28,7 +28,7 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+%     opts.chkbnds: [DEPRECATED] has no effect
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).

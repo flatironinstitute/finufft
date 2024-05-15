@@ -9,13 +9,13 @@
 %     f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 1, ..., nk
 %              j=1
 %   Inputs:
-%     x     locations of nonuniform sources on R (real line), length-nj vector.
+%     x     length-nj vector of real-valued locations of nonuniform sources
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
 %           transformed with the same source and target locations.
 %     isign if >=0, uses + sign in exponential, otherwise - sign.
 %     eps   relative precision requested (generally between 1e-15 and 1e-1)
-%     s     frequency locations of nonuniform targets on R, length-nk vector.
+%     s     length-nk vector of frequency locations of nonuniform targets
 %     opts   optional struct with optional fields controlling the following:
 %     opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
 %     opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)

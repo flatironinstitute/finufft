@@ -12,7 +12,7 @@
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 %
 %   Inputs:
-%     x,y   coordinates of nonuniform sources on the square [-3pi,3pi)^2,
+%     x,y   real-valued coordinates of nonuniform sources in the plane,
 %           each a length-nj vector
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
@@ -33,7 +33,7 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+%     opts.chkbnds: [DEPRECATED] has no effect
 %   Outputs:
 %     f     size (ms,mt) complex matrix of Fourier coefficients
 %           (ordering given by opts.modeord in each dimension; ms fast, mt slow),

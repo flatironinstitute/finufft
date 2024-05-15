@@ -42,6 +42,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew unlink gcc
+        continue-on-error: true
 
       - name: Setup Cpp
         uses: aminya/setup-cpp@v1

@@ -3,6 +3,7 @@
 % Barnett 3/24/17; updated normalization in type-1 6/6/17. upsampfac 6/18/18.
 % new interface 6/10/20.
 % 7/9/20, Changed rel error normalization to max of outputs.
+% 5/14/24, chkbnds deprecated
 
 % Runtime is around 3-10 seconds on a modern machine
 
@@ -13,7 +14,6 @@ o.debug = 0;      % choose 1 for timing breakdown text output
 %o.spread_debug=1;   % see detailed spreader info
 FFTW_ESTIMATE = bitshift(1,6); o.fftw = FFTW_ESTIMATE;       % or see fftw3.h
 o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
-o.chkbnds=0;      % a few percent faster
 M       = 1e6;    % # of NU pts (in all dims)
 N       = 1e6;    % # of modes (approx total, used in all dims)
 

@@ -57,7 +57,7 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
     T es_c = d_plan->spopts.ES_c;
     T es_beta = d_plan->spopts.ES_beta;
     T sigma = d_plan->opts.upsampfac;
-    int pirange = d_plan->spopts.pirange;
+    
     int *d_idxnupts = d_plan->idxnupts;
 
     T *d_kx = d_plan->kx;
@@ -74,14 +74,14 @@ int cuinterp2d_nuptsdriven(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan,
         for (int t = 0; t < blksize; t++) {
             interp_2d_nupts_driven<T, 1>
                 <<<blocks, threadsPerBlock, 0, stream>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2,
-                                                         es_c, es_beta, sigma, d_idxnupts, pirange);
+                                                         es_c, es_beta, sigma, d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     } else {
         for (int t = 0; t < blksize; t++) {
             interp_2d_nupts_driven<T, 0>
                 <<<blocks, threadsPerBlock, 0, stream>>>(d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2,
-                                                         es_c, es_beta, sigma, d_idxnupts, pirange);
+                                                         es_c, es_beta, sigma, d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     }
@@ -117,7 +117,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int
     int *d_idxnupts = d_plan->idxnupts;
     int *d_subprob_to_bin = d_plan->subprob_to_bin;
     int totalnumsubprob = d_plan->totalnumsubprob;
-    int pirange = d_plan->spopts.pirange;
+    
 
     T sigma = d_plan->opts.upsampfac;
     size_t sharedplanorysize =
@@ -133,7 +133,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int
             interp_2d_subprob<T, 1><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta, sigma, d_binstartpts,
                 d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
-                numbins[0], numbins[1], d_idxnupts, pirange);
+                numbins[0], numbins[1], d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     } else {
@@ -141,7 +141,7 @@ int cuinterp2d_subprob(int nf1, int nf2, int M, cufinufft_plan_t<T> *d_plan, int
             interp_2d_subprob<T, 0><<<totalnumsubprob, 256, sharedplanorysize, stream>>>(
                 d_kx, d_ky, d_c + t * M, d_fw + t * nf1 * nf2, M, ns, nf1, nf2, es_c, es_beta, sigma, d_binstartpts,
                 d_binsize, bin_size_x, bin_size_y, d_subprob_to_bin, d_subprobstartpts, d_numsubprob, maxsubprobsize,
-                numbins[0], numbins[1], d_idxnupts, pirange);
+                numbins[0], numbins[1], d_idxnupts);
             RETURN_IF_CUDA_ERROR
         }
     }

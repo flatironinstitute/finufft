@@ -91,11 +91,7 @@ Data handling options
 
   .. note:: The index *sets* are the same in the two ``modeord`` choices; their ordering differs only by a cyclic shift. The FFT ordering cyclically shifts the CMCL indices $\mbox{floor}(N/2)$ to the left (often called an "fftshift").
 
-**chkbnds**: whether to check the nonuniform points lie in the correct bounds.
-
-*  ``chkbnds=0``: input nonuniform points in the arrays ``x``, ``y``, ``z``, are fed straight into the spreader which assumes (for speed) that they lie in :math:`[-3\pi,3\pi)`. Points outside of this will then cause a segfault.
-
-*  ``chkbnds=1``: the nonuniform points are checked to lie in this interval, and if any are found not to, the library exits with an error code and message to stderr. The trade-off is that simply doing this checking can lose several % in overall speed, especially in low-precision 3D transforms.
+**chkbnds**: [DEPRECATED] has no effect.
   
 
 Diagnostic options

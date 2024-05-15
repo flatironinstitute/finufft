@@ -136,6 +136,8 @@ int setup_spreader_for_nufft(finufft_spread_opts &spopts, FLT eps, finufft_opts 
     spopts.atomic_threshold = opts.spread_nthr_atomic;
   if (opts.spread_max_sp_size>0)      // overrides
     spopts.max_subproblem_size = opts.spread_max_sp_size;
+  if (opts.chkbnds != 1)              // deprecated default value hardcoded here
+    fprintf(stderr, "[%s] opts.chkbnds is deprecated; ignoring change from default value.\n",__func__);
   return ier;
 } 
 
@@ -240,14 +242,14 @@ void onedim_nuft_kernel(BIGINT nk, FLT *k, FLT *phihat, finufft_spread_opts opts
 /*
   Approximates exact 1D Fourier transform of cnufftspread's real symmetric
   kernel, directly via q-node quadrature on Euler-Fourier formula, exploiting
-  narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi,pi],
+  narrowness of kernel. Evaluates at set of arbitrary freqs k in [-pi, pi),
   for a kernel with x measured in grid-spacings. (See previous routine for
   FT definition).
 
   Inputs:
   nk - number of freqs
   k - frequencies, dual to the kernel's natural argument, ie exp(i.k.z)
-       Note, z is in grid-point units, and k values must be in [-pi,pi] for
+       Note, z is in grid-point units, and k values must be in [-pi, pi) for
        accuracy.
   opts - spreading opts object, needed to eval kernel (must be already set up)
 
@@ -520,6 +522,12 @@ int* GRIDSIZE_FOR_FFTW(FINUFFT_PLAN p){
 // (not namespaced since have safe names finufft{f}_* )
 using namespace finufft::common;  // accesses routines defined above
 
+
+// Marco Barbone: 5.8.2024
+// These are user-facing.
+// The various options could be macros to follow c standard library conventions.
+// Question: would these be enums?
+
 // OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
 void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
 // Sets default nufft opts (referenced by all language interfaces too).
@@ -537,7 +545,7 @@ void FINUFFT_DEFAULT_OPTS(finufft_opts *o)
   o->showwarn = 1;
 
   o->nthreads = 0;
-  o->fftw = FFTW_ESTIMATE;
+  o->fftw = FFTW_ESTIMATE; //
   o->spread_sort = 2;
   o->spread_kerevalmeth = 1;
   o->spread_kerpad = 1;

@@ -11,7 +11,7 @@
      f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
               j=1
    Inputs:
-     x     locations of nonuniform sources on interval [-3pi,3pi), length nj
+     x     length-nj vector of real-valued locations of nonuniform sources
      c     length-nj complex vector of source strengths. If numel(c)>nj,
            expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
            transformed with the same source locations.
@@ -31,7 +31,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+     opts.chkbnds: [DEPRECATED] has no effect
    Outputs:
      f     size-ms complex column vector of Fourier coefficients, or, if
            ntrans>1, a matrix of size (ms,ntrans).
@@ -60,7 +60,7 @@
      where sum is over -ms/2 <= k1 <= (ms-1)/2.
 
   Inputs:
-     x     location of nonuniform targets on interval [-3pi,3pi), length nj
+     x     length-nj vector of real-valued locations of nonuniform sources
      f     complex Fourier coefficients. If a vector, length sets ms
            (with mode ordering given by opts.modeord). If a matrix, each
            of ntrans columns is transformed with the same nonuniform targets.
@@ -78,7 +78,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+     opts.chkbnds: [DEPRECATED] has no effect
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -106,13 +106,13 @@
      f[k]  =  SUM   c[j] exp(+-i s[k] x[j]),      for k = 1, ..., nk
               j=1
    Inputs:
-     x     locations of nonuniform sources on R (real line), length-nj vector.
+     x     length-nj vector of real-valued locations of nonuniform sources
      c     length-nj complex vector of source strengths. If numel(c)>nj,
            expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
            transformed with the same source and target locations.
      isign if >=0, uses + sign in exponential, otherwise - sign.
      eps   relative precision requested (generally between 1e-15 and 1e-1)
-     s     frequency locations of nonuniform targets on R, length-nk vector.
+     s     length-nk vector of frequency locations of nonuniform targets
      opts   optional struct with optional fields controlling the following:
      opts.debug:   0 (silent, default), 1 (timing breakdown), 2 (debug info).
      opts.spread_debug: spreader: 0 (no text, default), 1 (some), or 2 (lots)
@@ -154,7 +154,7 @@
      for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 
    Inputs:
-     x,y   coordinates of nonuniform sources on the square [-3pi,3pi)^2,
+     x,y   real-valued coordinates of nonuniform sources in the plane,
            each a length-nj vector
      c     length-nj complex vector of source strengths. If numel(c)>nj,
            expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
@@ -175,7 +175,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+     opts.chkbnds: [DEPRECATED] has no effect
    Outputs:
      f     size (ms,mt) complex matrix of Fourier coefficients
            (ordering given by opts.modeord in each dimension; ms fast, mt slow),
@@ -205,7 +205,7 @@
      where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 
   Inputs:
-     x,y   coordinates of nonuniform targets on the square [-3pi,3pi)^2,
+     x,y   real-valued coordinates of nonuniform targets in the plane,
            each a vector of length nj
      f     complex Fourier coefficient matrix, whose size determines (ms,mt).
            (Mode ordering given by opts.modeord, in each dimension.)
@@ -225,7 +225,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+     opts.chkbnds: [DEPRECATED] has no effect
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -303,8 +303,8 @@
          -mu/2 <= k3 <= (mu-1)/2.
 
    Inputs:
-     x,y,z  coordinates of nonuniform sources on the cube [-3pi,3pi)^3,
-            each a length-nj vector
+     x,y,z real-valued coordinates of nonuniform sources,
+           each a length-nj vector
      c     length-nj complex vector of source strengths. If numel(c)>nj,
            expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
            transformed with the same source locations.
@@ -325,7 +325,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+     opts.chkbnds: [DEPRECATED] has no effect
    Outputs:
      f     size (ms,mt,mu) complex array of Fourier coefficients
            (ordering given by opts.modeord in each dimension; ms fastest, mu
@@ -357,7 +357,7 @@
                        -mu/2 <= k3 <= (mu-1)/2.
 
   Inputs:
-     x,y,z coordinates of nonuniform targets on the cube [-3pi,3pi)^3,
+     x,y,z real-valued coordinates of nonuniform targets,
            each a vector of length nj
      f     complex Fourier coefficient array, whose size sets (ms,mt,mu).
            (Mode ordering given by opts.modeord, in each dimension.)
@@ -377,7 +377,7 @@
      opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
      opts.nthreads:   number of threads, or 0: use all available (default)
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+     opts.chkbnds: [DEPRECATED] has no effect
   Outputs:
      c     complex column vector of nj answers at targets, or,
            if ntrans>1, matrix of size (nj,ntrans).
@@ -499,7 +499,7 @@
      opts.floatprec: library precision to use, 'double' (default) or 'single'.
      for type 1 and 2 only, the following opts fields are also relevant:
      opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+     opts.chkbnds: [DEPRECATED] has no effect
  Outputs:
      plan            finufft_plan object (opaque pointer)
 
@@ -540,9 +540,10 @@
      plan   finufft_plan object
 
  Notes:
-  * For type 1 and 2, the values in xj (and if nonempty, yj and zj) must
-    lie in the interval [-3pi,3pi). For type 1 they are "sources", but for
-    type 2, "targets". In contrast, for type 3 there are no restrictions other
+  * The values in xj (and if nonempty, yj and zj) are real-valued, and
+    invariant under translations by multiples of 2pi. For type 1
+    they are "sources", whereas for type 2 they are "targets".
+    For type 3 there is no periodicity, and no restrictions other
     than the resulting size of the internal fine grids.
   * s (and t and u) are only relevant for type 3, and may be omitted otherwise
   * The matlab vectors xj,... and s,... should not be changed before calling

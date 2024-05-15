@@ -10,7 +10,7 @@
 %     where sum is over -ms/2 <= k1 <= (ms-1)/2, -mt/2 <= k2 <= (mt-1)/2,
 %
 %  Inputs:
-%     x,y   coordinates of nonuniform targets on the square [-3pi,3pi)^2,
+%     x,y   real-valued coordinates of nonuniform targets in the plane,
 %           each a vector of length nj
 %     f     complex Fourier coefficient matrix, whose size determines (ms,mt).
 %           (Mode ordering given by opts.modeord, in each dimension.)
@@ -30,7 +30,7 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+%     opts.chkbnds: [DEPRECATED] has no effect
 %  Outputs:
 %     c     complex column vector of nj answers at targets, or,
 %           if ntrans>1, matrix of size (nj,ntrans).

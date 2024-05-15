@@ -13,8 +13,8 @@
 %         -mu/2 <= k3 <= (mu-1)/2.
 %
 %   Inputs:
-%     x,y,z  coordinates of nonuniform sources on the cube [-3pi,3pi)^3,
-%            each a length-nj vector
+%     x,y,z real-valued coordinates of nonuniform sources,
+%           each a length-nj vector
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
 %           transformed with the same source locations.
@@ -35,7 +35,7 @@
 %     opts.maxbatchsize:  for ntrans>1 only. max blocking size, or 0 for auto.
 %     opts.nthreads:   number of threads, or 0: use all available (default)
 %     opts.modeord: 0 (CMCL increasing mode ordering, default), 1 (FFT ordering)
-%     opts.chkbnds: 0 (don't check NU points valid), 1 (do, default)
+%     opts.chkbnds: [DEPRECATED] has no effect
 %   Outputs:
 %     f     size (ms,mt,mu) complex array of Fourier coefficients
 %           (ordering given by opts.modeord in each dimension; ms fastest, mu

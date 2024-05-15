@@ -78,9 +78,6 @@ $     }
 $     else if (strcmp(fname[ifield],"spread_kerpad") == 0) {
 $       oc->spread_kerpad = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }
-$     else if (strcmp(fname[ifield],"chkbnds") == 0) {
-$       oc->chkbnds = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
-$     }
 $     else if (strcmp(fname[ifield],"fftw") == 0) {
 $       oc->fftw = (int)round(*mxGetPr(mxGetFieldByNumber(om,idx,ifield)));
 $     }

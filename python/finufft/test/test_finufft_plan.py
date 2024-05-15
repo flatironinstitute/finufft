@@ -237,9 +237,5 @@ def test_finufft_plan_errors():
         plan.setpts(np.ones(3, dtype="float32"), s=np.ones(3, dtype="float32"))
         plan.execute(np.ones((2, 3), dtype="complex64"), out=np.ones((2, 4), dtype="complex64"))
 
-    with pytest.raises(RuntimeError, match=r"point out of range \[-3pi,3pi\]"):
-        plan = Plan(1, (8,), dtype="complex64")
-        plan.setpts(4 * np.pi * np.ones(1, dtype="float32"))
-
     with pytest.raises(RuntimeError, match="transform type invalid"):
         plan = Plan(4, (8,))

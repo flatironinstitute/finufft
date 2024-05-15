@@ -12,8 +12,7 @@ typedef struct finufft_spread_opts {
   // This is the main documentation for these options...
   int nspread;            // w, the kernel width in grid pts
   int spread_direction;   // 1 means spread NU->U, 2 means interpolate U->NU
-  int pirange;            // 0: NU periodic domain is [0,N), 1: domain [-pi,pi)
-  int chkbnds;            // 0: don't check NU pts in 3-period range; 1: do
+  int chkbnds;            // [DEPRECATED] 0: don't check NU pts in 3-period range; 1: do
   int sort;               // 0: don't sort NU pts, 1: do, 2: heuristic choice
   int kerevalmeth;        // 0: direct exp(sqrt()), or 1: Horner ppval, fastest
   int kerpad;             // 0: no pad w to mult of 4, 1: do pad
