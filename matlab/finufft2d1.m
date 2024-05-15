@@ -12,9 +12,8 @@
 %     for -ms/2 <= k1 <= (ms-1)/2,  -mt/2 <= k2 <= (mt-1)/2.
 %
 %   Inputs:
-%     x,y   coordinates of nonuniform sources on the square [-pi, pi)^2,
-%           each a length-nj vector. Values outside will be folded.
-%           Note: folding large values can result in a loss of accuracy.
+%     x,y   real-valued coordinates of nonuniform sources in the plane,
+%           each a length-nj vector
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
 %           transformed with the same source locations.

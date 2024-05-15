@@ -13,9 +13,8 @@
 %         -mu/2 <= k3 <= (mu-1)/2.
 %
 %   Inputs:
-%     x,y,z  coordinates of nonuniform sources on the cube [-pi, pi)^3,
-%            each a length-nj vector. Values outside will be folded.
-%            Note: folding large values can result in a loss of accuracy.
+%     x,y,z real-valued coordinates of nonuniform sources,
+%           each a length-nj vector
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
 %           transformed with the same source locations.

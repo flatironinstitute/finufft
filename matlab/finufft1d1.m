@@ -9,9 +9,7 @@
 %     f(k1) =  SUM c[j] exp(+/-i k1 x(j))  for -ms/2 <= k1 <= (ms-1)/2
 %              j=1
 %   Inputs:
-%     x     locations of nonuniform sources on interval [-pi, pi) length nj.
-%           Values outside will be folded.
-%           Note: folding large values can result in a loss of accuracy.
+%     x     length-nj vector of real-valued locations of nonuniform sources
 %     c     length-nj complex vector of source strengths. If numel(c)>nj,
 %           expects a stack of vectors (eg, a nj*ntrans matrix) each of which is
 %           transformed with the same source locations.
