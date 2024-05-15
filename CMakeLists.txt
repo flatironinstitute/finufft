@@ -47,10 +47,10 @@ if(FINUFFT_USE_CPU)
 
     set(CPM_DOWNLOAD_VERSION 0.38.0)
     set(FFTW_VERSION 3.3.10)
-
+    set(XSIMD_VERSION 13.0.0)
     include(cmake/setupCPM.cmake)
     include(cmake/setupFFTW.cmake)
-
+    include(cmake/setupXSIMD.cmake)
 endif()
 
 if (FINUFFT_BUILD_MATLAB)
@@ -162,12 +162,13 @@ if(FINUFFT_USE_CPU)
     target_compile_definitions(finufft_f32 PRIVATE SINGLE)
     set_finufft_options(finufft_f32)
     target_link_libraries(finufft_f32 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
+    target_link_libraries(finufft_f32 PRIVATE xsimd)
 
     add_library(finufft_f64 OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
     target_compile_definitions(finufft_f64 PRIVATE)
     set_finufft_options(finufft_f64)
     target_link_libraries(finufft_f64 PUBLIC ${FINUFFT_FFTW_LIBRARIES})
-
+    target_link_libraries(finufft_f64 PRIVATE xsimd)
     if(WIN32)
         add_library(finufft_f32_dll OBJECT ${FINUFFT_PRECISION_DEPENDENT_SOURCES})
         target_compile_definitions(finufft_f32_dll PRIVATE SINGLE dll_EXPORTS FINUFFT_DLL)

@@ -6,6 +6,8 @@
 #include <finufft/utils.h>
 #include <finufft/utils_precindep.h>
 
+#include <xsimd/xsimd.hpp>
+
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
@@ -19,6 +21,7 @@ namespace finufft {
   namespace spreadinterp {
 
 // declarations of purely internal functions... (thus need not be in .h)
+static FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold_rescale_vec(xsimd::batch<FLT> x, BIGINT N);
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts);
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N);
@@ -1191,22 +1194,41 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
  * Simplified by Martin Reinecke, 6/19/23 (no apparent effect on speed).
  */
 {
-  bool isky=(N2>1), iskz=(N3>1);  // ky,kz avail? (cannot access if not)
+  const auto isky = (N2 > 1), iskz = (N3 > 1);  // ky,kz avail? (cannot access if not)
   // here the +1 is needed to allow round-off error causing i1=N1/bin_size_x,
   // for kx near +pi, ie foldrescale gives N1 (exact arith would be 0 to N1-1).
   // Note that round-off near kx=-pi stably rounds negative to i1=0.
-  BIGINT nbins1=N1/bin_size_x+1, nbins2, nbins3;
-  nbins2 = isky ? N2/bin_size_y+1 : 1;
-  nbins3 = iskz ? N3/bin_size_z+1 : 1;
-  BIGINT nbins = nbins1*nbins2*nbins3;
+  const auto nbins1 = BIGINT(FLT(N1) / bin_size_x + 1);
+  const auto nbins2 = isky ? BIGINT(FLT(N2) / bin_size_y + 1) : 1;
+  const auto nbins3 = iskz ? BIGINT(FLT(N3) / bin_size_z + 1) : 1;
+  const auto nbins = nbins1 * nbins2 * nbins3;
+  const auto inv_bin_size_x = FLT(1.0) / bin_size_x;
+  const auto inv_bin_size_y = FLT(1.0) / bin_size_y;
+  const auto inv_bin_size_z = FLT(1.0) / bin_size_z;
 
-  std::vector<BIGINT> counts(nbins,0);  // count how many pts in each bin
-  for (BIGINT i=0; i<M; i++) {
+  // count how many pts in each bin
+  alignas(256) std::vector<BIGINT> counts(nbins, 0);
+  static constexpr auto avx_width = xsimd::batch<FLT>::size;
+  const auto remainder = M % avx_width;
+  for (BIGINT i=0; i<M-remainder; i+=avx_width) {
+    const auto i1 = xsimd::floor(fold_rescale_vec(xsimd::load_unaligned(kx+i), N1) * inv_bin_size_x);
+    const auto i2 = isky ? xsimd::floor(fold_rescale_vec(xsimd::load_unaligned(ky+i), N2) * inv_bin_size_y) : xsimd::batch<FLT>(0);
+    const auto i3 = iskz ? xsimd::floor(fold_rescale_vec(xsimd::load_unaligned(kz+i), N3) * inv_bin_size_z) : xsimd::batch<FLT>(0);
+    const auto bins = i1+nbins1*(i2+nbins2*i3);
+      // it should be optimized away
+    alignas(sizeof(bins)) std::array<FLT, xsimd::batch<FLT>::size> bin_array{};
+    bins.store_aligned(bin_array.data());
+    for (const auto bin : bin_array) {
+      counts[BIGINT(bin)]++;
+    }
+  }
+
+  for (BIGINT i=M-remainder; i<M; i++) {
     // find the bin index in however many dims are needed
-    BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
-    if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
-    if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
-    BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+    const auto i1 = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
+    const auto i2 = isky ? BIGINT(fold_rescale(ky[i], N2) * inv_bin_size_y) : 0;
+    const auto i3 = iskz ? BIGINT(fold_rescale(kz[i], N3) * inv_bin_size_z) : 0;
+    const auto bin = i1+nbins1*(i2+nbins2*i3);
     counts[bin]++;
   }
 
@@ -1217,15 +1239,30 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     counts[i] = current_offset;   // Reinecke's cute replacement of counts[i]
     current_offset += tmp;
   }              // (counts now contains the index offsets for each bin)
-  
-  for (BIGINT i=0; i<M; i++) {
+
+  for (BIGINT i=0; i<M-remainder; i+=avx_width) {
+    const auto i1 = xsimd::floor(fold_rescale_vec(xsimd::load_unaligned(kx+i), N1) * inv_bin_size_x);
+    const auto i2 = isky ? xsimd::floor(fold_rescale_vec(xsimd::load_unaligned(ky+i), N2) * inv_bin_size_y) : xsimd::batch<FLT>(0);
+    const auto i3 = iskz ? xsimd::floor(fold_rescale_vec(xsimd::load_unaligned(kz+i), N3) * inv_bin_size_z) : xsimd::batch<FLT>(0);
+    const auto bins = i1+nbins1*(i2+nbins2*i3);
+    // it should be optimized away
+    alignas(sizeof(bins)) std::array<FLT, xsimd::batch<FLT>::size> bin_array{};
+    bins.store_aligned(bin_array.data());
+    for (auto j = 0; j < avx_width; ++j) {
+      const auto bin = BIGINT(bin_array[j]);
+      ret[counts[bin]] = i+j;      // fill the inverse map on the fly, careful of indexes errors
+      counts[BIGINT(bin)]++;
+    }
+  }
+
+  for (BIGINT i=M-remainder; i<M; i++) {
     // find the bin index (again! but better than using RAM)
-    BIGINT i1= fold_rescale(kx[i], N1) / bin_size_x, i2=0, i3=0;
-    if (isky) i2 = fold_rescale(ky[i], N2) / bin_size_y;
-    if (iskz) i3 = fold_rescale(kz[i], N3) / bin_size_z;
-    BIGINT bin = i1+nbins1*(i2+nbins2*i3);
+    const auto i1 = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
+    const auto i2 = isky ? BIGINT(fold_rescale(ky[i], N2) * inv_bin_size_y) : 0;
+    const auto i3 = iskz ? BIGINT(fold_rescale(kz[i], N3) * inv_bin_size_z) : 0;
+    const auto bin = i1+nbins1*(i2+nbins2*i3);
     ret[counts[bin]] = i;      // fill the inverse map on the fly
-    ++counts[bin];             // update the offsets
+    counts[bin]++;             // update the offsets
   }
 }
 
@@ -1381,5 +1418,19 @@ FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
   const FLT result = x * x2pi + FLT(0.5);
   return (result-floor(result)) * FLT(N);
 }
+
+// since xsimd is not constexpr this slows down the loop due to the guard variables
+// hence moved them here
+static const xsimd::batch<FLT> x2pi{FLT(M_1_2PI)};
+static const xsimd::batch<FLT> half{FLT(0.5)};
+FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold_rescale_vec(xsimd::batch<FLT> x, int64_t N) {
+  xsimd::batch<FLT> result;
+  const xsimd::batch<FLT> fN{FLT(N)};
+  result = xsimd::fma(x, x2pi, half);
+  result -= xsimd::floor(result);
+  return result * fN;
+}
+
+
 }   // namespace
 }   // namespace

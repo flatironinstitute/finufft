@@ -18,5 +18,5 @@ if (benchmark_ADDED)
 endif()
 
 add_executable(foldrescale foldrescale.cpp)
-target_link_libraries(foldrescale finufft benchmark)
-target_compile_options(foldrescale PRIVATE -mavx2)
+target_link_libraries(foldrescale finufft benchmark xsimd)
+#target_compile_options(foldrescale PRIVATE -mavx2 )
