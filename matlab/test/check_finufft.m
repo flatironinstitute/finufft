@@ -11,7 +11,6 @@ clear     % choose params...
 isign   = +1;     % sign of imaginary unit in exponential
 eps     = 1e-6;   % requested accuracy
 o.debug = 0;      % choose 1 for timing breakdown text output
-o.chkbnds = 0;
 %o.spread_debug=1;   % see detailed spreader info
 FFTW_ESTIMATE = bitshift(1,6); o.fftw = FFTW_ESTIMATE;       % or see fftw3.h
 o.upsampfac=0;    % 0 (auto), 2.0 (default), or 1.25 (low-RAM, small-FFT)
