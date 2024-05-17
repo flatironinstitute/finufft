@@ -52,6 +52,10 @@
 // Library version (is a string)
 #define FINUFFT_VER "2.2.0"
 
+// Smallest possible kernel spread width per dimension, in fine grid points
+// (used only in spreadinterp.cpp)
+#define MIN_NSPREAD 2
+
 // Largest possible kernel spread width per dimension, in fine grid points
 // (used only in spreadinterp.cpp)
 #define MAX_NSPREAD 16

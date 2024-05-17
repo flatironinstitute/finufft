@@ -20,8 +20,26 @@ using namespace finufft::utils;              // access to timer
 namespace finufft {
   namespace spreadinterp {
 
+
+
+// forward declaration to cleanup the code and be able to use this everywhere in shit file
+
+template<class T, uint16_t N, uint16_t K = N>
+static constexpr auto BestSIMDHelper();
+
+template<class T, uint16_t N>
+static auto constexpr GetValidSIMDSize();
+
+template<class T>
+static uint16_t get_padding(uint16_t ns);
+
+template<class T, uint16_t ns>
+static constexpr auto get_padding();
+
+template<class T, uint16_t N, uint16_t K = N>
+using BestSIMD = typename decltype(BestSIMDHelper<T, N, K>())::type;
+
 // declarations of purely internal functions... (thus need not be in .h)
-static FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold_rescale_vec(xsimd::batch<FLT> x, BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
 static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts);
 static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N);
@@ -576,7 +594,6 @@ int setup_spreader(finufft_spread_opts &opts, FLT eps, double upsampfac,
     ier = FINUFFT_WARN_EPS_TOO_SMALL;
   }
   opts.nspread = ns;
-
   // setup for reference kernel eval (via formula): select beta width param...
   // (even when kerevalmeth=1, this ker eval needed for FTs in onedim_*_kernel)
   opts.ES_halfwidth=(double)ns/2;   // constants to help (see below routines)
@@ -1003,6 +1020,70 @@ void spread_subproblem_2d(BIGINT off1,BIGINT off2,BIGINT size1,BIGINT size2,
   }
 }
 
+template<const uint16_t ns>
+void spread_subproblem_3dN(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1,
+                           BIGINT size2, BIGINT size3, FLT *du, BIGINT M,
+                           FLT *kx, FLT *ky, FLT *kz, const FLT *dd, const finufft_spread_opts &opts) {
+
+  using batch_t = BestSIMD<FLT, (2 * ns)>;
+  using arch_t = typename batch_t::arch_type;
+  static constexpr auto avx_size = batch_t::size;
+  static constexpr size_t alignment = batch_t::arch_type::alignment();
+
+  FLT ns2 = (FLT) ns / 2;          // half spread width
+  std::fill(du, du+2*size1*size2*size3, 0);
+  alignas(alignment) FLT kernel_args[3 * ns];
+  // Kernel values stored in consecutive memory. This allows us to compute
+  // values in all three directions in a single kernel evaluation call.
+  alignas(alignment) FLT kernel_values[3 * ns];
+  FLT *ker1 = kernel_values;
+  FLT *ker2 = kernel_values + ns;
+  FLT *ker3 = kernel_values + 2 * ns;
+  for (BIGINT i = 0; i < M; i++) {           // loop over NU pts
+    const FLT re0 = dd[2 * i];
+    const FLT im0 = dd[2 * i + 1];
+    // ceil offset, hence rounding, must match that in get_subgrid...
+    const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);   // fine grid start indices
+    const auto i2 = (BIGINT) std::ceil(ky[i] - ns2);
+    const auto i3 = (BIGINT) std::ceil(kz[i] - ns2);
+    const auto x1 = (FLT) i1 - kx[i];
+    const auto x2 = (FLT) i2 - ky[i];
+    const auto x3 = (FLT) i3 - kz[i];
+    if (opts.kerevalmeth == 0) {          // faster Horner poly method
+      set_kernel_args(kernel_args, x1, opts);
+      set_kernel_args(kernel_args + ns, x2, opts);
+      set_kernel_args(kernel_args + 2 * ns, x3, opts);
+      evaluate_kernel_vector(kernel_values, kernel_args, opts, 3 * ns);
+    } else {
+      eval_kernel_vec_Horner(ker1, x1, ns, opts);
+      eval_kernel_vec_Horner(ker2, x2, ns, opts);
+      eval_kernel_vec_Horner(ker3, x3, ns, opts);
+    }
+    // Combine kernel with complex source value to simplify inner loop
+    alignas(alignment) FLT ker1val[2 * ns];    // here 2* is because of complex
+    for (auto i = 0; i < ns; i++) {
+      ker1val[2 * i] = re0 * ker1[i];
+      ker1val[2 * i + 1] = im0 * ker1[i];
+    }
+    // critical inner loop:
+    for (auto dz = 0; dz < ns; ++dz) {
+      BIGINT oz = size1 * size2 * (i3 - off3 + dz);        // offset due to z
+      for (auto dy = 0; dy < ns; ++dy) {
+        BIGINT j = oz + size1 * (i2 - off2 + dy) + i1 - off1;   // should be in subgrid
+        FLT kerval = ker2[dy] * ker3[dz];
+        FLT *trg = du + 2 * j;
+        const batch_t kerval_batch(kerval);
+        for (auto dx = 0; dx < 2 * ns; dx += avx_size) {
+          const auto ker1val_batch = xsimd::load_aligned<arch_t>(ker1val + dx);
+          const auto trg_batch = xsimd::load_unaligned<arch_t>(trg + dx);
+          const auto result = xsimd::fma(kerval_batch, ker1val_batch, trg_batch);
+          result.store_unaligned(trg + dx);
+        }
+      }
+    }
+  }
+}
+
 void spread_subproblem_3d(BIGINT off1,BIGINT off2,BIGINT off3,BIGINT size1,
                           BIGINT size2,BIGINT size3,FLT *du,BIGINT M,
 			  FLT *kx,FLT *ky,FLT *kz,FLT *dd,
@@ -1015,6 +1096,34 @@ void spread_subproblem_3d(BIGINT off1,BIGINT off2,BIGINT off3,BIGINT size1,
  */
 {
   int ns=opts.nspread;
+  if (ns == 16) {
+    return spread_subproblem_3dN<16>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+  if (ns == 15) {
+    return spread_subproblem_3dN<14>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+  if (ns == 14) {
+    return spread_subproblem_3dN<14>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+  if (ns == 12) {
+    return spread_subproblem_3dN<12>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+  if (ns == 10) {
+    return spread_subproblem_3dN<10>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+  if (ns == 8) {
+    return spread_subproblem_3dN<8>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+  if (ns == 6) {
+    return spread_subproblem_3dN<6>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+  if (ns == 4) {
+    return spread_subproblem_3dN<4>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+  if (ns == 2) {
+    return spread_subproblem_3dN<2>(off1,off2,off3,size1,size2,size3,du,M,kx,ky,kz,dd,opts);
+  }
+
   FLT ns2 = (FLT)ns/2;          // half spread width
   for (BIGINT i=0;i<2*size1*size2*size3;++i)
     du[i] = 0.0;
@@ -1024,7 +1133,7 @@ void spread_subproblem_3d(BIGINT off1,BIGINT off2,BIGINT off3,BIGINT size1,
   FLT kernel_values[3*MAX_NSPREAD];
   FLT *ker1 = kernel_values;
   FLT *ker2 = kernel_values + ns;
-  FLT *ker3 = kernel_values + 2*ns;  
+  FLT *ker3 = kernel_values + 2*ns;
   for (BIGINT i=0; i<M; i++) {           // loop over NU pts
     FLT re0 = dd[2*i];
     FLT im0 = dd[2*i+1];
@@ -1052,15 +1161,15 @@ void spread_subproblem_3d(BIGINT off1,BIGINT off2,BIGINT off3,BIGINT size1,
       ker1val[2*i+1] = im0*ker1[i];	
     }    
     // critical inner loop:
-    for (int dz=0; dz<ns; ++dz) {
-      BIGINT oz = size1*size2*(i3-off3+dz);        // offset due to z
-      for (int dy=0; dy<ns; ++dy) {
-	BIGINT j = oz + size1*(i2-off2+dy) + i1-off1;   // should be in subgrid
-	FLT kerval = ker2[dy]*ker3[dz];
-	FLT *trg = du+2*j;
-	for (int dx=0; dx<2*ns; ++dx) {
-	  trg[dx] += kerval*ker1val[dx];
-	}	
+    for (int dz = 0; dz < ns; ++dz) {
+      BIGINT oz = size1 * size2 * (i3 - off3 + dz);        // offset due to z
+      for (int dy = 0; dy < ns; ++dy) {
+        BIGINT j = oz + size1 * (i2 - off2 + dy) + i1 - off1;   // should be in subgrid
+        FLT kerval = ker2[dy] * ker3[dz];
+        FLT *trg = du + 2 * j;
+        for (int dx = 0; dx < 2 * ns; ++dx) {
+          trg[dx] += kerval * ker1val[dx];
+        }
       }
     }
   }
@@ -1207,31 +1316,8 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   const auto inv_bin_size_z = FLT(1.0 / bin_size_z);
   // count how many pts in each bin
   std::vector<BIGINT> counts(nbins, 0);
-  static constexpr auto avx_width = xsimd::batch<FLT>::size;
-  const auto remainder = M % avx_width;
-  const auto elems = M - remainder;
-  for (auto i=0; i<elems; i+=avx_width) {
-    const auto i1 = fold_rescale_vec(xsimd::load_unaligned(kx + i), N1) * inv_bin_size_x;
-    const auto i2 = isky ? fold_rescale_vec(xsimd::load_unaligned(ky + i), N2) * inv_bin_size_y : xsimd::batch<FLT>(0);
-    const auto i3 = iskz ? fold_rescale_vec(xsimd::load_unaligned(kz + i), N3) * inv_bin_size_z : xsimd::batch<FLT>(0);
-    std::array<BIGINT, avx_width> i1_array{}, i2_array{}, i3_array{};
-    xsimd::store_as(i1_array.data(), i1, xsimd::aligned_mode{});
-    xsimd::store_as(i2_array.data(), i2, xsimd::aligned_mode{});
-    xsimd::store_as(i3_array.data(), i3, xsimd::aligned_mode{});
-    static constexpr auto BIGINT_width = xsimd::batch<BIGINT>::size;
-    for (auto j = 0; j < avx_width; j += BIGINT_width) {
-      const auto i1_int = xsimd::load_aligned(i1_array.data() + j);
-      const auto i2_int = xsimd::load_aligned(i2_array.data() + j);
-      const auto i3_int = xsimd::load_aligned(i3_array.data() + j);
-      const auto bins = i1_int + nbins1 * (i2_int + nbins2 * i3_int);
-      alignas(sizeof(bins)) std::array<BIGINT, BIGINT_width> bin_array{};
-      bins.store_aligned(bin_array.data());
-      for (const auto bin: bin_array) {
-        ++counts[bin];
-      }
-    }
-  }
-  for (auto i=elems; i<M; i++) {
+
+  for (auto i=0; i<M; i++) {
     // find the bin index in however many dims are needed
     const auto i1 = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
     const auto i2 = isky ? BIGINT(fold_rescale(ky[i], N2) * inv_bin_size_y) : 0;
@@ -1248,30 +1334,7 @@ void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
     current_offset += tmp;
   }              // (counts now contains the index offsets for each bin)
 
-  for (auto i=0; i<elems; i+=avx_width) {
-    const auto i1 = fold_rescale_vec(xsimd::load_unaligned(kx + i), N1) * inv_bin_size_x;
-    const auto i2 = isky ? fold_rescale_vec(xsimd::load_unaligned(ky + i), N2) * inv_bin_size_y : xsimd::batch<FLT>(0);
-    const auto i3 = iskz ? fold_rescale_vec(xsimd::load_unaligned(kz + i), N3) * inv_bin_size_z : xsimd::batch<FLT>(0);
-    std::array<BIGINT, avx_width> i1_array{}, i2_array{}, i3_array{};
-    xsimd::store_as(i1_array.data(), i1, xsimd::aligned_mode{});
-    xsimd::store_as(i2_array.data(), i2, xsimd::aligned_mode{});
-    xsimd::store_as(i3_array.data(), i3, xsimd::aligned_mode{});
-    static constexpr auto BIGINT_width = xsimd::batch<BIGINT>::size;
-    for (auto j = 0; j < avx_width; j += BIGINT_width) {
-      const auto i1_int = xsimd::load_aligned(i1_array.data() + j);
-      const auto i2_int = xsimd::load_aligned(i2_array.data() + j);
-      const auto i3_int = xsimd::load_aligned(i3_array.data() + j);
-      const auto bins = i1_int + nbins1 * (i2_int + nbins2 * i3_int);
-      alignas(sizeof(bins)) std::array<BIGINT, BIGINT_width> bin_array{};
-      bins.store_aligned(bin_array.data());
-      for (auto k = 0; k < BIGINT_width; ++k) {
-        const auto bin = bin_array[k];
-        ret[counts[bin]] = i+j+k;      // fill the inverse map on the fly, careful of indexes errors
-        ++counts[bin];
-      }
-    }
-  }
-  for (auto i=elems; i<M; i++) {
+  for (auto i=0; i<M; i++) {
     // find the bin index (again! but better than using RAM)
     const auto i1 = BIGINT(fold_rescale(kx[i], N1) * inv_bin_size_x);
     const auto i2 = isky ? BIGINT(fold_rescale(ky[i], N2) * inv_bin_size_y) : 0;
@@ -1353,7 +1416,6 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   }
 }
 
-
 void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,BIGINT &size2,BIGINT &size3,BIGINT M,FLT* kx,FLT* ky,FLT* kz,int ns,int ndims)
 /* Writes out the integer offsets and sizes of a "subgrid" (cuboid subset of
    Z^ndims) large enough to enclose all of the nonuniform points with
@@ -1403,6 +1465,7 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
   arrayrange(M,kx,&min_kx,&max_kx);
   offset1 = (BIGINT)std::ceil(min_kx-ns2);   // min index touched by kernel
   size1 = (BIGINT)std::ceil(max_kx-ns2) - offset1 + ns;  // int(ceil) first!
+
   if (ndims>1) {
     FLT min_ky,max_ky;   // 2nd (y) dimension: get min/max of nonuniform points
     arrayrange(M,ky,&min_ky,&max_ky);
@@ -1435,10 +1498,76 @@ FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
   return (result-floor(result)) * FLT(N);
 }
 
-FINUFFT_ALWAYS_INLINE xsimd::batch<FLT> fold_rescale_vec(const xsimd::batch<FLT> x, const int64_t N) noexcept {
-  auto result = x * FLT(M_1_2PI) + FLT(0.5);
-  result -= xsimd::floor(result);
-  return result * FLT(N);
+// Below there is some template metaprogramming magic to find the best SIMD type
+// for the given number of elements. The code is based on the xsimd library
+
+
+// this finds the largest SIMD instruction set that can handle N elements
+// void otherwise -> compile error
+template<class T, uint16_t N, uint16_t K>
+static constexpr auto BestSIMDHelper() {
+  if constexpr (K == 0) {
+    return xsimd::make_sized_batch<T, 0>{}; // or whatever base case value is appropriate
+  } else if constexpr (!std::is_void<xsimd::make_sized_batch_t<T, K>>::value && N % K == 0) {
+    return xsimd::make_sized_batch<T, K>{};
+  } else {
+    return BestSIMDHelper<T, N, K - 1>();
+  }
+}
+
+// below there is some trickery to obtain the padded SIMD type to vectorize
+// the given number of elements.
+// improper use will cause the compiler to either throw an error on the recursion depth
+// or on older ones... "compiler internal error please report"
+// you have been warned.
+template<class T, uint16_t N>
+static constexpr auto GetValidSIMDSize() {
+  static_assert(N < 128);
+  if constexpr (!std::is_void<BestSIMD<T, N>>::value) {
+    return BestSIMD<T, N>::size;
+  } else {
+    return GetValidSIMDSize<T, N + 1>();
+  }
+}
+
+// FIXME: all of this can be templated properly to avoid the switch statement
+//        It requires major changes to the codebase though
+//        Since 2 <= ns <= 16, It is fine for now
+template<class T>
+static uint16_t get_padding(uint16_t ns) {
+  auto width = 0;
+  if (ns == 6) {
+    width = GetValidSIMDSize<T, 6>();
+  }
+  if (ns == 10) {
+    width = GetValidSIMDSize<T, 10>();
+  }
+  if (ns == 14) {
+    width = GetValidSIMDSize<T, 15>();
+  }
+  if (ns == 18) {
+    width = GetValidSIMDSize<T, 18>();
+  }
+  if (ns == 22) {
+    width = GetValidSIMDSize<T, 22>();
+  }
+  if (ns == 26) {
+    width = GetValidSIMDSize<T, 26>();
+  }
+  if (ns == 30) {
+    width = GetValidSIMDSize<T, 30>();
+  }
+  // return 0 if no padding is needed
+  return width == 0 ? 0 : width - (ns % width);
+}
+
+// This is a templated version of the above function
+// Much cleaner and easier to understand
+
+template<class T, uint16_t ns>
+constexpr auto get_padding() {
+  constexpr uint16_t width = GetValidSIMDSize<T, ns>();
+  return width - (ns % width);
 }
 
 
