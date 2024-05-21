@@ -33,7 +33,7 @@ option(FINUFFT_USE_OPENMP "Whether to use OpenMP for parallelization. If disable
 option(FINUFFT_USE_CUDA "Whether to build CUDA accelerated FINUFFT library (libcufinufft). This is completely independent of the main FINUFFT library" OFF)
 option(FINUFFT_USE_CPU "Whether to build the ordinary FINUFFT library (libfinufft)." ON)
 option(FINUFFT_STATIC_LINKING "Whether to link the static FINUFFT library (libfinufft_static)." ON)
-option(FINUFFT_BUILD_DEVEL "Whether to build developement executables" OFF)
+option(FINUFFT_BUILD_DEVEL "Whether to build development executables" OFF)
 # sphinx tag (don't remove): @cmake_opts_end
 
 if(FINUFFT_USE_CPU)
