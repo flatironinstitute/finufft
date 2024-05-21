@@ -9,6 +9,8 @@ if(CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG -funroll-loops")
 endif()
 
+add_compile_options(-g -fno-omit-frame-pointer)
+
 include(CTest)
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc|ppc64|powerpc|powerpc64" OR (APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc|ppc64"))
@@ -92,8 +94,8 @@ function(enable_asan target)
 
     if (CMAKE_CXX_COMPILER_ID IN_LIST FINUFFT_GNU_LIKE_COMPILERS)
         # Enable only on clang / gcc compilers.
-        target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address>)
-        target_link_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address>)
+        target_compile_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict>)
+        target_link_options(${target} PRIVATE $<$<CONFIG:DEBUG>:-fsanitize=address -fsanitize=undefined -fsanitize=bounds-strict>)
     endif ()
 endfunction()
 
@@ -119,7 +121,7 @@ endfunction()
 # Utility function to set finufft compilation options.
 function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
-    set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 14)
+    set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 17)
     enable_asan(${target})
 
     target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)

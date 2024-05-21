@@ -19,4 +19,6 @@ endif()
 
 add_executable(foldrescale foldrescale.cpp)
 target_link_libraries(foldrescale finufft benchmark xsimd)
-#target_compile_options(foldrescale PRIVATE -mavx2 )
+add_executable(padding padding.cpp)
+target_link_libraries(padding finufft xsimd)
+target_compile_options(padding PRIVATE -march=native)

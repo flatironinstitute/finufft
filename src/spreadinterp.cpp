@@ -41,9 +41,11 @@ using BestSIMD = typename decltype(BestSIMDHelper<T, N, K>())::type;
 
 // declarations of purely internal functions... (thus need not be in .h)
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
-static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts);
-static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N);
-static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT *ker, FLT x, int w, const finufft_spread_opts &opts);
+static FINUFFT_ALWAYS_INLINE void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts) noexcept;
+static FINUFFT_ALWAYS_INLINE void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, int N) noexcept;
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT *ker, FLT x, int w, const finufft_spread_opts &opts) noexcept;
+template<uint16_t w> // aka ns
+static FINUFFT_ALWAYS_INLINE void eval_kernel_vec_Horner(FLT * __restrict__ ker, FLT x, const finufft_spread_opts &opts) noexcept;
 void interp_line(FLT *out,FLT *du, FLT *ker,BIGINT i1,BIGINT N1,int ns);
 void interp_square(FLT *out,FLT *du, FLT *ker1, FLT *ker2, BIGINT i1,BIGINT i2,BIGINT N1,BIGINT N2,int ns);
 void interp_cube(FLT *out,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
@@ -56,7 +58,7 @@ void spread_subproblem_2d(BIGINT off1, BIGINT off2, BIGINT size1,BIGINT size2,
 void spread_subproblem_3d(BIGINT off1,BIGINT off2, BIGINT off3, BIGINT size1,
                           BIGINT size2,BIGINT size3,FLT *du0,BIGINT M0,
 			  FLT *kx0,FLT *ky0,FLT *kz0,FLT *dd0,
-			  const finufft_spread_opts& opts);
+			  const finufft_spread_opts& opts) noexcept;
 void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
 			 BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
 			 BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
@@ -628,7 +630,7 @@ FLT evaluate_kernel(FLT x, const finufft_spread_opts &opts)
     return exp((FLT)opts.ES_beta * sqrt((FLT)1.0 - (FLT)opts.ES_c*x*x));
 }
 
-static inline void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts)
+static inline void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& opts) noexcept
 // Fills vector args[] with kernel arguments x, x+1, ..., x+ns-1.
 // needed for the vectorized kernel eval of Ludvig af K.
 {
@@ -637,7 +639,7 @@ static inline void set_kernel_args(FLT *args, FLT x, const finufft_spread_opts& 
     args[i] = x + (FLT) i;
 }
 
-static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N)
+static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spread_opts& opts, const int N) noexcept
 /* Evaluate ES kernel for a vector of N arguments; by Ludvig af K.
    If opts.kerpad true, args and ker must be allocated for Npad, and args is
    written to (to pad to length Npad), only first N outputs are correct.
@@ -673,15 +675,31 @@ static inline void evaluate_kernel_vector(FLT *ker, FLT *args, const finufft_spr
     if (abs(args[i])>=(FLT)opts.ES_halfwidth) ker[i] = 0.0;
 }
 
+template<uint16_t w> // aka ns
+static inline void eval_kernel_vec_Horner(FLT * __restrict__ ker, const FLT x, const finufft_spread_opts &opts) noexcept
+/* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
+x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
+This is the current evaluation method, since it's faster (except i7 w=16).
+Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
+{
+  const FLT z = std::fma(FLT(2.0),x, FLT(w-1)); // scale so local grid offset z in [-1,1]
+  // insert the auto-generated code which expects z, w args, writes to ker...
+  if (opts.upsampfac==2.0) {     // floating point equality is fine here
+#include "ker_horner_allw_loop_constexpr.c"
+  } else if (opts.upsampfac==1.25) {
+#include "ker_lowupsampfac_horner_allw_loop_constexpr.c"
+  }
+}
+
 static inline void eval_kernel_vec_Horner(FLT *ker, const FLT x, const int w,
-					  const finufft_spread_opts &opts)
+					  const finufft_spread_opts &opts) noexcept
 /* Fill ker[] with Horner piecewise poly approx to [-w/2,w/2] ES kernel eval at
    x_j = x + j,  for j=0,..,w-1.  Thus x in [-w/2,-w/2+1].   w is aka ns.
    This is the current evaluation method, since it's faster (except i7 w=16).
    Two upsampfacs implemented. Params must match ref formula. Barnett 4/24/18 */
 {
   if (!(opts.flags & TF_OMIT_EVALUATE_KERNEL)) {
-    const auto z = std::fma(FLT(2.0),x, FLT(w-1)); // scale so local grid offset z in [-1,1]
+    const FLT z = std::fma(FLT(2.0),x, FLT(w-1)); // scale so local grid offset z in [-1,1]
     // insert the auto-generated code which expects z, w args, writes to ker...
     if (opts.upsampfac==2.0) {     // floating point equality is fine here
 #include "ker_horner_allw_loop.c"
@@ -1020,7 +1038,8 @@ void spread_subproblem_2d(BIGINT off1,BIGINT off2,BIGINT size1,BIGINT size2,
   }
 }
 
-template<uint16_t ns>
+template<uint16_t ns, bool kerevalmeth>
+FINUFFT_ALWAYS_INLINE
 void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT off3, const BIGINT size1,
                                  const BIGINT size2, const BIGINT size3, FLT *__restrict__ du, const BIGINT M,
                                  const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
@@ -1033,7 +1052,6 @@ void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIG
 
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
-  alignas(alignment) FLT kernel_args[3 * MAX_NSPREAD];
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD];
@@ -1050,15 +1068,16 @@ void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIG
     const auto x1 = (FLT) i1 - kx[pt];
     const auto x2 = (FLT) i2 - ky[pt];
     const auto x3 = (FLT) i3 - kz[pt];
-    if (opts.kerevalmeth == 0) {          // faster Horner poly method
+    if constexpr (kerevalmeth) {          // faster Horner poly method
+      eval_kernel_vec_Horner<ns>(ker1, x1, opts);
+      eval_kernel_vec_Horner<ns>(ker2, x2, opts);
+      eval_kernel_vec_Horner<ns>(ker3, x3, opts);
+    } else {
+      alignas(alignment) FLT kernel_args[3 * ns];
       set_kernel_args(kernel_args, x1, opts);
       set_kernel_args(kernel_args + ns, x2, opts);
       set_kernel_args(kernel_args + 2 * ns, x3, opts);
       evaluate_kernel_vector(kernel_values, kernel_args, opts, 3 * ns);
-    } else {
-      eval_kernel_vec_Horner(ker1, x1, ns, opts);
-      eval_kernel_vec_Horner(ker2, x2, ns, opts);
-      eval_kernel_vec_Horner(ker3, x3, ns, opts);
     }
     // Combine kernel with complex source value to simplify inner loop
     alignas(alignment) FLT ker1val[2 * ns + padding];    // here 2* is because of complex
@@ -1079,7 +1098,7 @@ void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIG
         const auto kerval = ker2[dy] * ker3[dz];
         auto * __restrict__ trg = du + 2 * j;
         const batch_t kerval_batch(kerval);
-        static constexpr auto iterations = (2 * ns + padding) / avx_size;
+        static constexpr auto iterations = (2 * ns + padding)/avx_size;
 #pragma GCC loop ivdep unroll iterations
         for (auto dx = 0; dx < 2 * ns; dx += avx_size) {
           const auto ker1val_batch = xsimd::load_aligned<arch_t>(ker1val + dx);
@@ -1096,16 +1115,24 @@ template<int NS>
 FINUFFT_ALWAYS_INLINE
 void spread_subproblem_3d_dispatch(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1, BIGINT size2, BIGINT size3,
                                    FLT *du, BIGINT M, const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
-                                   const finufft_spread_opts &opts, int ns_runtime) {
+                                   const finufft_spread_opts &opts) noexcept {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD, "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
-    return spread_subproblem_3d_kernel<MIN_NSPREAD>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
+    if (opts.kerevalmeth)
+      return spread_subproblem_3d_kernel<MIN_NSPREAD, true>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
+    else {
+      return spread_subproblem_3d_kernel<MIN_NSPREAD, false>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
+    }
   } else {
-    if (ns_runtime == NS) {
-      return spread_subproblem_3d_kernel<NS>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
+    if (opts.nspread == NS ){
+      if (opts.kerevalmeth) {
+        return spread_subproblem_3d_kernel<NS, true>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
+      } else {
+        return spread_subproblem_3d_kernel<NS, false>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
+      }
     } else {
       return spread_subproblem_3d_dispatch < NS - 1 >
-      (off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts, ns_runtime);
+      (off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
     }
   }
 }
@@ -1113,7 +1140,7 @@ void spread_subproblem_3d_dispatch(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT
 void spread_subproblem_3d(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1,
                           BIGINT size2, BIGINT size3, FLT *du, BIGINT M,
                           FLT *kx, FLT *ky, FLT *kz, FLT *dd,
-                          const finufft_spread_opts &opts)
+                          const finufft_spread_opts &opts) noexcept
 /* spreader from dd (NU) to du (uniform) in 3D without wrapping.
 See above docs/notes for spread_subproblem_2d.
 kx,ky,kz (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in each dim.
@@ -1121,8 +1148,7 @@ dd (size M complex) are complex source strengths
 du (size size1*size2*size3) is uniform complex output array
 */
 {
-  spread_subproblem_3d_dispatch<MAX_NSPREAD>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts,
-                                             opts.nspread);
+  spread_subproblem_3d_dispatch<MAX_NSPREAD>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
 }
 
 void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
@@ -1473,7 +1499,7 @@ static constexpr auto BestSIMDHelper() {
 template<class T, uint16_t N>
 static constexpr auto GetValidSIMDSize() {
   static_assert(N < 128);
-  if constexpr (!std::is_void<BestSIMD<T, N>>::value) {
+ if constexpr (!std::is_void<BestSIMD<T, N>>::value) {
     return BestSIMD<T, N>::size;
   } else {
     return GetValidSIMDSize<T, N + 1>();
