@@ -932,7 +932,7 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
 
 template<uint16_t ns, bool kerevalmeth>
 void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __restrict__ du, const BIGINT M,
-                              const FLT * const kx, const FLT * const dd, const finufft_spread_opts& opts){
+                              const FLT * const kx, const FLT * const dd, const finufft_spread_opts& opts) noexcept {
 /* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
    Inputs:
    off1 - integer offset of left end of du subgrid from that of overall fine
@@ -955,7 +955,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
 
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
-  alignas(64) FLT ker[MAX_NSPREAD];
+  FLT ker[MAX_NSPREAD];
 
   for (BIGINT i = 0; i < M; i++) {           // loop over NU pts
     const auto re0 = dd[2 * i];
@@ -972,7 +972,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     if constexpr (kerevalmeth) {          // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker, x1, opts);
    } else {
-      FLT kernel_args[ns];
+      FLT kernel_args[MAX_NSPREAD];
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     }
@@ -980,21 +980,19 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
     auto* __restrict__ trg = du + 2 * j;
     // critical inner loop:
-    // du is padded, so we can use SIMD even if we write more than ns values in du
-    // ker0 is also padded.
     for (auto dx=0; dx<ns; ++dx) {
       const auto k = ker[dx];
-      trg[2*dx] += re0*k;
-      trg[2*dx+1] += im0*k;
+      trg[2*dx] = std::fma(re0, k, trg[2*dx]);
+      trg[2*dx+1] = std::fma(im0, k, trg[2*dx+1]);
     }
   }
 }
 
 template<uint16_t NS>
 FINUFFT_ALWAYS_INLINE
-void spread_subproblem_1d_dispatch(const BIGINT off1, const BIGINT size1, FLT *__restrict__ du, const BIGINT M,
+static void spread_subproblem_1d_dispatch(const BIGINT off1, const BIGINT size1, FLT *__restrict__ du, const BIGINT M,
                                    const FLT *kx, const FLT *dd,
-                                   const finufft_spread_opts &opts) {
+                                   const finufft_spread_opts &opts) noexcept {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD, "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
   if constexpr (NS == MIN_NSPREAD) { // Base case
     if (opts.kerevalmeth)
@@ -1028,9 +1026,9 @@ du (size size1*size2*size3) is uniform complex output array
 }
 
 template<uint16_t ns, bool kerevalmeth>
-void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
+static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
                           FLT * __restrict__ du, const BIGINT M, const FLT *kx, const FLT *ky, const FLT *dd,
-                          const finufft_spread_opts &opts)
+                          const finufft_spread_opts &opts) noexcept
 /* spreader from dd (NU) to du (uniform) in 2D without wrapping.
    See above docs/notes for spread_subproblem_2d.
    kx,ky (size M) are NU locations in [off+ns/2,off+size-1-ns/2] in both dims.
@@ -1046,9 +1044,10 @@ void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, const BIG
 
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1 * size2, 0);
+  alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
-  alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD];
+  alignas(alignment) FLT kernel_values[2 * MAX_NSPREAD];
   auto *ker1 = kernel_values;
   auto *ker2 = kernel_values + MAX_NSPREAD;
   for (BIGINT pt = 0; pt < M; pt++) {           // loop over NU pts
@@ -1071,7 +1070,7 @@ void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, const BIG
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
     // initialized to 0 due to the padding
-    alignas(alignment) FLT ker1val[2 * ns + padding] = {0};
+
     for (auto i = 0; i < ns; i++) {
       ker1val[2 * i] = re0 * ker1[i];
       ker1val[2 * i + 1] = im0 * ker1[i];
@@ -1094,7 +1093,7 @@ void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, const BIG
 
 template<uint16_t NS>
 FINUFFT_ALWAYS_INLINE
-void spread_subproblem_2d_dispatch(const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
+static void spread_subproblem_2d_dispatch(const BIGINT off1, const BIGINT off2, const BIGINT size1, const BIGINT size2,
                                  FLT * __restrict__ du, const BIGINT M, const FLT *kx, const FLT *ky, const FLT *dd,
                                  const finufft_spread_opts &opts) {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD, "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
@@ -1133,10 +1132,10 @@ du (size size1*size2*size3) is uniform complex output array
 
 
 template<uint16_t ns, bool kerevalmeth>
-void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT off3, const BIGINT size1,
+static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIGINT off3, const BIGINT size1,
                                  const BIGINT size2, const BIGINT size3, FLT *__restrict__ du, const BIGINT M,
                                  const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
-                                 const finufft_spread_opts &opts) {
+                                 const finufft_spread_opts &opts) noexcept {
   static constexpr auto padding = get_padding<FLT, 2 * ns>();
   using batch_t = BestSIMD<FLT, 2 * ns + padding>;
   using arch_t = typename batch_t::arch_type;
@@ -1145,6 +1144,8 @@ void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIG
 
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1 * size2 * size3, 0);
+  // initialized to 0 due to the padding
+  alignas(alignment) FLT ker1val[2 * ns + padding]={0};
   // Kernel values stored in consecutive memory. This allows us to compute
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD];
@@ -1174,8 +1175,6 @@ void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIG
     }
     // Combine kernel with complex source value to simplify inner loop
     // here 2* is because of complex
-    // initialized to 0 due to the padding
-    alignas(alignment) FLT ker1val[2 * ns + padding]={0};
     for (auto i = 0; i < ns; i++) {
       ker1val[2 * i] = re0 * ker1[i];
       ker1val[2 * i + 1] = im0 * ker1[i];
@@ -1201,7 +1200,7 @@ void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, const BIG
 
 template<int NS>
 FINUFFT_ALWAYS_INLINE
-void spread_subproblem_3d_dispatch(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1, BIGINT size2, BIGINT size3,
+static void spread_subproblem_3d_dispatch(BIGINT off1, BIGINT off2, BIGINT off3, BIGINT size1, BIGINT size2, BIGINT size3,
                                    FLT *du, BIGINT M, const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
                                    const finufft_spread_opts &opts) noexcept {
   static_assert(MIN_NSPREAD <= NS <= MAX_NSPREAD, "NS must be in the range (MIN_NSPREAD, MAX_NSPREAD)");
