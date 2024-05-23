@@ -930,81 +930,6 @@ void interp_cube(FLT *target,FLT *du, FLT *ker1, FLT *ker2, FLT *ker3,
   target[1] = out[1];  
 }
 
-//    template<uint16_t ns, bool kerevalmeth>
-//    void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __restrict__ du, const BIGINT M,
-//                                     const FLT * const kx, const FLT * const dd, const finufft_spread_opts& opts){
-///* 1D spreader from nonuniform to uniform subproblem grid, without wrapping.
-//   Inputs:
-//   off1 - integer offset of left end of du subgrid from that of overall fine
-//          periodized output grid {0,1,..N-1}.
-//   size1 - integer length of output subgrid du
-//   M - number of NU pts in subproblem
-//   kx (length M) - are rescaled NU source locations, should lie in
-//                   [off1+ns/2,off1+size1-1-ns/2] so as kernels stay in bounds
-//   dd (length M complex, interleaved) - source strengths
-//   Outputs:
-//   du (length size1 complex, interleaved) - preallocated uniform subgrid array
-//
-//   The reason periodic wrapping is avoided in subproblems is speed: avoids
-//   conditionals, indirection (pointers), and integer mod. Originally 2017.
-//   Kernel eval mods by Ludvig al Klinteberg.
-//   Fixed so rounding to integer grid consistent w/ get_subgrid, prevents
-//   chance of segfault when epsmach*N1>O(1), assuming max() and ceil() commute.
-//   This needed off1 as extra arg. AHB 11/30/20.
-//*/
-//      static constexpr auto padding = get_padding<FLT, 2*ns>();
-//      using batch_t = BestSIMD<FLT, 2*ns + padding>;
-//      using arch_t = typename batch_t::arch_type;
-//      using batch_c = xsimd::batch<std::complex<FLT>, arch_t>;
-//      static constexpr size_t alignment = arch_t::alignment();
-//      static constexpr auto avx_size = batch_c::size;
-//
-//      constexpr auto ns2 = ns * FLT(0.5);          // half spread width
-//      std::fill(du, du + 2 * size1, 0);           // zero output
-//
-//
-//      alignas(alignment) std::array<FLT, avx_size> kk{};
-//      alignas(alignment) FLT ker[MAX_NSPREAD];
-//      alignas(alignment) std::complex<FLT> padded_ker[2*ns+padding]{0};
-//
-//      for (BIGINT i = 0; i < M; i++) {           // loop over NU pts
-//        const auto re0 = dd[2 * i];
-//        const auto im0 = dd[2 * i + 1];
-//        const auto dd_pt = xsimd::batch<std::complex<FLT>, arch_t>(re0, im0);
-//        // ceil offset, hence rounding, must match that in get_subgrid...
-//        const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
-//        auto x1 = (FLT) i1 - kx[i];            // x1 in [-w/2,-w/2+1], up to rounding
-//        // However if N1*epsmach>O(1) then can cause O(1) errors in x1, hence ppoly
-//        // kernel evaluation will fall outside their designed domains, >>1 errors.
-//        // This can only happen if the overall error would be O(1) anyway. Clip x1??
-//        if (x1 < -ns2) x1 = -ns2; // why the wrapping only in 1D ?
-//        if (x1 > -ns2 + 1) x1 = -ns2 + 1;   // ***
-//        if constexpr (kerevalmeth) {          // faster Horner poly method
-//          eval_kernel_vec_Horner<ns>(ker, x1, opts);
-//        } else {
-//          FLT kernel_args[ns];
-//          set_kernel_args(kernel_args, x1, opts);
-//          evaluate_kernel_vector(ker, kernel_args, opts, ns);
-//        }
-//
-//        for (int j = 0; j < ns; ++j) {
-//          padded_ker[j] = {ker[j], ker[j]};
-//        }
-//
-//        const BIGINT j = i1 - off1;    // offset rel to subgrid, starts the output indices
-//        auto  *  __restrict__ trg = reinterpret_cast<std::complex<FLT> *>(du+2*j);
-//        // critical inner loop:
-//        // du is padded, so we can use SIMD even if we write more than ns values in du
-//        // ker0 is also padded.
-//        for (auto dx=0; dx < ns; dx+=avx_size) {
-//          const auto k = xsimd::load_aligned<arch_t>(padded_ker+dx);
-//          const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
-//          const auto res = xsimd::fma(k, dd_pt, du_pt);
-//          res.store_unaligned(trg + dx);
-//        }
-//      }
-//    }
-
 template<uint16_t ns, bool kerevalmeth>
 void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __restrict__ du, const BIGINT M,
                               const FLT * const kx, const FLT * const dd, const finufft_spread_opts& opts){
@@ -1033,9 +958,8 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
   static constexpr size_t alignment = batch_t::arch_type::alignment();
   static constexpr auto avx_size = batch_t::size;
 
-  constexpr auto ns2 = ns * FLT(0.5);          // half spread width
+  static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
-
 
   alignas(alignment) std::array<FLT, avx_size> kk{};
   alignas(alignment) FLT ker[MAX_NSPREAD];
@@ -1071,15 +995,16 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
       padded_ker[j*2+1] = ker[j];
     }
 
-    BIGINT j = i1 - off1;    // offset rel to subgrid, starts the output indices
+    const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
+    const auto trg = du + 2 * j;
     // critical inner loop:
     // du is padded, so we can use SIMD even if we write more than ns values in du
     // ker0 is also padded.
     for (auto dx=0; dx < 2*ns; dx+=avx_size) {
-      const auto k = xsimd::load_aligned<arch_t>(padded_ker+dx);
-      const auto du_pt = xsimd::load_unaligned<arch_t>(du + 2*j + dx);
-      const auto res = xsimd::fma(k, dd_pt, du_pt);
-      res.store_unaligned(du + 2*j + dx);
+      const auto ker0 = xsimd::load_aligned<arch_t>(padded_ker+dx);
+      const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
+      const auto res = xsimd::fma(ker0, dd_pt, du_pt);
+      res.store_unaligned(trg + dx);
     }
   }
 }
