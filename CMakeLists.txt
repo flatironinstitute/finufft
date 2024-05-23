@@ -9,8 +9,6 @@ if(CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG -funroll-loops")
 endif()
 
-add_compile_options(-g -fno-omit-frame-pointer)
-
 include(CTest)
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc|ppc64|powerpc|powerpc64" OR (APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "ppc|ppc64"))
@@ -49,6 +47,7 @@ if(FINUFFT_USE_CPU)
 
     set(CPM_DOWNLOAD_VERSION 0.38.0)
     set(FFTW_VERSION 3.3.10)
+    set(XTL_VERSION 0.7.7)
     set(XSIMD_VERSION 13.0.0)
     include(cmake/setupCPM.cmake)
     include(cmake/setupFFTW.cmake)
