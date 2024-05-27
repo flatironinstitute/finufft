@@ -35,6 +35,7 @@ Documentation contents
    python_gpu
    julia
    changelog
+   nfft_migr
    cufinufft_migration
    devnotes
    related

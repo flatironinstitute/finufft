@@ -3,9 +3,11 @@ If not stated, FINUFFT is assumed (cuFINUFFT <=1.3 is listed separately).
 
 * cufinufft now supports modeord(type 1,2 only): 0 CMCL-style increasing mode
   order, 1 FFT-style mode order.
+* New doc page: migration guide from NFFT3 (2d1 case only).
 * New foldrescale, removes [-3pi,3pi) restriction on NU points, and slight
   speedup at large tols. Deprecates both opts.chkbnds and error code
-  FINUFFT_ERR_SPREAD_PTS_OUT_RANGE.  PR #440 (Marco Barbone + Martin Reinecke)
+  FINUFFT_ERR_SPREAD_PTS_OUT_RANGE. Also inlined kernel eval code, increases
+  compile of spreadinterp.cpp to 10s. PR #440 (Marco Barbone + Martin Reinecke)
 * CPU plan stage allows any # threads, warns if > omp_get_max_threads(); or
   if single-threaded fixes nthr=1 and warns opts.nthreads>1 attempt.
   Sort now respects spread_opts.sort_threads not nthreads. Supercedes PR 431.
