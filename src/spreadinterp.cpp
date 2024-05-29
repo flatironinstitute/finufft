@@ -1255,7 +1255,7 @@ void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT 
 */
 {
   std::vector<BIGINT> o2(size2), o3(size3);
-  static constexpr auto accumulate = [](FLT& a, FLT b) {
+  static auto accumulate = [](FLT& a, FLT b) {
     if constexpr (thread_safe) { // NOLINT(*-branch-clone)
 #pragma omp atomic
       a += b;
