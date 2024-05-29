@@ -964,15 +964,28 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
    chance of segfault when epsmach*N1>O(1), assuming max() and ceil() commute.
    This needed off1 as extra arg. AHB 11/30/20.
 */
+  static constexpr auto padding = get_padding<FLT, 2 * ns>();
+  using batch_t = PaddedSIMD<FLT, 2 * ns>;
+  using arch_t = typename batch_t::arch_type;
+  static constexpr size_t alignment = batch_t::arch_type::alignment();
+  static constexpr auto avx_size = batch_t::size;
 
   static constexpr auto ns2 = ns * FLT(0.5);          // half spread width
   std::fill(du, du + 2 * size1, 0);           // zero output
-  FLT ker[MAX_NSPREAD];
 
+  alignas(alignment) std::array<FLT, avx_size> kk{};
+  alignas(alignment) FLT ker[MAX_NSPREAD];
+  alignas(alignment) FLT padded_ker[2*ns+padding]{0};
+//  auto  *  __restrict__ du_c = reinterpret_cast<std::complex<FLT> *>(du);
   for (BIGINT i = 0; i < M; i++) {           // loop over NU pts
     const auto re0 = dd[2 * i];
     const auto im0 = dd[2 * i + 1];
 
+    for (int j = 0; j < avx_size/2; j++) {
+      kk[j*2] = re0;
+      kk[j*2+1] = im0;
+    }
+    const auto dd_pt = xsimd::load_aligned<arch_t>(kk.data());
     // ceil offset, hence rounding, must match that in get_subgrid...
     const auto i1 = (BIGINT) std::ceil(kx[i] - ns2);    // fine grid start index
     auto x1 = (FLT) i1 - kx[i];            // x1 in [-w/2,-w/2+1], up to rounding
@@ -983,19 +996,27 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     if (x1 > -ns2 + 1) x1 = -ns2 + 1;   // ***
     if constexpr (kerevalmeth) {          // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker, x1, opts);
-   } else {
+    } else {
       FLT kernel_args[ns];
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     }
 
+    for (int j = 0; j < ns; ++j) {
+      padded_ker[j*2] = ker[j];
+      padded_ker[j*2+1] = ker[j];
+    }
+
     const auto j = i1 - off1;    // offset rel to subgrid, starts the output indices
-    auto* __restrict__ trg = du + 2 * j;
+    const auto trg = du + 2 * j;
     // critical inner loop:
-    for (auto dx=0; dx<ns; ++dx) {
-      const auto k = ker[dx];
-      trg[2*dx] = std::fma(re0, k, trg[2*dx]);
-      trg[2*dx+1] = std::fma(im0, k, trg[2*dx+1]);
+    // du is padded, so we can use SIMD even if we write more than ns values in du
+    // ker0 is also padded.
+    for (auto dx=0; dx < 2*ns; dx+=avx_size) {
+      const auto ker0 = xsimd::load_aligned<arch_t>(padded_ker+dx);
+      const auto du_pt = xsimd::load_unaligned<arch_t>(trg + dx);
+      const auto res = xsimd::fma(ker0, dd_pt, du_pt);
+      res.store_unaligned(trg + dx);
     }
   }
 }
@@ -1049,7 +1070,7 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
 */
 {
   static constexpr auto padding = get_padding<FLT, 2 * ns>();
-  using batch_t = typename xsimd::make_sized_batch<FLT, GetPaddedSIMDSize<FLT, 2 * ns>()>::type;
+  using batch_t = PaddedSIMD<FLT, 2 * ns>;
   using arch_t = typename batch_t::arch_type;
   static constexpr auto avx_size = batch_t::size;
   static constexpr size_t alignment = batch_t::arch_type::alignment();
