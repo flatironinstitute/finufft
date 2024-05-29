@@ -5,8 +5,8 @@ project(finufft VERSION 2.2.0 LANGUAGES C CXX)
 set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
 if(CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     # Set custom compiler flags for gcc-compatible compilers
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -funroll-loops")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG -funroll-loops")
+    set(FINUFFT_CXX_FLAGS_RELEASE -funroll-loops -ffp-contract=fast)
+    set(FINUFFT_CXX_FLAGS_RELWITHDEBINFO -O3 -g -DNDEBUG ${FINUFFT_CXX_FLAGS_RELEASE})
 endif()
 
 include(CTest)
@@ -100,21 +100,21 @@ endfunction()
 
 # Utility function to link static/dynamic lib
 function(finufft_link_test target)
-  if(FINUFFT_STATIC_LINKING)
-      target_link_libraries(${target} PRIVATE finufft_static)
-      if(FINUFFT_USE_OPENMP)
-          target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
-          if(WIN32)
-              target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
-          endif()
-      endif()
-  else()
-      target_link_libraries(${target} PRIVATE finufft)
-      if(WIN32)
-          target_compile_definitions(${target} PRIVATE FINUFFT_DLL)
-      endif()
-  endif()
-  enable_asan(${target})
+    if(FINUFFT_STATIC_LINKING)
+        target_link_libraries(${target} PRIVATE finufft_static)
+        if(FINUFFT_USE_OPENMP)
+            target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
+            if(WIN32)
+                target_link_options(${target} PRIVATE ${OpenMP_CXX_FLAGS})
+            endif()
+        endif()
+    else()
+        target_link_libraries(${target} PRIVATE finufft)
+        if(WIN32)
+            target_compile_definitions(${target} PRIVATE FINUFFT_DLL)
+        endif()
+    endif()
+    enable_asan(${target})
 endfunction()
 
 # Utility function to set finufft compilation options.
@@ -128,7 +128,8 @@ function(set_finufft_options target)
         # Enable cx-limited-range on supported compilers
         target_compile_options(${target} PRIVATE $<$<CONFIG:Release,RelWithDebInfo>:-fcx-limited-range>)
     endif ()
-
+    target_compile_options(${target} PRIVATE $<$<CONFIG:Release>:${FINUFFT_CXX_FLAGS_RELEASE}>)
+    target_compile_options(${target} PRIVATE $<$<CONFIG:RelWithDebInfo>:${FINUFFT_CXX_FLAGS_RELWITHDEBINFO}>)
     target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
     if (FINUFFT_USE_OPENMP)
         target_link_libraries(${target} PRIVATE OpenMP::OpenMP_CXX)
@@ -212,19 +213,19 @@ if(FINUFFT_USE_CPU)
 endif()
 
 if(FINUFFT_USE_CUDA)
-  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    message("FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to '60;70;75;'")
-    message("See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply.")
-    set(CMAKE_CUDA_ARCHITECTURES "60;70;75" CACHE STRING "" FORCE)
-  endif()
-  enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
-  add_subdirectory(src/cuda)
-  if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
-    add_subdirectory(perftest/cuda)
-  endif ()
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        message("FINUFFT WARNING: No CUDA architecture supplied via '-DCMAKE_CUDA_ARCHITECTURES=...', defaulting to '60;70;75;'")
+        message("See: https://developer.nvidia.com/cuda-gpus for more details on what architecture to supply.")
+        set(CMAKE_CUDA_ARCHITECTURES "60;70;75" CACHE STRING "" FORCE)
+    endif()
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+    add_subdirectory(src/cuda)
+    if (BUILD_TESTING AND FINUFFT_BUILD_TESTS)
+        add_subdirectory(perftest/cuda)
+    endif ()
 
-  list(APPEND INSTALL_TARGETS cufinufft cufinufft_static)
+    list(APPEND INSTALL_TARGETS cufinufft cufinufft_static)
 endif()
 
 # Add tests defined in their own directory
@@ -257,27 +258,27 @@ endif ()
 include(GNUInstallDirs)
 install(TARGETS ${INSTALL_TARGETS} PUBLIC_HEADER)
 install(FILES ${PROJECT_SOURCE_DIR}/LICENSE
-  DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
+        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/finufft)
 if (FINUFFT_USE_CPU)
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft
-    PATTERN "CMakeLists.txt" EXCLUDE
-    PATTERN "README" EXCLUDE
-    PATTERN "examples/cuda" EXCLUDE
-  )
-  if (FINUFFT_BUILD_FORTRAN)
-    install(DIRECTORY ${PROJECT_SOURCE_DIR}/fortran/examples
-      DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/fortran
+    install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft
+            PATTERN "CMakeLists.txt" EXCLUDE
+            PATTERN "README" EXCLUDE
+            PATTERN "examples/cuda" EXCLUDE
     )
-    install(FILES ${PROJECT_SOURCE_DIR}/include/finufft.fh
-      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
-  endif()
+    if (FINUFFT_BUILD_FORTRAN)
+        install(DIRECTORY ${PROJECT_SOURCE_DIR}/fortran/examples
+                DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/fortran
+        )
+        install(FILES ${PROJECT_SOURCE_DIR}/include/finufft.fh
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        )
+    endif()
 endif ()
 if (FINUFFT_USE_CUDA)
-  install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/examples
-    PATTERN "README" EXCLUDE
-    PATTERN "CMakeLists.txt" EXCLUDE
-  )
+    install(DIRECTORY ${PROJECT_SOURCE_DIR}/examples/cuda
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/finufft/examples
+            PATTERN "README" EXCLUDE
+            PATTERN "CMakeLists.txt" EXCLUDE
+    )
 endif()

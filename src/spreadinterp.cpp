@@ -59,12 +59,13 @@ void spread_subproblem_3d(BIGINT off1,BIGINT off2, BIGINT off3, BIGINT size1,
                           BIGINT size2,BIGINT size3,FLT *du0,BIGINT M0,
 			                    FLT *kx0,FLT *ky0,FLT *kz0,FLT *dd0,
 			                    const finufft_spread_opts& opts) noexcept;
-void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-			 BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-			 BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
-void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-                                     BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-                                     BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0);
+
+template<bool thread_safe>
+void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3,
+                         BIGINT padded_size1, BIGINT size1, BIGINT size2, BIGINT size3, BIGINT N1,
+                         BIGINT N2, BIGINT N3, FLT * __restrict__ data_uniform,
+                         const FLT * du0);
+
 void bin_sort_singlethread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,
 	      double bin_size_x,double bin_size_y,double bin_size_z, int debug);
@@ -72,7 +73,7 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
 	      BIGINT N1,BIGINT N2,BIGINT N3,
               double bin_size_x,double bin_size_y,double bin_size_z, int debug,
               int nthr);
-void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,
+void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &padded_size1, BIGINT &size1,
 		 BIGINT &size2,BIGINT &size3,BIGINT M0,FLT* kx0,FLT* ky0,
 		 FLT* kz0,int ns, int ndims);
 
@@ -366,36 +367,37 @@ int spreadSorted(BIGINT* sort_indices,BIGINT N1, BIGINT N2, BIGINT N3,
           dd0[j*2+1]=data_nonuniform[kk*2+1]; // imag part
         }
         // get the subgrid which will include padding by roughly nspread/2
-        BIGINT offset1,offset2,offset3,size1,size2,size3; // get_subgrid sets
-        get_subgrid(offset1,offset2,offset3,size1,size2,size3,M0,kx0,ky0,kz0,ns,ndims);  // sets offsets and sizes
+        BIGINT offset1,offset2,offset3,padded_size1,size1,size2,size3; // get_subgrid sets
+        get_subgrid(offset1, offset2, offset3, padded_size1, size1, size2, size3, M0, kx0, ky0, kz0, ns, ndims);  // sets offsets and sizes
         if (opts.debug>1) { // verbose
+          printf("size1 %ld, padded_size1 %ld\n",size1, padded_size1);
           if (ndims==1)
-            printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n",(long long)offset1,(long long)size1,(long long)M0);
+            printf("\tsubgrid: off %lld\t siz %lld\t #NU %lld\n", (long long)offset1, (long long)padded_size1, (long long)M0);
           else if (ndims==2)
-            printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n",(long long)offset1,(long long)offset2,(long long)size1,(long long)size2,(long long)M0);
+            printf("\tsubgrid: off %lld,%lld\t siz %lld,%lld\t #NU %lld\n", (long long)offset1, (long long)offset2, (long long)padded_size1, (long long)size2, (long long)M0);
           else
-            printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n",(long long)offset1,(long long)offset2,(long long)offset3,(long long)size1,(long long)size2,(long long)size3,(long long)M0);
+            printf("\tsubgrid: off %lld,%lld,%lld\t siz %lld,%lld,%lld\t #NU %lld\n", (long long)offset1, (long long)offset2, (long long)offset3, (long long)padded_size1, (long long)size2, (long long)size3, (long long)M0);
 	}
         // allocate output data for this subgrid
-        FLT *du0=(FLT*)malloc(sizeof(FLT)*2*size1*size2*size3); // complex
+        FLT *du0=(FLT*)malloc(sizeof(FLT) * 2 * padded_size1 * size2 * size3); // complex
         
         // Spread to subgrid without need for bounds checking or wrapping
         if (!(opts.flags & TF_OMIT_SPREADING)) {
           if (ndims==1)
-            spread_subproblem_1d(offset1,size1,du0,M0,kx0,dd0,opts);
+            spread_subproblem_1d(offset1, padded_size1, du0, M0, kx0, dd0, opts);
           else if (ndims==2)
-            spread_subproblem_2d(offset1,offset2,size1,size2,du0,M0,kx0,ky0,dd0,opts);
+            spread_subproblem_2d(offset1, offset2, padded_size1, size2, du0, M0, kx0, ky0, dd0, opts);
           else
-            spread_subproblem_3d(offset1,offset2,offset3,size1,size2,size3,du0,M0,kx0,ky0,kz0,dd0,opts);
+            spread_subproblem_3d(offset1, offset2, offset3, padded_size1, size2, size3, du0, M0, kx0, ky0, kz0, dd0, opts);
 	}
         
         // do the adding of subgrid to output
         if (!(opts.flags & TF_OMIT_WRITE_TO_GRID)) {
           if (nthr > opts.atomic_threshold)   // see above for debug reporting
-            add_wrapped_subgrid_thread_safe(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);   // R Blackwell's atomic version
+            add_wrapped_subgrid<true>(offset1, offset2, offset3, padded_size1, size1, size2, size3, N1, N2, N3, data_uniform, du0);   // R Blackwell's atomic version
           else {
 #pragma omp critical
-            add_wrapped_subgrid(offset1,offset2,offset3,size1,size2,size3,N1,N2,N3,data_uniform,du0);
+            add_wrapped_subgrid<false>(offset1, offset2, offset3, padded_size1, size1, size2, size3, N1, N2, N3, data_uniform, du0);
           }
         }
 
@@ -1238,97 +1240,61 @@ du (size size1*size2*size3) is uniform complex output array
   spread_subproblem_3d_dispatch<MAX_NSPREAD>(off1, off2, off3, size1, size2, size3, du, M, kx, ky, kz, dd, opts);
 }
 
-void add_wrapped_subgrid(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-			 BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-			 BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0)
-/* Add a large subgrid (du0) to output grid (data_uniform),
-   with periodic wrapping to N1,N2,N3 box.
-   offset1,2,3 give the offset of the subgrid from the lowest corner of output.
-   size1,2,3 give the size of subgrid.
-   Works in all dims. Not thread-safe and must be called inside omp critical.
-   Barnett 3/27/18 made separate routine, tried to speed up inner loop.
-*/
-{
-  std::vector<BIGINT> o2(size2), o3(size3);
-  BIGINT y=offset2, z=offset3;    // fill wrapped ptr lists in slower dims y,z...
-  for (int i=0; i<size2; ++i) {
-    if (y<0) y+=N2;
-    if (y>=N2) y-=N2;
-    o2[i] = y++;
-  }
-  for (int i=0; i<size3; ++i) {
-    if (z<0) z+=N3;
-    if (z>=N3) z-=N3;
-    o3[i] = z++;
-  }
-  BIGINT nlo = (offset1<0) ? -offset1 : 0;          // # wrapping below in x
-  BIGINT nhi = (offset1+size1>N1) ? offset1+size1-N1 : 0;    // " above in x
-  // this triple loop works in all dims
-  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
-    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
-    for (int dy=0; dy<size2; dy++) {
-      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
-      FLT *out = data_uniform + 2*oy;
-      FLT *in  = du0 + 2*size1*(dy + size2*dz);   // ptr to subgrid array
-      BIGINT o = 2*(offset1+N1);         // 1d offset for output
-      for (int j=0; j<2*nlo; j++)        // j is really dx/2 (since re,im parts)
-	out[j+o] += in[j];
-      o = 2*offset1;
-      for (int j=2*nlo; j<2*(size1-nhi); j++)
-	out[j+o] += in[j];
-      o = 2*(offset1-N1);
-      for (int j=2*(size1-nhi); j<2*size1; j++)
-      	out[j+o] += in[j];
-    }
-  }
-}
 
-void add_wrapped_subgrid_thread_safe(BIGINT offset1,BIGINT offset2,BIGINT offset3,
-                                     BIGINT size1,BIGINT size2,BIGINT size3,BIGINT N1,
-                                     BIGINT N2,BIGINT N3,FLT *data_uniform, FLT *du0)
+template<bool thread_safe>
+void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT padded_size1,
+                         BIGINT size1, BIGINT size2, BIGINT size3, BIGINT N1,
+                         BIGINT N2, BIGINT N3, FLT *__restrict__ data_uniform,
+                         const FLT *const du0)
 /* Add a large subgrid (du0) to output grid (data_uniform),
    with periodic wrapping to N1,N2,N3 box.
    offset1,2,3 give the offset of the subgrid from the lowest corner of output.
-   size1,2,3 give the size of subgrid.
+   padded_size1,2,3 give the size of subgrid.
    Works in all dims. Thread-safe variant of the above routine,
    using atomic writes (R Blackwell, Nov 2020).
 */
 {
   std::vector<BIGINT> o2(size2), o3(size3);
-  BIGINT y=offset2, z=offset3;    // fill wrapped ptr lists in slower dims y,z...
-  for (int i=0; i<size2; ++i) {
-    if (y<0) y+=N2;
-    if (y>=N2) y-=N2;
+  static const auto accumulate = [](FLT& a, FLT b) {
+    if constexpr (thread_safe) { // NOLINT(*-branch-clone)
+#pragma omp atomic
+      a += b;
+    } else {
+      a += b;
+    }
+  };
+
+  BIGINT y = offset2, z = offset3;    // fill wrapped ptr lists in slower dims y,z...
+  for (int i = 0; i < size2; ++i) {
+    if (y < 0) y += N2;
+    if (y >= N2) y -= N2;
     o2[i] = y++;
   }
-  for (int i=0; i<size3; ++i) {
-    if (z<0) z+=N3;
-    if (z>=N3) z-=N3;
+  for (int i = 0; i < size3; ++i) {
+    if (z < 0) z += N3;
+    if (z >= N3) z -= N3;
     o3[i] = z++;
   }
-  BIGINT nlo = (offset1<0) ? -offset1 : 0;          // # wrapping below in x
-  BIGINT nhi = (offset1+size1>N1) ? offset1+size1-N1 : 0;    // " above in x
+  BIGINT nlo = (offset1 < 0) ? -offset1 : 0;          // # wrapping below in x
+  BIGINT nhi = (offset1 + size1 > N1) ? offset1 + size1 - N1 : 0;    // " above in x
   // this triple loop works in all dims
-  for (int dz=0; dz<size3; dz++) {       // use ptr lists in each axis
-    BIGINT oz = N1*N2*o3[dz];            // offset due to z (0 in <3D)
-    for (int dy=0; dy<size2; dy++) {
-      BIGINT oy = oz + N1*o2[dy];        // off due to y & z (0 in 1D)
-      FLT *out = data_uniform + 2*oy;
-      FLT *in  = du0 + 2*size1*(dy + size2*dz);   // ptr to subgrid array
-      BIGINT o = 2*(offset1+N1);         // 1d offset for output
-      for (int j=0; j<2*nlo; j++) { // j is really dx/2 (since re,im parts)
-#pragma omp atomic
-        out[j + o] += in[j];
+  for (int dz = 0; dz < size3; dz++) {       // use ptr lists in each axis
+    BIGINT oz = N1 * N2 * o3[dz];            // offset due to z (0 in <3D)
+    for (int dy = 0; dy < size2; dy++) {
+      BIGINT oy = oz + N1 * o2[dy];        // off due to y & z (0 in 1D)
+      auto * __restrict__ out = data_uniform + 2 * oy;
+      const auto in = du0 + 2 * padded_size1 * (dy + size2 * dz);   // ptr to subgrid array
+      BIGINT o = 2 * (offset1 + N1);         // 1d offset for output
+      for (int j = 0; j < 2 * nlo; j++) { // j is really dx/2 (since re,im parts)
+        accumulate(out[j + o], in[j]);
       }
-      o = 2*offset1;
-      for (int j=2*nlo; j<2*(size1-nhi); j++) {
-#pragma omp atomic
-        out[j + o] += in[j];
+      o = 2 * offset1;
+      for (int j = 2 * nlo; j < 2 * (size1 - nhi); j++) {
+        accumulate(out[j + o], in[j]);
       }
-      o = 2*(offset1-N1);
-      for (int j=2*(size1-nhi); j<2*size1; j++) {
-#pragma omp atomic
-        out[j+o] += in[j];
+      o = 2 * (offset1 - N1);
+      for (int j = 2 * (size1 - nhi); j < 2 * size1; j++) {
+        accumulate(out[j + o], in[j]);
       }
     }
   }
@@ -1479,7 +1445,7 @@ void bin_sort_multithread(BIGINT *ret, BIGINT M, FLT *kx, FLT *ky, FLT *kz,
   }
 }
 
-void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,BIGINT &size2,BIGINT &size3,BIGINT M,FLT* kx,FLT* ky,FLT* kz,int ns,int ndims)
+void get_subgrid(BIGINT &offset1, BIGINT &offset2, BIGINT &offset3, BIGINT &padded_size1, BIGINT &size1, BIGINT &size2, BIGINT &size3, BIGINT M, FLT* kx, FLT* ky, FLT* kz, int ns, int ndims)
 /* Writes out the integer offsets and sizes of a "subgrid" (cuboid subset of
    Z^ndims) large enough to enclose all of the nonuniform points with
    (non-periodic) padding of half the kernel width ns to each side in
@@ -1496,7 +1462,7 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
    
  Outputs:
    offset1,2,3 - left-most coord of cuboid in each dimension (up to ndims)
-   size1,2,3   - size of cuboid in each dimension.
+   padded_size1,2,3   - size of cuboid in each dimension.
                  Thus the right-most coord of cuboid is offset+size-1.
    Returns offset 0 and size 1 for each unused dimension (ie when ndims<3);
    this is required by the calling code.
@@ -1506,7 +1472,7 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
           ndims=1, M=2, kx[0]=0.2, ks[1]=4.9, ns=3
       outputs:
           offset1=-1 (since kx[0] spreads to {-1,0,1}, and -1 is the min)
-          size1=8 (since kx[1] spreads to {4,5,6}, so subgrid is {-1,..,6}
+          padded_size1=8 (since kx[1] spreads to {4,5,6}, so subgrid is {-1,..,6}
                    hence 8 grid points).
  Notes:
    1) Works in all dims 1,2,3.
@@ -1527,8 +1493,8 @@ void get_subgrid(BIGINT &offset1,BIGINT &offset2,BIGINT &offset3,BIGINT &size1,B
   FLT min_kx,max_kx;   // 1st (x) dimension: get min/max of nonuniform points
   arrayrange(M,kx,&min_kx,&max_kx);
   offset1 = (BIGINT)std::ceil(min_kx-ns2);   // min index touched by kernel
-  size1 = (BIGINT)std::ceil(max_kx-ns2) - offset1 + ns;  // int(ceil) first!
-  size1 += get_padding<FLT>(2*ns);
+  size1 = (BIGINT)std::ceil(max_kx - ns2) - offset1 + ns;  // int(ceil) first!
+  padded_size1 = size1+get_padding<FLT>(2 * ns)/2;
   if (ndims>1) {
     FLT min_ky,max_ky;   // 2nd (y) dimension: get min/max of nonuniform points
     arrayrange(M,ky,&min_ky,&max_ky);
