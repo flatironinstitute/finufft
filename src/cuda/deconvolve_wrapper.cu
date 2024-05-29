@@ -12,8 +12,8 @@ namespace deconvolve {
 /* Kernel for copying fw to fk with amplication by prefac/ker */
 // Note: assume modeord=0: CMCL-compatible mode ordering in fk (from -N/2 up
 // to N/2-1), modeord=1: FFT-compatible mode ordering in fk (from 0 to N/2-1, then -N/2 up to -1).
-template <typename T>
-__global__ void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1, int modeord) {
+template <typename T, int modeord>
+__global__ void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1) {
     int pivot1, w1, fwkerind1;
     T kervalue;
 
@@ -34,9 +34,9 @@ __global__ void deconvolve_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex
     }
 }
 
-template <typename T>
+template <typename T, int modeord>
 __global__ void deconvolve_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1,
-                              T *fwkerhalf2, int modeord) {
+                              T *fwkerhalf2) {
     int pivot1, pivot2, w1, w2, fwkerind1, fwkerind2;
     int k1, k2, inidx, outidx;
     T kervalue;
@@ -69,9 +69,9 @@ __global__ void deconvolve_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> 
     }
 }
 
-template <typename T>
+template <typename T, int modeord>
 __global__ void deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, cuda_complex<T> *fw,
-                              cuda_complex<T> *fk, T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3, int modeord) {
+                              cuda_complex<T> *fk, T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3) {
     int pivot1, pivot2, pivot3, w1, w2, w3, fwkerind1, fwkerind2, fwkerind3;
     int k1, k2, k3, inidx, outidx;
     T kervalue;
@@ -112,8 +112,8 @@ __global__ void deconvolve_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3,
 }
 
 /* Kernel for copying fk to fw with same amplication */
-template <typename T>
-__global__ void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1, int modeord) {
+template <typename T, int modeord>
+__global__ void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1) {
     int pivot1, w1, fwkerind1;
     T kervalue;
 
@@ -134,9 +134,9 @@ __global__ void amplify_1d(int ms, int nf1, cuda_complex<T> *fw, cuda_complex<T>
     }
 }
 
-template <typename T>
+template <typename T, int modeord>
 __global__ void amplify_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw, cuda_complex<T> *fk, T *fwkerhalf1,
-                           T *fwkerhalf2, int modeord) {
+                           T *fwkerhalf2) {
     int pivot1, pivot2, w1, w2, fwkerind1, fwkerind2;
     int k1, k2, inidx, outidx;
     T kervalue;
@@ -169,9 +169,9 @@ __global__ void amplify_2d(int ms, int mt, int nf1, int nf2, cuda_complex<T> *fw
     }
 }
 
-template <typename T>
+template <typename T, int modeord>
 __global__ void amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, cuda_complex<T> *fw, cuda_complex<T> *fk,
-                           T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3, int modeord) {
+                           T *fwkerhalf1, T *fwkerhalf2, T *fwkerhalf3) {
     int pivot1, pivot2, pivot3, w1, w2, w3, fwkerind1, fwkerind2, fwkerind3;
     int k1, k2, k3, inidx, outidx;
     T kervalue;
@@ -211,7 +211,7 @@ __global__ void amplify_3d(int ms, int mt, int mu, int nf1, int nf2, int nf3, cu
     }
 }
 
-template <typename T>
+template <typename T, int modeord>
 int cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     wrapper for deconvolution & amplication in 1D.
@@ -228,20 +228,20 @@ int cudeconvolve1d(cufinufft_plan_t<T> *d_plan, int blksize)
 
     if (d_plan->spopts.spread_direction == 1) {
         for (int t = 0; t < blksize; t++) {
-            deconvolve_1d<<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(ms, nf1, d_plan->fw + t * nf1,
-                                                                        d_plan->fk + t * nmodes, d_plan->fwkerhalf1, d_plan->opts.modeord);
+            deconvolve_1d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(ms, nf1, d_plan->fw + t * nf1,
+                                                                        d_plan->fk + t * nmodes, d_plan->fwkerhalf1);
         }
     } else {
         checkCudaErrors(cudaMemsetAsync(d_plan->fw, 0, maxbatchsize * nf1 * sizeof(cuda_complex<T>), stream));
         for (int t = 0; t < blksize; t++) {
-            amplify_1d<<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(ms, nf1, d_plan->fw + t * nf1,
-                                                                     d_plan->fk + t * nmodes, d_plan->fwkerhalf1, d_plan->opts.modeord);
+            amplify_1d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(ms, nf1, d_plan->fw + t * nf1,
+                                                                     d_plan->fk + t * nmodes, d_plan->fwkerhalf1);
         }
     }
     return 0;
 }
 
-template <typename T>
+template <typename T, int modeord>
 int cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     wrapper for deconvolution & amplication in 2D.
@@ -260,22 +260,22 @@ int cudeconvolve2d(cufinufft_plan_t<T> *d_plan, int blksize)
 
     if (d_plan->spopts.spread_direction == 1) {
         for (int t = 0; t < blksize; t++) {
-            deconvolve_2d<<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(ms, mt, nf1, nf2, d_plan->fw + t * nf1 * nf2,
+            deconvolve_2d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(ms, mt, nf1, nf2, d_plan->fw + t * nf1 * nf2,
                                                                         d_plan->fk + t * nmodes, d_plan->fwkerhalf1,
-                                                                        d_plan->fwkerhalf2, d_plan->opts.modeord);
+                                                                        d_plan->fwkerhalf2);
         }
     } else {
         checkCudaErrors(cudaMemsetAsync(d_plan->fw, 0, maxbatchsize * nf1 * nf2 * sizeof(cuda_complex<T>), stream));
         for (int t = 0; t < blksize; t++) {
-            amplify_2d<<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(ms, mt, nf1, nf2, d_plan->fw + t * nf1 * nf2,
+            amplify_2d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(ms, mt, nf1, nf2, d_plan->fw + t * nf1 * nf2,
                                                                      d_plan->fk + t * nmodes, d_plan->fwkerhalf1,
-                                                                     d_plan->fwkerhalf2, d_plan->opts.modeord);
+                                                                     d_plan->fwkerhalf2);
         }
     }
     return 0;
 }
 
-template <typename T>
+template <typename T, int modeord>
 int cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
 /*
     wrapper for deconvolution & amplication in 3D.
@@ -295,28 +295,34 @@ int cudeconvolve3d(cufinufft_plan_t<T> *d_plan, int blksize)
     int maxbatchsize = d_plan->maxbatchsize;
     if (d_plan->spopts.spread_direction == 1) {
         for (int t = 0; t < blksize; t++) {
-            deconvolve_3d<<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
+            deconvolve_3d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
                 ms, mt, mu, nf1, nf2, nf3, d_plan->fw + t * nf1 * nf2 * nf3, d_plan->fk + t * nmodes,
-                d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->opts.modeord);
+                d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);
         }
     } else {
         checkCudaErrors(
             cudaMemsetAsync(d_plan->fw, 0, maxbatchsize * nf1 * nf2 * nf3 * sizeof(cuda_complex<T>), stream));
         for (int t = 0; t < blksize; t++) {
-            amplify_3d<<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
+            amplify_3d<T, modeord><<<(nmodes + 256 - 1) / 256, 256, 0, stream>>>(
                 ms, mt, mu, nf1, nf2, nf3, d_plan->fw + t * nf1 * nf2 * nf3, d_plan->fk + t * nmodes,
-                d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3, d_plan->opts.modeord);
+                d_plan->fwkerhalf1, d_plan->fwkerhalf2, d_plan->fwkerhalf3);
         }
     }
     return 0;
 }
 
-template int cudeconvolve1d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template int cudeconvolve1d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
-template int cudeconvolve2d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template int cudeconvolve2d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
-template int cudeconvolve3d<float>(cufinufft_plan_t<float> *d_plan, int blksize);
-template int cudeconvolve3d<double>(cufinufft_plan_t<double> *d_plan, int blksize);
+template int cudeconvolve1d<float,  0>(cufinufft_plan_t<float>  *d_plan, int blksize);
+template int cudeconvolve1d<float,  1>(cufinufft_plan_t<float>  *d_plan, int blksize);
+template int cudeconvolve1d<double, 0>(cufinufft_plan_t<double> *d_plan, int blksize);
+template int cudeconvolve1d<double, 1>(cufinufft_plan_t<double> *d_plan, int blksize);
+template int cudeconvolve2d<float,  0>(cufinufft_plan_t<float>  *d_plan, int blksize);
+template int cudeconvolve2d<float,  1>(cufinufft_plan_t<float>  *d_plan, int blksize);
+template int cudeconvolve2d<double, 0>(cufinufft_plan_t<double> *d_plan, int blksize);
+template int cudeconvolve2d<double, 1>(cufinufft_plan_t<double> *d_plan, int blksize);
+template int cudeconvolve3d<float,  0>(cufinufft_plan_t<float>  *d_plan, int blksize);
+template int cudeconvolve3d<float,  1>(cufinufft_plan_t<float>  *d_plan, int blksize);
+template int cudeconvolve3d<double, 0>(cufinufft_plan_t<double> *d_plan, int blksize);
+template int cudeconvolve3d<double, 1>(cufinufft_plan_t<double> *d_plan, int blksize);
 
 } // namespace deconvolve
 } // namespace cufinufft
