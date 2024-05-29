@@ -974,7 +974,7 @@ void spread_subproblem_1d_kernel(const BIGINT off1, const BIGINT size1, FLT * __
     if constexpr (kerevalmeth) {          // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker, x1, opts);
    } else {
-      FLT kernel_args[MAX_NSPREAD];
+      FLT kernel_args[ns];
       set_kernel_args(kernel_args, x1, opts);
       evaluate_kernel_vector(ker, kernel_args, opts, ns);
     }
@@ -1051,7 +1051,7 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[2 * MAX_NSPREAD];
   auto *ker1 = kernel_values;
-  auto *ker2 = kernel_values + MAX_NSPREAD;
+  auto *ker2 = kernel_values + ns;
   for (BIGINT pt = 0; pt < M; pt++) {           // loop over NU pts
     const auto re0 = dd[2 * pt];
     const auto im0 = dd[2 * pt + 1];
@@ -1152,8 +1152,8 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
   // values in all three directions in a single kernel evaluation call.
   alignas(alignment) FLT kernel_values[3 * MAX_NSPREAD];
   auto * ker1 = kernel_values;
-  auto * ker2 = kernel_values + MAX_NSPREAD;
-  auto * ker3 = kernel_values + 2 * MAX_NSPREAD;
+  auto * ker2 = kernel_values + ns;
+  auto * ker3 = kernel_values + 2 * ns;
   for (BIGINT pt = 0; pt < M; pt++) {           // loop over NU pts
     const auto re0 = dd[2 * pt];
     const auto im0 = dd[2 * pt + 1];
@@ -1161,9 +1161,9 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
     const auto i1 = (BIGINT) std::ceil(kx[pt] - ns2);   // fine grid start indices
     const auto i2 = (BIGINT) std::ceil(ky[pt] - ns2);
     const auto i3 = (BIGINT) std::ceil(kz[pt] - ns2);
-    const auto x1 = (FLT) i1 - kx[pt];
-    const auto x2 = (FLT) i2 - ky[pt];
-    const auto x3 = (FLT) i3 - kz[pt];
+    const auto x1= std::ceil(kx[pt] - ns2) - kx[pt];
+    const auto x2= std::ceil(ky[pt] - ns2) - ky[pt];
+    const auto x3= std::ceil(kz[pt] - ns2) - kz[pt];
     if constexpr (kerevalmeth) {          // faster Horner poly method
       eval_kernel_vec_Horner<ns>(ker1, x1, opts);
       eval_kernel_vec_Horner<ns>(ker2, x2, opts);
@@ -1255,7 +1255,7 @@ void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT 
 */
 {
   std::vector<BIGINT> o2(size2), o3(size3);
-  static const auto accumulate = [](FLT& a, FLT b) {
+  static constexpr auto accumulate = [](FLT& a, FLT b) {
     if constexpr (thread_safe) { // NOLINT(*-branch-clone)
 #pragma omp atomic
       a += b;
@@ -1284,16 +1284,16 @@ void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT 
       BIGINT oy = oz + N1 * o2[dy];        // off due to y & z (0 in 1D)
       auto * __restrict__ out = data_uniform + 2 * oy;
       const auto in = du0 + 2 * padded_size1 * (dy + size2 * dz);   // ptr to subgrid array
-      BIGINT o = 2 * (offset1 + N1);         // 1d offset for output
-      for (int j = 0; j < 2 * nlo; j++) { // j is really dx/2 (since re,im parts)
+      auto o = 2 * (offset1 + N1);         // 1d offset for output
+      for (auto j = 0; j < 2 * nlo; j++) { // j is really dx/2 (since re,im parts)
         accumulate(out[j + o], in[j]);
       }
       o = 2 * offset1;
-      for (int j = 2 * nlo; j < 2 * (size1 - nhi); j++) {
+      for (auto j = 2 * nlo; j < 2 * (size1 - nhi); j++) {
         accumulate(out[j + o], in[j]);
       }
       o = 2 * (offset1 - N1);
-      for (int j = 2 * (size1 - nhi); j < 2 * size1; j++) {
+      for (auto j = 2 * (size1 - nhi); j < 2 * size1; j++) {
         accumulate(out[j + o], in[j]);
       }
     }
