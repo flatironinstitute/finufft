@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.19)
 
 project(finufft VERSION 2.2.0 LANGUAGES C CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(GNU_LIKE_FRONTENDS AppleClang Clang GNU)
 if(CMAKE_CXX_COMPILER_ID IN_LIST GNU_LIKE_FRONTENDS)
     # Set custom compiler flags for gcc-compatible compilers
@@ -120,7 +122,8 @@ endfunction()
 # Utility function to set finufft compilation options.
 function(set_finufft_options target)
     set_property(TARGET ${target} PROPERTY POSITION_INDEPENDENT_CODE ON)
-    set_property(TARGET ${target} PROPERTY CMAKE_CXX_STANDARD 17)
+    target_compile_features(${target} PRIVATE cxx_std_17)
+
     enable_asan(${target})
 
     target_compile_options(${target} PRIVATE SHELL:$<$<CONFIG:Release,RelWithDebInfo>:${FINUFFT_ARCH_FLAGS}>)

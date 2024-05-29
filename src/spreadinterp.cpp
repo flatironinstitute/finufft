@@ -30,6 +30,9 @@ static constexpr auto BestSIMDHelper();
 template<class T, uint16_t N>
 static constexpr auto GetPaddedSIMDSize();
 
+template<class T, uint16_t N>
+using PaddedSIMD = typename xsimd::make_sized_batch<T, GetPaddedSIMDSize<T, N>()>::type;
+
 template<class T>
 static uint16_t get_padding(uint16_t ns);
 
@@ -43,7 +46,7 @@ template<class T, uint16_t N = 1>
 static constexpr uint16_t min_batch_size();
 
 template<class T, uint16_t N, uint16_t batch_size = min_batch_size<T>(), uint16_t min_iterations = N, uint16_t optimal_batch_size = 1>
-static constexpr auto find_optimal_batch_size();
+static constexpr uint16_t find_optimal_batch_size();
 
 
 // declarations of purely internal functions... (thus need not be in .h)
@@ -1046,7 +1049,7 @@ static void spread_subproblem_2d_kernel(const BIGINT off1, const BIGINT off2, co
 */
 {
   static constexpr auto padding = get_padding<FLT, 2 * ns>();
-  using batch_t = BestSIMD<FLT, 2 * ns + padding>;
+  using batch_t = typename xsimd::make_sized_batch<FLT, GetPaddedSIMDSize<FLT, 2 * ns>()>::type;
   using arch_t = typename batch_t::arch_type;
   static constexpr auto avx_size = batch_t::size;
   static constexpr size_t alignment = batch_t::arch_type::alignment();
@@ -1146,7 +1149,7 @@ static void spread_subproblem_3d_kernel(const BIGINT off1, const BIGINT off2, co
                                  const FLT *kx, const FLT *ky, const FLT *kz, const FLT *dd,
                                  const finufft_spread_opts &opts) noexcept {
   static constexpr auto padding = get_padding<FLT, 2 * ns>();
-  using batch_t = BestSIMD<FLT, 2 * ns + padding>;
+  using batch_t = PaddedSIMD<FLT, 2 * ns>;
   using arch_t = typename batch_t::arch_type;
   static constexpr auto avx_size = batch_t::size;
   static constexpr size_t alignment = batch_t::arch_type::alignment();
@@ -1560,7 +1563,7 @@ static constexpr uint16_t min_batch_size() {
 
 
 template<class T, uint16_t N, uint16_t batch_size, uint16_t min_iterations, uint16_t optimal_batch_size>
-constexpr auto find_optimal_batch_size() {
+constexpr uint16_t find_optimal_batch_size() {
   if constexpr (batch_size > xsimd::batch<T>::size) {
     return optimal_batch_size;
   } else {
