@@ -21,11 +21,11 @@ static constexpr auto get_padding();
 template<class T, uint16_t N>
 using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
 
-template<class T, uint16_t N>
-static constexpr auto find_optimal_batch_size();
-
 template<class T, uint16_t N = 1>
 static constexpr uint16_t min_batch_size();
+
+template<class T, uint16_t N, uint16_t batch_size = min_batch_size<T>(), uint16_t min_iterations = N, uint16_t optimal_batch_size = 1>
+static constexpr auto find_optimal_batch_size();
 
 // below there is some trickery to obtain the padded SIMD type to vectorize
 // the given number of elements.
@@ -62,18 +62,18 @@ constexpr uint16_t min_batch_size() {
   }
 };
 
-template<class T, uint16_t N>
-static constexpr auto find_optimal_batch_size() {
-  uint16_t min_iterations = N;
-  uint16_t optimal_batch_size = 1;
-  for (uint16_t batch_size = min_batch_size<T>(); batch_size <= xsimd::batch<T>::size; batch_size *= 2) {
-    uint16_t iterations = (N + batch_size - 1) / batch_size;
-    if (iterations < min_iterations) {
-      min_iterations = iterations;
-      optimal_batch_size = batch_size;
+template<class T, uint16_t N, uint16_t batch_size, uint16_t min_iterations, uint16_t optimal_batch_size>
+constexpr auto find_optimal_batch_size() {
+  if constexpr (batch_size > xsimd::batch<T>::size) {
+    return optimal_batch_size;
+  } else {
+    constexpr uint16_t iterations = (N + batch_size - 1) / batch_size;
+    if constexpr (iterations < min_iterations) {
+      return find_optimal_batch_size<T, N, batch_size * 2, iterations, batch_size>();
+    } else {
+      return find_optimal_batch_size<T, N, batch_size * 2, min_iterations, optimal_batch_size>();
     }
   }
-  return optimal_batch_size;
 }
 
 template<class T, uint16_t N>
