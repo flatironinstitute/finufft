@@ -28,7 +28,7 @@ template<class T, uint16_t N, uint16_t K = N>
 static constexpr auto BestSIMDHelper();
 
 template<class T, uint16_t N>
-static auto constexpr GetValidSIMDSize();
+static constexpr auto GetPaddedSIMDSize();
 
 template<class T>
 static uint16_t get_padding(uint16_t ns);
@@ -36,8 +36,14 @@ static uint16_t get_padding(uint16_t ns);
 template<class T, uint16_t ns>
 static constexpr auto get_padding();
 
-template<class T, uint16_t N, uint16_t K = N>
-using BestSIMD = typename decltype(BestSIMDHelper<T, N, K>())::type;
+template<class T, uint16_t N>
+using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
+
+template<class T, uint16_t N>
+static constexpr auto find_optimal_batch_size();
+
+template<class T, uint16_t N = 1>
+static constexpr uint16_t min_batch_size();
 
 // declarations of purely internal functions... (thus need not be in .h)
 static FINUFFT_ALWAYS_INLINE FLT fold_rescale(FLT x, BIGINT N) noexcept;
@@ -1279,9 +1285,9 @@ void add_wrapped_subgrid(BIGINT offset1, BIGINT offset2, BIGINT offset3, BIGINT 
   BIGINT nhi = (offset1 + size1 > N1) ? offset1 + size1 - N1 : 0;    // " above in x
   // this triple loop works in all dims
   for (int dz = 0; dz < size3; dz++) {       // use ptr lists in each axis
-    BIGINT oz = N1 * N2 * o3[dz];            // offset due to z (0 in <3D)
+    const auto oz = N1 * N2 * o3[dz];            // offset due to z (0 in <3D)
     for (int dy = 0; dy < size2; dy++) {
-      BIGINT oy = oz + N1 * o2[dy];        // off due to y & z (0 in 1D)
+      const auto oy = N1 * o2[dy] + oz;        // off due to y & z (0 in 1D)
       auto * __restrict__ out = data_uniform + 2 * oy;
       const auto in = du0 + 2 * padded_size1 * (dy + size2 * dz);   // ptr to subgrid array
       auto o = 2 * (offset1 + N1);         // 1d offset for output
@@ -1535,72 +1541,64 @@ FINUFFT_ALWAYS_INLINE FLT fold_rescale(const FLT x, const BIGINT N) noexcept {
 // void otherwise -> compile error
 template<class T, uint16_t N, uint16_t K>
 static constexpr auto BestSIMDHelper() {
-  if constexpr (K == 0) {
-    return xsimd::make_sized_batch<T, 0>{}; // or whatever base case value is appropriate
-  } else if constexpr (!std::is_void<xsimd::make_sized_batch_t<T, K>>::value && N % K == 0) {
+  if constexpr (N % K == 0) { // returns void in the worst case
     return xsimd::make_sized_batch<T, K>{};
   } else {
-    return BestSIMDHelper<T, N, K - 1>();
+    return BestSIMDHelper<T, N, (K>>1)>();
   }
 }
 
-// below there is some trickery to obtain the padded SIMD type to vectorize
-// the given number of elements.
-// improper use will cause the compiler to either throw an error on the recursion depth
-// or on older ones... "compiler internal error please report"
-// you have been warned.
 template<class T, uint16_t N>
-static constexpr auto GetValidSIMDSize() {
-  static_assert(N < 128);
- if constexpr (!std::is_void<BestSIMD<T, N>>::value) {
-    return BestSIMD<T, N>::size;
+constexpr uint16_t min_batch_size() {
+  if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
+    return min_batch_size<T, N*2>();
   } else {
-    return GetValidSIMDSize<T, N + 1>();
+    return N;
   }
+};
+
+template<class T, uint16_t N>
+static constexpr auto find_optimal_batch_size() {
+  uint16_t min_iterations = N;
+  uint16_t optimal_batch_size = 1;
+  for (uint16_t batch_size = min_batch_size<T>(); batch_size <= xsimd::batch<T>::size; batch_size *= 2) {
+    uint16_t iterations = (N + batch_size - 1) / batch_size;
+    if (iterations < min_iterations) {
+      min_iterations = iterations;
+      optimal_batch_size = batch_size;
+    }
+  }
+  return optimal_batch_size;
 }
 
-// This is a templated version of the above function
-// Much cleaner and easier to understand
-
-// NOTE:
-// The templates minimize padding.
-// forcing the largest avx available (always)
-// results in lower pefromance than this
-// except for the case of ns=10
+template<class T, uint16_t N>
+static constexpr auto GetPaddedSIMDSize() {
+  static_assert(N < 128);
+  return xsimd::make_sized_batch<T, find_optimal_batch_size<T, N>()>::type::size;
+}
 
 template<class T, uint16_t ns>
-constexpr auto get_padding() {
-  constexpr uint16_t width = GetValidSIMDSize<T, ns>();
-  return width - (ns % width);
+static constexpr auto get_padding() {
+  constexpr uint16_t width = GetPaddedSIMDSize<T, ns>();
+  return ns % width == 0 ? 0 : width - (ns % width);
 }
 
-// FIXME: There must be a way to simplify this
+template<class T, uint16_t ns>
+static constexpr auto get_padding_helper(uint16_t runtime_ns) {
+  if constexpr (ns < 2) {
+    return 0;
+  } else {
+    if (runtime_ns == ns) {
+      return get_padding<T, ns>();
+    } else {
+      return get_padding_helper<T, ns - 1>(runtime_ns);
+    }
+  }
+}
+
 template<class T>
 static uint16_t get_padding(uint16_t ns) {
-  auto width = 0;
-  if (ns == 6) {
-    width = GetValidSIMDSize<T, 6>();
-  }
-  if (ns == 10) {
-    width = GetValidSIMDSize<T, 10>();
-  }
-  if (ns == 14) {
-    width = GetValidSIMDSize<T, 15>();
-  }
-  if (ns == 18) {
-    width = GetValidSIMDSize<T, 18>();
-  }
-  if (ns == 22) {
-    width = GetValidSIMDSize<T, 22>();
-  }
-  if (ns == 26) {
-    width = GetValidSIMDSize<T, 26>();
-  }
-  if (ns == 30) {
-    width = GetValidSIMDSize<T, 30>();
-  }
-  // return 0 if no padding is needed
-  return width == 0 ? 0 : width - (ns % width);
+  return get_padding_helper<T, 2*MAX_NSPREAD>(ns);
 }
 
 }   // namespace

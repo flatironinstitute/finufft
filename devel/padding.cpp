@@ -18,22 +18,14 @@ static uint16_t get_padding(uint16_t ns);
 template<class T, uint16_t ns>
 static constexpr auto get_padding();
 
-template<class T, uint16_t N, uint16_t K = N>
-using BestSIMD = typename decltype(BestSIMDHelper<T, N, K>())::type;
+template<class T, uint16_t N>
+using BestSIMD = typename decltype(BestSIMDHelper<T, N, xsimd::batch<T>::size>())::type;
 
+template<class T, uint16_t N>
+static constexpr auto find_optimal_batch_size();
 
-template<class T, uint16_t N, uint16_t K>
-static constexpr auto BestSIMDHelper() {
-  if constexpr (K==20 && !std::is_void<xsimd::make_sized_batch_t<T, 8>>::value && std::is_same_v<T, double>) {
-    return xsimd::make_sized_batch<T, 8>{};
-  } else if constexpr (K == 0) {
-    return xsimd::make_sized_batch<T, 0>{}; // or whatever base case value is appropriate
-  } else if constexpr (!std::is_void<xsimd::make_sized_batch_t<T, K>>::value && N % K == 0) {
-    return xsimd::make_sized_batch<T, K>{};
-  } else {
-    return BestSIMDHelper<T, N, K - 1>();
-  }
-}
+template<class T, uint16_t N = 1>
+static constexpr uint16_t min_batch_size();
 
 // below there is some trickery to obtain the padded SIMD type to vectorize
 // the given number of elements.
@@ -52,31 +44,49 @@ static constexpr auto BestSIMDHelper() {
 //};
 
 
+template<class T, uint16_t N, uint16_t K>
+static constexpr auto BestSIMDHelper() {
+  if constexpr (N % K == 0) { // returns void in the worst case
+    return xsimd::make_sized_batch<T, K>{};
+  } else {
+    return BestSIMDHelper<T, N, (K>>1)>();
+  }
+}
+
+template<class T, uint16_t N>
+constexpr uint16_t min_batch_size() {
+  if constexpr (std::is_void_v<xsimd::make_sized_batch_t<T, N>>) {
+    return min_batch_size<T, N*2>();
+  } else {
+    return N;
+  }
+};
+
+template<class T, uint16_t N>
+static constexpr auto find_optimal_batch_size() {
+  uint16_t min_iterations = N;
+  uint16_t optimal_batch_size = 1;
+  for (uint16_t batch_size = min_batch_size<T>(); batch_size <= xsimd::batch<T>::size; batch_size *= 2) {
+    uint16_t iterations = (N + batch_size - 1) / batch_size;
+    if (iterations < min_iterations) {
+      min_iterations = iterations;
+      optimal_batch_size = batch_size;
+    }
+  }
+  return optimal_batch_size;
+}
 
 template<class T, uint16_t N>
 static constexpr auto GetPaddedSIMDSize() {
   static_assert(N < 128);
-  if constexpr (!std::is_void<BestSIMD<T, N>>::value) {
-    return BestSIMD<T, N>::size;
-  } else {
-    return GetPaddedSIMDSize<T, N + 1>();
-  }
+    return xsimd::make_sized_batch<T, find_optimal_batch_size<T, N>()>::type::size;
 }
 
-//
-
-// This is a templated version of the above function
-// Much cleaner and easier to understand
-
 template<class T, uint16_t ns>
-constexpr auto get_padding() {
+static constexpr auto get_padding() {
   constexpr uint16_t width = GetPaddedSIMDSize<T, ns>();
   return ns % width == 0 ? 0 : width - (ns % width);
 }
-
-// FIXME: all of this can be templated properly to avoid the switch statement
-//        It requires major changes to the codebase though
-//        Since 2 <= ns <= 16, It is fine for now
 
 template<class T, uint16_t ns>
 static constexpr auto get_padding_helper(uint16_t runtime_ns) {
@@ -121,6 +131,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Padded SIMD single precision" << std::endl;
   std::cout << "Padded SIMD for " <<  6 << " is " << uint64_t(GetPaddedSIMDSize<float,  6 >()) << std::endl;
   std::cout << "Padded SIMD for " << 10 << " is " << uint64_t(GetPaddedSIMDSize<float, 10>()) << std::endl;
+  std::cout << "Padded SIMD for " << 12 << " is " << uint64_t(GetPaddedSIMDSize<float, 12>()) << std::endl;
   std::cout << "Padded SIMD for " << 15 << " is " << uint64_t(GetPaddedSIMDSize<float, 15>()) << std::endl;
   std::cout << "Padded SIMD for " << 18 << " is " << uint64_t(GetPaddedSIMDSize<float, 18>()) << std::endl;
   std::cout << "Padded SIMD for " << 22 << " is " << uint64_t(GetPaddedSIMDSize<float, 22>()) << std::endl;
@@ -129,14 +140,15 @@ int main(int argc, char *argv[]) {
   std::cout << "Padded SIMD for " << 32 << " is " << uint64_t(GetPaddedSIMDSize<float, 32>()) << std::endl;
 
   std::cout << "Padded SIMD double precision" << std::endl;
-  std::cout << "Padded SIMD for " <<  6 << " is " << uint64_t(GetPaddedSIMDSize<float,  6>())  << std::endl;
-  std::cout << "Padded SIMD for " << 10 << " is " << uint64_t(GetPaddedSIMDSize<float, 10>())  << std::endl;
-  std::cout << "Padded SIMD for " << 15 << " is " << uint64_t(GetPaddedSIMDSize<float, 15>())  << std::endl;
-  std::cout << "Padded SIMD for " << 18 << " is " << uint64_t(GetPaddedSIMDSize<float, 18>())  << std::endl;
-  std::cout << "Padded SIMD for " << 22 << " is " << uint64_t(GetPaddedSIMDSize<float, 22>())  << std::endl;
-  std::cout << "Padded SIMD for " << 26 << " is " << uint64_t(GetPaddedSIMDSize<float, 26>())  << std::endl;
-  std::cout << "Padded SIMD for " << 30 << " is " << uint64_t(GetPaddedSIMDSize<float, 30>())  << std::endl;
-  std::cout << "Padded SIMD for " << 32 << " is " << uint64_t(GetPaddedSIMDSize<float, 32>())  << std::endl;
+  std::cout << "Padded SIMD for " <<  6 << " is " << uint64_t(GetPaddedSIMDSize<double,  6>())  << std::endl;
+  std::cout << "Padded SIMD for " << 10 << " is " << uint64_t(GetPaddedSIMDSize<double, 10>())  << std::endl;
+  std::cout << "Padded SIMD for " << 12 << " is " << uint64_t(GetPaddedSIMDSize<double, 12>())  << std::endl;
+  std::cout << "Padded SIMD for " << 15 << " is " << uint64_t(GetPaddedSIMDSize<double, 15>())  << std::endl;
+  std::cout << "Padded SIMD for " << 18 << " is " << uint64_t(GetPaddedSIMDSize<double, 18>())  << std::endl;
+  std::cout << "Padded SIMD for " << 22 << " is " << uint64_t(GetPaddedSIMDSize<double, 22>())  << std::endl;
+  std::cout << "Padded SIMD for " << 26 << " is " << uint64_t(GetPaddedSIMDSize<double, 26>())  << std::endl;
+  std::cout << "Padded SIMD for " << 30 << " is " << uint64_t(GetPaddedSIMDSize<double, 30>())  << std::endl;
+  std::cout << "Padded SIMD for " << 32 << " is " << uint64_t(GetPaddedSIMDSize<double, 32>())  << std::endl;
 
   std::cout << "single precision" << std::endl;
   for(auto i = 2; i < 16; i++){
